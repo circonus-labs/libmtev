@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <section>
-  <title>imap</title>
-  <para>IMAP metrics check.</para>
+  <title>pop3</title>
+  <para>POP3 metrics check.</para>
   <variablelist>
     <varlistentry>
       <term>loader</term>
@@ -12,7 +12,7 @@
     <varlistentry>
       <term>object</term>
       <listitem>
-        <para>noit.module.imap</para>
+        <para>noit.module.pop3</para>
       </listitem>
     </varlistentry>
   </variablelist>
@@ -61,7 +61,7 @@
               </listitem>
             </varlistentry>
           </variablelist>
-          <para>The IMAP user.</para>
+          <para>The POP3 user.</para>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -83,85 +83,7 @@
               </listitem>
             </varlistentry>
           </variablelist>
-          <para>The IMAP password.</para>
-        </listitem>
-      </varlistentry>
-    </variablelist>
-    <variablelist>
-      <varlistentry>
-        <term>folder</term>
-        <listitem>
-          <variablelist>
-            <varlistentry>
-              <term>required</term>
-              <listitem>
-                <para>optional</para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>default</term>
-              <listitem>
-                <para>INBOX</para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>allowed</term>
-              <listitem>
-                <para>.+</para>
-              </listitem>
-            </varlistentry>
-          </variablelist>
-          <para>The folder that should be examined.</para>
-        </listitem>
-      </varlistentry>
-    </variablelist>
-    <variablelist>
-      <varlistentry>
-        <term>search</term>
-        <listitem>
-          <variablelist>
-            <varlistentry>
-              <term>required</term>
-              <listitem>
-                <para>optional</para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>allowed</term>
-              <listitem>
-                <para>.+</para>
-              </listitem>
-            </varlistentry>
-          </variablelist>
-          <para>Specify an optional IMAP SEARCH operation to execute after EXAMINE</para>
-        </listitem>
-      </varlistentry>
-    </variablelist>
-    <variablelist>
-      <varlistentry>
-        <term>fetch</term>
-        <listitem>
-          <variablelist>
-            <varlistentry>
-              <term>required</term>
-              <listitem>
-                <para>optional</para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>default</term>
-              <listitem>
-                <para>false</para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>allowed</term>
-              <listitem>
-                <para>(?:true|false|on|off)</para>
-              </listitem>
-            </varlistentry>
-          </variablelist>
-          <para>Fetch either that highest UID or last SEARCH result.</para>
+          <para>The POP3 password.</para>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -286,7 +208,7 @@ SL checks).</para>
     </variablelist>
     <variablelist>
       <varlistentry>
-        <term>header_Host</term>
+        <term>expected_certificate_name</term>
         <listitem>
           <variablelist>
             <varlistentry>
@@ -302,14 +224,14 @@ SL checks).</para>
               </listitem>
             </varlistentry>
           </variablelist>
-          <para>The host header to validate against the SSL certificate (for SSL checks).</para>
+          <para>The expected certificate name to validate against the SSL certificate (for SSL checks).</para>
         </listitem>
       </varlistentry>
     </variablelist>
   </section>
   <example>
-    <title>Checking IMAP connection.</title>
-    <para>This example checks IMAP connection with and without SSL.</para>
+    <title>Checking POP3 connection.</title>
+    <para>This example checks the POP3 connection.</para>
     <programlisting>
       &lt;noit&gt;
         &lt;modules&gt;
@@ -319,23 +241,14 @@ SL checks).</para>
           &lt;module loader="lua" name="imap" object="noit.module.imap" /&gt;
         &lt;/modules&gt;
         &lt;checks&gt;
-          &lt;imaps target="10.0.7.2" module="imap" period="10000" timeout="5000"&gt;
-            &lt;check uuid="79ba881e-ad2e-11de-9fb0-a322e3288ca7" name="imap"&gt;
-              &lt;config&gt;
-                &lt;port&gt;143&lt;/port&gt;
-                &lt;auth_user&gt;bob&lt;/auth_user&gt;
-                &lt;auth_password&gt;bob&lt;/auth_password&gt;
-              &lt;/config&gt;
-            &lt;/check&gt;
-            &lt;check uuid="a18659c2-add8-11de-bd01-7ff0e1a67246" name="imaps"&gt;
-              &lt;config&gt;
-                &lt;port&gt;993&lt;/port&gt;
-                &lt;auth_user&gt;bob&lt;/auth_user&gt;
-                &lt;auth_password&gt;bob&lt;/auth_password&gt;
-                &lt;use_ssl&gt;true&lt;/use_ssl&gt;
-              &lt;/config&gt;
-            &lt;/check&gt;
-          &lt;/imaps&gt;
+          &lt;check target="10.0.7.2" module="pop3" name="pop3" uuid="79ba881e-ad2e-11de-9fb0-a322e3288ca7" period="10000" timeout="5000"&gt;
+            &lt;config&gt;
+              &lt;port&gt;110&lt;/port&gt;
+              &lt;auth_user&gt;bob&lt;/auth_user&gt;
+              &lt;auth_password&gt;bob&lt;/auth_password&gt;
+              &lt;use_ssl&gt;false&lt;/use_ssl&gt;
+            &lt;/config&gt;
+          &lt;/check&gt;
         &lt;/checks&gt;
       &lt;/noit&gt;
     </programlisting>
