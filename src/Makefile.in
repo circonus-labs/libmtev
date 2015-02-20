@@ -51,38 +51,20 @@ WHOLE_ARCHIVE=@WHOLE_ARCHIVE@
 NOWHOLE_ARCHIVE=@NOWHOLE_ARCHIVE@
 
 DTRACEOBJ=@DTRACEOBJ@
-NOITD_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=noitd_%dtrace_stub.o)
-STRATCOND_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=stratcond_%dtrace_stub.o)
 LIBNOIT_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libnoit_%dtrace_stub.lo)
 LIBNOIT_V=libnoit@DOTSO@.$(LIBNOIT_VERSION)@DOTDYLIB@
 LIBNOIT=libnoit@DOTSO@@DOTDYLIB@
-LIBNOITLL_V=libnoit-ll@DOTSO@.$(LIBNOIT_VERSION)@DOTDYLIB@
-LIBNOITLL=libnoit-ll@DOTSO@@DOTDYLIB@
 
-TARGETS=noitd stratcond noit.conf test-noit.conf stratcon.conf test-stratcon.conf \
-	$(LIBNOIT) $(LIBNOITLL) @MDB_MODS@
+TARGETS=$(LIBNOIT) @MDB_MODS@
 
-all:	reversion $(TARGETS) java-bits make-modules make-man
-
-MODDIR=modules
-
-NOIT_HEADERS=noit_check.h noit_check_resolver.h \
-	noit_check_rest.h noit_check_tools.h \
-	noit_conf_private.h noit_conf_checks.h \
-	noit_filters.h noit_jlog_listener.h noit_livestream_listener.h \
-	noit_module.h
-
-STRATCON_HEADERS=stratcon_datastore.h stratcon_iep.h stratcon_jlog_streamer.h \
-	stratcon_realtime_http.h
+all:	reversion $(TARGETS) make-man
 
 HEADERS=noit_metric.h noit_capabilities_listener.h noit_conf.h noit_version.h \
-	noit_check_log_helpers.h noit_check_tools_shared.h \
 	noit_config.h noit_console.h noit_console_telnet.h \
 	noit_defines.h noit_events_rest.h \
 	noit_http.h noit_listener.h \
 	noit_main.h noit_dso.h noit_reverse_socket.h noit_rest.h \
 	noit_tokenizer.h noit_xml.h \
-  stratcon_ingest.h \
 	eventer/OETS_asn1_helper.h eventer/eventer.h \
 	eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
 	eventer/eventer_jobq.h \
@@ -98,7 +80,7 @@ HEADERS=noit_metric.h noit_capabilities_listener.h noit_conf.h noit_version.h \
 	noitedit/search.h noitedit/sig.h noitedit/strlcpy.h noitedit/sys.h \
 	noitedit/tokenizer.h noitedit/tty.h noitedit/vi.h \
 	json-lib/arraylist.h json-lib/bits.h json-lib/debug.h \
-	json-lib/json_object_private.h json-lib/json_object.h \
+	json-lib/json_object.h \
 	json-lib/json_tokener.h json-lib/json_util.h json-lib/json.h \
 	json-lib/linkhash.h json-lib/printbuf.h \
 	yajl-lib/yajl_alloc.h yajl-lib/yajl_buf.h yajl-lib/yajl_bytestack.h \
@@ -150,37 +132,7 @@ LIBNOIT_OBJS=noit_main.lo noit_listener.lo \
 	$(NOITEDIT_LIB_OBJS) $(EVENTER_LIB_OBJS) \
 	$(NOIT_UTILS_OBJS) $(JSON_LIB_OBJS) $(YAJL_LIB_OBJS)
 
-LIBNOITLL_OBJS=noit_check_log_helpers.lo bundle.pb-c.lo \
-	noit_check_tools_shared.lo stratcon_ingest.lo
-
-NOIT_OBJS=noitd.o \
-	noit_check_resolver.o \
-	noit_check.o noit_check_log.o noit_check_tools.o \
-	noit_module.o noit_conf_checks.o \
-	noit_jlog_listener.o noit_livestream_listener.o noit_filters.o \
-	noit_check_rest.o noit_filters_rest.o \
-	$(UDNS_LIB_OBJS) \
-	$(LUA_OBJS)
-
-STRATCON_OBJS=stratcond.o \
-	stratcon_realtime_http.o \
-	stratcon_jlog_streamer.o stratcon_datastore.o \
-	stratcon_iep.o \
-	$(UDNS_LIB_OBJS)
-
-FINAL_STRATCON_OBJS=$(STRATCON_OBJS:%.o=stratcon-objs/%.o)
-FINAL_NOIT_OBJS=$(NOIT_OBJS:%.o=noit-objs/%.o)
 FINAL_LIBNOIT_OBJS=$(LIBNOIT_OBJS:%.lo=libnoit-objs/%.lo)
-FINAL_LIBNOITLL_OBJS=$(LIBNOITLL_OBJS:%.lo=libnoit-ll-objs/%.lo)
-
-noit-objs/%.o:	%.o
-	@mkdir -p "`dirname $@`"
-	@echo "- making private $@"
-	@cp $(@:noit-objs/%.o=%.o) $@
-	@if test -x "$(CTFCONVERT)" ; then \
-		echo "- making CTF ($@)" ; \
-		$(CTFCONVERT) -g -i -l @VERSION@ $@ ; \
-	fi
 
 libnoit-objs/%.lo:	%.lo
 	@mkdir -p "`dirname $@`"
@@ -191,34 +143,8 @@ libnoit-objs/%.lo:	%.lo
 		$(CTFCONVERT) -g -i -l @VERSION@ $@ ; \
 	fi
 
-libnoit-ll-objs/%.lo:	%.lo
-	@mkdir -p "`dirname $@`"
-	@echo "- making private $@"
-	@cp $(@:libnoit-ll-objs/%.lo=%.lo) $@
-	@if test -x "$(CTFCONVERT)" ; then \
-		echo "- making CTF ($@)" ; \
-		$(CTFCONVERT) -g -i -l @VERSION@ $@ ; \
-	fi
-
-stratcon-objs/%.o:	%.o
-	@mkdir -p "`dirname $@`"
-	@echo "- making private $@"
-	@cp $(@:stratcon-objs/%.o=%.o) $@
-	@if test -x "$(CTFCONVERT)" ; then \
-		echo "- making CTF ($@)" ; \
-		$(CTFCONVERT) -g -i -l @VERSION@ $@ ; \
-	fi
-
 make-man:
 	@(cd man && $(MAKE) -s)
-
-make-modules:
-	@for dir in $(MODDIR) ; do \
-		(cd $$dir && $(MAKE) -s) ; \
-	done
-
-java-bits:
-	@-test -n "@JAVAPARTS@" && (cd java && $(MAKE) -s)
 
 .PHONY:	reversion
 
@@ -228,24 +154,6 @@ reversion:
 noit_version.h:
 	@$(top_srcdir)/buildtools/mkversion.sh noit_version.h
 
-noit.env:	noit_version.h noit_config.h
-	awk '/^#define[ 	]+NOIT_BRANCH/{print $$2"="$$3;}' < noit_version.h > $@
-	cat noit_version.h | tr '[".]' ' ' | awk '/^#define[ 	]+NOIT_VERSION/{print $$2"=\""$$3"\""; print $$2"_TSTAMP=\""$$4"\"";}' >> $@
-	awk '/^#define[ 	]+UNAME_[^V]/{print "BUILD_"$$2"="$$3;}' < noit_config.h >> $@
-
-man/noitd.usage.h:	make-man
-
-man/stratcond.usage.h:	make-man
-
-
-noitd.o:	man/noitd.usage.h
-stratcond.o:	man/stratcond.usage.h
-
-stratcon_jlog_streamer.o:	noit_@DTRACEHDR@ stratcon_@DTRACEHDR@
-noit_check_tools.o:	noit_@DTRACEHDR@ stratcon_@DTRACEHDR@
-noit_check.o:	noit_@DTRACEHDR@ stratcon_@DTRACEHDR@
-dtrace_probes.h:	noit_@DTRACEHDR@ stratcon_@DTRACEHDR@ libnoit_@DTRACEHDR@
-
 $(LIBNOIT):	$(LIBNOIT_V)
 	ln -sf $(LIBNOIT_V) $(LIBNOIT)
 
@@ -253,24 +161,9 @@ $(LIBNOIT_V):	$(FINAL_LIBNOIT_OBJS) $(LIBNOIT_DTRACEOBJ)
 	@echo "- linking $@"
 	$(SHLD) $(SHLDFLAGS) -o $@ @LD_LIBNOIT_VERSION@ $(FINAL_LIBNOIT_OBJS) $(LIBNOIT_DTRACEOBJ) $(LIBNOIT_LIBS)
 
-$(LIBNOITLL):	$(LIBNOITLL_V)
-	ln -sf $(LIBNOITLL_V) $(LIBNOITLL)
-
-$(LIBNOITLL_V):	$(FINAL_LIBNOITLL_OBJS) $(LIBNOIT)
-	@echo "- linking $@"
-	$(SHLD) $(SHLDFLAGS) -o $@ @LD_LIBNOITLL_VERSION@ $(FINAL_LIBNOITLL_OBJS) $(LIBNOITLL_LIBS) -L. -lnoit
-
 $(LIBNOIT_DTRACEOBJ):    $(FINAL_LIBNOIT_OBJS)
 	@echo "- assembling $@"
 	@DTRACE@ @DTRACEFLAGS@ -Z -G -s libnoit_dtrace_probes.d -o $(LIBNOIT_DTRACEOBJ) $(FINAL_LIBNOIT_OBJS)
-
-stratcond_@DTRACEOBJ@:    $(FINAL_STRATCON_OBJS)
-	@echo "- assembling $@" && \
-	@DTRACE@ @DTRACEFLAGS@ -Z -G -s stratcon_dtrace_probes.d -o stratcond_@DTRACEOBJ@ $(FINAL_STRATCON_OBJS)
-
-noitd_@DTRACEOBJ@:    $(FINAL_NOIT_OBJS)
-	@echo "- assembling $@" && \
-	@DTRACE@ @DTRACEFLAGS@ -Z -G -s noit_dtrace_probes.d -o noitd_@DTRACEOBJ@ $(FINAL_NOIT_OBJS)
 
 libnoit_@DTRACEHDR@:    libnoit_dtrace_probes.d
 	@if test -z "@DTRACE@" ; then \
@@ -279,46 +172,6 @@ libnoit_@DTRACEHDR@:    libnoit_dtrace_probes.d
 	else \
 		echo "- building dtrace header $@" ; \
 		@DTRACE@ -h -s libnoit_dtrace_probes.d ; \
-	fi
-
-noit_@DTRACEHDR@:    noit_dtrace_probes.d
-	@if test -z "@DTRACE@" ; then \
-		echo "- faking dtrace header" ; \
-		cp ./noit_@DTRACEHDR@.stock ./noit_@DTRACEHDR@ ; \
-	else \
-		echo "- building dtrace header $@" ; \
-		@DTRACE@ -h -s noit_dtrace_probes.d ; \
-	fi
-
-stratcon_@DTRACEHDR@:    stratcon_dtrace_probes.d
-	@if test -z "@DTRACE@" ; then \
-		echo "- faking dtrace header" ; \
-		cp ./stratcon_@DTRACEHDR@.stock ./stratcon_@DTRACEHDR@ ; \
-	else \
-		echo "- building dtrace header $@" ; \
-		@DTRACE@ -h -s stratcon_dtrace_probes.d ; \
-	fi
-
-noitd:	$(FINAL_NOIT_OBJS) man/noitd.usage.h $(NOITD_DTRACEOBJ) $(LIBNOIT) $(LIBNOITLL)
-	@echo "- linking $@"
-	@$(CC) $(CLINKFLAGS) -o $@ $(FINAL_NOIT_OBJS) \
-		$(NOITD_DTRACEOBJ) \
-		$(LDFLAGS) \
-		$(MAPFLAGS) \
-		$(LIBS) -L. -lnoit -lnoit-ll $(LUALIBS) -ljlog
-	@if test -x "$(CTFMERGE)" ; then \
-		$(CTFMERGE) -g -l @VERSION@ -o $@ $(FINAL_NOIT_OBJS) $(NOITD_DTRACEOBJ) ; \
-	fi
-
-stratcond:	$(FINAL_STRATCON_OBJS) $(STRATCOND_DTRACEOBJ) $(LIBNOIT) $(LIBNOITLL)
-	@echo "- linking $@"
-	$(CC) $(CLINKFLAGS) -o $@ $(FINAL_STRATCON_OBJS) \
-		$(STRATCOND_DTRACEOBJ) \
-		$(LDFLAGS) \
-		$(MAPFLAGS) \
-		$(LIBS) -L. -lnoit -lnoit-ll
-	@if test -x "$(CTFMERGE)" ; then \
-		$(CTFMERGE) -g -l @VERSION@ -o $@ $(FINAL_STRATCON_OBJS) $(STRATCOND_DTRACEOBJ) ; \
 	fi
 
 mdb-support/mdb_help.lo:	mdb-support/mdb_help.c
@@ -334,10 +187,6 @@ mdb-support/libnoit.lo:	mdb-support/libnoit.c $(SHAREDMDBMODSRC)
 mdb-support/libnoit.so:	mdb-support/libnoit.lo mdb-support/mdb_help.lo
 	@echo "- linking $@"
 	@$(MODULELD) $(SHLDFLAGS) -o $@ mdb-support/libnoit.lo mdb-support/mdb_help.lo
-
-stratcon_datastore.o:	stratcon_datastore.c
-	@echo "- compiling $<"
-	@$(CC) $(CPPFLAGS) $(PGCFLAGS) $(CFLAGS) -c $<
 
 .c.lo:
 	@if [ "`dirname $@`" != "." ] ; then \
@@ -355,9 +204,6 @@ stratcon_datastore.o:	stratcon_datastore.c
 		$(CC) $(CPPFLAGS) $(CFLAGS) -c $< ; \
 	fi
 
-udns/udns_codes.c:
-	@(cd udns && $(MAKE) udns_codes.c)
-
 utils/noit_atomic_sol_sparcv8plus.o:	utils/noit_atomic_sol.s
 	@(cd utils && $(MAKE) noit_atomic_sol_sparcv8plus.o)
 
@@ -370,72 +216,9 @@ utils/noit_atomic_sol_x86_32.o:	utils/noit_atomic_sol.s
 utils/noit_atomic_sol_x86_64.o:	utils/noit_atomic_sol.s
 	@(cd utils && $(MAKE) noit_atomic_sol_x86_64.o)
 
-noit_module.o:	module-online.h
-
-module-online.h:	modules/module-online.xsl
-	@echo "- making module-online.h (StyleSheet include)"
-	@$(XML2H) helpStyleXML < modules/module-online.xsl > $@
-
 noit_tokenizer.c:
 	@echo "- re2c noit_tokenizer.re"
 	@re2c -o $@ noit_tokenizer.re
-
-test-noit.conf:	noit.conf.in Makefile
-	@mkdir -p scratch/var/log scratch/var/run
-	@sed -e "s^%sysconfdir%^`pwd`^g;" \
-		-e "s^%modulesdir%^`pwd`/modules^g;" \
-		-e "s^%modulesluadir%^`pwd`/modules-lua^g;" \
-		-e "s^%datarootdir%^`pwd`^g;" \
-		-e "s^%PKIPREFIX%^../test/test-^g;" \
-		-e "s^/var/^`pwd`/scratch/var/^g;" < \
-		noit.conf.in > \
-		test-noit.conf
-
-noit.conf:	noit.conf.in Makefile
-	@sed -e "s^%sysconfdir%^$(sysconfdir)^g;" \
-		-e "s^%modulesdir%^$(MODULES_DIR)^g;" \
-		-e "s^%modulesluadir%^$(MODULES_DIR)^g;" \
-		-e "s^%datarootdir%^$(datadir)^g;" \
-		-e "s^%PKIPREFIX%^$${PKIPREFIX}^g;" < \
-		noit.conf.in > \
-		noit.conf
-
-test-stratcon.conf:	stratcon.conf.in Makefile
-	@sed -e "s^%sysconfdir%^`pwd`^g;" \
-		-e "s^%modulesdir%^`pwd`/modules^g;" \
-		-e "s^%modulesluadir%^`pwd`/modules-lua^g;" \
-		-e "s^%iepbindir%^`pwd`/java^g;" \
-		-e "s^%iepdbdir%^`pwd`/java^g;" \
-		-e "s^%PKIPREFIX%^../test/test-^g;" < \
-		stratcon.conf.in > \
-		test-stratcon.conf
-
-stratcon.conf:	stratcon.conf.in Makefile
-	@sed -e "s^%sysconfdir%^$(sysconfdir)^g;" \
-		-e "s^%modulesdir%^$(MODULES_DIR)^g;" \
-		-e "s^%modulesluadir%^$(MODULES_DIR)^g;" \
-		-e "s^%iepbindir%^$(bindir)^g;" \
-                -e "s^%iepdbdir%^$(localstatedir)/db/noit-iep^g;" \
-		-e "s^%PKIPREFIX%^$${PKIPREFIX}^g;" < \
-		stratcon.conf.in > \
-		stratcon.conf
-
-install-dirs:
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(sbindir)
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(sysconfdir)
-
-install-noitd-headers:	$(NOIT_HEADERS) install-headers
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)
-	for file in $(NOIT_HEADERS) ; do \
-		$(INSTALL) -m 0644 $$file $(DESTDIR)$(includedir)/$$file ; \
-	done
-
-install-stratcond-headers:	$(STRATCON_HEADERS) install-headers
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)
-	for file in $(STRATCON_HEADERS) ; do \
-		$(INSTALL) -m 0644 $$file $(DESTDIR)$(includedir)/$$file ; \
-	done
 
 install-headers:	$(HEADERS)
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)
@@ -451,77 +234,33 @@ install-headers:	$(HEADERS)
 		$(INSTALL) -m 0644 $$file $(DESTDIR)$(includedir)/$$file ; \
 	done
 
-noitlibs:	$(LIBNOIT_V) $(LIBNOITLL_V) @MDB_MODS@
+noitlibs:	$(LIBNOIT_V) @MDB_MODS@
 
 install-libs:    noitlibs
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)
 	$(INSTALL) -m 0755 $(LIBNOIT_V) $(DESTDIR)$(libdir)/$(LIBNOIT_V)
 	ln -sf $(LIBNOIT_V) $(DESTDIR)$(libdir)/$(LIBNOIT)
-	$(INSTALL) -m 0755 $(LIBNOITLL_V) $(DESTDIR)$(libdir)/$(LIBNOITLL_V)
-	ln -sf $(LIBNOITLL_V) $(DESTDIR)$(libdir)/$(LIBNOITLL)
 	if test -n "@MDB_MODS@" ; then \
 		$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)/usr/lib/mdb/proc/amd64 ; \
 		$(INSTALL) -m 0755 mdb-support/libnoit.so $(DESTDIR)/usr/lib/mdb/proc/amd64/libnoit.so ; \
 	fi
 
-install-noitd:	install-libs install-noitd-nolibs
-
-install-noitd-nolibs:	install-dirs reversion noitd noit.conf java-bits noit.env
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(datadir)/noit-web
-	$(INSTALL) -m 0755 scripts/noittrap $(DESTDIR)$(bindir)/noittrap
-	$(INSTALL) -m 0755 noitd $(DESTDIR)$(sbindir)/noitd
-	$(INSTALL) -m 0644 noit.conf $(DESTDIR)$(sysconfdir)/noit.conf.sample
-	$(INSTALL) -m 0644 noit.env $(DESTDIR)$(sysconfdir)/noit.env
-	$(INSTALL) -m 0644 config_templates.conf $(DESTDIR)$(sysconfdir)/config_templates.conf
-	$(INSTALL) -m 0644 default-ca-chain.crt $(DESTDIR)$(sysconfdir)/default-ca-chain.crt
-	(cd modules && $(MAKE) install-modules DESTDIR=$(DESTDIR))
-	(cd modules-lua && $(MAKE) install DESTDIR=$(DESTDIR))
-	(cd noit-web && tar cf - .) | (cd $(DESTDIR)$(datadir)/noit-web && tar xf -)
-	-test -n "@JAVAPARTS@" && (cd @JAVAPARTS@ && $(MAKE) install-jezebel DESTDIR=$(DESTDIR))
-
-install-stratcond:	install-libs install-stratcond-nolibs
-
-install-stratcond-nolibs:	install-dirs reversion stratcond stratcon.conf java-bits noit.env
-	$(INSTALL) -m 0755 stratcond $(DESTDIR)$(sbindir)/stratcond
-	$(INSTALL) -m 0644 stratcon.conf $(DESTDIR)$(sysconfdir)/stratcon.conf.sample
-	$(INSTALL) -m 0644 noit.env $(DESTDIR)$(sysconfdir)/stratcon.env
-	(cd modules && $(MAKE) install-smodules DESTDIR=$(DESTDIR))
-	-test -n "@JAVAPARTS@" && (cd @JAVAPARTS@ && $(MAKE) install-iep DESTDIR=$(DESTDIR))
-
 install-docs:
 	(cd man && $(MAKE) install DESTDIR=$(DESTDIR))
 
-install:	install-dirs install-docs install-headers install-noitd install-stratcond install-noitd-headers install-stratcond-headers
+install:	install-docs install-headers install-libs
 
 clean:
-	rm -f *.lo *.o $(TARGETS) $(LUA_OBJS)
-	rm -f $(LIBNOIT) $(LIBNOIT_V) $(LIBNOITLL) $(LIBNOITLL_V)
-	rm -f module-online.h noit.env
-	rm -rf noit-objs stratcon-objs libnoit-objs libnoit-ll-objs
+	rm -f *.lo *.o
+	rm -f $(LIBNOIT) $(LIBNOIT_V)
+	rm -rf libnoit-objs
 	rm -rf mdb-support/*.lo mdb-support/*.so
 	(cd eventer && $(MAKE) clean)
-	(cd udns && $(MAKE) clean)
 	(cd man && $(MAKE) clean)
-	(cd modules && $(MAKE) clean)
 	(cd noitedit && $(MAKE) clean)
 	(cd utils && $(MAKE) clean)
 	(cd json-lib && $(MAKE) clean)
 	(cd yajl-lib && $(MAKE) clean)
-	(cd java && $(MAKE) clean)
-
-Makefile.noit.dep:
-	find noit-objs -name \*.o | grep -v 'eventer_.*_impl.o' | sort | awk '{gsub("^.+-objs/", ""); print "noit-objs/"$$1": "$$1;}' > $@
-	for impl in kqueue ports epoll; do \
-		echo "noit-objs/eventer/eventer_$${impl}_impl.o: eventer/eventer_$${impl}_impl.o" >> $@ ; \
-		echo "noit-objs/eventer/eventer_$${impl}_impl.lo: eventer/eventer_$${impl}_impl.lo" >> $@ ; \
-	done
-
-Makefile.stratcon.dep:
-	find stratcon-objs -name \*.o | grep -v 'eventer_.*_impl.o' | sort | awk '{gsub("^.+-objs/", ""); print "stratcon-objs/"$$1": "$$1;}' > $@
-	for impl in kqueue ports epoll; do \
-		echo "stratcon-objs/eventer/eventer_$${impl}_impl.o: eventer/eventer_$${impl}_impl.o" >> $@ ; \
-		echo "stratcon-objs/eventer/eventer_$${impl}_impl.lo: eventer/eventer_$${impl}_impl.lo" >> $@ ; \
-	done
 
 Makefile.dep:
 	$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
@@ -537,20 +276,11 @@ Makefile.dep:
 	$(top_srcdir)/buildtools/culldeps.sh Makefile.dep
 
 include Makefile.dep
-include Makefile.noit.dep
-include Makefile.stratcon.dep
 
 distclean-subdirs:
-	for dir in eventer udns man modules modules-lua noitedit utils json-lib yajl-lib java ; do \
+	for dir in eventer man noitedit utils json-lib yajl-lib ; do \
 		(cd $$dir && $(MAKE) distclean) ; \
 	done
 
 distclean:	clean distclean-subdirs
 	rm -f Makefile noit_config.h scripts/noit-config
-
-js/bundle.desc:	bundle.proto
-	protoc -ojs/bundle.desc bundle.proto
-
-bundle:
-	protoc bundle.proto --java_out=java
-	protoc-c bundle.proto --c_out=.

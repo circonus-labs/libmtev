@@ -18,39 +18,11 @@ sysconfdir=@sysconfdir@
 srcdir=@srcdir@
 top_srcdir=@top_srcdir@
 
-all:	noitd.8 noitd.usage.h \
-	stratcond.8 stratcond.usage.h
+all:
 
-noitd.8:	$(top_srcdir)/docs/executable/noitd.xml
-	@echo " - manifying $@"
-	@$(XSLTPROC) --nonet \
-		$(top_srcdir)/docs/docbook-xsl/manpages/docbook.xsl \
-		$(top_srcdir)/docs/executable/noitd.xml > /dev/null 2>&1
-
-noitd.usage.h:	noitd.8
-	@echo " - creating $@"
-	@$(NROFF)  -man ./noitd.8 | \
-		$(top_srcdir)/buildtools/xml2h NOITD_USAGE > $@
-
-stratcond.8:	$(top_srcdir)/docs/executable/stratcond.xml
-	@echo " - manifying $@"
-	@$(XSLTPROC) --nonet \
-		$(top_srcdir)/docs/docbook-xsl/manpages/docbook.xsl \
-		$(top_srcdir)/docs/executable/stratcond.xml > /dev/null 2>&1
-
-stratcond.usage.h:	stratcond.8
-	@echo " - creating $@"
-	@$(NROFF)  -man ./stratcond.8 | \
-		$(top_srcdir)/buildtools/xml2h STRATCOND_USAGE > $@
-
-install:	all
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(mandir)
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(mandir)/$(mansubdir)8
-	$(INSTALL) -m 0644 noitd.8 $(DESTDIR)$(mandir)/$(mansubdir)8/noitd.8
-	$(INSTALL) -m 0644 stratcond.8 $(DESTDIR)$(mandir)/$(mansubdir)8/stratcond.8
+install:
 
 clean:
-	rm -f noitd.8 noitd.usage.h stratcond.8 stratcond.usage.h
 
 distclean:
 	rm -f Makefile

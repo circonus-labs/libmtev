@@ -38,10 +38,9 @@
 #include "utils/noit_log.h"
 #include "utils/noit_sem.h"
 #include "noit_capabilities_listener.h"
-#include "noit_module.h"
-#include "noit_check.h"
 #include "noit_xml.h"
 #include "noit_rest.h"
+#include "noit_dso.h"
 #include "json-lib/json.h"
 
 #include <unistd.h>

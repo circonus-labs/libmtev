@@ -39,7 +39,6 @@
 #include "noit_listener.h"
 #include "noit_console.h"
 #include "noit_tokenizer.h"
-#include "noit_module.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>

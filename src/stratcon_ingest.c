@@ -38,12 +38,8 @@
 #include "utils/noit_str.h"
 #include "utils/noit_mkdir.h"
 #include "utils/noit_getip.h"
-#include "stratcon_datastore.h"
 #include "stratcon_ingest.h"
-#include "stratcon_realtime_http.h"
-#include "stratcon_iep.h"
 #include "noit_conf.h"
-#include "noit_check.h"
 #include "noit_rest.h"
 #include <unistd.h>
 #include <fcntl.h>

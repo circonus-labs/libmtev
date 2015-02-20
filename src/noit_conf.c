@@ -44,7 +44,6 @@
 #include <zlib.h>
 
 #include "noit_conf.h"
-#include "noit_check.h"
 #include "noit_console.h"
 #include "noit_version.h"
 #include "noit_xml.h"

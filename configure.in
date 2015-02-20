@@ -1,4 +1,4 @@
-AC_INIT(src/noitd.c)
+AC_INIT(src/noit_main.c)
 
 node=`hostname | cut -f1 -d '.' | tr '[A-Z]' '[a-z]'`
 if test -f ".configure.$node"; then
@@ -17,18 +17,6 @@ AC_ARG_ENABLE(strict,
 	enable_strict="$enableval",
 	enable_strict=no)
 
-AC_ARG_ENABLE(lua,
-	[AC_HELP_STRING([--enable-lua],
-		[Choose a lua implementation: (no, lua52, LuaJIT)])],
-	enable_lua="$enableval",
-	enable_lua=LuaJIT)
-
-if (test "$enable_lua" != "LuaJIT" && \
-	test "$enable_lua" != "lua52" && \
-	test "$enable_lua" != "no") ; then
-	AC_MSG_ERROR(Invalid value '$enable_lua' for --enable-lua)
-fi
-
 AC_PROG_CC
 AC_C_INLINE
 AC_C_BIGENDIAN
@@ -40,26 +28,11 @@ AC_PATH_PROG(AR, ar)
 AC_PATH_PROGS(PERL, perl)
 AC_PATH_PROGS(XSLTPROC, xsltproc)
 AC_PATH_PROGS(XMLLINT, xmllint)
-AC_PATH_PROGS(MAVEN, mvn)
-AC_PATH_PROGS(JAVA, java)
-AC_PATH_PROGS(JAVA, java, , $JAVA_HOME/bin)
-AC_PATH_PROGS(JAVAC, javac)
-AC_PATH_PROGS(JAVAC, javac, , $JAVA_HOME/bin)
-AC_PATH_PROGS(JAR, jar)
-AC_PATH_PROGS(JAR, jar, , $JAVA_HOME/bin)
 AC_PATH_PROG(NROFF, nroff)
 AC_PATH_PROG(CTFCONVERT, ctfconvert)
 AC_PATH_PROG(CTFMERGE, ctfmerge)
-AC_PATH_PROG(LUA, luajit)
-if test -z "$ac_cv_path_LUA"; then
-	AC_PATH_PROG(LUA, lua)
-fi
 AC_SUBST(PERL)
 
-ENABLE_LUA=$enable_lua
-AC_SUBST(ENABLE_LUA)
-
-MAPFLAGS=""
 if test "x$GCC" = "xyes" ; then
 	C99FLAG="-std=c99"
 	CFLAGS="$CFLAGS -g $C99FLAG"
@@ -72,10 +45,9 @@ fi
 SHLDFLAGS="$LDFLAGS"
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L "'-I$(top_srcdir)/src'
-DTRACEHDR=dtrace_probes.h
+DTRACEHDR=libnoit_dtrace_probes.h
 DOTSO=.so
 LD_LIBNOIT_VERSION='-Wl,-soname,libnoit.so.$(LIBNOIT_VERSION)'
-LD_LIBNOITLL_VERSION='-Wl,-soname,libnoit-ll.so.$(LIBNOIT_VERSION)'
 
 case $host in
 *-*-darwin*)
@@ -111,7 +83,6 @@ case $host in
 	AC_MSG_CHECKING([32 or 64 bit Solaris assembly])
 	if test -n "`echo $CFLAGS | grep m64`" ; then
 		DTRACEFLAGS=-64
-		MAPFLAGS="-Wl,-M -Wl,map64bit"
 		if test -n "`isalist | grep sparc`"; then
 			AC_MSG_RESULT([sparc 64])
 			ATOMIC_OBJS="noit_atomic_sol_sparcv9.lo"
@@ -135,11 +106,8 @@ case $host in
 		MODULELD="$CC -G"
 		SHLD="$CC -G"
 	else
-		# Foul and disgusting unwinding issues require libgcc_s
-		LUALIBS="-lgcc_s"
 		if test -n "`echo $CFLAGS | grep m64`" ; then
 			DTRACEFLAGS=-64
-			MAPFLAGS="-Wl,-M -Wl,map64bit"
 		fi
 		PICFLAGS="-fPIC"
 		MODULELD="$CC -shared"
@@ -195,7 +163,6 @@ esac
 AC_SUBST(DOTSO)
 AC_SUBST(DOTDYLIB)
 AC_SUBST(LD_LIBNOIT_VERSION)
-AC_SUBST(LD_LIBNOITLL_VERSION)
 AC_SUBST(MDB_MODS)
 AC_DEFINE_UNQUOTED(CAP_PLATFORM, "$CAP_PLATFORM", [capabilities platform])
 if test "x$CAP_SUPPORTED" = "x1" ; then
@@ -218,45 +185,8 @@ AC_SUBST(MODULEEXT)
 AC_SUBST(WHOLE_ARCHIVE)
 AC_SUBST(NOWHOLE_ARCHIVE)
 AC_SUBST(ATOMIC_OBJS)
-AC_SUBST(MAPFLAGS)
 AC_DEFINE_UNQUOTED(MODULEEXT, "$MODULEEXT", [module extension])
 AC_MSG_CHECKING([enable build/install of the Java IEP and Jezebel bits])
-
-LUA_MODULE=lua.$MODULEEXT
-if test "$enable_lua" = "no"; then
-	LUA_MODULE=
-fi
-
-INSTALL_IEP=install-iep
-SKIP_IEP=
-RIEMANN_IEP_ENABLE="no"
-if test -z "$ac_cv_path_MAVEN" ; then
-	INSTALL_IEP=
-	SKIP_IEP=_SKIP_
-else
-	RIEMANN_IEP_ENABLE="yes"
-fi
-AC_SUBST(INSTALL_IEP)
-AC_SUBST(SKIP_IEP)
-
-JEZEBEL_JAR_ENABLE="no"
-RECONNOITER_JAR_ENABLE="no"
-if test -z "$ac_cv_path_JAVA" \
-	-o -z "$ac_cv_path_JAVAC" \
-	-o -z "$ac_cv_path_JAR" ; then
-	AC_MSG_RESULT([no])
-else
-	if $ac_cv_path_JAVA -cp buildtools version 1.6 ; then
-		JAVAPARTS=java
-		AC_MSG_RESULT([yes])
-		JEZEBEL_JAR_ENABLE="yes"
-		RECONNOITER_JAR_ENABLE="yes"
-	else
-		JVERSION=`$ac_cv_path_JAVA -cp buildtools version 1.6`
-		AC_MSG_RESULT([too old: $JVERSION]);
-	fi
-fi
-AC_SUBST(JAVAPARTS)
 
 # Checks for data types
 AC_CHECK_SIZEOF(char, 1)
@@ -265,18 +195,6 @@ AC_CHECK_SIZEOF(int, 4)
 AC_CHECK_SIZEOF(long int, 4)
 AC_CHECK_SIZEOF(long long int, 8)
 AC_CHECK_SIZEOF(void *, 1)
-
-# Check for lua libraries
-OLD_LIBS=$LIBS
-LIBS=
-if test "x$ENABLE_LUA" = "xLuaJIT"; then
-	AC_CHECK_LIB(luajit-5.1, luaL_newstate, [], [AC_MSG_ERROR(*** libluajit-5.1 required ***)])
-elif test "x$ENABLE_LUA" = "xlua52"; then
-	AC_MSG_ERROR(*** liblua52 required ***)
-fi
-LUALIBS="$LUALIBS $LIBS"
-AC_SUBST(LUALIBS)
-LIBS=$OLD_LIBS
 
 AC_CHECK_HEADER(ck_pr.h, [], [AC_MSG_ERROR(*** libck (headers) required ***)])
 AC_CHECK_LIB(ck, ck_ht_init, , [AC_MSG_ERROR(*** concurrencyckit (libck) is required ***)])
@@ -351,15 +269,6 @@ AC_CHECK_FUNC(xsltParseStylesheetDoc, , [AC_MSG_ERROR(*** libxslt is required **
 LIBNOIT_LIBS=$LIBS
 AC_SUBST(LIBNOIT_LIBS)
 
-old_LIBS="$LIBS"
-LIBS=""
-AC_CHECK_LIB(protobuf-c, protobuf_c_message_get_packed_size, ,
-	[AC_MSG_ERROR(libprotobuf-c required)])
-AC_CHECK_LIB(z, compress2, , [AC_MSG_ERROR(*** zlib is required ***)])
-LIBNOITLL_LIBS=$LIBS
-AC_SUBST(LIBNOITLL_LIBS)
-LIBS="$old_LIBS"
-
 AC_CHECK_FUNC(SSLv2_server_method, [ AC_DEFINE(HAVE_SSLV2_SERVER) ])
 AC_CHECK_FUNC(SSLv2_client_method, [ AC_DEFINE(HAVE_SSLV2_CLIENT) ])
 AC_CHECK_FUNC(SSLv3_server_method, [ AC_DEFINE(HAVE_SSLV3_SERVER) ])
@@ -370,183 +279,6 @@ AC_CHECK_FUNC(TLSv1_1_server_method, [ AC_DEFINE(HAVE_TLSV1_1_SERVER) ])
 AC_CHECK_FUNC(TLSv1_1_client_method, [ AC_DEFINE(HAVE_TLSV1_1_CLIENT) ])
 AC_CHECK_FUNC(TLSv1_2_server_method, [ AC_DEFINE(HAVE_TLSV1_2_SERVER) ])
 AC_CHECK_FUNC(TLSv1_2_client_method, [ AC_DEFINE(HAVE_TLSV1_2_CLIENT) ])
-
-old_LIBS="$LIBS"
-old_CFLAGS="$CFLAGS"
-AC_CHECK_LIB(pq, PQconnectdb,
-	[
-		LIBS="$LIBS -lpq"
-		PGLIBS="$LIBS"
-		AC_SUBST(PGLIBS)
-	],
-	[
-		AC_MSG_WARN([libpq is highly recommended and needed for the test suite])
-		AC_SUBST(PGLIBS)
-	]
-)
-
-AC_MSG_CHECKING([libpq includes])
-PQICFLAGS=`pg_config --includedir`
-if test -n "$PQICFLAGS" ; then
-	CFLAGS="$CFLAGS -I$PQICFLAGS"
-fi
-
-POSTGRES_MODULE="no"
-POSTGRES_INGESTOR_MODULE="no"
-AC_TRY_LINK([
-	#include <libpq-fe.h>
-	],
-	[ PGconn *dbh = PQconnectdb(""); ],
-	[
-		BUILD_MODULES="$BUILD_MODULES postgres.$MODULEEXT"
-		BUILD_SMODULES="$BUILD_SMODULES postgres_ingestor.$MODULEEXT"
-		AC_SUBST(PGCFLAGS)
-		POSTGRES_MODULE="yes"
-		POSTGRES_INGESTOR_MODULE="yes"
-  ],
-	[
-		AC_SUBST(PGCFLAGS)
-		AC_MSG_WARN([Cannot compile/link against libpq])
-	]
-)
-PGCFLAGS=$CFLAGS
-AC_SUBST(PGCFLAGS)
-LIBS=$old_LIBS
-CFLAGS=$old_CFLAGS
-
-AC_CHECK_HEADERS(gcrypt.h)
-
-AC_CHECK_HEADERS(mysql.h mysql/mysql.h)
-
-MYSQL_MODULE="no"
-if test "$ac_cv_header_mysql_h" = "no" -a "$ac_cv_header_mysql_mysql_h" = "no" ; then
-	AC_MSG_WARN([No libmysqlclient, skipping mysql module])
-	AC_SUBST(MYCFLAGS)
-	AC_SUBST(MYLIBS)
-else
-	LIBS=$old_LIBS
-	CFLAGS=$old_CFLAGS
-	
-	if test -z "$MYLIBS" ; then
-	  MYLIBS="-lmysqlclient_r -lz -lssl -lcrypto"
-	fi
-	
-	old_CFLAGS=$CFLAGS
-	old_LIBS=$LIBS
-	CFLAGS="$CFLAGS $MYCFLAGS"
-	LIBS="$MYLIBS"
-	
-	AC_CHECK_FUNC(mysql_real_connect,
-		[
-			BUILD_MODULES="$BUILD_MODULES mysql.$MODULEEXT"
-			MYCFLAGS="$CFLAGS"
-			MYLIBS="$LIBS"
-			AC_SUBST(MYCFLAGS)
-			AC_SUBST(MYLIBS)
-			MYSQL_MODULE="yes"
-		],
-		[
-			AC_MSG_WARN([No libmysqlclient, skipping mysql module])
-			AC_SUBST(MYCFLAGS)
-			AC_SUBST(MYLIBS)
-		]
-	)
-	
-	
-	LIBS=$old_LIBS
-	CFLAGS=$old_CFLAGS
-fi
-
-########
-#
-# CHECK FOR VARIOUS MODULE CRITERIA
-# We don't track the libs themselves, as we'll just explictly link
-# against the in the makefile if we enable them to build (by adding
-# them to the BUILD_MODULES list).
-#
-########
-
-# Should we build snmp checks?
-SNMP_MODULE="no"
-HAS_NETSNMP="no"
-AC_CHECK_HEADERS(net-snmp/net-snmp-config.h)
-if test "$ac_cv_header_net_snmp_net_snmp_config_h" = "yes" ; then
-SAVELIBS="$LIBS"
-AC_CHECK_LIB(netsnmp-c, snmp_sess_open_C1,
-	[
-		BUILD_MODULES="$BUILD_MODULES snmp.$MODULEEXT"
-		HAS_NETSNMP="yes"
-		SNMP_MODULE="yes"
-		LIBNETSNMP="netsnmp-c"
-	],
-  [
-		AC_CHECK_LIB(netsnmp, snmp_sess_open,
-			[
-				HAS_NETSNMP="yes"
-				SNMP_MODULE="no"
-				AC_MSG_WARN([*** snmp C implementation requires libnetsnmp-c ***])
-				LIBNETSNMP="netsnmp"
-			]
-		)
-	]
-)
-LIBS="$SAVELIBS"
-fi
-
-FQ_DRIVER_MODULE="no"
-SAVELIBS="$LIBS"
-HAS_LIBFQ="no"
-AC_CHECK_LIB(fq, fq_client_init,
-	[
-		BUILD_SMODULES="$BUILD_SMODULES fq_driver.$MODULEEXT"
-		HAS_LIBFQ="yes"
-		FQ_DRIVER_MODULE="yes"
-	]
-)
-LIBS="$SAVELIBS"
-
-if test "x$HAS_NETSNMP" = "xno"; then
-	AC_MSG_WARN([No libnetsnmp, skipping snmp module])
-	if test -n "$LUA_MODULE"; then
-		AC_MSG_ERROR([*** lua specified, but no SNMP ***])
-	fi
-fi
-
-AC_SUBST(LIBNETSNMP)
-
-# Should we build ssh2 checks?
-SSH2_MODULE="no"
-SAVELIBS="$LIBS"
-AC_CHECK_LIB(ssh2, libssh2_session_init_ex,
-	[
-		BUILD_MODULES="$BUILD_MODULES ssh2.$MODULEEXT"
-		SSH2_MODULE="yes"
-	],
-	[
-		AC_MSG_WARN([No libssh2, skipping ssh2 module])
-	]
-)
-LIBS="$SAVELIBS"
-
-STOMP_DRIVER_MODULE="no"
-AC_MSG_CHECKING([apr-1-config for needed for stomp support])
-APRPREFIX=`apr-1-config --prefix`
-if test $? -eq "0"; then
-	BUILD_SMODULES="$BUILD_SMODULES stomp_driver.$MODULEEXT"
-	STOMP_DRIVER_MODULE="yes"
-fi
-AC_SUBST(APRPREFIX)
-AC_MSG_RESULT([$APRPREFIX])
-
-AC_MSG_CHECKING([libapr cflags])
-APRCFLAGS="`apr-1-config --cflags --cppflags --includes`"
-AC_SUBST(APRCFLAGS)
-AC_MSG_RESULT([$APRCFLAGS])
-
-AC_MSG_CHECKING([libapr libs])
-APRLIBS="`apr-1-config --link-ld --ldflags --libs`"
-AC_SUBST(APRLIBS)
-AC_MSG_RESULT([$APRLIBS])
 
 AC_TRY_LINK([],
 	[ issetugid(); ],
@@ -645,21 +377,6 @@ AC_EGREP_CPP([tgoto.*[(][       ]*char[         ]*],
 		 AC_DEFINE(TGOTO_TAKES_CHAR)],
 		[AC_MSG_RESULT(not char)])
 
-AC_CACHE_CHECK([for epoll support], ac_cv_have_epoll, [
-	AC_TRY_LINK(
-		[ #include <sys/types.h> ],
-		[ int a; a = epoll_create(); ],
-		[ ac_cv_have_epoll="yes" ],
-		[ ac_cv_have_epoll="no" ]
-	)
-])
-if test "x$ac_cv_have_epoll" = "xyes" ; then
-	AC_DEFINE(HAVE_EPOLL)
-	EVENTER_OBJS="$EVENTER_OBJS eventer_epoll_impl.lo"
-	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "epoll")
-	have_epoll=1
-fi
-
 AC_CACHE_CHECK([for kqueue support], ac_cv_have_kqueue, [
 	AC_TRY_LINK(
 		[ #include <sys/types.h> ],
@@ -688,6 +405,21 @@ if test "x$ac_cv_have_ports" = "xyes" ; then
 	EVENTER_OBJS="$EVENTER_OBJS eventer_ports_impl.lo"
 	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "ports")
 	have_ports=1
+fi
+
+AC_CACHE_CHECK([for epoll support], ac_cv_have_epoll, [
+	AC_TRY_LINK(
+		[ #include <sys/types.h> ],
+		[ int a; a = epoll_create(); ],
+		[ ac_cv_have_epoll="yes" ],
+		[ ac_cv_have_epoll="no" ]
+	)
+])
+if test "x$ac_cv_have_epoll" = "xyes" ; then
+	AC_DEFINE(HAVE_EPOLL)
+	EVENTER_OBJS="$EVENTER_OBJS eventer_epoll_impl.lo"
+	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "epoll")
+	have_epoll=1
 fi
 
 AC_SUBST(EVENTER_OBJS)
@@ -864,11 +596,6 @@ if test "x$ac_cv_have_ssize_t" = "xyes" ; then
 	AC_DEFINE(HAVE_SSIZE_T)
 fi
 
-BUILD_MODULES="$BUILD_MODULES $LUA_MODULE"
-
-AC_SUBST(BUILD_MODULES)
-AC_SUBST(BUILD_SMODULES)
-
 docdir="docs"
 mansubdir="man"
 AC_SUBST(docdir)
@@ -893,21 +620,6 @@ AC_MSG_RESULT([$fullpath/noit])
 AC_DEFINE_UNQUOTED(MODULES_DIR, "${fullpath}/noit")
 MODULES_DIR=${fullpath}/noit
 AC_SUBST(MODULES_DIR)
-
-JAVA_LIB_DIR="$prefix/java"
-AC_ARG_WITH(java-libdir,
-	[--with-javalibdir=PFX  prefix to install java libs (optional)],
-	[JAVA_LIB_DIR=$withval],)
-AC_MSG_CHECKING([Resolving javalibdir path...])
-fullpath=$JAVA_LIB_DIR
-while test "x$temppath" != "x$fullpath" ; do
-	temppath=$fullpath
-	fullpath=`eval echo ${fullpath}`
-done
-fullpath=`echo $fullpath | sed "s~NONE~$SUBPREFIX~"`
-JAVA_LIB_DIR=$fullpath
-AC_MSG_RESULT([$fullpath])
-AC_SUBST(JAVA_LIB_DIR)
 
 AC_MSG_CHECKING([Resolving sysconfdir path...])
 fullpath=$sysconfdir
@@ -953,40 +665,11 @@ AC_OUTPUT([
 Makefile
 src/Makefile
 src/eventer/Makefile
-src/udns/Makefile
 src/json-lib/Makefile
 src/yajl-lib/Makefile
 src/man/Makefile
-src/modules/Makefile
-src/modules-lua/Makefile
 src/utils/Makefile
 src/noitedit/Makefile
-src/java/Makefile
-src/java/reconnoiter-riemann/run-iep.sh
-src/java/jezebel
 src/scripts/noit-config
-sql/Makefile
 test/Makefile
-])
-
-AC_MSG_RESULT([
-
-=== Compile-time Configuration ===
-  Lua Implementation: $ENABLE_LUA
-
-  == optional noit modules ==
-  Postgres module:    $POSTGRES_MODULE
-  MySQL module:       $MYSQL_MODULE
-  SNMP module:        $SNMP_MODULE
-  SSH2 module:        $SSH2_MODULE
-
-  == optional stratcon modules ==
-  Postgres ingestor:  $POSTGRES_INGESTOR_MODULE
-  STOMP iep driver:   $STOMP_DRIVER_MODULE
-  FQ iep driver:      $FQ_DRIVER_MODULE
-
-  == Java bits ==
-  Jezebel:            $JEZEBEL_JAR_ENABLE
-  Reconnoiter:        $RECONNOITER_JAR_ENABLE
-  Riemann IEP:        $RIEMANN_IEP_ENABLE
 ])
