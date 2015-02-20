@@ -30,13 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "utils/noit_memory.h"
-#include "utils/noit_log.h"
-#include "utils/noit_skiplist.h"
-#include "utils/noit_watchdog.h"
-#include "libnoit_dtrace_probes.h"
+#include "mtev_memory.h"
+#include "mtev_log.h"
+#include "mtev_skiplist.h"
+#include "mtev_watchdog.h"
+#include "libmtev_dtrace_probes.h"
 #include <pthread.h>
 #include <errno.h>
 #include <assert.h>
@@ -57,7 +57,7 @@ struct eventer_impl_data {
   int id;
   pthread_t tid;
   pthread_mutex_t te_lock;
-  noit_skiplist *timed_events;
+  mtev_skiplist *timed_events;
   eventer_jobq_t __global_backq;
   pthread_mutex_t recurrent_lock;
   struct recurrent_events {
@@ -96,12 +96,12 @@ eventer_impl_t registered_eventers[] = {
 };
 
 eventer_impl_t __eventer = NULL;
-noit_log_stream_t eventer_err = NULL;
-noit_log_stream_t eventer_deb = NULL;
+mtev_log_stream_t eventer_err = NULL;
+mtev_log_stream_t eventer_deb = NULL;
 
 static int __default_queue_threads = 5;
 static int __loop_concurrency = 0;
-static noit_atomic32_t __loops_started = 0;
+static mtev_atomic32_t __loops_started = 0;
 static eventer_jobq_t __default_jobq;
 
 /* Multi-threaded event loops...
@@ -127,7 +127,7 @@ pthread_t eventer_choose_owner(int i) {
   int idx;
   if(__loop_concurrency == 1) return eventer_impl_tls_data[0].tid;
   idx = ((unsigned int)i)%(__loop_concurrency-1) + 1; /* see comment above */
-  noitL(eventer_deb, "eventer_choose -> %u %% %d = %d t@%u\n",
+  mtevL(eventer_deb, "eventer_choose -> %u %% %d = %d t@%u\n",
         (unsigned int)i, __loop_concurrency, idx,
         (unsigned int)eventer_impl_tls_data[idx].tid);
   return eventer_impl_tls_data[idx].tid;
@@ -141,7 +141,7 @@ static struct eventer_impl_data *get_tls_impl_data(pthread_t tid) {
     if(pthread_equal(eventer_impl_tls_data[i].tid, tid))
       return &eventer_impl_tls_data[i];
   }
-  noitL(noit_error, "get_tls_impl_data called from non-eventer thread\n");
+  mtevL(mtev_error, "get_tls_impl_data called from non-eventer thread\n");
   return NULL;
 }
 static struct eventer_impl_data *get_event_impl_data(eventer_t e) {
@@ -171,7 +171,7 @@ int eventer_impl_propset(const char *key, const char *value) {
   if(!strcasecmp(key, "default_queue_threads")) {
     __default_queue_threads = atoi(value);
     if(__default_queue_threads < 1) {
-      noitL(noit_error, "default_queue_threads must be >= 1\n");
+      mtevL(mtev_error, "default_queue_threads must be >= 1\n");
       return -1;
     }
     return 0;
@@ -179,7 +179,7 @@ int eventer_impl_propset(const char *key, const char *value) {
   else if(!strcasecmp(key, "rlim_nofiles")) {
     desired_nofiles = atoi(value);
     if(desired_nofiles < 256) {
-      noitL(noit_error, "rlim_nofiles must be >= 256\n");
+      mtevL(mtev_error, "rlim_nofiles must be >= 256\n");
       return -1;
     }
     return 0;
@@ -187,7 +187,7 @@ int eventer_impl_propset(const char *key, const char *value) {
   else if(!strcasecmp(key, "debugging")) {
     if(strcmp(value, "0")) {
       EVENTER_DEBUGGING = 1;
-      noitL(noit_error, "Enabling debugging from property\n");
+      mtevL(mtev_error, "Enabling debugging from property\n");
     }
     return 0;
   }
@@ -199,7 +199,7 @@ int eventer_impl_propset(const char *key, const char *value) {
     if(eventer_ssl_config(key, value) == 0) return 0;
     /* if we return 1, we'll fall through to the error message */
   }
-  noitL(noit_error, "Warning: unknown eventer config '%s'\n", key);
+  mtevL(mtev_error, "Warning: unknown eventer config '%s'\n", key);
   return 0;
 }
 
@@ -222,9 +222,9 @@ int NE_SOCK_CLOEXEC = 0;
 int NE_O_CLOEXEC = 0;
 
 static int
-eventer_noit_memory_maintenance(eventer_t e, int mask, void *c,
+eventer_mtev_memory_maintenance(eventer_t e, int mask, void *c,
                                 struct timeval *now) {
-  noit_memory_maintenance();
+  mtev_memory_maintenance();
   return EVENTER_RECURRENT;
 }
 static void eventer_per_thread_init(struct eventer_impl_data *t) {
@@ -239,11 +239,11 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   pthread_mutex_init(&t->cross_lock, NULL);
   pthread_mutex_init(&t->te_lock, NULL);
   t->timed_events = calloc(1, sizeof(*t->timed_events));
-  noit_skiplist_init(t->timed_events);
-  noit_skiplist_set_compare(t->timed_events,
+  mtev_skiplist_init(t->timed_events);
+  mtev_skiplist_set_compare(t->timed_events,
                             eventer_timecompare, eventer_timecompare);
-  noit_skiplist_add_index(t->timed_events,
-                          noit_compare_voidptr, noit_compare_voidptr);
+  mtev_skiplist_add_index(t->timed_events,
+                          mtev_compare_voidptr, mtev_compare_voidptr);
 
   snprintf(qname, sizeof(qname), "default_back_queue/%d", t->id);
   eventer_jobq_init(&t->__global_backq, qname);
@@ -255,9 +255,9 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
 
   e = eventer_alloc();
   e->mask = EVENTER_RECURRENT;
-  e->callback = eventer_noit_memory_maintenance;
+  e->callback = eventer_mtev_memory_maintenance;
   eventer_add_recurrent(e);
-  noit_atomic_inc32(&__loops_started);
+  mtev_atomic_inc32(&__loops_started);
 }
 
 static void *thrloopwrap(void *vid) {
@@ -265,7 +265,7 @@ static void *thrloopwrap(void *vid) {
   int id = (int)(vpsized_int)vid;
   t = &eventer_impl_tls_data[id];
   t->id = id;
-  noit_memory_init_thread();
+  mtev_memory_init_thread();
   eventer_per_thread_init(t);
   return (void *)(vpsized_int)__eventer->loop(id);
 }
@@ -320,11 +320,11 @@ int eventer_impl_setrlimit() {
   getrlimit(RLIMIT_NOFILE, &rlim);
   rlim.rlim_cur = rlim.rlim_max = try = desired_nofiles;
   while(setrlimit(RLIMIT_NOFILE, &rlim) != 0 && errno == EPERM && try > 1024) {
-    noit_watchdog_child_heartbeat();
+    mtev_watchdog_child_heartbeat();
     rlim.rlim_cur = rlim.rlim_max = (try /= 2);
   }
   getrlimit(RLIMIT_NOFILE, &rlim);
-  noitL(noit_debug, "rlim { %u, %u }\n", (u_int32_t)rlim.rlim_cur, (u_int32_t)rlim.rlim_max);
+  mtevL(mtev_debug, "rlim { %u, %u }\n", (u_int32_t)rlim.rlim_cur, (u_int32_t)rlim.rlim_max);
   return rlim.rlim_cur;
 }
 
@@ -353,7 +353,7 @@ int eventer_impl_init() {
     if(sockets == 0) sockets = 1;
     if(cores == 0) cores = sockets;
     __loop_concurrency = 1 + PARALLELISM_MULTIPLIER * cores;
-    noitL(noit_debug, "found %d sockets, %d cores -> concurrency %d\n",
+    mtevL(mtev_debug, "found %d sockets, %d cores -> concurrency %d\n",
           sockets, cores, __loop_concurrency);
   }
 
@@ -362,11 +362,11 @@ int eventer_impl_init() {
     if(strcmp(evdeb, "0")) {
       /* Set to anything but "0" turns debugging on */
       EVENTER_DEBUGGING = 1;
-      noitL(noit_error, "Enabling eventer debugging from environment\n");
+      mtevL(mtev_error, "Enabling eventer debugging from environment\n");
     }
     else {
       EVENTER_DEBUGGING = 0;
-      noitL(noit_error, "Disabling eventer debugging from environment\n");
+      mtevL(mtev_error, "Disabling eventer debugging from environment\n");
     }
   }
   eventer_name_callback("eventer_jobq_execute_timeout",
@@ -377,10 +377,10 @@ int eventer_impl_init() {
   eventer_impl_epoch = malloc(sizeof(struct timeval));
   gettimeofday(eventer_impl_epoch, NULL);
 
-  eventer_err = noit_log_stream_find("error/eventer");
-  eventer_deb = noit_log_stream_find("debug/eventer");
-  if(!eventer_err) eventer_err = noit_stderr;
-  if(!eventer_deb) eventer_deb = noit_debug;
+  eventer_err = mtev_log_stream_find("error/eventer");
+  eventer_deb = mtev_log_stream_find("debug/eventer");
+  if(!eventer_err) eventer_err = mtev_stderr;
+  if(!eventer_deb) eventer_deb = mtev_debug;
 
   eventer_jobq_init(&__default_jobq, "default_queue");
   for(i=0; i<__default_queue_threads; i++)
@@ -423,12 +423,12 @@ void eventer_add_timed(eventer_t e) {
   if(EVENTER_DEBUGGING) {
     const char *cbname;
     cbname = eventer_name_for_callback_e(e->callback, e);
-    noitL(eventer_deb, "debug: eventer_add timed (%s)\n",
+    mtevL(eventer_deb, "debug: eventer_add timed (%s)\n",
           cbname ? cbname : "???");
   }
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->te_lock);
-  noit_skiplist_insert(t->timed_events, e);
+  mtev_skiplist_insert(t->timed_events, e);
   pthread_mutex_unlock(&t->te_lock);
 }
 eventer_t eventer_remove_timed(eventer_t e) {
@@ -437,8 +437,8 @@ eventer_t eventer_remove_timed(eventer_t e) {
   assert(e->mask & EVENTER_TIMER);
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->te_lock);
-  if(noit_skiplist_remove_compare(t->timed_events, e, NULL,
-                                  noit_compare_voidptr))
+  if(mtev_skiplist_remove_compare(t->timed_events, e, NULL,
+                                  mtev_compare_voidptr))
     removed = e;
   pthread_mutex_unlock(&t->te_lock);
   return removed;
@@ -448,8 +448,8 @@ void eventer_update_timed(eventer_t e, int mask) {
   assert(mask & EVENTER_TIMER);
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->te_lock);
-  noit_skiplist_remove_compare(t->timed_events, e, NULL, noit_compare_voidptr);
-  noit_skiplist_insert(t->timed_events, e);
+  mtev_skiplist_remove_compare(t->timed_events, e, NULL, mtev_compare_voidptr);
+  mtev_skiplist_insert(t->timed_events, e);
   pthread_mutex_unlock(&t->te_lock);
 }
 void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
@@ -470,10 +470,10 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
     pthread_mutex_lock(&t->te_lock);
     /* Peek at our next timed event, if should fire, pop it.
      * otherwise we noop and NULL it out to break the loop. */
-    timed_event = noit_skiplist_peek(t->timed_events);
+    timed_event = mtev_skiplist_peek(t->timed_events);
     if(timed_event) {
       if(compare_timeval(timed_event->whence, *now) < 0) {
-        timed_event = noit_skiplist_pop(t->timed_events, NULL);
+        timed_event = mtev_skiplist_pop(t->timed_events, NULL);
       }
       else {
         sub_timeval(timed_event->whence, *now, next);
@@ -483,22 +483,22 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
     pthread_mutex_unlock(&t->te_lock);
     if(timed_event == NULL) break;
     if(EVENTER_DEBUGGING ||
-       LIBNOIT_EVENTER_CALLBACK_ENTRY_ENABLED() ||
-       LIBNOIT_EVENTER_CALLBACK_RETURN_ENABLED()) {
+       LIBMTEV_EVENTER_CALLBACK_ENTRY_ENABLED() ||
+       LIBMTEV_EVENTER_CALLBACK_RETURN_ENABLED()) {
       cbname = eventer_name_for_callback_e(timed_event->callback, timed_event);
-      noitLT(eventer_deb, now, "debug: timed dispatch(%s)\n",
+      mtevLT(eventer_deb, now, "debug: timed dispatch(%s)\n",
              cbname ? cbname : "???");
     }
     /* Make our call */
-    noit_memory_begin();
-    LIBNOIT_EVENTER_CALLBACK_ENTRY((void *)timed_event,
+    mtev_memory_begin();
+    LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)timed_event,
                            (void *)timed_event->callback, (char *)cbname, -1,
                            timed_event->mask, EVENTER_TIMER);
     newmask = timed_event->callback(timed_event, EVENTER_TIMER,
                                     timed_event->closure, now);
-    LIBNOIT_EVENTER_CALLBACK_RETURN((void *)timed_event,
+    LIBMTEV_EVENTER_CALLBACK_RETURN((void *)timed_event,
                             (void *)timed_event->callback, (char *)cbname, newmask);
-    noit_memory_end();
+    mtev_memory_end();
     if(newmask)
       eventer_add_timed(timed_event);
     else
@@ -512,13 +512,13 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
 }
 void
 eventer_foreach_timedevent (void (*f)(eventer_t e, void *), void *closure) {
-  noit_skiplist_node *iter = NULL;
+  mtev_skiplist_node *iter = NULL;
   int i;
   for(i=0;i<__loop_concurrency;i++) {
     struct eventer_impl_data *t = &eventer_impl_tls_data[i];
     pthread_mutex_lock(&t->te_lock);
-    for(iter = noit_skiplist_getlist(t->timed_events); iter;
-        noit_skiplist_next(t->timed_events,&iter)) {
+    for(iter = mtev_skiplist_getlist(t->timed_events); iter;
+        mtev_skiplist_next(t->timed_events,&iter)) {
       if(iter->data) f(iter->data, closure);
     }
     pthread_mutex_unlock(&t->te_lock);
@@ -532,7 +532,7 @@ void eventer_cross_thread_trigger(eventer_t e, int mask) {
   ctt = malloc(sizeof(*ctt));
   ctt->e = e;
   ctt->mask = mask;
-  noitL(eventer_deb, "queueing fd:%d from t@%d to t@%d\n", e->fd, (int)pthread_self(), (int)e->thr_owner);
+  mtevL(eventer_deb, "queueing fd:%d from t@%d to t@%d\n", e->fd, (int)pthread_self(), (int)e->thr_owner);
   pthread_mutex_lock(&t->cross_lock);
   ctt->next = t->cross;
   t->cross = ctt;
@@ -549,7 +549,7 @@ void eventer_cross_thread_process() {
     if(ctt) t->cross = ctt->next;
     pthread_mutex_unlock(&t->cross_lock);
     if(ctt) {
-      noitL(eventer_deb, "executing queued fd:%d / %x\n", ctt->e->fd, ctt->mask);
+      mtevL(eventer_deb, "executing queued fd:%d / %x\n", ctt->e->fd, ctt->mask);
       eventer_trigger(ctt->e, ctt->mask);
       free(ctt);
     }

@@ -31,13 +31,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "utils/noit_atomic.h"
-#include "utils/noit_skiplist.h"
-#include "utils/noit_memory.h"
-#include "utils/noit_log.h"
-#include "libnoit_dtrace_probes.h"
+#include "mtev_atomic.h"
+#include "mtev_skiplist.h"
+#include "mtev_memory.h"
+#include "mtev_log.h"
+#include "libmtev_dtrace_probes.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -126,7 +126,7 @@ static void eventer_epoll_impl_add(eventer_t e) {
 
   rv = epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, e->fd, &_ev);
   if(rv != 0) {
-    noitL(eventer_err, "epoll_ctl(%d,add,%d,%x) -> %d (%d: %s)\n",
+    mtevL(eventer_err, "epoll_ctl(%d,add,%d,%x) -> %d (%d: %s)\n",
           spec->epoll_fd, e->fd, e->mask, rv, errno, strerror(errno));
     abort();
   }
@@ -150,7 +150,7 @@ static eventer_t eventer_epoll_impl_remove(eventer_t e) {
       removed = e;
       master_fds[e->fd].e = NULL;
       if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, e->fd, &_ev) != 0) {
-        noitL(noit_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
+        mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
               spec->epoll_fd, e->fd, strerror(errno));
         if(errno != ENOENT) abort();
       }
@@ -184,7 +184,7 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
     if(e->mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
     if(e->mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
     if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, e->fd, &_ev) != 0) {
-      noitL(noit_error, "epoll_ctl(%d, EPOLL_CTL_MOD, %d) -> %s\n",
+      mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_MOD, %d) -> %s\n",
             spec->epoll_fd, e->fd, strerror(errno));
       abort();
     }
@@ -203,7 +203,7 @@ static eventer_t eventer_epoll_impl_remove_fd(int fd) {
     spec = eventer_get_spec_for_event(eiq);
     master_fds[fd].e = NULL;
     if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
-      noitL(noit_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
+      mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
             spec->epoll_fd, fd, strerror(errno));
       if(errno != ENOENT) abort();
     }
@@ -234,13 +234,13 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
 
   gettimeofday(&__now, NULL);
   cbname = eventer_name_for_callback_e(e->callback, e);
-  noitLT(eventer_deb, &__now, "epoll: fire on %d/%x to %s(%p)\n",
+  mtevLT(eventer_deb, &__now, "epoll: fire on %d/%x to %s(%p)\n",
          fd, mask, cbname?cbname:"???", e->callback);
-  noit_memory_begin();
-  LIBNOIT_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
+  mtev_memory_begin();
+  LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
   newmask = e->callback(e, mask, e->closure, &__now);
-  LIBNOIT_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
-  noit_memory_end();
+  LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
+  mtev_memory_end();
 
   if(newmask) {
     struct epoll_event _ev;
@@ -250,7 +250,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
     if(newmask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
     if(newmask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
     if(master_fds[fd].e == NULL) {
-      noitL(noit_debug, "eventer %s(%p) epoll asked to modify descheduled fd: %d\n",
+      mtevL(mtev_debug, "eventer %s(%p) epoll asked to modify descheduled fd: %d\n",
             cbname?cbname:"???", e->callback, fd);
     } else {
       if(!pthread_equal(pthread_self(), e->thr_owner)) {
@@ -261,7 +261,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         e->thr_owner = tgt;
         spec = eventer_get_spec_for_event(e);
         assert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) == 0);
-        noitL(eventer_deb, "moved event[%p] from t@%d to t@%d\n", e, (int)pthread_self(), (int)tgt);
+        mtevL(eventer_deb, "moved event[%p] from t@%d to t@%d\n", e, (int)pthread_self(), (int)tgt);
       }
       else {
         spec = eventer_get_spec_for_event(e);
@@ -305,10 +305,10 @@ static int eventer_epoll_impl_loop() {
       fd_cnt = epoll_wait(spec->epoll_fd, epev, maxfds,
                           __sleeptime.tv_sec * 1000 + __sleeptime.tv_usec / 1000);
     } while(fd_cnt < 0 && errno == EINTR);
-    noitLT(eventer_deb, &__now, "debug: epoll_wait(%d, [], %d) => %d\n",
+    mtevLT(eventer_deb, &__now, "debug: epoll_wait(%d, [], %d) => %d\n",
            spec->epoll_fd, maxfds, fd_cnt);
     if(fd_cnt < 0) {
-      noitLT(eventer_err, &__now, "epoll_wait: %s\n", strerror(errno));
+      mtevLT(eventer_err, &__now, "epoll_wait: %s\n", strerror(errno));
     }
     else {
       int idx;

@@ -1,10 +1,10 @@
 #include <sys/mdb_modapi.h>
-#include "utils/noit_skiplist.h"
-#include "utils/noit_hash.h"
+#include "utils/mtev_skiplist.h"
+#include "utils/mtev_hash.h"
 
-static int noit_skiplist_walk_init(mdb_walk_state_t *s) {
-  noit_skiplist l;
-  noit_skiplist_node n;
+static int mtev_skiplist_walk_init(mdb_walk_state_t *s) {
+  mtev_skiplist l;
+  mtev_skiplist_node n;
   if(mdb_vread(&l, sizeof(l), s->walk_addr) == -1) return WALK_ERR;
   if(l.bottom == NULL) return WALK_DONE;
   if(mdb_vread(&n, sizeof(n), (uintptr_t)l.bottom) == -1) return WALK_ERR;
@@ -12,8 +12,8 @@ static int noit_skiplist_walk_init(mdb_walk_state_t *s) {
   s->walk_data = n.next;
   return WALK_NEXT;
 }
-static int noit_skiplist_walk_step(mdb_walk_state_t *s) {
-  noit_skiplist_node n;
+static int mtev_skiplist_walk_step(mdb_walk_state_t *s) {
+  mtev_skiplist_node n;
   void *dummy = NULL;
   if(s->walk_data == NULL) return WALK_DONE;
   if(mdb_vread(&n, sizeof(n), (uintptr_t)s->walk_data) == -1) return WALK_ERR;
@@ -23,7 +23,7 @@ static int noit_skiplist_walk_step(mdb_walk_state_t *s) {
   return WALK_NEXT;
 }
 
-static void noit_skiplist_walk_fini(mdb_walk_state_t *s) {
+static void mtev_skiplist_walk_fini(mdb_walk_state_t *s) {
 }
 
 /* This section needs to be kept current with libck */
@@ -49,8 +49,8 @@ struct hash_helper {
   ck_ht_entry_t *buckets;
   ck_ht_entry_t *vmem;
 };
-static int noit_hash_walk_init(mdb_walk_state_t *s) {
-  noit_hash_table l;
+static int mtev_hash_walk_init(mdb_walk_state_t *s) {
+  mtev_hash_table l;
   struct ck_ht_map map;
   struct hash_helper *hh;
   void *dummy = NULL;
@@ -73,7 +73,7 @@ static int noit_hash_walk_init(mdb_walk_state_t *s) {
   }
   return WALK_DONE;
 }
-static int noit_hash_walk_step(mdb_walk_state_t *s) {
+static int mtev_hash_walk_step(mdb_walk_state_t *s) {
   void *dummy = NULL;
   struct hash_helper *hh = s->walk_data;
   if(s->walk_data == NULL) return WALK_DONE;
@@ -87,7 +87,7 @@ static int noit_hash_walk_step(mdb_walk_state_t *s) {
   }
   return WALK_DONE;
 }
-static void noit_hash_walk_fini(mdb_walk_state_t *s) {
+static void mtev_hash_walk_fini(mdb_walk_state_t *s) {
 }
 
 static int
@@ -100,8 +100,8 @@ _print_hash_bucket_data_cb(uintptr_t addr, const void *u, void *data)
 }
 
 static int
-noit_log_dcmd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
-  noit_hash_table l;
+mtev_log_dcmd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+  mtev_hash_table l;
   struct ck_ht_map map;
   ck_ht_entry_t *buckets;
   uintptr_t vmem;
@@ -111,14 +111,14 @@ noit_log_dcmd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
   if(argv == 0) {
     GElf_Sym sym;
     int rv;
-    if(mdb_lookup_by_name("noit_loggers", &sym) == -1) return DCMD_ERR;
-    rv = mdb_pwalk("noit_hash", _print_hash_bucket_data_cb, NULL, sym.st_value);
+    if(mdb_lookup_by_name("mtev_loggers", &sym) == -1) return DCMD_ERR;
+    rv = mdb_pwalk("mtev_hash", _print_hash_bucket_data_cb, NULL, sym.st_value);
     return (rv == WALK_DONE) ? DCMD_OK : DCMD_ERR;
   }
   if(argc != 1 || argv[0].a_type != MDB_TYPE_STRING) {
     return DCMD_USAGE;
   }
-  if(mdb_readsym(&l, sizeof(l), "noit_loggers") == -1) return DCMD_ERR;
+  if(mdb_readsym(&l, sizeof(l), "mtev_loggers") == -1) return DCMD_ERR;
   if(mdb_vread(&map, sizeof(map), (uintptr_t)l.ht.map) == -1) return DCMD_ERR;
   if(map.n_entries == 0) return DCMD_OK;
   buckets = mdb_alloc(sizeof(*buckets) * map.capacity, UM_GC);
@@ -142,7 +142,7 @@ noit_log_dcmd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
   return DCMD_OK;
 }
 
-struct _noit_log_stream {
+struct _mtev_log_stream {
   unsigned flags;
   /* Above is exposed... 'do not change it... dragons' */
   char *type;
@@ -151,8 +151,8 @@ struct _noit_log_stream {
   char *path;
   void *ops;
   void *op_ctx;
-  noit_hash_table *config;
-  struct _noit_log_stream_outlet_list *outlets;
+  mtev_hash_table *config;
+  struct _mtev_log_stream_outlet_list *outlets;
   pthread_rwlock_t *lock;
   int32_t written;
   unsigned deps_materialized:1;
@@ -173,7 +173,7 @@ static int
 membuf_print_dmcd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
   uint_t opt_v = FALSE;
   int rv = DCMD_OK;
-  struct _noit_log_stream ls;
+  struct _mtev_log_stream ls;
   char logtype[128];
   membuf_ctx_t mb, *membuf;
   int log_lines = 0, idx, nmsg;
@@ -263,34 +263,34 @@ membuf_print_dmcd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv)
 
 static mdb_walker_t _utils_walkers[] = {
   {
-  .walk_name = "noit_skiplist",
-  .walk_descr = "walk a noit_skiplist along it's ordered bottom row",
-  .walk_init = noit_skiplist_walk_init,
-  .walk_step = noit_skiplist_walk_step,
-  .walk_fini = noit_skiplist_walk_fini,
+  .walk_name = "mtev_skiplist",
+  .walk_descr = "walk a mtev_skiplist along it's ordered bottom row",
+  .walk_init = mtev_skiplist_walk_init,
+  .walk_step = mtev_skiplist_walk_step,
+  .walk_fini = mtev_skiplist_walk_fini,
   .walk_init_arg = NULL
   },
   {
-  .walk_name = "noit_hash",
-  .walk_descr = "walk a noit_hash",
-  .walk_init = noit_hash_walk_init,
-  .walk_step = noit_hash_walk_step,
-  .walk_fini = noit_hash_walk_fini,
+  .walk_name = "mtev_hash",
+  .walk_descr = "walk a mtev_hash",
+  .walk_init = mtev_hash_walk_init,
+  .walk_step = mtev_hash_walk_step,
+  .walk_fini = mtev_hash_walk_fini,
   .walk_init_arg = NULL
   },
   { NULL }
 };
 static mdb_dcmd_t _utils_dcmds[] = {
   {
-    "noit_log",
+    "mtev_log",
     "[logname]",
-    "returns the noit_log_stream_t for the named log",
-    noit_log_dcmd,
+    "returns the mtev_log_stream_t for the named log",
+    mtev_log_dcmd,
     NULL,
     NULL
   },
   {
-    "noit_print_membuf_log",
+    "mtev_print_membuf_log",
     "[-v] [-n nlines]",
     "prints the at most [n] log lines",
     membuf_print_dmcd,

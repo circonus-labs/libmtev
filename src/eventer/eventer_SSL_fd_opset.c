@@ -30,12 +30,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "utils/noit_log.h"
+#include "mtev_log.h"
 #include "eventer/eventer_SSL_fd_opset.h"
 #include "eventer/OETS_asn1_helper.h"
-#include "libnoit_dtrace_probes.h"
+#include "libmtev_dtrace_probes.h"
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -65,10 +65,10 @@ typedef struct {
   struct cache_finfo cert_finfo;
   struct cache_finfo key_finfo;
   struct cache_finfo ca_finfo;
-  noit_atomic32_t refcnt;
+  mtev_atomic32_t refcnt;
 } ssl_ctx_cache_node;
 
-static noit_hash_table ssl_ctx_cache = NOIT_HASH_EMPTY;
+static mtev_hash_table ssl_ctx_cache = MTEV_HASH_EMPTY;
 static pthread_mutex_t ssl_ctx_cache_lock = PTHREAD_MUTEX_INITIALIZER;
 static int ssl_ctx_cache_expiry = 5;
 static int ssl_ctx_cache_finfo_expiry = 5;
@@ -161,7 +161,7 @@ _eventer_ssl_ctx_save_last_error(eventer_ssl_ctx_t *ctx, int note_errno,
   /* now clip off the last ", " */
   i = strlen(ctx->last_error);
   if(i>=2) ctx->last_error[i-2] = '\0';
-  noitL(eventer_deb, "ssl error: %s\n", ctx->last_error);
+  mtevL(eventer_deb, "ssl error: %s\n", ctx->last_error);
 }
 
 static DH *
@@ -176,7 +176,7 @@ load_dh_params(const char *filename) {
   if(dh) {
     int code = 0;
     if(DH_check(dh, &code) != 1 || code != 0) {
-      noitL(eventer_err, "DH Parameter in %s is bad [%x], not using.\n",
+      mtevL(eventer_err, "DH Parameter in %s is bad [%x], not using.\n",
             filename, code);
       DH_free(dh);
       dh = NULL;
@@ -210,7 +210,7 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
   case 512:
     if(!dh512_tmp) dh512_tmp = load_dh_params(dh512_file);
     if(!dh512_tmp) {
-      noitL(eventer_err, "Generating 512 bit DH parameters.\n");
+      mtevL(eventer_err, "Generating 512 bit DH parameters.\n");
       dh512_tmp = DH_generate_parameters(512, 2, NULL, NULL);
       save_dh_params(dh512_tmp, dh512_file);
     }
@@ -218,13 +218,13 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
   case 1024:
     if(!dh1024_tmp) dh1024_tmp = load_dh_params(dh1024_file);
     if(!dh1024_tmp) {
-      noitL(eventer_err, "Generating 1024 bit DH parameters.\n");
+      mtevL(eventer_err, "Generating 1024 bit DH parameters.\n");
       dh1024_tmp = DH_generate_parameters(1024, 2, NULL, NULL);
       save_dh_params(dh1024_tmp, dh1024_file);
     }
     break;
   default:
-    noitL(noit_error, "Unexpected DH parameter request: %d\n", bits);
+    mtevL(mtev_error, "Unexpected DH parameter request: %d\n", bits);
     abort();
   }
   return 0;
@@ -240,7 +240,7 @@ tmp_dh_callback(SSL *s, int is_export, int keylen) {
     dh_tmp = dh1024_tmp;
     break;
   default:
-    noitL(noit_error, "What? DH request(%d,%d).\n", is_export, keylen);
+    mtevL(mtev_error, "What? DH request(%d,%d).\n", is_export, keylen);
   }
   return dh_tmp;
 }
@@ -324,7 +324,7 @@ eventer_ssl_get_san_values(eventer_ssl_ctx_t *ctx,
 int
 eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
                         X509_STORE_CTX *x509ctx, void *closure) {
-  noit_hash_table *options = closure;
+  mtev_hash_table *options = closure;
   const char *opt_no_ca, *ignore_dates;
   int v_res;
 
@@ -337,10 +337,10 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
     return 0;
   }
 
-  if(!noit_hash_retr_str(options, "optional_no_ca", strlen("optional_no_ca"),
+  if(!mtev_hash_retr_str(options, "optional_no_ca", strlen("optional_no_ca"),
                          &opt_no_ca))
     opt_no_ca = "false";
-  if(!noit_hash_retr_str(options, "ignore_dates", strlen("ignore_dates"),
+  if(!mtev_hash_retr_str(options, "ignore_dates", strlen("ignore_dates"),
                          &ignore_dates))
     ignore_dates = "false";
   if(options == NULL) {
@@ -361,7 +361,7 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
     ctx->cert_error = strdup(X509_verify_cert_error_string(v_res));
     if(!strcmp(opt_no_ca, "true")) ok = 1;
     else {
-      noitL(eventer_deb, "SSL client cert invalid: %s\n",
+      mtevL(eventer_deb, "SSL client cert invalid: %s\n",
             X509_verify_cert_error_string(v_res));
       ok = 0;
       goto set_out;
@@ -371,7 +371,7 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
   if(v_res != 0) {
     if(!strcmp(ignore_dates, "true")) ok = 1;
     else {
-      noitL(eventer_deb, "SSL client cert is %s valid.\n",
+      mtevL(eventer_deb, "SSL client cert is %s valid.\n",
             (v_res < 0) ? "not yet" : "no longer");
       ctx->cert_error = strdup((v_res < 0) ?
                                "Certificate not yet valid." :
@@ -503,17 +503,17 @@ verify_cb(int ok, X509_STORE_CTX *x509ctx) {
  */
 static void
 ssl_ctx_cache_node_free(ssl_ctx_cache_node *node) {
-  noit_atomic32_t endval;
+  mtev_atomic32_t endval;
   if(!node) return;
-  endval = noit_atomic_dec32(&node->refcnt);
+  endval = mtev_atomic_dec32(&node->refcnt);
   if(endval == 0) {
-    noitL(eventer_deb, "ssl_ctx_cache_node_free(%p -> %d) freeing\n", node, endval);
+    mtevL(eventer_deb, "ssl_ctx_cache_node_free(%p -> %d) freeing\n", node, endval);
     SSL_CTX_free(node->internal_ssl_ctx);
     free(node->key);
     free(node);
   }
   else {
-    noitL(eventer_deb, "ssl_ctx_cache_node_free(%p -> %d)\n", node, endval);
+    mtevL(eventer_deb, "ssl_ctx_cache_node_free(%p -> %d)\n", node, endval);
   }
 }
 
@@ -539,7 +539,7 @@ eventer_SSL_server_info_callback(const SSL *ssl, int type, int val) {
 
   ctx = SSL_get_eventer_ssl_ctx(ssl);
   if(ctx && ctx->no_more_negotiations) {
-    noitL(eventer_deb, "eventer_SSL_server_info_callback ... reneg is bad\n");
+    mtevL(eventer_deb, "eventer_SSL_server_info_callback ... reneg is bad\n");
     ctx->renegotiated = 1;
   }
 }
@@ -557,9 +557,9 @@ ssl_ctx_key_write(char *b, int blen, eventer_ssl_orientation_t type,
 
 static void
 ssl_ctx_cache_remove(const char *key) {
-  noitL(eventer_deb, "ssl_ctx_cache->remove(%s)\n", key);
+  mtevL(eventer_deb, "ssl_ctx_cache->remove(%s)\n", key);
   pthread_mutex_lock(&ssl_ctx_cache_lock);
-  noit_hash_delete(&ssl_ctx_cache, key, strlen(key),
+  mtev_hash_delete(&ssl_ctx_cache, key, strlen(key),
                    NULL, (void (*)(void *))ssl_ctx_cache_node_free);
   pthread_mutex_unlock(&ssl_ctx_cache_lock);
 }
@@ -568,33 +568,33 @@ static ssl_ctx_cache_node *
 ssl_ctx_cache_get(const char *key) {
   void *vnode;
   ssl_ctx_cache_node *node = NULL;
-  noit_atomic32_t newval;
+  mtev_atomic32_t newval;
   pthread_mutex_lock(&ssl_ctx_cache_lock);
-  if(noit_hash_retrieve(&ssl_ctx_cache, key, strlen(key), &vnode)) {
+  if(mtev_hash_retrieve(&ssl_ctx_cache, key, strlen(key), &vnode)) {
     node = vnode;
-    newval = noit_atomic_inc32(&node->refcnt);
+    newval = mtev_atomic_inc32(&node->refcnt);
   }
   pthread_mutex_unlock(&ssl_ctx_cache_lock);
-  if(node) noitL(eventer_deb, "ssl_ctx_cache->get(%p -> %d)\n", node, newval);
+  if(node) mtevL(eventer_deb, "ssl_ctx_cache->get(%p -> %d)\n", node, newval);
   return node;
 }
 
 static ssl_ctx_cache_node *
 ssl_ctx_cache_set(ssl_ctx_cache_node *node) {
   void *vnode;
-  noit_atomic32_t newval;
+  mtev_atomic32_t newval;
   pthread_mutex_lock(&ssl_ctx_cache_lock);
-  if(noit_hash_retrieve(&ssl_ctx_cache, node->key, strlen(node->key),
+  if(mtev_hash_retrieve(&ssl_ctx_cache, node->key, strlen(node->key),
                         &vnode)) {
     ssl_ctx_cache_node_free(node);
     node = vnode;
   }
   else {
-    noit_hash_store(&ssl_ctx_cache, node->key, strlen(node->key), node);
+    mtev_hash_store(&ssl_ctx_cache, node->key, strlen(node->key), node);
   }
-  newval = noit_atomic_inc32(&node->refcnt);
+  newval = mtev_atomic_inc32(&node->refcnt);
   pthread_mutex_unlock(&ssl_ctx_cache_lock);
-  noitL(eventer_deb, "ssl_ctx_cache->set(%p -> %d)\n", node, newval);
+  mtevL(eventer_deb, "ssl_ctx_cache->set(%p -> %d)\n", node, newval);
   return node;
 }
 
@@ -713,7 +713,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
       else SETBITOPT(SSL_TXT_TLSV1_2, !neg, SSL_OP_NO_TLSv1_2)
 #endif
       else {
-        noitL(noit_error, "SSL layer part '%s' not understood.\n", optname);
+        mtevL(mtev_error, "SSL layer part '%s' not understood.\n", optname);
       }
     }
 
@@ -770,7 +770,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
 
  bail:
   eventer_ssl_ctx_save_last_error(ctx, 1);
-  noitL(noit_error, "SSL context creation failed: %s\n",
+  mtevL(mtev_error, "SSL context creation failed: %s\n",
         ctx->last_error ? ctx->last_error : "unknown cause");
   eventer_ssl_ctx_free(ctx);
   return NULL;
@@ -924,7 +924,7 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
   if(!opstr) opstr = "none";
 
   if(ctx->renegotiated) {
-    noitL(eventer_err, "SSL renogotiation attempted on %d\n", fd);
+    mtevL(eventer_err, "SSL renogotiation attempted on %d\n", fd);
     errno = EIO;
     eventer_ssl_ctx_save_last_error(ctx, 1);
     return -1;
@@ -933,7 +933,7 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
   sslerror = SSL_get_error(ctx->ssl, rv);
   switch(sslerror) {
     case SSL_ERROR_NONE:
-      noitL(eventer_deb, "SSL[%s of %d] -> %d, rw error: %d\n", opstr,
+      mtevL(eventer_deb, "SSL[%s of %d] -> %d, rw error: %d\n", opstr,
             (int)len, rv, sslerror);
       return 0;
     case SSL_ERROR_WANT_READ:
@@ -944,12 +944,12 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
       break;
     case SSL_ERROR_SYSCALL:
       if(errno == 0) {
-        noitL(eventer_deb, "SSL error (syscall) no error?!\n");
+        mtevL(eventer_deb, "SSL error (syscall) no error?!\n");
         return -1;
       }
       /* FALLTHROUGH */
     default:
-      noitL(eventer_deb, "SSL[%s of %d] -> %d, rw error: %d/%s\n", opstr,
+      mtevL(eventer_deb, "SSL[%s of %d] -> %d, rw error: %d/%s\n", opstr,
             (int)len, rv, sslerror, strerror(errno));
       eventer_ssl_ctx_save_last_error(ctx, 1);
       errno = EIO;
@@ -969,9 +969,9 @@ eventer_SSL_renegotiate(eventer_t e) {
 int
 eventer_SSL_accept(eventer_t e, int *mask) {
   int rv;
-  LIBNOIT_EVENTER_ACCEPT_ENTRY(e->fd, NULL, 0, *mask, e->opset_ctx);
+  LIBMTEV_EVENTER_ACCEPT_ENTRY(e->fd, NULL, 0, *mask, e->opset_ctx);
   rv = eventer_SSL_rw(SSL_OP_ACCEPT, e->fd, NULL, 0, mask, e);
-  LIBNOIT_EVENTER_ACCEPT_RETURN(e->fd, NULL, 0, *mask, e->opset_ctx, rv);
+  LIBMTEV_EVENTER_ACCEPT_RETURN(e->fd, NULL, 0, *mask, e->opset_ctx, rv);
   return rv;
 }
 int
@@ -981,18 +981,18 @@ eventer_SSL_connect(eventer_t e, int *mask) {
 static int
 eventer_SSL_read(int fd, void *buffer, size_t len, int *mask, void *closure) {
   int rv;
-  LIBNOIT_EVENTER_READ_ENTRY(fd, buffer, len, *mask, closure);
+  LIBMTEV_EVENTER_READ_ENTRY(fd, buffer, len, *mask, closure);
   rv = eventer_SSL_rw(SSL_OP_READ, fd, buffer, len, mask, closure);
-  LIBNOIT_EVENTER_READ_RETURN(fd, buffer, len, *mask, closure, rv);
+  LIBMTEV_EVENTER_READ_RETURN(fd, buffer, len, *mask, closure, rv);
   return rv;
 }
 static int
 eventer_SSL_write(int fd, const void *buffer, size_t len, int *mask,
                   void *closure) {
   int rv;
-  LIBNOIT_EVENTER_WRITE_ENTRY(fd, (char *)buffer, len, *mask, closure);
+  LIBMTEV_EVENTER_WRITE_ENTRY(fd, (char *)buffer, len, *mask, closure);
   rv = eventer_SSL_rw(SSL_OP_WRITE, fd, (void *)buffer, len, mask, closure);
-  LIBNOIT_EVENTER_WRITE_RETURN(fd, (char *)buffer, len, *mask, closure, rv);
+  LIBMTEV_EVENTER_WRITE_RETURN(fd, (char *)buffer, len, *mask, closure, rv);
   return rv;
 }
 
@@ -1002,13 +1002,13 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   int rv;
   eventer_t e = closure;
   eventer_ssl_ctx_t *ctx = e->opset_ctx;
-  LIBNOIT_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
+  LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
   SSL_shutdown(ctx->ssl);
   eventer_ssl_ctx_free(ctx);
   rv = close(fd);
   if(mask) *mask = 0;
   e->opset_ctx = NULL;
-  LIBNOIT_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
+  LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
   return 0;
 }
 

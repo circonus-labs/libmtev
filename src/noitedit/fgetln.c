@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 
 #include <stdio.h>
 #include "noitedit/compat.h"

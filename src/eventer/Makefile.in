@@ -1,7 +1,10 @@
 .SUFFIXES:	.lo
 
+top_srcdir=@top_srcdir@
+
 CC=@CC@
-CPPFLAGS=@CPPFLAGS@
+CPPFLAGS=@CPPFLAGS@ \
+	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/yajl-lib
 CFLAGS=@CFLAGS@
 SHCFLAGS=@SHCFLAGS@
 LDFLAGS=@LDFLAGS@
@@ -10,8 +13,6 @@ AR=@AR@
 RANLIB=@RANLIB@
 LIBS=@LIBS@
 INSTALL=@INSTALL@
-
-top_srcdir=@top_srcdir@
 
 OBJS=	eventer.o eventer_impl.o \
 	@EVENTER_OBJS@ \

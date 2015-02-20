@@ -44,7 +44,7 @@
 #ifndef _h_el_tty
 #define	_h_el_tty
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "noitedit/histedit.h"
 
 /* Define our own since everyone gets it wrong! */

@@ -33,7 +33,7 @@
 #ifndef __LIBEDIT_COMPATH_H
 #define __LIBEDIT_COMPATH_H
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 
 #ifndef __RCSID
 #define  __RCSID(x) static const char rcsid[] = x

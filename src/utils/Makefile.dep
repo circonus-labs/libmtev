@@ -1,50 +1,50 @@
 
-noit_b32.o noit_b32.lo: noit_b32.c ../noit_config.h noit_b64.h ../noit_defines.h \
+mtev_b32.o mtev_b32.lo: mtev_b32.c ../mtev_config.h mtev_b64.h ../mtev_defines.h \
   ../noitedit/strlcpy.h
 
-noit_b64.o noit_b64.lo: noit_b64.c ../noit_config.h noit_b64.h ../noit_defines.h \
+mtev_b64.o mtev_b64.lo: mtev_b64.c ../mtev_config.h mtev_b64.h ../mtev_defines.h \
   ../noitedit/strlcpy.h
 
-noit_btrie.o noit_btrie.lo: noit_btrie.c ../noit_defines.h ../noit_config.h \
-  ../noitedit/strlcpy.h ../utils/noit_btrie.h
+mtev_btrie.o mtev_btrie.lo: mtev_btrie.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h ../utils/mtev_btrie.h
 
-noit_getip.o noit_getip.lo: noit_getip.c ../noit_config.h ../utils/noit_getip.h \
-  ../noit_defines.h ../noitedit/strlcpy.h ../eventer/eventer.h \
-  ../utils/noit_log.h ../utils/noit_hash.h ../utils/noit_atomic.h \
+mtev_getip.o mtev_getip.lo: mtev_getip.c ../mtev_config.h ../utils/mtev_getip.h \
+  ../mtev_defines.h ../noitedit/strlcpy.h ../eventer/eventer.h \
+  mtev_log.h ../utils/mtev_hash.h mtev_atomic.h \
   ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
-  ../eventer/eventer_jobq.h ../utils/noit_sem.h
+  ../eventer/eventer_jobq.h mtev_sem.h
 
-noit_hash.o noit_hash.lo: noit_hash.c ../noit_config.h noit_hash.h
+mtev_hash.o mtev_hash.lo: mtev_hash.c ../mtev_config.h mtev_hash.h
 
-noit_lockfile.o noit_lockfile.lo: noit_lockfile.c ../noit_config.h \
-  ../utils/noit_lockfile.h ../noit_defines.h ../noitedit/strlcpy.h
+mtev_lockfile.o mtev_lockfile.lo: mtev_lockfile.c ../mtev_config.h \
+  ../utils/mtev_lockfile.h ../mtev_defines.h ../noitedit/strlcpy.h
 
-noit_log.o noit_log.lo: noit_log.c ../noit_defines.h ../noit_config.h \
-  ../noitedit/strlcpy.h ../utils/noit_log.h ../utils/noit_hash.h \
-  ../utils/noit_atomic.h ../libnoit_dtrace_probes.h
+mtev_log.o mtev_log.lo: mtev_log.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h ../utils/mtev_log.h ../utils/mtev_hash.h \
+  ../utils/mtev_atomic.h ../libmtev_dtrace_probes.h
 
-noit_memory.o noit_memory.lo: noit_memory.c ../utils/noit_log.h ../noit_defines.h \
-  ../noit_config.h ../noitedit/strlcpy.h ../utils/noit_hash.h
+mtev_memory.o mtev_memory.lo: mtev_memory.c ../utils/mtev_log.h ../mtev_defines.h \
+  ../mtev_config.h ../noitedit/strlcpy.h ../utils/mtev_hash.h
 
-noit_mkdir.o noit_mkdir.lo: noit_mkdir.c ../noit_config.h ../utils/noit_mkdir.h \
-  ../noit_defines.h ../noitedit/strlcpy.h ../utils/noit_log.h \
-  ../utils/noit_hash.h
+mtev_mkdir.o mtev_mkdir.lo: mtev_mkdir.c ../mtev_config.h ../utils/mtev_mkdir.h \
+  ../mtev_defines.h ../noitedit/strlcpy.h ../utils/mtev_log.h \
+  ../utils/mtev_hash.h
 
-noit_security.o noit_security.lo: noit_security.c ../noit_defines.h ../noit_config.h \
-  ../noitedit/strlcpy.h ../utils/noit_log.h ../utils/noit_hash.h \
-  ../utils/noit_security.h
+mtev_security.o mtev_security.lo: mtev_security.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h ../utils/mtev_log.h ../utils/mtev_hash.h \
+  ../utils/mtev_security.h
 
-noit_sem.o noit_sem.lo: noit_sem.c ../noit_defines.h ../noit_config.h \
-  ../noitedit/strlcpy.h ../utils/noit_sem.h
+mtev_sem.o mtev_sem.lo: mtev_sem.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h ../utils/mtev_sem.h
 
-noit_skiplist.o noit_skiplist.lo: noit_skiplist.c ../noit_defines.h ../noit_config.h \
-  ../noitedit/strlcpy.h noit_skiplist.h
+mtev_skiplist.o mtev_skiplist.lo: mtev_skiplist.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h mtev_skiplist.h
 
-noit_str.o noit_str.lo: noit_str.c ../noit_defines.h ../noit_config.h \
+mtev_str.o mtev_str.lo: mtev_str.c ../mtev_defines.h ../mtev_config.h \
   ../noitedit/strlcpy.h
 
-noit_watchdog.o noit_watchdog.lo: noit_watchdog.c ../noit_defines.h ../noit_config.h \
-  ../noitedit/strlcpy.h ../eventer/eventer.h ../utils/noit_log.h \
-  ../utils/noit_hash.h ../utils/noit_atomic.h \
-  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
-  ../eventer/eventer_jobq.h ../utils/noit_sem.h ../utils/noit_watchdog.h
+mtev_watchdog.o mtev_watchdog.lo: mtev_watchdog.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h ../eventer/eventer.h mtev_log.h \
+  ../utils/mtev_hash.h mtev_atomic.h ../eventer/eventer_POSIX_fd_opset.h \
+  ../eventer/eventer_SSL_fd_opset.h ../eventer/eventer_jobq.h mtev_sem.h \
+  ../utils/mtev_watchdog.h

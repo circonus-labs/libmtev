@@ -48,7 +48,7 @@ __RCSID("$NetBSD: search.c,v 1.11 2001/01/23 15:55:31 jdolecek Exp $");
 /*
  * search.c: History and character search functions
  */
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "noitedit/sys.h"
 #include <stdlib.h>
 #if HAVE_SYS_TYPES_H

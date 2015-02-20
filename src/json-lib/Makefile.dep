@@ -1,17 +1,22 @@
 
-arraylist.o: arraylist.c ../noit_config.h bits.h arraylist.h
+mtev_arraylist.o mtev_arraylist.lo: mtev_arraylist.c ../mtev_config.h mtev_bits.h \
+  mtev_arraylist.h
 
-debug.o: debug.c ../noit_config.h debug.h
+mtev_debug.o mtev_debug.lo: mtev_debug.c ../mtev_config.h mtev_debug.h
 
-json_object.o: json_object.c ../noit_config.h debug.h printbuf.h \
-  linkhash.h arraylist.h json_object.h json_object_private.h
+mtev_json_object.o mtev_json_object.lo: mtev_json_object.c ../mtev_config.h mtev_debug.h \
+  mtev_printbuf.h mtev_linkhash.h mtev_arraylist.h mtev_json_object.h \
+  mtev_json_object_private.h
 
-json_tokener.o: json_tokener.c ../noit_config.h bits.h debug.h printbuf.h \
-  arraylist.h json_object.h json_tokener.h
+mtev_json_tokener.o mtev_json_tokener.lo: mtev_json_tokener.c ../mtev_config.h mtev_bits.h \
+  mtev_debug.h mtev_printbuf.h mtev_arraylist.h mtev_json_object.h \
+  mtev_json_tokener.h
 
-json_util.o: json_util.c ../noit_config.h bits.h debug.h printbuf.h \
-  json_object.h json_tokener.h json_util.h
+mtev_json_util.o mtev_json_util.lo: mtev_json_util.c ../mtev_config.h mtev_bits.h \
+  mtev_debug.h mtev_printbuf.h mtev_json_object.h mtev_json_tokener.h \
+  mtev_json_util.h
 
-linkhash.o: linkhash.c linkhash.h
+mtev_linkhash.o mtev_linkhash.lo: mtev_linkhash.c mtev_linkhash.h
 
-printbuf.o: printbuf.c ../noit_config.h bits.h debug.h printbuf.h
+mtev_printbuf.o mtev_printbuf.lo: mtev_printbuf.c ../mtev_config.h mtev_bits.h \
+  mtev_debug.h mtev_printbuf.h

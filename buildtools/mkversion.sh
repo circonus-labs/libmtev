@@ -22,31 +22,31 @@ else
 fi
 
 if [ -r "$1" ]; then
-  eval `cat noit_version.h | awk '/^#define/ { print $2"="$3;}'`
-  if [ "$NOIT_BRANCH" = "$BRANCH" -a "$NOIT_VERSION" = "$VERSION" ]; then
+  eval `cat mtev_version.h | awk '/^#define/ { print $2"="$3;}'`
+  if [ "$MTEV_BRANCH" = "$BRANCH" -a "$MTEV_VERSION" = "$VERSION" ]; then
     echo "    * version unchanged"
     exit
   fi
 fi
 
 cat > $1 <<EOF
-#ifndef NOIT_VERSION_H
-#ifndef NOIT_BRANCH
-#define NOIT_BRANCH "$BRANCH"
+#ifndef MTEV_VERSION_H
+#ifndef MTEV_BRANCH
+#define MTEV_BRANCH "$BRANCH"
 #endif
-#ifndef NOIT_VERSION
-#define NOIT_VERSION "$VERSION"
+#ifndef MTEV_VERSION
+#define MTEV_VERSION "$VERSION"
 #endif
 
 #include <stdio.h>
 
-static inline int noit_build_version(char *buff, int len) {
-  const char *start = NOIT_BRANCH;
+static inline int mtev_build_version(char *buff, int len) {
+  const char *start = MTEV_BRANCH;
   if(!strncmp(start, "branches/", 9)) 
-    return snprintf(buff, len, "%s.%s", start+9, NOIT_VERSION);
+    return snprintf(buff, len, "%s.%s", start+9, MTEV_VERSION);
   if(!strncmp(start, "tags/", 5)) 
-    return snprintf(buff, len, "%s.%s", start+5, NOIT_VERSION);
-  return snprintf(buff, len, "%s.%s", NOIT_BRANCH, NOIT_VERSION);
+    return snprintf(buff, len, "%s.%s", start+5, MTEV_VERSION);
+  return snprintf(buff, len, "%s.%s", MTEV_BRANCH, MTEV_VERSION);
 }
 
 #endif

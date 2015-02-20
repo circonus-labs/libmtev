@@ -31,13 +31,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "utils/noit_atomic.h"
-#include "utils/noit_skiplist.h"
-#include "utils/noit_memory.h"
-#include "utils/noit_log.h"
-#include "libnoit_dtrace_probes.h"
+#include "mtev_atomic.h"
+#include "mtev_skiplist.h"
+#include "mtev_memory.h"
+#include "mtev_log.h"
+#include "libmtev_dtrace_probes.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -58,7 +58,7 @@ struct _eventer_impl eventer_kqueue_impl;
 static const struct timeval __dyna_increment = { 0, 10000 }; /* 10 ms */
 typedef struct kqueue_spec {
   int kqueue_fd;
-  noit_spinlock_t wakeup_notify;
+  mtev_spinlock_t wakeup_notify;
   pthread_mutex_t lock;
   struct {
     struct kevent *__ke_vec;
@@ -100,7 +100,7 @@ ke_change (register int const ident,
   kep = &ke_vec[ke_vec_used++];
 
   EV_SET(kep, ident, filter, flags, 0, 0, (void *)(vpsized_int)e->fd);
-  noitL(eventer_deb, "debug: ke_change(fd:%d, filt:%x, flags:%x)\n",
+  mtevL(eventer_deb, "debug: ke_change(fd:%d, filt:%x, flags:%x)\n",
         ident, filter, flags);
   pthread_mutex_unlock(&kqs->lock);
 }
@@ -114,7 +114,7 @@ static void eventer_kqueue_impl_wakeup_spec(struct kqueue_spec *spec) {
 static int eventer_kqueue_impl_register_wakeup(struct kqueue_spec *spec) {
   struct kevent kev;
   EV_SET(&kev, 0, EVFILT_USER, EV_ADD|EV_ONESHOT, NOTE_FFNOP, 0, NULL);
-  noitL(eventer_deb, "wakeup... reregister\n");
+  mtevL(eventer_deb, "wakeup... reregister\n");
   return kevent(spec->kqueue_fd, &kev, 1, NULL, 0, NULL);
 }
 
@@ -158,14 +158,14 @@ static void eventer_kqueue_impl_add(eventer_t e) {
   cbname = eventer_name_for_callback_e(e->callback, e);
 
   if(e->mask & EVENTER_ASYNCH) {
-    noitL(eventer_deb, "debug: eventer_add asynch (%s)\n", cbname ? cbname : "???");
+    mtevL(eventer_deb, "debug: eventer_add asynch (%s)\n", cbname ? cbname : "???");
     eventer_add_asynch(NULL, e);
     return;
   }
 
   /* Recurrent delegation */
   if(e->mask & EVENTER_RECURRENT) {
-    noitL(eventer_deb, "debug: eventer_add recurrent (%s)\n", cbname ? cbname : "???");
+    mtevL(eventer_deb, "debug: eventer_add recurrent (%s)\n", cbname ? cbname : "???");
     eventer_add_recurrent(e);
     return;
   }
@@ -177,7 +177,7 @@ static void eventer_kqueue_impl_add(eventer_t e) {
   }
 
   /* file descriptor event */
-  noitL(eventer_deb, "debug: eventer_add fd (%s,%d,0x%04x)\n", cbname ? cbname : "???", e->fd, e->mask);
+  mtevL(eventer_deb, "debug: eventer_add fd (%s,%d,0x%04x)\n", cbname ? cbname : "???", e->fd, e->mask);
   assert(e->whence.tv_sec == 0 && e->whence.tv_usec == 0);
   lockstate = acquire_master_fd(e->fd);
   master_fds[e->fd].e = e;
@@ -195,7 +195,7 @@ static eventer_t eventer_kqueue_impl_remove(eventer_t e) {
   if(e->mask & (EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION)) {
     ev_lock_state_t lockstate;
     lockstate = acquire_master_fd(e->fd);
-    noitL(eventer_deb, "kqueue: remove(%d)\n", e->fd);
+    mtevL(eventer_deb, "kqueue: remove(%d)\n", e->fd);
     if(e == master_fds[e->fd].e) {
       removed = e;
       master_fds[e->fd].e = NULL;
@@ -204,7 +204,7 @@ static eventer_t eventer_kqueue_impl_remove(eventer_t e) {
       if(e->mask & (EVENTER_WRITE))
         ke_change(e->fd, EVFILT_WRITE, EV_DELETE | EV_DISABLE, e);
     } else
-      noitL(eventer_deb, "kqueue: remove(%d) failed.\n", e->fd);
+      mtevL(eventer_deb, "kqueue: remove(%d) failed.\n", e->fd);
     release_master_fd(e->fd, lockstate);
   }
   else if(e->mask & EVENTER_TIMER) {
@@ -223,7 +223,7 @@ static void eventer_kqueue_impl_update(eventer_t e, int mask) {
     eventer_update_timed(e, mask);
     return;
   }
-  noitL(eventer_deb, "kqueue: update(%d, %x->%x)\n", e->fd, e->mask, mask);
+  mtevL(eventer_deb, "kqueue: update(%d, %x->%x)\n", e->fd, e->mask, mask);
   /* Disable old, if they aren't active in the new */
   if((e->mask & (EVENTER_READ | EVENTER_EXCEPTION)) &&
      !(mask & (EVENTER_READ | EVENTER_EXCEPTION)))
@@ -247,7 +247,7 @@ static eventer_t eventer_kqueue_impl_remove_fd(int fd) {
   eventer_t eiq = NULL;
   ev_lock_state_t lockstate;
   if(master_fds[fd].e) {
-    noitL(eventer_deb, "kqueue: remove_fd(%d)\n", fd);
+    mtevL(eventer_deb, "kqueue: remove_fd(%d)\n", fd);
     lockstate = acquire_master_fd(fd);
     eiq = master_fds[fd].e;
     master_fds[fd].e = NULL;
@@ -306,13 +306,13 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
    */
   oldmask = e->mask | masks[fd];
   cbname = eventer_name_for_callback_e(e->callback, e);
-  noitLT(eventer_deb, &__now, "kqueue: fire on %d/%x to %s(%p)\n",
+  mtevLT(eventer_deb, &__now, "kqueue: fire on %d/%x to %s(%p)\n",
          fd, masks[fd], cbname?cbname:"???", e->callback);
-  noit_memory_begin();
-  LIBNOIT_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
+  mtev_memory_begin();
+  LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
   newmask = e->callback(e, mask, e->closure, &__now);
-  LIBNOIT_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
-  noit_memory_end();
+  LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
+  mtev_memory_end();
 
   if(newmask) {
     if(!pthread_equal(pthread_self(), e->thr_owner)) {
@@ -321,7 +321,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
       alter_kqueue_mask(e, oldmask, 0);
       e->thr_owner = tgt;
       alter_kqueue_mask(e, 0, newmask);
-      noitL(eventer_deb, "moved event[%p] from t@%u to t@%u\n",
+      mtevL(eventer_deb, "moved event[%p] from t@%u to t@%u\n",
             e, (unsigned int)pthread_self(), (unsigned int)tgt);
     }
     else {
@@ -391,10 +391,10 @@ static int eventer_kqueue_impl_loop() {
                     ke_vec, ke_vec_a,
                     &__kqueue_sleeptime);
     kqs->wakeup_notify = 0;
-    if(ke_vec_used) noitLT(eventer_deb, &__now, "debug: kevent(%d, [], %d) => %d\n", kqs->kqueue_fd, ke_vec_used, fd_cnt);
+    if(ke_vec_used) mtevLT(eventer_deb, &__now, "debug: kevent(%d, [], %d) => %d\n", kqs->kqueue_fd, ke_vec_used, fd_cnt);
     ke_vec_used = 0;
     if(fd_cnt < 0) {
-      noitLT(eventer_err, &__now, "kevent(s/%d): %s\n", kqs->kqueue_fd, strerror(errno));
+      mtevLT(eventer_err, &__now, "kevent(s/%d): %s\n", kqs->kqueue_fd, strerror(errno));
     }
     else if(fd_cnt == 0 ||
             (fd_cnt == 1 && ke_vec[0].filter == EVFILT_USER)) {
@@ -435,7 +435,7 @@ static int eventer_kqueue_impl_loop() {
         if(ke->filter == EVFILT_USER) continue;
         if(ke->flags & EV_ERROR) {
           if(ke->data != EBADF && ke->data != ENOENT)
-            noitLT(eventer_err, &__now, "error [%d]: %s\n",
+            mtevLT(eventer_err, &__now, "error [%d]: %s\n",
                    (int)ke->ident, strerror(ke->data));
           continue;
         }
@@ -459,7 +459,7 @@ static int eventer_kqueue_impl_loop() {
 void eventer_kqueue_impl_wakeup(eventer_t e) {
   KQUEUE_DECL;
   KQUEUE_SETUP(e);
-  if(noit_spinlock_trylock(&kqs->wakeup_notify))
+  if(mtev_spinlock_trylock(&kqs->wakeup_notify))
     eventer_kqueue_impl_wakeup_spec(kqs);
 }
 

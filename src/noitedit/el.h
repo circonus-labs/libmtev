@@ -50,7 +50,7 @@
  */
 #define	ANCHOR
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "eventer/eventer.h"
 #include <stdio.h>
 #ifdef HAVE_SYS_TYPES_H

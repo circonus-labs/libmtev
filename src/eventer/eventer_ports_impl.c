@@ -30,13 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "utils/noit_atomic.h"
-#include "utils/noit_skiplist.h"
-#include "utils/noit_memory.h"
-#include "utils/noit_log.h"
-#include "libnoit_dtrace_probes.h"
+#include "mtev_atomic.h"
+#include "mtev_skiplist.h"
+#include "mtev_memory.h"
+#include "mtev_log.h"
+#include "libmtev_dtrace_probes.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -60,7 +60,7 @@ struct _eventer_impl eventer_ports_impl;
 static const struct timeval __dyna_increment = { 0, 1000 }; /* 1 ms */
 struct ports_spec {
   int port_fd;
-  noit_spinlock_t wakeup_notify;
+  mtev_spinlock_t wakeup_notify;
 };
 
 static void *eventer_ports_spec_alloc() {
@@ -99,7 +99,7 @@ static void alter_fd(eventer_t e, int mask) {
     if(mask & EVENTER_WRITE) events |= POLLOUT;
     if(mask & EVENTER_EXCEPTION) events |= POLLERR;
     if(port_associate(spec->port_fd, PORT_SOURCE_FD, e->fd, events, (void *)(vpsized_int)e->fd) == -1) {
-      noitL(eventer_err,
+      mtevL(eventer_err,
             "eventer port_associate failed(%d-%d): %d/%s\n", e->fd, spec->port_fd, errno, strerror(errno));
       assert(0);
     }
@@ -108,7 +108,7 @@ static void alter_fd(eventer_t e, int mask) {
     if(port_dissociate(spec->port_fd, PORT_SOURCE_FD, e->fd) == -1) {
       if(errno == ENOENT) return; /* Fine */
       if(errno == EBADFD) return; /* Fine */
-      noitL(eventer_err,
+      mtevL(eventer_err,
             "eventer port_dissociate failed(%d-%d): %d/%s\n", e->fd, spec->port_fd, errno, strerror(errno));
       assert(0);
     }
@@ -121,14 +121,14 @@ static void eventer_ports_impl_add(eventer_t e) {
   cbname = eventer_name_for_callback_e(e->callback, e);
 
   if(e->mask & EVENTER_ASYNCH) {
-    noitL(eventer_deb, "debug: eventer_add asynch (%s)\n", cbname ? cbname : "???");
+    mtevL(eventer_deb, "debug: eventer_add asynch (%s)\n", cbname ? cbname : "???");
     eventer_add_asynch(NULL, e);
     return;
   }
 
   /* Recurrent delegation */
   if(e->mask & EVENTER_RECURRENT) {
-    noitL(eventer_deb, "debug: eventer_add recurrent (%s)\n", cbname ? cbname : "???");
+    mtevL(eventer_deb, "debug: eventer_add recurrent (%s)\n", cbname ? cbname : "???");
     eventer_add_recurrent(e);
     return;
   }
@@ -140,7 +140,7 @@ static void eventer_ports_impl_add(eventer_t e) {
   }
 
   /* file descriptor event */
-  noitL(eventer_deb, "debug: eventer_add fd (%s,%d,0x%04x)\n", cbname ? cbname : "???", e->fd, e->mask);
+  mtevL(eventer_deb, "debug: eventer_add fd (%s,%d,0x%04x)\n", cbname ? cbname : "???", e->fd, e->mask);
   lockstate = acquire_master_fd(e->fd);
   assert(e->whence.tv_sec == 0 && e->whence.tv_usec == 0);
   master_fds[e->fd].e = e;
@@ -215,13 +215,13 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
 
   gettimeofday(&__now, NULL);
   cbname = eventer_name_for_callback_e(e->callback, e);
-  noitLT(eventer_deb, &__now, "ports: fire on %d/%x to %s(%p)\n",
+  mtevLT(eventer_deb, &__now, "ports: fire on %d/%x to %s(%p)\n",
          fd, mask, cbname?cbname:"???", e->callback);
-  noit_memory_begin();
-  LIBNOIT_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
+  mtev_memory_begin();
+  LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
   newmask = e->callback(e, mask, e->closure, &__now);
-  LIBNOIT_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
-  noit_memory_end();
+  LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
+  mtev_memory_end();
 
   if(newmask) {
     if(!pthread_equal(pthread_self(), e->thr_owner)) {
@@ -230,18 +230,18 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
       alter_fd(e, 0);
       e->thr_owner = tgt;
       alter_fd(e, newmask);
-      noitL(eventer_deb, "moved event[%p] from t@%d to t@%d\n", e, pthread_self(), tgt);
+      mtevL(eventer_deb, "moved event[%p] from t@%d to t@%d\n", e, pthread_self(), tgt);
     }
     else {
       alter_fd(e, newmask);
       /* Set our mask */
       e->mask = newmask;
-      noitLT(eventer_deb, &__now, "ports: complete on %d/(%x->%x) to %s(%p)\n",
+      mtevLT(eventer_deb, &__now, "ports: complete on %d/(%x->%x) to %s(%p)\n",
              fd, mask, newmask, cbname?cbname:"???", e->callback);
     }
   }
   else {
-    noitLT(eventer_deb, &__now, "ports: complete on %d/none to %s(%p)\n",
+    mtevLT(eventer_deb, &__now, "ports: complete on %d/none to %s(%p)\n",
            fd, cbname?cbname:"???", e->callback);
     /*
      * Long story long:
@@ -314,12 +314,12 @@ static int eventer_ports_impl_loop() {
       add_timeval(__dyna_sleep, __dyna_increment, &__dyna_sleep);
 
     if(ret == -1 && (errno != ETIME && errno != EINTR))
-      noitLT(eventer_err, &__now, "port_getn: %s\n", strerror(errno));
+      mtevLT(eventer_err, &__now, "port_getn: %s\n", strerror(errno));
 
     if(ret < 0)
-      noitLT(eventer_deb, &__now, "port_getn: %s\n", strerror(errno));
+      mtevLT(eventer_deb, &__now, "port_getn: %s\n", strerror(errno));
 
-    noitLT(eventer_deb, &__now, "debug: port_getn(%d, [], %d) => %d\n",
+    mtevLT(eventer_deb, &__now, "debug: port_getn(%d, [], %d) => %d\n",
            spec->port_fd, fd_cnt, ret);
 
     if(pevents[0].portev_source == 65535) {
@@ -363,7 +363,7 @@ static int eventer_ports_impl_loop() {
 static void
 eventer_ports_impl_wakeup(eventer_t e) {
   struct ports_spec *spec = eventer_get_spec_for_event(e);
-  if(noit_spinlock_trylock(&spec->wakeup_notify))
+  if(mtev_spinlock_trylock(&spec->wakeup_notify))
     port_send(spec->port_fd, 0, NULL);
 }
 

@@ -44,7 +44,7 @@
 #ifndef _HISTEDIT_H_
 #define	_HISTEDIT_H_
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "eventer/eventer.h"
 #include <sys/types.h>
 #include <stdio.h>

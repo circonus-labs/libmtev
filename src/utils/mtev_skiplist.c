@@ -1,0 +1,400 @@
+/* ======================================================================
+ * Copyright (c) 2000,2006 Theo Schlossnagle
+ * All rights reserved.
+ * The following code was written by Theo Schlossnagle for use in the
+ * Backhand project at The Center for Networking and Distributed Systems
+ * at The Johns Hopkins University.
+ *
+ * This is a skiplist implementation to be used for abstract structures
+ * and is release under the LGPL license version 2.1 or later.  A copy
+ * of this license can be found file LGPL.
+ *
+ * Alternatively, this file may be licensed under the new BSD license.
+ * A copy of this license can be found file BSD.
+ * 
+ * ======================================================================
+*/
+
+#include "mtev_defines.h"
+#include "mtev_skiplist.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
+
+#ifndef MIN
+#define MIN(a,b) ((a<b)?(a):(b))
+#endif
+
+static int mtev_skiplisti_find_compare(mtev_skiplist *sl, const void *data,
+                                       mtev_skiplist_node **ret,
+                                       mtev_skiplist_node **prev,
+                                       mtev_skiplist_node **next,
+                                       mtev_skiplist_comparator_t comp);
+
+int mtev_compare_voidptr(const void *a, const void *b) {
+  if(a < b) return -1;
+  if(a == b) return 0;
+  return 1;
+}
+
+static int get_b_rand(void) {
+  static int ph=32; /* More bits than we will ever use */
+  static unsigned long randseq;
+  if(ph > 31) { /* Num bits in return of lrand48() */
+    ph=0;
+    randseq = lrand48();
+  }
+  ph++;
+  return ((randseq & (1 << (ph-1))) >> (ph-1));
+}
+
+void mtev_skiplisti_init(mtev_skiplist *sl) {
+  memset(sl, 0, sizeof(*sl));
+}
+
+static int indexing_comp(const void *av, const void *bv) {
+  const mtev_skiplist *a = av;
+  const mtev_skiplist *b = bv;
+  if(a->compare == b->compare) return 0;
+  return (void *)(a->compare)>(void *)(b->compare) ? 1 : -1;
+}
+static int indexing_compk(const void *a, const void *bv) {
+  const mtev_skiplist *b = bv;
+  if(a == (const void *)b->compare) return 0;
+  return a>(void *)(b->compare) ? 1 : -1;
+}
+
+void mtev_skiplist_init(mtev_skiplist *sl) {
+  mtev_skiplisti_init(sl);
+  sl->index = (mtev_skiplist *)malloc(sizeof(mtev_skiplist));
+  mtev_skiplisti_init(sl->index);
+  mtev_skiplist_set_compare(sl->index, indexing_comp, indexing_compk);
+}
+
+void mtev_skiplist_set_compare(mtev_skiplist *sl,
+                               mtev_skiplist_comparator_t comp,
+                              mtev_skiplist_comparator_t compk) {
+  if(sl->compare && sl->comparek) {
+    mtev_skiplist_add_index(sl, comp, compk);
+  } else {
+    sl->compare = comp;
+    sl->comparek = compk;
+  }
+}
+
+void mtev_skiplist_add_index(mtev_skiplist *sl,
+                             mtev_skiplist_comparator_t comp,
+                             mtev_skiplist_comparator_t compk) {
+  mtev_skiplist_node *m;
+  mtev_skiplist *ni;
+  int icount=0;
+  mtev_skiplist_find(sl->index, (void *)comp, &m);
+  if(m) return; /* Index already there! */
+  ni = (mtev_skiplist *)malloc(sizeof(mtev_skiplist));
+  mtev_skiplisti_init(ni);
+  mtev_skiplist_set_compare(ni, comp, compk);
+  /* Build the new index... This can be expensive! */
+  m = mtev_skiplist_insert(sl->index, ni);
+  while(m->prev) m=m->prev, icount++;
+  for(m=mtev_skiplist_getlist(sl); m; mtev_skiplist_next(sl, &m)) {
+    int j=icount-1;
+    mtev_skiplist_node *nsln;
+    nsln = mtev_skiplist_insert(ni, m->data);
+    /* skip from main index down list */
+    while(j>0) m=m->nextindex, j--;
+    /* insert this node in the indexlist after m */
+    nsln->nextindex = m->nextindex;
+    if(m->nextindex) m->nextindex->previndex = nsln;
+    nsln->previndex = m;
+    m->nextindex = nsln;
+  } 
+}
+
+mtev_skiplist_node *mtev_skiplist_getlist(mtev_skiplist *sl) {
+  if(!sl->bottom) return NULL;
+  return sl->bottom->next;
+}
+
+void *mtev_skiplist_find(mtev_skiplist *sl,
+                         const void *data,
+                         mtev_skiplist_node **iter) {
+  return mtev_skiplist_find_neighbors(sl, data, iter, NULL, NULL);
+}
+void *mtev_skiplist_find_neighbors(mtev_skiplist *sl,
+                                   const void *data,
+                                   mtev_skiplist_node **iter,
+                                   mtev_skiplist_node **prev,
+                                   mtev_skiplist_node **next) {
+  void *ret;
+  mtev_skiplist_node *aiter;
+  if(!sl->compare) return 0;
+  if(iter)
+    ret = mtev_skiplist_find_neighbors_compare(sl, data, iter,
+                                               prev, next, sl->compare);
+  else
+    ret = mtev_skiplist_find_neighbors_compare(sl, data, &aiter,
+                                               prev, next, sl->compare);
+  return ret;
+}
+
+void *mtev_skiplist_find_compare(mtev_skiplist *sli,
+                                 const void *data,
+                                 mtev_skiplist_node **iter,
+                                 mtev_skiplist_comparator_t comp) {
+  return mtev_skiplist_find_neighbors_compare(sli, data, iter,
+                                              NULL, NULL, comp);
+}
+void *mtev_skiplist_find_neighbors_compare(mtev_skiplist *sli,
+                                           const void *data,
+                                           mtev_skiplist_node **iter,
+                                           mtev_skiplist_node **prev,
+                                           mtev_skiplist_node **next,
+                                           mtev_skiplist_comparator_t comp) {
+  mtev_skiplist_node *m = NULL;
+  mtev_skiplist *sl;
+  if(iter) *iter = NULL;
+  if(prev) *prev = NULL;
+  if(next) *next = NULL;
+  if(comp==sli->compare || !sli->index) {
+    sl = sli;
+  } else {
+    mtev_skiplist_find(sli->index, (void *)comp, &m);
+    assert(m);
+    sl= (mtev_skiplist *) m->data;
+  }
+  mtev_skiplisti_find_compare(sl, data, iter, prev, next, sl->comparek);
+  return (iter && *iter)?((*iter)->data):NULL;
+}
+static int mtev_skiplisti_find_compare(mtev_skiplist *sl,
+                                       const void *data,
+                                       mtev_skiplist_node **ret,
+                                       mtev_skiplist_node **prev,
+                                       mtev_skiplist_node **next,
+                                       mtev_skiplist_comparator_t comp) {
+  mtev_skiplist_node *m = NULL;
+  int count=0;
+  if(ret) *ret = NULL;
+  if(prev) *prev = NULL;
+  if(next) *next = NULL;
+  m = sl->top;
+  while(m) {
+    int compared;
+    compared = (m->next) ? comp(data, m->next->data) : -1;
+    if(compared == 0) { /* Found */
+      m=m->next; /* m->next is the match */
+      while(m->down) m=m->down; /* proceed to the bottom-most */
+      if(ret) *ret = m;
+      if(prev) *prev = m->prev;
+      if(next) *next = m->next;
+      return count;
+    }
+    if((m->next == NULL) || (compared<0)) {
+      if(m->down == NULL) {
+        /* This is... we're about to bail, figure out our neighbors */
+        if(prev) *prev = (m == sl->bottom) ? NULL : m;
+        if(next) *next = m->next;
+      }
+      m = m->down;
+      count++;
+    }
+    else
+      m = m->next, count++;
+  }
+  if(ret) *ret = NULL;
+  return count;
+}
+void *mtev_skiplist_next(mtev_skiplist *sl, mtev_skiplist_node **iter) {
+  if(!*iter) return NULL;
+  *iter = (*iter)->next;
+  return (*iter)?((*iter)->data):NULL;
+}
+void *mtev_skiplist_previous(mtev_skiplist *sl, mtev_skiplist_node **iter) {
+  if(!*iter) return NULL;
+  *iter = (*iter)->prev;
+  return (*iter)?((*iter)->data):NULL;
+}
+mtev_skiplist_node *mtev_skiplist_insert(mtev_skiplist *sl,
+                                         const void *data) {
+  if(!sl->compare) return 0;
+  return mtev_skiplist_insert_compare(sl, data, sl->compare);
+}
+
+mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
+                                                 const void *data,
+                                                 mtev_skiplist_comparator_t comp) {
+  mtev_skiplist_node *m, *p, *tmp, *ret = NULL, **stack;
+  int nh=1, ch, stacki;
+  if(!sl->top) {
+    sl->height = 1;
+    sl->top = sl->bottom = 
+      calloc(1, sizeof(mtev_skiplist_node));
+    sl->top->sl = sl;
+  }
+  if(sl->preheight) {
+    while(nh < sl->preheight && get_b_rand()) nh++;
+  } else {
+    while(nh <= sl->height && get_b_rand()) nh++;
+  }
+  /* Now we have the new height at which we wish to insert our new node */
+  /* Let us make sure that our tree is a least that tall (grow if necessary)*/
+  for(;sl->height<nh;sl->height++) {
+    sl->top->up = (mtev_skiplist_node *)calloc(1, sizeof(mtev_skiplist_node));
+    sl->top->up->down = sl->top;
+    sl->top = sl->top->up;
+    sl->top->sl = sl;
+  }
+  ch = sl->height;
+  /* Find the node (or node after which we would insert) */
+  /* Keep a stack to pop back through for insertion */
+  m = sl->top;
+  stack = (mtev_skiplist_node **)alloca(sizeof(mtev_skiplist_node *)*(nh));
+  stacki=0;
+  while(m) {
+    int compared=-1;
+    if(m->next) compared=comp(data, m->next->data);
+    if(compared == 0) {
+      return 0;
+    }
+    if(compared<0) {
+      if(ch<=nh) {
+	/* push on stack */
+	stack[stacki++] = m;
+      }
+      m = m->down;
+      ch--;
+    } else {
+      m = m->next;
+    }
+  }
+  /* Pop the stack and insert nodes */
+  p = NULL;
+  for(;stacki>0;stacki--) {
+    m = stack[stacki-1];
+    tmp = calloc(1, sizeof(*tmp));
+    tmp->next = m->next;
+    if(m->next) m->next->prev=tmp;
+    tmp->prev = m;
+    tmp->down = p;
+    if(p) p->up=tmp;
+    tmp->data = (void *)data;
+    tmp->sl = sl;
+    m->next = tmp;
+    /* This sets ret to the bottom-most node we are inserting */
+    if(!p) ret=tmp;
+    p = tmp;
+  }
+  if(sl->index != NULL) {
+    /* this is a external insertion, we must insert into each index as well */
+    mtev_skiplist_node *p, *ni, *li;
+    assert(ret);
+    li=ret;
+    for(p = mtev_skiplist_getlist(sl->index); p; mtev_skiplist_next(sl->index, &p)) {
+      ni = mtev_skiplist_insert((mtev_skiplist *)p->data, ret->data);
+      assert(ni);
+      li->nextindex = ni;
+      ni->previndex = li;
+      li = ni;
+    }
+  }
+  sl->size++;
+  return ret;
+}
+int mtev_skiplist_remove(mtev_skiplist *sl,
+                         const void *data, mtev_freefunc_t myfree) {
+  if(!sl->compare) return 0;
+  return mtev_skiplist_remove_compare(sl, data, myfree, sl->comparek);
+}
+int mtev_skiplisti_remove(mtev_skiplist *sl, mtev_skiplist_node *m, mtev_freefunc_t myfree) {
+  mtev_skiplist_node *p;
+  if(!m) return 0;
+  if(m->nextindex) mtev_skiplisti_remove(m->nextindex->sl, m->nextindex, NULL);
+  while(m->up) m=m->up;
+  while(m) {
+    p=m;
+    p->prev->next = p->next; /* take me out of the list */
+    if(p->next) p->next->prev = p->prev; /* take me out of the list */
+    m=m->down;
+    /* This only frees the actual data in the bottom one */
+    if(!m && myfree && p->data) myfree(p->data);
+    free(p);
+  }
+  sl->size--;
+  while(sl->top && sl->top->next == NULL) {
+    /* While the row is empty and we are not on the bottom row */
+    p = sl->top;
+    sl->top = sl->top->down; /* Move top down one */
+    if(sl->top) sl->top->up = NULL; /* Make it think its the top */
+    free(p);
+    sl->height--;
+  }
+  if(!sl->top) sl->bottom = NULL;
+  return 1;
+}
+int mtev_skiplist_remove_compare(mtev_skiplist *sli,
+                                 const void *data,
+                                 mtev_freefunc_t myfree,
+                                 mtev_skiplist_comparator_t comp) {
+  mtev_skiplist_node *m;
+  mtev_skiplist *sl;
+  if(comp==sli->comparek || !sli->index) {
+    sl = sli;
+  } else {
+    mtev_skiplist_find(sli->index, (void *)comp, &m);
+    assert(m);
+    sl= (mtev_skiplist *) m->data;
+  }
+  mtev_skiplisti_find_compare(sl, data, &m, NULL, NULL, sl->comparek);
+  if(!m) return 0;
+  while(m->previndex) m=m->previndex;
+  return mtev_skiplisti_remove(m->sl, m, myfree);
+}
+void mtev_skiplist_remove_all(mtev_skiplist *sl, mtev_freefunc_t myfree) {
+  mtev_skiplist_node *m, *p, *u;
+  m=sl->bottom;
+  while(m) {
+    p = m->next;
+    if(p && myfree && p->data) myfree(p->data);
+    while(m) {
+      u = m->up;
+      free(m);
+      m=u;
+    }
+    m = p;
+  }
+  sl->top = sl->bottom = NULL;
+  sl->height = 0;
+  sl->size = 0;
+}
+static void mtev_skiplisti_destroy(void *vsl) {
+  mtev_skiplist_destroy((mtev_skiplist *)vsl, NULL);
+  free(vsl);
+}
+void mtev_skiplist_destroy(mtev_skiplist *sl, mtev_freefunc_t myfree) {
+  while(mtev_skiplist_pop(sl->index, mtev_skiplisti_destroy) != NULL);
+  mtev_skiplist_remove_all(sl, myfree);
+}
+void *mtev_skiplist_pop(mtev_skiplist * a, mtev_freefunc_t myfree)
+{
+  mtev_skiplist_node *sln;
+  void *data = NULL;
+  sln = mtev_skiplist_getlist(a);
+  if (sln) {
+    data = sln->data;
+    mtev_skiplisti_remove(a, sln, myfree);
+  }
+  return data;
+}
+void *mtev_skiplist_peek(mtev_skiplist * a)
+{
+  mtev_skiplist_node *sln;
+  sln = mtev_skiplist_getlist(a);
+  if (sln) {
+    return sln->data;
+  }
+  return NULL;
+}

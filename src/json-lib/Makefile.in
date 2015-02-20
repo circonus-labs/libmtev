@@ -13,16 +13,10 @@ INSTALL=@INSTALL@
 
 top_srcdir=@top_srcdir@
 
-OBJS=arraylist.o debug.o json_object.o json_tokener.o json_util.o \
-	linkhash.o printbuf.o
+OBJS=mtev_arraylist.o mtev_debug.o mtev_json_object.o mtev_json_tokener.o mtev_json_util.o \
+	mtev_linkhash.o mtev_printbuf.o
 
-all:	libnoitjson.a
-
-libnoitjson.a:	$(OBJS)
-	@rm -f $@
-	@$(AR) cq $@ $(OBJS)
-	@echo "- archiving $@"
-	@$(RANLIB) $@
+all:
 
 .c.lo:
 	@$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
@@ -33,7 +27,7 @@ libnoitjson.a:	$(OBJS)
 	@echo "- compiling $<"
 
 clean:
-	rm -f *.o libnoitjson.a
+	rm -f *.o
 
 distclean:	clean
 	rm -f Makefile

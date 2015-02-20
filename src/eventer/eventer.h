@@ -33,9 +33,9 @@
 #ifndef _EVENTER_EVENTER_H
 #define _EVENTER_EVENTER_H
 
-#include "noit_defines.h"
-#include "utils/noit_log.h"
-#include "utils/noit_atomic.h"
+#include "mtev_defines.h"
+#include "mtev_log.h"
+#include "mtev_atomic.h"
 #include <sys/time.h>
 #include <sys/socket.h>
 
@@ -136,7 +136,7 @@ typedef struct _eventer_impl {
   struct {
     eventer_t e;
     pthread_t executor;
-    noit_spinlock_t lock;
+    mtev_spinlock_t lock;
   }                 *master_fds;
 } *eventer_impl_t;
 
@@ -145,8 +145,8 @@ typedef struct _eventer_impl {
 extern
 #endif
 eventer_impl_t __eventer;
-noit_log_stream_t eventer_err;
-noit_log_stream_t eventer_deb;
+mtev_log_stream_t eventer_err;
+mtev_log_stream_t eventer_deb;
 
 API_EXPORT(int) eventer_choose(const char *name);
 API_EXPORT(void) eventer_loop();

@@ -1,4 +1,4 @@
-define noit_hash_show
+define mtev_hash_show
   set $ht = $arg0
   set $nb = 0
 
@@ -13,12 +13,12 @@ define noit_hash_show
   end
 end
 
-document noit_hash_show
-  Shows the contents of an noit_hash; displays
+document mtev_hash_show
+  Shows the contents of an mtev_hash; displays
   the bucket number, key and data pointer
 end
 
-define noit_hash_showstr
+define mtev_hash_showstr
   set $ht = $arg0
   set $nb = 0
 

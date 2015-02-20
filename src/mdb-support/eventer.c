@@ -6,7 +6,7 @@ struct fds_data {
   int idx;
   int maxfds;
 };
-static int noit_fds_walk_init(mdb_walk_state_t *s) {
+static int mtev_fds_walk_init(mdb_walk_state_t *s) {
   struct fds_data *fds;
   struct _eventer_impl l;
   if(mdb_readsym(&l, sizeof(l), "eventer_ports_impl") == -1) return WALK_ERR;
@@ -29,7 +29,7 @@ static int noit_fds_walk_init(mdb_walk_state_t *s) {
   s->walk_data = fds;
   return WALK_NEXT;
 }
-static int noit_fds_walk_step(mdb_walk_state_t *s) {
+static int mtev_fds_walk_step(mdb_walk_state_t *s) {
   struct fds_data *fds = s->walk_data;
   struct _eventer_impl l;
   struct _event e;
@@ -49,16 +49,16 @@ static int noit_fds_walk_step(mdb_walk_state_t *s) {
   return WALK_DONE;
 }
 
-static void noit_fds_walk_fini(mdb_walk_state_t *s) {
+static void mtev_fds_walk_fini(mdb_walk_state_t *s) {
 }
 
 static mdb_walker_t _eventer_walkers[] = {
   {
   .walk_name = "eventer_fds",
   .walk_descr = "walk all struct _event for fds registered with the eventer",
-  .walk_init = noit_fds_walk_init,
-  .walk_step = noit_fds_walk_step,
-  .walk_fini = noit_fds_walk_fini,
+  .walk_init = mtev_fds_walk_init,
+  .walk_step = mtev_fds_walk_step,
+  .walk_fini = mtev_fds_walk_fini,
   .walk_init_arg = NULL
   },
   { NULL }
@@ -81,31 +81,31 @@ static int _jobq_cb(uintptr_t addr, const void *u, void *data) {
 }
 
 static int
-noit_jobq_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+mtev_jobq_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
   struct jobq_crutch c = { .flags = flags, .name = NULL };
   GElf_Sym sym;
   int rv;
   if(argc == 1 && argv[0].a_type == MDB_TYPE_STRING) c.name = argv[0].a_un.a_str;
   else if(argc != 0) return DCMD_USAGE;
   if(mdb_lookup_by_name("all_queues", &sym) == -1) return DCMD_ERR;
-  rv = mdb_pwalk("noit_hash", _jobq_cb, &c, sym.st_value);
+  rv = mdb_pwalk("mtev_hash", _jobq_cb, &c, sym.st_value);
   return (rv == WALK_DONE) ? DCMD_OK : DCMD_ERR;
 }
 
 static int
-noit_timed_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+mtev_timed_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
   GElf_Sym sym;
   uintptr_t deref_addr;
   int rv;
   /* this is a pointer to a skiplist, deref */
   if(mdb_lookup_by_name("timed_events", &sym) == -1) return DCMD_ERR;
   if(mdb_vread(&deref_addr, sizeof(deref_addr), sym.st_value) == -1) return DCMD_ERR;
-  rv = mdb_pwalk("noit_skiplist", _print_addr_cb, NULL, deref_addr);
+  rv = mdb_pwalk("mtev_skiplist", _print_addr_cb, NULL, deref_addr);
   return (rv == WALK_DONE) ? DCMD_OK : DCMD_ERR;
 }
 
 static int
-noit_fds_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+mtev_fds_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
   int fd;
   struct _eventer_impl l;
   struct _event e;
@@ -153,7 +153,7 @@ static const mdb_bitmask_t mask_bits[] = {
 };
 
 static int
-noit_print_event_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+mtev_print_event_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
   struct _event e;
   if(mdb_vread(&e, sizeof(e), addr) == -1) {
     mdb_warn("invalid read\n");
@@ -178,7 +178,7 @@ static mdb_dcmd_t _eventer_dcmds[] = {
     "print_event",
     "",
     "prints the event",
-    noit_print_event_dcmds,
+    mtev_print_event_dcmds,
     NULL,
     NULL
   },
@@ -186,7 +186,7 @@ static mdb_dcmd_t _eventer_dcmds[] = {
     "eventer_fd",
     "<fd>",
     "returns the struct _event for the specified fd (or all)",
-    noit_fds_dcmds,
+    mtev_fds_dcmds,
     NULL,
     NULL
   },
@@ -194,7 +194,7 @@ static mdb_dcmd_t _eventer_dcmds[] = {
     "eventer_jobq",
     "[name]",
     "returns the event_jobq_t (all or just name)",
-    noit_jobq_dcmds,
+    mtev_jobq_dcmds,
     NULL,
     NULL
   },
@@ -202,7 +202,7 @@ static mdb_dcmd_t _eventer_dcmds[] = {
     "eventer_timed",
     "",
     "returns all timed struct _event",
-    noit_timed_dcmds,
+    mtev_timed_dcmds,
     NULL,
     NULL
   },

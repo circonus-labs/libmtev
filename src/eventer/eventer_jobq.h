@@ -30,13 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NOIT_JOBQUEUE_H
-#define _NOIT_JOBQUEUE_H
+#ifndef _MTEV_JOBQUEUE_H
+#define _MTEV_JOBQUEUE_H
 
-#include "noit_defines.h"
+#include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "utils/noit_atomic.h"
-#include "utils/noit_sem.h"
+#include "mtev_atomic.h"
+#include "mtev_sem.h"
 
 #include <pthread.h>
 #include <setjmp.h>
@@ -55,8 +55,8 @@ typedef struct _eventer_job_t {
   eventer_t               timeout_event;
   eventer_t               fd_event;
   int                     timeout_triggered; /* set, if it expires in-flight */
-  noit_atomic32_t         inflight;
-  noit_atomic32_t         has_cleanedup;
+  mtev_atomic32_t         inflight;
+  mtev_atomic32_t         has_cleanedup;
   void                  (*cleanup)(struct _eventer_job_t *);
   struct _eventer_job_t  *next;
   struct _eventer_jobq_t *jobq;
@@ -66,19 +66,19 @@ typedef struct _eventer_jobq_t {
   const char             *queue_name;
   pthread_mutex_t         lock;
   sem_t                   semaphore;
-  noit_atomic32_t         concurrency;
-  noit_atomic32_t         desired_concurrency;
-  noit_atomic32_t         pending_cancels;
+  mtev_atomic32_t         concurrency;
+  mtev_atomic32_t         desired_concurrency;
+  mtev_atomic32_t         pending_cancels;
   eventer_job_t          *headq;
   eventer_job_t          *tailq;
   pthread_key_t           threadenv;
   pthread_key_t           activejob;
-  noit_atomic32_t         backlog;
-  noit_atomic32_t         inflight;
-  noit_atomic64_t         total_jobs;
-  noit_atomic64_t         timeouts;
-  noit_atomic64_t         avg_wait_ns; /* smoother alpha = 0.8 */
-  noit_atomic64_t         avg_run_ns; /* smoother alpha = 0.8 */
+  mtev_atomic32_t         backlog;
+  mtev_atomic32_t         inflight;
+  mtev_atomic64_t         total_jobs;
+  mtev_atomic64_t         timeouts;
+  mtev_atomic64_t         avg_wait_ns; /* smoother alpha = 0.8 */
+  mtev_atomic64_t         avg_run_ns; /* smoother alpha = 0.8 */
 } eventer_jobq_t;
 
 int eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name);

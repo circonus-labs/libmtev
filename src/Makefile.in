@@ -1,6 +1,11 @@
 .SUFFIXES: .lo .re .c
 
-LIBNOIT_VERSION=0.0.1
+Q=
+ifeq ($(V),)
+	Q=@
+endif
+
+LIBMTEV_VERSION=0.0.1
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
@@ -22,7 +27,8 @@ MODULES_DIR=@MODULES_DIR@
 
 CC=@CC@
 SHLD=@SHLD@
-CPPFLAGS=@CPPFLAGS@
+CPPFLAGS=@CPPFLAGS@ \
+	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/yajl-lib
 CFLAGS=@CFLAGS@
 SHCFLAGS=@SHCFLAGS@
 CLINKFLAGS=@CLINKFLAGS@
@@ -34,8 +40,8 @@ ifneq ($(strip $(RLDFLAG)),)
   LDFLAGS += @RLDFLAG@$(libdir)
 endif
 SHLDFLAGS=@SHLDFLAGS@
-LIBNOIT_LIBS=@LIBNOIT_LIBS@
-LIBNOITLL_LIBS=@LIBNOITLL_LIBS@
+LIBMTEV_LIBS=@LIBMTEV_LIBS@
+LIBMTEVLL_LIBS=@LIBMTEVLL_LIBS@
 DEPFLAGS=@DEPFLAGS@
 MODULELD=@MODULELD@
 AR=@AR@
@@ -51,53 +57,50 @@ WHOLE_ARCHIVE=@WHOLE_ARCHIVE@
 NOWHOLE_ARCHIVE=@NOWHOLE_ARCHIVE@
 
 DTRACEOBJ=@DTRACEOBJ@
-LIBNOIT_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libnoit_%dtrace_stub.lo)
-LIBNOIT_V=libnoit@DOTSO@.$(LIBNOIT_VERSION)@DOTDYLIB@
-LIBNOIT=libnoit@DOTSO@@DOTDYLIB@
+LIBMTEV_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.lo)
+LIBMTEV_V=libmtev@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
+LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
 
-TARGETS=$(LIBNOIT) @MDB_MODS@
+TARGETS=$(LIBMTEV) @MDB_MODS@
 
 all:	reversion $(TARGETS) make-man
 
-HEADERS=noit_metric.h noit_capabilities_listener.h noit_conf.h noit_version.h \
-	noit_config.h noit_console.h noit_console_telnet.h \
-	noit_defines.h noit_events_rest.h \
-	noit_http.h noit_listener.h \
-	noit_main.h noit_dso.h noit_reverse_socket.h noit_rest.h \
-	noit_tokenizer.h noit_xml.h \
+HEADERS=mtev_metric.h mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
+	mtev_config.h mtev_console.h mtev_console_telnet.h \
+	mtev_defines.h mtev_events_rest.h \
+	mtev_http.h mtev_listener.h \
+	mtev_main.h mtev_dso.h mtev_reverse_socket.h mtev_rest.h \
+	mtev_tokenizer.h mtev_xml.h \
 	eventer/OETS_asn1_helper.h eventer/eventer.h \
 	eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
 	eventer/eventer_jobq.h \
-	utils/noit_atomic.h utils/noit_b64.h utils/noit_hash.h \
-	utils/noit_log.h utils/noit_mkdir.h utils/noit_security.h \
-	utils/noit_sem.h utils/noit_skiplist.h utils/noit_str.h \
-	utils/noit_watchdog.h utils/noit_lockfile.h \
-	utils/noit_hooks.h \
 	noitedit/chared.h noitedit/common.h noitedit/compat.h noitedit/el.h \
 	noitedit/el_term.h noitedit/emacs.h noitedit/fcns.h noitedit/fgetln.h \
 	noitedit/help.h noitedit/hist.h noitedit/histedit.h noitedit/key.h \
 	noitedit/map.h noitedit/parse.h noitedit/prompt.h noitedit/refresh.h \
 	noitedit/search.h noitedit/sig.h noitedit/strlcpy.h noitedit/sys.h \
-	noitedit/tokenizer.h noitedit/tty.h noitedit/vi.h \
-	json-lib/arraylist.h json-lib/bits.h json-lib/debug.h \
-	json-lib/json_object.h \
-	json-lib/json_tokener.h json-lib/json_util.h json-lib/json.h \
-	json-lib/linkhash.h json-lib/printbuf.h \
+	noitedit/tokenizer.h noitedit/tty.h noitedit/vi.h
+
+MAPPEDHEADERS= \
+	utils/mtev_atomic.h utils/mtev_b64.h utils/mtev_hash.h \
+	utils/mtev_log.h utils/mtev_mkdir.h utils/mtev_security.h \
+	utils/mtev_sem.h utils/mtev_skiplist.h utils/mtev_str.h \
+	utils/mtev_watchdog.h utils/mtev_lockfile.h \
+	utils/mtev_hooks.h \
+	json-lib/mtev_arraylist.h json-lib/mtev_bits.h json-lib/mtev_debug.h \
+	json-lib/mtev_json_object.h \
+	json-lib/mtev_json_tokener.h json-lib/mtev_json_util.h json-lib/mtev_json.h \
+	json-lib/mtev_linkhash.h json-lib/mtev_printbuf.h \
 	yajl-lib/yajl_alloc.h yajl-lib/yajl_buf.h yajl-lib/yajl_bytestack.h \
 	yajl-lib/yajl_common.h yajl-lib/yajl_encode.h yajl-lib/yajl_gen.h \
 	yajl-lib/yajl_lex.h yajl-lib/yajl_parse.h yajl-lib/yajl_parser.h \
 	yajl-lib/yajl_tree.h yajl-lib/yajl_version.h
 
 
-UDNS_LIB_OBJS=udns/udns_dn.o udns/udns_dntosp.o udns/udns_parse.o \
-        udns/udns_resolver.o udns/udns_init.o udns/udns_misc.o \
-        udns/udns_XtoX.o udns/udns_rr_a.o udns/udns_rr_ptr.o udns/udns_rr_mx.o \
-        udns/udns_rr_txt.o udns/udns_bl.o udns/udns_rr_srv.o \
-        udns/udns_rr_naptr.o udns/udns_codes.o udns/udns_jran.o
-JSON_LIB_OBJS=json-lib/arraylist.lo json-lib/debug.lo json-lib/json_object.lo \
-        json-lib/json_tokener.lo json-lib/json_util.lo json-lib/linkhash.lo \
-        json-lib/printbuf.lo
-NOITEDIT_LIB_OBJS=noitedit/chared.lo noitedit/common.lo noitedit/el.lo \
+JSON_LIB_OBJS=json-lib/mtev_arraylist.lo json-lib/mtev_debug.lo json-lib/mtev_json_object.lo \
+        json-lib/mtev_json_tokener.lo json-lib/mtev_json_util.lo json-lib/mtev_linkhash.lo \
+        json-lib/mtev_printbuf.lo
+MTEVEDIT_LIB_OBJS=noitedit/chared.lo noitedit/common.lo noitedit/el.lo \
         noitedit/emacs.lo noitedit/fcns.lo noitedit/fgetln.lo noitedit/help.lo \
         noitedit/hist.lo noitedit/history.lo noitedit/key.lo noitedit/map.lo \
         noitedit/parse.lo noitedit/prompt.lo noitedit/read.lo noitedit/readline.lo \
@@ -110,11 +113,11 @@ ATOMIC_OBJS=$(ATOMIC_REL_OBJS:%.lo=utils/%.lo)
 EVENTER_LIB_OBJS=eventer/OETS_asn1_helper.lo eventer/eventer.lo \
         eventer/eventer_POSIX_fd_opset.lo eventer/eventer_SSL_fd_opset.lo \
         eventer/eventer_impl.lo eventer/eventer_jobq.lo $(EVENTER_IMPL_OBJS)
-NOIT_UTILS_OBJS=utils/noit_b32.lo utils/noit_b64.lo utils/noit_btrie.lo \
-        utils/noit_getip.lo utils/noit_hash.lo utils/noit_lockfile.lo \
-        utils/noit_log.lo utils/noit_mkdir.lo utils/noit_security.lo \
-        utils/noit_sem.lo utils/noit_skiplist.lo utils/noit_str.lo \
-        utils/noit_watchdog.lo utils/noit_memory.lo $(ATOMIC_OBJS)
+MTEV_UTILS_OBJS=utils/mtev_b32.lo utils/mtev_b64.lo utils/mtev_btrie.lo \
+        utils/mtev_getip.lo utils/mtev_hash.lo utils/mtev_lockfile.lo \
+        utils/mtev_log.lo utils/mtev_mkdir.lo utils/mtev_security.lo \
+        utils/mtev_sem.lo utils/mtev_skiplist.lo utils/mtev_str.lo \
+        utils/mtev_watchdog.lo utils/mtev_memory.lo $(ATOMIC_OBJS)
 YAJL_LIB_OBJS=yajl-lib/yajl.lo yajl-lib/yajl_alloc.lo yajl-lib/yajl_buf.lo \
         yajl-lib/yajl_encode.lo yajl-lib/yajl_gen.lo yajl-lib/yajl_lex.lo \
         yajl-lib/yajl_parser.lo yajl-lib/yajl_tree.lo yajl-lib/yajl_version.lo
@@ -122,74 +125,74 @@ YAJL_LIB_OBJS=yajl-lib/yajl.lo yajl-lib/yajl_alloc.lo yajl-lib/yajl_buf.lo \
 ENABLE_LUA=@ENABLE_LUA@
 LUALIBS=@LUALIBS@
 
-LIBNOIT_OBJS=noit_main.lo noit_listener.lo \
-	noit_console.lo noit_console_state.lo noit_console_telnet.lo \
-	noit_console_complete.lo noit_xml.lo \
-	noit_conf.lo noit_http.lo noit_rest.lo noit_tokenizer.lo \
-	noit_reverse_socket.lo \
-	noit_capabilities_listener.lo noit_dso.lo \
-	noit_events_rest.lo \
-	$(NOITEDIT_LIB_OBJS) $(EVENTER_LIB_OBJS) \
-	$(NOIT_UTILS_OBJS) $(JSON_LIB_OBJS) $(YAJL_LIB_OBJS)
+LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo \
+	mtev_console.lo mtev_console_state.lo mtev_console_telnet.lo \
+	mtev_console_complete.lo mtev_xml.lo \
+	mtev_conf.lo mtev_http.lo mtev_rest.lo mtev_tokenizer.lo \
+	mtev_reverse_socket.lo \
+	mtev_capabilities_listener.lo mtev_dso.lo \
+	mtev_events_rest.lo \
+	$(MTEVEDIT_LIB_OBJS) $(EVENTER_LIB_OBJS) \
+	$(MTEV_UTILS_OBJS) $(JSON_LIB_OBJS) $(YAJL_LIB_OBJS)
 
-FINAL_LIBNOIT_OBJS=$(LIBNOIT_OBJS:%.lo=libnoit-objs/%.lo)
+FINAL_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
 
-libnoit-objs/%.lo:	%.lo
-	@mkdir -p "`dirname $@`"
+libmtev-objs/%.lo:	%.lo
+	$(Q)mkdir -p "`dirname $@`"
 	@echo "- making private $@"
-	@cp $(@:libnoit-objs/%.lo=%.lo) $@
-	@if test -x "$(CTFCONVERT)" ; then \
+	$(Q)cp $(@:libmtev-objs/%.lo=%.lo) $@
+	$(Q)if test -x "$(CTFCONVERT)" ; then \
 		echo "- making CTF ($@)" ; \
 		$(CTFCONVERT) -g -i -l @VERSION@ $@ ; \
 	fi
 
 make-man:
-	@(cd man && $(MAKE) -s)
+	$(Q)(cd man && $(MAKE) -s)
 
 .PHONY:	reversion
 
 reversion:
-	@$(top_srcdir)/buildtools/mkversion.sh noit_version.h
+	$(Q)$(top_srcdir)/buildtools/mkversion.sh mtev_version.h
 
-noit_version.h:
-	@$(top_srcdir)/buildtools/mkversion.sh noit_version.h
+mtev_version.h:
+	$(Q)$(top_srcdir)/buildtools/mkversion.sh mtev_version.h
 
-$(LIBNOIT):	$(LIBNOIT_V)
-	ln -sf $(LIBNOIT_V) $(LIBNOIT)
+$(LIBMTEV):	$(LIBMTEV_V)
+	$(Q)ln -sf $(LIBMTEV_V) $(LIBMTEV)
 
-$(LIBNOIT_V):	$(FINAL_LIBNOIT_OBJS) $(LIBNOIT_DTRACEOBJ)
+$(LIBMTEV_V):	$(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ)
 	@echo "- linking $@"
-	$(SHLD) $(SHLDFLAGS) -o $@ @LD_LIBNOIT_VERSION@ $(FINAL_LIBNOIT_OBJS) $(LIBNOIT_DTRACEOBJ) $(LIBNOIT_LIBS)
+	$(Q)$(SHLD) $(SHLDFLAGS) -o $@ @LD_LIBMTEV_VERSION@ $(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ) $(LIBMTEV_LIBS)
 
-$(LIBNOIT_DTRACEOBJ):    $(FINAL_LIBNOIT_OBJS)
+$(LIBMTEV_DTRACEOBJ):    $(FINAL_LIBMTEV_OBJS)
 	@echo "- assembling $@"
-	@DTRACE@ @DTRACEFLAGS@ -Z -G -s libnoit_dtrace_probes.d -o $(LIBNOIT_DTRACEOBJ) $(FINAL_LIBNOIT_OBJS)
+	$(Q)@DTRACE@ @DTRACEFLAGS@ -Z -G -s libmtev_dtrace_probes.d -o $(LIBMTEV_DTRACEOBJ) $(FINAL_LIBMTEV_OBJS)
 
-libnoit_@DTRACEHDR@:    libnoit_dtrace_probes.d
-	@if test -z "@DTRACE@" ; then \
+@DTRACEHDR@:    libmtev_dtrace_probes.d
+	$(Q)if test -z "@DTRACE@" ; then \
 		echo "- faking dtrace header" ; \
-		cp ./libnoit_@DTRACEHDR@.stock ./libnoit_@DTRACEHDR@ ; \
+		cp ./libmtev_@DTRACEHDR@.stock ./libmtev_@DTRACEHDR@ ; \
 	else \
 		echo "- building dtrace header $@" ; \
-		@DTRACE@ -h -s libnoit_dtrace_probes.d ; \
+		@DTRACE@ -h -s libmtev_dtrace_probes.d ; \
 	fi
 
 mdb-support/mdb_help.lo:	mdb-support/mdb_help.c
 	@echo "- compiling $@"
-	@$(CC) -Imdb-support $(CPPFLAGS) $(SHCFLAGS) $(CFLAGS) -o $@ -c $<
+	$(Q)$(CC) -Imdb-support $(CPPFLAGS) $(SHCFLAGS) $(CFLAGS) -o $@ -c $<
 
-SHAREDMDBMODSRC=mdb-support/noitutils.c mdb-support/eventer.c
+SHAREDMDBMODSRC=mdb-support/mtevutils.c mdb-support/eventer.c
 
-mdb-support/libnoit.lo:	mdb-support/libnoit.c $(SHAREDMDBMODSRC)
+mdb-support/libmtev.lo:	mdb-support/libmtev.c $(SHAREDMDBMODSRC)
 	@echo "- compiling $@"
-	@$(CC) -Imdb-support $(CPPFLAGS) $(SHCFLAGS) $(CFLAGS) -o $@ -c $<
+	$(Q)$(CC) -Imdb-support $(CPPFLAGS) $(SHCFLAGS) $(CFLAGS) -o $@ -c $<
 
-mdb-support/libnoit.so:	mdb-support/libnoit.lo mdb-support/mdb_help.lo
+mdb-support/libmtev.so:	mdb-support/libmtev.lo mdb-support/mdb_help.lo
 	@echo "- linking $@"
-	@$(MODULELD) $(SHLDFLAGS) -o $@ mdb-support/libnoit.lo mdb-support/mdb_help.lo
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ mdb-support/libmtev.lo mdb-support/mdb_help.lo
 
 .c.lo:
-	@if [ "`dirname $@`" != "." ] ; then \
+	$(Q)if [ "`dirname $@`" != "." ] ; then \
 		(cd "`dirname $@`" && $(MAKE) "`basename $@`") ; \
 	else \
 		echo "- compiling $<" ; \
@@ -197,52 +200,52 @@ mdb-support/libnoit.so:	mdb-support/libnoit.lo mdb-support/mdb_help.lo
 	fi
 
 .c.o:
-	@if [ "`dirname $@`" != "." ] ; then \
+	$(Q)if [ "`dirname $@`" != "." ] ; then \
 		(cd "`dirname $@`" && $(MAKE) "`basename $@`") ; \
 	else \
 		echo "- compiling $<" ; \
 		$(CC) $(CPPFLAGS) $(CFLAGS) -c $< ; \
 	fi
 
-utils/noit_atomic_sol_sparcv8plus.o:	utils/noit_atomic_sol.s
-	@(cd utils && $(MAKE) noit_atomic_sol_sparcv8plus.o)
+utils/mtev_atomic_sol_sparcv8plus.o:	utils/mtev_atomic_sol.s
+	$(Q)(cd utils && $(MAKE) mtev_atomic_sol_sparcv8plus.o)
 
-utils/noit_atomic_sol_sparcv9.o:	utils/noit_atomic_sol.s
-	@(cd utils && $(MAKE) noit_atomic_sol_sparcv9.o)
+utils/mtev_atomic_sol_sparcv9.o:	utils/mtev_atomic_sol.s
+	$(Q)(cd utils && $(MAKE) mtev_atomic_sol_sparcv9.o)
 
-utils/noit_atomic_sol_x86_32.o:	utils/noit_atomic_sol.s
-	@(cd utils && $(MAKE) noit_atomic_sol_x86_32.o)
+utils/mtev_atomic_sol_x86_32.o:	utils/mtev_atomic_sol.s
+	$(Q)(cd utils && $(MAKE) mtev_atomic_sol_x86_32.o)
 
-utils/noit_atomic_sol_x86_64.o:	utils/noit_atomic_sol.s
-	@(cd utils && $(MAKE) noit_atomic_sol_x86_64.o)
+utils/mtev_atomic_sol_x86_64.o:	utils/mtev_atomic_sol.s
+	$(Q)(cd utils && $(MAKE) mtev_atomic_sol_x86_64.o)
 
-noit_tokenizer.c:
-	@echo "- re2c noit_tokenizer.re"
-	@re2c -o $@ noit_tokenizer.re
+mtev_tokenizer.c:
+	@echo "- re2c mtev_tokenizer.re"
+	$(Q)re2c -o $@ mtev_tokenizer.re
 
-install-headers:	$(HEADERS)
+install-headers:	$(HEADERS) $(MAPPEDHEADERS)
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)/eventer
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)/utils
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)/noitedit
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)/json-lib
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)/yajl-lib
-	$(INSTALL) -m 0755 ../buildtools/xml2h $(DESTDIR)$(bindir)/noit-xml2h
-	$(INSTALL) -m 0755 scripts/noit-config $(DESTDIR)$(bindir)/noit-config
+	$(INSTALL) -m 0755 ../buildtools/xml2h $(DESTDIR)$(bindir)/mtev-xml2h
+	$(INSTALL) -m 0755 scripts/mtev-config $(DESTDIR)$(bindir)/mtev-config
 	for file in $(HEADERS) ; do \
 		$(INSTALL) -m 0644 $$file $(DESTDIR)$(includedir)/$$file ; \
 	done
+	for file in $(MAPPEDHEADERS) ; do \
+		$(INSTALL) -m 0644 $$file $(DESTDIR)$(includedir)/` echo $$file | sed -e 's/^[^\/]*\///'` ; \
+	done
 
-noitlibs:	$(LIBNOIT_V) @MDB_MODS@
+mtevlibs:	$(LIBMTEV_V) @MDB_MODS@
 
-install-libs:    noitlibs
+install-libs:    mtevlibs
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)
-	$(INSTALL) -m 0755 $(LIBNOIT_V) $(DESTDIR)$(libdir)/$(LIBNOIT_V)
-	ln -sf $(LIBNOIT_V) $(DESTDIR)$(libdir)/$(LIBNOIT)
+	$(INSTALL) -m 0755 $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV_V)
+	ln -sf $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV)
 	if test -n "@MDB_MODS@" ; then \
 		$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)/usr/lib/mdb/proc/amd64 ; \
-		$(INSTALL) -m 0755 mdb-support/libnoit.so $(DESTDIR)/usr/lib/mdb/proc/amd64/libnoit.so ; \
+		$(INSTALL) -m 0755 mdb-support/libmtev.so $(DESTDIR)/usr/lib/mdb/proc/amd64/libmtev.so ; \
 	fi
 
 install-docs:
@@ -252,8 +255,8 @@ install:	install-docs install-headers install-libs
 
 clean:
 	rm -f *.lo *.o
-	rm -f $(LIBNOIT) $(LIBNOIT_V)
-	rm -rf libnoit-objs
+	rm -f $(LIBMTEV) $(LIBMTEV_V)
+	rm -rf libmtev-objs
 	rm -rf mdb-support/*.lo mdb-support/*.so
 	(cd eventer && $(MAKE) clean)
 	(cd man && $(MAKE) clean)
@@ -270,8 +273,8 @@ Makefile.dep:
 		Makefile.dep ; \
 	done
 	for impl in kqueue ports epoll; do \
-		echo "libnoit-objs/eventer/eventer_$${impl}_impl.o: eventer/eventer_$${impl}_impl.o" >> $@ ; \
-		echo "libnoit-objs/eventer/eventer_$${impl}_impl.lo: eventer/eventer_$${impl}_impl.lo" >> $@ ; \
+		echo "libmtev-objs/eventer/eventer_$${impl}_impl.o: eventer/eventer_$${impl}_impl.o" >> $@ ; \
+		echo "libmtev-objs/eventer/eventer_$${impl}_impl.lo: eventer/eventer_$${impl}_impl.lo" >> $@ ; \
 	done
 	$(top_srcdir)/buildtools/culldeps.sh Makefile.dep
 
@@ -283,4 +286,4 @@ distclean-subdirs:
 	done
 
 distclean:	clean distclean-subdirs
-	rm -f Makefile noit_config.h scripts/noit-config
+	rm -f Makefile mtev_config.h scripts/mtev-config

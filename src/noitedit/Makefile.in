@@ -1,16 +1,5 @@
 .SUFFIXES:	.lo
 
-CC=@CC@
-CPPFLAGS=@CPPFLAGS@
-CFLAGS=@CFLAGS@
-SHCFLAGS=@SHCFLAGS@
-DEPFLAGS=@DEPFLAGS@
-LDFLAGS=@LDFLAGS@
-AR=@AR@
-RANLIB=@RANLIB@
-LIBS=@LIBS@
-INSTALL=@INSTALL@
-
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=@bindir@
@@ -25,6 +14,18 @@ docdir=${prefix}/@docdir@
 sysconfdir=@sysconfdir@
 srcdir=@srcdir@
 top_srcdir=@top_srcdir@
+
+CC=@CC@
+CPPFLAGS=@CPPFLAGS@ \
+	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/yajl-lib
+CFLAGS=@CFLAGS@
+SHCFLAGS=@SHCFLAGS@
+DEPFLAGS=@DEPFLAGS@
+LDFLAGS=@LDFLAGS@
+AR=@AR@
+RANLIB=@RANLIB@
+LIBS=@LIBS@
+INSTALL=@INSTALL@
 
 FABHEADERS=vi.h emacs.h common.h fcns.h help.h
 
@@ -94,7 +95,7 @@ distclean:	clean
 	rm -f Makefile
 
 Makefile.dep:
-	$(CC) -I. -I.. $(CPPFALGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
+	$(CC) -I. -I.. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
 	$(top_srcdir)/buildtools/culldeps.sh Makefile.dep
 
 include Makefile.dep

@@ -44,7 +44,7 @@
 #ifndef _h_sys
 #define	_h_sys
 
-#include "noit_config.h"
+#include "mtev_config.h"
 
 #ifndef public
 # define public		/* Externally visible functions/variables */

@@ -1,4 +1,4 @@
-AC_INIT(src/noit_main.c)
+AC_INIT(src/mtev_main.c)
 
 node=`hostname | cut -f1 -d '.' | tr '[A-Z]' '[a-z]'`
 if test -f ".configure.$node"; then
@@ -9,7 +9,7 @@ if test -f ".configure.$node"; then
 fi
 
 AC_CANONICAL_HOST
-AC_CONFIG_HEADER(src/noit_config.h)
+AC_CONFIG_HEADER(src/mtev_config.h)
 
 AC_ARG_ENABLE(strict,
 	[AC_HELP_STRING([--enable-strict],
@@ -45,9 +45,9 @@ fi
 SHLDFLAGS="$LDFLAGS"
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L "'-I$(top_srcdir)/src'
-DTRACEHDR=libnoit_dtrace_probes.h
+DTRACEHDR=libmtev_dtrace_probes.h
 DOTSO=.so
-LD_LIBNOIT_VERSION='-Wl,-soname,libnoit.so.$(LIBNOIT_VERSION)'
+LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(LIBMTEV_VERSION)'
 
 case $host in
 *-*-darwin*)
@@ -61,8 +61,7 @@ case $host in
 	MODULELD="$CC -bundle -flat_namespace -undefined suppress"
 	SHLD="$CC -dynamiclib -single_module -undefined dynamic_lookup -fPIC"
   DOTDYLIB=.dylib
-	LD_LIBNOIT_VERSION='-current_version $(LIBNOIT_VERSION) -install_name $(libdir)/libnoit.$(LIBNOIT_VERSION).dylib'
-	LD_LIBNOITLL_VERSION='-current_version $(LIBNOIT_VERSION) -install_name $(libdir)/libnoit-ll.$(LIBNOIT_VERSION).dylib'
+	LD_LIBMTEV_VERSION='-current_version $(LIBMTEV_VERSION) -install_name $(libdir)/libmtev.$(LIBMTEV_VERSION).dylib'
 	MODULEEXT=bundle
 	# This is needed for luajit on Mac OS X
 	if test "x$ENABLE_LUA" = "xLuaJIT"; then
@@ -78,25 +77,25 @@ case $host in
 	DTRACEOBJ=dtrace_stub.o
 	CFLAGS="$CFLAGS"
 	CPPFLAGS="$CPPFLAGS -D_XPG6 -D__EXTENSIONS__"
-	MDB_MODS="mdb-support/libnoit.so"
+	MDB_MODS="mdb-support/libmtev.so"
 	if test "x$GCC" != "xyes" ; then
 	AC_MSG_CHECKING([32 or 64 bit Solaris assembly])
 	if test -n "`echo $CFLAGS | grep m64`" ; then
 		DTRACEFLAGS=-64
 		if test -n "`isalist | grep sparc`"; then
 			AC_MSG_RESULT([sparc 64])
-			ATOMIC_OBJS="noit_atomic_sol_sparcv9.lo"
+			ATOMIC_OBJS="mtev_atomic_sol_sparcv9.lo"
 		else
 			AC_MSG_RESULT([intel 64])
-			ATOMIC_OBJS="noit_atomic_sol_x86_64.lo"
+			ATOMIC_OBJS="mtev_atomic_sol_x86_64.lo"
 		fi
 	else
 		if test -n "`isalist | grep sparc`"; then
 			AC_MSG_RESULT([sparc 32])
-			ATOMIC_OBJS="noit_atomic_sol_sparcv8plus.lo"
+			ATOMIC_OBJS="mtev_atomic_sol_sparcv8plus.lo"
 		else
 			AC_MSG_RESULT([intel 32])
-			ATOMIC_OBJS="noit_atomic_sol_x86_32.lo"
+			ATOMIC_OBJS="mtev_atomic_sol_x86_32.lo"
 		fi
 	fi
 	fi
@@ -162,7 +161,7 @@ case $host in
 esac
 AC_SUBST(DOTSO)
 AC_SUBST(DOTDYLIB)
-AC_SUBST(LD_LIBNOIT_VERSION)
+AC_SUBST(LD_LIBMTEV_VERSION)
 AC_SUBST(MDB_MODS)
 AC_DEFINE_UNQUOTED(CAP_PLATFORM, "$CAP_PLATFORM", [capabilities platform])
 if test "x$CAP_SUPPORTED" = "x1" ; then
@@ -266,8 +265,8 @@ AC_MSG_RESULT([$XSLTLIBS])
 
 AC_CHECK_FUNC(xsltParseStylesheetDoc, , [AC_MSG_ERROR(*** libxslt is required ***)])
 
-LIBNOIT_LIBS=$LIBS
-AC_SUBST(LIBNOIT_LIBS)
+LIBMTEV_LIBS=$LIBS
+AC_SUBST(LIBMTEV_LIBS)
 
 AC_CHECK_FUNC(SSLv2_server_method, [ AC_DEFINE(HAVE_SSLV2_SERVER) ])
 AC_CHECK_FUNC(SSLv2_client_method, [ AC_DEFINE(HAVE_SSLV2_CLIENT) ])
@@ -616,9 +615,9 @@ while test "x$temppath" != "x$fullpath" ; do
 	fullpath=`eval echo ${fullpath}`
 done
 fullpath=`echo $fullpath | sed "s~NONE~$SUBPREFIX~"`
-AC_MSG_RESULT([$fullpath/noit])
-AC_DEFINE_UNQUOTED(MODULES_DIR, "${fullpath}/noit")
-MODULES_DIR=${fullpath}/noit
+AC_MSG_RESULT([$fullpath/mtev])
+AC_DEFINE_UNQUOTED(MODULES_DIR, "${fullpath}/mtev")
+MODULES_DIR=${fullpath}/mtev
 AC_SUBST(MODULES_DIR)
 
 AC_MSG_CHECKING([Resolving sysconfdir path...])
@@ -670,6 +669,6 @@ src/yajl-lib/Makefile
 src/man/Makefile
 src/utils/Makefile
 src/noitedit/Makefile
-src/scripts/noit-config
+src/scripts/mtev-config
 test/Makefile
 ])

@@ -37,14 +37,14 @@
 typedef enum { EV_OWNED, EV_ALREADY_OWNED } ev_lock_state_t;
 static ev_lock_state_t
 acquire_master_fd(int fd) {
-  if(noit_spinlock_trylock(&master_fds[fd].lock)) {
+  if(mtev_spinlock_trylock(&master_fds[fd].lock)) {
     master_fds[fd].executor = pthread_self();
     return EV_OWNED;
   }
   if(pthread_equal(master_fds[fd].executor, pthread_self())) {
     return EV_ALREADY_OWNED;
   }
-  noit_spinlock_lock(&master_fds[fd].lock);
+  mtev_spinlock_lock(&master_fds[fd].lock);
   master_fds[fd].executor = pthread_self();
   return EV_OWNED;
 }
@@ -52,7 +52,7 @@ static void
 release_master_fd(int fd, ev_lock_state_t as) {
   if(as == EV_OWNED) {
     memset(&master_fds[fd].executor, 0, sizeof(master_fds[fd].executor));
-    noit_spinlock_unlock(&master_fds[fd].lock);
+    mtev_spinlock_unlock(&master_fds[fd].lock);
   }
 }
 
