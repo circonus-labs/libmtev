@@ -300,7 +300,7 @@ static mdb_dcmd_t _utils_dcmds[] = {
   { NULL }
 };
 
-static mdb_modinfo_t noitutils_linkage = {
+static mdb_modinfo_t mtevutils_linkage = {
   .mi_dvers = MDB_API_VERSION,
   .mi_dcmds = _utils_dcmds,
   .mi_walkers = _utils_walkers
