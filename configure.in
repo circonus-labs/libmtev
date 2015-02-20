@@ -665,7 +665,6 @@ Makefile
 src/Makefile
 src/eventer/Makefile
 src/json-lib/Makefile
-src/yajl-lib/Makefile
 src/man/Makefile
 src/utils/Makefile
 src/noitedit/Makefile

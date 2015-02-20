@@ -490,44 +490,6 @@ json-lib/mtev_printbuf.o json-lib/mtev_printbuf.lo: json-lib/mtev_printbuf.c mte
   ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
   ../src/json-lib/mtev_printbuf.h
 
-yajl-lib/yajl.o yajl-lib/yajl.lo: yajl-lib/yajl.c ../src/yajl-lib/yajl_parse.h \
-  yajl-lib/yajl_common.h ../src/yajl-lib/yajl_lex.h \
-  ../src/yajl-lib/yajl_parser.h ../src/yajl-lib/yajl_bytestack.h \
-  ../src/yajl-lib/yajl_buf.h ../src/yajl-lib/yajl_alloc.h
-
-yajl-lib/yajl_alloc.o yajl-lib/yajl_alloc.lo: yajl-lib/yajl_alloc.c ../src/yajl-lib/yajl_alloc.h \
-  ../src/yajl-lib/yajl_common.h
-
-yajl-lib/yajl_buf.o yajl-lib/yajl_buf.lo: yajl-lib/yajl_buf.c ../src/yajl-lib/yajl_buf.h \
-  ../src/yajl-lib/yajl_common.h ../src/yajl-lib/yajl_alloc.h
-
-yajl-lib/yajl_encode.o yajl-lib/yajl_encode.lo: yajl-lib/yajl_encode.c ../src/yajl-lib/yajl_encode.h \
-  ../src/yajl-lib/yajl_buf.h ../src/yajl-lib/yajl_common.h \
-  ../src/yajl-lib/yajl_alloc.h ../src/yajl-lib/yajl_gen.h
-
-yajl-lib/yajl_gen.o yajl-lib/yajl_gen.lo: yajl-lib/yajl_gen.c ../src/yajl-lib/yajl_gen.h \
-  yajl-lib/yajl_common.h ../src/yajl-lib/yajl_buf.h \
-  ../src/yajl-lib/yajl_alloc.h ../src/yajl-lib/yajl_encode.h
-
-yajl-lib/yajl_lex.o yajl-lib/yajl_lex.lo: yajl-lib/yajl_lex.c ../src/yajl-lib/yajl_lex.h \
-  ../src/yajl-lib/yajl_common.h ../src/yajl-lib/yajl_buf.h \
-  ../src/yajl-lib/yajl_alloc.h
-
-yajl-lib/yajl_parser.o yajl-lib/yajl_parser.lo: yajl-lib/yajl_parser.c ../src/yajl-lib/yajl_parse.h \
-  yajl-lib/yajl_common.h ../src/yajl-lib/yajl_lex.h \
-  ../src/yajl-lib/yajl_parser.h ../src/yajl-lib/yajl_bytestack.h \
-  ../src/yajl-lib/yajl_buf.h ../src/yajl-lib/yajl_alloc.h \
-  ../src/yajl-lib/yajl_encode.h ../src/yajl-lib/yajl_gen.h
-
-yajl-lib/yajl_tree.o yajl-lib/yajl_tree.lo: yajl-lib/yajl_tree.c ../src/yajl-lib/yajl_tree.h \
-  yajl-lib/yajl_common.h ../src/yajl-lib/yajl_parse.h \
-  ../src/yajl-lib/yajl_parser.h ../src/yajl-lib/yajl_bytestack.h \
-  ../src/yajl-lib/yajl_buf.h ../src/yajl-lib/yajl_alloc.h \
-  ../src/yajl-lib/yajl_lex.h
-
-yajl-lib/yajl_version.o yajl-lib/yajl_version.lo: yajl-lib/yajl_version.c yajl-lib/yajl_version.h \
-  yajl-lib/yajl_common.h
-
 libmtev-objs/eventer/eventer_kqueue_impl.o libmtev-objs/eventer/eventer_kqueue_impl.lo: eventer/eventer_kqueue_impl.o
 
 libmtev-objs/eventer/eventer_kqueue_impl.lo: eventer/eventer_kqueue_impl.lo

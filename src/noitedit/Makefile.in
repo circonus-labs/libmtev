@@ -17,7 +17,7 @@ top_srcdir=@top_srcdir@
 
 CC=@CC@
 CPPFLAGS=@CPPFLAGS@ \
-	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/yajl-lib
+	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils
 CFLAGS=@CFLAGS@
 SHCFLAGS=@SHCFLAGS@
 DEPFLAGS=@DEPFLAGS@

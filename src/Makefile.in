@@ -28,7 +28,7 @@ MODULES_DIR=@MODULES_DIR@
 CC=@CC@
 SHLD=@SHLD@
 CPPFLAGS=@CPPFLAGS@ \
-	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/yajl-lib
+	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils
 CFLAGS=@CFLAGS@
 SHCFLAGS=@SHCFLAGS@
 CLINKFLAGS=@CLINKFLAGS@
@@ -90,11 +90,7 @@ MAPPEDHEADERS= \
 	json-lib/mtev_arraylist.h json-lib/mtev_bits.h json-lib/mtev_debug.h \
 	json-lib/mtev_json_object.h \
 	json-lib/mtev_json_tokener.h json-lib/mtev_json_util.h json-lib/mtev_json.h \
-	json-lib/mtev_linkhash.h json-lib/mtev_printbuf.h \
-	yajl-lib/yajl_alloc.h yajl-lib/yajl_buf.h yajl-lib/yajl_bytestack.h \
-	yajl-lib/yajl_common.h yajl-lib/yajl_encode.h yajl-lib/yajl_gen.h \
-	yajl-lib/yajl_lex.h yajl-lib/yajl_parse.h yajl-lib/yajl_parser.h \
-	yajl-lib/yajl_tree.h yajl-lib/yajl_version.h
+	json-lib/mtev_linkhash.h json-lib/mtev_printbuf.h
 
 
 JSON_LIB_OBJS=json-lib/mtev_arraylist.lo json-lib/mtev_debug.lo json-lib/mtev_json_object.lo \
@@ -118,12 +114,6 @@ MTEV_UTILS_OBJS=utils/mtev_b32.lo utils/mtev_b64.lo utils/mtev_btrie.lo \
         utils/mtev_log.lo utils/mtev_mkdir.lo utils/mtev_security.lo \
         utils/mtev_sem.lo utils/mtev_skiplist.lo utils/mtev_str.lo \
         utils/mtev_watchdog.lo utils/mtev_memory.lo $(ATOMIC_OBJS)
-YAJL_LIB_OBJS=yajl-lib/yajl.lo yajl-lib/yajl_alloc.lo yajl-lib/yajl_buf.lo \
-        yajl-lib/yajl_encode.lo yajl-lib/yajl_gen.lo yajl-lib/yajl_lex.lo \
-        yajl-lib/yajl_parser.lo yajl-lib/yajl_tree.lo yajl-lib/yajl_version.lo
-
-ENABLE_LUA=@ENABLE_LUA@
-LUALIBS=@LUALIBS@
 
 LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo \
 	mtev_console.lo mtev_console_state.lo mtev_console_telnet.lo \
@@ -133,7 +123,7 @@ LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo \
 	mtev_capabilities_listener.lo mtev_dso.lo \
 	mtev_events_rest.lo \
 	$(MTEVEDIT_LIB_OBJS) $(EVENTER_LIB_OBJS) \
-	$(MTEV_UTILS_OBJS) $(JSON_LIB_OBJS) $(YAJL_LIB_OBJS)
+	$(MTEV_UTILS_OBJS) $(JSON_LIB_OBJS)
 
 FINAL_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
 
@@ -263,11 +253,10 @@ clean:
 	(cd noitedit && $(MAKE) clean)
 	(cd utils && $(MAKE) clean)
 	(cd json-lib && $(MAKE) clean)
-	(cd yajl-lib && $(MAKE) clean)
 
 Makefile.dep:
 	$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
-	for d in utils udns eventer noitedit json-lib yajl-lib; do \
+	for d in utils udns eventer noitedit json-lib ; do \
 		$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $$d/*.c | \
 		perl -pe 's#(\s)([^\s\\])#$$1$$2#g; s#^(\S)#'$$d'/$$1#;' >> \
 		Makefile.dep ; \
@@ -281,7 +270,7 @@ Makefile.dep:
 include Makefile.dep
 
 distclean-subdirs:
-	for dir in eventer man noitedit utils json-lib yajl-lib ; do \
+	for dir in eventer man noitedit utils json-lib ; do \
 		(cd $$dir && $(MAKE) distclean) ; \
 	done
 
