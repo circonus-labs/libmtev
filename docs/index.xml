@@ -3,42 +3,21 @@
 <?xml-model href="http://docbook.org/xml/5.0/rng/docbook.rng" type="application/xml" schematypens="http://purl.oclc.org/dsdl/schematron"?>
 <book xmlns="http://docbook.org/ns/docbook" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" version="5.0">
   <info>
-    <title>Reconnoiter</title>
-    <subtitle>Large-scale Monitoring and Trend Analysis System</subtitle>
-    <pubdate>2014-05-28, Document revision 12421</pubdate>
+    <title>Mount Everest Application Framework</title>
+    <subtitle>libmtev</subtitle>
+    <pubdate>2015-02-20, Document revision 1</pubdate>
     <author>
       <orgname>Circonus, Inc.</orgname>
     </author>
     <copyright>
-      <year>2014</year>
+      <year>2015</year>
       <holder>Circonus, Inc.</holder>
     </copyright>
   </info>
 
   <xi:include href="preface.xml"/>
-  <xi:include href="arch/index.xml"/>
-  <xi:include href="config/index.xml"/>
-  <xi:include href="operation/index.xml"/>
   <xi:include href="development/dev.xml"/>
 
-  <part xml:id="reference">
-    <title>Reference</title>
-    <reference xml:id="exe">
-      <title>Reconnoiter Command Line Reference</title>
-      <xi:include href="executable/noitd.xml"/>
-      <xi:include href="executable/stratcond.xml"/>
-    </reference>
-    <!--
-    <chapter xml:id="ref">
-      <title>Code Reference</title>
-      <section><title>Internal Functions</title>
-      <reference><title>Function Refrence</title>
-      </reference>
-      </section>
-    </chapter>
-    -->
-  </part>
-  
   <index xml:id="the.index"/>
 </book>
 <!--

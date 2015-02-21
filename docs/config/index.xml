@@ -8,8 +8,4 @@
       xml:id="configuration">
     <title>Configuration</title>
     <xi:include href="generic.xml"/>
-    <xi:include href="noitd.xml"/>
-    <xi:include href="noitd_modules.xml"/>
-    <xi:include href="stratcond.xml"/>
-    <xi:include href="stratcond_modules.xml"/>
 </part>
