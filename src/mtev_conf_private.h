@@ -34,8 +34,6 @@
 #define _MTEV_CONF_PRIVATE_H
 
 #include "mtev_defines.h"
-#include "mtev_hash.h"
-#include "mtev_console.h"
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>

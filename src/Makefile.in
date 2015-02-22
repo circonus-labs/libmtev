@@ -66,7 +66,7 @@ TARGETS=$(LIBMTEV) @MDB_MODS@
 all:	reversion $(TARGETS) make-man
 
 HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
-	mtev_config.h mtev_console.h mtev_console_telnet.h \
+	mtev_config.h mtev_conf_private.h mtev_console.h mtev_console_telnet.h \
 	mtev_defines.h mtev_events_rest.h \
 	mtev_http.h mtev_listener.h \
 	mtev_main.h mtev_dso.h mtev_reverse_socket.h mtev_rest.h \
