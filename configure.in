@@ -616,7 +616,7 @@ while test "x$temppath" != "x$fullpath" ; do
 done
 fullpath=`echo $fullpath | sed "s~NONE~$SUBPREFIX~"`
 AC_MSG_RESULT([$fullpath/mtev])
-AC_DEFINE_UNQUOTED(MODULES_DIR, "${fullpath}/mtev")
+AC_DEFINE_UNQUOTED(MTEV_MODULES_DIR, "${fullpath}/mtev")
 MODULES_DIR=${fullpath}/mtev
 AC_SUBST(MODULES_DIR)
 
@@ -628,7 +628,7 @@ while test "x$temppath" != "x$fullpath" ; do
 done
 fullpath=`echo $fullpath | sed "s~NONE~$SUBPREFIX~"`
 AC_MSG_RESULT([$fullpath])
-AC_DEFINE_UNQUOTED(ETC_DIR, "${fullpath}")
+AC_DEFINE_UNQUOTED(MTEV_ETC_DIR, "${fullpath}")
 ETC_DIR=${fullpath}
 AC_SUBST(ETC_DIR)
 

@@ -65,7 +65,7 @@ TARGETS=$(LIBMTEV) @MDB_MODS@
 
 all:	reversion $(TARGETS) make-man
 
-HEADERS=mtev_metric.h mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
+HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
 	mtev_config.h mtev_console.h mtev_console_telnet.h \
 	mtev_defines.h mtev_events_rest.h \
 	mtev_http.h mtev_listener.h \
@@ -82,11 +82,12 @@ HEADERS=mtev_metric.h mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
 	noitedit/tokenizer.h noitedit/tty.h noitedit/vi.h
 
 MAPPEDHEADERS= \
-	utils/mtev_atomic.h utils/mtev_b64.h utils/mtev_hash.h \
-	utils/mtev_log.h utils/mtev_mkdir.h utils/mtev_security.h \
+	utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
+	utils/mtev_btrie.h utils/mtev_getip.h utils/mtev_hash.h \
+	utils/mtev_hooks.h utils/mtev_lockfile.h utils/mtev_log.h \
+	utils/mtev_memory.h utils/mtev_mkdir.h utils/mtev_security.h \
 	utils/mtev_sem.h utils/mtev_skiplist.h utils/mtev_str.h \
-	utils/mtev_watchdog.h utils/mtev_lockfile.h \
-	utils/mtev_hooks.h \
+	utils/mtev_watchdog.h \
 	json-lib/mtev_arraylist.h json-lib/mtev_bits.h json-lib/mtev_debug.h \
 	json-lib/mtev_json_object.h \
 	json-lib/mtev_json_tokener.h json-lib/mtev_json_util.h json-lib/mtev_json.h \
