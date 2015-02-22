@@ -504,7 +504,7 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
 	saved_state = mtev_json_tokener_state_finish;
 	state = mtev_json_tokener_state_eatws;
       } else {
-	if(tok->depth >= JSON_TOKENER_MAX_DEPTH-1) {
+	if(tok->depth >= MTEV_JSON_TOKENER_MAX_DEPTH-1) {
 	  tok->err = mtev_json_tokener_error_depth;
 	  goto out;
 	}
@@ -584,7 +584,7 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
       break;
 
     case mtev_json_tokener_state_object_value:
-      if(tok->depth >= JSON_TOKENER_MAX_DEPTH-1) {
+      if(tok->depth >= MTEV_JSON_TOKENER_MAX_DEPTH-1) {
 	tok->err = mtev_json_tokener_error_depth;
 	goto out;
       }

@@ -69,7 +69,7 @@ struct mtev_json_tokener_srec
   char *obj_field_name;
 };
 
-#define JSON_TOKENER_MAX_DEPTH 32
+#define MTEV_JSON_TOKENER_MAX_DEPTH 32
 
 struct mtev_json_tokener
 {
@@ -79,7 +79,7 @@ struct mtev_json_tokener
   ptrdiff_t err;
   unsigned int ucs_char;
   char quote_char;
-  struct mtev_json_tokener_srec stack[JSON_TOKENER_MAX_DEPTH];
+  struct mtev_json_tokener_srec stack[MTEV_JSON_TOKENER_MAX_DEPTH];
 };
 
 extern const char* mtev_json_tokener_errors[];
@@ -93,6 +93,57 @@ extern struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_toke
 
 #ifdef __cplusplus
 }
+#endif
+
+#if JSON_LIB_COMPAT == 1
+#define json_tokener_error mtev_json_tokener_error
+#define json_tokener_success mtev_json_tokener_success
+#define json_tokener_continue mtev_json_tokener_continue
+#define json_tokener_error_depth mtev_json_tokener_error_depth
+#define json_tokener_error_parse_eof mtev_json_tokener_error_parse_eof
+#define json_tokener_error_parse_unexpected mtev_json_tokener_error_parse_unexpected
+#define json_tokener_error_parse_null mtev_json_tokener_error_parse_null
+#define json_tokener_error_parse_boolean mtev_json_tokener_error_parse_boolean
+#define json_tokener_error_parse_number mtev_json_tokener_error_parse_number
+#define json_tokener_error_parse_array mtev_json_tokener_error_parse_array
+#define json_tokener_error_parse_object_key_name mtev_json_tokener_error_parse_object_key_name
+#define json_tokener_error_parse_object_key_sep mtev_json_tokener_error_parse_object_key_sep
+#define json_tokener_error_parse_object_value_sep mtev_json_tokener_error_parse_object_value_sep
+#define json_tokener_error_parse_string mtev_json_tokener_error_parse_string
+#define json_tokener_error_parse_comment mtev_json_tokener_error_parse_comment
+#define json_tokener_state mtev_json_tokener_state
+#define json_tokener_state_eatws mtev_json_tokener_state_eatws
+#define json_tokener_state_start mtev_json_tokener_state_start
+#define json_tokener_state_finish mtev_json_tokener_state_finish
+#define json_tokener_state_null mtev_json_tokener_state_null
+#define json_tokener_state_comment_start mtev_json_tokener_state_comment_start
+#define json_tokener_state_comment mtev_json_tokener_state_comment
+#define json_tokener_state_comment_eol mtev_json_tokener_state_comment_eol
+#define json_tokener_state_comment_end mtev_json_tokener_state_comment_end
+#define json_tokener_state_string mtev_json_tokener_state_string
+#define json_tokener_state_string_escape mtev_json_tokener_state_string_escape
+#define json_tokener_state_escape_unicode mtev_json_tokener_state_escape_unicode
+#define json_tokener_state_boolean mtev_json_tokener_state_boolean
+#define json_tokener_state_number mtev_json_tokener_state_number
+#define json_tokener_state_array mtev_json_tokener_state_array
+#define json_tokener_state_array_add mtev_json_tokener_state_array_add
+#define json_tokener_state_array_sep mtev_json_tokener_state_array_sep
+#define json_tokener_state_object_field_start mtev_json_tokener_state_object_field_start
+#define json_tokener_state_object_field mtev_json_tokener_state_object_field
+#define json_tokener_state_object_field_end mtev_json_tokener_state_object_field_end
+#define json_tokener_state_object_value mtev_json_tokener_state_object_value
+#define json_tokener_state_object_value_add mtev_json_tokener_state_object_value_add
+#define json_tokener_state_object_sep mtev_json_tokener_state_object_sep
+
+#define json_tokener_srec mtev_json_tokener_srec
+#define JSON_TOKENER_MAX_DEPTH MTEV_JSON_TOKENER_MAX_DEPTH
+#define json_tokener mtev_json_tokener
+#define json_tokener_errors mtev_json_tokener_errors
+#define json_tokener_new mtev_json_tokener_new
+#define json_tokener_free mtev_json_tokener_free
+#define json_tokener_reset mtev_json_tokener_reset
+#define json_tokener_parse mtev_json_tokener_parse
+#define json_tokener_parse_ex mtev_json_tokener_parse_ex
 #endif
 
 #endif
