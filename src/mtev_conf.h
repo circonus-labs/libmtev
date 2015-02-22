@@ -120,6 +120,11 @@ API_EXPORT(int) mtev_conf_set_boolean(mtev_conf_section_t section,
                                       const char *path, mtev_boolean value);
 
 API_EXPORT(int)
+  mtev_console_config_cd(mtev_console_closure_t ncct,
+                         int argc, char **argv,
+                         mtev_console_state_t *state, void *closure);
+
+API_EXPORT(int)
   mtev_conf_reload(mtev_console_closure_t ncct,
                    int argc, char **argv,
                    mtev_console_state_t *state, void *closure);
