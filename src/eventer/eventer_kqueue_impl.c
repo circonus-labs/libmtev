@@ -1,7 +1,6 @@
 /*
  * Copyright (c) 2007, OmniTI Computer Consulting, Inc.
- * Copyright (c) 2014, Circonus, Inc.
- * All rights reserved.
+ * Copyright (c) 2014-2015, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are

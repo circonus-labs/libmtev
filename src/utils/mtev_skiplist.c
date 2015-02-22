@@ -1,6 +1,8 @@
 /* ======================================================================
  * Copyright (c) 2000,2006 Theo Schlossnagle
  * All rights reserved.
+ * Copyright (c) 2015, Circonus, Inc. All rights reserved.
+ *
  * The following code was written by Theo Schlossnagle for use in the
  * Backhand project at The Center for Networking and Distributed Systems
  * at The Johns Hopkins University.

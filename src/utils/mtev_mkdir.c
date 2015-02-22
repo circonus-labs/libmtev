@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2009, OmniTI Computer Consulting, Inc.
  * All rights reserved.
+ * Copyright (c) 2015, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -31,8 +32,8 @@
  */
 
 #include "mtev_config.h"
-#include "utils/mtev_mkdir.h"
-#include "utils/mtev_log.h"
+#include "mtev_mkdir.h"
+#include "mtev_log.h"
 #include "errno.h"
 
 int mkdir_for_file(const char *file, mode_t m) {

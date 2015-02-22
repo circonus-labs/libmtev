@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2005-2009, OmniTI Computer Consulting, Inc.
  * All rights reserved.
+ * Copyright (c) 2015, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -49,9 +50,9 @@
 #include <ck_fifo.h>
 
 #define mtev_log_impl
-#include "utils/mtev_log.h"
-#include "utils/mtev_hash.h"
-#include "utils/mtev_atomic.h"
+#include "mtev_log.h"
+#include "mtev_hash.h"
+#include "mtev_atomic.h"
 #include <jlog.h>
 #include <jlog_private.h>
 #ifdef DTRACE_ENABLED

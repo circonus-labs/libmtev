@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2005-2009, OmniTI Computer Consulting, Inc.
- * Copyright (c) 2013, Circonus, Inc.
  * All rights reserved.
+ * Copyright (c) 2013, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -39,7 +39,7 @@
 #include <stdarg.h>
 #include <sys/uio.h>
 #include <sys/time.h>
-#include "utils/mtev_hash.h"
+#include "mtev_hash.h"
 
 #ifdef mtev_log_impl
 typedef struct _mtev_log_stream * mtev_log_stream_t;

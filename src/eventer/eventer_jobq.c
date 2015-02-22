@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Circonus, Inc.
+ * Copyright (c) 2014-2015, Circonus, Inc. All rights reserved.
  * Copyright (c) 2007, OmniTI Computer Consulting, Inc.
  * All rights reserved.
  *

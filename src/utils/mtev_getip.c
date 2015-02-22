@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2010, OmniTI Computer Consulting, Inc.
  * All rights reserved.
+ * Copyright (c) 2015, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -31,7 +32,7 @@
  */
 
 #include "mtev_config.h"
-#include "utils/mtev_getip.h"
+#include "mtev_getip.h"
 #include <eventer/eventer.h>
 #include <netinet/in.h>
 #include <sys/socket.h>

@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2007, OmniTI Computer Consulting, Inc.
  * All rights reserved.
+ * Copyright (c) 2015, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -278,7 +279,7 @@ static struct {
    * PLEASE: keep them alphabetically sorted.
    */
   { "/%s/eventer/@implementation", DEFAULT_EVENTER },
-  { "/%s/modules/@directory", MODULES_DIR },
+  { "/%s/modules/@directory", MTEV_MODULES_DIR },
 
   { NULL, NULL }
 };
