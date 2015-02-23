@@ -162,7 +162,7 @@ $(LIBMTEV_DTRACEOBJ):    $(FINAL_LIBMTEV_OBJS)
 @DTRACEHDR@:    libmtev_dtrace_probes.d
 	$(Q)if test -z "@DTRACE@" ; then \
 		echo "- faking dtrace header" ; \
-		cp ./libmtev_@DTRACEHDR@.stock ./libmtev_@DTRACEHDR@ ; \
+		cp ./@DTRACEHDR@.stock ./@DTRACEHDR@ ; \
 	else \
 		echo "- building dtrace header $@" ; \
 		@DTRACE@ -h -s libmtev_dtrace_probes.d ; \
