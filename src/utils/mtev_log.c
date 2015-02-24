@@ -1546,10 +1546,15 @@ mtev_vlog(mtev_log_stream_t ls, struct timeval *now,
           const char *format, va_list arg) {
   int rv = 0, allocd = 0;
   char buffer[4096], *dynbuff = NULL;
+  struct timeval __now;
 #ifdef va_copy
   va_list copy;
 #endif
 
+  if(now == NULL) {
+    gettimeofday(&__now, NULL);
+    now = &__now;
+  }
   if(IS_ENABLED_ON(ls) || LIBMTEV_LOG_ENABLED()) {
     int len;
     char tbuf[48], dbuf[80];

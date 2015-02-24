@@ -163,9 +163,7 @@ API_EXPORT(int)
 } while(0)
 #define mtevL(ls, args...) do { \
   if((ls) && (mtev_log_global_enabled() || N_L_S_ON(ls))) { \
-    struct timeval __mtevL_now; \
-    gettimeofday(&__mtevL_now, NULL); \
-    mtev_log(ls, &__mtevL_now, __FILE__, __LINE__, args); \
+    mtev_log(ls, NULL, __FILE__, __LINE__, args); \
   } \
 } while(0)
 
