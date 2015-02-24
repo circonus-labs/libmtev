@@ -414,6 +414,7 @@ AC_CACHE_CHECK([for epoll support], ac_cv_have_epoll, [
 		[ ac_cv_have_epoll="no" ]
 	)
 ])
+AC_CHECK_HEADERS(sys/eventfd.h)
 if test "x$ac_cv_have_epoll" = "xyes" ; then
 	AC_DEFINE(HAVE_EPOLL)
 	EVENTER_OBJS="$EVENTER_OBJS eventer_epoll_impl.lo"

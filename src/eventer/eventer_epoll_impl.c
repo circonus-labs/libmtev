@@ -46,6 +46,10 @@
 #include <signal.h>
 #include <pthread.h>
 #include <assert.h>
+#include <fcntl.h>
+#ifdef HAVE_SYS_EVENTFD_H
+#include <sys/eventfd.h>
+#endif
 
 struct _eventer_impl eventer_epoll_impl;
 #define LOCAL_EVENTER eventer_epoll_impl
@@ -58,6 +62,7 @@ struct _eventer_impl eventer_epoll_impl;
 static int *masks;
 struct epoll_spec {
   int epoll_fd;
+  int event_fd;
 };
 
 static void *eventer_epoll_spec_alloc() {
@@ -65,6 +70,28 @@ static void *eventer_epoll_spec_alloc() {
   spec = calloc(1, sizeof(*spec));
   spec->epoll_fd = epoll_create(1024);
   if(spec->epoll_fd < 0) abort();
+  spec->event_fd = -1;
+#if defined(EFD_NONBLOCK) && defined(EFD_CLOEXEC)
+  spec->event_fd = eventfd(0, EFD_NONBLOCK|EFD_CLOEXEC);
+#elif defined(HAVE_SYS_EVENTFD_H)
+  spec->event_fd = eventfd(0, 0);
+  if(spec->event_fd >= 0) {
+    int flags;
+    if(((flags = fcntl(spec->event_fd, F_GETFL, 0)) == -1) ||
+       (fcntl(spec->event_fd, F_SETFL, flags|O_NONBLOCK) == -1)) {
+      close(spec->event_fd);
+      spec->event_fd = -1;
+    }
+  }
+  if(spec->event_fd >= 0) {
+    int flags;
+    if(((flags = fcntl(spec->event_fd, F_GETFD, 0)) == -1) ||
+       (fcntl(spec->event_fd, F_SETFD, flags|FD_CLOEXEC) == -1)) {
+      close(spec->event_fd);
+      spec->event_fd = -1;
+    }
+  }
+#endif
   return spec;
 }
 
@@ -278,12 +305,33 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   }
   release_master_fd(fd, lockstate);
 }
+#ifdef HAVE_SYS_EVENTFD_H
+static int eventer_epoll_eventfd_read(eventer_t e, int mask,
+                                      void *closure, struct timeval *now) {
+  (void)mask;
+  (void)now;
+  (void)closure;
+  uint64_t dummy;
+  (void)read(e->fd, &dummy, sizeof(dummy));
+  return EVENTER_READ;
+}
+#endif
 static int eventer_epoll_impl_loop() {
   struct epoll_event *epev;
   struct epoll_spec *spec;
 
   spec = eventer_get_spec_for_event(NULL);
   epev = malloc(sizeof(*epev) * maxfds);
+
+#ifdef HAVE_SYS_EVENTFD_H
+  if(spec->event_fd >= 0) {
+    eventer_t e = eventer_alloc();
+    e->callback = eventer_epoll_eventfd_read;
+    e->fd = spec->event_fd;
+    e->mask = EVENTER_READ;
+    eventer_add(e);
+  }
+#endif
 
   while(1) {
     struct timeval __now, __sleeptime;
@@ -339,7 +387,16 @@ static int eventer_epoll_impl_loop() {
   /* NOTREACHED */
   return 0;
 }
-
+static void eventer_epoll_impl_wakeup(eventer_t e) {
+#ifdef HAVE_SYS_EVENTFD_H
+  struct epoll_spec *spec;
+  spec = eventer_get_spec_for_event(e);
+  if(spec->event_fd >= 0) {
+    uint64_t nudge = 1;
+    (void)write(e->fd, &nudge, sizeof(nudge));
+  }
+#endif
+}
 struct _eventer_impl eventer_epoll_impl = {
   "epoll",
   eventer_epoll_impl_init,
@@ -352,7 +409,7 @@ struct _eventer_impl eventer_epoll_impl = {
   eventer_epoll_impl_trigger,
   eventer_epoll_impl_loop,
   eventer_epoll_impl_foreach_fdevent,
-  eventer_wakeup_noop,
+  eventer_epoll_impl_wakeup,
   eventer_epoll_spec_alloc,
   { 0, 200000 },
   0,
