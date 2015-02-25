@@ -669,6 +669,7 @@ src/json-lib/Makefile
 src/man/Makefile
 src/utils/Makefile
 src/noitedit/Makefile
+src/examples/Makefile
 src/scripts/mtev-config
 test/Makefile
 ])

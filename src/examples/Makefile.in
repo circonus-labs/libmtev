@@ -1,0 +1,33 @@
+.SUFFIXES:	.lo
+
+top_srcdir=@top_srcdir@
+
+CC=@CC@
+CPPFLAGS=@CPPFLAGS@ \
+	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils
+CFLAGS=@CFLAGS@
+SHCFLAGS=@SHCFLAGS@
+LDFLAGS=@LDFLAGS@
+DEPFLAGS=@DEPFLAGS@
+AR=@AR@
+RANLIB=@RANLIB@
+LIBS=@LIBS@
+INSTALL=@INSTALL@
+
+EX1_OBJS=	example1.o
+
+all:	example1
+
+.c.o:
+	@echo "- compiling $<"
+	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+
+example1:	$(EX1_OBJS)
+	@echo "- linking $@"
+	@$(CC) -L.. $(LDFLAGS) -o $@ $(EX1_OBJS) -lmtev
+
+clean:
+	rm -f *.o example1
+
+distclean:	clean
+	rm -f Makefile
