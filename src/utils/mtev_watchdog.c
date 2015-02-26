@@ -89,7 +89,7 @@ int mtev_watchdog_glider(const char *path) {
             glider_path);
       return -1;
     }
-    mtevL(mtev_error, "Setting watchdog glider to '%s'\n", glider_path);
+    mtevL(mtev_notice, "Setting watchdog glider to '%s'\n", glider_path);
   }
   return 0;
 }
