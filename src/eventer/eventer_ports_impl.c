@@ -91,28 +91,44 @@ static int eventer_ports_impl_propset(const char *key, const char *value) {
   }
   return 0;
 }
+
+static void alter_fd_associate(eventer_t e, int mask, struct ports_spec *spec) {
+  int events = 0, s_errno = 0, ret;
+  if(mask & EVENTER_READ) events |= POLLIN;
+  if(mask & EVENTER_WRITE) events |= POLLOUT;
+  if(mask & EVENTER_EXCEPTION) events |= POLLERR;
+  errno = 0;
+  ret = port_associate(spec->port_fd, PORT_SOURCE_FD, e->fd, events, (void *)(vpsized_int)e->fd);
+  s_errno = errno;
+  if (ret == -1) {
+    mtevL(eventer_err,
+          "eventer port_associate failed(%d-%d): %d/%s\n", e->fd, spec->port_fd, s_errno, strerror(s_errno));
+    assert(0);
+  }
+}
+
+static void alter_fd_dissociate(eventer_t e, int mask, struct ports_spec *spec) {
+  int s_errno = 0, ret;
+  errno = 0;
+  ret = port_dissociate(spec->port_fd, PORT_SOURCE_FD, e->fd);
+  s_errno = errno;
+  if (ret == -1) {
+    if(s_errno == ENOENT) return; /* Fine */
+    if(s_errno == EBADFD) return; /* Fine */
+    mtevL(eventer_err,
+          "eventer port_dissociate failed(%d-%d): %d/%s\n", e->fd, spec->port_fd, s_errno, strerror(s_errno));
+    assert(0);
+  }
+}
+
 static void alter_fd(eventer_t e, int mask) {
   struct ports_spec *spec;
   spec = eventer_get_spec_for_event(e);
   if(mask & (EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION)) {
-    int events = 0;
-    if(mask & EVENTER_READ) events |= POLLIN;
-    if(mask & EVENTER_WRITE) events |= POLLOUT;
-    if(mask & EVENTER_EXCEPTION) events |= POLLERR;
-    if(port_associate(spec->port_fd, PORT_SOURCE_FD, e->fd, events, (void *)(vpsized_int)e->fd) == -1) {
-      mtevL(eventer_err,
-            "eventer port_associate failed(%d-%d): %d/%s\n", e->fd, spec->port_fd, errno, strerror(errno));
-      assert(0);
-    }
+    alter_fd_associate(e, mask, spec);
   }
   else {
-    if(port_dissociate(spec->port_fd, PORT_SOURCE_FD, e->fd) == -1) {
-      if(errno == ENOENT) return; /* Fine */
-      if(errno == EBADFD) return; /* Fine */
-      mtevL(eventer_err,
-            "eventer port_dissociate failed(%d-%d): %d/%s\n", e->fd, spec->port_fd, errno, strerror(errno));
-      assert(0);
-    }
+    alter_fd_dissociate(e, mask, spec);
   }
 }
 static void eventer_ports_impl_add(eventer_t e) {
