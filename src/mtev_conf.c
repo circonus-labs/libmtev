@@ -123,12 +123,15 @@ static u_int32_t __config_gen = 0;
 static u_int32_t __config_coalesce = 0;
 static u_int32_t __config_coalesce_time = 0;
 static u_int64_t max_gen_count = 0;
+
 void mtev_conf_coalesce_changes(u_int32_t seconds) {
   __config_coalesce_time = seconds;
 }
+
 void mtev_conf_request_write() {
   __coalesce_write = 1;
 }
+
 void mtev_conf_mark_changed() {
   /* increment the change counter -- in case anyone cares */
   __config_gen++;
@@ -137,6 +140,7 @@ void mtev_conf_mark_changed() {
    */
   __config_coalesce = __config_coalesce_time;
 }
+
 struct recurrent_journaler {
   int (*journal_config)(void *);
   void *jc_closure;
@@ -153,7 +157,8 @@ void mtev_conf_write_section(mtev_conf_section_t node, int fd) {
   write(2, "\n", 1);
   xmlFree(enc);
 }
-void
+
+static void
 write_out_include_files(include_node_t *include_nodes, int include_node_cnt) {
   int i;
   for(i=0; i<include_node_cnt; i++) {
@@ -203,11 +208,13 @@ mtev_xml_userdata_free(mtev_xml_userdata_t *n) {
 }
 
 static char *mtev_xml_ns = NULL;
+
 void
 mtev_conf_use_namespace(const char *ns) {
   if(mtev_xml_ns) free(mtev_xml_ns);
   mtev_xml_ns = strdup(ns);
 }
+
 void
 mtev_conf_set_namespace(const char *ns) {
   xmlNsPtr nsptr;
@@ -267,6 +274,7 @@ mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c) {
 }
 
 static mtev_hash_table _compiled_fallback = MTEV_HASH_EMPTY;
+
 static struct {
   const char *key;
   const char *val;
@@ -330,6 +338,7 @@ mtev_conf_suppress_xml_error(xmlErrorDomain domain, xmlParserErrors code) {
     suppressions[first_hole].code = code;
   }
 }
+
 static void
 mtev_conf_express_xml_error(xmlErrorDomain domain, xmlParserErrors code) {
   int i;
@@ -353,6 +362,7 @@ mtev_conf_xml_error_func(void *ctx, const char *format, ...) {
   mtev_vlog(ls, &__now, __FILE__, __LINE__, format, arg);
   va_end(arg);
 }
+
 static void
 mtev_conf_xml_error_ext_func(void *ctx, xmlErrorPtr err) {
   int i;
@@ -401,7 +411,7 @@ void mtev_conf_init(const char *toplevel) {
   xmlXPathInit();
 }
 
-void
+static void
 mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt) {
   include_node_t *include_nodes = *root_include_nodes;
   assert(*cnt != -1);
@@ -425,7 +435,7 @@ mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt)
   *cnt = -1;
 }
 
-void
+static void
 mtev_conf_magic_separate() {
   mtev_conf_magic_separate_includes(&config_include_nodes, &config_include_cnt);
   assert(config_include_nodes == NULL);
@@ -453,7 +463,8 @@ mtev_conf_magic_separate() {
   backingstore_include_nodes = NULL;
   backingstore_include_cnt = -1;
 }
-void
+
+static void
 mtev_conf_kansas_city_shuffle_redo(include_node_t *include_nodes, int include_node_cnt) {
   if(include_nodes) {
     int i;
@@ -476,7 +487,8 @@ mtev_conf_kansas_city_shuffle_redo(include_node_t *include_nodes, int include_no
     }
   }
 }
-void
+
+static void
 mtev_conf_kansas_city_shuffle_undo(include_node_t *include_nodes, int include_node_cnt) {
   if(include_nodes) {
     int i;
@@ -493,6 +505,7 @@ mtev_conf_kansas_city_shuffle_undo(include_node_t *include_nodes, int include_no
     }
   }
 }
+
 static u_int64_t
 usec_now() {
   u_int64_t usec;
@@ -521,6 +534,7 @@ remove_emancipated_child_node(xmlNodePtr oldp, xmlNodePtr node) {
     if(node->next) node->next->prev = prev;
   }
 }
+
 void
 mtev_conf_include_remove(mtev_conf_section_t vnode) {
   int i;
@@ -531,6 +545,7 @@ mtev_conf_include_remove(mtev_conf_section_t vnode) {
     }
   }
 }
+
 void
 mtev_conf_backingstore_remove(mtev_conf_section_t vnode) {
   int i;
@@ -554,6 +569,7 @@ mtev_conf_backingstore_remove(mtev_conf_section_t vnode) {
   /* If we're deleted, we'll mark the parent as dirty */
   if(node->parent) mtev_conf_backingstore_dirty(node->parent);
 }
+
 void
 mtev_conf_backingstore_dirty(mtev_conf_section_t vnode) {
   xmlNodePtr node = vnode;
@@ -565,7 +581,8 @@ mtev_conf_backingstore_dirty(mtev_conf_section_t vnode) {
   }
   if(node->parent) mtev_conf_backingstore_dirty(node->parent);
 }
-int
+
+static int
 mtev_conf_backingstore_write(mtev_xml_userdata_t *ctx, mtev_boolean skip,
                              xmlAttrPtr attrs, xmlNodePtr node) {
   int failure = 0;
@@ -641,7 +658,8 @@ mtev_conf_backingstore_write(mtev_xml_userdata_t *ctx, mtev_boolean skip,
   }
   return 0;
 }
-void
+
+static void
 mtev_conf_shatter_write(xmlDocPtr doc) {
   if(backingstore_freelist) {
     mtev_xml_userdata_t *fl, *last;
@@ -693,7 +711,8 @@ mtev_conf_shatter_write(xmlDocPtr doc) {
     last_config_flush = usec_now();
   }
 }
-void
+
+static void
 mtev_conf_shatter_postwrite(xmlDocPtr doc) {
   if(backingstore_include_nodes) {
     int i;
@@ -712,7 +731,7 @@ mtev_conf_shatter_postwrite(xmlDocPtr doc) {
   }
 }
 
-int
+static int
 mtev_conf_read_into_node(xmlNodePtr node, const char *path) {
   DIR *dirroot;
   struct dirent *de, *entry;
@@ -794,7 +813,7 @@ mtev_conf_read_into_node(xmlNodePtr node, const char *path) {
   return 0;
 }
 
-xmlDocPtr
+static xmlDocPtr
 mtev_conf_read_backing_store(const char *path) {
   xmlDocPtr doc;
   xmlNodePtr root;
@@ -809,7 +828,8 @@ mtev_conf_read_backing_store(const char *path) {
   mtev_conf_read_into_node(root, path);
   return doc;
 }
-int
+
+static int
 mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_node) {
   xmlXPathContextPtr mix_ctxt = NULL;
   xmlXPathObjectPtr pobj = NULL;
@@ -982,7 +1002,8 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
   return rv;
 }
 
-static int mtev_conf_load_internal(const char *path) {
+static int
+mtev_conf_load_internal(const char *path) {
   int rv = 0;
   xmlDocPtr new_config;
   xmlNodePtr root;
@@ -1013,7 +1034,9 @@ static int mtev_conf_load_internal(const char *path) {
   rv = -1;
   return rv;
 }
-int mtev_conf_load(const char *path) {
+
+int
+mtev_conf_load(const char *path) {
   int rv;
   XML2LOG(mtev_error);
   rv = mtev_conf_load_internal(path);
@@ -1021,23 +1044,28 @@ int mtev_conf_load(const char *path) {
   return rv;
 }
 
-char *mtev_conf_config_filename() {
+char *
+mtev_conf_config_filename() {
   return strdup(master_config_file);
 }
 
-int mtev_conf_xml_xpath(xmlDocPtr *mc, xmlXPathContextPtr *xp) {
+static int
+mtev_conf_xml_xpath(xmlDocPtr *mc, xmlXPathContextPtr *xp) {
   if(mc) *mc = master_config;
   if(xp) *xp = xpath_ctxt;
   return 0;
 }
-int mtev_conf_save(const char *path) {
+
+int
+mtev_conf_save(const char *path) {
   return -1;
 }
 
-void mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
-                                      const char *path,
-                                      mtev_hash_table *table,
-                                      const char *namespace) {
+void
+mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
+                                 const char *path,
+                                 mtev_hash_table *table,
+                                 const char *namespace) {
   int i, cnt;
   xmlXPathObjectPtr pobj = NULL;
   xmlXPathContextPtr current_ctxt;
@@ -1092,10 +1120,12 @@ void mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
   if(current_ctxt && current_ctxt != xpath_ctxt)
     xmlXPathFreeContext(current_ctxt);
 }
-void mtev_conf_get_into_hash(mtev_conf_section_t section,
-                             const char *path,
-                             mtev_hash_table *table,
-                             const char *namespace) {
+
+void
+mtev_conf_get_into_hash(mtev_conf_section_t section,
+                        const char *path,
+                        mtev_hash_table *table,
+                        const char *namespace) {
   int cnt;
   xmlXPathObjectPtr pobj = NULL;
   xmlXPathContextPtr current_ctxt;
@@ -1147,8 +1177,10 @@ void mtev_conf_get_into_hash(mtev_conf_section_t section,
   if(current_ctxt && current_ctxt != xpath_ctxt)
     xmlXPathFreeContext(current_ctxt);
 }
-mtev_hash_table *mtev_conf_get_namespaced_hash(mtev_conf_section_t section,
-                                               const char *path, const char *ns) {
+
+mtev_hash_table *
+mtev_conf_get_namespaced_hash(mtev_conf_section_t section,
+                              const char *path, const char *ns) {
   mtev_hash_table *table = NULL;
 
   table = calloc(1, sizeof(*table));
@@ -1160,16 +1192,18 @@ mtev_hash_table *mtev_conf_get_namespaced_hash(mtev_conf_section_t section,
   }
   return table;
 }
-mtev_hash_table *mtev_conf_get_hash(mtev_conf_section_t section,
-                                    const char *path) {
+
+mtev_hash_table *
+mtev_conf_get_hash(mtev_conf_section_t section, const char *path) {
   mtev_hash_table *table = NULL;
 
   table = calloc(1, sizeof(*table));
   mtev_conf_get_into_hash(section, path, table, NULL);
   return table;
 }
-mtev_conf_section_t mtev_conf_get_section(mtev_conf_section_t section,
-                                          const char *path) {
+
+mtev_conf_section_t
+mtev_conf_get_section(mtev_conf_section_t section, const char *path) {
   mtev_conf_section_t subsection = NULL;
   xmlXPathObjectPtr pobj = NULL;
   xmlXPathContextPtr current_ctxt;
@@ -1191,9 +1225,10 @@ mtev_conf_section_t mtev_conf_get_section(mtev_conf_section_t section,
     xmlXPathFreeContext(current_ctxt);
   return subsection;
 }
-mtev_conf_section_t *mtev_conf_get_sections(mtev_conf_section_t section,
-                                            const char *path,
-                                            int *cnt) {
+
+mtev_conf_section_t *
+mtev_conf_get_sections(mtev_conf_section_t section,
+                       const char *path, int *cnt) {
   int i;
   mtev_conf_section_t *sections = NULL;
   xmlXPathObjectPtr pobj = NULL;
@@ -1220,7 +1255,9 @@ mtev_conf_section_t *mtev_conf_get_sections(mtev_conf_section_t section,
     xmlXPathFreeContext(current_ctxt);
   return sections;
 }
-int mtev_conf_remove_section(mtev_conf_section_t section) {
+
+int
+mtev_conf_remove_section(mtev_conf_section_t section) {
   if (!section) return -1;
   xmlNodePtr node = (xmlNodePtr) section;
   xmlUnlinkNode(node);
@@ -1228,8 +1265,11 @@ int mtev_conf_remove_section(mtev_conf_section_t section) {
   mtev_conf_mark_changed();
   return 0;
 }
-int _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
-                          const char *path, char **value) {
+
+/* This is private, but exposed */
+int
+_mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
+                      const char *path, char **value) {
   const char *str, *interest;
   char fullpath[1024];
   int rv = 1, i;
@@ -1278,8 +1318,10 @@ int _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
     xmlXPathFreeContext(current_ctxt);
   return rv;
 }
-int mtev_conf_get_uuid(mtev_conf_section_t section,
-                       const char *path, uuid_t out) {
+
+int
+mtev_conf_get_uuid(mtev_conf_section_t section,
+                   const char *path, uuid_t out) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
     if(uuid_parse(str, out) == 0) return 1;
@@ -1287,8 +1329,10 @@ int mtev_conf_get_uuid(mtev_conf_section_t section,
   }
   return 0;
 }
-int mtev_conf_get_string(mtev_conf_section_t section,
-                         const char *path, char **value) {
+
+int
+mtev_conf_get_string(mtev_conf_section_t section,
+                     const char *path, char **value) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
     *value = strdup(str);
@@ -1297,8 +1341,10 @@ int mtev_conf_get_string(mtev_conf_section_t section,
   }
   return 0;
 }
-int mtev_conf_get_stringbuf(mtev_conf_section_t section,
-                            const char *path, char *buf, int len) {
+
+int
+mtev_conf_get_stringbuf(mtev_conf_section_t section,
+                        const char *path, char *buf, int len) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
     strlcpy(buf, str, len);
@@ -1307,8 +1353,10 @@ int mtev_conf_get_stringbuf(mtev_conf_section_t section,
   }
   return 0;
 }
-int mtev_conf_set_string(mtev_conf_section_t section,
-                         const char *path, const char *value) {
+
+int
+mtev_conf_set_string(mtev_conf_section_t section,
+                     const char *path, const char *value) {
   xmlNodePtr current_node = (xmlNodePtr)section;
   if(strchr(path, '/')) return 0;
   if(path[0] == '@') {
@@ -1330,7 +1378,9 @@ int mtev_conf_set_string(mtev_conf_section_t section,
     mtevL(mtev_error, "local config write failed\n");
   return 1;
 }
-int mtev_conf_string_to_int(const char *str) {
+
+int
+mtev_conf_string_to_int(const char *str) {
   int base = 10;
   if(!str) return 0;
   if(str[0] == '0') {
@@ -1339,8 +1389,10 @@ int mtev_conf_string_to_int(const char *str) {
   }
   return strtol(str, NULL, base);
 }
-int mtev_conf_get_int(mtev_conf_section_t section,
-                      const char *path, int *value) {
+
+int
+mtev_conf_get_int(mtev_conf_section_t section,
+                  const char *path, int *value) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
     *value = (int)mtev_conf_string_to_int(str);
@@ -1349,8 +1401,10 @@ int mtev_conf_get_int(mtev_conf_section_t section,
   }
   return 0;
 }
-int mtev_conf_get_int64(mtev_conf_section_t section,
-                        const char *path, int64_t *value) {
+
+int
+mtev_conf_get_int64(mtev_conf_section_t section,
+                    const char *path, int64_t *value) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
     *value = strtoll(str, NULL, 10);
@@ -1359,18 +1413,24 @@ int mtev_conf_get_int64(mtev_conf_section_t section,
   }
   return 0;
 }
-int mtev_conf_set_int(mtev_conf_section_t section,
-                      const char *path, int value) {
+
+int
+mtev_conf_set_int(mtev_conf_section_t section,
+                  const char *path, int value) {
   char buffer[32];
   snprintf(buffer, 32, "%d", value);
   return mtev_conf_set_string(section,path,buffer);
 }
-float mtev_conf_string_to_float(const char *str) {
+
+float
+mtev_conf_string_to_float(const char *str) {
   if(!str) return 0.0;
   return atof(str);
 }
-int mtev_conf_get_float(mtev_conf_section_t section,
-                        const char *path, float *value) {
+
+int
+mtev_conf_get_float(mtev_conf_section_t section,
+                    const char *path, float *value) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
     *value = mtev_conf_string_to_float(str);
@@ -1379,19 +1439,25 @@ int mtev_conf_get_float(mtev_conf_section_t section,
   }
   return 0;
 }
-int mtev_conf_set_float(mtev_conf_section_t section,
-                        const char *path, float value) {
+
+int
+mtev_conf_set_float(mtev_conf_section_t section,
+                    const char *path, float value) {
   char buffer[32];
   snprintf(buffer, 32, "%f", value);
   return mtev_conf_set_string(section,path,buffer);
 }
-mtev_boolean mtev_conf_string_to_boolean(const char *str) {
+
+mtev_boolean
+mtev_conf_string_to_boolean(const char *str) {
   if(!str) return mtev_false;
   if(!strcasecmp(str, "true") || !strcasecmp(str, "on")) return mtev_true;
   return mtev_false;
 }
-int mtev_conf_get_boolean(mtev_conf_section_t section,
-                          const char *path, mtev_boolean *value) {
+
+int
+mtev_conf_get_boolean(mtev_conf_section_t section,
+                      const char *path, mtev_boolean *value) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
     *value = mtev_conf_string_to_boolean(str);
@@ -1400,14 +1466,18 @@ int mtev_conf_get_boolean(mtev_conf_section_t section,
   }
   return 0;
 }
-int mtev_conf_set_boolean(mtev_conf_section_t section,
-                          const char *path, mtev_boolean value) {
+
+int
+mtev_conf_set_boolean(mtev_conf_section_t section,
+                      const char *path, mtev_boolean value) {
   if(value == mtev_true)
     return mtev_conf_set_string(section,path,"true");
   return mtev_conf_set_string(section,path,"false");
 }
 
-int mtev_conf_should_resolve_targets(mtev_boolean *should_resolve) {
+/* FIXME: This should move into reconnoiter */
+int
+mtev_conf_should_resolve_targets(mtev_boolean *should_resolve) {
   static int inited = 0, cached_rv;;
   static mtev_boolean cached_should_resolve;
   if(!inited) {
@@ -1426,6 +1496,7 @@ struct config_line_vstr {
   int allocd;
   enum { CONFIG_RAW = 0, CONFIG_COMPRESSED, CONFIG_B64 } target, encoded;
 };
+
 static int
 mtev_config_log_write_xml(void *vstr, const char *buffer, int len) {
   struct config_line_vstr *clv = vstr;
@@ -1449,6 +1520,7 @@ mtev_config_log_write_xml(void *vstr, const char *buffer, int len) {
   clv->len += len;
   return len;
 }
+
 static int
 mtev_config_log_close_xml(void *vstr) {
   struct config_line_vstr *clv = vstr;
@@ -1511,6 +1583,7 @@ mtev_conf_reload(mtev_console_closure_t ncct,
   XML2LOG(xml_debug);
   return 0;
 }
+
 int
 mtev_conf_write_terminal(mtev_console_closure_t ncct,
                          int argc, char **argv,
@@ -1527,6 +1600,7 @@ mtev_conf_write_terminal(mtev_console_closure_t ncct,
   mtev_conf_kansas_city_shuffle_redo(config_include_nodes, config_include_cnt);
   return 0;
 }
+
 int
 mtev_conf_write_file_console(mtev_console_closure_t ncct,
                              int argc, char **argv,
@@ -1538,6 +1612,7 @@ mtev_conf_write_file_console(mtev_console_closure_t ncct,
   if(err) free(err);
   return rv;
 }
+
 int
 mtev_conf_write_file(char **err) {
   int fd, len;
@@ -1596,6 +1671,7 @@ mtev_conf_write_file(char **err) {
   if(err) *err = strdup(errstr);
   return 0;
 }
+
 char *
 mtev_conf_xml_in_mem(size_t *len) {
   struct config_line_vstr *clv;
@@ -1695,6 +1771,7 @@ mtev_conf_log_cull(eventer_t e, int mask, void *closure,
   mtev_log_stream_cull(lrc->ls, lrc->retain_seconds, lrc->retain_size);
   return 0;
 }
+
 static void
 schedule_background_log_cull(struct log_rotate_crutch *lrc) {
   eventer_t e;
@@ -1705,6 +1782,7 @@ schedule_background_log_cull(struct log_rotate_crutch *lrc) {
   e->mask = EVENTER_ASYNCH;
   eventer_add(e);
 }
+
 static int
 mtev_conf_log_rotate_size(eventer_t e, int mask, void *closure,
                           struct timeval *now) {
@@ -1718,6 +1796,7 @@ mtev_conf_log_rotate_size(eventer_t e, int mask, void *closure,
   eventer_add_in_s_us(mtev_conf_log_rotate_size, closure, 5, 0);
   return 0;
 }
+
 static int
 mtev_conf_log_rotate_time(eventer_t e, int mask, void *closure,
                           struct timeval *now) {
@@ -1746,6 +1825,7 @@ mtev_conf_log_rotate_time(eventer_t e, int mask, void *closure,
   eventer_add(newe);
   return 0;
 }
+
 int
 mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
   int i, cnt = 0, max_time, max_size, retain_seconds = -1, retain_size = -1, rv = 0;
@@ -1816,6 +1896,7 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
   free(log_configs);
   return rv;
 }
+
 void
 mtev_conf_log_init(const char *toplevel,
                    const char *drop_to_user, const char *drop_to_group) {
@@ -2045,6 +2126,7 @@ mtev_console_state_conf_terminal(mtev_console_closure_t ncct,
   mtev_console_state_init(ncct);
   return 0;
 }
+
 static int
 mtev_console_config_section(mtev_console_closure_t ncct,
                             int argc, char **argv,
@@ -2256,6 +2338,7 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
   if(pobj) xmlXPathFreeObject(pobj);
   return -1;
 }
+
 int
 mtev_console_config_cd(mtev_console_closure_t ncct,
                        int argc, char **argv,
@@ -2333,7 +2416,7 @@ mtev_console_config_cd(mtev_console_closure_t ncct,
   return -1;
 }
 
-char *
+static char *
 conf_t_prompt(EditLine *el) {
   mtev_console_closure_t ncct;
   mtev_conf_t_userdata_t *info;
@@ -2405,4 +2488,3 @@ void mtev_console_conf_init() {
           mtev_console_state_delegate, mtev_console_opt_delegate,
           _write_state, NULL);
 }
-
