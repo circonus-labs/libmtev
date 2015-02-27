@@ -211,7 +211,7 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
   case 512:
     if(!dh512_tmp) dh512_tmp = load_dh_params(dh512_file);
     if(!dh512_tmp) {
-      mtevL(eventer_err, "Generating 512 bit DH parameters.\n");
+      mtevL(eventer_deb, "Generating 512 bit DH parameters.\n");
       dh512_tmp = DH_generate_parameters(512, 2, NULL, NULL);
       save_dh_params(dh512_tmp, dh512_file);
     }
@@ -219,7 +219,7 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
   case 1024:
     if(!dh1024_tmp) dh1024_tmp = load_dh_params(dh1024_file);
     if(!dh1024_tmp) {
-      mtevL(eventer_err, "Generating 1024 bit DH parameters.\n");
+      mtevL(eventer_deb, "Generating 1024 bit DH parameters.\n");
       dh1024_tmp = DH_generate_parameters(1024, 2, NULL, NULL);
       save_dh_params(dh1024_tmp, dh1024_file);
     }
