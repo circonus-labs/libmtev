@@ -1551,10 +1551,13 @@ mtev_vlog(mtev_log_stream_t ls, struct timeval *now,
   va_list copy;
 #endif
 
-  if(now == NULL) {
-    gettimeofday(&__now, NULL);
-    now = &__now;
-  }
+#define ENSURE_NOW() do { \
+  if(now == NULL) { \
+    gettimeofday(&__now, NULL); \
+    now = &__now; \
+  } \
+} while(0)
+
   if(IS_ENABLED_ON(ls) || LIBMTEV_LOG_ENABLED()) {
     int len;
     char tbuf[48], dbuf[80];
@@ -1563,6 +1566,7 @@ mtev_vlog(mtev_log_stream_t ls, struct timeval *now,
     if(IS_TIMESTAMPS_BELOW(ls)) {
       struct tm _tm, *tm;
       char tempbuf[32];
+      ENSURE_NOW();
       time_t s = (time_t)now->tv_sec;
       tm = localtime_r(&s, &_tm);
       strftime(tempbuf, sizeof(tempbuf), "%Y-%m-%d %H:%M:%S", tm);
@@ -1598,8 +1602,10 @@ mtev_vlog(mtev_log_stream_t ls, struct timeval *now,
 #endif
       }
       LIBMTEV_LOG(ls->name, (char *)file, line, dynbuff);
-      if(IS_ENABLED_ON(ls))
+      if(IS_ENABLED_ON(ls)) {
+        ENSURE_NOW();
         rv = mtev_log_line(ls, NULL, now, tbuf, tbuflen, dbuf, dbuflen, dynbuff, len);
+      }
       free(dynbuff);
     }
     else {
@@ -1607,8 +1613,10 @@ mtev_vlog(mtev_log_stream_t ls, struct timeval *now,
       if(len > sizeof(buffer)) len = sizeof(buffer);
 
       LIBMTEV_LOG(ls->name, (char *)file, line, buffer);
-      if(IS_ENABLED_ON(ls))
+      if(IS_ENABLED_ON(ls)) {
+        ENSURE_NOW();
         rv = mtev_log_line(ls, NULL, now, tbuf, tbuflen, dbuf, dbuflen, buffer, len);
+      }
     }
     if(rv == len) return 0;
     return -1;
