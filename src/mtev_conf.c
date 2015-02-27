@@ -1049,7 +1049,7 @@ mtev_conf_config_filename() {
   return strdup(master_config_file);
 }
 
-static int
+int
 mtev_conf_xml_xpath(xmlDocPtr *mc, xmlXPathContextPtr *xp) {
   if(mc) *mc = master_config;
   if(xp) *xp = xpath_ctxt;
