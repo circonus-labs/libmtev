@@ -14,18 +14,7 @@ RANLIB=@RANLIB@
 LIBS=@LIBS@
 INSTALL=@INSTALL@
 
-OBJS=mtev_hash.o mtev_skiplist.o mtev_log.o mtev_sem.o mtev_str.o \
-	mtev_b64.o mtev_b32.o mtev_security.o mtev_watchdog.o mtev_mkdir.o \
-	mtev_getip.o mtev_lockfile.o mtev_btrie.o \
-	@ATOMIC_OBJS@
-
-all:	libmtev_utils.a
-
-libmtev_utils.a:	$(OBJS)
-	@rm -f $@
-	@$(AR) cq $@ $(OBJS)
-	@echo "- archiving $@"
-	@$(RANLIB) $@
+all:
 
 mtev_atomic_sol_sparcv8plus.o:	mtev_atomic_sol.s
 	@as -P -xarch=v8plus -o $@ mtev_atomic_sol.s
@@ -47,12 +36,8 @@ mtev_atomic_sol_x86_64.o:	mtev_atomic_sol.s
 	@$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
 	@echo "- compiling $<"
 
-.c.o:
-	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
-	@echo "- compiling $<"
-
 clean:
-	rm -f *.o libmtev_utils.a
+	rm -f *.lo libmtev_utils.a
 
 distclean:	clean
 	rm -f Makefile

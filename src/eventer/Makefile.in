@@ -14,30 +14,14 @@ RANLIB=@RANLIB@
 LIBS=@LIBS@
 INSTALL=@INSTALL@
 
-OBJS=	eventer.o eventer_impl.o \
-	@EVENTER_OBJS@ \
-	eventer_POSIX_fd_opset.o \
-	eventer_SSL_fd_opset.o OETS_asn1_helper.o \
-	eventer_jobq.o
-
-all:	libeventer.a
-
-libeventer.a:	$(OBJS)
-	@rm -f $@
-	@$(AR) cq $@ $(OBJS)
-	@echo "- archiving $@"
-	@$(RANLIB) $@
+all:
 
 .c.lo:
 	@$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
 	@echo "- compiling $<"
 
-.c.o:
-	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
-	@echo "- compiling $<"
-
 clean:
-	rm -f *.o libeventer.a
+	rm -f *.lo
 
 distclean:	clean
 	rm -f Makefile
