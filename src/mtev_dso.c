@@ -142,22 +142,38 @@ int mtev_load_image(const char *file, const char *name,
                     int (*validate)(mtev_image_t *),
                     size_t obj_size) {
   char module_file[PATH_MAX];
-  char *base;
-  void *dlhandle;
+  void *dlhandle = NULL;
   void *dlsymbol;
   mtev_image_t *obj;
 
-  if(!mtev_conf_get_string(NULL, "//modules/@directory", &base))
-    base = strdup("");
-
-  if(file[0] == '/')
+  if(file[0] == '/') {
     strlcpy(module_file, file, sizeof(module_file));
-  else
-    snprintf(module_file, sizeof(module_file), "%s/%s.%s",
-             base, file, MODULEEXT);
-  free(base);
+    dlhandle = dlopen(module_file, RTLD_LAZY | RTLD_GLOBAL);
+  }
+  else {
+    char *basepath, *base, *brk;
+    if(!mtev_conf_get_string(NULL, "//modules/@directory", &basepath))
+      basepath = strdup("");
+    for (base = strtok_r(basepath, ";:", &brk);
+         base;
+         base = strtok_r(NULL, ";:", &brk)) {
+      snprintf(module_file, sizeof(module_file), "%s/%s.%s",
+               base, file, MODULEEXT);
+      dlhandle = dlopen(module_file, RTLD_LAZY | RTLD_GLOBAL);
+      if(dlhandle) break;
+      if(!dlhandle) {
+         mtevL(mtev_debug, "Cannot open image '%s': %s\n",
+               module_file, dlerror());
+      }
+    }
+    free(basepath);
+    if(!dlhandle) {
+      snprintf(module_file, sizeof(module_file), "%s/%s.%s",
+               MTEV_MODULES_DIR, file, MODULEEXT);
+      dlhandle = dlopen(module_file, RTLD_LAZY | RTLD_GLOBAL);
+    }
+  }
 
-  dlhandle = dlopen(module_file, RTLD_LAZY | RTLD_GLOBAL);
   if(!dlhandle) {
     mtevL(mtev_stderr, "Cannot open image '%s': %s\n",
           module_file, dlerror());
