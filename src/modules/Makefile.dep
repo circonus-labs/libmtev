@@ -1,0 +1,89 @@
+
+lua.lo: lua.c ../mtev_defines.h ../mtev_config.h ../noitedit/strlcpy.h \
+  ../mtev_conf.h  \
+  ../mtev_console.h \
+  ../eventer/eventer.h  \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_jobq.h  \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  ../mtev_dso.h \
+  lua_mtev.h \
+  ../mtev_rest.h \
+  ../mtev_listener.h ../mtev_http.h \
+
+lua_bit.lo: lua_bit.c  \
+
+lua_general.lo: lua_general.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h ../mtev_dso.h ../mtev_conf.h \
+  ../mtev_console.h ../eventer/eventer.h \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_jobq.h  \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  ../mtev_http.h \
+  ../mtev_listener.h ../mtev_rest.h ../mtev_reverse_socket.h lua_mtev.h \
+
+lua_lpack.lo: lua_lpack.c lua_mtev.h ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h  \
+  ../mtev_conf.h \
+  ../mtev_console.h ../eventer/eventer.h \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_jobq.h  \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  ../mtev_rest.h \
+  ../mtev_listener.h ../mtev_http.h \
+
+lua_mtev.lo: lua_mtev.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h \
+  ../mtev_conf.h  \
+  ../mtev_console.h \
+  ../eventer/eventer.h  \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_jobq.h  \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  ../mtev_reverse_socket.h \
+  ../mtev_xml.h  \
+  lua_mtev.h \
+  ../mtev_rest.h \
+  ../mtev_listener.h ../mtev_http.h 
+
+lua_mtev_crypto.lo: lua_mtev_crypto.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h ../mtev_conf.h  \
+  ../mtev_console.h \
+  ../eventer/eventer.h  \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_jobq.h  \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  lua_mtev.h \
+  ../mtev_rest.h \
+  ../mtev_listener.h ../mtev_http.h \
+
+lua_mtev_dns.lo: lua_mtev_dns.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h ../mtev_conf.h  \
+  ../mtev_console.h \
+  ../eventer/eventer.h  \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_jobq.h  \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  lua_mtev.h \
+  ../mtev_rest.h \
+  ../mtev_listener.h ../mtev_http.h \
+
+lua_mtev_http.lo: lua_mtev_http.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h  \
+  ../mtev_dso.h ../mtev_conf.h \
+  ../mtev_console.h ../eventer/eventer.h \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_jobq.h  \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  lua_mtev.h \
+  ../mtev_rest.h \
+  ../mtev_listener.h ../mtev_http.h \
+
+lua_web.lo: lua_web.c ../mtev_defines.h ../mtev_config.h \
+  ../noitedit/strlcpy.h ../mtev_dso.h ../mtev_conf.h \
+  ../mtev_console.h ../eventer/eventer.h \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_jobq.h  \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  ../mtev_http.h \
+  ../mtev_listener.h ../mtev_rest.h lua_mtev.h \

@@ -63,7 +63,10 @@ LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
 
 TARGETS=$(LIBMTEV) @MDB_MODS@
 
-all:	reversion $(TARGETS) make-man
+all:	reversion $(TARGETS) make-man build-modules
+
+build-modules:
+	(cd modules && $(MAKE))
 
 HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
 	mtev_config.h mtev_conf_private.h mtev_console.h mtev_console_telnet.h \
@@ -239,10 +242,13 @@ install-libs:    mtevlibs
 		$(INSTALL) -m 0755 mdb-support/libmtev.so $(DESTDIR)/usr/lib/mdb/proc/amd64/libmtev.so ; \
 	fi
 
+install-modules:
+	(cd modules && $(MAKE) install DESTDIR=$(DESTDIR))
+
 install-docs:
 	(cd man && $(MAKE) install DESTDIR=$(DESTDIR))
 
-install:	install-docs install-headers install-libs
+install:	install-docs install-headers install-libs install-modules
 
 clean:
 	rm -f *.lo *.o

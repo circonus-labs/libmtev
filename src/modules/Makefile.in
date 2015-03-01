@@ -1,0 +1,111 @@
+.SUFFIXES: .lo .@MODULEEXT@ .xml .xmlh
+
+Q=
+ifeq ($(V),)
+	Q=@
+endif
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+CC=@CC@
+LD=@LD@
+CPPFLAGS=@CPPFLAGS@
+CFLAGS=@CFLAGS@
+DEPFLAGS=@DEPFLAGS@
+SHCFLAGS=@SHCFLAGS@
+MODULELD=@MODULELD@
+MODULEEXT=@MODULEEXT@
+LDFLAGS=@LDFLAGS@
+SHLDFLAGS=@SHLDFLAGS@
+AR=@AR@
+RANLIB=@RANLIB@
+LIBS=@LIBS@
+INSTALL=@INSTALL@
+MODULES_DIR=@MODULES_DIR@
+XSLTPROC=@XSLTPROC@
+XMLLINT=@XMLLINT@
+XML2H=@top_srcdir@/buildtools/xml2h
+LUADIR=LuaJIT
+LUALIBS=@LUALIBS@
+
+top_srcdir=@top_srcdir@
+
+MODULES=lua_mtev.@MODULEEXT@
+LUA_MODULES=mtev_lua.so
+HEADERS=lua_mtev.h
+LUA_FILES=mtev/extras.lua mtev/timeval.lua
+
+all:	$(MODULES) $(LUA_MODULES)
+
+.xml.xmlh:
+	$(Q)$(XML2H) `echo $< | sed -e 's/\.xml$$//;'`_xml_description < $< > $@
+
+LUA_MODULE_OBJS=lua.lo lua_web.lo lua_general.lo
+
+lua_general.lo:	lua_general.xmlh
+lua_web.lo:	lua_web.xmlh
+
+lua_mtev.@MODULEEXT@:	$(LUA_MODULE_OBJS)
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $(LUA_MODULE_OBJS) $(LUALIBS)
+	@echo "- linking $@"
+
+# luajit always uses .so
+MTEV_LUA_OBJS=lua_mtev_crypto.lo lua_mtev.lo lua_mtev_dns.lo lua_mtev_http.lo \
+	lua_lpack.lo lua_bit.lo
+
+mtev_lua.so:	$(MTEV_LUA_OBJS)
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o mtev_lua.@MODULEEXT@ $(MTEV_LUA_OBJS) -lcrypto -ludns
+	@if [ "mtev_lua.so" != "mtev_lua.@MODULEEXT@" ]; then \
+		rm -f mtev_lua.so; \
+		mv mtev_lua.@MODULEEXT@ mtev_lua.so; \
+	fi
+	@echo "- linking $@"
+
+.lo.@MODULEEXT@:
+	@(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $<
+	@echo "- linking $@"
+
+.c.lo:
+	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
+	@echo "- compiling $<"
+
+alldocs:
+	for c in *.xml ; do \
+		$(XSLTPROC) module.xsl $$c | $(XMLLINT) --format - | sed -e 's/ xmlns=""//g;' > $(top_srcdir)/docs/config/modules/$$c ; \
+	done
+
+install:	install-modules install-headers
+
+install-headers:
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)
+	for h in $(HEADERS); do \
+		$(INSTALL) -m 0444 $$h $(DESTDIR)$(includedir)/$$h ; \
+	done
+
+install-modules:	$(MODULES)
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)
+	for mod in $(MODULES); do \
+		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
+	done
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)/mtev_lua
+	$(INSTALL) -m 0755 mtev_lua.so $(DESTDIR)$(libdir)/mtev_lua/mtev.so
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)/lua/mtev
+	for lua in $(LUA_FILES); do \
+		$(INSTALL) -m 0755 lua-support/$$lua $(DESTDIR)$(MODULES_DIR)/lua/$$lua ; \
+	done
+
+clean:
+	rm -f *.lo *.so *.@MODULEEXT@ *.xmlh $(RABBITMQ_DRIVER_OBJS)
+
+distclean:	clean
+	rm -f Makefile
+
+Makefile.dep:
+	$(CC) -I.. $(CPPFLAGS) $(CFLAGS) \
+		$(DEPFLAGS) -c *.c | sed -e 's/\.o:/\.lo:/' > Makefile.dep
+	$(top_srcdir)/buildtools/culldeps.sh Makefile.dep
+
+include Makefile.dep

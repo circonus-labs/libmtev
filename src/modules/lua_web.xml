@@ -1,0 +1,37 @@
+<module>
+  <name>lua_web</name>
+  <description><para>The lua_web module allows lua to drive http requests.</para></description>
+  <loader>C</loader>
+  <image>lua_mtev.so</image>
+  <moduleconfig>
+    <parameter name="directory"
+               required="optional"
+               default="/install/prefix/libexec/mtev/lua/?.lua"
+               allowed=".+">This is the lua load path.  See the lua manual for more details on meaning and syntax.</parameter>
+    <parameter name="cpath"
+               required="optional"
+               default=""
+               allowed=".+">This is the lua DSO load path.  See the lua manual for more details on meaning and syntax.</parameter>
+    <parameter name="dispatch"
+               required="required"
+               default=""
+               allowed=".+">The lua module to load.</parameter>
+  </moduleconfig>
+  <examples>
+    <example>
+      <title>Loading the lua web module connection webmodule to the http services.</title>
+      <programlisting><![CDATA[
+      <noit>
+        <modules>
+          <module image="lua_mtev" name="lua_web">
+            <config>
+              <directory>/some/other/path/?.lua</directory>
+              <dispatch>webmodule</dispatch>
+            </config>
+          </module>
+        </modules>
+      </noit>
+    ]]></programlisting>
+    </example>
+  </examples>
+</module>

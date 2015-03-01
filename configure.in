@@ -17,6 +17,18 @@ AC_ARG_ENABLE(strict,
 	enable_strict="$enableval",
 	enable_strict=no)
 
+AC_ARG_ENABLE(lua,
+  [AC_HELP_STRING([--enable-lua],
+    [Choose a lua implementation: (no, lua52, LuaJIT)])],
+  ENABLE_LUA="$enableval",
+  ENABLE_LUA=LuaJIT)
+
+if (test "$ENABLE_LUA" != "LuaJIT" && \
+  test "$ENABLE_LUA" != "lua52" && \
+  test "$ENABLE_LUA" != "no") ; then
+  AC_MSG_ERROR(Invalid value '$ENABLE_LUA' for --enable-lua)
+fi
+
 AC_PROG_CC
 AC_C_INLINE
 AC_C_BIGENDIAN
@@ -31,6 +43,10 @@ AC_PATH_PROGS(XMLLINT, xmllint)
 AC_PATH_PROG(NROFF, nroff)
 AC_PATH_PROG(CTFCONVERT, ctfconvert)
 AC_PATH_PROG(CTFMERGE, ctfmerge)
+AC_PATH_PROG(LUA, luajit)
+if test -z "$ac_cv_path_LUA"; then
+  AC_PATH_PROG(LUA, lua)
+fi
 AC_SUBST(PERL)
 
 if test "x$GCC" = "xyes" ; then
@@ -187,6 +203,11 @@ AC_SUBST(ATOMIC_OBJS)
 AC_DEFINE_UNQUOTED(MODULEEXT, "$MODULEEXT", [module extension])
 AC_MSG_CHECKING([enable build/install of the Java IEP and Jezebel bits])
 
+LUA_MODULE=lua.$MODULEEXT
+if test "$ENABLE_LUA" = "no"; then
+  LUA_MODULE=
+fi
+
 # Checks for data types
 AC_CHECK_SIZEOF(char, 1)
 AC_CHECK_SIZEOF(short int, 2)
@@ -206,6 +227,23 @@ AC_CHECK_LIB(rt, sem_init, , [
 ])
 AC_CHECK_LIB(posix4, sem_wait, , )
 AC_CHECK_LIB(pthread, pthread_create, , )
+
+# Check for LuaJIT
+LD_LIBS=$LIBS
+LIBS=
+if test "x$ENABLE_LUA" != "xno"; then
+	if test "x$ENABLE_LUA" = "xLuaJIT"; then
+		AC_CHECK_LIB(luajit-5.1, luaL_newstate, [], [AC_MSG_ERROR(*** libluajit-5.1 required ***)])
+	elif test "x$ENABLE_LUA" = "xlua52"; then
+		AC_MSG_ERROR(*** liblua52 required ***)
+	fi
+
+	AC_CHECK_HEADER(udns.h, [], [AC_MSG_ERROR(*** udns.h required ***)])
+	AC_CHECK_LIB(udns, dns_new, [], [AC_MSG_ERROR(*** libudns required ***)])
+fi
+LUALIBS="$LUALIBS $LIBS"
+AC_SUBST(LUALIBS)
+LIBS=$OLD_LIBS
 
 AC_CHECK_HEADERS(priv.h)
 AC_CHECK_FUNCS(setppriv)
@@ -596,6 +634,9 @@ if test "x$ac_cv_have_ssize_t" = "xyes" ; then
 	AC_DEFINE(HAVE_SSIZE_T)
 fi
 
+BUILD_MODULES="$BUILD_MODULES $LUA_MODULE"
+AC_SUBST(BUILD_MODULES)
+
 docdir="docs"
 mansubdir="man"
 AC_SUBST(docdir)
@@ -620,6 +661,17 @@ AC_MSG_RESULT([$fullpath/mtev])
 AC_DEFINE_UNQUOTED(MTEV_MODULES_DIR, "${fullpath}/mtev")
 MODULES_DIR=${fullpath}/mtev
 AC_SUBST(MODULES_DIR)
+
+AC_MSG_CHECKING([Resolving lib path...])
+fullpath=$libdir
+while test "x$temppath" != "x$fullpath" ; do
+	temppath=$fullpath
+	fullpath=`eval echo ${fullpath}`
+done
+fullpath=`echo $fullpath | sed "s~NONE~$SUBPREFIX~"`
+AC_MSG_RESULT([$fullpath])
+AC_DEFINE_UNQUOTED(MTEV_LIB_DIR, "${fullpath}")
+LIB_DIR=${fullpath}
 
 AC_MSG_CHECKING([Resolving sysconfdir path...])
 fullpath=$sysconfdir
@@ -667,6 +719,7 @@ src/Makefile
 src/eventer/Makefile
 src/json-lib/Makefile
 src/man/Makefile
+src/modules/Makefile
 src/utils/Makefile
 src/noitedit/Makefile
 src/examples/Makefile

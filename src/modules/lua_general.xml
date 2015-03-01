@@ -1,0 +1,42 @@
+<module>
+  <name>lua_general</name>
+  <description><para>The lua_general module allows running of arbitrary lua code at startup.</para></description>
+  <loader>C</loader>
+  <image>lua_mtev.so</image>
+  <moduleconfig>
+    <parameter name="directory"
+               required="optional"
+               default="/install/prefix/libexec/mtev/lua/?.lua"
+               allowed=".+">This is the lua load path.  See the lua manual for more details on meaning and syntax.</parameter>
+    <parameter name="cpath"
+               required="optional"
+               default=""
+               allowed=".+">This is the lua DSO load path.  See the lua manual for more details on meaning and syntax.</parameter>
+    <parameter name="lua_module"
+               required="required"
+               default=""
+               allowed=".+">The lua module to load.</parameter>
+    <parameter name="lua_function"
+               required="required"
+               default=""
+               allowed=".+">The lua function to run in the module.</parameter>
+  </moduleconfig>
+  <examples>
+    <example>
+      <title>Loading the lua general module an run somefunction from the somemodule module.</title>
+      <programlisting><![CDATA[
+      <noit>
+        <modules>
+          <module image="lua_mtev" name="lua_general">
+            <config>
+              <directory>/some/other/path/?.lua</directory>
+              <lua_module>somemodule</lua_module>
+              <lua_function>somefunction</lua_function>
+            </config>
+          </module>
+        </modules>
+      </noit>
+    ]]></programlisting>
+    </example>
+  </examples>
+</module>

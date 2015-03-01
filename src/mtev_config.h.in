@@ -46,6 +46,7 @@
 #endif
 #undef MODULEEXT
 #undef MTEV_MODULES_DIR
+#undef MTEV_LIB_DIR
 #undef DEFAULT_EVENTER
 #undef METV_ETC_DIR
 
