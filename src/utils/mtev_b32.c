@@ -103,7 +103,7 @@ mtev_b32_encode(const unsigned char *src, size_t src_len,
   const unsigned char *bptr = src;
   char *eptr = dest;
   int len = src_len;
-  int i, n = (((src_len + 4) / 5) * 8);
+  int i, n = (((src_len + 4) / 5) * 8) + 1;
 
   if(dest_len < n) return 0;
 
@@ -151,7 +151,7 @@ mtev_b32_encode(const unsigned char *src, size_t src_len,
         }
       }
     }
-    *eptr = '=';
+    *eptr++ = '=';
   }
   return (eptr - dest);
 }
