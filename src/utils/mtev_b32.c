@@ -64,7 +64,7 @@ mtev_b32_decode(const char *src, size_t src_len,
   const unsigned char *cp = (unsigned char *)src;
   unsigned char *dcp = dest;
   unsigned char ch, in[8] = { 0 }, out[5];
-  int ib = 0, ob = 3, needed = ((src_len / 8) * 5);
+  int ib = 0, ob = 5, needed = ((src_len / 8) * 5);
 
   if(dest_len < needed) return 0;
   while(cp <= ((unsigned char *)src+src_len)) {
@@ -123,14 +123,17 @@ mtev_b32_encode(const unsigned char *src, size_t src_len,
     *eptr++ = __b32[bptr[0] >> 3];
     if(len == 1) {
       *eptr++ = __b32[(bptr[0] & 0x07) << 2];
-      for(i=0;i<5;i++) *eptr++ = '=';
+      for(i=0;i<6;i++) *eptr++ = '=';
     }
     else {
       *eptr++ = __b32[((bptr[0] & 0x07) << 2) + (bptr[1] >> 6)];
       *eptr++ = __b32[(bptr[1] & 0x3e) >> 1];
       if(len == 2) {
         *eptr++ = __b32[(bptr[1] & 0x1) << 4];
-        for(i=0;i<3;i++) *eptr++ = '=';
+        *eptr++ = '=';
+        *eptr++ = '=';
+        *eptr++ = '=';
+        *eptr++ = '=';
       }
       else {
         *eptr++ = __b32[((bptr[1] & 0x1) << 4) + (bptr[2] >> 4)];
@@ -138,16 +141,18 @@ mtev_b32_encode(const unsigned char *src, size_t src_len,
           *eptr++ = __b32[(bptr[2] & 0xf) << 1];
           *eptr++ = '=';
           *eptr++ = '=';
+          *eptr++ = '=';
         }
         else {
           *eptr++ = __b32[((bptr[2] & 0xf) << 1) + (bptr[3] >> 7)];
           *eptr++ = __b32[(bptr[3] & 0x7c) >> 2];
           *eptr++ = __b32[(bptr[3] & 0x3) << 3];
+          *eptr++ = '=';
         }
       }
     }
     *eptr = '=';
   }
-  return n;
+  return (eptr - dest);
 }
 
