@@ -1,3 +1,8 @@
+ffi.cdef([=[
+  int mtev_b32_decode(const char *, size_t, unsigned char *, size_t);
+  int mtev_b32_encode(const unsigned char *, size_t, char *, size_t);
+]=])
+
 describe("mtev_b32", function()
 
   it("should load ffi", function()

@@ -1,3 +1,8 @@
+ffi.cdef([=[
+  int mtev_b64_decode(const char *, size_t, unsigned char *, size_t);
+  int mtev_b64_encode(const unsigned char *, size_t, char *, size_t);
+]=])
+
 describe("mtev_b64", function()
   it("A == decode(encode(A))", function()
     local str = ""
