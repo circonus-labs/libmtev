@@ -229,7 +229,7 @@ AC_CHECK_LIB(posix4, sem_wait, , )
 AC_CHECK_LIB(pthread, pthread_create, , )
 
 # Check for LuaJIT
-LD_LIBS=$LIBS
+OLD_LIBS=$LIBS
 LIBS=
 if test "x$ENABLE_LUA" != "xno"; then
 	if test "x$ENABLE_LUA" = "xLuaJIT"; then
