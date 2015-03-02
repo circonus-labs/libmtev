@@ -3350,6 +3350,8 @@ int luaopen_mtev(lua_State *L) {
   LUA_DEFINE_INT(L, O_EXCL);
 
   luaopen_mtev_crypto(L);
+  luaopen_bit(L);
+  luaopen_pack(L);
   return 0;
 }
 
