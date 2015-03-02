@@ -43,7 +43,7 @@ all:	$(MODULES) $(LUA_MODULES)
 .xml.xmlh:
 	$(Q)$(XML2H) `echo $< | sed -e 's/\.xml$$//;'`_xml_description < $< > $@
 
-LUA_MODULE_OBJS=lua.lo lua_web.lo lua_general.lo
+LUA_MODULE_OBJS=lua.lo lua_web.lo lua_general.lo lua_mtev_http.lo
 
 lua_general.lo:	lua_general.xmlh
 lua_web.lo:	lua_web.xmlh
@@ -53,7 +53,7 @@ lua_mtev.@MODULEEXT@:	$(LUA_MODULE_OBJS)
 	@echo "- linking $@"
 
 # luajit always uses .so
-MTEV_LUA_OBJS=lua_mtev_crypto.lo lua_mtev.lo lua_mtev_dns.lo lua_mtev_http.lo \
+MTEV_LUA_OBJS=lua_mtev_crypto.lo lua_mtev.lo lua_mtev_dns.lo \
 	lua_lpack.lo lua_bit.lo
 
 mtev_lua.so:	$(MTEV_LUA_OBJS)
