@@ -34,7 +34,7 @@ LUALIBS=@LUALIBS@
 top_srcdir=@top_srcdir@
 
 MODULES=lua_mtev.@MODULEEXT@
-LUA_MODULES=mtev_lua.so
+LUA_MODULES=mtev_lua/mtev.so
 HEADERS=lua_mtev.h
 LUA_FILES=mtev/extras.lua mtev/timeval.lua
 
@@ -56,11 +56,12 @@ lua_mtev.@MODULEEXT@:	$(LUA_MODULE_OBJS)
 MTEV_LUA_OBJS=lua_mtev_crypto.lo lua_mtev.lo lua_mtev_dns.lo \
 	lua_lpack.lo lua_bit.lo
 
-mtev_lua.so:	$(MTEV_LUA_OBJS)
-	$(Q)$(MODULELD) $(SHLDFLAGS) -o mtev_lua.@MODULEEXT@ $(MTEV_LUA_OBJS) -lcrypto -ludns
-	@if [ "mtev_lua.so" != "mtev_lua.@MODULEEXT@" ]; then \
-		rm -f mtev_lua.so; \
-		mv mtev_lua.@MODULEEXT@ mtev_lua.so; \
+mtev_lua/mtev.so:	$(MTEV_LUA_OBJS)
+	$(Q)mkdir -p mtev_lua
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o mtev_lua/mtev.@MODULEEXT@ $(MTEV_LUA_OBJS) -lcrypto -ludns
+	@if [ "mtev_lua/mtev.so" != "mtev_lua/mtev.@MODULEEXT@" ]; then \
+		rm -f mtev_lua/mtev.so; \
+		mv mtev_lua/mtev.@MODULEEXT@ mtev_lua/mtev.so; \
 	fi
 	@echo "- linking $@"
 
@@ -91,7 +92,7 @@ install-modules:	$(MODULES)
 		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
 	done
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)/mtev_lua
-	$(INSTALL) -m 0755 mtev_lua.so $(DESTDIR)$(libdir)/mtev_lua/mtev.so
+	$(INSTALL) -m 0755 mtev_lua/mtev.so $(DESTDIR)$(libdir)/mtev_lua/mtev.so
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)/lua/mtev
 	for lua in $(LUA_FILES); do \
 		$(INSTALL) -m 0755 lua-support/$$lua $(DESTDIR)$(MODULES_DIR)/lua/$$lua ; \

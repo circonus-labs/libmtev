@@ -20,6 +20,10 @@
                required="required"
                default=""
                allowed=".+">The lua function to run in the module.</parameter>
+    <parameter name="concurrent"
+               required="optional"
+               default="false"
+               allowed="(?:true|on|false|off)">Specify if the function should be invoked in each concurrent eventer thread.</parameter>
   </moduleconfig>
   <examples>
     <example>

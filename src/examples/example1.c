@@ -1,6 +1,7 @@
 #include <mtev_defines.h>
 #include <mtev_conf.h>
 #include <mtev_console.h>
+#include <mtev_dso.h>
 #include <mtev_listener.h>
 #include <mtev_main.h>
 #include <mtev_memory.h>
@@ -49,6 +50,7 @@ child_main() {
   mtev_console_init(APPNAME);
   mtev_http_rest_init();
   mtev_listener_init(APPNAME);
+  mtev_dso_init();
 
   /* Lastly, spin up the event loop */
   eventer_loop();

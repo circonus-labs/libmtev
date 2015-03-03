@@ -41,20 +41,23 @@
 
 static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
+static int mtev_lua_general_init(mtev_dso_generic_t *);
 
 typedef struct lua_general_conf {
-  lua_module_closure_t lmc;
+  pthread_key_t key;
   const char *script_dir;
   const char *cpath;
   const char *module;
   const char *function;
-  lua_State *L;
+  mtev_boolean concurrent;
+  mtev_boolean booted;
 } lua_general_conf_t;
 
 static lua_general_conf_t *get_config(mtev_dso_generic_t *self) {
   lua_general_conf_t *conf = mtev_image_get_userdata(&self->hdr);
   if(conf) return conf;
   conf = calloc(1, sizeof(*conf));
+  pthread_key_create(&conf->key, NULL);
   mtev_image_set_userdata(&self->hdr, conf);
   return conf;
 }
@@ -126,12 +129,14 @@ static int
 lua_general_handler(mtev_dso_generic_t *self) {
   int status, rv;
   lua_general_conf_t *conf = get_config(self);
-  lua_module_closure_t *lmc = &conf->lmc;
+  lua_module_closure_t *lmc = pthread_getspecific(conf->key);
   mtev_lua_resume_info_t *ri = NULL;
   const char *err = NULL;
   char errbuf[128];
   lua_State *L;
 
+  if(!lmc) mtev_lua_general_init(self);
+  lmc = pthread_getspecific(conf->key);
   if(!lmc || !conf || !conf->module || !conf->function) {
     goto boom;
   }
@@ -216,6 +221,7 @@ dispatch_general(eventer_t e, int mask, void *cl, struct timeval *now) {
 
 static int
 mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
+  const char *bstr;
   lua_general_conf_t *conf = get_config(self);
   conf->script_dir = "";
   conf->cpath = NULL;
@@ -229,6 +235,11 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   if(conf->module) conf->module = strdup(conf->module);
   (void)mtev_hash_retr_str(o, "lua_function", strlen("lua_function"), &conf->function);
   if(conf->function) conf->function = strdup(conf->function);
+  if(mtev_hash_retr_str(o, "concurrent", strlen("concurrent"), &bstr)) {
+    if(!strcasecmp(bstr, "on") || !strcasecmp(bstr, "true")) {
+      conf->concurrent = mtev_true;
+    }
+  }
   return 0;
 }
 
@@ -302,7 +313,14 @@ static const luaL_Reg general_lua_funcs[] =
 static int
 mtev_lua_general_init(mtev_dso_generic_t *self) {
   lua_general_conf_t *conf = get_config(self);
-  lua_module_closure_t *lmc = &conf->lmc;
+  lua_module_closure_t *lmc = pthread_getspecific(conf->key);
+
+  if(lmc) return 0;
+
+  if(!lmc) {
+    lmc = calloc(1, sizeof(*lmc));
+    pthread_setspecific(conf->key, lmc);
+  }
 
   if(!conf->module || !conf->function) {
     mtevL(nlerr, "lua_general cannot be used without module and function config\n");
@@ -320,7 +338,25 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
   }
   luaL_openlib(lmc->lua_state, "mtev", general_lua_funcs, 0);
   lmc->pending = calloc(1, sizeof(*lmc->pending));
+
+  if(conf->booted) return true;
+  conf->booted = mtev_true;
   eventer_add_in_s_us(dispatch_general, self, 0, 0);
+
+  if(conf->concurrent) {
+    int i = 0;
+    pthread_t tgt, thr;
+    thr = eventer_choose_owner(i++);
+    do {
+      eventer_t e = eventer_alloc();
+      tgt = eventer_choose_owner(i++);
+      e->thr_owner = tgt;
+      e->callback = dispatch_general;
+      e->closure = self;
+      e->mask = EVENTER_TIMER;
+      eventer_add(e);
+    } while(!pthread_equal(thr,tgt));
+  }
   return 0;
 }
 
