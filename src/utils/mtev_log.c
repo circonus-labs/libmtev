@@ -1550,6 +1550,12 @@ mtev_vlog(mtev_log_stream_t ls, struct timeval *now,
 #ifdef va_copy
   va_list copy;
 #endif
+  /* All hell could break loose under the covers here,
+   * and we don't want to confuse the called by setting errno
+   * to something they didn't explicitly ask for.
+   * Save a copy and restore it before we return.
+   */
+  int old_errno = errno;
 
 #define ENSURE_NOW() do { \
   if(now == NULL) { \
@@ -1618,9 +1624,11 @@ mtev_vlog(mtev_log_stream_t ls, struct timeval *now,
         rv = mtev_log_line(ls, NULL, now, tbuf, tbuflen, dbuf, dbuflen, buffer, len);
       }
     }
+    errno = old_errno;
     if(rv == len) return 0;
     return -1;
   }
+  errno = old_errno;
   return 0;
 }
 
