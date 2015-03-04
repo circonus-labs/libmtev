@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mtev_defines.h>
+#include "mtev_defines.h"
 
 #include <unistd.h>
 #ifdef HAVE_ALLOCA_H
@@ -39,9 +39,9 @@
 #endif
 #include <assert.h>
 
-#include <mtev_conf.h>
-#include <mtev_dso.h>
-#include <mtev_log.h>
+#include "mtev_conf.h"
+#include "mtev_dso.h"
+#include "mtev_log.h"
 
 #include "lua_mtev.h"
 

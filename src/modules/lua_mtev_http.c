@@ -28,14 +28,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mtev_defines.h>
+#include "mtev_defines.h"
 
 #include <errno.h>
 #include <sys/mman.h>
 #include <assert.h>
 #include <lauxlib.h>
 
-#include <mtev_dso.h>
+#include "mtev_dso.h"
 
 #include "lua_mtev.h"
 

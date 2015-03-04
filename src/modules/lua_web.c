@@ -28,13 +28,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mtev_defines.h>
+#include "mtev_defines.h"
 
 #include <assert.h>
 
-#include <mtev_dso.h>
-#include <mtev_http.h>
-#include <mtev_rest.h>
+#include "mtev_dso.h"
+#include "mtev_http.h"
+#include "mtev_rest.h"
 
 #include "lua_mtev.h"
 

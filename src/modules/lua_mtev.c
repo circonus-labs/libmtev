@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mtev_defines.h>
+#include "mtev_defines.h"
 
 #include <assert.h>
 #include <math.h>
@@ -55,15 +55,15 @@
 #include <openssl/md5.h>
 #include <openssl/hmac.h>
 
-#include <mtev_conf.h>
-#include <mtev_reverse_socket.h>
-#include <mtev_xml.h>
-#include <mtev_log.h>
-#include <mtev_str.h>
-#include <mtev_b32.h>
-#include <mtev_b64.h>
-#include <eventer/eventer.h>
-#include <mtev_json.h>
+#include "mtev_conf.h"
+#include "mtev_reverse_socket.h"
+#include "mtev_xml.h"
+#include "mtev_log.h"
+#include "mtev_str.h"
+#include "mtev_b32.h"
+#include "mtev_b64.h"
+#include "eventer/eventer.h"
+#include "mtev_json.h"
 
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"

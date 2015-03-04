@@ -28,7 +28,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mtev_defines.h>
+#include "mtev_defines.h"
 
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
@@ -36,7 +36,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
-#include <mtev_conf.h>
+#include "mtev_conf.h"
 
 #include "lua_mtev.h"
 #ifndef sk_OPENSSL_STRING_num

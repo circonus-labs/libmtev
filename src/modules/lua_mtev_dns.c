@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mtev_defines.h>
+#include "mtev_defines.h"
 
 #include <assert.h>
 #include <math.h>
@@ -45,7 +45,7 @@
 #include <sys/filio.h>
 #endif
 
-#include <mtev_conf.h>
+#include "mtev_conf.h"
 
 #include "lua_mtev.h"
 #include <udns.h>
