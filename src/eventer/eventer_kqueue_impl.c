@@ -151,7 +151,7 @@ static int eventer_kqueue_impl_propset(const char *key, const char *value) {
 }
 static void eventer_kqueue_impl_add(eventer_t e) {
   assert(e->mask);
-  assert(eventer_is_loop(e->thr_owner));
+  assert(eventer_is_loop(e->thr_owner) >= 0);
   ev_lock_state_t lockstate;
   const char *cbname;
   cbname = eventer_name_for_callback_e(e->callback, e);
@@ -280,6 +280,13 @@ alter_kqueue_mask(eventer_t e, int oldmask, int newmask) {
     ke_change(e->fd, EVFILT_WRITE, EV_DELETE | EV_DISABLE, e);
 }
 
+static void eventer_kqueue_impl_wakeup(eventer_t e) {
+  KQUEUE_DECL;
+  KQUEUE_SETUP(e);
+  if(mtev_spinlock_trylock(&kqs->wakeup_notify))
+    eventer_kqueue_impl_wakeup_spec(kqs);
+}
+
 static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   ev_lock_state_t lockstate;
   struct timeval __now;
@@ -314,20 +321,9 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   mtev_memory_end();
 
   if(newmask) {
-    if(!pthread_equal(pthread_self(), e->thr_owner)) {
-      pthread_t tgt = e->thr_owner;
-      e->thr_owner = pthread_self();
-      alter_kqueue_mask(e, oldmask, 0);
-      e->thr_owner = tgt;
-      alter_kqueue_mask(e, 0, newmask);
-      mtevL(eventer_deb, "moved event[%p] from t@%u to t@%u\n",
-            e, (unsigned int)pthread_self(), (unsigned int)tgt);
-    }
-    else {
-      alter_kqueue_mask(e, oldmask, newmask);
-      /* Set our mask */
-      e->mask = newmask;
-    }
+    alter_kqueue_mask(e, oldmask, newmask);
+    /* Set our mask */
+    e->mask = newmask;
   }
   else {
     /*
@@ -453,13 +449,6 @@ static int eventer_kqueue_impl_loop() {
   }
   /* NOTREACHED */
   return 0;
-}
-
-void eventer_kqueue_impl_wakeup(eventer_t e) {
-  KQUEUE_DECL;
-  KQUEUE_SETUP(e);
-  if(mtev_spinlock_trylock(&kqs->wakeup_notify))
-    eventer_kqueue_impl_wakeup_spec(kqs);
 }
 
 struct _eventer_impl eventer_kqueue_impl = {

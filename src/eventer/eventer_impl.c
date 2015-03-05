@@ -127,7 +127,10 @@ static eventer_jobq_t __default_jobq;
 pthread_t eventer_choose_owner(int i) {
   int idx;
   if(__loop_concurrency == 1) return eventer_impl_tls_data[0].tid;
-  idx = ((unsigned int)i)%(__loop_concurrency-1) + 1; /* see comment above */
+  if(i==0)
+    idx = 0;
+  else
+    idx = ((unsigned int)i)%(__loop_concurrency-1) + 1; /* see comment above */
   mtevL(eventer_deb, "eventer_choose -> %u %% %d = %d t@%u\n",
         (unsigned int)i, __loop_concurrency, idx,
         (unsigned int)eventer_impl_tls_data[idx].tid);
@@ -151,8 +154,8 @@ static struct eventer_impl_data *get_event_impl_data(eventer_t e) {
 int eventer_is_loop(pthread_t tid) {
   int i;
   for(i=0;i<__loop_concurrency;i++)
-    if(pthread_equal(eventer_impl_tls_data[i].tid, tid)) return 1;
-  return 0;
+    if(pthread_equal(eventer_impl_tls_data[i].tid, tid)) return i;
+  return -1;
 }
 void *eventer_get_spec_for_event(eventer_t e) {
   struct eventer_impl_data *t;
@@ -399,7 +402,7 @@ int eventer_impl_init() {
 void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
   eventer_job_t *job;
   /* always use 0, if unspecified */
-  if(!eventer_is_loop(e->thr_owner)) e->thr_owner = eventer_impl_tls_data[0].tid;
+  if(eventer_is_loop(e->thr_owner) < 0) e->thr_owner = eventer_impl_tls_data[0].tid;
   job = calloc(1, sizeof(*job));
   job->fd_event = e;
   job->jobq = q ? q : &__default_jobq;
