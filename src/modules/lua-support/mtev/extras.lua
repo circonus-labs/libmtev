@@ -35,6 +35,8 @@ local tonumber = tonumber
 local string = require("string")
 local table = require("table")
 local unpack = table.unpack or unpack
+local loadstring = loadstring
+local assert = assert
 local _G = _G
 
 module("mtev.extras")
@@ -188,6 +190,30 @@ function set_cookie(http, key, value, attrs)
   if(lattrs['httponly']) then hdrval = hdrval .. "; HttpOnly" end
   http:header('Set-Cookie', hdrval)
 end
+
+function print_wrap(a)
+  _G.mtev.log("error", "%s\n", _G.tostring(a))
+end
+
+function repl_eval(string, emit)
+  local f = assert(loadstring(string))
+  emit = emit or print_wrapA
+  local printmagic = {
+    __index = function(t,k)
+      if k == 'print' then return emit end
+      return _G[k]
+    end,
+    __newindex = function(t,k,v)
+      if k == 'print' then _G.error("print is immutable") end
+      _G[k] = v
+    end
+  }
+  local _env = {}
+  _G.setmetatable(_env, printmagic)
+  _G.setfenv(f, _env)
+  f()
+end
+
 
 function mtev_coros_resume(co,...)
   local rv = {_G.coroutine._resume(co,...)}
