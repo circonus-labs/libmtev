@@ -51,6 +51,7 @@ typedef struct lua_module_closure {
   mtev_hash_table *pending;
   int (*resume)(mtev_lua_resume_info_t *ci, int nargs);
   pthread_t owner;
+  int eventer_id;
 } lua_module_closure_t;
 
 struct mtev_lua_resume_info {

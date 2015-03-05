@@ -336,6 +336,7 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
 
   lmc->resume = lua_general_resume;
   lmc->owner = pthread_self();
+  lmc->eventer_id = eventer_is_loop(lmc->owner);
   lmc->lua_state = mtev_lua_open(self->hdr.name, lmc,
                                  conf->script_dir, conf->cpath);
   mtevL(nldeb, "lua_general opening state -> %p\n", lmc->lua_state);

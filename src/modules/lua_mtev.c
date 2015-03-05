@@ -3074,8 +3074,14 @@ int nl_spawn(lua_State *L) {
 
 static int
 nl_thread_self(lua_State *L) {
+  lua_module_closure_t *lmc;
+
+  lua_getglobal(L, "mtev_internal_lmc");;
+  lmc = lua_touserdata(L, lua_gettop(L));
+  lua_pop(L, 1);
   lua_pushinteger(L, (int)pthread_self());
-  return 1;
+  lua_pushinteger(L, (lmc) ? lmc->eventer_id : -1);
+  return 2;
 }
 
 static int
