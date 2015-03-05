@@ -55,7 +55,7 @@ typedef char * (*console_opt_func_t)(struct __mtev_console_closure *,
                                      int argc, char **argv,
                                      int idx);
 typedef char *(*console_prompt_func_t)(EditLine *);
-typedef void (*state_free_func_t)(struct _console_state *);
+typedef void (*state_free_func_t)(struct _console_state *, struct __mtev_console_closure *);
 typedef void (*state_userdata_free_func_t)(void *);
 
 typedef struct {
@@ -79,6 +79,10 @@ typedef struct {
   state_userdata_free_func_t freefunc;
 } mtev_console_userdata_t;
 
+#define MTEV_CONSOLE_RAW_MODE "mtev:state:raw"
+#define MTEV_CONSOLE_RAW_MODE_ON ((void *)1)
+#define MTEV_CONSOLE_RAW_MODE_OFF NULL
+
 API_EXPORT(void)
   mtev_console_userdata_set(struct __mtev_console_closure *,
                             const char *name, void *data,
@@ -89,7 +93,6 @@ API_EXPORT(void *)
 
 typedef struct _console_state {
   console_prompt_func_t      console_prompt_function;
-  /*mtev_hash_table            cmds; */
   mtev_skiplist              cmds;
   state_free_func_t          statefree;
 } mtev_console_state_t;
@@ -197,6 +200,9 @@ API_EXPORT(void)
 
 API_EXPORT(mtev_console_state_t *)
   mtev_console_state_initial();
+
+API_EXPORT(mtev_console_state_t *)
+  mtev_console_state_alloc_empty(void);
 
 API_EXPORT(mtev_console_state_t *)
   mtev_console_state_alloc(void);

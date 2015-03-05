@@ -494,6 +494,9 @@ _mtev_console_state_do(mtev_console_closure_t ncct,
           cmd = NULL;
           ambiguous = 1;
         }
+        else if(strcasecmp(cmd->name, "exit") == 0) {
+          cmd = NULL;
+        }
       }
       else
         cmd = NULL;
@@ -511,8 +514,15 @@ _mtev_console_state_do(mtev_console_closure_t ncct,
             break;
         }
       }
-      else
+      else {
+        cmd = mtev_skiplist_find(&stack->state->cmds, "", NULL);
+        if(cmd) {
+          if(ncct->state_stack->name) free(ncct->state_stack->name);
+          ncct->state_stack->name = strdup(cmd->name);
+          return cmd->func(ncct, argc, argv, cmd->dstate, cmd->closure);
+        }
         nc_printf(ncct, "No such command: '%s'\n", argv[0]);
+      }
       return -1;
     }
   }
@@ -526,11 +536,18 @@ mtev_console_state_do(mtev_console_closure_t ncct, int argc, char **argv) {
 }
 
 mtev_console_state_t *
-mtev_console_state_alloc(void) {
+mtev_console_state_alloc_empty(void) {
   mtev_console_state_t *s;
   s = calloc(1, sizeof(*s));
   mtev_skiplist_init(&s->cmds);
   mtev_skiplist_set_compare(&s->cmds, cmd_info_compare, cmd_info_comparek);
+  return s;
+}
+
+mtev_console_state_t *
+mtev_console_state_alloc(void) {
+  mtev_console_state_t *s;
+  s = mtev_console_state_alloc_empty();
   mtev_console_state_add_cmd(s,
       NCSCMD("apply", mtev_console_generic_apply, NULL, NULL, NULL));
   mtev_console_state_add_cmd(s, &console_command_help);
@@ -696,7 +713,7 @@ mtev_console_state_pop(mtev_console_closure_t ncct, int argc, char **argv,
   current = ncct->state_stack;
   ncct->state_stack = current->last;
   current->last = NULL;
-  if(current->state->statefree) current->state->statefree(current->state);
+  if(current->state->statefree) current->state->statefree(current->state, ncct);
   if(current->name) free(current->name);
   free(current);
   mtev_console_state_init(ncct);

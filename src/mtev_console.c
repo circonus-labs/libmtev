@@ -289,14 +289,15 @@ mtev_console_continue_sending(mtev_console_closure_t ncct,
   return len;
 }
 
-void
-mtev_console_dispatch(eventer_t e, const char *buffer,
+static void
+mtev_console_dispatch(eventer_t e, char *buffer,
                       mtev_console_closure_t ncct) {
   char **cmds;
   HistEvent ev;
-  int i, cnt = 32;
+  int i, cnt = 2048;
+  mtev_boolean raw;
 
-  cmds = alloca(32 * sizeof(*cmds));
+  cmds = malloc(2048 * sizeof(*cmds));
   i = mtev_tokenize(buffer, cmds, &cnt);
 
   /* < 0 is an error, that's fine.  We want it in the history to "fix" */
@@ -304,10 +305,15 @@ mtev_console_dispatch(eventer_t e, const char *buffer,
   /* 0 means nothing -- and that isn't worthy of history inclusion */
   if(i) history(ncct->hist, &ev, H_ENTER, buffer);
 
-  if(i>cnt) nc_printf(ncct, "Command length too long.\n");
+  raw = (mtev_console_userdata_get(ncct, MTEV_CONSOLE_RAW_MODE) ==
+         MTEV_CONSOLE_RAW_MODE_ON);
+
+  if(raw) mtev_console_state_do(ncct, 1, &buffer);
+  else if(i>cnt) nc_printf(ncct, "Command length too long.\n");
   else if(i<0) nc_printf(ncct, "Error at offset: %d\n", 0-i);
   else mtev_console_state_do(ncct, cnt, cmds);
   while(cnt>0) free(cmds[--cnt]);
+  free(cmds);
 }
 
 void
