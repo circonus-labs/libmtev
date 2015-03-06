@@ -72,6 +72,9 @@ typedef struct dns_lookup_ctx {
   enum dns_class query_ctype;
   enum dns_type query_rtype;
   int active;
+  int in_lua;         /* If we're in a lua C call */
+  int in_lua_direct;  /* Should we return or yield */
+  int in_lua_nrr;     /* possible return val */
   mtev_atomic32_t refcnt;
 } dns_lookup_ctx_t;
 
@@ -200,11 +203,11 @@ static void dns_ctx_release(dns_ctx_handle_t *h) {
 
 void lookup_ctx_release(dns_lookup_ctx_t *v) {
   if(!v) return;
-  if(v->results) free(v->results);
-  v->results = NULL;
-  if(v->error) free(v->error);
-  v->error = NULL;
   if(mtev_atomic_dec32(&v->refcnt) == 0) {
+    if(v->results) free(v->results);
+    v->results = NULL;
+    if(v->error) free(v->error);
+    v->error = NULL;
     dns_ctx_release(v->h);
     free(v);
   }
@@ -364,7 +367,13 @@ static void dns_resume(dns_lookup_ctx_t *dlc) {
 
  cleanup:
   if(result) free(result);
-  if(dlc->active) dlc->ci->lmc->resume(dlc->ci, nrr);
+  if(dlc->active) {
+    if(dlc->in_lua) {
+      dlc->in_lua_direct = 1;
+      dlc->in_lua_nrr = nrr;
+    }
+    else dlc->ci->lmc->resume(dlc->ci, nrr);
+  }
   lookup_ctx_release(dlc);
 }
 static int dns_resume_event(eventer_t e, int mask, void *closure,
@@ -387,14 +396,18 @@ static void dns_cb(struct dns_ctx *ctx, void *result, void *data) {
   if(pthread_equal(dlc->ci->bound_thread, pthread_self()))
     return dns_resume(dlc);
 
-  /* We need to schedule this to run on another eventer thread */
-  e = eventer_alloc();
-  /* no whence, so epoch... or "right now!" */
-  e->thr_owner = dlc->ci->bound_thread;
-  e->closure = dlc;
-  e->callback = dns_resume_event;
-  e->mask = EVENTER_TIMER;
-  eventer_add(e);
+  if(dlc->active) {
+    mtevL(mtev_error, "lua_dns cross-thread resume (should never happend)\n");
+    /* We need to schedule this to run on another eventer thread */
+    e = eventer_alloc();
+    /* no whence, so epoch... or "right now!" */
+    e->thr_owner = dlc->ci->bound_thread;
+    e->closure = dlc;
+    e->callback = dns_resume_event;
+    e->mask = EVENTER_TIMER;
+    eventer_add(e);
+  }
+  lookup_ctx_release(dlc);
 }
 
 static int mtev_lua_dns_lookup(lua_State *L) {
@@ -403,6 +416,7 @@ static int mtev_lua_dns_lookup(lua_State *L) {
   char *ctype_up, *rtype_up, *d;
   void *vnv_pair;
   mtev_lua_resume_info_t *ci;
+  int rv;
 
   ci = mtev_lua_get_resume_info(L);
   assert(ci);
@@ -420,6 +434,10 @@ static int mtev_lua_dns_lookup(lua_State *L) {
     lua_pushnil(L);
     return 1;
   }
+
+  dlc->in_lua = 1;
+  /* We own this at least until return */
+  mtev_atomic_inc32(&dlc->refcnt);
 
   ctype_up = alloca(strlen(ctype)+1);
   for(d = ctype_up, c = ctype; *c; d++, c++) *d = toupper(*c);
@@ -446,7 +464,6 @@ static int mtev_lua_dns_lookup(lua_State *L) {
        !dns_submit_dn(dlc->h->ctx, dlc->dn, dlc->query_ctype, dlc->query_rtype,
                       abs | DNS_NOSRCH, NULL, dns_cb, dlc)) {
       dlc->error = strdup("submission error");
-      mtev_atomic_dec32(&dlc->refcnt);
     }
     else {
       struct timeval now;
@@ -457,8 +474,18 @@ static int mtev_lua_dns_lookup(lua_State *L) {
   if(dlc->error) {
     dlc->active = 0;
     luaL_error(L, "dns: %s\n", dlc->error);
+    lookup_ctx_release(dlc);
   }
-  return mtev_lua_yield(ci, 0);
+  if(dlc->in_lua_direct) {
+    rv = dlc->in_lua_nrr;
+  }
+  else {
+    rv = mtev_lua_yield(ci, 0);
+  }
+
+  dlc->in_lua_direct = dlc->in_lua_nrr = dlc->in_lua = 0;
+  lookup_ctx_release(dlc);
+  return rv;
 }
 
 int mtev_lua_dns_gc(lua_State *L) {
