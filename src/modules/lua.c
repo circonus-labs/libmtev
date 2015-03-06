@@ -199,7 +199,7 @@ mtev_console_show_lua(mtev_console_closure_t ncct,
                       int argc, char **argv,
                       mtev_console_state_t *dstate,
                       void *closure) {
-  int i = 0;
+  int i = 1;
   pthread_t me, tgt, first;
   struct lua_reporter crutch;
   struct timeval old = { 1ULL, 0ULL };
@@ -237,9 +237,12 @@ mtev_console_show_lua(mtev_console_closure_t ncct,
 
 void
 register_console_lua_commands() {
+  static int loaded = 0;
   mtev_console_state_t *tl;
   cmd_info_t *showcmd;
 
+  if(loaded) return;
+  loaded = 1;
   tl = mtev_console_state_initial();
   showcmd = mtev_console_state_get_cmd(tl, "show");
   assert(showcmd && showcmd->dstate);
