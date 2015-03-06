@@ -59,6 +59,7 @@ struct eventer_impl_data {
   pthread_t tid;
   pthread_mutex_t te_lock;
   mtev_skiplist *timed_events;
+  mtev_skiplist *staged_timed_events;
   eventer_jobq_t __global_backq;
   pthread_mutex_t recurrent_lock;
   struct recurrent_events {
@@ -250,6 +251,12 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
                             eventer_timecompare, eventer_timecompare);
   mtev_skiplist_add_index(t->timed_events,
                           mtev_compare_voidptr, mtev_compare_voidptr);
+  t->staged_timed_events = calloc(1, sizeof(*t->staged_timed_events));
+  mtev_skiplist_init(t->staged_timed_events);
+  mtev_skiplist_set_compare(t->staged_timed_events,
+                            eventer_timecompare, eventer_timecompare);
+  mtev_skiplist_add_index(t->staged_timed_events,
+                          mtev_compare_voidptr, mtev_compare_voidptr);
 
   snprintf(qname, sizeof(qname), "default_back_queue/%d", t->id);
   eventer_jobq_init(&t->__global_backq, qname);
@@ -434,7 +441,7 @@ void eventer_add_timed(eventer_t e) {
   }
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->te_lock);
-  mtev_skiplist_insert(t->timed_events, e);
+  mtev_skiplist_insert(t->staged_timed_events, e);
   pthread_mutex_unlock(&t->te_lock);
 }
 eventer_t eventer_remove_timed(eventer_t e) {
@@ -446,6 +453,9 @@ eventer_t eventer_remove_timed(eventer_t e) {
   if(mtev_skiplist_remove_compare(t->timed_events, e, NULL,
                                   mtev_compare_voidptr))
     removed = e;
+  else if(mtev_skiplist_remove_compare(t->timed_events, e, NULL,
+                                       mtev_compare_voidptr))
+    removed = e;
   pthread_mutex_unlock(&t->te_lock);
   return removed;
 }
@@ -455,7 +465,8 @@ void eventer_update_timed(eventer_t e, int mask) {
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->te_lock);
   mtev_skiplist_remove_compare(t->timed_events, e, NULL, mtev_compare_voidptr);
-  mtev_skiplist_insert(t->timed_events, e);
+  mtev_skiplist_remove_compare(t->staged_timed_events, e, NULL, mtev_compare_voidptr);
+  mtev_skiplist_insert(t->staged_timed_events, e);
   pthread_mutex_unlock(&t->te_lock);
 }
 void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
@@ -511,6 +522,23 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
       eventer_free(timed_event);
   }
 
+  /* Sweep the staged timed events into the processing queue */
+  if(t->staged_timed_events->size) {
+    eventer_t timed_event;
+    pthread_mutex_lock(&t->te_lock);
+    while(NULL !=
+          (timed_event = mtev_skiplist_pop(t->staged_timed_events, NULL))) {
+      mtev_skiplist_insert(t->timed_events, timed_event);
+    }
+    if(NULL != (timed_event = mtev_skiplist_peek(t->timed_events))) {
+      gettimeofday(now, NULL);
+      sub_timeval(timed_event->whence, *now, next);
+      if(next->tv_sec < 0 || next->tv_usec < 0)
+        next->tv_sec = next->tv_usec = 0;
+    }
+    pthread_mutex_unlock(&t->te_lock);
+  }
+
   if(compare_timeval(eventer_max_sleeptime, *next) < 0) {
     /* we exceed our configured maximum, set it down */
     memcpy(next, &eventer_max_sleeptime, sizeof(*next));
@@ -525,6 +553,10 @@ eventer_foreach_timedevent (void (*f)(eventer_t e, void *), void *closure) {
     pthread_mutex_lock(&t->te_lock);
     for(iter = mtev_skiplist_getlist(t->timed_events); iter;
         mtev_skiplist_next(t->timed_events,&iter)) {
+      if(iter->data) f(iter->data, closure);
+    }
+    for(iter = mtev_skiplist_getlist(t->staged_timed_events); iter;
+        mtev_skiplist_next(t->staged_timed_events,&iter)) {
       if(iter->data) f(iter->data, closure);
     }
     pthread_mutex_unlock(&t->te_lock);
