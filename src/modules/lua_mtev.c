@@ -3285,7 +3285,6 @@ int luaopen_mtev(lua_State *L) {
   luaL_newmetatable(L, "mtev.dns");
   lua_pushcfunction(L, mtev_lua_dns_gc);
   lua_setfield(L, -2, "__gc");
-  luaL_newmetatable(L, "mtev.dns");
   lua_pushcfunction(L, mtev_lua_dns_index_func);
   lua_setfield(L, -2, "__index");
 
