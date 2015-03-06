@@ -1716,6 +1716,22 @@ nl_print(lua_State *L) {
   lua_pushstring(L, "error");
   lua_pushcclosure(L, nl_log_up, 1);
   lua_insert(L, 1);
+  if(n == 0) {
+    lua_pushstring(L,"\n");
+    n = 1;
+  }
+  else {
+    int i;
+    char fmt[1024];
+    fmt[0] = '\0';
+    for(i=0;i<n;i++) {
+      strlcat(fmt, "%s", sizeof(fmt));
+      strlcat(fmt, (i==(n-1)) ? "\n" : "\t", sizeof(fmt));
+    }
+    lua_pushstring(L,fmt);
+    lua_insert(L,2);
+    n++;
+  }
   lua_call(L, n, 0);
   return 0;
 }
