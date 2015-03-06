@@ -105,6 +105,8 @@ static int __loop_concurrency = 0;
 static mtev_atomic32_t __loops_started = 0;
 static eventer_jobq_t __default_jobq;
 
+int eventer_loop_concurrency() { return __loop_concurrency; }
+
 /* Multi-threaded event loops...
 
    We will instantiate __loop_concurrency separate threads each running their

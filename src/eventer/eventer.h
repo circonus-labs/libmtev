@@ -152,6 +152,7 @@ mtev_log_stream_t eventer_deb;
 API_EXPORT(int) eventer_choose(const char *name);
 API_EXPORT(void) eventer_loop();
 API_EXPORT(int) eventer_is_loop(pthread_t tid);
+API_EXPORT(int) eventer_loop_concurrency();
 
 #define eventer_propset       __eventer->propset
 #define eventer_init          __eventer->init
