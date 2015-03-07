@@ -453,7 +453,7 @@ eventer_t eventer_remove_timed(eventer_t e) {
   if(mtev_skiplist_remove_compare(t->timed_events, e, NULL,
                                   mtev_compare_voidptr))
     removed = e;
-  else if(mtev_skiplist_remove_compare(t->timed_events, e, NULL,
+  else if(mtev_skiplist_remove_compare(t->staged_timed_events, e, NULL,
                                        mtev_compare_voidptr))
     removed = e;
   pthread_mutex_unlock(&t->te_lock);
