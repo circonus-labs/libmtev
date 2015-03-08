@@ -1037,7 +1037,18 @@ mtev_conf_load_internal(const char *path) {
 
 int
 mtev_conf_load(const char *path) {
+  char actual_path[PATH_MAX];
   int rv;
+
+  if(path == NULL && master_config_file[0])
+    path = master_config_file;
+  else if(realpath(path, actual_path) != NULL) path = actual_path;
+  if(!path) {
+    mtevL(mtev_error, "no config file specified\n");
+    return -1;
+  }
+  if(!strcmp(path, master_config_file)) path = master_config_file;
+
   XML2LOG(mtev_error);
   rv = mtev_conf_load_internal(path);
   XML2LOG(xml_debug);
