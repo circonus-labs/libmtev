@@ -34,7 +34,7 @@ parse_cli_args(int argc, char * const *argv) {
         config_file = optarg;
         break;
       case 'd': debug = 1; break;
-      case 'D': foreground = 1; break;
+      case 'D': foreground++; break;
     }
   }
 }
@@ -42,7 +42,7 @@ static int
 child_main() {
   /* reload out config, to make sure we have the most current */
 
-  if(mtev_conf_load(config_file) == -1) {
+  if(mtev_conf_load(NULL) == -1) {
     mtevL(mtev_error, "Cannot load config: '%s'\n", config_file);
     exit(2);
   }
