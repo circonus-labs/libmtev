@@ -413,16 +413,37 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
     }
     if(child_pid == 0) {
       /* trace handlers */
+      char *envcp;
       struct sigaction sa;
+      stack_t altstack;
+      size_t altstack_size, default_altstack_size = 32768;
       mtev_monitored_child_pid = getpid();
       if(glider_path)
         mtevL(mtev_error, "catching faults with glider\n");
       else if(allow_async_dumps)
-        mtevL(mtev_error, "no glider, allowing a single emancipated minor.\n");
+        mtevL(mtev_error, "no glider, allowing a single emancipated minor\n");
+
+      if(NULL != (envcp = getenv("MTEV_ALTSTACK_SIZE"))) {
+        altstack_size = default_altstack_size = atoi(envcp);
+      }
+      if(default_altstack_size > 0) {
+        altstack_size = MAX(MINSIGSTKSZ, default_altstack_size);
+        if((altstack.ss_sp = malloc(altstack_size)) == NULL)
+          altstack_size = 0;
+        else {
+          altstack.ss_size = altstack_size;
+          altstack.ss_flags = 0;
+          if(sigaltstack(&altstack,0) < 0)
+            altstack_size = 0;
+        }
+      }
+      if(altstack_size == 0)
+        mtevL(mtev_notice, "sigaltstack not used.\n");
 
       memset(&sa, 0, sizeof(sa));
       sa.sa_sigaction = emancipate;
       sa.sa_flags = SA_RESETHAND|SA_SIGINFO;
+      if(altstack_size) sa.sa_flags |= SA_ONSTACK;
       sigemptyset(&sa.sa_mask);
       sigaddset(&sa.sa_mask, SIGSEGV);
       sigaddset(&sa.sa_mask, SIGABRT);
