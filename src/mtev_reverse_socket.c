@@ -789,6 +789,8 @@ socket_error:
     crlf = (char *)strnstrn("\r\n\r\n", 4, rc->buff, rc->buff_read); /* end of request */
     if(crlf) {
       const char **req;
+      char *anchor;
+
       *(crlf + 2) = '\0';
       if(memcmp(rc->buff, "RSE /", 5)) {
         socket_error_string = "bad command";
@@ -834,6 +836,9 @@ socket_error:
         default: break;
       }
 
+      /* Like a URL, we'll clip off anything past # */
+      anchor = strchr(rc->id, '#');
+      if(anchor) *anchor = '\0';
       break;
     }
   }
