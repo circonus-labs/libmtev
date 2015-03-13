@@ -38,6 +38,8 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 
+#include "mtev_listener.h"
+
 typedef struct mtev_connection_ctx_t {
   mtev_atomic32_t refcnt;
   union {
@@ -69,6 +71,17 @@ typedef struct mtev_connection_ctx_t {
   void (*consumer_free)(void *);
   void *consumer_ctx;
 } mtev_connection_ctx_t;
+
+typedef enum {
+  MTEV_ACL_DENY,
+  MTEV_ACL_ALLOW,
+  MTEV_ACL_ABSTAIN
+} mtev_reverse_acl_decision_t;
+
+typedef mtev_reverse_acl_decision_t (*mtev_reverse_acl_decider_t)(const char *, acceptor_closure_t *);
+API_EXPORT(void) mtev_reverse_socket_acl(mtev_reverse_acl_decider_t f);
+API_EXPORT(mtev_reverse_acl_decision_t)
+  mtev_reverse_socket_denier(const char *id, acceptor_closure_t *ac);
 
 API_EXPORT(void) mtev_reverse_socket_init(const char *p, const char **cn_p);
 API_EXPORT(int) mtev_reverse_socket_connect(const char *id, int existing_fd);

@@ -61,6 +61,38 @@
 static const char *my_reverse_prefix = "mtev/";
 static const char *default_cn_required_prefixes[] = { "mtev/", NULL };
 static const char **cn_required_prefixes = default_cn_required_prefixes;
+struct reverse_access_list {
+  mtev_reverse_acl_decider_t allow;
+  struct reverse_access_list *next;
+};
+static struct reverse_access_list *access_list = NULL;
+
+void
+mtev_reverse_socket_acl(mtev_reverse_acl_decider_t f) {
+  struct reverse_access_list *acl = calloc(1, sizeof(*acl));
+  acl->next = access_list;
+  acl->allow = f;
+  access_list = acl;
+}
+
+mtev_reverse_acl_decision_t
+mtev_reverse_socket_denier(const char *id, acceptor_closure_t *ac) {
+  return MTEV_ACL_DENY;
+}
+
+static int
+mtev_reverse_socket_allowed(const char *id, acceptor_closure_t *ac) {
+  struct reverse_access_list *acl;
+  for(acl = access_list; acl; acl = acl->next) {
+    switch(acl->allow(id,ac)) {
+      case MTEV_ACL_ALLOW: return 1;
+      case MTEV_ACL_DENY: return 0;
+      default: break;
+    }
+  }
+  /* default allow */
+  return 1;
+}
 
 static const int MAX_FRAME_LEN = 65530;
 static const int CMD_BUFF_LEN = 4096;
@@ -365,7 +397,6 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     while(CHANNEL.incoming) {
       reverse_frame_t *f = CHANNEL.incoming;
       assert(f->buff_len == f->buff_filled); /* we only expect full frames here */
-mtevL(mtev_error, "reverse_socket_channel %s to write\n", f->command ? "command" : "data");
       if(f->command) {
         IFCMD(f, "RESET") goto snip;
         IFCMD(f, "CLOSE") goto snip;
@@ -781,15 +812,26 @@ socket_error:
 
       /* Validate the client certs for required connections. */
       for(req = cn_required_prefixes; *req; req++) {
-        if(!strncmp(rc->id, *req, 5)) {
-          if(strcmp(rc->id+5, ac->remote_cn ? ac->remote_cn : "")) {
+        int reqlen = strlen(*req);
+        if(!strncmp(rc->id, *req, reqlen)) {
+          if(strcmp(rc->id+reqlen, ac->remote_cn ? ac->remote_cn : "")) {
             mtevL(mtev_error, "attempted reverse connection '%s' invalid remote '%s'\n",
-                  rc->id+5, ac->remote_cn ? ac->remote_cn : "");
+                  rc->id+reqlen, ac->remote_cn ? ac->remote_cn : "");
             free(rc->id);
             rc->id = NULL;
             goto socket_error;
           }
         }
+      }
+
+      switch(mtev_reverse_socket_allowed(rc->id, ac)) {
+        case MTEV_ACL_DENY:
+          mtevL(mtev_error, "attempted reverse connection '%s' from '%s' denied by policy\n",
+                  rc->id, ac->remote_cn ? ac->remote_cn : "");
+          free(rc->id);
+          rc->id = NULL;
+          goto socket_error;
+        default: break;
       }
 
       break;
