@@ -51,6 +51,7 @@
 #include "mtev_str.h"
 #include "mtev_watchdog.h"
 #include "mtev_reverse_socket.h"
+#include "mtev_json.h"
 #include "libmtev_dtrace_probes.h"
 
 #include <errno.h>
@@ -1737,6 +1738,100 @@ register_console_reverse_commands() {
 }
 
 static int
+rest_show_reverse_json(mtev_http_rest_closure_t *restc,
+                       int npats, char **pats) {
+  struct json_object *doc, *node, *channels;
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  const char *key_id, *jsonstr;
+  const char *want_id = NULL;
+  int klen, n = 0, i, di;
+  void *vconn;
+  double age;
+  reverse_socket_t **ctxs;
+  struct timeval now, diff;
+  mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
+
+  mtev_http_process_querystring(req);
+  want_id = mtev_http_request_querystring(req, "id");
+
+  gettimeofday(&now, NULL);
+
+  pthread_rwlock_rdlock(&reverse_sockets_lock);
+  ctxs = malloc(sizeof(*ctxs) * mtev_hash_size(&reverse_sockets));
+  while(mtev_hash_next(&reverse_sockets, &iter, &key_id, &klen,
+                       &vconn)) {
+    ctxs[n] = (reverse_socket_t *)vconn;
+    n++;
+  }
+
+  doc = json_object_new_object();
+
+  for(i=0; i<n; i++) {
+    char scratch[128];
+    char buff[INET6_ADDRSTRLEN];
+    if(want_id && strcmp(want_id, ctxs[i]->id)) continue;
+    reverse_socket_t *rc = ctxs[i];
+
+    node = json_object_new_object();
+    if(rc->e) {
+#define ADD_ATTR(node, name, fmt...) do { \
+  snprintf(scratch, sizeof(scratch), fmt); \
+  json_object_object_add(node, name, json_object_new_string(scratch)); \
+} while(0)
+      ADD_ATTR(node, "fd", "%d", rc->e->fd);
+      sub_timeval(now, rc->create_time, &diff);
+      age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
+      ADD_ATTR(node, "uptime", "%0.3f", age);
+      ADD_ATTR(node, "in_bytes", "%llu", (unsigned long long)rc->in_bytes);
+      ADD_ATTR(node, "in_frames", "%llu", (unsigned long long)rc->in_frames);
+      ADD_ATTR(node, "out_bytes", "%llu", (unsigned long long)rc->out_bytes);
+      ADD_ATTR(node, "out_frames", "%llu", (unsigned long long)rc->out_frames);
+      if(rc->proxy_ip4_e) {
+        inet_ntop(AF_INET, &rc->proxy_ip4.sin_addr, buff, sizeof(buff));
+        ADD_ATTR(node, "proxy_ipv4", "%s:%d", buff, ntohs(rc->proxy_ip4.sin_port));
+      }
+      if(rc->proxy_ip6_e) {
+        inet_ntop(AF_INET6, &rc->proxy_ip6.sin6_addr, buff, sizeof(buff));
+        ADD_ATTR(node, "proxy_ipv6", "[%s]:%d", buff, ntohs(rc->proxy_ip6.sin6_port));
+      }
+      channels = json_object_new_object();
+      for(di=0;di<MAX_CHANNELS;di++) {
+        char di_str[32];
+        struct json_object *channel;
+        if(rc->channels[di].pair[0] < 0) continue;
+        snprintf(di_str, sizeof(di_str), "%d", di);
+        channel = json_object_new_object();
+        ADD_ATTR(channel, "channel_id", "%d", di);
+        ADD_ATTR(channel, "fd", "%d", rc->channels[di].pair[0]);
+        sub_timeval(now, rc->channels[di].create_time, &diff);
+        age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
+        ADD_ATTR(channel, "uptime", "%0.3f", age);
+        ADD_ATTR(channel, "in_bytes", "%llu", (unsigned long long)rc->channels[di].in_bytes);
+        ADD_ATTR(channel, "in_frames", "%llu", (unsigned long long)rc->channels[di].in_frames);
+        ADD_ATTR(channel, "out_bytes", "%llu", (unsigned long long)rc->channels[di].out_bytes);
+        ADD_ATTR(channel, "out_frames", "%llu", (unsigned long long)rc->channels[di].out_frames);
+        json_object_object_add(channels, di_str, channel);
+      }
+      json_object_object_add(node, "channels", channels);
+#undef ADD_ATTR
+    }
+    json_object_object_add(doc, rc->id, node);
+  }
+  
+  pthread_rwlock_unlock(&reverse_sockets_lock);
+  free(ctxs);
+
+  mtev_http_response_ok(restc->http_ctx, "application/json");
+  jsonstr = json_object_to_json_string(doc);
+  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
+  mtev_http_response_append(restc->http_ctx, "\n", 1);
+  json_object_put(doc);
+  mtev_http_response_end(restc->http_ctx);
+  return 0;
+}
+
+
+static int
 rest_show_reverse(mtev_http_rest_closure_t *restc,
                   int npats, char **pats) {
   xmlDocPtr doc;
@@ -1815,6 +1910,7 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
         xmlAddChild(channels, channel);
       }
       xmlAddChild(node, channels);
+#undef ADD_ATTR
     }
     xmlAddChild(root, node);
   }
@@ -1872,6 +1968,10 @@ void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
 
   assert(mtev_http_rest_register_auth(
     "GET", "/reverse/", "^show$", rest_show_reverse,
+             mtev_http_rest_client_cert_auth
+  ) == 0);
+  assert(mtev_http_rest_register_auth(
+    "GET", "/reverse/", "^show.json$", rest_show_reverse_json,
              mtev_http_rest_client_cert_auth
   ) == 0);
 
