@@ -34,6 +34,9 @@
 #include "mtev_defines.h"
 #include "mtev_http.h"
 #include "mtev_str.h"
+#include "mtev_getip.h"
+#include "mtev_zipkin.h"
+#include "mtev_conf.h"
 
 #include <errno.h>
 #include <ctype.h>
@@ -132,11 +135,20 @@ struct mtev_http_session_ctx {
   mtev_http_dispatch_func dispatcher;
   void *dispatcher_closure;
   acceptor_closure_t *ac;
+  Zipkin_Span *zipkin_span;
 };
 
 static mtev_log_stream_t http_debug = NULL;
 static mtev_log_stream_t http_io = NULL;
 static mtev_log_stream_t http_access = NULL;
+static const char *zipkin_http_uri = "http.uri";
+static const char *zipkin_http_method = "http.method";
+static const char *zipkin_http_hostname = "http.hostname";
+static const char *zipkin_http_status = "http.status";
+static const char *zipkin_http_bytes_in = "http.bytes_in";
+static const char *zipkin_http_bytes_out = "http.bytes_out";
+static const char *zipkin_ss_done = "ss_done";
+static struct in_addr zipkin_ip_host;
 
 static const char gzip_header[10] =
   { '\037', '\213', Z_DEFLATED, 0, 0, 0, 0, 0, 0, 0x03 };
@@ -420,6 +432,99 @@ _extract_header(char *l, const char **n, const char **v) {
   return mtev_true;
 }
 static void
+set_endpoint(mtev_http_session_ctx *ctx) {
+  union {
+    struct sockaddr addr;
+    struct sockaddr_in addr4;
+    struct sockaddr_in6 addr6;
+  } addr;
+  struct in_addr *ip = &zipkin_ip_host;
+  unsigned short port = 0;
+  socklen_t addrlen = sizeof(addr);
+  if(ctx->conn.e) {
+    if(getsockname(ctx->conn.e->fd, &addr.addr, &addrlen) == 0) {
+      if(addr.addr4.sin_family == AF_INET) {
+        addr.addr4.sin_addr.s_addr = ntohl(addr.addr4.sin_addr.s_addr);
+        ip = &addr.addr4.sin_addr;
+        port = ntohs(addr.addr4.sin_port);
+      }
+      else if(addr.addr6.sin6_family == AF_INET6) {
+        port = ntohs(addr.addr6.sin6_port);
+      }
+    }
+  }
+  mtev_zipkin_span_default_endpoint(ctx->zipkin_span, NULL, 0, *ip, port);
+}
+static void
+begin_span(mtev_http_session_ctx *ctx) {
+  mtev_http_request *req = &ctx->req;
+  const char *trace_hdr = NULL, *parent_span_hdr = NULL, *span_hdr = NULL,
+             *sampled_hdr = NULL, *host_hdr;
+  char *endptr = NULL;
+  int64_t trace_id_buf, parent_span_id_buf, span_id_buf;
+  int64_t *trace_id, *parent_span_id, *span_id;
+  bool sampled = false;
+
+  (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_TRACEID_L,
+                           strlen(HEADER_ZIPKIN_TRACEID_L), &trace_hdr);
+  (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_PARENTSPANID_L,
+                           strlen(HEADER_ZIPKIN_PARENTSPANID_L), &parent_span_hdr);
+  (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_SPANID_L,
+                           strlen(HEADER_ZIPKIN_SPANID_L), &span_hdr);
+  (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_SAMPLED_L,
+                           strlen(HEADER_ZIPKIN_SAMPLED_L), &sampled_hdr);
+  trace_id = mtev_zipkin_str_to_id(trace_hdr, &trace_id_buf);
+  parent_span_id = mtev_zipkin_str_to_id(parent_span_hdr, &parent_span_id_buf);
+  span_id = mtev_zipkin_str_to_id(span_hdr, &span_id_buf);
+  if(sampled_hdr && (0 == strtoll(sampled_hdr, &endptr, 10)) && endptr != NULL)
+    sampled = true;
+  ctx->zipkin_span =
+    mtev_zipkin_span_new(trace_id, parent_span_id, span_id,
+                         req->uri_str, false, NULL, sampled);
+  set_endpoint(ctx);
+  mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_RECV, false, NULL);
+  mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_STRING,
+                             zipkin_http_method, false,
+                             req->method_str, strlen(req->method_str), false);
+  if(mtev_hash_retr_str(&req->headers, "host", 4, &host_hdr)) {
+    /* someone could screw with the host header, so we indicate a copy */
+    mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_STRING,
+                               zipkin_http_hostname, false,
+                               host_hdr, strlen(host_hdr), true);
+  }
+}
+static void
+end_span(mtev_http_session_ctx *ctx) {
+  uint32_t _duration, *duration = NULL;
+  mtev_http_request *req = &ctx->req;
+  mtev_http_response *res = &ctx->res;
+  mtev_hrtime_t now;
+  char status_str[4];
+  int64_t nbytesout, nbytesin;
+  if(!ctx->zipkin_span) return;
+
+  snprintf(status_str, sizeof(status_str), "%03d", res->status_code);
+  mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_STRING,
+                             zipkin_http_status, false,
+                             status_str, strlen(status_str), false);
+
+  if(req->content_length_read) {
+    nbytesin = htonll(req->content_length_read);
+    mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_I64,
+                               zipkin_http_bytes_in, false,
+                               &nbytesin, 8, false);
+  }
+  nbytesout = htonll(res->bytes_written);
+  mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_I64,
+                             zipkin_http_bytes_out, false,
+                             &nbytesout, 8, false);
+  
+  mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, zipkin_ss_done, false, NULL);
+  mtev_zipkin_span_publish(ctx->zipkin_span);
+  ctx->zipkin_span = NULL;
+}
+
+static void
 mtev_http_log_request(mtev_http_session_ctx *ctx) {
   char ip[64], timestr[64];
   double time_ms;
@@ -671,6 +776,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
     req->has_payload = mtev_true;
     req->content_length = strtoll(val, NULL, 10);
   }
+
   if(mtev_hash_retrieve(&req->headers, HEADER_EXPECT,
                         sizeof(HEADER_EXPECT)-1, &vval)) {
     const char *val = vval;
@@ -1096,6 +1202,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     mtevL(http_debug, "HTTP start request (%s)\n", ctx->req.uri_str);
     mtev_http_process_querystring(&ctx->req);
     inplace_urldecode(ctx->req.uri_str);
+    begin_span(ctx);
   }
 
   /* only dispatch if the response is not closed */
@@ -1118,6 +1225,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     goto release;
   }
   if(ctx->res.complete == mtev_true) {
+    end_span(ctx);
     mtev_http_log_request(ctx);
     mtev_http_request_release(ctx);
     mtev_http_response_release(ctx);
@@ -1536,6 +1644,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
   if(ctx->res.output_started == mtev_false) {
     _http_construct_leader(ctx);
     ctx->res.output_started = mtev_true;
+    mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_SEND, false, NULL);
   }
   /* encode output to output_raw */
   r = ctx->res.output_raw;
@@ -1645,6 +1754,16 @@ mtev_http_response_xml(mtev_http_session_ctx *ctx, xmlDocPtr doc) {
 
 void
 mtev_http_init() {
+  struct in_addr remote = { .s_addr = 0xffffffff };
+  double np = 0.0, pp = 1.0, dp = 1.0;
+  mtev_getip_ipv4(remote, &zipkin_ip_host);
+
+  zipkin_ip_host.s_addr = ntohl(zipkin_ip_host.s_addr);
+  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@new", &np);
+  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@parented", &pp);
+  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@debug", &dp);
+  mtev_zipkin_sampling(np,pp,dp);
+
   http_debug = mtev_log_stream_find("debug/http");
   http_access = mtev_log_stream_find("http/access");
   http_io = mtev_log_stream_find("http/io");

@@ -1433,6 +1433,27 @@ mtev_conf_set_int(mtev_conf_section_t section,
   return mtev_conf_set_string(section,path,buffer);
 }
 
+double
+mtev_conf_string_to_double(const char *str) {
+  if(!str) return 0.0;
+  return strtod(str,NULL);
+}
+
+int
+mtev_conf_get_double(mtev_conf_section_t section,
+                    const char *path, double *value) {
+  char *str;
+  if(_mtev_conf_get_string(section,NULL,path,&str)) {
+    double val;
+    char *endptr;
+    val = strtod(str, &endptr);
+    if(endptr) *value = val;
+    xmlFree(str);
+    return (endptr) ? 1 : 0;
+  }
+  return 0;
+}
+
 float
 mtev_conf_string_to_float(const char *str) {
   if(!str) return 0.0;
@@ -1444,9 +1465,12 @@ mtev_conf_get_float(mtev_conf_section_t section,
                     const char *path, float *value) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
-    *value = mtev_conf_string_to_float(str);
+    float val;
+    char *endptr;
+    val = strtof(str, &endptr);
+    if(endptr) *value = val;
     xmlFree(str);
-    return 1;
+    return (endptr) ? 1 : 0;
   }
   return 0;
 }
@@ -1454,6 +1478,14 @@ mtev_conf_get_float(mtev_conf_section_t section,
 int
 mtev_conf_set_float(mtev_conf_section_t section,
                     const char *path, float value) {
+  char buffer[32];
+  snprintf(buffer, 32, "%f", value);
+  return mtev_conf_set_string(section,path,buffer);
+}
+
+int
+mtev_conf_set_double(mtev_conf_section_t section,
+                     const char *path, double value) {
   char buffer[32];
   snprintf(buffer, 32, "%f", value);
   return mtev_conf_set_string(section,path,buffer);

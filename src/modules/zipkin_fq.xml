@@ -1,0 +1,44 @@
+<module>
+  <name>zipkin_fq</name>
+  <description><para>The zipkin_fq module publishes Zipkin traces via Fq.</para></description>
+  <loader>C</loader>
+  <image>zipkin_fq.so</image>
+  <moduleconfig>
+    <parameter name="host"
+               required="optional"
+               default="127.0.0.1"
+               allowed=".+">The Fq host.</parameter>
+    <parameter name="port"
+               required="optional"
+               default="8765"
+               allowed="\d+">The Fq port.</parameter>
+    <parameter name="user"
+               required="optional"
+               default="mtev"
+               allowed=".+">The Fq user.</parameter>
+    <parameter name="pass"
+               required="optional"
+               default="mtev"
+               allowed=".+">The Fq pass.</parameter>
+    <parameter name="exchange"
+               required="optional"
+               default="logging"
+               allowed=".+">The Fq exchange.</parameter>
+    <parameter name="route_prefix"
+               required="optional"
+               default="scribe.zipkin."
+               allowed=".+">The routing prefix to which the traceid is appended.</parameter>
+  </moduleconfig>
+  <examples>
+    <example>
+      <title>Loading the zipkin_fq module.</title>
+      <programlisting><![CDATA[
+      <noit>
+        <modules>
+          <module image="zipkin_fq" name="zipkin_fq"/>
+        </modules>
+      </noit>
+    ]]></programlisting>
+    </example>
+  </examples>
+</module>

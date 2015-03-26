@@ -34,6 +34,8 @@
 #ifndef UTILS_MTEV_HOOKS
 #define UTILS_MTEV_HOOKS
 
+#include <mtev_atomic.h>
+
 /*#* DOCBOOK
  * <section><title>Abitrary Hooks</title>
  * <para>Building a callout API makes sense for common, structured

@@ -34,7 +34,7 @@ LUALIBS=@LUALIBS@
 
 top_srcdir=@top_srcdir@
 
-MODULES=lua_mtev.@MODULEEXT@
+MODULES=@BUILD_MODULES@
 LUA_MODULES=mtev_lua/mtev.so
 HEADERS=lua_mtev.h
 LUA_FILES=mtev/extras.lua mtev/timeval.lua
@@ -43,6 +43,12 @@ all:	$(MODULES) $(LUA_MODULES)
 
 .xml.xmlh:
 	$(Q)$(XML2H) `echo $< | sed -e 's/\.xml$$//;'`_xml_description < $< > $@
+
+zipkin_fq.lo:	zipkin_fq.xmlh
+
+zipkin_fq.@MODULEEXT@:	zipkin_fq.lo
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ zipkin_fq.lo -lfq
+	@echo "- linking $@"
 
 LUA_MODULE_OBJS=lua.lo lua_web.lo lua_general.lo lua_mtev_http.lo
 

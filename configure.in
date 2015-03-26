@@ -203,7 +203,7 @@ AC_SUBST(ATOMIC_OBJS)
 AC_DEFINE_UNQUOTED(MODULEEXT, "$MODULEEXT", [module extension])
 AC_MSG_CHECKING([enable build/install of the Java IEP and Jezebel bits])
 
-LUA_MODULE=lua.$MODULEEXT
+LUA_MODULE=lua_mtev.$MODULEEXT
 if test "$ENABLE_LUA" = "no"; then
   LUA_MODULE=
 fi
@@ -243,6 +243,13 @@ if test "x$ENABLE_LUA" != "xno"; then
 fi
 LUALIBS="$LUALIBS $LIBS"
 AC_SUBST(LUALIBS)
+LIBS=$OLD_LIBS
+
+OLD_LIBS=$LIBS
+LIBS=
+AC_CHECK_LIB(fq, fq_client_init, [
+	BUILD_MODULES="$BUILD_MODULES zipkin_fq.$MODULEEXT"
+], [AC_MSG_WARN(*** Skipping Fq modules, no -lfq ***)])
 LIBS=$OLD_LIBS
 
 AC_CHECK_HEADERS(priv.h)

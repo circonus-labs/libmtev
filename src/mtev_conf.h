@@ -101,6 +101,9 @@ API_EXPORT(int) mtev_conf_string_to_int(const char *str);
 API_EXPORT(int) mtev_conf_get_float(mtev_conf_section_t section,
                                     const char *path, float *value);
 API_EXPORT(float) mtev_conf_string_to_float(const char *str);
+API_EXPORT(int) mtev_conf_get_double(mtev_conf_section_t section,
+                                    const char *path, double *value);
+API_EXPORT(double) mtev_conf_string_to_double(const char *str);
 API_EXPORT(int) mtev_conf_get_boolean(mtev_conf_section_t section,
                                       const char *path, mtev_boolean *value);
 API_EXPORT(mtev_boolean) mtev_conf_string_to_boolean(const char *str);
@@ -117,6 +120,8 @@ API_EXPORT(int) mtev_conf_set_int(mtev_conf_section_t section,
                                   const char *path, int value);
 API_EXPORT(int) mtev_conf_set_float(mtev_conf_section_t section,
                                     const char *path, float value);
+API_EXPORT(int) mtev_conf_set_double(mtev_conf_section_t section,
+                                     const char *path, double value);
 API_EXPORT(int) mtev_conf_set_boolean(mtev_conf_section_t section,
                                       const char *path, mtev_boolean value);
 
