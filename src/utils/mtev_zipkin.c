@@ -349,8 +349,8 @@ ze_update_Zipkin_Endpoint(Zipkin_Endpoint *e, const char *service_name,
       service_name_copy ? strdup(service_name) : (char *)service_name;
     e->service_name.needs_free = service_name_copy;
   }
-  memcpy(&e->ipv4, &host, 4);
-  memcpy(&e->port, &port, 2);
+  if(host.s_addr) memcpy(&e->ipv4, &host, 4);
+  if(port) memcpy(&e->port, &port, 2);
 }
 
 /* Exposed Implementation */
