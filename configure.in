@@ -500,6 +500,27 @@ if test "x$ac_cv_have_sig_t" = "xyes" ; then
 	have_sig_t=1
 fi
 
+AC_CACHE_CHECK([for htobe64], ac_cv_have_htobe64, [
+	AC_TRY_LINK(
+		[ #include <endian.h> ],
+		[ long long int a; a = htobe64(1);],
+		[ ac_cv_have_htobe64="yes" ],
+		[ ac_cv_have_htobe64="no" ]
+	)
+])
+AC_CACHE_CHECK([for htonll], ac_cv_have_htonll, [
+	AC_TRY_LINK(
+		[ #include <endian.h> ],
+		[ long long int a; a = htonll(1);],
+		[ ac_cv_have_htonll="yes" ],
+		[ ac_cv_have_htonll="no" ]
+	)
+])
+
+if test "x$ac_cv_have_htonll" = "xno" -a "x$ac_cv_have_htobe64" = "xyes" ; then
+	AC_DEFINE(MAKE_HTOBE64_HTONLL)
+fi
+
 AC_CACHE_CHECK([for u_int type], ac_cv_have_u_int, [
 	AC_TRY_COMPILE(
 		[ #include <sys/types.h> ], 
