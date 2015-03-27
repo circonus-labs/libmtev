@@ -26,7 +26,7 @@ AC_ARG_ENABLE(lua,
 if (test "$ENABLE_LUA" != "LuaJIT" && \
   test "$ENABLE_LUA" != "lua52" && \
   test "$ENABLE_LUA" != "no") ; then
-  AC_MSG_ERROR(Invalid value '$ENABLE_LUA' for --enable-lua)
+  AC_MSG_ERROR([Invalid value '$ENABLE_LUA' for --enable-lua])
 fi
 
 AC_PROG_CC
@@ -216,12 +216,12 @@ AC_CHECK_SIZEOF(long int, 4)
 AC_CHECK_SIZEOF(long long int, 8)
 AC_CHECK_SIZEOF(void *, 1)
 
-AC_CHECK_HEADER(ck_pr.h, [], [AC_MSG_ERROR(*** libck (headers) required ***)])
-AC_CHECK_LIB(ck, ck_ht_init, , [AC_MSG_ERROR(*** concurrencyckit (libck) is required ***)])
-AC_CHECK_LIB(hwloc, hwloc_topology_init, , [AC_MSG_ERROR(*** libhwloc required ***)])
-AC_CHECK_LIB(jlog, jlog_new, , [AC_MSG_ERROR(*** libjlog required github.com/omniti-labs/jlog ***)])
+AC_CHECK_HEADER(ck_pr.h, [], [AC_MSG_ERROR([*** libck (headers) required ***])])
+AC_CHECK_LIB(ck, ck_ht_init, , [AC_MSG_ERROR([*** concurrencyckit (libck) is required ***])])
+AC_CHECK_LIB(hwloc, hwloc_topology_init, , [AC_MSG_ERROR([*** libhwloc required ***])])
+AC_CHECK_LIB(jlog, jlog_new, , [AC_MSG_ERROR([*** libjlog required github.com/omniti-labs/jlog ***])])
 AC_CHECK_LIB(umem, umem_cache_create, , )
-AC_CHECK_LIB(z, compress2, , [AC_MSG_ERROR(*** zlib is required ***)])
+AC_CHECK_LIB(z, compress2, , [AC_MSG_ERROR([*** zlib is required ***])])
 AC_CHECK_LIB(rt, sem_init, , [
   AC_CHECK_LIB(rt, clock_gettime, , )
 ])
@@ -233,13 +233,13 @@ OLD_LIBS=$LIBS
 LIBS=
 if test "x$ENABLE_LUA" != "xno"; then
 	if test "x$ENABLE_LUA" = "xLuaJIT"; then
-		AC_CHECK_LIB(luajit-5.1, luaL_newstate, [], [AC_MSG_ERROR(*** libluajit-5.1 required ***)])
+		AC_CHECK_LIB(luajit-5.1, luaL_newstate, [], [AC_MSG_ERROR([*** libluajit-5.1 required ***])])
 	elif test "x$ENABLE_LUA" = "xlua52"; then
-		AC_MSG_ERROR(*** liblua52 required ***)
+		AC_MSG_ERROR([*** liblua52 required ***])
 	fi
 
-	AC_CHECK_HEADER(udns.h, [], [AC_MSG_ERROR(*** udns.h required ***)])
-	AC_CHECK_LIB(udns, dns_new, [], [AC_MSG_ERROR(*** libudns required ***)])
+	AC_CHECK_HEADER(udns.h, [], [AC_MSG_ERROR([*** udns.h required ***])])
+	AC_CHECK_LIB(udns, dns_new, [], [AC_MSG_ERROR([*** libudns required ***])])
 fi
 LUALIBS="$LUALIBS $LIBS"
 AC_SUBST(LUALIBS)
@@ -253,7 +253,7 @@ AS_IF([test "x$enable_zipkin_fq" != "xno"], [
 	LIBS=
 	AC_CHECK_LIB(fq, fq_client_init, [
 		BUILD_MODULES="$BUILD_MODULES zipkin_fq.$MODULEEXT"
-	], [AC_MSG_ERROR(*** can't build zipkin-fq, no -lfq ***)])
+	], [AC_MSG_ERROR([*** can't build zipkin-fq, no -lfq ***])])
 	LIBS=$OLD_LIBS
 ])
 
@@ -262,7 +262,7 @@ AC_CHECK_FUNCS(setppriv)
 
 AC_CHECK_FUNC(uuid_generate, , [
 	AC_MSG_WARN([uuid_generate not available])
-	AC_SEARCH_LIBS(uuid_generate, uuid e2fs-uuid, , [AC_MSG_ERROR(*** uuid is required ***)])])
+	AC_SEARCH_LIBS(uuid_generate, uuid e2fs-uuid, , [AC_MSG_ERROR([*** uuid is required ***])])])
 
 # Some libraries provide an unparse_lower command
 # we use that, so if it isn't present, we'll need
@@ -301,7 +301,7 @@ XML2LIBS=`xml2-config --libs`
 LIBS="$LIBS $XML2LIBS"
 AC_MSG_RESULT([$XML2LIBS])
 
-AC_CHECK_FUNC(xmlParseDocument, , [AC_MSG_ERROR(*** libxml2 is required ***)])
+AC_CHECK_FUNC(xmlParseDocument, , [AC_MSG_ERROR([*** libxml2 is required ***])])
 
 AC_MSG_CHECKING([libxslt cflags])
 XSLTCFLAGS=`xslt-config --cflags`
@@ -313,7 +313,7 @@ XSLTLIBS=`xslt-config --libs`
 LIBS="$LIBS $XSLTLIBS"
 AC_MSG_RESULT([$XSLTLIBS])
 
-AC_CHECK_FUNC(xsltParseStylesheetDoc, , [AC_MSG_ERROR(*** libxslt is required ***)])
+AC_CHECK_FUNC(xsltParseStylesheetDoc, , [AC_MSG_ERROR([*** libxslt is required ***])])
 
 LIBMTEV_LIBS=$LIBS
 AC_SUBST(LIBMTEV_LIBS)
