@@ -33,6 +33,7 @@
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
@@ -46,6 +47,12 @@
 #ifndef sk_OPENSSL_STRING_value
 #define sk_OPENSSL_STRING_value sk_value
 #endif
+
+static __thread BN_CTX *tls_bn_ctx = NULL;
+static BN_CTX *bn_ctx() {
+  if(!tls_bn_ctx) tls_bn_ctx = BN_CTX_new();
+  return tls_bn_ctx;
+}
 
 
 #define PUSH_OBJ(L, tname, obj) do { \
@@ -497,9 +504,398 @@ mtev_lua_crypto_req_gc(lua_State *L) {
   return 0;
 }
 
-static const struct luaL_Reg crupto_funcs[] = {
+#define BN_METH_DECL(n) \
+  BIGNUM *bn, *args[4]; \
+  void **udata; \
+  udata = lua_touserdata(L, lua_upvalueindex(1)); \
+  if(udata != lua_touserdata(L, 1)) \
+    luaL_error(L, "must be called as method"); \
+  else if(lua_gettop(L) != (1+n)) \
+    luaL_error(L, "must be called with " #n " arguments"); \
+  else { \
+    int i; \
+    for(i=0;i<n;i++) { \
+      void **vu = lua_touserdata(L, i+2); \
+      if(!luaL_checkudata(L, i+2, "crypto.bignum")) \
+        luaL_error(L, "arguments must be crypto.bignum"); \
+      args[i] = (BIGNUM *)*vu; \
+    } \
+  } \
+  bn = (BIGNUM *)*udata
+#define BN_METH_DECL_INT(n) \
+  BIGNUM *bn; \
+  int args[4]; \
+  void **udata; \
+  udata = lua_touserdata(L, lua_upvalueindex(1)); \
+  if(udata != lua_touserdata(L, 1)) \
+    luaL_error(L, "must be called as method"); \
+  else if(lua_gettop(L) != (1+n)) \
+    luaL_error(L, "must be called with " #n " arguments"); \
+  else { \
+    int i; \
+    for(i=0;i<n;i++) { \
+      if(!lua_isnumber(L, i+2)) \
+        luaL_error(L, "arguments must be integers"); \
+      args[i] = lua_tointeger(L, i+2); \
+    } \
+  } \
+  bn = (BIGNUM *)*udata
+#define BN_INT(func, params...) (lua_pushinteger(L, func(params)), 1)
+
+#define BN_SIMPLE_BN(name,n,sargs...) \
+static int mtev_lua_crypto_bn_##name(lua_State *L) { \
+  BN_METH_DECL(n); \
+  return BN_INT(BN_##name,sargs); \
+}
+#define BN_SIMPLE_INT(name,n,sargs...) \
+static int mtev_lua_crypto_bn_##name(lua_State *L) { \
+  BN_METH_DECL_INT(n); \
+  return BN_INT(BN_##name,sargs); \
+}
+
+static int mtev_lua_crypto_bn_copy(lua_State *L) {
+  BN_METH_DECL(1);
+  lua_pushinteger(L, (NULL != BN_copy(bn, args[0])));
+  return 1;
+}
+static int mtev_lua_crypto_bn_mod_inverse(lua_State *L) {
+  BN_METH_DECL(2);
+  lua_pushinteger(L, (NULL != BN_mod_inverse(bn, args[0], args[1], bn_ctx())));
+  return 1;
+}
+static int mtev_lua_crypto_bn_mod_sqrt(lua_State *L) {
+  BN_METH_DECL(2);
+  lua_pushinteger(L, (NULL != BN_mod_sqrt(bn, args[0], args[1], bn_ctx())));
+  return 1;
+}
+static int mtev_lua_crypto_bn_swap(lua_State *L) {
+  BN_METH_DECL(1);
+  BN_swap(bn, args[0]);
+  return 0;
+}
+static int mtev_lua_crypto_bn_dup(lua_State *L) {
+  BN_METH_DECL(0);
+  bn = BN_dup(bn);
+  if(bn) PUSH_OBJ(L, "crypto.bignum", bn);
+  else lua_pushnil(L);
+  return 1;
+}
+static int mtev_lua_crypto_bn_tobin(lua_State *L) {
+  unsigned char buf[1024], *ptr = buf;
+  int len;
+  BN_METH_DECL(0);
+  len = BN_num_bytes(bn);
+  if(len > sizeof(buf)) ptr = malloc(len);
+  if(ptr == NULL) luaL_error(L, "out of memory");
+  len = BN_bn2bin(bn, ptr);
+  lua_pushlstring(L, (char *)ptr, len);
+  if(ptr != buf) free(ptr);
+  return 1;
+}
+static int mtev_lua_crypto_bn_tompi(lua_State *L) {
+  unsigned char buf[1024], *ptr = buf;
+  int len;
+  BN_METH_DECL(0);
+  len = BN_bn2mpi(bn, NULL);
+  if(len > sizeof(buf)) ptr = malloc(len);
+  if(ptr == NULL) luaL_error(L, "out of memory");
+  len = BN_bn2mpi(bn, ptr);
+  lua_pushlstring(L, (char *)ptr, len);
+  if(ptr != buf) free(ptr);
+  return 1;
+}
+static int mtev_lua_crypto_bn_tohex(lua_State *L) {
+  char *ptr;
+  BN_METH_DECL(0);
+  ptr = BN_bn2hex(bn);
+  if(ptr) {
+    lua_pushstring(L, ptr);
+    OPENSSL_free(ptr);
+  }
+  else lua_pushnil(L);
+  return 1;
+}
+static int mtev_lua_crypto_bn_todec(lua_State *L) {
+  char *ptr;
+  BN_METH_DECL(0);
+  ptr = BN_bn2dec(bn);
+  if(ptr) {
+    lua_pushstring(L, ptr);
+    OPENSSL_free(ptr);
+  }
+  else lua_pushnil(L);
+  return 1;
+}
+/* dual_math_meta */
+#define BN_MATH_META_2(name, func, args...) \
+static int mtev_lua_crypto_bn___##name(lua_State *L) { \
+  void **udata_a, **udata_b; \
+  BIGNUM *r, *a, *b; \
+  if(lua_gettop(L) != 2) \
+    luaL_error(L, "bignum.__" #name " called with wrong args"); \
+  if(!luaL_checkudata(L,1,"crypto.bignum")) \
+    luaL_error(L, "bignum.__" #name " called on non-bignum"); \
+  udata_a = lua_touserdata(L, 1); \
+  a = (BIGNUM *)*udata_a; \
+  if(lua_isnumber(L,2)) { \
+    r = b = BN_new(); \
+    BN_set_word(r,lua_tointeger(L,2)); \
+  } \
+  else if(!luaL_checkudata(L,2,"crypto.bignum")) { \
+    luaL_error(L, "bignum.__" #name " called on non-bignum"); \
+  } \
+  else { \
+    udata_b = lua_touserdata(L, 2); \
+    r = BN_new(); \
+    b = (BIGNUM *)*udata_b; \
+  } \
+  BN_##func(args); \
+  PUSH_OBJ(L,"crypto.bignum",r); \
+  return 1; \
+}
+BN_MATH_META_2(add,add,r,a,b)
+BN_MATH_META_2(sub,sub,r,a,b)
+BN_MATH_META_2(mul,mul,r,a,b,bn_ctx())
+BN_MATH_META_2(div,div,r,NULL,a,b,bn_ctx())
+BN_MATH_META_2(mod,mod,r,a,b,bn_ctx())
+BN_MATH_META_2(pow,exp,r,a,b,bn_ctx())
+#define BN_MATH_TEST(name, op, expected) \
+static int mtev_lua_crypto_bn___##name(lua_State *L) { \
+  void **udata_a, **udata_b; \
+  BIGNUM *a, *b; \
+  if(lua_gettop(L) != 2) \
+    luaL_error(L, "bignum.__" #name " called with wrong args"); \
+  if(!luaL_checkudata(L,1,"crypto.bignum") || \
+     !luaL_checkudata(L,2,"crypto.bignum")) \
+    luaL_error(L, "bignum.__" #name " called on non-bignum"); \
+  udata_a = lua_touserdata(L, 1); \
+  a = (BIGNUM *)*udata_a; \
+  udata_b = lua_touserdata(L, 2); \
+  b = (BIGNUM *)*udata_b; \
+  lua_pushboolean(L, (BN_cmp(a,b) op expected)); \
+  return 1; \
+}
+BN_MATH_TEST(eq, ==, 0)
+BN_MATH_TEST(le, <=, 0)
+BN_MATH_TEST(lt, <, 0)
+
+static int mtev_lua_crypto_bn___tostring(lua_State *L) {
+  if(lua_gettop(L) != 1 ||
+     !luaL_checkudata(L,1,"crypto.bignum")) {
+    lua_pushnil(L);
+  }
+  else {
+    void **udata = lua_touserdata(L, 1);
+    void *ptr = BN_bn2dec((BIGNUM *)*udata);
+    if(ptr) {
+      lua_pushstring(L, ptr);
+      OPENSSL_free(ptr);
+    }
+    else lua_pushnil(L);
+  }
+  return 1;
+}
+
+/*
+DO: BN_mod_lshift
+DO: BN_mod_lshift_query
+DO: BN_lshift
+DO: BN_rshift
+DO: BN_reciprocal
+*/
+
+BN_SIMPLE_BN(mod_exp,3,bn,args[0],args[1],args[2],bn_ctx())
+BN_SIMPLE_BN(mod_exp_simple,3,bn,args[0],args[1],args[2],bn_ctx())
+BN_SIMPLE_BN(exp,2,bn,args[0],args[1],bn_ctx())
+BN_SIMPLE_BN(rand_range,1,bn,args[0])
+BN_SIMPLE_BN(pseudo_rand_range,1,bn,args[0])
+BN_SIMPLE_BN(num_bits,0,bn)
+BN_SIMPLE_BN(sub,2,bn,args[0],args[1])
+BN_SIMPLE_BN(add,2,bn,args[0],args[1])
+BN_SIMPLE_BN(usub,2,bn,args[0],args[1])
+BN_SIMPLE_BN(uadd,2,bn,args[0],args[1])
+BN_SIMPLE_BN(mul,2,bn,args[0],args[1],bn_ctx())
+BN_SIMPLE_BN(div,3,bn,args[0],args[1],args[2],bn_ctx())
+BN_SIMPLE_BN(mod,2,bn,args[0],args[1],bn_ctx())
+BN_SIMPLE_BN(nnmod,2,bn,args[0],args[1],bn_ctx())
+BN_SIMPLE_BN(mod_add,3,bn,args[0],args[1],args[2],bn_ctx())
+BN_SIMPLE_BN(mod_add_quick,3,bn,args[0],args[1],args[2])
+BN_SIMPLE_BN(mod_sub,3,bn,args[0],args[1],args[2],bn_ctx())
+BN_SIMPLE_BN(mod_sub_quick,3,bn,args[0],args[1],args[2])
+BN_SIMPLE_BN(mod_mul,3,bn,args[0],args[1],args[2],bn_ctx())
+BN_SIMPLE_BN(mod_sqr,1,bn,args[0],args[1],bn_ctx())
+BN_SIMPLE_BN(mod_lshift1,2,bn,args[0],args[1],bn_ctx())
+BN_SIMPLE_BN(mod_lshift1_quick,2,bn,args[0],args[1])
+BN_SIMPLE_BN(sqr,1,bn,args[0],bn_ctx())
+BN_SIMPLE_BN(lshift1,1,bn,args[0])
+BN_SIMPLE_BN(rshift1,1,bn,args[0])
+BN_SIMPLE_BN(cmp,1,bn,args[0])
+BN_SIMPLE_BN(ucmp,1,bn,args[0])
+BN_SIMPLE_BN(gcd,2,bn,args[0],args[1],bn_ctx())
+BN_SIMPLE_INT(rand,3,bn,args[0],args[1],args[2])
+BN_SIMPLE_INT(pseudo_rand,3,bn,args[0],args[1],args[2])
+BN_SIMPLE_INT(mod_word,1,bn,args[0])
+BN_SIMPLE_INT(div_word,1,bn,args[0])
+BN_SIMPLE_INT(mul_word,1,bn,args[0])
+BN_SIMPLE_INT(add_word,1,bn,args[0])
+BN_SIMPLE_INT(sub_word,1,bn,args[0])
+BN_SIMPLE_INT(set_word,1,bn,args[0])
+BN_SIMPLE_INT(get_word,0,bn)
+BN_SIMPLE_INT(is_bit_set,1,bn,args[0])
+BN_SIMPLE_INT(is_negative,0,bn)
+BN_SIMPLE_INT(mask_bits,1,bn,args[0])
+BN_SIMPLE_INT(set_bit,1,bn,args[0])
+BN_SIMPLE_INT(clear_bit,1,bn,args[0])
+
+static int
+mtev_lua_crypto_bignum_index_func(lua_State *L) {
+  const char *k;
+  void **udata;
+  assert(lua_gettop(L) == 2);
+  if(!luaL_checkudata(L, 1, "crypto.bignum")) {
+    luaL_error(L, "metatable error, arg1 not a crypto.req!");
+  }
+  udata = lua_touserdata(L, 1);
+  k = lua_tostring(L, 2);
+#define BN_DISPATCH(meth) if(!strcmp(k, #meth)) { \
+  lua_pushlightuserdata(L, udata); \
+  lua_pushcclosure(L, mtev_lua_crypto_bn_##meth, 1); \
+  return 1; \
+}
+  BN_DISPATCH(tobin)
+  else BN_DISPATCH(tompi)
+  else BN_DISPATCH(todec)
+  else BN_DISPATCH(tohex)
+  else BN_DISPATCH(mod_exp)
+  else BN_DISPATCH(mod_exp_simple)
+  else BN_DISPATCH(copy)
+  else BN_DISPATCH(swap)
+  else BN_DISPATCH(dup)
+  else BN_DISPATCH(add)
+  else BN_DISPATCH(sub)
+  else BN_DISPATCH(uadd)
+  else BN_DISPATCH(usub)
+  else BN_DISPATCH(mul)
+  else BN_DISPATCH(div)
+  else BN_DISPATCH(mod)
+  else BN_DISPATCH(nnmod)
+  else BN_DISPATCH(mod_add)
+  else BN_DISPATCH(mod_add_quick)
+  else BN_DISPATCH(mod_sub)
+  else BN_DISPATCH(mod_sub_quick)
+  else BN_DISPATCH(mod_mul)
+  else BN_DISPATCH(mod_sqr)
+  else BN_DISPATCH(mod_lshift1)
+  else BN_DISPATCH(mod_lshift1_quick)
+  else BN_DISPATCH(sqr)
+  else BN_DISPATCH(num_bits)
+  else BN_DISPATCH(rand)
+  else BN_DISPATCH(pseudo_rand)
+  else BN_DISPATCH(rand_range)
+  else BN_DISPATCH(pseudo_rand_range)
+  else BN_DISPATCH(mod_word)
+  else BN_DISPATCH(div_word)
+  else BN_DISPATCH(mul_word)
+  else BN_DISPATCH(add_word)
+  else BN_DISPATCH(sub_word)
+  else BN_DISPATCH(set_word)
+  else BN_DISPATCH(get_word)
+  else BN_DISPATCH(is_bit_set)
+  else BN_DISPATCH(is_negative)
+  else BN_DISPATCH(mask_bits)
+  else BN_DISPATCH(lshift1)
+  else BN_DISPATCH(rshift1)
+  else BN_DISPATCH(exp)
+  else BN_DISPATCH(cmp)
+  else BN_DISPATCH(ucmp)
+  else BN_DISPATCH(set_bit)
+  else BN_DISPATCH(gcd)
+  else BN_DISPATCH(mod_inverse)
+  else BN_DISPATCH(mod_sqrt)
+
+  luaL_error(L, "crypto.bignum no such element: %s", k);
+  return 0;
+}
+static int
+mtev_lua_crypto_bignum_gc(lua_State *L) {
+  void **udata;
+  udata = lua_touserdata(L,1);
+  BN_free((BIGNUM *)*udata);
+  return 0;
+}
+
+#define MK_BIGNUM(name, block) \
+static int \
+mtev_lua_crypto_bignum_##name(lua_State *L) { \
+  BIGNUM *bn = NULL; \
+  if(lua_gettop(L) == 1) { \
+    size_t len; \
+    const char *n; \
+    n = lua_tolstring(L,1,&len); \
+    block \
+  } \
+  if(bn) PUSH_OBJ(L, "crypto.bignum", bn); \
+  else lua_pushnil(L); \
+  return 1; \
+}
+MK_BIGNUM(bin2bn, { bn = BN_bin2bn((const void *)n, len, NULL); })
+MK_BIGNUM(mpi2bn, { bn = BN_mpi2bn((const void *)n, len, NULL); })
+MK_BIGNUM(dec2bn, { if(BN_dec2bn(&bn, (const void *)n) == 0) bn = NULL; })
+MK_BIGNUM(hex2bn, { if(BN_hex2bn(&bn, (const void *)n) == 0) bn = NULL; })
+
+static int
+mtev_lua_crypto_bignum_new(lua_State *L) {
+  BIGNUM *bn = BN_new();
+  if(lua_gettop(L) == 1) {
+    int i;
+    if(!lua_isnumber(L,1))
+      luaL_error(L, "bignum_new require no argument or an integer");
+    i = lua_tointeger(L,1);
+    if(i < 0) {
+      BN_set_word(bn, (i * -1));
+      BN_set_negative(bn, 1);
+    }
+    else BN_set_word(bn, i);
+  }
+  PUSH_OBJ(L, "crypto.bignum", bn);
+  return 1;
+}
+static int
+mtev_lua_crypto_rand_bytes(lua_State *L) {
+  int nbytes;
+  char *errstr;
+  char errbuf[120];
+  unsigned char buff[1024], *ptr = buff;
+
+  if(lua_gettop(L) != 1 ||
+     !lua_isnumber(L,1) ||
+     (nbytes = lua_tointeger(L,1)) <= 0) {
+    luaL_error(L, "crypto.rand_bytes takes a positive integer argument");
+  }
+  if(nbytes > sizeof(buff)) {
+    ptr = malloc(nbytes);
+    if(!ptr) luaL_error(L, "crypto.rand_bytes out-of-memory");
+  }
+
+  if(RAND_bytes(buff, nbytes) == 0) {
+    if(ptr != buff) free(ptr);
+    errstr = ERR_error_string(ERR_get_error(), errbuf);
+    luaL_error(L, errstr ? errstr : "unknown crypto error");
+  }
+  lua_pushlstring(L, (char *)ptr, nbytes);
+  if(ptr != buff) free(ptr);
+  return 1;
+}
+
+static const struct luaL_Reg crypto_funcs[] = {
   { "newrsa",  mtev_lua_crypto_newrsa },
   { "newreq",  mtev_lua_crypto_newreq },
+  { "rand_bytes", mtev_lua_crypto_rand_bytes },
+  { "bignum_new", mtev_lua_crypto_bignum_new },
+  { "bignum_bin2bn", mtev_lua_crypto_bignum_bin2bn },
+  { "bignum_dec2bn", mtev_lua_crypto_bignum_dec2bn },
+  { "bignum_hex2bn", mtev_lua_crypto_bignum_hex2bn },
+  { "bignum_mpi2bn", mtev_lua_crypto_bignum_mpi2bn },
   { NULL, NULL }
 };
 
@@ -528,6 +924,32 @@ int luaopen_mtev_crypto(lua_State *L) {
   lua_pushcfunction(L, mtev_lua_crypto_req_gc);
   lua_setfield(L, -2, "__gc");
 
-  luaL_openlib(L, "mtev", crupto_funcs, 0);
+  luaL_newmetatable(L, "crypto.bignum");
+  lua_pushcclosure(L, mtev_lua_crypto_bignum_index_func, 0);
+  lua_setfield(L, -2, "__index");
+  lua_pushcfunction(L, mtev_lua_crypto_bignum_gc);
+  lua_setfield(L, -2, "__gc");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___tostring);
+  lua_setfield(L, -2, "__tostring");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___add);
+  lua_setfield(L, -2, "__add");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___sub);
+  lua_setfield(L, -2, "__sub");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___mul);
+  lua_setfield(L, -2, "__mul");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___div);
+  lua_setfield(L, -2, "__div");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___mod);
+  lua_setfield(L, -2, "__mod");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___pow);
+  lua_setfield(L, -2, "__pow");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___eq);
+  lua_setfield(L, -2, "__eq");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___lt);
+  lua_setfield(L, -2, "__lt");
+  lua_pushcfunction(L, mtev_lua_crypto_bn___le);
+  lua_setfield(L, -2, "__le");
+
+  luaL_openlib(L, "mtev", crypto_funcs, 0);
   return 0;
 }
