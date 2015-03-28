@@ -459,6 +459,8 @@ lua_State *
 mtev_lua_open(const char *module_name, void *lmc,
               const char *script_dir, const char *cpath) {
   int rv;
+  const char *ppath, *ocp;
+  char *npath;
   lua_State *L = luaL_newstate(), **Lptr;
   lua_atpanic(L, &mtev_lua_panic);
 
@@ -474,13 +476,41 @@ mtev_lua_open(const char *module_name, void *lmc,
   }
 
   lua_getglobal(L, "package");
-  lua_pushfstring(L, "%s", script_dir);
+  lua_getfield(L, -1, "path");
+  ppath = lua_tostring(L, -1);
+  lua_pop(L,1);
+  if(NULL != (ocp = strstr(script_dir, "{package.path}"))) {
+    int nlen = strlen(script_dir) + strlen(ppath);
+    npath = malloc(nlen);
+    memcpy(npath, script_dir, ocp-script_dir);
+    npath[ocp-script_dir] = '\0';
+    strlcat(npath, ppath, nlen);
+    strlcat(npath, ocp + 14, nlen);
+  } else {
+    npath = strdup(script_dir);
+  }
+  lua_pushfstring(L, "%s", npath);
+  free(npath);
   lua_setfield(L, -2, "path");
 
   if(!cpath)  {
-    cpath = "./?.so;" MTEV_LIB_DIR "/mtev_lua/?.so";
+    cpath = "./?.so;" MTEV_LIB_DIR "/mtev_lua/?.so;{package.cpath}";
   }
-  lua_pushfstring(L, "%s", cpath);
+  lua_getfield(L, -1, "cpath");
+  ppath = lua_tostring(L, -1);
+  lua_pop(L,1);
+  if(NULL != (ocp = strstr(cpath, "{package.cpath}"))) {
+    int nlen = strlen(cpath) + strlen(ppath);
+    npath = malloc(nlen);
+    memcpy(npath, cpath, ocp-cpath);
+    npath[ocp-cpath] = '\0';
+    strlcat(npath, ppath, nlen);
+    strlcat(npath, ocp + 15, nlen);
+  } else {
+    npath = strdup(cpath);
+  }
+  lua_pushfstring(L, "%s", npath);
+  free(npath);
   lua_setfield(L, -2, "cpath");
   lua_pop(L, 1);
 
