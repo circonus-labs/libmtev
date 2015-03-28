@@ -3101,6 +3101,12 @@ nl_thread_self(lua_State *L) {
 }
 
 static int
+nl_eventer_loop_concurrency(lua_State *L) {
+  lua_pushinteger(L, eventer_loop_concurrency());
+  return 1;
+}
+
+static int
 mtev_lua_process_wait(lua_State *L) {
   int rv, status;
   struct spawn_info *spawn_info;
@@ -3273,6 +3279,7 @@ static const luaL_Reg mtevlib[] = {
   { "parsejson", nl_parsejson },
   { "spawn", nl_spawn },
   { "thread_self", nl_thread_self },
+  { "eventer_loop_concurrency", nl_eventer_loop_concurrency },
   { NULL, NULL }
 };
 
