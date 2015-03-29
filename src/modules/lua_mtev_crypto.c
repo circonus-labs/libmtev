@@ -887,10 +887,38 @@ mtev_lua_crypto_rand_bytes(lua_State *L) {
   return 1;
 }
 
+static int
+mtev_lua_crypto_pseudo_rand_bytes(lua_State *L) {
+  int nbytes;
+  char *errstr;
+  char errbuf[120];
+  unsigned char buff[1024], *ptr = buff;
+
+  if(lua_gettop(L) != 1 ||
+     !lua_isnumber(L,1) ||
+     (nbytes = lua_tointeger(L,1)) <= 0) {
+    luaL_error(L, "crypto.rand_bytes takes a positive integer argument");
+  }
+  if(nbytes > sizeof(buff)) {
+    ptr = malloc(nbytes);
+    if(!ptr) luaL_error(L, "crypto.pseudo_rand_bytes out-of-memory");
+  }
+
+  if(RAND_pseudo_bytes(buff, nbytes) == 0) {
+    if(ptr != buff) free(ptr);
+    errstr = ERR_error_string(ERR_get_error(), errbuf);
+    luaL_error(L, errstr ? errstr : "unknown crypto error");
+  }
+  lua_pushlstring(L, (char *)ptr, nbytes);
+  if(ptr != buff) free(ptr);
+  return 1;
+}
+
 static const struct luaL_Reg crypto_funcs[] = {
   { "newrsa",  mtev_lua_crypto_newrsa },
   { "newreq",  mtev_lua_crypto_newreq },
   { "rand_bytes", mtev_lua_crypto_rand_bytes },
+  { "pseudo_rand_bytes", mtev_lua_crypto_pseudo_rand_bytes },
   { "bignum_new", mtev_lua_crypto_bignum_new },
   { "bignum_bin2bn", mtev_lua_crypto_bignum_bin2bn },
   { "bignum_dec2bn", mtev_lua_crypto_bignum_dec2bn },
