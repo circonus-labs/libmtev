@@ -11,7 +11,7 @@
 #define	OP_ZSTRING	'z'		/* zero-terminated string */
 #define	OP_BSTRING	'p'		/* string preceded by length byte */
 #define	OP_WSTRING	'P'		/* string preceded by length word */
-#define	OP_SSTRING	'a'		/* string preceded by length size_t */
+#define	OP_SSTRING	'a'		/* string preceded by length int32_t */
 #define	OP_STRING	'A'		/* string */
 #define	OP_FLOAT	'f'		/* float */
 #define	OP_DOUBLE	'd'		/* double */
@@ -145,7 +145,7 @@ static int l_unpack(lua_State *L) 		/** unpack(s,f,[init]) */
    }
    UNPACKSTRING(OP_BSTRING, uint8_t)
    UNPACKSTRING(OP_WSTRING, int16_t)
-   UNPACKSTRING(OP_SSTRING, size_t)
+   UNPACKSTRING(OP_SSTRING, int32_t)
    UNPACKNUMBER(OP_NUMBER, lua_Number)
    UNPACKNUMBER(OP_DOUBLE, double)
    UNPACKNUMBER(OP_FLOAT, float)
@@ -227,7 +227,7 @@ static int l_pack(lua_State *L) 		/** pack(f,...) */
    }
    PACKSTRING(OP_BSTRING, uint8_t)
    PACKSTRING(OP_WSTRING, uint16_t)
-   PACKSTRING(OP_SSTRING, size_t)
+   PACKSTRING(OP_SSTRING, int32_t)
    PACKNUMBER(OP_NUMBER, lua_Number)
    PACKNUMBER(OP_DOUBLE, double)
    PACKNUMBER(OP_FLOAT, float)
