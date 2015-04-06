@@ -2009,6 +2009,44 @@ nl_md5(lua_State *L) {
   return 1;
 }
 static int
+nl_sha1_hex(lua_State *L) {
+  int i;
+  SHA_CTX ctx;
+  size_t inlen;
+  const char *in;
+  unsigned char sha1[SHA_DIGEST_LENGTH];
+  char sha1_hex[SHA_DIGEST_LENGTH * 2 + 1];
+
+  if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha1_hex");
+  SHA1_Init(&ctx);
+  in = lua_tolstring(L, 1, &inlen);
+  SHA1_Update(&ctx, (const void *)in, (unsigned long)inlen);
+  SHA1_Final(sha1, &ctx);
+  for(i=0;i<SHA_DIGEST_LENGTH;i++) {
+    sha1_hex[i*2] = _hexchars[(sha1[i] >> 4) & 0xf];
+    sha1_hex[i*2+1] = _hexchars[sha1[i] & 0xf];
+  }
+  sha1_hex[i*2] = '\0';
+  lua_pushstring(L, sha1_hex);
+  return 1;
+}
+static int
+nl_sha1(lua_State *L) {
+  int i;
+  SHA_CTX ctx;
+  size_t inlen;
+  const char *in;
+  unsigned char sha1[SHA_DIGEST_LENGTH];
+
+  if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha1");
+  SHA1_Init(&ctx);
+  in = lua_tolstring(L, 1, &inlen);
+  SHA1_Update(&ctx, (const void *)in, (unsigned long)inlen);
+  SHA1_Final(sha1, &ctx);
+  lua_pushlstring(L, (char *)sha1, sizeof(sha1));
+  return 1;
+}
+static int
 nl_gettimeofday(lua_State *L) {
   struct timeval now;
   gettimeofday(&now, NULL);
@@ -3259,6 +3297,8 @@ static const luaL_Reg mtevlib[] = {
   { "hmac_sha256_encode", nl_hmac_sha256_encode },
   { "md5_hex", nl_md5_hex },
   { "md5", nl_md5 },
+  { "sha1_hex", nl_sha1_hex },
+  { "sha1", nl_sha1 },
   { "pcre", nl_pcre },
   { "gunzip", nl_gunzip },
   { "conf", nl_conf_get_string },
