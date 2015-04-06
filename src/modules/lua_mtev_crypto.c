@@ -553,6 +553,17 @@ static int mtev_lua_crypto_bn_##name(lua_State *L) { \
   return BN_INT(BN_##name,sargs); \
 }
 
+static int mtev_lua_crypto_bn_is_negative(lua_State *L) {
+  BN_METH_DECL_INT(0);
+  lua_pushboolean(L, BN_is_negative(bn));
+  lua_pushboolean(L, bn->neg ? 1 : 0);
+  return 2;
+}
+static int mtev_lua_crypto_bn_set_negative(lua_State *L) {
+  BN_METH_DECL_INT(1);
+  BN_set_negative(bn,args[0]);
+  return 0;
+}
 static int mtev_lua_crypto_bn_copy(lua_State *L) {
   BN_METH_DECL(1);
   lua_pushinteger(L, (NULL != BN_copy(bn, args[0])));
@@ -704,6 +715,7 @@ DO: BN_rshift
 DO: BN_reciprocal
 */
 
+BN_SIMPLE_BN(num_bytes,0,bn)
 BN_SIMPLE_BN(mod_exp,3,bn,args[0],args[1],args[2],bn_ctx())
 BN_SIMPLE_BN(mod_exp_simple,3,bn,args[0],args[1],args[2],bn_ctx())
 BN_SIMPLE_BN(exp,2,bn,args[0],args[1],bn_ctx())
@@ -742,7 +754,6 @@ BN_SIMPLE_INT(sub_word,1,bn,args[0])
 BN_SIMPLE_INT(set_word,1,bn,args[0])
 BN_SIMPLE_INT(get_word,0,bn)
 BN_SIMPLE_INT(is_bit_set,1,bn,args[0])
-BN_SIMPLE_INT(is_negative,0,bn)
 BN_SIMPLE_INT(mask_bits,1,bn,args[0])
 BN_SIMPLE_INT(set_bit,1,bn,args[0])
 BN_SIMPLE_INT(clear_bit,1,bn,args[0])
@@ -763,6 +774,7 @@ mtev_lua_crypto_bignum_index_func(lua_State *L) {
   return 1; \
 }
   BN_DISPATCH(tobin)
+  else BN_DISPATCH(num_bytes)
   else BN_DISPATCH(tompi)
   else BN_DISPATCH(todec)
   else BN_DISPATCH(tohex)
@@ -802,6 +814,7 @@ mtev_lua_crypto_bignum_index_func(lua_State *L) {
   else BN_DISPATCH(get_word)
   else BN_DISPATCH(is_bit_set)
   else BN_DISPATCH(is_negative)
+  else BN_DISPATCH(set_negative)
   else BN_DISPATCH(mask_bits)
   else BN_DISPATCH(lshift1)
   else BN_DISPATCH(rshift1)
