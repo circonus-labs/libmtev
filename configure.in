@@ -441,21 +441,6 @@ if test "x$ac_cv_have_kqueue" = "xyes" ; then
 	have_kqueue=1
 fi
 
-AC_CACHE_CHECK([for Solaris ports support], ac_cv_have_ports, [
-	AC_TRY_LINK(
-		[ #include <port.h> ],
-		[ u_int a; a = port_create(); ],
-		[ ac_cv_have_ports="yes" ],
-		[ ac_cv_have_ports="no" ]
-	)
-])
-if test "x$ac_cv_have_ports" = "xyes" ; then
-	AC_DEFINE(HAVE_PORTS)
-	EVENTER_OBJS="$EVENTER_OBJS eventer_ports_impl.lo"
-	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "ports")
-	have_ports=1
-fi
-
 AC_CACHE_CHECK([for epoll support], ac_cv_have_epoll, [
 	AC_TRY_LINK(
 		[ #include <sys/types.h> ],
@@ -470,6 +455,21 @@ if test "x$ac_cv_have_epoll" = "xyes" ; then
 	EVENTER_OBJS="$EVENTER_OBJS eventer_epoll_impl.lo"
 	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "epoll")
 	have_epoll=1
+fi
+
+AC_CACHE_CHECK([for Solaris ports support], ac_cv_have_ports, [
+	AC_TRY_LINK(
+		[ #include <port.h> ],
+		[ u_int a; a = port_create(); ],
+		[ ac_cv_have_ports="yes" ],
+		[ ac_cv_have_ports="no" ]
+	)
+])
+if test "x$ac_cv_have_ports" = "xyes" ; then
+	AC_DEFINE(HAVE_PORTS)
+	EVENTER_OBJS="$EVENTER_OBJS eventer_ports_impl.lo"
+	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "ports")
+	have_ports=1
 fi
 
 AC_SUBST(EVENTER_OBJS)
