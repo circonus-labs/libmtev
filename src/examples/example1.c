@@ -52,6 +52,11 @@ child_main() {
   mtev_listener_init(APPNAME);
   mtev_dso_init();
 
+  mtev_http_rest_register_auth(
+    "GET", "/", "^(.*)$", mtev_rest_simple_file_handler,
+           mtev_http_rest_client_cert_auth
+  );
+
   /* Lastly, spin up the event loop */
   eventer_loop();
   return 0;
