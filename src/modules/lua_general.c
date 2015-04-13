@@ -230,7 +230,7 @@ static int
 mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   const char *bstr;
   lua_general_conf_t *conf = get_config(self);
-  conf->script_dir = "";
+  conf->script_dir = NULL;
   conf->cpath = NULL;
   conf->module = NULL;
   conf->function = NULL;

@@ -475,6 +475,9 @@ mtev_lua_open(const char *module_name, void *lmc,
     lua_setglobal(L, "mtev_internal_lmc");
   }
 
+  if(!script_dir) {
+    script_dir = MTEV_MODULES_DIR "/lua/?.lua;{package.path}";
+  }
   lua_getglobal(L, "package");
   lua_getfield(L, -1, "path");
   ppath = lua_tostring(L, -1);
@@ -493,7 +496,7 @@ mtev_lua_open(const char *module_name, void *lmc,
   free(npath);
   lua_setfield(L, -2, "path");
 
-  if(!cpath)  {
+  if(!cpath) {
     cpath = "./?.so;" MTEV_LIB_DIR "/mtev_lua/?.so;{package.cpath}";
   }
   lua_getfield(L, -1, "cpath");
