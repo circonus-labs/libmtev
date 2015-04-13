@@ -1690,9 +1690,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
     struct bchain *n;
     ctx->res.closed = mtev_true;
     raw_finalize_encoding(&ctx->res);
-    /* We could have just pushed in the only block */
-    if(!r) r = ctx->res.output_raw_last;
-    /* Advance to the end to append out ending */
+    r = ctx->res.output_raw_last;
     /* Create an ending */
     if(ctx->res.output_options & MTEV_HTTP_CHUNKED)
       n = bchain_from_data("0\r\n\r\n", 5);
