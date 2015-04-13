@@ -582,6 +582,8 @@ _http_perform_write(mtev_http_session_ctx *ctx, int *mask) {
     *head = b->next;
     if(ctx->res.output_raw_last == b)
       ctx->res.output_raw_last = NULL;
+    assert((ctx->res.output_raw_last == NULL && ctx->res.output_raw == NULL) ||
+           (ctx->res.output_raw_last != NULL && ctx->res.output_raw != NULL));
     FREE_BCHAIN(b);
     b = *head;
     if(b) b->prev = NULL;
@@ -1550,7 +1552,7 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
   out = ALLOC_BCHAIN(hexlen + 4 + maxlen);
   /* if we're chunked, let's give outselved hexlen + 2 prefix space */
   if(opts & MTEV_HTTP_CHUNKED) out->start = hexlen + 2;
-  if(_http_encode_chain(&ctx->res, out,in->buff + in->start, in->size,
+  if(_http_encode_chain(&ctx->res, out, in->buff + in->start, in->size,
                         mtev_false, NULL) == mtev_false) {
     free(out);
     return NULL;
@@ -1588,6 +1590,8 @@ raw_finalize_encoding(mtev_http_response *res) {
   if(res->output_options & MTEV_HTTP_GZIP) {
     mtev_boolean finished = mtev_false;
     struct bchain *r = res->output_raw_last;
+    assert((r == NULL && res->output_raw == NULL) ||
+           (r != NULL && res->output_raw != NULL));
     while(finished == mtev_false) {
       int hexlen, ilen;
       struct bchain *out = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
@@ -1628,6 +1632,7 @@ raw_finalize_encoding(mtev_http_response *res) {
       if(r == NULL)
         res->output_raw = out;
       else {
+        assert(r == res->output_raw_last);
         r->next = out;
         out->prev = r;
       }
@@ -1654,6 +1659,8 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
   }
   /* encode output to output_raw */
   r = ctx->res.output_raw_last;
+  assert((r == NULL && ctx->res.output_raw == NULL) ||
+         (r != NULL && ctx->res.output_raw != NULL));
   /* r is the last raw output link */
   o = ctx->res.output;
   /* o is the first output link to process */
