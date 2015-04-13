@@ -114,7 +114,9 @@ struct mtev_http_response {
 
   u_int32_t output_options;
   struct bchain *output;       /* data is pushed in here */
+  struct bchain *output_last;  /* tail ptr */
   struct bchain *output_raw;   /* internally transcoded here for output */
+  struct bchain *output_raw_last; /* tail ptr */
   size_t output_raw_offset;    /* tracks our offset */
   mtev_boolean output_started; /* locks the options and leader */
                                /*   and possibly output. */
@@ -578,6 +580,8 @@ _http_perform_write(mtev_http_session_ctx *ctx, int *mask) {
 
   if(ctx->res.output_raw_offset >= b->size) {
     *head = b->next;
+    if(ctx->res.output_raw_last == b)
+      ctx->res.output_raw_last = NULL;
     FREE_BCHAIN(b);
     b = *head;
     if(b) b->prev = NULL;
@@ -1327,16 +1331,17 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
      !(ctx->res.output_options & (MTEV_HTTP_CLOSE | MTEV_HTTP_CHUNKED)))
     return mtev_false;
   if(!ctx->res.output)
-    ctx->res.output = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+    ctx->res.output_last = ctx->res.output = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
   assert(ctx->res.output != NULL);
-  o = ctx->res.output;
-  while(o->next) o = o->next;
+  assert(ctx->res.output_last != NULL);
+  o = ctx->res.output_last;
   while(l > 0) {
     if(o->allocd == o->start + o->size) {
       /* Filled up, need another */
       o->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
       o->next->prev = o->next;
       o = o->next;
+      ctx->res.output_last = o;
     }
     if(o->allocd > o->start + o->size) {
       int tocopy = MIN(l, o->allocd - o->start - o->size);
@@ -1356,14 +1361,16 @@ mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
   if(ctx->res.output_started == mtev_true &&
      !(ctx->res.output_options & (MTEV_HTTP_CHUNKED | MTEV_HTTP_CLOSE)))
     return mtev_false;
-  if(!ctx->res.output)
-    ctx->res.output = b;
+  if(!ctx->res.output_last)
+    ctx->res.output_last = ctx->res.output = b;
   else {
-    o = ctx->res.output;
-    while(o->next) o = o->next;
+    assert(ctx->res.output !=  NULL);
+    assert(ctx->res.output_last !=  NULL);
+    o = ctx->res.output_last;
     o->allocd = o->size; /* so we know it is full */
     o->next = b;
     b->prev = o;
+    ctx->res.output_last = b;
   }
   return mtev_true;
 }
@@ -1580,8 +1587,7 @@ void
 raw_finalize_encoding(mtev_http_response *res) {
   if(res->output_options & MTEV_HTTP_GZIP) {
     mtev_boolean finished = mtev_false;
-    struct bchain *r = res->output_raw;
-    while(r && r->next) r = r->next;
+    struct bchain *r = res->output_raw_last;
     while(finished == mtev_false) {
       int hexlen, ilen;
       struct bchain *out = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
@@ -1625,7 +1631,7 @@ raw_finalize_encoding(mtev_http_response *res) {
         r->next = out;
         out->prev = r;
       }
-      r = out;
+      res->output_raw_last = r = out;
     }
 
     deflateEnd(res->gzip);
@@ -1647,8 +1653,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
     mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_SEND, false, NULL);
   }
   /* encode output to output_raw */
-  r = ctx->res.output_raw;
-  while(r && r->next) r = r->next;
+  r = ctx->res.output_raw_last;
   /* r is the last raw output link */
   o = ctx->res.output;
   /* o is the first output link to process */
@@ -1665,22 +1670,22 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
     if(r) {
       r->next = n;
       n->prev = r;
-      r = n;
+      r = ctx->res.output_raw_last = n;
     }
     else {
-      r = ctx->res.output_raw = n;
+      r = ctx->res.output_raw = ctx->res.output_raw_last = n;
     }
     tofree = o; o = o->next; FREE_BCHAIN(tofree); /* advance and free */
   }
   ctx->res.output = NULL;
+  ctx->res.output_last = NULL;
   if(final) {
     struct bchain *n;
     ctx->res.closed = mtev_true;
     raw_finalize_encoding(&ctx->res);
     /* We could have just pushed in the only block */
-    if(!r) r = ctx->res.output_raw;
+    if(!r) r = ctx->res.output_raw_last;
     /* Advance to the end to append out ending */
-    if(r) while(r->next) r = r->next;
     /* Create an ending */
     if(ctx->res.output_options & MTEV_HTTP_CHUNKED)
       n = bchain_from_data("0\r\n\r\n", 5);
@@ -1689,10 +1694,13 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
     /* Append an ending (chunked) */
     if(r) {
       r->next = n;
-      if(n) n->prev = r;
+      if(n) { 
+        ctx->res.output_raw_last = n;
+        n->prev = r;
+      }
     }
     else {
-      ctx->res.output_raw = n;
+      ctx->res.output_raw = ctx->res.output_raw_last = n;
     }
   }
 
