@@ -53,6 +53,17 @@ MAPFLAGS=@MAPFLAGS@
 CTFCONVERT=@CTFCONVERT@
 CTFMERGE=@CTFMERGE@
 
+# Later versions of ctfconvert no longer have -g and by default do not strip,
+# so we get the same behavior as with -g on older versions.
+ifneq ($(wildcard $(CTFCONVERT)),)
+  HAS_G=$(shell $(CTFCONVERT) 2>&1 | grep -- -gis)
+  ifneq ($(HAS_G),)
+    CTFNOSTRIP=-g
+  else
+    CTFNOSTRIP=
+  endif
+endif
+
 WHOLE_ARCHIVE=@WHOLE_ARCHIVE@
 NOWHOLE_ARCHIVE=@NOWHOLE_ARCHIVE@
 
@@ -138,7 +149,7 @@ libmtev-objs/%.lo:	%.lo
 	$(Q)cp $(@:libmtev-objs/%.lo=%.lo) $@
 	$(Q)if test -x "$(CTFCONVERT)" ; then \
 		echo "- making CTF ($@)" ; \
-		$(CTFCONVERT) -g -i -l @VERSION@ $@ ; \
+		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@ ; \
 	fi
 
 make-man:
