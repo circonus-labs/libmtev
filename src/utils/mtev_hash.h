@@ -95,4 +95,6 @@ int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
 int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
                        const char **k, int *klen, const char **dstr);
 
+u_int32_t mtev_hash__hash(const char *k, u_int32_t length, u_int32_t initval);
+
 #endif

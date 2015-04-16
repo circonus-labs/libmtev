@@ -97,7 +97,7 @@ HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
 
 MAPPEDHEADERS= \
 	utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
-	utils/mtev_btrie.h utils/mtev_getip.h utils/mtev_hash.h \
+	utils/mtev_btrie.h utils/mtev_cht.h utils/mtev_getip.h utils/mtev_hash.h \
 	utils/mtev_hooks.h utils/mtev_lockfile.h utils/mtev_log.h \
 	utils/mtev_memory.h utils/mtev_mkdir.h utils/mtev_security.h \
 	utils/mtev_sem.h utils/mtev_skiplist.h utils/mtev_str.h \
@@ -129,6 +129,7 @@ MTEV_UTILS_OBJS=utils/mtev_b32.lo utils/mtev_b64.lo utils/mtev_btrie.lo \
         utils/mtev_log.lo utils/mtev_mkdir.lo utils/mtev_security.lo \
         utils/mtev_sem.lo utils/mtev_skiplist.lo utils/mtev_str.lo \
         utils/mtev_watchdog.lo utils/mtev_zipkin.lo utils/mtev_memory.lo \
+        utils/mtev_cht.lo \
         $(ATOMIC_OBJS)
 
 LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo \

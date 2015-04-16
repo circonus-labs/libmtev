@@ -1,4 +1,8 @@
 ffi = require('ffi')
+ffi.cdef([=[
+void *malloc(size_t);
+char *strdup(const char *);
+]=])
 mtev = ffi.load('mtev')
 
 function charstar(str)
