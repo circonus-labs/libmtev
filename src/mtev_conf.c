@@ -1518,20 +1518,6 @@ mtev_conf_set_boolean(mtev_conf_section_t section,
   return mtev_conf_set_string(section,path,"false");
 }
 
-/* FIXME: This should move into reconnoiter */
-int
-mtev_conf_should_resolve_targets(mtev_boolean *should_resolve) {
-  static int inited = 0, cached_rv;;
-  static mtev_boolean cached_should_resolve;
-  if(!inited) {
-    cached_rv = mtev_conf_get_boolean(NULL, "//checks/@resolve_targets",
-                                      &cached_should_resolve);
-    inited = 1;
-  }
-  *should_resolve = cached_should_resolve;
-  return cached_rv;
-}
-
 struct config_line_vstr {
   char *buff;
   int raw_len;
@@ -2201,6 +2187,7 @@ mtev_console_config_section(mtev_console_closure_t ncct,
     return -1;
   }
 
+  /* FIXME, mtevs shouldn't know anout "check" nodes */
   if(delete) {
     /* We cannot delete if we have checks */
     snprintf(xpath, sizeof(xpath), "/%s%s/%s//check", root_node_name,
