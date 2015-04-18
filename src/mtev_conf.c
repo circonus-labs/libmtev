@@ -53,6 +53,15 @@
 #include "mtev_b64.h"
 #include "mtev_watchdog.h"
 #include "mtev_security.h"
+#include "mtev_hooks.h"
+
+MTEV_HOOK_IMPL(mtev_conf_delete_section,
+                (const char *root, const char *path,
+                 const char *name, const char **err),
+                void *, closure,
+                (void *closure, const char *root, const char *path,
+                 const char *name, const char **err),
+                (closure, root, path, name, err));
 
 const char *_mtev_branch = MTEV_BRANCH;
 const char *_mtev_version = MTEV_VERSION;
@@ -2187,18 +2196,12 @@ mtev_console_config_section(mtev_console_closure_t ncct,
     return -1;
   }
 
-  /* FIXME, mtevs shouldn't know anout "check" nodes */
   if(delete) {
-    /* We cannot delete if we have checks */
-    snprintf(xpath, sizeof(xpath), "/%s%s/%s//check", root_node_name,
-             info->path, argv[0]);
-    pobj = xmlXPathEval((xmlChar *)xpath, xpath_ctxt);
-    if(!pobj || pobj->type != XPATH_NODESET ||
-       !xmlXPathNodeSetIsEmpty(pobj->nodesetval)) {
-      err = "cannot delete section, has checks";
-      goto bad;
+    if(mtev_conf_delete_section_hook_invoke(root_node_name,
+                                            info->path, argv[0],
+                                            &err) == MTEV_HOOK_ABORT) {
+       goto bad;
     }
-    if(pobj) xmlXPathFreeObject(pobj);
   }
 
   snprintf(xpath, sizeof(xpath), "/%s%s/%s", root_node_name,

@@ -37,6 +37,7 @@
 #include "mtev_defines.h"
 #include "mtev_hash.h"
 #include "mtev_console.h"
+#include "mtev_hooks.h"
 
 #include <uuid/uuid.h>
 #include <pcre.h>
@@ -199,5 +200,16 @@ pcre *mtev_conf_get_valid_##name##_checker() { return checker_valid_##name; }
 } while(0)
 
 EXPOSE_CHECKER(name);
+
+/* Called when someone attempts to delete a section from the config.
+ * The section is <root><path>/<name>
+ * return MTEV_HOOK_ABORT to prevent it
+ */
+MTEV_HOOK_PROTO(mtev_conf_delete_section,
+                (const char *root, const char *path,
+                 const char *name, const char **err),
+                void *, closure,
+                (void *closure, const char *root, const char *path,
+                 const char *name, const char **err));
 
 #endif
