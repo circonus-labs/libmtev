@@ -334,6 +334,15 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
   ctx->cert_error = NULL;
 
   if(!x509ctx) {
+    int err;
+    if((err = SSL_get_verify_result(ctx->ssl)) != X509_V_OK) {
+      X509 *peer;
+      peer = SSL_get_peer_certificate(ctx->ssl);
+      if(peer) {
+        ctx->cert_error = strdup(X509_verify_cert_error_string(err));
+        return 0;
+      }
+    }
     ctx->cert_error = strdup("No certificate present.");
     return 0;
   }
