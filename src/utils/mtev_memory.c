@@ -78,9 +78,12 @@ void mtev_memory_end() {
 struct safe_epoch {
   ck_epoch_entry_t epoch_entry;
   uint32_t magic;
+  void (*cleanup)(void *);
 };
 
 static void mtev_memory_real_free(ck_epoch_entry_t *e) {
+  struct safe_epoch *se = (struct safe_epoch *)e;
+  if(se->cleanup) se->cleanup(se+1);
   free(e);
   return;
 }
@@ -89,6 +92,15 @@ void *mtev_memory_safe_malloc(size_t r) {
   struct safe_epoch *b;
   b = malloc(sizeof(*b) + r);
   b->magic = MTEV_EPOCH_SAFE_MAGIC;
+  b->cleanup = NULL;
+  return b + 1;
+}
+
+void *mtev_memory_safe_malloc_cleanup(size_t r, void (*f)(void *)) {
+  struct safe_epoch *b;
+  b = malloc(sizeof(*b) + r);
+  b->magic = MTEV_EPOCH_SAFE_MAGIC;
+  b->cleanup = f;
   return b + 1;
 }
 
@@ -113,7 +125,10 @@ void *mtev_memory_ck_malloc(size_t r) {
   return mtev_memory_safe_malloc(r);
 }
 
-void mtev_memory_ck_free(void *p, size_t b, bool r) {
+
+static void
+mtev_memory_ck_free_func(void *p, size_t b, bool r,
+                         void (*f)(ck_epoch_entry_t *)) {
   struct safe_epoch *e = (p - sizeof(struct safe_epoch));
 
   if(p == NULL) return;
@@ -122,15 +137,18 @@ void mtev_memory_ck_free(void *p, size_t b, bool r) {
 
   if (r == true) {
     /* Destruction requires safe memory reclamation. */
-    ck_epoch_call(&epoch_ht, epoch_rec, &e->epoch_entry, mtev_memory_real_free);
+    ck_epoch_call(&epoch_ht, epoch_rec, &e->epoch_entry, f);
   } else {
-    mtev_memory_real_free(&e->epoch_entry);
+    f(&e->epoch_entry);
   }
 
   return;
 }
 
-void mtev_memory_safe_free(void *p) {
-  mtev_memory_ck_free(p, 0, true);
+void mtev_memory_ck_free(void *p, size_t b, bool r) {
+  mtev_memory_ck_free_func(p, b, r, mtev_memory_real_free);
 }
 
+void mtev_memory_safe_free(void *p) {
+  mtev_memory_ck_free_func(p, 0, true, mtev_memory_real_free);
+}

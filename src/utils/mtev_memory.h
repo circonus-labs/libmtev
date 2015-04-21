@@ -40,6 +40,7 @@ API_EXPORT(void) mtev_memory_maintenance(); /* Call to force reclamation */
 API_EXPORT(void) mtev_memory_begin(); /* being a block */
 API_EXPORT(void) mtev_memory_end(); /* end a block */
 API_EXPORT(void *) mtev_memory_safe_malloc(size_t r);
+API_EXPORT(void *) mtev_memory_safe_malloc_cleanup(size_t r, void (*)(void *));
 API_EXPORT(void *) mtev_memory_safe_calloc(size_t nelem, size_t elsize);
 API_EXPORT(char *) mtev_memory_safe_strdup(const char *in);
 API_EXPORT(void) mtev_memory_safe_free(void *p);
