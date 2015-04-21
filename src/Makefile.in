@@ -80,6 +80,7 @@ build-modules:
 	(cd modules && $(MAKE))
 
 HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
+	mtev_cluster.h \
 	mtev_config.h mtev_conf_private.h mtev_console.h mtev_console_telnet.h \
 	mtev_defines.h mtev_events_rest.h \
 	mtev_http.h mtev_listener.h \
@@ -132,7 +133,7 @@ MTEV_UTILS_OBJS=utils/mtev_b32.lo utils/mtev_b64.lo utils/mtev_btrie.lo \
         utils/mtev_cht.lo \
         $(ATOMIC_OBJS)
 
-LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo \
+LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
 	mtev_console.lo mtev_console_state.lo mtev_console_telnet.lo \
 	mtev_console_complete.lo mtev_xml.lo \
 	mtev_conf.lo mtev_http.lo mtev_rest.lo mtev_tokenizer.lo \

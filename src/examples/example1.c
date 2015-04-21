@@ -6,6 +6,7 @@
 #include <mtev_main.h>
 #include <mtev_memory.h>
 #include <mtev_rest.h>
+#include <mtev_cluster.h>
 #include <eventer/eventer.h>
 
 #include <stdio.h>
@@ -50,6 +51,7 @@ child_main() {
   mtev_console_init(APPNAME);
   mtev_http_rest_init();
   mtev_listener_init(APPNAME);
+  mtev_cluster_init();
   mtev_dso_init();
 
   mtev_http_rest_register_auth(
