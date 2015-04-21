@@ -45,7 +45,7 @@ typedef struct {
   union {
     struct sockaddr_in addr4;
     struct sockaddr_in6 addr6;
-  };
+  } addr;
   socklen_t address_len;
   struct timeval last_contact;
 } mtev_cluster_node_t;

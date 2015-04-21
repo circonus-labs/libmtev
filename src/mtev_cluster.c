@@ -145,18 +145,18 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
     uuid_unparse_lower(cluster->nodes[i].id, uuid_str);
     xmlSetProp(node, (xmlChar *)"id", (xmlChar *)uuid_str);
     xmlSetProp(node, (xmlChar *)"cn", (xmlChar *)cluster->nodes[i].cn);
-    if(cluster->nodes[i].addr4.sin_family == AF_INET) {
-      inet_ntop(AF_INET, &cluster->nodes[i].addr4.sin_addr,
+    if(cluster->nodes[i].addr.addr4.sin_family == AF_INET) {
+      inet_ntop(AF_INET, &cluster->nodes[i].addr.addr4.sin_addr,
                 ipstr, sizeof(ipstr));
       xmlSetProp(node, (xmlChar *)"address", (xmlChar *)ipstr);
-      snprintf(port, sizeof(port), "%d", ntohs(cluster->nodes[i].addr4.sin_port));
+      snprintf(port, sizeof(port), "%d", ntohs(cluster->nodes[i].addr.addr4.sin_port));
       xmlSetProp(node, (xmlChar *)"port", (xmlChar *)port);
     }
-    else if(cluster->nodes[i].addr6.sin6_family == AF_INET6) {
-      inet_ntop(AF_INET6, &cluster->nodes[i].addr6.sin6_addr,
+    else if(cluster->nodes[i].addr.addr6.sin6_family == AF_INET6) {
+      inet_ntop(AF_INET6, &cluster->nodes[i].addr.addr6.sin6_addr,
                 ipstr, sizeof(ipstr));
       xmlSetProp(node, (xmlChar *)"address", (xmlChar *)ipstr);
-      snprintf(port, sizeof(port), "%d", ntohs(cluster->nodes[i].addr6.sin6_port));
+      snprintf(port, sizeof(port), "%d", ntohs(cluster->nodes[i].addr.addr6.sin6_port));
       xmlSetProp(node, (xmlChar *)"port", (xmlChar *)port);
     }
     xmlAddChild(parent, node);
@@ -247,17 +247,17 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
           goto bail;
         }
         else {
-          nlist[i].addr6.sin6_family = AF_INET6;
-          nlist[i].addr6.sin6_addr = a.addr6;
-          nlist[i].addr6.sin6_port = htons((unsigned short)port);
-          nlist[i].address_len = sizeof(nlist[i].addr6);
+          nlist[i].addr.addr6.sin6_family = AF_INET6;
+          nlist[i].addr.addr6.sin6_addr = a.addr6;
+          nlist[i].addr.addr6.sin6_port = htons((unsigned short)port);
+          nlist[i].address_len = sizeof(nlist[i].addr.addr6);
         }
       }
       else {
-        nlist[i].addr4.sin_family = AF_INET;
-        nlist[i].addr4.sin_addr = a.addr4;
-        nlist[i].addr4.sin_port = htons((unsigned short)port);
-        nlist[i].address_len = sizeof(nlist[i].addr4);
+        nlist[i].addr.addr4.sin_family = AF_INET;
+        nlist[i].addr.addr4.sin_addr = a.addr4;
+        nlist[i].addr.addr4.sin_port = htons((unsigned short)port);
+        nlist[i].address_len = sizeof(nlist[i].addr.addr4);
       }
     }
   }
@@ -407,18 +407,18 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
     uuid_unparse_lower(n->id, uuid_str);
     xmlSetProp(node, (xmlChar *)"id", (xmlChar *)uuid_str);
     xmlSetProp(node, (xmlChar *)"cn", (xmlChar *)n->cn);
-    if(n->addr4.sin_family == AF_INET) {
-      inet_ntop(AF_INET, &n->addr4.sin_addr,
+    if(n->addr.addr4.sin_family == AF_INET) {
+      inet_ntop(AF_INET, &n->addr.addr4.sin_addr,
                 ipstr, sizeof(ipstr));
       xmlSetProp(node, (xmlChar *)"address", (xmlChar *)ipstr);
-      snprintf(port, sizeof(port), "%d", ntohs(n->addr4.sin_port));
+      snprintf(port, sizeof(port), "%d", ntohs(n->addr.addr4.sin_port));
       xmlSetProp(node, (xmlChar *)"port", (xmlChar *)port);
     }
-    else if(n->addr6.sin6_family == AF_INET6) {
-      inet_ntop(AF_INET6, &n->addr6.sin6_addr,
+    else if(n->addr.addr6.sin6_family == AF_INET6) {
+      inet_ntop(AF_INET6, &n->addr.addr6.sin6_addr,
                 ipstr, sizeof(ipstr));
       xmlSetProp(node, (xmlChar *)"address", (xmlChar *)ipstr);
-      snprintf(port, sizeof(port), "%d", ntohs(n->addr6.sin6_port));
+      snprintf(port, sizeof(port), "%d", ntohs(n->addr.addr6.sin6_port));
       xmlSetProp(node, (xmlChar *)"port", (xmlChar *)port);
     }
     xmlAddChild(cluster, node);
