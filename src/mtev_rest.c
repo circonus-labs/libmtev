@@ -242,23 +242,29 @@ mtev_http_rest_closure_alloc() {
 void
 mtev_http_rest_clean_request(mtev_http_rest_closure_t *restc) {
   int i;
-  if(restc->nparams) {
-    for(i=0;i<restc->nparams;i++) free(restc->params[i]);
-    free(restc->params);
+  if (restc) {
+    if(restc->params && restc->nparams) {
+      for(i=0;i<restc->nparams;i++) free(restc->params[i]);
+      free(restc->params);
+    }
+    if(restc->call_closure_free) restc->call_closure_free(restc->call_closure);
+    restc->call_closure_free = NULL;
+    restc->call_closure = NULL;
+    restc->nparams = 0;
+    restc->params = NULL;
+    restc->fastpath = NULL;
   }
-  if(restc->call_closure_free) restc->call_closure_free(restc->call_closure);
-  restc->call_closure_free = NULL;
-  restc->call_closure = NULL;
-  restc->nparams = 0;
-  restc->params = NULL;
-  restc->fastpath = NULL;
 }
 void
 mtev_http_rest_closure_free(void *v) {
   mtev_http_rest_closure_t *restc = v;
-  free(restc->remote_cn);
-  mtev_http_rest_clean_request(restc);
-  free(restc);
+  if (restc) {
+    if (restc->remote_cn) {
+      free(restc->remote_cn);
+    }
+    mtev_http_rest_clean_request(restc);
+    free(restc);
+  }
 }
 
 int
@@ -377,8 +383,10 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
 static void
 rest_xml_payload_free(void *f) {
   struct rest_xml_payload *xmlin = f;
-  if(xmlin->buffer) free(xmlin->buffer);
-  if(xmlin->indoc) xmlFreeDoc(xmlin->indoc);
+  if (xmlin) {
+    if(xmlin->buffer) free(xmlin->buffer);
+    if(xmlin->indoc) xmlFreeDoc(xmlin->indoc);
+  }
 }
 
 xmlDocPtr
@@ -428,7 +436,9 @@ rest_get_xml_upload(mtev_http_rest_closure_t *restc,
 
 static void
 rest_raw_payload_free(void *f) {
-  free(f);
+  if (f) {
+    free(f);
+  }
 }
 
 void *
