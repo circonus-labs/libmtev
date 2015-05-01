@@ -65,18 +65,23 @@ struct mtev_json_tokener* mtev_json_tokener_new(void)
 void mtev_json_tokener_free(struct mtev_json_tokener *tok)
 {
   mtev_json_tokener_reset(tok);
-  if(tok) jl_printbuf_free(tok->pb);
-  free(tok);
+  if (tok) {
+    if(tok->pb) jl_printbuf_free(tok->pb);
+    free(tok);
+  }
 }
 
 static void mtev_json_tokener_reset_level(struct mtev_json_tokener *tok, int depth)
 {
-  tok->stack[depth].state = mtev_json_tokener_state_eatws;
-  tok->stack[depth].saved_state = mtev_json_tokener_state_start;
-  mtev_json_object_put(tok->stack[depth].current);
-  tok->stack[depth].current = NULL;
-  free(tok->stack[depth].obj_field_name);
-  tok->stack[depth].obj_field_name = NULL;
+  if (tok) {
+    tok->stack[depth].state = mtev_json_tokener_state_eatws;
+    tok->stack[depth].saved_state = mtev_json_tokener_state_start;
+    mtev_json_object_put(tok->stack[depth].current);
+    tok->stack[depth].current = NULL;
+    if (tok->stack[depth].obj_field_name) 
+      free(tok->stack[depth].obj_field_name);
+    tok->stack[depth].obj_field_name = NULL;
+  }
 }
 
 void mtev_json_tokener_reset(struct mtev_json_tokener *tok)
