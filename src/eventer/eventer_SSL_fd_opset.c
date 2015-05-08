@@ -1092,17 +1092,20 @@ void eventer_ssl_init() {
   SSL_library_init();
   OpenSSL_add_all_ciphers();
 
-  e = eventer_alloc();
-  e->mask = EVENTER_ASYNCH;
-  e->callback = generate_dh_params;
-  e->closure = (void *)512;
-  eventer_add_asynch(NULL, e);
-
-  e = eventer_alloc();
-  e->mask = EVENTER_ASYNCH;
-  e->callback = generate_dh_params;
-  e->closure = (void *)1024;
-  eventer_add_asynch(NULL, e);
+  if (!dh512_file || strcmp(dh512_file, "")) {
+    e = eventer_alloc();
+    e->mask = EVENTER_ASYNCH;
+    e->callback = generate_dh_params;
+    e->closure = (void *)512;
+    eventer_add_asynch(NULL, e);
+  }
+  if (!dh1024_file || strcmp(dh1024_file, "")) {
+    e = eventer_alloc();
+    e->mask = EVENTER_ASYNCH;
+    e->callback = generate_dh_params;
+    e->closure = (void *)1024;
+    eventer_add_asynch(NULL, e);
+  }
   return;
 }
 
