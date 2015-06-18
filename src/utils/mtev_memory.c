@@ -52,9 +52,27 @@ void mtev_memory_init() {
   ck_epoch_init(&epoch_ht);
   mtev_memory_init_thread();
 }
+
+typedef bool (*e_sweep_t)(ck_epoch_t *, ck_epoch_record_t *);
+static e_sweep_t do_cleanup = NULL;
+
+static bool ck_epoch_barrier_true(ck_epoch_t *e, ck_epoch_record_t *r) {
+  ck_epoch_barrier(e,r);
+  return true;
+}
+mtev_boolean mtev_memory_barriers(mtev_boolean *b) {
+  mtev_boolean old = (do_cleanup == ck_epoch_barrier_true);
+  if(b) {
+    if(*b) do_cleanup = ck_epoch_barrier_true;
+    else do_cleanup = ck_epoch_poll;
+  }
+  return old;
+}
+
 void mtev_memory_maintenance() {
   ck_epoch_record_t epoch_temporary = *epoch_rec;
-  if(ck_epoch_poll(&epoch_ht, epoch_rec)) {
+  if(do_cleanup == NULL) do_cleanup = ck_epoch_poll;
+  if(do_cleanup(&epoch_ht, epoch_rec)) {
     if(epoch_temporary.n_pending != epoch_rec->n_pending ||
        epoch_temporary.n_peak != epoch_rec->n_peak ||
        epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
