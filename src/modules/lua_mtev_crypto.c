@@ -118,9 +118,9 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
     EVP_PKEY *pkey;
     pkey = X509_get_pubkey(cert);
     if (pkey == NULL) return 0;
-    else if (pkey->type == EVP_PKEY_RSA)
+    else if (pkey->type == EVP_PKEY_RSA && pkey->pkey.rsa)
       lua_pushinteger(L, BN_num_bits(pkey->pkey.rsa->n));
-    else if (pkey->type == EVP_PKEY_DSA)
+    else if (pkey->type == EVP_PKEY_DSA && pkey->pkey.dsa)
       lua_pushinteger(L, BN_num_bits(pkey->pkey.dsa->p));
     else lua_pushnil(L);
     EVP_PKEY_free(pkey);
