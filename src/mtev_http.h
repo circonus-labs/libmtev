@@ -185,6 +185,8 @@ API_EXPORT(mtev_boolean)
 API_EXPORT(mtev_boolean)
   mtev_http_response_flush_asynch(mtev_http_session_ctx *, mtev_boolean);
 API_EXPORT(mtev_boolean) mtev_http_response_end(mtev_http_session_ctx *);
+API_EXPORT(size_t)
+  mtev_http_response_buffered(mtev_http_session_ctx *);
 
 #define mtev_http_response_server_error(ctx, type) \
   mtev_http_response_standard(ctx, 500, "ERROR", type)
