@@ -157,9 +157,6 @@ mtev_cht_calculate_ring(mtev_cht_t *cht) {
   assert(s->pos <= max);
   cht->nodes[s->node_idx].owned +=
     ((double)(max - s->pos) + 1.0 + (double)(e->pos))/((double)max + 1.0);
-if(cht->collisions) {
-printf("COLLISIONS: %d\n", cht->collisions);
-}
 }
 
 mtev_cht_t *
