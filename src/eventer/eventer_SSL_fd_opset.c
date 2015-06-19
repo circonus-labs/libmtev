@@ -290,6 +290,7 @@ eventer_ssl_get_san_values(eventer_ssl_ctx_t *ctx,
     int i;
     int numalts = sk_GENERAL_NAME_num(altnames);
     char cn[4096];
+    mtev_boolean written = mtev_false;
 
     memset(cn, 0, 4096);
     for (i = 0; i < numalts; i++) {
@@ -298,19 +299,25 @@ eventer_ssl_get_san_values(eventer_ssl_ctx_t *ctx,
         continue;
       }
       ASN1_STRING *data = check->d.dNSName;
-      if ((data->length + pos) > (int)sizeof(cn) - 1) {
-        continue;
+      if (written) {
+        /* Leave space for comma, space, data, and null byte */
+        if (data->length + pos > (int)sizeof(cn) - 3) {
+          continue;
+        }
+        cn[pos] = ',';
+        cn[pos+1] = ' ';
+        pos+=2;
+      }
+      else {
+        /* Leave space for data and null byte */
+        if (data->length + pos > (int)sizeof(cn) - 1) {
+          continue;
+        }
+        written = mtev_true;
       }
       memcpy(cn+pos, data->data, data->length);
-      cn[data->length+pos] = ',';
-      cn[data->length+pos+1] = ' ';
-      cn[data->length+pos+2] = '\0';
+      cn[data->length+pos] = '\0';
       pos = strlen(cn);
-    }
-    if (pos > 0) {
-      cn[pos-1]=0;
-      cn[pos-2]=0;
-      pos--;
     }
     if (pos > 0) {
       if (ctx->san_list != NULL) {
