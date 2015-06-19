@@ -124,6 +124,8 @@ struct mtev_http_response {
   mtev_boolean complete;       /* complete, drained and disposable */
   size_t bytes_written;        /* tracks total bytes written */
   z_stream *gzip;
+  size_t output_chain_bytes;
+  size_t output_raw_chain_bytes;
 };
 
 struct mtev_http_session_ctx {
@@ -568,9 +570,6 @@ _http_perform_write(mtev_http_session_ctx *ctx, int *mask) {
     pthread_mutex_unlock(&ctx->write_lock);
     return 0;
   }
-#if 0
-  if(ctx->res.output_started == mtev_false) return EVENTER_EXCEPTION;
-#endif
   if(!b) {
     if(ctx->res.closed) ctx->res.complete = mtev_true;
     *mask = EVENTER_EXCEPTION;
@@ -584,6 +583,7 @@ _http_perform_write(mtev_http_session_ctx *ctx, int *mask) {
       ctx->res.output_raw_last = NULL;
     assert((ctx->res.output_raw_last == NULL && ctx->res.output_raw == NULL) ||
            (ctx->res.output_raw_last != NULL && ctx->res.output_raw != NULL));
+    ctx->res.output_raw_chain_bytes -= b->size;
     FREE_BCHAIN(b);
     b = *head;
     if(b) b->prev = NULL;
@@ -897,6 +897,7 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
       assert(ctx->res.leader == NULL);
       expect = "HTTP/1.1 100 Continue\r\n\r\n";
       ctx->res.leader = bchain_from_data(expect, strlen(expect));
+      ctx->res.output_raw_chain_bytes += ctx->res.leader->size;
       _http_perform_write(ctx, &mask);
       ctx->req.complete = mtev_true;
       if(ctx->res.leader != NULL) return mask;
@@ -1337,6 +1338,7 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
   assert(ctx->res.output != NULL);
   assert(ctx->res.output_last != NULL);
   o = ctx->res.output_last;
+  ctx->res.output_chain_bytes += l;
   while(l > 0) {
     if(o->allocd == o->start + o->size) {
       /* Filled up, need another */
@@ -1374,6 +1376,7 @@ mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
     b->prev = o;
     ctx->res.output_last = b;
   }
+  ctx->res.output_chain_bytes += b->size;
   return mtev_true;
 }
 mtev_boolean
@@ -1442,6 +1445,7 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
     CTX_LEADER_APPEND("\r\n", 2);
   }
   CTX_LEADER_APPEND("\r\n", 2);
+  ctx->res.output_raw_chain_bytes += b->size;
   return len;
 }
 static int memgzip2(mtev_http_response *res, Bytef *dest, uLongf *destLen,
@@ -1637,6 +1641,7 @@ raw_finalize_encoding(mtev_http_response *res) {
         out->prev = r;
       }
       res->output_raw_last = r = out;
+      res->output_raw_chain_bytes += out->size;
     }
 
     deflateEnd(res->gzip);
@@ -1670,7 +1675,12 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
     if(!n) {
       /* Bad, response stops here! */
       mtevL(mtev_error, "mtev_http_process_output_bchain: NULL\n");
-      while(o) { tofree = o; o = o->next; free(tofree); }
+      while(o) {
+        tofree = o;
+        o = o->next;
+        ctx->res.output_chain_bytes -= tofree->size;
+        free(tofree);
+      }
       final = mtev_true;
       break;
     }
@@ -1682,10 +1692,14 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
     else {
       r = ctx->res.output_raw = ctx->res.output_raw_last = n;
     }
-    tofree = o; o = o->next; FREE_BCHAIN(tofree); /* advance and free */
+    ctx->res.output_raw_chain_bytes += n->size;
+    tofree = o; o = o->next;
+    ctx->res.output_chain_bytes -= tofree->size;
+    FREE_BCHAIN(tofree); /* advance and free */
   }
   ctx->res.output = NULL;
   ctx->res.output_last = NULL;
+  ctx->res.output_chain_bytes = 0;
   if(final) {
     struct bchain *n;
     ctx->res.closed = mtev_true;
@@ -1707,6 +1721,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
     else {
       ctx->res.output_raw = ctx->res.output_raw_last = n;
     }
+    if(n) ctx->res.output_raw_chain_bytes += n->size;
   }
 
   rv = _http_perform_write(ctx, &mask);
@@ -1721,6 +1736,10 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
   return ctx->conn.e ? mtev_true : mtev_false;
 }
 
+size_t
+mtev_http_response_buffered(mtev_http_session_ctx *ctx) {
+  return ctx->res.output_raw_chain_bytes + ctx->res.output_chain_bytes;
+}
 mtev_boolean
 mtev_http_response_flush(mtev_http_session_ctx *ctx,
                          mtev_boolean final) {
