@@ -1445,7 +1445,7 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
     CTX_LEADER_APPEND("\r\n", 2);
   }
   CTX_LEADER_APPEND("\r\n", 2);
-  ctx->res.output_raw_chain_bytes += len;
+  ctx->res.output_raw_chain_bytes += b->size;
   return len;
 }
 static int memgzip2(mtev_http_response *res, Bytef *dest, uLongf *destLen,
