@@ -648,7 +648,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
               &REQ_PAT[inset],
               REQ_PATSIZE - inset) == 0) goto match;
   }
-  start = MAX((int)(req->current_offset) - REQ_PATSIZE, (int)(req->current_input->start));
+  start = MAX((ssize_t)(req->current_offset) - REQ_PATSIZE, (ssize_t)(req->current_input->start));
   mstr = strnstrn(REQ_PAT, REQ_PATSIZE,
                   req->current_input->buff + start,
                   req->current_input->size -
