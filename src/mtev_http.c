@@ -186,14 +186,33 @@ static void inplace_urldecode(char *c) {
 
 struct bchain *bchain_alloc(size_t size, int line) {
   struct bchain *n;
-  n = malloc(size + offsetof(struct bchain, _buff));
-  /*mtevL(mtev_error, "bchain_alloc(%p) : %d\n", n, line);*/
-  if(!n) return NULL;
-  n->type = BCHAIN_INLINE;
+  if (size >= 16384) {
+    n = malloc(offsetof(struct bchain, _buff));
+    if(!n) {
+      mtevL(mtev_error, "failed to alloc bchain in bchain_alloc (size %d)\n", size);
+      return NULL;
+    }
+    n->type = BCHAIN_MMAP;
+    n->buff = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    if (n->buff == MAP_FAILED) {
+      mtevL(mtev_error, "failed to mmap bchain buffer in bchain_alloc (size %d)\n", size);
+      free(n);
+      return NULL;
+    }
+  }
+  else {
+    n = malloc(size + offsetof(struct bchain, _buff));
+    if(!n) {
+      mtevL(mtev_error, "failed to alloc bchain in bchain_alloc (size %d)\n", size);
+      return NULL;
+    }
+    n->type = BCHAIN_INLINE;
+    n->buff = n->_buff;
+  }
   n->prev = n->next = NULL;
   n->start = n->size = 0;
   n->allocd = size;
-  n->buff = n->_buff;
+
   return n;
 }
 struct bchain *bchain_mmap(int fd, size_t len, int flags, off_t offset) {
