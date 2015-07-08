@@ -41,6 +41,7 @@
 #include "mtev_atomic.h"
 #include "mtev_hooks.h"
 #include "mtev_listener.h"
+#include "mtev_zipkin.h"
 
 typedef enum {
   MTEV_HTTP_OTHER, MTEV_HTTP_GET, MTEV_HTTP_HEAD, MTEV_HTTP_POST
@@ -207,6 +208,9 @@ API_EXPORT(size_t)
 
 API_EXPORT(void)
   mtev_http_response_xml(mtev_http_session_ctx *, xmlDocPtr);
+
+API_EXPORT(Zipkin_Span *)
+  mtev_http_zipkip_span(mtev_http_session_ctx *);
 
 API_EXPORT(void)
   mtev_http_init();

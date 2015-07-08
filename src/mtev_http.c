@@ -1803,6 +1803,11 @@ mtev_http_response_xml(mtev_http_session_ctx *ctx, xmlDocPtr doc) {
   xmlSaveFormatFileTo(out, doc, "utf8", 1);
 }
 
+Zipkin_Span *
+mtev_http_zipkip_span(mtev_http_session_ctx *ctx) {
+  return ctx->zipkin_span;
+}
+
 void
 mtev_http_init() {
   struct in_addr remote = { .s_addr = 0xffffffff };
