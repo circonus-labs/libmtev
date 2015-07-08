@@ -189,13 +189,13 @@ struct bchain *bchain_alloc(size_t size, int line) {
   if (size >= 16384) {
     n = malloc(offsetof(struct bchain, _buff));
     if(!n) {
-      mtevL(mtev_error, "failed to alloc bchain in bchain_alloc (size %d)\n", size);
+      mtevL(mtev_error, "failed to alloc bchain in bchain_alloc (size %zd)\n", size);
       return NULL;
     }
     n->type = BCHAIN_MMAP;
-    n->buff = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    n->buff = mmap(NULL, size, PROT_WRITE|PROT_READ, MAP_PRIVATE|MAP_ANON, -1, 0);
     if (n->buff == MAP_FAILED) {
-      mtevL(mtev_error, "failed to mmap bchain buffer in bchain_alloc (size %d)\n", size);
+      mtevL(mtev_error, "failed to mmap bchain buffer in bchain_alloc (size %zd)\n", size);
       free(n);
       return NULL;
     }
@@ -203,7 +203,7 @@ struct bchain *bchain_alloc(size_t size, int line) {
   else {
     n = malloc(size + offsetof(struct bchain, _buff));
     if(!n) {
-      mtevL(mtev_error, "failed to alloc bchain in bchain_alloc (size %d)\n", size);
+      mtevL(mtev_error, "failed to alloc bchain in bchain_alloc (size %zd)\n", size);
       return NULL;
     }
     n->type = BCHAIN_INLINE;
