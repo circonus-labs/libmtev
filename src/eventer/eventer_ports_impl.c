@@ -358,6 +358,12 @@ static int eventer_ports_impl_loop() {
         fd = (int)pe->portev_object;
         assert((vpsized_int)pe->portev_user == fd);
         e = master_fds[fd].e;
+
+        /* It's possible that someone removed the event and freed it
+         * before we got here.... bail out if we're null.
+         */
+        if (!e) continue;
+
         mask = 0;
         if(pe->portev_events & (POLLIN | POLLHUP))
           mask |= EVENTER_READ;
@@ -366,9 +372,6 @@ static int eventer_ports_impl_loop() {
         if(pe->portev_events & (POLLERR | POLLHUP | POLLNVAL))
           mask |= EVENTER_EXCEPTION;
 
-        /* It's possible that someone removed the event and freed it
-         * before we got here.
-         */
         eventer_ports_impl_trigger(e, mask);
       }
     }
