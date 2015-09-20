@@ -217,7 +217,7 @@ API_EXPORT(void)
 
 API_EXPORT(Zipkin_Annotation *)
   mtev_zipkin_span_annotate(Zipkin_Span *, int64_t *,
-                            const char *, bool, int32_t *);
+                            const char *, bool);
 
 /*! \fn void mtev_zipkin_annotation_set_endpoint(Zipkin_Annotation *annotation, const char *service_name, bool service_name_copy, struct in_addr host, unsigned short port)
     \brief Sets the endpoint for an annotation.
