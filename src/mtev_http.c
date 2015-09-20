@@ -505,7 +505,7 @@ begin_span(mtev_http_session_ctx *ctx) {
     mtev_zipkin_span_new(trace_id, parent_span_id, span_id,
                          req->uri_str, false, NULL, sampled);
   set_endpoint(ctx);
-  mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_RECV, false, NULL);
+  mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_RECV, false);
   mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_STRING,
                              zipkin_http_method, false,
                              req->method_str, strlen(req->method_str), false);
@@ -518,7 +518,6 @@ begin_span(mtev_http_session_ctx *ctx) {
 }
 static void
 end_span(mtev_http_session_ctx *ctx) {
-  uint32_t _duration, *duration = NULL;
   mtev_http_request *req = &ctx->req;
   mtev_http_response *res = &ctx->res;
   mtev_hrtime_t now;
@@ -542,7 +541,7 @@ end_span(mtev_http_session_ctx *ctx) {
                              zipkin_http_bytes_out, false,
                              &nbytesout, 8, false);
   
-  mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, zipkin_ss_done, false, NULL);
+  mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, zipkin_ss_done, false);
   mtev_zipkin_span_publish(ctx->zipkin_span);
   ctx->zipkin_span = NULL;
 }
@@ -1679,7 +1678,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
   if(ctx->res.output_started == mtev_false) {
     _http_construct_leader(ctx);
     ctx->res.output_started = mtev_true;
-    mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_SEND, false, NULL);
+    mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_SEND, false);
   }
   /* encode output to output_raw */
   r = ctx->res.output_raw_last;
