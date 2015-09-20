@@ -204,12 +204,6 @@ ze_Zipkin_Annotation(byte *buffer, size_t len, Zipkin_Annotation *v) {
       ADV_SAFE(ze_field_end(buffer,len));
     }
 
-    if(v->duration) {
-      ADV_SAFE(ze_field_begin(buffer,len,"duration",ZE_I32,4));
-      ADV_SAFE(ze_i32(buffer,len,*v->duration));
-      ADV_SAFE(ze_field_end(buffer,len));
-    }
-
     ADV_SAFE(ze_field_stop(buffer,len));
   ADV_SAFE(ze_struct_end(buffer,len));
   return sofar;
@@ -520,7 +514,7 @@ mtev_zipkin_span_default_endpoint(Zipkin_Span *span, const char *service_name,
 
 Zipkin_Annotation *
 mtev_zipkin_span_annotate(Zipkin_Span *span, int64_t *timestamp,
-                          const char *value, bool value_copy, int32_t *duration) {
+                          const char *value, bool value_copy) {
   Zipkin_List_Zipkin_Annotation *node;
   Zipkin_Annotation *a;
   int64_t now;
@@ -541,11 +535,6 @@ mtev_zipkin_span_annotate(Zipkin_Span *span, int64_t *timestamp,
   a->value.needs_free = value_copy;
   a->value.value = value_copy ? strdup(value) : (char *)value;
   a->host = &span->_default_host;
-
-  if(duration) {
-    a->_duration = *duration;
-    a->duration = &a->_duration;
-  }
 
   node->next = span->annotations;
   span->annotations = node;

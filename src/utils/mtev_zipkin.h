@@ -96,8 +96,6 @@ typedef struct {
   Zipkin_String value;
   Zipkin_Endpoint *host;
   Zipkin_Endpoint _host;
-  int32_t *duration;
-  int32_t _duration;
 } Zipkin_Annotation;
 
 typedef struct {
@@ -206,13 +204,12 @@ API_EXPORT(void)
   mtev_zipkin_span_default_endpoint(Zipkin_Span *, const char *, bool,
                                     struct in_addr, unsigned short);
 
-/*! \fn Zipkin_Annotation * mtev_zipkin_span_annotate(Zipkin_Span *span, int64_t *timestamp, const char *value, bool value_copy, int32_t *duration)
+/*! \fn Zipkin_Annotation * mtev_zipkin_span_annotate(Zipkin_Span *span, int64_t *timestamp, const char *value, bool value_copy)
     \brief Annotate a span.
     \param span The span to annotate.
     \param timestamp A pointer the number of microseconds since epoch. NULL means now.
     \param value The annotation value itself.
     \param value_copy Whether value should be allocated (copied) within the span.
-    \param duration A pointer to the number of microseconds elapsed. NULL allowed (recommended).
     \return A new annotation.
 
     mtev_zipkin_span_annotate make an annotation on the provided span.  The returned resource is managed by the span and will be released with it.
