@@ -347,6 +347,7 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
       peer = SSL_get_peer_certificate(ctx->ssl);
       if(peer) {
         ctx->cert_error = strdup(X509_verify_cert_error_string(err));
+        X509_free(peer);
         return 0;
       }
     }
