@@ -388,10 +388,14 @@ static void dns_cb(struct dns_ctx *ctx, void *result, void *data) {
   dns_lookup_ctx_t *dlc = data;
   if(dlc->results) free(dlc->results);
   dlc->results = NULL;
-  if(r >= 0) {
+  if (r == 0) {
     dlc->results_len = r;
-    dlc->results = malloc( r>0 ? r : r+1 );
-    memcpy(dlc->results, result, dlc->results_len);
+    dlc->results = malloc(1);
+    dlc->results[0] = 0;
+  }
+  else if (r > 0) {
+    dlc->results_len = r;
+    dlc->results = result;
   }
   if(pthread_equal(dlc->ci->bound_thread, pthread_self()))
     return dns_resume(dlc);
