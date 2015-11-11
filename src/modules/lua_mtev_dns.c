@@ -390,8 +390,6 @@ static void dns_cb(struct dns_ctx *ctx, void *result, void *data) {
   dlc->results = NULL;
   if (r == 0) {
     dlc->results_len = r;
-    dlc->results = malloc(1);
-    dlc->results[0] = 0;
   }
   else if (r > 0) {
     dlc->results_len = r;
