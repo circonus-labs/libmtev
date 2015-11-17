@@ -53,11 +53,11 @@ void mtev_memory_init() {
   mtev_memory_init_thread();
 }
 
-typedef bool (*e_sweep_t)(ck_epoch_t *, ck_epoch_record_t *);
+typedef bool (*e_sweep_t)(ck_epoch_record_t *);
 static e_sweep_t do_cleanup = NULL;
 
-static bool ck_epoch_barrier_true(ck_epoch_t *e, ck_epoch_record_t *r) {
-  ck_epoch_barrier(e,r);
+static bool ck_epoch_barrier_true(ck_epoch_record_t *r) {
+  ck_epoch_barrier(r);
   return true;
 }
 mtev_boolean mtev_memory_barriers(mtev_boolean *b) {
@@ -72,7 +72,7 @@ mtev_boolean mtev_memory_barriers(mtev_boolean *b) {
 void mtev_memory_maintenance() {
   ck_epoch_record_t epoch_temporary = *epoch_rec;
   if(do_cleanup == NULL) do_cleanup = ck_epoch_poll;
-  if(do_cleanup(&epoch_ht, epoch_rec)) {
+  if(do_cleanup(epoch_rec)) {
     if(epoch_temporary.n_pending != epoch_rec->n_pending ||
        epoch_temporary.n_peak != epoch_rec->n_peak ||
        epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
@@ -87,10 +87,10 @@ void mtev_memory_maintenance() {
   }
 }
 void mtev_memory_begin() {
-  ck_epoch_begin(&epoch_ht, epoch_rec);
+  ck_epoch_begin(epoch_rec, NULL);
 }
 void mtev_memory_end() {
-  ck_epoch_end(&epoch_ht, epoch_rec);
+  ck_epoch_end(epoch_rec, NULL);
 }
 
 struct safe_epoch {
@@ -155,7 +155,7 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
 
   if (r == true) {
     /* Destruction requires safe memory reclamation. */
-    ck_epoch_call(&epoch_ht, epoch_rec, &e->epoch_entry, f);
+    ck_epoch_call(epoch_rec, &e->epoch_entry, f);
   } else {
     f(&e->epoch_entry);
   }
