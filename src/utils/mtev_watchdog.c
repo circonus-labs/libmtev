@@ -456,10 +456,10 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
       sigemptyset(&sa.sa_mask);
 
       for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
-	      sigaddset(&sa.sa_mask, signals[i]);
+        sigaddset(&sa.sa_mask, signals[i]);
 
       for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
-              sigaction(signals[i], &sa, NULL);
+        sigaction(signals[i], &sa, NULL);
 
       /* run the program */
       exit(func());
