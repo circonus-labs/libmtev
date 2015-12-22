@@ -392,7 +392,6 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
   int offset = 0;
   static const int signals[] = {
     SIGSEGV,
-    SIGFPE,
     SIGABRT,
     SIGBUS,
     SIGILL,
