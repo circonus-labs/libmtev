@@ -390,6 +390,15 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
   int child_pid, crashing_pid = -1;
   time_t time_data[retries];
   int offset = 0;
+  static const int signals[] = {
+    SIGSEGV,
+    SIGFPE,
+    SIGABRT,
+    SIGBUS,
+    SIGILL,
+    SIGFPE
+  };
+  size_t i;
 
   char tmpfilename[MAXPATHLEN];
   snprintf(tmpfilename, sizeof(tmpfilename), "/var/tmp/mtev_%d_XXXXXX", (int)getpid());
@@ -445,10 +454,13 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
       sa.sa_flags = SA_RESETHAND|SA_SIGINFO;
       if(altstack_size) sa.sa_flags |= SA_ONSTACK;
       sigemptyset(&sa.sa_mask);
-      sigaddset(&sa.sa_mask, SIGSEGV);
-      sigaddset(&sa.sa_mask, SIGABRT);
-      sigaction(SIGSEGV, &sa, NULL);
-      sigaction(SIGABRT, &sa, NULL);
+
+      for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
+	      sigaddset(&sa.sa_mask, signals[i]);
+
+      for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
+              sigaction(signals[i], &sa, NULL);
+
       /* run the program */
       exit(func());
     }
