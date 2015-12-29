@@ -67,7 +67,10 @@ rest_lua_ctx_free(void *cl) {
     mtev_lua_resume_clean_events(ri);
     if(ri->context_data) {
       mtev_lua_resume_rest_info_t *ctx = ri->context_data;
-      if(ctx->err) free(ctx->err);
+      if (ctx) {
+        if(ctx->err) free(ctx->err);
+        free(ctx);
+      }
     }
     free(ri);
   }
