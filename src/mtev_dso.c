@@ -315,6 +315,8 @@ void mtev_dso_init() {
   for(i=0; i<cnt; i++) {
     char loader_name[256];
     mtev_dso_loader_t *loader;
+    mtev_conf_section_t *include_sections = NULL;
+    int section_cnt;
 
     if(!mtev_conf_get_stringbuf(sections[i], "ancestor-or-self::node()/@name",
                                 loader_name, sizeof(loader_name))) {
@@ -332,7 +334,13 @@ void mtev_dso_init() {
     if(loader->config) {
       int rv;
       mtev_hash_table *config;
-      config = mtev_conf_get_hash(sections[i], "config");
+      include_sections = mtev_conf_get_sections(sections[i], "include", &section_cnt);
+      if ((include_sections) && (section_cnt == 1)) {
+        config = mtev_conf_get_hash(*include_sections, "config");
+      }
+      else {
+        config = mtev_conf_get_hash(sections[i], "config");
+      }
       rv = loader->config(loader, config);
       if(rv == 0) {
         mtev_hash_destroy(config, free, free);
