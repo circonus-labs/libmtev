@@ -37,18 +37,32 @@
 #define _MTEV_HASH_H
 
 #include "mtev_config.h"
-#include <ck_ht.h>
+#include <ck_hs.h>
 
 typedef void (*NoitHashFreeFunc)(void *);
 
 typedef struct {
-  ck_ht_t ht CK_CC_CACHELINE;
+  ck_hs_t hs CK_CC_CACHELINE;
 } mtev_hash_table;
 
-typedef ck_ht_iterator_t mtev_hash_iter;
+typedef struct ck_key {
+  u_int32_t len;
+  char label[1];
+} ck_key_t;
 
-#define MTEV_HASH_EMPTY { { NULL, NULL, 0, 0, NULL} }
-#define MTEV_HASH_ITER_ZERO CK_HT_ITERATOR_INITIALIZER
+typedef struct ck_hash_attr {
+  void *data;
+  void *key_ptr;
+  ck_key_t key;
+} ck_hash_attr_t;
+
+CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
+                index_attribute_container)
+
+typedef ck_hs_iterator_t mtev_hash_iter;
+
+#define MTEV_HASH_EMPTY { { NULL, NULL, 0, 0, NULL, NULL} }
+#define MTEV_HASH_ITER_ZERO CK_HS_ITERATOR_INITIALIZER
 
 void mtev_hash_init(mtev_hash_table *h);
 void mtev_hash_init_size(mtev_hash_table *h, int size);
