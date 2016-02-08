@@ -377,7 +377,7 @@ int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
   key = (ck_key_t *)cursor;
   data_struct = index_attribute_container(key);
   if (data_struct) {
-    *k = data_struct->key.label;
+    *k = data_struct->key_ptr;
     *klen = data_struct->key.len - sizeof(u_int32_t);
     *data = data_struct->data;
   }
