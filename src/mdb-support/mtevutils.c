@@ -351,7 +351,12 @@ hs_compare(const void *previous, const void *compare)
 {
   const ck_key_t *prev_key = previous;
   const ck_key_t *cur_key = compare;
-  return strcmp(prev_key->label, cur_key->label) == 0;
+
+  if (prev_key->len == cur_key->len) {
+    return memcmp(prev_key, cur_key, prev_key->len) == 0;
+  }
+  /* We know they're not equal if they have different lengths */
+  return false;
 }
 
 int mtev_hash_retrieve2(struct ck_hs_map *hs, ck_key_t *key, void **data) {
