@@ -340,7 +340,6 @@ void mtev_hash_delete_all(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHash
   ck_hash_attr_t *data_struct;
 
   if(!h) return;
-  if(!keyfree && !datafree) return;
   if(h->hs.hf == NULL) mtev_hash_init(h);
   while(ck_hs_next(&h->hs, &iterator, &entry)) {
     data_struct = index_attribute_container((ck_key_t*)entry);
