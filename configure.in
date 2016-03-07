@@ -60,7 +60,7 @@ else
 fi
 SHLDFLAGS="$LDFLAGS"
 
-CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L "'-I$(top_srcdir)/src'
+CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_XOPEN_SOURCE=600 -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
 DOTSO=.so
 LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(LIBMTEV_VERSION)'
@@ -92,7 +92,7 @@ case $host in
 	DTRACE_ENABLED=1
 	DTRACEOBJ=dtrace_stub.o
 	CFLAGS="$CFLAGS"
-	CPPFLAGS="$CPPFLAGS -D_XPG6 -D__EXTENSIONS__"
+	CPPFLAGS="$CPPFLAGS -D__EXTENSIONS__"
 	MDB_MODS="mdb-support/libmtev.so"
 	if test "x$GCC" != "xyes" ; then
 	AC_MSG_CHECKING([32 or 64 bit Solaris assembly])
