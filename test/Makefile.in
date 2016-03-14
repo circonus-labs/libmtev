@@ -28,13 +28,13 @@ top_srcdir=@top_srcdir@
 all:	check
 
 busted:
-	@busted >/dev/null 2>/dev/null || \
+	@busted --version >/dev/null 2>/dev/null || \
 		(echo "Please instead busted: luarocks install busted" && false)
 
 check:	busted
-	DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua .
+	_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua .
 
 tap:	busted
-	DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua -o tap .
+	_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua -o tap .
 
 clean:
