@@ -1378,6 +1378,7 @@ int
 mtev_conf_set_string(mtev_conf_section_t section,
                      const char *path, const char *value) {
   xmlNodePtr current_node = (xmlNodePtr)section;
+  if(!current_node) return 0;
   if(strchr(path, '/')) return 0;
   if(path[0] == '@') {
     xmlSetProp(current_node, (xmlChar *)path+1, (xmlChar *)value);
