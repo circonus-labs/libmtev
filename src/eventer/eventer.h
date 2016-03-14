@@ -141,13 +141,9 @@ typedef struct _eventer_impl {
   }                 *master_fds;
 } *eventer_impl_t;
 
-/* This is the "chosen one" */
-#ifndef _EVENTER_C
-extern
-#endif
-eventer_impl_t __eventer;
-mtev_log_stream_t eventer_err;
-mtev_log_stream_t eventer_deb;
+extern eventer_impl_t __eventer;
+extern mtev_log_stream_t eventer_err;
+extern mtev_log_stream_t eventer_deb;
 
 API_EXPORT(int) eventer_choose(const char *name);
 API_EXPORT(void) eventer_loop();

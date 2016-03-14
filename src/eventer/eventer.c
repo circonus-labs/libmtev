@@ -31,13 +31,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define _EVENTER_C_
 #include "eventer/eventer.h"
 #include "mtev_hash.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
+
+eventer_impl_t __eventer;
+mtev_log_stream_t eventer_err;
+mtev_log_stream_t eventer_deb;
 
 eventer_t eventer_alloc() {
   eventer_t e;
