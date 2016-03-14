@@ -216,6 +216,7 @@ AC_CHECK_SIZEOF(long int, 4)
 AC_CHECK_SIZEOF(long long int, 8)
 AC_CHECK_SIZEOF(void *, 1)
 
+AC_CHECK_HEADER(pcre.h, [], [AC_MSG_ERROR([*** pcre (headers) required ***])])
 AC_CHECK_HEADER(ck_pr.h, [], [AC_MSG_ERROR([*** libck (headers) required ***])])
 AC_CHECK_LIB(ck, ck_ht_init, , [AC_MSG_ERROR([*** concurrencyckit (libck) is required ***])])
 AC_CHECK_LIB(hwloc, hwloc_topology_init, , [AC_MSG_ERROR([*** libhwloc required ***])])
@@ -238,6 +239,7 @@ if test "x$ENABLE_LUA" != "xno"; then
 		AC_MSG_ERROR([*** liblua52 required ***])
 	fi
 
+	AC_CHECK_HEADER(lua.h, [], [AC_MSG_ERROR([*** lua (headers) required ***])])
 	AC_CHECK_HEADER(udns.h, [], [AC_MSG_ERROR([*** udns.h required ***])])
 	AC_CHECK_LIB(udns, dns_new, [], [AC_MSG_ERROR([*** libudns required ***])])
 fi
