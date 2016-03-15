@@ -53,6 +53,12 @@
     mtev_b32_decode decodes input until an the entire input is consumed or until an invalid base32 character is encountered.
  */
 API_EXPORT(int) mtev_b32_decode(const char *, size_t, unsigned char *, size_t);
+/*! \fn size_t mtev_b32_decode_len(size_t src_len)
+    \brief Calculate how large a buffer must be to contain a decoded base-32-encoded string of a given length.
+    \param src_len The size (in bytes) of the base-32-encoded string that might be decoded.
+    \return The size of the buffer that would be needed to decode the input string.
+ */
+API_EXPORT(size_t) mtev_b32_max_decode_len(size_t);
 /*! \fn int mtev_b32_encode(const unsigned char *src, size_t src_len, char *dest, size_t dest_len)
     \brief Encode raw data as base32 encoded output into the provided buffer.
     \param src The buffer containing the raw data.
@@ -62,5 +68,11 @@ API_EXPORT(int) mtev_b32_decode(const char *, size_t, unsigned char *, size_t);
     \return The size of the encoded output.  Returns zero is out_sz is too small.
  */
 API_EXPORT(int) mtev_b32_encode(const unsigned char *, size_t, char *, size_t);
+/*! \fn size_t mtev_b32_encode_len(size_t src_len)
+    \brief Calculate how large a buffer must be to contain the base-32 encoding for a given number of bytes.
+    \param src_len The size (in bytes) of the raw data buffer that might be encoded.
+    \return The size of the buffer that would be needed to store an encoded version of an input string.
+ */
+API_EXPORT(size_t) mtev_b32_encode_len(size_t);
 
 #endif

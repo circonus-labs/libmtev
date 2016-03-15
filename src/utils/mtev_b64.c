@@ -80,6 +80,11 @@ mtev_b64_decode(const char *src, size_t src_len,
   return dcp - (unsigned char *)dest;
 }
 
+size_t
+mtev_b64_max_decode_len(size_t src_len) {
+  return (src_len / 4) * 3;
+}
+
 int
 mtev_b64_encode(const unsigned char *src, size_t src_len,
                 char *dest, size_t dest_len) {
@@ -113,3 +118,7 @@ mtev_b64_encode(const unsigned char *src, size_t src_len,
   return n;
 }
 
+size_t
+mtev_b64_encode_len(size_t src_len) {
+  return 4 * ((src_len+2)/3);
+}

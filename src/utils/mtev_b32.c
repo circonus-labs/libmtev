@@ -97,13 +97,18 @@ mtev_b32_decode(const char *src, size_t src_len,
   return dcp - (unsigned char *)dest;
 }
 
+size_t
+mtev_b32_max_decode_len(size_t src_len) {
+  return (src_len / 8) * 5;
+}
+
 int
 mtev_b32_encode(const unsigned char *src, size_t src_len,
                 char *dest, size_t dest_len) {
   const unsigned char *bptr = src;
   char *eptr = dest;
   int len = src_len;
-  int i, n = (((src_len + 4) / 5) * 8) + 1;
+  int i, n = ((src_len + 4) / 5) * 8;
 
   if(dest_len < n) return 0;
 
@@ -151,8 +156,11 @@ mtev_b32_encode(const unsigned char *src, size_t src_len,
         }
       }
     }
-    *eptr++ = '=';
   }
   return (eptr - dest);
 }
 
+size_t
+mtev_b32_encode_len(size_t src_len) {
+  return ((src_len + 4) / 5) * 8;
+}
