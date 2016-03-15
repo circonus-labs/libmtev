@@ -216,7 +216,6 @@ AC_CHECK_SIZEOF(long int, 4)
 AC_CHECK_SIZEOF(long long int, 8)
 AC_CHECK_SIZEOF(void *, 1)
 
-AC_CHECK_HEADER(pcre.h, [], [AC_MSG_ERROR([*** pcre (headers) required ***])])
 AC_CHECK_HEADER(ck_pr.h, [], [AC_MSG_ERROR([*** libck (headers) required ***])])
 AC_CHECK_LIB(ck, ck_ht_init, , [AC_MSG_ERROR([*** concurrencyckit (libck) is required ***])])
 AC_CHECK_LIB(hwloc, hwloc_topology_init, , [AC_MSG_ERROR([*** libhwloc required ***])])
@@ -277,6 +276,7 @@ AC_CHECK_LIB(curses, clear, , [AC_MSG_ERROR([curses not found, but required])])
 
 CPPFLAGS="$CPPFLAGS `pcre-config --cflags`"
 LIBS="$LIBS `pcre-config --libs`"
+AC_CHECK_HEADER(pcre.h, [], [AC_MSG_ERROR([*** pcre (headers) required ***])])
 AC_CHECK_LIB(pcre, pcre_compile, ,
 	[
 		AC_MSG_ERROR([libpcre not found, but required])
