@@ -210,8 +210,8 @@ static eventer_t eventer_ports_impl_remove_fd(int fd) {
       master_fds[fd].e = NULL;
       alter_fd(eiq, 0);
     }
+    release_master_fd(fd, lockstate);
   }
-  release_master_fd(fd, lockstate);
   return eiq;
 }
 static eventer_t eventer_ports_impl_find_fd(int fd) {
