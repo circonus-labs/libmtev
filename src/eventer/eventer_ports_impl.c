@@ -200,14 +200,13 @@ static void eventer_ports_impl_update(eventer_t e, int mask) {
 }
 static eventer_t eventer_ports_impl_remove_fd(int fd) {
   eventer_t eiq = NULL;
-  ev_lock_state_t lockstate;
+  ev_lock_state_t lockstate = acquire_master_fd(fd);
   if(master_fds[fd].e) {
-    lockstate = acquire_master_fd(fd);
     eiq = master_fds[fd].e;
     master_fds[fd].e = NULL;
     alter_fd(eiq, 0);
-    release_master_fd(fd, lockstate);
   }
+  release_master_fd(fd, lockstate);
   return eiq;
 }
 static eventer_t eventer_ports_impl_find_fd(int fd) {
