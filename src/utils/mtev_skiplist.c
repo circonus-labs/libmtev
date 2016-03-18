@@ -229,6 +229,9 @@ void *mtev_skiplist_previous(mtev_skiplist *sl, mtev_skiplist_node **iter) {
   if(!(*iter)->prev) *iter = NULL;
   return (*iter)?((*iter)->data):NULL;
 }
+void *mtev_skiplist_data(mtev_skiplist_node *m) {
+  return m->data;
+}
 mtev_skiplist_node *mtev_skiplist_insert(mtev_skiplist *sl,
                                          const void *data) {
   if(!sl->compare) return 0;
