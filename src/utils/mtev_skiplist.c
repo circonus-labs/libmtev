@@ -191,14 +191,19 @@ static int mtev_skiplisti_find_compare(mtev_skiplist *sl,
       m=m->next; /* m->next is the match */
       while(m->down) m=m->down; /* proceed to the bottom-most */
       if(ret) *ret = m;
-      if(prev) *prev = m->prev;
+      /* We have to be careful when setting *prev: the first column is a
+       * place-holder element with NULL data that we don't want to expose
+       * to clients. So check that m->prev isn't the first column before
+       * filling in *prev. */
+      if(prev) *prev = (m->prev && m->prev->prev) ? m->prev : NULL;
       if(next) *next = m->next;
       return count;
     }
     if((m->next == NULL) || (compared<0)) {
       if(m->down == NULL) {
-        /* This is... we're about to bail, figure out our neighbors */
-        if(prev) *prev = (m == sl->bottom) ? NULL : m;
+        /* This is... we're about to bail, figure out our neighbors.
+         * Also, see comment above: need to be careful with *prev. */
+        if(prev) *prev = (m == sl->bottom) ? NULL : (m->prev ? m : NULL);
         if(next) *next = m->next;
       }
       m = m->down;
@@ -218,6 +223,8 @@ void *mtev_skiplist_next(mtev_skiplist *sl, mtev_skiplist_node **iter) {
 void *mtev_skiplist_previous(mtev_skiplist *sl, mtev_skiplist_node **iter) {
   if(!*iter) return NULL;
   *iter = (*iter)->prev;
+  /* do not expose the first, "placeholder" column to users. */
+  if(!(*iter)->prev) *iter = NULL;
   return (*iter)?((*iter)->data):NULL;
 }
 mtev_skiplist_node *mtev_skiplist_insert(mtev_skiplist *sl,
