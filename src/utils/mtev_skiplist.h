@@ -78,6 +78,7 @@ void *mtev_skiplist_find_neighbors(mtev_skiplist *sl, const void *data,
                                    mtev_skiplist_node **next);
 void *mtev_skiplist_next(mtev_skiplist *sl, mtev_skiplist_node **);
 void *mtev_skiplist_previous(mtev_skiplist *sl, mtev_skiplist_node **);
+void *mtev_skiplist_data(mtev_skiplist_node *);
 
 mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
                                                  const void *data,
@@ -88,8 +89,8 @@ int mtev_skiplist_remove_compare(mtev_skiplist *sl, const void *data,
                                  mtev_skiplist_comparator_t comp);
 int mtev_skiplist_remove(mtev_skiplist *sl, const void *data,
                          mtev_freefunc_t myfree);
-int mtev_skiplisti_remove(mtev_skiplist *sl, mtev_skiplist_node *m,
-                          mtev_freefunc_t myfree);
+int mtev_skiplist_remove_node(mtev_skiplist *sl, mtev_skiplist_node *node,
+                              mtev_freefunc_t myfree);
 void mtev_skiplist_destroy(mtev_skiplist *sl, mtev_freefunc_t myfree);
 
 void *mtev_skiplist_pop(mtev_skiplist * a, mtev_freefunc_t myfree);
