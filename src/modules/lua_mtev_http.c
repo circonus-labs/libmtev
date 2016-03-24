@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <assert.h>
+#include <ctype.h>
 #include <lauxlib.h>
 
 #include "mtev_dso.h"

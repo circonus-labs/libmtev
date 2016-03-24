@@ -57,6 +57,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <poll.h>
+#include <ctype.h>
 
 #define MAX_CHANNELS 512
 static const char *my_reverse_prefix = "mtev/";

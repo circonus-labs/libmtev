@@ -1991,7 +1991,7 @@ nl_sha256_hash(lua_State *L) {
   /*Store digest in hex encoded string.*/
   for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
   {
-      sprintf(&result[i*2], "%02x", (unsigned int)digest[i]);
+      sprintf((char *)&result[i*2], "%02x", (unsigned int)digest[i]);
   }
 
   /*Return hex encoded string.*/
