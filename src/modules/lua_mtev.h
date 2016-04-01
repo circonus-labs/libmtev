@@ -41,6 +41,7 @@
 #include <lualib.h>
 
 #include "mtev_conf.h"
+#include "mtev_dso.h"
 #include "mtev_rest.h"
 #include "mtev_log.h"
 
@@ -52,6 +53,7 @@ typedef struct lua_module_closure {
   int (*resume)(mtev_lua_resume_info_t *ci, int nargs);
   pthread_t owner;
   int eventer_id;
+  mtev_dso_generic_t *self;
 } lua_module_closure_t;
 
 struct mtev_lua_resume_info {
