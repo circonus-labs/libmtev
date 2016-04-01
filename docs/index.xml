@@ -16,6 +16,7 @@
   </info>
 
   <xi:include href="preface.xml"/>
+  <xi:include href="config/index.xml"/>
   <xi:include href="development/dev.xml"/>
 
   <index xml:id="the.index"/>

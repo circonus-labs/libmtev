@@ -1,0 +1,3 @@
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="modules/lua_general.xml"/>
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="modules/lua_web.xml"/>
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="modules/zipkin_fq.xml"/>

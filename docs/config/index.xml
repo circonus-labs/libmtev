@@ -8,4 +8,5 @@
       xml:id="configuration">
     <title>Configuration</title>
     <xi:include href="generic.xml"/>
+    <xi:include href="mtev_modules.xml"/>
 </part>
