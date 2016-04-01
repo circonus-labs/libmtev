@@ -20,6 +20,10 @@
                required="required"
                default=""
                allowed=".+">The lua function to run in the module.</parameter>
+    <parameter name="Cpreload"
+               required="optional"
+               default=""
+               allowed=".*">Specify a set of luaopen_(.+) calls to make immediately after the context is created.  This is useful if you're writing a standalone interpreter or other program that needs to extend lua (without shipping another lua module) before you start.</parameter>
     <parameter name="concurrent"
                required="optional"
                default="false"
