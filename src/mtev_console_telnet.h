@@ -77,12 +77,12 @@
  * Structures of information for each special character function.
  */
 
-typedef struct {
+typedef struct _slcent {
 	unsigned char	flag;		/* the flags for this function */
 	unsigned char	val;		/* the value of the special character */
 } slcent, *Slcent;
 
-typedef struct {
+typedef struct _slcfun {
 	slcent		defset;		/* the default settings */
 	slcent		current;	/* the current settings */
 	unsigned char	*sptr;		/* a pointer to the char in */
@@ -154,7 +154,7 @@ struct clocks_t {
 	gotDM;			/* when did we last see a data mark */
 };
 
-typedef struct {
+typedef struct _mtev_console_telnet_closure_t {
   mtev_hash_table _env;
   unsigned char *_subbuffer;
   unsigned char *_subpointer;
