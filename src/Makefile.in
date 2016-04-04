@@ -72,7 +72,7 @@ LIBMTEV_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.lo)
 LIBMTEV_V=libmtev@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
 LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
 
-TARGETS=$(LIBMTEV) @MDB_MODS@
+TARGETS=$(LIBMTEV) luamtev @MDB_MODS@
 
 all:	reversion $(TARGETS) make-man build-modules
 
@@ -247,7 +247,17 @@ install-headers:	$(HEADERS) $(MAPPEDHEADERS)
 
 mtevlibs:	$(LIBMTEV_V) @MDB_MODS@
 
-install-libs:    mtevlibs
+luamtev.o:      luamtev.c luamtev.conf.tmpl
+
+luamtev:        luamtev.o
+	$(Q)echo "- linking $@"
+	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ luamtev.o -lmtev @LUALIBS@
+
+install-bins:	luamtev
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)
+	$(INSTALL) -m 0755 luamtev $(DESTDIR)$(bindir)/luamtev
+	
+install-libs:	mtevlibs
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)
 	$(INSTALL) -m 0755 $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV_V)
 	ln -sf $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV)
@@ -262,7 +272,7 @@ install-modules:
 install-docs:
 	(cd man && $(MAKE) install DESTDIR=$(DESTDIR))
 
-install:	install-docs install-headers install-libs install-modules
+install:	install-bins install-docs install-headers install-libs install-modules
 
 clean:
 	rm -f *.lo *.o
