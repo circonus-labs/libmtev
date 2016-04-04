@@ -58,7 +58,7 @@ typedef char *(*console_prompt_func_t)(EditLine *);
 typedef void (*state_free_func_t)(struct _console_state *, struct __mtev_console_closure *);
 typedef void (*state_userdata_free_func_t)(void *);
 
-typedef struct {
+typedef struct _cmd_info_t {
   const char            *name;
   console_cmd_func_t     func;
   console_opt_func_t     autocomplete;
@@ -73,7 +73,7 @@ extern cmd_info_t console_command_crash;
 extern cmd_info_t console_command_shutdown;
 extern cmd_info_t console_command_restart;
 
-typedef struct {
+typedef struct _mtev_console_userdata_t {
   char                      *name;
   void                      *data;
   state_userdata_free_func_t freefunc;
