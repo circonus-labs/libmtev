@@ -2963,6 +2963,85 @@ mtev_lua_json_document(lua_State *L) {
   if(n != 1) luaL_error(L, "expects no arguments, got %d", n - 1);
   return mtev_json_object_to_luatype(L, (*docptr)->root);
 }
+static mtev_boolean
+mtev_lua_guess_is_array(lua_State *L, int idx) {
+  mtev_boolean rv = mtev_true;
+  lua_pushnil(L);  /* first key */
+  while(lua_next(L,idx) != 0) {
+    if(lua_type(L,-2) != LUA_TNUMBER) rv = mtev_false;
+    else if(lua_tointeger(L,-2) < 1) rv = mtev_false;
+    lua_pop(L,1);
+  }
+  return rv;
+}
+static struct json_object *
+mtev_lua_thing_to_json_object(lua_State *L, int idx) {
+  const char *str;
+  lua_Integer v_int;
+  double v_double;
+  switch(lua_type(L, idx)) {
+    case LUA_TBOOLEAN:
+      return mtev_json_object_new_boolean(lua_toboolean(L,idx));
+    case LUA_TSTRING:
+      return mtev_json_object_new_string(lua_tostring(L,idx));
+    case LUA_TNUMBER:
+      v_int = lua_tointeger(L,idx);
+      v_double = lua_tonumber(L,idx);
+      if((double)v_int == v_double) {
+        return mtev_json_object_new_int(v_int);
+      }
+      return mtev_json_object_new_double(v_double);
+    case LUA_TTABLE:
+      if(mtev_lua_guess_is_array(L,idx)) {
+        struct json_object *array = mtev_json_object_new_array();
+        lua_pushnil(L);
+        while(lua_next(L,idx) != 0) {
+          int key;
+          key = lua_tointeger(L,idx+1);
+          mtev_json_object_array_put_idx(array, key-1,
+                                      mtev_lua_thing_to_json_object(L,idx+2));
+          lua_pop(L,1);
+        }
+        return array;
+      }
+      else {
+        struct json_object *table = mtev_json_object_new_object();
+        lua_pushnil(L);
+        while(lua_next(L,idx) != 0) {
+          const char *key;
+          key = lua_tostring(L,idx+1);
+          mtev_json_object_object_add(table, key,
+                                      mtev_lua_thing_to_json_object(L,idx+2));
+          lua_pop(L,1);
+        }
+        return table;
+      }
+    case LUA_TLIGHTUSERDATA:
+    case LUA_TUSERDATA:
+    case LUA_TFUNCTION:
+    case LUA_TTHREAD:
+    case LUA_TNONE:
+    case LUA_TNIL:
+    default:
+      break;
+  }
+  return NULL;
+}
+static int
+nl_tojson(lua_State *L) {
+  json_crutch **docptr, *doc;
+  const char *in;
+  size_t inlen;
+  if(lua_gettop(L) != 1) luaL_error(L, "tojson requires one argument");
+
+  doc = calloc(1, sizeof(*doc));
+  doc->root = mtev_lua_thing_to_json_object(L,1);
+  docptr = (json_crutch **)lua_newuserdata(L, sizeof(doc));
+  *docptr = doc;
+  luaL_getmetatable(L, "mtev.json");
+  lua_setmetatable(L, -2);
+  return 1;
+}
 static int
 nl_parsejson(lua_State *L) {
   json_crutch **docptr, *doc;
@@ -3350,6 +3429,7 @@ static const luaL_Reg mtevlib[] = {
   { "conf_replace_number", nl_conf_replace_value },
   { "parsexml", nl_parsexml },
   { "parsejson", nl_parsejson },
+  { "tojson", nl_tojson },
   { "spawn", nl_spawn },
   { "thread_self", nl_thread_self },
   { "eventer_loop_concurrency", nl_eventer_loop_concurrency },
