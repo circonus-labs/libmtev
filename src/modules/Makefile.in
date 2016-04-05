@@ -37,7 +37,7 @@ top_srcdir=@top_srcdir@
 MODULES=@BUILD_MODULES@
 LUA_MODULES=mtev_lua/mtev.so
 HEADERS=lua_mtev.h
-LUA_FILES=mtev/extras.lua mtev/timeval.lua
+LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua
 
 all:	$(MODULES) $(LUA_MODULES)
 

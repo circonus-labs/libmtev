@@ -38,6 +38,7 @@
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
 #include <assert.h>
+#include <dlfcn.h>
 
 #define MTEV_LUA_REPL_USERDATA "mtev::state::lua_repl"
 
@@ -56,8 +57,10 @@ typedef struct lua_general_conf {
   const char *cpath;
   const char *module;
   const char *function;
+  const char **Cpreloads;
   mtev_boolean concurrent;
   mtev_boolean booted;
+  mtev_boolean tragedy_terminates;
 } lua_general_conf_t;
 
 static lua_general_conf_t *get_config(mtev_dso_generic_t *self) {
@@ -78,6 +81,15 @@ lua_general_ctx_free(void *cl) {
     mtev_lua_cancel_coro(ri);
     mtev_lua_resume_clean_events(ri);
     free(ri);
+  }
+}
+
+static void
+tragic_failure(mtev_dso_generic_t *self) {
+  lua_general_conf_t *conf = get_config(self);
+  if(conf->tragedy_terminates) {
+    mtevL(mtev_error, "Unrecoverable run-time error. Terminating.\n");
+    exit(-1);
   }
 }
 
@@ -107,6 +119,7 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
           mtevL(nlerr, "err -> %s\n", err);
         }
       }
+      tragic_failure(ri->lmc->self);
       rv = -1;
   }
 
@@ -191,11 +204,13 @@ lua_general_handler(mtev_dso_generic_t *self) {
   if(status == 0) return 0;
   /* If we've failed, resume has freed ri, so we should just return. */
   mtevL(nlerr, "lua dispatch error: %d\n", status);
+  tragic_failure(self);
   return 0;
 
  boom:
   if(err) mtevL(nlerr, "lua dispatch error: %s\n", err);
   if(ri) lua_general_ctx_free(ri);
+  tragic_failure(self);
   return 0;
 }
 
@@ -228,7 +243,7 @@ dispatch_general(eventer_t e, int mask, void *cl, struct timeval *now) {
 
 static int
 mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
-  const char *bstr;
+  const char *bstr, *tt_val;
   lua_general_conf_t *conf = get_config(self);
   conf->script_dir = NULL;
   conf->cpath = NULL;
@@ -246,6 +261,24 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     if(!strcasecmp(bstr, "on") || !strcasecmp(bstr, "true")) {
       conf->concurrent = mtev_true;
     }
+  }
+  conf->tragedy_terminates = mtev_false;
+  if(mtev_hash_retr_str(o, "tragedy_terminates", strlen("tragedy_terminates"),
+                        &tt_val)) {
+    if(!strcasecmp(tt_val, "true") || !strcasecmp(tt_val, "yes"))
+      conf->tragedy_terminates = mtev_true;
+  }
+  if(mtev_hash_retr_str(o, "Cpreloads", strlen("Cpreloads"), &bstr)) {
+    int count = 1, i;
+    char *brk, *cp, *copy;
+    cp = copy = strdup(bstr);
+    while(*cp) if(*cp++ == ',') count++; /* count terms (start with 1) */
+    conf->Cpreloads = calloc(count+1, sizeof(char *)); /* null term */
+    for(i = 0, cp = strtok_r(copy, ",", &brk);
+      cp; cp = strtok_r(NULL, ",", &brk), i++) {
+      conf->Cpreloads[i] = strdup(cp);
+    }
+    free(copy);
   }
   return 0;
 }
@@ -319,6 +352,8 @@ static const luaL_Reg general_lua_funcs[] =
 
 static int
 mtev_lua_general_init(mtev_dso_generic_t *self) {
+  const char * const *module;
+  int (*f)(lua_State *);
   lua_general_conf_t *conf = get_config(self);
   lua_module_closure_t *lmc = pthread_getspecific(conf->key);
 
@@ -326,6 +361,7 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
 
   if(!lmc) {
     lmc = calloc(1, sizeof(*lmc));
+    lmc->self = self;
     pthread_setspecific(conf->key, lmc);
   }
 
@@ -345,6 +381,19 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     return -1;
   }
   luaL_openlib(lmc->lua_state, "mtev", general_lua_funcs, 0);
+  /* Load some preloads */
+
+  for(module = conf->Cpreloads; module && *module; module++) {
+    char *symbol = NULL;
+    asprintf(&symbol, "luaopen_%s", *module);
+    if(!symbol) mtevL(nlerr, "Failed to preload %s: malloc error\n", *module);
+    else {
+      f = dlsym(RTLD_DEFAULT, symbol);
+      if(!f) mtevL(nlerr, "Failed to preload %s: %s not found\n", *module, symbol);
+      else f(lmc->lua_state);
+    }
+  }
+
   lmc->pending = calloc(1, sizeof(*lmc->pending));
 
   if(conf->booted) return true;

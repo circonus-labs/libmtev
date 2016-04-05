@@ -137,6 +137,8 @@ typedef struct __mtev_console_closure {
   void (*output_cooker)(struct __mtev_console_closure *);
 } * mtev_console_closure_t;
 
+API_EXPORT(int) mtev_console_std_init(int infd, int outfd);
+
 API_EXPORT(void) mtev_console_init(const char *);
 
 API_EXPORT(void) mtev_console_set_default_prompt(const char *);

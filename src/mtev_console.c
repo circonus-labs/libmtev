@@ -357,6 +357,158 @@ allocate_pty(int *master, int *slave) {
   return 0;
 }
 
+static int
+mtev_console_initialize(mtev_console_closure_t ncct,
+                        const char *line_protocol,
+                        eventer_t in, eventer_t out) {
+  ncct->e = out;
+  if(allocate_pty(&ncct->pty_master, &ncct->pty_slave)) {
+    nc_printf(ncct, "Failed to open pty: %s\n", strerror(errno));
+    ncct->wants_shutdown = 1;
+    return 1;
+  }
+  else {
+    int i;
+    HistEvent ev;
+
+    ncct->hist = history_init();
+    history(ncct->hist, &ev, H_SETSIZE, 500);
+    ncct->el = el_init("mtev", ncct->pty_master, NULL,
+                       in->fd, in, out->fd, out);
+    if(!ncct->el) return -1;
+    if(el_set(ncct->el, EL_USERDATA, ncct)) {
+      mtevL(mtev_error, "Cannot set userdata on noitedit session\n");
+      return -1;
+    }
+    if(el_set(ncct->el, EL_EDITOR, "emacs")) 
+      mtevL(mtev_error, "Cannot set emacs mode on console\n");
+    if(el_set(ncct->el, EL_HIST, history, ncct->hist))
+      mtevL(mtev_error, "Cannot set history on console\n");
+    el_set(ncct->el, EL_ADDFN, "mtev_complete",
+           "auto completion functions for mtev", mtev_edit_complete);
+    el_set(ncct->el, EL_BIND, "^I", "mtev_complete", NULL);
+    for(i=EL_NUM_FCNS; i < ncct->el->el_map.nfunc; i++) {
+      if(ncct->el->el_map.func[i] == mtev_edit_complete) {
+        ncct->mtev_edit_complete_cmdnum = i;
+        break;
+      }
+    }
+
+    if(line_protocol && !strcasecmp(line_protocol, "telnet")) {
+      ncct->telnet = mtev_console_telnet_alloc(ncct);
+      ncct->output_cooker = nc_telnet_cooker;
+    }
+    mtev_console_state_init(ncct);
+  }
+  if(in->fd != out->fd)
+    snprintf(ncct->feed_path, sizeof(ncct->feed_path),
+             "console/[%d:%d]", in->fd, out->fd);
+  else
+    snprintf(ncct->feed_path, sizeof(ncct->feed_path), "console/%d", in->fd);
+  mtev_log_stream_new(ncct->feed_path, "mtev_console", ncct->feed_path,
+                      ncct, NULL);
+  ncct->initialized = 1;
+  return 0;
+}
+static int
+mtev_console_std(eventer_t e, int mask, void *closure,
+                 struct timeval *now) {
+  int newmask;
+  int keep_going;
+  mtev_console_closure_t ncct = closure;
+  if(mask & EVENTER_EXCEPTION || (ncct && ncct->wants_shutdown)) {
+socket_error:
+    /* Exceptions cause us to simply snip the connection */
+
+    /* This removes the log feed which is important to do before calling close */
+    eventer_remove_fd(e->fd);
+    e->opset->close(e->fd, &newmask, e);
+    return 0;
+  }
+
+  if(mtev_console_continue_sending(ncct, &newmask) < 0) {
+    if(ncct->wants_shutdown || errno != EAGAIN) goto socket_error;
+    return newmask | EVENTER_EXCEPTION;
+  }
+
+  for(keep_going=1 ; keep_going ; ) {
+    int len, plen;
+    char sbuf[4096];
+    const char *buffer;
+
+    keep_going = 0;
+
+    buffer = el_gets(ncct->el, &plen);
+    if(!el_eagain(ncct->el)) {
+      if(!buffer) {
+        buffer = "exit";
+        plen = 4;
+        nc_write(ncct, "\n", 1);
+      }
+      keep_going++;
+    }
+
+    len = e->opset->read(e->fd, sbuf, sizeof(sbuf)-1, &newmask, e);
+    if(len == 0 || (len < 0 && errno != EAGAIN)) {
+      eventer_remove_fd(e->fd);
+      e->opset->close(e->fd, &newmask, e);
+      return 0;
+    }
+    if(len > 0) {
+      keep_going++;
+      sbuf[len] = '\0';
+      if(ncct->telnet) {
+        mtev_console_telnet_telrcv(ncct, sbuf, len);
+        ptyflush(ncct);
+      }
+      else {
+        int written;
+        written = write(ncct->pty_slave, sbuf, len);
+        if(written <= 0) goto socket_error;
+        assert(written == len);
+      }
+    }
+    if(buffer) {
+      char *cmd_buffer;
+      cmd_buffer = malloc(plen+1);
+      memcpy(cmd_buffer, buffer, plen);
+      /* chomp */
+      cmd_buffer[plen] = '\0';
+      if(cmd_buffer[plen-1] == '\n') cmd_buffer[plen-1] = '\0';
+      mtevL(mtev_debug, "IN[%d]: '%s'\n", plen, cmd_buffer);
+      mtev_console_dispatch(e, cmd_buffer, ncct);
+      free(cmd_buffer);
+    }
+    if(mtev_console_continue_sending(ncct, &newmask) == -1) {
+      if(ncct->wants_shutdown || errno != EAGAIN) goto socket_error;
+      return newmask | EVENTER_EXCEPTION;
+    }
+    if(ncct->wants_shutdown) goto socket_error;
+  }
+  return newmask | EVENTER_EXCEPTION;
+}
+int mtev_console_std_init(int infd, int outfd) {
+  mtev_console_closure_t ncct;
+  eventer_t in, out;
+
+  ncct = mtev_console_closure_alloc();
+  in = eventer_alloc();
+  out = eventer_alloc();
+  in->fd = infd;
+  in->mask = EVENTER_READ|EVENTER_EXCEPTION;
+  in->callback = mtev_console_std;
+  in->closure = ncct;
+  out->fd = outfd;
+  out->mask = EVENTER_WRITE|EVENTER_EXCEPTION;
+  out->callback = mtev_console_std;
+  out->closure = ncct;
+  if(mtev_console_initialize(ncct, NULL, in, out)) {
+    return -1;
+  }
+  eventer_add(in);
+  eventer_add(out);
+  return 0;
+}
 int
 mtev_console_handler(eventer_t e, int mask, void *closure,
                      struct timeval *now) {
@@ -382,56 +534,12 @@ socket_error:
     ac->service_ctx_free = mtev_console_closure_free;
   }
   if(!ncct->initialized) {
-    ncct->e = e;
-    if(allocate_pty(&ncct->pty_master, &ncct->pty_slave)) {
-      nc_printf(ncct, "Failed to open pty: %s\n", strerror(errno));
-      ncct->wants_shutdown = 1;
-      goto socket_error;
-    }
-    else {
-      int i;
-      const char *line_protocol;
-      HistEvent ev;
-
-      ncct->hist = history_init();
-      history(ncct->hist, &ev, H_SETSIZE, 500);
-      ncct->el = el_init("mtev", ncct->pty_master, NULL,
-                         e->fd, e, e->fd, e);
-      if(!ncct->el) goto socket_error;
-      if(el_set(ncct->el, EL_USERDATA, ncct)) {
-        mtevL(mtev_error, "Cannot set userdata on noitedit session\n");
-        goto socket_error;
-      }
-      if(el_set(ncct->el, EL_EDITOR, "emacs")) 
-        mtevL(mtev_error, "Cannot set emacs mode on console\n");
-      if(el_set(ncct->el, EL_HIST, history, ncct->hist))
-        mtevL(mtev_error, "Cannot set history on console\n");
-      el_set(ncct->el, EL_ADDFN, "mtev_complete",
-             "auto completion functions for mtev", mtev_edit_complete);
-      el_set(ncct->el, EL_BIND, "^I", "mtev_complete", NULL);
-      for(i=EL_NUM_FCNS; i < ncct->el->el_map.nfunc; i++) {
-        if(ncct->el->el_map.func[i] == mtev_edit_complete) {
-          ncct->mtev_edit_complete_cmdnum = i;
-          break;
-        }
-      }
-
-      if(!mtev_hash_retr_str(ac->config,
+    const char *line_protocol = NULL;
+    (void)mtev_hash_retr_str(ac->config,
                              "line_protocol", strlen("line_protocol"),
-                             &line_protocol)) {
-        line_protocol = NULL;
-      }
-      if(line_protocol && !strcasecmp(line_protocol, "telnet")) {
-        ncct->telnet = mtev_console_telnet_alloc(ncct);
-        ncct->output_cooker = nc_telnet_cooker;
-      }
-      mtev_console_state_init(ncct);
-    }
-    snprintf(ncct->feed_path, sizeof(ncct->feed_path), "console/%d", e->fd);
-    mtev_log_stream_new(ncct->feed_path, "mtev_console", ncct->feed_path,
-                        ncct, NULL);
+                             &line_protocol);
+    if(mtev_console_initialize(ncct, line_protocol, e, e)) goto socket_error;
     mtev_console_motd(e, ac, ncct);
-    ncct->initialized = 1;
   }
 
   /* If we still have data to send back to the client, this will take

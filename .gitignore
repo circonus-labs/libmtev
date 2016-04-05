@@ -19,6 +19,7 @@ src/dhparam*.txt
 src/*.dSYM
 src/js/node_modules/
 test/t/node_modules/
+src/luamtev
 src/lua/src/lua
 src/modules/*.dSYM
 src/mtev_version.h

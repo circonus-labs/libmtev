@@ -1385,12 +1385,29 @@ mtev_conf_set_string(mtev_conf_section_t section,
     CONF_DIRTY(current_node);
   }
   else {
+    int cnt;
     xmlNodePtr child_node;
-    if(value) {
-      child_node = xmlNewTextChild(current_node, NULL, (xmlChar *)path, (xmlChar *)value);
+    mtev_conf_section_t *sections;
+    sections = mtev_conf_get_sections(section, path, &cnt);
+    if(cnt > 1) {
+      char *spath = section ? (char *)xmlGetNodePath(section) : strdup("(root)");
+      mtevL(mtev_error, "Ambiguous set_string \"%s\" \"%s\"\n", spath, path);
+      free(spath);
+      return 0;
     }
-    else {
-      child_node = xmlNewChild(current_node, NULL, (xmlChar *)path, NULL);
+    if(cnt == 0) {
+      if(value) {
+        child_node = xmlNewTextChild(current_node, NULL, (xmlChar *)path, (xmlChar *)value);
+      }
+      else {
+        child_node = xmlNewChild(current_node, NULL, (xmlChar *)path, NULL);
+      }
+    }
+    else if(cnt == 1) {
+      xmlChar *encoded;
+      encoded = xmlEncodeEntitiesReentrant(current_node->doc, (xmlChar *)value);
+      xmlNodeSetContent((xmlNodePtr)sections[0], encoded);
+      xmlFree(encoded);
     }
     CONF_DIRTY(child_node);
   }

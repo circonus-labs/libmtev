@@ -1,0 +1,30 @@
+#define CONFIG_TMPL "<?xml version=\"1.0\" encoding=\"utf8\" standalone=\"yes\"?>\n" \
+"<cli>\n" \
+"  <modules directory=\"%s\">\n" \
+"    <generic image=\"lua_mtev\" name=\"lua_general\">\n" \
+"      <config>\n" \
+"        <directory>%s</directory>\n" \
+"        <cpath>%s</cpath>\n" \
+"        <lua_module>%s</lua_module>\n" \
+"        <lua_function>%s</lua_function>\n" \
+"        <tragedy_terminates>true</tragedy_terminates>\n" \
+"      </config>\n" \
+"    </generic>\n" \
+"  </modules>\n" \
+"  <logs>\n" \
+"    <console_output>\n" \
+"      <outlet name=\"stderr\"/>\n" \
+"      <log name=\"error\"/>\n" \
+"    </console_output>\n" \
+"    <components>\n" \
+"      <error>\n" \
+"        <outlet name=\"stderr\"/>\n" \
+"        <log name=\"error/cli\"/>\n" \
+"      </error>\n" \
+"      <debug>\n" \
+"        <outlet name=\"stderr\"/>\n" \
+"        <log name=\"debug/cli\" disabled=\"true\"/>\n" \
+"      </debug>\n" \
+"    </components>\n" \
+"  </logs>\n" \
+"</cli>\n"
