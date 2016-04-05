@@ -6,7 +6,7 @@
 #include <mtev_main.h>
 #include <mtev_memory.h>
 #include <mtev_rest.h>
-#include <mtev_cluster.h>
+#include <mtev_security.h>
 #include <eventer/eventer.h>
 
 #include <stdio.h>
@@ -37,6 +37,8 @@ static int
 usage(const char *prog) {
 	fprintf(stderr,
   "%s [-i] [-L luapath] [-C luacpath] [-M modulepath] [-d] [-e function]\n\tluafile\n\n", prog);
+  fprintf(stderr, "\t-u\t\t\tdrop to user\n");
+  fprintf(stderr, "\t-g\t\t\tdrop to group\n");
   fprintf(stderr, "\t-i\t\t\tturn on interactive console\n");
   fprintf(stderr, "\t-c <file>\t\tcustom mtev config\n");
   fprintf(stderr, "\t-L <path>\t\tlua package.path\n");
@@ -89,7 +91,7 @@ make_config() {
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, "c:de:iL:C:T")) != EOF) {
+  while((c = getopt(argc, argv, "c:de:g:iu:C:L:T")) != EOF) {
     switch(c) {
       case 'd': debug = 1; break;
       case 'i': interactive = 1; break;
@@ -98,6 +100,8 @@ parse_cli_args(int argc, char * const *argv) {
       case 'C': lua_cpath = strdup(optarg); break;
       case 'c': config_file = strdup(optarg); break;
       case 'T': dump_template = true; break;
+      case 'u': droptouser = strdup(optarg); break;
+      case 'g': droptogroup = strdup(optarg); break;
     }
   }
   if(optind > (argc-1) && !dump_template) {
@@ -139,6 +143,9 @@ child_main() {
     if(needs_unlink) unlink(config_file);
     exit(2);
   }
+
+  mtev_conf_security_init(APPNAME, droptouser, droptogroup, NULL);
+
   if(mtev_conf_write_file(&err) != 0) {
     if(err) {
       mtevL(mtev_stderr, "Error: '%s'\n", err);
