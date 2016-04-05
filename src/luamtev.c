@@ -59,7 +59,10 @@ make_config() {
     fprintf(stderr, "Trouble finding paths, use -L -C or -M to fix this.\n");
     exit(-2);
   }
-  len = asprintf(&outbuf, CONFIG_TMPL,
+  len = strlen(CONFIG_TMPL) + strlen(modules_path) + strlen(lua_lpath) +
+        strlen(lua_cpath) + strlen(lua_file) + strlen(function);
+  outbuf = malloc(len+1);
+  len = snprintf(outbuf, len, CONFIG_TMPL,
                  modules_path, lua_lpath, lua_cpath, lua_file, function);
   if(len == -1) {
     fprintf(stderr, "Failed to generate config\n");
