@@ -2944,7 +2944,7 @@ mtev_json_object_to_luatype(lua_State *L, struct json_object *o) {
       lua_createtable(L, 0, cnt);
       for(i=0;i<cnt;i++) {
         mtev_json_object_to_luatype(L, (struct json_object *)jl_array_list_get_idx(al, i));
-        lua_rawseti(L, -2, i);
+        lua_rawseti(L, -2, i+1);
       }
       break;
     }
