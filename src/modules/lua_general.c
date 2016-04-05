@@ -391,7 +391,11 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     if(!symbol) mtevL(nlerr, "Failed to preload %s: malloc error\n", *module);
     else {
       snprintf(symbol, len+1, "luaopen_%s", *module);
+#ifdef RTLD_DEFAULT
       f = dlsym(RTLD_DEFAULT, symbol);
+#else
+      f = dlsym((void *)0, symbol);
+#endif
       if(!f) mtevL(nlerr, "Failed to preload %s: %s not found\n", *module, symbol);
       else f(lmc->lua_state);
     }
