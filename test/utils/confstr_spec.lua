@@ -1,16 +1,17 @@
 ffi.cdef([=[
   typedef enum { mtev_false = 0, mtev_true } mtev_boolean;
+  typedef uint64_t u_int64_t;
   typedef struct _mtev_duration_definition_t {
     const char *key;
     size_t key_len;
-    uint64_t mul;
+    u_int64_t mul;
   } mtev_duration_definition_t;
   const mtev_duration_definition_t *mtev_get_durations_ns(void);
   const mtev_duration_definition_t *mtev_get_durations_us(void);
   const mtev_duration_definition_t *mtev_get_durations_ms(void);
   const mtev_duration_definition_t *mtev_get_durations_s(void);
   int mtev_confstr_parse_boolean(const char *input, mtev_boolean *output);
-  int mtev_confstr_parse_duration(const char *input, uint64_t *output,
+  int mtev_confstr_parse_duration(const char *input, u_int64_t *output,
                                   const mtev_duration_definition_t *durations);
 ]=])
 
@@ -48,22 +49,22 @@ end)
 
 describe("mtev_confstr_parse_duration", function()
   it("fails to decode empty", function()
-    local result = ffi.new("uint64_t[1]")
+    local result = ffi.new("u_int64_t[1]")
     assert.is_true(mtev.mtev_confstr_parse_duration("", result,
                                                     mtev.mtev_get_durations_ms()) == 0)
   end)
   it("fails to decode unknown units", function()
-    local result = ffi.new("uint64_t[1]")
+    local result = ffi.new("u_int64_t[1]")
     assert.is_true(mtev.mtev_confstr_parse_duration("1us", result,
                                                     mtev.mtev_get_durations_ms()) == 0)
   end)
   it("fails to decode when no number before unit", function()
-    local result = ffi.new("uint64_t[1]")
+    local result = ffi.new("u_int64_t[1]")
     assert.is_true(mtev.mtev_confstr_parse_duration("ms", result,
                                                     mtev.mtev_get_durations_ms()) == 0)
   end)
   it("decodes with ns units", function()
-    local result = ffi.new("uint64_t[1]")
+    local result = ffi.new("u_int64_t[1]")
     assert.is_true(mtev.mtev_confstr_parse_duration("1ns", result,
                                                     mtev.mtev_get_durations_ns()) > 0)
     assert.are.equal(1, result[0])
@@ -84,7 +85,7 @@ describe("mtev_confstr_parse_duration", function()
     assert.are.equal(60 * 60 * 1000 * 1000 * 1000 * 1, result[0])
   end)
   it("decodes with ms units", function()
-    local result = ffi.new("uint64_t[1]")
+    local result = ffi.new("u_int64_t[1]")
     assert.is_true(mtev.mtev_confstr_parse_duration("1ms", result,
                                                     mtev.mtev_get_durations_ms()) > 0)
     assert.are.equal(1, result[0])
@@ -105,7 +106,7 @@ describe("mtev_confstr_parse_duration", function()
     assert.are.equal(1000 * 60 * 60 * 24 * 7, result[0])
   end)
   it("skips whitespace", function()
-    local result = ffi.new("uint64_t[1]")
+    local result = ffi.new("u_int64_t[1]")
     assert.is_true(mtev.mtev_confstr_parse_duration("1ms", result,
                                                     mtev.mtev_get_durations_ms()) > 0)
     assert.are.equal(1, result[0])
@@ -120,7 +121,7 @@ describe("mtev_confstr_parse_duration", function()
     assert.are.equal(1, result[0])
   end)
   it("sums duration elements", function()
-    local result = ffi.new("uint64_t[1]")
+    local result = ffi.new("u_int64_t[1]")
     assert.is_true(mtev.mtev_confstr_parse_duration("1s 1ms", result,
                                                     mtev.mtev_get_durations_ms()) > 0)
     assert.are.equal(1000 + 1, result[0])
@@ -129,7 +130,7 @@ describe("mtev_confstr_parse_duration", function()
     assert.are.equal(2000 + 2, result[0])
   end)
   it("fails to decode with extra data", function()
-    local result = ffi.new("uint64_t[1]")
+    local result = ffi.new("u_int64_t[1]")
     assert.is_true(mtev.mtev_confstr_parse_duration("1ms hello", result,
                                                     mtev.mtev_get_durations_ms()) == 0)
   end)

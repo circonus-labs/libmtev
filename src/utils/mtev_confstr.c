@@ -3,13 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DURATION_US_MUL(NS_BASE) (((uint64_t) 1000) * DURATION_ ## NS_BASE ## _NS)
-#define DURATION_MS_MUL(US_BASE) (((uint64_t) 1000) * DURATION_ ## US_BASE ## _US)
-#define DURATION_SEC_MUL(MS_BASE) (((uint64_t) 1000) * DURATION_ ## MS_BASE ## _MS)
-#define DURATION_MIN_MUL(SEC_BASE) (((uint64_t) 60) * DURATION_ ## SEC_BASE ## _SEC)
-#define DURATION_HR_MUL(MIN_BASE) (((uint64_t) 60) * DURATION_ ## MIN_BASE ## _MIN)
-#define DURATION_DAY_MUL(HR_BASE) (((uint64_t) 24) * DURATION_ ## HR_BASE ## _HR)
-#define DURATION_WEEK_MUL(DAY_BASE) (((uint64_t) 7) * DURATION_ ## DAY_BASE ## _DAY)
+#define DURATION_US_MUL(NS_BASE) (((u_int64_t) 1000) * DURATION_ ## NS_BASE ## _NS)
+#define DURATION_MS_MUL(US_BASE) (((u_int64_t) 1000) * DURATION_ ## US_BASE ## _US)
+#define DURATION_SEC_MUL(MS_BASE) (((u_int64_t) 1000) * DURATION_ ## MS_BASE ## _MS)
+#define DURATION_MIN_MUL(SEC_BASE) (((u_int64_t) 60) * DURATION_ ## SEC_BASE ## _SEC)
+#define DURATION_HR_MUL(MIN_BASE) (((u_int64_t) 60) * DURATION_ ## MIN_BASE ## _MIN)
+#define DURATION_DAY_MUL(HR_BASE) (((u_int64_t) 24) * DURATION_ ## HR_BASE ## _HR)
+#define DURATION_WEEK_MUL(DAY_BASE) (((u_int64_t) 7) * DURATION_ ## DAY_BASE ## _DAY)
 
 #define DURATION_NS_NS 1
 #define DURATION_NS_US DURATION_US_MUL(NS)
@@ -59,7 +59,7 @@
 struct _mtev_duration_definition_t {
   const char *key;
   size_t key_len;
-  uint64_t mul;
+  u_int64_t mul;
 };
 
 static const mtev_duration_definition_t mtev_duration_definition_ns[] =
@@ -133,7 +133,7 @@ mtev_confstr_parse_boolean(const char *input, mtev_boolean *output) {
 
 /* sum of <number><unit> tokens, separated by spaces */
 int
-mtev_confstr_parse_duration(const char *input, uint64_t *output,
+mtev_confstr_parse_duration(const char *input, u_int64_t *output,
                             const mtev_duration_definition_t *durations) {
   unsigned long rd;
   const char *unit_str;
@@ -174,7 +174,7 @@ mtev_confstr_parse_duration(const char *input, uint64_t *output,
 
     /* hooray! at least one component parsed successfully. */
     success = 1;
-    (*output) += ((uint64_t) rd) * durations[duration_idx].mul;
+    (*output) += ((u_int64_t) rd) * durations[duration_idx].mul;
   }
   return success;
 }
