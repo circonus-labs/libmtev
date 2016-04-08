@@ -12,6 +12,7 @@ config.status
 .DS_Store
 /Makefile
 docs/out
+docs/operations/probes.d.xml
 src/Makefile
 src/**/Makefile
 !src/modules/example/Makefile
