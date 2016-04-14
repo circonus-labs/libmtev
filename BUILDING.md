@@ -54,14 +54,14 @@
 
 ### OmniOS
 
-        # pkg set-publisher -g http://updates.circonus.net/omnios/ circonus
-        # pkg install developer/git developer/build/autoconf system/header \
-                developer/gcc48 developer/build/gnu-make \
-                platform/library/hwloc field/ck jlog luajit udns fq
+    # pkg set-publisher -g http://updates.circonus.net/omnios/ circonus
+    # pkg install developer/git developer/build/autoconf system/header \
+            developer/gcc48 developer/build/gnu-make \
+            platform/library/hwloc field/ck jlog luajit udns fq
 
-        # git clone git@github.com:circonus-labs/libmtev.git
-        # cd libmtev
-        # autoconf
-        # ./configure LDFLAGS="-m64 -L/opt/circonus/lib/amd64" CPPFLAGS="-I/opt/circonus/include/amd64"
-        # export MAKE=gmake
-        # gmake
+    # git clone git@github.com:circonus-labs/libmtev.git
+    # cd libmtev
+    # autoconf
+    # ./configure LDFLAGS="-m64 -L/opt/circonus/lib/amd64" CPPFLAGS="-I/opt/circonus/include/amd64"
+    # export MAKE=gmake
+    # gmake
