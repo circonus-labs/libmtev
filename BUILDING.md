@@ -52,10 +52,10 @@
 
 ### OmniOS
 
-	# pkg set-publisher -g http://pkg.omniti.com/omniti-ms/ ms.omniti.com
+	# pkg set-publisher -g http://updates.circonus.net/omnios/circonus/ circonus
 	# pkg install developer/git developer/build/autoconf system/header \
 		developer/gcc48 developer/build/gnu-make \
-    omniti/library/hwloc omniti/library/ck
+		platform/library/hwloc field/ck
 	# git clone git@github.com:circonus-labs/libmtev.git
 	# cd libmtev
 	# autoconf
