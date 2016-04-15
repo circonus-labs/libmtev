@@ -62,6 +62,7 @@
 #include "mtev_str.h"
 #include "mtev_b32.h"
 #include "mtev_b64.h"
+#include "mtev_lockfile.h"
 #include "eventer/eventer.h"
 #include "mtev_json.h"
 
@@ -1746,6 +1747,26 @@ nl_log(lua_State *L) {
   return 0;
 }
 static int
+nl_lockfile_acquire(lua_State *L) {
+  mtev_lockfile_t val = -1;
+  const char *filename;
+  if(lua_gettop(L) != 1 || !lua_isstring(L, 1))
+    luaL_error(L, "bad call to mtev.lockfile_acquire");
+  filename = lua_tostring(L,1);
+  if(filename) val = mtev_lockfile_acquire(filename);
+  lua_pushinteger(L, val);
+  return 1;
+}
+static int
+nl_lockfile_release(lua_State *L) {
+  int rv;
+  if(lua_gettop(L) != 1 || !lua_isnumber(L, 1))
+    luaL_error(L, "bad call to mtev.lockfile_release");
+  rv = mtev_lockfile_release(lua_tointeger(L,1));
+  lua_pushinteger(L, rv);
+  return 1;
+}
+static int
 nl_crc32(lua_State *L) {
   size_t inlen;
   const char *input;
@@ -3398,6 +3419,8 @@ static const luaL_Reg mtevlib[] = {
   { "chmod", nl_chmod },
   { "stat", nl_stat },
   { "readdir", nl_readdir },
+  { "lockfile_acquire", nl_lockfile_acquire },
+  { "lockfile_release", nl_lockfile_release },
   { "crc32", nl_crc32 },
   { "base32_decode", nl_base32_decode },
   { "base32_encode", nl_base32_encode },
