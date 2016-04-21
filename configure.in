@@ -60,7 +60,7 @@ else
 fi
 SHLDFLAGS="$LDFLAGS"
 
-CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_XOPEN_SOURCE=600 -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L "'-I$(top_srcdir)/src'
+CPPFLAGS="$CPPFLAGS -D _REENTRANT -D _XOPEN_SOURCE=600 -D _POSIX_SOURCE -D _POSIX_C_SOURCE=200112L -D _DEFAULT_SOURCE "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
 DOTSO=.so
 LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(LIBMTEV_VERSION)'
@@ -358,7 +358,7 @@ int main(void){sem_t s;return (0 != sem_init(&s,0,0));}
 
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS(ssetugid strlcpy strnstrn openpty inet_pton inet_ntop getopt \
-	poll vasprintf strlcat)
+	poll vasprintf strlcat strndup)
 
 # Checks for header files.
 AC_CHECK_HEADERS(sys/file.h sys/types.h dirent.h sys/param.h fcntl.h errno.h limits.h \
