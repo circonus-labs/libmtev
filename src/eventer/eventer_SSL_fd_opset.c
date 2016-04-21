@@ -671,8 +671,10 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     populate_finfo(&ctx->ssl_ctx_cn->key_finfo, key);
     populate_finfo(&ctx->ssl_ctx_cn->ca_finfo, ca);
     ctx->ssl_ctx = NULL;
+    if(0)
+      ;
 #if defined(SSL_TXT_SSLV3) && defined(HAVE_SSLV3_SERVER) && defined(HAVE_SSLV3_CLIENT)
-    if(layer && !strcasecmp(layer, SSL_TXT_SSLV3))
+    else if(layer && !strcasecmp(layer, SSL_TXT_SSLV3))
       ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
                                  SSLv3_server_method() : SSLv3_client_method());
 #endif
