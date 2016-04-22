@@ -396,6 +396,7 @@ static void mtev_skiplisti_destroy(void *vsl) {
 }
 void mtev_skiplist_destroy(mtev_skiplist *sl, mtev_freefunc_t myfree) {
   while(mtev_skiplist_pop(sl->index, mtev_skiplisti_destroy) != NULL);
+  free((void *) sl->index);
   mtev_skiplist_remove_all(sl, myfree);
 }
 void *mtev_skiplist_pop(mtev_skiplist * a, mtev_freefunc_t myfree)
