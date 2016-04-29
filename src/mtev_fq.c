@@ -156,7 +156,7 @@ void mtev_fq_init() {
     }
 
     const mtev_conf_description_t *dstr;
-    mtev_hash_retr_str(configs, CONFIG_FQ_HOST, strlen(CONFIG_FQ_HOST), &dstr);
+    mtev_hash_retrieve(configs, CONFIG_FQ_HOST, strlen(CONFIG_FQ_HOST), (void*)&dstr);
 
     mtevL(mtev_error, "Read host: %s!\n", dstr->value.val_string);
   }

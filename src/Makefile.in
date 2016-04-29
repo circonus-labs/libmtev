@@ -252,7 +252,7 @@ luamtev.o:      luamtev.c luamtev.conf.tmpl
 
 luamtev:        luamtev.o
 	$(Q)echo "- linking $@"
-	$(Q)$(CC) -L. $(LDFLAGS) -o $@ luamtev.o -lmtev @LUALIBS@
+	$(Q)$(CC) -L. $(LDFLAGS) -o $@ luamtev.o -lmtev @LUALIBS@ -lfq
 
 install-bins:	luamtev
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)
@@ -288,7 +288,7 @@ clean:
 
 Makefile.dep:
 	$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
-	for d in utils udns eventer noitedit json-lib ; do \
+	for d in utils udns eventer noitedit json-lib fq ; do \
 		$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $$d/*.c | \
 		perl -pe 's#(\s)([^\s\\])#$$1$$2#g; s#^(\S)#'$$d'/$$1#;' >> \
 		Makefile.dep ; \
