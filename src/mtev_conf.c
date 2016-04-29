@@ -1063,7 +1063,72 @@ mtev_conf_load(const char *path) {
   XML2LOG(xml_debug);
   return rv;
 }
+static int mtev_conf_check_value(mtev_conf_description_t* description) {
+  int rv = 0;
+  switch (description->type) {
+  case MTEV_CONF_TYPE_BOOLEAN:
+    rv = mtev_conf_get_boolean(description->section, description->path,
+        &description->value.val_bool);
+    break;
+  case MTEV_CONF_TYPE_INT:
+    rv = mtev_conf_get_int(description->section, description->path,
+        &description->value.val_int);
+    break;
+  case MTEV_CONF_TYPE_INT64:
+    rv = mtev_conf_get_int64(description->section, description->path,
+        &description->value.val_int64);
+    break;
+  case MTEV_CONF_TYPE_FLOAT:
+    rv = mtev_conf_get_float(description->section, description->path,
+        &description->value.val_float);
+    break;
+  case MTEV_CONF_TYPE_DOUBLE:
+    rv = mtev_conf_get_double(description->section, description->path,
+        &description->value.val_double);
+    break;
+  case MTEV_CONF_TYPE_STRING:
+    rv = mtev_conf_get_string(description->section, description->path,
+        &description->value.val_string);
+    break;
+  case MTEV_CONF_TYPE_UUID:
+    rv = mtev_conf_get_uuid(description->section, description->path,
+        description->value.val_uuid);
+    break;
+  default:
+    rv = -1;
+  }
+  return rv;
+}
 
+mtev_hash_table*
+mtev_conf_check(mtev_conf_description_t* descriptions, int descriptions_cnt) {
+  mtev_hash_table* table = malloc(sizeof(mtev_hash_table));
+  mtev_hash_init_size(table, descriptions_cnt * 2);
+
+  for (int i = 0; i != descriptions_cnt; i++) {
+    if (mtev_conf_check_value(&descriptions[i]) == 0) {
+      mtevL(mtev_error,
+          "Path does not exist in config: '%s'. It should contain the following config: %s\n",
+          descriptions[i].path, descriptions[i].description);
+      free(table);
+      return NULL;
+    }
+    mtev_hash_store(table, descriptions[i].path, strlen(descriptions[i].path), &descriptions[i]);
+  }
+
+  return table;
+}
+
+mtev_hash_table*
+mtev_conf_load_desc(const char *path, mtev_conf_description_t* descriptions,
+    int descriptions_cnt) {
+  int rv = mtev_conf_load(path);
+
+  if (rv != -1) {
+    return mtev_conf_check(descriptions, descriptions_cnt);
+  }
+  return NULL;
+}
 char *
 mtev_conf_config_filename() {
   return strdup(master_config_file);
