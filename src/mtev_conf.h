@@ -52,6 +52,32 @@ typedef struct {
   char prompt[80];
 } mtev_conf_t_userdata_t;
 
+enum mtev_conf_type {
+  MTEV_CONF_TYPE_BOOLEAN,
+  MTEV_CONF_TYPE_INT,
+  MTEV_CONF_TYPE_INT64,
+  MTEV_CONF_TYPE_FLOAT,
+  MTEV_CONF_TYPE_DOUBLE,
+  MTEV_CONF_TYPE_STRING,
+  MTEV_CONF_TYPE_UUID
+};
+
+typedef struct mtev_conf_description_t {
+  mtev_conf_section_t section;
+  char* path;
+  enum mtev_conf_type type;
+  char* description;
+  union {
+    mtev_boolean val_bool;
+    int val_int;
+    int64_t val_int64;
+    float val_float;
+    double val_double;
+    char* val_string;
+    uuid_t val_uuid;
+  } value;
+} mtev_conf_description_t;
+
 /* seconds == 0 disable config journaling watchdog */
 API_EXPORT(void) mtev_conf_coalesce_changes(u_int32_t seconds);
 /* Start the watchdog */
@@ -69,6 +95,10 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_override_console_stopword(int (*f)(const char *));
 API_EXPORT(int) mtev_conf_load(const char *path);
+API_EXPORT(mtev_hash_table*)
+  mtev_conf_check(mtev_conf_description_t* descriptions, int descriptions_cnt);
+API_EXPORT(mtev_hash_table*) mtev_conf_load_desc(const char *path,
+    mtev_conf_description_t* descriptions, int descriptions_cnt);
 API_EXPORT(int) mtev_conf_save(const char *path);
 API_EXPORT(char *) mtev_conf_config_filename();
 API_EXPORT(void) mtev_conf_write_section(mtev_conf_section_t node, int fd);
