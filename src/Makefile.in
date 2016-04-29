@@ -84,7 +84,7 @@ HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
 	mtev_config.h mtev_conf_private.h mtev_console.h mtev_console_telnet.h \
 	mtev_defines.h mtev_events_rest.h \
 	mtev_http.h mtev_listener.h \
-	mtev_main.h mtev_dso.h mtev_reverse_socket.h mtev_rest.h \
+	mtev_main.h mtev_dso.h mtev_reverse_socket.h mtev_rest.h mtev_fq.h \
 	mtev_tokenizer.h mtev_xml.h \
 	eventer/OETS_asn1_helper.h eventer/eventer.h \
 	eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
@@ -137,7 +137,7 @@ MTEV_UTILS_OBJS=utils/mtev_b32.lo utils/mtev_b64.lo utils/mtev_btrie.lo \
 LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
 	mtev_console.lo mtev_console_state.lo mtev_console_telnet.lo \
 	mtev_console_complete.lo mtev_xml.lo \
-	mtev_conf.lo mtev_http.lo mtev_rest.lo mtev_tokenizer.lo \
+	mtev_conf.lo mtev_http.lo mtev_rest.lo mtev_fq.lo mtev_tokenizer.lo \
 	mtev_reverse_socket.lo \
 	mtev_capabilities_listener.lo mtev_dso.lo \
 	mtev_events_rest.lo \
