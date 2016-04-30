@@ -64,6 +64,7 @@ struct rest_url_dispatcher {
   pcre_extra *extra;
   rest_request_handler handler;
   rest_authorize_func_t auth;
+  void *closure;
   /* Chain to the next one */
   struct rest_url_dispatcher *next;
 };
@@ -134,6 +135,7 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc) {
                         ovector, sizeof(ovector)/sizeof(*ovector))) > 0) {
       /* We match, set 'er up */
       restc->fastpath = rule->handler;
+      restc->closure = rule->closure;
       restc->nparams = cnt - 1;
       if(restc->nparams) {
         restc->params = calloc(restc->nparams, sizeof(*restc->params));
@@ -145,8 +147,10 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc) {
           restc->params[cnt][end - start] = '\0';
         }
       }
-      if(rule->auth && !rule->auth(restc, restc->nparams, restc->params))
+      if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
+        restc->closure = NULL;
         return mtev_http_rest_permission_denied;
+      }
       return restc->fastpath;
     }
   }
@@ -187,12 +191,23 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
 int
 mtev_http_rest_register(const char *method, const char *base,
                         const char *expr, rest_request_handler f) {
-  return mtev_http_rest_register_auth(method, base, expr, f, NULL);
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL);
+}
+int
+mtev_http_rest_register_closure(const char *method, const char *base,
+                        const char *expr, rest_request_handler f, void *c) {
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, c);
 }
 int
 mtev_http_rest_register_auth(const char *method, const char *base,
                              const char *expr, rest_request_handler f,
                              rest_authorize_func_t auth) {
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, auth, NULL);
+}
+int
+mtev_http_rest_register_auth_closure(const char *method, const char *base,
+                             const char *expr, rest_request_handler f,
+                             rest_authorize_func_t auth, void *closure) {
   void *vcont;
   struct rule_container *cont;
   struct rest_url_dispatcher *rule;
@@ -213,6 +228,7 @@ mtev_http_rest_register_auth(const char *method, const char *base,
   rule->expression = pcre_expr;
   rule->extra = pcre_study(rule->expression, 0, &error);
   rule->handler = f;
+  rule->closure = closure;
   rule->auth = auth;
 
   /* Make sure we have a container */

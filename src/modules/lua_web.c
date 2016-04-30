@@ -44,7 +44,12 @@ typedef struct lua_web_conf {
   lua_module_closure_t lmc;
   const char *script_dir;
   const char *cpath;
-  const char *dispatch;
+  struct {
+    char *method;
+    char *mount;
+    char *expr;
+    char *module;
+  } *mounts;
   int max_post_size;
   lua_State *L;
 } lua_web_conf_t;
@@ -153,7 +158,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
   mtev_http_response *res = mtev_http_session_response(restc->http_ctx);
 
-  if(!lmc || !conf || !conf->dispatch) {
+  if(!lmc || !conf) {
     goto boom;
   }
 
@@ -194,11 +199,11 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   L = ri->coro_state;
 
   lua_getglobal(L, "require");
-  lua_pushstring(L, conf->dispatch);
+  lua_pushstring(L, restc->closure);
   rv = lua_pcall(L, 1, 1, 0);
   if(rv) {
     int i;
-    mtevL(mtev_error, "lua: require %s failed\n", conf->dispatch);
+    mtevL(mtev_error, "lua: require %s failed\n", restc->closure);
     i = lua_gettop(L);
     if(i>0) {
       if(lua_isstring(L, i)) {
@@ -213,7 +218,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   }
   lua_pop(L, lua_gettop(L));
 
-  mtev_lua_pushmodule(L, conf->dispatch);
+  mtev_lua_pushmodule(L, restc->closure);
   if(lua_isnil(L, -1)) {
     lua_pop(L, 1);
     ctx->err = strdup("no such module");
@@ -263,22 +268,58 @@ mtev_lua_web_driver_onload(mtev_image_t *self) {
 static int
 mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   lua_web_conf_t *conf = get_config(self);
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  void *vstr;
+  int klen, i;
+  const char *key;
   conf->script_dir = NULL;
   conf->cpath = NULL;
-  conf->dispatch = NULL;
   (void)mtev_hash_retr_str(o, "directory", strlen("directory"), &conf->script_dir);
   if(conf->script_dir) conf->script_dir = strdup(conf->script_dir);
   (void)mtev_hash_retr_str(o, "cpath", strlen("cpath"), &conf->cpath);
   if(conf->cpath) conf->cpath = strdup(conf->cpath);
-  (void)mtev_hash_retr_str(o, "dispatch", strlen("dispatch"), &conf->dispatch);
-  if(conf->dispatch) conf->dispatch = strdup(conf->dispatch);
+
+  conf->mounts = calloc(1+mtev_hash_size(o), sizeof(*conf->mounts));
+  i = 0;
+  while(mtev_hash_next(o, &iter, &key, &klen, &vstr)) {
+    const char *str = vstr;
+    if(!strncmp(key, "mount_", strlen("mount_"))) {
+      /* <module>:<method>:<mount>[:<expr>] */
+      char *copy = strdup(str);
+      char *module, *method, *mount, *expr;
+      module = copy;
+      method = strchr(module, ':');
+      if(method) {
+        *method++ = '\0';
+        mount = strchr(method, ':');
+        if(mount) {
+          *mount++ = '\0';
+          expr = strchr(mount, ':');
+          if(expr) *expr++ = '\0';
+        }
+      }
+      if(!module || !method || !mount) {
+        mtevL(mtev_error, "Invalid lua_web mount syntax in '%s'\n", key);
+        return -1;
+      }
+      conf->mounts[i].module = strdup(module); 
+      conf->mounts[i].method = strdup(method); 
+      conf->mounts[i].mount = strdup(mount); 
+      conf->mounts[i].expr = expr ? strdup(expr) : strdup("(.*)$"); 
+      i++;
+    }
+  }
   conf->max_post_size = DEFAULT_MAX_POST_SIZE;
   return 0;
 }
 
 static mtev_hook_return_t late_stage_rest_register(void *cl) {
-  assert(mtev_http_rest_register("GET", "/", "(.*)$", lua_web_handler) == 0);
-  assert(mtev_http_rest_register("POST", "/", "(.*)$", lua_web_handler) == 0);
+  mtev_dso_generic_t *self = cl;
+  lua_web_conf_t *conf = get_config(self);
+  int i = 0;
+  for(i=0; conf->mounts[i].module != NULL; i++) {
+    assert(mtev_http_rest_register_closure(conf->mounts[i].method, conf->mounts[i].mount, conf->mounts[i].expr, lua_web_handler, conf->mounts[i].module) == 0);
+  }
   return MTEV_HOOK_CONTINUE;
 }
 static int
@@ -291,7 +332,7 @@ mtev_lua_web_driver_init(mtev_dso_generic_t *self) {
                                  conf->script_dir, conf->cpath);
   if(lmc->lua_state == NULL) return -1;
   lmc->pending = calloc(1, sizeof(*lmc->pending));
-  dso_post_init_hook_register("web_lua", late_stage_rest_register, NULL);
+  dso_post_init_hook_register("web_lua", late_stage_rest_register, self);
   return 0;
 }
 
