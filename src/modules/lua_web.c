@@ -31,6 +31,7 @@
 #include "mtev_defines.h"
 
 #include <assert.h>
+#include <dlfcn.h>
 
 #include "mtev_dso.h"
 #include "mtev_http.h"
@@ -50,6 +51,7 @@ typedef struct lua_web_conf {
     char *expr;
     char *module;
   } *mounts;
+  const char **Cpreloads;
   int max_post_size;
   lua_State *L;
 } lua_web_conf_t;
@@ -105,8 +107,12 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
   const char *err = NULL;
   int status, base, rv = 0;
   mtev_lua_resume_rest_info_t *ctx = ri->context_data;
-  mtev_http_rest_closure_t *restc = ctx->restc;
-  eventer_t conne = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
+  mtev_http_rest_closure_t *restc = NULL;
+  eventer_t conne = NULL;
+  if(ctx) {
+    restc = ctx->restc;
+    conne = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
+  }
 
   assert(pthread_equal(pthread_self(), ri->bound_thread));
 
@@ -134,9 +140,11 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
       rv = -1;
   }
 
-  lua_web_restc_fastpath(restc, 0, NULL);
-  eventer_add(conne);
-  eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
+  if(restc) lua_web_restc_fastpath(restc, 0, NULL);
+  if(conne) {
+    eventer_add(conne);
+    eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
+  }
   return rv;
 }
 static void req_payload_free(void *d, int64_t s, void *c) {
@@ -265,13 +273,23 @@ mtev_lua_web_driver_onload(mtev_image_t *self) {
   return 0;
 }
 
+static mtev_lua_resume_info_t *
+lua_web_new_resume_info(lua_module_closure_t *lmc) {
+  return mtev_lua_new_resume_info(lmc, LUA_REST_INFO_MAGIC);
+}
+
+static int
+lua_web_coroutine_spawn(lua_State *Lp) {
+  return mtev_lua_coroutine_spawn(Lp, lua_web_new_resume_info);
+}
+
 static int
 mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   lua_web_conf_t *conf = get_config(self);
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   void *vstr;
   int klen, i;
-  const char *key;
+  const char *key, *bstr;
   conf->script_dir = NULL;
   conf->cpath = NULL;
   (void)mtev_hash_retr_str(o, "directory", strlen("directory"), &conf->script_dir);
@@ -309,6 +327,20 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
       i++;
     }
   }
+
+  if(mtev_hash_retr_str(o, "Cpreloads", strlen("Cpreloads"), &bstr)) {
+    int count = 1, i;
+    char *brk, *cp, *copy;
+    cp = copy = strdup(bstr);
+    while(*cp) if(*cp++ == ',') count++; /* count terms (start with 1) */
+    conf->Cpreloads = calloc(count+1, sizeof(char *)); /* null term */
+    for(i = 0, cp = strtok_r(copy, ",", &brk);
+      cp; cp = strtok_r(NULL, ",", &brk), i++) {
+      conf->Cpreloads[i] = strdup(cp);
+    }
+    free(copy);
+  }
+
   conf->max_post_size = DEFAULT_MAX_POST_SIZE;
   return 0;
 }
@@ -318,12 +350,25 @@ static mtev_hook_return_t late_stage_rest_register(void *cl) {
   lua_web_conf_t *conf = get_config(self);
   int i = 0;
   for(i=0; conf->mounts[i].module != NULL; i++) {
-    assert(mtev_http_rest_register_closure(conf->mounts[i].method, conf->mounts[i].mount, conf->mounts[i].expr, lua_web_handler, conf->mounts[i].module) == 0);
+    assert(
+      mtev_http_rest_register_closure(
+        conf->mounts[i].method, conf->mounts[i].mount,
+        conf->mounts[i].expr, lua_web_handler,
+        conf->mounts[i].module) == 0
+    );
   }
   return MTEV_HOOK_CONTINUE;
 }
+
+static const luaL_Reg web_lua_funcs[] =
+{
+  {"coroutine_spawn", lua_web_coroutine_spawn },
+  {NULL, NULL}
+};
+
 static int
 mtev_lua_web_driver_init(mtev_dso_generic_t *self) {
+  const char **module;
   lua_web_conf_t *conf = get_config(self);
   lua_module_closure_t *lmc = &conf->lmc;
   lmc->resume = lua_web_resume;
@@ -331,6 +376,28 @@ mtev_lua_web_driver_init(mtev_dso_generic_t *self) {
   lmc->lua_state = mtev_lua_open(self->hdr.name, lmc,
                                  conf->script_dir, conf->cpath);
   if(lmc->lua_state == NULL) return -1;
+  luaL_openlib(lmc->lua_state, "mtev", web_lua_funcs, 0);
+
+  for(module = conf->Cpreloads; module && *module; module++) {
+    int len;
+    char *symbol = NULL;
+    len = strlen(*module) + strlen("luaopen_");
+    symbol = malloc(len+1);
+    if(!symbol) mtevL(mtev_error, "Failed to preload %s: malloc error\n", *module);
+    else {
+      void (*f)(lua_State *);
+      snprintf(symbol, len+1, "luaopen_%s", *module);
+#ifdef RTLD_DEFAULT
+      f = dlsym(RTLD_DEFAULT, symbol);
+#else
+      f = dlsym((void *)0, symbol);
+#endif
+      if(!f) mtevL(mtev_error, "Failed to preload %s: %s not found\n", *module, symbol);
+      else f(lmc->lua_state);
+    }
+    free(symbol);
+  }
+
   lmc->pending = calloc(1, sizeof(*lmc->pending));
   dso_post_init_hook_register("web_lua", late_stage_rest_register, self);
   return 0;
