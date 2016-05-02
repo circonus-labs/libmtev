@@ -61,6 +61,7 @@ struct mtev_http_rest_closure {
   int wants_shutdown;
   void *call_closure;
   void (*call_closure_free)(void *);
+  void *closure;
 };
 
 API_EXPORT(void) mtev_http_rest_init();
@@ -77,9 +78,19 @@ API_EXPORT(int)
                           const char *expression, rest_request_handler f);
 
 API_EXPORT(int)
+  mtev_http_rest_register_closure(const char *method, const char *base,
+                                  const char *expression, rest_request_handler f,
+                                  void *closure);
+
+API_EXPORT(int)
   mtev_http_rest_register_auth(const char *method, const char *base,
                                const char *expression, rest_request_handler f,
                                rest_authorize_func_t auth);
+
+API_EXPORT(int)
+  mtev_http_rest_register_auth_closure(const char *method, const char *base,
+                                       const char *expression, rest_request_handler f,
+                                       rest_authorize_func_t auth, void *closure);
 
 API_EXPORT(xmlDocPtr)
   rest_get_xml_upload(mtev_http_rest_closure_t *restc,

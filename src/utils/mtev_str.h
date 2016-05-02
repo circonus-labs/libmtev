@@ -36,10 +36,26 @@
 
 #include "mtev_defines.h"
 
+typedef struct mtev_prependable_str_buff{
+  char *buff;
+  char *string;
+  uint buff_len;
+} mtev_prependable_str_buff_t;
+
 #ifndef HAVE_STRNSTRN
 API_EXPORT(const char *) strnstrn(const char *, int, const char *, int);
 #endif
 
 API_EXPORT(char *) mtev__strndup(const char *src, int len);
+
+API_EXPORT(void) mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str, uint str_len);
+
+API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc();
+
+API_EXPORT(void) mtev_prepend_str_free(mtev_prependable_str_buff_t *buff);
+
+API_EXPORT(void) mtev_prepend_str_free(mtev_prependable_str_buff_t *buff);
+
+API_EXPORT(int) mtev_prepend_strlen(mtev_prependable_str_buff_t *buff);
 
 #endif

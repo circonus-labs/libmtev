@@ -129,20 +129,7 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
 
 static mtev_lua_resume_info_t *
 lua_general_new_resume_info(lua_module_closure_t *lmc) {
-  mtev_lua_resume_info_t *ri;
-  ri = calloc(1, sizeof(*ri));
-  assert(pthread_equal(lmc->owner, pthread_self()));
-  ri->bound_thread = lmc->owner;
-  ri->context_magic = LUA_GENERAL_INFO_MAGIC;
-  ri->lmc = lmc;
-  lua_getglobal(lmc->lua_state, "mtev_coros");
-  ri->coro_state = lua_newthread(lmc->lua_state);
-  ri->coro_state_ref = luaL_ref(lmc->lua_state, -2);
-  mtev_lua_set_resume_info(lmc->lua_state, ri);
-  lua_pop(lmc->lua_state, 1); /* pops mtev_coros */
-  mtevL(nldeb, "lua_general(%p) -> starting new job (%p)\n",
-        lmc->lua_state, ri->coro_state);
-  return ri;
+  return mtev_lua_new_resume_info(lmc, LUA_GENERAL_INFO_MAGIC);
 }
 
 static int
@@ -216,24 +203,7 @@ lua_general_handler(mtev_dso_generic_t *self) {
 
 static int
 lua_general_coroutine_spawn(lua_State *Lp) {
-  int nargs;
-  lua_State *L;
-  mtev_lua_resume_info_t *ri_parent = NULL, *ri = NULL;
-
-  nargs = lua_gettop(Lp);
-  if(nargs < 1 || !lua_isfunction(Lp,1))
-    luaL_error(Lp, "mtev.coroutine_spawn(func, ...): bad arguments");
-  ri_parent = mtev_lua_get_resume_info(Lp);
-  assert(ri_parent);
-
-  ri = lua_general_new_resume_info(ri_parent->lmc);
-  L = ri->coro_state;
-  lua_xmove(Lp, L, nargs);
-#if !defined(LUA_JITLIBNAME) && LUA_VERSION_NUM < 502
-  lua_setlevel(Lp, L);
-#endif
-  ri->lmc->resume(ri, nargs-1);
-  return 0;
+  return mtev_lua_coroutine_spawn(Lp, lua_general_new_resume_info);
 }
 
 int

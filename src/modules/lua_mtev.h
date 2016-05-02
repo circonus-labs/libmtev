@@ -112,6 +112,10 @@ void mtev_lua_context_describe(int magic,
                                void (*f)(mtev_console_closure_t,
                                          mtev_lua_resume_info_t *));
 const char *mtev_lua_type_name(int);
+mtev_lua_resume_info_t *
+  mtev_lua_new_resume_info(lua_module_closure_t *lmc, int magic);
+int mtev_lua_coroutine_spawn(lua_State *Lp,
+    mtev_lua_resume_info_t *(*new_ri_f)(lua_module_closure_t *));
 lua_State *mtev_lua_open(const char *module_name, void *lmc,
                          const char *script_dir, const char *cpath);
 void register_console_lua_commands();

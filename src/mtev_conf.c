@@ -54,6 +54,7 @@
 #include "mtev_watchdog.h"
 #include "mtev_security.h"
 #include "mtev_hooks.h"
+#include "mtev_str.h"
 
 MTEV_HOOK_IMPL(mtev_conf_delete_section,
                 (const char *root, const char *path,
@@ -1100,6 +1101,62 @@ static int mtev_conf_check_value(mtev_conf_description_t* description) {
   return rv;
 }
 
+static int
+get_descendant_id(xmlNode* node) {
+  xmlNode* sibling = node->prev;
+
+  int id = 0;
+  while(sibling) {
+    if(strcmp(node->name, sibling->name)==0){
+      id++;
+    }
+    sibling = sibling->prev;
+  }
+  return id+1;
+}
+
+char*
+mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
+  if (section == NULL) {
+    return NULL;
+  }
+
+  mtev_prependable_str_buff_t *xpath = mtev_prepend_str_alloc();
+  xmlNode* node = (xmlNode*) section;
+  int buff_len = 512;
+  char *buff = alloca(buff_len);
+  while (node && node->name) {
+    int desc_id = get_descendant_id(node);
+    int current_entry_len = strlen(node->name);
+    char* current_entry;
+    if (current_entry_len < buff_len) {
+      current_entry = buff;
+    } else {
+      buff_len = current_entry_len + sizeof("/descendant::[999999]\0");
+      current_entry = malloc(buff_len);
+      buff = current_entry;
+    }
+
+    if (desc_id > 1) {
+      current_entry_len = sprintf(current_entry, "/descendant::%s[%d]",
+          node->name, desc_id);
+    } else {
+      current_entry_len = sprintf(current_entry, "/%s", node->name);
+    }
+
+    mtev_prepend_str(xpath, current_entry, current_entry_len);
+    node = node->parent;
+  }
+
+  if (buff_len != 512) {
+    free(buff);
+  }
+
+  char *result = strndup(xpath->string, mtev_prepend_strlen(xpath));
+  mtev_prepend_str_free(xpath);
+  return result;
+}
+
 mtev_hash_table*
 mtev_conf_check(mtev_conf_description_t* descriptions, int descriptions_cnt) {
   mtev_hash_table* table = malloc(sizeof(mtev_hash_table));
@@ -1107,13 +1164,19 @@ mtev_conf_check(mtev_conf_description_t* descriptions, int descriptions_cnt) {
 
   for (int i = 0; i != descriptions_cnt; i++) {
     if (mtev_conf_check_value(&descriptions[i]) == 0) {
+      char *section = mtev_conf_section_to_xpath(descriptions[i].section);
       mtevL(mtev_error,
-          "Path does not exist in config: '%s'. It should contain the following config: %s\n",
-          descriptions[i].path, descriptions[i].description);
+          "Path does not exist in config: '%s/%s'. It should contain the following config: %s\n",
+          section, descriptions[i].path, descriptions[i].description);
+      mtev_hash_destroy(table, NULL, NULL);
       free(table);
+      if(section != NULL) {
+        free(section);
+      }
       return NULL;
     }
-    mtev_hash_store(table, descriptions[i].path, strlen(descriptions[i].path), &descriptions[i]);
+    mtev_hash_store(table, descriptions[i].path, strlen(descriptions[i].path),
+        &descriptions[i]);
   }
 
   return table;

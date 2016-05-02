@@ -1416,7 +1416,7 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   const char *key, *value;
   int klen, i;
   const char **keys;
-  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  mtev_boolean cl_present = mtev_false;
 
   assert(!ctx->res.leader);
   ctx->res.leader = b = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
@@ -1443,11 +1443,31 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   memcpy(b->buff + b->start + b->size, s, slen); \
   b->size += slen; \
 } while(0)
-  keys = alloca(sizeof(*keys)*mtev_hash_size(&ctx->res.headers));
-  i = 0;
-  while(mtev_hash_next_str(&ctx->res.headers, &iter,
-                           &key, &klen, &value)) {
-    keys[i++] = key;
+  while(!cl_present) {
+    mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+    i = 0;
+    keys = alloca(sizeof(*keys)*(mtev_hash_size(&ctx->res.headers)));
+    while(mtev_hash_next_str(&ctx->res.headers, &iter,
+                             &key, &klen, &value)) {
+      keys[i++] = key;
+      if(klen == strlen(HEADER_CONTENT_LENGTH) &&
+         !strncasecmp(key, HEADER_CONTENT_LENGTH, strlen(HEADER_CONTENT_LENGTH))) {
+        cl_present = mtev_true;
+      }
+    }
+    /* One of these options will necessarily be set if we come through here
+     * a second time.
+     */
+    if(ctx->res.output_options & (MTEV_HTTP_CHUNKED | MTEV_HTTP_CLOSE))
+      cl_present = mtev_true;
+
+    if(!cl_present) {
+      if(mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED) == mtev_false) {
+        if(mtev_http_response_option_set(ctx, MTEV_HTTP_CLOSE) == mtev_false) {
+          break; /* Something went horrible wrong, nothing we can do */
+        }
+      }
+    }
   }
   qsort(keys, i, sizeof(*keys), casesort);
   kcnt = i;
