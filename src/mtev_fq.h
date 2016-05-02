@@ -33,7 +33,10 @@
 
 #ifndef _MTEV_FQ_H
 #define _MTEV_FQ_H
+#include <fq.h>
 
-API_EXPORT(void) mtev_fq_init();
+typedef void (*fq_receiver_func_t)(int connection_id, fq_msg *message);
+
+API_EXPORT(void) mtev_fq_init(fq_receiver_func_t on_msg_received);
 
 #endif
