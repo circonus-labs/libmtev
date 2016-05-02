@@ -159,6 +159,7 @@ void mtev_fq_init() {
     mtev_hash_retrieve(configs, CONFIG_FQ_HOST, strlen(CONFIG_FQ_HOST), (void*)&dstr);
 
     mtevL(mtev_error, "Read host: %s!\n", dstr->value.val_string);
+    free(configs);
   }
 
   if (number_of_connections == 0) {
