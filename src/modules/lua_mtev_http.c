@@ -371,7 +371,7 @@ mtev_http_ctx_index_func(lua_State *L) {
       }
       break;
     case 'D':
-      if(!strcmp(k, "DEFATE")) {
+      if(!strcmp(k, "DEFLATE")) {
         lua_pushinteger(L, MTEV_HTTP_DEFLATE);
         return 1;
       }
