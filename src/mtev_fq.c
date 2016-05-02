@@ -217,6 +217,7 @@ void mtev_fq_init(fq_receiver_func_t on_msg_received) {
         pass_desc->value.val_string, exchange_desc->value.val_string,
         program_desc->value.val_string);
 
+    mtev_hash_destroy(configs, NULL, NULL);
     free(configs);
   }
   start_polling();
