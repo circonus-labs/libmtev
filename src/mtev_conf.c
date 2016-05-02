@@ -1110,6 +1110,7 @@ mtev_conf_check(mtev_conf_description_t* descriptions, int descriptions_cnt) {
       mtevL(mtev_error,
           "Path does not exist in config: '%s'. It should contain the following config: %s\n",
           descriptions[i].path, descriptions[i].description);
+      mtev_hash_destroy(table, NULL, NULL);
       free(table);
       return NULL;
     }
