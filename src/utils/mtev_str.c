@@ -32,6 +32,7 @@
  */
 
 #include "mtev_defines.h"
+#include "mtev_str.h"
 
 #ifndef HAVE_STRNSTRN
 
@@ -80,6 +81,52 @@ mtev__strndup(const char *src, int len) {
   memcpy(dst, src, slen);
   dst[slen] = '\0';
   return dst;
+}
+
+void
+mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str,
+    uint str_len) {
+  const int growth_factor = 1.4;
+  if (buff->buff == NULL) {
+    buff->buff_len = str_len * growth_factor;
+    buff->buff = malloc(buff->buff_len);
+    buff->string = buff->buff + buff->buff_len;
+  }
+  if (buff->string - buff->buff < str_len) {
+    int bytes_stored = buff->buff_len - (buff->string - buff->buff);
+    int new_buff_len = growth_factor * (buff->buff_len + str_len);
+    char* tmp = malloc(new_buff_len);
+    buff->buff_len = new_buff_len;
+    memcpy(tmp + buff->buff_len - bytes_stored, buff->string, bytes_stored);
+    free(buff->buff);
+    buff->buff = tmp;
+    buff->string = buff->buff + buff->buff_len - bytes_stored;
+  }
+
+  buff->string -= str_len;
+  memcpy(buff->string, str, str_len);
+}
+
+mtev_prependable_str_buff_t *
+mtev_prepend_str_alloc() {
+  mtev_prependable_str_buff_t* buff = calloc(1, sizeof(mtev_prependable_str_buff_t));
+  return buff;
+}
+
+void
+mtev_prepend_str_free(mtev_prependable_str_buff_t *buff) {
+  if(buff->buff) {
+    free(buff->buff);
+  }
+  free(buff);
+}
+
+int
+mtev_prepend_strlen(mtev_prependable_str_buff_t *buff) {
+  if(buff != NULL) {
+    return buff->buff + buff->buff_len - buff->string;
+  }
+  return 0;
 }
 
 #endif

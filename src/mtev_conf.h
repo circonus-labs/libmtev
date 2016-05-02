@@ -119,6 +119,9 @@ API_EXPORT(mtev_hash_table *)
   mtev_conf_get_namespaced_hash(mtev_conf_section_t section,
                                 const char *path, const char *ns);
 
+API_EXPORT(char*)
+mtev_conf_section_to_xpath(mtev_conf_section_t* section);
+
 API_EXPORT(int) mtev_conf_get_string(mtev_conf_section_t section,
                                      const char *path, char **value);
 
