@@ -39,6 +39,6 @@ typedef void (*fq_receiver_func_t)(int connection_id, fq_msg *message);
 
 API_EXPORT(void) mtev_fq_init(fq_receiver_func_t on_msg_received);
 
-API_EXPORT(void) mtev_fq_send(char* message, int message_len, int connection_id_broadcast_if_negative);
+API_EXPORT(void) mtev_fq_send(unsigned char* message, uint message_len, int connection_id_broadcast_if_negative);
 
 #endif

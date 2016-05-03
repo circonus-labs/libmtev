@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2016, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -302,7 +302,7 @@ static void init_senders() {
   }
 }
 
-void mtev_fq_send(char* message, int message_len,
+void mtev_fq_send(unsigned char* message, uint message_len,
     int connection_id_broadcast_if_negative) {
   if (connection_id_broadcast_if_negative >= number_of_senders) {
     mtevL(mtev_error,
