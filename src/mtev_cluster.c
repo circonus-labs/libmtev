@@ -32,6 +32,7 @@
 
 #include <assert.h>
 #include <libxml/tree.h>
+#include <inttypes.h>
 
 #include "mtev_rest.h"
 #include "mtev_conf.h"
@@ -115,7 +116,7 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
   n = mtev_conf_get_section(NULL, xpath_search);
   parent = (xmlNodePtr)n;
 
-  snprintf(new_seq_str, sizeof(new_seq_str), "%lld", cluster->config_seq);
+  snprintf(new_seq_str, sizeof(new_seq_str), "%"PRId64, cluster->config_seq);
   if(!create) {
     xmlNodePtr child;
     if(!parent) return 0;
@@ -170,9 +171,6 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
   mtev_conf_request_write();
 
   return 1;
- bail:
-  if(create && parent) xmlFree(parent);
-  return 0;
 }
 
 int
@@ -397,7 +395,7 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   xmlNodePtr cluster;
   cluster = xmlNewNode(NULL, (xmlChar *)"cluster");
   xmlSetProp(cluster, (xmlChar *)"name", (xmlChar *)c->name);
-  snprintf(str, sizeof(str), "%lld", c->config_seq);
+  snprintf(str, sizeof(str), "%"PRId64, c->config_seq);
   xmlSetProp(cluster, (xmlChar *)"seq", (xmlChar *)str);
   for(i=0;i<c->node_cnt;i++) {
     mtev_cluster_node_t *n = &c->nodes[i];
@@ -507,7 +505,7 @@ void
 mtev_cluster_init() {
   uuid_t my_id;
   char my_id_str[UUID_STR_LEN+1];
-  int i, j, n_clusters, n_nodes;
+  int i, n_clusters;
   mtev_conf_section_t *clusters, parent;
 
   mtev_hash_init(&global_clusters);
