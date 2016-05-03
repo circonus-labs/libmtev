@@ -56,7 +56,7 @@ static uint number_of_receivers;
 static fq_receiver_func_t on_msg_received_callback;
 
 static fq_client* fq_senders;
-static uint number_of_senders;
+static int number_of_senders;
 static char* sender_exchange;
 static int sender_exchange_len;
 static char* sender_route;
@@ -303,16 +303,16 @@ static void init_senders() {
 }
 
 void mtev_fq_send(char* message, int message_len,
-    int connection_id_breadcast_if_negative) {
-  if (connection_id_breadcast_if_negative >= number_of_senders) {
+    int connection_id_broadcast_if_negative) {
+  if (connection_id_broadcast_if_negative >= number_of_senders) {
     mtevL(mtev_error,
         "mtev_fq_send called with a connection_id of %d but there are only %d brokers connected!\n");
     return;
   }
 
-  int first_host = connection_id_breadcast_if_negative;
-  int last_host_plus_one = connection_id_breadcast_if_negative + 1;
-  if (connection_id_breadcast_if_negative < 0) {
+  int first_host = connection_id_broadcast_if_negative;
+  int last_host_plus_one = connection_id_broadcast_if_negative + 1;
+  if (connection_id_broadcast_if_negative < 0) {
     first_host = 0;
     last_host_plus_one = number_of_senders;
   }
@@ -322,7 +322,7 @@ void mtev_fq_send(char* message, int message_len,
   fq_msg_route(msg, sender_route, sender_route_len);
   fq_msg_id(msg, NULL);
 
-  for (int connection_id = first_host; connection_id != last_host_plus_one; ++first_host) {
+  for (int connection_id = first_host; connection_id != last_host_plus_one; ++connection_id) {
     fq_client_publish(fq_senders[connection_id], msg);
   }
   fq_msg_deref(msg);
