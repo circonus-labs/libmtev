@@ -4,7 +4,7 @@ top_srcdir=@top_srcdir@
 
 CC=@CC@
 CPPFLAGS=@CPPFLAGS@ \
-	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils
+	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/modules
 CFLAGS=@CFLAGS@
 SHCFLAGS=@SHCFLAGS@
 LDFLAGS=@LDFLAGS@
@@ -16,7 +16,9 @@ INSTALL=@INSTALL@
 
 EX1_OBJS=	example1.o
 
-all:	example1
+FQR_OBJS=	fq-router.o
+
+all:	example1 fq-router
 
 .c.o:
 	@echo "- compiling $<"
@@ -25,6 +27,10 @@ all:	example1
 example1:	$(EX1_OBJS)
 	@echo "- linking $@"
 	@$(CC) -L.. $(LDFLAGS) -o $@ $(EX1_OBJS) -lmtev
+
+fq-router:	$(FQR_OBJS)
+	@echo "- linking $@"
+	@$(CC) -L.. $(LDFLAGS) -o $@ $(FQR_OBJS) -lmtev -lfq
 
 clean:
 	rm -f *.o example1

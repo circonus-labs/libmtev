@@ -50,6 +50,12 @@ zipkin_fq.@MODULEEXT@:	zipkin_fq.lo
 	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ zipkin_fq.lo -lfq
 	@echo "- linking $@"
 
+fq.lo:	fq.xmlh
+
+fq.@MODULEEXT@:	mtev_fq.lo
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ mtev_fq.lo -lfq
+	@echo "- linking $@"
+
 LUA_MODULE_OBJS=lua.lo lua_web.lo lua_general.lo lua_mtev_http.lo
 
 lua_general.lo:	lua_general.xmlh

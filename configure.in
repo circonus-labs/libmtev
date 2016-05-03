@@ -258,6 +258,18 @@ AS_IF([test "x$enable_zipkin_fq" != "xno"], [
 	LIBS=$OLD_LIBS
 ])
 
+AC_ARG_ENABLE([fq],
+    AS_HELP_STRING([--disable-fq], [Disable modules fq]))
+
+AS_IF([test "x$enable_fq" != "xno"], [
+	OLD_LIBS=$LIBS
+	LIBS=
+	AC_CHECK_LIB(fq, fq_client_init, [
+		BUILD_MODULES="$BUILD_MODULES fq.$MODULEEXT"
+	], [AC_MSG_ERROR([*** can't build fq, no -lfq ***])])
+	LIBS=$OLD_LIBS
+])
+
 AC_CHECK_HEADERS(priv.h)
 AC_CHECK_FUNCS(setppriv)
 

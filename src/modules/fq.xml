@@ -1,0 +1,38 @@
+<module>
+  <name>fq</name>
+  <description><para>The fq module consumed and publishes message via fq.</para></description>
+  <loader>C</loader>
+  <image>fq.so</image>
+  <moduleconfig>
+  </moduleconfig>
+  <examples>
+    <example>
+      <title>Loading the fq module.</title>
+      <programlisting><![CDATA[
+      <root>
+        <modules>
+          <module image="fq" name="fq"/>
+        </modules>
+        <network>
+          <mq type="fq">
+            <host>localhost</host>
+            <port>8765</port>
+            <user>user</user>
+            <pass>pass</pass>
+            <exchange>exchange</exchange>
+            <program>prefix:"in."</program>
+          </mq>
+          <mq type="fq">
+            <host>localhost</host>
+            <port>8765</port>
+            <user>user</user>
+            <pass>pass</pass>
+            <exchange>exchange</exchange>
+            <program>prefix:"in2."</program>
+          </mq>
+        </network>
+      </root>
+    ]]></programlisting>
+    </example>
+  </examples>
+</module>

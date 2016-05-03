@@ -35,6 +35,8 @@
 #define UTILS_MTEV_HOOKS
 
 #include <mtev_atomic.h>
+#include <assert.h>
+#include <dlfcn.h>
 
 /*#* DOCBOOK
  * <section><title>Abitrary Hooks</title>
@@ -188,4 +190,22 @@ void HOOKNAME##_hook_register(const char *name, \
   } while(last != expected); \
 }
 
+#ifdef RTLD_DEFAULT
+#define MTEV_RTLD_PARAM RTLD_DEFAULT
+#else
+#define MTEV_RTLD_PARAM (void *)0
+#endif
+#define MTEV_RUNTIME_RESOLVE(FUNCNAME, SYMBOL, RTYPE, PROTO, PARAMS) \
+static inline RTYPE FUNCNAME PROTO { \
+  static RTYPE (*f_) PROTO; \
+  if(!f_) { \
+    f_ = dlsym(MTEV_RTLD_PARAM, #SYMBOL); \
+    if(!f_) { \
+      mtevL(mtev_error, "runtime resolution of '%s %s%s' failed.\n", \
+            #RTYPE, #FUNCNAME, #PROTO); \
+    } \
+    assert(f_); \
+  } \
+  return f_ PARAMS; \
+}
 #endif
