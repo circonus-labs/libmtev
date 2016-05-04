@@ -1107,7 +1107,7 @@ get_descendant_id(xmlNode* node) {
 
   int id = 0;
   while(sibling) {
-    if(strcmp(node->name, sibling->name)==0){
+    if(strcmp((const char *)node->name, (const char *)sibling->name)==0){
       id++;
     }
     sibling = sibling->prev;
@@ -1127,7 +1127,7 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
   char *buff = alloca(buff_len);
   while (node && node->name) {
     int desc_id = get_descendant_id(node);
-    int current_entry_len = strlen(node->name);
+    int current_entry_len = strlen((const char *)node->name);
     char* current_entry;
     if (current_entry_len < buff_len) {
       current_entry = buff;
