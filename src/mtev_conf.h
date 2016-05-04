@@ -62,20 +62,28 @@ enum mtev_conf_type {
   MTEV_CONF_TYPE_UUID
 };
 
+typedef union mtev_conf_value_t {
+  mtev_boolean val_bool;
+  int val_int;
+  int64_t val_int64;
+  float val_float;
+  double val_double;
+  char* val_string;
+  uuid_t val_uuid;
+} mtev_conf_value_t;
+
+typedef struct mtev_conf_default_or_optional_t {
+  int is_optional;
+  mtev_conf_value_t value;
+} mtev_conf_default_or_optional_t;
+
 typedef struct mtev_conf_description_t {
   mtev_conf_section_t section;
   char* path;
   enum mtev_conf_type type;
   char* description;
-  union {
-    mtev_boolean val_bool;
-    int val_int;
-    int64_t val_int64;
-    float val_float;
-    double val_double;
-    char* val_string;
-    uuid_t val_uuid;
-  } value;
+  mtev_conf_default_or_optional_t default_or_optional;
+  mtev_conf_value_t value;
 } mtev_conf_description_t;
 
 /* seconds == 0 disable config journaling watchdog */
@@ -95,10 +103,38 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_override_console_stopword(int (*f)(const char *));
 API_EXPORT(int) mtev_conf_load(const char *path);
-API_EXPORT(mtev_hash_table*)
-  mtev_conf_check(mtev_conf_description_t* descriptions, int descriptions_cnt);
-API_EXPORT(mtev_hash_table*) mtev_conf_load_desc(const char *path,
-    mtev_conf_description_t* descriptions, int descriptions_cnt);
+
+#define mtev_conf_default_hdr(name, type) \
+API_EXPORT(mtev_conf_default_or_optional_t) \
+  mtev_conf_default_##name (type default_value);
+
+mtev_conf_default_hdr(boolean, int)
+mtev_conf_default_hdr(int, int)
+mtev_conf_default_hdr(int64, int64_t)
+mtev_conf_default_hdr(float, float)
+mtev_conf_default_hdr(double, double)
+mtev_conf_default_hdr(string, char*)
+mtev_conf_default_hdr(uuid, uuid_t)
+
+API_EXPORT(mtev_conf_default_or_optional_t)
+  mtev_conf_optional();
+
+
+#define mtev_conf_description_hdr(name, type) \
+extern mtev_conf_description_t \
+  mtev_conf_description_##name (mtev_conf_section_t section, char *path, \
+    char* description, mtev_conf_default_or_optional_t default_or_optional);
+
+mtev_conf_description_hdr(boolean, int)
+mtev_conf_description_hdr(int, int)
+mtev_conf_description_hdr(int64, int64_t)
+mtev_conf_description_hdr(float, float)
+mtev_conf_description_hdr(double, double)
+mtev_conf_description_hdr(string, char*)
+mtev_conf_description_hdr(uuid, uuid_t)
+
+API_EXPORT(int)
+  mtev_conf_get_value(mtev_conf_description_t* description, void *return_value);
 API_EXPORT(int) mtev_conf_save(const char *path);
 API_EXPORT(char *) mtev_conf_config_filename();
 API_EXPORT(void) mtev_conf_write_section(mtev_conf_section_t node, int fd);
