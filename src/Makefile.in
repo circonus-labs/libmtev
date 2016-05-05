@@ -80,7 +80,7 @@ build-modules:
 	(cd modules && $(MAKE))
 
 HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
-	mtev_cluster.h \
+	mtev_cluster.h mtev_net_heartbeat.h \
 	mtev_config.h mtev_conf_private.h mtev_console.h mtev_console_telnet.h \
 	mtev_defines.h mtev_events_rest.h \
 	mtev_http.h mtev_listener.h \
@@ -141,7 +141,7 @@ LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
 	mtev_conf.lo mtev_http.lo mtev_rest.lo mtev_tokenizer.lo \
 	mtev_reverse_socket.lo \
 	mtev_capabilities_listener.lo mtev_dso.lo \
-	mtev_events_rest.lo \
+	mtev_events_rest.lo mtev_net_heartbeat.lo \
 	$(MTEVEDIT_LIB_OBJS) $(EVENTER_LIB_OBJS) \
 	$(MTEV_UTILS_OBJS) $(JSON_LIB_OBJS)
 

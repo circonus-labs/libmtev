@@ -57,6 +57,7 @@ child_main() {
   mtev_listener_init(APPNAME);
   mtev_cluster_init();
   mtev_dso_init();
+  mtev_dso_post_init();
 
   mtev_http_rest_register_auth(
     "GET", "/", "^(.*)$", mtev_rest_simple_file_handler,
