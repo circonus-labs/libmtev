@@ -149,7 +149,7 @@ mtev_main(const char *appname,
   int ret;
  
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
-   
+
   /* First initialize logging, so we can log errors */
   mtev_log_init(debug);
   mtev_log_stream_add_stream(mtev_debug, mtev_stderr);
@@ -161,6 +161,16 @@ mtev_main(const char *appname,
   mtev_conf_init(appname);
   if(mtev_conf_load(config_filename) == -1) {
     fprintf(stderr, "Cannot load config: '%s'\n", config_filename);
+    exit(-1);
+  }
+
+  int cnt;
+  char* root_section_path = alloca(strlen(appname)+2);
+  sprintf(root_section_path, "/%s", appname);
+  mtev_conf_get_sections(NULL, root_section_path, &cnt);
+
+  if(cnt==0) {
+    fprintf(stderr, "The config must have <%s> as its root node\n", appname);
     exit(-1);
   }
 
