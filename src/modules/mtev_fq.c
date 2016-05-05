@@ -160,7 +160,7 @@ fq_hooks hooks = {
 
 static void connect_fq_client(fq_client *fq_c, char *host, int port, char *user,
     char *pass, char* exchange, char* program) {
-  mtevL(nldeb, "Connecting with fq broker: %s:%d!\n", host, port);
+  mtevL(nldeb, "Connecting with fq broker: %s:%d\n", host, port);
   fq_client_init(fq_c, 0, logger);
 
   if (fq_client_hooks(*fq_c, &hooks)) {
