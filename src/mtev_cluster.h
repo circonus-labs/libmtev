@@ -48,6 +48,7 @@ typedef struct {
   } addr;
   socklen_t address_len;
   struct timeval last_contact;
+  struct timeval boot_time;
 } mtev_cluster_node_t;
 
 /*! \fn void mtev_cluster_init()

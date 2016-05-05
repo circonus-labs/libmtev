@@ -40,6 +40,7 @@
 #include "mtev_memory.h"
 #include "mtev_cluster.h"
 #include "mtev_cht.h"
+#include "mtev_net_heartbeat.h"
 
 static pthread_mutex_t c_lock = PTHREAD_MUTEX_INITIALIZER;
 static uuid_t my_cluster_id;
@@ -49,10 +50,14 @@ static mtev_hash_table global_clusters;
 /* All allocated with mtev_memory_safe commands */
 struct mtev_cluster_t {
   char *name;
+  unsigned short port;
+  int period;
+  char *key;
   int64_t config_seq;
   int node_cnt;
   mtev_cluster_node_t *nodes;
   mtev_cht_t **cht;
+  mtev_net_heartbeat_ctx *hbctx;
 };
 
 mtev_boolean
@@ -65,8 +70,11 @@ mtev_cluster_free(void *vc) {
   mtev_cluster_t *c = vc;
   if(c) {
     if(c->name) mtev_memory_safe_free(c->name);
+    if(c->key) mtev_memory_safe_free(c->key);
     if(c->nodes) mtev_memory_safe_free(c->nodes);
     if(c->cht) mtev_memory_safe_free(c->cht);
+    if(c->hbctx) mtev_net_heartbeat_destroy(c->hbctx);
+    c->hbctx = NULL;
     mtev_memory_safe_free(c);
   }
 }
@@ -78,6 +86,46 @@ deferred_cht_free(void *vptr) {
   if(!vptr) return;
   if(*chtp) mtev_cht_free(*chtp);
   free(vptr);
+}
+
+static int
+mtev_cluster_info_compose(void *payload, int len, void *c) {
+  mtev_cluster_t *cluster = c;
+  /* payload about the local cluster goes here */
+  return 0;
+}
+static int
+mtev_cluster_info_process(void *payload, int len, void *c) {
+  mtev_cluster_t *cluster = c;
+  /* payloads from other cluster members (including me) arrive here */
+  return 0;
+}
+static void
+mtev_cluster_announce(mtev_cluster_t *cluster) {
+  int i;
+  unsigned char key[32] = { 0 };
+  strlcpy((char *)key, cluster->key, sizeof(key));
+  cluster->hbctx = mtev_net_heartbeat_context_create(cluster->port, key, cluster->period);
+  if(!cluster->hbctx) {
+    mtevL(mtev_error, "cluster '%s' cannot heartbeat\n", cluster->name);
+    return;
+  }
+  for(i=0;i<cluster->node_cnt;i++) {
+    union {
+      struct sockaddr_in a4;
+      struct sockaddr_in6 a6;
+    } a;
+    socklen_t alen;
+    alen = cluster->nodes[i].address_len;
+    memcpy(&a, &cluster->nodes[i].addr, sizeof(cluster->nodes[i].addr));
+    if(a.a4.sin_family == AF_INET) a.a4.sin_port = htons(cluster->port);
+    else if(a.a4.sin_family == AF_INET6) a.a6.sin6_port = htons(cluster->port);
+    mtev_net_heartbeat_add_target(cluster->hbctx,
+                                  (struct sockaddr *)&a, alen);
+  }
+  mtev_net_heartbeat_set_out(cluster->hbctx, mtev_cluster_info_compose, cluster);
+  mtev_net_heartbeat_set_in(cluster->hbctx, mtev_cluster_info_process, cluster);
+  mtev_net_heartbeat_context_start(cluster->hbctx);
 }
 
 static void
@@ -98,8 +146,8 @@ mtev_cluster_compile(mtev_cluster_t *cluster) {
   for(i=0; i<cluster->node_cnt; i++) {
     char uuid_str[UUID_STR_LEN+1];
     uuid_unparse_lower(cluster->nodes[i].id, uuid_str);
-    nodes->name = strdup(uuid_str);
-    nodes->userdata = &cluster->nodes[i];
+    nodes[i].name = strdup(uuid_str);
+    nodes[i].userdata = &cluster->nodes[i];
   }
   mtev_cht_set_nodes(*(cluster->cht), cluster->node_cnt, nodes);
 }
@@ -128,6 +176,7 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
     }
   }
   else {
+    char port[6], period[8];
     if(parent) return 0;
     n = mtev_conf_get_section(NULL, "//clusters");
     if(!n) {
@@ -137,6 +186,11 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
     container = (xmlNodePtr)n;
     parent = xmlNewNode(NULL, (xmlChar *)"cluster");
     xmlSetProp(parent, (xmlChar *)"name", (xmlChar *)cluster->name);
+    snprintf(port, sizeof(port), "%d", cluster->port);
+    xmlSetProp(parent, (xmlChar *)"port", (xmlChar *)port);
+    snprintf(period, sizeof(period), "%d", cluster->period);
+    xmlSetProp(parent, (xmlChar *)"period", (xmlChar *)period);
+    xmlSetProp(parent, (xmlChar *)"key", (xmlChar *)cluster->key);
     xmlSetProp(parent, (xmlChar *)"seq", (xmlChar *)new_seq_str);
   }
   for(i=0;i<cluster->node_cnt;i++) {
@@ -176,11 +230,11 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
 int
 mtev_cluster_update_internal(mtev_conf_section_t cluster,
                              mtev_boolean booted) {
-  int rv = -1, i, n_nodes;
+  int rv = -1, i, n_nodes, port, period;
   int64_t seq;
   char bufstr[1024];
   mtev_conf_section_t *nodes = NULL;
-  char *name = NULL, *endptr;
+  char *name = NULL, *key = NULL, *endptr;
   void *vcluster;
   mtev_cluster_t *old_cluster = NULL;
   mtev_cluster_t *new_cluster = NULL;
@@ -192,6 +246,12 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
   }
   name = mtev_memory_safe_strdup(bufstr);
 
+  if(!mtev_conf_get_stringbuf(cluster, "@key", bufstr, sizeof(bufstr))) {
+    mtevL(mtev_error, "Cluster has no key, skipping.\n");
+    goto bail;
+  }
+  key = mtev_memory_safe_strdup(bufstr);
+
   if(!mtev_conf_get_stringbuf(cluster, "@seq", bufstr, sizeof(bufstr)) ||
      bufstr[0] == '\0') {
     mtevL(mtev_error, "Cluster '%s' has no seq, skipping.\n", name);
@@ -200,6 +260,27 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
   seq = strtoll(bufstr, &endptr, 10);
   if(*endptr) {
     mtevL(mtev_error, "Cluster '%s' seq invalid.\n", name);
+    goto bail;
+  }
+
+  if(!mtev_conf_get_stringbuf(cluster, "@port", bufstr, sizeof(bufstr)) ||
+     bufstr[0] == '\0') {
+    mtevL(mtev_error, "Cluster '%s' has no port, skipping.\n", name);
+    goto bail;
+  }
+  port = strtoll(bufstr, &endptr, 10);
+  if(*endptr || port <= 0 || port > 0xffff) {
+    mtevL(mtev_error, "Cluster '%s' port invalid.\n", name);
+    goto bail;
+  }
+
+  if(!mtev_conf_get_stringbuf(cluster, "@period", bufstr, sizeof(bufstr)) ||
+     bufstr[0] == '\0') {
+     strlcpy(bufstr, "200", sizeof(bufstr));
+  }
+  period = strtoll(bufstr, &endptr, 10);
+  if(*endptr || period < 0 || period > 5000) {
+    mtevL(mtev_error, "Cluster '%s' period invalid.\n", name);
     goto bail;
   }
 
@@ -262,7 +343,10 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
 
   new_cluster = mtev_memory_safe_calloc(1, sizeof(*new_cluster));
   new_cluster->name = name; name = NULL;
+  new_cluster->key = key; key = NULL;
   new_cluster->config_seq = seq;
+  new_cluster->port = port;
+  new_cluster->period = period;
   new_cluster->node_cnt = n_nodes;
   new_cluster->nodes = nlist; nlist = NULL;
 
@@ -286,6 +370,7 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
       goto bail;
     }
     mtev_cluster_compile(new_cluster);
+    mtev_cluster_announce(new_cluster);
     mtev_hash_replace(&global_clusters,
 	      new_cluster->name, strlen(new_cluster->name),
                       new_cluster, NULL, mtev_cluster_free);
@@ -298,6 +383,7 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
       goto bail;
     }
     mtev_cluster_compile(new_cluster);
+    mtev_cluster_announce(new_cluster);
     mtev_hash_store(&global_clusters,
                     new_cluster->name, strlen(new_cluster->name),
                     new_cluster);
@@ -309,6 +395,7 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
  bail:
   if(nodes) free(nodes);
   if(name) mtev_memory_safe_free(name);
+  if(key) mtev_memory_safe_free(key);
   if(new_cluster) mtev_memory_safe_free(new_cluster);
   if(nlist) mtev_memory_safe_free(nlist);
   return rv;
@@ -391,12 +478,16 @@ mtev_cluster_do_i_own(mtev_cluster_t *c, void *key, size_t klen, int w) {
 static xmlNodePtr
 mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   int i;
-  char str[32];
+  char str[32], port[6], period[8];
   xmlNodePtr cluster;
   cluster = xmlNewNode(NULL, (xmlChar *)"cluster");
   xmlSetProp(cluster, (xmlChar *)"name", (xmlChar *)c->name);
   snprintf(str, sizeof(str), "%"PRId64, c->config_seq);
   xmlSetProp(cluster, (xmlChar *)"seq", (xmlChar *)str);
+  snprintf(port, sizeof(port), "%d", c->port);
+  xmlSetProp(cluster, (xmlChar *)"port", (xmlChar *)port);
+  snprintf(period, sizeof(period), "%d", c->period);
+  xmlSetProp(cluster, (xmlChar *)"period", (xmlChar *)period);
   for(i=0;i<c->node_cnt;i++) {
     mtev_cluster_node_t *n = &c->nodes[i];
     xmlNodePtr node;
