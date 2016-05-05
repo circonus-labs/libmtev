@@ -98,8 +98,8 @@ mtev_cluster_compile(mtev_cluster_t *cluster) {
   for(i=0; i<cluster->node_cnt; i++) {
     char uuid_str[UUID_STR_LEN+1];
     uuid_unparse_lower(cluster->nodes[i].id, uuid_str);
-    nodes->name = strdup(uuid_str);
-    nodes->userdata = &cluster->nodes[i];
+    nodes[i].name = strdup(uuid_str);
+    nodes[i].userdata = &cluster->nodes[i];
   }
   mtev_cht_set_nodes(*(cluster->cht), cluster->node_cnt, nodes);
 }
