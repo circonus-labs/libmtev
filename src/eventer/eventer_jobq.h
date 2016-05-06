@@ -63,6 +63,12 @@ typedef struct _eventer_job_t {
   struct _eventer_jobq_t *jobq;
 } eventer_job_t;
 
+typedef enum {
+  EVENTER_JOBQ_MS_CS,  /* manages init, critical sections, and gc */
+  EVENTER_JOBQ_MS_GC,  /* manages init, and gc */
+  EVENTER_JOBQ_MS_NONE /* managed nothing at all */
+} eventer_jobq_memory_safety_t;
+
 typedef struct _eventer_jobq_t {
   const char             *queue_name;
   pthread_mutex_t         lock;
@@ -80,9 +86,12 @@ typedef struct _eventer_jobq_t {
   mtev_atomic64_t         timeouts;
   mtev_atomic64_t         avg_wait_ns; /* smoother alpha = 0.8 */
   mtev_atomic64_t         avg_run_ns; /* smoother alpha = 0.8 */
+  eventer_jobq_memory_safety_t mem_safety;
 } eventer_jobq_t;
 
 int eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name);
+int eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
+                         eventer_jobq_memory_safety_t);
 eventer_jobq_t *eventer_jobq_retrieve(const char *name);
 void eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job);
 eventer_job_t *eventer_jobq_dequeue(eventer_jobq_t *jobq);

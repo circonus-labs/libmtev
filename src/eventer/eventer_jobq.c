@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2014-2016, Circonus, Inc. All rights reserved.
  * Copyright (c) 2007, OmniTI Computer Consulting, Inc.
  * All rights reserved.
  *
@@ -89,7 +89,8 @@ eventer_jobq_handler(int signo)
 }
 
 int
-eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name) {
+eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
+                     eventer_jobq_memory_safety_t ms) {
   pthread_mutexattr_t mutexattr;
 
   if(mtev_atomic_cas32(&threads_jobq_inited, 1, 0) == 0) {
@@ -120,6 +121,7 @@ eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name) {
   }
 
   memset(jobq, 0, sizeof(*jobq));
+  jobq->mem_safety = ms;
   jobq->queue_name = strdup(queue_name);
   if(pthread_mutexattr_init(&mutexattr) != 0) {
     mtevL(mtev_error, "Cannot initialize lock attributes\n");
@@ -155,6 +157,11 @@ eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name) {
   return 0;
 }
 
+int
+eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name) {
+  return eventer_jobq_init_ms(jobq, queue_name, EVENTER_JOBQ_MS_NONE);
+}
+
 eventer_jobq_t *
 eventer_jobq_retrieve(const char *name) {
   void *vjq = NULL;
@@ -166,8 +173,10 @@ eventer_jobq_retrieve(const char *name) {
 
 static void *
 eventer_jobq_consumer_pthreadentry(void *vp) {
-  mtev_memory_init_thread();
-  return eventer_jobq_consumer((eventer_jobq_t *)vp);
+  eventer_jobq_t *jobq = vp;
+  if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE)
+    mtev_memory_init_thread();
+  return eventer_jobq_consumer(jobq);
 }
 static void
 eventer_jobq_maybe_spawn(eventer_jobq_t *jobq) {
@@ -331,7 +340,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
   while((job = eventer_jobq_dequeue_nowait(jobq)) != NULL) {
     int newmask;
     if(job->fd_event) {
-      mtev_memory_begin();
+      if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_begin();
       LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                              (void *)job->fd_event->callback, NULL,
                              job->fd_event->fd, job->fd_event->mask,
@@ -340,7 +349,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
                                         job->fd_event->closure, now);
       LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, newmask);
-      mtev_memory_end();
+      if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_end();
       if(!newmask) eventer_free(job->fd_event);
       else {
         job->fd_event->mask = newmask;
@@ -380,14 +389,14 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
   pthread_setspecific(jobq->threadenv, &env);
   pthread_cleanup_push(eventer_jobq_cancel_cleanup, jobq);
 
-  mtev_memory_begin();
+  if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_begin();
   while(1) {
     struct _event wakeupcopy;
     pthread_setspecific(jobq->activejob, NULL);
-    mtev_memory_end();
-    mtev_memory_maintenance();
+    if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_end();
+    if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
     job = eventer_jobq_dequeue(jobq);
-    mtev_memory_begin();
+    if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_begin();
     if(!job) continue;
     if(!job->fd_event) {
       free(job);
@@ -525,8 +534,8 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     eventer_jobq_enqueue(eventer_default_backq(job->fd_event), job);
     eventer_wakeup(&wakeupcopy);
   }
-  mtev_memory_end();
-  mtev_memory_maintenance();
+  if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_end();
+  if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
   pthread_cleanup_pop(0);
   mtev_atomic_dec32(&jobq->inflight);
   mtev_atomic_dec32(&jobq->concurrency);

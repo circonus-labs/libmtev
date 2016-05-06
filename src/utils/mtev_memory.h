@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2014-2016, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -34,9 +34,16 @@
 #include "mtev_defines.h"
 #include <stdbool.h>
 
+typedef enum {
+  MTEV_MM_BARRIER,
+  MTEV_MM_TRY,
+  MTEV_MM_BARRIER_ASYNCH
+} mtev_memory_maintenance_method_t;
+
 API_EXPORT(void) mtev_memory_init(); /* call once at process start */
 API_EXPORT(void) mtev_memory_init_thread(); /* at subsequent thread start */
 API_EXPORT(void) mtev_memory_maintenance(); /* Call to force reclamation */
+API_EXPORT(int) mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method);
 API_EXPORT(void) mtev_memory_begin(); /* being a block */
 API_EXPORT(void) mtev_memory_end(); /* end a block */
 API_EXPORT(mtev_boolean) mtev_memory_barriers(mtev_boolean *); /* do or try */

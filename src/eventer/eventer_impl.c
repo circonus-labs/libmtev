@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2007, OmniTI Computer Consulting, Inc.
  * All rights reserved.
- * Copyright (c) 2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2015-2016, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -231,7 +231,22 @@ int NE_O_CLOEXEC = 0;
 static int
 eventer_mtev_memory_maintenance(eventer_t e, int mask, void *c,
                                 struct timeval *now) {
-  mtev_memory_maintenance();
+  unsigned int *counter = (unsigned int *)c;
+
+  /* Each time through we'll try to reclaim memory, if it
+   * fails 1000 times in a row, we'll schedule an asynchronous
+   * force (barrier) cleanup.
+   */
+  if(*counter < 1000) {
+    if(mtev_memory_maintenance_ex(MTEV_MM_TRY) < 0)
+      (*counter)++;
+    else
+      *counter = 0;
+  }
+  else {
+    mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
+    *counter = 0;
+  }
   return EVENTER_RECURRENT;
 }
 static void eventer_per_thread_init(struct eventer_impl_data *t) {
@@ -268,6 +283,7 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
 
   e = eventer_alloc();
   e->mask = EVENTER_RECURRENT;
+  e->closure = calloc(1,sizeof(unsigned int));
   e->callback = eventer_mtev_memory_maintenance;
   eventer_add_recurrent(e);
   mtev_atomic_inc32(&__loops_started);
@@ -278,6 +294,7 @@ static void *thrloopwrap(void *vid) {
   int id = (int)(vpsized_int)vid;
   t = &eventer_impl_tls_data[id];
   t->id = id;
+  mtev_memory_init(); /* Just in case no one has initialized this */
   mtev_memory_init_thread();
   eventer_per_thread_init(t);
   return (void *)(vpsized_int)__eventer->loop(id);
