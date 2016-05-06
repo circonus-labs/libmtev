@@ -147,6 +147,8 @@ mtev_main(const char *appname,
   int retry_val;
   int span_val;
   int ret;
+  int cnt;
+  mtev_conf_section_t root;
  
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
@@ -164,11 +166,10 @@ mtev_main(const char *appname,
     exit(-1);
   }
 
-  int cnt;
   char* root_section_path = alloca(strlen(appname)+2);
   sprintf(root_section_path, "/%s", appname);
-  mtev_conf_get_sections(NULL, root_section_path, &cnt);
-
+  root = mtev_conf_get_sections(NULL, root_section_path, &cnt);
+  free(root);
   if(cnt==0) {
     fprintf(stderr, "The config must have <%s> as its root node\n", appname);
     exit(-1);
