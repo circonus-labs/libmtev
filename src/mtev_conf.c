@@ -1208,7 +1208,7 @@ int mtev_conf_get_value(mtev_conf_description_t* description,
       description->value = description->default_or_optional.value;
     } else {
       mtevL(mtev_stderr,
-          "The following optional config has not been set: '%s/%s'\n",
+          "The following optional config has not been set: '%s/%s'\nIt should contain the following config: %s\n",
           section, description->path, description->description);
       return 0;
     }

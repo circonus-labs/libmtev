@@ -46,7 +46,7 @@
 #include <stdio.h>
 #include <getopt.h>
 
-#define APPNAME "fq-example"
+#define APPNAME "fq-router"
 static char *config_file = NULL;
 static int debug = 0;
 static int foreground = 0;
