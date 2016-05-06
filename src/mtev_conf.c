@@ -1157,41 +1157,99 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
   return result;
 }
 
-mtev_hash_table*
-mtev_conf_check(mtev_conf_description_t* descriptions, int descriptions_cnt) {
-  mtev_hash_table* table = malloc(sizeof(mtev_hash_table));
-  mtev_hash_init_size(table, descriptions_cnt * 2);
+#define mtev_conf_default(name, type) \
+mtev_conf_default_or_optional_t \
+mtev_conf_default_##name (type default_value) { \
+  mtev_conf_default_or_optional_t doo = {0}; \
+  memcpy(&doo.value, &default_value, sizeof(type)); \
+  return doo; \
+}
 
-  for (int i = 0; i != descriptions_cnt; i++) {
-    if (mtev_conf_check_value(&descriptions[i]) == 0) {
-      char *section = mtev_conf_section_to_xpath(descriptions[i].section);
-      mtevL(mtev_error,
-          "Path does not exist in config: '%s/%s'. It should contain the following config: %s\n",
-          section, descriptions[i].path, descriptions[i].description);
-      mtev_hash_destroy(table, NULL, NULL);
-      free(table);
-      if(section != NULL) {
-        free(section);
-      }
-      return NULL;
+mtev_conf_default(boolean, int)
+mtev_conf_default(int, int)
+mtev_conf_default(int64, int64_t)
+mtev_conf_default(float, float)
+mtev_conf_default(double, double)
+mtev_conf_default(string, char*)
+mtev_conf_default(uuid, uuid_t)
+
+mtev_conf_default_or_optional_t
+mtev_conf_optional() {
+  mtev_conf_default_or_optional_t doo = {1};
+  return doo;
+}
+
+#define mtev_conf_description(name, type_enum) \
+mtev_conf_description_t \
+mtev_conf_description_##name (mtev_conf_section_t section, char *path, \
+  char* description, mtev_conf_default_or_optional_t default_or_optional) { \
+  mtev_conf_description_t desc = { section, path, type_enum, \
+      description }; \
+  desc.default_or_optional = default_or_optional; \
+  return desc; \
+}
+
+mtev_conf_description(boolean, MTEV_CONF_TYPE_BOOLEAN)
+mtev_conf_description(int, MTEV_CONF_TYPE_INT)
+mtev_conf_description(int64, MTEV_CONF_TYPE_INT64)
+mtev_conf_description(float, MTEV_CONF_TYPE_FLOAT)
+mtev_conf_description(double, MTEV_CONF_TYPE_DOUBLE)
+mtev_conf_description(string, MTEV_CONF_TYPE_STRING)
+mtev_conf_description(uuid, MTEV_CONF_TYPE_UUID)
+
+int mtev_conf_get_value(mtev_conf_description_t* description,
+    void *return_value) {
+  if (mtev_conf_check_value(description) == 0) {
+    char *section = mtev_conf_section_to_xpath(description->section);
+    if (description->default_or_optional.is_optional == 0) {
+      mtevL(mtev_stderr,
+          "Path does not exist in config: '%s/%s'. Using default value instead. It should contain the following config: %s\n",
+          section, description->path, description->description);
+      description->value = description->default_or_optional.value;
+    } else {
+      mtevL(mtev_stderr,
+          "The following optional config has not been set: '%s/%s'\n",
+          section, description->path, description->description);
+      return 0;
     }
-    mtev_hash_store(table, descriptions[i].path, strlen(descriptions[i].path),
-        &descriptions[i]);
   }
 
-  return table;
-}
-
-mtev_hash_table*
-mtev_conf_load_desc(const char *path, mtev_conf_description_t* descriptions,
-    int descriptions_cnt) {
-  int rv = mtev_conf_load(path);
-
-  if (rv != -1) {
-    return mtev_conf_check(descriptions, descriptions_cnt);
+  switch (description->type) {
+  case MTEV_CONF_TYPE_BOOLEAN:
+    memcpy(return_value, &description->value.val_bool,
+        sizeof(description->value.val_bool));
+    break;
+  case MTEV_CONF_TYPE_INT:
+    memcpy(return_value, &description->value.val_int,
+        sizeof(description->value.val_int));
+    break;
+  case MTEV_CONF_TYPE_INT64:
+    memcpy(return_value, &description->value.val_int64,
+        sizeof(description->value.val_int64));
+    break;
+  case MTEV_CONF_TYPE_FLOAT:
+    memcpy(return_value, &description->value.val_float,
+        sizeof(description->value.val_float));
+    break;
+  case MTEV_CONF_TYPE_DOUBLE:
+    memcpy(return_value, &description->value.val_double,
+        sizeof(description->value.val_double));
+    break;
+  case MTEV_CONF_TYPE_STRING:
+    memcpy(return_value, &description->value.val_string,
+        sizeof(description->value.val_string));
+    break;
+  case MTEV_CONF_TYPE_UUID:
+    memcpy(return_value, &description->value.val_uuid,
+        sizeof(description->value.val_uuid));
+    break;
+  default:
+    return 0;
   }
-  return NULL;
+
+  return 1;
 }
+
 char *
 mtev_conf_config_filename() {
   return strdup(master_config_file);

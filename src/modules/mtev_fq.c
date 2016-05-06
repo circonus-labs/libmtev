@@ -178,16 +178,29 @@ static void connect_fq_client(fq_client *fq_c, char *host, int port, char *user,
   fq_client_connect(*fq_c);
 }
 
-static connection_configs* check_connection_conf(mtev_conf_section_t section) {
-  connection_configs* configs_table = malloc(sizeof(connection_configs));
-  if(!mtev_conf_get_string(section, CONFIG_FQ_HOST, &configs_table->host))
-    configs_table->host = strdup("localhost");
-  if(!mtev_conf_get_int(section, CONFIG_FQ_PORT, &configs_table->port))
-    configs_table->port = 8765;
-  if(!mtev_conf_get_string(section, CONFIG_FQ_USER, &configs_table->user))
-    configs_table->user = strdup("guest");
-  if(!mtev_conf_get_string(section, CONFIG_FQ_PASS, &configs_table->pass))
-    configs_table->pass = strdup("guest");
+static connection_configs check_connection_conf(mtev_conf_section_t section) {
+  connection_configs configs_table = {0};
+
+  mtev_conf_description_t desc;
+  desc = mtev_conf_description_string(section,
+  CONFIG_FQ_HOST, "Hostname of the fq broker data should be received from",
+      mtev_conf_default_string("localhost"));
+  mtev_conf_get_value(&desc, &configs_table.host);
+
+  desc = mtev_conf_description_int(section, CONFIG_FQ_PORT,
+      "Port number of the fq broker", mtev_conf_default_int(8765));
+  mtev_conf_get_value(&desc, &configs_table.port);
+
+  desc = mtev_conf_description_string(section, CONFIG_FQ_USER,
+      "User name used to connect to the fq broker",
+      mtev_conf_default_string("guest"));
+  mtev_conf_get_value(&desc, &configs_table.user);
+
+  desc = mtev_conf_description_string(section, CONFIG_FQ_PASS,
+      "User name used to connect to the fq broker",
+      mtev_conf_default_string("guest"));
+  mtev_conf_get_value(&desc, &configs_table.pass);
+
 
   return configs_table;
 }
@@ -205,13 +218,12 @@ init_conns() {
 
   for (int section_id = 0; section_id != the_conf->number_of_conns; ++section_id) {
     char *exchange = NULL, *program = NULL;
-    connection_configs *connection_configs;
-    connection_configs = check_connection_conf(mqs[section_id]);
+    connection_configs connection_configs = check_connection_conf(mqs[section_id]);
     mtev_conf_get_string(mqs[section_id], CONFIG_FQ_EXCHANGE, &exchange);
     mtev_conf_get_string(mqs[section_id], CONFIG_FQ_PROGRAM, &program);
-    connect_fq_client(&the_conf->fq_conns[section_id], connection_configs->host,
-        connection_configs->port, connection_configs->user,
-        connection_configs->pass, exchange, program);
+    connect_fq_client(&the_conf->fq_conns[section_id], connection_configs.host,
+        connection_configs.port, connection_configs.user,
+        connection_configs.pass, exchange, program);
   }
   free(mqs);
 }
@@ -245,6 +257,7 @@ fq_driver_init(mtev_dso_generic_t *img) {
   nldeb = mtev_log_stream_find("debug/fq");
   init_conns();
 
+  mtevL(nlerr, "No fq reciever setting found in the config!\n");
   if (the_conf->number_of_conns == 0) {
     mtevL(nlerr, "No fq reciever setting found in the config!\n");
     return 0;
@@ -259,6 +272,16 @@ fq_driver_init(mtev_dso_generic_t *img) {
 
 static int
 fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
+
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  const char *key;
+  int klen;
+  void *data;
+
+  while(mtev_hash_next(options, &iter, &key, &klen, &data)) {
+    mtevL(mtev_error, "%s %s!\n", key, data);
+  }
+
   return 0;
 }
 #include "fq.xmlh"
