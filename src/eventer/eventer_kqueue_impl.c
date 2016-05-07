@@ -321,9 +321,20 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   mtev_memory_end();
 
   if(newmask) {
-    alter_kqueue_mask(e, oldmask, newmask);
-    /* Set our mask */
-    e->mask = newmask;
+    if(!pthread_equal(pthread_self(), e->thr_owner)) {
+      pthread_t tgt = e->thr_owner;
+      e->thr_owner = pthread_self();
+      alter_kqueue_mask(e, oldmask, 0);
+      e->thr_owner = tgt;
+      alter_kqueue_mask(e, 0, newmask);
+      mtevL(eventer_deb, "moved event[%p] from t@%llx to t@%llx\n", e, (vpsized_int)pthread_self(), (vpsized_int)tgt);
+      if(newmask) eventer_cross_thread_trigger(e, newmask & ~(EVENTER_EXCEPTION));
+    }
+    else {
+      alter_kqueue_mask(e, oldmask, newmask);
+      /* Set our mask */
+      e->mask = newmask;
+    }
   }
   else {
     /*
