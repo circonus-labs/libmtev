@@ -588,6 +588,7 @@ void eventer_cross_thread_process() {
     pthread_mutex_unlock(&t->cross_lock);
     if(ctt) {
       mtevL(eventer_deb, "executing queued fd:%d / %x\n", ctt->e->fd, ctt->mask);
+      ctt->mask |= EVENTER_CROSS_THREAD_TRIGGER;
       eventer_trigger(ctt->e, ctt->mask);
       free(ctt);
     }

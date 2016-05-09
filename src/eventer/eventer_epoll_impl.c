@@ -249,6 +249,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   const char *cbname;
   ev_lock_state_t lockstate;
 
+  mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
   if(e != master_fds[fd].e) return;
   if(!pthread_equal(pthread_self(), e->thr_owner)) {

@@ -99,8 +99,8 @@ ke_change (register int const ident,
   kep = &ke_vec[ke_vec_used++];
 
   EV_SET(kep, ident, filter, flags, 0, 0, (void *)(vpsized_int)e->fd);
-  mtevL(eventer_deb, "debug: ke_change(fd:%d, filt:%x, flags:%x)\n",
-        ident, filter, flags);
+  mtevL(eventer_deb, "debug: [t@%llx] ke_change(fd:%d, filt:%x, flags:%x)\n",
+        (vpsized_int)e->thr_owner, ident, filter, flags);
   pthread_mutex_unlock(&kqs->lock);
 }
 
@@ -293,7 +293,9 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   int oldmask, newmask;
   const char *cbname;
   int fd;
+  int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
 
+  mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
   if(e != master_fds[fd].e) return;
   if(!pthread_equal(pthread_self(), e->thr_owner)) {
@@ -326,12 +328,12 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
       e->thr_owner = pthread_self();
       alter_kqueue_mask(e, oldmask, 0);
       e->thr_owner = tgt;
-      alter_kqueue_mask(e, 0, newmask);
       mtevL(eventer_deb, "moved event[%p] from t@%llx to t@%llx\n", e, (vpsized_int)pthread_self(), (vpsized_int)tgt);
       if(newmask) eventer_cross_thread_trigger(e, newmask & ~(EVENTER_EXCEPTION));
     }
     else {
-      alter_kqueue_mask(e, oldmask, newmask);
+      mtevL(eventer_deb, "trigger complete %d : %x->%x\n", e->fd, oldmask, newmask);
+      alter_kqueue_mask(e, cross_thread ? 0 : oldmask, newmask);
       /* Set our mask */
       e->mask = newmask;
     }
@@ -397,7 +399,8 @@ static int eventer_kqueue_impl_loop() {
                     ke_vec, ke_vec_a,
                     &__kqueue_sleeptime);
     kqs->wakeup_notify = 0;
-    if(ke_vec_used) mtevLT(eventer_deb, &__now, "debug: kevent(%d, [], %d) => %d\n", kqs->kqueue_fd, ke_vec_used, fd_cnt);
+    if(fd_cnt > 0 || ke_vec_used)
+      mtevLT(eventer_deb, &__now, "[t@%llx] kevent(%d, [...], %d) => %d\n", (vpsized_int)pthread_self(), kqs->kqueue_fd, ke_vec_used, fd_cnt);
     ke_vec_used = 0;
     if(fd_cnt < 0) {
       mtevLT(eventer_err, &__now, "kevent(s/%d): %s\n", kqs->kqueue_fd, strerror(errno));

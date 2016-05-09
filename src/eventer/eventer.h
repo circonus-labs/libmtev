@@ -53,6 +53,9 @@
 #define EVENTER_CANCEL_ASYNCH   0x400
 #define EVENTER_CANCEL          (EVENTER_CANCEL_DEFERRED|EVENTER_CANCEL_ASYNCH)
 
+#define EVENTER_RESERVED                  0xfff00000
+#define EVENTER_CROSS_THREAD_TRIGGER      0x80000000
+
 #define EVENTER_DEFAULT_ASYNCH_ABORT EVENTER_EVIL_BRUTAL
 
 /* All of these functions act like their POSIX couterparts with two

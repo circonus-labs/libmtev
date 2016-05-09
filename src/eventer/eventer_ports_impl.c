@@ -224,6 +224,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   struct timeval __now;
   int fd, newmask;
 
+  mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
   if(e != master_fds[fd].e) return;
   if(!pthread_equal(pthread_self(), e->thr_owner)) {
