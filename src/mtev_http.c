@@ -1116,7 +1116,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
           (int)ctx->req.next_chunk);
   }
   mtevL(http_debug, " ... mtev_http_session_req_consume(%d) %d of %d\n",
-        ctx->conn.e->fd, (int)len, (int)expected);
+        ctx->conn.e ? ctx->conn.e->fd : -1, (int)len, (int)expected);
   len = MIN(len, expected);
   while(bytes_read < len) {
     int crlen = 0;
