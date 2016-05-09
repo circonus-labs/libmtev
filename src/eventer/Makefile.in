@@ -3,8 +3,8 @@
 top_srcdir=@top_srcdir@
 
 CC=@CC@
-CPPFLAGS=@CPPFLAGS@ \
-	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils
+CPPFLAGS=-I$(top_srcdir)/src -I$(top_srcdir)/src/json-lib \
+	-I$(top_srcdir)/src/utils @CPPFLAGS@
 CFLAGS=@CFLAGS@
 SHCFLAGS=@SHCFLAGS@
 LDFLAGS=@LDFLAGS@
