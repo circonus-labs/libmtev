@@ -87,6 +87,18 @@ API_EXPORT(int)
  */
 API_EXPORT(mtev_cluster_t *) mtev_cluster_by_name(const char *);
 
+/*! \fn mtev_cluster_node_t *mtev_cluster_find_node(mtev_cluster_t *cluster, uuid_t nodeid)
+    \brief Find a node by uuid within a cluster.
+    \param cluster The '<cluster>' containing the node.
+    \param nodeid The nodeid being searched for.
+    \return Returns a pointer to the mtev_cluster_node_t or NULL if not found.
+
+    Takes a cluster and a node UUID and returns a pointer to the 
+    correspondinbg mtev_cluster_node_t.
+ */
+API_EXPORT(mtev_cluster_node_t *)
+  mtev_cluster_find_node(mtev_cluster_t *cluster, uuid_t nodeid);
+
 /*! \fn int mtev_cluster_size(mtev_cluster_t *cluster)
     \brief Report the number of nodes in the cluster.
     \param cluster The cluster.
@@ -120,6 +132,8 @@ API_EXPORT(void) mtev_cluster_get_self(uuid_t);
    \param n The number of positions available in the passed nodes array.
    \param includeme Whether the local node should included in the list.
    \return Returns the number of nodes populated in the supplied nodes array.
+           If insufficient space is available, a negative value is returned whose
+           absolute value indicates the required size of the input array.
 
    Enumerates the nodes in a cluster into a provided nodes array.
  */
