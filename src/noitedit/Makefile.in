@@ -89,7 +89,7 @@ editline.c: vi.c emacs.c common.c makelist
 	@echo "- makelist $@"
 
 clean:
-	rm -f *.o *.a editline.c
+	rm -f *.o *.lo *.a editline.c
 
 distclean:	clean
 	rm -f Makefile
