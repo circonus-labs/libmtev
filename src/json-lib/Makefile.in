@@ -27,7 +27,7 @@ all:
 	@echo "- compiling $<"
 
 clean:
-	rm -f *.o
+	rm -f *.o *.lo
 
 distclean:	clean
 	rm -f Makefile

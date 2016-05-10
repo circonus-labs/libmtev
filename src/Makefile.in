@@ -277,7 +277,7 @@ install-docs:
 install:	install-bins install-docs install-headers install-libs install-modules
 
 clean:
-	rm -f *.lo *.o
+	rm -f *.lo *.o libmtev_dtrace_probes.h
 	rm -f $(LIBMTEV) $(LIBMTEV_V)
 	rm -rf libmtev-objs
 	rm -rf mdb-support/*.lo mdb-support/*.so
