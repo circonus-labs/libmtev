@@ -36,6 +36,7 @@
 
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
+#include "mtev_console.h"
 
 #define MTEV_CAPABILITIES_SERVICE 0x43415041
 
@@ -51,6 +52,9 @@ API_EXPORT(void)
 API_EXPORT(int)
   mtev_capabilities_handler(eventer_t e, int mask, void *closure,
                             struct timeval *now);
+
+API_EXPORT(void)
+  mtev_capabilities_features_ncprint(mtev_console_closure_t ncct);
 
 #endif
 

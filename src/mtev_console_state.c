@@ -40,6 +40,7 @@
 #include "mtev_listener.h"
 #include "mtev_console.h"
 #include "mtev_tokenizer.h"
+#include "mtev_capabilities_listener.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -173,6 +174,7 @@ mtev_console_version(mtev_console_closure_t ncct, int argc, char **argv,
   nc_printf(ncct, "bitwidth:\t%dbit\n", (int)sizeof(void *)*8);
   mtev_build_version(buff, sizeof(buff));
   nc_printf(ncct, "version:\t%s\n", buff);
+  mtev_capabilities_features_ncprint(ncct);
   return 0;
 }
 cmd_info_t console_command_version = {

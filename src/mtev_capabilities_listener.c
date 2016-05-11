@@ -43,6 +43,7 @@
 #include "mtev_rest.h"
 #include "mtev_dso.h"
 #include "mtev_json.h"
+#include "mtev_console.h"
 
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -112,6 +113,20 @@ mtev_capabilities_rest(mtev_http_rest_closure_t *restc, int n, char **p) {
   mtev_http_response_server_error(restc->http_ctx, "text/html");
   mtev_http_response_end(restc->http_ctx);
   return 0;
+}
+
+void
+mtev_capabilities_features_ncprint(mtev_console_closure_t ncct) {
+  if(mtev_hash_size(&features)) {
+    mtev_hash_iter iter2 = MTEV_HASH_ITER_ZERO;
+    void *vfv;
+    const char *f;
+    int flen;
+    while(mtev_hash_next(&features, &iter2, &f, &flen, &vfv)) {
+      if(vfv) nc_printf(ncct, "feature:\t%s:%s\n", f, (const char *)vfv);
+      else    nc_printf(ncct, "feature:\t%s\n", f);
+    }
+  }
 }
 
 static void
