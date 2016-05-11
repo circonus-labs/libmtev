@@ -1189,6 +1189,9 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
       case AF_UNIX:
         snprintf(remote_str, sizeof(remote_str), "%s", nctx->r.remote_un.sun_path);
         break;
+      case AF_UNSPEC:
+        snprintf(remote_str, sizeof(remote_str), "unspecified");
+        break;
       default:
         snprintf(remote_str, sizeof(remote_str), "(unknown)");
     }
@@ -1299,6 +1302,8 @@ mtev_connection_initiate_connection(mtev_connection_ctx_t *nctx) {
   }
 
   if(fd < 0) {
+    /* If we don't know how to connect, don't bother (reverse only) */
+    if(nctx->r.remote.sa_family == AF_UNSPEC) goto reschedule;
     /* If that didn't work, open a socket */
     fd = socket(nctx->r.remote.sa_family, NE_SOCK_CLOEXEC|SOCK_STREAM, 0);
   }
@@ -1365,7 +1370,7 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
                          void (*freefunc)(void *)) {
   mtev_connection_ctx_t *ctx;
   const char *stimeout;
-  int8_t family;
+  int8_t family = AF_UNSPEC;
   int rv;
   union {
     struct in_addr addr4;
@@ -1382,19 +1387,31 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
       family = AF_INET6;
       rv = inet_pton(family, host, &a);
       if(rv != 1) {
-        mtevL(mtev_stderr, "Cannot translate '%s' to IP\n", host);
-        return NULL;
+        if(!strcmp(host, "")) family = AF_UNSPEC;
+        else {
+          mtevL(mtev_stderr, "Cannot translate '%s' to IP\n", host);
+          return NULL;
+        }
       }
     }
   }
+  if(handler == NULL) return NULL;
 
   ctx = mtev_connection_ctx_alloc(tracking, tracking_lock);
-  ctx->remote_str = calloc(1, strlen(host) + 7);
-  snprintf(ctx->remote_str, strlen(host) + 7,
-           "%s:%d", host, port);
-  
+  if(*host) {
+    ctx->remote_str = calloc(1, strlen(host) + 7);
+    snprintf(ctx->remote_str, strlen(host) + 7,
+             "%s:%d", host, port);
+  }
+  else {
+    ctx->remote_str = strdup("unspecified");
+  }
   memset(&ctx->r, 0, sizeof(ctx->r));
-  if(family == AF_UNIX) {
+  if(family == AF_UNSPEC) {
+    ctx->r.remote.sa_family = family;
+    ctx->r.remote.sa_len = sizeof(ctx->r.remote);
+  }
+  else if(family == AF_UNIX) {
     struct sockaddr_un *s = &ctx->r.remote_un;
     s->sun_family = AF_UNIX;
     strncpy(s->sun_path, host, sizeof(s->sun_path)-1);
@@ -1479,7 +1496,8 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
     sslconfig = mtev_conf_get_hash(mtev_configs[i], "sslconfig");
     config = mtev_conf_get_hash(mtev_configs[i], "config");
 
-    mtevL(mtev_debug, "initiating to %s\n", address);
+    mtevL(mtev_debug, "initiating to '%s'\n", address);
+
     initiate_mtev_connection(tracker, tracker_lock,
                              address, port, sslconfig, config,
                              handler,
@@ -1561,12 +1579,13 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
     memcpy(&rc->tgt.ipv4.sin_addr, &a.addr4, sizeof(a.addr4));
     rc->tgt_len = sizeof(struct sockaddr_in);
   }
-  else {
+  else if(family == AF_INET6) {
     rc->tgt.ipv6.sin6_family = AF_INET6;
     rc->tgt.ipv6.sin6_port = htons(atoi(port_str));
     memcpy(&rc->tgt.ipv6.sin6_addr, &a.addr6, sizeof(a.addr6));
     rc->tgt_len = sizeof(struct sockaddr_in6);
   }
+  else goto fail;
 
   snprintf(reverse_intro, sizeof(reverse_intro),
            "REVERSE /%s%s%s\r\n\r\n", channel_name,
