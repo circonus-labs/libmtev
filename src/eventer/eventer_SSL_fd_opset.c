@@ -910,6 +910,7 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
   int (*sslop)(SSL *) = NULL;
   const char *opstr = NULL;
 
+  ERR_clear_error();
   switch(op) {
     case SSL_OP_READ:
       opstr = "read";
@@ -985,6 +986,7 @@ eventer_SSL_renegotiate(eventer_t e) {
   eventer_ssl_ctx_t *ctx;
   ctx = eventer_get_eventer_ssl_ctx(e);
   if(!ctx) return -1;
+  ERR_clear_error();
   SSL_renegotiate(ctx->ssl);
   return 0;
 }
@@ -1026,6 +1028,7 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   eventer_t e = closure;
   eventer_ssl_ctx_t *ctx = e->opset_ctx;
   LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
+  ERR_clear_error();
   SSL_shutdown(ctx->ssl);
   eventer_ssl_ctx_free(ctx);
   rv = close(fd);
