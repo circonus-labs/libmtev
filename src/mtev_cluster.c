@@ -44,6 +44,7 @@
 
 static pthread_mutex_t c_lock = PTHREAD_MUTEX_INITIALIZER;
 static uuid_t my_cluster_id;
+static struct timeval my_boot_time;
 static mtev_boolean have_clusters;
 static mtev_hash_table global_clusters;
 
@@ -59,6 +60,23 @@ struct mtev_cluster_t {
   mtev_cht_t **cht;
   mtev_net_heartbeat_ctx *hbctx;
 };
+
+static int
+mtev_cluster_node_compare(const void *a, const void *b) {
+  const mtev_cluster_node_t *node_a = a;
+  const mtev_cluster_node_t *node_b = b;
+  return uuid_compare(node_a->id, node_b->id);
+}
+
+mtev_cluster_node_t *
+mtev_cluster_find_node(mtev_cluster_t *cluster, uuid_t nodeid) {
+  int i;
+  for(i=0; i<cluster->node_cnt; i++) {
+    if(!uuid_compare(cluster->nodes[i].id, nodeid))
+      return &cluster->nodes[i];
+  }
+  return NULL;
+}
 
 mtev_boolean
 mtev_cluster_enabled() {
@@ -88,18 +106,75 @@ deferred_cht_free(void *vptr) {
   free(vptr);
 }
 
+#define MEMWRITE_DECL(p, len) void *mw_wp = (p); int mw_wa = (len); int mw_wn
+#define MEMWRITE(what,n) do { \
+  if(mw_wn + (n) > mw_wa) return -(mw_wn + (n)); \
+  memcpy(mw_wp, what, n); \
+  mw_wn += (n); \
+  mw_wp = payload + mw_wn; \
+} while(0)
+#define MEMWRITE_RETURN return mw_wn
+#define MEMREAD_DECL(p, len) void *mw_rp = (p); int mw_ra = (len); int mw_rn
+#define MEMREAD(what, n) do { \
+  if(mw_rn + (n) > mw_ra) return -(mw_rn); \
+  memcpy(what, mw_rp, n); \
+  mw_rn += (n); \
+  mw_rp = payload + mw_rn; \
+} while(0)
+
 static int
 mtev_cluster_info_compose(void *payload, int len, void *c) {
+  MEMWRITE_DECL(payload, len);
+  u_int64_t packed_time;
+  u_int64_t seq;
   mtev_cluster_t *cluster = c;
   /* payload about the local cluster goes here */
-  return 0;
+  /* The header is always the same: <uuid:16><boottime_sec:5><boottiime_usec:3><seq:8> */
+  MEMWRITE(my_cluster_id, UUID_SIZE);
+  packed_time = (my_boot_time.tv_sec & 0x000000ffffffffffULL) << 24; /* 5 bytes << 3 bytes */
+  packed_time |= (my_boot_time.tv_usec & 0xffffff); /* 3 bytes */
+  packed_time = htonll(packed_time);
+  MEMWRITE(&packed_time, sizeof(packed_time));
+  seq = htonll(cluster->config_seq);
+  MEMWRITE(&seq, sizeof(seq));
+
+  /* TODO: Support registered composers */
+  MEMWRITE_RETURN;
 }
 static int
 mtev_cluster_info_process(void *payload, int len, void *c) {
+  mtev_cluster_node_t *sender;
+  MEMREAD_DECL(payload, len);
   mtev_cluster_t *cluster = c;
+  void *read_point = payload;
+  int n_read = 0;
+  uuid_t nodeid;
+  struct timeval boot_time;
+  u_int64_t packed_time;
+  u_int64_t seq;
   /* payloads from other cluster members (including me) arrive here */
+  MEMREAD(nodeid, UUID_SIZE);
+  MEMREAD(&packed_time, sizeof(packed_time));
+  packed_time = ntohll(packed_time);
+  boot_time.tv_sec = ((packed_time >> 24) & 0x000000ffffffffffULL);
+  boot_time.tv_usec = (packed_time & 0xffffff);
+  MEMREAD(&seq, sizeof(seq));
+  seq = ntohll(seq);
+
+  if(seq != cluster->config_seq) {
+    mtevL(mtev_error, "cluster sequence mismatch %llu != %llu\n", seq, cluster->config_seq);
+    return -1;
+  }
+  /* Update our perspective */
+  sender = mtev_cluster_find_node(cluster, nodeid);
+  if(sender) {
+    memcpy(&sender->boot_time, &boot_time, sizeof(boot_time));
+    gettimeofday(&sender->last_contact, NULL);
+  }
   return 0;
 }
+#undef MEMWRITE
+#undef MEMREAD
 static void
 mtev_cluster_announce(mtev_cluster_t *cluster) {
   int i;
@@ -347,6 +422,7 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
   new_cluster->config_seq = seq;
   new_cluster->port = port;
   new_cluster->period = period;
+  qsort(nlist, n_nodes, sizeof(*nlist), mtev_cluster_node_compare);
   new_cluster->node_cnt = n_nodes;
   new_cluster->nodes = nlist; nlist = NULL;
 
@@ -450,6 +526,7 @@ mtev_cluster_get_nodes(mtev_cluster_t *c,
                        mtev_boolean includeme) {
   int i, o = 0;
   if(!c) return 0;
+  if(n < c->node_cnt) return -(c->node_cnt);
   for(i=0;i<n && i<c->node_cnt; i++) {
     if(includeme || uuid_compare(c->nodes[i].id, my_cluster_id)) {
       nodes[o++] = &c->nodes[i];
@@ -599,6 +676,7 @@ mtev_cluster_init() {
   int i, n_clusters;
   mtev_conf_section_t *clusters, parent;
 
+  gettimeofday(&my_boot_time, NULL);
   mtev_hash_init(&global_clusters);
 
   parent = mtev_conf_get_section(NULL, "//clusters");
