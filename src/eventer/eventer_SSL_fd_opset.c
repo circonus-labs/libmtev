@@ -273,7 +273,7 @@ eventer_ssl_get_peer_certificate(eventer_ssl_ctx_t *ctx) {
 
 SSL_SESSION *
 eventer_ssl_get_session(eventer_ssl_ctx_t *ctx) {
-  return SSL_get1_session(ctx->ssl);
+  return SSL_get_session(ctx->ssl);
 }
 
 int
