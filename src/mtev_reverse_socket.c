@@ -1409,7 +1409,6 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
   memset(&ctx->r, 0, sizeof(ctx->r));
   if(family == AF_UNSPEC) {
     ctx->r.remote.sa_family = family;
-    ctx->r.remote.sa_len = sizeof(ctx->r.remote);
   }
   else if(family == AF_UNIX) {
     struct sockaddr_un *s = &ctx->r.remote_un;
