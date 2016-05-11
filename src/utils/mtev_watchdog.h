@@ -117,4 +117,7 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_watchdog_on_crash_close_remove_fd(int fd);
 
+API_EXPORT(void)
+  mtev_stacktrace(mtev_log_stream_t ls);
+
 #endif

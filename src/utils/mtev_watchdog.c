@@ -265,6 +265,41 @@ void mtev_watchdog_on_crash_close_add_fd(int fd) {
    */
   allow_async_dumps = 0;
 }
+
+void mtev_stacktrace(mtev_log_stream_t ls) {
+#if defined(__sun__)
+  walkcontext(uc, simple_stack_print, NULL);
+#elif !defined(linux) && !defined(__linux) && !defined(__linux__)
+  if(_global_stack_trace_fd < 0) {
+    /* Last ditch effort to open this up */
+    char tmpfilename[MAXPATHLEN];
+    snprintf(tmpfilename, sizeof(tmpfilename), "/var/tmp/mtev_%d_XXXXXX", (int)getpid());
+    _global_stack_trace_fd = mkstemp(tmpfilename);
+    if(_global_stack_trace_fd >= 0) unlink(tmpfilename);
+  }
+  if(_global_stack_trace_fd >= 0) {
+    struct stat sb;
+    char stackbuff[4096];
+    void* callstack[128];
+    int i, frames = backtrace(callstack, 128);
+    lseek(_global_stack_trace_fd, 0, SEEK_SET);
+    ftruncate(_global_stack_trace_fd, 0);
+    backtrace_symbols_fd(callstack, frames, _global_stack_trace_fd);
+    memset(&sb, 0, sizeof(sb));
+    while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);
+    if(i != 0 || sb.st_size == 0) mtevL(ls, "error writing backtrace\n");
+    lseek(_global_stack_trace_fd, SEEK_SET, 0);
+    i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff), sb.st_size));
+    mtevL(ls, "BACKTRACE:\n%.*s\n", i, stackbuff);
+  }
+  else {
+    mtevL(ls, "backtrace unavailable\n");
+  }
+#else
+  mtevL(ls, "backtrace unavailable\n");
+#endif
+}
+
 void emancipate(int sig, siginfo_t *si, void *uc) {
   mtev_log_enter_sighandler();
   mtevL(mtev_error, "emancipate: process %d, monitored %d, signal %d\n", getpid(), mtev_monitored_child_pid, sig);
@@ -277,30 +312,7 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
     kill(mtev_monitored_child_pid, SIGSTOP); /* stop and wait for a glide */
 
     /* attempt a simple stack trace */
-#if defined(__sun__)
-    walkcontext(uc, simple_stack_print, NULL);
-#elif !defined(linux) && !defined(__linux) && !defined(__linux__)
-    if(_global_stack_trace_fd >= 0) {
-      struct stat sb;
-      char stackbuff[4096];
-      void* callstack[128];
-      int i, frames = backtrace(callstack, 128);
-      lseek(_global_stack_trace_fd, 0, SEEK_SET);
-      ftruncate(_global_stack_trace_fd, 0);
-      backtrace_symbols_fd(callstack, frames, _global_stack_trace_fd);
-      memset(&sb, 0, sizeof(sb));
-      while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);
-      if(i != 0 || sb.st_size == 0) mtevL(mtev_error, "error writing backtrace\n");
-      lseek(_global_stack_trace_fd, SEEK_SET, 0);
-      i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff), sb.st_size));
-      mtevL(mtev_error, "BACKTRACE:\n%.*s\n", i, stackbuff);
-    }
-    else {
-      mtevL(mtev_error, "backtrace unavailable\n");
-    }
-#else
-    mtevL(mtev_error, "backtrace unavailable\n");
-#endif
+    mtev_stacktrace(mtev_error);
 
     if(allow_async_dumps) { 
       stop_other_threads(); /* suspend all peer threads... to safely */
