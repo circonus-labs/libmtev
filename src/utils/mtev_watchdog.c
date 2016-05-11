@@ -239,10 +239,11 @@ static void stop_other_threads() {
 #if defined(__sun__)
 static int simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
   lwpid_t self;
+  mtev_log_stream_t ls = usrarg;
   char addrline[128];
   self = _lwp_self();
   addrtosymstr((void *)pc, addrline, sizeof(addrline));
-  mtevL(mtev_error, "t@%d> %s\n", self, addrline);
+  mtevL(ls, "t@%d> %s\n", self, addrline);
   return 0;
 }
 #endif
@@ -268,7 +269,9 @@ void mtev_watchdog_on_crash_close_add_fd(int fd) {
 
 void mtev_stacktrace(mtev_log_stream_t ls) {
 #if defined(__sun__)
-  walkcontext(uc, simple_stack_print, NULL);
+  ucontext_t ucp;
+  getcontext(&ucp);
+  walkcontext(&ucp, simple_stack_print, ls);
 #elif !defined(linux) && !defined(__linux) && !defined(__linux__)
   if(_global_stack_trace_fd < 0) {
     /* Last ditch effort to open this up */
@@ -312,7 +315,11 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
     kill(mtev_monitored_child_pid, SIGSTOP); /* stop and wait for a glide */
 
     /* attempt a simple stack trace */
+#if defined(__sun__)
+    walkcontext(uc, simple_stack_print, mtev_error);
+#else
     mtev_stacktrace(mtev_error);
+#endif
 
     if(allow_async_dumps) { 
       stop_other_threads(); /* suspend all peer threads... to safely */
