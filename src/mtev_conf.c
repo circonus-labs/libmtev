@@ -1593,6 +1593,7 @@ mtev_conf_set_string(mtev_conf_section_t section,
       xmlChar *encoded;
       encoded = xmlEncodeEntitiesReentrant(current_node->doc, (xmlChar *)value);
       xmlNodeSetContent((xmlNodePtr)sections[0], encoded);
+      child_node = sections[0];
       xmlFree(encoded);
     }
     CONF_DIRTY(child_node);
