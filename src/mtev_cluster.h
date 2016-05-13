@@ -36,6 +36,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <mtev_conf.h>
 
 typedef struct mtev_cluster_t mtev_cluster_t;
 
