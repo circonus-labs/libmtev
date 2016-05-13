@@ -95,7 +95,7 @@ API_EXPORT(mtev_cluster_t *) mtev_cluster_by_name(const char *);
     \return Returns a pointer to the mtev_cluster_node_t or NULL if not found.
 
     Takes a cluster and a node UUID and returns a pointer to the 
-    correspondinbg mtev_cluster_node_t.
+    corresponding mtev_cluster_node_t.
  */
 API_EXPORT(mtev_cluster_node_t *)
   mtev_cluster_find_node(mtev_cluster_t *cluster, uuid_t nodeid);
