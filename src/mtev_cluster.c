@@ -42,6 +42,14 @@
 #include "mtev_cht.h"
 #include "mtev_net_heartbeat.h"
 
+#ifdef __LINUX__
+#include <endian.h>
+#define ntohll be64toh
+#define htonll htobe64
+#else
+#include <sys/types.h>
+#endif
+
 static pthread_mutex_t c_lock = PTHREAD_MUTEX_INITIALIZER;
 static uuid_t my_cluster_id;
 static struct timeval my_boot_time;

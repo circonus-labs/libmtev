@@ -150,7 +150,7 @@ case $host in
 *-*-linux*)
 	CAP_PLATFORM="linux"
 	LDFLAGS="$LDFLAGS -Wl,-E"
-	CPPFLAGS="$CPPFLAGS -D_SVID_SOURCE -D_BSD_SOURCE"
+	CPPFLAGS="$CPPFLAGS -D_SVID_SOURCE -D_BSD_SOURCE -D__LINUX__"
 	PICFLAGS="-fpic"
 	MODULELD="$CC -shared"
 	SHLD="$CC -shared"
