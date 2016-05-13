@@ -106,7 +106,7 @@ deferred_cht_free(void *vptr) {
   free(vptr);
 }
 
-#define MEMWRITE_DECL(p, len) void *mw_wp = (p); int mw_wa = (len); int mw_wn
+#define MEMWRITE_DECL(p, len) void *mw_wp = (p); int mw_wa = (len); int mw_wn=0
 #define MEMWRITE(what,n) do { \
   if(mw_wn + (n) > mw_wa) return -(mw_wn + (n)); \
   memcpy(mw_wp, what, n); \
@@ -114,7 +114,7 @@ deferred_cht_free(void *vptr) {
   mw_wp = payload + mw_wn; \
 } while(0)
 #define MEMWRITE_RETURN return mw_wn
-#define MEMREAD_DECL(p, len) void *mw_rp = (p); int mw_ra = (len); int mw_rn
+#define MEMREAD_DECL(p, len) void *mw_rp = (p); int mw_ra = (len); int mw_rn=0
 #define MEMREAD(what, n) do { \
   if(mw_rn + (n) > mw_ra) return -(mw_rn); \
   memcpy(what, mw_rp, n); \
