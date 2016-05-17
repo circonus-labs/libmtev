@@ -102,6 +102,7 @@ static void
 deferred_cht_free(void *vptr) {
   mtev_cht_t **chtp;
   if(!vptr) return;
+  chtp = vptr;
   if(*chtp) mtev_cht_free(*chtp);
   free(vptr);
 }
