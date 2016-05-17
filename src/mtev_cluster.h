@@ -40,6 +40,7 @@
 
 typedef struct mtev_cluster_t mtev_cluster_t;
 
+
 typedef struct {
   uuid_t id;
   char cn[256];
@@ -51,6 +52,8 @@ typedef struct {
   struct timeval last_contact;
   struct timeval boot_time;
 } mtev_cluster_node_t;
+
+typedef void (*mtev_cluster_node_update_cb)(mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster);
 
 /*! \fn void mtev_cluster_init()
     \brief Initialize the mtev cluster configuration.
@@ -156,6 +159,25 @@ API_EXPORT(int)
  */
 API_EXPORT(mtev_boolean)
   mtev_cluster_do_i_own(mtev_cluster_t *, void *key, size_t klen, int w);
+
+/* \fn mtev_boolean mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster)
+   \brief Determines if the local node is the oldest node within the cluster.
+   \param cluster The cluster in question.
+   \return Returns mtev_true if there is no node in the cluster with a higher up-time than this one.
+ */
+API_EXPORT(mtev_boolean)
+mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster);
+
+/* \fn int mtev_cluster_set_node_update_callback(mtev_cluster_t *cluster, mtev_cluster_node_update_cb callback)
+   \brief Sets a callback which is called everytime a node in the cluster changes it's up-time.
+   \param cluster The cluster in question.
+   \param callback Function pointer to the function that should be called.
+   \return Returns mtev_true if the cluster is not NULL, mtev_false otherwise
+ */
+MTEV_HOOK_PROTO(mtev_cluster_handle_node_update,
+                (mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster),
+                void *, closure,
+                (void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster));
 
 
 #endif
