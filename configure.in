@@ -522,6 +522,14 @@ AC_CACHE_CHECK([for htobe64], ac_cv_have_htobe64, [
 		[ ac_cv_have_htobe64="no" ]
 	)
 ])
+AC_CACHE_CHECK([for htobe64], ac_cv_have_be64toh, [
+  AC_TRY_LINK(
+    [ #include <endian.h> ],
+    [ long long int a; a = be64toh(1);],
+    [ ac_cv_have_be64toh="yes" ],
+    [ ac_cv_have_be64toh="no" ]
+  )
+])
 AC_CACHE_CHECK([for htonll], ac_cv_have_htonll, [
 	AC_TRY_LINK(
 		[ #include <endian.h> ],
@@ -534,6 +542,10 @@ AC_CACHE_CHECK([for htonll], ac_cv_have_htonll, [
 if test "x$ac_cv_have_htonll" = "xno" -a "x$ac_cv_have_htobe64" = "xyes" ; then
 	AC_DEFINE(MAKE_HTOBE64_HTONLL)
 fi
+if test "x$ac_cv_have_htonll" = "xno" -a "x$ac_cv_have_be64toh" = "xyes" ; then
+  AC_DEFINE(MAKE_BE64TOH_NTOHLL)
+fi
+
 
 AC_CACHE_CHECK([for u_int type], ac_cv_have_u_int, [
 	AC_TRY_COMPILE(

@@ -165,6 +165,16 @@ mtev_lua_crypto_new_ssl_session(lua_State *L, SSL_SESSION *ssl_session) {
 }
 
 static int
+mtev_lua_crypto_ssl_session_release(lua_State *L) {
+  void **udata;
+  udata = lua_touserdata(L, lua_upvalueindex(1));
+  if(udata != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+  *udata = NULL;
+  return 0;
+}
+
+static int
 mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
   const char *k;
   void *udata;
@@ -176,6 +186,8 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
     luaL_error(L, "metatable error, arg1 not a crypto.ssl_session!");
   }
   udata = lua_touserdata(L, 1);
+  if(!*(void **)udata)
+    luaL_error(L, "crypto.ssl_session already released");
   k = lua_tostring(L, 2);
   ssl_session = *((SSL_SESSION **)udata);
   switch(*k) {
@@ -202,6 +214,13 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
       }
       if(!strcmp(k, "master_key_bits")) {
         lua_pushinteger(L, ssl_session->master_key_length * 8);
+        return 1;
+      }
+      break;
+    case 'r':
+      if(!strcmp(k, "release")) {
+        lua_pushlightuserdata(L, udata);
+        lua_pushcclosure(L, mtev_lua_crypto_ssl_session_release, 1);
         return 1;
       }
       break;
@@ -235,7 +254,7 @@ static int
 mtev_lua_crypto_ssl_session_gc(lua_State *L) {
   void **udata;
   udata = lua_touserdata(L,1);
-  SSL_SESSION_free((SSL_SESSION *)*udata);
+  *udata = NULL;
   return 0;
 }
 
