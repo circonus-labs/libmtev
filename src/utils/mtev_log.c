@@ -53,6 +53,7 @@
 #include "mtev_log.h"
 #include "mtev_hash.h"
 #include "mtev_atomic.h"
+#include "mtev_hooks.h"
 #include <jlog.h>
 #include <jlog_private.h>
 #ifdef DTRACE_ENABLED
@@ -61,6 +62,19 @@
 #define LIBMTEV_LOG(a,b,c,d)
 #define LIBMTEV_LOG_ENABLED() 0
 #endif
+
+MTEV_HOOK_IMPL(mtev_log_line,
+               (mtev_log_stream_t ls, struct timeval *whence,
+                const char *timebuf, int timebuflen,
+                const char *debugbuf, int debugbuflen,
+                const char *buffer, size_t len),
+               void *, closure,
+               (void *closure, mtev_log_stream_t ls, struct timeval *whence,
+                const char *timebuf, int timebuflen,
+                const char *debugbuf, int debugbuflen,
+                const char *buffer, size_t len),
+               (closure,ls,whence,timebuf,timebuflen,debugbuf,debugbuflen,buffer,len))
+
 
 static int _mtev_log_siglvl = 0;
 void mtev_log_enter_sighandler() { _mtev_log_siglvl++; }
@@ -1494,6 +1508,11 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
   struct _mtev_log_stream_outlet_list *node;
   struct _mtev_log_stream bitor_onstack;
   memcpy(&bitor_onstack, ls, sizeof(bitor_onstack));
+  if(mtev_log_line_hook_invoke(ls, whence, timebuf, timebuflen,
+                               debugbuf, debugbuflen,
+                               buffer, len) == MTEV_HOOK_ABORT) {
+    return -1;
+  }
   if(bitor) {
     bitor_onstack.name = bitor->name;
     bitor_onstack.flags |= bitor->flags & MTEV_LOG_STREAM_FACILITY;

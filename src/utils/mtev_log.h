@@ -40,6 +40,7 @@
 #include <sys/uio.h>
 #include <sys/time.h>
 #include "mtev_hash.h"
+#include "mtev_hooks.h"
 
 #ifdef mtev_log_impl
 typedef struct _mtev_log_stream * mtev_log_stream_t;
@@ -169,5 +170,16 @@ API_EXPORT(int)
 
 #define SETUP_LOG(a, b) do { if(!a##_log) a##_log = mtev_log_stream_find(#a); \
                              if(!a##_log) { b; } } while(0)
+
+MTEV_HOOK_PROTO(mtev_log_line,
+                (mtev_log_stream_t ls, struct timeval *whence,
+                 const char *timebuf, int timebuflen,
+                 const char *debugbuf, int debugbuflen,
+                 const char *buffer, size_t len),
+                void *, closure,
+                (void *closure, mtev_log_stream_t ls, struct timeval *whence,
+                 const char *timebuf, int timebuflen,
+                 const char *debugbuf, int debugbuflen,
+                 const char *buffer, size_t len))
 
 #endif
