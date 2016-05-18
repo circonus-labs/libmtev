@@ -49,6 +49,8 @@ MTEV_HOOK_PROTO(mtev_fq_handle_message_dyn,
 /* This maps exposes a runtime resolved hook register function people should
  * use: mtev_fq_handle_message_hook_register
  */
+MTEV_RUNTIME_AVAIL(mtev_fq_handle_message_hook_register,
+                   mtev_fq_handle_message_dyn_hook_register)
 MTEV_RUNTIME_RESOLVE(mtev_fq_handle_message_hook_register,
                      mtev_fq_handle_message_dyn_hook_register,
                      mtev_hook_return_t,

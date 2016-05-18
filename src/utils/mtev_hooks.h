@@ -208,4 +208,12 @@ static inline RTYPE FUNCNAME PROTO { \
   } \
   return f_ PARAMS; \
 }
+#define MTEV_RUNTIME_AVAIL(FUNCNAME, SYMBOL) \
+static inline int FUNCNAME##_available () { \
+  static void (*f_) (); \
+  if(!f_) { \
+    f_ = dlsym(MTEV_RTLD_PARAM, #SYMBOL); \
+  } \
+  return (f_ != NULL); \
+}
 #endif
