@@ -35,16 +35,18 @@
 
 #include <mtev_defines.h>
 #include <mtev_hooks.h>
-#include <fq.h>
+
+struct fq_msg;
+struct fq_conn_s;
 
 /* void mtev_fq_send(fq_msg *msg, int id); */
 MTEV_RUNTIME_RESOLVE(mtev_fq_send, mtev_fq_send_function, void,
-                     (fq_msg *msg, int id), (msg, id))
+                     (struct fq_msg *msg, int id), (msg, id))
 
 MTEV_HOOK_PROTO(mtev_fq_handle_message_dyn,
-                (fq_client client, int id, fq_msg *msg),
+                (struct fq_conn_s *client, int id, struct fq_msg *msg, void *payload, size_t payload_len),
                 void *, closure,
-                (void *closure, fq_client client, int id, fq_msg *msg))
+                (void *closure, struct fq_conn_s *client, int id, struct fq_msg *msg, void *payload, size_t payload_len))
 
 /* This maps exposes a runtime resolved hook register function people should
  * use: mtev_fq_handle_message_hook_register
@@ -55,7 +57,7 @@ MTEV_RUNTIME_RESOLVE(mtev_fq_handle_message_hook_register,
                      mtev_fq_handle_message_dyn_hook_register,
                      mtev_hook_return_t,
                      (const char *name,
-                      mtev_hook_return_t (*func) (void *closure, fq_client client, int id, fq_msg *msg),
+                      mtev_hook_return_t (*func) (void *closure, struct fq_conn_s *client, int id, struct fq_msg *msg, void *payload, size_t payload_len),
                       void *closure),
                      (name,func,closure))
 

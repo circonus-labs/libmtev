@@ -34,13 +34,14 @@
 #include <mtev_hooks.h>
 #include <mtev_dso.h>
 #include <mtev_conf.h>
+#include <fq.h>
 #include "mtev_fq.h"
 
 MTEV_HOOK_IMPL(mtev_fq_handle_message_dyn,
-               (fq_client client, int id, fq_msg *msg),
+               (fq_client client, int id, struct fq_msg *msg, void *payload, size_t payload_len),
                void *, closure,
-               (void *closure, fq_client client, int id, fq_msg *msg),
-               (closure,client,id,msg))
+               (void *closure, fq_client client, int id, struct fq_msg *msg, void *payload, size_t payload_len),
+               (closure,client,id,msg,payload,payload_len))
 
 #define CONFIG_FQ_IN_MQ "//network//mq[@type='fq']"
 #define CONFIG_FQ_HOST "self::node()/host"
@@ -128,7 +129,7 @@ static int poll_fq(eventer_t e, int mask, void *unused, struct timeval *now) {
 
   for (int client = 0; client != the_conf->number_of_conns; ++client) {
     while (NULL != (m = fq_client_receive(the_conf->fq_conns[client]))) {
-      mtev_fq_handle_message_dyn_hook_invoke(the_conf->fq_conns[client], client, m);
+      mtev_fq_handle_message_dyn_hook_invoke(the_conf->fq_conns[client], client, m, m->payload, m->payload_len);
       fq_msg_deref(m);
     }
   }
