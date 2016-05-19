@@ -75,6 +75,13 @@ static inline double sub_timeval_d(struct timeval a, struct timeval b)
   return (double)d.tv_sec + (double)d.tv_usec / 1000000.0;
 }
 
+static inline int64_t sub_timeval_ms(struct timeval a, struct timeval b)
+{
+  struct timeval d;
+  sub_timeval(a,b,&d);
+  return d.tv_sec*1000 + d.tv_usec / 1000;
+}
+
 static inline void add_timeval(struct timeval a, struct timeval b,
                                struct timeval *out)
 {

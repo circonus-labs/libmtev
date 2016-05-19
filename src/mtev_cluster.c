@@ -48,18 +48,31 @@ static struct timeval my_boot_time;
 static mtev_boolean have_clusters;
 static mtev_hash_table global_clusters;
 
+static const struct timeval boot_time_of_dead_node = { (1UL
+    << (CHAR_BIT * sizeof(boot_time_of_dead_node.tv_sec) - 1)) - 1, (1UL
+    << (CHAR_BIT * sizeof(boot_time_of_dead_node.tv_usec) - 1)) - 1 };
+
 /* All allocated with mtev_memory_safe commands */
 struct mtev_cluster_t {
   char *name;
   unsigned short port;
   int period;
+  int timeout;
+  int maturity;
   char *key;
   int64_t config_seq;
   int node_cnt;
   mtev_cluster_node_t *nodes;
   mtev_cht_t **cht;
   mtev_net_heartbeat_ctx *hbctx;
+  mtev_cluster_node_t *oldest_node;
 };
+
+MTEV_HOOK_IMPL(mtev_cluster_handle_node_update,
+  (mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster),
+  void *, closure,
+  (void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster),
+  (closure,updated_node,cluster))
 
 static int
 mtev_cluster_node_compare(const void *a, const void *b) {
@@ -123,8 +136,92 @@ deferred_cht_free(void *vptr) {
   mw_rp = payload + mw_rn; \
 } while(0)
 
-static int
+static void
+mtev_cluster_node_to_string(mtev_cluster_node_t *node, char *buff,
+    size_t buff_len) {
+  if (node->addr.addr4.sin_family == AF_INET) {
+    inet_ntop(AF_INET, &node->addr.addr4.sin_addr, buff, buff_len);
+  } else if (node->addr.addr6.sin6_family == AF_INET6) {
+    inet_ntop(AF_INET6, &node->addr.addr6.sin6_addr, buff, buff_len);
+  }
+}
+
+static void
+mtev_cluster_on_node_update(mtev_cluster_t *cluster,
+    mtev_cluster_node_t *sender, const struct timeval *new_boot_time) {
+  memcpy(&sender->boot_time, new_boot_time, sizeof(*new_boot_time));
+
+  if (uuid_compare(my_cluster_id, sender->id) != 0) {
+    if (compare_timeval(*new_boot_time, my_boot_time) == 0) {
+      char node_name[128];
+      mtev_cluster_node_to_string(sender, node_name, sizeof(node_name));
+      mtevL(mtev_debug,
+          "The following node in the cluster %s had the same startup time we have: '%s'\n",
+          cluster->name, node_name);
+      my_boot_time.tv_usec = random() % 1000000;
+      return;
+    }
+  }
+
+  if (compare_timeval(*new_boot_time, boot_time_of_dead_node) == 0) {
+    cluster->oldest_node = &cluster->nodes[0];
+    for (int i = 1; i < cluster->node_cnt; i++) {
+      struct timeval delta;
+      mtev_cluster_node_t *node = &cluster->nodes[i];
+
+      if (compare_timeval(node->boot_time, cluster->oldest_node->boot_time) == -1) {
+        cluster->oldest_node = node;
+      }
+    }
+  } else if (cluster->oldest_node == NULL || compare_timeval(*new_boot_time, cluster->oldest_node->boot_time) == -1) {
+    cluster->oldest_node = sender;
+
+    char node_name[128];
+    mtev_cluster_node_to_string(sender, node_name, sizeof(node_name));
+    mtevL(mtev_debug, "Oldest node of mtev_cluster '%s' is now '%s' \n",
+        cluster->name, node_name);
+  }
+
+  mtev_cluster_handle_node_update_hook_invoke(sender, cluster);
+}
+static void
+mtev_cluster_check_timeout(mtev_cluster_t *cluster, struct timeval now) {
+  for (int i = 0; i < cluster->node_cnt; i++) {
+    mtev_cluster_node_t *node = &cluster->nodes[i];
+    if(sub_timeval_ms(now, node->last_contact) > cluster->timeout) {
+      if(compare_timeval(node->boot_time, boot_time_of_dead_node) != 0) {
+        // ignore nodes that have just been booted
+        if(node->boot_time.tv_sec > 0
+            && sub_timeval_ms(now, node->boot_time) > cluster->maturity) {
+          char node_name[128];
+          mtev_cluster_node_to_string(node, node_name, sizeof(node_name));
+          mtevL(mtev_debug, "Heartbeat timeout of cluster node %s\n",
+              node_name);
+          mtev_cluster_on_node_update(cluster, node, &boot_time_of_dead_node);
+        }
+      }
+    }
+  }
+}
+static void
+mtev_cluster_check_timeouts() {
+  const char *key;
+  int klen;
+  void *value;
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+
+  struct timeval now;
+  gettimeofday (&now, NULL);
+
+  while(mtev_hash_next(&global_clusters, &iter, &key, &klen, &value)) {
+    mtev_cluster_check_timeout(value, now);
+  }
+}
+
+static int 
 mtev_cluster_info_compose(void *payload, int len, void *c) {
+  mtev_cluster_check_timeouts();
+
   MEMWRITE_DECL(payload, len);
   u_int64_t packed_time;
   u_int64_t seq;
@@ -147,8 +244,6 @@ mtev_cluster_info_process(void *payload, int len, void *c) {
   mtev_cluster_node_t *sender;
   MEMREAD_DECL(payload, len);
   mtev_cluster_t *cluster = c;
-  void *read_point = payload;
-  int n_read = 0;
   uuid_t nodeid;
   struct timeval boot_time;
   u_int64_t packed_time;
@@ -163,13 +258,16 @@ mtev_cluster_info_process(void *payload, int len, void *c) {
   seq = ntohll(seq);
 
   if(seq != cluster->config_seq) {
-    mtevL(mtev_error, "cluster sequence mismatch %llu != %llu\n", seq, cluster->config_seq);
+    mtevL(mtev_error, "cluster sequence mismatch %"PRIu64" != %"PRId64"\n", seq,
+        cluster->config_seq);
     return -1;
   }
   /* Update our perspective */
   sender = mtev_cluster_find_node(cluster, nodeid);
   if(sender) {
-    memcpy(&sender->boot_time, &boot_time, sizeof(boot_time));
+    if(compare_timeval(sender->boot_time, boot_time)!=0) {
+      mtev_cluster_on_node_update(cluster, sender, &boot_time);
+    }
     gettimeofday(&sender->last_contact, NULL);
   }
   return 0;
@@ -194,10 +292,7 @@ mtev_cluster_announce(mtev_cluster_t *cluster) {
     socklen_t alen;
     alen = cluster->nodes[i].address_len;
     memcpy(&a, &cluster->nodes[i].addr, sizeof(cluster->nodes[i].addr));
-    if(a.a4.sin_family == AF_INET) a.a4.sin_port = htons(cluster->port);
-    else if(a.a4.sin_family == AF_INET6) a.a6.sin6_port = htons(cluster->port);
-    mtev_net_heartbeat_add_target(cluster->hbctx,
-                                  (struct sockaddr *)&a, alen);
+    mtev_net_heartbeat_add_target(cluster->hbctx, (struct sockaddr *) &a, alen);
   }
   mtev_net_heartbeat_set_out(cluster->hbctx, mtev_cluster_info_compose, cluster);
   mtev_net_heartbeat_set_in(cluster->hbctx, mtev_cluster_info_process, cluster);
@@ -252,7 +347,7 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
     }
   }
   else {
-    char port[6], period[8];
+    char port[6], period[8], timeout[8], maturity[8];
     if(parent) return 0;
     n = mtev_conf_get_section(NULL, "//clusters");
     if(!n) {
@@ -266,6 +361,12 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
     xmlSetProp(parent, (xmlChar *)"port", (xmlChar *)port);
     snprintf(period, sizeof(period), "%d", cluster->period);
     xmlSetProp(parent, (xmlChar *)"period", (xmlChar *)period);
+    snprintf(timeout, sizeof(timeout), "%d", cluster->timeout);
+    xmlSetProp(parent, (xmlChar *)"timeout", (xmlChar *)timeout);
+    snprintf(maturity, sizeof(maturity), "%d", cluster->maturity);
+    xmlSetProp(parent, (xmlChar *)"maturity", (xmlChar *)maturity);
+
+
     xmlSetProp(parent, (xmlChar *)"key", (xmlChar *)cluster->key);
     xmlSetProp(parent, (xmlChar *)"seq", (xmlChar *)new_seq_str);
   }
@@ -303,10 +404,9 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
   return 1;
 }
 
-int
-mtev_cluster_update_internal(mtev_conf_section_t cluster,
-                             mtev_boolean booted) {
-  int rv = -1, i, n_nodes, port, period;
+int mtev_cluster_update_internal(mtev_conf_section_t cluster,
+    mtev_boolean booted) {
+  int rv = -1, i, n_nodes, port, period, timeout, maturity;
   int64_t seq;
   char bufstr[1024];
   mtev_conf_section_t *nodes = NULL;
@@ -358,6 +458,27 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
   if(*endptr || period < 0 || period > 5000) {
     mtevL(mtev_error, "Cluster '%s' period invalid.\n", name);
     goto bail;
+  }
+
+  if(!mtev_conf_get_stringbuf(cluster, "@timeout", bufstr, sizeof(bufstr)) ||
+     bufstr[0] == '\0') {
+     strlcpy(bufstr, "5000", sizeof(bufstr));
+  }
+  timeout = strtoll(bufstr, &endptr, 10);
+  if(*endptr || timeout < period) {
+    mtevL(mtev_error, "Cluster '%s' timeout invalid.\n", name);
+    goto bail;
+  }
+
+  if(!mtev_conf_get_stringbuf(cluster, "@maturity", bufstr, sizeof(bufstr)) ||
+     bufstr[0] == '\0') {
+     maturity = timeout;
+  } else {
+    maturity = strtoll(bufstr, &endptr, 10);
+    if(*endptr || maturity < 0) {
+      mtevL(mtev_error, "Cluster '%s' maturity invalid.\n", name);
+      goto bail;
+    }
   }
 
   nodes = mtev_conf_get_sections(cluster, "node", &n_nodes);
@@ -423,6 +544,8 @@ mtev_cluster_update_internal(mtev_conf_section_t cluster,
   new_cluster->config_seq = seq;
   new_cluster->port = port;
   new_cluster->period = period;
+  new_cluster->timeout = timeout;
+  new_cluster->maturity = maturity;
   qsort(nlist, n_nodes, sizeof(*nlist), mtev_cluster_node_compare);
   new_cluster->node_cnt = n_nodes;
   new_cluster->nodes = nlist; nlist = NULL;
@@ -556,7 +679,7 @@ mtev_cluster_do_i_own(mtev_cluster_t *c, void *key, size_t klen, int w) {
 static xmlNodePtr
 mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   int i;
-  char str[32], port[6], period[8];
+  char str[32], port[6], period[8], timeout[8], maturity[8];
   xmlNodePtr cluster;
   cluster = xmlNewNode(NULL, (xmlChar *)"cluster");
   xmlSetProp(cluster, (xmlChar *)"name", (xmlChar *)c->name);
@@ -566,14 +689,33 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   xmlSetProp(cluster, (xmlChar *)"port", (xmlChar *)port);
   snprintf(period, sizeof(period), "%d", c->period);
   xmlSetProp(cluster, (xmlChar *)"period", (xmlChar *)period);
+  snprintf(timeout, sizeof(timeout), "%d", c->timeout);
+  xmlSetProp(cluster, (xmlChar *)"timeout", (xmlChar *)timeout);
+  snprintf(maturity, sizeof(maturity), "%d", c->maturity);
+  xmlSetProp(cluster, (xmlChar *)"maturity", (xmlChar *)maturity);
+
+  xmlNodePtr node;
+  char uuid_str[UUID_STR_LEN+1];
+  node = xmlNewNode(NULL, (xmlChar *)"node");
+  uuid_unparse_lower(c->oldest_node->id, uuid_str);
+  node = xmlNewNode(NULL, (xmlChar *)"oldest_node");
+  xmlSetProp(node, (xmlChar *)"uuid", (xmlChar *)uuid_str);
+  xmlAddChild(cluster, node);
+
   for(i=0;i<c->node_cnt;i++) {
     mtev_cluster_node_t *n = &c->nodes[i];
     xmlNodePtr node;
-    char uuid_str[UUID_STR_LEN+1], port[6], ipstr[INET6_ADDRSTRLEN];
+    char uuid_str[UUID_STR_LEN+1], port[6], ipstr[INET6_ADDRSTRLEN], time[11];
     node = xmlNewNode(NULL, (xmlChar *)"node");
     uuid_unparse_lower(n->id, uuid_str);
     xmlSetProp(node, (xmlChar *)"id", (xmlChar *)uuid_str);
     xmlSetProp(node, (xmlChar *)"cn", (xmlChar *)n->cn);
+
+    snprintf(time, sizeof(time), "%d", n->last_contact.tv_sec);
+    xmlSetProp(node, (xmlChar *)"last_contact", (xmlChar *)time);
+    snprintf(time, sizeof(time), "%d", n->boot_time.tv_sec);
+    xmlSetProp(node, (xmlChar *)"boot_time", (xmlChar *)time);
+
     if(n->addr.addr4.sin_family == AF_INET) {
       inet_ntop(AF_INET, &n->addr.addr4.sin_addr,
                 ipstr, sizeof(ipstr));
@@ -604,6 +746,12 @@ rest_show_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
   doc = xmlNewDoc((xmlChar *)"1.0");
   root = xmlNewDocNode(doc, NULL, (xmlChar *)"clusters", NULL);
   xmlDocSetRootElement(doc, root);
+
+
+  char uuid_str[UUID_STR_LEN+1];
+  uuid_unparse_lower(my_cluster_id, uuid_str);
+  xmlSetProp(root, (xmlChar *)"my_id", (xmlChar *)uuid_str);
+
   if(n == 1) {
     mtev_cluster_t *c = mtev_cluster_by_name(p[0]);
     if(!c) goto notfound;
@@ -703,4 +851,8 @@ mtev_cluster_init() {
              mtev_http_rest_client_cert_auth
   ) == 0);
 }
-
+mtev_boolean mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster) {
+  if (cluster == NULL || cluster->oldest_node == NULL)
+    return mtev_false;
+  return uuid_compare(cluster->oldest_node->id, my_cluster_id) == 0;
+}
