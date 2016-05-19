@@ -26,11 +26,11 @@ all:	example1 fq-router
 
 example1:	$(EX1_OBJS)
 	@echo "- linking $@"
-	@$(CC) -L.. $(LDFLAGS) -o $@ $(EX1_OBJS) -lmtev
+	@$(CC) -L.. $(LDFLAGS) $(LIBS) -o $@ $(EX1_OBJS) -lmtev
 
 fq-router:	$(FQR_OBJS)
 	@echo "- linking $@"
-	@$(CC) -L.. $(LDFLAGS) -o $@ $(FQR_OBJS) -lmtev -lfq
+	@$(CC) -L.. $(LDFLAGS) $(LIBS) -o $@ $(FQR_OBJS) -lmtev -lfq
 
 clean:
 	rm -f *.o example1

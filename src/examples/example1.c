@@ -15,10 +15,12 @@
 #include <getopt.h>
 
 #define APPNAME "example1"
+#define CLUSTER_NAME "ponies"
 static char *config_file = NULL;
 static int debug = 0;
 static int foreground = 0;
 static char *droptouser = NULL, *droptogroup = NULL;
+static mtev_cluster_t *my_cluster = NULL;
 
 static int
 usage(const char *prog) {
@@ -41,6 +43,36 @@ parse_cli_args(int argc, char * const *argv) {
     }
   }
 }
+
+static mtev_hook_return_t
+on_node_updated(void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster) {
+  mtev_boolean i_am_oldest = mtev_cluster_am_i_oldest_node(my_cluster);
+
+  mtevL(mtev_stderr, "The cluster topology has changed: I am oldest node: %d\n",
+      i_am_oldest);
+  return MTEV_HOOK_CONTINUE;
+}
+
+static void init_cluster() {
+  mtev_cluster_init();
+  if (mtev_cluster_enabled() != mtev_false) {
+
+    my_cluster = mtev_cluster_by_name(CLUSTER_NAME);
+    if (my_cluster == NULL) {
+      mtevL(mtev_stderr, "Unable to find cluster %s\n", CLUSTER_NAME);
+      exit(1);
+    }
+    uuid_t my_cluster_id;
+    mtev_cluster_get_self(my_cluster_id);
+
+    mtev_cluster_handle_node_update_hook_register("cluster-topology-listener", on_node_updated, NULL);
+
+    char uuid_str[UUID_STR_LEN + 1];
+    uuid_unparse(my_cluster_id, uuid_str);
+    mtevL(mtev_stderr, "Initialized cluster. My uuid is: %s\n", uuid_str);
+  }
+}
+
 static int
 child_main() {
   /* reload out config, to make sure we have the most current */
@@ -55,7 +87,7 @@ child_main() {
   mtev_capabilities_listener_init();
   mtev_events_rest_init();
   mtev_listener_init(APPNAME);
-  mtev_cluster_init();
+  init_cluster();
   mtev_dso_init();
   mtev_dso_post_init();
 
