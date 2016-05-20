@@ -86,22 +86,23 @@ mtev__strndup(const char *src, int len) {
 void
 mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str,
     uint str_len) {
-  const int growth_factor = 1.4;
+#define GROWTH_FACTOR(a) (((a) + ((a) >> 1))+1)
   if (buff->buff == NULL) {
-    buff->buff_len = str_len * growth_factor;
-    buff->buff = malloc(buff->buff_len);
+    buff->buff_len = GROWTH_FACTOR(str_len);
+    buff->buff = calloc(1, buff->buff_len);
     buff->string = buff->buff + buff->buff_len;
   }
   if (buff->string - buff->buff < str_len) {
     int bytes_stored = buff->buff_len - (buff->string - buff->buff);
-    int new_buff_len = growth_factor * (buff->buff_len + str_len);
-    char* tmp = malloc(new_buff_len);
+    int new_buff_len = GROWTH_FACTOR(buff->buff_len + str_len);
+    char* tmp = calloc(1, new_buff_len);
     buff->buff_len = new_buff_len;
     memcpy(tmp + buff->buff_len - bytes_stored, buff->string, bytes_stored);
     free(buff->buff);
     buff->buff = tmp;
     buff->string = buff->buff + buff->buff_len - bytes_stored;
   }
+#undef GROWTH_FACTOR
 
   buff->string -= str_len;
   memcpy(buff->string, str, str_len);
