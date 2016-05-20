@@ -696,7 +696,6 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
 
   xmlNodePtr node;
   char uuid_str[UUID_STR_LEN+1];
-  node = xmlNewNode(NULL, (xmlChar *)"node");
   uuid_unparse_lower(c->oldest_node->id, uuid_str);
   node = xmlNewNode(NULL, (xmlChar *)"oldest_node");
   xmlSetProp(node, (xmlChar *)"uuid", (xmlChar *)uuid_str);
