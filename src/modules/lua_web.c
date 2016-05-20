@@ -130,10 +130,12 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
     default: /* The complicated case */
       ctx->httpcode = 500;
       base = lua_gettop(ri->coro_state);
-      if(base>=0) {
-        if(lua_isstring(ri->coro_state, base-1)) {
-          err = lua_tostring(ri->coro_state, base-1);
-          mtevL(mtev_error, "err -> %s\n", err);
+      if(base>0) {
+        mtev_lua_traceback(ri->coro_state);
+        base = lua_gettop(ri->coro_state);
+        if(lua_isstring(ri->coro_state, base)) {
+          err = lua_tostring(ri->coro_state, base);
+          mtevL(mtev_error, "lua error: %s\n", err);
           if(!ctx->err) ctx->err = strdup(err);
         }
       }
@@ -212,6 +214,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   if(rv) {
     int i;
     mtevL(mtev_error, "lua: require %s failed\n", restc->closure);
+    mtev_lua_traceback(L);
     i = lua_gettop(L);
     if(i>0) {
       if(lua_isstring(L, i)) {
