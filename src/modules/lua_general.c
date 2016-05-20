@@ -113,10 +113,12 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
       return 0;
     default: /* The complicated case */
       base = lua_gettop(ri->coro_state);
-      if(base>=0) {
-        if(lua_isstring(ri->coro_state, base-1)) {
-          err = lua_tostring(ri->coro_state, base-1);
-          mtevL(nlerr, "err -> %s\n", err);
+      if(base>0) {
+        mtev_lua_traceback(ri->coro_state);
+        base = lua_gettop(ri->coro_state);
+        if(lua_isstring(ri->coro_state, base)) {
+          err = lua_tostring(ri->coro_state, base);
+          mtevL(nlerr, "lua error: %s\n", err);
         }
       }
       tragic_failure(ri->lmc->self);
@@ -156,6 +158,7 @@ lua_general_handler(mtev_dso_generic_t *self) {
   if(rv) {
     int i;
     mtevL(nlerr, "lua: require %s failed\n", conf->module);
+    mtev_lua_traceback(L);
     i = lua_gettop(L);
     if(i>0) {
       if(lua_isstring(L, i)) {

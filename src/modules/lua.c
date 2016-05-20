@@ -250,6 +250,17 @@ register_console_lua_commands() {
     NCSCMD("lua", mtev_console_show_lua, NULL, NULL, NULL));
 }
 
+int
+mtev_lua_traceback(lua_State *L) {
+  if (!lua_isstring(L, -1)) {
+    if (lua_isnoneornil(L, -1) || !luaL_callmeta(L, -1, "__tostring"))
+      return 1;
+    lua_remove(L, -1);
+  }
+  luaL_traceback(L, L, lua_tostring(L, -1), 1);
+  return 1;
+}
+
 void 
 mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
   lua_module_closure_t *lmc = ri->lmc;
