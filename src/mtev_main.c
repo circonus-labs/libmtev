@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2011, OmniTI Computer Consulting, Inc.
  * All rights reserved.
- * Copyright (c) 2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2015-2016, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -47,6 +47,7 @@
 #include "mtev_log.h"
 #include "mtev_main.h"
 #include "mtev_conf.h"
+#include "mtev_memory.h"
 #include "mtev_watchdog.h"
 #include "mtev_lockfile.h"
 #include "eventer/eventer.h"
@@ -151,6 +152,8 @@ mtev_main(const char *appname,
   mtev_conf_section_t root;
  
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
+
+  mtev_memory_init();
 
   /* First initialize logging, so we can log errors */
   mtev_log_init(debug);
