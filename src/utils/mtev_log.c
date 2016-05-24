@@ -475,6 +475,16 @@ void asynch_log_ctx_free(asynch_log_ctx *tf) {
   free(tf);
 }
 
+static void
+asynch_logio_drain(asynch_log_ctx *actx) {
+  asynch_log_line *line;
+  while(NULL != (line = asynch_log_pop(actx))) {
+    if(actx->write(actx, line) == -1) abort();
+    if(line->buf_dynamic != NULL) free(line->buf_dynamic);
+    free(line);
+  }
+}
+
 static void *
 asynch_logio_writer(void *vls) {
   mtev_log_stream_t ls = vls;
@@ -646,6 +656,10 @@ posix_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
     pthread_rwlock_t *lock = ls->lock;
     po = actx->userdata;
     if(lock) pthread_rwlock_rdlock(lock);
+
+    /* Drain any asynch queue (if we've come back from asynch mode) */
+    asynch_logio_drain(actx);
+
     if(po && po->fd >= 0) rv = write(po->fd, buf, len);
     if(lock) pthread_rwlock_unlock(lock);
     if(rv > 0) mtev_atomic_add32(&ls->written, rv);
@@ -1092,6 +1106,10 @@ jlog_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
   if(!actx->is_asynch || _mtev_log_siglvl > 0) {
     int rv;
     jlog_ctx *log = actx->userdata;
+
+    /* Drain any asynch queue (if we've come back from asynch mode) */
+    asynch_logio_drain(actx);
+
     rv = jlog_ctx_write(log, buf, len);
     if(rv == -1) {
       mtevL(mtev_error, "jlog_ctx_write failed(%d): %s\n",
@@ -1713,6 +1731,7 @@ mtev_log_go_synch() {
       mtev_atomic_inc32(&actx->gen);
       actx->is_asynch = 0;
       if(ls->ops->reopenop(ls) < 0) rv = -1;
+      asynch_logio_drain(actx);
     }
   }
   return rv;
