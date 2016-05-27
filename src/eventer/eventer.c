@@ -41,12 +41,17 @@
 eventer_impl_t __eventer;
 mtev_log_stream_t eventer_err;
 mtev_log_stream_t eventer_deb;
+static mtev_atomic64_t ealloccnt;
+static mtev_atomic64_t ealloctotal;
 
 eventer_t eventer_alloc() {
   eventer_t e;
   e = calloc(1, sizeof(*e));
   e->thr_owner = pthread_self();
   e->opset = eventer_POSIX_fd_opset;
+  e->refcnt = 1;
+  mtev_atomic_inc64(&ealloccnt);
+  mtev_atomic_inc64(&ealloctotal);
   return e;
 }
 
@@ -64,7 +69,29 @@ int eventer_timecompare(const void *av, const void *bv) {
 }
 
 void eventer_free(eventer_t e) {
-  free(e);
+  if(mtev_atomic_dec32(&e->refcnt) == 0) {
+    mtev_atomic_dec64(&ealloccnt);
+    free(e);
+  }
+}
+
+int64_t eventer_allocations_current() {
+  return ealloccnt;
+}
+
+int64_t eventer_allocations_total() {
+  return ealloctotal;
+}
+
+void eventer_ref(eventer_t e) {
+  register int32_t newval;
+  newval = mtev_atomic_inc32(&e->refcnt);
+  assert(newval != 1);
+  (void)newval;
+}
+
+void eventer_deref(eventer_t e) {
+  eventer_free(e);
 }
 
 int eventer_set_fd_nonblocking(int fd) {

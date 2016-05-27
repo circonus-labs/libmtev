@@ -294,6 +294,7 @@ eventer_t mtev_http_connection_event_float(mtev_http_connection *conn) {
   if(e) {
     conn->e = eventer_alloc();
     memcpy(conn->e, e, sizeof(*e));
+    conn->e->refcnt = 1;
   }
   return e;
 }

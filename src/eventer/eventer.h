@@ -97,10 +97,15 @@ struct _event {
   void               *opset_ctx;
   void               *closure;
   pthread_t           thr_owner;
+  mtev_atomic32_t     refcnt;
 };
 
 API_EXPORT(eventer_t) eventer_alloc();
 API_EXPORT(void)      eventer_free(eventer_t);
+API_EXPORT(void)      eventer_ref(eventer_t);
+API_EXPORT(void)      eventer_deref(eventer_t);
+API_EXPORT(int64_t)   eventer_allocations_current();
+API_EXPORT(int64_t)   eventer_allocations_total();
 API_EXPORT(int)       eventer_timecompare(const void *a, const void *b);
 API_EXPORT(int)       eventer_name_callback(const char *name, eventer_func_t f);
 API_EXPORT(int)       eventer_name_callback_ext(const char *name,

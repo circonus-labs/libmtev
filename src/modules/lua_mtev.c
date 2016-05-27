@@ -203,6 +203,7 @@ mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
   *(cl->eptr) = eventer_alloc();
   memcpy(*cl->eptr, e, sizeof(*e));
   (*cl->eptr)->mask = 0;
+  (*cl->eptr)->refcnt = 1;
   mtev_lua_register_event(ci, *cl->eptr);
 
   if(getsockopt(e->fd,SOL_SOCKET,SO_ERROR, &aerrno, &aerrno_len) == 0)
@@ -282,6 +283,7 @@ mtev_lua_socket_recv_complete(eventer_t e, int mask, void *vcl,
   *(cl->eptr) = eventer_alloc();
   memcpy(*cl->eptr, e, sizeof(*e));
   (*cl->eptr)->mask = 0;
+  (*cl->eptr)->refcnt = 1;
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, args);
   return 0;
@@ -388,6 +390,7 @@ mtev_lua_socket_send_complete(eventer_t e, int mask, void *vcl,
   *(cl->eptr) = eventer_alloc();
   memcpy(*cl->eptr, e, sizeof(*e));
   (*cl->eptr)->mask = 0;
+  (*cl->eptr)->refcnt = 1;
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, args);
   return 0;
@@ -639,6 +642,7 @@ mtev_lua_socket_accept_complete(eventer_t e, int mask, void *vcl,
   *(cl->eptr) = eventer_alloc();
   memcpy(*cl->eptr, e, sizeof(*e));
   (*cl->eptr)->mask = 0;
+  (*cl->eptr)->refcnt = 1;
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, nargs);
   return 0;
@@ -918,6 +922,7 @@ mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
 
   *(cl->eptr) = eventer_alloc();
   memcpy(*cl->eptr, e, sizeof(*e));
+  (*cl->eptr)->refcnt = 1;
   mtev_lua_register_event(ci, *cl->eptr);
 
   /* Upgrade completed (successfully???) */
@@ -1082,6 +1087,7 @@ mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
   mtev_lua_deregister_event(ci, e, 0);
   *(cl->eptr) = eventer_alloc();
   memcpy(*cl->eptr, e, sizeof(*e));
+  (*cl->eptr)->refcnt = 1;
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, args);
   return 0;
@@ -1214,6 +1220,7 @@ mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
   *(cl->eptr) = eventer_alloc();
   memcpy(*cl->eptr, e, sizeof(*e));
   (*cl->eptr)->mask = 0;
+  (*cl->eptr)->refcnt = 1;
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, args);
   return 0;

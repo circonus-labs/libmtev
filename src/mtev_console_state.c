@@ -130,6 +130,17 @@ mtev_console_eventer_jobq(mtev_console_closure_t ncct, int argc, char **argv,
   return 0;
 }
 
+static int
+mtev_console_eventer_memory(mtev_console_closure_t ncct, int argc, char **argv,
+                            mtev_console_state_t *dstate, void *unused) {
+  int64_t eventer_allocd, eventer_total;
+  eventer_allocd = eventer_allocations_current();
+  eventer_total = eventer_allocations_total();
+  nc_printf(ncct, "current eventer_t allocations: %llu\n", eventer_allocd);
+  nc_printf(ncct, "total eventer_t allocations: %llu\n", eventer_total);
+  return 0;
+}
+
 cmd_info_t console_command_help = {
   "help", mtev_console_help, mtev_console_opt_delegate, NULL, NULL
 };
@@ -153,6 +164,9 @@ cmd_info_t console_command_eventer_sockets = {
 };
 cmd_info_t console_command_eventer_jobq = {
   "jobq", mtev_console_eventer_jobq, NULL, NULL, NULL
+};
+cmd_info_t console_command_eventer_memory = {
+  "memory", mtev_console_eventer_memory, NULL, NULL, NULL
 };
 
 static int
@@ -634,6 +648,7 @@ mtev_console_state_initial() {
     mtev_console_state_add_cmd(evdeb, &console_command_eventer_timers);
     mtev_console_state_add_cmd(evdeb, &console_command_eventer_sockets);
     mtev_console_state_add_cmd(evdeb, &console_command_eventer_jobq);
+    mtev_console_state_add_cmd(evdeb, &console_command_eventer_memory);
   }
   return _top_level_state;
 }

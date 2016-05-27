@@ -157,6 +157,26 @@ mtev_rest_eventer_timers(mtev_http_rest_closure_t *restc, int n, char **p) {
   return 0;
 }
 static int
+mtev_rest_eventer_memory(mtev_http_rest_closure_t *restc, int n, char **p) {
+  const char *jsonstr;
+  struct json_object *doc, *eobj;
+  doc = json_object_new_object();
+  eobj = json_object_new_object();
+  json_object_object_add(doc, "eventer_t", eobj);
+  json_object_object_add(eobj, "current",
+    json_object_new_int((int)eventer_allocations_current()));
+  json_object_object_add(eobj, "total",
+    json_object_new_int((int)eventer_allocations_total()));
+
+  mtev_http_response_ok(restc->http_ctx, "application/json");
+  jsonstr = json_object_to_json_string(doc);
+  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
+  mtev_http_response_append(restc->http_ctx, "\n", 1);
+  json_object_put(doc);
+  mtev_http_response_end(restc->http_ctx);
+  return 0;
+}
+static int
 mtev_rest_eventer_sockets(mtev_http_rest_closure_t *restc, int n, char **p) {
   const char *jsonstr;
   struct json_object *doc;
@@ -264,6 +284,10 @@ mtev_rest_eventer_logs(mtev_http_rest_closure_t *restc, int n, char **p) {
 
 void
 mtev_events_rest_init() {
+  assert(mtev_http_rest_register_auth(
+    "GET", "/eventer/", "^memory\\.json$",
+    mtev_rest_eventer_memory, mtev_http_rest_client_cert_auth
+  ) == 0);
   assert(mtev_http_rest_register_auth(
     "GET", "/eventer/", "^sockets\\.json$",
     mtev_rest_eventer_sockets, mtev_http_rest_client_cert_auth
