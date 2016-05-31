@@ -100,6 +100,34 @@ struct _event {
   mtev_atomic32_t     refcnt;
 };
 
+/* allocating, freeing and reference counts:
+   When eventer_alloc() is called, the object returned has a refcnt == 1.
+   Once the event it handed into the eventer (via the eventer_add type
+   functions), the eventer is then responsible for deref'ing the event.
+   If another thread needs access to this event and is worried about
+   the eventer firing and subsequently freeing the event, the event
+   should be eventer_ref()'d before it is passed to that new thread and
+   subsequently eventer_deref()'d by the new thread when it is no longer
+   needed.
+
+   use 1:
+     THREAD 1
+
+     e = eventer_alloc()
+     ...
+     eventer_add(e)
+
+   use 2:
+     THREAD 1                |  THREAD 2
+     e = eventer_alloc()     |
+     ...                     |
+     eventer_ref(e)          |
+     // hand e to thread 2   |  // receive e
+     ...                     |  ...
+     eventer_add(e)          |  ...
+                             |  eventer_deref(e)
+ */
+
 API_EXPORT(eventer_t) eventer_alloc();
 API_EXPORT(void)      eventer_free(eventer_t);
 API_EXPORT(void)      eventer_ref(eventer_t);
