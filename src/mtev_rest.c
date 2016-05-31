@@ -36,6 +36,7 @@
 #include "mtev_http.h"
 #include "mtev_rest.h"
 #include "mtev_conf.h"
+#include "mtev_json.h"
 
 #include <pcre.h>
 #include <unistd.h>
@@ -60,6 +61,7 @@ struct rest_raw_payload {
 
 struct rest_url_dispatcher {
   char *method;
+  char *expression_s;
   pcre *expression;
   pcre_extra *extra;
   rest_request_handler handler;
@@ -99,6 +101,37 @@ mtev_http_rest_permission_denied(mtev_http_rest_closure_t *restc,
                                  int npats, char **pats) {
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_standard(ctx, 403, "DENIED", "text/xml");
+  mtev_http_response_end(ctx);
+  return 0;
+}
+static int
+mtev_http_rest_endpoints(mtev_http_rest_closure_t *restc,
+                         int npats, char **pats) {
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  const char *key;
+  int keylen;
+  void *vcont;
+  struct json_object *doc;
+  doc = json_object_new_object();
+  while(mtev_hash_next(&dispatch_points, &iter, &key, &keylen, &vcont)) {
+    struct rule_container *cont = vcont;
+    struct rest_url_dispatcher *rule;
+    struct json_object *arr, *jrule;
+    arr = json_object_new_array();
+    for(rule = cont->rules; rule; rule = rule->next) {
+      jrule = json_object_new_object();
+      json_object_object_add(jrule, "method", json_object_new_string(rule->method));
+      json_object_object_add(jrule, "expression", json_object_new_string(rule->expression_s));
+      json_object_array_add(arr, jrule);
+    }
+    json_object_object_add(doc, key, arr);
+  }
+
+  mtev_http_response_standard(ctx, 200, "OK", "application/json");
+  const char *output = json_object_to_json_string(doc);
+  mtev_http_response_append(ctx, output, strlen(output));
+  json_object_put(doc);
   mtev_http_response_end(ctx);
   return 0;
 }
@@ -193,6 +226,10 @@ mtev_http_rest_register(const char *method, const char *base,
                         const char *expr, rest_request_handler f) {
   return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL);
 }
+void
+mtev_http_rest_disclose_endpoints(const char *base, const char *expr) {
+  mtev_http_rest_register("GET", base, expr, mtev_http_rest_endpoints);
+}
 int
 mtev_http_rest_register_closure(const char *method, const char *base,
                         const char *expr, rest_request_handler f, void *c) {
@@ -225,6 +262,7 @@ mtev_http_rest_register_auth_closure(const char *method, const char *base,
   }
   rule = calloc(1, sizeof(*rule));
   rule->method = strdup(method);
+  rule->expression_s = strdup(expr);
   rule->expression = pcre_expr;
   rule->extra = pcre_study(rule->expression, 0, &error);
   rule->handler = f;
