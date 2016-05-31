@@ -533,10 +533,12 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
     LIBMTEV_EVENTER_CALLBACK_RETURN((void *)timed_event,
                             (void *)timed_event->callback, (char *)cbname, newmask);
     mtev_memory_end();
-    if(newmask)
-      eventer_add_timed(timed_event);
-    else
-      eventer_free(timed_event);
+    if(newmask != EVENTER_DO_NOT_FREE) {
+      if(newmask)
+        eventer_add_timed(timed_event);
+      else
+        eventer_free(timed_event);
+    }
   }
 
   /* Sweep the staged timed events into the processing queue */
