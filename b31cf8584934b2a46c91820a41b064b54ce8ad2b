@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_3a375c4e",
+        "filename": "src/eventer/eventer.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1008553
+      },
+      "writtenOn": "2016-05-31T14:28:34Z",
+      "side": 1,
+      "message": "Test comment",
+      "revId": "b31cf8584934b2a46c91820a41b064b54ce8ad2b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_1a4378b3",
+        "filename": "src/eventer/eventer.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1008553
+      },
+      "writtenOn": "2016-05-31T14:28:34Z",
+      "side": 1,
+      "message": "Test another comment",
+      "revId": "b31cf8584934b2a46c91820a41b064b54ce8ad2b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
