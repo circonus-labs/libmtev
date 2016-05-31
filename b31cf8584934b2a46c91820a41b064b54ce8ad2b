@@ -69,6 +69,23 @@
       "revId": "b31cf8584934b2a46c91820a41b064b54ce8ad2b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_f07593ca",
+        "filename": "src/mtev_http.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 297,
+      "author": {
+        "id": 1008556
+      },
+      "writtenOn": "2016-05-31T20:24:46Z",
+      "side": 1,
+      "message": "I think this line should be removed - the refcnt is already 1 from the eventer_alloc, so setting it redundantly here is confusing to readers. Better to leave the refcnt maintenance strictly inside eventer_* functions.",
+      "revId": "b31cf8584934b2a46c91820a41b064b54ce8ad2b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
