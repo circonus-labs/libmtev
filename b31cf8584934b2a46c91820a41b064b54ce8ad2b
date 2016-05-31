@@ -86,6 +86,24 @@
       "revId": "b31cf8584934b2a46c91820a41b064b54ce8ad2b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_b0002b03",
+        "filename": "src/mtev_http.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 297,
+      "author": {
+        "id": 1008553
+      },
+      "writtenOn": "2016-05-31T20:26:19Z",
+      "side": 1,
+      "message": "The memcpy might overwrite the refcnt which is why it is reset.",
+      "parentUuid": "baa041b7_f07593ca",
+      "revId": "b31cf8584934b2a46c91820a41b064b54ce8ad2b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
