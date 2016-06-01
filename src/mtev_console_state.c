@@ -38,6 +38,7 @@
 #include "mtev_log.h"
 #include "mtev_hash.h"
 #include "mtev_listener.h"
+#include "mtev_rest.h"
 #include "mtev_console.h"
 #include "mtev_tokenizer.h"
 #include "mtev_capabilities_listener.h"
@@ -252,6 +253,10 @@ mtev_console_memory_log_opts(mtev_console_closure_t ncct,
 
 cmd_info_t console_command_log_lines = {
   "log", mtev_console_log_lines, mtev_console_memory_log_opts, NULL, NULL
+};
+
+cmd_info_t console_command_show_rest = {
+  "rest", mtev_mtev_console_show, NULL, NULL, NULL
 };
 
 void
@@ -639,6 +644,7 @@ mtev_console_state_initial() {
     mtev_console_state_add_cmd(_top_level_state, &console_command_restart);
     mtev_console_state_add_cmd(show_state, &console_command_version);
     mtev_console_state_add_cmd(show_state, &console_command_log_lines);
+    mtev_console_state_add_cmd(show_state, &console_command_show_rest);
     (void)no_state;
 
     evdeb = mtev_console_mksubdelegate(

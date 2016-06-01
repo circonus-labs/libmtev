@@ -43,6 +43,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <dlfcn.h>
 
 struct rest_xml_payload {
   char *buffer;
@@ -102,6 +103,37 @@ mtev_http_rest_permission_denied(mtev_http_rest_closure_t *restc,
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_standard(ctx, 403, "DENIED", "text/xml");
   mtev_http_response_end(ctx);
+  return 0;
+}
+int
+mtev_mtev_console_show(mtev_console_closure_t ncct, int argc, char **argv,
+                       mtev_console_state_t *dstate, void *unused) {
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  const char *key;
+  int keylen;
+  void *vcont;
+  while(mtev_hash_next(&dispatch_points, &iter, &key, &keylen, &vcont)) {
+    struct rule_container *cont = vcont;
+    struct rest_url_dispatcher *rule;
+    for(rule = cont->rules; rule; rule = rule->next) {
+      Dl_info info;
+      nc_printf(ncct, "%s [%s] %s\n", rule->method, key, rule->expression_s);
+      if(rule->handler && dladdr(rule->handler, &info) && info.dli_sname) {
+        nc_printf(ncct, "\tHANDLER: %s+%lx\n", info.dli_sname,
+                  (unsigned long)((uintptr_t)rule->handler - (uintptr_t)info.dli_saddr));
+      }
+      else {
+        nc_printf(ncct, "\tHANDLER: %p\n", rule->handler);
+      }
+      if(rule->auth && dladdr(rule->auth, &info) && info.dli_sname) {
+        nc_printf(ncct, "\tAUTH: %s+%lx\n", info.dli_sname,
+                  (unsigned long)((uintptr_t)rule->handler - (uintptr_t)info.dli_saddr));
+      }
+      else {
+        nc_printf(ncct, "\tAUTH: %p\n", rule->auth);
+      }
+    }
+  }
   return 0;
 }
 static int
