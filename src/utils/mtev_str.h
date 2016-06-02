@@ -46,7 +46,7 @@ typedef struct mtev_prependable_str_buff{
 API_EXPORT(const char *) strnstrn(const char *, int, const char *, int);
 #endif
 
-API_EXPORT(char *) mtev__strndup(const char *src, int len);
+API_EXPORT(char *) mtev__strndup(const char *src, size_t len);
 
 API_EXPORT(void) mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str, uint str_len);
 
