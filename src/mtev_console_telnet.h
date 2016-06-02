@@ -56,9 +56,6 @@
 #ifdef HAVE_TERMIO_H
 #include <termio.h>
 #endif
-#ifdef HAVE_TERM_H
-#include <term.h>
-#endif
 
 #if !defined(__linux__) && !defined(__sun)
 /* At least _I_ can't get LINUMODE working on Linux */
@@ -315,11 +312,5 @@ int
   mtev_console_telnet_telrcv(struct __mtev_console_closure *ncct,
                              const void *buf, int buflen);
 void ptyflush(struct __mtev_console_closure *ncct);
-
-/* term.h #defines user2, which can conflict with some libraries...
- * notably, libxml/xterm.h. If we included term.h, undef user2 here */
-#ifdef HAVE_TERM_H
-#undef user2
-#endif
 
 #endif
