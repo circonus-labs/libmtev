@@ -316,4 +316,10 @@ int
                              const void *buf, int buflen);
 void ptyflush(struct __mtev_console_closure *ncct);
 
+/* term.h #defines user2, which can conflict with some libraries...
+ * notably, libxml/xterm.h. If we included term.h, undef user2 here */
+#ifdef HAVE_TERM_H
+#undef user2
+#endif
+
 #endif
