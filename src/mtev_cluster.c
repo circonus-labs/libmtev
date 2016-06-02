@@ -710,9 +710,9 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
     xmlSetProp(node, (xmlChar *)"id", (xmlChar *)uuid_str);
     xmlSetProp(node, (xmlChar *)"cn", (xmlChar *)n->cn);
 
-    snprintf(time, sizeof(time), "%d", n->last_contact.tv_sec);
+    snprintf(time, sizeof(time), "%lu", (unsigned long)n->last_contact.tv_sec);
     xmlSetProp(node, (xmlChar *)"last_contact", (xmlChar *)time);
-    snprintf(time, sizeof(time), "%d", n->boot_time.tv_sec);
+    snprintf(time, sizeof(time), "%lu", (unsigned long)n->boot_time.tv_sec);
     xmlSetProp(node, (xmlChar *)"boot_time", (xmlChar *)time);
 
     if(n->addr.addr4.sin_family == AF_INET) {
