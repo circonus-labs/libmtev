@@ -48,6 +48,9 @@
 #include "mtev_console_telnet.h"
 #include "mtev_hash.h"
 
+#ifdef HAVE_CURSES_H
+#include <curses.h>
+#endif
 #ifdef HAVE_TERM_H
 #include <term.h>
 #endif

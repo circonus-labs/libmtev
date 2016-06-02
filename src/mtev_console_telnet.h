@@ -50,9 +50,6 @@
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
 #endif
-#ifdef HAVE_CURSES_H
-#include <curses.h>
-#endif
 #ifdef HAVE_TERMIO_H
 #include <termio.h>
 #endif
