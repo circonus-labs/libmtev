@@ -1152,7 +1152,7 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
     free(buff);
   }
 
-  char *result = strndup(xpath->string, mtev_prepend_strlen(xpath));
+  char *result = strndup(xpath->string, (size_t)mtev_prepend_strlen(xpath));
   mtev_prepend_str_free(xpath);
   return result;
 }

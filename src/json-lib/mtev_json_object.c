@@ -453,7 +453,7 @@ struct mtev_json_object* mtev_json_object_new_string_len(const char *s, int len)
   if(!jso) return NULL;
   jso->_delete = &mtev_json_object_string_delete;
   jso->_to_json_string = &mtev_json_object_string_to_json_string;
-  jso->o.c_string = strndup(s, len);
+  jso->o.c_string = strndup(s, (size_t)len);
   return jso;
 }
 

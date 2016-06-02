@@ -72,7 +72,7 @@ const char *strnstrn(const char *needle, int needle_len,
 }
 
 char *
-mtev__strndup(const char *src, int len) {
+mtev__strndup(const char *src, size_t len) {
   int slen;
   char *dst;
   for(slen = 0; slen < len; slen++)
