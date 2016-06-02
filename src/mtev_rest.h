@@ -34,6 +34,7 @@
 #include "mtev_defines.h"
 #include "mtev_listener.h"
 #include "mtev_http.h"
+#include "mtev_console.h"
 
 #ifndef MTEV_REST_H
 #define MTEV_REST_H
@@ -91,6 +92,13 @@ API_EXPORT(int)
   mtev_http_rest_register_auth_closure(const char *method, const char *base,
                                        const char *expression, rest_request_handler f,
                                        rest_authorize_func_t auth, void *closure);
+
+API_EXPORT(void)
+  mtev_http_rest_disclose_endpoints(const char *base, const char *expr);
+
+API_EXPORT(int)
+  mtev_mtev_console_show(mtev_console_closure_t ncct, int argc, char **argv,
+                         mtev_console_state_t *dstate, void *);
 
 API_EXPORT(xmlDocPtr)
   rest_get_xml_upload(mtev_http_rest_closure_t *restc,

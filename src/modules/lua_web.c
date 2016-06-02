@@ -353,6 +353,9 @@ static mtev_hook_return_t late_stage_rest_register(void *cl) {
   lua_web_conf_t *conf = get_config(self);
   int i = 0;
   for(i=0; conf->mounts[i].module != NULL; i++) {
+    mtevL(mtev_debug, "Registering [%s][%s][%s] -> %s\n",
+          conf->mounts[i].method, conf->mounts[i].mount,
+          conf->mounts[i].expr, conf->mounts[i].module);
     assert(
       mtev_http_rest_register_closure(
         conf->mounts[i].method, conf->mounts[i].mount,
