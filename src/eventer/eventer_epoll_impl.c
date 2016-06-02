@@ -394,7 +394,7 @@ static void eventer_epoll_impl_wakeup(eventer_t e) {
   spec = eventer_get_spec_for_event(e);
   if(spec->event_fd >= 0) {
     uint64_t nudge = 1;
-    (void)write(e->fd, &nudge, sizeof(nudge));
+    (void)write(spec->event_fd, &nudge, sizeof(nudge));
   }
 #endif
 }
