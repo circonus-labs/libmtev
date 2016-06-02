@@ -48,6 +48,10 @@
 #include "mtev_console_telnet.h"
 #include "mtev_hash.h"
 
+#ifdef HAVE_TERM_H
+#include <term.h>
+#endif
+
 /*
 RCSID("$Id: state.c,v 1.14.12.1 2004/06/21 08:21:58 lha Exp $");
 */
