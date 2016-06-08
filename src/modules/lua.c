@@ -365,7 +365,12 @@ mtev_lua_pushmodule(lua_State *L, const char *m) {
   for(part = strtok_r(copy, ".", &brkt);
       part;
       part = strtok_r(NULL, ".", &brkt)) {
-    if(stack_pos) lua_getfield(L, stack_pos, part);
+    if(stack_pos) {
+      if(lua_isnil(L, stack_pos)) {
+        return;
+      }
+      lua_getfield(L, stack_pos, part);
+    }
     else lua_getglobal(L, part);
     if(stack_pos == -1) lua_remove(L, -2);
     else stack_pos = -1;
