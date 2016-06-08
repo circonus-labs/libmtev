@@ -477,7 +477,7 @@ mtev_reverse_socket_handler(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    mtevL(nlerr, "%s reverse_socket: %s\n", rc->id, socket_error_string);
+    mtevL(nldeb, "%s reverse_socket: %s\n", rc->id, socket_error_string);
     mtev_reverse_socket_shutdown(rc, e);
     return 0;    
   }
@@ -762,7 +762,7 @@ socket_error:
     acceptor_closure_free(ac);
     mtev_reverse_socket_shutdown(rc, e);
     eventer_remove_fd(e->fd);
-    mtevL(nlerr, "reverse_socket: %s\n", socket_error_string);
+    mtevL(nldeb, "reverse_socket: %s\n", socket_error_string);
     e->opset->close(e->fd, &mask, e);
     return 0;
   }
@@ -922,7 +922,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         cct->parent = rc;
         e->closure = cct;
         e->mask = EVENTER_READ | EVENTER_EXCEPTION;
-        mtevL(nlerr, "mapping reverse proxy on fd %d\n", existing_fd);
+        mtevL(nldeb, "mapping reverse proxy on fd %d\n", existing_fd);
         eventer_add(e);
         APPEND_OUT(rc, &f);
       }
