@@ -86,7 +86,7 @@ static inline void add_timeval(struct timeval a, struct timeval b,
                                struct timeval *out)
 {
   out->tv_usec = a.tv_usec + b.tv_usec;
-  if (out->tv_usec > 1000000L) {
+  if (out->tv_usec >= 1000000L) {
     a.tv_sec++;
     out->tv_usec -= 1000000L;
   }
