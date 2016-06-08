@@ -14,6 +14,7 @@
 #include <getopt.h>
 #include <stdbool.h>
 #include <lua.h>
+#include <lauxlib.h>
 #include "luamtev.conf.tmpl"
 
 #define APPNAME "cli"
@@ -110,7 +111,11 @@ parse_cli_args(int argc, char * const *argv) {
   cli_argv = calloc(argc - optind + 1, sizeof(char *));
   for(c = 0; optind != argc; c++, optind++)
     cli_argv[c] = strdup(argv[optind]);
-  lua_file = cli_argv[0];
+  lua_file = realpath(cli_argv[0], NULL);
+  if(!lua_file) {
+    fprintf(stderr, "Bad file: %s\n", cli_argv[0]);
+    exit(2);
+  }
 }
 
 /* We just need to push the command line args onto an array */
@@ -184,6 +189,27 @@ child_main() {
   eventer_loop();
   return 0;
 }
+
+static int lua_direct_loader(lua_State *L) {
+  const char *filename = luaL_checkstring(L, 1);
+  if (filename == NULL) return 1;  /* library not found in this path */
+  if (luaL_loadfile(L, filename) != 0) {
+    luaL_error(L, "error loading module '%s' from file '%s':\n\t%s",
+               lua_tostring(L, 1), filename, lua_tostring(L, -1));
+  }
+  return 1;  /* library loaded successfully */
+}
+int luaopen_LuaMtevDirect(lua_State *L) {
+  lua_getglobal(L, "package");
+  lua_getfield(L, -1, "loaders");
+  lua_pushcfunction(L, lua_direct_loader);
+  lua_rawseti(L, -2, 5); /* there are 4 default loaders in luajit */
+  lua_pop(L,1); /* loaders */
+  lua_pop(L,1); /* package */
+  lua_pushnil(L);
+  return 1;
+}
+
 int main(int argc, char **argv) {
   parse_cli_args(argc, argv);
   if(!config_file) make_config();
