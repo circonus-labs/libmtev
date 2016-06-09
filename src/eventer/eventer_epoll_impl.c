@@ -254,14 +254,14 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   fd = e->fd;
   if(cross_thread) {
     if(master_fds[fd].e != NULL) {
-      mtevL(mtev_error, "Attempting to trigger alread-registered event fd: %d cross thread.\n", fd);
+      mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
     }
     /* assert(master_fds[fd].e == NULL); */
   }
   if(!pthread_equal(pthread_self(), e->thr_owner)) {
     /* If we're triggering across threads, it can't be registered yet */
     if(master_fds[fd].e != NULL) {
-      mtevL(mtev_error, "Attempting to trigger alread-registered event fd: %d cross thread.\n", fd);
+      mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
     }
     /* assert(master_fds[fd].e == NULL); */
     
