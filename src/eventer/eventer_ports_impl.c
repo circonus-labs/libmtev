@@ -228,11 +228,18 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
   if(cross_thread) {
-    assert(master_fds[fd].e == NULL);
+    if(master_fds[fd].e != NULL) {
+      mtevL(mtev_error, "Attempting to trigger alread-registered event fd: %d cross thread.\n", fd);
+    }
+    /* assert(master_fds[fd].e == NULL); */
   }
   if(!pthread_equal(pthread_self(), e->thr_owner)) {
     /* If we're triggering across threads, it can't be registered yet */
-    assert(master_fds[fd].e == NULL);
+    if(master_fds[fd].e != NULL) {
+      mtevL(mtev_error, "Attempting to trigger alread-registered event fd: %d cross thread.\n", fd);
+    }
+    /* assert(master_fds[fd].e == NULL); */
+
     eventer_cross_thread_trigger(e,mask);
     return;
   }
