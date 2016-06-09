@@ -223,14 +223,24 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   const char *cbname;
   struct timeval __now;
   int fd, newmask;
+  int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
 
   mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
-  if(e != master_fds[fd].e) return;
+  if(cross_thread) {
+    assert(master_fds[fd].e == NULL);
+  }
   if(!pthread_equal(pthread_self(), e->thr_owner)) {
+    /* If we're triggering across threads, it can't be registered yet */
+    assert(master_fds[fd].e == NULL);
     eventer_cross_thread_trigger(e,mask);
     return;
   }
+  if(master_fds[fd].e == NULL) {
+    master_fds[fd].e = e;
+    e->mask = 0;
+  }
+  if(e != master_fds[fd].e) return;
   lockstate = acquire_master_fd(fd);
   if(lockstate == EV_ALREADY_OWNED) return;
   assert(lockstate == EV_OWNED);

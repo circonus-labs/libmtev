@@ -144,7 +144,6 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
 
   if(restc) lua_web_restc_fastpath(restc, 0, NULL);
   if(conne) {
-    eventer_add(conne);
     eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
   }
   return rv;
