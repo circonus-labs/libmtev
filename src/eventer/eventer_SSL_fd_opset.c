@@ -783,6 +783,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     }
   }
 
+#ifndef OPENSSL_NO_EC
 #if defined(SSL_CTX_set_ecdh_auto)
   SSL_CTX_set_ecdh_auto(ctx->ssl_ctx, 1);
 #elif defined(NID_X9_62_prime256v1)
@@ -790,6 +791,8 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   SSL_CTX_set_tmp_ecdh(ctx->ssl_ctx, ec_key);
   EC_KEY_free(ec_key);
 #endif
+#endif
+
   ctx->ssl = SSL_new(ctx->ssl_ctx);
   if(dh512_tmp && dh1024_tmp)
     SSL_set_tmp_dh_callback(ctx->ssl, tmp_dh_callback);
