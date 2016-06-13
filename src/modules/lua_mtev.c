@@ -198,6 +198,7 @@ mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
 
   ci = mtev_lua_get_resume_info(cl->L);
   assert(ci);
+  eventer_remove_fd(e->fd);
   mtev_lua_deregister_event(ci, e, 0);
 
   *(cl->eptr) = eventer_alloc();
