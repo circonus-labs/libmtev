@@ -500,6 +500,7 @@ mtev_restc_index_func(lua_State *L) {
         lua_pushcclosure(L, mtev_lua_rest_acl_func, 1);
         return 1;
       }
+      break;
     case 'h':
       if(!strcmp(k, "http")) {
         lua_pushlightuserdata(L, restc->http_ctx);
