@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 #include <getopt.h>
 #include <stdbool.h>
 #include <lua.h>
@@ -112,6 +113,7 @@ parse_cli_args(int argc, char * const *argv) {
   for(c = 0; optind != argc; c++, optind++)
     cli_argv[c] = strdup(argv[optind]);
   lua_file = realpath(cli_argv[0], NULL);
+  if(lua_file == NULL && errno == ENOENT) lua_file = cli_argv[0];
   if(!lua_file) {
     fprintf(stderr, "Bad file: %s\n", cli_argv[0]);
     exit(2);
