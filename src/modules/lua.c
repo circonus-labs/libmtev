@@ -91,7 +91,7 @@ void
 mtev_lua_context_describe(int magic,
                           void (*f)(mtev_console_closure_t,
                                     mtev_lua_resume_info_t *)) {
-  struct lua_context_describer *desc = malloc(sizeof(*desc));
+  struct lua_context_describer *desc = calloc(1,sizeof(*desc));
   desc->context_magic = magic;
   desc->describe = f;
   desc->next = context_describers;
@@ -101,7 +101,7 @@ void
 mtev_lua_context_describe_json(int magic,
                           void (*j)(struct json_object *,
                                     mtev_lua_resume_info_t *)) {
-  struct lua_context_describer *desc = malloc(sizeof(*desc));
+  struct lua_context_describer *desc = calloc(1,sizeof(*desc));
   desc->context_magic = magic;
   desc->describe_json = j;
   desc->next = context_describers;
