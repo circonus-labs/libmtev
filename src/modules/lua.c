@@ -32,6 +32,7 @@
  */
 
 #include "mtev_defines.h"
+#include "mtev_json.h"
 
 #include <unistd.h>
 #ifdef HAVE_ALLOCA_H
@@ -81,6 +82,7 @@ mtev_lua_set_resume_info(lua_State *L, mtev_lua_resume_info_t *ri) {
 struct lua_context_describer {
   int context_magic;
   void (*describe)(mtev_console_closure_t, mtev_lua_resume_info_t *);
+  void (*describe_json)(struct json_object *, mtev_lua_resume_info_t *);
   struct lua_context_describer *next;
 };
 
@@ -95,15 +97,50 @@ mtev_lua_context_describe(int magic,
   desc->next = context_describers;
   context_describers = desc;
 }
+void
+mtev_lua_context_describe_json(int magic,
+                          void (*j)(struct json_object *,
+                                    mtev_lua_resume_info_t *)) {
+  struct lua_context_describer *desc = malloc(sizeof(*desc));
+  desc->context_magic = magic;
+  desc->describe_json = j;
+  desc->next = context_describers;
+  context_describers = desc;
+}
 
 static void
-describe_lua_context(mtev_console_closure_t ncct,
-                     mtev_lua_resume_info_t *ri) {
+describe_lua_context_json(struct json_object *jcoro,
+                          mtev_lua_resume_info_t *ri) {
+  struct lua_context_describer *desc;
+  switch(ri->context_magic) {
+    case LUA_GENERAL_INFO_MAGIC:
+      json_object_object_add(jcoro, "context", json_object_new_string("lua_general"));
+      break;
+    case LUA_REST_INFO_MAGIC:
+      json_object_object_add(jcoro, "context", json_object_new_string("lua_web"));
+      break;
+    default:
+	 break;
+  }
+  for(desc = context_describers; desc; desc = desc->next) {
+    if(desc->context_magic == ri->context_magic) {
+      if(desc->describe_json) {
+        desc->describe_json(jcoro,ri);
+        return;
+      }
+    }
+  }
+}
+static void
+describe_lua_context_ncct(mtev_console_closure_t ncct,
+                          mtev_lua_resume_info_t *ri) {
   struct lua_context_describer *desc;
   for(desc = context_describers; desc; desc = desc->next) {
     if(desc->context_magic == ri->context_magic) {
-      desc->describe(ncct,ri);
-      return;
+      if(desc->describe) {
+        desc->describe(ncct,ri);
+        return;
+      }
     }
   }
   if(ri->context_magic == 0) {
@@ -117,13 +154,126 @@ describe_lua_context(mtev_console_closure_t ncct,
 
 struct lua_reporter {
   pthread_mutex_t lock;
+  enum { LUA_REPORT_NCCT, LUA_REPORT_JSON } approach;
+  int timeout_ms;
+  mtev_http_rest_closure_t *restc;
+  struct timeval start;
   mtev_console_closure_t ncct;
+  struct json_object *root;
   mtev_atomic32_t outstanding;
 };
 
+static struct lua_reporter *
+mtev_lua_reporter_alloc() {
+    struct lua_reporter *reporter;
+    reporter = calloc(1, sizeof(*reporter));
+    gettimeofday(&reporter->start, NULL);
+    pthread_mutex_init(&reporter->lock, NULL);
+    reporter->outstanding = 1;
+    return reporter;
+}
+static void mtev_lua_reporter_ref(struct lua_reporter *reporter) {
+    mtev_atomic_inc32(&reporter->outstanding);
+}
+static void mtev_lua_reporter_deref(struct lua_reporter *reporter) {
+  if(mtev_atomic_dec32(&reporter->outstanding) == 0) {
+    if(reporter->ncct) reporter->ncct = NULL;
+    if(reporter->root) json_object_put(reporter->root);
+    reporter->root = NULL;
+    pthread_mutex_destroy(&reporter->lock);
+  }
+}
 static int
-mtev_console_lua_thread_reporter(eventer_t e, int mask, void *closure,
-                                 struct timeval *now) {
+mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
+                                      struct timeval *now) {
+  struct lua_reporter *reporter = closure;
+  mtev_hash_iter zero = MTEV_HASH_ITER_ZERO, iter;
+  const char *key;
+  int klen;
+  void *vri;
+  pthread_t me, *tgt;
+  me = pthread_self();
+  assert(reporter->approach == LUA_REPORT_JSON);
+  struct json_object *states = NULL;
+
+  pthread_mutex_lock(&reporter->lock);
+  states = json_object_object_get(reporter->root, "states");
+  memcpy(&iter, &zero, sizeof(zero));
+  pthread_mutex_lock(&mtev_lua_states_lock);
+  while(mtev_hash_next(&mtev_lua_states, &iter, &key, &klen, &vri)) {
+    struct json_object *state_info = NULL;
+    char state_str[32];
+    char thr_str[32];
+    lua_State **Lptr = (lua_State **)key;
+    pthread_t tgt = (pthread_t)(vpsized_int)vri;
+    if(!pthread_equal(me, tgt)) continue;
+
+    int thr_id = eventer_is_loop(me);
+    snprintf(thr_str, sizeof(thr_str), "0x%llx", (unsigned long long)(uintptr_t)(void *)me);
+    if (thr_id >= 0) snprintf(thr_str, sizeof(thr_str), "%d", thr_id);
+    snprintf(state_str, sizeof(state_str), "0x%llx", (unsigned long long)(uintptr_t)*Lptr);
+    state_info = json_object_new_object();
+    json_object_object_add(state_info, "thread", json_object_new_string(thr_str));
+    json_object_object_add(state_info, "bytes",
+        json_object_new_int(lua_gc(*Lptr, LUA_GCCOUNT, 0)*1024));
+    json_object_object_add(state_info, "coroutines", json_object_new_object());
+    json_object_object_add(states, state_str, state_info);
+  }
+  pthread_mutex_unlock(&mtev_lua_states_lock);
+
+  memcpy(&iter, &zero, sizeof(zero));
+  pthread_mutex_lock(&coro_lock);
+  while(mtev_hash_next(&mtev_coros, &iter, &key, &klen, &vri)) {
+    mtev_lua_resume_info_t *ri;
+    int level = 1;
+    lua_Debug ar;
+    lua_State *L;
+    assert(klen == sizeof(L));
+    L = *((lua_State **)key);
+    ri = vri;
+    if(!pthread_equal(me, ri->lmc->owner)) continue;
+
+    char state_str[32];
+    json_object *state_info, *jcoros, *jcoro;
+    snprintf(state_str, sizeof(state_str), "0x%llx", (unsigned long long)(uintptr_t)ri->lmc->lua_state);
+    state_info = json_object_object_get(states, state_str);
+    if(!state_info) continue;
+    jcoros = json_object_object_get(state_info, "coroutines");
+
+    /* make state_str now point to this state */
+    snprintf(state_str, sizeof(state_str), "0x%llx", (unsigned long long)(uintptr_t)L);
+    jcoro = json_object_new_object();
+    if(ri) describe_lua_context_json(jcoro, ri);
+    while (lua_getstack(L, level++, &ar));
+    level--;
+    struct json_object *jstack = json_object_new_array();
+    while (level > 0 && lua_getstack(L, --level, &ar)) {
+      struct json_object *jsentry;
+      const char *name;
+      lua_getinfo(L, "n", &ar);
+      name = ar.name;
+      lua_getinfo(L, "Snlf", &ar);
+      if(!ar.source) ar.source = "???";
+      if(ar.name == NULL) ar.name = name;
+      if(ar.name == NULL) ar.name = "???";
+      jsentry = json_object_new_object();
+	 json_object_object_add(jsentry, "file", json_object_new_string(ar.source));
+      if (ar.currentline > 0) json_object_object_add(jsentry, "line", json_object_new_int(ar.currentline));
+      if (*ar.namewhat) json_object_object_add(jsentry, "namewhat", json_object_new_string(ar.namewhat));
+      json_object_object_add(jsentry, "name", json_object_new_string(ar.name));
+      json_object_array_add(jstack, jsentry);
+    }
+    json_object_object_add(jcoro, "stack", jstack);
+    json_object_object_add(jcoros, state_str, jcoro);
+  }
+  pthread_mutex_unlock(&coro_lock);
+  pthread_mutex_unlock(&reporter->lock);
+  mtev_lua_reporter_deref(reporter);
+  return 0;
+}
+static int
+mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
+                                      struct timeval *now) {
   struct lua_reporter *reporter = closure;
   mtev_console_closure_t ncct = reporter->ncct;
   mtev_hash_iter zero = MTEV_HASH_ITER_ZERO, iter;
@@ -132,6 +282,7 @@ mtev_console_lua_thread_reporter(eventer_t e, int mask, void *closure,
   void *vri;
   pthread_t me, *tgt;
   me = pthread_self();
+  assert(reporter->approach == LUA_REPORT_NCCT);
 
   pthread_mutex_lock(&reporter->lock);
   nc_printf(ncct, "== Thread %x ==\n", me);
@@ -159,7 +310,7 @@ mtev_console_lua_thread_reporter(eventer_t e, int mask, void *closure,
     L = *((lua_State **)key);
     ri = vri;
     if(!pthread_equal(me, ri->lmc->owner)) continue;
-    if(ri) describe_lua_context(ncct, ri);
+    if(ri) describe_lua_context_ncct(ncct, ri);
     nc_printf(ncct, "\tstack:\n");
     while (lua_getstack(L, level++, &ar));
     level--;
@@ -190,48 +341,117 @@ mtev_console_lua_thread_reporter(eventer_t e, int mask, void *closure,
     nc_printf(ncct, "\n");
   }
   pthread_mutex_unlock(&coro_lock);
-  mtev_atomic_dec32(&reporter->outstanding);
   pthread_mutex_unlock(&reporter->lock);
+  mtev_lua_reporter_deref(reporter);
   return 0;
 }
+
+static void
+distribute_reporter_across_threads(struct lua_reporter *reporter,
+                                   eventer_func_t reporter_f) {
+  int i = 1;
+  pthread_t me, tgt, first;
+  struct timeval old = { 1ULL, 0ULL };
+
+  mtev_lua_reporter_ref(reporter);
+  reporter_f(NULL, 0, reporter, NULL);
+
+  me = pthread_self();
+  first = eventer_choose_owner(i++);
+  do {
+    tgt = eventer_choose_owner(i++);
+    if(!pthread_equal(tgt, me)) {
+      eventer_t e;
+      e = eventer_alloc();
+      memcpy(&e->whence, &old, sizeof(old));
+      e->thr_owner = tgt;
+      e->mask = EVENTER_TIMER;
+      e->callback = reporter_f;
+      e->closure = reporter;
+      mtev_lua_reporter_ref(reporter);
+      eventer_add(e);
+    }
+  } while(!pthread_equal(first, tgt));
+}
+
+static int
+mtev_lua_rest_show_waiter(eventer_t e, int mask, void *closure,
+                          struct timeval *now) {
+  struct lua_reporter *reporter = closure;
+  mtev_http_rest_closure_t *restc = reporter->restc;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  int age = sub_timeval_ms(*now, reporter->start);
+
+  /* If we're not ready and we've not timed out */
+  if(reporter->outstanding > 1 && age < reporter->timeout_ms) {
+    eventer_add_in_s_us(mtev_lua_rest_show_waiter, reporter, 0, 100000);
+    return 0;
+  }
+  eventer_t conne = mtev_http_connection_event(mtev_http_session_connection(ctx));
+  conne->mask =  EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
+  eventer_trigger(conne, EVENTER_WRITE);
+  return 0;
+}
+static int
+mtev_rest_show_lua_complete(mtev_http_rest_closure_t *restc, int n, char **p) {
+  struct lua_reporter *reporter = restc->call_closure;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+
+  mtev_http_response_ok(restc->http_ctx, "application/json");
+  pthread_mutex_lock(&reporter->lock);
+  const char *jsonstr = json_object_to_json_string(reporter->root);
+  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
+  pthread_mutex_unlock(&reporter->lock);
+  mtev_http_response_append(restc->http_ctx, "\n", 1);
+  mtev_http_response_end(restc->http_ctx);
+
+  mtev_lua_reporter_deref(reporter);
+  return 0;
+}
+static int
+mtev_rest_show_lua(mtev_http_rest_closure_t *restc, int n, char **p) {
+  struct lua_reporter *crutch;
+  mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
+
+  crutch = mtev_lua_reporter_alloc();
+  crutch->restc = restc;
+  crutch->approach = LUA_REPORT_JSON;
+  crutch->root = json_object_new_object();
+  json_object_object_add(crutch->root, "metadata", json_object_new_object());
+  json_object_object_add(crutch->root, "states", json_object_new_object());
+  distribute_reporter_across_threads(crutch, mtev_console_lua_thread_reporter_json);
+  restc->call_closure = crutch;
+  restc->fastpath = mtev_rest_show_lua_complete;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  eventer_t conne = mtev_http_connection_event(mtev_http_session_connection(ctx));
+  if(conne) {
+    eventer_remove_fd(conne->fd);
+  }
+
+  /* Register our waiter */
+  const char *timeout = mtev_http_request_querystring(req, "timeout");
+  if(timeout) crutch->timeout_ms = atoi(timeout);
+  if(crutch->timeout_ms <= 0) crutch->timeout_ms = 5000;
+  eventer_add_in_s_us(mtev_lua_rest_show_waiter, crutch, 0, 0);
+  return 0;
+}
+
 static int
 mtev_console_show_lua(mtev_console_closure_t ncct,
                       int argc, char **argv,
                       mtev_console_state_t *dstate,
                       void *closure) {
-  int i = 1;
-  pthread_t me, tgt, first;
-  struct lua_reporter crutch;
-  struct timeval old = { 1ULL, 0ULL };
+  struct lua_reporter *crutch;
 
-  crutch.outstanding = 1; /* me */
-  crutch.ncct = ncct;
-  pthread_mutex_init(&crutch.lock, NULL);
-
-  me = pthread_self();
-  mtev_console_lua_thread_reporter(NULL, 0, &crutch, NULL);
-  first = eventer_choose_owner(i++);
-  if(!pthread_equal(first, me)) {
-    do {
-      eventer_t e;
-      tgt = eventer_choose_owner(i++);
-      e = eventer_alloc();
-      memcpy(&e->whence, &old, sizeof(old));
-      e->thr_owner = tgt;
-      e->mask = EVENTER_TIMER;
-      e->callback = mtev_console_lua_thread_reporter;
-      e->closure = &crutch;
-      mtev_atomic_inc32(&crutch.outstanding);
-      eventer_add(e);
-    } while(!pthread_equal(first, tgt));
-  }
-
+  crutch = mtev_lua_reporter_alloc();
+  crutch->approach = LUA_REPORT_NCCT;
+  crutch->ncct = ncct;
+  distribute_reporter_across_threads(crutch, mtev_console_lua_thread_reporter_ncct);
   /* Wait for completion */
-  while(crutch.outstanding > 0) {
+  while(crutch->outstanding > 1) {
     usleep(500);
   }
-
-  pthread_mutex_destroy(&crutch.lock);
+  mtev_lua_reporter_deref(crutch);
   return 0;
 }
 
@@ -248,6 +468,11 @@ register_console_lua_commands() {
   assert(showcmd && showcmd->dstate);
   mtev_console_state_add_cmd(showcmd->dstate,
     NCSCMD("lua", mtev_console_show_lua, NULL, NULL, NULL));
+
+  assert(mtev_http_rest_register_auth(
+    "GET", "/module/lua/", "^state\\.json$",
+    mtev_rest_show_lua, mtev_http_rest_client_cert_auth
+  ) == 0); 
 }
 
 int

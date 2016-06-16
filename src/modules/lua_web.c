@@ -269,9 +269,16 @@ describe_lua_rest_context(mtev_console_closure_t ncct,
             ri->coro_state, ri->lmc->lua_state);
 }
 
+static void
+describe_lua_rest_context_json(struct json_object *jcoro,
+                               mtev_lua_resume_info_t *ri) {
+}
+
 static int
 mtev_lua_web_driver_onload(mtev_image_t *self) {
   mtev_lua_context_describe(LUA_REST_INFO_MAGIC, describe_lua_rest_context);
+  mtev_lua_context_describe_json(LUA_REST_INFO_MAGIC,
+                                 describe_lua_rest_context_json);
   return 0;
 }
 
