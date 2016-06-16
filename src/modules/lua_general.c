@@ -404,6 +404,10 @@ describe_lua_general_context(mtev_console_closure_t ncct,
   nc_printf(ncct, "lua_general(state:%p, parent:%p)\n",
             ri->coro_state, ri->lmc->lua_state);
 }
+static void
+describe_lua_general_context_json(struct json_object *jcoro,
+                                  mtev_lua_resume_info_t *ri) {
+}
 
 static void
 lua_repl_raw_off(mtev_console_state_t *state, mtev_console_closure_t ncct) {
@@ -579,7 +583,10 @@ mtev_lua_general_onload(mtev_image_t *self) {
   nldeb = mtev_log_stream_find("debug/lua");
   if(!nlerr) nlerr = mtev_stderr;
   if(!nldeb) nldeb = mtev_debug;
-  mtev_lua_context_describe(LUA_GENERAL_INFO_MAGIC, describe_lua_general_context);
+  mtev_lua_context_describe(LUA_GENERAL_INFO_MAGIC,
+                            describe_lua_general_context);
+  mtev_lua_context_describe_json(LUA_GENERAL_INFO_MAGIC,
+                                 describe_lua_general_context_json);
   mtev_lua_general_register_console_commands(self);
   return 0;
 }
