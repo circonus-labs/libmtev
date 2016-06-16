@@ -584,7 +584,7 @@ mtev_lua_general_onload(mtev_image_t *self) {
   if(!nlerr) nlerr = mtev_stderr;
   if(!nldeb) nldeb = mtev_debug;
   mtev_lua_context_describe(LUA_GENERAL_INFO_MAGIC,
-					   describe_lua_general_context);
+                            describe_lua_general_context);
   mtev_lua_context_describe_json(LUA_GENERAL_INFO_MAGIC,
                                  describe_lua_general_context_json);
   mtev_lua_general_register_console_commands(self);
