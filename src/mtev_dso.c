@@ -101,8 +101,7 @@ mtev_dso_list(mtev_hash_table *t, const char ***f) {
   *f = calloc(mtev_hash_size(t), sizeof(**f));
   while(mtev_hash_next(t, &iter, (const char **)&name, &klen,
                        &vhdr)) {
-    mtev_image_t *hdr = (mtev_image_t *)vhdr;
-    (*f)[i++] = hdr->name;
+    (*f)[i++] = name;
   }
   return i;
 }
@@ -142,6 +141,7 @@ int mtev_load_image(const char *file, const char *name,
                     int (*validate)(mtev_image_t *),
                     size_t obj_size) {
   char module_file[PATH_MAX];
+  const char *dlsymname;
   void *dlhandle = NULL;
   void *dlsymbol;
   mtev_image_t *obj;
@@ -180,16 +180,19 @@ int mtev_load_image(const char *file, const char *name,
     return -1;
   }
 
-  dlsymbol = dlsym(dlhandle, name);
+  dlsymname = strrchr(name, ':');
+  if(!dlsymname) dlsymname = name;
+  else dlsymname++;
+  dlsymbol = dlsym(dlhandle, dlsymname);
   if(!dlsymbol) {
     mtevL(mtev_stderr, "Cannot find '%s' in image '%s': %s\n",
-          name, module_file, dlerror());
+          dlsymname, module_file, dlerror());
     dlclose(dlhandle);
     return -1;
   }
 
   if(validate(dlsymbol) == -1) {
-    mtevL(mtev_stderr, "I can't understand image %s\n", name);
+    mtevL(mtev_stderr, "I can't understand module %s\n", name);
     dlclose(dlhandle);
     return -1;
   }
@@ -204,9 +207,11 @@ int mtev_load_image(const char *file, const char *name,
     dlclose(dlhandle);
     return -1;
   }
-  if(!mtev_hash_store(registry, obj->name, strlen(obj->name), obj)) {
-    mtevL(mtev_error, "Attempted to load module %s more than once.\n", obj->name);
+  char *namecopy = strdup(name);
+  if(!mtev_hash_store(registry, namecopy, strlen(namecopy), obj)) {
+    mtevL(mtev_error, "Attempted to load module %s more than once.\n", name);
     dlclose(dlhandle);
+    free(namecopy);
     return -1;
   }
   ((struct __extended_image_data *)obj->opaque_handle)->dlhandle = dlhandle;
