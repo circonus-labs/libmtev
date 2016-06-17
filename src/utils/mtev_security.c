@@ -116,30 +116,55 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
     grnam_buflen = 100;
 #endif
 
+  long safe_size;
+  char *buf, *mallocd = NULL;
+
+  safe_size = MAX(grnam_buflen, pwnam_buflen);
+  if(NULL == (buf = alloca(safe_size))) {
+    free(mallocd);
+    BAIL("alloca failed");
+  }
+
+ retry_user:
   if(user) {
     if(isuinteger(user)) uid = atoi(user);
     else {
       struct passwd *pw, _pw;
-      char *buf;
-      if(NULL == (buf = alloca(pwnam_buflen))) BAIL("alloca failed\n");
-      if(NULL == (pw = __getpwnam_r(user, &_pw, buf, pwnam_buflen)))
+      if(NULL == (pw = __getpwnam_r(user, &_pw, buf, safe_size))) {
+        if(errno == ERANGE) {
+          pwnam_buflen = safe_size * 2;
+          safe_size = MAX(grnam_buflen, pwnam_buflen);
+          free(mallocd);
+          buf = mallocd = malloc(safe_size);
+          goto retry_user;
+        }
+        free(mallocd);
         BAIL("Cannot find user '%s'\n", user);
+      }
       uid = pw->pw_uid;
     }
   }
 
+ retry_group:
   if(group) {
     if(isuinteger(group)) gid = atoi(group);
     else {
       struct group *gr, _gr;
-      char *buf;
-      if(NULL == (buf = alloca(grnam_buflen))) BAIL("alloca failed\n");
-      if(NULL == (gr = __getgrnam_r(group, &_gr, buf, grnam_buflen)))
+      if(NULL == (gr = __getgrnam_r(group, &_gr, buf, safe_size))) {
+        if(errno == ERANGE) {
+          grnam_buflen = safe_size * 2;
+          safe_size = MAX(grnam_buflen, pwnam_buflen);
+          free(mallocd);
+          buf = mallocd = malloc(safe_size);
+          goto retry_group;
+        }
+        free(mallocd);
         BAIL("Cannot find group '%s'\n", group);
+      }
       gid = gr->gr_gid;
     }
   }
-
+  free(mallocd);
   if(!user && !group) return 0;
 
 #if defined(CAP_SUPPORTED) && defined(HAVE_SETPPRIV)
