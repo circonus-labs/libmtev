@@ -295,7 +295,7 @@ typedef int32_t vpsized_int;
 
 #undef MAKE_BE64TOH_NTOHLL
 #ifdef MAKE_BE64TOH_NTOHLL
-#undef htonll
+#undef ntohll
 #define ntohll be64toh
 #endif
 
