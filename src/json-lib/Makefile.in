@@ -1,7 +1,12 @@
 .SUFFIXES:	.lo
 
+Q=
+ifeq ($(V),)
+        Q=@
+endif
+
 CC=@CC@
-CPPFLAGS=@CPPFLAGS@
+CPPFLAGS=-I. -I.. @CPPFLAGS@
 CFLAGS=@CFLAGS@
 SHCFLAGS=@SHCFLAGS@
 DEPFLAGS=@DEPFLAGS@
@@ -19,11 +24,11 @@ OBJS=mtev_arraylist.o mtev_debug.o mtev_json_object.o mtev_json_tokener.o mtev_j
 all:
 
 .c.lo:
-	@$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
+	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
 	@echo "- compiling $<"
 
 .c.o:
-	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
 	@echo "- compiling $<"
 
 clean:
@@ -33,7 +38,7 @@ distclean:	clean
 	rm -f Makefile
 
 Makefile.dep:
-	$(CC) -I. -I.. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
 	$(top_srcdir)/buildtools/culldeps.sh Makefile.dep
 
 include Makefile.dep
