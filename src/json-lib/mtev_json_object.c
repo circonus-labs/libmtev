@@ -24,9 +24,9 @@
 #include "mtev_json_object.h"
 #include "mtev_json_object_private.h"
 
-#if !HAVE_STRNDUP
+#ifndef HAVE_STRNDUP
   char* strndup(const char* str, size_t n);
-#endif /* !HAVE_STRNDUP */
+#endif
 
 /* #define REFCOUNT_DEBUG 1 */
 
