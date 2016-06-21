@@ -775,22 +775,21 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     }
     SSL_CTX_set_cipher_list(ctx->ssl_ctx, ciphers ? ciphers : "DEFAULT");
     SSL_CTX_set_verify(ctx->ssl_ctx, SSL_VERIFY_PEER, verify_cb);
+#ifndef OPENSSL_NO_EC
+#if defined(SSL_CTX_set_ecdh_auto)
+    SSL_CTX_set_ecdh_auto(ctx->ssl_ctx, 1);
+#elif defined(NID_X9_62_prime256v1)
+    EC_KEY *ec_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+    SSL_CTX_set_tmp_ecdh(ctx->ssl_ctx, ec_key);
+    EC_KEY_free(ec_key);
+#endif
+#endif
     existing_ctx_cn = ssl_ctx_cache_set(ctx->ssl_ctx_cn);
     if(existing_ctx_cn != ctx->ssl_ctx_cn) {
       ssl_ctx_cache_node_free(ctx->ssl_ctx_cn);
       ctx->ssl_ctx_cn = existing_ctx_cn;
     }
   }
-
-#ifndef OPENSSL_NO_EC
-#if defined(SSL_CTX_set_ecdh_auto)
-  SSL_CTX_set_ecdh_auto(ctx->ssl_ctx, 1);
-#elif defined(NID_X9_62_prime256v1)
-  EC_KEY *ec_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
-  SSL_CTX_set_tmp_ecdh(ctx->ssl_ctx, ec_key);
-  EC_KEY_free(ec_key);
-#endif
-#endif
 
   ctx->ssl = SSL_new(ctx->ssl_ctx);
   if(dh512_tmp && dh1024_tmp)
