@@ -604,7 +604,6 @@ ssl_ctx_cache_set(ssl_ctx_cache_node *node) {
   pthread_mutex_lock(&ssl_ctx_cache_lock);
   if(mtev_hash_retrieve(&ssl_ctx_cache, node->key, strlen(node->key),
                         &vnode)) {
-    ssl_ctx_cache_node_free(node);
     node = vnode;
   }
   else {
