@@ -32,6 +32,7 @@
  */
 
 #include "mtev_defines.h"
+#include "mtev_b64.h"
 #include "mtev_http.h"
 #include "mtev_str.h"
 #include "mtev_getip.h"
@@ -45,6 +46,12 @@
 #include <sys/mman.h>
 #include <libxml/tree.h>
 #include <pthread.h>
+
+#include <openssl/hmac.h>
+
+#ifdef HAVE_WSLAY
+#include <wslay/wslay.h>
+#endif
 
 #define DEFAULT_MAXWRITE 1<<14 /* 32k */
 #define DEFAULT_BCHAINSIZE ((1 << 15)-(offsetof(struct bchain, _buff)))
@@ -137,10 +144,39 @@ struct mtev_http_session_ctx {
   mtev_http_request req;
   mtev_http_response res;
   mtev_http_dispatch_func dispatcher;
+  mtev_http_websocket_dispatch_func websocket_dispatcher;
   void *dispatcher_closure;
   acceptor_closure_t *ac;
   Zipkin_Span *zipkin_span;
+  mtev_boolean is_websocket;
+#ifdef HAVE_WSLAY
+  mtev_boolean did_handshake;
+  wslay_event_context_ptr wslay_ctx;
+#endif
 };
+
+#ifdef HAVE_WSLAY
+static ssize_t wslay_send_callback(wslay_event_context_ptr ctx,
+                            const uint8_t *data, size_t len, int flags,
+                            void *user_data);
+
+static ssize_t wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
+                                   int flags, void *user_data);
+
+static void wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
+                                       const struct wslay_event_on_msg_recv_arg *arg,
+                                       void *user_data);
+
+struct wslay_event_callbacks wslay_callbacks = {
+  wslay_recv_callback,
+  wslay_send_callback,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  wslay_on_msg_recv_callback
+};
+#endif
 
 static mtev_log_stream_t http_debug = NULL;
 static mtev_log_stream_t http_io = NULL;
@@ -265,6 +301,11 @@ mtev_http_connection *
 mtev_http_session_connection(mtev_http_session_ctx *ctx) {
   return &ctx->conn;
 }
+mtev_boolean
+mtev_http_is_websocket(mtev_http_session_ctx *ctx) {
+  return ctx->is_websocket;
+}
+
 void
 mtev_http_session_set_dispatcher(mtev_http_session_ctx *ctx,
                                  int (*d)(mtev_http_session_ctx *), void *dc) {
@@ -1184,6 +1225,160 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
   return bytes_read;
 }
 
+/* this magic GUID is defined in the websocket specification and must
+ * be what is used to create the accept key
+ * 
+ * See: https://tools.ietf.org/html/rfc6455#page-6
+ */
+#define WS_ACCEPT_KEY_GUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+void
+mtev_http_create_websocket_accept_key(char *dest, size_t dest_len, const char *client_key)
+{
+  SHA_CTX ctx;
+  unsigned char sha1[SHA_DIGEST_LENGTH], key_src[60];
+
+  memcpy(key_src, client_key, 24);
+  memcpy(key_src+24, WS_ACCEPT_KEY_GUID, 36);
+
+  SHA1_Init(&ctx);
+  SHA1_Update(&ctx, (const void *)key_src, (unsigned long)sizeof(key_src));
+  SHA1_Final(sha1, &ctx);
+
+  mtev_b64_encode(sha1, SHA_DIGEST_LENGTH, dest, dest_len);
+  dest[mtev_b64_encode_len(SHA_DIGEST_LENGTH)] = '\0';
+}
+
+mtev_boolean 
+mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
+{
+  char accept_key[32];
+  const char *upgrade = NULL, *connection = NULL, *sec_ws_key = NULL;
+  if (ctx->did_handshake == mtev_true) {
+    return ctx->is_websocket;
+  }
+
+  ctx->did_handshake = mtev_true;
+
+  mtev_hash_table *headers = mtev_http_request_headers_table(&ctx->req);
+  if (headers == NULL) {
+    ctx->is_websocket = mtev_false;
+    return ctx->is_websocket;
+  }
+
+  (void)mtev_hash_retr_str(headers, "Upgrade", strlen("Upgrade"), &upgrade);
+  (void)mtev_hash_retr_str(headers, "Connection", strlen("Connection"), &connection);
+  (void)mtev_hash_retr_str(headers, "Sec-WebSocket-Key", strlen("Sec-WebSocket-Key"), &sec_ws_key);
+
+  if (upgrade == NULL || connection == NULL || sec_ws_key == NULL) {
+    ctx->is_websocket = mtev_false;
+    return ctx->is_websocket;
+  }
+
+  if (strlen(sec_ws_key) != 24) {
+    ctx->is_websocket = mtev_false;
+    return ctx->is_websocket;
+  }
+
+  mtev_http_create_websocket_accept_key(accept_key, sizeof(accept_key), sec_ws_key);
+  
+  /* now we upgrade their socket */
+  mtev_http_response_header_set(ctx, "Upgrade", "websocket");
+  mtev_http_response_header_set(ctx, "Connection", "Upgrade");
+  mtev_http_response_header_set(ctx, "Sec-WebSocket-Accept", accept_key);
+  mtev_http_response_status_set(ctx, 101, "Switching Protocols");
+
+  /* there is no body and this is not the final */
+  ctx->is_websocket = mtev_http_response_flush(ctx, false);
+  return ctx->is_websocket;
+}
+
+#ifdef HAVE_WSLAY
+static ssize_t 
+wslay_send_callback(wslay_event_context_ptr ctx,
+                    const uint8_t *data, size_t len, int flags,
+                    void *user_data)
+{
+  mtev_http_session_ctx *session_ctx = user_data;
+
+  ssize_t r;
+  int sflags = 0;
+
+#ifdef MSG_MORE
+  if ((flags & WSLAY_MSG_MORE) == WSLAY_MSG_MORE) {
+    sflags |= MSG_MORE;
+  }
+#endif
+
+  pthread_mutex_lock(&session_ctx->write_lock);
+  if(!session_ctx->conn.e) {
+    pthread_mutex_unlock(&session_ctx->write_lock);
+    return -1;
+  }
+
+  while((r = session_ctx->conn.e->opset->
+         write(session_ctx->conn.e->fd,
+               data, len, &sflags, session_ctx->conn.e)) == -1 && errno == EINTR);
+  if (r == -1) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_WOULDBLOCK);
+    } else {
+      wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
+    }
+  }
+
+  pthread_mutex_unlock(&session_ctx->write_lock);
+  return r;
+}
+
+static ssize_t 
+wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
+                    int flags, void *user_data)
+{
+  mtev_http_session_ctx *session_ctx = user_data;
+
+  ssize_t r;
+  int sflags = 0;
+
+  if(!session_ctx->conn.e) {
+    return -1;
+  }
+
+  while((r = session_ctx->conn.e->opset->read(session_ctx->conn.e->fd, 
+                                              buf, len, &sflags, 
+                                              session_ctx->conn.e)) == -1 
+        && errno == EINTR);
+  if (r == -1) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_WOULDBLOCK);
+    } else {
+      wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
+    }
+  } else if (r == 0) {
+    wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
+    r = -1;
+  }
+  return r;  
+}
+
+static void 
+wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
+                           const struct wslay_event_on_msg_recv_arg *arg,
+                           void *user_data)
+{
+  mtev_http_session_ctx *session_ctx = user_data;
+  int rv = 0;
+
+  if (!wslay_is_ctrl_frame(arg->opcode)) {
+    if (session_ctx->websocket_dispatcher != NULL) {
+      rv = session_ctx->websocket_dispatcher(session_ctx, arg->opcode, arg->msg, arg->msg_length);
+    } else {
+       mtevL(http_debug, "session_ctx has no websocket_dispatcher function set\n");
+    }
+ }
+}
+#endif //HAVE_WSLAY
+
 int
 mtev_http_session_drive(eventer_t e, int origmask, void *closure,
                         struct timeval *now, int *done) {
@@ -1218,6 +1413,18 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     mask = mtev_http_complete_request(ctx, origmask);
     mtevL(http_debug, "   <- mtev_http_complete_request(%d) = %d\n",
           e->fd, mask);
+
+#ifdef HAVE_WSLAY
+    if (ctx->did_handshake == mtev_false) {
+      mtev_http_websocket_handshake(ctx);
+    }
+
+    if (ctx->is_websocket == mtev_true) {
+      /* init the wslay library for websocket communication */
+      wslay_event_context_server_init(&ctx->wslay_ctx, &wslay_callbacks, ctx);
+    }
+#endif
+
     _http_perform_write(ctx, &maybe_write_mask);
     if(ctx->conn.e == NULL) goto release;
     if(ctx->req.complete != mtev_true) {
@@ -1228,14 +1435,52 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     mtevL(http_debug, "HTTP start request (%s)\n", ctx->req.uri_str);
     mtev_http_process_querystring(&ctx->req);
     inplace_urldecode(ctx->req.uri_str);
-    begin_span(ctx);
+
+    /* do zipkin spans make sense for websockets? */
+    if (ctx->is_websocket == mtev_false) {
+      begin_span(ctx);
+    }
   }
 
-  /* only dispatch if the response is not closed */
-  if(ctx->res.closed == mtev_false) {
-    mtevL(http_debug, "   -> dispatch(%d)\n", e->fd);
-    rv = ctx->dispatcher(ctx);
-    mtevL(http_debug, "   <- dispatch(%d) = %d\n", e->fd, rv);
+  if (ctx->is_websocket == mtev_true) {
+    /* dispatcher is called differently under websockets, it is handled
+     * by the wslay event callbacks.
+     * 
+     * In addition, since websockets are meant for message passing, we call a special
+     * dispatch function when we have fully received a websocket message.
+     */
+    if (wslay_event_want_read(ctx->wslay_ctx) == 0 || wslay_event_want_write(ctx->wslay_ctx) == 0) {
+      /* this is a serious wslay error, abort */
+      goto abort_drive;
+    }
+
+    if ((origmask & EVENTER_READ) == EVENTER_READ) {
+      if (wslay_event_recv(ctx->wslay_ctx) != 0) {
+        /* serious error on the `recv` side, abort */
+        goto abort_drive;
+      }
+    }
+
+    if ((origmask & EVENTER_WRITE) == EVENTER_WRITE) {
+      if (wslay_event_send(ctx->wslay_ctx) != 0) {
+        goto abort_drive;
+      }
+    }
+
+    /* this could be a very long lived socket
+     * return for now and await another IO event to trigger 
+     * more communication
+     */
+    *done = 0;
+    return 0;
+
+  } else {
+    /* only dispatch if the response is not closed */
+    if(ctx->res.closed == mtev_false) {
+      mtevL(http_debug, "   -> dispatch(%d)\n", e->fd);
+      rv = ctx->dispatcher(ctx);
+      mtevL(http_debug, "   <- dispatch(%d) = %d\n", e->fd, rv);
+    }
   }
 
   _http_perform_write(ctx, &mask);
@@ -1275,8 +1520,9 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
 }
 
 mtev_http_session_ctx *
-mtev_http_session_ctx_new(mtev_http_dispatch_func f, void *c, eventer_t e,
-                          acceptor_closure_t *ac) {
+mtev_http_session_ctx_new(mtev_http_dispatch_func f, mtev_http_websocket_dispatch_func wf,
+                          void *c, eventer_t e, acceptor_closure_t *ac) 
+{
   mtev_http_session_ctx *ctx;
   ctx = calloc(1, sizeof(*ctx));
   ctx->ref_cnt = 1;
@@ -1286,7 +1532,13 @@ mtev_http_session_ctx_new(mtev_http_dispatch_func f, void *c, eventer_t e,
   ctx->max_write = DEFAULT_MAXWRITE;
   ctx->dispatcher = f;
   ctx->dispatcher_closure = c;
+  ctx->websocket_dispatcher = wf;
   ctx->ac = ac;
+  ctx->is_websocket = mtev_false;
+#ifdef HAVE_WSLAY
+  ctx->did_handshake = mtev_false;
+  ctx->wslay_ctx = NULL;
+#endif
   return ctx;
 }
 
@@ -1798,6 +2050,23 @@ mtev_http_response_end(mtev_http_session_ctx *ctx) {
   return mtev_true;
 }
 
+mtev_boolean
+mtev_http_websocket_queue_msg(mtev_http_session_ctx *ctx, int opcode,
+                              const unsigned char *msg, size_t msg_len)
+{
+#ifdef HAVE_WSLAY
+  if (ctx->is_websocket == mtev_false || ctx->wslay_ctx == NULL) {
+    return mtev_false;
+  }
+  struct wslay_event_msg msgarg = {
+    opcode, msg, msg_len
+  };
+  wslay_event_queue_msg(ctx->wslay_ctx, &msgarg);
+  return mtev_true;
+#else
+  return mtev_false;
+#endif
+}
 
 /* Helper functions */
 

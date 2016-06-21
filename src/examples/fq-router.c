@@ -43,6 +43,8 @@
 #include <eventer/eventer.h>
 #include <mtev_fq.h>
 
+#include <fq.h>
+
 #include <stdio.h>
 #include <getopt.h>
 
