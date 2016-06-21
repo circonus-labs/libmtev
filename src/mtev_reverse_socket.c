@@ -308,6 +308,7 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
 static void
 mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t e) {
   eventer_t ce = NULL;
+  mtev_reverse_socket_ref(rc);
   if(rc->data.channels[i].pair[0] >= 0) {
     mtevL(nldeb, "mtev_reverse_socket_channel_shutdown(%s, %d)\n", rc->id, i);
   }
@@ -335,6 +336,7 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t
   }
   rc->data.channels[i].incoming_tail = NULL;
   pthread_mutex_unlock(&rc->lock);
+  mtev_reverse_socket_deref(rc);
 }
 
 static void
