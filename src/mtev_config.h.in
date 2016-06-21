@@ -150,6 +150,9 @@
 /* Kernel port_create() support */
 #undef HAVE_PORTS
 
+/* have websocket support with wslay */
+#undef HAVE_WSLAY
+
 /* The number of bytes in a char.  */
 #undef SIZEOF_CHAR
 
