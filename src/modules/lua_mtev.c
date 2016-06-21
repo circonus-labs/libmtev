@@ -103,6 +103,12 @@ nl_extended_free(void *vcl) {
   if(cl->inbuff) free(cl->inbuff);
   free(cl);
 }
+static void
+lua_timeout_callback_ref_free(void* cb) {
+  lua_timeout_callback_ref *callback_ref = (lua_timeout_callback_ref*) cb;
+  luaL_unref(callback_ref->L, LUA_REGISTRYINDEX, callback_ref->callback_reference);
+  free(callback_ref);
+}
 static int
 lua_push_inet_ntop(lua_State *L, struct sockaddr *r) {
   char remote_str[128];
@@ -1064,14 +1070,20 @@ mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
   int len;
   int args = 0;
 
+  ci = mtev_lua_get_resume_info(cl->L);
+  assert(ci);
+
+  if(cl->timeout_event) {
+    eventer_remove_timed(cl->timeout_event);
+    mtev_lua_deregister_event(ci, cl->timeout_event, 1);
+    cl->timeout_event = NULL;
+  }
+
   /* If the pointer has been cleared, this has been gc'd */
   if(!*(cl->eptr)) {
     mtevL(nlerr, "mtev.eventer callback post GC\n");
     return 0;
   }
-
-  ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
 
   len = mtev_lua_socket_do_read(e, &mask, cl, &args);
   if(len >= 0) {
@@ -1091,6 +1103,42 @@ mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
   (*cl->eptr)->refcnt = 1;
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, args);
+  return 0;
+}
+
+static int on_timeout(eventer_t e, int mask, void *closure,
+    struct timeval *now) {
+  struct nl_slcl *cl;
+    mtev_lua_resume_info_t *ci;
+  lua_timeout_callback_ref* cb_ref;
+  lua_State *L;
+
+  cb_ref = (lua_timeout_callback_ref*)closure;
+  L = cb_ref->L;
+
+  // run the timeout callback
+  lua_rawgeti( L, LUA_REGISTRYINDEX, cb_ref->callback_reference );
+  lua_call(L, 0, 0);
+
+  cl = cb_ref->timed_out_eventer->closure;
+  ci = mtev_lua_get_resume_info(L);
+  assert(ci);
+  
+
+  // remove the original read event
+  eventer_remove_fd(cb_ref->timed_out_eventer->fd);
+  mtev_lua_deregister_event(ci, cb_ref->timed_out_eventer, 0);
+  *(cl->eptr) = eventer_alloc();
+  memcpy(*cl->eptr, cb_ref->timed_out_eventer, sizeof(*cb_ref->timed_out_eventer));
+  (*cl->eptr)->refcnt = 1;
+  mtev_lua_register_event(ci, *cl->eptr);
+  
+  // return into the original Lua call which spawned this timeout
+  lua_pushnil(L);
+  ci->lmc->resume(ci, 1);
+
+  mtev_lua_deregister_event(ci, e, 1);
+
   return 0;
 }
 
@@ -1155,18 +1203,49 @@ mtev_lua_socket_read(lua_State *L) {
   if(args == 1) return 1; /* completed read, return result */
   if(len == -1 && errno == EAGAIN) {
     /* we need to drop into eventer */
+    eventer_remove_fd(e->fd);
+    e->callback = mtev_lua_socket_read_complete;
+    e->mask = mask | EVENTER_EXCEPTION;
+    eventer_add(e);
+
+    if (lua_gettop(L) == 5 && lua_isfunction(L, 5)) {
+      double timeout_user;
+      int timeout_s;
+      int timeout_us;
+      timeout_s = 10;
+      timeout_us = 0;
+      if(lua_isnumber(L, 4)) {
+        timeout_user = lua_tonumber(L, 4);
+        timeout_s = floor(timeout_user);
+        timeout_us = (timeout_user - timeout_s) * 1000000;
+      }
+
+      lua_timeout_callback_ref* cb_ref = malloc(sizeof(lua_timeout_callback_ref));
+      cb_ref->free = lua_timeout_callback_ref_free;
+      cb_ref->L = L;
+      cb_ref->callback_reference = luaL_ref( L, LUA_REGISTRYINDEX );
+      cb_ref->timed_out_eventer = e;
+
+      eventer_t timeout_eventer = eventer_alloc();
+      timeout_eventer->mask = EVENTER_TIMER;
+      gettimeofday(&timeout_eventer->whence, NULL);
+      timeout_eventer->whence.tv_sec += timeout_s;
+      timeout_eventer->whence.tv_usec += timeout_us;
+      timeout_eventer->callback = on_timeout;
+      timeout_eventer->closure = cb_ref;
+      mtev_lua_register_event(ci, timeout_eventer);
+      eventer_add_timed(timeout_eventer);
+
+      cl->timeout_event = timeout_eventer;
+    }
+
+    return mtev_lua_yield(ci, 0);
   }
   else {
     lua_pushnil(cl->L);
     args = 1;
     return args;
   }
-
-  eventer_remove_fd(e->fd);
-  e->callback = mtev_lua_socket_read_complete;
-  e->mask = mask | EVENTER_EXCEPTION;
-  eventer_add(e);
-  return mtev_lua_yield(ci, 0);
 }
 static int
 mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
