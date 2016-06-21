@@ -388,8 +388,10 @@ mtev_lua_rest_show_waiter(eventer_t e, int mask, void *closure,
     return 0;
   }
   eventer_t conne = mtev_http_connection_event(mtev_http_session_connection(ctx));
-  conne->mask =  EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
-  eventer_trigger(conne, EVENTER_WRITE);
+  if(conne) {
+    conne->mask =  EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
+    eventer_trigger(conne, EVENTER_WRITE);
+  }
   return 0;
 }
 static int
@@ -423,7 +425,7 @@ mtev_rest_show_lua(mtev_http_rest_closure_t *restc, int n, char **p) {
   restc->call_closure = crutch;
   restc->fastpath = mtev_rest_show_lua_complete;
   mtev_http_session_ctx *ctx = restc->http_ctx;
-  eventer_t conne = mtev_http_connection_event(mtev_http_session_connection(ctx));
+  eventer_t conne = mtev_http_connection_event_float(mtev_http_session_connection(ctx));
   if(conne) {
     eventer_remove_fd(conne->fd);
   }
