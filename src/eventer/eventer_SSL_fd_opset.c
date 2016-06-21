@@ -782,6 +782,8 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     }
   }
 
+/* Temporarily disable until we understand a bug that's happening - 2016/06/21 */
+#if 0
 #ifndef OPENSSL_NO_EC
 #if defined(SSL_CTX_set_ecdh_auto)
   SSL_CTX_set_ecdh_auto(ctx->ssl_ctx, 1);
@@ -789,6 +791,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   EC_KEY *ec_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
   SSL_CTX_set_tmp_ecdh(ctx->ssl_ctx, ec_key);
   EC_KEY_free(ec_key);
+#endif
 #endif
 #endif
 
