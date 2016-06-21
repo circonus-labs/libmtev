@@ -308,21 +308,22 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
 static void
 mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t e) {
   eventer_t ce = NULL;
-  int need_deref = 0;
+  mtev_reverse_socket_ref(rc);
   if(rc->data.channels[i].pair[0] >= 0) {
     mtevL(nldeb, "mtev_reverse_socket_channel_shutdown(%s, %d)\n", rc->id, i);
-    need_deref = 1;
   }
   pthread_mutex_lock(&rc->lock);
   if(rc->data.channels[i].pair[0] >= 0) {
     int fd = rc->data.channels[i].pair[0];
-    eventer_t ce = eventer_find_fd(fd);
+    ce = eventer_find_fd(fd);
     rc->data.channels[i].pair[0] = -1;
     if(!ce) close(fd);
   }
   pthread_mutex_unlock(&rc->lock);
 
-  if(ce) eventer_trigger(ce, EVENTER_EXCEPTION);
+  if(ce) {
+    eventer_trigger(ce, EVENTER_EXCEPTION);
+  }
 
   rc->data.channels[i].in_bytes = rc->data.channels[i].out_bytes =
     rc->data.channels[i].in_frames = rc->data.channels[i].out_frames = 0;
@@ -335,9 +336,7 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t
   }
   rc->data.channels[i].incoming_tail = NULL;
   pthread_mutex_unlock(&rc->lock);
-  if (need_deref) {
-    mtev_reverse_socket_deref(rc);
-  }
+  mtev_reverse_socket_deref(rc);
 }
 
 static void
