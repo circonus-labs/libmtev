@@ -244,8 +244,8 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   mtev_lua_setup_restc(L, restc);
   mtev_lua_hash_to_table(L, restc->ac->config);
 
-  conne = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
-  eventer_remove(conne);
+  conne = mtev_http_connection_event_float(mtev_http_session_connection(restc->http_ctx));
+  if(conne) eventer_remove_fd(conne->fd);
   restc->fastpath = lua_web_restc_fastpath;
 
   status = lmc->resume(ri, 2);
@@ -253,6 +253,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
 
   if(mtev_http_response_complete(res) != mtev_true) {
  boom:
+    if(conne) eventer_add(conne);
     mtev_http_response_standard(restc->http_ctx,
                                 (ctx && ctx->httpcode) ? ctx->httpcode : 500,
                                 "ERROR", "text/plain");
