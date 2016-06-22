@@ -83,7 +83,8 @@ child_main() {
   mtev_dso_post_init();
 
   mtev_http_rest_register("GET", "/", "^(.*)$", my_rest_handler);
-  mtev_http_rest_websocket_register("/", "^(.*)$", my_websocket_msg_handler);
+  /* for 'echo-protocol' see websocket_client.js */
+  mtev_http_rest_websocket_register("/", "^(.*)$", "echo-protocol", my_websocket_msg_handler);
 
   /* Lastly, spin up the event loop */
   eventer_loop();
