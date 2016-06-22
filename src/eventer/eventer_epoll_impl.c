@@ -179,8 +179,6 @@ static eventer_t eventer_epoll_impl_remove(eventer_t e) {
       removed = e;
       master_fds[e->fd].e = NULL;
       if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, e->fd, &_ev) != 0) {
-        mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
-              spec->epoll_fd, e->fd, strerror(errno));
         if(errno != ENOENT) {
           mtevFatal(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
                 spec->epoll_fd, e->fd, strerror(errno));
