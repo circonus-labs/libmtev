@@ -121,7 +121,10 @@ static void *eventer_kqueue_spec_alloc() {
   struct kqueue_spec *spec;
   spec = calloc(1, sizeof(*spec));
   spec->kqueue_fd = kqueue();
-  if(spec->kqueue_fd == -1) abort();
+  if(spec->kqueue_fd == -1) {
+    MTEV_LOG_AND_ABORT(mtev_error, "error in eveter_kqueue_spec_alloc... spec->epoll_fd < 0 (%d)\n",
+            spec->epoll_fd);
+  }
   kqs_init(spec);
   pthread_mutex_init(&spec->lock, NULL);
   return spec;
@@ -189,7 +192,7 @@ static void eventer_kqueue_impl_add(eventer_t e) {
 static eventer_t eventer_kqueue_impl_remove(eventer_t e) {
   eventer_t removed = NULL;
   if(e->mask & EVENTER_ASYNCH) {
-    abort();
+    MTEV_LOG_AND_ABORT(mtev_error, "error in eventer_kqueue_impl_remove: got unexpected EVENTER_ASYNCH mask\n");
   }
   if(e->mask & (EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION)) {
     ev_lock_state_t lockstate;
@@ -213,7 +216,8 @@ static eventer_t eventer_kqueue_impl_remove(eventer_t e) {
     removed = eventer_remove_recurrent(e);
   }
   else {
-    abort();
+    MTEV_LOG_AND_ABORT(mtev_error, "error in eventer_kqueue_impl_remove: got unknown mask (0x%04x)\n",
+            e->mask);
   }
   return removed;
 }
@@ -384,8 +388,9 @@ static int eventer_kqueue_impl_loop() {
   KQUEUE_DECL;
   KQUEUE_SETUP(NULL);
 
-	if(eventer_kqueue_impl_register_wakeup(kqs) == -1)
-    abort();
+  if(eventer_kqueue_impl_register_wakeup(kqs) == -1) {
+    MTEV_LOG_AND_ABORT(mtev_error, "error in eventer_kqueue_impl_loop: could not eventer_kqueue_impl_register_wakeup\n");
+  }
 
   while(1) {
     struct timeval __now, __sleeptime;
