@@ -1561,6 +1561,23 @@ mtev_conf_get_stringbuf(mtev_conf_section_t section,
 }
 
 int
+mtev_conf_property_iter(mtev_conf_section_t section,
+                        int (*f)(const char *key, const char *val, void *closure),
+                        void *closure) {
+  int cnt = 0;
+  xmlNodePtr node = (xmlNodePtr)section;
+  xmlAttr *prop;
+  if(!node) return 0;
+  for(prop = node->properties; prop; prop = prop->next) {
+    const char *key = (const char *)prop->name;
+    char *value = (char *)xmlGetProp(node, prop->name);
+    cnt += f(key,value,closure);
+    xmlFree(value);
+  }
+  return cnt;
+}
+
+int
 mtev_conf_set_string(mtev_conf_section_t section,
                      const char *path, const char *value) {
   xmlNodePtr current_node = (xmlNodePtr)section;
