@@ -1249,6 +1249,7 @@ mtev_http_create_websocket_accept_key(char *dest, size_t dest_len, const char *c
   dest[mtev_b64_encode_len(SHA_DIGEST_LENGTH)] = '\0';
 }
 
+#ifdef HAVE_WSLAY
 mtev_boolean 
 mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
 {
@@ -1295,7 +1296,6 @@ mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
   return ctx->is_websocket;
 }
 
-#ifdef HAVE_WSLAY
 static ssize_t 
 wslay_send_callback(wslay_event_context_ptr ctx,
                     const uint8_t *data, size_t len, int flags,
@@ -1427,13 +1427,12 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     if (ctx->did_handshake == mtev_false) {
       mtev_http_websocket_handshake(ctx);
     }
-#endif
 
     if (ctx->is_websocket == mtev_true) {
       /* init the wslay library for websocket communication */
       wslay_event_context_server_init(&ctx->wslay_ctx, &wslay_callbacks, ctx);
     } else {
-    
+#endif
       _http_perform_write(ctx, &maybe_write_mask);
       if(ctx->conn.e == NULL) goto release;
       if(ctx->req.complete != mtev_true) {
@@ -1441,7 +1440,10 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
               mask|maybe_write_mask);
         return mask | maybe_write_mask;
       }
+#ifdef HAVE_WSLAY
     }
+#endif
+
     mtevL(http_debug, "HTTP start request (%s)\n", ctx->req.uri_str);
     mtev_http_process_querystring(&ctx->req);
     inplace_urldecode(ctx->req.uri_str);
@@ -1459,6 +1461,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
      * In addition, since websockets are meant for message passing, we call a special
      * dispatch function when we have fully received a websocket message.
      */
+#ifdef HAVE_WSLAY
     if (wslay_event_want_read(ctx->wslay_ctx) == 0 && wslay_event_want_write(ctx->wslay_ctx) == 0) {
       /* this is a serious wslay error, abort */
       goto abort_drive;
@@ -1479,6 +1482,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
      */
     *done = 0;
     return mask;
+#endif
 
   } else {
     /* only dispatch if the response is not closed */
