@@ -59,7 +59,7 @@ const char *strnstrn(const char *needle, int needle_len,
   int i=0, j=0, compiled[KMPPATSIZE];
 
   if(needle_len > KMPPATSIZE) {
-    MTEV_LOG_AND_ABORT(mtev_error, "errorin strnstrn: needle_len (%d) < KMPPATSIZE (%d)\n",
+    mtevFatal(mtev_error, "errorin strnstrn: needle_len (%d) < KMPPATSIZE (%d)\n",
             needle_len, KMPPATSIZE);
   }
   kmp_precompute(needle, needle_len, compiled);

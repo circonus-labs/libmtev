@@ -69,7 +69,7 @@ static void *eventer_ports_spec_alloc() {
   spec = calloc(1, sizeof(*spec));
   spec->port_fd = port_create();
   if(spec->port_fd < 0) {
-    MTEV_LOG_AND_ABORT(mtev_error, "error in eveter_ports_spec_alloc... spec->port_fd < 0 (%d)\n",
+    mtevFatal(mtev_error, "error in eveter_ports_spec_alloc... spec->port_fd < 0 (%d)\n",
             spec->port_fd);
   }
   return spec;
@@ -170,7 +170,7 @@ static void eventer_ports_impl_add(eventer_t e) {
 static eventer_t eventer_ports_impl_remove(eventer_t e) {
   eventer_t removed = NULL;
   if(e->mask & EVENTER_ASYNCH) {
-    MTEV_LOG_AND_ABORT(mtev_error, "error in eventer_ports_impl_remove: got unexpected EVENTER_ASYNCH mask\n");
+    mtevFatal(mtev_error, "error in eventer_ports_impl_remove: got unexpected EVENTER_ASYNCH mask\n");
   }
   if(e->mask & (EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION)) {
     ev_lock_state_t lockstate;
@@ -189,7 +189,7 @@ static eventer_t eventer_ports_impl_remove(eventer_t e) {
     removed = eventer_remove_recurrent(e);
   }
   else {
-    MTEV_LOG_AND_ABORT(mtev_error, "error in eventer_ports_impl_remove: got unknown mask (0x%04x)\n",
+    mtevFatal(mtev_error, "error in eventer_ports_impl_remove: got unknown mask (0x%04x)\n",
             e->mask);
   }
   return removed;
