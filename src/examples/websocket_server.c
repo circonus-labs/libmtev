@@ -5,6 +5,7 @@
 #include <mtev_listener.h>
 #include <mtev_main.h>
 #include <mtev_memory.h>
+#include <mtev_http.h>
 #include <mtev_rest.h>
 #include <mtev_cluster.h>
 #include <mtev_capabilities_listener.h>
@@ -50,7 +51,17 @@ static int my_websocket_msg_handler(mtev_http_rest_closure_t *restc,
   if (debug == 1) {
     mtevL(mtev_debug, "Queue websocket message.. success == %d\n", x);
   }
-  return x;
+  return !x;
+}
+
+static int my_rest_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
+  char *s = "Rest is working\n";
+  mtev_http_response_append(restc->http_ctx, s, strlen(s));
+  mtev_http_response_status_set(restc->http_ctx, 200, "OK");
+  mtev_http_response_header_set(restc->http_ctx, "Content-Type", "text/plain");
+  mtev_http_response_option_set(restc->http_ctx, MTEV_HTTP_CLOSE);
+  mtev_http_response_end(restc->http_ctx);
+  return 0;
 }
 
 
@@ -71,6 +82,7 @@ child_main() {
   mtev_dso_init();
   mtev_dso_post_init();
 
+  mtev_http_rest_register("GET", "/", "^(.*)$", my_rest_handler);
   mtev_http_rest_websocket_register("/", "^(.*)$", my_websocket_msg_handler);
 
   /* Lastly, spin up the event loop */
