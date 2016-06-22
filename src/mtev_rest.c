@@ -63,6 +63,7 @@ struct rest_raw_payload {
 struct rest_url_dispatcher {
   char *method;
   char *expression_s;
+  char *websocket_protocol;
   pcre *expression;
   pcre_extra *extra;
   rest_request_handler handler;
@@ -203,13 +204,20 @@ mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
   /* no base, give up */
   if(!cont) return NULL;
 
+  const char *protocol = NULL;
+  mtev_hash_table *headers = mtev_http_request_headers_table(req);
+
+  (void)mtev_hash_retr_str(headers, "sec-websocket-protocol", strlen("sec-websocket-protocol"), &protocol);
+
   for(rule = cont->rules; rule; rule = rule->next) {
     int ovector[30];
     int cnt;
-    if (mtev_http_is_websocket(restc->http_ctx) == mtev_true && 
-        strcmp(rule->method, "WS") != 0) continue;
-    if (mtev_http_is_websocket(restc->http_ctx) == mtev_false && 
-        strcmp(rule->method, mtev_http_request_method_str(req))) continue;
+    if (mtev_http_is_websocket(restc->http_ctx) == mtev_true) {
+      if (strcmp(rule->method, "WS")) continue;
+      if (rule->websocket_protocol == NULL || protocol == NULL || strcmp(rule->websocket_protocol, protocol)) continue;
+    } else {
+      if (strcmp(rule->method, mtev_http_request_method_str(req))) continue;
+    }
     if((cnt = pcre_exec(rule->expression, rule->extra, eob, eoq - eob, 0, 0,
                         ovector, sizeof(ovector)/sizeof(*ovector))) > 0) {
 
@@ -303,7 +311,7 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
 int
 mtev_http_rest_register(const char *method, const char *base,
                         const char *expr, rest_request_handler f) {
-  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, NULL);
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, NULL, NULL);
 }
 void
 mtev_http_rest_disclose_endpoints(const char *base, const char *expr) {
@@ -312,26 +320,65 @@ mtev_http_rest_disclose_endpoints(const char *base, const char *expr) {
 int
 mtev_http_rest_register_closure(const char *method, const char *base,
                         const char *expr, rest_request_handler f, void *c) {
-  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, c);
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, NULL, c);
 }
 int
 mtev_http_rest_register_auth(const char *method, const char *base,
                              const char *expr, rest_request_handler f,
                              rest_authorize_func_t auth) {
-  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, auth, NULL);
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, auth, NULL);
 }
+
 
 int
 mtev_http_rest_websocket_register(const char *base,
-                        const char *expr, rest_websocket_message_handler wf) 
+                                  const char *expr, 
+                                  const char *protocol,
+                                  rest_websocket_message_handler wf) 
 {
-  return mtev_http_rest_register_auth_closure("WS", base, expr, NULL, wf, NULL, NULL);
+  return mtev_http_rest_websocket_register_closure(base, expr, protocol, wf, NULL);
+}
+
+int
+mtev_http_rest_websocket_register_closure(const char *base,
+                                          const char *expr, 
+                                          const char *protocol,
+                                          rest_websocket_message_handler wf,
+                                          void *c) 
+{
+  return mtev_http_rest_register_auth_closure("WS", base, expr, NULL, wf, protocol, NULL, c);
+}
+ 
+int
+mtev_http_rest_websocket_register_auth(const char *base,
+                                       const char *expr,
+                                       const char *protocol,
+                                       rest_websocket_message_handler wf,
+                                       rest_authorize_func_t auth) 
+{
+  return mtev_http_rest_websocket_register_auth_closure(base, expr, protocol, wf, auth, NULL);
+}
+
+int
+mtev_http_rest_websocket_register_auth_closure(const char *base,
+                                               const char *expr,
+                                               const char *protocol,
+                                               rest_websocket_message_handler wf,
+                                               rest_authorize_func_t auth,
+                                               void *c) 
+{
+  int rval = mtev_http_rest_register_auth_closure("WS", base, expr, NULL, wf, protocol, NULL, c);
+  if ( rval != 0 ) {
+    return rval;
+  }
+  return mtev_http_rest_register_auth("GET", base, expr, NULL, auth);
 }
 
 int
 mtev_http_rest_register_auth_closure(const char *method, const char *base,
                                      const char *expr, rest_request_handler f,
                                      rest_websocket_message_handler wf, 
+                                     const char *websocket_protocol, 
                                      rest_authorize_func_t auth, void *closure) 
 {
   void *vcont;
@@ -356,6 +403,7 @@ mtev_http_rest_register_auth_closure(const char *method, const char *base,
   rule->extra = pcre_study(rule->expression, 0, &error);
   rule->handler = f;
   rule->websocket_handler = wf;
+  rule->websocket_protocol = websocket_protocol != NULL ? strdup(websocket_protocol) : NULL;
   rule->closure = closure;
   rule->auth = auth;
 
@@ -425,7 +473,7 @@ mtev_rest_websocket_dispatcher(mtev_http_session_ctx *ctx, uint8_t opcode, const
   mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED);
   mtev_http_rest_clean_request(restc);
   mtev_http_response_end(ctx);
-  return 0;
+  return -1;
 }
 
 int

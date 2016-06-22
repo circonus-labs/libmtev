@@ -1313,8 +1313,9 @@ wslay_send_callback(wslay_event_context_ptr ctx,
 #endif
 
   pthread_mutex_lock(&session_ctx->write_lock);
-  if(!session_ctx->conn.e) {
+  if(!session_ctx->conn.e || session_ctx->is_websocket == mtev_false) {
     pthread_mutex_unlock(&session_ctx->write_lock);
+    wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     return -1;
   }
 
@@ -1342,7 +1343,8 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
   ssize_t r;
   int sflags = 0;
 
-  if(!session_ctx->conn.e) {
+  if(!session_ctx->conn.e || session_ctx->is_websocket == mtev_false) {
+    wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     return -1;
   }
 
@@ -1374,10 +1376,15 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
   if (!wslay_is_ctrl_frame(arg->opcode)) {
     if (session_ctx->websocket_dispatcher != NULL) {
       rv = session_ctx->websocket_dispatcher(session_ctx, arg->opcode, arg->msg, arg->msg_length);
+      if (rv != 0) {
+        /* force the drive loop to abandon this as a websocket */
+        session_ctx->is_websocket = mtev_false;
+      }
     } else {
        mtevL(http_debug, "session_ctx has no websocket_dispatcher function set\n");
+       session_ctx->is_websocket = mtev_false;
     }
- }
+  }
 }
 #endif //HAVE_WSLAY
 
