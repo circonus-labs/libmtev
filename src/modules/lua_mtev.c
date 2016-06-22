@@ -134,11 +134,11 @@ inbuff_addlstring(struct nl_slcl *cl, const char *b, int l) {
   char *newbuf;
 
   if (cl->inbuff_len < 0 || l < 0) {
-    mtevFatal(mtev_error, "Invalid Argument to inbuff_addlstring: An argument was negative (ci->inbuff_len: %d, l: %d)\n", 
+    mtevFatal(mtev_error, "Error (inbuff_addlstring): Invalid Argument to inbuff_addlstring: An argument was negative (ci->inbuff_len: %d, l: %d)\n", 
             cl->inbuff_len, l);
   }
   if (cl->inbuff_len + l < 0) {
-    mtevFatal(mtev_error, "Error: Addition Overflow im inbuff_addlstring (ci->inbuff_len: %d, l: %d, sum: %d\n", 
+    mtevFatal(mtev_error, "Error (inbuff_addlstring): Addition Overflow im inbuff_addlstring (ci->inbuff_len: %d, l: %d, sum: %d\n", 
             cl->inbuff_len, l, cl->inbuff_len+l);
   }
 
@@ -146,7 +146,10 @@ inbuff_addlstring(struct nl_slcl *cl, const char *b, int l) {
     newsize = cl->inbuff_len + l;
   if(newsize) {
     newbuf = cl->inbuff_allocd ? realloc(cl->inbuff, newsize) : malloc(newsize);
-    assert(newbuf);
+    if (!newbuf) {
+      mtevFatal(mtev_error, "Error (inbuff_addlstring): Couldn't allocate newbuf: %d (%s) - inbuff_allocd %d, newsize %d\n", 
+              errno, strerror(errno), cl->inbuff_allocd, newsize);
+    }
     cl->inbuff = newbuf;
     cl->inbuff_allocd = newsize;
   }
