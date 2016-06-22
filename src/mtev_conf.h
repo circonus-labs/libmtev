@@ -184,6 +184,11 @@ API_EXPORT(int)
   mtev_conf_get_uuid(mtev_conf_section_t section,
                      const char *path, uuid_t out);
 
+API_EXPORT(int)
+  mtev_conf_property_iter(mtev_conf_section_t section,
+                          int (*f)(const char *key, const char *val, void *closure),
+                          void *closure);
+
 API_EXPORT(int) mtev_conf_set_string(mtev_conf_section_t section,
                                      const char *path, const char *value);
 API_EXPORT(int) mtev_conf_set_int(mtev_conf_section_t section,

@@ -84,12 +84,14 @@ struct mtev_rest_acl_rule {
   mtev_boolean allow;
   pcre *url;
   pcre *cn;
+  mtev_hash_table *listener_res;
   struct mtev_rest_acl_rule *next;
 };
 struct mtev_rest_acl {
   mtev_boolean allow;
   pcre *url;
   pcre *cn;
+  mtev_hash_table *listener_res;
   struct mtev_rest_acl_rule *rules;
   struct mtev_rest_acl *next;
 };
@@ -97,6 +99,9 @@ struct mtev_rest_acl {
 static mtev_hash_table mime_type_defaults = MTEV_HASH_EMPTY;
 
 static struct mtev_rest_acl *global_rest_acls = NULL;
+
+static mtev_boolean
+  match_listener_res(mtev_hash_table *res, mtev_hash_table *config);
 
 static int
 mtev_http_rest_permission_denied(mtev_http_rest_closure_t *restc,
@@ -278,12 +283,16 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
     if(acl->url && pcre_exec(acl->url, NULL, uri_str, strlen(uri_str), 0, 0,
                              ovector, sizeof(ovector)/sizeof(*ovector)) <= 0)
       continue;
+    if(!match_listener_res(acl->listener_res, restc->ac->config))
+      continue;
     for(rule = acl->rules; rule; rule = rule->next) {
       if(rule->cn && pcre_exec(rule->cn, NULL, remote_cn, strlen(remote_cn), 0, 0,
                                ovector, sizeof(ovector)/sizeof(*ovector)) <= 0)
         continue;
       if(rule->url && pcre_exec(rule->url, NULL, uri_str, strlen(uri_str), 0, 0,
                                 ovector, sizeof(ovector)/sizeof(*ovector)) <= 0)
+        continue;
+      if(!match_listener_res(rule->listener_res, restc->ac->config))
         continue;
       return rule->allow;
     }
@@ -741,6 +750,65 @@ mtev_rest_simple_file_handler(mtev_http_rest_closure_t *restc,
   return 0;
 }
 
+static int
+accrue_and_compile(const char *key, const char *value, void *vht) {
+  mtev_hash_table *ht = vht;
+  const char *error;
+  int erroffset;
+  pcre *re;
+  if(strncmp(key, "listener_", strlen("listener_"))) return 0;
+  key = key + strlen("listener_");
+  re = pcre_compile(value, 0, &error, &erroffset, NULL);
+  if(!re) {
+    mtevL(mtev_error, "Error compiling ACL rule [%s]->'%s': %s\n",
+          key, value, error);
+    return 1;
+  }
+  if(mtev_hash_store(ht, strdup(key), strlen(key), re)) return 1;
+  return 0;
+}
+static void
+compile_listener_res(mtev_conf_section_t node, mtev_hash_table **htptr) {
+  int cnt;
+  mtev_hash_table *ht;
+  ht = calloc(1, sizeof(*ht));
+  mtev_hash_init(ht);
+  cnt = mtev_conf_property_iter(node, accrue_and_compile, ht);
+  if(cnt == 0) {
+    mtev_hash_destroy(ht, free, pcre_free);
+    free(ht);
+    return;
+  }
+  *htptr = ht;
+}
+
+/* Matching listeners...
+ * If there are no specifications, it is unrestricted.
+ * If there are any specification, they all must match.
+ */
+static mtev_boolean
+match_listener_res(mtev_hash_table *res, mtev_hash_table *config) {
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  const char *key;
+  int klen;
+  void *vre;
+  if(res == NULL) return mtev_true;
+  while(mtev_hash_next(res, &iter, &key, &klen, &vre)) {
+    pcre *re = (pcre *)vre;
+    const char *str;
+    if(mtev_hash_retr_str(config, key, klen, &str)) {
+      int ovector[30];
+      if(pcre_exec(re, NULL, str, strlen(str), 0, 0,
+                   ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
+        return mtev_false;
+      }
+    }
+    else {
+      return mtev_false;
+    }
+  }
+  return mtev_true;
+}
 void mtev_http_rest_load_rules() {
   int ai, cnt = 0;
   mtev_conf_section_t *acls;
@@ -777,6 +845,7 @@ void mtev_http_rest_load_rules() {
     newacl->allow = default_allow;
     compile_re(acls[ai], newacl, cn);
     compile_re(acls[ai], newacl, url);
+    compile_listener_res(acls[ai], &newacl->listener_res);
     rules = mtev_conf_get_sections(acls[ai], "rule", &rcnt);
     for(ri = rcnt - 1; ri >= 0; ri--) {
       struct mtev_rest_acl_rule *newacl_rule;
@@ -788,6 +857,7 @@ void mtev_http_rest_load_rules() {
         newacl_rule->allow = mtev_true;
       compile_re(rules[ri], newacl_rule, cn);
       compile_re(rules[ri], newacl_rule, url);
+      compile_listener_res(rules[ri], &newacl_rule->listener_res);
     }
     free(rules);
   }
@@ -802,11 +872,19 @@ void mtev_http_rest_load_rules() {
       remove_rule = oldacls->rules->next;
       if(oldacls->rules->cn) pcre_free(oldacls->rules->cn);
       if(oldacls->rules->url) pcre_free(oldacls->rules->url);
+      if(oldacls->rules->listener_res) {
+        mtev_hash_destroy(oldacls->rules->listener_res, free, pcre_free);
+        free(oldacls->rules->listener_res);
+      }
       free(oldacls->rules);
       oldacls->rules = remove_rule;
     }
     if(oldacls->cn) pcre_free(oldacls->cn);
     if(oldacls->url) pcre_free(oldacls->url);
+    if(oldacls->listener_res) {
+      mtev_hash_destroy(oldacls->listener_res, free, pcre_free);
+      free(oldacls->listener_res);
+    }
     free(oldacls);
     oldacls = remove_acl;
   }
