@@ -167,6 +167,11 @@ API_EXPORT(int)
     mtev_log(ls, NULL, __FILE__, __LINE__, args); \
   } \
 } while(0)
+#define mtevFatal(ls,args...) do {\
+  mtev_log_go_synch(); \
+  mtevL(ls, "[FATAL] " args); \
+  abort(); \
+} while(0)
 
 #define SETUP_LOG(a, b) do { if(!a##_log) a##_log = mtev_log_stream_find(#a); \
                              if(!a##_log) { b; } } while(0)

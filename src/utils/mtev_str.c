@@ -33,6 +33,7 @@
 
 #include "mtev_defines.h"
 #include "mtev_str.h"
+#include "mtev_log.h"
 
 #ifndef HAVE_STRNSTRN
 
@@ -57,8 +58,10 @@ const char *strnstrn(const char *needle, int needle_len,
                      const char *haystack, int haystack_len) {
   int i=0, j=0, compiled[KMPPATSIZE];
 
-  if(needle_len > KMPPATSIZE)
-    abort();
+  if(needle_len > KMPPATSIZE) {
+    mtevFatal(mtev_error, "errorin strnstrn: needle_len (%d) < KMPPATSIZE (%d)\n",
+            needle_len, KMPPATSIZE);
+  }
   kmp_precompute(needle, needle_len, compiled);
   while (j < haystack_len) {
     while (i > -1 && needle[i] != haystack[j])

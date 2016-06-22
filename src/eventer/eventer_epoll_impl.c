@@ -69,7 +69,10 @@ static void *eventer_epoll_spec_alloc() {
   struct epoll_spec *spec;
   spec = calloc(1, sizeof(*spec));
   spec->epoll_fd = epoll_create(1024);
-  if(spec->epoll_fd < 0) abort();
+  if(spec->epoll_fd < 0) {
+    mtevFatal(mtev_error, "error in eveter_epoll_spec_alloc... spec->epoll_fd < 0 (%d)\n",
+            spec->epoll_fd);
+  }
   spec->event_fd = -1;
 #if defined(EFD_NONBLOCK) && defined(EFD_CLOEXEC)
   spec->event_fd = eventfd(0, EFD_NONBLOCK|EFD_CLOEXEC);
@@ -153,9 +156,8 @@ static void eventer_epoll_impl_add(eventer_t e) {
 
   rv = epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, e->fd, &_ev);
   if(rv != 0) {
-    mtevL(eventer_err, "epoll_ctl(%d,add,%d,%x) -> %d (%d: %s)\n",
+    mtevFatal(mtev_error, "epoll_ctl(%d,add,%d,%x) -> %d (%d: %s)\n",
           spec->epoll_fd, e->fd, e->mask, rv, errno, strerror(errno));
-    abort();
   }
 
   release_master_fd(e->fd, lockstate);
@@ -164,7 +166,7 @@ static eventer_t eventer_epoll_impl_remove(eventer_t e) {
   struct epoll_spec *spec;
   eventer_t removed = NULL;
   if(e->mask & EVENTER_ASYNCH) {
-    abort();
+    mtevFatal(mtev_error, "error in eventer_epoll_impl_remove: got unexpected EVENTER_ASYNCH mask\n");
   }
   if(e->mask & (EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION)) {
     ev_lock_state_t lockstate;
@@ -179,7 +181,9 @@ static eventer_t eventer_epoll_impl_remove(eventer_t e) {
       if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, e->fd, &_ev) != 0) {
         mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
               spec->epoll_fd, e->fd, strerror(errno));
-        if(errno != ENOENT) abort();
+        if(errno != ENOENT) {
+          mtevFatal(mtev_error, "errno != ENOENT: %d (%s)\n", errno, strerror(errno));
+        }
       }
     }
     release_master_fd(e->fd, lockstate);
@@ -191,7 +195,8 @@ static eventer_t eventer_epoll_impl_remove(eventer_t e) {
     removed = eventer_remove_recurrent(e);
   }
   else {
-    abort();
+    mtevFatal(mtev_error, "error in eventer_epoll_impl_remove: got unknown mask (0x%04x)\n",
+            e->mask);
   }
   return removed;
 }
@@ -211,9 +216,8 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
     if(e->mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
     if(e->mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
     if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, e->fd, &_ev) != 0) {
-      mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_MOD, %d) -> %s\n",
+      mtevFatal(mtev_error, "epoll_ctl(%d, EPOLL_CTL_MOD, %d) -> %s\n",
             spec->epoll_fd, e->fd, strerror(errno));
-      abort();
     }
   }
 }
@@ -232,7 +236,9 @@ static eventer_t eventer_epoll_impl_remove_fd(int fd) {
     if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
       mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
             spec->epoll_fd, fd, strerror(errno));
-      if(errno != ENOENT) abort();
+      if(errno != ENOENT) {
+        mtevFatal(mtev_error, "errno != ENOENT: %d (%s)\n", errno, strerror(errno));
+      }
     }
     release_master_fd(fd, lockstate);
   }
