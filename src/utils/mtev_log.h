@@ -171,6 +171,11 @@ API_EXPORT(int)
 #define SETUP_LOG(a, b) do { if(!a##_log) a##_log = mtev_log_stream_find(#a); \
                              if(!a##_log) { b; } } while(0)
 
+#define MTEV_LOG_AND_ABORT(log,args...) \
+  mtev_log_go_synch(); \
+  mtevL(log, args); \
+  abort();
+
 MTEV_HOOK_PROTO(mtev_log_line,
                 (mtev_log_stream_t ls, struct timeval *whence,
                  const char *timebuf, int timebuflen,
