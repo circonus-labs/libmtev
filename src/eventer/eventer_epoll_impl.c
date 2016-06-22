@@ -179,13 +179,10 @@ static eventer_t eventer_epoll_impl_remove(eventer_t e) {
       removed = e;
       master_fds[e->fd].e = NULL;
       if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, e->fd, &_ev) != 0) {
+        mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
+              spec->epoll_fd, e->fd, strerror(errno));
         if(errno != ENOENT) {
-          mtevFatal(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
-                spec->epoll_fd, e->fd, strerror(errno));
-        }
-        else {
-          mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
-                spec->epoll_fd, e->fd, strerror(errno));
+          mtevFatal(mtev_error, "errno != ENOENT: %d (%s)\n", errno, strerror(errno));
         }
       }
     }
@@ -237,13 +234,10 @@ static eventer_t eventer_epoll_impl_remove_fd(int fd) {
     spec = eventer_get_spec_for_event(eiq);
     master_fds[fd].e = NULL;
     if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
+      mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
+            spec->epoll_fd, fd, strerror(errno));
       if(errno != ENOENT) {
-        mtevFatal(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
-              spec->epoll_fd, fd, strerror(errno));
-      }
-      else {
-        mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
-              spec->epoll_fd, fd, strerror(errno));
+        mtevFatal(mtev_error, "errno != ENOENT: %d (%s)\n", errno, strerror(errno));
       }
     }
     release_master_fd(fd, lockstate);
