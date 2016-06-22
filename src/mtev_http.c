@@ -1253,7 +1253,7 @@ mtev_boolean
 mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
 {
   char accept_key[32];
-  const char *upgrade = NULL, *connection = NULL, *sec_ws_key = NULL;
+  const char *upgrade = NULL, *connection = NULL, *sec_ws_key = NULL, *protocol = NULL;
   if (ctx->did_handshake == mtev_true) {
     return ctx->is_websocket;
   }
@@ -1266,9 +1266,10 @@ mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
     return ctx->is_websocket;
   }
 
-  (void)mtev_hash_retr_str(headers, "Upgrade", strlen("Upgrade"), &upgrade);
-  (void)mtev_hash_retr_str(headers, "Connection", strlen("Connection"), &connection);
-  (void)mtev_hash_retr_str(headers, "Sec-WebSocket-Key", strlen("Sec-WebSocket-Key"), &sec_ws_key);
+  (void)mtev_hash_retr_str(headers, "upgrade", strlen("upgrade"), &upgrade);
+  (void)mtev_hash_retr_str(headers, "connection", strlen("connection"), &connection);
+  (void)mtev_hash_retr_str(headers, "sec-websocket-key", strlen("sec-websocket-key"), &sec_ws_key);
+  (void)mtev_hash_retr_str(headers, "sec-websocket-protocol", strlen("sec-websocket-protocol"), &protocol);
 
   if (upgrade == NULL || connection == NULL || sec_ws_key == NULL) {
     ctx->is_websocket = mtev_false;
@@ -1286,6 +1287,7 @@ mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
   mtev_http_response_header_set(ctx, "Upgrade", "websocket");
   mtev_http_response_header_set(ctx, "Connection", "Upgrade");
   mtev_http_response_header_set(ctx, "Sec-WebSocket-Accept", accept_key);
+  mtev_http_response_header_set(ctx, "Sec-WebSocket-Protocol", protocol);
   mtev_http_response_status_set(ctx, 101, "Switching Protocols");
 
   /* there is no body and this is not the final */
@@ -1418,19 +1420,20 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     if (ctx->did_handshake == mtev_false) {
       mtev_http_websocket_handshake(ctx);
     }
+#endif
 
     if (ctx->is_websocket == mtev_true) {
       /* init the wslay library for websocket communication */
       wslay_event_context_server_init(&ctx->wslay_ctx, &wslay_callbacks, ctx);
-    }
-#endif
-
-    _http_perform_write(ctx, &maybe_write_mask);
-    if(ctx->conn.e == NULL) goto release;
-    if(ctx->req.complete != mtev_true) {
-      mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", e->fd,
-            mask|maybe_write_mask);
-      return mask | maybe_write_mask;
+    } else {
+    
+      _http_perform_write(ctx, &maybe_write_mask);
+      if(ctx->conn.e == NULL) goto release;
+      if(ctx->req.complete != mtev_true) {
+        mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", e->fd,
+              mask|maybe_write_mask);
+        return mask | maybe_write_mask;
+      }
     }
     mtevL(http_debug, "HTTP start request (%s)\n", ctx->req.uri_str);
     mtev_http_process_querystring(&ctx->req);
@@ -1449,22 +1452,18 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
      * In addition, since websockets are meant for message passing, we call a special
      * dispatch function when we have fully received a websocket message.
      */
-    if (wslay_event_want_read(ctx->wslay_ctx) == 0 || wslay_event_want_write(ctx->wslay_ctx) == 0) {
+    if (wslay_event_want_read(ctx->wslay_ctx) == 0 && wslay_event_want_write(ctx->wslay_ctx) == 0) {
       /* this is a serious wslay error, abort */
       goto abort_drive;
     }
 
-    if ((origmask & EVENTER_READ) == EVENTER_READ) {
-      if (wslay_event_recv(ctx->wslay_ctx) != 0) {
-        /* serious error on the `recv` side, abort */
-        goto abort_drive;
-      }
+    if (wslay_event_recv(ctx->wslay_ctx) != 0) {
+      /* serious error on the `recv` side, abort */
+      goto abort_drive;
     }
 
-    if ((origmask & EVENTER_WRITE) == EVENTER_WRITE) {
-      if (wslay_event_send(ctx->wslay_ctx) != 0) {
-        goto abort_drive;
-      }
+    if (wslay_event_send(ctx->wslay_ctx) != 0) {
+      goto abort_drive;
     }
 
     /* this could be a very long lived socket
@@ -1472,7 +1471,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
      * more communication
      */
     *done = 0;
-    return 0;
+    return mask;
 
   } else {
     /* only dispatch if the response is not closed */
