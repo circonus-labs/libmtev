@@ -225,7 +225,7 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
     }
     break;
   default:
-    MTEV_LOG_AND_ABORT(mtev_error, "Unexpected DH parameter request: %d\n", bits);
+    mtevFatal(mtev_error, "Unexpected DH parameter request: %d\n", bits);
   }
   return 0;
 }
@@ -949,7 +949,7 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
       break;
 
     default:
-      MTEV_LOG_AND_ABORT(mtev_error, "error: unknown SSL operation (%d)\n", op);
+      mtevFatal(mtev_error, "error: unknown SSL operation (%d)\n", op);
   }
   /* This can't happen as we'd have already aborted... */
   if(!opstr) opstr = "none";

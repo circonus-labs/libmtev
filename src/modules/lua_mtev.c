@@ -134,11 +134,11 @@ inbuff_addlstring(struct nl_slcl *cl, const char *b, int l) {
   char *newbuf;
 
   if (cl->inbuff_len < 0 || l < 0) {
-    MTEV_LOG_AND_ABORT(mtev_error, "Invalid Argument to inbuff_addlstring: An argument was negative (ci->inbuff_len: %d, l: %d)\n", 
+    mtevFatal(mtev_error, "Invalid Argument to inbuff_addlstring: An argument was negative (ci->inbuff_len: %d, l: %d)\n", 
             cl->inbuff_len, l);
   }
   if (cl->inbuff_len + l < 0) {
-    MTEV_LOG_AND_ABORT(mtev_error, "Error: Addition Overflow im inbuff_addlstring (ci->inbuff_len: %d, l: %d, sum: %d\n", 
+    mtevFatal(mtev_error, "Error: Addition Overflow im inbuff_addlstring (ci->inbuff_len: %d, l: %d, sum: %d\n", 
             cl->inbuff_len, l, cl->inbuff_len+l);
   }
 
