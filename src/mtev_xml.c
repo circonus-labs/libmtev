@@ -38,7 +38,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <assert.h>
 
 struct mtev_xml_buffer_ptr {
   char *buff;
@@ -86,7 +85,7 @@ mtev_xmlSaveToBuffer(xmlDocPtr doc) {
   out = xmlOutputBufferCreateIO(mtev_xml_save_writer,
                                 mtev_xml_save_closer,
                                 &buf, enc);
-  assert(out);
+  mtevAssert(out);
   xmlSaveFormatFileTo(out, doc, "utf8", 1);
   return buf.buff;
 }
@@ -137,7 +136,7 @@ mtev_xmlSaveToFile(xmlDocPtr doc, const char *filename) {
   }
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
   out = xmlOutputBufferCreateFd(fd, enc);
-  assert(out);
+  mtevAssert(out);
   xmlSaveFormatFileTo(out, doc, "utf8", 1);
   close(fd);
   rv = 0;

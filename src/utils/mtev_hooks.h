@@ -35,7 +35,6 @@
 #define UTILS_MTEV_HOOKS
 
 #include <mtev_atomic.h>
-#include <assert.h>
 #include <dlfcn.h>
 
 /*#* DOCBOOK
@@ -204,7 +203,7 @@ static inline RTYPE FUNCNAME PROTO { \
       mtevL(mtev_error, "runtime resolution of '%s %s%s' failed.\n", \
             #RTYPE, #FUNCNAME, #PROTO); \
     } \
-    assert(f_); \
+    mtevAssert(f_); \
   } \
   return f_ PARAMS; \
 }

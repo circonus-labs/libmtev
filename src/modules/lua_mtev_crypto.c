@@ -75,7 +75,7 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
   X509 *cert;
   int j;
 
-  assert(lua_gettop(L) == 2);
+  mtevAssert(lua_gettop(L) == 2);
   if(!luaL_checkudata(L, 1, "crypto.x509")) {
     luaL_error(L, "metatable error, arg1 not a crypto.x509!");
   }
@@ -181,7 +181,7 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
   SSL_SESSION *ssl_session;
   int j;
 
-  assert(lua_gettop(L) == 2);
+  mtevAssert(lua_gettop(L) == 2);
   if(!luaL_checkudata(L, 1, "crypto.ssl_session")) {
     luaL_error(L, "metatable error, arg1 not a crypto.ssl_session!");
   }
@@ -439,7 +439,7 @@ static int
 mtev_lua_crypto_rsa_index_func(lua_State *L) {
   const char *k;
   void *udata;
-  assert(lua_gettop(L) == 2);
+  mtevAssert(lua_gettop(L) == 2);
   if(!luaL_checkudata(L, 1, "crypto.rsa")) {
     luaL_error(L, "metatable error, arg1 not a crypto.rsa!");
   }
@@ -491,7 +491,7 @@ static int
 mtev_lua_crypto_req_index_func(lua_State *L) {
   const char *k;
   void **udata;
-  assert(lua_gettop(L) == 2);
+  mtevAssert(lua_gettop(L) == 2);
   if(!luaL_checkudata(L, 1, "crypto.req")) {
     luaL_error(L, "metatable error, arg1 not a crypto.req!");
   }
@@ -781,7 +781,7 @@ static int
 mtev_lua_crypto_bignum_index_func(lua_State *L) {
   const char *k;
   void **udata;
-  assert(lua_gettop(L) == 2);
+  mtevAssert(lua_gettop(L) == 2);
   if(!luaL_checkudata(L, 1, "crypto.bignum")) {
     luaL_error(L, "metatable error, arg1 not a crypto.req!");
   }

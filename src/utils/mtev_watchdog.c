@@ -32,7 +32,6 @@
  */
 #include "mtev_defines.h"
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -371,7 +370,7 @@ void clear_signals() {
   struct itimerval izero;
 
   memset(&izero, 0, sizeof(izero));
-  assert(setitimer(ITIMER_REAL, &izero, NULL) == 0);
+  mtevAssert(setitimer(ITIMER_REAL, &izero, NULL) == 0);
   sigfillset(&all);
   sigprocmask(SIG_UNBLOCK, &all, NULL);
   memset(&act, 0, sizeof(act));
@@ -401,7 +400,7 @@ void setup_signals(sigset_t *mysigs) {
   one_second.it_value.tv_usec = 0;
   one_second.it_interval.tv_sec = 1;
   one_second.it_interval.tv_usec = 0;
-  assert(setitimer(ITIMER_REAL, &one_second, NULL) == 0);
+  mtevAssert(setitimer(ITIMER_REAL, &one_second, NULL) == 0);
 }
 
 int mtev_watchdog_start_child(const char *app, int (*func)(),
@@ -617,7 +616,7 @@ static int watchdog_tick(eventer_t e, int mask, void *unused, struct timeval *no
 int mtev_watchdog_child_eventer_heartbeat() {
   eventer_t e;
 
-  assert(__eventer);
+  mtevAssert(__eventer);
 
  /* Setup our hearbeat */
   e = eventer_alloc();

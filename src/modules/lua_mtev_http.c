@@ -32,7 +32,6 @@
 
 #include <errno.h>
 #include <sys/mman.h>
-#include <assert.h>
 #include <ctype.h>
 #include <lauxlib.h>
 
@@ -45,7 +44,7 @@
   const char *methodvar; \
   int n; \
   n = lua_gettop(L);    /* number of arguments */ \
-  assert(n == 2); \
+  mtevAssert(n == 2); \
   if(!luaL_checkudata(L, 1, #type)) { \
     luaL_error(L, "metatable error, arg1 not " #type "!"); \
   } \

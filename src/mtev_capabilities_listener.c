@@ -49,7 +49,6 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <sys/utsname.h>
-#include <assert.h>
 
 #include <libxml/xmlsave.h>
 #include <libxml/tree.h>
@@ -80,7 +79,7 @@ mtev_capabilities_listener_init() {
   mtev_control_dispatch_delegate(mtev_control_dispatch,
                                  MTEV_CAPABILITIES_SERVICE,
                                  mtev_capabilities_handler);
-  assert(mtev_http_rest_register("GET", "/", "capa(\\.json)?",
+  mtevAssert(mtev_http_rest_register("GET", "/", "capa(\\.json)?",
                                  mtev_capabilities_rest) == 0);
 }
 

@@ -37,7 +37,6 @@
 #include <time.h>
 #include "mtev_config.h"
 #include "mtev_defines.h"
-#include "mtev_log.h"
 
 /*! \fn int mtev_watchdog_prefork_init()
     \brief Prepare the program to split into a child/parent-monitor relationship.

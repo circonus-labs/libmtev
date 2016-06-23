@@ -37,7 +37,6 @@
 
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
-#include <assert.h>
 #include <dlfcn.h>
 
 #define MTEV_LUA_REPL_USERDATA "mtev::state::lua_repl"
@@ -98,7 +97,7 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
   const char *err = NULL;
   int status, base, rv = 0;
 
-  assert(pthread_equal(pthread_self(), ri->bound_thread));
+  mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
 
 #if LUA_VERSION_NUM >= 502
   status = lua_resume(ri->coro_state, ri->lmc->lua_state, nargs);

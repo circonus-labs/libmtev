@@ -45,7 +45,6 @@
 #include <signal.h>
 #include <port.h>
 #include <pthread.h>
-#include <assert.h>
 
 #define MAX_PORT_EVENTS 1024
 
@@ -104,9 +103,8 @@ static void alter_fd_associate(eventer_t e, int mask, struct ports_spec *spec) {
   ret = port_associate(spec->port_fd, PORT_SOURCE_FD, e->fd, events, (void *)(vpsized_int)e->fd);
   s_errno = errno;
   if (ret == -1) {
-    mtevL(eventer_err,
+    mtevFatal(mtev_error,
           "eventer port_associate failed(%d-%d): %d/%s\n", e->fd, spec->port_fd, s_errno, strerror(s_errno));
-    assert(0);
   }
 }
 
@@ -118,9 +116,8 @@ static void alter_fd_dissociate(eventer_t e, int mask, struct ports_spec *spec) 
   if (ret == -1) {
     if(s_errno == ENOENT) return; /* Fine */
     if(s_errno == EBADFD) return; /* Fine */
-    mtevL(eventer_err,
+    mtevL(mtev_error,
           "eventer port_dissociate failed(%d-%d): %d/%s\n", e->fd, spec->port_fd, s_errno, strerror(s_errno));
-    assert(0);
   }
 }
 
@@ -135,7 +132,7 @@ static void alter_fd(eventer_t e, int mask) {
   }
 }
 static void eventer_ports_impl_add(eventer_t e) {
-  assert(e->mask);
+  mtevAssert(e->mask);
   ev_lock_state_t lockstate;
   const char *cbname;
   cbname = eventer_name_for_callback_e(e->callback, e);
@@ -162,7 +159,7 @@ static void eventer_ports_impl_add(eventer_t e) {
   /* file descriptor event */
   mtevL(eventer_deb, "debug: eventer_add fd (%s,%d,0x%04x)\n", cbname ? cbname : "???", e->fd, e->mask);
   lockstate = acquire_master_fd(e->fd);
-  assert(e->whence.tv_sec == 0 && e->whence.tv_usec == 0);
+  mtevAssert(e->whence.tv_sec == 0 && e->whence.tv_usec == 0);
   master_fds[e->fd].e = e;
   alter_fd(e, e->mask);
   release_master_fd(e->fd, lockstate);
@@ -235,14 +232,14 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
     if(master_fds[fd].e != NULL) {
       mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
     }
-    /* assert(master_fds[fd].e == NULL); */
+    /* mtevAssert(master_fds[fd].e == NULL); */
   }
   if(!pthread_equal(pthread_self(), e->thr_owner)) {
     /* If we're triggering across threads, it can't be registered yet */
     if(master_fds[fd].e != NULL) {
       mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
     }
-    /* assert(master_fds[fd].e == NULL); */
+    /* mtevAssert(master_fds[fd].e == NULL); */
 
     eventer_cross_thread_trigger(e,mask);
     return;
@@ -254,7 +251,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   if(e != master_fds[fd].e) return;
   lockstate = acquire_master_fd(fd);
   if(lockstate == EV_ALREADY_OWNED) return;
-  assert(lockstate == EV_OWNED);
+  mtevAssert(lockstate == EV_OWNED);
 
   gettimeofday(&__now, NULL);
   cbname = eventer_name_for_callback_e(e->callback, e);
@@ -382,7 +379,7 @@ static int eventer_ports_impl_loop() {
         pe = &pevents[idx];
         if(pe->portev_source != PORT_SOURCE_FD) continue;
         fd = (int)pe->portev_object;
-        assert((vpsized_int)pe->portev_user == fd);
+        mtevAssert((vpsized_int)pe->portev_user == fd);
         e = master_fds[fd].e;
 
         /* It's possible that someone removed the event and freed it
