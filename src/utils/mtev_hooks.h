@@ -35,6 +35,7 @@
 #define UTILS_MTEV_HOOKS
 
 #include <mtev_atomic.h>
+#include <assert.h>
 #include <dlfcn.h>
 
 /*#* DOCBOOK

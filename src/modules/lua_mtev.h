@@ -34,6 +34,7 @@
 
 #include "mtev_defines.h"
 
+#include <assert.h>
 #include <openssl/x509.h>
 #include <lua.h>
 #include <lauxlib.h>
