@@ -55,7 +55,6 @@
 #include "libmtev_dtrace_probes.h"
 
 #include <errno.h>
-#include <assert.h>
 #include <poll.h>
 #include <ctype.h>
 
@@ -226,9 +225,9 @@ static void *mtev_reverse_socket_alloc() {
   reverse_socket_t *rc = calloc(1, sizeof(*rc));
   mtev_reverse_socket_ref(rc);
   pthread_mutexattr_init(&attr);
-  assert(pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_PRIVATE) == 0);
-  assert(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) == 0);
-  assert(pthread_mutex_init(&rc->lock, &attr) == 0);
+  mtevAssert(pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_PRIVATE) == 0);
+  mtevAssert(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) == 0);
+  mtevAssert(pthread_mutex_init(&rc->lock, &attr) == 0);
   gettimeofday(&rc->data.create_time, NULL);
   for(i=0;i<MAX_CHANNELS;i++)
     rc->data.channels[i].pair[0] = rc->data.channels[i].pair[1] = -1;
@@ -246,12 +245,12 @@ static void APPEND_IN(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   rc->data.channels[id].in_bytes += frame->buff_len;
   rc->data.channels[id].in_frames += 1;
   if(rc->data.channels[id].incoming_tail) {
-    assert(rc->data.channels[id].incoming);
+    mtevAssert(rc->data.channels[id].incoming);
     rc->data.channels[id].incoming_tail->next = frame;
     rc->data.channels[id].incoming_tail = frame;
   }
   else {
-    assert(!rc->data.channels[id].incoming);
+    mtevAssert(!rc->data.channels[id].incoming);
     rc->data.channels[id].incoming = rc->data.channels[id].incoming_tail = frame;
   }
   pthread_mutex_unlock(&rc->lock);
@@ -423,7 +422,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     /* try to write some stuff */
     while(CHANNEL.incoming) {
       reverse_frame_t *f = CHANNEL.incoming;
-      assert(f->buff_len == f->buff_filled); /* we only expect full frames here */
+      mtevAssert(f->buff_len == f->buff_filled); /* we only expect full frames here */
       if(f->command) {
         IFCMD(f, "RESET") goto snip;
         IFCMD(f, "CLOSE") goto snip;
@@ -665,7 +664,7 @@ mtev_reverse_socket_client_handler(eventer_t e, int mask, void *closure,
   mtev_connection_ctx_t *nctx = closure;
   reverse_socket_t *rc = nctx->consumer_ctx;
   mtev_reverse_socket_ref(rc);
-  assert(rc->data.nctx == nctx);
+  mtevAssert(rc->data.nctx == nctx);
   rv = mtev_reverse_socket_handler(e, mask, rc, now);
   if(rv == 0) {
     nctx->close(nctx, e);
@@ -1780,7 +1779,7 @@ register_console_reverse_commands() {
 
   tl = mtev_console_state_initial();
   showcmd = mtev_console_state_get_cmd(tl, "show");
-  assert(showcmd && showcmd->dstate);
+  mtevAssert(showcmd && showcmd->dstate);
 
   mtev_console_state_add_cmd(showcmd->dstate,
     NCSCMD("reverse", mtev_console_show_reverse,
@@ -2016,11 +2015,11 @@ void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
                                NULL,
                                mtev_reverse_socket_deref);
 
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "GET", "/reverse/", "^show$", rest_show_reverse,
              mtev_http_rest_client_cert_auth
   ) == 0);
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "GET", "/reverse/", "^show.json$", rest_show_reverse_json,
              mtev_http_rest_client_cert_auth
   ) == 0);

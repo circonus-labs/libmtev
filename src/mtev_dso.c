@@ -35,7 +35,6 @@
 
 #include <stdio.h>
 #include <dlfcn.h>
-#include <assert.h>
 
 #include <libxml/parser.h>
 #include <libxslt/xslt.h>

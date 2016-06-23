@@ -30,8 +30,7 @@
 
 #include "mtev_cht.h"
 #include "mtev_hash.h"
-
-#include <assert.h>
+#include "mtev_log.h"
 
 #define DEFAULT_CHT_BITS 32
 #define DEFAULT_WEIGHT 32
@@ -147,14 +146,14 @@ mtev_cht_calculate_ring(mtev_cht_t *cht) {
   for(i=0;i<rsize-1;i++) {
     s = &cht->ring[i];
     e = &cht->ring[i+1];
-    assert(s->pos <= max);
+    mtevAssert(s->pos <= max);
     cht->nodes[s->node_idx].owned +=
       (double)(e->pos - s->pos)/((double)max + 1.0);
   }
   /* the last element wraps */
   s = &cht->ring[rsize-1];
   e = &cht->ring[0];
-  assert(s->pos <= max);
+  mtevAssert(s->pos <= max);
   cht->nodes[s->node_idx].owned +=
     ((double)(max - s->pos) + 1.0 + (double)(e->pos))/((double)max + 1.0);
 }
@@ -230,7 +229,7 @@ mtev_cht_vlookup_n(mtev_cht_t *cht, const void *key, size_t keylen,
 
   /* handle wrap under */
   if(hash < cht->ring[m].pos) {
-    assert(m == 0);
+    mtevAssert(m == 0);
     m = rsize - 1;
   }
   for(i=m;w_out < cht->node_cnt && i < rsize+m;i++) {

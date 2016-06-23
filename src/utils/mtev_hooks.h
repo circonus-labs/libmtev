@@ -204,7 +204,7 @@ static inline RTYPE FUNCNAME PROTO { \
       mtevL(mtev_error, "runtime resolution of '%s %s%s' failed.\n", \
             #RTYPE, #FUNCNAME, #PROTO); \
     } \
-    assert(f_); \
+    mtevAssert(f_); \
   } \
   return f_ PARAMS; \
 }

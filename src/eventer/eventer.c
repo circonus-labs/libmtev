@@ -36,7 +36,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <assert.h>
 
 eventer_impl_t __eventer;
 mtev_log_stream_t eventer_err;
@@ -86,7 +85,7 @@ int64_t eventer_allocations_total() {
 void eventer_ref(eventer_t e) {
   register int32_t newval;
   newval = mtev_atomic_inc32(&e->refcnt);
-  assert(newval != 1);
+  mtevAssert(newval != 1);
   (void)newval;
 }
 

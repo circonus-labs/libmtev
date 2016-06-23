@@ -33,7 +33,6 @@
 
 #include "mtev_defines.h"
 
-#include <assert.h>
 #include <math.h>
 #include <errno.h>
 #include <unistd.h>
@@ -102,7 +101,7 @@ static void eventer_dns_utm_fn(struct dns_ctx *ctx, int timeout, void *data) {
     if(h->timeout) e = eventer_remove(h->timeout);
   }
   else {
-    assert(h->ctx == ctx);
+    mtevAssert(h->ctx == ctx);
     if(timeout < 0) e = eventer_remove(h->timeout);
     else {
       newe = eventer_alloc();
@@ -133,7 +132,7 @@ static void dns_ctx_handle_free(void *vh) {
   }
   dns_close(h->ctx);
   dns_free(h->ctx);
-  assert(h->timeout == NULL);
+  mtevAssert(h->timeout == NULL);
   free(h);
 }
 
@@ -196,7 +195,7 @@ static void dns_ctx_release(dns_ctx_handle_t *h) {
   if(!dns_ctx_store) dns_ctx_store = calloc(1, sizeof(*dns_ctx_store));
   if(mtev_atomic_dec32(&h->refcnt) == 0) {
     /* I was the last one */
-    assert(mtev_hash_delete(dns_ctx_store, h->ns, strlen(h->ns),
+    mtevAssert(mtev_hash_delete(dns_ctx_store, h->ns, strlen(h->ns),
                             NULL, dns_ctx_handle_free));
   }
 }
@@ -219,7 +218,7 @@ int nl_dns_lookup(lua_State *L) {
   mtev_lua_resume_info_t *ci;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
   if(lua_gettop(L) > 0)
     nameserver = lua_tostring(L, 1);
   holder = (dns_lookup_ctx_t **)lua_newuserdata(L, sizeof(*holder));
@@ -421,7 +420,7 @@ static int mtev_lua_dns_lookup(lua_State *L) {
   int rv;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   holder = (dns_lookup_ctx_t **)lua_touserdata(L, lua_upvalueindex(1));
   if(holder != lua_touserdata(L,1))
@@ -504,7 +503,7 @@ int mtev_lua_dns_index_func(lua_State *L) {
   dns_lookup_ctx_t **udata;
 
   n = lua_gettop(L);
-  assert(n == 2);
+  mtevAssert(n == 2);
   if(!luaL_checkudata(L, 1, "mtev.dns"))
     luaL_error(L, "metatable error, arg1 is not a mtev.dns");
   udata = lua_touserdata(L, 1);

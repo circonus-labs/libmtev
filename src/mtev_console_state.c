@@ -48,7 +48,6 @@
 #include <pcre.h>
 #include <errno.h>
 #include <sys/utsname.h>
-#include <assert.h>
 
 int cmd_info_comparek(const void *akv, const void *bv) {
   char *ak = (char *)akv;
@@ -427,7 +426,7 @@ mtev_console_generic_apply(mtev_console_closure_t ncct,
   if(!count) {
     nc_printf(ncct, "apply error: '%s' range produced nothing [%s]\n",
               range, err ? err : "unknown error");
-    assert(expanded == NULL);
+    mtevAssert(expanded == NULL);
     return -1;
   }
   if(count < 0) {

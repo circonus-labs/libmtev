@@ -40,7 +40,6 @@
 #include "libmtev_dtrace_probes.h"
 #include <pthread.h>
 #include <errno.h>
-#include <assert.h>
 #include <netinet/in.h>
 #include <hwloc.h>
 
@@ -164,7 +163,7 @@ void *eventer_get_spec_for_event(eventer_t e) {
   struct eventer_impl_data *t;
   if(e == NULL) t = get_my_impl_data();
   else t = get_event_impl_data(e);
-  assert(t);
+  mtevAssert(t);
   if(t->spec == NULL) t->spec = __eventer->alloc_spec();
   return t->spec;
 }
@@ -215,7 +214,7 @@ eventer_jobq_t *eventer_default_backq(eventer_t e) {
   struct eventer_impl_data *impl_data;
   tid = e ? e->thr_owner : pthread_self();
   impl_data = get_tls_impl_data(tid);
-  assert(impl_data);
+  mtevAssert(impl_data);
   return &impl_data->__global_backq;
 }
 
@@ -416,7 +415,7 @@ int eventer_impl_init() {
   for(i=0; i<__default_queue_threads; i++)
     eventer_jobq_increase_concurrency(&__default_jobq);
 
-  assert(eventer_impl_tls_data == NULL);
+  mtevAssert(eventer_impl_tls_data == NULL);
   eventer_impl_tls_data = calloc(__loop_concurrency, sizeof(*eventer_impl_tls_data));
 
   eventer_per_thread_init(&eventer_impl_tls_data[0]);
@@ -449,7 +448,7 @@ void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
 
 void eventer_add_timed(eventer_t e) {
   struct eventer_impl_data *t;
-  assert(e->mask & EVENTER_TIMER);
+  mtevAssert(e->mask & EVENTER_TIMER);
   if(EVENTER_DEBUGGING) {
     const char *cbname;
     cbname = eventer_name_for_callback_e(e->callback, e);
@@ -464,7 +463,7 @@ void eventer_add_timed(eventer_t e) {
 eventer_t eventer_remove_timed(eventer_t e) {
   struct eventer_impl_data *t;
   eventer_t removed = NULL;
-  assert(e->mask & EVENTER_TIMER);
+  mtevAssert(e->mask & EVENTER_TIMER);
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->te_lock);
   if(mtev_skiplist_remove_compare(t->timed_events, e, NULL,
@@ -478,7 +477,7 @@ eventer_t eventer_remove_timed(eventer_t e) {
 }
 void eventer_update_timed(eventer_t e, int mask) {
   struct eventer_impl_data *t;
-  assert(mask & EVENTER_TIMER);
+  mtevAssert(mask & EVENTER_TIMER);
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->te_lock);
   mtev_skiplist_remove_compare(t->timed_events, e, NULL, mtev_compare_voidptr);
@@ -650,7 +649,7 @@ void eventer_wakeup_noop(eventer_t e) { }
 void eventer_add_recurrent(eventer_t e) {
   struct eventer_impl_data *t;
   struct recurrent_events *node;
-  assert(e->mask & EVENTER_RECURRENT);
+  mtevAssert(e->mask & EVENTER_RECURRENT);
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next)

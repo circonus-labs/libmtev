@@ -33,7 +33,6 @@
 
 #include "mtev_defines.h"
 
-#include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
 #ifdef HAVE_ALLOCA_H
@@ -465,7 +464,7 @@ socket_error:
         int written;
         written = write(ncct->pty_slave, sbuf, len);
         if(written <= 0) goto socket_error;
-        assert(written == len);
+        mtevAssert(written == len);
       }
     }
     if(buffer) {
@@ -585,7 +584,7 @@ socket_error:
         int written;
         written = write(ncct->pty_slave, sbuf, len);
         if(written <= 0) goto socket_error;
-        assert(written == len);
+        mtevAssert(written == len);
       }
     }
     if(buffer) {

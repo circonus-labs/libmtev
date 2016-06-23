@@ -39,7 +39,6 @@
 #include "libmtev_dtrace_probes.h"
 #include <errno.h>
 #include <setjmp.h>
-#include <assert.h>
 #include <signal.h>
 
 #ifndef JOBQ_SIGNAL
@@ -80,7 +79,7 @@ eventer_jobq_handler(int signo)
   sigjmp_buf *env;
 
   jobq = pthread_getspecific(threads_jobq);
-  assert(jobq);
+  mtevAssert(jobq);
   env = pthread_getspecific(jobq->threadenv);
   job = pthread_getspecific(jobq->activejob);
   if(env && job && job->fd_event && job->fd_event->mask & EVENTER_EVIL_BRUTAL)
@@ -204,7 +203,7 @@ eventer_jobq_maybe_spawn(eventer_jobq_t *jobq) {
     mtevL(mtev_error, "jobq_queue[%s] induced [%d/%d] game over.\n",
           jobq->queue_name, jobq->pending_cancels,
           jobq->desired_concurrency);
-    assert(jobq->pending_cancels != jobq->desired_concurrency);
+    mtevAssert(jobq->pending_cancels != jobq->desired_concurrency);
   }
 }
 void
@@ -336,7 +335,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
   /* This can only be called with a backq jobq
    * (a standalone queue with no backq itself)
    */
-  assert(jobq);
+  mtevAssert(jobq);
   while((job = eventer_jobq_dequeue_nowait(jobq)) != NULL) {
     int newmask;
     if(job->fd_event) {
@@ -357,7 +356,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
       }
       job->fd_event = NULL;
     }
-    assert(job->timeout_event == NULL);
+    mtevAssert(job->timeout_event == NULL);
     mtev_atomic_dec32(&jobq->inflight);
     free(job);
   }

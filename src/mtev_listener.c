@@ -41,7 +41,6 @@
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <arpa/inet.h>
-#include <assert.h>
 
 #include "eventer/eventer.h"
 #include "mtev_log.h"
@@ -515,7 +514,7 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
   mtev_hash_table *delegation_table = NULL;
   acceptor_closure_t *ac = closure;
 
-  assert(ac->rlen >= 0);
+  mtevAssert(ac->rlen >= 0);
   while(len >= 0 && ac->rlen < sizeof(cmd)) {
     len = e->opset->read(e->fd, ((char *)&cmd) + ac->rlen,
                          sizeof(cmd) - ac->rlen, &mask, e);
@@ -524,7 +523,7 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
 
     if(len > 0) ac->rlen += len;
   }
-  assert(ac->rlen >= 0 && ac->rlen <= sizeof(cmd));
+  mtevAssert(ac->rlen >= 0 && ac->rlen <= sizeof(cmd));
 
   if(callmask & EVENTER_EXCEPTION || ac->rlen != sizeof(cmd)) {
     int newmask;
