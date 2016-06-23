@@ -172,11 +172,18 @@ API_EXPORT(int)
   mtevL(ls, "[FATAL] " args); \
   abort(); \
 } while(0)
+
+#ifdef NDEBUG
+#define mtevAssert(condition) do {} while(0)
+#define mtevEvalAssert(condition) do { if (!(condition)) ; } while(0)
+#else
 #define mtevAssert(condition) do {\
   if(!(condition)) { \
-    mtevFatal(mtev_error, "%s\n", #condition);\
+    mtevFatal(mtev_error, "assertion (%s) at %s:%d failed\n", #condition, __FILE__, __LINE__);\
   }\
 } while(0)
+#define mtevEvalAssert(condition) mtevAssert(condition)
+#endif
 
 #define SETUP_LOG(a, b) do { if(!a##_log) a##_log = mtev_log_stream_find(#a); \
                              if(!a##_log) { b; } } while(0)
