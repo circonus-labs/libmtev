@@ -174,6 +174,7 @@ API_EXPORT(int)
 } while(0)
 
 #ifdef NDEBUG
+#error "need to audit mtevAssert usage"
 #define mtevAssert(condition) do {} while(0)
 #define mtevEvalAssert(condition) do { if (!(condition)) ; } while(0)
 #else
