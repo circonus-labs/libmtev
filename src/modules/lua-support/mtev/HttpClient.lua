@@ -79,6 +79,13 @@ function HttpClient:connect(target, port, ssl, ssl_host, ssl_layer)
                                      ssl_host, ssl_layer)
 end
 
+function HttpClient:close()
+  if self.e ~= nil then
+    self.e:close()
+    self.e = nil
+  end
+end
+
 function HttpClient:ssl_ctx()
    return self.e:ssl_ctx()
 end
@@ -107,11 +114,43 @@ function HttpClient:do_request(method, uri, _headers, payload, http_version)
       sstr = sstr .. payload
     end
     self.e:write(sstr)
+
+    self.request_started_s, self.request_started_us = mtev.gettimeofday()
+end
+
+function HttpClient:read(delim)
+  local str
+  if self.on_timeout ~= nil then
+    local now_s, now_us = mtev.gettimeofday()
+    local passed_s = now_s - self.request_started_s
+    local passed_us = now_us - self.request_started_us
+    local timeout = self.timeout - passed_s - passed_us/1000000
+    if timeout < 0 then
+      self.on_timeout()
+      return nil
+    else
+      str = self.e:read(delim, 0, timeout, self.on_timeout)
+    end
+  else
+    str = self.e:read(delim)
+  end
+  return str
+end
+
+function HttpClient:set_timeout(timeout, timeout_callback)
+  if timeout == nil or timeout <= 0 then
+    self.timeout = nil
+    self.timeout_callback = nil
+  else
+    assert(timeout_callback)
+    self.timeout = timeout
+    self.on_timeout = timeout_callback
+  end
 end
 
 function HttpClient:get_headers()
     local lasthdr
-    local str = self.e:read("\n");
+    local str = self:read("\n");
     local cookie_count = 1;
     if str == nil then error("no response") end
     self.protocol, self.code = string.match(str, "^HTTP/(%d.%d)%s+(%d+)%s+")
@@ -120,7 +159,7 @@ function HttpClient:get_headers()
     self.headers = Headers()
     self.cookies = {}
     while true do
-        local str = self.e:read("\n")
+        local str = self:read("\n")
         if str == nil or str == "\r\n" or str == "\n" then break end
         str = string.gsub(str, '%s+$', '')
         local hdr, val = string.match(str, "^([%.-_%a%d]+):%s*(.*)$")
@@ -156,7 +195,7 @@ function te_close(self, content_enc_func)
     local len = 32678
     local str
     repeat
-        local str = self.e:read(len)
+        local str = self:read(len)
         if str ~= nil then
             self.raw_bytes = self.raw_bytes + string.len(str)
             local decoded = content_enc_func(str)
@@ -175,7 +214,7 @@ function te_length(self, content_enc_func, read_limit)
       self.truncated = true
     end
     repeat
-        local str = self.e:read(len)
+        local str = self:read(len)
         if str ~= nil then
             self.raw_bytes = self.raw_bytes + string.len(str)
             len = len - string.len(str)
@@ -190,7 +229,7 @@ end
 
 function te_chunked(self, content_enc_func, read_limit)
     while true do
-        local str = self.e:read("\n")
+        local str = self:read("\n")
         if str == nil then error("bad chunk transfer") end
         local hexlen = string.match(str, "^([0-9a-fA-F]+)")
         if hexlen == nil then error("bad chunk length: " .. str) end
@@ -199,7 +238,7 @@ function te_chunked(self, content_enc_func, read_limit)
           if self.hooks.consume ~= nil then self.hooks.consume("") end
           break 
         end
-        str = self.e:read(len)
+        str = self:read(len)
         if string.len(str or "") ~= len then error("short chunked read") end
         self.raw_bytes = self.raw_bytes + string.len(str)
         local decoded = content_enc_func(str)
@@ -214,12 +253,12 @@ function te_chunked(self, content_enc_func, read_limit)
           end
         end
         -- each chunk ('cept a 0 size one) is followed by a \r\n
-        str = self.e:read("\n")
+        str = self:read("\n")
         if str ~= "\r\n" and str ~= "\n" then error("short chunked boundary read") end
     end
     -- read trailers
     while true do
-        local str = self.e:read("\n")
+        local str = self:read("\n")
         if str == nil then error("bad chunk trailers") end
         if str == "\r\n" or str == "\n" then break end
     end
