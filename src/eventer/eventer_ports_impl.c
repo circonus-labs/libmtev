@@ -116,7 +116,7 @@ static void alter_fd_dissociate(eventer_t e, int mask, struct ports_spec *spec) 
   if (ret == -1) {
     if(s_errno == ENOENT) return; /* Fine */
     if(s_errno == EBADFD) return; /* Fine */
-    mtevL(mtev_error,
+    mtevFatal(mtev_error,
           "eventer port_dissociate failed(%d-%d): %d/%s\n", e->fd, spec->port_fd, s_errno, strerror(s_errno));
   }
 }
