@@ -274,6 +274,19 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
     return;
   }
   if(master_fds[fd].e == NULL) {
+    struct epoll_event _ev;
+    memset(&_ev, 0, sizeof(_ev));
+    _ev.data.fd = fd;
+    if(mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
+    if(mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
+    if(mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
+    spec = eventer_get_spec_for_event(e);
+    if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) != 0) {
+      mtevFatal(mtev_error,
+                "epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) failed; "
+                "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
+                spec->epoll_fd, fd, errno, strerror(errno));
+    }
     master_fds[fd].e = e;
     e->mask = 0;
   }
