@@ -307,7 +307,12 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         pthread_t tgt = e->thr_owner;
         e->thr_owner = pthread_self();
         spec = eventer_get_spec_for_event(e);
-        mtevAssert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) == 0);
+        if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
+          mtevFatal(mtev_error,
+                    "epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) failed; "
+                    "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
+                    spec->epoll_fd, fd, errno, strerror(errno));
+        }
         e->thr_owner = tgt;
         spec = eventer_get_spec_for_event(e);
         mtevAssert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) == 0);
@@ -315,7 +320,12 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
       }
       else {
         spec = eventer_get_spec_for_event(e);
-        mtevAssert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, fd, &_ev) == 0);
+        if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, fd, &_ev) != 0) {
+          mtevFatal(mtev_error,
+                    "epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, fd, &_ev) failed; "
+                    "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
+                    spec->epoll_fd, fd, errno, strerror(errno));
+        }
       }
     }
     /* Set our mask */
