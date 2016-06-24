@@ -152,6 +152,7 @@ struct mtev_http_session_ctx {
 #ifdef HAVE_WSLAY
   mtev_boolean did_handshake;
   wslay_event_context_ptr wslay_ctx;
+  int wanted_eventer_mask;
 #endif
 };
 
@@ -1301,16 +1302,9 @@ wslay_send_callback(wslay_event_context_ptr ctx,
                     const uint8_t *data, size_t len, int flags,
                     void *user_data)
 {
-  mtev_http_session_ctx *session_ctx = user_data;
-
   ssize_t r;
-  int sflags = 0;
-
-#ifdef MSG_MORE
-  if ((flags & WSLAY_MSG_MORE) == WSLAY_MSG_MORE) {
-    sflags |= MSG_MORE;
-  }
-#endif
+  mtev_http_session_ctx *session_ctx = user_data;
+  session_ctx->wanted_eventer_mask = 0;
 
   pthread_mutex_lock(&session_ctx->write_lock);
   if(!session_ctx->conn.e || session_ctx->is_websocket == mtev_false) {
@@ -1319,9 +1313,10 @@ wslay_send_callback(wslay_event_context_ptr ctx,
     return -1;
   }
 
+
   while((r = session_ctx->conn.e->opset->
          write(session_ctx->conn.e->fd,
-               data, len, &sflags, session_ctx->conn.e)) == -1 && errno == EINTR);
+               data, len, &session_ctx->wanted_eventer_mask, session_ctx->conn.e)) == -1 && errno == EINTR);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_WOULDBLOCK);
@@ -1338,10 +1333,9 @@ static ssize_t
 wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
                     int flags, void *user_data)
 {
-  mtev_http_session_ctx *session_ctx = user_data;
-
   ssize_t r;
-  int sflags = 0;
+  mtev_http_session_ctx *session_ctx = user_data;
+  session_ctx->wanted_eventer_mask = 0;
 
   if(!session_ctx->conn.e || session_ctx->is_websocket == mtev_false) {
     wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
@@ -1349,7 +1343,7 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
   }
 
   while((r = session_ctx->conn.e->opset->read(session_ctx->conn.e->fd, 
-                                              buf, len, &sflags, 
+                                              buf, len, &session_ctx->wanted_eventer_mask, 
                                               session_ctx->conn.e)) == -1 
         && errno == EINTR);
   if (r == -1) {
@@ -1481,7 +1475,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
      * more communication
      */
     *done = 0;
-    return mask;
+    return ctx->wanted_eventer_mask | EVENTER_EXCEPTION;
 #endif
 
   } else {
