@@ -254,6 +254,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   const char *cbname;
   ev_lock_state_t lockstate;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
+  int added_to_master_fds = 0;
 
   mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
@@ -276,6 +277,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   if(master_fds[fd].e == NULL) {
     master_fds[fd].e = e;
     e->mask = 0;
+    added_to_master_fds = 1;
   }
   if(e != master_fds[fd].e) return;
   lockstate = acquire_master_fd(fd);
@@ -307,7 +309,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         pthread_t tgt = e->thr_owner;
         e->thr_owner = pthread_self();
         spec = eventer_get_spec_for_event(e);
-        if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
+        if(! added_to_master_fds && epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
           mtevFatal(mtev_error,
                     "epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) failed; "
                     "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
@@ -319,8 +321,9 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         mtevL(eventer_deb, "moved event[%p] from t@%d to t@%d\n", e, (int)pthread_self(), (int)tgt);
       }
       else {
+        int epoll_cmd = added_to_master_fds ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
         spec = eventer_get_spec_for_event(e);
-        if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, fd, &_ev) != 0) {
+        if(epoll_ctl(spec->epoll_fd, epoll_cmd, fd, &_ev) != 0) {
           mtevFatal(mtev_error,
                     "epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, fd, &_ev) failed; "
                     "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
