@@ -19,11 +19,11 @@
 
 #include "mtev_defines.h"
 #include "mtev_skiplist.h"
+#include "mtev_log.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
 #endif
@@ -168,7 +168,7 @@ void *mtev_skiplist_find_neighbors_compare(mtev_skiplist *sli,
     sl = sli;
   } else {
     mtev_skiplist_find(sli->index, (void *)comp, &m);
-    assert(m);
+    mtevAssert(m);
     sl= (mtev_skiplist *) m->data;
   }
   mtev_skiplisti_find_compare(sl, data, iter, prev, next, sl->comparek);
@@ -305,11 +305,11 @@ mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
   if(sl->index != NULL) {
     /* this is a external insertion, we must insert into each index as well */
     mtev_skiplist_node *p, *ni, *li;
-    assert(ret);
+    mtevAssert(ret);
     li=ret;
     for(p = mtev_skiplist_getlist(sl->index); p; mtev_skiplist_next(sl->index, &p)) {
       ni = mtev_skiplist_insert((mtev_skiplist *)p->data, ret->data);
-      assert(ni);
+      mtevAssert(ni);
       li->nextindex = ni;
       ni->previndex = li;
       li = ni;
@@ -326,7 +326,7 @@ int mtev_skiplist_remove(mtev_skiplist *sl,
 int mtev_skiplist_remove_node(mtev_skiplist *sl, mtev_skiplist_node *m,
                               mtev_freefunc_t myfree) {
   while(m->previndex) m = m->previndex;
-  assert(sl == m->sl);
+  mtevAssert(sl == m->sl);
   return mtev_skiplisti_remove(sl, m, myfree);
 }
 int mtev_skiplisti_remove(mtev_skiplist *sl, mtev_skiplist_node *m, mtev_freefunc_t myfree) {
@@ -365,7 +365,7 @@ int mtev_skiplist_remove_compare(mtev_skiplist *sli,
     sl = sli;
   } else {
     mtev_skiplist_find(sli->index, (void *)comp, &m);
-    assert(m);
+    mtevAssert(m);
     sl= (mtev_skiplist *) m->data;
   }
   mtev_skiplisti_find_compare(sl, data, &m, NULL, NULL, sl->comparek);

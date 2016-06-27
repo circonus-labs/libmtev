@@ -38,7 +38,6 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
-#include <assert.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
@@ -424,7 +423,7 @@ void mtev_conf_init(const char *toplevel) {
 static void
 mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt) {
   include_node_t *include_nodes = *root_include_nodes;
-  assert(*cnt != -1);
+  mtevAssert(*cnt != -1);
   if(include_nodes) {
     int i;
     for(i=0; i<*cnt; i++) {
@@ -448,7 +447,7 @@ mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt)
 static void
 mtev_conf_magic_separate() {
   mtev_conf_magic_separate_includes(&config_include_nodes, &config_include_cnt);
-  assert(config_include_nodes == NULL);
+  mtevAssert(config_include_nodes == NULL);
   if(backingstore_include_nodes) {
     int i;
     for(i=0; i<backingstore_include_cnt; i++) {
@@ -531,7 +530,7 @@ remove_emancipated_child_node(xmlNodePtr oldp, xmlNodePtr node) {
   /* node was once a child of oldp... it's still in it's children list
    * but node's parent isn't this child.
    */
-  assert(node->parent != oldp);
+  mtevAssert(node->parent != oldp);
   if(oldp->children == NULL) return;
   if(oldp->children == node) {
     oldp->children = node->next;
@@ -858,10 +857,10 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
     master = 1;
   }
 
-  assert(*include_cnt == -1);
+  mtevAssert(*include_cnt == -1);
 
   if (master) {
-    assert(backingstore_include_cnt == -1);
+    mtevAssert(backingstore_include_cnt == -1);
     backingstore_include_cnt = 0;
   }
   mix_ctxt = xmlXPathNewContext(doc);
@@ -1760,7 +1759,7 @@ struct config_line_vstr {
 static int
 mtev_config_log_write_xml(void *vstr, const char *buffer, int len) {
   struct config_line_vstr *clv = vstr;
-  assert(clv->encoded == CONFIG_RAW);
+  mtevAssert(clv->encoded == CONFIG_RAW);
   if(!clv->buff) {
     clv->allocd = 8192;
     clv->buff = malloc(clv->allocd);
@@ -1792,7 +1791,7 @@ mtev_config_log_close_xml(void *vstr) {
     return 0;
   }
   clv->raw_len = clv->len;
-  assert(clv->encoded == CONFIG_RAW);
+  mtevAssert(clv->encoded == CONFIG_RAW);
   if(clv->encoded == clv->target) return 0;
 
   /* Compress */

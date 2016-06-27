@@ -45,7 +45,6 @@
 #include <sys/epoll.h>
 #include <signal.h>
 #include <pthread.h>
-#include <assert.h>
 #include <fcntl.h>
 #ifdef HAVE_SYS_EVENTFD_H
 #include <sys/eventfd.h>
@@ -123,7 +122,7 @@ static void eventer_epoll_impl_add(eventer_t e) {
   struct epoll_spec *spec;
   struct epoll_event _ev;
   ev_lock_state_t lockstate;
-  assert(e->mask);
+  mtevAssert(e->mask);
 
   if(e->mask & EVENTER_ASYNCH) {
     eventer_add_asynch(NULL, e);
@@ -144,7 +143,7 @@ static void eventer_epoll_impl_add(eventer_t e) {
 
   spec = eventer_get_spec_for_event(e);
   /* file descriptor event */
-  assert(e->whence.tv_sec == 0 && e->whence.tv_usec == 0);
+  mtevAssert(e->whence.tv_sec == 0 && e->whence.tv_usec == 0);
   memset(&_ev, 0, sizeof(_ev));
   _ev.data.fd = e->fd;
   if(e->mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
@@ -255,6 +254,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   const char *cbname;
   ev_lock_state_t lockstate;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
+  int added_to_master_fds = 0;
 
   mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
@@ -262,14 +262,14 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
     if(master_fds[fd].e != NULL) {
       mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
     }
-    /* assert(master_fds[fd].e == NULL); */
+    /* mtevAssert(master_fds[fd].e == NULL); */
   }
   if(!pthread_equal(pthread_self(), e->thr_owner)) {
     /* If we're triggering across threads, it can't be registered yet */
     if(master_fds[fd].e != NULL) {
       mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
     }
-    /* assert(master_fds[fd].e == NULL); */
+    /* mtevAssert(master_fds[fd].e == NULL); */
     
     eventer_cross_thread_trigger(e,mask);
     return;
@@ -277,11 +277,12 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   if(master_fds[fd].e == NULL) {
     master_fds[fd].e = e;
     e->mask = 0;
+    added_to_master_fds = 1;
   }
   if(e != master_fds[fd].e) return;
   lockstate = acquire_master_fd(fd);
   if(lockstate == EV_ALREADY_OWNED) return;
-  assert(lockstate == EV_OWNED);
+  mtevAssert(lockstate == EV_OWNED);
 
   gettimeofday(&__now, NULL);
   cbname = eventer_name_for_callback_e(e->callback, e);
@@ -308,15 +309,26 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         pthread_t tgt = e->thr_owner;
         e->thr_owner = pthread_self();
         spec = eventer_get_spec_for_event(e);
-        assert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) == 0);
+        if(! added_to_master_fds && epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
+          mtevFatal(mtev_error,
+                    "epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) failed; "
+                    "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
+                    spec->epoll_fd, fd, errno, strerror(errno));
+        }
         e->thr_owner = tgt;
         spec = eventer_get_spec_for_event(e);
-        assert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) == 0);
+        mtevAssert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) == 0);
         mtevL(eventer_deb, "moved event[%p] from t@%d to t@%d\n", e, (int)pthread_self(), (int)tgt);
       }
       else {
+        int epoll_cmd = added_to_master_fds ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
         spec = eventer_get_spec_for_event(e);
-        assert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, fd, &_ev) == 0);
+        if(epoll_ctl(spec->epoll_fd, epoll_cmd, fd, &_ev) != 0) {
+          mtevFatal(mtev_error,
+                    "epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, fd, &_ev) failed; "
+                    "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
+                    spec->epoll_fd, fd, errno, strerror(errno));
+        }
       }
     }
     /* Set our mask */

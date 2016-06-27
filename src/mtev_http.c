@@ -41,7 +41,6 @@
 
 #include <errno.h>
 #include <ctype.h>
-#include <assert.h>
 #include <zlib.h>
 #include <sys/mman.h>
 #include <libxml/tree.h>
@@ -642,7 +641,7 @@ _http_perform_write(mtev_http_session_ctx *ctx, int *mask) {
     *head = b->next;
     if(ctx->res.output_raw_last == b)
       ctx->res.output_raw_last = NULL;
-    assert((ctx->res.output_raw_last == NULL && ctx->res.output_raw == NULL) ||
+    mtevAssert((ctx->res.output_raw_last == NULL && ctx->res.output_raw == NULL) ||
            (ctx->res.output_raw_last != NULL && ctx->res.output_raw != NULL));
     ctx->res.output_raw_chain_bytes -= b->size;
     FREE_BCHAIN(b);
@@ -743,7 +742,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
     if(req->last_input == req->current_input)
       req->last_input = req->first_input;
     else {
-      assert(req->current_input != req->current_request_chain);
+      mtevAssert(req->current_input != req->current_request_chain);
       FREE_BCHAIN(req->current_input);
     }
   }
@@ -955,7 +954,7 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
     if(ctx->req.state == MTEV_HTTP_REQ_EXPECT) {
       const char *expect;
       ctx->req.state = MTEV_HTTP_REQ_PAYLOAD;
-      assert(ctx->res.leader == NULL);
+      mtevAssert(ctx->res.leader == NULL);
       expect = "HTTP/1.1 100 Continue\r\n\r\n";
       ctx->res.leader = bchain_from_data(expect, strlen(expect));
       ctx->res.output_raw_chain_bytes += ctx->res.leader->size;
@@ -1615,8 +1614,8 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
     return mtev_false;
   if(!ctx->res.output)
     ctx->res.output_last = ctx->res.output = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
-  assert(ctx->res.output != NULL);
-  assert(ctx->res.output_last != NULL);
+  mtevAssert(ctx->res.output != NULL);
+  mtevAssert(ctx->res.output_last != NULL);
   o = ctx->res.output_last;
   ctx->res.output_chain_bytes += l;
   while(l > 0) {
@@ -1648,8 +1647,8 @@ mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
   if(!ctx->res.output_last)
     ctx->res.output_last = ctx->res.output = b;
   else {
-    assert(ctx->res.output !=  NULL);
-    assert(ctx->res.output_last !=  NULL);
+    mtevAssert(ctx->res.output !=  NULL);
+    mtevAssert(ctx->res.output_last !=  NULL);
     o = ctx->res.output_last;
     o->allocd = o->size; /* so we know it is full */
     o->next = b;
@@ -1680,7 +1679,7 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   const char **keys;
   mtev_boolean cl_present = mtev_false;
 
-  assert(!ctx->res.leader);
+  mtevAssert(!ctx->res.leader);
   ctx->res.leader = b = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
 
   protocol_str = ctx->res.protocol == MTEV_HTTP11 ?
@@ -1697,11 +1696,11 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
 #define CTX_LEADER_APPEND(s, slen) do { \
   if(b->size + slen > DEFAULT_BCHAINSIZE) { \
     b->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE); \
-    assert(b->next); \
+    mtevAssert(b->next); \
     b->next->prev = b; \
     b = b->next; \
   } \
-  assert(DEFAULT_BCHAINSIZE >= b->size + slen); \
+  mtevAssert(DEFAULT_BCHAINSIZE >= b->size + slen); \
   memcpy(b->buff + b->start + b->size, s, slen); \
   b->size += slen; \
 } while(0)
@@ -1867,7 +1866,7 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
   }
   if((out->size > 0) && (opts & MTEV_HTTP_CHUNKED)) {
     ilen = out->size;
-    assert(out->start+out->size+2 <= out->allocd);
+    mtevAssert(out->start+out->size+2 <= out->allocd);
     out->buff[out->start + out->size++] = '\r';
     out->buff[out->start + out->size++] = '\n';
     out->start = 0;
@@ -1894,7 +1893,7 @@ raw_finalize_encoding(mtev_http_response *res) {
   if(res->output_options & MTEV_HTTP_GZIP) {
     mtev_boolean finished = mtev_false;
     struct bchain *r = res->output_raw_last;
-    assert((r == NULL && res->output_raw == NULL) ||
+    mtevAssert((r == NULL && res->output_raw == NULL) ||
            (r != NULL && res->output_raw != NULL));
     while(finished == mtev_false) {
       int hexlen, ilen;
@@ -1914,7 +1913,7 @@ raw_finalize_encoding(mtev_http_response *res) {
       }
 
       ilen = out->size;
-      assert(out->start+out->size+2 <= out->allocd);
+      mtevAssert(out->start+out->size+2 <= out->allocd);
       out->buff[out->start + out->size++] = '\r';
       out->buff[out->start + out->size++] = '\n';
       out->start = 0;
@@ -1936,7 +1935,7 @@ raw_finalize_encoding(mtev_http_response *res) {
       if(r == NULL)
         res->output_raw = out;
       else {
-        assert(r == res->output_raw_last);
+        mtevAssert(r == res->output_raw_last);
         r->next = out;
         out->prev = r;
       }
@@ -1964,7 +1963,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
   }
   /* encode output to output_raw */
   r = ctx->res.output_raw_last;
-  assert((r == NULL && ctx->res.output_raw == NULL) ||
+  mtevAssert((r == NULL && ctx->res.output_raw == NULL) ||
          (r != NULL && ctx->res.output_raw != NULL));
   /* r is the last raw output link */
   o = ctx->res.output;

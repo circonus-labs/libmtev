@@ -38,7 +38,6 @@
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
 #endif
-#include <assert.h>
 
 #include "mtev_conf.h"
 #include "mtev_dso.h"
@@ -61,7 +60,7 @@ mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci) {
   lua_gc(ci->lmc->lua_state, LUA_GCCOLLECT, 0);
   mtevL(nldeb, "coro_store <- %p\n", ci->coro_state);
   pthread_mutex_lock(&coro_lock);
-  assert(mtev_hash_delete(&mtev_coros,
+  mtevAssert(mtev_hash_delete(&mtev_coros,
                           (const char *)&ci->coro_state, sizeof(ci->coro_state),
                           NULL, NULL));
   pthread_mutex_unlock(&coro_lock);
@@ -193,7 +192,7 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
   void *vri;
   pthread_t me, *tgt;
   me = pthread_self();
-  assert(reporter->approach == LUA_REPORT_JSON);
+  mtevAssert(reporter->approach == LUA_REPORT_JSON);
   struct json_object *states = NULL;
 
   pthread_mutex_lock(&reporter->lock);
@@ -228,7 +227,7 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
     int level = 1;
     lua_Debug ar;
     lua_State *L;
-    assert(klen == sizeof(L));
+    mtevAssert(klen == sizeof(L));
     L = *((lua_State **)key);
     ri = vri;
     if(!pthread_equal(me, ri->lmc->owner)) continue;
@@ -282,7 +281,7 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
   void *vri;
   pthread_t me, *tgt;
   me = pthread_self();
-  assert(reporter->approach == LUA_REPORT_NCCT);
+  mtevAssert(reporter->approach == LUA_REPORT_NCCT);
 
   pthread_mutex_lock(&reporter->lock);
   nc_printf(ncct, "== Thread %x ==\n", me);
@@ -306,7 +305,7 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
     int level = 1;
     lua_Debug ar;
     lua_State *L;
-    assert(klen == sizeof(L));
+    mtevAssert(klen == sizeof(L));
     L = *((lua_State **)key);
     ri = vri;
     if(!pthread_equal(me, ri->lmc->owner)) continue;
@@ -467,11 +466,11 @@ register_console_lua_commands() {
   loaded = 1;
   tl = mtev_console_state_initial();
   showcmd = mtev_console_state_get_cmd(tl, "show");
-  assert(showcmd && showcmd->dstate);
+  mtevAssert(showcmd && showcmd->dstate);
   mtev_console_state_add_cmd(showcmd->dstate,
     NCSCMD("lua", mtev_console_show_lua, NULL, NULL, NULL));
 
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "GET", "/module/lua/", "^state\\.json$",
     mtev_rest_show_lua, mtev_http_rest_client_cert_auth
   ) == 0); 
@@ -513,7 +512,7 @@ mtev_lua_get_resume_info(lua_State *L) {
   if(mtev_hash_retrieve(&mtev_coros, (const char *)&L, sizeof(L), &v)) {
     pthread_mutex_unlock(&coro_lock);
     ri = v;
-    assert(pthread_equal(pthread_self(), ri->bound_thread));
+    mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
     return ri;
   }
   ri = calloc(1, sizeof(*ri));
@@ -564,13 +563,13 @@ mtev_lua_register_event(mtev_lua_resume_info_t *ci, eventer_t e) {
     ci->events = calloc(1, sizeof(*ci->events));
     mtev_hash_init(ci->events);
   }
-  assert(mtev_hash_store(ci->events, (const char *)eptr, sizeof(*eptr), eptr));
+  mtevAssert(mtev_hash_store(ci->events, (const char *)eptr, sizeof(*eptr), eptr));
 }
 void
 mtev_lua_deregister_event(mtev_lua_resume_info_t *ci, eventer_t e,
                                 int tofree) {
-  assert(ci->events);
-  assert(mtev_hash_delete(ci->events, (const char *)&e, sizeof(e),
+  mtevAssert(ci->events);
+  mtevAssert(mtev_hash_delete(ci->events, (const char *)&e, sizeof(e),
                           NULL, tofree ? mtev_event_dispose : free));
 }
 void
@@ -586,7 +585,7 @@ mtev_lua_pushmodule(lua_State *L, const char *m) {
   int stack_pos = 0;
   char *copy, *part, *brkt;
   copy = alloca(strlen(m)+1);
-  assert(copy);
+  mtevAssert(copy);
   memcpy(copy,m,strlen(m)+1);
 
   for(part = strtok_r(copy, ".", &brkt);
@@ -684,7 +683,7 @@ static int mtev_lua_panic(lua_State *L) {
       }
     }
   }
-  assert(L == NULL);
+  mtevAssert(L == NULL);
   return 0;
 }
 
@@ -702,7 +701,7 @@ mtev_lua_resume_info_t *
 mtev_lua_new_resume_info(lua_module_closure_t *lmc, int magic) {
   mtev_lua_resume_info_t *ri;
   ri = calloc(1, sizeof(*ri));
-  assert(pthread_equal(lmc->owner, pthread_self()));
+  mtevAssert(pthread_equal(lmc->owner, pthread_self()));
   ri->bound_thread = lmc->owner;
   ri->context_magic = magic;
   ri->lmc = lmc;
@@ -727,7 +726,7 @@ mtev_lua_coroutine_spawn(lua_State *Lp,
   if(nargs < 1 || !lua_isfunction(Lp,1))
     luaL_error(Lp, "mtev.coroutine_spawn(func, ...): bad arguments");
   ri_parent = mtev_lua_get_resume_info(Lp);
-  assert(ri_parent);
+  mtevAssert(ri_parent);
 
   ri = new_ri_f(ri_parent->lmc);
   L = ri->coro_state;

@@ -33,7 +33,6 @@
 
 #include "mtev_defines.h"
 
-#include <assert.h>
 #include <math.h>
 #include <errno.h>
 #include <unistd.h>
@@ -174,7 +173,7 @@ mtev_lua_socket_close(lua_State *L) {
   *eptr = NULL;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   mtev_lua_deregister_event(ci, e, 0);
   eventer_remove_fd(e->fd);
@@ -200,7 +199,7 @@ mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
   }
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
   eventer_remove_fd(e->fd);
   mtev_lua_deregister_event(ci, e, 0);
 
@@ -245,7 +244,7 @@ mtev_lua_socket_recv_complete(eventer_t e, int mask, void *vcl,
   }
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
 
   if(mask & EVENTER_EXCEPTION) {
     lua_pushinteger(cl->L, -1);
@@ -302,7 +301,7 @@ mtev_lua_socket_recv(lua_State *L) {
   socklen_t alen;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   eptr = lua_touserdata(L, lua_upvalueindex(1));
   if(eptr != lua_touserdata(L, 1))
@@ -353,7 +352,7 @@ mtev_lua_socket_send_complete(eventer_t e, int mask, void *vcl,
   }
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
 
   if(mask & EVENTER_EXCEPTION) {
     lua_pushinteger(cl->L, -1);
@@ -408,7 +407,7 @@ mtev_lua_socket_send(lua_State *L) {
   ssize_t sbytes;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   eptr = lua_touserdata(L, lua_upvalueindex(1));
   if(eptr != lua_touserdata(L, 1))
@@ -457,7 +456,7 @@ mtev_lua_socket_sendto(lua_State *L) {
   } a;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   eptr = lua_touserdata(L, lua_upvalueindex(1));
   if(eptr != lua_touserdata(L, 1))
@@ -531,7 +530,7 @@ mtev_lua_socket_bind(lua_State *L) {
   } a;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   eptr = lua_touserdata(L, lua_upvalueindex(1));
   if(eptr != lua_touserdata(L, 1))
@@ -607,7 +606,7 @@ mtev_lua_socket_accept_complete(eventer_t e, int mask, void *vcl,
   }
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
 
   inlen = sizeof(addr.in);
   fd = e->opset->accept(e->fd, &addr.in, &inlen, &newmask, e);
@@ -659,7 +658,7 @@ mtev_lua_socket_listen(lua_State *L) {
   int rv;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   eptr = lua_touserdata(L, lua_upvalueindex(1));
   if(eptr != lua_touserdata(L, 1))
@@ -690,10 +689,10 @@ mtev_lua_socket_own(lua_State *L) {
   if(cl->L == L) return 0;
   
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
   mtev_lua_deregister_event(ci, e, 0);
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
   cl->L = L;
   mtev_lua_register_event(ci, e);
   return 0;
@@ -714,7 +713,7 @@ mtev_lua_socket_accept(lua_State *L) {
   int fd, newmask;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   mtevL(nldeb, "accept starting\n");
   eptr = lua_touserdata(L, lua_upvalueindex(1));
@@ -776,7 +775,7 @@ mtev_lua_socket_setsockopt(lua_State *L) {
   int value;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   if(lua_gettop(L) != 3) {
     lua_pushinteger(L, -1);
@@ -842,7 +841,7 @@ mtev_lua_socket_connect(lua_State *L) {
   } a;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   eptr = lua_touserdata(L, lua_upvalueindex(1));
   if(eptr != lua_touserdata(L, 1))
@@ -921,7 +920,7 @@ mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
   if(rv <= 0 && errno == EAGAIN) return mask | EVENTER_EXCEPTION;
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
   mtev_lua_deregister_event(ci, e, 0);
 
   *(cl->eptr) = eventer_alloc();
@@ -955,7 +954,7 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
   int tmpmask, rv;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   eptr = lua_touserdata(L, lua_upvalueindex(1));
   if(eptr != lua_touserdata(L, 1))
@@ -1074,7 +1073,7 @@ mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
   }
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
 
   len = mtev_lua_socket_do_read(e, &mask, cl, &args);
   if(len >= 0) {
@@ -1105,7 +1104,7 @@ mtev_lua_socket_read(lua_State *L) {
   eventer_t e, *eptr;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   eptr = lua_touserdata(L, lua_upvalueindex(1));
   if(eptr != lua_touserdata(L, 1))
@@ -1148,7 +1147,7 @@ mtev_lua_socket_read(lua_State *L) {
          */
         cl->read_goal = strlen(cl->read_terminator) + cp - cl->inbuff;
         cl->read_terminator = NULL;
-        assert(cl->read_goal <= cl->read_sofar);
+        mtevAssert(cl->read_goal <= cl->read_sofar);
         goto i_know_better;
       }
     }
@@ -1186,7 +1185,7 @@ mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
   }
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
 
   if(mask & EVENTER_EXCEPTION) {
     lua_pushinteger(cl->L, -1);
@@ -1199,7 +1198,7 @@ mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
                                   (cl->write_goal - cl->write_sofar)),
                               &mask, e)) > 0) {
     cl->write_sofar += rv;
-    assert(cl->write_sofar <= cl->write_goal);
+    mtevAssert(cl->write_sofar <= cl->write_goal);
     if(cl->write_sofar == cl->write_goal) break;
   }
   if(rv > 0) {
@@ -1237,7 +1236,7 @@ mtev_lua_socket_write(lua_State *L) {
   eventer_t e, *eptr;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   eptr = lua_touserdata(L, lua_upvalueindex(1));
   if(eptr != lua_touserdata(L, 1))
@@ -1258,7 +1257,7 @@ mtev_lua_socket_write(lua_State *L) {
                                   (cl->write_goal - cl->write_sofar)),
                               &mask, e)) > 0) {
     cl->write_sofar += rv;
-    assert(cl->write_sofar <= cl->write_goal);
+    mtevAssert(cl->write_sofar <= cl->write_goal);
     if(cl->write_sofar == cl->write_goal) break;
   }
   if(rv > 0) {
@@ -1303,7 +1302,7 @@ mtev_eventer_index_func(lua_State *L) {
   const char *k;
   eventer_t *udata;
   n = lua_gettop(L); /* number of arguments */
-  assert(n == 2);
+  mtevAssert(n == 2);
   if(!luaL_checkudata(L, 1, "mtev.eventer")) {
     luaL_error(L, "metatable error, arg1 not a mtev.eventer!");
   }
@@ -1356,7 +1355,7 @@ mtev_ssl_ctx_index_func(lua_State *L) {
   const char *k;
   eventer_ssl_ctx_t **udata, *ssl_ctx;
   n = lua_gettop(L); /* number of arguments */
-  assert(n == 2);
+  mtevAssert(n == 2);
   if(!luaL_checkudata(L, 1, "mtev.eventer.ssl_ctx")) {
     luaL_error(L, "metatable error, arg1 not a mtev.eventer.ssl_ctx!");
   }
@@ -1423,7 +1422,7 @@ nl_waitfor_notify(lua_State *L) {
   int nargs;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
   nargs = lua_gettop(L);
   if(nargs < 1) {
     return 0;
@@ -1437,7 +1436,7 @@ nl_waitfor_notify(lua_State *L) {
   lua_xmove(L, cl->L, nargs);
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
   eventer_remove(cl->pending_event);
   mtev_lua_deregister_event(ci, cl->pending_event, 0);
   ci->lmc->resume(ci, nargs);
@@ -1453,7 +1452,7 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
   double p_int;
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
   mtev_lua_deregister_event(ci, e, 0);
   mtev_hash_delete(ci->lmc->pending, cl->inbuff, strlen(cl->inbuff), free, NULL);
   free(cl);
@@ -1471,7 +1470,7 @@ nl_waitfor(lua_State *L) {
   double p_int;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
   if(lua_gettop(L) != 2) {
     luaL_error(L, "waitfor(key, timeout) wrong arguments");
   }
@@ -1511,7 +1510,7 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
   double p_int;
 
   ci = mtev_lua_get_resume_info(cl->L);
-  assert(ci);
+  mtevAssert(ci);
   mtev_lua_deregister_event(ci, e, 0);
 
   sub_timeval(*now, cl->start, &diff);
@@ -1531,7 +1530,7 @@ nl_sleep(lua_State *L) {
   double p_int;
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   p_int = lua_tonumber(L, 1);
   cl = calloc(1, sizeof(*cl));
@@ -2147,7 +2146,7 @@ nl_socket_internal(lua_State *L, int family, int proto) {
   }
 
   ci = mtev_lua_get_resume_info(L);
-  assert(ci);
+  mtevAssert(ci);
 
   cl = calloc(1, sizeof(*cl));
   cl->free = nl_extended_free;
@@ -2818,7 +2817,7 @@ mtev_xmlnode_index_func(lua_State *L) {
   const char *k;
   xmlNodePtr *udata;
   n = lua_gettop(L); /* number of arguments */
-  assert(n == 2);
+  mtevAssert(n == 2);
   if(!luaL_checkudata(L, 1, "mtev.xmlnode")) {
     luaL_error(L, "metatable error, arg1 not a mtev.xmlnode!");
   }
@@ -2881,7 +2880,7 @@ mtev_xmldoc_index_func(lua_State *L) {
   const char *k;
   xmlDocPtr *udata;
   n = lua_gettop(L); /* number of arguments */
-  assert(n == 2);
+  mtevAssert(n == 2);
   if(!luaL_checkudata(L, 1, "mtev.xmldoc")) {
     luaL_error(L, "metatable error, arg1 not a mtev.xmldoc!");
   }
@@ -3115,7 +3114,7 @@ mtev_json_index_func(lua_State *L) {
   const char *k;
   json_crutch **udata;
   n = lua_gettop(L); /* number of arguments */
-  assert(n == 2);
+  mtevAssert(n == 2);
   if(!luaL_checkudata(L, 1, "mtev.json")) {
     luaL_error(L, "metatable error, arg1 not a mtev.json!");
   }
@@ -3157,7 +3156,7 @@ int nl_spawn(lua_State *L) {
   mtev_lua_resume_info_t *ri;
 
   ri = mtev_lua_get_resume_info(L);
-  assert(ri);
+  mtevAssert(ri);
   spawn_info = (struct spawn_info *)lua_newuserdata(L, sizeof(*spawn_info));
   memset(spawn_info, 0, sizeof(*spawn_info));
   spawn_info->pid = -1;
@@ -3316,7 +3315,7 @@ mtev_lua_process_index_func(lua_State *L) {
   const char *k;
   struct spawn_info *udata;
   n = lua_gettop(L); /* number of arguments */
-  assert(n == 2);
+  mtevAssert(n == 2);
   if(!luaL_checkudata(L, 1, "mtev.process")) {
     luaL_error(L, "metatable error, arg1 not a mtev.process!");
   }
@@ -3350,7 +3349,7 @@ mtev_lua_eventer_gc(lua_State *L) {
     int newmask;
 
     ci = mtev_lua_get_resume_info(cl->L);
-    assert(ci);
+    mtevAssert(ci);
     mtev_lua_deregister_event(ci, e, 0);
     if(e->mask & (EVENTER_EXCEPTION|EVENTER_READ|EVENTER_WRITE))
       eventer_remove_fd(e->fd);
@@ -3382,7 +3381,7 @@ nl_cancel_coro(lua_State *L) {
   mtev_lua_resume_info_t *ci;
   lua_State *co = lua_tothread(L,1);
   ci = mtev_lua_get_resume_info(co);
-  assert(ci);
+  mtevAssert(ci);
   mtev_lua_cancel_coro(ci);
   return 0;
 }

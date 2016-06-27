@@ -30,7 +30,6 @@
 
 #include "mtev_defines.h"
 
-#include <assert.h>
 #include <dlfcn.h>
 
 #include "mtev_dso.h"
@@ -114,7 +113,7 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
     conne = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
   }
 
-  assert(pthread_equal(pthread_self(), ri->bound_thread));
+  mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
 
 #if LUA_VERSION_NUM >= 502
   status = lua_resume(ri->coro_state, ri->lmc->lua_state, nargs);
@@ -363,7 +362,7 @@ static mtev_hook_return_t late_stage_rest_register(void *cl) {
     mtevL(mtev_debug, "Registering [%s][%s][%s] -> %s\n",
           conf->mounts[i].method, conf->mounts[i].mount,
           conf->mounts[i].expr, conf->mounts[i].module);
-    assert(
+    mtevAssert(
       mtev_http_rest_register_closure(
         conf->mounts[i].method, conf->mounts[i].mount,
         conf->mounts[i].expr, lua_web_handler,

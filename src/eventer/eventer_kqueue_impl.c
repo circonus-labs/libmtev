@@ -43,7 +43,6 @@
 #include <stdlib.h>
 #include <sys/event.h>
 #include <pthread.h>
-#include <assert.h>
 
 struct _eventer_impl eventer_kqueue_impl;
 #define LOCAL_EVENTER eventer_kqueue_impl
@@ -153,8 +152,8 @@ static int eventer_kqueue_impl_propset(const char *key, const char *value) {
   return 0;
 }
 static void eventer_kqueue_impl_add(eventer_t e) {
-  assert(e->mask);
-  assert(eventer_is_loop(e->thr_owner) >= 0);
+  mtevAssert(e->mask);
+  mtevAssert(eventer_is_loop(e->thr_owner) >= 0);
   ev_lock_state_t lockstate;
   const char *cbname;
   cbname = eventer_name_for_callback_e(e->callback, e);
@@ -180,7 +179,7 @@ static void eventer_kqueue_impl_add(eventer_t e) {
 
   /* file descriptor event */
   mtevL(eventer_deb, "debug: eventer_add fd (%s,%d,0x%04x)\n", cbname ? cbname : "???", e->fd, e->mask);
-  assert(e->whence.tv_sec == 0 && e->whence.tv_usec == 0);
+  mtevAssert(e->whence.tv_sec == 0 && e->whence.tv_usec == 0);
   lockstate = acquire_master_fd(e->fd);
   master_fds[e->fd].e = e;
   if(e->mask & (EVENTER_READ | EVENTER_EXCEPTION))
@@ -305,14 +304,14 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
     if(master_fds[fd].e != NULL) {
       mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
     }
-    /* assert(master_fds[fd].e == NULL); */
+    /* mtevAssert(master_fds[fd].e == NULL); */
   }
   if(!pthread_equal(pthread_self(), e->thr_owner)) {
     /* If we're triggering across threads, it can't be registered yet */
     if(master_fds[fd].e != NULL) {
       mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
     }
-    /* assert(master_fds[fd].e == NULL); */
+    /* mtevAssert(master_fds[fd].e == NULL); */
 
     eventer_cross_thread_trigger(e,mask);
     return;
@@ -324,7 +323,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   if(e != master_fds[fd].e) return;
   lockstate = acquire_master_fd(fd);
   if(lockstate == EV_ALREADY_OWNED) return;
-  assert(lockstate == EV_OWNED);
+  mtevAssert(lockstate == EV_OWNED);
 
   gettimeofday(&__now, NULL);
   /* We're going to lie to ourselves.  You'd think this should be:
@@ -469,7 +468,7 @@ static int eventer_kqueue_impl_loop() {
                    (int)ke->ident, strerror(ke->data));
           continue;
         }
-        assert((vpsized_int)ke->udata == (vpsized_int)ke->ident);
+        mtevAssert((vpsized_int)ke->udata == (vpsized_int)ke->ident);
         fd = ke->ident;
         e = master_fds[fd].e;
         /* If we've seen this fd, don't callback twice */

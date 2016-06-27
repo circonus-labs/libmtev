@@ -33,8 +33,8 @@
 
 #include "mtev_config.h"
 #include "mtev_hash.h"
+#include "mtev_log.h"
 #include <time.h>
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ck_epoch.h>
@@ -197,9 +197,9 @@ void mtev_hash_init_size(mtev_hash_table *h, int size) {
 
   if(size < 8) size = 8;
 
-  assert(ck_hs_init(&h->hs, CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC, hs_hash, hs_compare, &my_allocator,
+  mtevAssert(ck_hs_init(&h->hs, CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC, hs_hash, hs_compare, &my_allocator,
                          size, lrand48()));
-  assert(h->hs.hf != NULL);
+  mtevAssert(h->hs.hf != NULL);
 }
 int mtev_hash_size(mtev_hash_table *h) {
   if(h->hs.hf == NULL) mtev_hash_init(h);
