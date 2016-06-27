@@ -122,7 +122,7 @@ static void *eventer_kqueue_spec_alloc() {
   spec->kqueue_fd = kqueue();
   if(spec->kqueue_fd == -1) {
     mtevFatal(mtev_error, "error in eveter_kqueue_spec_alloc... spec->epoll_fd < 0 (%d)\n",
-            spec->epoll_fd);
+              spec->kqueue_fd);
   }
   kqs_init(spec);
   pthread_mutex_init(&spec->lock, NULL);
