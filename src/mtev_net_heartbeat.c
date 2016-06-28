@@ -149,7 +149,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     /* decrypt payload into text */
     len = msg.msg_iov[2].iov_len;
     EVP_CipherInit(&evp_ctx, EVP_aes_256_cbc(), ctx->key, ivec, false);
-    assert(EVP_CIPHER_CTX_iv_length(&evp_ctx) == HDR_IVSIZE);
+    mtevAssert(EVP_CIPHER_CTX_iv_length(&evp_ctx) == HDR_IVSIZE);
     EVP_DecryptUpdate(&evp_ctx,text,&outlen1,
                       (unsigned char *)payload,len);
     EVP_DecryptFinal(&evp_ctx,text+outlen1,&outlen2);
@@ -233,12 +233,12 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
   /* 2 words of magic */
   hdr[i++] = htonl(HBPKTMAGIC1);
   hdr[i++] = htonl(HBPKTMAGIC2);
-  assert(i==9);
+  mtevAssert(i==9);
 
   EVP_CipherInit(&evp_ctx, EVP_aes_256_cbc(), ctx->key, ivec, true);
   blocksize = EVP_CIPHER_CTX_block_size(&evp_ctx);
   ivecsize = EVP_CIPHER_CTX_iv_length(&evp_ctx);
-  assert(ivecsize == HDR_IVSIZE);
+  mtevAssert(ivecsize == HDR_IVSIZE);
   if(len + blocksize*2 > cipher_buf_len) {
     if(cipher_buf != cipher_buf_static) free(cipher_buf);
     cipher_buf = malloc(len + blocksize * 2);

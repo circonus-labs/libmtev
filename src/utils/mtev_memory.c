@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <assert.h>
 #include <ck_epoch.h>
 #include <ck_fifo.h>
 #include "mtev_log.h"
@@ -208,7 +207,7 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
     }
     method = MTEV_MM_BARRIER;
   }
-  assert(epoch_rec->active == 0);
+  mtevAssert(epoch_rec->active == 0);
   switch(method) {
     case MTEV_MM_BARRIER:
       ck_epoch_barrier(epoch_rec);
@@ -317,7 +316,7 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
 
   if(p == NULL) return;
   (void)b;
-  assert(e->magic == MTEV_EPOCH_SAFE_MAGIC);
+  mtevAssert(e->magic == MTEV_EPOCH_SAFE_MAGIC);
 
   if (r == true) {
     /* Destruction requires safe memory reclamation. */

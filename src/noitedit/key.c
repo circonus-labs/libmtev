@@ -71,7 +71,6 @@ __RCSID("$NetBSD: key.c,v 1.12 2001/05/17 01:02:17 christos Exp $");
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <assert.h>
 
 #include "noitedit/el.h"
 

@@ -33,13 +33,13 @@
 
 #include "mtev_defines.h"
 #include "mtev_btrie.h"
+#include "mtev_log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <stdint.h>
 #include <arpa/inet.h>
-#include <assert.h>
 // BITS should be either 32 or 128
 #define MAXBITS 128
 
@@ -223,7 +223,7 @@ void mtev_add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
   btrie_node *node, *parent, *down, *newnode;
   int bits_in_common;
 
-  assert(prefix_len <= MAXBITS);
+  mtevAssert(prefix_len <= MAXBITS);
   if(!*tree) {
     node = (btrie_node *)calloc(1, sizeof(*node));
     node->data = data;
@@ -256,7 +256,7 @@ void mtev_add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
   bits_in_common = calc_bits_in_commons(down, key, prefix_len);
   parent = node;
   if(bits_in_common > prefix_len) bits_in_common = prefix_len;
-  assert(!parent || parent->prefix_len < prefix_len);
+  mtevAssert(!parent || parent->prefix_len < prefix_len);
 
   /* we either need to make a new branch above down and newnode
    * or newnode can be the branch.  newnode can be the branch if
@@ -265,7 +265,7 @@ void mtev_add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
     /* newnode can be the branch */
     int plen = parent ? parent->prefix_len+1 : 1;
     if(parent)
-      assert(BIT_AT(newnode->bits, plen) == BIT_AT(down->bits, plen));
+      mtevAssert(BIT_AT(newnode->bits, plen) == BIT_AT(down->bits, plen));
     newnode->bit[BIT_AT(down->bits, newnode->prefix_len+1)] = down;
     if(!parent) *tree = newnode;
     else parent->bit[BIT_AT(newnode->bits, plen)] = newnode;
@@ -278,7 +278,7 @@ void mtev_add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
     node->incidental = 1;
     memcpy(node->bits, newnode->bits, sizeof(node->bits));
     DA(node, node->prefix_len, "incidental");
-    assert(BIT_AT(down->bits, node->prefix_len+1) !=
+    mtevAssert(BIT_AT(down->bits, node->prefix_len+1) !=
            BIT_AT(newnode->bits, node->prefix_len+1));
     node->bit[BIT_AT(down->bits, node->prefix_len+1)] = down;
     node->bit[BIT_AT(newnode->bits, node->prefix_len+1)] = newnode;
@@ -291,7 +291,7 @@ void mtev_add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
 void mtev_add_route_ipv4(btrie *tree, struct in_addr *a,
                     unsigned char prefix_len, void *data) {
   uint32_t ia = ntohl(a->s_addr), mask;
-  assert(prefix_len <= 32);
+  mtevAssert(prefix_len <= 32);
   mask = (prefix_len == 32) ? 0xffffffff : ~(0xffffffff >> prefix_len);
   ia &= mask;
   mtev_add_route(tree, &ia, prefix_len, data);
@@ -308,7 +308,7 @@ void mtev_add_route_ipv6(btrie *tree, struct in6_addr *a,
       mask = (splen >= 32) ? 0xffffffff : ~(0xffffffff >> splen);
     ia[i] = ntohl(ia[i]) & mask;
   }
-  assert(prefix_len <= 128);
+  mtevAssert(prefix_len <= 128);
   mtev_add_route(tree, ia, prefix_len, data);
 }
 

@@ -35,7 +35,6 @@
 #include "mtev_conf.h"
 #include "eventer/eventer.h"
 #include "mtev_json.h"
-#include <assert.h>
 #include <errno.h>
 #include <arpa/inet.h>
 
@@ -251,7 +250,7 @@ mtev_rest_eventer_logs(mtev_http_rest_closure_t *restc, int n, char **p) {
   last_s = mtev_http_request_querystring(req, "last");
   if(last_s) last = atoi(last_s);
 
-  assert(n==1);
+  mtevAssert(n==1);
   ls = mtev_log_stream_find(p[0]);
   if(!ls || strcmp(mtev_log_stream_get_type(ls),"memory"))
     goto not_found;
@@ -284,23 +283,23 @@ mtev_rest_eventer_logs(mtev_http_rest_closure_t *restc, int n, char **p) {
 
 void
 mtev_events_rest_init() {
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "GET", "/eventer/", "^memory\\.json$",
     mtev_rest_eventer_memory, mtev_http_rest_client_cert_auth
   ) == 0);
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "GET", "/eventer/", "^sockets\\.json$",
     mtev_rest_eventer_sockets, mtev_http_rest_client_cert_auth
   ) == 0);
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "GET", "/eventer/", "^timers\\.json$",
     mtev_rest_eventer_timers, mtev_http_rest_client_cert_auth
   ) == 0);
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "GET", "/eventer/", "^jobq\\.json$",
     mtev_rest_eventer_jobq, mtev_http_rest_client_cert_auth
   ) == 0);
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "GET", "/eventer/", "^logs/(.+)\\.json$",
     mtev_rest_eventer_logs, mtev_http_rest_client_cert_auth
   ) == 0);

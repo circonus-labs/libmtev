@@ -30,7 +30,6 @@
 
 #include "mtev_defines.h"
 
-#include <assert.h>
 #include <libxml/tree.h>
 #include <inttypes.h>
 
@@ -841,11 +840,11 @@ mtev_cluster_init() {
   }
   if(clusters) free(clusters);
 
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "GET", "/", "^cluster(?:/(.+))?$", rest_show_cluster,
              mtev_http_rest_client_cert_auth
   ) == 0);
-  assert(mtev_http_rest_register_auth(
+  mtevAssert(mtev_http_rest_register_auth(
     "POST", "/", "^cluster$", rest_update_cluster,
              mtev_http_rest_client_cert_auth
   ) == 0);

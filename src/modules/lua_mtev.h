@@ -187,7 +187,7 @@ mtev_lua_setup_restc(lua_State *L,
 
 #define RETURN_INT(L, object, func, expr) do { \
   int base = lua_gettop(L); \
-  assert(base == 1); \
+  mtevAssert(base == 1); \
   if(lua_isnumber(L, -1)) { \
     int rv; \
     rv = lua_tointeger(L, -1); \
