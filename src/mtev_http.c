@@ -1022,6 +1022,11 @@ mtev_http_ctx_session_release(mtev_http_session_ctx *ctx) {
     if(ctx->req.first_input) RELEASE_BCHAIN(ctx->req.first_input);
     mtev_http_response_release(ctx);
     pthread_mutex_destroy(&ctx->write_lock);
+#ifdef HAVE_WSLAY
+    if (ctx->is_websocket == mtev_true) {
+      wslay_event_context_free(ctx->wslay_ctx);
+    }
+#endif
     free(ctx);
   }
 }
@@ -1255,6 +1260,11 @@ mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
 {
   char accept_key[32];
   const char *upgrade = NULL, *connection = NULL, *sec_ws_key = NULL, *protocol = NULL;
+
+  if (ctx->req.complete == mtev_false) {
+    return mtev_false;
+  }
+
   if (ctx->did_handshake == mtev_true) {
     return ctx->is_websocket;
   }
@@ -1474,7 +1484,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
      * more communication
      */
     *done = 0;
-    return ctx->wanted_eventer_mask | EVENTER_EXCEPTION;
+    return ctx->wanted_eventer_mask | EVENTER_EXCEPTION | EVENTER_WRITE;
 #endif
 
   } else {
