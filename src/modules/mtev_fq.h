@@ -42,6 +42,13 @@ struct fq_conn_s;
 /* void mtev_fq_send(fq_msg *msg, int id); */
 MTEV_RUNTIME_RESOLVE(mtev_fq_send, mtev_fq_send_function, void,
                      (struct fq_msg *msg, int id), (msg, id))
+MTEV_RUNTIME_AVAIL(mtev_fq_send, mtev_fq_send_function)
+
+/* void mtev_fq_send_data(char *exhcnage, char *route, void *payload, int len, int id); */
+MTEV_RUNTIME_RESOLVE(mtev_fq_send_data, mtev_fq_send_data_function, void,
+                     (char *exchange, char *route, void *payload, int len, int id),
+                     (exchange, route, payload, len, id))
+MTEV_RUNTIME_AVAIL(mtev_fq_send_data, mtev_fq_send_data_function)
 
 MTEV_HOOK_PROTO(mtev_fq_handle_message_dyn,
                 (struct fq_conn_s *client, int id, struct fq_msg *msg, void *payload, size_t payload_len),

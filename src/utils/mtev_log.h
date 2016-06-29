@@ -83,6 +83,7 @@ API_EXPORT(void) mtev_log_enter_sighandler();
 API_EXPORT(void) mtev_log_leave_sighandler();
 API_EXPORT(int) mtev_log_global_enabled();
 API_EXPORT(void) mtev_log_init(int debug_on);
+API_EXPORT(mtev_boolean) mtev_log_final_resolve();
 API_EXPORT(int) mtev_log_go_asynch();
 API_EXPORT(int) mtev_log_go_synch();
 API_EXPORT(int) mtev_log_reopen_all();

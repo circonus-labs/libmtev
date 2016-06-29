@@ -229,14 +229,10 @@ init_conns() {
   free(mqs);
 }
 
+/* Do not mtevL in these functions, as they may implement mtevL */
 void
 mtev_fq_send_function(fq_msg *msg, int connection_id_broadcast_if_negative) {
-  if (connection_id_broadcast_if_negative >= the_conf->number_of_conns) {
-    mtevL(nlerr,
-          "mtev_fq_send called with a connection_id of %d but there are only %d brokers connected!\n",
-          connection_id_broadcast_if_negative, the_conf->number_of_conns);
-    return;
-  }
+  if (connection_id_broadcast_if_negative >= the_conf->number_of_conns) return;
 
   int first_host = connection_id_broadcast_if_negative;
   int last_host_plus_one = connection_id_broadcast_if_negative + 1;
@@ -250,9 +246,56 @@ mtev_fq_send_function(fq_msg *msg, int connection_id_broadcast_if_negative) {
   }
 }
 
+void
+mtev_fq_send_data_function(char *exchange, char *route, void *payload, int len, int connection_id_broadcast_if_negative) {
+  fq_msg *m;
+  m = fq_msg_alloc(payload, len);
+  fq_msg_exchange(m, exchange, strlen(exchange));
+  fq_msg_route(m, route, strlen(route));
+  mtev_fq_send_function(m, connection_id_broadcast_if_negative);
+  fq_msg_free(m);
+}
+
+static int
+fq_logio_open(mtev_log_stream_t ls) {
+  return 0;
+}
+
+static int
+fq_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
+               const void *buf, size_t len) {
+  char exchange[127], route[127], *prefix, *path;
+  path = (char *)mtev_log_stream_get_path(ls);
+  prefix = strchr(path, '/');
+  if(!prefix) {
+    strlcpy(exchange, path, sizeof(exchange));
+    snprintf(route, sizeof(route), "mtev.log.%s", mtev_log_stream_get_name(ls));
+  } else {
+    prefix++;
+    strlcpy(exchange, path, MIN(sizeof(exchange), (prefix - path)));
+    snprintf(route, sizeof(route), "%s.%s", prefix, mtev_log_stream_get_name(ls));
+  }
+  mtev_fq_send_data(exchange, route, (void *)buf, len, -1);
+  return len;
+}
+
+static logops_t fq_logio_ops = {
+  mtev_false,
+  fq_logio_open,
+  NULL,
+  fq_logio_write,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL
+};
+
 static int
 fq_driver_init(mtev_dso_generic_t *img) {
   struct fq_module_config *conf = get_config(img);
+
+  mtev_register_logops("fq", &fq_logio_ops);
 
   nlerr = mtev_log_stream_find("error/fq");
   nldeb = mtev_log_stream_find("debug/fq");
