@@ -84,6 +84,13 @@ struct nl_intcl {
   mtev_lua_resume_info_t *ri;
 };
 
+typedef struct lua_timeout_callback_ref {
+  void (*free)(void *);
+  lua_State *L;
+  int callback_reference;
+  eventer_t timed_out_eventer;
+} lua_timeout_callback_ref;
+
 struct nl_slcl {
   void (*free)(void *);
   int send_size;
@@ -99,6 +106,7 @@ struct nl_slcl {
   size_t write_goal;
   eventer_t *eptr;
   eventer_t pending_event;
+  eventer_t timeout_event;
 
   int sendto; /* whether this send is a sendto call */
   union {
