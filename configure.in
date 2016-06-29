@@ -203,9 +203,9 @@ AC_SUBST(ATOMIC_OBJS)
 AC_DEFINE_UNQUOTED(MODULEEXT, "$MODULEEXT", [module extension])
 AC_MSG_CHECKING([enable build/install of the Java IEP and Jezebel bits])
 
-LUA_MODULE=lua_mtev.$MODULEEXT
+LUA4MTEV=lua_mtev.$MODULEEXT
 if test "$ENABLE_LUA" = "no"; then
-  LUA_MODULE=
+  LUA4MTEV=
 fi
 
 # Checks for data types
@@ -253,7 +253,7 @@ AS_IF([test "x$enable_zipkin_fq" != "xno"], [
 	OLD_LIBS=$LIBS
 	LIBS=
 	AC_CHECK_LIB(fq, fq_client_init, [
-		BUILD_MODULES="$BUILD_MODULES zipkin_fq.$MODULEEXT"
+		FQ_MODULES="$FQ_MODULES zipkin_fq.$MODULEEXT"
 	], [AC_MSG_ERROR([*** can't build zipkin-fq, no -lfq ***])])
 	LIBS=$OLD_LIBS
 ])
@@ -265,7 +265,8 @@ AS_IF([test "x$enable_fq" != "xno"], [
 	OLD_LIBS=$LIBS
 	LIBS=
 	AC_CHECK_LIB(fq, fq_client_init, [
-		BUILD_MODULES="$BUILD_MODULES fq.$MODULEEXT"
+		FQ_MODULES="$FQ_MODULES fq.$MODULEEXT"
+                FQ_HEADERS=mtev_fq.h
 	], [AC_MSG_ERROR([*** can't build fq, no -lfq ***])])
 	LIBS=$OLD_LIBS
 ])
@@ -693,8 +694,9 @@ if test "x$ac_cv_have_ssize_t" = "xyes" ; then
 	AC_DEFINE(HAVE_SSIZE_T)
 fi
 
-BUILD_MODULES="$BUILD_MODULES $LUA_MODULE"
-AC_SUBST(BUILD_MODULES)
+AC_SUBST(FQ_MODULES)
+AC_SUBST(FQ_HEADERS)
+AC_SUBST(LUA4MTEV)
 
 docdir="docs"
 mansubdir="man"
