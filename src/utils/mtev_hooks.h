@@ -201,7 +201,7 @@ static inline RTYPE FUNCNAME PROTO { \
   if(!f_) { \
     f_ = dlsym(MTEV_RTLD_PARAM, #SYMBOL); \
     if(!f_) { \
-      mtevL(mtev_error, "runtime resolution of '%s %s%s' failed.\n", \
+      mtevL(mtev_stderr, "runtime resolution of '%s %s%s' failed.\n", \
             #RTYPE, #FUNCNAME, #PROTO); \
     } \
     mtevAssert(f_); \

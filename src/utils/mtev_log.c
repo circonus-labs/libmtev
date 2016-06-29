@@ -1305,6 +1305,35 @@ mtev_log_stream_new_on_file(const char *path, mtev_hash_table *config) {
   return mtev_log_stream_new(path, "file", path, NULL, config);
 }
 
+static mtev_boolean
+mtev_log_resolve(mtev_log_stream_t ls) {
+  void *vops = NULL;
+  if(!ls->type) return mtev_true;
+  if(ls->ops) return mtev_true;
+  if(mtev_hash_retrieve(&mtev_logops, ls->type, strlen(ls->type),
+                        &vops)) {
+    ls->ops = vops;
+  }
+  else return mtev_false;
+  if(ls->ops->openop(ls)) return mtev_false;
+  return mtev_true;
+}
+
+mtev_boolean
+mtev_log_final_resolve() {
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  const char *key;
+  int klen;
+  void *vls;
+  while(mtev_hash_next(&mtev_loggers, &iter, &key, &klen, &vls)) {
+    if(!mtev_log_resolve((mtev_log_stream_t)vls)) {
+      mtevL(mtev_stderr, "Failed to resolve log: %s\n", key);
+      return mtev_false;
+    }
+  }
+  return mtev_true;
+}
+
 mtev_log_stream_t
 mtev_log_stream_new(const char *name, const char *type, const char *path,
                     void *ctx, mtev_hash_table *config) {
@@ -1323,8 +1352,6 @@ mtev_log_stream_new(const char *name, const char *type, const char *path,
   else if(mtev_hash_retrieve(&mtev_logops, type, strlen(type),
                              &vops))
     ls->ops = vops;
-  else
-    goto freebail;
  
   if(ls->ops && ls->ops->openop(ls)) goto freebail;
 

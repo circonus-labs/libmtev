@@ -367,6 +367,9 @@ void mtev_dso_post_init() {
     mtevL(mtev_stderr, "Module post initialization phase failed.\n");
     mtev_dso_load_failure_count++;
   }
+  if(mtev_log_final_resolve() == mtev_false) {
+    mtevL(mtev_stderr, "Some loggers remain disconnected.\n");
+  }
 }
 
 void *
