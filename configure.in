@@ -266,7 +266,6 @@ AS_IF([test "x$enable_fq" != "xno"], [
 	LIBS=
 	AC_CHECK_LIB(fq, fq_client_init, [
 		FQ_MODULES="$FQ_MODULES fq.$MODULEEXT"
-                FQ_HEADERS=mtev_fq.h
 	], [AC_MSG_ERROR([*** can't build fq, no -lfq ***])])
 	LIBS=$OLD_LIBS
 ])
@@ -695,7 +694,6 @@ if test "x$ac_cv_have_ssize_t" = "xyes" ; then
 fi
 
 AC_SUBST(FQ_MODULES)
-AC_SUBST(FQ_HEADERS)
 AC_SUBST(LUA4MTEV)
 
 docdir="docs"

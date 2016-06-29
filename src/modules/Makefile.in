@@ -36,11 +36,10 @@ top_srcdir=@top_srcdir@
 
 MODULES=@FQ_MODULES@ @LUA4MTEV@
 MTEV4LUA=mtev_lua/mtev.so
-HEADERS=@FQ_HEADERS@ lua_mtev.h
+HEADERS=lua_mtev.h
 LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua
 
 FQ_MODULES=@FQ_MODULES@
-FQ_HEADERS=@FQ_HEADERS@
 
 all:	$(MODULES) $(MTEV4LUA)
 
@@ -115,10 +114,6 @@ install-modules:	$(MODULES)
 	done
 
 install-fq:	$(FQ_MODULES)
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)
-	for h in $(FQ_HEADERS); do \
-		$(INSTALL) -m 0444 $$h $(DESTDIR)$(includedir)/$$h ; \
-	done
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)
 	for mod in $(FQ_MODULES); do \
 		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
