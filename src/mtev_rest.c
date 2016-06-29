@@ -181,7 +181,9 @@ mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
   struct rule_container *cont = NULL;
   struct rest_url_dispatcher *rule;
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
+  mtev_hash_table *headers;
   const char *uri_str;
+  const char *protocol = NULL;
   const char *eoq, *eob;
   uri_str = mtev_http_request_uri_str(req);
   eoq = uri_str + strlen(uri_str);
@@ -204,8 +206,7 @@ mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
   /* no base, give up */
   if(!cont) return NULL;
 
-  const char *protocol = NULL;
-  mtev_hash_table *headers = mtev_http_request_headers_table(req);
+  headers = mtev_http_request_headers_table(req);
 
   (void)mtev_hash_retr_str(headers, "sec-websocket-protocol", strlen("sec-websocket-protocol"), &protocol);
 
@@ -526,10 +527,10 @@ socket_error:
     restc->ac = ac;
     restc->remote_cn = strdup(ac->remote_cn ? ac->remote_cn : "");
     restc->http_ctx =
-        mtev_http_session_ctx_new(mtev_rest_request_dispatcher,
-                                  mtev_rest_websocket_dispatcher, 
-                                  restc, 
-                                  e, ac);
+        mtev_http_session_ctx_websocket_new(mtev_rest_request_dispatcher,
+                                            mtev_rest_websocket_dispatcher, 
+                                            restc, 
+                                            e, ac);
     
     switch(ac->cmd) {
       case MTEV_CONTROL_DELETE:
@@ -581,8 +582,9 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
     ac->service_ctx_free = mtev_http_rest_closure_free;
     restc->ac = ac;
     restc->http_ctx =
-      mtev_http_session_ctx_new(mtev_rest_request_dispatcher, mtev_rest_websocket_dispatcher,
-                                restc, e, ac);
+      mtev_http_session_ctx_websocket_new(mtev_rest_request_dispatcher, 
+                                          mtev_rest_websocket_dispatcher,
+                                          restc, e, ac);
   }
   rv = mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
   if(done) {

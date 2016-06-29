@@ -85,8 +85,12 @@ typedef int (*mtev_http_dispatch_func) (mtev_http_session_ctx *);
 typedef int (*mtev_http_websocket_dispatch_func) (mtev_http_session_ctx *, uint8_t opcode, const unsigned char *msg, size_t msg_len);
 
 API_EXPORT(mtev_http_session_ctx *)
-  mtev_http_session_ctx_new(mtev_http_dispatch_func, mtev_http_websocket_dispatch_func,
+  mtev_http_session_ctx_new(mtev_http_dispatch_func, void *, eventer_t, acceptor_closure_t *);
+
+API_EXPORT(mtev_http_session_ctx *)
+  mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func, mtev_http_websocket_dispatch_func,
                             void *, eventer_t, acceptor_closure_t *);
+
 API_EXPORT(void)
   mtev_http_ctx_session_release(mtev_http_session_ctx *ctx);
 API_EXPORT(uint32_t)

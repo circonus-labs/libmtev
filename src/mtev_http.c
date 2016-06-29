@@ -1236,15 +1236,18 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
  * See: https://tools.ietf.org/html/rfc6455#page-6
  */
 #define WS_ACCEPT_KEY_GUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+#define WS_CLIENT_KEY_LEN 24
 
 void
 mtev_http_create_websocket_accept_key(char *dest, size_t dest_len, const char *client_key)
 {
   SHA_CTX ctx;
-  unsigned char sha1[SHA_DIGEST_LENGTH], key_src[60];
+  unsigned char sha1[SHA_DIGEST_LENGTH], key_src[UUID_STR_LEN + WS_CLIENT_KEY_LEN];
 
-  memcpy(key_src, client_key, 24);
-  memcpy(key_src+24, WS_ACCEPT_KEY_GUID, 36);
+  mtevAssert(dest_len >= mtev_b64_encode_len(SHA_DIGEST_LENGTH) + 1);
+
+  memcpy(key_src, client_key, WS_CLIENT_KEY_LEN);
+  memcpy(key_src + WS_CLIENT_KEY_LEN, WS_ACCEPT_KEY_GUID, UUID_STR_LEN);
 
   SHA1_Init(&ctx);
   SHA1_Update(&ctx, (const void *)key_src, (unsigned long)sizeof(key_src));
@@ -1258,7 +1261,7 @@ mtev_http_create_websocket_accept_key(char *dest, size_t dest_len, const char *c
 mtev_boolean 
 mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
 {
-  char accept_key[32];
+  char accept_key[mtev_b64_encode_len(SHA_DIGEST_LENGTH) + 1];
   const char *upgrade = NULL, *connection = NULL, *sec_ws_key = NULL, *protocol = NULL;
 
   if (ctx->req.complete == mtev_false) {
@@ -1282,7 +1285,7 @@ mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
   (void)mtev_hash_retr_str(headers, "sec-websocket-key", strlen("sec-websocket-key"), &sec_ws_key);
   (void)mtev_hash_retr_str(headers, "sec-websocket-protocol", strlen("sec-websocket-protocol"), &protocol);
 
-  if (upgrade == NULL || connection == NULL || sec_ws_key == NULL) {
+  if (upgrade == NULL || connection == NULL || sec_ws_key == NULL || protocol == NULL) {
     ctx->is_websocket = mtev_false;
     return ctx->is_websocket;
   }
@@ -1538,8 +1541,14 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
 }
 
 mtev_http_session_ctx *
-mtev_http_session_ctx_new(mtev_http_dispatch_func f, mtev_http_websocket_dispatch_func wf,
-                          void *c, eventer_t e, acceptor_closure_t *ac) 
+mtev_http_session_ctx_new(mtev_http_dispatch_func f, void *c, eventer_t e, acceptor_closure_t *ac) 
+{
+  return mtev_http_session_ctx_websocket_new(f, NULL, c, e, ac);
+}
+
+mtev_http_session_ctx *
+mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http_websocket_dispatch_func wf, 
+                                    void *c, eventer_t e, acceptor_closure_t *ac)
 {
   mtev_http_session_ctx *ctx;
   ctx = calloc(1, sizeof(*ctx));
