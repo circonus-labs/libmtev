@@ -34,12 +34,14 @@ LUALIBS=@LUALIBS@
 
 top_srcdir=@top_srcdir@
 
-MODULES=@BUILD_MODULES@
-LUA_MODULES=mtev_lua/mtev.so
+MODULES=@FQ_MODULES@ @LUA4MTEV@
+MTEV4LUA=mtev_lua/mtev.so
 HEADERS=lua_mtev.h
 LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua
 
-all:	$(MODULES) $(LUA_MODULES)
+FQ_MODULES=@FQ_MODULES@
+
+all:	$(MODULES) $(MTEV4LUA)
 
 .xml.xmlh:
 	$(Q)$(XML2H) `echo $< | sed -e 's/\.xml$$//;'`_xml_description < $< > $@
@@ -109,6 +111,12 @@ install-modules:	$(MODULES)
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)/lua/mtev
 	for lua in $(LUA_FILES); do \
 		$(INSTALL) -m 0755 lua-support/$$lua $(DESTDIR)$(MODULES_DIR)/lua/$$lua ; \
+	done
+
+install-fq:	$(FQ_MODULES)
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)
+	for mod in $(FQ_MODULES); do \
+		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
 	done
 
 clean:

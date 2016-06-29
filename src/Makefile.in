@@ -283,6 +283,7 @@ clean:
 	rm -rf mdb-support/*.lo mdb-support/*.so
 	(cd eventer && $(MAKE) clean)
 	(cd man && $(MAKE) clean)
+	(cd modules && $(MAKE) clean)
 	(cd noitedit && $(MAKE) clean)
 	(cd utils && $(MAKE) clean)
 	(cd json-lib && $(MAKE) clean)
@@ -303,7 +304,7 @@ Makefile.dep:
 include Makefile.dep
 
 distclean-subdirs:
-	for dir in eventer man noitedit utils json-lib ; do \
+	for dir in eventer man modules noitedit utils json-lib ; do \
 		(cd $$dir && $(MAKE) distclean) ; \
 	done
 
