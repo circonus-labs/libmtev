@@ -172,7 +172,7 @@ load_dh_params(const char *filename) {
   if(filename == NULL) return NULL;
   bio = BIO_new_file(filename, "r");
   if(bio == NULL) return NULL;
-  mtevL(mtev_error, "Loading DH parameters from %s.\n", filename);
+  mtevL(mtev_notice, "Loading DH parameters from %s.\n", filename);
   PEM_read_bio_DHparams(bio, &dh, 0, NULL);
   BIO_free(bio);
   if(dh) {
@@ -195,7 +195,7 @@ save_dh_params(DH *p, const char *filename) {
   if(fd < 0) return;
   bio = BIO_new_fd(fd, 0);
   if(bio == NULL) { close(fd); return; }
-  mtevL(mtev_error, "Saving DH parameters to %s.\n", filename);
+  mtevL(mtev_notice, "Saving DH parameters to %s.\n", filename);
   PEM_write_bio_DHparams(bio,p);
   BIO_free(bio);
   fchmod(fd, 0400);
@@ -213,18 +213,18 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
   case 1024:
     if(!dh1024_tmp) dh1024_tmp = load_dh_params(dh1024_file);
     if(!dh1024_tmp) {
-      mtevL(mtev_error, "Generating 1024 bit DH parameters.\n");
+      mtevL(mtev_notice, "Generating 1024 bit DH parameters.\n");
       dh1024_tmp = DH_generate_parameters(1024, 2, NULL, NULL);
-      mtevL(mtev_error, "Finished generating 1024 bit DH parameters.\n");
+      mtevL(mtev_notice, "Finished generating 1024 bit DH parameters.\n");
       save_dh_params(dh1024_tmp, dh1024_file);
     }
     break;
   case 2048:
     if(!dh2048_tmp) dh2048_tmp = load_dh_params(dh2048_file);
     if(!dh2048_tmp) {
-      mtevL(mtev_error, "Generating 2048 bit DH parameters.\n");
+      mtevL(mtev_notice, "Generating 2048 bit DH parameters.\n");
       dh2048_tmp = DH_generate_parameters(2048, 2, NULL, NULL);
-      mtevL(mtev_error, "Finished generating 2048 bit DH parameters.\n");
+      mtevL(mtev_notice, "Finished generating 2048 bit DH parameters.\n");
       save_dh_params(dh2048_tmp, dh2048_file);
     }
     break;
