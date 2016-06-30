@@ -82,10 +82,15 @@ struct bchain {
 struct mtev_http_session_ctx;
 typedef struct mtev_http_session_ctx mtev_http_session_ctx;
 typedef int (*mtev_http_dispatch_func) (mtev_http_session_ctx *);
+typedef int (*mtev_http_websocket_dispatch_func) (mtev_http_session_ctx *, uint8_t opcode, const unsigned char *msg, size_t msg_len);
 
 API_EXPORT(mtev_http_session_ctx *)
-  mtev_http_session_ctx_new(mtev_http_dispatch_func, void *, eventer_t,
-                            acceptor_closure_t *);
+  mtev_http_session_ctx_new(mtev_http_dispatch_func, void *, eventer_t, acceptor_closure_t *);
+
+API_EXPORT(mtev_http_session_ctx *)
+  mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func, mtev_http_websocket_dispatch_func,
+                            void *, eventer_t, acceptor_closure_t *);
+
 API_EXPORT(void)
   mtev_http_ctx_session_release(mtev_http_session_ctx *ctx);
 API_EXPORT(uint32_t)
@@ -103,6 +108,8 @@ API_EXPORT(mtev_http_response *)
   mtev_http_session_response(mtev_http_session_ctx *);
 API_EXPORT(mtev_http_connection *)
   mtev_http_session_connection(mtev_http_session_ctx *);
+API_EXPORT(mtev_boolean)
+  mtev_http_is_websocket(mtev_http_session_ctx *);
 
 API_EXPORT(void *)
   mtev_http_session_dispatcher_closure(mtev_http_session_ctx *);
@@ -188,6 +195,9 @@ API_EXPORT(mtev_boolean)
 API_EXPORT(mtev_boolean) mtev_http_response_end(mtev_http_session_ctx *);
 API_EXPORT(size_t)
   mtev_http_response_buffered(mtev_http_session_ctx *);
+
+API_EXPORT(mtev_boolean)
+  mtev_http_websocket_queue_msg(mtev_http_session_ctx *, int opcode, const unsigned char *msg, size_t msg_len);
 
 #define mtev_http_response_server_error(ctx, type) \
   mtev_http_response_standard(ctx, 500, "ERROR", type)

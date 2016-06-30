@@ -208,7 +208,7 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
     if(!pthread_equal(me, tgt)) continue;
 
     int thr_id = eventer_is_loop(me);
-    snprintf(thr_str, sizeof(thr_str), "0x%llx", (unsigned long long)(uintptr_t)(void *)me);
+    snprintf(thr_str, sizeof(thr_str), "0x%llx", (unsigned long long)me);
     if (thr_id >= 0) snprintf(thr_str, sizeof(thr_str), "%d", thr_id);
     snprintf(state_str, sizeof(state_str), "0x%llx", (unsigned long long)(uintptr_t)*Lptr);
     state_info = json_object_new_object();

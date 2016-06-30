@@ -63,9 +63,11 @@ struct rest_raw_payload {
 struct rest_url_dispatcher {
   char *method;
   char *expression_s;
+  char *websocket_protocol;
   pcre *expression;
   pcre_extra *extra;
   rest_request_handler handler;
+  rest_websocket_message_handler websocket_handler;
   rest_authorize_func_t auth;
   void *closure;
   /* Chain to the next one */
@@ -172,12 +174,16 @@ mtev_http_rest_endpoints(mtev_http_rest_closure_t *restc,
   mtev_http_response_end(ctx);
   return 0;
 }
-static rest_request_handler
-mtev_http_get_handler(mtev_http_rest_closure_t *restc) {
+
+static struct rest_url_dispatcher *
+mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
+{
   struct rule_container *cont = NULL;
   struct rest_url_dispatcher *rule;
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
+  mtev_hash_table *headers;
   const char *uri_str;
+  const char *protocol = NULL;
   const char *eoq, *eob;
   uri_str = mtev_http_request_uri_str(req);
   eoq = uri_str + strlen(uri_str);
@@ -196,16 +202,26 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc) {
     }
     eob--;
   }
+
+  /* no base, give up */
   if(!cont) return NULL;
+
+  headers = mtev_http_request_headers_table(req);
+
+  (void)mtev_hash_retr_str(headers, "sec-websocket-protocol", strlen("sec-websocket-protocol"), &protocol);
+
   for(rule = cont->rules; rule; rule = rule->next) {
     int ovector[30];
     int cnt;
-    if(strcmp(rule->method, mtev_http_request_method_str(req))) continue;
+    if (mtev_http_is_websocket(restc->http_ctx) == mtev_true) {
+      if (strcmp(rule->method, "WS")) continue;
+      if (rule->websocket_protocol == NULL || protocol == NULL || strcmp(rule->websocket_protocol, protocol)) continue;
+    } else {
+      if (strcmp(rule->method, mtev_http_request_method_str(req))) continue;
+    }
     if((cnt = pcre_exec(rule->expression, rule->extra, eob, eoq - eob, 0, 0,
                         ovector, sizeof(ovector)/sizeof(*ovector))) > 0) {
-      /* We match, set 'er up */
-      restc->fastpath = rule->handler;
-      restc->closure = rule->closure;
+
       restc->nparams = cnt - 1;
       if(restc->nparams) {
         restc->params = calloc(restc->nparams, sizeof(*restc->params));
@@ -217,12 +233,43 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc) {
           restc->params[cnt][end - start] = '\0';
         }
       }
-      if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
-        restc->closure = NULL;
-        return mtev_http_rest_permission_denied;
-      }
-      return restc->fastpath;
+      return rule;
     }
+  }
+  return NULL;
+}
+
+static rest_websocket_message_handler
+mtev_http_get_websocket_handler(mtev_http_rest_closure_t *restc) 
+{
+  int cnt = 0;
+  struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
+  if (rule != NULL) {
+      /* We match, set 'er up */
+    restc->websocket_handler_memo = rule->websocket_handler;
+    restc->closure = rule->closure;
+    if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
+      restc->closure = NULL;
+      /* TODO: fix authentication problems under websockets */
+      return NULL;
+    }
+    return restc->websocket_handler_memo;
+  }
+  return NULL;
+}
+
+static rest_request_handler
+mtev_http_get_handler(mtev_http_rest_closure_t *restc) {
+  struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
+  if (rule != NULL) {
+      /* We match, set 'er up */
+    restc->fastpath = rule->handler;
+    restc->closure = rule->closure;
+    if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
+      restc->closure = NULL;
+      return mtev_http_rest_permission_denied;
+    }
+    return restc->fastpath;
   }
   return NULL;
 }
@@ -265,7 +312,7 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
 int
 mtev_http_rest_register(const char *method, const char *base,
                         const char *expr, rest_request_handler f) {
-  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL);
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, NULL, NULL);
 }
 void
 mtev_http_rest_disclose_endpoints(const char *base, const char *expr) {
@@ -274,18 +321,67 @@ mtev_http_rest_disclose_endpoints(const char *base, const char *expr) {
 int
 mtev_http_rest_register_closure(const char *method, const char *base,
                         const char *expr, rest_request_handler f, void *c) {
-  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, c);
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, NULL, c);
 }
 int
 mtev_http_rest_register_auth(const char *method, const char *base,
                              const char *expr, rest_request_handler f,
                              rest_authorize_func_t auth) {
-  return mtev_http_rest_register_auth_closure(method, base, expr, f, auth, NULL);
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, auth, NULL);
 }
+
+
+int
+mtev_http_rest_websocket_register(const char *base,
+                                  const char *expr, 
+                                  const char *protocol,
+                                  rest_websocket_message_handler wf) 
+{
+  return mtev_http_rest_websocket_register_closure(base, expr, protocol, wf, NULL);
+}
+
+int
+mtev_http_rest_websocket_register_closure(const char *base,
+                                          const char *expr, 
+                                          const char *protocol,
+                                          rest_websocket_message_handler wf,
+                                          void *c) 
+{
+  return mtev_http_rest_register_auth_closure("WS", base, expr, NULL, wf, protocol, NULL, c);
+}
+ 
+int
+mtev_http_rest_websocket_register_auth(const char *base,
+                                       const char *expr,
+                                       const char *protocol,
+                                       rest_websocket_message_handler wf,
+                                       rest_authorize_func_t auth) 
+{
+  return mtev_http_rest_websocket_register_auth_closure(base, expr, protocol, wf, auth, NULL);
+}
+
+int
+mtev_http_rest_websocket_register_auth_closure(const char *base,
+                                               const char *expr,
+                                               const char *protocol,
+                                               rest_websocket_message_handler wf,
+                                               rest_authorize_func_t auth,
+                                               void *c) 
+{
+  int rval = mtev_http_rest_register_auth_closure("WS", base, expr, NULL, wf, protocol, NULL, c);
+  if ( rval != 0 ) {
+    return rval;
+  }
+  return mtev_http_rest_register_auth("GET", base, expr, NULL, auth);
+}
+
 int
 mtev_http_rest_register_auth_closure(const char *method, const char *base,
-                             const char *expr, rest_request_handler f,
-                             rest_authorize_func_t auth, void *closure) {
+                                     const char *expr, rest_request_handler f,
+                                     rest_websocket_message_handler wf, 
+                                     const char *websocket_protocol, 
+                                     rest_authorize_func_t auth, void *closure) 
+{
   void *vcont;
   struct rule_container *cont;
   struct rest_url_dispatcher *rule;
@@ -307,6 +403,8 @@ mtev_http_rest_register_auth_closure(const char *method, const char *base,
   rule->expression = pcre_expr;
   rule->extra = pcre_study(rule->expression, 0, &error);
   rule->handler = f;
+  rule->websocket_handler = wf;
+  rule->websocket_protocol = websocket_protocol != NULL ? strdup(websocket_protocol) : NULL;
   rule->closure = closure;
   rule->auth = auth;
 
@@ -363,6 +461,23 @@ mtev_http_rest_closure_free(void *v) {
 }
 
 int
+mtev_rest_websocket_dispatcher(mtev_http_session_ctx *ctx, uint8_t opcode, const unsigned char *msg, size_t msg_len) 
+{
+  mtev_http_rest_closure_t *restc = mtev_http_session_dispatcher_closure(ctx);
+  rest_websocket_message_handler handler = restc->websocket_handler_memo;
+  if (handler == NULL) handler = mtev_http_get_websocket_handler(restc);
+  if (handler != NULL) {
+    void *old_closure = restc, *new_closure;
+    return handler(restc, opcode, msg, msg_len);
+  }
+  mtev_http_response_status_set(ctx, 404, "NOT FOUND");
+  mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED);
+  mtev_http_rest_clean_request(restc);
+  mtev_http_response_end(ctx);
+  return -1;
+}
+
+int
 mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
   mtev_http_rest_closure_t *restc = mtev_http_session_dispatcher_closure(ctx);
   rest_request_handler handler = restc->fastpath;
@@ -412,8 +527,10 @@ socket_error:
     restc->ac = ac;
     restc->remote_cn = strdup(ac->remote_cn ? ac->remote_cn : "");
     restc->http_ctx =
-        mtev_http_session_ctx_new(mtev_rest_request_dispatcher,
-                                  restc, e, ac);
+        mtev_http_session_ctx_websocket_new(mtev_rest_request_dispatcher,
+                                            mtev_rest_websocket_dispatcher, 
+                                            restc, 
+                                            e, ac);
     
     switch(ac->cmd) {
       case MTEV_CONTROL_DELETE:
@@ -465,8 +582,9 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
     ac->service_ctx_free = mtev_http_rest_closure_free;
     restc->ac = ac;
     restc->http_ctx =
-        mtev_http_session_ctx_new(mtev_rest_request_dispatcher,
-                                  restc, e, ac);
+      mtev_http_session_ctx_websocket_new(mtev_rest_request_dispatcher, 
+                                          mtev_rest_websocket_dispatcher,
+                                          restc, e, ac);
   }
   rv = mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
   if(done) {

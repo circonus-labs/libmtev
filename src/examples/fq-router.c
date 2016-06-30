@@ -43,6 +43,8 @@
 #include <eventer/eventer.h>
 #include <mtev_fq.h>
 
+#include <fq.h>
+
 #include <stdio.h>
 #include <getopt.h>
 
@@ -74,7 +76,7 @@ parse_cli_args(int argc, char * const *argv) {
   }
 }
 static mtev_hook_return_t
-on_msg_received(void *closure, fq_client client, int connection_id, fq_msg *message) {
+on_msg_received(void *closure, fq_client client, int connection_id, fq_msg *message, void * a, size_t b) {
   mtevL(mtev_stderr, "Received message via connection %d: %s\n", connection_id, message->payload);
 
   fq_msg_route(message, "testing.foo", strlen("testing.foo"));
