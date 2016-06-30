@@ -792,9 +792,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   }
 
   ctx->ssl = SSL_new(ctx->ssl_ctx);
-  if(dh2048_tmp)
-    SSL_set_tmp_dh_callback(ctx->ssl, tmp_dh_callback);
-  if(dh1024_tmp)
+  if(dh2048_tmp || dh1024_tmp)
     SSL_set_tmp_dh_callback(ctx->ssl, tmp_dh_callback);
   if(!ctx->ssl) goto bail;
   SSL_set_info_callback(ctx->ssl, eventer_SSL_server_info_callback);
