@@ -172,7 +172,7 @@ load_dh_params(const char *filename) {
   if(filename == NULL) return NULL;
   bio = BIO_new_file(filename, "r");
   if(bio == NULL) return NULL;
-  mtevL(mtev_notice, "Loading DH parameters from %s.\n", filename);
+  mtevL(eventer_deb, "Loading DH parameters from %s.\n", filename);
   PEM_read_bio_DHparams(bio, &dh, 0, NULL);
   BIO_free(bio);
   if(dh) {
