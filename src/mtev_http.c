@@ -6,7 +6,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above
@@ -17,7 +17,7 @@
  *       of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written
  *       permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -582,7 +582,7 @@ end_span(mtev_http_session_ctx *ctx) {
   mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_I64,
                              zipkin_http_bytes_out, false,
                              &nbytesout, 8, false);
-  
+
   mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, zipkin_ss_done, false);
   mtev_zipkin_span_publish(ctx->zipkin_span);
   ctx->zipkin_span = NULL;
@@ -1232,7 +1232,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
 
 /* this magic GUID is defined in the websocket specification and must
  * be what is used to create the accept key
- * 
+ *
  * See: https://tools.ietf.org/html/rfc6455#page-6
  */
 #define WS_ACCEPT_KEY_GUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
@@ -1258,7 +1258,7 @@ mtev_http_create_websocket_accept_key(char *dest, size_t dest_len, const char *c
 }
 
 #ifdef HAVE_WSLAY
-mtev_boolean 
+mtev_boolean
 mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
 {
   char accept_key[mtev_b64_encode_len(SHA_DIGEST_LENGTH) + 1];
@@ -1292,11 +1292,12 @@ mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
 
   if (strlen(sec_ws_key) != 24) {
     ctx->is_websocket = mtev_false;
+    mtevL(mtev_error, "Incoming sec-websocket-key is invalid length, expected 24, got: %d\n", strlen(sec_ws_key));
     return ctx->is_websocket;
   }
 
   mtev_http_create_websocket_accept_key(accept_key, sizeof(accept_key), sec_ws_key);
-  
+
   /* now we upgrade their socket */
   mtev_http_response_header_set(ctx, "Upgrade", "websocket");
   mtev_http_response_header_set(ctx, "Connection", "Upgrade");
@@ -1309,7 +1310,7 @@ mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
   return ctx->is_websocket;
 }
 
-static ssize_t 
+static ssize_t
 wslay_send_callback(wslay_event_context_ptr ctx,
                     const uint8_t *data, size_t len, int flags,
                     void *user_data)
@@ -1336,12 +1337,13 @@ wslay_send_callback(wslay_event_context_ptr ctx,
       wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     }
   }
+  mtevL(http_io, "   <- wslay_send_callback, sent (%d)\n", r);
 
   pthread_mutex_unlock(&session_ctx->write_lock);
   return r;
 }
 
-static ssize_t 
+static ssize_t
 wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
                     int flags, void *user_data)
 {
@@ -1354,9 +1356,9 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
     return -1;
   }
 
-  while((r = session_ctx->conn.e->opset->read(session_ctx->conn.e->fd, 
-                                              buf, len, &session_ctx->wanted_eventer_mask, 
-                                              session_ctx->conn.e)) == -1 
+  while((r = session_ctx->conn.e->opset->read(session_ctx->conn.e->fd,
+                                              buf, len, &session_ctx->wanted_eventer_mask,
+                                              session_ctx->conn.e)) == -1
         && errno == EINTR);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -1368,10 +1370,11 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
     wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     r = -1;
   }
-  return r;  
+  mtevL(http_io, "   -> wslay_recv_callback, read (%d)\n", r);
+  return r;
 }
 
-static void 
+static void
 wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
                            const struct wslay_event_on_msg_recv_arg *arg,
                            void *user_data)
@@ -1381,13 +1384,15 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
 
   if (!wslay_is_ctrl_frame(arg->opcode)) {
     if (session_ctx->websocket_dispatcher != NULL) {
+      mtevL(http_debug, "   <- websocket_dispatch (%d)\n", session_ctx->conn.e->fd);
       rv = session_ctx->websocket_dispatcher(session_ctx, arg->opcode, arg->msg, arg->msg_length);
+      mtevL(http_debug, "   <- websocket_dispatch (%d) == %d\n", session_ctx->conn.e->fd, rv);
       if (rv != 0) {
         /* force the drive loop to abandon this as a websocket */
         session_ctx->is_websocket = mtev_false;
       }
     } else {
-       mtevL(http_debug, "session_ctx has no websocket_dispatcher function set\n");
+       mtevL(mtev_error, "session_ctx has no websocket_dispatcher function set\n");
        session_ctx->is_websocket = mtev_false;
     }
   }
@@ -1404,7 +1409,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
   if(origmask & EVENTER_EXCEPTION)
     goto abort_drive;
 
-  /* Drainage -- this is as nasty as it sounds 
+  /* Drainage -- this is as nasty as it sounds
    * The last request could have unread upload content, we would have
    * noted that in mtev_http_request_release.
    */
@@ -1431,10 +1436,12 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
 
 #ifdef HAVE_WSLAY
     if (ctx->did_handshake == mtev_false) {
+      mtevL(http_debug, "   -> checking for websocket(%d)\n", e->fd);
       mtev_http_websocket_handshake(ctx);
     }
 
     if (ctx->is_websocket == mtev_true) {
+      mtevL(http_debug, "   ... *is* websocket(%d)\n", e->fd);
       /* init the wslay library for websocket communication */
       wslay_event_context_server_init(&ctx->wslay_ctx, &wslay_callbacks, ctx);
     } else {
@@ -1463,7 +1470,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
   if (ctx->is_websocket == mtev_true) {
     /* dispatcher is called differently under websockets, it is handled
      * by the wslay event callbacks.
-     * 
+     *
      * In addition, since websockets are meant for message passing, we call a special
      * dispatch function when we have fully received a websocket message.
      */
@@ -1473,17 +1480,19 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
       goto abort_drive;
     }
 
+    mtevL(http_debug, "   -> mtev_http_session_drive, websocket recv(%d)\n", e->fd);
     if (wslay_event_recv(ctx->wslay_ctx) != 0) {
       /* serious error on the `recv` side, abort */
       goto abort_drive;
     }
 
+    mtevL(http_debug, "   <- mtev_http_session_drive, websocket send(%d)\n", e->fd);
     if (wslay_event_send(ctx->wslay_ctx) != 0) {
       goto abort_drive;
     }
 
     /* this could be a very long lived socket
-     * return for now and await another IO event to trigger 
+     * return for now and await another IO event to trigger
      * more communication
      */
     *done = 0;
@@ -1541,13 +1550,13 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
 }
 
 mtev_http_session_ctx *
-mtev_http_session_ctx_new(mtev_http_dispatch_func f, void *c, eventer_t e, acceptor_closure_t *ac) 
+mtev_http_session_ctx_new(mtev_http_dispatch_func f, void *c, eventer_t e, acceptor_closure_t *ac)
 {
   return mtev_http_session_ctx_websocket_new(f, NULL, c, e, ac);
 }
 
 mtev_http_session_ctx *
-mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http_websocket_dispatch_func wf, 
+mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http_websocket_dispatch_func wf,
                                     void *c, eventer_t e, acceptor_closure_t *ac)
 {
   mtev_http_session_ctx *ctx;
@@ -2031,7 +2040,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
     /* Append an ending (chunked) */
     if(r) {
       r->next = n;
-      if(n) { 
+      if(n) {
         ctx->res.output_raw_last = n;
         n->prev = r;
       }
