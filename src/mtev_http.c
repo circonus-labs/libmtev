@@ -1186,9 +1186,11 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
         RELEASE_BCHAIN(tofree);
         if(in == NULL) {
           ctx->req.last_input = NULL;
-          mtevL(http_debug, " ... mtev_http_session_req_consume = %d\n",
-                (int)bytes_read);
-          return bytes_read;
+          if (bytes_read != 0) {
+            mtevL(http_debug, " ... mtev_http_session_req_consume = %d\n",
+                  (int)bytes_read);
+            return bytes_read;
+          }
         }
       }
     }
