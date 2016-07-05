@@ -172,6 +172,7 @@ load_dh_params(const char *filename) {
   if(filename == NULL) return NULL;
   bio = BIO_new_file(filename, "r");
   if(bio == NULL) return NULL;
+  mtevL(eventer_deb, "Loading DH parameters from %s.\n", filename);
   PEM_read_bio_DHparams(bio, &dh, 0, NULL);
   BIO_free(bio);
   if(dh) {
@@ -194,6 +195,7 @@ save_dh_params(DH *p, const char *filename) {
   if(fd < 0) return;
   bio = BIO_new_fd(fd, 0);
   if(bio == NULL) { close(fd); return; }
+  mtevL(mtev_notice, "Saving DH parameters to %s.\n", filename);
   PEM_write_bio_DHparams(bio,p);
   BIO_free(bio);
   fchmod(fd, 0400);
@@ -201,27 +203,29 @@ save_dh_params(DH *p, const char *filename) {
   return;
 }
 
-static DH *dh512_tmp = NULL, *dh1024_tmp = NULL;
-static const char *dh512_file = NULL, *dh1024_file = NULL;
+static DH *dh1024_tmp = NULL, *dh2048_tmp = NULL;
+static const char *dh1024_file = NULL, *dh2048_file = NULL;
 static int
 generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
   int bits = (int)(vpsized_int)cl;
   if(mask != EVENTER_ASYNCH_WORK) return 0;
   switch(bits) {
-  case 512:
-    if(!dh512_tmp) dh512_tmp = load_dh_params(dh512_file);
-    if(!dh512_tmp) {
-      mtevL(eventer_deb, "Generating 512 bit DH parameters.\n");
-      dh512_tmp = DH_generate_parameters(512, 2, NULL, NULL);
-      save_dh_params(dh512_tmp, dh512_file);
-    }
-    break;
   case 1024:
     if(!dh1024_tmp) dh1024_tmp = load_dh_params(dh1024_file);
     if(!dh1024_tmp) {
-      mtevL(eventer_deb, "Generating 1024 bit DH parameters.\n");
+      mtevL(mtev_notice, "Generating 1024 bit DH parameters.\n");
       dh1024_tmp = DH_generate_parameters(1024, 2, NULL, NULL);
+      mtevL(mtev_notice, "Finished generating 1024 bit DH parameters.\n");
       save_dh_params(dh1024_tmp, dh1024_file);
+    }
+    break;
+  case 2048:
+    if(!dh2048_tmp) dh2048_tmp = load_dh_params(dh2048_file);
+    if(!dh2048_tmp) {
+      mtevL(mtev_notice, "Generating 2048 bit DH parameters.\n");
+      dh2048_tmp = DH_generate_parameters(2048, 2, NULL, NULL);
+      mtevL(mtev_notice, "Finished generating 2048 bit DH parameters.\n");
+      save_dh_params(dh2048_tmp, dh2048_file);
     }
     break;
   default:
@@ -231,18 +235,9 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
 }
 static DH *
 tmp_dh_callback(SSL *s, int is_export, int keylen) {
-  DH *dh_tmp=NULL;
-  switch (keylen) {
-  case 512:
-    dh_tmp = dh512_tmp;
-    break;
-  case 1024:
-    dh_tmp = dh1024_tmp;
-    break;
-  default:
-    mtevL(mtev_error, "What? DH request(%d,%d).\n", is_export, keylen);
-  }
-  return dh_tmp;
+  if(dh2048_tmp) return dh2048_tmp;
+  if(dh1024_tmp) return dh1024_tmp;
+  return NULL;
 }
 
 static int
@@ -754,6 +749,12 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
 #ifdef SSL_OP_NO_TICKET
     ctx_options |= SSL_OP_NO_TICKET;
 #endif
+#ifdef SSL_OP_SINGLE_DH_USE
+    ctx_options |= SSL_OP_SINGLE_DH_USE;
+#endif
+#ifdef SSL_OP_SINGLE_ECDH_USE
+    ctx_options |= SSL_OP_SINGLE_ECDH_USE;
+#endif
     SSL_CTX_set_options(ctx->ssl_ctx, ctx_options);
 #ifdef SSL_MODE_RELEASE_BUFFERS
     SSL_CTX_set_mode(ctx->ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
@@ -791,7 +792,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   }
 
   ctx->ssl = SSL_new(ctx->ssl_ctx);
-  if(dh512_tmp && dh1024_tmp)
+  if(dh2048_tmp || dh1024_tmp)
     SSL_set_tmp_dh_callback(ctx->ssl, tmp_dh_callback);
   if(!ctx->ssl) goto bail;
   SSL_set_info_callback(ctx->ssl, eventer_SSL_server_info_callback);
@@ -1083,12 +1084,12 @@ void eventer_ssl_set_ssl_ctx_cache_expiry(int timeout) {
   ssl_ctx_cache_expiry = timeout;
 }
 int eventer_ssl_config(const char *key, const char *value) {
-  if(!strcmp(key, "ssl_dhparam512_file")) {
-    dh512_file = strdup(value);
-    return 0;
-  }
   if(!strcmp(key, "ssl_dhparam1024_file")) {
     dh1024_file = strdup(value);
+    return 0;
+  }
+  if(!strcmp(key, "ssl_dhparam2048_file")) {
+    dh2048_file = strdup(value);
     return 0;
   }
   if(!strcmp(key, "ssl_ctx_cache_expiry")) {
@@ -1115,18 +1116,18 @@ void eventer_ssl_init() {
   SSL_library_init();
   OpenSSL_add_all_ciphers();
 
-  if (!dh512_file || strcmp(dh512_file, "")) {
-    e = eventer_alloc();
-    e->mask = EVENTER_ASYNCH;
-    e->callback = generate_dh_params;
-    e->closure = (void *)512;
-    eventer_add_asynch(NULL, e);
-  }
   if (!dh1024_file || strcmp(dh1024_file, "")) {
     e = eventer_alloc();
     e->mask = EVENTER_ASYNCH;
     e->callback = generate_dh_params;
     e->closure = (void *)1024;
+    eventer_add_asynch(NULL, e);
+  }
+  if (!dh2048_file || strcmp(dh2048_file, "")) {
+    e = eventer_alloc();
+    e->mask = EVENTER_ASYNCH;
+    e->callback = generate_dh_params;
+    e->closure = (void *)2048;
     eventer_add_asynch(NULL, e);
   }
   return;
