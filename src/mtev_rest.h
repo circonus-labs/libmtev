@@ -50,6 +50,8 @@ typedef struct mtev_http_rest_closure mtev_http_rest_closure_t;
 
 typedef int (*rest_request_handler)(mtev_http_rest_closure_t *,
                                     int npats, char **pats);
+typedef int (*rest_websocket_message_handler)(mtev_http_rest_closure_t *,
+                                              int opcode, const unsigned char *msg, size_t msg_len);
 typedef mtev_boolean (*rest_authorize_func_t)(mtev_http_rest_closure_t *,
                                               int npats, char **pats);
 struct mtev_http_rest_closure {
@@ -57,6 +59,7 @@ struct mtev_http_rest_closure {
   acceptor_closure_t *ac;
   char *remote_cn;
   rest_request_handler fastpath;
+  rest_websocket_message_handler websocket_handler_memo;
   int nparams;
   char **params;
   int wants_shutdown;
@@ -84,6 +87,43 @@ API_EXPORT(int)
                                   void *closure);
 
 API_EXPORT(int)
+  mtev_http_rest_websocket_register(const char *base,
+                                    const char *expression, 
+                                    const char *protocol,
+                                    rest_websocket_message_handler f);
+
+API_EXPORT(int)
+  mtev_http_rest_websocket_register_closure(const char *base,
+                                            const char *expression, 
+                                            const char *protocol,
+                                            rest_websocket_message_handler f,
+                                            void *closure);
+
+/* 
+ * Websocket auth does not differ from normal rest auth.  This is merely a convenience
+ * function to register a rest auth for the "GET" method at this same base and expression.
+ * It has the effect of applying rest auth on the initial websocket request.  Once the
+ * socket is established, further authentication or authorization must be applied in 
+ * your rest_websocket_message_handler callback function which will have access
+ * to the mtev_http_session_ctx if you need to read headers and whatnot.
+ */ 
+API_EXPORT(int)
+  mtev_http_rest_websocket_register_auth(const char *base,
+                                         const char *expression, 
+                                         const char *protocol,
+                                         rest_websocket_message_handler f,
+                                         rest_authorize_func_t auth);
+
+API_EXPORT(int)
+  mtev_http_rest_websocket_register_auth_closure(const char *base,
+                                                 const char *expression, 
+                                                 const char *protocol,
+                                                 rest_websocket_message_handler f,
+                                                 rest_authorize_func_t auth,
+                                                 void *closure);
+
+
+API_EXPORT(int)
   mtev_http_rest_register_auth(const char *method, const char *base,
                                const char *expression, rest_request_handler f,
                                rest_authorize_func_t auth);
@@ -91,6 +131,8 @@ API_EXPORT(int)
 API_EXPORT(int)
   mtev_http_rest_register_auth_closure(const char *method, const char *base,
                                        const char *expression, rest_request_handler f,
+                                       rest_websocket_message_handler wf, 
+                                       const char *websocket_protocol, 
                                        rest_authorize_func_t auth, void *closure);
 
 API_EXPORT(void)
