@@ -406,8 +406,8 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       pthread_mutex_unlock(&cct->parent->lock);
       needs_unlock = 0;
     }
-    e->opset->close(e->fd, &write_mask, e);
     eventer_remove_fd(e->fd);
+    e->opset->close(e->fd, &write_mask, e);
     CHANNEL.pair[0] = CHANNEL.pair[1] = -1;
     mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
     mtev_reverse_socket_deref(cct->parent);
