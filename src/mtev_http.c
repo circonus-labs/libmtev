@@ -1435,6 +1435,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     mask = mtev_http_complete_request(ctx, origmask);
     mtevL(http_debug, "   <- mtev_http_complete_request(%d) = %d\n",
           e->fd, mask);
+    if(ctx->conn.e == NULL) goto release;
 
 #ifdef HAVE_WSLAY
     if (ctx->did_handshake == mtev_false) {
@@ -1449,7 +1450,6 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     } else {
 #endif
       _http_perform_write(ctx, &maybe_write_mask);
-      if(ctx->conn.e == NULL) goto release;
       if(ctx->req.complete != mtev_true) {
         mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", e->fd,
               mask|maybe_write_mask);
