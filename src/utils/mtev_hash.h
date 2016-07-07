@@ -86,7 +86,7 @@ typedef struct ck_hash_attr {
 CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
                 index_attribute_container)
 
-#define MTEV_HASH_EMPTY { { NULL, NULL, 0, 0, NULL, NULL} }
+#define MTEV_HASH_EMPTY { {{ NULL, NULL, 0, 0, NULL, NULL}} }
 #define MTEV_HASH_ITER_ZERO CK_HS_ITERATOR_INITIALIZER
 
 /**
