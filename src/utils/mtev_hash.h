@@ -38,11 +38,24 @@
 
 #include "mtev_config.h"
 #include <ck_hs.h>
+#include <ck_spinlock.h>
 
 typedef void (*NoitHashFreeFunc)(void *);
 
-typedef struct {
+typedef enum mtev_hash_lock_mode {
+  MTEV_HASH_LOCK_MODE_NONE = 0,
+  MTEV_HASH_LOCK_MODE_MUTEX = 1,
+  MTEV_HASH_LOCK_MODE_SPIN = 2
+} mtev_hash_lock_mode_t;
+
+typedef struct mtev_hash_table {
   ck_hs_t hs CK_CC_CACHELINE;
+  void (*lock)(struct mtev_hash_table *h);
+  void (*unlock)(struct mtev_hash_table *h);
+  union {
+    pthread_mutex_t hs_lock;
+    ck_spinlock_t hs_spinlock;
+  } locks;
 } mtev_hash_table;
 
 typedef struct ck_key {
@@ -64,8 +77,28 @@ typedef ck_hs_iterator_t mtev_hash_iter;
 #define MTEV_HASH_EMPTY { { NULL, NULL, 0, 0, NULL, NULL} }
 #define MTEV_HASH_ITER_ZERO CK_HS_ITERATOR_INITIALIZER
 
+/**
+ * will default to LOCK_MODE_MUTEX
+ */
 void mtev_hash_init(mtev_hash_table *h);
+/**
+ * will default to LOCK_MODE_MUTEX
+ */
 void mtev_hash_init_size(mtev_hash_table *h, int size);
+/**
+ * Choose the lock mode when initing the hash.
+ * 
+ * It's worth noting that the lock only affects the write side of the hash,
+ * the read side remains completely lock free.
+ */
+void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode);
+
+/**
+ * Change the lock mode of the hash.  This is not safe to call in an multi-threaded environment
+ * and can lead to deadlocks if you change this willy-nilly while your app is running.
+ */
+void mtev_hash_set_lock_mode(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mode);
+
 /* NOTE! "k" and "data" MUST NOT be transient buffers, as the hash table
  * implementation does not duplicate them.  You provide a pair of
  * NoitHashFreeFunc functions to free up their storage when you call
