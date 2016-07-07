@@ -40,6 +40,21 @@
 #include <ck_epoch.h>
 #include <unistd.h>
 
+typedef struct ck_key {
+  u_int32_t len;
+  char label[1];
+} ck_key_t;
+
+typedef struct ck_hash_attr {
+  void *data;
+  void *key_ptr;
+  ck_key_t key;
+} ck_hash_attr_t;
+
+CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
+                index_attribute_container)
+
+
 #define ONSTACK_KEY_SIZE 128
 #define NoitHASH_INITIAL_SIZE (1<<7)
 
@@ -187,12 +202,12 @@ none_unlock(mtev_hash_table *h) {
 
 static inline void
 spinlock_lock(mtev_hash_table *h) {
-  ck_spinlock_lock(&h->locks.hs_spinlock);
+  mtev_spinlock_lock(&h->locks.hs_spinlock);
 }
 
 static inline void
 spinlock_unlock(mtev_hash_table *h) {
-  ck_spinlock_unlock(&h->locks.hs_spinlock);
+  mtev_spinlock_unlock(&h->locks.hs_spinlock);
 }
 
 static inline void
@@ -242,7 +257,7 @@ mtev_hash_set_lock_mode_funcs(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mod
     h->unlock = &mutex_unlock;
     break;
   case MTEV_HASH_LOCK_MODE_SPIN:
-    ck_spinlock_init(&h->locks.hs_spinlock);
+    h->locks.hs_spinlock = 0;
     h->lock = &spinlock_lock;
     h->unlock = &spinlock_unlock;
     break;

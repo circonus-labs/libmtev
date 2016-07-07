@@ -37,8 +37,8 @@
 #define _MTEV_HASH_H
 
 #include "mtev_config.h"
+#include "mtev_atomic.h"
 #include <ck_hs.h>
-#include <ck_spinlock.h>
 
 typedef void (*NoitHashFreeFunc)(void *);
 
@@ -48,29 +48,16 @@ typedef enum mtev_hash_lock_mode {
   MTEV_HASH_LOCK_MODE_SPIN = 2
 } mtev_hash_lock_mode_t;
 
+
 typedef struct mtev_hash_table {
   ck_hs_t hs CK_CC_CACHELINE;
   void (*lock)(struct mtev_hash_table *h);
   void (*unlock)(struct mtev_hash_table *h);
   union {
     pthread_mutex_t hs_lock;
-    ck_spinlock_t hs_spinlock;
+    mtev_spinlock_t hs_spinlock;
   } locks;
 } mtev_hash_table;
-
-typedef struct ck_key {
-  u_int32_t len;
-  char label[1];
-} ck_key_t;
-
-typedef struct ck_hash_attr {
-  void *data;
-  void *key_ptr;
-  ck_key_t key;
-} ck_hash_attr_t;
-
-CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
-                index_attribute_container)
 
 typedef ck_hs_iterator_t mtev_hash_iter;
 
