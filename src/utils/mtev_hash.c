@@ -216,11 +216,13 @@ mutex_unlock(struct locks_container *h) {
 
 
 #define LOCK(h) do { \
-    ((struct locks_container *)h->u.locks.locks)->lock(h->u.locks.locks);  \
+  if (h->u.locks.locks == NULL) break; \
+  ((struct locks_container *)h->u.locks.locks)->lock(h->u.locks.locks); \
   } while (0)
 
 #define UNLOCK(h) do { \
-    ((struct locks_container *)h->u.locks.locks)->unlock(h->u.locks.locks);  \
+  if (h->u.locks.locks == NULL) break; \
+  ((struct locks_container *)h->u.locks.locks)->unlock(h->u.locks.locks); \
   } while (0)
 
 struct ck_hs_map {
@@ -272,8 +274,6 @@ mtev_hash_destroy_locks(mtev_hash_table *h)
 void mtev_hash_init_size(mtev_hash_table *h, int size) {
   mtev_hash_init_locks(h, size, MTEV_HASH_LOCK_MODE_MUTEX);
 }
-
-
 
 void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode) {
   if(!rand_init) {
