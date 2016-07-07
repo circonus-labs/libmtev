@@ -20,7 +20,7 @@ void *thread_func(void *arg)
 #define THREAD_COUNT 4
 
 static void do_test(mtev_hash_lock_mode_t lock_mode) {
-  mtev_hash_table hash;
+  mtev_hash_table hash = MTEV_HASH_EMPTY;
 
   mtev_hash_init_locks(&hash, 400, lock_mode);
 

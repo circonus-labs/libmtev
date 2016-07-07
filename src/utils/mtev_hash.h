@@ -50,13 +50,23 @@ typedef enum mtev_hash_lock_mode {
 
 
 typedef struct mtev_hash_table {
-  ck_hs_t hs CK_CC_CACHELINE;
-  void (*lock)(struct mtev_hash_table *h);
-  void (*unlock)(struct mtev_hash_table *h);
   union {
-    pthread_mutex_t hs_lock;
-    mtev_spinlock_t hs_spinlock;
-  } locks;
+    ck_hs_t hs;
+    /**
+     * This is evil.  In order to maintain ABI compat 
+     * we are sneaking lock info into a pointer
+     * in the leftover space for cache alignment
+     * 
+     * A ck_hs_t is ~48 bytes but since it has
+     * always been declared up to a cache line
+     * there is trailing space we can sneak a 
+     * pointer into
+     */
+    struct {
+      char pad[sizeof(ck_hs_t)];
+      void *locks;
+    } locks;
+  } u CK_CC_CACHELINE;
 } mtev_hash_table;
 
 typedef ck_hs_iterator_t mtev_hash_iter;
