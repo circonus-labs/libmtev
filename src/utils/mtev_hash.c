@@ -277,12 +277,6 @@ void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lo
   mtev_hash_set_lock_mode_funcs(h, lock_mode);
 }
 
-void
-mtev_hash_set_lock_mode(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mode)
-{
-  mtev_hash_set_lock_mode_funcs(h, lock_mode);
-}
-
 int mtev_hash_size(mtev_hash_table *h) {
   if(h->hs.hf == NULL) mtev_hash_init(h);
   return ck_hs_count(&h->hs);

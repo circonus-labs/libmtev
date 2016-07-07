@@ -95,12 +95,6 @@ void mtev_hash_init_size(mtev_hash_table *h, int size);
  */
 void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode);
 
-/**
- * Change the lock mode of the hash.  This is not safe to call in an multi-threaded environment
- * and can lead to deadlocks if you change this willy-nilly while your app is running.
- */
-void mtev_hash_set_lock_mode(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mode);
-
 /* NOTE! "k" and "data" MUST NOT be transient buffers, as the hash table
  * implementation does not duplicate them.  You provide a pair of
  * NoitHashFreeFunc functions to free up their storage when you call
