@@ -185,22 +185,22 @@ none_unlock(mtev_hash_table *h) {
   (void)h;
 };
 
-static inline void 
+static inline void
 spinlock_lock(mtev_hash_table *h) {
   ck_spinlock_lock(&h->locks.hs_spinlock);
 }
 
-static inline void 
+static inline void
 spinlock_unlock(mtev_hash_table *h) {
   ck_spinlock_unlock(&h->locks.hs_spinlock);
 }
 
-static inline void 
+static inline void
 mutex_lock(mtev_hash_table *h) {
   pthread_mutex_lock(&h->locks.hs_lock);
 }
 
-static inline void 
+static inline void
 mutex_unlock(mtev_hash_table *h) {
   pthread_mutex_unlock(&h->locks.hs_lock);
 }
@@ -228,8 +228,8 @@ struct ck_hs_map {
   void **entries;
 };
 
-static void 
-mtev_hash_set_lock_mode_funcs(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mode) 
+static void
+mtev_hash_set_lock_mode_funcs(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mode)
 {
   switch (lock_mode) {
   case MTEV_HASH_LOCK_MODE_NONE:
@@ -247,6 +247,14 @@ mtev_hash_set_lock_mode_funcs(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mod
     h->unlock = &spinlock_unlock;
     break;
   };
+}
+
+static void
+mtev_hash_destroy_locks(mtev_hash_table *h)
+{
+  if (h->lock == mutex_lock) {
+    pthread_mutex_destroy(&h->locks.hs_lock);
+  }
 }
 
 
@@ -269,8 +277,8 @@ void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lo
   mtev_hash_set_lock_mode_funcs(h, lock_mode);
 }
 
-void 
-mtev_hash_set_lock_mode(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mode) 
+void
+mtev_hash_set_lock_mode(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mode)
 {
   mtev_hash_set_lock_mode_funcs(h, lock_mode);
 }
@@ -443,6 +451,7 @@ void mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFre
   LOCK(h);
   ck_hs_destroy(&h->hs);
   UNLOCK(h);
+  mtev_hash_destroy_locks(h);
 }
 
 void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src) {

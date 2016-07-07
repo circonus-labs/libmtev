@@ -45,8 +45,7 @@ typedef void (*NoitHashFreeFunc)(void *);
 typedef enum mtev_hash_lock_mode {
   MTEV_HASH_LOCK_MODE_NONE = 0,
   MTEV_HASH_LOCK_MODE_MUTEX = 1,
-  MTEV_HASH_LOCK_MODE_SPIN = 2,
-  MTEV_HASH_LOCK_MODE_SIZE
+  MTEV_HASH_LOCK_MODE_SPIN = 2
 } mtev_hash_lock_mode_t;
 
 typedef struct mtev_hash_table {
