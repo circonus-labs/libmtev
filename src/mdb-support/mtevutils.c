@@ -400,7 +400,7 @@ static int mtev_hash_walk_init(mdb_walk_state_t *s) {
   if(mdb_vread(&l, sizeof(l), s->walk_addr) == -1) {
     return WALK_ERR;
   }
-  if(mdb_vread(map, sizeof(struct ck_hs_map), (uintptr_t)l.hs.map) == -1) {
+  if(mdb_vread(map, sizeof(struct ck_hs_map), (uintptr_t)l.u.hs.map) == -1) {
     return WALK_ERR;
   }
   probe_bound = mdb_zalloc(sizeof(CK_HS_WORD) * map->n_entries, UM_GC);
@@ -413,9 +413,9 @@ static int mtev_hash_walk_init(mdb_walk_state_t *s) {
   if(map->n_entries == 0) {
     return WALK_DONE;
   }
-  l.hs.map = map;
-  l.hs.compare = hs_compare;
-  l.hs.hf = hs_hash;
+  l.u.hs.map = map;
+  l.u.hs.compare = hs_compare;
+  l.u.hs.hf = hs_hash;
   //l.hs.m = &my_allocator;
   hh = mdb_zalloc(sizeof(struct hash_helper), UM_GC);
   hh->l = l;
@@ -445,7 +445,7 @@ static int mtev_hash_walk_init(mdb_walk_state_t *s) {
   map->entries = (void**)buckets;
   hh->bucket = 0;
   for(;hh->bucket<hh->size;hh->bucket++) {
-    ck_key_t *key = l.hs.map->entries[hh->bucket];
+    ck_key_t *key = l.u.hs.map->entries[hh->bucket];
     if (key && key->len != 0) {
       void *data = NULL;
 
@@ -464,11 +464,11 @@ static int mtev_hash_walk_step(mdb_walk_state_t *s) {
   mtev_hash_table l = hh->l;
   if(s->walk_data == NULL) return WALK_DONE;
   for(;hh->bucket<hh->size;hh->bucket++) {
-    ck_key_t *key = l.hs.map->entries[hh->bucket];
+    ck_key_t *key = l.u.hs.map->entries[hh->bucket];
     if (key && key->len != 0) {
       void *data = NULL;
 
-      mtev_hash_retrieve2(l.hs.map, key, &data);
+      mtev_hash_retrieve2(l.u.hs.map, key, &data);
       s->walk_addr = (uintptr_t)data;
       s->walk_callback(s->walk_addr, &dummy, s->walk_cbdata);
       hh->bucket++;
@@ -507,7 +507,7 @@ mtev_log_dcmd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
     return DCMD_USAGE;
   }
   if(mdb_readsym(&l, sizeof(l), "mtev_loggers") == -1) return DCMD_ERR;
-  if(mdb_vread(&map, sizeof(map), (uintptr_t)l.hs.map) == -1) return DCMD_ERR;
+  if(mdb_vread(&map, sizeof(map), (uintptr_t)l.u.hs.map) == -1) return DCMD_ERR;
   if(map.n_entries == 0) return DCMD_OK;
   buckets = mdb_zalloc(sizeof(void *) * map.capacity, UM_GC);
   vmem = (uintptr_t)map.entries;
