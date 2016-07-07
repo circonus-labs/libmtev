@@ -61,6 +61,21 @@ typedef struct mtev_hash_table {
 
 typedef ck_hs_iterator_t mtev_hash_iter;
 
+/* mdb support relies on this being exposed */
+typedef struct ck_key {
+  u_int32_t len;
+  char label[1];
+} ck_key_t;
+
+typedef struct ck_hash_attr {
+  void *data;
+  void *key_ptr;
+  ck_key_t key;
+} ck_hash_attr_t;
+
+CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
+                index_attribute_container)
+
 #define MTEV_HASH_EMPTY { { NULL, NULL, 0, 0, NULL, NULL} }
 #define MTEV_HASH_ITER_ZERO CK_HS_ITERATOR_INITIALIZER
 

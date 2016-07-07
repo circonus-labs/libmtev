@@ -40,21 +40,6 @@
 #include <ck_epoch.h>
 #include <unistd.h>
 
-typedef struct ck_key {
-  u_int32_t len;
-  char label[1];
-} ck_key_t;
-
-typedef struct ck_hash_attr {
-  void *data;
-  void *key_ptr;
-  ck_key_t key;
-} ck_hash_attr_t;
-
-CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
-                index_attribute_container)
-
-
 #define ONSTACK_KEY_SIZE 128
 #define NoitHASH_INITIAL_SIZE (1<<7)
 
