@@ -41,4 +41,4 @@ tap:	busted
 	_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua -o tap .
 
 clean:
-	rm hash_test
+	rm -f hash_test
