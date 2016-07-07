@@ -57,7 +57,7 @@ typedef struct mtev_hash_table {
      * we are sneaking lock info into a pointer
      * in the leftover space for cache alignment
      * 
-     * A ck_hs_t is ~42 bytes but since it has
+     * A ck_hs_t is ~48 bytes but since it has
      * always been declared up to a cache line
      * there is trailing space we can sneak a 
      * pointer into
@@ -66,7 +66,7 @@ typedef struct mtev_hash_table {
       char pad[sizeof(ck_hs_t)];
       void *locks;
     } locks;
-  } CK_CC_CACHELINE;
+  } u CK_CC_CACHELINE;
 } mtev_hash_table;
 
 typedef ck_hs_iterator_t mtev_hash_iter;
