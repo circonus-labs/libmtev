@@ -27,6 +27,9 @@ top_srcdir=@top_srcdir@
 
 all:	check
 
+hash_test: hash_test.c
+	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS)  -L../src -lmtev -lck -o hash_test hash_test.c
+
 busted:
 	@busted --version >/dev/null 2>/dev/null || \
 		(echo "Please instead busted: luarocks install busted" && false)
@@ -38,3 +41,4 @@ tap:	busted
 	_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua -o tap .
 
 clean:
+	rm hash_test
