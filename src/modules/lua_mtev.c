@@ -1725,12 +1725,12 @@ nl_readdir(lua_State *L) {
   DIR *root;
   struct dirent *de, *entry;
   int size = 0, cnt = 1;
-  int use_filter = 1;
-  if(lua_gettop(L) < 1 || lua_gettop(L) < 2)
+  int use_filter = 0;
+  if(lua_gettop(L) < 2 || lua_gettop(L) > 3)
     luaL_error(L, "bad call to mtev.readdir");
-  path = lua_tostring(L, 1);
-  if(lua_gettop(L) == 2) {
-    if(!lua_isfunction(L, 2))
+  path = lua_tostring(L, 2);
+  if(lua_gettop(L) == 3) {
+    if(!lua_isfunction(L, 3))
       luaL_error(L, "mtev.readdir second argument must be a function");
     use_filter = 1;
   }
@@ -1750,7 +1750,7 @@ nl_readdir(lua_State *L) {
     int use_value = 1;
     lua_pushstring(L, entry->d_name);
     if(use_filter) {
-      lua_pushvalue(L,2);   /* func */
+      lua_pushvalue(L,3);   /* func */
       lua_pushvalue(L,-2);  /* arg  */
       if(lua_pcall(L,1,1,0) != 0) {
         closedir(root);
