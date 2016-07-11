@@ -71,6 +71,28 @@
 static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
 
+static mtev_hash_table shared_table = MTEV_HASH_EMPTY;
+
+
+typedef struct {
+  mtev_hash_table string_keys;
+  mtev_hash_table int_keys;
+} mtev_lua_table_t;
+
+typedef struct {
+  int lua_type; // see lua.h (LUA_TNIL, LUA_TNUMBER, LUA_TBOOLEAN, LUA_TSTRING, LUA_TTABLE, LUA_TFUNCTION, LUA_TUSERDATA, LUA_TTHREAD, and LUA_TLIGHTUSERDATA)
+  union {
+    lua_Number number;
+    mtev_boolean boolean;
+    char *string;
+    mtev_lua_table_t* table;
+  } value;
+} lua_data_t;
+
+static lua_data_t* mtev_lua_serialize(lua_State *L, int index);
+void mtev_lua_deserialize(lua_State *L, const lua_data_t *data);
+static void mtev_lua_free_data(void *vdata);
+
 #define DEFLATE_CHUNK_SIZE 32768
 #define ON_STACK_LUA_STRLEN 2048
 
@@ -3455,6 +3477,200 @@ mtev_lua_process_gc(lua_State *L) {
   return 0;
 }
 
+static void
+mtev_lua_free_table(void *vtable) {
+  mtev_lua_table_t* table = vtable;
+  mtev_hash_destroy(&table->string_keys, free, mtev_lua_free_data);
+  mtev_hash_destroy(&table->int_keys, free, mtev_lua_free_data);
+  free(table);
+}
+
+static void
+mtev_lua_free_data(void *vdata) {
+  lua_data_t* data = vdata;
+  switch(data->lua_type){
+    case(LUA_TSTRING):
+      free(data->value.string);
+      break;
+    case(LUA_TTABLE):
+      mtev_lua_free_table(data->value.table);
+    break;
+  }
+
+  free(data);
+}
+
+static mtev_lua_table_t*
+mtev_lua_serialize_table(lua_State *L, int index) {
+  int key_type;
+  mtev_lua_table_t *table;
+  lua_data_t *value;
+  lua_Number number_key;
+  char* number_key_str;
+  const char* string_key;
+  size_t string_key_len;
+  table = calloc(1, sizeof(mtev_lua_table_t));
+
+  if(index < 0) {
+    index = lua_gettop(L) + index + 1;
+  }
+
+  lua_pushnil(L); // first key
+  while (lua_next(L, index) != 0) {
+    value = mtev_lua_serialize(L, -1);
+
+    if(lua_isnumber(L, -2)) {
+      number_key = lua_tonumber(L, -2);
+      number_key_str = malloc(sizeof(lua_Number));
+      memcpy(number_key_str, &number_key, sizeof(lua_Number));
+      double d = 1;
+      double d2 = 2;
+      mtev_hash_store(&table->int_keys, number_key_str, sizeof(lua_Number), value);
+
+    } else if(lua_isstring(L, -2)) {
+      string_key = lua_tolstring(L, -2, &string_key_len);
+      mtev_hash_store(&table->string_keys, strdup(string_key), string_key_len, value);
+    } else {
+      mtev_lua_free_table(table);
+      luaL_error(L, "Cannon serialize tables with anything but strings and numbers as keys\n");
+      return NULL;
+    }
+
+    lua_pop(L, 1); //remove value, keep key for next iteration
+  }
+
+  return table;
+}
+
+static lua_data_t*
+mtev_lua_serialize(lua_State *L, int index){
+  lua_data_t *data;
+  int type;
+  type = lua_type(L, index);
+
+  if(type == LUA_TNIL) {
+    return NULL;
+  }
+
+  data = calloc(1, sizeof(lua_data_t));
+  data->lua_type = type;
+
+  switch(type){
+    case(LUA_TNUMBER):
+      data->value.number = lua_tonumber(L, index);
+      break;
+    case(LUA_TSTRING):
+      data->value.string = strdup(lua_tostring(L, index));
+      break;
+    case(LUA_TBOOLEAN):
+      data->value.boolean = lua_toboolean(L, index);
+      break;
+    case(LUA_TTABLE):
+      data->value.table = mtev_lua_serialize_table(L, index);
+      break;
+    case(LUA_TNIL): // we already returned NULL
+    default: 
+      free(data);
+      mtevL(nlerr, "Cannot serialize unsupported lua type %d\n", type);
+  }
+
+  return data;
+}
+
+void
+mtev_lua_deserialize_table(lua_State *L, mtev_lua_table_t *table){
+  void *vdata;
+  lua_data_t *data;
+  const char *key;
+  lua_Number number_key;
+  int klen;
+  mtev_hash_iter int_iter = MTEV_HASH_ITER_ZERO;
+  mtev_hash_iter str_iter = MTEV_HASH_ITER_ZERO;
+
+  lua_createtable(L, 0, mtev_hash_size(&table->string_keys) + mtev_hash_size(&table->int_keys));
+
+  while(mtev_hash_next(&table->int_keys, &int_iter, &key, &klen, &vdata)) {
+    number_key = *(lua_Number*)key;
+    data = vdata;
+    lua_pushnumber(L, number_key);
+    mtev_lua_deserialize(L, data);
+    lua_settable(L, -3);
+  }
+
+  while(mtev_hash_next(&table->string_keys, &str_iter, &key, &klen, &vdata)) {
+    data = vdata;
+    lua_pushstring(L, key);
+    mtev_lua_deserialize(L, data);
+    lua_settable(L, -3);
+  }
+}
+
+void
+mtev_lua_deserialize(lua_State *L, const lua_data_t *data){
+  switch(data->lua_type){
+    case(LUA_TNUMBER):
+      lua_pushnumber(L, data->value.number);
+      break;
+    case(LUA_TSTRING):
+      lua_pushstring(L, data->value.string);
+      break;
+    case(LUA_TBOOLEAN):
+      lua_pushboolean(L, data->value.boolean);
+      break;
+    case(LUA_TTABLE):
+      // 
+      mtev_lua_deserialize_table(L, data->value.table);
+      break;
+    case(LUA_TNIL): // we already returned NULL
+    default: 
+      mtevL(nlerr, "Cannot deserialize unsupported lua type %d\n", data->lua_type);
+  }
+}
+
+static int
+nl_shared_set(lua_State *L) {
+  void* vdata;
+  lua_data_t *data;
+  size_t key_len;
+  const char *key;
+  if(lua_gettop(L) != 2 || !lua_isstring(L,1))
+    return luaL_error(L, "bad parameters to mtev.shared_set(str, str)");
+  key = lua_tolstring(L, 1, &key_len);
+
+  data = mtev_lua_serialize(L, 2);
+  if(!mtev_hash_retrieve(&shared_table, key, key_len, &vdata)) {
+    if(data != NULL) {
+      mtev_hash_store(&shared_table, strdup(key), key_len, data);
+    }
+  } else {
+    if(lua_isnil(L,2)) {
+      mtev_hash_delete(&shared_table, key, key_len, free, mtev_lua_free_data);
+    } else {
+      mtev_hash_replace(&shared_table, strdup(key), key_len, data, free, mtev_lua_free_data);
+    }
+  }
+
+  return 0;
+}
+
+static int
+nl_shared_get(lua_State *L) {
+  lua_data_t *data;
+  size_t len;
+  const char *key;
+  if(lua_gettop(L) != 1 || !lua_isstring(L,1))
+    return luaL_error(L, "bad parameters to mtev.shared_get(str)");
+  key = lua_tolstring(L, 1, &len);
+
+  if(!mtev_hash_retrieve(&shared_table, key, len, (void**)&data)) {
+    lua_pushnil(L);
+  } else {
+    mtev_lua_deserialize(L, data);
+  }
+
+  return 1;
+}
+
 static int
 nl_cancel_coro(lua_State *L) {
   mtev_lua_resume_info_t *ci;
@@ -3490,6 +3706,8 @@ static void mtev_lua_init() {
   if(!nlerr) nlerr = mtev_stderr;
   if(!nldeb) nldeb = mtev_debug;
   mtev_lua_init_dns();
+
+  mtev_hash_init_locks(&shared_table, 8, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 
 static const luaL_Reg mtevlib[] = {
@@ -3546,6 +3764,8 @@ static const luaL_Reg mtevlib[] = {
   { "spawn", nl_spawn },
   { "thread_self", nl_thread_self },
   { "eventer_loop_concurrency", nl_eventer_loop_concurrency },
+  { "shared_set", nl_shared_set},
+  { "shared_get", nl_shared_get},
   { NULL, NULL }
 };
 
