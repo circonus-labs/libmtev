@@ -69,6 +69,7 @@ typedef struct {
 } * listener_closure_t;
 
 API_EXPORT(void) mtev_listener_init(const char *toplevel);
+API_EXPORT(void) mtev_listener_init_globals();
 
 API_EXPORT(void) mtev_listener_skip(const char *address, int port);
 

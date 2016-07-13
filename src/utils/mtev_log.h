@@ -158,6 +158,8 @@ API_EXPORT(int)
                               int (*f)(u_int64_t, const struct timeval *,
                                       const char *, size_t, void *),
                               void *closure);
+API_EXPORT(void)
+  mtev_log_init_globals();
 
 #define mtevLT(ls, t, args...) do { \
   if((ls) && (mtev_log_global_enabled() || N_L_S_ON(ls))) \

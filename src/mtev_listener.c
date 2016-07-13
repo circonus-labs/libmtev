@@ -50,7 +50,7 @@
 
 static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
-static mtev_hash_table listener_commands = MTEV_HASH_EMPTY;
+static mtev_hash_table listener_commands;
 mtev_hash_table *
 mtev_listener_commands() {
   return &listener_commands;
@@ -401,6 +401,7 @@ mtev_listener(char *host, unsigned short port, int type,
   listener_closure->family = family;
   listener_closure->port = htons(port);
   listener_closure->sslconfig = calloc(1, sizeof(mtev_hash_table));
+  mtev_hash_init(listener_closure->sslconfig);
   mtev_hash_merge_as_dict(listener_closure->sslconfig, sslconfig);
   listener_closure->dispatch_callback = handler;
 
@@ -574,6 +575,7 @@ mtev_control_dispatch_delegate(eventer_func_t listener_dispatch,
                          (char *)&listener_dispatch, sizeof(listener_dispatch),
                          &vdelegation_table)) {
     delegation_table = calloc(1, sizeof(*delegation_table));
+    mtev_hash_init(delegation_table);
     handler_copy = malloc(sizeof(*handler_copy));
     *handler_copy = listener_dispatch;
     mtev_hash_store(&listener_commands,
@@ -631,5 +633,10 @@ mtev_listener_init(const char *toplevel) {
   eventer_name_callback("mtev_listener_accept_ssl", mtev_listener_accept_ssl);
   eventer_name_callback("control_dispatch", mtev_control_dispatch);
   mtev_listener_reconfig(toplevel);
+}
+
+void
+mtev_listener_init_globals() {
+  mtev_hash_init(&listener_commands);
 }
 

@@ -100,10 +100,10 @@ static const int CMD_BUFF_LEN = 4096;
 
 static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
-static mtev_hash_table reverse_sockets = MTEV_HASH_EMPTY;
+static mtev_hash_table reverse_sockets;
 static pthread_rwlock_t reverse_sockets_lock;
 static pthread_mutex_t reverses_lock;
-static mtev_hash_table reverses = MTEV_HASH_EMPTY;
+static mtev_hash_table reverses;
 
 
 static void mtev_connection_initiate_connection(mtev_connection_ctx_t *ctx);
@@ -1750,7 +1750,8 @@ mtev_console_reverse_opts(mtev_console_closure_t ncct,
     int klen, i = 0;
     void *vconn;
     reverse_socket_t *ctx;
-    mtev_hash_table dedup = MTEV_HASH_EMPTY;
+    mtev_hash_table dedup;
+    mtev_hash_init(&dedup);
 
     pthread_rwlock_rdlock(&reverse_sockets_lock);
     while(mtev_hash_next(&reverse_sockets, &iter, &key_id, &klen, &vconn)) {
@@ -2063,4 +2064,9 @@ mtev_lua_help_initiate_mtev_connection(const char *address, int port,
                            mtev_reverse_socket_alloc(),
                            mtev_reverse_socket_deref);
   return 0;
+}
+void
+mtev_reverse_socket_init_globals() {
+  mtev_hash_init(&reverse_sockets);
+  mtev_hash_init(&reverses);
 }

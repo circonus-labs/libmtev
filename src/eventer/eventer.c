@@ -120,8 +120,8 @@ free_callback_details(void *vcd) {
   free(vcd);
 }
 
-static mtev_hash_table __name_to_func = MTEV_HASH_EMPTY;
-static mtev_hash_table __func_to_name = MTEV_HASH_EMPTY;
+static mtev_hash_table __name_to_func;
+static mtev_hash_table __func_to_name;
 int eventer_name_callback(const char *name, eventer_func_t f) {
   eventer_name_callback_ext(name, f, NULL, NULL);
   return 0;
@@ -189,3 +189,10 @@ int eventer_choose(const char *name) {
   }
   return -1;
 }
+
+void eventer_init_globals() {
+  mtev_hash_init(&__name_to_func);
+  mtev_hash_init(&__func_to_name);
+  eventer_ssl_init_globals();
+}
+

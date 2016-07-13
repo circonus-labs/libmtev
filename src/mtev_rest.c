@@ -79,7 +79,7 @@ struct rule_container {
   struct rest_url_dispatcher *rules;
   struct rest_url_dispatcher *rules_endptr;
 };
-mtev_hash_table dispatch_points = MTEV_HASH_EMPTY;
+mtev_hash_table dispatch_points;
 
 struct mtev_rest_acl_rule {
   mtev_boolean allow;
@@ -97,7 +97,7 @@ struct mtev_rest_acl {
   struct mtev_rest_acl *next;
 };
 
-static mtev_hash_table mime_type_defaults = MTEV_HASH_EMPTY;
+static mtev_hash_table mime_type_defaults;
 
 static struct mtev_rest_acl *global_rest_acls = NULL;
 
@@ -979,5 +979,9 @@ mtev_hash_store(&mime_type_defaults, strdup(ext), strlen(ext), strdup(type))
   mtev_control_dispatch_delegate(mtev_control_dispatch,
                                  MTEV_CONTROL_PUT,
                                  mtev_http_rest_handler);
+}
+void mtev_http_rest_init_globals() {
+  mtev_hash_init(&dispatch_points);
+  mtev_hash_init(&mime_type_defaults);
 }
 

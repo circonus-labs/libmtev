@@ -80,6 +80,7 @@ struct mtev_http_request {
   struct bchain *last_input;  /* The end of the input chain */
   struct bchain *current_input;  /* The point of the input where we */
   size_t         current_offset; /* analyzing. */
+  mtev_boolean freed;
 
   enum { MTEV_HTTP_REQ_HEADERS = 0,
          MTEV_HTTP_REQ_EXPECT,
@@ -132,6 +133,7 @@ struct mtev_http_response {
   z_stream *gzip;
   size_t output_chain_bytes;
   size_t output_raw_chain_bytes;
+  mtev_boolean freed;
 };
 
 struct mtev_http_session_ctx {
@@ -982,8 +984,11 @@ mtev_http_session_prime_input(mtev_http_session_ctx *ctx,
 
 void
 mtev_http_request_release(mtev_http_session_ctx *ctx) {
-  mtev_hash_destroy(&ctx->req.querystring, NULL, NULL);
-  mtev_hash_destroy(&ctx->req.headers, NULL, NULL);
+  if (ctx->req.freed == mtev_false) {
+    mtev_hash_destroy(&ctx->req.querystring, NULL, NULL);
+    mtev_hash_destroy(&ctx->req.headers, NULL, NULL);
+    ctx->req.freed = mtev_true;
+  }
   /* If we expected a payload, we expect a trailing \r\n */
   if(ctx->req.has_payload) {
     int drained, mask;
@@ -1001,10 +1006,13 @@ mtev_http_request_release(mtev_http_session_ctx *ctx) {
   }
   memset(&ctx->req.state, 0,
          sizeof(ctx->req) - (unsigned long)&(((mtev_http_request *)0)->state));
+  ctx->req.freed = mtev_true;
 }
 void
 mtev_http_response_release(mtev_http_session_ctx *ctx) {
-  mtev_hash_destroy(&ctx->res.headers, free, free);
+  if (ctx->res.freed == mtev_false) {
+    mtev_hash_destroy(&ctx->res.headers, free, free);
+  }
   if(ctx->res.status_reason) free(ctx->res.status_reason);
   RELEASE_BCHAIN(ctx->res.leader);
   RELEASE_BCHAIN(ctx->res.output);
@@ -1014,6 +1022,7 @@ mtev_http_response_release(mtev_http_session_ctx *ctx) {
     free(ctx->res.gzip);
   }
   memset(&ctx->res, 0, sizeof(ctx->res));
+  ctx->res.freed = mtev_true;
 }
 void
 mtev_http_ctx_session_release(mtev_http_session_ctx *ctx) {
@@ -1566,6 +1575,9 @@ mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http_websock
   ctx->ref_cnt = 1;
   pthread_mutex_init(&ctx->write_lock, NULL);
   ctx->req.complete = mtev_false;
+  mtev_hash_init(&ctx->req.headers);
+  mtev_hash_init(&ctx->req.querystring);
+  mtev_hash_init(&ctx->res.headers);
   ctx->conn.e = e;
   ctx->max_write = DEFAULT_MAXWRITE;
   ctx->dispatcher = f;

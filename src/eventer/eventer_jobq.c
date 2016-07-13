@@ -50,7 +50,7 @@
 static mtev_atomic32_t threads_jobq_inited = 0;
 static pthread_key_t threads_jobq;
 static sigset_t alarm_mask;
-static mtev_hash_table all_queues = MTEV_HASH_EMPTY;
+static mtev_hash_table all_queues;
 pthread_mutex_t all_queues_lock;
 
 static void
@@ -563,4 +563,7 @@ void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *),
     func((eventer_jobq_t *)vjobq, closure);
   }
   pthread_mutex_unlock(&all_queues_lock);
+}
+void eventer_jobq_init_globals() {
+  mtev_hash_init(&all_queues);
 }

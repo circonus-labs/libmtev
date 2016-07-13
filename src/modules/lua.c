@@ -47,9 +47,9 @@
 
 static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
-static mtev_hash_table mtev_lua_states = MTEV_HASH_EMPTY;
+static mtev_hash_table mtev_lua_states;
 static pthread_mutex_t mtev_lua_states_lock = PTHREAD_MUTEX_INITIALIZER;
-static mtev_hash_table mtev_coros = MTEV_HASH_EMPTY;
+static mtev_hash_table mtev_coros;
 static pthread_mutex_t coro_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void
@@ -818,4 +818,10 @@ mtev_lua_open(const char *module_name, void *lmc,
   pthread_mutex_unlock(&mtev_lua_states_lock);
 
   return L;
+}
+
+void
+mtev_lua_init_globals() {
+  mtev_hash_init(&mtev_lua_states);
+  mtev_hash_init(&mtev_coros);
 }

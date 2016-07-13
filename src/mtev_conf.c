@@ -282,7 +282,7 @@ mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c) {
   mtev_conf_watch_config_and_journal(NULL, EVENTER_TIMER, rj, &__now);
 }
 
-static mtev_hash_table _compiled_fallback = MTEV_HASH_EMPTY;
+static mtev_hash_table _compiled_fallback;
 
 static struct {
   const char *key;
@@ -1389,6 +1389,7 @@ mtev_conf_get_namespaced_hash(mtev_conf_section_t section,
   mtev_hash_table *table = NULL;
 
   table = calloc(1, sizeof(*table));
+  mtev_hash_init(table);
   mtev_conf_get_into_hash(section, path, table, ns);
   if(mtev_hash_size(table) == 0) {
     mtev_hash_destroy(table, free, free);
@@ -1403,6 +1404,7 @@ mtev_conf_get_hash(mtev_conf_section_t section, const char *path) {
   mtev_hash_table *table = NULL;
 
   table = calloc(1, sizeof(*table));
+  mtev_hash_init(table);
   mtev_conf_get_into_hash(section, path, table, NULL);
   return table;
 }
@@ -2742,3 +2744,8 @@ void mtev_console_conf_init() {
           mtev_console_state_delegate, mtev_console_opt_delegate,
           _write_state, NULL);
 }
+
+void mtev_conf_init_globals() {
+  mtev_hash_init(&_compiled_fallback);
+}
+

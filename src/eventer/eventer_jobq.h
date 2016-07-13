@@ -105,5 +105,6 @@ void eventer_jobq_increase_concurrency(eventer_jobq_t *jobq);
 void eventer_jobq_decrease_concurrency(eventer_jobq_t *jobq);
 void *eventer_jobq_consumer(eventer_jobq_t *jobq);
 void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *), void *);
+void eventer_jobq_init_globals();
 
 #endif

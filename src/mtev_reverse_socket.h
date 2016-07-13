@@ -108,4 +108,7 @@ API_EXPORT(int)
 API_EXPORT(int)
   mtev_reverse_socket_connection_shutdown(const char *address, int port);
 
+API_EXPORT(void)
+  mtev_reverse_socket_init_globals();
+
 #endif

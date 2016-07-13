@@ -362,8 +362,8 @@ mtev_log_memory_lines_since(mtev_log_stream_t ls, u_int64_t afterwhich,
 #define IS_DEBUG_BELOW(ls) ((ls)->flags_below & MTEV_LOG_STREAM_DEBUG)
 #define IS_FACILITY_BELOW(ls) ((ls)->flags_below & MTEV_LOG_STREAM_FACILITY)
 
-static mtev_hash_table mtev_loggers = MTEV_HASH_EMPTY;
-static mtev_hash_table mtev_logops = MTEV_HASH_EMPTY;
+static mtev_hash_table mtev_loggers;
+static mtev_hash_table mtev_logops;
 mtev_log_stream_t mtev_stderr = NULL;
 mtev_log_stream_t mtev_error = NULL;
 mtev_log_stream_t mtev_debug = NULL;
@@ -1177,8 +1177,7 @@ static logops_t jlog_logio_ops = {
 
 void
 mtev_log_init(int debug_on) {
-  mtev_hash_init(&mtev_loggers);
-  mtev_hash_init(&mtev_logops);
+  mtev_log_init_globals();
   mtev_register_logops("file", &posix_logio_ops);
   mtev_register_logops("jlog", &jlog_logio_ops);
   mtev_register_logops("memory", &membuf_logio_ops);
@@ -1792,5 +1791,11 @@ mtev_log_list(mtev_log_stream_t *loggers, int nsize) {
     total++;
   }
   return total * out_of_space_flag;
+}
+
+void
+mtev_log_init_globals() {
+  mtev_hash_init(&mtev_loggers);
+  mtev_hash_init(&mtev_logops);
 }
 
