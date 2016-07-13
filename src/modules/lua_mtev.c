@@ -3469,6 +3469,7 @@ static void mtev_lua_init() {
   static int done = 0;
   if(done) return;
   done = 1;
+  mtev_lua_init_globals();
   register_console_lua_commands();
   eventer_name_callback("lua/sleep", nl_sleep_complete);
   eventer_name_callback("lua/socket_read",

@@ -65,7 +65,7 @@ typedef struct mtev_capsvc_closure {
   size_t towrite;
 } mtev_capsvc_closure_t;
 
-static mtev_hash_table features = MTEV_HASH_EMPTY;
+static mtev_hash_table features;
 static int
   mtev_capabilities_rest(mtev_http_rest_closure_t *, int, char **);
 static void
@@ -448,4 +448,7 @@ cleanup_shutdown:
   goto cleanup_shutdown;
 }
 
-
+void
+mtev_capabilities_init_globals() {
+  mtev_hash_init(&features);
+}

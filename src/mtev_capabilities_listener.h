@@ -41,6 +41,9 @@
 #define MTEV_CAPABILITIES_SERVICE 0x43415041
 
 API_EXPORT(void)
+  mtev_capabilities_init_globals();
+
+API_EXPORT(void)
   mtev_capabilities_listener_init(void);
 
 API_EXPORT(void)

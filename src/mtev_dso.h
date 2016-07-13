@@ -134,6 +134,8 @@ API_EXPORT(void)
   mtev_dso_add_type(const char *name, int (*list)(const char ***));
 API_EXPORT(struct dso_type *)
   mtev_dso_get_types();
+API_EXPORT(void)
+  mtev_dso_init_globals();
 
 MTEV_HOOK_PROTO(dso_post_init,
                 (),

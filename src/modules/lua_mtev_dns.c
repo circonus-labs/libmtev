@@ -49,8 +49,8 @@
 #include "lua_mtev.h"
 #include <udns.h>
 
-static mtev_hash_table dns_rtypes = MTEV_HASH_EMPTY;
-static mtev_hash_table dns_ctypes = MTEV_HASH_EMPTY;
+static mtev_hash_table dns_rtypes;
+static mtev_hash_table dns_ctypes;
 static __thread mtev_hash_table *dns_ctx_store = NULL;
 
 typedef struct dns_ctx_handle {
@@ -519,10 +519,17 @@ int mtev_lua_dns_index_func(lua_State *L) {
   return 0;
 }
 
+void mtev_lua_init_dns_globals() {
+  mtev_hash_init(&dns_rtypes);
+  mtev_hash_init(&dns_ctypes);
+}
+
 void mtev_lua_init_dns() {
   int i;
   const struct dns_nameval *nv;
   struct dns_ctx *pctx;
+
+  mtev_lua_init_dns_globals();
 
   /* HASH the rr types */
   for(i=0, nv = &dns_typetab[i]; nv->name; nv = &dns_typetab[++i])
@@ -544,3 +551,4 @@ void mtev_lua_init_dns() {
   else
     dns_free(pctx);
 }
+

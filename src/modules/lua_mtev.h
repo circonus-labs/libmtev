@@ -130,6 +130,7 @@ int mtev_lua_coroutine_spawn(lua_State *Lp,
     mtev_lua_resume_info_t *(*new_ri_f)(lua_module_closure_t *));
 lua_State *mtev_lua_open(const char *module_name, void *lmc,
                          const char *script_dir, const char *cpath);
+void mtev_lua_init_globals();
 void register_console_lua_commands();
 int mtev_lua_traceback(lua_State *L);
 void mtev_lua_new_coro(mtev_lua_resume_info_t *);

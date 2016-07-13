@@ -70,8 +70,8 @@ mtev_dso_loader_t __mtev_image_loader = {
   mtev_load_generic_image
 };
 
-static mtev_hash_table loaders = MTEV_HASH_EMPTY;
-static mtev_hash_table generics = MTEV_HASH_EMPTY;
+static mtev_hash_table loaders;
+static mtev_hash_table generics;
 static int mtev_dso_load_failure_count = 0;
 
 int mtev_dso_load_failures() {
@@ -387,6 +387,11 @@ void mtev_dso_add_type(const char *name, int (*list)(const char ***)) {
   node->list = list;
   node->next = dso_types;
   dso_types = node;
+}
+
+void mtev_dso_init_globals() {
+  mtev_hash_init(&loaders);
+  mtev_hash_init(&generics);
 }
 
 #define userdata_accessors(type, field) \

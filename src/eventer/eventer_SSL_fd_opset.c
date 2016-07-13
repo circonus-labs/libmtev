@@ -69,7 +69,7 @@ typedef struct {
   mtev_atomic32_t refcnt;
 } ssl_ctx_cache_node;
 
-static mtev_hash_table ssl_ctx_cache = MTEV_HASH_EMPTY;
+static mtev_hash_table ssl_ctx_cache;
 static pthread_mutex_t ssl_ctx_cache_lock = PTHREAD_MUTEX_INITIALIZER;
 static int ssl_ctx_cache_expiry = 5;
 static int ssl_ctx_cache_finfo_expiry = 5;
@@ -1131,5 +1131,9 @@ void eventer_ssl_init() {
     eventer_add_asynch(NULL, e);
   }
   return;
+}
+
+void eventer_ssl_init_globals() {
+  mtev_hash_init(&ssl_ctx_cache);
 }
 

@@ -49,6 +49,11 @@
 #include "mtev_memory.h"
 #include "mtev_watchdog.h"
 #include "mtev_lockfile.h"
+#include "mtev_listener.h"
+#include "mtev_capabilities_listener.h"
+#include "mtev_rest.h"
+#include "mtev_reverse_socket.h"
+#include "mtev_dso.h"
 #include "eventer/eventer.h"
 
 #define MAX_CLI_LOGS 128
@@ -129,6 +134,18 @@ void cli_log_switches() {
   }
 }
 
+static void
+mtev_init_globals() {
+  eventer_init_globals();
+  eventer_jobq_init_globals();
+  mtev_capabilities_init_globals();
+  mtev_conf_init_globals();
+  mtev_dso_init_globals();
+  mtev_http_rest_init_globals();
+  mtev_listener_init_globals();
+  mtev_reverse_socket_init_globals();
+}
+
 int
 mtev_main(const char *appname,
           const char *config_filename, int debug, int foreground,
@@ -153,6 +170,7 @@ mtev_main(const char *appname,
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
   mtev_memory_init();
+  mtev_init_globals();
 
   /* First initialize logging, so we can log errors */
   mtev_log_init(debug);

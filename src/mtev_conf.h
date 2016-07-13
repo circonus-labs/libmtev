@@ -98,6 +98,7 @@ API_EXPORT(void) mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c)
 API_EXPORT(void) mtev_conf_mark_changed();
 
 API_EXPORT(void) mtev_conf_init(const char *toplevel);
+API_EXPORT(void) mtev_conf_init_globals();
 API_EXPORT(void)
   mtev_conf_poke(const char *toplevel, const char *key, const char *val);
 API_EXPORT(void)
