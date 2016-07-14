@@ -1463,13 +1463,17 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
 
   if(ctx->sslconfig)
     mtev_hash_delete_all(ctx->sslconfig, free, free);
-  else
+  else {
     ctx->sslconfig = calloc(1, sizeof(mtev_hash_table));
+    mtev_hash_init(ctx->sslconfig);
+  }
   mtev_hash_merge_as_dict(ctx->sslconfig, sslconfig);
   if(ctx->config)
     mtev_hash_delete_all(ctx->config, free, free);
-  else
+  else {
     ctx->config = calloc(1, sizeof(mtev_hash_table));
+    mtev_hash_init(ctx->config);
+  }
   mtev_hash_merge_as_dict(ctx->config, config);
 
   if(mtev_hash_retr_str(ctx->config, "timeout", strlen("timeout"), &stimeout))
