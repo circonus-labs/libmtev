@@ -609,6 +609,7 @@ mtev_lua_table_to_hash(lua_State *L, int idx) {
     luaL_error(L, "table_to_hash: not a table");
 
   t = calloc(1, sizeof(*t));
+  mtev_hash_init(t);
   lua_pushnil(L);  /* first key */
   while (lua_next(L, idx) != 0) {
     const char *key, *value;
