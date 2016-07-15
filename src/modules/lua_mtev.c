@@ -2289,9 +2289,15 @@ nl_gunzip_deflate(lua_State *L) {
   z_stream *stream;
   Bytef *data = NULL;
   uLong outlen = 0;
+  uLong newoutlen = 0;
   int limit = 1024*1024;
   int allow_restart = 1;
-  int err, n = lua_gettop(L);
+  int zerr, n = lua_gettop(L);
+  enum {
+    NO_ERROR,
+    READ_LIMIT_EXCEEDED,
+    MALLOC_FAILED,
+  } internal_error = NO_ERROR;
 
   if(n < 1 || n > 2) {
     lua_pushnil(L);
@@ -2312,14 +2318,14 @@ nl_gunzip_deflate(lua_State *L) {
   stream->next_in = (Bytef *)input;
   stream->avail_in = inlen;
   while(1) {
-    err = inflate(stream, Z_FULL_FLUSH);
-    if(err == Z_OK || err == Z_STREAM_END) {
+    zerr = inflate(stream, Z_FULL_FLUSH);
+    if(zerr == Z_OK || zerr == Z_STREAM_END) {
       /* got some data */
       int size_read = DEFLATE_CHUNK_SIZE - stream->avail_out;
       allow_restart = 0;
-      uLong newoutlen = outlen + size_read;
+      newoutlen = outlen + size_read;
       if(limit && newoutlen > limit) {
-        err = Z_MEM_ERROR;
+        internal_error = READ_LIMIT_EXCEEDED;
         break;
       }
       if(newoutlen > outlen) {
@@ -2327,7 +2333,7 @@ nl_gunzip_deflate(lua_State *L) {
         if(data) newdata = realloc(data, newoutlen);
         else newdata = malloc(newoutlen);
         if(!newdata) {
-          err = Z_MEM_ERROR;
+          internal_error = MALLOC_FAILED;
           break;
         }
         data = newdata;
@@ -2336,19 +2342,19 @@ nl_gunzip_deflate(lua_State *L) {
         stream->next_out -= size_read;
         stream->avail_out += size_read;
       }
-      if(err == Z_STREAM_END) {
+      if(zerr == Z_STREAM_END) {
         /* Good to go */
         break;
       }
     }
-    else if(allow_restart && err == Z_DATA_ERROR) {
+    else if(allow_restart && zerr == Z_DATA_ERROR) {
       /* Rarely seen, but on the internet, some IIS servers seem
        * to not generate 'correct' deflate streams, so we use
        * inflateInit2 here to manually configure the stream.
        */
       inflateEnd(stream);
-      err = inflateInit2(stream, -MAX_WBITS);
-      if (err != Z_OK) {
+      zerr = inflateInit2(stream, -MAX_WBITS);
+      if (zerr != Z_OK) {
         break;
       }
       stream->next_in = (Bytef *)input;
@@ -2362,21 +2368,30 @@ nl_gunzip_deflate(lua_State *L) {
 
     if(stream->avail_in == 0) break;
   }
-  if(err == Z_OK || err == Z_STREAM_END) {
-    if(outlen > 0) lua_pushlstring(L, (char *)data, outlen);
-    else lua_pushstring(L, "");
-    if(data) free(data);
-    return 1;
-  }
-  if(data) free(data);
-  switch(err) {
-    case Z_NEED_DICT: luaL_error(L, "zlib: dictionary error"); break;
-    case Z_STREAM_ERROR: luaL_error(L, "zlib: stream error"); break;
-    case Z_DATA_ERROR: luaL_error(L, "zlib: data error"); break;
-    case Z_MEM_ERROR: luaL_error(L, "zlib: out-of-memory"); break;
-    case Z_BUF_ERROR: luaL_error(L, "zlib: buffer error"); break;
-    case Z_VERSION_ERROR: luaL_error(L, "zlib: version mismatch"); break;
-    case Z_ERRNO: luaL_error(L, strerror(errno)); break;
+  switch(internal_error) {
+    case NO_ERROR:
+      if(zerr == Z_OK || zerr == Z_STREAM_END) {
+        if(outlen > 0) lua_pushlstring(L, (char *)data, outlen);
+        else lua_pushstring(L, "");
+        if(data) free(data);
+        return 1;
+      }
+      if(data) free(data);
+      switch(zerr) {
+        case Z_NEED_DICT: luaL_error(L, "zlib: dictionary error"); break;
+        case Z_STREAM_ERROR: luaL_error(L, "zlib: stream error"); break;
+        case Z_DATA_ERROR: luaL_error(L, "zlib: data error"); break;
+        case Z_MEM_ERROR: luaL_error(L, "zlib: out-of-memory"); break;
+        case Z_BUF_ERROR: luaL_error(L, "zlib: buffer error"); break;
+        case Z_VERSION_ERROR: luaL_error(L, "zlib: version mismatch"); break;
+        case Z_ERRNO: luaL_error(L, strerror(errno)); break;
+      }
+      break;
+    case READ_LIMIT_EXCEEDED:
+      luaL_error(L, "HTTP client internal error: download exceeded maximum read size (%d bytes)\n",
+                 limit);
+      break;
+    case MALLOC_FAILED: luaL_error(L, "HTTP client internal error: out-of-memory"); break;
   }
   lua_pushnil(L);
   return 1;
