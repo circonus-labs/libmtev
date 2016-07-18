@@ -222,6 +222,15 @@ static void inplace_urldecode(char *c) {
   *o = '\0';
 }
 
+/* We can free a response, but still try to use it.... make sure
+ * we reinitialize here so we don't use trash */
+static void check_realloc_response(mtev_http_response *res) {
+  if (res->freed == mtev_true) {
+    mtev_hash_init(&res->headers);
+    res->freed = mtev_false;
+  }
+}
+
 struct bchain *bchain_alloc(size_t size, int line) {
   struct bchain *n;
   if (size >= 16384) {
@@ -1595,6 +1604,7 @@ mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http_websock
 mtev_boolean
 mtev_http_response_status_set(mtev_http_session_ctx *ctx,
                               int code, const char *reason) {
+  check_realloc_response(&ctx->res);
   if(ctx->res.output_started == mtev_true) return mtev_false;
   ctx->res.protocol = ctx->req.protocol;
   if(code < 100 || code > 999) return mtev_false;
@@ -1606,6 +1616,7 @@ mtev_http_response_status_set(mtev_http_session_ctx *ctx,
 mtev_boolean
 mtev_http_response_header_set(mtev_http_session_ctx *ctx,
                               const char *name, const char *value) {
+  check_realloc_response(&ctx->res);
   if(ctx->res.output_started == mtev_true) return mtev_false;
   mtev_hash_replace(&ctx->res.headers, strdup(name), strlen(name),
                     strdup(value), free, free);
@@ -1613,6 +1624,7 @@ mtev_http_response_header_set(mtev_http_session_ctx *ctx,
 }
 mtev_boolean
 mtev_http_response_option_set(mtev_http_session_ctx *ctx, u_int32_t opt) {
+  check_realloc_response(&ctx->res);
   if(ctx->res.output_started == mtev_true) return mtev_false;
   /* transfer and content encodings only allowed in HTTP/1.1 */
   if(ctx->res.protocol != MTEV_HTTP11 &&
@@ -1651,6 +1663,7 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
   struct bchain *o;
   int boff = 0;
   if(ctx->res.closed == mtev_true) return mtev_false;
+  check_realloc_response(&ctx->res);
   if(ctx->res.output_started == mtev_true &&
      !(ctx->res.output_options & (MTEV_HTTP_CLOSE | MTEV_HTTP_CHUNKED)))
     return mtev_false;
@@ -1683,6 +1696,7 @@ mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
                                  struct bchain *b) {
   struct bchain *o;
   if(ctx->res.closed == mtev_true) return mtev_false;
+  check_realloc_response(&ctx->res);
   if(ctx->res.output_started == mtev_true &&
      !(ctx->res.output_options & (MTEV_HTTP_CHUNKED | MTEV_HTTP_CLOSE)))
     return mtev_false;
@@ -1704,6 +1718,7 @@ mtev_boolean
 mtev_http_response_append_mmap(mtev_http_session_ctx *ctx,
                                int fd, size_t len, int flags, off_t offset) {
   struct bchain *n;
+  check_realloc_response(&ctx->res);
   n = bchain_mmap(fd, len, flags, offset);
   if(n == NULL) return mtev_false;
   return mtev_http_response_append_bchain(ctx, n);
