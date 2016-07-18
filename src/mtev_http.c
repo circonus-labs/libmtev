@@ -233,6 +233,15 @@ static void check_realloc_response(mtev_http_response *res) {
     res->freed = mtev_false;
   }
 }
+/* Same deal for requests.
+ * TODO: Audit code to avoid having to use this */
+static void check_realloc_request(mtev_http_request *req) {
+  if (req->freed == mtev_true) {
+    mtev_hash_init(&req->headers);
+    mtev_hash_init(&req->querystring);
+    req->freed = mtev_false;
+  }
+}
 
 struct bchain *bchain_alloc(size_t size, int line) {
   struct bchain *n;
@@ -703,6 +712,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
   if(req->state != MTEV_HTTP_REQ_HEADERS) return mtev_false;
   if(!req->current_input) req->current_input = req->first_input;
   if(!req->current_input) return mtev_false;
+  check_realloc_request(req);
   if(req->start_time.tv_sec == 0) gettimeofday(&req->start_time, NULL);
  restart:
   while(req->current_input->prev &&
