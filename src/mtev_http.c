@@ -223,7 +223,10 @@ static void inplace_urldecode(char *c) {
 }
 
 /* We can free a response, but still try to use it.... make sure
- * we reinitialize here so we don't use trash */
+ * we reinitialize here so we don't use trash
+ * TODO: Audit all this code to make sure we don't try to use
+ * the response after we free at all - need to audit use of 
+ * reference count in particular */
 static void check_realloc_response(mtev_http_response *res) {
   if (res->freed == mtev_true) {
     mtev_hash_init(&res->headers);
