@@ -271,7 +271,7 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
   ucontext_t ucp;
   getcontext(&ucp);
   walkcontext(&ucp, simple_stack_print, ls);
-#elif !defined(linux) && !defined(__linux) && !defined(__linux__)
+#else
   if(_global_stack_trace_fd < 0) {
     /* Last ditch effort to open this up */
     char tmpfilename[MAXPATHLEN];
@@ -289,16 +289,14 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
     backtrace_symbols_fd(callstack, frames, _global_stack_trace_fd);
     memset(&sb, 0, sizeof(sb));
     while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);
-    if(i != 0 || sb.st_size == 0) mtevL(ls, "error writing backtrace\n");
+    if(i != 0 || sb.st_size == 0) mtevL(ls, "error writing stacktrace\n");
     lseek(_global_stack_trace_fd, SEEK_SET, 0);
     i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff), sb.st_size));
-    mtevL(ls, "BACKTRACE:\n%.*s\n", i, stackbuff);
+    mtevL(ls, "STACKTRACE:\n%.*s\n", i, stackbuff);
   }
   else {
-    mtevL(ls, "backtrace unavailable\n");
+    mtevL(ls, "stacktrace unavailable\n");
   }
-#else
-  mtevL(ls, "backtrace unavailable\n");
 #endif
 }
 
