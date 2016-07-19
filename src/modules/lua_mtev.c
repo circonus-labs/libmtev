@@ -3509,34 +3509,52 @@ mtev_lua_serialize_table(lua_State *L, int index) {
   char* number_key_str;
   const char* string_key;
   size_t string_key_len;
-  table = calloc(1, sizeof(mtev_lua_table_t));
 
   if(index < 0) {
     index = lua_gettop(L) + index + 1;
   }
 
+  lua_getfield (L, index, "serialize"); // -1: serialize
+  if(lua_isfunction(L, -1)) {
+
+    lua_pushvalue(L, index); // -2: serialize -1: self
+    lua_call(L, 1, 1); // -1: result
+    if(!lua_istable(L, -1)) {
+      luaL_error(L, "serialize() must return a table\n");
+      return NULL;
+    }
+    return mtev_lua_serialize_table(L, -1);
+  } else {
+    lua_pop(L, 1);
+  }
+
+  table = calloc(1, sizeof(mtev_lua_table_t));
+  mtev_hash_init(&table->int_keys);
+  mtev_hash_init(&table->string_keys);
   lua_pushnil(L); // first key
   while (lua_next(L, index) != 0) {
+    int key_index = lua_gettop(L) - 1;
     value = mtev_lua_serialize(L, -1);
 
-    if(lua_isnumber(L, -2)) {
-      number_key = lua_tonumber(L, -2);
+    if(lua_isnumber(L, key_index)) {
+      number_key = lua_tonumber(L, key_index);
       number_key_str = malloc(sizeof(lua_Number));
       memcpy(number_key_str, &number_key, sizeof(lua_Number));
       double d = 1;
       double d2 = 2;
       mtev_hash_store(&table->int_keys, number_key_str, sizeof(lua_Number), value);
 
-    } else if(lua_isstring(L, -2)) {
-      string_key = lua_tolstring(L, -2, &string_key_len);
+    } else if(lua_isstring(L, key_index)) {
+      string_key = lua_tolstring(L, key_index, &string_key_len);
       mtev_hash_store(&table->string_keys, strdup(string_key), string_key_len, value);
     } else {
       mtev_lua_free_table(table);
-      luaL_error(L, "Cannon serialize tables with anything but strings and numbers as keys\n");
+      luaL_error(L, "Cannot serialize tables with anything but strings and numbers as keys, got %s instead\n", lua_typename(L, lua_type(L, key_index)));
       return NULL;
     }
 
     lua_pop(L, 1); //remove value, keep key for next iteration
+    lua_settop(L, index+1); // remove everything above the last key
   }
 
   return table;
