@@ -150,11 +150,12 @@ FINAL_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
 libmtev-objs/%.lo:	%.lo
 	$(Q)mkdir -p "`dirname $@`"
 	@echo "- making private $@"
-	$(Q)cp $(@:libmtev-objs/%.lo=%.lo) $@
+	$(Q)cp $(@:libmtev-objs/%.lo=%.lo) $@.noctf
 	$(Q)if test -x "$(CTFCONVERT)" ; then \
 		echo "- making CTF ($@)" ; \
-		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@ ; \
+		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
 	fi
+	$(Q)mv $@.noctf $@
 
 make-man:
 	$(Q)(cd man && $(MAKE) -s)
@@ -173,6 +174,10 @@ $(LIBMTEV):	$(LIBMTEV_V)
 $(LIBMTEV_V):	$(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ)
 	@echo "- linking $@"
 	$(Q)$(SHLD) $(SHLDFLAGS) -o $@ @LD_LIBMTEV_VERSION@ $(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ) $(LIBMTEV_LIBS)
+	$(Q)if test -x "$(CTFMERGE)" ; then \
+		echo "- merging CTF ($@)" ; \
+		$(CTFMERGE) -l @VERSION@ -o $@ $(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ) ; \
+	fi
 
 $(LIBMTEV_DTRACEOBJ):    $(FINAL_LIBMTEV_OBJS)
 	@echo "- assembling $@"
