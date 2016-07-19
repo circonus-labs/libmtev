@@ -1815,6 +1815,7 @@ mtev_console_telnet_alloc(mtev_console_closure_t ncct) {
   tmp = ncct->telnet;
 
   ncct->telnet = calloc(1, sizeof(*telnet));
+  mtev_hash_init(&ncct->telnet->_env);
   subbuffer = malloc(1024*64);
   subpointer = subbuffer;
   subend= subbuffer;
