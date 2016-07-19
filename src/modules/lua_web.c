@@ -411,6 +411,7 @@ mtev_lua_web_driver_init(mtev_dso_generic_t *self) {
   }
 
   lmc->pending = calloc(1, sizeof(*lmc->pending));
+  mtev_hash_init(lmc->pending);
   dso_post_init_hook_register("web_lua", late_stage_rest_register, self);
   return 0;
 }
