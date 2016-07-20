@@ -96,6 +96,7 @@ typedef struct lua_callback_ref {
   lua_State *L;
   int callback_reference;
   int closure_reference;
+  pthread_t self;
 } lua_callback_ref;
 
 static lua_data_t* mtev_lua_serialize(lua_State *L, int index);
@@ -3494,6 +3495,8 @@ mtev_lua_on_cluster_node_updated(void *closure, mtev_cluster_node_t *updated_nod
   int rv;
   cb_ref = closure;
 
+  mtevAssert(pthread_equal(cb_ref->self, pthread_self()));
+
   lua_rawgeti( cb_ref->L, LUA_REGISTRYINDEX, cb_ref->callback_reference );
   lua_rawgeti( cb_ref->L, LUA_REGISTRYINDEX, cb_ref->closure_reference );
   mtev_lua_setup_cluster_node(cb_ref->L, updated_node);
@@ -3526,6 +3529,7 @@ nl_cluster_handle_node_update_hook_register(lua_State *L) {
   cb_ref->L = L;
   cb_ref->closure_reference = luaL_ref( L, LUA_REGISTRYINDEX ); // read and pop 4th parameter
   cb_ref->callback_reference = luaL_ref( L, LUA_REGISTRYINDEX ); // read 3rd parameter
+  cb_ref->self = pthread_self();
 
   mtev_cluster_handle_node_update_hook_register("cluster-topology-listener", mtev_lua_on_cluster_node_updated, cb_ref);
   return 0;
