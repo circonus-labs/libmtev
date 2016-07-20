@@ -72,6 +72,7 @@ static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
 
 static mtev_hash_table shared_table = MTEV_HASH_EMPTY;
+static pthread_mutex_t shared_table_mutex;
 
 
 typedef struct {
@@ -3656,6 +3657,7 @@ nl_shared_set(lua_State *L) {
   key = lua_tolstring(L, 1, &key_len);
 
   data = mtev_lua_serialize(L, 2);
+  pthread_mutex_lock(&shared_table_mutex);
   if(!mtev_hash_retrieve(&shared_table, key, key_len, &vdata)) {
     if(data != NULL) {
       mtev_hash_store(&shared_table, strdup(key), key_len, data);
@@ -3667,6 +3669,7 @@ nl_shared_set(lua_State *L) {
       mtev_hash_replace(&shared_table, strdup(key), key_len, data, free, mtev_lua_free_data);
     }
   }
+  pthread_mutex_unlock(&shared_table_mutex);
 
   return 0;
 }
@@ -3679,12 +3682,13 @@ nl_shared_get(lua_State *L) {
   if(lua_gettop(L) != 1 || !lua_isstring(L,1))
     return luaL_error(L, "bad parameters to mtev.shared_get(str)");
   key = lua_tolstring(L, 1, &len);
-
+  pthread_mutex_lock(&shared_table_mutex);
   if(!mtev_hash_retrieve(&shared_table, key, len, (void**)&data)) {
     lua_pushnil(L);
   } else {
     mtev_lua_deserialize(L, data);
   }
+  pthread_mutex_unlock(&shared_table_mutex);
 
   return 1;
 }
@@ -3725,7 +3729,10 @@ static void mtev_lua_init() {
   if(!nldeb) nldeb = mtev_debug;
   mtev_lua_init_dns();
 
-  mtev_hash_init_locks(&shared_table, 8, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&shared_table, 8, MTEV_HASH_LOCK_MODE_NONE);
+  if(pthread_mutex_init(&shared_table_mutex, NULL) != 0) {
+    mtevL(nlerr, "Unable to initialize shared_table_mutex\n");
+  }
 }
 
 static const luaL_Reg mtevlib[] = {
