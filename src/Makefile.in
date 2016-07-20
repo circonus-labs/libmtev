@@ -5,7 +5,10 @@ ifeq ($(V),)
 	Q=@
 endif
 
-LIBMTEV_VERSION=0.0.6
+SEMVER_MAJOR=0
+SEMVER_MINOR=0
+SEMVER_PATCH=6
+LIBMTEV_VERSION=$(SEMVER_MAJOR).$(SEMVER_MINOR).$(SEMVER_PATCH)
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
@@ -70,6 +73,7 @@ NOWHOLE_ARCHIVE=@NOWHOLE_ARCHIVE@
 DTRACEOBJ=@DTRACEOBJ@
 LIBMTEV_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.lo)
 LIBMTEV_V=libmtev@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
+LIBMTEV_MINOR=libmtev@DOTSO@.$(SEMVER_MAJOR).$(SEMVER_MINOR)@DOTDYLIB@
 LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
 
 TARGETS=$(LIBMTEV) luamtev @MDB_MODS@
@@ -268,6 +272,7 @@ install-libs:	mtevlibs
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)
 	$(INSTALL) -m 0755 $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV_V)
 	ln -sf $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV)
+	ln -sf $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV_MINOR)
 	if test -n "@MDB_MODS@" ; then \
 		$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)/usr/lib/mdb/proc/amd64 ; \
 		$(INSTALL) -m 0755 mdb-support/libmtev.so $(DESTDIR)/usr/lib/mdb/proc/amd64/libmtev.so ; \
