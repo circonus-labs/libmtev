@@ -64,6 +64,7 @@
 #include "mtev_lockfile.h"
 #include "eventer/eventer.h"
 #include "mtev_json.h"
+#include "mtev_watchdog.h"
 
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
