@@ -3388,6 +3388,12 @@ nl_eventer_loop_concurrency(lua_State *L) {
 }
 
 static int
+nl_watchdog_child_heartbeat(lua_State *L) {
+  lua_pushinteger(L, mtev_watchdog_child_heartbeat());
+  return 1;
+}
+
+static int
 mtev_lua_process_wait(lua_State *L) {
   int rv, status;
   struct spawn_info *spawn_info;
@@ -3784,6 +3790,7 @@ static const luaL_Reg mtevlib[] = {
   { "eventer_loop_concurrency", nl_eventer_loop_concurrency },
   { "shared_set", nl_shared_set},
   { "shared_get", nl_shared_get},
+  { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
   { NULL, NULL }
 };
 
