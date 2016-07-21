@@ -981,7 +981,7 @@ mtev_hash_store(&mime_type_defaults, strdup(ext), strlen(ext), strdup(type))
                                  mtev_http_rest_handler);
 }
 void mtev_http_rest_init_globals() {
-  mtev_hash_init(&dispatch_points);
+  mtev_hash_init_locks(&dispatch_points, 256, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init(&mime_type_defaults);
 }
 
