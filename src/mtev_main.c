@@ -134,16 +134,34 @@ void cli_log_switches() {
   }
 }
 
-static void
+static mtev_spinlock_t mtev_init_globals_lock = 0;
+static int mtev_init_globals_once = 0;
+
+void
 mtev_init_globals() {
-  eventer_init_globals();
-  eventer_jobq_init_globals();
-  mtev_capabilities_init_globals();
-  mtev_conf_init_globals();
-  mtev_dso_init_globals();
-  mtev_http_rest_init_globals();
-  mtev_listener_init_globals();
-  mtev_reverse_socket_init_globals();
+  /* instead of just a cas, we lock.. this makes sure
+   * no one leaves this function before the job is done.
+   */
+  mtev_spinlock_lock(&mtev_init_globals_lock);
+  if(mtev_init_globals_once == 0) {
+    mtev_memory_init();
+    eventer_init_globals();
+    eventer_jobq_init_globals();
+    mtev_capabilities_init_globals();
+    mtev_conf_init_globals();
+    mtev_dso_init_globals();
+    mtev_http_rest_init_globals();
+    mtev_listener_init_globals();
+    mtev_reverse_socket_init_globals();
+    mtev_init_globals_once = 1;
+  }
+  mtev_spinlock_unlock(&mtev_init_globals_lock);
+}
+
+__attribute__((constructor))
+static void
+mtev_init_globals_ctor() {
+  mtev_init_globals();
 }
 
 int
@@ -169,7 +187,6 @@ mtev_main(const char *appname,
  
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
-  mtev_memory_init();
   mtev_init_globals();
 
   /* First initialize logging, so we can log errors */
