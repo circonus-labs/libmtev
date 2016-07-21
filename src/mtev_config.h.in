@@ -76,6 +76,7 @@
 #undef HAVE_SYS_EVENTFD_H
 #undef HAVE_STRING_H
 #undef HAVE_STDLIB_H
+#undef HAVE_STDINT_H
 #undef HAVE_SYS_PARAM_H
 #undef HAVE_SEMAPHORE_H
 #undef HAVE_ALLOCA_H
@@ -112,6 +113,9 @@
 #endif
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
+#endif
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
 #endif
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -269,6 +273,16 @@ typedef unsigned long int u_int64_t;
 typedef unsigned long long int u_int64_t;
 #define HAVE_U_INT64_T 1
 #endif
+#endif
+#endif
+
+#ifndef HAVE_UINTXX_T
+#define HAVE_UINTXX_T 1
+typedef u_int8_t uint8_t;
+typedef u_int16_t uint16_t;
+typedef u_int32_t uint32_t;
+#ifdef HAVE_U_INT64_T
+typedef u_int64_t uint64_t;
 #endif
 #endif
 
