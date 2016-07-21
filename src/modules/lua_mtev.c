@@ -124,8 +124,14 @@ typedef struct {
 static void
 mtev_lua_push_timeval(lua_State *L, struct timeval time) {
   double seconds;
-  seconds = time.tv_sec + time.tv_usec / 1000000.0;
-  lua_pushnumber(L, seconds);
+  lua_getglobal(L, "mtev");
+  lua_getfield(L, -1, "timeval");
+  lua_getfield(L, -1, "new");
+  lua_replace(L, -3); // replaces mtev with new and removes new
+  lua_pop(L, 1); // pops timeval
+  lua_pushinteger(L, time.tv_sec);
+  lua_pushinteger(L, time.tv_usec);
+  lua_call(L, 2, 1);
 }
 static void
 nl_extended_free(void *vcl) {
@@ -3416,63 +3422,27 @@ nl_watchdog_child_heartbeat(lua_State *L) {
   return 1;
 }
 
-static int
-mtev_lua_cluster_node_index_func(lua_State *L) {
-  mtev_cluster_node_t **udata, *node;
-  const char *k;
-  int n;
-  n = lua_gettop(L);    /* number of arguments */
-  mtevAssert(n == 2);
-  if(!luaL_checkudata(L, 1, "mtev_cluster_node_t")) {
-    luaL_error(L, "metatable error, arg1 not a mtev_cluster_node_t!");
-  }
-  udata = lua_touserdata(L, 1);
-  node = *udata;
-  if(!lua_isstring(L, 2)) {
-    luaL_error(L, "metatable error, arg2 not a string!");
-  }
-  k = lua_tostring(L, 2);
-  switch(*k) {
-    case 'b':
-      if(!strcmp(k, "boot_time")) {
-        mtev_lua_push_timeval(L, node->boot_time);
-      }
-      else break;
-      return 1;
-    case 'i':
-      if(!strcmp(k, "id")) {
-        char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
-        uuid_unparse_lower(node->id, uuid_str);
-        lua_pushstring(L, uuid_str);
-      }
-      else break;
-      return 1;
-    case 'l':
-      if(!strcmp(k, "last_contact")) {
-        mtev_lua_push_timeval(L, node->last_contact);
-      }
-      else break;
-      return 1;
-    default:
-      break;
-  }
-  luaL_error(L, "noit_module_t no such element: %s", k);
-  return 0;
-}
-
 static void
-mtev_lua_setup_cluster_node(lua_State *L, mtev_cluster_node_t *node) {
-  mtev_cluster_node_t **addr;
+mtev_lua_push_cluster_node(lua_State *L, mtev_cluster_node_t *node) {
+  char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
   if(node == NULL) {
     lua_pushnil(L);
   } else {
-    addr = (mtev_cluster_node_t **)lua_newuserdata(L, sizeof(node));
-    *addr = node;
-    if(luaL_newmetatable(L, "mtev_cluster_node_t") == 1) {
-      lua_pushcclosure(L, mtev_lua_cluster_node_index_func, 0);
-      lua_setfield(L, -2, "__index");
-    }
-    lua_setmetatable(L, -2);
+    uuid_unparse_lower(node->id, uuid_str);
+
+    lua_createtable(L, 0, 3);
+
+    lua_pushstring(L, "id");
+    lua_pushstring(L, uuid_str);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "boot_time");
+    mtev_lua_push_timeval(L, node->boot_time);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "last_contact");
+    mtev_lua_push_timeval(L, node->last_contact);
+    lua_settable(L, -3);
   }
 }
 
@@ -3483,14 +3453,14 @@ mtev_lua_push_cluster_details(lua_State *L, mtev_cluster_t *cluster, mtev_cluste
   lua_createtable(L, 0, 2);
 
   lua_pushstring(L, "oldest_node");
-  mtev_lua_setup_cluster_node(L, mtev_cluster_get_oldest_node(cluster));
+  mtev_lua_push_cluster_node(L, mtev_cluster_get_oldest_node(cluster));
   lua_settable(L, -3);
 
   lua_pushstring(L, "nodes");
   lua_createtable(L, number_of_nodes, 0);
   for(i=0; i != number_of_nodes; ++i) {
     lua_pushinteger(L, i+1);
-    mtev_lua_setup_cluster_node(L, nodes[i]);
+    mtev_lua_push_cluster_node(L, nodes[i]);
     lua_settable(L, -3);
   }
   lua_settable(L, -3);
