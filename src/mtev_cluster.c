@@ -849,6 +849,14 @@ mtev_cluster_init() {
              mtev_http_rest_client_cert_auth
   ) == 0);
 }
+mtev_cluster_node_t*
+mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster) {
+  if (cluster == NULL) {
+    return NULL;
+  }
+  return cluster->oldest_node;
+}
+
 mtev_boolean mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster) {
   if (cluster == NULL || cluster->oldest_node == NULL)
     return mtev_false;

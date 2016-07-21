@@ -160,6 +160,14 @@ API_EXPORT(int)
 API_EXPORT(mtev_boolean)
   mtev_cluster_do_i_own(mtev_cluster_t *, void *key, size_t klen, int w);
 
+/* \fn  mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster)
+   \brief Returns the oldest node within the given cluster.
+   \param cluster The cluster in question.
+   \return Returns the node in the given cluster with the highest up-time.
+ */
+API_EXPORT(mtev_cluster_node_t*)
+mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster);
+
 /* \fn mtev_boolean mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster)
    \brief Determines if the local node is the oldest node within the cluster.
    \param cluster The cluster in question.

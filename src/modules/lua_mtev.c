@@ -65,6 +65,7 @@
 #include "eventer/eventer.h"
 #include "mtev_json.h"
 #include "mtev_watchdog.h"
+#include "mtev_cluster.h"
 
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
@@ -120,6 +121,12 @@ typedef struct {
   struct json_object *root;
 } json_crutch;
 
+static void
+mtev_lua_push_timeval(lua_State *L, struct timeval time) {
+  double seconds;
+  seconds = time.tv_sec + time.tv_usec / 1000000.0;
+  lua_pushnumber(L, seconds);
+}
 static void
 nl_extended_free(void *vcl) {
   struct nl_slcl *cl = vcl;
@@ -1552,7 +1559,6 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   struct timeval diff;
-  double p_int;
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
@@ -1617,8 +1623,8 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_deregister_event(ci, e, 0);
 
   sub_timeval(*now, cl->start, &diff);
-  p_int = diff.tv_sec + diff.tv_usec / 1000000.0;
-  lua_pushnumber(cl->L, p_int);
+  mtev_lua_push_timeval(cl->L, diff);
+
   free(cl);
   ci->lmc->resume(ci, 1);
   return 0;
@@ -3411,6 +3417,128 @@ nl_watchdog_child_heartbeat(lua_State *L) {
 }
 
 static int
+mtev_lua_cluster_node_index_func(lua_State *L) {
+  mtev_cluster_node_t **udata, *node;
+  const char *k;
+  int n;
+  n = lua_gettop(L);    /* number of arguments */
+  mtevAssert(n == 2);
+  if(!luaL_checkudata(L, 1, "mtev_cluster_node_t")) {
+    luaL_error(L, "metatable error, arg1 not a mtev_cluster_node_t!");
+  }
+  udata = lua_touserdata(L, 1);
+  node = *udata;
+  if(!lua_isstring(L, 2)) {
+    luaL_error(L, "metatable error, arg2 not a string!");
+  }
+  k = lua_tostring(L, 2);
+  switch(*k) {
+    case 'b':
+      if(!strcmp(k, "boot_time")) {
+        mtev_lua_push_timeval(L, node->boot_time);
+      }
+      else break;
+      return 1;
+    case 'i':
+      if(!strcmp(k, "id")) {
+        char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+        uuid_unparse_lower(node->id, uuid_str);
+        lua_pushstring(L, uuid_str);
+      }
+      else break;
+      return 1;
+    case 'l':
+      if(!strcmp(k, "last_contact")) {
+        mtev_lua_push_timeval(L, node->last_contact);
+      }
+      else break;
+      return 1;
+    default:
+      break;
+  }
+  luaL_error(L, "noit_module_t no such element: %s", k);
+  return 0;
+}
+
+static void
+mtev_lua_setup_cluster_node(lua_State *L, mtev_cluster_node_t *node) {
+  mtev_cluster_node_t **addr;
+  if(node == NULL) {
+    lua_pushnil(L);
+  } else {
+    addr = (mtev_cluster_node_t **)lua_newuserdata(L, sizeof(node));
+    *addr = node;
+    if(luaL_newmetatable(L, "mtev_cluster_node_t") == 1) {
+      lua_pushcclosure(L, mtev_lua_cluster_node_index_func, 0);
+      lua_setfield(L, -2, "__index");
+    }
+    lua_setmetatable(L, -2);
+  }
+}
+
+static void
+mtev_lua_push_cluster_details(lua_State *L, mtev_cluster_t *cluster, mtev_cluster_node_t **nodes, int number_of_nodes) {
+  int i;
+
+  lua_createtable(L, 0, 2);
+
+  lua_pushstring(L, "oldest_node");
+  mtev_lua_setup_cluster_node(L, mtev_cluster_get_oldest_node(cluster));
+  lua_settable(L, -3);
+
+  lua_pushstring(L, "nodes");
+  lua_createtable(L, number_of_nodes, 0);
+  for(i=0; i != number_of_nodes; ++i) {
+    lua_pushinteger(L, i+1);
+    mtev_lua_setup_cluster_node(L, nodes[i]);
+    lua_settable(L, -3);
+  }
+  lua_settable(L, -3);
+}
+
+static int
+nl_cluster_details(lua_State *L) {
+  int n;
+  const char *cluster_name;
+  mtev_cluster_t *cluster;
+  struct spawn_info *udata;
+  mtev_cluster_node_t **nodes;
+  int number_of_nodes;
+  n = lua_gettop(L);
+  mtevAssert(n == 2);
+
+  if(!lua_isstring(L, 2)) {
+    luaL_error(L, "second parameter to cluster_details must be a string!");
+  }
+  cluster_name = lua_tostring(L, 2);
+
+  cluster = mtev_cluster_by_name(cluster_name);
+  if(cluster == NULL) {
+    lua_pushnil(L);
+  } else {
+    number_of_nodes = mtev_cluster_size(cluster);
+    nodes = calloc(number_of_nodes, sizeof(mtev_cluster_node_t*));
+
+    mtev_cluster_get_nodes(cluster, nodes, number_of_nodes, mtev_true);
+
+    mtev_lua_push_cluster_details(L, cluster, nodes, number_of_nodes);
+    free(nodes);
+  }
+
+  return 1;
+}
+
+static int
+nl_cluster_get_self(lua_State *L) {
+  static uuid_t my_cluster_id;
+  char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+  mtev_cluster_get_self(my_cluster_id);
+  uuid_unparse_lower(my_cluster_id, uuid_str);
+  lua_pushstring(L, uuid_str);
+  return 1;
+}
+
+static int
 mtev_lua_process_wait(lua_State *L) {
   int rv, status;
   struct spawn_info *spawn_info;
@@ -3814,6 +3942,8 @@ static const luaL_Reg mtevlib[] = {
   { "shared_set", nl_shared_set},
   { "shared_get", nl_shared_get},
   { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
+  { "cluster_details", nl_cluster_details },
+  { "cluster_get_self", nl_cluster_get_self },
   { NULL, NULL }
 };
 
