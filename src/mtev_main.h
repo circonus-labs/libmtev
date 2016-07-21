@@ -40,6 +40,9 @@ typedef enum {
   MTEV_LOCK_OP_WAIT
 } mtev_lock_op_t;
 
+API_EXPORT(void)
+  mtev_init_globals();
+
 API_EXPORT(int)
   mtev_main(const char *appname,
             const char *config_filename, int debug, int foreground,
