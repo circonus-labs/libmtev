@@ -42,7 +42,6 @@
 #include <unistd.h>
 
 #define ONSTACK_KEY_SIZE 128
-#define NoitHASH_INITIAL_SIZE (1<<7)
 
 #define mix(a,b,c) \
 { \
@@ -129,7 +128,7 @@ hs_compare(const void *previous, const void *compare)
 
 static int rand_init;
 void mtev_hash_init(mtev_hash_table *h) {
-  return mtev_hash_init_size(h, NoitHASH_INITIAL_SIZE);
+  return mtev_hash_init_size(h, MTEV_HASH_DEFAULT_SIZE);
 }
 
 static void *
