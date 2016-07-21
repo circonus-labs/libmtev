@@ -65,7 +65,6 @@
 #include "eventer/eventer.h"
 #include "mtev_json.h"
 #include "mtev_watchdog.h"
-#include "mtev_cluster.h"
 
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
@@ -91,13 +90,6 @@ typedef struct {
     mtev_lua_table_t* table;
   } value;
 } lua_data_t;
-
-typedef struct lua_callback_ref {
-  lua_State *L;
-  int callback_reference;
-  int closure_reference;
-  pthread_t self;
-} lua_callback_ref;
 
 static lua_data_t* mtev_lua_serialize(lua_State *L, int index);
 void mtev_lua_deserialize(lua_State *L, const lua_data_t *data);
@@ -3419,123 +3411,6 @@ nl_watchdog_child_heartbeat(lua_State *L) {
 }
 
 static int
-nl_cluster_am_i_oldest_node(lua_State *L) {
-  int n;
-  mtev_boolean is_oldest;
-  const mtev_cluster_t **udata, *cluster;
-
-  n = lua_gettop(L);
-  mtevAssert(n == 2);
-
-  udata = lua_touserdata(L, 2);
-  cluster = *udata;
-  is_oldest = mtev_cluster_am_i_oldest_node(cluster);
-  if(is_oldest==mtev_true) {
-    lua_pushboolean(L, 1);
-  } else {
-    lua_pushboolean(L, 0);
-  }
-  return 1;
-}
-
-static int
-mtev_lua_cluster_node_index_func(lua_State *L) {
-  int n;
-  const char *k;
-  mtev_cluster_node_t **udata, *node;
-  n = lua_gettop(L); /* number of arguments */
-  mtevAssert(n == 2);
-  if(!luaL_checkudata(L, 1, "mtev_cluster_node_t")) {
-    luaL_error(L, "metatable error, arg1 not a mtev_cluster_node_t!");
-    return 1;
-  }
-  udata = lua_touserdata(L, 1);
-  node = *udata;
-  if(!lua_isstring(L, 2)) {
-    luaL_error(L, "metatable error, arg2 not a string!");
-    return 1;
-  }
-
-  k = lua_tostring(L, 2);
-  switch (*k) {
-    case 'i':
-      if(!strcmp(k, "id")) {
-        char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
-        uuid_unparse_lower(node->id, uuid_str);
-        lua_pushstring(L, uuid_str);
-      } else if(!strcmp(k, "id_ud")) {
-        lua_pushlightuserdata(L, (void*)&node->id);
-      } else {
-        break;
-      }
-      return 1;
-    default:
-      break;
-  }
-  luaL_error(L, "mtev_cluster_node_t no such element: %s", k);
-  return 0;
-}
-
-static void
-mtev_lua_setup_cluster_node(lua_State *L,
-    mtev_cluster_node_t *cluster) {
-  mtev_cluster_node_t **addr;
-  addr = (mtev_cluster_node_t **)lua_newuserdata(L, sizeof(cluster));
-  *addr = cluster;
-  if(luaL_newmetatable(L, "mtev_cluster_node_t") == 1) {
-    lua_pushcclosure(L, mtev_lua_cluster_node_index_func, 0);
-    lua_setfield(L, -2, "__index");
-  }
-  lua_setmetatable(L, -2);
-}
-
-static mtev_hook_return_t
-mtev_lua_on_cluster_node_updated(void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster) {
-  lua_callback_ref *cb_ref;
-  int rv;
-  cb_ref = closure;
-
-  mtevAssert(pthread_equal(cb_ref->self, pthread_self()));
-
-  lua_rawgeti( cb_ref->L, LUA_REGISTRYINDEX, cb_ref->callback_reference );
-  lua_rawgeti( cb_ref->L, LUA_REGISTRYINDEX, cb_ref->closure_reference );
-  mtev_lua_setup_cluster_node(cb_ref->L, updated_node);
-  lua_pushlightuserdata(cb_ref->L, (void*)&cluster);
-
-  lua_call(cb_ref->L, 3, 1);
-  rv = lua_tointeger(cb_ref->L, -1);
-
-  uuid_t my_cluster_id;
-  mtev_cluster_t *my_cluster = NULL;
-
-  mtev_cluster_get_self(my_cluster_id);
-
-  return rv;
-}
-
-static int
-nl_cluster_handle_node_update_hook_register(lua_State *L) {
-  int n;
-  const char* hook_name;
-  lua_callback_ref *cb_ref;
-
-  n = lua_gettop(L);
-  mtevAssert(n == 4); // self, hook_name, callback, closure
-  if(!lua_isstring(L, 2) || !lua_isfunction(L,3)) {
-    return luaL_error(L, "bad parameters to mtev.cluster_handle_node_update_hook_register(cluster_name, callback, closure)");
-  }
-  hook_name = lua_tostring(L, 2);
-  cb_ref = malloc(sizeof(&cb_ref));
-  cb_ref->L = L;
-  cb_ref->closure_reference = luaL_ref( L, LUA_REGISTRYINDEX ); // read and pop 4th parameter
-  cb_ref->callback_reference = luaL_ref( L, LUA_REGISTRYINDEX ); // read 3rd parameter
-  cb_ref->self = pthread_self();
-
-  mtev_cluster_handle_node_update_hook_register("cluster-topology-listener", mtev_lua_on_cluster_node_updated, cb_ref);
-  return 0;
-}
-
-static int
 mtev_lua_process_wait(lua_State *L) {
   int rv, status;
   struct spawn_info *spawn_info;
@@ -3939,8 +3814,6 @@ static const luaL_Reg mtevlib[] = {
   { "shared_set", nl_shared_set},
   { "shared_get", nl_shared_get},
   { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
-  { "cluster_handle_node_update_hook_register", nl_cluster_handle_node_update_hook_register },
-  { "cluster_am_i_oldest_node", nl_cluster_am_i_oldest_node },
   { NULL, NULL }
 };
 
