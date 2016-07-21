@@ -2746,6 +2746,6 @@ void mtev_console_conf_init() {
 }
 
 void mtev_conf_init_globals() {
-  mtev_hash_init_locks(&_compiled_fallback, 256, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&_compiled_fallback, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 

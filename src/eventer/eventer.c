@@ -191,8 +191,8 @@ int eventer_choose(const char *name) {
 }
 
 void eventer_init_globals() {
-  mtev_hash_init_locks(&__name_to_func, 256, MTEV_HASH_LOCK_MODE_MUTEX);
-  mtev_hash_init_locks(&__func_to_name, 256, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&__name_to_func, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&__func_to_name, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   eventer_ssl_init_globals();
 }
 

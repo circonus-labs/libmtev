@@ -575,7 +575,7 @@ mtev_control_dispatch_delegate(eventer_func_t listener_dispatch,
                          (char *)&listener_dispatch, sizeof(listener_dispatch),
                          &vdelegation_table)) {
     delegation_table = calloc(1, sizeof(*delegation_table));
-    mtev_hash_init_locks(delegation_table, 256, MTEV_HASH_LOCK_MODE_MUTEX);
+    mtev_hash_init_locks(delegation_table, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
     handler_copy = malloc(sizeof(*handler_copy));
     *handler_copy = listener_dispatch;
     mtev_hash_store(&listener_commands,
@@ -637,6 +637,6 @@ mtev_listener_init(const char *toplevel) {
 
 void
 mtev_listener_init_globals() {
-  mtev_hash_init_locks(&listener_commands, 256, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&listener_commands, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 

@@ -1795,7 +1795,7 @@ mtev_log_list(mtev_log_stream_t *loggers, int nsize) {
 
 void
 mtev_log_init_globals() {
-  mtev_hash_init_locks(&mtev_loggers, 256, MTEV_HASH_LOCK_MODE_MUTEX);
-  mtev_hash_init_locks(&mtev_logops, 256, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&mtev_loggers, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&mtev_logops, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 

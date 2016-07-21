@@ -390,8 +390,8 @@ void mtev_dso_add_type(const char *name, int (*list)(const char ***)) {
 }
 
 void mtev_dso_init_globals() {
-  mtev_hash_init_locks(&loaders, 256, MTEV_HASH_LOCK_MODE_MUTEX);
-  mtev_hash_init_locks(&generics, 256, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&loaders, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&generics, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 
 #define userdata_accessors(type, field) \
