@@ -450,5 +450,5 @@ cleanup_shutdown:
 
 void
 mtev_capabilities_init_globals() {
-  mtev_hash_init(&features);
+  mtev_hash_init_locks(&features, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }

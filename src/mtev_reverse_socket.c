@@ -1754,8 +1754,6 @@ mtev_console_reverse_opts(mtev_console_closure_t ncct,
     int klen, i = 0;
     void *vconn;
     reverse_socket_t *ctx;
-    mtev_hash_table dedup;
-    mtev_hash_init(&dedup);
 
     pthread_rwlock_rdlock(&reverse_sockets_lock);
     while(mtev_hash_next(&reverse_sockets, &iter, &key_id, &klen, &vconn)) {
@@ -1763,14 +1761,12 @@ mtev_console_reverse_opts(mtev_console_closure_t ncct,
       if(!strncmp(ctx->id, argv[0], strlen(argv[0]))) {
         if(idx == i) {
           pthread_rwlock_unlock(&reverse_sockets_lock);
-          mtev_hash_destroy(&dedup, NULL, NULL);
           return strdup(ctx->id);
         }
         i++;
       }
     }
     pthread_rwlock_unlock(&reverse_sockets_lock);
-    mtev_hash_destroy(&dedup, NULL, NULL);
   }
   if(argc == 2)
     return mtev_console_opt_delegate(ncct, stack, dstate, argc-1, argv+1, idx);

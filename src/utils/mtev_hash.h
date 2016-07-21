@@ -88,6 +88,7 @@ CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
 
 #define MTEV_HASH_EMPTY { {{ NULL, NULL, 0, 0, NULL, NULL}} }
 #define MTEV_HASH_ITER_ZERO CK_HS_ITERATOR_INITIALIZER
+#define MTEV_HASH_DEFAULT_SIZE (1<<7)
 
 /**
  * will default to LOCK_MODE_MUTEX

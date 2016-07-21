@@ -824,7 +824,7 @@ mtev_cluster_init() {
   mtev_conf_section_t *clusters, parent;
 
   gettimeofday(&my_boot_time, NULL);
-  mtev_hash_init(&global_clusters);
+  mtev_hash_init_locks(&global_clusters, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 
   parent = mtev_conf_get_section(NULL, "//clusters");
   if(!parent) return;

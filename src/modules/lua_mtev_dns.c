@@ -520,8 +520,8 @@ int mtev_lua_dns_index_func(lua_State *L) {
 }
 
 void mtev_lua_init_dns_globals() {
-  mtev_hash_init(&dns_rtypes);
-  mtev_hash_init(&dns_ctypes);
+  mtev_hash_init_locks(&dns_rtypes, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+  mtev_hash_init_locks(&dns_ctypes, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 
 void mtev_lua_init_dns() {
