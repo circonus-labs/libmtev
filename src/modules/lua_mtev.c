@@ -92,13 +92,6 @@ typedef struct {
   } value;
 } lua_data_t;
 
-typedef struct lua_callback_ref {
-  lua_State *L;
-  int callback_reference;
-  int closure_reference;
-  pthread_t self;
-} lua_callback_ref;
-
 static lua_data_t* mtev_lua_serialize(lua_State *L, int index);
 void mtev_lua_deserialize(lua_State *L, const lua_data_t *data);
 static void mtev_lua_free_data(void *vdata);
@@ -128,6 +121,18 @@ typedef struct {
   struct json_object *root;
 } json_crutch;
 
+static void
+mtev_lua_push_timeval(lua_State *L, struct timeval time) {
+  double seconds;
+  lua_getglobal(L, "mtev");
+  lua_getfield(L, -1, "timeval");
+  lua_getfield(L, -1, "new");
+  lua_replace(L, -3); // replaces mtev with new and removes new
+  lua_pop(L, 1); // pops timeval
+  lua_pushinteger(L, time.tv_sec);
+  lua_pushinteger(L, time.tv_usec);
+  lua_call(L, 2, 1);
+}
 static void
 nl_extended_free(void *vcl) {
   struct nl_slcl *cl = vcl;
@@ -1560,7 +1565,6 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   struct timeval diff;
-  double p_int;
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
@@ -1625,8 +1629,8 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_deregister_event(ci, e, 0);
 
   sub_timeval(*now, cl->start, &diff);
-  p_int = diff.tv_sec + diff.tv_usec / 1000000.0;
-  lua_pushnumber(cl->L, p_int);
+  mtev_lua_push_timeval(cl->L, diff);
+
   free(cl);
   ci->lmc->resume(ci, 1);
   return 0;
@@ -3418,121 +3422,90 @@ nl_watchdog_child_heartbeat(lua_State *L) {
   return 1;
 }
 
-static int
-nl_cluster_am_i_oldest_node(lua_State *L) {
-  int n;
-  mtev_boolean is_oldest;
-  const mtev_cluster_t **udata, *cluster;
+static void
+mtev_lua_push_cluster_node(lua_State *L, mtev_cluster_node_t *node) {
+  char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+  if(node == NULL) {
+    lua_pushnil(L);
+  } else {
+    uuid_unparse_lower(node->id, uuid_str);
 
+    lua_createtable(L, 0, 3);
+
+    lua_pushstring(L, "id");
+    lua_pushstring(L, uuid_str);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "boot_time");
+    mtev_lua_push_timeval(L, node->boot_time);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "last_contact");
+    mtev_lua_push_timeval(L, node->last_contact);
+    lua_settable(L, -3);
+  }
+}
+
+static void
+mtev_lua_push_cluster_details(lua_State *L, mtev_cluster_t *cluster, mtev_cluster_node_t **nodes, int number_of_nodes) {
+  int i;
+
+  lua_createtable(L, 0, 2);
+
+  lua_pushstring(L, "oldest_node");
+  mtev_lua_push_cluster_node(L, mtev_cluster_get_oldest_node(cluster));
+  lua_settable(L, -3);
+
+  lua_pushstring(L, "nodes");
+  lua_createtable(L, number_of_nodes, 0);
+  for(i=0; i != number_of_nodes; ++i) {
+    lua_pushinteger(L, i+1);
+    mtev_lua_push_cluster_node(L, nodes[i]);
+    lua_settable(L, -3);
+  }
+  lua_settable(L, -3);
+}
+
+static int
+nl_cluster_details(lua_State *L) {
+  int n;
+  const char *cluster_name;
+  mtev_cluster_t *cluster;
+  struct spawn_info *udata;
+  mtev_cluster_node_t **nodes;
+  int number_of_nodes;
   n = lua_gettop(L);
   mtevAssert(n == 2);
 
-  udata = lua_touserdata(L, 2);
-  cluster = *udata;
-  is_oldest = mtev_cluster_am_i_oldest_node(cluster);
-  if(is_oldest==mtev_true) {
-    lua_pushboolean(L, 1);
-  } else {
-    lua_pushboolean(L, 0);
+  if(!lua_isstring(L, 2)) {
+    luaL_error(L, "second parameter to cluster_details must be a string!");
   }
+  cluster_name = lua_tostring(L, 2);
+
+  cluster = mtev_cluster_by_name(cluster_name);
+  if(cluster == NULL) {
+    lua_pushnil(L);
+  } else {
+    number_of_nodes = mtev_cluster_size(cluster);
+    nodes = calloc(number_of_nodes, sizeof(mtev_cluster_node_t*));
+
+    mtev_cluster_get_nodes(cluster, nodes, number_of_nodes, mtev_true);
+
+    mtev_lua_push_cluster_details(L, cluster, nodes, number_of_nodes);
+    free(nodes);
+  }
+
   return 1;
 }
 
 static int
-mtev_lua_cluster_node_index_func(lua_State *L) {
-  int n;
-  const char *k;
-  mtev_cluster_node_t **udata, *node;
-  n = lua_gettop(L); /* number of arguments */
-  mtevAssert(n == 2);
-  if(!luaL_checkudata(L, 1, "mtev_cluster_node_t")) {
-    luaL_error(L, "metatable error, arg1 not a mtev_cluster_node_t!");
-    return 1;
-  }
-  udata = lua_touserdata(L, 1);
-  node = *udata;
-  if(!lua_isstring(L, 2)) {
-    luaL_error(L, "metatable error, arg2 not a string!");
-    return 1;
-  }
-
-  k = lua_tostring(L, 2);
-  switch (*k) {
-    case 'i':
-      if(!strcmp(k, "id")) {
-        char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
-        uuid_unparse_lower(node->id, uuid_str);
-        lua_pushstring(L, uuid_str);
-      } else if(!strcmp(k, "id_ud")) {
-        lua_pushlightuserdata(L, (void*)&node->id);
-      } else {
-        break;
-      }
-      return 1;
-    default:
-      break;
-  }
-  luaL_error(L, "mtev_cluster_node_t no such element: %s", k);
-  return 0;
-}
-
-static void
-mtev_lua_setup_cluster_node(lua_State *L,
-    mtev_cluster_node_t *cluster) {
-  mtev_cluster_node_t **addr;
-  addr = (mtev_cluster_node_t **)lua_newuserdata(L, sizeof(cluster));
-  *addr = cluster;
-  if(luaL_newmetatable(L, "mtev_cluster_node_t") == 1) {
-    lua_pushcclosure(L, mtev_lua_cluster_node_index_func, 0);
-    lua_setfield(L, -2, "__index");
-  }
-  lua_setmetatable(L, -2);
-}
-
-static mtev_hook_return_t
-mtev_lua_on_cluster_node_updated(void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster) {
-  lua_callback_ref *cb_ref;
-  int rv;
-  cb_ref = closure;
-
-  mtevAssert(pthread_equal(cb_ref->self, pthread_self()));
-
-  lua_rawgeti( cb_ref->L, LUA_REGISTRYINDEX, cb_ref->callback_reference );
-  lua_rawgeti( cb_ref->L, LUA_REGISTRYINDEX, cb_ref->closure_reference );
-  mtev_lua_setup_cluster_node(cb_ref->L, updated_node);
-  lua_pushlightuserdata(cb_ref->L, (void*)&cluster);
-
-  lua_call(cb_ref->L, 3, 1);
-  rv = lua_tointeger(cb_ref->L, -1);
-
-  uuid_t my_cluster_id;
-  mtev_cluster_t *my_cluster = NULL;
-
+nl_cluster_get_self(lua_State *L) {
+  static uuid_t my_cluster_id;
+  char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
   mtev_cluster_get_self(my_cluster_id);
-
-  return rv;
-}
-
-static int
-nl_cluster_handle_node_update_hook_register(lua_State *L) {
-  int n;
-  const char* hook_name;
-  lua_callback_ref *cb_ref;
-
-  n = lua_gettop(L);
-  mtevAssert(n == 4); // self, hook_name, callback, closure
-  if(!lua_isstring(L, 2) || !lua_isfunction(L,3)) {
-    return luaL_error(L, "bad parameters to mtev.cluster_handle_node_update_hook_register(cluster_name, callback, closure)");
-  }
-  hook_name = lua_tostring(L, 2);
-  cb_ref = malloc(sizeof(&cb_ref));
-  cb_ref->L = L;
-  cb_ref->closure_reference = luaL_ref( L, LUA_REGISTRYINDEX ); // read and pop 4th parameter
-  cb_ref->callback_reference = luaL_ref( L, LUA_REGISTRYINDEX ); // read 3rd parameter
-  cb_ref->self = pthread_self();
-
-  mtev_cluster_handle_node_update_hook_register("cluster-topology-listener", mtev_lua_on_cluster_node_updated, cb_ref);
-  return 0;
+  uuid_unparse_lower(my_cluster_id, uuid_str);
+  lua_pushstring(L, uuid_str);
+  return 1;
 }
 
 static int
@@ -3939,8 +3912,8 @@ static const luaL_Reg mtevlib[] = {
   { "shared_set", nl_shared_set},
   { "shared_get", nl_shared_get},
   { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
-  { "cluster_handle_node_update_hook_register", nl_cluster_handle_node_update_hook_register },
-  { "cluster_am_i_oldest_node", nl_cluster_am_i_oldest_node },
+  { "cluster_details", nl_cluster_details },
+  { "cluster_get_self", nl_cluster_get_self },
   { NULL, NULL }
 };
 
