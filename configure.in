@@ -648,20 +648,21 @@ then
 	) 
 fi
 
-if test -z "$have_u_intxx_t" ; then
-	AC_CACHE_CHECK([for uintXX_t types], ac_cv_have_uintxx_t, [
-		AC_TRY_COMPILE(
-			[
+AC_CACHE_CHECK([for uintXX_t types], ac_cv_have_uintxx_t, [
+	AC_TRY_COMPILE(
+		[
 #include <sys/types.h>
-			], 
-			[ uint8_t a; uint16_t b; uint32_t c; a = b = c = 1; ], 
-			[ ac_cv_have_uintxx_t="yes" ],
-			[ ac_cv_have_uintxx_t="no" ]
-		)
-	])
-	if test "x$ac_cv_have_uintxx_t" = "xyes" ; then
-		AC_DEFINE(HAVE_UINTXX_T)
-	fi
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+		],
+		[ uint8_t a; uint16_t b; uint32_t c; a = b = c = 1; ], 
+		[ ac_cv_have_uintxx_t="yes" ],
+		[ ac_cv_have_uintxx_t="no" ]
+	)
+])
+if test "x$ac_cv_have_uintxx_t" = "xyes" ; then
+	AC_DEFINE(HAVE_UINTXX_T)
 fi
 
 AC_CACHE_CHECK([for socklen_t], ac_cv_have_socklen_t, [
