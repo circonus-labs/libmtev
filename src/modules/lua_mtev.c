@@ -123,7 +123,6 @@ typedef struct {
 
 static void
 mtev_lua_push_timeval(lua_State *L, struct timeval time) {
-  double seconds;
   lua_getglobal(L, "mtev");
   lua_getfield(L, -1, "timeval");
   lua_getfield(L, -1, "new");
@@ -566,7 +565,6 @@ mtev_lua_socket_bind(lua_State *L) {
   unsigned short port;
   int8_t family;
   int rv;
-  int flag;
   union {
     struct sockaddr_in sin4;
     struct sockaddr_in6 sin6;
@@ -812,7 +810,6 @@ static int
 mtev_lua_socket_setsockopt(lua_State *L) {
   mtev_lua_resume_info_t *ci;
   eventer_t e, *eptr;
-  int rv;
   const char *type;
   int type_val;
   int value;
@@ -1564,7 +1561,6 @@ static int
 nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
-  struct timeval diff;
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
@@ -1622,7 +1618,6 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   struct timeval diff;
-  double p_int;
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
@@ -2005,7 +2000,7 @@ nl_utf8tohtml(lua_State *L) {
   const unsigned char *in;
   unsigned char *out;
   size_t in_len_size_t;
-  int rv, out_alloc, out_len, in_len, needs_free = 0;
+  int rv, out_len, in_len, needs_free = 0;
 
   if(lua_gettop(L) < 1)
     luaL_error(L, "bad arguments to mtev.utf8tohtml");
@@ -2021,7 +2016,7 @@ nl_utf8tohtml(lua_State *L) {
   in_len = (int)in_len_size_t;
   if((size_t)in_len != (size_t)in_len_size_t)
     luaL_error(L, "overflow");
-  out_alloc = out_len = in_len * 6 + 1;
+  out_len = in_len * 6 + 1;
   if(out_len <= ON_STACK_LUA_STRLEN) {
     out = alloca(out_len);
   }
@@ -2172,7 +2167,6 @@ nl_md5_hex(lua_State *L) {
 }
 static int
 nl_md5(lua_State *L) {
-  int i;
   MD5_CTX ctx;
   size_t inlen;
   const char *in;
@@ -2210,7 +2204,6 @@ nl_sha1_hex(lua_State *L) {
 }
 static int
 nl_sha1(lua_State *L) {
-  int i;
   SHA_CTX ctx;
   size_t inlen;
   const char *in;
@@ -3137,7 +3130,6 @@ mtev_lua_guess_is_array(lua_State *L, int idx) {
 }
 static struct json_object *
 mtev_lua_thing_to_json_object(lua_State *L, int idx) {
-  const char *str;
   lua_Integer v_int;
   double v_double;
   switch(lua_type(L, idx)) {
@@ -3191,8 +3183,6 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx) {
 static int
 nl_tojson(lua_State *L) {
   json_crutch **docptr, *doc;
-  const char *in;
-  size_t inlen;
   if(lua_gettop(L) != 1) luaL_error(L, "tojson requires one argument");
 
   doc = calloc(1, sizeof(*doc));
@@ -3277,7 +3267,7 @@ struct spawn_info {
 
 int nl_spawn(lua_State *L) {
   int in[2] = {-1,-1}, out[2] = {-1,-1}, err[2] = {-1,-1};
-  int arg_count = 0, rv, i;
+  int arg_count = 0, rv;
   const char *path;
   const char **argv, **envp = NULL;
   struct spawn_info *spawn_info;
@@ -3471,7 +3461,6 @@ nl_cluster_details(lua_State *L) {
   int n;
   const char *cluster_name;
   mtev_cluster_t *cluster;
-  struct spawn_info *udata;
   mtev_cluster_node_t **nodes;
   int number_of_nodes;
   n = lua_gettop(L);
@@ -3623,7 +3612,6 @@ mtev_lua_free_data(void *vdata) {
 
 static mtev_lua_table_t*
 mtev_lua_serialize_table(lua_State *L, int index) {
-  int key_type;
   mtev_lua_table_t *table;
   lua_data_t *value;
   lua_Number number_key;
@@ -3661,8 +3649,6 @@ mtev_lua_serialize_table(lua_State *L, int index) {
       number_key = lua_tonumber(L, key_index);
       number_key_str = malloc(sizeof(lua_Number));
       memcpy(number_key_str, &number_key, sizeof(lua_Number));
-      double d = 1;
-      double d2 = 2;
       mtev_hash_store(&table->int_keys, number_key_str, sizeof(lua_Number), value);
 
     } else if(lua_isstring(L, key_index)) {

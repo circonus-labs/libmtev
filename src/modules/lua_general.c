@@ -540,7 +540,6 @@ lua_repl_prompt(EditLine *el) {
   mtev_console_closure_t ncct;
   mtev_lua_repl_userdata_t *info;
   static char *tl = "lua_general(%d/%p)# ";
-  int path_len, max_len;
   lua_general_conf_t *conf;
   lua_module_closure_t *lmc;
 
@@ -562,7 +561,6 @@ lua_repl_prompt(EditLine *el) {
 static void
 mtev_lua_general_register_console_commands(mtev_image_t *self) {
   mtev_console_state_t *tl, *luas;
-  cmd_info_t *showcmd;
 
   tl = mtev_console_state_initial();
   luas = mtev_console_state_alloc_empty();

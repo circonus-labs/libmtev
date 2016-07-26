@@ -48,7 +48,7 @@
 #undef MTEV_MODULES_DIR
 #undef MTEV_LIB_DIR
 #undef DEFAULT_EVENTER
-#undef METV_ETC_DIR
+#undef MTEV_ETC_DIR
 
 #undef HAVE_FCNTL_H
 #undef HAVE_UNISTD_H

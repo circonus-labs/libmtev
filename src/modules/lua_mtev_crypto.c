@@ -179,7 +179,6 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
   const char *k;
   void *udata;
   SSL_SESSION *ssl_session;
-  int j;
 
   mtevAssert(lua_gettop(L) == 2);
   if(!luaL_checkudata(L, 1, "crypto.ssl_session")) {
@@ -540,6 +539,7 @@ mtev_lua_crypto_req_gc(lua_State *L) {
       args[i] = (BIGNUM *)*vu; \
     } \
   } \
+  (void)args; \
   bn = (BIGNUM *)*udata
 #define BN_METH_DECL_INT(n) \
   BIGNUM *bn; \
@@ -558,6 +558,7 @@ mtev_lua_crypto_req_gc(lua_State *L) {
       args[i] = lua_tointeger(L, i+2); \
     } \
   } \
+  (void)args; \
   bn = (BIGNUM *)*udata
 #define BN_INT(func, params...) (lua_pushinteger(L, func(params)), 1)
 
@@ -567,7 +568,7 @@ static int mtev_lua_crypto_bn_##name(lua_State *L) { \
   return BN_INT(BN_##name,sargs); \
 }
 #define BN_SIMPLE_INT(name,n,sargs...) \
-static int mtev_lua_crypto_bn_##name(lua_State *L) { \
+static int __attribute__((unused)) mtev_lua_crypto_bn_##name(lua_State *L) { \
   BN_METH_DECL_INT(n); \
   return BN_INT(BN_##name,sargs); \
 }

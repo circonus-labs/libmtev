@@ -242,7 +242,6 @@ mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
 static rest_websocket_message_handler
 mtev_http_get_websocket_handler(mtev_http_rest_closure_t *restc) 
 {
-  int cnt = 0;
   struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
   if (rule != NULL) {
       /* We match, set 'er up */
@@ -467,7 +466,6 @@ mtev_rest_websocket_dispatcher(mtev_http_session_ctx *ctx, uint8_t opcode, const
   rest_websocket_message_handler handler = restc->websocket_handler_memo;
   if (handler == NULL) handler = mtev_http_get_websocket_handler(restc);
   if (handler != NULL) {
-    void *old_closure = restc, *new_closure;
     return handler(restc, opcode, msg, msg_len);
   }
   mtev_http_response_status_set(ctx, 404, "NOT FOUND");

@@ -85,7 +85,6 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
 
   char text_buff[15000 + HDRLEN];
   void *text = text_buff;
-  int text_len = sizeof(text_buff);
 
   struct iovec iov[3];
   struct msghdr msg = { .msg_iov = iov };;
@@ -132,7 +131,6 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
       payload_len = len;
       if(text != text_buff) free(text);
       text = newtext;
-      text_len = len;
     }
     msg.msg_iov[2].iov_len = len - HDR_IVSIZE;
     msg.msg_iov[2].iov_base = payload;
@@ -296,7 +294,6 @@ drop_e(eventer_t e) {
 void
 mtev_net_heartbeat_destroy(mtev_net_heartbeat_ctx *ctx) {
   int i;
-  eventer_t e;
   drop_e(ctx->receiver_v4);
   drop_e(ctx->receiver_v6);
   drop_e(ctx->hb_event);
@@ -329,7 +326,7 @@ mtev_net_heartbeat_context_create(unsigned short port,
   int fd, on=1;
   mtev_net_heartbeat_ctx *ctx;
   struct sockaddr_in addr4;
-  struct sockaddr_in6 addr6;
+  //struct sockaddr_in6 addr6;
 
   ctx = calloc(1, sizeof(*ctx));
   memcpy(ctx->key, key, 32);
@@ -367,9 +364,9 @@ mtev_net_heartbeat_context_create(unsigned short port,
   }
   ctx->sender_v4_bcast = fd;
 
-  addr6.sin6_family = AF_INET6;
-  addr6.sin6_addr = in6addr_any;
-  addr6.sin6_port = htons(port);
+  /* addr6.sin6_family = AF_INET6; */
+  /* addr6.sin6_addr = in6addr_any; */
+  /* addr6.sin6_port = htons(port); */
   if ((fd = socket(AF_INET6,SOCK_DGRAM,IPPROTO_UDP)) >= 0) {
     if(eventer_set_fd_nonblocking(fd)) {
       close(fd);

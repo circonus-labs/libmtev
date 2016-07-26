@@ -361,7 +361,6 @@ int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data) {
 }
 int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data) {
   long hashv;
-  int ret;
   ck_key_t *retrieved_key;
   union {
     ck_key_t key;
@@ -411,7 +410,6 @@ int mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char *
 int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen,
                      NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree) {
   long hashv;
-  int ret;
   ck_hash_attr_t *data_struct;
   ck_key_t *retrieved_key;
   union {

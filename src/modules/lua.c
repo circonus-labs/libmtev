@@ -45,7 +45,6 @@
 
 #include "lua_mtev.h"
 
-static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
 static mtev_hash_table mtev_lua_states;
 static pthread_mutex_t mtev_lua_states_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -190,7 +189,7 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
   const char *key;
   int klen;
   void *vri;
-  pthread_t me, *tgt;
+  pthread_t me;
   me = pthread_self();
   mtevAssert(reporter->approach == LUA_REPORT_JSON);
   struct json_object *states = NULL;
@@ -279,7 +278,7 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
   const char *key;
   int klen;
   void *vri;
-  pthread_t me, *tgt;
+  pthread_t me;
   me = pthread_self();
   mtevAssert(reporter->approach == LUA_REPORT_NCCT);
 
@@ -396,7 +395,6 @@ mtev_lua_rest_show_waiter(eventer_t e, int mask, void *closure,
 static int
 mtev_rest_show_lua_complete(mtev_http_rest_closure_t *restc, int n, char **p) {
   struct lua_reporter *reporter = restc->call_closure;
-  mtev_http_session_ctx *ctx = restc->http_ctx;
 
   mtev_http_response_ok(restc->http_ctx, "application/json");
   pthread_mutex_lock(&reporter->lock);
@@ -506,7 +504,6 @@ mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
 mtev_lua_resume_info_t *
 mtev_lua_get_resume_info(lua_State *L) {
   mtev_lua_resume_info_t *ri;
-  lua_module_closure_t *lmc;
   void *v = NULL;
   pthread_mutex_lock(&coro_lock);
   if(mtev_hash_retrieve(&mtev_coros, (const char *)&L, sizeof(L), &v)) {
@@ -688,15 +685,15 @@ static int mtev_lua_panic(lua_State *L) {
   return 0;
 }
 
-static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
-  (void)ud; (void)osize;  /* not used */
-  if (nsize == 0) {
-    free(ptr);
-    return NULL;
-  }
-  else
-    return realloc(ptr, nsize);
-}
+/* static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) { */
+/*   (void)ud; (void)osize;  /\* not used *\/ */
+/*   if (nsize == 0) { */
+/*     free(ptr); */
+/*     return NULL; */
+/*   } */
+/*   else */
+/*     return realloc(ptr, nsize); */
+/* } */
 
 mtev_lua_resume_info_t *
 mtev_lua_new_resume_info(lua_module_closure_t *lmc, int magic) {
@@ -760,7 +757,7 @@ lua_State *
 mtev_lua_open(const char *module_name, void *lmc,
               const char *script_dir, const char *cpath) {
   int rv;
-  const char *existing_ppath, *existing_cpath, *ocp;
+  const char *existing_ppath, *existing_cpath;
   char *npath;
   lua_State *L = luaL_newstate(), **Lptr;
   lua_atpanic(L, &mtev_lua_panic);
