@@ -111,6 +111,7 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
       lua_gc(ri->coro_state, LUA_GCCOLLECT, 0);
       return 0;
     default: /* The complicated case */
+      mtevL(nlerr, "lua coro resume failed: %d\n", status);
       base = lua_gettop(ri->coro_state);
       if(base>0) {
         mtev_lua_traceback(ri->coro_state);
