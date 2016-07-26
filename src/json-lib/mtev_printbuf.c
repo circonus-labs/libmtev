@@ -14,7 +14,9 @@
  * (http://www.opensource.org/licenses/mit-license.php)
  */
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif 
 #include "mtev_config.h"
 
 #include <stdio.h>

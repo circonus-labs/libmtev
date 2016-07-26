@@ -438,7 +438,7 @@ typedef struct asynch_log_ctx {
 
 static asynch_log_line *
 asynch_log_pop(asynch_log_ctx *actx) {
-  ck_fifo_mpmc_entry_t *garbage;
+  ck_fifo_mpmc_entry_t *garbage = NULL;
   asynch_log_line *ll = NULL;
   if(ck_fifo_mpmc_dequeue(&actx->q, &ll, &garbage) == true) {
     /* We can free this only because this fifo is used as a

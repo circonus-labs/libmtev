@@ -652,7 +652,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   }
 
   if(!ctx->ssl_ctx_cn) {
-    char *part, *brkt;
+    char *part = NULL, *brkt = NULL;
     long ctx_options = 0;
     ssl_ctx_cache_node *existing_ctx_cn;
     ctx->ssl_ctx_cn = calloc(1, sizeof(*ctx->ssl_ctx_cn));

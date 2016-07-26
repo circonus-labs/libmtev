@@ -807,9 +807,9 @@ _history_expand_command(const char *command, size_t cmdlen, char **result)
 int
 history_expand(char *str, char **output)
 {
-	int i, retval = 0, idx;
-	size_t size;
-	char *temp, *result;
+	int i = 0, retval = 0, idx = 0;
+	size_t size = 0;
+	char *temp = NULL, *result = NULL;
 
 	if (h == NULL || e == NULL)
 		rl_initialize();

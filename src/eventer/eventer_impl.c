@@ -672,7 +672,6 @@ int eventer_thread_check(eventer_t e) {
 #include <time.h>
 eventer_hrtime_t eventer_gethrtime() {
   struct timespec ts;
-  uint64_t t;
 #ifdef CLOCK_MONOTONIC_RAW
   clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
 #else

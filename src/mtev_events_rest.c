@@ -240,7 +240,7 @@ mtev_rest_eventer_logs(mtev_http_rest_closure_t *restc, int n, char **p) {
   const char *since_s, *last_s;
   const char *jsonstr;
   char errbuf[128];
-  unsigned long long since;
+  unsigned long long since = 0;
   int last = 0;
   struct json_object *doc;
   mtev_log_stream_t ls;

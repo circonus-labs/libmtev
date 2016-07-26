@@ -1331,7 +1331,7 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
                         const char *path,
                         mtev_hash_table *table,
                         const char *namespace) {
-  int cnt;
+  unsigned int cnt;
   xmlXPathObjectPtr pobj = NULL;
   xmlXPathContextPtr current_ctxt;
   xmlNodePtr current_node = (xmlNodePtr)section;
