@@ -135,7 +135,7 @@ static inline void uuid_unparse_lower(uuid_t in, char *out) {
 /* udns checks for IPv6 */
 #define HAVE_IPv6
 
-#if defined(__sun) && !defined(HAVE_POSIX_READDIR_R) && !defined(_POSIX_PTHREAD_SEMANTICS)
+#if defined(__sun) && !defined(HAVE_POSIX_READDIR_R)
 #define portable_readdir_r(a,b,c) (((*(c)) = readdir_r(a,b)) == NULL)
 #else
 #define portable_readdir_r readdir_r
