@@ -478,7 +478,6 @@ mtev_lua_setup_http_ctx(lua_State *L,
 }
 static int
 mtev_lua_rest_acl_func(lua_State *L) {
-  const char *acl_type;
   CCALL_DECL(L, mtev_http_rest_closure_t, restc, 1);
   lua_pushboolean(L, mtev_http_rest_client_cert_auth(restc, 0, NULL));
   return 1;

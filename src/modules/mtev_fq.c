@@ -323,7 +323,7 @@ fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
   void *data;
 
   while(mtev_hash_next(options, &iter, &key, &klen, &data)) {
-    mtevL(mtev_error, "%s %s!\n", key, data);
+    mtevL(mtev_error, "%s %s!\n", key, (char *)data);
   }
 
   return 0;

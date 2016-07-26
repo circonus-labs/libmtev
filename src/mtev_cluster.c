@@ -165,7 +165,6 @@ mtev_cluster_on_node_update(mtev_cluster_t *cluster,
   if (compare_timeval(*new_boot_time, boot_time_of_dead_node) == 0) {
     cluster->oldest_node = &cluster->nodes[0];
     for (int i = 1; i < cluster->node_cnt; i++) {
-      struct timeval delta;
       mtev_cluster_node_t *node = &cluster->nodes[i];
 
       if (compare_timeval(node->boot_time, cluster->oldest_node->boot_time) == -1) {

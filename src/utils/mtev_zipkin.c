@@ -104,15 +104,15 @@ ze_i64(byte *buffer, size_t len, int64_t v) {
   }
   return 8;
 }
-static size_t
-ze_double(byte *buffer, size_t len, double v) {
-  if(len > 7) {
-    int64_t *in = (int64_t *)&v;
-    int64_t nv = htonll(*in);
-    memcpy(buffer, &nv, 8);
-  }
-  return 8;
-}
+/* static size_t */
+/* ze_double(byte *buffer, size_t len, double v) { */
+/*   if(len > 7) { */
+/*     int64_t *in = (int64_t *)&v; */
+/*     int64_t nv = htonll(*in); */
+/*     memcpy(buffer, &nv, 8); */
+/*   } */
+/*   return 8; */
+/* } */
 static size_t
 ze_list_begin(byte *buffer, size_t len, byte fieldtype, int32_t cnt) {
   if(len > 4) {
@@ -558,7 +558,6 @@ mtev_zipkin_span_bannotate(Zipkin_Span *span, Zipkin_AnnotationType atype,
                            const void *value, int32_t value_len, bool value_copy) {
   Zipkin_List_Zipkin_BinaryAnnotation *node;
   Zipkin_BinaryAnnotation *a;
-  int64_t now;
 
   if(!span) return NULL;
 

@@ -183,7 +183,7 @@ struct wslay_event_callbacks wslay_callbacks = {
 static mtev_log_stream_t http_debug = NULL;
 static mtev_log_stream_t http_io = NULL;
 static mtev_log_stream_t http_access = NULL;
-static const char *zipkin_http_uri = "http.uri";
+//static const char *zipkin_http_uri = "http.uri";
 static const char *zipkin_http_method = "http.method";
 static const char *zipkin_http_hostname = "http.hostname";
 static const char *zipkin_http_status = "http.status";
@@ -585,7 +585,6 @@ static void
 end_span(mtev_http_session_ctx *ctx) {
   mtev_http_request *req = &ctx->req;
   mtev_http_response *res = &ctx->res;
-  mtev_hrtime_t now;
   char status_str[4];
   int64_t nbytesout, nbytesin;
   if(!ctx->zipkin_span) return;
@@ -1325,7 +1324,7 @@ mtev_http_websocket_handshake(mtev_http_session_ctx *ctx)
 
   if (strlen(sec_ws_key) != 24) {
     ctx->is_websocket = mtev_false;
-    mtevL(mtev_error, "Incoming sec-websocket-key is invalid length, expected 24, got: %d\n", strlen(sec_ws_key));
+    mtevL(mtev_error, "Incoming sec-websocket-key is invalid length, expected 24, got: %ul\n", (unsigned int)strlen(sec_ws_key));
     return ctx->is_websocket;
   }
 
@@ -1370,7 +1369,7 @@ wslay_send_callback(wslay_event_context_ptr ctx,
       wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     }
   }
-  mtevL(http_io, "   <- wslay_send_callback, sent (%d)\n", r);
+  mtevL(http_io, "   <- wslay_send_callback, sent (%d)\n", (int)r);
 
   pthread_mutex_unlock(&session_ctx->write_lock);
   return r;
@@ -1403,7 +1402,7 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
     wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     r = -1;
   }
-  mtevL(http_io, "   -> wslay_recv_callback, read (%d)\n", r);
+  mtevL(http_io, "   -> wslay_recv_callback, read (%d)\n", (int) r);
   return r;
 }
 

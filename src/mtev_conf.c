@@ -1590,7 +1590,7 @@ mtev_conf_set_string(mtev_conf_section_t section,
   }
   else {
     int cnt;
-    xmlNodePtr child_node;
+    xmlNodePtr child_node = NULL;
     mtev_conf_section_t *sections;
     sections = mtev_conf_get_sections(section, path, &cnt);
     if(cnt > 1) {
@@ -1614,7 +1614,8 @@ mtev_conf_set_string(mtev_conf_section_t section,
       child_node = sections[0];
       xmlFree(encoded);
     }
-    CONF_DIRTY(child_node);
+    if(child_node != NULL)
+      CONF_DIRTY(child_node);
   }
   mtev_conf_mark_changed();
   if(mtev_conf_write_file(NULL) != 0)

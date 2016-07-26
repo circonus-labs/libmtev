@@ -12,10 +12,10 @@ AC_CANONICAL_HOST
 AC_CONFIG_HEADER(src/mtev_config.h)
 
 AC_ARG_ENABLE(strict,
-	[AC_HELP_STRING([--enable-strict],
+	[AC_HELP_STRING([--disable-strict],
 		[Compile with warnings treated as errors])],
 	enable_strict="$enableval",
-	enable_strict=no)
+	enable_strict=yes)
 
 AC_ARG_ENABLE(lua,
   [AC_HELP_STRING([--enable-lua],
@@ -383,7 +383,7 @@ int main(void){sem_t s;return (0 != sem_init(&s,0,0));}
 
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS(ssetugid strlcpy strnstrn openpty inet_pton inet_ntop getopt \
-	poll vasprintf strlcat strndup)
+	poll vasprintf strlcat strndup vasprintf)
 
 # Checks for header files.
 AC_CHECK_HEADERS(sys/file.h sys/types.h dirent.h sys/param.h fcntl.h errno.h limits.h \
@@ -456,8 +456,10 @@ AC_EGREP_CPP([tgoto.*[(][       ]*char[         ]*],
 
 AC_CACHE_CHECK([for kqueue support], ac_cv_have_kqueue, [
 	AC_TRY_LINK(
-		[ #include <sys/types.h> ],
-		[ u_int a; a = kqueue(); ],
+		[ #include <sys/types.h>
+		  #include <sys/event.h>
+		  #include <sys/time.h> ],
+		[ u_int a; a = kqueue(); (void)a;],
 		[ ac_cv_have_kqueue="yes" ],
 		[ ac_cv_have_kqueue="no" ]
 	)
@@ -472,7 +474,7 @@ fi
 AC_CACHE_CHECK([for epoll support], ac_cv_have_epoll, [
 	AC_TRY_LINK(
 		[ #include <sys/types.h> ],
-		[ int a; a = epoll_create(); ],
+		[ int a; a = epoll_create(); (void)a;],
 		[ ac_cv_have_epoll="yes" ],
 		[ ac_cv_have_epoll="no" ]
 	)
@@ -488,7 +490,7 @@ fi
 AC_CACHE_CHECK([for Solaris ports support], ac_cv_have_ports, [
 	AC_TRY_LINK(
 		[ #include <port.h> ],
-		[ u_int a; a = port_create(); ],
+		[ u_int a; a = port_create(); (void)a; ],
 		[ ac_cv_have_ports="yes" ],
 		[ ac_cv_have_ports="no" ]
 	)
@@ -505,7 +507,7 @@ AC_SUBST(EVENTER_OBJS)
 AC_CACHE_CHECK([for posix_readdir_r], ac_cv_have_posix_readdir_r, [
 	AC_TRY_COMPILE(
 		[ #include <dirent.h> ], 
-		[ struct dirent *dep, de; readdir_r("/", &de, &dep); ], 
+		[ struct dirent *dep, de; DIR *d = opendir("/");  readdir_r(d, &de, &dep); (void)dep; (void)de; ], 
 		[ ac_cv_have_posix_readdir_r="yes" ],
 		[ ac_cv_have_posix_readdir_r="no" ]
 	)
@@ -531,7 +533,7 @@ fi
 AC_CACHE_CHECK([for htobe64], ac_cv_have_htobe64, [
 	AC_TRY_LINK(
 		[ #include <endian.h> ],
-		[ long long int a; a = htobe64(1);],
+		[ long long int a; a = htobe64(1); (void)a;],
 		[ ac_cv_have_htobe64="yes" ],
 		[ ac_cv_have_htobe64="no" ]
 	)
@@ -539,7 +541,7 @@ AC_CACHE_CHECK([for htobe64], ac_cv_have_htobe64, [
 AC_CACHE_CHECK([for htobe64], ac_cv_have_be64toh, [
   AC_TRY_LINK(
     [ #include <endian.h> ],
-    [ long long int a; a = be64toh(1);],
+    [ long long int a; a = be64toh(1); (void)a;],
     [ ac_cv_have_be64toh="yes" ],
     [ ac_cv_have_be64toh="no" ]
   )
@@ -547,7 +549,7 @@ AC_CACHE_CHECK([for htobe64], ac_cv_have_be64toh, [
 AC_CACHE_CHECK([for htonll], ac_cv_have_htonll, [
 	AC_TRY_LINK(
 		[ #include <endian.h> ],
-		[ long long int a; a = htonll(1);],
+		[ long long int a; a = htonll(1); (void)a;],
 		[ ac_cv_have_htonll="yes" ],
 		[ ac_cv_have_htonll="no" ]
 	)
@@ -564,7 +566,7 @@ fi
 AC_CACHE_CHECK([for u_int type], ac_cv_have_u_int, [
 	AC_TRY_COMPILE(
 		[ #include <sys/types.h> ], 
-		[ u_int a; a = 1;], 
+		[ u_int a; a = 1; (void)a; ], 
 		[ ac_cv_have_u_int="yes" ],
 		[ ac_cv_have_u_int="no" ]
 	)
@@ -577,7 +579,7 @@ fi
 AC_CACHE_CHECK([for intXX_t types], ac_cv_have_intxx_t, [
 	AC_TRY_COMPILE(
 		[ #include <sys/types.h> ], 
-		[ int8_t a; int16_t b; int32_t c; a = b = c = 1;], 
+		[ int8_t a; int16_t b; int32_t c; a = b = c = 1; (void)a; (void)b; (void)c; ], 
 		[ ac_cv_have_intxx_t="yes" ],
 		[ ac_cv_have_intxx_t="no" ]
 	)
@@ -590,7 +592,7 @@ fi
 AC_CACHE_CHECK([for int64_t type], ac_cv_have_int64_t, [
 	AC_TRY_COMPILE(
 		[ #include <sys/types.h> ], 
-		[ int64_t a; a = 1;], 
+		[ int64_t a; a = 1; (void)a;], 
 		[ ac_cv_have_int64_t="yes" ],
 		[ ac_cv_have_int64_t="no" ]
 	)
@@ -603,7 +605,7 @@ fi
 AC_CACHE_CHECK([for u_intXX_t types], ac_cv_have_u_intxx_t, [
 	AC_TRY_COMPILE(
 		[ #include <sys/types.h> ], 
-		[ u_int8_t a; u_int16_t b; u_int32_t c; a = b = c = 1;], 
+		[ u_int8_t a; u_int16_t b; u_int32_t c; a = b = c = 1; (void)a; (void)b; (void)c; ], 
 		[ ac_cv_have_u_intxx_t="yes" ],
 		[ ac_cv_have_u_intxx_t="no" ]
 	)
@@ -616,7 +618,7 @@ fi
 AC_CACHE_CHECK([for u_int64_t types], ac_cv_have_u_int64_t, [
 	AC_TRY_COMPILE(
 		[ #include <sys/types.h> ], 
-		[ u_int64_t a; a = 1;], 
+		[ u_int64_t a; a = 1; (void)a;], 
 		[ ac_cv_have_u_int64_t="yes" ],
 		[ ac_cv_have_u_int64_t="no" ]
 	)
@@ -638,6 +640,7 @@ then
 			int8_t a; int16_t b; int32_t c;
 			u_int8_t e; u_int16_t f; u_int32_t g;
 			a = b = c = e = f = g = 1;
+      (void)a; (void)b; (void)c; (void)d; (void)e; (void)f; (void)g;
 		], 
 		[
 			AC_DEFINE(HAVE_U_INTXX_T)
@@ -656,7 +659,7 @@ AC_CACHE_CHECK([for uintXX_t types], ac_cv_have_uintxx_t, [
 #include <stdint.h>
 #endif
 		],
-		[ uint8_t a; uint16_t b; uint32_t c; a = b = c = 1; ], 
+		[ uint8_t a; uint16_t b; uint32_t c; a = b = c = 1; (void)a; (void)b; (void)c; ], 
 		[ ac_cv_have_uintxx_t="yes" ],
 		[ ac_cv_have_uintxx_t="no" ]
 	)
@@ -671,7 +674,7 @@ AC_CACHE_CHECK([for socklen_t], ac_cv_have_socklen_t, [
 #include <sys/types.h>
 #include <sys/socket.h>
 		],
-		[socklen_t foo; foo = 1235;],
+		[socklen_t foo; foo = 1235; (void)foo;],
 		[ ac_cv_have_socklen_t="yes" ],
 		[ ac_cv_have_socklen_t="no" ]
 	)
@@ -685,7 +688,7 @@ AC_CACHE_CHECK([for size_t], ac_cv_have_size_t, [
 		[
 #include <sys/types.h>
 		],
-		[ size_t foo; foo = 1235; ],
+		[ size_t foo; foo = 1235; (void)foo;],
 		[ ac_cv_have_size_t="yes" ],
 		[ ac_cv_have_size_t="no" ]
 	)
@@ -699,7 +702,7 @@ AC_CACHE_CHECK([for ssize_t], ac_cv_have_ssize_t, [
 		[
 #include <sys/types.h>
 		],
-		[ ssize_t foo; foo = 1235; ],
+		[ ssize_t foo; foo = 1235; (void)foo;],
 		[ ac_cv_have_ssize_t="yes" ],
 		[ ac_cv_have_ssize_t="no" ]
 	)
@@ -764,11 +767,12 @@ if test -n "`$CC -V 2>&1 | grep 'Sun C'`"; then
 		CFLAGS="$CFLAGS -errwarn=%all"
 	fi
 else
-	CFLAGS="$CFLAGS -Wall"
+	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall"
 	if test "$enable_strict" != "no"; then
-		CFLAGS="$CFLAGS -Werror"
+		CFLAGSEXTRAS="$CFLAGSEXTRAS -Werror"
 	fi
 fi
+AC_SUBST(CFLAGSEXTRAS)
 
 LUACFLAGS=`echo $CFLAGS | sed -e "s#${C99FLAG}##g; s#-mt##g; s#-errwarn=%all##g;"`
 AC_SUBST(LUACFLAGS)

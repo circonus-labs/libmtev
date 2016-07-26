@@ -65,7 +65,7 @@ zipkin_fq_publish(void *closure, int64_t traceid, int64_t spanid,
   if(zc_client != NULL) {
     char buff[128];
     fq_msg *msg;
-    snprintf(buff, sizeof(buff), "%s%llx", zc_routing_prefix, traceid);
+    snprintf(buff, sizeof(buff), "%s%llx", zc_routing_prefix, (long long int)traceid);
     msg = fq_msg_alloc(buf, len);
     fq_msg_id(msg,NULL);
     fq_msg_route(msg, buff, strlen(buff));
@@ -91,7 +91,6 @@ zipkin_fq_publish(void *closure, int64_t traceid, int64_t spanid,
 
 static int
 zipkin_fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
-  const char *port_str;
   RCONFSTR(host);
   RCONFSTR(exchange);
   RCONFSTR(routing_prefix);
