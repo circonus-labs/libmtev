@@ -18,8 +18,8 @@ top_srcdir=@top_srcdir@
 CC=@CC@
 CPPFLAGS=@CPPFLAGS@ \
 	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils
-CFLAGS=@CFLAGS@
-SHCFLAGS=@SHCFLAGS@
+CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
+SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
 DEPFLAGS=@DEPFLAGS@
 LDFLAGS=@LDFLAGS@
 AR=@AR@

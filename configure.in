@@ -12,10 +12,10 @@ AC_CANONICAL_HOST
 AC_CONFIG_HEADER(src/mtev_config.h)
 
 AC_ARG_ENABLE(strict,
-	[AC_HELP_STRING([--enable-strict],
+	[AC_HELP_STRING([--disable-strict],
 		[Compile with warnings treated as errors])],
 	enable_strict="$enableval",
-	enable_strict=no)
+	enable_strict=yes)
 
 AC_ARG_ENABLE(lua,
   [AC_HELP_STRING([--enable-lua],
@@ -765,11 +765,12 @@ if test -n "`$CC -V 2>&1 | grep 'Sun C'`"; then
 		CFLAGS="$CFLAGS -errwarn=%all"
 	fi
 else
-	CFLAGS="$CFLAGS -Wall"
+	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall"
 	if test "$enable_strict" != "no"; then
-		CFLAGS="$CFLAGS -Werror"
+		CFLAGSEXTRAS="$CFLAGSEXTRAS -Werror"
 	fi
 fi
+AC_SUBST(CFLAGSEXTRAS)
 
 LUACFLAGS=`echo $CFLAGS | sed -e "s#${C99FLAG}##g; s#-mt##g; s#-errwarn=%all##g;"`
 AC_SUBST(LUACFLAGS)
