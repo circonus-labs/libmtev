@@ -162,7 +162,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   mtev_lua_resume_info_t *ri;
   mtev_lua_resume_rest_info_t *ctx = NULL;
   lua_State *L;
-  eventer_t conne;
+  eventer_t conne = NULL;
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
   mtev_http_response *res = mtev_http_session_response(restc->http_ctx);
 

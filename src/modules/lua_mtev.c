@@ -1719,7 +1719,7 @@ nl_chmod(lua_State *L) {
 static int
 nl_stat(lua_State *L) {
   struct stat st;
-  int err;
+  int err = 0;
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.stat");
   if(lua_isstring(L,1)) err = lstat(lua_tostring(L,1), &st);
   else if(lua_isnumber(L,1)) err = fstat(lua_tointeger(L,1), &st);
