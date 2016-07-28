@@ -3433,6 +3433,16 @@ mtev_lua_push_cluster_node(lua_State *L, mtev_cluster_node_t *node) {
     lua_pushstring(L, "last_contact");
     mtev_lua_push_timeval(L, node->last_contact);
     lua_settable(L, -3);
+
+    lua_pushstring(L, "address");
+    char node_name[128];
+    if (node->addr.addr4.sin_family == AF_INET) {
+      inet_ntop(AF_INET, &node->addr.addr4.sin_addr, node_name, sizeof(node_name));
+    } else if (node->addr.addr6.sin6_family == AF_INET6) {
+      inet_ntop(AF_INET6, &node->addr.addr6.sin6_addr, node_name, sizeof(node_name));
+    }
+    lua_pushstring(L, node_name);
+    lua_settable(L, -3);
   }
 }
 
