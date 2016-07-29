@@ -35,3 +35,4 @@ src/libmtev*dylib
 src/libmtev_dtrace_probes.h
 test/Makefile
 test/hash_test
+test/uuid_test
