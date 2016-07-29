@@ -68,19 +68,26 @@ static inline unsigned long hextoul(const char *str, size_t len)
   /* we are guaranteed to not get a string longer than 8 in hex. */
   switch(len) {
   case 8:
-    value += (hexvalue(str[len - 8])) * 268435456;
+    value += (hexvalue(str[len - 8])) * 0x10000000;
+    /* FALLTHROUGH */
   case 7:
-    value += (hexvalue(str[len - 7])) * 16777216;
+    value += (hexvalue(str[len - 7])) * 0x1000000;
+    /* FALLTHROUGH */
   case 6:
-    value += (hexvalue(str[len - 6])) * 1048576;
+    value += (hexvalue(str[len - 6])) * 0x100000;
+    /* FALLTHROUGH */
   case 5:
-    value += (hexvalue(str[len - 5])) * 65536;
+    value += (hexvalue(str[len - 5])) * 0x10000;
+    /* FALLTHROUGH */
   case 4:
-    value += (hexvalue(str[len - 4])) * 4096;
+    value += (hexvalue(str[len - 4])) * 0x1000;
+    /* FALLTHROUGH */
   case 3:
-    value += (hexvalue(str[len - 3])) * 256;
+    value += (hexvalue(str[len - 3])) * 0x100;
+    /* FALLTHROUGH */
   case 2:
-    value += (hexvalue(str[len - 2])) * 16;
+    value += (hexvalue(str[len - 2])) * 0x10;
+    /* FALLTHROUGH */
   case 1:    
     value += (hexvalue(str[len - 1]));
   };
