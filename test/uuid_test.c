@@ -3,9 +3,18 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#define FAIL(...)                           \
+  printf("** ");                            \
+  printf( __VA_ARGS__);                     \
+  printf("\n** FAILURE\n"); \
+  exit(1);
+
+
 static mtev_hrtime_t total_time = 0;
 
 int (*uuid_parse_fn)(const char *in, uuid_t out) = NULL;
+
+
 
 int parse_both(const char *in, uuid_t out) 
 {
@@ -16,7 +25,7 @@ int parse_both(const char *in, uuid_t out)
 
   int z = memcmp(out, again, sizeof(uuid_t));
   if (z != 0) {
-    printf("mtev_uuid_parse does not match uuid_parse for '%s'\n", in);
+    FAIL("mtev_uuid_parse does not match uuid_parse for '%s'", in);
     return 1;
   }
   return 0;
@@ -40,8 +49,7 @@ void parse_file()
       mtev_hrtime_t end = mtev_gethrtime();
       total_time += end - now;
       if (x != 0) {
-        printf("Cannot parse!");
-        abort();
+        FAIL("Cannot parse!");
       }
       i = 0;
     } else {
@@ -60,7 +68,7 @@ int main(int argc, char **argv)
     parse_file();
   }
 
-  printf("Total parse time (mtev): %llu\n", total_time);
+  printf("* Total parse time (mtev): %llu\n", total_time);
   uint64_t mtev_time = total_time;
   total_time = 0;
 
@@ -69,15 +77,47 @@ int main(int argc, char **argv)
     parse_file();
   }
 
-  printf("Total parse time (libuuid): %llu\n", total_time);
+  printf("* Total parse time (libuuid): %llu\n", total_time);
 
-  printf("Speedup: %3.2fx\n", (double)total_time / (double) mtev_time);
+  printf("* Speedup: %3.2fx\n", (double)total_time / (double) mtev_time);
 
   uuid_parse_fn = parse_both;
   for (int i = 0; i < 1000000/500; i++) {
     parse_file();
   }
 
-  printf("mtev_uuid_parse and uuid_parse achieve same memory\n");
-  printf("SUCCESS\n");
+  printf("* mtev_uuid_parse and uuid_parse achieve same memory\n");
+
+  /* test upcase */
+  const char *upcase = "2F711A8C-E6A1-CE2E-CC52-82AAC2906D08";
+  uuid_t uc;
+
+  if (mtev_uuid_parse(upcase, uc) != 0) {
+    FAIL("Failed to parse upcase!");
+  }
+
+  uuid_t uc2;
+  if (uuid_parse(upcase, uc2) != 0) {
+    FAIL("libuuid failed to parse upcase, wat?");
+  }
+
+  if (memcmp(uc, uc2, sizeof(uuid_t)) != 0) {
+    FAIL("libuuid and mtev parse do not match on UPCASE");
+  }
+
+  printf("* UPCASE parse succeeds\n");
+    
+  const char *broken = "2f711a8c-e6a1-ce2ecc52-82aac2906d08";
+  if (mtev_uuid_parse(broken, uc) != -1) {
+    FAIL("Expected parse failure!");
+  }
+
+  const char *broken2 = "2f711a8c-e6a1-ce2e-hc52-82aac2906d08";
+  if (mtev_uuid_parse(broken, uc) != -1) {
+    FAIL("Expected parse failure!");
+  }
+
+  printf("* Broken UUIDs expectedly fail\n");
+  
+  printf("* SUCCESS\n");
 }
