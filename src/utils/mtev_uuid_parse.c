@@ -86,5 +86,6 @@ int mtev_uuid_parse(const char *in, uuid_t uu)
     len += 2;
     out++;
   }
+  if (*p != '\0') return -1;
   return 0;
 }
