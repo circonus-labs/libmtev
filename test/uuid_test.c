@@ -106,15 +106,41 @@ int main(int argc, char **argv)
   }
 
   printf("* UPCASE parse succeeds\n");
-    
+
+  /* 'hyphen' separator missing */
   const char *broken = "2f711a8c-e6a1-ce2ecc52-82aac2906d08";
   if (mtev_uuid_parse(broken, uc) != -1) {
-    FAIL("Expected parse failure!");
+    FAIL("Expected parse failure 1!");
   }
 
+  /* contains non-hex digit */
   const char *broken2 = "2f711a8c-e6a1-ce2e-hc52-82aac2906d08";
-  if (mtev_uuid_parse(broken, uc) != -1) {
-    FAIL("Expected parse failure!");
+  if (mtev_uuid_parse(broken2, uc) != -1) {
+    FAIL("Expected parse failure 2!");
+  }
+
+  /* input length one-too-small */
+  const char *broken3 = "2f711a8c-e6a1-ce2e-ec52-82aac2906d0";
+  if (mtev_uuid_parse(broken3, uc) != -1) {
+    FAIL("Expected parse failure 3!");
+  }
+
+  /* input length two-too-small */
+  const char *broken4 = "2f711a8c-e6a1-ce2e-ec52-82aac2906d";
+  if (mtev_uuid_parse(broken4, uc) != -1) {
+    FAIL("Expected parse failure 4!");
+  }
+
+  /* input length one-too-large */
+  const char *broken5 = "2f711a8c-e6a1-ce2e-ec52-82aac2906d080";
+  if (mtev_uuid_parse(broken3, uc) != -1) {
+    FAIL("Expected parse failure 5!");
+  }
+
+  /* input length two-too-large */
+  const char *broken6 = "2f711a8c-e6a1-ce2e-ec52-82aac2906d0801";
+  if (mtev_uuid_parse(broken6, uc) != -1) {
+    FAIL("Expected parse failure 6!");
   }
 
   printf("* Broken UUIDs expectedly fail\n");

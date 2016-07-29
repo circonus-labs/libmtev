@@ -60,54 +60,13 @@ static inline void uuid_pack(const struct uuid *uu, uuid_t ptr)
   memcpy(out+10, uu->node, 6);
 }
 
-/* optimized version of strtoul which ignores checking since we already did it */
-static inline unsigned long hextoul(const char *str, size_t len)
-{
-  unsigned long value = 0;
-   
-  /* we are guaranteed to not get a string longer than 8 in hex. */
-  switch(len) {
-  case 8:
-    value += (hexvalue(str[len - 8])) * 0x10000000;
-    /* FALLTHROUGH */
-  case 7:
-    value += (hexvalue(str[len - 7])) * 0x1000000;
-    /* FALLTHROUGH */
-  case 6:
-    value += (hexvalue(str[len - 6])) * 0x100000;
-    /* FALLTHROUGH */
-  case 5:
-    value += (hexvalue(str[len - 5])) * 0x10000;
-    /* FALLTHROUGH */
-  case 4:
-    value += (hexvalue(str[len - 4])) * 0x1000;
-    /* FALLTHROUGH */
-  case 3:
-    value += (hexvalue(str[len - 3])) * 0x100;
-    /* FALLTHROUGH */
-  case 2:
-    value += (hexvalue(str[len - 2])) * 0x10;
-    /* FALLTHROUGH */
-  case 1:    
-    value += (hexvalue(str[len - 1]));
-  };
-
-  return value;
-}
-
-
 int mtev_uuid_parse(const char *in, uuid_t uu)
 {
-  const char    *p;
-  int           i;
-  int           len;
-  char          buf[3] = {0};
-  struct uuid   uuid;
-  const char    *cp;
+  const char *p;
+  int len;
+  unsigned char *out;
 
-
-  for (p = in, len = 0; *p != '\0'; p++, len++) {
-
+  for (p = in, len = 0, out = uu; len < 36; ) {
     switch (len) {
     case 8:
     case 13:
@@ -116,31 +75,17 @@ int mtev_uuid_parse(const char *in, uuid_t uu)
       if (*p != '-') {
         return -1;
       }
-
-      break;
-    default:
-      if (isxdigit(*p) == 0) {
-        return -1;
-      }
-      break;
+      p++;
+      len++;
+      continue;
     }
+    if (! (isxdigit(p[0]) && isxdigit(p[1])))
+      return -1;
+    *out = (hexvalue(p[0]) * 0x10) | hexvalue(p[1]);
+    p += 2;
+    len += 2;
+    out++;
   }
-
-  if (len != 36) {
-    return -1;
-  }
-
-  uuid.time_low = hextoul(in, 8);
-  uuid.time_mid = hextoul(in + 9, 4);
-  uuid.time_hi_and_version = hextoul(in+14, 4); 
-  uuid.clock_seq = hextoul(in + 19, 4); 
-  cp = in+24;
-  for (i=0; i < 6; i++) {
-    buf[0] = *cp++;
-    buf[1] = *cp++;
-    uuid.node[i] = hextoul(buf, 2); 
-  }
-
-  uuid_pack(&uuid, uu);
+  if (*p != '\0') return -1;
   return 0;
 }
