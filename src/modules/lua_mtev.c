@@ -2587,7 +2587,6 @@ static int
 nl_conf_get_string_list(lua_State *L) {
   char *val;
   int n, cnt;
-  int buff_len;
   n = lua_gettop(L);
   mtevAssert(n == 2);
   const char *base_path = lua_tostring(L,1);
@@ -2612,7 +2611,6 @@ nl_conf_get_string_list(lua_State *L) {
     }
     free(mqs);
   }
-
 
   return 1;
 }
