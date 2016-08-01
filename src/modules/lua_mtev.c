@@ -2584,6 +2584,39 @@ nl_conf_get_string(lua_State *L) {
   return 1;
 }
 static int
+nl_conf_get_string_list(lua_State *L) {
+  char *val;
+  int n, cnt;
+  int buff_len;
+  n = lua_gettop(L);
+  mtevAssert(n == 2);
+  const char *base_path = lua_tostring(L,1);
+  const char *child_path = lua_tostring(L,2);
+
+  mtev_conf_section_t* mqs = mtev_conf_get_sections(NULL, base_path, &cnt);
+
+  if(mqs == NULL) {
+    lua_pushnil(L);
+  } else {
+    lua_createtable(L, cnt, 0);
+    for(int i = 0; i < cnt; i++) {
+      if(!mtev_conf_get_string(mqs[i], child_path, &val)) {
+        char *msg = alloca(strlen(base_path) + strlen(child_path) + 256);
+        sprintf(msg, "Unable to read option entry: %s%s", base_path, child_path);
+        return luaL_error(L, msg);
+      }
+      lua_pushinteger(L, i + 1);
+      lua_pushstring(L, val);
+      lua_settable(L, -3);
+      free(val);
+    }
+    free(mqs);
+  }
+
+
+  return 1;
+}
+static int
 nl_conf_get_integer(lua_State *L) {
   int val;
   const char *path = lua_tostring(L,1);
@@ -3889,6 +3922,7 @@ static const luaL_Reg mtevlib[] = {
   { "conf_get", nl_conf_get_string },
   { "conf_get_string", nl_conf_get_string },
   { "conf_string", nl_conf_get_string },
+  { "conf_get_string_list", nl_conf_get_string_list },
   { "conf_replace_string", nl_conf_replace_value },
   { "conf_get_integer", nl_conf_get_integer },
   { "conf_integer", nl_conf_get_integer },
