@@ -324,10 +324,11 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         int epoll_cmd = added_to_master_fds ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
         spec = eventer_get_spec_for_event(e);
         if(epoll_ctl(spec->epoll_fd, epoll_cmd, fd, &_ev) != 0) {
+          const char *cb_name = eventer_name_for_callback_e(e->callback, e);
           mtevFatal(mtev_error,
                     "epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, fd, &_ev) failed; "
-                    "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
-                    spec->epoll_fd, fd, errno, strerror(errno));
+              "spec->epoll_fd: %d; fd: %d; errno: %d (%s); callback: %s\n",
+              spec->epoll_fd, fd, errno, strerror(errno), cb_name ? cb_name : "???");
         }
       }
     }
