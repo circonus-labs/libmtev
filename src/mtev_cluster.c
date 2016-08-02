@@ -146,9 +146,21 @@ mtev_cluster_node_to_string(mtev_cluster_node_t *node, char *buff,
 }
 
 static void
+mtev_cluster_find_oldest_node(mtev_cluster_t *cluster) {
+  cluster->oldest_node = &cluster->nodes[0];
+  for (int i = 1; i < cluster->node_cnt; i++) {
+    mtev_cluster_node_t *node = &cluster->nodes[i];
+
+    if (compare_timeval(node->boot_time, cluster->oldest_node->boot_time) == -1) {
+      cluster->oldest_node = node;
+    }
+  }
+}
+
+static void
 mtev_cluster_on_node_update(mtev_cluster_t *cluster,
     mtev_cluster_node_t *sender, const struct timeval *new_boot_time) {
-  memcpy(&sender->boot_time, new_boot_time, sizeof(*new_boot_time));
+  sender->boot_time = *new_boot_time;
 
   if (uuid_compare(my_cluster_id, sender->id) != 0) {
     if (compare_timeval(*new_boot_time, my_boot_time) == 0) {
@@ -162,15 +174,8 @@ mtev_cluster_on_node_update(mtev_cluster_t *cluster,
     }
   }
 
-  if (compare_timeval(*new_boot_time, boot_time_of_dead_node) == 0) {
-    cluster->oldest_node = &cluster->nodes[0];
-    for (int i = 1; i < cluster->node_cnt; i++) {
-      mtev_cluster_node_t *node = &cluster->nodes[i];
-
-      if (compare_timeval(node->boot_time, cluster->oldest_node->boot_time) == -1) {
-        cluster->oldest_node = node;
-      }
-    }
+  if (compare_timeval(*new_boot_time, boot_time_of_dead_node) == 0 || cluster->oldest_node == sender) {
+    mtev_cluster_find_oldest_node(cluster);
   } else if (cluster->oldest_node == NULL || compare_timeval(*new_boot_time, cluster->oldest_node->boot_time) == -1) {
     cluster->oldest_node = sender;
 
@@ -262,6 +267,7 @@ mtev_cluster_info_process(void *payload, int len, void *c) {
   }
   /* Update our perspective */
   sender = mtev_cluster_find_node(cluster, nodeid);
+
   if(sender) {
     if(compare_timeval(sender->boot_time, boot_time)!=0) {
       mtev_cluster_on_node_update(cluster, sender, &boot_time);
