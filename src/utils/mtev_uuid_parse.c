@@ -6,14 +6,6 @@
 #include <string.h>
 #include <ctype.h>
 
-struct uuid {
-  uint32_t time_low;
-  uint16_t time_mid;
-  uint16_t time_hi_and_version;
-  uint16_t clock_seq;
-  uint8_t  node[6];
-};
-
 static unsigned char lut[256] = {
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // gap before first hex digit
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 
@@ -27,38 +19,6 @@ static unsigned char lut[256] = {
 };
 
 #define hexvalue(c) ((unsigned long)lut[(unsigned char)(c)])
-
-static inline void uuid_pack(const struct uuid *uu, uuid_t ptr)
-{
-  register uint32_t tmp;
-  register unsigned char *out = ptr;
-
-  tmp = uu->time_low;
-  out[3] = (unsigned char) tmp;
-  tmp >>= 8;
-  out[2] = (unsigned char) tmp;
-  tmp >>= 8;
-  out[1] = (unsigned char) tmp;
-  tmp >>= 8;
-  out[0] = (unsigned char) tmp;
-
-  tmp = uu->time_mid;
-  out[5] = (unsigned char) tmp;
-  tmp >>= 8;
-  out[4] = (unsigned char) tmp;
-
-  tmp = uu->time_hi_and_version;
-  out[7] = (unsigned char) tmp;
-  tmp >>= 8;
-  out[6] = (unsigned char) tmp;
-
-  tmp = uu->clock_seq;
-  out[9] = (unsigned char) tmp;
-  tmp >>= 8;
-  out[8] = (unsigned char) tmp;
-
-  memcpy(out+10, uu->node, 6);
-}
 
 int mtev_uuid_parse(const char *in, uuid_t uu)
 {
