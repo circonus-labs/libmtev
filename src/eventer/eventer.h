@@ -58,6 +58,8 @@
 
 #define EVENTER_DEFAULT_ASYNCH_ABORT EVENTER_EVIL_BRUTAL
 
+#define EVENTER_CHOOSE_THREAD_FOR_EVENT_FD(e) eventer_choose_owner(e->fd);
+
 /* All of these functions act like their POSIX couterparts with two
  * additional arguments.  The first is the mask they require to be active
  * to make progress in the event of an EAGAIN.  The second is a closure
