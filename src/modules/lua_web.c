@@ -313,7 +313,7 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     if(!strncmp(key, "mount_", strlen("mount_"))) {
       /* <module>:<method>:<mount>[:<expr>] */
       char *copy = strdup(str);
-      char *module, *method, *mount, *expr;
+      char *module, *method, *mount = NULL, *expr = NULL;
       module = copy;
       method = strchr(module, ':');
       if(method) {
@@ -339,7 +339,7 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
 
   if(mtev_hash_retr_str(o, "Cpreloads", strlen("Cpreloads"), &bstr)) {
     int count = 1, i;
-    char *brk, *cp, *copy;
+    char *brk = NULL, *cp, *copy;
     cp = copy = strdup(bstr);
     while(*cp) if(*cp++ == ',') count++; /* count terms (start with 1) */
     conf->Cpreloads = calloc(count+1, sizeof(char *)); /* null term */

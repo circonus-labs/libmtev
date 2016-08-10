@@ -661,7 +661,7 @@ static int mtev_lua_crypto_bn_todec(lua_State *L) {
 #define BN_MATH_META_2(name, func, args...) \
 static int mtev_lua_crypto_bn___##name(lua_State *L) { \
   void **udata_a, **udata_b; \
-  BIGNUM *r = NULL, *a, *b; \
+  BIGNUM *r = NULL, *a, *b = NULL; \
   if(lua_gettop(L) != 2) \
     luaL_error(L, "bignum.__" #name " called with wrong args"); \
   if(!luaL_checkudata(L,1,"crypto.bignum")) \
