@@ -263,7 +263,7 @@ luamtev.o:      luamtev.c luamtev.conf.tmpl
 
 luamtev:        luamtev.o
 	$(Q)echo "- linking $@"
-	$(Q)$(CC) -L. $(LDFLAGS) -o $@ luamtev.o -lmtev @LUALIBS@
+	$(Q)$(CC) -L. $(LDFLAGS) @UNWINDLIB@ -o $@ luamtev.o -lmtev @LUALIBS@
 
 install-bins:	luamtev
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)

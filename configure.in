@@ -114,6 +114,8 @@ case $host in
 			ATOMIC_OBJS="mtev_atomic_sol_x86_32.lo"
 		fi
 	fi
+	else
+		UNWINDLIB=-lgcc_s
 	fi
 	if test "x$GCC" != "xyes" ; then
 		CFLAGS="$CFLAGS -mt"
@@ -200,6 +202,7 @@ AC_SUBST(MODULEEXT)
 AC_SUBST(WHOLE_ARCHIVE)
 AC_SUBST(NOWHOLE_ARCHIVE)
 AC_SUBST(ATOMIC_OBJS)
+AC_SUBST(UNWINDLIB)
 AC_DEFINE_UNQUOTED(MODULEEXT, "$MODULEEXT", [module extension])
 AC_MSG_CHECKING([enable build/install of the Java IEP and Jezebel bits])
 
