@@ -301,7 +301,6 @@ fq_driver_init(mtev_dso_generic_t *img) {
   nldeb = mtev_log_stream_find("debug/fq");
   init_conns();
 
-  mtevL(nlerr, "No fq reciever setting found in the config!\n");
   if (the_conf->number_of_conns == 0) {
     mtevL(nlerr, "No fq reciever setting found in the config!\n");
     return 0;
