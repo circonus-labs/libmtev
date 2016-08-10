@@ -523,7 +523,7 @@ mtev_lua_crypto_req_gc(lua_State *L) {
 }
 
 #define BN_METH_DECL(n) \
-  BIGNUM *bn, *args[4]; \
+  BIGNUM *bn, *args[4] = { NULL }; \
   void **udata; \
   udata = lua_touserdata(L, lua_upvalueindex(1)); \
   if(udata != lua_touserdata(L, 1)) \
@@ -543,7 +543,7 @@ mtev_lua_crypto_req_gc(lua_State *L) {
   bn = (BIGNUM *)*udata
 #define BN_METH_DECL_INT(n) \
   BIGNUM *bn; \
-  int args[4]; \
+  int args[4] = { 0 }; \
   void **udata; \
   udata = lua_touserdata(L, lua_upvalueindex(1)); \
   if(udata != lua_touserdata(L, 1)) \

@@ -205,7 +205,7 @@ mtev_cht_set_nodes(mtev_cht_t *cht, int node_cnt, mtev_cht_node_t *nodes) {
 int
 mtev_cht_vlookup_n(mtev_cht_t *cht, const void *key, size_t keylen,
                    int w, mtev_cht_node_t **nodes) {
-  int i, l, r, m, rsize = cht->node_cnt * cht->weight;
+  int i, l, r, m = 0, rsize = cht->node_cnt * cht->weight;
   int w_out = 0;
   int found[CHT_MAX_W];
   u_int32_t val, hash;
