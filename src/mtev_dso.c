@@ -159,9 +159,12 @@ int mtev_load_image(const char *file, const char *name,
       snprintf(module_file, sizeof(module_file), "%s/%s.%s",
                base, file, MODULEEXT);
       dlhandle = dlopen(module_file, RTLD_LAZY | RTLD_GLOBAL);
-      if(dlhandle) break;
-      if(!dlhandle) {
-         mtevL(mtev_debug, "Cannot open image '%s': %s\n",
+      if(dlhandle) {
+         mtevL(mtev_debug, "Successfully opened image '%s'\n",
+               module_file);
+        break;
+      } else {
+         mtevL(mtev_debug, "Tried to open image '%s' but failed: %s\n",
                module_file, dlerror());
       }
     }
