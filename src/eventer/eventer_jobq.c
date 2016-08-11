@@ -406,6 +406,8 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     mtevL(eventer_deb, "%p jobq[%s] -> running job [%p]\n", pthread_self_ptr(),
           jobq->queue_name, job);
 
+    mtev_time_maintain();
+
     /* Mark our commencement */
     job->start_hrtime = eventer_gethrtime();
 
