@@ -54,6 +54,7 @@
 #include "mtev_hash.h"
 #include "mtev_atomic.h"
 #include "mtev_hooks.h"
+#include "mtev_thread.h"
 #include <jlog.h>
 #include <jlog_private.h>
 #ifdef DTRACE_ENABLED
@@ -546,7 +547,7 @@ asynch_thread_create(mtev_log_stream_t ls, asynch_log_ctx *actx, void* function)
   }
   pthread_attr_init(&tattr);
   pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
-  if(pthread_create(&actx->writer, &tattr, function, ls) != 0) {
+  if(mtev_thread_create(&actx->writer, &tattr, function, ls) != 0) {
     return -1;
   }
   return 0;

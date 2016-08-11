@@ -36,6 +36,7 @@
 #include "mtev_memory.h"
 #include "mtev_log.h"
 #include "mtev_skiplist.h"
+#include "mtev_thread.h"
 #include "mtev_watchdog.h"
 #include "libmtev_dtrace_probes.h"
 #include <pthread.h>
@@ -307,7 +308,7 @@ static void eventer_loop_prime() {
   int i;
   for(i=1; i<__loop_concurrency; i++) {
     pthread_t tid;
-    pthread_create(&tid, NULL, thrloopwrap, (void *)(vpsized_int)i);
+    mtev_thread_create(&tid, NULL, thrloopwrap, (void *)(vpsized_int)i);
   }
   while(__loops_started < __loop_concurrency);
 }
@@ -668,34 +669,4 @@ int eventer_thread_check(eventer_t e) {
   return pthread_equal(pthread_self(), e->thr_owner);
 }
 
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#include <time.h>
-eventer_hrtime_t eventer_gethrtime() {
-  struct timespec ts;
-#ifdef CLOCK_MONOTONIC_RAW
-  clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-#else
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-#endif
-  return ((ts.tv_sec * 1000000000) + ts.tv_nsec);
-}
-#elif defined(__MACH__)
-#include <mach/mach.h>
-#include <mach/mach_time.h>
 
-static int initialized = 0;
-static mach_timebase_info_data_t    sTimebaseInfo;
-eventer_hrtime_t eventer_gethrtime() {
-  uint64_t t;
-  if(!initialized) {
-    if(sTimebaseInfo.denom == 0)
-      (void) mach_timebase_info(&sTimebaseInfo);
-  }
-  t = mach_absolute_time();
-  return t * sTimebaseInfo.numer / sTimebaseInfo.denom;
-}
-#else
-eventer_hrtime_t eventer_gethrtime() {
-  return gethrtime();
-}
-#endif

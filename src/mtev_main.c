@@ -47,6 +47,8 @@
 #include "mtev_main.h"
 #include "mtev_conf.h"
 #include "mtev_memory.h"
+#include "mtev_thread.h"
+#include "mtev_time.h"
 #include "mtev_watchdog.h"
 #include "mtev_lockfile.h"
 #include "mtev_listener.h"

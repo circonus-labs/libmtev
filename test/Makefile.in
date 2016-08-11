@@ -33,6 +33,10 @@ hash_test: hash_test.c
 uuid_test: uuid_test.c
 	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS)  -L../src -lmtev -lck -luuid -o uuid_test uuid_test.c
 
+time_test: time_test.c
+	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS)  -L../src -lmtev -lck -luuid -o time_test time_test.c
+
+
 busted:
 	@busted --version >/dev/null 2>/dev/null || \
 		(echo "Please instead busted: luarocks install busted" && false)

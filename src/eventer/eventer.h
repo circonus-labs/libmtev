@@ -37,6 +37,7 @@
 #include "mtev_defines.h"
 #include "mtev_log.h"
 #include "mtev_atomic.h"
+#include "mtev_time.h"
 #include <sys/time.h>
 #include <sys/socket.h>
 
@@ -203,14 +204,8 @@ API_EXPORT(void) eventer_init_globals();
 
 extern eventer_impl_t registered_eventers[];
 
-#if defined(__MACH__)
-typedef u_int64_t eventer_hrtime_t;
-#elif defined(linux) || defined(__linux) || defined(__linux__)
-typedef long long unsigned int eventer_hrtime_t;
-#else
-typedef hrtime_t eventer_hrtime_t;
-#endif
-API_EXPORT(eventer_hrtime_t) eventer_gethrtime(void);
+#define eventer_hrtime_t mtev_hrtime_t
+#define eventer_gethrtime mtev_gethrtime
 
 #include "eventer/eventer_jobq.h"
 

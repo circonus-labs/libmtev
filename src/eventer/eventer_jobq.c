@@ -35,6 +35,7 @@
 #include "mtev_memory.h"
 #include "mtev_log.h"
 #include "mtev_atomic.h"
+#include "mtev_thread.h"
 #include "eventer/eventer.h"
 #include "libmtev_dtrace_probes.h"
 #include <errno.h>
@@ -193,7 +194,7 @@ eventer_jobq_maybe_spawn(eventer_jobq_t *jobq) {
           jobq->queue_name, jobq->concurrency);
     pthread_attr_init(&tattr);
     pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&tid, &tattr, eventer_jobq_consumer_pthreadentry, jobq);
+    mtev_thread_create(&tid, &tattr, eventer_jobq_consumer_pthreadentry, jobq);
   }
   mtevL(eventer_deb, "jobq_queue[%s] pending cancels [%d/%d]\n",
         jobq->queue_name, jobq->pending_cancels,
