@@ -33,18 +33,18 @@
 #include <mtev_defines.h>
 
 /**
- * use TSC clock if possible in the current thread.
+ * use TSC clock if possible for this CPU num
  * 
  * This will remain active in the thread until you call stop
  */
 API_EXPORT(void)
-  mtev_time_start_tsc(void);
+  mtev_time_start_tsc(int cpu);
 
 /** 
- * Turn off TSC usage in this thread
+ * Turn off TSC usage for this cpu num
  */
 API_EXPORT(void)
-  mtev_time_stop_tsc(void);
+  mtev_time_stop_tsc(int cpu);
 
 /**
  * safe to call at any time but if you start_tsc, you should call this periodically to recalibrate the clock

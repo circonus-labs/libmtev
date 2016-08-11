@@ -59,11 +59,18 @@ gettid(void)
 
 typedef uint64_t rdtsc_func(void);
 
-static __thread rdtsc_func *rdtsc_function;
-static __thread double ticks_per_nano;
-static __thread uint64_t last_ticks;
-
+#define NCPUS 128
+struct cclocks {
+  pthread_mutex_t update_lock;
+  rdtsc_func *rdtsc_function;
+  double ticks_per_nano;
+  uint64_t last_ticks;
+} CK_CC_CACHELINE;
+static struct cclocks coreclocks[NCPUS] = {{PTHREAD_MUTEX_INITIALIZER, NULL, 0.0, 0}};
+static __thread int current_cpu;
+  
 #define unlikely(x) __builtin_expect(!!(x), 0)
+#define NO_TSC unlikely(coreclocks[current_cpu].rdtsc_function == NULL)
 
 static inline uint64_t
 mtev_rdtsc(void)
@@ -128,23 +135,24 @@ mtev_gethrtime_fallback() {
 static mtev_boolean 
 mtev_calibrate_rdtsc_ticks() 
 {
-  if (unlikely(rdtsc_function == NULL)) {
+  if (NO_TSC) {
     return mtev_false;
   }
 
   uint64_t start_ticks, end_ticks, start_ts, end_ts;
   int j = 0;
+  rdtsc_func *f = coreclocks[current_cpu].rdtsc_function;
 
   /* 
    * we are pinned to a core here, so sleep for short periods and measure the ticks per nano second
    */
   double total_ticks = 0.0, avg_ticks = 0.0;
   for (int i = 0; i < 100; i++) {
-    start_ticks = rdtsc_function();
+    start_ticks = f();
     start_ts = mtev_gethrtime_fallback();
     usleep(10);
     end_ts = mtev_gethrtime_fallback();
-    end_ticks = rdtsc_function();
+    end_ticks = f();
 
     /* toss out clock weirdnesses */
     if (start_ticks > end_ticks) {
@@ -158,9 +166,9 @@ mtev_calibrate_rdtsc_ticks()
   }
   mtevAssert(j > 0);
   avg_ticks = total_ticks / (double)j;
-  ck_pr_store_double(&ticks_per_nano, avg_ticks);
+  ck_pr_store_double(&coreclocks[current_cpu].ticks_per_nano, avg_ticks);
 
-  mtevL(mtev_debug, "%lf ticks/nano\n", ticks_per_nano);
+  mtevL(mtev_debug, "%lf ticks/nano\n", coreclocks[current_cpu].ticks_per_nano);
 
   return true;
 }  
@@ -168,13 +176,14 @@ mtev_calibrate_rdtsc_ticks()
 static inline uint64_t
 ticks_to_nanos(const uint64_t ticks)
 {
-  return (uint64_t)llround((double) ticks / ck_pr_load_double(&ticks_per_nano));
+  return (uint64_t)llround((double) ticks / ck_pr_load_double(&coreclocks[current_cpu].ticks_per_nano));
 }  
 
 void  
-mtev_time_start_tsc(void)
+mtev_time_start_tsc(int cpu)
 {
-  rdtsc_function = NULL;
+  current_cpu = cpu;
+  rdtsc_func *rdtsc_function = NULL;
   if (mtev_cpuid_feature(MTEV_CPU_FEATURE_RDTSCP) == mtev_true) {
     mtevL(mtev_debug, "Using rdtscp for clock\n");
     rdtsc_function = mtev_rdtscp;
@@ -186,26 +195,27 @@ mtev_time_start_tsc(void)
   else {
     mtevL(mtev_debug, "CPU is wrong vendor or missing feature.  Cannot use TSC clock.\n");
     rdtsc_function = NULL;
+    coreclocks[cpu].rdtsc_function = NULL;
     return;
   }
-
+  coreclocks[current_cpu].rdtsc_function = rdtsc_function;
   mtev_calibrate_rdtsc_ticks();
 }
 
 void 
-mtev_time_stop_tsc(void)
+mtev_time_stop_tsc(int cpu)
 {
-  rdtsc_function = NULL;
+  coreclocks[cpu].rdtsc_function = NULL;
 }
 
 u_int64_t
 mtev_get_nanos(void)
 {
-  if (unlikely(rdtsc_function == NULL)) {
+  if (NO_TSC) {
     return mtev_gethrtime_fallback();
   }
 
-  uint64_t ticks = mtev_get_ticks();
+  uint64_t ticks = coreclocks[current_cpu].rdtsc_function();
   uint64_t nanos = ticks_to_nanos(ticks);
 
   return nanos;
@@ -214,11 +224,11 @@ mtev_get_nanos(void)
 u_int64_t
 mtev_get_ticks(void)
 {
-  if (unlikely(rdtsc_function == NULL)) {
+  if (NO_TSC) {
     return 0;
   }
 
-  return rdtsc_function();
+  return coreclocks[current_cpu].rdtsc_function();
 }
 
 mtev_hrtime_t
@@ -239,17 +249,19 @@ mtev_sys_gethrtime()
 void
 mtev_time_maintain(void)
 {
-  if (unlikely(rdtsc_function == NULL)) {
+  if (NO_TSC) {
     return;
   }
 
-  uint64_t ticks = rdtsc_function();
+  uint64_t ticks = coreclocks[current_cpu].rdtsc_function();
   uint64_t nanos = ticks_to_nanos(ticks);
-  uint64_t last_nanos = ticks_to_nanos(last_ticks);
+  uint64_t last_nanos = ticks_to_nanos(coreclocks[current_cpu].last_ticks);
 
   if (nanos - last_nanos > RECALIBRATE_TIMEOUT_NANOS) {
-    mtev_calibrate_rdtsc_ticks();
-    last_ticks = ticks;
+    if ( pthread_mutex_trylock(&coreclocks[current_cpu].update_lock) ) {
+      mtev_calibrate_rdtsc_ticks();
+      coreclocks[current_cpu].last_ticks = ticks;
+    }
   }
 }
 

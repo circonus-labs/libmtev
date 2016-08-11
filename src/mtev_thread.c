@@ -80,7 +80,7 @@ mtev_thread_bind_to_cpu(int cpu)
 
   /* if we were able to bind, set the clock */
   if (mtev_thread_is_bound == mtev_true) {
-    mtev_time_start_tsc();
+    mtev_time_start_tsc(cpu);
   }
 
   return mtev_thread_is_bound;
@@ -112,7 +112,7 @@ mtev_thread_unbind_from_cpu(void)
 #endif
 
   if (mtev_thread_is_bound == mtev_false) {
-    mtev_time_stop_tsc();
+    mtev_time_stop_tsc(0);
   }
   return mtev_thread_is_bound == mtev_false;
 }
