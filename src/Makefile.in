@@ -76,7 +76,7 @@ LIBMTEV_V=libmtev@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
 LIBMTEV_MINOR=libmtev@DOTSO@.$(SEMVER_MAJOR).$(SEMVER_MINOR)@DOTDYLIB@
 LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
 
-TARGETS=$(LIBMTEV) luamtev @MDB_MODS@
+TARGETS=$(LIBMTEV) $(LIBMTEV_MINOR) luamtev @MDB_MODS@
 
 all:	reversion $(TARGETS) make-man build-modules
 
@@ -177,6 +177,9 @@ mtev_version.h:
 $(LIBMTEV):	$(LIBMTEV_V)
 	$(Q)ln -sf $(LIBMTEV_V) $(LIBMTEV)
 
+$(LIBMTEV_MINOR):	$(LIBMTEV_V)
+	$(Q)ln -sf $(LIBMTEV_V) $(LIBMTEV_MINOR)
+
 $(LIBMTEV_V):	$(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ)
 	@echo "- linking $@"
 	$(Q)$(SHLD) $(SHLDFLAGS) -o $@ @LD_LIBMTEV_VERSION@ $(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ) $(LIBMTEV_LIBS)
@@ -264,7 +267,7 @@ luamtev.o:      luamtev.c luamtev.conf.tmpl
 
 luamtev:        luamtev.o
 	$(Q)echo "- linking $@"
-	$(Q)$(CC) -L. $(LDFLAGS) -o $@ luamtev.o -lmtev @LUALIBS@
+	$(Q)$(CC) -L. $(LDFLAGS) @UNWINDLIB@ -o $@ luamtev.o -lmtev @LUALIBS@
 
 install-bins:	luamtev
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)

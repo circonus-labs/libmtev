@@ -90,10 +90,17 @@ make_config() {
   needs_unlink = true;
   config_file = strdup(filename);
 }
+
+#if defined(__GLIBC__) && __GLIBC__ >= 2
+#define POSIXLY_COMPLIANT_PLUS "+"
+#else
+#define POSIXLY_COMPLIANT_PLUS ""
+#endif
+
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, "c:de:g:iu:C:L:T")) != EOF) {
+  while((c = getopt(argc, argv, POSIXLY_COMPLIANT_PLUS "c:de:g:iu:C:L:T")) != EOF) {
     switch(c) {
       case 'd': debug = 1; break;
       case 'i': interactive = 1; break;
