@@ -42,6 +42,14 @@
 
 typedef uint64_t rdtsc_func(void);
 
+/* 
+ * don't allow rdtsc on mach systems as there is only currently experimental support 
+ * for affining threads to cores on mach systems
+ */
+#if defined(__MACH__)
+#undef ENABLE_RDTSC
+#endif
+
 static __thread rdtsc_func *rdtsc_function;
 static __thread double ticks_per_nano;
 #ifdef ENABLE_RDTSC
