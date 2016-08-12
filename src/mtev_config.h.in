@@ -158,6 +158,13 @@
 /* have websocket support with wslay */
 #undef HAVE_WSLAY
 
+/**
+ * Use rdtsc instruction for clocks if it is present 
+ * 
+ * This may have bad performance on VMs.
+ */
+#undef ENABLE_RDTSC
+
 /* The number of bytes in a char.  */
 #undef SIZEOF_CHAR
 

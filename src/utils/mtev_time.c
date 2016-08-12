@@ -44,7 +44,9 @@ typedef uint64_t rdtsc_func(void);
 
 static __thread rdtsc_func *rdtsc_function;
 static __thread double ticks_per_nano;
+#ifdef ENABLE_RDTSC
 static __thread uint64_t last_ticks;
+#endif
 
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
@@ -107,7 +109,7 @@ mtev_gethrtime_fallback() {
   }
 #endif
 
-
+#ifdef ENABLE_RDTSC
 static mtev_boolean 
 mtev_calibrate_rdtsc_ticks() 
 {
@@ -147,6 +149,7 @@ mtev_calibrate_rdtsc_ticks()
 
   return true;
 }  
+#endif
 
 static inline uint64_t
 ticks_to_nanos(const uint64_t ticks)
@@ -157,6 +160,7 @@ ticks_to_nanos(const uint64_t ticks)
 void  
 mtev_time_start_tsc(void)
 {
+#ifdef ENABLE_RDTSC
   rdtsc_function = NULL;
   if (mtev_cpuid_feature(MTEV_CPU_FEATURE_RDTSCP) == mtev_true) {
     mtevL(mtev_debug, "Using rdtscp for clock\n");
@@ -173,6 +177,7 @@ mtev_time_start_tsc(void)
   }
 
   mtev_calibrate_rdtsc_ticks();
+#endif
 }
 
 void 
@@ -184,24 +189,32 @@ mtev_time_stop_tsc(void)
 u_int64_t
 mtev_get_nanos(void)
 {
+#ifdef ENABLE_RDTSC
   if (unlikely(rdtsc_function == NULL)) {
     return mtev_gethrtime_fallback();
   }
 
-  uint64_t ticks = mtev_get_ticks();
+  uint64_t ticks = rdtsc_function();
   uint64_t nanos = ticks_to_nanos(ticks);
 
   return nanos;
+#else
+  return mtev_gethrtime_fallback();
+#endif
 }
 
 u_int64_t
 mtev_get_ticks(void)
 {
+#ifdef ENABLE_RDTSC
   if (unlikely(rdtsc_function == NULL)) {
     return 0;
   }
 
   return rdtsc_function();
+#else
+  return 0;
+#endif
 }
 
 mtev_hrtime_t
@@ -222,6 +235,7 @@ mtev_sys_gethrtime()
 void
 mtev_time_maintain(void)
 {
+#ifdef ENABLE_RDTSC
   if (unlikely(rdtsc_function == NULL)) {
     return;
   }
@@ -234,6 +248,8 @@ mtev_time_maintain(void)
     mtev_calibrate_rdtsc_ticks();
     last_ticks = ticks;
   }
+#endif
+
 }
 
 

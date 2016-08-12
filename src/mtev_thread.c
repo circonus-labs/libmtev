@@ -30,6 +30,7 @@
 
 
 #include <mtev_thread.h>
+#include <mtev_time.h>
 #include <mtev_log.h>
 #include <unistd.h>
 
