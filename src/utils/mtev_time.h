@@ -44,7 +44,7 @@ API_EXPORT(void)
  * Turn off TSC usage for this cpu num
  */
 API_EXPORT(void)
-  mtev_time_stop_tsc(int cpu);
+  mtev_time_stop_tsc(void);
 
 /**
  * safe to call at any time but if you start_tsc, you should call this periodically to recalibrate the clock

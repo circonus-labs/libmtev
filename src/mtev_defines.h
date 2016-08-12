@@ -155,6 +155,4 @@ typedef long long unsigned int mtev_hrtime_t;
 typedef hrtime_t mtev_hrtime_t;
 #endif
 
-#include "mtev_time.h"
-
 #endif

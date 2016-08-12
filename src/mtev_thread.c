@@ -30,6 +30,7 @@
 
 
 #include <mtev_thread.h>
+#include <mtev_time.h>
 #include <mtev_log.h>
 #include <unistd.h>
 
@@ -37,8 +38,11 @@
 #include <sys/processor.h>
 #endif
 #if defined(linux) || defined(__linux) || defined(__linux__)
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <sched.h>
+#include <sys/syscall.h>
 
 #ifndef gettid
 static pid_t
@@ -68,7 +72,7 @@ mtev_thread_bind_to_cpu(int cpu)
 #if defined(linux) || defined(__linux) || defined(__linux__)
   cpu_set_t s;
   CPU_ZERO(&s);
-  CPU_SET(cpu, &s)
+  CPU_SET(cpu, &s);
   int x = sched_setaffinity(gettid(), sizeof(s), &s);
   if (x == 0) {
     mtev_thread_is_bound = mtev_true;
@@ -89,6 +93,7 @@ mtev_thread_bind_to_cpu(int cpu)
 mtev_boolean
 mtev_thread_unbind_from_cpu(void)
 {
+  mtev_time_stop_tsc();
 #ifdef __sun 
   if (processor_bind(P_LWPID, P_MYID, PBIND_NONE, 0)) {
     mtevL(mtev_error, "Warning: Unbinding thread from cpus failed\n");
@@ -111,9 +116,6 @@ mtev_thread_unbind_from_cpu(void)
   }   
 #endif
 
-  if (mtev_thread_is_bound == mtev_false) {
-    mtev_time_stop_tsc(0);
-  }
   return mtev_thread_is_bound == mtev_false;
 }
 

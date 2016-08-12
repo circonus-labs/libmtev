@@ -31,6 +31,7 @@
 #include <mtev_defines.h>
 #include <mtev_log.h>
 #include <mtev_hooks.h>
+#include <mtev_time.h>
 #include <mtev_zipkin.h>
 
 #include <ctype.h>
