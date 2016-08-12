@@ -5,10 +5,6 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#ifdef __sun
-#include <sys/processor.h>
-#endif
-
 
 #define FAIL(...)                           \
   printf("** ");                            \
@@ -22,10 +18,8 @@ int main(int argc, char **argv)
 {
   mtev_thread_init();
   mtev_hrtime_t start = mtev_sys_gethrtime();
-  printf("Current CPU: %d\n", getcpuid());
   uint64_t nstart = mtev_get_nanos();
   usleep(1000000);
-  printf("After sleep current CPU: %d\n", getcpuid());
 
   uint64_t nend = mtev_get_nanos();
   mtev_hrtime_t end = mtev_sys_gethrtime();

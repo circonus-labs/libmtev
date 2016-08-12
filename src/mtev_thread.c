@@ -37,8 +37,11 @@
 #include <sys/processor.h>
 #endif
 #if defined(linux) || defined(__linux) || defined(__linux__)
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <sched.h>
+#include <sys/syscall.h>
 
 #ifndef gettid
 static pid_t
@@ -68,7 +71,7 @@ mtev_thread_bind_to_cpu(int cpu)
 #if defined(linux) || defined(__linux) || defined(__linux__)
   cpu_set_t s;
   CPU_ZERO(&s);
-  CPU_SET(cpu, &s)
+  CPU_SET(cpu, &s);
   int x = sched_setaffinity(gettid(), sizeof(s), &s);
   if (x == 0) {
     mtev_thread_is_bound = mtev_true;

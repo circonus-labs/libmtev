@@ -40,23 +40,6 @@
 #include <mtev_log.h>
 #include <mtev_defines.h>
 
-#ifdef __sun
-#include <sys/processor.h>
-#endif
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#define _GNU_SOURCE
-#include <sched.h>
-
-#ifndef gettid
-static pid_t
-gettid(void)
-{
-  return syscall(__NR_gettid);
-}
-#endif /* gettid */
-#endif
-
-
 typedef uint64_t rdtsc_func(void);
 
 static __thread rdtsc_func *rdtsc_function;

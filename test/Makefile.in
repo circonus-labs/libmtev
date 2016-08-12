@@ -28,13 +28,13 @@ top_srcdir=@top_srcdir@
 all:	check
 
 hash_test: hash_test.c
-	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS)  -L../src -lmtev -lck -o hash_test hash_test.c
+	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev -lck  -ljlog -lhwloc -lwslay -o hash_test hash_test.c
 
 uuid_test: uuid_test.c
-	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS)  -L../src -lmtev -lck -luuid -o uuid_test uuid_test.c
+	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev -lck -luuid  -ljlog -lhwloc -lwslay -o uuid_test uuid_test.c
 
 time_test: time_test.c
-	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS)  -L../src -lmtev -lck -luuid -o time_test time_test.c
+	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev -lck -luuid -ljlog -lhwloc -lwslay -o time_test time_test.c
 
 
 busted:
