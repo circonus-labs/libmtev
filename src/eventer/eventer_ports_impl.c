@@ -37,6 +37,7 @@
 #include "mtev_skiplist.h"
 #include "mtev_memory.h"
 #include "mtev_log.h"
+#include "mtev_time.h"
 #include "libmtev_dtrace_probes.h"
 
 #include <errno.h>
@@ -318,6 +319,8 @@ static int eventer_ports_impl_loop() {
     unsigned int fd_cnt = 0;
     int ret;
     port_event_t pevents[MAX_PORT_EVENTS];
+
+    mtev_time_maintain();
 
     if(compare_timeval(eventer_max_sleeptime, __dyna_sleep) < 0)
       __dyna_sleep = eventer_max_sleeptime;

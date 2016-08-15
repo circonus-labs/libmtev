@@ -35,6 +35,7 @@
 #include <ck_fifo.h>
 #include "mtev_log.h"
 #include "mtev_memory.h"
+#include "mtev_thread.h"
 
 #define MTEV_EPOCH_SAFE_MAGIC 0x5afe5afe
 
@@ -65,7 +66,7 @@ void mtev_memory_init() {
   pthread_attr_init(&tattr);
   pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
   asynch_gc = 1;
-  if(pthread_create(&tid, &tattr, mtev_memory_gc, NULL) == 0) {
+  if(mtev_thread_create(&tid, &tattr, mtev_memory_gc, NULL) == 0) {
     mtevL(mtev_stderr, "mtev_memory starting gc thread\n");
   }
   else {

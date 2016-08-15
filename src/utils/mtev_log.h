@@ -41,6 +41,7 @@
 #include <sys/time.h>
 #include "mtev_hash.h"
 #include "mtev_hooks.h"
+#include "mtev_time.h"
 
 #ifdef mtev_log_impl
 typedef struct _mtev_log_stream * mtev_log_stream_t;

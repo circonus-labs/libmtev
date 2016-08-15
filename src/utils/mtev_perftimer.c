@@ -29,6 +29,7 @@
  */
 
 #include "mtev_perftimer.h"
+#include "mtev_time.h"
 #include <ck_md.h>
 #include <time.h>
 #include <sys/time.h>

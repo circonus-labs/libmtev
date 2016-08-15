@@ -47,6 +47,8 @@
 #include "mtev_main.h"
 #include "mtev_conf.h"
 #include "mtev_memory.h"
+#include "mtev_thread.h"
+#include "mtev_time.h"
 #include "mtev_watchdog.h"
 #include "mtev_lockfile.h"
 #include "mtev_listener.h"
@@ -188,6 +190,11 @@ mtev_main(const char *appname,
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
   mtev_init_globals();
+
+  char *disable_rdtsc = getenv("MTEV_RDTSC_DISABLE");
+  if (disable_rdtsc && strcmp(disable_rdtsc, "1") == 0) {
+    mtev_time_toggle_tsc(mtev_false);
+  }
 
   /* First initialize logging, so we can log errors */
   mtev_log_init(debug);

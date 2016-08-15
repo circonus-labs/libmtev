@@ -155,32 +155,4 @@ typedef long long unsigned int mtev_hrtime_t;
 typedef hrtime_t mtev_hrtime_t;
 #endif
 
-#if defined(linux) || defined(__linux) || defined(__linux__)
-#include <time.h>
-static inline mtev_hrtime_t mtev_gethrtime() {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-  return ((ts.tv_sec * 1000000000) + ts.tv_nsec);
-}
-#elif defined(__MACH__)
-#include <mach/mach.h>
-#include <mach/mach_time.h>
-
-static inline mtev_hrtime_t mtev_gethrtime() {
-  static int initialized = 0;
-  static mach_timebase_info_data_t    sTimebaseInfo;
-  uint64_t t;
-  if(!initialized) {
-    if(sTimebaseInfo.denom == 0)
-      (void) mach_timebase_info(&sTimebaseInfo);
-  }
-  t = mach_absolute_time();
-  return t * sTimebaseInfo.numer / sTimebaseInfo.denom;
-}
-#else
-static inline mtev_hrtime_t mtev_gethrtime() {
-  return (mtev_hrtime_t)gethrtime();
-}
-#endif
-
 #endif
