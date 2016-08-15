@@ -41,10 +41,22 @@ API_EXPORT(void)
   mtev_time_start_tsc(int cpu);
 
 /** 
- * Turn off TSC usage for this cpu num
+ * Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)
  */
 API_EXPORT(void)
   mtev_time_stop_tsc(void);
+
+/**
+ * will switch on/off rdtsc usage across all cores regardless
+ * of detected state of rdtsc or start/stop usage.
+ * 
+ * Defaults to enabled.
+ * 
+ * This is idependent of start_tsc/stop_tsc.  You can disable all and reenable and the thread
+ * will keep going using the state from the last start/stop_tsc
+ */
+API_EXPORT(void)
+  mtev_time_toggle_tsc(mtev_boolean enable);
 
 /**
  * safe to call at any time but if you start_tsc, you should call this periodically to recalibrate the clock

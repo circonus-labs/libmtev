@@ -31,7 +31,7 @@ fi
 
 AC_ARG_ENABLE(rdtsc,
 	[AC_HELP_STRING([--disable-rdtsc],
-		[Compile with warnings treated as errors])],
+		[Turn off usage of rdtsc for high res clock])],
 	enable_rdtsc="$enableval",
 	enable_rdtsc=yes)
 

@@ -50,6 +50,8 @@ typedef uint64_t rdtsc_func(void);
 #undef ENABLE_RDTSC
 #endif
 
+static mtev_boolean enable_rdtsc = mtev_true;
+
 typedef uint64_t rdtsc_func(void);
 
 #define NCPUS 128
@@ -63,7 +65,7 @@ static struct cclocks coreclocks[NCPUS] = {{PTHREAD_MUTEX_INITIALIZER, NULL, 0.0
 static __thread int current_cpu;
   
 #define unlikely(x) __builtin_expect(!!(x), 0)
-#define NO_TSC unlikely(coreclocks[current_cpu].rdtsc_function == NULL)
+#define NO_TSC unlikely(enable_rdtsc == false || coreclocks[current_cpu].rdtsc_function == NULL)
 
 static inline uint64_t
 mtev_rdtsc(void)
@@ -161,7 +163,7 @@ mtev_calibrate_rdtsc_ticks()
   avg_ticks = total_ticks / (double)j;
   ck_pr_store_double(&coreclocks[current_cpu].ticks_per_nano, avg_ticks);
 
-  mtevL(mtev_debug, "%lf ticks/nano\n", coreclocks[current_cpu].ticks_per_nano);
+  mtevL(mtev_debug, "%lf ticks/nano on CPU:%d\n", coreclocks[current_cpu].ticks_per_nano, current_cpu);
 
   return true;
 }  
@@ -172,6 +174,12 @@ ticks_to_nanos(const uint64_t ticks)
 {
   return (uint64_t)llround((double) ticks / ck_pr_load_double(&coreclocks[current_cpu].ticks_per_nano));
 }  
+
+void
+mtev_time_toggle_tsc(mtev_boolean enable) 
+{
+  enable_rdtsc = enable;
+}
 
 void  
 mtev_time_start_tsc(int cpu)

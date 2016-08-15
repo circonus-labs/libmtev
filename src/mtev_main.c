@@ -191,6 +191,11 @@ mtev_main(const char *appname,
 
   mtev_init_globals();
 
+  char *disable_rdtsc = getenv("MTEV_RDTSC_DISABLE");
+  if (disable_rdtsc && strcmp(disable_rdtsc, "1") == 0) {
+    mtev_time_toggle_tsc(mtev_false);
+  }
+
   /* First initialize logging, so we can log errors */
   mtev_log_init(debug);
   mtev_log_stream_add_stream(mtev_debug, mtev_stderr);
