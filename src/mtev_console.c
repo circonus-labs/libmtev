@@ -426,7 +426,7 @@ socket_error:
   }
 
   if(mtev_console_continue_sending(ncct, &newmask) < 0) {
-    if(ncct->wants_shutdown || errno != EAGAIN) goto socket_error;
+    if((ncct != NULL && ncct->wants_shutdown) || errno != EAGAIN) goto socket_error;
     return newmask | EVENTER_EXCEPTION;
   }
 

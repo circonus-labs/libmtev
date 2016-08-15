@@ -315,7 +315,7 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
       memcpy(jobcopy, job, sizeof(*jobcopy));
       free(job);
       jobcopy->fd_event = my_precious;
-      job->finish_hrtime = eventer_gethrtime();
+      jobcopy->finish_hrtime = eventer_gethrtime();
       eventer_jobq_maybe_spawn(jobcopy->jobq);
       eventer_jobq_finished_job(jobcopy->jobq, jobcopy);
       memcpy(&wakeupcopy, jobcopy->fd_event, sizeof(wakeupcopy));

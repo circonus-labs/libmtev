@@ -911,7 +911,6 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
   pthread_rwlock_rdlock(&reverse_sockets_lock);
   if(mtev_hash_retrieve(&reverse_sockets, id, strlen(id), &vrc)) {
     rc = vrc;
-    i = rc->data.last_allocated_channel + 1;
     for(i=0;i<MAX_CHANNELS;i++) {
       chan = (rc->data.last_allocated_channel + i + 1) % MAX_CHANNELS;
       if(rc->data.channels[chan].pair[0] == -1) break;
@@ -1611,7 +1610,6 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
     family = family == AF_INET ? AF_INET6 : AF_INET;
     rv = inet_pton(family, target, &a);
     if(rv != 1) {
-      family = AF_INET;
       memset(&a, 0, sizeof(a));
       goto fail;
     }
