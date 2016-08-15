@@ -40,8 +40,6 @@
 #include <mtev_log.h>
 #include <mtev_defines.h>
 
-typedef uint64_t rdtsc_func(void);
-
 /* 
  * don't allow rdtsc on mach systems as there is only currently experimental support 
  * for affining threads to cores on mach systems
