@@ -268,6 +268,11 @@ eventer_jobq_dequeue_nowait(eventer_jobq_t *jobq) {
 
 void
 eventer_jobq_destroy(eventer_jobq_t *jobq) {
+  pthread_mutex_lock(&all_queues_lock);
+  mtev_hash_delete(&all_queues, jobq->queue_name, strlen(jobq->queue_name),
+                   (NoitHashFreeFunc) free, 0);
+  pthread_mutex_unlock(&all_queues_lock);
+
   pthread_mutex_destroy(&jobq->lock);
   sem_destroy(&jobq->semaphore);
 }
