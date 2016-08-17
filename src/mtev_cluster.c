@@ -51,6 +51,25 @@ static const struct timeval boot_time_of_dead_node = { (1UL
     << (CHAR_BIT * sizeof(boot_time_of_dead_node.tv_sec) - 1)) - 1, (1UL
     << (CHAR_BIT * sizeof(boot_time_of_dead_node.tv_usec) - 1)) - 1 };
 
+#define HEART_BEAT_HDR_LEN 1 + UUID_SIZE + sizeof(u_int64_t) + sizeof(u_int64_t) + 1
+#define MAX_PAYLOAD_LEN_SUM  1518 - 14/*ETH*/ - 20 /*IP*/ - HEART_BEAT_HDR_LEN - 4 /*FCS*/
+
+#define HEARTBEAT_MESSAGE_VERSION 1
+static const uint8_t HEARTBEAT_MESSAGE_VERSION_AND_UNDERSTOOD = (HEARTBEAT_MESSAGE_VERSION << 4) | HEARTBEAT_MESSAGE_VERSION;
+
+typedef struct {
+  uint8_t app_id;
+  uint8_t key;
+  uint8_t data_len;
+} __attribute__ ((__packed__)) hb_payload_hdr_t;
+
+typedef struct {
+  uint8_t app_id;
+  uint8_t key;
+  uint8_t data_len;
+  void* data;
+} hb_payload_t;
+
 /* All allocated with mtev_memory_safe commands */
 struct mtev_cluster_t {
   char *name;
@@ -65,13 +84,17 @@ struct mtev_cluster_t {
   mtev_cht_t **cht;
   mtev_net_heartbeat_ctx *hbctx;
   mtev_cluster_node_t *oldest_node;
+  mtev_hash_table hb_payloads;
 };
 
+
 MTEV_HOOK_IMPL(mtev_cluster_handle_node_update,
-  (mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster),
+  (mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+      struct timeval old_boot_time),
   void *, closure,
-  (void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster),
-  (closure,updated_node,cluster))
+  (void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+      struct timeval old_boot_time),
+  (closure,updated_node,cluster,old_boot_time))
 
 static int
 mtev_cluster_node_compare(const void *a, const void *b) {
@@ -126,14 +149,21 @@ deferred_cht_free(void *vptr) {
   mw_wn += (n); \
   mw_wp = payload + mw_wn; \
 } while(0)
-#define MEMWRITE_RETURN return mw_wn
+#define MEMWRITE_WRITTEN mw_wn
 #define MEMREAD_DECL(p, len) void *mw_rp = (p); int mw_ra = (len); int mw_rn=0
+#define MEMGET(what, n) do { \
+  if(mw_rn + (n) > mw_ra) return -(mw_rn); \
+  what = mw_rp; \
+  mw_rn += (n); \
+  mw_rp += (n); \
+} while(0)
 #define MEMREAD(what, n) do { \
   if(mw_rn + (n) > mw_ra) return -(mw_rn); \
   memcpy(what, mw_rp, n); \
   mw_rn += (n); \
-  mw_rp = payload + mw_rn; \
+  mw_rp += (n); \
 } while(0)
+#define MEMREAD_BYTES_READ mw_rn
 
 static void
 mtev_cluster_node_to_string(mtev_cluster_node_t *node, char *buff,
@@ -158,9 +188,11 @@ mtev_cluster_find_oldest_node(mtev_cluster_t *cluster) {
 }
 
 static void
-mtev_cluster_on_node_update(mtev_cluster_t *cluster,
-    mtev_cluster_node_t *sender, const struct timeval *new_boot_time) {
+mtev_cluster_on_node_changed(mtev_cluster_t *cluster,
+    mtev_cluster_node_t *sender, const struct timeval *new_boot_time, int64_t seq) {
+  struct timeval old_boot_time = sender->boot_time;
   sender->boot_time = *new_boot_time;
+  sender->config_seq = seq;
 
   if (uuid_compare(my_cluster_id, sender->id) != 0) {
     if (compare_timeval(*new_boot_time, my_boot_time) == 0) {
@@ -185,7 +217,7 @@ mtev_cluster_on_node_update(mtev_cluster_t *cluster,
         cluster->name, node_name);
   }
 
-  mtev_cluster_handle_node_update_hook_invoke(sender, cluster);
+  mtev_cluster_handle_node_update_hook_invoke(sender, cluster, old_boot_time);
 }
 static void
 mtev_cluster_check_timeout(mtev_cluster_t *cluster, struct timeval now) {
@@ -200,7 +232,7 @@ mtev_cluster_check_timeout(mtev_cluster_t *cluster, struct timeval now) {
           mtev_cluster_node_to_string(node, node_name, sizeof(node_name));
           mtevL(mtev_debug, "Heartbeat timeout of cluster node %s\n",
               node_name);
-          mtev_cluster_on_node_update(cluster, node, &boot_time_of_dead_node);
+          mtev_cluster_on_node_changed(cluster, node, &boot_time_of_dead_node, node->config_seq);
         }
       }
     }
@@ -223,35 +255,92 @@ mtev_cluster_check_timeouts() {
 
 static int 
 mtev_cluster_info_compose(void *payload, int len, void *c) {
+  hb_payload_t *hb_payload;
+
   mtev_cluster_check_timeouts();
 
   MEMWRITE_DECL(payload, len);
   u_int64_t packed_time;
-  u_int64_t seq;
+  u_int64_t my_seq;
   mtev_cluster_t *cluster = c;
+  mtev_hash_iter payload_iter = MTEV_HASH_ITER_ZERO;
+  mtev_hash_iter payload_iter2 = MTEV_HASH_ITER_ZERO;
+  void *vdata;
+  const char *key;
+  int klen;
+  uint8_t number_of_payloads;
+
+  number_of_payloads = mtev_hash_size(&cluster->hb_payloads);
+
   /* payload about the local cluster goes here */
-  /* The header is always the same: <uuid:16><boottime_sec:5><boottiime_usec:3><seq:8> */
+  /* The header is always the same: <version:4><understood_version:4><uuid:128><boottime_sec:40><boottiime_usec:24><seq:64><number_of_payloads:8> */
+  MEMWRITE(&HEARTBEAT_MESSAGE_VERSION_AND_UNDERSTOOD, 1);
   MEMWRITE(my_cluster_id, UUID_SIZE);
   packed_time = (my_boot_time.tv_sec & 0x000000ffffffffffULL) << 24; /* 5 bytes << 3 bytes */
   packed_time |= (my_boot_time.tv_usec & 0xffffff); /* 3 bytes */
   packed_time = htonll(packed_time);
   MEMWRITE(&packed_time, sizeof(packed_time));
-  seq = htonll(cluster->config_seq);
-  MEMWRITE(&seq, sizeof(seq));
+  my_seq = htonll(cluster->config_seq);
+  MEMWRITE(&my_seq, sizeof(my_seq));
+  MEMWRITE(&number_of_payloads, 1);
+
+  assert(HEART_BEAT_HDR_LEN == MEMWRITE_WRITTEN);
+
+  if(number_of_payloads != 0) {
+    // write header (pointer table)
+    while(mtev_hash_next(&cluster->hb_payloads, &payload_iter, &key, &klen, &vdata)) {
+      hb_payload = vdata;
+      MEMWRITE(&hb_payload->app_id, 1);
+      MEMWRITE(&hb_payload->key, 1);
+      MEMWRITE(&hb_payload->data_len, 1);
+    }
+    // write payload
+    while(mtev_hash_next(&cluster->hb_payloads, &payload_iter2, &key, &klen, &vdata)) {
+      hb_payload = vdata;
+      MEMWRITE(hb_payload->data, hb_payload->data_len);
+    }
+  }
 
   /* TODO: Support registered composers */
-  MEMWRITE_RETURN;
+  return MEMWRITE_WRITTEN;
+}
+static mtev_boolean
+mtev_cluster_store_payload(mtev_cluster_node_t *node, const void* payload, uint16_t payload_length, uint8_t number_of_payloads) {
+  assert(payload != NULL);
+  node->number_of_payloads = number_of_payloads;
+  if(node->payload && node->payload_length < payload_length) {
+    node->payload = realloc(node->payload, payload_length);
+  } else if(node->payload == NULL) {
+    node->payload = malloc(payload_length);
+  }
+  if(node->payload == NULL || payload == NULL) {
+    return mtev_false;
+  }
+  node->payload_length = payload_length;
+  memcpy(node->payload, payload, payload_length);
+
+  return mtev_true;
 }
 static int
-mtev_cluster_info_process(void *payload, int len, void *c) {
+mtev_cluster_info_process(void *msg, int len, void *c) {
+  uint8_t version;
+  uint8_t understood_version;
   mtev_cluster_node_t *sender;
-  MEMREAD_DECL(payload, len);
+  MEMREAD_DECL(msg, len);
   mtev_cluster_t *cluster = c;
   uuid_t nodeid;
   struct timeval boot_time;
   u_int64_t packed_time;
   u_int64_t seq;
-  /* payloads from other cluster members (including me) arrive here */
+  void* payload = NULL;
+  uint8_t number_of_payloads;
+  uint16_t payload_len;
+  mtev_boolean payload_changed = mtev_true;
+
+  /* messages from other cluster members (including me) arrive here */
+  MEMREAD(&version, 1);
+  understood_version = version & 0x0F;
+  version = version >> 4;
   MEMREAD(nodeid, UUID_SIZE);
   MEMREAD(&packed_time, sizeof(packed_time));
   packed_time = ntohll(packed_time);
@@ -259,18 +348,33 @@ mtev_cluster_info_process(void *payload, int len, void *c) {
   boot_time.tv_usec = (packed_time & 0xffffff);
   MEMREAD(&seq, sizeof(seq));
   seq = ntohll(seq);
+  MEMREAD(&number_of_payloads, 1);
 
-  if(seq != cluster->config_seq) {
-    mtevL(mtev_error, "cluster sequence mismatch %"PRIu64" != %"PRId64"\n", seq,
-        cluster->config_seq);
-    return -1;
+  payload_len = len-MEMREAD_BYTES_READ;
+  MEMGET(payload, payload_len);
+
+  // We currently support only one version
+  if(understood_version < HEARTBEAT_MESSAGE_VERSION) {
+    mtevL(mtev_error, "Received a cluster heartbeat message with an incompatible understood_version (%d)\n", understood_version);
+    return 0;
   }
+
+  if(version != HEARTBEAT_MESSAGE_VERSION) {
+    mtevL(mtev_error, "Received a cluster heartbeat message with an incompatible header version (%d)\n", version);
+    return 0;
+  }
+
   /* Update our perspective */
   sender = mtev_cluster_find_node(cluster, nodeid);
 
+  if(payload_len == sender->payload_length) {
+    payload_changed = memcmp(payload, sender->payload, payload_len) != 0;
+  }
+
   if(sender) {
-    if(compare_timeval(sender->boot_time, boot_time)!=0) {
-      mtev_cluster_on_node_update(cluster, sender, &boot_time);
+    if(compare_timeval(sender->boot_time, boot_time)!=0 || seq != sender->config_seq || payload_changed == mtev_true) {
+      mtev_cluster_store_payload(sender, payload, payload_len, number_of_payloads);
+      mtev_cluster_on_node_changed(cluster, sender, &boot_time, seq);
     }
     gettimeofday(&sender->last_contact, NULL);
   }
@@ -553,6 +657,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
   qsort(nlist, n_nodes, sizeof(*nlist), mtev_cluster_node_compare);
   new_cluster->node_cnt = n_nodes;
   new_cluster->nodes = nlist; nlist = NULL;
+  mtev_hash_init_locks(&new_cluster->hb_payloads, 8, MTEV_HASH_LOCK_MODE_NONE);
 
   pthread_mutex_lock(&c_lock);
   if(mtev_hash_retrieve(&global_clusters,
@@ -678,6 +783,86 @@ mtev_cluster_do_i_own(mtev_cluster_t *c, void *key, size_t klen, int w) {
     if(uuid_compare(node->id, my_cluster_id) == 0) return mtev_true;
   }
   return mtev_false;
+}
+
+mtev_boolean
+mtev_cluster_set_heartbeat_payload(mtev_cluster_t *cluster,
+    uint8_t app_id, uint8_t key, void *payload, uint8_t payload_length) {
+  assert(payload);
+
+  int payload_len_sum = 0;
+  hb_payload_t *hb_payload, *old_payload = NULL;
+  uint16_t *hash_key = malloc(sizeof(uint16_t));
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  void *vc;
+  const char *k;
+  int klen;
+
+  *hash_key = (app_id << 8) | key;
+
+  while(mtev_hash_next(&cluster->hb_payloads, &iter, &k, &klen, &vc)) {
+    hb_payload = vc;
+    if(hb_payload->app_id != app_id || hb_payload->key != key) {
+      payload_len_sum += hb_payload->data_len;
+    } else {
+      old_payload = vc;
+    }
+  }
+
+  if(payload_len_sum + payload_length > MAX_PAYLOAD_LEN_SUM) {
+    return mtev_false;
+  }
+
+  if(old_payload == NULL) {
+    hb_payload = malloc(sizeof(hb_payload_t) + sizeof(payload));
+    hb_payload->app_id = app_id;
+    hb_payload->key = key;
+  } else {
+    hb_payload = old_payload;
+  }
+
+  hb_payload->data_len = payload_length;
+  hb_payload->data = payload;
+
+  return mtev_hash_replace(&cluster->hb_payloads, (const char*)hash_key, sizeof(*hash_key),
+      hb_payload, free, NULL);
+}
+
+
+mtev_boolean
+mtev_cluster_unset_heartbeat_payload(mtev_cluster_t *cluster,
+    uint8_t app_id, uint8_t key) {
+  uint16_t hash_key = (app_id << 8) | key;
+  return mtev_hash_delete(&cluster->hb_payloads, (const char*)&hash_key, sizeof(hash_key),
+                       free, free);
+}
+
+int
+mtev_cluster_get_heartbeat_payload(mtev_cluster_node_t *node, uint8_t app_id,
+    uint8_t key, void **payload) {
+  hb_payload_hdr_t *hdr;
+  int payload_len_sum =  0;
+  if(node == NULL || node->payload == NULL) {
+    return -1;
+  }
+
+  hdr = node->payload;
+
+  while(payload_len_sum < node->payload_length) {
+    if(hdr->app_id == app_id && hdr->key == key) {
+      *payload = node->payload + node->number_of_payloads * sizeof(hb_payload_hdr_t) + payload_len_sum;
+      return hdr->data_len;
+    }
+    ++hdr;
+    payload_len_sum += hdr->data_len ;
+  }
+
+  return -1;
+}
+
+int64_t
+mtev_cluster_get_config_seq(mtev_cluster_t *cluster) {
+  return cluster->config_seq;
 }
 
 static xmlNodePtr
@@ -862,8 +1047,14 @@ mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster) {
   return cluster->oldest_node;
 }
 
-mtev_boolean mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster) {
+mtev_boolean
+mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster) {
   if (cluster == NULL || cluster->oldest_node == NULL)
     return mtev_false;
   return uuid_compare(cluster->oldest_node->id, my_cluster_id) == 0;
+}
+
+struct timeval
+mtev_cluster_get_my_boot_time() {
+  return my_boot_time;
 }

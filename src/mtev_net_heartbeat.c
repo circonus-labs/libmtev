@@ -190,7 +190,6 @@ mtev_net_headerbeat_sendall(mtev_net_heartbeat_ctx *ctx, void *payload, int payl
         mtevL(mtev_error, "Bad send on mtev_net_heartbeat != %d", payload_len);
       }
     }
-    
   }
   return rv;
 }
