@@ -562,7 +562,7 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
   }
 }
 void
-eventer_foreach_timedevent (void (*f)(eventer_t e, void *), void *closure) {
+eventer_foreach_timedevent(void (*f)(eventer_t e, void *), void *closure) {
   mtev_skiplist_node *iter = NULL;
   int i;
   for(i=0;i<__loop_concurrency;i++) {

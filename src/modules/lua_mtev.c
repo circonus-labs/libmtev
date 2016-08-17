@@ -2622,7 +2622,7 @@ nl_conf_get_integer(lua_State *L) {
     mtev_conf_section_t section;
     char *element, *base;
     SPLIT_PATH(path, base, element);
-    
+
     section = mtev_conf_get_section(NULL, base);
     if(!section || !element) lua_pushboolean(L, 0);
     else {
@@ -2646,7 +2646,7 @@ nl_conf_get_boolean(lua_State *L) {
     mtev_conf_section_t section;
     char *element, *base;
     SPLIT_PATH(path, base, element);
-    
+
     section = mtev_conf_get_section(NULL, base);
     if(!section || !element) lua_pushboolean(L, 0);
     else {

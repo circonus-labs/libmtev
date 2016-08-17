@@ -40,7 +40,6 @@
 
 typedef struct mtev_cluster_t mtev_cluster_t;
 
-
 typedef struct {
   uuid_t id;
   char cn[256];
@@ -51,6 +50,10 @@ typedef struct {
   socklen_t address_len;
   struct timeval last_contact;
   struct timeval boot_time;
+  u_int64_t config_seq;
+  void *payload;
+  uint16_t payload_length;
+  uint8_t number_of_payloads;
 } mtev_cluster_node_t;
 
 typedef void (*mtev_cluster_node_update_cb)(mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster);
@@ -123,7 +126,7 @@ API_EXPORT(void) mtev_cluster_set_self(uuid_t);
 
 /* \fn void mtev_cluster_get_self(uuid_t id)
    \brief Reports the UUID of the local node.
-   \param id The UUID to updated.
+   \param id The UUID to be updated.
 
    Pouplates the passed uuid_t with the local node's UUID.
  */
@@ -160,13 +163,44 @@ API_EXPORT(int)
 API_EXPORT(mtev_boolean)
   mtev_cluster_do_i_own(mtev_cluster_t *, void *key, size_t klen, int w);
 
+/* \fn void mtev_cluster_enable_payload(mtev_cluster_t *cluster, void* payload, uint8_t payload_length)
+   \brief Triggers the attachment of an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)
+   \param cluster The cluster in question, may not be NULL.
+   \param app_id Used to identify the application that attached the payload.
+   \param key Used to identify the payload amongst other payloads from the application.
+   \param payload A pointer to the payload that should be attached to every heartbeat message.
+   \param payload_length The number of bytes to be read from payload.
+   \return Returns mtev_true if the payload was not enabled yet
+
+   This function triggers the attachment of an arbitrary payload to the cluster heartbeats (see mtev_cluster_get_payload)
+ */
+API_EXPORT(mtev_boolean)
+  mtev_cluster_set_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id,
+    uint8_t key, void *payload, uint8_t payload_length);
+
+API_EXPORT(mtev_boolean)
+  mtev_cluster_unset_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key);
+
+API_EXPORT(int)
+  mtev_cluster_get_heartbeat_payload(mtev_cluster_node_t *node, uint8_t app_id,
+    uint8_t key, void **payload);
+
+/* \fn int64_t mtev_cluster_get_config_seq(mtev_cluster_t *cluster)
+   \brief Returns the current config sequence of the given cluster
+   \param cluster The cluster in question, may not be NULL.
+
+   This function returns the current config sequence of the given cluster
+ */
+API_EXPORT(int64_t)
+  mtev_cluster_get_config_seq(mtev_cluster_t *cluster);
+
 /* \fn  mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster)
    \brief Returns the oldest node within the given cluster.
    \param cluster The cluster in question.
    \return Returns the node in the given cluster with the highest up-time.
  */
 API_EXPORT(mtev_cluster_node_t*)
-mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster);
+  mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster);
 
 /* \fn mtev_boolean mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster)
    \brief Determines if the local node is the oldest node within the cluster.
@@ -174,7 +208,14 @@ mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster);
    \return Returns mtev_true if there is no node in the cluster with a higher up-time than this one.
  */
 API_EXPORT(mtev_boolean)
-mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster);
+  mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster);
+
+/* \fn struct timeval mtev_cluster_get_my_boot_time()
+   \brief Returns the boot time of the local node.
+   \return The boot time of the local node.
+ */
+API_EXPORT(struct timeval)
+  mtev_cluster_get_my_boot_time();
 
 /* \fn int mtev_cluster_set_node_update_callback(mtev_cluster_t *cluster, mtev_cluster_node_update_cb callback)
    \brief Sets a callback which is called everytime a node in the cluster changes it's up-time.
@@ -183,9 +224,11 @@ mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster);
    \return Returns mtev_true if the cluster is not NULL, mtev_false otherwise
  */
 MTEV_HOOK_PROTO(mtev_cluster_handle_node_update,
-                (mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster),
+                (mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+                    struct timeval old_boot_time),
                 void *, closure,
-                (void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster));
+                (void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+                    struct timeval old_boot_time));
 
 
 #endif

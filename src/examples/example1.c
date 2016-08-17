@@ -10,6 +10,7 @@
 #include <mtev_capabilities_listener.h>
 #include <mtev_events_rest.h>
 #include <eventer/eventer.h>
+#include <inttypes.h>
 
 #include <stdio.h>
 #include <getopt.h>
@@ -21,6 +22,8 @@ static int debug = 0;
 static int foreground = 0;
 static char *droptouser = NULL, *droptogroup = NULL;
 static mtev_cluster_t *my_cluster = NULL;
+static char my_payload[32];
+static char my_payload2[32];
 
 static int
 usage(const char *prog) {
@@ -45,18 +48,32 @@ parse_cli_args(int argc, char * const *argv) {
 }
 
 static mtev_hook_return_t
-on_node_updated(void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster) {
+on_node_updated(void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+    struct timeval old_boot_time) {
   mtev_boolean i_am_oldest = mtev_cluster_am_i_oldest_node(my_cluster);
 
-  mtevL(mtev_stderr, "The cluster topology has changed: I am oldest node: %d\n",
-      i_am_oldest);
+  mtevL(mtev_stderr, "The cluster topology has changed (seq=%"PRId64"): I am oldest node: %d\n",
+      updated_node->config_seq, i_am_oldest);
+  if(updated_node->payload) {
+    char* payload = NULL;
+    char* payload2 = NULL;
+    assert(mtev_cluster_get_heartbeat_payload(updated_node, 2, 1, (void**)&payload) == -1);
+    mtev_cluster_get_heartbeat_payload(updated_node, 1, 1, (void**)&payload);
+    mtev_cluster_get_heartbeat_payload(updated_node, 1, 2, (void**)&payload2);
+    mtevL(mtev_stderr, "Payload attached to cluster heartbeats: 1: %s\t2:%s\n", payload, payload2);
+  } else {
+    mtevL(mtev_stderr, "No payload attached to cluster heartbeats\n");
+  }
+
+  // Changing the payload will trigger another node update on all cluster members
+  memcpy(my_payload, "Changed payload!", 16);
+  mtev_cluster_unset_heartbeat_payload(cluster, 1, 2);
   return MTEV_HOOK_CONTINUE;
 }
 
 static void init_cluster() {
   mtev_cluster_init();
   if (mtev_cluster_enabled() != mtev_false) {
-
     my_cluster = mtev_cluster_by_name(CLUSTER_NAME);
     if (my_cluster == NULL) {
       mtevL(mtev_stderr, "Unable to find cluster %s\n", CLUSTER_NAME);
@@ -70,6 +87,12 @@ static void init_cluster() {
     char uuid_str[UUID_STR_LEN + 1];
     uuid_unparse(my_cluster_id, uuid_str);
     mtevL(mtev_stderr, "Initialized cluster. My uuid is: %s\n", uuid_str);
+
+    assert(mtev_cluster_set_heartbeat_payload(my_cluster, 1, 1, my_payload2, sizeof(my_payload)));
+    assert(mtev_cluster_set_heartbeat_payload(my_cluster, 1, 1, my_payload, sizeof(my_payload)));
+    assert(mtev_cluster_set_heartbeat_payload(my_cluster, 1, 2, my_payload2, sizeof(my_payload2)));
+    memcpy(my_payload, "Hello world!", 12);
+    memcpy(my_payload2,"another payload!", 16);
   }
 }
 
@@ -90,6 +113,10 @@ child_main() {
   init_cluster();
   mtev_dso_init();
   mtev_dso_post_init();
+
+  mtev_conf_write_log();
+  mtev_conf_coalesce_changes(10); /* 10 seconds of no changes before we write */
+  mtev_conf_watch_and_journal_watchdog(mtev_conf_write_log, NULL);
 
   mtev_http_rest_register_auth(
     "GET", "/", "^(.*)$", mtev_rest_simple_file_handler,
