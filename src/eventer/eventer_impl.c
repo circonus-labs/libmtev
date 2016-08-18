@@ -308,7 +308,7 @@ static void eventer_loop_prime() {
   int i;
   for(i=1; i<__loop_concurrency; i++) {
     pthread_t tid;
-    mtev_thread_create(&tid, NULL, thrloopwrap, (void *)(vpsized_int)i);
+    pthread_create(&tid, NULL, thrloopwrap, (void *)(vpsized_int)i);
   }
   while(__loops_started < __loop_concurrency);
 }

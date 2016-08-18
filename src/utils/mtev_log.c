@@ -547,7 +547,7 @@ asynch_thread_create(mtev_log_stream_t ls, asynch_log_ctx *actx, void* function)
   }
   pthread_attr_init(&tattr);
   pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
-  if(mtev_thread_create(&actx->writer, &tattr, function, ls) != 0) {
+  if(pthread_create(&actx->writer, &tattr, function, ls) != 0) {
     return -1;
   }
   return 0;
