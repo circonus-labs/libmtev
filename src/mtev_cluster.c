@@ -47,9 +47,7 @@ static struct timeval my_boot_time;
 static mtev_boolean have_clusters;
 static mtev_hash_table global_clusters;
 
-static const struct timeval boot_time_of_dead_node = { (1UL
-    << (CHAR_BIT * sizeof(boot_time_of_dead_node.tv_sec) - 1)) - 1, (1UL
-    << (CHAR_BIT * sizeof(boot_time_of_dead_node.tv_usec) - 1)) - 1 };
+static const struct timeval boot_time_of_dead_node = { 0, 0 };
 
 #define HEART_BEAT_HDR_LEN 1 + UUID_SIZE + sizeof(u_int64_t) + sizeof(u_int64_t) + 1
 #define MAX_PAYLOAD_LEN_SUM  1518 - 14/*ETH*/ - 20 /*IP*/ - HEART_BEAT_HDR_LEN - 4 /*FCS*/
@@ -89,12 +87,17 @@ struct mtev_cluster_t {
 
 
 MTEV_HOOK_IMPL(mtev_cluster_handle_node_update,
-  (mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+  (mtev_cluster_node_changes node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
       struct timeval old_boot_time),
   void *, closure,
-  (void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+  (void *closure, mtev_cluster_node_changes node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
       struct timeval old_boot_time),
-  (closure,updated_node,cluster,old_boot_time))
+  (closure,node_change,updated_node,cluster,old_boot_time))
+
+static mtev_boolean
+mtev_cluster_node_is_dead(mtev_cluster_node_t *node) {
+  return compare_timeval(node->boot_time, boot_time_of_dead_node) == 0;
+}
 
 static int
 mtev_cluster_node_compare(const void *a, const void *b) {
@@ -181,7 +184,9 @@ mtev_cluster_find_oldest_node(mtev_cluster_t *cluster) {
   for (int i = 1; i < cluster->node_cnt; i++) {
     mtev_cluster_node_t *node = &cluster->nodes[i];
 
-    if (compare_timeval(node->boot_time, cluster->oldest_node->boot_time) == -1) {
+    if(mtev_cluster_node_is_dead(cluster->oldest_node) == mtev_true
+        || (compare_timeval(node->boot_time, cluster->oldest_node->boot_time)
+            == -1 && mtev_cluster_node_is_dead(node) == mtev_false)) {
       cluster->oldest_node = node;
     }
   }
@@ -189,7 +194,8 @@ mtev_cluster_find_oldest_node(mtev_cluster_t *cluster) {
 
 static void
 mtev_cluster_on_node_changed(mtev_cluster_t *cluster,
-    mtev_cluster_node_t *sender, const struct timeval *new_boot_time, int64_t seq) {
+    mtev_cluster_node_t *sender, const struct timeval *new_boot_time,
+    int64_t seq, mtev_cluster_node_changes node_change) {
   struct timeval old_boot_time = sender->boot_time;
   sender->boot_time = *new_boot_time;
   sender->config_seq = seq;
@@ -206,7 +212,7 @@ mtev_cluster_on_node_changed(mtev_cluster_t *cluster,
     }
   }
 
-  if (compare_timeval(*new_boot_time, boot_time_of_dead_node) == 0 || cluster->oldest_node == sender) {
+  if (mtev_cluster_node_is_dead(sender) == mtev_true || cluster->oldest_node == sender) {
     mtev_cluster_find_oldest_node(cluster);
   } else if (cluster->oldest_node == NULL || compare_timeval(*new_boot_time, cluster->oldest_node->boot_time) == -1) {
     cluster->oldest_node = sender;
@@ -217,14 +223,14 @@ mtev_cluster_on_node_changed(mtev_cluster_t *cluster,
         cluster->name, node_name);
   }
 
-  mtev_cluster_handle_node_update_hook_invoke(sender, cluster, old_boot_time);
+  mtev_cluster_handle_node_update_hook_invoke(node_change, sender, cluster, old_boot_time);
 }
 static void
 mtev_cluster_check_timeout(mtev_cluster_t *cluster, struct timeval now) {
   for (int i = 0; i < cluster->node_cnt; i++) {
     mtev_cluster_node_t *node = &cluster->nodes[i];
     if(sub_timeval_ms(now, node->last_contact) > cluster->timeout) {
-      if(compare_timeval(node->boot_time, boot_time_of_dead_node) != 0) {
+      if(mtev_cluster_node_is_dead(node) ==  mtev_false) {
         // ignore nodes that have just been booted
         if(node->boot_time.tv_sec > 0
             && sub_timeval_ms(now, node->boot_time) > cluster->maturity) {
@@ -232,7 +238,7 @@ mtev_cluster_check_timeout(mtev_cluster_t *cluster, struct timeval now) {
           mtev_cluster_node_to_string(node, node_name, sizeof(node_name));
           mtevL(mtev_debug, "Heartbeat timeout of cluster node %s\n",
               node_name);
-          mtev_cluster_on_node_changed(cluster, node, &boot_time_of_dead_node, node->config_seq);
+          mtev_cluster_on_node_changed(cluster, node, &boot_time_of_dead_node, node->config_seq, mtev_cluster_node_died);
         }
       }
     }
@@ -335,7 +341,8 @@ mtev_cluster_info_process(void *msg, int len, void *c) {
   void* payload = NULL;
   uint8_t number_of_payloads;
   uint16_t payload_len;
-  mtev_boolean payload_changed = mtev_true;
+  mtev_boolean node_changed = mtev_false;
+  mtev_cluster_node_changes node_change;
 
   /* messages from other cluster members (including me) arrive here */
   MEMREAD(&version, 1);
@@ -366,15 +373,23 @@ mtev_cluster_info_process(void *msg, int len, void *c) {
 
   /* Update our perspective */
   sender = mtev_cluster_find_node(cluster, nodeid);
-
-  if(payload_len == sender->payload_length) {
-    payload_changed = memcmp(payload, sender->payload, payload_len) != 0;
-  }
-
   if(sender) {
-    if(compare_timeval(sender->boot_time, boot_time)!=0 || seq != sender->config_seq || payload_changed == mtev_true) {
+
+    if(compare_timeval(sender->boot_time, boot_time) != 0) {
+      node_changed = mtev_true;
+      node_change = mtev_cluster_node_rebooted;
+    } else if(seq != sender->config_seq) {
+      node_changed = mtev_true;
+      node_change = mtev_cluster_node_changed_seq;
+    } else if(payload_len != sender->payload_length
+        || memcmp(payload, sender->payload, payload_len) != 0) {
+      node_changed = mtev_true;
+      node_change = mtev_cluster_node_changed_payload;
+    }
+
+    if(node_changed) {
       mtev_cluster_store_payload(sender, payload, payload_len, number_of_payloads);
-      mtev_cluster_on_node_changed(cluster, sender, &boot_time, seq);
+      mtev_cluster_on_node_changed(cluster, sender, &boot_time, seq, node_change);
     }
     gettimeofday(&sender->last_contact, NULL);
   }
@@ -751,6 +766,13 @@ mtev_cluster_set_self(uuid_t id) {
 void
 mtev_cluster_get_self(uuid_t id) {
   uuid_copy(id, my_cluster_id);
+}
+
+mtev_boolean
+mtev_cluster_is_that_me(mtev_cluster_node_t *node) {
+  if (node == NULL)
+    return mtev_false;
+  return uuid_compare(node->id, my_cluster_id) == 0;
 }
 
 int
