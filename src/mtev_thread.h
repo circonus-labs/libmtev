@@ -68,4 +68,12 @@ API_EXPORT(mtev_boolean)
 API_EXPORT(void)
   mtev_thread_init();
 
+/**
+ * Switches off and disallows binding of threads to cores. If you call this on startup,
+ * mtev_thread_init and mtev_thread_create will not bind the current LWP to the next core
+ * in sequence.  They will silently noop.
+ */
+API_EXPORT(void)
+  mtev_thread_disable_binding();
+
 #endif

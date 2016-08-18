@@ -55,6 +55,7 @@ gettid(void)
 
 static uint32_t mtev_current_cpu;
 static __thread mtev_boolean mtev_thread_is_bound = mtev_false;
+static mtev_boolean mtev_disable_binding = mtev_false;
 
 mtev_boolean
 mtev_thread_bind_to_cpu(int cpu)
@@ -147,9 +148,18 @@ mtev_thread_create(pthread_t *thread, const pthread_attr_t *attr,
 void
 mtev_thread_init() 
 {  
+  if (mtev_disable_binding == mtev_true) {
+    return;
+  }
   long nrcpus = sysconf(_SC_NPROCESSORS_ONLN);
   int cpu = ck_pr_faa_uint(&mtev_current_cpu, 1) % nrcpus;
   mtev_thread_bind_to_cpu(cpu);
+}
+
+void
+mtev_thread_disable_binding()
+{
+  mtev_disable_binding = mtev_true;
 }
 
 mtev_boolean
@@ -157,3 +167,4 @@ mtev_thread_is_bound_to_cpu()
 {
   return mtev_thread_is_bound;
 }
+

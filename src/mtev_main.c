@@ -196,6 +196,11 @@ mtev_main(const char *appname,
     mtev_time_toggle_tsc(mtev_false);
   }
 
+  char *disable_binding = getenv("MTEV_THREAD_BINDING_DISABLE");
+  if (disable_binding && strcmp(disable_binding, "1") == 0) {
+    mtev_thread_disable_binding();
+  }
+
   /* First initialize logging, so we can log errors */
   mtev_log_init(debug);
   mtev_log_stream_add_stream(mtev_debug, mtev_stderr);

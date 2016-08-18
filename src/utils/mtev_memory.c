@@ -66,7 +66,7 @@ void mtev_memory_init() {
   pthread_attr_init(&tattr);
   pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
   asynch_gc = 1;
-  if(mtev_thread_create(&tid, &tattr, mtev_memory_gc, NULL) == 0) {
+  if(pthread_create(&tid, &tattr, mtev_memory_gc, NULL) == 0) {
     mtevL(mtev_stderr, "mtev_memory starting gc thread\n");
   }
   else {
