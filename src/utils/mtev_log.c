@@ -1453,7 +1453,7 @@ mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name) {
 
 void mtev_log_stream_reopen(mtev_log_stream_t ls) {
   struct _mtev_log_stream_outlet_list *node;
-  if(ls->ops) ls->ops->reopenop(ls);
+  if(ls->ops && ls->ops->reopenop) ls->ops->reopenop(ls);
   for(node = ls->outlets; node; node = node->next) {
     mtev_log_stream_reopen(node->outlet);
   }
