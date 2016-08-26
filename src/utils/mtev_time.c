@@ -65,6 +65,8 @@ static __thread int current_cpu;
 #define unlikely(x) __builtin_expect(!!(x), 0)
 #define NO_TSC unlikely(enable_rdtsc == false || coreclocks[current_cpu].rdtsc_function == NULL)
 
+
+#ifdef ENABLE_RDTSC
 static inline uint64_t
 mtev_rdtsc(void)
 {
@@ -92,6 +94,13 @@ mtev_rdtscp(void)
 
   return (((uint64_t)edx << 32) | eax);
 }
+
+static inline uint64_t
+ticks_to_nanos(const uint64_t ticks)
+{
+  return (uint64_t)llround((double) ticks / ck_pr_load_double(&coreclocks[current_cpu].ticks_per_nano));
+}  
+#endif
 
 #if defined(linux) || defined(__linux) || defined(__linux__)
 #include <time.h>
@@ -166,12 +175,6 @@ mtev_calibrate_rdtsc_ticks()
   return true;
 }  
 #endif
-
-static inline uint64_t
-ticks_to_nanos(const uint64_t ticks)
-{
-  return (uint64_t)llround((double) ticks / ck_pr_load_double(&coreclocks[current_cpu].ticks_per_nano));
-}  
 
 void
 mtev_time_toggle_tsc(mtev_boolean enable) 
