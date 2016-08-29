@@ -702,7 +702,6 @@ posix_logio_size(mtev_log_stream_t ls) {
   asynch_log_ctx *actx = ls->op_ctx;
   pthread_rwlock_t *lock = ls->lock;
   if(lock) pthread_rwlock_rdlock(lock);
-  actx = ls->op_ctx;
   po = actx->userdata;
   if(po && po->fd >= 0) {
     while((rv = fstat(po->fd, &po->sb)) == -1 && errno == EINTR);

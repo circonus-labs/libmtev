@@ -49,21 +49,28 @@ parse_cli_args(int argc, char * const *argv) {
 }
 
 static mtev_hook_return_t
-on_node_updated(void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+on_node_updated(void *closure, mtev_cluster_node_changes_t node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
     struct timeval old_boot_time) {
   mtev_boolean i_am_oldest = mtev_cluster_am_i_oldest_node(my_cluster);
 
   mtevL(mtev_stderr, "The cluster topology has changed (seq=%"PRId64"): I am oldest node: %d\n",
       updated_node->config_seq, i_am_oldest);
+  if(node_changes & MTEV_CLUSTER_NODE_REBOOTED) {
+    mtevL(mtev_stderr, "Found new node\n");
+  }
+  if(node_changes & MTEV_CLUSTER_NODE_CHANGED_PAYLOAD) {
+    mtevL(mtev_stderr, "Node's payload has changed:\n");
+  }
+
   if(updated_node->payload) {
     char* payload = NULL;
     char* payload2 = NULL;
     assert(mtev_cluster_get_heartbeat_payload(updated_node, 2, 1, (void**)&payload) == -1);
     mtev_cluster_get_heartbeat_payload(updated_node, 1, 1, (void**)&payload);
     mtev_cluster_get_heartbeat_payload(updated_node, 1, 2, (void**)&payload2);
-    mtevL(mtev_stderr, "Payload attached to cluster heartbeats: 1: %s\t2:%s\n", payload, payload2);
+    mtevL(mtev_stderr, "Payloads attached to cluster heartbeat: 1: %s\t2:%s\n", payload, payload2);
   } else {
-    mtevL(mtev_stderr, "No payload attached to cluster heartbeats\n");
+    mtevL(mtev_stderr, "No payload attached to cluster heartbeat\n");
   }
 
   // Changing the payload will trigger another node update on all cluster members

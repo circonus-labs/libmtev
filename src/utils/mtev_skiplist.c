@@ -94,7 +94,7 @@ void mtev_skiplist_set_compare(mtev_skiplist *sl,
 void mtev_skiplist_add_index(mtev_skiplist *sl,
                              mtev_skiplist_comparator_t comp,
                              mtev_skiplist_comparator_t compk) {
-  mtev_skiplist_node *m;
+  mtev_skiplist_node *m = NULL;
   mtev_skiplist *ni;
   int icount=0;
   mtev_skiplist_find(sl->index, (void *)comp, &m);

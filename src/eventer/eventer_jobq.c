@@ -57,20 +57,23 @@ pthread_mutex_t all_queues_lock;
 
 static void
 eventer_jobq_finished_job(eventer_jobq_t *jobq, eventer_job_t *job) {
+  int ntries;
   eventer_hrtime_t wait_time = job->start_hrtime - job->create_hrtime;
   eventer_hrtime_t run_time = job->finish_hrtime - job->start_hrtime;
   mtev_atomic_dec32(&jobq->inflight);
   stats_set_hist_intscale(jobq->wait_latency, wait_time, -9, 1);
   stats_set_hist_intscale(jobq->run_latency, run_time, -9, 1);
   if(job->timeout_triggered) mtev_atomic_inc64(&jobq->timeouts);
-  while(1) {
-    eventer_hrtime_t newv = jobq->avg_wait_ns * 0.8 + wait_time * 0.2;
-    if(mtev_atomic_cas64(&jobq->avg_wait_ns, newv, jobq->avg_wait_ns) == jobq->avg_wait_ns)
+  for(ntries = 0; ntries < 100; ntries++) {
+    uint64_t current_avg_wait_ns = ck_pr_load_64((uint64_t *)&jobq->avg_wait_ns);
+    eventer_hrtime_t newv = current_avg_wait_ns * 0.8 + wait_time * 0.2;
+    if(mtev_atomic_cas64(&jobq->avg_wait_ns, newv, current_avg_wait_ns) == current_avg_wait_ns)
       break;
   }
-  while(1) {
-    eventer_hrtime_t newv = jobq->avg_run_ns * 0.8 + run_time * 0.2;
-    if(mtev_atomic_cas64(&jobq->avg_run_ns, newv, jobq->avg_run_ns) == jobq->avg_run_ns)
+  for(ntries = 0; ntries < 100; ntries++) {
+    uint64_t current_avg_run_ns = ck_pr_load_64((uint64_t *)&jobq->avg_run_ns);
+    eventer_hrtime_t newv = current_avg_run_ns * 0.8 + run_time * 0.2;
+    if(mtev_atomic_cas64(&jobq->avg_run_ns, newv, current_avg_run_ns) == current_avg_run_ns)
       break;
   }
 }
@@ -352,7 +355,7 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
       memcpy(jobcopy, job, sizeof(*jobcopy));
       free(job);
       jobcopy->fd_event = my_precious;
-      job->finish_hrtime = eventer_gethrtime();
+      jobcopy->finish_hrtime = eventer_gethrtime();
       eventer_jobq_maybe_spawn(jobcopy->jobq);
       eventer_jobq_finished_job(jobcopy->jobq, jobcopy);
       memcpy(&wakeupcopy, jobcopy->fd_event, sizeof(wakeupcopy));
