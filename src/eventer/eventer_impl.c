@@ -33,11 +33,13 @@
 
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
+#include "eventer/eventer_impl_private.h"
 #include "mtev_memory.h"
 #include "mtev_log.h"
 #include "mtev_skiplist.h"
 #include "mtev_thread.h"
 #include "mtev_watchdog.h"
+#include "mtev_stats.h"
 #include "libmtev_dtrace_probes.h"
 #include <pthread.h>
 #include <errno.h>
@@ -274,7 +276,7 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
                           mtev_compare_voidptr, mtev_compare_voidptr);
 
   snprintf(qname, sizeof(qname), "default_back_queue/%d", t->id);
-  eventer_jobq_init(&t->__global_backq, qname);
+  eventer_jobq_init_backq(&t->__global_backq, qname);
   e = eventer_alloc();
   e->mask = EVENTER_RECURRENT;
   e->closure = &t->__global_backq;
@@ -403,6 +405,8 @@ int eventer_impl_init() {
                         eventer_jobq_execute_timeout);
   eventer_name_callback("eventer_jobq_consume_available",
                         eventer_jobq_consume_available);
+  eventer_name_callback("eventer_mtev_memory_maintenance",
+                        eventer_mtev_memory_maintenance);
 
   eventer_impl_epoch = malloc(sizeof(struct timeval));
   gettimeofday(eventer_impl_epoch, NULL);
@@ -496,6 +500,7 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
   max_timed_events_to_process = t->timed_events->size;
   while(max_timed_events_to_process-- > 0) {
     int newmask;
+    u_int64_t start, duration;
     const char *cbname = NULL;
     eventer_t timed_event;
 
@@ -528,8 +533,12 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
     LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)timed_event,
                            (void *)timed_event->callback, (char *)cbname, -1,
                            timed_event->mask, EVENTER_TIMER);
+    start = mtev_get_nanos();
     newmask = timed_event->callback(timed_event, EVENTER_TIMER,
                                     timed_event->closure, now);
+    duration = mtev_get_nanos() - start;
+    stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+    stats_set_hist_intscale(eventer_latency_handle_for_callback(timed_event->callback), duration, -9, 1);
     LIBMTEV_EVENTER_CALLBACK_RETURN((void *)timed_event,
                             (void *)timed_event->callback, (char *)cbname, newmask);
     mtev_memory_end();
@@ -624,7 +633,12 @@ void eventer_dispatch_recurrent(struct timeval *now) {
   t = get_my_impl_data();
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
+    u_int64_t start, duration;
+    start = mtev_get_nanos();
     node->e->callback(node->e, EVENTER_RECURRENT, node->e->closure, now);
+    duration = mtev_get_nanos() - start;
+    stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+    stats_set_hist_intscale(eventer_latency_handle_for_callback(node->e->callback), duration, -9, 1);
   }
   pthread_mutex_unlock(&t->recurrent_lock);
 }

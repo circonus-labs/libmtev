@@ -31,9 +31,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LOCAL_EVENTER
-#error You are not using eventer_impl_private.h correctly
-#endif
+#include "mtev_stats.h"
+
+#ifdef LOCAL_EVENTER
 
 typedef enum { EV_OWNED, EV_ALREADY_OWNED } ev_lock_state_t;
 static ev_lock_state_t
@@ -69,6 +69,15 @@ LOCAL_EVENTER_foreach_fdevent (void (*f)(eventer_t e, void *),
   }
 }
 
+#endif
+
 void eventer_wakeup_noop(eventer_t);
 void eventer_cross_thread_trigger(eventer_t e, int mask);
 void eventer_cross_thread_process();
+
+extern stats_ns_t *eventer_stats_ns;
+extern stats_handle_t *eventer_callback_latency;
+extern stats_handle_t *eventer_unnamed_callback_latency;
+stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f);
+
+int eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name);

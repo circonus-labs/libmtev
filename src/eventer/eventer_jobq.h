@@ -38,6 +38,7 @@
 #include "eventer/eventer.h"
 #include "mtev_atomic.h"
 #include "mtev_sem.h"
+#include "mtev_stats.h"
 
 #include <pthread.h>
 #include <setjmp.h>
@@ -86,10 +87,14 @@ typedef struct _eventer_jobq_t {
   mtev_atomic64_t         timeouts;
   mtev_atomic64_t         avg_wait_ns; /* smoother alpha = 0.8 */
   mtev_atomic64_t         avg_run_ns; /* smoother alpha = 0.8 */
+  stats_handle_t         *wait_latency;
+  stats_handle_t         *run_latency;
   eventer_jobq_memory_safety_t mem_safety;
+  mtev_boolean            isbackq;
 } eventer_jobq_t;
 
 int eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name);
+int eventer_jobq_init_backq(eventer_jobq_t *jobq, const char *queue_name);
 int eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
                          eventer_jobq_memory_safety_t);
 eventer_jobq_t *eventer_jobq_retrieve(const char *name);
