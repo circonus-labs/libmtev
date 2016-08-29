@@ -87,10 +87,10 @@ struct mtev_cluster_t {
 
 
 MTEV_HOOK_IMPL(mtev_cluster_handle_node_update,
-  (mtev_cluster_node_changes node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+  (mtev_cluster_node_changes_t node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
       struct timeval old_boot_time),
   void *, closure,
-  (void *closure, mtev_cluster_node_changes node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+  (void *closure, mtev_cluster_node_changes_t node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
       struct timeval old_boot_time),
   (closure,node_change,updated_node,cluster,old_boot_time))
 
@@ -195,7 +195,7 @@ mtev_cluster_find_oldest_node(mtev_cluster_t *cluster) {
 static void
 mtev_cluster_on_node_changed(mtev_cluster_t *cluster,
     mtev_cluster_node_t *sender, const struct timeval *new_boot_time,
-    int64_t seq, mtev_cluster_node_changes node_change) {
+    int64_t seq, mtev_cluster_node_changes_t node_change) {
   struct timeval old_boot_time = sender->boot_time;
   sender->boot_time = *new_boot_time;
   sender->config_seq = seq;
@@ -342,7 +342,7 @@ mtev_cluster_info_process(void *msg, int len, void *c) {
   uint8_t number_of_payloads;
   uint16_t payload_len;
   mtev_boolean node_changed = mtev_false;
-  mtev_cluster_node_changes node_changes = 0;
+  mtev_cluster_node_changes_t node_changes = 0;
 
   /* messages from other cluster members (including me) arrive here */
   MEMREAD(&version, 1);
