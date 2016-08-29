@@ -56,12 +56,11 @@ typedef struct {
   uint8_t number_of_payloads;
 } mtev_cluster_node_t;
 
-typedef enum {
-  mtev_cluster_node_died,
-  mtev_cluster_node_rebooted,
-  mtev_cluster_node_changed_seq,
-  mtev_cluster_node_changed_payload
-} mtev_cluster_node_changes;
+#define MTEV_CLUSTER_NODE_DIED 1 << 0
+#define MTEV_CLUSTER_NODE_REBOOTED 1 << 1
+#define MTEV_CLUSTER_NODE_CHANGED_SEQ 1 << 2
+#define MTEV_CLUSTER_NODE_CHANGED_PAYLOAD 1 << 3
+typedef uint8_t mtev_cluster_node_changes;
 
 typedef void (*mtev_cluster_node_update_cb)(mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster);
 
@@ -233,10 +232,10 @@ API_EXPORT(struct timeval)
    \return Returns mtev_true if the cluster is not NULL, mtev_false otherwise
  */
 MTEV_HOOK_PROTO(mtev_cluster_handle_node_update,
-                (mtev_cluster_node_changes node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+                (mtev_cluster_node_changes node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
                     struct timeval old_boot_time),
                 void *, closure,
-                (void *closure, mtev_cluster_node_changes node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+                (void *closure, mtev_cluster_node_changes node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
                     struct timeval old_boot_time));
 
 

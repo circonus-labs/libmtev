@@ -238,7 +238,7 @@ mtev_cluster_check_timeout(mtev_cluster_t *cluster, struct timeval now) {
           mtev_cluster_node_to_string(node, node_name, sizeof(node_name));
           mtevL(mtev_debug, "Heartbeat timeout of cluster node %s\n",
               node_name);
-          mtev_cluster_on_node_changed(cluster, node, &boot_time_of_dead_node, node->config_seq, mtev_cluster_node_died);
+          mtev_cluster_on_node_changed(cluster, node, &boot_time_of_dead_node, node->config_seq, MTEV_CLUSTER_NODE_DIED);
         }
       }
     }
@@ -342,7 +342,7 @@ mtev_cluster_info_process(void *msg, int len, void *c) {
   uint8_t number_of_payloads;
   uint16_t payload_len;
   mtev_boolean node_changed = mtev_false;
-  mtev_cluster_node_changes node_change;
+  mtev_cluster_node_changes node_changes = 0;
 
   /* messages from other cluster members (including me) arrive here */
   MEMREAD(&version, 1);
@@ -377,19 +377,22 @@ mtev_cluster_info_process(void *msg, int len, void *c) {
 
     if(compare_timeval(sender->boot_time, boot_time) != 0) {
       node_changed = mtev_true;
-      node_change = mtev_cluster_node_rebooted;
-    } else if(seq != sender->config_seq) {
-      node_changed = mtev_true;
-      node_change = mtev_cluster_node_changed_seq;
-    } else if(payload_len != sender->payload_length
-        || memcmp(payload, sender->payload, payload_len) != 0) {
-      node_changed = mtev_true;
-      node_change = mtev_cluster_node_changed_payload;
+      node_changes = MTEV_CLUSTER_NODE_REBOOTED;
+    } else {
+      if(seq != sender->config_seq) {
+        node_changed = mtev_true;
+        node_changes = MTEV_CLUSTER_NODE_CHANGED_SEQ;
+      }
+      if(payload_len != sender->payload_length
+          || memcmp(payload, sender->payload, payload_len) != 0) {
+        node_changed = mtev_true;
+        node_changes |= MTEV_CLUSTER_NODE_CHANGED_PAYLOAD;
+      }
     }
 
     if(node_changed) {
       mtev_cluster_store_payload(sender, payload, payload_len, number_of_payloads);
-      mtev_cluster_on_node_changed(cluster, sender, &boot_time, seq, node_change);
+      mtev_cluster_on_node_changed(cluster, sender, &boot_time, seq, node_changes);
     }
     gettimeofday(&sender->last_contact, NULL);
   }

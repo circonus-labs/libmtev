@@ -48,15 +48,16 @@ parse_cli_args(int argc, char * const *argv) {
 }
 
 static mtev_hook_return_t
-on_node_updated(void *closure, mtev_cluster_node_changes node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+on_node_updated(void *closure, mtev_cluster_node_changes node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
     struct timeval old_boot_time) {
   mtev_boolean i_am_oldest = mtev_cluster_am_i_oldest_node(my_cluster);
 
   mtevL(mtev_stderr, "The cluster topology has changed (seq=%"PRId64"): I am oldest node: %d\n",
       updated_node->config_seq, i_am_oldest);
-  if(node_change == mtev_cluster_node_rebooted) {
+  if(node_changes & MTEV_CLUSTER_NODE_REBOOTED) {
     mtevL(mtev_stderr, "Found new node\n");
-  } else  if(node_change == mtev_cluster_node_rebooted) {
+  }
+  if(node_changes & MTEV_CLUSTER_NODE_CHANGED_PAYLOAD) {
     mtevL(mtev_stderr, "Node's payload has changed:\n");
   }
 
