@@ -1159,7 +1159,6 @@ static int on_timeout(eventer_t e, int mask, void *closure,
   cl = cb_ref->timed_out_eventer->closure;
   ci = mtev_lua_get_resume_info(L);
   assert(ci);
-  
 
   // remove the original read event
   eventer_remove_fd(cb_ref->timed_out_eventer->fd);
@@ -1168,7 +1167,7 @@ static int on_timeout(eventer_t e, int mask, void *closure,
   memcpy(*cl->eptr, cb_ref->timed_out_eventer, sizeof(*cb_ref->timed_out_eventer));
   (*cl->eptr)->refcnt = 1;
   mtev_lua_register_event(ci, *cl->eptr);
-  
+
   // return into the original Lua call which spawned this timeout
   lua_pushnil(L);
   ci->lmc->resume(ci, 1);

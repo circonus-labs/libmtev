@@ -56,6 +56,12 @@ typedef struct {
   uint8_t number_of_payloads;
 } mtev_cluster_node_t;
 
+#define MTEV_CLUSTER_NODE_DIED 1 << 0
+#define MTEV_CLUSTER_NODE_REBOOTED 1 << 1
+#define MTEV_CLUSTER_NODE_CHANGED_SEQ 1 << 2
+#define MTEV_CLUSTER_NODE_CHANGED_PAYLOAD 1 << 3
+typedef uint8_t mtev_cluster_node_changes_t;
+
 typedef void (*mtev_cluster_node_update_cb)(mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster);
 
 /*! \fn void mtev_cluster_init()
@@ -131,6 +137,8 @@ API_EXPORT(void) mtev_cluster_set_self(uuid_t);
    Pouplates the passed uuid_t with the local node's UUID.
  */
 API_EXPORT(void) mtev_cluster_get_self(uuid_t);
+
+API_EXPORT(mtev_boolean) mtev_cluster_is_that_me(mtev_cluster_node_t *node);
 
 /* \fn int mtev_cluster_get_nodes(mtev_cluster_t *cluster, mtev_cluster_node_t **nodes, int n, mtev_boolean includeme)
    \brief Reports all nodes in the cluster (possible excluding the local node)
@@ -224,10 +232,10 @@ API_EXPORT(struct timeval)
    \return Returns mtev_true if the cluster is not NULL, mtev_false otherwise
  */
 MTEV_HOOK_PROTO(mtev_cluster_handle_node_update,
-                (mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+                (mtev_cluster_node_changes_t node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
                     struct timeval old_boot_time),
                 void *, closure,
-                (void *closure, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
+                (void *closure, mtev_cluster_node_changes_t node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
                     struct timeval old_boot_time));
 
 
