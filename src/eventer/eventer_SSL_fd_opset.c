@@ -626,7 +626,6 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   layer_str = layer ? layer : DEFAULT_LAYER_STRING;
   ctx_layer = alloca(strlen(layer_str)+1);
   memcpy(ctx_layer, layer_str, strlen(layer_str)+1);
-  layer_str = ctx_layer;
   opts = strchr(ctx_layer,':');
   if(opts) *opts++ = '\0';
   else {

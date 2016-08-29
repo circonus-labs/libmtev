@@ -243,7 +243,6 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
       mtevL(mtev_error, "netheartbeat: malloc(%d) failure\n", len + blocksize * 2);
       goto bail;
     }
-    cipher_buf_len = len + blocksize * 2;
   }
 
   memcpy(cipher_buf, payload, HDRLEN);
