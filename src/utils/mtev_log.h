@@ -127,10 +127,10 @@ API_EXPORT(const char *) mtev_log_stream_get_property(mtev_log_stream_t ls,
 API_EXPORT(void) mtev_log_stream_set_property(mtev_log_stream_t ls,
                                               const char *, const char *);
 API_EXPORT(void) mtev_log_stream_free(mtev_log_stream_t ls);
-API_EXPORT(int) mtev_vlog(mtev_log_stream_t ls, struct timeval *,
+API_EXPORT(int) mtev_vlog(mtev_log_stream_t ls, const struct timeval *,
                           const char *file, int line,
                           const char *format, va_list arg);
-API_EXPORT(int) mtev_log(mtev_log_stream_t ls, struct timeval *,
+API_EXPORT(int) mtev_log(mtev_log_stream_t ls, const struct timeval *,
                          const char *file, int line,
                          const char *format, ...)
 #ifdef __GNUC__
@@ -194,12 +194,12 @@ API_EXPORT(void)
                              if(!a##_log) { b; } } while(0)
 
 MTEV_HOOK_PROTO(mtev_log_line,
-                (mtev_log_stream_t ls, struct timeval *whence,
+                (mtev_log_stream_t ls, const struct timeval *whence,
                  const char *timebuf, int timebuflen,
                  const char *debugbuf, int debugbuflen,
                  const char *buffer, size_t len),
                 void *, closure,
-                (void *closure, mtev_log_stream_t ls, struct timeval *whence,
+                (void *closure, mtev_log_stream_t ls, const struct timeval *whence,
                  const char *timebuf, int timebuflen,
                  const char *debugbuf, int debugbuflen,
                  const char *buffer, size_t len))
