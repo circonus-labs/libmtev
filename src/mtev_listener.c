@@ -93,7 +93,7 @@ mtev_listener_should_skip(const char *address, int port) {
 static int
 mtev_listener_accept_ssl(eventer_t e, int mask,
                          void *closure, struct timeval *tv) {
-  const char *sslerr;
+  const char *sslerr = "no closure";
   int rv;
   listener_closure_t listener_closure = (listener_closure_t)closure;
   acceptor_closure_t *ac = NULL;
@@ -128,9 +128,10 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
   }
   if(errno == EAGAIN) return mask|EVENTER_EXCEPTION;
 
- socketfail:
   sslerr = eventer_ssl_get_peer_error(eventer_get_eventer_ssl_ctx(e));
   if(!sslerr) sslerr = eventer_ssl_get_last_error(eventer_get_eventer_ssl_ctx(e));
+  if(!sslerr) sslerr = strerror(errno);
+ socketfail:
   mtevL(mtev_error, "SSL accept failed: %s\n", sslerr);
     
   if(listener_closure) free(listener_closure);
