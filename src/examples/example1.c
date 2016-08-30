@@ -9,6 +9,7 @@
 #include <mtev_cluster.h>
 #include <mtev_capabilities_listener.h>
 #include <mtev_events_rest.h>
+#include <mtev_stats.h>
 #include <eventer/eventer.h>
 #include <inttypes.h>
 
@@ -116,6 +117,7 @@ child_main() {
   mtev_http_rest_init();
   mtev_capabilities_listener_init();
   mtev_events_rest_init();
+  mtev_stats_rest_init();
   mtev_listener_init(APPNAME);
   init_cluster();
   mtev_dso_init();

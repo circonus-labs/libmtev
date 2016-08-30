@@ -32,7 +32,9 @@
  */
 
 #include "eventer/eventer.h"
+#include "eventer/eventer_impl_private.h"
 #include "mtev_hash.h"
+#include "mtev_stats.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -40,6 +42,9 @@
 eventer_impl_t __eventer;
 mtev_log_stream_t eventer_err;
 mtev_log_stream_t eventer_deb;
+stats_ns_t *eventer_stats_ns;
+stats_handle_t *eventer_callback_latency;
+stats_handle_t *eventer_unnamed_callback_latency;
 static mtev_atomic64_t ealloccnt;
 static mtev_atomic64_t ealloctotal;
 
@@ -111,12 +116,14 @@ int eventer_set_fd_blocking(int fd) {
 struct callback_details {
   char *simple_name;
   void (*functional_name)(char *buf, int buflen, eventer_t e, void *closure);
+  stats_handle_t *latency;
   void *closure;
 };
 static void
 free_callback_details(void *vcd) {
   struct callback_details *cd = (struct callback_details *)vcd;
   if(cd->simple_name) free(cd->simple_name);
+  /* We can't just go and free the stats handle as the metrics system has a ref to it */
   free(vcd);
 }
 
@@ -139,6 +146,8 @@ int eventer_name_callback_ext(const char *name,
   cd->simple_name = strdup(name);
   cd->functional_name = fn;
   cd->closure = cl;
+  cd->latency = stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
+                               cd->simple_name, STATS_TYPE_HISTOGRAM);
   mtev_hash_replace(&__func_to_name, (char *)fptr, sizeof(*fptr), cd,
                     free, free_callback_details);
   return 0;
@@ -154,6 +163,14 @@ static pthread_key_t _tls_funcname_key;
 #define FUNCNAME_SIZE 128
 const char *eventer_name_for_callback(eventer_func_t f) {
   return eventer_name_for_callback_e(f, NULL);
+}
+stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f) {
+  void *vcd;
+  if(mtev_hash_retrieve(&__func_to_name, (char *)&f, sizeof(f), &vcd)) {
+    struct callback_details *cd = vcd;
+    return cd->latency;
+  }
+  return eventer_unnamed_callback_latency;
 }
 const char *eventer_name_for_callback_e(eventer_func_t f, eventer_t e) {
   void *vcd;
@@ -191,8 +208,17 @@ int eventer_choose(const char *name) {
 }
 
 void eventer_init_globals() {
+  eventer_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "eventer");
   mtev_hash_init_locks(&__name_to_func, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init_locks(&__func_to_name, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+  eventer_callback_latency =
+    stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
+                   "_aggregate", STATS_TYPE_HISTOGRAM);
+  eventer_unnamed_callback_latency =
+    stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
+                   "_unnamed", STATS_TYPE_HISTOGRAM);
+  stats_rob_i64(eventer_stats_ns, "events_total", (void *)&ealloctotal);
+  stats_rob_i64(eventer_stats_ns, "events_current", (void *)&ealloccnt);
   eventer_ssl_init_globals();
 }
 

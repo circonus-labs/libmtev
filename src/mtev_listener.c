@@ -517,13 +517,14 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
   acceptor_closure_t *ac = closure;
 
   mtevAssert(ac->rlen >= 0);
-  while(len >= 0 && ac->rlen < sizeof(cmd)) {
+  while(ac->rlen < sizeof(cmd)) {
     len = e->opset->read(e->fd, ((char *)&cmd) + ac->rlen,
                          sizeof(cmd) - ac->rlen, &mask, e);
     if(len == -1 && errno == EAGAIN)
       return EVENTER_READ | EVENTER_EXCEPTION;
 
     if(len > 0) ac->rlen += len;
+    if(len <= 0) break;
   }
   mtevAssert(ac->rlen >= 0 && ac->rlen <= sizeof(cmd));
 

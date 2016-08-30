@@ -225,6 +225,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   const char *cbname;
   struct timeval __now;
   int fd, newmask;
+  u_int64_t start, duration;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
 
   mask = mask & ~(EVENTER_RESERVED);
@@ -260,9 +261,13 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
          fd, mask, cbname?cbname:"???", e->callback);
   mtev_memory_begin();
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
+  start = mtev_get_nanos();
   newmask = e->callback(e, mask, e->closure, &__now);
+  duration = mtev_get_nanos() - start;
   LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
   mtev_memory_end();
+  stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+  stats_set_hist_intscale(eventer_latency_handle_for_callback(e->callback), duration, -9, 1);
 
   if(newmask) {
     if(!pthread_equal(pthread_self(), e->thr_owner)) {

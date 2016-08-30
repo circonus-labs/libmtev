@@ -37,6 +37,7 @@
 #include "mtev_atomic.h"
 #include "mtev_thread.h"
 #include "eventer/eventer.h"
+#include "eventer/eventer_impl_private.h"
 #include "libmtev_dtrace_probes.h"
 #include <errno.h>
 #include <setjmp.h>
@@ -60,6 +61,8 @@ eventer_jobq_finished_job(eventer_jobq_t *jobq, eventer_job_t *job) {
   eventer_hrtime_t wait_time = job->start_hrtime - job->create_hrtime;
   eventer_hrtime_t run_time = job->finish_hrtime - job->start_hrtime;
   mtev_atomic_dec32(&jobq->inflight);
+  stats_set_hist_intscale(jobq->wait_latency, wait_time, -9, 1);
+  stats_set_hist_intscale(jobq->run_latency, run_time, -9, 1);
   if(job->timeout_triggered) mtev_atomic_inc64(&jobq->timeouts);
   for(ntries = 0; ntries < 100; ntries++) {
     uint64_t current_avg_wait_ns = ck_pr_load_64((uint64_t *)&jobq->avg_wait_ns);
@@ -92,8 +95,8 @@ eventer_jobq_handler(int signo)
 }
 
 int
-eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
-                     eventer_jobq_memory_safety_t ms) {
+eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name) {
+  stats_ns_t *jobq_ns;
   pthread_mutexattr_t mutexattr;
 
   if(mtev_atomic_cas32(&threads_jobq_inited, 1, 0) == 0) {
@@ -123,8 +126,6 @@ eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
     }
   }
 
-  memset(jobq, 0, sizeof(*jobq));
-  jobq->mem_safety = ms;
   jobq->queue_name = strdup(queue_name);
   if(pthread_mutexattr_init(&mutexattr) != 0) {
     mtevL(mtev_error, "Cannot initialize lock attributes\n");
@@ -156,13 +157,38 @@ eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
     pthread_mutex_unlock(&all_queues_lock);
     return -1;
   }
+  if(!jobq->isbackq) {
+    jobq_ns = mtev_stats_ns(mtev_stats_ns(eventer_stats_ns, "jobq"), jobq->queue_name);
+    jobq->wait_latency = stats_register(jobq_ns, "wait", STATS_TYPE_HISTOGRAM);
+    jobq->run_latency = stats_register(jobq_ns, "latency", STATS_TYPE_HISTOGRAM);
+    stats_rob_i32(jobq_ns, "concurrency", (void *)&jobq->concurrency);
+    stats_rob_i32(jobq_ns, "desired_concurrency", (void *)&jobq->desired_concurrency);
+    stats_rob_i32(jobq_ns, "backlog", (void *)&jobq->backlog);
+    stats_rob_i64(jobq_ns, "timeouts", (void *)&jobq->timeouts);
+  }
   pthread_mutex_unlock(&all_queues_lock);
   return 0;
 }
 
 int
+eventer_jobq_init_backq(eventer_jobq_t *jobq, const char *queue_name) {
+  memset(jobq, 0, sizeof(*jobq));
+  jobq->mem_safety = EVENTER_JOBQ_MS_NONE;
+  jobq->isbackq = mtev_true;
+  return eventer_jobq_init_internal(jobq, queue_name);
+}
+int
+eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
+                     eventer_jobq_memory_safety_t ms) {
+  memset(jobq, 0, sizeof(*jobq));
+  jobq->mem_safety = ms;
+  return eventer_jobq_init_internal(jobq, queue_name);
+}
+int
 eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name) {
-  return eventer_jobq_init_ms(jobq, queue_name, EVENTER_JOBQ_MS_NONE);
+  memset(jobq, 0, sizeof(*jobq));
+  jobq->mem_safety = EVENTER_JOBQ_MS_NONE;
+  return eventer_jobq_init_internal(jobq, queue_name);
 }
 
 eventer_jobq_t *
@@ -311,13 +337,18 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
          * one's soul out.
          */
         if(my_precious) {
+          u_int64_t start, duration;
           gettimeofday(&job->finish_time, NULL); /* We're done */
           LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)my_precious, (void *)my_precious->callback, NULL,
                                  my_precious->fd, my_precious->mask,
                                  EVENTER_ASYNCH_CLEANUP);
+          start = mtev_get_nanos();
           my_precious->callback(my_precious, EVENTER_ASYNCH_CLEANUP,
                                 my_precious->closure, &job->finish_time);
+          duration = mtev_get_nanos() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)my_precious, (void *)my_precious->callback, NULL, -1);
+          stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+          stats_set_hist_intscale(eventer_latency_handle_for_callback(my_precious->callback), duration, -9, 1);
         }
       }
       jobcopy = malloc(sizeof(*jobcopy));
@@ -348,15 +379,20 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
   while((job = eventer_jobq_dequeue_nowait(jobq)) != NULL) {
     int newmask;
     if(job->fd_event) {
+      u_int64_t start, duration;
       if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_begin();
       LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                              (void *)job->fd_event->callback, NULL,
                              job->fd_event->fd, job->fd_event->mask,
                              job->fd_event->mask);
+      start = mtev_get_nanos();
       newmask = job->fd_event->callback(job->fd_event, job->fd_event->mask,
                                         job->fd_event->closure, now);
+      duration = mtev_get_nanos() - start;
       LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, newmask);
+      stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+      stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
       if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_end();
       if(!newmask) eventer_free(job->fd_event);
       else {
@@ -422,6 +458,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     /* Safely check and handle if we've timed out while in queue */
     pthread_mutex_lock(&job->lock);
     if(job->timeout_triggered) {
+      u_int64_t start, duration;
       struct timeval diff, diff2;
       eventer_hrtime_t udiff2;
       /* This happens if the timeout occurred before we even had the change
@@ -444,10 +481,14 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
                              (void *)job->fd_event->callback, NULL,
                              job->fd_event->fd, job->fd_event->mask,
                              EVENTER_ASYNCH_CLEANUP);
+      start = mtev_get_nanos();
       job->fd_event->callback(job->fd_event, EVENTER_ASYNCH_CLEANUP,
                               job->fd_event->closure, &job->finish_time);
+      duration = mtev_get_nanos() - start;
       LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, -1);
+      stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+      stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
       eventer_jobq_finished_job(jobq, job);
       memcpy(&wakeupcopy, job->fd_event, sizeof(wakeupcopy));
       eventer_jobq_enqueue(eventer_default_backq(job->fd_event), job);
@@ -487,6 +528,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
             pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
           }
           /* run the job */
+          u_int64_t start, duration;
           struct timeval start_time;
           gettimeofday(&start_time, NULL);
           mtevL(eventer_deb, "jobq[%s] -> dispatch BEGIN\n", jobq->queue_name);
@@ -494,10 +536,14 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
                                  (void *)job->fd_event->callback, NULL,
                                  job->fd_event->fd, job->fd_event->mask,
                                  EVENTER_ASYNCH_WORK);
+          start = mtev_get_nanos();
           job->fd_event->callback(job->fd_event, EVENTER_ASYNCH_WORK,
                                   job->fd_event->closure, &start_time);
+          duration = mtev_get_nanos() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                   (void *)job->fd_event->callback, NULL, -1);
+          stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+          stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
           mtevL(eventer_deb, "jobq[%s] -> dispatch END\n", jobq->queue_name);
           if(job->fd_event && job->fd_event->mask & EVENTER_CANCEL)
             pthread_testcancel();
@@ -528,14 +574,19 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
       /* threaded issue, need to recheck. */
       /* coverity[check_after_deref] */
       if(job->fd_event) {
+        u_int64_t start, duration;
         LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                                (void *)job->fd_event->callback, NULL,
                                job->fd_event->fd, job->fd_event->mask,
                                EVENTER_ASYNCH_CLEANUP);
+        start = mtev_get_nanos();
         job->fd_event->callback(job->fd_event, EVENTER_ASYNCH_CLEANUP,
                                 job->fd_event->closure, &job->finish_time);
+        duration = mtev_get_nanos() - start;
         LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                 (void *)job->fd_event->callback, NULL, -1);
+        stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+        stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
       }
     }
     job->finish_hrtime = eventer_gethrtime();

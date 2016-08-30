@@ -255,6 +255,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   ev_lock_state_t lockstate;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
   int added_to_master_fds = 0;
+  u_int64_t start, duration;
 
   mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
@@ -290,9 +291,13 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
          fd, mask, cbname?cbname:"???", e->callback);
   mtev_memory_begin();
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
+  start = mtev_get_nanos();
   newmask = e->callback(e, mask, e->closure, &__now);
+  duration = mtev_get_nanos() - start;
   LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
   mtev_memory_end();
+  stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+  stats_set_hist_intscale(eventer_latency_handle_for_callback(e->callback), duration, -9, 1);
 
   if(newmask) {
     struct epoll_event _ev;
