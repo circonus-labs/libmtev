@@ -356,8 +356,13 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
       if(newmask) eventer_cross_thread_trigger(e, newmask & ~(EVENTER_EXCEPTION));
     }
     else {
-      mtevL(eventer_deb, "trigger complete %d : %x->%x\n", e->fd, oldmask, newmask);
-      alter_kqueue_mask(e, cross_thread ? 0 : oldmask, newmask);
+      if(master_fds[fd].e != e) {
+        e = master_fds[fd].e;
+        mtevL(eventer_deb, "%strigger complete [event switched] %d : %x->%x\n", cross_thread ? "[X]" : "", e->fd, master_fds[fd].e->mask, newmask);
+      } else {
+        mtevL(eventer_deb, "%strigger complete %d : %x->%x\n", cross_thread ? "[X]" : "", e->fd, oldmask, newmask);
+      }
+      alter_kqueue_mask(e, (e->mask == 0 || cross_thread) ? 0 : oldmask, newmask);
       /* Set our mask */
       e->mask = newmask;
     }
