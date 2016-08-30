@@ -65,12 +65,12 @@
 #endif
 
 MTEV_HOOK_IMPL(mtev_log_line,
-               (mtev_log_stream_t ls, struct timeval *whence,
+               (mtev_log_stream_t ls, const struct timeval *whence,
                 const char *timebuf, int timebuflen,
                 const char *debugbuf, int debugbuflen,
                 const char *buffer, size_t len),
                void *, closure,
-               (void *closure, mtev_log_stream_t ls, struct timeval *whence,
+               (void *closure, mtev_log_stream_t ls, const struct timeval *whence,
                 const char *timebuf, int timebuflen,
                 const char *debugbuf, int debugbuflen,
                 const char *buffer, size_t len),
@@ -1507,7 +1507,7 @@ mtev_log_stream_free(mtev_log_stream_t ls) {
 }
 
 static int
-mtev_log_writev(mtev_log_stream_t ls, struct timeval *whence,
+mtev_log_writev(mtev_log_stream_t ls, const struct timeval *whence,
                 const struct iovec *iov, int iovcnt) {
   /* This emulates writev into a buffer for ops that don't support it */
   char stackbuff[4096], *tofree = NULL, *buff = NULL;
@@ -1544,7 +1544,7 @@ mtev_log_writev(mtev_log_stream_t ls, struct timeval *whence,
 
 static int
 mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
-              struct timeval *whence,
+              const struct timeval *whence,
               const char *timebuf, int timebuflen,
               const char *debugbuf, int debugbuflen,
               const char *buffer, size_t len) {
@@ -1604,7 +1604,7 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
   return rv;
 }
 int
-mtev_vlog(mtev_log_stream_t ls, struct timeval *now,
+mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
           const char *file, int line,
           const char *format, va_list arg) {
   int rv = 0, allocd = 0;
@@ -1696,7 +1696,7 @@ mtev_vlog(mtev_log_stream_t ls, struct timeval *now,
 }
 
 int
-mtev_log(mtev_log_stream_t ls, struct timeval *now,
+mtev_log(mtev_log_stream_t ls, const struct timeval *now,
          const char *file, int line, const char *format, ...) {
   int rv;
   va_list arg;
