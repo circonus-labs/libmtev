@@ -224,13 +224,12 @@ mtev_main(const char *appname,
     exit(-1);
   }
 
-  cli_log_switches();
-
   /* Reinitialize the logging system now that we have a config */
   mtev_conf_log_init(appname, drop_to_user, drop_to_group);
   if(debug) {
     mtev_log_stream_set_flags(mtev_debug, mtev_log_stream_get_flags(mtev_debug) | MTEV_LOG_STREAM_ENABLED);
   }
+  cli_log_switches();
 
   snprintf(appscratch, sizeof(appscratch), "/%s/watchdog|/%s/include/watchdog", appname, appname);
   watchdog_conf = mtev_conf_get_section(NULL, appscratch);
