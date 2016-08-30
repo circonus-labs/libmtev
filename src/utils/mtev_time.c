@@ -64,7 +64,7 @@ static struct cclocks coreclocks[NCPUS] = {{PTHREAD_MUTEX_INITIALIZER, NULL, 0.0
 static __thread int current_cpu;
   
 #define unlikely(x) __builtin_expect(!!(x), 0)
-#define NO_TSC unlikely(enable_rdtsc == mtev_false || thread_enable_dtsc == mtev_false || \
+#define NO_TSC unlikely(enable_rdtsc == mtev_false || thread_enable_rdtsc == mtev_false || \
                         coreclocks[current_cpu].rdtsc_function == NULL)
 
 
