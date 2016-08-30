@@ -29,6 +29,7 @@
  */
 
 #include "mtev_stats.h"
+#include "mtev_rest.h"
 
 static stats_recorder_t *global_stats;
 
