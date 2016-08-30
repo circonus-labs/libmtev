@@ -48,6 +48,7 @@
 #undef ENABLE_RDTSC
 #endif
 
+static __thread mtev_boolean thread_enable_rdtsc;
 static mtev_boolean enable_rdtsc = mtev_true;
 
 typedef uint64_t rdtsc_func(void);
@@ -63,7 +64,8 @@ static struct cclocks coreclocks[NCPUS] = {{PTHREAD_MUTEX_INITIALIZER, NULL, 0.0
 static __thread int current_cpu;
   
 #define unlikely(x) __builtin_expect(!!(x), 0)
-#define NO_TSC unlikely(enable_rdtsc == false || coreclocks[current_cpu].rdtsc_function == NULL)
+#define NO_TSC unlikely(enable_rdtsc == mtev_false || thread_enable_dtsc == mtev_false || \
+                        coreclocks[current_cpu].rdtsc_function == NULL)
 
 
 #ifdef ENABLE_RDTSC
@@ -202,6 +204,7 @@ mtev_time_start_tsc(int cpu)
     coreclocks[cpu].rdtsc_function = NULL;
     return;
   }
+  thread_enable_rdtsc = mtev_true;
   coreclocks[current_cpu].rdtsc_function = rdtsc_function;
   mtev_calibrate_rdtsc_ticks();
 #endif
@@ -211,6 +214,7 @@ void
 mtev_time_stop_tsc()
 {
   coreclocks[current_cpu].rdtsc_function = NULL;
+  thread_enable_rdtsc = mtev_false;
 }
 
 u_int64_t
