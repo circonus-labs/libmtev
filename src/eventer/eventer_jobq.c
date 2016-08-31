@@ -58,11 +58,12 @@ pthread_mutex_t all_queues_lock;
 static void
 eventer_jobq_finished_job(eventer_jobq_t *jobq, eventer_job_t *job) {
   int ntries;
-  eventer_hrtime_t wait_time = job->start_hrtime - job->create_hrtime;
-  eventer_hrtime_t run_time = job->finish_hrtime - job->start_hrtime;
+  eventer_hrtime_t wait_time, run_time;
   mtev_atomic_dec32(&jobq->inflight);
-  if(job->create_hrtime > job->start_hrtime) run_time = 0;
-  if(job->start_hrtime > job->finish_hrtime) wait_time = 0;
+  if(job->create_hrtime > job->start_hrtime) wait_time = 0;
+  else wait_time = job->start_hrtime - job->create_hrtime;
+  if(job->start_hrtime > job->finish_hrtime) run_time = 0;
+  else run_time = job->finish_hrtime - job->start_hrtime;
   stats_set_hist_intscale(jobq->wait_latency, wait_time, -9, 1);
   stats_set_hist_intscale(jobq->run_latency, run_time, -9, 1);
   if(job->timeout_triggered) mtev_atomic_inc64(&jobq->timeouts);
