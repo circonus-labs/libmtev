@@ -61,6 +61,8 @@ eventer_jobq_finished_job(eventer_jobq_t *jobq, eventer_job_t *job) {
   eventer_hrtime_t wait_time = job->start_hrtime - job->create_hrtime;
   eventer_hrtime_t run_time = job->finish_hrtime - job->start_hrtime;
   mtev_atomic_dec32(&jobq->inflight);
+  if(job->create_hrtime > job->start_hrtime) run_time = 0;
+  if(job->start_hrtime > job->finish_hrtime) wait_time = 0;
   stats_set_hist_intscale(jobq->wait_latency, wait_time, -9, 1);
   stats_set_hist_intscale(jobq->run_latency, run_time, -9, 1);
   if(job->timeout_triggered) mtev_atomic_inc64(&jobq->timeouts);
@@ -355,7 +357,7 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
       memcpy(jobcopy, job, sizeof(*jobcopy));
       free(job);
       jobcopy->fd_event = my_precious;
-      jobcopy->finish_hrtime = eventer_gethrtime();
+      jobcopy->finish_hrtime = mtev_sys_gethrtime();
       eventer_jobq_maybe_spawn(jobcopy->jobq);
       eventer_jobq_finished_job(jobcopy->jobq, jobcopy);
       memcpy(&wakeupcopy, jobcopy->fd_event, sizeof(wakeupcopy));
@@ -453,7 +455,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     mtev_time_maintain();
 
     /* Mark our commencement */
-    job->start_hrtime = eventer_gethrtime();
+    job->start_hrtime = mtev_sys_gethrtime();
 
     /* Safely check and handle if we've timed out while in queue */
     pthread_mutex_lock(&job->lock);
@@ -467,7 +469,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
       mtevL(eventer_deb, "%p jobq[%s] -> timeout before start [%p]\n",
             pthread_self_ptr(), jobq->queue_name, job);
       gettimeofday(&job->finish_time, NULL); /* We're done */
-      job->finish_hrtime = eventer_gethrtime();
+      job->finish_hrtime = mtev_sys_gethrtime();
       sub_timeval(job->finish_time, job->fd_event->whence, &diff);
       udiff2 = (job->finish_hrtime - job->create_hrtime)/1000;
       diff2.tv_sec = udiff2/1000000;

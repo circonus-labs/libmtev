@@ -436,7 +436,7 @@ void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
   job = calloc(1, sizeof(*job));
   job->fd_event = e;
   job->jobq = q ? q : &__default_jobq;
-  job->create_hrtime = eventer_gethrtime();
+  job->create_hrtime = mtev_sys_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
   if(e->whence.tv_sec) {
