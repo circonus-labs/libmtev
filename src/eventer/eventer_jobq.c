@@ -469,8 +469,9 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
        */
       mtevL(eventer_deb, "%p jobq[%s] -> timeout before start [%p]\n",
             pthread_self_ptr(), jobq->queue_name, job);
-      gettimeofday(&job->finish_time, NULL); /* We're done */
       job->finish_hrtime = mtev_sys_gethrtime();
+      job->finish_time.tv_sec = job->finish_hrtime / 1000000000;
+      job->finish_time.tv_usec = (job->finish_hrtime % 1000000000) / 1000;
       sub_timeval(job->finish_time, job->fd_event->whence, &diff);
       udiff2 = (job->finish_hrtime - job->create_hrtime)/1000;
       diff2.tv_sec = udiff2/1000000;
@@ -592,7 +593,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
         stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
       }
     }
-    job->finish_hrtime = eventer_gethrtime();
+    job->finish_hrtime = mtev_sys_gethrtime();
     eventer_jobq_finished_job(jobq, job);
     memcpy(&wakeupcopy, job->fd_event, sizeof(wakeupcopy));
     eventer_jobq_enqueue(eventer_default_backq(job->fd_event), job);
