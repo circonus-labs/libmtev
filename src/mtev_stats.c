@@ -73,10 +73,38 @@ mtev_rest_stats_handler(mtev_http_rest_closure_t *restc,
   return 0;
 }
 
+int
+mtev_rest_stats_delete(mtev_http_rest_closure_t *restc,
+                        int npats, char **pats) {
+  const char *type;
+  int cleared = 0;
+  char cleared_str[32];
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+
+  type = mtev_http_request_querystring(mtev_http_session_request(ctx), "type");
+  if(!type) type = "histogram";
+  if(!strcmp(type, "histogram")) {
+    cleared = stats_recorder_clear(global_stats, STATS_TYPE_HISTOGRAM);
+  }
+  else if(!strcmp(type, "counter")) {
+    cleared = stats_recorder_clear(global_stats, STATS_TYPE_COUNTER);
+  }
+  snprintf(cleared_str, sizeof(cleared_str), "%d", cleared);
+  mtev_http_response_ok(ctx, "application/json");
+  mtev_http_response_append(ctx, "{ \"stats_cleared\": ", sizeof("{ \"stats_cleared\": "));
+  mtev_http_response_append(ctx, cleared_str, strlen(cleared_str));
+  mtev_http_response_append(ctx, " }\n", 3);
+  mtev_http_response_end(ctx);
+  return 0;
+}
+
 void
 mtev_stats_rest_init() {
   mtev_stats_init();
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/mtev/", "^stats\\.json$", mtev_rest_stats_handler, mtev_http_rest_client_cert_auth
+  ) == 0);
+  mtevAssert(mtev_http_rest_register_auth(
+    "DELETE", "/mtev/", "^stats\\.json$", mtev_rest_stats_delete, mtev_http_rest_client_cert_auth
   ) == 0);
 }
