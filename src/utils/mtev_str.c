@@ -37,6 +37,8 @@
 
 #ifndef HAVE_STRNSTRN
 
+#define GROWTH_FACTOR(a) (((a) + ((a) >> 1))+1)
+
 #define KMPPATSIZE 256
 static void kmp_precompute(const char *pattern, int pattern_len,
                            int *compile_buf) {
@@ -89,12 +91,6 @@ mtev__strndup(const char *src, size_t len) {
 void
 mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str,
     uint str_len) {
-#define GROWTH_FACTOR(a) (((a) + ((a) >> 1))+1)
-  if (buff->buff == NULL) {
-    buff->buff_len = GROWTH_FACTOR(str_len);
-    buff->buff = calloc(1, buff->buff_len);
-    buff->string = buff->buff + buff->buff_len;
-  }
   if (buff->string - buff->buff < str_len) {
     int bytes_stored = buff->buff_len - (buff->string - buff->buff);
     int new_buff_len = GROWTH_FACTOR(buff->buff_len + str_len);
@@ -105,16 +101,25 @@ mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str,
     buff->buff = tmp;
     buff->string = buff->buff + buff->buff_len - bytes_stored;
   }
-#undef GROWTH_FACTOR
 
   buff->string -= str_len;
   memcpy(buff->string, str, str_len);
 }
 
 mtev_prependable_str_buff_t *
-mtev_prepend_str_alloc() {
+mtev_prepend_str_alloc_sized(u_int initial_len) {
   mtev_prependable_str_buff_t* buff = calloc(1, sizeof(mtev_prependable_str_buff_t));
+
+  buff->buff_len = initial_len;
+  buff->buff = calloc(1, buff->buff_len);
+  buff->string = buff->buff + buff->buff_len;
+
   return buff;
+}
+
+mtev_prependable_str_buff_t *
+mtev_prepend_str_alloc() {
+  return mtev_prepend_str_alloc_sized(8);
 }
 
 void
@@ -129,6 +134,54 @@ int
 mtev_prepend_strlen(mtev_prependable_str_buff_t *buff) {
   if(buff != NULL) {
     return buff->buff + buff->buff_len - buff->string;
+  }
+  return 0;
+}
+
+void mtev_append_str_buff(mtev_str_buff_t *buff, const char* str, uint str_len) {
+  if (buff->end - buff->string - buff->buff_len < str_len) {
+    int bytes_stored = buff->end - buff->string;
+    int new_buff_len = GROWTH_FACTOR(buff->buff_len + str_len);
+    char* tmp = calloc(1, new_buff_len);
+    buff->buff_len = new_buff_len;
+    memcpy(tmp, buff->string, bytes_stored);
+    free(buff->string);
+    buff->string = tmp;
+    buff->end = buff->string + bytes_stored;
+  }
+
+  memcpy(buff->end, str, str_len);
+  buff->end += str_len;
+}
+
+mtev_str_buff_t *
+mtev_str_buff_alloc_sized(u_int initial_len) {
+  mtev_str_buff_t* buff = calloc(1, sizeof(mtev_str_buff_t));
+
+  buff->buff_len = initial_len;
+  buff->string = calloc(1, buff->buff_len);
+  buff->end = buff->string;
+
+  return buff;
+}
+
+mtev_str_buff_t *
+mtev_str_buff_alloc() {
+  return mtev_str_buff_alloc_sized(8);
+}
+
+void
+mtev_str_buff_free(mtev_str_buff_t *buff) {
+  if(buff->string) {
+    free(buff->string);
+  }
+  free(buff);
+}
+
+int
+mtev_str_buff_len(mtev_str_buff_t *buff) {
+  if(buff != NULL) {
+    return buff->end - buff->string;
   }
   return 0;
 }
