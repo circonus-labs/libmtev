@@ -66,6 +66,7 @@ API_EXPORT(mtev_str_buff_t *) mtev_str_buff_alloc_sized();
 API_EXPORT(void) mtev_append_str_buff(mtev_str_buff_t *buff, const char* str, uint str_len);
 API_EXPORT(void) mtev_str_buff_free(mtev_str_buff_t *buff);
 API_EXPORT(int) mtev_str_buff_len(mtev_str_buff_t *buff);
+API_EXPORT(char*) mtev_str_buff_to_string(mtev_str_buff_t **buff);
 
 
 #endif

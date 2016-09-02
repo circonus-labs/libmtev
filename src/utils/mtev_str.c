@@ -186,5 +186,14 @@ mtev_str_buff_len(mtev_str_buff_t *buff) {
   return 0;
 }
 
+char*
+mtev_str_buff_to_string(mtev_str_buff_t **buff) {
+  char *string = (*buff)->string;
+  (*buff)->string = NULL;
+  mtev_str_buff_free(*buff);
+  *buff = NULL;
+  return string;
+}
+
 #endif
 
