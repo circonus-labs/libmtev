@@ -14,7 +14,7 @@ int mtev_prepend_strlen(mtev_prependable_str_buff_t *buff);
 describe("alloc_and_free", function()
   it("should alloc and dealloc", function()
     local str = mtev.mtev_prepend_str_alloc()
-    assert.is.equal(nil, str.string, "empty")
+    assert.is.equal(str.buff_len, 8, "default buff len")
     assert.is.equal(0, mtev.mtev_prepend_strlen(str), "empty")
     mtev.mtev_prepend_str_free(str)
   end)
