@@ -87,6 +87,11 @@ mtev_cpuid_feature(int feature)
 
   vendor = mtev_cpu_vendor();
 
+  if (feature == MTEV_CPU_FEATURE_INVARIANT_TSC) {
+    mtev_cpuid(&id, 0x80000007);
+    return (BIT(8) & id.edx) ? mtev_true : mtev_false;
+  }
+
   if (feature == MTEV_CPU_FEATURE_RDTSC) {
     if (vendor != VENDOR_INTEL) {
       return mtev_false;
