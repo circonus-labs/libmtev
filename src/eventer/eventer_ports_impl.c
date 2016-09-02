@@ -327,6 +327,7 @@ static int eventer_ports_impl_loop() {
 
     mtev_time_maintain();
 
+    gettimeofday(&__now, NULL);
     if(compare_timeval(eventer_max_sleeptime, __dyna_sleep) < 0)
       __dyna_sleep = eventer_max_sleeptime;
  
