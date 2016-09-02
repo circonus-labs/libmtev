@@ -38,7 +38,7 @@
  * This will remain active in the thread until you call stop
  */
 API_EXPORT(void)
-  mtev_time_start_tsc(int cpu);
+  mtev_time_start_tsc();
 
 /** 
  * Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)
@@ -59,13 +59,25 @@ API_EXPORT(void)
   mtev_time_toggle_tsc(mtev_boolean enable);
 
 /**
- * safe to call at any time but if you start_tsc, you should call this periodically to recalibrate the clock
+ * will switch on/off the requirement of an invariant tsc.  This must be run before
+ * any call to mtev_time_toggle_tsc() or mtev_time_tsc_start() and is a one time call.
+ *
+ * Defaults to enabled.
  */
 API_EXPORT(void)
+  mtev_time_toggle_require_invariant_tsc(mtev_boolean enable);
+
+/**
+ * safe to call at any time but if you start_tsc, you should never need to call this
+ * as the maintenance system can do it for you.. However, if you find you need to call it
+ * you must be bound to a thread using the mtev_thread APIs and the function will return
+ * whether it was successful in parameterizing the CPU for rdtsc use.
+ */
+API_EXPORT(mtev_boolean)
   mtev_time_maintain(void);
 
 /**
- * same as mtev_gethrtime.  Number of nanoseconds from some arbitrary time in the past
+ * Like mtev_gethrtime... it actually is the implementation of mtev_gethrtime()
  */
 API_EXPORT(u_int64_t)
   mtev_get_nanos(void);
@@ -78,7 +90,8 @@ API_EXPORT(u_int64_t)
   mtev_get_ticks(void);
 
 /** 
- * same as mtev_get_nanos.  Number of nanoseconds from some artibrary time in the past 
+ * same as mtev_get_nanos.  Number of nanoseconds since unix epoch.  Unlike gethrtime()
+ * which is nanoseconds from some arbitrary point in time.
  */
 API_EXPORT(mtev_hrtime_t)
   mtev_gethrtime(void);
@@ -88,5 +101,28 @@ API_EXPORT(mtev_hrtime_t)
  */
 API_EXPORT(mtev_hrtime_t)
   mtev_sys_gethrtime(void);
+
+/**
+ * Exposes a possibly fast-pathed gettimeofday equivalent.
+ * If the fast path is taken, tzp is ignored.
+ */
+API_EXPORT(int)
+  mtev_gettimeofday(struct timeval *t, void *ttp);
+
+typedef struct mtev_time_coreclock_t {
+  double ticks_per_nano;   /* ticks per nano on this cpu core */
+  int64_t skew_ns;         /* How far off system hrtime */
+  uint64_t fast_calls;     /* Number of fast paths taken */
+  uint64_t desyncs;        /* Number of times the CPU has lost sync */
+} mtev_time_coreclock_t;
+
+API_EXPORT(mtev_boolean)
+  mtev_time_coreclock_info(int cpuid, mtev_time_coreclock_t *info);
+
+/**
+ * returns whether mtev is currently operating in fast mode
+ */
+API_EXPORT(mtev_boolean)
+  mtev_time_fast_mode();
 
 #endif

@@ -33,9 +33,13 @@
 #include <mtev_time.h>
 #include <mtev_log.h>
 #include <unistd.h>
+#include <errno.h>
 
 #ifdef __sun
 #include <sys/processor.h>
+#include <sys/priocntl.h>
+#include <sys/rtpriocntl.h>
+#include <sys/fsspriocntl.h>
 #endif
 #if defined(linux) || defined(__linux) || defined(__linux__)
 #ifndef _GNU_SOURCE
@@ -83,18 +87,12 @@ mtev_thread_bind_to_cpu(int cpu)
   }   
 #endif
 
-  /* if we were able to bind, set the clock */
-  if (mtev_thread_is_bound == mtev_true) {
-    mtev_time_start_tsc(cpu);
-  }
-
   return mtev_thread_is_bound;
 }
 
 mtev_boolean
 mtev_thread_unbind_from_cpu(void)
 {
-  mtev_time_stop_tsc();
 #ifdef __sun 
   if (processor_bind(P_LWPID, P_MYID, PBIND_NONE, 0)) {
     mtevL(mtev_error, "Warning: Unbinding thread from cpus failed\n");
@@ -154,6 +152,117 @@ mtev_thread_init()
   long nrcpus = sysconf(_SC_NPROCESSORS_ONLN);
   int cpu = ck_pr_faa_uint(&mtev_current_cpu, 1) % nrcpus;
   mtev_thread_bind_to_cpu(cpu);
+}
+
+mtev_boolean
+mtev_thread_prio(int prio) {
+#ifdef __sun
+  pcinfo_t pcinfo;
+  if (priocntl(P_LWPID, P_MYID, PC_GETXPARMS, NULL,
+         PC_KY_CLNAME, pcinfo.pc_clname, 0) == -1 ||
+         priocntl(0, 0, PC_GETCID, (caddr_t)&pcinfo) == -1) {
+    mtevL(mtev_error, "priocntl(P_LWPID, P_MYID, PC_GETPARMS, ...) -> %s\n",
+          strerror(errno));
+    return mtev_false;
+  }
+  int key_id = 0;
+  if(!strcmp(pcinfo.pc_clname, "FSS")) {
+    fssinfo_t *fssinfo = (fssinfo_t *)pcinfo.pc_clinfo;
+    pri_t maxupri = fssinfo->fss_maxupri;
+    if(prio > maxupri) prio = maxupri;
+    if(prio < -maxupri) prio = -maxupri;
+    key_id = FSS_KY_UPRI;
+  }
+  else if(!strcmp(pcinfo.pc_clname, "RT")) {
+    rtinfo_t *rtinfo = (rtinfo_t *)pcinfo.pc_clinfo;
+    pri_t maxpri = rtinfo->rt_maxpri;
+    if(prio > maxpri) prio = maxpri;
+    if(prio < 0) prio = 0;
+    key_id = RT_KY_PRI;
+  }
+  else {
+    mtevL(mtev_error, "Unknown schedule class: %s\n", pcinfo.pc_clname);
+    return mtev_false;
+  }
+  if(priocntl(P_LWPID, P_MYID, PC_SETXPARMS, pcinfo.pc_clname,
+              key_id, prio, NULL) == -1) {
+      mtevL(mtev_error, "Failed to set %d/%d priority to %s/%d: %s\n",
+            (int)getpid(), (int)_lwp_self(), pcinfo.pc_clname, prio,
+            strerror(errno));
+      return mtev_false;
+    }
+  mtevL(mtev_debug, "%d/%d priority to %s/%d.\n",
+        (int)getpid(), (int)_lwp_self(), pcinfo.pc_clname, prio);
+  return mtev_true;
+#elif defined(linux) || defined(__linux) || defined(__linux__)
+  int err, sched;
+  struct sched_param sp;
+  if((err = pthread_getschedparam(pthread_self(), &sched, &sp)) != 0) {
+    mtevL(mtev_error, "mtev_thread_prio cannot get sched params: %s\n", strerror(err));
+    return false;
+  }
+  sp.sched_priority = prio;
+  int maxprio = sched_get_priority_max(sched);
+  int minprio = sched_get_priority_min(sched);
+  if(sp.sched_priority > maxprio) sp.sched_priority = maxprio;
+  else if(sp.sched_priority < minprio) sp.sched_priority = minprio;
+  if((err = pthread_setschedparam(pthread_self(), sched, &sp)) != 0) {
+    mtevL(mtev_error, "mtev_thread_prio(%d / %d): %d/%s\n", prio, sp.sched_priority, err, strerror(err));
+    return mtev_false;
+  }
+  mtevL(mtev_debug, "%d/%d priority to %d/%d.\n",
+        (int)getpid(), (int)gettid(), sched, sp.sched_priority);
+  return mtev_true;
+#else
+  if(pthread_setschedprio(pthread_self(), prio) == 0) return mtev_true;
+  mtevL(mtev_error, "mtev_thread_prio(%d): %d/%s\n", prio, errno, strerror(errno));
+  return mtev_false;
+#endif
+}
+
+mtev_boolean
+mtev_thread_realtime(uint64_t qns) {
+#ifdef __sun
+  pcinfo_t pcinfo;
+  pcparms_t pcparms;
+  memcpy(pcinfo.pc_clname, "RT", 3);
+  if (priocntl((idtype_t) 0, (id_t) 0, PC_GETCID, (caddr_t)&pcinfo) == -1) {
+    mtevL(mtev_stderr, "No realtime scheduling class available.\n");
+    return mtev_false;
+  }
+  pcparms.pc_cid = pcinfo.pc_cid;
+  ((rtparms_t *)pcparms.pc_clparms)->rt_pri = 59;
+  if(qns == UINT64_MAX) {
+    ((rtparms_t *)pcparms.pc_clparms)->rt_tqnsecs = RT_TQINF;
+  } else if(qns == 0) {
+    ((rtparms_t *)pcparms.pc_clparms)->rt_tqnsecs = RT_TQDEF;
+  } else {
+    ((rtparms_t *)pcparms.pc_clparms)->rt_tqnsecs = qns % 1000000000;
+    ((rtparms_t *)pcparms.pc_clparms)->rt_tqsecs = qns / 1000000000;
+  }
+  if (priocntl(P_LWPID, P_MYID, PC_SETPARMS, (caddr_t)&pcparms) == -1) {
+    mtevL(mtev_error, "Failed changing thread %d/%d to %s scheduling class: %s.\n",
+          (int)getpid(), (int)_lwp_self(), pcinfo.pc_clname, strerror(errno));
+    return mtev_false;
+  }
+  mtevL(mtev_debug, "%d/%d -> %s scheduling class\n",
+        (int)getpid(), (int)_lwp_self(), pcinfo.pc_clname);
+  return mtev_true;
+#elif defined(linux) || defined(__linux) || defined(__linux__)
+  int err;
+  struct sched_param sp;
+  sp.sched_priority = sched_get_priority_max(SCHED_RR);
+  if((err = pthread_setschedparam(pthread_self(), SCHED_RR, &sp)) != 0) {
+    mtevL(mtev_error, "Failed changing thread %d/%d to %s scheduling class: %d/%s.\n",
+          (int)getpid(), (int)gettid(), "SCHED_RR", err, strerror(err));
+    return mtev_false;
+  }
+  mtevL(mtev_debug, "%d/%d -> %s scheduling class\n",
+        (int)getpid(), (int)gettid(), "SCHED_RR");
+  return mtev_true;
+#else
+  return mtev_false;
+#endif
 }
 
 void

@@ -37,6 +37,7 @@
 #include "eventer/eventer_jobq.h"
 #include "mtev_log.h"
 #include "mtev_hash.h"
+#include "mtev_time.h"
 #include "mtev_listener.h"
 #include "mtev_rest.h"
 #include "mtev_console.h"
@@ -48,6 +49,7 @@
 #include <pcre.h>
 #include <errno.h>
 #include <sys/utsname.h>
+#include <inttypes.h>
 
 int cmd_info_comparek(const void *akv, const void *bv) {
   char *ak = (char *)akv;
@@ -141,6 +143,39 @@ mtev_console_eventer_memory(mtev_console_closure_t ncct, int argc, char **argv,
   return 0;
 }
 
+static int
+mtev_console_coreclocks(mtev_console_closure_t ncct, int argc, char **argv,
+                        mtev_console_state_t *dstate, void *unused) {
+  int i = 0;
+  mtev_time_coreclock_t info;
+  mtev_boolean brief = mtev_true;
+  if(argc == 1 && !strcmp(argv[0], "full")) brief = mtev_false;
+
+  nc_printf(ncct, "   CPU  |  ticks/ns |             skew |       fast calls |      desyncs |\n");
+  nc_printf(ncct, "--------+-----------+------------------+------------------+--------------+\n");
+  while(mtev_time_coreclock_info(i++, &info)) {
+    if(info.skew_ns == 0 && info.ticks_per_nano == 0 &&
+       info.fast_calls == 0 && info.desyncs == 0 && brief) continue;
+    nc_printf(ncct, "%7d | %.7f | %14" PRId64 "ns | %16" PRIu64 " | %12" PRIu64 " |\n",
+              (i-1), info.ticks_per_nano, info.skew_ns, info.fast_calls, info.desyncs);
+  }
+  return 0;
+}
+
+static int
+mtev_console_time_status(mtev_console_closure_t ncct, int argc, char **argv,
+                         mtev_console_state_t *dstate, void *onoff) {
+  nc_printf(ncct, "rdtsc is current %s\n", mtev_time_fast_mode() ? "active" : "inactive");
+  return 0;
+}
+
+static int
+mtev_console_coreclocks_toggle(mtev_console_closure_t ncct, int argc, char **argv,
+                               mtev_console_state_t *dstate, void *onoff) {
+  mtev_time_toggle_tsc(onoff != NULL);
+  return 0;
+}
+
 cmd_info_t console_command_help = {
   "help", mtev_console_help, mtev_console_opt_delegate, NULL, NULL
 };
@@ -167,6 +202,18 @@ cmd_info_t console_command_eventer_jobq = {
 };
 cmd_info_t console_command_eventer_memory = {
   "memory", mtev_console_eventer_memory, NULL, NULL, NULL
+};
+cmd_info_t console_command_coreclocks = {
+  "coreclocks", mtev_console_coreclocks, NULL, NULL, NULL
+};
+cmd_info_t console_command_rdtsc_status = {
+  "status", mtev_console_time_status, NULL, NULL, (void *)1
+};
+cmd_info_t console_command_rdtsc_enable = {
+  "enable", mtev_console_coreclocks_toggle, NULL, NULL, (void *)1
+};
+cmd_info_t console_command_rdtsc_disable = {
+  "disable", mtev_console_coreclocks_toggle, NULL, NULL, NULL
 };
 
 static int
@@ -632,7 +679,8 @@ mtev_console_state_t *
 mtev_console_state_initial() {
   static mtev_console_state_t *_top_level_state = NULL;
   if(!_top_level_state) {
-    static mtev_console_state_t *no_state, *show_state, *evdeb;
+    static mtev_console_state_t *no_state, *show_state, *evdeb, *mtevdeb,
+                                *mtevst, *rdtsc;
     _top_level_state = mtev_console_state_alloc();
     mtev_console_state_add_cmd(_top_level_state, &console_command_exit);
     show_state = mtev_console_mksubdelegate(_top_level_state, "show");
@@ -654,6 +702,18 @@ mtev_console_state_initial() {
     mtev_console_state_add_cmd(evdeb, &console_command_eventer_sockets);
     mtev_console_state_add_cmd(evdeb, &console_command_eventer_jobq);
     mtev_console_state_add_cmd(evdeb, &console_command_eventer_memory);
+
+    mtevdeb = mtev_console_mksubdelegate(
+              mtev_console_mksubdelegate(show_state,
+                                         "mtev"),
+                                       "debug");
+    mtev_console_state_add_cmd(mtevdeb, &console_command_coreclocks);
+
+    mtevst = mtev_console_mksubdelegate(_top_level_state, "mtev");
+    rdtsc = mtev_console_mksubdelegate(mtevst, "rdtsc");
+    mtev_console_state_add_cmd(rdtsc, &console_command_rdtsc_status);
+    mtev_console_state_add_cmd(rdtsc, &console_command_rdtsc_enable);
+    mtev_console_state_add_cmd(rdtsc, &console_command_rdtsc_disable);
   }
   return _top_level_state;
 }

@@ -191,6 +191,11 @@ mtev_main(const char *appname,
 
   mtev_init_globals();
 
+  char *require_invariant_tsc = getenv("MTEV_RDTSC_REQUIRE_INVARIANT");
+  if (require_invariant_tsc && strcmp(require_invariant_tsc, "0") == 0) {
+    mtev_time_toggle_require_invariant_tsc(mtev_false);
+  }
+
   char *disable_rdtsc = getenv("MTEV_RDTSC_DISABLE");
   if (disable_rdtsc && strcmp(disable_rdtsc, "1") == 0) {
     mtev_time_toggle_tsc(mtev_false);
@@ -200,6 +205,8 @@ mtev_main(const char *appname,
   if (disable_binding && strcmp(disable_binding, "1") == 0) {
     mtev_thread_disable_binding();
   }
+
+  mtev_time_start_tsc();
 
   /* First initialize logging, so we can log errors */
   mtev_log_init(debug);

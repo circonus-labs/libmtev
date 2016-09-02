@@ -29,11 +29,14 @@
  */
 
 #include <ck_pr.h>
+#include <ck_spinlock.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include "mtev_defines.h"
 #include "mtev_time.h"
 #include "mtev_cpuid.h"
@@ -48,60 +51,151 @@
 #undef ENABLE_RDTSC
 #endif
 
-static __thread mtev_boolean thread_enable_rdtsc;
-static mtev_boolean enable_rdtsc = mtev_true;
+typedef uint64_t rdtsc_func(int *);
 
-typedef uint64_t rdtsc_func(void);
+#ifdef ENABLE_RDTSC
+static pthread_mutex_t maintenance_thread_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_t maintenance_thread;
+static ck_spinlock_t hrtime_epoch_skew_lock;
+static uint64_t hrtime_epoch_skew_last_hrtime;
+static uint64_t hrtime_epoch_skew;
+#endif
 
-#define NCPUS 128
+static mtev_boolean maintenance_started;
+static mtev_boolean ready_rdtsc;
+static mtev_boolean require_invariant_tsc = mtev_true;
+static __thread mtev_boolean thread_disable_rdtsc;
+static volatile mtev_boolean enable_rdtsc = mtev_true;
+static rdtsc_func *global_rdtsc_function = NULL;
+
+
+/* Prevent recalibrations faster than 1s */
+#define RECALIBRATE_MIN_NANOS 1e+9
+/* Target time to cycle through all CPUs: 5s */
+#define FULL_RECALIBRATE_CYCLE_NANOS 5e+9
+/* An individual CPU will "desync" if not successfully calibrated in 15s */
+#define DELINQUENT_NS 15e+9
+/* Of our samples, none may be further from the average than 100ns */
+#define MAX_NS_SKEW_SKEW 100
+
+#define TICKS_PER_NANO(cpuid) ck_pr_load_double(&coreclocks[cpuid].calc.ticks_per_nano)
+
+#define NCPUS 256
+
+/* This is 16 bytes packed as we need to set and load them as one */
+struct cclock_scale {
+  double ticks_per_nano;          /* scale */
+  uint64_t skew;                  /* hrtime skew in ns (actually signed) */
+};
 struct cclocks {
-  pthread_mutex_t update_lock;
-  rdtsc_func *rdtsc_function;
-  double ticks_per_nano;
-  uint64_t last_ticks;
-} CK_CC_CACHELINE;
-static struct cclocks coreclocks[NCPUS] = {{PTHREAD_MUTEX_INITIALIZER, NULL, 0.0, 0}};
-static __thread int current_cpu;
-  
-#define unlikely(x) __builtin_expect(!!(x), 0)
-#define NO_TSC unlikely(enable_rdtsc == mtev_false || thread_enable_rdtsc == mtev_false || \
-                        coreclocks[current_cpu].rdtsc_function == NULL)
+  struct cclock_scale calc;
 
+  pthread_mutex_t update_lock;
+  uint64_t last_ticks;            /* last ticks of calibration attempt */
+  uint64_t last_sync;             /* last system hrtime of calibration success */
+
+  /* last coterminus measurement... for longer, more acurate tps calc */
+  uint64_t mark_ticks;
+  mtev_hrtime_t mark_time;
+
+  /* counts */
+  uint64_t fast;
+  mtev_atomic64_t desyncs;
+} CK_CC_CACHELINE;
+static struct cclocks coreclocks[NCPUS] = {{{0.0,0}, PTHREAD_MUTEX_INITIALIZER, 0, 0, 0}};
+
+static void
+mtev_time_reset_scale() {
+  for(int i=0; i<NCPUS; i++) {
+    ck_pr_store_64(&coreclocks[i].calc.skew, 0);
+    ck_pr_store_double(&coreclocks[i].calc.ticks_per_nano, 0.0);
+  }
+}
+
+mtev_boolean
+mtev_time_coreclock_info(int cpuid, mtev_time_coreclock_t *info) {
+  if(cpuid < 0 || cpuid >= NCPUS) return mtev_false;
+  if(info) {
+    struct cclock_scale cs;
+#ifdef CK_F_PR_LOAD_64_2
+    ck_pr_load_64_2((uint64_t *)&coreclocks[cpuid].calc, (uint64_t *)&cs);
+#else
+    cs.skew = ck_pr_load_64(&coreclocks[cpuid].calc.skew);
+    cs.ticks_per_nano = TICKS_PER_NANO(cpuid);
+#endif
+    int64_t *skewptr = (int64_t *)&cs.skew;
+    info->ticks_per_nano = cs.ticks_per_nano;
+    info->skew_ns = *skewptr;
+    info->fast_calls = coreclocks[cpuid].fast;
+    info->desyncs = coreclocks[cpuid].desyncs;
+  }
+  return mtev_true;
+}
+
+#define unlikely(x) __builtin_expect(!!(x), 0)
+#define NO_TSC unlikely(ready_rdtsc == mtev_false || thread_disable_rdtsc == mtev_true)
 
 #ifdef ENABLE_RDTSC
 static inline uint64_t
-mtev_rdtsc(void)
+mtev_rdtsc(int *cpuid)
 {
-  uint32_t eax = 0, edx;
+  uint32_t eax = 0, ebx, edx;
 
-  __asm__ __volatile__("xorl %%eax, %%eax;"
-                       "cpuid;"
-                       "rdtsc;"
-                         : "+a" (eax), "=d" (edx)
-                         :
-                         : "%ecx", "%ebx", "memory");
+  if(cpuid) {
+    __asm__ __volatile__("movl $0x01, %%eax;"
+                         "cpuid;"
+                         "shr $24, %%ebx;"
+                           : "=b" (ebx)
+                           :
+                           : "%ecx", "%edx", "memory");
+    __asm__ __volatile__("rdtsc;"
+                           : "+a" (eax), "=d" (edx)
+                           :
+                           : "%ebx", "%ecx", "memory");
+    *cpuid = ebx;
+  } else {
+    __asm__ __volatile__("mfence;"
+                         "rdtsc;"
+                           : "+a" (eax), "=d" (edx)
+                           :
+                           : "%ebx", "%ecx", "memory");
+  }
 
   return (((uint64_t)edx << 32) | eax);
 }
 
 static inline uint64_t
-mtev_rdtscp(void)
+mtev_rdtscp(int *cpuid)
 {
-  uint32_t eax = 0, edx;
+  uint32_t eax = 0, ecx, edx;
 
   __asm__ __volatile__("rdtscp"
-                       : "+a" (eax), "=d" (edx)
+                       : "+a" (eax), "=c" (ecx), "=d" (edx)
                        :
-                       : "%ecx", "memory");
+                       : "%ebx", "memory");
 
+  if(cpuid) *cpuid = ecx;
   return (((uint64_t)edx << 32) | eax);
 }
 
 static inline uint64_t
-ticks_to_nanos(const uint64_t ticks)
+ticks_to_nanos(int cpuid, const uint64_t ticks)
 {
-  return (uint64_t)llround((double) ticks / ck_pr_load_double(&coreclocks[current_cpu].ticks_per_nano));
-}  
+  return (uint64_t)llround((double) ticks / TICKS_PER_NANO(cpuid));
+}
+static inline uint64_t
+ticks_to_nanos_skewed(int cpuid, const uint64_t ticks)
+{
+  struct cclock_scale cs;
+#ifdef CK_F_PR_LOAD_64_2
+  ck_pr_load_64_2((uint64_t *)&coreclocks[cpuid].calc, (uint64_t *)&cs);
+#else
+  cs.skew = ck_pr_load_64(&coreclocks[cpuid].calc.skew);
+  cs.ticks_per_nano = TICKS_PER_NANO(cpuid);
+#endif
+  int64_t *skewptr = (int64_t *)&cs.skew;
+  return (uint64_t)(llround((double) ticks / cs.ticks_per_nano) + *skewptr);
+}
 #endif
 
 #if defined(linux) || defined(__linux) || defined(__linux__)
@@ -132,106 +226,324 @@ mtev_gethrtime_fallback() {
 static inline mtev_hrtime_t 
 mtev_gethrtime_fallback() {
     return (mtev_hrtime_t)gethrtime();
-  }
+}
 #endif
 
+int mtev_gettimeofday(struct timeval *t, void *ttp) {
 #ifdef ENABLE_RDTSC
+  if(hrtime_epoch_skew) {
+    mtev_hrtime_t hrnow = mtev_gethrtime();
+    if(hrnow - hrtime_epoch_skew_last_hrtime < DELINQUENT_NS) {
+      hrnow += hrtime_epoch_skew;
+      t->tv_sec = hrnow / 1000000000;
+      t->tv_usec = (hrnow / 1000) % 1000000;
+      return 0;
+    }
+    /* Save everyone else the effort */
+    ck_pr_store_64(&hrtime_epoch_skew, 0);
+  }
+#endif
+  return gettimeofday(t, ttp);
+}
+
+#ifdef ENABLE_RDTSC
+static double
+mtev_time_adjust_tps(int cpuid) {
+  int ncpuid;
+  uint64_t mark_ticks = coreclocks[cpuid].mark_ticks;
+  uint64_t mark_time = coreclocks[cpuid].mark_time;
+  uint64_t new_ticks = global_rdtsc_function(&ncpuid);
+  if(ncpuid == cpuid) {
+    coreclocks[cpuid].mark_ticks = new_ticks;
+    coreclocks[cpuid].mark_time = mtev_gethrtime_fallback();
+    if(mark_time) {
+      /* We have a span */
+      uint64_t elapsed_ticks = coreclocks[cpuid].mark_ticks - mark_ticks;
+      mtev_hrtime_t elapsed_ns = coreclocks[cpuid].mark_time - mark_time;
+      return (double)elapsed_ticks / (double)elapsed_ns;
+    }
+  }
+  return 0.0;
+}
+
+static int
+int64_t_cmp(const void *av, const void *bv) {
+  const int64_t *a = av;
+  const int64_t *b = bv;
+  if(*a < *b) return -1;
+  if(*a == *b) return 0;
+  return 1;
+}
 static mtev_boolean 
-mtev_calibrate_rdtsc_ticks() 
+mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
 {
-  if (NO_TSC) {
-    return mtev_false;
+  if (!enable_rdtsc) return mtev_false;
+
+  mtevAssert(ticks);
+  int ncpuid;
+  uint64_t h2;
+
+  mtevL(mtev_debug, "mtev_calibrate_rdtsc_ticks(CPU:%d, ticks:%lu)\n", cpuid, ticks);
+  coreclocks[cpuid].last_ticks = ticks;
+
+  double avg_ticks = mtev_time_adjust_tps(cpuid);
+  int64_t skew = 0, avg_skew, min_skew = INT64_MAX, max_skew = INT64_MIN;
+  if(avg_ticks != 0.0) {
+    /* Detect skew from hrtime */
+    int i;
+#define CALIBRATION_ITERS 6
+    int64_t this_skew[CALIBRATION_ITERS];
+    
+    for(i=0; i<CALIBRATION_ITERS; i++) {
+      uint64_t h1 = mtev_gethrtime_fallback();
+      uint64_t start_ticks = global_rdtsc_function(&ncpuid);
+      h2 = mtev_gethrtime_fallback();
+      mtevAssert(cpuid == ncpuid);
+      /* no TICKS_TO_NANOS macro as we need to use the new avg_ticks */
+      uint64_t start_nanos = (uint64_t)llround((double) start_ticks / avg_ticks);
+      uint64_t start_ts = h1/2 + h2/2;
+      if(start_ts > start_nanos) this_skew[i] = (start_ts - start_nanos);
+      else this_skew[i] = 0 - (start_nanos - start_ts);
+    }
+    qsort(this_skew, CALIBRATION_ITERS, sizeof(this_skew[0]), int64_t_cmp);
+
+    /* We want to trim log2 sample off (half off each side) */
+    int trim_cnt = 0;
+    for(i=CALIBRATION_ITERS; i>1; i >>= 1) trim_cnt++;
+    trim_cnt /= 2;
+    for(skew=0, i=trim_cnt; i<CALIBRATION_ITERS - trim_cnt; i++) skew += this_skew[i];
+    skew /= (CALIBRATION_ITERS - 2 * trim_cnt);
+    min_skew = this_skew[trim_cnt];
+    max_skew = this_skew[CALIBRATION_ITERS-trim_cnt-1];
+    avg_skew = skew;
+    if(skew == 0) skew = 1; /* This way we know it is initialized */
+  
+    mtevL(mtev_debug, "CPU:%d [%ld (%ld,%ld)] tps:%lf\n",
+          cpuid, avg_skew, min_skew - avg_skew, max_skew - avg_skew, avg_ticks);
+    if(avg_skew-min_skew > MAX_NS_SKEW_SKEW) skew = 0;
+    if(max_skew-avg_skew > MAX_NS_SKEW_SKEW) skew = 0;
+    if(skew != 0) {
+#if defined(CK_F_PR_LOAD_64_2) && defined(CK_F_PR_CAS_64_2)
+      struct cclock_scale newcs;
+      uint64_t *hackref = (uint64_t *)&coreclocks[cpuid].calc, prev[2];
+      newcs.ticks_per_nano = avg_ticks;
+      newcs.skew = *((uint64_t *)&skew);
+      mtevAssert(sizeof(newcs) == 16);
+      do {
+        ck_pr_load_64_2(hackref, prev);
+      } while(!ck_pr_cas_64_2(hackref, prev, (uint64_t *)&newcs));
+      mtevL(mtev_debug, "%lf ticks/nano 64_2 on CPU:%d [skew: %" PRId64 "]\n",
+            TICKS_PER_NANO(cpuid), cpuid, *(int64_t *)&coreclocks[cpuid].calc.skew);
+#else
+      ck_pr_store_double(&coreclocks[cpuid].calc.ticks_per_nano, avg_ticks);
+      ck_pr_store_64(&coreclocks[cpuid].calc.skew, *((uint64_t *)&skew));
+      mtevL(mtev_debug, "%lf ticks/nano 64x2 on CPU:%d [skew: %" PRId64 "]\n",
+            TICKS_PER_NANO(cpuid), cpuid, skew);
+#endif
+      coreclocks[cpuid].last_sync = h2;
+    }
+    else {
+      if(h2 - coreclocks[cpuid].last_sync > DELINQUENT_NS) {
+        if(ck_pr_load_64(&coreclocks[cpuid].calc.skew) != 0) {
+          mtev_atomic_inc64(&coreclocks[cpuid].desyncs);
+          ck_pr_store_64(&coreclocks[cpuid].calc.skew, 0);
+        }
+        mtevL(mtev_debug, "CPU:%d desync! [%" PRId64 ",%" PRId64 "]\n",
+              cpuid, min_skew - avg_skew, max_skew - avg_skew);
+      }
+        mtevL(mtev_debug, "CPU:%d failed sync [%" PRId64 ",%" PRId64 "]\n",
+              cpuid, min_skew - avg_skew, max_skew - avg_skew);
+    }
   }
 
-  uint64_t start_ticks, end_ticks, start_ts, end_ts;
-  int j = 0;
-  rdtsc_func *f = coreclocks[current_cpu].rdtsc_function;
-
-  /* 
-   * we are pinned to a core here, so sleep for short periods and measure the ticks per nano second
-   */
-  double total_ticks = 0.0, avg_ticks = 0.0;
-  for (int i = 0; i < 100; i++) {
-    start_ticks = f();
-    start_ts = mtev_gethrtime_fallback();
-    usleep(10);
-    end_ts = mtev_gethrtime_fallback();
-    end_ticks = f();
-
-    /* toss out clock weirdnesses */
-    if (start_ticks > end_ticks) {
-      continue;
+  /* calibrate the hrtime-wallclock skew */
+  if(ck_spinlock_trylock(&hrtime_epoch_skew_lock)) {
+    mtev_hrtime_t now = mtev_gethrtime_fallback();
+    if(now - hrtime_epoch_skew_last_hrtime > RECALIBRATE_MIN_NANOS) {
+      int i;
+      int64_t skew = 0, this_skew;
+      hrtime_epoch_skew_last_hrtime = now;
+      for(i=0;i<4;i++) {
+        mtev_hrtime_t t_g;
+        struct timeval g1, g2, diff;
+        gettimeofday(&g1, NULL);
+        mtev_hrtime_t t_h = mtev_gethrtime_fallback();
+        gettimeofday(&g2, NULL);
+        sub_timeval(g2, g1, &diff);
+        add_timeval(g1, diff, &g1);
+        t_g = (mtev_hrtime_t)g1.tv_sec * 1000000000UL + (mtev_hrtime_t)g1.tv_usec * 1000UL;
+        if(t_g > t_h) this_skew = (t_g - t_h);
+        else this_skew = 0 - (t_h - t_g);
+        skew += this_skew;
+      }
+      skew /= i;
+      if(skew == 0) skew = 1;
+      ck_pr_store_64(&hrtime_epoch_skew, (uint64_t)skew);
     }
-    if (start_ts > end_ts) {
-      continue;
-    }
-    total_ticks += ((double) (end_ticks - start_ticks) - avg_ticks) / (end_ts - start_ts);
-    j++;
+    ck_spinlock_unlock(&hrtime_epoch_skew_lock);
   }
-  mtevAssert(j > 0);
-  avg_ticks = total_ticks / (double)j;
-  ck_pr_store_double(&coreclocks[current_cpu].ticks_per_nano, avg_ticks);
-
-  mtevL(mtev_debug, "%lf ticks/nano on CPU:%d\n", coreclocks[current_cpu].ticks_per_nano, current_cpu);
-
   return true;
-}  
+}
 #endif
 
 void
 mtev_time_toggle_tsc(mtev_boolean enable) 
 {
   enable_rdtsc = enable;
+  if(enable_rdtsc) mtev_time_start_tsc();
+  else mtev_time_reset_scale();
 }
 
+void
+mtev_time_toggle_require_invariant_tsc(mtev_boolean enable) 
+{
+  require_invariant_tsc = enable;
+}
+
+#ifdef ENABLE_RDTSC
+static void *
+mtev_time_tsc_maintenance(void *unused) {
+  int delay_us = 0;
+  (void)unused;
+  long nrcpus = sysconf(_SC_NPROCESSORS_ONLN);
+  mtev_thread_bind_to_cpu(0);
+  if(!mtev_thread_is_bound_to_cpu()) {
+    mtevL(mtev_error, "No cpu:thread binding support, using slower timings.\n");
+    maintenance_started = mtev_false;
+    mtev_time_reset_scale();
+    return NULL;
+  }
+
+  if(!mtev_thread_realtime(100000)) /* 100us */
+    mtevL(mtev_debug, "Time maintenance not real-time!\n");
+  if(!mtev_thread_prio(INT_MAX))
+    mtevL(mtev_debug, "Time maintenance not high priority!.\n");
+
+  mtevL(mtev_debug, "mtev_time_tsc_maintenance thread started.\n");
+
+  uint64_t bits_ready[NCPUS/64] = { 0 };
+  uint64_t bits_needed[NCPUS/64] = { 0 };
+  for(int i=0;i<nrcpus;i++) {
+    int cpuid;
+    mtev_thread_bind_to_cpu(i);
+    global_rdtsc_function(&cpuid);
+    /* Mark all the CPUs as our rdtsc identifies them */
+    bits_needed[cpuid/64] |= (1UL << (cpuid%64));
+  }
+
+  while(1) {
+    if(enable_rdtsc) {
+      for(int i=0; i<nrcpus; i++) {
+        mtev_boolean is_ready = mtev_true;
+
+        mtev_thread_bind_to_cpu(i);
+        mtev_boolean working = mtev_time_maintain();
+        if(working) bits_ready[i/64] |= (1UL << (i%64));
+        else        bits_ready[i/64] &= ~(1UL << (i%64));
+
+        for(int j=0; j<(NCPUS/64); j++)
+          if(bits_ready[j] != bits_needed[j]) is_ready = mtev_false;
+        if(ready_rdtsc != is_ready) {
+          mtevL(mtev_notice, "mtev_time -> fast mode %s\n", is_ready ? "enabled" : "disabled");
+          ready_rdtsc = is_ready;
+        }
+        if(delay_us > 0) usleep(delay_us);
+      }
+      if(delay_us <= 0) {
+        usleep(5000000); /* 5 seconds */
+      }
+      delay_us = FULL_RECALIBRATE_CYCLE_NANOS / 1000;
+      delay_us /= nrcpus;
+    } else {
+      mtev_time_reset_scale();
+      usleep(5000000);
+    }
+  }
+  return NULL;
+}
+#endif
+
 void  
-mtev_time_start_tsc(int cpu)
+mtev_time_start_tsc()
 {
 #ifdef ENABLE_RDTSC
-  current_cpu = cpu;
-  rdtsc_func *rdtsc_function = NULL;
-  if (mtev_cpuid_feature(MTEV_CPU_FEATURE_RDTSCP) == mtev_true) {
-    mtevL(mtev_debug, "Using rdtscp for clock\n");
-    rdtsc_function = mtev_rdtscp;
+  long nrcpus = sysconf(_SC_NPROCESSORS_ONLN);
+  if(nrcpus > NCPUS) {
+    mtevL(mtev_error, "mtev_time_start_tsc failed, too many CPUs: %d > %d\n",
+          (int)nrcpus, NCPUS);
+    enable_rdtsc = mtev_false;
   }
-  else if (mtev_cpuid_feature(MTEV_CPU_FEATURE_RDTSC) == mtev_true)  {
-    mtevL(mtev_debug, "Using rdtsc for clock\n");
-    rdtsc_function = mtev_rdtsc;
-  }
-  else {
-    mtevL(mtev_debug, "CPU is wrong vendor or missing feature.  Cannot use TSC clock.\n");
-    rdtsc_function = NULL;
-    coreclocks[cpu].rdtsc_function = NULL;
+  if(!enable_rdtsc) {
+    mtevL(mtev_debug, "mtev_time_start_tsc() -> aborted, rdtsc disabled.\n");
     return;
   }
-  thread_enable_rdtsc = mtev_true;
-  coreclocks[current_cpu].rdtsc_function = rdtsc_function;
-  mtev_calibrate_rdtsc_ticks();
+  if(pthread_mutex_lock(&maintenance_thread_lock) == 0) {
+    if(maintenance_started == mtev_false) {
+      if (mtev_cpuid_feature(MTEV_CPU_FEATURE_INVARIANT_TSC) == mtev_false) {
+        if(require_invariant_tsc) {
+          mtevL(mtev_notice, "fast time support disabled due to lack of invariant TSC support\n");
+          global_rdtsc_function = NULL;
+          return;
+        }
+      }
+      if (mtev_cpuid_feature(MTEV_CPU_FEATURE_RDTSCP) == mtev_true) {
+        mtevL(mtev_debug, "Using rdtscp for clock\n");
+        global_rdtsc_function = mtev_rdtscp;
+      }
+      else if (mtev_cpuid_feature(MTEV_CPU_FEATURE_RDTSC) == mtev_true)  {
+        mtevL(mtev_debug, "Using rdtsc for clock\n");
+        global_rdtsc_function = mtev_rdtsc;
+      }
+      else {
+        mtevL(mtev_notice, "CPU is wrong vendor or missing feature.  Cannot use TSC clock.\n");
+        global_rdtsc_function = NULL;
+        return;
+      }
+      maintenance_started = mtev_true;
+
+      pthread_attr_t tattr;
+      pthread_attr_init(&tattr);
+      pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
+      if(mtev_thread_create(&maintenance_thread, &tattr, mtev_time_tsc_maintenance, NULL) != 0) {
+        maintenance_started = mtev_false;
+        mtevL(mtev_error, "Failed time maintenance thread\n");
+      }
+    }
+  } else {
+    mtevL(mtev_error, "time mutex failure: %s\n", strerror(errno));
+  }
+  pthread_mutex_unlock(&maintenance_thread_lock);
 #endif
 }
 
 void 
 mtev_time_stop_tsc()
 {
-  coreclocks[current_cpu].rdtsc_function = NULL;
-  thread_enable_rdtsc = mtev_false;
+  thread_disable_rdtsc = mtev_true;
 }
 
 u_int64_t
 mtev_get_nanos(void)
 {
 #ifdef ENABLE_RDTSC
-  if (NO_TSC) {
+  int cpuid;
+  /* If we're off, we're off */
+  if (NO_TSC)
     return mtev_gethrtime_fallback();
+
+  uint64_t ticks = global_rdtsc_function(&cpuid);
+  if(ck_pr_load_64(&coreclocks[cpuid].calc.skew) != 0) {
+    uint64_t nanos = ticks_to_nanos_skewed(cpuid, ticks);
+    uint64_t last_nanos = ticks_to_nanos_skewed(cpuid, coreclocks[cpuid].last_ticks);
+    if (nanos - last_nanos < DELINQUENT_NS) {
+      coreclocks[cpuid].fast++;
+      return nanos;
+    }
+    mtev_atomic_inc64(&coreclocks[cpuid].desyncs);
+    ck_pr_store_64(&coreclocks[cpuid].calc.skew, 0);
   }
-
-  uint64_t ticks = coreclocks[current_cpu].rdtsc_function();
-  uint64_t nanos = ticks_to_nanos(ticks);
-
-  return nanos;
-#else
-  return mtev_gethrtime_fallback();
 #endif
+  return mtev_gethrtime_fallback();
 }
 
 u_int64_t
@@ -242,7 +554,7 @@ mtev_get_ticks(void)
     return 0;
   }
 
-  return coreclocks[current_cpu].rdtsc_function();
+  return global_rdtsc_function(NULL);
 #else
   return 0;
 #endif
@@ -260,33 +572,51 @@ mtev_sys_gethrtime()
   return mtev_gethrtime_fallback();
 }
 
-
-#define RECALIBRATE_TIMEOUT_NANOS 3e+10
-
-void
-mtev_time_maintain(void)
+static mtev_boolean
+mtev_time_possibly_maintain(int cpuid, uint64_t ticks)
 {
 #ifdef ENABLE_RDTSC
-  if (NO_TSC) {
-    return;
+  uint64_t nanos = ticks_to_nanos(cpuid, ticks);
+  uint64_t last_nanos = ticks_to_nanos(cpuid, coreclocks[cpuid].last_ticks);
+
+  if(nanos == last_nanos && ticks != coreclocks[cpuid].last_ticks) {
+    /* We don't have a clock speed yet, so we'll fake "one" juse for the purpose
+     * of timing the next calibration.
+     */
+     nanos = ticks;
+     last_nanos = coreclocks[cpuid].last_ticks;
   }
 
-  uint64_t ticks = coreclocks[current_cpu].rdtsc_function();
-  uint64_t nanos = ticks_to_nanos(ticks);
-  uint64_t last_nanos = ticks_to_nanos(coreclocks[current_cpu].last_ticks);
-
-  if (nanos - last_nanos > RECALIBRATE_TIMEOUT_NANOS) {
-    if ( pthread_mutex_trylock(&coreclocks[current_cpu].update_lock) ) {
-      mtevL(mtev_debug, "Got lock for CPU %d, calibrating\n", current_cpu);
-      coreclocks[current_cpu].last_ticks = ticks;
-      mtev_calibrate_rdtsc_ticks();
-      pthread_mutex_unlock(&coreclocks[current_cpu].update_lock);
+  if (nanos - last_nanos > RECALIBRATE_MIN_NANOS) {
+    if ( pthread_mutex_trylock(&coreclocks[cpuid].update_lock) == 0 ) {
+      /* recheck with lock */
+      last_nanos = ticks_to_nanos(cpuid, coreclocks[cpuid].last_ticks);
+      if (nanos - last_nanos > RECALIBRATE_MIN_NANOS) {
+        mtev_calibrate_rdtsc_ticks(cpuid, ticks);
+      }
+      pthread_mutex_unlock(&coreclocks[cpuid].update_lock);
     } else {
-      mtevL(mtev_debug, "Another thread is already updating this core clock %d, skipping\n", current_cpu);
+      mtevAssert(errno == EBUSY);
     }
   }
+  return coreclocks[cpuid].calc.skew != 0;
+#else
+  return mtev_false;
 #endif
-
 }
 
 
+mtev_boolean
+mtev_time_maintain(void)
+{
+  int cpuid;
+  if (!mtev_thread_is_bound_to_cpu()) return mtev_false;
+  uint64_t ticks = global_rdtsc_function(&cpuid);
+  return mtev_time_possibly_maintain(cpuid, ticks);
+}
+
+mtev_boolean
+mtev_time_fast_mode()
+{
+  return ready_rdtsc;
+}
