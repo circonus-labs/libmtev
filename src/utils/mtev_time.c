@@ -51,6 +51,12 @@
 #undef ENABLE_RDTSC
 #endif
 
+#ifdef ENABLE_RDTSC
+static const char *disable_reason = NULL;
+#else
+static const char *disable_reason = "compiled off";
+#endif
+
 typedef uint64_t rdtsc_func(int *);
 
 #ifdef ENABLE_RDTSC
@@ -391,7 +397,10 @@ mtev_time_toggle_tsc(mtev_boolean enable)
 {
   enable_rdtsc = enable;
   if(enable_rdtsc) mtev_time_start_tsc();
-  else mtev_time_reset_scale();
+  else {
+    disable_reason = "explicitly disabled at runtime";
+    mtev_time_reset_scale();
+  }
 }
 
 void
@@ -401,6 +410,23 @@ mtev_time_toggle_require_invariant_tsc(mtev_boolean enable)
 }
 
 #ifdef ENABLE_RDTSC
+#define PERF_ITERS 100
+static mtev_boolean
+rdtsc_perf_test() {
+  int i, cpuid;
+  mtev_hrtime_t start, elapsed_fast, elapsed_system;
+  if(global_rdtsc_function == NULL) return mtev_false;
+  start = mtev_gethrtime_fallback();
+  for(i=0;i<PERF_ITERS;i++) global_rdtsc_function(&cpuid);
+  elapsed_fast = mtev_gethrtime_fallback() - start;
+  start = mtev_gethrtime_fallback();
+  for(i=0;i<PERF_ITERS;i++) mtev_gethrtime_fallback();
+  elapsed_system = mtev_gethrtime_fallback() - start;
+
+  if(elapsed_fast < elapsed_system) return mtev_true;
+  return mtev_false;
+}
+
 static void *
 mtev_time_tsc_maintenance(void *unused) {
   int delay_us = 0;
@@ -432,7 +458,12 @@ mtev_time_tsc_maintenance(void *unused) {
   }
 
   while(1) {
+    if(enable_rdtsc && !rdtsc_perf_test()) {
+      disable_reason = "performance test failed";
+      enable_rdtsc = false;
+    }
     if(enable_rdtsc) {
+
       for(int i=0; i<nrcpus; i++) {
         mtev_boolean is_ready = mtev_true;
 
@@ -446,6 +477,7 @@ mtev_time_tsc_maintenance(void *unused) {
         if(ready_rdtsc != is_ready) {
           mtevL(mtev_notice, "mtev_time -> fast mode %s\n", is_ready ? "enabled" : "disabled");
           ready_rdtsc = is_ready;
+          if(!ready_rdtsc) disable_reason = "not all processors synchronized";
         }
         if(delay_us > 0) usleep(delay_us);
       }
@@ -616,7 +648,8 @@ mtev_time_maintain(void)
 }
 
 mtev_boolean
-mtev_time_fast_mode()
+mtev_time_fast_mode(const char **reason)
 {
+  if(reason) *reason = disable_reason;
   return ready_rdtsc;
 }

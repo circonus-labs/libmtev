@@ -165,7 +165,11 @@ mtev_console_coreclocks(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_time_status(mtev_console_closure_t ncct, int argc, char **argv,
                          mtev_console_state_t *dstate, void *onoff) {
-  nc_printf(ncct, "rdtsc is current %s\n", mtev_time_fast_mode() ? "active" : "inactive");
+  const char *reason;
+  mtev_boolean status;
+  status = mtev_time_fast_mode(&reason);
+  nc_printf(ncct, "rdtsc is current %s\n", status ? "active" : "inactive");
+  if(reason) nc_printf(ncct, "Reason: %s\n", reason);
   return 0;
 }
 

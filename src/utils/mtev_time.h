@@ -123,6 +123,6 @@ API_EXPORT(mtev_boolean)
  * returns whether mtev is currently operating in fast mode
  */
 API_EXPORT(mtev_boolean)
-  mtev_time_fast_mode();
+  mtev_time_fast_mode(const char **reason);
 
 #endif
