@@ -452,6 +452,11 @@ mtev_time_tsc_maintenance(void *unused) {
     int cpuid;
     mtev_thread_bind_to_cpu(i);
     global_rdtsc_function(&cpuid);
+    if(i != cpuid) {
+      disable_reason = "bad rdtscp or cpuid mapping";
+      enable_rdtsc = mtev_false;
+      break;
+    }
     /* Mark all the CPUs as our rdtsc identifies them */
     bits_needed[cpuid/64] |= (1UL << (cpuid%64));
   }
