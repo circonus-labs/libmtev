@@ -513,6 +513,8 @@ mtev_time_start_tsc()
       if (mtev_cpuid_feature(MTEV_CPU_FEATURE_INVARIANT_TSC) == mtev_false) {
         if(require_invariant_tsc) {
           mtevL(mtev_notice, "fast time support disabled due to lack of invariant TSC support\n");
+          disable_reason = "no invariant TSC";
+          enable_rdtsc = mtev_false;
           global_rdtsc_function = NULL;
           return;
         }
@@ -527,6 +529,8 @@ mtev_time_start_tsc()
       }
       else {
         mtevL(mtev_notice, "CPU is wrong vendor or missing feature.  Cannot use TSC clock.\n");
+        disable_reason = "No CPU support for TSC";
+        enable_rdtsc = mtev_false;
         global_rdtsc_function = NULL;
         return;
       }
