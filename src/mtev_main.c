@@ -64,14 +64,31 @@ static int enable_logs_cnt = 0;
 static char *disable_logs[MAX_CLI_LOGS];
 static int disable_logs_cnt = 0;
 
+/* Little helper to find one of the 4 baked-in logs:
+ * stderr, error, notice, debug
+ */
+static mtev_log_stream_t mtev_baked_log(const char *name) {
+  if(!strcmp(name, "stderr")) return mtev_stderr;
+  if(!strcmp(name, "error")) return mtev_error;
+  if(!strcmp(name, "notice")) return mtev_notice;
+  if(!strcmp(name, "debug")) return mtev_debug;
+  return NULL;
+}
+
 void
 mtev_main_enable_log(const char *name) {
+  mtev_log_stream_t baked;
   if(enable_logs_cnt >= MAX_CLI_LOGS) return;
+  if((baked = mtev_baked_log(name)) != NULL && !N_L_S_ON(baked))
+    mtev_log_stream_set_flags(baked, mtev_log_stream_get_flags(baked) | MTEV_LOG_STREAM_ENABLED);
   enable_logs[enable_logs_cnt++] = strdup(name);
 }
 void
 mtev_main_disable_log(const char *name) {
+  mtev_log_stream_t baked;
   if(disable_logs_cnt >= MAX_CLI_LOGS) return;
+  if((baked = mtev_baked_log(name)) != NULL && !N_L_S_ON(baked))
+    mtev_log_stream_set_flags(baked, mtev_log_stream_get_flags(baked) & ~MTEV_LOG_STREAM_ENABLED);
   disable_logs[disable_logs_cnt++] = strdup(name);
 }
 static int
@@ -120,6 +137,7 @@ void cli_log_switches() {
   mtev_log_stream_t ls;
   for(i=0; i<enable_logs_cnt; i++) {
     ls = mtev_log_stream_find(enable_logs[i]);
+    if(!ls) ls = mtev_baked_log(enable_logs[i]);
     if(!ls) mtevL(mtev_error, "No such log: '%s'\n", enable_logs[i]);
     if(ls && !N_L_S_ON(ls)) {
       mtevL(mtev_notice, "Enabling %s\n", enable_logs[i]);
@@ -128,6 +146,7 @@ void cli_log_switches() {
   }
   for(i=0; i<disable_logs_cnt; i++) {
     ls = mtev_log_stream_find(disable_logs[i]);
+    if(!ls) ls = mtev_baked_log(disable_logs[i]);
     if(!ls) mtevL(mtev_error, "No such log: '%s'\n", enable_logs[i]);
     if(ls && N_L_S_ON(ls)) {
       mtevL(mtev_notice, "Disabling %s\n", disable_logs[i]);
@@ -318,6 +337,7 @@ mtev_main(const char *appname,
 
   if(foreground == 1) {
     mtev_time_start_tsc();
+    mtevL(mtev_notice, "%s booting [unmanaged]\n", appname);
     int rv = passed_child_main();
     mtev_lockfile_release(lockfd);
     return rv;
@@ -364,6 +384,7 @@ mtev_main(const char *appname,
   }
 
   signal(SIGHUP, SIG_IGN);
+  mtevL(mtev_notice, "%s booting\n", appname);
   rv = mtev_watchdog_start_child(appname, passed_child_main, watchdog_timeout);
   mtev_lockfile_release(lockfd);
   return rv;

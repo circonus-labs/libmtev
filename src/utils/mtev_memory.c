@@ -67,10 +67,10 @@ void mtev_memory_init() {
   pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
   asynch_gc = 1;
   if(pthread_create(&tid, &tattr, mtev_memory_gc, NULL) == 0) {
-    mtevL(mtev_stderr, "mtev_memory starting gc thread\n");
+    mtevL(mtev_debug, "mtev_memory starting gc thread\n");
   }
   else {
-    mtevL(mtev_stderr, "mtev_memory failed to spawn gc thread\n");
+    mtevL(mtev_error, "mtev_memory failed to spawn gc thread\n");
     asynch_gc = 0;
   }
 }
