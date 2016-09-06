@@ -242,7 +242,7 @@ API_EXPORT(pthread_t) eventer_choose_owner(int);
 #define eventer_add_in(func, cl, t) do { \
   struct timeval __now; \
   eventer_t e = eventer_alloc(); \
-  gettimeofday(&__now, NULL); \
+  mtev_gettimeofday(&__now, NULL); \
   add_timeval(__now, t, &e->whence); \
   e->mask = EVENTER_TIMER; \
   e->callback = func; \
@@ -252,7 +252,7 @@ API_EXPORT(pthread_t) eventer_choose_owner(int);
 #define eventer_add_in_s_us(func, cl, s, us) do { \
   struct timeval __now, diff = { s, us }; \
   eventer_t e = eventer_alloc(); \
-  gettimeofday(&__now, NULL); \
+  mtev_gettimeofday(&__now, NULL); \
   add_timeval(__now, diff, &e->whence); \
   e->mask = EVENTER_TIMER; \
   e->callback = func; \

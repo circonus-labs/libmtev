@@ -108,7 +108,7 @@ static void eventer_dns_utm_fn(struct dns_ctx *ctx, int timeout, void *data) {
       newe->mask = EVENTER_TIMER;
       newe->callback = mtev_lua_dns_timeouts;
       newe->closure = h;
-      gettimeofday(&newe->whence, NULL);
+      mtev_gettimeofday(&newe->whence, NULL);
       newe->whence.tv_sec += timeout;
     }
   }
@@ -468,7 +468,7 @@ static int mtev_lua_dns_lookup(lua_State *L) {
     }
     else {
       struct timeval now;
-      gettimeofday(&now, NULL);
+      mtev_gettimeofday(&now, NULL);
       dns_timeouts(dlc->h->ctx, -1, now.tv_sec);
     }
   }

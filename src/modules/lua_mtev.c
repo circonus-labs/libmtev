@@ -1263,7 +1263,7 @@ mtev_lua_socket_read(lua_State *L) {
 
       eventer_t timeout_eventer = eventer_alloc();
       timeout_eventer->mask = EVENTER_TIMER;
-      gettimeofday(&timeout_eventer->whence, NULL);
+      mtev_gettimeofday(&timeout_eventer->whence, NULL);
       timeout_eventer->whence.tv_sec += timeout_s;
       timeout_eventer->whence.tv_usec += timeout_us;
       timeout_eventer->callback = on_timeout;
@@ -1588,7 +1588,7 @@ nl_waitfor(lua_State *L) {
   cl = calloc(1, sizeof(*cl));
   cl->free = nl_extended_free;
   cl->L = L;
-  gettimeofday(&cl->start, NULL);
+  mtev_gettimeofday(&cl->start, NULL);
 
   key = lua_tostring(L, 1);
   if(!key) luaL_error(L, "waitfor called without key");
@@ -1645,7 +1645,7 @@ nl_sleep(lua_State *L) {
   cl = calloc(1, sizeof(*cl));
   cl->free = nl_extended_free;
   cl->L = L;
-  gettimeofday(&cl->start, NULL);
+  mtev_gettimeofday(&cl->start, NULL);
 
   e = eventer_alloc();
   e->mask = EVENTER_TIMER;
@@ -2219,7 +2219,7 @@ nl_sha1(lua_State *L) {
 static int
 nl_gettimeofday(lua_State *L) {
   struct timeval now;
-  gettimeofday(&now, NULL);
+  mtev_gettimeofday(&now, NULL);
   lua_pushinteger(L, now.tv_sec);
   lua_pushinteger(L, now.tv_usec);
   return 2;

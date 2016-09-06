@@ -527,7 +527,7 @@ mtev_zipkin_span_annotate(Zipkin_Span *span, int64_t *timestamp,
 
   if(!timestamp) {
     struct timeval nowtv;
-    gettimeofday(&nowtv,NULL);
+    mtev_gettimeofday(&nowtv,NULL);
     now = mtev_zipkin_timeval_to_timestamp(&nowtv);
     timestamp = &now;
   }

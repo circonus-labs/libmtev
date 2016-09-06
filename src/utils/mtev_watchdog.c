@@ -120,7 +120,7 @@ static unsigned long last_tick_time() {
   static int lastcheck = 0;
   struct timeval now, diff;
 
-  gettimeofday(&now, NULL);
+  mtev_gettimeofday(&now, NULL);
   if(lastcheck != *lifeline) {
     lastcheck = *lifeline;
     memcpy(&lastchange, &now, sizeof(lastchange));

@@ -165,7 +165,7 @@ static struct lua_reporter *
 mtev_lua_reporter_alloc() {
     struct lua_reporter *reporter;
     reporter = calloc(1, sizeof(*reporter));
-    gettimeofday(&reporter->start, NULL);
+    mtev_gettimeofday(&reporter->start, NULL);
     pthread_mutex_init(&reporter->lock, NULL);
     reporter->outstanding = 1;
     return reporter;

@@ -255,7 +255,7 @@ mtev_conf_watch_config_and_journal(eventer_t e, int mask, void *closure,
 
   /* Schedule the same event to fire a second form now */
   newe = eventer_alloc();
-  gettimeofday(&newe->whence, NULL);
+  mtev_gettimeofday(&newe->whence, NULL);
   newe->whence.tv_sec += 1;
   newe->mask = EVENTER_TIMER;
   newe->callback = mtev_conf_watch_config_and_journal;
@@ -278,7 +278,7 @@ mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c) {
   rj = calloc(1, sizeof(*rj));
   rj->journal_config = f;
   rj->jc_closure = c;
-  gettimeofday(&__now, NULL);
+  mtev_gettimeofday(&__now, NULL);
   mtev_conf_watch_config_and_journal(NULL, EVENTER_TIMER, rj, &__now);
 }
 
@@ -367,7 +367,7 @@ mtev_conf_xml_error_func(void *ctx, const char *format, ...) {
   va_list arg;
   if(!ls) return;
   va_start(arg, format);
-  gettimeofday(&__now,  NULL);
+  mtev_gettimeofday(&__now,  NULL);
   mtev_vlog(ls, &__now, __FILE__, __LINE__, format, arg);
   va_end(arg);
 }
@@ -380,7 +380,7 @@ mtev_conf_xml_error_ext_func(void *ctx, xmlErrorPtr err) {
   if(!ls) return;
   for(i=0;i<MAX_SUPPRESSIONS;i++)
     if(suppressions[i].domain == err->domain && suppressions[i].code == err->code) return;
-  gettimeofday(&__now,  NULL);
+  mtev_gettimeofday(&__now,  NULL);
   if(err->file)
     mtev_log(ls, &__now, err->file, err->line,
              "XML error [%d/%d] in %s on line %d %s\n",
@@ -519,7 +519,7 @@ static u_int64_t
 usec_now() {
   u_int64_t usec;
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  mtev_gettimeofday(&tv, NULL);
   usec = tv.tv_sec * 1000000UL;
   usec += tv.tv_usec;
   return usec;
@@ -1981,7 +1981,7 @@ mtev_conf_write_log() {
 
   /* We know we haven't changed */
   if(last_write_gen == __config_gen) return 0;
-  gettimeofday(&__now, NULL);
+  mtev_gettimeofday(&__now, NULL);
 
   if(notify_only) {
     mtevL(config_log, "n\t%lu.%03lu\t%d\t\n",
@@ -2074,7 +2074,7 @@ mtev_conf_log_rotate_time(eventer_t e, int mask, void *closure,
   
   newe = eventer_alloc();
   newe->closure = closure;
-  if(!now) { gettimeofday(&lnow, NULL); now = &lnow; }
+  if(!now) { mtev_gettimeofday(&lnow, NULL); now = &lnow; }
   if(e)
     memcpy(&newe->whence, &e->whence, sizeof(newe->whence));
   else if(now) {

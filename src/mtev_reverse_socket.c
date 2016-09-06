@@ -228,7 +228,7 @@ static void *mtev_reverse_socket_alloc() {
   mtevAssert(pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_PRIVATE) == 0);
   mtevAssert(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) == 0);
   mtevAssert(pthread_mutex_init(&rc->lock, &attr) == 0);
-  gettimeofday(&rc->data.create_time, NULL);
+  mtev_gettimeofday(&rc->data.create_time, NULL);
   for(i=0;i<MAX_CHANNELS;i++)
     rc->data.channels[i].pair[0] = rc->data.channels[i].pair[1] = -1;
   return rc;
@@ -575,7 +575,7 @@ socket_error:
           newe->closure = cct;
           newe->mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
           eventer_add(newe);
-          gettimeofday(&rc->data.channels[rc->data.incoming_inflight.channel_id].create_time, NULL);
+          mtev_gettimeofday(&rc->data.channels[rc->data.incoming_inflight.channel_id].create_time, NULL);
           rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] = fd;
           memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
           rc->data.frame_hdr_read = 0;
@@ -945,7 +945,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         eventer_t e;
         channel_closure_t *cct;
         e = eventer_alloc();
-        gettimeofday(&rc->data.channels[chan].create_time, NULL);
+        mtev_gettimeofday(&rc->data.channels[chan].create_time, NULL);
         e->fd = existing_fd;
         e->callback = mtev_reverse_socket_channel_handler;
         cct = malloc(sizeof(*cct));
@@ -1108,7 +1108,7 @@ mtev_connection_schedule_reattempt(mtev_connection_ctx_t *ctx,
     ctx->current_backoff = MIN(max_interval, ctx->current_backoff);
   }
   if(!now) {
-    gettimeofday(&__now, NULL);
+    mtev_gettimeofday(&__now, NULL);
     now = &__now;
   }
   interval.tv_sec = ctx->current_backoff / 1000;
@@ -1293,7 +1293,7 @@ mtev_connection_update_timeout(mtev_connection_ctx_t *nctx) {
 
   diff.tv_sec = nctx->max_silence / 1000;
   diff.tv_usec = (nctx->max_silence % 1000) * 1000;
-  gettimeofday(&now, NULL);
+  mtev_gettimeofday(&now, NULL);
 
   if(!nctx->timeout_event) {
     nctx->timeout_event = eventer_alloc();
@@ -1397,7 +1397,7 @@ mtev_connection_initiate_connection(mtev_connection_ctx_t *nctx) {
   return;
  reschedule:
   if(fd >= 0) close(fd);
-  gettimeofday(&__now, NULL);
+  mtev_gettimeofday(&__now, NULL);
   nctx->schedule_reattempt(nctx, &__now);
   return;
 }
@@ -1585,7 +1585,7 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
     goto finish_write;
   }
 
-  gettimeofday(&rc->data.create_time, NULL);
+  mtev_gettimeofday(&rc->data.create_time, NULL);
 
   GET_CONF_STR(nctx, "endpoint", my_cn);
   GET_CONF_STR(nctx, "local_address", target);
@@ -1689,7 +1689,7 @@ nc_print_reverse_socket_brief(mtev_console_closure_t ncct,
   double age;
   struct timeval now, diff;
 
-  gettimeofday(&now, NULL);
+  mtev_gettimeofday(&now, NULL);
   sub_timeval(now, ctx->data.create_time, &diff);
   age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
   if(ctx->data.e) {
@@ -1813,7 +1813,7 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
   mtev_http_process_querystring(req);
   want_id = mtev_http_request_querystring(req, "id");
 
-  gettimeofday(&now, NULL);
+  mtev_gettimeofday(&now, NULL);
 
   pthread_rwlock_rdlock(&reverse_sockets_lock);
   ctxs = malloc(sizeof(*ctxs) * mtev_hash_size(&reverse_sockets));
@@ -1909,7 +1909,7 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
   mtev_http_process_querystring(req);
   want_id = mtev_http_request_querystring(req, "id");
 
-  gettimeofday(&now, NULL);
+  mtev_gettimeofday(&now, NULL);
 
   pthread_rwlock_rdlock(&reverse_sockets_lock);
   ctxs = malloc(sizeof(*ctxs) * mtev_hash_size(&reverse_sockets));

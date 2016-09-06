@@ -103,7 +103,7 @@
  *   executation:</para>
  *   <programlisting><![CDATA[
  *     struct timeval now;
- *     gettimeofday(&now, NULL);
+ *     mtev_gettimeofday(&now, NULL);
  *     if(MTEV_HOOK_CONTINUE == foobarquux_hook_invoke(&now))
  *       foobarquux_work();
  *   ]]></programlisting>
