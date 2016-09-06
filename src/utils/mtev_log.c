@@ -365,10 +365,6 @@ mtev_log_memory_lines_since(mtev_log_stream_t ls, u_int64_t afterwhich,
 
 static mtev_hash_table mtev_loggers;
 static mtev_hash_table mtev_logops;
-mtev_log_stream_t mtev_stderr = NULL;
-mtev_log_stream_t mtev_error = NULL;
-mtev_log_stream_t mtev_debug = NULL;
-mtev_log_stream_t mtev_notice = NULL;
 
 int mtev_log_global_enabled() {
   return LIBMTEV_LOG_ENABLED();
@@ -479,6 +475,7 @@ void asynch_log_ctx_free(asynch_log_ctx *tf) {
 static void
 asynch_logio_drain(asynch_log_ctx *actx) {
   asynch_log_line *line;
+  if(actx->qhead == NULL) return;
   while(NULL != (line = asynch_log_pop(actx))) {
     if(actx->write(actx, line) == -1) abort();
     if(line->buf_dynamic != NULL) free(line->buf_dynamic);
@@ -1799,3 +1796,34 @@ mtev_log_init_globals() {
   mtev_hash_init_locks(&mtev_logops, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 
+struct posix_op_ctx boot_stderr_posix_op_ctx = { fd: 2 };
+
+asynch_log_ctx boot_stderr_actx = {
+  .name = "posix",
+  .write = posix_logio_asynch_write,
+  .userdata = &boot_stderr_posix_op_ctx,
+  .is_asynch = 0
+};
+
+struct _mtev_log_stream boot_stderr_ls = {
+  .flags = MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS,
+  .name = "stderr",
+  .ops = &posix_logio_ops,
+  .op_ctx = &boot_stderr_actx,
+  .deps_materialized = 1,
+  .flags_below = MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS
+};
+
+struct _mtev_log_stream boot_debug_ls = {
+  .flags = MTEV_LOG_STREAM_TIMESTAMPS,
+  .name = "debug",
+  .ops = &posix_logio_ops,
+  .op_ctx = &boot_stderr_actx,
+  .deps_materialized = 1,
+  .flags_below = MTEV_LOG_STREAM_TIMESTAMPS
+};
+
+mtev_log_stream_t mtev_stderr = &boot_stderr_ls;
+mtev_log_stream_t mtev_error = &boot_stderr_ls;
+mtev_log_stream_t mtev_debug = &boot_debug_ls;
+mtev_log_stream_t mtev_notice = &boot_stderr_ls;
