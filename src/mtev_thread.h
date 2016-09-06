@@ -69,6 +69,20 @@ API_EXPORT(void)
   mtev_thread_init();
 
 /**
+ * attempt to schedule as a real-time process within the system.
+ * nqt is the request scheduling quantum in nanoseconds. If the OS
+ * does not support setting the quantum, the arugment is ignored.
+ */
+API_EXPORT(mtev_boolean)
+  mtev_thread_realtime(uint64_t nqt);
+
+/**
+ * attempt to set the current thread's priority in its scheduling class
+ */
+API_EXPORT(mtev_boolean)
+  mtev_thread_prio(int prio);
+
+/**
  * Switches off and disallows binding of threads to cores. If you call this on startup,
  * mtev_thread_init and mtev_thread_create will not bind the current LWP to the next core
  * in sequence.  They will silently noop.

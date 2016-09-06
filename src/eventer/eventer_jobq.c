@@ -226,7 +226,7 @@ eventer_jobq_maybe_spawn(eventer_jobq_t *jobq) {
           jobq->queue_name, jobq->concurrency);
     pthread_attr_init(&tattr);
     pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
-    mtev_thread_create(&tid, &tattr, eventer_jobq_consumer_pthreadentry, jobq);
+    pthread_create(&tid, &tattr, eventer_jobq_consumer_pthreadentry, jobq);
   }
   mtevL(eventer_deb, "jobq_queue[%s] pending cancels [%d/%d]\n",
         jobq->queue_name, jobq->pending_cancels,
@@ -452,8 +452,6 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     pthread_setspecific(jobq->activejob, job);
     mtevL(eventer_deb, "%p jobq[%s] -> running job [%p]\n", pthread_self_ptr(),
           jobq->queue_name, job);
-
-    mtev_time_maintain();
 
     /* Mark our commencement */
     job->start_hrtime = mtev_sys_gethrtime();
