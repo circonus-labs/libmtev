@@ -160,7 +160,7 @@ mtev_rdtsc(int *cpuid)
                            : "%ebx", "%ecx", "memory");
     *cpuid = ebx;
   } else {
-    __asm__ __volatile__("mfence;"
+    __asm__ __volatile__("lfence;"
                          "rdtsc;"
                            : "+a" (eax), "=d" (edx)
                            :
@@ -187,20 +187,31 @@ mtev_rdtscp(int *cpuid)
 static inline uint64_t
 ticks_to_nanos(int cpuid, const uint64_t ticks)
 {
-  return (uint64_t)llround((double) ticks / TICKS_PER_NANO(cpuid));
+  return (uint64_t)((double) ticks / TICKS_PER_NANO(cpuid));
 }
 static inline uint64_t
-ticks_to_nanos_skewed(int cpuid, const uint64_t ticks)
+ticks_to_nanos_skewed_ex(int cpuid, const uint64_t ticks, struct cclock_scale *cs)
 {
-  struct cclock_scale cs;
-#ifdef CK_F_PR_LOAD_64_2
-  ck_pr_load_64_2((uint64_t *)&coreclocks[cpuid].calc, (uint64_t *)&cs);
+  int64_t *skewptr = (int64_t *)&cs->skew;
+  return (uint64_t)(((double) ticks / cs->ticks_per_nano) + *skewptr);
+}
+static inline mtev_boolean
+fetch_cclock_scale(int cpuid, struct cclock_scale *cs) {
+#if NCPUS == 256
+  if(unlikely(cpuid & ~0xff)) return mtev_false;
 #else
-  cs.skew = ck_pr_load_64(&coreclocks[cpuid].calc.skew);
-  cs.ticks_per_nano = TICKS_PER_NANO(cpuid);
+  if(unlikely(cpuid < 0 || cpuid > NCPUS)) {
+    mtevL(mtev_debug, "fetch_cclock_scale called with bad CPU:%d\n", cpuid);
+    return mtev_false;
+  }
 #endif
-  int64_t *skewptr = (int64_t *)&cs.skew;
-  return (uint64_t)(llround((double) ticks / cs.ticks_per_nano) + *skewptr);
+#ifdef CK_F_PR_LOAD_64_2
+  ck_pr_load_64_2((uint64_t *)&coreclocks[cpuid].calc, (uint64_t *)cs);
+#else
+  cs->skew = ck_pr_load_64(&coreclocks[cpuid].calc.skew);
+  cs->ticks_per_nano = TICKS_PER_NANO(cpuid);
+#endif
+  return mtev_true;
 }
 #endif
 
@@ -238,7 +249,7 @@ mtev_gethrtime_fallback() {
 int mtev_gettimeofday(struct timeval *t, void *ttp) {
 #ifdef ENABLE_RDTSC
   if(hrtime_epoch_skew) {
-    mtev_hrtime_t hrnow = mtev_gethrtime();
+    mtev_hrtime_t hrnow = mtev_get_nanos();
     if(hrnow - hrtime_epoch_skew_last_hrtime < DELINQUENT_NS) {
       hrnow += hrtime_epoch_skew;
       t->tv_sec = hrnow / 1000000000;
@@ -306,7 +317,7 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
       h2 = mtev_gethrtime_fallback();
       mtevAssert(cpuid == ncpuid);
       /* no TICKS_TO_NANOS macro as we need to use the new avg_ticks */
-      uint64_t start_nanos = (uint64_t)llround((double) start_ticks / avg_ticks);
+      uint64_t start_nanos = (uint64_t)((double) start_ticks / avg_ticks);
       uint64_t start_ts = h1/2 + h2/2;
       if(start_ts > start_nanos) this_skew[i] = (start_ts - start_nanos);
       else this_skew[i] = 0 - (start_nanos - start_ts);
@@ -562,25 +573,31 @@ mtev_time_stop_tsc()
   thread_disable_rdtsc = mtev_true;
 }
 
-u_int64_t
+inline u_int64_t
 mtev_get_nanos(void)
 {
 #ifdef ENABLE_RDTSC
   int cpuid;
+  struct cclock_scale cs;
   /* If we're off, we're off */
   if (NO_TSC)
     return mtev_gethrtime_fallback();
 
   uint64_t ticks = global_rdtsc_function(&cpuid);
-  if(ck_pr_load_64(&coreclocks[cpuid].calc.skew) != 0) {
-    uint64_t nanos = ticks_to_nanos_skewed(cpuid, ticks);
-    uint64_t last_nanos = ticks_to_nanos_skewed(cpuid, coreclocks[cpuid].last_ticks);
+  if(fetch_cclock_scale(cpuid, &cs) == mtev_false) return mtev_gethrtime_fallback();
+  if(cs.skew != 0) {
+    uint64_t nanos = ticks_to_nanos_skewed_ex(cpuid, ticks, &cs);
+#if 0
+    uint64_t last_nanos = ticks_to_nanos_skewed_ex(cpuid, coreclocks[cpuid].last_ticks, &cs);
     if (nanos - last_nanos < DELINQUENT_NS) {
+#endif
       coreclocks[cpuid].fast++;
       return nanos;
+#if 0
     }
     mtev_atomic_inc64(&coreclocks[cpuid].desyncs);
     ck_pr_store_64(&coreclocks[cpuid].calc.skew, 0);
+#endif
   }
 #endif
   return mtev_gethrtime_fallback();
@@ -616,6 +633,8 @@ static mtev_boolean
 mtev_time_possibly_maintain(int cpuid, uint64_t ticks)
 {
 #ifdef ENABLE_RDTSC
+  if(unlikely(cpuid < 0 || cpuid > NCPUS)) return  mtev_false;
+
   uint64_t nanos = ticks_to_nanos(cpuid, ticks);
   uint64_t last_nanos = ticks_to_nanos(cpuid, coreclocks[cpuid].last_ticks);
 
