@@ -1796,7 +1796,7 @@ mtev_log_init_globals() {
   mtev_hash_init_locks(&mtev_logops, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 
-struct posix_op_ctx boot_stderr_posix_op_ctx = { fd: 2 };
+struct posix_op_ctx boot_stderr_posix_op_ctx = { .fd = 2 };
 
 asynch_log_ctx boot_stderr_actx = {
   .name = "posix",

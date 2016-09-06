@@ -65,9 +65,9 @@ static pthread_t maintenance_thread;
 static ck_spinlock_t hrtime_epoch_skew_lock;
 static uint64_t hrtime_epoch_skew_last_hrtime;
 static uint64_t hrtime_epoch_skew;
+static mtev_boolean maintenance_started;
 #endif
 
-static mtev_boolean maintenance_started;
 static mtev_boolean ready_rdtsc;
 static mtev_boolean require_invariant_tsc = mtev_true;
 static __thread mtev_boolean thread_disable_rdtsc;

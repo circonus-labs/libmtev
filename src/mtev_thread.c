@@ -194,7 +194,7 @@ mtev_thread_prio(int prio) {
   mtevL(mtev_debug, "%d/%d priority to %s/%d.\n",
         (int)getpid(), (int)_lwp_self(), pcinfo.pc_clname, prio);
   return mtev_true;
-#elif defined(linux) || defined(__linux) || defined(__linux__)
+#else
   int err, sched;
   struct sched_param sp;
   if((err = pthread_getschedparam(pthread_self(), &sched, &sp)) != 0) {
@@ -211,12 +211,8 @@ mtev_thread_prio(int prio) {
     return mtev_false;
   }
   mtevL(mtev_debug, "%d/%d priority to %d/%d.\n",
-        (int)getpid(), (int)gettid(), sched, sp.sched_priority);
+        (int)getpid(), (int)pthread_self(), sched, sp.sched_priority);
   return mtev_true;
-#else
-  if(pthread_setschedprio(pthread_self(), prio) == 0) return mtev_true;
-  mtevL(mtev_error, "mtev_thread_prio(%d): %d/%s\n", prio, errno, strerror(errno));
-  return mtev_false;
 #endif
 }
 
