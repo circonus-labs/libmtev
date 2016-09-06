@@ -164,6 +164,7 @@ __attribute__((constructor))
 static void
 mtev_init_globals_ctor() {
   mtev_init_globals();
+  eventer_boot_ctor();
 }
 
 int

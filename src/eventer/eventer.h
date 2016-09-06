@@ -209,6 +209,7 @@ extern eventer_impl_t registered_eventers[];
 
 #include "eventer/eventer_jobq.h"
 
+API_EXPORT(int) eventer_boot_ctor();
 API_EXPORT(eventer_jobq_t *) eventer_default_backq(eventer_t);
 API_EXPORT(int) eventer_impl_propset(const char *key, const char *value);
 API_EXPORT(int) eventer_impl_setrlimit();

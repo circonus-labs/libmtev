@@ -315,8 +315,9 @@ static void eventer_loop_prime() {
   while(__loops_started < __loop_concurrency);
 }
 
-hwloc_topology_t *topo;
+static hwloc_topology_t *topo = NULL;
 static int assess_hw_topo() {
+  if(topo) return 0;
   topo = calloc(1, sizeof(*topo));
   if(hwloc_topology_init(topo)) goto out;
   if(hwloc_topology_load(*topo)) goto destroy_out;
@@ -330,6 +331,12 @@ static int assess_hw_topo() {
   topo = NULL;
   return -1;
 }
+
+int eventer_boot_ctor() {
+  if(assess_hw_topo() != 0) return -1;
+  return 0;
+}
+
 int eventer_cpu_sockets_and_cores(int *sockets, int *cores) {
   int depth, nsockets = 0, ncores = 0;
 
