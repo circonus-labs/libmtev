@@ -206,8 +206,6 @@ mtev_main(const char *appname,
     mtev_thread_disable_binding();
   }
 
-  mtev_time_start_tsc();
-
   /* First initialize logging, so we can log errors */
   mtev_log_init(debug);
   mtev_log_stream_add_stream(mtev_debug, mtev_stderr);
@@ -318,6 +316,7 @@ mtev_main(const char *appname,
   }
 
   if(foreground == 1) {
+    mtev_time_start_tsc();
     int rv = passed_child_main();
     mtev_lockfile_release(lockfd);
     return rv;

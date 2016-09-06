@@ -56,6 +56,7 @@
 
 #include "eventer/eventer.h"
 #include "mtev_log.h"
+#include "mtev_time.h"
 #include "mtev_watchdog.h"
 
 #define CHILD_WATCHDOG_TIMEOUT 5 /*seconds*/
@@ -441,6 +442,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
       struct sigaction sa;
       stack_t altstack;
       size_t altstack_size, default_altstack_size = 32768;
+      mtev_time_start_tsc();
       mtev_monitored_child_pid = getpid();
       if(glider_path)
         mtevL(mtev_error, "catching faults with glider\n");

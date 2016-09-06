@@ -52,7 +52,7 @@
 #endif
 
 #ifdef ENABLE_RDTSC
-static const char *disable_reason = NULL;
+static const char *disable_reason = "still starting up";
 #else
 static const char *disable_reason = "compiled off";
 #endif
@@ -396,8 +396,7 @@ void
 mtev_time_toggle_tsc(mtev_boolean enable) 
 {
   enable_rdtsc = enable;
-  if(enable_rdtsc) mtev_time_start_tsc();
-  else {
+  if(!enable_rdtsc) {
     disable_reason = "explicitly disabled at runtime";
     mtev_time_reset_scale();
   }
@@ -650,6 +649,6 @@ mtev_time_maintain(void)
 mtev_boolean
 mtev_time_fast_mode(const char **reason)
 {
-  if(reason) *reason = disable_reason;
+  if(reason) *reason = ready_rdtsc ? NULL : disable_reason;
   return ready_rdtsc;
 }
