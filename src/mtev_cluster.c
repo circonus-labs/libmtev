@@ -252,7 +252,7 @@ mtev_cluster_check_timeouts() {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
 
   struct timeval now;
-  gettimeofday (&now, NULL);
+  mtev_gettimeofday (&now, NULL);
 
   while(mtev_hash_next(&global_clusters, &iter, &key, &klen, &value)) {
     mtev_cluster_check_timeout(value, now);
@@ -394,7 +394,7 @@ mtev_cluster_info_process(void *msg, int len, void *c) {
       mtev_cluster_store_payload(sender, payload, payload_len, number_of_payloads);
       mtev_cluster_on_node_changed(cluster, sender, &boot_time, seq, node_changes);
     }
-    gettimeofday(&sender->last_contact, NULL);
+    mtev_gettimeofday(&sender->last_contact, NULL);
   }
   return 0;
 }
@@ -1038,7 +1038,7 @@ mtev_cluster_init() {
   int i, n_clusters;
   mtev_conf_section_t *clusters, parent;
 
-  gettimeofday(&my_boot_time, NULL);
+  mtev_gettimeofday(&my_boot_time, NULL);
   mtev_hash_init_locks(&global_clusters, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 
   parent = mtev_conf_get_section(NULL, "//clusters");

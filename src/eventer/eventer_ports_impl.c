@@ -255,15 +255,15 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   if(lockstate == EV_ALREADY_OWNED) return;
   mtevAssert(lockstate == EV_OWNED);
 
-  gettimeofday(&__now, NULL);
+  mtev_gettimeofday(&__now, NULL);
   cbname = eventer_name_for_callback_e(e->callback, e);
   mtevLT(eventer_deb, &__now, "ports: fire on %d/%x to %s(%p)\n",
          fd, mask, cbname?cbname:"???", e->callback);
   mtev_memory_begin();
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
-  start = mtev_get_nanos();
+  start = mtev_gethrtime();
   newmask = e->callback(e, mask, e->closure, &__now);
-  duration = mtev_get_nanos() - start;
+  duration = mtev_gethrtime() - start;
   LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
   mtev_memory_end();
   stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
@@ -325,7 +325,7 @@ static int eventer_ports_impl_loop() {
     int ret;
     port_event_t pevents[MAX_PORT_EVENTS];
 
-    gettimeofday(&__now, NULL);
+    mtev_gettimeofday(&__now, NULL);
 
     if(compare_timeval(eventer_max_sleeptime, __dyna_sleep) < 0)
       __dyna_sleep = eventer_max_sleeptime;

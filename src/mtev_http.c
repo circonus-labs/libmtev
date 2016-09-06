@@ -621,7 +621,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
   if(ctx->req.start_time.tv_sec == 0) return;
   if(http_request_log_hook_invoke(ctx) != MTEV_HOOK_CONTINUE) return;
 
-  gettimeofday(&end_time, NULL);
+  mtev_gettimeofday(&end_time, NULL);
   now = end_time.tv_sec;
   tm = gmtime_r(&now, &tbuf);
   strftime(timestr, sizeof(timestr), "%d/%b/%Y:%H:%M:%S -0000", tm);
@@ -712,7 +712,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
   if(!req->current_input) req->current_input = req->first_input;
   if(!req->current_input) return mtev_false;
   check_realloc_request(req);
-  if(req->start_time.tv_sec == 0) gettimeofday(&req->start_time, NULL);
+  if(req->start_time.tv_sec == 0) mtev_gettimeofday(&req->start_time, NULL);
  restart:
   while(req->current_input->prev &&
         (req->current_offset < (req->current_input->start + REQ_PATSIZE - 1))) {

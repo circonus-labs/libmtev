@@ -72,7 +72,7 @@ mtev_console_spit_event(eventer_t e, void *c) {
 
   cname = eventer_name_for_callback_e(e->callback, e);
   snprintf(fdstr, sizeof(fdstr), " fd: %d", e->fd);
-  gettimeofday(&now, NULL);
+  mtev_gettimeofday(&now, NULL);
   sub_timeval(e->whence, now, &diff);
   snprintf(wfn, sizeof(wfn), " fires: %lld.%06ds", (long long)diff.tv_sec, (int)diff.tv_usec);
   snprintf(funcptr, sizeof(funcptr), "%p", e->callback);

@@ -194,7 +194,7 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     json_object_object_add(doc, "features", feat);
 
     /* time (poor man's time check) */
-    gettimeofday(&now, NULL);
+    mtev_gettimeofday(&now, NULL);
     snprintf(vbuff, sizeof(vbuff), "%llu%03d", (unsigned long long)now.tv_sec,
              (int)(now.tv_usec / 1000));
     json_object_object_add(doc, "current_time", json_object_new_string(vbuff));
@@ -337,7 +337,7 @@ mtev_capabilities_tobuff(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     }
 
     /* time (poor man's time check) */
-    gettimeofday(&now, NULL);
+    mtev_gettimeofday(&now, NULL);
     snprintf(vbuff, sizeof(vbuff), "%llu.%03d", (unsigned long long)now.tv_sec,
              (int)(now.tv_usec / 1000));
     xmlNewTextChild(root, NULL, (xmlChar *)"current_time", (xmlChar *)vbuff);

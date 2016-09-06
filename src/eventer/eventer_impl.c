@@ -416,7 +416,7 @@ int eventer_impl_init() {
                         eventer_mtev_memory_maintenance);
 
   eventer_impl_epoch = malloc(sizeof(struct timeval));
-  gettimeofday(eventer_impl_epoch, NULL);
+  mtev_gettimeofday(eventer_impl_epoch, NULL);
 
   eventer_err = mtev_log_stream_find("error/eventer");
   eventer_deb = mtev_log_stream_find("debug/eventer");
@@ -443,7 +443,7 @@ void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
   job = calloc(1, sizeof(*job));
   job->fd_event = e;
   job->jobq = q ? q : &__default_jobq;
-  job->create_hrtime = mtev_sys_gethrtime(); /* use sys as this is cross-thread */
+  job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
   if(e->whence.tv_sec) {
@@ -511,7 +511,7 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
     const char *cbname = NULL;
     eventer_t timed_event;
 
-    gettimeofday(now, NULL);
+    mtev_gettimeofday(now, NULL);
 
     pthread_mutex_lock(&t->te_lock);
     /* Peek at our next timed event, if should fire, pop it.
@@ -540,10 +540,10 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
     LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)timed_event,
                            (void *)timed_event->callback, (char *)cbname, -1,
                            timed_event->mask, EVENTER_TIMER);
-    start = mtev_get_nanos();
+    start = mtev_gethrtime();
     newmask = timed_event->callback(timed_event, EVENTER_TIMER,
                                     timed_event->closure, now);
-    duration = mtev_get_nanos() - start;
+    duration = mtev_gethrtime() - start;
     stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
     stats_set_hist_intscale(eventer_latency_handle_for_callback(timed_event->callback), duration, -9, 1);
     LIBMTEV_EVENTER_CALLBACK_RETURN((void *)timed_event,
@@ -564,7 +564,7 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
       mtev_skiplist_insert(t->timed_events, timed_event);
     }
     if(NULL != (timed_event = mtev_skiplist_peek(t->timed_events))) {
-      gettimeofday(now, NULL);
+      mtev_gettimeofday(now, NULL);
       sub_timeval(timed_event->whence, *now, next);
       if(next->tv_sec < 0 || next->tv_usec < 0)
         next->tv_sec = next->tv_usec = 0;
@@ -634,16 +634,16 @@ void eventer_dispatch_recurrent(struct timeval *now) {
   struct recurrent_events *node;
   struct timeval __now;
   if(!now) {
-    gettimeofday(&__now, NULL);
+    mtev_gettimeofday(&__now, NULL);
     now = &__now;
   }
   t = get_my_impl_data();
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
     u_int64_t start, duration;
-    start = mtev_get_nanos();
+    start = mtev_gethrtime();
     node->e->callback(node->e, EVENTER_RECURRENT, node->e->closure, now);
-    duration = mtev_get_nanos() - start;
+    duration = mtev_gethrtime() - start;
     stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
     stats_set_hist_intscale(eventer_latency_handle_for_callback(node->e->callback), duration, -9, 1);
   }

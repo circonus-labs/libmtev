@@ -181,7 +181,7 @@ membuf_logio_writev(mtev_log_stream_t ls, const struct timeval *whence,
   if(len > membuf->segmentsize) return 0;
 
   if(whence == NULL) {
-    gettimeofday(&__now, NULL);
+    mtev_gettimeofday(&__now, NULL);
     whence = &__now;
   }
  
@@ -971,7 +971,7 @@ mtev_log_jlog_err(void *ctx, const char *format, ...) {
   struct timeval now;
   va_list arg;
   va_start(arg, format);
-  gettimeofday(&now, NULL);
+  mtev_gettimeofday(&now, NULL);
   (void)mtev_vlog(mtev_error, &now, "jlog.c", 0, format, arg);
   va_end(arg);
 }
@@ -1619,7 +1619,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
 
 #define ENSURE_NOW() do { \
   if(now == NULL) { \
-    gettimeofday(&__now, NULL); \
+    mtev_gettimeofday(&__now, NULL); \
     now = &__now; \
   } \
 } while(0)

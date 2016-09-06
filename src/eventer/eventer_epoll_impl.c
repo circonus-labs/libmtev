@@ -285,15 +285,15 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   if(lockstate == EV_ALREADY_OWNED) return;
   mtevAssert(lockstate == EV_OWNED);
 
-  gettimeofday(&__now, NULL);
+  mtev_gettimeofday(&__now, NULL);
   cbname = eventer_name_for_callback_e(e->callback, e);
   mtevLT(eventer_deb, &__now, "epoll: fire on %d/%x to %s(%p)\n",
          fd, mask, cbname?cbname:"???", e->callback);
   mtev_memory_begin();
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
-  start = mtev_get_nanos();
+  start = mtev_gethrtime();
   newmask = e->callback(e, mask, e->closure, &__now);
-  duration = mtev_get_nanos() - start;
+  duration = mtev_gethrtime() - start;
   LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
   mtev_memory_end();
   stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
@@ -381,7 +381,7 @@ static int eventer_epoll_impl_loop() {
 
     __sleeptime = eventer_max_sleeptime;
 
-    gettimeofday(&__now, NULL);
+    mtev_gettimeofday(&__now, NULL);
     eventer_dispatch_timed(&__now, &__sleeptime);
 
     /* Handle cross_thread dispatches */

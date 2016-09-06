@@ -58,7 +58,7 @@ mtev_perftimer_start(mtev_perftimer_t *aliased) {
   register mtev_perftimer_private_t *impl =
     (mtev_perftimer_private_t *)aliased;
 #if defined(MTEV_PT_USE_GETHRTIME)
-  impl->d.start = gethrtime();
+  impl->d.start = mtev_sys_gethrtime();
 #elif defined(MTEV_PT_USE_CLOCK_GETTIME)
   clock_gettime(CLOCK_HIRES, &impl->d.start);
 #elif defined(MTEV_PT_USE_GETTIMEOFDAY)
@@ -74,7 +74,7 @@ mtev_perftimer_elapsed(mtev_perftimer_t *aliased) {
   register mtev_perftimer_private_t *impl =
     (mtev_perftimer_private_t *)aliased;
 #if defined(MTEV_PT_USE_GETHRTIME)
-  rv = gethrtime() - impl->d.start;
+  rv = mtev_sys_gethrtime() - impl->d.start;
 #elif defined(MTEV_PT_USE_CLOCK_GETTIME)
   struct timespec now;
   clock_gettime(CLOCK_HIRES, &now);
