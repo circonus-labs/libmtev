@@ -66,6 +66,7 @@ static ck_spinlock_t hrtime_epoch_skew_lock;
 static uint64_t hrtime_epoch_skew_last_hrtime;
 static uint64_t hrtime_epoch_skew;
 static mtev_boolean maintenance_started;
+static mtev_boolean use_system_gettimeofday;
 #endif
 
 static mtev_boolean ready_rdtsc;
@@ -86,7 +87,11 @@ static rdtsc_func *global_rdtsc_function = NULL;
 
 #define TICKS_PER_NANO(cpuid) ck_pr_load_double(&coreclocks[cpuid].calc.ticks_per_nano)
 
+#if defined(linux) || defined(__linux) || defined(__linux__)
+#define NCPUS 4096
+#else
 #define NCPUS 256
+#endif
 
 /* This is 16 bytes packed as we need to set and load them as one */
 struct cclock_scale {
@@ -158,7 +163,11 @@ mtev_rdtsc(int *cpuid)
                            : "+a" (eax), "=d" (edx)
                            :
                            : "%ebx", "%ecx", "memory");
+#if defined(linux) || defined(__linux) || defined(__linux__)
+    *cpuid = ebx & (NCPUS-1);
+#else
     *cpuid = ebx;
+#endif
   } else {
     __asm__ __volatile__("lfence;"
                          "rdtsc;"
@@ -180,7 +189,11 @@ mtev_rdtscp(int *cpuid)
                        :
                        : "%ebx", "memory");
 
+#if defined(linux) || defined(__linux) || defined(__linux__)
+  if(cpuid) *cpuid = ecx & (NCPUS-1);
+#else
   if(cpuid) *cpuid = ecx;
+#endif
   return (((uint64_t)edx << 32) | eax);
 }
 
@@ -199,6 +212,8 @@ static inline mtev_boolean
 fetch_cclock_scale(int cpuid, struct cclock_scale *cs) {
 #if NCPUS == 256
   if(unlikely(cpuid & ~0xff)) return mtev_false;
+#elif NCPUS == 4096
+  if(unlikely(cpuid & ~0xfff)) return mtev_false;
 #else
   if(unlikely(cpuid < 0 || cpuid > NCPUS)) {
     mtevL(mtev_debug, "fetch_cclock_scale called with bad CPU:%d\n", cpuid);
@@ -248,7 +263,7 @@ mtev_gethrtime_fallback() {
 
 int mtev_gettimeofday(struct timeval *t, void *ttp) {
 #ifdef ENABLE_RDTSC
-  if(hrtime_epoch_skew) {
+  if(hrtime_epoch_skew && !use_system_gettimeofday) {
     mtev_hrtime_t hrnow = mtev_get_nanos();
     if(hrnow - hrtime_epoch_skew_last_hrtime < DELINQUENT_NS) {
       hrnow += hrtime_epoch_skew;
@@ -420,14 +435,50 @@ mtev_time_toggle_require_invariant_tsc(mtev_boolean enable)
 }
 
 #ifdef ENABLE_RDTSC
+/* This function attempts to implement a cycle-alike get_nanos */
+static inline u_int64_t
+mtev_get_nanos_force(void)
+{
+  int cpuid;
+  uint64_t ticks;
+  struct cclock_scale cs;
+
+  if(NO_TSC) {
+    ticks = global_rdtsc_function(&cpuid);
+  } else {
+    ticks = global_rdtsc_function(&cpuid);
+  }
+  if(fetch_cclock_scale(cpuid, &cs) == mtev_false) {
+    (void)ticks_to_nanos_skewed_ex(cpuid, ticks, &cs);
+    (void)ticks_to_nanos_skewed_ex(cpuid, coreclocks[cpuid].last_ticks, &cs);
+  } else {
+    (void)ticks_to_nanos_skewed_ex(cpuid, ticks, &cs);
+    (void)ticks_to_nanos_skewed_ex(cpuid, coreclocks[cpuid].last_ticks, &cs);
+  }
+  return ticks;
+}
+
 #define PERF_ITERS 100
 static mtev_boolean
 rdtsc_perf_test() {
-  int i, cpuid;
+  int i;
+  struct timeval tv;
   mtev_hrtime_t start, elapsed_fast, elapsed_system;
+
+  if(global_rdtsc_function == NULL) return mtev_false;
+
+  start = mtev_gethrtime_fallback();
+  for(i=0;i<PERF_ITERS;i++) mtev_get_nanos_force();
+  elapsed_fast = mtev_gethrtime_fallback() - start;
+  start = mtev_gethrtime_fallback();
+  for(i=0;i<PERF_ITERS;i++) gettimeofday(&tv, NULL);
+  elapsed_system = mtev_gethrtime_fallback() - start;
+
+  if(elapsed_fast > elapsed_system) use_system_gettimeofday = mtev_true;
+
   if(global_rdtsc_function == NULL) return mtev_false;
   start = mtev_gethrtime_fallback();
-  for(i=0;i<PERF_ITERS;i++) global_rdtsc_function(&cpuid);
+  for(i=0;i<PERF_ITERS;i++) mtev_get_nanos_force();
   elapsed_fast = mtev_gethrtime_fallback() - start;
   start = mtev_gethrtime_fallback();
   for(i=0;i<PERF_ITERS;i++) mtev_gethrtime_fallback();
