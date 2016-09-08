@@ -52,6 +52,8 @@
 #endif
 
 #ifdef ENABLE_RDTSC
+#define MAX_REASON_LEN 80
+static char variable_reason[MAX_REASON_LEN+1] = { '\0' };
 static const char *disable_reason = "still starting up";
 #else
 static const char *disable_reason = "compiled off";
@@ -418,12 +420,17 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
 }
 #endif
 
+static void
+mtev_log_reason() {
+  mtevL(mtev_notice, "mtev_time disabled: %s\n", disable_reason);
+}
 void
 mtev_time_toggle_tsc(mtev_boolean enable) 
 {
   enable_rdtsc = enable;
   if(!enable_rdtsc) {
     disable_reason = "explicitly disabled at runtime";
+    mtev_log_reason();
     mtev_time_reset_scale();
   }
 }
@@ -515,7 +522,10 @@ mtev_time_tsc_maintenance(void *unused) {
     mtev_thread_bind_to_cpu(i);
     global_rdtsc_function(&cpuid);
     if(i != cpuid) {
-      disable_reason = "bad rdtscp or cpuid mapping";
+      snprintf(variable_reason, MAX_REASON_LEN,
+               "bad rdtscp or cpuid mapping: bind(%d) -> cpuid:%d\n", i, cpuid);
+      disable_reason = variable_reason;
+      mtev_log_reason();
       enable_rdtsc = mtev_false;
       break;
     }
@@ -526,6 +536,7 @@ mtev_time_tsc_maintenance(void *unused) {
   while(1) {
     if(enable_rdtsc && !rdtsc_perf_test()) {
       disable_reason = "performance test failed";
+      mtev_log_reason();
       enable_rdtsc = false;
     }
     if(enable_rdtsc) {
@@ -543,7 +554,10 @@ mtev_time_tsc_maintenance(void *unused) {
         if(ready_rdtsc != is_ready) {
           mtevL(mtev_notice, "mtev_time -> fast mode %s\n", is_ready ? "enabled" : "disabled");
           ready_rdtsc = is_ready;
-          if(!ready_rdtsc) disable_reason = "not all processors synchronized";
+          if(!ready_rdtsc) {
+            disable_reason = "not all processors synchronized";
+            mtev_log_reason();
+          }
         }
         if(delay_us > 0) usleep(delay_us);
       }
@@ -581,6 +595,7 @@ mtev_time_start_tsc()
         if(require_invariant_tsc) {
           mtevL(mtev_notice, "fast time support disabled due to lack of invariant TSC support\n");
           disable_reason = "no invariant TSC";
+          mtev_log_reason();
           enable_rdtsc = mtev_false;
           global_rdtsc_function = NULL;
           return;
@@ -597,6 +612,7 @@ mtev_time_start_tsc()
       else {
         mtevL(mtev_notice, "CPU is wrong vendor or missing feature.  Cannot use TSC clock.\n");
         disable_reason = "No CPU support for TSC";
+        mtev_log_reason();
         enable_rdtsc = mtev_false;
         global_rdtsc_function = NULL;
         return;
