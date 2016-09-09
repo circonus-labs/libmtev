@@ -505,7 +505,7 @@ mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
 int
 mtev_http_rest_handler(eventer_t e, int mask, void *closure,
                        struct timeval *now) {
-  int newmask = EVENTER_READ | EVENTER_EXCEPTION, rv, done = 0;
+  int rv, done = 0;
   acceptor_closure_t *ac = closure;
   mtev_http_rest_closure_t *restc = ac->service_ctx;
 
@@ -513,7 +513,7 @@ mtev_http_rest_handler(eventer_t e, int mask, void *closure,
 socket_error:
     /* Exceptions cause us to simply snip the connection */
     eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &newmask, e);
+    (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
     acceptor_closure_free(ac);
     return 0;
   }
@@ -564,14 +564,14 @@ socket_error:
 int
 mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
                            struct timeval *now) {
-  int newmask = EVENTER_READ | EVENTER_EXCEPTION, rv, done = 0;
+  int rv, done = 0;
   acceptor_closure_t *ac = closure;
   mtev_http_rest_closure_t *restc = ac->service_ctx;
 
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
     /* Exceptions cause us to simply snip the connection */
     eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &newmask, e);
+    (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
     acceptor_closure_free(ac);
     return 0;
   }
