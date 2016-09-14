@@ -94,9 +94,10 @@ mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str,
   if (buff->string - buff->buff < str_len) {
     int bytes_stored = buff->buff_len - (buff->string - buff->buff);
     int new_buff_len = GROWTH_FACTOR(buff->buff_len + str_len);
-    char* tmp = calloc(1, new_buff_len);
+    char* tmp = calloc(1, new_buff_len + 1);
     buff->buff_len = new_buff_len;
     memcpy(tmp + buff->buff_len - bytes_stored, buff->string, bytes_stored);
+    tmp[buff->buff_len] = '\0';
     free(buff->buff);
     buff->buff = tmp;
     buff->string = buff->buff + buff->buff_len - bytes_stored;
@@ -111,9 +112,9 @@ mtev_prepend_str_alloc_sized(u_int initial_len) {
   mtev_prependable_str_buff_t* buff = calloc(1, sizeof(mtev_prependable_str_buff_t));
 
   buff->buff_len = initial_len;
-  buff->buff = calloc(1, buff->buff_len);
+  buff->buff = calloc(1, buff->buff_len+1);
   buff->string = buff->buff + buff->buff_len;
-
+  buff->string[buff->buff_len] = '\0';
   return buff;
 }
 
@@ -139,7 +140,7 @@ mtev_prepend_strlen(mtev_prependable_str_buff_t *buff) {
 }
 
 void mtev_append_str_buff(mtev_str_buff_t *buff, const char* str, uint str_len) {
-  if (buff->end - buff->string - buff->buff_len < str_len) {
+  if (buff->buff_len - (buff->end - buff->string) < str_len) {
     int bytes_stored = buff->end - buff->string;
     int new_buff_len = GROWTH_FACTOR(buff->buff_len + str_len);
     char* tmp = calloc(1, new_buff_len);
