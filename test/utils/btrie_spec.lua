@@ -15,7 +15,8 @@ void *mtev_find_bpm_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char *)
 ]=])
 
 -- This is for Illumos where inet_pton comes from libnsl, not libc
-local nsl = ffi.load('nsl')
+local nsl
+pcall((function() nsl = ffi.load('nsl') end))
 local inet_pton, AF_INET6
 local AF_INET = 2
 if nsl ~= nil then
