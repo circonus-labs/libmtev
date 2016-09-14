@@ -17,6 +17,7 @@
 int main(int argc, char **argv) 
 {
   mtev_thread_init();
+  mtev_time_start_tsc();
   mtev_hrtime_t start = mtev_sys_gethrtime();
   uint64_t nstart = mtev_get_nanos();
   usleep(1000000);

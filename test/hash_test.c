@@ -10,7 +10,7 @@ void *thread_func(void *arg)
 
   char *key = NULL;
   for (int i = 0; i < 100; i++) {
-    asprintf(&key, "%u-%d", (unsigned long) me, i);
+    asprintf(&key, "%lu-%d", (unsigned long) me, i);
     mtev_hash_store(h, key, strlen(key), key);
   }
 

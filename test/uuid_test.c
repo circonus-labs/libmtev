@@ -1,4 +1,5 @@
 #include <mtev_uuid_parse.h>
+#include <mtev_time.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdint.h>
