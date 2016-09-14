@@ -2,6 +2,7 @@ ffi = require('ffi')
 ffi.cdef([=[
 void *malloc(size_t);
 char *strdup(const char *);
+void free(void *);
 ]=])
 mtev = ffi.load('mtev')
 

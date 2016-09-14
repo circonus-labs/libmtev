@@ -14,12 +14,24 @@ void *mtev_find_bpm_route_ipv4(btrie *tree, struct in_addr *a, unsigned char *);
 void *mtev_find_bpm_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char *);
 ]=])
 
+-- This is for Illumos where inet_pton comes from libnsl, not libc
+local nsl = ffi.load('nsl')
+local inet_pton, AF_INET6
+local AF_INET = 2
+if nsl ~= nil then
+  inet_pton = nsl.inet_pton
+  AF_INET6 = 26
+else
+  inet_pton = ffi.C.inet_pton
+  AF_INET6 = 30 
+end
+
 local mkip = (function ()
   local ip4 = ffi.new("struct in_addr[?]", 1)
   local ip6 = ffi.new("struct in6_addr[?]", 1)
   return function(ip)
-    if(ffi.C.inet_pton(2, charstar(ip), ip4) == 1) then return ip4 end
-    if(ffi.C.inet_pton(30, charstar(ip), ip6) == 1) then return ip6 end
+    if(inet_pton(AF_INET, charstar(ip), ip4) == 1) then return ip4 end
+    if(inet_pton(AF_INET6, charstar(ip), ip6) == 1) then return ip6 end
     return nil
   end
 end)()
