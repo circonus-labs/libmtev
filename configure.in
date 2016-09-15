@@ -807,12 +807,8 @@ AC_DEFINE_UNQUOTED(UNAME_P, "$UNAME_P")
 AC_OUTPUT([
 Makefile
 src/Makefile
-src/eventer/Makefile
-src/json-lib/Makefile
 src/man/Makefile
 src/modules/Makefile
-src/utils/Makefile
-src/noitedit/Makefile
 src/examples/Makefile
 src/scripts/mtev-config
 test/Makefile
