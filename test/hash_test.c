@@ -1,6 +1,11 @@
 #include <mtev_hash.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+int failed;
 
 void *thread_func(void *arg) 
 {
@@ -19,7 +24,7 @@ void *thread_func(void *arg)
 
 #define THREAD_COUNT 4
 
-static void do_test(mtev_hash_lock_mode_t lock_mode) {
+static int do_test(mtev_hash_lock_mode_t lock_mode) {
   mtev_hash_table hash;
 
   mtev_hash_init_locks(&hash, 400, lock_mode);
@@ -44,6 +49,7 @@ static void do_test(mtev_hash_lock_mode_t lock_mode) {
   }
 
   mtev_hash_destroy(&hash, free, NULL);
+  return 0;
 }
 
 int main(int argc, char **argv) 
@@ -55,7 +61,25 @@ int main(int argc, char **argv)
 
   // this last one should do bad things.
   printf("NONE TEST, expect crash\n");
-  do_test(MTEV_HASH_LOCK_MODE_NONE);
+  pid_t child;
+  child = fork();
 
-  return 0;
+  if(child < 0) {
+    failed++;
+  }
+  else if(child == 0) {
+    exit(do_test(MTEV_HASH_LOCK_MODE_NONE));
+  }
+  else {
+    int status = 0;
+    if(waitpid(child, &status, 0) < 0) failed++;
+    else {
+      if(!WIFSIGNALED(status)) {
+        printf("expected crash did not crash\n");
+        failed++;
+      }
+    }
+  }
+
+  return failed;
 }
