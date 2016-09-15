@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ -n "$_DYLD_LIBRARY_PATH" ]]; then
+	DYLD_LIBRARY_PATH=$_DYLD_LIBRARY_PATH
+	export DYLD_LIBRARY_PATH
+fi
+
 rv=0
 for cmd in $@; do
 	if [[ "$VERBOSE" == "1" ]]; then
