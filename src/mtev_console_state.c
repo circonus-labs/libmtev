@@ -169,7 +169,7 @@ mtev_console_time_status(mtev_console_closure_t ncct, int argc, char **argv,
   mtev_boolean status;
   status = mtev_time_fast_mode(&reason);
   nc_printf(ncct, "rdtsc is current %s\n", status ? "active" : "inactive");
-  if(reason) nc_printf(ncct, "Reason: %s\n", reason);
+  if(reason) nc_printf(ncct, "%s\n", reason);
   return 0;
 }
 

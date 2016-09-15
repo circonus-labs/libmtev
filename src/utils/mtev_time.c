@@ -465,7 +465,7 @@ mtev_get_nanos_force(void)
   return ticks;
 }
 
-#define PERF_ITERS 100
+#define PERF_ITERS 10000
 static mtev_boolean
 rdtsc_perf_test() {
   int i;
@@ -745,5 +745,8 @@ mtev_boolean
 mtev_time_fast_mode(const char **reason)
 {
   if(reason) *reason = ready_rdtsc ? NULL : disable_reason;
+  if (ready_rdtsc && use_system_gettimeofday) {
+    *reason = "using system gettimeofday() for performance reasons";
+  }
   return ready_rdtsc;
 }
