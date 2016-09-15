@@ -75,8 +75,9 @@ LIBMTEV_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.lo)
 LIBMTEV_V=libmtev@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
 LIBMTEV_MINOR=libmtev@DOTSO@.$(SEMVER_MAJOR).$(SEMVER_MINOR)@DOTDYLIB@
 LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
+FAST_TIME_PRELOAD=@FAST_TIME_PRELOAD@
 
-TARGETS=$(LIBMTEV) $(LIBMTEV_MINOR) luamtev @MDB_MODS@
+TARGETS=$(LIBMTEV) $(LIBMTEV_MINOR) $(FAST_TIME_PRELOAD) luamtev @MDB_MODS@
 
 all:	reversion $(TARGETS) make-man build-modules
 
@@ -152,6 +153,10 @@ LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
 	$(MTEV_UTILS_OBJS) $(JSON_LIB_OBJS)
 
 FINAL_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
+
+mtev_time_fast.so:	utils/mtev_time_fast_preload.c
+	@echo " - making $@ preload"
+	$(Q)$(SHLD) $(SHCFLAGS) $(CPPFLAGS) -o $@ utils/mtev_time_fast_preload.c
 
 libmtev-objs/%.lo:	%.lo
 	$(Q)mkdir -p "`dirname $@`"
@@ -257,7 +262,7 @@ install-headers:	$(HEADERS) $(MAPPEDHEADERS)
 		$(INSTALL) -m 0644 $$file $(DESTDIR)$(includedir)/` echo $$file | sed -e 's/^[^\/]*\///'` ; \
 	done
 
-mtevlibs:	$(LIBMTEV_V) @MDB_MODS@
+mtevlibs:	$(LIBMTEV_V) @MDB_MODS@ $(FAST_TIME_PRELOAD)
 
 luamtev.o:      luamtev.c luamtev.conf.tmpl
 
@@ -277,6 +282,9 @@ install-libs:	mtevlibs
 	if test -n "@MDB_MODS@" ; then \
 		$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)/usr/lib/mdb/proc/amd64 ; \
 		$(INSTALL) -m 0755 mdb-support/libmtev.so $(DESTDIR)/usr/lib/mdb/proc/amd64/libmtev.so ; \
+	fi
+	if test -n "$(FAST_TIME_PRELOAD)" ; then \
+		$(INSTALL) -m 0755 $(FAST_TIME_PRELOAD) $(DESTDIR)$(libdir)/$(FAST_TIME_PRELOAD) ; \
 	fi
 
 install-modules:

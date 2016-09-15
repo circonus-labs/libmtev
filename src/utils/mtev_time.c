@@ -259,9 +259,26 @@ mtev_gethrtime_fallback() {
 #else
 static inline mtev_hrtime_t 
 mtev_gethrtime_fallback() {
+#if defined(sun) || defined(__sun__)
+    static hrtime_t (*gethrtimesym)();
+    if(gethrtimesym == NULL) gethrtimesym = dlsym(RTLD_NEXT, "gethrtime");
+    return (mtev_hrtime_t)gethrtimesym();
+#else
     return (mtev_hrtime_t)gethrtime();
+#endif
 }
 #endif
+
+static inline int
+mtev_gettimeofday_fallback(struct timeval *t, void *ttp) {
+#if defined(sun) || defined(__sun__)
+  static int (*gtodsym)(struct timeval *, void *);
+  if(gtodsym == NULL) gtodsym = dlsym(RTLD_NEXT, "gettimeofday");
+  return gtodsym(t, ttp);
+#else
+  return gettimeofday(t, ttp);
+#endif
+}
 
 int mtev_gettimeofday(struct timeval *t, void *ttp) {
 #ifdef ENABLE_RDTSC
@@ -277,7 +294,7 @@ int mtev_gettimeofday(struct timeval *t, void *ttp) {
     ck_pr_store_64(&hrtime_epoch_skew, 0);
   }
 #endif
-  return gettimeofday(t, ttp);
+  return mtev_gettimeofday_fallback(t, ttp);
 }
 
 #ifdef ENABLE_RDTSC
@@ -400,9 +417,9 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
       for(i=0;i<4;i++) {
         mtev_hrtime_t t_g;
         struct timeval g1, g2, diff;
-        gettimeofday(&g1, NULL);
+        mtev_gettimeofday_fallback(&g1, NULL);
         mtev_hrtime_t t_h = mtev_gethrtime_fallback();
-        gettimeofday(&g2, NULL);
+        mtev_gettimeofday_fallback(&g2, NULL);
         sub_timeval(g2, g1, &diff);
         add_timeval(g1, diff, &g1);
         t_g = (mtev_hrtime_t)g1.tv_sec * 1000000000UL + (mtev_hrtime_t)g1.tv_usec * 1000UL;
@@ -478,7 +495,7 @@ rdtsc_perf_test() {
   for(i=0;i<PERF_ITERS;i++) mtev_get_nanos_force();
   elapsed_fast = mtev_gethrtime_fallback() - start;
   start = mtev_gethrtime_fallback();
-  for(i=0;i<PERF_ITERS;i++) gettimeofday(&tv, NULL);
+  for(i=0;i<PERF_ITERS;i++) mtev_gettimeofday_fallback(&tv, NULL);
   elapsed_system = mtev_gethrtime_fallback() - start;
 
   if(elapsed_fast > elapsed_system) use_system_gettimeofday = mtev_true;
