@@ -1,5 +1,10 @@
 .NOTPARALLEL:
 
+Q=
+ifeq ($(V),)
+	Q=@
+endif
+
 CC=@CC@
 CPPFLAGS=@CPPFLAGS@
 CFLAGS=@CFLAGS@
@@ -31,13 +36,13 @@ all:	check
 TESTS=hash_test uuid_test time_test
 
 hash_test: hash_test.c
-	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o hash_test hash_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o hash_test hash_test.c
 
 uuid_test: uuid_test.c
-	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o uuid_test uuid_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o uuid_test uuid_test.c
 
 time_test: time_test.c
-	$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o time_test time_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o time_test time_test.c
 
 
 busted:
@@ -45,8 +50,12 @@ busted:
 		(echo "Please instead busted: luarocks install busted" && false)
 
 check:	busted $(TESTS)
-	_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua .
-	./run_standalone_tests.sh $(TESTS)
+	@echo
+	@echo "Running luajit-based tests via busted..."
+	$(Q)_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua .
+	@echo
+	@echo "Running other tests via script..."
+	$(Q)_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src ./run_standalone_tests.sh $(TESTS)
 
 tap:	busted
 	_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua -o tap .
