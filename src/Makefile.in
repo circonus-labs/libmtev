@@ -216,32 +216,28 @@ mdb-support/libmtev.so:	mdb-support/libmtev.lo mdb-support/mdb_help.lo
 	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ mdb-support/libmtev.lo mdb-support/mdb_help.lo
 
 .c.lo:
-	$(Q)if [ "`dirname $@`" != "." ] ; then \
-		(cd "`dirname $@`" && $(MAKE) "`basename $@`") ; \
-	else \
-		echo "- compiling $<" ; \
-	  $(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@ ; \
-	fi
+	@echo "- compiling $<"
+	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
 
 .c.o:
-	$(Q)if [ "`dirname $@`" != "." ] ; then \
-		(cd "`dirname $@`" && $(MAKE) "`basename $@`") ; \
-	else \
-		echo "- compiling $<" ; \
-		$(CC) $(CPPFLAGS) $(CFLAGS) -c $< ; \
-	fi
+	@echo "- compiling $<"
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 utils/mtev_atomic_sol_sparcv8plus.o:	utils/mtev_atomic_sol.s
-	$(Q)(cd utils && $(MAKE) mtev_atomic_sol_sparcv8plus.o)
+	@as -P -xarch=v8plus -o $@ utils/mtev_atomic_sol.s
+	@echo "- assembling $@"
 
 utils/mtev_atomic_sol_sparcv9.o:	utils/mtev_atomic_sol.s
-	$(Q)(cd utils && $(MAKE) mtev_atomic_sol_sparcv9.o)
+	@as -P -xarch=v9 -o $@ utils/mtev_atomic_sol.s
+	@echo "- assembling $@"
 
 utils/mtev_atomic_sol_x86_32.o:	utils/mtev_atomic_sol.s
-	$(Q)(cd utils && $(MAKE) mtev_atomic_sol_x86_32.o)
+	@as -P -o $@ utils/mtev_atomic_sol.s
+	@echo "- assembling $@"
 
 utils/mtev_atomic_sol_x86_64.o:	utils/mtev_atomic_sol.s
-	$(Q)(cd utils && $(MAKE) mtev_atomic_sol_x86_64.o)
+	@as -P -xarch=generic64 -o $@ utils/mtev_atomic_sol.s
+	@echo "- assembling $@"
 
 mtev_tokenizer.c:
 	@echo "- re2c mtev_tokenizer.re"
@@ -293,35 +289,29 @@ install:	install-bins install-docs install-headers install-libs install-modules
 
 clean:
 	rm -f *.lo *.o libmtev_dtrace_probes.h
+	for subdir in eventer noitedit utils json-lib; do \
+		rm -f $$subdir/*.lo $$subdir/*.o; \
+	done
 	rm -f $(LIBMTEV) $(LIBMTEV_V)
 	rm -rf libmtev-objs
 	rm -rf mdb-support/*.lo mdb-support/*.so
-	(cd eventer && $(MAKE) clean)
 	(cd man && $(MAKE) clean)
 	(cd modules && $(MAKE) clean)
-	(cd noitedit && $(MAKE) clean)
-	(cd utils && $(MAKE) clean)
-	(cd json-lib && $(MAKE) clean)
 
 Makefile.dep:
 	$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
-	for d in utils udns eventer noitedit json-lib ; do \
+	for d in utils eventer noitedit json-lib ; do \
 		$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $$d/*.c | \
 		perl -pe 's#(\s)([^\s\\])#$$1$$2#g; s#^(\S)#'$$d'/$$1#;' >> \
 		Makefile.dep ; \
 	done
+	$(top_srcdir)/buildtools/culldeps.sh $@
 	for impl in kqueue ports epoll; do \
 		echo "libmtev-objs/eventer/eventer_$${impl}_impl.o: eventer/eventer_$${impl}_impl.o" >> $@ ; \
 		echo "libmtev-objs/eventer/eventer_$${impl}_impl.lo: eventer/eventer_$${impl}_impl.lo" >> $@ ; \
 	done
-	$(top_srcdir)/buildtools/culldeps.sh Makefile.dep
 
 include Makefile.dep
-
-distclean-subdirs:
-	for dir in eventer man modules noitedit utils json-lib ; do \
-		(cd $$dir && $(MAKE) distclean) ; \
-	done
 
 distclean:	clean distclean-subdirs
 	rm -f Makefile mtev_config.h scripts/mtev-config

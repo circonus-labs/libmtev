@@ -310,6 +310,13 @@ mtev_xml.o mtev_xml.lo: mtev_xml.c mtev_defines.h mtev_config.h \
   ../src/utils/mtev_atomic.h ../src/utils/mtev_time.h \
   ../src/utils/mtev_mkdir.h
 
+time.o time.lo: time.c mtev_defines.h mtev_config.h \
+  noitedit/strlcpy.h mtev_config.h \
+  ../src/utils/mtev_log.h mtev_defines.h ../src/utils/mtev_hash.h \
+  ../src/utils/mtev_atomic.h  \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_atomic.h ../src/utils/mtev_time.h mtev_thread.h
+
 utils/mtev_b32.o utils/mtev_b32.lo: utils/mtev_b32.c mtev_config.h utils/mtev_b64.h \
   mtev_defines.h mtev_config.h  \
   noitedit/strlcpy.h
@@ -433,7 +440,7 @@ utils/mtev_watchdog.o utils/mtev_watchdog.lo: utils/mtev_watchdog.c mtev_defines
   eventer/eventer_SSL_fd_opset.h eventer/eventer_jobq.h \
   ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
   utils/mtev_log.h \
-  utils/mtev_watchdog.h
+  utils/mtev_time.h utils/mtev_watchdog.h
 
 utils/mtev_zipkin.o utils/mtev_zipkin.lo: utils/mtev_zipkin.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h \
@@ -890,15 +897,9 @@ json-lib/mtev_linkhash.o json-lib/mtev_linkhash.lo: json-lib/mtev_linkhash.c jso
 
 json-lib/mtev_printbuf.o json-lib/mtev_printbuf.lo: json-lib/mtev_printbuf.c mtev_config.h \
   json-lib/mtev_bits.h json-lib/mtev_debug.h json-lib/mtev_printbuf.h
-
-libmtev-objs/eventer/eventer_kqueue_impl.o libmtev-objs/eventer/eventer_kqueue_impl.lo: eventer/eventer_kqueue_impl.o
-
+libmtev-objs/eventer/eventer_kqueue_impl.o: eventer/eventer_kqueue_impl.o
 libmtev-objs/eventer/eventer_kqueue_impl.lo: eventer/eventer_kqueue_impl.lo
-
-libmtev-objs/eventer/eventer_ports_impl.o libmtev-objs/eventer/eventer_ports_impl.lo: eventer/eventer_ports_impl.o
-
+libmtev-objs/eventer/eventer_ports_impl.o: eventer/eventer_ports_impl.o
 libmtev-objs/eventer/eventer_ports_impl.lo: eventer/eventer_ports_impl.lo
-
-libmtev-objs/eventer/eventer_epoll_impl.o libmtev-objs/eventer/eventer_epoll_impl.lo: eventer/eventer_epoll_impl.o
-
+libmtev-objs/eventer/eventer_epoll_impl.o: eventer/eventer_epoll_impl.o
 libmtev-objs/eventer/eventer_epoll_impl.lo: eventer/eventer_epoll_impl.lo
