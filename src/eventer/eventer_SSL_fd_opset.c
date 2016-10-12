@@ -404,11 +404,22 @@ eventer_ssl_set_peer_##type(eventer_ssl_ctx_t *ctx, \
   X509 *peer; \
   peer = X509_STORE_CTX_get_current_cert(x509ctx); \
   X509_NAME_oneline(X509_get_##type##_name(peer), buffer, sizeof(buffer)-1); \
+  buffer[sizeof(buffer)-1] = '\0'; \
   if(ctx->type) free(ctx->type); \
   ctx->type = strdup(buffer); \
 } \
 const char * \
 eventer_ssl_get_peer_##type(eventer_ssl_ctx_t *ctx) { \
+  if(ctx->type == NULL) { \
+    char buffer[1024]; \
+    X509 *peer = SSL_get_peer_certificate(ctx->ssl); \
+    if(peer != NULL) { \
+      X509_NAME_oneline(X509_get_##type##_name(peer), buffer, sizeof(buffer)-1); \
+      buffer[sizeof(buffer)-1] = '\0'; \
+      if(ctx->type) free(ctx->type); \
+      ctx->type = strdup(buffer); \
+    } \
+  } \
   return ctx->type; \
 }
 
