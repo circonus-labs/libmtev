@@ -2401,10 +2401,10 @@ nl_gunzip_deflate(lua_State *L) {
       if(zerr == Z_OK || zerr == Z_STREAM_END) {
         if(outlen > 0) lua_pushlstring(L, (char *)data, outlen);
         else lua_pushstring(L, "");
-        if(data) free(data);
+        free(data);
         return 1;
       }
-      if(data) free(data);
+      free(data);
       switch(zerr) {
         case Z_NEED_DICT: luaL_error(L, "zlib: dictionary error"); break;
         case Z_STREAM_ERROR: luaL_error(L, "zlib: stream error"); break;
@@ -2416,11 +2416,15 @@ nl_gunzip_deflate(lua_State *L) {
       }
       break;
     case READ_LIMIT_EXCEEDED:
+      free(data);
       luaL_error(L, "HTTP client internal error: download exceeded maximum read size (%d bytes)\n",
                  limit);
       break;
-    case MALLOC_FAILED: luaL_error(L, "HTTP client internal error: out-of-memory"); break;
+    case MALLOC_FAILED:
+      free(data);
+      luaL_error(L, "HTTP client internal error: out-of-memory"); break;
   }
+  
   lua_pushnil(L);
   return 1;
 }
