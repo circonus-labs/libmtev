@@ -788,14 +788,13 @@ mtev_reverse_socket_acceptor(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    /* since we need to free the ac under abnormal circumstances, we must disassociate the service_ctx_free */
-    ac->service_ctx_free = NULL;
-    acceptor_closure_free(ac);
-    /* now clean up the reverse socket directly ourselves */
+    mtev_reverse_socket_ref(rc);
     mtev_reverse_socket_shutdown(rc, e);
+    mtev_reverse_socket_deref(rc);
+    acceptor_closure_free(ac);
     eventer_remove_fd(e->fd);
-    mtevL(nldeb, "reverse_socket: %s\n", socket_error_string);
     e->opset->close(e->fd, &mask, e);
+    mtevL(nldeb, "reverse_socket: %s\n", socket_error_string);
     return 0;
   }
 
