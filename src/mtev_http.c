@@ -453,7 +453,7 @@ _fixup_bchain(struct bchain *b) {
   /* make sure lines (CRLF terminated) don't cross chain boundaries */
   while(b) {
     struct bchain *f;
-    int start_in_b, end_in_f;
+    ssize_t start_in_b, end_in_f;
     size_t new_size;
     const char *str_in_f;
 
@@ -464,7 +464,7 @@ _fixup_bchain(struct bchain *b) {
         continue;
       }
       start_in_b = b->start + b->size - 3; /* we already checked -2 */
-      while(start_in_b >= b->start) {
+      while(start_in_b >= (ssize_t) b->start) {
         if(b->buff[start_in_b] == '\r' && b->buff[start_in_b+1] == '\n') {
           start_in_b += 2;
           break;
