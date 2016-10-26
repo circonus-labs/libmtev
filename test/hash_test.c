@@ -59,6 +59,11 @@ int main(int argc, char **argv)
   printf("SPIN TEST\n");
   do_test(MTEV_HASH_LOCK_MODE_SPIN);
 
+  if(sysconf(_SC_NPROCESSORS_ONLN) <= 1) {
+    printf("crash test skipped as it is hard to do on single cpu machines\n");
+    return failed;
+  }
+
   // this last one should do bad things.
   printf("NONE TEST, expect crash\n");
   pid_t child;
