@@ -31,6 +31,8 @@ sysconfdir=@sysconfdir@
 srcdir=@srcdir@
 top_srcdir=@top_srcdir@
 
+LD_LIBRARY_PATH=../src
+
 all:	check
 
 TESTS=hash_test uuid_test time_test
@@ -52,13 +54,13 @@ busted:
 check:	busted $(TESTS)
 	@echo
 	@echo "Running luajit-based tests via busted..."
-	$(Q)_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua .
+	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) busted --helper=mtev_load.lua .
 	@echo
 	@echo "Running other tests via script..."
-	$(Q)_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src ./run_standalone_tests.sh $(TESTS)
+	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./run_standalone_tests.sh $(TESTS)
 
 tap:	busted
 	_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua -o tap .
 
 clean:
-	rm -f hash_test
+	rm -f $(TESTS)

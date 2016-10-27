@@ -262,6 +262,8 @@ mtev_gethrtime_fallback() {
 #if defined(sun) || defined(__sun__)
     static hrtime_t (*gethrtimesym)();
     if(gethrtimesym == NULL) gethrtimesym = dlsym(RTLD_NEXT, "gethrtime");
+    /* Maybe we've been loaded from a system that doesn't use libc? */
+    if(gethrtimesym == NULL) return (mtev_hrtime_t)gethrtime();
     return (mtev_hrtime_t)gethrtimesym();
 #else
     return (mtev_hrtime_t)gethrtime();
@@ -469,7 +471,7 @@ mtev_get_nanos_force(void)
 
   if(NO_TSC) {
     ticks = global_rdtsc_function(&cpuid);
-  } else {
+  } else if(global_rdtsc_function != NULL) {
     ticks = global_rdtsc_function(&cpuid);
   }
   if(fetch_cclock_scale(cpuid, &cs) == mtev_false) {
