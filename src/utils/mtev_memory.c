@@ -336,3 +336,232 @@ void mtev_memory_ck_free(void *p, size_t b, bool r) {
 void mtev_memory_safe_free(void *p) {
   mtev_memory_ck_free_func(p, 0, true, mtev_memory_real_free);
 }
+
+struct mtev_allocator_options {
+  mtev_boolean wants_fill;
+  int freelist_limit;
+  uint64_t fill;
+  size_t alignment;
+  size_t fixed_size;
+  uint32_t hints;
+};
+
+struct tls_data_container {
+  mtev_allocator_t a;
+  /* overalloc an put impl specific stuff later */
+};
+
+struct mtev_allocator {
+  struct mtev_allocator_options options;
+  pthread_key_t tls;
+  struct tls_data_container *(*tls_setup)(struct mtev_allocator *);
+  void (*tls_teardown)(struct mtev_allocator *, struct tls_data_container *);
+  void *(*malloc_impl)(struct mtev_allocator *, size_t);
+  void *(*calloc_impl)(struct mtev_allocator *, size_t, size_t);
+  void *(*realloc_impl)(struct mtev_allocator *, void *, size_t);
+  void *(*reallocf_impl)(struct mtev_allocator *, void *, size_t);
+  void (*free_impl)(struct mtev_allocator *, void *);
+  void (*release_impl)(struct mtev_allocator *, void *);
+};
+
+mtev_allocator_options_t mtev_allocator_options_create() {
+  return calloc(1, sizeof(struct mtev_allocator_options));
+}
+void mtev_allocator_options_free(mtev_allocator_options_t ptr) {
+  free(ptr);
+}
+void
+mtev_allocator_options_alignment(mtev_allocator_options_t opt, size_t alignment) {
+  opt->alignment = alignment;
+}
+void
+mtev_allocator_options_fixed_size(mtev_allocator_options_t opt, size_t size) {
+  opt->fixed_size = size;
+}
+void
+mtev_allocator_options_fill(mtev_allocator_options_t opt, uint64_t fill) {
+  opt->wants_fill = mtev_true;
+  opt->fill = fill;
+}
+void
+mtev_allocator_options_freelist_perthreadlimit(mtev_allocator_options_t opt, int items) {
+  opt->freelist_limit = items;
+}
+void
+mtev_allocator_options_hints(mtev_allocator_options_t opt, uint32_t hints) {
+  opt->hints = hints;
+}
+
+static inline void *
+mtev_memory_fill(mtev_allocator_t a, void *ptr, size_t size) {
+  size_t sp = 0;
+  if(!a->options.wants_fill) return ptr;
+  while(sp < size) {
+    size_t towrite = size-sp;
+    if(towrite > sizeof(uint64_t)) towrite = sizeof(uint64_t);
+    memcpy(ptr + sp, &a->options.fill, towrite);
+    sp += sizeof(uint64_t);
+  }
+  return ptr;
+}
+
+void *mtev_malloc(mtev_allocator_t a, size_t size) {
+  assert(a);
+  if(a->options.fixed_size && a->options.fixed_size < size) return NULL;
+  return mtev_memory_fill(a, a->malloc_impl(a, size), size);
+}
+void *mtev_calloc(mtev_allocator_t a, size_t nmemb, size_t elemsize) {
+  assert(a);
+  if(a->options.fixed_size && a->options.fixed_size < (nmemb*elemsize)) return NULL;
+  return a->calloc_impl(a, nmemb, elemsize);
+}
+void *mtev_realloc(mtev_allocator_t a, void *ptr, size_t size) {
+  assert(a);
+  if(a->options.fixed_size && a->options.fixed_size < size) return NULL;
+  return a->realloc_impl(a, ptr, size);
+}
+void *mtev_reallocf(mtev_allocator_t a, void *ptr, size_t size) {
+  assert(a);
+  if(a->options.fixed_size && a->options.fixed_size < size) {
+    mtev_free(a, ptr);
+    return NULL;
+  }
+  return a->reallocf_impl(a, ptr, size);
+}
+void mtev_free(mtev_allocator_t a, void *ptr) {
+  assert(a);
+  a->free_impl(a, ptr);
+}
+
+struct mtev_alloc_freelist_node {
+  struct mtev_alloc_freelist_node *next;
+};
+
+/* Default allocator implementation */
+struct default_allocator_data_container {
+  mtev_allocator_t a;
+  int freelist_size;
+  struct mtev_alloc_freelist_node *freelist;
+};
+
+static struct tls_data_container *
+default_allocator_tls_setup(mtev_allocator_t a) {
+  struct default_allocator_data_container *dadc;
+  dadc = calloc(1, sizeof(*dadc));
+  dadc->a = a;
+  return (struct tls_data_container *)dadc;
+}
+static void
+default_allocator_tls_teardown(mtev_allocator_t a, struct tls_data_container *tdc) {
+  struct default_allocator_data_container *dadc;
+  struct mtev_alloc_freelist_node *tofree;
+  if(!tdc) return;
+  dadc = (struct default_allocator_data_container *)tdc;
+  while(NULL != (tofree = dadc->freelist)) {
+    dadc->freelist = tofree->next;
+    a->release_impl(a, tofree);
+  }
+  free(tdc);
+}
+static struct default_allocator_data_container *
+default_allocator_gettls(mtev_allocator_t a) {
+  void *tls = pthread_getspecific(a->tls);
+  struct default_allocator_data_container *dadc = tls;
+  if(!dadc) {
+    dadc = calloc(1, sizeof(struct default_allocator_data_container));
+    dadc->a = a;
+    pthread_setspecific(a->tls, dadc);
+  }
+  return dadc;
+}
+static void *
+default_allocator_malloc(mtev_allocator_t a, size_t size) {
+  struct default_allocator_data_container *dadc = default_allocator_gettls(a);
+  size = MAX(size, sizeof(void *));
+  assert(a->options.fixed_size == 0 || size <= a->options.fixed_size);
+  if(a->options.fixed_size > 0) {
+    if(a->options.freelist_limit > 0 && dadc->freelist) {
+    /* FreeList applies */
+      void *ptr = dadc->freelist;
+      dadc->freelist = dadc->freelist->next;
+      dadc->freelist_size--;
+      return ptr;
+    }
+    return malloc(a->options.fixed_size);
+  }
+  return malloc(size);
+}
+
+static void *
+default_allocator_calloc(mtev_allocator_t a, size_t nmemb, size_t elemsize) {
+  void *ptr;
+  size_t size = nmemb * elemsize;
+  if(size < nmemb || size < elemsize) /* rolled */ return NULL;
+  ptr = default_allocator_malloc(a, size);
+  memset(ptr, 0, size);
+  return ptr;
+}
+
+static void *
+default_allocator_realloc(mtev_allocator_t a, void *ptr, size_t size) {
+  void *newptr;
+  size = MAX(size, sizeof(void *));
+  if(a->options.fixed_size && a->options.fixed_size >= size) return ptr;
+  newptr = realloc(ptr, size);
+  return newptr;
+}
+
+static void *
+default_allocator_reallocf(mtev_allocator_t a, void *ptr, size_t size) {
+  void *newptr;
+  size = MAX(size, sizeof(void *));
+  if(a->options.fixed_size && a->options.fixed_size >= size) return ptr;
+  newptr = realloc(ptr, size);
+  if(newptr == NULL) a->free_impl(a,ptr);
+  return newptr;
+}
+
+static void
+default_allocator_free(mtev_allocator_t a, void *ptr) {
+  if(a->options.fixed_size) {
+    /* freelists */
+    struct default_allocator_data_container *dadc = default_allocator_gettls(a);
+    if(a->options.freelist_limit < dadc->freelist_size) {
+      struct mtev_alloc_freelist_node *node = ptr;
+      node->next = dadc->freelist;
+      dadc->freelist = node;
+      dadc->freelist_size++;
+    }
+  }
+  a->release_impl(a,ptr);
+}
+
+static void
+default_allocator_release(mtev_allocator_t a, void *ptr) {
+  free(ptr);
+}
+
+static struct mtev_allocator default_allocator = {
+  .tls_setup = default_allocator_tls_setup,
+  .tls_teardown = default_allocator_tls_teardown,
+  .malloc_impl = default_allocator_malloc,
+  .calloc_impl = default_allocator_calloc,
+  .realloc_impl = default_allocator_realloc,
+  .reallocf_impl = default_allocator_reallocf,
+  .free_impl = default_allocator_free,
+  .release_impl = default_allocator_release,
+};
+
+void mtev_allocator_thread_teardown(void *tls_data) {
+  struct tls_data_container *tdc = (struct tls_data_container *)tls_data;
+  tdc->a->tls_teardown(tdc->a, tls_data);
+}
+mtev_allocator_t mtev_allocator_create(mtev_allocator_options_t opt) {
+  mtev_allocator_t allocator = calloc(1, sizeof(*allocator));
+  /* could potentially use something else based on hints */
+  memcpy(allocator, &default_allocator, sizeof(default_allocator));
+  memcpy(&allocator->options, opt, sizeof(*opt));
+  pthread_key_create(&allocator->tls, mtev_allocator_thread_teardown);
+  return allocator;
+}
+
