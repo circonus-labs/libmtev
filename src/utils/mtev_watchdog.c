@@ -177,11 +177,12 @@ int mtev_monitored_child_pid = -1;
 
 void run_glider(int pid, glide_reason_t glide_reason) {
   const char *glide_reason_str = "unkown";
-  char cmd[1024], unused;
+  char cmd[1024];
+  int unused __attribute__((unused));
   if(glider_path) {
     char *oldpath, oldpath_buf[PATH_MAX];
     oldpath = getcwd(oldpath_buf, sizeof(oldpath_buf));
-    if(oldpath) chdir(trace_dir);
+    if(oldpath) unused = chdir(trace_dir);
     switch(glide_reason) {
       case GLIDE_CRASH: glide_reason_str = "crash"; break;
       case GLIDE_WATCHDOG: glide_reason_str = "watchdog"; break;
@@ -190,9 +191,8 @@ void run_glider(int pid, glide_reason_t glide_reason) {
     snprintf(cmd, sizeof(cmd), "%s %d %s > %s/%s.%d.trc",
              glider_path, pid, glide_reason_str, trace_dir, appname, pid);
     unused = system(cmd);
-    if(oldpath) chdir(oldpath);
+    if(oldpath) unused = chdir(oldpath);
   }
-  (void)unused;
 }
 
 static void close_fds() {
@@ -284,9 +284,10 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
     struct stat sb;
     char stackbuff[4096];
     void* callstack[128];
+    int unused __attribute__((unused));
     int i, frames = backtrace(callstack, 128);
     lseek(_global_stack_trace_fd, 0, SEEK_SET);
-    ftruncate(_global_stack_trace_fd, 0);
+    unused = ftruncate(_global_stack_trace_fd, 0);
     backtrace_symbols_fd(callstack, frames, _global_stack_trace_fd);
     memset(&sb, 0, sizeof(sb));
     while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);
@@ -326,7 +327,8 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
       /* the subsequent dump may take a while on big processes and slow disks */
       mtevL(mtev_error, "crash resources released\n");
     }
-    chdir(trace_dir); /* switch to this directory to drop our core */
+    int unused __attribute__((unused));
+    unused = chdir(trace_dir); /* switch to this directory to drop our core */
     kill(mtev_monitored_child_pid, sig);
   }
   mtev_log_leave_sighandler();

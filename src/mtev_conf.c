@@ -163,7 +163,9 @@ void mtev_conf_write_section(mtev_conf_section_t node, int fd) {
   out = xmlOutputBufferCreateFd(fd, enc);
   xmlNodeDumpOutput(out, master_config, node, 2, 0, "utf8");
   xmlOutputBufferClose(out);
-  write(2, "\n", 1);
+  if(write(fd, "\n", 1) < 0) {
+    mtevL(mtev_debug, "Odd error writeing LF to conf\n");
+  }
   xmlFree(enc);
 }
 
@@ -192,7 +194,11 @@ write_out_include_files(include_node_t *include_nodes, int include_node_cnt) {
 
     sprintf(filename, "%s.tmp", include_nodes[i].path);
     fd = open(filename, O_CREAT|O_TRUNC|O_WRONLY, mode);
-    fchown(fd, uid, gid);
+    if(fchown(fd, uid, gid) < 0) {
+      mtevL(mtev_error, "failed to fchown file: %s\n", strerror(errno));
+      close(fd);
+      continue;
+    }
 
     enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
     out = xmlOutputBufferCreateFd(fd, enc);
@@ -1902,7 +1908,12 @@ mtev_conf_write_file(char **err) {
     if(err) *err = strdup(errstr);
     return -1;
   }
-  fchown(fd, uid, gid);
+  if(fchown(fd, uid, gid) < 0) {
+    close(fd);
+    unlink(master_file_tmp);
+    if(err) *err = strdup("internal error: fchown failed");
+    return -1;
+  }
 
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
   out = xmlOutputBufferCreateFd(fd, enc);

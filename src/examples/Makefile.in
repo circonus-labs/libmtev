@@ -1,5 +1,10 @@
 .SUFFIXES:	.lo
 
+Q=
+ifeq ($(V),)
+	Q=@
+endif
+
 top_srcdir=@top_srcdir@
 
 CC=@CC@
@@ -7,7 +12,7 @@ CPPFLAGS=-I$(top_srcdir)/src @CPPFLAGS@ \
 	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/modules
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
-LDFLAGS=@LDFLAGS@ -ldl
+LDFLAGS=@LDFLAGS@
 DEPFLAGS=@DEPFLAGS@
 AR=@AR@
 RANLIB=@RANLIB@
@@ -24,20 +29,20 @@ all:	example1 fq-router websocket_server
 
 .c.o:
 	@echo "- compiling $<"
-	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
 
 example1:	$(EX1_OBJS)
 	@echo "- linking $@"
-	@$(CC) -L.. $(LDFLAGS) $(LIBS) -o $@ $(EX1_OBJS) -lmtev
+	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(EX1_OBJS) $(LIBS) -lmtev
 
 fq-router:	$(FQR_OBJS)
 	@echo "- linking $@"
-	@$(CC) -L.. $(LDFLAGS) $(LIBS) -o $@ $(FQR_OBJS) -lmtev -lfq
+	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(FQR_OBJS) $(LIBS) -lmtev -lfq -ldl
 
 websocket_server:	$(WSS_OBJS)
 	@echo "- linking $@"
 	@echo "LDFLAGS=$(LDFLAGS)"
-	@$(CC) -L.. $(LDFLAGS) $(LIBS) -o $@ $(WSS_OBJS) -lmtev
+	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(WSS_OBJS) $(LIBS) -lmtev
 
 clean:
 	rm -f *.o example1 websocket_server fq-router
