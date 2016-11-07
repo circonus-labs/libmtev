@@ -619,7 +619,8 @@ posix_logio_reopen(mtev_log_stream_t ls) {
         if(oldrv == 0 && /* have ownership of old file */
            (po->sb.st_uid != sb.st_uid || po->sb.st_gid != sb.st_gid)) {
           /* doesn't match the new one, set the new one like the old one */
-          (void)fchown(newfd, po->sb.st_uid, po->sb.st_gid);
+          int unused __attribute__((unused));
+          unused = fchown(newfd, po->sb.st_uid, po->sb.st_gid);
           /* Not much we can do if it fails. */
           sb.st_uid = po->sb.st_uid;
           sb.st_gid = po->sb.st_gid;

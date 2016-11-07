@@ -354,7 +354,8 @@ static int eventer_epoll_eventfd_read(eventer_t e, int mask,
   (void)now;
   (void)closure;
   uint64_t dummy;
-  (void)read(e->fd, &dummy, sizeof(dummy));
+  int unused __attribute__((unused));
+  unused = read(e->fd, &dummy, sizeof(dummy));
   return EVENTER_READ;
 }
 #endif
@@ -435,7 +436,8 @@ static void eventer_epoll_impl_wakeup(eventer_t e) {
   spec = eventer_get_spec_for_event(e);
   if(spec->event_fd >= 0) {
     uint64_t nudge = 1;
-    (void)write(spec->event_fd, &nudge, sizeof(nudge));
+    int unused __attribute__((unused));
+    unused = write(spec->event_fd, &nudge, sizeof(nudge));
   }
 #endif
 }

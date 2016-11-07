@@ -73,7 +73,9 @@ make_config() {
     exit(-2);
   }
   if(dump_template) {
-    write(STDOUT_FILENO, outbuf, len);
+    if(write(STDOUT_FILENO, outbuf, len) < 0) {
+      exit(-1);
+    }
     exit(0);
   }
   fd = mkstemp(filename);
