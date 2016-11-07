@@ -1806,21 +1806,25 @@ asynch_log_ctx boot_stderr_actx = {
   .is_asynch = 0
 };
 
+pthread_rwlock_t boot_stderr_ls_lock = PTHREAD_RWLOCK_INITIALIZER;
 struct _mtev_log_stream boot_stderr_ls = {
   .flags = MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS,
   .name = "stderr",
   .ops = &posix_logio_ops,
   .op_ctx = &boot_stderr_actx,
   .deps_materialized = 1,
+  .lock = &boot_stderr_ls_lock,
   .flags_below = MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS
 };
 
+pthread_rwlock_t boot_debug_ls_lock = PTHREAD_RWLOCK_INITIALIZER;
 struct _mtev_log_stream boot_debug_ls = {
   .flags = MTEV_LOG_STREAM_TIMESTAMPS,
   .name = "debug",
   .ops = &posix_logio_ops,
   .op_ctx = &boot_stderr_actx,
   .deps_materialized = 1,
+  .lock = &boot_debug_ls_lock,
   .flags_below = MTEV_LOG_STREAM_TIMESTAMPS
 };
 
