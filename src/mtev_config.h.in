@@ -147,6 +147,7 @@
 #undef HAVE_POLL
 #undef HAVE_VASPRINTF
 #undef HAVE_SETPPRIV
+#undef HAVE_LIBUMEM
 
 /* Kernel kqueue() support */
 #undef HAVE_KQUEUE

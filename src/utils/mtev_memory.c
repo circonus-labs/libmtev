@@ -37,6 +37,9 @@
 #include "mtev_memory.h"
 #include "mtev_thread.h"
 
+#if defined(HAVE_LIBUMEM)
+#include <umem.h>
+#endif
 #define MTEV_EPOCH_SAFE_MAGIC 0x5afe5afe
 
 static int initialized = 0;
@@ -337,7 +340,9 @@ void mtev_memory_safe_free(void *p) {
   mtev_memory_ck_free_func(p, 0, true, mtev_memory_real_free);
 }
 
+static mtev_atomic32_t nallocators;
 struct mtev_allocator_options {
+  char name[32];
   mtev_boolean wants_fill;
   int freelist_limit;
   uint64_t fill;
@@ -354,6 +359,7 @@ struct tls_data_container {
 struct mtev_allocator {
   struct mtev_allocator_options options;
   pthread_key_t tls;
+  void *impl_data;
   struct tls_data_container *(*tls_setup)(struct mtev_allocator *);
   void (*tls_teardown)(struct mtev_allocator *, struct tls_data_container *);
   void *(*malloc_impl)(struct mtev_allocator *, size_t);
@@ -369,6 +375,10 @@ mtev_allocator_options_t mtev_allocator_options_create() {
 }
 void mtev_allocator_options_free(mtev_allocator_options_t ptr) {
   free(ptr);
+}
+void
+mtev_allocator_options_name(mtev_allocator_options_t opt, char *name) {
+  strlcpy(opt->name, name, sizeof(opt->name));
 }
 void
 mtev_allocator_options_alignment(mtev_allocator_options_t opt, size_t alignment) {
@@ -463,20 +473,15 @@ default_allocator_tls_teardown(mtev_allocator_t a, struct tls_data_container *td
   }
   free(tdc);
 }
-static struct default_allocator_data_container *
-default_allocator_gettls(mtev_allocator_t a) {
-  void *tls = pthread_getspecific(a->tls);
-  struct default_allocator_data_container *dadc = tls;
-  if(!dadc) {
-    dadc = calloc(1, sizeof(struct default_allocator_data_container));
-    dadc->a = a;
-    pthread_setspecific(a->tls, dadc);
-  }
-  return dadc;
+static struct tls_data_container *
+generic_allocator_gettls(mtev_allocator_t a) {
+  if(a->tls_setup == NULL) return NULL;
+  return pthread_getspecific(a->tls);
 }
 static void *
 default_allocator_malloc(mtev_allocator_t a, size_t size) {
-  struct default_allocator_data_container *dadc = default_allocator_gettls(a);
+  struct default_allocator_data_container *dadc =
+    (struct default_allocator_data_container *)generic_allocator_gettls(a);
   size = MAX(size, sizeof(void *));
   assert(a->options.fixed_size == 0 || size <= a->options.fixed_size);
   if(a->options.fixed_size > 0) {
@@ -525,7 +530,8 @@ static void
 default_allocator_free(mtev_allocator_t a, void *ptr) {
   if(a->options.fixed_size) {
     /* freelists */
-    struct default_allocator_data_container *dadc = default_allocator_gettls(a);
+    struct default_allocator_data_container *dadc =
+      (struct default_allocator_data_container *)generic_allocator_gettls(a);
     if(a->options.freelist_limit < dadc->freelist_size) {
       struct mtev_alloc_freelist_node *node = ptr;
       node->next = dadc->freelist;
@@ -551,17 +557,99 @@ static struct mtev_allocator default_allocator = {
   .free_impl = default_allocator_free,
   .release_impl = default_allocator_release,
 };
+static void
+default_allocator_init(struct mtev_allocator *a, mtev_allocator_options_t opt) {
+  memcpy(a, &default_allocator, sizeof(default_allocator));
+  memcpy(&a->options, opt, sizeof(*opt));
+}
 
+#if defined(HAVE_LIBUMEM)
+static void
+fixed_umem_release(mtev_allocator_t a, void *ptr) {
+  umem_cache_t *ucache = a->impl_data;
+  umem_cache_free(ucache, ptr);
+}
+static void
+fixed_umem_free(mtev_allocator_t a, void *ptr) {
+  fixed_umem_release(a, ptr);
+}
+static void *
+fixed_umem_malloc(mtev_allocator_t a, size_t s) {
+  if(a->options.fixed_size == 0 || s > a->options.fixed_size) return NULL;
+  umem_cache_t *ucache = a->impl_data;
+  return umem_cache_alloc(ucache, UMEM_DEFAULT);
+}
+static void *
+fixed_umem_calloc(mtev_allocator_t a, size_t nmemb, size_t elemsize) {
+  size_t s = nmemb * elemsize;
+  void *ptr = fixed_umem_malloc(a, s);
+  if(ptr) memset(ptr, 0, s);
+  return ptr;
+}
+static void *
+fixed_umem_realloc(mtev_allocator_t a, void *ptr, size_t s) {
+  if(ptr == NULL) return fixed_umem_malloc(a, s);
+  if(s > a->options.fixed_size) return NULL;
+  return ptr;
+}
+static void *
+fixed_umem_reallocf(mtev_allocator_t a, void *ptr, size_t s) {
+  if(ptr == NULL) return fixed_umem_malloc(a, s);
+  if(s > a->options.fixed_size) {
+    fixed_umem_free(a, ptr);
+    return NULL;
+  }
+  return ptr;
+}
+static struct mtev_allocator fixed_umem_allocator = {
+  .tls_setup = NULL,
+  .tls_teardown = NULL,
+  .malloc_impl = fixed_umem_malloc,
+  .calloc_impl = fixed_umem_calloc,
+  .realloc_impl = fixed_umem_realloc,
+  .reallocf_impl = fixed_umem_reallocf,
+  .free_impl = fixed_umem_free,
+  .release_impl = fixed_umem_release,
+};
+
+static void
+fixed_umem_allocator_init(struct mtev_allocator *a, mtev_allocator_options_t opt) {
+  memcpy(a, &fixed_umem_allocator, sizeof(fixed_umem_allocator));
+  memcpy(&a->options, opt, sizeof(*opt));
+  a->impl_data = 
+    umem_cache_create(a->options.name, a->options.fixed_size,
+                      a->options.alignment, NULL, NULL, NULL, a,
+                      NULL, UMC_NODEBUG);
+}
+#endif
 void mtev_allocator_thread_teardown(void *tls_data) {
   struct tls_data_container *tdc = (struct tls_data_container *)tls_data;
   tdc->a->tls_teardown(tdc->a, tls_data);
 }
 mtev_allocator_t mtev_allocator_create(mtev_allocator_options_t opt) {
   mtev_allocator_t allocator = calloc(1, sizeof(*allocator));
-  /* could potentially use something else based on hints */
-  memcpy(allocator, &default_allocator, sizeof(default_allocator));
-  memcpy(&allocator->options, opt, sizeof(*opt));
-  pthread_key_create(&allocator->tls, mtev_allocator_thread_teardown);
+  if(opt->name[0] == '\0') {
+    int id = mtev_atomic_inc32(&nallocators);
+    snprintf(opt->name, sizeof(opt->name), "mtev_umem_n%d_%d",
+             id, (int)opt->fixed_size);
+  }
+  if(0) { }
+#if defined(HAVE_LIBUMEM)
+  else if(opt->fixed_size) {
+    fixed_umem_allocator_init(allocator, opt);
+  }
+#endif
+  else {
+    default_allocator_init(allocator, opt);
+  }
+  if(allocator->tls_setup) {
+    pthread_key_create(&allocator->tls, mtev_allocator_thread_teardown);
+    struct tls_data_container *tdc = allocator->tls_setup(allocator);
+    if(tdc) {
+      tdc->a = allocator;
+      pthread_setspecific(allocator->tls, tdc);
+    }
+  }
   return allocator;
 }
 
