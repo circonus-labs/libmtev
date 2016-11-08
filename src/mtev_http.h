@@ -199,6 +199,9 @@ API_EXPORT(size_t)
 API_EXPORT(mtev_boolean)
   mtev_http_websocket_queue_msg(mtev_http_session_ctx *, int opcode, const unsigned char *msg, size_t msg_len);
 
+API_EXPORT(void)
+  mtev_http_create_websocket_accept_key(char *dest, size_t dest_len, const char *client_key);
+
 #define mtev_http_response_server_error(ctx, type) \
   mtev_http_response_standard(ctx, 500, "ERROR", type)
 #define mtev_http_response_ok(ctx, type) \
