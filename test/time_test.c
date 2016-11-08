@@ -48,4 +48,5 @@ int main(int argc, char **argv)
   printf("* hrtime elapsed: %llu\n", end - start);
 
   printf("* SUCCESS\n");
+  return 0;
 }

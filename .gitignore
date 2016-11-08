@@ -5,6 +5,7 @@
 *.o
 *.so
 *.xmlh
+*.swp
 autom4te.cache
 configure
 .configure.*
@@ -18,12 +19,11 @@ src/Makefile
 src/**/Makefile
 !src/modules/example/Makefile
 src/dhparam*.txt
-src/*.dSYM
 src/js/node_modules/
 test/t/node_modules/
 src/luamtev
 src/lua/src/lua
-src/modules/*.dSYM
+**/*.dSYM/
 src/mtev_version.h
 src/man/*.8
 src/man/*.h
@@ -37,3 +37,5 @@ test/Makefile
 test/hash_test
 test/uuid_test
 test/time_test
+test/test_harness
+test/test_detail.xml

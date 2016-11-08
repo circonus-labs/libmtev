@@ -4,7 +4,7 @@ void *malloc(size_t);
 char *strdup(const char *);
 void free(void *);
 ]=])
-mtev = ffi.load('mtev')
+libmtev = ffi.load('mtev')
 
 function charstar(str)
   if type(str) == 'number' then
