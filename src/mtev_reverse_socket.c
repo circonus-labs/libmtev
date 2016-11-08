@@ -1512,6 +1512,7 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
   mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     char address[256];
+    const char *expected_cn = NULL;
     unsigned short port;
     int portint;
     mtev_hash_table *sslconfig, *config;
@@ -1522,8 +1523,15 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
       mtevL(mtev_error, "address attribute missing in %d\n", i+1);
       continue;
     }
-    /* if destination is specified, exact match it */
-    if(destination && strcmp(address, destination)) continue;
+    config = mtev_conf_get_hash(mtev_configs[i], "config");
+    mtev_hash_retr_str(config, "cn", strlen("cn"), &expected_cn);
+
+    /* if destination is specified, exact match either the address or CN */
+    if(destination && strcmp(address, destination) &&
+       (!expected_cn || strcmp(expected_cn, destination))) {
+      mtev_hash_destroy(config,free,free);
+      continue;
+    }
 
     if(!mtev_conf_get_int(mtev_configs[i],
                           "ancestor-or-self::node()/@port", &portint))
@@ -1533,10 +1541,10 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
       /* UNIX sockets don't require a port (they'll ignore it if specified */
       mtevL(mtev_stderr,
             "Invalid port [%d] specified in stanza %d\n", port, i+1);
+      mtev_hash_destroy(config,free,free);
       continue;
     }
     sslconfig = mtev_conf_get_hash(mtev_configs[i], "sslconfig");
-    config = mtev_conf_get_hash(mtev_configs[i], "config");
 
     mtevL(mtev_debug, "initiating to '%s'\n", address);
 
