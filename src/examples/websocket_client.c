@@ -45,6 +45,10 @@ parse_cli_args(int argc, char * const *argv) {
   }
 }
 
+void websocket_ready_handler(mtev_websocket_client_t *client) {
+  mtev_websocket_client_send(client, 0x1, "Hello world!", 13);
+}
+
 int websocket_msg_handler(mtev_websocket_client_t *client, int opcode,
                           const unsigned char *msg, size_t msg_len) {
   char buf[256];
@@ -56,35 +60,12 @@ int websocket_msg_handler(mtev_websocket_client_t *client, int opcode,
   return 0;
 }
 
-static mtev_websocket_client_t *client;
-
-void *run_client(void *arg) {
-  if(!client) {
-    mtevL(mtev_error, "Websocket client creation failed\n");
-    exit(1);
-  }
-
-  /* waiting for handshake to complete */
-  while(!mtev_websocket_client_is_ready(client));
-
-  if(mtev_websocket_client_is_closed(client)) {
-    mtevL(mtev_error, "Websocket client error'd out while performing handshake\n");
-    exit(1);
-  }
-
-  mtev_websocket_client_send(client, 0x1, "Hello world!", 13);
-
-  /* while(!mtev_websocket_client_is_closed(client)); */
-  /* mtev_websocket_client_close(client); */
-  /* client = NULL; */
-
-  return 0;
+void websocket_cleanup_handler(mtev_websocket_client_t *client) {
+  mtev_websocket_client_free(client);
 }
 
 static int
 child_main() {
-  pthread_t t;
-
   /* reload our config, to make sure we have the most current */
   if(mtev_conf_load(NULL) == -1) {
     mtevL(mtev_error, "Cannot load config: '%s'\n", config_file);
@@ -98,9 +79,13 @@ child_main() {
   mtev_dso_init();
   mtev_dso_post_init();
 
-  client = mtev_websocket_client_new("localhost", 8888, "/", "echo-protocol", websocket_msg_handler);
+  mtev_websocket_client_callbacks callbacks = {
+    websocket_ready_handler,
+    websocket_msg_handler,
+    websocket_cleanup_handler
+  };
 
-  mtev_thread_create(&t, NULL, run_client, NULL);
+  (void)mtev_websocket_client_new("127.0.0.1", 8888, "/", "echo-protocol", &callbacks);
 
   /* Lastly, spin up the event loop */
   eventer_loop();

@@ -7,6 +7,7 @@
 #include <openssl/sha.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 #ifdef HAVE_WSLAY
 #include <wslay/wslay.h>
@@ -17,7 +18,9 @@ struct mtev_websocket_client {
 #ifdef HAVE_WSLAY
   wslay_event_context_ptr wslay_ctx;
 #endif
-  websocket_client_msg_handler handler;
+  mtev_websocket_client_ready_callback ready_callback;
+  mtev_websocket_client_msg_callback msg_callback;
+  mtev_websocket_client_cleanup_callback cleanup_callback;
   mtev_boolean sent_handshake;
   mtev_boolean did_handshake;
   mtev_boolean should_close; /* used for communicating an error in wslay_on_msg_recv_callback */
@@ -140,8 +143,8 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
   int rv = 0;
 
   if (!wslay_is_ctrl_frame(arg->opcode)) {
-    if (client->handler != NULL) {
-      rv = client->handler(client, arg->opcode, arg->msg, arg->msg_length);
+    if (client->msg_callback != NULL) {
+      rv = client->msg_callback(client, arg->opcode, arg->msg, arg->msg_length);
       if (rv != 0) {
         mtevL(mtev_error, "Websocket client consumer handler failed, aborting\n");
         client->should_close = mtev_true;
@@ -283,6 +286,7 @@ abort_drive:
       }
       wslay_event_context_client_init(&client->wslay_ctx, &wslay_callbacks, client);
       client->did_handshake = mtev_true;
+      if(client->ready_callback) client->ready_callback(client);
     } else {
       return EVENTER_READ | EVENTER_EXCEPTION;
     }
@@ -312,48 +316,62 @@ abort_drive:
 
 mtev_websocket_client_t *
 mtev_websocket_client_new(const char *host, int port, const char *path, const char *service,
-                          websocket_client_msg_handler callback) {
+                          mtev_websocket_client_callbacks *callbacks) {
 #ifdef HAVE_WSLAY
   int fd = -1, rv;
-  struct addrinfo *res = NULL, *res_ptr = NULL, hints;
-  char port_str[6];
+  int family = AF_INET;
+  union {
+    struct in_addr addr4;
+    struct in6_addr addr6;
+  } addr;
+  union {
+    struct sockaddr remote;
+    struct sockaddr_in remote_in;
+    struct sockaddr_in6 remote_in6;
+  } remote;
+  socklen_t remote_len;
 
-  snprintf(port_str, 6, "%d", port);
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_socktype = SOCK_STREAM;
-  if((rv = getaddrinfo(host, port_str, &hints, &res))) {
-    mtevL(mtev_error, "mtev_websocket_client_new getaddrinfo failed: %s\n", gai_strerror(rv));
+  rv = inet_pton(family, host, &addr);
+  if(rv != 1) {
+    family = AF_INET6;
+    rv = inet_pton(family, host, &addr);
+    if(rv != 1) {
+      mtevL(mtev_error, "Cannot translate '%s' to IP\n", host);
+      return NULL;
+    }
+  }
+
+  memset(&remote, 0, sizeof(remote));
+  if(family == AF_INET) {
+    struct sockaddr_in *s = &remote.remote_in;
+    s->sin_family = family;
+    s->sin_port = htons(port);
+    memcpy(&s->sin_addr, &addr, sizeof(struct in_addr));
+    remote_len = sizeof(*s);
+  }
+  else {
+    struct sockaddr_in6 *s = &remote.remote_in6;
+    s->sin6_family = family;
+    s->sin6_port = htons(port);
+    memcpy(&s->sin6_addr, &addr, sizeof(addr));
+    remote_len = sizeof(*s);
+  }
+
+  if((fd = socket(family, SOCK_STREAM, 0)) == -1) {
+    mtevL(mtev_error, "mtev_websocket_client_new failed to open socket: %s\n", strerror(errno));
     return NULL;
   }
 
-  for(res_ptr = res; res_ptr != NULL; res_ptr = res_ptr->ai_next) {
-    if((fd = socket(res_ptr->ai_family, res_ptr->ai_socktype, res_ptr->ai_flags)) == -1) {
-      continue;
-    }
-
-    if(eventer_set_fd_nonblocking(fd)) {
-      close(fd);
-      fd = -1;
-      continue;
-    }
-
-    rv = connect(fd, res_ptr->ai_addr, res_ptr->ai_addrlen);
-    if(rv == -1 && errno != EINPROGRESS) {
-      close(fd);
-      fd = -1;
-      continue;
-    }
-
-    break; /* connection was successful, stop trying */
+  if(eventer_set_fd_nonblocking(fd)) {
+    close(fd);
+    mtevL(mtev_error, "mtev_websocket_client_new failed to set socket to non-blocking\n");
   }
 
-  freeaddrinfo(res);
-  res_ptr = NULL;
-
-  if(fd == -1) {
-    mtevL(mtev_error, "mtev_websocket_client_new failed to connect\n");
-    return NULL;
+  rv = connect(fd, &remote.remote, remote_len);
+  if(rv == -1 && errno != EINPROGRESS) {
+    close(fd);
+    fd = -1;
+    mtevL(mtev_error, "mtev_websocket_client_new failed to connect to %s:%d\n", host, port);
   }
 
   mtev_websocket_client_t *client = calloc(1, sizeof(mtev_websocket_client_t));
@@ -364,7 +382,9 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
   client->path = strdup(path);
   client->host = strdup(host);
   client->service = strdup(service);
-  client->handler = callback;
+  client->ready_callback = callbacks->ready_callback;
+  client->msg_callback = callbacks->msg_callback;
+  client->cleanup_callback = callbacks->cleanup_callback;
 
   eventer_t e = eventer_alloc();
   e->fd = fd;
@@ -380,10 +400,26 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
 }
 
 void
-mtev_websocket_client_set_recv_callback(mtev_websocket_client_t *client,
-                                        websocket_client_msg_handler callback) {
+mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client,
+                                        mtev_websocket_client_ready_callback ready_callback) {
 #ifdef HAVE_WSLAY
-  client->handler = callback;
+  client->ready_callback = ready_callback;
+#endif
+}
+
+void
+mtev_websocket_client_set_msg_callback(mtev_websocket_client_t *client,
+                                        mtev_websocket_client_msg_callback msg_callback) {
+#ifdef HAVE_WSLAY
+  client->msg_callback = msg_callback;
+#endif
+}
+
+void
+mtev_websocket_client_set_cleanup_callback(mtev_websocket_client_t *client,
+                                           mtev_websocket_client_cleanup_callback cleanup_callback) {
+#ifdef HAVE_WSLAY
+  client->cleanup_callback = cleanup_callback;
 #endif
 }
 
@@ -444,6 +480,7 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
     free((void *)client->service);
     free((void *)client->host);
     client->closed = mtev_true;
+    if(client->cleanup_callback) client->cleanup_callback(client);
   }
   pthread_mutex_unlock(&client->lock);
 }
@@ -452,7 +489,7 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
 /* consumer must call this, not us. preventing double free's is their
  * responsibility */
 void
-mtev_websocket_client_close(mtev_websocket_client_t *client) {
+mtev_websocket_client_free(mtev_websocket_client_t *client) {
 #ifdef HAVE_WSLAY
   if(client == NULL) return;
   if(!client->closed) mtev_websocket_client_cleanup(client);
