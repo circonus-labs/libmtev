@@ -8,14 +8,14 @@ ffi.cdef([=[
 describe("mtev_perftimer", function()
 
   it("should load ffi", function()
-    assert.truthy(mtev ~= nil)
+    assert.truthy(libmtev ~= nil)
   end)
 
   it("time a 100ms sleep", function(c)
     local perftimer = ffi.new("mtev_perftimer_t[?]", 1)
-    mtev.mtev_perftimer_start(perftimer)
+    libmtev.mtev_perftimer_start(perftimer)
     ffi.C.usleep(100000)
-    local ns = mtev.mtev_perftimer_elapsed(perftimer)
+    local ns = libmtev.mtev_perftimer_elapsed(perftimer)
     assert.truthy(ns > 100000000)
     assert.truthy(ns < 110000000)
   end)

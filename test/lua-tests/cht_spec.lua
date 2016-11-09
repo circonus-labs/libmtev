@@ -36,7 +36,7 @@ local function test_ring_builds(cht, cnt, rsize)
   local node_names = {}
   for i = 1,cnt do table.insert(node_names, "node" .. i) end
   local nodes = mknodes(node_names)
-  local rcnt = mtev.mtev_cht_set_nodes(cht, #node_names, nodes)
+  local rcnt = libmtev.mtev_cht_set_nodes(cht, #node_names, nodes)
   assert.is.equal(rcnt, #node_names)
   local expect = 1.0 / #node_names
   local mdev, total = 0, 0
@@ -54,7 +54,7 @@ local function run_scenario(cht, input, cnt)
   test_ring_builds(cht, cnt, rsize)
   local bcnt, out = {}, {}
   for key,v in pairs(input) do
-    assert.is.equal(1, mtev.mtev_cht_lookup(cht, charstar(key), node))
+    assert.is.equal(1, libmtev.mtev_cht_lookup(cht, charstar(key), node))
     local name = ffi.string(node[0][0].name)
     out[key] = name
     bcnt[name] = (bcnt[name] or 0) + 1
@@ -64,7 +64,7 @@ end
 
 describe("cht", function()
   local rsize = 1024
-  local cht = mtev.mtev_cht_alloc_custom(32, 20)
+  local cht = libmtev.mtev_cht_alloc_custom(32, 20)
 
   for node_cnt = 1,20 do
     it("should balance relatively well: nodes=" .. node_cnt, function()
