@@ -24,7 +24,7 @@ if nsl ~= nil then
   AF_INET6 = 26
 else
   inet_pton = ffi.C.inet_pton
-  AF_INET6 = 30 
+  AF_INET6 = 30
 end
 
 local mkip = (function ()
@@ -48,11 +48,11 @@ local function add_ip_route(f, b, addr, mask, v)
 end
 
 local function add_ip4_route(b, addr, v)
-  return add_ip_route(mtev.mtev_add_route_ipv4, b, addr, 32, v)
+  return add_ip_route(libmtev.mtev_add_route_ipv4, b, addr, 32, v)
 end
 
 local function add_ip6_route(b, addr, v)
-  return add_ip_route(mtev.mtev_add_route_ipv6, b, addr, 128, v)
+  return add_ip_route(libmtev.mtev_add_route_ipv6, b, addr, 128, v)
 end
 
 local _ip4s = {}
@@ -67,11 +67,11 @@ local _ip6s = {}
 _ip6s['::1/48'] = 127
 
 describe("btrie", function()
-  local btrie = ffi.new("btrie[?]", 1, ffi.cast("void *", 0))
-  local mask_out = ffi.new("unsigned char[?]", 1)
   it("should handle ipv4", function()
+    local btrie = ffi.new("btrie[?]", 1, ffi.cast("void *", 0))
+    local mask_out = ffi.new("unsigned char[?]", 1)
     local function test(addr, v)
-      local o = ffi.cast("int", mtev.mtev_find_bpm_route_ipv4(btrie, mkip(addr), mask_out))
+      local o = ffi.cast("int", libmtev.mtev_find_bpm_route_ipv4(btrie, mkip(addr), mask_out))
       assert.are.equal(o,v)
     end
     for k,v in pairs(_ip4s) do
@@ -85,18 +85,20 @@ describe("btrie", function()
     test("199.15.221.11", 101)
     test("199.15.222.11", 102)
     test("199.15.223.11", 102)
+    libmtev.mtev_drop_tree(btrie, nil)
   end)
-  mtev.mtev_drop_tree(btrie, nil)
 
-  local btrie6 = ffi.new("btrie[?]", 1, ffi.cast("void *", 0))
   it("should handle ipv6", function()
+    local btrie6 = ffi.new("btrie[?]", 1, ffi.cast("void *", 0))
+    local mask_out = ffi.new("unsigned char[?]", 1)
     local function test(addr, v)
-      local o = ffi.cast("int", mtev.mtev_find_bpm_route_ipv6(btrie, mkip(addr), mask_out))
+      local o = ffi.cast("int", libmtev.mtev_find_bpm_route_ipv6(btrie6, mkip(addr), mask_out))
       assert.are.equal(o,v)
     end
     for k,v in pairs(_ip6s) do
-      add_ip6_route(btrie, k, v)
+      add_ip6_route(btrie6, k, v)
     end
     test("::1", 127)
+    libmtev.mtev_drop_tree(btrie6, nil)
   end)
 end)

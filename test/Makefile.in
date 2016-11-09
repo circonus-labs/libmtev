@@ -15,6 +15,7 @@ LIBS=@LIBS@
 PGLIBS=@PGLIBS@
 INSTALL=@INSTALL@
 LIBMTEV_LIBS=@LIBMTEV_LIBS@
+UNWINDLIB=@UNWINDLIB@
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
@@ -32,6 +33,7 @@ srcdir=@srcdir@
 top_srcdir=@top_srcdir@
 
 LD_LIBRARY_PATH=../src
+TESTHARNESS_OBJS=test_harness.o
 
 all:	check
 
@@ -46,15 +48,22 @@ uuid_test: uuid_test.c
 time_test: time_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o time_test time_test.c
 
+.c.o:
+	@echo "- compiling $<"
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+
+test_harness:       $(TESTHARNESS_OBJS)
+	@echo "- linking $@"
+	$(Q)$(CC) -L.. $(LDFLAGS) $(UNWINDLIB) -o $@ $(TESTHARNESS_OBJS) $(LIBS) -lmtev
 
 busted:
 	@busted --version >/dev/null 2>/dev/null || \
 		(echo "Please instead busted: luarocks install busted" && false)
 
-check:	busted $(TESTS)
+check:	test_harness $(TESTS)
 	@echo
-	@echo "Running luajit-based tests via busted..."
-	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) busted --helper=mtev_load.lua .
+	@echo "Running luajit-based tests via test_harness..."
+	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./test_harness -c ./test_harness.conf
 	@echo
 	@echo "Running other tests via script..."
 	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./run_standalone_tests.sh $(TESTS)
