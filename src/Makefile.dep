@@ -301,6 +301,51 @@ mtev_thread.o mtev_thread.lo: mtev_thread.c mtev_thread.h mtev_defines.h mtev_co
 mtev_tokenizer.o mtev_tokenizer.lo: mtev_tokenizer.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h
 
+mtev_websocket_client.o mtev_websocket_client.lo: mtev_websocket_client.c mtev_websocket_client.h \
+  mtev_conf.h mtev_defines.h mtev_config.h \
+  noitedit/strlcpy.h ../src/utils/mtev_hash.h ../src/utils/mtev_atomic.h \
+  mtev_console.h eventer/eventer.h ../src/utils/mtev_log.h \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h \
+  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
+  eventer/eventer_jobq.h \
+  ../src/utils/mtev_sem.h mtev_stats.h \
+  noitedit/histedit.h mtev_console_telnet.h \
+  ../src/utils/mtev_skiplist.h \
+  mtev_http.h \
+  mtev_listener.h \
+  ../src/utils/mtev_zipkin.h \
+  utils/mtev_b64.h \
+
+mtev_xml.o mtev_xml.lo: mtev_xml.c mtev_defines.h mtev_config.h \
+  noitedit/strlcpy.h mtev_xml.h \
+  ../src/utils/mtev_log.h \
+  ../src/utils/mtev_hash.h ../src/utils/mtev_atomic.h \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h ../src/utils/mtev_mkdir.h \
+
+utils/mtev_b32.o utils/mtev_b32.lo: utils/mtev_b32.c mtev_config.h \
+  ../src/utils/mtev_b64.h mtev_defines.h \
+  noitedit/strlcpy.h \
+
+utils/mtev_b64.o utils/mtev_b64.lo: utils/mtev_b64.c mtev_config.h \
+  ../src/utils/mtev_b64.h mtev_defines.h \
+  noitedit/strlcpy.h \
+
+utils/mtev_btrie.o utils/mtev_btrie.lo: utils/mtev_btrie.c mtev_defines.h mtev_config.h \
+  noitedit/strlcpy.h ../src/utils/mtev_btrie.h \
+  ../src/utils/mtev_log.h \
+  ../src/utils/mtev_hash.h ../src/utils/mtev_atomic.h \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h \
+
+utils/mtev_cht.o utils/mtev_cht.lo: utils/mtev_cht.c ../src/utils/mtev_cht.h mtev_defines.h \
+  mtev_config.h \
+  noitedit/strlcpy.h ../src/utils/mtev_hash.h ../src/utils/mtev_atomic.h \
+  ../src/utils/mtev_log.h \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h
+
 mtev_xml.o mtev_xml.lo: mtev_xml.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h \
   mtev_xml.h  \

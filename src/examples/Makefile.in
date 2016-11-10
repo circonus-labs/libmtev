@@ -23,9 +23,11 @@ EX1_OBJS=	example1.o
 
 FQR_OBJS=	fq-router.o
 
+WSC_OBJS=	websocket_client.o
+
 WSS_OBJS=	websocket_server.o
 
-all:	example1 fq-router websocket_server
+all:	example1 fq-router websocket_client websocket_server
 
 .c.o:
 	@echo "- compiling $<"
@@ -39,13 +41,18 @@ fq-router:	$(FQR_OBJS)
 	@echo "- linking $@"
 	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(FQR_OBJS) $(LIBS) -lmtev -lfq -ldl
 
+websocket_client:	$(WSC_OBJS)
+	@echo "- linking $@"
+	@echo "LDFLAGS=$(LDFLAGS)"
+	@$(CC) -L.. $(LDFLAGS) $(LIBS) -o $@ $(WSC_OBJS) -lmtev
+
 websocket_server:	$(WSS_OBJS)
 	@echo "- linking $@"
 	@echo "LDFLAGS=$(LDFLAGS)"
 	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(WSS_OBJS) $(LIBS) -lmtev
 
 clean:
-	rm -f *.o example1 websocket_server fq-router
+	rm -f *.o example1 websocket_server websocket_client fq-router
 
 distclean:	clean
 	rm -f Makefile
