@@ -62,13 +62,11 @@ struct mtev_json_object *mtev_json_object_from_fd(int fd)
 
   if(!(pb = jl_printbuf_new())) {
     MC_ERROR("mtev_json_object_from_fd: jl_printbuf_new failed%s\n", "");
-    close(fd);
     return (struct mtev_json_object*)error_ptr(-1);
   }
   while((ret = read(fd, buf, JSON_FILE_BUF_SIZE)) > 0) {
     jl_printbuf_memappend(pb, buf, ret);
   }
-  close(fd);
   if(ret < 0) {
     MC_ABORT("mtev_json_object_from_fd: error reading fd %d: %s\n",
 	     fd, strerror(errno));
@@ -82,13 +80,17 @@ struct mtev_json_object *mtev_json_object_from_fd(int fd)
 
 struct mtev_json_object* mtev_json_object_from_file(char *filename)
 {
+  struct mtev_json_object *obj;
   int fd;
+
   if((fd = open(filename, O_RDONLY)) < 0) {
     MC_ERROR("mtev_json_object_from_file: error reading file %s: %s\n",
 	     filename, strerror(errno));
     return (struct mtev_json_object*)error_ptr(-1);
   }
-  return mtev_json_object_from_fd(fd);
+  obj = mtev_json_object_from_fd(fd);
+  close(fd);
+  return obj;
 }
 
 int mtev_json_object_to_fd(int fd, struct mtev_json_object *obj)
@@ -103,7 +105,6 @@ int mtev_json_object_to_fd(int fd, struct mtev_json_object *obj)
   }
 
   if(!(mtev_json_str = mtev_json_object_to_json_string(obj))) {
-    close(fd);
     return -1;
   }
 
@@ -111,7 +112,6 @@ int mtev_json_object_to_fd(int fd, struct mtev_json_object *obj)
   wpos = 0;
   while(wpos < wsize) {
     if((ret = write(fd, mtev_json_str + wpos, wsize-wpos)) < 0) {
-      close(fd);
       MC_ERROR("mtev_json_object_to_fd: error writing fd %d: %s\n",
 	     fd, strerror(errno));
       return -1;
@@ -121,14 +121,13 @@ int mtev_json_object_to_fd(int fd, struct mtev_json_object *obj)
     wpos += (unsigned int)ret;
   }
 
-  close(fd);
   return 0;
 
 }
 
 int mtev_json_object_to_file(char *filename, struct mtev_json_object *obj)
 {
-  int fd;
+  int fd, ret;
 
   if((fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0644)) < 0) {
     MC_ERROR("mtev_json_object_to_file: error opening file %s: %s\n",
@@ -136,6 +135,7 @@ int mtev_json_object_to_file(char *filename, struct mtev_json_object *obj)
     return -1;
   }
 
-  return mtev_json_object_to_fd(fd, obj);
-
+  ret = mtev_json_object_to_fd(fd, obj);
+  close(fd);
+  return ret;
 }

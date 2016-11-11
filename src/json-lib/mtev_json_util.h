@@ -22,9 +22,17 @@ extern "C" {
 #define JSON_FILE_BUF_SIZE 4096
 
 /* utility functions */
+
+/* opens and closes the filename */
 extern struct mtev_json_object* mtev_json_object_from_file(char *filename);
+
+/* does not close the fd after completion, leaves it open */
 extern struct mtev_json_object* mtev_json_object_from_fd(int fd);
+
+/* opens and closes the filename */
 extern int mtev_json_object_to_file(char *filename, struct mtev_json_object *obj);
+
+  /* does not close the fd after completion, leaves it open */
 extern int mtev_json_object_to_fd(int fd, struct mtev_json_object *obj);
 
 #ifdef __cplusplus
