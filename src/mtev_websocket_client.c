@@ -365,6 +365,7 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
   if(eventer_set_fd_nonblocking(fd)) {
     close(fd);
     mtevL(mtev_error, "mtev_websocket_client_new failed to set socket to non-blocking\n");
+    return NULL;
   }
 
   rv = connect(fd, &remote.remote, remote_len);
@@ -372,6 +373,7 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
     close(fd);
     fd = -1;
     mtevL(mtev_error, "mtev_websocket_client_new failed to connect to %s:%d\n", host, port);
+    return NULL;
   }
 
   mtev_websocket_client_t *client = calloc(1, sizeof(mtev_websocket_client_t));
@@ -450,6 +452,7 @@ mtev_websocket_client_send(mtev_websocket_client_t *client, int opcode,
   int rv;
   pthread_mutex_lock(&client->lock);
   if (client->wslay_ctx == NULL) {
+    pthread_mutex_unlock(&client->lock);
     return mtev_false;
   }
   struct wslay_event_msg msgarg = {
