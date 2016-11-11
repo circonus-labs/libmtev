@@ -23,7 +23,9 @@ extern "C" {
 
 /* utility functions */
 extern struct mtev_json_object* mtev_json_object_from_file(char *filename);
+extern struct mtev_json_object* mtev_json_object_from_fd(int fd);
 extern int mtev_json_object_to_file(char *filename, struct mtev_json_object *obj);
+extern int mtev_json_object_to_fd(int fd, struct mtev_json_object *obj);
 
 #ifdef __cplusplus
 }

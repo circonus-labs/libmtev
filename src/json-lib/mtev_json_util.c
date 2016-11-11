@@ -53,20 +53,15 @@
 #include "mtev_json_tokener.h"
 #include "mtev_json_util.h"
 
-struct mtev_json_object* mtev_json_object_from_file(char *filename)
+struct mtev_json_object *mtev_json_object_from_fd(int fd)
 {
   struct jl_printbuf *pb;
   struct mtev_json_object *obj;
   char buf[JSON_FILE_BUF_SIZE];
-  int fd, ret;
+  int ret;
 
-  if((fd = open(filename, O_RDONLY)) < 0) {
-    MC_ERROR("mtev_json_object_from_file: error reading file %s: %s\n",
-	     filename, strerror(errno));
-    return (struct mtev_json_object*)error_ptr(-1);
-  }
   if(!(pb = jl_printbuf_new())) {
-    MC_ERROR("mtev_json_object_from_file: jl_printbuf_new failed%s\n", "");
+    MC_ERROR("mtev_json_object_from_fd: jl_printbuf_new failed%s\n", "");
     close(fd);
     return (struct mtev_json_object*)error_ptr(-1);
   }
@@ -75,8 +70,8 @@ struct mtev_json_object* mtev_json_object_from_file(char *filename)
   }
   close(fd);
   if(ret < 0) {
-    MC_ABORT("mtev_json_object_from_file: error reading file %s: %s\n",
-	     filename, strerror(errno));
+    MC_ABORT("mtev_json_object_from_fd: error reading fd %d: %s\n",
+	     fd, strerror(errno));
     jl_printbuf_free(pb);
     return (struct mtev_json_object*)error_ptr(-1);
   }
@@ -85,20 +80,25 @@ struct mtev_json_object* mtev_json_object_from_file(char *filename)
   return obj;
 }
 
-int mtev_json_object_to_file(char *filename, struct mtev_json_object *obj)
+struct mtev_json_object* mtev_json_object_from_file(char *filename)
+{
+  int fd;
+  if((fd = open(filename, O_RDONLY)) < 0) {
+    MC_ERROR("mtev_json_object_from_file: error reading file %s: %s\n",
+	     filename, strerror(errno));
+    return (struct mtev_json_object*)error_ptr(-1);
+  }
+  return mtev_json_object_from_fd(fd);
+}
+
+int mtev_json_object_to_fd(int fd, struct mtev_json_object *obj)
 {
   const char *mtev_json_str;
-  int fd, ret;
+  int ret;
   unsigned int wpos, wsize;
 
   if(!obj) {
-    MC_ERROR("mtev_json_object_to_file: object is null%s\n", "");
-    return -1;
-  }
-
-  if((fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0644)) < 0) {
-    MC_ERROR("mtev_json_object_to_file: error opening file %s: %s\n",
-	     filename, strerror(errno));
+    MC_ERROR("mtev_json_object_to_fd: object is null%s\n", "");
     return -1;
   }
 
@@ -112,15 +112,30 @@ int mtev_json_object_to_file(char *filename, struct mtev_json_object *obj)
   while(wpos < wsize) {
     if((ret = write(fd, mtev_json_str + wpos, wsize-wpos)) < 0) {
       close(fd);
-      MC_ERROR("mtev_json_object_to_file: error writing file %s: %s\n",
-	     filename, strerror(errno));
+      MC_ERROR("mtev_json_object_to_fd: error writing fd %d: %s\n",
+	     fd, strerror(errno));
       return -1;
     }
 
-	/* because of the above check for ret < 0, we can safely cast and add */
+    /* because of the above check for ret < 0, we can safely cast and add */
     wpos += (unsigned int)ret;
   }
 
   close(fd);
   return 0;
+
+}
+
+int mtev_json_object_to_file(char *filename, struct mtev_json_object *obj)
+{
+  int fd;
+
+  if((fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0644)) < 0) {
+    MC_ERROR("mtev_json_object_to_file: error opening file %s: %s\n",
+	     filename, strerror(errno));
+    return -1;
+  }
+
+  return mtev_json_object_to_fd(fd, obj);
+
 }
