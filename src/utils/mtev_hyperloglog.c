@@ -76,10 +76,10 @@ mtev_hyperloglog_add(mtev_hyperloglog_t *hll, const void *data, size_t len)
   }
 }
 
-double 
+static inline double 
 mtev_hyperloglog_estimate(mtev_hyperloglog_t *hll, int *zero_count)
 {
-  int c, v;
+  int c;
   double m, sum;
 
   c = (1 << hll->bitcount);
@@ -87,13 +87,9 @@ mtev_hyperloglog_estimate(mtev_hyperloglog_t *hll, int *zero_count)
   sum = 0;
 
   for (int i=0; i < c; i++) {
-    v = hll->regs[i];
-    sum += pow(2.0, -1 * v);
-    if (!v) {
-      *zero_count += 1;
-    }
+    sum += 1.0 / (1 << hll->regs[i]);
   }
-  return m * (1.0 / sum);
+  return m / sum;
 }
 
 double 
