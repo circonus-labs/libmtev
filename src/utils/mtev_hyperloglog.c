@@ -68,7 +68,7 @@ mtev_hyperloglog_add(mtev_hyperloglog_t *hll, const void *data, size_t len)
   hash = hash << hll->bitcount | (1 << (hll->bitcount -1 ));
 
   /* count leading zeroes */
-  int l = __builtin_clzl(hash) + 1;
+  int l = __builtin_clz(hash) + 1;
 
   /* save the register if we got bigger */
   if (l > hll->regs[index]) {

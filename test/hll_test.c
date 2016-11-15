@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 
 #define FAIL(...)                           \
   printf("** ");                            \
@@ -14,18 +15,20 @@
 
 int main(int argc, char **argv) 
 {
-  char s[256];
+  uuid_t uuid;
+  char s[PATH_MAX];
+  srand(time(NULL));
+
   mtev_hyperloglog_t *hll = mtev_hyperloglog_alloc(20);
-  
-  for (int i = 0; i < 1000000; i++) {
-    sprintf(s, "%d some string", i);
+  for (int i = 0; i < 10000000; i++) {
+    sprintf(s, "some string %d %d %d %d %d %d ", rand(), rand(), rand(), rand(), rand(), rand());
     mtev_hyperloglog_add(hll, s, strlen(s));
   }
 
   int zc = 0;
   double est = mtev_hyperloglog_size(hll);
 
-  if (est < 900000 || est > 1100000) {
+  if (est < 9000000 || est > 11000000) {
     FAIL("Estimate count %f is too far off", est);
   } else {
 
