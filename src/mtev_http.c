@@ -390,6 +390,9 @@ const char *mtev_http_request_querystring(mtev_http_request *req, const char *k)
     v = vv;
   return v;
 }
+const char *mtev_http_request_orig_querystring(mtev_http_request *req) {
+  return req->orig_qs;
+}
 mtev_hash_table *mtev_http_request_querystring_table(mtev_http_request *req) {
   return &req->querystring;
 }
