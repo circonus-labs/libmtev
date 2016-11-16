@@ -3748,28 +3748,22 @@ mtev_lua_serialize(lua_State *L, int index){
 
 void
 mtev_lua_deserialize_table(lua_State *L, mtev_lua_table_t *table){
-  void *vdata;
-  lua_data_t *data;
-  const char *key;
   lua_Number number_key;
-  int klen;
   mtev_hash_iter int_iter = MTEV_HASH_ITER_ZERO;
   mtev_hash_iter str_iter = MTEV_HASH_ITER_ZERO;
 
   lua_createtable(L, 0, mtev_hash_size(&table->string_keys) + mtev_hash_size(&table->int_keys));
 
-  while(mtev_hash_next(&table->int_keys, &int_iter, &key, &klen, &vdata)) {
-    number_key = *(lua_Number*)key;
-    data = vdata;
+  while(mtev_hash_adv(&table->int_keys, &int_iter)) {
+    number_key = *(lua_Number*)int_iter.key.ptr;
     lua_pushnumber(L, number_key);
-    mtev_lua_deserialize(L, data);
+    mtev_lua_deserialize(L, (lua_data_t *)int_iter.value.ptr);
     lua_settable(L, -3);
   }
 
-  while(mtev_hash_next(&table->string_keys, &str_iter, &key, &klen, &vdata)) {
-    data = vdata;
-    lua_pushstring(L, key);
-    mtev_lua_deserialize(L, data);
+  while(mtev_hash_adv(&table->string_keys, &str_iter)) {
+    lua_pushstring(L, str_iter.key.str);
+    mtev_lua_deserialize(L, (lua_data_t *)str_iter.value.ptr);
     lua_settable(L, -3);
   }
 }

@@ -296,9 +296,8 @@ static int
 mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   lua_web_conf_t *conf = get_config(self);
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  void *vstr;
-  int klen, i;
-  const char *key, *bstr;
+  int i;
+  const char *bstr;
   conf->script_dir = NULL;
   conf->cpath = NULL;
   (void)mtev_hash_retr_str(o, "directory", strlen("directory"), &conf->script_dir);
@@ -308,11 +307,10 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
 
   conf->mounts = calloc(1+mtev_hash_size(o), sizeof(*conf->mounts));
   i = 0;
-  while(mtev_hash_next(o, &iter, &key, &klen, &vstr)) {
-    const char *str = vstr;
-    if(!strncmp(key, "mount_", strlen("mount_"))) {
+  while(mtev_hash_adv(o, &iter)) {
+    if(!strncmp(iter.key.str, "mount_", strlen("mount_"))) {
       /* <module>:<method>:<mount>[:<expr>] */
-      char *copy = strdup(str);
+      char *copy = strdup(iter.value.str);
       char *module, *method, *mount = NULL, *expr = NULL;
       module = copy;
       method = strchr(module, ':');
@@ -326,7 +324,7 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
         }
       }
       if(!module || !method || !mount) {
-        mtevL(mtev_error, "Invalid lua_web mount syntax in '%s'\n", key);
+        mtevL(mtev_error, "Invalid lua_web mount syntax in '%s'\n", iter.key.str);
         return -1;
       }
       conf->mounts[i].module = strdup(module); 

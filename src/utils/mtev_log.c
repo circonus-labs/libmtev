@@ -373,12 +373,9 @@ int mtev_log_global_enabled() {
 static void
 mtev_log_dematerialize() {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *k;
-  int klen;
-  void *data;
 
-  while(mtev_hash_next(&mtev_loggers, &iter, &k, &klen, &data)) {
-    mtev_log_stream_t ls = data;
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    mtev_log_stream_t ls = iter.value.ptr;
     ls->deps_materialized = 0;
     ls->flags &= ~MTEV_LOG_STREAM_RECALCULATE;
     debug_printf("dematerializing(%s)\n", ls->name);
@@ -1319,12 +1316,9 @@ mtev_log_resolve(mtev_log_stream_t ls) {
 mtev_boolean
 mtev_log_final_resolve() {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key;
-  int klen;
-  void *vls;
-  while(mtev_hash_next(&mtev_loggers, &iter, &key, &klen, &vls)) {
-    if(!mtev_log_resolve((mtev_log_stream_t)vls)) {
-      mtevL(mtev_stderr, "Failed to resolve log: %s\n", key);
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    if(!mtev_log_resolve((mtev_log_stream_t)iter.value.ptr)) {
+      mtevL(mtev_stderr, "Failed to resolve log: %s\n", iter.key.str);
       return mtev_false;
     }
   }
@@ -1707,13 +1701,11 @@ mtev_log(mtev_log_stream_t ls, const struct timeval *now,
 int
 mtev_log_reopen_type(const char *type) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *k;
-  int klen, rv = 0;
-  void *data;
+  int rv = 0;
   mtev_log_stream_t ls;
 
-  while(mtev_hash_next(&mtev_loggers, &iter, &k, &klen, &data)) {
-    ls = data;
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    ls = iter.value.ptr;
     if(ls->ops && ls->type && !strcmp(ls->type, type))
       if(ls->ops->reopenop(ls) < 0) rv = -1;
   }
@@ -1723,13 +1715,11 @@ mtev_log_reopen_type(const char *type) {
 int
 mtev_log_go_asynch() {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *k;
-  int klen, rv = 0;
-  void *data;
+  int rv = 0;
   mtev_log_stream_t ls;
 
-  while(mtev_hash_next(&mtev_loggers, &iter, &k, &klen, &data)) {
-    ls = data;
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    ls = iter.value.ptr;
     if(SUPPORTS_ASYNC(ls)) {
       asynch_log_ctx *actx = ls->op_ctx;
       mtev_atomic_inc32(&actx->gen);
@@ -1743,13 +1733,11 @@ mtev_log_go_asynch() {
 int
 mtev_log_go_synch() {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *k;
-  int klen, rv = 0;
-  void *data;
+  int rv = 0;
   mtev_log_stream_t ls;
 
-  while(mtev_hash_next(&mtev_loggers, &iter, &k, &klen, &data)) {
-    ls = data;
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    ls = iter.value.ptr;
     if(SUPPORTS_ASYNC(ls)) {
       asynch_log_ctx *actx = ls->op_ctx;
       mtev_atomic_inc32(&actx->gen);
@@ -1764,13 +1752,11 @@ mtev_log_go_synch() {
 int
 mtev_log_reopen_all() {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *k;
-  int klen, rv = 0;
-  void *data;
+  int rv = 0;
   mtev_log_stream_t ls;
 
-  while(mtev_hash_next(&mtev_loggers, &iter, &k, &klen, &data)) {
-    ls = data;
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    ls = iter.value.ptr;
     if(ls->ops) if(ls->ops->reopenop(ls) < 0) rv = -1;
   }
   return rv;
@@ -1779,12 +1765,10 @@ mtev_log_reopen_all() {
 int
 mtev_log_list(mtev_log_stream_t *loggers, int nsize) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *k;
-  int klen, count = 0, total = 0, out_of_space_flag = 1;
-  void *data;
+  int count = 0, total = 0, out_of_space_flag = 1;
 
-  while(mtev_hash_next(&mtev_loggers, &iter, &k, &klen, &data)) {
-    if(count < nsize) loggers[count++] = (mtev_log_stream_t)data;
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    if(count < nsize) loggers[count++] = (mtev_log_stream_t)iter.value.ptr;
     else out_of_space_flag = -1;
     total++;
   }

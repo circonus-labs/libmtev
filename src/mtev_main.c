@@ -102,9 +102,7 @@ configure_eventer(const char *appname) {
   table = mtev_conf_get_hash(NULL, appscratch);
   if(table) {
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-    const char *key, *value;
-    int klen;
-    while(mtev_hash_next_str(table, &iter, &key, &klen, &value)) {
+    while(mtev_hash_adv(table, &iter)) {
       int subrv;
       /* We want to set a sane default if the user doesn't provide an
        * rlim_nofiles value... however, we have to try to set the user
@@ -113,11 +111,11 @@ configure_eventer(const char *appname) {
        * lower than the user specified one, we can't raise it. Ergo -
        * try to set from the config first, then set a default if one
        * isn't specified */
-      if ((strlen(key) == strlen("rlim_nofiles")) &&
-          (strncmp(key, "rlim_nofiles", strlen(key)) == 0) ) {
+      if ((strlen(iter.key.str) == strlen("rlim_nofiles")) &&
+          (strncmp(iter.key.str, "rlim_nofiles", strlen(iter.key.str)) == 0) ) {
         rlim_found = mtev_true;
       }
-      if((subrv = eventer_propset(key, value)) != 0)
+      if((subrv = eventer_propset(iter.key.str, iter.value.str)) != 0)
         rv = subrv;
     }
     mtev_hash_destroy(table, free, free);
