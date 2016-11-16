@@ -95,7 +95,7 @@ mtev_hyperloglog_estimate(mtev_hyperloglog_t *hll, int *zero_count)
 double 
 mtev_hyperloglog_size(mtev_hyperloglog_t *hll) 
 {
-  int zc;
+  int zc = 0;
   double est = mtev_hyperloglog_estimate(hll, &zc);
 
   if (est <= (5.0 / 2.0 * (double)hll->size)) {
