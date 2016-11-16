@@ -109,7 +109,7 @@ MAPPEDHEADERS= \
 	utils/mtev_mkdir.h utils/mtev_security.h utils/mtev_sem.h \
 	utils/mtev_sort.h utils/mtev_skiplist.h utils/mtev_str.h utils/mtev_time.h \
 	utils/mtev_watchdog.h utils/mtev_uuid_parse.h utils/mtev_perftimer.h \
-	utils/mtev_zipkin.h \
+	utils/mtev_zipkin.h utils/mtev_hyperloglog.h \
 	json-lib/mtev_arraylist.h json-lib/mtev_bits.h json-lib/mtev_debug.h \
 	json-lib/mtev_json_object.h \
 	json-lib/mtev_json_tokener.h json-lib/mtev_json_util.h json-lib/mtev_json.h \
@@ -139,7 +139,7 @@ MTEV_UTILS_OBJS=utils/mtev_b32.lo utils/mtev_b64.lo utils/mtev_btrie.lo \
 	utils/mtev_security.lo utils/mtev_sem.lo utils/mtev_time.lo utils/mtev_skiplist.lo \
 	utils/mtev_sort.lo utils/mtev_str.lo utils/mtev_watchdog.lo utils/mtev_zipkin.lo \
 	utils/mtev_memory.lo utils/mtev_cht.lo utils/mtev_uuid_parse.lo \
-	utils/mtev_perftimer.lo \
+	utils/mtev_perftimer.lo utils/mtev_hyperloglog.lo \
         $(ATOMIC_OBJS)
 
 LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
