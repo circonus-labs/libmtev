@@ -1746,8 +1746,7 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   int len = 0, tlen, kcnt;
   struct bchain *b;
   const char *protocol_str;
-  const char *key, *value;
-  int klen, i;
+  int i;
   const char **keys;
   mtev_boolean cl_present = mtev_false;
 
@@ -1780,11 +1779,10 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
     i = 0;
     keys = alloca(sizeof(*keys)*(mtev_hash_size(&ctx->res.headers)));
-    while(mtev_hash_next_str(&ctx->res.headers, &iter,
-                             &key, &klen, &value)) {
-      keys[i++] = key;
-      if(klen == strlen(HEADER_CONTENT_LENGTH) &&
-         !strncasecmp(key, HEADER_CONTENT_LENGTH, strlen(HEADER_CONTENT_LENGTH))) {
+    while(mtev_hash_adv(&ctx->res.headers, &iter)) {
+      keys[i++] = iter.key.str;
+      if(iter.klen == strlen(HEADER_CONTENT_LENGTH) &&
+         !strncasecmp(iter.key.str, HEADER_CONTENT_LENGTH, strlen(HEADER_CONTENT_LENGTH))) {
         cl_present = mtev_true;
       }
     }
@@ -1806,8 +1804,8 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   kcnt = i;
   for(i=0;i<kcnt;i++) {
     int vlen;
-    key = keys[i];
-    klen = strlen(key);
+    const char *key = keys[i], *value;
+    int klen = strlen(key);
     (void)mtev_hash_retr_str(&ctx->res.headers, key, klen, &value);
     vlen = strlen(value);
     CTX_LEADER_APPEND(key, klen);

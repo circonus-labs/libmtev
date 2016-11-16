@@ -315,16 +315,10 @@ fq_driver_init(mtev_dso_generic_t *img) {
 
 static int
 fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
-
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key;
-  int klen;
-  void *data;
-
-  while(mtev_hash_next(options, &iter, &key, &klen, &data)) {
-    mtevL(mtev_error, "%s %s!\n", key, (char *)data);
+  while(mtev_hash_adv(options, &iter)) {
+    mtevL(mtev_error, "%s %s!\n", iter.key.str, iter.value.str);
   }
-
   return 0;
 }
 #include "fq.xmlh"

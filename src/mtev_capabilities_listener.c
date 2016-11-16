@@ -116,15 +116,12 @@ mtev_capabilities_rest(mtev_http_rest_closure_t *restc, int n, char **p) {
 
 void
 mtev_capabilities_features_ncprint(mtev_console_closure_t ncct) {
-  if(mtev_hash_size(&features)) {
-    mtev_hash_iter iter2 = MTEV_HASH_ITER_ZERO;
-    void *vfv;
-    const char *f;
-    int flen;
-    while(mtev_hash_next(&features, &iter2, &f, &flen, &vfv)) {
-      if(vfv) nc_printf(ncct, "feature:\t%s:%s\n", f, (const char *)vfv);
-      else    nc_printf(ncct, "feature:\t%s\n", f);
-    }
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  while(mtev_hash_adv(&features, &iter)) {
+    if(iter.value.str)
+      nc_printf(ncct, "feature:\t%s:%s\n", iter.key.str, iter.value.str);
+    else
+      nc_printf(ncct, "feature:\t%s\n", iter.key.str);
   }
 }
 
@@ -135,9 +132,7 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     char vbuff[128];
     mtev_hash_table *lc;
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-    const char *k;
-    int klen, i, nmods;
-    void *data;
+    int i, nmods;
     struct timeval now;
     struct dso_type *t;
 
@@ -181,14 +176,11 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     feat = json_object_new_object();
     if(mtev_hash_size(&features)) {
       mtev_hash_iter iter2 = MTEV_HASH_ITER_ZERO;
-      void *vfv;
-      const char *f;
-      int flen;
-      while(mtev_hash_next(&features, &iter2, &f, &flen, &vfv)) {
+      while(mtev_hash_adv(&features, &iter2)) {
         struct json_object *featnode;
         featnode = json_object_new_object();
-        if(vfv) json_object_object_add(featnode, "version", json_object_new_string(vfv));
-        json_object_object_add(feat, f, featnode);
+        if(iter2.value.str) json_object_object_add(featnode, "version", json_object_new_string(iter2.value.str));
+        json_object_object_add(feat, iter2.key.str, featnode);
       }
     }
     json_object_object_add(doc, "features", feat);
@@ -201,20 +193,17 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
 
     svcs = json_object_new_object();
     lc = mtev_listener_commands();
-    while(mtev_hash_next(lc, &iter, &k, &klen, &data)) {
+    while(mtev_hash_adv(lc, &iter)) {
       struct json_object *cnode, *cmds;
       char hexcode[11];
       const char *name;
-      eventer_func_t *f = (eventer_func_t *)k;
-      mtev_hash_table *sc = (mtev_hash_table *)data;
+      eventer_func_t *f = (eventer_func_t *)iter.key.ptr;
+      mtev_hash_table *sc = (mtev_hash_table *)iter.value.ptr;
       mtev_hash_iter sc_iter = MTEV_HASH_ITER_ZERO;
-      const char *sc_k;
-      int sc_klen;
-      void *sc_data;
 
       name = eventer_name_for_callback(*f);
       cnode = json_object_new_object();
-      if(klen == 8)
+      if(iter.klen == 8)
         snprintf(hexcode, sizeof(hexcode), "0x%0llx",
                  (unsigned long long int)(vpsized_uint)**f);
       else
@@ -224,13 +213,13 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
       if(name) json_object_object_add(cnode, name, json_object_new_string(name));
       cmds = json_object_new_object();
       json_object_object_add(cnode, "commands", cmds);
-      while(mtev_hash_next(sc, &sc_iter, &sc_k, &sc_klen, &sc_data)) {
+      while(mtev_hash_adv(sc, &sc_iter)) {
         struct json_object *scnode;
         char *name_copy, *version = NULL;
-        eventer_func_t *f = (eventer_func_t *)sc_data;
+        eventer_func_t *f = (eventer_func_t *)sc_iter.value.ptr;
 
         scnode = json_object_new_object();
-        snprintf(hexcode, sizeof(hexcode), "0x%08x", *((u_int32_t *)sc_k));
+        snprintf(hexcode, sizeof(hexcode), "0x%08x", *((u_int32_t *)sc_iter.key.ptr));
         name = eventer_name_for_callback(*f);
         name_copy = strdup(name ? name : "[[unknown]]");
         version = strchr(name_copy, '/');
@@ -274,9 +263,7 @@ mtev_capabilities_tobuff(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     char vbuff[128], bwstr[4];
     mtev_hash_table *lc;
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-    const char *k;
-    int klen, i, nmods;
-    void *data;
+    int i, nmods;
     struct timeval now;
     struct dso_type *t;
 
@@ -324,14 +311,12 @@ mtev_capabilities_tobuff(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     xmlAddChild(root, feat);
     if(mtev_hash_size(&features)) {
       mtev_hash_iter iter2 = MTEV_HASH_ITER_ZERO;
-      void *vfv;
-      const char *f;
-      int flen;
-      while(mtev_hash_next(&features, &iter2, &f, &flen, &vfv)) {
+      while(mtev_hash_adv(&features, &iter2)) {
         xmlNodePtr featnode;
         featnode = xmlNewNode(NULL, (xmlChar *)"feature");
-        xmlSetProp(featnode, (xmlChar *)"name", (xmlChar *)f);
-        if(vfv) xmlSetProp(featnode, (xmlChar *)"version", (xmlChar *)vfv);
+        xmlSetProp(featnode, (xmlChar *)"name", (xmlChar *)iter2.key.str);
+        if(iter2.value.str)
+          xmlSetProp(featnode, (xmlChar *)"version", (xmlChar *)iter2.value.str);
         xmlAddChild(feat, featnode);
       }
     }
@@ -345,16 +330,13 @@ mtev_capabilities_tobuff(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     cmds = xmlNewNode(NULL, (xmlChar *)"services");
     xmlAddChild(root, cmds);
     lc = mtev_listener_commands();
-    while(mtev_hash_next(lc, &iter, &k, &klen, &data)) {
+    while(mtev_hash_adv(lc, &iter)) {
       xmlNodePtr cnode;
       char hexcode[11];
       const char *name;
-      eventer_func_t *f = (eventer_func_t *)k;
-      mtev_hash_table *sc = (mtev_hash_table *)data;
+      eventer_func_t *f = (eventer_func_t *)iter.key.ptr;
+      mtev_hash_table *sc = (mtev_hash_table *)iter.value.ptr;
       mtev_hash_iter sc_iter = MTEV_HASH_ITER_ZERO;
-      const char *sc_k;
-      int sc_klen;
-      void *sc_data;
 
       name = eventer_name_for_callback(*f);
       cnode = xmlNewNode(NULL, (xmlChar *)"service");
@@ -362,12 +344,12 @@ mtev_capabilities_tobuff(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
       if(*f == curr)
         xmlSetProp(cnode, (xmlChar *)"connected", (xmlChar *)"true");
       xmlAddChild(cmds, cnode);
-      while(mtev_hash_next(sc, &sc_iter, &sc_k, &sc_klen, &sc_data)) {
+      while(mtev_hash_adv(sc, &sc_iter)) {
         xmlNodePtr scnode;
         char *name_copy, *version = NULL;
-        eventer_func_t *f = (eventer_func_t *)sc_data;
+        eventer_func_t *f = (eventer_func_t *)sc_iter.value.ptr;
 
-        snprintf(hexcode, sizeof(hexcode), "0x%08x", *((u_int32_t *)sc_k));
+        snprintf(hexcode, sizeof(hexcode), "0x%08x", *((u_int32_t *)sc_iter.key.ptr));
         name = eventer_name_for_callback(*f);
         name_copy = strdup(name ? name : "[[unknown]]");
         version = strchr(name_copy, '/');

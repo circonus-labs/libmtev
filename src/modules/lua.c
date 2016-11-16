@@ -186,9 +186,6 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
                                       struct timeval *now) {
   struct lua_reporter *reporter = closure;
   mtev_hash_iter zero = MTEV_HASH_ITER_ZERO, iter;
-  const char *key;
-  int klen;
-  void *vri;
   pthread_t me;
   me = pthread_self();
   mtevAssert(reporter->approach == LUA_REPORT_JSON);
@@ -198,12 +195,12 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
   states = json_object_object_get(reporter->root, "states");
   memcpy(&iter, &zero, sizeof(zero));
   pthread_mutex_lock(&mtev_lua_states_lock);
-  while(mtev_hash_next(&mtev_lua_states, &iter, &key, &klen, &vri)) {
+  while(mtev_hash_adv(&mtev_lua_states, &iter)) {
     struct json_object *state_info = NULL;
     char state_str[32];
     char thr_str[32];
-    lua_State **Lptr = (lua_State **)key;
-    pthread_t tgt = (pthread_t)(vpsized_int)vri;
+    lua_State **Lptr = (lua_State **)iter.key.ptr;
+    pthread_t tgt = (pthread_t)(vpsized_int)iter.value.ptr;
     if(!pthread_equal(me, tgt)) continue;
 
     int thr_id = eventer_is_loop(me);
@@ -221,14 +218,14 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
 
   memcpy(&iter, &zero, sizeof(zero));
   pthread_mutex_lock(&coro_lock);
-  while(mtev_hash_next(&mtev_coros, &iter, &key, &klen, &vri)) {
+  while(mtev_hash_adv(&mtev_coros, &iter)) {
     mtev_lua_resume_info_t *ri;
     int level = 1;
     lua_Debug ar;
     lua_State *L;
-    mtevAssert(klen == sizeof(L));
-    L = *((lua_State **)key);
-    ri = vri;
+    mtevAssert(iter.klen == sizeof(L));
+    L = *((lua_State **)iter.key.ptr);
+    ri = iter.value.ptr;
     if(!pthread_equal(me, ri->lmc->owner)) continue;
 
     char state_str[32];
@@ -275,9 +272,6 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
   struct lua_reporter *reporter = closure;
   mtev_console_closure_t ncct = reporter->ncct;
   mtev_hash_iter zero = MTEV_HASH_ITER_ZERO, iter;
-  const char *key;
-  int klen;
-  void *vri;
   pthread_t me;
   me = pthread_self();
   mtevAssert(reporter->approach == LUA_REPORT_NCCT);
@@ -287,9 +281,9 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
 
   memcpy(&iter, &zero, sizeof(zero));
   pthread_mutex_lock(&mtev_lua_states_lock);
-  while(mtev_hash_next(&mtev_lua_states, &iter, &key, &klen, &vri)) {
-    lua_State **Lptr = (lua_State **)key;
-    pthread_t tgt = (pthread_t)(vpsized_int)vri;
+  while(mtev_hash_adv(&mtev_lua_states, &iter)) {
+    lua_State **Lptr = (lua_State **)iter.key.ptr;
+    pthread_t tgt = (pthread_t)(vpsized_int)iter.value.ptr;
     if(!pthread_equal(me, tgt)) continue;
     nc_printf(ncct, "master (state:%p)\n", *Lptr);
     nc_printf(ncct, "\tmemory: %d kb\n", lua_gc(*Lptr, LUA_GCCOUNT, 0));
@@ -299,14 +293,14 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
 
   memcpy(&iter, &zero, sizeof(zero));
   pthread_mutex_lock(&coro_lock);
-  while(mtev_hash_next(&mtev_coros, &iter, &key, &klen, &vri)) {
+  while(mtev_hash_adv(&mtev_coros, &iter)) {
     mtev_lua_resume_info_t *ri;
     int level = 1;
     lua_Debug ar;
     lua_State *L;
-    mtevAssert(klen == sizeof(L));
-    L = *((lua_State **)key);
-    ri = vri;
+    mtevAssert(iter.klen == sizeof(L));
+    L = *((lua_State **)iter.key.ptr);
+    ri = iter.value.ptr;
     if(!pthread_equal(me, ri->lmc->owner)) continue;
     if(ri) describe_lua_context_ncct(ncct, ri);
     nc_printf(ncct, "\tstack:\n");
@@ -622,14 +616,13 @@ void
 mtev_lua_hash_to_table(lua_State *L,
                        mtev_hash_table *t) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key, *value;
-  int klen, kcnt;
+  int kcnt;
   kcnt = t ? mtev_hash_size(t) : 0;
   lua_createtable(L, 0, kcnt);
   if(t) {
-    while(mtev_hash_next_str(t, &iter, &key, &klen, &value)) {
-      lua_pushlstring(L, value, strlen(value));
-      lua_setfield(L, -2, key);
+    while(mtev_hash_adv(t, &iter)) {
+      lua_pushlstring(L, iter.value.str, strlen(iter.value.str));
+      lua_setfield(L, -2, iter.key.str);
     }
   }
   return;

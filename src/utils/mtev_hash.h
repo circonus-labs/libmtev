@@ -69,7 +69,18 @@ typedef struct mtev_hash_table {
   } u CK_CC_CACHELINE;
 } mtev_hash_table;
 
-typedef ck_hs_iterator_t mtev_hash_iter;
+typedef struct mtev_hash_iter {
+  ck_hs_iterator_t iter;
+  union {
+    const char *str;
+    void *ptr;
+  } key;
+  union {
+    const char *str;
+    void *ptr;
+  } value;
+  int klen;
+} mtev_hash_iter;
 
 /* mdb support relies on this being exposed */
 typedef struct ck_key {
@@ -87,7 +98,7 @@ CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
                 index_attribute_container)
 
 #define MTEV_HASH_EMPTY { {{ NULL, NULL, 0, 0, NULL, NULL}} }
-#define MTEV_HASH_ITER_ZERO CK_HS_ITERATOR_INITIALIZER
+#define MTEV_HASH_ITER_ZERO { CK_HS_ITERATOR_INITIALIZER }
 #define MTEV_HASH_DEFAULT_SIZE (1<<7)
 
 /**
@@ -136,14 +147,14 @@ void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src);
    To use:
      mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
 
-     const char *k;
-     int klen;
-     void *data;
-
-     while(mtev_hash_next(h, &iter, &k, &klen, &data)) {
-       .... use k, klen and data ....
+     while(mtev_hash_adv(h, &iter)) {
+       .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
      }
 */
+int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter);
+
+/* These are older, more painful APIs... use mtev_hash_adv */
+/* Note that neither of these sets the key, value, or klen in iter */
 int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
                    const char **k, int *klen, void **data);
 int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,

@@ -88,9 +88,7 @@ mtev_dso_loader_t * mtev_loader_lookup(const char *name) {
 int
 mtev_dso_list(mtev_hash_table *t, const char ***f) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *name;
-  int klen, i = 0;
-  void *vhdr;
+  int i = 0;
 
   if(mtev_hash_size(t) == 0) {
     *f = NULL;
@@ -98,9 +96,8 @@ mtev_dso_list(mtev_hash_table *t, const char ***f) {
   }
 
   *f = calloc(mtev_hash_size(t), sizeof(**f));
-  while(mtev_hash_next(t, &iter, (const char **)&name, &klen,
-                       &vhdr)) {
-    (*f)[i++] = name;
+  while(mtev_hash_adv(t, &iter)) {
+    (*f)[i++] = iter.key.str;
   }
   return i;
 }

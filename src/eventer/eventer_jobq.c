@@ -616,14 +616,11 @@ void eventer_jobq_decrease_concurrency(eventer_jobq_t *jobq) {
 }
 void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *),
                                void *closure) {
-  const char *key;
-  int klen;
-  void *vjobq;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
 
   pthread_mutex_lock(&all_queues_lock);
-  while(mtev_hash_next(&all_queues, &iter, &key, &klen, &vjobq)) {
-    func((eventer_jobq_t *)vjobq, closure);
+  while(mtev_hash_adv(&all_queues, &iter)) {
+    func((eventer_jobq_t *)iter.value.ptr, closure);
   }
   pthread_mutex_unlock(&all_queues_lock);
 }

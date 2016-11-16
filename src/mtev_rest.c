@@ -116,15 +116,12 @@ int
 mtev_mtev_console_show(mtev_console_closure_t ncct, int argc, char **argv,
                        mtev_console_state_t *dstate, void *unused) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key;
-  int keylen;
-  void *vcont;
-  while(mtev_hash_next(&dispatch_points, &iter, &key, &keylen, &vcont)) {
-    struct rule_container *cont = vcont;
+  while(mtev_hash_adv(&dispatch_points, &iter)) {
+    struct rule_container *cont = iter.value.ptr;
     struct rest_url_dispatcher *rule;
     for(rule = cont->rules; rule; rule = rule->next) {
       Dl_info info;
-      nc_printf(ncct, "%s [%s] %s\n", rule->method, key, rule->expression_s);
+      nc_printf(ncct, "%s [%s] %s\n", rule->method, iter.key.str, rule->expression_s);
       if(rule->handler && dladdr(rule->handler, &info) && info.dli_sname) {
         nc_printf(ncct, "\tHANDLER: %s+%lx\n", info.dli_sname,
                   (unsigned long)((uintptr_t)rule->handler - (uintptr_t)info.dli_saddr));
@@ -148,13 +145,10 @@ mtev_http_rest_endpoints(mtev_http_rest_closure_t *restc,
                          int npats, char **pats) {
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key;
-  int keylen;
-  void *vcont;
   struct json_object *doc;
   doc = json_object_new_object();
-  while(mtev_hash_next(&dispatch_points, &iter, &key, &keylen, &vcont)) {
-    struct rule_container *cont = vcont;
+  while(mtev_hash_adv(&dispatch_points, &iter)) {
+    struct rule_container *cont = iter.value.ptr;
     struct rest_url_dispatcher *rule;
     struct json_object *arr, *jrule;
     arr = json_object_new_array();
@@ -164,7 +158,7 @@ mtev_http_rest_endpoints(mtev_http_rest_closure_t *restc,
       json_object_object_add(jrule, "expression", json_object_new_string(rule->expression_s));
       json_object_array_add(arr, jrule);
     }
-    json_object_object_add(doc, key, arr);
+    json_object_object_add(doc, iter.key.str, arr);
   }
 
   mtev_http_response_standard(ctx, 200, "OK", "application/json");
@@ -837,14 +831,11 @@ compile_listener_res(mtev_conf_section_t node, mtev_hash_table **htptr) {
 static mtev_boolean
 match_listener_res(mtev_hash_table *res, mtev_hash_table *config) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key;
-  int klen;
-  void *vre;
   if(res == NULL) return mtev_true;
-  while(mtev_hash_next(res, &iter, &key, &klen, &vre)) {
-    pcre *re = (pcre *)vre;
+  while(mtev_hash_adv(res, &iter)) {
+    pcre *re = (pcre *)iter.value.ptr;
     const char *str;
-    if(mtev_hash_retr_str(config, key, klen, &str)) {
+    if(mtev_hash_retr_str(config, iter.key.str, iter.klen, &str)) {
       int ovector[30];
       if(pcre_exec(re, NULL, str, strlen(str), 0, 0,
                    ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {

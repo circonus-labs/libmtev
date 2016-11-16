@@ -1735,16 +1735,13 @@ mtev_console_show_reverse(mtev_console_closure_t ncct,
                           mtev_console_state_t *dstate,
                           void *closure) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key_id;
-  int klen, n = 0, i;
-  void *vconn;
+  int n = 0, i;
   reverse_socket_t **ctx;
 
   pthread_rwlock_rdlock(&reverse_sockets_lock);
   ctx = malloc(sizeof(*ctx) * mtev_hash_size(&reverse_sockets));
-  while(mtev_hash_next(&reverse_sockets, &iter, &key_id, &klen,
-                       &vconn)) {
-    ctx[n] = (reverse_socket_t *)vconn;
+  while(mtev_hash_adv(&reverse_sockets, &iter)) {
+    ctx[n] = (reverse_socket_t *)iter.value.ptr;
     if(argc == 0 ||
        !strcmp(ctx[n]->id, argv[0])) {
       n++;
@@ -1766,14 +1763,12 @@ mtev_console_reverse_opts(mtev_console_closure_t ncct,
                           int argc, char **argv, int idx) {
   if(argc == 1) {
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-    const char *key_id;
-    int klen, i = 0;
-    void *vconn;
+    int i = 0;
     reverse_socket_t *ctx;
 
     pthread_rwlock_rdlock(&reverse_sockets_lock);
-    while(mtev_hash_next(&reverse_sockets, &iter, &key_id, &klen, &vconn)) {
-      ctx = (reverse_socket_t *)vconn;
+    while(mtev_hash_adv(&reverse_sockets, &iter)) {
+      ctx = (reverse_socket_t *)iter.value.ptr;
       if(!strncmp(ctx->id, argv[0], strlen(argv[0]))) {
         if(idx == i) {
           pthread_rwlock_unlock(&reverse_sockets_lock);
@@ -1808,10 +1803,9 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
                        int npats, char **pats) {
   struct json_object *doc, *node, *channels;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key_id, *jsonstr;
+  const char *jsonstr;
   const char *want_id = NULL;
-  int klen, n = 0, i, di;
-  void *vconn;
+  int n = 0, i, di;
   double age;
   reverse_socket_t **ctxs;
   struct timeval now, diff;
@@ -1824,9 +1818,8 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
 
   pthread_rwlock_rdlock(&reverse_sockets_lock);
   ctxs = malloc(sizeof(*ctxs) * mtev_hash_size(&reverse_sockets));
-  while(mtev_hash_next(&reverse_sockets, &iter, &key_id, &klen,
-                       &vconn)) {
-    ctxs[n] = (reverse_socket_t *)vconn;
+  while(mtev_hash_adv(&reverse_sockets, &iter)) {
+    ctxs[n] = (reverse_socket_t *)iter.value.ptr;
     n++;
   }
 
@@ -1903,10 +1896,8 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
   xmlDocPtr doc;
   xmlNodePtr root;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key_id;
   const char *want_id = NULL;
-  int klen, n = 0, i, di;
-  void *vconn;
+  int n = 0, i, di;
   double age;
   reverse_socket_t **ctxs;
   struct timeval now, diff;
@@ -1920,9 +1911,8 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
 
   pthread_rwlock_rdlock(&reverse_sockets_lock);
   ctxs = malloc(sizeof(*ctxs) * mtev_hash_size(&reverse_sockets));
-  while(mtev_hash_next(&reverse_sockets, &iter, &key_id, &klen,
-                       &vconn)) {
-    ctxs[n] = (reverse_socket_t *)vconn;
+  while(mtev_hash_adv(&reverse_sockets, &iter)) {
+    ctxs[n] = (reverse_socket_t *)iter.value.ptr;
     n++;
   }
 
@@ -2047,16 +2037,13 @@ void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
 int
 mtev_reverse_socket_connection_shutdown(const char *address, int port) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *key_id;
-  int klen, success = 0;
+  int success = 0;
   char remote_str[INET6_ADDRSTRLEN + 1 + 5 + 1];
-  void *vconn;
 
   snprintf(remote_str, sizeof(remote_str), "%s:%d", address, port);
   pthread_mutex_lock(&reverses_lock);
-  while(mtev_hash_next(&reverses, &iter, &key_id, &klen,
-                       &vconn)) {
-    mtev_connection_ctx_t *ctx = vconn;
+  while(mtev_hash_adv(&reverses, &iter)) {
+    mtev_connection_ctx_t *ctx = iter.value.ptr;
     if(ctx->remote_str && !strcmp(remote_str, ctx->remote_str)) {
       if(!ctx->wants_permanent_shutdown) {
         ctx->wants_permanent_shutdown = 1;

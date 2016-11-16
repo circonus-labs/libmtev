@@ -490,15 +490,21 @@ void mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFre
 
 void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *k;
-  int klen;
-  void *data;
   if(src == NULL || dst == NULL) return;
-  while(mtev_hash_next(src, &iter, &k, &klen, &data)) {
-    mtev_hash_replace(dst, strdup(k), klen, strdup((char *)data), free, free);
+  while(mtev_hash_adv(src, &iter)) {
+    mtev_hash_replace(dst, strdup(iter.key.str), iter.klen,
+                      strdup(iter.value.str), free, free);
   }
 }
 
+int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter) {
+  return mtev_hash_next(h, iter, &iter->key.str, &iter->klen, &iter->value.ptr);
+}
+
+/* mtev_hash_next(_str) should not use anything in iter past the
+ * ck_hs_iterator_t b/c older consumers could have the smaller
+ * version of the mtev_hash_iter allocated on stack.
+ */
 int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
                 const char **k, int *klen, void **data) {
   void *cursor = NULL;
@@ -511,7 +517,7 @@ int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
     mtev_hash_init(h);
   }
 
-  if(!ck_hs_next(&h->u.hs, iter, &cursor)) return 0;
+  if(!ck_hs_next(&h->u.hs, &iter->iter, &cursor)) return 0;
   key = (ck_key_t *)cursor;
   data_struct = index_attribute_container(key);
   if (data_struct) {
@@ -526,6 +532,9 @@ int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
                        const char **k, int *klen, const char **dstr) {
   void *data = NULL;
   int rv;
+  /* Leave this hash_next for ABI safety.
+   * (this mtev_hash_iter could be too small)
+   */
   rv = mtev_hash_next(h,iter,k,klen,&data);
   *dstr = data;
   return rv;

@@ -246,16 +246,13 @@ mtev_cluster_check_timeout(mtev_cluster_t *cluster, struct timeval now) {
 }
 static void
 mtev_cluster_check_timeouts() {
-  const char *key;
-  int klen;
-  void *value;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
 
   struct timeval now;
   mtev_gettimeofday (&now, NULL);
 
-  while(mtev_hash_next(&global_clusters, &iter, &key, &klen, &value)) {
-    mtev_cluster_check_timeout(value, now);
+  while(mtev_hash_adv(&global_clusters, &iter)) {
+    mtev_cluster_check_timeout(iter.value.ptr, now);
   }
 }
 
@@ -271,9 +268,6 @@ mtev_cluster_info_compose(void *payload, int len, void *c) {
   mtev_cluster_t *cluster = c;
   mtev_hash_iter payload_iter = MTEV_HASH_ITER_ZERO;
   mtev_hash_iter payload_iter2 = MTEV_HASH_ITER_ZERO;
-  void *vdata;
-  const char *key;
-  int klen;
   uint8_t number_of_payloads;
 
   number_of_payloads = mtev_hash_size(&cluster->hb_payloads);
@@ -294,15 +288,15 @@ mtev_cluster_info_compose(void *payload, int len, void *c) {
 
   if(number_of_payloads != 0) {
     // write header (pointer table)
-    while(mtev_hash_next(&cluster->hb_payloads, &payload_iter, &key, &klen, &vdata)) {
-      hb_payload = vdata;
+    while(mtev_hash_adv(&cluster->hb_payloads, &payload_iter)) {
+      hb_payload = payload_iter.value.ptr;
       MEMWRITE(&hb_payload->app_id, 1);
       MEMWRITE(&hb_payload->key, 1);
       MEMWRITE(&hb_payload->data_len, 1);
     }
     // write payload
-    while(mtev_hash_next(&cluster->hb_payloads, &payload_iter2, &key, &klen, &vdata)) {
-      hb_payload = vdata;
+    while(mtev_hash_adv(&cluster->hb_payloads, &payload_iter2)) {
+      hb_payload = payload_iter2.value.ptr;
       MEMWRITE(hb_payload->data, hb_payload->data_len);
     }
   }
@@ -819,18 +813,15 @@ mtev_cluster_set_heartbeat_payload(mtev_cluster_t *cluster,
   hb_payload_t *hb_payload, *old_payload = NULL;
   uint16_t *hash_key = malloc(sizeof(uint16_t));
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  void *vc;
-  const char *k;
-  int klen;
 
   *hash_key = (app_id << 8) | key;
 
-  while(mtev_hash_next(&cluster->hb_payloads, &iter, &k, &klen, &vc)) {
-    hb_payload = vc;
+  while(mtev_hash_adv(&cluster->hb_payloads, &iter)) {
+    hb_payload = iter.value.ptr;
     if(hb_payload->app_id != app_id || hb_payload->key != key) {
       payload_len_sum += hb_payload->data_len;
     } else {
-      old_payload = vc;
+      old_payload = iter.value.ptr;
     }
   }
 
@@ -972,11 +963,8 @@ rest_show_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
   }
   else {
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-    void *vc;
-    const char *key;
-    int klen;
-    while(mtev_hash_next(&global_clusters, &iter, &key, &klen, &vc)) {
-      xmlAddChild(root, mtev_cluster_to_xmlnode((mtev_cluster_t *)vc));
+    while(mtev_hash_adv(&global_clusters, &iter)) {
+      xmlAddChild(root, mtev_cluster_to_xmlnode((mtev_cluster_t *)iter.value.ptr));
     }
   }
   mtev_http_response_standard(ctx, 200, "OK", "text/xml");
