@@ -74,6 +74,7 @@ LOCAL_EVENTER_foreach_fdevent (void (*f)(eventer_t e, void *),
 void eventer_wakeup_noop(eventer_t);
 void eventer_cross_thread_trigger(eventer_t e, int mask);
 void eventer_cross_thread_process();
+void eventer_impl_init_globals();
 
 extern stats_ns_t *eventer_stats_ns;
 extern stats_handle_t *eventer_callback_latency;

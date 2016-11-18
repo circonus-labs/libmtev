@@ -71,6 +71,7 @@ struct eventer_impl_data {
   pthread_mutex_t cross_lock;
   struct cross_thread_trigger *cross;
   void *spec;
+  eventer_pool_t *pool;
 };
 
 static __thread struct eventer_impl_data *my_impl_data;
@@ -103,16 +104,49 @@ eventer_impl_t __eventer = NULL;
 mtev_log_stream_t eventer_err = NULL;
 mtev_log_stream_t eventer_deb = NULL;
 
-static int __default_queue_threads = 5;
-static int __loop_concurrency = 0;
-static mtev_atomic32_t __loops_started = 0;
+static uint32_t __default_queue_threads = 5;
+static uint32_t __total_loop_count = 0;
+static uint32_t __default_loop_concurrency = 0;
 static eventer_jobq_t __default_jobq;
 
-int eventer_loop_concurrency() { return __loop_concurrency; }
+struct eventer_pool_t {
+  char *name;
+  uint32_t __global_tid_offset;
+  uint32_t __loop_concurrency;
+  uint32_t __loops_started;
+};
+
+static eventer_pool_t default_pool = { "default", 0 };
+static mtev_hash_table eventer_pools;
+
+void eventer_pool_create(const char *name, int concurrency) {
+  /* We cannot create pool once we've initialized */
+  mtevAssert(eventer_impl_tls_data == NULL);
+
+  eventer_pool_t *np = calloc(1, sizeof(*np));
+  np->name = strdup(name);
+  np->__loop_concurrency = concurrency;
+  if(!mtev_hash_store(&eventer_pools, np->name, strlen(np->name), np)) {
+    mtevFatal(mtev_stderr, "Two eventer pools with the same name.\n");
+  }
+}
+
+const char *eventer_pool_name(eventer_pool_t *pool) {
+  return pool->name;
+}
+
+eventer_pool_t *eventer_pool(const char *name) {
+  void *vptr;
+  if(mtev_hash_retrieve(&eventer_pools, name, strlen(name), &vptr))
+    return (eventer_pool_t *)vptr;
+  return NULL;
+}
+
+int eventer_loop_concurrency() { return __total_loop_count; }
 
 /* Multi-threaded event loops...
 
-   We will instantiate __loop_concurrency separate threads each running their
+   We will instantiate __total_loop_count separate threads each running their
    own event loop.  This event loops can concurrently fire callbacks, so it is
    important that they be written in a thread-safe manner.
 
@@ -124,29 +158,33 @@ int eventer_loop_concurrency() { return __loop_concurrency; }
    order to alleviate (or at least avoid) that contention, we will assist thread-
    safe events by only choosing thr_owners other than idx=0.
 
-   This has the effect of using 1 thread for some checks and __loop_concurrency-1
+   This has the effect of using 1 thread for some checks and __total_loop_count-1
    for all the others.
 
 */
 
-pthread_t eventer_choose_owner(int i) {
-  int idx;
-  if(__loop_concurrency == 1) return eventer_impl_tls_data[0].tid;
+pthread_t eventer_choose_owner_pool(eventer_pool_t *pool, int i) {
+  int idx, adjidx;
+  if(pool->__loop_concurrency == 1) return eventer_impl_tls_data[pool->__global_tid_offset].tid;
   if(i==0)
     idx = 0;
   else
-    idx = ((unsigned int)i)%(__loop_concurrency-1) + 1; /* see comment above */
-  mtevL(eventer_deb, "eventer_choose -> %u %% %d = %d t@%u\n",
-        (unsigned int)i, __loop_concurrency, idx,
-        (unsigned int)eventer_impl_tls_data[idx].tid);
-  return eventer_impl_tls_data[idx].tid;
+    idx = ((unsigned int)i)%(pool->__loop_concurrency-1) + 1; /* see comment above */
+  adjidx = pool->__global_tid_offset + idx;
+  mtevL(eventer_deb, "eventer_choose -> %u %% %d = (%s) %d t@%u\n",
+        (unsigned int)i, pool->__loop_concurrency, pool->name, idx,
+        (unsigned int)eventer_impl_tls_data[adjidx].tid);
+  return eventer_impl_tls_data[adjidx].tid;
+}
+pthread_t eventer_choose_owner(int i) {
+  return eventer_choose_owner_pool(&default_pool, i);
 }
 static struct eventer_impl_data *get_my_impl_data() {
   return my_impl_data;
 }
 static struct eventer_impl_data *get_tls_impl_data(pthread_t tid) {
   int i;
-  for(i=0;i<__loop_concurrency;i++) {
+  for(i=0;i<__total_loop_count;i++) {
     if(pthread_equal(eventer_impl_tls_data[i].tid, tid))
       return &eventer_impl_tls_data[i];
   }
@@ -158,7 +196,7 @@ static struct eventer_impl_data *get_event_impl_data(eventer_t e) {
 }
 int eventer_is_loop(pthread_t tid) {
   int i;
-  for(i=0;i<__loop_concurrency;i++)
+  for(i=0;i<__total_loop_count;i++)
     if(pthread_equal(eventer_impl_tls_data[i].tid, tid)) return i;
   return -1;
 }
@@ -171,18 +209,34 @@ void *eventer_get_spec_for_event(eventer_t e) {
   return t->spec;
 }
 
+eventer_pool_t *eventer_get_pool_for_event(eventer_t e) {
+  struct eventer_impl_data *t;
+  t = get_event_impl_data(e);
+  if(!t) return NULL;
+  return t->pool;
+}
+
 int eventer_impl_propset(const char *key, const char *value) {
   if(!strcasecmp(key, "concurrency")) {
-    __loop_concurrency = atoi(value);
-    if(__loop_concurrency < 1) __loop_concurrency = 0;
+    int requested = atoi(value);
+    if(requested < 1) requested = 1;
+    __default_loop_concurrency = requested;
+    return 0;
+  }
+  if(!strncasecmp(key, "loop_", strlen("loop_"))) {
+    const char *name = key + strlen("loop_");
+    int requested = atoi(value);
+    if(requested < 0) requested = 0;
+    eventer_pool_create(name, requested);
     return 0;
   }
   if(!strcasecmp(key, "default_queue_threads")) {
-    __default_queue_threads = atoi(value);
-    if(__default_queue_threads < 1) {
+    int requested = atoi(value);
+    if(requested < 1) {
       mtevL(mtev_error, "default_queue_threads must be >= 1\n");
       return -1;
     }
+    __default_queue_threads = requested;
     return 0;
   }
   else if(!strcasecmp(key, "rlim_nofiles")) {
@@ -262,6 +316,7 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
 
   pthread_mutex_init(&t->cross_lock, NULL);
   pthread_mutex_init(&t->te_lock, NULL);
+  pthread_mutex_init(&t->recurrent_lock, NULL);
   t->timed_events = calloc(1, sizeof(*t->timed_events));
   mtev_skiplist_init(t->timed_events);
   mtev_skiplist_set_compare(t->timed_events,
@@ -288,7 +343,7 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   e->closure = calloc(1,sizeof(unsigned int));
   e->callback = eventer_mtev_memory_maintenance;
   eventer_add_recurrent(e);
-  mtev_atomic_inc32(&__loops_started);
+  ck_pr_inc_32(&t->pool->__loops_started);
 }
 
 static void *thrloopwrap(void *vid) {
@@ -306,13 +361,17 @@ void eventer_loop() {
   thrloopwrap((void *)(vpsized_int)0);
 }
 
-static void eventer_loop_prime() {
+static void eventer_loop_prime(eventer_pool_t *pool, int start) {
   int i;
-  for(i=1; i<__loop_concurrency; i++) {
+  mtevL(mtev_debug, "Starting eventer pool '%s' with concurrency of %d\n",
+        pool->name, pool->__loop_concurrency);
+  for(i=start; i<pool->__loop_concurrency; i++) {
     pthread_t tid;
-    pthread_create(&tid, NULL, thrloopwrap, (void *)(vpsized_int)i);
+    int adjidx = pool->__global_tid_offset + i;
+    mtevAssert(pool == eventer_impl_tls_data[adjidx].pool);
+    pthread_create(&tid, NULL, thrloopwrap, (void *)(vpsized_int)adjidx);
   }
-  while(__loops_started < __loop_concurrency);
+  while(ck_pr_load_32((uint32_t *)&pool->__loops_started) < ck_pr_load_32((uint32_t *)&pool->__loop_concurrency));
 }
 
 static hwloc_topology_t *topo = NULL;
@@ -367,6 +426,23 @@ int eventer_impl_setrlimit() {
   return rlim.rlim_cur;
 }
 
+static void
+eventer_impl_tls_data_from_pool(eventer_pool_t *pool) {
+  int i;
+  for (i=0; i<pool->__loop_concurrency; i++) {
+    int adjidx = pool->__global_tid_offset + i;
+    struct eventer_impl_data *t = &eventer_impl_tls_data[adjidx];
+    t->pool = pool;
+  }
+}
+
+void eventer_impl_init_globals() {
+  mtev_hash_init(&eventer_pools);
+  mtevAssert(mtev_hash_store(&eventer_pools,
+                             default_pool.name, strlen(default_pool.name),
+                             &default_pool));
+}
+
 int eventer_impl_init() {
   int i, try;
   char *evdeb;
@@ -386,14 +462,14 @@ int eventer_impl_init() {
   NE_O_CLOEXEC = O_CLOEXEC;
 #endif
 
-  if(__loop_concurrency <= 0) {
+  if(__default_loop_concurrency == 0) {
     int sockets = 0, cores = 0;
     (void)eventer_cpu_sockets_and_cores(&sockets, &cores);
     if(sockets == 0) sockets = 1;
     if(cores == 0) cores = sockets;
-    __loop_concurrency = 1 + PARALLELISM_MULTIPLIER * cores;
-    mtevL(mtev_debug, "found %d sockets, %d cores -> concurrency %d\n",
-          sockets, cores, __loop_concurrency);
+    __default_loop_concurrency = 1 + PARALLELISM_MULTIPLIER * cores;
+    mtevL(mtev_debug, "found %d sockets, %d cores -> default concurrency %d\n",
+          sockets, cores, __default_loop_concurrency);
   }
 
   evdeb = getenv("EVENTER_DEBUGGING");
@@ -428,10 +504,44 @@ int eventer_impl_init() {
     eventer_jobq_increase_concurrency(&__default_jobq);
 
   mtevAssert(eventer_impl_tls_data == NULL);
-  eventer_impl_tls_data = calloc(__loop_concurrency, sizeof(*eventer_impl_tls_data));
 
+  /* Zip through the pools and set their concurrencies. */
+  /* default is always first with an offset of 0 */
+  if(default_pool.__loop_concurrency == 0)
+    default_pool.__loop_concurrency = __default_loop_concurrency;
+  __total_loop_count = default_pool.__loop_concurrency;
+
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  while(mtev_hash_adv(&eventer_pools, &iter)) {
+    eventer_pool_t *pool = iter.value.ptr;
+    if(pool == &default_pool) continue; 
+    if(pool->__loop_concurrency == 0)
+      pool->__loop_concurrency = __default_loop_concurrency;
+    pool->__global_tid_offset = __total_loop_count;
+    __total_loop_count += pool->__loop_concurrency;
+  }
+  eventer_impl_tls_data = calloc(__total_loop_count, sizeof(*eventer_impl_tls_data));
+
+  int accum_check = 0;
+
+  /* first the default pool */
+  eventer_impl_tls_data_from_pool(&default_pool);
   eventer_per_thread_init(&eventer_impl_tls_data[0]);
-  eventer_loop_prime();
+  /* thread 0 is this thread, so we prime starting at 1 */
+  eventer_loop_prime(&default_pool, 1);
+  accum_check += default_pool.__loop_concurrency;
+
+  /* then everythign but the default pool */
+  memset(&iter, 0, sizeof(iter));
+  while(mtev_hash_adv(&eventer_pools, &iter)) {
+    eventer_pool_t *pool = iter.value.ptr;
+    if(pool == &default_pool) continue;
+    eventer_impl_tls_data_from_pool(pool);
+    eventer_loop_prime(pool, 0); /* prime all threads starting at 0 */
+    accum_check += pool->__loop_concurrency;
+  }
+  mtevAssert(accum_check == __total_loop_count);
+
   eventer_ssl_init();
   return 0;
 }
@@ -581,7 +691,7 @@ void
 eventer_foreach_timedevent(void (*f)(eventer_t e, void *), void *closure) {
   mtev_skiplist_node *iter = NULL;
   int i;
-  for(i=0;i<__loop_concurrency;i++) {
+  for(i=0;i<__total_loop_count;i++) {
     struct eventer_impl_data *t = &eventer_impl_tls_data[i];
     pthread_mutex_lock(&t->te_lock);
     for(iter = mtev_skiplist_getlist(t->timed_events); iter;
