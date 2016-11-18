@@ -161,7 +161,7 @@ mtev_thread_prio(int prio) {
   if (priocntl(P_LWPID, P_MYID, PC_GETXPARMS, NULL,
          PC_KY_CLNAME, pcinfo.pc_clname, 0) == -1 ||
          priocntl(0, 0, PC_GETCID, (caddr_t)&pcinfo) == -1) {
-    mtevL(mtev_error, "priocntl(P_LWPID, P_MYID, PC_GETPARMS, ...) -> %s\n",
+    mtevL(mtev_debug, "priocntl(P_LWPID, P_MYID, PC_GETPARMS, ...) -> %s\n",
           strerror(errno));
     return mtev_false;
   }
@@ -181,12 +181,12 @@ mtev_thread_prio(int prio) {
     key_id = RT_KY_PRI;
   }
   else {
-    mtevL(mtev_error, "Unknown schedule class: %s\n", pcinfo.pc_clname);
+    mtevL(mtev_debug, "Unknown schedule class: %s\n", pcinfo.pc_clname);
     return mtev_false;
   }
   if(priocntl(P_LWPID, P_MYID, PC_SETXPARMS, pcinfo.pc_clname,
               key_id, prio, NULL) == -1) {
-      mtevL(mtev_error, "Failed to set %d/%d priority to %s/%d: %s\n",
+      mtevL(mtev_debug, "Failed to set %d/%d priority to %s/%d: %s\n",
             (int)getpid(), (int)_lwp_self(), pcinfo.pc_clname, prio,
             strerror(errno));
       return mtev_false;
@@ -198,7 +198,7 @@ mtev_thread_prio(int prio) {
   int err, sched;
   struct sched_param sp;
   if((err = pthread_getschedparam(pthread_self(), &sched, &sp)) != 0) {
-    mtevL(mtev_error, "mtev_thread_prio cannot get sched params: %s\n", strerror(err));
+    mtevL(mtev_debug, "mtev_thread_prio cannot get sched params: %s\n", strerror(err));
     return false;
   }
   sp.sched_priority = prio;
@@ -207,7 +207,7 @@ mtev_thread_prio(int prio) {
   if(sp.sched_priority > maxprio) sp.sched_priority = maxprio;
   else if(sp.sched_priority < minprio) sp.sched_priority = minprio;
   if((err = pthread_setschedparam(pthread_self(), sched, &sp)) != 0) {
-    mtevL(mtev_error, "mtev_thread_prio(%d / %d): %d/%s\n", prio, sp.sched_priority, err, strerror(err));
+    mtevL(mtev_debug, "mtev_thread_prio(%d / %d): %d/%s\n", prio, sp.sched_priority, err, strerror(err));
     return mtev_false;
   }
   mtevL(mtev_debug, "%d/%d priority to %d/%d.\n",
@@ -237,7 +237,7 @@ mtev_thread_realtime(uint64_t qns) {
     ((rtparms_t *)pcparms.pc_clparms)->rt_tqsecs = qns / 1000000000;
   }
   if (priocntl(P_LWPID, P_MYID, PC_SETPARMS, (caddr_t)&pcparms) == -1) {
-    mtevL(mtev_error, "Failed changing thread %d/%d to %s scheduling class: %s.\n",
+    mtevL(mtev_debug, "Failed changing thread %d/%d to %s scheduling class: %s.\n",
           (int)getpid(), (int)_lwp_self(), pcinfo.pc_clname, strerror(errno));
     return mtev_false;
   }
@@ -249,7 +249,7 @@ mtev_thread_realtime(uint64_t qns) {
   struct sched_param sp;
   sp.sched_priority = sched_get_priority_max(SCHED_RR);
   if((err = pthread_setschedparam(pthread_self(), SCHED_RR, &sp)) != 0) {
-    mtevL(mtev_error, "Failed changing thread %d/%d to %s scheduling class: %d/%s.\n",
+    mtevL(mtev_debug, "Failed changing thread %d/%d to %s scheduling class: %d/%s.\n",
           (int)getpid(), (int)gettid(), "SCHED_RR", err, strerror(err));
     return mtev_false;
   }
