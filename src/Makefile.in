@@ -266,7 +266,7 @@ mtevlibs:	$(LIBMTEV_V) @MDB_MODS@ $(FAST_TIME_PRELOAD)
 
 luamtev.o:      luamtev.c luamtev.conf.tmpl
 
-luamtev:        luamtev.o mtevlibs
+luamtev:        luamtev.o $(LIBMTEV_V)
 	$(Q)echo "- linking $@"
 	$(Q)$(CC) -L. $(LDFLAGS) @UNWINDLIB@ -o $@ luamtev.o -lmtev @LUALIBS@
 
