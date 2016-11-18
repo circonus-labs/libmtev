@@ -44,9 +44,11 @@
 #include "mtev_time.h"
 
 #ifdef mtev_log_impl
-typedef struct _mtev_log_stream * mtev_log_stream_t;
+typedef struct _mtev_log_stream mtev_log_stream_t;
+#define mtev_log_stream_t mtev_log_stream_t *
 #else
-typedef void * mtev_log_stream_t;
+typedef void * mtev_log_stream_public_t;
+#define mtev_log_stream_t mtev_log_stream_public_t
 #endif
 
 struct _mtev_log_stream_outlet_list {
