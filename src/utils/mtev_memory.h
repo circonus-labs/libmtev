@@ -57,4 +57,34 @@ API_EXPORT(void) mtev_memory_safe_free(void *p);
 API_EXPORT(void *) mtev_memory_ck_malloc(size_t r);
 API_EXPORT(void) mtev_memory_ck_free(void *p, size_t b, bool r);
 
+#define MTEV_ALLOC_HINT_SAMETHREAD 0x1
+#define MTEV_ALLOC_HINT_NOCORE     0x2
+
+typedef struct mtev_allocator_options *mtev_allocator_options_t;
+typedef struct mtev_allocator *mtev_allocator_t;
+
+API_EXPORT(mtev_allocator_options_t) mtev_allocator_options_create();
+API_EXPORT(void) mtev_allocator_options_free(mtev_allocator_options_t);
+API_EXPORT(void)
+  mtev_allocator_options_alignment(mtev_allocator_options_t, size_t alignment);
+API_EXPORT(void)
+  mtev_allocator_options_fixed_size(mtev_allocator_options_t, size_t size);
+API_EXPORT(void)
+  mtev_allocator_options_fill(mtev_allocator_options_t, uint64_t fill);
+API_EXPORT(void)
+  mtev_allocator_options_freelist_perthreadlimit(mtev_allocator_options_t, int items);
+API_EXPORT(void)
+  mtev_allocator_options_hints(mtev_allocator_options_t, uint32_t hints);
+API_EXPORT(mtev_allocator_t)
+  mtev_allocator_create(mtev_allocator_options_t);
+
+API_EXPORT(void *)
+  mtev_malloc(mtev_allocator_t, size_t size);
+API_EXPORT(void *)
+  mtev_calloc(mtev_allocator_t, size_t nmemb, size_t elemsize);
+API_EXPORT(void *)
+  mtev_realloc(mtev_allocator_t, void *ptr, size_t size);
+API_EXPORT(void)
+  mtev_free(mtev_allocator_t, void *ptr);
+
 #endif

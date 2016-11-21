@@ -35,10 +35,12 @@
 #include "eventer/eventer_impl_private.h"
 #include "mtev_hash.h"
 #include "mtev_stats.h"
+#include "mtev_memory.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
+static mtev_allocator_t eventer_t_allocator;
 eventer_impl_t __eventer;
 mtev_log_stream_t eventer_err;
 mtev_log_stream_t eventer_deb;
@@ -50,7 +52,7 @@ static mtev_atomic64_t ealloctotal;
 
 eventer_t eventer_alloc() {
   eventer_t e;
-  e = calloc(1, sizeof(*e));
+  e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
   e->thr_owner = pthread_self();
   e->opset = eventer_POSIX_fd_opset;
   e->refcnt = 1;
@@ -75,7 +77,7 @@ int eventer_timecompare(const void *av, const void *bv) {
 void eventer_free(eventer_t e) {
   if(mtev_atomic_dec32(&e->refcnt) == 0) {
     mtev_atomic_dec64(&ealloccnt);
-    free(e);
+    mtev_free(eventer_t_allocator, e);
   }
 }
 
@@ -208,6 +210,12 @@ int eventer_choose(const char *name) {
 }
 
 void eventer_init_globals() {
+  mtev_allocator_options_t opts = mtev_allocator_options_create();
+  mtev_allocator_options_fixed_size(opts, sizeof(struct _event));
+  mtev_allocator_options_freelist_perthreadlimit(opts, 1000);
+  eventer_t_allocator = mtev_allocator_create(opts);
+  mtev_allocator_options_free(opts);
+
   eventer_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "eventer");
   mtev_hash_init_locks(&__name_to_func, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init_locks(&__func_to_name, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
@@ -221,4 +229,5 @@ void eventer_init_globals() {
   stats_rob_i64(eventer_stats_ns, "events_current", (void *)&ealloccnt);
   eventer_ssl_init_globals();
 }
+
 

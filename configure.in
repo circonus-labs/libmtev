@@ -236,7 +236,10 @@ AC_CHECK_LIB(ck, ck_ht_init, , [AC_MSG_ERROR([*** concurrencyckit (libck) is req
 AC_CHECK_LIB(hwloc, hwloc_topology_init, , [AC_MSG_ERROR([*** libhwloc required ***])])
 AC_CHECK_LIB(jlog, jlog_new, , [AC_MSG_ERROR([*** libjlog required github.com/omniti-labs/jlog ***])])
 AC_CHECK_LIB(circmetrics, stats_recorder_alloc, , [AC_MSG_ERROR([*** libcircmetrics is required ***])])
-AC_CHECK_LIB(umem, umem_cache_create, , )
+AC_CHECK_LIB(umem, umem_cache_create, [
+	LIBS="$LIBS -lumem"
+	AC_DEFINE(HAVE_LIBUMEM)
+], )
 AC_CHECK_LIB(z, compress2, , [AC_MSG_ERROR([*** zlib is required ***])])
 AC_CHECK_LIB(rt, sem_init, , [
   AC_CHECK_LIB(rt, clock_gettime, , )
