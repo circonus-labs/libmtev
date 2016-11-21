@@ -31,6 +31,7 @@ struct mtev_websocket_client {
   const char *service; /* protocol */
   int wanted_eventer_mask;
   char client_key[25];
+  void *closure;
 };
 
 #ifdef HAVE_WSLAY
@@ -144,9 +145,9 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
 
   if (!wslay_is_ctrl_frame(arg->opcode)) {
     if (client->msg_callback != NULL) {
-      rv = client->msg_callback(client, arg->opcode, arg->msg, arg->msg_length);
+      rv = client->msg_callback(client, arg->opcode, arg->msg, arg->msg_length, client->closure);
       if (rv != 0) {
-        mtevL(mtev_error, "Websocket client consumer handler failed, aborting\n");
+        mtevL(mtev_error, "Websocket client consumer handler failed, flagging for abort\n");
         client->should_close = mtev_true;
       }
     } else {
@@ -286,7 +287,7 @@ abort_drive:
       }
       wslay_event_context_client_init(&client->wslay_ctx, &wslay_callbacks, client);
       client->did_handshake = mtev_true;
-      if(client->ready_callback) client->ready_callback(client);
+      if(client->ready_callback) client->ready_callback(client, client->closure);
     } else {
       return EVENTER_READ | EVENTER_EXCEPTION;
     }
@@ -316,7 +317,7 @@ abort_drive:
 
 mtev_websocket_client_t *
 mtev_websocket_client_new(const char *host, int port, const char *path, const char *service,
-                          mtev_websocket_client_callbacks *callbacks) {
+                          mtev_websocket_client_callbacks *callbacks, void *closure) {
 #ifdef HAVE_WSLAY
   int fd = -1, rv;
   int family = AF_INET;
@@ -387,6 +388,7 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
   client->ready_callback = callbacks->ready_callback;
   client->msg_callback = callbacks->msg_callback;
   client->cleanup_callback = callbacks->cleanup_callback;
+  client->closure = closure;
 
   eventer_t e = eventer_alloc();
   e->fd = fd;
@@ -422,6 +424,24 @@ mtev_websocket_client_set_cleanup_callback(mtev_websocket_client_t *client,
                                            mtev_websocket_client_cleanup_callback cleanup_callback) {
 #ifdef HAVE_WSLAY
   client->cleanup_callback = cleanup_callback;
+#endif
+}
+
+void *
+mtev_websocket_client_get_closure(mtev_websocket_client_t *client) {
+#ifdef HAVE_WSLAY
+  return client->closure;
+#else
+  return NULL;
+#endif
+}
+
+void
+mtev_websocket_client_set_closure(mtev_websocket_client_t *client, void *closure) {
+#ifdef HAVE_WSLAY
+  client->closure = closure;
+#else
+  return NULL;
 #endif
 }
 
@@ -483,7 +503,7 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
     free((void *)client->service);
     free((void *)client->host);
     client->closed = mtev_true;
-    if(client->cleanup_callback) client->cleanup_callback(client);
+    if(client->cleanup_callback) client->cleanup_callback(client, client->closure);
   }
   pthread_mutex_unlock(&client->lock);
 }
