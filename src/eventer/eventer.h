@@ -231,33 +231,47 @@ API_EXPORT(int) eventer_cpu_sockets_and_cores(int *sockets, int *cores);
 API_EXPORT(pthread_t) eventer_choose_owner(int);
 
 /* Helpers to schedule timed events */
+static inline eventer_t
+eventer_at(eventer_func_t func, void *cl, struct timeval t) {
+  eventer_t e = eventer_alloc();
+  e->whence = t;
+  e->mask = EVENTER_TIMER;
+  e->callback = func;
+  e->closure = cl;
+  return e;
+}
 #define eventer_add_at(func, cl, t) do { \
-  eventer_t e = eventer_alloc(); \
-  e->whence = t; \
-  e->mask = EVENTER_TIMER; \
-  e->callback = func; \
-  e->closure = cl; \
-  eventer_add(e); \
+  eventer_add(eventer_at(func,cl,t)); \
 } while(0)
+
+static inline eventer_t
+eventer_in(eventer_func_t func, void *cl, struct timeval t) {
+  struct timeval __now;
+  eventer_t e = eventer_alloc();
+  mtev_gettimeofday(&__now, NULL);
+  add_timeval(__now, t, &e->whence);
+  e->mask = EVENTER_TIMER;
+  e->callback = func;
+  e->closure = cl;
+  return e;
+}
 #define eventer_add_in(func, cl, t) do { \
-  struct timeval __now; \
-  eventer_t e = eventer_alloc(); \
-  mtev_gettimeofday(&__now, NULL); \
-  add_timeval(__now, t, &e->whence); \
-  e->mask = EVENTER_TIMER; \
-  e->callback = func; \
-  e->closure = cl; \
-  eventer_add(e); \
+  eventer_add(eventer_in(func,cl,t)); \
 } while(0)
+
+static inline eventer_t
+eventer_in_s_us(eventer_func_t func, void *cl, unsigned long s, unsigned long us) {
+  struct timeval __now, diff = { s, us };
+  eventer_t e = eventer_alloc();
+  mtev_gettimeofday(&__now, NULL);
+  add_timeval(__now, diff, &e->whence);
+  e->mask = EVENTER_TIMER;
+  e->callback = func;
+  e->closure = cl;
+  return e;
+}
 #define eventer_add_in_s_us(func, cl, s, us) do { \
-  struct timeval __now, diff = { s, us }; \
-  eventer_t e = eventer_alloc(); \
-  mtev_gettimeofday(&__now, NULL); \
-  add_timeval(__now, diff, &e->whence); \
-  e->mask = EVENTER_TIMER; \
-  e->callback = func; \
-  e->closure = cl; \
-  eventer_add(e); \
+  eventer_add(eventer_in_s_us(func,cl,s,us)); \
 } while(0)
 
 /* Helpers to set sockets non-blocking / blocking */

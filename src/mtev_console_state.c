@@ -44,6 +44,7 @@
 #include "mtev_tokenizer.h"
 #include "mtev_capabilities_listener.h"
 
+#include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pcre.h>
@@ -180,6 +181,26 @@ mtev_console_coreclocks_toggle(mtev_console_closure_t ncct, int argc, char **arg
   return 0;
 }
 
+static int
+mtev_console_hang_action(eventer_t e, int m, void *cl, struct timeval *now) {
+  pause();
+  return 0;
+}
+int
+mtev_console_hang(mtev_console_closure_t ncct, int argc, char **argv,
+                   mtev_console_state_t *dstate, void *unused) {
+  if(argc == 1) {
+    int id = atoi(argv[0]);
+    nc_printf(ncct, "hang: %d\n", id);
+    eventer_t e = eventer_in_s_us(mtev_console_hang_action, NULL, 0, 0);
+    e->thr_owner = eventer_choose_owner(id);
+    eventer_add(e);
+  } else {
+    pause();
+  }
+  return 0;
+}
+
 cmd_info_t console_command_help = {
   "help", mtev_console_help, mtev_console_opt_delegate, NULL, NULL
 };
@@ -188,6 +209,9 @@ cmd_info_t console_command_exit = {
 };
 cmd_info_t console_command_crash = {
   "crash", mtev_console_crash, NULL, NULL, NULL
+};
+cmd_info_t console_command_hang = {
+  "hang", mtev_console_hang, NULL, NULL, NULL
 };
 cmd_info_t console_command_shutdown = {
   "shutdown", mtev_console_shutdown, NULL, NULL, NULL
@@ -691,6 +715,7 @@ mtev_console_state_initial() {
     no_state = mtev_console_mksubdelegate(_top_level_state, "no");
 
     mtev_console_state_add_cmd(_top_level_state, &console_command_crash);
+    mtev_console_state_add_cmd(_top_level_state, &console_command_hang);
     mtev_console_state_add_cmd(_top_level_state, &console_command_shutdown);
     mtev_console_state_add_cmd(_top_level_state, &console_command_restart);
     mtev_console_state_add_cmd(show_state, &console_command_version);
@@ -732,10 +757,23 @@ mtev_console_state_push_state(mtev_console_closure_t ncct,
   ncct->state_stack = stack;
 }
 
+static int
+mtev_console_crash_action(eventer_t e, int m, void *cl, struct timeval *now) {
+  *((volatile int *)0) = 0;
+  return 0;
+}
 int
 mtev_console_crash(mtev_console_closure_t ncct, int argc, char **argv,
                    mtev_console_state_t *dstate, void *unused) {
-  *((volatile int *)0) = 0;
+  if(argc == 1) {
+    int id = atoi(argv[0]);
+    nc_printf(ncct, "crash: %d\n", id);
+    eventer_t e = eventer_in_s_us(mtev_console_crash_action, NULL, 0, 0);
+    e->thr_owner = eventer_choose_owner(id);
+    eventer_add(e);
+  } else {
+    *((volatile int *)0) = 0;
+  }
   return 0;
 }
 int
