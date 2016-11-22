@@ -1325,7 +1325,7 @@ mtev_log_final_resolve() {
   return mtev_true;
 }
 
-mtev_log_stream_t
+static mtev_log_stream_t
 mtev_log_stream_new_internal(const char *name, const char *type, const char *path,
                     void *ctx, mtev_hash_table *config, mtev_log_stream_t saved) {
   mtev_log_stream_t ls;
