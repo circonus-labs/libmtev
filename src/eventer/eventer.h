@@ -85,6 +85,8 @@ typedef struct _fd_opset {
 
 typedef struct _event *eventer_t;
 
+typedef struct eventer_pool_t eventer_pool_t;
+
 #include "eventer/eventer_POSIX_fd_opset.h"
 #include "eventer/eventer_SSL_fd_opset.h"
 
@@ -228,7 +230,12 @@ API_EXPORT(void) eventer_add_recurrent(eventer_t e);
 API_EXPORT(int) eventer_get_epoch(struct timeval *epoch);
 API_EXPORT(void *) eventer_get_spec_for_event(eventer_t);
 API_EXPORT(int) eventer_cpu_sockets_and_cores(int *sockets, int *cores);
+API_EXPORT(eventer_pool_t *) eventer_pool(const char *name);
+API_EXPORT(eventer_pool_t *) eventer_get_pool_for_event(eventer_t);
+API_EXPORT(const char *) eventer_pool_name(eventer_pool_t *);
+API_EXPORT(uint32_t) eventer_pool_concurrency(eventer_pool_t *);
 API_EXPORT(pthread_t) eventer_choose_owner(int);
+API_EXPORT(pthread_t) eventer_choose_owner_pool(eventer_pool_t *pool, int);
 
 /* Helpers to schedule timed events */
 #define eventer_add_at(func, cl, t) do { \

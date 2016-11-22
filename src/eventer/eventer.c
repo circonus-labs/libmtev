@@ -227,6 +227,7 @@ void eventer_init_globals() {
                    "_unnamed", STATS_TYPE_HISTOGRAM);
   stats_rob_i64(eventer_stats_ns, "events_total", (void *)&ealloctotal);
   stats_rob_i64(eventer_stats_ns, "events_current", (void *)&ealloccnt);
+  eventer_impl_init_globals();
   eventer_ssl_init_globals();
 }
 

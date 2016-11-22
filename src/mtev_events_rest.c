@@ -43,6 +43,7 @@ json_spit_event(eventer_t e, void *closure) {
   struct json_object *doc = closure;
   struct json_object *eo, *ao = NULL;
   const char *cbname;
+  eventer_pool_t *epool = NULL;
   char ip[INET6_ADDRSTRLEN];
   union {
     struct sockaddr a;
@@ -51,7 +52,8 @@ json_spit_event(eventer_t e, void *closure) {
   } addr;
   socklen_t addrlen;
   eo = json_object_new_object();
-  
+ 
+  epool = eventer_get_pool_for_event(e); 
   cbname = eventer_name_for_callback_e(e->callback, e);
   if(!cbname) cbname = "unknown";
   json_object_object_add(eo, "callback", json_object_new_string(cbname));
@@ -115,6 +117,9 @@ json_spit_event(eventer_t e, void *closure) {
     json_object_set_int_overflow(wo, json_overflow_uint64);
     json_object_set_uint64(wo, ms);
     json_object_object_add(eo, "whence", wo);
+  }
+  if(epool) {
+    json_object_object_add(eo, "eventer_pool", json_object_new_string(eventer_pool_name(epool)));
   }
 
   json_object_array_add(doc, eo);
