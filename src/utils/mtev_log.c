@@ -1325,10 +1325,10 @@ mtev_log_final_resolve() {
   return mtev_true;
 }
 
-mtev_log_stream_t
-mtev_log_stream_new(const char *name, const char *type, const char *path,
-                    void *ctx, mtev_hash_table *config) {
-  mtev_log_stream_t ls, saved;
+static mtev_log_stream_t
+mtev_log_stream_new_internal(const char *name, const char *type, const char *path,
+                    void *ctx, mtev_hash_table *config, mtev_log_stream_t saved) {
+  mtev_log_stream_t ls;
   struct _mtev_log_stream tmpbuf;
   void *vops = NULL;
 
@@ -1346,7 +1346,6 @@ mtev_log_stream_new(const char *name, const char *type, const char *path,
  
   if(ls->ops && ls->ops->openop(ls)) goto freebail;
 
-  saved = mtev_log_stream_find(name);
   if(saved) {
     pthread_rwlock_t *lock = saved->lock;
     memcpy(&tmpbuf, saved, sizeof(*saved));
@@ -1389,12 +1388,22 @@ mtev_log_stream_new(const char *name, const char *type, const char *path,
 }
 
 mtev_log_stream_t
+mtev_log_stream_new(const char *name, const char *type, const char *path,
+                    void *ctx, mtev_hash_table *config) {
+  return mtev_log_stream_new_internal(name,type,path,ctx,config,
+                                      mtev_log_stream_find(name));
+}
+
+mtev_log_stream_t
 mtev_log_stream_find(const char *name) {
   void *vls;
+  mtev_log_stream_t newls;
   if(mtev_hash_retrieve(&mtev_loggers, name, strlen(name), &vls)) {
     return (mtev_log_stream_t)vls;
   }
-  return NULL;
+  newls = mtev_log_stream_new_internal(name, NULL, NULL, NULL, NULL, NULL);
+  newls->flags = 0;
+  return newls;
 }
 
 void
