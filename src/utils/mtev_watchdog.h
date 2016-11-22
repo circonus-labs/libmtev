@@ -38,6 +38,7 @@
 #include "mtev_config.h"
 #include "mtev_defines.h"
 #include "mtev_log.h"
+#include "eventer/eventer.h"
 
 /*! \fn int mtev_watchdog_prefork_init()
     \brief Prepare the program to split into a child/parent-monitor relationship.
@@ -83,6 +84,27 @@ API_EXPORT(int)
 API_EXPORT(int)
   mtev_watchdog_child_heartbeat();
 
+typedef struct mtev_watchdog_t mtev_watchdog_t;
+
+/*! \fn mtev_watchdog_t *mtev_watchdog_create()
+    \return a new heartbeat identifier (or null, if none could be allocated)
+
+    mtev_watchdog_create creates a new heartbeat that must be assessed for liveliness by the parent.
+ */
+
+API_EXPORT(mtev_watchdog_t *)
+  mtev_watchdog_create();
+
+/*! \fn int mtev_watchdog_heartbeat(mtev_watchdog_t *hb)
+   \param hb is the heart on which to pulse.  If null, the default heart is used.
+   \return Returns zero on success
+
+   mtev_watchdog_heartbeat will pulse on the specified heart.
+ */
+
+API_EXPORT(int)
+  mtev_watchdog_heartbeat(mtev_watchdog_t *hb);
+
 /*! \fn int mtev_watchdog_child_eventer_heartbeat()
     \return Returns zero on success
 
@@ -90,6 +112,31 @@ API_EXPORT(int)
  */
 API_EXPORT(int)
   mtev_watchdog_child_eventer_heartbeat();
+
+/*! \fn eventer_t mtev_watchdog_recurrent_heartbeat(mtev_watchdog_t *hb)
+    \param hb is the heart on which to beat.
+    \return Returns and event that the caller must schedule.
+
+    mtev_watchdog_recurrent_heartbeat creates a recurrent eventer_t to beat a heart.
+ */
+API_EXPORT(eventer_t)
+  mtev_watchdog_recurrent_heartbeat(mtev_watchdog_t *hb);
+
+/*! \fn void mtev_watchdog_enable(mtev_watchdog_t *hb)
+    \param hb the heart on which to act
+
+    mtev_watchdog_enable will make the parent respect and act on failed heartbeats.
+ */
+API_EXPORT(void)
+  mtev_watchdog_enable(mtev_watchdog_t *hb);
+
+/*! \fn void mtev_watchdog_disable(mtev_watchdog_t *hb)
+    \param hb the heart on which to act
+
+    mtev_watchdog_disable will make the parent ignore failed heartbeats.
+ */
+API_EXPORT(void)
+  mtev_watchdog_disable(mtev_watchdog_t *hb);
 
 API_EXPORT(int)
   mtev_watchdog_glider(const char *path);

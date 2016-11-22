@@ -59,10 +59,27 @@
 #include "mtev_time.h"
 #include "mtev_watchdog.h"
 
+struct mtev_watchdog_t {
+  int ticker;
+  enum {
+    CRASHY_NOTATALL = 0,
+    CRASHY_CRASH = 0x00dead00,
+    CRASHY_RESTART = 0x99dead99
+  } action;
+  enum {
+    HEART_ACTIVE_OFF = 0,
+    HEART_ACTIVE_ON = 1,
+    HEART_ACTIVE_SKIP = 2
+  } active;
+  struct {
+    struct timeval last_changed;
+    int last_ticker;
+  } parent_view;
+};
+
 #define CHILD_WATCHDOG_TIMEOUT 5 /*seconds*/
-#define CRASHY_CRASH 0x00dead00
-#define CRASHY_RESTART 0x99dead99
 #define MAX_CRASH_FDS 1024
+#define MAX_HEARTS 1024
 
 const static char *appname = "unknown";
 const static char *glider_path = NULL;
@@ -114,45 +131,56 @@ void mtev_watchdog_ratelimit(int retry_val, int span_val) {
 
 /* Watchdog stuff */
 static pid_t watcher = -1;
-static int *lifeline = NULL;
-static unsigned long last_tick_time() {
-  static struct timeval lastchange = { 0, 0 };
-  static int lastcheck = 0;
-  struct timeval now, diff;
+static mtev_watchdog_t *mmap_lifelines = NULL;
+static unsigned long last_tick_time(mtev_watchdog_t *lifeline, struct timeval *now) {
+  struct timeval diff;
 
-  mtev_gettimeofday(&now, NULL);
-  if(lastcheck != *lifeline) {
-    lastcheck = *lifeline;
-    memcpy(&lastchange, &now, sizeof(lastchange));
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+
+  if(lifeline->parent_view.last_ticker != lifeline->ticker) {
+    lifeline->parent_view.last_ticker = lifeline->ticker;
+    memcpy(&lifeline->parent_view.last_changed, now, sizeof(*now));
   }
-  if(lastchange.tv_sec == 0) return 0;
+  if(lifeline->parent_view.last_changed.tv_sec == 0) return 0;
 
-  sub_timeval(now, lastchange, &diff);
+  sub_timeval(*now, lifeline->parent_view.last_changed, &diff);
   return (unsigned long)diff.tv_sec;
 }
-static void it_ticks_crash() {
-  if(lifeline) lifeline[1] = CRASHY_CRASH;
+static void it_ticks_crash(mtev_watchdog_t *lifeline) {
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  if(lifeline) lifeline->action = CRASHY_CRASH;
 }
-static void it_ticks_crash_release() {
-  if(lifeline) lifeline[1] = CRASHY_RESTART;
+static void it_ticks_crash_release(mtev_watchdog_t *lifeline) {
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  if(lifeline) lifeline->action = CRASHY_RESTART;
 }
-static int it_ticks_crashed() {
-  return (lifeline[1] == CRASHY_CRASH);
+static int it_ticks_crashed(mtev_watchdog_t *lifeline) {
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  return (lifeline->action == CRASHY_CRASH);
 }
-static int it_ticks_crash_restart() {
-  return (lifeline[1] == CRASHY_RESTART);
+static int it_ticks_crash_restart(mtev_watchdog_t *lifeline) {
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  return (lifeline->action == CRASHY_RESTART);
 }
-static void it_ticks_zero() {
-  if(lifeline) {
-    lifeline[0] = 0;
-    lifeline[1] = 0;
+static void it_ticks_zero(mtev_watchdog_t *lifeline) {
+  if(mmap_lifelines) {
+    if(lifeline == NULL) {
+      int i;
+      for(i=0; i<MAX_HEARTS; i++) {
+        it_ticks_zero(mmap_lifelines + i);
+      }
+      mmap_lifelines->active = HEART_ACTIVE_ON;
+    } else {
+      memset(lifeline, 0, sizeof(*lifeline));
+    }
   }
 }
-static void it_ticks() {
-  if(lifeline) (*lifeline)++;
+static void it_ticks(mtev_watchdog_t *lifeline) {
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  if(lifeline) lifeline->ticker++;
 }
 int mtev_watchdog_child_heartbeat() {
-  it_ticks();
+  it_ticks(NULL);
   return 0;
 }
 int mtev_watchdog_prefork_init() {
@@ -163,13 +191,15 @@ int mtev_watchdog_prefork_init() {
   watcher = getpid();
   for(i=0;i<MAX_CRASH_FDS;i++)
     on_crash_fds_to_close[i] = -1;
-  lifeline = (int *)mmap(NULL, 2*sizeof(int), PROT_READ|PROT_WRITE,
-                         MAP_SHARED|MAP_ANON, -1, 0);
-  if(lifeline == (void *)-1) {
+  mmap_lifelines =
+    (mtev_watchdog_t *)mmap(NULL, MAX_HEARTS*sizeof(mtev_watchdog_t),
+                            PROT_READ|PROT_WRITE,
+                            MAP_SHARED|MAP_ANON, -1, 0);
+  if(mmap_lifelines == MAP_FAILED) {
     mtevL(mtev_error, "Failed to mmap anon for watchdog\n");
     return -1;
   }
-  it_ticks_zero();
+  it_ticks_zero(NULL);
   return 0;
 }
 
@@ -310,7 +340,7 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
     kill(mtev_monitored_child_pid, sig);
   }
   else if (getpid() == mtev_monitored_child_pid){
-    it_ticks_crash(); /* slow notification path */
+    it_ticks_crash(NULL); /* slow notification path */
     kill(mtev_monitored_child_pid, SIGSTOP); /* stop and wait for a glide */
 
     /* attempt a simple stack trace */
@@ -323,7 +353,7 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
     if(allow_async_dumps) { 
       stop_other_threads(); /* suspend all peer threads... to safely */
       close_fds();          /* close all our FDs */
-      it_ticks_crash_release(); /* notify parent that it can fork a new one */
+      it_ticks_crash_release(NULL); /* notify parent that it can fork a new one */
       /* the subsequent dump may take a while on big processes and slow disks */
       mtevL(mtev_error, "crash resources released\n");
     }
@@ -404,6 +434,25 @@ void setup_signals(sigset_t *mysigs) {
   mtevAssert(setitimer(ITIMER_REAL, &one_second, NULL) == 0);
 }
 
+static int mtev_heartcheck(int child_watchdog_timeout, unsigned long *ltt, int *heartno) {
+  int i;
+  struct timeval now;
+  mtev_gettimeofday(&now, NULL);
+  for(i=0; i<MAX_HEARTS; i++) {
+    mtev_watchdog_t *lifeline = &mmap_lifelines[i];
+    unsigned long age;
+
+    *heartno = i;
+    age = last_tick_time(lifeline, &now);
+    if (lifeline->active == HEART_ACTIVE_OFF) break;
+    if (lifeline->active == HEART_ACTIVE_SKIP) continue;
+    if (lifeline->action == CRASHY_NOTATALL && age > child_watchdog_timeout) {
+      *ltt = age;
+      return 1;
+    }
+  }
+  return 0;
+}
 int mtev_watchdog_start_child(const char *app, int (*func)(),
                               int child_watchdog_timeout) {
   int child_pid, crashing_pid = -1;
@@ -429,9 +478,10 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
   if(child_watchdog_timeout == 0)
     child_watchdog_timeout = CHILD_WATCHDOG_TIMEOUT;
   while(1) {
+    int heartno = 0;
     unsigned long ltt = 0;
     /* This sets up things so we start alive */
-    it_ticks_zero();
+    it_ticks_zero(NULL);
     clear_signals();
     child_pid = fork();
     if(child_pid == -1) {
@@ -521,7 +571,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
               /* If we're stopped, we might have crashed */
               if(WIFSTOPPED(status)) {
                 mtevL(mtev_error, "[monitor] %s %d has stopped.\n", app, rv);
-                if(it_ticks_crashed() && crashing_pid == -1) {
+                if(it_ticks_crashed(NULL) && crashing_pid == -1) {
                   crashing_pid = mtev_monitored_child_pid;
                   mtevL(mtev_error, "[monitor] %s %d has crashed.\n", app, crashing_pid);
                   run_glider(crashing_pid, GLIDE_CRASH);
@@ -531,7 +581,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
                 /* We died!... we need to relaunch, unless the status was a requested exit (2) */
                 int quit;
                 if(child_pid == crashing_pid) {
-                  lifeline[1] = 0;
+                  mmap_lifelines->action = CRASHY_NOTATALL;
                   crashing_pid = -1;
                 }
                 mtev_monitored_child_pid = -1;
@@ -560,17 +610,17 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
             /* fall through */
           case SIGALRM:
             /* here we just wake up to check stuff */
-            if(it_ticks_crash_restart()) {
+            if(it_ticks_crash_restart(NULL)) {
               mtevL(mtev_error, "[monitor] %s %d is emancipated for dumping.\n", app, crashing_pid);
-              lifeline[1] = 0;
+              mmap_lifelines->action = CRASHY_NOTATALL;
               mtev_monitored_child_pid = -1;
               goto out_loop2;
             }
-            else if(lifeline[1] == 0 && mtev_monitored_child_pid == child_pid &&
-                    (ltt = last_tick_time()) > child_watchdog_timeout) {
+            else if(mtev_monitored_child_pid == child_pid &&
+                    mtev_heartcheck(child_watchdog_timeout, &ltt, &heartno)) {
               mtevL(mtev_error,
-                    "[monitor] Watchdog timeout (%lu s)... terminating child\n",
-                    ltt);
+                    "[monitor] Watchdog timeout on heart#%d (%lu s)... terminating child\n",
+                    heartno, ltt);
               if(glider_path) {
                 kill(child_pid, SIGSTOP);
                 run_glider(child_pid, GLIDE_WATCHDOG);
@@ -611,21 +661,49 @@ int update_retries(int* offset, time_t times[]) {
   return 1;
 }
 
-static int watchdog_tick(eventer_t e, int mask, void *unused, struct timeval *now) {
-  it_ticks();
+mtev_watchdog_t *mtev_watchdog_create() {
+  int i;
+  for(i=0; i<MAX_HEARTS; i++) {
+    mtev_watchdog_t *lifeline = &mmap_lifelines[i];
+    if(lifeline->active == HEART_ACTIVE_OFF) {
+      lifeline->active = HEART_ACTIVE_ON;
+mtevL(mtev_debug, "activating heart: %d\n", i);
+      return lifeline;
+    }
+  }
+  return NULL;
+}
+
+void mtev_watchdog_enable(mtev_watchdog_t *lifeline) {
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  lifeline->active = HEART_ACTIVE_ON;
+}
+void mtev_watchdog_disable(mtev_watchdog_t *lifeline) {
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  lifeline->active = HEART_ACTIVE_SKIP;
+}
+
+int mtev_watchdog_heartbeat(mtev_watchdog_t *hb) {
+  it_ticks(hb);
   return 0;
 }
-int mtev_watchdog_child_eventer_heartbeat() {
+static int watchdog_tick(eventer_t e, int mask, void *lifeline, struct timeval *now) {
+  it_ticks(lifeline);
+  return 0;
+}
+eventer_t mtev_watchdog_recurrent_heartbeat(mtev_watchdog_t *hb) {
   eventer_t e;
-
   mtevAssert(__eventer);
-
- /* Setup our hearbeat */
   e = eventer_alloc();
   e->mask = EVENTER_RECURRENT;
   e->callback = watchdog_tick;
+  e->closure = hb;
+  return e;
+}
+int mtev_watchdog_child_eventer_heartbeat() {
+  eventer_t e;
+  e = mtev_watchdog_recurrent_heartbeat(NULL);
   eventer_add_recurrent(e);
-
   return 0;
 }
 
