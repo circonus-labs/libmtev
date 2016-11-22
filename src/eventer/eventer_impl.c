@@ -122,17 +122,28 @@ static mtev_hash_table eventer_pools;
 void eventer_pool_create(const char *name, int concurrency) {
   /* We cannot create pool once we've initialized */
   mtevAssert(eventer_impl_tls_data == NULL);
-
-  eventer_pool_t *np = calloc(1, sizeof(*np));
-  np->name = strdup(name);
-  np->__loop_concurrency = concurrency;
-  if(!mtev_hash_store(&eventer_pools, np->name, strlen(np->name), np)) {
-    mtevFatal(mtev_stderr, "Two eventer pools with the same name.\n");
+  if(__total_loop_count > 0) {
+    mtevFatal(mtev_stderr, "Cannot create eventer_pool after start.\n");
   }
+
+  void *vnp = NULL;
+  eventer_pool_t *np;
+  if(mtev_hash_retrieve(&eventer_pools, name, strlen(name), &vnp)) {
+    np = vnp;
+  } else {
+    np = calloc(1, sizeof(*np));
+    np->name = strdup(name);
+    mtev_hash_store(&eventer_pools, np->name, strlen(np->name), np);
+  }
+  np->__loop_concurrency = concurrency;
 }
 
 const char *eventer_pool_name(eventer_pool_t *pool) {
   return pool->name;
+}
+
+uint32_t eventer_pool_concurrency(eventer_pool_t *pool) {
+  return pool->__loop_concurrency;
 }
 
 eventer_pool_t *eventer_pool(const char *name) {
@@ -142,7 +153,7 @@ eventer_pool_t *eventer_pool(const char *name) {
   return NULL;
 }
 
-int eventer_loop_concurrency() { return __total_loop_count; }
+int eventer_loop_concurrency() { return default_pool.__loop_concurrency; }
 
 /* Multi-threaded event loops...
 
@@ -371,7 +382,7 @@ static void eventer_loop_prime(eventer_pool_t *pool, int start) {
     mtevAssert(pool == eventer_impl_tls_data[adjidx].pool);
     pthread_create(&tid, NULL, thrloopwrap, (void *)(vpsized_int)adjidx);
   }
-  while(ck_pr_load_32((uint32_t *)&pool->__loops_started) < ck_pr_load_32((uint32_t *)&pool->__loop_concurrency));
+  while(ck_pr_load_32(&pool->__loops_started) < ck_pr_load_32(&pool->__loop_concurrency));
 }
 
 static hwloc_topology_t *topo = NULL;
