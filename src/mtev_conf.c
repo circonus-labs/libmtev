@@ -1624,8 +1624,11 @@ mtev_conf_set_string(mtev_conf_section_t section,
       CONF_DIRTY(child_node);
   }
   mtev_conf_mark_changed();
-  if(mtev_conf_write_file(NULL) != 0)
-    mtevL(mtev_error, "local config write failed\n");
+  char *err;
+  if(mtev_conf_write_file(&err) != 0) {
+    mtevL(mtev_error, "local config write failed: %s\n", err ? err : "unkown");
+    free(err);
+  }
   return 1;
 }
 
@@ -1890,8 +1893,8 @@ mtev_conf_write_file(char **err) {
   xmlCharEncodingHandlerPtr enc;
   struct stat st;
   mode_t mode = 0640; /* the default */
-  uid_t uid = 0;
-  gid_t gid = 0;
+  uid_t uid = geteuid();
+  gid_t gid = getegid();
 
   if(stat(master_config_file, &st) == 0) {
     mode = st.st_mode;
