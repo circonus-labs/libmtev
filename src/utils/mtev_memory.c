@@ -454,6 +454,10 @@ struct default_allocator_data_container {
   struct mtev_alloc_freelist_node *freelist;
 };
 
+void mtev_allocator_thread_teardown(void *tls_data) {
+  struct tls_data_container *tdc = (struct tls_data_container *)tls_data;
+  tdc->a->tls_teardown(tdc->a, tls_data);
+}
 static struct tls_data_container *
 default_allocator_tls_setup(mtev_allocator_t a) {
   struct default_allocator_data_container *dadc;
@@ -475,8 +479,18 @@ default_allocator_tls_teardown(mtev_allocator_t a, struct tls_data_container *td
 }
 static struct tls_data_container *
 generic_allocator_gettls(mtev_allocator_t a) {
+  struct tls_data_container *tdc;
   if(a->tls_setup == NULL) return NULL;
-  return pthread_getspecific(a->tls);
+  tdc = pthread_getspecific(a->tls);
+  if(tdc) return tdc;
+  if(a->tls_setup) {
+    tdc = a->tls_setup(a);
+    if(tdc) {
+      tdc->a = a;
+      pthread_setspecific(a->tls, tdc);
+    }
+  }
+  return tdc;
 }
 static void *
 default_allocator_malloc(mtev_allocator_t a, size_t size) {
@@ -622,10 +636,6 @@ fixed_umem_allocator_init(struct mtev_allocator *a, mtev_allocator_options_t opt
                       NULL, UMC_NODEBUG);
 }
 #endif
-void mtev_allocator_thread_teardown(void *tls_data) {
-  struct tls_data_container *tdc = (struct tls_data_container *)tls_data;
-  tdc->a->tls_teardown(tdc->a, tls_data);
-}
 mtev_allocator_t mtev_allocator_create(mtev_allocator_options_t opt) {
   mtev_allocator_t allocator = calloc(1, sizeof(*allocator));
   if(opt->name[0] == '\0') {
