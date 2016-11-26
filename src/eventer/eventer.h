@@ -268,7 +268,7 @@ eventer_in(eventer_func_t func, void *cl, struct timeval t) {
 
 static inline eventer_t
 eventer_in_s_us(eventer_func_t func, void *cl, unsigned long s, unsigned long us) {
-  struct timeval __now, diff = { s, us };
+  struct timeval __now, diff = { (time_t)s, (suseconds_t)us };
   eventer_t e = eventer_alloc();
   mtev_gettimeofday(&__now, NULL);
   add_timeval(__now, diff, &e->whence);
