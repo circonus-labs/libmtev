@@ -36,7 +36,6 @@
 
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "mtev_atomic.h"
 #include "mtev_sem.h"
 #include "mtev_stats.h"
 
@@ -57,8 +56,8 @@ typedef struct _eventer_job_t {
   eventer_t               timeout_event;
   eventer_t               fd_event;
   int                     timeout_triggered; /* set, if it expires in-flight */
-  mtev_atomic32_t         inflight;
-  mtev_atomic32_t         has_cleanedup;
+  uint32_t                inflight;
+  uint32_t                has_cleanedup;
   void                  (*cleanup)(struct _eventer_job_t *);
   struct _eventer_job_t  *next;
   struct _eventer_jobq_t *jobq;
@@ -74,23 +73,25 @@ typedef struct _eventer_jobq_t {
   const char             *queue_name;
   pthread_mutex_t         lock;
   sem_t                   semaphore;
-  mtev_atomic32_t         concurrency;
-  mtev_atomic32_t         desired_concurrency;
-  mtev_atomic32_t         pending_cancels;
+  uint32_t                concurrency;
+  uint32_t                desired_concurrency;
+  uint32_t                pending_cancels;
   eventer_job_t          *headq;
   eventer_job_t          *tailq;
   pthread_key_t           threadenv;
   pthread_key_t           activejob;
-  mtev_atomic32_t         backlog;
-  mtev_atomic32_t         inflight;
-  mtev_atomic64_t         total_jobs;
-  mtev_atomic64_t         timeouts;
-  mtev_atomic64_t         avg_wait_ns; /* smoother alpha = 0.8 */
-  mtev_atomic64_t         avg_run_ns; /* smoother alpha = 0.8 */
+  uint32_t                backlog;
+  uint32_t                inflight;
+  uint64_t                total_jobs;
+  uint64_t                timeouts;
+  uint64_t                avg_wait_ns; /* smoother alpha = 0.8 */
+  uint64_t                avg_run_ns; /* smoother alpha = 0.8 */
   stats_handle_t         *wait_latency;
   stats_handle_t         *run_latency;
   eventer_jobq_memory_safety_t mem_safety;
   mtev_boolean            isbackq;
+  uint32_t                min_concurrency;
+  uint32_t                max_concurrency;
 } eventer_jobq_t;
 
 int eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name);
@@ -106,6 +107,8 @@ int eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
                                  struct timeval *now);
 int eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
                                    struct timeval *now);
+void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency);
+void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max);
 void eventer_jobq_increase_concurrency(eventer_jobq_t *jobq);
 void eventer_jobq_decrease_concurrency(eventer_jobq_t *jobq);
 void *eventer_jobq_consumer(eventer_jobq_t *jobq);

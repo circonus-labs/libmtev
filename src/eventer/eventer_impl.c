@@ -455,7 +455,7 @@ void eventer_impl_init_globals() {
 }
 
 int eventer_impl_init() {
-  int i, try;
+  int try;
   char *evdeb;
 
   assess_hw_topo();
@@ -511,8 +511,7 @@ int eventer_impl_init() {
   if(!eventer_deb) eventer_deb = mtev_debug;
 
   eventer_jobq_init(&__default_jobq, "default_queue");
-  for(i=0; i<__default_queue_threads; i++)
-    eventer_jobq_increase_concurrency(&__default_jobq);
+  eventer_jobq_set_concurrency(&__default_jobq, __default_queue_threads);
 
   mtevAssert(eventer_impl_tls_data == NULL);
 
