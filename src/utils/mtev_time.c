@@ -47,10 +47,6 @@
  * don't allow rdtsc on mach systems as there is only currently experimental support 
  * for affining threads to cores on mach systems
  */
-#if defined(__MACH__)
-#undef ENABLE_RDTSC
-#endif
-
 #ifdef ENABLE_RDTSC
 #define MAX_REASON_LEN 80
 static char variable_reason[MAX_REASON_LEN+1] = { '\0' };
@@ -195,6 +191,7 @@ mtev_rdtscp(int *cpuid)
   if(cpuid) *cpuid = ecx & (NCPUS-1);
 #else
   if(cpuid) *cpuid = ecx;
+mtevL(mtev_error, "mtev_rdtscp on cpuid: %d\n", ecx);
 #endif
   return (((uint64_t)edx << 32) | eax);
 }
@@ -336,7 +333,7 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
   int ncpuid;
   uint64_t h2;
 
-  mtevL(mtev_debug, "mtev_calibrate_rdtsc_ticks(CPU:%d, ticks:%lu)\n", cpuid, ticks);
+  mtevL(mtev_debug, "mtev_calibrate_rdtsc_ticks(CPU:%d, ticks:%" PRIu64 ")\n", cpuid, ticks);
   coreclocks[cpuid].last_ticks = ticks;
 
   double avg_ticks = mtev_time_adjust_tps(cpuid);
@@ -371,7 +368,7 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
     avg_skew = skew;
     if(skew == 0) skew = 1; /* This way we know it is initialized */
   
-    mtevL(mtev_debug, "CPU:%d [%ld (%ld,%ld)] tps:%lf\n",
+    mtevL(mtev_debug, "CPU:%d [%" PRId64" (%" PRId64 ",%" PRId64 ")] tps:%lf\n",
           cpuid, avg_skew, min_skew - avg_skew, max_skew - avg_skew, avg_ticks);
     if(avg_skew-min_skew > MAX_NS_SKEW_SKEW) skew = 0;
     if(max_skew-avg_skew > MAX_NS_SKEW_SKEW) skew = 0;
@@ -465,8 +462,8 @@ mtev_time_toggle_require_invariant_tsc(mtev_boolean enable)
 static inline u_int64_t
 mtev_get_nanos_force(void)
 {
-  int cpuid;
-  uint64_t ticks;
+  int cpuid = 0;
+  uint64_t ticks = 0;
   struct cclock_scale cs;
 
   if(NO_TSC) {
@@ -542,7 +539,7 @@ mtev_time_tsc_maintenance(void *unused) {
     global_rdtsc_function(&cpuid);
     if(i != cpuid) {
       snprintf(variable_reason, MAX_REASON_LEN,
-               "bad rdtscp or cpuid mapping: bind(%d) -> cpuid:%d\n", i, cpuid);
+               "bad rdtscp or cpuid mapping: bind(%d) -> cpuid:%d", i, cpuid);
       disable_reason = variable_reason;
       mtev_log_reason();
       enable_rdtsc = mtev_false;

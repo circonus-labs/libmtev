@@ -35,6 +35,16 @@
 #include <unistd.h>
 #include <errno.h>
 
+#if defined(__MACH__)
+#include <mach/mach_init.h>
+#include <mach/thread_policy.h>
+
+kern_return_t  thread_policy_set(
+                         thread_t                      thread,
+                         thread_policy_flavor_t        flavor,
+                         thread_policy_t                    policy_info,
+                         mach_msg_type_number_t        count);
+#endif
 #ifdef __sun
 #include <sys/processor.h>
 #include <sys/priocntl.h>
@@ -87,6 +97,17 @@ mtev_thread_bind_to_cpu(int cpu)
   }   
 #endif
 
+#if defined(__MACH__)
+  thread_affinity_policy_data_t policy = { cpu };
+  thread_port_t mach_thread = mach_thread_self();
+  if(thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY,
+                       (thread_policy_t)&policy, 1) == KERN_SUCCESS) {
+    mtev_thread_is_bound = mtev_true;
+    sched_yield();
+  } else {
+    mtevL(mtev_error, "mach:thread_policy_set -> %s\n", strerror(errno));
+  }
+#endif
   return mtev_thread_is_bound;
 }
 
