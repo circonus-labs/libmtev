@@ -1,0 +1,7 @@
+{
+    "root": "./docs",
+    "plugins": [ "collapsible-menu", "callouts", "anchorjs" ],
+    "styles": {
+        "website": "styles/website.css"
+    }
+}

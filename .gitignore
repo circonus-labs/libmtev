@@ -6,6 +6,7 @@
 *.so
 *.xmlh
 *.swp
+_book/
 autom4te.cache
 configure
 .configure.*

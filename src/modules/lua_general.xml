@@ -32,7 +32,7 @@
   <examples>
     <example>
       <title>Loading the lua general module an run somefunction from the somemodule module.</title>
-      <programlisting><![CDATA[
+      <programlisting language="xml"><![CDATA[
       <noit>
         <modules>
           <module image="lua_mtev" name="lua_general">
