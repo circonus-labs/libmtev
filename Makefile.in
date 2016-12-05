@@ -1,11 +1,22 @@
+EBOOKCONVERT=$(shell which ebook-convert)
+
 all:
 	(cd src && $(MAKE))
 
 install:	all
 	(cd src && $(MAKE) install DESTDIR=$(DESTDIR))
 
-dev-docs:
-	./buildtools/mkcodedocs.pl ./src ./docs/development/docs
+gitbook-setup:
+	gitbook install
+
+docs-serve:	gitbook-setup
+	gitbook serve . docs
+
+docs-html:	gitbook-setup
+	gitbook build . docs
+
+docs-pdf:	gitbook-setup
+	PATH=$(shell dirname $(EBOOKCONVERT)):$(shell echo $$PATH) gitbook pdf . docs/libmtev-manual.pdf
 
 clean:
 	(cd src && $(MAKE) clean)

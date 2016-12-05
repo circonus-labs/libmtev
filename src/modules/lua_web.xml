@@ -16,17 +16,22 @@
                required="required"
                default=""
                allowed=".+">The lua module to load.</parameter>
+    <parameter name="mount_(.*)"
+               required="optional"
+               default=""
+               allowed="[^:]+:[^:]+:[^:]+(:.+)?">module:method:mount[:expr]</parameter>
   </moduleconfig>
   <examples>
     <example>
       <title>Loading the lua web module connection webmodule to the http services.</title>
-      <programlisting><![CDATA[
+      <programlisting language="xml"><![CDATA[
       <noit>
         <modules>
           <module image="lua_mtev" name="lua_web">
             <config>
               <directory>/some/other/path/?.lua</directory>
               <dispatch>webmodule</dispatch>
+              <mount_foo>foo:handler:/foo</mount_foo>
             </config>
           </module>
         </modules>

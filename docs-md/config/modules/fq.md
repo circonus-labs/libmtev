@@ -1,14 +1,21 @@
-<module>
-  <name>fq</name>
-  <description><para>The fq module consumed and publishes message via fq.</para></description>
-  <loader>C</loader>
-  <image>fq.so</image>
-  <moduleconfig>
-  </moduleconfig>
-  <examples>
-    <example>
-      <title>Loading the fq module.</title>
-      <programlisting language="xml"><![CDATA[
+
+
+# fq
+
+The fq module consumed and publishes message via fq.
+
+
+  * **loader**: C
+  * **image**: fq.so
+
+### Module Configuration
+
+    No module-level options available for this module.
+### Examples
+
+#### Loading the fq module.
+
+```xml
       <root>
         <modules>
           <module image="fq" name="fq"/>
@@ -32,7 +39,6 @@
           </mq>
         </network>
       </root>
-    ]]></programlisting>
-    </example>
-  </examples>
-</module>
+    
+```
+

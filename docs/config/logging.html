@@ -1,0 +1,689 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>Logging · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.2">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-callouts/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+        <link rel="stylesheet" href="../styles/website.css">
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="listeners.html" />
+    
+    
+    <link rel="prev" href="eventer.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        <li class="header">Mount Everest</li>
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Configuration
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.1" data-path="inherit.html">
+            
+                <a href="inherit.html">
+            
+                    
+                    Inheritance
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.2" data-path="includes.html">
+            
+                <a href="includes.html">
+            
+                    
+                    Includes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.3" data-path="watchdog.html">
+            
+                <a href="watchdog.html">
+            
+                    
+                    Watchdog
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.4" data-path="eventer.html">
+            
+                <a href="eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.2.5" data-path="logging.html">
+            
+                <a href="logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.6" data-path="listeners.html">
+            
+                <a href="listeners.html">
+            
+                    
+                    Listeners
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7" data-path="modules.html">
+            
+                <a href="modules.html">
+            
+                    
+                    Modules
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.7.1" data-path="modules/fq.html">
+            
+                <a href="modules/fq.html">
+            
+                    
+                    fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.2" data-path="modules/lua_general.html">
+            
+                <a href="modules/lua_general.html">
+            
+                    
+                    lua_general
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.3" data-path="modules/lua_web.html">
+            
+                <a href="modules/lua_web.html">
+            
+                    
+                    lua_web
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.4" data-path="modules/zipkin_fq.html">
+            
+                <a href="modules/zipkin_fq.html">
+            
+                    
+                    zipkin_fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="../development/">
+            
+                <a href="../development/">
+            
+                    
+                    Development
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="../development/important.html">
+            
+                <a href="../development/important.html">
+            
+                    
+                    Important Starting Notes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" data-path="../development/mtev_main.html">
+            
+                <a href="../development/mtev_main.html">
+            
+                    
+                    mtev_main
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="../development/eventer.html">
+            
+                <a href="../development/eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.4" data-path="../development/logging.html">
+            
+                <a href="../development/logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../development/hooks.html">
+            
+                <a href="../development/hooks.html">
+            
+                    
+                    Hooks
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" data-path="../operations/">
+            
+                <a href="../operations/">
+            
+                    
+                    Operations
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="../operations/rest.html">
+            
+                <a href="../operations/rest.html">
+            
+                    
+                    REST
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="../operations/telnet_console.html">
+            
+                <a href="../operations/telnet_console.html">
+            
+                    
+                    Telnet
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.3" data-path="../operations/dtrace.html">
+            
+                <a href="../operations/dtrace.html">
+            
+                    
+                    DTrace
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >Logging</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="logging">Logging</h1>
+<p>The logging system within libmtev represents a directed acyclic graph of
+input-output chains. Each node in the graph has a unique name and is called
+a &quot;log_stream.&quot; Log_streams without a <code>type</code> attribute have output to downstream nodes
+(&quot;outlets&quot;).  Nodes with a <code>type</code> attribute havd additional output
+characteristics (like outputing to a file).</p>
+<p>Upon startup, the system will establish several built-in log_streams, only one of
+which has a type.  The &quot;stderr&quot; log_stream has a type of <code>file</code> and an output
+filedescriptor of 2.  Other log_stream are setup and and configured to have
+the &quot;stderr&quot; log_stream as their outlet.  These log_streams are called: &quot;error&quot;, &quot;notice&quot;,
+&quot;debug.&quot;  The correspond to the global logging symbols in the C API:
+<code>mtev_stderr</code>, <code>mtev_error</code>, <code>mtev_notice</code>, and <code>mtev_debug</code>, respectively.
+For more information on logging via the API, see the development section
+of this documentation relaated to logging.  The &quot;debug&quot; log_stream is
+disabled by default.</p>
+<p>All logging configuration exists within the toplevel XML node <code>&lt;logs&gt;</code>.
+Individual log_streams are declared using <code>&lt;log&gt;</code> stanzas and outlets are
+declared using <code>&lt;outlet&gt;</code> stanzas.  A log_stream uses all <code>&lt;outlet&gt;</code> stanzas
+that are its direct child or direct child of any ancestor node.</p>
+<h5 id="applicationconf">application.conf</h5>
+<pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
+<span class="hljs-tag">&lt;<span class="hljs-name">application</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">logs</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;internal&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;memory&quot;</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;10000,1000000&quot;</span>/&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;logfile&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;file&quot;</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;/var/log/app.log&quot;</span>
+         <span class="hljs-attr">rotate_bytes</span>=<span class="hljs-string">&quot;10000000&quot;</span> <span class="hljs-attr">retain_bytes</span>=<span class="hljs-string">&quot;50000000&quot;</span> <span class="hljs-attr">timestamps</span>=<span class="hljs-string">&quot;on&quot;</span>/&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;http/access&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;jlog&quot;</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;/var/log/app-http.feed(*)&quot;</span>/&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">console_output</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">outlet</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;stderr&quot;</span>/&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">outlet</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;internal&quot;</span>/&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">outlet</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;logfile&quot;</span>/&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;error&quot;</span>/&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">console_output</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">components</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">error</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">outlet</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;error&quot;</span>/&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;error/example&quot;</span>/&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;error/sample&quot;</span>/&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">error</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">debug</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">outlet</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;debug&quot;</span>/&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;debug/example&quot;</span> <span class="hljs-attr">disabled</span>=<span class="hljs-string">&quot;true&quot;</span>/&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">debug</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">components</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">logs</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">application</span>&gt;</span>
+</code></pre>
+<p>Let&apos;s walk through this sample file to understand what&apos;s going on. First there
+are seven <code>&lt;log&gt;</code> stanzas establishing log_streams named &quot;internal&quot;, &quot;logfile&quot;,
+&quot;http/access&quot;, &quot;error&quot;, &quot;error/example&quot;, &quot;error/sample&quot;, and &quot;debug/example&quot;.</p>
+<p>Starting at the end, the &quot;debug/example&quot; log_stream is declared in a disabled state
+via the <code>disabled=&quot;true&quot;</code> attribute.  If walk it and its anscestors we find one
+<code>&lt;outlet name=&quot;debug&quot;/&gt;</code> child.  This log_stream has no type, so any messages sent
+into this log are only output to its outlet &quot;debug.&quot;  You&apos;ll notice that no
+log_stream named &quot;debug&quot; is declared.  We rely on the built-in &quot;debug&quot; log which
+is setup to output to &quot;stderr&quot;.  Also, because we did not declare a &quot;debug&quot;
+log_stream with <code>disabled=&quot;false&quot;</code>, the default state remains disabled.</p>
+<p>The &quot;error/example&quot; and &quot;error/sample&quot; log_stream are similarly configured to output to the &quot;error&quot;
+log_stream as its outlet.  But, we&apos;ve declared the &quot;error&quot; log_stream in this configuration so that
+we can manipulate its outlets.  The <code>&lt;components&gt;</code>, <code>&lt;error&gt;</code>, and <code>&lt;debug&gt;</code>
+nodes have no special meaning by name; they are simply used as descriptive
+heirarchical containers to allow us to share outlet configuration and to
+logically isolate our intentions.</p>
+<p>The &quot;error&quot; log_stream already exists as a built-in log_stream.  The declaration here
+is used to set outlets to the three log_streams named: &quot;stderr&quot;, &quot;internal&quot;, and &quot;logfile&quot;.
+As before, we use an arbitrarily named node to contiain the declaration logically; this
+time called <code>&lt;console_output&gt;</code>.</p>
+<p>The &quot;internal&quot; log_stream is of type <code>memory</code> which uses an in-memory ring buffer
+to store recent log lines.  We have a limit ot 10000 log lines and 1000000 bytes.</p>
+<p>The &quot;logfile&quot; log_stream is of type <code>file</code> and will auto-rotate files as they hit
+10 million bytes and delete old log files as the cummulative space consumed
+exceeds 50 million bytes.  Timestamps are turned on for this log_stream.</p>
+<p>The &quot;http/access&quot; log_stream is of type <code>jlog</code> which is create a <a href="https://github.com/omniti-labs/jlog" target="_blank">Jlog</a>
+journaled log for external consumption.</p>
+<h2 id="generic-attributes">Generic Attributes</h2>
+<ul>
+<li><h5 id="debug">debug</h5>
+<p>If &quot;on&quot;/&quot;true&quot;, additional debugging information (like thread ID) is injected into logged lines.</p>
+</li>
+<li><h5 id="facility">facility</h5>
+<p>If &quot;on&quot;/&quot;true&quot;, the name of the log is injected into logged lines.</p>
+</li>
+<li><h5 id="timestamps">timestamps</h5>
+<p>If &quot;on&quot;/&quot;true&quot;, timestamps are injected into logged lines.</p>
+</li>
+<li><h5 id="disabled">disabled</h5>
+<p>If &quot;on&quot;/&quot;true&quot;, the stream is disabled and attempts to log to the facility will result in a single branch instruction.</p>
+</li>
+</ul>
+<h2 id="log-types">Log Types</h2>
+<h3 id="memory">memory</h3>
+<p>The memory log_stream type establishes an internal ring buffer in memory.  There are APIs
+(including REST endpoints) to retrieve the contents of this ring buffer.  Additionally,
+if the process crashes one can examine the contents of the ring buffer with a debugger.</p>
+<ul>
+<li><h5 id="path">path</h5>
+<p>The <code>path</code> attribute takes two numbers comma separated.  The first number is the maximum
+number of log lines to be retained.  The second number is the maximum number of bytes
+to be retained.  The implementation will not exceed either limit.</p>
+</li>
+</ul>
+<h3 id="file">file</h3>
+<p>The file log_stream type is used to drive writing to ordinary files using the POSIX
+API.  It provides both time-based and size-based retention management capabilities.</p>
+<ul>
+<li><h5 id="path">path</h5>
+<p>The path is the filename to which log data should be written.</p>
+</li>
+<li><h5 id="rotateseconds">rotate_seconds</h5>
+<p>Specifies how many seconds of log data should be written into a file before it is
+moved aside and a new file is started. (used with <code>retain_seconds</code> and not with
+<code>rotate_bytes</code> or <code>retain_bytes</code>).</p>
+</li>
+<li><h5 id="retainseconds">retain_seconds</h5>
+<p>Specified the number of seconds of data to be retained.  If all log data in a
+rotated file are older than this value, the file will be removed. (used with
+<code>rotate_seconds</code> and not with <code>rotate_bytes</code> or <code>retain_bytes</code>).</p>
+</li>
+<li><h5 id="rotatebytes">rotate_bytes</h5>
+<p>Specifies how many bytes of log data should be written into a file before it is
+moved aside and a new file is started. (used with <code>retain_bytes</code> and not with
+<code>rotate_seconds</code> or <code>retain_seconds</code>).</p>
+</li>
+<li><h5 id="retainbytes">retain_bytes</h5>
+<p>Specified the number of bytes of data to be retained.  If all log data in a
+in all rotated files exceed this value, the oldest file will be removed. (used with
+<code>rotate_bytes</code> and not with <code>rotate_seconds</code> or <code>retain_seconds</code>).</p>
+</li>
+</ul>
+<h3 id="jlog">jlog</h3>
+<p>The jlog log_stream type implements an log output to the <a href="https://github.com/omniti-labs/jlog" target="_blank">Jlog</a>
+multi-file journalled logging format.  Jlog is a segmented write-ahead log that is fast and efficient
+and supports multiple subscribers with independently maintained process checkpoints.</p>
+<ul>
+<li><h5 id="path">path</h5>
+<p>The path is the Jlog directory to be used. It may optionally be ended with
+a parenthesized subscriber name.  If a name (other than &quot;*&quot;) is provided,
+a subscriber of that name will be added to the Jlog on creation.</p>
+</li>
+</ul>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="eventer.html" class="navigation navigation-prev " aria-label="Previous page: Eventer">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="listeners.html" class="navigation navigation-next " aria-label="Next page: Listeners">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"Logging","level":"1.2.5","depth":2,"next":{"title":"Listeners","level":"1.2.6","depth":2,"path":"config/listeners.md","ref":"config/listeners.md","articles":[]},"previous":{"title":"Eventer","level":"1.2.4","depth":2,"path":"config/eventer.md","ref":"config/eventer.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/logging.md","mtime":"2016-12-05T16:36:41.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-05T16:55:54.933Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-collapsible-menu/plugin.js"></script>
+        
+    
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/3.1.1/anchor.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-anchorjs/anchor-style.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+

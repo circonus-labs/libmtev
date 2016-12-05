@@ -32,7 +32,7 @@
   <examples>
     <example>
       <title>Loading the zipkin_fq module.</title>
-      <programlisting><![CDATA[
+      <programlisting language="xml"><![CDATA[
       <noit>
         <modules>
           <module image="zipkin_fq" name="zipkin_fq"/>

@@ -1,0 +1,630 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>Hooks · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.2">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-callouts/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+        <link rel="stylesheet" href="../styles/website.css">
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="../operations/" />
+    
+    
+    <link rel="prev" href="logging.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        <li class="header">Mount Everest</li>
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="../config/">
+            
+                <a href="../config/">
+            
+                    
+                    Configuration
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.1" data-path="../config/inherit.html">
+            
+                <a href="../config/inherit.html">
+            
+                    
+                    Inheritance
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.2" data-path="../config/includes.html">
+            
+                <a href="../config/includes.html">
+            
+                    
+                    Includes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.3" data-path="../config/watchdog.html">
+            
+                <a href="../config/watchdog.html">
+            
+                    
+                    Watchdog
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.4" data-path="../config/eventer.html">
+            
+                <a href="../config/eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.5" data-path="../config/logging.html">
+            
+                <a href="../config/logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.6" data-path="../config/listeners.html">
+            
+                <a href="../config/listeners.html">
+            
+                    
+                    Listeners
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7" data-path="../config/modules.html">
+            
+                <a href="../config/modules.html">
+            
+                    
+                    Modules
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.7.1" data-path="../config/modules/fq.html">
+            
+                <a href="../config/modules/fq.html">
+            
+                    
+                    fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.2" data-path="../config/modules/lua_general.html">
+            
+                <a href="../config/modules/lua_general.html">
+            
+                    
+                    lua_general
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.3" data-path="../config/modules/lua_web.html">
+            
+                <a href="../config/modules/lua_web.html">
+            
+                    
+                    lua_web
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/zipkin_fq.html">
+            
+                <a href="../config/modules/zipkin_fq.html">
+            
+                    
+                    zipkin_fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Development
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="important.html">
+            
+                <a href="important.html">
+            
+                    
+                    Important Starting Notes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" data-path="mtev_main.html">
+            
+                <a href="mtev_main.html">
+            
+                    
+                    mtev_main
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="eventer.html">
+            
+                <a href="eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.4" data-path="logging.html">
+            
+                <a href="logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.3.5" data-path="hooks.html">
+            
+                <a href="hooks.html">
+            
+                    
+                    Hooks
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" data-path="../operations/">
+            
+                <a href="../operations/">
+            
+                    
+                    Operations
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="../operations/rest.html">
+            
+                <a href="../operations/rest.html">
+            
+                    
+                    REST
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="../operations/telnet_console.html">
+            
+                <a href="../operations/telnet_console.html">
+            
+                    
+                    Telnet
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.3" data-path="../operations/dtrace.html">
+            
+                <a href="../operations/dtrace.html">
+            
+                    
+                    DTrace
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >Hooks</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="abitrary-hooks">Abitrary Hooks</h1>
+<p>Building a callout API makes sense for common, structured
+features in software, but occassionlly there is a need to provide
+somewhat arbitrary hook points after the software is designed
+and the noit_hooks system is what satisfies this need.</p>
+<p>The design goals here are somewhat specific in that we
+would like to allow for a large number of hook points at low cost
+when not instrumented.  As such, a hash lookup of registered hooks
+would be considered to expensive.  Additionally, we want to provide
+strong, compile-time type safety as it can be all to easy to hook
+something with a function with a slightly incorrect protoype that
+could result in disasterous corruption or crashes (or perhaps worse
+daftly subtle bugs that are punishing to troubleshoot).</p>
+<p>The hooks system is simple a set of two macros; one allowing
+for the declaration of function prototypes for registering and invoking
+ specific programmer-specifiec instrumentation point and the other
+providing an implementation of the registration and invocation
+routines.  Due to the nature of C, the macro calling conventions are
+less than elegant, but ultimately require no complicated implementation
+by the programmer.</p>
+<h3 id="hook-declaration">Hook Declaration</h3>
+<p>Declaring hooks is done by calling the <code>NOIT_HOOK_PROTO</code> macro with
+the name of the hook (a term that composes a valid C function name),
+the arguments it expects, the type of closure (usually a void *),
+and some variations on those themes that provide CPP enough info
+to construct an implementation with no programmer &quot;programming.&quot;</p>
+<p>The declaration of a hook &quot;foo&quot; will yield in two functions:
+<code>foo_hook_invoke</code> and <code>foo_hook_register</code>.</p>
+<h5 id="declaring-a-hook-foo-in-a-header">Declaring a hook &quot;foo&quot; (in a header)</h5>
+<p>This hook &quot;foo&quot; takes a <code>struct timeval *</code> as an argument in addition
+to its closure.</p>
+<pre><code class="lang-c">NOIT_HOOK_PROTO(foo, (<span class="hljs-keyword">struct</span> timeval *now),
+                <span class="hljs-keyword">void</span> *, closure, (<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now));
+</code></pre>
+<h5 id="implementing-a-hook-foo-in-a-source-file">Implementing a hook &quot;foo&quot; (in a source file)</h5>
+<pre><code class="lang-c">NOIT_HOOK_IMPL(foo, (<span class="hljs-keyword">struct</span> timeval *now),
+               <span class="hljs-keyword">void</span> *, closure, (<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now),
+               (closure,now));
+</code></pre>
+<h3 id="hook-usage">Hook Usage</h3>
+<p>Once the hook is implemented, it can be used by the application
+and instrumented by code at runtime. In the below example, we&apos;ll
+invoke the foo instrumentation and assuming no issues arise,
+we&apos;ll invoke the original <code>foo_work()</code> function.</p>
+<h5 id="instrumenting-a-dunction-conditionally">Instrumenting a dunction conditionally.</h5>
+<p>Before we instrument, suppose we have:</p>
+<pre><code class="lang-c">  <span class="hljs-comment">/* preable code */</span>
+  foo_work();
+  <span class="hljs-comment">/* postamble code */</span>
+</code></pre>
+<p>Now we wish to allow programmers to add instrumentation
+immediately before this code that can conditionally prevent its
+executation, we would modify the above code to look like:</p>
+<pre><code class="lang-c">  <span class="hljs-comment">/* preamble code */</span>
+  <span class="hljs-keyword">struct</span> timeval now;
+  mtev_gettimeofday(&amp;now, <span class="hljs-literal">NULL</span>);
+  <span class="hljs-keyword">if</span>(NOIT_HOOK_CONTINUE == foo_hook_invoke(&amp;now)) {
+       foo_work();
+  }
+  <span class="hljs-comment">/* postamble code */</span>
+</code></pre>
+<p>If the hook should not conditionally cause or prevent code
+to run, the invoke function&apos;s return value can be ignored.</p>
+<p>In order to register a function that allows the above execution
+on every other subsequent execution one would provide the following:</p>
+<pre><code class="lang-c">  <span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-title">my_sample_hook</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now)</span> </span>{
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> alt = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">return</span> (alt++ % <span class="hljs-number">2</span>) ? NOIT_HOOK_CONTINUE : NOIT_HOOK_DONE;
+  }
+
+  <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">my_init_fuction</span><span class="hljs-params">()</span> </span>{
+    foo_hook_register(<span class="hljs-string">&quot;sample&quot;</span>, my_sample_hook, <span class="hljs-literal">NULL</span>);
+  }
+</code></pre>
+<p>The implementation of the hook can be elsewhere in the code, even
+in a dynamically loaded module.  When the hook is regsitered (you
+must orchestrate the calling of <code>my_init_function</code>, the behavior of
+the <code>foo_work()</code> callsite will change and our hook will be called.
+Given the above implementation, the <code>struct timeval</code> will be ignored,
+but every other time we reach the call site, <code>foo_work()</code> will be
+skipped due to a <code>NOIT_HOOK_DONE</code> return value.</p>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="logging.html" class="navigation navigation-prev " aria-label="Previous page: Logging">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="../operations/" class="navigation navigation-next " aria-label="Next page: Operations">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"Hooks","level":"1.3.5","depth":2,"next":{"title":"Operations","level":"1.4","depth":1,"path":"operations/README.md","ref":"operations/README.md","articles":[{"title":"REST","level":"1.4.1","depth":2,"path":"operations/rest.md","ref":"operations/rest.md","articles":[]},{"title":"Telnet","level":"1.4.2","depth":2,"path":"operations/telnet_console.md","ref":"operations/telnet_console.md","articles":[]},{"title":"DTrace","level":"1.4.3","depth":2,"path":"operations/dtrace.md","ref":"operations/dtrace.md","articles":[]}]},"previous":{"title":"Logging","level":"1.3.4","depth":2,"path":"development/logging.md","ref":"development/logging.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/hooks.md","mtime":"2016-12-05T16:36:41.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-05T16:55:54.933Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-collapsible-menu/plugin.js"></script>
+        
+    
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/3.1.1/anchor.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-anchorjs/anchor-style.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+
