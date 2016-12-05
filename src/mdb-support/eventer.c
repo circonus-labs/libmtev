@@ -30,6 +30,7 @@
 
 #include <sys/mdb_modapi.h>
 #include "eventer/eventer.h"
+#include "eventer/eventer_impl_private.h"
 
 struct fds_data {
   void *readonce;
