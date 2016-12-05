@@ -142,6 +142,8 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
   }
   jobq = calloc(1, sizeof(*jobq));
   jobq->queue_name = strdup(queue_name);
+  jobq->mem_safety = mem_safety;
+  jobq->isbackq = isbackq;
   if(pthread_mutexattr_init(&mutexattr) != 0) {
     mtevL(mtev_error, "Cannot initialize lock attributes\n");
     jobq = NULL;
@@ -190,9 +192,6 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
 
 eventer_jobq_t *
 eventer_jobq_create_backq(const char *queue_name) {
-  eventer_jobq_t *jobq = calloc(1, sizeof(*jobq));
-  jobq->mem_safety = EVENTER_JOBQ_MS_NONE;
-  jobq->isbackq = mtev_true;
   return eventer_jobq_create_internal(queue_name, EVENTER_JOBQ_MS_NONE, mtev_true);
 }
 eventer_jobq_t *
