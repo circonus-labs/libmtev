@@ -640,6 +640,7 @@ static void jobq_fire_blanks(eventer_jobq_t *jobq, int n) {
 }
 void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max) {
   mtevAssert(min <= max);
+  mtevAssert(!jobq->isbackq);
   jobq->min_concurrency = min;
   jobq->max_concurrency = max;
   if(jobq->desired_concurrency < min || jobq->desired_concurrency > max) {
@@ -649,6 +650,7 @@ void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max) 
 }
 void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency) {
   int notifies;
+  mtevAssert(!jobq->isbackq);
   if(jobq->min_concurrency && new_concurrency < jobq->min_concurrency)
     new_concurrency = jobq->min_concurrency;
   if(jobq->max_concurrency && new_concurrency > jobq->max_concurrency)
@@ -659,26 +661,6 @@ void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency
     notifies = new_concurrency - jobq->desired_concurrency;
   jobq->desired_concurrency = new_concurrency;
   jobq_fire_blanks(jobq, notifies);
-}
-void eventer_jobq_increase_concurrency(eventer_jobq_t *jobq) {
-  if(jobq->max_concurrency && jobq->desired_concurrency >= jobq->max_concurrency)
-    return;
-  ck_pr_inc_32(&jobq->desired_concurrency);
-  if(jobq->max_concurrency && jobq->desired_concurrency >= jobq->max_concurrency) {
-    jobq->desired_concurrency = jobq->max_concurrency;
-    return;
-  }
-  jobq_fire_blanks(jobq, 1);
-}
-void eventer_jobq_decrease_concurrency(eventer_jobq_t *jobq) {
-  if(jobq->min_concurrency && jobq->desired_concurrency <= jobq->min_concurrency)
-    return;
-  ck_pr_dec_32(&jobq->desired_concurrency);
-  if(jobq->min_concurrency && jobq->desired_concurrency <= jobq->min_concurrency) {
-    jobq->desired_concurrency = jobq->min_concurrency;
-    return;
-  }
-  jobq_fire_blanks(jobq, 1);
 }
 
 void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *),
