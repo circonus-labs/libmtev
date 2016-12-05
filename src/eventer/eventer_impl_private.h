@@ -33,6 +33,48 @@
 
 #include "mtev_stats.h"
 
+struct _eventer_job_t {
+  pthread_mutex_t         lock;
+  eventer_hrtime_t        create_hrtime;
+  eventer_hrtime_t        start_hrtime;
+  eventer_hrtime_t        finish_hrtime;
+  struct timeval          finish_time;
+  pthread_t               executor;
+  eventer_t               timeout_event;
+  eventer_t               fd_event;
+  int                     timeout_triggered; /* set, if it expires in-flight */
+  uint32_t                inflight;
+  uint32_t                has_cleanedup;
+  void                  (*cleanup)(struct _eventer_job_t *);
+  struct _eventer_job_t  *next;
+  struct _eventer_jobq_t *jobq;
+};
+
+struct _eventer_jobq_t {
+  const char             *queue_name;
+  pthread_mutex_t         lock;
+  sem_t                   semaphore;
+  uint32_t                concurrency;
+  uint32_t                desired_concurrency;
+  uint32_t                pending_cancels;
+  eventer_job_t          *headq;
+  eventer_job_t          *tailq;
+  pthread_key_t           threadenv;
+  pthread_key_t           activejob;
+  uint32_t                backlog;
+  uint32_t                inflight;
+  uint64_t                total_jobs;
+  uint64_t                timeouts;
+  uint64_t                avg_wait_ns; /* smoother alpha = 0.8 */
+  uint64_t                avg_run_ns; /* smoother alpha = 0.8 */
+  stats_handle_t         *wait_latency;
+  stats_handle_t         *run_latency;
+  eventer_jobq_memory_safety_t mem_safety;
+  mtev_boolean            isbackq;
+  uint32_t                min_concurrency;
+  uint32_t                max_concurrency;
+};
+
 #ifdef LOCAL_EVENTER
 
 typedef enum { EV_OWNED, EV_ALREADY_OWNED } ev_lock_state_t;

@@ -34,6 +34,7 @@
 #include "mtev_defines.h"
 #include "mtev_version.h"
 #include "eventer/eventer.h"
+#include "eventer/eventer_impl_private.h"
 #include "eventer/eventer_jobq.h"
 #include "mtev_log.h"
 #include "mtev_hash.h"

@@ -46,22 +46,7 @@
  * This is for jobs that would block and need more forceful timeouts.
  */
 
-typedef struct _eventer_job_t {
-  pthread_mutex_t         lock;
-  eventer_hrtime_t        create_hrtime;
-  eventer_hrtime_t        start_hrtime;
-  eventer_hrtime_t        finish_hrtime;
-  struct timeval          finish_time;
-  pthread_t               executor;
-  eventer_t               timeout_event;
-  eventer_t               fd_event;
-  int                     timeout_triggered; /* set, if it expires in-flight */
-  uint32_t                inflight;
-  uint32_t                has_cleanedup;
-  void                  (*cleanup)(struct _eventer_job_t *);
-  struct _eventer_job_t  *next;
-  struct _eventer_jobq_t *jobq;
-} eventer_job_t;
+typedef struct _eventer_job_t eventer_job_t;
 
 typedef enum {
   EVENTER_JOBQ_MS_CS,  /* manages init, critical sections, and gc */
@@ -69,35 +54,12 @@ typedef enum {
   EVENTER_JOBQ_MS_NONE /* managed nothing at all */
 } eventer_jobq_memory_safety_t;
 
-typedef struct _eventer_jobq_t {
-  const char             *queue_name;
-  pthread_mutex_t         lock;
-  sem_t                   semaphore;
-  uint32_t                concurrency;
-  uint32_t                desired_concurrency;
-  uint32_t                pending_cancels;
-  eventer_job_t          *headq;
-  eventer_job_t          *tailq;
-  pthread_key_t           threadenv;
-  pthread_key_t           activejob;
-  uint32_t                backlog;
-  uint32_t                inflight;
-  uint64_t                total_jobs;
-  uint64_t                timeouts;
-  uint64_t                avg_wait_ns; /* smoother alpha = 0.8 */
-  uint64_t                avg_run_ns; /* smoother alpha = 0.8 */
-  stats_handle_t         *wait_latency;
-  stats_handle_t         *run_latency;
-  eventer_jobq_memory_safety_t mem_safety;
-  mtev_boolean            isbackq;
-  uint32_t                min_concurrency;
-  uint32_t                max_concurrency;
-} eventer_jobq_t;
+typedef struct _eventer_jobq_t eventer_jobq_t;
 
-int eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name);
-int eventer_jobq_init_backq(eventer_jobq_t *jobq, const char *queue_name);
-int eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
-                         eventer_jobq_memory_safety_t);
+eventer_jobq_t *eventer_jobq_create(const char *queue_name);
+eventer_jobq_t *eventer_jobq_create_backq(const char *queue_name);
+eventer_jobq_t *eventer_jobq_create_ms(const char *queue_name,
+                                       eventer_jobq_memory_safety_t);
 eventer_jobq_t *eventer_jobq_retrieve(const char *name);
 void eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job);
 eventer_job_t *eventer_jobq_dequeue(eventer_jobq_t *jobq);
@@ -114,5 +76,8 @@ void eventer_jobq_decrease_concurrency(eventer_jobq_t *jobq);
 void *eventer_jobq_consumer(eventer_jobq_t *jobq);
 void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *), void *);
 void eventer_jobq_init_globals();
+
+const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq);
+uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq);
 
 #endif

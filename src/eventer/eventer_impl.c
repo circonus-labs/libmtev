@@ -62,7 +62,7 @@ struct eventer_impl_data {
   pthread_mutex_t te_lock;
   mtev_skiplist *timed_events;
   mtev_skiplist *staged_timed_events;
-  eventer_jobq_t __global_backq;
+  eventer_jobq_t *__global_backq;
   pthread_mutex_t recurrent_lock;
   struct recurrent_events {
     eventer_t e;
@@ -107,7 +107,7 @@ mtev_log_stream_t eventer_deb = NULL;
 static uint32_t __default_queue_threads = 5;
 static uint32_t __total_loop_count = 0;
 static uint32_t __default_loop_concurrency = 0;
-static eventer_jobq_t __default_jobq;
+static eventer_jobq_t *__default_jobq;
 
 struct eventer_pool_t {
   char *name;
@@ -283,7 +283,7 @@ eventer_jobq_t *eventer_default_backq(eventer_t e) {
   tid = e ? e->thr_owner : pthread_self();
   impl_data = get_tls_impl_data(tid);
   mtevAssert(impl_data);
-  return &impl_data->__global_backq;
+  return impl_data->__global_backq;
 }
 
 int eventer_get_epoch(struct timeval *epoch) {
@@ -342,7 +342,7 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
                           mtev_compare_voidptr, mtev_compare_voidptr);
 
   snprintf(qname, sizeof(qname), "default_back_queue/%d", t->id);
-  eventer_jobq_init_backq(&t->__global_backq, qname);
+  t->__global_backq = eventer_jobq_create_backq(qname);
   e = eventer_alloc();
   e->mask = EVENTER_RECURRENT;
   e->closure = &t->__global_backq;
@@ -510,8 +510,8 @@ int eventer_impl_init() {
   if(!eventer_err) eventer_err = mtev_stderr;
   if(!eventer_deb) eventer_deb = mtev_debug;
 
-  eventer_jobq_init(&__default_jobq, "default_queue");
-  eventer_jobq_set_concurrency(&__default_jobq, __default_queue_threads);
+  __default_jobq = eventer_jobq_create("default_queue");
+  eventer_jobq_set_concurrency(__default_jobq, __default_queue_threads);
 
   mtevAssert(eventer_impl_tls_data == NULL);
 
@@ -562,7 +562,7 @@ void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
   if(eventer_is_loop(e->thr_owner) < 0) e->thr_owner = eventer_impl_tls_data[0].tid;
   job = calloc(1, sizeof(*job));
   job->fd_event = e;
-  job->jobq = q ? q : &__default_jobq;
+  job->jobq = q ? q : __default_jobq;
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
@@ -575,7 +575,7 @@ void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
     job->timeout_event->callback = eventer_jobq_execute_timeout;
     eventer_add(job->timeout_event);
   }
-  eventer_jobq_enqueue(q ? q : &__default_jobq, job);
+  eventer_jobq_enqueue(q ? q : __default_jobq, job);
 }
 
 void eventer_add_timed(eventer_t e) {

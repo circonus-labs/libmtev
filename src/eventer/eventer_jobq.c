@@ -96,8 +96,9 @@ eventer_jobq_handler(int signo)
        siglongjmp(*env, 1);
 }
 
-int
-eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name) {
+static eventer_jobq_t *
+eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_t mem_safety, mtev_boolean isbackq) {
+  eventer_jobq_t *jobq;
   stats_ns_t *jobq_ns;
   pthread_mutexattr_t mutexattr;
 
@@ -111,53 +112,67 @@ eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name) {
     sigemptyset(&act.sa_mask);
 
     if(sigaction(JOBQ_SIGNAL, &act, NULL) < 0) {
-      mtevL(mtev_error, "Cannot initialize signal handler: %s\n",
-            strerror(errno));
-      return -1;
+      mtevFatal(mtev_error, "Cannot initialize signal handler: %s\n",
+                strerror(errno));
     }
 
     if(pthread_key_create(&threads_jobq, NULL)) {
-      mtevL(mtev_error, "Cannot initialize thread-specific jobq: %s\n",
-            strerror(errno));
-      return -1;
+      mtevFatal(mtev_error, "Cannot initialize thread-specific jobq: %s\n",
+                strerror(errno));
     }
     if(pthread_mutex_init(&all_queues_lock, NULL)) {
-      mtevL(mtev_error, "Cannot initialize all_queues mutex: %s\n",
-            strerror(errno));
-      return -1;
+      mtevFatal(mtev_error, "Cannot initialize all_queues mutex: %s\n",
+                strerror(errno));
     }
   }
 
+  pthread_mutex_lock(&all_queues_lock);
+  void *vjobq;
+  if(mtev_hash_retrieve(&all_queues, queue_name, strlen(queue_name),
+                        &vjobq)) {
+    jobq = vjobq;
+    mtevAssert(!strcmp(queue_name, jobq->queue_name));
+    mtevAssert(isbackq == jobq->isbackq);
+    if(mem_safety != jobq->mem_safety) {
+      if(jobq->concurrency == 0) jobq->mem_safety = mem_safety;
+      else jobq = NULL;
+    }
+    pthread_mutex_unlock(&all_queues_lock);
+    return jobq;
+  }
+  jobq = calloc(1, sizeof(*jobq));
   jobq->queue_name = strdup(queue_name);
   if(pthread_mutexattr_init(&mutexattr) != 0) {
     mtevL(mtev_error, "Cannot initialize lock attributes\n");
-    return -1;
+    jobq = NULL;
+    goto out;
   }
   if(pthread_mutex_init(&jobq->lock, &mutexattr) != 0) {
     mtevL(mtev_error, "Cannot initialize lock\n");
-    return -1;
+    jobq = NULL;
+    goto out;
   }
   if(sem_init(&jobq->semaphore, 0, 0) != 0) {
     mtevL(mtev_error, "Cannot initialize semaphore: %s\n",
           strerror(errno));
-    return -1;
+    jobq = NULL;
+    goto out;
   }
   if(pthread_key_create(&jobq->activejob, NULL)) {
     mtevL(mtev_error, "Cannot initialize thread-specific activejob: %s\n",
           strerror(errno));
-    return -1;
+    jobq = NULL;
+    goto out;
   }
   if(pthread_key_create(&jobq->threadenv, NULL)) {
     mtevL(mtev_error, "Cannot initialize thread-specific sigsetjmp env: %s\n",
           strerror(errno));
-    return -1;
+    jobq = NULL;
+    goto out;
   }
-  pthread_mutex_lock(&all_queues_lock);
   if(mtev_hash_store(&all_queues, jobq->queue_name, strlen(jobq->queue_name),
                      jobq) == 0) {
-    mtevL(mtev_error, "Duplicate queue name!\n");
-    pthread_mutex_unlock(&all_queues_lock);
-    return -1;
+    mtevFatal(mtev_error, "Duplicate queue named!\n");
   }
   if(!jobq->isbackq) {
     jobq_ns = mtev_stats_ns(mtev_stats_ns(eventer_stats_ns, "jobq"), jobq->queue_name);
@@ -168,29 +183,26 @@ eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name) {
     stats_rob_i32(jobq_ns, "backlog", (void *)&jobq->backlog);
     stats_rob_i64(jobq_ns, "timeouts", (void *)&jobq->timeouts);
   }
+ out:
   pthread_mutex_unlock(&all_queues_lock);
-  return 0;
+  return jobq;
 }
 
-int
-eventer_jobq_init_backq(eventer_jobq_t *jobq, const char *queue_name) {
-  memset(jobq, 0, sizeof(*jobq));
+eventer_jobq_t *
+eventer_jobq_create_backq(const char *queue_name) {
+  eventer_jobq_t *jobq = calloc(1, sizeof(*jobq));
   jobq->mem_safety = EVENTER_JOBQ_MS_NONE;
   jobq->isbackq = mtev_true;
-  return eventer_jobq_init_internal(jobq, queue_name);
+  return eventer_jobq_create_internal(queue_name, EVENTER_JOBQ_MS_NONE, mtev_true);
 }
-int
-eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
-                     eventer_jobq_memory_safety_t ms) {
-  memset(jobq, 0, sizeof(*jobq));
-  jobq->mem_safety = ms;
-  return eventer_jobq_init_internal(jobq, queue_name);
+eventer_jobq_t *
+eventer_jobq_create_ms(const char *queue_name,
+                       eventer_jobq_memory_safety_t ms) {
+  return eventer_jobq_create_internal(queue_name, ms, mtev_false);
 }
-int
-eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name) {
-  memset(jobq, 0, sizeof(*jobq));
-  jobq->mem_safety = EVENTER_JOBQ_MS_NONE;
-  return eventer_jobq_init_internal(jobq, queue_name);
+eventer_jobq_t *
+eventer_jobq_create(const char *queue_name) {
+  return eventer_jobq_create_internal(queue_name, EVENTER_JOBQ_MS_NONE, mtev_false);
 }
 
 eventer_jobq_t *
@@ -681,4 +693,11 @@ void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *),
 }
 void eventer_jobq_init_globals() {
   mtev_hash_init(&all_queues);
+}
+
+const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq) {
+  return jobq->queue_name;
+}
+uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq) {
+  return jobq->concurrency;
 }
