@@ -345,7 +345,7 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   t->__global_backq = eventer_jobq_create_backq(qname);
   e = eventer_alloc();
   e->mask = EVENTER_RECURRENT;
-  e->closure = &t->__global_backq;
+  e->closure = t->__global_backq;
   e->callback = eventer_jobq_consume_available;
   eventer_add_recurrent(e);
 
