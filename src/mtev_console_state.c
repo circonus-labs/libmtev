@@ -34,6 +34,7 @@
 #include "mtev_defines.h"
 #include "mtev_version.h"
 #include "eventer/eventer.h"
+#include "eventer/eventer_impl_private.h"
 #include "eventer/eventer_jobq.h"
 #include "mtev_log.h"
 #include "mtev_hash.h"
@@ -145,6 +146,28 @@ mtev_console_eventer_memory(mtev_console_closure_t ncct, int argc, char **argv,
 }
 
 static int
+mtev_console_jobq(mtev_console_closure_t ncct, int argc, char **argv,
+                  mtev_console_state_t *dstate, void *unused) {
+  if(argc != 3) {
+    nc_printf(ncct, "<jobq> concurrency <n>\n");
+    return -1;
+  }
+  eventer_jobq_t *jobq;
+  jobq = eventer_jobq_retrieve(argv[0]);
+  if(jobq == NULL) {
+    nc_printf(ncct, "No such jobq.\n");
+    return -1;
+  }
+  if(strcmp(argv[1], "concurrency")) {
+    nc_printf(ncct, "Unknown jobq command: %s\n", argv[1]);
+  }
+  uint32_t new_concurrency = strtoul(argv[2], NULL, 10);
+  eventer_jobq_set_concurrency(jobq, new_concurrency);
+  nc_printf(ncct, "Setting '%s' jobq concurrency to %u\n", jobq->queue_name, new_concurrency);
+  return 0;
+}
+
+static int
 mtev_console_coreclocks(mtev_console_closure_t ncct, int argc, char **argv,
                         mtev_console_state_t *dstate, void *unused) {
   int i = 0;
@@ -233,6 +256,9 @@ cmd_info_t console_command_eventer_memory = {
 };
 cmd_info_t console_command_coreclocks = {
   "coreclocks", mtev_console_coreclocks, NULL, NULL, NULL
+};
+cmd_info_t console_command_jobq = {
+  "jobq", mtev_console_jobq, NULL, NULL, (void *)1
 };
 cmd_info_t console_command_rdtsc_status = {
   "status", mtev_console_time_status, NULL, NULL, (void *)1
@@ -739,6 +765,7 @@ mtev_console_state_initial() {
     mtev_console_state_add_cmd(mtevdeb, &console_command_coreclocks);
 
     mtevst = mtev_console_mksubdelegate(_top_level_state, "mtev");
+    mtev_console_state_add_cmd(mtevst, &console_command_jobq);
     rdtsc = mtev_console_mksubdelegate(mtevst, "rdtsc");
     mtev_console_state_add_cmd(rdtsc, &console_command_rdtsc_status);
     mtev_console_state_add_cmd(rdtsc, &console_command_rdtsc_enable);

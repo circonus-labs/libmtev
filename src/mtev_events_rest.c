@@ -34,6 +34,7 @@
 #include "mtev_rest.h"
 #include "mtev_conf.h"
 #include "eventer/eventer.h"
+#include "eventer/eventer_impl_private.h"
 #include "mtev_json.h"
 #include <errno.h>
 #include <arpa/inet.h>

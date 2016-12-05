@@ -34,7 +34,6 @@
 #include "mtev_defines.h"
 #include "mtev_memory.h"
 #include "mtev_log.h"
-#include "mtev_atomic.h"
 #include "mtev_thread.h"
 #include "eventer/eventer.h"
 #include "eventer/eventer_impl_private.h"
@@ -49,7 +48,7 @@
 
 #define pthread_self_ptr() ((void *)(vpsized_int)pthread_self())
 
-static mtev_atomic32_t threads_jobq_inited = 0;
+static uint32_t threads_jobq_inited = 0;
 static pthread_key_t threads_jobq;
 static sigset_t alarm_mask;
 static mtev_hash_table all_queues;
@@ -59,24 +58,24 @@ static void
 eventer_jobq_finished_job(eventer_jobq_t *jobq, eventer_job_t *job) {
   int ntries;
   eventer_hrtime_t wait_time, run_time;
-  mtev_atomic_dec32(&jobq->inflight);
+  ck_pr_dec_32(&jobq->inflight);
   if(job->create_hrtime > job->start_hrtime) wait_time = 0;
   else wait_time = job->start_hrtime - job->create_hrtime;
   if(job->start_hrtime > job->finish_hrtime) run_time = 0;
   else run_time = job->finish_hrtime - job->start_hrtime;
   stats_set_hist_intscale(jobq->wait_latency, wait_time, -9, 1);
   stats_set_hist_intscale(jobq->run_latency, run_time, -9, 1);
-  if(job->timeout_triggered) mtev_atomic_inc64(&jobq->timeouts);
+  if(job->timeout_triggered) ck_pr_inc_64(&jobq->timeouts);
   for(ntries = 0; ntries < 100; ntries++) {
     uint64_t current_avg_wait_ns = ck_pr_load_64((uint64_t *)&jobq->avg_wait_ns);
     eventer_hrtime_t newv = current_avg_wait_ns * 0.8 + wait_time * 0.2;
-    if(mtev_atomic_cas64(&jobq->avg_wait_ns, newv, current_avg_wait_ns) == current_avg_wait_ns)
+    if(ck_pr_cas_64(&jobq->avg_wait_ns, current_avg_wait_ns, newv))
       break;
   }
   for(ntries = 0; ntries < 100; ntries++) {
     uint64_t current_avg_run_ns = ck_pr_load_64((uint64_t *)&jobq->avg_run_ns);
     eventer_hrtime_t newv = current_avg_run_ns * 0.8 + run_time * 0.2;
-    if(mtev_atomic_cas64(&jobq->avg_run_ns, newv, current_avg_run_ns) == current_avg_run_ns)
+    if(ck_pr_cas_64(&jobq->avg_run_ns, current_avg_run_ns, newv))
       break;
   }
 }
@@ -93,16 +92,17 @@ eventer_jobq_handler(int signo)
   env = pthread_getspecific(jobq->threadenv);
   job = pthread_getspecific(jobq->activejob);
   if(env && job && job->fd_event && job->fd_event->mask & EVENTER_EVIL_BRUTAL)
-    if(mtev_atomic_cas32(&job->inflight, 0, 1) == 1)
+    if(ck_pr_cas_32(&job->inflight, 1, 0))
        siglongjmp(*env, 1);
 }
 
-int
-eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name) {
+static eventer_jobq_t *
+eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_t mem_safety, mtev_boolean isbackq) {
+  eventer_jobq_t *jobq;
   stats_ns_t *jobq_ns;
   pthread_mutexattr_t mutexattr;
 
-  if(mtev_atomic_cas32(&threads_jobq_inited, 1, 0) == 0) {
+  if(ck_pr_cas_32(&threads_jobq_inited, 0, 1)) {
     struct sigaction act;
 
     sigemptyset(&alarm_mask);
@@ -112,53 +112,67 @@ eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name) {
     sigemptyset(&act.sa_mask);
 
     if(sigaction(JOBQ_SIGNAL, &act, NULL) < 0) {
-      mtevL(mtev_error, "Cannot initialize signal handler: %s\n",
-            strerror(errno));
-      return -1;
+      mtevFatal(mtev_error, "Cannot initialize signal handler: %s\n",
+                strerror(errno));
     }
 
     if(pthread_key_create(&threads_jobq, NULL)) {
-      mtevL(mtev_error, "Cannot initialize thread-specific jobq: %s\n",
-            strerror(errno));
-      return -1;
+      mtevFatal(mtev_error, "Cannot initialize thread-specific jobq: %s\n",
+                strerror(errno));
     }
     if(pthread_mutex_init(&all_queues_lock, NULL)) {
-      mtevL(mtev_error, "Cannot initialize all_queues mutex: %s\n",
-            strerror(errno));
-      return -1;
+      mtevFatal(mtev_error, "Cannot initialize all_queues mutex: %s\n",
+                strerror(errno));
     }
   }
 
+  pthread_mutex_lock(&all_queues_lock);
+  void *vjobq;
+  if(mtev_hash_retrieve(&all_queues, queue_name, strlen(queue_name),
+                        &vjobq)) {
+    jobq = vjobq;
+    mtevAssert(!strcmp(queue_name, jobq->queue_name));
+    mtevAssert(isbackq == jobq->isbackq);
+    if(mem_safety != jobq->mem_safety) {
+      if(jobq->concurrency == 0) jobq->mem_safety = mem_safety;
+      else jobq = NULL;
+    }
+    pthread_mutex_unlock(&all_queues_lock);
+    return jobq;
+  }
+  jobq = calloc(1, sizeof(*jobq));
   jobq->queue_name = strdup(queue_name);
   if(pthread_mutexattr_init(&mutexattr) != 0) {
     mtevL(mtev_error, "Cannot initialize lock attributes\n");
-    return -1;
+    jobq = NULL;
+    goto out;
   }
   if(pthread_mutex_init(&jobq->lock, &mutexattr) != 0) {
     mtevL(mtev_error, "Cannot initialize lock\n");
-    return -1;
+    jobq = NULL;
+    goto out;
   }
   if(sem_init(&jobq->semaphore, 0, 0) != 0) {
     mtevL(mtev_error, "Cannot initialize semaphore: %s\n",
           strerror(errno));
-    return -1;
+    jobq = NULL;
+    goto out;
   }
   if(pthread_key_create(&jobq->activejob, NULL)) {
     mtevL(mtev_error, "Cannot initialize thread-specific activejob: %s\n",
           strerror(errno));
-    return -1;
+    jobq = NULL;
+    goto out;
   }
   if(pthread_key_create(&jobq->threadenv, NULL)) {
     mtevL(mtev_error, "Cannot initialize thread-specific sigsetjmp env: %s\n",
           strerror(errno));
-    return -1;
+    jobq = NULL;
+    goto out;
   }
-  pthread_mutex_lock(&all_queues_lock);
   if(mtev_hash_store(&all_queues, jobq->queue_name, strlen(jobq->queue_name),
                      jobq) == 0) {
-    mtevL(mtev_error, "Duplicate queue name!\n");
-    pthread_mutex_unlock(&all_queues_lock);
-    return -1;
+    mtevFatal(mtev_error, "Duplicate queue named!\n");
   }
   if(!jobq->isbackq) {
     jobq_ns = mtev_stats_ns(mtev_stats_ns(eventer_stats_ns, "jobq"), jobq->queue_name);
@@ -169,29 +183,26 @@ eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name) {
     stats_rob_i32(jobq_ns, "backlog", (void *)&jobq->backlog);
     stats_rob_i64(jobq_ns, "timeouts", (void *)&jobq->timeouts);
   }
+ out:
   pthread_mutex_unlock(&all_queues_lock);
-  return 0;
+  return jobq;
 }
 
-int
-eventer_jobq_init_backq(eventer_jobq_t *jobq, const char *queue_name) {
-  memset(jobq, 0, sizeof(*jobq));
+eventer_jobq_t *
+eventer_jobq_create_backq(const char *queue_name) {
+  eventer_jobq_t *jobq = calloc(1, sizeof(*jobq));
   jobq->mem_safety = EVENTER_JOBQ_MS_NONE;
   jobq->isbackq = mtev_true;
-  return eventer_jobq_init_internal(jobq, queue_name);
+  return eventer_jobq_create_internal(queue_name, EVENTER_JOBQ_MS_NONE, mtev_true);
 }
-int
-eventer_jobq_init_ms(eventer_jobq_t *jobq, const char *queue_name,
-                     eventer_jobq_memory_safety_t ms) {
-  memset(jobq, 0, sizeof(*jobq));
-  jobq->mem_safety = ms;
-  return eventer_jobq_init_internal(jobq, queue_name);
+eventer_jobq_t *
+eventer_jobq_create_ms(const char *queue_name,
+                       eventer_jobq_memory_safety_t ms) {
+  return eventer_jobq_create_internal(queue_name, ms, mtev_false);
 }
-int
-eventer_jobq_init(eventer_jobq_t *jobq, const char *queue_name) {
-  memset(jobq, 0, sizeof(*jobq));
-  jobq->mem_safety = EVENTER_JOBQ_MS_NONE;
-  return eventer_jobq_init_internal(jobq, queue_name);
+eventer_jobq_t *
+eventer_jobq_create(const char *queue_name) {
+  return eventer_jobq_create_internal(queue_name, EVENTER_JOBQ_MS_NONE, mtev_false);
 }
 
 eventer_jobq_t *
@@ -254,8 +265,10 @@ eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job) {
     jobq->headq = jobq->tailq = job;
   }
   pthread_mutex_unlock(&jobq->lock);
-  mtev_atomic_inc64(&jobq->total_jobs);
-  mtev_atomic_inc32(&jobq->backlog);
+  if(job->fd_event) {
+    ck_pr_inc_64(&jobq->total_jobs);
+    ck_pr_inc_32(&jobq->backlog);
+  }
 
   /* Signal consumers */
   sem_post(&jobq->semaphore);
@@ -281,8 +294,8 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
 
   if(job) {
     job->next = NULL; /* To reduce any confusion */
-    mtev_atomic_dec32(&jobq->backlog);
-    mtev_atomic_inc32(&jobq->inflight);
+    if(job->fd_event) ck_pr_dec_32(&jobq->backlog);
+    ck_pr_inc_32(&jobq->inflight);
   }
   /* Our semaphores are counting semaphores, not locks. */
   /* coverity[missing_unlock] */
@@ -324,10 +337,10 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
       /* we set this to null so we can't complete on it */
       job->fd_event = NULL;
       mtevL(eventer_deb, "[inline] timeout cancelling job\n");
-      mtev_atomic_inc32(&job->jobq->pending_cancels);
+      ck_pr_inc_32(&job->jobq->pending_cancels);
       pthread_cancel(job->executor);
       /* complete on it ourselves */
-      if(mtev_atomic_cas32(&job->has_cleanedup, 1, 0) == 0) {
+      if(ck_pr_cas_32(&job->has_cleanedup, 0, 1)) {
         /* We need to cleanup... we haven't done it yet. */
         mtevL(eventer_deb, "[inline] %p jobq[%s] -> cleanup [%p]\n",
               pthread_self_ptr(), job->jobq->queue_name, job);
@@ -405,7 +418,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
       job->fd_event = NULL;
     }
     mtevAssert(job->timeout_event == NULL);
-    mtev_atomic_dec32(&jobq->inflight);
+    ck_pr_dec_32(&jobq->inflight);
     free(job);
   }
   return EVENTER_RECURRENT;
@@ -413,21 +426,32 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
 static void
 eventer_jobq_cancel_cleanup(void *vp) {
   eventer_jobq_t *jobq = vp;
-  mtev_atomic_dec32(&jobq->pending_cancels);
-  mtev_atomic_dec32(&jobq->concurrency);
+  ck_pr_dec_32(&jobq->pending_cancels);
+  ck_pr_dec_32(&jobq->concurrency);
+}
+static mtev_boolean
+jobq_thread_should_terminate(eventer_jobq_t *jobq) {
+  uint32_t have, want;
+  while(1) {
+    have = ck_pr_load_32(&jobq->concurrency);
+    want = ck_pr_load_32(&jobq->desired_concurrency);
+    if(have <= want) break;
+    if(ck_pr_cas_32(&jobq->concurrency, have, have-1)) return mtev_true;
+  }
+  return mtev_false;
 }
 void *
 eventer_jobq_consumer(eventer_jobq_t *jobq) {
   eventer_job_t *job;
-  int32_t current_count;
+  uint32_t current_count;
   sigjmp_buf env;
 
-  current_count = mtev_atomic_inc32(&jobq->concurrency);
-  mtevL(eventer_deb, "jobq[%s] -> %d\n", jobq->queue_name, current_count);
+  current_count = ck_pr_faa_32(&jobq->concurrency, 1) + 1;
+  mtevL(eventer_deb, "jobq[%s/%p] -> %d\n", jobq->queue_name, pthread_self_ptr(), current_count);
   if(current_count > jobq->desired_concurrency) {
     mtevL(eventer_deb, "jobq[%s] over provisioned, backing out.",
           jobq->queue_name);
-    mtev_atomic_dec32(&jobq->concurrency);
+    ck_pr_dec_32(&jobq->concurrency);
     pthread_exit(NULL);
     return NULL;
   }
@@ -447,7 +471,10 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     if(!job) continue;
     if(!job->fd_event) {
       free(job);
-      break;
+      ck_pr_dec_32(&jobq->inflight);
+      /* We might want to decrease our concurrency here */
+      if(jobq_thread_should_terminate(jobq)) break;
+      continue;
     }
     pthread_setspecific(jobq->activejob, job);
     mtevL(eventer_deb, "%p jobq[%s] -> running job [%p]\n", pthread_self_ptr(),
@@ -509,7 +536,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
        * won't longjmp.  But timeout_triggered will be set... so we
        * should recheck that after we mark ourselves inflight.
        */
-      if(mtev_atomic_cas32(&job->inflight, 1, 0) == 0) {
+      if(ck_pr_cas_32(&job->inflight, 0, 1)) {
         if(!job->timeout_triggered) {
           mtevL(eventer_deb, "%p jobq[%s] -> executing [%p]\n",
                 pthread_self_ptr(), jobq->queue_name, job);
@@ -568,7 +595,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     }
     job->timeout_event = NULL;
 
-    if(mtev_atomic_cas32(&job->has_cleanedup, 1, 0) == 0) {
+    if(ck_pr_cas_32(&job->has_cleanedup, 0, 1)) {
       /* We need to cleanup... we haven't done it yet. */
       mtevL(eventer_deb, "%p jobq[%s] -> cleanup [%p]\n", pthread_self_ptr(),
             jobq->queue_name, job);
@@ -599,21 +626,43 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
   if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_end();
   if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
   pthread_cleanup_pop(0);
-  mtev_atomic_dec32(&jobq->inflight);
-  mtev_atomic_dec32(&jobq->concurrency);
+  mtevL(eventer_deb, "jobq[%s/%p] -> terminating\n", jobq->queue_name, pthread_self_ptr());
   pthread_exit(NULL);
   return NULL;
 }
 
-void eventer_jobq_increase_concurrency(eventer_jobq_t *jobq) {
-  mtev_atomic_inc32(&jobq->desired_concurrency);
+static void jobq_fire_blanks(eventer_jobq_t *jobq, int n) {
+  int i;
+  for(i=0; i<n; i++) {
+    eventer_job_t *job = calloc(1, sizeof(*job));
+    eventer_jobq_enqueue(jobq, job);
+  }
 }
-void eventer_jobq_decrease_concurrency(eventer_jobq_t *jobq) {
-  eventer_job_t *job;
-  mtev_atomic_dec32(&jobq->desired_concurrency);
-  job = calloc(1, sizeof(*job));
-  eventer_jobq_enqueue(jobq, job);
+void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max) {
+  mtevAssert(min <= max);
+  mtevAssert(!jobq->isbackq);
+  jobq->min_concurrency = min;
+  jobq->max_concurrency = max;
+  if(jobq->desired_concurrency < min || jobq->desired_concurrency > max) {
+    /* set concurrency will handle capping this in bounds */
+    eventer_jobq_set_concurrency(jobq, jobq->desired_concurrency);
+  }
 }
+void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency) {
+  int notifies;
+  mtevAssert(!jobq->isbackq);
+  if(jobq->min_concurrency && new_concurrency < jobq->min_concurrency)
+    new_concurrency = jobq->min_concurrency;
+  if(jobq->max_concurrency && new_concurrency > jobq->max_concurrency)
+    new_concurrency = jobq->max_concurrency;
+  if(jobq->desired_concurrency > new_concurrency)
+    notifies = jobq->desired_concurrency - new_concurrency;
+  else
+    notifies = new_concurrency - jobq->desired_concurrency;
+  jobq->desired_concurrency = new_concurrency;
+  jobq_fire_blanks(jobq, notifies);
+}
+
 void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *),
                                void *closure) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
@@ -626,4 +675,11 @@ void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *),
 }
 void eventer_jobq_init_globals() {
   mtev_hash_init(&all_queues);
+}
+
+const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq) {
+  return jobq->queue_name;
+}
+uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq) {
+  return jobq->concurrency;
 }
