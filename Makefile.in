@@ -6,10 +6,17 @@ all:
 install:	all
 	(cd src && $(MAKE) install DESTDIR=$(DESTDIR))
 
-documentation:
-	mkdir -p docs/out/{html,pdf}
-	#gitbook build . docs/out/html
-	PATH=$(shell dirname $(EBOOKCONVERT)):$(shell echo $$PATH) gitbook pdf . docs/out/pdf/libmtev-manual.pdf
+gitbook-setup:
+	gitbook install
+
+docs-serve:	gitbook-setup
+	gitbook serve . docs
+
+docs-html:	gitbook-setup
+	gitbook build . docs
+
+docs-pdf:	gitbook-setup
+	PATH=$(shell dirname $(EBOOKCONVERT)):$(shell echo $$PATH) gitbook pdf . docs/libmtev-manual.pdf
 
 clean:
 	(cd src && $(MAKE) clean)

@@ -1,0 +1,803 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>REST · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.2">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-callouts/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+        <link rel="stylesheet" href="../styles/website.css">
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="telnet_console.html" />
+    
+    
+    <link rel="prev" href="./" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        <li class="header">Mount Everest</li>
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="../config/">
+            
+                <a href="../config/">
+            
+                    
+                    Configuration
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.1" data-path="../config/inherit.html">
+            
+                <a href="../config/inherit.html">
+            
+                    
+                    Inheritance
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.2" data-path="../config/includes.html">
+            
+                <a href="../config/includes.html">
+            
+                    
+                    Includes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.3" data-path="../config/watchdog.html">
+            
+                <a href="../config/watchdog.html">
+            
+                    
+                    Watchdog
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.4" data-path="../config/eventer.html">
+            
+                <a href="../config/eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.5" data-path="../config/logging.html">
+            
+                <a href="../config/logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.6" data-path="../config/listeners.html">
+            
+                <a href="../config/listeners.html">
+            
+                    
+                    Listeners
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7" data-path="../config/modules.html">
+            
+                <a href="../config/modules.html">
+            
+                    
+                    Modules
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.7.1" data-path="../config/modules/fq.html">
+            
+                <a href="../config/modules/fq.html">
+            
+                    
+                    fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.2" data-path="../config/modules/lua_general.html">
+            
+                <a href="../config/modules/lua_general.html">
+            
+                    
+                    lua_general
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.3" data-path="../config/modules/lua_web.html">
+            
+                <a href="../config/modules/lua_web.html">
+            
+                    
+                    lua_web
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/zipkin_fq.html">
+            
+                <a href="../config/modules/zipkin_fq.html">
+            
+                    
+                    zipkin_fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="../development/">
+            
+                <a href="../development/">
+            
+                    
+                    Development
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="../development/important.html">
+            
+                <a href="../development/important.html">
+            
+                    
+                    Important Starting Notes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" data-path="../development/mtev_main.html">
+            
+                <a href="../development/mtev_main.html">
+            
+                    
+                    mtev_main
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="../development/eventer.html">
+            
+                <a href="../development/eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.4" data-path="../development/logging.html">
+            
+                <a href="../development/logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../development/hooks.html">
+            
+                <a href="../development/hooks.html">
+            
+                    
+                    Hooks
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Operations
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter active" data-level="1.4.1" data-path="rest.html">
+            
+                <a href="rest.html">
+            
+                    
+                    REST
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="telnet_console.html">
+            
+                <a href="telnet_console.html">
+            
+                    
+                    Telnet
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.3" data-path="dtrace.html">
+            
+                <a href="dtrace.html">
+            
+                    
+                    DTrace
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >REST</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="rest-accessible-observability-endpoints">REST-accessible Observability Endpoints</h1>
+<p>Various components in the libmtev namespace can register REST endpoints
+via the <code>http_rest.h</code> APIs and expose a wealth of configuration
+and run-time mechanics to the caller.</p>
+<h5 id="applicationconf">application.conf</h5>
+<pre><code>  &lt;root&gt;
+  &lt;listeners&gt;
+    &lt;listener type=&quot;http_rest_api&quot; address=&quot;*&quot; port=&quot;8888&quot; ssl=&quot;off&quot;&gt;
+      &lt;config&gt;
+        &lt;document_root&gt;/path/to/docroot&lt;/document_root&gt;
+      &lt;/config&gt;
+    &lt;/listener&gt;
+  &lt;/listeners&gt;
+  &lt;rest&gt;
+    &lt;acl&gt;
+      &lt;!-- you should consider tighter ACLs --&gt;
+      &lt;rule type=&quot;allow&quot; /&gt;
+    &lt;/acl&gt;
+  &lt;/rest&gt;
+  &lt;/root&gt;
+  ]]&gt;&lt;/programlisting&gt;
+  &lt;/example&gt;
+</code></pre><p>In addition to a confgiuration snippet similar to the above, the HTTP REST subsystem
+must be programmatically initialized via a call to <code>mtev_http_rest_init()</code>.</p>
+<p>The REST listener is implemented on a non-compliant HTTP listener by
+subverting the four-byte control words &quot;DELE&quot;, &quot;MERG&quot;, &quot;GET &quot;, &quot;HEAD&quot;,
+&quot;POST&quot;, &quot;PUT &quot; and dropping them into a compliant HTTP state machine.  While
+the session intiiation is not strictly compliant with the HTTP specification
+it happily serves all known browsers and plays nicely with HTTP proxies as
+well.</p>
+<p>If the listener &quot;type&quot; is <code>http_rest_api</code>, then only
+the REST handler is served on that listening socket.  If the more general
+type of <code>control_dispatch</code> is used, then a full control channel
+is served and the REST services are superimposed on that.  Listeners
+of type <code>control_dispatch</code> are even less HTTP compliant, but
+still serve all web browers and proxies correctly.</p>
+<h3 id="the-capabilities-endpoint">The capabilities endpoint</h3>
+<p>It is highly recommended that you expose the libmtev capabilities
+endpoints.  This service exposes information about the libmtev version
+and build as well as any dispatch handlers that have been registered
+via <code>mtev_control_dispatch_delegate(...)</code>.&lt;/para&gt;</p>
+<h4 id="get-capa">GET /capa</h4>
+<p>Bot the CAPA HTTP verb and a GET of /capa will return the application capabilities in XML.</p>
+<pre><code># curl -XCAPA http://127.0.0.1:8888/
+# curl http://127.0.0.1:8888/capa
+
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf8&quot;?&gt;
+&lt;mtev_capabilities&gt;
+  &lt;version&gt;master.5553ef6a1c838ac5a639a634027db7b2c39be23d.1459876317&lt;/version&gt;
+  &lt;unameBuild bitwidth=&quot;64&quot;&gt;
+    &lt;sysname&gt;Darwin&lt;/sysname&gt;
+    &lt;nodename&gt;cudgel&lt;/nodename&gt;
+    &lt;release&gt;15.3.0&lt;/release&gt;
+    &lt;version&gt;Darwin Kernel Version 15.3.0; root:xnu-3248.30.4~1/RELEASE_X86_64&lt;/version&gt;
+    &lt;machine&gt;x86_64&lt;/machine&gt;
+  &lt;/unameBuild&gt;
+  &lt;unameRun bitwidth=&quot;64&quot;&gt;
+    &lt;sysname&gt;Darwin&lt;/sysname&gt;
+    &lt;nodename&gt;cudgel&lt;/nodename&gt;
+    &lt;release&gt;15.4.0&lt;/release&gt;
+    &lt;version&gt;Darwin Kernel Version 15.4.0; root:xnu-3248.40.184~3/RELEASE_X86_64&lt;/version&gt;
+    &lt;machine&gt;x86_64&lt;/machine&gt;
+  &lt;/unameRun&gt;
+  &lt;features/&gt;
+  &lt;current_time&gt;1460120546.029&lt;/current_time&gt;
+  &lt;services&gt;
+    &lt;service name=&quot;control_dispatch&quot; connected=&quot;true&quot;&gt;
+      &lt;command name=&quot;mtev_wire_rest_api&quot; version=&quot;1.0&quot; code=&quot;0x504f5354&quot;/&gt;
+      &lt;command name=&quot;mtev_wire_rest_api&quot; version=&quot;1.0&quot; code=&quot;0x4d455247&quot;/&gt;
+      &lt;command name=&quot;mtev_wire_rest_api&quot; version=&quot;1.0&quot; code=&quot;0x48454144&quot;/&gt;
+      &lt;command name=&quot;mtev_wire_rest_api&quot; version=&quot;1.0&quot; code=&quot;0x47455420&quot;/&gt;
+      &lt;command name=&quot;capabilities_transit&quot; version=&quot;1.0&quot; code=&quot;0x43415041&quot;/&gt;
+      &lt;command name=&quot;mtev_wire_rest_api&quot; version=&quot;1.0&quot; code=&quot;0x50555420&quot;/&gt;
+      &lt;command name=&quot;mtev_wire_rest_api&quot; version=&quot;1.0&quot; code=&quot;0x44454c45&quot;/&gt;
+    &lt;/service&gt;
+  &lt;/services&gt;
+  &lt;modules/&gt;
+&lt;/mtev_capabilities&gt;
+</code></pre><h4 id="get-capajson">GET /capa.json</h4>
+<p>Capanilities are also available in JSON format.</p>
+<pre><code># curl http://127.0.0.1:8888/capa.json
+
+{
+  &quot;version&quot;: &quot;master.5553ef6a1c838ac5a639a634027db7b2c39be23d.1459876317&quot;,
+  &quot;unameBuild&quot;: {
+    &quot;bitwidth&quot;: 64,
+    &quot;sysname&quot;: &quot;Darwin&quot;,
+    &quot;nodename&quot;: &quot;cudgel&quot;,
+    &quot;release&quot;: &quot;15.3.0&quot;,
+    &quot;version&quot;: &quot;Darwin Kernel Version 15.3.0; root:xnu-3248.30.4~1/RELEASE_X86_64&quot;,
+    &quot;machine&quot;: &quot;x86_64&quot;
+  },
+  &quot;unameRun&quot;: {
+    &quot;bitwidth&quot;: 64,
+    &quot;sysname&quot;: &quot;Darwin&quot;,
+    &quot;nodename&quot;: &quot;cudgel&quot;,
+    &quot;release&quot;: &quot;15.4.0&quot;,
+    &quot;version&quot;: &quot;Darwin Kernel Version 15.4.0; root:xnu-3248.40.184~3/RELEASE_X86_64&quot;,
+    &quot;machine&quot;: &quot;x86_64&quot;
+  },
+  &quot;features&quot;: {},
+  &quot;current_time&quot;: &quot;1460121207543&quot;,
+  &quot;services&quot;: {
+    &quot;0x10e19480&quot;: {
+      &quot;control_dispatch&quot;: &quot;control_dispatch&quot;,
+      &quot;commands&quot;: {
+        &quot;0x504f5354&quot;: {
+          &quot;name&quot;: &quot;mtev_wire_rest_api&quot;,
+          &quot;version&quot;: &quot;1.0&quot;
+        },
+        &quot;0x4d455247&quot;: {
+          &quot;name&quot;: &quot;mtev_wire_rest_api&quot;,
+          &quot;version&quot;: &quot;1.0&quot;
+        },
+        &quot;0x48454144&quot;: {
+          &quot;name&quot;: &quot;mtev_wire_rest_api&quot;,
+          &quot;version&quot;: &quot;1.0&quot;
+        },
+        &quot;0x47455420&quot;: {
+          &quot;name&quot;: &quot;mtev_wire_rest_api&quot;,
+          &quot;version&quot;: &quot;1.0&quot;
+        },
+        &quot;0x43415041&quot;: {
+          &quot;name&quot;: &quot;capabilities_transit&quot;,
+          &quot;version&quot;: &quot;1.0&quot;
+        },
+        &quot;0x50555420&quot;: {
+          &quot;name&quot;: &quot;mtev_wire_rest_api&quot;,
+          &quot;version&quot;: &quot;1.0&quot;
+        },
+        &quot;0x44454c45&quot;: {
+          &quot;name&quot;: &quot;mtev_wire_rest_api&quot;,
+          &quot;version&quot;: &quot;1.0&quot;
+        }
+      }
+    }
+  },
+  &quot;modules&quot;: {}
+}
+</code></pre><h3 id="the-eventer-system">The Eventer System</h3>
+<p>Assuming the application has registered the eventer system reporting over rest via the <code>mtev_events_rest_init()</code> call,
+robust information about the current state of all events in the system is available in JSON.</p>
+<h4 id="get-eventersocketsjson">GET /eventer/sockets.json</h4>
+<pre><code># curl http://localhost:8888/eventer/sockets.json
+
+[
+  {
+    &quot;callback&quot;: &quot;listener(mtev_console)&quot;,
+    &quot;fd&quot;: 9,
+    &quot;local&quot;: {
+      &quot;address&quot;: &quot;0.0.0.0&quot;,
+      &quot;port&quot;: 32322
+    },
+    &quot;impl&quot;: &quot;POSIX&quot;,
+    &quot;mask&quot;: 5,
+    &quot;eventer_pool&quot;: &quot;default&quot;
+  },
+  {
+    &quot;callback&quot;: &quot;listener(control_dispatch)&quot;,
+    &quot;fd&quot;: 11,
+    &quot;local&quot;: {
+      &quot;address&quot;: &quot;0.0.0.0&quot;,
+      &quot;port&quot;: 8888
+    },
+    &quot;impl&quot;: &quot;POSIX&quot;,
+    &quot;mask&quot;: 5,
+    &quot;eventer_pool&quot;: &quot;default&quot;
+  },
+  {
+    &quot;callback&quot;: &quot;mtev_wire_rest_api/1.0&quot;,
+    &quot;fd&quot;: 12,
+    &quot;local&quot;: {
+      &quot;address&quot;: &quot;127.0.0.1&quot;,
+      &quot;port&quot;: 8888
+    },
+    &quot;remote&quot;: {
+      &quot;address&quot;: &quot;127.0.0.1&quot;,
+      &quot;port&quot;: 60088
+    },
+    &quot;impl&quot;: &quot;POSIX&quot;,
+    &quot;mask&quot;: 5,
+    &quot;eventer_pool&quot;: &quot;default&quot;
+  }
+]
+</code></pre><h4 id="get-eventertimersjson">GET /eventer/timers.json</h4>
+<pre><code># curl http://localhost:8888/eventer/timers.json
+
+[
+  {
+    &quot;callback&quot;: &quot;mtev_conf_watch_config_and_journal&quot;,
+    &quot;whence&quot;: 1480805474873,
+    &quot;eventer_pool&quot;: &quot;default&quot;
+  }
+]
+</code></pre><h4 id="get-eventerjobqjson">GET /eventer/jobq.json</h4>
+<pre><code># curl http://localhost:8888/eventer/jobq.json
+
+{
+  &quot;default_queue&quot;: {
+    &quot;concurrency&quot;: 10,
+    &quot;desired_concurrency&quot;: 10,
+    &quot;total_jobs&quot;: 1,
+    &quot;backlog&quot;: 0,
+    &quot;inflight&quot;: 0,
+    &quot;timeouts&quot;: 0,
+    &quot;avg_wait_ms&quot;: 0.034546,
+    &quot;avg_run_ms&quot;: 1142.833808
+  },
+  &quot;default_back_queue/0&quot;: {
+    &quot;concurrency&quot;: 0,
+    &quot;desired_concurrency&quot;: 0,
+    &quot;total_jobs&quot;: 1,
+    &quot;backlog&quot;: 0,
+    &quot;inflight&quot;: 0,
+    &quot;timeouts&quot;: 0,
+    &quot;avg_wait_ms&quot;: 0,
+    &quot;avg_run_ms&quot;: 0
+  },
+  &quot;default_back_queue/1&quot;: {
+    &quot;concurrency&quot;: 0,
+    &quot;desired_concurrency&quot;: 0,
+    &quot;total_jobs&quot;: 0,
+    &quot;backlog&quot;: 0,
+    &quot;inflight&quot;: 0,
+    &quot;timeouts&quot;: 0,
+    &quot;avg_wait_ms&quot;: 0,
+    &quot;avg_run_ms&quot;: 0
+  }
+}
+</code></pre><h4 id="get-eventerlogsnamejson">GET /eventer/logs/&lt;name&gt;.json</h4>
+<p>Returns logs from the stream named <code>&lt;name&gt;</code> of type &quot;memory&quot;.</p>
+<p>Querystring parameters include:</p>
+<ul>
+<li><p>last=N</p>
+<p> requests only the N most recent log lines. Log lines are returned with index numbers.</p>
+</li>
+<li><p>since=I</p>
+<p> requests only log lines after index I.</p>
+</li>
+</ul>
+<pre><code># curl http://localhost:8888/eventer/logs/internal.json?last=2
+
+[
+  {
+    &quot;idx&quot;: 4,
+    &quot;whence&quot;: 1480805410721,
+    &quot;line&quot;: &quot;Generating 1024 bit DH parameters.\n&quot;
+  },
+  {
+    &quot;idx&quot;: 5,
+    &quot;whence&quot;: 1480805416435,
+    &quot;line&quot;: &quot;Finished generating 1024 bit DH parameters.\n&quot;
+  }
+]
+</code></pre>
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="./" class="navigation navigation-prev " aria-label="Previous page: Operations">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="telnet_console.html" class="navigation navigation-next " aria-label="Next page: Telnet">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"REST","level":"1.4.1","depth":2,"next":{"title":"Telnet","level":"1.4.2","depth":2,"path":"operations/telnet_console.md","ref":"operations/telnet_console.md","articles":[]},"previous":{"title":"Operations","level":"1.4","depth":1,"path":"operations/README.md","ref":"operations/README.md","articles":[{"title":"REST","level":"1.4.1","depth":2,"path":"operations/rest.md","ref":"operations/rest.md","articles":[]},{"title":"Telnet","level":"1.4.2","depth":2,"path":"operations/telnet_console.md","ref":"operations/telnet_console.md","articles":[]},{"title":"DTrace","level":"1.4.3","depth":2,"path":"operations/dtrace.md","ref":"operations/dtrace.md","articles":[]}]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"operations/rest.md","mtime":"2016-12-05T16:36:41.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-05T16:55:54.933Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-collapsible-menu/plugin.js"></script>
+        
+    
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/3.1.1/anchor.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-anchorjs/anchor-style.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+

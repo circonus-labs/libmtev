@@ -1,0 +1,643 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>Listeners · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.2">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-callouts/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+        <link rel="stylesheet" href="../styles/website.css">
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="modules.html" />
+    
+    
+    <link rel="prev" href="logging.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        <li class="header">Mount Everest</li>
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Configuration
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.1" data-path="inherit.html">
+            
+                <a href="inherit.html">
+            
+                    
+                    Inheritance
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.2" data-path="includes.html">
+            
+                <a href="includes.html">
+            
+                    
+                    Includes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.3" data-path="watchdog.html">
+            
+                <a href="watchdog.html">
+            
+                    
+                    Watchdog
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.4" data-path="eventer.html">
+            
+                <a href="eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.5" data-path="logging.html">
+            
+                <a href="logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.2.6" data-path="listeners.html">
+            
+                <a href="listeners.html">
+            
+                    
+                    Listeners
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7" data-path="modules.html">
+            
+                <a href="modules.html">
+            
+                    
+                    Modules
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.7.1" data-path="modules/fq.html">
+            
+                <a href="modules/fq.html">
+            
+                    
+                    fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.2" data-path="modules/lua_general.html">
+            
+                <a href="modules/lua_general.html">
+            
+                    
+                    lua_general
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.3" data-path="modules/lua_web.html">
+            
+                <a href="modules/lua_web.html">
+            
+                    
+                    lua_web
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.4" data-path="modules/zipkin_fq.html">
+            
+                <a href="modules/zipkin_fq.html">
+            
+                    
+                    zipkin_fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="../development/">
+            
+                <a href="../development/">
+            
+                    
+                    Development
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="../development/important.html">
+            
+                <a href="../development/important.html">
+            
+                    
+                    Important Starting Notes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" data-path="../development/mtev_main.html">
+            
+                <a href="../development/mtev_main.html">
+            
+                    
+                    mtev_main
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="../development/eventer.html">
+            
+                <a href="../development/eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.4" data-path="../development/logging.html">
+            
+                <a href="../development/logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../development/hooks.html">
+            
+                <a href="../development/hooks.html">
+            
+                    
+                    Hooks
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" data-path="../operations/">
+            
+                <a href="../operations/">
+            
+                    
+                    Operations
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="../operations/rest.html">
+            
+                <a href="../operations/rest.html">
+            
+                    
+                    REST
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="../operations/telnet_console.html">
+            
+                <a href="../operations/telnet_console.html">
+            
+                    
+                    Telnet
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.3" data-path="../operations/dtrace.html">
+            
+                <a href="../operations/dtrace.html">
+            
+                    
+                    DTrace
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >Listeners</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="listeners">Listeners</h1>
+<p>Network listeners and their services are specified via configuration.</p>
+<h5 id="applicationconf-snippet">application.conf (snippet)</h5>
+<pre><code class="lang-xml">  <span class="hljs-tag">&lt;<span class="hljs-name">listeners</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">sslconfig</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">optional_no_ca</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-name">optional_no_ca</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">certificate_file</span>&gt;</span>/path/to/server.crt<span class="hljs-tag">&lt;/<span class="hljs-name">certificate_file</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">key_file</span>&gt;</span>/path/to/server.key<span class="hljs-tag">&lt;/<span class="hljs-name">key_file</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">ca_chain</span>&gt;</span>/path/to/ca.crt<span class="hljs-tag">&lt;/<span class="hljs-name">ca_chain</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">sslconfig</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">consoles</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;mtev_console&quot;</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">listener</span> <span class="hljs-attr">address</span>=<span class="hljs-string">&quot;127.0.0.1&quot;</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;32322&quot;</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">line_protocol</span>&gt;</span>telnet<span class="hljs-tag">&lt;/<span class="hljs-name">line_protocol</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">listener</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">consoles</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">web</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;control_dispatch&quot;</span> <span class="hljs-attr">address</span>=<span class="hljs-string">&quot;*&quot;</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">document_root</span>&gt;</span>/path/to/docroot<span class="hljs-tag">&lt;/<span class="hljs-name">document_root</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">listener</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;80&quot;</span> /&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">listener</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;443&quot;</span> <span class="hljs-attr">ssl</span>=<span class="hljs-string">&quot;on&quot;</span> /&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">web</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">listeners</span>&gt;</span>
+</code></pre>
+<p>This example demonstrates many powerful concepts of the libmtev configuration system.
+There are three listener stanzas nested above and we&apos;ll walk through each.  The first
+is the <code>&lt;listener address=&quot;127.0.0.1&quot; port=&quot;32322&quot;&gt;</code>.  With this, you can telnet to
+127.0.0.1 port 32322 and talk with your libmtev application.  The console is extensible
+so you can add applications specific command, control, and interogation capabilities.</p>
+<p>This listener has a <code>&lt;config&gt;</code> stanza underneath it that sets <code>line_protocol</code> to <code>telnet</code>.
+<code>line_protocol</code> is a configuration option for listeners of type <code>mtev_console</code>.  You&apos;ll
+note that the listener&apos;s <code>type</code> attribute was actually set in a parent node.  Most
+systems in libmtev will recusively merge from ancestors down to the a specimen node
+and use that result.  Here <code>type</code> is simply an attribute, so merging is just replacing.
+This node also has an <code>sslconfig</code>, but it doesn&apos;t use it, so we&apos;ll ignore that for now.</p>
+<p>The next two listener stanzas are for port 80 and 443.  They are in a <code>web</code> node that has
+both <code>type</code> and <code>address</code> attributes set (those are inherited by the listeners).  The
+<code>config</code> node (child of <code>web</code>) and the <code>sslconfig</code> node (child of <code>listeners</code>) are also
+inherited into the <code>listener</code> nodes.  The <code>config</code> is arbitrary and passed into the listener.
+The <code>sslconfig</code> is passed into the ssl subsystem and is uniform across all listener types.</p>
+<p>The following attributes are supported for listeners:</p>
+<ul>
+<li><h5 id="type">type</h5>
+<p>The type of listener simply references a named eventer callback in the system (one
+registered with <code>eventer_name_callback(...)</code>.  libmtev support four built-in listener
+types: <code>http_rest_api</code>, <code>mtev_wire_rest_api/1.0</code>, <code>control_dispatch</code>, and <code>mtev_console</code>.
+Applications can arbitrarily extend the system by naming callbacks.</p>
+</li>
+<li><h5 id="address">address</h5>
+<p>The address is either a filesystem path (AF_UNIX), an IPv4 address or an IPv6 address.
+The type is intuited from the input string.  If the special string <code>*</code> or <code>inet:*</code> is used,
+then the IPv4 <code>in_addr_any</code> address is used for listening. IF <code>inet6:*</code> is used, then the
+IPv6 <code>in_addr_any</code> address is used for listening.</p>
+</li>
+<li><h5 id="port">port</h5>
+<p>Specifies the port on which to listen.  This has no meaning for AF_UNIX-based addresses.</p>
+</li>
+<li><h5 id="ssl">ssl</h5>
+<p>If the value here is <code>on</code>, then the socket passes through SSL negotiation before handed
+to the underlying system driving the specified listener type.</p>
+</li>
+</ul>
+<h3 id="sslconfig">sslconfig</h3>
+<p>The ssl config allow specification of many aspects of how SSL is negotiated with
+connecting clients.  SSL config supports the follwing keys:</p>
+<ul>
+<li><h5 id="layer">layer</h5>
+<p>This specifies the layer and options we present and is the form <code>&lt;protocol&gt;[:&lt;option&gt;,[&lt;option&gt;[,...]]]</code>.
+Options may be negated with an antecedent <code>!</code>.  Tokens are matched case-insensitively.</p>
+<p>Protocols supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>. </p>
+<p>Options supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>, <code>cipher_server_preference</code></p>
+<p>The default layer string is <code>tlsv1:all,!sslv2,!sslv3</code></p>
+</li>
+<li><h5 id="certificatefile">certificate_file</h5>
+<p>Specifies the path to a PEM encoded certificate file.</p>
+</li>
+<li><h5 id="keyfile">key_file</h5>
+<p>Specifies the path to a PEM encoded key file.  It must not be encrypted with a password.</p>
+</li>
+<li><h5 id="cachain">ca_chain</h5>
+<p>Specifies the CA chaing file (PEM encoded) that should be used to validate client supplied certificates.</p>
+</li>
+<li><h5 id="crl">crl</h5>
+<p>Specifies a PEM encoded certificate revocation list file.  If not specified, no revocation is enforced.</p>
+</li>
+<li><h5 id="ciphers">ciphers</h5>
+<p>Specifies which ciphers should be supported.  Check the OpenSSL manual for more details.</p>
+</li>
+<li><h3 id="config">config</h3>
+<p>Each listener can access the <code>config</code> passed to it; see type-specific documentation.</p>
+</li>
+</ul>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="logging.html" class="navigation navigation-prev " aria-label="Previous page: Logging">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="modules.html" class="navigation navigation-next " aria-label="Next page: Modules">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"Listeners","level":"1.2.6","depth":2,"next":{"title":"Modules","level":"1.2.7","depth":2,"path":"config/modules.md","ref":"config/modules.md","articles":[{"title":"fq","level":"1.2.7.1","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},{"title":"lua_general","level":"1.2.7.2","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},{"title":"lua_web","level":"1.2.7.3","depth":3,"path":"config/modules/lua_web.md","ref":"config/modules/lua_web.md","articles":[]},{"title":"zipkin_fq","level":"1.2.7.4","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]}]},"previous":{"title":"Logging","level":"1.2.5","depth":2,"path":"config/logging.md","ref":"config/logging.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/listeners.md","mtime":"2016-12-05T16:36:41.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-05T16:55:54.933Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-collapsible-menu/plugin.js"></script>
+        
+    
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/3.1.1/anchor.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-anchorjs/anchor-style.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+

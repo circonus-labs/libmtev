@@ -1,0 +1,697 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>Logging · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.2">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-callouts/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+        <link rel="stylesheet" href="../styles/website.css">
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="hooks.html" />
+    
+    
+    <link rel="prev" href="eventer.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        <li class="header">Mount Everest</li>
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="../config/">
+            
+                <a href="../config/">
+            
+                    
+                    Configuration
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.1" data-path="../config/inherit.html">
+            
+                <a href="../config/inherit.html">
+            
+                    
+                    Inheritance
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.2" data-path="../config/includes.html">
+            
+                <a href="../config/includes.html">
+            
+                    
+                    Includes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.3" data-path="../config/watchdog.html">
+            
+                <a href="../config/watchdog.html">
+            
+                    
+                    Watchdog
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.4" data-path="../config/eventer.html">
+            
+                <a href="../config/eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.5" data-path="../config/logging.html">
+            
+                <a href="../config/logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.6" data-path="../config/listeners.html">
+            
+                <a href="../config/listeners.html">
+            
+                    
+                    Listeners
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7" data-path="../config/modules.html">
+            
+                <a href="../config/modules.html">
+            
+                    
+                    Modules
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.7.1" data-path="../config/modules/fq.html">
+            
+                <a href="../config/modules/fq.html">
+            
+                    
+                    fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.2" data-path="../config/modules/lua_general.html">
+            
+                <a href="../config/modules/lua_general.html">
+            
+                    
+                    lua_general
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.3" data-path="../config/modules/lua_web.html">
+            
+                <a href="../config/modules/lua_web.html">
+            
+                    
+                    lua_web
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/zipkin_fq.html">
+            
+                <a href="../config/modules/zipkin_fq.html">
+            
+                    
+                    zipkin_fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Development
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="important.html">
+            
+                <a href="important.html">
+            
+                    
+                    Important Starting Notes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" data-path="mtev_main.html">
+            
+                <a href="mtev_main.html">
+            
+                    
+                    mtev_main
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="eventer.html">
+            
+                <a href="eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.3.4" data-path="logging.html">
+            
+                <a href="logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="hooks.html">
+            
+                <a href="hooks.html">
+            
+                    
+                    Hooks
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" data-path="../operations/">
+            
+                <a href="../operations/">
+            
+                    
+                    Operations
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="../operations/rest.html">
+            
+                <a href="../operations/rest.html">
+            
+                    
+                    REST
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="../operations/telnet_console.html">
+            
+                <a href="../operations/telnet_console.html">
+            
+                    
+                    Telnet
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.3" data-path="../operations/dtrace.html">
+            
+                <a href="../operations/dtrace.html">
+            
+                    
+                    DTrace
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >Logging</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="logging">Logging</h1>
+<p>Logging within libmtev depends heavily upon <a href="../config/logging.html">logging configuration</a>.</p>
+<h3 id="dtrace">DTrace</h3>
+<p>The logging system is instruemented with DTrace, so despite any configuration settings an
+operator can leverage DTrace to sniff logs (regardless of their outlets or disabled state)
+using the <code>libmtev*:::log</code> probe. See <a href="../operations/dtrace.html">DTrace operations</a>.</p>
+<h3 id="logstream">log_stream</h3>
+<p>The C logging API requires directing each log statements to an <code>mtev_log_stream_t</code>.  There
+are four builtin log stream: <code>mtev_stderr</code>, <code>mtev_error</code>, <code>mtev_notice</code>, and <code>mtev_debug</code>.
+Their behvior can be modified via configuration or programmatically via the API.</p>
+<p>Before uing the log system it must be initialized via <code>mtev_log_init(int debug)</code>, but <code>mtev_main</code>
+handles this for you.</p>
+<h4 id="startup-sequence">Startup sequence</h4>
+<p>Within your <code>child_main</code> that is called by <code>mtev_main</code>, you should reopnen all logs and then
+enable rotation (config driven).</p>
+<pre><code class="lang-c">  <span class="hljs-keyword">if</span>(mtev_conf_load(config_file) == <span class="hljs-number">-1</span>) {
+    mtevL(noit_error, <span class="hljs-string">&quot;Cannot load config: &apos;%s&apos;\n&quot;</span>, config_file);
+    <span class="hljs-built_in">exit</span>(<span class="hljs-number">2</span>);
+  }
+  mtev_log_reopen_all();
+  mtev_log_go_asynch();
+  <span class="hljs-keyword">if</span>(eventer_init() == <span class="hljs-number">-1</span>) mtevFatal(noit_stderr, <span class="hljs-string">&quot;Cannot initialize eventer\n&quot;</span>);
+  mtev_conf_log_init_rotate(APPNAME, mtev_false);
+</code></pre>
+<p>Because the watchdog subsystem can restart our process on crash, it is important to always (re)load the
+config and reopen all log files immediate inside of <code>child_main</code>.  <code>mtev_log_go_asynch()</code> is optional and
+will make logging operations (aside from type <code>memory</code>) asychronous to the calling thread.  This is
+important for high-performance systems where writting logs can interfere with latency and throughput objectives.</p>
+<p><code>mtev_conf_log_init_rotate</code> tells the configuration system to register maintenance for any logs configured to
+have rotation.  It uses the eventer subsystem to performan maintenance and requires the eventer to be initialized
+beforehand.</p>
+<h4 id="getting-a-mtevlogstreamt">Getting a mtev_log_stream_t</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">static</span> <span class="hljs-keyword">mtev_log_stream_t</span> my_awesome_log;
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">some_init_function</span><span class="hljs-params">()</span> </span>{
+  my_awesome_log = mtev_log_stream_find(<span class="hljs-string">&quot;awesome&quot;</span>);
+}
+</code></pre>
+<p>Getting a log stream by name will implicitly create a typeless log_stream with no outlets if no such name
+log already exists in the system.</p>
+<h4 id="writing-to-a-log">Writing to a log</h4>
+<pre><code class="lang-c">  <span class="hljs-keyword">struct</span> timeval now;
+  mtev_gettimeofday(&amp;now, <span class="hljs-literal">NULL</span>);
+  mtevLT(mtev_error, &amp;now, <span class="hljs-string">&quot;Avoids the internal mtev_gettimeofday call\n&quot;</span>);
+
+  mtevL(my_awesome_log, <span class="hljs-string">&quot;My %d %s-style format string.\n&quot;</span>, <span class="hljs-number">1</span>, <span class="hljs-string">&quot;sprintf&quot;</span>);
+</code></pre>
+<p>The mtevLT and mtevL &quot;functions&quot; are actually vararg macros.  This is done so that if a log is disabled,
+none the arguments are actually evaluated.  If one of the parameters to these macros is an expensive
+function call, the call will be elided if the log is disabled.</p>
+<blockquote>
+<p>Note: writing to a log does not automatically append a line feed.  You almost always want to include
+line feeds in your log lines explicitly.</p>
+</blockquote>
+<h4 id="logging-a-programming-error">Logging a programming error</h4>
+<pre><code class="lang-c">  <span class="hljs-keyword">if</span>(disaster_strikes) {
+    mtevFatal(mtev_error, <span class="hljs-string">&quot;Disaster has struck, I give up.\n&quot;</span>);
+  }
+</code></pre>
+<p>A special macro <code>mtevFatal(&lt;stream&gt;, &lt;fmt&gt;, ...)</code> is provided that will take three actions.</p>
+<ol>
+<li><code>mtev_log_go_synch()</code> will be called to ensure logging goes synchronous and the subsequent log message will be written.</li>
+<li><code>mtevL(...)</code> log the arguments.</li>
+<li><code>abort()</code></li>
+</ol>
+<h3 id="other-logging-apis">Other logging APIs</h3>
+<h5 id="mtevloggoasynch">mtev_log_go_asynch</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">mtev_log_go_asynch</span><span class="hljs-params">()</span></span>;
+</code></pre>
+<p>All logging operations that can be performed asynchronously will be done asynchronously.</p>
+<h5 id="mtevloggosynch">mtev_log_go_synch</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">mtev_log_go_synch</span><span class="hljs-params">()</span></span>;
+</code></pre>
+<p>All logging operations will be performed synchronously with respect to the called upon return of this function.</p>
+<h5 id="mtevlogreopenall">mtev_log_reopen_all</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">mtev_log_reopen_all</span><span class="hljs-params">()</span></span>;
+</code></pre>
+<p>Reopen all log files.  Log types that do not implement reopen are unaffected.</p>
+<h5 id="mtevlogreopentype">mtev_log_reopen_type</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">mtev_log_reopen_type</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *type)</span></span>;
+</code></pre>
+<p>Repoen all log files of the specified type.</p>
+<h5 id="mtevlogstreamgetflags">mtev_log_stream_get_flags</h5>
+<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> MTEV_LOG_STREAM_ENABLED</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> MTEV_LOG_STREAM_DEBUG</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> MTEV_LOG_STREAM_TIMESTAMPS</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> MTEV_LOG_STREAM_FACILITY</span>
+<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">mtev_log_stream_get_flags</span><span class="hljs-params">(mtev_log_stream_t)</span></span>;
+</code></pre>
+<p>Retrieve a bitmask of the enabled flags on a stream.</p>
+<h5 id="mtevlogstreamsetflags">mtev_log_stream_set_flags</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">mtev_log_stream_set_flags</span><span class="hljs-params">(mtev_log_stream_t, <span class="hljs-keyword">int</span> newmask)</span></span>;
+</code></pre>
+<p>Set a bitmask of the enabled flags on a stream, returning the previous mask.</p>
+<h5 id="mtevlogstreamgettype">mtev_log_stream_get_type</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *<span class="hljs-title">mtev_log_stream_get_type</span><span class="hljs-params">(mtev_log_stream_t)</span></span>;
+</code></pre>
+<p>Returns the type of the log stream.</p>
+<h5 id="mtevlogstreamgetname">mtev_log_stream_get_name</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *<span class="hljs-title">mtev_log_stream_get_name</span><span class="hljs-params">(mtev_log_stream_t)</span></span>;
+</code></pre>
+<p>Returns the name of the log stream.</p>
+<h5 id="mtevlogstreamgetpath">mtev_log_stream_get_path</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *<span class="hljs-title">mtev_log_stream_get_path</span><span class="hljs-params">(mtev_log_stream_t)</span></span>;
+</code></pre>
+<p>Returns the path of the log stream.</p>
+<h5 id="mtevlogstreamsetproperty">mtev_log_stream_set_property</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">mtev_log_stream_set_property</span><span class="hljs-params">(mtev_log_stream_t ls,
+                                  <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *prop, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *v)</span></span>;
+</code></pre>
+<p>Set an arbitrary property on a log stream.</p>
+<h5 id="mtevlogstreamgetproperty">mtev_log_stream_get_property</h5>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *<span class="hljs-title">mtev_log_stream_get_property</span><span class="hljs-params">(mtev_log_stream_t ls,
+                                         <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *prop)</span></span>;
+</code></pre>
+<p>Retrieve an arbitrary property from a log stream.</p>
+<h3 id="adding-custom-logging-types">Adding custom logging types</h3>
+<p>Libmtev ships with three logging types: <code>memory</code>, <code>file</code>, and <code>jlog</code>.  The system is extensible and additional
+types can be added.  Those types do not have the benefit of existence checking as the logging is initialized before
+dynamic modules are loaded and new logging types are typically added via dynamic modules.  This chicken-and-egg issue
+requires us to load log_streams with unknown types and resolve them post-facto.</p>
+<pre><code class="lang-c">  <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">struct</span> {
+    mtev_boolean supports_async;
+    <span class="hljs-keyword">int</span> (*openop)(<span class="hljs-keyword">mtev_log_stream_t</span>);
+    <span class="hljs-keyword">int</span> (*reopenop)(<span class="hljs-keyword">mtev_log_stream_t</span>);
+    <span class="hljs-keyword">int</span> (*writeop)(<span class="hljs-keyword">mtev_log_stream_t</span>, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *whence, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *, <span class="hljs-keyword">size_t</span>);
+    <span class="hljs-keyword">int</span> (*writevop)(<span class="hljs-keyword">mtev_log_stream_t</span>, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *whence, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> iovec *iov, <span class="hljs-keyword">int</span> iovcnt);
+    <span class="hljs-keyword">int</span> (*closeop)(<span class="hljs-keyword">mtev_log_stream_t</span>);
+    <span class="hljs-keyword">size_t</span> (*sizeop)(<span class="hljs-keyword">mtev_log_stream_t</span>);
+    <span class="hljs-keyword">int</span> (*renameop)(<span class="hljs-keyword">mtev_log_stream_t</span>, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *);
+    <span class="hljs-keyword">int</span> (*cullop)(<span class="hljs-keyword">mtev_log_stream_t</span>, <span class="hljs-keyword">int</span> age, <span class="hljs-keyword">ssize_t</span> bytes);
+  } <span class="hljs-keyword">logops_t</span>;
+
+  <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">mtev_register_logops</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, logops_t *ops)</span></span>;
+</code></pre>
+<p>By implementing the <code>logops_t</code> structure and registering it with a name, you can then delcare <code>&lt;log&gt;</code> stanzas with <code>type</code> of that name.</p>
+<p>The following operations are optional to implement:</p>
+<ul>
+<li>reopenop</li>
+<li>writevop</li>
+<li>sizeop</li>
+<li>renameop</li>
+<li>cullop</li>
+</ul>
+<h4 id="attaching-contexts">Attaching contexts</h4>
+<p>Most log implementations require some context to be attached to the <code>mtev_log_stream_t</code>.  Two functions are provided to attach and retrieve an arbitrary context to a log_stream. These functions should only be used by those implementing new logging types as the context will be some arbitrary domain-specific struct that is opaque to those outside the implementation.</p>
+<pre><code class="lang-c">  <span class="hljs-function"><span class="hljs-keyword">void</span> *<span class="hljs-title">mtev_log_stream_get_ctx</span><span class="hljs-params">(mtev_log_stream_t)</span></span>;
+  <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">mtev_log_stream_set_ctx</span><span class="hljs-params">(mtev_log_stream_t, <span class="hljs-keyword">void</span> *)</span></span>;
+</code></pre>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="eventer.html" class="navigation navigation-prev " aria-label="Previous page: Eventer">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="hooks.html" class="navigation navigation-next " aria-label="Next page: Hooks">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"Logging","level":"1.3.4","depth":2,"next":{"title":"Hooks","level":"1.3.5","depth":2,"path":"development/hooks.md","ref":"development/hooks.md","articles":[]},"previous":{"title":"Eventer","level":"1.3.3","depth":2,"path":"development/eventer.md","ref":"development/eventer.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/logging.md","mtime":"2016-12-05T16:36:41.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-05T16:55:54.933Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-collapsible-menu/plugin.js"></script>
+        
+    
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/3.1.1/anchor.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-anchorjs/anchor-style.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+
