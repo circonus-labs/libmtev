@@ -850,7 +850,7 @@ socket_error:
         int reqlen = strlen(*req);
         if(!strncmp(rc->id, *req, reqlen)) {
           if(strcmp(rc->id+reqlen, ac->remote_cn ? ac->remote_cn : "")) {
-            mtevL(mtev_error, "attempted reverse connection '%s' invalid remote '%s'\n",
+            mtevL(nlerr, "attempted reverse connection '%s' invalid remote '%s'\n",
                   rc->id+reqlen, ac->remote_cn ? ac->remote_cn : "");
             free(rc->id);
             rc->id = NULL;
@@ -861,7 +861,7 @@ socket_error:
 
       switch(mtev_reverse_socket_allowed(rc->id, ac)) {
         case MTEV_ACL_DENY:
-          mtevL(mtev_error, "attempted reverse connection '%s' from '%s' denied by policy\n",
+          mtevL(nlerr, "attempted reverse connection '%s' from '%s' denied by policy\n",
                   rc->id, ac->remote_cn ? ac->remote_cn : "");
           free(rc->id);
           rc->id = NULL;
@@ -1174,7 +1174,7 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
   }
   if(errno == EAGAIN) return mask | EVENTER_EXCEPTION;
   if(sslctx) error = eventer_ssl_get_last_error(sslctx);
-  mtevL(mtev_debug, "SSL upgrade failed.\n");
+  mtevL(nldeb, "SSL upgrade failed.\n");
 
  error:
   LIBMTEV_REVERSE_CONNECT_SSL_FAILED(e->fd,
@@ -1182,7 +1182,7 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
                           (char *)error, errno);
   if(error) {
     const char *cert_error = eventer_ssl_get_peer_error(sslctx);
-    mtevL(mtev_error, "[%s] [%s] mtev_connection_ssl_upgrade: %s [%s]\n",
+    mtevL(nlerr, "[%s] [%s] mtev_connection_ssl_upgrade: %s [%s]\n",
       nctx->remote_str ? nctx->remote_str : "(null)",
       cn_expected ? cn_expected : "(null)", error, cert_error);
   }
@@ -1234,7 +1234,7 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
       default:
         snprintf(remote_str, sizeof(remote_str), "(unknown)");
     }
-    mtevL(mtev_error, "Error connecting to %s (%s): %s\n",
+    mtevL(nlerr, "Error connecting to %s (%s): %s\n",
           remote_str, cn_expected ? cn_expected : "(null)", strerror(aerrno));
     LIBMTEV_REVERSE_CONNECT_FAILED(e->fd, remote_str, (char *)cn_expected, aerrno);
     nctx->close(nctx, e);
@@ -1256,7 +1256,7 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
   if(!sslctx) goto connect_error;
   if(crl) {
     if(!eventer_ssl_use_crl(sslctx, crl)) {
-      mtevL(mtev_error, "Failed to load CRL from %s\n", crl);
+      mtevL(nlerr, "Failed to load CRL from %s\n", crl);
       eventer_ssl_ctx_free(sslctx);
       goto connect_error;
     }
@@ -1277,7 +1277,7 @@ mtev_connection_session_timeout(eventer_t e, int mask, void *closure,
   mtev_connection_ctx_t *nctx = closure;
   eventer_t fde = nctx->e;
   nctx->timeout_event = NULL;
-  mtevL(mtev_error, "Timing out session: %s, %s\n",
+  mtevL(nlerr, "Timing out session: %s, %s\n",
         nctx->remote_cn ? nctx->remote_cn : "(null)",
         nctx->remote_str ? nctx->remote_str : "(null)");
   if(fde)
@@ -1354,7 +1354,7 @@ mtev_connection_initiate_connection(mtev_connection_ctx_t *nctx) {
   optval = val; \
   optlen = sizeof(optval); \
   if(setsockopt(fd, type, opt, &optval, optlen) < 0) { \
-    mtevL(mtev_error, "[%s] Cannot set " #type "/" #opt " on socket: %s\n", \
+    mtevL(nlerr, "[%s] Cannot set " #type "/" #opt " on socket: %s\n", \
           nctx->remote_str ? nctx->remote_str : "(null)", \
           strerror(errno)); \
     goto reschedule; \
@@ -1428,7 +1428,7 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
       if(rv != 1) {
         if(!strcmp(host, "")) family = AF_UNSPEC;
         else {
-          mtevL(mtev_stderr, "Cannot translate '%s' to IP\n", host);
+          mtevL(nlerr, "Cannot translate '%s' to IP\n", host);
           return NULL;
         }
       }
@@ -1509,7 +1509,7 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
 
   snprintf(path, sizeof(path), "/%s/%ss//%s", toplevel ? toplevel : "*", type, type);
   mtev_configs = mtev_conf_get_sections(NULL, path, &cnt);
-  mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
+  mtevL(nldeb, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     char address[256];
     const char *expected_cn = NULL;
@@ -1520,7 +1520,7 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
     if(!mtev_conf_get_stringbuf(mtev_configs[i],
                                 "ancestor-or-self::node()/@address",
                                 address, sizeof(address))) {
-      mtevL(mtev_error, "address attribute missing in %d\n", i+1);
+      mtevL(nlerr, "address attribute missing in %d\n", i+1);
       continue;
     }
     config = mtev_conf_get_hash(mtev_configs[i], "config");
@@ -1539,14 +1539,14 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
     port = (unsigned short) portint;
     if(address[0] != '/' && (portint == 0 || (port != portint))) {
       /* UNIX sockets don't require a port (they'll ignore it if specified */
-      mtevL(mtev_stderr,
+      mtevL(nlerr,
             "Invalid port [%d] specified in stanza %d\n", port, i+1);
       mtev_hash_destroy(config,free,free);
       continue;
     }
     sslconfig = mtev_conf_get_hash(mtev_configs[i], "sslconfig");
 
-    mtevL(mtev_debug, "initiating to '%s'\n", address);
+    mtevL(nldeb, "initiating to '%s'\n", address);
 
     initiate_mtev_connection(tracker, tracker_lock,
                              address, port, sslconfig, config,
@@ -1984,8 +1984,6 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
 void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
   nlerr = mtev_log_stream_find("error/reverse");
   nldeb = mtev_log_stream_find("debug/reverse");
-  if(!nlerr) nlerr = mtev_error;
-  if(!nldeb) nldeb = mtev_debug;
 
   my_reverse_prefix = prefix;
   cn_required_prefixes = cn_prefixes;
@@ -2060,7 +2058,7 @@ int
 mtev_lua_help_initiate_mtev_connection(const char *address, int port,
                                        mtev_hash_table *sslconfig,
                                        mtev_hash_table *config) {
-  mtevL(mtev_debug, "initiating to %s\n", address);
+  mtevL(nldeb, "initiating to %s\n", address);
   initiate_mtev_connection(&reverses, &reverses_lock,
                            address, port, sslconfig, config,
                            mtev_reverse_client_handler,
