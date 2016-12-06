@@ -236,6 +236,8 @@ int eventer_impl_propset(const char *key, const char *value) {
   }
   if(!strncasecmp(key, "loop_", strlen("loop_"))) {
     const char *name = key + strlen("loop_");
+    if(strlen(name) == 0) return -1;
+
     int requested = atoi(value);
     if(requested < 0) requested = 0;
     eventer_pool_create(name, requested);
@@ -245,6 +247,7 @@ int eventer_impl_propset(const char *key, const char *value) {
     char *nv = alloca(strlen(value)+1), *tok;
     memcpy(nv, value, strlen(value)+1);
     const char *name = key + strlen("jobq_");
+    if(strlen(name) == 0) return -1;
 
     uint32_t concurrency, min = 0, max = 0;
     eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_NONE;
