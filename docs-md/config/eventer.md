@@ -49,6 +49,21 @@ The keys and values supported are:
    value.  If a value of 0 is provided, then the named event loop will use the
    default concurrency specified by the `concurrency` key.
 
+ * ##### jobq_&lt;name&gt;
+
+   This establishes a new named jobq and sets parameters around concurrency
+   and memory safety.  The format of the value is:
+   `concurrency[,min[,max[,safety]]]`.  Concurrency, min, and max are all
+   integers. Concurrency must be greater than zero.  If minimum is omitted or
+   zero, no minimum is set.  If max is omitted, it is set to min.  If max is
+   zero, there is no maximum.  Safety can be one of `none` (default), `cs`, or
+   `gc`.  For more information om memory settings see `mtev_memory.h`.
+
+   > Note that this merely creates the jobq. One must find and use it
+   > programmatically within the software.  It is designed to have a code-free
+   > way of allowing operators to adjust parameters around jobqs used within
+   > an application.
+
  * ##### default_ca_chain
 
    Specified the path to a file containing a PEM encoded set of certificate authorities
