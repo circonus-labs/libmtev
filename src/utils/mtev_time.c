@@ -191,7 +191,6 @@ mtev_rdtscp(int *cpuid)
   if(cpuid) *cpuid = ecx & (NCPUS-1);
 #else
   if(cpuid) *cpuid = ecx;
-mtevL(mtev_error, "mtev_rdtscp on cpuid: %d\n", ecx);
 #endif
   return (((uint64_t)edx << 32) | eax);
 }
