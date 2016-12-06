@@ -241,6 +241,52 @@ int eventer_impl_propset(const char *key, const char *value) {
     eventer_pool_create(name, requested);
     return 0;
   }
+  if(!strncasecmp(key, "jobq_", strlen("jobq_"))) {
+    char *nv = alloca(strlen(value)+1), *tok;
+    memcpy(nv, value, strlen(value)+1);
+    const char *name = key + strlen("jobq_");
+
+    uint32_t concurrency, min = 0, max = 0;
+    eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_NONE;
+
+#undef ADVTOK
+#define ADVTOK do { \
+    tok = nv; \
+    if(tok) nv = strchr(tok, ','); \
+    if(nv) *nv++ = '\0'; \
+} while(0) \
+
+    ADVTOK;
+    concurrency = atoi(tok);
+    if(concurrency == 0) return -1;
+    
+    ADVTOK; /* min */
+    if(tok) min = max = atoi(tok);
+    ADVTOK; /* max */
+    if(tok) max = atoi(tok);
+    if((min && max && min > max) ||
+       (min && concurrency < min) ||
+       (max && concurrency > max)) {
+      mtevL(mtev_error, "eventer jobq '%s' must have reasonable concurrency\n", name);
+      return -1;
+    }
+    ADVTOK;
+    if(tok) {
+      if(!strcmp(tok, "gc")) mem_safety = EVENTER_JOBQ_MS_GC;
+      else if(!strcmp(tok, "cs")) mem_safety = EVENTER_JOBQ_MS_CS;
+      else if(!strcmp(tok, "none")) {
+        mtevL(mtev_error, "eventer jobq '%s' has unknown memory safety setting: %s\n",
+              name, tok);
+        return -1;
+      }
+    }
+#undef ADVTOK
+
+    eventer_jobq_t *jq = eventer_jobq_create_ms(name, mem_safety);
+    eventer_jobq_set_concurrency(jq, concurrency);
+    eventer_jobq_set_min_max(jq, min, max);
+    return 0;
+  }
   if(!strcasecmp(key, "default_queue_threads")) {
     int requested = atoi(value);
     if(requested < 1) {
