@@ -53,11 +53,11 @@ sort_test: sort_test.c
 
 .c.o:
 	@echo "- compiling $<"
-	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -c $<
 
 test_harness:       $(TESTHARNESS_OBJS)
 	@echo "- linking $@"
-	$(Q)$(CC) -L.. $(LDFLAGS) $(UNWINDLIB) -o $@ $(TESTHARNESS_OBJS) $(LIBS) -lmtev
+	$(Q)$(CC) -L../src $(LDFLAGS) $(UNWINDLIB) -o $@ $(TESTHARNESS_OBJS) $(LIBS) -lmtev
 
 busted:
 	@busted --version >/dev/null 2>/dev/null || \
