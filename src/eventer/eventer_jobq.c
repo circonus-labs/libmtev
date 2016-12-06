@@ -180,7 +180,7 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     jobq_ns = mtev_stats_ns(mtev_stats_ns(eventer_stats_ns, "jobq"), jobq->queue_name);
     jobq->wait_latency = stats_register(jobq_ns, "wait", STATS_TYPE_HISTOGRAM);
     jobq->run_latency = stats_register(jobq_ns, "latency", STATS_TYPE_HISTOGRAM);
-    jobq->concurrency = 1;
+    jobq->desired_concurrency = 1;
     stats_rob_i32(jobq_ns, "concurrency", (void *)&jobq->concurrency);
     stats_rob_i32(jobq_ns, "desired_concurrency", (void *)&jobq->desired_concurrency);
     stats_rob_i32(jobq_ns, "backlog", (void *)&jobq->backlog);
