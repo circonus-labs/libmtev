@@ -6,7 +6,7 @@ an isolated fashion but they are built atop each other.
 
 Most parts of the system rely heavily on the facilities provided in
 [utils/](https://github.com/circonus-labs/libmtev/tree/master/src/utils).
-The [evetner/](https://github.com/circonus-labs/libmtev/tree/master/src/eventer)
+The [eventer/](https://github.com/circonus-labs/libmtev/tree/master/src/eventer)
 takes care not to require the configuration API directly.  Most other APIs in
 the system have intricate interdependencies.  Unless your use-cases for libmtev
 are very sophisticated, you need not worry about these subtleties and can
