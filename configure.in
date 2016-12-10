@@ -1,4 +1,7 @@
-AC_INIT(src/mtev_main.c)
+AC_INIT([libmtev], [], [] [https://github.com/circonus-labs/libmtev])
+
+AC_CONFIG_SRCDIR([src/mtev_main.c])
+AC_CONFIG_AUX_DIR([.])
 
 node=`hostname | cut -f1 -d '.' | tr '[A-Z]' '[a-z]'`
 if test -f ".configure.$node"; then
@@ -19,7 +22,7 @@ AC_ARG_ENABLE(strict,
 
 AC_ARG_ENABLE(lua,
   [AC_HELP_STRING([--enable-lua],
-    [Choose a lua implementation: (no, lua52, LuaJIT)])],
+    [Choose a Lua implementation: (no, lua52, LuaJIT)])],
   ENABLE_LUA="$enableval",
   ENABLE_LUA=LuaJIT)
 
@@ -189,15 +192,18 @@ AC_SUBST(DOTDYLIB)
 AC_SUBST(LD_LIBMTEV_VERSION)
 AC_SUBST(MDB_MODS)
 AC_SUBST(FAST_TIME_PRELOAD)
-AC_DEFINE_UNQUOTED(CAP_PLATFORM, "$CAP_PLATFORM", [capabilities platform])
-if test "x$CAP_SUPPORTED" = "x1" ; then
-	AC_DEFINE(CAP_SUPPORTED)
-fi
+
+AC_DEFINE_UNQUOTED(CAP_PLATFORM, "$CAP_PLATFORM", [Capabilities platform.])
+AS_IF([test "x$CAP_SUPPORTED" = "x1"],
+    [ AC_DEFINE(CAP_SUPPORTED, [1], [Capabilities are supported.]) ],
+)
+
 AC_SUBST(DTRACE)
 AC_SUBST(DTRACE_ENABLED)
-if test "x$DTRACE_ENABLED" = "x1" ; then
-	AC_DEFINE(DTRACE_ENABLED)
-fi
+AS_IF([test "x$DTRACE_ENABLED" = "x1"],
+    [ AC_DEFINE(DTRACE_ENABLED, [1], [DTrace enabled.]) ]
+)
+
 AC_SUBST(DTRACEOBJ)
 AC_SUBST(DTRACEHDR)
 AC_SUBST(DTRACEFLAGS)
@@ -218,9 +224,9 @@ if test "$ENABLE_LUA" = "no"; then
   LUA4MTEV=
 fi
 
-if test "$enable_rdtsc" = "yes"; then
-  AC_DEFINE(ENABLE_RDTSC)
-fi
+AS_IF([test x"$enable_rdtsc" = x"yes"],
+    [ AC_DEFINE(ENABLE_RDTSC, [1], [RDTSC enabled]) ]
+)
 
 # Checks for data types
 AC_CHECK_SIZEOF(char, 1)
@@ -237,7 +243,7 @@ AC_CHECK_LIB(jlog, jlog_new, , [AC_MSG_ERROR([*** libjlog required github.com/om
 AC_CHECK_LIB(circmetrics, stats_recorder_alloc, , [AC_MSG_ERROR([*** libcircmetrics is required ***])])
 AC_CHECK_LIB(umem, umem_cache_create, [
 	LIBS="$LIBS -lumem"
-	AC_DEFINE(HAVE_LIBUMEM)
+	AC_DEFINE(HAVE_LIBUMEM, [1], [have libumem])
 ], )
 AC_CHECK_LIB(z, compress2, , [AC_MSG_ERROR([*** zlib is required ***])])
 AC_CHECK_LIB(rt, sem_init, , [
@@ -294,7 +300,7 @@ AC_ARG_ENABLE([wslay],
 AS_IF([test "x$enable_wslay" = "xyes"], [
   AC_CHECK_LIB(wslay, wslay_event_context_server_init, 
 [
-AC_DEFINE(HAVE_WSLAY)
+AC_DEFINE(HAVE_WSLAY, [1], [have libwslay])
 LIBS="-lwslay $LIBS"
 ], 
       [AC_MSG_ERROR([*** can't build websocket support, no -lwslay ***])])
@@ -312,8 +318,8 @@ AC_CHECK_FUNC(uuid_generate, , [
 # Some libraries provide an unparse_lower command
 # we use that, so if it isn't present, we'll need
 # to implement it.
-AC_CHECK_FUNC(fdwalk, [AC_DEFINE(HAVE_FDWALK)], )
-AC_CHECK_FUNC(uuid_unparse_lower, [AC_DEFINE(HAVE_UUID_UNPARSE_LOWER)], )
+AC_CHECK_FUNC(fdwalk, [AC_DEFINE(HAVE_FDWALK, [1], [have fdwalk])], )
+AC_CHECK_FUNC(uuid_unparse_lower, [AC_DEFINE(HAVE_UUID_UNPARSE_LOWER, [1], [have unparse_lower])], )
 AC_CHECK_LIB(util, openpty, , )
 AC_CHECK_LIB(termcap, tputs, , )
 AC_CHECK_LIB(curses, clear, , [AC_MSG_ERROR([curses not found, but required])])
@@ -364,25 +370,22 @@ AC_CHECK_FUNC(xsltParseStylesheetDoc, , [AC_MSG_ERROR([*** libxslt is required *
 LIBMTEV_LIBS=$LIBS
 AC_SUBST(LIBMTEV_LIBS)
 
-AC_CHECK_FUNC(SSLv2_server_method, [ AC_DEFINE(HAVE_SSLV2_SERVER) ])
-AC_CHECK_FUNC(SSLv2_client_method, [ AC_DEFINE(HAVE_SSLV2_CLIENT) ])
-AC_CHECK_FUNC(SSLv3_server_method, [ AC_DEFINE(HAVE_SSLV3_SERVER) ])
-AC_CHECK_FUNC(SSLv3_client_method, [ AC_DEFINE(HAVE_SSLV3_CLIENT) ])
-AC_CHECK_FUNC(TLSv1_server_method, [ AC_DEFINE(HAVE_TLSV1_SERVER) ])
-AC_CHECK_FUNC(TLSv1_client_method, [ AC_DEFINE(HAVE_TLSV1_CLIENT) ])
-AC_CHECK_FUNC(TLSv1_1_server_method, [ AC_DEFINE(HAVE_TLSV1_1_SERVER) ])
-AC_CHECK_FUNC(TLSv1_1_client_method, [ AC_DEFINE(HAVE_TLSV1_1_CLIENT) ])
-AC_CHECK_FUNC(TLSv1_2_server_method, [ AC_DEFINE(HAVE_TLSV1_2_SERVER) ])
-AC_CHECK_FUNC(TLSv1_2_client_method, [ AC_DEFINE(HAVE_TLSV1_2_CLIENT) ])
+AC_CHECK_FUNC(SSLv2_server_method, [ AC_DEFINE(HAVE_SSLV2_SERVER, [1], [SSLv2_server_method]) ])
+AC_CHECK_FUNC(SSLv2_client_method, [ AC_DEFINE(HAVE_SSLV2_CLIENT, [1], [SSLv2_client_method]) ])
+AC_CHECK_FUNC(SSLv3_server_method, [ AC_DEFINE(HAVE_SSLV3_SERVER, [1], [SSLv3_server_method]) ])
+AC_CHECK_FUNC(SSLv3_client_method, [ AC_DEFINE(HAVE_SSLV3_CLIENT, [1], [SSLv3_client_method]) ])
+AC_CHECK_FUNC(TLSv1_server_method, [ AC_DEFINE(HAVE_TLSV1_SERVER, [1], [TLSv1_server_method]) ])
+AC_CHECK_FUNC(TLSv1_client_method, [ AC_DEFINE(HAVE_TLSV1_CLIENT, [1], [TLSv1_client_method]) ])
+AC_CHECK_FUNC(TLSv1_1_server_method, [ AC_DEFINE(HAVE_TLSV1_1_SERVER, [1], [TLSv1_1_server_method]) ])
+AC_CHECK_FUNC(TLSv1_1_client_method, [ AC_DEFINE(HAVE_TLSV1_1_CLIENT, [1], [TLSv1_1_client_method]) ])
+AC_CHECK_FUNC(TLSv1_2_server_method, [ AC_DEFINE(HAVE_TLSV1_2_SERVER, [1], [TLSv1_2_server_method]) ])
+AC_CHECK_FUNC(TLSv1_2_client_method, [ AC_DEFINE(HAVE_TLSV1_2_CLIENT, [1], [TLSv1_2_client_method]) ])
 
 AC_TRY_LINK([],
-	[ issetugid(); ],
-	[ ac_cv_libc_defines_issetugid="yes" ],
-	[ ac_cv_libc_defines_issetugid="no" ]
+    [ issetugid(); ],
+    [ AC_DEFINE(HAVE_ISSETUGID, [1], [Have issetugid(2).]) ],
+    [ ]
 )
-if test "x$ac_cv_libc_defines_issetugid" = "xyes" ; then
-	AC_DEFINE(HAVE_ISSETUGID)
-fi
 
 AC_MSG_CHECKING([whether sem_init works])
 AC_TRY_RUN(
@@ -392,7 +395,7 @@ int main(void){sem_t s;return (0 != sem_init(&s,0,0));}
 	],
 	[
 		AC_MSG_RESULT(yes)
-		AC_DEFINE(WORKING_SEM_INIT)
+		AC_DEFINE(WORKING_SEM_INIT, [1], [have sem_init])
 	], 
 	[
 		AC_MSG_RESULT(no)
@@ -458,7 +461,7 @@ AC_EGREP_CPP([tputs.*[(][       ]*char[         ]*[)]],
 		 #include <curses.h>
 		 #endif],
 		[AC_MSG_RESULT(char)
-		 AC_DEFINE(TPUTS_TAKES_CHAR)],
+		 AC_DEFINE(TPUTS_TAKES_CHAR, [1], [tpus takes char])],
 		[AC_MSG_RESULT(not char)])
 
 AC_MSG_CHECKING(for tgoto() function final argument type)
@@ -470,7 +473,7 @@ AC_EGREP_CPP([tgoto.*[(][       ]*char[         ]*],
 		 #include <curses.h>
 		 #endif],
 		[AC_MSG_RESULT(char)
-		 AC_DEFINE(TGOTO_TAKES_CHAR)],
+		 AC_DEFINE(TGOTO_TAKES_CHAR, [1], [tgoto takes char])],
 		[AC_MSG_RESULT(not char)])
 
 AC_CACHE_CHECK([for kqueue support], ac_cv_have_kqueue, [
@@ -484,9 +487,9 @@ AC_CACHE_CHECK([for kqueue support], ac_cv_have_kqueue, [
 	)
 ])
 if test "x$ac_cv_have_kqueue" = "xyes" ; then
-	AC_DEFINE(HAVE_KQUEUE)
+	AC_DEFINE(HAVE_KQUEUE, [1], [have kqueue])
 	EVENTER_OBJS="$EVENTER_OBJS eventer_kqueue_impl.lo"
-	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "kqueue")
+	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "kqueue", [default eventer])
 	have_kqueue=1
 fi
 
@@ -500,9 +503,9 @@ AC_CACHE_CHECK([for epoll support], ac_cv_have_epoll, [
 ])
 AC_CHECK_HEADERS(sys/eventfd.h)
 if test "x$ac_cv_have_epoll" = "xyes" ; then
-	AC_DEFINE(HAVE_EPOLL)
+	AC_DEFINE(HAVE_EPOLL, [1], [epoll])
 	EVENTER_OBJS="$EVENTER_OBJS eventer_epoll_impl.lo"
-	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "epoll")
+	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "epoll", [default eventer])
 	have_epoll=1
 fi
 
@@ -515,9 +518,9 @@ AC_CACHE_CHECK([for Solaris ports support], ac_cv_have_ports, [
 	)
 ])
 if test "x$ac_cv_have_ports" = "xyes" ; then
-	AC_DEFINE(HAVE_PORTS)
+	AC_DEFINE(HAVE_PORTS, [1], [have ports])
 	EVENTER_OBJS="$EVENTER_OBJS eventer_ports_impl.lo"
-	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "ports")
+	AC_DEFINE_UNQUOTED(DEFAULT_EVENTER, "ports", [default eventer])
 	have_ports=1
 fi
 
@@ -532,7 +535,7 @@ AC_CACHE_CHECK([for posix_readdir_r], ac_cv_have_posix_readdir_r, [
 	)
 ])
 if test "x$ac_cv_have_posix_readdir_r" = "xyes" ; then
-	AC_DEFINE(HAVE_POSIX_READDIR_R)
+	AC_DEFINE(HAVE_POSIX_READDIR_R, [1], [have readdir_r])
 	have_posix_readdir_r=1
 fi
 
@@ -545,7 +548,7 @@ AC_CACHE_CHECK([for sig_t type], ac_cv_have_sig_t, [
 	)
 ])
 if test "x$ac_cv_have_sig_t" = "xyes" ; then
-	AC_DEFINE(HAVE_SIG_T)
+	AC_DEFINE(HAVE_SIG_T, [1], [have sig_t])
 	have_sig_t=1
 fi
 
@@ -575,10 +578,10 @@ AC_CACHE_CHECK([for htonll], ac_cv_have_htonll, [
 ])
 
 if test "x$ac_cv_have_htonll" = "xno" -a "x$ac_cv_have_htobe64" = "xyes" ; then
-	AC_DEFINE(MAKE_HTOBE64_HTONLL)
+	AC_DEFINE(MAKE_HTOBE64_HTONLL, [1], [have htonll])
 fi
 if test "x$ac_cv_have_htonll" = "xno" -a "x$ac_cv_have_be64toh" = "xyes" ; then
-  AC_DEFINE(MAKE_BE64TOH_NTOHLL)
+  AC_DEFINE(MAKE_BE64TOH_NTOHLL, [1], [have ntohll])
 fi
 
 
@@ -591,7 +594,7 @@ AC_CACHE_CHECK([for u_int type], ac_cv_have_u_int, [
 	)
 ])
 if test "x$ac_cv_have_u_int" = "xyes" ; then
-	AC_DEFINE(HAVE_U_INT)
+	AC_DEFINE(HAVE_U_INT, [1], [have u_int])
 	have_u_int=1
 fi
 
@@ -604,7 +607,7 @@ AC_CACHE_CHECK([for intXX_t types], ac_cv_have_intxx_t, [
 	)
 ])
 if test "x$ac_cv_have_intxx_t" = "xyes" ; then
-	AC_DEFINE(HAVE_INTXX_T)
+	AC_DEFINE(HAVE_INTXX_T, [1], [have intxx_t])
 	have_intxx_t=1
 fi
 	
@@ -617,7 +620,7 @@ AC_CACHE_CHECK([for int64_t type], ac_cv_have_int64_t, [
 	)
 ])
 if test "x$ac_cv_have_int64_t" = "xyes" ; then
-	AC_DEFINE(HAVE_INT64_T)
+	AC_DEFINE(HAVE_INT64_T, [1], [have int64_t])
 	have_int64_t=1
 fi
 	
@@ -630,7 +633,7 @@ AC_CACHE_CHECK([for u_intXX_t types], ac_cv_have_u_intxx_t, [
 	)
 ])
 if test "x$ac_cv_have_u_intxx_t" = "xyes" ; then
-	AC_DEFINE(HAVE_U_INTXX_T)
+	AC_DEFINE(HAVE_U_INTXX_T, [1], [have u_intxx_t])
 	have_u_intxx_t=1
 fi
 
@@ -643,7 +646,7 @@ AC_CACHE_CHECK([for u_int64_t types], ac_cv_have_u_int64_t, [
 	)
 ])
 if test "x$ac_cv_have_u_int64_t" = "xyes" ; then
-	AC_DEFINE(HAVE_U_INT64_T)
+	AC_DEFINE(HAVE_U_INT64_T, [1], [have u_int64_t])
 	have_u_int64_t=1
 fi
 
@@ -662,8 +665,8 @@ then
       (void)a; (void)b; (void)c; (void)d; (void)e; (void)f; (void)g;
 		], 
 		[
-			AC_DEFINE(HAVE_U_INTXX_T)
-			AC_DEFINE(HAVE_INTXX_T)
+			AC_DEFINE(HAVE_U_INTXX_T, [1], [have u_intxx_t])
+			AC_DEFINE(HAVE_INTXX_T, [1], [have intxx_t])
 			AC_MSG_RESULT(yes)
 		],
 		[AC_MSG_RESULT(no)]
@@ -684,7 +687,7 @@ AC_CACHE_CHECK([for uintXX_t types], ac_cv_have_uintxx_t, [
 	)
 ])
 if test "x$ac_cv_have_uintxx_t" = "xyes" ; then
-	AC_DEFINE(HAVE_UINTXX_T)
+	AC_DEFINE(HAVE_UINTXX_T, [1], [have uintxx_t])
 fi
 
 AC_CACHE_CHECK([for socklen_t], ac_cv_have_socklen_t, [
@@ -694,13 +697,10 @@ AC_CACHE_CHECK([for socklen_t], ac_cv_have_socklen_t, [
 #include <sys/socket.h>
 		],
 		[socklen_t foo; foo = 1235; (void)foo;],
-		[ ac_cv_have_socklen_t="yes" ],
-		[ ac_cv_have_socklen_t="no" ]
+		[ ],
+		[ AC_MSG_ERROR(socklen_t is missing) ]
 	)
 ])
-if test "x$ac_cv_have_socklen_t" = "xyes" ; then
-	AC_DEFINE(HAVE_SOCKLEN_T)
-fi
 
 AC_CACHE_CHECK([for size_t], ac_cv_have_size_t, [
 	AC_TRY_COMPILE(
@@ -708,13 +708,10 @@ AC_CACHE_CHECK([for size_t], ac_cv_have_size_t, [
 #include <sys/types.h>
 		],
 		[ size_t foo; foo = 1235; (void)foo;],
-		[ ac_cv_have_size_t="yes" ],
-		[ ac_cv_have_size_t="no" ]
+		[ ],
+		[ AC_MSG_ERROR(size_t is missing) ]
 	)
 ])
-if test "x$ac_cv_have_size_t" = "xyes" ; then
-	AC_DEFINE(HAVE_SIZE_T)
-fi
 
 AC_CACHE_CHECK([for ssize_t], ac_cv_have_ssize_t, [
 	AC_TRY_COMPILE(
@@ -722,13 +719,10 @@ AC_CACHE_CHECK([for ssize_t], ac_cv_have_ssize_t, [
 #include <sys/types.h>
 		],
 		[ ssize_t foo; foo = 1235; (void)foo;],
-		[ ac_cv_have_ssize_t="yes" ],
-		[ ac_cv_have_ssize_t="no" ]
+		[ ],
+		[ AC_MSG_ERROR(ssize_t is missing) ]
 	)
 ])
-if test "x$ac_cv_have_ssize_t" = "xyes" ; then
-	AC_DEFINE(HAVE_SSIZE_T)
-fi
 
 AC_SUBST(FQ_MODULES)
 AC_SUBST(LUA4MTEV)
@@ -754,7 +748,7 @@ while test "x$temppath" != "x$fullpath" ; do
 done
 fullpath=`echo $fullpath | sed "s~NONE~$SUBPREFIX~"`
 AC_MSG_RESULT([$fullpath/mtev])
-AC_DEFINE_UNQUOTED(MTEV_MODULES_DIR, "${fullpath}/mtev")
+AC_DEFINE_UNQUOTED(MTEV_MODULES_DIR, "${fullpath}/mtev", [modules dir])
 MODULES_DIR=${fullpath}/mtev
 AC_SUBST(MODULES_DIR)
 
@@ -766,7 +760,7 @@ while test "x$temppath" != "x$fullpath" ; do
 done
 fullpath=`echo $fullpath | sed "s~NONE~$SUBPREFIX~"`
 AC_MSG_RESULT([$fullpath])
-AC_DEFINE_UNQUOTED(MTEV_LIB_DIR, "${fullpath}")
+AC_DEFINE_UNQUOTED(MTEV_LIB_DIR, "${fullpath}", [lib dir])
 LIB_DIR=${fullpath}
 
 AC_MSG_CHECKING([Resolving sysconfdir path...])
@@ -777,7 +771,7 @@ while test "x$temppath" != "x$fullpath" ; do
 done
 fullpath=`echo $fullpath | sed "s~NONE~$SUBPREFIX~"`
 AC_MSG_RESULT([$fullpath])
-AC_DEFINE_UNQUOTED(MTEV_ETC_DIR, "${fullpath}")
+AC_DEFINE_UNQUOTED(MTEV_ETC_DIR, "${fullpath}", [etc dir])
 ETC_DIR=${fullpath}
 AC_SUBST(ETC_DIR)
 
@@ -802,12 +796,12 @@ UNAME_S=`uname -s`
 UNAME_M=`uname -m`
 UNAME_N=`uname -n`
 UNAME_P=`uname -p`
-AC_DEFINE_UNQUOTED(UNAME_V, "$UNAME_V")
-AC_DEFINE_UNQUOTED(UNAME_R, "$UNAME_R")
-AC_DEFINE_UNQUOTED(UNAME_S, "$UNAME_S")
-AC_DEFINE_UNQUOTED(UNAME_M, "$UNAME_M")
-AC_DEFINE_UNQUOTED(UNAME_N, "$UNAME_N")
-AC_DEFINE_UNQUOTED(UNAME_P, "$UNAME_P")
+AC_DEFINE_UNQUOTED(UNAME_V, "$UNAME_V", [uname -v])
+AC_DEFINE_UNQUOTED(UNAME_R, "$UNAME_R", [uname -r])
+AC_DEFINE_UNQUOTED(UNAME_S, "$UNAME_S", [uname -s])
+AC_DEFINE_UNQUOTED(UNAME_M, "$UNAME_M", [uname -m])
+AC_DEFINE_UNQUOTED(UNAME_N, "$UNAME_N", [uname -n])
+AC_DEFINE_UNQUOTED(UNAME_P, "$UNAME_P", [uname -p])
 
 AC_OUTPUT([
 Makefile
