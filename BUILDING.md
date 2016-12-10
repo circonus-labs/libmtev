@@ -22,8 +22,7 @@
     # cd /usr/local/src
     # git clone https://github.com/circonus-labs/libmtev
     # cd libmtev
-    # aclocal
-    # autoconf
+    # autoreconf -i
     # ./configure LDFLAGS="-L/usr/local/lib"
     # make
 
@@ -33,11 +32,11 @@
     # apt-get install autoconf build-essential \
 		zlib1g-dev uuid-dev libpcre3-dev libssl-dev \
 		libxslt-dev xsltproc  libncurses5-dev hwloc-nox-dev libck0-dev
-		# git clone https://github.com/circonus-labs/libmtev
-		# cd libmtev
-		# autoconf
-		# LDFLAGS="-ldl -lm" ./configure
-		# make
+    # git clone https://github.com/circonus-labs/libmtev
+    # cd libmtev
+    # autoreconf -i
+    # LDFLAGS="-ldl -lm" ./configure
+    # make
 
 ### Linux (CentOS 6.3)
 
@@ -48,7 +47,7 @@
     	libuuid-devel hwloc-devel ck
     # git clone https://github.com/circonus-labs/libmtev
     # cd libmtev
-    # autoconf
+    # autoreconf -i
     # ./configure
     # make
 
@@ -61,7 +60,7 @@
 
     # git clone git@github.com:circonus-labs/libmtev.git
     # cd libmtev
-    # autoconf
+    # autoreconf -i
     # ./configure LDFLAGS="-m64 -L/opt/circonus/lib/amd64" CPPFLAGS="-I/opt/circonus/include/amd64"
     # export MAKE=gmake
     # gmake

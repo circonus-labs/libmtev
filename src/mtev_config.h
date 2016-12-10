@@ -34,80 +34,9 @@
 #ifndef __MTEV_CONFIG_H
 #define __MTEV_CONFIG_H
 
-/* define inline unless that is what the compiler already calls it. */
-#undef inline
+#include "config.h"
 
-#undef CAP_SUPPORTED
-#undef CAP_PLATFORM
-
-#undef DTRACE_ENABLED
-#ifndef DTRACE_ENABLED
-#define DTRACE_PROBES_DISABLED 1
-#endif
-#undef MODULEEXT
-#undef MTEV_MODULES_DIR
-#undef MTEV_LIB_DIR
-#undef DEFAULT_EVENTER
-#undef MTEV_ETC_DIR
-
-#undef HAVE_FCNTL_H
-#undef HAVE_UNISTD_H
-#undef HAVE_SYS_TYPES_H
-#undef HAVE_SYS_WAIT_H
-#undef HAVE_TERM_H
-#undef HAVE_TERMIO_H
-#undef HAVE_TERMIOS_H
-#undef TPUTS_TAKES_CHAR
-#undef TGOTO_TAKES_CHAR
-#undef HAVE_SYS_IOCTL_COMPAT_H
-#undef HAVE_SYS_IOCTL_H
-#undef HAVE_SYS_FILIO_H
-#undef HAVE_STROPTS_H
-#undef HAVE_SYS_STREAM_H
-#undef HAVE_PRIV_H
-#undef HAVE_UTIL_H
-#undef HAVE_BSD_LIBUTIL_H
-#undef HAVE_LIBUTIL_H
-#undef HAVE_CURSES_H
-#undef HAVE_DIRENT_H
-#undef HAVE_PWD_H
-#undef HAVE_PTY_H
-#undef HAVE_ERRNO_H
-#undef HAVE_SYS_EVENTFD_H
-#undef HAVE_STRING_H
-#undef HAVE_STDLIB_H
-#undef HAVE_STDINT_H
-#undef HAVE_SYS_PARAM_H
-#undef HAVE_SEMAPHORE_H
-#undef HAVE_ALLOCA_H
-#undef HAVE_TIME_H
-#undef HAVE_SYS_STAT_H
-#undef HAVE_SYS_RESOURCE_H
-#undef HAVE_SYS_CDEFS_H
-#undef HAVE_LIBKERN_OSATOMIC_H
-#undef HAVE_NETINET_IN_SYSTM_H
-#undef HAVE_POSIX_READDIR_R
-#undef HAVE_MYSQL_H
-#undef HAVE_MYSQL_MYSQL_H
-#undef HAVE_INT64_T
-#undef HAVE_INTXX_T
-#undef HAVE_LONG_LONG_INT
-#undef HAVE_UINTXX_T
-#undef HAVE_U_INT
-#undef HAVE_U_INT64_T
-#undef HAVE_U_INTXX_T
-#undef HAVE_SIG_T
-#undef HAVE_UUID_UNPARSE_LOWER
 #define IFS_CH '/'
-#undef WORKING_SEM_INIT
-#undef HAVE_GCRYPT_H
-
-#undef HAVE_FDWALK
-#undef HAVE_GETPWNAM_R
-#undef HAVE_GETPWNAM_R_POSIX
-#undef HAVE_GETGRNAM_R
-#undef HAVE_GETGRNAM_R_POSIX
-#undef HAVE_VASPRINTF
 
 #ifdef HAVE_STRING_H
 #include <string.h>
@@ -117,6 +46,9 @@
 #endif
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
 #endif
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -134,62 +66,9 @@
 #include <alloca.h>
 #endif
 
-#undef HAVE_ISSETUGID
-#undef HAVE_STRLCPY
-#undef HAVE_STRLCAT
-#undef HAVE_STRNDUP
-#undef HAVE_STRNSTRN
-#undef HAVE_OPENPTY
-#undef HAVE_DECL_OPENPTY
-#undef HAVE_INET_PTON
-#undef HAVE_INET_NTOP
-#undef HAVE_GETOPT
-#undef HAVE_POLL
-#undef HAVE_VASPRINTF
-#undef HAVE_SETPPRIV
-#undef HAVE_LIBUMEM
-
-/* Kernel kqueue() support */
-#undef HAVE_KQUEUE
-/* Kernel epoll_create() support */
-#undef HAVE_EPOLL
-/* Kernel port_create() support */
-#undef HAVE_PORTS
-
-/* have websocket support with wslay */
-#undef HAVE_WSLAY
-
-#undef HAVE_POSIX_MADVISE
-#undef HAVE_MADVISE
-
-/**
- * Use rdtsc instruction for clocks if it is present 
- * 
- * This may have bad performance on VMs.
- */
-#undef ENABLE_RDTSC
-
-/* The number of bytes in a char.  */
-#undef SIZEOF_CHAR
-
-/* The number of bytes in a int.  */
-#undef SIZEOF_INT
-
-/* The number of bytes in a size_t.  */
-#undef SIZEOF_SIZE_T
-
-
-/* The number of bytes in a long int.  */
-#undef SIZEOF_LONG_INT
-
-/* The number of bytes in a long long int.  */
-#undef SIZEOF_LONG_LONG_INT
-
-/* The number of bytes in a short int.  */
-#undef SIZEOF_SHORT_INT
-
-/* The number of bytes in a void *.  */
-#undef SIZEOF_VOID_P
+#ifndef DTRACE_ENABLED
+#define DTRACE_PROBES_DISABLED 1
+#endif
 
 /* The number of bytes in a void * (workaround for OpenBSD). */
 #undef SIZEOF_VOID__
@@ -316,13 +195,11 @@ typedef int32_t vpsized_int;
 #error Unsupported size of void ptr
 #endif
 
-#undef MAKE_HTOBE64_HTONLL
 #ifdef MAKE_HTOBE64_HTONLL
 #undef htonll
 #define htonll htobe64
 #endif
 
-#undef MAKE_BE64TOH_NTOHLL
 #ifdef MAKE_BE64TOH_NTOHLL
 #undef ntohll
 #define ntohll be64toh
@@ -333,23 +210,5 @@ typedef int32_t vpsized_int;
 #endif
 
 typedef enum { mtev_false = 0, mtev_true } mtev_boolean;
-
-#undef UNAME_V
-#undef UNAME_R
-#undef UNAME_S
-#undef UNAME_M
-#undef UNAME_N
-#undef UNAME_P
-
-#undef HAVE_SSLV2_SERVER
-#undef HAVE_SSLV2_CLIENT
-#undef HAVE_SSLV3_SERVER
-#undef HAVE_SSLV3_CLIENT
-#undef HAVE_TLSV1_SERVER
-#undef HAVE_TLSV1_CLIENT
-#undef HAVE_TLSV1_1_SERVER
-#undef HAVE_TLSV1_1_CLIENT
-#undef HAVE_TLSV1_2_SERVER
-#undef HAVE_TLSV1_2_CLIENT
 
 #endif
