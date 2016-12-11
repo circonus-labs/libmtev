@@ -408,17 +408,17 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
 
 static void *thrloopwrap(void *vid) {
   struct eventer_impl_data *t;
-  int id = (int)(vpsized_int)vid;
+  int id = (int)(intptr_t)vid;
   t = &eventer_impl_tls_data[id];
   t->id = id;
   mtev_memory_init(); /* Just in case no one has initialized this */
   mtev_memory_init_thread();
   eventer_per_thread_init(t);
-  return (void *)(vpsized_int)__eventer->loop(id);
+  return (void *)(intptr_t)__eventer->loop(id);
 }
 
 void eventer_loop() {
-  thrloopwrap((void *)(vpsized_int)0);
+  thrloopwrap((void *)(intptr_t)0);
 }
 
 static void eventer_loop_prime(eventer_pool_t *pool, int start) {
@@ -429,7 +429,7 @@ static void eventer_loop_prime(eventer_pool_t *pool, int start) {
     pthread_t tid;
     int adjidx = pool->__global_tid_offset + i;
     mtevAssert(pool == eventer_impl_tls_data[adjidx].pool);
-    pthread_create(&tid, NULL, thrloopwrap, (void *)(vpsized_int)adjidx);
+    pthread_create(&tid, NULL, thrloopwrap, (void *)(intptr_t)adjidx);
   }
   while(ck_pr_load_32(&pool->__loops_started) < ck_pr_load_32(&pool->__loop_concurrency));
 }
@@ -482,7 +482,7 @@ int eventer_impl_setrlimit() {
     rlim.rlim_cur = rlim.rlim_max = (try /= 2);
   }
   getrlimit(RLIMIT_NOFILE, &rlim);
-  mtevL(mtev_debug, "rlim { %u, %u }\n", (u_int32_t)rlim.rlim_cur, (u_int32_t)rlim.rlim_max);
+  mtevL(mtev_debug, "rlim { %u, %u }\n", (uint32_t)rlim.rlim_cur, (uint32_t)rlim.rlim_max);
   return rlim.rlim_cur;
 }
 
@@ -676,7 +676,7 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
   max_timed_events_to_process = t->timed_events->size;
   while(max_timed_events_to_process-- > 0) {
     int newmask;
-    u_int64_t start, duration;
+    uint64_t start, duration;
     const char *cbname = NULL;
     eventer_t timed_event;
 
@@ -809,7 +809,7 @@ void eventer_dispatch_recurrent(struct timeval *now) {
   t = get_my_impl_data();
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
-    u_int64_t start, duration;
+    uint64_t start, duration;
     start = mtev_gethrtime();
     node->e->callback(node->e, EVENTER_RECURRENT, node->e->closure, now);
     duration = mtev_gethrtime() - start;

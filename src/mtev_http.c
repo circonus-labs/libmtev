@@ -102,7 +102,7 @@ struct mtev_http_request {
   char *uri_str;
   char *protocol_str;
   mtev_hash_table querystring;
-  u_int32_t opts;
+  uint32_t opts;
   mtev_http_method method;
   mtev_http_protocol protocol;
   mtev_hash_table headers;
@@ -119,7 +119,7 @@ struct mtev_http_response {
   mtev_hash_table headers;
   struct bchain *leader; /* serialization of status line and headers */
 
-  u_int32_t output_options;
+  uint32_t output_options;
   struct bchain *output;       /* data is pushed in here */
   struct bchain *output_last;  /* tail ptr */
   struct bchain *output_raw;   /* internally transcoded here for output */
@@ -1643,7 +1643,7 @@ mtev_http_response_header_set(mtev_http_session_ctx *ctx,
   return mtev_true;
 }
 mtev_boolean
-mtev_http_response_option_set(mtev_http_session_ctx *ctx, u_int32_t opt) {
+mtev_http_response_option_set(mtev_http_session_ctx *ctx, uint32_t opt) {
   check_realloc_response(&ctx->res);
   if(ctx->res.output_started == mtev_true) return mtev_false;
   /* transfer and content encodings only allowed in HTTP/1.1 */

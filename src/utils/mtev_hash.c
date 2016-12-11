@@ -57,9 +57,9 @@
 }
 
 static inline
-u_int32_t __hash(const char *k, u_int32_t length, u_int32_t initval)
+uint32_t __hash(const char *k, uint32_t length, uint32_t initval)
 {
-   register u_int32_t a,b,c,len;
+   register uint32_t a,b,c,len;
 
    /* Set up the internal state */
    len = length;
@@ -69,9 +69,9 @@ u_int32_t __hash(const char *k, u_int32_t length, u_int32_t initval)
    /*---------------------------------------- handle most of the key */
    while (len >= 12)
    {
-      a += (k[0] +((u_int32_t)k[1]<<8) +((u_int32_t)k[2]<<16) +((u_int32_t)k[3]<<24));
-      b += (k[4] +((u_int32_t)k[5]<<8) +((u_int32_t)k[6]<<16) +((u_int32_t)k[7]<<24));
-      c += (k[8] +((u_int32_t)k[9]<<8) +((u_int32_t)k[10]<<16)+((u_int32_t)k[11]<<24));
+      a += (k[0] +((uint32_t)k[1]<<8) +((uint32_t)k[2]<<16) +((uint32_t)k[3]<<24));
+      b += (k[4] +((uint32_t)k[5]<<8) +((uint32_t)k[6]<<16) +((uint32_t)k[7]<<24));
+      c += (k[8] +((uint32_t)k[9]<<8) +((uint32_t)k[10]<<16)+((uint32_t)k[11]<<24));
       mix(a,b,c);
       k += 12; len -= 12;
    }
@@ -80,17 +80,17 @@ u_int32_t __hash(const char *k, u_int32_t length, u_int32_t initval)
    c += length;
    switch(len)              /* all the case statements fall through */
    {
-   case 11: c+=((u_int32_t)k[10]<<24);
-   case 10: c+=((u_int32_t)k[9]<<16);
-   case 9 : c+=((u_int32_t)k[8]<<8);
+   case 11: c+=((uint32_t)k[10]<<24);
+   case 10: c+=((uint32_t)k[9]<<16);
+   case 9 : c+=((uint32_t)k[8]<<8);
       /* the first byte of c is reserved for the length */
-   case 8 : b+=((u_int32_t)k[7]<<24);
-   case 7 : b+=((u_int32_t)k[6]<<16);
-   case 6 : b+=((u_int32_t)k[5]<<8);
+   case 8 : b+=((uint32_t)k[7]<<24);
+   case 7 : b+=((uint32_t)k[6]<<16);
+   case 6 : b+=((uint32_t)k[5]<<8);
    case 5 : b+=k[4];
-   case 4 : a+=((u_int32_t)k[3]<<24);
-   case 3 : a+=((u_int32_t)k[2]<<16);
-   case 2 : a+=((u_int32_t)k[1]<<8);
+   case 4 : a+=((uint32_t)k[3]<<24);
+   case 3 : a+=((uint32_t)k[2]<<16);
+   case 2 : a+=((uint32_t)k[1]<<8);
    case 1 : a+=k[0];
      /* case 0: nothing left to add */
    }
@@ -99,7 +99,7 @@ u_int32_t __hash(const char *k, u_int32_t length, u_int32_t initval)
    return c;
 }
 
-u_int32_t mtev_hash__hash(const char *k, u_int32_t length, u_int32_t initval) {
+uint32_t mtev_hash__hash(const char *k, uint32_t length, uint32_t initval) {
   return __hash(k,length,initval);
 }
 
@@ -314,7 +314,7 @@ int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
 
   memcpy(attr->key.label, k, klen);
   attr->key.label[klen] = 0;
-  attr->key.len = klen + sizeof(u_int32_t);
+  attr->key.len = klen + sizeof(uint32_t);
   attr->data = data;
   attr->key_ptr = (char*)k;
   hashv = CK_HS_HASH(&h->u.hs, hs_hash, &attr->key);
@@ -349,7 +349,7 @@ int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data) {
 
   memcpy(attr->key.label, k, klen);
   attr->key.label[klen] = 0;
-  attr->key.len = klen + sizeof(u_int32_t);
+  attr->key.len = klen + sizeof(uint32_t);
   attr->key_ptr = (char*)k;
   attr->data = data;
   hashv = CK_HS_HASH(&h->u.hs, hs_hash, &attr->key);
@@ -379,7 +379,7 @@ int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data)
   if(klen > ONSTACK_KEY_SIZE) key = calloc(1, sizeof(ck_key_t) + klen + 1);
   memcpy(key->label, k, klen);
   key->label[klen] = 0;
-  key->len = klen + sizeof(u_int32_t);;
+  key->len = klen + sizeof(uint32_t);;
   hashv = CK_HS_HASH(&h->u.hs, hs_hash, key);
   retrieved_key = ck_hs_get(&h->u.hs, hashv, key);
   if (retrieved_key) {
@@ -428,7 +428,7 @@ int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen,
   if(klen > ONSTACK_KEY_SIZE) key = calloc(1, sizeof(ck_key_t) + klen + 1);
   memcpy(key->label, k, klen);
   key->label[klen] = 0;
-  key->len = klen + sizeof(u_int32_t);
+  key->len = klen + sizeof(uint32_t);
   hashv = CK_HS_HASH(&h->u.hs, hs_hash, key);
   LOCK(h);
   retrieved_key = ck_hs_remove(&h->u.hs, hashv, key);
@@ -522,7 +522,7 @@ int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
   data_struct = index_attribute_container(key);
   if (data_struct) {
     *k = data_struct->key_ptr;
-    *klen = data_struct->key.len - sizeof(u_int32_t);
+    *klen = data_struct->key.len - sizeof(uint32_t);
     *data = data_struct->data;
   }
   return 1;

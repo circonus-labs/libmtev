@@ -76,123 +76,12 @@
 #  define SIZEOF_VOID_P SIZEOF_VOID__
 #endif
 
-#ifndef HAVE_U_INT
-#define HAVE_U_INT
-typedef unsigned int u_int;
-#endif
-
-#undef HAVE_INTXX_T
-#ifndef HAVE_INTXX_T
-#if (SIZEOF_CHAR == 1)
-typedef char int8_t;
-#else
-#error "8 bit int type not found."
-#endif
-#if (SIZEOF_SHORT_INT == 2)
-typedef short int int16_t;
-#else
-#ifdef _CRAY
-typedef long int16_t;
-#else
-#warning "16 bit int type not found."
-#endif /* _CRAY */
-#endif
-#if (SIZEOF_INT == 4)
-typedef int int32_t;
-#else
-#ifdef _CRAY
-typedef long int32_t;
-#else
-#error "32 bit int type not found."
-#endif /* _CRAY */
-#endif
-#endif
-
-/* If sys/types.h does not supply u_intXX_t, supply them ourselves */
-#ifndef HAVE_U_INTXX_T
-#ifdef HAVE_UINTXX_T
-typedef uint8_t u_int8_t;
-typedef uint16_t u_int16_t;
-typedef uint32_t u_int32_t;
-#define HAVE_U_INTXX_T 1
-#else
-#if (SIZEOF_CHAR == 1)
-typedef unsigned char u_int8_t;
-#else
-#error "8 bit int type not found."
-#endif
-#if (SIZEOF_SHORT_INT == 2)
-typedef unsigned short int u_int16_t;
-#else
-#ifdef _CRAY
-typedef unsigned long u_int16_t;
-#else
-#warning "16 bit int type not found."
-#endif
-#endif
-#if (SIZEOF_INT == 4)
-typedef unsigned int u_int32_t;
-#else
-#ifdef _CRAY
-typedef unsigned long u_int32_t;
-#else
-#error "32 bit int type not found."
-#endif
-#endif
-#endif
-#endif
-
-/* 64-bit types */
-#ifndef HAVE_INT64_T
-#if (SIZEOF_LONG_INT == 8)
-typedef long int int64_t;
-#define HAVE_INT64_T 1
-#else
-#if (SIZEOF_LONG_LONG_INT == 8)
-typedef long long int int64_t;
-#define HAVE_INT64_T 1
-#define HAVE_LONG_LONG_INT
-#endif
-#endif
-#endif
-#ifndef HAVE_U_INT64_T
-#if (SIZEOF_LONG_INT == 8)
-typedef unsigned long int u_int64_t;
-#define HAVE_U_INT64_T 1
-#else
-#if (SIZEOF_LONG_LONG_INT == 8)
-typedef unsigned long long int u_int64_t;
-#define HAVE_U_INT64_T 1
-#endif
-#endif
-#endif
-
-#ifndef HAVE_UINTXX_T
-#define HAVE_UINTXX_T 1
-typedef u_int8_t uint8_t;
-typedef u_int16_t uint16_t;
-typedef u_int32_t uint32_t;
-#ifdef HAVE_U_INT64_T
-typedef u_int64_t uint64_t;
-#endif
-#endif
-
 /* BIND, Kerberos and Berkeley DB use __BIT_TYPES_DEFINED__ to protect
- * against multiple redefinitions of these types (u_int{8,16,32,64}_t)
+ * against multiple redefinitions of these types (uint{8,16,32,64}_t)
  * and so shall we.
  */
 #ifndef __BIT_TYPES_DEFINED__
 #define __BIT_TYPES_DEFINED__
-#endif
-
-#if (SIZEOF_VOID_P == 8)
-typedef u_int64_t vpsized_uint;
-typedef int64_t vpsized_int;
-#elif (SIZEOF_VOID_P == 4)
-typedef u_int32_t vpsized_uint;
-typedef int32_t vpsized_int;
-#else
-#error Unsupported size of void ptr
 #endif
 
 #ifdef MAKE_HTOBE64_HTONLL

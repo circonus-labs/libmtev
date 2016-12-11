@@ -51,7 +51,7 @@ typedef struct mtev_connection_ctx_t {
   socklen_t remote_len;
   char *remote_str;
   char *remote_cn;
-  u_int32_t current_backoff;
+  uint32_t current_backoff;
   int wants_shutdown;
   int wants_permanent_shutdown;
   int max_silence;

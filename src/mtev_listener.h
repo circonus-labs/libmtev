@@ -55,7 +55,7 @@ typedef struct {
   mtev_hash_table *config;
   void *service_ctx;
   eventer_func_t dispatch;
-  u_int32_t cmd;
+  uint32_t cmd;
   int rlen;
   void (*service_ctx_free)(void *);
 } acceptor_closure_t;
@@ -84,7 +84,7 @@ API_EXPORT(void)
 
 API_EXPORT(void)
   mtev_control_dispatch_delegate(eventer_func_t listener_dispatch,
-                                 u_int32_t cmd,
+                                 uint32_t cmd,
                                  eventer_func_t delegate_dispatch);
 
 API_EXPORT(int)

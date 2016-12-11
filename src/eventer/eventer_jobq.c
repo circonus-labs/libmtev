@@ -46,7 +46,7 @@
 #define JOBQ_SIGNAL SIGALRM
 #endif
 
-#define pthread_self_ptr() ((void *)(vpsized_int)pthread_self())
+#define pthread_self_ptr() ((void *)(intptr_t)pthread_self())
 
 static uint32_t threads_jobq_inited = 0;
 static pthread_key_t threads_jobq;
@@ -353,7 +353,7 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
          * one's soul out.
          */
         if(my_precious) {
-          u_int64_t start, duration;
+          uint64_t start, duration;
           mtev_gettimeofday(&job->finish_time, NULL); /* We're done */
           LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)my_precious, (void *)my_precious->callback, NULL,
                                  my_precious->fd, my_precious->mask,
@@ -395,7 +395,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
   while((job = eventer_jobq_dequeue_nowait(jobq)) != NULL) {
     int newmask;
     if(job->fd_event) {
-      u_int64_t start, duration;
+      uint64_t start, duration;
       if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_begin();
       LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                              (void *)job->fd_event->callback, NULL,
@@ -486,7 +486,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     /* Safely check and handle if we've timed out while in queue */
     pthread_mutex_lock(&job->lock);
     if(job->timeout_triggered) {
-      u_int64_t start, duration;
+      uint64_t start, duration;
       struct timeval diff, diff2;
       eventer_hrtime_t udiff2;
       /* This happens if the timeout occurred before we even had the change
@@ -556,7 +556,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
             pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
           }
           /* run the job */
-          u_int64_t start, duration;
+          uint64_t start, duration;
           struct timeval start_time;
           mtev_gettimeofday(&start_time, NULL);
           mtevL(eventer_deb, "jobq[%s] -> dispatch BEGIN\n", jobq->queue_name);
@@ -602,7 +602,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
       /* threaded issue, need to recheck. */
       /* coverity[check_after_deref] */
       if(job->fd_event) {
-        u_int64_t start, duration;
+        uint64_t start, duration;
         LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                                (void *)job->fd_event->callback, NULL,
                                job->fd_event->fd, job->fd_event->mask,

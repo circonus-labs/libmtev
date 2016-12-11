@@ -90,7 +90,7 @@ mtev__strndup(const char *src, size_t len) {
 
 void
 mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str,
-    uint str_len) {
+    size_t str_len) {
   if (buff->string - buff->buff < str_len) {
     int bytes_stored = buff->buff_len - (buff->string - buff->buff);
     int new_buff_len = GROWTH_FACTOR(buff->buff_len + str_len);
@@ -108,7 +108,7 @@ mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str,
 }
 
 mtev_prependable_str_buff_t *
-mtev_prepend_str_alloc_sized(u_int initial_len) {
+mtev_prepend_str_alloc_sized(size_t initial_len) {
   mtev_prependable_str_buff_t* buff = calloc(1, sizeof(mtev_prependable_str_buff_t));
 
   buff->buff_len = initial_len;
@@ -139,7 +139,7 @@ mtev_prepend_strlen(mtev_prependable_str_buff_t *buff) {
   return 0;
 }
 
-void mtev_append_str_buff(mtev_str_buff_t *buff, const char* str, uint str_len) {
+void mtev_append_str_buff(mtev_str_buff_t *buff, const char* str, size_t str_len) {
   if (buff->buff_len - (buff->end - buff->string) < str_len) {
     int bytes_stored = buff->end - buff->string;
     int new_buff_len = GROWTH_FACTOR(buff->buff_len + str_len);
@@ -156,7 +156,7 @@ void mtev_append_str_buff(mtev_str_buff_t *buff, const char* str, uint str_len) 
 }
 
 mtev_str_buff_t *
-mtev_str_buff_alloc_sized(u_int initial_len) {
+mtev_str_buff_alloc_sized(size_t initial_len) {
   mtev_str_buff_t* buff = calloc(1, sizeof(mtev_str_buff_t));
 
   buff->buff_len = initial_len;

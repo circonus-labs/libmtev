@@ -118,8 +118,8 @@ struct posix_op_ctx {
 };
 
 typedef struct {
-  u_int64_t head;
-  u_int64_t tail;
+  uint64_t head;
+  uint64_t tail;
   int noffsets;
   int *offsets;
   int segmentsize;
@@ -285,12 +285,12 @@ static logops_t membuf_logio_ops = {
 
 int
 mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines,
-                      int (*f)(u_int64_t, const struct timeval *,
+                      int (*f)(uint64_t, const struct timeval *,
                                const char *, size_t, void *),
                       void *closure) {
   int nmsg;
   pthread_rwlock_t *lock = ls->lock;
-  u_int64_t idx;
+  uint64_t idx;
   if(strcmp(ls->type, "memory")) return -1;
   membuf_ctx_t *membuf = ls->op_ctx;
   if(membuf == NULL) return 0;
@@ -309,13 +309,13 @@ mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines,
 }
 
 int
-mtev_log_memory_lines_since(mtev_log_stream_t ls, u_int64_t afterwhich,
-                            int (*f)(u_int64_t, const struct timeval *,
+mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich,
+                            int (*f)(uint64_t, const struct timeval *,
                                     const char *, size_t, void *),
                             void *closure) {
   int nmsg, count = 0;
   pthread_rwlock_t *lock = ls->lock;
-  u_int64_t idx = afterwhich;
+  uint64_t idx = afterwhich;
   if(strcmp(ls->type, "memory")) return -1;
   membuf_ctx_t *membuf = ls->op_ctx;
   if(membuf == NULL) return 0;
@@ -335,7 +335,7 @@ mtev_log_memory_lines_since(mtev_log_stream_t ls, u_int64_t afterwhich,
     idx = membuf->head;
 
   while(idx != membuf->tail) {
-    u_int64_t nidx;
+    uint64_t nidx;
     size_t len;
     nidx = idx + 1;
     len = (membuf->offsets[idx % membuf->noffsets] < membuf->offsets[nidx % membuf->noffsets]) ?
@@ -488,7 +488,7 @@ asynch_logio_writer(void *vls) {
   gen = mtev_atomic_inc32(&actx->gen);
   pthread_mutex_lock(&actx->singleton);
   mtevL(mtev_debug, "starting asynchronous %s writer[%d/%p]\n",
-        actx->name, (int)getpid(), (void *)(vpsized_int)pthread_self());
+        actx->name, (int)getpid(), (void *)(intptr_t)pthread_self());
   while(gen == actx->gen) {
     pthread_rwlock_t *lock;
     int fast = 0, max = 1000;
@@ -510,7 +510,7 @@ asynch_logio_writer(void *vls) {
     }
   }
   mtevL(mtev_debug, "stopping asynchronous %s writer[%d/%p]\n",
-        actx->name, (int)getpid(), (void *)(vpsized_int)pthread_self());
+        actx->name, (int)getpid(), (void *)(intptr_t)pthread_self());
   pthread_mutex_unlock(&actx->singleton);
   pthread_exit((void *)0);
 }
@@ -866,9 +866,9 @@ jlog_lspath_to_fspath(mtev_log_stream_t ls, char *buff, int len,
 
 /* These next functions arr basically cribbed from jlogctl.c */
 static int
-is_datafile(const char *f, u_int32_t *logid) {
+is_datafile(const char *f, uint32_t *logid) {
   int i;
-  u_int32_t l = 0;
+  uint32_t l = 0;
   for(i=0; i<8; i++) {
     if((f[i] >= '0' && f[i] <= '9') ||
        (f[i] >= 'a' && f[i] <= 'f')) {
@@ -890,7 +890,7 @@ jlog_logio_cleanse(mtev_log_stream_t ls) {
   DIR *d;
   struct dirent *de, *entry;
   int cnt = 0, readers;
-  u_int32_t earliest = 0;
+  uint32_t earliest = 0;
   char path[PATH_MAX];
   int size = 0;
 
@@ -915,7 +915,7 @@ jlog_logio_cleanse(mtev_log_stream_t ls) {
 
   if(!d) return -1;
   while(portable_readdir_r(d, de, &entry) == 0 && entry != NULL) {
-    u_int32_t logid;
+    uint32_t logid;
     /* the current log file isn't a deletion target. period. */
     if(is_datafile(entry->d_name, &logid) &&  /* make sure it is a datafile */
        logid < earliest &&                    /* and that is older enough */

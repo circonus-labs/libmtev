@@ -510,7 +510,7 @@ mtev_listener_reconfig(const char *toplevel) {
 int
 mtev_control_dispatch(eventer_t e, int mask, void *closure,
                       struct timeval *now) {
-  u_int32_t cmd;
+  uint32_t cmd;
   int len = 0, callmask = mask;
   void *vdelegation_table;
   mtev_hash_table *delegation_table = NULL;
@@ -567,9 +567,9 @@ socket_error:
 }
 void
 mtev_control_dispatch_delegate(eventer_func_t listener_dispatch,
-                               u_int32_t cmd,
+                               uint32_t cmd,
                                eventer_func_t delegate_dispatch) {
-  u_int32_t *cmd_copy;
+  uint32_t *cmd_copy;
   eventer_func_t *handler_copy;
   void *vdelegation_table;
   mtev_hash_table *delegation_table;

@@ -103,12 +103,12 @@ mtev_atomic_casptr(volatile void **ptr,
 
 static inline mtev_atomic64_t
 mtev_atomic_cas64_asm (volatile mtev_atomic64_t* ptr,
-		       volatile u_int32_t old_high, 
-		       volatile u_int32_t old_low,
-		       volatile u_int32_t new_high,
-		       volatile u_int32_t new_low) {
+		       volatile uint32_t old_high, 
+		       volatile uint32_t old_low,
+		       volatile uint32_t new_high,
+		       volatile uint32_t new_low) {
   mtev_atomic64_t prev;
-  u_int64_t tmp;
+  uint64_t tmp;
   __asm__ volatile (
       "lock; cmpxchg8b (%6);"
     : "=a" (old_low), "=d" (old_high)
@@ -139,8 +139,8 @@ mtev_atomic_cas64(volatile mtev_atomic64_t *ptr,
 #else
   /* These have to be unsigned or bit shifting doesn't work
    * properly */
-  register u_int32_t old_high = *ptr >> 32, old_low = *ptr;
-  register u_int32_t new_high = rpl >> 32, new_low = rpl;
+  register uint32_t old_high = *ptr >> 32, old_low = *ptr;
+  register uint32_t new_high = rpl >> 32, new_low = rpl;
   /* We need to break the 64-bit variables into 2 32-bit variables, do a 
    * compare-and-swap, then combine the results */
   prev = mtev_atomic_cas64_asm(ptr, old_high, old_low, new_high, new_low);

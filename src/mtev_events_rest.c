@@ -111,7 +111,7 @@ json_spit_event(eventer_t e, void *closure) {
   }
   else if(e->mask & EVENTER_TIMER) {
     struct json_object *wo;
-    u_int64_t ms = e->whence.tv_sec;
+    uint64_t ms = e->whence.tv_sec;
     ms *= 1000ULL;
     ms += e->whence.tv_usec/1000;
     wo = json_object_new_int(ms);
@@ -213,11 +213,11 @@ mtev_rest_eventer_jobq(mtev_http_rest_closure_t *restc, int n, char **p) {
 }
 
 static int
-json_spit_log(u_int64_t idx, const struct timeval *whence,
+json_spit_log(uint64_t idx, const struct timeval *whence,
               const char *log, size_t len, void *closure) {
   struct json_object *doc = (struct json_object *)closure;
   struct json_object *o, *wo;
-  u_int64_t ms;
+  uint64_t ms;
 
   o = json_object_new_object();
 

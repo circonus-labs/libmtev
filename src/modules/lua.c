@@ -200,7 +200,7 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
     char state_str[32];
     char thr_str[32];
     lua_State **Lptr = (lua_State **)iter.key.ptr;
-    pthread_t tgt = (pthread_t)(vpsized_int)iter.value.ptr;
+    pthread_t tgt = (pthread_t)(intptr_t)iter.value.ptr;
     if(!pthread_equal(me, tgt)) continue;
 
     int thr_id = eventer_is_loop(me);
@@ -283,7 +283,7 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
   pthread_mutex_lock(&mtev_lua_states_lock);
   while(mtev_hash_adv(&mtev_lua_states, &iter)) {
     lua_State **Lptr = (lua_State **)iter.key.ptr;
-    pthread_t tgt = (pthread_t)(vpsized_int)iter.value.ptr;
+    pthread_t tgt = (pthread_t)(intptr_t)iter.value.ptr;
     if(!pthread_equal(me, tgt)) continue;
     nc_printf(ncct, "master (state:%p)\n", *Lptr);
     nc_printf(ncct, "\tmemory: %d kb\n", lua_gc(*Lptr, LUA_GCCOUNT, 0));
@@ -805,7 +805,7 @@ mtev_lua_open(const char *module_name, void *lmc,
   pthread_mutex_lock(&mtev_lua_states_lock);
   mtev_hash_store(&mtev_lua_states,
                   (const char *)Lptr, sizeof(*Lptr),
-                  (void *)(vpsized_int)pthread_self());
+                  (void *)(intptr_t)pthread_self());
   pthread_mutex_unlock(&mtev_lua_states_lock);
 
   return L;

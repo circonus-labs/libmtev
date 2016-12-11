@@ -297,7 +297,7 @@ cmd_info_t console_command_version = {
 };
 
 static int
-mtev_console_log_a_line(u_int64_t idx, const struct timeval *whence,
+mtev_console_log_a_line(uint64_t idx, const struct timeval *whence,
                         const char *line, size_t len, void *cl) {
   mtev_console_closure_t ncct = cl;
   (void)whence;
@@ -440,7 +440,7 @@ expand_range(const char *range, char ***set, int max_count, const char **err) {
   rv = pcre_exec(IP_match, NULL, range, strlen(range), 0, 0, ovector, 30);
   if(rv >= 0) {
     int mask, full = 0, i;
-    u_int32_t host_addr;
+    uint32_t host_addr;
     struct in_addr addr;
     /* 0 is the full monty, 1 is "" or "full:", 2 is the IP, 3 is the mask */
     pcre_copy_substring(range, ovector, rv, 1, buff, sizeof(buff));
@@ -459,7 +459,7 @@ expand_range(const char *range, char ***set, int max_count, const char **err) {
       return 0;
     }
     host_addr = ntohl(addr.s_addr);
-    host_addr &= ~((u_int32_t)count - 1);
+    host_addr &= ~((uint32_t)count - 1);
 
     if(!full) count -= 2; /* No network or broadcast */
     if(count > max_count || !count) return -count;

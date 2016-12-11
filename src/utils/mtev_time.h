@@ -79,14 +79,14 @@ API_EXPORT(mtev_boolean)
 /**
  * Like mtev_gethrtime... it actually is the implementation of mtev_gethrtime()
  */
-API_EXPORT(u_int64_t)
+API_EXPORT(uint64_t)
   mtev_get_nanos(void);
 
 /**
  * if start_tsc has been called for this thread and the CPU supports it,
  * this will return the number of current TSC ticks
  */
-API_EXPORT(u_int64_t)
+API_EXPORT(uint64_t)
   mtev_get_ticks(void);
 
 /** 
