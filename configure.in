@@ -240,8 +240,14 @@ AC_CHECK_SIZEOF(void *, 1)
 AC_CHECK_HEADER(ck_pr.h, [], [AC_MSG_ERROR([*** libck (headers) required ***])])
 AC_CHECK_LIB(ck, ck_ht_init, , [AC_MSG_ERROR([*** concurrencyckit (libck) is required ***])])
 AC_CHECK_LIB(hwloc, hwloc_topology_init, , [AC_MSG_ERROR([*** libhwloc required ***])])
+
+# libcircmetrics depends on libjlog and libcircllhist, so we have to check
+# for them in reverse dependency order so that $LIBS contains the correct
+# dependencies at each step.
 AC_CHECK_LIB(jlog, jlog_new, , [AC_MSG_ERROR([*** libjlog required github.com/omniti-labs/jlog ***])])
+AC_CHECK_LIB(circllhist, hist_insert, , [AC_MSG_ERROR([*** libcircllhist is required ***])])
 AC_CHECK_LIB(circmetrics, stats_recorder_alloc, , [AC_MSG_ERROR([*** libcircmetrics is required ***])])
+
 AC_CHECK_LIB(umem, umem_cache_create, [
 	LIBS="$LIBS -lumem"
 	AC_DEFINE(HAVE_LIBUMEM, [1], [have libumem])
