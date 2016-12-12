@@ -285,7 +285,7 @@ struct bchain *bchain_mmap(int fd, size_t len, int flags, off_t offset) {
   n->size = len;
   n->allocd = len;
 #if defined(HAVE_POSIX_MADVISE)
-  posix_madvise(buff, len, MADV_SEQUENTIAL);
+  posix_madvise(buff, len, POSIX_MADV_SEQUENTIAL);
 #elif defined(HAVE_MADVISE)
   madvise((caddr_t) buff, len, MADV_SEQUENTIAL);
 #endif
