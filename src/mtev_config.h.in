@@ -159,6 +159,9 @@
 /* have websocket support with wslay */
 #undef HAVE_WSLAY
 
+#undef HAVE_POSIX_MADVISE
+#undef HAVE_MADVISE
+
 /**
  * Use rdtsc instruction for clocks if it is present 
  * 

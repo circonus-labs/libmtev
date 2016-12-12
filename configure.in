@@ -300,6 +300,7 @@ LIBS="-lwslay $LIBS"
       [AC_MSG_ERROR([*** can't build websocket support, no -lwslay ***])])
 ])
 
+AC_CHECK_FUNCS(posix_madvise madvise)
 
 AC_CHECK_HEADERS(priv.h)
 AC_CHECK_FUNCS(setppriv)

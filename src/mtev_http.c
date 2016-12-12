@@ -284,7 +284,11 @@ struct bchain *bchain_mmap(int fd, size_t len, int flags, off_t offset) {
   n->buff = buff;
   n->size = len;
   n->allocd = len;
+#if defined(HAVE_POSIX_MADVISE)
+  posix_madvise(buff, len, MADV_SEQUENTIAL);
+#elif defined(HAVE_MADVISE)
   madvise((caddr_t) buff, len, MADV_SEQUENTIAL);
+#endif
   return n;
 }
 void bchain_free(struct bchain *b, int line) {
