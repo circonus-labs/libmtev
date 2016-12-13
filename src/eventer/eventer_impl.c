@@ -72,6 +72,7 @@ struct eventer_impl_data {
   struct cross_thread_trigger *cross;
   void *spec;
   eventer_pool_t *pool;
+  mtev_watchdog_t *hb;
 };
 
 static __thread struct eventer_impl_data *my_impl_data;
@@ -403,6 +404,13 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   e->closure = calloc(1,sizeof(unsigned int));
   e->callback = eventer_mtev_memory_maintenance;
   eventer_add_recurrent(e);
+
+  /* The "main" thread uses a NULL heartbeat,
+   * all other threads get their own. */
+  if(t->id != 0) t->hb = mtev_watchdog_create();
+  e = mtev_watchdog_recurrent_heartbeat(t->hb);
+  eventer_add_recurrent(e);
+
   ck_pr_inc_32(&t->pool->__loops_started);
 }
 

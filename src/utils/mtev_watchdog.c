@@ -667,7 +667,7 @@ mtev_watchdog_t *mtev_watchdog_create() {
     mtev_watchdog_t *lifeline = &mmap_lifelines[i];
     if(lifeline->active == HEART_ACTIVE_OFF) {
       lifeline->active = HEART_ACTIVE_ON;
-mtevL(mtev_debug, "activating heart: %d\n", i);
+      mtevL(mtev_debug, "activating heart: %d\n", i);
       return lifeline;
     }
   }
