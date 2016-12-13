@@ -2,6 +2,7 @@
 *.a
 *.bundle
 *.lo
+*.hlo
 *.o
 *.so
 *.xmlh
