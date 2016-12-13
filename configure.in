@@ -220,11 +220,6 @@ AC_SUBST(ATOMIC_OBJS)
 AC_SUBST(UNWINDLIB)
 AC_DEFINE_UNQUOTED(MODULEEXT, "$MODULEEXT", [module extension])
 
-LUA4MTEV=lua_mtev.$MODULEEXT
-if test "$ENABLE_LUA" = "no"; then
-  LUA4MTEV=
-fi
-
 AS_IF([test x"$enable_rdtsc" = x"yes"],
     [ AC_DEFINE(ENABLE_RDTSC, [1], [RDTSC enabled]) ]
 )
@@ -284,10 +279,14 @@ AS_IF([test "x$ENABLE_LUA" = "xluajit"], [
     AC_CHECK_HEADER(lua.h, [], [AC_MSG_ERROR([*** lua (headers) required ***])])
     AC_CHECK_HEADER(udns.h, [], [AC_MSG_ERROR([*** udns.h required ***])])
     AC_CHECK_LIB(udns, dns_new, [], [AC_MSG_ERROR([*** libudns required ***])])
+
+    LUA_LUAMTEV=luamtev
+    LUA_MODULES=lua_mtev.$MODULEEXT
 ])
 
 LUALIBS="$LUALIBS $LIBS"
 AC_SUBST(LUALIBS)
+AC_SUBST(LUA_LUAMTEV)
 LIBS=$OLD_LIBS
 
 AC_ARG_ENABLE([zipkin_fq],
@@ -663,7 +662,7 @@ AC_CACHE_CHECK([for ssize_t], ac_cv_have_ssize_t, [
 ])
 
 AC_SUBST(FQ_MODULES)
-AC_SUBST(LUA4MTEV)
+AC_SUBST(LUA_MODULES)
 
 docdir="docs"
 mansubdir="man"
