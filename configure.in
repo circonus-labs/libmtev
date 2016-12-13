@@ -28,6 +28,7 @@ AC_ARG_ENABLE(lua,
 
 AS_CASE($ENABLE_LUA,
  [no], [],
+ [yes], [ENABLE_LUA="luajit"],
  [luajit], [],
  [AC_MSG_ERROR([Invalid value '$ENABLE_LUA' for --enable-lua])]
 )
