@@ -5,6 +5,7 @@
  * libck
  * libjlog
  * luajit
+ * udns
  * fq
 
 ## Platforms
@@ -43,7 +44,7 @@
     #!/bin/sh
     # yum install autoconf \
     	libtermcap-devel libxslt-devel ncurses-devel openssl-devel \
-    	pcre-devel uuid-devel zlib-devel \
+        udns-devel luajit-devel pcre-devel uuid-devel zlib-devel \
     	libuuid-devel hwloc-devel ck
     # git clone https://github.com/circonus-labs/libmtev
     # cd libmtev
