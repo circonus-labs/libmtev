@@ -50,7 +50,7 @@ typedef struct {
   socklen_t address_len;
   struct timeval last_contact;
   struct timeval boot_time;
-  u_int64_t config_seq;
+  uint64_t config_seq;
   void *payload;
   uint16_t payload_length;
   uint8_t number_of_payloads;

@@ -295,9 +295,9 @@ ck_hs_get(struct ck_hs *hs, unsigned long h, const void *key)
   c -= a; c -= b; c ^= (b>>15); \
 }
 static inline
-u_int32_t __hash(const char *k, u_int32_t length, u_int32_t initval)
+uint32_t __hash(const char *k, uint32_t length, uint32_t initval)
 {
-   register u_int32_t a,b,c,len;
+   register uint32_t a,b,c,len;
 
    /* Set up the internal state */
    len = length;
@@ -307,9 +307,9 @@ u_int32_t __hash(const char *k, u_int32_t length, u_int32_t initval)
    /*---------------------------------------- handle most of the key */
    while (len >= 12)
    {
-      a += (k[0] +((u_int32_t)k[1]<<8) +((u_int32_t)k[2]<<16) +((u_int32_t)k[3]<<24));
-      b += (k[4] +((u_int32_t)k[5]<<8) +((u_int32_t)k[6]<<16) +((u_int32_t)k[7]<<24));
-      c += (k[8] +((u_int32_t)k[9]<<8) +((u_int32_t)k[10]<<16)+((u_int32_t)k[11]<<24));
+      a += (k[0] +((uint32_t)k[1]<<8) +((uint32_t)k[2]<<16) +((uint32_t)k[3]<<24));
+      b += (k[4] +((uint32_t)k[5]<<8) +((uint32_t)k[6]<<16) +((uint32_t)k[7]<<24));
+      c += (k[8] +((uint32_t)k[9]<<8) +((uint32_t)k[10]<<16)+((uint32_t)k[11]<<24));
       mix(a,b,c);
       k += 12; len -= 12;
    }
@@ -318,17 +318,17 @@ u_int32_t __hash(const char *k, u_int32_t length, u_int32_t initval)
    c += length;
    switch(len)              /* all the case statements fall through */
    {
-   case 11: c+=((u_int32_t)k[10]<<24);
-   case 10: c+=((u_int32_t)k[9]<<16);
-   case 9 : c+=((u_int32_t)k[8]<<8);
+   case 11: c+=((uint32_t)k[10]<<24);
+   case 10: c+=((uint32_t)k[9]<<16);
+   case 9 : c+=((uint32_t)k[8]<<8);
       /* the first byte of c is reserved for the length */
-   case 8 : b+=((u_int32_t)k[7]<<24);
-   case 7 : b+=((u_int32_t)k[6]<<16);
-   case 6 : b+=((u_int32_t)k[5]<<8);
+   case 8 : b+=((uint32_t)k[7]<<24);
+   case 7 : b+=((uint32_t)k[6]<<16);
+   case 6 : b+=((uint32_t)k[5]<<8);
    case 5 : b+=k[4];
-   case 4 : a+=((u_int32_t)k[3]<<24);
-   case 3 : a+=((u_int32_t)k[2]<<16);
-   case 2 : a+=((u_int32_t)k[1]<<8);
+   case 4 : a+=((uint32_t)k[3]<<24);
+   case 3 : a+=((uint32_t)k[2]<<16);
+   case 2 : a+=((uint32_t)k[1]<<8);
    case 1 : a+=k[0];
      /* case 0: nothing left to add */
    }
@@ -427,8 +427,8 @@ static int mtev_hash_walk_init(mdb_walk_state_t *s) {
   hh->bucket = 0;
   for(;hh->bucket<hh->size;hh->bucket++) {
     if (buckets[hh->bucket] != CK_HS_EMPTY && buckets[hh->bucket] != CK_HS_TOMBSTONE) {
-      u_int32_t len = 0;
-      int ret = mdb_vread(&len, sizeof(u_int32_t), (uintptr_t)buckets[hh->bucket]);
+      uint32_t len = 0;
+      int ret = mdb_vread(&len, sizeof(uint32_t), (uintptr_t)buckets[hh->bucket]);
       if (ret > 0 && len > 0) {
         /* The object sits before the key */
         size_t offset = ((size_t)&((ck_hash_attr_t *)0)->key);
@@ -488,7 +488,7 @@ _print_hash_bucket_data_cb(uintptr_t addr, const void *u, void *data)
 }
 
 static int
-mtev_log_dcmd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+mtev_log_dcmd(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
   mtev_hash_table l;
   struct ck_hs_map map;
   void **buckets;
@@ -514,9 +514,9 @@ mtev_log_dcmd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
   mdb_vread(buckets, sizeof(void *) * map.capacity, (uintptr_t)vmem);
   for(;bucket<map.capacity;bucket++) {
     if(buckets[bucket] != CK_HS_EMPTY && buckets[bucket] != CK_HS_TOMBSTONE) {
-      u_int32_t len = 0;
+      uint32_t len = 0;
       size_t offset = ((size_t)&((ck_hash_attr_t *)0)->key);
-      if(mdb_vread(&len, sizeof(u_int32_t), (uintptr_t)buckets[bucket]) < 0) return DCMD_ERR;
+      if(mdb_vread(&len, sizeof(uint32_t), (uintptr_t)buckets[bucket]) < 0) return DCMD_ERR;
       /* The object sits before the key */
       ck_hash_attr_t *fullkey = mdb_zalloc((size_t)(offset + len + 1), UM_GC);
       mdb_vread(fullkey, (size_t)len+offset, ((uintptr_t)buckets[bucket])-offset);
@@ -550,8 +550,8 @@ struct _mtev_log_stream {
 };
 
 typedef struct {
-  u_int64_t head;
-  u_int64_t tail;
+  uint64_t head;
+  uint64_t tail;
   int noffsets;
   int *offsets;
   int segmentsize;
@@ -560,8 +560,8 @@ typedef struct {
 } membuf_ctx_t;
 
 static int
-membuf_print_dmcd(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
-  uint_t opt_v = FALSE;
+membuf_print_dmcd(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
+  unsigned opt_v = FALSE;
   int rv = DCMD_OK;
   struct _mtev_log_stream ls;
   char logtype[128];

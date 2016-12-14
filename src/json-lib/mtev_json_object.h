@@ -264,9 +264,9 @@ extern struct mtev_json_object* mtev_json_object_new_int(int i);
 extern mtev_json_int_overflow mtev_json_object_get_int_overflow(struct mtev_json_object *jso);
 extern void mtev_json_object_set_int_overflow(struct mtev_json_object *jso,
 					  mtev_json_int_overflow o);
-extern u_int64_t mtev_json_object_get_uint64(struct mtev_json_object *jso);
+extern uint64_t mtev_json_object_get_uint64(struct mtev_json_object *jso);
 extern int64_t mtev_json_object_get_int64(struct mtev_json_object *jso);
-extern void mtev_json_object_set_uint64(struct mtev_json_object *jso, u_int64_t v);
+extern void mtev_json_object_set_uint64(struct mtev_json_object *jso, uint64_t v);
 extern void mtev_json_object_set_int64(struct mtev_json_object *jso, int64_t v);
 
 /** Get the int value of a mtev_json_object

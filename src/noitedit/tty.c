@@ -56,7 +56,7 @@ __RCSID("$NetBSD: tty.c,v 1.15 2001/05/17 01:02:17 christos Exp $");
 
 typedef struct ttymodes_t {
 	const char *m_name;
-	u_int m_value;
+	unsigned int m_value;
 	int m_type;
 }          ttymodes_t;
 

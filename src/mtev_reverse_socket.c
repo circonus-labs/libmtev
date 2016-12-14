@@ -110,7 +110,7 @@ static void mtev_connection_initiate_connection(mtev_connection_ctx_t *ctx);
 static void mtev_connection_schedule_reattempt(mtev_connection_ctx_t *ctx,
                                                struct timeval *now);
 typedef struct reverse_frame {
-  u_int16_t channel_id;
+  uint16_t channel_id;
   void *buff;            /* payload */
   size_t buff_len;       /* length of frame */
   size_t buff_filled;    /* length of frame populated */
@@ -188,7 +188,7 @@ typedef struct {
 } reverse_socket_t;
 
 typedef struct {
-  u_int16_t channel_id;
+  uint16_t channel_id;
   reverse_socket_t *parent;
 } channel_closure_t;
 
@@ -1080,7 +1080,7 @@ mtev_connection_schedule_reattempt(mtev_connection_ctx_t *ctx,
                                    struct timeval *now) {
   struct timeval __now, interval;
   const char *v, *cn_expected;
-  u_int32_t min_interval = 1000, max_interval = 8000;
+  uint32_t min_interval = 1000, max_interval = 8000;
 
   GET_EXPECTED_CN(ctx, cn_expected);
   mtev_connection_disable_timeout(ctx);

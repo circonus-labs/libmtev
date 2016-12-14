@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2007, OmniTI Computer Consulting, Inc.
+ * Copyright (c) 2005-2009, OmniTI Computer Consulting, Inc.
  * All rights reserved.
  * Copyright (c) 2015, Circonus, Inc. All rights reserved.
  *
@@ -31,42 +31,73 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _UTILS_MTEV_STR_H
-#define _UTILS_MTEV_STR_H
+#ifndef __MTEV_CONFIG_H
+#define __MTEV_CONFIG_H
 
-#include "mtev_defines.h"
+#include "config.h"
 
-typedef struct mtev_prependable_str_buff{
-  char *buff;
-  char *string;
-  size_t buff_len;
-} mtev_prependable_str_buff_t;
+#define IFS_CH '/'
 
-typedef struct mtev_str_buff{
-  char *string;
-  char *end;
-  size_t buff_len;
-} mtev_str_buff_t;
-
-#ifndef HAVE_STRNSTRN
-API_EXPORT(const char *) strnstrn(const char *, int, const char *, int);
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
 #endif
 
-API_EXPORT(char *) mtev__strndup(const char *src, size_t len);
+#ifndef DTRACE_ENABLED
+#define DTRACE_PROBES_DISABLED 1
+#endif
 
+/* The number of bytes in a void * (workaround for OpenBSD). */
+#undef SIZEOF_VOID__
+#if !defined(SIZEOF_VOID_P) && defined(SIZEOF_VOID__)
+#  define SIZEOF_VOID_P SIZEOF_VOID__
+#endif
 
-API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc();
-API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc_sized();
-API_EXPORT(void) mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str, size_t str_len);
-API_EXPORT(void) mtev_prepend_str_free(mtev_prependable_str_buff_t *buff);
-API_EXPORT(int) mtev_prepend_strlen(mtev_prependable_str_buff_t *buff);
+/* BIND, Kerberos and Berkeley DB use __BIT_TYPES_DEFINED__ to protect
+ * against multiple redefinitions of these types (uint{8,16,32,64}_t)
+ * and so shall we.
+ */
+#ifndef __BIT_TYPES_DEFINED__
+#define __BIT_TYPES_DEFINED__
+#endif
 
-API_EXPORT(mtev_str_buff_t *) mtev_str_buff_alloc();
-API_EXPORT(mtev_str_buff_t *) mtev_str_buff_alloc_sized(size_t);
-API_EXPORT(void) mtev_append_str_buff(mtev_str_buff_t *buff, const char* str, size_t str_len);
-API_EXPORT(void) mtev_str_buff_free(mtev_str_buff_t *buff);
-API_EXPORT(int) mtev_str_buff_len(mtev_str_buff_t *buff);
-API_EXPORT(char*) mtev_str_buff_to_string(mtev_str_buff_t **buff);
+#ifdef MAKE_HTOBE64_HTONLL
+#undef htonll
+#define htonll htobe64
+#endif
 
+#ifdef MAKE_BE64TOH_NTOHLL
+#undef ntohll
+#define ntohll be64toh
+#endif
+
+#ifndef PATH_MAX
+#define PATH_MAX MAXPATHLEN
+#endif
+
+typedef enum { mtev_false = 0, mtev_true } mtev_boolean;
 
 #endif

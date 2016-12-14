@@ -224,7 +224,7 @@ mtev_lua_setup_http_request(lua_State *L,
 static int
 mtev_lua_http_option_set(lua_State *L) {
   CCALL_DECL(L, mtev_http_session_ctx, http_ctx, 2);
-  u_int32_t opt = lua_tointeger(L,2);
+  uint32_t opt = lua_tointeger(L,2);
   lua_pushboolean(L, mtev_http_response_option_set(http_ctx, opt));
   return 1;
 }

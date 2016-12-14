@@ -40,7 +40,7 @@ struct mtev_json_object
     char *c_string;
   } o;
   union {
-    u_int64_t c_uint64;
+    uint64_t c_uint64;
     int64_t c_int64;
   } overflow;
 };

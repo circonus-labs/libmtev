@@ -47,7 +47,7 @@ typedef struct {
 
 API_EXPORT(mtev_cht_t *) mtev_cht_alloc();
 API_EXPORT(mtev_cht_t *)
-  mtev_cht_alloc_custom(u_int16_t vnodes_per_node, u_int8_t nbits);
+  mtev_cht_alloc_custom(uint16_t vnodes_per_node, uint8_t nbits);
 API_EXPORT(void) mtev_cht_free(mtev_cht_t *);
 API_EXPORT(int)
   mtev_cht_set_nodes(mtev_cht_t *, int node_cnt, mtev_cht_node_t *nodes);
