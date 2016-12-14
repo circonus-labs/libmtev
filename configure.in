@@ -58,10 +58,12 @@ AC_SUBST(PERL)
 if test "x$GCC" = "xyes" ; then
 	C99FLAG="-std=c99"
 	CFLAGS="$CFLAGS -g $C99FLAG"
+	CHOTOPT="-O5"
 	DEPFLAGS="-MM"
 else
 	C99FLAG="-xc99=all"
 	CFLAGS="$CFLAGS -g $C99FLAG"
+	CHOTOPT="-xO5"
 	DEPFLAGS="-xM1"
 fi
 SHLDFLAGS="$LDFLAGS"
@@ -184,6 +186,7 @@ case $host in
 	RLDFLAG="-Wl,--rpath="
 	;;
 esac
+AC_SUBST(CHOTOPT)
 AC_SUBST(DOTSO)
 AC_SUBST(DOTDYLIB)
 AC_SUBST(LD_LIBMTEV_VERSION)

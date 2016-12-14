@@ -1,4 +1,4 @@
-.SUFFIXES: .lo .re .c
+.SUFFIXES: .hlo .lo .re .c
 
 Q=
 ifeq ($(V),)
@@ -32,6 +32,7 @@ CC=@CC@
 SHLD=@SHLD@
 CPPFLAGS=-I$(top_srcdir)/src -I$(top_srcdir)/src/json-lib \
 	-I$(top_srcdir)/src/utils @CPPFLAGS@
+CHOTOPT=@CHOTOPT@
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
 CLINKFLAGS=@CLINKFLAGS@
@@ -133,13 +134,13 @@ ATOMIC_OBJS=$(ATOMIC_REL_OBJS:%.lo=utils/%.lo)
 EVENTER_LIB_OBJS=eventer/OETS_asn1_helper.lo eventer/eventer.lo \
         eventer/eventer_POSIX_fd_opset.lo eventer/eventer_SSL_fd_opset.lo \
         eventer/eventer_impl.lo eventer/eventer_jobq.lo $(EVENTER_IMPL_OBJS)
-MTEV_UTILS_OBJS=utils/mtev_b32.lo utils/mtev_b64.lo utils/mtev_btrie.lo \
-	utils/mtev_confstr.lo utils/mtev_cpuid.lo utils/mtev_getip.lo utils/mtev_hash.lo \
+MTEV_UTILS_OBJS=utils/mtev_b32.hlo utils/mtev_b64.hlo utils/mtev_btrie.hlo \
+	utils/mtev_confstr.lo utils/mtev_cpuid.lo utils/mtev_getip.lo utils/mtev_hash.hlo \
 	utils/mtev_lockfile.lo utils/mtev_log.lo utils/mtev_mkdir.lo \
-	utils/mtev_security.lo utils/mtev_sem.lo utils/mtev_time.lo utils/mtev_skiplist.lo \
-	utils/mtev_sort.lo utils/mtev_str.lo utils/mtev_watchdog.lo utils/mtev_zipkin.lo \
-	utils/mtev_memory.lo utils/mtev_cht.lo utils/mtev_uuid_parse.lo \
-	utils/mtev_perftimer.lo utils/mtev_hyperloglog.lo \
+	utils/mtev_security.lo utils/mtev_sem.lo utils/mtev_time.hlo utils/mtev_skiplist.hlo \
+	utils/mtev_sort.hlo utils/mtev_str.lo utils/mtev_watchdog.lo utils/mtev_zipkin.lo \
+	utils/mtev_memory.lo utils/mtev_cht.hlo utils/mtev_uuid_parse.hlo \
+	utils/mtev_perftimer.lo utils/mtev_hyperloglog.hlo \
         $(ATOMIC_OBJS)
 
 LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
@@ -152,7 +153,8 @@ LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
 	$(MTEVEDIT_LIB_OBJS) $(EVENTER_LIB_OBJS) \
 	$(MTEV_UTILS_OBJS) $(JSON_LIB_OBJS)
 
-FINAL_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
+FINAL1_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
+FINAL_LIBMTEV_OBJS=$(FINAL1_LIBMTEV_OBJS:%.hlo=libmtev-objs/%.hlo)
 
 mtev_time_fast.so:	utils/mtev_time_fast_preload.c
 	@echo " - making $@ preload"
@@ -162,6 +164,16 @@ libmtev-objs/%.lo:	%.lo
 	$(Q)mkdir -p "`dirname $@`"
 	@echo "- making private $@"
 	$(Q)cp $(@:libmtev-objs/%.lo=%.lo) $@.noctf
+	$(Q)if test -x "$(CTFCONVERT)" ; then \
+		echo "- making CTF ($@)" ; \
+		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
+	fi
+	$(Q)mv $@.noctf $@
+
+libmtev-objs/%.hlo:	%.hlo
+	$(Q)mkdir -p "`dirname $@`"
+	@echo "- making private $@"
+	$(Q)cp $(@:libmtev-objs/%.hlo=%.hlo) $@.noctf
 	$(Q)if test -x "$(CTFCONVERT)" ; then \
 		echo "- making CTF ($@)" ; \
 		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
@@ -219,6 +231,10 @@ mdb-support/libmtev.lo:	mdb-support/libmtev.c $(SHAREDMDBMODSRC)
 mdb-support/libmtev.so:	mdb-support/libmtev.lo mdb-support/mdb_help.lo
 	@echo "- linking $@"
 	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ mdb-support/libmtev.lo mdb-support/mdb_help.lo
+
+.c.hlo:
+	@echo "- compiling $<"
+	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) $(CHOTOPT) -c $< -o $@
 
 .c.lo:
 	@echo "- compiling $<"
