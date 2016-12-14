@@ -28,8 +28,8 @@ src/mtev_version.h
 src/man/*.8
 src/man/*.h
 src/Makefile.objs
-src/config.h
-src/config.h.in
+src/mtev_config.h
+src/mtev_config.h.in
 src/scripts/mtev-config
 src/libmtev.so*
 src/libmtev*dylib

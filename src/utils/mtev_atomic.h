@@ -34,7 +34,7 @@
 #ifndef UTILS_MTEV_ATOMIC_H
 #define UTILS_MTEV_ATOMIC_H
 
-#include "mtev_config.h"
+#include "mtev_defines.h"
 
 typedef volatile int32_t mtev_atomic32_t;
 typedef volatile int64_t mtev_atomic64_t;
