@@ -268,11 +268,7 @@ AS_IF([test "x$ENABLE_LUA" = "xluajit"], [
     # we risk accidentally building against Lua 5.x headers
     # that might be in our default search path.
     AC_MSG_CHECKING([LuaJIT CFLAGS])
-    LUAJIT_CFLAGS=`pkg-config --cflags luajit`
-
-    AS_IF(["x$LUAJIT_CFLAGS" = "x"], [
-        AC_MSG_ERROR([*** libluajit-5.1 required ***])
-    ])
+    LUAJIT_CFLAGS=`pkg-config --cflags luajit 2>/dev/null`
 
     CFLAGS="$CFLAGS $LUAJIT_CFLAGS"
     AC_MSG_RESULT([$LUAJIT_CFLAGS])
