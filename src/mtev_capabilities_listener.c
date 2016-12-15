@@ -205,10 +205,10 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
       cnode = json_object_new_object();
       if(iter.klen == 8)
         snprintf(hexcode, sizeof(hexcode), "0x%0llx",
-                 (unsigned long long int)(vpsized_uint)**f);
+                 (unsigned long long int)(uintptr_t)**f);
       else
         snprintf(hexcode, sizeof(hexcode), "0x%0x",
-                 (unsigned int)(vpsized_uint)**f);
+                 (unsigned int)(uintptr_t)**f);
       json_object_object_add(svcs, hexcode, cnode);
       if(name) json_object_object_add(cnode, name, json_object_new_string(name));
       cmds = json_object_new_object();
@@ -219,7 +219,7 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
         eventer_func_t *f = (eventer_func_t *)sc_iter.value.ptr;
 
         scnode = json_object_new_object();
-        snprintf(hexcode, sizeof(hexcode), "0x%08x", *((u_int32_t *)sc_iter.key.ptr));
+        snprintf(hexcode, sizeof(hexcode), "0x%08x", *((uint32_t *)sc_iter.key.ptr));
         name = eventer_name_for_callback(*f);
         name_copy = strdup(name ? name : "[[unknown]]");
         version = strchr(name_copy, '/');
@@ -349,7 +349,7 @@ mtev_capabilities_tobuff(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
         char *name_copy, *version = NULL;
         eventer_func_t *f = (eventer_func_t *)sc_iter.value.ptr;
 
-        snprintf(hexcode, sizeof(hexcode), "0x%08x", *((u_int32_t *)sc_iter.key.ptr));
+        snprintf(hexcode, sizeof(hexcode), "0x%08x", *((uint32_t *)sc_iter.key.ptr));
         name = eventer_name_for_callback(*f);
         name_copy = strdup(name ? name : "[[unknown]]");
         version = strchr(name_copy, '/');

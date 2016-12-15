@@ -152,13 +152,13 @@ API_EXPORT(int) mtev_log_list(mtev_log_stream_t *loggers, int nsize);
  */
 API_EXPORT(int)
   mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines,
-                        int (*f)(u_int64_t, const struct timeval *,
+                        int (*f)(uint64_t, const struct timeval *,
                                  const char *, size_t, void *),
                         void *closure);
 
 API_EXPORT(int)
-  mtev_log_memory_lines_since(mtev_log_stream_t ls, u_int64_t afterwhich,
-                              int (*f)(u_int64_t, const struct timeval *,
+  mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich,
+                              int (*f)(uint64_t, const struct timeval *,
                                       const char *, size_t, void *),
                               void *closure);
 API_EXPORT(void)

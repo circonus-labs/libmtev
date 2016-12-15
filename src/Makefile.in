@@ -36,7 +36,6 @@ CHOTOPT=@CHOTOPT@
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
 CLINKFLAGS=@CLINKFLAGS@
-LUACFLAGS=@LUACFLAGS@
 PGCFLAGS=@PGCFLAGS@
 LDFLAGS=@LDFLAGS@ -L$(libdir)
 RLDFLAG=@RLDFLAG@
@@ -78,7 +77,7 @@ LIBMTEV_MINOR=libmtev@DOTSO@.$(SEMVER_MAJOR).$(SEMVER_MINOR)@DOTDYLIB@
 LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
 FAST_TIME_PRELOAD=@FAST_TIME_PRELOAD@
 
-TARGETS=$(LIBMTEV) $(LIBMTEV_MINOR) $(FAST_TIME_PRELOAD) luamtev @MDB_MODS@
+TARGETS=$(LIBMTEV) $(LIBMTEV_MINOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS@
 
 all:	reversion $(TARGETS) make-man build-modules
 
@@ -284,7 +283,7 @@ luamtev.o:      luamtev.c luamtev.conf.tmpl
 
 luamtev:        luamtev.o $(LIBMTEV_V)
 	$(Q)echo "- linking $@"
-	$(Q)$(CC) -L. $(LDFLAGS) @UNWINDLIB@ -o $@ luamtev.o -lmtev @LUALIBS@
+	$(Q)$(CC) -L. $(LDFLAGS) @UNWINDLIB@ -o $@ luamtev.o -lmtev $(LIBMTEV_LIBS) @LUALIBS@
 
 install-bins:	luamtev
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)

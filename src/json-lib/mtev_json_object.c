@@ -346,11 +346,11 @@ void mtev_json_object_set_int_overflow(struct mtev_json_object *jso,
   jso->o_ioverflow = o;
 }
 
-u_int64_t mtev_json_object_get_uint64(struct mtev_json_object *jso)
+uint64_t mtev_json_object_get_uint64(struct mtev_json_object *jso)
 {
   return jso->overflow.c_uint64;
 }
-void mtev_json_object_set_uint64(struct mtev_json_object *jso, u_int64_t v)
+void mtev_json_object_set_uint64(struct mtev_json_object *jso, uint64_t v)
 {
   jso->overflow.c_uint64 = v;
 }

@@ -87,7 +87,7 @@ typedef struct mtev_conf_description_t {
 } mtev_conf_description_t;
 
 /* seconds == 0 disable config journaling watchdog */
-API_EXPORT(void) mtev_conf_coalesce_changes(u_int32_t seconds);
+API_EXPORT(void) mtev_conf_coalesce_changes(uint32_t seconds);
 /* Start the watchdog */
 API_EXPORT(void) mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c);
 

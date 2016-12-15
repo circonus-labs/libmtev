@@ -255,7 +255,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   ev_lock_state_t lockstate;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
   int added_to_master_fds = 0;
-  u_int64_t start, duration;
+  uint64_t start, duration;
 
   mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;

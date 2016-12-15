@@ -29,19 +29,17 @@ MODULES_DIR=@MODULES_DIR@
 XSLTPROC=@XSLTPROC@
 XMLLINT=@XMLLINT@
 XML2H=@top_srcdir@/buildtools/xml2h
-LUADIR=LuaJIT
 LUALIBS=@LUALIBS@
 
-top_srcdir=@top_srcdir@
-
-MODULES=@FQ_MODULES@ @LUA4MTEV@
-MTEV4LUA=mtev_lua/mtev.so
 HEADERS=lua_mtev.h
 LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua
 
 FQ_MODULES=@FQ_MODULES@
+LUA_MODUES=@LUA_MODULES@
 
-all:	$(MODULES) $(MTEV4LUA)
+MODULES=$(FQ_MODULES) $(LUA_MODULES)
+
+all:	$(MODULES)
 
 .xml.xmlh:
 	$(Q)$(XML2H) `echo $< | sed -e 's/\.xml$$//;'`_xml_description < $< > $@

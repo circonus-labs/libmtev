@@ -49,7 +49,7 @@ static mtev_hash_table global_clusters;
 
 static const struct timeval boot_time_of_dead_node = { 0, 0 };
 
-#define HEART_BEAT_HDR_LEN 1 + UUID_SIZE + sizeof(u_int64_t) + sizeof(u_int64_t) + 1
+#define HEART_BEAT_HDR_LEN 1 + UUID_SIZE + sizeof(uint64_t) + sizeof(uint64_t) + 1
 #define MAX_PAYLOAD_LEN_SUM  1518 - 14/*ETH*/ - 20 /*IP*/ - HEART_BEAT_HDR_LEN - 4 /*FCS*/
 
 #define HEARTBEAT_MESSAGE_VERSION 1
@@ -263,8 +263,8 @@ mtev_cluster_info_compose(void *payload, int len, void *c) {
   mtev_cluster_check_timeouts();
 
   MEMWRITE_DECL(payload, len);
-  u_int64_t packed_time;
-  u_int64_t my_seq;
+  uint64_t packed_time;
+  uint64_t my_seq;
   mtev_cluster_t *cluster = c;
   mtev_hash_iter payload_iter = MTEV_HASH_ITER_ZERO;
   mtev_hash_iter payload_iter2 = MTEV_HASH_ITER_ZERO;
@@ -330,8 +330,8 @@ mtev_cluster_info_process(void *msg, int len, void *c) {
   mtev_cluster_t *cluster = c;
   uuid_t nodeid;
   struct timeval boot_time;
-  u_int64_t packed_time;
-  u_int64_t seq;
+  uint64_t packed_time;
+  uint64_t seq;
   void* payload = NULL;
   uint8_t number_of_payloads;
   uint16_t payload_len;

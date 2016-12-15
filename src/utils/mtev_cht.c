@@ -38,24 +38,24 @@
 #define CHT_MAX_W 16
 
 struct ring_pos {
-  u_int32_t pos;
+  uint32_t pos;
   unsigned short node_idx;
   unsigned short vnode;
 };
 struct mtev_cht {
-  u_int8_t nbits;
-  u_int16_t weight;
+  uint8_t nbits;
+  uint16_t weight;
   int node_cnt;
   int collisions;
   mtev_cht_node_t *nodes;
   struct ring_pos *ring;
 };
 
-static inline u_int32_t
+static inline uint32_t
 mtev_cht_hash(mtev_cht_t *cht, const void *key, size_t keylen, int ival) {
-  u_int32_t hv;
-  u_int32_t mask;
-  hv = mtev_hash__hash(key, (u_int32_t)keylen, ival);
+  uint32_t hv;
+  uint32_t mask;
+  hv = mtev_hash__hash(key, (uint32_t)keylen, ival);
   if(cht->nbits == 32) return hv;
   mask = (1 << cht->nbits) - 1;
   return hv & mask;
@@ -80,7 +80,7 @@ mtev_cht_calculate_ring(mtev_cht_t *cht) {
   int rsize = cht->node_cnt * cht->weight;
   int i, j, idx = 0;
   int collision = 1;
-  u_int32_t max;
+  uint32_t max;
   struct ring_pos *s, *e;
 
   if(cht->nbits == 32) max = ~0U;
@@ -159,7 +159,7 @@ mtev_cht_calculate_ring(mtev_cht_t *cht) {
 }
 
 mtev_cht_t *
-mtev_cht_alloc_custom(u_int16_t weight, u_int8_t nbits) {
+mtev_cht_alloc_custom(uint16_t weight, uint8_t nbits) {
   mtev_cht_t *cht;
   cht = calloc(1, sizeof(*cht));
   if(nbits == 0) nbits = DEFAULT_CHT_BITS;
@@ -208,7 +208,7 @@ mtev_cht_vlookup_n(mtev_cht_t *cht, const void *key, size_t keylen,
   int i, l, r, m = 0, rsize = cht->node_cnt * cht->weight;
   int w_out = 0;
   int found[CHT_MAX_W];
-  u_int32_t val, hash;
+  uint32_t val, hash;
 
   if(w > CHT_MAX_W) w = CHT_MAX_W;
   if(w < 0) w = 0;
