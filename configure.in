@@ -633,8 +633,7 @@ AC_CACHE_CHECK([for socklen_t], ac_cv_have_socklen_t, [
 #include <sys/types.h>
 #include <sys/socket.h>
 		],
-		[socklen_t foo; foo = 1235; (void)foo;],
-		[ ],
+		[socklen_t foo; foo = 1235; (void)foo;], ,
 		[ AC_MSG_ERROR(socklen_t is missing) ]
 	)
 ])
@@ -644,8 +643,7 @@ AC_CACHE_CHECK([for size_t], ac_cv_have_size_t, [
 		[
 #include <sys/types.h>
 		],
-		[ size_t foo; foo = 1235; (void)foo;],
-		[ ],
+		[ size_t foo; foo = 1235; (void)foo;], ,
 		[ AC_MSG_ERROR(size_t is missing) ]
 	)
 ])
@@ -655,8 +653,7 @@ AC_CACHE_CHECK([for ssize_t], ac_cv_have_ssize_t, [
 		[
 #include <sys/types.h>
 		],
-		[ ssize_t foo; foo = 1235; (void)foo;],
-		[ ],
+		[ ssize_t foo; foo = 1235; (void)foo;], ,
 		[ AC_MSG_ERROR(ssize_t is missing) ]
 	)
 ])
