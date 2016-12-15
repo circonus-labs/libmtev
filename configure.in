@@ -281,12 +281,16 @@ AS_IF([test "x$ENABLE_LUA" = "xluajit"], [
     AC_CHECK_LIB(udns, dns_new, [], [AC_MSG_ERROR([*** libudns required ***])])
 
     LUA_LUAMTEV=luamtev
+    # This is the lua module for mtev.  libmtev <generic> stanza loads this.
     LUA_MODULES=lua_mtev.$MODULEEXT
+    # This is the mtev module for lua.  $(LUA_MODULES) load this.
+    MTEV4LUA="mtev_lua/mtev.so"
 ])
 
 LUALIBS="$LUALIBS $LIBS"
 AC_SUBST(LUALIBS)
 AC_SUBST(LUA_LUAMTEV)
+AC_SUBST(MTEV4LUA)
 LIBS=$OLD_LIBS
 
 AC_ARG_ENABLE([zipkin_fq],
