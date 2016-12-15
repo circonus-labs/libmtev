@@ -17,7 +17,7 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif 
-#include "mtev_config.h"
+#include "mtev_defines.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -14,7 +14,7 @@
  * (http://www.opensource.org/licenses/mit-license.php)
  */
 
-#include "mtev_config.h"
+#include "mtev_defines.h"
 
 #include <stdio.h>
 #include <stdlib.h>

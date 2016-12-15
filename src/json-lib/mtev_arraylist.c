@@ -10,7 +10,7 @@
  *
  */
 
-#include "mtev_config.h"
+#include "mtev_defines.h"
 
 #if STDC_HEADERS
 # include <stdlib.h>
