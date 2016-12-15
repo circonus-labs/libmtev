@@ -454,8 +454,8 @@
 
 typedef struct {
 	char	*t_name;
-	u_int	 t_setmask;
-	u_int	 t_clrmask;
+	unsigned t_setmask;
+	unsigned t_clrmask;
 } ttyperm_t[NN_IO][MD_NN];
 
 typedef unsigned char ttychar_t[NN_IO][C_NCC];

@@ -100,12 +100,12 @@ static include_node_t *config_include_nodes = NULL,
 typedef struct mtev_xml_userdata {
   char       *name;
   char       *path;
-  u_int64_t   dirty_time;
+  uint64_t   dirty_time;
   struct mtev_xml_userdata *freelist;
 } mtev_xml_userdata_t;
 
 static mtev_xml_userdata_t *backingstore_freelist = NULL;
-static u_int64_t last_config_flush = 0;
+static uint64_t last_config_flush = 0;
 
 static int default_is_stopword(const char *f) { return 0; }
 static int (*is_stopnode_name)(const char *) = default_is_stopword; 
@@ -122,18 +122,18 @@ static xmlXPathContextPtr xpath_ctxt = NULL;
 /* coalesced writing allows internals to change the XML structure and mark
  * the tree dirty, but only write the config out once per second.
  */
-static u_int32_t __coalesce_write = 0;
+static uint32_t __coalesce_write = 0;
 
 /* This is used to notice config changes and journal the config out
  * using a user-specified function.  It supports allowing multiple config
  * changed to coalesce so you don't write out 1000 changes in a few seconds.
  */
-static u_int32_t __config_gen = 0;
-static u_int32_t __config_coalesce = 0;
-static u_int32_t __config_coalesce_time = 0;
-static u_int64_t max_gen_count = 0;
+static uint32_t __config_gen = 0;
+static uint32_t __config_coalesce = 0;
+static uint32_t __config_coalesce_time = 0;
+static uint64_t max_gen_count = 0;
 
-void mtev_conf_coalesce_changes(u_int32_t seconds) {
+void mtev_conf_coalesce_changes(uint32_t seconds) {
   __config_coalesce_time = seconds;
 }
 
@@ -521,9 +521,9 @@ mtev_conf_kansas_city_shuffle_undo(include_node_t *include_nodes, int include_no
   }
 }
 
-static u_int64_t
+static uint64_t
 usec_now() {
-  u_int64_t usec;
+  uint64_t usec;
   struct timeval tv;
   mtev_gettimeofday(&tv, NULL);
   usec = tv.tv_sec * 1000000UL;
@@ -780,7 +780,7 @@ mtev_conf_read_into_node(xmlNodePtr node, const char *path) {
     char name[PATH_MAX];
     char *sep;
     xmlNodePtr child;
-    u_int64_t gen;
+    uint64_t gen;
 
     mtev_watchdog_child_heartbeat();
 
@@ -1979,7 +1979,7 @@ mtev_conf_xml_in_mem(size_t *len) {
 
 int
 mtev_conf_write_log() {
-  static u_int32_t last_write_gen = 0;
+  static uint32_t last_write_gen = 0;
   static mtev_log_stream_t config_log = NULL;
   struct timeval __now;
   xmlOutputBufferPtr out;
@@ -2413,7 +2413,7 @@ mtev_console_config_section(mtev_console_closure_t ncct,
   xmlXPathObjectPtr pobj = NULL;
   xmlXPathContextPtr xpath_ctxt = NULL;
   xmlNodePtr node = NULL, newnode;
-  vpsized_int delete = (vpsized_int)closure;
+  intptr_t delete = (intptr_t)closure;
 
   mtev_conf_xml_xpath(NULL, &xpath_ctxt);
   if(argc != 1) {

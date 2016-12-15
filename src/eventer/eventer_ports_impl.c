@@ -101,7 +101,7 @@ static void alter_fd_associate(eventer_t e, int mask, struct ports_spec *spec) {
   if(mask & EVENTER_WRITE) events |= POLLOUT;
   if(mask & EVENTER_EXCEPTION) events |= POLLERR;
   errno = 0;
-  ret = port_associate(spec->port_fd, PORT_SOURCE_FD, e->fd, events, (void *)(vpsized_int)e->fd);
+  ret = port_associate(spec->port_fd, PORT_SOURCE_FD, e->fd, events, (void *)(intptr_t)e->fd);
   s_errno = errno;
   if (ret == -1) {
     mtevFatal(mtev_error,
@@ -225,7 +225,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   const char *cbname;
   struct timeval __now;
   int fd, newmask;
-  u_int64_t start, duration;
+  uint64_t start, duration;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
 
   mask = mask & ~(EVENTER_RESERVED);
@@ -387,7 +387,7 @@ static int eventer_ports_impl_loop() {
         pe = &pevents[idx];
         if(pe->portev_source != PORT_SOURCE_FD) continue;
         fd = (int)pe->portev_object;
-        mtevAssert((vpsized_int)pe->portev_user == fd);
+        mtevAssert((intptr_t)pe->portev_user == fd);
         e = master_fds[fd].e;
 
         /* It's possible that someone removed the event and freed it

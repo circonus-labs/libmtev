@@ -72,6 +72,7 @@ struct eventer_impl_data {
   struct cross_thread_trigger *cross;
   void *spec;
   eventer_pool_t *pool;
+  mtev_watchdog_t *hb;
 };
 
 static __thread struct eventer_impl_data *my_impl_data;
@@ -236,9 +237,58 @@ int eventer_impl_propset(const char *key, const char *value) {
   }
   if(!strncasecmp(key, "loop_", strlen("loop_"))) {
     const char *name = key + strlen("loop_");
+    if(strlen(name) == 0) return -1;
+
     int requested = atoi(value);
     if(requested < 0) requested = 0;
     eventer_pool_create(name, requested);
+    return 0;
+  }
+  if(!strncasecmp(key, "jobq_", strlen("jobq_"))) {
+    char *nv = alloca(strlen(value)+1), *tok;
+    memcpy(nv, value, strlen(value)+1);
+    const char *name = key + strlen("jobq_");
+    if(strlen(name) == 0) return -1;
+
+    uint32_t concurrency, min = 0, max = 0;
+    eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_NONE;
+
+#undef ADVTOK
+#define ADVTOK do { \
+    tok = nv; \
+    if(tok) nv = strchr(tok, ','); \
+    if(nv) *nv++ = '\0'; \
+} while(0) \
+
+    ADVTOK;
+    concurrency = atoi(tok);
+    if(concurrency == 0) return -1;
+    
+    ADVTOK; /* min */
+    if(tok) min = max = atoi(tok);
+    ADVTOK; /* max */
+    if(tok) max = atoi(tok);
+    if((min && max && min > max) ||
+       (min && concurrency < min) ||
+       (max && concurrency > max)) {
+      mtevL(mtev_error, "eventer jobq '%s' must have reasonable concurrency\n", name);
+      return -1;
+    }
+    ADVTOK;
+    if(tok) {
+      if(!strcmp(tok, "gc")) mem_safety = EVENTER_JOBQ_MS_GC;
+      else if(!strcmp(tok, "cs")) mem_safety = EVENTER_JOBQ_MS_CS;
+      else if(!strcmp(tok, "none")) {
+        mtevL(mtev_error, "eventer jobq '%s' has unknown memory safety setting: %s\n",
+              name, tok);
+        return -1;
+      }
+    }
+#undef ADVTOK
+
+    eventer_jobq_t *jq = eventer_jobq_create_ms(name, mem_safety);
+    eventer_jobq_set_concurrency(jq, concurrency);
+    eventer_jobq_set_min_max(jq, min, max);
     return 0;
   }
   if(!strcasecmp(key, "default_queue_threads")) {
@@ -354,22 +404,29 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   e->closure = calloc(1,sizeof(unsigned int));
   e->callback = eventer_mtev_memory_maintenance;
   eventer_add_recurrent(e);
+
+  /* The "main" thread uses a NULL heartbeat,
+   * all other threads get their own. */
+  if(t->id != 0) t->hb = mtev_watchdog_create();
+  e = mtev_watchdog_recurrent_heartbeat(t->hb);
+  eventer_add_recurrent(e);
+
   ck_pr_inc_32(&t->pool->__loops_started);
 }
 
 static void *thrloopwrap(void *vid) {
   struct eventer_impl_data *t;
-  int id = (int)(vpsized_int)vid;
+  int id = (int)(intptr_t)vid;
   t = &eventer_impl_tls_data[id];
   t->id = id;
   mtev_memory_init(); /* Just in case no one has initialized this */
   mtev_memory_init_thread();
   eventer_per_thread_init(t);
-  return (void *)(vpsized_int)__eventer->loop(id);
+  return (void *)(intptr_t)__eventer->loop(id);
 }
 
 void eventer_loop() {
-  thrloopwrap((void *)(vpsized_int)0);
+  thrloopwrap((void *)(intptr_t)0);
 }
 
 static void eventer_loop_prime(eventer_pool_t *pool, int start) {
@@ -380,7 +437,7 @@ static void eventer_loop_prime(eventer_pool_t *pool, int start) {
     pthread_t tid;
     int adjidx = pool->__global_tid_offset + i;
     mtevAssert(pool == eventer_impl_tls_data[adjidx].pool);
-    pthread_create(&tid, NULL, thrloopwrap, (void *)(vpsized_int)adjidx);
+    pthread_create(&tid, NULL, thrloopwrap, (void *)(intptr_t)adjidx);
   }
   while(ck_pr_load_32(&pool->__loops_started) < ck_pr_load_32(&pool->__loop_concurrency));
 }
@@ -433,7 +490,7 @@ int eventer_impl_setrlimit() {
     rlim.rlim_cur = rlim.rlim_max = (try /= 2);
   }
   getrlimit(RLIMIT_NOFILE, &rlim);
-  mtevL(mtev_debug, "rlim { %u, %u }\n", (u_int32_t)rlim.rlim_cur, (u_int32_t)rlim.rlim_max);
+  mtevL(mtev_debug, "rlim { %u, %u }\n", (uint32_t)rlim.rlim_cur, (uint32_t)rlim.rlim_max);
   return rlim.rlim_cur;
 }
 
@@ -627,7 +684,7 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
   max_timed_events_to_process = t->timed_events->size;
   while(max_timed_events_to_process-- > 0) {
     int newmask;
-    u_int64_t start, duration;
+    uint64_t start, duration;
     const char *cbname = NULL;
     eventer_t timed_event;
 
@@ -760,7 +817,7 @@ void eventer_dispatch_recurrent(struct timeval *now) {
   t = get_my_impl_data();
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
-    u_int64_t start, duration;
+    uint64_t start, duration;
     start = mtev_gethrtime();
     node->e->callback(node->e, EVENTER_RECURRENT, node->e->closure, now);
     duration = mtev_gethrtime() - start;

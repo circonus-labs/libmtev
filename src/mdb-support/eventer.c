@@ -112,7 +112,7 @@ static int _jobq_cb(uintptr_t addr, const void *u, void *data) {
 }
 
 static int
-mtev_jobq_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+mtev_jobq_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
   struct jobq_crutch c = { .flags = flags, .name = NULL };
   GElf_Sym sym;
   int rv;
@@ -124,7 +124,7 @@ mtev_jobq_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
 }
 
 static int
-mtev_timed_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+mtev_timed_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
   GElf_Sym sym;
   uintptr_t deref_addr;
   int rv;
@@ -136,7 +136,7 @@ mtev_timed_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) 
 }
 
 static int
-mtev_fds_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+mtev_fds_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
   int fd;
   struct _eventer_impl l;
   struct _event e;
@@ -184,7 +184,7 @@ static const mdb_bitmask_t mask_bits[] = {
 };
 
 static int
-mtev_print_event_dcmds(uintptr_t addr, uint_t flags, int argc, const mdb_arg_t *argv) {
+mtev_print_event_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
   struct _event e;
   if(mdb_vread(&e, sizeof(e), addr) == -1) {
     mdb_warn("invalid read\n");

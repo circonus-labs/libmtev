@@ -2,6 +2,7 @@
 *.a
 *.bundle
 *.lo
+*.hlo
 *.o
 *.so
 *.xmlh
@@ -29,6 +30,7 @@ src/man/*.8
 src/man/*.h
 src/Makefile.objs
 src/mtev_config.h
+src/mtev_config.h.in
 src/scripts/mtev-config
 src/libmtev.so*
 src/libmtev*dylib

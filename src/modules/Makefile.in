@@ -29,17 +29,16 @@ MODULES_DIR=@MODULES_DIR@
 XSLTPROC=@XSLTPROC@
 XMLLINT=@XMLLINT@
 XML2H=@top_srcdir@/buildtools/xml2h
-LUADIR=LuaJIT
 LUALIBS=@LUALIBS@
 
-top_srcdir=@top_srcdir@
-
-MODULES=@FQ_MODULES@ @LUA4MTEV@
-MTEV4LUA=mtev_lua/mtev.so
 HEADERS=lua_mtev.h
 LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua
 
 FQ_MODULES=@FQ_MODULES@
+LUA_MODULES=@LUA_MODULES@
+MTEV4LUA=@MTEV4LUA@
+
+MODULES=$(FQ_MODULES) $(LUA_MODULES)
 
 all:	$(MODULES) $(MTEV4LUA)
 
@@ -107,7 +106,9 @@ install-modules:	$(MODULES)
 		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
 	done
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)/mtev_lua
-	$(INSTALL) -m 0755 mtev_lua/mtev.so $(DESTDIR)$(libdir)/mtev_lua/mtev.so
+	if [ "x$(MTEV4LUA)" != "x" ]; then \
+		$(INSTALL) -m 0755 $(MTEV4LUA) $(DESTDIR)$(libdir)/$(MTEV4LUA); \
+	fi
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)/lua/mtev
 	for lua in $(LUA_FILES); do \
 		$(INSTALL) -m 0755 lua-support/$$lua $(DESTDIR)$(MODULES_DIR)/lua/$$lua ; \

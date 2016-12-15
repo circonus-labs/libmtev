@@ -22,10 +22,10 @@ API_EXPORT(const mtev_duration_definition_t *) mtev_get_durations_s(void);
 API_EXPORT(int)
   mtev_confstr_parse_boolean(const char *input, mtev_boolean *output);
 API_EXPORT(int)
-  mtev_confstr_parse_duration(const char *input, u_int64_t *output,
+  mtev_confstr_parse_duration(const char *input, uint64_t *output,
                               const mtev_duration_definition_t *durations);
 API_EXPORT(int)
-  mtev_confstr_parse_time_gm(const char *input, u_int64_t *output);
+  mtev_confstr_parse_time_gm(const char *input, uint64_t *output);
 
 #define mtev_confstr_parse_duration_ns(input, output) \
   mtev_confstr_parse_duration(input, output, mtev_get_durations_ns())

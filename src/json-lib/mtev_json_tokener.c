@@ -14,7 +14,7 @@
  * (http://www.opensource.org/licenses/mit-license.php)
  */
 
-#include "mtev_config.h"
+#include "mtev_defines.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -487,7 +487,7 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
               mtev_json_object_set_int_overflow(current, mtev_json_overflow_int64);
           }
           else {
-            u_int64_t u64;
+            uint64_t u64;
             u64 = strtoll(tok->pb->buf, NULL, 10);
             mtev_json_object_set_uint64(current, u64);
             if(u64 != numi)

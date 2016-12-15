@@ -207,7 +207,7 @@ static DH *dh1024_tmp = NULL, *dh2048_tmp = NULL;
 static const char *dh1024_file = NULL, *dh2048_file = NULL;
 static int
 generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
-  int bits = (int)(vpsized_int)cl;
+  int bits = (int)(intptr_t)cl;
   if(mask != EVENTER_ASYNCH_WORK) return 0;
   switch(bits) {
   case 1024:

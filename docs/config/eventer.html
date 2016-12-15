@@ -496,6 +496,21 @@ a good concurrency level based on the number of CPU cores in the system.</p>
 value.  If a value of 0 is provided, then the named event loop will use the
 default concurrency specified by the <code>concurrency</code> key.</p>
 </li>
+<li><h5 id="jobqname">jobq_&lt;name&gt;</h5>
+<p>This establishes a new named jobq and sets parameters around concurrency
+and memory safety.  The format of the value is:
+<code>concurrency[,min[,max[,safety]]]</code>.  Concurrency, min, and max are all
+integers. Concurrency must be greater than zero.  If minimum is omitted or
+zero, no minimum is set.  If max is omitted, it is set to min.  If max is
+zero, there is no maximum.  Safety can be one of <code>none</code> (default), <code>cs</code>, or
+<code>gc</code>.  For more information om memory settings see <a href="https://github.com/circonus-labs/libmtev/tree/master/src/eventer/eventer_jobq.h" target="_blank">eventer_jobq.h</a> and <a href="https://github.com/circonus-labs/libmtev/tree/master/src/utils/mtev_memory.h" target="_blank">mtev_memory.h</a>.</p>
+<blockquote>
+<p>Note that this merely creates the jobq. One must find and use it
+programmatically within the software.  It is designed to have a code-free
+way of allowing operators to adjust parameters around jobqs used within
+an application.</p>
+</blockquote>
+</li>
 <li><h5 id="defaultcachain">default_ca_chain</h5>
 <p>Specified the path to a file containing a PEM encoded set of certificate authorities
 to trust by default.</p>
@@ -554,7 +569,7 @@ and this be unavailable to the SSL subsystem; this will prevent forward secrecy.
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Eventer","level":"1.2.4","depth":2,"next":{"title":"Logging","level":"1.2.5","depth":2,"path":"config/logging.md","ref":"config/logging.md","articles":[]},"previous":{"title":"Watchdog","level":"1.2.3","depth":2,"path":"config/watchdog.md","ref":"config/watchdog.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/eventer.md","mtime":"2016-12-05T16:36:41.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-05T16:55:54.933Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Eventer","level":"1.2.4","depth":2,"next":{"title":"Logging","level":"1.2.5","depth":2,"path":"config/logging.md","ref":"config/logging.md","articles":[]},"previous":{"title":"Watchdog","level":"1.2.3","depth":2,"path":"config/watchdog.md","ref":"config/watchdog.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/eventer.md","mtime":"2016-12-06T21:39:18.856Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-07T21:54:22.801Z"},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

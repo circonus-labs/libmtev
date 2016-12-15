@@ -36,6 +36,70 @@
 
 #include "mtev_config.h"
 
+#define IFS_CH '/'
+
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
+
+#ifndef DTRACE_ENABLED
+#define DTRACE_PROBES_DISABLED 1
+#endif
+
+/* The number of bytes in a void * (workaround for OpenBSD). */
+#undef SIZEOF_VOID__
+#if !defined(SIZEOF_VOID_P) && defined(SIZEOF_VOID__)
+#  define SIZEOF_VOID_P SIZEOF_VOID__
+#endif
+
+/* BIND, Kerberos and Berkeley DB use __BIT_TYPES_DEFINED__ to protect
+ * against multiple redefinitions of these types (uint{8,16,32,64}_t)
+ * and so shall we.
+ */
+#ifndef __BIT_TYPES_DEFINED__
+#define __BIT_TYPES_DEFINED__
+#endif
+
+#ifdef MAKE_HTOBE64_HTONLL
+#undef htonll
+#define htonll htobe64
+#endif
+
+#ifdef MAKE_BE64TOH_NTOHLL
+#undef ntohll
+#define ntohll be64toh
+#endif
+
+#ifndef PATH_MAX
+#define PATH_MAX MAXPATHLEN
+#endif
+
+typedef enum { mtev_false = 0, mtev_true } mtev_boolean;
+
 #include <stdbool.h>
 #define _BOOL
 

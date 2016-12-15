@@ -458,7 +458,7 @@ mtev_time_toggle_require_invariant_tsc(mtev_boolean enable)
 
 #ifdef ENABLE_RDTSC
 /* This function attempts to implement a cycle-alike get_nanos */
-static inline u_int64_t
+static inline uint64_t
 mtev_get_nanos_force(void)
 {
   int cpuid = 0;
@@ -655,7 +655,7 @@ mtev_time_stop_tsc()
   thread_disable_rdtsc = mtev_true;
 }
 
-inline u_int64_t
+inline uint64_t
 mtev_get_nanos(void)
 {
 #ifdef ENABLE_RDTSC
@@ -685,7 +685,7 @@ mtev_get_nanos(void)
   return mtev_gethrtime_fallback();
 }
 
-u_int64_t
+uint64_t
 mtev_get_ticks(void)
 {
 #ifdef ENABLE_RDTSC
