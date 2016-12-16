@@ -5,6 +5,8 @@
 
 #include <math.h>
 
+#define HLL_NUMERATOR 16777216 /* 1 << 24 */
+
 struct mtev_hyperloglog {
   uint8_t bitcount;
   size_t size;
@@ -88,12 +90,15 @@ mtev_hyperloglog_estimate(mtev_hyperloglog_t *hll, int *zero_register_count)
 
   m = mtev_hyperloglog_alpha(hll->bitcount) * c * c;
 
+  /* do scaled integer math */
   for (int i = 0; i < c; i++) {
     uint8_t x = hll->regs[i];
     *zero_register_count += x == 0;
-    int_sum += c / (1 << x);
+    int_sum += HLL_NUMERATOR / (1 << x);
   }
-  sum = ((double) int_sum / (double)c);
+
+  /* unscale */
+  sum = ((double) int_sum / (double)HLL_NUMERATOR);
   return m / sum;
 }
 
