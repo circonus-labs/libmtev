@@ -51,6 +51,9 @@ time_test: time_test.c
 sort_test: sort_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o sort_test sort_test.c
 
+hll_test: hll_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o hll_test hll_test.c
+
 .c.o:
 	@echo "- compiling $<"
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -c $<

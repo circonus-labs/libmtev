@@ -1,8 +1,11 @@
+
 #include <mtev_hyperloglog.h>
 #include <mtev_hash.h>
 #include <mtev_log.h>
 
 #include <math.h>
+
+#define HLL_NUMERATOR 16777216 /* 1 << 24 */
 
 struct mtev_hyperloglog {
   uint8_t bitcount;
@@ -62,7 +65,7 @@ mtev_hyperloglog_add(mtev_hyperloglog_t *hll, const void *data, size_t len)
   hash = mtev_hash__hash(data, len, 0x6F61567A);
 
   /* pick initial index based on precision */
-  index = hash >> bitarea;
+  index = (hash >> bitarea);
 
   /* shift out the index bits from the hash */
   hash = hash << hll->bitcount | (1 << (hll->bitcount -1 ));
@@ -70,25 +73,32 @@ mtev_hyperloglog_add(mtev_hyperloglog_t *hll, const void *data, size_t len)
   /* count leading zeroes */
   int l = __builtin_clz(hash) + 1;
 
+  uint8_t y = hll->regs[index];
+
   /* save the register if we got bigger */
-  if (l > hll->regs[index]) {
+  if (l > y) {
     hll->regs[index] = l;
   }
 }
 
 static inline double 
-mtev_hyperloglog_estimate(mtev_hyperloglog_t *hll, int *zero_count)
+mtev_hyperloglog_estimate(mtev_hyperloglog_t *hll, int *zero_register_count)
 {
-  int c;
-  double m, sum;
+  uint64_t int_sum = 0;
+  double m, sum = 0;
+  int c = (1 << hll->bitcount);
 
-  c = (1 << hll->bitcount);
   m = mtev_hyperloglog_alpha(hll->bitcount) * c * c;
-  sum = 0;
 
-  for (int i=0; i < c; i++) {
-    sum += 1.0 / (1 << hll->regs[i]);
+  /* do scaled integer math */
+  for (int i = 0; i < c; i++) {
+    uint8_t x = hll->regs[i];
+    *zero_register_count += x == 0;
+    int_sum += HLL_NUMERATOR / (1 << x);
   }
+
+  /* unscale */
+  sum = ((double) int_sum / (double)HLL_NUMERATOR);
   return m / sum;
 }
 
