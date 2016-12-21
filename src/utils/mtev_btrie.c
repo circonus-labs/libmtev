@@ -76,7 +76,11 @@ static inline int match_bpm(btrie_node *node,
   if(match_len <= 0) return 1;
   for(i=0;i<=m;i++) {
     if(i<m) { /* we're matching a whole word */
-      if(node->bits[i] != key[i]) return 0;
+      /* This seemingly unnecessary cast works around a gcc bug:
+       * over-aggressive unrolling produces dead code array overrun.
+       * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=59124
+       */
+      if(((uint32_t *)node->bits)[i] != key[i]) return 0;
     }
     else {
       uint32_t mask = ((match_len % 32) == 0) ? 0xffffffff :
