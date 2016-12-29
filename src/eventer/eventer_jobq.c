@@ -254,6 +254,10 @@ void
 eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job) {
   job->next = NULL;
   eventer_jobq_maybe_spawn(jobq);
+  if(job->fd_event) {
+    ck_pr_inc_64(&jobq->total_jobs);
+    ck_pr_inc_32(&jobq->backlog);
+  }
   pthread_mutex_lock(&jobq->lock);
   if(jobq->tailq) {
     /* If there is a tail (queue has items), just push it on the end. */
@@ -265,10 +269,6 @@ eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job) {
     jobq->headq = jobq->tailq = job;
   }
   pthread_mutex_unlock(&jobq->lock);
-  if(job->fd_event) {
-    ck_pr_inc_64(&jobq->total_jobs);
-    ck_pr_inc_32(&jobq->backlog);
-  }
 
   /* Signal consumers */
   sem_post(&jobq->semaphore);
