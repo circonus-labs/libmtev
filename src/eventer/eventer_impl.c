@@ -511,6 +511,15 @@ void eventer_impl_init_globals() {
                              &default_pool));
 }
 
+static int periodic_jobq_maintenance(eventer_t e, int mask, void *vjobq, struct timeval *now) {
+  eventer_jobq_t *jobq = vjobq;
+  eventer_jobq_ping(jobq);
+  eventer_add_in_s_us(periodic_jobq_maintenance, jobq, 1, 0);
+  return 0;
+}
+static void register_jobq_maintenance(eventer_jobq_t *jobq, void *unused) {
+  eventer_add_in_s_us(periodic_jobq_maintenance, jobq, 1, 0);
+}
 int eventer_impl_init() {
   int try;
   char *evdeb;
@@ -610,6 +619,8 @@ int eventer_impl_init() {
   mtevAssert(accum_check == __total_loop_count);
 
   eventer_ssl_init();
+
+  eventer_jobq_process_each(register_jobq_maintenance, NULL);
   return 0;
 }
 

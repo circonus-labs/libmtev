@@ -45,6 +45,7 @@
 #ifndef JOBQ_SIGNAL
 #define JOBQ_SIGNAL SIGALRM
 #endif
+#define THREAD_IDLE_NS (1000000000ULL * 5)
 
 #define pthread_self_ptr() ((void *)(intptr_t)pthread_self())
 
@@ -223,11 +224,14 @@ eventer_jobq_consumer_pthreadentry(void *vp) {
 }
 static void
 eventer_jobq_maybe_spawn(eventer_jobq_t *jobq) {
-  int32_t current = jobq->concurrency;
+  int32_t current = ck_pr_load_32(&jobq->concurrency);
   /* if we've no desired concurrency, this doesn't apply to us */
   if(jobq->desired_concurrency == 0) return;
-  /* See if we need to launch one */
-  if(jobq->desired_concurrency > current) {
+  /* If we have none, we definitely should launch a thread.
+   * otherwise we should check that all current threads are inflight
+   * and ensure we don't jump past our desired_concurrency.
+   */
+  if(current == 0 || (current < jobq->desired_concurrency && current == ck_pr_load_32(&jobq->inflight))) {
     /* we need another thread, maybe... this is a race as we do the
      * increment in the new thread, but we check there and back it out
      * if we did something we weren't supposed to. */
@@ -253,11 +257,16 @@ eventer_jobq_maybe_spawn(eventer_jobq_t *jobq) {
 void
 eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job) {
   job->next = NULL;
-  eventer_jobq_maybe_spawn(jobq);
+  /* Do not increase the concurrency from zero for a noop */
+  if(ck_pr_load_32(&jobq->concurrency) == 0 && job->fd_event == NULL) {
+    free(job);
+    return;
+  }
   if(job->fd_event) {
     ck_pr_inc_64(&jobq->total_jobs);
     ck_pr_inc_32(&jobq->backlog);
   }
+  eventer_jobq_maybe_spawn(jobq);
   pthread_mutex_lock(&jobq->lock);
   if(jobq->tailq) {
     /* If there is a tail (queue has items), just push it on the end. */
@@ -372,7 +381,8 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
       free(job);
       jobcopy->fd_event = my_precious;
       jobcopy->finish_hrtime = mtev_gethrtime();
-      eventer_jobq_maybe_spawn(jobcopy->jobq);
+      if(ck_pr_load_32(&jobcopy->jobq->concurrency) == 0)
+        eventer_jobq_maybe_spawn(jobcopy->jobq);
       eventer_jobq_finished_job(jobcopy->jobq, jobcopy);
       memcpy(&wakeupcopy, jobcopy->fd_event, sizeof(wakeupcopy));
       eventer_jobq_enqueue(eventer_default_backq(jobcopy->fd_event), jobcopy);
@@ -430,13 +440,21 @@ eventer_jobq_cancel_cleanup(void *vp) {
   ck_pr_dec_32(&jobq->concurrency);
 }
 static mtev_boolean
-jobq_thread_should_terminate(eventer_jobq_t *jobq) {
+jobq_thread_should_terminate(eventer_jobq_t *jobq, mtev_boolean want_reduce) {
   uint32_t have, want;
   while(1) {
     have = ck_pr_load_32(&jobq->concurrency);
-    want = ck_pr_load_32(&jobq->desired_concurrency);
+    if(want_reduce) {
+      want = ck_pr_load_32(&jobq->min_concurrency);
+    } else {
+      want = ck_pr_load_32(&jobq->desired_concurrency);
+    }
     if(have <= want) break;
-    if(ck_pr_cas_32(&jobq->concurrency, have, have-1)) return mtev_true;
+    if(ck_pr_cas_32(&jobq->concurrency, have, have-1)) {
+      mtevL(eventer_deb, "jobq[%s/%p] %s turn down.\n",
+            jobq->queue_name, pthread_self_ptr(), want_reduce ? "implicit" : "explicit");
+      return mtev_true;
+    }
   }
   return mtev_false;
 }
@@ -445,6 +463,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
   eventer_job_t *job;
   uint32_t current_count;
   sigjmp_buf env;
+  mtev_hrtime_t last_job_hrtime = 0;
 
   current_count = ck_pr_faa_32(&jobq->concurrency, 1) + 1;
   mtevL(eventer_deb, "jobq[%s/%p] -> %d\n", jobq->queue_name, pthread_self_ptr(), current_count);
@@ -469,11 +488,16 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     job = eventer_jobq_dequeue(jobq);
     if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_begin();
     if(!job) continue;
+
+    mtev_hrtime_t nowhr = mtev_gethrtime();
     if(!job->fd_event) {
       free(job);
       ck_pr_dec_32(&jobq->inflight);
       /* We might want to decrease our concurrency here */
-      if(jobq_thread_should_terminate(jobq)) break;
+      if(jobq_thread_should_terminate(jobq, mtev_false)) break;
+      if(last_job_hrtime && (nowhr - last_job_hrtime > THREAD_IDLE_NS)) {
+        if(jobq_thread_should_terminate(jobq, mtev_true)) break;
+      }
       continue;
     }
     pthread_setspecific(jobq->activejob, job);
@@ -481,7 +505,8 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
           jobq->queue_name, job);
 
     /* Mark our commencement */
-    job->start_hrtime = mtev_gethrtime();
+    last_job_hrtime = nowhr;
+    job->start_hrtime = nowhr;
 
     /* Safely check and handle if we've timed out while in queue */
     pthread_mutex_lock(&job->lock);
@@ -638,6 +663,11 @@ static void jobq_fire_blanks(eventer_jobq_t *jobq, int n) {
     eventer_jobq_enqueue(jobq, job);
   }
 }
+
+void eventer_jobq_ping(eventer_jobq_t *jobq) {
+  jobq_fire_blanks(jobq, 1);
+}
+
 void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max) {
   mtevAssert(min <= max);
   mtevAssert(!jobq->isbackq);
