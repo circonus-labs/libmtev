@@ -124,3 +124,4 @@ extern stats_handle_t *eventer_unnamed_callback_latency;
 stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f);
 
 int eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name);
+void eventer_jobq_ping(eventer_jobq_t *jobq);
