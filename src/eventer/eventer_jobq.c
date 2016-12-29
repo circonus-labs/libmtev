@@ -227,8 +227,11 @@ eventer_jobq_maybe_spawn(eventer_jobq_t *jobq) {
   int32_t current = ck_pr_load_32(&jobq->concurrency);
   /* if we've no desired concurrency, this doesn't apply to us */
   if(jobq->desired_concurrency == 0) return;
-  /* See if we need to launch one */
-  if(jobq->desired_concurrency > current && ck_pr_load_32(&jobq->backlog) > 0) {
+  /* If we have none, we definitely should launch a thread.
+   * otherwise we should check that all current threads are inflight
+   * and ensure we don't jump past our desired_concurrency.
+   */
+  if(current == 0 || (current < jobq->desired_concurrency && current == ck_pr_load_32(&jobq->inflight))) {
     /* we need another thread, maybe... this is a race as we do the
      * increment in the new thread, but we check there and back it out
      * if we did something we weren't supposed to. */
