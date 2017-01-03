@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
+#include <glob.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
@@ -88,6 +89,7 @@ struct include_node_t{
   int snippet;
   int ro;
   char path[255];
+  int glob_idx;
   int child_count;
   struct include_node_t *children;
 };
@@ -435,13 +437,36 @@ mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt)
     for(i=0; i<*cnt; i++) {
       mtev_conf_magic_separate_includes(&(include_nodes[i].children), &(include_nodes[i].child_count));
       if(include_nodes[i].doc) {
-        xmlNodePtr n;
+        xmlNodePtr n, prev = NULL;
         for(n=include_nodes[i].insertion_point->children;
-            n; n = n->next)
-          n->parent = include_nodes[i].root;
-        include_nodes[i].insertion_point->children =
-          include_nodes[i].old_children;
+            n; n = n->next) {
+          if(n->_private == NULL && prev) n->_private = prev->_private;
+          include_node_t *owner = n->_private;
+          assert(owner);
+          n->parent = owner->snippet ? (xmlNodePtr)owner->doc : owner->root;
+          prev = n;
+        }
+        /* unlink the conjunction of lists */
+        prev = NULL;
+        for(n=include_nodes[i].insertion_point->children;
+            n; n = n->next) {
+          if(prev && prev->_private != n->_private) {
+            n->prev = NULL;
+            prev->next = NULL;
+          }
+          prev = n;
+        }
+        if(include_nodes[i].glob_idx == 0) {
+          include_nodes[i].insertion_point->children =
+            include_nodes[i].old_children;
+        }
         xmlFreeDoc(include_nodes[i].doc);
+
+        /* We've already done the work for subsequent globbed includes */
+        while((i+1) < *cnt && include_nodes[i+1].glob_idx > 0) {
+          i++;
+          xmlFreeDoc(include_nodes[i].doc);
+        }
       }
     }
     free(include_nodes);
@@ -486,18 +511,27 @@ mtev_conf_kansas_city_shuffle_redo(include_node_t *include_nodes, int include_no
     for(i=0; i<include_node_cnt; i++) {
       mtev_conf_kansas_city_shuffle_redo(include_nodes[i].children, include_nodes[i].child_count);
       if(include_nodes[i].doc) {
-        xmlNodePtr n;
+        xmlNodePtr n, more_kids;
 
         if (!include_nodes[i].snippet)
-          include_nodes[i].insertion_point->children =
-            include_nodes[i].root->children;
+          more_kids = include_nodes[i].root->children;
         else
-          include_nodes[i].insertion_point->children =
-            include_nodes[i].root;
+          more_kids = include_nodes[i].root;
+
+        if(include_nodes[i].glob_idx == 0 || include_nodes[i].insertion_point->children == NULL) {
+          include_nodes[i].insertion_point->children = more_kids;
+        }
+        else {
+          for(n=include_nodes[i].insertion_point->children; n->next; n = n->next);
+          more_kids->prev = n->next;
+          n->next = more_kids;
+        }
 
         for(n=include_nodes[i].insertion_point->children;
-            n; n = n->next)
+            n; n = n->next) {
           n->parent = include_nodes[i].insertion_point;
+          n->parent->last = n;
+        }
       }
     }
   }
@@ -510,12 +544,28 @@ mtev_conf_kansas_city_shuffle_undo(include_node_t *include_nodes, int include_no
     for(i=0; i<include_node_cnt; i++) {
       mtev_conf_kansas_city_shuffle_undo(include_nodes[i].children, include_nodes[i].child_count);
       if(include_nodes[i].doc) {
-        xmlNodePtr n;
+        xmlNodePtr n, prev = NULL;
         for(n=include_nodes[i].insertion_point->children;
-            n; n = n->next)
-          n->parent = include_nodes[i].root;
-        include_nodes[i].insertion_point->children =
-          include_nodes[i].old_children;
+            n; n = n->next) {
+          if(n->_private == NULL && prev) n->_private = prev->_private;
+          include_node_t *owner = n->_private;
+          assert(owner);
+          n->parent = owner->snippet ? (xmlNodePtr)owner->doc : owner->root;
+          prev = n;
+        }
+        /* unlink the conjuction of lists */
+        prev = NULL;
+        for(n=include_nodes[i].insertion_point->children;
+            n; n = n->next) {
+          if(prev && prev->_private != n->_private) {
+            n->prev = NULL;
+            prev->next = NULL;
+          }
+          prev = n;
+        }
+        if(include_nodes[i].glob_idx == 0)
+          include_nodes[i].insertion_point->children =
+            include_nodes[i].old_children;
       }
     }
   }
@@ -846,12 +896,17 @@ mtev_conf_read_backing_store(const char *path) {
 
 static int
 mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_node) {
+  char infile[PATH_MAX];
+  char globpat[PATH_MAX];
   xmlXPathContextPtr mix_ctxt = NULL;
   xmlXPathObjectPtr pobj = NULL;
   xmlNodePtr node;
-  int i, cnt, rv = 0, master = 0;
+  int i, j, cnt = 0, rv = 0, master = 0;
+  int inc_idx = 0;
   int *include_cnt;
   include_node_t* include_nodes;
+  glob_t *tl_globs = NULL;
+  int nglobs = 0;
 
   if (inc_node) {
     include_cnt = &(inc_node->child_count);
@@ -945,8 +1000,31 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
   if(!pobj) goto out;
   if(pobj->type != XPATH_NODESET) goto out;
   if(xmlXPathNodeSetIsEmpty(pobj->nodesetval)) goto out;
-  cnt = xmlXPathNodeSetGetLength(pobj->nodesetval);
-  if(cnt > 0) {
+  nglobs = xmlXPathNodeSetGetLength(pobj->nodesetval);
+  cnt = 0;
+  if(nglobs > 0) {
+    tl_globs = calloc(sizeof(*tl_globs), nglobs);
+    for (i=0; i<nglobs; i++) {
+      node = xmlXPathNodeSetItem(pobj->nodesetval, i);
+      char *path = (char *)xmlGetProp(node, (xmlChar *)"file");
+      if(*path == '/') strlcpy(globpat, path, PATH_MAX);
+      else {
+        char *cp;
+        strlcpy(globpat, parentfile, PATH_MAX);
+        for(cp = globpat + strlen(globpat) - 1; cp > globpat; cp--) {
+          if(*cp == '/') { *cp = '\0'; break; }
+          else *cp = '\0';
+        }
+        strlcat(globpat, "/", PATH_MAX);
+        strlcat(globpat, path, PATH_MAX);
+      }
+      if(glob(globpat, GLOB_NOMAGIC|GLOB_BRACE, NULL, &tl_globs[i])) {
+        mtevL(mtev_debug, "config include glob failure: %s\n", globpat);
+      }
+      xmlFree(path);
+      cnt += tl_globs[i].gl_pathc;
+    }
+
     include_nodes = calloc(cnt, sizeof(*include_nodes));
     if (master) {
       config_include_nodes = include_nodes;
@@ -958,58 +1036,76 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
       include_nodes[i].child_count = -1;
     }
   }
-  for(i=0; i<cnt; i++) {
-    char *path, *infile, *snippet, *ro;
+
+  for(i=0; i<nglobs; i++) {
+    mtev_boolean is_snippet, is_ro = mtev_false;
+    char *path, *snippet, *ro;
     node = xmlXPathNodeSetItem(pobj->nodesetval, i);
-    path = (char *)xmlGetProp(node, (xmlChar *)"file");
-    if(!path) continue;
-    snippet = (char *)xmlGetProp(node, (xmlChar *)"snippet");
-    include_nodes[i].snippet = (snippet && strcmp(snippet, "false"));
-    if(snippet) xmlFree(snippet);
-    if(*path == '/') infile = strdup(path);
-    else {
-      char *cp;
-      infile = malloc(PATH_MAX);
-      strlcpy(infile, parentfile, PATH_MAX);
-      for(cp = infile + strlen(infile) - 1; cp > infile; cp--) {
-        if(*cp == '/') { *cp = '\0'; break; }
-        else *cp = '\0';
-      }
-      strlcat(infile, "/", PATH_MAX);
-      strlcat(infile, path, PATH_MAX);
-    }
-    xmlFree(path);
+
     ro = (char *)xmlGetProp(node, (xmlChar *)"readonly");
-    if (ro && !strcmp(ro, "true")) include_nodes[i].ro = 1;
+    if (ro && !strcmp(ro, "true")) is_ro = mtev_true;
     if (ro) xmlFree(ro);
-    if (include_nodes[i].snippet) {
-      mtev_conf_suppress_xml_error(XML_FROM_IO, XML_IO_LOAD_ERROR);
-      include_nodes[i].doc = xmlParseEntity(infile);
-      mtev_conf_express_xml_error(XML_FROM_IO, XML_IO_LOAD_ERROR);
-    }
-    else
-      include_nodes[i].doc = xmlReadFile(infile, "utf8", XML_PARSE_NOENT);
-    if((include_nodes[i].doc) || (include_nodes[i].snippet)) {
-      xmlNodePtr n;
-      mtev_conf_magic_mix(infile, include_nodes[i].doc, &(include_nodes[i]));
-      strncpy(include_nodes[i].path, infile, sizeof(include_nodes[i].path));
-      include_nodes[i].insertion_point = node;
-      include_nodes[i].root = xmlDocGetRootElement(include_nodes[i].doc);
-      include_nodes[i].old_children = node->children;
-      if (!include_nodes[i].snippet)
-        node->children = include_nodes[i].root->children;
+
+    snippet = (char *)xmlGetProp(node, (xmlChar *)"snippet");
+    is_snippet = (snippet && strcmp(snippet, "false"));
+    if(snippet) xmlFree(snippet);
+
+    for (j=0; j<tl_globs[i].gl_pathc; j++) {
+      path = tl_globs[i].gl_pathv[j];
+      if(!path) continue;
+      include_nodes[inc_idx].snippet = is_snippet;
+      include_nodes[inc_idx].ro = is_ro;
+      if(*path == '/') strlcpy(infile, path, PATH_MAX);
+      else {
+        char *cp;
+        strlcpy(infile, parentfile, PATH_MAX);
+        for(cp = infile + strlen(infile) - 1; cp > infile; cp--) {
+          if(*cp == '/') { *cp = '\0'; break; }
+          else *cp = '\0';
+        }
+        strlcat(infile, "/", PATH_MAX);
+        strlcat(infile, path, PATH_MAX);
+      }
+      mtevL(mtev_debug, "Reading include[%d] file: %s\n", inc_idx, infile);
+      if (include_nodes[inc_idx].snippet) {
+        mtev_conf_suppress_xml_error(XML_FROM_IO, XML_IO_LOAD_ERROR);
+        include_nodes[inc_idx].doc = xmlParseEntity(infile);
+        mtev_conf_express_xml_error(XML_FROM_IO, XML_IO_LOAD_ERROR);
+      }
       else
-        node->children = include_nodes[i].root;
-      for(n=node->children; n; n = n->next)
-        n->parent = include_nodes[i].insertion_point;
+        include_nodes[inc_idx].doc = xmlReadFile(infile, "utf8", XML_PARSE_NOENT);
+      if((include_nodes[inc_idx].doc) || (include_nodes[inc_idx].snippet)) {
+        xmlNodePtr n, more_kids;
+        mtev_conf_magic_mix(infile, include_nodes[inc_idx].doc, &(include_nodes[inc_idx]));
+        strncpy(include_nodes[inc_idx].path, infile, sizeof(include_nodes[inc_idx].path));
+        include_nodes[inc_idx].insertion_point = node;
+        include_nodes[inc_idx].root = xmlDocGetRootElement(include_nodes[inc_idx].doc);
+        include_nodes[inc_idx].old_children = (j == 0) ? node->children : NULL;
+        include_nodes[inc_idx].glob_idx = j;
+        if(j==0) {
+          node->children = NULL;
+        }
+        more_kids = include_nodes[inc_idx].snippet ? include_nodes[inc_idx].root : include_nodes[inc_idx].root->children;
+        for(n=more_kids; n; n = n->next) {
+          n->parent = include_nodes[inc_idx].insertion_point;
+          n->_private = &include_nodes[inc_idx];
+        }
+        if (node->children == NULL) node->children = more_kids;
+        else {
+          assert(node->children != more_kids);
+          for(n = node->children; n->next != NULL; n = n->next);
+          n->next = more_kids;
+        }
+      }
+      else {
+        mtevL(mtev_error, "Could not load: '%s'\n", infile);
+        rv = -1;
+      }
+      inc_idx++;
     }
-    else {
-      mtevL(mtev_error, "Could not load: '%s'\n", infile);
-      rv = -1;
-    }
-    free(infile);
+    globfree(&tl_globs[i]);
   }
-  *include_cnt = cnt;
+  *include_cnt = inc_idx;
   mtevL(mtev_debug, "Processed %d includes\n", *include_cnt);
  out:
   if(pobj) xmlXPathFreeObject(pobj);
