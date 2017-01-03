@@ -2687,6 +2687,55 @@ mtev_console_config_cd(mtev_console_closure_t ncct,
   return -1;
 }
 
+static int
+mtev_console_conf_show_xpath(mtev_console_closure_t ncct,
+                             int argc, char **argv,
+                             mtev_console_state_t *state, void *closure) {
+  xmlXPathObjectPtr pobj = NULL;
+  xmlNodePtr node = NULL;
+  mtev_boolean xmlOut = mtev_false;
+
+  mtev_conf_xml_xpath(NULL, &xpath_ctxt);
+  if(argc == 2 && !strcmp(argv[0], "-x")) {
+    xmlOut = mtev_true;
+  }
+  else if(argc != 1) {
+    nc_printf(ncct, "show xpath [-x] <xpath expression>\n");
+    return -1;
+  }
+  nc_printf(ncct, "Looking for '%s'\n", argv[argc-1]);
+  pobj = xmlXPathEval((xmlChar *)argv[argc-1], xpath_ctxt);
+  if(!pobj || pobj->type != XPATH_NODESET ||
+     xmlXPathNodeSetIsEmpty(pobj->nodesetval)) {
+    nc_printf(ncct, "no elements found\n");
+    goto out;
+  }
+  int i, cnt = xmlXPathNodeSetGetLength(pobj->nodesetval);
+
+  for(i=0; i<cnt; i++) {
+    char *path;
+    node = xmlXPathNodeSetItem(pobj->nodesetval, i);
+    path = (char *)xmlGetNodePath(node);
+    nc_printf(ncct, "== %d: %s ==\n", i+1, path);
+    if(xmlOut) {
+      xmlChar *xmlbuff;
+      int buffersize;
+      xmlDocPtr doc = xmlNewDoc((xmlChar *)"1.0");
+      xmlDocSetRootElement(doc, xmlDocCopyNodeList(doc,node));
+      xmlDocDumpFormatMemory(doc, &xmlbuff, &buffersize, 1);
+      nc_printf(ncct, "%s", xmlbuff);
+      xmlFree(xmlbuff);
+      xmlFreeDoc(doc);
+    }
+    else {
+      nc_printf(ncct, "%s\n", xmlXPathCastNodeToString(node));
+    }
+    xmlFree(path);
+  }
+ out:
+  if(pobj) xmlXPathFreeObject(pobj);
+  return 0;
+}
 static char *
 conf_t_prompt(EditLine *el) {
   mtev_console_closure_t ncct;
@@ -2758,6 +2807,14 @@ void mtev_console_conf_init() {
   ADD_CMD(tl, "write",
           mtev_console_state_delegate, mtev_console_opt_delegate,
           _write_state, NULL);
+
+  cmd_info_t *showcmd;
+  showcmd = mtev_console_state_get_cmd(tl, "show");
+  mtevAssert(showcmd && showcmd->dstate);
+
+  mtev_console_state_add_cmd(showcmd->dstate,
+    NCSCMD("conf", mtev_console_conf_show_xpath,
+           NULL, NULL, NULL));
 }
 
 void mtev_conf_init_globals() {
