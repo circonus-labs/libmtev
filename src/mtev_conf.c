@@ -67,6 +67,19 @@ MTEV_HOOK_IMPL(mtev_conf_delete_section,
 const char *_mtev_branch = MTEV_BRANCH;
 const char *_mtev_version = MTEV_VERSION;
 
+static const int globflags = 0 |
+#ifdef GLOB_NOMAGIC
+  GLOB_NOMAGIC |
+#else
+  0 |
+#endif
+#ifdef GLOB_BRACE
+  GLOB_BRACE |
+#else
+  0 |
+#endif
+  0;
+
 /* tmp hash impl, replace this with something nice */
 static mtev_log_stream_t xml_debug = NULL;
 #define XML2LOG(log) do { \
@@ -1018,7 +1031,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
         strlcat(globpat, "/", PATH_MAX);
         strlcat(globpat, path, PATH_MAX);
       }
-      if(glob(globpat, GLOB_NOMAGIC|GLOB_BRACE, NULL, &tl_globs[i])) {
+      if(glob(globpat, globflags, NULL, &tl_globs[i])) {
         mtevL(mtev_debug, "config include glob failure: %s\n", globpat);
       }
       xmlFree(path);
