@@ -117,6 +117,7 @@ typedef struct mtev_xml_userdata {
   char       *path;
   uint64_t   dirty_time;
   struct mtev_xml_userdata *freelist;
+  include_node_t *container;
 } mtev_xml_userdata_t;
 
 static mtev_xml_userdata_t *backingstore_freelist = NULL;
@@ -453,8 +454,11 @@ mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt)
         xmlNodePtr n, prev = NULL;
         for(n=include_nodes[i].insertion_point->children;
             n; n = n->next) {
+          mtev_xml_userdata_t *udata;
           if(n->_private == NULL && prev) n->_private = prev->_private;
-          include_node_t *owner = n->_private;
+          udata = n->_private;
+          assert(udata);
+          include_node_t *owner = udata->container;
           assert(owner);
           n->parent = owner->snippet ? (xmlNodePtr)owner->doc : owner->root;
           prev = n;
@@ -561,7 +565,9 @@ mtev_conf_kansas_city_shuffle_undo(include_node_t *include_nodes, int include_no
         for(n=include_nodes[i].insertion_point->children;
             n; n = n->next) {
           if(n->_private == NULL && prev) n->_private = prev->_private;
-          include_node_t *owner = n->_private;
+          mtev_xml_userdata_t *udata = n->_private;
+          assert(udata);
+          include_node_t *owner = udata->container;
           assert(owner);
           n->parent = owner->snippet ? (xmlNodePtr)owner->doc : owner->root;
           prev = n;
@@ -1101,7 +1107,9 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
         more_kids = include_nodes[inc_idx].snippet ? include_nodes[inc_idx].root : include_nodes[inc_idx].root->children;
         for(n=more_kids; n; n = n->next) {
           n->parent = include_nodes[inc_idx].insertion_point;
-          n->_private = &include_nodes[inc_idx];
+          mtev_xml_userdata_t *udata = calloc(1, sizeof(mtev_xml_userdata_t));
+          udata->container = &include_nodes[inc_idx];
+          n->_private = udata;
         }
         if (node->children == NULL) node->children = more_kids;
         else {
@@ -1974,6 +1982,7 @@ mtev_conf_write_terminal(mtev_console_closure_t ncct,
   out = xmlOutputBufferCreateIO(mtev_console_write_xml,
                                 mtev_console_close_xml,
                                 ncct, enc);
+
   mtev_conf_kansas_city_shuffle_undo(config_include_nodes, config_include_cnt);
   xmlSaveFormatFileTo(out, master_config, "utf8", 1);
   write_out_include_files(config_include_nodes, config_include_cnt);
