@@ -138,6 +138,16 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_watchdog_disable(mtev_watchdog_t *hb);
 
+/*! \fn void mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout)
+    \param hb the heart on which to act
+    \param timeout the timeout in seconds for this heart (0 for default)
+
+    mtev_watchdog_override_timeout will allow the caller to override the timeout
+    for a specific heart in the system.
+ */
+API_EXPORT(void)
+  mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout);
+
 API_EXPORT(int)
   mtev_watchdog_glider(const char *path);
 
