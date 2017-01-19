@@ -141,12 +141,12 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
                            void *user_data)
 {
   mtev_websocket_client_t *client = user_data;
-  int rv = 0;
+  mtev_boolean rv = 0;
 
   if (!wslay_is_ctrl_frame(arg->opcode)) {
     if (client->msg_callback != NULL) {
       rv = client->msg_callback(client, arg->opcode, arg->msg, arg->msg_length, client->closure);
-      if (rv != 0) {
+      if (!rv) {
         mtevL(mtev_error, "Websocket client consumer handler failed, flagging for abort\n");
         client->should_close = mtev_true;
       }
@@ -287,7 +287,9 @@ abort_drive:
       }
       wslay_event_context_client_init(&client->wslay_ctx, &wslay_callbacks, client);
       client->did_handshake = mtev_true;
-      if(client->ready_callback) client->ready_callback(client, client->closure);
+      if(client->ready_callback) {
+        if(!client->ready_callback(client, client->closure)) goto abort_drive;
+      }
     } else {
       return EVENTER_READ | EVENTER_EXCEPTION;
     }

@@ -6,12 +6,14 @@
 
 typedef struct mtev_websocket_client mtev_websocket_client_t;
 
-typedef void (*mtev_websocket_client_ready_callback)(mtev_websocket_client_t *client,
-                                                     void *closure);
+typedef mtev_boolean (*mtev_websocket_client_ready_callback)(mtev_websocket_client_t *client,
+                                                             void *closure);
 
-typedef int (*mtev_websocket_client_msg_callback)(mtev_websocket_client_t *client,
-                                            int opcode, const unsigned char *msg, size_t msg_len,
-                                            void *closure);
+typedef mtev_boolean (*mtev_websocket_client_msg_callback)(mtev_websocket_client_t *client,
+                                                           int opcode,
+                                                           const unsigned char *msg,
+                                                           size_t msg_len,
+                                                           void *closure);
 
 typedef void (*mtev_websocket_client_cleanup_callback)(mtev_websocket_client_t *client,
                                                        void *closure);
