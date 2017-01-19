@@ -223,15 +223,17 @@ eventer_jobq_consumer_pthreadentry(void *vp) {
   return eventer_jobq_consumer(jobq);
 }
 static void
-eventer_jobq_maybe_spawn(eventer_jobq_t *jobq) {
-  int32_t current = ck_pr_load_32(&jobq->concurrency);
+eventer_jobq_maybe_spawn(eventer_jobq_t *jobq, int bump) {
   /* if we've no desired concurrency, this doesn't apply to us */
   if(jobq->desired_concurrency == 0) return;
   /* If we have none, we definitely should launch a thread.
    * otherwise we should check that all current threads are inflight
    * and ensure we don't jump past our desired_concurrency.
    */
-  if(current == 0 || (current < jobq->desired_concurrency && current == ck_pr_load_32(&jobq->inflight))) {
+  int32_t current = ck_pr_load_32(&jobq->concurrency);
+  int32_t backlog = ck_pr_load_32(&jobq->backlog) + bump;
+  int32_t inflight = ck_pr_load_32(&jobq->inflight);
+  if(current == 0 || (current < jobq->desired_concurrency && current < (backlog + inflight))) {
     /* we need another thread, maybe... this is a race as we do the
      * increment in the new thread, but we check there and back it out
      * if we did something we weren't supposed to. */
@@ -266,7 +268,7 @@ eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job) {
     ck_pr_inc_64(&jobq->total_jobs);
     ck_pr_inc_32(&jobq->backlog);
   }
-  eventer_jobq_maybe_spawn(jobq);
+  eventer_jobq_maybe_spawn(jobq, 1);
   pthread_mutex_lock(&jobq->lock);
   if(jobq->tailq) {
     /* If there is a tail (queue has items), just push it on the end. */
@@ -382,7 +384,7 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
       jobcopy->fd_event = my_precious;
       jobcopy->finish_hrtime = mtev_gethrtime();
       if(ck_pr_load_32(&jobcopy->jobq->concurrency) == 0)
-        eventer_jobq_maybe_spawn(jobcopy->jobq);
+        eventer_jobq_maybe_spawn(jobcopy->jobq, 0);
       eventer_jobq_finished_job(jobcopy->jobq, jobcopy);
       memcpy(&wakeupcopy, jobcopy->fd_event, sizeof(wakeupcopy));
       eventer_jobq_enqueue(eventer_default_backq(jobcopy->fd_event), jobcopy);
