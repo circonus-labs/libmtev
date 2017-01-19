@@ -218,7 +218,19 @@ mtev_console_hang(mtev_console_closure_t ncct, int argc, char **argv,
     eventer_t e = eventer_in_s_us(mtev_console_hang_action, NULL, 0, 0);
     e->thr_owner = eventer_choose_owner(id);
     eventer_add(e);
+  } else if(argc == 2) {
+    int id = atoi(argv[1]);
+    eventer_pool_t *ep = eventer_pool(argv[0]);
+    if(ep == NULL) {
+      nc_printf(ncct, "no such event pool\n");
+    } else {
+      nc_printf(ncct, "hang: %s/%d\n", argv[0], id);
+      eventer_t e = eventer_in_s_us(mtev_console_hang_action, NULL, 0, 0);
+      e->thr_owner = eventer_choose_owner_pool(ep, id);
+      eventer_add(e);
+    }
   } else {
+    nc_printf(ncct, "hanging myself\n");
     pause();
   }
   return 0;
