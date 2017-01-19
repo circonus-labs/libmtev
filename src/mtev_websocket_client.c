@@ -456,10 +456,15 @@ mtev_websocket_client_is_ready(mtev_websocket_client_t *client) {
 #endif
 }
 
+// we lock in this function so that we do cannot return "closed" mid-cleanup
 mtev_boolean
 mtev_websocket_client_is_closed(mtev_websocket_client_t *client) {
 #ifdef HAVE_WSLAY
-  return client->closed;
+  mtev_boolean rv;
+  pthread_mutex_lock(&client->lock);
+  rv = client->closed;
+  pthread_mutex_unlock(&client->lock);
+  return rv;
 #else
   return mtev_false;
 #endif
