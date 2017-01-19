@@ -45,9 +45,15 @@ The keys and values supported are:
 
  * ##### loop_&lt;name&gt;
 
-   This establishes a new named event loop and sets it concurrency to the provided
-   value.  If a value of 0 is provided, then the named event loop will use the
-   default concurrency specified by the `concurrency` key.
+   This establishes a new named event loop and sets its concurrency and watchdog
+   timeout to the provided values. The format is:
+   `concurrency[,timeout_in_seconds]`
+ 
+   If a concurrency value of 0 is provided, then the named event loop will use the
+   default concurrency specified by the `concurrency` key.  Floating point notation
+   can be used to specify subsecond or partial second timeouts.  If unspecified or
+   specified as 0, the timeout will default to the global setting (which defaults
+   to 5.0 unless overriden by the application).
 
  * ##### jobq_&lt;name&gt;
 

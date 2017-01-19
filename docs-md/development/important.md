@@ -26,7 +26,8 @@ loops are responsible for issuing a heartbeat such that the watchdog knows
 you have not stalled.  While this is C, and you can do almost anything, if
 you attempt to disable the heartbeats, you're doing it wrong and things will
 break in unexpected and often in ways that will adversely effect production
-applications. Don't do that.
+applications. Don't do that.  You can set different watchdog timeouts per
+eventer_pool.
 
 ### Multi-thread Safety
 
