@@ -19,6 +19,8 @@ RANLIB=@RANLIB@
 LIBS=@LIBS@
 INSTALL=@INSTALL@
 
+ES_OBJS=	echo_server.o
+
 EX1_OBJS=	example1.o
 
 FQR_OBJS=	fq-router.o
@@ -27,11 +29,16 @@ WSC_OBJS=	websocket_client.o
 
 WSS_OBJS=	websocket_server.o
 
-all:	example1 fq-router websocket_client websocket_server
+all:	echo_server example1 fq-router websocket_client websocket_server
 
 .c.o:
 	@echo "- compiling $<"
 	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+
+echo_server:	$(ES_OBJS)
+	@echo "- linking $@"
+	@echo "LDFLAGS=$(LDFLAGS)"
+	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(ES_OBJS) $(LIBS) -lmtev
 
 example1:	$(EX1_OBJS)
 	@echo "- linking $@"

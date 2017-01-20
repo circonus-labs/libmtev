@@ -50,10 +50,16 @@ typedef enum {
   MTEV_HTTP09, MTEV_HTTP10, MTEV_HTTP11
 } mtev_http_protocol;
 
-#define MTEV_HTTP_CHUNKED 0x0001
-#define MTEV_HTTP_CLOSE   0x0002
-#define MTEV_HTTP_GZIP    0x0010
-#define MTEV_HTTP_DEFLATE 0x0020
+#define MTEV_HTTP_CHUNKED      0x0001
+#define MTEV_HTTP_CLOSE        0x0002
+#define MTEV_HTTP_GZIP         0x0010
+#define MTEV_HTTP_DEFLATE      0x0020
+
+typedef enum {
+  MTEV_HTTP_COMPRESS_NONE = 0,
+  MTEV_HTTP_COMPRESS_LZ4F,
+  MTEV_HTTP_COMPRESS_GZIP
+} mtev_http_compress;
 
 typedef enum {
   BCHAIN_INLINE = 0,
@@ -75,6 +81,7 @@ struct bchain {
   size_t start; /* where data starts (buff + start) */
   size_t size;  /* data length (past start) */
   size_t allocd;/* total allocation */
+  mtev_http_compress compression;
   char *buff;
   char _buff[1]; /* over allocate as needed */
 };

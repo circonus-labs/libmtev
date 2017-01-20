@@ -44,6 +44,7 @@
 #include <zlib.h>
 #include <sys/mman.h>
 #include <libxml/tree.h>
+#include <lz4frame.h>
 #include <pthread.h>
 
 #include <openssl/hmac.h>
@@ -109,6 +110,7 @@ struct mtev_http_request {
   mtev_boolean complete;
   struct timeval start_time;
   char *orig_qs;
+  LZ4F_decompressionContext_t lz4_decompress_ctx;
 };
 
 struct mtev_http_response {
@@ -271,6 +273,7 @@ struct bchain *bchain_alloc(size_t size, int line) {
   n->prev = n->next = NULL;
   n->start = n->size = 0;
   n->allocd = size;
+  n->compression = MTEV_HTTP_COMPRESS_NONE;
 
   return n;
 }
@@ -315,6 +318,23 @@ struct bchain *bchain_from_data(const void *d, size_t size) {
   memcpy(n->buff, d, size);
   n->size = size;
   return n;
+}
+
+static mtev_http_compress 
+request_compression_type(mtev_http_request *req)
+{
+  const char *content_type = NULL;
+  if (req == NULL || req->freed) return MTEV_HTTP_COMPRESS_NONE;
+  
+  mtev_hash_table *headers = mtev_http_request_headers_table(req);
+  mtev_hash_retr_str(headers, "content-type", strlen("content-type"), &content_type);
+  
+  /* there is no official mime-type for LZ4 so use this for now */
+  if (strcmp("application/x-lz4f", content_type) == 0) {
+    return MTEV_HTTP_COMPRESS_LZ4F;
+  }
+
+  return MTEV_HTTP_COMPRESS_NONE;
 }
 
 mtev_http_request *
@@ -841,6 +861,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
           l1 = strlen(prefix);
           l2 = strlen(value);
           b = ALLOC_BCHAIN(l1 + l2 + 2);
+          b->compression = request_compression_type(req);
           b->next = req->current_request_chain;
           b->next->prev = b;
           req->current_request_chain = b;
@@ -981,6 +1002,12 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
     if(len <= 0) goto full_error;
     if(len > 0) in->size += len;
     rv = mtev_http_request_finalize(&ctx->req, &err);
+    /* walk the bchain and set the compression */
+    struct bchain *x = ctx->req.first_input;
+    while (x) {
+      x->compression = request_compression_type(&ctx->req);
+      x = x->next;
+    }
     if(len == -1 || err == mtev_true) goto full_error;
     if(ctx->req.state == MTEV_HTTP_REQ_EXPECT) {
       const char *expect;
@@ -1168,15 +1195,19 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
 
   return next_chunk;
 }
+
 int
 mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
                               void *buf, size_t len, size_t blen,
                               int *mask) {
   size_t bytes_read = 0,
-         expected = ctx->req.content_length - ctx->req.content_length_read;
+    expected = ctx->req.content_length - ctx->req.content_length_read;
+  mtev_http_compress compression_type = request_compression_type(&ctx->req);
   /* We attempt to consume from the first_input */
   struct bchain *in, *tofree;
   if(ctx->req.payload_chunked) {
+
+    /* TODO: chunked will not support compression for now */
     if(ctx->req.next_chunk_read >= ctx->req.next_chunk) {
       int needed;
       needed = mtev_http_session_req_consume_chunked(ctx, mask);
@@ -1202,12 +1233,118 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
   }
   mtevL(http_debug, " ... mtev_http_session_req_consume(%d) %d of %d\n",
         ctx->conn.e ? ctx->conn.e->fd : -1, (int)len, (int)expected);
+
   len = MIN(len, expected);
+
   while(bytes_read < len) {
     int crlen = 0;
     in = ctx->req.first_input;
-    while(in && bytes_read < len) {
+    
+    if (in && in->size == 0) {
+      /* we haven't read any data yet, set the bchain compression type */
+      in->compression = compression_type;
+    }
+
+    while(in && in->size && bytes_read < len) {
+
+      if (in->compression != MTEV_HTTP_COMPRESS_NONE) {
+        mtevL(http_debug, " ... decompress bchain\n");
+          
+        switch (in->compression) {
+        case MTEV_HTTP_COMPRESS_LZ4F:
+          {
+            size_t total_decompressed_size = 0;
+            if (ctx->req.lz4_decompress_ctx == NULL) {
+              LZ4F_errorCode_t err = 
+                LZ4F_createDecompressionContext(&ctx->req.lz4_decompress_ctx, 
+                                                LZ4F_VERSION);
+              if (LZ4F_isError(err)) {
+                mtevL(mtev_error, "LZ4F error creating decompression context: %s\n",
+                      LZ4F_getErrorName(err));
+                return -1;
+              }
+            }
+
+            LZ4F_frameInfo_t frame_info;
+            size_t src_used = in->size - in->start;
+            size_t s = LZ4F_getFrameInfo(ctx->req.lz4_decompress_ctx,
+                                         &frame_info,
+                                         in->buff + in->start,
+                                         &src_used);
+            if (LZ4F_isError(s)) {
+              mtevL(mtev_error, "LZ4F error reading frame info: %s\n",
+                    LZ4F_getErrorName(s));
+              LZ4F_freeDecompressionContext(ctx->req.lz4_decompress_ctx);
+              ctx->req.lz4_decompress_ctx = NULL;
+              return -1;
+            }
+            in->start += src_used;
+            in->size -= src_used;
+              
+            LZ4F_decompressOptions_t opts = {
+              .stableDst = 1
+            };
+
+            struct bchain *out = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+            struct bchain *o = out;
+            while (in->size) {
+              size_t out_size = o->allocd - o->size;
+              if (out_size == 0) {
+                struct bchain *temp = o;
+                o = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+                temp->next = o;
+                out_size = o->allocd;
+              }
+              size_t in_size = in->size;
+              s = LZ4F_decompress(ctx->req.lz4_decompress_ctx,
+                                  o->buff, &out_size,
+                                  in->buff + in->start, &in_size,
+                                  &opts);
+
+              if (LZ4F_isError(s)) {
+                mtevL(mtev_error, "LZ4F error decompressing: %s\n",
+                      LZ4F_getErrorName(s));
+                LZ4F_freeDecompressionContext(ctx->req.lz4_decompress_ctx);
+                ctx->req.lz4_decompress_ctx = NULL;
+                RELEASE_BCHAIN(out);
+                return -1;
+              }
+              o->size += out_size;
+              total_decompressed_size += out_size;
+              in->size -= in_size;
+              in->start += in_size;
+            }
+            LZ4F_freeDecompressionContext(ctx->req.lz4_decompress_ctx);
+            ctx->req.lz4_decompress_ctx = NULL;
+            out->next = in->next;
+            out->prev = in->prev;
+            tofree = in;
+            in = out;
+            if (ctx->req.first_input == tofree) {
+              ctx->req.first_input = out;
+            }
+            if (ctx->req.last_input == tofree) {
+              ctx->req.last_input = out;
+            }
+            RELEASE_BCHAIN(tofree);
+
+            len = MIN(len, total_decompressed_size);
+            ctx->req.content_length = total_decompressed_size;
+          } 
+            
+        case MTEV_HTTP_COMPRESS_GZIP:
+          {
+            break;
+          }
+        default:
+          break;
+        };
+          
+        in->compression = MTEV_HTTP_COMPRESS_NONE;
+      }
+
       int partial_len = MIN(in->size, len - bytes_read);
+
       if(buf) memcpy((char *)buf+bytes_read, in->buff+in->start, partial_len);
       bytes_read += partial_len;
       ctx->req.content_length_read += partial_len;
@@ -1231,19 +1368,23 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
           }
         }
       }
-    }
+    }  
     while(bytes_read + crlen < len) {
       int rlen;
       in = ctx->req.last_input;
-      if(!in)
+      if(!in) {
         in = ctx->req.first_input = ctx->req.last_input =
             ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+        in->compression = compression_type;
+      }
       else if(in->start + in->size >= in->allocd) {
         in->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
         in = ctx->req.last_input = in->next;
+        in->compression = compression_type;
       }
       /* pull next chunk */
       if(ctx->conn.e == NULL) return -1;
+
       rlen = ctx->conn.e->opset->read(ctx->conn.e->fd,
                                       in->buff + in->start + in->size,
                                       in->allocd - in->size - in->start,
