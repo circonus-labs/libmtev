@@ -29,7 +29,8 @@ API_EXPORT(mtev_websocket_client_t *)
   mtev_websocket_client_new(const char *url, int port,
                             const char *path, const char *service,
                             mtev_websocket_client_callbacks *callbacks,
-                            void *closure);
+                            void *closure,
+                            const char *pool_name);
 
 API_EXPORT(void)
   mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client,
