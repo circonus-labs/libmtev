@@ -1547,6 +1547,13 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
       mtevL(http_debug, "   <- dispatch(%d) = %d\n", e->fd, rv);
     }
   }
+  if(ctx->conn.e) {
+    eventer_t registered_e = eventer_find_fd(e->fd);
+    if(registered_e != ctx->conn.e) {
+      mtevL(http_debug, " <- mtev_http_session_drive(%d) [handsoff:%x]\n", e->fd, rv);
+      return rv;
+    }
+  }
 
   _http_perform_write(ctx, &mask);
   if(ctx->res.complete == mtev_true &&
@@ -1568,11 +1575,6 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
   }
   if(ctx->req.complete == mtev_false) goto next_req;
   if(ctx->conn.e) {
-    eventer_t registered_e = eventer_find_fd(e->fd);
-    if(registered_e != ctx->conn.e) {
-      mtevL(http_debug, " <- mtev_http_session_drive(%d) [handsoff:%x]\n", e->fd, rv);
-      return rv;
-    }
     mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", e->fd, mask|rv);
     return mask | rv;
   }
