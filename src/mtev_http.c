@@ -1753,6 +1753,7 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   const char *protocol_str;
   int i;
   const char **keys;
+  char *static_key_array[16];
   mtev_boolean cl_present = mtev_false;
 
   mtevAssert(!ctx->res.leader);
@@ -1783,7 +1784,13 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   while(!cl_present) {
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
     i = 0;
-    keys = alloca(sizeof(*keys)*(mtev_hash_size(&ctx->res.headers)));
+    if (mtev_hash_size(&ctx->res.headers) < 16) {
+      keys = (const char **)static_key_array;
+    }
+    else {
+      keys = malloc(sizeof(*keys)*(mtev_hash_size(&ctx->res.headers)));
+      mtevAssert(keys != NULL);
+    }
     while(mtev_hash_adv(&ctx->res.headers, &iter)) {
       keys[i++] = iter.key.str;
       if(iter.klen == strlen(HEADER_CONTENT_LENGTH) &&
@@ -1804,6 +1811,7 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
         }
       }
     }
+    if (!cl_present && keys != (const char **)static_key_array) free(keys);
   }
   qsort(keys, i, sizeof(*keys), casesort);
   kcnt = i;
@@ -1820,6 +1828,7 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   }
   CTX_LEADER_APPEND("\r\n", 2);
   ctx->res.output_raw_chain_bytes += b->size;
+  if (keys != (const char **)static_key_array) free(keys);
   return len;
 }
 static int memgzip2(mtev_http_response *res, Bytef *dest, uLongf *destLen,
