@@ -245,7 +245,8 @@ static void check_realloc_request(mtev_http_request *req) {
 
 struct bchain *bchain_alloc(size_t size, int line) {
   struct bchain *n;
-  if (size >= 16384) {
+  /* mmap is greater than 1MB, inline otherwise */
+  if (size >= 1048576) {
     n = malloc(offsetof(struct bchain, _buff));
     if(!n) {
       mtevL(mtev_error, "failed to alloc bchain in bchain_alloc (size %zd)\n", size);
