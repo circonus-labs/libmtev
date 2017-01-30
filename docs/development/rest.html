@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>mtev_main · GitBook</title>
+        <title>REST and HTTP · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.2">
@@ -53,10 +53,10 @@
     <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="eventer.html" />
+    <link rel="next" href="logging.html" />
     
     
-    <link rel="prev" href="important.html" />
+    <link rel="prev" href="eventer.html" />
     
 
     </head>
@@ -295,7 +295,7 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.3.2" data-path="mtev_main.html">
+        <li class="chapter " data-level="1.3.2" data-path="mtev_main.html">
             
                 <a href="mtev_main.html">
             
@@ -321,7 +321,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.4" data-path="rest.html">
+        <li class="chapter active" data-level="1.3.4" data-path="rest.html">
             
                 <a href="rest.html">
             
@@ -453,7 +453,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href=".." >mtev_main</a>
+        <a href=".." >REST and HTTP</a>
     </h1>
 </div>
 
@@ -468,85 +468,158 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="mtevmain">mtev_main</h1>
-<p>Every C application starts with <code>main()</code>.  In order to make life easier, libmtev provides an <code>mtev_main</code> that
-facilitates configuration loading, logging setup, privilege separation and watchdog orchestration.</p>
-<h5 id="simplec">simple.c</h5>
-<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_main.h&gt;</span></span>
-<span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_memory.h&gt;</span></span>
+                                <h1 id="rest">REST</h1>
+<p>The default network listening framework allows for simply registration
+of REST-based services via HTTP service.</p>
+<h5 id="appconf-snippet">app.conf (snippet)</h5>
+<pre><code>&lt;app&gt;
+  &lt;listener type=&quot;http_rest_api&quot; address=&quot;127.0.0.1&quot; port=&quot;80&quot;&gt;
+    &lt;config&gt;
+      &lt;acl&gt;internal&lt;/acl&gt;
+      &lt;document_root&gt;/path/to/docroot&lt;/document_root&gt;
+    &lt;/config&gt;
+  &lt;/listener&gt;
+  &lt;rest&gt;
+    &lt;acl type=&quot;deny&quot; listener_acl=&quot;^internal$&quot;&gt;
+      &lt;rule type=&quot;allow&quot; url=&quot;.&quot;/&gt;
+    &lt;/acl&gt;
+    &lt;acl type=&quot;deny&quot;&gt;&lt;/acl&gt;
+  &lt;/rest&gt;
+&lt;/app&gt;
+</code></pre><p>More information about listener configuration can be found in the
+<a href="../config/listeners.html">listener configuration</a> section.</p>
+<p>The above config establishes a REST-capable listener listening on
+<code>localhost</code> port 80.  The &quot;ACL&quot; config option is set to <code>internal</code>
+which can be used as a filter for ACL rules in the <code>rest/acl</code> config
+section.  The <code>document_root</code> is set, which will enable serving of
+static files on URLs that do not otherwise match routing rules. The
+ACL rule for <code>internal</code> set that all urls are allowed followed by a
+a blanket deny rule.  Other listeners that might not specify an <code>acl</code>
+option would not see the first ACL allowing any URL, but still see the
+blanket deny rule.</p>
+<h2 id="registering-a-rest-handler">Registering a REST handler.</h2>
+<h5 id="myhandlerc-snippet">myhandler.c (snippet)</h5>
+<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_rest.h&gt;</span></span>
 
-<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> APPNAME <span class="hljs-string">&quot;simple&quot;</span></span>
-<span class="hljs-keyword">static</span> <span class="hljs-keyword">char</span> *config_file = <span class="hljs-string">&quot;/path/to/simple.conf&quot;</span>;
-<span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> debug = <span class="hljs-number">0</span>;
-<span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> foreground = <span class="hljs-number">0</span>;
-<span class="hljs-keyword">static</span> cahr *glider = <span class="hljs-literal">NULL</span>;
-<span class="hljs-keyword">static</span> <span class="hljs-keyword">char</span> *droptouser = <span class="hljs-literal">NULL</span>;
-<span class="hljs-keyword">static</span> <span class="hljs-keyword">char</span> *droptogroup = <span class="hljs-literal">NULL</span>;
-<span class="hljs-keyword">static</span> <span class="hljs-keyword">mtev_lock_op_t</span> lockop = MTEV_LOCK_OP_LOCK;
-<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">usage</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *execname)</span> </span>{
-  <span class="hljs-comment">/* relevant usage output */</span>
-  <span class="hljs-keyword">return</span> <span class="hljs-number">2</span>; <span class="hljs-comment">/* returning 2 will avoid a watchdog restart */</span>
-}
-<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">parse_cli_args</span><span class="hljs-params">(<span class="hljs-keyword">int</span> argc, <span class="hljs-keyword">char</span> **argv)</span> </span>{
-  <span class="hljs-comment">/* left as an excercise to the reader */</span>
-}
-<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">child_main</span><span class="hljs-params">()</span> </span>{
-  <span class="hljs-comment">/* implement your application here */</span>
-  <span class="hljs-comment">/* typically: init things and start the event loop */</span>
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span>
+<span class="hljs-title">my_rest_handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
+                <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
+  mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
+  mtev_http_response_ok(ctx, <span class="hljs-string">&quot;text/plain&quot;</span>);
+  mtev_http_response_append(ctx, <span class="hljs-string">&quot;myhandler: &quot;</span>, <span class="hljs-built_in">strlen</span>(<span class="hljs-string">&quot;myhandler: &quot;</span>));
+  mtev_http_response_append(ctx, pats[<span class="hljs-number">0</span>], <span class="hljs-built_in">strlen</span>(pats[<span class="hljs-number">0</span>]));
+  mtev_http_response_append(ctx, <span class="hljs-string">&quot;\n&quot;</span>, <span class="hljs-number">1</span>);
+  mtev_http_response_end(ctx);
   <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
 }
-<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">(<span class="hljs-keyword">int</span> argc, <span class="hljs-keyword">char</span> **argv)</span> </span>{
-  parse_cli_args(argc, argv);
-  <span class="hljs-keyword">if</span>(!config_file) <span class="hljs-built_in">exit</span>(usage(argv[<span class="hljs-number">0</span>]));
 
-  mtev_memory_init();
-  mtev_main(APPNAME, config_file, debug, foreground,
-            lockop, glider, droptouser, droptogroup,
-            child_main);
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">child_main</span><span class="hljs-params">()</span> </span>{
+ ...
+
+  mtev_http_rest_register_auth(
+    <span class="hljs-string">&quot;GET&quot;</span>, <span class="hljs-string">&quot;/&quot;</span>, <span class="hljs-string">&quot;^myhandler/(.+)$&quot;</span>, my_rest_handler,
+           mtev_http_rest_client_cert_auth
+  );
+  mtev_http_rest_register_auth(
+    <span class="hljs-string">&quot;GET&quot;</span>, <span class="hljs-string">&quot;/&quot;</span>, <span class="hljs-string">&quot;^(.*)$&quot;</span>, mtev_rest_simple_file_handler,
+           mtev_http_rest_client_cert_auth
+  );
+  eventer_loop();
   <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
 }
 </code></pre>
-<p>The arguments to <code>mtev_main</code> are what is important here.</p>
+<h2 id="handling-asynchronous-work">Handling asynchronous work.</h2>
+<p>In order to complete some complex action in response to an inbound REST
+request, it might be necessary to schedule some asynchronous work and
+complete the response later.  This is possible, but requires a bit of
+juggling.  The basic idea is:</p>
 <ul>
-<li><h5 id="appname">APPNAME</h5>
-<p>This is a simple name of your app, it must match the name of the root node in your XML configuration document.</p>
+<li>from you handler:<ul>
+<li>copy and remove the connection&apos;s event from the eventer</li>
+<li>set the rest&apos;s fastpath to a completion routine</li>
+<li>schedule asynchronous work</li>
+<li>return 0;</li>
+</ul>
 </li>
-<li><h5 id="configfile">config_file</h5>
-<p>The path to the config file. It is highly recommended that libmtev applications tie this to the <code>-c</code> CLI flag.</p>
-</li>
-<li><h5 id="debug">debug</h5>
-<p>If 0, the &quot;debug&quot; log_stream remains disabled.  If non-zero, the &quot;debug&quot; log_stream is enabled. It is highly recommended
-that libmtev applications tie this to the <code>-d</code> CLI flag.</p>
-</li>
-<li><h5 id="foreground">foreground</h5>
-<p>If 0, the application will run in the background and be monitored by the watchdog subsystem.  This is a reasonable
-behavior for almost all libmtev applications.  If set to 1, the application will run in the foreground and not be
-monitored by the watchdog subsystem.  It is highly recommended that libmtev applications tie this behavior to a single <code>-D</code>
-CLI argument.  If set to 2, the application will be run under the watchdog subsystem, but the watchdog monitoring process will remain in the foreground.  It is highly recommended that libmtev applications tie this behavior to repeated <code>-D -D</code> CLI arguments.
-When applications are run in the foreground, file descriptors 0, 1 and 2 remain pointing to the stdin, stdout and and stderr
-of the invoking context.  If, the application is run in the background, all are replaced with file descriptors pointing to <code>/dev/null</code>.</p>
-</li>
-<li><h5 id="lockop">lockop</h5>
-<p>This argument controls how <code>mtev_main</code> will respect the lockfile specified at the configuration root.  If <code>MTEV_LOCK_OP_NONE</code> is
-used, then locking will be skipped; only do this if you know what you are doing as it could lead to application inconsistency.
-If <code>MTEV_LOCK_OP_LOCK</code> is used, the lockfile will be locked prior to starting; if locking fails, the application will exit immediately.
-If <code>MTEV_LOCK_OP_WAIT</code> is used, the application will wait for the lockfile to be available and then lock it before starting the application.</p>
-</li>
-<li><h5 id="glider">glider</h5>
-<p>An optional override for the <code>gilder</code> attribute of the <a href="../config/watchdog.html">watchdog configuration</a>.</p>
-</li>
-<li><h5 id="droptouser--droptogroup">droptouser &amp; droptogroup</h5>
-<p>If the application is run as the root user and these are specified, this informs <code>mtev_main</code> and its
-initialization routines that you intend to drop privileges and ensures that initialization processes
-that must be performed as the specified user and group are done so as in that context.</p>
-<div class="panel panel-warning"><div class="panel-heading"><h3 class="panel-title" id="caution-security-warning"><i class="fa fa-exclamation-triangle"></i> Caution: Security Warning</h3></div><div class="panel-body"><p>The developer is responsible for dropping privileges during the initialization sequence in
-<code>child_main</code> via the <code>mtev_conf_security_init(...)</code> API call.</p></div></div>
-</li>
-<li><h5 id="childmain">child_main</h5>
-<p>This is the surrogate main where the application should be initialized and run.  Note that it should
-not return.  Typically this function will end with an <code>event_loop()</code> which is non-retruning.</p>
+<li>from the async job&apos;s completion:<ul>
+<li>trigger the connection&apos;s event</li>
+</ul>
 </li>
 </ul>
+<h5 id="sleepyc-snippet">sleepy.c (snippet)</h5>
+<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_rest.h&gt;</span></span>
+
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler_work</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask, <span class="hljs-keyword">void</span> *closure,
+                        <span class="hljs-keyword">struct</span> timeval *now)</span> </span>{
+  <span class="hljs-keyword">mtev_http_rest_closure_t</span> *restc = closure;
+  <span class="hljs-keyword">if</span>(mask == EVENTER_ASYNCH_WORK) {
+    sleep(<span class="hljs-number">5</span>);
+  }
+  <span class="hljs-keyword">if</span>(mask == EVENTER_ASYNCH) {
+    <span class="hljs-keyword">eventer_t</span> conne;
+    mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
+
+    <span class="hljs-comment">/* trigger a continuation of the HTTP connection */</span>
+    conne = mtev_http_session_connection(ctx);
+    <span class="hljs-keyword">if</span>(conne) {
+      eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
+    }
+  }
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler_complete</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
+                            <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
+  mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
+  mtev_http_response_ok(ctx, <span class="hljs-string">&quot;text/plain&quot;</span>);
+  mtev_http_response_append(ctx, <span class="hljs-string">&quot;Hello world\n&quot;</span>, <span class="hljs-built_in">strlen</span>(<span class="hljs-string">&quot;Hello world\n&quot;</span>));
+  mtev_http_response_end(ctx);
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
+                   <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
+  <span class="hljs-keyword">eventer_t</span> conne, worke;
+  mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
+
+  <span class="hljs-comment">/* remove the eventer */</span>
+  conne = mtev_http_connection_event_float(mtev_http_session_connection(ctx));
+  <span class="hljs-keyword">if</span>(conne) eventer_remove_fd(conne-&gt;fd);
+
+  <span class="hljs-comment">/* set a completion routine */</span>
+  restc-&gt;fastpath = handler_complete;
+
+  <span class="hljs-comment">/* schedule our work */</span>
+  worke = eventer_alloc();
+  worke-&gt;closure = restc;
+  worke-&gt;mask = EVENTER_ASYNCH;
+  worke-&gt;callback = handler_work;
+  eventer_add(worke);
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+</code></pre>
+<h2 id="handling-postput-data">Handling POST/PUT data</h2>
+<p>Reading data from the HTTP request is done by calling the
+<code>mtev_http_session_req_consume</code> function.  This can be tedious,
+so unless you are doing something special it can be much easier
+to simply first invoke the <code>mtev_rest_complete_upload</code> convenience
+wrapper.</p>
+<p>It must be called as the first action inside your REST callback handler.
+Any manipulation of the restc (closures in particular) will have undefined
+outcome.</p>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
+                   <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
+  <span class="hljs-keyword">int</span> mask;
+  <span class="hljs-keyword">void</span> *payload;
+  <span class="hljs-keyword">int64_t</span> payload_len;
+  mtev_http_request *req = mtev_http_session_request(restc-&gt;http_ctx);
+
+  <span class="hljs-keyword">if</span>(!mtev_rest_complete_upload(restc, &amp;mask)) <span class="hljs-keyword">return</span> mask;
+  payload = mtev_http_request_get_upload(req, &amp;payload_len);
+
+  ...
+}
+</code></pre>
 
                                 
                                 </section>
@@ -574,12 +647,12 @@ not return.  Typically this function will end with an <code>event_loop()</code> 
 
             
                 
-                <a href="important.html" class="navigation navigation-prev " aria-label="Previous page: Important Starting Notes">
+                <a href="eventer.html" class="navigation navigation-prev " aria-label="Previous page: Eventer">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="eventer.html" class="navigation navigation-next " aria-label="Next page: Eventer">
+                <a href="logging.html" class="navigation navigation-next " aria-label="Next page: Logging">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -590,7 +663,7 @@ not return.  Typically this function will end with an <code>event_loop()</code> 
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"mtev_main","level":"1.3.2","depth":2,"next":{"title":"Eventer","level":"1.3.3","depth":2,"path":"development/eventer.md","ref":"development/eventer.md","articles":[]},"previous":{"title":"Important Starting Notes","level":"1.3.1","depth":2,"path":"development/important.md","ref":"development/important.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/mtev_main.md","mtime":"2016-12-05T20:18:03.476Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-01-30T19:58:47.630Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"REST and HTTP","level":"1.3.4","depth":2,"next":{"title":"Logging","level":"1.3.5","depth":2,"path":"development/logging.md","ref":"development/logging.md","articles":[]},"previous":{"title":"Eventer","level":"1.3.3","depth":2,"path":"development/eventer.md","ref":"development/eventer.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/rest.md","mtime":"2017-01-30T19:56:47.880Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-01-30T19:58:47.630Z"},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
