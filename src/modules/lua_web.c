@@ -147,40 +147,24 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
   }
   return rv;
 }
-static void req_payload_free(void *d, int64_t s, void *c) {
-  (void)s;
-  (void)c;
-  if(d) free(d);
-}
+
 static int
 lua_web_handler(mtev_http_rest_closure_t *restc,
                 int npats, char **pats) {
   int status, rv, mask = 0;
-  int complete = 0;
   lua_web_conf_t *conf = the_one_conf;
   lua_module_closure_t *lmc = &conf->lmc;
   mtev_lua_resume_info_t *ri;
   mtev_lua_resume_rest_info_t *ctx = NULL;
   lua_State *L;
   eventer_t conne = NULL;
-  mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
   mtev_http_response *res = mtev_http_session_response(restc->http_ctx);
 
   if(!lmc || !conf) {
     goto boom;
   }
 
-  if(mtev_http_request_get_upload(req, NULL) == NULL &&
-     mtev_http_request_has_payload(req)) {
-    const void *payload = NULL;
-    int payload_len = 0;
-    payload = rest_get_raw_upload(restc, &mask, &complete, &payload_len);
-    if(!complete) return mask;
-    mtev_http_request_set_upload(req, (char *)payload, (int64_t)payload_len,
-                                 req_payload_free, NULL);
-    restc->call_closure_free(restc->call_closure);
-    restc->call_closure = NULL;
-  }
+  if(!mtev_rest_complete_upload(restc, &mask)) return mask;
 
   if(restc->call_closure == NULL) {
     ri = calloc(1, sizeof(*ri));
