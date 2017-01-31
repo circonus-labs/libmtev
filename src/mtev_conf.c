@@ -467,7 +467,12 @@ mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt)
         prev = NULL;
         for(n=include_nodes[i].insertion_point->children;
             n; n = n->next) {
-          if(prev && prev->_private != n->_private) {
+          include_node_t *prev_cont = NULL, *n_cont = NULL;
+          if(prev && prev->_private)
+            prev_cont = ((mtev_xml_userdata_t *)prev->_private)->container;
+          if(n->_private)
+            n_cont = ((mtev_xml_userdata_t *)n->_private)->container;
+          if(prev && (prev_cont != n_cont)) {
             n->prev = NULL;
             prev->next = NULL;
           }
@@ -572,11 +577,16 @@ mtev_conf_kansas_city_shuffle_undo(include_node_t *include_nodes, int include_no
           n->parent = owner->snippet ? (xmlNodePtr)owner->doc : owner->root;
           prev = n;
         }
-        /* unlink the conjuction of lists */
+        /* unlink the conjunction of lists */
         prev = NULL;
         for(n=include_nodes[i].insertion_point->children;
             n; n = n->next) {
-          if(prev && prev->_private != n->_private) {
+          include_node_t *prev_cont = NULL, *n_cont = NULL;
+          if(prev && prev->_private)
+            prev_cont = ((mtev_xml_userdata_t *)prev->_private)->container;
+          if(n->_private)
+            n_cont = ((mtev_xml_userdata_t *)n->_private)->container;
+          if(prev && (prev_cont != n_cont)) {
             n->prev = NULL;
             prev->next = NULL;
           }
