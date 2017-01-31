@@ -278,6 +278,12 @@ void mtev_dso_init() {
       mtevL(mtev_stderr, "No name defined in generic stanza %d\n", i+1);
       continue;
     }
+
+    if(mtev_conf_env_off(sections[i], NULL)) {
+      mtevL(mtev_debug, "generic module %s environmentally disabled.\n", g_name);
+      continue;
+    }
+
     gen = (mtev_dso_generic_t *)
       mtev_load_generic_image(&__mtev_image_loader, g_name,
                               sections[i]);
@@ -327,6 +333,12 @@ void mtev_dso_init() {
       mtevL(mtev_stderr, "No name defined in loader stanza %d\n", i+1);
       continue;
     }
+
+    if(mtev_conf_env_off(sections[i], NULL)) {
+      mtevL(mtev_debug, "loader %s environmentally disabled.\n", loader_name);
+      continue;
+    }
+
     loader = (mtev_dso_loader_t *)
       mtev_load_loader_image(&__mtev_image_loader, loader_name,
                              sections[i]);
