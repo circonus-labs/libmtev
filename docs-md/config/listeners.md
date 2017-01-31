@@ -12,7 +12,7 @@ Network listeners and their services are specified via configuration.
       <key_file>/path/to/server.key</key_file>
       <ca_chain>/path/to/ca.crt</ca_chain>
     </sslconfig>
-    <consoles type="mtev_console">
+    <consoles type="mtev_console" require_env="MTEV_CONTROL">
       <listener address="127.0.0.1" port="32322">
         <config>
           <line_protocol>telnet</line_protocol>
@@ -41,6 +41,8 @@ note that the listener's `type` attribute was actually set in a parent node.  Mo
 systems in libmtev will recusively merge from ancestors down to the a specimen node
 and use that result.  Here `type` is simply an attribute, so merging is just replacing.
 This node also has an `sslconfig`, but it doesn't use it, so we'll ignore that for now.
+The `require_env` attribute requires the `MTEV_CONTROL` environment variable to be set
+for this listener to be active; if unspecified, it is active.
 
 The next two listener stanzas are for port 80 and 443.  They are in a `web` node that has
 both `type` and `address` attributes set (those are inherited by the listeners).  The
@@ -56,6 +58,11 @@ The following attributes are supported for listeners:
    registered with `eventer_name_callback(...)`.  libmtev support four built-in listener
    types: `http_rest_api`, `mtev_wire_rest_api/1.0`, `control_dispatch`, and `mtev_console`.
    Applications can arbitrarily extend the system by naming callbacks.
+
+ * ##### require_env
+
+   This optionally requires conditions around an environment variable. See 
+   [`require_env`](README.md#requireenv).
 
  * ##### address
 

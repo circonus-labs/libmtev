@@ -18,7 +18,7 @@ Modules are all configured under the top-level `<modules>` node in the configura
 <?xml version="1.0" encoding="utf8" standalone="yes"?>
 <application>
   <modules directory="../modules">
-    <generic image="zipkin_fq" name="zipkin_fq">
+    <generic image="zipkin_fq" name="zipkin_fq" require_env="FQ">
     </generic>
     <generic image="lua_mtev" name="lua_general">
       <config>
@@ -43,4 +43,31 @@ Like other parts of the sytem `<config>` blocks are ancestrally merged.
 
 The `<generic>` stanzas instruct the system to load a module.  The above config loads the `zipkin_fq` module
 from the `zipkin_fq` binary image (`zipkin_fq.so` on ELF systems and `zipkin_fq.bundle` on mach-o systems like Mac OS X)
-with no configuration.  It also loads the `lua_general` module from the `lua_mtev` binary image with a configuration.
+with no configuration if an only if the FQ environment variable is set.  It also loads the `lua_general` module
+from the `lua_mtev` binary image with a configuration.
+
+## Generic Options
+
+ * ##### require_env
+
+   This optionally requires conditions around an environment variable.  See
+   [`require_env`](README.md#requireenv).
+
+ * ##### image
+
+   The name of the shared object (or bundle on Mac OS X) that will by dynamically loaded
+   into the system.
+
+ * ##### name
+
+   The name of the symbol that will be used to identify the module or loader within the image.
+
+## Loader Modules
+
+Loader modules know how to load other types of modules.  The only loader that ships with
+libmtev is the C loader.  However new loaders can be implemented by libmtev consumers.
+
+## Generic Modules
+
+Generic modules can change the way the system behaves by interfacing with various hooks
+within the software stack.

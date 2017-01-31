@@ -27,7 +27,7 @@ that are its direct child or direct child of any ancestor node.
 <?xml version="1.0" encoding="utf8" standalone="yes"?>
 <application>
   <logs>
-    <log name="internal" type="memory" path="10000,1000000"/>
+    <log name="internal" type="memory" path="10000,1000000" require_env="MEMLOG"/>
     <log name="logfile" type="file" path="/var/log/app.log"
          rotate_bytes="10000000" retain_bytes="50000000" timestamps="on"/>
     <log name="http/access" type="jlog" path="/var/log/app-http.feed(*)"/>
@@ -77,7 +77,8 @@ As before, we use an arbitrarily named node to contiain the declaration logicall
 time called `<console_output>`.
 
 The "internal" log_stream is of type `memory` which uses an in-memory ring buffer
-to store recent log lines.  We have a limit ot 10000 log lines and 1000000 bytes.
+to store recent log lines.  We have a limit ot 10000 log lines and 1000000 bytes. It
+is also only active if the environment variable INMEM is set.
 
 The "logfile" log_stream is of type `file` and will auto-rotate files as they hit
 10 million bytes and delete old log files as the cummulative space consumed
@@ -87,6 +88,11 @@ The "http/access" log_stream is of type `jlog` which is create a [Jlog](https://
 journaled log for external consumption.
 
 ## Generic Attributes
+
+ * ##### require_env
+
+   This optionally requires conditions around an environment variable.  See
+   [`require_env`](README.md#requireenv).
 
  * ##### debug
 
