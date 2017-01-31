@@ -143,6 +143,9 @@ API_EXPORT(int)
   mtev_mtev_console_show(mtev_console_closure_t ncct, int argc, char **argv,
                          mtev_console_state_t *dstate, void *);
 
+API_EXPORT(mtev_boolean)
+  mtev_rest_complete_upload(mtev_http_rest_closure_t *restc, int *mask);
+
 API_EXPORT(xmlDocPtr)
   rest_get_xml_upload(mtev_http_rest_closure_t *restc,
                       int *mask, int *complete);
