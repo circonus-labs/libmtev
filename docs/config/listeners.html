@@ -478,7 +478,7 @@
       <span class="hljs-tag">&lt;<span class="hljs-name">key_file</span>&gt;</span>/path/to/server.key<span class="hljs-tag">&lt;/<span class="hljs-name">key_file</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">ca_chain</span>&gt;</span>/path/to/ca.crt<span class="hljs-tag">&lt;/<span class="hljs-name">ca_chain</span>&gt;</span>
     <span class="hljs-tag">&lt;/<span class="hljs-name">sslconfig</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">consoles</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;mtev_console&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">consoles</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;mtev_console&quot;</span> <span class="hljs-attr">require_env</span>=<span class="hljs-string">&quot;MTEV_CONTROL&quot;</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">listener</span> <span class="hljs-attr">address</span>=<span class="hljs-string">&quot;127.0.0.1&quot;</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;32322&quot;</span>&gt;</span>
         <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
           <span class="hljs-tag">&lt;<span class="hljs-name">line_protocol</span>&gt;</span>telnet<span class="hljs-tag">&lt;/<span class="hljs-name">line_protocol</span>&gt;</span>
@@ -504,7 +504,9 @@ so you can add applications specific command, control, and interogation capabili
 note that the listener&apos;s <code>type</code> attribute was actually set in a parent node.  Most
 systems in libmtev will recusively merge from ancestors down to the a specimen node
 and use that result.  Here <code>type</code> is simply an attribute, so merging is just replacing.
-This node also has an <code>sslconfig</code>, but it doesn&apos;t use it, so we&apos;ll ignore that for now.</p>
+This node also has an <code>sslconfig</code>, but it doesn&apos;t use it, so we&apos;ll ignore that for now.
+The <code>require_env</code> attribute requires the <code>MTEV_CONTROL</code> environment variable to be set
+for this listener to be active; if unspecified, it is active.</p>
 <p>The next two listener stanzas are for port 80 and 443.  They are in a <code>web</code> node that has
 both <code>type</code> and <code>address</code> attributes set (those are inherited by the listeners).  The
 <code>config</code> node (child of <code>web</code>) and the <code>sslconfig</code> node (child of <code>listeners</code>) are also
@@ -517,6 +519,10 @@ The <code>sslconfig</code> is passed into the ssl subsystem and is uniform acros
 registered with <code>eventer_name_callback(...)</code>.  libmtev support four built-in listener
 types: <code>http_rest_api</code>, <code>mtev_wire_rest_api/1.0</code>, <code>control_dispatch</code>, and <code>mtev_console</code>.
 Applications can arbitrarily extend the system by naming callbacks.</p>
+</li>
+<li><h5 id="requireenv">require_env</h5>
+<p>This optionally requires conditions around an environment variable. See 
+<a href="./#requireenv"><code>require_env</code></a>.</p>
 </li>
 <li><h5 id="address">address</h5>
 <p>The address is either a filesystem path (AF_UNIX), an IPv4 address or an IPv6 address.
@@ -605,7 +611,7 @@ Options may be negated with an antecedent <code>!</code>.  Tokens are matched ca
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Listeners","level":"1.2.6","depth":2,"next":{"title":"Modules","level":"1.2.7","depth":2,"path":"config/modules.md","ref":"config/modules.md","articles":[{"title":"fq","level":"1.2.7.1","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},{"title":"lua_general","level":"1.2.7.2","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},{"title":"lua_web","level":"1.2.7.3","depth":3,"path":"config/modules/lua_web.md","ref":"config/modules/lua_web.md","articles":[]},{"title":"zipkin_fq","level":"1.2.7.4","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]}]},"previous":{"title":"Logging","level":"1.2.5","depth":2,"path":"config/logging.md","ref":"config/logging.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/listeners.md","mtime":"2016-12-05T20:18:03.474Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-01-30T19:58:47.630Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Listeners","level":"1.2.6","depth":2,"next":{"title":"Modules","level":"1.2.7","depth":2,"path":"config/modules.md","ref":"config/modules.md","articles":[{"title":"fq","level":"1.2.7.1","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},{"title":"lua_general","level":"1.2.7.2","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},{"title":"lua_web","level":"1.2.7.3","depth":3,"path":"config/modules/lua_web.md","ref":"config/modules/lua_web.md","articles":[]},{"title":"zipkin_fq","level":"1.2.7.4","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]}]},"previous":{"title":"Logging","level":"1.2.5","depth":2,"path":"config/logging.md","ref":"config/logging.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/listeners.md","mtime":"2017-02-01T15:21:31.168Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-02-01T15:25:40.451Z"},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
