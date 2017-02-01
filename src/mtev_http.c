@@ -867,6 +867,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
         if(!strcmp(name ? name : last_name, "accept-encoding")) {
           if(strstr(value, "gzip")) req->opts |= MTEV_HTTP_GZIP;
           if(strstr(value, "deflate")) req->opts |= MTEV_HTTP_DEFLATE;
+          if(strstr(value, "lz4f")) req->opts |= MTEV_HTTP_LZ4F;
         }
         if(name)
           mtev_hash_replace(&req->headers, name, strlen(name), (void *)value,
@@ -1939,11 +1940,11 @@ mtev_http_response_option_set(mtev_http_session_ctx *ctx, uint32_t opt) {
      (opt & MTEV_HTTP_CHUNKED))
     return mtev_false;
   if(ctx->res.protocol != MTEV_HTTP11 &&
-     (opt & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE)))
+     (opt & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F)))
     return mtev_false;
   if(((ctx->res.output_options | opt) &
-      (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE)) ==
-        (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE))
+      (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F)) ==
+        (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F))
     return mtev_false;
 
   /* Check out "accept" set */
@@ -1952,12 +1953,14 @@ mtev_http_response_option_set(mtev_http_session_ctx *ctx, uint32_t opt) {
   ctx->res.output_options |= opt;
   if(ctx->res.output_options & MTEV_HTTP_CHUNKED)
     CTX_ADD_HEADER("Transfer-Encoding", "chunked");
-  if(ctx->res.output_options & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE)) {
+  if(ctx->res.output_options & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F)) {
     CTX_ADD_HEADER("Vary", "Accept-Encoding");
     if(ctx->res.output_options & MTEV_HTTP_GZIP)
       CTX_ADD_HEADER("Content-Encoding", "gzip");
     else if(ctx->res.output_options & MTEV_HTTP_DEFLATE)
       CTX_ADD_HEADER("Content-Encoding", "deflate");
+    else if(ctx->res.output_options & MTEV_HTTP_LZ4F)
+      CTX_ADD_HEADER("Content-Encoding", "lz4f");
   }
   if(ctx->res.output_options & MTEV_HTTP_CLOSE) {
     CTX_ADD_HEADER("Connection", "close");
@@ -2264,6 +2267,18 @@ _http_encode_chain(mtev_http_response *res,
     }
     out->size += olen;
   }
+  else if(opts & MTEV_HTTP_LZ4F) {
+    size_t olen = out->allocd - out->start - 2; /* leave 2 for the \r\n */
+    unsigned char *compressed_data = NULL;
+    if(0 != mtev_http_lz4f(inbuff, (size_t)inlen, &compressed_data, &olen)) {
+      mtevL(mtev_error, "lz4f compress error\n");
+      return mtev_false;
+    }
+    memcpy(out->buff + out->start, compressed_data, olen);
+    free(compressed_data);
+    out->size += olen;
+  }
+
   else {
     /* leave 2 for the \r\n */
     if(inlen > out->allocd - out->start - 2) return mtev_false;
@@ -2280,7 +2295,7 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
   int opts = ctx->res.output_options;
 
   if(in->type == BCHAIN_MMAP &&
-     0 == (opts & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_CHUNKED))) {
+     0 == (opts & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F | MTEV_HTTP_CHUNKED))) {
     out = ALLOC_BCHAIN(0);
     out->buff = in->buff;
     out->type = in->type;
@@ -2293,6 +2308,7 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
   /* let's assume that content never gets "larger" */
   if(opts & MTEV_HTTP_GZIP) maxlen = deflateBound(NULL, in->size);
   else if(opts & MTEV_HTTP_DEFLATE) maxlen = compressBound(in->size);
+  else if(opts & MTEV_HTTP_LZ4F) maxlen = LZ4F_compressBound(in->size, NULL);
 
   /* So, the link size is the len(data) + 4 + ceil(log(len(data))/log(16)) */
   ilen = maxlen;

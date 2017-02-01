@@ -54,7 +54,9 @@ typedef enum {
 #define MTEV_HTTP_CLOSE        0x0002
 #define MTEV_HTTP_GZIP         0x0010
 #define MTEV_HTTP_DEFLATE      0x0020
+#define MTEV_HTTP_LZ4F         0x0100
 
+/* these are compression types for bchain links */
 typedef enum {
   MTEV_HTTP_COMPRESS_NONE = 0,
   MTEV_HTTP_COMPRESS_LZ4F,
