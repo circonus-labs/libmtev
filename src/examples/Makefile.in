@@ -9,7 +9,8 @@ top_srcdir=@top_srcdir@
 
 CC=@CC@
 CPPFLAGS=-I$(top_srcdir)/src @CPPFLAGS@ \
-	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/modules
+	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/modules \
+	-I/usr/include/amd64
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
 LDFLAGS=@LDFLAGS@
@@ -21,6 +22,8 @@ INSTALL=@INSTALL@
 
 ES_OBJS=	echo_server.o
 
+EC_OBJS=	echo_client.o
+
 EX1_OBJS=	example1.o
 
 FQR_OBJS=	fq-router.o
@@ -29,7 +32,7 @@ WSC_OBJS=	websocket_client.o
 
 WSS_OBJS=	websocket_server.o
 
-all:	echo_server example1 fq-router websocket_client websocket_server
+all:	echo_server echo_client example1 fq-router websocket_client websocket_server
 
 .c.o:
 	@echo "- compiling $<"
@@ -39,6 +42,11 @@ echo_server:	$(ES_OBJS)
 	@echo "- linking $@"
 	@echo "LDFLAGS=$(LDFLAGS)"
 	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(ES_OBJS) $(LIBS) -lmtev
+
+echo_client:	$(EC_OBJS)
+	@echo "- linking $@"
+	@echo "LDFLAGS=$(LDFLAGS)"
+	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(EC_OBJS) $(LIBS) -lmtev -lcurl
 
 example1:	$(EX1_OBJS)
 	@echo "- linking $@"

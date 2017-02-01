@@ -337,6 +337,10 @@ request_compression_type(mtev_http_request *req)
   mtev_hash_table *headers = mtev_http_request_headers_table(req);
   mtev_hash_retr_str(headers, "content-encoding", strlen("content-encoding"), 
                      &content_encoding);
+
+  if (content_encoding == NULL) {
+    return MTEV_HTTP_COMPRESS_NONE;
+  }
   
   /* there is no official mime-type for LZ4 so use this for now */
   int lz4f = strcmp("lz4f", content_encoding);
@@ -1022,6 +1026,7 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
     struct bchain *x = ctx->req.first_input;
     while (x) {
       x->compression = request_compression_type(&ctx->req);
+      ctx->req.content_length_read += x->size;
       x = x->next;
     }
     if(len == -1 || err == mtev_true) goto full_error;
@@ -1269,7 +1274,7 @@ mtev_http_session_decompress_lz4f(struct bchain *in, mtev_http_session_ctx *ctx,
     }
     size_t in_size = in->size;
     size_t s = LZ4F_decompress(dctx,
-                        o->buff, &out_size,
+                        o->buff + o->size, &out_size,
                         in->buff + in->start, &in_size,
                         &opts);
 
@@ -1283,7 +1288,7 @@ mtev_http_session_decompress_lz4f(struct bchain *in, mtev_http_session_ctx *ctx,
       errno = -errno;
       return -1;
     }
-    o->size = out_size;
+    o->size += out_size;
     total_decompressed_size += o->size;
     in->size -= in_size;
     in->start += in_size;
@@ -1334,7 +1339,7 @@ mtev_http_session_decompress_gzip(struct bchain *in, mtev_http_session_ctx *ctx,
       *last_out = o;
       out_size = o->allocd;
     }
-    zstream->next_out = (Byte *)(o->buff + o->start);
+    zstream->next_out = (Byte *)(o->buff + o->size);
     zstream->avail_out = o->allocd - o->size;
     int x = inflate(zstream, Z_NO_FLUSH);
     if (x != Z_OK && x != Z_STREAM_END) {
@@ -1362,7 +1367,8 @@ mtev_http_session_decompress_gzip(struct bchain *in, mtev_http_session_ctx *ctx,
 int
 mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
                               void *buf, size_t user_len, size_t blen,
-                              int *mask) {
+                              int *mask) 
+{
   size_t bytes_read = 0,
     expected = ctx->req.content_length - ctx->req.content_length_read,
     wire_len = expected;
@@ -1375,9 +1381,6 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
   }
 
   mtev_http_compress compression_type = request_compression_type(&ctx->req);
-  if (compression_type == MTEV_HTTP_COMPRESS_NONE) {
-    user_len = MIN(user_len, wire_len);
-  } 
 
   /* We attempt to consume from the first_input */
   struct bchain *in, *tofree;
@@ -1421,12 +1424,11 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
         size_t total_decompressed_size = 0;
         size_t total_compressed_size = 0;
 
-        /* 
-         * if the last link in the chain is already uncompressed but not fully consumed, 
-         * use it as the output chain, otherwise the decompress functions will allocate one.
-         */
-        struct bchain *out = 
-          ctx->req.last_input->compression == MTEV_HTTP_COMPRESS_NONE ? ctx->req.last_input : NULL;
+        struct bchain *out = NULL;
+        /* if we haven't fully consumed the last uncompressed block, use it up */
+        if (ctx->req.last_input != NULL && ctx->req.last_input->compression == MTEV_HTTP_COMPRESS_NONE && ctx->req.last_input->size < ctx->req.last_input->allocd) {
+          out = ctx->req.last_input;
+        }          
         struct bchain *last_out = NULL;
         switch (in->compression) {
         case MTEV_HTTP_COMPRESS_LZ4F:
@@ -1456,21 +1458,17 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
           break;
         };
 
+        /* our newly produced uncompressed chain gets stuck on the end 
+         * after we are through uncompressing we will read this out as normal */
+        if (out && ctx->req.last_input && ctx->req.last_input != out) {
+          ctx->req.last_input->next = out;
+        }
+        ctx->req.last_input = last_out;
+
         if (in->size == 0) {
           /* we have consumed this compressed input link, delete it */
           struct bchain *tofree = in;
-          if (ctx->req.first_input == in) {
-            ctx->req.first_input = in->next;
-          }
-          if (ctx->req.last_input == in) {
-            ctx->req.last_input = NULL;
-          }
-          if (ctx->req.last_input && 
-              ctx->req.last_input->compression != MTEV_HTTP_COMPRESS_NONE) {
-            ctx->req.last_input->next = out;
-          }
-          ctx->req.last_input = last_out;
-          in = in->next;
+          ctx->req.first_input = in = in->next;
           tofree->next = NULL;
           RELEASE_BCHAIN(tofree);
         }
@@ -1511,7 +1509,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
     }
     
     /* short circuit and read the rest off the wire later */
-    if (bytes_read == user_len) {
+    if (bytes_read > 0 && bytes_read == user_len) {
       return bytes_read;
     }
 
@@ -2150,6 +2148,91 @@ static int memgzip2(mtev_http_response *res, Bytef *dest, uLongf *destLen,
 
   return Z_OK;
 }
+
+int 
+mtev_http_gzip(const char *data, size_t len, unsigned char **compressed, size_t *compressed_len)
+{
+  z_stream stream;
+  size_t max_compressed_len;
+  int err, skip = 0;
+
+  err = deflateInit2(&stream, 9, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
+  if (err != Z_OK) {
+    mtevL(mtev_error, "mtev_http_gzip -> deflateInit2: %d\n", err);
+    return err;
+  }
+  
+  stream.next_in = (Bytef *)data;
+  stream.avail_in = len;
+  max_compressed_len = deflateBound(&stream, len) + sizeof(gzip_header);
+
+  *compressed = malloc(max_compressed_len);
+  memcpy(*compressed, gzip_header, sizeof(gzip_header));
+  skip += sizeof(gzip_header);
+
+  stream.next_out = (*compressed) + skip;
+  stream.avail_out = max_compressed_len - skip;
+
+  err = deflate(&stream, Z_FINISH);
+  if (err != Z_OK && err != Z_STREAM_END) {
+    mtevL(mtev_error, "zlib deflate error: %d\n", err);
+    deflateEnd(&stream);
+    return err;
+  }
+
+  *compressed_len = stream.total_out;
+  deflateEnd(&stream);
+  return Z_OK;
+}
+
+int 
+mtev_http_lz4f(const char *data, size_t len, unsigned char **compressed, size_t *compressed_len)
+{
+  LZ4F_compressionContext_t ctx;
+
+  LZ4F_errorCode_t err = LZ4F_createCompressionContext(&ctx, LZ4F_VERSION);
+  if (LZ4F_isError(err)) {
+    mtevL(mtev_error, "mtev_http_lz4f: Error creating compression context: %s\n",
+            LZ4F_getErrorName(err));
+    return err;
+  }
+
+  *compressed_len = LZ4F_compressBound(len, NULL) + 15;
+  *compressed = malloc(*compressed_len);
+  if (*compressed == NULL) {
+    mtevL(mtev_error, "mtev_http_lz4f: Cannot allocate compression dest\n");
+    return -1;
+  }
+  size_t s = LZ4F_compressBegin(ctx, *compressed, *compressed_len, NULL);
+  if (LZ4F_isError(s)) {
+    mtevL(mtev_error, "mtev_http_lz4f: Error compressBegin: %s\n",
+            LZ4F_getErrorName(s));
+    return s;
+  }
+  s += LZ4F_compressUpdate(ctx, *compressed + s, *compressed_len - s, data, len, NULL);
+  if (LZ4F_isError(s)) {
+    mtevL(mtev_error, "mtev_http_lz4f: Error compressUpdate: %s\n",
+            LZ4F_getErrorName(s));
+    return s;
+  }
+  s += LZ4F_compressEnd(ctx, *compressed + s, *compressed_len - s, NULL);
+  if (LZ4F_isError(s)) {
+    mtevL(mtev_error, "mtev_http_lz4f: Error compressEnd: %s\n",
+            LZ4F_getErrorName(s));
+    return s;
+  }
+  *compressed_len = s;
+
+  err = LZ4F_freeCompressionContext(ctx);
+  if (LZ4F_isError(err)) {
+    mtevL(mtev_error, "mtev_http_lz4f: Error freeing compression context: %s\n",
+            LZ4F_getErrorName(err));
+    return err;
+  }
+
+  return 0;
+}
+
 static mtev_boolean
 _http_encode_chain(mtev_http_response *res,
                    struct bchain *out, void *inbuff, int inlen,

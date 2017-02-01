@@ -175,6 +175,31 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_http_process_querystring(mtev_http_request *);
 
+/**
+ * Will gzip 'data' of size 'len' and fill 'compressed' with the compressed version
+ * after it allocates space.  'compressed_len' will hold the new length.
+ * 
+ * Better compression than lz4f variant below at the cost of greater CPU.
+ * 
+ * @return 0 on success
+ * @return non-zero on error
+ */
+API_EXPORT(int)
+  mtev_http_gzip(const char *data, size_t len, unsigned char **compressed, size_t *compressed_len);
+
+/**
+ * Will lz4f 'data' of size 'len' and fill 'compressed' with the compressed version
+ * after it allocates space.  'compressed_len' will hold the new length.
+ * 
+ * Choose this where you want some compression but don't want to pay as much
+ * CPU cost as gzip.
+ * 
+ * @return 0 on success
+ * @return non-zero on error
+ */
+API_EXPORT(int)
+  mtev_http_lz4f(const char *data, size_t len, unsigned char **compressed, size_t *compressed_len);
+
 API_EXPORT(int)
   mtev_http_session_drive(eventer_t, int, void *, struct timeval *, int *done);
 
