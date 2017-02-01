@@ -233,6 +233,9 @@ API_EXPORT(void)
 API_EXPORT(int)
   mtev_conf_write_log();
 
+API_EXPORT(mtev_boolean)
+  mtev_conf_env_off(mtev_conf_section_t node, const char *attr);
+
 API_EXPORT(void) mtev_conf_log_init(const char *toplevel,
                                     const char *user, const char *group);
 API_EXPORT(int) mtev_conf_log_init_rotate(const char *, mtev_boolean);

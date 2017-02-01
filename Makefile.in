@@ -10,10 +10,11 @@ gitbook-setup:
 	gitbook install
 
 docs-serve:	gitbook-setup
-	gitbook serve . docs
+	gitbook serve .
 
 docs-html:	gitbook-setup
 	gitbook build . docs
+	buildtools/gitbook-cleanup.sh
 
 docs-pdf:	gitbook-setup
 	PATH=$(shell dirname $(EBOOKCONVERT)):$(shell echo $$PATH) gitbook pdf . docs/libmtev-manual.pdf

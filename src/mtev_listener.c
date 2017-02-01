@@ -474,6 +474,13 @@ mtev_listener_reconfig(const char *toplevel) {
             "Invalid port [%d] specified in stanza %d\n", port, i+1);
       continue;
     }
+    if(mtev_conf_env_off(listener_configs[i], NULL)) {
+      if(port)
+        mtevL(mtev_debug, "listener %s:%d environmentally disabled.\n", address, port);
+      else
+        mtevL(mtev_debug, "listener %s environmentally disabled.\n", address);
+      continue;
+    }
     if(mtev_listener_should_skip(address, port)) {
       if(port)
         mtevL(mtev_error, "Operator forced skipping listener %s:%d\n", address, port);

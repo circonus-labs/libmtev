@@ -482,7 +482,7 @@ section of the manual.</p>
 <pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
 <span class="hljs-tag">&lt;<span class="hljs-name">application</span>&gt;</span>
   <span class="hljs-tag">&lt;<span class="hljs-name">modules</span> <span class="hljs-attr">directory</span>=<span class="hljs-string">&quot;../modules&quot;</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">generic</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;zipkin_fq&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;zipkin_fq&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">generic</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;zipkin_fq&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;zipkin_fq&quot;</span> <span class="hljs-attr">require_env</span>=<span class="hljs-string">&quot;FQ&quot;</span>&gt;</span>
     <span class="hljs-tag">&lt;/<span class="hljs-name">generic</span>&gt;</span>
     <span class="hljs-tag">&lt;<span class="hljs-name">generic</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;lua_mtev&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;lua_general&quot;</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
@@ -504,7 +504,28 @@ to the installation&apos;s default module directory.</p>
 <p>Like other parts of the sytem <code>&lt;config&gt;</code> blocks are ancestrally merged.</p>
 <p>The <code>&lt;generic&gt;</code> stanzas instruct the system to load a module.  The above config loads the <code>zipkin_fq</code> module
 from the <code>zipkin_fq</code> binary image (<code>zipkin_fq.so</code> on ELF systems and <code>zipkin_fq.bundle</code> on mach-o systems like Mac OS X)
-with no configuration.  It also loads the <code>lua_general</code> module from the <code>lua_mtev</code> binary image with a configuration.</p>
+with no configuration if an only if the FQ environment variable is set.  It also loads the <code>lua_general</code> module
+from the <code>lua_mtev</code> binary image with a configuration.</p>
+<h2 id="generic-options">Generic Options</h2>
+<ul>
+<li><h5 id="requireenv">require_env</h5>
+<p>This optionally requires conditions around an environment variable.  See
+<a href="./#requireenv"><code>require_env</code></a>.</p>
+</li>
+<li><h5 id="image">image</h5>
+<p>The name of the shared object (or bundle on Mac OS X) that will by dynamically loaded
+into the system.</p>
+</li>
+<li><h5 id="name">name</h5>
+<p>The name of the symbol that will be used to identify the module or loader within the image.</p>
+</li>
+</ul>
+<h2 id="loader-modules">Loader Modules</h2>
+<p>Loader modules know how to load other types of modules.  The only loader that ships with
+libmtev is the C loader.  However new loaders can be implemented by libmtev consumers.</p>
+<h2 id="generic-modules">Generic Modules</h2>
+<p>Generic modules can change the way the system behaves by interfacing with various hooks
+within the software stack.</p>
 
                                 
                                 </section>
@@ -548,7 +569,7 @@ with no configuration.  It also loads the <code>lua_general</code> module from t
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Modules","level":"1.2.7","depth":2,"next":{"title":"fq","level":"1.2.7.1","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},"previous":{"title":"Listeners","level":"1.2.6","depth":2,"path":"config/listeners.md","ref":"config/listeners.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules.md","mtime":"2016-12-05T20:18:03.475Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-01-30T19:58:47.630Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Modules","level":"1.2.7","depth":2,"next":{"title":"fq","level":"1.2.7.1","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},"previous":{"title":"Listeners","level":"1.2.6","depth":2,"path":"config/listeners.md","ref":"config/listeners.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
