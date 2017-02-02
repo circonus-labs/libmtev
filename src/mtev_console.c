@@ -549,6 +549,7 @@ socket_error:
     return newmask | EVENTER_EXCEPTION;
   }
 
+  el_multi_set_el(ncct->el);
   for(keep_going=1 ; keep_going ; ) {
     int len, plen;
     char sbuf[4096];
