@@ -626,7 +626,7 @@ an event will perform it&apos;s callback at some point in the future.</p>
 <li>the event is added from some thread A (usually an event loop thread)</li>
 <li>a jobq thread B will invoke the <code>callback</code> with <code>mask = EVENTER_ASYNCH_WORK</code> if <code>whence</code> is set and in the future.</li>
 <li>thread B will invoke the <code>callback</code> with <code>mask = EVENTER_ASYNCH_CLEANUP</code></li>
-<li>the event will return to thread A and <code>callback</code> will be invoked with <code>mask = EVENTER_ASYNCH_WORK</code></li>
+<li>the event will return to thread A and <code>callback</code> will be invoked with <code>mask = EVENTER_ASYNCH</code></li>
 </ol>
 <h3 id="choosing-threads">Choosing Threads</h3>
 <p>By default new events are created on the &quot;current&quot; event loop thread.  This
