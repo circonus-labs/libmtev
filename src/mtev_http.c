@@ -331,14 +331,11 @@ request_compression_type(mtev_http_request *req)
   }
   
   /* there is no official mime-type for LZ4 so use this for now */
-  int lz4f = strcmp("lz4f", content_encoding);
-  /* check for lz4f and x-lz4f */
-  if (lz4f == 0 || lz4f == 2) {
+  if (strstr(content_encoding, "lz4f") != NULL) {
+    /* check for lz4f and x-lz4f */
     return MTEV_COMPRESS_LZ4F;
-  }
-  int gzip = strcmp("gzip", content_encoding);
-  /* gzip and x-gzip */
-  if (gzip == 0 || gzip == 2) {    
+  } else if (strstr(content_encoding, "gzip") != NULL) {    
+    /* gzip and x-gzip */
     return MTEV_COMPRESS_GZIP;
   }
 
