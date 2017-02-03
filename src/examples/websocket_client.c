@@ -86,7 +86,8 @@ child_main() {
     websocket_cleanup_handler
   };
 
-  (void)mtev_websocket_client_new("127.0.0.1", 8888, "/", "echo-protocol", &callbacks, NULL);
+  (void)mtev_websocket_client_new("127.0.0.1", 8888, "/", "echo-protocol",
+                                  &callbacks, NULL, eventer_pool("default"));
 
   /* Lastly, spin up the event loop */
   eventer_loop();

@@ -24,13 +24,12 @@ typedef struct {
   mtev_websocket_client_cleanup_callback cleanup_callback;
 } mtev_websocket_client_callbacks;
 
-// mtev_websocket_client_t *mtev_websocket_client_new(const char *url, int port);
 API_EXPORT(mtev_websocket_client_t *)
   mtev_websocket_client_new(const char *url, int port,
                             const char *path, const char *service,
                             mtev_websocket_client_callbacks *callbacks,
                             void *closure,
-                            const char *pool_name);
+                            eventer_pool_t *pool);
 
 API_EXPORT(void)
   mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client,

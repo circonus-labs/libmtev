@@ -319,7 +319,7 @@ abort_drive:
 
 mtev_websocket_client_t *
 mtev_websocket_client_new(const char *host, int port, const char *path, const char *service,
-                          mtev_websocket_client_callbacks *callbacks, void *closure, const char *pool_name) {
+                          mtev_websocket_client_callbacks *callbacks, void *closure, eventer_pool_t *pool) {
 #ifdef HAVE_WSLAY
   int fd = -1, rv;
   int family = AF_INET;
@@ -397,7 +397,6 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
   e->mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
   e->callback = mtev_websocket_client_drive;
   e->closure = client;
-  eventer_pool_t *pool = pool_name ? eventer_pool(pool_name) : NULL;
   if(pool) e->thr_owner = eventer_choose_owner_pool(pool, lrand48());
   client->e = e;
   eventer_add(e);
