@@ -52,22 +52,23 @@ static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pa
   int len;
   int done = 0;
 
-  while (!done) {
-    len = mtev_http_session_req_consume(restc->http_ctx, buffer, buffer_size, buffer_size, &mask);
-    if (len > 0) {
-      mtev_http_response_append(restc->http_ctx, buffer, len);    
-    }
-    if ((len < 0 && errno != EAGAIN) || len == 0) {
-      done = 1;
-    }
-  } 
-  
   mtev_http_response_standard(restc->http_ctx, 200, "OK", "text/plain");
-  mtev_http_response_header_set(restc->http_ctx, "Content-Type", "text/plain");
   mtev_http_response_option_set(restc->http_ctx, MTEV_HTTP_CLOSE);
-  mtev_http_response_option_set(restc->http_ctx, MTEV_HTTP_LZ4F);
-  mtev_http_response_end(restc->http_ctx);
-  return 0;
+  mtev_http_response_header_set(restc->http_ctx, "Content-Type", "text/plain");
+
+  len = mtev_http_session_req_consume(restc->http_ctx, buffer, buffer_size, buffer_size, &mask);
+  if (len > 0) {
+    mtev_http_response_append(restc->http_ctx, buffer, len);    
+  }
+  if ((len < 0 && errno != EAGAIN) || len == 0) {
+    done = 1;
+  }
+
+  if (done) {
+    mtev_http_response_end(restc->http_ctx);
+    return 0;
+  }
+  return EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
 }
 
 
