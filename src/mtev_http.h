@@ -37,6 +37,7 @@
 #include "mtev_defines.h"
 #include <libxml/tree.h>
 #include "eventer/eventer.h"
+#include "mtev_compress.h"
 #include "mtev_hash.h"
 #include "mtev_atomic.h"
 #include "mtev_hooks.h"
@@ -55,13 +56,6 @@ typedef enum {
 #define MTEV_HTTP_GZIP         0x0010
 #define MTEV_HTTP_DEFLATE      0x0020
 #define MTEV_HTTP_LZ4F         0x0100
-
-/* these are compression types for bchain links */
-typedef enum {
-  MTEV_HTTP_COMPRESS_NONE = 0,
-  MTEV_HTTP_COMPRESS_LZ4F,
-  MTEV_HTTP_COMPRESS_GZIP
-} mtev_http_compress;
 
 typedef enum {
   BCHAIN_INLINE = 0,
@@ -83,7 +77,7 @@ struct bchain {
   size_t start; /* where data starts (buff + start) */
   size_t size;  /* data length (past start) */
   size_t allocd;/* total allocation */
-  mtev_http_compress compression;
+  mtev_compress_type compression;
   char *buff;
   char _buff[1]; /* over allocate as needed */
 };
@@ -176,31 +170,6 @@ API_EXPORT(void)
 
 API_EXPORT(void)
   mtev_http_process_querystring(mtev_http_request *);
-
-/**
- * Will gzip 'data' of size 'len' and fill 'compressed' with the compressed version
- * after it allocates space.  'compressed_len' will hold the new length.
- * 
- * Better compression than lz4f variant below at the cost of greater CPU.
- * 
- * @return 0 on success
- * @return non-zero on error
- */
-API_EXPORT(int)
-  mtev_http_gzip(const char *data, size_t len, unsigned char **compressed, size_t *compressed_len);
-
-/**
- * Will lz4f 'data' of size 'len' and fill 'compressed' with the compressed version
- * after it allocates space.  'compressed_len' will hold the new length.
- * 
- * Choose this where you want some compression but don't want to pay as much
- * CPU cost as gzip.
- * 
- * @return 0 on success
- * @return non-zero on error
- */
-API_EXPORT(int)
-  mtev_http_lz4f(const char *data, size_t len, unsigned char **compressed, size_t *compressed_len);
 
 API_EXPORT(int)
   mtev_http_session_drive(eventer_t, int, void *, struct timeval *, int *done);
