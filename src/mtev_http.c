@@ -330,7 +330,7 @@ request_compression_type(mtev_http_request *req)
     return MTEV_COMPRESS_NONE;
   }
   
-  /* there is no official mime-type for LZ4 so use this for now */
+  /* there is no official mime-type for LZ4 check for anything containing lzf4 */
   if (strstr(content_encoding, "lz4f") != NULL) {
     /* check for lz4f and x-lz4f */
     return MTEV_COMPRESS_LZ4F;
@@ -1276,8 +1276,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
                               int *mask) 
 {
   size_t bytes_read = 0,
-    expected = ctx->req.content_length - ctx->req.content_length_read,
-    wire_len = expected;
+    wire_len = ctx->req.content_length - ctx->req.content_length_read;
 
   /* if we have read all content_length data and there is no
    * input to read, short circuit */
@@ -1312,12 +1311,12 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
       }
       user_len = blen;
     }
-    expected = ctx->req.next_chunk - ctx->req.next_chunk_read;
-    mtevL(http_debug, " ... need to read %d/%d more of a chunk\n", (int)expected,
+    wire_len = ctx->req.next_chunk - ctx->req.next_chunk_read;
+    mtevL(http_debug, " ... need to read %d/%d more of a chunk\n", (int)wire_len,
           (int)ctx->req.next_chunk);
   }
   mtevL(http_debug, " ... mtev_http_session_req_consume(%d) %d of %d\n",
-        ctx->conn.e ? ctx->conn.e->fd : -1, (int)user_len, (int)expected);
+        ctx->conn.e ? ctx->conn.e->fd : -1, (int)user_len, (int)wire_len);
 
   int crlen = 0;
   while(bytes_read < user_len) {
