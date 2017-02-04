@@ -472,7 +472,7 @@
 <p>Building a callout API makes sense for common, structured
 features in software, but occassionlly there is a need to provide
 somewhat arbitrary hook points after the software is designed
-and the noit_hooks system is what satisfies this need.</p>
+and the mtev_hooks system is what satisfies this need.</p>
 <p>The design goals here are somewhat specific in that we
 would like to allow for a large number of hook points at low cost
 when not instrumented.  As such, a hash lookup of registered hooks
@@ -489,7 +489,7 @@ routines.  Due to the nature of C, the macro calling conventions are
 less than elegant, but ultimately require no complicated implementation
 by the programmer.</p>
 <h3 id="hook-declaration">Hook Declaration</h3>
-<p>Declaring hooks is done by calling the <code>NOIT_HOOK_PROTO</code> macro with
+<p>Declaring hooks is done by calling the <code>MTEV_HOOK_PROTO</code> macro with
 the name of the hook (a term that composes a valid C function name),
 the arguments it expects, the type of closure (usually a void *),
 and some variations on those themes that provide CPP enough info
@@ -499,11 +499,15 @@ to construct an implementation with no programmer &quot;programming.&quot;</p>
 <h5 id="declaring-a-hook-foo-in-a-header">Declaring a hook &quot;foo&quot; (in a header)</h5>
 <p>This hook &quot;foo&quot; takes a <code>struct timeval *</code> as an argument in addition
 to its closure.</p>
-<pre><code class="lang-c">NOIT_HOOK_PROTO(foo, (<span class="hljs-keyword">struct</span> timeval *now),
+<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_hooks.h&gt;</span></span>
+
+MTEV_HOOK_PROTO(foo, (<span class="hljs-keyword">struct</span> timeval *now),
                 <span class="hljs-keyword">void</span> *, closure, (<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now));
 </code></pre>
 <h5 id="implementing-a-hook-foo-in-a-source-file">Implementing a hook &quot;foo&quot; (in a source file)</h5>
-<pre><code class="lang-c">NOIT_HOOK_IMPL(foo, (<span class="hljs-keyword">struct</span> timeval *now),
+<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_hooks.h&gt;</span></span>
+
+MTEV_HOOK_IMPL(foo, (<span class="hljs-keyword">struct</span> timeval *now),
                <span class="hljs-keyword">void</span> *, closure, (<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now),
                (closure,now));
 </code></pre>
@@ -524,7 +528,7 @@ executation, we would modify the above code to look like:</p>
 <pre><code class="lang-c">  <span class="hljs-comment">/* preamble code */</span>
   <span class="hljs-keyword">struct</span> timeval now;
   mtev_gettimeofday(&amp;now, <span class="hljs-literal">NULL</span>);
-  <span class="hljs-keyword">if</span>(NOIT_HOOK_CONTINUE == foo_hook_invoke(&amp;now)) {
+  <span class="hljs-keyword">if</span>(MTEV_HOOK_CONTINUE == foo_hook_invoke(&amp;now)) {
        foo_work();
   }
   <span class="hljs-comment">/* postamble code */</span>
@@ -535,7 +539,7 @@ to run, the invoke function&apos;s return value can be ignored.</p>
 on every other subsequent execution one would provide the following:</p>
 <pre><code class="lang-c">  <span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-title">my_sample_hook</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now)</span> </span>{
     <span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> alt = <span class="hljs-number">0</span>;
-    <span class="hljs-keyword">return</span> (alt++ % <span class="hljs-number">2</span>) ? NOIT_HOOK_CONTINUE : NOIT_HOOK_DONE;
+    <span class="hljs-keyword">return</span> (alt++ % <span class="hljs-number">2</span>) ? MTEV_HOOK_CONTINUE : MTEV_HOOK_DONE;
   }
 
   <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">my_init_fuction</span><span class="hljs-params">()</span> </span>{
@@ -548,7 +552,7 @@ must orchestrate the calling of <code>my_init_function</code>, the behavior of
 the <code>foo_work()</code> callsite will change and our hook will be called.
 Given the above implementation, the <code>struct timeval</code> will be ignored,
 but every other time we reach the call site, <code>foo_work()</code> will be
-skipped due to a <code>NOIT_HOOK_DONE</code> return value.</p>
+skipped due to a <code>MTEV_HOOK_DONE</code> return value.</p>
 
                                 
                                 </section>

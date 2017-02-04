@@ -484,12 +484,12 @@ handles this for you.</p>
 <p>Within your <code>child_main</code> that is called by <code>mtev_main</code>, you should reopnen all logs and then
 enable rotation (config driven).</p>
 <pre><code class="lang-c">  <span class="hljs-keyword">if</span>(mtev_conf_load(config_file) == <span class="hljs-number">-1</span>) {
-    mtevL(noit_error, <span class="hljs-string">&quot;Cannot load config: &apos;%s&apos;\n&quot;</span>, config_file);
+    mtevL(mtev_error, <span class="hljs-string">&quot;Cannot load config: &apos;%s&apos;\n&quot;</span>, config_file);
     <span class="hljs-built_in">exit</span>(<span class="hljs-number">2</span>);
   }
   mtev_log_reopen_all();
   mtev_log_go_asynch();
-  <span class="hljs-keyword">if</span>(eventer_init() == <span class="hljs-number">-1</span>) mtevFatal(noit_stderr, <span class="hljs-string">&quot;Cannot initialize eventer\n&quot;</span>);
+  <span class="hljs-keyword">if</span>(eventer_init() == <span class="hljs-number">-1</span>) mtevFatal(mtev_stderr, <span class="hljs-string">&quot;Cannot initialize eventer\n&quot;</span>);
   mtev_conf_log_init_rotate(APPNAME, mtev_false);
 </code></pre>
 <p>Because the watchdog subsystem can restart our process on crash, it is important to always (re)load the
