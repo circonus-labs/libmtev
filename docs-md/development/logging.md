@@ -24,12 +24,12 @@ enable rotation (config driven).
 
 ```c
   if(mtev_conf_load(config_file) == -1) {
-    mtevL(noit_error, "Cannot load config: '%s'\n", config_file);
+    mtevL(mtev_error, "Cannot load config: '%s'\n", config_file);
     exit(2);
   }
   mtev_log_reopen_all();
   mtev_log_go_asynch();
-  if(eventer_init() == -1) mtevFatal(noit_stderr, "Cannot initialize eventer\n");
+  if(eventer_init() == -1) mtevFatal(mtev_stderr, "Cannot initialize eventer\n");
   mtev_conf_log_init_rotate(APPNAME, mtev_false);
 ```
 

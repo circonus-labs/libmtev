@@ -3,7 +3,7 @@
 Building a callout API makes sense for common, structured
 features in software, but occassionlly there is a need to provide
 somewhat arbitrary hook points after the software is designed
-and the noit_hooks system is what satisfies this need.
+and the mtev_hooks system is what satisfies this need.
 
 The design goals here are somewhat specific in that we
 would like to allow for a large number of hook points at low cost
@@ -24,7 +24,7 @@ by the programmer.
 
 ### Hook Declaration
 
-Declaring hooks is done by calling the `NOIT_HOOK_PROTO` macro with
+Declaring hooks is done by calling the `MTEV_HOOK_PROTO` macro with
 the name of the hook (a term that composes a valid C function name),
 the arguments it expects, the type of closure (usually a void *),
 and some variations on those themes that provide CPP enough info
@@ -38,14 +38,18 @@ The declaration of a hook "foo" will yield in two functions:
 This hook "foo" takes a `struct timeval *` as an argument in addition
 to its closure.
 ```c
-NOIT_HOOK_PROTO(foo, (struct timeval *now),
+#include <mtev_hooks.h>
+
+MTEV_HOOK_PROTO(foo, (struct timeval *now),
                 void *, closure, (void *closure, struct timeval *now));
 ```
 
 ##### Implementing a hook "foo" (in a source file)
 
 ```c
-NOIT_HOOK_IMPL(foo, (struct timeval *now),
+#include <mtev_hooks.h>
+
+MTEV_HOOK_IMPL(foo, (struct timeval *now),
                void *, closure, (void *closure, struct timeval *now),
                (closure,now));
 ```
@@ -75,7 +79,7 @@ executation, we would modify the above code to look like:
   /* preamble code */
   struct timeval now;
   mtev_gettimeofday(&now, NULL);
-  if(NOIT_HOOK_CONTINUE == foo_hook_invoke(&now)) {
+  if(MTEV_HOOK_CONTINUE == foo_hook_invoke(&now)) {
        foo_work();
   }
   /* postamble code */
@@ -90,7 +94,7 @@ on every other subsequent execution one would provide the following:
 ```c
   static my_sample_hook(void *closure, struct timeval *now) {
     static int alt = 0;
-    return (alt++ % 2) ? NOIT_HOOK_CONTINUE : NOIT_HOOK_DONE;
+    return (alt++ % 2) ? MTEV_HOOK_CONTINUE : MTEV_HOOK_DONE;
   }
 
   void my_init_fuction() {
@@ -104,4 +108,4 @@ must orchestrate the calling of `my_init_function`, the behavior of
 the `foo_work()` callsite will change and our hook will be called.
 Given the above implementation, the `struct timeval` will be ignored,
 but every other time we reach the call site, `foo_work()` will be
-skipped due to a `NOIT_HOOK_DONE` return value.
+skipped due to a `MTEV_HOOK_DONE` return value.
