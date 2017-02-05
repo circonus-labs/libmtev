@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>Operations · GitBook</title>
+        <title>Reference · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.2">
@@ -53,10 +53,10 @@
     <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="rest.html" />
+    <link rel="next" href="c.html" />
     
     
-    <link rel="prev" href="../development/hooks.html" />
+    <link rel="prev" href="../operations/dtrace.html" />
     
 
     </head>
@@ -365,9 +365,9 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.4" data-path="./">
+        <li class="chapter " data-level="1.4" data-path="../operations/">
             
-                <a href="./">
+                <a href="../operations/">
             
                     
                     Operations
@@ -379,9 +379,9 @@
             <ul class="articles">
                 
     
-        <li class="chapter " data-level="1.4.1" data-path="rest.html">
+        <li class="chapter " data-level="1.4.1" data-path="../operations/rest.html">
             
-                <a href="rest.html">
+                <a href="../operations/rest.html">
             
                     
                     REST
@@ -392,9 +392,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.2" data-path="telnet_console.html">
+        <li class="chapter " data-level="1.4.2" data-path="../operations/telnet_console.html">
             
-                <a href="telnet_console.html">
+                <a href="../operations/telnet_console.html">
             
                     
                     Telnet
@@ -405,9 +405,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.3" data-path="dtrace.html">
+        <li class="chapter " data-level="1.4.3" data-path="../operations/dtrace.html">
             
-                <a href="dtrace.html">
+                <a href="../operations/dtrace.html">
             
                     
                     DTrace
@@ -423,9 +423,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.5" data-path="../apireference/">
+        <li class="chapter active" data-level="1.5" data-path="./">
             
-                <a href="../apireference/">
+                <a href="./">
             
                     
                     Reference
@@ -437,9 +437,9 @@
             <ul class="articles">
                 
     
-        <li class="chapter " data-level="1.5.1" data-path="../apireference/c.html">
+        <li class="chapter " data-level="1.5.1" data-path="c.html">
             
-                <a href="../apireference/c.html">
+                <a href="c.html">
             
                     
                     C API
@@ -450,9 +450,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.5.2" data-path="../apireference/lua.html">
+        <li class="chapter " data-level="1.5.2" data-path="lua.html">
             
-                <a href="../apireference/lua.html">
+                <a href="lua.html">
             
                     
                     Lua API
@@ -498,7 +498,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href=".." >Operations</a>
+        <a href=".." >Reference</a>
     </h1>
 </div>
 
@@ -513,13 +513,35 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="operations">Operations</h1>
-<h2 id="observability">Observability</h2>
-<p>If you can&apos;t see what your system is doing, then you clearly don&apos;t
-care that much if it is doing what it is supposed to be.  There is
-really no excuse for unanswerable questions in a production environment.
-Instrumentation for observability is the starting support of responsible
-systems development, deployment, and operations.</p>
+                                <h1 id="programmers-reference-manual">Programmer&apos;s Reference Manual</h1>
+<h2 id="c">C</h2>
+<h5 id="b">B</h5>
+<p><a href="c.html#mtevb32decode">mtev_b32_decode</a>, <a href="c.html#mtevb32encode">mtev_b32_encode</a>, <a href="c.html#mtevb32encodelen">mtev_b32_encode_len</a>, <a href="c.html#mtevb32maxdecodelen">mtev_b32_max_decode_len</a>, <a href="c.html#mtevb64decode">mtev_b64_decode</a>, <a href="c.html#mtevb64encode">mtev_b64_encode</a>, <a href="c.html#mtevb64encodelen">mtev_b64_encode_len</a>, <a href="c.html#mtevb64maxdecodelen">mtev_b64_max_decode_len</a></p>
+<h5 id="c">C</h5>
+<p><a href="c.html#mtevclusterbyname">mtev_cluster_by_name</a>, <a href="c.html#mtevclusterenabled">mtev_cluster_enabled</a>, <a href="c.html#mtevclusterfindnode">mtev_cluster_find_node</a>, <a href="c.html#mtevclusterinit">mtev_cluster_init</a>, <a href="c.html#mtevclustersize">mtev_cluster_size</a>, <a href="c.html#mtevclusterupdate">mtev_cluster_update</a></p>
+<h5 id="g">G</h5>
+<p><a href="c.html#mtevgetipipv4">mtev_getip_ipv4</a></p>
+<h5 id="l">L</h5>
+<p><a href="c.html#mtevlockfileacquire">mtev_lockfile_acquire</a>, <a href="c.html#mtevlockfilerelease">mtev_lockfile_release</a></p>
+<h5 id="m">M</h5>
+<p><a href="c.html#mkdirforfile">mkdir_for_file</a></p>
+<h5 id="s">S</h5>
+<p><a href="c.html#mtevsecuritychroot">mtev_security_chroot</a>, <a href="c.html#mtevsecuritysetcaps">mtev_security_setcaps</a>, <a href="c.html#mtevsecurityusergroup">mtev_security_usergroup</a>, <a href="c.html#mtevsemdestroy">mtev_sem_destroy</a>, <a href="c.html#mtevsemgetvalue">mtev_sem_getvalue</a>, <a href="c.html#mtevseminit">mtev_sem_init</a>, <a href="c.html#mtevsempost">mtev_sem_post</a>, <a href="c.html#mtevsemtrywait">mtev_sem_trywait</a>, <a href="c.html#mtevsemwait">mtev_sem_wait</a></p>
+<h5 id="u">U</h5>
+<p><a href="c.html#updateretries">update_retries</a></p>
+<h5 id="w">W</h5>
+<p><a href="c.html#mtevwatchdogchildeventerheartbeat">mtev_watchdog_child_eventer_heartbeat</a>, <a href="c.html#mtevwatchdogchildheartbeat">mtev_watchdog_child_heartbeat</a>, <a href="c.html#mtevwatchdogcreate">mtev_watchdog_create</a>, <a href="c.html#mtevwatchdogdisable">mtev_watchdog_disable</a>, <a href="c.html#mtevwatchdogenable">mtev_watchdog_enable</a>, <a href="c.html#mtevwatchdogheartbeat">mtev_watchdog_heartbeat</a>, <a href="c.html#mtevwatchdogoverridetimeout">mtev_watchdog_override_timeout</a>, <a href="c.html#mtevwatchdogpreforkinit">mtev_watchdog_prefork_init</a>, <a href="c.html#mtevwatchdogrecurrentheartbeat">mtev_watchdog_recurrent_heartbeat</a>, <a href="c.html#mtevwatchdogstartchild">mtev_watchdog_start_child</a></p>
+<h5 id="z">Z</h5>
+<p><a href="c.html#mtevzipkinannotationsetendpoint">mtev_zipkin_annotation_set_endpoint</a>, <a href="c.html#mtevzipkinbannotationsetendpoint">mtev_zipkin_bannotation_set_endpoint</a>, <a href="c.html#mtevzipkindefaultendpoint">mtev_zipkin_default_endpoint</a>, <a href="c.html#mtevzipkinencode">mtev_zipkin_encode</a>, <a href="c.html#mtevzipkinsampling">mtev_zipkin_sampling</a>, <a href="c.html#mtevzipkinspanannotate">mtev_zipkin_span_annotate</a>, <a href="c.html#mtevzipkinspanbannotate">mtev_zipkin_span_bannotate</a>, <a href="c.html#mtevzipkinspandefaultendpoint">mtev_zipkin_span_default_endpoint</a>, <a href="c.html#mtevzipkinspandrop">mtev_zipkin_span_drop</a>, <a href="c.html#mtevzipkinspannew">mtev_zipkin_span_new</a>, <a href="c.html#mtevzipkinspanpublish">mtev_zipkin_span_publish</a>, <a href="c.html#mtevzipkinstrtoid">mtev_zipkin_str_to_id</a>, <a href="c.html#mtevzipkintimevaltotimestamp">mtev_zipkin_timeval_to_timestamp</a></p>
+<h2 id="lua">Lua</h2>
+<h5 id="g">G</h5>
+<p><a href="lua.html#mtev.gettimeofday">mtev.gettimeofday</a></p>
+<h5 id="l">L</h5>
+<p><a href="lua.html#mtev.log">mtev.log</a></p>
+<h5 id="p">P</h5>
+<p><a href="lua.html#mtev.print">mtev.print</a></p>
+<h5 id="s">S</h5>
+<p><a href="lua.html#mtev.sleep">mtev.sleep</a></p>
 
                                 
                                 </section>
@@ -547,12 +569,12 @@ systems development, deployment, and operations.</p>
 
             
                 
-                <a href="../development/hooks.html" class="navigation navigation-prev " aria-label="Previous page: Hooks">
+                <a href="../operations/dtrace.html" class="navigation navigation-prev " aria-label="Previous page: DTrace">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="rest.html" class="navigation navigation-next " aria-label="Next page: REST">
+                <a href="c.html" class="navigation navigation-next " aria-label="Next page: C API">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -563,7 +585,7 @@ systems development, deployment, and operations.</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Operations","level":"1.4","depth":1,"next":{"title":"REST","level":"1.4.1","depth":2,"path":"operations/rest.md","ref":"operations/rest.md","articles":[]},"previous":{"title":"Hooks","level":"1.3.6","depth":2,"path":"development/hooks.md","ref":"development/hooks.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"operations/README.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Reference","level":"1.5","depth":1,"next":{"title":"C API","level":"1.5.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},"previous":{"title":"DTrace","level":"1.4.3","depth":2,"path":"operations/dtrace.md","ref":"operations/dtrace.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/README.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

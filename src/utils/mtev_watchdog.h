@@ -96,10 +96,10 @@ API_EXPORT(mtev_watchdog_t *)
   mtev_watchdog_create();
 
 /*! \fn int mtev_watchdog_heartbeat(mtev_watchdog_t *hb)
-   \param hb is the heart on which to pulse.  If null, the default heart is used.
-   \return Returns zero on success
+    \param hb is the heart on which to pulse.  If null, the default heart is used.
+    \return Returns zero on success
 
-   mtev_watchdog_heartbeat will pulse on the specified heart.
+    mtev_watchdog_heartbeat will pulse on the specified heart.
  */
 
 API_EXPORT(int)
