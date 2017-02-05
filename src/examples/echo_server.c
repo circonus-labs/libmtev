@@ -52,9 +52,13 @@ static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pa
   int len;
   int done = 0;
 
-  mtev_http_response_standard(restc->http_ctx, 200, "OK", "text/plain");
-  mtev_http_response_option_set(restc->http_ctx, MTEV_HTTP_CLOSE);
-  mtev_http_response_header_set(restc->http_ctx, "Content-Type", "text/plain");
+  if (!restc->call_closure) {
+    restc->call_closure = restc;
+    restc->call_closure_free = NULL;
+    mtev_http_response_standard(restc->http_ctx, 200, "OK", "text/plain");
+    mtev_http_response_option_set(restc->http_ctx, MTEV_HTTP_CLOSE);
+    mtev_http_response_header_set(restc->http_ctx, "Content-Type", "text/plain");
+  }
 
   len = mtev_http_session_req_consume(restc->http_ctx, buffer, buffer_size, buffer_size, &mask);
   if (len > 0) {

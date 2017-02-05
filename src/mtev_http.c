@@ -1009,11 +1009,13 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
     if(len > 0) in->size += len;
     rv = mtev_http_request_finalize(&ctx->req, &err);
     /* walk the bchain and set the compression */
-    struct bchain *x = ctx->req.first_input;
-    while (x) {
-      x->compression = request_compression_type(&ctx->req);
-      ctx->req.content_length_read += x->size;
-      x = x->next;
+    if (rv == mtev_true) {
+      struct bchain *x = ctx->req.first_input;
+      while (x) {
+        x->compression = request_compression_type(&ctx->req);
+        ctx->req.content_length_read += x->size;
+        x = x->next;
+      }
     }
     if(len == -1 || err == mtev_true) goto full_error;
     if(ctx->req.state == MTEV_HTTP_REQ_EXPECT) {
@@ -1262,7 +1264,7 @@ mtev_http_session_decompress(mtev_compress_type type, struct bchain *in,
       return -1;
     }
     o->size += out_size;
-    total_decompressed_size += o->size;
+    total_decompressed_size += out_size;
     in->size -= in_size;
     in->start += in_size;
   }
