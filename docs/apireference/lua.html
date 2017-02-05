@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>Operations · GitBook</title>
+        <title>Lua API · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.2">
@@ -53,10 +53,8 @@
     <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="rest.html" />
     
-    
-    <link rel="prev" href="../development/hooks.html" />
+    <link rel="prev" href="c.html" />
     
 
     </head>
@@ -365,9 +363,9 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.4" data-path="./">
+        <li class="chapter " data-level="1.4" data-path="../operations/">
             
-                <a href="./">
+                <a href="../operations/">
             
                     
                     Operations
@@ -379,9 +377,9 @@
             <ul class="articles">
                 
     
-        <li class="chapter " data-level="1.4.1" data-path="rest.html">
+        <li class="chapter " data-level="1.4.1" data-path="../operations/rest.html">
             
-                <a href="rest.html">
+                <a href="../operations/rest.html">
             
                     
                     REST
@@ -392,9 +390,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.2" data-path="telnet_console.html">
+        <li class="chapter " data-level="1.4.2" data-path="../operations/telnet_console.html">
             
-                <a href="telnet_console.html">
+                <a href="../operations/telnet_console.html">
             
                     
                     Telnet
@@ -405,9 +403,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.3" data-path="dtrace.html">
+        <li class="chapter " data-level="1.4.3" data-path="../operations/dtrace.html">
             
-                <a href="dtrace.html">
+                <a href="../operations/dtrace.html">
             
                     
                     DTrace
@@ -423,9 +421,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.5" data-path="../apireference/">
+        <li class="chapter " data-level="1.5" data-path="./">
             
-                <a href="../apireference/">
+                <a href="./">
             
                     
                     Reference
@@ -437,9 +435,9 @@
             <ul class="articles">
                 
     
-        <li class="chapter " data-level="1.5.1" data-path="../apireference/c.html">
+        <li class="chapter " data-level="1.5.1" data-path="c.html">
             
-                <a href="../apireference/c.html">
+                <a href="c.html">
             
                     
                     C API
@@ -450,9 +448,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.5.2" data-path="../apireference/lua.html">
+        <li class="chapter active" data-level="1.5.2" data-path="lua.html">
             
-                <a href="../apireference/lua.html">
+                <a href="lua.html">
             
                     
                     Lua API
@@ -498,7 +496,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href=".." >Operations</a>
+        <a href=".." >Lua API</a>
     </h1>
 </div>
 
@@ -513,13 +511,50 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="operations">Operations</h1>
-<h2 id="observability">Observability</h2>
-<p>If you can&apos;t see what your system is doing, then you clearly don&apos;t
-care that much if it is doing what it is supposed to be.  There is
-really no excuse for unanswerable questions in a production environment.
-Instrumentation for observability is the starting support of responsible
-systems development, deployment, and operations.</p>
+                                <h3 id="g">G</h3>
+<h4 id="mtevgettimeofday">mtev.gettimeofday</h4>
+<pre><code class="lang-lua">sec, usec = 
+mtev.gettimeofday()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> the seconds and microseconds since epoch (1970 UTC)</li>
+</ul>
+<h3 id="l">L</h3>
+<h4 id="mtevlog">mtev.log</h4>
+<blockquote>
+<p>write message into the libmtev logging system</p>
+</blockquote>
+<pre><code class="lang-lua">len = 
+mtev.log(facility, format, ...)
+</code></pre>
+<ul>
+<li><code>facility</code> the name of the mtev_log_stream (e.g. &quot;error&quot;)</li>
+<li><code>format</code> a format string see printf(3c)</li>
+<li><code>...</code> arguments to be used within the specified format</li>
+<li><strong>RETURN</strong> the number of bytes written</li>
+</ul>
+<h3 id="p">P</h3>
+<h4 id="mtevprint">mtev.print</h4>
+<pre><code class="lang-lua">len = 
+mtev.<span class="hljs-built_in">print</span>(format, ...)
+</code></pre>
+<ul>
+<li><code>format</code> a format string see printf(3c)</li>
+<li><code>...</code> arguments to be used within the specified format</li>
+<li><strong>RETURN</strong> the number of bytes written</li>
+</ul>
+<p>This function is effectively the <code>mtev.log</code> function with the first argument
+set to &quot;error&quot;.  It is also aliased into the global <code>print</code> symbol such that
+one cannot accidentally call the print builtin.</p>
+<h3 id="s">S</h3>
+<h4 id="mtevsleep">mtev.sleep</h4>
+<pre><code class="lang-lua">slept = 
+mtev.sleep(duration_s)
+</code></pre>
+<ul>
+<li><code>duration_s</code> the number of sections to sleep</li>
+<li><strong>RETURN</strong> the number of sections slept.</li>
+</ul>
 
                                 
                                 </section>
@@ -547,14 +582,10 @@ systems development, deployment, and operations.</p>
 
             
                 
-                <a href="../development/hooks.html" class="navigation navigation-prev " aria-label="Previous page: Hooks">
+                <a href="c.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page: C API">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
-                
-                <a href="rest.html" class="navigation navigation-next " aria-label="Next page: REST">
-                    <i class="fa fa-angle-right"></i>
-                </a>
                 
             
         
@@ -563,7 +594,7 @@ systems development, deployment, and operations.</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Operations","level":"1.4","depth":1,"next":{"title":"REST","level":"1.4.1","depth":2,"path":"operations/rest.md","ref":"operations/rest.md","articles":[]},"previous":{"title":"Hooks","level":"1.3.6","depth":2,"path":"development/hooks.md","ref":"development/hooks.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"operations/README.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Lua API","level":"1.5.2","depth":2,"previous":{"title":"C API","level":"1.5.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/lua.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

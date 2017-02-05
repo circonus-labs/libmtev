@@ -2,34 +2,150 @@
 
 use strict;
 use File::Find;
+use Data::Dumper;
 my $inbase = shift || die;
-my $outbase = shift || die;
+my $outdir = shift || die;
+my %docs;
 
+my $uk = 0;
+my $MAXLINE=79;
+
+my $parts = {
+  'md' => 'notes',
+  'fn' => 'c',
+  'lua' => 'lua'
+};
+
+sub mtevcmp {
+  (my $ls = $a) =~ s/^mtev[\._]//;
+  (my $rs = $b) =~ s/^mtev[\._]//;
+  return $ls cmp $rs;
+}
+sub fn_format {
+  my $type = shift;
+  my $ret = shift;
+  my $fn = shift;
+  my $param = shift;
+  $param =~ s/[\n\s]+/ /gsm;
+  my $len = length("$fn");
+  my @p = split /\s*,\s*/, $param;
+  my $seg = "";
+  my $lead = "";
+  my $lang = "";
+  $lang = "c" if ($type eq 'fn');
+  $lang = "lua" if ($type eq 'lua');
+
+  my $form = "```$lang\n$ret\n$fn";
+  while(scalar(@p) > 0) {
+    if((length($seg) + 2 + length($p[0])) < $MAXLINE) {
+      if(length($seg)) { $seg = "$seg, $p[0]"; }
+      else { $seg = "$p[0]"; }
+      shift(@p);
+    }
+    else {
+      my $trail = (scalar(@p) == 1) ? "" : ", ";
+      if(length($seg)) { $form .= "$lead$seg$trail\n"; $lead = " " x ($len+1); $seg = ""; }
+      else {
+        $form .= "$lead$p[0]$trail\n";
+        $lead = " " x ($len+1);
+        shift @p;
+      }
+    }
+  }
+  if(length($seg)) { $form .= "$lead$seg\n"; }
+  $form .= "```\n";
+
+  return $form;
+}
+sub format_md {
+  my $type = shift;
+  my $in = shift;
+  my $func = "anon_$uk"; $uk++;
+  if($type eq 'md') {
+    $in =~ s/^.*$//;
+    return ($func, $in);
+  }
+
+  if($in =~ /\\(?:fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9\._]*)(\(.*)/) {
+    $func = $2;
+  }
+
+  $in =~ s/\\(fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9\._]*)(\(.*?\))\n\\brief\s+([^\n]*)
+          /sprintf("#### %s\n\n>%s\n\n%s\n", $3, $5, fn_format($1,$2,$3,$4));/xesg;
+  $in =~ s/\\(fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9\._]*)(\(.*?\))\n
+          /sprintf("#### %s\n\n%s\n", $3, fn_format($1,$2,$3,$4));/xeg;
+  $in =~ s/\\brief\s+(.*)/\n> $1\n\n/g;
+  $in =~ s/\\param\s+(\S+)\s(.*)/  * `$1` $2/g;
+  $in =~ s/\\return\s+(.*)/  * **RETURN** $1/g;
+
+  return ($func, "$in\n\n");
+}
 sub xlate {
   my $in = shift;
-  my $out = shift;
   open(F, "<$in") || die " <<< $in ";
   $/ = undef;
   my $a = <F>;
   close(F);
-  unlink($out) if(-f $out);
-  if($a =~ /\/\*\#\*\s*DOCBOOK(.+)\*\//sm) {
+  while($a =~ /\/\*!\s+(\\(md|fn|lua).*?)\*\//smg) {
+    my $type = $2;
     my $b = $1;
-    $b =~ s/^\s+(?:\#\s*)?\*//gm;
-    print "Appending to $out\n";
-    open(F, ">>$out");
-    print F $b;
-    close(F);
+    $b =~ s/^(?:\t| {4})//gm;
+    my $func;
+    ($func, $b) = format_md($type, $b);
+    $docs{$type} ||= {};
+    $docs{$type}->{$func} = $b;
   }
+  return 1;
 }
 
 
 finddepth({
+  untaint => 1,
   wanted => sub {
     (my $file = $File::Find::name) =~ s/^$inbase\///;
-    return if($file !~ /\.(?:c|h|lua|pl|java)$/);
+    return 1 if -d $File::Find::name;
+    return if($file !~ /\.(?:c|h|lua|java)$/);
     (my $out = $file) =~ s/(\/|\.)/_/g;
-    xlate("$inbase/$file", "$outbase/$out.xml");
+    ### Specific to libmtev
+    $out =~ s/^utils_//g;
+    xlate("$inbase/$file");
   },
   no_chdir => 1
 }, $inbase);
+
+
+my $idx = {};
+for my $part (keys %docs) {
+  my $pname = $parts->{$part} || 'notes';
+  open(F, ">$outdir/$pname.md");
+  my $lt = "";
+  for my $func (sort mtevcmp keys %{$docs{$part}}) {
+    (my $afunc = $func) =~ s/^mtev[\._]//;
+    if (lc(substr($afunc,0,1)) ne lc($lt)) {
+      ($lt = substr($afunc,0,1)) =~ tr/[a-z]/[A-Z]/;
+      print F "### $lt\n\n"
+    }
+    $idx->{$pname} ||= {};
+    $idx->{$pname}->{$lt} ||= [];
+    push @{$idx->{$pname}->{$lt}}, $func;
+    print F $docs{$part}->{$func};
+  }
+  close(F);
+}
+
+open(F, ">$outdir/README.md");
+print F "# Programmer's Reference Manual\n\n";
+for my $pname (sort keys %$idx) {
+  print F "## " . ucfirst($pname) . "\n\n";
+  for my $lt (sort keys %{$idx->{$pname}}) {
+    print F "##### " . uc($lt) . "\n\n";
+    my $sep = "";
+    for my $func (@{$idx->{$pname}->{$lt}}) {
+       (my $anchor = $func) =~ s/_//g;
+       printf F "%s[%s](%s.md#%s)", $sep, $func, $pname, $anchor;
+       $sep = ", ";
+    }
+    print F "\n\n";
+  }
+}
+close(F);

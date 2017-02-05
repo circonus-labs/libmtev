@@ -3884,12 +3884,39 @@ static const luaL_Reg mtevlib[] = {
   { "waitfor", nl_waitfor },
   { "notify", nl_waitfor_notify },
   { "sleep", nl_sleep },
+/*! \lua slept = mtev.sleep(duration_s)
+    \param duration_s the number of sections to sleep
+    \return the number of sections slept.
+*/
+
   { "gettimeofday", nl_gettimeofday },
+/*! \lua sec, usec = mtev.gettimeofday()
+    \return the seconds and microseconds since epoch (1970 UTC)
+*/
+
   { "uuid", nl_uuid },
   { "socket", nl_socket },
   { "dns", nl_dns_lookup },
   { "log", nl_log },
+/*! \lua len = mtev.log(facility, format, ...)
+    \brief write message into the libmtev logging system
+    \param facility the name of the mtev_log_stream (e.g. "error")
+    \param format a format string see printf(3c)
+    \param ... arguments to be used within the specified format
+    \return the number of bytes written
+*/
+
   { "print", nl_print },
+/*! \lua len = mtev.print(format, ...)
+    \param format a format string see printf(3c)
+    \param ... arguments to be used within the specified format
+    \return the number of bytes written
+
+    This function is effectively the `mtev.log` function with the first argument
+    set to "error".  It is also aliased into the global `print` symbol such that
+    one cannot accidentally call the print builtin.
+*/
+
   { "open", nl_open },
   { "write", nl_write },
   { "close", nl_close },

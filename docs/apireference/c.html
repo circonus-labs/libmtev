@@ -1,0 +1,1244 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>C API · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.2">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-callouts/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+        <link rel="stylesheet" href="../styles/website.css">
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="lua.html" />
+    
+    
+    <link rel="prev" href="./" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        <li class="header">Mount Everest</li>
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="../config/">
+            
+                <a href="../config/">
+            
+                    
+                    Configuration
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.1" data-path="../config/inherit.html">
+            
+                <a href="../config/inherit.html">
+            
+                    
+                    Inheritance
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.2" data-path="../config/includes.html">
+            
+                <a href="../config/includes.html">
+            
+                    
+                    Includes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.3" data-path="../config/watchdog.html">
+            
+                <a href="../config/watchdog.html">
+            
+                    
+                    Watchdog
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.4" data-path="../config/eventer.html">
+            
+                <a href="../config/eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.5" data-path="../config/logging.html">
+            
+                <a href="../config/logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.6" data-path="../config/listeners.html">
+            
+                <a href="../config/listeners.html">
+            
+                    
+                    Listeners
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7" data-path="../config/modules.html">
+            
+                <a href="../config/modules.html">
+            
+                    
+                    Modules
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.7.1" data-path="../config/modules/fq.html">
+            
+                <a href="../config/modules/fq.html">
+            
+                    
+                    fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.2" data-path="../config/modules/lua_general.html">
+            
+                <a href="../config/modules/lua_general.html">
+            
+                    
+                    lua_general
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.3" data-path="../config/modules/lua_web.html">
+            
+                <a href="../config/modules/lua_web.html">
+            
+                    
+                    lua_web
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/zipkin_fq.html">
+            
+                <a href="../config/modules/zipkin_fq.html">
+            
+                    
+                    zipkin_fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="../development/">
+            
+                <a href="../development/">
+            
+                    
+                    Development
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="../development/important.html">
+            
+                <a href="../development/important.html">
+            
+                    
+                    Important Starting Notes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" data-path="../development/mtev_main.html">
+            
+                <a href="../development/mtev_main.html">
+            
+                    
+                    mtev_main
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="../development/eventer.html">
+            
+                <a href="../development/eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.4" data-path="../development/rest.html">
+            
+                <a href="../development/rest.html">
+            
+                    
+                    REST and HTTP
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../development/logging.html">
+            
+                <a href="../development/logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.6" data-path="../development/hooks.html">
+            
+                <a href="../development/hooks.html">
+            
+                    
+                    Hooks
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" data-path="../operations/">
+            
+                <a href="../operations/">
+            
+                    
+                    Operations
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="../operations/rest.html">
+            
+                <a href="../operations/rest.html">
+            
+                    
+                    REST
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="../operations/telnet_console.html">
+            
+                <a href="../operations/telnet_console.html">
+            
+                    
+                    Telnet
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.3" data-path="../operations/dtrace.html">
+            
+                <a href="../operations/dtrace.html">
+            
+                    
+                    DTrace
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Reference
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter active" data-level="1.5.1" data-path="c.html">
+            
+                <a href="c.html">
+            
+                    
+                    C API
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.2" data-path="lua.html">
+            
+                <a href="lua.html">
+            
+                    
+                    Lua API
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >C API</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h3 id="b">B</h3>
+<h4 id="mtevb32decode">mtev_b32_decode</h4>
+<blockquote>
+<p>Decode a base32 encoded input buffer into the provided output buffer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_b32_decode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
+</span></code></pre>
+<ul>
+<li><code>src</code> The buffer containing the encoded content.</li>
+<li><code>src_len</code> The size (in bytes) of the encoded data.</li>
+<li><code>dest</code> The destination buffer to which the function will produce.</li>
+<li><code>dest_len</code> The size of the destination buffer.</li>
+<li><strong>RETURN</strong> The size of the decoded output.  Returns zero is dest_len is too small.</li>
+</ul>
+<p>mtev_b32_decode decodes input until an the entire input is consumed or until an invalid base32 character is encountered.</p>
+<h4 id="mtevb32encode">mtev_b32_encode</h4>
+<blockquote>
+<p>Encode raw data as base32 encoded output into the provided buffer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_b32_encode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
+</span></code></pre>
+<ul>
+<li><code>src</code> The buffer containing the raw data.</li>
+<li><code>src_len</code> The size (in bytes) of the raw data.</li>
+<li><code>dest</code> The destination buffer to which the function will produce.</li>
+<li><code>dest_len</code> The size of the destination buffer.</li>
+<li><strong>RETURN</strong> The size of the encoded output.  Returns zero is out_sz is too small.</li>
+</ul>
+<h4 id="mtevb32encodelen">mtev_b32_encode_len</h4>
+<blockquote>
+<p>Calculate how large a buffer must be to contain the base-32 encoding for a given number of bytes.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+mtev_b32_encode_len(<span class="hljs-keyword">size_t</span> src_len)
+</code></pre>
+<ul>
+<li><code>src_len</code> The size (in bytes) of the raw data buffer that might be encoded.</li>
+<li><strong>RETURN</strong> The size of the buffer that would be needed to store an encoded version of an input string.</li>
+</ul>
+<h4 id="mtevb32maxdecodelen">mtev_b32_max_decode_len</h4>
+<blockquote>
+<p>Calculate how large a buffer must be to contain a decoded base-32-encoded string of a given length.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+mtev_b32_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
+</code></pre>
+<ul>
+<li><code>src_len</code> The size (in bytes) of the base-32-encoded string that might be decoded.</li>
+<li><strong>RETURN</strong> The size of the buffer that would be needed to decode the input string.</li>
+</ul>
+<h4 id="mtevb64decode">mtev_b64_decode</h4>
+<blockquote>
+<p>Decode a base64 encoded input buffer into the provided output buffer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_b64_decode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
+</span></code></pre>
+<ul>
+<li><code>src</code> The buffer containing the encoded content.</li>
+<li><code>src_len</code> The size (in bytes) of the encoded data.</li>
+<li><code>dest</code> The destination buffer to which the function will produce.</li>
+<li><code>dest_len</code> The size of the destination buffer.</li>
+<li><strong>RETURN</strong> The size of the decoded output.  Returns zero is dest_len is too small.</li>
+</ul>
+<p>mtev_b64_decode decodes input until an the entire input is consumed or until an invalid base64 character is encountered.</p>
+<h4 id="mtevb64encode">mtev_b64_encode</h4>
+<blockquote>
+<p>Encode raw data as base64 encoded output into the provided buffer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_b64_encode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
+</span></code></pre>
+<ul>
+<li><code>src</code> The buffer containing the raw data.</li>
+<li><code>src_len</code> The size (in bytes) of the raw data.</li>
+<li><code>dest</code> The destination buffer to which the function will produce.</li>
+<li><code>dest_len</code> The size of the destination buffer.</li>
+<li><strong>RETURN</strong> The size of the encoded output.  Returns zero is out_sz is too small.</li>
+</ul>
+<p>mtev_b64_encode encodes an input string into a base64 representation with no linefeeds.</p>
+<h4 id="mtevb64encodelen">mtev_b64_encode_len</h4>
+<blockquote>
+<p>Calculate how large a buffer must be to contain the base-64 encoding for a given number of bytes.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+mtev_b64_encode_len(<span class="hljs-keyword">size_t</span> src_len)
+</code></pre>
+<ul>
+<li><code>src_len</code> The size (in bytes) of the raw data buffer that might be encoded.</li>
+<li><strong>RETURN</strong> The size of the buffer that would be needed to store an encoded version of an input string.</li>
+</ul>
+<h4 id="mtevb64maxdecodelen">mtev_b64_max_decode_len</h4>
+<blockquote>
+<p>Calculate how large a buffer must be to contain a decoded base-64-encoded string of a given length.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+mtev_b64_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
+</code></pre>
+<ul>
+<li><code>src_len</code> The size (in bytes) of the base-64-encoded string that might be decoded.</li>
+<li><strong>RETURN</strong> The size of the buffer that would be needed to decode the input string.</li>
+</ul>
+<h3 id="c">C</h3>
+<h4 id="mtevclusterbyname">mtev_cluster_by_name</h4>
+<blockquote>
+<p>Find the cluster with the registered name.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_cluster_t</span> *
+mtev_cluster_by_name(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)
+</code></pre>
+<ul>
+<li><code>name</code> The name of the cluster.</li>
+<li><strong>RETURN</strong> Returns a pointer to the cluster or NULL is not found.</li>
+</ul>
+<p>Takes a name and finds a globally registered cluster by that name.</p>
+<h4 id="mtevclusterenabled">mtev_cluster_enabled</h4>
+<blockquote>
+<p>Report on the availability of the clusters feature.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_cluster_enabled</span><span class="hljs-params">()</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> mtev_true if clusters can be configured, otherwise mtev_false.</li>
+</ul>
+<h4 id="mtevclusterfindnode">mtev_cluster_find_node</h4>
+<blockquote>
+<p>Find a node by uuid within a cluster.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_cluster_node_t</span> *
+mtev_cluster_find_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster, <span class="hljs-keyword">uuid_t</span> nodeid)
+</code></pre>
+<ul>
+<li><code>cluster</code> The &apos;<cluster>&apos; containing the node.</cluster></li>
+<li><code>nodeid</code> The nodeid being searched for.</li>
+<li><strong>RETURN</strong> Returns a pointer to the mtev_cluster_node_t or NULL if not found.</li>
+</ul>
+<p>Takes a cluster and a node UUID and returns a pointer to the 
+corresponding mtev_cluster_node_t.</p>
+<h4 id="mtevclusterinit">mtev_cluster_init</h4>
+<blockquote>
+<p>Initialize the mtev cluster configuration.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_cluster_init</span><span class="hljs-params">()</span>
+</span></code></pre>
+<p>Initializes the mtev cluster configuration.</p>
+<h4 id="mtevclustersize">mtev_cluster_size</h4>
+<blockquote>
+<p>Report the number of nodes in the cluster.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_cluster_size</span><span class="hljs-params">(mtev_cluster_t *cluster)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The cluster.</li>
+<li><strong>RETURN</strong> The number of nodes in the cluster.</li>
+</ul>
+<p>Determines the number of nodes in the given cluster.</p>
+<h4 id="mtevclusterupdate">mtev_cluster_update</h4>
+<blockquote>
+<p>Add or update an mtev cluster.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_cluster_update</span><span class="hljs-params">(mtev_conf_section_t cluster)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The &apos;<cluster>&apos; node configuration.</cluster></li>
+<li><strong>RETURN</strong> Returns -1 on error, 0 on insert, or 1 on update.</li>
+</ul>
+<p>Takes a configuration section representing a cluster and registers
+it in the global cluster configuration.</p>
+<h3 id="g">G</h3>
+<h4 id="mtevgetipipv4">mtev_getip_ipv4</h4>
+<blockquote>
+<p>find the local IPv4 address that would be used to talk to remote</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_getip_ipv4</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> in_addr remote, <span class="hljs-keyword">struct</span> in_addr *local)</span>
+</span></code></pre>
+<ul>
+<li><code>remote</code> the destination (no packets are sent)</li>
+<li><code>local</code> the pointer to the local address to be set</li>
+<li><strong>RETURN</strong> 0 on success, -1 on failure</li>
+</ul>
+<h3 id="l">L</h3>
+<h4 id="mtevlockfileacquire">mtev_lockfile_acquire</h4>
+<blockquote>
+<p>lock the file immediately if possible, return -1 otherwise.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_lockfile_t</span> 
+mtev_lockfile_acquire(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fp)
+</code></pre>
+<ul>
+<li><code>fp</code> the path to the lock file</li>
+<li><strong>RETURN</strong> &gt;= 0 on success, -1 on failure</li>
+</ul>
+<h4 id="mtevlockfilerelease">mtev_lockfile_release</h4>
+<blockquote>
+<p>release a held file lock</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_lockfile_release</span><span class="hljs-params">(mtev_lockfile_t fd)</span>
+</span></code></pre>
+<ul>
+<li><code>fd</code> the file lock to release</li>
+<li><strong>RETURN</strong> -1 on failure, 0 on success</li>
+</ul>
+<h3 id="m">M</h3>
+<h4 id="mkdirforfile">mkdir_for_file</h4>
+<blockquote>
+<p>Create directories along a path.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mkdir_for_file</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *file, mode_t m)</span>
+</span></code></pre>
+<ul>
+<li><code>file</code> a filename for which a directory is desired.</li>
+<li><code>m</code> the mode used for creating directories.</li>
+<li><strong>RETURN</strong> Returns 0 on success, -1 on error.</li>
+</ul>
+<p>Creates all directories from / (as needed) to hold a named file.</p>
+<h3 id="s">S</h3>
+<h4 id="mtevsecuritychroot">mtev_security_chroot</h4>
+<blockquote>
+<p>chroot(2) to the specified directory.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_security_chroot</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path)</span>
+</span></code></pre>
+<ul>
+<li><code>path</code> The path to chroot to.</li>
+<li><strong>RETURN</strong> Zero is returned on success.</li>
+</ul>
+<p>mtev_security_chroot placing the calling application into a chroot
+environment.</p>
+<h4 id="mtevsecuritysetcaps">mtev_security_setcaps</h4>
+<blockquote>
+<p>change the capabilities of the process</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_security_setcaps</span><span class="hljs-params">(mtev_security_captype_t type, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *capstring)</span>
+</span></code></pre>
+<ul>
+<li><code>which</code> the effective, inherited or both</li>
+<li><code>capstring</code> alteration to the capabilities</li>
+<li><strong>RETURN</strong> Zero is returned on success.</li>
+</ul>
+<p>mtev_security_setcaps will change the capability set of the current
+process.</p>
+<h4 id="mtevsecurityusergroup">mtev_security_usergroup</h4>
+<blockquote>
+<p>change the effective or real, effective and saved user and group</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_security_usergroup</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *user, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *group, mtev_boolean effective)</span>
+</span></code></pre>
+<ul>
+<li><code>user</code> The user name as either a login or a userid in string form.</li>
+<li><code>group</code> The group name as either a login or a groupid in string form.</li>
+<li><code>effective</code> If true then only effective user and group are changed.</li>
+<li><strong>RETURN</strong> Zero is returned on success.</li>
+</ul>
+<p>mtev_security_usergroup will change the real, effective, and saved
+user and group for the calling process.  This is thread-safe.</p>
+<h4 id="mtevsemdestroy">mtev_sem_destroy</h4>
+<blockquote>
+<p>releases all resources related to a semaphore</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_sem_destroy</span><span class="hljs-params">(mtev_sem_t *s)</span>
+</span></code></pre>
+<ul>
+<li><code>s</code> the semaphore to destroy</li>
+<li><strong>RETURN</strong> 0 on success or -1 on failure</li>
+</ul>
+<h4 id="mtevsemgetvalue">mtev_sem_getvalue</h4>
+<blockquote>
+<p>retrieves the current value of a semaphore, placing it in *value</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_sem_getvalue</span><span class="hljs-params">(mtev_sem_t *s, <span class="hljs-keyword">int</span> *value)</span>
+</span></code></pre>
+<ul>
+<li><code>s</code> the semaphore on which to operate</li>
+<li><code>value</code> a pointer an integer that will be populated with the current value of the semaphore</li>
+<li><strong>RETURN</strong> 0 on success or -1 on failure</li>
+</ul>
+<h4 id="mtevseminit">mtev_sem_init</h4>
+<blockquote>
+<p>initializes a counting semaphore for first time use.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_sem_init</span><span class="hljs-params">(mtev_sem_t *s, <span class="hljs-keyword">int</span> unused, <span class="hljs-keyword">int</span> value)</span>
+</span></code></pre>
+<ul>
+<li><code>s</code> the semaphore to be initialized</li>
+<li><code>unused</code> is unused (keeps API combatibility with sem_init()</li>
+<li><code>value</code> sets the initial value of the semaphore</li>
+<li><strong>RETURN</strong> 0 on success or -1 on failure</li>
+</ul>
+<h4 id="mtevsempost">mtev_sem_post</h4>
+<blockquote>
+<p>increments the value of the semaphore releasing any waiters.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_sem_post</span><span class="hljs-params">(mtev_sem_t *s)</span>
+</span></code></pre>
+<ul>
+<li><code>s</code> the semaphore on which to wait</li>
+<li><strong>RETURN</strong> 0 on success or -1 on failure</li>
+</ul>
+<h4 id="mtevsemtrywait">mtev_sem_trywait</h4>
+<blockquote>
+<p>decrements the value of the semaphore if greater than 0 or fails</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_sem_trywait</span><span class="hljs-params">(mtev_sem_t *s)</span>
+</span></code></pre>
+<ul>
+<li><code>s</code> the semaphore on which to wait</li>
+<li><strong>RETURN</strong> 0 on success or -1 on failure</li>
+</ul>
+<h4 id="mtevsemwait">mtev_sem_wait</h4>
+<blockquote>
+<p>decrements the value of the semaphore waiting if required.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_sem_wait</span><span class="hljs-params">(mtev_sem_t *s)</span>
+</span></code></pre>
+<ul>
+<li><code>s</code> the semaphore on which to wait</li>
+<li><strong>RETURN</strong> 0 on success or -1 on failure</li>
+</ul>
+<h3 id="u">U</h3>
+<h4 id="updateretries">update_retries</h4>
+<blockquote>
+<p>Updates the list of retries and signals to quit if the limit is exceeded</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">update_retries</span><span class="hljs-params">(<span class="hljs-keyword">int</span> retries, <span class="hljs-keyword">int</span> span, retry_data** data)</span>
+</span></code></pre>
+<ul>
+<li><code>offset</code> The current location in the data array to place the new time in</li>
+<li><code>times</code> An array of times used to determine if there have been too many restarts</li>
+<li><strong>RETURN</strong> Returns 1 to signal a quit, 0 otherwise</li>
+</ul>
+<p>.</p>
+<p>update_retries will iterate through a list of times the task has restarted. If it determines that the system has been restarted too many times in too short a period, it will return 1 and the program will terminate. Otherwise, it will return 0 and the program will restart.</p>
+<h3 id="w">W</h3>
+<h4 id="mtevwatchdogchildeventerheartbeat">mtev_watchdog_child_eventer_heartbeat</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_watchdog_child_eventer_heartbeat</span><span class="hljs-params">()</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> Returns zero on success</li>
+</ul>
+<p>mtev_watchdog_child_eventer_heartbeat registers a periodic heartbeat through the eventer subsystem.  The eventer must be initialized before calling this function.</p>
+<h4 id="mtevwatchdogchildheartbeat">mtev_watchdog_child_heartbeat</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_watchdog_child_heartbeat</span><span class="hljs-params">()</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> Returns zero on success</li>
+</ul>
+<p>mtev_watchdog_child_heartbeat is called within the child function to alert the parent that the child is still alive and functioning correctly.</p>
+<h4 id="mtevwatchdogcreate">mtev_watchdog_create</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_watchdog_t</span> *
+mtev_watchdog_create()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> a new heartbeat identifier (or null, if none could be allocated)</li>
+</ul>
+<p>mtev_watchdog_create creates a new heartbeat that must be assessed for liveliness by the parent.</p>
+<h4 id="mtevwatchdogdisable">mtev_watchdog_disable</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_watchdog_disable</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
+</span></code></pre>
+<ul>
+<li><code>hb</code> the heart on which to act</li>
+</ul>
+<p>mtev_watchdog_disable will make the parent ignore failed heartbeats.</p>
+<h4 id="mtevwatchdogenable">mtev_watchdog_enable</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_watchdog_enable</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
+</span></code></pre>
+<ul>
+<li><code>hb</code> the heart on which to act</li>
+</ul>
+<p>mtev_watchdog_enable will make the parent respect and act on failed heartbeats.</p>
+<h4 id="mtevwatchdogheartbeat">mtev_watchdog_heartbeat</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_watchdog_heartbeat</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
+</span></code></pre>
+<ul>
+<li><code>hb</code> is the heart on which to pulse.  If null, the default heart is used.</li>
+<li><strong>RETURN</strong> Returns zero on success</li>
+</ul>
+<p>mtev_watchdog_heartbeat will pulse on the specified heart.</p>
+<h4 id="mtevwatchdogoverridetimeout">mtev_watchdog_override_timeout</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_watchdog_override_timeout</span><span class="hljs-params">(mtev_watchdog_t *lifeline, <span class="hljs-keyword">double</span> timeout)</span>
+</span></code></pre>
+<ul>
+<li><code>hb</code> the heart on which to act</li>
+<li><code>timeout</code> the timeout in seconds for this heart (0 for default)</li>
+</ul>
+<p>mtev_watchdog_override_timeout will allow the caller to override the timeout
+for a specific heart in the system.</p>
+<h4 id="mtevwatchdogpreforkinit">mtev_watchdog_prefork_init</h4>
+<blockquote>
+<p>Prepare the program to split into a child/parent-monitor relationship.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_watchdog_prefork_init</span><span class="hljs-params">()</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> Returns zero on success.</li>
+</ul>
+<p>mtev_watchdog_prefork_init sets up the necessary plumbing to bridge across a
+child to instrument watchdogs.</p>
+<h4 id="mtevwatchdogrecurrentheartbeat">mtev_watchdog_recurrent_heartbeat</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+mtev_watchdog_recurrent_heartbeat(<span class="hljs-keyword">mtev_watchdog_t</span> *hb)
+</code></pre>
+<ul>
+<li><code>hb</code> is the heart on which to beat.</li>
+<li><strong>RETURN</strong> Returns and event that the caller must schedule.</li>
+</ul>
+<p>mtev_watchdog_recurrent_heartbeat creates a recurrent eventer_t to beat a heart.</p>
+<h4 id="mtevwatchdogstartchild">mtev_watchdog_start_child</h4>
+<blockquote>
+<p>Starts a function as a separate child under close watch.</p>
+</blockquote>
+<pre><code class="lang-c">int 
+mtev_watchdog_start_child(const char *app, int (*func)(), int child_watchdog_timeout)
+</code></pre>
+<ul>
+<li><code>app</code> The name of the application (for error output).</li>
+<li><code>func</code> The function that will be the child process.</li>
+<li><code>child_watchdog_timeout</code> The number of seconds of lifelessness before the parent reaps and restarts the child.</li>
+<li><strong>RETURN</strong> Returns on program termination.</li>
+</ul>
+<p>mtev_watchdog_start_child will fork and run the specified function in the child process.  The parent will watch.  The child process must initialize the eventer system and then call mtev_watchdog_child_hearbeat to let the parent know it is alive.  If the eventer system is being used to drive the child process, mtev_watchdog_child_eventer_heartbeat may be called once after the eventer is initalized.  This will induce a regular heartbeat.</p>
+<h3 id="z">Z</h3>
+<h4 id="mtevzipkinannotationsetendpoint">mtev_zipkin_annotation_set_endpoint</h4>
+<blockquote>
+<p>Sets the endpoint for an annotation.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_annotation_set_endpoint</span><span class="hljs-params">(Zipkin_Annotation *annotation, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, 
+                                    <span class="hljs-keyword">bool</span> service_name_copy, <span class="hljs-keyword">struct</span> in_addr host, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">short</span> port)</span>
+</span></code></pre>
+<ul>
+<li><code>annotation</code> The annotation to update.</li>
+<li><code>service_name</code> The service name to use.</li>
+<li><code>service_name_copy</code> Whether service_name should be allocated (copied) within the span.</li>
+<li><code>host</code> The IPv4 host address of theservice.</li>
+<li><code>port</code> The IP port of the service.</li>
+</ul>
+<p>mtev_zipkin_annotation_set_endpoint sets an endpoint for the provided annotation.</p>
+<h4 id="mtevzipkinbannotationsetendpoint">mtev_zipkin_bannotation_set_endpoint</h4>
+<blockquote>
+<p>Sets the endpoint for an annotation.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_bannotation_set_endpoint</span><span class="hljs-params">(Zipkin_BinaryAnnotation *annotation, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, 
+                                     <span class="hljs-keyword">bool</span> service_name_copy, <span class="hljs-keyword">struct</span> in_addr host, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">short</span> port)</span>
+</span></code></pre>
+<ul>
+<li><code>annotation</code> The annotation to update.</li>
+<li><code>service_name</code> The service name to use.</li>
+<li><code>service_name_copy</code> Whether service_name should be allocated (copied) within the span.</li>
+<li><code>host</code> The IPv4 host address of theservice.</li>
+<li><code>port</code> The IP port of the service.</li>
+</ul>
+<p>mtev_zipkin_bannotation_set_endpoint sets an endpoint for the provided annotation.</p>
+<h4 id="mtevzipkindefaultendpoint">mtev_zipkin_default_endpoint</h4>
+<blockquote>
+<p>Sets the default endpoint used for new spans.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_default_endpoint</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, <span class="hljs-keyword">bool</span> service_name_copy, <span class="hljs-keyword">struct</span> in_addr host
+                             <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">short</span> port)</span>
+</span></code></pre>
+<ul>
+<li><code>service_name</code> The service name to use.</li>
+<li><code>service_name_copy</code> Whether service_name should be allocated (copied) within the span.</li>
+<li><code>host</code> The IPv4 host address of theservice.</li>
+<li><code>port</code> The IP port of the service.</li>
+</ul>
+<p>mtev_zipkin_default_endpoint sets a default endpoint for any new spans created without their own default.  Use this with care, it is application global.  You should likely only call this once at startup.</p>
+<h4 id="mtevzipkinencode">mtev_zipkin_encode</h4>
+<blockquote>
+<p>Encode a span into the specified buffer for Zipkin.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+mtev_zipkin_encode(<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *buffer, <span class="hljs-keyword">size_t</span> len, Zipkin_Span *span)
+</code></pre>
+<ul>
+<li><code>buffer</code> The target buffer.</li>
+<li><code>len</code> The target buffer&apos;s size.</li>
+<li><code>span</code> The span to encode.</li>
+<li><strong>RETURN</strong> The length of a successful encoding.</li>
+</ul>
+<p>mtev_zipkin_encode will take a span and encode it for Zipkin using the Thift BinaryProtocol.  The return value is always the length of a successful encoding, even if the buffer supplied is too small.  The caller must check the the returned length is less than or equal to the provided length to determine whether the encoding was successful.  The caller may provide a NULL buffer if and only if the provided len is 0.</p>
+<h4 id="mtevzipkinsampling">mtev_zipkin_sampling</h4>
+<blockquote>
+<p>Set sampling probabilities for different types of traces.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_sampling</span><span class="hljs-params">(<span class="hljs-keyword">double</span> new_traces, <span class="hljs-keyword">double</span> parented_traces, <span class="hljs-keyword">double</span> debug_traces)</span>
+</span></code></pre>
+<ul>
+<li><code>new_traces</code> probability of createing a new trace (trace_id == NULL)</li>
+<li><code>parented_traces</code> probability of createing a parented trace (parent_span_id == NULL)</li>
+<li><code>debug_traces</code> probability of createing a debug trace (debug != NULL &amp;&amp; *debug)</li>
+</ul>
+<p>mtev_zipkin_sampling sets sampling probabilities for creating new traces. Default values are 1.0</p>
+<h4 id="mtevzipkinspanannotate">mtev_zipkin_span_annotate</h4>
+<blockquote>
+<p>Annotate a span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_Annotation * 
+<span class="hljs-title">mtev_zipkin_span_annotate</span><span class="hljs-params">(Zipkin_Span *span, int64_t *timestamp, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *value, <span class="hljs-keyword">bool</span> value_copy)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to annotate.</li>
+<li><code>timestamp</code> A pointer the number of microseconds since epoch. NULL means now.</li>
+<li><code>value</code> The annotation value itself.</li>
+<li><code>value_copy</code> Whether value should be allocated (copied) within the span.</li>
+<li><strong>RETURN</strong> A new annotation.</li>
+</ul>
+<p>mtev_zipkin_span_annotate make an annotation on the provided span.  The returned resource is managed by the span and will be released with it.</p>
+<h4 id="mtevzipkinspanbannotate">mtev_zipkin_span_bannotate</h4>
+<blockquote>
+<p>Annotate a span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
+<span class="hljs-title">mtev_zipkin_span_bannotate</span><span class="hljs-params">(Zipkin_Span *span, Zipkin_AnnotationType annotation_type, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, 
+                           <span class="hljs-keyword">bool</span> key_copy, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *value, int32_t value_len, <span class="hljs-keyword">bool</span> value_copy)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to annotate.</li>
+<li><code>annotation_type</code> The type of the value being passed in.</li>
+<li><code>key</code> The key for the annotation</li>
+<li><code>key_copy</code> Whether key should be allocated (copied) within the span.</li>
+<li><code>value</code> The pointer to a value for the annotation.</li>
+<li><code>value_len</code> The length (in memory) of the binary value.</li>
+<li><code>value_copy</code> Whether value should be allocated (copied) within the span.</li>
+<li><strong>RETURN</strong> A new binary annotation.</li>
+</ul>
+<p>mtev_zipkin_span_bannotate make a binary annotation on the provided span.  The returned resource is managed by the span and will be released with it.</p>
+<h4 id="mtevzipkinspandefaultendpoint">mtev_zipkin_span_default_endpoint</h4>
+<blockquote>
+<p>Sets the default endpoint used for new annotations within the span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_span_default_endpoint</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, <span class="hljs-keyword">bool</span> service_name_copy, 
+                                  <span class="hljs-keyword">struct</span> in_addr host, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">short</span> port)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to update.</li>
+<li><code>service_name</code> The service name to use.</li>
+<li><code>service_name_copy</code> Whether service_name should be allocated (copied) within the span.</li>
+<li><code>host</code> The IPv4 host address of theservice.</li>
+<li><code>port</code> The IP port of the service.</li>
+</ul>
+<p>mtev_zipkin_span_default_endpoint sets a default endpoint for any annotations or binary_annotations added to the span.  All annotations added without an endpoint will use the last default set on the span.</p>
+<h4 id="mtevzipkinspandrop">mtev_zipkin_span_drop</h4>
+<blockquote>
+<p>Release resources allociated with span without publishing.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_span_drop</span><span class="hljs-params">(Zipkin_Span *span)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to release.</li>
+</ul>
+<p>mtev_zipkin_span_drop releases all resources associated with the span.</p>
+<h4 id="mtevzipkinspannew">mtev_zipkin_span_new</h4>
+<blockquote>
+<p>Allocate a new tracing span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_Span * 
+<span class="hljs-title">mtev_zipkin_span_new</span><span class="hljs-params">(int64_t *trace_id, int64_t *parent_span_id, int64_t *span_id, 
+                     <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, <span class="hljs-keyword">bool</span> name_copy, <span class="hljs-keyword">bool</span> debug, <span class="hljs-keyword">bool</span> force)</span>
+</span></code></pre>
+<ul>
+<li><code>trace_id</code> A pointer to the trace_id, if NULL, one will be assigned.</li>
+<li><code>parent_span_id</code> A point to the span&apos;s parent_id (NULL is originating).</li>
+<li><code>span_id</code> A pointer to the span&apos;s id (NULL will imply that trace_id should be used).</li>
+<li><code>name</code> A name for this span.</li>
+<li><code>name_copy</code> Wether the name should be allocated (copied) within the span.</li>
+<li><code>debug</code> Pointer to whether this is a debug span (bypasses any sampling), NULL allowed.</li>
+<li><code>force</code> force the span to be created as if all probabilities were 1.</li>
+<li><strong>RETURN</strong> A new span.</li>
+</ul>
+<p>mtev_zipkin_span_new allocates a new span in the system. The caller must eventually release the span via a call to either mtev_zipkin_span_drop or mtev_zipkin_span_publish.</p>
+<h4 id="mtevzipkinspanpublish">mtev_zipkin_span_publish</h4>
+<blockquote>
+<p>Pulish then release resources allociated with span without publishing.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_span_publish</span><span class="hljs-params">(Zipkin_Span *span)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to publish and release.</li>
+</ul>
+<p>mtev_zipkin_span_publish first publishes, then releases all resources associated with the span.</p>
+<h4 id="mtevzipkinstrtoid">mtev_zipkin_str_to_id</h4>
+<blockquote>
+<p>Convert a string Id to an int64_t Id.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> * 
+mtev_zipkin_str_to_id(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *in, <span class="hljs-keyword">int64_t</span> *buf)
+</code></pre>
+<ul>
+<li><code>in</code> Id in string form</li>
+<li><code>buf</code> working buffer (must not be NULL)</li>
+<li><strong>RETURN</strong> pointer to translated id</li>
+</ul>
+<p>mtev_zipkin_str_to_id will take string form id (trace_id, parent_span_id, or span_id) and convert it to an int64_t.  If conversion fails, the function will return NULL.</p>
+<h4 id="mtevzipkintimevaltotimestamp">mtev_zipkin_timeval_to_timestamp</h4>
+<blockquote>
+<p>Convert a struct timeval to a timestamp.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
+mtev_zipkin_timeval_to_timestamp(<span class="hljs-keyword">struct</span> timeval *tv)
+</code></pre>
+<ul>
+<li><code>tv</code> A point to a struct timeval representing the time in question.</li>
+<li><strong>RETURN</strong> a timestamp suitable for use in annotations.</li>
+</ul>
+<p>mtev_zipkin_timeval_to_timestamp wil convert a struct timeval (e.g. from gettimeofday) to a the &quot;microseconds since epoch&quot; format expected by Zipkin.</p>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="./" class="navigation navigation-prev " aria-label="Previous page: Reference">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="lua.html" class="navigation navigation-next " aria-label="Next page: Lua API">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"C API","level":"1.5.1","depth":2,"next":{"title":"Lua API","level":"1.5.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]},"previous":{"title":"Reference","level":"1.5","depth":1,"path":"apireference/README.md","ref":"apireference/README.md","articles":[{"title":"C API","level":"1.5.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},{"title":"Lua API","level":"1.5.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]}]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/c.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-collapsible-menu/plugin.js"></script>
+        
+    
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/3.1.1/anchor.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-anchorjs/anchor-style.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+

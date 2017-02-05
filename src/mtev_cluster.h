@@ -74,8 +74,7 @@ API_EXPORT(void)
 
 /*! \fn mtev_boolean mtev_cluster_enabled()
     \brief Report on the availability of the clusters feature.
-
-    Returns mtev_true if clusters can be configured.
+    \return mtev_true if clusters can be configured, otherwise mtev_false.
  */
 API_EXPORT(mtev_boolean)
   mtev_cluster_enabled();
