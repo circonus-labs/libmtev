@@ -190,7 +190,7 @@ It is important to note the life-cycle of an asynchronous event:
  1. the event is added from some thread A (usually an event loop thread)
  1. a jobq thread B will invoke the `callback` with `mask = EVENTER_ASYNCH_WORK` if `whence` is set and in the future.
  1. thread B will invoke the `callback` with `mask = EVENTER_ASYNCH_CLEANUP`
- 1. the event will return to thread A and `callback` will be invoked with `mask = EVENTER_ASYNCH_WORK`
+ 1. the event will return to thread A and `callback` will be invoked with `mask = EVENTER_ASYNCH`
 
 ### Choosing Threads
 

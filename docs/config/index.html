@@ -321,7 +321,20 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.4" data-path="../development/logging.html">
+        <li class="chapter " data-level="1.3.4" data-path="../development/rest.html">
+            
+                <a href="../development/rest.html">
+            
+                    
+                    REST and HTTP
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../development/logging.html">
             
                 <a href="../development/logging.html">
             
@@ -334,7 +347,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.5" data-path="../development/hooks.html">
+        <li class="chapter " data-level="1.3.6" data-path="../development/hooks.html">
             
                 <a href="../development/hooks.html">
             
@@ -410,6 +423,51 @@
             
         </li>
     
+        <li class="chapter " data-level="1.5" data-path="../apireference/">
+            
+                <a href="../apireference/">
+            
+                    
+                    Reference
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.5.1" data-path="../apireference/c.html">
+            
+                <a href="../apireference/c.html">
+            
+                    
+                    C API
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.2" data-path="../apireference/lua.html">
+            
+                <a href="../apireference/lua.html">
+            
+                    
+                    Lua API
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
 
     
 
@@ -464,8 +522,29 @@
 <span class="hljs-tag">&lt;<span class="hljs-name">example1</span> <span class="hljs-attr">lockfile</span>=<span class="hljs-string">&quot;/var/run/example1.lock&quot;</span>&gt;</span>
 <span class="hljs-tag">&lt;/<span class="hljs-name">example1</span>&gt;</span>
 </code></pre>
-<h3 id="lockfile">Lockfile</h3>
+<h3 id="lockfile">lockfile</h3>
 <p>If the <code>lockfile</code> attribute is specified on the root node, libmtev will require and lock the specified file to prevent multiple invocations of the application running at once.</p>
+<h3 id="requireenv">require_env</h3>
+<p>Via the <code>mtev_conf_env_off(mtev_conf_section_t node, const char *attr)</code> function, applications may choose to ignore certain nodes.
+The default <code>attr</code> (when NULL is specified) is <code>require_env</code>.</p>
+<p>libmtev itself applies this, in its default form, to listeners, capabilities, logs, and modules.</p>
+<p>Environmental controls support existence checking, equality checking and PCRE matching.  Negation is accompliation by leading the
+expression with an exclamation mark: <code>!</code>.</p>
+<ul>
+<li><h5 id="var"><code>&lt;var&gt;</code></h5>
+<p><strong>Example:</strong> <code>&quot;FOO&quot;</code></p>
+<p><strong>Action:</strong> require that the &quot;FOO&quot; environment variable be set in order for the given node to be considered active.</p>
+</li>
+<li><h5 id="varval"><code>&lt;var&gt;=&lt;val&gt;</code></h5>
+<p><strong>Example:</strong> <code>&quot;!FOO=42&quot;</code></p>
+<p><strong>Action:</strong> require that the &quot;FOO&quot; environment variable <strong>must not</strong> (note the leading <code>!</code>) be set and equal to 42 in order for the given node to be considered active.</p>
+</li>
+<li><h5 id="varregex"><code>&lt;var&gt;~&lt;regex&gt;</code></h5>
+<p><strong>Example:</strong> <code>&quot;FOO~^(?i)disabled_&quot;</code></p>
+<p><strong>Action:</strong> require that the &quot;FOO&quot; environment variable be set and begin with the case-insensitive string &quot;disabled_&quot; in order for the given node to be considered active.</p>
+</li>
+</ul>
+<p>Unlike other attribute inheritence within mtev_conf, the <code>mtev_conf_env_off</code> function will apply all ancestral <code>require_env</code> attributes during enforcement (including the node in question.  This allows nesting of more complex &quot;stacked&quot; requirements.</p>
 
                                 
                                 </section>
@@ -509,7 +588,7 @@
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Configuration","level":"1.2","depth":1,"next":{"title":"Inheritance","level":"1.2.1","depth":2,"path":"config/inherit.md","ref":"config/inherit.md","articles":[]},"previous":{"title":"Introduction","level":"1.1","depth":1,"path":"README.md","ref":"README.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/README.md","mtime":"2016-12-05T20:18:03.473Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-07T21:54:22.801Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Configuration","level":"1.2","depth":1,"next":{"title":"Inheritance","level":"1.2.1","depth":2,"path":"config/inherit.md","ref":"config/inherit.md","articles":[]},"previous":{"title":"Introduction","level":"1.1","depth":1,"path":"README.md","ref":"README.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/README.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

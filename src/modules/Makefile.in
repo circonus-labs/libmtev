@@ -89,7 +89,7 @@ mtev_lua/mtev.so:	$(MTEV_LUA_OBJS)
 
 alldocs:
 	for c in *.xml ; do \
-		$(XSLTPROC) module-md.xsl $$c > $(top_srcdir)/docs/config/modules/`echo $$c | sed -e 's/.xml$$/.md/;'` ; \
+		$(XSLTPROC) module-md.xsl $$c > $(top_srcdir)/docs-md/config/modules/`echo $$c | sed -e 's/.xml$$/.md/;'` ; \
 	done
 
 install:	install-modules install-headers

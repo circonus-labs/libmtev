@@ -8,12 +8,15 @@ install:	all
 
 gitbook-setup:
 	gitbook install
+	buildtools/mkcodedocs.pl src docs-md/apireference
+	$(MAKE) -C src/modules alldocs
 
 docs-serve:	gitbook-setup
-	gitbook serve . docs
+	gitbook serve .
 
 docs-html:	gitbook-setup
 	gitbook build . docs
+	buildtools/gitbook-cleanup.sh
 
 docs-pdf:	gitbook-setup
 	PATH=$(shell dirname $(EBOOKCONVERT)):$(shell echo $$PATH) gitbook pdf . docs/libmtev-manual.pdf

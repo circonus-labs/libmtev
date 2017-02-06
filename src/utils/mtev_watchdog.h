@@ -96,10 +96,10 @@ API_EXPORT(mtev_watchdog_t *)
   mtev_watchdog_create();
 
 /*! \fn int mtev_watchdog_heartbeat(mtev_watchdog_t *hb)
-   \param hb is the heart on which to pulse.  If null, the default heart is used.
-   \return Returns zero on success
+    \param hb is the heart on which to pulse.  If null, the default heart is used.
+    \return Returns zero on success
 
-   mtev_watchdog_heartbeat will pulse on the specified heart.
+    mtev_watchdog_heartbeat will pulse on the specified heart.
  */
 
 API_EXPORT(int)
@@ -137,6 +137,16 @@ API_EXPORT(void)
  */
 API_EXPORT(void)
   mtev_watchdog_disable(mtev_watchdog_t *hb);
+
+/*! \fn void mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout)
+    \param hb the heart on which to act
+    \param timeout the timeout in seconds for this heart (0 for default)
+
+    mtev_watchdog_override_timeout will allow the caller to override the timeout
+    for a specific heart in the system.
+ */
+API_EXPORT(void)
+  mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout);
 
 API_EXPORT(int)
   mtev_watchdog_glider(const char *path);

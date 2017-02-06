@@ -321,7 +321,20 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.4" data-path="../development/logging.html">
+        <li class="chapter " data-level="1.3.4" data-path="../development/rest.html">
+            
+                <a href="../development/rest.html">
+            
+                    
+                    REST and HTTP
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../development/logging.html">
             
                 <a href="../development/logging.html">
             
@@ -334,7 +347,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.5" data-path="../development/hooks.html">
+        <li class="chapter " data-level="1.3.6" data-path="../development/hooks.html">
             
                 <a href="../development/hooks.html">
             
@@ -398,6 +411,51 @@
             
                     
                     DTrace
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5" data-path="../apireference/">
+            
+                <a href="../apireference/">
+            
+                    
+                    Reference
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.5.1" data-path="../apireference/c.html">
+            
+                <a href="../apireference/c.html">
+            
+                    
+                    C API
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.2" data-path="../apireference/lua.html">
+            
+                <a href="../apireference/lua.html">
+            
+                    
+                    Lua API
             
                 </a>
             
@@ -478,7 +536,7 @@ that are its direct child or direct child of any ancestor node.</p>
 <pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
 <span class="hljs-tag">&lt;<span class="hljs-name">application</span>&gt;</span>
   <span class="hljs-tag">&lt;<span class="hljs-name">logs</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;internal&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;memory&quot;</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;10000,1000000&quot;</span>/&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;internal&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;memory&quot;</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;10000,1000000&quot;</span> <span class="hljs-attr">require_env</span>=<span class="hljs-string">&quot;MEMLOG&quot;</span>/&gt;</span>
     <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;logfile&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;file&quot;</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;/var/log/app.log&quot;</span>
          <span class="hljs-attr">rotate_bytes</span>=<span class="hljs-string">&quot;10000000&quot;</span> <span class="hljs-attr">retain_bytes</span>=<span class="hljs-string">&quot;50000000&quot;</span> <span class="hljs-attr">timestamps</span>=<span class="hljs-string">&quot;on&quot;</span>/&gt;</span>
     <span class="hljs-tag">&lt;<span class="hljs-name">log</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;http/access&quot;</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;jlog&quot;</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;/var/log/app-http.feed(*)&quot;</span>/&gt;</span>
@@ -523,7 +581,8 @@ is used to set outlets to the three log_streams named: &quot;stderr&quot;, &quot
 As before, we use an arbitrarily named node to contiain the declaration logically; this
 time called <code>&lt;console_output&gt;</code>.</p>
 <p>The &quot;internal&quot; log_stream is of type <code>memory</code> which uses an in-memory ring buffer
-to store recent log lines.  We have a limit ot 10000 log lines and 1000000 bytes.</p>
+to store recent log lines.  We have a limit ot 10000 log lines and 1000000 bytes. It
+is also only active if the environment variable INMEM is set.</p>
 <p>The &quot;logfile&quot; log_stream is of type <code>file</code> and will auto-rotate files as they hit
 10 million bytes and delete old log files as the cummulative space consumed
 exceeds 50 million bytes.  Timestamps are turned on for this log_stream.</p>
@@ -531,6 +590,10 @@ exceeds 50 million bytes.  Timestamps are turned on for this log_stream.</p>
 journaled log for external consumption.</p>
 <h2 id="generic-attributes">Generic Attributes</h2>
 <ul>
+<li><h5 id="requireenv">require_env</h5>
+<p>This optionally requires conditions around an environment variable.  See
+<a href="./#requireenv"><code>require_env</code></a>.</p>
+</li>
 <li><h5 id="debug">debug</h5>
 <p>If &quot;on&quot;/&quot;true&quot;, additional debugging information (like thread ID) is injected into logged lines.</p>
 </li>
@@ -638,7 +701,7 @@ a subscriber of that name will be added to the Jlog on creation.</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Logging","level":"1.2.5","depth":2,"next":{"title":"Listeners","level":"1.2.6","depth":2,"path":"config/listeners.md","ref":"config/listeners.md","articles":[]},"previous":{"title":"Eventer","level":"1.2.4","depth":2,"path":"config/eventer.md","ref":"config/eventer.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/logging.md","mtime":"2016-12-05T20:18:03.475Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-07T21:54:22.801Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Logging","level":"1.2.5","depth":2,"next":{"title":"Listeners","level":"1.2.6","depth":2,"path":"config/listeners.md","ref":"config/listeners.md","articles":[]},"previous":{"title":"Eventer","level":"1.2.4","depth":2,"path":"config/eventer.md","ref":"config/eventer.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/logging.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

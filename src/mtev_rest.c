@@ -646,6 +646,30 @@ rest_raw_payload_free(void *f) {
   }
 }
 
+static void req_payload_free(void *d, int64_t s, void *c) {
+  (void)s;
+  (void)c;
+  if(d) free(d);
+}
+
+mtev_boolean
+mtev_rest_complete_upload(mtev_http_rest_closure_t *restc, int *mask) {
+  int complete = 0;
+  mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
+  if(mtev_http_request_get_upload(req, NULL) == NULL &&
+     mtev_http_request_has_payload(req)) {
+    const void *payload = NULL;
+    int payload_len = 0;
+    payload = rest_get_raw_upload(restc, mask, &complete, &payload_len);
+    if(!complete) return mtev_false;
+    mtev_http_request_set_upload(req, (char *)payload, (int64_t)payload_len,
+                                 req_payload_free, NULL);
+    restc->call_closure_free(restc->call_closure);
+    restc->call_closure = NULL;
+  }
+  return mtev_true;
+}
+
 void *
 rest_get_raw_upload(mtev_http_rest_closure_t *restc,
                     int *mask, int *complete, int *size) {

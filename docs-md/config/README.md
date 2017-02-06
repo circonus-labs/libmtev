@@ -14,6 +14,36 @@ While not required, it is considered best practice to inherit attributed from pa
 </example1>
 ```
 
-### Lockfile
+### lockfile
 
 If the `lockfile` attribute is specified on the root node, libmtev will require and lock the specified file to prevent multiple invocations of the application running at once.
+
+### require_env
+
+Via the `mtev_conf_env_off(mtev_conf_section_t node, const char *attr)` function, applications may choose to ignore certain nodes.
+The default `attr` (when NULL is specified) is `require_env`.
+
+libmtev itself applies this, in its default form, to listeners, capabilities, logs, and modules.
+
+Environmental controls support existence checking, equality checking and PCRE matching.  Negation is accompliation by leading the
+expression with an exclamation mark: `!`.
+
+  * ##### `<var>`
+
+    **Example:** `"FOO"`
+
+    **Action:** require that the "FOO" environment variable be set in order for the given node to be considered active.
+
+  * ##### `<var>=<val>`
+
+    **Example:** `"!FOO=42"`
+
+    **Action:** require that the "FOO" environment variable **must not** (note the leading `!`) be set and equal to 42 in order for the given node to be considered active.
+
+  * ##### `<var>~<regex>`
+
+    **Example:** `"FOO~^(?i)disabled_"`
+
+    **Action:** require that the "FOO" environment variable be set and begin with the case-insensitive string "disabled_" in order for the given node to be considered active.
+
+Unlike other attribute inheritence within mtev_conf, the `mtev_conf_env_off` function will apply all ancestral `require_env` attributes during enforcement (including the node in question.  This allows nesting of more complex "stacked" requirements.

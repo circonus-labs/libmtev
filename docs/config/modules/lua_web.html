@@ -321,7 +321,20 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.4" data-path="../../development/logging.html">
+        <li class="chapter " data-level="1.3.4" data-path="../../development/rest.html">
+            
+                <a href="../../development/rest.html">
+            
+                    
+                    REST and HTTP
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../../development/logging.html">
             
                 <a href="../../development/logging.html">
             
@@ -334,7 +347,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.5" data-path="../../development/hooks.html">
+        <li class="chapter " data-level="1.3.6" data-path="../../development/hooks.html">
             
                 <a href="../../development/hooks.html">
             
@@ -410,6 +423,51 @@
             
         </li>
     
+        <li class="chapter " data-level="1.5" data-path="../../apireference/">
+            
+                <a href="../../apireference/">
+            
+                    
+                    Reference
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.5.1" data-path="../../apireference/c.html">
+            
+                <a href="../../apireference/c.html">
+            
+                    
+                    C API
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.2" data-path="../../apireference/lua.html">
+            
+                <a href="../../apireference/lua.html">
+            
+                    
+                    Lua API
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
 
     
 
@@ -463,26 +521,36 @@
 </ul>
 <h3 id="module-configuration">Module Configuration</h3>
 <ul>
-<li><p><strong>directory</strong> (optional)  [default:/install/prefix/libexec/mtev/lua/?.lua]</p>
-<p>allowed: /^.+$/</p>
+<li><p><strong>directory</strong> (optional)  [default: <code>/install/prefix/libexec/mtev/lua/?.lua</code>]</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>This is the lua load path.  See the lua manual for more details
 on meaning and syntax.</p>
 </li>
 <li><p><strong>cpath</strong> (optional) </p>
-<p>allowed: /^.+$/</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>This is the lua DSO load path.  See the lua manual for more
 details on meaning and syntax.</p>
 </li>
 <li><p><strong>dispatch</strong> (required) </p>
-<p>allowed: /^.+$/</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>The lua module to load.</p>
 </li>
 <li><p><strong>mount_(.*)</strong> (optional) </p>
-<p>allowed: /^<sup><a href="#fn_:" id="reffn_:">:</a></sup>+:<sup><a href="#fn_:" id="reffn_:">:</a></sup>+:<sup><a href="#fn_:" id="reffn_:">:</a></sup>+(:.+)?$/</p>
-<p> module:method:mount[:expr]</p>
+<p>allowed: <code>/^([^:]+):([^:]+):([^:]+)(?::(.+))?$/</code></p>
+<p>module:method:mount[:expr].  The name <code>mount_[name]</code> simply must
+be unique
+   and thus allows for multiple separate lua web
+services to be mounted in a single instance. Module is the name of
+the lua module the
+   system will require, the function named
+&quot;handler&quot; will be called. Method is the HTTP method to serve (e.g.
+GET). The mount
+   is the uri &quot;directory&quot; that will be handled by
+this <code>mount_[name]</code> stanza.  Expr is a PCRE that further
+restricts the URIs handled.</p>
+<h3 id="examples">Examples</h3>
 </li>
 </ul>
-<h3 id="examples">Examples</h3>
 <h4 id="loading-the-lua-web-module-connection-webmodule-to-the-http-services">Loading the lua web module connection webmodule to the http services.</h4>
 <pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">noit</span>&gt;</span>
         <span class="hljs-tag">&lt;<span class="hljs-name">modules</span>&gt;</span>
@@ -490,7 +558,7 @@ details on meaning and syntax.</p>
             <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
               <span class="hljs-tag">&lt;<span class="hljs-name">directory</span>&gt;</span>/some/other/path/?.lua<span class="hljs-tag">&lt;/<span class="hljs-name">directory</span>&gt;</span>
               <span class="hljs-tag">&lt;<span class="hljs-name">dispatch</span>&gt;</span>webmodule<span class="hljs-tag">&lt;/<span class="hljs-name">dispatch</span>&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">mount_foo</span>&gt;</span>foo:handler:/foo<span class="hljs-tag">&lt;/<span class="hljs-name">mount_foo</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">mount_foo</span>&gt;</span>foo:GET:/foo<span class="hljs-tag">&lt;/<span class="hljs-name">mount_foo</span>&gt;</span>
             <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
           <span class="hljs-tag">&lt;/<span class="hljs-name">module</span>&gt;</span>
         <span class="hljs-tag">&lt;/<span class="hljs-name">modules</span>&gt;</span>
@@ -539,7 +607,7 @@ details on meaning and syntax.</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"lua_web","level":"1.2.7.3","depth":3,"next":{"title":"zipkin_fq","level":"1.2.7.4","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]},"previous":{"title":"lua_general","level":"1.2.7.2","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/lua_web.md","mtime":"2016-12-05T20:18:03.475Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-07T21:54:22.801Z"},"basePath":"../..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"lua_web","level":"1.2.7.3","depth":3,"next":{"title":"zipkin_fq","level":"1.2.7.4","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]},"previous":{"title":"lua_general","level":"1.2.7.2","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/lua_web.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"../..","book":{"language":""}});
         });
     </script>
 </div>

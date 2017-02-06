@@ -138,7 +138,7 @@ void cli_log_switches() {
     if(!ls) ls = mtev_baked_log(enable_logs[i]);
     if(!ls) mtevL(mtev_error, "No such log: '%s'\n", enable_logs[i]);
     if(ls && !N_L_S_ON(ls)) {
-      mtevL(mtev_notice, "Enabling %s\n", enable_logs[i]);
+      if(ls != mtev_notice) mtevL(mtev_notice, "Enabling %s\n", enable_logs[i]);
       mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) | MTEV_LOG_STREAM_ENABLED);
     }
   }
@@ -147,7 +147,7 @@ void cli_log_switches() {
     if(!ls) ls = mtev_baked_log(disable_logs[i]);
     if(!ls) mtevL(mtev_error, "No such log: '%s'\n", enable_logs[i]);
     if(ls && N_L_S_ON(ls)) {
-      mtevL(mtev_notice, "Disabling %s\n", disable_logs[i]);
+      if(ls != mtev_notice) mtevL(mtev_notice, "Disabling %s\n", disable_logs[i]);
       mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) & ~MTEV_LOG_STREAM_ENABLED);
     }
   }

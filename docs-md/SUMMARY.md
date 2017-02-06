@@ -19,6 +19,7 @@
     1. [Important Starting Notes](development/important.md)
     1. [mtev_main](development/mtev_main.md)
     1. [Eventer](development/eventer.md)
+    1. [REST and HTTP](development/rest.md)
     1. [Logging](development/logging.md)
     1. [Hooks](development/hooks.md)
 
@@ -26,3 +27,7 @@
     1. [REST](operations/rest.md)
     1. [Telnet](operations/telnet_console.md)
     1. [DTrace](operations/dtrace.md)
+
+  1. [Reference](apireference/README.md)
+    1. [C API](apireference/c.md)
+    1. [Lua API](apireference/lua.md)

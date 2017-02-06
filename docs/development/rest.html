@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>Hooks · GitBook</title>
+        <title>REST and HTTP · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.2">
@@ -53,10 +53,10 @@
     <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="../operations/" />
+    <link rel="next" href="logging.html" />
     
     
-    <link rel="prev" href="logging.html" />
+    <link rel="prev" href="eventer.html" />
     
 
     </head>
@@ -321,7 +321,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.4" data-path="rest.html">
+        <li class="chapter active" data-level="1.3.4" data-path="rest.html">
             
                 <a href="rest.html">
             
@@ -347,7 +347,7 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.3.6" data-path="hooks.html">
+        <li class="chapter " data-level="1.3.6" data-path="hooks.html">
             
                 <a href="hooks.html">
             
@@ -498,7 +498,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href=".." >Hooks</a>
+        <a href=".." >REST and HTTP</a>
     </h1>
 </div>
 
@@ -513,91 +513,158 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="abitrary-hooks">Abitrary Hooks</h1>
-<p>Building a callout API makes sense for common, structured
-features in software, but occassionlly there is a need to provide
-somewhat arbitrary hook points after the software is designed
-and the mtev_hooks system is what satisfies this need.</p>
-<p>The design goals here are somewhat specific in that we
-would like to allow for a large number of hook points at low cost
-when not instrumented.  As such, a hash lookup of registered hooks
-would be considered to expensive.  Additionally, we want to provide
-strong, compile-time type safety as it can be all to easy to hook
-something with a function with a slightly incorrect protoype that
-could result in disasterous corruption or crashes (or perhaps worse
-daftly subtle bugs that are punishing to troubleshoot).</p>
-<p>The hooks system is simple a set of two macros; one allowing
-for the declaration of function prototypes for registering and invoking
- specific programmer-specifiec instrumentation point and the other
-providing an implementation of the registration and invocation
-routines.  Due to the nature of C, the macro calling conventions are
-less than elegant, but ultimately require no complicated implementation
-by the programmer.</p>
-<h3 id="hook-declaration">Hook Declaration</h3>
-<p>Declaring hooks is done by calling the <code>MTEV_HOOK_PROTO</code> macro with
-the name of the hook (a term that composes a valid C function name),
-the arguments it expects, the type of closure (usually a void *),
-and some variations on those themes that provide CPP enough info
-to construct an implementation with no programmer &quot;programming.&quot;</p>
-<p>The declaration of a hook &quot;foo&quot; will yield in two functions:
-<code>foo_hook_invoke</code> and <code>foo_hook_register</code>.</p>
-<h5 id="declaring-a-hook-foo-in-a-header">Declaring a hook &quot;foo&quot; (in a header)</h5>
-<p>This hook &quot;foo&quot; takes a <code>struct timeval *</code> as an argument in addition
-to its closure.</p>
-<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_hooks.h&gt;</span></span>
+                                <h1 id="rest">REST</h1>
+<p>The default network listening framework allows for simply registration
+of REST-based services via HTTP service.</p>
+<h5 id="appconf-snippet">app.conf (snippet)</h5>
+<pre><code>&lt;app&gt;
+  &lt;listener type=&quot;http_rest_api&quot; address=&quot;127.0.0.1&quot; port=&quot;80&quot;&gt;
+    &lt;config&gt;
+      &lt;acl&gt;internal&lt;/acl&gt;
+      &lt;document_root&gt;/path/to/docroot&lt;/document_root&gt;
+    &lt;/config&gt;
+  &lt;/listener&gt;
+  &lt;rest&gt;
+    &lt;acl type=&quot;deny&quot; listener_acl=&quot;^internal$&quot;&gt;
+      &lt;rule type=&quot;allow&quot; url=&quot;.&quot;/&gt;
+    &lt;/acl&gt;
+    &lt;acl type=&quot;deny&quot;&gt;&lt;/acl&gt;
+  &lt;/rest&gt;
+&lt;/app&gt;
+</code></pre><p>More information about listener configuration can be found in the
+<a href="../config/listeners.html">listener configuration</a> section.</p>
+<p>The above config establishes a REST-capable listener listening on
+<code>localhost</code> port 80.  The &quot;ACL&quot; config option is set to <code>internal</code>
+which can be used as a filter for ACL rules in the <code>rest/acl</code> config
+section.  The <code>document_root</code> is set, which will enable serving of
+static files on URLs that do not otherwise match routing rules. The
+ACL rule for <code>internal</code> set that all urls are allowed followed by a
+a blanket deny rule.  Other listeners that might not specify an <code>acl</code>
+option would not see the first ACL allowing any URL, but still see the
+blanket deny rule.</p>
+<h2 id="registering-a-rest-handler">Registering a REST handler.</h2>
+<h5 id="myhandlerc-snippet">myhandler.c (snippet)</h5>
+<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_rest.h&gt;</span></span>
 
-MTEV_HOOK_PROTO(foo, (<span class="hljs-keyword">struct</span> timeval *now),
-                <span class="hljs-keyword">void</span> *, closure, (<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now));
-</code></pre>
-<h5 id="implementing-a-hook-foo-in-a-source-file">Implementing a hook &quot;foo&quot; (in a source file)</h5>
-<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_hooks.h&gt;</span></span>
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span>
+<span class="hljs-title">my_rest_handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
+                <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
+  mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
+  mtev_http_response_ok(ctx, <span class="hljs-string">&quot;text/plain&quot;</span>);
+  mtev_http_response_append(ctx, <span class="hljs-string">&quot;myhandler: &quot;</span>, <span class="hljs-built_in">strlen</span>(<span class="hljs-string">&quot;myhandler: &quot;</span>));
+  mtev_http_response_append(ctx, pats[<span class="hljs-number">0</span>], <span class="hljs-built_in">strlen</span>(pats[<span class="hljs-number">0</span>]));
+  mtev_http_response_append(ctx, <span class="hljs-string">&quot;\n&quot;</span>, <span class="hljs-number">1</span>);
+  mtev_http_response_end(ctx);
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
 
-MTEV_HOOK_IMPL(foo, (<span class="hljs-keyword">struct</span> timeval *now),
-               <span class="hljs-keyword">void</span> *, closure, (<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now),
-               (closure,now));
-</code></pre>
-<h3 id="hook-usage">Hook Usage</h3>
-<p>Once the hook is implemented, it can be used by the application
-and instrumented by code at runtime. In the below example, we&apos;ll
-invoke the foo instrumentation and assuming no issues arise,
-we&apos;ll invoke the original <code>foo_work()</code> function.</p>
-<h5 id="instrumenting-a-dunction-conditionally">Instrumenting a dunction conditionally.</h5>
-<p>Before we instrument, suppose we have:</p>
-<pre><code class="lang-c">  <span class="hljs-comment">/* preable code */</span>
-  foo_work();
-  <span class="hljs-comment">/* postamble code */</span>
-</code></pre>
-<p>Now we wish to allow programmers to add instrumentation
-immediately before this code that can conditionally prevent its
-executation, we would modify the above code to look like:</p>
-<pre><code class="lang-c">  <span class="hljs-comment">/* preamble code */</span>
-  <span class="hljs-keyword">struct</span> timeval now;
-  mtev_gettimeofday(&amp;now, <span class="hljs-literal">NULL</span>);
-  <span class="hljs-keyword">if</span>(MTEV_HOOK_CONTINUE == foo_hook_invoke(&amp;now)) {
-       foo_work();
-  }
-  <span class="hljs-comment">/* postamble code */</span>
-</code></pre>
-<p>If the hook should not conditionally cause or prevent code
-to run, the invoke function&apos;s return value can be ignored.</p>
-<p>In order to register a function that allows the above execution
-on every other subsequent execution one would provide the following:</p>
-<pre><code class="lang-c">  <span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-title">my_sample_hook</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now)</span> </span>{
-    <span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> alt = <span class="hljs-number">0</span>;
-    <span class="hljs-keyword">return</span> (alt++ % <span class="hljs-number">2</span>) ? MTEV_HOOK_CONTINUE : MTEV_HOOK_DONE;
-  }
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">child_main</span><span class="hljs-params">()</span> </span>{
+ ...
 
-  <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">my_init_fuction</span><span class="hljs-params">()</span> </span>{
-    foo_hook_register(<span class="hljs-string">&quot;sample&quot;</span>, my_sample_hook, <span class="hljs-literal">NULL</span>);
-  }
+  mtev_http_rest_register_auth(
+    <span class="hljs-string">&quot;GET&quot;</span>, <span class="hljs-string">&quot;/&quot;</span>, <span class="hljs-string">&quot;^myhandler/(.+)$&quot;</span>, my_rest_handler,
+           mtev_http_rest_client_cert_auth
+  );
+  mtev_http_rest_register_auth(
+    <span class="hljs-string">&quot;GET&quot;</span>, <span class="hljs-string">&quot;/&quot;</span>, <span class="hljs-string">&quot;^(.*)$&quot;</span>, mtev_rest_simple_file_handler,
+           mtev_http_rest_client_cert_auth
+  );
+  eventer_loop();
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
 </code></pre>
-<p>The implementation of the hook can be elsewhere in the code, even
-in a dynamically loaded module.  When the hook is regsitered (you
-must orchestrate the calling of <code>my_init_function</code>, the behavior of
-the <code>foo_work()</code> callsite will change and our hook will be called.
-Given the above implementation, the <code>struct timeval</code> will be ignored,
-but every other time we reach the call site, <code>foo_work()</code> will be
-skipped due to a <code>MTEV_HOOK_DONE</code> return value.</p>
+<h2 id="handling-asynchronous-work">Handling asynchronous work.</h2>
+<p>In order to complete some complex action in response to an inbound REST
+request, it might be necessary to schedule some asynchronous work and
+complete the response later.  This is possible, but requires a bit of
+juggling.  The basic idea is:</p>
+<ul>
+<li>from you handler:<ul>
+<li>copy and remove the connection&apos;s event from the eventer</li>
+<li>set the rest&apos;s fastpath to a completion routine</li>
+<li>schedule asynchronous work</li>
+<li>return 0;</li>
+</ul>
+</li>
+<li>from the async job&apos;s completion:<ul>
+<li>trigger the connection&apos;s event</li>
+</ul>
+</li>
+</ul>
+<h5 id="sleepyc-snippet">sleepy.c (snippet)</h5>
+<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_rest.h&gt;</span></span>
+
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler_work</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask, <span class="hljs-keyword">void</span> *closure,
+                        <span class="hljs-keyword">struct</span> timeval *now)</span> </span>{
+  <span class="hljs-keyword">mtev_http_rest_closure_t</span> *restc = closure;
+  <span class="hljs-keyword">if</span>(mask == EVENTER_ASYNCH_WORK) {
+    sleep(<span class="hljs-number">5</span>);
+  }
+  <span class="hljs-keyword">if</span>(mask == EVENTER_ASYNCH) {
+    <span class="hljs-keyword">eventer_t</span> conne;
+    mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
+
+    <span class="hljs-comment">/* trigger a continuation of the HTTP connection */</span>
+    conne = mtev_http_session_connection(ctx);
+    <span class="hljs-keyword">if</span>(conne) {
+      eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
+    }
+  }
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler_complete</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
+                            <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
+  mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
+  mtev_http_response_ok(ctx, <span class="hljs-string">&quot;text/plain&quot;</span>);
+  mtev_http_response_append(ctx, <span class="hljs-string">&quot;Hello world\n&quot;</span>, <span class="hljs-built_in">strlen</span>(<span class="hljs-string">&quot;Hello world\n&quot;</span>));
+  mtev_http_response_end(ctx);
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
+                   <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
+  <span class="hljs-keyword">eventer_t</span> conne, worke;
+  mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
+
+  <span class="hljs-comment">/* remove the eventer */</span>
+  conne = mtev_http_connection_event_float(mtev_http_session_connection(ctx));
+  <span class="hljs-keyword">if</span>(conne) eventer_remove_fd(conne-&gt;fd);
+
+  <span class="hljs-comment">/* set a completion routine */</span>
+  restc-&gt;fastpath = handler_complete;
+
+  <span class="hljs-comment">/* schedule our work */</span>
+  worke = eventer_alloc();
+  worke-&gt;closure = restc;
+  worke-&gt;mask = EVENTER_ASYNCH;
+  worke-&gt;callback = handler_work;
+  eventer_add(worke);
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+</code></pre>
+<h2 id="handling-postput-data">Handling POST/PUT data</h2>
+<p>Reading data from the HTTP request is done by calling the
+<code>mtev_http_session_req_consume</code> function.  This can be tedious,
+so unless you are doing something special it can be much easier
+to simply first invoke the <code>mtev_rest_complete_upload</code> convenience
+wrapper.</p>
+<p>It must be called as the first action inside your REST callback handler.
+Any manipulation of the restc (closures in particular) will have undefined
+outcome.</p>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
+                   <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
+  <span class="hljs-keyword">int</span> mask;
+  <span class="hljs-keyword">void</span> *payload;
+  <span class="hljs-keyword">int64_t</span> payload_len;
+  mtev_http_request *req = mtev_http_session_request(restc-&gt;http_ctx);
+
+  <span class="hljs-keyword">if</span>(!mtev_rest_complete_upload(restc, &amp;mask)) <span class="hljs-keyword">return</span> mask;
+  payload = mtev_http_request_get_upload(req, &amp;payload_len);
+
+  ...
+}
+</code></pre>
 
                                 
                                 </section>
@@ -625,12 +692,12 @@ skipped due to a <code>MTEV_HOOK_DONE</code> return value.</p>
 
             
                 
-                <a href="logging.html" class="navigation navigation-prev " aria-label="Previous page: Logging">
+                <a href="eventer.html" class="navigation navigation-prev " aria-label="Previous page: Eventer">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="../operations/" class="navigation navigation-next " aria-label="Next page: Operations">
+                <a href="logging.html" class="navigation navigation-next " aria-label="Next page: Logging">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -641,7 +708,7 @@ skipped due to a <code>MTEV_HOOK_DONE</code> return value.</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Hooks","level":"1.3.6","depth":2,"next":{"title":"Operations","level":"1.4","depth":1,"path":"operations/README.md","ref":"operations/README.md","articles":[{"title":"REST","level":"1.4.1","depth":2,"path":"operations/rest.md","ref":"operations/rest.md","articles":[]},{"title":"Telnet","level":"1.4.2","depth":2,"path":"operations/telnet_console.md","ref":"operations/telnet_console.md","articles":[]},{"title":"DTrace","level":"1.4.3","depth":2,"path":"operations/dtrace.md","ref":"operations/dtrace.md","articles":[]}]},"previous":{"title":"Logging","level":"1.3.5","depth":2,"path":"development/logging.md","ref":"development/logging.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/hooks.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"REST and HTTP","level":"1.3.4","depth":2,"next":{"title":"Logging","level":"1.3.5","depth":2,"path":"development/logging.md","ref":"development/logging.md","articles":[]},"previous":{"title":"Eventer","level":"1.3.3","depth":2,"path":"development/eventer.md","ref":"development/eventer.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/rest.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

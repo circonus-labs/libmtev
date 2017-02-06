@@ -56,7 +56,7 @@
     <link rel="next" href="hooks.html" />
     
     
-    <link rel="prev" href="eventer.html" />
+    <link rel="prev" href="rest.html" />
     
 
     </head>
@@ -321,7 +321,20 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.3.4" data-path="logging.html">
+        <li class="chapter " data-level="1.3.4" data-path="rest.html">
+            
+                <a href="rest.html">
+            
+                    
+                    REST and HTTP
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.3.5" data-path="logging.html">
             
                 <a href="logging.html">
             
@@ -334,7 +347,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.5" data-path="hooks.html">
+        <li class="chapter " data-level="1.3.6" data-path="hooks.html">
             
                 <a href="hooks.html">
             
@@ -410,6 +423,51 @@
             
         </li>
     
+        <li class="chapter " data-level="1.5" data-path="../apireference/">
+            
+                <a href="../apireference/">
+            
+                    
+                    Reference
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.5.1" data-path="../apireference/c.html">
+            
+                <a href="../apireference/c.html">
+            
+                    
+                    C API
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.2" data-path="../apireference/lua.html">
+            
+                <a href="../apireference/lua.html">
+            
+                    
+                    Lua API
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
 
     
 
@@ -471,12 +529,12 @@ handles this for you.</p>
 <p>Within your <code>child_main</code> that is called by <code>mtev_main</code>, you should reopnen all logs and then
 enable rotation (config driven).</p>
 <pre><code class="lang-c">  <span class="hljs-keyword">if</span>(mtev_conf_load(config_file) == <span class="hljs-number">-1</span>) {
-    mtevL(noit_error, <span class="hljs-string">&quot;Cannot load config: &apos;%s&apos;\n&quot;</span>, config_file);
+    mtevL(mtev_error, <span class="hljs-string">&quot;Cannot load config: &apos;%s&apos;\n&quot;</span>, config_file);
     <span class="hljs-built_in">exit</span>(<span class="hljs-number">2</span>);
   }
   mtev_log_reopen_all();
   mtev_log_go_asynch();
-  <span class="hljs-keyword">if</span>(eventer_init() == <span class="hljs-number">-1</span>) mtevFatal(noit_stderr, <span class="hljs-string">&quot;Cannot initialize eventer\n&quot;</span>);
+  <span class="hljs-keyword">if</span>(eventer_init() == <span class="hljs-number">-1</span>) mtevFatal(mtev_stderr, <span class="hljs-string">&quot;Cannot initialize eventer\n&quot;</span>);
   mtev_conf_log_init_rotate(APPNAME, mtev_false);
 </code></pre>
 <p>Because the watchdog subsystem can restart our process on crash, it is important to always (re)load the
@@ -630,7 +688,7 @@ requires us to load log_streams with unknown types and resolve them post-facto.<
 
             
                 
-                <a href="eventer.html" class="navigation navigation-prev " aria-label="Previous page: Eventer">
+                <a href="rest.html" class="navigation navigation-prev " aria-label="Previous page: REST and HTTP">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
@@ -646,7 +704,7 @@ requires us to load log_streams with unknown types and resolve them post-facto.<
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Logging","level":"1.3.4","depth":2,"next":{"title":"Hooks","level":"1.3.5","depth":2,"path":"development/hooks.md","ref":"development/hooks.md","articles":[]},"previous":{"title":"Eventer","level":"1.3.3","depth":2,"path":"development/eventer.md","ref":"development/eventer.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/logging.md","mtime":"2016-12-05T20:18:03.476Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-12-07T21:54:22.801Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Logging","level":"1.3.5","depth":2,"next":{"title":"Hooks","level":"1.3.6","depth":2,"path":"development/hooks.md","ref":"development/hooks.md","articles":[]},"previous":{"title":"REST and HTTP","level":"1.3.4","depth":2,"path":"development/rest.md","ref":"development/rest.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/logging.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

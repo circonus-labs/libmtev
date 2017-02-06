@@ -467,7 +467,12 @@ mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt)
         prev = NULL;
         for(n=include_nodes[i].insertion_point->children;
             n; n = n->next) {
-          if(prev && prev->_private != n->_private) {
+          include_node_t *prev_cont = NULL, *n_cont = NULL;
+          if(prev && prev->_private)
+            prev_cont = ((mtev_xml_userdata_t *)prev->_private)->container;
+          if(n->_private)
+            n_cont = ((mtev_xml_userdata_t *)n->_private)->container;
+          if(prev && (prev_cont != n_cont)) {
             n->prev = NULL;
             prev->next = NULL;
           }
@@ -572,11 +577,16 @@ mtev_conf_kansas_city_shuffle_undo(include_node_t *include_nodes, int include_no
           n->parent = owner->snippet ? (xmlNodePtr)owner->doc : owner->root;
           prev = n;
         }
-        /* unlink the conjuction of lists */
+        /* unlink the conjunction of lists */
         prev = NULL;
         for(n=include_nodes[i].insertion_point->children;
             n; n = n->next) {
-          if(prev && prev->_private != n->_private) {
+          include_node_t *prev_cont = NULL, *n_cont = NULL;
+          if(prev && prev->_private)
+            prev_cont = ((mtev_xml_userdata_t *)prev->_private)->container;
+          if(n->_private)
+            n_cont = ((mtev_xml_userdata_t *)n->_private)->container;
+          if(prev && (prev_cont != n_cont)) {
             n->prev = NULL;
             prev->next = NULL;
           }
@@ -2240,6 +2250,12 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
       if(validate) { rv = -1; break; }
       else exit(-2);
     }
+
+    if(mtev_conf_env_off(log_configs[i], NULL)) {
+      mtevL(mtev_debug, "log %s environmentally disabled.\n", name);
+      continue;
+    }
+
     ls = mtev_log_stream_find(name);
     if(!ls) continue;
 
@@ -2323,6 +2339,12 @@ mtev_conf_log_init(const char *toplevel,
       mtevL(mtev_error, "log section %d does not have a name attribute\n", i+1);
       exit(-1);
     }
+
+    if(mtev_conf_env_off(log_configs[i], NULL)) {
+      mtevL(mtev_debug, "log %s environmentally disabled.\n", name);
+      continue;
+    }
+
     if(!mtev_conf_get_stringbuf(log_configs[i],
                                 "ancestor-or-self::node()/@type",
                                 type, sizeof(type))) {
@@ -2457,6 +2479,11 @@ mtev_conf_security_init(const char *toplevel, const char *user,
                                platform, sizeof(platform)) &&
        strcasecmp(platform, CAP_PLATFORM)) {
       mtevL(mtev_debug, "skipping cap for platform %s\n", platform);
+      continue;
+    }
+
+    if(mtev_conf_env_off(caps[i], NULL)) {
+      mtevL(mtev_debug, "capability %d environmentally disabled.\n", i);
       continue;
     }
 
@@ -2933,6 +2960,81 @@ void mtev_console_conf_init() {
   mtev_console_state_add_cmd(showcmd->dstate,
     NCSCMD("conf", mtev_console_conf_show_xpath,
            NULL, NULL, NULL));
+}
+
+mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
+  char xpath[128];
+  char buff[4096], *expr = buff, *key, *val, *envval;
+  mtev_boolean negate = mtev_false;
+  mtev_conf_section_t *reqs;
+  pcre *regex = NULL;
+  int erroff, ovector[30];
+  int i, cnt;
+
+  snprintf(xpath, sizeof(xpath), "ancestor-or-self::node()/@%s",
+           attr ? attr : "require_env");
+  if(!mtev_conf_get_stringbuf(node, xpath, buff, sizeof(buff)))
+    return mtev_false;
+
+  reqs = mtev_conf_get_sections(node, "ancestor-or-self::node()", &cnt);
+
+  snprintf(xpath, sizeof(xpath), "@%s", attr ? attr : "require_env");
+  for(i=0;i<cnt;i++) {
+    if(!mtev_conf_get_stringbuf(reqs[i], xpath, buff, sizeof(buff))) continue;
+    if(buff[0] == '!') {
+      negate = mtev_true;
+      expr++;
+    }
+    key = expr;
+    val = strchr(key, '=');
+    if(val) {
+      *val++ = '\0';
+    }
+    else {
+      val = strchr(key, '~');
+      if(val) {
+        *val++ = '\0';
+        const char *pcre_err;
+        regex = pcre_compile(val, 0, &pcre_err, &erroff, NULL);
+        if(!regex) {
+          mtevL(mtev_error, "pcre_compile(%s) failed offset %d: %s\n", val, erroff, pcre_err);
+          goto quickoff;
+        }
+      }
+    }
+
+    envval = getenv(key);
+
+    if(val == NULL) {
+      /* existence checking */
+      if((envval != NULL) ? negate : !negate) goto quickoff;
+    }
+    else if(envval) {
+      if(regex) {
+        int rv = pcre_exec(regex, NULL, envval, strlen(envval),
+                           0, 0, ovector, sizeof(ovector)/sizeof(*ovector));
+        if((rv >= 0) ? negate : !negate) {
+          goto quickoff;
+        }
+      }
+      else if((!strcmp(envval, val)) ? negate : !negate) {
+        goto quickoff;
+      }
+    }
+    if(regex) {
+      pcre_free(regex);
+      regex = NULL;
+    }
+  }
+
+  if(regex) pcre_free(regex);
+  free(reqs);
+  return mtev_false;
+
+ quickoff:
+  if(regex) pcre_free(regex);
+  free(reqs);
+  return mtev_true;
 }
 
 void mtev_conf_init_globals() {

@@ -115,6 +115,7 @@ struct eventer_pool_t {
   uint32_t __global_tid_offset;
   uint32_t __loop_concurrency;
   uint32_t __loops_started;
+  double hb_timeout;
 };
 
 static eventer_pool_t default_pool = { "default", 0 };
@@ -145,6 +146,20 @@ const char *eventer_pool_name(eventer_pool_t *pool) {
 
 uint32_t eventer_pool_concurrency(eventer_pool_t *pool) {
   return pool->__loop_concurrency;
+}
+
+void eventer_pool_watchdog_timeout(eventer_pool_t *pool, double timeout) {
+  if(pool->hb_timeout == timeout) return;
+  pool->hb_timeout = timeout;
+  if(eventer_impl_tls_data != NULL) {
+    int base = pool->__global_tid_offset;
+    int offset;
+    for(offset = 0; offset < pool->__loop_concurrency; offset++) {
+      if(eventer_impl_tls_data[base+offset].hb) {
+        mtev_watchdog_override_timeout(eventer_impl_tls_data[base+offset].hb, pool->hb_timeout);
+      }
+    }
+  }
 }
 
 eventer_pool_t *eventer_pool(const char *name) {
@@ -228,6 +243,13 @@ eventer_pool_t *eventer_get_pool_for_event(eventer_t e) {
   return t->pool;
 }
 
+#undef ADVTOK
+#define ADVTOK do { \
+    tok = nv; \
+    if(tok) nv = strchr(tok, ','); \
+    if(nv) *nv++ = '\0'; \
+} while(0) \
+
 int eventer_impl_propset(const char *key, const char *value) {
   if(!strcasecmp(key, "concurrency")) {
     int requested = atoi(value);
@@ -236,12 +258,20 @@ int eventer_impl_propset(const char *key, const char *value) {
     return 0;
   }
   if(!strncasecmp(key, "loop_", strlen("loop_"))) {
+    char *nv = alloca(strlen(value)+1), *tok;
+    memcpy(nv, value, strlen(value)+1);
     const char *name = key + strlen("loop_");
     if(strlen(name) == 0) return -1;
 
-    int requested = atoi(value);
+    ADVTOK; /* concurrency */
+    int requested = tok ? atoi(tok) : 0;
+    ADVTOK;
+    double hb_timeout = tok ? atof(tok) : 0;
+
     if(requested < 0) requested = 0;
     eventer_pool_create(name, requested);
+    eventer_pool_t *ep = eventer_pool(name);
+    ep->hb_timeout = hb_timeout;
     return 0;
   }
   if(!strncasecmp(key, "jobq_", strlen("jobq_"))) {
@@ -252,13 +282,6 @@ int eventer_impl_propset(const char *key, const char *value) {
 
     uint32_t concurrency, min = 0, max = 0;
     eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_NONE;
-
-#undef ADVTOK
-#define ADVTOK do { \
-    tok = nv; \
-    if(tok) nv = strchr(tok, ','); \
-    if(nv) *nv++ = '\0'; \
-} while(0) \
 
     ADVTOK;
     concurrency = atoi(tok);
@@ -408,6 +431,8 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   /* The "main" thread uses a NULL heartbeat,
    * all other threads get their own. */
   if(t->id != 0) t->hb = mtev_watchdog_create();
+  if(t->pool->hb_timeout)
+    mtev_watchdog_override_timeout(t->hb, t->pool->hb_timeout);
   e = mtev_watchdog_recurrent_heartbeat(t->hb);
   eventer_add_recurrent(e);
 
