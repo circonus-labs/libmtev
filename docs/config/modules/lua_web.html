@@ -521,26 +521,36 @@
 </ul>
 <h3 id="module-configuration">Module Configuration</h3>
 <ul>
-<li><p><strong>directory</strong> (optional)  [default:/install/prefix/libexec/mtev/lua/?.lua]</p>
-<p>allowed: /^.+$/</p>
+<li><p><strong>directory</strong> (optional)  [default: <code>/install/prefix/libexec/mtev/lua/?.lua</code>]</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>This is the lua load path.  See the lua manual for more details
 on meaning and syntax.</p>
 </li>
 <li><p><strong>cpath</strong> (optional) </p>
-<p>allowed: /^.+$/</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>This is the lua DSO load path.  See the lua manual for more
 details on meaning and syntax.</p>
 </li>
 <li><p><strong>dispatch</strong> (required) </p>
-<p>allowed: /^.+$/</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>The lua module to load.</p>
 </li>
 <li><p><strong>mount_(.*)</strong> (optional) </p>
-<p>allowed: /^<sup><a href="#fn_:" id="reffn_:">:</a></sup>+:<sup><a href="#fn_:" id="reffn_:">:</a></sup>+:<sup><a href="#fn_:" id="reffn_:">:</a></sup>+(:.+)?$/</p>
-<p> module:method:mount[:expr]</p>
+<p>allowed: <code>/^([^:]+):([^:]+):([^:]+)(?::(.+))?$/</code></p>
+<p>module:method:mount[:expr].  The name <code>mount_[name]</code> simply must
+be unique
+   and thus allows for multiple separate lua web
+services to be mounted in a single instance. Module is the name of
+the lua module the
+   system will require, the function named
+&quot;handler&quot; will be called. Method is the HTTP method to serve (e.g.
+GET). The mount
+   is the uri &quot;directory&quot; that will be handled by
+this <code>mount_[name]</code> stanza.  Expr is a PCRE that further
+restricts the URIs handled.</p>
+<h3 id="examples">Examples</h3>
 </li>
 </ul>
-<h3 id="examples">Examples</h3>
 <h4 id="loading-the-lua-web-module-connection-webmodule-to-the-http-services">Loading the lua web module connection webmodule to the http services.</h4>
 <pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">noit</span>&gt;</span>
         <span class="hljs-tag">&lt;<span class="hljs-name">modules</span>&gt;</span>
@@ -548,7 +558,7 @@ details on meaning and syntax.</p>
             <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
               <span class="hljs-tag">&lt;<span class="hljs-name">directory</span>&gt;</span>/some/other/path/?.lua<span class="hljs-tag">&lt;/<span class="hljs-name">directory</span>&gt;</span>
               <span class="hljs-tag">&lt;<span class="hljs-name">dispatch</span>&gt;</span>webmodule<span class="hljs-tag">&lt;/<span class="hljs-name">dispatch</span>&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">mount_foo</span>&gt;</span>foo:handler:/foo<span class="hljs-tag">&lt;/<span class="hljs-name">mount_foo</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">mount_foo</span>&gt;</span>foo:GET:/foo<span class="hljs-tag">&lt;/<span class="hljs-name">mount_foo</span>&gt;</span>
             <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
           <span class="hljs-tag">&lt;/<span class="hljs-name">module</span>&gt;</span>
         <span class="hljs-tag">&lt;/<span class="hljs-name">modules</span>&gt;</span>

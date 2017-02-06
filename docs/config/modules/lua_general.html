@@ -522,38 +522,38 @@ startup.</p>
 </ul>
 <h3 id="module-configuration">Module Configuration</h3>
 <ul>
-<li><p><strong>directory</strong> (optional)  [default:/install/prefix/libexec/mtev/lua/?.lua]</p>
-<p>allowed: /^.+$/</p>
+<li><p><strong>directory</strong> (optional)  [default: <code>/install/prefix/libexec/mtev/lua/?.lua</code>]</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>This is the lua load path.  See the lua manual for more details
 on meaning and syntax.</p>
 </li>
 <li><p><strong>cpath</strong> (optional) </p>
-<p>allowed: /^.+$/</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>This is the lua DSO load path.  See the lua manual for more
 details on meaning and syntax.</p>
 </li>
 <li><p><strong>lua_module</strong> (required) </p>
-<p>allowed: /^.+$/</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>The lua module to load.</p>
 </li>
 <li><p><strong>lua_function</strong> (required) </p>
-<p>allowed: /^.+$/</p>
+<p>allowed: <code>/^.+$/</code></p>
 <p>The lua function to run in the module.</p>
 </li>
 <li><p><strong>Cpreload</strong> (optional) </p>
-<p>allowed: /^.*$/</p>
+<p>allowed: <code>/^.*$/</code></p>
 <p>Specify a set of luaopen_(.+) calls to make immediately after
 the context is created.  This is useful if you&apos;re writing a
 standalone interpreter or other program that needs to extend lua (without
 shipping another lua module) before you start.</p>
 </li>
-<li><p><strong>concurrent</strong> (optional)  [default:false]</p>
-<p>allowed: /^(?:true|on|false|off)$/</p>
+<li><p><strong>concurrent</strong> (optional)  [default: <code>false</code>]</p>
+<p>allowed: <code>/^(?:true|on|false|off)$/</code></p>
 <p>Specify if the function should be invoked in each concurrent
 eventer thread.</p>
+<h3 id="examples">Examples</h3>
 </li>
 </ul>
-<h3 id="examples">Examples</h3>
 <h4 id="loading-the-lua-general-module-an-run-somefunction-from-the-somemodule-module">Loading the lua general module an run somefunction from the somemodule module.</h4>
 <pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">noit</span>&gt;</span>
         <span class="hljs-tag">&lt;<span class="hljs-name">modules</span>&gt;</span>

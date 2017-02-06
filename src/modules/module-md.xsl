@@ -50,9 +50,9 @@
 </xsl:template>
 
 <xsl:template match="parameter" name="configparams" xml:space="preserve">
- * **<xsl:value-of select="@name"/>** (<xsl:value-of select="@required"/>) <xsl:if test="@default != ''"> [default:<xsl:value-of select="@default"/>]</xsl:if>
+ * **<xsl:value-of select="@name"/>** (<xsl:value-of select="@required"/>) <xsl:if test="@default != ''"> [default: `<xsl:value-of select="@default"/>`]</xsl:if>
 
-   allowed: /^<xsl:value-of select="@allowed"/>$/
+   allowed: `/^<xsl:value-of select="@allowed"/>$/`
 
    <xsl:call-template name="wrap-string" xml:space="default">
             <xsl:with-param name="str" select="."/>

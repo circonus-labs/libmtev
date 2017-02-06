@@ -9,6 +9,7 @@ install:	all
 gitbook-setup:
 	gitbook install
 	buildtools/mkcodedocs.pl src docs-md/apireference
+	$(MAKE) -C src/modules alldocs
 
 docs-serve:	gitbook-setup
 	gitbook serve .
