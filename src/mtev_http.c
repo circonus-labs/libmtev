@@ -1897,6 +1897,58 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
   return mtev_true;
 }
 mtev_boolean
+mtev_http_response_append_str(mtev_http_session_ctx *ctx, const char *b) {
+  return mtev_http_response_append(ctx, b, strlen(b));
+}
+mtev_boolean
+mtev_http_response_appendf(mtev_http_session_ctx *ctx,
+                           const char *format, ...) {
+  mtev_boolean rv;
+  va_list arg;
+  va_start(arg, format);
+  rv = mtev_http_response_vappend(ctx, format, arg);
+  va_end(arg);
+  return rv;
+}
+mtev_boolean
+mtev_http_response_vappend(mtev_http_session_ctx *ctx,
+                           const char *format, va_list arg) {
+  mtev_boolean rv;
+  int len;
+  char buffer[8192], *dynbuff = NULL;
+#ifdef va_copy
+  va_list copy;
+#endif
+
+#ifdef va_copy
+  va_copy(copy, arg);
+  len = vsnprintf(buffer, sizeof(buffer), format, copy);
+  va_end(copy);
+#else
+  len = vsnprintf(buffer, sizeof(buffer), format, arg);
+#endif
+  if(len > sizeof(buffer)) {
+    int allocd = sizeof(buffer);
+    while(len > allocd) { /* guaranteed true the first time */
+      if(len > allocd) allocd = len;
+      if(dynbuff) free(dynbuff);
+      dynbuff = malloc(allocd);
+      assert(dynbuff);
+#ifdef va_copy
+      va_copy(copy, arg);
+      len = vsnprintf(dynbuff, allocd, format, copy);
+      va_end(copy);
+#else
+      len = vsnprintf(dynbuff, allocd, format, arg);
+#endif
+    }
+  }
+
+  rv = mtev_http_response_append(ctx, dynbuff ? dynbuff : buffer, len);
+  free(dynbuff);
+  return rv;
+}
+mtev_boolean
 mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
                                  struct bchain *b) {
   struct bchain *o;

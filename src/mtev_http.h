@@ -187,6 +187,14 @@ API_EXPORT(mtev_boolean)
 API_EXPORT(mtev_boolean)
   mtev_http_response_option_set(mtev_http_session_ctx *, uint32_t);
 API_EXPORT(mtev_boolean)
+  mtev_http_response_appendf(mtev_http_session_ctx *ctx,
+                             const char *format, ...);
+API_EXPORT(mtev_boolean)
+  mtev_http_response_vappend(mtev_http_session_ctx *ctx,
+                             const char *format, va_list arg);
+API_EXPORT(mtev_boolean)
+  mtev_http_response_append_str(mtev_http_session_ctx *, const char *);
+API_EXPORT(mtev_boolean)
   mtev_http_response_append(mtev_http_session_ctx *, const void *, size_t);
 API_EXPORT(mtev_boolean)
   mtev_http_response_append_bchain(mtev_http_session_ctx *, struct bchain *);
