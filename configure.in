@@ -388,10 +388,17 @@ XSLTLIBS=`xslt-config --libs`
 LIBS="$LIBS $XSLTLIBS"
 AC_MSG_RESULT([$XSLTLIBS])
 
+# only used in example programs
+AC_CHECK_LIB(curl, curl_global_init, [ 
+  EXAMPLE_LIBS="$LIBS -lcurl"
+], )
+
+
 AC_CHECK_FUNC(xsltParseStylesheetDoc, , [AC_MSG_ERROR([*** libxslt is required ***])])
 
 LIBMTEV_LIBS=$LIBS
 AC_SUBST(LIBMTEV_LIBS)
+AC_SUBST(EXAMPLE_LIBS)
 
 AC_CHECK_FUNC(SSLv2_server_method, [ AC_DEFINE(HAVE_SSLV2_SERVER, [1], [SSLv2_server_method]) ])
 AC_CHECK_FUNC(SSLv2_client_method, [ AC_DEFINE(HAVE_SSLV2_CLIENT, [1], [SSLv2_client_method]) ])

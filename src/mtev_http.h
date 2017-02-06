@@ -37,6 +37,7 @@
 #include "mtev_defines.h"
 #include <libxml/tree.h>
 #include "eventer/eventer.h"
+#include "mtev_compress.h"
 #include "mtev_hash.h"
 #include "mtev_atomic.h"
 #include "mtev_hooks.h"
@@ -50,10 +51,11 @@ typedef enum {
   MTEV_HTTP09, MTEV_HTTP10, MTEV_HTTP11
 } mtev_http_protocol;
 
-#define MTEV_HTTP_CHUNKED 0x0001
-#define MTEV_HTTP_CLOSE   0x0002
-#define MTEV_HTTP_GZIP    0x0010
-#define MTEV_HTTP_DEFLATE 0x0020
+#define MTEV_HTTP_CHUNKED      0x0001
+#define MTEV_HTTP_CLOSE        0x0002
+#define MTEV_HTTP_GZIP         0x0010
+#define MTEV_HTTP_DEFLATE      0x0020
+#define MTEV_HTTP_LZ4F         0x0100
 
 typedef enum {
   BCHAIN_INLINE = 0,
@@ -75,6 +77,7 @@ struct bchain {
   size_t start; /* where data starts (buff + start) */
   size_t size;  /* data length (past start) */
   size_t allocd;/* total allocation */
+  mtev_compress_type compression;
   char *buff;
   char _buff[1]; /* over allocate as needed */
 };

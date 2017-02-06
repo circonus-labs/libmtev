@@ -38,10 +38,10 @@
 #include "mtev_getip.h"
 #include "mtev_zipkin.h"
 #include "mtev_conf.h"
+#include "mtev_compress.h"
 
 #include <errno.h>
 #include <ctype.h>
-#include <zlib.h>
 #include <sys/mman.h>
 #include <libxml/tree.h>
 #include <pthread.h>
@@ -109,6 +109,7 @@ struct mtev_http_request {
   mtev_boolean complete;
   struct timeval start_time;
   char *orig_qs;
+  mtev_stream_decompress_ctx_t *decompress_ctx;
 };
 
 struct mtev_http_response {
@@ -130,7 +131,7 @@ struct mtev_http_response {
   mtev_boolean closed;         /* set by _end() */
   mtev_boolean complete;       /* complete, drained and disposable */
   size_t bytes_written;        /* tracks total bytes written */
-  z_stream *gzip;
+  mtev_stream_compress_ctx_t *compress_ctx;
   size_t output_chain_bytes;
   size_t output_raw_chain_bytes;
   mtev_boolean freed;
@@ -191,9 +192,6 @@ static const char *zipkin_http_bytes_in = "http.bytes_in";
 static const char *zipkin_http_bytes_out = "http.bytes_out";
 static const char *zipkin_ss_done = "ss_done";
 static struct in_addr zipkin_ip_host;
-
-static const char gzip_header[10] =
-  { '\037', '\213', Z_DEFLATED, 0, 0, 0, 0, 0, 0, 0x03 };
 
 #define CTX_ADD_HEADER(a,b) \
     mtev_hash_replace(&ctx->res.headers, \
@@ -272,6 +270,7 @@ struct bchain *bchain_alloc(size_t size, int line) {
   n->prev = n->next = NULL;
   n->start = n->size = 0;
   n->allocd = size;
+  n->compression = MTEV_COMPRESS_NONE;
 
   return n;
 }
@@ -316,6 +315,32 @@ struct bchain *bchain_from_data(const void *d, size_t size) {
   memcpy(n->buff, d, size);
   n->size = size;
   return n;
+}
+
+static mtev_compress_type
+request_compression_type(mtev_http_request *req)
+{
+  const char *content_encoding = NULL;
+  if (req == NULL || req->freed) return MTEV_COMPRESS_NONE;
+  
+  mtev_hash_table *headers = mtev_http_request_headers_table(req);
+  mtev_hash_retr_str(headers, "content-encoding", strlen("content-encoding"), 
+                     &content_encoding);
+
+  if (content_encoding == NULL) {
+    return MTEV_COMPRESS_NONE;
+  }
+  
+  /* there is no official mime-type for LZ4 check for anything containing lzf4 */
+  if (strstr(content_encoding, "lz4f") != NULL) {
+    /* check for lz4f and x-lz4f */
+    return MTEV_COMPRESS_LZ4F;
+  } else if (strstr(content_encoding, "gzip") != NULL) {    
+    /* gzip and x-gzip */
+    return MTEV_COMPRESS_GZIP;
+  }
+
+  return MTEV_COMPRESS_NONE;
 }
 
 mtev_http_request *
@@ -828,6 +853,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
         if(!strcmp(name ? name : last_name, "accept-encoding")) {
           if(strstr(value, "gzip")) req->opts |= MTEV_HTTP_GZIP;
           if(strstr(value, "deflate")) req->opts |= MTEV_HTTP_DEFLATE;
+          if(strstr(value, "lz4f")) req->opts |= MTEV_HTTP_LZ4F;
         }
         if(name)
           mtev_hash_replace(&req->headers, name, strlen(name), (void *)value,
@@ -842,6 +868,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
           l1 = strlen(prefix);
           l2 = strlen(value);
           b = ALLOC_BCHAIN(l1 + l2 + 2);
+          b->compression = request_compression_type(req);
           b->next = req->current_request_chain;
           b->next->prev = b;
           req->current_request_chain = b;
@@ -982,6 +1009,15 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
     if(len <= 0) goto full_error;
     if(len > 0) in->size += len;
     rv = mtev_http_request_finalize(&ctx->req, &err);
+    /* walk the bchain and set the compression */
+    if (rv == mtev_true) {
+      struct bchain *x = ctx->req.first_input;
+      while (x) {
+        x->compression = request_compression_type(&ctx->req);
+        ctx->req.content_length_read += x->size;
+        x = x->next;
+      }
+    }
     if(len == -1 || err == mtev_true) goto full_error;
     if(ctx->req.state == MTEV_HTTP_REQ_EXPECT) {
       const char *expect;
@@ -1036,6 +1072,14 @@ mtev_http_request_release(mtev_http_session_ctx *ctx) {
   }
   memset(&ctx->req.state, 0,
          sizeof(ctx->req) - (unsigned long)&(((mtev_http_request *)0)->state));
+  
+  /* free compression related things */
+  if (ctx->req.decompress_ctx != NULL) {
+    mtev_stream_decompress_finish(ctx->req.decompress_ctx);
+    mtev_destroy_stream_decompress_ctx(ctx->req.decompress_ctx);
+    ctx->req.decompress_ctx = NULL;
+  }
+
   ctx->req.freed = mtev_true;
 }
 void
@@ -1047,9 +1091,9 @@ mtev_http_response_release(mtev_http_session_ctx *ctx) {
   RELEASE_BCHAIN(ctx->res.leader);
   RELEASE_BCHAIN(ctx->res.output);
   RELEASE_BCHAIN(ctx->res.output_raw);
-  if(ctx->res.gzip) {
-    deflateEnd(ctx->res.gzip);
-    free(ctx->res.gzip);
+  if(ctx->res.compress_ctx) {
+    mtev_stream_compress_finish(ctx->res.compress_ctx);
+    mtev_destroy_stream_compress_ctx(ctx->res.compress_ctx);
   }
   memset(&ctx->res, 0, sizeof(ctx->res));
   ctx->res.freed = mtev_true;
@@ -1169,15 +1213,88 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
 
   return next_chunk;
 }
+
+/* will uncompress the chain at 'in' and write uncompressed chain at 'out' with
+ * the last member of the out chain in 'last_out'
+ * 
+ * return -1 on error
+ * otherwise return total_uncompressed_size 
+ * */
+static ssize_t
+mtev_http_session_decompress(mtev_compress_type type, struct bchain *in, 
+                             mtev_http_session_ctx *ctx, 
+                             struct bchain **out, struct bchain **last_out)
+{
+  ssize_t total_decompressed_size = 0;
+  mtev_stream_decompress_ctx_t *dctx = ctx->req.decompress_ctx;
+  if (dctx == NULL) {
+    dctx = ctx->req.decompress_ctx = mtev_create_stream_decompress_ctx();
+    if (mtev_stream_decompress_init(dctx, type) < 0) {
+      mtev_destroy_stream_decompress_ctx(dctx);
+      ctx->req.decompress_ctx = NULL;
+      return -1;
+    }
+  }
+
+  if (*out == NULL) {
+    *out = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+  }
+  struct bchain *o = *out;
+  *last_out = *out;
+  while (in && in->size) {
+    size_t out_size = o->allocd - o->size;
+    if (out_size == 0) {
+      struct bchain *temp = o;
+      o = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+      temp->next = o;
+      *last_out = o;
+      out_size = o->allocd;
+    }
+    size_t in_size = in->size;
+    int x = mtev_stream_decompress(dctx, (const unsigned char *)(in->buff + in->start),
+                                   &in_size, (unsigned char *)(o->buff + o->size),
+                                   &out_size);
+    if (x != 0) {
+      mtevL(mtev_error, "Error decompressing: %d\n", x);
+      mtev_stream_decompress_finish(dctx);
+      mtev_destroy_stream_decompress_ctx(dctx);
+      ctx->req.decompress_ctx = NULL;
+      RELEASE_BCHAIN(*out);
+      *out = NULL;
+      errno = -errno;
+      return -1;
+    }
+    o->size += out_size;
+    total_decompressed_size += out_size;
+    in->size -= in_size;
+    in->start += in_size;
+  }
+  (*last_out)->next = NULL;
+  return total_decompressed_size;
+}
+
 int
 mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
-                              void *buf, size_t len, size_t blen,
-                              int *mask) {
+                              void *buf, size_t user_len, size_t blen,
+                              int *mask) 
+{
   size_t bytes_read = 0,
-         expected = ctx->req.content_length - ctx->req.content_length_read;
+    wire_len = ctx->req.content_length - ctx->req.content_length_read;
+
+  /* if we have read all content_length data and there is no
+   * input to read, short circuit */
+  if (wire_len == 0 && (ctx->req.first_input == NULL || 
+                        ctx->req.first_input->size == 0)) {
+    return 0;
+  }
+
+  mtev_compress_type compression_type = request_compression_type(&ctx->req);
+
   /* We attempt to consume from the first_input */
   struct bchain *in, *tofree;
   if(ctx->req.payload_chunked) {
+
+    /* TODO: chunked will not support compression for now */
     if(ctx->req.next_chunk_read >= ctx->req.next_chunk) {
       int needed;
       needed = mtev_http_session_req_consume_chunked(ctx, mask);
@@ -1195,56 +1312,114 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
         ctx->req.next_chunk_read = 0;
         ctx->req.next_chunk = needed;
       }
-      len = blen;
+      user_len = blen;
     }
-    expected = ctx->req.next_chunk - ctx->req.next_chunk_read;
-    mtevL(http_debug, " ... need to read %d/%d more of a chunk\n", (int)expected,
+    wire_len = ctx->req.next_chunk - ctx->req.next_chunk_read;
+    mtevL(http_debug, " ... need to read %d/%d more of a chunk\n", (int)wire_len,
           (int)ctx->req.next_chunk);
   }
   mtevL(http_debug, " ... mtev_http_session_req_consume(%d) %d of %d\n",
-        ctx->conn.e ? ctx->conn.e->fd : -1, (int)len, (int)expected);
-  len = MIN(len, expected);
-  while(bytes_read < len) {
-    int crlen = 0;
+        ctx->conn.e ? ctx->conn.e->fd : -1, (int)user_len, (int)wire_len);
+
+  int crlen = 0;
+  while(bytes_read < user_len) {
     in = ctx->req.first_input;
-    while(in && bytes_read < len) {
-      int partial_len = MIN(in->size, len - bytes_read);
-      if(buf) memcpy((char *)buf+bytes_read, in->buff+in->start, partial_len);
-      bytes_read += partial_len;
-      ctx->req.content_length_read += partial_len;
-      if(ctx->req.payload_chunked) ctx->req.next_chunk_read += partial_len;
-      mtevL(http_debug, " ... filling %d bytes (read through %d/%d)\n",
-            (int)bytes_read, (int)ctx->req.content_length_read,
-            (int)ctx->req.content_length);
-      in->start += partial_len;
-      in->size -= partial_len;
-      if(in->size == 0) {
-        tofree = in;
-        ctx->req.first_input = in = in->next;
-        tofree->next = NULL;
-        RELEASE_BCHAIN(tofree);
-        if(in == NULL) {
-          ctx->req.last_input = NULL;
-          if (bytes_read != 0) {
-            mtevL(http_debug, " ... mtev_http_session_req_consume = %d\n",
-                  (int)bytes_read);
-            return bytes_read;
+    
+    while(in && in->size && bytes_read < user_len) {
+
+      if (in->compression != MTEV_COMPRESS_NONE) {
+        mtevL(http_debug, " ... decompress bchain\n");
+        size_t total_decompressed_size = 0;
+        size_t total_compressed_size = 0;
+
+        struct bchain *out = NULL;
+        /* if we haven't fully consumed the last uncompressed block, use it up */
+        if (ctx->req.last_input != NULL && ctx->req.last_input->compression == MTEV_COMPRESS_NONE && ctx->req.last_input->size < ctx->req.last_input->allocd) {
+          out = ctx->req.last_input;
+        }          
+        struct bchain *last_out = NULL;
+        total_compressed_size += in->size;
+        ssize_t s = mtev_http_session_decompress(in->compression, in, ctx, 
+                                                 &out, &last_out);
+        if (s < 0) {
+          errno = s;
+          return -1;
+        }
+        total_decompressed_size += s;
+
+        /* our newly produced uncompressed chain gets stuck on the end 
+         * after we are through uncompressing we will read this out as normal */
+        if (out && ctx->req.last_input && ctx->req.last_input != out) {
+          ctx->req.last_input->next = out;
+        }
+        ctx->req.last_input = last_out;
+
+        if (in->size == 0) {
+          /* we have consumed this compressed input link, delete it */
+          struct bchain *tofree = in;
+          ctx->req.first_input = in = in->next;
+          tofree->next = NULL;
+          RELEASE_BCHAIN(tofree);
+        }
+
+        if (total_decompressed_size > 0) {
+          /* rewrite expected read size based on decompressed size */
+          user_len = MIN(user_len, total_decompressed_size);
+        }
+      }
+
+      if (in && in->compression == MTEV_COMPRESS_NONE) {
+        /* read uncompressed data into the user buffer */
+        int partial_len = MIN(in->size, user_len - bytes_read);
+
+        if(buf) memcpy((char *)buf+bytes_read, in->buff+in->start, partial_len);
+        bytes_read += partial_len;
+        if(ctx->req.payload_chunked) ctx->req.next_chunk_read += partial_len;
+        mtevL(http_debug, " ... filling %d bytes (read through %d/%d)\n",
+              (int)bytes_read, (int)ctx->req.content_length_read,
+              (int)ctx->req.content_length);
+        in->start += partial_len;
+        in->size -= partial_len;
+        if(in->size == 0) {
+          tofree = in;
+          ctx->req.first_input = in = in->next;
+          tofree->next = NULL;
+          RELEASE_BCHAIN(tofree);
+          if(in == NULL) {
+            ctx->req.last_input = NULL;
+            if (bytes_read != 0) {
+              mtevL(http_debug, " ... mtev_http_session_req_consume = %d\n",
+                    (int)bytes_read);
+              return bytes_read;
+            }
           }
         }
       }
     }
-    while(bytes_read + crlen < len) {
+    
+    /* short circuit and read the rest off the wire later */
+    if (bytes_read > 0 && bytes_read == user_len) {
+      return bytes_read;
+    }
+
+    while(crlen < wire_len) {
       int rlen;
       in = ctx->req.last_input;
-      if(!in)
+      if(!in) {
         in = ctx->req.first_input = ctx->req.last_input =
             ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+      }
       else if(in->start + in->size >= in->allocd) {
         in->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
         in = ctx->req.last_input = in->next;
       }
+
+      /* always set compression type of the just read data */
+      in->compression = compression_type;
+
       /* pull next chunk */
       if(ctx->conn.e == NULL) return -1;
+
       rlen = ctx->conn.e->opset->read(ctx->conn.e->fd,
                                       in->buff + in->start + in->size,
                                       in->allocd - in->size - in->start,
@@ -1263,6 +1438,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
         mtevL(http_debug, " ... mtev_http_session_req_consume = -1 (error)\n");
         return -1;
       }
+      ctx->req.content_length_read += rlen;
       in->size += rlen;
       crlen += rlen;
     }
@@ -1654,11 +1830,11 @@ mtev_http_response_option_set(mtev_http_session_ctx *ctx, uint32_t opt) {
      (opt & MTEV_HTTP_CHUNKED))
     return mtev_false;
   if(ctx->res.protocol != MTEV_HTTP11 &&
-     (opt & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE)))
+     (opt & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F)))
     return mtev_false;
   if(((ctx->res.output_options | opt) &
-      (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE)) ==
-        (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE))
+      (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F)) ==
+        (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F))
     return mtev_false;
 
   /* Check out "accept" set */
@@ -1667,12 +1843,14 @@ mtev_http_response_option_set(mtev_http_session_ctx *ctx, uint32_t opt) {
   ctx->res.output_options |= opt;
   if(ctx->res.output_options & MTEV_HTTP_CHUNKED)
     CTX_ADD_HEADER("Transfer-Encoding", "chunked");
-  if(ctx->res.output_options & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE)) {
+  if(ctx->res.output_options & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F)) {
     CTX_ADD_HEADER("Vary", "Accept-Encoding");
     if(ctx->res.output_options & MTEV_HTTP_GZIP)
       CTX_ADD_HEADER("Content-Encoding", "gzip");
     else if(ctx->res.output_options & MTEV_HTTP_DEFLATE)
       CTX_ADD_HEADER("Content-Encoding", "deflate");
+    else if(ctx->res.output_options & MTEV_HTTP_LZ4F)
+      CTX_ADD_HEADER("Content-Encoding", "lz4f");
   }
   if(ctx->res.output_options & MTEV_HTTP_CLOSE) {
     CTX_ADD_HEADER("Connection", "close");
@@ -1834,83 +2012,52 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   if (keys != (const char **)static_key_array) free(keys);
   return len;
 }
-static int memgzip2(mtev_http_response *res, Bytef *dest, uLongf *destLen,
-                    const Bytef *source, uLong sourceLen, int level,
-                    int deflate_option, mtev_boolean *done) {
-  int err, skip=0, expect = Z_OK;
-  if(!res->gzip) {
-    res->gzip = calloc(1, sizeof(*res->gzip));
-    err = deflateInit2(res->gzip, level, Z_DEFLATED, -15, 8,
-                       Z_DEFAULT_STRATEGY);
-    if (err != Z_OK) {
-      mtevL(mtev_error, "memgzip2() -> deflateInit2: %d\n", err);
-      return err;
-    }
 
-    memcpy(dest, gzip_header, sizeof(gzip_header));
-    skip = sizeof(gzip_header);
-    *destLen -= skip;
-  }
-  res->gzip->next_in = (Bytef*)source;
-  res->gzip->avail_in = (uInt)sourceLen;
-  res->gzip->next_out = dest + skip;
-  res->gzip->avail_out = (uInt)*destLen;
-  if ((uLong)res->gzip->avail_out != *destLen) return Z_BUF_ERROR;
-
-  err = deflate(res->gzip, deflate_option);
-
-  if(deflate_option == Z_FINISH) expect = Z_STREAM_END;
-  if (err != Z_OK && err != expect) {
-    mtevL(mtev_error, "memgzip2() -> deflate: got %d, need %d\n", err, expect);
-    deflateEnd(res->gzip);
-    free(res->gzip);
-    res->gzip = NULL;
-    return err == Z_OK ? Z_BUF_ERROR : err;
-  }
-  if(done) *done = (err == Z_STREAM_END) ? mtev_true : mtev_false;
-  *destLen = (*destLen - res->gzip->avail_out) + skip;
-
-  return Z_OK;
-}
 static mtev_boolean
 _http_encode_chain(mtev_http_response *res,
                    struct bchain *out, void *inbuff, int inlen,
                    mtev_boolean final, mtev_boolean *done) {
   int opts = res->output_options;
-  /* implement gzip and deflate! */
   if(done && final) *done = mtev_true;
-  if(opts & MTEV_HTTP_GZIP) {
-    uLongf olen;
-    int err;
-    olen = out->allocd - out->start - 2; /* leave 2 for the \r\n */
-    err = memgzip2(res, (Bytef *)(out->buff + out->start), &olen,
-                   (Bytef *)(inbuff), (uLong)inlen,
-                   9, final ? Z_FINISH : Z_NO_FLUSH, done);
-    if(Z_OK != err) {
-      mtevL(mtev_error, "zlib compress2 error %d\n", err);
+
+  if (res->compress_ctx == NULL) {
+    res->compress_ctx = mtev_create_stream_compress_ctx();
+    if(opts & MTEV_HTTP_GZIP) {
+      mtev_stream_compress_init(res->compress_ctx, MTEV_COMPRESS_GZIP);
+    } else if(opts & MTEV_HTTP_DEFLATE) {
+      mtev_stream_compress_init(res->compress_ctx, MTEV_COMPRESS_DEFLATE);
+    } else if(opts & MTEV_HTTP_LZ4F) {
+      mtev_stream_compress_init(res->compress_ctx, MTEV_COMPRESS_LZ4F);
+    } else {
+      mtev_stream_compress_init(res->compress_ctx, MTEV_COMPRESS_NONE);
+    }
+  }
+
+  size_t olen;
+  int err;
+  olen = out->allocd - out->start - 2; /* leave 2 for the \r\n */
+  if (inlen > 0) {
+    err = mtev_stream_compress(res->compress_ctx, inbuff, inlen,
+                               (unsigned char *)(out->buff + out->start), &olen);
+    if (err != 0) {
       return mtev_false;
     }
     out->size += olen;
   }
-  else if(opts & MTEV_HTTP_DEFLATE) {
-    uLongf olen;
-    olen = out->allocd - out->start - 2; /* leave 2 for the \r\n */
-    if(Z_OK != compress2((Bytef *)(out->buff + out->start), &olen,
-                         (Bytef *)(inbuff), (uLong)inlen,
-                         9)) {
-      mtevL(mtev_error, "zlib compress2 error\n");
+
+  if (final == mtev_true) {
+    olen = out->allocd - out->start - 2;
+    err = mtev_stream_compress_flush(res->compress_ctx, 
+                                     (unsigned char *)(out->buff + out->start), 
+                                     &olen);
+    if (err != 0) {
       return mtev_false;
     }
     out->size += olen;
-  }
-  else {
-    /* leave 2 for the \r\n */
-    if(inlen > out->allocd - out->start - 2) return mtev_false;
-    memcpy(out->buff + out->start, inbuff, inlen);
-    out->size += inlen;
   }
   return mtev_true;
 }
+
 struct bchain *
 mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
                                 struct bchain *in) {
@@ -1919,7 +2066,7 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
   int opts = ctx->res.output_options;
 
   if(in->type == BCHAIN_MMAP &&
-     0 == (opts & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_CHUNKED))) {
+     0 == (opts & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F | MTEV_HTTP_CHUNKED))) {
     out = ALLOC_BCHAIN(0);
     out->buff = in->buff;
     out->type = in->type;
@@ -1930,8 +2077,9 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
   }
   /* a chunked header looks like: hex*\r\ndata\r\n */
   /* let's assume that content never gets "larger" */
-  if(opts & MTEV_HTTP_GZIP) maxlen = deflateBound(NULL, in->size);
-  else if(opts & MTEV_HTTP_DEFLATE) maxlen = compressBound(in->size);
+  if(opts & MTEV_HTTP_GZIP) maxlen = mtev_compress_bound(MTEV_COMPRESS_GZIP, in->size);
+  else if(opts & MTEV_HTTP_DEFLATE) maxlen = mtev_compress_bound(MTEV_COMPRESS_DEFLATE, in->size);
+  else if(opts & MTEV_HTTP_LZ4F) maxlen = mtev_compress_bound(MTEV_COMPRESS_LZ4F, in->size);
 
   /* So, the link size is the len(data) + 4 + ceil(log(len(data))/log(16)) */
   ilen = maxlen;
@@ -2030,9 +2178,9 @@ raw_finalize_encoding(mtev_http_response *res) {
       res->output_raw_chain_bytes += out->size;
     }
 
-    deflateEnd(res->gzip);
-    free(res->gzip);
-    res->gzip = NULL;
+    mtev_stream_compress_finish(res->compress_ctx);
+    mtev_destroy_stream_compress_ctx(res->compress_ctx);
+    res->compress_ctx = NULL;
   }
 }
 static mtev_boolean
