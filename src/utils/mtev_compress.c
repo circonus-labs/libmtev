@@ -270,6 +270,7 @@ static int
 mtev_stream_compress_gzip(mtev_stream_compress_ctx_t *ctx, const char *source_data,
                           size_t source_len, unsigned char *out, size_t *out_len)
 {
+  size_t skip = 0;
   if (ctx->begun == mtev_false) {
     int x = deflateInit2(&ctx->zlib_compress_ctx, 9, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
     if (x != Z_OK) {
@@ -277,13 +278,16 @@ mtev_stream_compress_gzip(mtev_stream_compress_ctx_t *ctx, const char *source_da
             x);
       return -1;
     }
+    /* copy in the gzip header */
+    memcpy(out, gzip_header, sizeof(gzip_header));
+    skip += sizeof(gzip_header);
     ctx->begun = mtev_true;
   }
 
   ctx->zlib_compress_ctx.next_in = (Bytef *)source_data;
   ctx->zlib_compress_ctx.avail_in = source_len;
-  ctx->zlib_compress_ctx.next_out = out;
-  ctx->zlib_compress_ctx.avail_out = *out_len;
+  ctx->zlib_compress_ctx.next_out = out + skip;
+  ctx->zlib_compress_ctx.avail_out = *out_len - skip;
   
   size_t t = ctx->zlib_compress_ctx.total_out;
   int x = deflate(&ctx->zlib_compress_ctx, Z_NO_FLUSH);
@@ -292,7 +296,7 @@ mtev_stream_compress_gzip(mtev_stream_compress_ctx_t *ctx, const char *source_da
           x);
     return -1;    
   }
-  *out_len = ctx->zlib_compress_ctx.total_out - t;
+  *out_len = ctx->zlib_compress_ctx.total_out - t + skip;
   return 0;
 }
 
@@ -394,8 +398,6 @@ mtev_stream_compress_finish_lz4f(mtev_stream_compress_ctx_t *ctx)
           LZ4F_getErrorName(s));
     return -1;
   }
-  /* flush must have been called previously so this must be empty */
-  mtevAssert(s == 0);
   LZ4F_freeCompressionContext(ctx->lz4_compress_ctx);
   return 0;
 }
@@ -409,8 +411,7 @@ mtev_stream_compress_finish_gzip(mtev_stream_compress_ctx_t *ctx)
   ctx->zlib_compress_ctx.next_in = NULL;
   ctx->zlib_compress_ctx.avail_in = 0; 
   x = deflateEnd(&ctx->zlib_compress_ctx);
-  mtevAssert(x == Z_OK);
-  return 0;
+  return x;
 }
 
 int
