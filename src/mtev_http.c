@@ -1324,6 +1324,10 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
   int crlen = 0;
   while(bytes_read < user_len) {
     in = ctx->req.first_input;
+
+    if (in == NULL && wire_len == 0) {
+      return bytes_read;
+    }
     
     while(in && in->size && bytes_read < user_len) {
 
