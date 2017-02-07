@@ -48,14 +48,63 @@
 
 typedef struct mtev_lua_resume_info mtev_lua_resume_info_t;
 
+typedef int (*mtev_lua_resume_t)(mtev_lua_resume_info_t *info, int nargs);
+
 typedef struct lua_module_closure {
   lua_State *lua_state;
   mtev_hash_table *pending;
-  int (*resume)(mtev_lua_resume_info_t *ci, int nargs);
+  mtev_lua_resume_t resume;
   pthread_t owner;
   int eventer_id;
   mtev_dso_generic_t *self;
 } lua_module_closure_t;
+
+/*! \fn lua_module_closure_t *mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_info_t *resume)
+    \brief Allocated and initialize a `lua_module_closure_t` for a new runtime.
+    \param self the module implementing a custom lua runtime environment
+    \param resume the custom resume function for this environment
+    \return a new allocated and initialized `lua_module_closure`
+
+    > Note these are not thread safe because lua is not thread safe. If you are managing multiple
+    > C threads, you should have a `lua_module_closure_t` for each thread and maintain them in a
+    > thread-local fashion.  Also ensure that any use of the eventer does not migrate cross thread.
+*/
+API_EXPORT(lua_module_closure_t *)
+  mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume);
+
+/*! \fn void mtev_lua_lmc_free(lua_module_closure_t *lmc)
+    \brief Free a `lua_module_closure_t` structure that has been allocated.
+    \param lmc The `lua_module_closure_t` to be freed.
+*/
+API_EXPORT(void)
+  mtev_lua_lmc_free(lua_module_closure_t *lmc);
+
+/*! \fn lua_State *mtev_lua_lmc_L(lua_module_closure_t *lmc)
+    \brief Get the `lua_State *` for this module closure.
+    \param lmc the `lua_module_closure_t` that was allocated for this runtime.
+    \return a Lua state
+*/
+API_EXPORT(lua_State *)
+  mtev_lua_lmc_L(lua_module_closure_t *lmc);
+
+/*! \fn lua_State *mtev_lua_lmc_setL(lua_module_closure_t *lmc)
+    \brief Set the `lua_State *` for this module closure, returning the previous value.
+    \param lmc the `lua_module_closure_t` that was allocated for this runtime.
+    \param lmc the `lua_State *` that should be placed in this closure.
+    \return the previous lua Lua state associated with this closure
+*/
+API_EXPORT(lua_State *)
+  mtev_lua_lmc_setL(lua_module_closure_t *lmc, lua_State *L);
+
+/*! \fn int mtev_lua_lmc_resume(lua_module_closure_t *lmc, mtev_lua_resume_info_t *ri, int nargs)
+    \brief Invoke lua_resume with the correct context based on the `lua_module_closure_t`
+    \param lmc the `lua_module_closure_t` associated with the current lua runtime.
+    \param ri resume meta information
+    \param nargs the number of arguments on the lua stack to return
+    \return the return value of the underlying `lua_resume` call.
+*/
+API_EXPORT(int)
+  mtev_lua_lmc_resume(lua_module_closure_t *lmc, mtev_lua_resume_info_t *ri, int nargs);
 
 struct mtev_lua_resume_info {
   pthread_t bound_thread;

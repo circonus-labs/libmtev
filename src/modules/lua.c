@@ -51,6 +51,47 @@ static pthread_mutex_t mtev_lua_states_lock = PTHREAD_MUTEX_INITIALIZER;
 static mtev_hash_table mtev_coros;
 static pthread_mutex_t coro_lock = PTHREAD_MUTEX_INITIALIZER;
 
+lua_module_closure_t *
+mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
+  lua_module_closure_t *lmc;
+  lmc = calloc(1, sizeof(*lmc));
+  lmc->pending = calloc(1, sizeof(*lmc->pending));
+  mtev_hash_init(lmc->pending);
+  lmc->owner = pthread_self();
+  lmc->self = self;
+  lmc->resume = resume;
+  return lmc;
+}
+
+void
+mtev_lua_lmc_free(lua_module_closure_t *lmc) {
+  if(lmc) {
+    if(lmc->pending) {
+      mtev_hash_destroy(lmc->pending, free, NULL);
+      free(lmc->pending);
+    }
+  }
+  free(lmc);
+}
+
+int
+mtev_lua_lmc_resume(lua_module_closure_t *lmc,
+                    mtev_lua_resume_info_t *ri, int nargs) {
+  return lmc->resume(ri, nargs);
+}
+
+lua_State *
+mtev_lua_lmc_L(lua_module_closure_t *lmc) {
+  return lmc->lua_state;
+}
+
+lua_State *
+mtev_lua_lmc_setL(lua_module_closure_t *lmc, lua_State *L) {
+  lua_State *prev = lmc->lua_state;
+  lmc->lua_state = L;
+  return prev;
+}
+
 void
 mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci) {
   lua_getglobal(ci->lmc->lua_state, "mtev_coros");
