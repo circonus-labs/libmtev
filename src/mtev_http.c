@@ -1171,7 +1171,8 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
              * enough to hold the entire chunk, copy in the chunk data that
              * we have already read and then keep reading.
              */
-            struct bchain *new_in = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+            struct bchain *new_in = ALLOC_BCHAIN(MAX(clen + in->start + 2, 
+                                                     DEFAULT_BCHAINSIZE));
             memcpy(new_in->buff + new_in->start, cp_begin, in->size);
             new_in->size = in->size;
             new_in->start = 0;
@@ -1512,7 +1513,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
       if(rlen <= 0) {
         mtevL(http_debug, " ... mtev_http_session_req_consume = -1 (error)\n");
         return -1;
-      } 
+      }
       ctx->req.content_length_read += rlen;
       in->size += rlen;
       crlen += rlen;
