@@ -35,6 +35,7 @@
 #include "mtev_listener.h"
 #include "mtev_http.h"
 #include "mtev_console.h"
+#include "eventer/eventer.h"
 
 #ifndef MTEV_REST_H
 #define MTEV_REST_H
@@ -135,6 +136,40 @@ API_EXPORT(int)
                                        rest_websocket_message_handler wf, 
                                        const char *websocket_protocol, 
                                        rest_authorize_func_t auth, void *closure);
+
+typedef struct rest_url_dispatcher mtev_rest_mountpoint_t;
+
+API_EXPORT(mtev_rest_mountpoint_t *)
+  mtev_http_rest_new_rule(const char *method, const char *base,
+                          const char *expression, rest_request_handler f);
+
+API_EXPORT(mtev_rest_mountpoint_t *)
+  mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
+                                       const char *expression, rest_request_handler f,
+                                       rest_websocket_message_handler wf,
+                                       const char *websocket_protocol,
+                                       rest_authorize_func_t auth, void *closure);
+
+API_EXPORT(void)
+  mtev_rest_mountpoint_set_handler(mtev_rest_mountpoint_t *mountpoint,
+                             rest_request_handler h);
+
+API_EXPORT(void)
+  mtev_rest_mountpoint_set_auth(mtev_rest_mountpoint_t *mountpoint,
+                          rest_authorize_func_t h);
+
+API_EXPORT(void)
+  mtev_rest_mountpoint_set_closure(mtev_rest_mountpoint_t *mountpoint,
+                             void *h);
+
+API_EXPORT(void)
+  mtev_rest_mountpoint_set_websocket(mtev_rest_mountpoint_t *mountpoint,
+                               const char *prot,
+                               rest_websocket_message_handler h);
+
+API_EXPORT(void)
+  mtev_rest_mountpoint_set_eventer_pool(mtev_rest_mountpoint_t *mountpoint,
+                                  eventer_pool_t *pool);
 
 API_EXPORT(void)
   mtev_http_rest_disclose_endpoints(const char *base, const char *expr);

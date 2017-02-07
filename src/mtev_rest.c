@@ -70,9 +70,41 @@ struct rest_url_dispatcher {
   rest_websocket_message_handler websocket_handler;
   rest_authorize_func_t auth;
   void *closure;
+  eventer_pool_t *pool;
+  int pool_rr; /* used for round-robin */
   /* Chain to the next one */
   struct rest_url_dispatcher *next;
 };
+
+void
+mtev_rest_mountpoint_set_handler(mtev_rest_mountpoint_t *mountpoint,
+                           rest_request_handler h) {
+  mountpoint->handler = h;
+}
+void
+mtev_rest_mountpoint_set_auth(mtev_rest_mountpoint_t *mountpoint,
+                        rest_authorize_func_t h) {
+  mountpoint->auth = h;
+}
+void
+mtev_rest_mountpoint_set_closure(mtev_rest_mountpoint_t *mountpoint,
+                           void *h) {
+  mountpoint->closure = h;
+}
+void
+mtev_rest_mountpoint_set_websocket(mtev_rest_mountpoint_t *mountpoint,
+                             const char *prot,
+                             rest_websocket_message_handler h) {
+  free(mountpoint->websocket_protocol);
+  mountpoint->websocket_protocol = (prot == NULL) ? NULL : strdup(prot);
+  mountpoint->websocket_handler = h;
+}
+void
+mtev_rest_mountpoint_set_eventer_pool(mtev_rest_mountpoint_t *mountpoint,
+                                eventer_pool_t *pool) {
+  mountpoint->pool = pool;
+}
+
 
 struct rule_container {
   char *base;
@@ -252,12 +284,19 @@ mtev_http_get_websocket_handler(mtev_http_rest_closure_t *restc)
 }
 
 static rest_request_handler
-mtev_http_get_handler(mtev_http_rest_closure_t *restc) {
+mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
   struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
   if (rule != NULL) {
       /* We match, set 'er up */
     restc->fastpath = rule->handler;
     restc->closure = rule->closure;
+    if(rule->pool) {
+      eventer_t e = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
+      if(e) {
+        e->thr_owner = eventer_choose_owner_pool(rule->pool, rule->pool_rr++);
+        *migrate = !pthread_equal(e->thr_owner, pthread_self());
+      }
+    }
     if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
       restc->closure = NULL;
       return mtev_http_rest_permission_denied;
@@ -302,6 +341,13 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
   }
   return mtev_false;
 }
+
+struct rest_url_dispatcher *
+mtev_http_rest_new_rule(const char *method, const char *base,
+                        const char *expr, rest_request_handler f) {
+  return mtev_http_rest_new_rule_auth_closure(method, base, expr, f, NULL, NULL, NULL, NULL);
+}
+
 int
 mtev_http_rest_register(const char *method, const char *base,
                         const char *expr, rest_request_handler f) {
@@ -375,6 +421,19 @@ mtev_http_rest_register_auth_closure(const char *method, const char *base,
                                      const char *websocket_protocol, 
                                      rest_authorize_func_t auth, void *closure) 
 {
+  struct rest_url_dispatcher *rule;
+  rule = mtev_http_rest_new_rule_auth_closure(method, base, expr, f, wf, websocket_protocol, auth, closure);
+  if(rule) return 0;
+  return -1;
+}
+
+mtev_rest_mountpoint_t *
+mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
+                                     const char *expr, rest_request_handler f,
+                                     rest_websocket_message_handler wf, 
+                                     const char *websocket_protocol, 
+                                     rest_authorize_func_t auth, void *closure) 
+{
   void *vcont;
   struct rule_container *cont;
   struct rest_url_dispatcher *rule;
@@ -383,12 +442,12 @@ mtev_http_rest_register_auth_closure(const char *method, const char *base,
   pcre *pcre_expr;
   int blen = strlen(base);
   /* base must end in a /, 'cause I said so */
-  if(blen == 0 || base[blen-1] != '/') return -1;
+  if(blen == 0 || base[blen-1] != '/') return NULL;
   pcre_expr = pcre_compile(expr, 0, &error, &erroffset, NULL);
   if(!pcre_expr) {
     mtevL(mtev_error, "Error in rest expr(%s) '%s'@%d: %s\n",
           base, expr, erroffset, error);
-    return -1;
+    return NULL;
   }
   rule = calloc(1, sizeof(*rule));
   rule->method = strdup(method);
@@ -416,7 +475,7 @@ mtev_http_rest_register_auth_closure(const char *method, const char *base,
   }
   else
     cont->rules = cont->rules_endptr = rule;
-  return 0;
+  return rule;
 }
 
 static mtev_http_rest_closure_t *
@@ -471,9 +530,11 @@ mtev_rest_websocket_dispatcher(mtev_http_session_ctx *ctx, uint8_t opcode, const
 
 int
 mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
+  mtev_boolean migrate = mtev_false;
   mtev_http_rest_closure_t *restc = mtev_http_session_dispatcher_closure(ctx);
   rest_request_handler handler = restc->fastpath;
-  if(!handler) handler = mtev_http_get_handler(restc);
+  if(!handler) handler = mtev_http_get_handler(restc, &migrate);
+  if(migrate) return EVENTER_READ|EVENTER_WRITE;
   if(handler) {
     void *old_closure = restc, *new_closure;
     mtev_http_response *res = mtev_http_session_response(ctx);
