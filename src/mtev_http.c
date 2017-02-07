@@ -1104,6 +1104,7 @@ void
 mtev_http_ctx_session_release(mtev_http_session_ctx *ctx) {
   if(mtev_atomic_dec32(&ctx->ref_cnt) == 0) {
     mtev_http_request_release(ctx);
+    if(ctx->req.user_data) RELEASE_BCHAIN(ctx->req.user_data);
     if(ctx->req.first_input) RELEASE_BCHAIN(ctx->req.first_input);
     mtev_http_response_release(ctx);
     pthread_mutex_destroy(&ctx->write_lock);
@@ -1171,9 +1172,9 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
              * enough to hold the entire chunk, copy in the chunk data that
              * we have already read and then keep reading.
              */
-            struct bchain *new_in = ALLOC_BCHAIN(MAX(clen + in->start + 2, 
+            struct bchain *new_in = ALLOC_BCHAIN(MAX(clen + (cp - cp_begin + 2), 
                                                      DEFAULT_BCHAINSIZE));
-            memcpy(new_in->buff + new_in->start, cp_begin, in->size);
+            memcpy(new_in->buff, cp_begin, in->size);
             new_in->size = in->size;
             new_in->start = 0;
             new_in->compression = in->compression;
