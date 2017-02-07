@@ -335,6 +335,7 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
   if(!lmc) {
     lmc = calloc(1, sizeof(*lmc));
     lmc->self = self;
+    mtev_hash_init(&lmc->state_coros);
     pthread_setspecific(conf->key, lmc);
   }
 
