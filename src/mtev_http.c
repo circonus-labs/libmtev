@@ -2360,8 +2360,7 @@ mtev_http_websocket_queue_msg(mtev_http_session_ctx *ctx, int opcode,
   struct wslay_event_msg msgarg = {
     opcode, msg, msg_len
   };
-  wslay_event_queue_msg(ctx->wslay_ctx, &msgarg);
-  return mtev_true;
+  return !wslay_event_queue_msg(ctx->wslay_ctx, &msgarg);
 #else
   return mtev_false;
 #endif

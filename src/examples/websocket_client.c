@@ -45,22 +45,23 @@ parse_cli_args(int argc, char * const *argv) {
   }
 }
 
-void websocket_ready_handler(mtev_websocket_client_t *client) {
-  mtev_websocket_client_send(client, 0x1, "Hello world!", 13);
+mtev_boolean websocket_ready_handler(mtev_websocket_client_t *client, void *closure) {
+  return mtev_websocket_client_send(client, 0x1, "Hello world!", 13);
 }
 
-int websocket_msg_handler(mtev_websocket_client_t *client, int opcode,
-                          const unsigned char *msg, size_t msg_len) {
+mtev_boolean websocket_msg_handler(mtev_websocket_client_t *client, int opcode,
+                                   const unsigned char *msg, size_t msg_len,
+                                   void *closure) {
   char buf[256];
   size_t len;
   snprintf(buf, msg_len, "%s", msg);
   mtevL(mtev_error, "I received a message! %s\n", buf);
   len = snprintf(buf, sizeof(buf), "%ld", lrand48());
   mtev_websocket_client_send(client, opcode, buf, len);
-  return 0;
+  return mtev_false;
 }
 
-void websocket_cleanup_handler(mtev_websocket_client_t *client) {
+void websocket_cleanup_handler(mtev_websocket_client_t *client, void *closure) {
   mtev_websocket_client_free(client);
 }
 
@@ -85,7 +86,8 @@ child_main() {
     websocket_cleanup_handler
   };
 
-  (void)mtev_websocket_client_new("127.0.0.1", 8888, "/", "echo-protocol", &callbacks);
+  (void)mtev_websocket_client_new("127.0.0.1", 8888, "/", "echo-protocol",
+                                  &callbacks, NULL, eventer_pool("default"));
 
   /* Lastly, spin up the event loop */
   eventer_loop();
