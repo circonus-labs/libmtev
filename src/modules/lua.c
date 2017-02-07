@@ -99,6 +99,9 @@ mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci) {
   lua_pop(ci->lmc->lua_state, 1);
   lua_gc(ci->lmc->lua_state, LUA_GCCOLLECT, 0);
   mtevL(nldeb, "coro_store <- %p\n", ci->coro_state);
+  mtevAssert(mtev_hash_delete(&ci->lmc->state_coros,
+                          (const char *)&ci->coro_state, sizeof(ci->coro_state),
+                          NULL, NULL));
   pthread_mutex_lock(&coro_lock);
   mtevAssert(mtev_hash_delete(&mtev_coros,
                           (const char *)&ci->coro_state, sizeof(ci->coro_state),
@@ -111,6 +114,9 @@ mtev_lua_set_resume_info(lua_State *L, mtev_lua_resume_info_t *ri) {
   lua_getglobal(L, "mtev_internal_lmc");
   ri->lmc = lua_touserdata(L, lua_gettop(L));
   mtevL(nldeb, "coro_store -> %p\n", ri->coro_state);
+  mtev_hash_store(&ri->lmc->state_coros,
+                  (const char *)&ri->coro_state, sizeof(ri->coro_state),
+                  ri); 
   pthread_mutex_lock(&coro_lock);
   mtev_hash_store(&mtev_coros,
                   (const char *)&ri->coro_state, sizeof(ri->coro_state),
@@ -193,6 +199,7 @@ describe_lua_context_ncct(mtev_console_closure_t ncct,
 
 struct lua_reporter {
   pthread_mutex_t lock;
+  eventer_pool_t *pool;
   enum { LUA_REPORT_NCCT, LUA_REPORT_JSON } approach;
   int timeout_ms;
   mtev_http_rest_closure_t *restc;
@@ -206,6 +213,7 @@ static struct lua_reporter *
 mtev_lua_reporter_alloc() {
     struct lua_reporter *reporter;
     reporter = calloc(1, sizeof(*reporter));
+    reporter->pool = eventer_pool("default");
     mtev_gettimeofday(&reporter->start, NULL);
     pthread_mutex_init(&reporter->lock, NULL);
     reporter->outstanding = 1;
@@ -382,18 +390,21 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
 static void
 distribute_reporter_across_threads(struct lua_reporter *reporter,
                                    eventer_func_t reporter_f) {
-  int i = 1;
-  pthread_t me, tgt, first;
+  int i = 0;
+  pthread_t me, tgt;
+  mtev_boolean include_me = mtev_false;
   struct timeval old = { 1ULL, 0ULL };
 
   mtev_lua_reporter_ref(reporter);
-  reporter_f(NULL, 0, reporter, NULL);
 
   me = pthread_self();
-  first = eventer_choose_owner(i++);
-  do {
-    tgt = eventer_choose_owner(i++);
-    if(!pthread_equal(tgt, me)) {
+
+  for(i=0;i<eventer_pool_concurrency(reporter->pool);i++) {
+    tgt = eventer_choose_owner_pool(reporter->pool, i);
+    if(pthread_equal(tgt, me)) {
+      include_me = mtev_true;
+    }
+    else {
       eventer_t e;
       e = eventer_alloc();
       memcpy(&e->whence, &old, sizeof(old));
@@ -404,7 +415,12 @@ distribute_reporter_across_threads(struct lua_reporter *reporter,
       mtev_lua_reporter_ref(reporter);
       eventer_add(e);
     }
-  } while(!pthread_equal(first, tgt));
+  }
+
+  if(include_me)
+    reporter_f(NULL, 0, reporter, NULL);
+  else
+    mtev_lua_reporter_deref(reporter);
 }
 
 static int
@@ -444,10 +460,16 @@ mtev_rest_show_lua_complete(mtev_http_rest_closure_t *restc, int n, char **p) {
 }
 static int
 mtev_rest_show_lua(mtev_http_rest_closure_t *restc, int n, char **p) {
+  eventer_pool_t *pool;
   struct lua_reporter *crutch;
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
 
   crutch = mtev_lua_reporter_alloc();
+  const char *loopname = mtev_http_request_querystring(req, "loop");
+  if(loopname) {
+    pool = eventer_pool(loopname);
+    if(pool) crutch->pool = pool;
+  }
   crutch->restc = restc;
   crutch->approach = LUA_REPORT_JSON;
   crutch->root = json_object_new_object();
@@ -478,6 +500,13 @@ mtev_console_show_lua(mtev_console_closure_t ncct,
   struct lua_reporter *crutch;
 
   crutch = mtev_lua_reporter_alloc();
+  if(argc == 1) {
+    eventer_pool_t *pool = eventer_pool(argv[0]);
+    if(!pool) {
+      nc_printf(ncct, "No such loop, using default\n");
+    }
+    else crutch->pool = pool;
+  }
   crutch->approach = LUA_REPORT_NCCT;
   crutch->ncct = ncct;
   distribute_reporter_across_threads(crutch, mtev_console_lua_thread_reporter_ncct);
@@ -529,6 +558,9 @@ mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
   ri->coro_state_ref = luaL_ref(L, -2);
   lua_pop(L, 1); /* pops mtev_coros */
   mtevL(nldeb, "coro_store -> %p\n", ri->coro_state);
+  mtev_hash_store(&lmc->state_coros,
+                  (const char *)&ri->coro_state, sizeof(ri->coro_state),
+                  ri);
   pthread_mutex_lock(&coro_lock);
   mtev_hash_store(&mtev_coros,
                   (const char *)&ri->coro_state, sizeof(ri->coro_state),
@@ -558,6 +590,9 @@ mtev_lua_get_resume_info(lua_State *L) {
   lua_pushthread(L);
   ri->coro_state_ref = luaL_ref(L, -2);
   lua_pop(L, 1); /* pops mtev_coros */
+  mtev_hash_store(&ri->lmc->state_coros,
+                  (const char *)&ri->coro_state, sizeof(ri->coro_state),
+                  ri);
   mtev_hash_store(&mtev_coros,
                   (const char *)&ri->coro_state, sizeof(ri->coro_state),
                   ri);

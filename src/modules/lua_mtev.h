@@ -56,6 +56,7 @@ typedef struct lua_module_closure {
   mtev_lua_resume_t resume;
   pthread_t owner;
   int eventer_id;
+  mtev_hash_table state_coros;
   mtev_dso_generic_t *self;
 } lua_module_closure_t;
 

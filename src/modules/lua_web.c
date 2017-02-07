@@ -41,10 +41,11 @@
 #define DEFAULT_MAX_POST_SIZE 1024*1024
 
 typedef struct lua_web_conf {
-  lua_module_closure_t lmc;
   const char *script_dir;
   const char *cpath;
   struct {
+    char *name;
+    char *eventer_pool;
     char *method;
     char *mount;
     char *expr;
@@ -52,8 +53,11 @@ typedef struct lua_web_conf {
   } *mounts;
   const char **Cpreloads;
   int max_post_size;
-  lua_State *L;
+  mtev_dso_generic_t *self;
+  pthread_key_t key;
 } lua_web_conf_t;
+
+static lua_module_closure_t *mtev_lua_web_setup_lmc(mtev_dso_generic_t *self);
 
 static lua_web_conf_t *the_one_conf = NULL;
 static lua_web_conf_t *get_config(mtev_dso_generic_t *self) {
@@ -61,6 +65,8 @@ static lua_web_conf_t *get_config(mtev_dso_generic_t *self) {
   the_one_conf = mtev_image_get_userdata(&self->hdr);
   if(the_one_conf) return the_one_conf;
   the_one_conf = calloc(1, sizeof(*the_one_conf));
+  the_one_conf->self = self;
+  pthread_key_create(&the_one_conf->key, NULL);
   mtev_image_set_userdata(&self->hdr, the_one_conf);
   return the_one_conf;
 }
@@ -153,7 +159,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
                 int npats, char **pats) {
   int status, rv, mask = 0;
   lua_web_conf_t *conf = the_one_conf;
-  lua_module_closure_t *lmc = &conf->lmc;
+  lua_module_closure_t *lmc = mtev_lua_web_setup_lmc(conf->self);
   mtev_lua_resume_info_t *ri;
   mtev_lua_resume_rest_info_t *ctx = NULL;
   lua_State *L;
@@ -311,11 +317,22 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
         mtevL(mtev_error, "Invalid lua_web mount syntax in '%s'\n", iter.key.str);
         return -1;
       }
+      conf->mounts[i].name = strdup(iter.key.str + strlen("mount_"));
       conf->mounts[i].module = strdup(module); 
       conf->mounts[i].method = strdup(method); 
       conf->mounts[i].mount = strdup(mount); 
       conf->mounts[i].expr = expr ? strdup(expr) : strdup("(.*)$"); 
       i++;
+    }
+  }
+  memset(&iter, 0, sizeof(iter));
+  while(mtev_hash_adv(o, &iter)) {
+    if(!strncmp(iter.key.str, "loop_assign_", strlen("loop_assign_"))) {
+      for(i=0;conf->mounts[i].name;i++) {
+        if(!strcmp(iter.key.str + strlen("loop_assign_"), conf->mounts[i].name)) {
+          conf->mounts[i].eventer_pool = strdup(iter.value.str);
+        }
+      }
     }
   }
 
@@ -344,12 +361,18 @@ static mtev_hook_return_t late_stage_rest_register(void *cl) {
     mtevL(mtev_debug, "Registering [%s][%s][%s] -> %s\n",
           conf->mounts[i].method, conf->mounts[i].mount,
           conf->mounts[i].expr, conf->mounts[i].module);
-    mtevAssert(
-      mtev_http_rest_register_closure(
+    mtev_rest_mountpoint_t *rule;
+    mtevAssert(NULL != (rule = mtev_http_rest_new_rule(
         conf->mounts[i].method, conf->mounts[i].mount,
-        conf->mounts[i].expr, lua_web_handler,
-        conf->mounts[i].module) == 0
-    );
+        conf->mounts[i].expr, lua_web_handler
+    )));
+    mtev_rest_mountpoint_set_closure(rule, conf->mounts[i].module);
+    if(conf->mounts[i].eventer_pool) {
+      eventer_pool_t *pool = eventer_pool(conf->mounts[i].eventer_pool);
+      if(pool) {
+        mtev_rest_mountpoint_set_eventer_pool(rule, pool);
+      }
+    }
   }
   return MTEV_HOOK_CONTINUE;
 }
@@ -360,40 +383,55 @@ static const luaL_Reg web_lua_funcs[] =
   {NULL, NULL}
 };
 
+static lua_module_closure_t *
+mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
+  lua_web_conf_t *conf = get_config(self);
+  lua_module_closure_t *lmc = pthread_getspecific(conf->key);
+
+  if(!lmc) {
+    lmc = calloc(1, sizeof(*lmc));
+    lmc->self = self;
+    mtev_hash_init(&lmc->state_coros);
+    lmc->resume = lua_web_resume;
+    lmc->owner = pthread_self();
+    lmc->pending = calloc(1, sizeof(*lmc->pending));
+    mtev_hash_init(lmc->pending);
+    pthread_setspecific(conf->key, lmc);
+  }
+  if(lmc->lua_state == NULL) {
+    const char **module;
+    lmc->lua_state = mtev_lua_open(self->hdr.name, lmc,
+                                   conf->script_dir, conf->cpath);
+    if(lmc->lua_state == NULL) return NULL;
+    luaL_openlib(lmc->lua_state, "mtev", web_lua_funcs, 0);
+
+    for(module = conf->Cpreloads; module && *module; module++) {
+      int len;
+      char *symbol = NULL;
+      len = strlen(*module) + strlen("luaopen_");
+      symbol = malloc(len+1);
+      if(!symbol) mtevL(mtev_error, "Failed to preload %s: malloc error\n", *module);
+      else {
+        void (*f)(lua_State *);
+        snprintf(symbol, len+1, "luaopen_%s", *module);
+#ifdef RTLD_DEFAULT
+        f = dlsym(RTLD_DEFAULT, symbol);
+#else
+        f = dlsym((void *)0, symbol);
+#endif
+        if(!f) mtevL(mtev_error, "Failed to preload %s: %s not found\n", *module, symbol);
+        else f(lmc->lua_state);
+      }
+      free(symbol);
+    }
+  }
+  return lmc;
+}
+
 static int
 mtev_lua_web_driver_init(mtev_dso_generic_t *self) {
-  const char **module;
-  lua_web_conf_t *conf = get_config(self);
-  lua_module_closure_t *lmc = &conf->lmc;
-  lmc->resume = lua_web_resume;
-  lmc->owner = pthread_self();
-  lmc->lua_state = mtev_lua_open(self->hdr.name, lmc,
-                                 conf->script_dir, conf->cpath);
-  if(lmc->lua_state == NULL) return -1;
-  luaL_openlib(lmc->lua_state, "mtev", web_lua_funcs, 0);
+  if(mtev_lua_web_setup_lmc(self) == NULL) return -1;
 
-  for(module = conf->Cpreloads; module && *module; module++) {
-    int len;
-    char *symbol = NULL;
-    len = strlen(*module) + strlen("luaopen_");
-    symbol = malloc(len+1);
-    if(!symbol) mtevL(mtev_error, "Failed to preload %s: malloc error\n", *module);
-    else {
-      void (*f)(lua_State *);
-      snprintf(symbol, len+1, "luaopen_%s", *module);
-#ifdef RTLD_DEFAULT
-      f = dlsym(RTLD_DEFAULT, symbol);
-#else
-      f = dlsym((void *)0, symbol);
-#endif
-      if(!f) mtevL(mtev_error, "Failed to preload %s: %s not found\n", *module, symbol);
-      else f(lmc->lua_state);
-    }
-    free(symbol);
-  }
-
-  lmc->pending = calloc(1, sizeof(*lmc->pending));
-  mtev_hash_init(lmc->pending);
   dso_post_init_hook_register("web_lua", late_stage_rest_register, self);
   return 0;
 }
