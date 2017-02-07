@@ -78,7 +78,9 @@ struct mtev_http_connection {
 struct mtev_http_request {
   struct bchain *first_input; /* The start of the input chain */
   struct bchain *last_input;  /* The end of the input chain */
-  struct bchain *current_input;  /* The point of the input where we */
+  struct bchain *current_input;  /* The point of the input where we are */
+  struct bchain *user_data;  /* user consumption reads from this which holds dechunked data */
+  struct bchain *user_data_last;  /* end of the user_data chain */
   size_t         current_offset; /* analyzing. */
   mtev_boolean freed;
 
@@ -1118,7 +1120,8 @@ mtev_http_ctx_acceptor_free(void *v) {
   mtev_http_ctx_session_release((mtev_http_session_ctx *)v);
 }
 static int
-mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
+mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx, 
+                                      mtev_compress_type compression_type,
                                       int *mask) {
   /* chunked encoding read */
   int next_chunk = -1;
@@ -1147,6 +1150,7 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
     if(str_in_f) {
       unsigned int clen = 0;
       const char *cp = in->buff + in->start;
+      const char *cp_begin = in->buff + in->start;
       while(cp <= str_in_f) {
         if(*cp >= '0' && *cp <= '9') clen = (clen << 4) | (*cp - '0');
         else if(*cp >= 'a' && *cp <= 'f') clen = (clen << 4) | (*cp - 'a' + 10);
@@ -1154,16 +1158,37 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
         else if(*cp == '\r' && cp[1] == '\n') {
           mtevL(http_debug, "Found for chunk length(%d)\n", clen);
           next_chunk = clen;
-          in->start += 2;
-          in->size -= 2;
-          goto successful_chunk_size;
+          if (in->size - 2 >= clen) {
+            in->start += cp - cp_begin + 2;
+            in->size -= cp - cp_begin + 2;
+            goto successful_chunk_size;
+          } else {
+            /**
+             * we have decoded a chunk length but the current bchain
+             * is not large enough to handle the entire chunk.
+             * 
+             * In this case we allocate a new bchain which is large
+             * enough to hold the entire chunk, copy in the chunk data that
+             * we have already read and then keep reading.
+             */
+            struct bchain *new_in = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+            memcpy(new_in->buff + new_in->start, cp_begin, in->size);
+            new_in->size = in->size;
+            new_in->start = 0;
+            new_in->compression = in->compression;
+            new_in->next = in->next;
+            
+            /* the current 'in' buffer must be consumed as it's data was copied */
+            ctx->req.first_input = ctx->req.last_input = new_in;
+            in->next = NULL;
+            RELEASE_BCHAIN(in);
+            break;
+          }
         }
         else {
           mtevL(http_debug, "chunked input encoding error: '%02x'\n", *cp);
           return -1;
         }
-        in->start++;
-        in->size--;
         cp++;
       }
     }
@@ -1203,12 +1228,36 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
   }
 
  successful_chunk_size:
-  if(in->size == 0) {
-    tofree = in;
-    ctx->req.first_input = in = in->next;
-    if(ctx->req.last_input == tofree) ctx->req.last_input = in;
-    tofree->next = NULL;
-    RELEASE_BCHAIN(tofree);
+  {
+    if (next_chunk > 0) {
+      struct bchain *data = ALLOC_BCHAIN(next_chunk);
+      data->compression = compression_type;
+      if (ctx->req.user_data_last != NULL) {
+        ctx->req.user_data_last->next = data;
+      }
+
+      if (ctx->req.user_data == NULL) {
+        ctx->req.user_data = ctx->req.user_data_last = data;
+      }
+      memcpy(data->buff + data->size, in->buff + in->start, MIN(in->size, next_chunk));
+      data->size = MIN(in->size, next_chunk);
+      in->start += data->size;
+      in->size -= data->size;
+      ctx->req.user_data_last = data;
+      ctx->req.next_chunk_read = next_chunk;
+    } else {
+      /* all that's left is \r\n, just read this framing */
+      in->size -= 2;
+    }
+
+    if(in->size == 0) {
+      tofree = in;
+      ctx->req.first_input = in = in->next;
+      if(ctx->req.last_input == tofree) ctx->req.last_input = in;
+      tofree->next = NULL;
+      RELEASE_BCHAIN(tofree);
+      ctx->req.next_chunk_read = 0;
+    }
   }
 
   return next_chunk;
@@ -1281,35 +1330,27 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
   size_t bytes_read = 0,
     wire_len = ctx->req.content_length - ctx->req.content_length_read;
 
-  /* if we have read all content_length data and there is no
-   * input to read, short circuit */
-  if (wire_len == 0 && (ctx->req.first_input == NULL || 
-                        ctx->req.first_input->size == 0)) {
-    return 0;
-  }
-
   mtev_compress_type compression_type = request_compression_type(&ctx->req);
 
-  /* We attempt to consume from the first_input */
   struct bchain *in, *tofree;
   if(ctx->req.payload_chunked) {
 
-    /* TODO: chunked will not support compression for now */
     if(ctx->req.next_chunk_read >= ctx->req.next_chunk) {
       int needed;
-      needed = mtev_http_session_req_consume_chunked(ctx, mask);
+      needed = mtev_http_session_req_consume_chunked(ctx, compression_type, mask);
       mtevL(http_debug, " ... mtev_http_session_req_consume(%d) chunked -> %d\n",
             ctx->conn.e->fd, (int)needed);
       if(needed == 0) {
+        /* we have reached the end of the chunked input.  
+         * switch off chunked reading */
         ctx->req.content_length = ctx->req.content_length_read;
-        return 0;
+        ctx->req.next_chunk_read = -1; /* purposely -1 */
       }
       else if(needed < 0) {
         mtevL(http_debug, " ... couldn't read chunk size\n");
         return -1;
       }
       else {
-        ctx->req.next_chunk_read = 0;
         ctx->req.next_chunk = needed;
       }
       user_len = blen;
@@ -1323,12 +1364,36 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
 
   int crlen = 0;
   while(bytes_read < user_len) {
-    in = ctx->req.first_input;
+    in = ctx->req.user_data;
 
-    if (in == NULL && wire_len == 0) {
-      return bytes_read;
+    if (ctx->req.payload_chunked) {
+      if (ctx->req.first_input == NULL && (in == NULL || in->size == 0)) {
+        return 0;
+      } else if (in == NULL && ctx->req.first_input != NULL) {
+        return -1;
+      }
+    } else {
+      if (wire_len == 0 || wire_len == crlen) {
+        /* we have read all content, append any incomplete chains
+         * to user data */
+        if (ctx->req.first_input != NULL && ctx->req.first_input->size > 0) {
+          if (ctx->req.user_data_last != NULL) {
+            ctx->req.user_data_last->next = ctx->req.first_input;
+          }
+          ctx->req.user_data_last = ctx->req.first_input;
+          if (ctx->req.user_data == NULL) {
+            ctx->req.user_data = ctx->req.user_data_last;
+            in = ctx->req.user_data;
+          }
+          ctx->req.first_input = NULL;
+        }        
+      }
+      if (wire_len == 0 && 
+          (in == NULL || in->size == 0)) {
+        return 0;
+      }
     }
-    
+
     while(in && in->size && bytes_read < user_len) {
 
       if (in->compression != MTEV_COMPRESS_NONE) {
@@ -1338,8 +1403,8 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
 
         struct bchain *out = NULL;
         /* if we haven't fully consumed the last uncompressed block, use it up */
-        if (ctx->req.last_input != NULL && ctx->req.last_input->compression == MTEV_COMPRESS_NONE && ctx->req.last_input->size < ctx->req.last_input->allocd) {
-          out = ctx->req.last_input;
+        if (ctx->req.user_data_last != NULL && ctx->req.user_data_last->compression == MTEV_COMPRESS_NONE && ctx->req.user_data_last->size < ctx->req.user_data_last->allocd) {
+          out = ctx->req.user_data_last;
         }          
         struct bchain *last_out = NULL;
         total_compressed_size += in->size;
@@ -1353,15 +1418,15 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
 
         /* our newly produced uncompressed chain gets stuck on the end 
          * after we are through uncompressing we will read this out as normal */
-        if (out && ctx->req.last_input && ctx->req.last_input != out) {
-          ctx->req.last_input->next = out;
+        if (out && ctx->req.user_data_last && ctx->req.user_data_last != out) {
+          ctx->req.user_data_last->next = out;
         }
-        ctx->req.last_input = last_out;
+        ctx->req.user_data_last = last_out;
 
         if (in->size == 0) {
           /* we have consumed this compressed input link, delete it */
           struct bchain *tofree = in;
-          ctx->req.first_input = in = in->next;
+          ctx->req.user_data = in = in->next;
           tofree->next = NULL;
           RELEASE_BCHAIN(tofree);
         }
@@ -1378,7 +1443,6 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
 
         if(buf) memcpy((char *)buf+bytes_read, in->buff+in->start, partial_len);
         bytes_read += partial_len;
-        if(ctx->req.payload_chunked) ctx->req.next_chunk_read += partial_len;
         mtevL(http_debug, " ... filling %d bytes (read through %d/%d)\n",
               (int)bytes_read, (int)ctx->req.content_length_read,
               (int)ctx->req.content_length);
@@ -1386,11 +1450,11 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
         in->size -= partial_len;
         if(in->size == 0) {
           tofree = in;
-          ctx->req.first_input = in = in->next;
+          ctx->req.user_data = in = in->next;
           tofree->next = NULL;
           RELEASE_BCHAIN(tofree);
           if(in == NULL) {
-            ctx->req.last_input = NULL;
+            ctx->req.user_data_last = NULL;
             if (bytes_read != 0) {
               mtevL(http_debug, " ... mtev_http_session_req_consume = %d\n",
                     (int)bytes_read);
@@ -1406,7 +1470,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
       return bytes_read;
     }
 
-    while(crlen < wire_len) {
+    while(ctx->req.payload_chunked == mtev_false && crlen < wire_len) {
       int rlen;
       in = ctx->req.last_input;
       if(!in) {
@@ -1414,8 +1478,15 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
             ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
       }
       else if(in->start + in->size >= in->allocd) {
-        in->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
-        in = ctx->req.last_input = in->next;
+        /* move completed blocks over to the user_data chain */
+        if (ctx->req.user_data_last != NULL) {
+          ctx->req.user_data_last->next = in;
+        }
+        if (ctx->req.user_data == NULL) {
+          ctx->req.user_data = in;
+        }
+        ctx->req.user_data_last = in;
+        in = ctx->req.last_input = ctx->req.first_input = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
       }
 
       /* always set compression type of the just read data */
@@ -1441,7 +1512,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
       if(rlen <= 0) {
         mtevL(http_debug, " ... mtev_http_session_req_consume = -1 (error)\n");
         return -1;
-      }
+      } 
       ctx->req.content_length_read += rlen;
       in->size += rlen;
       crlen += rlen;
