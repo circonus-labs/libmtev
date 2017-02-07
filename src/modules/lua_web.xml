@@ -16,6 +16,10 @@
                required="required"
                default=""
                allowed=".+">The lua module to load.</parameter>
+    <parameter name="loop_assign_(.*)"
+               required="optional"
+               default=""
+               allowed="(.+)">Optionally assigned a `mount_[name]` to a given `eventer_pool_t`.  The name must match a `mount_[name]` stanza.  The value is the name of the eventer loop pool desired.</parameter>
     <parameter name="mount_(.*)"
                required="optional"
                default=""

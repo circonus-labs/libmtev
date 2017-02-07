@@ -535,6 +535,12 @@ details on meaning and syntax.</p>
 <p>allowed: <code>/^.+$/</code></p>
 <p>The lua module to load.</p>
 </li>
+<li><p><strong>loop<em>assign</em>(.*)</strong> (optional) </p>
+<p>allowed: <code>/^(.+)$/</code></p>
+<p>Optionally assigned a <code>mount_[name]</code> to a given
+<code>eventer_pool_t</code>.  The name must match a <code>mount_[name]</code> stanza.  The value is the
+name of the eventer loop pool desired.</p>
+</li>
 <li><p><strong>mount_(.*)</strong> (optional) </p>
 <p>allowed: <code>/^([^:]+):([^:]+):([^:]+)(?::(.+))?$/</code></p>
 <p>module:method:mount[:expr].  The name <code>mount_[name]</code> simply must

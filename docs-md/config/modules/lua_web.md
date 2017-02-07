@@ -28,6 +28,13 @@ The lua_web module allows lua to drive http requests.
    allowed: `/^.+$/`
 
    The lua module to load.
+ * **loop_assign_(.*)** (optional) 
+
+   allowed: `/^(.+)$/`
+
+   Optionally assigned a `mount_[name]` to a given
+   `eventer_pool_t`.  The name must match a `mount_[name]` stanza.  The value is the
+   name of the eventer loop pool desired.
  * **mount_(.*)** (optional) 
 
    allowed: `/^([^:]+):([^:]+):([^:]+)(?::(.+))?$/`
