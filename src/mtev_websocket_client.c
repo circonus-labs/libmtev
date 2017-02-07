@@ -443,8 +443,6 @@ void
 mtev_websocket_client_set_closure(mtev_websocket_client_t *client, void *closure) {
 #ifdef HAVE_WSLAY
   client->closure = closure;
-#else
-  return NULL;
 #endif
 }
 
