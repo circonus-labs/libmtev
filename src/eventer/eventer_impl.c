@@ -51,6 +51,19 @@ static int PARALLELISM_MULTIPLIER = 4;
 static int EVENTER_DEBUGGING = 0;
 static int desired_nofiles = 1024*1024;
 
+int eventer_timecompare(const void *av, const void *bv) {
+  /* Herein we avoid equality.  This function is only used as a comparator
+   * for a heap of timed events.  If they are equal, b is considered less
+   * just to maintain an order (despite it not being stable).
+   */
+  const eventer_t a = (eventer_t)av;
+  const eventer_t b = (eventer_t)bv;
+  if(a->whence.tv_sec < b->whence.tv_sec) return -1;
+  if(a->whence.tv_sec == b->whence.tv_sec &&
+     a->whence.tv_usec < b->whence.tv_usec) return -1;
+  return 1;
+}
+
 struct cross_thread_trigger {
   struct cross_thread_trigger *next;
   eventer_t e;
@@ -179,7 +192,7 @@ int eventer_loop_concurrency() { return default_pool.__loop_concurrency; }
 
    Sadly, some libraries that are leveraged simply aren't up to the challenge.
 
-   We reserve the first event loop to run all stuff that isn't multi-thread safe.
+   We reserve the first event loop in the default pool to run all stuff that isn't multi-thread safe.
    If you don't specify an thr_owner for an event, it will be assigned idx=0.
    This can cause a lot of (unavoidable) contention on that event thread.  In
    order to alleviate (or at least avoid) that contention, we will assist thread-
@@ -193,10 +206,15 @@ int eventer_loop_concurrency() { return default_pool.__loop_concurrency; }
 pthread_t eventer_choose_owner_pool(eventer_pool_t *pool, int i) {
   int idx, adjidx;
   if(pool->__loop_concurrency == 1) return eventer_impl_tls_data[pool->__global_tid_offset].tid;
-  if(i==0)
-    idx = 0;
-  else
-    idx = ((unsigned int)i)%(pool->__loop_concurrency-1) + 1; /* see comment above */
+  if(pool == &default_pool) {
+    if(i==0)
+      idx = 0;
+    else
+      idx = ((unsigned int)i)%(pool->__loop_concurrency-1) + 1; /* see comment above */
+  }
+  else {
+    idx = ((unsigned int)i)%(pool->__loop_concurrency); /* see comment above */
+  }
   adjidx = pool->__global_tid_offset + idx;
   mtevL(eventer_deb, "eventer_choose -> %u %% %d = (%s) %d t@%u\n",
         (unsigned int)i, pool->__loop_concurrency, pool->name, idx,
