@@ -688,23 +688,6 @@ corresponding mtev_cluster_node_t.</p>
 <p>Takes a configuration section representing a cluster and registers
 it in the global cluster configuration.</p>
 <h3 id="e">E</h3>
-<h4 id="evenernamecallbackext">evener_name_callback_ext</h4>
-<blockquote>
-<p>Register a functional describer for a callback and it&apos;s event object.</p>
-</blockquote>
-<pre><code class="lang-c">int 
-evener_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen, 
-                         eventer_t e, void *closure), void *closure)
-</code></pre>
-<ul>
-<li><code>name</code> the human readable name.</li>
-<li><code>callback</code> the functin pointer of the eveter callback.</li>
-<li><code>fn</code> function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).</li>
-<li><strong>RETURN</strong> 0 on success.</li>
-</ul>
-<p>This function allows more in-depth descriptions of events.  When an event
-is displayed (over the console or REST endpoints), this function is called
-with the event in question and the closure specified at registration time.</p>
 <h4 id="eventeradd">eventer_add</h4>
 <blockquote>
 <p>Add an event object to the eventer system.</p>
@@ -1073,6 +1056,23 @@ See <a href="c.html#mtevmain%60"><code>mtev_main</code></a>.</p>
 <li><code>callback</code> the functin pointer of the eveter callback.</li>
 <li><strong>RETURN</strong> 0 on success.</li>
 </ul>
+<h4 id="eventernamecallbackext">eventer_name_callback_ext</h4>
+<blockquote>
+<p>Register a functional describer for a callback and it&apos;s event object.</p>
+</blockquote>
+<pre><code class="lang-c">int 
+eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen, 
+                          eventer_t e, void *closure), void *closure)
+</code></pre>
+<ul>
+<li><code>name</code> the human readable name.</li>
+<li><code>callback</code> the functin pointer of the eveter callback.</li>
+<li><code>fn</code> function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).</li>
+<li><strong>RETURN</strong> 0 on success.</li>
+</ul>
+<p>This function allows more in-depth descriptions of events.  When an event
+is displayed (over the console or REST endpoints), this function is called
+with the event in question and the closure specified at registration time.</p>
 <h4 id="eventernameforcallback">eventer_name_for_callback</h4>
 <blockquote>
 <p>Retrieve a human readable name for the provided callback with event context.</p>

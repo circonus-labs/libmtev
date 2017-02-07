@@ -228,27 +228,6 @@ it in the global cluster configuration.
 
 ### E
 
-#### evener_name_callback_ext
-
->Register a functional describer for a callback and it's event object.
-
-```c
-int 
-evener_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen, 
-                         eventer_t e, void *closure), void *closure)
-```
-
-
-  * `name` the human readable name.
-  * `callback` the functin pointer of the eveter callback.
-  * `fn` function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).
-  * **RETURN** 0 on success.
-
-This function allows more in-depth descriptions of events.  When an event
-is displayed (over the console or REST endpoints), this function is called
-with the event in question and the closure specified at registration time.
-
-
 #### eventer_add
 
 >Add an event object to the eventer system.
@@ -717,6 +696,27 @@ eventer_name_callback(const char *name, eventer_func_t callback)
   * `name` the human readable name.
   * `callback` the functin pointer of the eveter callback.
   * **RETURN** 0 on success.
+
+
+#### eventer_name_callback_ext
+
+>Register a functional describer for a callback and it's event object.
+
+```c
+int 
+eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen, 
+                          eventer_t e, void *closure), void *closure)
+```
+
+
+  * `name` the human readable name.
+  * `callback` the functin pointer of the eveter callback.
+  * `fn` function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).
+  * **RETURN** 0 on success.
+
+This function allows more in-depth descriptions of events.  When an event
+is displayed (over the console or REST endpoints), this function is called
+with the event in question and the closure specified at registration time.
 
 
 #### eventer_name_for_callback

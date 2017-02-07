@@ -185,7 +185,7 @@ API_EXPORT(int64_t)   eventer_allocations_total();
 */
 API_EXPORT(int)       eventer_name_callback(const char *name, eventer_func_t f);
 
-/*! \fn int evener_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff,int bufflen,eventer_t e,void *closure), void *closure)
+/*! \fn int eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff,int bufflen,eventer_t e,void *closure), void *closure)
     \brief Register a functional describer for a callback and it's event object.
     \param name the human readable name.
     \param callback the functin pointer of the eveter callback.
