@@ -226,6 +226,742 @@ Takes a configuration section representing a cluster and registers
 it in the global cluster configuration.
  
 
+### E
+
+#### evener_name_callback_ext
+
+>Register a functional describer for a callback and it's event object.
+
+```c
+int 
+evener_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen, 
+                         eventer_t e, void *closure), void *closure)
+```
+
+
+  * `name` the human readable name.
+  * `callback` the functin pointer of the eveter callback.
+  * `fn` function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).
+  * **RETURN** 0 on success.
+
+This function allows more in-depth descriptions of events.  When an event
+is displayed (over the console or REST endpoints), this function is called
+with the event in question and the closure specified at registration time.
+
+
+#### eventer_add
+
+>Add an event object to the eventer system.
+
+```c
+void 
+eventer_add(eventer_t e)
+```
+
+
+  * `e` an event object to add.
+
+
+#### eventer_add_asynch
+
+>Add an asynchronous event to a specific job queue.
+
+```c
+void 
+eventer_add_asynch(eventer_t e)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENETER_ASYNCH`.
+
+
+#### eventer_add_at
+
+>Convenience function to schedule a callback at a specific time.
+
+```c
+eventer_t 
+eventer_add_at(eventer_func_t func, void *closure, struct timeval whence)
+```
+
+
+  * `func` the callback function to run.
+  * `closure` the closure to be passed to the callback.
+  * `whence` the time at which to run the callback.
+  * **RETURN** N/A (C Macro).
+
+
+#### eventer_add_in
+
+>Convenience function to create an event to run a callback in the future
+
+```c
+eventer_t 
+eventer_add_in(eventer_func_t func, void *closure, struct timeval diff)
+```
+
+
+  * `func` the callback function to run.
+  * `closure` the closure to be passed to the callback.
+  * `diff` the amount of time to wait before running the callback.
+  * **RETURN** N/A (C Macro).
+
+
+#### eventer_add_in_s_us
+
+>Convenience function to create an event to run a callback in the future
+
+```c
+eventer_t 
+eventer_add_in_s_us(eventer_func_t func, void *closure, unsigned long seconds
+                    unsigned long microseconds)
+```
+
+
+  * `func` the callback function to run.
+  * `closure` the closure to be passed to the callback.
+  * `seconds` the number of seconds to wait before running the callback.
+  * `microseconds` the number of microseconds (in addition to `seconds`) to wait before running the callback.
+  * **RETURN** N/A (C Macro).
+
+
+#### eventer_add_recurrent
+
+>Add an event to run during every loop cycle.
+
+```c
+void 
+eventer_add_recurrent(eventer_t e)
+```
+
+
+  * `e` an event object
+
+`e` must have a mask of EVENER_RECURRENT.  This event will be invoked on
+a single thread (dictated by `e`) once for each pass through the eventer loop.
+This happens _often_, so do light work.
+
+
+#### eventer_add_timed
+
+>Add a timed event to the eventer system.
+
+```c
+void 
+eventer_add_timed(eventer_t e)
+```
+
+
+  * `e` an event object
+
+This adds the `e` event to the eventer. `e` must have a mask of
+`EVENTER_TIMED`.
+
+
+#### eventer_alloc
+
+>Allocate an event to be injected into the eventer system.
+
+```c
+eventer_t 
+eventer_alloc()
+```
+
+
+  * **RETURN** A newly allocated event.
+
+The allocated event has a refernce count of 1 and is attached to the
+calling thread.
+
+
+#### eventer_allocations_current
+
+```c
+int64_t 
+eventer_allocations_current()
+```
+
+  * **RETURN** the number of currently allocated eventer objects.
+
+
+#### eventer_allocations_total
+
+```c
+int64_t 
+eventer_allocations_total()
+```
+
+  * **RETURN** the number of allocated eventer objects over the life of the process.
+
+
+#### eventer_at
+
+>Convenience function to create an event to run a callback at a specific time.
+
+```c
+eventer_t 
+eventer_at(eventer_func_t func, void *closure, struct timeval whence)
+```
+
+
+  * `func` the callback function to run.
+  * `closure` the closure to be passed to the callback.
+  * `whence` the time at which to run the callback.
+  * **RETURN** an event that has not been added to the eventer.
+
+> Note this does not actually schedule the event. See [`eventer_add_at`](c.md#eventeraddat).
+
+
+#### eventer_callback_for_name
+
+>Find an event callback function that has been registered by name.
+
+```c
+evneter_func_t 
+eventer_callback_for_name(const char *name)
+```
+
+
+  * `name` the name of the callback.
+  * **RETURN** the function pointer or NULL if no such callback has been registered.
+
+
+#### eventer_choose_owner
+
+>Find a thread in the default eventer pool.
+
+```c
+pthread_t 
+eventer_choose_owner(int n)
+```
+
+
+  * `n` an integer.
+  * **RETURN** a pthread_t of an eventer loop thread in the default eventer pool.
+
+This return the first thread when 0 is passed as an argument.  All non-zero arguments
+are spread acorss the remaining threads (if existent) as `n` modulo one less than
+the concurrency of the default event pool.
+
+This is done because many systems aren't thread safe and can only schedule their
+work on a single thread (thread 1). By spreading all thread-safe workloads across
+the remaining threads we reduce potential overloading of the "main" thread.
+
+To assign an event to a thread, use the result of this function to assign:
+`e->thr_owner`.
+
+
+#### eventer_choose_owner_pool
+
+>Find a thread in a specific eventer pool.
+
+```c
+pthread_t 
+eventer_choose_owner_pool(eventer_pool_t *pool, int n)
+```
+
+
+  * `pool` an eventer pool.
+  * `n` an integer.
+  * **RETURN** a pthread_t of an eventer loop thread in the specified evneter pool.
+
+This function chooses a thread within the specified pool by taking `n`
+modulo the concurrency of the pool.  If the default pool is speicified, special
+assignment behavior applies. See [`eventer_choose_owner`](c.md#eventerchooseowner).
+
+To assign an event to a thread, use the result of this function to assign:
+`e->thr_owner`.
+
+
+#### eventer_deref
+
+>See eventer_free.
+
+```c
+void 
+eventer_deref(eventer_t e)
+```
+
+
+  * `e` the event to dereference.
+
+
+#### eventer_find_fd
+
+>Find an event object in the eventer system by file descriptor.
+
+```c
+eventer_t 
+eventer_find_fd(int e)
+```
+
+
+  * `fd` a file descriptor
+  * **RETURN** the event object if it exists; NULL if not found.
+
+
+#### eventer_foreach_fdevent
+
+>Run a user-provided function over all registered file descriptor events.
+
+```c
+void 
+eventer_foreach_fdevent(void (*fn)(eventer_t, void *), void *closure)
+```
+
+
+  * `fn` a function to be called with each event and `closure` as its arguments.
+  * `closure` the second argument to be passed to `fn`.
+
+
+#### eventer_foreach_timedevent
+
+>Run a user-provided function over all registered timed events.
+
+```c
+void 
+eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
+```
+
+
+  * `fn` a function to be called with each event and `closure` as its arguments.
+  * `closure` the second argument to be passed to `fn`.
+
+
+#### eventer_free
+
+>Dereferences the event specified.
+
+```c
+void 
+eventer_free(eventer_t e)
+```
+
+
+  * `e` the event to dereference.
+
+
+#### eventer_get_epoch
+
+>Find the start time of the eventer loop.
+
+```c
+int 
+eventer_get_epoch(struct timeval *epoch)
+```
+
+
+  * `epoch` a point to a `struct timeval` to fill out.
+  * **RETURN** 0 on success; -1 on failure (eventer loop not started).
+
+
+#### eventer_get_pool_for_event
+
+>Determin which eventer pool owns a given event.
+
+```c
+eventer_pool_t *
+eventer_get_pool_for_event(eventer_t e)
+```
+
+
+  * `e` an event object.
+  * **RETURN** the `eventer_pool_t` to which the event is scheduled.
+
+
+#### eventer_impl_propset
+
+>Set properties for the event loop.
+
+```c
+int 
+eventer_impl_propset(const char *key, const char *value)
+```
+
+
+  * `key` the property
+  * `value` the property's value.
+  * **RETURN** 0 on success, -1 otherwise.
+
+Sets propoerties within the eventer. That can only be called prior
+to [`eventer_init`](c.md#eventerinit). See [Eventer configuuration)(../config/eventer.md)
+for valid properties.
+
+
+#### eventer_impl_setrlimit
+
+>Attempt to set the rlimit on allowable open files.
+
+```c
+int 
+eventer_impl_setrlimit()
+```
+
+
+  * **RETURN** the limit of the number of open files.
+
+The target is the `rlim_nofiles` eventer config option. If that configuration
+option is unspecified, 1048576 is used.
+
+
+#### eventer_in
+
+>Convenience function to create an event to run a callback in the future
+
+```c
+eventer_t 
+eventer_in(eventer_func_t func, void *closure, struct timeval diff)
+```
+
+
+  * `func` the callback function to run.
+  * `closure` the closure to be passed to the callback.
+  * `diff` the amount of time to wait before running the callback.
+  * **RETURN** an event that has not been added to the eventer.
+
+> Note this does not actually schedule the event. See [`eventer_add_in`](c.md#eventeraddin).
+
+
+#### eventer_in_s_us
+
+>Convenience function to create an event to run a callback in the future
+
+```c
+eventer_t 
+eventer_in_s_us(eventer_func_t func, void *closure, unsigned long seconds
+                unsigned long microseconds)
+```
+
+
+  * `func` the callback function to run.
+  * `closure` the closure to be passed to the callback.
+  * `seconds` the number of seconds to wait before running the callback.
+  * `microseconds` the number of microseconds (in addition to `seconds`) to wait before running the callback.
+  * **RETURN** an event that has not been added to the eventer.
+
+> Note this does not actually schedule the event. See [`eventer_add_in_s_us`](c.md#eventeraddinsus).
+
+
+#### eventer_init_globals
+
+>Initialize global structures required for eventer operation.
+
+```c
+void 
+eventer_init_globals()
+```
+
+
+
+This function is called by [`mtev_main`](c.md#mtevmain).  Developers should not
+need to call this function directly.
+
+
+#### eventer_is_loop
+
+>Determine if a thread is participating in the eventer loop.
+
+```c
+int 
+eventer_is_loop(pthread_t tid)
+```
+
+
+  * `tid` a thread
+  * **RETURN** 0 if the specified thread lives outside the eventer loop; 1 otherwise.
+
+
+#### eventer_loop
+
+>Start the event loop.
+
+```c
+void 
+eventer_loop()
+```
+
+
+  * **RETURN** N/A (does not return)
+
+This function should be called as that last think in your `child_main` function.
+See [`mtev_main`](c.md#mtevmain`).
+
+
+#### eventer_loop_concurrency
+
+>Determine the concurrency of the default eventer loop.
+
+```c
+int 
+eventer_loop_concurrency()
+```
+
+
+  * **RETURN** number of threads used for the default eventer loop.
+
+
+#### eventer_name_callback
+
+>Register a human/developer readable name for a eventer callback function.
+
+```c
+int 
+eventer_name_callback(const char *name, eventer_func_t callback)
+```
+
+
+  * `name` the human readable name.
+  * `callback` the functin pointer of the eveter callback.
+  * **RETURN** 0 on success.
+
+
+#### eventer_name_for_callback
+
+>Retrieve a human readable name for the provided callback with event context.
+
+```c
+const char *
+eventer_name_for_callback(evneter_func_t f, eventer_t e)
+```
+
+
+  * `f` a callback function.
+  * `e` and event object
+  * **RETURN** name of callback
+
+The returned value may be a pointer to reusable thread-local storage.
+The value should be used before a subsequent call to this function.
+Aside from that caveat, it is thread-safe.
+
+
+#### eventer_pool
+
+>Find an eventer pool by name.
+
+```c
+eventer_pool_t *
+eventer_pool(const char *name)
+```
+
+
+  * `name` the name of an eventer pool.
+  * **RETURN** an `eventer_pool_t *` by the given name, or NULL.
+
+
+#### eventer_pool_concurrency
+
+>Retrieve the concurrency of an eventer pool.
+
+```c
+uint32_t 
+eventer_pool_concurrency(eventer_pool_t *pool)
+```
+
+
+  * `pool` an eventer pool.
+  * **RETURN** the number of threads powering the specified pool.
+
+
+#### eventer_pool_name
+
+>Retrieve the name of an eventer pool.
+
+```c
+const char *
+eventer_pool_name(eventer_pool_t *pool)
+```
+
+
+  * `pool` an eventer pool.
+  * **RETURN** the name of the eventer pool.
+
+
+#### eventer_pool_watchdog_timeout
+
+>Set a custom watchdog timeout for threads in an eventer pool.
+
+```c
+void 
+eventer_pool_watchdog_timeout(eventer_pool_t *pool, double timeout)
+```
+
+
+  * `pool` an eventer pool
+  * `timeout` the deadman timer in seconds.
+
+
+#### eventer_ref
+
+>Add a reference to an event.
+
+```c
+void 
+eventer_ref(evneter_t e)
+```
+
+
+  * `e` the event to reference.
+
+Adding a reference to an event will prevent it from being deallocated
+prematurely.  This is classic reference counting.  It is are that one
+needs to maintain an actual event past the point where the eventer
+system would normally free it.  Typically, one will allocate a new
+event and copy the contents of the old event into it allowing the
+original to be freed.
+
+
+#### eventer_remove
+
+>Remove an event object from the eventer system.
+
+```c
+eventer_t 
+eventer_remove(eventer_t e)
+```
+
+
+  * `e` an event object to add.
+  * **RETURN** the event object removed if found; NULL if not found.
+
+
+#### eventer_remove_fd
+
+>Remove an event object from the eventer system by file descriptor.
+
+```c
+eventer_t 
+eventer_remove_fd(int e)
+```
+
+
+  * `fd` a file descriptor
+  * **RETURN** the event object removed if found; NULL if not found.
+
+
+#### eventer_remove_recurrent
+
+>Remove a recurrent event from the eventer.
+
+```c
+eventer_t 
+eventer_remove_recurrent(eventer_t e)
+```
+
+
+  * `e` an event object.
+  * **RETURN** The event removed (`== e`); NULL if not found.
+
+
+#### eventer_remove_timed
+
+>Remove a timed event from the eventer.
+
+```c
+eventer_t 
+eventer_remove_timed(eventer_t e)
+```
+
+
+  * `e` an event object (mask must be `EVENTER_TIMED`).
+  * **RETURN** the event removed, NULL if not found.
+
+
+#### eventer_set_fd_blocking
+
+>Set a file descriptor into blocking mode.
+
+```c
+int 
+eventer_set_fd_blocking(int fd)
+```
+
+
+  * `fd` a file descriptor
+  * **RETURN** 0 on success, -1 on error (errno set).
+
+
+#### eventer_set_fd_nonblocking
+
+>Set a file descriptor into non-blocking mode.
+
+```c
+int 
+eventer_set_fd_nonblocking(int fd)
+```
+
+
+  * `fd` a file descriptor
+  * **RETURN** 0 on success, -1 on error (errno set).
+
+
+#### eventer_thread_check
+
+>Determine if the calling thread "owns" an event.
+
+```c
+int 
+eventer_thread_check(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** 0 if `e->thr_owner` is the `pthread_self()`, non-zero otherwise.
+
+
+#### eventer_trigger
+
+>Trigger an unregistered eventer and incorporate the outcome into the eventer.
+
+```c
+void 
+eventer_trigger(eventer_t e, int mask)
+```
+
+
+  * `e` an event object that is not registered with the eventer.
+  * `mask` the mask to be used when invoking the event's callback.
+
+This is often used to "start back up" an event that has been removed from the
+eventer for any reason.
+
+
+#### eventer_update
+
+>Change the activity mask for file descriptor events.
+
+```c
+void 
+eventer_update(evneter_t e, int mask)
+```
+
+
+  * `e` an event object
+  * `mask` a new mask that is some bitwise or of `EVENTER_READ`, `EVENTER_WRITE`, and `EVENTER_EXCEPTION`
+
+
+#### eventer_wakeup
+
+>Signal up an event loop manually.
+
+```c
+void 
+eventer_wakeup(eventer_t e)
+```
+
+
+  * `e` an event
+
+The event `e` is used to determine which thread of the eventer loop to wake up.
+If `e` is `NULL` the first thread in the default eventer loop is signalled. The
+eventer loop can wake up on timed events, asynchronous job completions and 
+file descriptor activity.  If, for an external reason, one needs to wake up
+a looping thread, this call is used.
+
+
 ### G
 
 #### mtev_getip_ipv4
@@ -272,6 +1008,83 @@ mtev_lockfile_release(mtev_lockfile_t fd)
   * `fd` the file lock to release
   * **RETURN** -1 on failure, 0 on success
  
+
+#### mtev_lua_lmc_L
+
+>Get the `lua_State *` for this module closure.
+
+```c
+lua_State *
+mtev_lua_lmc_L(lua_module_closure_t *lmc)
+```
+
+
+  * `lmc` the `lua_module_closure_t` that was allocated for this runtime.
+  * **RETURN** a Lua state
+
+
+#### mtev_lua_lmc_alloc
+
+>Allocated and initialize a `lua_module_closure_t` for a new runtime.
+
+```c
+lua_module_closure_t *
+mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_info_t *resume)
+```
+
+
+  * `self` the module implementing a custom lua runtime environment
+  * `resume` the custom resume function for this environment
+  * **RETURN** a new allocated and initialized `lua_module_closure`
+
+> Note these are not thread safe because lua is not thread safe. If you are managing multiple
+> C threads, you should have a `lua_module_closure_t` for each thread and maintain them in a
+> thread-local fashion.  Also ensure that any use of the eventer does not migrate cross thread.
+
+
+#### mtev_lua_lmc_free
+
+>Free a `lua_module_closure_t` structure that has been allocated.
+
+```c
+void 
+mtev_lua_lmc_free(lua_module_closure_t *lmc)
+```
+
+
+  * `lmc` The `lua_module_closure_t` to be freed.
+
+
+#### mtev_lua_lmc_resume
+
+>Invoke lua_resume with the correct context based on the `lua_module_closure_t`
+
+```c
+int 
+mtev_lua_lmc_resume(lua_module_closure_t *lmc, mtev_lua_resume_info_t *ri, int nargs)
+```
+
+
+  * `lmc` the `lua_module_closure_t` associated with the current lua runtime.
+  * `ri` resume meta information
+  * `nargs` the number of arguments on the lua stack to return
+  * **RETURN** the return value of the underlying `lua_resume` call.
+
+
+#### mtev_lua_lmc_setL
+
+>Set the `lua_State *` for this module closure, returning the previous value.
+
+```c
+lua_State *
+mtev_lua_lmc_setL(lua_module_closure_t *lmc)
+```
+
+
+  * `lmc` the `lua_module_closure_t` that was allocated for this runtime.
+  * `lmc` the `lua_State *` that should be placed in this closure.
+  * **RETURN** the previous lua Lua state associated with this closure
+
 
 ### M
 

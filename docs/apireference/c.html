@@ -687,6 +687,583 @@ corresponding mtev_cluster_node_t.</p>
 </ul>
 <p>Takes a configuration section representing a cluster and registers
 it in the global cluster configuration.</p>
+<h3 id="e">E</h3>
+<h4 id="evenernamecallbackext">evener_name_callback_ext</h4>
+<blockquote>
+<p>Register a functional describer for a callback and it&apos;s event object.</p>
+</blockquote>
+<pre><code class="lang-c">int 
+evener_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen, 
+                         eventer_t e, void *closure), void *closure)
+</code></pre>
+<ul>
+<li><code>name</code> the human readable name.</li>
+<li><code>callback</code> the functin pointer of the eveter callback.</li>
+<li><code>fn</code> function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).</li>
+<li><strong>RETURN</strong> 0 on success.</li>
+</ul>
+<p>This function allows more in-depth descriptions of events.  When an event
+is displayed (over the console or REST endpoints), this function is called
+with the event in question and the closure specified at registration time.</p>
+<h4 id="eventeradd">eventer_add</h4>
+<blockquote>
+<p>Add an event object to the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_add</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object to add.</li>
+</ul>
+<h4 id="eventeraddasynch">eventer_add_asynch</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_add_asynch</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENETER_ASYNCH</code>.</p>
+<h4 id="eventeraddat">eventer_add_at</h4>
+<blockquote>
+<p>Convenience function to schedule a callback at a specific time.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_add_at(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval whence)
+</code></pre>
+<ul>
+<li><code>func</code> the callback function to run.</li>
+<li><code>closure</code> the closure to be passed to the callback.</li>
+<li><code>whence</code> the time at which to run the callback.</li>
+<li><strong>RETURN</strong> N/A (C Macro).</li>
+</ul>
+<h4 id="eventeraddin">eventer_add_in</h4>
+<blockquote>
+<p>Convenience function to create an event to run a callback in the future</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_add_in(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval diff)
+</code></pre>
+<ul>
+<li><code>func</code> the callback function to run.</li>
+<li><code>closure</code> the closure to be passed to the callback.</li>
+<li><code>diff</code> the amount of time to wait before running the callback.</li>
+<li><strong>RETURN</strong> N/A (C Macro).</li>
+</ul>
+<h4 id="eventeraddinsus">eventer_add_in_s_us</h4>
+<blockquote>
+<p>Convenience function to create an event to run a callback in the future</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_add_in_s_us(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> seconds
+                    <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> microseconds)
+</code></pre>
+<ul>
+<li><code>func</code> the callback function to run.</li>
+<li><code>closure</code> the closure to be passed to the callback.</li>
+<li><code>seconds</code> the number of seconds to wait before running the callback.</li>
+<li><code>microseconds</code> the number of microseconds (in addition to <code>seconds</code>) to wait before running the callback.</li>
+<li><strong>RETURN</strong> N/A (C Macro).</li>
+</ul>
+<h4 id="eventeraddrecurrent">eventer_add_recurrent</h4>
+<blockquote>
+<p>Add an event to run during every loop cycle.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_add_recurrent</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+</ul>
+<p><code>e</code> must have a mask of EVENER<em>RECURRENT.  This event will be invoked on
+a single thread (dictated by <code>e</code>) once for each pass through the eventer loop.
+This happens _often</em>, so do light work.</p>
+<h4 id="eventeraddtimed">eventer_add_timed</h4>
+<blockquote>
+<p>Add a timed event to the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_add_timed</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+</ul>
+<p>This adds the <code>e</code> event to the eventer. <code>e</code> must have a mask of
+<code>EVENTER_TIMED</code>.</p>
+<h4 id="eventeralloc">eventer_alloc</h4>
+<blockquote>
+<p>Allocate an event to be injected into the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_alloc()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> A newly allocated event.</li>
+</ul>
+<p>The allocated event has a refernce count of 1 and is attached to the
+calling thread.</p>
+<h4 id="eventerallocationscurrent">eventer_allocations_current</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
+eventer_allocations_current()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> the number of currently allocated eventer objects.</li>
+</ul>
+<h4 id="eventerallocationstotal">eventer_allocations_total</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
+eventer_allocations_total()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> the number of allocated eventer objects over the life of the process.</li>
+</ul>
+<h4 id="eventerat">eventer_at</h4>
+<blockquote>
+<p>Convenience function to create an event to run a callback at a specific time.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_at(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval whence)
+</code></pre>
+<ul>
+<li><code>func</code> the callback function to run.</li>
+<li><code>closure</code> the closure to be passed to the callback.</li>
+<li><code>whence</code> the time at which to run the callback.</li>
+<li><strong>RETURN</strong> an event that has not been added to the eventer.</li>
+</ul>
+<blockquote>
+<p>Note this does not actually schedule the event. See <a href="c.html#eventeraddat"><code>eventer_add_at</code></a>.</p>
+</blockquote>
+<h4 id="eventercallbackforname">eventer_callback_for_name</h4>
+<blockquote>
+<p>Find an event callback function that has been registered by name.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">evneter_func_t</span> 
+eventer_callback_for_name(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)
+</code></pre>
+<ul>
+<li><code>name</code> the name of the callback.</li>
+<li><strong>RETURN</strong> the function pointer or NULL if no such callback has been registered.</li>
+</ul>
+<h4 id="eventerchooseowner">eventer_choose_owner</h4>
+<blockquote>
+<p>Find a thread in the default eventer pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">pthread_t</span> 
+eventer_choose_owner(<span class="hljs-keyword">int</span> n)
+</code></pre>
+<ul>
+<li><code>n</code> an integer.</li>
+<li><strong>RETURN</strong> a pthread_t of an eventer loop thread in the default eventer pool.</li>
+</ul>
+<p>This return the first thread when 0 is passed as an argument.  All non-zero arguments
+are spread acorss the remaining threads (if existent) as <code>n</code> modulo one less than
+the concurrency of the default event pool.</p>
+<p>This is done because many systems aren&apos;t thread safe and can only schedule their
+work on a single thread (thread 1). By spreading all thread-safe workloads across
+the remaining threads we reduce potential overloading of the &quot;main&quot; thread.</p>
+<p>To assign an event to a thread, use the result of this function to assign:
+<code>e-&gt;thr_owner</code>.</p>
+<h4 id="eventerchooseownerpool">eventer_choose_owner_pool</h4>
+<blockquote>
+<p>Find a thread in a specific eventer pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">pthread_t</span> 
+eventer_choose_owner_pool(<span class="hljs-keyword">eventer_pool_t</span> *pool, <span class="hljs-keyword">int</span> n)
+</code></pre>
+<ul>
+<li><code>pool</code> an eventer pool.</li>
+<li><code>n</code> an integer.</li>
+<li><strong>RETURN</strong> a pthread_t of an eventer loop thread in the specified evneter pool.</li>
+</ul>
+<p>This function chooses a thread within the specified pool by taking <code>n</code>
+modulo the concurrency of the pool.  If the default pool is speicified, special
+assignment behavior applies. See <a href="c.html#eventerchooseowner"><code>eventer_choose_owner</code></a>.</p>
+<p>To assign an event to a thread, use the result of this function to assign:
+<code>e-&gt;thr_owner</code>.</p>
+<h4 id="eventerderef">eventer_deref</h4>
+<blockquote>
+<p>See eventer_free.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_deref</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> the event to dereference.</li>
+</ul>
+<h4 id="eventerfindfd">eventer_find_fd</h4>
+<blockquote>
+<p>Find an event object in the eventer system by file descriptor.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_find_fd(<span class="hljs-keyword">int</span> e)
+</code></pre>
+<ul>
+<li><code>fd</code> a file descriptor</li>
+<li><strong>RETURN</strong> the event object if it exists; NULL if not found.</li>
+</ul>
+<h4 id="eventerforeachfdevent">eventer_foreach_fdevent</h4>
+<blockquote>
+<p>Run a user-provided function over all registered file descriptor events.</p>
+</blockquote>
+<pre><code class="lang-c">void 
+eventer_foreach_fdevent(void (*fn)(eventer_t, void *), void *closure)
+</code></pre>
+<ul>
+<li><code>fn</code> a function to be called with each event and <code>closure</code> as its arguments.</li>
+<li><code>closure</code> the second argument to be passed to <code>fn</code>.</li>
+</ul>
+<h4 id="eventerforeachtimedevent">eventer_foreach_timedevent</h4>
+<blockquote>
+<p>Run a user-provided function over all registered timed events.</p>
+</blockquote>
+<pre><code class="lang-c">void 
+eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
+</code></pre>
+<ul>
+<li><code>fn</code> a function to be called with each event and <code>closure</code> as its arguments.</li>
+<li><code>closure</code> the second argument to be passed to <code>fn</code>.</li>
+</ul>
+<h4 id="eventerfree">eventer_free</h4>
+<blockquote>
+<p>Dereferences the event specified.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_free</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> the event to dereference.</li>
+</ul>
+<h4 id="eventergetepoch">eventer_get_epoch</h4>
+<blockquote>
+<p>Find the start time of the eventer loop.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_get_epoch</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> timeval *epoch)</span>
+</span></code></pre>
+<ul>
+<li><code>epoch</code> a point to a <code>struct timeval</code> to fill out.</li>
+<li><strong>RETURN</strong> 0 on success; -1 on failure (eventer loop not started).</li>
+</ul>
+<h4 id="eventergetpoolforevent">eventer_get_pool_for_event</h4>
+<blockquote>
+<p>Determin which eventer pool owns a given event.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_pool_t</span> *
+eventer_get_pool_for_event(<span class="hljs-keyword">eventer_t</span> e)
+</code></pre>
+<ul>
+<li><code>e</code> an event object.</li>
+<li><strong>RETURN</strong> the <code>eventer_pool_t</code> to which the event is scheduled.</li>
+</ul>
+<h4 id="eventerimplpropset">eventer_impl_propset</h4>
+<blockquote>
+<p>Set properties for the event loop.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_impl_propset</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *value)</span>
+</span></code></pre>
+<ul>
+<li><code>key</code> the property</li>
+<li><code>value</code> the property&apos;s value.</li>
+<li><strong>RETURN</strong> 0 on success, -1 otherwise.</li>
+</ul>
+<p>Sets propoerties within the eventer. That can only be called prior
+to <a href="c.html#eventerinit"><code>eventer_init</code></a>. See [Eventer configuuration)(../config/eventer.md)
+for valid properties.</p>
+<h4 id="eventerimplsetrlimit">eventer_impl_setrlimit</h4>
+<blockquote>
+<p>Attempt to set the rlimit on allowable open files.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_impl_setrlimit</span><span class="hljs-params">()</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> the limit of the number of open files.</li>
+</ul>
+<p>The target is the <code>rlim_nofiles</code> eventer config option. If that configuration
+option is unspecified, 1048576 is used.</p>
+<h4 id="eventerin">eventer_in</h4>
+<blockquote>
+<p>Convenience function to create an event to run a callback in the future</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_in(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval diff)
+</code></pre>
+<ul>
+<li><code>func</code> the callback function to run.</li>
+<li><code>closure</code> the closure to be passed to the callback.</li>
+<li><code>diff</code> the amount of time to wait before running the callback.</li>
+<li><strong>RETURN</strong> an event that has not been added to the eventer.</li>
+</ul>
+<blockquote>
+<p>Note this does not actually schedule the event. See <a href="c.html#eventeraddin"><code>eventer_add_in</code></a>.</p>
+</blockquote>
+<h4 id="eventerinsus">eventer_in_s_us</h4>
+<blockquote>
+<p>Convenience function to create an event to run a callback in the future</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_in_s_us(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> seconds
+                <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> microseconds)
+</code></pre>
+<ul>
+<li><code>func</code> the callback function to run.</li>
+<li><code>closure</code> the closure to be passed to the callback.</li>
+<li><code>seconds</code> the number of seconds to wait before running the callback.</li>
+<li><code>microseconds</code> the number of microseconds (in addition to <code>seconds</code>) to wait before running the callback.</li>
+<li><strong>RETURN</strong> an event that has not been added to the eventer.</li>
+</ul>
+<blockquote>
+<p>Note this does not actually schedule the event. See <a href="c.html#eventeraddinsus"><code>eventer_add_in_s_us</code></a>.</p>
+</blockquote>
+<h4 id="eventerinitglobals">eventer_init_globals</h4>
+<blockquote>
+<p>Initialize global structures required for eventer operation.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_init_globals</span><span class="hljs-params">()</span>
+</span></code></pre>
+<p>This function is called by <a href="c.html#mtevmain"><code>mtev_main</code></a>.  Developers should not
+need to call this function directly.</p>
+<h4 id="eventerisloop">eventer_is_loop</h4>
+<blockquote>
+<p>Determine if a thread is participating in the eventer loop.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_is_loop</span><span class="hljs-params">(pthread_t tid)</span>
+</span></code></pre>
+<ul>
+<li><code>tid</code> a thread</li>
+<li><strong>RETURN</strong> 0 if the specified thread lives outside the eventer loop; 1 otherwise.</li>
+</ul>
+<h4 id="eventerloop">eventer_loop</h4>
+<blockquote>
+<p>Start the event loop.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_loop</span><span class="hljs-params">()</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> N/A (does not return)</li>
+</ul>
+<p>This function should be called as that last think in your <code>child_main</code> function.
+See <a href="c.html#mtevmain%60"><code>mtev_main</code></a>.</p>
+<h4 id="eventerloopconcurrency">eventer_loop_concurrency</h4>
+<blockquote>
+<p>Determine the concurrency of the default eventer loop.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_loop_concurrency</span><span class="hljs-params">()</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> number of threads used for the default eventer loop.</li>
+</ul>
+<h4 id="eventernamecallback">eventer_name_callback</h4>
+<blockquote>
+<p>Register a human/developer readable name for a eventer callback function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_name_callback</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, eventer_func_t callback)</span>
+</span></code></pre>
+<ul>
+<li><code>name</code> the human readable name.</li>
+<li><code>callback</code> the functin pointer of the eveter callback.</li>
+<li><strong>RETURN</strong> 0 on success.</li>
+</ul>
+<h4 id="eventernameforcallback">eventer_name_for_callback</h4>
+<blockquote>
+<p>Retrieve a human readable name for the provided callback with event context.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">eventer_name_for_callback</span><span class="hljs-params">(evneter_func_t f, eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>f</code> a callback function.</li>
+<li><code>e</code> and event object</li>
+<li><strong>RETURN</strong> name of callback</li>
+</ul>
+<p>The returned value may be a pointer to reusable thread-local storage.
+The value should be used before a subsequent call to this function.
+Aside from that caveat, it is thread-safe.</p>
+<h4 id="eventerpool">eventer_pool</h4>
+<blockquote>
+<p>Find an eventer pool by name.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_pool_t</span> *
+eventer_pool(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)
+</code></pre>
+<ul>
+<li><code>name</code> the name of an eventer pool.</li>
+<li><strong>RETURN</strong> an <code>eventer_pool_t *</code> by the given name, or NULL.</li>
+</ul>
+<h4 id="eventerpoolconcurrency">eventer_pool_concurrency</h4>
+<blockquote>
+<p>Retrieve the concurrency of an eventer pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span> 
+eventer_pool_concurrency(<span class="hljs-keyword">eventer_pool_t</span> *pool)
+</code></pre>
+<ul>
+<li><code>pool</code> an eventer pool.</li>
+<li><strong>RETURN</strong> the number of threads powering the specified pool.</li>
+</ul>
+<h4 id="eventerpoolname">eventer_pool_name</h4>
+<blockquote>
+<p>Retrieve the name of an eventer pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">eventer_pool_name</span><span class="hljs-params">(eventer_pool_t *pool)</span>
+</span></code></pre>
+<ul>
+<li><code>pool</code> an eventer pool.</li>
+<li><strong>RETURN</strong> the name of the eventer pool.</li>
+</ul>
+<h4 id="eventerpoolwatchdogtimeout">eventer_pool_watchdog_timeout</h4>
+<blockquote>
+<p>Set a custom watchdog timeout for threads in an eventer pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_pool_watchdog_timeout</span><span class="hljs-params">(eventer_pool_t *pool, <span class="hljs-keyword">double</span> timeout)</span>
+</span></code></pre>
+<ul>
+<li><code>pool</code> an eventer pool</li>
+<li><code>timeout</code> the deadman timer in seconds.</li>
+</ul>
+<h4 id="eventerref">eventer_ref</h4>
+<blockquote>
+<p>Add a reference to an event.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_ref</span><span class="hljs-params">(evneter_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> the event to reference.</li>
+</ul>
+<p>Adding a reference to an event will prevent it from being deallocated
+prematurely.  This is classic reference counting.  It is are that one
+needs to maintain an actual event past the point where the eventer
+system would normally free it.  Typically, one will allocate a new
+event and copy the contents of the old event into it allowing the
+original to be freed.</p>
+<h4 id="eventerremove">eventer_remove</h4>
+<blockquote>
+<p>Remove an event object from the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_remove(<span class="hljs-keyword">eventer_t</span> e)
+</code></pre>
+<ul>
+<li><code>e</code> an event object to add.</li>
+<li><strong>RETURN</strong> the event object removed if found; NULL if not found.</li>
+</ul>
+<h4 id="eventerremovefd">eventer_remove_fd</h4>
+<blockquote>
+<p>Remove an event object from the eventer system by file descriptor.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_remove_fd(<span class="hljs-keyword">int</span> e)
+</code></pre>
+<ul>
+<li><code>fd</code> a file descriptor</li>
+<li><strong>RETURN</strong> the event object removed if found; NULL if not found.</li>
+</ul>
+<h4 id="eventerremoverecurrent">eventer_remove_recurrent</h4>
+<blockquote>
+<p>Remove a recurrent event from the eventer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_remove_recurrent(<span class="hljs-keyword">eventer_t</span> e)
+</code></pre>
+<ul>
+<li><code>e</code> an event object.</li>
+<li><strong>RETURN</strong> The event removed (<code>== e</code>); NULL if not found.</li>
+</ul>
+<h4 id="eventerremovetimed">eventer_remove_timed</h4>
+<blockquote>
+<p>Remove a timed event from the eventer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
+</code></pre>
+<ul>
+<li><code>e</code> an event object (mask must be <code>EVENTER_TIMED</code>).</li>
+<li><strong>RETURN</strong> the event removed, NULL if not found.</li>
+</ul>
+<h4 id="eventersetfdblocking">eventer_set_fd_blocking</h4>
+<blockquote>
+<p>Set a file descriptor into blocking mode.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_set_fd_blocking</span><span class="hljs-params">(<span class="hljs-keyword">int</span> fd)</span>
+</span></code></pre>
+<ul>
+<li><code>fd</code> a file descriptor</li>
+<li><strong>RETURN</strong> 0 on success, -1 on error (errno set).</li>
+</ul>
+<h4 id="eventersetfdnonblocking">eventer_set_fd_nonblocking</h4>
+<blockquote>
+<p>Set a file descriptor into non-blocking mode.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_set_fd_nonblocking</span><span class="hljs-params">(<span class="hljs-keyword">int</span> fd)</span>
+</span></code></pre>
+<ul>
+<li><code>fd</code> a file descriptor</li>
+<li><strong>RETURN</strong> 0 on success, -1 on error (errno set).</li>
+</ul>
+<h4 id="eventerthreadcheck">eventer_thread_check</h4>
+<blockquote>
+<p>Determine if the calling thread &quot;owns&quot; an event.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_thread_check</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> 0 if <code>e-&gt;thr_owner</code> is the <code>pthread_self()</code>, non-zero otherwise.</li>
+</ul>
+<h4 id="eventertrigger">eventer_trigger</h4>
+<blockquote>
+<p>Trigger an unregistered eventer and incorporate the outcome into the eventer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_trigger</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object that is not registered with the eventer.</li>
+<li><code>mask</code> the mask to be used when invoking the event&apos;s callback.</li>
+</ul>
+<p>This is often used to &quot;start back up&quot; an event that has been removed from the
+eventer for any reason.</p>
+<h4 id="eventerupdate">eventer_update</h4>
+<blockquote>
+<p>Change the activity mask for file descriptor events.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_update</span><span class="hljs-params">(evneter_t e, <span class="hljs-keyword">int</span> mask)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>mask</code> a new mask that is some bitwise or of <code>EVENTER_READ</code>, <code>EVENTER_WRITE</code>, and <code>EVENTER_EXCEPTION</code></li>
+</ul>
+<h4 id="eventerwakeup">eventer_wakeup</h4>
+<blockquote>
+<p>Signal up an event loop manually.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_wakeup</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event</li>
+</ul>
+<p>The event <code>e</code> is used to determine which thread of the eventer loop to wake up.
+If <code>e</code> is <code>NULL</code> the first thread in the default eventer loop is signalled. The
+eventer loop can wake up on timed events, asynchronous job completions and 
+file descriptor activity.  If, for an external reason, one needs to wake up
+a looping thread, this call is used.</p>
 <h3 id="g">G</h3>
 <h4 id="mtevgetipipv4">mtev_getip_ipv4</h4>
 <blockquote>
@@ -722,6 +1299,69 @@ mtev_lockfile_acquire(<span class="hljs-keyword">const</span> <span class="hljs-
 <ul>
 <li><code>fd</code> the file lock to release</li>
 <li><strong>RETURN</strong> -1 on failure, 0 on success</li>
+</ul>
+<h4 id="mtevlualmcl">mtev_lua_lmc_L</h4>
+<blockquote>
+<p>Get the <code>lua_State *</code> for this module closure.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">lua_State *
+<span class="hljs-title">mtev_lua_lmc_L</span><span class="hljs-params">(lua_module_closure_t *lmc)</span>
+</span></code></pre>
+<ul>
+<li><code>lmc</code> the <code>lua_module_closure_t</code> that was allocated for this runtime.</li>
+<li><strong>RETURN</strong> a Lua state</li>
+</ul>
+<h4 id="mtevlualmcalloc">mtev_lua_lmc_alloc</h4>
+<blockquote>
+<p>Allocated and initialize a <code>lua_module_closure_t</code> for a new runtime.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">lua_module_closure_t</span> *
+mtev_lua_lmc_alloc(<span class="hljs-keyword">mtev_dso_generic_t</span> *self, <span class="hljs-keyword">mtev_lua_resume_info_t</span> *resume)
+</code></pre>
+<ul>
+<li><code>self</code> the module implementing a custom lua runtime environment</li>
+<li><code>resume</code> the custom resume function for this environment</li>
+<li><strong>RETURN</strong> a new allocated and initialized <code>lua_module_closure</code></li>
+</ul>
+<blockquote>
+<p>Note these are not thread safe because lua is not thread safe. If you are managing multiple
+C threads, you should have a <code>lua_module_closure_t</code> for each thread and maintain them in a
+thread-local fashion.  Also ensure that any use of the eventer does not migrate cross thread.</p>
+</blockquote>
+<h4 id="mtevlualmcfree">mtev_lua_lmc_free</h4>
+<blockquote>
+<p>Free a <code>lua_module_closure_t</code> structure that has been allocated.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_lua_lmc_free</span><span class="hljs-params">(lua_module_closure_t *lmc)</span>
+</span></code></pre>
+<ul>
+<li><code>lmc</code> The <code>lua_module_closure_t</code> to be freed.</li>
+</ul>
+<h4 id="mtevlualmcresume">mtev_lua_lmc_resume</h4>
+<blockquote>
+<p>Invoke lua_resume with the correct context based on the <code>lua_module_closure_t</code></p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_lua_lmc_resume</span><span class="hljs-params">(lua_module_closure_t *lmc, mtev_lua_resume_info_t *ri, <span class="hljs-keyword">int</span> nargs)</span>
+</span></code></pre>
+<ul>
+<li><code>lmc</code> the <code>lua_module_closure_t</code> associated with the current lua runtime.</li>
+<li><code>ri</code> resume meta information</li>
+<li><code>nargs</code> the number of arguments on the lua stack to return</li>
+<li><strong>RETURN</strong> the return value of the underlying <code>lua_resume</code> call.</li>
+</ul>
+<h4 id="mtevlualmcsetl">mtev_lua_lmc_setL</h4>
+<blockquote>
+<p>Set the <code>lua_State *</code> for this module closure, returning the previous value.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">lua_State *
+<span class="hljs-title">mtev_lua_lmc_setL</span><span class="hljs-params">(lua_module_closure_t *lmc)</span>
+</span></code></pre>
+<ul>
+<li><code>lmc</code> the <code>lua_module_closure_t</code> that was allocated for this runtime.</li>
+<li><code>lmc</code> the <code>lua_State *</code> that should be placed in this closure.</li>
+<li><strong>RETURN</strong> the previous lua Lua state associated with this closure</li>
 </ul>
 <h3 id="m">M</h3>
 <h4 id="mkdirforfile">mkdir_for_file</h4>
