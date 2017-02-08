@@ -144,12 +144,13 @@ API_EXPORT(int)
  * mtev_stream_compress_init to initialize the stream compression structure
  * 
  * The out_len param will be updated with amount written to output.
+ * The len param will be updated with the amount read from input.
  * 
  * @return 0 on success, non-zero on error
  */
 API_EXPORT(int)
   mtev_stream_compress(mtev_stream_compress_ctx_t *ctx, const char *source_data, 
-                         size_t len, unsigned char *out, size_t *out_len);
+                         size_t *len, unsigned char *out, size_t *out_len);
 
 /**
  * Flush any internal data cached during the stream compress.  You might

@@ -1258,7 +1258,6 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
       if(ctx->req.last_input == tofree) ctx->req.last_input = in;
       tofree->next = NULL;
       RELEASE_BCHAIN(tofree);
-      ctx->req.next_chunk_read = 0;
     }
   }
 
@@ -1336,8 +1335,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
 
   struct bchain *in, *tofree;
   if(ctx->req.payload_chunked) {
-
-    if(ctx->req.next_chunk_read >= ctx->req.next_chunk) {
+    if (ctx->req.next_chunk_read >= 0) {
       int needed;
       needed = mtev_http_session_req_consume_chunked(ctx, compression_type, mask);
       mtevL(http_debug, " ... mtev_http_session_req_consume(%d) chunked -> %d\n",
@@ -1369,9 +1367,9 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
     in = ctx->req.user_data;
 
     if (ctx->req.payload_chunked) {
-      if (ctx->req.first_input == NULL && (in == NULL || in->size == 0)) {
+      if (ctx->req.next_chunk_read == -1 && (in == NULL || in->size == 0)) {
         return 0;
-      } else if (in == NULL && ctx->req.first_input != NULL) {
+      } else if (in == NULL) {
         return -1;
       }
     } else {
@@ -2092,11 +2090,10 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
 
 static mtev_boolean
 _http_encode_chain(mtev_http_response *res,
-                   struct bchain *out, void *inbuff, int inlen,
+                   struct bchain *out, void *inbuff, size_t *inlen,
                    mtev_boolean final, mtev_boolean *done) {
   int opts = res->output_options;
-  if(done && final) *done = mtev_true;
-
+  if (done) *done = mtev_false;
   if (res->compress_ctx == NULL) {
     res->compress_ctx = mtev_create_stream_compress_ctx();
     if(opts & MTEV_HTTP_GZIP) {
@@ -2113,7 +2110,7 @@ _http_encode_chain(mtev_http_response *res,
   size_t olen;
   int err;
   olen = out->allocd - out->start - 2; /* leave 2 for the \r\n */
-  if (inlen > 0) {
+  if (inlen && *inlen > 0) {
     err = mtev_stream_compress(res->compress_ctx, inbuff, inlen,
                                (unsigned char *)(out->buff + out->start), &olen);
     if (err != 0) {
@@ -2123,21 +2120,26 @@ _http_encode_chain(mtev_http_response *res,
   }
 
   if (final == mtev_true) {
-    olen = out->allocd - out->start - 2;
+    struct bchain *o = out;
+    olen = o->allocd - o->start - 2;
     err = mtev_stream_compress_flush(res->compress_ctx, 
-                                     (unsigned char *)(out->buff + out->start), 
+                                     (unsigned char *)(o->buff + o->start), 
                                      &olen);
     if (err != 0) {
       return mtev_false;
     }
-    out->size += olen;
+    if (olen == 0) {
+      if (done) *done = mtev_true;
+    }
+    o->size += olen;
   }
   return mtev_true;
 }
 
-struct bchain *
+static struct bchain *
 mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
-                                struct bchain *in) {
+                                struct bchain *in,
+                                size_t *leftover_size) {
   struct bchain *out;
   int ilen, maxlen = in->size, hexlen;
   int opts = ctx->res.output_options;
@@ -2167,7 +2169,8 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
   out = ALLOC_BCHAIN(hexlen + 4 + maxlen);
   /* if we're chunked, let's give outselved hexlen + 2 prefix space */
   if(opts & MTEV_HTTP_CHUNKED) out->start = hexlen + 2;
-  if(_http_encode_chain(&ctx->res, out, in->buff + in->start, in->size,
+  *leftover_size = in->size;
+  if(_http_encode_chain(&ctx->res, out, in->buff + in->start, leftover_size,
                         mtev_false, NULL) == mtev_false) {
     free(out);
     return NULL;
@@ -2225,34 +2228,36 @@ raw_finalize_encoding(mtev_http_response *res) {
       }
 
       ilen = out->size;
-      mtevAssert(out->start+out->size+2 <= out->allocd);
-      out->buff[out->start + out->size++] = '\r';
-      out->buff[out->start + out->size++] = '\n';
-      out->start = 0;
-      /* terminate */
-      out->size += 2;
-      out->buff[hexlen] = '\r';
-      out->buff[hexlen+1] = '\n';
-      /* backfill */
-      out->size += hexlen;
-      while(hexlen > 0) {
-        out->buff[hexlen - 1] = _hexchars[ilen & 0xf];
-        ilen >>= 4;
-        hexlen--;
+      if (ilen > 0) {
+        mtevAssert(out->start+out->size+2 <= out->allocd);
+        out->buff[out->start + out->size++] = '\r';
+        out->buff[out->start + out->size++] = '\n';
+        out->start = 0;
+        /* terminate */
+        out->size += 2;
+        out->buff[hexlen] = '\r';
+        out->buff[hexlen+1] = '\n';
+        /* backfill */
+        out->size += hexlen;
+        while(hexlen > 0) {
+          out->buff[hexlen - 1] = _hexchars[ilen & 0xf];
+          ilen >>= 4;
+          hexlen--;
+        }
+        while(out->buff[out->start] == '0') {
+          out->start++;
+          out->size--;
+        }
+        if(r == NULL)
+          res->output_raw = out;
+        else {
+          mtevAssert(r == res->output_raw_last);
+          r->next = out;
+          out->prev = r;
+        }
+        res->output_raw_last = r = out;
+        res->output_raw_chain_bytes += out->size;
       }
-      while(out->buff[out->start] == '0') {
-        out->start++;
-        out->size--;
-      }
-      if(r == NULL)
-        res->output_raw = out;
-      else {
-        mtevAssert(r == res->output_raw_last);
-        r->next = out;
-        out->prev = r;
-      }
-      res->output_raw_last = r = out;
-      res->output_raw_chain_bytes += out->size;
     }
 
     mtev_stream_compress_finish(res->compress_ctx);
@@ -2282,7 +2287,8 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
   /* o is the first output link to process */
   while(o) {
     struct bchain *tofree, *n;
-    n = mtev_http_process_output_bchain(ctx, o);
+    size_t leftover_size = 0;
+    n = mtev_http_process_output_bchain(ctx, o, &leftover_size);
     if(!n) {
       /* Bad, response stops here! */
       mtevL(mtev_error, "mtev_http_process_output_bchain: NULL\n");
@@ -2295,18 +2301,29 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
       final = mtev_true;
       break;
     }
-    if(r) {
-      r->next = n;
-      n->prev = r;
-      r = ctx->res.output_raw_last = n;
-    }
-    else {
-      r = ctx->res.output_raw = ctx->res.output_raw_last = n;
+    if (n->size > 0) {
+      if(r) {
+        r->next = n;
+        n->prev = r;
+        r = ctx->res.output_raw_last = n;
+      }
+      else {
+        r = ctx->res.output_raw = ctx->res.output_raw_last = n;
+      }
     }
     ctx->res.output_raw_chain_bytes += n->size;
-    tofree = o; o = o->next;
-    ctx->res.output_chain_bytes -= tofree->size;
-    FREE_BCHAIN(tofree); /* advance and free */
+    ctx->res.output_chain_bytes -= o->size - leftover_size;
+    o->start = o->size - leftover_size;
+    o->size = leftover_size;
+    if (o->size == 0) {
+      tofree = o; 
+      o = o->next;
+      tofree->next = NULL;
+      FREE_BCHAIN(tofree); /* advance and free */
+    }
+    if (n->size == 0) {
+      RELEASE_BCHAIN(n);
+    }
   }
   ctx->res.output = NULL;
   ctx->res.output_last = NULL;
