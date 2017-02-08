@@ -239,6 +239,8 @@ AC_CHECK_SIZEOF(void *, 1)
 AC_CHECK_HEADER(ck_pr.h, [], [AC_MSG_ERROR([*** libck (headers) required ***])])
 AC_CHECK_LIB(ck, ck_ht_init, , [AC_MSG_ERROR([*** concurrencyckit (libck) is required ***])])
 AC_CHECK_LIB(hwloc, hwloc_topology_init, , [AC_MSG_ERROR([*** libhwloc required ***])])
+AC_CHECK_HEADER(lz4.h, [], [AC_MSG_ERROR([*** liblz4 (headers) required ***])])
+AC_CHECK_LIB(lz4, LZ4F_compressBegin, , [AC_MSG_ERROR([*** liblz4 is required ***])])
 
 # libcircmetrics depends on libjlog and libcircllhist, so we have to check
 # for them in reverse dependency order so that $LIBS contains the correct
