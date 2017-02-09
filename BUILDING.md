@@ -13,6 +13,7 @@
 ### FreeBSD
 
     #!/bin/sh
+    # pkg install hwloc concurrencykit liblz4 pcre udns e2fsprogs-libuuid
     # portmaster -g /usr/ports/misc/e2fsprogs-libuuid
     # portmaster -g /usr/ports/devel/pcre
     # portmaster -g /usr/ports/devel/concurrencykit

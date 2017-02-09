@@ -73,7 +73,7 @@ else
 fi
 SHLDFLAGS="$LDFLAGS"
 
-CPPFLAGS="$CPPFLAGS -D _REENTRANT -D _XOPEN_SOURCE=600 -D _POSIX_SOURCE -D _POSIX_C_SOURCE=200112L -D _DEFAULT_SOURCE "'-I$(top_srcdir)/src'
+CPPFLAGS="$CPPFLAGS -D_REENTRANT "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
 DOTSO=.so
 LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR).$(SEMVER_MINOR)'
@@ -86,6 +86,7 @@ case $host in
 	DTRACE=/usr/sbin/dtrace
 	DTRACE_ENABLED=1
 	PICFLAGS="-fPIC"
+	CPPFLAGS="$CPPFLAGS -D_XOPEN_SOURCE=600 -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE"
 	CPPFLAGS="$CPPFLAGS -D_DARWIN_C_SOURCE -DMAC_OS_X_VERSION_MIN_REQUIRED=MAC_OS_X_VERSION_10_6 -Wno-deprecated-declarations"
 	MODULELD="$CC -bundle -flat_namespace -undefined suppress"
 	SHLD="$CC -dynamiclib -single_module -undefined dynamic_lookup -fPIC"
@@ -106,6 +107,7 @@ case $host in
 	DTRACEOBJ=dtrace_stub.o
 	FAST_TIME_PRELOAD="mtev_time_fast.so"
 	CFLAGS="$CFLAGS"
+	CPPFLAGS="$CPPFLAGS -D_XOPEN_SOURCE=600 -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE"
 	CPPFLAGS="$CPPFLAGS -D__EXTENSIONS__"
 	MDB_MODS="mdb-support/libmtev.so"
 	if test "x$GCC" != "xyes" ; then
@@ -166,6 +168,7 @@ case $host in
 *-*-linux*)
 	CAP_PLATFORM="linux"
 	LDFLAGS="$LDFLAGS -Wl,-E"
+	CPPFLAGS="$CPPFLAGS -D_XOPEN_SOURCE=600 -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE"
 	CPPFLAGS="$CPPFLAGS -D_SVID_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE"
 	PICFLAGS="-fpic"
 	MODULELD="$CC -shared"
@@ -179,6 +182,7 @@ case $host in
 	CAP_PLATFORM="freebsd"
 	PICFLAGS="-fpic"
 	MODULELD="$CC -shared"
+	SHLD="$CC -shared"
 	LDFLAGS="$LDFLAGS -export-dynamic -L/usr/local/lib"
 	CFLAGS="$CFLAGS -DCOMPAT_43TTY -I/usr/local/include"
 	MODULEEXT=so
@@ -259,6 +263,7 @@ AC_CHECK_LIB(rt, sem_init, , [
 ])
 AC_CHECK_LIB(posix4, sem_wait, , )
 AC_CHECK_LIB(pthread, pthread_create, , )
+AC_CHECK_LIB(execinfo, backtrace, , )
 
 # Check for LuaJIT
 OLD_LIBS=$LIBS
@@ -446,7 +451,7 @@ AC_CHECK_HEADERS(sys/file.h sys/types.h dirent.h sys/param.h fcntl.h errno.h lim
 	termio.h termios.h curses.h sys/cdefs.h grp.h netinet/in_systm.h \
 	sys/ioctl_compat.h sys/filio.h util.h sys/time.h sys/mman.h \
 	sys/ioctl.h stropts.h sys/stream.h alloca.h sys/wait.h bsd/libutil.h libutil.h \
-	stdint.h inttypes.h)
+	stdint.h inttypes.h endian.h sys/endian.h umem.h)
 
 AC_CHECK_HEADERS([term.h], [], [],
 	[[
@@ -592,7 +597,20 @@ AC_CACHE_CHECK([for htobe64], ac_cv_have_htobe64, [
 		[ ac_cv_have_htobe64="no" ]
 	)
 ])
-AC_CACHE_CHECK([for htobe64], ac_cv_have_be64toh, [
+
+if test "x$ac_cv_have_htobe64" != "xyes" ; then
+unset ac_cv_have_htobe64
+AC_CACHE_CHECK([for htobe64], ac_cv_have_htobe64, [
+	AC_TRY_LINK(
+		[ #include <sys/endian.h> ],
+		[ long long int a; a = htobe64(1); (void)a;],
+		[ ac_cv_have_htobe64="yes" ],
+		[ ac_cv_have_htobe64="no" ]
+	)
+])
+fi
+
+AC_CACHE_CHECK([for be64toh], ac_cv_have_be64toh, [
   AC_TRY_LINK(
     [ #include <endian.h> ],
     [ long long int a; a = be64toh(1); (void)a;],
@@ -600,6 +618,19 @@ AC_CACHE_CHECK([for htobe64], ac_cv_have_be64toh, [
     [ ac_cv_have_be64toh="no" ]
   )
 ])
+
+if test "x$ac_cv_have_be64toh" != "xyes" ; then
+unset ac_cv_have_be64toh
+AC_CACHE_CHECK([for be64toh], ac_cv_have_be64toh, [
+	AC_TRY_LINK(
+		[ #include <sys/endian.h> ],
+		[ long long int a; a = be64toh(1); (void)a;],
+		[ ac_cv_have_be64toh="yes" ],
+		[ ac_cv_have_be64toh="no" ]
+	)
+])
+fi
+
 AC_CACHE_CHECK([for htonll], ac_cv_have_htonll, [
 	AC_TRY_LINK(
 		[ #include <endian.h> ],

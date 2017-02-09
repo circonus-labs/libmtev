@@ -28,7 +28,7 @@ INSTALL=@INSTALL@
 MODULES_DIR=@MODULES_DIR@
 XSLTPROC=@XSLTPROC@
 XMLLINT=@XMLLINT@
-XML2H=@top_srcdir@/buildtools/xml2h
+XML2H=@PERL@ @top_srcdir@/buildtools/xml2h
 LUALIBS=@LUALIBS@
 
 HEADERS=lua_mtev.h

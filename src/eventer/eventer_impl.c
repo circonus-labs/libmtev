@@ -218,7 +218,7 @@ pthread_t eventer_choose_owner_pool(eventer_pool_t *pool, int i) {
   adjidx = pool->__global_tid_offset + idx;
   mtevL(eventer_deb, "eventer_choose -> %u %% %d = (%s) %d t@%u\n",
         (unsigned int)i, pool->__loop_concurrency, pool->name, idx,
-        (unsigned int)eventer_impl_tls_data[adjidx].tid);
+        (unsigned int)(intptr_t)eventer_impl_tls_data[adjidx].tid);
   return eventer_impl_tls_data[adjidx].tid;
 }
 pthread_t eventer_choose_owner(int i) {
@@ -834,7 +834,7 @@ void eventer_cross_thread_trigger(eventer_t e, int mask) {
   ctt = malloc(sizeof(*ctt));
   ctt->e = e;
   ctt->mask = mask;
-  mtevL(eventer_deb, "queueing fd:%d from t@%d to t@%d\n", e->fd, (int)pthread_self(), (int)e->thr_owner);
+  mtevL(eventer_deb, "queueing fd:%d from t@%d to t@%d\n", e->fd, (int)(intptr_t)pthread_self(), (int)(intptr_t)e->thr_owner);
   pthread_mutex_lock(&t->cross_lock);
   ctt->next = t->cross;
   t->cross = ctt;

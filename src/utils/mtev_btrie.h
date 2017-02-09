@@ -35,6 +35,8 @@
 #define UTILS_MTEV_BTRIE_H
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
+
 typedef struct btrie_collapsed_node *btrie;
 
 void mtev_drop_tree(btrie *, void (*)(void *));

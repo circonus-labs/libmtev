@@ -56,6 +56,13 @@
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
+#ifdef HAVE_ENDIAN_H
+#include <endian.h>
+#else
+#ifdef HAVE_SYS_ENDIAN_H
+#include <sys/endian.h>
+#endif
+#endif
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
@@ -211,7 +218,9 @@ static inline void uuid_unparse_lower(uuid_t in, char *out) {
 struct uuid_dummy { uuid_t foo; };
 #define UUID_SIZE sizeof(struct uuid_dummy)
 
-#if defined(__MACH__)
+#if defined(BSD) || defined(__FreeBSD__)
+typedef uint64_t mtev_hrtime_t;
+#elif defined(__MACH__)
 typedef uint64_t mtev_hrtime_t;
 #elif defined(linux) || defined(__linux) || defined(__linux__)
 typedef long long unsigned int mtev_hrtime_t;

@@ -232,7 +232,7 @@ mtev_thread_prio(int prio) {
     return mtev_false;
   }
   mtevL(mtev_debug, "%d/%d priority to %d/%d.\n",
-        (int)getpid(), (int)pthread_self(), sched, sp.sched_priority);
+        (int)getpid(), (int)(intptr_t)pthread_self(), sched, sp.sched_priority);
   return mtev_true;
 #endif
 }
