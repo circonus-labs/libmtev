@@ -42,6 +42,9 @@
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
+#include <zlib.h>
+#include <lz4frame.h>
+
 
 #include "mtev_log.h"
 #include "mtev_main.h"
@@ -172,6 +175,12 @@ mtev_init_globals() {
     mtev_http_rest_init_globals();
     mtev_listener_init_globals();
     mtev_reverse_socket_init_globals();
+
+    mtev_capabilities_add_feature("http_accept_encoding_gzip", ZLIB_VERSION);
+    char lz4f_version[15] = {0};
+    snprintf(lz4f_version, sizeof(lz4f_version), "%d", LZ4F_VERSION);
+    mtev_capabilities_add_feature("http_accept_encoding_lz4f", lz4f_version);
+
     mtev_init_globals_once = 1;
   }
   mtev_spinlock_unlock(&mtev_init_globals_lock);
