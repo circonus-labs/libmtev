@@ -228,16 +228,7 @@ fetch_cclock_scale(int cpuid, struct cclock_scale *cs) {
 }
 #endif
 
-#if defined(BSD) || defined(__FreeBSD__)
-#include <time.h>
-#define NANOSEC 1000000000
-static inline mtev_hrtime_t 
-mtev_gethrtime_fallback() {
-  struct timespec ts;
-  clock_gettime(CLOCK_UPTIME,&ts);
-  return (((u_int64_t) ts.tv_sec) * NANOSEC + ts.tv_nsec);
-}
-#elif defined(linux) || defined(__linux) || defined(__linux__)
+#if defined(linux) || defined(__linux) || defined(__linux__)
 #include <time.h>
 static inline mtev_hrtime_t 
 mtev_gethrtime_fallback() {
@@ -261,6 +252,15 @@ mtev_gethrtime_fallback() {
     t = mach_absolute_time();
     return t * sTimebaseInfo.numer / sTimebaseInfo.denom;
   }
+#elif defined(BSD) || defined(__FreeBSD__)
+#include <time.h>
+#define NANOSEC 1000000000
+static inline mtev_hrtime_t 
+mtev_gethrtime_fallback() {
+  struct timespec ts;
+  clock_gettime(CLOCK_UPTIME,&ts);
+  return (((u_int64_t) ts.tv_sec) * NANOSEC + ts.tv_nsec);
+}
 #else
 static inline mtev_hrtime_t 
 mtev_gethrtime_fallback() {
