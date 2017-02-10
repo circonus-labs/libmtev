@@ -92,6 +92,12 @@ mtev_capabilities_add_feature(const char *feature, const char *version) {
           feature, version ? version : "unpecified");
 }
 
+const mtev_hash_table *
+mtev_capabilities_get_features()
+{
+  return &features;
+}
+
 static int
 mtev_capabilities_rest(mtev_http_rest_closure_t *restc, int n, char **p) {
   mtev_capsvc_closure_t cl = { 0 };
