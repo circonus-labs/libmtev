@@ -4,6 +4,9 @@
 #include <zlib.h>
 #include <lz4frame.h>
 
+#define GZIP_WINDOW_BITS 15
+#define GZIP_ENCODING 16
+
 struct mtev_stream_compress_ctx
 {
   mtev_compress_type type;
@@ -42,7 +45,7 @@ mtev_compress_gzip(const char *data, size_t len, unsigned char **compressed, siz
   size_t max_compressed_len;
   int err;
 
-  err = deflateInit2(&stream, 9, Z_DEFLATED, 15, 8, Z_DEFAULT_STRATEGY);
+  err = deflateInit2(&stream, 9, Z_DEFLATED, GZIP_WINDOW_BITS | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY);
   if (err != Z_OK) {
     mtevL(mtev_error, "mtev_http_gzip -> deflateInit2: %d\n", err);
     return err;
@@ -201,7 +204,8 @@ mtev_stream_compress_init(mtev_stream_compress_ctx_t *ctx, mtev_compress_type ty
   switch (type) {
   case MTEV_COMPRESS_GZIP:
     {
-      int err = deflateInit2(&ctx->zlib_compress_ctx, 9, Z_DEFLATED, 15, 8, Z_DEFAULT_STRATEGY);
+      int err = deflateInit2(&ctx->zlib_compress_ctx, 9, Z_DEFLATED, GZIP_WINDOW_BITS | GZIP_ENCODING, 
+                             8, Z_DEFAULT_STRATEGY);
       if (err != Z_OK) {
         mtevL(mtev_error, "mtev_stream_compress_init: Error creating gzip compression context: %d\n", err);
       }
@@ -259,15 +263,7 @@ static int
 mtev_stream_compress_gzip(mtev_stream_compress_ctx_t *ctx, const char *source_data,
                           size_t *source_len, unsigned char *out, size_t *out_len)
 {
-  if (ctx->begun == mtev_false) {
-    int x = deflateInit2(&ctx->zlib_compress_ctx, 9, Z_DEFLATED, 15, 8, Z_DEFAULT_STRATEGY);
-    if (x != Z_OK) {
-      mtevL(mtev_error, "mtev_stream_compress_gzip: error initing deflate stream: %d\n",
-            x);
-      return -1;
-    }
-    ctx->begun = mtev_true;
-  }
+  ctx->begun = mtev_true;
   size_t in_len = *source_len;
   ctx->zlib_compress_ctx.next_in = (Bytef *)source_data;
   ctx->zlib_compress_ctx.avail_in = in_len;

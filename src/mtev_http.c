@@ -1120,7 +1120,7 @@ mtev_http_ctx_acceptor_free(void *v) {
   mtev_http_ctx_session_release((mtev_http_session_ctx *)v);
 }
 static int
-mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx, 
+mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx, 
                                       mtev_compress_type compression_type,
                                       int *mask) {
   /* chunked encoding read */
@@ -1153,8 +1153,8 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
           else if(*cp >= 'A' && *cp <= 'F') clen = (clen << 4) | (*cp - 'A' + 10);
           else if(*cp == '\r' && cp[1] == '\n') {
             mtevL(http_debug, "Found for chunk length(%d)\n", clen);
-            next_chunk = clen;
             if (in->size - 2 >= clen) {
+              next_chunk = clen;
               in->start += cp - cp_begin + 2;
               in->size -= cp - cp_begin + 2;
               goto successful_chunk_size;
@@ -1250,7 +1250,7 @@ mtev_http_session_req_consume_chunked(mtev_http_session_ctx *ctx,
       if (ctx->req.payload_chunked) {
         /* there must be a \r\n at the end of this block */
         str_in_f = strnstrn("\r\n", 2, in->buff + in->start, in->size);
-        if(str_in_f != (in->buff + in->start)) {
+        if(in->size < 2 || strncmp(in->buff + in->start, "\r\n", 2) != 0) {
           mtevL(mtev_error, "HTTP chunked encoding error, no trailing CRLF.\n");
           return -2;
         }
@@ -1373,7 +1373,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
 
   if(ctx->req.payload_chunked) {
     if (ctx->req.read_last_chunk == mtev_false) {
-      int chunk_size = mtev_http_session_req_consume_chunked(ctx, compression_type, mask);
+      int chunk_size = mtev_http_session_req_consume_read(ctx, compression_type, mask);
       mtevL(http_debug, " ... mtev_http_session_req_consume(%d) chunked -> %d\n",
             ctx->conn.e->fd, chunk_size);
       if(chunk_size == 0) {
@@ -1399,7 +1399,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
   } 
   else {
     if (ctx->req.content_length_read < ctx->req.content_length) {
-      int rlen = mtev_http_session_req_consume_chunked(ctx, compression_type, mask);
+      int rlen = mtev_http_session_req_consume_read(ctx, compression_type, mask);
       if (rlen >= 0) {
         ctx->req.content_length_read += rlen;
       } else if (rlen == -2) {
