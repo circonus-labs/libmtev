@@ -4,15 +4,8 @@
 #include <zlib.h>
 #include <lz4frame.h>
 
-
-/* RFC 1952 Section 2.3 defines the gzip header:
- *  *
- *  * +---+---+---+---+---+---+---+---+---+---+
- *  * |ID1|ID2|CM |FLG|     MTIME     |XFL|OS |
- *  * +---+---+---+---+---+---+---+---+---+---+
- *  */
-static const char gzip_header[10] =
-  { '\037', '\213', Z_DEFLATED, 0, 0, 0, 0, 0, 0, 0x03 };
+#define GZIP_WINDOW_BITS 15
+#define GZIP_ENCODING 16
 
 struct mtev_stream_compress_ctx
 {
@@ -50,9 +43,9 @@ mtev_compress_gzip(const char *data, size_t len, unsigned char **compressed, siz
 {
   z_stream stream;
   size_t max_compressed_len;
-  int err, skip = 0;
+  int err;
 
-  err = deflateInit2(&stream, 9, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
+  err = deflateInit2(&stream, 9, Z_DEFLATED, GZIP_WINDOW_BITS | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY);
   if (err != Z_OK) {
     mtevL(mtev_error, "mtev_http_gzip -> deflateInit2: %d\n", err);
     return err;
@@ -60,14 +53,12 @@ mtev_compress_gzip(const char *data, size_t len, unsigned char **compressed, siz
   
   stream.next_in = (Bytef *)data;
   stream.avail_in = len;
-  max_compressed_len = deflateBound(&stream, len) + sizeof(gzip_header);
+  max_compressed_len = deflateBound(&stream, len);
 
   *compressed = malloc(max_compressed_len);
-  memcpy(*compressed, gzip_header, sizeof(gzip_header));
-  skip += sizeof(gzip_header);
 
-  stream.next_out = (*compressed) + skip;
-  stream.avail_out = max_compressed_len - skip;
+  stream.next_out = (*compressed);
+  stream.avail_out = max_compressed_len;
 
   err = deflate(&stream, Z_FINISH);
   if (err != Z_OK && err != Z_STREAM_END) {
@@ -77,7 +68,7 @@ mtev_compress_gzip(const char *data, size_t len, unsigned char **compressed, siz
   }
 
   deflateEnd(&stream);
-  *compressed_len = stream.total_out + skip;
+  *compressed_len = stream.total_out;
   return Z_OK;
 }
 
@@ -213,7 +204,8 @@ mtev_stream_compress_init(mtev_stream_compress_ctx_t *ctx, mtev_compress_type ty
   switch (type) {
   case MTEV_COMPRESS_GZIP:
     {
-      int err = deflateInit2(&ctx->zlib_compress_ctx, 9, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
+      int err = deflateInit2(&ctx->zlib_compress_ctx, 9, Z_DEFLATED, GZIP_WINDOW_BITS | GZIP_ENCODING, 
+                             8, Z_DEFAULT_STRATEGY);
       if (err != Z_OK) {
         mtevL(mtev_error, "mtev_stream_compress_init: Error creating gzip compression context: %d\n", err);
       }
@@ -241,7 +233,7 @@ mtev_stream_compress_init(mtev_stream_compress_ctx_t *ctx, mtev_compress_type ty
 
 static int
 mtev_stream_compress_lz4f(mtev_stream_compress_ctx_t *ctx, const char *source_data,
-                          size_t source_len, unsigned char *out, size_t *out_len)
+                          size_t *source_len, unsigned char *out, size_t *out_len)
 {
   size_t s = 0;
   if (ctx->begun == mtev_false) {
@@ -255,7 +247,7 @@ mtev_stream_compress_lz4f(mtev_stream_compress_ctx_t *ctx, const char *source_da
   }
 
   size_t chunk = LZ4F_compressUpdate(ctx->lz4_compress_ctx, out + s, *out_len - s, 
-                                     source_data, source_len, NULL);
+                                     source_data, *source_len, NULL);
   if (LZ4F_isError(chunk)) {
     mtevL(mtev_error, "mtev_stream_compress_lz4f: Error compressupdate: %s\n",
           LZ4F_getErrorName(chunk));
@@ -263,46 +255,38 @@ mtev_stream_compress_lz4f(mtev_stream_compress_ctx_t *ctx, const char *source_da
   }
   s += chunk;
   *out_len = s;
+  *source_len = 0;
   return 0;
 }
 
 static int
 mtev_stream_compress_gzip(mtev_stream_compress_ctx_t *ctx, const char *source_data,
-                          size_t source_len, unsigned char *out, size_t *out_len)
+                          size_t *source_len, unsigned char *out, size_t *out_len)
 {
-  size_t skip = 0;
-  if (ctx->begun == mtev_false) {
-    int x = deflateInit2(&ctx->zlib_compress_ctx, 9, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
-    if (x != Z_OK) {
-      mtevL(mtev_error, "mtev_stream_compress_gzip: error initing deflate stream: %d\n",
-            x);
-      return -1;
-    }
-    /* copy in the gzip header */
-    memcpy(out, gzip_header, sizeof(gzip_header));
-    skip += sizeof(gzip_header);
-    ctx->begun = mtev_true;
-  }
-
+  ctx->begun = mtev_true;
+  size_t in_len = *source_len;
   ctx->zlib_compress_ctx.next_in = (Bytef *)source_data;
-  ctx->zlib_compress_ctx.avail_in = source_len;
-  ctx->zlib_compress_ctx.next_out = out + skip;
-  ctx->zlib_compress_ctx.avail_out = *out_len - skip;
+  ctx->zlib_compress_ctx.avail_in = in_len;
+  ctx->zlib_compress_ctx.next_out = out;
+  ctx->zlib_compress_ctx.avail_out = *out_len;
   
   size_t t = ctx->zlib_compress_ctx.total_out;
+  size_t ti = ctx->zlib_compress_ctx.total_in;
   int x = deflate(&ctx->zlib_compress_ctx, Z_NO_FLUSH);
   if (x != Z_OK) {
     mtevL(mtev_error, "mtev_stream_compress_gzip: error deflate stream: %d\n",
           x);
     return -1;    
   }
-  *out_len = ctx->zlib_compress_ctx.total_out - t + skip;
+  /* order of operations matters here */
+  *source_len = in_len - (ctx->zlib_compress_ctx.total_in - ti);
+  *out_len = (ctx->zlib_compress_ctx.total_out - t);
   return 0;
 }
 
 int  
 mtev_stream_compress(mtev_stream_compress_ctx_t *ctx, const char *source_data, 
-                     size_t len, unsigned char *out, size_t *out_len)
+                     size_t *len, unsigned char *out, size_t *out_len)
 {
   switch (ctx->type) {
   case MTEV_COMPRESS_LZ4F:
@@ -310,15 +294,20 @@ mtev_stream_compress(mtev_stream_compress_ctx_t *ctx, const char *source_data,
   case MTEV_COMPRESS_GZIP:
     return mtev_stream_compress_gzip(ctx, source_data, len, out, out_len);
   case MTEV_COMPRESS_DEFLATE:
-    return _mtev_compress_deflate(source_data, len, out, out_len);
+    {
+      int x = _mtev_compress_deflate(source_data, *len, out, out_len);
+      *len = 0;
+      return x;
+    }
   case MTEV_COMPRESS_NONE:
     {
-      if (*out_len < len) {
+      if (*out_len < *len) {
         mtevL(mtev_error, "mtev_stream_compress: not enough space in out buffer\n");
         return -1;
       }
-      memcpy(out, source_data, len);
-      *out_len = len;
+      memcpy(out, source_data, *len);
+      *out_len = *len;
+      *len = 0;
       return 0;
     }
   default:
@@ -356,7 +345,7 @@ mtev_stream_compress_flush_gzip(mtev_stream_compress_ctx_t *ctx,
   size_t loop_out = 0;
   int x = 0;
   
-  while (x != Z_STREAM_END) {
+  while (x != Z_STREAM_END && *out_len - loop_out > 0) {
     size_t total_out_pre_flush = ctx->zlib_compress_ctx.total_out;
     ctx->zlib_compress_ctx.next_out = out + loop_out;
     ctx->zlib_compress_ctx.avail_out = *out_len - loop_out;

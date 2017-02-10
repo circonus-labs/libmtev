@@ -52,6 +52,9 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_capabilities_add_feature(const char *feature, const char *version);
 
+API_EXPORT(const mtev_hash_table *)
+  mtev_capabilities_get_features();
+
 API_EXPORT(int)
   mtev_capabilities_handler(eventer_t e, int mask, void *closure,
                             struct timeval *now);
