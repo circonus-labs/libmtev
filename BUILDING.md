@@ -1,68 +1,90 @@
-#Building Mount Everest (libmtev)
+# Building Mount Everest (libmtev)
 
 ## Requirements
 
- * libck
- * libjlog
- * luajit
- * udns
+ * concurrencykit (ck) 0.5+
  * fq
+ * hwloc
+ * jlog 2.2+
+ * liblz4
+ * libcircllhist
+ * libcircmetrics
+ * libcurl
+ * luajit 2.0+
+ * ncurses
+ * openssl
+ * pcre
+ * udns
+ * wslay (optional, for websockets support)
 
 ## Platforms
 
-### FreeBSD
+### FreeBSD 10+
 
-    #!/bin/sh
-    # pkg install hwloc concurrencykit liblz4 pcre udns e2fsprogs-libuuid
-    # portmaster -g /usr/ports/misc/e2fsprogs-libuuid
-    # portmaster -g /usr/ports/devel/pcre
-    # portmaster -g /usr/ports/devel/concurrencykit
-    # portmaster -g /usr/ports/devel/hwloc
-    # portmaster -g /usr/ports/devel/re2c
-    # portmaster -g /usr/ports/textproc/libxml2
-    # portmaster -g /usr/ports/textproc/libxslt
-    # cd /usr/local/src
-    # git clone https://github.com/circonus-labs/libmtev
-    # cd libmtev
-    # autoreconf -i
-    # ./configure LDFLAGS="-L/usr/local/lib"
-    # make
+    pkg install autoconf gcc git gmake \
+        concurrencykit e2fsprogs-libuuid hwloc liblz4 \
+        libxml2 libxslt luajit pcre udns
 
-### Linux (Debian)
+    git clone https://github.com/circonus-labs/libmtev
+    cd libmtev
+    autoreconf -i
+    CPPFLAGS="-I/usr/local/include/luajit-2.0" ./configure
+    gmake
 
-    #!/bin/sh
-    # apt-get install autoconf build-essential \
+### Linux (Ubuntu LTS)
+
+**NOTE:** The version of libck shipped with Xenial (16.04) is too old.
+You will need to build a current version from [source](http://concurrencykit.org/).
+
+    apt-get install autoconf build-essential git \
 		zlib1g-dev uuid-dev libpcre3-dev libssl-dev \
-		libxslt-dev xsltproc  libncurses5-dev hwloc-nox-dev libck0-dev
-    # git clone https://github.com/circonus-labs/libmtev
-    # cd libmtev
-    # autoreconf -i
-    # LDFLAGS="-ldl -lm" ./configure
-    # make
+		libxslt1-dev xsltproc libncurses5-dev libhwloc-dev \
+        libluajit-5.1-dev libudns-dev liblz4-dev
 
-### Linux (CentOS 6.3)
+    # (build and install ck, jlog, libcircllhist, libcircmetrics, and fq now)
 
-    #!/bin/sh
-    # yum install autoconf \
-    	libtermcap-devel libxslt-devel ncurses-devel openssl-devel \
-        udns-devel luajit-devel pcre-devel uuid-devel zlib-devel \
-    	libuuid-devel hwloc-devel ck
-    # git clone https://github.com/circonus-labs/libmtev
-    # cd libmtev
-    # autoreconf -i
-    # ./configure
-    # make
+    git clone https://github.com/circonus-labs/libmtev
+    cd libmtev
+    autoreconf -i
+    CPPFLAGS="-I/usr/include/luajit-2.0" ./configure
+    make
+
+### Linux (RHEL/CentOS 6+)
+
+**NOTE** The EPEL (Extra Packages for Enterprise Linux) repo will be used.
+This is required for liblz4 and libudns.
+
+    yum groupinstall "Development Tools"
+    yum install epel-release autoconf git \
+        curl-devel hwloc-devel libuuid-devel libxslt-devel \
+        lz4-devel ncurses-devel openssl-devel pcre-devel \
+        udns-devel
+
+    # (build and install ck, luajit, jlog, libcircllhist, libcircmetrics, and fq now)
+
+    git clone https://github.com/circonus-labs/libmtev
+    cd libmtev
+    autoreconf -i
+    CPPFLAGS="-I/usr/local/include/luajit-2.0" ./configure
+    make
 
 ### OmniOS
 
-    # pkg set-publisher -g http://updates.circonus.net/omnios/ circonus
-    # pkg install developer/git developer/build/autoconf system/header \
-            developer/gcc48 developer/build/gnu-make \
-            platform/library/hwloc field/ck jlog luajit udns fq
+Supported releases:
+ * r151014 LTS
 
-    # git clone git@github.com:circonus-labs/libmtev.git
-    # cd libmtev
-    # autoreconf -i
-    # ./configure LDFLAGS="-m64 -L/opt/circonus/lib/amd64" CPPFLAGS="-I/opt/circonus/include/amd64"
-    # export MAKE=gmake
-    # gmake
+Set up a [development environment](https://omnios.omniti.com/wiki.php/DevEnv) first, then:
+
+    pkg set-publisher -g http://updates.circonus.net/omnios/r151014/ circonus
+    pkg install developer/debug/mdb developer/versioning/git \
+        field/ck field/fq platform/library/hwloc platform/library/jlog \
+        platform/library/libcircllhist platform/library/libcircmetrics \
+        platform/library/liblz4 platform/library/udns platform/library/uuid \
+        platform/library/wslay platform/runtime/luajit
+
+    git clone git@github.com:circonus-labs/libmtev.git
+    cd libmtev
+    autoreconf -i
+    ./configure LDFLAGS="-m64 -L/opt/circonus/lib/amd64" CPPFLAGS="-I/opt/circonus/include/amd64"
+    export MAKE=gmake
+    gmake
