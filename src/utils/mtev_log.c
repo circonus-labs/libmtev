@@ -1645,7 +1645,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
     }
     else tbuf[0] = '\0';
     if(IS_DEBUG_BELOW(ls)) {
-      snprintf(dbuf, sizeof(dbuf), "[t@%x,%s:%d] ", (unsigned int)pthread_self(), file, line);
+      snprintf(dbuf, sizeof(dbuf), "[t@%zx,%s:%d] ", (uintptr_t)pthread_self(), file, line);
       dbuflen = strlen(dbuf);
     }
     else dbuf[0] = '\0';

@@ -53,7 +53,7 @@ example1:	$(EX1_OBJS)
 
 fq-router:	$(FQR_OBJS)
 	@echo "- linking $@"
-	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(FQR_OBJS) $(LIBS) -lmtev -lfq -ldl
+	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(FQR_OBJS) $(LIBS) -lmtev -lfq
 
 websocket_client:	$(WSC_OBJS)
 	@echo "- linking $@"

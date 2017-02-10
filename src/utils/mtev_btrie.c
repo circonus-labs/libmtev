@@ -40,6 +40,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+
 // BITS should be either 32 or 128
 #define MAXBITS 128
 

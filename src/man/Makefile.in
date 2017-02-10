@@ -1,5 +1,4 @@
 INSTALL=@INSTALL@
-XML2H=@top_srcdir@/buildtools/xml2h
 XSLTPROC=@XSLTPROC@
 NROFF=@NROFF@
 

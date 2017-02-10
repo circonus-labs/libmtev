@@ -37,7 +37,7 @@
 #include "mtev_memory.h"
 #include "mtev_thread.h"
 
-#if defined(HAVE_LIBUMEM)
+#if defined(HAVE_LIBUMEM) && defined(HAVE_UMEM_H)
 #include <umem.h>
 #endif
 #define MTEV_EPOCH_SAFE_MAGIC 0x5afe5afe
@@ -577,7 +577,7 @@ default_allocator_init(struct mtev_allocator *a, mtev_allocator_options_t opt) {
   memcpy(&a->options, opt, sizeof(*opt));
 }
 
-#if defined(HAVE_LIBUMEM)
+#if defined(HAVE_LIBUMEM) && defined(HAVE_UMEM_H)
 static void
 fixed_umem_release(mtev_allocator_t a, void *ptr) {
   umem_cache_t *ucache = a->impl_data;
@@ -644,7 +644,7 @@ mtev_allocator_t mtev_allocator_create(mtev_allocator_options_t opt) {
              id, (int)opt->fixed_size);
   }
   if(0) { }
-#if defined(HAVE_LIBUMEM)
+#if defined(HAVE_LIBUMEM) && defined(HAVE_UMEM_H)
   else if(opt->fixed_size) {
     fixed_umem_allocator_init(allocator, opt);
   }

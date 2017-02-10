@@ -98,7 +98,7 @@ ke_change (register int const ident,
   kep = &ke_vec[ke_vec_used++];
 
   EV_SET(kep, ident, filter, flags, 0, 0, (void *)(intptr_t)e->fd);
-  mtevL(eventer_deb, "debug: [t@%llx] ke_change(fd:%d, filt:%x, flags:%x)\n",
+  mtevL(eventer_deb, "debug: [t@%zx] ke_change(fd:%d, filt:%x, flags:%x)\n",
         (intptr_t)e->thr_owner, ident, filter, flags);
   pthread_mutex_unlock(&kqs->lock);
 }
@@ -352,7 +352,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
       e->thr_owner = pthread_self();
       alter_kqueue_mask(e, oldmask, 0);
       e->thr_owner = tgt;
-      mtevL(eventer_deb, "moved event[%p] from t@%llx to t@%llx\n", e, (intptr_t)pthread_self(), (intptr_t)tgt);
+      mtevL(eventer_deb, "moved event[%p] from t@%zx to t@%zx\n", e, (intptr_t)pthread_self(), (intptr_t)tgt);
       if(newmask) eventer_cross_thread_trigger(e, newmask & ~(EVENTER_EXCEPTION));
     }
     else {
@@ -430,7 +430,7 @@ static int eventer_kqueue_impl_loop() {
                     &__kqueue_sleeptime);
     kqs->wakeup_notify = 0;
     if(fd_cnt > 0 || ke_vec_used)
-      mtevLT(eventer_deb, &__now, "[t@%llx] kevent(%d, [...], %d) => %d\n", (intptr_t)pthread_self(), kqs->kqueue_fd, ke_vec_used, fd_cnt);
+      mtevLT(eventer_deb, &__now, "[t@%zx] kevent(%d, [...], %d) => %d\n", (intptr_t)pthread_self(), kqs->kqueue_fd, ke_vec_used, fd_cnt);
     ke_vec_used = 0;
     if(fd_cnt < 0) {
       mtevLT(eventer_err, &__now, "kevent(s/%d): %s\n", kqs->kqueue_fd, strerror(errno));

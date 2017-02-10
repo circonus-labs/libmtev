@@ -3429,7 +3429,7 @@ nl_thread_self(lua_State *L) {
   lua_getglobal(L, "mtev_internal_lmc");;
   lmc = lua_touserdata(L, lua_gettop(L));
   lua_pop(L, 1);
-  lua_pushinteger(L, (int)pthread_self());
+  lua_pushinteger(L, (int)(intptr_t)pthread_self());
   lua_pushinteger(L, (lmc) ? lmc->eventer_id : -1);
   return 2;
 }
