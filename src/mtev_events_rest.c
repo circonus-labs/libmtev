@@ -41,8 +41,8 @@
 
 static void
 json_spit_event(eventer_t e, void *closure) {
-  struct json_object *doc = closure;
-  struct json_object *eo, *ao = NULL;
+  mtev_json_object *doc = closure;
+  mtev_json_object *eo, *ao = NULL;
   const char *cbname;
   eventer_pool_t *epool = NULL;
   char ip[INET6_ADDRSTRLEN];
@@ -52,35 +52,35 @@ json_spit_event(eventer_t e, void *closure) {
     struct sockaddr_in6 ip6;
   } addr;
   socklen_t addrlen;
-  eo = json_object_new_object();
+  eo = MJ_OBJ();
  
   epool = eventer_get_pool_for_event(e); 
   cbname = eventer_name_for_callback_e(e->callback, e);
   if(!cbname) cbname = "unknown";
-  json_object_object_add(eo, "callback", json_object_new_string(cbname));
+  MJ_KV(eo, "callback", MJ_STR(cbname));
   if(e->mask & (EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION)) {
-    json_object_object_add(eo, "fd", json_object_new_int(e->fd));
+    MJ_KV(eo, "fd", MJ_INT(e->fd));
     ip[0] = '\0';
     addrlen = sizeof(addr);
     if(getsockname(e->fd, &addr.a, &addrlen) == 0) {
       switch(addr.a.sa_family) {
         case AF_INET:
           if(inet_ntop(AF_INET, &addr.ip4.sin_addr, ip, sizeof(ip))) {
-            ao = json_object_new_object();
-            json_object_object_add(ao, "address", json_object_new_string(ip));
-            json_object_object_add(ao, "port", json_object_new_int(ntohs(addr.ip4.sin_port)));
+            ao = MJ_OBJ();
+            MJ_KV(ao, "address", MJ_STR(ip));
+            MJ_KV(ao, "port", MJ_INT(ntohs(addr.ip4.sin_port)));
           }
           break;
         case AF_INET6:
           if(inet_ntop(AF_INET, &addr.ip6.sin6_addr, ip, sizeof(ip))) {
-            ao = json_object_new_object();
-            json_object_object_add(ao, "address", json_object_new_string(ip));
-            json_object_object_add(ao, "port", json_object_new_int(ntohs(addr.ip6.sin6_port)));
+            ao = MJ_OBJ();
+            MJ_KV(ao, "address", MJ_STR(ip));
+            MJ_KV(ao, "port", MJ_INT(ntohs(addr.ip6.sin6_port)));
           }
           break;
         default: break;
       }
-      if(ao) json_object_object_add(eo, "local", ao);
+      if(ao) MJ_KV(eo, "local", ao);
     }
     ao = NULL;
     ip[0] = '\0';
@@ -89,125 +89,99 @@ json_spit_event(eventer_t e, void *closure) {
       switch(addr.a.sa_family) {
         case AF_INET:
           if(inet_ntop(AF_INET, &addr.ip4.sin_addr, ip, sizeof(ip))) {
-            ao = json_object_new_object();
-            json_object_object_add(ao, "address", json_object_new_string(ip));
-            json_object_object_add(ao, "port", json_object_new_int(ntohs(addr.ip4.sin_port)));
+            ao = MJ_OBJ();
+            MJ_KV(ao, "address", MJ_STR(ip));
+            MJ_KV(ao, "port", MJ_INT(ntohs(addr.ip4.sin_port)));
           }
           break;
         case AF_INET6:
           if(inet_ntop(AF_INET, &addr.ip6.sin6_addr, ip, sizeof(ip))) {
-            ao = json_object_new_object();
-            json_object_object_add(ao, "address", json_object_new_string(ip));
-            json_object_object_add(ao, "port", json_object_new_int(ntohs(addr.ip6.sin6_port)));
+            ao = MJ_OBJ();
+            MJ_KV(ao, "address", MJ_STR(ip));
+            MJ_KV(ao, "port", MJ_INT(ntohs(addr.ip6.sin6_port)));
           }
           break;
         default:
           break;
       }
-      if(ao) json_object_object_add(eo, "remote", ao);
+      if(ao) MJ_KV(eo, "remote", ao);
     }
-    json_object_object_add(eo, "impl", json_object_new_string(e->opset->name));
-    json_object_object_add(eo, "mask", json_object_new_int(e->mask));
+    MJ_KV(eo, "impl", MJ_STR(e->opset->name));
+    MJ_KV(eo, "mask", MJ_INT(e->mask));
   }
   else if(e->mask & EVENTER_TIMER) {
-    struct json_object *wo;
     uint64_t ms = e->whence.tv_sec;
     ms *= 1000ULL;
     ms += e->whence.tv_usec/1000;
-    wo = json_object_new_int(ms);
-    json_object_set_int_overflow(wo, json_overflow_uint64);
-    json_object_set_uint64(wo, ms);
-    json_object_object_add(eo, "whence", wo);
+    MJ_KV(eo, "whence", MJ_UINT64(ms));
   }
   if(epool) {
-    json_object_object_add(eo, "eventer_pool", json_object_new_string(eventer_pool_name(epool)));
+    MJ_KV(eo, "eventer_pool", MJ_STR(eventer_pool_name(epool)));
   }
 
-  json_object_array_add(doc, eo);
+  MJ_ADD(doc, eo);
 }
 static void
 json_spit_jobq(eventer_jobq_t *jobq, void *closure) {
-  struct json_object *doc = closure;
-  struct json_object *jo = json_object_new_object();
-  json_object_object_add(jo, "concurrency", json_object_new_int(jobq->concurrency));
-  json_object_object_add(jo, "desired_concurrency", json_object_new_int(jobq->desired_concurrency));
-  struct json_object *li = json_object_new_int(0);
-  json_object_set_int_overflow(li, json_overflow_int64);
-  json_object_set_int64(li, (long long int)jobq->total_jobs);
-  json_object_object_add(jo, "total_jobs", li);
-  json_object_object_add(jo, "backlog", json_object_new_int(jobq->backlog));
-  json_object_object_add(jo, "inflight", json_object_new_int(jobq->inflight));
-  li = json_object_new_int(0);
-  json_object_set_int_overflow(li, json_overflow_int64);
-  json_object_set_int64(li, (long long int)jobq->timeouts);
-  json_object_object_add(jo, "timeouts", li);
-  json_object_object_add(jo, "avg_wait_ms", json_object_new_double((double)jobq->avg_wait_ns/1000000.0));
-  json_object_object_add(jo, "avg_run_ms", json_object_new_double((double)jobq->avg_run_ns/1000000.0));
-  json_object_object_add(doc, jobq->queue_name, jo);
+  mtev_json_object *doc = closure, *jo;
+
+  MJ_KV(doc, jobq->queue_name, jo = MJ_OBJ());
+  MJ_KV(jo, "concurrency", MJ_INT(jobq->concurrency));
+  MJ_KV(jo, "desired_concurrency", MJ_INT(jobq->desired_concurrency));
+  MJ_KV(jo, "total_jobs", MJ_INT64(jobq->total_jobs));
+  MJ_KV(jo, "backlog", MJ_INT(jobq->backlog));
+  MJ_KV(jo, "inflight", MJ_INT(jobq->inflight));
+  MJ_KV(jo, "timeouts", MJ_INT64(jobq->timeouts));
+  MJ_KV(jo, "avg_wait_ms", MJ_DOUBLE((double)jobq->avg_wait_ns/1000000.0));
+  MJ_KV(jo, "avg_run_ms", MJ_DOUBLE((double)jobq->avg_run_ns/1000000.0));
 }
 
 static int
 mtev_rest_eventer_timers(mtev_http_rest_closure_t *restc, int n, char **p) {
-  const char *jsonstr;
-  struct json_object *doc;
-  doc = json_object_new_array();
+  mtev_json_object *doc = MJ_ARR();
   eventer_foreach_timedevent(json_spit_event, doc);
 
   mtev_http_response_ok(restc->http_ctx, "application/json");
-  jsonstr = json_object_to_json_string(doc);
-  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
-  mtev_http_response_append(restc->http_ctx, "\n", 1);
-  json_object_put(doc);
+  mtev_http_response_append_json(restc->http_ctx, doc);
+  MJ_DROP(doc);
   mtev_http_response_end(restc->http_ctx);
   return 0;
 }
 static int
 mtev_rest_eventer_memory(mtev_http_rest_closure_t *restc, int n, char **p) {
-  const char *jsonstr;
-  struct json_object *doc, *eobj;
-  doc = json_object_new_object();
-  eobj = json_object_new_object();
-  json_object_object_add(doc, "eventer_t", eobj);
-  json_object_object_add(eobj, "current",
-    json_object_new_int((int)eventer_allocations_current()));
-  json_object_object_add(eobj, "total",
-    json_object_new_int((int)eventer_allocations_total()));
+  mtev_json_object *doc = MJ_OBJ(), *eobj;
+
+  MJ_KV(doc, "eventer_t", eobj = MJ_OBJ());
+  MJ_KV(eobj, "current", MJ_INT64(eventer_allocations_current()));
+  MJ_KV(eobj, "total", MJ_INT64(eventer_allocations_total()));
 
   mtev_http_response_ok(restc->http_ctx, "application/json");
-  jsonstr = json_object_to_json_string(doc);
-  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
-  mtev_http_response_append(restc->http_ctx, "\n", 1);
-  json_object_put(doc);
+  mtev_http_response_append_json(restc->http_ctx, doc);
+  MJ_DROP(doc);
   mtev_http_response_end(restc->http_ctx);
   return 0;
 }
 static int
 mtev_rest_eventer_sockets(mtev_http_rest_closure_t *restc, int n, char **p) {
-  const char *jsonstr;
-  struct json_object *doc;
-  doc = json_object_new_array();
+  mtev_json_object *doc = MJ_ARR();
+
   eventer_foreach_fdevent(json_spit_event, doc);
 
   mtev_http_response_ok(restc->http_ctx, "application/json");
-  jsonstr = json_object_to_json_string(doc);
-  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
-  mtev_http_response_append(restc->http_ctx, "\n", 1);
-  json_object_put(doc);
+  mtev_http_response_append_json(restc->http_ctx, doc);
+  MJ_DROP(doc);
   mtev_http_response_end(restc->http_ctx);
   return 0;
 }
 static int
 mtev_rest_eventer_jobq(mtev_http_rest_closure_t *restc, int n, char **p) {
-  const char *jsonstr;
-  struct json_object *doc;
-  doc = json_object_new_object();
+  mtev_json_object *doc = MJ_ARR();
+
   eventer_jobq_process_each(json_spit_jobq, doc);
 
   mtev_http_response_ok(restc->http_ctx, "application/json");
-  jsonstr = json_object_to_json_string(doc);
-  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
-  mtev_http_response_append(restc->http_ctx, "\n", 1);
-  json_object_put(doc);
+  mtev_http_response_append_json(restc->http_ctx, doc);
+  MJ_DROP(doc);
   mtev_http_response_end(restc->http_ctx);
   return 0;
 }
@@ -215,28 +189,17 @@ mtev_rest_eventer_jobq(mtev_http_rest_closure_t *restc, int n, char **p) {
 static int
 json_spit_log(uint64_t idx, const struct timeval *whence,
               const char *log, size_t len, void *closure) {
-  struct json_object *doc = (struct json_object *)closure;
-  struct json_object *o, *wo;
+  mtev_json_object *doc = closure, *o;
   uint64_t ms;
-
-  o = json_object_new_object();
-
-  wo = json_object_new_int(idx);
-  json_object_set_int_overflow(wo, json_overflow_uint64);
-  json_object_set_uint64(wo, idx);
-  json_object_object_add(o, "idx", wo);
 
   ms = whence->tv_sec;
   ms *= 1000ULL;
   ms += whence->tv_usec/1000;
-  wo = json_object_new_int(ms);
-  json_object_set_int_overflow(wo, json_overflow_uint64);
-  json_object_set_uint64(wo, ms);
-  json_object_object_add(o, "whence", wo);
 
-  json_object_object_add(o, "line", json_object_new_string_len(log, len));
-
-  json_object_array_add(doc, o);
+  MJ_ADD(doc, o = MJ_OBJ());
+  MJ_KV(o, "idx", MJ_UINT64(idx));
+  MJ_KV(o, "whence", MJ_UINT64(ms));
+  MJ_KV(o, "line", MJ_STRN(log, len));
   return 0;
 }
 
@@ -244,11 +207,10 @@ int
 mtev_rest_eventer_logs(mtev_http_rest_closure_t *restc, int n, char **p) {
   char *endptr = NULL;
   const char *since_s, *last_s;
-  const char *jsonstr;
   char errbuf[128];
   unsigned long long since = 0;
   int last = 0;
-  struct json_object *doc;
+  mtev_json_object *doc;
   mtev_log_stream_t ls;
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
   since_s = mtev_http_request_querystring(req, "since");
@@ -261,28 +223,24 @@ mtev_rest_eventer_logs(mtev_http_rest_closure_t *restc, int n, char **p) {
   if(!ls || strcmp(mtev_log_stream_get_type(ls),"memory"))
     goto not_found;
 
-  doc = json_object_new_array();
+  doc = MJ_ARR();
   if(endptr != since_s)
     mtev_log_memory_lines_since(ls, since, json_spit_log, doc);
   else
     mtev_log_memory_lines(ls, last, json_spit_log, doc);
 
   mtev_http_response_ok(restc->http_ctx, "application/json");
-  jsonstr = json_object_to_json_string(doc);
-  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
-  mtev_http_response_append(restc->http_ctx, "\n", 1);
-  json_object_put(doc);
+  mtev_http_response_append_json(restc->http_ctx, doc);
+  MJ_DROP(doc);
   mtev_http_response_end(restc->http_ctx);
   return 0;
  not_found:
-  doc = json_object_new_object();
+  doc = MJ_OBJ();
   snprintf(errbuf, sizeof(errbuf), "log '%s' not found", p[0]);
-  json_object_object_add(doc, "error", json_object_new_string(errbuf));
-  jsonstr = json_object_to_json_string(doc);
+  MJ_KV(doc, "error", MJ_STR(errbuf));
   mtev_http_response_not_found(restc->http_ctx, "application/json");
-  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
-  mtev_http_response_append(restc->http_ctx, "\n", 1);
-  json_object_put(doc);
+  mtev_http_response_append_json(restc->http_ctx, doc);
+  MJ_DROP(doc);
   mtev_http_response_end(restc->http_ctx);
   return 0;
 }

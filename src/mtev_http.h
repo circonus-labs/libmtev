@@ -201,6 +201,12 @@ API_EXPORT(mtev_boolean)
 API_EXPORT(mtev_boolean)
   mtev_http_response_append_mmap(mtev_http_session_ctx *,
                                  int fd, size_t len, int flags, off_t offset);
+
+#define mtev_http_response_append_json(ctx, doc) (\
+  mtev_http_response_append_str(ctx, mtev_json_object_to_json_string(doc)), \
+  mtev_http_response_append_str(ctx, "\n") \
+)
+
 API_EXPORT(mtev_boolean)
   mtev_http_response_flush(mtev_http_session_ctx *, mtev_boolean);
 API_EXPORT(mtev_boolean)

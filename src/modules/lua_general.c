@@ -407,8 +407,13 @@ describe_lua_general_context(mtev_console_closure_t ncct,
             ri->coro_state, ri->lmc->lua_state);
 }
 static void
-describe_lua_general_context_json(struct json_object *jcoro,
+describe_lua_general_context_json(mtev_json_object *jcoro,
                                   mtev_lua_resume_info_t *ri) {
+  char buff[32];
+  snprintf(buff, sizeof(buff), "%p", ri->coro_state);
+  MJ_KV(jcoro, "state", MJ_STR(buff));
+  snprintf(buff, sizeof(buff), "%p", ri->lmc->lua_state);
+  MJ_KV(jcoro, "parent", MJ_STR(buff));
 }
 
 static void

@@ -117,8 +117,8 @@ static void mtev_lua_free_data(void *vdata);
      }
 
 typedef struct {
-  struct json_tokener *tok;
-  struct json_object *root;
+  mtev_json_tokener *tok;
+  mtev_json_object *root;
 } json_crutch;
 
 static void
@@ -3074,64 +3074,70 @@ mtev_lua_json_tostring(lua_State *L) {
   if(docptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   if(n != 1) luaL_error(L, "expects no arguments, got %d", n - 1);
-  jsonstring = json_object_to_json_string((*docptr)->root);
+  jsonstring = mtev_json_object_to_json_string((*docptr)->root);
   lua_pushstring(L, jsonstring);
   /* jsonstring is freed with the root object later */
   return 1;
 }
 static int
-mtev_json_object_to_luatype(lua_State *L, struct json_object *o) {
+mtev_json_object_to_luatype(lua_State *L, mtev_json_object *o) {
   if(!o) {
     lua_pushnil(L);
     return 1;
   }
-  switch(json_object_get_type(o)) {
-    case json_type_null: lua_pushnil(L); break;
-    case json_type_object:
+  switch(mtev_json_object_get_type(o)) {
+    case mtev_json_type_null: lua_pushnil(L); break;
+    case mtev_json_type_object:
     {
       struct jl_lh_table *lh;
       struct jl_lh_entry *el;
-      lh = json_object_get_object(o);
+      lh = mtev_json_object_get_object(o);
       lua_createtable(L, 0, lh->count);
       jl_lh_foreach(lh, el) {
-        mtev_json_object_to_luatype(L, (struct json_object *)el->v);
+        mtev_json_object_to_luatype(L, (mtev_json_object *)el->v);
         lua_setfield(L, -2, el->k);
       }
       break;
     }
-    case json_type_string: lua_pushstring(L, json_object_get_string(o)); break;
-    case json_type_boolean: lua_pushboolean(L, json_object_get_boolean(o)); break;
-    case json_type_double: lua_pushnumber(L, json_object_get_double(o)); break;
-    case json_type_int:
+    case mtev_json_type_string:
+      lua_pushstring(L, mtev_json_object_get_string(o));
+      break;
+    case mtev_json_type_boolean:
+      lua_pushboolean(L, mtev_json_object_get_boolean(o));
+      break;
+    case mtev_json_type_double:
+      lua_pushnumber(L, mtev_json_object_get_double(o));
+      break;
+    case mtev_json_type_int:
     {
       int64_t i64;
       uint64_t u64;
       char istr[64];
-      switch(json_object_get_int_overflow(o)) {
-        case json_overflow_int:
-          lua_pushnumber(L, json_object_get_int(o)); break;
-        case json_overflow_int64:
-          i64 = json_object_get_int64(o);
-          snprintf(istr, sizeof(istr), "%lld", (long long int)i64);
+      switch(mtev_json_object_get_int_overflow(o)) {
+        case mtev_json_overflow_int:
+          lua_pushnumber(L, mtev_json_object_get_int(o)); break;
+        case mtev_json_overflow_int64:
+          i64 = mtev_json_object_get_int64(o);
+          snprintf(istr, sizeof(istr), "%" PRId64, i64);
           lua_pushstring(L, istr);
           break;
-        case json_overflow_uint64:
-          u64 = json_object_get_uint64(o);
-          snprintf(istr, sizeof(istr), "%llu", (long long unsigned int)u64);
+        case mtev_json_overflow_uint64:
+          u64 = mtev_json_object_get_uint64(o);
+          snprintf(istr, sizeof(istr), "%" PRIu64, u64);
           lua_pushstring(L, istr);
           break;
       }
       break;
     }
-    case json_type_array:
+    case mtev_json_type_array:
     {
       int i, cnt;
       struct jl_array_list *al;
-      al = json_object_get_array(o);
+      al = mtev_json_object_get_array(o);
       cnt = al ? jl_array_list_length(al) : 0;
       lua_createtable(L, 0, cnt);
       for(i=0;i<cnt;i++) {
-        mtev_json_object_to_luatype(L, (struct json_object *)jl_array_list_get_idx(al, i));
+        mtev_json_object_to_luatype(L, (mtev_json_object *)jl_array_list_get_idx(al, i));
         lua_rawseti(L, -2, i+1);
       }
       break;
@@ -3162,7 +3168,7 @@ mtev_lua_guess_is_array(lua_State *L, int idx) {
   }
   return rv;
 }
-static struct json_object *
+static mtev_json_object *
 mtev_lua_thing_to_json_object(lua_State *L, int idx) {
   lua_Integer v_int;
   double v_double;
@@ -3180,7 +3186,7 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx) {
       return mtev_json_object_new_double(v_double);
     case LUA_TTABLE:
       if(mtev_lua_guess_is_array(L,idx)) {
-        struct json_object *array = mtev_json_object_new_array();
+        mtev_json_object *array = mtev_json_object_new_array();
         lua_pushnil(L);
         while(lua_next(L,idx) != 0) {
           int key;
@@ -3192,7 +3198,7 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx) {
         return array;
       }
       else {
-        struct json_object *table = mtev_json_object_new_object();
+        mtev_json_object *table = mtev_json_object_new_object();
         lua_pushnil(L);
         while(lua_next(L,idx) != 0) {
           const char *key;
@@ -3237,11 +3243,11 @@ nl_parsejson(lua_State *L) {
 
   in = lua_tolstring(L, 1, &inlen);
   doc = calloc(1, sizeof(*doc));
-  doc->tok = json_tokener_new();
-  doc->root = json_tokener_parse_ex(doc->tok, in, inlen);
+  doc->tok = mtev_json_tokener_new();
+  doc->root = mtev_json_tokener_parse_ex(doc->tok, in, inlen);
   if(is_error(doc->root)) {
-    json_tokener_free(doc->tok);
-    if(doc->root) json_object_put(doc->root);
+    mtev_json_tokener_free(doc->tok);
+    if(doc->root) mtev_json_object_put(doc->root);
     free(doc);
     lua_pushnil(L);
     return 1;
@@ -3257,8 +3263,8 @@ static int
 mtev_lua_json_gc(lua_State *L) {
   json_crutch **json;
   json = (json_crutch **)lua_touserdata(L,1);
-  if((*json)->tok) json_tokener_free((*json)->tok);
-  if((*json)->root) json_object_put((*json)->root);
+  if((*json)->tok) mtev_json_tokener_free((*json)->tok);
+  if((*json)->root) mtev_json_object_put((*json)->root);
   free(*json);
   return 0;
 }

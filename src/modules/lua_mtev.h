@@ -171,7 +171,7 @@ void mtev_lua_context_describe(int magic,
                                void (*f)(mtev_console_closure_t,
                                          mtev_lua_resume_info_t *));
 void mtev_lua_context_describe_json(int magic,
-                               void (*j)(struct json_object *,
+                               void (*j)(mtev_json_object *,
                                          mtev_lua_resume_info_t *));
 const char *mtev_lua_type_name(int);
 mtev_lua_resume_info_t *

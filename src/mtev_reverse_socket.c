@@ -1801,9 +1801,8 @@ register_console_reverse_commands() {
 static int
 rest_show_reverse_json(mtev_http_rest_closure_t *restc,
                        int npats, char **pats) {
-  struct json_object *doc, *node, *channels;
+  mtev_json_object *doc, *node, *channels;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  const char *jsonstr;
   const char *want_id = NULL;
   int n = 0, i, di;
   double age;
@@ -1823,7 +1822,7 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
     n++;
   }
 
-  doc = json_object_new_object();
+  doc = MJ_OBJ();
 
   for(i=0; i<n; i++) {
     char scratch[128];
@@ -1831,20 +1830,20 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
     if(want_id && strcmp(want_id, ctxs[i]->id)) continue;
     reverse_socket_t *rc = ctxs[i];
 
-    node = json_object_new_object();
+    node = MJ_OBJ();
     if(rc->data.e) {
 #define ADD_ATTR(node, name, fmt...) do { \
   snprintf(scratch, sizeof(scratch), fmt); \
-  json_object_object_add(node, name, json_object_new_string(scratch)); \
+  MJ_KV(node, name, MJ_STR(scratch)); \
 } while(0)
-      ADD_ATTR(node, "fd", "%d", rc->data.e->fd);
+      MJ_KV(node, "fd", MJ_INT(rc->data.e->fd));
       sub_timeval(now, rc->data.create_time, &diff);
       age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
-      ADD_ATTR(node, "uptime", "%0.3f", age);
-      ADD_ATTR(node, "in_bytes", "%llu", (unsigned long long)rc->data.in_bytes);
-      ADD_ATTR(node, "in_frames", "%llu", (unsigned long long)rc->data.in_frames);
-      ADD_ATTR(node, "out_bytes", "%llu", (unsigned long long)rc->data.out_bytes);
-      ADD_ATTR(node, "out_frames", "%llu", (unsigned long long)rc->data.out_frames);
+      MJ_KV(node, "uptime", MJ_DOUBLE(age));
+      MJ_KV(node, "in_bytes", MJ_UINT64(rc->data.in_bytes));
+      MJ_KV(node, "in_frames", MJ_UINT64(rc->data.in_frames));
+      MJ_KV(node, "out_bytes", MJ_UINT64(rc->data.out_bytes));
+      MJ_KV(node, "out_frames", MJ_UINT64(rc->data.out_frames));
       if(rc->data.proxy_ip4_e) {
         inet_ntop(AF_INET, &rc->data.proxy_ip4.sin_addr, buff, sizeof(buff));
         ADD_ATTR(node, "proxy_ipv4", "%s:%d", buff, ntohs(rc->data.proxy_ip4.sin_port));
@@ -1853,38 +1852,36 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
         inet_ntop(AF_INET6, &rc->data.proxy_ip6.sin6_addr, buff, sizeof(buff));
         ADD_ATTR(node, "proxy_ipv6", "[%s]:%d", buff, ntohs(rc->data.proxy_ip6.sin6_port));
       }
-      channels = json_object_new_object();
+      channels = MJ_OBJ();
       for(di=0;di<MAX_CHANNELS;di++) {
         char di_str[32];
-        struct json_object *channel;
+        mtev_json_object *channel;
         if(rc->data.channels[di].pair[0] < 0) continue;
         snprintf(di_str, sizeof(di_str), "%d", di);
-        channel = json_object_new_object();
-        ADD_ATTR(channel, "channel_id", "%d", di);
-        ADD_ATTR(channel, "fd", "%d", rc->data.channels[di].pair[0]);
+        channel = MJ_OBJ();
+        MJ_KV(channel, "channel_id", MJ_INT(di));
+        MJ_KV(channel, "fd", MJ_INT(rc->data.channels[di].pair[0]));
         sub_timeval(now, rc->data.channels[di].create_time, &diff);
         age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
-        ADD_ATTR(channel, "uptime", "%0.3f", age);
-        ADD_ATTR(channel, "in_bytes", "%llu", (unsigned long long)rc->data.channels[di].in_bytes);
-        ADD_ATTR(channel, "in_frames", "%llu", (unsigned long long)rc->data.channels[di].in_frames);
-        ADD_ATTR(channel, "out_bytes", "%llu", (unsigned long long)rc->data.channels[di].out_bytes);
-        ADD_ATTR(channel, "out_frames", "%llu", (unsigned long long)rc->data.channels[di].out_frames);
-        json_object_object_add(channels, di_str, channel);
+        MJ_KV(channel, "uptime", MJ_DOUBLE(age));
+        MJ_KV(channel, "in_bytes", MJ_UINT64(rc->data.channels[di].in_bytes));
+        MJ_KV(channel, "in_frames", MJ_UINT64(rc->data.channels[di].in_frames));
+        MJ_KV(channel, "out_bytes", MJ_UINT64(rc->data.channels[di].out_bytes));
+        MJ_KV(channel, "out_frames", MJ_UINT64(rc->data.channels[di].out_frames));
+        MJ_KV(channels, di_str, channel);
       }
-      json_object_object_add(node, "channels", channels);
+      MJ_KV(node, "channels", channels);
 #undef ADD_ATTR
     }
-    json_object_object_add(doc, rc->id, node);
+    MJ_KV(doc, rc->id, node);
   }
   
   pthread_rwlock_unlock(&reverse_sockets_lock);
   free(ctxs);
 
   mtev_http_response_ok(restc->http_ctx, "application/json");
-  jsonstr = json_object_to_json_string(doc);
-  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
-  mtev_http_response_append(restc->http_ctx, "\n", 1);
-  json_object_put(doc);
+  mtev_http_response_append_json(restc->http_ctx, doc);
+  MJ_DROP(doc);
   mtev_http_response_end(restc->http_ctx);
   return 0;
 }

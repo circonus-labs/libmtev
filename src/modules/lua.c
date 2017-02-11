@@ -127,7 +127,7 @@ mtev_lua_set_resume_info(lua_State *L, mtev_lua_resume_info_t *ri) {
 struct lua_context_describer {
   int context_magic;
   void (*describe)(mtev_console_closure_t, mtev_lua_resume_info_t *);
-  void (*describe_json)(struct json_object *, mtev_lua_resume_info_t *);
+  void (*describe_json)(mtev_json_object *, mtev_lua_resume_info_t *);
   struct lua_context_describer *next;
 };
 
@@ -144,7 +144,7 @@ mtev_lua_context_describe(int magic,
 }
 void
 mtev_lua_context_describe_json(int magic,
-                          void (*j)(struct json_object *,
+                          void (*j)(mtev_json_object *,
                                     mtev_lua_resume_info_t *)) {
   struct lua_context_describer *desc = calloc(1,sizeof(*desc));
   desc->context_magic = magic;
@@ -154,15 +154,15 @@ mtev_lua_context_describe_json(int magic,
 }
 
 static void
-describe_lua_context_json(struct json_object *jcoro,
+describe_lua_context_json(mtev_json_object *jcoro,
                           mtev_lua_resume_info_t *ri) {
   struct lua_context_describer *desc;
   switch(ri->context_magic) {
     case LUA_GENERAL_INFO_MAGIC:
-      json_object_object_add(jcoro, "context", json_object_new_string("lua_general"));
+      MJ_KV(jcoro, "context", MJ_STR("lua_general"));
       break;
     case LUA_REST_INFO_MAGIC:
-      json_object_object_add(jcoro, "context", json_object_new_string("lua_web"));
+      MJ_KV(jcoro, "context", MJ_STR("lua_web"));
       break;
     default:
 	 break;
@@ -205,7 +205,7 @@ struct lua_reporter {
   mtev_http_rest_closure_t *restc;
   struct timeval start;
   mtev_console_closure_t ncct;
-  struct json_object *root;
+  mtev_json_object *root;
   mtev_atomic32_t outstanding;
 };
 
@@ -225,7 +225,7 @@ static void mtev_lua_reporter_ref(struct lua_reporter *reporter) {
 static void mtev_lua_reporter_deref(struct lua_reporter *reporter) {
   if(mtev_atomic_dec32(&reporter->outstanding) == 0) {
     if(reporter->ncct) reporter->ncct = NULL;
-    if(reporter->root) json_object_put(reporter->root);
+    if(reporter->root) MJ_DROP(reporter->root);
     reporter->root = NULL;
     pthread_mutex_destroy(&reporter->lock);
   }
@@ -238,14 +238,14 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
   pthread_t me;
   me = pthread_self();
   mtevAssert(reporter->approach == LUA_REPORT_JSON);
-  struct json_object *states = NULL;
+  mtev_json_object *states = NULL;
 
   pthread_mutex_lock(&reporter->lock);
-  states = json_object_object_get(reporter->root, "states");
+  states = mtev_json_object_object_get(reporter->root, "states");
   memcpy(&iter, &zero, sizeof(zero));
   pthread_mutex_lock(&mtev_lua_states_lock);
   while(mtev_hash_adv(&mtev_lua_states, &iter)) {
-    struct json_object *state_info = NULL;
+    mtev_json_object *state_info = NULL;
     char state_str[32];
     char thr_str[32];
     lua_State **Lptr = (lua_State **)iter.key.ptr;
@@ -253,44 +253,44 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
     if(!pthread_equal(me, tgt)) continue;
 
     int thr_id = eventer_is_loop(me);
-    snprintf(thr_str, sizeof(thr_str), "0x%llx", (unsigned long long)me);
+    snprintf(thr_str, sizeof(thr_str), "0x%llx", (unsigned long long)(uintptr_t)me);
     if (thr_id >= 0) snprintf(thr_str, sizeof(thr_str), "%d", thr_id);
     snprintf(state_str, sizeof(state_str), "0x%llx", (unsigned long long)(uintptr_t)*Lptr);
-    state_info = json_object_new_object();
-    json_object_object_add(state_info, "thread", json_object_new_string(thr_str));
-    json_object_object_add(state_info, "bytes",
-        json_object_new_int(lua_gc(*Lptr, LUA_GCCOUNT, 0)*1024));
-    json_object_object_add(state_info, "coroutines", json_object_new_object());
-    json_object_object_add(states, state_str, state_info);
+    MJ_KV(states, state_str, state_info = MJ_OBJ());
+    MJ_KV(state_info, "thread", MJ_STR(thr_str));
+    MJ_KV(state_info, "bytes", MJ_INT64(lua_gc(*Lptr, LUA_GCCOUNT, 0)*1024));
+    MJ_KV(state_info, "coroutines", MJ_OBJ());
   }
   pthread_mutex_unlock(&mtev_lua_states_lock);
 
   memcpy(&iter, &zero, sizeof(zero));
   pthread_mutex_lock(&coro_lock);
   while(mtev_hash_adv(&mtev_coros, &iter)) {
+    char state_str[32];
+    mtev_json_object *state_info, *jcoros, *jcoro, *jstack;
     mtev_lua_resume_info_t *ri;
     int level = 1;
     lua_Debug ar;
     lua_State *L;
+
     mtevAssert(iter.klen == sizeof(L));
     L = *((lua_State **)iter.key.ptr);
     ri = iter.value.ptr;
     if(!pthread_equal(me, ri->lmc->owner)) continue;
 
-    char state_str[32];
-    json_object *state_info, *jcoros, *jcoro;
     snprintf(state_str, sizeof(state_str), "0x%llx", (unsigned long long)(uintptr_t)ri->lmc->lua_state);
-    state_info = json_object_object_get(states, state_str);
+    state_info = mtev_json_object_object_get(states, state_str);
     if(!state_info) continue;
-    jcoros = json_object_object_get(state_info, "coroutines");
+    jcoros = mtev_json_object_object_get(state_info, "coroutines");
 
     /* make state_str now point to this state */
     snprintf(state_str, sizeof(state_str), "0x%llx", (unsigned long long)(uintptr_t)L);
-    jcoro = json_object_new_object();
+
+    MJ_KV(jcoros, state_str, jcoro = MJ_OBJ());
     if(ri) describe_lua_context_json(jcoro, ri);
     while (lua_getstack(L, level++, &ar));
     level--;
-    struct json_object *jstack = json_object_new_array();
+    MJ_KV(jcoro, "stack", jstack = MJ_ARR());
     while (level > 0 && lua_getstack(L, --level, &ar)) {
       struct json_object *jsentry;
       const char *name;
@@ -300,15 +300,12 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
       if(!ar.source) ar.source = "???";
       if(ar.name == NULL) ar.name = name;
       if(ar.name == NULL) ar.name = "???";
-      jsentry = json_object_new_object();
-	 json_object_object_add(jsentry, "file", json_object_new_string(ar.source));
-      if (ar.currentline > 0) json_object_object_add(jsentry, "line", json_object_new_int(ar.currentline));
-      if (*ar.namewhat) json_object_object_add(jsentry, "namewhat", json_object_new_string(ar.namewhat));
-      json_object_object_add(jsentry, "name", json_object_new_string(ar.name));
-      json_object_array_add(jstack, jsentry);
+      MJ_ADD(jstack, jsentry = MJ_OBJ());
+      MJ_KV(jsentry, "file", MJ_STR(ar.source));
+      if (ar.currentline > 0) MJ_KV(jsentry, "line", MJ_INT(ar.currentline));
+      if (*ar.namewhat) MJ_KV(jsentry, "namewhat", MJ_STR(ar.namewhat));
+      MJ_KV(jsentry, "name", MJ_STR(ar.name));
     }
-    json_object_object_add(jcoro, "stack", jstack);
-    json_object_object_add(jcoros, state_str, jcoro);
   }
   pthread_mutex_unlock(&coro_lock);
   pthread_mutex_unlock(&reporter->lock);
@@ -449,10 +446,8 @@ mtev_rest_show_lua_complete(mtev_http_rest_closure_t *restc, int n, char **p) {
 
   mtev_http_response_ok(restc->http_ctx, "application/json");
   pthread_mutex_lock(&reporter->lock);
-  const char *jsonstr = json_object_to_json_string(reporter->root);
-  mtev_http_response_append(restc->http_ctx, jsonstr, strlen(jsonstr));
+  mtev_http_response_append_json(restc->http_ctx, reporter->root);
   pthread_mutex_unlock(&reporter->lock);
-  mtev_http_response_append(restc->http_ctx, "\n", 1);
   mtev_http_response_end(restc->http_ctx);
 
   mtev_lua_reporter_deref(reporter);
@@ -472,9 +467,9 @@ mtev_rest_show_lua(mtev_http_rest_closure_t *restc, int n, char **p) {
   }
   crutch->restc = restc;
   crutch->approach = LUA_REPORT_JSON;
-  crutch->root = json_object_new_object();
-  json_object_object_add(crutch->root, "metadata", json_object_new_object());
-  json_object_object_add(crutch->root, "states", json_object_new_object());
+  crutch->root = MJ_OBJ();
+  MJ_KV(crutch->root, "metadata", MJ_OBJ());
+  MJ_KV(crutch->root, "states", MJ_OBJ());
   distribute_reporter_across_threads(crutch, mtev_console_lua_thread_reporter_json);
   restc->call_closure = crutch;
   restc->fastpath = mtev_rest_show_lua_complete;
