@@ -43,6 +43,9 @@
 #include "mtev_thread.h"
 #include "mtev_log.h"
 
+#ifdef HAVE_VALGRIND_VALGRIND_H
+#include <valgrind/valgrind.h>
+#endif
 /* 
  * don't allow rdtsc on mach systems as there is only currently experimental support 
  * for affining threads to cores on mach systems
@@ -602,6 +605,14 @@ mtev_time_tsc_maintenance(void *unused) {
 void  
 mtev_time_start_tsc()
 {
+#ifdef __sun
+#ifdef RUNNING_ON_VALGRIND
+  if(!RUNNING_ON_VALGRIND) {
+    mtevL(mtev_debug, "mtev_time_start_tsc() -> disabled under valgrind.\n");
+    return;
+  }
+#endif
+#endif
 #ifdef ENABLE_RDTSC
   long nrcpus = sysconf(_SC_NPROCESSORS_ONLN);
   if(nrcpus > NCPUS) {

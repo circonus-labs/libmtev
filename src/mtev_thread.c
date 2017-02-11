@@ -35,6 +35,10 @@
 #include <unistd.h>
 #include <errno.h>
 
+#ifdef HAVE_VALGRIND_VALGRIND_H
+#include <valgrind/valgrind.h>
+#endif
+
 #if defined(__MACH__)
 #include <mach/mach_init.h>
 #include <mach/thread_policy.h>
@@ -75,6 +79,12 @@ mtev_boolean
 mtev_thread_bind_to_cpu(int cpu)
 {
 #ifdef __sun 
+#ifdef RUNNING_ON_VALGRIND
+  if (RUNNING_ON_VALGRIND != 0) {
+    mtevL(mtev_error, "Warning: Binding prevented under valgrind\n");
+    return mtev_thread_is_bound;
+  }
+#endif
   if (processor_bind(P_LWPID, P_MYID, cpu, 0)) {
     mtevL(mtev_error, "Warning: Binding thread to cpu %d failed\n", cpu);
   }
@@ -115,6 +125,12 @@ mtev_boolean
 mtev_thread_unbind_from_cpu(void)
 {
 #ifdef __sun 
+#ifdef RUNNING_ON_VALGRIND
+  if (RUNNING_ON_VALGRIND != 0) {
+    mtevL(mtev_error, "Warning: Unbinding prevented under valgrind\n");
+    return mtev_thread_is_bound;
+  }
+#endif
   if (processor_bind(P_LWPID, P_MYID, PBIND_NONE, 0)) {
     mtevL(mtev_error, "Warning: Unbinding thread from cpus failed\n");
   }
