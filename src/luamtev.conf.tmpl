@@ -4,8 +4,8 @@
 "    <generic image=\"lua_mtev\" name=\"lua_general\">\n" \
 "      <config>\n" \
 "        <Cpreloads>LuaMtevDirect,hostcli</Cpreloads>\n" \
-"        <directory>%s</directory>\n" \
-"        <cpath>%s</cpath>\n" \
+"        <directory>%s%s%s</directory>\n" \
+"        <cpath>%s%s%s</cpath>\n" \
 "        <lua_module>%s</lua_module>\n" \
 "        <lua_function>%s</lua_function>\n" \
 "        <tragedy_terminates>true</tragedy_terminates>\n" \
@@ -21,10 +21,12 @@
 "      <error>\n" \
 "        <outlet name=\"stderr\"/>\n" \
 "        <log name=\"error/cli\"/>\n" \
+"        <log name=\"error/lua\"/>\n" \
 "      </error>\n" \
 "      <debug>\n" \
 "        <outlet name=\"stderr\"/>\n" \
 "        <log name=\"debug/cli\" disabled=\"true\"/>\n" \
+"        <log name=\"debug/lua\" disabled=\"true\"/>\n" \
 "        <log name=\"notice\" disabled=\"true\"/>\n" \
 "      </debug>\n" \
 "    </components>\n" \
