@@ -58,6 +58,14 @@ typedef struct connection_configs {
   char* pass;
 } connection_configs;
 
+static void
+connection_configs_free(connection_configs *c) {
+  free(c->host);
+  free(c->user);
+  free(c->pass);
+  free(c);
+}
+
 struct fq_module_config {
   eventer_t receiver;
   fq_client* fq_conns;
@@ -90,12 +98,6 @@ static exchange_and_program* create_exchange_and_program(char* exchange,
   return eap;
 }
 
-static void free_exchange_and_program(exchange_and_program* eap) {
-  free(eap->exchange);
-  free(eap->program);
-  free(eap);
-}
-
 static void logger(fq_client c, const char *s) {
   (void) c;
   mtevL(nlerr, "fq_logger: %s\n", s);
@@ -119,8 +121,6 @@ static void my_auth_handler(fq_client c, int error) {
     breq->flags = FQ_BIND_TRANS;
     breq->program = strdup(eap->program);
     fq_client_bind(c, breq);
-  
-    free_exchange_and_program(eap);
   }
 }
 
@@ -144,6 +144,8 @@ static void my_bind_handler(fq_client c, fq_bind_req *breq) {
     mtevL(nlerr, "Failure to bind...\n");
     exit(-1);
   }
+  free(breq->program);
+  free(breq);
 }
 static bool my_message_ping(fq_client client, fq_msg *m) {
   (void)client;
@@ -179,28 +181,28 @@ static void connect_fq_client(fq_client *fq_c, char *host, int port, char *user,
   fq_client_connect(*fq_c);
 }
 
-static connection_configs check_connection_conf(mtev_conf_section_t section) {
-  connection_configs configs_table = {0};
+static connection_configs *check_connection_conf(mtev_conf_section_t section) {
+  connection_configs *configs_table = calloc(1, sizeof(connection_configs));
 
   mtev_conf_description_t desc;
   desc = mtev_conf_description_string(section,
   CONFIG_FQ_HOST, "Hostname of the fq broker data should be received from",
       mtev_conf_default_string("localhost"));
-  mtev_conf_get_value(&desc, &configs_table.host);
+  mtev_conf_get_value(&desc, &configs_table->host);
 
   desc = mtev_conf_description_int(section, CONFIG_FQ_PORT,
       "Port number of the fq broker", mtev_conf_default_int(8765));
-  mtev_conf_get_value(&desc, &configs_table.port);
+  mtev_conf_get_value(&desc, &configs_table->port);
 
   desc = mtev_conf_description_string(section, CONFIG_FQ_USER,
       "User name used to connect to the fq broker",
       mtev_conf_default_string("guest"));
-  mtev_conf_get_value(&desc, &configs_table.user);
+  mtev_conf_get_value(&desc, &configs_table->user);
 
   desc = mtev_conf_description_string(section, CONFIG_FQ_PASS,
       "User name used to connect to the fq broker",
       mtev_conf_default_string("guest"));
-  mtev_conf_get_value(&desc, &configs_table.pass);
+  mtev_conf_get_value(&desc, &configs_table->pass);
 
 
   return configs_table;
@@ -219,12 +221,15 @@ init_conns() {
 
   for (int section_id = 0; section_id != the_conf->number_of_conns; ++section_id) {
     char *exchange = NULL, *program = NULL;
-    connection_configs connection_configs = check_connection_conf(mqs[section_id]);
+    connection_configs *connection_configs = check_connection_conf(mqs[section_id]);
     mtev_conf_get_string(mqs[section_id], CONFIG_FQ_EXCHANGE, &exchange);
     mtev_conf_get_string(mqs[section_id], CONFIG_FQ_PROGRAM, &program);
-    connect_fq_client(&the_conf->fq_conns[section_id], connection_configs.host,
-        connection_configs.port, connection_configs.user,
-        connection_configs.pass, exchange, program);
+    connect_fq_client(&the_conf->fq_conns[section_id], connection_configs->host,
+        connection_configs->port, connection_configs->user,
+        connection_configs->pass, exchange, program);
+    connection_configs_free(connection_configs);
+    free(exchange);
+    free(program);
   }
   free(mqs);
 }
