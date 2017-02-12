@@ -236,6 +236,23 @@ static void
 mtev_xml_userdata_free(mtev_xml_userdata_t *n) {
   if(n->name) free(n->name);
   if(n->path) free(n->path);
+  free(n);
+}
+
+static void
+clean_xml_private_node_data(xmlNodePtr node) {
+  xmlNodePtr n;
+  if(node->_private) mtev_xml_userdata_free(node->_private);
+  node->_private = NULL;
+  for(n = node->children; n; n = n->next) {
+    clean_xml_private_node_data(n);
+  }
+}
+static void
+clean_xml_private_doc_data(xmlDocPtr doc) {
+  xmlNodePtr node = xmlDocGetRootElement(doc);
+  if(doc->_private) mtev_xml_userdata_free(doc->_private);
+  clean_xml_private_node_data(node);
 }
 
 static char *mtev_xml_ns = NULL;
@@ -482,11 +499,13 @@ mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt)
           include_nodes[i].insertion_point->children =
             include_nodes[i].old_children;
         }
+        clean_xml_private_doc_data(include_nodes[i].doc);
         xmlFreeDoc(include_nodes[i].doc);
 
         /* We've already done the work for subsequent globbed includes */
         while((i+1) < *cnt && include_nodes[i+1].glob_idx > 0) {
           i++;
+          clean_xml_private_doc_data(include_nodes[i].doc);
           xmlFreeDoc(include_nodes[i].doc);
         }
       }
@@ -517,6 +536,7 @@ mtev_conf_magic_separate() {
             n; n = n->next) {
           n->parent->last = n; /* sets it to the last child */
         }
+        clean_xml_private_doc_data(backingstore_include_nodes[i].doc);
         xmlFreeDoc(backingstore_include_nodes[i].doc);
       }
     }
@@ -1158,6 +1178,7 @@ mtev_conf_load_internal(const char *path) {
     if(master_config) {
       /* separate all includes */
       mtev_conf_magic_separate();
+      clean_xml_private_doc_data(master_config);
       xmlFreeDoc(master_config);
     }
     if(xpath_ctxt) xmlXPathFreeContext(xpath_ctxt);
