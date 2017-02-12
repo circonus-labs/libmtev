@@ -34,10 +34,12 @@ top_srcdir=@top_srcdir@
 
 LD_LIBRARY_PATH=../src
 TESTHARNESS_OBJS=test_harness.o
+LUAROCKS=@LUAROCKS@
+LUAROCKS_PATH=$(shell $(LUAROCKS) path --lr-path)
 
 all:	check
 
-TESTS=hash_test uuid_test time_test
+TESTS=hash_test uuid_test time_test hll_test
 
 hash_test: hash_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o hash_test hash_test.c
@@ -66,16 +68,17 @@ busted:
 	@busted --version >/dev/null 2>/dev/null || \
 		(echo "Please instead busted: luarocks install busted" && false)
 
-check:	test_harness $(TESTS)
+check-lua:
 	@echo
 	@echo "Running luajit-based tests via test_harness..."
-	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./test_harness -c ./test_harness.conf
+	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LUA_PATH="$(LUAROCKS_PATH)" ./mtevbusted
+
+check-standalone: $(TESTS)
 	@echo
 	@echo "Running other tests via script..."
 	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./run_standalone_tests.sh $(TESTS)
 
-tap:	busted
-	_DYLD_LIBRARY_PATH=../src DYLD_LIBRARY_PATH=../src LD_LIBRARY_PATH=../src busted --helper=mtev_load.lua -o tap .
+check:	check-standalone check-lua
 
 clean:
 	rm -f $(TESTS)

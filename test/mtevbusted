@@ -1,6 +1,9 @@
+#!../src/luamtev -L../src/modules/lua-support/?.lua;./lua-harness/?.lua;{package.path}
+
+module(..., package.seeall)
+
 local _G = _G
 local __buf = ''
-local ffi = require('ffi')
 local io = io
 local os = require('os')
 local print = print
@@ -8,26 +11,22 @@ local pairs = pairs
 local filename = os.getenv('JUNIT_OUTPUT_FILE') or 'test_detail.xml'
 local previowrite = io.write
 local mteviowrite = function(s)
-  __buf = __buf .. s
+  mtev.log("stdout", "%s", s)
 end
-ffi.cdef([=[
-  void exit(int);
-]=])
-local start_buffer = function()
-  io.write = mteviowrite
-end
-local end_buffer = function()
-  io.write = previowrite
-  local copy = __buf
-  __buf = ''
-  return copy
-end
+
 local mtev = mtev
 local nthreads = mtev.eventer_loop_concurrency()
 local require = require
 local pcall = pcall
 
-local k,l,_=pcall(require,"luarocks.loader") _=k and l.add_context("busted","2.0.rc12-1")
+jit.off(mtev.timeval.new)
+
+if (os.getenv("LUA_PATH") ~= nil) then
+  package.path = package.path .. ";" .. os.getenv("LUA_PATH")
+end
+
+local l = require("luarocks.loader")
+l.add_context("busted", "2.0.rc12-1")
 
 local busted = require('busted.core')();
 local filterLoader = require 'busted.modules.filter_loader'()
@@ -44,12 +43,11 @@ outputHandlerLoader(
   busted, 'gtest',
   { language = 'en' }
 )
+
 helperLoader(busted, 'lua-support/mtev_load.lua', { verbose = true, language = 'lua' })
 
 local testFileLoader = require 'busted.modules.test_file_loader'(busted, { 'lua', 'moonscript' })
 testFileLoader({ '.' }, { '_spec' }, { recursive = true, excludes = {} })
-
-module('luatest')
 
 local function jobwatch()
   local todo = { }
@@ -64,7 +62,7 @@ local function jobwatch()
     for k,v in pairs(todo) do cnt = cnt + 1 end
     if cnt == 0 then
       mtev.log("test", "Jobs complete, failures: %d\n", fail)
-      ffi.C.exit( fail == 0 and 0 or 2 )
+      os.exit( fail == 0 and 0 or 2 )
     end
     if status == 'end' then
       todo[job] = nil
@@ -75,14 +73,6 @@ end
 local tid, id = mtev.thread_self()
 if id == 0 then
   mtev.coroutine_spawn(jobwatch)
-end
-
-function onethread()
-  testsuite("MAIN")
-end
-
-function eachthread()
-  --testsuite("THREAD")
 end
 
 function testsuite(context)
@@ -117,12 +107,10 @@ function testsuite(context)
   end)
 
   busted.subscribe({ 'exit' }, function(...)
-    mtev.log("test", "\n%s", end_buffer())
     mtev.notify('jobs', name, 'end', failures + errors)
   end)
 
   local execute = require 'busted.execute'(busted)
-  start_buffer()
   execute(1, {
     seed = mtev.gettimeofday(),
     shuffle = true,
@@ -130,3 +118,8 @@ function testsuite(context)
   })
   busted.publish({ 'exit' })
 end
+
+function main()
+  testsuite("MAIN")
+end
+

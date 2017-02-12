@@ -26,7 +26,9 @@ static bool dump_template = false;
 static char *modules_path = NULL;
 static char *config_file = NULL;
 static char *lua_cpath = NULL;
+static char *lua_addcpath = NULL;
 static char *lua_lpath = NULL;
+static char *lua_addlpath = NULL;
 static char *lua_file = NULL;
 static int debug = 0;
 static char *function = "main";
@@ -37,14 +39,19 @@ static mtev_log_stream_t cli_stdout;
 
 static int
 usage(const char *prog) {
-	fprintf(stderr,
-  "%s [-i] [-L luapath] [-C luacpath] [-M modulepath] [-d] [-e function]\n\tluafile\n\n", prog);
+  fprintf(stderr,
+  "%s [-i] [-L luapath] [-C luacpath] [-M [-M]] [-d] [-e function]\n\tluafile\n\n", prog);
   fprintf(stderr, "\t-u\t\t\tdrop to user\n");
   fprintf(stderr, "\t-g\t\t\tdrop to group\n");
   fprintf(stderr, "\t-i\t\t\tturn on interactive console\n");
   fprintf(stderr, "\t-c <file>\t\tcustom mtev config\n");
+  fprintf(stderr, "\t-l <logname>\t\tenable the an mtev log stream\n");
   fprintf(stderr, "\t-L <path>\t\tlua package.path\n");
+  fprintf(stderr, "\t-L +<path>\t\tappend to package.path\n");
   fprintf(stderr, "\t-C <path>\t\tlua package.cpath\n");
+  fprintf(stderr, "\t-C +<path>\t\tappend to package.cpath\n");
+  fprintf(stderr, "\t-M\t\t\tDaemonize and run managed.\n");
+  fprintf(stderr, "\t-M -M\t\t\tRun managed.\n");
   fprintf(stderr, "\t-d\t\t\tturn on debugging\n");
   fprintf(stderr, "\t-e <func>\t\tspecify a function entrypoint (default: main)\n");
   fprintf(stderr, "\n%s -T\n", prog);
@@ -56,18 +63,32 @@ make_config() {
   int fd, len;
   char filename[] = "/tmp/clicmdXXXXXX";
   char *outbuf = NULL;
+  char lpath[PATH_MAX], cwd[PATH_MAX];
+
   if(!modules_path) modules_path = MTEV_MODULES_DIR;
-  if(!lua_lpath) lua_lpath = "?.lua;./?.lua;" MTEV_MODULES_DIR "/lua/?.lua";
+
+  if(!lua_lpath) lua_lpath = MTEV_MODULES_DIR "/lua/?.lua;%s/?.lua";
+  if(getcwd(cwd, sizeof(cwd)) == NULL) memcpy(cwd, ".", 2);
+  snprintf(lpath, sizeof(lpath), lua_lpath, cwd);
+
   if(!lua_cpath) lua_cpath = MTEV_LIB_DIR "/mtev_lua/?.so";
   if(!modules_path || !lua_lpath || !lua_cpath) {
-    fprintf(stderr, "Trouble finding paths, use -L -C or -M to fix this.\n");
+    fprintf(stderr, "Trouble finding paths, use -L or -C to fix this.\n");
     exit(-2);
   }
-  len = strlen(CONFIG_TMPL) + strlen(modules_path) + strlen(lua_lpath) +
+  len = strlen(CONFIG_TMPL) + strlen(modules_path) + strlen(lpath) +
         strlen(lua_cpath) + strlen(lua_file) + strlen(function);
+  if(lua_addlpath) len += 1 + strlen(lua_addlpath);
+  if(lua_addcpath) len += 1 + strlen(lua_addcpath);
   outbuf = malloc(len+1);
   len = snprintf(outbuf, len, CONFIG_TMPL,
-                 modules_path, lua_lpath, lua_cpath, lua_file, function);
+                 modules_path, lpath,
+                 lua_addlpath ? ";" : "",
+                 lua_addlpath ? lua_addlpath : "",
+                 lua_cpath,
+                 lua_addcpath ? ";" : "",
+                 lua_addcpath ? lua_addcpath : "",
+                 lua_file, function);
   if(len == -1) {
     fprintf(stderr, "Failed to generate config\n");
     exit(-2);
@@ -102,17 +123,28 @@ make_config() {
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, POSIXLY_COMPLIANT_PLUS "c:de:g:iu:C:L:T")) != EOF) {
+  while((c = getopt(argc, argv, POSIXLY_COMPLIANT_PLUS "c:de:g:l:iu:C:L:MT")) != EOF) {
     switch(c) {
       case 'd': debug = 1; break;
       case 'i': interactive = 1; break;
       case 'f': function = strdup(optarg); break;
-      case 'L': lua_lpath = strdup(optarg); break;
-      case 'C': lua_cpath = strdup(optarg); break;
+      case 'l': mtev_main_enable_log(optarg); break;
+      case 'L':
+        if(optarg[0] == '+') lua_addlpath = strdup(optarg+1);
+        else lua_lpath = strdup(optarg);
+        break;
+      case 'C':
+        if(optarg[0] == '+') lua_addcpath = strdup(optarg+1);
+        else lua_cpath = strdup(optarg);
+        break;
       case 'c': config_file = strdup(optarg); break;
       case 'T': dump_template = true; break;
       case 'u': droptouser = strdup(optarg); break;
       case 'g': droptogroup = strdup(optarg); break;
+      case 'M':
+        if(foreground == 1) foreground = 0;
+        else foreground = 2;
+        break;
     }
   }
   if(optind > (argc-1) && !dump_template) {

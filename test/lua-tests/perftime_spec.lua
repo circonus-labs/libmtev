@@ -17,7 +17,7 @@ describe("mtev_perftimer", function()
     ffi.C.usleep(100000)
     local ns = libmtev.mtev_perftimer_elapsed(perftimer)
     assert.truthy(ns > 100000000)
-    assert.truthy(ns < 110000000)
+    assert.truthy(ns < 200000000)
   end)
 
 end)

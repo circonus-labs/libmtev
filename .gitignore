@@ -39,6 +39,7 @@ test/Makefile
 test/hash_test
 test/uuid_test
 test/time_test
+test/hll_test
 test/test_harness
 test/sort_test
 test/test_detail.xml
