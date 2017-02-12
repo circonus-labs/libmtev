@@ -40,7 +40,7 @@ static mtev_log_stream_t cli_stdout;
 static int
 usage(const char *prog) {
   fprintf(stderr,
-  "%s [-i] [-L luapath] [-C luacpath] [-M [-M]] [-d] [-e function]\n\tluafile\n\n", prog);
+  "%s [-i] [-L luapath] [-C luacpath] [-M dir] [-d] [-e function]\n\tluafile\n\n", prog);
   fprintf(stderr, "\t-u\t\t\tdrop to user\n");
   fprintf(stderr, "\t-g\t\t\tdrop to group\n");
   fprintf(stderr, "\t-i\t\t\tturn on interactive console\n");
@@ -50,8 +50,9 @@ usage(const char *prog) {
   fprintf(stderr, "\t-L +<path>\t\tappend to package.path\n");
   fprintf(stderr, "\t-C <path>\t\tlua package.cpath\n");
   fprintf(stderr, "\t-C +<path>\t\tappend to package.cpath\n");
-  fprintf(stderr, "\t-M\t\t\tDaemonize and run managed.\n");
-  fprintf(stderr, "\t-M -M\t\t\tRun managed.\n");
+  fprintf(stderr, "\t-M <path>\t\tmtev modules path\n");
+  fprintf(stderr, "\t-m\t\t\tDaemonize and run managed.\n");
+  fprintf(stderr, "\t-m -m\t\t\tRun managed.\n");
   fprintf(stderr, "\t-d\t\t\tturn on debugging\n");
   fprintf(stderr, "\t-e <func>\t\tspecify a function entrypoint (default: main)\n");
   fprintf(stderr, "\n%s -T\n", prog);
@@ -123,25 +124,26 @@ make_config() {
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, POSIXLY_COMPLIANT_PLUS "c:de:g:l:iu:C:L:MT")) != EOF) {
+  while((c = getopt(argc, argv, POSIXLY_COMPLIANT_PLUS "c:de:g:l:miu:C:L:M:T")) != EOF) {
     switch(c) {
       case 'd': debug = 1; break;
       case 'i': interactive = 1; break;
       case 'f': function = strdup(optarg); break;
       case 'l': mtev_main_enable_log(optarg); break;
-      case 'L':
-        if(optarg[0] == '+') lua_addlpath = strdup(optarg+1);
-        else lua_lpath = strdup(optarg);
-        break;
       case 'C':
         if(optarg[0] == '+') lua_addcpath = strdup(optarg+1);
         else lua_cpath = strdup(optarg);
         break;
+      case 'L':
+        if(optarg[0] == '+') lua_addlpath = strdup(optarg+1);
+        else lua_lpath = strdup(optarg);
+        break;
+      case 'M': modules_path = strdup(optarg); break;
       case 'c': config_file = strdup(optarg); break;
       case 'T': dump_template = true; break;
       case 'u': droptouser = strdup(optarg); break;
       case 'g': droptogroup = strdup(optarg); break;
-      case 'M':
+      case 'm':
         if(foreground == 1) foreground = 0;
         else foreground = 2;
         break;
