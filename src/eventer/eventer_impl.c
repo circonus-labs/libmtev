@@ -503,13 +503,13 @@ static int assess_hw_topo() {
 }
 
 int eventer_boot_ctor() {
-  if(assess_hw_topo() != 0) return -1;
   return 0;
 }
 
 int eventer_cpu_sockets_and_cores(int *sockets, int *cores) {
   int depth, nsockets = 0, ncores = 0;
 
+  if(assess_hw_topo() != 0) return -1;
   if(!topo) return -1;
   depth = hwloc_get_type_depth(*topo, HWLOC_OBJ_SOCKET);
   if(depth != HWLOC_TYPE_DEPTH_UNKNOWN)
@@ -567,8 +567,6 @@ int eventer_impl_init() {
   int try;
   char *evdeb;
 
-  assess_hw_topo();
-
   (void)try;
 #ifdef SOCK_CLOEXEC
   /* We can test, still might not work */
@@ -584,6 +582,8 @@ int eventer_impl_init() {
 
   if(__default_loop_concurrency == 0) {
     int sockets = 0, cores = 0;
+    assess_hw_topo();
+
     (void)eventer_cpu_sockets_and_cores(&sockets, &cores);
     if(sockets == 0) sockets = 1;
     if(cores == 0) cores = sockets;
