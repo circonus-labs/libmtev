@@ -177,26 +177,22 @@ mtev_http_rest_endpoints(mtev_http_rest_closure_t *restc,
                          int npats, char **pats) {
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  struct json_object *doc;
-  doc = json_object_new_object();
+  mtev_json_object *doc = MJ_OBJ();
   while(mtev_hash_adv(&dispatch_points, &iter)) {
     struct rule_container *cont = iter.value.ptr;
     struct rest_url_dispatcher *rule;
-    struct json_object *arr, *jrule;
-    arr = json_object_new_array();
+    mtev_json_object *arr, *jrule;
+    MJ_KV(doc, iter.key.str, arr = MJ_ARR());
     for(rule = cont->rules; rule; rule = rule->next) {
-      jrule = json_object_new_object();
-      json_object_object_add(jrule, "method", json_object_new_string(rule->method));
-      json_object_object_add(jrule, "expression", json_object_new_string(rule->expression_s));
-      json_object_array_add(arr, jrule);
+      MJ_ADD(arr, jrule = MJ_OBJ());
+      MJ_KV(jrule, "method", MJ_STR(rule->method));
+      MJ_KV(jrule, "expression", MJ_STR(rule->expression_s));
     }
-    json_object_object_add(doc, iter.key.str, arr);
   }
 
   mtev_http_response_standard(ctx, 200, "OK", "application/json");
-  const char *output = json_object_to_json_string(doc);
-  mtev_http_response_append(ctx, output, strlen(output));
-  json_object_put(doc);
+  mtev_http_response_append_json(ctx, doc);
+  MJ_DROP(doc);
   mtev_http_response_end(ctx);
   return 0;
 }

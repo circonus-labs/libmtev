@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "mtev_debug.h"
 #include "mtev_printbuf.h"
@@ -321,9 +322,9 @@ static int mtev_json_object_int_to_json_string(struct mtev_json_object* jso,
 					  struct jl_printbuf *pb)
 {
   if(jso->o_ioverflow == mtev_json_overflow_uint64)
-    return jl_sprintbuf(pb, "%llu", (unsigned long long int)jso->overflow.c_uint64);
+    return jl_sprintbuf(pb, "%" PRIu64 "", jso->overflow.c_uint64);
   else if(jso->o_ioverflow == mtev_json_overflow_int64)
-    return jl_sprintbuf(pb, "%lld", (long long int)jso->overflow.c_int64);
+    return jl_sprintbuf(pb, "%" PRId64 "", jso->overflow.c_int64);
   return jl_sprintbuf(pb, "%d", jso->o.c_int);
 }
 
@@ -344,6 +345,24 @@ mtev_json_int_overflow mtev_json_object_get_int_overflow(struct mtev_json_object
 void mtev_json_object_set_int_overflow(struct mtev_json_object *jso,
 					  mtev_json_int_overflow o) {
   jso->o_ioverflow = o;
+}
+
+struct mtev_json_object *mtev_json_object_new_int64(int64_t i)
+{
+  struct mtev_json_object *o = mtev_json_object_new_int(0);
+  if(!o) return NULL;
+  mtev_json_object_set_int64(o, i);
+  mtev_json_object_set_int_overflow(o, mtev_json_overflow_int64);
+  return o;
+}
+
+struct mtev_json_object *mtev_json_object_new_uint64(uint64_t i)
+{
+  struct mtev_json_object *o = mtev_json_object_new_int(0);
+  if(!o) return NULL;
+  mtev_json_object_set_uint64(o, i);
+  mtev_json_object_set_int_overflow(o, mtev_json_overflow_uint64);
+  return o;
 }
 
 uint64_t mtev_json_object_get_uint64(struct mtev_json_object *jso)

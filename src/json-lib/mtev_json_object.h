@@ -259,7 +259,8 @@ extern boolean mtev_json_object_get_boolean(struct mtev_json_object *obj);
  * @returns a mtev_json_object of type mtev_json_type_int
  */
 extern struct mtev_json_object* mtev_json_object_new_int(int i);
-
+extern struct mtev_json_object *mtev_json_object_new_int64(int64_t i);
+extern struct mtev_json_object *mtev_json_object_new_uint64(uint64_t i);
 
 extern mtev_json_int_overflow mtev_json_object_get_int_overflow(struct mtev_json_object *jso);
 extern void mtev_json_object_set_int_overflow(struct mtev_json_object *jso,

@@ -142,65 +142,56 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     struct timeval now;
     struct dso_type *t;
 
-    struct json_object *doc;
-    struct json_object *svcs, *bi, *ri, *mods, *feat;
+    mtev_json_object *doc, *svcs, *bi, *ri, *mods, *feat;
 
     /* fill out capabilities */
-
-    /* Create an XML Document */
-    doc = json_object_new_object();
+    doc = MJ_OBJ();
 
     /* Fill in the document */
     mtev_build_version(vbuff, sizeof(vbuff));
-    json_object_object_add(doc, "version", json_object_new_string(vbuff));
+    MJ_KV(doc, "version", MJ_STR(vbuff));
 
     /* Build info */
-    bi = json_object_new_object();
-    json_object_object_add(bi, "bitwidth", json_object_new_int(sizeof(void *)*8));
-    json_object_object_add(bi, "sysname", json_object_new_string(UNAME_S));
-    json_object_object_add(bi, "nodename", json_object_new_string(UNAME_N));
-    json_object_object_add(bi, "release", json_object_new_string(UNAME_R));
-    json_object_object_add(bi, "version", json_object_new_string(UNAME_V));
-    json_object_object_add(bi, "machine", json_object_new_string(UNAME_M));
-    json_object_object_add(doc, "unameBuild", bi);
+    MJ_KV(doc, "unameBuild", bi = MJ_OBJ());
+    MJ_KV(bi, "bitwidth", MJ_INT(sizeof(void *)*8));
+    MJ_KV(bi, "sysname", MJ_STR(UNAME_S));
+    MJ_KV(bi, "nodename", MJ_STR(UNAME_N));
+    MJ_KV(bi, "release", MJ_STR(UNAME_R));
+    MJ_KV(bi, "version", MJ_STR(UNAME_V));
+    MJ_KV(bi, "machine", MJ_STR(UNAME_M));
 
     /* Run info */
-    ri = json_object_new_object();
-    json_object_object_add(ri, "bitwidth", json_object_new_int(sizeof(void *)*8));
+    MJ_KV(doc, "unameRun", ri = MJ_OBJ());
+    MJ_KV(ri, "bitwidth", MJ_INT(sizeof(void *)*8));
     if(uname(&utsn) < 0) {
-      json_object_object_add(ri, "error", json_object_new_string(strerror(errno)));
+      MJ_KV(ri, "error", MJ_STR(strerror(errno)));
     } else {
-      json_object_object_add(ri, "sysname", json_object_new_string(utsn.sysname));
-      json_object_object_add(ri, "nodename", json_object_new_string(utsn.nodename));
-      json_object_object_add(ri, "release", json_object_new_string(utsn.release));
-      json_object_object_add(ri, "version", json_object_new_string(utsn.version));
-      json_object_object_add(ri, "machine", json_object_new_string(utsn.machine));
+      MJ_KV(ri, "sysname", MJ_STR(utsn.sysname));
+      MJ_KV(ri, "nodename", MJ_STR(utsn.nodename));
+      MJ_KV(ri, "release", MJ_STR(utsn.release));
+      MJ_KV(ri, "version", MJ_STR(utsn.version));
+      MJ_KV(ri, "machine", MJ_STR(utsn.machine));
     }
-    json_object_object_add(doc, "unameRun", ri);
 
     /* features */
-    feat = json_object_new_object();
+    MJ_KV(doc, "features", feat = MJ_OBJ());
     if(mtev_hash_size(&features)) {
       mtev_hash_iter iter2 = MTEV_HASH_ITER_ZERO;
       while(mtev_hash_adv(&features, &iter2)) {
-        struct json_object *featnode;
-        featnode = json_object_new_object();
-        if(iter2.value.str) json_object_object_add(featnode, "version", json_object_new_string(iter2.value.str));
-        json_object_object_add(feat, iter2.key.str, featnode);
+        mtev_json_object *featnode;
+        MJ_KV(feat, iter2.key.str, featnode = MJ_OBJ());
+        if(iter2.value.str) MJ_KV(featnode, "version", MJ_STR(iter2.value.str));
       }
     }
-    json_object_object_add(doc, "features", feat);
 
     /* time (poor man's time check) */
     mtev_gettimeofday(&now, NULL);
-    snprintf(vbuff, sizeof(vbuff), "%llu%03d", (unsigned long long)now.tv_sec,
-             (int)(now.tv_usec / 1000));
-    json_object_object_add(doc, "current_time", json_object_new_string(vbuff));
+    MJ_KV(doc, "current_time", MJ_UINT64((now.tv_sec*1000) + (now.tv_usec/1000)));
 
-    svcs = json_object_new_object();
     lc = mtev_listener_commands();
+    MJ_KV(doc, "services", svcs = MJ_OBJ());
     while(mtev_hash_adv(lc, &iter)) {
-      struct json_object *cnode, *cmds;
+      mtev_json_object *cnode, *cmds;
       char hexcode[11];
       const char *name;
       eventer_func_t *f = (eventer_func_t *)iter.key.ptr;
@@ -208,59 +199,55 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
       mtev_hash_iter sc_iter = MTEV_HASH_ITER_ZERO;
 
       name = eventer_name_for_callback(*f);
-      cnode = json_object_new_object();
       if(iter.klen == 8)
         snprintf(hexcode, sizeof(hexcode), "0x%0llx",
                  (unsigned long long int)(uintptr_t)**f);
       else
         snprintf(hexcode, sizeof(hexcode), "0x%0x",
                  (unsigned int)(uintptr_t)**f);
-      json_object_object_add(svcs, hexcode, cnode);
-      if(name) json_object_object_add(cnode, name, json_object_new_string(name));
-      cmds = json_object_new_object();
-      json_object_object_add(cnode, "commands", cmds);
+      MJ_KV(svcs, hexcode, cnode = MJ_OBJ());
+      if(name) MJ_KV(cnode, name, MJ_STR(name));
+      MJ_KV(cnode, "commands", cmds = MJ_OBJ());
       while(mtev_hash_adv(sc, &sc_iter)) {
-        struct json_object *scnode;
+        mtev_json_object *scnode;
         char *name_copy, *version = NULL;
         eventer_func_t *f = (eventer_func_t *)sc_iter.value.ptr;
 
-        scnode = json_object_new_object();
         snprintf(hexcode, sizeof(hexcode), "0x%08x", *((uint32_t *)sc_iter.key.ptr));
         name = eventer_name_for_callback(*f);
         name_copy = strdup(name ? name : "[[unknown]]");
         version = strchr(name_copy, '/');
         if(version) *version++ = '\0';
 
-        json_object_object_add(scnode, "name", json_object_new_string(name_copy));
-        if(version) json_object_object_add(scnode, "version", json_object_new_string(version));
-        json_object_object_add(cmds, hexcode, scnode);
+        MJ_KV(cmds, hexcode, scnode = MJ_OBJ());
+        MJ_KV(scnode, "name", MJ_STR(name_copy));
+        if(version) MJ_KV(scnode, "version", MJ_STR(version));
         free(name_copy);
       }
     }
-    json_object_object_add(doc, "services", svcs);
 
-    mods = json_object_new_object();
+    MJ_KV(doc, "modules", mods = MJ_OBJ());
 
 #define list_modules_json(func, name) do { \
     nmods = func(&mod_names); \
     for(i=0; i<nmods; i++) { \
-      struct json_object *pnode; \
-      pnode = json_object_new_object(); \
-      json_object_object_add(pnode, "type", json_object_new_string(name)); \
-      json_object_object_add(mods, mod_names[i], pnode); \
+      mtev_json_object *pnode; \
+      MJ_KV(mods, mod_names[i], pnode = MJ_OBJ()); \
+      MJ_KV(pnode, "type", MJ_STR(name)); \
     } \
     if(mod_names) free(mod_names); \
 } while(0)
-    for(t = mtev_dso_get_types(); t; t = t->next)
+
+    for(t = mtev_dso_get_types(); t; t = t->next) {
       list_modules_json(t->list, t->name);
-    json_object_object_add(doc, "modules", mods);
+    }
 
     /* Write it out to a buffer and copy it for writing */
-    cl->buff = strdup(json_object_to_json_string(doc));
+    cl->buff = strdup(mtev_json_object_to_json_string(doc));
     cl->towrite = strlen(cl->buff);
 
     /* Clean up after ourselves */
-    json_object_put(doc);
+    MJ_DROP(doc);
 }
 static void
 mtev_capabilities_tobuff(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
