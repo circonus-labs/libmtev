@@ -411,6 +411,71 @@ static void dns_cb(struct dns_ctx *ctx, void *result, void *data) {
   lookup_ctx_release(dlc);
 }
 
+/*! \lua bool, family = mtev.dns:is_valid_ip(ipstr)
+    \brief Determine address family of an IP address.
+    \param ipstr a string of an potential IP address.
+    \return if the address is valid and, if it is, the family.
+
+    The first return is true if the suplied string is a valid IPv4 or IPv6
+    address, otherwise false.  If the address is valid, the second argument
+    will be the address family as an integer, otherwise nil.
+*/
+int
+mtev_dns_lua_is_valid_ip(lua_State *L) {
+  int8_t family;
+  int rv;
+  union {
+    struct in_addr addr4;
+    struct in6_addr addr6;
+  } a;
+
+  const char *target = lua_tostring(L,1);
+  if(!target) {
+    lua_pushboolean(L, 0);
+    lua_pushnil(L);
+    return 2;
+  }
+
+  family = AF_INET;
+  rv = inet_pton(family, target, &a);
+  if(rv != 1) {
+    family = AF_INET6;
+    rv = inet_pton(family, target, &a);
+    if(rv != 1) {
+      lua_pushboolean(L, 0);
+      lua_pushnil(L);
+      return 2;
+    }
+  }
+  lua_pushboolean(L, 1);
+  lua_pushinteger(L, family);
+  return 2;
+}
+
+/*! \lua record = mtev.dns:lookup(query, rtype = "A", ctype = "IN")
+    \brief Perform a DNS lookup.
+    \param query a string representing the DNS query.
+    \param rtype the DNS resource type (default "A").
+    \param ctype the DNS class type (default "IN").
+    \return a lua table, nil if the lookup fails.
+
+    DNS lookup works cooperatively with the eventer to schedule an
+    lookup and yield the current coroutine to the event loop.  If
+    successful the table returned will contain field(s) for the
+    requested resource. Possible fields are:
+
+     * `a` and `ttl`
+     * `aaaa` and `ttl`
+     * `mx` and `preference`
+     * `cname` and `ttl`
+     * `ptr` and `ttl`
+     * `ns` and `ttl`
+     * `mb` and `ttl`
+     * `md` and `ttl`
+     * `mf` and `ttl`
+     * `mg` and `ttl`
+     * `mr` and `ttl`
+*/
 static int mtev_lua_dns_lookup(lua_State *L) {
   dns_lookup_ctx_t *dlc, **holder;
   const char *c, *query = "", *ctype = "IN", *rtype = "A";
@@ -510,6 +575,10 @@ int mtev_lua_dns_index_func(lua_State *L) {
   if(!lua_isstring(L, 2))
     luaL_error(L, "metatable error, arg2 is not a string");
   k = lua_tostring(L, 2);
+  if(!strcmp(k, "is_valid_ip")) {
+    lua_pushcclosure(L, mtev_dns_lua_is_valid_ip, 0);
+    return 1;
+  }
   if(!strcmp(k, "lookup")) {
     lua_pushlightuserdata(L, udata);
     lua_pushcclosure(L, mtev_lua_dns_lookup, 1);

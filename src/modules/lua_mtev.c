@@ -3925,6 +3925,15 @@ static const luaL_Reg mtevlib[] = {
   { "uuid", nl_uuid },
   { "socket", nl_socket },
   { "dns", nl_dns_lookup },
+/*! \lua mtev.dns = mtev.dns(nameserver = nil)
+    \brief Create an `mtev.dns` object for DNS lookups.
+    \param nameserver an optional argument specifying the nameserver to use.
+    \return an `mtev.dns` object.
+
+    This function creates an `mtev.dns` object that can be used to perform
+    lookups and IP address validation.
+*/
+
   { "log", nl_log },
 /*! \lua len = mtev.log(facility, format, ...)
     \brief write message into the libmtev logging system

@@ -511,7 +511,65 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h3 id="g">G</h3>
+                                <h3 id="d">D</h3>
+<h4 id="mtevdns">mtev.dns</h4>
+<blockquote>
+<p>Create an <code>mtev.dns</code> object for DNS lookups.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.dns = 
+mtev.dns(nameserver = <span class="hljs-keyword">nil</span>)
+</code></pre>
+<ul>
+<li><code>nameserver</code> an optional argument specifying the nameserver to use.</li>
+<li><strong>RETURN</strong> an <code>mtev.dns</code> object.</li>
+</ul>
+<p>This function creates an <code>mtev.dns</code> object that can be used to perform
+lookups and IP address validation.</p>
+<h4 id="mtevdnsisvalidip">mtev.dns:is_valid_ip</h4>
+<blockquote>
+<p>Determine address family of an IP address.</p>
+</blockquote>
+<pre><code class="lang-lua">bool, family = 
+mtev.dns:is_valid_ip(ipstr)
+</code></pre>
+<ul>
+<li><code>ipstr</code> a string of an potential IP address.</li>
+<li><strong>RETURN</strong> if the address is valid and, if it is, the family.</li>
+</ul>
+<p>The first return is true if the suplied string is a valid IPv4 or IPv6
+address, otherwise false.  If the address is valid, the second argument
+will be the address family as an integer, otherwise nil.</p>
+<h4 id="mtevdnslookup">mtev.dns:lookup</h4>
+<blockquote>
+<p>Perform a DNS lookup.</p>
+</blockquote>
+<pre><code class="lang-lua">record = 
+mtev.dns:lookup(query, rtype = <span class="hljs-string">&quot;A&quot;</span>, ctype = <span class="hljs-string">&quot;IN&quot;</span>)
+</code></pre>
+<ul>
+<li><code>query</code> a string representing the DNS query.</li>
+<li><code>rtype</code> the DNS resource type (default &quot;A&quot;).</li>
+<li><code>ctype</code> the DNS class type (default &quot;IN&quot;).</li>
+<li><strong>RETURN</strong> a lua table, nil if the lookup fails.</li>
+</ul>
+<p>DNS lookup works cooperatively with the eventer to schedule an
+lookup and yield the current coroutine to the event loop.  If
+successful the table returned will contain field(s) for the
+requested resource. Possible fields are:</p>
+<ul>
+<li><code>a</code> and <code>ttl</code></li>
+<li><code>aaaa</code> and <code>ttl</code></li>
+<li><code>mx</code> and <code>preference</code></li>
+<li><code>cname</code> and <code>ttl</code></li>
+<li><code>ptr</code> and <code>ttl</code></li>
+<li><code>ns</code> and <code>ttl</code></li>
+<li><code>mb</code> and <code>ttl</code></li>
+<li><code>md</code> and <code>ttl</code></li>
+<li><code>mf</code> and <code>ttl</code></li>
+<li><code>mg</code> and <code>ttl</code></li>
+<li><code>mr</code> and <code>ttl</code></li>
+</ul>
+<h3 id="g">G</h3>
 <h4 id="mtevgettimeofday">mtev.gettimeofday</h4>
 <pre><code class="lang-lua">sec, usec = 
 mtev.gettimeofday()

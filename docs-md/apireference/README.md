@@ -44,6 +44,10 @@
 
 ## Lua
 
+##### D
+
+[mtev.dns](lua.md#mtev.dns), [mtev.dns:is_valid_ip](lua.md#mtev.dns:isvalidip), [mtev.dns:lookup](lua.md#mtev.dns:lookup)
+
 ##### G
 
 [mtev.gettimeofday](lua.md#mtev.gettimeofday)

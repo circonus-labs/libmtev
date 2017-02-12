@@ -1,3 +1,73 @@
+### D
+
+#### mtev.dns
+
+>Create an `mtev.dns` object for DNS lookups.
+
+```lua
+mtev.dns = 
+mtev.dns(nameserver = nil)
+```
+
+
+  * `nameserver` an optional argument specifying the nameserver to use.
+  * **RETURN** an `mtev.dns` object.
+
+This function creates an `mtev.dns` object that can be used to perform
+lookups and IP address validation.
+
+
+#### mtev.dns:is_valid_ip
+
+>Determine address family of an IP address.
+
+```lua
+bool, family = 
+mtev.dns:is_valid_ip(ipstr)
+```
+
+
+  * `ipstr` a string of an potential IP address.
+  * **RETURN** if the address is valid and, if it is, the family.
+
+The first return is true if the suplied string is a valid IPv4 or IPv6
+address, otherwise false.  If the address is valid, the second argument
+will be the address family as an integer, otherwise nil.
+
+
+#### mtev.dns:lookup
+
+>Perform a DNS lookup.
+
+```lua
+record = 
+mtev.dns:lookup(query, rtype = "A", ctype = "IN")
+```
+
+
+  * `query` a string representing the DNS query.
+  * `rtype` the DNS resource type (default "A").
+  * `ctype` the DNS class type (default "IN").
+  * **RETURN** a lua table, nil if the lookup fails.
+
+DNS lookup works cooperatively with the eventer to schedule an
+lookup and yield the current coroutine to the event loop.  If
+successful the table returned will contain field(s) for the
+requested resource. Possible fields are:
+
+ * `a` and `ttl`
+ * `aaaa` and `ttl`
+ * `mx` and `preference`
+ * `cname` and `ttl`
+ * `ptr` and `ttl`
+ * `ns` and `ttl`
+ * `mb` and `ttl`
+ * `md` and `ttl`
+ * `mf` and `ttl`
+ * `mg` and `ttl`
+ * `mr` and `ttl`
+
+
 ### G
 
 #### mtev.gettimeofday
