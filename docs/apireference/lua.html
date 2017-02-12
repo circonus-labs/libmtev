@@ -519,6 +519,31 @@ mtev.gettimeofday()
 <ul>
 <li><strong>RETURN</strong> the seconds and microseconds since epoch (1970 UTC)</li>
 </ul>
+<h3 id="j">J</h3>
+<h4 id="mtevjsondocument">mtev.json:document</h4>
+<blockquote>
+<p>return a lua prepresentation of an <code>mtev.json</code> object</p>
+</blockquote>
+<pre><code class="lang-lua">obj = 
+mtev.json:document()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> a lua object (usually a table)</li>
+</ul>
+<p>Returns a fair representation of the underlying JSON document
+as native lua objects.</p>
+<h4 id="mtevjsontostring">mtev.json:tostring</h4>
+<blockquote>
+<p>return a JSON-formatted string of an <code>mtev.json</code> object</p>
+</blockquote>
+<pre><code class="lang-lua">obj = 
+mtev.json:<span class="hljs-built_in">tostring</span>()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> a lua string</li>
+</ul>
+<p>Returns a JSON document (as a string) representing the underlying
+<code>mtev.json</code> object.</p>
 <h3 id="l">L</h3>
 <h4 id="mtevlog">mtev.log</h4>
 <blockquote>
@@ -534,6 +559,20 @@ mtev.log(facility, format, ...)
 <li><strong>RETURN</strong> the number of bytes written</li>
 </ul>
 <h3 id="p">P</h3>
+<h4 id="mtevparsejson">mtev.parsejson</h4>
+<blockquote>
+<p>Convert a JSON strint to an <code>mtev.json</code></p>
+</blockquote>
+<pre><code class="lang-lua">jsonobj = 
+mtev.parsejson(<span class="hljs-built_in">string</span>)
+</code></pre>
+<ul>
+<li><code>string</code> is a JSON formatted string.</li>
+<li><strong>RETURN</strong> an mtev.json object.</li>
+</ul>
+<p>This converts a JSON string to a lua object.  As lua
+does not support table keys with nil values, this
+implementation sets them to nil and thus elides the keys.</p>
 <h4 id="mtevprint">mtev.print</h4>
 <pre><code class="lang-lua">len = 
 mtev.<span class="hljs-built_in">print</span>(format, ...)
@@ -555,6 +594,23 @@ mtev.sleep(duration_s)
 <li><code>duration_s</code> the number of sections to sleep</li>
 <li><strong>RETURN</strong> the number of sections slept.</li>
 </ul>
+<h3 id="t">T</h3>
+<h4 id="mtevtojson">mtev.tojson</h4>
+<blockquote>
+<p>Convert a lua object into a json doucument.</p>
+</blockquote>
+<pre><code class="lang-lua">jsonobj = 
+mtev.tojson(obj, maxdepth = <span class="hljs-number">-1</span>)
+</code></pre>
+<ul>
+<li><code>obj</code> a lua object (usually a table).</li>
+<li><code>maxdepth</code> if specified limits the recursion.</li>
+<li><strong>RETURN</strong> an mtev.json object.</li>
+</ul>
+<p>This converts a lua object, ignoring types that do not have JSON
+counterparts (like userdata, lightuserdata, functions, threads, etc.).
+The return is an <code>mtev.json</code> object not a string. You must invoke
+the <code>tostring</code> method to convert it to a simple string.</p>
 
                                 
                                 </section>

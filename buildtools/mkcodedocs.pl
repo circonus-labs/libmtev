@@ -66,13 +66,13 @@ sub format_md {
     return ($func, $in);
   }
 
-  if($in =~ /\\(?:fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9\._]*)(\(.*)/) {
+  if($in =~ /\\(?:fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)(\(.*)/) {
     $func = $2;
   }
 
-  $in =~ s/\\(fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9\._]*)(\(.*?\))\n\\brief\s+([^\n]*)
+  $in =~ s/\\(fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)(\(.*?\))\n\\brief\s+([^\n]*)
           /sprintf("#### %s\n\n>%s\n\n%s\n", $3, $5, fn_format($1,$2,$3,$4));/xesg;
-  $in =~ s/\\(fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9\._]*)(\(.*?\))\n
+  $in =~ s/\\(fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)(\(.*?\))\n
           /sprintf("#### %s\n\n%s\n", $3, fn_format($1,$2,$3,$4));/xeg;
   $in =~ s/\\brief\s+(.*)/\n> $1\n\n/g;
   $in =~ s/\\param\s+(\S+)\s(.*)/  * `$1` $2/g;

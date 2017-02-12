@@ -48,15 +48,23 @@
 
 [mtev.gettimeofday](lua.md#mtev.gettimeofday)
 
+##### J
+
+[mtev.json:document](lua.md#mtev.json:document), [mtev.json:tostring](lua.md#mtev.json:tostring)
+
 ##### L
 
 [mtev.log](lua.md#mtev.log)
 
 ##### P
 
-[mtev.print](lua.md#mtev.print)
+[mtev.parsejson](lua.md#mtev.parsejson), [mtev.print](lua.md#mtev.print)
 
 ##### S
 
 [mtev.sleep](lua.md#mtev.sleep)
+
+##### T
+
+[mtev.tojson](lua.md#mtev.tojson)
 

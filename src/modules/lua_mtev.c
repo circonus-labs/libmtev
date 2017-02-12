@@ -3063,6 +3063,13 @@ mtev_xmldoc_index_func(lua_State *L) {
   return 0;
 }
 
+/*! \lua obj = mtev.json:tostring()
+    \brief return a JSON-formatted string of an `mtev.json` object
+    \return a lua string
+
+    Returns a JSON document (as a string) representing the underlying
+    `mtev.json` object.
+*/
 static int
 mtev_lua_json_tostring(lua_State *L) {
   int n;
@@ -3145,6 +3152,13 @@ mtev_json_object_to_luatype(lua_State *L, mtev_json_object *o) {
   }
   return 1;
 }
+/*! \lua obj = mtev.json:document()
+    \brief return a lua prepresentation of an `mtev.json` object
+    \return a lua object (usually a table)
+
+    Returns a fair representation of the underlying JSON document
+    as native lua objects.
+*/
 static int
 mtev_lua_json_document(lua_State *L) {
   int n;
@@ -3169,9 +3183,11 @@ mtev_lua_guess_is_array(lua_State *L, int idx) {
   return rv;
 }
 static mtev_json_object *
-mtev_lua_thing_to_json_object(lua_State *L, int idx) {
+mtev_lua_thing_to_json_object(lua_State *L, int idx, int limit) {
   lua_Integer v_int;
   double v_double;
+  if(limit == 0) return MJ_STR("[depth elided]");
+  if(limit > 0) limit--;
   switch(lua_type(L, idx)) {
     case LUA_TBOOLEAN:
       return mtev_json_object_new_boolean(lua_toboolean(L,idx));
@@ -3192,7 +3208,7 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx) {
           int key;
           key = lua_tointeger(L,idx+1);
           mtev_json_object_array_put_idx(array, key-1,
-                                      mtev_lua_thing_to_json_object(L,idx+2));
+                                         mtev_lua_thing_to_json_object(L,idx+2, limit));
           lua_pop(L,1);
         }
         return array;
@@ -3204,7 +3220,7 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx) {
           const char *key;
           key = lua_tostring(L,idx+1);
           mtev_json_object_object_add(table, key,
-                                      mtev_lua_thing_to_json_object(L,idx+2));
+                                      mtev_lua_thing_to_json_object(L,idx+2, limit));
           lua_pop(L,1);
         }
         return table;
@@ -3220,13 +3236,19 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx) {
   }
   return NULL;
 }
+
 static int
 nl_tojson(lua_State *L) {
   json_crutch **docptr, *doc;
-  if(lua_gettop(L) != 1) luaL_error(L, "tojson requires one argument");
-
+  int limit = -1;
+  int n = lua_gettop(L);
+  if(n < 1) luaL_error(L, "tojson requires at least one argument");
+  if(n == 2) {
+    limit = lua_tointeger(L,2);
+    lua_pop(L,1);
+  }
   doc = calloc(1, sizeof(*doc));
-  doc->root = mtev_lua_thing_to_json_object(L,1);
+  doc->root = mtev_lua_thing_to_json_object(L,1,limit);
   docptr = (json_crutch **)lua_newuserdata(L, sizeof(doc));
   *docptr = doc;
   luaL_getmetatable(L, "mtev.json");
@@ -3963,7 +3985,29 @@ static const luaL_Reg mtevlib[] = {
   { "conf_replace_number", nl_conf_replace_value },
   { "parsexml", nl_parsexml },
   { "parsejson", nl_parsejson },
+/*! \lua jsonobj = mtev.parsejson(string)
+    \brief Convert a JSON strint to an `mtev.json`
+    \param string is a JSON formatted string.
+    \return an mtev.json object.
+
+    This converts a JSON string to a lua object.  As lua
+    does not support table keys with nil values, this
+    implementation sets them to nil and thus elides the keys.
+*/
+
   { "tojson", nl_tojson },
+/*! \lua jsonobj = mtev.tojson(obj, maxdepth = -1)
+    \brief Convert a lua object into a json doucument.
+    \param obj a lua object (usually a table).
+    \param maxdepth if specified limits the recursion.
+    \return an mtev.json object.
+
+    This converts a lua object, ignoring types that do not have JSON
+    counterparts (like userdata, lightuserdata, functions, threads, etc.).
+    The return is an `mtev.json` object not a string. You must invoke
+    the `tostring` method to convert it to a simple string.
+*/
+
   { "spawn", nl_spawn },
   { "thread_self", nl_thread_self },
   { "eventer_loop_concurrency", nl_eventer_loop_concurrency },
