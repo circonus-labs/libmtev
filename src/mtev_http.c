@@ -1071,16 +1071,16 @@ mtev_http_request_release(mtev_http_session_ctx *ctx) {
     ctx->req.upload.freefunc(ctx->req.upload.data, ctx->req.upload.size,
                              ctx->req.upload.freeclosure);
   }
-  memset(&ctx->req.state, 0,
-         sizeof(ctx->req) - (unsigned long)&(((mtev_http_request *)0)->state));
-  
+
   /* free compression related things */
   if (ctx->req.decompress_ctx != NULL) {
     mtev_stream_decompress_finish(ctx->req.decompress_ctx);
     mtev_destroy_stream_decompress_ctx(ctx->req.decompress_ctx);
     ctx->req.decompress_ctx = NULL;
   }
-
+  memset(&ctx->req.state, 0,
+         sizeof(ctx->req) - (unsigned long)&(((mtev_http_request *)0)->state));
+  
   ctx->req.freed = mtev_true;
 }
 void
@@ -2306,6 +2306,9 @@ raw_finalize_encoding(mtev_http_response *res) {
         }
         res->output_raw_last = r = out;
         res->output_raw_chain_bytes += out->size;
+      } 
+      else {
+        FREE_BCHAIN(out);
       }
     }
 
