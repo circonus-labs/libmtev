@@ -619,18 +619,20 @@ mtev.log(facility, format, ...)
 <h3 id="p">P</h3>
 <h4 id="mtevparsejson">mtev.parsejson</h4>
 <blockquote>
-<p>Convert a JSON strint to an <code>mtev.json</code></p>
+<p>Convert a JSON strint to an <code>mtev.json</code>.</p>
 </blockquote>
-<pre><code class="lang-lua">jsonobj = 
+<pre><code class="lang-lua">jsonobj, err, offset = 
 mtev.parsejson(<span class="hljs-built_in">string</span>)
 </code></pre>
 <ul>
 <li><code>string</code> is a JSON formatted string.</li>
-<li><strong>RETURN</strong> an mtev.json object.</li>
+<li><strong>RETURN</strong> an mtev.json object plus errors on failure.</li>
 </ul>
 <p>This converts a JSON string to a lua object.  As lua
 does not support table keys with nil values, this
-implementation sets them to nil and thus elides the keys.</p>
+implementation sets them to nil and thus elides the keys.
+If parsing fails nil is returned followed by the error and
+the byte offset into the string where the error occurred.</p>
 <h4 id="mtevprint">mtev.print</h4>
 <pre><code class="lang-lua">len = 
 mtev.<span class="hljs-built_in">print</span>(format, ...)

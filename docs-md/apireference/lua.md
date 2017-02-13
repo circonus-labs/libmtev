@@ -136,20 +136,22 @@ mtev.log(facility, format, ...)
 
 #### mtev.parsejson
 
->Convert a JSON strint to an `mtev.json`
+>Convert a JSON strint to an `mtev.json`.
 
 ```lua
-jsonobj = 
+jsonobj, err, offset = 
 mtev.parsejson(string)
 ```
 
 
   * `string` is a JSON formatted string.
-  * **RETURN** an mtev.json object.
+  * **RETURN** an mtev.json object plus errors on failure.
 
 This converts a JSON string to a lua object.  As lua
 does not support table keys with nil values, this
 implementation sets them to nil and thus elides the keys.
+If parsing fails nil is returned followed by the error and
+the byte offset into the string where the error occurred.
 
 
 #### mtev.print
