@@ -485,21 +485,26 @@ static void eventer_loop_prime(eventer_pool_t *pool, int start) {
   while(ck_pr_load_32(&pool->__loops_started) < ck_pr_load_32(&pool->__loop_concurrency));
 }
 
-static hwloc_topology_t *topo = NULL;
-static int assess_hw_topo() {
-  if(topo) return 0;
-  topo = calloc(1, sizeof(*topo));
+static void hw_topo_free(hwloc_topology_t *topo) {
+  if(topo) {
+    hwloc_topology_destroy(*topo);
+    free(topo);
+  }
+}
+
+static hwloc_topology_t *hw_topo_alloc() {
+  hwloc_topology_t *topo = calloc(1, sizeof(*topo));
   if(hwloc_topology_init(topo)) goto out;
   if(hwloc_topology_load(*topo)) goto destroy_out;
 
-  return 0;
+  return topo;
 
  destroy_out:
-  hwloc_topology_destroy(*topo);
+  hw_topo_free(topo);
+  return NULL;
  out:
   free(topo);
-  topo = NULL;
-  return -1;
+  return NULL;
 }
 
 int eventer_boot_ctor() {
@@ -507,10 +512,11 @@ int eventer_boot_ctor() {
 }
 
 int eventer_cpu_sockets_and_cores(int *sockets, int *cores) {
+  hwloc_topology_t *topo;
   int depth, nsockets = 0, ncores = 0;
 
-  if(assess_hw_topo() != 0) return -1;
-  if(!topo) return -1;
+  topo = hw_topo_alloc();
+  if(topo == NULL) return -1;
   depth = hwloc_get_type_depth(*topo, HWLOC_OBJ_SOCKET);
   if(depth != HWLOC_TYPE_DEPTH_UNKNOWN)
     nsockets = hwloc_get_nbobjs_by_depth(*topo, depth);
@@ -520,6 +526,7 @@ int eventer_cpu_sockets_and_cores(int *sockets, int *cores) {
 
   if(sockets) *sockets = nsockets;
   if(cores) *cores = ncores;
+  hw_topo_free(topo);
   return 0;
 }
 
@@ -582,7 +589,6 @@ int eventer_impl_init() {
 
   if(__default_loop_concurrency == 0) {
     int sockets = 0, cores = 0;
-    assess_hw_topo();
 
     (void)eventer_cpu_sockets_and_cores(&sockets, &cores);
     if(sockets == 0) sockets = 1;
