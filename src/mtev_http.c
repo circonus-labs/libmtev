@@ -1387,8 +1387,8 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
       else if(chunk_size < 0) {
         mtevL(http_debug, " ... couldn't read chunk size\n");
         if (chunk_size == -2) {
-          /* need something that is not EAGAIN to deal with unrecoverable error EBADFD? */
-          errno = EBADFD;
+          /* need something that is not EAGAIN to deal with unrecoverable error ENOTSUP? */
+          errno = ENOTSUP;
         }
         return -1;
       } 
@@ -1403,7 +1403,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
       if (rlen >= 0) {
         ctx->req.content_length_read += rlen;
       } else if (rlen == -2) {
-        errno = EBADFD;
+        errno = ENOTSUP;
         return -1;
       }
     }
