@@ -17,6 +17,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "mtev_debug.h"
 #include "mtev_printbuf.h"
@@ -407,6 +408,9 @@ int mtev_json_object_get_int(struct mtev_json_object *jso)
 static int mtev_json_object_double_to_json_string(struct mtev_json_object* jso,
 					     struct jl_printbuf *pb)
 {
+  if(isnan(jso->o.c_double) || isinf(jso->o.c_double)) {
+    return jl_sprintbuf(pb, "null");
+  }
   return jl_sprintbuf(pb, "%lf", jso->o.c_double);
 }
 
