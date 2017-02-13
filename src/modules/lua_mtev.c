@@ -3267,12 +3267,14 @@ nl_parsejson(lua_State *L) {
   doc = calloc(1, sizeof(*doc));
   doc->tok = mtev_json_tokener_new();
   doc->root = mtev_json_tokener_parse_ex(doc->tok, in, inlen);
-  if(is_error(doc->root)) {
+  if(doc->tok->err != mtev_json_tokener_success) {
+    lua_pushnil(L);
+    lua_pushstring(L, mtev_json_tokener_errors[doc->tok->err]);
+    lua_pushinteger(L, doc->tok->char_offset);
     mtev_json_tokener_free(doc->tok);
     if(doc->root) mtev_json_object_put(doc->root);
     free(doc);
-    lua_pushnil(L);
-    return 1;
+    return 3;
   }
 
   docptr = (json_crutch **)lua_newuserdata(L, sizeof(doc)); 
@@ -3994,14 +3996,16 @@ static const luaL_Reg mtevlib[] = {
   { "conf_replace_number", nl_conf_replace_value },
   { "parsexml", nl_parsexml },
   { "parsejson", nl_parsejson },
-/*! \lua jsonobj = mtev.parsejson(string)
-    \brief Convert a JSON strint to an `mtev.json`
+/*! \lua jsonobj, err, offset = mtev.parsejson(string)
+    \brief Convert a JSON strint to an `mtev.json`.
     \param string is a JSON formatted string.
-    \return an mtev.json object.
+    \return an mtev.json object plus errors on failure.
 
     This converts a JSON string to a lua object.  As lua
     does not support table keys with nil values, this
     implementation sets them to nil and thus elides the keys.
+    If parsing fails nil is returned followed by the error and
+    the byte offset into the string where the error occurred.
 */
 
   { "tojson", nl_tojson },
