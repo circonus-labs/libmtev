@@ -175,7 +175,7 @@ mtev_rest_eventer_sockets(mtev_http_rest_closure_t *restc, int n, char **p) {
 }
 static int
 mtev_rest_eventer_jobq(mtev_http_rest_closure_t *restc, int n, char **p) {
-  mtev_json_object *doc = MJ_ARR();
+  mtev_json_object *doc = MJ_OBJ();
 
   eventer_jobq_process_each(json_spit_jobq, doc);
 
