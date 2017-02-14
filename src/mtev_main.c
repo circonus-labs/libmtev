@@ -46,6 +46,10 @@
 #include <lz4frame.h>
 
 
+#ifdef HAVE_VALGRIND_VALGRIND_H
+#include <valgrind/valgrind.h>
+#endif
+
 #include "mtev_log.h"
 #include "mtev_main.h"
 #include "mtev_conf.h"
@@ -222,6 +226,14 @@ mtev_main(const char *appname,
   if (require_invariant_tsc && strcmp(require_invariant_tsc, "0") == 0) {
     mtev_time_toggle_require_invariant_tsc(mtev_false);
   }
+
+#ifdef __sun
+#ifdef RUNNING_ON_VALGRIND
+  if(RUNNING_ON_VALGRIND != 0) {
+    mtev_time_toggle_require_invariant_tsc(mtev_false);
+  }
+#endif
+#endif
 
   char *disable_rdtsc = getenv("MTEV_RDTSC_DISABLE");
   if (disable_rdtsc && strcmp(disable_rdtsc, "1") == 0) {

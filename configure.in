@@ -339,6 +339,9 @@ AS_IF([test "x$enable_wslay" = "xyes"], [
 
 AC_CHECK_FUNCS(posix_madvise madvise)
 
+# Let us avoid some things that displease valgrind
+AC_CHECK_HEADERS(valgrind/valgrind.h)
+
 AC_CHECK_HEADERS(priv.h)
 AC_CHECK_FUNCS(setppriv)
 

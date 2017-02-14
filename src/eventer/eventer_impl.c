@@ -46,6 +46,10 @@
 #include <netinet/in.h>
 #include <hwloc.h>
 
+#ifdef HAVE_VALGRIND_VALGRIND_H
+#include <valgrind/valgrind.h>
+#endif
+
 static struct timeval *eventer_impl_epoch = NULL;
 static int PARALLELISM_MULTIPLIER = 4;
 static int EVENTER_DEBUGGING = 0;
@@ -493,7 +497,13 @@ static void hw_topo_free(hwloc_topology_t *topo) {
 }
 
 static hwloc_topology_t *hw_topo_alloc() {
+#ifdef __sun
+#ifdef RUNNING_ON_VALGRIND
+  if(RUNNING_ON_VALGRIND != 0) return NULL;
+#endif
+#endif
   hwloc_topology_t *topo = calloc(1, sizeof(*topo));
+  if(!topo) return NULL;
   if(hwloc_topology_init(topo)) goto out;
   if(hwloc_topology_load(*topo)) goto destroy_out;
 
