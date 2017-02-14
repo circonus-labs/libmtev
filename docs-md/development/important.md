@@ -33,7 +33,7 @@ eventer_pool.
 
 #### Memory Management
 
-Multi-threaded apps can be hard.  Spefically memory management.  The `safe_`
+Multi-threaded apps can be hard.  Specifically memory management.  The `safe_`
 memory management routines in `mtev_memory.h` are there to help, but they
 are not a silver bullet.  They wrap `libck` epoch memory reclamation and
 make it such that memory touched _inside_ an event callback will not be
