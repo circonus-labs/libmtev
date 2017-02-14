@@ -1866,6 +1866,23 @@ nl_log(lua_State *L) {
   return 0;
 }
 static int
+nl_enable_log(lua_State *L) {
+  int n = lua_gettop(L);
+  int enabled = 1;
+  if(n<1) luaL_error(L, "mtev.enable_log(facility[, bool])");
+  const char *logname = lua_tostring(L,1);
+  if(n>1) enabled = lua_toboolean(L,2);
+  mtev_log_stream_t ls = mtev_log_stream_find(logname);
+  if(!ls) return 0;
+  if(enabled && !N_L_S_ON(ls)) {
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) | MTEV_LOG_STREAM_ENABLED);
+  }
+  else if(!enabled && N_L_S_ON(ls)) {
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) & ~MTEV_LOG_STREAM_ENABLED);
+  }
+  return 0;
+}
+static int
 nl_lockfile_acquire(lua_State *L) {
   mtev_lockfile_t val = -1;
   const char *filename;
@@ -3333,11 +3350,13 @@ int nl_spawn(lua_State *L) {
   int in[2] = {-1,-1}, out[2] = {-1,-1}, err[2] = {-1,-1};
   int arg_count = 0, rv;
   const char *path;
-  const char **argv, **envp = NULL;
+  const char *noargs[1] = { NULL };
+  const char **argv = noargs, **envp = noargs;
   struct spawn_info *spawn_info;
   posix_spawnattr_t *attr = NULL;
   posix_spawn_file_actions_t *filea;
   mtev_lua_resume_info_t *ri;
+  int ntop = lua_gettop(L);
 
   ri = mtev_lua_get_resume_info(L);
   mtevAssert(ri);
@@ -3350,20 +3369,24 @@ int nl_spawn(lua_State *L) {
   path = lua_tostring(L,1);
 
   /* argv */
-  lua_pushnil(L);  /* first key */
-  while (lua_next(L, 2) != 0) arg_count++, lua_pop(L, 1);
-  argv = alloca(sizeof(*argv) * (arg_count + 1));
-  lua_pushnil(L);  /* first key */
-  arg_count = 0;
-  while (lua_next(L, 2) != 0) {
-    argv[arg_count++] = lua_tostring(L, -1);
-    lua_pop(L, 1);
+  if(ntop > 1) {
+    if(!lua_istable(L,2)) luaL_error(L, "spawn(path [,{args} [,{env}]])");
+    lua_pushnil(L);  /* first key */
+    while (lua_next(L, 2) != 0) arg_count++, lua_pop(L, 1);
+    argv = alloca(sizeof(*argv) * (arg_count + 1));
+    lua_pushnil(L);  /* first key */
+    arg_count = 0;
+    while (lua_next(L, 2) != 0) {
+      argv[arg_count++] = lua_tostring(L, -1);
+      lua_pop(L, 1);
+    }
+    argv[arg_count] = NULL;
   }
-  argv[arg_count] = NULL;
 
   /* envp */
   arg_count = 0;
-  if(!lua_isnil(L,3)) {
+  if(ntop > 2) {
+    if(!lua_istable(L,3)) luaL_error(L, "spawn(path [,{args} [,{env}]])");
     lua_pushnil(L);  /* first key */
     while (lua_next(L, 3) != 0) arg_count++, lua_pop(L, 1);
     envp = alloca(sizeof(*envp) * (arg_count + 1));
@@ -3375,21 +3398,22 @@ int nl_spawn(lua_State *L) {
     }
     envp[arg_count] = NULL;
   }
-  if(arg_count == 0) {
-    envp = alloca(sizeof(*envp));
-    envp[0] = NULL;
-  }
 
   filea = (posix_spawn_file_actions_t *)alloca(sizeof(*filea));
   if(posix_spawn_file_actions_init(filea)) {
     spawn_info->last_errno = errno;
-    mtevL(nlerr, "posix_spawn_file_actions_init -> %s\n", strerror(spawn_info->last_errno));
+    mtevL(nldeb, "posix_spawn_file_actions_init -> %s\n", strerror(spawn_info->last_errno));
     goto err;
   }
 #define PIPE_SAFE(p, idx, tfd) do { \
   if(pipe(p) < 0) { \
     spawn_info->last_errno = errno; \
-    mtevL(nlerr, "pipe -> %s\n", strerror(spawn_info->last_errno)); \
+    mtevL(nldeb, "pipe -> %s\n", strerror(spawn_info->last_errno)); \
+    goto err; \
+  } \
+  if(eventer_set_fd_nonblocking(p[idx ? 0 : 1])) { \
+    spawn_info->last_errno = errno; \
+    mtevL(nldeb, "set nonblocking -> %s\n", strerror(spawn_info->last_errno)); \
     goto err; \
   } \
   posix_spawn_file_actions_adddup2(filea, p[idx], tfd); \
@@ -3404,14 +3428,14 @@ int nl_spawn(lua_State *L) {
   if(posix_spawnattr_init(attr)) {
     attr = NULL;
     spawn_info->last_errno = errno;
-    mtevL(nlerr, "posix_spawnattr_init(%d) -> %s\n", errno, strerror(errno));
+    mtevL(nldeb, "posix_spawnattr_init(%d) -> %s\n", errno, strerror(errno));
     goto err;
   }
   rv = posix_spawnp(&spawn_info->pid, path, filea, attr,
                    (char * const *)argv, (char * const *)envp);
   if(rv != 0) {
     spawn_info->last_errno = errno;
-    mtevL(nlerr, "posix_spawn(%d) -> %s\n", errno, strerror(errno));
+    mtevL(nldeb, "posix_spawn(%d) -> %s\n", errno, strerror(errno));
     goto err;
   }
   /* Cleanup the parent half */
@@ -3429,6 +3453,7 @@ int nl_spawn(lua_State *L) {
   e->mask = EVENTER_EXCEPTION; \
   e->callback = NULL; \
   cl->eptr = mtev_lua_event(L, e); \
+  cl->send_size = 4096; \
   e->closure = cl; \
   mtev_lua_register_event(ri, e); \
 } while(0)
@@ -3439,7 +3464,7 @@ int nl_spawn(lua_State *L) {
   return 4;
 
  err:
-  mtevL(nlerr, "nl_spawn -> %s\n", strerror(spawn_info->last_errno));
+  mtevL(nldeb, "nl_spawn -> %s\n", strerror(spawn_info->last_errno));
   if(in[0] != -1) close(in[0]);
   if(in[1] != -1) close(in[1]);
   if(out[0] != -1) close(out[0]);
@@ -3572,6 +3597,42 @@ nl_cluster_get_self(lua_State *L) {
 }
 
 static int
+mtev_lua_process_pid(lua_State *L) {
+  struct spawn_info *spawn_info;
+  /* the first arg is implicitly self (it's a method) */
+  spawn_info = lua_touserdata(L, lua_upvalueindex(1));
+  if(spawn_info != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+  lua_pushinteger(L, spawn_info->pid);
+  return 1;
+}
+
+static int
+mtev_lua_process_kill(lua_State *L) {
+  struct spawn_info *spawn_info;
+  int signal_no = SIGTERM;
+  /* the first arg is implicitly self (it's a method) */
+  spawn_info = lua_touserdata(L, lua_upvalueindex(1));
+  if(spawn_info != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+
+  if(lua_gettop(L) > 1) {
+    signal_no = lua_tointeger(L,2);
+  }
+  if(spawn_info->pid <= 0) {
+    lua_pushboolean(L, 0);
+    lua_pushinteger(L, ESRCH);
+  }
+  else {
+    int rv = kill(spawn_info->pid, signal_no);
+    lua_pushboolean(L, (rv == 0));
+    if(rv < 0) lua_pushinteger(L, errno);
+    else lua_pushnil(L);
+  }
+  return 2;
+}
+
+static int
 mtev_lua_process_wait(lua_State *L) {
   int rv, status;
   struct spawn_info *spawn_info;
@@ -3610,6 +3671,12 @@ mtev_lua_process_index_func(lua_State *L) {
   }
   k = lua_tostring(L, 2);
   switch(*k) {
+    case 'k':
+      LUA_DISPATCH(kill, mtev_lua_process_kill);
+      break;
+    case 'p':
+      LUA_DISPATCH(pid, mtev_lua_process_pid);
+      break;
     case 'w':
       LUA_DISPATCH(wait, mtev_lua_process_wait);
       break;
@@ -3633,9 +3700,11 @@ mtev_lua_eventer_gc(lua_State *L) {
     struct nl_slcl *cl = e->closure;
     int newmask;
 
-    ci = mtev_lua_get_resume_info(cl->L);
-    mtevAssert(ci);
-    mtev_lua_deregister_event(ci, e, 0);
+    if(cl->L) {
+      ci = mtev_lua_get_resume_info(cl->L);
+      mtevAssert(ci);
+      mtev_lua_deregister_event(ci, e, 0);
+    }
     if(e->mask & (EVENTER_EXCEPTION|EVENTER_READ|EVENTER_WRITE))
       eventer_remove_fd(e->fd);
     e->opset->close(e->fd, &newmask, e);
@@ -3943,6 +4012,13 @@ static const luaL_Reg mtevlib[] = {
     \param format a format string see printf(3c)
     \param ... arguments to be used within the specified format
     \return the number of bytes written
+*/
+
+  { "enable_log", nl_enable_log },
+/*! \lua mtev.enable_log(facility, flags = true)
+    \brief Enable or disable a log facility by name.
+    \param facility the name of the mtev_log_stream (e.g. "debug")
+    \param flags true enables, false disables
 */
 
   { "print", nl_print },
