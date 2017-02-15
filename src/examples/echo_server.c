@@ -17,10 +17,12 @@
 #include <getopt.h>
 
 #define APPNAME "echo_server"
+#define FLUSH_BUFFER_MAX 4194304
 static char *config_file = NULL;
 static int debug = 0;
 static int foreground = 0;
 static char *droptouser = NULL, *droptogroup = NULL;
+static int appends = 0;
 
 static int
 usage(const char *prog) {
@@ -46,13 +48,15 @@ parse_cli_args(int argc, char * const *argv) {
 
 static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
 
-  size_t buffer_size = 128 * 1024;
+  /* intentionally small */
+  size_t buffer_size = 98;
   char *buffer = alloca(buffer_size);
   int mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
   int len;
   int done = 0;
 
   if (!restc->call_closure) {
+    appends = 0;
     restc->call_closure = restc;
     restc->call_closure_free = NULL;
     mtev_http_response_standard(restc->http_ctx, 200, "OK", "text/plain");
@@ -62,7 +66,14 @@ static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pa
 
   len = mtev_http_session_req_consume(restc->http_ctx, buffer, buffer_size, buffer_size, &mask);
   if (len > 0) {
-    mtev_http_response_append(restc->http_ctx, buffer, len);    
+    mtev_http_response_append(restc->http_ctx, buffer, len);
+    /* periodically flush */
+    appends++;
+    if (appends % 250 == 0) {
+      if (mtev_http_response_flush(restc->http_ctx, mtev_false) == mtev_false) {
+        mtevL(mtev_error, "ERROR: cannot flush\n");
+      }
+    }
   }
   if ((len < 0 && errno != EAGAIN) || len == 0) {
     done = 1;
