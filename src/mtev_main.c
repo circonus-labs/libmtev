@@ -357,6 +357,7 @@ mtev_main(const char *appname,
   if(foreground == 1) {
     mtev_time_start_tsc();
     mtevL(mtev_notice, "%s booting [unmanaged]\n", appname);
+    mtev_setup_crash_signals(mtev_self_diagnose);
     int rv = passed_child_main();
     mtev_lockfile_release(lockfd);
     return rv;

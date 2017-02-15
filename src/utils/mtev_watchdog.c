@@ -48,6 +48,7 @@
 #if defined(__MACH__) && defined(__APPLE__)
 #include <libproc.h>
 #endif
+
 #include <signal.h>
 #include <time.h>
 #ifdef HAVE_SYS_WAIT_H
@@ -58,6 +59,7 @@
 #include "mtev_log.h"
 #include "mtev_time.h"
 #include "mtev_watchdog.h"
+#include "mtev_stacktrace.h"
 
 struct mtev_watchdog_t {
   int ticker;
@@ -88,7 +90,6 @@ const static char *trace_dir = "/var/tmp";
 static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
-static int _global_stack_trace_fd = -1;
 static mtev_atomic32_t on_crash_fds_to_close[MAX_CRASH_FDS];
 
 typedef enum {
@@ -267,18 +268,6 @@ static void stop_other_threads() {
 #endif
 }
 
-#if defined(__sun__)
-static int simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
-  lwpid_t self;
-  mtev_log_stream_t ls = usrarg;
-  char addrline[128];
-  self = _lwp_self();
-  addrtosymstr((void *)pc, addrline, sizeof(addrline));
-  mtevL(ls, "t@%d> %s\n", self, addrline);
-  return 0;
-}
-#endif
-
 void mtev_watchdog_on_crash_close_remove_fd(int fd) {
   int i;
   for(i=0; i<MAX_CRASH_FDS; i++) {
@@ -298,38 +287,11 @@ void mtev_watchdog_on_crash_close_add_fd(int fd) {
   allow_async_dumps = 0;
 }
 
-void mtev_stacktrace(mtev_log_stream_t ls) {
+void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
 #if defined(__sun__)
-  ucontext_t ucp;
-  getcontext(&ucp);
-  walkcontext(&ucp, simple_stack_print, ls);
+  walkcontext(uc, mtev_simple_stack_print, mtev_error);
 #else
-  if(_global_stack_trace_fd < 0) {
-    /* Last ditch effort to open this up */
-    char tmpfilename[MAXPATHLEN];
-    snprintf(tmpfilename, sizeof(tmpfilename), "/var/tmp/mtev_%d_XXXXXX", (int)getpid());
-    _global_stack_trace_fd = mkstemp(tmpfilename);
-    if(_global_stack_trace_fd >= 0) unlink(tmpfilename);
-  }
-  if(_global_stack_trace_fd >= 0) {
-    struct stat sb;
-    char stackbuff[4096];
-    void* callstack[128];
-    int unused __attribute__((unused));
-    int i, frames = backtrace(callstack, 128);
-    lseek(_global_stack_trace_fd, 0, SEEK_SET);
-    unused = ftruncate(_global_stack_trace_fd, 0);
-    backtrace_symbols_fd(callstack, frames, _global_stack_trace_fd);
-    memset(&sb, 0, sizeof(sb));
-    while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);
-    if(i != 0 || sb.st_size == 0) mtevL(ls, "error writing stacktrace\n");
-    lseek(_global_stack_trace_fd, SEEK_SET, 0);
-    i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff), sb.st_size));
-    mtevL(ls, "STACKTRACE:\n%.*s\n", i, stackbuff);
-  }
-  else {
-    mtevL(ls, "stacktrace unavailable\n");
-  }
+  mtev_stacktrace(mtev_error);
 #endif
 }
 
@@ -346,7 +308,7 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
 
     /* attempt a simple stack trace */
 #if defined(__sun__)
-    walkcontext(uc, simple_stack_print, mtev_error);
+    walkcontext(uc, mtev_simple_stack_print, mtev_error);
 #else
     mtev_stacktrace(mtev_error);
 #endif
@@ -455,25 +417,63 @@ static int mtev_heartcheck(double child_watchdog_timeout, double *ltt, int *hear
   }
   return 0;
 }
+int
+mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
+  /* trace handlers */
+  int i;
+  char *envcp;
+  struct sigaction sa;
+  stack_t altstack;
+  size_t altstack_size, default_altstack_size = 32768;
+  static const int signals[] = {
+    SIGSEGV,
+    SIGABRT,
+    SIGBUS,
+    SIGILL,
+#ifdef SIGIOT
+    SIGIOT,
+#endif
+    SIGFPE
+  };
+
+  if(NULL != (envcp = getenv("MTEV_ALTSTACK_SIZE"))) {
+    altstack_size = default_altstack_size = atoi(envcp);
+  }
+  if(default_altstack_size > 0) {
+    altstack_size = MAX(MINSIGSTKSZ, default_altstack_size);
+    if((altstack.ss_sp = malloc(altstack_size)) == NULL)
+      altstack_size = 0;
+    else {
+      altstack.ss_size = altstack_size;
+      altstack.ss_flags = 0;
+      if(sigaltstack(&altstack,0) < 0)
+        altstack_size = 0;
+    }
+  }
+  if(altstack_size == 0)
+    mtevL(mtev_notice, "sigaltstack not used.\n");
+
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_sigaction = action;
+  sa.sa_flags = SA_RESETHAND|SA_SIGINFO;
+  if(altstack_size) sa.sa_flags |= SA_ONSTACK;
+  sigemptyset(&sa.sa_mask);
+
+  for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
+    sigaddset(&sa.sa_mask, signals[i]);
+
+  for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
+    sigaction(signals[i], &sa, NULL);
+
+  return 0;
+}
+
 int mtev_watchdog_start_child(const char *app, int (*func)(),
                               int child_watchdog_timeout_int) {
   double child_watchdog_timeout = (double)child_watchdog_timeout_int;
   int child_pid, crashing_pid = -1;
   time_t time_data[retries];
   int offset = 0;
-  static const int signals[] = {
-    SIGSEGV,
-    SIGABRT,
-    SIGBUS,
-    SIGILL,
-    SIGFPE
-  };
-  size_t i;
-
-  char tmpfilename[MAXPATHLEN];
-  snprintf(tmpfilename, sizeof(tmpfilename), "/var/tmp/mtev_%d_XXXXXX", (int)getpid());
-  _global_stack_trace_fd = mkstemp(tmpfilename);
-  if(_global_stack_trace_fd >= 0) unlink(tmpfilename);
 
   memset(time_data, 0, sizeof(time_data));
 
@@ -492,11 +492,6 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
       exit(-1);
     }
     if(child_pid == 0) {
-      /* trace handlers */
-      char *envcp;
-      struct sigaction sa;
-      stack_t altstack;
-      size_t altstack_size, default_altstack_size = 32768;
       mtev_time_start_tsc();
       mtev_monitored_child_pid = getpid();
       if(glider_path)
@@ -504,35 +499,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(),
       else if(allow_async_dumps)
         mtevL(mtev_error, "no glider, allowing a single emancipated minor\n");
 
-      if(NULL != (envcp = getenv("MTEV_ALTSTACK_SIZE"))) {
-        altstack_size = default_altstack_size = atoi(envcp);
-      }
-      if(default_altstack_size > 0) {
-        altstack_size = MAX(MINSIGSTKSZ, default_altstack_size);
-        if((altstack.ss_sp = malloc(altstack_size)) == NULL)
-          altstack_size = 0;
-        else {
-          altstack.ss_size = altstack_size;
-          altstack.ss_flags = 0;
-          if(sigaltstack(&altstack,0) < 0)
-            altstack_size = 0;
-        }
-      }
-      if(altstack_size == 0)
-        mtevL(mtev_notice, "sigaltstack not used.\n");
-
-      memset(&sa, 0, sizeof(sa));
-      sa.sa_sigaction = emancipate;
-      sa.sa_flags = SA_RESETHAND|SA_SIGINFO;
-      if(altstack_size) sa.sa_flags |= SA_ONSTACK;
-      sigemptyset(&sa.sa_mask);
-
-      for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
-        sigaddset(&sa.sa_mask, signals[i]);
-
-      for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
-        sigaction(signals[i], &sa, NULL);
-
+      mtev_setup_crash_signals(emancipate);
       /* run the program */
       exit(func());
     }

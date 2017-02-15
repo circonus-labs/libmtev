@@ -35,10 +35,12 @@
 #define _MTEV_WATCHDOG_H
 
 #include <time.h>
+#include <signal.h>
 #include "mtev_config.h"
 #include "mtev_defines.h"
 #include "mtev_log.h"
 #include "eventer/eventer.h"
+#include "mtev_stacktrace.h"
 
 /*! \fn int mtev_watchdog_prefork_init()
     \brief Prepare the program to split into a child/parent-monitor relationship.
@@ -176,6 +178,9 @@ API_EXPORT(void)
   mtev_watchdog_on_crash_close_remove_fd(int fd);
 
 API_EXPORT(void)
-  mtev_stacktrace(mtev_log_stream_t ls);
+  mtev_self_diagnose(int sig, siginfo_t *si, void *uc);
 
+API_EXPORT(int)
+  mtev_setup_crash_signals(void (*)(int, siginfo_t *, void *));
+  
 #endif
