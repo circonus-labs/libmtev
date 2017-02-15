@@ -242,6 +242,7 @@ mtev_xml_userdata_free(mtev_xml_userdata_t *n) {
 static void
 clean_xml_private_node_data(xmlNodePtr node) {
   xmlNodePtr n;
+  if(node == NULL) return;
   if(node->_private) mtev_xml_userdata_free(node->_private);
   node->_private = NULL;
   for(n = node->children; n; n = n->next) {
