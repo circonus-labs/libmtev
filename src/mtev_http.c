@@ -2205,9 +2205,9 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
   }
   /* a chunked header looks like: hex*\r\ndata\r\n */
   /* let's assume that content never gets "larger" */
-  if(opts & MTEV_HTTP_GZIP) maxlen = mtev_compress_bound(MTEV_COMPRESS_GZIP, in->size);
-  else if(opts & MTEV_HTTP_DEFLATE) maxlen = mtev_compress_bound(MTEV_COMPRESS_DEFLATE, in->size);
-  else if(opts & MTEV_HTTP_LZ4F) maxlen = mtev_compress_bound(MTEV_COMPRESS_LZ4F, in->size);
+  if(opts & MTEV_HTTP_GZIP) maxlen = mtev_compress_bound(MTEV_COMPRESS_GZIP, MAX(in->size, DEFAULT_BCHAINSIZE));
+  else if(opts & MTEV_HTTP_DEFLATE) maxlen = mtev_compress_bound(MTEV_COMPRESS_DEFLATE, MAX(in->size, DEFAULT_BCHAINSIZE));
+  else if(opts & MTEV_HTTP_LZ4F) maxlen = mtev_compress_bound(MTEV_COMPRESS_LZ4F, MAX(in->size, DEFAULT_BCHAINSIZE));
 
   /* So, the link size is the len(data) + 4 + ceil(log(len(data))/log(16)) */
   ilen = maxlen;
@@ -2215,7 +2215,7 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
   while(ilen) { ilen >>= 4; hexlen++; }
   if(hexlen == 0) hexlen = 1;
 
-  out = ALLOC_BCHAIN(hexlen + 4 + maxlen);
+  out = ALLOC_BCHAIN(MAX(hexlen + 4 + maxlen, DEFAULT_BCHAINSIZE));
   /* if we're chunked, let's give outselved hexlen + 2 prefix space */
   if(opts & MTEV_HTTP_CHUNKED) out->start = hexlen + 2;
   *leftover_size = in->size;

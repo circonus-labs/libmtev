@@ -271,7 +271,6 @@ mtev_stream_compress_gzip(mtev_stream_compress_ctx_t *ctx, const char *source_da
   ctx->zlib_compress_ctx.avail_out = *out_len;
   
   size_t t = ctx->zlib_compress_ctx.total_out;
-  size_t ti = ctx->zlib_compress_ctx.total_in;
   int x = deflate(&ctx->zlib_compress_ctx, Z_NO_FLUSH);
   if (x != Z_OK) {
     mtevL(mtev_error, "mtev_stream_compress_gzip: error deflate stream: %d\n",
@@ -279,7 +278,7 @@ mtev_stream_compress_gzip(mtev_stream_compress_ctx_t *ctx, const char *source_da
     return -1;    
   }
   /* order of operations matters here */
-  *source_len = in_len - (ctx->zlib_compress_ctx.total_in - ti);
+  *source_len = ctx->zlib_compress_ctx.avail_in;
   *out_len = (ctx->zlib_compress_ctx.total_out - t);
   return 0;
 }
