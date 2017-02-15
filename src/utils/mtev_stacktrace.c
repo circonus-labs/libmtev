@@ -31,6 +31,14 @@
 #include "mtev_defines.h"
 #include "mtev_log.h"
 #include "mtev_stacktrace.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <dirent.h>
 #include <execinfo.h>
 #if defined(__sun__)
 #include <ucontext.h>
