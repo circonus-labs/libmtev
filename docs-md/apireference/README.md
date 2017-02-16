@@ -24,11 +24,11 @@
 
 ##### M
 
-[mkdir_for_file](c.md#mkdirforfile)
+[mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile)
 
 ##### S
 
-[mtev_security_chroot](c.md#mtevsecuritychroot), [mtev_security_setcaps](c.md#mtevsecuritysetcaps), [mtev_security_usergroup](c.md#mtevsecurityusergroup), [mtev_sem_destroy](c.md#mtevsemdestroy), [mtev_sem_getvalue](c.md#mtevsemgetvalue), [mtev_sem_init](c.md#mtevseminit), [mtev_sem_post](c.md#mtevsempost), [mtev_sem_trywait](c.md#mtevsemtrywait), [mtev_sem_wait](c.md#mtevsemwait)
+[mtev_security_chroot](c.md#mtevsecuritychroot), [mtev_security_setcaps](c.md#mtevsecuritysetcaps), [mtev_security_usergroup](c.md#mtevsecurityusergroup), [mtev_sem_destroy](c.md#mtevsemdestroy), [mtev_sem_getvalue](c.md#mtevsemgetvalue), [mtev_sem_init](c.md#mtevseminit), [mtev_sem_post](c.md#mtevsempost), [mtev_sem_trywait](c.md#mtevsemtrywait), [mtev_sem_wait](c.md#mtevsemwait), [mtev_sort_compare_function](c.md#mtevsortcomparefunction), [mtev_sort_next_function](c.md#mtevsortnextfunction), [mtev_sort_set_next_function](c.md#mtevsortsetnextfunction)
 
 ##### U
 
@@ -47,6 +47,10 @@
 ##### D
 
 [mtev.dns](lua.md#mtev.dns), [mtev.dns:is_valid_ip](lua.md#mtev.dns:isvalidip), [mtev.dns:lookup](lua.md#mtev.dns:lookup)
+
+##### E
+
+[mtev.enable_log](lua.md#mtev.enablelog)
 
 ##### G
 

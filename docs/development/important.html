@@ -540,7 +540,7 @@ applications. Don&apos;t do that.  You can set different watchdog timeouts per
 eventer_pool.</p>
 <h3 id="multi-thread-safety">Multi-thread Safety</h3>
 <h4 id="memory-management">Memory Management</h4>
-<p>Multi-threaded apps can be hard.  Spefically memory management.  The <code>safe_</code>
+<p>Multi-threaded apps can be hard.  Specifically memory management.  The <code>safe_</code>
 memory management routines in <code>mtev_memory.h</code> are there to help, but they
 are not a silver bullet.  They wrap <code>libck</code> epoch memory reclamation and
 make it such that memory touched <em>inside</em> an event callback will not be

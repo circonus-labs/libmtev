@@ -1,8 +1,9 @@
 #ifndef MTEV_SORT_H
 #define MTEV_SORT_H
 
-/**
- * interface to call for a merge sort.  given:
+/*! \file mtev_sort.h
+ * 
+ * Interface to call for a merge sort.
  * 
  * struct foo {
  *   int data;
@@ -40,10 +41,35 @@
  * 'list' will be modified to contain the sorted list based on compare_function
  */ 
 
+/*! \fn void *mtev_sort_next_function(void *current)
+    \brief Function definition to get the next item from current
+    \param current the current node
+    \return the item after current
+*/
 typedef void *(*mtev_sort_next_function)(void *current);
+/*! \fn int mtev_sort_set_next_function(void *current, void *value)
+    \brief Function definition to re-order objects
+    \param current the current node
+    \param value the value that should be directly after current
+*/
+
 typedef void (*mtev_sort_set_next_function)(void *current, void *value);
+
+/*! \fn int mtev_sort_compare_function(void *left, void *right)
+    \brief Function definition to compare sortable entries
+    \param left one object to compare
+    \param right the other object to compare
+    \return less than zero, zero, or greater than zero if left is less than, equal, or greater than right.
+*/
 typedef int (*mtev_sort_compare_function)(void *left, void *right);
 
+
+/*! \fn void mtev_merge_sort(void **head_ptr_ptr, mtev_sort_next_function next, mtev_sort_set_next_function set_next, mtev_sort_compare_function compare)
+    \brief Merge sort data starting at head_ptr_ptr
+    \param next the function to call to get the next pointer from a node
+    \param set_next the function to call to alter the item directly after current
+    \param compare the function to call to compare 2 nodes
+*/
 void mtev_merge_sort(void **head_ptr_ptr, 
                             mtev_sort_next_function next,
                             mtev_sort_set_next_function set_next,

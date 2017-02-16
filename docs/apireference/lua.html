@@ -569,6 +569,18 @@ requested resource. Possible fields are:</p>
 <li><code>mg</code> and <code>ttl</code></li>
 <li><code>mr</code> and <code>ttl</code></li>
 </ul>
+<h3 id="e">E</h3>
+<h4 id="mtevenablelog">mtev.enable_log</h4>
+<blockquote>
+<p>Enable or disable a log facility by name.</p>
+</blockquote>
+<pre><code class="lang-lua">
+mtev.enable_log(facility, flags = <span class="hljs-keyword">true</span>)
+</code></pre>
+<ul>
+<li><code>facility</code> the name of the mtev_log_stream (e.g. &quot;debug&quot;)</li>
+<li><code>flags</code> true enables, false disables</li>
+</ul>
 <h3 id="g">G</h3>
 <h4 id="mtevgettimeofday">mtev.gettimeofday</h4>
 <pre><code class="lang-lua">sec, usec = 
