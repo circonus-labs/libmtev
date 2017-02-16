@@ -86,7 +86,7 @@ Set up a [development environment](https://omnios.omniti.com/wiki.php/DevEnv) fi
     cd libmtev
     autoreconf -i
     CFLAGS="-m64" \
-    CPPFLAGS="-I/opt/circonus/include/amd64 -I/opt/circonus/include/amd64/luajit" \
+    CPPFLAGS="-I/opt/circonus/include/amd64 -I/opt/circonus/include -I/opt/circonus/include/amd64/luajit" \
     LDFLAGS="-m64 -L/opt/circonus/lib/amd64 -R/opt/circonus/lib/amd64" \
     ./configure
     export MAKE=gmake
