@@ -1364,6 +1364,19 @@ thread-local fashion.  Also ensure that any use of the eventer does not migrate 
 <li><strong>RETURN</strong> the previous lua Lua state associated with this closure</li>
 </ul>
 <h3 id="m">M</h3>
+<h4 id="mtevmergesort">mtev_merge_sort</h4>
+<blockquote>
+<p>Merge sort data starting at head_ptr_ptr</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_merge_sort</span><span class="hljs-params">(<span class="hljs-keyword">void</span> **head_ptr_ptr, mtev_sort_next_function next, 
+                mtev_sort_set_next_function set_next, mtev_sort_compare_function compare)</span>
+</span></code></pre>
+<ul>
+<li><code>next</code> the function to call to get the next pointer from a node</li>
+<li><code>set_next</code> the function to call to alter the item directly after current</li>
+<li><code>compare</code> the function to call to compare 2 nodes</li>
+</ul>
 <h4 id="mkdirforfile">mkdir_for_file</h4>
 <blockquote>
 <p>Create directories along a path.</p>
@@ -1488,6 +1501,40 @@ user and group for the calling process.  This is thread-safe.</p>
 <ul>
 <li><code>s</code> the semaphore on which to wait</li>
 <li><strong>RETURN</strong> 0 on success or -1 on failure</li>
+</ul>
+<h4 id="mtevsortcomparefunction">mtev_sort_compare_function</h4>
+<blockquote>
+<p>Function definition to compare sortable entries</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_sort_compare_function</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *left, <span class="hljs-keyword">void</span> *right)</span>
+</span></code></pre>
+<ul>
+<li><code>left</code> one object to compare</li>
+<li><code>right</code> the other object to compare</li>
+<li><strong>RETURN</strong> less than zero, zero, or greater than zero if left is less than, equal, or greater than right.</li>
+</ul>
+<h4 id="mtevsortnextfunction">mtev_sort_next_function</h4>
+<blockquote>
+<p>Function definition to get the next item from current</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> *
+<span class="hljs-title">mtev_sort_next_function</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *current)</span>
+</span></code></pre>
+<ul>
+<li><code>current</code> the current node</li>
+<li><strong>RETURN</strong> the item after current</li>
+</ul>
+<h4 id="mtevsortsetnextfunction">mtev_sort_set_next_function</h4>
+<blockquote>
+<p>Function definition to re-order objects</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_sort_set_next_function</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *current, <span class="hljs-keyword">void</span> *value)</span>
+</span></code></pre>
+<ul>
+<li><code>current</code> the current node</li>
+<li><code>value</code> the value that should be directly after current</li>
 </ul>
 <h3 id="u">U</h3>
 <h4 id="updateretries">update_retries</h4>

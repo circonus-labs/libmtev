@@ -1088,6 +1088,22 @@ mtev_lua_lmc_setL(lua_module_closure_t *lmc)
 
 ### M
 
+#### mtev_merge_sort
+
+>Merge sort data starting at head_ptr_ptr
+
+```c
+void 
+mtev_merge_sort(void **head_ptr_ptr, mtev_sort_next_function next, 
+                mtev_sort_set_next_function set_next, mtev_sort_compare_function compare)
+```
+
+
+  * `next` the function to call to get the next pointer from a node
+  * `set_next` the function to call to alter the item directly after current
+  * `compare` the function to call to compare 2 nodes
+
+
 #### mkdir_for_file
 
 >Create directories along a path.
@@ -1247,6 +1263,49 @@ mtev_sem_wait(mtev_sem_t *s)
   * `s` the semaphore on which to wait
   * **RETURN** 0 on success or -1 on failure
  
+
+#### mtev_sort_compare_function
+
+>Function definition to compare sortable entries
+
+```c
+int 
+mtev_sort_compare_function(void *left, void *right)
+```
+
+
+  * `left` one object to compare
+  * `right` the other object to compare
+  * **RETURN** less than zero, zero, or greater than zero if left is less than, equal, or greater than right.
+
+
+#### mtev_sort_next_function
+
+>Function definition to get the next item from current
+
+```c
+void *
+mtev_sort_next_function(void *current)
+```
+
+
+  * `current` the current node
+  * **RETURN** the item after current
+
+
+#### mtev_sort_set_next_function
+
+>Function definition to re-order objects
+
+```c
+int 
+mtev_sort_set_next_function(void *current, void *value)
+```
+
+
+  * `current` the current node
+  * `value` the value that should be directly after current
+
 
 ### U
 

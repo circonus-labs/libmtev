@@ -68,6 +68,22 @@ requested resource. Possible fields are:
  * `mr` and `ttl`
 
 
+### E
+
+#### mtev.enable_log
+
+>Enable or disable a log facility by name.
+
+```lua
+
+mtev.enable_log(facility, flags = true)
+```
+
+
+  * `facility` the name of the mtev_log_stream (e.g. "debug")
+  * `flags` true enables, false disables
+
+
 ### G
 
 #### mtev.gettimeofday
