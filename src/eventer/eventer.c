@@ -208,10 +208,10 @@ void eventer_init_globals() {
   mtev_hash_init_locks(&__func_to_name, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   eventer_callback_latency =
     stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
-                   "_aggregate", STATS_TYPE_HISTOGRAM);
+                   "_aggregate", STATS_TYPE_HISTOGRAM_FAST);
   eventer_unnamed_callback_latency =
     stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
-                   "_unnamed", STATS_TYPE_HISTOGRAM);
+                   "_unnamed", STATS_TYPE_HISTOGRAM_FAST);
   stats_rob_i64(eventer_stats_ns, "events_total", (void *)&ealloctotal);
   stats_rob_i64(eventer_stats_ns, "events_current", (void *)&ealloccnt);
   eventer_impl_init_globals();
