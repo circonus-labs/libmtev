@@ -125,16 +125,18 @@ static void my_auth_handler(fq_client c, int error) {
 }
 
 static int poll_fq(eventer_t e, int mask, void *unused, struct timeval *now) {
+  int cnt = 0;
   fq_msg *m;
 
   for (int client = 0; client != the_conf->number_of_conns; ++client) {
     while (NULL != (m = fq_client_receive(the_conf->fq_conns[client]))) {
       mtev_fq_handle_message_dyn_hook_invoke(the_conf->fq_conns[client], client, m, m->payload, m->payload_len);
       fq_msg_deref(m);
+      cnt++;
     }
   }
 
-  return 1;
+  return cnt ? EVENTER_RECURRENT : 0;
 }
 
 static void my_bind_handler(fq_client c, fq_bind_req *breq) {

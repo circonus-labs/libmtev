@@ -400,9 +400,10 @@ eventer_mtev_memory_maintenance(eventer_t e, int mask, void *c,
    * force (barrier) cleanup.
    */
   if(*counter < 1000) {
-    if(mtev_memory_maintenance_ex(MTEV_MM_TRY) < 0)
+    if(mtev_memory_maintenance_ex(MTEV_MM_TRY) < 0) {
       (*counter)++;
-    else
+      return 0; /* no work was done */
+    } else
       *counter = 0;
   }
   else {
@@ -887,12 +888,19 @@ void eventer_dispatch_recurrent(struct timeval *now) {
   t = get_my_impl_data();
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
+    int rv;
     uint64_t start, duration;
     start = mtev_gethrtime();
-    node->e->callback(node->e, EVENTER_RECURRENT, node->e->closure, now);
-    duration = mtev_gethrtime() - start;
-    stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
-    stats_set_hist_intscale(eventer_latency_handle_for_callback(node->e->callback), duration, -9, 1);
+    rv = node->e->callback(node->e, EVENTER_RECURRENT, node->e->closure, now);
+    if(rv != 0) {
+      /* For RECURRENT calls, we don't want to overmeasure what are noops...
+       * So we trust that the call returns 0 after such a noop, but
+       * EVENTER_RECURRENT when work is done.
+       */
+      duration = mtev_gethrtime() - start;
+      stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+      stats_set_hist_intscale(eventer_latency_handle_for_callback(node->e->callback), duration, -9, 1);
+    }
   }
   pthread_mutex_unlock(&t->recurrent_lock);
 }
