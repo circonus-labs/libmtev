@@ -277,6 +277,7 @@ static void mtev_memory_real_free(ck_epoch_entry_t *e) {
 
 void *mtev_memory_safe_malloc(size_t r) {
   struct safe_epoch *b;
+  mtevAssert(epoch_rec != NULL);
   b = malloc(sizeof(*b) + r);
   b->magic = MTEV_EPOCH_SAFE_MAGIC;
   b->cleanup = NULL;
@@ -285,6 +286,7 @@ void *mtev_memory_safe_malloc(size_t r) {
 
 void *mtev_memory_safe_malloc_cleanup(size_t r, void (*f)(void *)) {
   struct safe_epoch *b;
+  mtevAssert(epoch_rec != NULL);
   b = malloc(sizeof(*b) + r);
   b->magic = MTEV_EPOCH_SAFE_MAGIC;
   b->cleanup = f;
