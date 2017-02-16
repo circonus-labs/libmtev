@@ -417,6 +417,8 @@ static int mtev_heartcheck(double child_watchdog_timeout, double *ltt, int *hear
   }
   return 0;
 }
+
+static void *alt_stack_ptr = NULL; /* dupe leak detector */
 int
 mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
   /* trace handlers */
@@ -439,15 +441,20 @@ mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
   if(NULL != (envcp = getenv("MTEV_ALTSTACK_SIZE"))) {
     altstack_size = default_altstack_size = atoi(envcp);
   }
-  if(default_altstack_size > 0) {
+  if(default_altstack_size > 0 && alt_stack_ptr == NULL) {
     altstack_size = MAX(MINSIGSTKSZ, default_altstack_size);
     if((altstack.ss_sp = malloc(altstack_size)) == NULL)
       altstack_size = 0;
     else {
       altstack.ss_size = altstack_size;
       altstack.ss_flags = 0;
-      if(sigaltstack(&altstack,0) < 0)
+      if(sigaltstack(&altstack,0) < 0) {
+        free(altstack.ss_sp);
         altstack_size = 0;
+      }
+      else {
+        alt_stack_ptr = altstack.ss_sp;
+      }
     }
   }
   if(altstack_size == 0)
