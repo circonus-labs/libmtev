@@ -1157,6 +1157,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
     }
     globfree(&tl_globs[i]);
   }
+  free(tl_globs);
   *include_cnt = inc_idx;
   mtevL(mtev_debug, "Processed %d includes\n", *include_cnt);
  out:

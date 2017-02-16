@@ -213,8 +213,9 @@ init_conns() {
   mtev_conf_section_t *mqs = mtev_conf_get_sections(NULL, CONFIG_FQ_IN_MQ,
       &the_conf->number_of_conns);
 
-  if (the_conf->fq_conns) {
-    free(the_conf->fq_conns);
+  if(the_conf->number_of_conns == 0) {
+    free(mqs);
+    return;
   }
 
   the_conf->fq_conns = malloc(the_conf->number_of_conns * sizeof(fq_client));
