@@ -39,10 +39,11 @@
 #include "lua_mtev.h"
 #include <dlfcn.h>
 
+#define nldeb mtev_lua_debug_ls
+#define nlerr mtev_lua_error_ls
+
 #define MTEV_LUA_REPL_USERDATA "mtev::state::lua_repl"
 
-static mtev_log_stream_t nlerr = NULL;
-static mtev_log_stream_t nldeb = NULL;
 static int mtev_lua_general_init(mtev_dso_generic_t *);
 
 typedef struct mtev_lua_repl_userdata_t {

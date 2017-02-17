@@ -42,10 +42,16 @@
 #include "mtev_conf.h"
 #include "mtev_dso.h"
 #include "mtev_log.h"
+#include "mtev_stacktrace.h"
 
 #include "lua_mtev.h"
 
-static mtev_log_stream_t nldeb = NULL;
+#define nldeb mtev_lua_debug_ls
+#define nlerr mtev_lua_error_ls
+
+mtev_log_stream_t mtev_lua_debug_ls;
+mtev_log_stream_t mtev_lua_error_ls;
+
 static mtev_hash_table mtev_lua_states;
 static pthread_mutex_t mtev_lua_states_lock = PTHREAD_MUTEX_INITIALIZER;
 static mtev_hash_table mtev_coros;
@@ -622,26 +628,31 @@ void
 mtev_lua_register_event(mtev_lua_resume_info_t *ci, eventer_t e) {
   eventer_t *eptr;
   eptr = calloc(1, sizeof(*eptr));
-  memcpy(eptr, &e, sizeof(*eptr));
+  *eptr = e;
   if(!ci->events) {
     ci->events = calloc(1, sizeof(*ci->events));
     mtev_hash_init(ci->events);
   }
+  mtevL(nldeb, "register_event( in: %p , e: %p )\n", ci->coro_state, e);
   mtevAssert(mtev_hash_store(ci->events, (const char *)eptr, sizeof(*eptr), eptr));
 }
 void
 mtev_lua_deregister_event(mtev_lua_resume_info_t *ci, eventer_t e,
                                 int tofree) {
   mtevAssert(ci->events);
-  mtevAssert(mtev_hash_delete(ci->events, (const char *)&e, sizeof(e),
+  uintptr_t eptr = (uintptr_t)e;
+  mtevL(nldeb, "deregister_event( in: %p , e: %p )\n", ci->coro_state, e);
+  mtevAssert(mtev_hash_delete(ci->events, (const char *)&eptr, sizeof(uintptr_t),
                           NULL, tofree ? mtev_event_dispose : free));
 }
 void
 mtev_lua_resume_clean_events(mtev_lua_resume_info_t *ci) {
   if(ci->events == NULL) return;
+  mtevL(nldeb, "clean_events( in: %p )\n", ci->coro_state);
   mtev_hash_destroy(ci->events, NULL, mtev_event_dispose);
   free(ci->events);
   ci->events = NULL;
+  mtevL(nldeb, "cleaned_events( in: %p )\n", ci->coro_state);
 }
 
 void

@@ -46,6 +46,9 @@
 #include "mtev_log.h"
 #include "mtev_json.h"
 
+extern mtev_log_stream_t mtev_lua_debug_ls;
+extern mtev_log_stream_t mtev_lua_error_ls;
+
 typedef struct mtev_lua_resume_info mtev_lua_resume_info_t;
 
 typedef int (*mtev_lua_resume_t)(mtev_lua_resume_info_t *info, int nargs);
@@ -226,7 +229,7 @@ mtev_lua_setup_restc(lua_State *L,
 } while(0)
 
 #define SETUP_CALL(L, object, func, failure) do { \
-  mtevL(nldeb, "lua calling %s->%s\n", object, func); \
+  mtevL(mtev_lua_debug_ls, "lua calling %s->%s\n", object, func); \
   mtev_lua_pushmodule(L, object); \
   lua_getfield(L, -1, func); \
   lua_remove(L, -2); \
@@ -246,7 +249,7 @@ mtev_lua_setup_restc(lua_State *L,
     expr \
     return rv; \
   } \
-  mtevL(nlerr, "%s.%s must return a integer not %s (%s)\n", object, func, mtev_lua_type_name(lua_type(L,-1)), lua_tostring(L,-1)); \
+  mtevL(mtev_lua_error_ls, "%s.%s must return a integer not %s (%s)\n", object, func, mtev_lua_type_name(lua_type(L,-1)), lua_tostring(L,-1)); \
   lua_pop(L,1); \
 } while(0)
 

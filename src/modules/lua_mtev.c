@@ -70,8 +70,8 @@
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
 
-static mtev_log_stream_t nlerr = NULL;
-static mtev_log_stream_t nldeb = NULL;
+#define nldeb mtev_lua_debug_ls
+#define nlerr mtev_lua_error_ls
 
 static mtev_hash_table shared_table = MTEV_HASH_EMPTY;
 static pthread_mutex_t shared_table_mutex;
@@ -726,6 +726,7 @@ mtev_lua_socket_own(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  *eptr = NULL;
   cl = e->closure;
   if(cl->L == L) return 0;
   
@@ -735,8 +736,9 @@ mtev_lua_socket_own(lua_State *L) {
   ci = mtev_lua_get_resume_info(L);
   mtevAssert(ci);
   cl->L = L;
+  cl->eptr = mtev_lua_event(L, e);
   mtev_lua_register_event(ci, e);
-  return 0;
+  return 1;
 }
 
 static int
@@ -1549,7 +1551,7 @@ nl_waitfor_notify(lua_State *L) {
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
-  eventer_remove(cl->pending_event);
+  mtevAssert(eventer_remove(cl->pending_event));
   mtev_lua_deregister_event(ci, cl->pending_event, 0);
   ci->lmc->resume(ci, nargs);
   lua_pushinteger(L, nargs);
