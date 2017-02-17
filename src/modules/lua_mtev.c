@@ -3156,12 +3156,10 @@ mtev_json_object_to_luatype(lua_State *L, mtev_json_object *o) {
     case mtev_json_type_array:
     {
       int i, cnt;
-      struct jl_array_list *al;
-      al = mtev_json_object_get_array(o);
-      cnt = al ? jl_array_list_length(al) : 0;
-      lua_createtable(L, 0, cnt);
+      cnt = mtev_json_object_array_length(o);
+      lua_createtable(L, cnt, 0);
       for(i=0;i<cnt;i++) {
-        mtev_json_object_to_luatype(L, (mtev_json_object *)jl_array_list_get_idx(al, i));
+        mtev_json_object_to_luatype(L, mtev_json_object_array_get_idx(o,i));
         lua_rawseti(L, -2, i+1);
       }
       break;
@@ -3203,6 +3201,9 @@ static mtev_json_object *
 mtev_lua_thing_to_json_object(lua_State *L, int idx, int limit) {
   lua_Integer v_int;
   double v_double;
+  if(idx < 0) {
+    idx = lua_gettop(L) + idx + 1;
+  }
   if(limit == 0) return MJ_STR("[depth elided]");
   if(limit > 0) limit--;
   switch(lua_type(L, idx)) {
@@ -3214,7 +3215,7 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx, int limit) {
       v_int = lua_tointeger(L,idx);
       v_double = lua_tonumber(L,idx);
       if((double)v_int == v_double) {
-        return mtev_json_object_new_int(v_int);
+        return mtev_json_object_new_int64(v_int);
       }
       return mtev_json_object_new_double(v_double);
     case LUA_TTABLE:
@@ -3223,9 +3224,9 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx, int limit) {
         lua_pushnil(L);
         while(lua_next(L,idx) != 0) {
           int key;
-          key = lua_tointeger(L,idx+1);
+          key = lua_tointeger(L,-2);
           mtev_json_object_array_put_idx(array, key-1,
-                                         mtev_lua_thing_to_json_object(L,idx+2, limit));
+                                         mtev_lua_thing_to_json_object(L,-1,limit));
           lua_pop(L,1);
         }
         return array;
@@ -3235,9 +3236,17 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx, int limit) {
         lua_pushnil(L);
         while(lua_next(L,idx) != 0) {
           const char *key;
-          key = lua_tostring(L,idx+1);
+          char numkey[32];
+          if(lua_type(L,-2) == LUA_TNUMBER) {
+            int idx = lua_tointeger(L,-2);
+            snprintf(numkey, sizeof(numkey), "%d", idx);
+            key = numkey;
+          }
+          else {
+            key = lua_tostring(L,-2);
+          }
           mtev_json_object_object_add(table, key,
-                                      mtev_lua_thing_to_json_object(L,idx+2, limit));
+                                      mtev_lua_thing_to_json_object(L,-1,limit));
           lua_pop(L,1);
         }
         return table;
