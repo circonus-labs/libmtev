@@ -33,15 +33,21 @@ void set_next_function(void *x, void *v) {
   f->next = (struct foo*)v;
 }
 
+#define DEFAULT_SORT_SIZE 300000
+
 int main(int argc, char **argv) 
 {
-
+  int sort_size = DEFAULT_SORT_SIZE;
   srand(time(NULL));
   struct foo *list, *head;
   list = head = malloc(sizeof(struct foo));
   list->data = rand();
 
-  for (int i = 0; i < 100000; i++) {
+  if (argc > 1) {
+    sort_size = atoi(argv[1]);
+  }
+
+  for (int i = 0; i < sort_size; i++) {
     list->next = malloc(sizeof(struct foo));
     list->next->data = rand();
     list = list->next;
@@ -54,7 +60,7 @@ int main(int argc, char **argv)
   mtev_merge_sort((void **)&head, next_function, set_next_function, compare_function);
   mtev_hrtime_t end = mtev_gethrtime();
 
-  printf("Sort 100K entries took: %llu nanos\n", end - start);
+  printf("Sort %d entries took: %llu nanos\n", sort_size, end - start);
 
   int begin = 0;
   struct foo *iter = head;

@@ -65,7 +65,7 @@ typedef int (*mtev_sort_compare_function)(void *left, void *right);
 
 
 /*! \fn void mtev_merge_sort(void **head_ptr_ptr, mtev_sort_next_function next, mtev_sort_set_next_function set_next, mtev_sort_compare_function compare)
-    \brief Merge sort data starting at head_ptr_ptr
+    \brief Merge sort data starting at head_ptr_ptr, iteratively
     \param next the function to call to get the next pointer from a node
     \param set_next the function to call to alter the item directly after current
     \param compare the function to call to compare 2 nodes
