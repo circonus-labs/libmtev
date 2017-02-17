@@ -49,6 +49,7 @@ static __thread ck_fifo_spsc_t *return_gc_queue;
 static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
 static void *mtev_memory_gc(void *unused);
+static mtev_log_stream_t mem_debug;
 
 void mtev_memory_init_thread() {
   if(epoch_rec == NULL) {
@@ -70,10 +71,10 @@ void mtev_memory_init() {
   pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
   asynch_gc = 1;
   if(pthread_create(&tid, &tattr, mtev_memory_gc, NULL) == 0) {
-    mtevL(mtev_debug, "mtev_memory starting gc thread\n");
+    mtevL(mem_debug, "mtev_memory starting gc thread\n");
   }
   else {
-    mtevL(mtev_error, "mtev_memory failed to spawn gc thread\n");
+    mtevL(mem_debug, "mtev_memory failed to spawn gc thread\n");
     asynch_gc = 0;
   }
 }
@@ -96,12 +97,13 @@ mtev_boolean mtev_memory_barriers(mtev_boolean *b) {
 
 void mtev_memory_maintenance() {
   ck_epoch_record_t epoch_temporary = *epoch_rec;
+  if(!mem_debug) mem_debug = mtev_log_stream_find("debug/memory");
   if(do_cleanup == NULL) do_cleanup = ck_epoch_poll;
   if(do_cleanup(epoch_rec)) {
     if(epoch_temporary.n_pending != epoch_rec->n_pending ||
        epoch_temporary.n_peak != epoch_rec->n_peak ||
        epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
-      mtevL(mtev_debug,
+      mtevL(mem_debug,
             "summary: [%u/%u/%u] %u pending, %u peak, %lu reclamations -> "
               "[%u/%u/%u] %u pending, %u peak, %lu reclamations\n",
               epoch_temporary.state, epoch_temporary.epoch,epoch_temporary.active,
@@ -147,10 +149,11 @@ mtev_gc_sync_complete(struct asynch_reclaim *ar) {
   epoch_rec->n_dispatch += n_dispatch;
   epoch_rec->n_pending -= n_dispatch;
 
+  if(!mem_debug) mem_debug = mtev_log_stream_find("debug/memory");
   if(epoch_temporary.n_pending != epoch_rec->n_pending ||
      epoch_temporary.n_peak != epoch_rec->n_peak ||
      epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
-    mtevL(mtev_debug,
+    mtevL(mem_debug,
           "[%p:asynch] summary: [%u/%u/%u] %u pending, %u peak, %lu reclamations -> "
             "[%u/%u/%u] %u pending, %u peak, %lu reclamations\n",
             epoch_rec,
@@ -192,6 +195,8 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   unsigned long n_dispatch = 0;
   mtev_boolean success = mtev_false;
   ck_epoch_record_t epoch_temporary =  *epoch_rec;
+
+  if(!mem_debug) mem_debug = mtev_log_stream_find("debug/memory");
 
   /* regardless of invocation intent, we cleanup our backq */
   if(!return_gc_queue) {
@@ -240,7 +245,7 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
     if(epoch_temporary.n_pending != epoch_rec->n_pending ||
        epoch_temporary.n_peak != epoch_rec->n_peak ||
        epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
-      mtevL(mtev_debug,
+      mtevL(mem_debug,
             "[%p:%s] summary: [%u/%u/%u] %u pending, %u peak, %lu reclamations -> "
               "[%u/%u/%u] %u pending, %u peak, %lu reclamations\n",
               epoch_rec, (method == MTEV_MM_TRY) ? "try" : "barrier",
