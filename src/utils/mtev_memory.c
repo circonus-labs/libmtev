@@ -50,7 +50,7 @@ static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
 static void *mtev_memory_gc(void *unused);
 static mtev_log_stream_t mem_debug = NULL;
-static pthread_mutex_t mem_debug_lock;
+static pthread_mutex_t mem_debug_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void mtev_memory_init_thread() {
   if(epoch_rec == NULL) {
@@ -64,7 +64,6 @@ void mtev_memory_init() {
   pthread_t tid;
   if(initialized) return;
   initialized = 1;
-  pthread_mutex_init(&mem_debug_lock, NULL);
   ck_epoch_init(&epoch_ht);
   mtev_memory_init_thread();
 
