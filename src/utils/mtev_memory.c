@@ -49,7 +49,7 @@ static __thread ck_fifo_spsc_t *return_gc_queue;
 static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
 static void *mtev_memory_gc(void *unused);
-static mtev_log_stream_t mem_debug;
+static mtev_log_stream_t mem_debug = NULL;
 
 void mtev_memory_init_thread() {
   if(epoch_rec == NULL) {
