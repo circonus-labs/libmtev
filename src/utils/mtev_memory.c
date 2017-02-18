@@ -50,6 +50,7 @@ static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
 static void *mtev_memory_gc(void *unused);
 static mtev_log_stream_t mem_debug = NULL;
+static pthread_mutex_t mem_debug_lock;
 
 void mtev_memory_init_thread() {
   if(epoch_rec == NULL) {
@@ -63,6 +64,7 @@ void mtev_memory_init() {
   pthread_t tid;
   if(initialized) return;
   initialized = 1;
+  pthread_mutex_init(&mem_debug_lock, NULL);
   ck_epoch_init(&epoch_ht);
   mtev_memory_init_thread();
 
@@ -97,7 +99,12 @@ mtev_boolean mtev_memory_barriers(mtev_boolean *b) {
 
 void mtev_memory_maintenance() {
   ck_epoch_record_t epoch_temporary = *epoch_rec;
-  if(!mem_debug) mem_debug = mtev_log_stream_find("debug/memory");
+  if(!mem_debug) {
+    pthread_mutex_lock(&mem_debug_lock);
+    if (!mem_debug)
+      mem_debug = mtev_log_stream_find("debug/memory");
+    pthread_mutex_unlock(&mem_debug_lock);
+  }
   if(do_cleanup == NULL) do_cleanup = ck_epoch_poll;
   if(do_cleanup(epoch_rec)) {
     if(epoch_temporary.n_pending != epoch_rec->n_pending ||
@@ -149,7 +156,12 @@ mtev_gc_sync_complete(struct asynch_reclaim *ar) {
   epoch_rec->n_dispatch += n_dispatch;
   epoch_rec->n_pending -= n_dispatch;
 
-  if(!mem_debug) mem_debug = mtev_log_stream_find("debug/memory");
+  if(!mem_debug) {
+    pthread_mutex_lock(&mem_debug_lock);
+    if (!mem_debug)
+      mem_debug = mtev_log_stream_find("debug/memory");
+    pthread_mutex_unlock(&mem_debug_lock);
+  }
   if(epoch_temporary.n_pending != epoch_rec->n_pending ||
      epoch_temporary.n_peak != epoch_rec->n_peak ||
      epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
@@ -196,7 +208,12 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   mtev_boolean success = mtev_false;
   ck_epoch_record_t epoch_temporary =  *epoch_rec;
 
-  if(!mem_debug) mem_debug = mtev_log_stream_find("debug/memory");
+  if(!mem_debug) {
+    pthread_mutex_lock(&mem_debug_lock);
+    if (!mem_debug)
+      mem_debug = mtev_log_stream_find("debug/memory");
+    pthread_mutex_unlock(&mem_debug_lock);
+  }
 
   /* regardless of invocation intent, we cleanup our backq */
   if(!return_gc_queue) {
