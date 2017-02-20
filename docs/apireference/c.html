@@ -1265,6 +1265,22 @@ eventer loop can wake up on timed events, asynchronous job completions and
 file descriptor activity.  If, for an external reason, one needs to wake up
 a looping thread, this call is used.</p>
 <h3 id="g">G</h3>
+<h4 id="mtevgetnanos">mtev_get_nanos</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 
+mtev_get_nanos(<span class="hljs-keyword">void</span>)
+</code></pre>
+<ul>
+<li><blockquote>
+<p>Like mtev_gethrtime... it actually is the implementation of mtev_gethrtime()</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><ul>
+<li><strong>RETURN</strong> number of nanos seconds from an arbitrary time in the past.</li>
+</ul>
+</li>
+</ul>
 <h4 id="mtevgetipipv4">mtev_getip_ipv4</h4>
 <blockquote>
 <p>find the local IPv4 address that would be used to talk to remote</p>
@@ -1276,6 +1292,24 @@ a looping thread, this call is used.</p>
 <li><code>remote</code> the destination (no packets are sent)</li>
 <li><code>local</code> the pointer to the local address to be set</li>
 <li><strong>RETURN</strong> 0 on success, -1 on failure</li>
+</ul>
+<h4 id="mtevgettimeofday">mtev_gettimeofday</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_gettimeofday</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> timeval *t, <span class="hljs-keyword">void</span> **ttp)</span>
+</span></code></pre>
+<ul>
+<li><blockquote>
+<p>Maybe fast-pathed version of gettimeofday</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><ul>
+<li><strong>RETURN</strong> same as system gettimeofday();</li>
+</ul>
+</li>
+<li></li>
+<li>If the fast path is taken, tzp is ignored.</li>
 </ul>
 <h3 id="l">L</h3>
 <h4 id="mtevlockfileacquire">mtev_lockfile_acquire</h4>
@@ -1366,7 +1400,7 @@ thread-local fashion.  Also ensure that any use of the eventer does not migrate 
 <h3 id="m">M</h3>
 <h4 id="mtevmergesort">mtev_merge_sort</h4>
 <blockquote>
-<p>Merge sort data starting at head_ptr_ptr</p>
+<p>Merge sort data starting at head_ptr_ptr, iteratively</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
 <span class="hljs-title">mtev_merge_sort</span><span class="hljs-params">(<span class="hljs-keyword">void</span> **head_ptr_ptr, mtev_sort_next_function next, 
@@ -1390,6 +1424,39 @@ thread-local fashion.  Also ensure that any use of the eventer does not migrate 
 <li><strong>RETURN</strong> Returns 0 on success, -1 on error.</li>
 </ul>
 <p>Creates all directories from / (as needed) to hold a named file.</p>
+<h3 id="n">N</h3>
+<h4 id="mtevnowms">mtev_now_ms</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 
+mtev_now_ms()
+</code></pre>
+<ul>
+<li><blockquote>
+<p>the current system time in milliseconds</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><ul>
+<li><strong>RETURN</strong> mtev_gettimeofday() in milliseconds since epoch</li>
+</ul>
+</li>
+</ul>
+<h4 id="mtevnowus">mtev_now_us</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 
+mtev_now_us()
+</code></pre>
+<ul>
+<li><blockquote>
+<p>the current system time in microseconds</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><ul>
+<li><strong>RETURN</strong> mtev_gettimeofday() in microseconds since epoch</li>
+</ul>
+</li>
+</ul>
 <h3 id="s">S</h3>
 <h4 id="mtevsecuritychroot">mtev_security_chroot</h4>
 <blockquote>
@@ -1535,6 +1602,115 @@ user and group for the calling process.  This is thread-safe.</p>
 <ul>
 <li><code>current</code> the current node</li>
 <li><code>value</code> the value that should be directly after current</li>
+</ul>
+<h4 id="mtevsysgethrtime">mtev_sys_gethrtime</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_hrtime_t</span> 
+mtev_sys_gethrtime(<span class="hljs-keyword">void</span>)
+</code></pre>
+<ul>
+<li><blockquote>
+<p>Exposes the system gethrtime() or equivalent impl</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><ul>
+<li><strong>RETURN</strong> mtev_hrtime_t the system high-res time</li>
+</ul>
+</li>
+</ul>
+<h3 id="t">T</h3>
+<h4 id="mtevtimefastmode">mtev_time_fast_mode</h4>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_time_fast_mode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **reason)</span>
+</span></code></pre>
+<ul>
+<li><blockquote>
+<p>check to see if fast mode is enabled</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><ul>
+<li><strong>RETURN</strong> true if fast mode is on, false otherwise, the reason param will contain a text description</li>
+</ul>
+</li>
+</ul>
+<h4 id="mtevtimemaintain">mtev_time_maintain</h4>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_time_maintain</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<ul>
+<li><blockquote>
+<p>Usually this is managed for you, but this is safe to call at any time</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><ul>
+<li><strong>RETURN</strong> mtev_true if it was successful in parameterizing the CPU for rdtsc, mtev_false otherwise</li>
+</ul>
+</li>
+<li></li>
+<li>safe to call at any time but if you start_tsc, you should never need to call this</li>
+<li>as the maintenance system can do it for you.. However, if you find you need to call it</li>
+<li>you must be bound to a thread using the mtev_thread APIs and the function will return</li>
+<li>whether it was successful in parameterizing the CPU for rdtsc use.</li>
+</ul>
+<h4 id="mtevtimestarttsc">mtev_time_start_tsc</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_time_start_tsc</span><span class="hljs-params">()</span>
+</span></code></pre>
+<ul>
+<li><blockquote>
+<p>use TSC clock if possible for this CPU num</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li></li>
+<li>This will remain active in the thread until you call stop</li>
+</ul>
+<h4 id="mtevtimestoptsc">mtev_time_stop_tsc</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_time_stop_tsc</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<ul>
+<li><blockquote>
+<p>Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)</p>
+</blockquote>
+</li>
+</ul>
+<h4 id="mtevtimetogglerequireinvarianttsc">mtev_time_toggle_require_invariant_tsc</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_time_toggle_require_invariant_tsc</span><span class="hljs-params">(mtev_boolean enable)</span>
+</span></code></pre>
+<ul>
+<li><blockquote>
+<p>will switch on/off the requirement of an invariant tsc.  This must be run before any call to mtev_time_toggle_tsc() or mtev_time_tsc_start() and is a one time call.</p>
+</blockquote>
+</li>
+</ul>
+<p> *</p>
+<ul>
+<li>Defaults to enabled.</li>
+</ul>
+<h4 id="mtevtimetoggletsc">mtev_time_toggle_tsc</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_time_toggle_tsc</span><span class="hljs-params">(mtev_boolean enable)</span>
+</span></code></pre>
+<ul>
+<li><blockquote>
+<p>will switch on/off rdtsc usage across all cores regardless of detected state of rdtsc or start/stop usage.</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li></li>
+<li>Defaults to enabled.</li>
+<li></li>
+<li>This is idependent of start_tsc/stop_tsc.  You can disable all and reenable and the thread</li>
+<li>will keep going using the state from the last start/stop_tsc</li>
 </ul>
 <h3 id="u">U</h3>
 <h4 id="updateretries">update_retries</h4>

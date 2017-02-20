@@ -32,23 +32,22 @@
 
 #include <mtev_defines.h>
 
-/**
- * use TSC clock if possible for this CPU num
+/*! \fn void mtev_time_start_tsc()
+ *  \brief use TSC clock if possible for this CPU num
  * 
  * This will remain active in the thread until you call stop
  */
 API_EXPORT(void)
   mtev_time_start_tsc();
 
-/** 
- * Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)
+/*! \fn void mtev_time_stop_tsc(void)
+ *  \brief Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)
  */
 API_EXPORT(void)
   mtev_time_stop_tsc(void);
 
-/**
- * will switch on/off rdtsc usage across all cores regardless
- * of detected state of rdtsc or start/stop usage.
+/*! \fn void mtev_time_toggle_tsc(mtev_boolean enable)
+ *  \brief will switch on/off rdtsc usage across all cores regardless of detected state of rdtsc or start/stop usage.
  * 
  * Defaults to enabled.
  * 
@@ -58,16 +57,18 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_time_toggle_tsc(mtev_boolean enable);
 
-/**
- * will switch on/off the requirement of an invariant tsc.  This must be run before
- * any call to mtev_time_toggle_tsc() or mtev_time_tsc_start() and is a one time call.
+/*! \fn void mtev_time_toggle_require_invariant_tsc(mtev_boolean enable)
+ *  \brief  will switch on/off the requirement of an invariant tsc.  This must be run before any call to mtev_time_toggle_tsc() or mtev_time_tsc_start() and is a one time call.
  *
  * Defaults to enabled.
  */
 API_EXPORT(void)
   mtev_time_toggle_require_invariant_tsc(mtev_boolean enable);
 
-/**
+/*! \fn mtev_boolean mtev_time_maintain(void)
+ *  \brief Usually this is managed for you, but this is safe to call at any time
+ *  \return mtev_true if it was successful in parameterizing the CPU for rdtsc, mtev_false otherwise
+ * 
  * safe to call at any time but if you start_tsc, you should never need to call this
  * as the maintenance system can do it for you.. However, if you find you need to call it
  * you must be bound to a thread using the mtev_thread APIs and the function will return
@@ -76,38 +77,56 @@ API_EXPORT(void)
 API_EXPORT(mtev_boolean)
   mtev_time_maintain(void);
 
-/**
- * Like mtev_gethrtime... it actually is the implementation of mtev_gethrtime()
+/*! \fn uint64_t mtev_get_nanos(void)
+ *  \brief Like mtev_gethrtime... it actually is the implementation of mtev_gethrtime()
+ *  \return number of nanos seconds from an arbitrary time in the past.
  */
 API_EXPORT(uint64_t)
   mtev_get_nanos(void);
 
-/**
- * if start_tsc has been called for this thread and the CPU supports it,
- * this will return the number of current TSC ticks
+/*! \f uint64_t mtev_get_ticks(void)
+ *  \brief if start_tsc has been called for this thread and the CPU supports it, this will return the number of current TSC ticks
+ *  \return the rdtsc() counter from the current CPU
  */
 API_EXPORT(uint64_t)
   mtev_get_ticks(void);
 
-/** 
- * same as mtev_get_nanos.  Number of nanoseconds since unix epoch.  Unlike gethrtime()
- * which is nanoseconds from some arbitrary point in time.
+/*! \fn mtev_hrtime_t mtev_sys_gethrtime(void)
+ *  \brief gethrtime() replacement, number of nanoseconds from some arbitrary point in time.
+ *  \return mtev_hrtime_t the system high-res time
  */
 API_EXPORT(mtev_hrtime_t)
   mtev_gethrtime(void);
 
-/**
- * Exposes the system gethrtime() or equivalent impl
+/*! \fn mtev_hrtime_t mtev_sys_gethrtime(void)
+ *  \brief Exposes the system gethrtime() or equivalent impl
+ *  \return mtev_hrtime_t the system high-res time
  */
 API_EXPORT(mtev_hrtime_t)
   mtev_sys_gethrtime(void);
 
-/**
- * Exposes a possibly fast-pathed gettimeofday equivalent.
+/*! \fn int mtev_gettimeofday(struct timeval *t, void **ttp)
+ *  \brief Maybe fast-pathed version of gettimeofday
+ *  \return same as system gettimeofday();
+ * 
  * If the fast path is taken, tzp is ignored.
  */
 API_EXPORT(int)
   mtev_gettimeofday(struct timeval *t, void *ttp);
+
+  /*! \fn uint64_t mtev_now_ms()
+   *  \brief the current system time in milliseconds
+   *  \return mtev_gettimeofday() in milliseconds since epoch
+   */
+API_EXPORT(uint64_t)
+  mtev_now_ms();
+
+  /*! \fn uint64_t mtev_now_us()
+   *  \brief the current system time in microseconds
+   *  \return mtev_gettimeofday() in microseconds since epoch
+   */
+API_EXPORT(uint64_t)
+  mtev_now_us();
 
 typedef struct mtev_time_coreclock_t {
   double ticks_per_nano;   /* ticks per nano on this cpu core */
@@ -119,8 +138,9 @@ typedef struct mtev_time_coreclock_t {
 API_EXPORT(mtev_boolean)
   mtev_time_coreclock_info(int cpuid, mtev_time_coreclock_t *info);
 
-/**
- * returns whether mtev is currently operating in fast mode
+/*! \fn mtev_boolean mtev_time_fast_mode(const char **reason)
+ *  \brief check to see if fast mode is enabled
+ *  \return true if fast mode is on, false otherwise, the reason param will contain a text description
  */
 API_EXPORT(mtev_boolean)
   mtev_time_fast_mode(const char **reason);
