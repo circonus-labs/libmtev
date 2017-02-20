@@ -61,6 +61,15 @@ if test -z "$ac_cv_path_LUA"; then
 fi
 AC_SUBST(PERL)
 
+AC_ARG_ENABLE(luarocks-path,
+  [AC_HELP_STRING([--enable-luarock-path],
+    [Set a LUA_PATH to see luarocks: (no, LuaJIT)])],
+  [LUAROCKS_PATH="$enableval"],
+  [LUAROCKS_PATH=`$LUAROCKS path --lr-path | sed -e 's#[^;]*home[^;]*;##g;'`])
+AC_MSG_CHECKING([luarocks LUA_PATH])
+AC_MSG_RESULT([$LUAROCKS_PATH])
+AC_SUBST(LUAROCKS_PATH)
+
 if test "x$GCC" = "xyes" ; then
 	C99FLAG="-std=c99"
 	CFLAGS="$CFLAGS -g $C99FLAG"
@@ -790,4 +799,6 @@ src/modules/Makefile
 src/examples/Makefile
 src/scripts/mtev-config
 test/Makefile
+test/mtevbusted-script
 ])
+
