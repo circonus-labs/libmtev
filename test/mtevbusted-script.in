@@ -1,9 +1,31 @@
-#!/bin/sh
---[[ 2>/dev/null
-exec ../src/luamtev '-C../src/modules/mtev_lua/?.so;{package.cpath}' '-L../src/modules/lua-support/?.lua;./lua-harness/?.lua;{package.path}' '-M../src/modules/' $0 $@
-]]
+#!/opt/circonus/bin/luamtev -L+@LUAROCKS_PATH@
 
 module(..., package.seeall)
+
+require('mtevbusted/init')
+
+local tags, exclude_tags
+local helpers = {}
+local add_tag = function(tag)
+  if tags == nil then tags = {} end
+  tags[#tags+1] = tag
+end
+local add_exclude_tag = function(tag)
+  if exclude_tags == nil then exclude_tags = {} end
+  exclude_tags[#exclude_tags+1] = tag
+end
+local add_helper = function(file)
+  helpers[#helpers + 1] = file
+end
+
+cli_option("h", { help = "usage", value = false, default = false })
+cli_option("i", { help = "initial helper", value = add_helper })
+cli_option("file", { help = "test file", value = ".", default = "." })
+cli_option("tag", { help = "include tag <arg>", value = add_tag })
+cli_option("exclude-tag", { help = "exclude tag <arg>", value = add_exclude_tag })
+cli_option("bail", { help = "stop after first failure", value = false, default = false })
+local options = parsecli()
+if options.h.value then usage() end
 
 local _G = _G
 local __buf = ''
@@ -36,7 +58,20 @@ local filterLoader = require 'busted.modules.filter_loader'()
 local helperLoader = require 'busted.modules.helper_loader'()
 local outputHandlerLoader = require 'busted.modules.output_handler_loader'()
 local luacov = require 'busted.modules.luacov'()
+
 require 'busted'(busted)
+
+  -- Load tag and test filters
+filterLoader(busted, {
+  tags = tags,
+  excludeTags = exclude_tags,
+--[[
+  filter = cliArgs.filter,
+  filterOut = cliArgs['filter-out'],
+  list = cliArgs.list,
+]]
+  nokeepgoing = options["bail"]
+})
 
 outputHandlerLoader(
   busted, 'junit',
@@ -47,10 +82,20 @@ outputHandlerLoader(
   { language = 'en' }
 )
 
-helperLoader(busted, 'lua-support/mtev_load.lua', { verbose = true, language = 'lua' })
+if mtev.stat("lua-support/init.lua") ~= nil then
+  helperLoader(busted, 'lua-support/init.lua', { verbose = true, language = 'lua' })
+end
+
+for i, file in ipairs(helpers) do
+  helperLoader(busted, file, { verbose = true, language = 'lua' })
+end
 
 local testFileLoader = require 'busted.modules.test_file_loader'(busted, { 'lua', 'moonscript' })
 testFileLoader({ '.' }, { '_spec' }, { recursive = true, excludes = {} })
+
+busted.register('setup', 'lazy_setup')
+busted.register('teardown', 'lazy_teardown')
+busted.randomize = false
 
 local function jobwatch()
   local todo = { }
@@ -73,6 +118,7 @@ local function jobwatch()
     end
   end
 end
+
 local tid, id = mtev.thread_self()
 if id == 0 then
   mtev.coroutine_spawn(jobwatch)
@@ -85,15 +131,23 @@ function testsuite(context)
   local failures = 0
   local errors = 0
 
+  busted.subscribe({ 'error', 'it' }, function(...)
+    errors = errors + 1
+    return nil, true
+  end)
+
+  busted.subscribe({ 'failure', 'it' }, function(...)
+    failures = failures + 1
+    return nil, true
+  end)
+
   busted.subscribe({ 'error' }, function(...)
     errors = errors + 1
     return nil, true
   end)
 
-  busted.subscribe({ 'test', 'end' }, function(...)
-    if status == 'failure' then
-      failures = failures + 1
-    end
+  busted.subscribe({ 'failure' }, function(...)
+    failures = failures + 1
     return nil, true
   end)
 

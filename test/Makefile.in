@@ -14,6 +14,7 @@ RANLIB=@RANLIB@
 LIBS=@LIBS@
 PGLIBS=@PGLIBS@
 INSTALL=@INSTALL@
+MODULES_DIR=@MODULES_DIR@
 LIBMTEV_LIBS=@LIBMTEV_LIBS@
 UNWINDLIB=@UNWINDLIB@
 
@@ -35,7 +36,8 @@ top_srcdir=@top_srcdir@
 LD_LIBRARY_PATH=../src
 TESTHARNESS_OBJS=test_harness.o
 LUAROCKS=@LUAROCKS@
-LUAROCKS_PATH=$(shell $(LUAROCKS) path --lr-path)
+LUAROCKS_PATH=$(shell $(LUAROCKS) path --lr-path | sed -e 's\#[^;]*home[^;]*;\#\#g;')
+LUA_FILES=mtevbusted/init.lua mtevbusted/cli.lua mtevbusted/api.lua mtevbusted/child.lua
 
 all:	check
 
@@ -64,19 +66,27 @@ test_harness:       $(TESTHARNESS_OBJS)
 	@echo "- linking $@"
 	$(Q)$(CC) -L../src $(LDFLAGS) $(UNWINDLIB) -o $@ $(TESTHARNESS_OBJS) $(LIBS) -lmtev
 
-busted:
-	@busted --version >/dev/null 2>/dev/null || \
-		(echo "Please instead busted: luarocks install busted" && false)
+mtevbusted-script:	mtevbusted-script.in
+	sed -e 's#@LUAROCKS_PATH@#$(LUAROCKS_PATH)#g;' < mtevbusted-script.in > $@
+	chmod 0755 $@
 
-check-lua:
+check-lua:	mtevbusted-script
 	@echo
 	@echo "Running luajit-based tests via test_harness..."
-	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LUA_PATH="$(LUAROCKS_PATH)" ./mtevbusted
+	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LUA_PATH="$(LUAROCKS_PATH)" ./mtevbusted-script
 
 check-standalone: $(TESTS)
 	@echo
 	@echo "Running other tests via script..."
 	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./run_standalone_tests.sh $(TESTS)
+
+install:	mtevbusted-script
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)
+	$(INSTALL) -m 0755 mtevbusted-script $(DESTDIR)$(bindir)/mtevbusted
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)/lua/mtevbusted
+	for lua in $(LUA_FILES); do \
+		$(INSTALL) -m 0755 $$lua $(DESTDIR)$(MODULES_DIR)/lua/$$lua ; \
+	done
 
 check:	check-standalone check-lua
 
