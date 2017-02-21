@@ -964,6 +964,20 @@ a looping thread, this call is used.
 
 ### G
 
+#### mtev_get_nanos
+
+```c
+uint64_t 
+mtev_get_nanos(void)
+```
+
+ *  
+> Like mtev_gethrtime. It actually is the implementation of mtev_gethrtime()
+
+
+ *    * **RETURN** number of nanos seconds from an arbitrary time in the past.
+ 
+
 #### mtev_getip_ipv4
 
 >find the local IPv4 address that would be used to talk to remote
@@ -977,6 +991,22 @@ mtev_getip_ipv4(struct in_addr remote, struct in_addr *local)
   * `remote` the destination (no packets are sent)
   * `local` the pointer to the local address to be set
   * **RETURN** 0 on success, -1 on failure
+ 
+
+#### mtev_gettimeofday
+
+```c
+int 
+mtev_gettimeofday(struct timeval *t, void **ttp)
+```
+
+ *  
+> Maybe fast-pathed version of gettimeofday
+
+
+ *    * **RETURN** same as system gettimeofday();
+ * 
+ * If the fast path is taken, ttp is ignored.
  
 
 ### L
@@ -1090,7 +1120,7 @@ mtev_lua_lmc_setL(lua_module_closure_t *lmc)
 
 #### mtev_merge_sort
 
->Merge sort data starting at head_ptr_ptr
+>Merge sort data starting at head_ptr_ptr, iteratively
 
 ```c
 void 
@@ -1120,6 +1150,36 @@ mkdir_for_file(const char *file, mode_t m)
 
 Creates all directories from / (as needed) to hold a named file.
  
+
+### N
+
+#### mtev_now_ms
+
+```c
+uint64_t 
+mtev_now_ms()
+```
+
+   *  
+> the current system time in milliseconds
+
+
+   *    * **RETURN** mtev_gettimeofday() in milliseconds since epoch
+   
+
+#### mtev_now_us
+
+```c
+uint64_t 
+mtev_now_us()
+```
+
+   *  
+> the current system time in microseconds
+
+
+   *    * **RETURN** mtev_gettimeofday() in microseconds since epoch
+   
 
 ### S
 
@@ -1306,6 +1366,116 @@ mtev_sort_set_next_function(void *current, void *value)
   * `current` the current node
   * `value` the value that should be directly after current
 
+
+#### mtev_sys_gethrtime
+
+```c
+mtev_hrtime_t 
+mtev_sys_gethrtime(void)
+```
+
+ *  
+> Exposes the system gethrtime() or equivalent impl
+
+
+ *    * **RETURN** mtev_hrtime_t the system high-res time
+ 
+
+### T
+
+#### mtev_time_fast_mode
+
+```c
+mtev_boolean 
+mtev_time_fast_mode(const char **reason)
+```
+
+ *  
+> check to see if fast mode is enabled
+
+
+ *    * **RETURN** true if fast mode is on, false otherwise, the reason param will contain a text description
+ 
+
+#### mtev_time_maintain
+
+```c
+mtev_boolean 
+mtev_time_maintain(void)
+```
+
+ *  
+> Usually this is managed for you, but this is safe to call at any time
+
+
+ *    * **RETURN** mtev_true if it was successful in parameterizing the CPU for rdtsc, mtev_false otherwise
+ * 
+ * Safe to call at any time but if you start_tsc, you should never need to call this
+ * as the maintenance system can do it for you. However, if you find you need to call it
+ * you must be bound to a thread using the mtev_thread APIs and the function will return
+ * whether it was successful in parameterizing the CPU for rdtsc use.
+ 
+
+#### mtev_time_start_tsc
+
+```c
+void 
+mtev_time_start_tsc()
+```
+
+ *  
+> use TSC clock if possible for this CPU num
+
+
+ * 
+ * This will remain active in the thread until you call stop
+ 
+
+#### mtev_time_stop_tsc
+
+```c
+void 
+mtev_time_stop_tsc(void)
+```
+
+ *  
+> Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)
+
+
+ 
+
+#### mtev_time_toggle_require_invariant_tsc
+
+```c
+void 
+mtev_time_toggle_require_invariant_tsc(mtev_boolean enable)
+```
+
+ *  
+> will switch on/off the requirement of an invariant tsc.  This must be run before any call to mtev_time_toggle_tsc() or mtev_time_tsc_start() and is a one time call.
+
+
+ *
+ * Defaults to enabled.
+ 
+
+#### mtev_time_toggle_tsc
+
+```c
+void 
+mtev_time_toggle_tsc(mtev_boolean enable)
+```
+
+ *  
+> will switch on/off rdtsc usage across all cores regardless of detected state of rdtsc or start/stop usage.
+
+
+ * 
+ * Defaults to enabled.
+ * 
+ * This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread
+ * will keep going using the state from the last start/stop_tsc
+ 
 
 ### U
 

@@ -16,7 +16,7 @@
 
 ##### G
 
-[mtev_getip_ipv4](c.md#mtevgetipipv4)
+[mtev_get_nanos](c.md#mtevgetnanos), [mtev_getip_ipv4](c.md#mtevgetipipv4), [mtev_gettimeofday](c.md#mtevgettimeofday)
 
 ##### L
 
@@ -26,9 +26,17 @@
 
 [mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile)
 
+##### N
+
+[mtev_now_ms](c.md#mtevnowms), [mtev_now_us](c.md#mtevnowus)
+
 ##### S
 
-[mtev_security_chroot](c.md#mtevsecuritychroot), [mtev_security_setcaps](c.md#mtevsecuritysetcaps), [mtev_security_usergroup](c.md#mtevsecurityusergroup), [mtev_sem_destroy](c.md#mtevsemdestroy), [mtev_sem_getvalue](c.md#mtevsemgetvalue), [mtev_sem_init](c.md#mtevseminit), [mtev_sem_post](c.md#mtevsempost), [mtev_sem_trywait](c.md#mtevsemtrywait), [mtev_sem_wait](c.md#mtevsemwait), [mtev_sort_compare_function](c.md#mtevsortcomparefunction), [mtev_sort_next_function](c.md#mtevsortnextfunction), [mtev_sort_set_next_function](c.md#mtevsortsetnextfunction)
+[mtev_security_chroot](c.md#mtevsecuritychroot), [mtev_security_setcaps](c.md#mtevsecuritysetcaps), [mtev_security_usergroup](c.md#mtevsecurityusergroup), [mtev_sem_destroy](c.md#mtevsemdestroy), [mtev_sem_getvalue](c.md#mtevsemgetvalue), [mtev_sem_init](c.md#mtevseminit), [mtev_sem_post](c.md#mtevsempost), [mtev_sem_trywait](c.md#mtevsemtrywait), [mtev_sem_wait](c.md#mtevsemwait), [mtev_sort_compare_function](c.md#mtevsortcomparefunction), [mtev_sort_next_function](c.md#mtevsortnextfunction), [mtev_sort_set_next_function](c.md#mtevsortsetnextfunction), [mtev_sys_gethrtime](c.md#mtevsysgethrtime)
+
+##### T
+
+[mtev_time_fast_mode](c.md#mtevtimefastmode), [mtev_time_maintain](c.md#mtevtimemaintain), [mtev_time_start_tsc](c.md#mtevtimestarttsc), [mtev_time_stop_tsc](c.md#mtevtimestoptsc), [mtev_time_toggle_require_invariant_tsc](c.md#mtevtimetogglerequireinvarianttsc), [mtev_time_toggle_tsc](c.md#mtevtimetoggletsc)
 
 ##### U
 

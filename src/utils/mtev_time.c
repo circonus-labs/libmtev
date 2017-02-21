@@ -307,6 +307,28 @@ int mtev_gettimeofday(struct timeval *t, void *ttp) {
   return mtev_gettimeofday_fallback(t, ttp);
 }
 
+uint64_t mtev_now_ms()
+{
+  uint64_t rval;
+  struct timeval tv;
+  if (mtev_gettimeofday(&tv, NULL) == 0) {
+    rval = ((uint64_t)tv.tv_sec * 1000UL) + ((uint64_t)tv.tv_usec / 1000);
+    return rval;
+  }
+  return 0;
+}
+
+uint64_t mtev_now_us()
+{
+  uint64_t rval;
+  struct timeval tv;
+  if (mtev_gettimeofday(&tv, NULL) == 0) {
+    rval = ((uint64_t)tv.tv_sec * 1000000UL) + ((uint64_t)tv.tv_usec);
+    return rval;
+  }
+  return 0;
+}
+
 #ifdef ENABLE_RDTSC
 static double
 mtev_time_adjust_tps(int cpuid) {
