@@ -1271,7 +1271,7 @@ mtev_get_nanos(<span class="hljs-keyword">void</span>)
 </code></pre>
 <ul>
 <li><blockquote>
-<p>Like mtev_gethrtime... it actually is the implementation of mtev_gethrtime()</p>
+<p>Like mtev_gethrtime. It actually is the implementation of mtev_gethrtime()</p>
 </blockquote>
 </li>
 </ul>
@@ -1309,7 +1309,7 @@ mtev_get_nanos(<span class="hljs-keyword">void</span>)
 </ul>
 </li>
 <li></li>
-<li>If the fast path is taken, tzp is ignored.</li>
+<li>If the fast path is taken, ttp is ignored.</li>
 </ul>
 <h3 id="l">L</h3>
 <h4 id="mtevlockfileacquire">mtev_lockfile_acquire</h4>
@@ -1652,8 +1652,8 @@ mtev_sys_gethrtime(<span class="hljs-keyword">void</span>)
 </ul>
 </li>
 <li></li>
-<li>safe to call at any time but if you start_tsc, you should never need to call this</li>
-<li>as the maintenance system can do it for you.. However, if you find you need to call it</li>
+<li>Safe to call at any time but if you start_tsc, you should never need to call this</li>
+<li>as the maintenance system can do it for you. However, if you find you need to call it</li>
 <li>you must be bound to a thread using the mtev_thread APIs and the function will return</li>
 <li>whether it was successful in parameterizing the CPU for rdtsc use.</li>
 </ul>
@@ -1709,7 +1709,7 @@ mtev_sys_gethrtime(<span class="hljs-keyword">void</span>)
 <li></li>
 <li>Defaults to enabled.</li>
 <li></li>
-<li>This is idependent of start_tsc/stop_tsc.  You can disable all and reenable and the thread</li>
+<li>This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread</li>
 <li>will keep going using the state from the last start/stop_tsc</li>
 </ul>
 <h3 id="u">U</h3>

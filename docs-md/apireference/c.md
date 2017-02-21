@@ -972,7 +972,7 @@ mtev_get_nanos(void)
 ```
 
  *  
-> Like mtev_gethrtime... it actually is the implementation of mtev_gethrtime()
+> Like mtev_gethrtime. It actually is the implementation of mtev_gethrtime()
 
 
  *    * **RETURN** number of nanos seconds from an arbitrary time in the past.
@@ -1006,7 +1006,7 @@ mtev_gettimeofday(struct timeval *t, void **ttp)
 
  *    * **RETURN** same as system gettimeofday();
  * 
- * If the fast path is taken, tzp is ignored.
+ * If the fast path is taken, ttp is ignored.
  
 
 ### L
@@ -1410,8 +1410,8 @@ mtev_time_maintain(void)
 
  *    * **RETURN** mtev_true if it was successful in parameterizing the CPU for rdtsc, mtev_false otherwise
  * 
- * safe to call at any time but if you start_tsc, you should never need to call this
- * as the maintenance system can do it for you.. However, if you find you need to call it
+ * Safe to call at any time but if you start_tsc, you should never need to call this
+ * as the maintenance system can do it for you. However, if you find you need to call it
  * you must be bound to a thread using the mtev_thread APIs and the function will return
  * whether it was successful in parameterizing the CPU for rdtsc use.
  
@@ -1473,7 +1473,7 @@ mtev_time_toggle_tsc(mtev_boolean enable)
  * 
  * Defaults to enabled.
  * 
- * This is idependent of start_tsc/stop_tsc.  You can disable all and reenable and the thread
+ * This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread
  * will keep going using the state from the last start/stop_tsc
  
 
