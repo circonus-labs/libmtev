@@ -260,7 +260,7 @@ AC_CHECK_LIB(lz4, LZ4F_compressBegin, , [AC_MSG_ERROR([*** liblz4 is required **
 # for them in reverse dependency order so that $LIBS contains the correct
 # dependencies at each step.
 AC_CHECK_LIB(jlog, jlog_new, , [AC_MSG_ERROR([*** libjlog required github.com/omniti-labs/jlog ***])])
-AC_CHECK_LIB(circllhist, hist_insert, , [AC_MSG_ERROR([*** libcircllhist is required ***])])
+AC_CHECK_LIB(circllhist, hist_insert, , [AC_MSG_ERROR([*** libcircllhist is required ***])], [-lm])
 AC_CHECK_LIB(circmetrics, stats_recorder_alloc, , [AC_MSG_ERROR([*** libcircmetrics is required ***])])
 
 AC_CHECK_LIB(umem, umem_cache_create, [
