@@ -39,31 +39,27 @@ all:	echo_server echo_client example1 fq-router websocket_client websocket_serve
 
 echo_server:	$(ES_OBJS)
 	@echo "- linking $@"
-	@echo "LDFLAGS=$(LDFLAGS)"
-	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(ES_OBJS) $(LIBS) -lmtev
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(ES_OBJS) $(LIBS) -lmtev
 
 echo_client:	$(EC_OBJS)
 	@echo "- linking $@"
-	@echo "LDFLAGS=$(LDFLAGS)"
-	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(EC_OBJS) $(LIBS) -lmtev
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(EC_OBJS) $(LIBS) -lmtev
 
 example1:	$(EX1_OBJS)
 	@echo "- linking $@"
-	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(EX1_OBJS) $(LIBS) -lmtev
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(EX1_OBJS) $(LIBS) -lmtev
 
 fq-router:	$(FQR_OBJS)
 	@echo "- linking $@"
-	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(FQR_OBJS) $(LIBS) -lmtev -lfq
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(FQR_OBJS) $(LIBS) -lmtev -lfq
 
 websocket_client:	$(WSC_OBJS)
 	@echo "- linking $@"
-	@echo "LDFLAGS=$(LDFLAGS)"
-	@$(CC) -L.. $(LDFLAGS) $(LIBS) -o $@ $(WSC_OBJS) -lmtev
+	@$(CC) -L.. $(LDFLAGS) $(LIBS) @UNWINDLIB@ -o $@ $(WSC_OBJS) -lmtev
 
 websocket_server:	$(WSS_OBJS)
 	@echo "- linking $@"
-	@echo "LDFLAGS=$(LDFLAGS)"
-	$(Q)$(CC) -L.. $(LDFLAGS) -o $@ $(WSS_OBJS) $(LIBS) -lmtev
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(WSS_OBJS) $(LIBS) -lmtev
 
 clean:
 	rm -f *.o example1 websocket_server websocket_client fq-router echo_server echo_client
