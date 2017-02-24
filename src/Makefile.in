@@ -110,7 +110,7 @@ MAPPEDHEADERS=utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
    utils/mtev_watchdog.h utils/mtev_uuid_parse.h                    \
    utils/mtev_perftimer.h utils/mtev_zipkin.h                       \
    utils/mtev_hyperloglog.h json-lib/mtev_arraylist.h               \
-   utils/mtev_stacktrace.h                                          \
+   utils/mtev_stacktrace.h utils/mtev_maybe_alloc.h                 \
    json-lib/mtev_bits.h json-lib/mtev_debug.h                       \
    json-lib/mtev_json_object.h json-lib/mtev_json_tokener.h         \
    json-lib/mtev_json_util.h json-lib/mtev_json.h                   \
