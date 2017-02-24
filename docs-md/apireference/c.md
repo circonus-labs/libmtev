@@ -1,3 +1,97 @@
+### M
+
+#### MTEV_MAYBE_DECL
+
+>C Macro for declaring a "maybe" buffer.
+
+```c
+
+MTEV_MAYBE_DECL(type, name, cnt)
+```
+
+
+  * `type` A C type (e.g. char)
+  * `name` The name of the C variable to declare.
+  * `cnt` The number of type elements initially declared.
+
+A "maybe" buffer is a buffer that is allocated on-stack, but
+if more space is required can be reallocated off stack (malloc).
+One should always call `MTEV_MAYBE_FREE` on any allocated
+maybe buffer.
+ 
+
+#### MTEV_MAYBE_DECL_VARS
+
+>C Macro for declaring a "maybe" buffer.
+
+```c
+
+MTEV_MAYBE_DECL_VARS(type, name, cnt)
+```
+
+
+  * `type` A C type (e.g. char)
+  * `name` The name of the C variable to declare.
+  * `cnt` The number of type elements initially declared.
+ 
+
+#### MTEV_MAYBE_FREE
+
+>C Macro to free any heap space associated with a "maybe" buffer.
+
+```c
+
+MTEV_MAYBE_FREE(name)
+```
+
+
+  * `name` The name of the "maybe" buffer.
+ 
+
+#### MTEV_MAYBE_INIT_VARS
+
+>C Macro for initializing a "maybe" buffer
+
+```c
+
+MTEV_MAYBE_INIT_VARS(name)
+```
+
+
+  * `name` The name of "maybe" buffer.
+ 
+
+#### MTEV_MAYBE_REALLOC
+
+>C Macro to ensure a maybe buffer has at least cnt elements allocated.
+
+```c
+
+MTEV_MAYBE_REALLOC(name, cnt)
+```
+
+
+  * `name` The name of the "maybe" buffer.
+  * `cnt` The total number of elements expected in the allocation.
+
+This macro will never reduce the size and is a noop if a size smaller
+than or equal to the current allocation size is specified.  It is safe
+to simply run this macro prior to each write to the buffer.
+ 
+
+#### MTEV_MAYBE_SIZE
+
+>C Macro for number of bytes available in this buffer.
+
+```c
+
+MTEV_MAYBE_SIZE(name)
+```
+
+
+  * `name` The name of the "maybe" buffer.
+ 
+
 ### B
 
 #### mtev_b32_decode

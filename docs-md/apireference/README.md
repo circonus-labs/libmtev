@@ -24,7 +24,7 @@
 
 ##### M
 
-[mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile)
+[MTEV_MAYBE_DECL](c.md#MTEVMAYBEDECL), [MTEV_MAYBE_DECL_VARS](c.md#MTEVMAYBEDECLVARS), [MTEV_MAYBE_FREE](c.md#MTEVMAYBEFREE), [MTEV_MAYBE_INIT_VARS](c.md#MTEVMAYBEINITVARS), [MTEV_MAYBE_REALLOC](c.md#MTEVMAYBEREALLOC), [MTEV_MAYBE_SIZE](c.md#MTEVMAYBESIZE), [mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile)
 
 ##### N
 
