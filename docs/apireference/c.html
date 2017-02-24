@@ -513,7 +513,80 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h3 id="b">B</h3>
+                                <h3 id="m">M</h3>
+<h4 id="mtevmaybedecl">MTEV_MAYBE_DECL</h4>
+<blockquote>
+<p>C Macro for declaring a &quot;maybe&quot; buffer.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_DECL(type, name, cnt)
+</code></pre>
+<ul>
+<li><code>type</code> A C type (e.g. char)</li>
+<li><code>name</code> The name of the C variable to declare.</li>
+<li><code>cnt</code> The number of type elements initially declared.</li>
+</ul>
+<p>A &quot;maybe&quot; buffer is a buffer that is allocated on-stack, but
+if more space is required can be reallocated off stack (malloc).
+One should always call <code>MTEV_MAYBE_FREE</code> on any allocated
+maybe buffer.</p>
+<h4 id="mtevmaybedeclvars">MTEV_MAYBE_DECL_VARS</h4>
+<blockquote>
+<p>C Macro for declaring a &quot;maybe&quot; buffer.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_DECL_VARS(type, name, cnt)
+</code></pre>
+<ul>
+<li><code>type</code> A C type (e.g. char)</li>
+<li><code>name</code> The name of the C variable to declare.</li>
+<li><code>cnt</code> The number of type elements initially declared.</li>
+</ul>
+<h4 id="mtevmaybefree">MTEV_MAYBE_FREE</h4>
+<blockquote>
+<p>C Macro to free any heap space associated with a &quot;maybe&quot; buffer.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_FREE(name)
+</code></pre>
+<ul>
+<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
+</ul>
+<h4 id="mtevmaybeinitvars">MTEV_MAYBE_INIT_VARS</h4>
+<blockquote>
+<p>C Macro for initializing a &quot;maybe&quot; buffer</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_INIT_VARS(name)
+</code></pre>
+<ul>
+<li><code>name</code> The name of &quot;maybe&quot; buffer.</li>
+</ul>
+<h4 id="mtevmayberealloc">MTEV_MAYBE_REALLOC</h4>
+<blockquote>
+<p>C Macro to ensure a maybe buffer has at least cnt elements allocated.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_REALLOC(name, cnt)
+</code></pre>
+<ul>
+<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
+<li><code>cnt</code> The total number of elements expected in the allocation.</li>
+</ul>
+<p>This macro will never reduce the size and is a noop if a size smaller
+than or equal to the current allocation size is specified.  It is safe
+to simply run this macro prior to each write to the buffer.</p>
+<h4 id="mtevmaybesize">MTEV_MAYBE_SIZE</h4>
+<blockquote>
+<p>C Macro for number of bytes available in this buffer.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_SIZE(name)
+</code></pre>
+<ul>
+<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
+</ul>
+<h3 id="b">B</h3>
 <h4 id="mtevb32decode">mtev_b32_decode</h4>
 <blockquote>
 <p>Decode a base32 encoded input buffer into the provided output buffer.</p>

@@ -41,7 +41,7 @@ LUA_FILES=mtevbusted/init.lua mtevbusted/cli.lua mtevbusted/api.lua mtevbusted/c
 
 all:	check
 
-TESTS=hash_test uuid_test time_test hll_test
+TESTS=hash_test uuid_test time_test hll_test maybe_alloc_test
 
 hash_test: hash_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o hash_test hash_test.c
@@ -57,6 +57,9 @@ sort_test: sort_test.c
 
 hll_test: hll_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o hll_test hll_test.c
+
+maybe_alloc_test: maybe_alloc_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o maybe_alloc_test maybe_alloc_test.c
 
 .c.o:
 	@echo "- compiling $<"
