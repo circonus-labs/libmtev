@@ -234,6 +234,33 @@ API_EXPORT(const char *)
 API_EXPORT(eventer_func_t)
                       eventer_callback_for_name(const char *name);
 
+/*! \fn eventer_gettimeofcallback(struct timeval *now, void *tzp)
+    \brief Get the time of the last invoked callback in this thread.
+    \param now a `struct timeval` to populate with the request time.
+    \param tzp is ignored and for API compatibility with gettimeofday.
+    \return 0 on success, non-zero on failure.
+
+    This function returns the time of the last callback execution.  It
+    is fast and cheap (cheaper than gettimeofday), so if a function
+    wishes to know what time it is and the "time of invocation" is good
+    enough, this is considerably cheaper than a call to `mtev_gettimeofday`
+    or other system facilities.
+ */
+API_EXPORT(int)
+  eventer_gettimeofcallback(struct timeval *now, void *tzp);
+
+/*! \fn uint64_t eventer_callback_ms()
+    \brief Get the milliseconds since epoch of the current callback invocation.
+    \return milliseconds since epoch of callback invocation, or current time.
+ */
+API_EXPORT(uint64_t) eventer_callback_ms();
+
+/*! \fn uint64_t eventer_callback_us()
+    \brief Get the microseconds since epoch of the current callback invocation.
+    \return microseconds since epoch of callback invocation, or current time.
+ */
+API_EXPORT(uint64_t) eventer_callback_us();
+
 /* These values are set on initialization and are safe to use
  * on any platform.  They will be set to zero on platforms that
  * do not support them.  As such, you can always bit-or them.
@@ -654,9 +681,6 @@ API_EXPORT(int) eventer_thread_check(eventer_t);
 /* Private */
 API_EXPORT(int) eventer_impl_init();
 API_EXPORT(void) eventer_update_timed(eventer_t e, int mask);
-API_EXPORT(void) eventer_dispatch_timed(struct timeval *now,
-                                        struct timeval *next);
-API_EXPORT(void) eventer_dispatch_recurrent(struct timeval *now);
 API_EXPORT(void *) eventer_get_spec_for_event(eventer_t);
 API_EXPORT(int) eventer_cpu_sockets_and_cores(int *sockets, int *cores);
 
