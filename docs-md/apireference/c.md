@@ -320,6 +320,170 @@ Takes a configuration section representing a cluster and registers
 it in the global cluster configuration.
  
 
+### D
+
+#### mtev_dyn_buffer_add
+
+>add data to the dyn_buffer.
+
+```c
+void 
+mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
+```
+
+
+  * `buf` the buffer to add to.
+  * `data` the data to add.
+  * `len` the size of the data to add.
+ 
+
+#### mtev_dyn_buffer_add_printf
+
+>add data to the dyn_buffer using printf semantics.
+
+```c
+void 
+mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
+```
+
+
+  * `buf` the buffer to add to.
+  * `format` the printf style format string
+  * `args` printf arguments
+
+This does NUL terminate the format string but does not advance the write_pointer past
+the NUL.  Basically, the last mtev_dyn_buffer_add_printf will leave the resultant
+data NUL terminated.
+
+ 
+
+#### mtev_dyn_buffer_advance
+
+>move the write_pointer forward len bytes
+
+```c
+void 
+mtev_dyn_buffer_advance(mtev_dyn_buffer_t *buf)
+```
+
+
+  * `buf` the buffer to advance
+ 
+
+#### mtev_dyn_buffer_data
+
+>return the front of the dyn_buffer
+
+```c
+void 
+mtev_dyn_buffer_data(mtev_dyn_buffer_t *buf)
+```
+
+
+  * `buf` the buffer to get the pointer from.
+  * **RETURN** the pointer to the front (beginning) of the dyn_buffer
+ 
+
+#### mtev_dyn_buffer_destroy
+
+>destroy the dyn_buffer
+
+```c
+void 
+mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf)
+```
+
+
+  * `buf` the buffer to destroy
+  
+   This must be called at the end of dyn_buffer interactions in case the
+   buffer has overflowed into dynamic allocation space.
+ 
+
+#### mtev_dyn_buffer_ensure
+
+>possibly grow the dyn_buffer so it can fit len bytes
+
+```c
+void 
+mtev_dyn_buffer_ensure(mtev_dyn_buffer_t *buf, size_t len)
+```
+
+
+  * `buf` the buffer to ensure
+  * `len` the size of the data about to be added
+ 
+
+#### mtev_dyn_buffer_init
+
+>initialize a dyn_buffer
+
+```c
+void 
+mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf)
+```
+
+
+  * `buf` the buffer to init
+  
+   Provided for completeness or non-stack allocations.
+ 
+
+#### mtev_dyn_buffer_reset
+
+>move the write position to the beginning of the buffer
+
+```c
+void 
+mtev_dyn_buffer_reset(mtev_dyn_buffer_t *buf)
+```
+
+
+  * `buf` the buffer to reset.
+ 
+
+#### mtev_dyn_buffer_size
+
+>return the total size of the buffer
+
+```c
+void 
+mtev_dyn_buffer_size(mtev_dyn_buffer_t *buf)
+```
+
+
+  * `buf` the buffer to get the size from.
+  * **RETURN** the total size of the buffer
+ 
+
+#### mtev_dyn_buffer_used
+
+>return the total used space of the buffer
+
+```c
+void 
+mtev_dyn_buffer_used(mtev_dyn_buffer_t *buf)
+```
+
+
+  * `buf` the buffer to get the used space from.
+  * **RETURN** the total used space of the buffer
+ 
+
+#### mtev_dyn_buffer_write_pointer
+
+>return the end of the dyn_buffer
+
+```c
+void 
+mtev_dyn_buffer_write_pointer(mtev_dyn_buffer_t *buf)
+```
+
+
+  * `buf` the buffer to get the pointer from.
+  * **RETURN** the pointer to the end of the dyn_buffer
+ 
+
 ### E
 
 #### eventer_add

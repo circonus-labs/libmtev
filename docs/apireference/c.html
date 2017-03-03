@@ -760,6 +760,134 @@ corresponding mtev_cluster_node_t.</p>
 </ul>
 <p>Takes a configuration section representing a cluster and registers
 it in the global cluster configuration.</p>
+<h3 id="d">D</h3>
+<h4 id="mtevdynbufferadd">mtev_dyn_buffer_add</h4>
+<blockquote>
+<p>add data to the dyn_buffer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_add</span><span class="hljs-params">(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to add to.</li>
+<li><code>data</code> the data to add.</li>
+<li><code>len</code> the size of the data to add.</li>
+</ul>
+<h4 id="mtevdynbufferaddprintf">mtev_dyn_buffer_add_printf</h4>
+<blockquote>
+<p>add data to the dyn_buffer using printf semantics.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_add_printf</span><span class="hljs-params">(mtev_dyn_buffer_t *buf, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, ...)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to add to.</li>
+<li><code>format</code> the printf style format string</li>
+<li><code>args</code> printf arguments</li>
+</ul>
+<p>This does NUL terminate the format string but does not advance the write_pointer past
+the NUL.  Basically, the last mtev_dyn_buffer_add_printf will leave the resultant
+data NUL terminated.</p>
+<h4 id="mtevdynbufferadvance">mtev_dyn_buffer_advance</h4>
+<blockquote>
+<p>move the write_pointer forward len bytes</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_advance</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to advance</li>
+</ul>
+<h4 id="mtevdynbufferdata">mtev_dyn_buffer_data</h4>
+<blockquote>
+<p>return the front of the dyn_buffer</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_data</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to get the pointer from.</li>
+<li><strong>RETURN</strong> the pointer to the front (beginning) of the dyn_buffer</li>
+</ul>
+<h4 id="mtevdynbufferdestroy">mtev_dyn_buffer_destroy</h4>
+<blockquote>
+<p>destroy the dyn_buffer</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_destroy</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
+</span></code></pre>
+<ul>
+<li><p><code>buf</code> the buffer to destroy</p>
+<p>This must be called at the end of dyn_buffer interactions in case the
+buffer has overflowed into dynamic allocation space.</p>
+</li>
+</ul>
+<h4 id="mtevdynbufferensure">mtev_dyn_buffer_ensure</h4>
+<blockquote>
+<p>possibly grow the dyn_buffer so it can fit len bytes</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_ensure</span><span class="hljs-params">(mtev_dyn_buffer_t *buf, size_t len)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to ensure</li>
+<li><code>len</code> the size of the data about to be added</li>
+</ul>
+<h4 id="mtevdynbufferinit">mtev_dyn_buffer_init</h4>
+<blockquote>
+<p>initialize a dyn_buffer</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_init</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
+</span></code></pre>
+<ul>
+<li><p><code>buf</code> the buffer to init</p>
+<p>Provided for completeness or non-stack allocations.</p>
+</li>
+</ul>
+<h4 id="mtevdynbufferreset">mtev_dyn_buffer_reset</h4>
+<blockquote>
+<p>move the write position to the beginning of the buffer</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_reset</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to reset.</li>
+</ul>
+<h4 id="mtevdynbuffersize">mtev_dyn_buffer_size</h4>
+<blockquote>
+<p>return the total size of the buffer</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_size</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to get the size from.</li>
+<li><strong>RETURN</strong> the total size of the buffer</li>
+</ul>
+<h4 id="mtevdynbufferused">mtev_dyn_buffer_used</h4>
+<blockquote>
+<p>return the total used space of the buffer</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_used</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to get the used space from.</li>
+<li><strong>RETURN</strong> the total used space of the buffer</li>
+</ul>
+<h4 id="mtevdynbufferwritepointer">mtev_dyn_buffer_write_pointer</h4>
+<blockquote>
+<p>return the end of the dyn_buffer</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_write_pointer</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to get the pointer from.</li>
+<li><strong>RETURN</strong> the pointer to the end of the dyn_buffer</li>
+</ul>
 <h3 id="e">E</h3>
 <h4 id="eventeradd">eventer_add</h4>
 <blockquote>
