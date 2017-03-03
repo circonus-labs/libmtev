@@ -70,6 +70,21 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len);
 
+/*! \fn void mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
+    \brief add data to the dyn_buffer using printf semantics.
+    \param buf the buffer to add to.
+    \param format the printf style format string
+    \param args printf arguments
+    
+    This does NUL terminate the format string but does not advance the write_pointer past
+    the NUL.  Basically, the last mtev_dyn_buffer_add_printf will leave the resultant
+    data NUL terminated.
+    
+ */
+API_EXPORT(void)
+  mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...);
+
+
 /*! \fn void mtev_dyn_buffer_ensure(mtev_dyn_buffer_t *buf, size_t len)
     \brief possibly grow the dyn_buffer so it can fit len bytes
     \param buf the buffer to ensure

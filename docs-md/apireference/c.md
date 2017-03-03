@@ -337,6 +337,26 @@ mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
   * `len` the size of the data to add.
  
 
+#### mtev_dyn_buffer_add_printf
+
+>add data to the dyn_buffer using printf semantics.
+
+```c
+void 
+mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
+```
+
+
+  * `buf` the buffer to add to.
+  * `format` the printf style format string
+  * `args` printf arguments
+
+This does NUL terminate the format string but does not advance the write_pointer past
+the NUL.  Basically, the last mtev_dyn_buffer_add_printf will leave the resultant
+data NUL terminated.
+
+ 
+
 #### mtev_dyn_buffer_advance
 
 >move the write_pointer forward len bytes
@@ -376,7 +396,7 @@ mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf)
 
   * `buf` the buffer to destroy
   
-   This must be called at the end of dyn_buffer interations in case the
+   This must be called at the end of dyn_buffer interactions in case the
    buffer has overflowed into dynamic allocation space.
  
 

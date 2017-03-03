@@ -773,6 +773,21 @@ it in the global cluster configuration.</p>
 <li><code>data</code> the data to add.</li>
 <li><code>len</code> the size of the data to add.</li>
 </ul>
+<h4 id="mtevdynbufferaddprintf">mtev_dyn_buffer_add_printf</h4>
+<blockquote>
+<p>add data to the dyn_buffer using printf semantics.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_dyn_buffer_add_printf</span><span class="hljs-params">(mtev_dyn_buffer_t *buf, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, ...)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to add to.</li>
+<li><code>format</code> the printf style format string</li>
+<li><code>args</code> printf arguments</li>
+</ul>
+<p>This does NUL terminate the format string but does not advance the write_pointer past
+the NUL.  Basically, the last mtev_dyn_buffer_add_printf will leave the resultant
+data NUL terminated.</p>
 <h4 id="mtevdynbufferadvance">mtev_dyn_buffer_advance</h4>
 <blockquote>
 <p>move the write_pointer forward len bytes</p>
@@ -803,7 +818,7 @@ it in the global cluster configuration.</p>
 </span></code></pre>
 <ul>
 <li><p><code>buf</code> the buffer to destroy</p>
-<p>This must be called at the end of dyn_buffer interations in case the
+<p>This must be called at the end of dyn_buffer interactions in case the
 buffer has overflowed into dynamic allocation space.</p>
 </li>
 </ul>

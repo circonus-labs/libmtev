@@ -12,7 +12,7 @@
 
 ##### D
 
-[mtev_dyn_buffer_add](c.md#mtevdynbufferadd), [mtev_dyn_buffer_advance](c.md#mtevdynbufferadvance), [mtev_dyn_buffer_data](c.md#mtevdynbufferdata), [mtev_dyn_buffer_destroy](c.md#mtevdynbufferdestroy), [mtev_dyn_buffer_ensure](c.md#mtevdynbufferensure), [mtev_dyn_buffer_init](c.md#mtevdynbufferinit), [mtev_dyn_buffer_reset](c.md#mtevdynbufferreset), [mtev_dyn_buffer_size](c.md#mtevdynbuffersize), [mtev_dyn_buffer_used](c.md#mtevdynbufferused), [mtev_dyn_buffer_write_pointer](c.md#mtevdynbufferwritepointer)
+[mtev_dyn_buffer_add](c.md#mtevdynbufferadd), [mtev_dyn_buffer_add_printf](c.md#mtevdynbufferaddprintf), [mtev_dyn_buffer_advance](c.md#mtevdynbufferadvance), [mtev_dyn_buffer_data](c.md#mtevdynbufferdata), [mtev_dyn_buffer_destroy](c.md#mtevdynbufferdestroy), [mtev_dyn_buffer_ensure](c.md#mtevdynbufferensure), [mtev_dyn_buffer_init](c.md#mtevdynbufferinit), [mtev_dyn_buffer_reset](c.md#mtevdynbufferreset), [mtev_dyn_buffer_size](c.md#mtevdynbuffersize), [mtev_dyn_buffer_used](c.md#mtevdynbufferused), [mtev_dyn_buffer_write_pointer](c.md#mtevdynbufferwritepointer)
 
 ##### E
 

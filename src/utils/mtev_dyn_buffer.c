@@ -1,5 +1,8 @@
 #include "mtev_dyn_buffer.h"
 
+#include <stdio.h>
+#include <stdarg.h>
+
 inline void
 mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf)
 {
@@ -14,6 +17,21 @@ mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
   mtev_dyn_buffer_ensure(buf, len);
   memcpy(buf->pos, data, len);
   buf->pos += len;
+}
+
+inline void 
+mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
+{
+  va_list args;
+  int needed, used;
+
+  va_start(args, format);
+  needed = vsnprintf(NULL, 0, format, args);
+  mtev_dyn_buffer_ensure(buf, needed + 1); /* ensure we have space for the trailing NUL too */
+  used = snprintf((char *)buf->pos, needed, format, args);
+  va_end(args);
+  *(buf->pos + used) = '\0';
+  buf->pos += used;
 }
 
 inline void
