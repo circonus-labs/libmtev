@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stddef.h>
 
 inline void
 mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf)
