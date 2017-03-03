@@ -53,83 +53,83 @@ typedef struct mtev_dyn_buffer {
 } mtev_dyn_buffer_t;
 
 /*! \fn void mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf)
- *  \brief initialize a dyn_buffer
- *  \param buf the buffer to init
- * 
- * Provided for completeness or non-stack allocations.
+    \brief initialize a dyn_buffer
+    \param buf the buffer to init
+  
+   Provided for completeness or non-stack allocations.
  */
 API_EXPORT(void)
   mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf);
 
 /*! \fn void mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
- *  \brief add data to the dyn_buffer.
- *  \param buf the buffer to add to.
- *  \param data the data to add.
- *  \param len the size of the data to add.
+    \brief add data to the dyn_buffer.
+    \param buf the buffer to add to.
+    \param data the data to add.
+    \param len the size of the data to add.
  */
 API_EXPORT(void)
   mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len);
 
 /*! \fn void mtev_dyn_buffer_ensure(mtev_dyn_buffer_t *buf, size_t len)
- *  \brief possibly grow the dyn_buffer so it can fit len bytes
- *  \param buf the buffer to ensure
- *  \param len the size of the data about to be added
+    \brief possibly grow the dyn_buffer so it can fit len bytes
+    \param buf the buffer to ensure
+    \param len the size of the data about to be added
  */
 API_EXPORT(void)
   mtev_dyn_buffer_ensure(mtev_dyn_buffer_t *buf, size_t len);
 
 /*! \fn void mtev_dyn_buffer_data(mtev_dyn_buffer_t *buf)
- *  \brief return the front of the dyn_buffer
- *  \param buf the buffer to get the pointer from.
- *  \return the pointer to the front (beginning) of the dyn_buffer
+    \brief return the front of the dyn_buffer
+    \param buf the buffer to get the pointer from.
+    \return the pointer to the front (beginning) of the dyn_buffer
  */
 API_EXPORT(uint8_t *)
   mtev_dyn_buffer_data(mtev_dyn_buffer_t *buf);
 
 /*! \fn void mtev_dyn_buffer_write_pointer(mtev_dyn_buffer_t *buf)
- *  \brief return the end of the dyn_buffer
- *  \param buf the buffer to get the pointer from.
- *  \return the pointer to the end of the dyn_buffer
+    \brief return the end of the dyn_buffer
+    \param buf the buffer to get the pointer from.
+    \return the pointer to the end of the dyn_buffer
  */
 API_EXPORT(uint8_t *)
   mtev_dyn_buffer_write_pointer(mtev_dyn_buffer_t *buf);
 
 /*! \fn void mtev_dyn_buffer_advance(mtev_dyn_buffer_t *buf)
- *  \brief move the write_pointer forward len bytes
- *  \param buf the buffer to advance
+    \brief move the write_pointer forward len bytes
+    \param buf the buffer to advance
  */
 API_EXPORT(void)
 mtev_dyn_buffer_advance(mtev_dyn_buffer_t *buf, size_t len);
 
 /*! \fn void mtev_dyn_buffer_used(mtev_dyn_buffer_t *buf)
- *  \brief return the total used space of the buffer
- *  \param buf the buffer to get the used space from.
- *  \return the total used space of the buffer
+    \brief return the total used space of the buffer
+    \param buf the buffer to get the used space from.
+    \return the total used space of the buffer
  */
 API_EXPORT(size_t)
   mtev_dyn_buffer_used(mtev_dyn_buffer_t *buf);
 
 /*! \fn void mtev_dyn_buffer_size(mtev_dyn_buffer_t *buf)
- *  \brief return the total size of the buffer
- *  \param buf the buffer to get the size from.
- *  \return the total size of the buffer
+    \brief return the total size of the buffer
+    \param buf the buffer to get the size from.
+    \return the total size of the buffer
  */
 API_EXPORT(size_t)
   mtev_dyn_buffer_size(mtev_dyn_buffer_t *buf);
 
 /*! \fn void mtev_dyn_buffer_reset(mtev_dyn_buffer_t *buf)
- *  \brief move the write position to the beginning of the buffer
- *  \param buf the buffer to reset.
+    \brief move the write position to the beginning of the buffer
+    \param buf the buffer to reset.
  */
 API_EXPORT(void)
   mtev_dyn_buffer_reset(mtev_dyn_buffer_t *buf);
 
 /*! \fn void mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf)
- *  \brief destroy the dyn_buffer
- *  \param buf the buffer to destroy
- * 
- * This must be called at the end of dyn_buffer interations in case the
- * buffer has overflowed into dynamic allocation space.
+    \brief destroy the dyn_buffer
+    \param buf the buffer to destroy
+  
+   This must be called at the end of dyn_buffer interactions in case the
+   buffer has overflowed into dynamic allocation space.
  */
 API_EXPORT(void)
   mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf);
