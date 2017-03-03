@@ -28,7 +28,7 @@ mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
   available = mtev_dyn_buffer_size(buf) - mtev_dyn_buffer_used(buf);
 
   va_start(args, format);
-  needed = vsnprintf((char *)buf->pos, available - 1, format, args); /* space for null */
+  needed = vsnprintf((char *)buf->pos, available, format, args);
   if (needed > (available - 1)) {
     mtev_dyn_buffer_ensure(buf, needed + 1); /* ensure we have space for the trailing NUL too */
     needed = snprintf((char *)buf->pos, needed + 1, format, args);
