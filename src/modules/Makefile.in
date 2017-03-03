@@ -35,10 +35,11 @@ HEADERS=lua_mtev.h
 LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua
 
 FQ_MODULES=@FQ_MODULES@
+AMQP_MODULES=@AMQP_MODULES@
 LUA_MODULES=@LUA_MODULES@
 MTEV4LUA=@MTEV4LUA@
 
-MODULES=$(FQ_MODULES) $(LUA_MODULES)
+MODULES=$(FQ_MODULES) $(AMQP_MODULES) $(LUA_MODULES)
 
 all:	$(MODULES) $(MTEV4LUA)
 
@@ -55,6 +56,12 @@ mtev_fq.lo:	fq.xmlh
 
 fq.@MODULEEXT@:	mtev_fq.lo
 	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ mtev_fq.lo -lfq
+	@echo "- linking $@"
+
+mtev_amqp.lo:	amqp.xmlh
+
+amqp.@MODULEEXT@:	mtev_amqp.lo
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ mtev_amqp.lo -lrabbitmq
 	@echo "- linking $@"
 
 LUA_MODULE_OBJS=lua.lo lua_web.lo lua_general.lo lua_mtev_http.lo
@@ -117,6 +124,12 @@ install-modules:	$(MODULES)
 install-fq:	$(FQ_MODULES)
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)
 	for mod in $(FQ_MODULES); do \
+		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
+	done
+
+install-amqp:	$(AMQP_MODULES)
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)
+	for mod in $(AMQP_MODULES); do \
 		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
 	done
 

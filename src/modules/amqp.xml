@@ -1,0 +1,38 @@
+<module>
+  <name>amqp</name>
+  <description><para>The amqp module consumes and publishes message via AMQP (RabbitMQ).</para></description>
+  <loader>C</loader>
+  <image>amqp.so</image>
+  <moduleconfig>
+  </moduleconfig>
+  <examples>
+    <example>
+      <title>Loading the amqp module.</title>
+      <programlisting language="xml"><![CDATA[
+      <root>
+        <modules>
+          <module image="amqp" name="amqp"/>
+        </modules>
+        <network>
+          <mq type="amqp">
+            <host>localhost</host>
+            <port>8765</port>
+            <user>user</user>
+            <pass>pass</pass>
+            <exchange>exchange</exchange>
+            <routingkey>foo.*</routingkey>
+          </mq>
+          <mq type="amqp">
+            <host>localhost</host>
+            <port>8765</port>
+            <user>user</user>
+            <pass>pass</pass>
+            <exchange>exchange</exchange>
+            <routingkey>bob.#</routingkey>
+          </mq>
+        </network>
+      </root>
+    ]]></programlisting>
+    </example>
+  </examples>
+</module>

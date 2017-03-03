@@ -342,6 +342,18 @@ AS_IF([test "x$enable_fq" != "xno"], [
 	LIBS=$OLD_LIBS
 ])
 
+AC_ARG_ENABLE([amqp],
+    AS_HELP_STRING([--disable-amqp], [Disable modules amqp]))
+
+AS_IF([test "x$enable_amqp" != "xno"], [
+	OLD_LIBS=$LIBS
+	LIBS=
+	AC_CHECK_LIB(rabbitmq, amqp_basic_publish, [
+		AMQP_MODULES="$AMQP_MODULES amqp.$MODULEEXT"
+	], [AC_MSG_ERROR([*** can't build amqp, no -lrabbitmq ***])])
+	LIBS=$OLD_LIBS
+])
+
 AC_ARG_ENABLE([wslay],
     AS_HELP_STRING([--enable-wslay], [Enable websockets using libwslay]))
 
@@ -724,6 +736,7 @@ AC_CACHE_CHECK([for ssize_t], ac_cv_have_ssize_t, [
 ])
 
 AC_SUBST(FQ_MODULES)
+AC_SUBST(AMQP_MODULES)
 AC_SUBST(LUA_MODULES)
 
 docdir="docs"
