@@ -851,6 +851,8 @@ void eventer_cross_thread_trigger(eventer_t e, int mask) {
   ctt = malloc(sizeof(*ctt));
   ctt->e = e;
   ctt->mask = mask;
+  mtevAssert(0 == (ctt->mask & EVENTER_CROSS_THREAD_TRIGGER));
+  ctt->mask |= EVENTER_CROSS_THREAD_TRIGGER;
   mtevL(eventer_deb, "queueing fd:%d from t@%d to t@%d\n", e->fd, (int)(intptr_t)pthread_self(), (int)(intptr_t)e->thr_owner);
   pthread_mutex_lock(&t->cross_lock);
   ctt->next = t->cross;
@@ -869,7 +871,6 @@ void eventer_cross_thread_process() {
     pthread_mutex_unlock(&t->cross_lock);
     if(ctt) {
       mtevL(eventer_deb, "executing queued fd:%d / %x\n", ctt->e->fd, ctt->mask);
-      ctt->mask |= EVENTER_CROSS_THREAD_TRIGGER;
       eventer_trigger(ctt->e, ctt->mask);
       free(ctt);
     }
