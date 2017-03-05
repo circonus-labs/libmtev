@@ -201,12 +201,14 @@ static eventer_t eventer_epoll_impl_remove(eventer_t e) {
 }
 static void eventer_epoll_impl_update(eventer_t e, int mask) {
   struct epoll_event _ev;
+  int ctl_op = EPOLL_CTL_MOD;
   if(e->mask & EVENTER_TIMER) {
     eventer_update_timed(e,mask);
     return;
   }
   memset(&_ev, 0, sizeof(_ev));
   _ev.data.fd = e->fd;
+  if(e->mask == 0) ctl_op = EPOLL_CTL_ADD;
   e->mask = mask;
   if(e->mask & (EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION)) {
     struct epoll_spec *spec;
@@ -214,7 +216,7 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
     if(e->mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
     if(e->mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
     if(e->mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
-    if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, e->fd, &_ev) != 0) {
+    if(epoll_ctl(spec->epoll_fd, ctl_op, e->fd, &_ev) != 0) {
       mtevFatal(mtev_error, "epoll_ctl(%d, EPOLL_CTL_MOD, %d) -> %s\n",
             spec->epoll_fd, e->fd, strerror(errno));
     }
@@ -254,7 +256,6 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   const char *cbname;
   ev_lock_state_t lockstate;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
-  int added_to_master_fds = 0;
   uint64_t start, duration;
 
   mask = mask & ~(EVENTER_RESERVED);
@@ -278,7 +279,6 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   if(master_fds[fd].e == NULL) {
     master_fds[fd].e = e;
     e->mask = 0;
-    added_to_master_fds = 1;
   }
   if(e != master_fds[fd].e) return;
   lockstate = acquire_master_fd(fd);
@@ -314,7 +314,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         pthread_t tgt = e->thr_owner;
         e->thr_owner = pthread_self();
         spec = eventer_get_spec_for_event(e);
-        if(! added_to_master_fds && epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
+        if(e->mask != 0 && epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
           mtevFatal(mtev_error,
                     "epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) failed; "
                     "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
@@ -326,7 +326,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         mtevL(eventer_deb, "moved event[%p] from t@%d to t@%d\n", e, (int)pthread_self(), (int)tgt);
       }
       else {
-        int epoll_cmd = added_to_master_fds ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+        int epoll_cmd = (e->mask == 0) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
         spec = eventer_get_spec_for_event(e);
         if(epoll_ctl(spec->epoll_fd, epoll_cmd, fd, &_ev) != 0) {
           const char *cb_name = eventer_name_for_callback_e(e->callback, e);
