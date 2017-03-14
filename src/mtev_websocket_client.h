@@ -29,7 +29,8 @@ API_EXPORT(mtev_websocket_client_t *)
                             const char *path, const char *service,
                             mtev_websocket_client_callbacks *callbacks,
                             void *closure,
-                            eventer_pool_t *pool);
+                            eventer_pool_t *pool,
+                            mtev_hash_table *sslconfig);
 
 API_EXPORT(void)
   mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client,

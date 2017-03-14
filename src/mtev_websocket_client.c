@@ -28,9 +28,11 @@ struct mtev_websocket_client {
   pthread_mutex_t lock;
   const char *path;
   const char *host;
+  int port;
   const char *service; /* protocol */
   int wanted_eventer_mask;
   char client_key[25];
+  mtev_hash_table *sslconfig;
   void *closure;
 };
 
@@ -313,13 +315,87 @@ abort_drive:
   }
 
   return client->wanted_eventer_mask | EVENTER_EXCEPTION | EVENTER_WRITE;
+}
+
+static int
+mtev_websocket_client_ssl_upgrade(eventer_t e, int mask, void *closure, struct timeval *now) {
+  mtev_websocket_client_t *client = closure;
+  eventer_ssl_ctx_t *sslctx = eventer_get_eventer_ssl_ctx(e);
+
+  if(mask & EVENTER_EXCEPTION) goto ssl_upgrade_error;
+
+  if(eventer_SSL_connect(e, &mask) > 0) {
+    e->callback = mtev_websocket_client_drive;
+    return EVENTER_WRITE | EVENTER_EXCEPTION;
+  }
+
+  if(errno == EAGAIN) return mask | EVENTER_EXCEPTION;
+
+ssl_upgrade_error:
+  mtevL(mtev_error, "[%s:%d%s (%s)] mtev_websocket_client_ssl_upgrade: %s [%s]\n",
+        client->host, client->port, client->path, client->service,
+        eventer_ssl_get_last_error(sslctx), eventer_ssl_get_peer_error(sslctx));
+  mtev_websocket_client_cleanup(client);
   return 0;
+}
+
+static int
+mtev_websocket_client_complete_connect(eventer_t e, int mask, void *closure, struct timeval *now) {
+  mtev_websocket_client_t *client = closure;
+  eventer_ssl_ctx_t *sslctx;
+  const char *layer, *cert, *key, *ca, *ciphers, *crl;
+  int aerrno;
+  socklen_t aerrno_len = sizeof(aerrno);
+
+  if(getsockopt(e->fd, SOL_SOCKET, SO_ERROR, &aerrno, &aerrno_len) == 0)
+    if(aerrno != 0) goto connect_error;
+  aerrno = 0;
+
+  if(mask & EVENTER_EXCEPTION) {
+    if(aerrno == 0 && (write(e->fd, e, 0) == -1))
+      aerrno = errno;
+
+connect_error:
+    mtevL(mtev_error, "mtev_websocket_client_complete_connect error connecting to %s:%d%s (%s): %s\n",
+          client->host, client->port, client->path, client->service, strerror(aerrno));
+    mtev_websocket_client_cleanup(client);
+    return 0;
+  }
+
+#define SSLCONFGET(var,name) do { \
+  if(!mtev_hash_retr_str(client->sslconfig, name, strlen(name), \
+                         &var)) var = NULL; } while(0)
+  SSLCONFGET(layer, "layer");
+  SSLCONFGET(cert, "certificate_file");
+  SSLCONFGET(key, "key_file");
+  SSLCONFGET(ca, "ca_chain");
+  SSLCONFGET(ciphers, "ciphers");
+  SSLCONFGET(crl, "crl");
+
+  sslctx = eventer_ssl_ctx_new(SSL_CLIENT, layer, cert, key, ca, ciphers);
+  if(!sslctx) goto connect_error;
+  if(crl) {
+    if(!eventer_ssl_use_crl(sslctx, crl)) {
+      mtevL(mtev_error, "mtev_websocket_client_complete_connect failed to load CRL from %s\n", crl);
+      eventer_ssl_ctx_free(sslctx);
+      goto connect_error;
+    }
+  }
+
+  eventer_ssl_ctx_set_verify(sslctx, eventer_ssl_verify_cert,
+                             client->sslconfig);
+
+  EVENTER_ATTACH_SSL(e, sslctx);
+
+  e->callback = mtev_websocket_client_ssl_upgrade;
+  return e->callback(e, mask, closure, now);
 }
 #endif
 
 mtev_websocket_client_t *
 mtev_websocket_client_new(const char *host, int port, const char *path, const char *service,
-                          mtev_websocket_client_callbacks *callbacks, void *closure, eventer_pool_t *pool) {
+                          mtev_websocket_client_callbacks *callbacks, void *closure, eventer_pool_t *pool,
+                          mtev_hash_table *sslconfig) {
 #ifdef HAVE_WSLAY
   int fd = -1, rv;
   int family = AF_INET;
@@ -386,16 +462,23 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
   pthread_mutex_init(&client->lock, NULL);
   client->path = strdup(path);
   client->host = strdup(host);
+  client->port = port;
   client->service = strdup(service);
   client->ready_callback = callbacks->ready_callback;
   client->msg_callback = callbacks->msg_callback;
   client->cleanup_callback = callbacks->cleanup_callback;
   client->closure = closure;
 
+  if(sslconfig && mtev_hash_size(sslconfig)) {
+    client->sslconfig = calloc(1, sizeof(mtev_hash_table));
+    mtev_hash_init(client->sslconfig);
+    mtev_hash_merge_as_dict(client->sslconfig, sslconfig);
+  }
+
   eventer_t e = eventer_alloc();
   e->fd = fd;
   e->mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
-  e->callback = mtev_websocket_client_drive;
+  e->callback = (sslconfig && mtev_hash_size(sslconfig)) ? mtev_websocket_client_complete_connect : mtev_websocket_client_drive;
   e->closure = client;
   if(pool) e->thr_owner = eventer_choose_owner_pool(pool, lrand48());
   client->e = e;
@@ -508,6 +591,7 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
     free((void *)client->path);
     free((void *)client->service);
     free((void *)client->host);
+    if(client->sslconfig) mtev_hash_destroy(client->sslconfig, free, free);
     client->closed = mtev_true;
     if(client->cleanup_callback) client->cleanup_callback(client, client->closure);
   }
