@@ -292,9 +292,9 @@ abort_drive:
       if(client->ready_callback) {
         if(!client->ready_callback(client, client->closure)) goto abort_drive;
       }
-    } else {
-      return EVENTER_READ | EVENTER_EXCEPTION;
     }
+
+    if(!client->did_handshake) return (client->sent_handshake ? EVENTER_READ : EVENTER_WRITE) | EVENTER_EXCEPTION;
   }
 
   if (wslay_event_want_read(client->wslay_ctx) == 0
