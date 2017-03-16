@@ -55,6 +55,10 @@ static int PARALLELISM_MULTIPLIER = 4;
 static int EVENTER_DEBUGGING = 0;
 static int desired_nofiles = 1024*1024;
 
+#define NS_PER_S 1000000000
+#define NS_PER_MS 1000000
+#define NS_PER_US 1000
+
 int eventer_timecompare(const void *av, const void *bv) {
   /* Herein we avoid equality.  This function is only used as a comparator
    * for a heap of timed events.  If they are equal, b is considered less
@@ -90,6 +94,7 @@ struct eventer_impl_data {
   void *spec;
   eventer_pool_t *pool;
   mtev_watchdog_t *hb;
+  mtev_hrtime_t last_cb_ns;
 };
 
 static __thread struct eventer_impl_data *my_impl_data;
@@ -745,7 +750,8 @@ void eventer_update_timed(eventer_t e, int mask) {
   mtev_skiplist_insert(t->staged_timed_events, e);
   pthread_mutex_unlock(&t->te_lock);
 }
-void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
+void eventer_dispatch_timed(struct timeval *next) {
+  struct timeval now;
   struct eventer_impl_data *t;
   int max_timed_events_to_process;
     /* Handle timed events...
@@ -759,18 +765,19 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
     const char *cbname = NULL;
     eventer_t timed_event;
 
-    mtev_gettimeofday(now, NULL);
+    eventer_mark_callback_time();
+    eventer_gettimeofcallback(&now, NULL);
 
     pthread_mutex_lock(&t->te_lock);
     /* Peek at our next timed event, if should fire, pop it.
      * otherwise we noop and NULL it out to break the loop. */
     timed_event = mtev_skiplist_peek(t->timed_events);
     if(timed_event) {
-      if(compare_timeval(timed_event->whence, *now) < 0) {
+      if(compare_timeval(timed_event->whence, now) < 0) {
         timed_event = mtev_skiplist_pop(t->timed_events, NULL);
       }
       else {
-        sub_timeval(timed_event->whence, *now, next);
+        sub_timeval(timed_event->whence, now, next);
         timed_event = NULL;
       }
     }
@@ -780,8 +787,8 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
        LIBMTEV_EVENTER_CALLBACK_ENTRY_ENABLED() ||
        LIBMTEV_EVENTER_CALLBACK_RETURN_ENABLED()) {
       cbname = eventer_name_for_callback_e(timed_event->callback, timed_event);
-      mtevLT(eventer_deb, now, "debug: timed dispatch(%s)\n",
-             cbname ? cbname : "???");
+      mtevL(eventer_deb, "debug: timed dispatch(%s)\n",
+            cbname ? cbname : "???");
     }
     /* Make our call */
     mtev_memory_begin();
@@ -790,7 +797,7 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
                            timed_event->mask, EVENTER_TIMER);
     start = mtev_gethrtime();
     newmask = timed_event->callback(timed_event, EVENTER_TIMER,
-                                    timed_event->closure, now);
+                                    timed_event->closure, &now);
     duration = mtev_gethrtime() - start;
     stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
     stats_set_hist_intscale(eventer_latency_handle_for_callback(timed_event->callback), duration, -9, 1);
@@ -812,8 +819,7 @@ void eventer_dispatch_timed(struct timeval *now, struct timeval *next) {
       mtev_skiplist_insert(t->timed_events, timed_event);
     }
     if(NULL != (timed_event = mtev_skiplist_peek(t->timed_events))) {
-      mtev_gettimeofday(now, NULL);
-      sub_timeval(timed_event->whence, *now, next);
+      sub_timeval(timed_event->whence, now, next);
       if(next->tv_sec < 0 || next->tv_usec < 0)
         next->tv_sec = next->tv_usec = 0;
     }
@@ -878,21 +884,27 @@ void eventer_cross_thread_process() {
   }
 }
 
-void eventer_dispatch_recurrent(struct timeval *now) {
+void eventer_mark_callback_time() {
+  struct eventer_impl_data *t;
+  t = get_my_impl_data();
+  mtevAssert(t);
+  t->last_cb_ns = mtev_now_us() * NS_PER_US;
+}
+void eventer_dispatch_recurrent() {
+  struct timeval __now;
   struct eventer_impl_data *t;
   struct recurrent_events *node;
-  struct timeval __now;
-  if(!now) {
-    mtev_gettimeofday(&__now, NULL);
-    now = &__now;
-  }
   t = get_my_impl_data();
+
+  eventer_mark_callback_time();
+  eventer_gettimeofcallback(&__now, NULL);
+
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
     int rv;
     uint64_t start, duration;
     start = mtev_gethrtime();
-    rv = node->e->callback(node->e, EVENTER_RECURRENT, node->e->closure, now);
+    rv = node->e->callback(node->e, EVENTER_RECURRENT, node->e->closure, &__now);
     if(rv != 0) {
       /* For RECURRENT calls, we don't want to overmeasure what are noops...
        * So we trust that the call returns 0 after such a noop, but
@@ -923,6 +935,31 @@ eventer_t eventer_remove_recurrent(eventer_t e) {
   pthread_mutex_unlock(&t->recurrent_lock);
   return NULL;
 }
+
+int eventer_gettimeofcallback(struct timeval *now, void *tzp) {
+  struct eventer_impl_data *t;
+  if(NULL != (t = get_my_impl_data())) {
+    now->tv_sec = t->last_cb_ns / NS_PER_S;
+    now->tv_usec = (t->last_cb_ns % NS_PER_S) / NS_PER_US;
+    return 0;
+  }
+  return mtev_gettimeofday(now, tzp);
+}
+uint64_t eventer_callback_ms() {
+  struct eventer_impl_data *t;
+  if(NULL != (t = get_my_impl_data())) {
+    return t->last_cb_ns / NS_PER_MS;
+  }
+  return mtev_now_ms();
+}
+uint64_t eventer_callback_us() {
+  struct eventer_impl_data *t;
+  if(NULL != (t = get_my_impl_data())) {
+    return t->last_cb_ns / NS_PER_US;
+  }
+  return mtev_now_us();
+}
+
 void eventer_wakeup_noop(eventer_t e) { }
 void eventer_add_recurrent(eventer_t e) {
   struct eventer_impl_data *t;

@@ -377,29 +377,28 @@ static int eventer_epoll_impl_loop() {
 #endif
 
   while(1) {
-    struct timeval __now, __sleeptime;
+    struct timeval __sleeptime;
     int fd_cnt = 0;
 
     __sleeptime = eventer_max_sleeptime;
 
-    mtev_gettimeofday(&__now, NULL);
-    eventer_dispatch_timed(&__now, &__sleeptime);
+    eventer_dispatch_timed(&__sleeptime);
 
     /* Handle cross_thread dispatches */
     eventer_cross_thread_process();
 
     /* Handle recurrent events */
-    eventer_dispatch_recurrent(&__now);
+    eventer_dispatch_recurrent();
 
     /* Now we move on to our fd-based events */
     do {
       fd_cnt = epoll_wait(spec->epoll_fd, epev, maxfds,
                           __sleeptime.tv_sec * 1000 + __sleeptime.tv_usec / 1000);
     } while(fd_cnt < 0 && errno == EINTR);
-    mtevLT(eventer_deb, &__now, "debug: epoll_wait(%d, [], %d) => %d\n",
+    mtevL(eventer_deb, "debug: epoll_wait(%d, [], %d) => %d\n",
            spec->epoll_fd, maxfds, fd_cnt);
     if(fd_cnt < 0) {
-      mtevLT(eventer_err, &__now, "epoll_wait: %s\n", strerror(errno));
+      mtevL(eventer_err, "epoll_wait: %s\n", strerror(errno));
     }
     else {
       int idx;

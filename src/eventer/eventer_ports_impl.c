@@ -255,10 +255,11 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   if(lockstate == EV_ALREADY_OWNED) return;
   mtevAssert(lockstate == EV_OWNED);
 
-  mtev_gettimeofday(&__now, NULL);
+  eventer_mark_callback_time();
+  eventer_gettimeofcallback(&__now, NULL);
   cbname = eventer_name_for_callback_e(e->callback, e);
-  mtevLT(eventer_deb, &__now, "ports: fire on %d/%x to %s(%p)\n",
-         fd, mask, cbname?cbname:"???", e->callback);
+  mtevL(eventer_deb, "ports: fire on %d/%x to %s(%p)\n",
+        fd, mask, cbname?cbname:"???", e->callback);
   mtev_memory_begin();
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
   start = mtev_gethrtime();
@@ -282,13 +283,13 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
       alter_fd(e, newmask);
       /* Set our mask */
       e->mask = newmask;
-      mtevLT(eventer_deb, &__now, "ports: complete on %d/(%x->%x) to %s(%p)\n",
-             fd, mask, newmask, cbname?cbname:"???", e->callback);
+      mtevL(eventer_deb, "ports: complete on %d/(%x->%x) to %s(%p)\n",
+            fd, mask, newmask, cbname?cbname:"???", e->callback);
     }
   }
   else {
-    mtevLT(eventer_deb, &__now, "ports: complete on %d/none to %s(%p)\n",
-           fd, cbname?cbname:"???", e->callback);
+    mtevL(eventer_deb, "ports: complete on %d/none to %s(%p)\n",
+          fd, cbname?cbname:"???", e->callback);
     /*
      * Long story long:
      *  When integrating with a few external event systems, we find
@@ -319,20 +320,18 @@ static int eventer_ports_impl_loop() {
   spec = eventer_get_spec_for_event(NULL);
 
   while(1) {
-    struct timeval __now, __sleeptime;
+    struct timeval __sleeptime;
     struct timespec __ports_sleeptime;
     unsigned int fd_cnt = 0;
     int ret;
     port_event_t pevents[MAX_PORT_EVENTS];
-
-    mtev_gettimeofday(&__now, NULL);
 
     if(compare_timeval(eventer_max_sleeptime, __dyna_sleep) < 0)
       __dyna_sleep = eventer_max_sleeptime;
  
     __sleeptime = __dyna_sleep;
 
-    eventer_dispatch_timed(&__now, &__sleeptime);
+    eventer_dispatch_timed(&__sleeptime);
 
     if(compare_timeval(__sleeptime, __dyna_sleep) > 0)
       __sleeptime = __dyna_sleep;
@@ -341,7 +340,7 @@ static int eventer_ports_impl_loop() {
     eventer_cross_thread_process();
 
     /* Handle recurrent events */
-    eventer_dispatch_recurrent(&__now);
+    eventer_dispatch_recurrent();
 
     /* Now we move on to our fd-based events */
     __ports_sleeptime.tv_sec = __sleeptime.tv_sec;
@@ -362,13 +361,13 @@ static int eventer_ports_impl_loop() {
       add_timeval(__dyna_sleep, __dyna_increment, &__dyna_sleep);
 
     if(ret == -1 && (errno != ETIME && errno != EINTR))
-      mtevLT(eventer_err, &__now, "port_getn: %s\n", strerror(errno));
+      mtevL(eventer_err, "port_getn: %s\n", strerror(errno));
 
     if(ret < 0)
-      mtevLT(eventer_deb, &__now, "port_getn: %s\n", strerror(errno));
+      mtevL(eventer_deb, "port_getn: %s\n", strerror(errno));
 
-    mtevLT(eventer_deb, &__now, "debug: port_getn(%d, [], %d) => %d\n",
-           spec->port_fd, fd_cnt, ret);
+    mtevL(eventer_deb, "debug: port_getn(%d, [], %d) => %d\n",
+          spec->port_fd, fd_cnt, ret);
 
     if(pevents[0].portev_source == 65535) {
       /* the impossible still remains, which means our fd_cnt _must_ be 0 */

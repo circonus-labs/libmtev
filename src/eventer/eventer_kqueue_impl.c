@@ -326,7 +326,8 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   if(lockstate == EV_ALREADY_OWNED) return;
   mtevAssert(lockstate == EV_OWNED);
 
-  mtev_gettimeofday(&__now, NULL);
+  eventer_mark_callback_time();
+  eventer_gettimeofcallback(&__now, NULL);
   /* We're going to lie to ourselves.  You'd think this should be:
    * oldmask = e->mask;  However, we just fired with masks[fd], so
    * kqueue is clearly looking for all of the events in masks[fd].
@@ -334,7 +335,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
    */
   oldmask = e->mask | masks[fd];
   cbname = eventer_name_for_callback_e(e->callback, e);
-  mtevLT(eventer_deb, &__now, "kqueue: fire on %d/%x to %s(%p)\n",
+  mtevL(eventer_deb, "kqueue: fire on %d/%x to %s(%p)\n",
          fd, masks[fd], cbname?cbname:"???", e->callback);
   mtev_memory_begin();
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
@@ -402,7 +403,7 @@ static int eventer_kqueue_impl_loop() {
   }
 
   while(1) {
-    struct timeval __now, __sleeptime;
+    struct timeval __sleeptime;
     struct timespec __kqueue_sleeptime;
     int fd_cnt = 0;
 
@@ -411,7 +412,7 @@ static int eventer_kqueue_impl_loop() {
 
     __sleeptime = __dyna_sleep;
 
-    eventer_dispatch_timed(&__now, &__sleeptime);
+    eventer_dispatch_timed(&__sleeptime);
 
     if(compare_timeval(__sleeptime, __dyna_sleep) > 0)
       __sleeptime = __dyna_sleep;
@@ -420,7 +421,7 @@ static int eventer_kqueue_impl_loop() {
     eventer_cross_thread_process();
 
     /* Handle recurrent events */
-    eventer_dispatch_recurrent(&__now);
+    eventer_dispatch_recurrent();
 
     /* Now we move on to our fd-based events */
     __kqueue_sleeptime.tv_sec = __sleeptime.tv_sec;
@@ -430,10 +431,10 @@ static int eventer_kqueue_impl_loop() {
                     &__kqueue_sleeptime);
     kqs->wakeup_notify = 0;
     if(fd_cnt > 0 || ke_vec_used)
-      mtevLT(eventer_deb, &__now, "[t@%zx] kevent(%d, [...], %d) => %d\n", (intptr_t)pthread_self(), kqs->kqueue_fd, ke_vec_used, fd_cnt);
+      mtevL(eventer_deb, "[t@%zx] kevent(%d, [...], %d) => %d\n", (intptr_t)pthread_self(), kqs->kqueue_fd, ke_vec_used, fd_cnt);
     ke_vec_used = 0;
     if(fd_cnt < 0) {
-      mtevLT(eventer_err, &__now, "kevent(s/%d): %s\n", kqs->kqueue_fd, strerror(errno));
+      mtevL(eventer_err, "kevent(s/%d): %s\n", kqs->kqueue_fd, strerror(errno));
     }
     else if(fd_cnt == 0 ||
             (fd_cnt == 1 && ke_vec[0].filter == EVFILT_USER)) {
@@ -474,7 +475,7 @@ static int eventer_kqueue_impl_loop() {
         if(ke->filter == EVFILT_USER) continue;
         if(ke->flags & EV_ERROR) {
           if(ke->data != EBADF && ke->data != ENOENT)
-            mtevLT(eventer_err, &__now, "error [%d]: %s\n",
+            mtevL(eventer_err, "error [%d]: %s\n",
                    (int)ke->ident, strerror(ke->data));
           continue;
         }
