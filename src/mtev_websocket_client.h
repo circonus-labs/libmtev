@@ -67,4 +67,7 @@ API_EXPORT(void *)
 API_EXPORT(void)
   mtev_websocket_client_set_closure(mtev_websocket_client_t *client, void *closure);
 
+API_EXPORT(void)
+  mtev_websocket_client_init_logs();
+
 #endif

@@ -36,6 +36,8 @@ struct mtev_websocket_client {
   void *closure;
 };
 
+static mtev_log_stream_t client_deb;
+
 #ifdef HAVE_WSLAY
 static ssize_t wslay_send_callback(wslay_event_context_ptr ctx,
                             const uint8_t *data, size_t len, int flags,
@@ -149,7 +151,7 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
     if (client->msg_callback != NULL) {
       rv = client->msg_callback(client, arg->opcode, arg->msg, arg->msg_length, client->closure);
       if (!rv) {
-        mtevL(mtev_error, "Websocket client consumer handler failed, flagging for abort\n");
+        mtevL(client_deb, "Websocket client consumer handler failed, flagging for abort\n");
         client->should_close = mtev_true;
       }
     } else {
@@ -305,12 +307,12 @@ abort_drive:
 
   /* wslay_on_msg_recv_callback may set client->should_close if the consumer handler fails */
   if (wslay_event_recv(client->wslay_ctx) != 0 || client->should_close) {
-    mtevL(mtev_error, "Websocket client's wslay_event_recv failed, aborting drive\n");
+    mtevL(client_deb, "Websocket client's wslay_event_recv failed, aborting drive\n");
     goto abort_drive;
   }
 
   if (wslay_event_send(client->wslay_ctx) != 0) {
-    mtevL(mtev_error, "Websocket client's wslay_event_send failed, aborting drive\n");
+    mtevL(client_deb, "Websocket client's wslay_event_send failed, aborting drive\n");
     goto abort_drive;
   }
 
@@ -415,7 +417,7 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
     family = AF_INET6;
     rv = inet_pton(family, host, &addr);
     if(rv != 1) {
-      mtevL(mtev_error, "Cannot translate '%s' to IP\n", host);
+      mtevL(mtev_error, "mtev_websocket_client_new cannot translate '%s' to IP\n", host);
       return NULL;
     }
   }
@@ -608,4 +610,9 @@ mtev_websocket_client_free(mtev_websocket_client_t *client) {
   if(!client->closed) mtev_websocket_client_cleanup(client);
   free(client);
 #endif
+}
+
+void
+mtev_websocket_client_init_logs() {
+  client_deb = mtev_log_stream_find("debug/websocket_client");
 }
