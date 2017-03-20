@@ -41,8 +41,11 @@ LUA_FILES=mtevbusted/init.lua mtevbusted/cli.lua mtevbusted/api.lua mtevbusted/c
 
 all:	check
 
-TESTS=hash_test uuid_test time_test hll_test maybe_alloc_test
+TESTS=hash_test uuid_test time_test hll_test maybe_alloc_test pool-shift-async/test
 
+pool-shift-async/test:	pool-shift-async/test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o $@ $<
+	
 hash_test: hash_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o hash_test hash_test.c
 

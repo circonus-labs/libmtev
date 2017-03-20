@@ -153,6 +153,7 @@ static void eventer_epoll_impl_add(eventer_t e) {
   lockstate = acquire_master_fd(e->fd);
   master_fds[e->fd].e = e;
 
+  mtevL(eventer_deb, "epoll_ctl(%d, add, %d)\n", spec->epoll_fd, e->fd);
   rv = epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, e->fd, &_ev);
   if(rv != 0) {
     mtevFatal(mtev_error, "epoll_ctl(%d,add,%d,%x) -> %d (%d: %s)\n",
@@ -177,6 +178,7 @@ static eventer_t eventer_epoll_impl_remove(eventer_t e) {
     if(e == master_fds[e->fd].e) {
       removed = e;
       master_fds[e->fd].e = NULL;
+      mtevL(eventer_deb, "epoll_ctl(%d, del, %d)\n", spec->epoll_fd, e->fd);
       if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, e->fd, &_ev) != 0) {
         mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
               spec->epoll_fd, e->fd, strerror(errno));
@@ -216,6 +218,7 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
     if(e->mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
     if(e->mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
     if(e->mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
+    mtevL(eventer_deb, "epoll_ctl(%d, mod, %d)\n", spec->epoll_fd, e->fd);
     if(epoll_ctl(spec->epoll_fd, ctl_op, e->fd, &_ev) != 0) {
       mtevFatal(mtev_error, "epoll_ctl(%d, EPOLL_CTL_MOD, %d) -> %s\n",
             spec->epoll_fd, e->fd, strerror(errno));
@@ -234,6 +237,7 @@ static eventer_t eventer_epoll_impl_remove_fd(int fd) {
     eiq = master_fds[fd].e;
     spec = eventer_get_spec_for_event(eiq);
     master_fds[fd].e = NULL;
+    mtevL(eventer_deb, "epoll_ctl(%d, del, %d)\n", spec->epoll_fd, fd);
     if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
       mtevL(mtev_error, "epoll_ctl(%d, EPOLL_CTL_DEL, %d) -> %s\n",
             spec->epoll_fd, fd, strerror(errno));
@@ -252,7 +256,7 @@ static eventer_t eventer_epoll_impl_find_fd(int fd) {
 static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   struct epoll_spec *spec;
   struct timeval __now;
-  int fd, newmask;
+  int fd, newmask, needs_add = 0;
   const char *cbname;
   ev_lock_state_t lockstate;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
@@ -279,6 +283,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   if(master_fds[fd].e == NULL) {
     master_fds[fd].e = e;
     e->mask = 0;
+    needs_add = 1;
   }
   if(e != master_fds[fd].e) return;
   lockstate = acquire_master_fd(fd);
@@ -314,26 +319,42 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         pthread_t tgt = e->thr_owner;
         e->thr_owner = pthread_self();
         spec = eventer_get_spec_for_event(e);
-        if(e->mask != 0 && epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
-          mtevFatal(mtev_error,
-                    "epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) failed; "
-                    "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
-                    spec->epoll_fd, fd, errno, strerror(errno));
+        if(e->mask != 0 && !needs_add) {
+          mtevL(eventer_deb, "epoll_ctl(%d, del, %d)\n", spec->epoll_fd, fd);
+          if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
+            mtevFatal(mtev_error,
+                      "epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) failed; "
+                      "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
+                      spec->epoll_fd, fd, errno, strerror(errno));
+          }
         }
         e->thr_owner = tgt;
         spec = eventer_get_spec_for_event(e);
+        mtevL(eventer_deb, "epoll_ctl(%d, add, %d)\n", spec->epoll_fd, fd);
         mtevAssert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) == 0);
         mtevL(eventer_deb, "moved event[%p] from t@%d to t@%d\n", e, (int)pthread_self(), (int)tgt);
       }
       else {
-        int epoll_cmd = (e->mask == 0) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+        int epoll_rv;
+        int epoll_cmd = (e->mask == 0 || needs_add) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
         spec = eventer_get_spec_for_event(e);
-        if(epoll_ctl(spec->epoll_fd, epoll_cmd, fd, &_ev) != 0) {
+        mtevL(eventer_deb, "epoll_ctl(%d, %s, %d)\n", spec->epoll_fd, epoll_cmd == EPOLL_CTL_ADD ? "add" : "mod", fd);
+        epoll_rv = epoll_ctl(spec->epoll_fd, epoll_cmd, fd, &_ev);
+        if(epoll_rv != 0 &&
+           ((epoll_cmd == EPOLL_CTL_ADD && errno == EEXIST) ||
+            (epoll_cmd == EPOLL_CTL_MOD && errno == ENOENT))) {
+            /* try the other way */
+          epoll_cmd = (epoll_cmd == EPOLL_CTL_ADD) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+          mtevL(eventer_deb, "retry epoll_ctl(%d, %s, %d)\n", spec->epoll_fd, epoll_cmd == EPOLL_CTL_ADD ? "add" : "mod", fd);
+	  epoll_rv = epoll_ctl(spec->epoll_fd, epoll_cmd, fd, &_ev);
+        }
+        if(epoll_rv != 0) {
           const char *cb_name = eventer_name_for_callback_e(e->callback, e);
           mtevFatal(mtev_error,
-                    "epoll_ctl(spec->epoll_fd, EPOLL_CTL_MOD, fd, &_ev) failed; "
-              "spec->epoll_fd: %d; fd: %d; errno: %d (%s); callback: %s\n",
-              spec->epoll_fd, fd, errno, strerror(errno), cb_name ? cb_name : "???");
+                    "epoll_ctl(spec->epoll_fd, %s, fd, &_ev) failed; "
+                    "spec->epoll_fd: %d; fd: %d; errno: %d (%s); callback: %s\n",
+                    epoll_cmd == EPOLL_CTL_ADD ? "EPOLL_CTL_ADD" : "EPOLL_CTL_MOD",
+                    spec->epoll_fd, fd, errno, strerror(errno), cb_name ? cb_name : "???");
         }
       }
     }
