@@ -37,11 +37,15 @@
 #include <time.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include "mtev_conf.h"
 #include "mtev_defines.h"
 #include "mtev_time.h"
 #include "mtev_cpuid.h"
 #include "mtev_thread.h"
 #include "mtev_log.h"
+
+static mtev_log_stream_t tdeb_impl;
+#define tdeb (tdeb_impl ? tdeb_impl : mtev_debug)
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include <valgrind/valgrind.h>
@@ -217,7 +221,7 @@ fetch_cclock_scale(int cpuid, struct cclock_scale *cs) {
   if(unlikely(cpuid & ~0xfff)) return mtev_false;
 #else
   if(unlikely(cpuid < 0 || cpuid > NCPUS)) {
-    mtevL(mtev_debug, "fetch_cclock_scale called with bad CPU:%d\n", cpuid);
+    mtevL(tdeb, "fetch_cclock_scale called with bad CPU:%d\n", cpuid);
     return mtev_false;
   }
 #endif
@@ -366,7 +370,7 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
   int ncpuid;
   uint64_t h2;
 
-  mtevL(mtev_debug, "mtev_calibrate_rdtsc_ticks(CPU:%d, ticks:%" PRIu64 ")\n", cpuid, ticks);
+  mtevL(tdeb, "mtev_calibrate_rdtsc_ticks(CPU:%d, ticks:%" PRIu64 ")\n", cpuid, ticks);
   coreclocks[cpuid].last_ticks = ticks;
 
   double avg_ticks = mtev_time_adjust_tps(cpuid);
@@ -401,7 +405,7 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
     avg_skew = skew;
     if(skew == 0) skew = 1; /* This way we know it is initialized */
   
-    mtevL(mtev_debug, "CPU:%d [%" PRId64" (%" PRId64 ",%" PRId64 ")] tps:%lf\n",
+    mtevL(tdeb, "CPU:%d [%" PRId64" (%" PRId64 ",%" PRId64 ")] tps:%lf\n",
           cpuid, avg_skew, min_skew - avg_skew, max_skew - avg_skew, avg_ticks);
     if(avg_skew-min_skew > MAX_NS_SKEW_SKEW) skew = 0;
     if(max_skew-avg_skew > MAX_NS_SKEW_SKEW) skew = 0;
@@ -415,12 +419,12 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
       do {
         ck_pr_load_64_2(hackref, prev);
       } while(!ck_pr_cas_64_2(hackref, prev, (uint64_t *)&newcs));
-      mtevL(mtev_debug, "%lf ticks/nano 64_2 on CPU:%d [skew: %" PRId64 "]\n",
+      mtevL(tdeb, "%lf ticks/nano 64_2 on CPU:%d [skew: %" PRId64 "]\n",
             TICKS_PER_NANO(cpuid), cpuid, *(int64_t *)&coreclocks[cpuid].calc.skew);
 #else
       ck_pr_store_double(&coreclocks[cpuid].calc.ticks_per_nano, avg_ticks);
       ck_pr_store_64(&coreclocks[cpuid].calc.skew, *((uint64_t *)&skew));
-      mtevL(mtev_debug, "%lf ticks/nano 64x2 on CPU:%d [skew: %" PRId64 "]\n",
+      mtevL(tdeb, "%lf ticks/nano 64x2 on CPU:%d [skew: %" PRId64 "]\n",
             TICKS_PER_NANO(cpuid), cpuid, skew);
 #endif
       coreclocks[cpuid].last_sync = h2;
@@ -431,10 +435,10 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
           mtev_atomic_inc64(&coreclocks[cpuid].desyncs);
           ck_pr_store_64(&coreclocks[cpuid].calc.skew, 0);
         }
-        mtevL(mtev_debug, "CPU:%d desync! [%" PRId64 ",%" PRId64 "]\n",
+        mtevL(tdeb, "CPU:%d desync! [%" PRId64 ",%" PRId64 "]\n",
               cpuid, min_skew - avg_skew, max_skew - avg_skew);
       }
-        mtevL(mtev_debug, "CPU:%d failed sync [%" PRId64 ",%" PRId64 "]\n",
+        mtevL(tdeb, "CPU:%d failed sync [%" PRId64 ",%" PRId64 "]\n",
               cpuid, min_skew - avg_skew, max_skew - avg_skew);
     }
   }
@@ -558,11 +562,11 @@ mtev_time_tsc_maintenance(void *unused) {
   }
 
   if(!mtev_thread_realtime(100000)) /* 100us */
-    mtevL(mtev_debug, "Time maintenance not real-time!\n");
+    mtevL(tdeb, "Time maintenance not real-time!\n");
   if(!mtev_thread_prio(INT_MAX))
-    mtevL(mtev_debug, "Time maintenance not high priority!.\n");
+    mtevL(tdeb, "Time maintenance not high priority!.\n");
 
-  mtevL(mtev_debug, "mtev_time_tsc_maintenance thread started.\n");
+  mtevL(tdeb, "mtev_time_tsc_maintenance thread started.\n");
 
   uint64_t bits_ready[NCPUS/64] = { 0 };
   uint64_t bits_needed[NCPUS/64] = { 0 };
@@ -627,10 +631,11 @@ mtev_time_tsc_maintenance(void *unused) {
 void  
 mtev_time_start_tsc()
 {
+  tdeb_impl = mtev_log_stream_find("debug/time");
 #ifdef __sun
 #ifdef RUNNING_ON_VALGRIND
   if(!RUNNING_ON_VALGRIND) {
-    mtevL(mtev_debug, "mtev_time_start_tsc() -> disabled under valgrind.\n");
+    mtevL(tdeb, "mtev_time_start_tsc() -> disabled under valgrind.\n");
     return;
   }
 #endif
@@ -643,7 +648,7 @@ mtev_time_start_tsc()
     enable_rdtsc = mtev_false;
   }
   if(!enable_rdtsc) {
-    mtevL(mtev_debug, "mtev_time_start_tsc() -> aborted, rdtsc disabled.\n");
+    mtevL(tdeb, "mtev_time_start_tsc() -> aborted, rdtsc disabled.\n");
     return;
   }
   if(pthread_mutex_lock(&maintenance_thread_lock) == 0) {
@@ -659,11 +664,11 @@ mtev_time_start_tsc()
         }
       }
       if (mtev_cpuid_feature(MTEV_CPU_FEATURE_RDTSCP) == mtev_true) {
-        mtevL(mtev_debug, "Using rdtscp for clock\n");
+        mtevL(tdeb, "Using rdtscp for clock\n");
         global_rdtsc_function = mtev_rdtscp;
       }
       else if (mtev_cpuid_feature(MTEV_CPU_FEATURE_RDTSC) == mtev_true)  {
-        mtevL(mtev_debug, "Using rdtsc for clock\n");
+        mtevL(tdeb, "Using rdtsc for clock\n");
         global_rdtsc_function = mtev_rdtsc;
       }
       else {

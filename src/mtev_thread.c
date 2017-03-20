@@ -90,7 +90,7 @@ mtev_thread_bind_to_cpu(int cpu)
   }
   else {
     mtev_thread_is_bound = mtev_true;
-    mtevL(mtev_debug, "Bound to CPU %i\n", cpu);
+    //mtevL(mtev_debug, "Bound to CPU %i\n", cpu);
   }
 #endif
 
@@ -101,7 +101,7 @@ mtev_thread_bind_to_cpu(int cpu)
   int x = sched_setaffinity(gettid(), sizeof(s), &s);
   if (x == 0) {
     mtev_thread_is_bound = mtev_true;
-    mtevL(mtev_debug, "Bound to CPU %i\n", cpu);
+    //mtevL(mtev_debug, "Bound to CPU %i\n", cpu);
   } else {
     mtevL(mtev_error, "Warning: Binding thread to cpu %d failed\n", cpu);
   }   
