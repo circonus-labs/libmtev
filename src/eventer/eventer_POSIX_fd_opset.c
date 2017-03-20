@@ -79,6 +79,7 @@ POSIX_close(int fd,
   LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
   rv = close(fd);
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
+  mtevL(eventer_deb, "POSIX_close(%d) -> %d\n", fd, rv);
   return rv;
 }
 

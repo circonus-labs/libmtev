@@ -7,10 +7,14 @@ fi
 
 rv=0
 for cmd in $@; do
+	exe="./$cmd"
+	if [[ -x ./$cmd-script.sh ]]; then
+		exe="./$cmd-script.sh"
+	fi
 	if [[ "$VERBOSE" == "1" ]]; then
-		./$cmd
+		$exe
 	else
-		./$cmd >/dev/null 2>/dev/null
+		$exe >/dev/null 2>/dev/null
 	fi
 	STATUS=$?
 	RESULT="    #ok"
