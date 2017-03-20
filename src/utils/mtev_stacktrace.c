@@ -90,7 +90,7 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
     if(i != 0 || sb.st_size == 0) mtevL(ls, "error writing stacktrace\n");
     lseek(_global_stack_trace_fd, SEEK_SET, 0);
     i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff), sb.st_size));
-    mtevL(ls, "STACKTRACE:\n%.*s\n", i, stackbuff);
+    mtevL(ls, "STACKTRACE(%d):\n%.*s\n", getpid(), i, stackbuff);
   }
   else {
     mtevL(ls, "stacktrace unavailable\n");
