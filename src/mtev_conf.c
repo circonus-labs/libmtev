@@ -139,6 +139,7 @@ static xmlXPathContextPtr xpath_ctxt = NULL;
  * the tree dirty, but only write the config out once per second.
  */
 static uint32_t __coalesce_write = 0;
+static mtev_boolean config_writes_disabled = mtev_false;
 
 /* This is used to notice config changes and journal the config out
  * using a user-specified function.  It supports allowing multiple config
@@ -1200,6 +1201,11 @@ mtev_conf_load_internal(const char *path) {
   return rv;
 }
 
+void
+mtev_conf_disable_writes(mtev_boolean state) {
+  config_writes_disabled = state;
+}
+
 int
 mtev_conf_load(const char *path) {
   char actual_path[PATH_MAX];
@@ -2044,6 +2050,9 @@ mtev_conf_write_file(char **err) {
   xmlCharEncodingHandlerPtr enc;
   struct stat st;
   mode_t mode = 0640; /* the default */
+
+  if(config_writes_disabled) return 0;
+
   uid_t uid = geteuid();
   gid_t gid = getegid();
 

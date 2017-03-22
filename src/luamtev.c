@@ -20,6 +20,7 @@
 
 #define APPNAME "cli"
 char **cli_argv = { NULL };
+static char **global_envp;
 static bool interactive = false;
 static bool needs_unlink = false;
 static bool dump_template = false;
@@ -172,6 +173,20 @@ int luaopen_hostcli(lua_State *L) {
     lua_rawseti(L, -2, i+1);
   }
   lua_setglobal(L, "arg");
+
+  lua_newtable(L);
+  i = 0;
+  for(char *ekv = global_envp[0]; ekv; ekv = global_envp[++i]) {
+    char key[1024];
+    char *eq = strchr(ekv, '=');
+    if(!eq) continue;
+    if(eq-ekv >= 1024) continue;
+    memcpy(key, ekv, eq-ekv);
+    key[eq-ekv] = '\0';
+    lua_pushstring(L, eq+1);
+    lua_setfield(L, -2, key);
+  }
+  lua_setglobal(L, "ENV");
   return 0;
 }
 
@@ -204,7 +219,10 @@ child_main() {
     mtevL(mtev_stderr, "Permissions issue, are you running as the right user?\n");
     exit(2);
   }
-  if(needs_unlink) unlink(config_file);
+  if(needs_unlink) {
+    mtev_conf_disable_writes(mtev_true);
+    unlink(config_file);
+  }
 
   /* update the lua module */
   section = mtev_conf_get_section(NULL, "/cli/modules/generic[@name=\"lua_general\"]/config");
@@ -255,10 +273,11 @@ int luaopen_LuaMtevDirect(lua_State *L) {
   return 1;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv, char **envp) {
   parse_cli_args(argc, argv);
   if(!config_file) make_config();
-  
+
+  global_envp = envp;
   mtev_memory_init();
   mtev_main(APPNAME, config_file, debug, foreground,
             MTEV_LOCK_OP_LOCK, NULL, droptouser, droptogroup,

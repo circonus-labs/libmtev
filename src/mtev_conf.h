@@ -218,6 +218,10 @@ API_EXPORT(int)
   mtev_conf_write_file_console(mtev_console_closure_t ncct,
                                int argc, char **argv,
                                mtev_console_state_t *state, void *closure);
+
+API_EXPORT(void)
+  mtev_conf_disable_writes(mtev_boolean state);
+
 API_EXPORT(int)
   mtev_conf_write_file(char **err);
 
