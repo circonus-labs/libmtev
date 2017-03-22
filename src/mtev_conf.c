@@ -1440,6 +1440,7 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
   xmlNodePtr node;
 
   current_ctxt = xpath_ctxt;
+  if(!xpath_ctxt) return;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1502,6 +1503,7 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
   char *inheritid;
 
   current_ctxt = xpath_ctxt;
+  if(!xpath_ctxt) return;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1579,6 +1581,7 @@ mtev_conf_get_section(mtev_conf_section_t section, const char *path) {
   xmlNodePtr current_node = (xmlNodePtr)section;
 
   current_ctxt = xpath_ctxt;
+  if(!xpath_ctxt) return NULL;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1606,6 +1609,7 @@ mtev_conf_get_sections(mtev_conf_section_t section,
 
   *cnt = 0;
   current_ctxt = xpath_ctxt;
+  if(!xpath_ctxt) return NULL;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1647,6 +1651,7 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
   xmlNodePtr current_node = (xmlNodePtr)section;
 
   current_ctxt = xpath_ctxt;
+  if(!xpath_ctxt) return 0;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -2718,7 +2723,7 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
   if(!strcmp(basepath, "/")) basepath = "";
   if(!strcmp(path, "/")) path = "";
 
-  if(!master_config) {
+  if(!master_config || !xpath_ctxt) {
     nc_printf(ncct, "no config\n");
     return -1;
   }
@@ -2799,6 +2804,10 @@ mtev_console_config_cd(mtev_console_closure_t ncct,
   xmlNodePtr node = NULL;
   char *dest;
 
+  if(!master_config || !xpath_ctxt) {
+    nc_printf(ncct, "no config");
+    return -1;
+  }
   mtev_conf_xml_xpath(NULL, &xpath_ctxt);
   if(argc != 1 && !closure) {
     nc_printf(ncct, "requires one argument\n");
