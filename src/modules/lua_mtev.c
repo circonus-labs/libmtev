@@ -62,6 +62,7 @@
 #include "mtev_b32.h"
 #include "mtev_b64.h"
 #include "mtev_lockfile.h"
+#include "mtev_mkdir.h"
 #include "eventer/eventer.h"
 #include "mtev_json.h"
 #include "mtev_watchdog.h"
@@ -1730,6 +1731,81 @@ nl_sleep(lua_State *L) {
   eventer_add(e);
   return mtev_lua_yield(ci, 0);
 }
+
+#define SIMPLE_NL(func) static int \
+nl_##func(lua_State *L) { \
+  lua_pushinteger(L, func()); \
+  return 1; \
+}
+
+SIMPLE_NL(getuid)
+SIMPLE_NL(getgid)
+SIMPLE_NL(geteuid)
+SIMPLE_NL(getegid)
+SIMPLE_NL(getpid)
+SIMPLE_NL(getppid)
+
+static int
+nl_unlink(lua_State *L) {
+  int rv;
+  if(lua_gettop(L) != 1)
+    luaL_error(L, "bad call to mtev.unlink");
+  rv = unlink(lua_tostring(L,1));
+  lua_pushboolean(L, rv == 0);
+  if(rv >= 0) return 1;
+  lua_pushinteger(L, errno);
+  lua_pushstring(L, strerror(errno));
+  return 3;
+}
+
+static int
+nl_rmdir(lua_State *L) {
+  int rv;
+  if(lua_gettop(L) != 1)
+    luaL_error(L, "bad call to mtev.rmdir");
+  rv = rmdir(lua_tostring(L,1));
+  lua_pushboolean(L, rv == 0);
+  if(rv >= 0) return 1;
+  lua_pushinteger(L, errno);
+  lua_pushstring(L, strerror(errno));
+  return 3;
+}
+
+static int
+nl_mkdir(lua_State *L) {
+  int rv;
+  if(lua_gettop(L) != 2)
+    luaL_error(L, "bad call to mtev.mkdir");
+  rv = mkdir(lua_tostring(L,1), lua_tointeger(L, 2));
+  lua_pushboolean(L, rv == 0);
+  if(rv >= 0) return 1;
+  lua_pushinteger(L, errno);
+  lua_pushstring(L, strerror(errno));
+  return 3;
+}
+
+static int
+nl_mkdir_for_file(lua_State *L) {
+  int rv;
+  if(lua_gettop(L) != 2)
+    luaL_error(L, "bad call to mtev.mkdir_for_file");
+  rv = mkdir_for_file(lua_tostring(L,1), lua_tointeger(L, 2));
+  lua_pushboolean(L, rv == 0);
+  if(rv >= 0) return 1;
+  lua_pushinteger(L, errno);
+  lua_pushstring(L, strerror(errno));
+  return 3;
+}
+
+static int
+nl_getcwd(lua_State *L) {
+  char *rp, path[PATH_MAX * 4];
+  rp = getcwd(path, sizeof(path));
+  if(rp) lua_pushstring(L, rp);
+  else lua_pushnil(L);
+  return 1;
+}
+
 
 static int
 nl_open(lua_State *L) {
@@ -4112,12 +4188,23 @@ static const luaL_Reg mtevlib[] = {
     one cannot accidentally call the print builtin.
 */
 
+  { "unlink", nl_unlink },
+  { "rmdir", nl_rmdir },
+  { "mkdir", nl_mkdir },
+  { "mkdir_for_file", nl_mkdir_for_file },
+  { "getcwd", nl_getcwd },
   { "open", nl_open },
   { "write", nl_write },
   { "close", nl_close },
   { "chmod", nl_chmod },
   { "stat", nl_stat },
   { "readdir", nl_readdir },
+  { "getuid", nl_getuid },
+  { "getgid", nl_getgid },
+  { "geteuid", nl_geteuid },
+  { "getegid", nl_getegid },
+  { "getpid", nl_getpid },
+  { "getppid", nl_getppid },
   { "lockfile_acquire", nl_lockfile_acquire },
   { "lockfile_release", nl_lockfile_release },
   { "crc32", nl_crc32 },
