@@ -1527,10 +1527,53 @@ mtev_ssl_ctx_index_func(lua_State *L) {
   return 0;
 }
 
+struct nl_wn_queue_node {
+  int *refs;
+  int nrefs;
+  struct nl_wn_queue_node *next;
+};
+struct nl_wn_queue {
+  char *key;
+  lua_State *L;
+  eventer_t pending_event;
+  struct nl_wn_queue_node *head, *tail;
+};
+static void
+nl_wn_queue_push(struct nl_wn_queue *q, lua_State *L, int nargs) {
+  struct nl_wn_queue_node *toinsert = calloc(1, sizeof(*toinsert));
+  toinsert->nrefs = nargs;
+  toinsert->refs = calloc(nargs, sizeof(int));
+  for(int i=1;i<=nargs;i++) {
+    lua_pushvalue(L,i);
+    toinsert->refs[i-1] = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+  if(q->tail) q->tail->next = toinsert;
+  else q->head = toinsert;
+  q->tail = toinsert;
+}
+static int
+nl_wn_queue_pop(struct nl_wn_queue *q, lua_State *L) {
+  struct nl_wn_queue_node *n;
+  n = q->head;
+  if(!n) return 0;
+  q->head = q->head->next;
+  if(q->head == NULL) q->tail = NULL;
+
+  /* use n */
+  int nargs = 0;
+  for(int i=0; i<n->nrefs; i++) {
+    lua_rawgeti(L, LUA_REGISTRYINDEX, n->refs[i]);
+    luaL_unref(L, LUA_REGISTRYINDEX, n->refs[i]);
+    nargs++;
+  }
+  free(n->refs);
+  free(n);
+  return nargs;
+}
 static int
 nl_waitfor_notify(lua_State *L) {
   mtev_lua_resume_info_t *ci;
-  struct nl_slcl *cl;
+  struct nl_wn_queue *q;
   void *vptr;
   const char *key;
   int nargs;
@@ -1543,31 +1586,46 @@ nl_waitfor_notify(lua_State *L) {
   }
   key = lua_tostring(L, 1);
   if(!mtev_hash_retrieve(ci->lmc->pending, key, strlen(key), &vptr)) {
+    q = calloc(1, sizeof(*q));
+    q->key = strdup(key);
+    mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q);
+  } else {
+    q = vptr;
+  }
+  if(q->L) {
+    lua_xmove(L, q->L, nargs);
+    ci = mtev_lua_get_resume_info(q->L);
+
+    q->L = NULL;
+
+    mtevAssert(ci);
+    mtevAssert(eventer_remove(q->pending_event));
+    mtev_lua_deregister_event(ci, q->pending_event, 0);
+    ci->lmc->resume(ci, nargs);
     return 0;
   }
-  mtev_hash_delete(ci->lmc->pending, key, strlen(key), free, NULL);
-  cl = vptr;
-  lua_xmove(L, cl->L, nargs);
-
-  ci = mtev_lua_get_resume_info(cl->L);
-  mtevAssert(ci);
-  mtevAssert(eventer_remove(cl->pending_event));
-  mtev_lua_deregister_event(ci, cl->pending_event, 0);
-  ci->lmc->resume(ci, nargs);
-  lua_pushinteger(L, nargs);
+  else {
+    nl_wn_queue_push(q, L, nargs);
+  }
   return 0;
 }
 
 static int
 nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_resume_info_t *ci;
-  struct nl_slcl *cl = vcl;
+  struct nl_wn_queue *q = vcl;
 
-  ci = mtev_lua_get_resume_info(cl->L);
+  ci = mtev_lua_get_resume_info(q->L);
+
+  q->L = NULL;
+
   mtevAssert(ci);
   mtev_lua_deregister_event(ci, e, 0);
-  mtev_hash_delete(ci->lmc->pending, cl->inbuff, strlen(cl->inbuff), free, NULL);
-  free(cl);
+
+  if(q->head == NULL) {
+    mtev_hash_delete(ci->lmc->pending, q->key, strlen(q->key), free, free);
+  }
+
   ci->lmc->resume(ci, 0);
   return 0;
 }
@@ -1575,8 +1633,9 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
 static int
 nl_waitfor(lua_State *L) {
   mtev_lua_resume_info_t *ci;
+  void *vptr;
   const char *key;
-  struct nl_slcl *cl;
+  struct nl_wn_queue *q;
   struct timeval diff;
   eventer_t e;
   double p_int;
@@ -1587,24 +1646,34 @@ nl_waitfor(lua_State *L) {
     luaL_error(L, "waitfor(key, timeout) wrong arguments");
   }
   p_int = lua_tonumber(L, 2);
-  cl = calloc(1, sizeof(*cl));
-  cl->free = nl_extended_free;
-  cl->L = L;
-  mtev_gettimeofday(&cl->start, NULL);
 
   key = lua_tostring(L, 1);
   if(!key) luaL_error(L, "waitfor called without key");
-  cl->inbuff = strdup(key);
-  if(!mtev_hash_store(ci->lmc->pending, cl->inbuff, strlen(cl->inbuff), cl)) {
-    nl_extended_free(cl);
-    luaL_error(L, "waitfor called with duplicate key");
+  if(!mtev_hash_retrieve(ci->lmc->pending, key, strlen(key), &vptr)) {
+    q = calloc(1, sizeof(*q));
+    q->key = strdup(key);
+    q->L = L;
+    mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q);
+  } else {
+    q = vptr;
+    if(q->L) luaL_error(L, "waitfor cannot be called concurrently");
+    q->L = L;
   }
 
-  cl->pending_event = e = eventer_alloc();
+  int available_nargs = nl_wn_queue_pop(q, L);
+  if(available_nargs > 0) {
+    q->L = NULL;
+    if(q->head == NULL) {
+      mtev_hash_delete(ci->lmc->pending, q->key, strlen(q->key), free, free);
+    }
+    return available_nargs;
+  }
+
+  q->pending_event = e = eventer_alloc();
   e->mask = EVENTER_TIMER;
   e->callback = nl_waitfor_timeout;
-  e->closure = cl;
-  memcpy(&e->whence, &cl->start, sizeof(cl->start));
+  e->closure = q;
+  mtev_gettimeofday(&e->whence, NULL);
   diff.tv_sec = floor(p_int);
   diff.tv_usec = (p_int - floor(p_int)) * 1000000;
   add_timeval(e->whence, diff, &e->whence);

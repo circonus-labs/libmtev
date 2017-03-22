@@ -1,0 +1,40 @@
+describe("waitfor tests", function()
+
+  it("can waitfor timeout", function()
+    local uuid = mtev.uuid()
+    assert.is_nil(mtev.waitfor(uuid, 1))
+  end)
+
+  it("can waitfor before notify", function()
+    local uuid = mtev.uuid()
+    mtev.coroutine_spawn(function()
+      mtev.sleep(0.1)
+      mtev.notify(uuid, "bloop")
+    end)
+    local key, val = mtev.waitfor(uuid, 1)
+    assert.is_equal(uuid, key)
+    assert.is_equal("bloop", val)
+  end)
+
+  it("can waitfor after notify", function()
+    local uuid = mtev.uuid()
+    mtev.coroutine_spawn(function()
+      mtev.notify(uuid, "bloop2")
+    end)
+    mtev.sleep(0.1)
+    local key, val = mtev.waitfor(uuid, 1)
+    assert.is_equal(uuid, key)
+    assert.is_equal("bloop2", val)
+  end)
+
+  it("can notify lots", function()
+    local uuid = mtev.uuid()
+    mtev.coroutine_spawn(function()
+      for i=1,100 do mtev.notify(uuid,i) end
+    end)
+    for i=1,100 do
+      local key, val = mtev.waitfor(uuid, 1)
+      assert.is_equal(i, val)
+    end
+  end)
+end)
