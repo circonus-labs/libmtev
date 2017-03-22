@@ -479,6 +479,7 @@ static void *thrloopwrap(void *vid) {
 }
 
 void eventer_loop() {
+  mtevL(mtev_debug, "eventer_loop() started\n");
   thrloopwrap((void *)(intptr_t)0);
 }
 
