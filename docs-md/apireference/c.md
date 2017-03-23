@@ -92,6 +92,44 @@ MTEV_MAYBE_SIZE(name)
   * `name` The name of the "maybe" buffer.
  
 
+### A
+
+#### mtev_amqp_send
+
+>Publish an AMQP message to one of the configured amqp brokers.
+
+```c
+void 
+mtev_amqp_send(struct amqp_envelope_t_ *env, int mandatory, int immediate, int id)
+```
+
+
+  * `env` An envelope with a valid message. The env pointer must be word aligned.
+  * `mandatory` Set to non-zero if the message should be sent with the mandatory flag.
+  * `immediate` Set to non-zero if the message should be sent with the immediate flag.
+  * `id` the ID of the connection: -1 to broadcast.
+ 
+
+#### mtev_amqp_send_data
+
+>Publish an AMQP message to one of the configured amqp brokers.
+
+```c
+void 
+mtev_amqp_send_data(char *exchange, char *route, int mandatory, int immediate, void *payload, 
+                    int len, int id)
+```
+
+
+  * `exchange` The AMQP exchange to publish to.
+  * `route` The route to set on the message.
+  * `mandatory` Set to non-zero if the message should be sent with the mandatory flag.
+  * `immediate` Set to non-zero if the message should be sent with the immediate flag.
+  * `payload` the contents of the message.
+  * `len` the number of bytes present in payload.
+  * `id` the ID of the connection: -1 to broadcast.
+ 
+
 ### B
 
 #### mtev_b32_decode
@@ -667,6 +705,32 @@ eventer_callback_for_name(const char *name)
   * **RETURN** the function pointer or NULL if no such callback has been registered.
 
 
+#### eventer_callback_ms
+
+>Get the milliseconds since epoch of the current callback invocation.
+
+```c
+uint64_t 
+eventer_callback_ms()
+```
+
+
+  * **RETURN** milliseconds since epoch of callback invocation, or current time.
+ 
+
+#### eventer_callback_us
+
+>Get the microseconds since epoch of the current callback invocation.
+
+```c
+uint64_t 
+eventer_callback_us()
+```
+
+
+  * **RETURN** microseconds since epoch of callback invocation, or current time.
+ 
+
 #### eventer_choose_owner
 
 >Find a thread in the default eventer pool.
@@ -809,6 +873,27 @@ eventer_get_pool_for_event(eventer_t e)
   * `e` an event object.
   * **RETURN** the `eventer_pool_t` to which the event is scheduled.
 
+
+#### eventer_gettimeofcallback
+
+>Get the time of the last invoked callback in this thread.
+
+```c
+
+eventer_gettimeofcallback(struct timeval *now, void *tzp)
+```
+
+
+  * `now` a `struct timeval` to populate with the request time.
+  * `tzp` is ignored and for API compatibility with gettimeofday.
+  * **RETURN** 0 on success, non-zero on failure.
+
+This function returns the time of the last callback execution.  It
+is fast and cheap (cheaper than gettimeofday), so if a function
+wishes to know what time it is and the "time of invocation" is good
+enough, this is considerably cheaper than a call to `mtev_gettimeofday`
+or other system facilities.
+ 
 
 #### eventer_impl_propset
 
