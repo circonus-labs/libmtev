@@ -16,6 +16,15 @@ For more information on logging via the API, see the development section
 of this documentation relaated to logging.  The "debug" log_stream is
 disabled by default.
 
+Logs are heirarchical in nomenclature as a convenience.  If, in your code, you
+request a log named "error/foo" and no such log exists in the configuration,
+a new untyped log will be created and its outlet will be set to "error".  This
+is recursive, so "debug/myapp/facility1" will (unless configured otherwise)
+outlet to "debug/myapp" which will outlet to "debug."  This makes it very simple
+to semantically separate logs into new error and debugging facilities without
+worrying about them being lost, while providing the flexibility to configure
+where this things go if other outcomes are desired.
+
 All logging configuration exists within the toplevel XML node `<logs>`.
 Individual log_streams are declared using `<log>` stanzas and outlets are
 declared using `<outlet>` stanzas.  A log_stream uses all `<outlet>` stanzas

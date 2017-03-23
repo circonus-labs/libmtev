@@ -322,24 +322,139 @@ mtev_console_log_lines(mtev_console_closure_t ncct, int argc, char **argv,
   mtev_log_stream_t ls;
   int log_lines = 23;
   if(argc < 1 || argc > 2) return -1;
-  if(argc == 2) log_lines = atoi(argv[1]);
+  if(!mtev_log_stream_exists(argv[0])) {
+    nc_printf(ncct, "No such log.\n");
+    return 0;
+  }
   ls = mtev_log_stream_find(argv[0]);
-  if(!ls || strcmp(mtev_log_stream_get_type(ls),"memory")) {
+  if(argc == 2) {
+    if(!strcmp(argv[1], "details")) {
+      mtev_json_object *doc = mtev_log_stream_to_json(ls);
+      nc_printf(ncct, "%s\n", mtev_json_object_to_json_string(doc));
+      mtev_json_object_put(doc);
+      return 0;
+    }
+    log_lines = atoi(argv[1]);
+  }
+  if(!ls || !mtev_log_stream_get_type(ls) ||
+     strcmp(mtev_log_stream_get_type(ls),"memory")) {
     nc_printf(ncct, "No memory log '%s'\n", argv[0]);
     return 0;
   }
   mtev_log_memory_lines(ls, log_lines, mtev_console_log_a_line, ncct);
   return 0;
 }
+
+static int
+mtev_console_log_output(mtev_console_closure_t ncct, int argc, char **argv,
+                        mtev_console_state_t *dstate, void *unused) {
+  mtev_log_stream_t ls;
+  int i, len = 0;
+  char *buff;
+  if(argc < 2 || !mtev_log_stream_exists(argv[0])) {
+    nc_printf(ncct, "log <logname> thing to log\n");
+    return 0;
+  }
+  ls = mtev_log_stream_find(argv[0]);
+  for(i=1; i<argc; i++) len += strlen(argv[i]) + 1;
+  buff = malloc(len);
+  buff[0] = '\0';
+  for(i=1; i<argc; i++) {
+    strlcat(buff, argv[i], len);
+    strlcat(buff, " ", len);
+  }
+  mtevL(ls, "%s\n", buff);
+  nc_printf(ncct, "logged.\n", len);
+  free(buff);
+  return 0;
+}
+
+static int
+mtev_console_log_connect(mtev_console_closure_t ncct, int argc, char **argv,
+                         mtev_console_state_t *dstate, void *should_connect) {
+  const char *tgt_name = (argc == 2) ? argv[1] : ncct->feed_path;
+  if(argc > 2 ||
+     !mtev_log_stream_exists(argv[0]) ||
+     !mtev_log_stream_exists(tgt_name)) {
+    nc_printf(ncct, "log connect <logname> [<outlet>]\n");
+    return 0;
+  }
+  if(should_connect != NULL)
+    mtev_log_stream_add_stream(mtev_log_stream_find(argv[0]), mtev_log_stream_find(tgt_name));
+  else
+    mtev_log_stream_remove_stream(mtev_log_stream_find(argv[0]), tgt_name);
+  return 0;
+}
+
+static int
+mtev_console_log_enable(mtev_console_closure_t ncct, int argc, char **argv,
+                        mtev_console_state_t *dstate, void *doit) {
+  if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
+    nc_printf(ncct, "no such log\n");
+    return 0;
+  }
+  mtev_log_stream_t ls = mtev_log_stream_find(argv[0]);
+  if(doit != NULL)
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) | MTEV_LOG_STREAM_ENABLED);
+  else
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) & ~MTEV_LOG_STREAM_ENABLED);
+  return 0;
+}
+
+static int
+mtev_console_log_facility(mtev_console_closure_t ncct, int argc, char **argv,
+                          mtev_console_state_t *dstate, void *doit) {
+  if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
+    nc_printf(ncct, "no such log\n");
+    return 0;
+  }
+  mtev_log_stream_t ls = mtev_log_stream_find(argv[0]);
+  if(doit != NULL)
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) | MTEV_LOG_STREAM_FACILITY);
+  else
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) & ~MTEV_LOG_STREAM_FACILITY);
+  return 0;
+}
+
+static int
+mtev_console_log_debug(mtev_console_closure_t ncct, int argc, char **argv,
+                       mtev_console_state_t *dstate, void *doit) {
+  if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
+    nc_printf(ncct, "no such log\n");
+    return 0;
+  }
+  mtev_log_stream_t ls = mtev_log_stream_find(argv[0]);
+  if(doit != NULL)
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) | MTEV_LOG_STREAM_DEBUG);
+  else
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) & ~MTEV_LOG_STREAM_DEBUG);
+  return 0;
+}
+
+static int
+mtev_console_log_timestamps(mtev_console_closure_t ncct, int argc, char **argv,
+                            mtev_console_state_t *dstate, void *doit) {
+  if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
+    nc_printf(ncct, "no such log\n");
+    return 0;
+  }
+  mtev_log_stream_t ls = mtev_log_stream_find(argv[0]);
+  if(doit != NULL)
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) | MTEV_LOG_STREAM_TIMESTAMPS);
+  else
+    mtev_log_stream_set_flags(ls, mtev_log_stream_get_flags(ls) & ~MTEV_LOG_STREAM_TIMESTAMPS);
+  return 0;
+}
+
 static char *
-mtev_console_memory_log_opts(mtev_console_closure_t ncct,
+mtev_console_memory_log_opts_ex(mtev_console_closure_t ncct,
                              mtev_console_state_stack_t *stack,
                              mtev_console_state_t *dstate,
-                             int argc, char **argv, int idx) {
+                             int argc, char **argv, int idx, int which) {
   mtev_log_stream_t *loggers;
   int cnt, i, offset = 0;
 
-  if(argc == 1) {
+  if(argc == (which+1)) {
     cnt = mtev_log_list(NULL, 0);
     if(cnt < 0 ) {
       cnt = 0 - cnt;
@@ -348,13 +463,10 @@ mtev_console_memory_log_opts(mtev_console_closure_t ncct,
       if(cnt > 0) {
         for(i=0;i<cnt;i++) {
           const char *name = mtev_log_stream_get_name(loggers[i]);
-          const char *type = mtev_log_stream_get_type(loggers[i]);
 
-          if(type && !strcmp(type, "memory")) {
-            if(name && !strncmp(name, argv[0], strlen(argv[0]))) {
-              if(offset == idx) return strdup(name);
-              offset++;
-            }
+          if(name && !strncmp(name, argv[which], strlen(argv[which]))) {
+            if(offset == idx) return strdup(name);
+            offset++;
           }
         }
       }
@@ -363,8 +475,71 @@ mtev_console_memory_log_opts(mtev_console_closure_t ncct,
   return NULL;
 }
 
+static char *
+mtev_console_memory_log_opts(mtev_console_closure_t ncct,
+                             mtev_console_state_stack_t *stack,
+                             mtev_console_state_t *dstate,
+                             int argc, char **argv, int idx) {
+  if(argc > 0 && argc <= 1)
+    return mtev_console_memory_log_opts_ex(ncct, stack, dstate, argc, argv, idx, 0);
+  return NULL;
+}
+static char *
+mtev_console_memory_log_opts2(mtev_console_closure_t ncct,
+                             mtev_console_state_stack_t *stack,
+                             mtev_console_state_t *dstate,
+                             int argc, char **argv, int idx) {
+  if(argc > 0 && argc <= 2)
+    return mtev_console_memory_log_opts_ex(ncct, stack, dstate, argc, argv, idx, argc-1);
+  return NULL;
+}
+
 cmd_info_t console_command_log_lines = {
   "log", mtev_console_log_lines, mtev_console_memory_log_opts, NULL, NULL
+};
+
+cmd_info_t console_command_log_to = {
+  "to", mtev_console_log_output, mtev_console_memory_log_opts, NULL, NULL
+};
+
+cmd_info_t console_command_log_enable = {
+  "enable", mtev_console_log_enable, mtev_console_memory_log_opts, NULL, (void *)(uintptr_t)1
+};
+
+cmd_info_t console_command_log_noenable = {
+  "enable", mtev_console_log_enable, mtev_console_memory_log_opts, NULL, NULL
+};
+
+cmd_info_t console_command_log_debug = {
+  "debug", mtev_console_log_debug, mtev_console_memory_log_opts, NULL, (void *)(uintptr_t)1
+};
+
+cmd_info_t console_command_log_nodebug = {
+  "debug", mtev_console_log_debug, mtev_console_memory_log_opts, NULL, NULL
+};
+
+cmd_info_t console_command_log_facility = {
+  "facility", mtev_console_log_facility, mtev_console_memory_log_opts, NULL, (void *)(uintptr_t)1
+};
+
+cmd_info_t console_command_log_nofacility = {
+  "facility", mtev_console_log_facility, mtev_console_memory_log_opts, NULL, NULL
+};
+
+cmd_info_t console_command_log_timestamps = {
+  "timestamps", mtev_console_log_timestamps, mtev_console_memory_log_opts, NULL, (void *)(uintptr_t)1
+};
+
+cmd_info_t console_command_log_notimestamps = {
+  "timestamps", mtev_console_log_timestamps, mtev_console_memory_log_opts, NULL, NULL
+};
+
+cmd_info_t console_command_log_connect = {
+  "connect", mtev_console_log_connect, mtev_console_memory_log_opts2, NULL, (void *)(uintptr_t)1
+};
+
+cmd_info_t console_command_log_disconnect = {
+  "disconnect", mtev_console_log_connect, mtev_console_memory_log_opts2, NULL, NULL
 };
 
 cmd_info_t console_command_show_rest = {
@@ -746,16 +921,29 @@ mtev_console_state_initial() {
   static mtev_console_state_t *_top_level_state = NULL;
   if(!_top_level_state) {
     static mtev_console_state_t *no_state, *show_state, *evdeb, *mtevdeb,
-                                *mtevst, *rdtsc;
+                                *mtevst, *rdtsc, *log_state, *nolog_state;
     _top_level_state = mtev_console_state_alloc();
     mtev_console_state_add_cmd(_top_level_state, &console_command_exit);
     show_state = mtev_console_mksubdelegate(_top_level_state, "show");
+    log_state = mtev_console_mksubdelegate(_top_level_state, "log");
     no_state = mtev_console_mksubdelegate(_top_level_state, "no");
+    nolog_state = mtev_console_mksubdelegate(no_state, "log");
 
     mtev_console_state_add_cmd(_top_level_state, &console_command_crash);
     mtev_console_state_add_cmd(_top_level_state, &console_command_hang);
     mtev_console_state_add_cmd(_top_level_state, &console_command_shutdown);
     mtev_console_state_add_cmd(_top_level_state, &console_command_restart);
+    mtev_console_state_add_cmd(log_state, &console_command_log_to);
+    mtev_console_state_add_cmd(log_state, &console_command_log_connect);
+    mtev_console_state_add_cmd(log_state, &console_command_log_disconnect);
+    mtev_console_state_add_cmd(log_state, &console_command_log_enable);
+    mtev_console_state_add_cmd(nolog_state, &console_command_log_noenable);
+    mtev_console_state_add_cmd(log_state, &console_command_log_facility);
+    mtev_console_state_add_cmd(nolog_state, &console_command_log_nofacility);
+    mtev_console_state_add_cmd(log_state, &console_command_log_debug);
+    mtev_console_state_add_cmd(nolog_state, &console_command_log_nodebug);
+    mtev_console_state_add_cmd(log_state, &console_command_log_timestamps);
+    mtev_console_state_add_cmd(nolog_state, &console_command_log_notimestamps);
     mtev_console_state_add_cmd(show_state, &console_command_version);
     mtev_console_state_add_cmd(show_state, &console_command_log_lines);
     mtev_console_state_add_cmd(show_state, &console_command_show_rest);

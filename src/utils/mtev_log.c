@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2005-2009, OmniTI Computer Consulting, Inc.
  * All rights reserved.
- * Copyright (c) 2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2015-2017, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -54,6 +54,8 @@
 #include "mtev_hash.h"
 #include "mtev_atomic.h"
 #include "mtev_hooks.h"
+#include "mtev_json.h"
+#include "mtev_str.h"
 #include "mtev_thread.h"
 #include <jlog.h>
 #include <jlog_private.h>
@@ -321,6 +323,7 @@ mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich,
   if(membuf == NULL) return 0;
 
   if(lock) pthread_rwlock_wrlock(lock);
+  if(membuf->head == membuf->tail) return 0;
   nmsg = ((membuf->tail % membuf->noffsets) >= (membuf->head % membuf->noffsets)) ?
            ((membuf->tail % membuf->noffsets) - (membuf->head % membuf->noffsets)) :
            ((membuf->tail % membuf->noffsets) + membuf->noffsets - (membuf->head % membuf->noffsets));
@@ -1399,8 +1402,18 @@ mtev_log_stream_new(const char *name, const char *type, const char *path,
                                       mtev_log_stream_find(name));
 }
 
+mtev_boolean
+mtev_log_stream_exists(const char *name) {
+  void *vls;
+  if(mtev_hash_retrieve(&mtev_loggers, name, strlen(name), &vls)) {
+    return mtev_true;
+  }
+  return mtev_false;
+}
+
 mtev_log_stream_t
 mtev_log_stream_find(const char *name) {
+  char *last_sep;
   void *vls;
   mtev_log_stream_t newls;
   if(mtev_hash_retrieve(&mtev_loggers, name, strlen(name), &vls)) {
@@ -1408,11 +1421,23 @@ mtev_log_stream_find(const char *name) {
   }
   newls = mtev_log_stream_new_internal(name, NULL, NULL, NULL, NULL, NULL);
   newls->flags = 0;
+  if(NULL != (last_sep = strrchr(name, '/'))) {
+    char *parent = mtev__strndup(name, (int)(last_sep - name));
+    mtev_log_stream_add_stream(newls, mtev_log_stream_find(parent));
+    free(parent);
+  }
   return newls;
 }
 
 void
 mtev_log_stream_remove(const char *name) {
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  mtev_log_stream_t ls;
+
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    ls = iter.value.ptr;
+    mtev_log_stream_remove_stream(ls, name);
+  }
   mtev_hash_delete(&mtev_loggers, name, strlen(name), free, NULL);
 }
 
@@ -1423,6 +1448,17 @@ mtev_log_stream_add_stream(mtev_log_stream_t ls, mtev_log_stream_t outlet) {
   newnode->outlet = outlet;
   newnode->next = ls->outlets;
   ls->outlets = newnode;
+  ls->flags |= MTEV_LOG_STREAM_RECALCULATE;
+}
+
+void
+mtev_log_stream_removeall_streams(mtev_log_stream_t ls) {
+  struct _mtev_log_stream_outlet_list *tofree;
+  if(ls->outlets == NULL) return;
+  while(NULL != (tofree = ls->outlets)) {
+    ls->outlets = ls->outlets->next;
+    free(tofree);
+  }
   ls->flags |= MTEV_LOG_STREAM_RECALCULATE;
 }
 
@@ -1787,6 +1823,42 @@ mtev_log_list(mtev_log_stream_t *loggers, int nsize) {
     total++;
   }
   return total * out_of_space_flag;
+}
+
+static mtev_json_object *
+mtev_log_stream_to_json_ex(mtev_log_stream_t ls, mtev_boolean terse) {
+  mtev_json_object *doc;
+  doc = MJ_OBJ();
+  MJ_KV(doc, "name", MJ_STR(ls->name));
+  if(!terse) {
+    if(ls->type) MJ_KV(doc, "type", MJ_STR(ls->type));
+    if(ls->path) MJ_KV(doc, "path", MJ_STR(ls->path));
+    MJ_KV(doc, "enabled", MJ_BOOL(IS_ENABLED_ON(ls)));
+    MJ_KV(doc, "debugging", MJ_BOOL(IS_DEBUG_ON(ls)));
+    MJ_KV(doc, "timestamps", MJ_BOOL(IS_TIMESTAMPS_ON(ls)));
+    MJ_KV(doc, "facility", MJ_BOOL(IS_FACILITY_ON(ls)));
+    if(ls->config && mtev_hash_size(ls->config) > 0) {
+      mtev_json_object *config;
+      mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+      MJ_KV(doc, "config", config = MJ_OBJ());
+      while(mtev_hash_adv(ls->config, &iter)) {
+        MJ_KV(config, iter.key.str, MJ_STR(iter.value.str));
+      }
+    }
+  }
+  if(ls->outlets) {
+    mtev_json_object *arr;
+    struct _mtev_log_stream_outlet_list *node;
+    MJ_KV(doc, "outlets", arr = MJ_ARR());
+    for(node = ls->outlets; node; node = node->next) {
+      MJ_ADD(arr, mtev_log_stream_to_json_ex(node->outlet, mtev_true));
+    }
+  }
+  return doc;
+}
+mtev_json_object *
+mtev_log_stream_to_json(mtev_log_stream_t ls) {
+  return mtev_log_stream_to_json_ex(ls, mtev_false);
 }
 
 void
