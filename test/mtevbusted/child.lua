@@ -72,7 +72,7 @@ function start_child(props)
   return proc
 end
 
-function kill_child(child)
+function find_leaks(child)
   local proc, in_e, out_e, err_e =
     mtev.spawn("/bin/mdb", { "mdb", "-p", child:pid() })
   local done = mtev.uuid(), mtev.uuid()
@@ -98,6 +98,12 @@ function kill_child(child)
     local key, ok = mtev.waitfor(done,10)
     while proc:wait() == nil do mtev.sleep(0.01) end
   end
+end
+
+function kill_child(child)
+
+  if TEST_OPTIONS['findleaks'] then find_leaks(child) end
+
   child:kill()
   local waittime = 0
   while true do

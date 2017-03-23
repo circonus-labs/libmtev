@@ -1,5 +1,7 @@
 #!/opt/circonus/bin/luamtev -L+@LUAROCKS_PATH@
 
+TEST_OPTIONS = {}
+
 module(..., package.seeall)
 
 require('mtevbusted/init')
@@ -17,7 +19,12 @@ end
 local add_helper = function(file)
   helpers[#helpers + 1] = file
 end
+local set_option = function(kv)
+  local k, v = kv:match("^([^=]+)=(.*)$")
+  if k ~= nil then TEST_OPTIONS[k]=v else TEST_OPTIONS[kv] = true end
+end
 
+cli_option("X", { help = "Options K(=V)?", value = set_option })
 cli_option("h", { help = "usage", value = false, default = false })
 cli_option("i", { help = "initial helper", value = add_helper })
 cli_option("file", { help = "test file", value = ".", default = "." })
@@ -43,8 +50,6 @@ local mtev = mtev
 local nthreads = mtev.eventer_loop_concurrency()
 local require = require
 local pcall = pcall
-
-jit.off(mtev.timeval.new)
 
 if (os.getenv("LUA_PATH") ~= nil) then
   package.path = package.path .. ";" .. os.getenv("LUA_PATH")
