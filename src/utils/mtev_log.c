@@ -1170,9 +1170,14 @@ static logops_t jlog_logio_ops = {
   jlog_logio_cull
 };
 
+static void
+mtev_log_shutdown() {
+  mtev_log_go_synch();
+}
 void
 mtev_log_init(int debug_on) {
   mtev_log_init_globals();
+  atexit(mtev_log_shutdown);
   mtev_register_logops("file", &posix_logio_ops);
   mtev_register_logops("jlog", &jlog_logio_ops);
   mtev_register_logops("memory", &membuf_logio_ops);
