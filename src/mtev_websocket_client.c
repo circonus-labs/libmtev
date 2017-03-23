@@ -311,10 +311,13 @@ abort_drive:
     goto abort_drive;
   }
 
+  pthread_mutex_lock(&client->lock);
   if (wslay_event_send(client->wslay_ctx) != 0) {
     mtevL(client_deb, "Websocket client's wslay_event_send failed, aborting drive\n");
+    pthread_mutex_unlock(&client->lock);
     goto abort_drive;
   }
+  pthread_mutex_unlock(&client->lock);
 
   return client->wanted_eventer_mask | EVENTER_EXCEPTION | EVENTER_WRITE;
 }
