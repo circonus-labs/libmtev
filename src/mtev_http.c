@@ -1608,7 +1608,6 @@ wslay_send_callback(wslay_event_context_ptr ctx,
   mtev_http_session_ctx *session_ctx = user_data;
   session_ctx->wanted_eventer_mask = 0;
 
-  pthread_mutex_lock(&session_ctx->write_lock);
   if(!session_ctx->conn.e || session_ctx->is_websocket == mtev_false) {
     pthread_mutex_unlock(&session_ctx->write_lock);
     wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
@@ -1628,7 +1627,6 @@ wslay_send_callback(wslay_event_context_ptr ctx,
   }
   mtevL(http_io, "   <- wslay_send_callback, sent (%d)\n", (int)r);
 
-  pthread_mutex_unlock(&session_ctx->write_lock);
   return r;
 }
 
@@ -1776,9 +1774,12 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     }
 
     mtevL(http_debug, "   <- mtev_http_session_drive, websocket send(%d)\n", e->fd);
+    pthread_mutex_lock(&ctx->write_lock);
     if (wslay_event_send(ctx->wslay_ctx) != 0) {
+      pthread_mutex_unlock(&ctx->write_lock);
       goto abort_drive;
     }
+    pthread_mutex_unlock(&ctx->write_lock);
 
     /* this could be a very long lived socket
      * return for now and await another IO event to trigger
