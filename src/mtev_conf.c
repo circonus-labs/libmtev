@@ -2432,6 +2432,7 @@ mtev_conf_log_init(const char *toplevel,
                                      "ancestor-or-self::node()/outlet", &ocnt);
     mtevL(mtev_debug, "Found %d outlets for log '%s'\n", ocnt, name);
 
+    mtev_log_stream_removeall_streams(ls);
     for(o=0; o<ocnt; o++) {
       mtev_log_stream_t outlet;
       char oname[256];

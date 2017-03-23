@@ -20,10 +20,10 @@ extern "C" {
 #define JSON_OBJECT_DEF_HASH_ENTRIES 16
 
 #undef FALSE
-#define FALSE ((boolean)0)
+#define FALSE (0)
 
 #undef TRUE
-#define TRUE ((boolean)1)
+#define TRUE (1)
 
 extern const char *mtev_json_number_chars;
 extern const char *mtev_json_hex_chars;

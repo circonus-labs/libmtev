@@ -7,7 +7,7 @@ end
 
 -- Start and Stop
 
-local function find_src_dir()
+function find_test_dir()
   local lvl = 3
   local dir
   local cwd = mtev.getcwd()
@@ -24,8 +24,8 @@ function start_child(props)
   local env = props.env
   local gatestr = props.boot_match
   local timeout = props.timeout or 5
-  local dir = dir
-  if dir == nil then dir = find_src_dir() end
+  local dir = props.dir
+  if dir == nil then dir = find_test_dir() end
   if env == nil then
    env = { UMEM_DEBUG = "default" }
    for k,v in pairs(ENV) do env[k] = v end
@@ -80,7 +80,7 @@ function find_leaks(child)
     in_e:write("::findleaks -d\n")
     in_e:close()
     err_e:close()
-    local dir = find_src_dir()
+    local dir = find_test_dir()
     mtev.coroutine_spawn(function()
         local out_e = out_e:own()
         local outp = io.open(dir .. "findleaks",  "wb")

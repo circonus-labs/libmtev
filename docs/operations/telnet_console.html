@@ -514,6 +514,64 @@
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="telnet-console-observability">Telnet Console Observability</h1>
+<p>A full telnet console is available for online operations of libmtev applications.
+To enable the telnet console, add something like the following to your configuration.
+Note that &quot;bad things&quot; can be done via the telnet console, so restricting access makes
+good sense.</p>
+<h5 id="listenerconf">listener.conf</h5>
+<pre><code>   &lt;consoles type=&quot;mtev_console&quot;&gt;
+      &lt;listener address=&quot;127.0.0.1&quot; port=&quot;32322&quot;&gt;
+        &lt;config&gt;
+          &lt;line_protocol&gt;telnet&lt;/line_protocol&gt;
+        &lt;/config&gt;
+      &lt;/listener&gt;
+    &lt;/consoles&gt;
+</code></pre><p>The telnet console support tab completion, so navigating and exploring the possibilities
+can be an interactive experience.</p>
+<h2 id="logs">Logs</h2>
+<pre><code class="lang-console">app# show log internal
+[1] Hello world.
+
+app# show log internal 100
+[1] Hello world.
+
+app# show log debug/eventer details
+{ &quot;name&quot;: &quot;debug\/eventer&quot;,
+  &quot;enabled&quot;: false,
+  &quot;debugging&quot;: false,
+  &quot;timestamps&quot;: false,
+  &quot;facility&quot;: false,
+  &quot;outlets&quot;: [ { &quot;name&quot;: &quot;debug&quot;,
+                 &quot;outlets&quot;: [ { &quot;name&quot;: &quot;stderr&quot; } ] } ] }
+
+app# log notice Hello from the console
+logged.
+</code></pre>
+<h3 id="commands">Commands</h3>
+<h5 id="show-log-logname"><code>show log &lt;logname&gt;</code></h5>
+<blockquote>
+<p>Show the last 23 lines of <code>&lt;logname&gt;</code> if it is a &quot;memory&quot; type log.</p>
+</blockquote>
+<h5 id="show-log-logname--lines"><code>show log &lt;logname&gt; [# lines]</code></h5>
+<blockquote>
+<p>Show the last requested number lines of <code>&lt;logname&gt;</code> if it is a &quot;memory&quot; type log.</p>
+</blockquote>
+<h5 id="show-log-logname-details"><code>show log &lt;logname&gt; details</code></h5>
+<blockquote>
+<p>Show the details of the the <code>&lt;logname&gt;</code> log stream, including outlets.</p>
+</blockquote>
+<h5 id="log-to-logname-something-to-log"><code>log to &lt;logname&gt; &lt;something to log&gt;</code></h5>
+<blockquote>
+<p>Cause a <code>&lt;something to log&gt;</code> to be immediately logged to the specified log.</p>
+</blockquote>
+<h5 id="log-disconnect-logname-tgtlogname"><code>log [dis]connect &lt;logname&gt; [tgtlogname]</code></h5>
+<blockquote>
+<p>Connect or disconnect <code>&lt;tgtlogname&gt;</code> as an outlets for <code>&lt;logname&gt;</code>. If <code>&lt;tgtlogname&gt;</code> is omitted, the attached console is used.</p>
+</blockquote>
+<h5 id="no-log-enablefacilitydebugtimestamps-logname"><code>[no] log &lt;enable|facility|debug|timestamps&gt; &lt;logname&gt;</code></h5>
+<blockquote>
+<p>Sets (or unsets) flags on the specified log.</p>
+</blockquote>
 
                                 
                                 </section>

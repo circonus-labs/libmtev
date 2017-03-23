@@ -42,6 +42,7 @@
 #include "mtev_hash.h"
 #include "mtev_hooks.h"
 #include "mtev_time.h"
+#include "mtev_json.h"
 
 #ifdef mtev_log_impl
 typedef struct _mtev_log_stream mtev_log_stream_t;
@@ -107,10 +108,12 @@ API_EXPORT(mtev_log_stream_t)
   mtev_log_stream_new_on_fd(const char *, int, mtev_hash_table *);
 API_EXPORT(mtev_log_stream_t)
   mtev_log_stream_new_on_file(const char *, mtev_hash_table *);
+API_EXPORT(mtev_boolean) mtev_log_stream_exists(const char *);
 API_EXPORT(mtev_log_stream_t) mtev_log_stream_find(const char *);
 API_EXPORT(void) mtev_log_stream_remove(const char *name);
 API_EXPORT(void) mtev_log_stream_add_stream(mtev_log_stream_t ls,
                                             mtev_log_stream_t outlet);
+API_EXPORT(void) mtev_log_stream_removeall_streams(mtev_log_stream_t ls);
 API_EXPORT(mtev_log_stream_t)
                  mtev_log_stream_remove_stream(mtev_log_stream_t ls,
                                                const char *name);
@@ -145,6 +148,9 @@ API_EXPORT(int) mtev_log(mtev_log_stream_t ls, const struct timeval *,
  * Otherwise, the number loggers is returned.
  */
 API_EXPORT(int) mtev_log_list(mtev_log_stream_t *loggers, int nsize);
+
+API_EXPORT(mtev_json_object *)
+  mtev_log_stream_to_json(mtev_log_stream_t ls);
 
 /* finds log_lines most recent log lines and calls f with their
  * sequence number and content.  If f returns non-zero, the iteration
