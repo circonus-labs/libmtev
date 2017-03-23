@@ -18,72 +18,87 @@ function find_test_dir()
   return dir
 end
 
-function start_child(props)
-  local path = props.path
-  local args = props.argv
-  local env = props.env
-  local gatestr = props.boot_match
-  local timeout = props.timeout or 5
-  local dir = props.dir
-  if dir == nil then dir = find_test_dir() end
-  if env == nil then
-   env = { UMEM_DEBUG = "default" }
-   for k,v in pairs(ENV) do env[k] = v end
-   env = env_flatten(env)
+local TestProc = {}
+TestProc.__index = TestProc
+
+function TestProc:new(props)
+  local obj = {}
+  obj.path = props.path
+  obj.args = props.argv
+  obj.env = props.env
+  obj.gatestr = props.boot_match
+  obj.timeout = props.timeout or 5
+  obj.dir = props.dir
+  if obj.dir == nil then obj.dir = find_test_dir() end
+  if obj.env == nil then
+   obj.env = { UMEM_DEBUG = "default" }
+   for k,v in pairs(ENV) do obj.env[k] = v end
+   obj.env = env_flatten(obj.env)
   end
-  if gatestr == nil then gatestr = "eventer_loop%(%) started" end
+  if obj.gatestr == nil then obj.gatestr = "eventer_loop%(%) started" end
+  setmetatable(obj, TestProc)
+  return obj
+end
+  
+function TestProc:start(props)
+  if self.proc ~= nil then error("can't start already started proc") end
   local proc, in_e, out_e, err_e =
-    mtev.spawn(path, args, env)
-  local start, ready = mtev.uuid(), mtev.uuid()
+    mtev.spawn(self.path, self.args, self.env)
+  self.start, self.ready = mtev.uuid(), mtev.uuid()
+  self.proc = proc
   if proc ~= nil then
     in_e:close()
     out_e:close()
     mtev.coroutine_spawn(function()
       local err_e = err_e:own()
       local started = false
-      local outp = io.open(dir .. args[1] .. ".out",  "wb")
+      local outp = io.open(self.dir .. '/' .. self.args[1] .. ".out",  "wb")
       if outp == nil then
-        error("Coult not open: " .. dir .. args[1] .. ".out")
+        error("Could not open: " .. self.dir .. '/' .. self.args[1] .. ".out")
       end
-      mtev.waitfor(start,1)
+      mtev.waitfor(self.start,1)
       while true do
         local line = err_e:read("\n")
         if line == nil then
-          if not started then mtev.notify(ready, false) end
+          if not started then mtev.notify(self.ready, false) end
           break
         end
         outp:write(line);
-        if line:find(gatestr) and not started then
-          mtev.notify(ready, true)
+        if line:find(self.gatestr) and not started then
+          mtev.notify(self.ready, true)
           started = true
         end
       end
       outp:close()
       return nil
     end)
+  else
+   error("cannot start proc")
   end
-  mtev.notify(start, true)
-  local key, ok = mtev.waitfor(ready,timeout)
-  if not ok then
-    proc:kill()
-    proc:wait()
+  mtev.notify(self.start, true)
+  local key, ok = mtev.waitfor(self.ready,self.timeout)
+  if ok then
+    -- started
+  else
+    self.proc:kill()
+    self.proc:wait()
+    self.proc = nil
     return nil
   end
-  return proc
+  return self 
 end
 
-function find_leaks(child)
+function TestProc:find_leaks()
   local proc, in_e, out_e, err_e =
-    mtev.spawn("/bin/mdb", { "mdb", "-p", child:pid() })
-  local done = mtev.uuid(), mtev.uuid()
+    mtev.spawn("/bin/mdb", { "mdb", "-p", self.proc:pid() })
+  local done = mtev.uuid()
   if proc ~= nil and proc:pid() ~= -1 then
     in_e:write("::findleaks -d\n")
     in_e:close()
     err_e:close()
-    local dir = find_test_dir()
     mtev.coroutine_spawn(function()
         local out_e = out_e:own()
-        local outp = io.open(dir .. "findleaks",  "wb")
+        local outp = io.open(self.dir .. "findleaks." .. proc:pid(),  "wb")
         while true do
           local line = out_e:read("\n")
           if line == nil then
@@ -100,22 +115,36 @@ function find_leaks(child)
   end
 end
 
-function kill_child(child)
+function TestProc:kill()
 
-  if TEST_OPTIONS['findleaks'] then find_leaks(child) end
+  if TEST_OPTIONS['findleaks'] then self:ind_leaks() end
 
-  child:kill()
+  self.proc:kill()
   local waittime = 0
   while true do
-    local status = child:wait()
+    local status = self.proc:wait()
     if status ~= nil or waittime > 2 then break end
     waittime = waittime + mtev.sleep(0.01)
   end
   if status == nil then
-    child:kill(9)
+    self.proc:kill(9)
     while true do
-      if child:wait() == nil then break end
+      if self.proc:wait() == nil then break end
       mtev.sleep(0.01)
     end
   end
+end
+
+function TestProc:pid()
+  if self.proc == nil then return -1 end
+  return self.proc:pid()
+end
+
+function start_child(props)
+  local proc = TestProc:new(props)
+  proc:start()
+  return proc
+end
+function kill_child(child)
+  child:kill()
 end
