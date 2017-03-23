@@ -29,6 +29,7 @@ function TestProc:new(props)
   obj.gatestr = props.boot_match
   obj.timeout = props.timeout or 5
   obj.dir = props.dir
+  obj.log_watchers = {}
   if obj.dir == nil then obj.dir = find_test_dir() end
   if obj.env == nil then
    obj.env = { UMEM_DEBUG = "default" }
@@ -39,7 +40,25 @@ function TestProc:new(props)
   setmetatable(obj, TestProc)
   return obj
 end
-  
+
+function TestProc:watchfor(f, many)
+  local key = 'log-' .. mtev.uuid()
+  self.log_watchers[key] = { matches = f, once = not many }
+  return key
+end
+
+function TestProc:watchfor_stop(key)
+  self.log_watchers[key] = nil
+  repeat
+    local rkey = mtev.waitfor(key, 0)
+  until rkey == nil
+end
+
+function TestProc:waitfor(key, timeout)
+  local rkey, line = mtev.waitfor(key, timeout)
+  return line
+end
+
 function TestProc:start(props)
   if self.proc ~= nil then error("can't start already started proc") end
   local proc, in_e, out_e, err_e =
@@ -64,6 +83,14 @@ function TestProc:start(props)
           break
         end
         outp:write(line);
+        for key, watcher in pairs(self.log_watchers) do
+          if watcher.matches(line) then
+            mtev.notify(key, line)
+            if watcher.once then
+              self.log_watchers[key] = nil
+            end
+          end
+        end
         if line:find(self.gatestr) and not started then
           mtev.notify(self.ready, true)
           started = true

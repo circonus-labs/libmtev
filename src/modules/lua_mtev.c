@@ -1669,6 +1669,8 @@ nl_waitfor(lua_State *L) {
     }
     return available_nargs;
   }
+  /* if the timeout is zero and we didn't return already, don't wait */
+  if(p_int == 0.0) return 0;
 
   q->pending_event = e = eventer_alloc();
   e->mask = EVENTER_TIMER;
