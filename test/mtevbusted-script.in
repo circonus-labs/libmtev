@@ -96,7 +96,7 @@ for i, file in ipairs(helpers) do
 end
 
 local testFileLoader = require 'busted.modules.test_file_loader'(busted, { 'lua', 'moonscript' })
-testFileLoader({ '.' }, { '_spec' }, { recursive = true, excludes = {} })
+testFileLoader({ options.file.value }, { '_spec' }, { recursive = true, excludes = {} })
 
 busted.register('setup', 'lazy_setup')
 busted.register('teardown', 'lazy_teardown')
