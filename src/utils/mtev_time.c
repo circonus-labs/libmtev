@@ -634,7 +634,7 @@ mtev_time_start_tsc()
   tdeb_impl = mtev_log_stream_find("debug/time");
 #ifdef __sun
 #ifdef RUNNING_ON_VALGRIND
-  if(!RUNNING_ON_VALGRIND) {
+  if(RUNNING_ON_VALGRIND) {
     mtevL(tdeb, "mtev_time_start_tsc() -> disabled under valgrind.\n");
     return;
   }
