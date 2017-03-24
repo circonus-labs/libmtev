@@ -2445,13 +2445,17 @@ mtev_http_websocket_queue_msg(mtev_http_session_ctx *ctx, int opcode,
                               const unsigned char *msg, size_t msg_len)
 {
 #ifdef HAVE_WSLAY
+  int rv;
   if (ctx->is_websocket == mtev_false || ctx->wslay_ctx == NULL) {
     return mtev_false;
   }
   struct wslay_event_msg msgarg = {
     opcode, msg, msg_len
   };
-  return !wslay_event_queue_msg(ctx->wslay_ctx, &msgarg);
+  pthread_mutex_lock(&ctx->write_lock);
+  rv = !wslay_event_queue_msg(ctx->wslay_ctx, &msgarg);
+  pthread_mutex_unlock(&ctx->write_lock);
+  return rv;
 #else
   return mtev_false;
 #endif
