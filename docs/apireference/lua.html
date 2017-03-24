@@ -645,6 +645,26 @@ does not support table keys with nil values, this
 implementation sets them to nil and thus elides the keys.
 If parsing fails nil is returned followed by the error and
 the byte offset into the string where the error occurred.</p>
+<h4 id="mtevpcre">mtev.pcre</h4>
+<pre><code class="lang-lua">matcher = 
+mtev.pcre(pcre_expression)
+</code></pre>
+<ul>
+<li><code>pcre_expression</code> a perl compatible regular expression</li>
+<li><strong>RETURN</strong> a matcher function <code>rv, m, ... = matcher(subject, options)</code></li>
+</ul>
+<p>A compiled pcre matcher function takes a string subject as the first
+argument and optional options as second argument.</p>
+<p>The matcher will return first whether there was a match (true/false).
+If true, the next return value will be to entire scope of the match
+followed by any capture subexpressions.  If the same subject variable
+is supplied, subsequent calls will act on the remainder of the subject
+past previous matches (allowing for global search emulation).  If the
+subject changes, the match starting location is reset to the beginning.
+The caller can force a reset by calling <code>matcher(nil)</code>.</p>
+<p><code>options</code> is an option table with the optional fields <code>limit</code>
+(<code>PCRE_CONFIG_MATCH_LIMIT</code>) and <code>limit_recurse</code> (<code>PCRE_CONFIG_MATCH_LIMIT_RECURSION</code>).
+See the pcreapi man page for more details.</p>
 <h4 id="mtevprint">mtev.print</h4>
 <pre><code class="lang-lua">len = 
 mtev.<span class="hljs-built_in">print</span>(format, ...)

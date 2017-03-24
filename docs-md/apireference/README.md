@@ -82,7 +82,7 @@
 
 ##### P
 
-[mtev.parsejson](lua.md#mtev.parsejson), [mtev.print](lua.md#mtev.print)
+[mtev.parsejson](lua.md#mtev.parsejson), [mtev.pcre](lua.md#mtev.pcre), [mtev.print](lua.md#mtev.print)
 
 ##### S
 
