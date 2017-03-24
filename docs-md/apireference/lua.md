@@ -170,6 +170,32 @@ If parsing fails nil is returned followed by the error and
 the byte offset into the string where the error occurred.
 
 
+#### mtev.pcre
+
+```lua
+matcher = 
+mtev.pcre(pcre_expression)
+```
+
+  * `pcre_expression` a perl compatible regular expression
+  * **RETURN** a matcher function `rv, m, ... = matcher(subject, options)`
+
+A compiled pcre matcher function takes a string subject as the first
+argument and optional options as second argument.
+
+The matcher will return first whether there was a match (true/false).
+If true, the next return value will be to entire scope of the match
+followed by any capture subexpressions.  If the same subject variable
+is supplied, subsequent calls will act on the remainder of the subject
+past previous matches (allowing for global search emulation).  If the
+subject changes, the match starting location is reset to the beginning.
+The caller can force a reset by calling `matcher(nil)`.
+
+`options` is an option table with the optional fields `limit`
+(`PCRE_CONFIG_MATCH_LIMIT`) and `limit_recurse` (`PCRE_CONFIG_MATCH_LIMIT_RECURSION`).
+See the pcreapi man page for more details.
+ 
+
 #### mtev.print
 
 ```lua

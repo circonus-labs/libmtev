@@ -2628,6 +2628,7 @@ mtev_lua_gunzip_gc(lua_State *L) {
 struct pcre_global_info {
   pcre *re;
   int offset;
+  const char *subject; /* we only use this for pointer equivalency testing */
 };
 static int
 mtev_lua_pcre_match(lua_State *L) {
@@ -2640,8 +2641,14 @@ mtev_lua_pcre_match(lua_State *L) {
   pgi = (struct pcre_global_info *)lua_touserdata(L, lua_upvalueindex(1));
   subject = lua_tolstring(L,1,&inlen);
   if(!subject) {
+    pgi->subject = NULL;
+    pgi->offset = 0;
     lua_pushboolean(L,0);
     return 1;
+  }
+  if(pgi->subject != subject) {
+    pgi->offset = 0;
+    pgi->subject = subject;
   }
   if(lua_gettop(L) > 1) {
     if(!lua_istable(L, 2)) {
@@ -4222,6 +4229,26 @@ static const luaL_Reg mtevlib[] = {
   { "md5", nl_md5 },
   { "sha1_hex", nl_sha1_hex },
   { "sha1", nl_sha1 },
+
+/*! \lua matcher = mtev.pcre(pcre_expression)
+    \param pcre_expression a perl compatible regular expression
+    \return a matcher function `rv, m, ... = matcher(subject, options)`
+
+    A compiled pcre matcher function takes a string subject as the first
+    argument and optional options as second argument.
+
+    The matcher will return first whether there was a match (true/false).
+    If true, the next return value will be to entire scope of the match
+    followed by any capture subexpressions.  If the same subject variable
+    is supplied, subsequent calls will act on the remainder of the subject
+    past previous matches (allowing for global search emulation).  If the
+    subject changes, the match starting location is reset to the beginning.
+    The caller can force a reset by calling `matcher(nil)`.
+
+    `options` is an option table with the optional fields `limit`
+    (`PCRE_CONFIG_MATCH_LIMIT`) and `limit_recurse` (`PCRE_CONFIG_MATCH_LIMIT_RECURSION`).
+    See the pcreapi man page for more details.
+ */
   { "pcre", nl_pcre },
   { "gunzip", nl_gunzip },
   { "conf", nl_conf_get_string },
