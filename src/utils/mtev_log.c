@@ -66,6 +66,9 @@
 #define LIBMTEV_LOG_ENABLED() 0
 #endif
 
+#define BOOT_STDERR_FLAGS MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS
+#define BOOT_DEBUG_FLAGS MTEV_LOG_STREAM_TIMESTAMPS
+
 MTEV_HOOK_IMPL(mtev_log_line,
                (mtev_log_stream_t ls, const struct timeval *whence,
                 const char *timebuf, int timebuflen,
@@ -373,23 +376,27 @@ int mtev_log_global_enabled() {
   return LIBMTEV_LOG_ENABLED();
 }
 
-static void
-mtev_log_dematerialize() {
-  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+static mtev_boolean has_material_output(mtev_log_stream_t ls) {
+  mtev_boolean state = mtev_false;
+  struct _mtev_log_stream_outlet_list *node;
 
-  while(mtev_hash_adv(&mtev_loggers, &iter)) {
-    mtev_log_stream_t ls = iter.value.ptr;
-    ls->deps_materialized = 0;
-    ls->flags &= ~MTEV_LOG_STREAM_RECALCULATE;
-    debug_printf("dematerializing(%s)\n", ls->name);
+  if(!IS_ENABLED_ON(ls)) goto ret;
+  if(ls->ops != NULL) {
+    state = mtev_true;
+    goto ret;
   }
+
+  for(node = ls->outlets; node; node = node->next) {
+    if(has_material_output(node->outlet)) {
+      state = mtev_true;
+      goto ret;
+    }
+  }
+
+ ret:
+  debug_printf("has_material_output(%s) -> %s\n", ls->name, state ? "true" : "false");
+  return state;
 }
-
-#define MATERIALIZE_DEPS(lstream) do { \
-  if(lstream->flags & MTEV_LOG_STREAM_RECALCULATE) mtev_log_dematerialize(); \
-  if(!(lstream)->deps_materialized) materialize_deps(lstream); \
-} while(0)
-
 static void materialize_deps(mtev_log_stream_t ls) {
   struct _mtev_log_stream_outlet_list *node;
   if(ls->deps_materialized) {
@@ -401,18 +408,50 @@ static void materialize_deps(mtev_log_stream_t ls) {
 
   /* we might have children than need these */
   for(node = ls->outlets; node; node = node->next) {
-    MATERIALIZE_DEPS(node->outlet);
-    /* our flags_below should be augments with our outlets flags_below
-       unless we have them in our flags already */
+    materialize_deps(node->outlet);
+    /* our flags_below should be augmented by our outlets flags_below */
     ls->flags_below |= (~(ls->flags) & MTEV_LOG_STREAM_FEATURES) &
                        node->outlet->flags_below;
     debug_printf("materialize(%s) |= (%s) %x\n", ls->name,
                  node->outlet->name,
                  node->outlet->flags_below & MTEV_LOG_STREAM_FEATURES);
   }
+
+  if(has_material_output(ls)) ls->flags_below |= MTEV_LOG_STREAM_ENABLED;
+  else ls->flags_below &= ~MTEV_LOG_STREAM_ENABLED;
+
   debug_printf("materialize(%s) -> %x\n", ls->name, ls->flags_below);
   ls->deps_materialized = 1;
 }
+
+static void
+mtev_log_dematerialize() {
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    mtev_log_stream_t ls = iter.value.ptr;
+    ls->deps_materialized = 0;
+    debug_printf("dematerializing(%s)\n", ls->name);
+  }
+}
+
+static void
+mtev_log_materialize() {
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    mtev_log_stream_t ls = iter.value.ptr;
+    debug_printf("materializing(%s)\n", ls->name);
+    materialize_deps(ls);
+  }
+}
+
+static void
+mtev_log_rematerialize() {
+  mtev_log_dematerialize();
+  mtev_log_materialize();
+}
+
 
 typedef struct asynch_log_line {
   char *buf_dynamic;
@@ -1185,11 +1224,12 @@ mtev_log_init(int debug_on) {
   mtev_register_logops("jlog", &jlog_logio_ops);
   mtev_register_logops("memory", &membuf_logio_ops);
   mtev_stderr = mtev_log_stream_new_on_fd("stderr", 2, NULL);
-  mtev_stderr->flags |= MTEV_LOG_STREAM_TIMESTAMPS;
-  mtev_stderr->flags |= MTEV_LOG_STREAM_FACILITY;
   mtev_error = mtev_log_stream_new("error", NULL, NULL, NULL, NULL);
+  mtev_log_stream_add_stream(mtev_error, mtev_stderr);
   mtev_debug = mtev_log_stream_new("debug", NULL, NULL, NULL, NULL);
+  mtev_log_stream_add_stream(mtev_debug, mtev_stderr);
   mtev_notice = mtev_log_stream_new("notice", NULL, NULL, NULL, NULL);
+  mtev_log_stream_add_stream(mtev_notice, mtev_stderr);
   mtev_debug->flags = (mtev_debug->flags & ~MTEV_LOG_STREAM_DEBUG) |
                       (debug_on ? MTEV_LOG_STREAM_DEBUG : 0);
   if(debug_on) mtev_debug->flags |= MTEV_LOG_STREAM_ENABLED;
@@ -1219,7 +1259,8 @@ mtev_log_stream_get_flags(mtev_log_stream_t ls) {
 int
 mtev_log_stream_set_flags(mtev_log_stream_t ls, int new_flags) {
   int previous_flags = ls->flags;
-  ls->flags = new_flags | MTEV_LOG_STREAM_RECALCULATE;
+  ls->flags = new_flags;
+  if(previous_flags != new_flags) mtev_log_rematerialize();
   return previous_flags;
 }
 
@@ -1383,6 +1424,7 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
   }
   /* This is for things that don't open on paths */
   if(ctx) ls->op_ctx = ctx;
+  mtev_log_rematerialize();
   return ls;
 
  freebail:
@@ -1420,12 +1462,18 @@ mtev_log_stream_find(const char *name) {
     return (mtev_log_stream_t)vls;
   }
   newls = mtev_log_stream_new_internal(name, NULL, NULL, NULL, NULL, NULL);
-  newls->flags = 0;
+
+  /* Special case debug and stderr to match their boot conditions */
+  if(!strcmp(name, "debug")) newls->flags = BOOT_DEBUG_FLAGS;
+  else if(!strcmp(name, "stderr")) newls->flags = BOOT_STDERR_FLAGS;
+
   if(NULL != (last_sep = strrchr(name, '/'))) {
     char *parent = mtev__strndup(name, (int)(last_sep - name));
     mtev_log_stream_add_stream(newls, mtev_log_stream_find(parent));
     free(parent);
   }
+
+  mtev_log_rematerialize();
   return newls;
 }
 
@@ -1444,11 +1492,17 @@ mtev_log_stream_remove(const char *name) {
 void
 mtev_log_stream_add_stream(mtev_log_stream_t ls, mtev_log_stream_t outlet) {
   struct _mtev_log_stream_outlet_list *newnode;
+  for(newnode = ls->outlets; newnode; newnode = newnode->next) {
+    if(!strcmp(newnode->outlet->name, outlet->name)) {
+      mtevAssert(outlet == newnode->outlet);
+      return;
+    }
+  }
   newnode = calloc(1, sizeof(*newnode));
   newnode->outlet = outlet;
   newnode->next = ls->outlets;
   ls->outlets = newnode;
-  ls->flags |= MTEV_LOG_STREAM_RECALCULATE;
+  mtev_log_rematerialize();
 }
 
 void
@@ -1459,7 +1513,7 @@ mtev_log_stream_removeall_streams(mtev_log_stream_t ls) {
     ls->outlets = ls->outlets->next;
     free(tofree);
   }
-  ls->flags |= MTEV_LOG_STREAM_RECALCULATE;
+  mtev_log_rematerialize();
 }
 
 mtev_log_stream_t
@@ -1472,7 +1526,7 @@ mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name) {
     ls->outlets = node->next;
     outlet = node->outlet;
     free(node);
-    ls->flags |= MTEV_LOG_STREAM_RECALCULATE;
+    mtev_log_rematerialize();
     return outlet;
   }
   for(node = ls->outlets; node->next; node = node->next) {
@@ -1485,7 +1539,7 @@ mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name) {
       /* shed */
       free(tmp);
       /* return */
-      ls->flags |= MTEV_LOG_STREAM_RECALCULATE;
+      mtev_log_rematerialize();
       return outlet;
     }
   }
@@ -1639,8 +1693,10 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
     int srv = 0;
     debug_printf(" %s -> %s\n", ls->name, node->outlet->name);
     bitor->flags = ls->flags;
-    srv = mtev_log_line(node->outlet, bitor, whence, timebuf,
-                        timebuflen, debugbuf, debugbuflen, buffer, len);
+    if(IS_ENABLED_ON(node->outlet) && IS_ENABLED_BELOW(node->outlet)) {
+      srv = mtev_log_line(node->outlet, bitor, whence, timebuf,
+                          timebuflen, debugbuf, debugbuflen, buffer, len);
+    }
     if(srv) rv = srv;
   }
   return rv;
@@ -1669,11 +1725,10 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
   } \
 } while(0)
 
-  if(IS_ENABLED_ON(ls) || LIBMTEV_LOG_ENABLED()) {
+  if((IS_ENABLED_ON(ls) && IS_ENABLED_BELOW(ls)) || LIBMTEV_LOG_ENABLED()) {
     int len;
     char tbuf[48], dbuf[80];
     int tbuflen = 0, dbuflen = 0;
-    MATERIALIZE_DEPS(ls);
     if(IS_TIMESTAMPS_BELOW(ls)) {
       struct tm _tm, *tm;
       char tempbuf[32];
@@ -1834,6 +1889,7 @@ mtev_log_stream_to_json_ex(mtev_log_stream_t ls, mtev_boolean terse) {
     if(ls->type) MJ_KV(doc, "type", MJ_STR(ls->type));
     if(ls->path) MJ_KV(doc, "path", MJ_STR(ls->path));
     MJ_KV(doc, "enabled", MJ_BOOL(IS_ENABLED_ON(ls)));
+    MJ_KV(doc, "enabled_below", MJ_BOOL(IS_ENABLED_BELOW(ls)));
     MJ_KV(doc, "debugging", MJ_BOOL(IS_DEBUG_ON(ls)));
     MJ_KV(doc, "timestamps", MJ_BOOL(IS_TIMESTAMPS_ON(ls)));
     MJ_KV(doc, "facility", MJ_BOOL(IS_FACILITY_ON(ls)));
@@ -1878,24 +1934,24 @@ asynch_log_ctx boot_stderr_actx = {
 
 pthread_rwlock_t boot_stderr_ls_lock = PTHREAD_RWLOCK_INITIALIZER;
 struct _mtev_log_stream boot_stderr_ls = {
-  .flags = MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS,
+  .flags = BOOT_STDERR_FLAGS,
   .name = "stderr",
   .ops = &posix_logio_ops,
   .op_ctx = &boot_stderr_actx,
   .deps_materialized = 1,
   .lock = &boot_stderr_ls_lock,
-  .flags_below = MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS
+  .flags_below = BOOT_STDERR_FLAGS
 };
 
 pthread_rwlock_t boot_debug_ls_lock = PTHREAD_RWLOCK_INITIALIZER;
 struct _mtev_log_stream boot_debug_ls = {
-  .flags = MTEV_LOG_STREAM_TIMESTAMPS,
+  .flags = BOOT_DEBUG_FLAGS,
   .name = "debug",
   .ops = &posix_logio_ops,
   .op_ctx = &boot_stderr_actx,
   .deps_materialized = 1,
   .lock = &boot_debug_ls_lock,
-  .flags_below = MTEV_LOG_STREAM_TIMESTAMPS
+  .flags_below = BOOT_DEBUG_FLAGS
 };
 
 mtev_log_stream_t mtev_stderr = &boot_stderr_ls;
