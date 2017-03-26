@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>fq · GitBook</title>
+        <title>amqp · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.2">
@@ -53,10 +53,10 @@
     <link rel="shortcut icon" href="../../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="lua_general.html" />
+    <link rel="next" href="fq.html" />
     
     
-    <link rel="prev" href="amqp.html" />
+    <link rel="prev" href="../modules.html" />
     
 
     </head>
@@ -206,7 +206,7 @@
             <ul class="articles">
                 
     
-        <li class="chapter " data-level="1.2.7.1" data-path="amqp.html">
+        <li class="chapter active" data-level="1.2.7.1" data-path="amqp.html">
             
                 <a href="amqp.html">
             
@@ -219,7 +219,7 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.2.7.2" data-path="fq.html">
+        <li class="chapter " data-level="1.2.7.2" data-path="fq.html">
             
                 <a href="fq.html">
             
@@ -511,7 +511,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="../.." >fq</a>
+        <a href="../.." >amqp</a>
     </h1>
 </div>
 
@@ -526,36 +526,36 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="fq">fq</h1>
-<p>The fq module consumed and publishes message via fq.</p>
+                                <h1 id="amqp">amqp</h1>
+<p>The amqp module consumes and publishes message via AMQP (RabbitMQ).</p>
 <ul>
 <li><strong>loader</strong>: C</li>
-<li><strong>image</strong>: fq.so</li>
+<li><strong>image</strong>: amqp.so</li>
 </ul>
 <h3 id="module-configuration">Module Configuration</h3>
 <pre><code>No module-level options available for this module.
 </code></pre><h3 id="examples">Examples</h3>
-<h4 id="loading-the-fq-module">Loading the fq module.</h4>
+<h4 id="loading-the-amqp-module">Loading the amqp module.</h4>
 <pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">root</span>&gt;</span>
         <span class="hljs-tag">&lt;<span class="hljs-name">modules</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">module</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;fq&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;fq&quot;</span>/&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">module</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;amqp&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;amqp&quot;</span>/&gt;</span>
         <span class="hljs-tag">&lt;/<span class="hljs-name">modules</span>&gt;</span>
         <span class="hljs-tag">&lt;<span class="hljs-name">network</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">mq</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;fq&quot;</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">mq</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;amqp&quot;</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">host</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-name">host</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">port</span>&gt;</span>8765<span class="hljs-tag">&lt;/<span class="hljs-name">port</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">user</span>&gt;</span>user<span class="hljs-tag">&lt;/<span class="hljs-name">user</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">pass</span>&gt;</span>pass<span class="hljs-tag">&lt;/<span class="hljs-name">pass</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">exchange</span>&gt;</span>exchange<span class="hljs-tag">&lt;/<span class="hljs-name">exchange</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">program</span>&gt;</span>prefix:&quot;in.&quot;<span class="hljs-tag">&lt;/<span class="hljs-name">program</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">routingkey</span>&gt;</span>foo.*<span class="hljs-tag">&lt;/<span class="hljs-name">routingkey</span>&gt;</span>
           <span class="hljs-tag">&lt;/<span class="hljs-name">mq</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">mq</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;fq&quot;</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">mq</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;amqp&quot;</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">host</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-name">host</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">port</span>&gt;</span>8765<span class="hljs-tag">&lt;/<span class="hljs-name">port</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">user</span>&gt;</span>user<span class="hljs-tag">&lt;/<span class="hljs-name">user</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">pass</span>&gt;</span>pass<span class="hljs-tag">&lt;/<span class="hljs-name">pass</span>&gt;</span>
             <span class="hljs-tag">&lt;<span class="hljs-name">exchange</span>&gt;</span>exchange<span class="hljs-tag">&lt;/<span class="hljs-name">exchange</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">program</span>&gt;</span>prefix:&quot;in2.&quot;<span class="hljs-tag">&lt;/<span class="hljs-name">program</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">routingkey</span>&gt;</span>bob.#<span class="hljs-tag">&lt;/<span class="hljs-name">routingkey</span>&gt;</span>
           <span class="hljs-tag">&lt;/<span class="hljs-name">mq</span>&gt;</span>
         <span class="hljs-tag">&lt;/<span class="hljs-name">network</span>&gt;</span>
       <span class="hljs-tag">&lt;/<span class="hljs-name">root</span>&gt;</span>
@@ -587,12 +587,12 @@
 
             
                 
-                <a href="amqp.html" class="navigation navigation-prev " aria-label="Previous page: amqp">
+                <a href="../modules.html" class="navigation navigation-prev " aria-label="Previous page: Modules">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="lua_general.html" class="navigation navigation-next " aria-label="Next page: lua_general">
+                <a href="fq.html" class="navigation navigation-next " aria-label="Next page: fq">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -603,7 +603,7 @@
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"fq","level":"1.2.7.2","depth":3,"next":{"title":"lua_general","level":"1.2.7.3","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},"previous":{"title":"amqp","level":"1.2.7.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/fq.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"../..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"amqp","level":"1.2.7.1","depth":3,"next":{"title":"fq","level":"1.2.7.2","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},"previous":{"title":"Modules","level":"1.2.7","depth":2,"path":"config/modules.md","ref":"config/modules.md","articles":[{"title":"amqp","level":"1.2.7.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},{"title":"fq","level":"1.2.7.2","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},{"title":"lua_general","level":"1.2.7.3","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},{"title":"lua_web","level":"1.2.7.4","depth":3,"path":"config/modules/lua_web.md","ref":"config/modules/lua_web.md","articles":[]},{"title":"zipkin_fq","level":"1.2.7.5","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]}]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/amqp.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"../..","book":{"language":""}});
         });
     </script>
 </div>

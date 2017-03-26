@@ -10,6 +10,7 @@
     1. [Logging](config/logging.md)
     1. [Listeners](config/listeners.md)
     1. [Modules](config/modules.md)
+      1. [amqp](config/modules/amqp.md)
       1. [fq](config/modules/fq.md)
       1. [lua_general](config/modules/lua_general.md)
       1. [lua_web](config/modules/lua_web.md)
