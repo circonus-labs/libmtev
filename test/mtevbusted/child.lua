@@ -25,7 +25,7 @@ function TestProc:new(props)
   local obj = {}
   for k,v in pairs(props) do obj[k] = v end
   obj.timeout = obj.timeout or 5
-  if obj.gatestr == nil then obj.gatestr = "eventer_loop%(%) started" end
+  if obj.boot_match == nil then obj.boot_match = "eventer_loop%(%) started" end
   if obj.dir == nil then obj.dir = find_test_dir() end
   if obj.env == nil then
    obj.env = { UMEM_DEBUG = "default" }
@@ -82,6 +82,7 @@ function TestProc:start(props)
           break
         end
         outp:write(line);
+        outp:flush()
         for key, watcher in pairs(self.log_watchers) do
           if watcher.matches(line) then
             mtev.notify(key, line)
@@ -90,7 +91,7 @@ function TestProc:start(props)
             end
           end
         end
-        if line:find(self.gatestr) and not started then
+        if line:find(self.boot_match) and not started then
           mtev.notify(self.ready, true)
           started = true
         end
