@@ -212,6 +212,54 @@ set to "error".  It is also aliased into the global `print` symbol such that
 one cannot accidentally call the print builtin.
 
 
+#### mtev.process:kill
+
+>Kill a spawned process.
+
+```lua
+success, errno = 
+mtev.process:kill(signal)
+```
+
+
+  * `signal` the integer signal to deliver, if omitted `SIGTERM` is used.
+  * **RETURN** true on success or false and an errno on failure.
+
+
+#### mtev.process:pid
+
+>Return the process id of a spawned process.
+
+```lua
+pid = 
+mtev.process:pid()
+```
+
+
+  * **RETURN** The process id.
+
+
+#### mtev.process:wait
+
+>Attempt to wait for a spawned process to terminate.
+
+```lua
+status, errno = 
+mtev.process:wait(timeout)
+```
+
+
+  * `timeout` an option time in second to wait for exit (0 in unspecified).
+  * **RETURN** The process status and an errno if applicable.
+
+Wait for a process (using `waitpid` with the `WNOHANG` option) to terminate
+and return its exit status.  If the process has not exited and the timeout
+has elapsed, the call will return with a nil value for status.  The lua
+subsystem exists within a complex system that might handle process in different
+ways, so it does not rely on `SIGCHLD` signal delivery and instead polls the
+system using `waitpid` every 20ms.
+
+
 ### S
 
 #### mtev.sleep
@@ -223,6 +271,25 @@ mtev.sleep(duration_s)
 
   * `duration_s` the number of sections to sleep
   * **RETURN** the number of sections slept.
+
+
+#### mtev.spawn
+
+>Spawn a subprocess.
+
+```lua
+mtev.process = 
+mtev.spawn(path, argv, env)
+```
+
+
+  * `path` the path to the executable to spawn
+  * `argv` an array of arguments (first argument is the process name)
+  * `env` an optional array of "K=V" strings.
+  * **RETURN** an object with the mtev.process metatable set.
+ 
+This function spawns a new subprocess running the binary specified as
+the first argument.
 
 
 ### T
