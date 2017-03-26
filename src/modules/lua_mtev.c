@@ -3761,6 +3761,10 @@ nl_cluster_get_self(lua_State *L) {
   return 1;
 }
 
+/*! \lua pid = mtev.process:pid()
+    \brief Return the process id of a spawned process.
+    \return The process id.
+*/
 static int
 mtev_lua_process_pid(lua_State *L) {
   struct spawn_info *spawn_info;
@@ -3772,6 +3776,11 @@ mtev_lua_process_pid(lua_State *L) {
   return 1;
 }
 
+/*! \lua success, errno = mtev.process:kill(signal)
+    \brief Kill a spawned process.
+    \param signal the integer signal to deliver, if omitted `SIGTERM` is used.
+    \return true on success or false and an errno on failure.
+*/
 static int
 mtev_lua_process_kill(lua_State *L) {
   struct spawn_info *spawn_info;
@@ -3797,28 +3806,102 @@ mtev_lua_process_kill(lua_State *L) {
   return 2;
 }
 
+static int mtev_lua_process_wait_ex(struct nl_slcl *, mtev_boolean);
+
 static int
-mtev_lua_process_wait(lua_State *L) {
+mtev_lua_process_wait_wakeup(eventer_t e, int mask, void *vcl, struct timeval *now) {
+  mtev_lua_resume_info_t *ci;
+  struct nl_slcl *cl = vcl;
+  int rv;
+
+  ci = mtev_lua_get_resume_info(cl->L);
+  mtevAssert(ci);
+  mtev_lua_deregister_event(ci, e, 0);
+
+  if(compare_timeval(cl->deadline, *now) < 0) cl->deadline.tv_sec = 0;
+  rv = mtev_lua_process_wait_ex(cl, mtev_false);
+  free(cl);
+  if(rv >= 0) ci->lmc->resume(ci, rv);
+  return 0;
+}
+static int
+mtev_lua_process_wait_ex(struct nl_slcl *cl, mtev_boolean needs_yield) {
   int rv, status;
-  struct spawn_info *spawn_info;
+  mtev_lua_resume_info_t *ci;
+  lua_State *L = cl->L;
   /* the first arg is implicitly self (it's a method) */
-  spawn_info = lua_touserdata(L, lua_upvalueindex(1));
-  if(spawn_info != lua_touserdata(L, 1))
-    luaL_error(L, "must be called as method");
-  if(spawn_info->pid == -1) {
+  if(cl->spawn_info->pid == -1) {
     lua_pushnil(L);
     lua_pushinteger(L, EINVAL);
     return 1;
   }
-  while((rv = waitpid(spawn_info->pid, &status, 0)) == -1 && errno == EINTR);
-  if(rv == spawn_info->pid) {
+  while((rv = waitpid(cl->spawn_info->pid, &status, WNOHANG)) == -1 && errno == EINTR);
+  if(rv == cl->spawn_info->pid) {
     lua_pushinteger(L, status);
     return 1;
   }
+  if(rv == 0 && cl->deadline.tv_sec != 0) {
+    struct nl_slcl *newcl;
+    newcl = calloc(1, sizeof(*newcl));
+    newcl->L = L;
+    newcl->free = nl_extended_free;
+    newcl->spawn_info = cl->spawn_info;
+    newcl->deadline = cl->deadline;
+    eventer_t e = eventer_in_s_us(mtev_lua_process_wait_wakeup, newcl, 0, 20000);
+
+    ci = mtev_lua_get_resume_info(L);
+    mtevAssert(ci);
+    mtev_lua_register_event(ci, e);
+    eventer_add(e);
+    if(needs_yield) {
+     return mtev_lua_yield(ci, 0);
+    }
+    return -1;
+  }
+  if(rv == 0) errno = ETIME;
   lua_pushnil(L);
   lua_pushinteger(L, errno);
   return 2;
 }
+
+/*! \lua status, errno = mtev.process:wait(timeout)
+    \brief Attempt to wait for a spawned process to terminate.
+    \param timeout an option time in second to wait for exit (0 in unspecified).
+    \return The process status and an errno if applicable.
+
+    Wait for a process (using `waitpid` with the `WNOHANG` option) to terminate
+    and return its exit status.  If the process has not exited and the timeout
+    has elapsed, the call will return with a nil value for status.  The lua
+    subsystem exists within a complex system that might handle process in different
+    ways, so it does not rely on `SIGCHLD` signal delivery and instead polls the
+    system using `waitpid` every 20ms.
+*/
+static int
+mtev_lua_process_wait(lua_State *L) {
+  struct spawn_info *spawn_info;
+  struct nl_slcl dummy = { };
+  /* the first arg is implicitly self (it's a method) */
+  spawn_info = lua_touserdata(L, lua_upvalueindex(1));
+  if(spawn_info != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+  double timeout = lua_tonumber(L, 2);
+  if(timeout <= 0) timeout = 0;
+  else {
+    mtev_gettimeofday(&dummy.deadline, NULL);
+    dummy.deadline.tv_sec += (int)timeout;
+    dummy.deadline.tv_usec += (int)((timeout - (double)(int)timeout) * 1000000.0);
+    if(dummy.deadline.tv_usec > 1000000) {
+      dummy.deadline.tv_usec -= 1000000;
+      dummy.deadline.tv_sec += 1;
+    }
+  }
+
+  dummy.L = L;
+  dummy.spawn_info = spawn_info;
+
+  return mtev_lua_process_wait_ex(&dummy, mtev_true);
+}
+
 
 static int
 mtev_lua_process_index_func(lua_State *L) {
@@ -4293,6 +4376,16 @@ static const luaL_Reg mtevlib[] = {
     the `tostring` method to convert it to a simple string.
 */
 
+/*! \lua mtev.process = mtev.spawn(path, argv, env)
+    \brief Spawn a subprocess.
+    \param path the path to the executable to spawn
+    \param argv an array of arguments (first argument is the process name)
+    \param env an optional array of "K=V" strings.
+    \return an object with the mtev.process metatable set.
+ 
+    This function spawns a new subprocess running the binary specified as
+    the first argument.
+*/
   { "spawn", nl_spawn },
   { "thread_self", nl_thread_self },
   { "eventer_loop_concurrency", nl_eventer_loop_concurrency },

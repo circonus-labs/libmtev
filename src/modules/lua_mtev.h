@@ -147,7 +147,7 @@ typedef struct lua_timeout_callback_ref {
 struct nl_slcl {
   void (*free)(void *);
   int send_size;
-  struct timeval start;
+  struct timeval start, deadline;
   char *inbuff;
   int   inbuff_allocd;
   int   inbuff_len;
@@ -166,6 +166,7 @@ struct nl_slcl {
     struct sockaddr_in sin4;
     struct sockaddr_in6 sin6;
   } address;
+  struct spawn_info *spawn_info;
 
   lua_State *L;
 };

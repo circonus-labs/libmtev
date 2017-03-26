@@ -677,6 +677,44 @@ mtev.<span class="hljs-built_in">print</span>(format, ...)
 <p>This function is effectively the <code>mtev.log</code> function with the first argument
 set to &quot;error&quot;.  It is also aliased into the global <code>print</code> symbol such that
 one cannot accidentally call the print builtin.</p>
+<h4 id="mtevprocesskill">mtev.process:kill</h4>
+<blockquote>
+<p>Kill a spawned process.</p>
+</blockquote>
+<pre><code class="lang-lua">success, errno = 
+mtev.process:kill(signal)
+</code></pre>
+<ul>
+<li><code>signal</code> the integer signal to deliver, if omitted <code>SIGTERM</code> is used.</li>
+<li><strong>RETURN</strong> true on success or false and an errno on failure.</li>
+</ul>
+<h4 id="mtevprocesspid">mtev.process:pid</h4>
+<blockquote>
+<p>Return the process id of a spawned process.</p>
+</blockquote>
+<pre><code class="lang-lua">pid = 
+mtev.process:pid()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> The process id.</li>
+</ul>
+<h4 id="mtevprocesswait">mtev.process:wait</h4>
+<blockquote>
+<p>Attempt to wait for a spawned process to terminate.</p>
+</blockquote>
+<pre><code class="lang-lua">status, errno = 
+mtev.process:wait(timeout)
+</code></pre>
+<ul>
+<li><code>timeout</code> an option time in second to wait for exit (0 in unspecified).</li>
+<li><strong>RETURN</strong> The process status and an errno if applicable.</li>
+</ul>
+<p>Wait for a process (using <code>waitpid</code> with the <code>WNOHANG</code> option) to terminate
+and return its exit status.  If the process has not exited and the timeout
+has elapsed, the call will return with a nil value for status.  The lua
+subsystem exists within a complex system that might handle process in different
+ways, so it does not rely on <code>SIGCHLD</code> signal delivery and instead polls the
+system using <code>waitpid</code> every 20ms.</p>
 <h3 id="s">S</h3>
 <h4 id="mtevsleep">mtev.sleep</h4>
 <pre><code class="lang-lua">slept = 
@@ -686,6 +724,21 @@ mtev.sleep(duration_s)
 <li><code>duration_s</code> the number of sections to sleep</li>
 <li><strong>RETURN</strong> the number of sections slept.</li>
 </ul>
+<h4 id="mtevspawn">mtev.spawn</h4>
+<blockquote>
+<p>Spawn a subprocess.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.process = 
+mtev.spawn(path, argv, env)
+</code></pre>
+<ul>
+<li><code>path</code> the path to the executable to spawn</li>
+<li><code>argv</code> an array of arguments (first argument is the process name)</li>
+<li><code>env</code> an optional array of &quot;K=V&quot; strings.</li>
+<li><strong>RETURN</strong> an object with the mtev.process metatable set.</li>
+</ul>
+<p>This function spawns a new subprocess running the binary specified as
+the first argument.</p>
 <h3 id="t">T</h3>
 <h4 id="mtevtojson">mtev.tojson</h4>
 <blockquote>

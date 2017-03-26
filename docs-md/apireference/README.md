@@ -82,11 +82,11 @@
 
 ##### P
 
-[mtev.parsejson](lua.md#mtev.parsejson), [mtev.pcre](lua.md#mtev.pcre), [mtev.print](lua.md#mtev.print)
+[mtev.parsejson](lua.md#mtev.parsejson), [mtev.pcre](lua.md#mtev.pcre), [mtev.print](lua.md#mtev.print), [mtev.process:kill](lua.md#mtev.process:kill), [mtev.process:pid](lua.md#mtev.process:pid), [mtev.process:wait](lua.md#mtev.process:wait)
 
 ##### S
 
-[mtev.sleep](lua.md#mtev.sleep)
+[mtev.sleep](lua.md#mtev.sleep), [mtev.spawn](lua.md#mtev.spawn)
 
 ##### T
 
