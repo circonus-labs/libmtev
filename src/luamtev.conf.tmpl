@@ -1,5 +1,11 @@
 #define CONFIG_TMPL "<?xml version=\"1.0\" encoding=\"utf8\" standalone=\"yes\"?>\n" \
 "<cli>\n" \
+"  <eventer>\n" \
+"    <config>\n" \
+"      <ssl_dhparam1024_file/>\n" \
+"      <ssl_dhparam2048_file/>\n" \
+"    </config>\n" \
+"  </eventer>\n" \
 "  <modules directory=\"%s\">\n" \
 "    <generic image=\"lua_mtev\" name=\"lua_general\">\n" \
 "      <config>\n" \
