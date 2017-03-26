@@ -427,6 +427,7 @@ static void materialize_deps(mtev_log_stream_t ls) {
 static void
 mtev_log_dematerialize() {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  mtev_log_init_globals();
 
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     mtev_log_stream_t ls = iter.value.ptr;
@@ -438,6 +439,7 @@ mtev_log_dematerialize() {
 static void
 mtev_log_materialize() {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  mtev_log_init_globals();
 
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     mtev_log_stream_t ls = iter.value.ptr;
@@ -1919,8 +1921,12 @@ mtev_log_stream_to_json(mtev_log_stream_t ls) {
 
 void
 mtev_log_init_globals() {
-  mtev_hash_init_locks(&mtev_loggers, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
-  mtev_hash_init_locks(&mtev_logops, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+  static int initialized = 0;
+  if(!initialized) {
+    initialized = 1;
+    mtev_hash_init_locks(&mtev_loggers, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+    mtev_hash_init_locks(&mtev_logops, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+  }
 }
 
 struct posix_op_ctx boot_stderr_posix_op_ctx = { .fd = 2 };
