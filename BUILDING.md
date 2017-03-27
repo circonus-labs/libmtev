@@ -16,6 +16,7 @@
  * pcre
  * udns
  * wslay (optional, for websockets support)
+ * librabbitmq
 
 ## Platforms
 
@@ -80,7 +81,8 @@ Set up a [development environment](https://omnios.omniti.com/wiki.php/DevEnv) fi
         field/ck field/fq platform/library/hwloc platform/library/jlog \
         platform/library/libcircllhist platform/library/libcircmetrics \
         platform/library/liblz4 platform/library/udns platform/library/uuid \
-        platform/library/wslay platform/runtime/luajit
+        platform/library/wslay platform/runtime/luajit \
+        platform/library/librabbitmq-c
 
     git clone git@github.com:circonus-labs/libmtev.git
     cd libmtev
