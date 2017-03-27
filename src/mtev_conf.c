@@ -158,6 +158,10 @@ void mtev_conf_request_write() {
   __coalesce_write = 1;
 }
 
+uint32_t mtev_conf_config_gen() {
+  return __config_gen;
+}
+
 void mtev_conf_mark_changed() {
   /* increment the change counter -- in case anyone cares */
   __config_gen++;
@@ -284,7 +288,7 @@ mtev_conf_watch_config_and_journal(eventer_t e, int mask, void *closure,
   struct recurrent_journaler *rj = closure;
   eventer_t newe;
 
-  if(__config_coalesce == 1)
+  if(rj && rj->journal_config && __config_coalesce == 1)
     rj->journal_config(rj->jc_closure);
   if(__config_coalesce > 0)
     __config_coalesce--;
@@ -308,7 +312,7 @@ mtev_conf_watch_config_and_journal(eventer_t e, int mask, void *closure,
 void
 mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c) {
   static int callbacknamed = 0;
-  struct recurrent_journaler *rj;
+  struct recurrent_journaler *rj = NULL;
   struct timeval __now;
 
   if(!callbacknamed) {
@@ -316,9 +320,11 @@ mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c) {
     eventer_name_callback("mtev_conf_watch_config_and_journal",
                           mtev_conf_watch_config_and_journal);
   }
-  rj = calloc(1, sizeof(*rj));
-  rj->journal_config = f;
-  rj->jc_closure = c;
+  if(f) {
+    rj = calloc(1, sizeof(*rj));
+    rj->journal_config = f;
+    rj->jc_closure = c;
+  }
   mtev_gettimeofday(&__now, NULL);
   mtev_conf_watch_config_and_journal(NULL, EVENTER_TIMER, rj, &__now);
 }
@@ -1926,13 +1932,13 @@ struct config_line_vstr {
   int raw_len;
   int len;
   int allocd;
-  enum { CONFIG_RAW = 0, CONFIG_COMPRESSED, CONFIG_B64 } target, encoded;
+  mtev_conf_enc_type_t target, encoded;
 };
 
 static int
 mtev_config_log_write_xml(void *vstr, const char *buffer, int len) {
   struct config_line_vstr *clv = vstr;
-  mtevAssert(clv->encoded == CONFIG_RAW);
+  mtevAssert(clv->encoded == CONFIG_XML);
   if(!clv->buff) {
     clv->allocd = 8192;
     clv->buff = malloc(clv->allocd);
@@ -1964,7 +1970,7 @@ mtev_config_log_close_xml(void *vstr) {
     return 0;
   }
   clv->raw_len = clv->len;
-  mtevAssert(clv->encoded == CONFIG_RAW);
+  mtevAssert(clv->encoded == CONFIG_XML);
   if(clv->encoded == clv->target) return 0;
 
   /* Compress */
@@ -2029,7 +2035,6 @@ mtev_conf_write_terminal(mtev_console_closure_t ncct,
 
   mtev_conf_kansas_city_shuffle_undo(config_include_nodes, config_include_cnt);
   xmlSaveFormatFileTo(out, master_config, "utf8", 1);
-  write_out_include_files(config_include_nodes, config_include_cnt);
   mtev_conf_kansas_city_shuffle_redo(config_include_nodes, config_include_cnt);
   return 0;
 }
@@ -2121,16 +2126,15 @@ mtev_conf_xml_in_mem(size_t *len) {
   char *rv;
 
   clv = calloc(1, sizeof(*clv));
-  clv->target = CONFIG_RAW;
+  clv->target = CONFIG_XML;
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
   out = xmlOutputBufferCreateIO(mtev_config_log_write_xml,
                                 mtev_config_log_close_xml,
                                 clv, enc);
   mtev_conf_kansas_city_shuffle_undo(config_include_nodes, config_include_cnt);
   xmlSaveFormatFileTo(out, master_config, "utf8", 1);
-  write_out_include_files(config_include_nodes, config_include_cnt);
   mtev_conf_kansas_city_shuffle_redo(config_include_nodes, config_include_cnt);
-  if(clv->encoded != CONFIG_RAW) {
+  if(clv->encoded != CONFIG_XML) {
     mtevL(mtev_error, "Error logging configuration\n");
     if(clv->buff) free(clv->buff);
     free(clv);
@@ -2142,58 +2146,39 @@ mtev_conf_xml_in_mem(size_t *len) {
   return rv;
 }
 
-int
-mtev_conf_write_log() {
-  static uint32_t last_write_gen = 0;
-  static mtev_log_stream_t config_log = NULL;
-  struct timeval __now;
+char *
+mtev_conf_enc_in_mem(size_t *raw_len, size_t *len, mtev_conf_enc_type_t target, mtev_boolean inline_includes) {
+  struct config_line_vstr *clv;
   xmlOutputBufferPtr out;
   xmlCharEncodingHandlerPtr enc;
-  struct config_line_vstr *clv;
-  mtev_boolean notify_only = mtev_false;
-  const char *v;
-  SETUP_LOG(config, return -1);
-  if(!N_L_S_ON(config_log)) return 0;
-
-  v = mtev_log_stream_get_property(config_log, "notify_only");
-  if(v && (!strcmp(v, "on") || !strcmp(v, "true"))) notify_only = mtev_true;
-
-  /* We know we haven't changed */
-  if(last_write_gen == __config_gen) return 0;
-  mtev_gettimeofday(&__now, NULL);
-
-  if(notify_only) {
-    mtevL(config_log, "n\t%lu.%03lu\t%d\t\n",
-          (unsigned long int)__now.tv_sec,
-          (unsigned long int)__now.tv_usec / 1000UL, 0);
-    last_write_gen = __config_gen;
-    return 0;
-  }
+  char *rv;
 
   clv = calloc(1, sizeof(*clv));
-  clv->target = CONFIG_B64;
+  clv->target = target;
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
   out = xmlOutputBufferCreateIO(mtev_config_log_write_xml,
                                 mtev_config_log_close_xml,
                                 clv, enc);
-  mtev_conf_kansas_city_shuffle_undo(config_include_nodes, config_include_cnt);
+  if(!inline_includes) mtev_conf_kansas_city_shuffle_undo(config_include_nodes, config_include_cnt);
   xmlSaveFormatFileTo(out, master_config, "utf8", 1);
-  write_out_include_files(config_include_nodes, config_include_cnt);
-  mtev_conf_kansas_city_shuffle_redo(config_include_nodes, config_include_cnt);
-  if(clv->encoded != CONFIG_B64) {
+  if(!inline_includes) mtev_conf_kansas_city_shuffle_redo(config_include_nodes, config_include_cnt);
+  if(clv->encoded != target) {
     mtevL(mtev_error, "Error logging configuration\n");
     if(clv->buff) free(clv->buff);
     free(clv);
-    return -1;
+    return NULL;
   }
-  mtevL(config_log, "n\t%lu.%03lu\t%d\t%.*s\n",
-        (unsigned long int)__now.tv_sec,
-        (unsigned long int)__now.tv_usec / 1000UL, clv->raw_len,
-        clv->len, clv->buff);
-  free(clv->buff);
+  rv = clv->buff;
+  *raw_len = clv->raw_len;
+  *len = clv->len;
   free(clv);
-  last_write_gen = __config_gen;
-  return 0;
+  return rv;
+}
+
+int
+mtev_conf_write_log() {
+  /* This is deprecated */
+  return -1;
 }
 
 struct log_rotate_crutch {

@@ -90,6 +90,8 @@ typedef struct mtev_conf_description_t {
 API_EXPORT(void) mtev_conf_coalesce_changes(uint32_t seconds);
 /* Start the watchdog */
 API_EXPORT(void) mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c);
+/* expose the current "generation" of the config */
+API_EXPORT(uint32_t) mtev_conf_config_gen();
 
 /* marks the config as changed.. if you manipulate the XML tree in any way
  * you must call this function to "let the system know."  This is used
@@ -230,6 +232,10 @@ API_EXPORT(void)
 
 API_EXPORT(char *)
   mtev_conf_xml_in_mem(size_t *len);
+
+typedef enum { CONFIG_XML = 0, CONFIG_COMPRESSED, CONFIG_B64 } mtev_conf_enc_type_t;
+API_EXPORT(char *)
+  mtev_conf_enc_in_mem(size_t *raw_len, size_t *len, mtev_conf_enc_type_t target, mtev_boolean inline_includes);
 
 API_EXPORT(void)
   mtev_conf_xml_errors_to_debug();
