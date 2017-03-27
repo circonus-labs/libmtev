@@ -211,8 +211,12 @@ write_out_include_files(include_node_t *include_nodes, int include_node_cnt) {
 
     sprintf(filename, "%s.tmp", include_nodes[i].path);
     fd = open(filename, O_CREAT|O_TRUNC|O_WRONLY, mode);
+    if (fd < 0) {
+      mtevL(mtev_error, "failed to open file %s: %s\n", filename, strerror(errno));
+      continue;
+    }
     if(fchown(fd, uid, gid) < 0) {
-      mtevL(mtev_error, "failed to fchown file: %s\n", strerror(errno));
+      mtevL(mtev_error, "failed to fchown file %s: %s\n", filename, strerror(errno));
       close(fd);
       continue;
     }
