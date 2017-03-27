@@ -114,6 +114,7 @@ child_main() {
   }
   eventer_init();
   mtev_console_init(APPNAME);
+  mtev_console_conf_init();
   mtev_http_rest_init();
   mtev_capabilities_listener_init();
   mtev_events_rest_init();
@@ -123,9 +124,8 @@ child_main() {
   mtev_dso_init();
   mtev_dso_post_init();
 
-  mtev_conf_write_log();
   mtev_conf_coalesce_changes(10); /* 10 seconds of no changes before we write */
-  mtev_conf_watch_and_journal_watchdog(mtev_conf_write_log, NULL);
+  mtev_conf_watch_and_journal_watchdog(NULL, NULL);
 
   mtev_http_rest_register_auth(
     "GET", "/", "^(.*)$", mtev_rest_simple_file_handler,
