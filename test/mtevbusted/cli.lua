@@ -13,6 +13,17 @@ function nextarg()
   return arg
 end
 
+--- Argument parser
+--
+-- Command line arguments have the form: -<flag> <value>
+--
+-- Arguments are defined by: cli_option(flag, detail)
+-- Where detail is a table with arguments:
+-- - detail.help = <doc string>
+-- - detail.value or type:
+--   - function -- to be called with argument value
+--   - boolean  -- inverted if argument is present
+-- - detail.default -- default value if argument is not given
 function parsecli()
   nextarg() -- ignore the command
   local current_opt = nil
@@ -35,7 +46,7 @@ function parsecli()
         options[current_opt].value = val;
       end
     else
-      break
+      usage("no such flag: " .. opt)
     end
   end
   return options
