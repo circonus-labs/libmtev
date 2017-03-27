@@ -1,4 +1,4 @@
-#!/opt/circonus/bin/luamtev -L+@LUAROCKS_PATH@
+#!@bindir@/luamtev -L+@LUAROCKS_PATH@
 
 TEST_OPTIONS = {}
 

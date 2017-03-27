@@ -764,6 +764,16 @@ AC_DEFINE_UNQUOTED(MTEV_MODULES_DIR, "${fullpath}/mtev", [modules dir])
 MODULES_DIR=${fullpath}/mtev
 AC_SUBST(MODULES_DIR)
 
+AC_MSG_CHECKING([Resolving bindir path...])
+fullpath=$bindir
+while test "x$temppath" != "x$fullpath" ; do
+	temppath=$fullpath
+	fullpath=`eval echo ${fullpath}`
+done
+fullpath=`echo $fullpath | sed "s~NONE~$SUBPREFIX~"`
+bindir=${fullpath}
+AC_MSG_RESULT([$fullpath])
+
 AC_MSG_CHECKING([Resolving lib path...])
 fullpath=$libdir
 while test "x$temppath" != "x$fullpath" ; do
