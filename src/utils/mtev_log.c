@@ -1226,12 +1226,14 @@ mtev_log_init(int debug_on) {
   mtev_register_logops("jlog", &jlog_logio_ops);
   mtev_register_logops("memory", &membuf_logio_ops);
   mtev_stderr = mtev_log_stream_new_on_fd("stderr", 2, NULL);
+  mtev_stderr->flags = BOOT_STDERR_FLAGS;
+  mtev_stderr->flags_below = BOOT_STDERR_FLAGS;
   mtev_error = mtev_log_stream_new("error", NULL, NULL, NULL, NULL);
   mtev_log_stream_add_stream(mtev_error, mtev_stderr);
   mtev_debug = mtev_log_stream_new("debug", NULL, NULL, NULL, NULL);
   mtev_log_stream_add_stream(mtev_debug, mtev_stderr);
   mtev_notice = mtev_log_stream_new("notice", NULL, NULL, NULL, NULL);
-  mtev_log_stream_add_stream(mtev_notice, mtev_stderr);
+  mtev_log_stream_add_stream(mtev_notice, mtev_error);
   mtev_debug->flags = (mtev_debug->flags & ~MTEV_LOG_STREAM_DEBUG) |
                       (debug_on ? MTEV_LOG_STREAM_DEBUG : 0);
   if(debug_on) mtev_debug->flags |= MTEV_LOG_STREAM_ENABLED;

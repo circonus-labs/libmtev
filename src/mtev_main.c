@@ -247,9 +247,6 @@ mtev_main(const char *appname,
 
   /* First initialize logging, so we can log errors */
   mtev_log_init(debug);
-  mtev_log_stream_add_stream(mtev_debug, mtev_stderr);
-  mtev_log_stream_add_stream(mtev_error, mtev_stderr);
-  mtev_log_stream_add_stream(mtev_notice, mtev_error);
 
   /* Next load the configs */
   mtev_conf_use_namespace(appname);
