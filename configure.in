@@ -87,6 +87,7 @@ CPPFLAGS="$CPPFLAGS -D_REENTRANT "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
 DOTSO=.so
 LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR).$(SEMVER_MINOR)'
+MAPFLAGS=""
 
 case $host in
 *-*-darwin*)
@@ -124,6 +125,7 @@ case $host in
 	AC_MSG_CHECKING([32 or 64 bit Solaris assembly])
 	if test -n "`echo $CFLAGS | grep m64`" ; then
 		DTRACEFLAGS=-64
+		MAPFLAGS="-Wl,-M -Wl,map64bit"
 		if test -n "`isalist | grep sparc`"; then
 			AC_MSG_RESULT([sparc 64])
 			ATOMIC_OBJS="mtev_atomic_sol_sparcv9.lo"
@@ -151,6 +153,7 @@ case $host in
 	else
 		if test -n "`echo $CFLAGS | grep m64`" ; then
 			DTRACEFLAGS=-64
+			MAPFLAGS="-Wl,-M -Wl,map64bit"
 		fi
 		PICFLAGS="-fPIC"
 		MODULELD="$CC -shared"
@@ -226,6 +229,7 @@ AS_IF([test "x$DTRACE_ENABLED" = "x1"],
 AC_SUBST(DTRACEOBJ)
 AC_SUBST(DTRACEHDR)
 AC_SUBST(DTRACEFLAGS)
+AC_SUBST(MAPFLAGS)
 AC_SUBST(CLINKFLAGS)
 AC_SUBST(SHLD)
 AC_SUBST(RLDFLAG)
