@@ -1,0 +1,17 @@
+#!/bin/bash
+
+PID=$1
+if [[ -z "$PID" ]]; then
+  echo "$0 <pid>"
+  exit
+fi
+
+/usr/sbin/dtrace -q -n '
+int st[int];
+
+libmtev*:::http-request-start{st[arg1] = timestamp;}
+libmtev*:::http-r*{printf("%d %x/%d %s %s\n", timestamp - st[arg1], arg1, arg0, probename, copyinstr((uintptr_t)((userland pid`mtev_http_session_ctx *)args[1])->req.uri_str))}
+libmtev*:::http-response-finish{st[arg1] = 0;}
+libmtev*:::http-close{st[arg1] = 0;}
+' -p $PID
+

@@ -1,3 +1,4 @@
+
 provider libmtev {
   probe log (char *, char *, int, char *);
 
@@ -21,4 +22,18 @@ provider libmtev {
   probe reverse__connect__ssl (int, char *, char *);
   probe reverse__connect__ssl__success (int, char *, char *);
   probe reverse__connect__ssl__failed (int, char *, char *, char *, int);
+
+  probe http__accept(int, struct mtev_http_session_ctx *);
+  probe http__request__start(int, struct mtev_http_session_ctx *);
+  probe http__request__finish(int, struct mtev_http_session_ctx *);
+  probe http__response__start(int, struct mtev_http_session_ctx *);
+  probe http__response__finish(int, struct mtev_http_session_ctx *);
+  probe http__log(int, struct mtev_http_session_ctx *, char *);
+  probe http__close(int, struct mtev_http_session_ctx *);
 };
+
+#pragma D attributes Evolving/Evolving/ISA provider libmtev provider
+#pragma D attributes Private/Private/Unknown provider libmtev module
+#pragma D attributes Private/Private/Unknown provider libmtev function
+#pragma D attributes Private/Private/ISA provider libmtev name
+#pragma D attributes Evolving/Evolving/ISA provider libmtev args

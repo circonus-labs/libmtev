@@ -40,7 +40,7 @@
 #include "mtev_thread.h"
 #include "mtev_watchdog.h"
 #include "mtev_stats.h"
-#include "libmtev_dtrace_probes.h"
+#include "libmtev_dtrace.h"
 #include <pthread.h>
 #include <errno.h>
 #include <netinet/in.h>

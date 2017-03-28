@@ -36,7 +36,7 @@
 #include "mtev_skiplist.h"
 #include "mtev_memory.h"
 #include "mtev_log.h"
-#include "libmtev_dtrace_probes.h"
+#include "libmtev_dtrace.h"
 
 #include <errno.h>
 #include <stdio.h>
