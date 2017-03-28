@@ -28,7 +28,7 @@ app# show log internal
 app# show log internal 100
 [1] Hello world.
 
-app# show log debug/eventer details
+app# log details debug/eventer
 { "name": "debug\/eventer",
   "enabled": false,
   "debugging": false,
@@ -43,15 +43,11 @@ logged.
 
 ### Commands
 
-##### `show log <logname>`
-
-> Show the last 23 lines of `<logname>` if it is a "memory" type log.
-
 ##### `show log <logname> [# lines]`
 
-> Show the last requested number lines of `<logname>` if it is a "memory" type log.
+> Show the last requested number lines (23 if omitted) of `<logname>` if it is a "memory" type log.
 
-##### `show log <logname> details`
+##### `log details <logname>`
 
 > Show the details of the the `<logname>` log stream, including outlets.
 

@@ -328,12 +328,6 @@ mtev_console_log_lines(mtev_console_closure_t ncct, int argc, char **argv,
   }
   ls = mtev_log_stream_find(argv[0]);
   if(argc == 2) {
-    if(!strcmp(argv[1], "details")) {
-      mtev_json_object *doc = mtev_log_stream_to_json(ls);
-      nc_printf(ncct, "%s\n", mtev_json_object_to_json_string(doc));
-      mtev_json_object_put(doc);
-      return 0;
-    }
     log_lines = atoi(argv[1]);
   }
   if(!ls || !mtev_log_stream_get_type(ls) ||
@@ -366,6 +360,21 @@ mtev_console_log_output(mtev_console_closure_t ncct, int argc, char **argv,
   mtevL(ls, "%s\n", buff);
   nc_printf(ncct, "logged.\n", len);
   free(buff);
+  return 0;
+}
+
+static int
+mtev_console_log_details(mtev_console_closure_t ncct, int argc, char **argv,
+                         mtev_console_state_t *dstate, void *unused) {
+  mtev_log_stream_t ls;
+  if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
+    nc_printf(ncct, "log <logname> thing to log\n");
+    return 0;
+  }
+  ls = mtev_log_stream_find(argv[0]);
+  mtev_json_object *doc = mtev_log_stream_to_json(ls);
+  nc_printf(ncct, "%s\n", mtev_json_object_to_json_string(doc));
+  mtev_json_object_put(doc);
   return 0;
 }
 
@@ -500,6 +509,10 @@ cmd_info_t console_command_log_lines = {
 
 cmd_info_t console_command_log_to = {
   "to", mtev_console_log_output, mtev_console_memory_log_opts, NULL, NULL
+};
+
+cmd_info_t console_command_log_details = {
+  "details", mtev_console_log_details, mtev_console_memory_log_opts, NULL, NULL
 };
 
 cmd_info_t console_command_log_enable = {
@@ -934,6 +947,7 @@ mtev_console_state_initial() {
     mtev_console_state_add_cmd(_top_level_state, &console_command_shutdown);
     mtev_console_state_add_cmd(_top_level_state, &console_command_restart);
     mtev_console_state_add_cmd(log_state, &console_command_log_to);
+    mtev_console_state_add_cmd(log_state, &console_command_log_details);
     mtev_console_state_add_cmd(log_state, &console_command_log_connect);
     mtev_console_state_add_cmd(log_state, &console_command_log_disconnect);
     mtev_console_state_add_cmd(log_state, &console_command_log_enable);
