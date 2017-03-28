@@ -548,7 +548,7 @@ can be an interactive experience.</p>
 app# show log internal 100
 [1] Hello world.
 
-app# show log debug/eventer details
+app# log details debug/eventer
 { &quot;name&quot;: &quot;debug\/eventer&quot;,
   &quot;enabled&quot;: false,
   &quot;debugging&quot;: false,
@@ -561,15 +561,11 @@ app# log notice Hello from the console
 logged.
 </code></pre>
 <h3 id="commands">Commands</h3>
-<h5 id="show-log-logname"><code>show log &lt;logname&gt;</code></h5>
-<blockquote>
-<p>Show the last 23 lines of <code>&lt;logname&gt;</code> if it is a &quot;memory&quot; type log.</p>
-</blockquote>
 <h5 id="show-log-logname--lines"><code>show log &lt;logname&gt; [# lines]</code></h5>
 <blockquote>
-<p>Show the last requested number lines of <code>&lt;logname&gt;</code> if it is a &quot;memory&quot; type log.</p>
+<p>Show the last requested number lines (23 if omitted) of <code>&lt;logname&gt;</code> if it is a &quot;memory&quot; type log.</p>
 </blockquote>
-<h5 id="show-log-logname-details"><code>show log &lt;logname&gt; details</code></h5>
+<h5 id="log-details-logname"><code>log details &lt;logname&gt;</code></h5>
 <blockquote>
 <p>Show the details of the the <code>&lt;logname&gt;</code> log stream, including outlets.</p>
 </blockquote>
