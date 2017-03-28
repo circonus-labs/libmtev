@@ -51,7 +51,7 @@ function API:new(host, port)
   return obj
 end
 function API:headers(headers)
-  self.headers = header or {}
+  self.headers = headers or {}
   return self
 end
 function API:HTTP(method, uri, payload, _pp)
