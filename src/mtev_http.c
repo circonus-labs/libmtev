@@ -39,6 +39,7 @@
 #include "mtev_zipkin.h"
 #include "mtev_conf.h"
 #include "mtev_compress.h"
+#include "libmtev_dtrace.h"
 
 #include <errno.h>
 #include <ctype.h>
@@ -663,6 +664,29 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
   sub_timeval(end_time, ctx->req.start_time, &diff);
   time_ms = diff.tv_sec * 1000 + (double)diff.tv_usec / 1000.0;
   mtev_convert_sockaddr_to_buff(ip, sizeof(ip), &ctx->ac->remote.remote_addr);
+  if(LIBMTEV_HTTP_LOG_ENABLED()) {
+    char logline_static[4096], *logline_dynamic = NULL;
+    char *logline = logline_static;
+    int logline_len = sizeof(logline_static);
+    int len;
+    while(1) {
+      len = snprintf(logline_static, logline_len,
+        "%s - - [%s] \"%s %s%s%s %s\" %d %llu %.3f\n",
+        ip, timestr,
+        ctx->req.method_str, ctx->req.uri_str,
+        ctx->req.orig_qs ? "?" : "", ctx->req.orig_qs ? ctx->req.orig_qs : "",
+        ctx->req.protocol_str,
+        ctx->res.status_code,
+        (long long unsigned)ctx->res.bytes_written,
+        time_ms);
+      if(len <= logline_len) break;
+      free(logline_dynamic);
+      logline = logline_dynamic = malloc(len+1);
+      logline_len = len+1;
+    }
+    LIBMTEV_HTTP_LOG(ctx->conn.e ? ctx->conn.e->fd : -1, ctx, logline);
+    free(logline_dynamic);
+  }
   mtevL(http_access, "%s - - [%s] \"%s %s%s%s %s\" %d %llu %.3f\n",
         ip, timestr,
         ctx->req.method_str, ctx->req.uri_str,
@@ -737,11 +761,12 @@ _http_perform_write(mtev_http_session_ctx *ctx, int *mask) {
   goto choose_bucket;
 }
 static mtev_boolean
-mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
+mtev_http_request_finalize_headers(mtev_http_session_ctx *ctx, mtev_boolean *err) {
   int start;
   void *vval;
   const char *mstr, *last_name = NULL;
   struct bchain *b;
+  mtev_http_request *req = &ctx->req;
 
   if(req->state != MTEV_HTTP_REQ_HEADERS) return mtev_false;
   if(!req->current_input) req->current_input = req->first_input;
@@ -846,6 +871,7 @@ mtev_http_request_finalize_headers(mtev_http_request *req, mtev_boolean *err) {
         req->protocol = _protocol_enum(req->protocol_str);
         req->opts |= MTEV_HTTP_CLOSE;
         if(req->protocol == MTEV_HTTP11) req->opts |= MTEV_HTTP_CHUNKED;
+        LIBMTEV_HTTP_REQUEST_START(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
       }
       else { /* request headers */
         const char *name, *value;
@@ -948,17 +974,18 @@ mtev_http_process_querystring(mtev_http_request *req) {
   }
 }
 static mtev_boolean
-mtev_http_request_finalize_payload(mtev_http_request *req, mtev_boolean *err) {
-  req->complete = mtev_true;
+mtev_http_request_finalize_payload(mtev_http_session_ctx *ctx, mtev_boolean *err) {
+  ctx->req.complete = mtev_true;
   return mtev_true;
 }
 static mtev_boolean
-mtev_http_request_finalize(mtev_http_request *req, mtev_boolean *err) {
+mtev_http_request_finalize(mtev_http_session_ctx *ctx, mtev_boolean *err) {
+  mtev_http_request *req = &ctx->req;
   if(req->state == MTEV_HTTP_REQ_HEADERS)
-    if(mtev_http_request_finalize_headers(req, err)) return mtev_true;
+    if(mtev_http_request_finalize_headers(ctx, err)) return mtev_true;
   if(req->state == MTEV_HTTP_REQ_EXPECT) return mtev_false;
   if(req->state == MTEV_HTTP_REQ_PAYLOAD)
-    if(mtev_http_request_finalize_payload(req, err)) return mtev_true;
+    if(mtev_http_request_finalize_payload(ctx, err)) return mtev_true;
   return mtev_false;
 }
 static int
@@ -975,7 +1002,7 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
   if(ctx->req.complete == mtev_true) return EVENTER_EXCEPTION;
 
   /* We could have a complete request in the tail of a previous request */
-  rv = mtev_http_request_finalize(&ctx->req, &err);
+  rv = mtev_http_request_finalize(ctx, &err);
   if(rv == mtev_true) return EVENTER_WRITE | EVENTER_EXCEPTION;
   if(err == mtev_true) goto full_error;
 
@@ -1010,7 +1037,7 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
     if(len == -1 && errno == EAGAIN) return mask;
     if(len <= 0) goto full_error;
     if(len > 0) in->size += len;
-    rv = mtev_http_request_finalize(&ctx->req, &err);
+    rv = mtev_http_request_finalize(ctx, &err);
     /* walk the bchain and set the compression */
     if (rv == mtev_true) {
       struct bchain *x = ctx->req.first_input;
@@ -1102,6 +1129,7 @@ mtev_http_response_release(mtev_http_session_ctx *ctx) {
 void
 mtev_http_ctx_session_release(mtev_http_session_ctx *ctx) {
   if(mtev_atomic_dec32(&ctx->ref_cnt) == 0) {
+    LIBMTEV_HTTP_CLOSE(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
     mtev_http_request_release(ctx);
     if(ctx->req.user_data) RELEASE_BCHAIN(ctx->req.user_data);
     if(ctx->req.first_input) RELEASE_BCHAIN(ctx->req.first_input);
@@ -1752,6 +1780,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     if (ctx->is_websocket == mtev_false) {
       begin_span(ctx);
     }
+    LIBMTEV_HTTP_REQUEST_FINISH(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
   }
 
   if (ctx->is_websocket == mtev_true) {
@@ -1819,6 +1848,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
   }
   if(ctx->res.complete == mtev_true) {
     end_span(ctx);
+    LIBMTEV_HTTP_RESPONSE_FINISH(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
     mtev_http_log_request(ctx);
     mtev_http_request_release(ctx);
     mtev_http_response_release(ctx);
@@ -1870,6 +1900,7 @@ mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http_websock
   ctx->did_handshake = mtev_false;
   ctx->wslay_ctx = NULL;
 #endif
+  LIBMTEV_HTTP_ACCEPT(e ? e->fd : -1, ctx);
   return ctx;
 }
 
@@ -2329,6 +2360,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
   if(ctx->res.output_started == mtev_false) {
     _http_construct_leader(ctx);
     ctx->res.output_started = mtev_true;
+    LIBMTEV_HTTP_RESPONSE_START(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
     mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_SEND, false);
   }
   /* encode output to output_raw */

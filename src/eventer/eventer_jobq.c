@@ -37,7 +37,7 @@
 #include "mtev_thread.h"
 #include "eventer/eventer.h"
 #include "eventer/eventer_impl_private.h"
-#include "libmtev_dtrace_probes.h"
+#include "libmtev_dtrace.h"
 #include <errno.h>
 #include <setjmp.h>
 #include <signal.h>

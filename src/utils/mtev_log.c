@@ -60,7 +60,7 @@
 #include <jlog.h>
 #include <jlog_private.h>
 #ifdef DTRACE_ENABLED
-#include "libmtev_dtrace_probes.h"
+#include "libmtev_dtrace.h"
 #else
 #define LIBMTEV_LOG(a,b,c,d)
 #define LIBMTEV_LOG_ENABLED() 0

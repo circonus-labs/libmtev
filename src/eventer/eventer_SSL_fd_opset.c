@@ -36,7 +36,7 @@
 #include "mtev_log.h"
 #include "eventer/eventer_SSL_fd_opset.h"
 #include "eventer/OETS_asn1_helper.h"
-#include "libmtev_dtrace_probes.h"
+#include "libmtev_dtrace.h"
 
 #include <sys/socket.h>
 #include <unistd.h>

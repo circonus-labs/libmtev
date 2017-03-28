@@ -52,7 +52,7 @@
 #include "mtev_watchdog.h"
 #include "mtev_reverse_socket.h"
 #include "mtev_json.h"
-#include "libmtev_dtrace_probes.h"
+#include "libmtev_dtrace.h"
 
 #include <errno.h>
 #include <poll.h>
