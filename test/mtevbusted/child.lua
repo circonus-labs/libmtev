@@ -84,6 +84,7 @@ function TestProc:start(props)
         outp:write(line);
         outp:flush()
         for key, watcher in pairs(self.log_watchers) do
+          watcher.matches(nil) -- reset the PCRE (if it is a PCRE)
           if watcher.matches(line) then
             mtev.notify(key, line)
             if watcher.once then
