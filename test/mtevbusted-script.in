@@ -23,6 +23,9 @@ local set_option = function(kv)
   local k, v = kv:match("^([^=]+)=(.*)$")
   if k ~= nil then TEST_OPTIONS[k]=v else TEST_OPTIONS[kv] = true end
 end
+local disable_log = function(outlet)
+  mtev.enable_log(outlet, false)
+end
 
 cli_option("X", { help = "Options K(=V)?", value = set_option })
 cli_option("h", { help = "usage", value = false, default = false })
@@ -34,6 +37,8 @@ cli_option("filter", { help = "only run test names matching the Lua pattern", de
 cli_option("filter-out", { help = "do not run test names matching the Lua pattern, takes precedence over --filter", default = nil })
 cli_option("list", { help = "list all available tests", value = false, default = false })
 cli_option("bail", { help = "stop after first failure", value = false, default = false })
+cli_option("l",  { help = "enable mtev log stream", value = mtev.enable_log })
+cli_option("L",  { help = "disable mtev log stream", value = disable_log })
 local options = parsecli()
 if options.h.value then usage() end
 
