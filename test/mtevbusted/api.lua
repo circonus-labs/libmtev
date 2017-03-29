@@ -94,9 +94,11 @@ function HTTP(method, host, port, uri, headers, payload, _pp)
 
   headers.Host = host
   headers.Accept = 'application/json'
+  mtev.log("debug/http", "%s\n", mtev.tojson({method, uri, headers, payload}):tostring())
   local rv = client:do_request(method, uri, headers, payload, "1.1")
   client:get_response(100000000)
   local output = table.concat(output_buf)
+  mtev.log("debug/http/out", "%s\n\n", output)
   return client.code, _pp(output), output
 end
 
