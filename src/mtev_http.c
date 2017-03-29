@@ -685,6 +685,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
       logline_len = len+1;
     }
     LIBMTEV_HTTP_LOG(ctx->conn.e ? ctx->conn.e->fd : -1, ctx, logline);
+    (void)logline; /* the above line might be CPP'd away */
     free(logline_dynamic);
   }
   mtevL(http_access, "%s - - [%s] \"%s %s%s%s %s\" %d %llu %.3f\n",
