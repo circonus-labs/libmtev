@@ -150,7 +150,8 @@ MTEV_UTILS_OBJS=utils/mtev_b32.hlo utils/mtev_b64.hlo \
     utils/mtev_str.lo utils/mtev_watchdog.lo utils/mtev_zipkin.lo \
     utils/mtev_memory.lo utils/mtev_cht.hlo utils/mtev_uuid_parse.hlo \
     utils/mtev_perftimer.lo utils/mtev_hyperloglog.hlo \
-    utils/mtev_stacktrace.lo $(ATOMIC_OBJS)
+    utils/mtev_stacktrace.lo $(ATOMIC_OBJS) \
+    utils/android-demangle/cp-demangle.lo
 
 LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
     mtev_console.lo mtev_console_state.lo mtev_console_telnet.lo \
@@ -167,6 +168,9 @@ FINAL_LIBMTEV_OBJS=$(FINAL1_LIBMTEV_OBJS:%.hlo=libmtev-objs/%.hlo)
 mtev_time_fast.so:	utils/mtev_time_fast_preload.c
 	@echo " - making $@ preload"
 	$(Q)$(SHLD) $(SHCFLAGS) $(CPPFLAGS) -o $@ utils/mtev_time_fast_preload.c
+
+utils/android-demangle/cp-demangle.lo:	utils/android-demangle/cp-demangle.c
+	$(MAKE) -C utils/android-demangle cp-demangle.lo
 
 libmtev-objs/%.lo:	%.lo
 	$(Q)mkdir -p "`dirname $@`"

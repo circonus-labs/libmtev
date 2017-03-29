@@ -579,7 +579,8 @@ utils/mtev_stacktrace.o utils/mtev_stacktrace.lo: utils/mtev_stacktrace.c mtev_d
   ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
   ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
   ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
-  ../src/json-lib/mtev_json_tokener.h utils/mtev_stacktrace.h
+  ../src/json-lib/mtev_json_tokener.h utils/mtev_stacktrace.h \
+  utils/android-demangle/demangle.h utils/android-demangle/cp-demangle.h
 
 utils/mtev_str.o utils/mtev_str.lo: utils/mtev_str.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h \
