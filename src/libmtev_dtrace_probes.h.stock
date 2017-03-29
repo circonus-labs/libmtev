@@ -103,6 +103,69 @@ extern "C" {
 #define	LIBMTEV_EVENTER_WRITE_RETURN_ENABLED() \
 	__dtraceenabled_libmtev___eventer__write__return(0)
 #endif
+#define	LIBMTEV_HTTP_ACCEPT(arg0, arg1) \
+	__dtrace_libmtev___http__accept(arg0, arg1)
+#ifndef	__sparc
+#define	LIBMTEV_HTTP_ACCEPT_ENABLED() \
+	__dtraceenabled_libmtev___http__accept()
+#else
+#define	LIBMTEV_HTTP_ACCEPT_ENABLED() \
+	__dtraceenabled_libmtev___http__accept(0)
+#endif
+#define	LIBMTEV_HTTP_CLOSE(arg0, arg1) \
+	__dtrace_libmtev___http__close(arg0, arg1)
+#ifndef	__sparc
+#define	LIBMTEV_HTTP_CLOSE_ENABLED() \
+	__dtraceenabled_libmtev___http__close()
+#else
+#define	LIBMTEV_HTTP_CLOSE_ENABLED() \
+	__dtraceenabled_libmtev___http__close(0)
+#endif
+#define	LIBMTEV_HTTP_LOG(arg0, arg1, arg2) \
+	__dtrace_libmtev___http__log(arg0, arg1, arg2)
+#ifndef	__sparc
+#define	LIBMTEV_HTTP_LOG_ENABLED() \
+	__dtraceenabled_libmtev___http__log()
+#else
+#define	LIBMTEV_HTTP_LOG_ENABLED() \
+	__dtraceenabled_libmtev___http__log(0)
+#endif
+#define	LIBMTEV_HTTP_REQUEST_FINISH(arg0, arg1) \
+	__dtrace_libmtev___http__request__finish(arg0, arg1)
+#ifndef	__sparc
+#define	LIBMTEV_HTTP_REQUEST_FINISH_ENABLED() \
+	__dtraceenabled_libmtev___http__request__finish()
+#else
+#define	LIBMTEV_HTTP_REQUEST_FINISH_ENABLED() \
+	__dtraceenabled_libmtev___http__request__finish(0)
+#endif
+#define	LIBMTEV_HTTP_REQUEST_START(arg0, arg1) \
+	__dtrace_libmtev___http__request__start(arg0, arg1)
+#ifndef	__sparc
+#define	LIBMTEV_HTTP_REQUEST_START_ENABLED() \
+	__dtraceenabled_libmtev___http__request__start()
+#else
+#define	LIBMTEV_HTTP_REQUEST_START_ENABLED() \
+	__dtraceenabled_libmtev___http__request__start(0)
+#endif
+#define	LIBMTEV_HTTP_RESPONSE_FINISH(arg0, arg1) \
+	__dtrace_libmtev___http__response__finish(arg0, arg1)
+#ifndef	__sparc
+#define	LIBMTEV_HTTP_RESPONSE_FINISH_ENABLED() \
+	__dtraceenabled_libmtev___http__response__finish()
+#else
+#define	LIBMTEV_HTTP_RESPONSE_FINISH_ENABLED() \
+	__dtraceenabled_libmtev___http__response__finish(0)
+#endif
+#define	LIBMTEV_HTTP_RESPONSE_START(arg0, arg1) \
+	__dtrace_libmtev___http__response__start(arg0, arg1)
+#ifndef	__sparc
+#define	LIBMTEV_HTTP_RESPONSE_START_ENABLED() \
+	__dtraceenabled_libmtev___http__response__start()
+#else
+#define	LIBMTEV_HTTP_RESPONSE_START_ENABLED() \
+	__dtraceenabled_libmtev___http__response__start(0)
+#endif
 #define	LIBMTEV_LOG(arg0, arg1, arg2, arg3) \
 	__dtrace_libmtev___log(arg0, arg1, arg2, arg3)
 #ifndef	__sparc
@@ -255,6 +318,48 @@ extern int __dtraceenabled_libmtev___eventer__write__return(void);
 #else
 extern int __dtraceenabled_libmtev___eventer__write__return(long);
 #endif
+extern void __dtrace_libmtev___http__accept(int, struct mtev_http_session_ctx *);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___http__accept(void);
+#else
+extern int __dtraceenabled_libmtev___http__accept(long);
+#endif
+extern void __dtrace_libmtev___http__close(int, struct mtev_http_session_ctx *);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___http__close(void);
+#else
+extern int __dtraceenabled_libmtev___http__close(long);
+#endif
+extern void __dtrace_libmtev___http__log(int, struct mtev_http_session_ctx *, char *);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___http__log(void);
+#else
+extern int __dtraceenabled_libmtev___http__log(long);
+#endif
+extern void __dtrace_libmtev___http__request__finish(int, struct mtev_http_session_ctx *);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___http__request__finish(void);
+#else
+extern int __dtraceenabled_libmtev___http__request__finish(long);
+#endif
+extern void __dtrace_libmtev___http__request__start(int, struct mtev_http_session_ctx *);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___http__request__start(void);
+#else
+extern int __dtraceenabled_libmtev___http__request__start(long);
+#endif
+extern void __dtrace_libmtev___http__response__finish(int, struct mtev_http_session_ctx *);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___http__response__finish(void);
+#else
+extern int __dtraceenabled_libmtev___http__response__finish(long);
+#endif
+extern void __dtrace_libmtev___http__response__start(int, struct mtev_http_session_ctx *);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___http__response__start(void);
+#else
+extern int __dtraceenabled_libmtev___http__response__start(long);
+#endif
 extern void __dtrace_libmtev___log(char *, char *, int, char *);
 #ifndef	__sparc
 extern int __dtraceenabled_libmtev___log(void);
@@ -338,6 +443,20 @@ extern int __dtraceenabled_libmtev___reverse__shutdown__permanent(long);
 #define	LIBMTEV_EVENTER_WRITE_ENTRY_ENABLED() (0)
 #define	LIBMTEV_EVENTER_WRITE_RETURN(arg0, arg1, arg2, arg3, arg4, arg5)
 #define	LIBMTEV_EVENTER_WRITE_RETURN_ENABLED() (0)
+#define	LIBMTEV_HTTP_ACCEPT(arg0, arg1)
+#define	LIBMTEV_HTTP_ACCEPT_ENABLED() (0)
+#define	LIBMTEV_HTTP_CLOSE(arg0, arg1)
+#define	LIBMTEV_HTTP_CLOSE_ENABLED() (0)
+#define	LIBMTEV_HTTP_LOG(arg0, arg1, arg2)
+#define	LIBMTEV_HTTP_LOG_ENABLED() (0)
+#define	LIBMTEV_HTTP_REQUEST_FINISH(arg0, arg1)
+#define	LIBMTEV_HTTP_REQUEST_FINISH_ENABLED() (0)
+#define	LIBMTEV_HTTP_REQUEST_START(arg0, arg1)
+#define	LIBMTEV_HTTP_REQUEST_START_ENABLED() (0)
+#define	LIBMTEV_HTTP_RESPONSE_FINISH(arg0, arg1)
+#define	LIBMTEV_HTTP_RESPONSE_FINISH_ENABLED() (0)
+#define	LIBMTEV_HTTP_RESPONSE_START(arg0, arg1)
+#define	LIBMTEV_HTTP_RESPONSE_START_ENABLED() (0)
 #define	LIBMTEV_LOG(arg0, arg1, arg2, arg3)
 #define	LIBMTEV_LOG_ENABLED() (0)
 #define	LIBMTEV_REVERSE_CONNECT(arg0, arg1, arg2)
