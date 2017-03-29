@@ -34,6 +34,7 @@ cli_option("filter", { help = "only run test names matching the Lua pattern", de
 cli_option("filter-out", { help = "do not run test names matching the Lua pattern, takes precedence over --filter", default = nil })
 cli_option("list", { help = "list all available tests", value = false, default = false })
 cli_option("bail", { help = "stop after first failure", value = false, default = false })
+cli_option("l",  { help = "enable log outlet", value = mtev.enable_log })
 local options = parsecli()
 if options.h.value then usage() end
 
