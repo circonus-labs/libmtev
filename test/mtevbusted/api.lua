@@ -76,9 +76,6 @@ function HTTP(method, host, port, uri, headers, payload, _pp)
     payload = mtev.tojson(payload):tostring()
   end
 
-  local callbacks = { }
-  callbacks.consume = function (str) output = output .. (str or '') end
-
   local dns = mtev.dns()
   if not dns.is_valid_ip(host) then
     local r = dns:lookup(host)
@@ -86,9 +83,9 @@ function HTTP(method, host, port, uri, headers, payload, _pp)
     host = r.a
   end
 
-  local output = ''
+  local output_buf = {}
   local callbacks = {}
-  callbacks.consume = function (str) output = output .. (str or '') end
+  callbacks.consume = function (str) output_buf[#output_buf+1] =  str end
   callbacks.headers = function (hdrs) in_headers = hdrs end
 
   local client = HttpClient:new(callbacks)
@@ -99,7 +96,7 @@ function HTTP(method, host, port, uri, headers, payload, _pp)
   headers.Accept = 'application/json'
   local rv = client:do_request(method, uri, headers, payload, "1.1")
   client:get_response(100000000)
-
+  local output = table.concat(output_buf)
   return client.code, _pp(output), output
 end
 
