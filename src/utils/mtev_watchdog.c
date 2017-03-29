@@ -293,6 +293,7 @@ void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
 #else
   mtev_stacktrace(mtev_error);
 #endif
+  raise(sig);
 }
 
 void emancipate(int sig, siginfo_t *si, void *uc) {
@@ -426,7 +427,7 @@ mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
   char *envcp;
   struct sigaction sa;
   stack_t altstack;
-  size_t altstack_size = 0, default_altstack_size = 32768;
+  size_t altstack_size = 0, default_altstack_size = 262144;
   static const int signals[] = {
     SIGSEGV,
     SIGABRT,
