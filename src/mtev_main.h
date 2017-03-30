@@ -43,6 +43,44 @@ typedef enum {
 API_EXPORT(void)
   mtev_init_globals();
 
+/*! \fn int mtev_main_status(const char *appname, const char *config_filename, int debug, pid_t *pid, pid_t *pgid)
+    \brief Determine if that application is already running under this configuration.
+    \param appname The application name (should be the config root node name).
+    \param config_filename The path the the config file.
+    \param debug Enable debugging (logging).
+    \param pid If not null, it is populated with the process id of the running instance.
+    \param pgid If not null, it is populated with the process group id of the running instance.
+    \return 0 on success, -1 on failure.
+ */
+API_EXPORT(int)
+  mtev_main_status(const char *appname,
+                   const char *config_filename, int debug,
+                   pid_t *pid, pid_t *pgid);
+
+/*! \fn int mtev_main_terminate(const char *appname, const char *config_filename, int debug)
+    \brief Terminate an already running application under the same configuration.
+    \param appname The application name (should be the config root node name).
+    \param config_filename The path the the config file.
+    \param debug Enable debugging (logging).
+    \return 0 on success, -1 on failure.  If the application is not running at the time of invocation, termination is considered successful.
+ */
+API_EXPORT(int)
+  mtev_main_terminate(const char *appname,
+                      const char *config_filename, int debug);
+
+/*! \fn int mtev_main(const char *appname, const char *config_filename, int debug, int foreground, mtev_log_op_t lock, const char *glider, const char *drop_to_user, const char *drop_to_group, int (*passed_child_main)(void))
+    \brief Run a comprehensive mtev setup followed by a "main" routine.
+    \param appname The application name (should be the config root node name).
+    \param config_filename The path the the config file.
+    \param debug Enable debugging (logging).
+    \param foreground 0 to daemonize with watchdog, 1 to foreground, 2 to foreground with watchdog.
+    \param lock Specifies where to not lock, try lock or exit, or lock or wait.
+    \param glider A path to an executable to invoke against the process id on crash. May be NULL.
+    \param drop_to_user A target user for dropping privileges when under watchdog. May be NULL.
+    \param drop_to_group A target group for dropping privileges when under watchdog. May be NULL.
+    \param passed_child_main A programmers supplied main function.
+    \return -1 on failure, 0 on success if `foreground==1`, or the return value of `main` if run in the foreground.
+ */
 API_EXPORT(int)
   mtev_main(const char *appname,
             const char *config_filename, int debug, int foreground,

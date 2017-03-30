@@ -48,6 +48,16 @@ typedef int mtev_lockfile_t;
 API_EXPORT(mtev_lockfile_t)
   mtev_lockfile_acquire(const char *fp);
 
+/*! \fn mtev_lockfile_t mtev_lockfile_acquire_owner(const char *fp, pid_t *owner)
+    \brief lock the file immediately if possible, return -1 otherwise.
+    \param fp the path to the lock file
+    \param owner is a pointer to a pid.  If the lock is owned by another process, this will be set to that pid, otherwise it will be set to -1.
+    \return >= 0 on success, -1 on failure
+ */
+
+API_EXPORT(mtev_lockfile_t)
+  mtev_lockfile_acquire_owner(const char *fp, pid_t *owner);
+
 /*! \fn int mtev_lockfile_release(mtev_lockfile_t fd)
     \brief release a held file lock
     \param fd the file lock to release

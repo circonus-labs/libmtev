@@ -21,6 +21,12 @@
 static char *config_file = NULL;
 static int debug = 0;
 static int foreground = 0;
+static enum {
+  PROC_OP_START,
+  PROC_OP_STOP,
+  PROC_OP_STATUS,
+  PROC_OP_ERROR
+} proc_op = PROC_OP_START;
 static char *droptouser = NULL, *droptogroup = NULL;
 static mtev_cluster_t *my_cluster = NULL;
 static char my_payload[32];
@@ -28,22 +34,29 @@ static char my_payload2[32];
 
 static int
 usage(const char *prog) {
-	fprintf(stderr, "%s <-c conffile> [-D] [-d]\n\n", prog);
+	fprintf(stderr, "%s <-c conffile> [-k <start|stop|status>] [-D] [-d]\n\n", prog);
   fprintf(stderr, "\t-c conffile\tthe configuration file to load\n");
   fprintf(stderr, "\t-D\t\trun in the foreground (don't daemonize)\n");
   fprintf(stderr, "\t-d\t\tturn on debugging\n");
+  fprintf(stderr, "\t-k <op>\t\tstart, stop or check a running instance\n");
   return 2;
 }
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, "c:Dd")) != EOF) {
+  while((c = getopt(argc, argv, "c:Ddk:")) != EOF) {
     switch(c) {
       case 'c':
         config_file = optarg;
         break;
       case 'd': debug = 1; break;
       case 'D': foreground++; break;
+      case 'k': 
+        if(!strcmp(optarg, "start")) proc_op = PROC_OP_START;
+        else if(!strcmp(optarg, "stop")) proc_op = PROC_OP_STOP;
+        else if(!strcmp(optarg, "status")) proc_op = PROC_OP_STATUS;
+        else proc_op = PROC_OP_ERROR;
+        break;
     }
   }
 }
@@ -137,12 +150,27 @@ child_main() {
   return 0;
 }
 int main(int argc, char **argv) {
+  pid_t pid, pgid;
   parse_cli_args(argc, argv);
   if(!config_file) exit(usage(argv[0]));
   
   mtev_memory_init();
-  mtev_main(APPNAME, config_file, debug, foreground,
-            MTEV_LOCK_OP_LOCK, NULL, droptouser, droptogroup,
-            child_main);
+  switch(proc_op) {
+    case PROC_OP_START:
+      mtev_main(APPNAME, config_file, debug, foreground,
+                MTEV_LOCK_OP_LOCK, NULL, droptouser, droptogroup,
+                child_main);
+      break;
+    case PROC_OP_STOP:
+      exit(mtev_main_terminate(APPNAME, config_file, debug));
+      break;
+    case PROC_OP_STATUS:
+      if(mtev_main_status(APPNAME, config_file, debug, &pid, &pgid) != 0) exit(-1);
+      mtevL(mtev_debug, "running pid: %d, pgid: %d\n", pid, pgid);
+      break;
+    case PROC_OP_ERROR:
+      exit(usage(argv[0]));
+      break;
+   }
   return 0;
 }

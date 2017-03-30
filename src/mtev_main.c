@@ -198,6 +198,107 @@ mtev_init_globals_ctor() {
 }
 
 int
+mtev_main_terminate(const char *appname,
+                    const char *config_filename, int debug) {
+  int lockfd;
+  pid_t owner;
+  char lockfile[PATH_MAX];
+  char appscratch[PATH_MAX];
+
+  mtev_init_globals();
+  mtev_log_init(debug);
+  mtev_log_stream_set_flags(mtev_debug, mtev_log_stream_get_flags(mtev_debug) & ~MTEV_LOG_STREAM_DEBUG);
+  mtev_conf_use_namespace(appname);
+  mtev_conf_init(appname);
+  if(mtev_conf_load(config_filename) == -1) {
+    fprintf(stderr, "Cannot load config: '%s'\n", config_filename);
+    return -1;
+  }
+  lockfd = -1;
+  lockfile[0] = '\0';
+  snprintf(appscratch, sizeof(appscratch), "/%s/@lockfile", appname);
+  if(!mtev_conf_get_stringbuf(NULL, appscratch,
+                             lockfile, sizeof(lockfile))) {
+    mtevL(mtev_debug, "No lockfile specified for application.\n");
+    return -1;
+  }
+
+  if((lockfd = mtev_lockfile_acquire_owner(lockfile, &owner)) < 0) {
+    if(owner == -1) {
+      mtevL(mtev_debug, "Error: %s\n", strerror(errno));
+      return -1;
+    }
+    pid_t groupid = getpgid(owner);
+    if(groupid < 0) {
+      mtevL(mtev_debug, "Error: %s\n", strerror(errno));
+      return -1;
+    }
+    mtevL(mtev_debug, "Terminating process group %d.\n", groupid);
+    if(kill(-groupid, SIGCONT) < 0 ||
+       kill(-groupid, SIGTERM) < 0) {
+      mtevL(mtev_debug, "Failed to kill progress group: %s.\n", strerror(errno));
+      return -1;
+    }
+    while(kill(-groupid, 0) == 0) usleep(100000);
+    mtevL(mtev_debug, "%s pgid:%d terminated.\n", appname, groupid);
+    return 0;
+  }
+  close(lockfd);
+  mtevL(mtev_debug, "%s not running.\n", appname);
+  return 0;
+}
+
+int
+mtev_main_status(const char *appname,
+                 const char *config_filename, int debug,
+                 pid_t *pid, pid_t *pgid) {
+  int lockfd;
+  pid_t owner;
+  char lockfile[PATH_MAX];
+  char appscratch[PATH_MAX];
+
+  if(pid) *pid = -1;
+  if(pgid) *pgid = -1;
+
+  mtev_init_globals();
+  mtev_log_init(debug);
+  mtev_log_stream_set_flags(mtev_debug, mtev_log_stream_get_flags(mtev_debug) & ~MTEV_LOG_STREAM_DEBUG);
+  mtev_conf_use_namespace(appname);
+  mtev_conf_init(appname);
+  if(mtev_conf_load(config_filename) == -1) {
+    fprintf(stderr, "Cannot load config: '%s'\n", config_filename);
+    return -1;
+  }
+  lockfd = -1;
+  lockfile[0] = '\0';
+  snprintf(appscratch, sizeof(appscratch), "/%s/@lockfile", appname);
+  if(!mtev_conf_get_stringbuf(NULL, appscratch,
+                             lockfile, sizeof(lockfile))) {
+    mtevL(mtev_debug, "No lockfile specified for application.\n");
+    return -1;
+  }
+
+  if((lockfd = mtev_lockfile_acquire_owner(lockfile, &owner)) < 0) {
+    if(owner == -1) {
+      mtevL(mtev_debug, "Error: %s\n", strerror(errno));
+      return -1;
+    }
+    if(pid) *pid = owner;
+    pid_t groupid = getpgid(owner);
+    if(groupid < 0) {
+      mtevL(mtev_debug, "Error: %s\n", strerror(errno));
+      return -1;
+    }
+    if(pgid) *pgid = groupid;
+    return 0;
+  }
+  close(lockfd);
+  mtevL(mtev_debug, "%s not running.\n", appname);
+  return -1;
+}
+
+
+int
 mtev_main(const char *appname,
           const char *config_filename, int debug, int foreground,
           mtev_lock_op_t lock, const char *_glider,
@@ -332,9 +433,15 @@ mtev_main(const char *appname,
      mtev_conf_get_stringbuf(NULL, appscratch,
                              lockfile, sizeof(lockfile))) {
     do {
-      if((lockfd = mtev_lockfile_acquire(lockfile)) < 0) {
+      pid_t owner;
+      if((lockfd = mtev_lockfile_acquire_owner(lockfile, &owner)) < 0) {
         if(!wait_for_lock) {
           mtevL(mtev_stderr, "Failed to acquire lock: %s\n", lockfile);
+          if(owner != -1) {
+            pid_t groupid = getpgid(owner);
+            mtevL(mtev_stderr, "%s running pid: %d, pgid: %d\n",
+                  appname, owner, groupid);
+          }
           exit(-1);
         }
         if(wait_for_lock == 1) {
@@ -385,9 +492,12 @@ mtev_main(const char *appname,
     }
     close(fd);
 
-    if(fork()) exit(0);
-    setsid();
-    if(fork()) exit(0);
+    if(fork()) exit(0); /* detach from invoking process */
+    setsid(); /* create a new session so we don't die */
+    if(fork()) exit(0); /* don't lead our sessions (controlling terminal) */
+    /* set our process group to us to make things simpler,
+     * if this fails, it's no big deal. */
+    setpgid(getpid(), getpid());
   }
 
   /* Reacquire the lock */
