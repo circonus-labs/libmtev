@@ -35,6 +35,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#if defined(linux) || defined(__linux) || defined(__linux__)
+#include <sys/types.h>
+#include <sys/syscall.h>
+#endif
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -47,15 +51,56 @@
 #if defined(__MACH__) && defined(__APPLE__)
 #include <libproc.h>
 #endif
+#include "android-demangle/demangle.h"
+#include "android-demangle/cp-demangle.h"
 
+static void
+mtev_print_stackline(mtev_log_stream_t ls, uintptr_t self, const char *addrline) {
+  char *tick;
+  char addrpostline[16384], scratch[8192], postfix_copy[32], trailer_copy[32];
+  strlcpy(addrpostline, addrline, sizeof(addrpostline));
+  tick = strchr(addrpostline, '\'');
+  if(!tick) tick = strchr(addrpostline, '(');
+  if(tick) {
+    char *trailer = NULL;
+    char *postfix;
+    if(*tick == '(') {
+      postfix = strchr(tick, ')');
+      if(postfix) {
+        *postfix++ = '\0';
+        trailer = postfix;
+        strlcpy(trailer_copy, trailer, sizeof(trailer_copy));
+      }
+    }
+    *tick++ = '\'';
+    postfix = strrchr(tick, '+');
+    if(postfix) {
+     if(strlen(postfix) > sizeof(postfix_copy)-1) goto print;
+     *postfix++ = '\0';
+     strlcpy(postfix_copy, postfix, sizeof(postfix_copy));
+    }
+    scratch[0] = '\0';
+    cplus_demangle_set_buf(scratch, sizeof(scratch));
+    char *decoded = cplus_demangle_v3(tick, DMGL_PARAMS|DMGL_ANSI|DMGL_TYPES);
+    if(decoded != NULL) {
+      snprintf(tick, sizeof(addrpostline) - (int)(tick-addrpostline), "%s%s%s%s%s",
+               decoded, postfix?"+":"", postfix_copy, trailer ? " " : "", trailer_copy);
+    }
+    else {
+      if(postfix) *(postfix-1) = '+';
+    }
+  }
+ print:
+  mtevL(ls, "t@%"PRIu64"> %s\n", self, addrpostline);
+}
 #if defined(__sun__)
 int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
   lwpid_t self;
   mtev_log_stream_t ls = usrarg;
-  char addrline[128];
+  char addrpreline[16384];
   self = _lwp_self();
-  addrtosymstr((void *)pc, addrline, sizeof(addrline));
-  mtevL(ls, "t@%d> %s\n", self, addrline);
+  addrtosymstr((void *)pc, addrpreline, sizeof(addrpreline));
+  mtev_print_stackline(ls, self, addrpreline);
   return 0;
 }
 #else
@@ -66,6 +111,7 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
 #if defined(__sun__)
   ucontext_t ucp;
   getcontext(&ucp);
+  mtevL(ls, "STACKTRACE(%d):\n", getpid());
   walkcontext(&ucp, mtev_simple_stack_print, ls);
 #else
   if(_global_stack_trace_fd < 0) {
@@ -78,7 +124,7 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
   }
   if(_global_stack_trace_fd >= 0) {
     struct stat sb;
-    char stackbuff[4096];
+    char stackbuff[65536];
     void* callstack[128];
     int unused __attribute__((unused));
     int i, frames = backtrace(callstack, 128);
@@ -89,8 +135,21 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
     while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);
     if(i != 0 || sb.st_size == 0) mtevL(ls, "error writing stacktrace\n");
     lseek(_global_stack_trace_fd, SEEK_SET, 0);
-    i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff), sb.st_size));
-    mtevL(ls, "STACKTRACE(%d):\n%.*s\n", getpid(), i, stackbuff);
+    i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff)-1, sb.st_size));
+    stackbuff[i] = '\0';
+    char *prevcp = stackbuff, *cp;
+    mtevL(ls, "STACKTRACE(%d):\n", getpid());
+#if defined(linux) || defined(__linux) || defined(__linux__)
+    uintptr_t self = syscall(SYS_gettid);
+#else
+    pthread_t self = pthread_self();
+#endif
+    while(NULL != (cp = strchr(prevcp, '\n'))) {
+      *cp++ = '\0';
+      mtev_print_stackline(ls, self, prevcp);
+      prevcp = cp;
+    }
+    mtev_print_stackline(ls, self, prevcp);
   }
   else {
     mtevL(ls, "stacktrace unavailable\n");

@@ -833,6 +833,7 @@ src/man/Makefile
 src/modules/Makefile
 src/examples/Makefile
 src/scripts/mtev-config
+src/utils/android-demangle/Makefile
 test/Makefile
 test/mtevbusted-script
 ])
