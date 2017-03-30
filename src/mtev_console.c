@@ -270,9 +270,8 @@ mtev_console_continue_sending(mtev_console_closure_t ncct,
   if(!ncct->outbuf_len) return 0;
   if(ncct->output_cooker) ncct->output_cooker(ncct);
   while(ncct->outbuf_len > ncct->outbuf_completed) {
-    len = e->opset->write(e->fd, ncct->outbuf + ncct->outbuf_completed,
-                          ncct->outbuf_len - ncct->outbuf_completed,
-                          mask, e);
+    len = eventer_write(e, ncct->outbuf + ncct->outbuf_completed,
+                        ncct->outbuf_len - ncct->outbuf_completed, mask);
     if(len < 0) {
       if(errno == EAGAIN) return -1;
       /* Do something else here? */
@@ -373,7 +372,7 @@ mtev_console_initialize(mtev_console_closure_t ncct,
     ncct->hist = history_init();
     history(ncct->hist, &ev, H_SETSIZE, 500);
     ncct->el = el_init("mtev", ncct->pty_master, NULL,
-                       in->fd, in, out->fd, out);
+                       eventer_get_fd(in), in, eventer_get_fd(out), out);
     if(!ncct->el) return -1;
     if(el_set(ncct->el, EL_USERDATA, ncct)) {
       mtevL(mtev_error, "Cannot set userdata on noitedit session\n");
@@ -399,11 +398,11 @@ mtev_console_initialize(mtev_console_closure_t ncct,
     }
     mtev_console_state_init(ncct);
   }
-  if(in->fd != out->fd)
+  if(eventer_get_fd(in) != eventer_get_fd(out))
     snprintf(ncct->feed_path, sizeof(ncct->feed_path),
-             "console/[%d:%d]", in->fd, out->fd);
+             "console/[%d:%d]", eventer_get_fd(in), eventer_get_fd(out));
   else
-    snprintf(ncct->feed_path, sizeof(ncct->feed_path), "console/%d", in->fd);
+    snprintf(ncct->feed_path, sizeof(ncct->feed_path), "console/%d", eventer_get_fd(in));
   mtev_log_stream_new(ncct->feed_path, "mtev_console", ncct->feed_path,
                       ncct, NULL);
   ncct->initialized = 1;
@@ -420,8 +419,8 @@ socket_error:
     /* Exceptions cause us to simply snip the connection */
 
     /* This removes the log feed which is important to do before calling close */
-    eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &newmask, e);
+    eventer_remove_fde(e);
+    eventer_close(e, &newmask);
     return 0;
   }
 
@@ -447,10 +446,10 @@ socket_error:
       keep_going++;
     }
 
-    len = e->opset->read(e->fd, sbuf, sizeof(sbuf)-1, &newmask, e);
+    len = eventer_read(e, sbuf, sizeof(sbuf)-1, &newmask);
     if(len == 0 || (len < 0 && errno != EAGAIN)) {
-      eventer_remove_fd(e->fd);
-      e->opset->close(e->fd, &newmask, e);
+      eventer_remove_fde(e);
+      eventer_close(e, &newmask);
       return 0;
     }
     if(len > 0) {
@@ -491,16 +490,8 @@ int mtev_console_std_init(int infd, int outfd) {
   eventer_t in, out;
 
   ncct = mtev_console_closure_alloc();
-  in = eventer_alloc();
-  out = eventer_alloc();
-  in->fd = infd;
-  in->mask = EVENTER_READ|EVENTER_EXCEPTION;
-  in->callback = mtev_console_std;
-  in->closure = ncct;
-  out->fd = outfd;
-  out->mask = EVENTER_WRITE|EVENTER_EXCEPTION;
-  out->callback = mtev_console_std;
-  out->closure = ncct;
+  in = eventer_alloc_fd(mtev_console_std, ncct, infd, EVENTER_READ|EVENTER_EXCEPTION);
+  out = eventer_alloc_fd(mtev_console_std, ncct, outfd, EVENTER_WRITE|EVENTER_EXCEPTION);
   if(mtev_console_initialize(ncct, NULL, in, out)) {
     return -1;
   }
@@ -521,9 +512,9 @@ socket_error:
     /* Exceptions cause us to simply snip the connection */
 
     /* This removes the log feed which is important to do before calling close */
-    eventer_remove_fd(e->fd);
+    eventer_remove_fde(e);
     acceptor_closure_free(ac);
-    e->opset->close(e->fd, &newmask, e);
+    eventer_close(e, &newmask);
     return 0;
   }
 
@@ -567,11 +558,11 @@ socket_error:
       keep_going++;
     }
 
-    len = e->opset->read(e->fd, sbuf, sizeof(sbuf)-1, &newmask, e);
+    len = eventer_read(e, sbuf, sizeof(sbuf)-1, &newmask);
     if(len == 0 || (len < 0 && errno != EAGAIN)) {
-      eventer_remove_fd(e->fd);
+      eventer_remove_fde(e);
       acceptor_closure_free(ac);
-      e->opset->close(e->fd, &newmask, e);
+      eventer_close(e, &newmask);
       return 0;
     }
     if(len > 0) {

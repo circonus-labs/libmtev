@@ -104,12 +104,7 @@ static void eventer_dns_utm_fn(struct dns_ctx *ctx, int timeout, void *data) {
     mtevAssert(h->ctx == ctx);
     if(timeout < 0) e = eventer_remove(h->timeout);
     else {
-      newe = eventer_alloc();
-      newe->mask = EVENTER_TIMER;
-      newe->callback = mtev_lua_dns_timeouts;
-      newe->closure = h;
-      mtev_gettimeofday(&newe->whence, NULL);
-      newe->whence.tv_sec += timeout;
+      newe = eventer_in_s_us(mtev_lua_dns_timeouts, h, timeout, 0);
     }
   }
   if(e) eventer_free(e);
@@ -122,7 +117,7 @@ static void eventer_dns_utm_fn(struct dns_ctx *ctx, int timeout, void *data) {
 static void dns_ctx_handle_free(void *vh) {
   dns_ctx_handle_t *h = vh;
   free(h->ns);
-  eventer_remove_fd(h->e->fd);
+  eventer_remove_fde(h->e);
   eventer_free(h->e);
   h->e = NULL;
   if(h->timeout) {
@@ -170,11 +165,8 @@ static dns_ctx_handle_t *dns_ctx_alloc(const char *ns) {
       goto bail;
     }
     dns_set_tmcbck(h->ctx, eventer_dns_utm_fn, h);
-    h->e = eventer_alloc();
-    h->e->mask = EVENTER_READ | EVENTER_EXCEPTION;
-    h->e->closure = h;
-    h->e->callback = mtev_lua_dns_eventer;
-    h->e->fd = dns_sock(h->ctx);
+    h->e = eventer_alloc_fd(mtev_lua_dns_eventer, h, dns_sock(h->ctx),
+                            EVENTER_READ | EVENTER_EXCEPTION);
     eventer_add(h->e);
     h->refcnt = 1;
     if(!ns)
@@ -400,12 +392,8 @@ static void dns_cb(struct dns_ctx *ctx, void *result, void *data) {
   if(dlc->active) {
     mtevL(mtev_error, "lua_dns cross-thread resume (should never happend)\n");
     /* We need to schedule this to run on another eventer thread */
-    e = eventer_alloc();
-    /* no whence, so epoch... or "right now!" */
-    e->thr_owner = dlc->ci->bound_thread;
-    e->closure = dlc;
-    e->callback = dns_resume_event;
-    e->mask = EVENTER_TIMER;
+    e = eventer_in_s_us(dns_resume_event, dlc, 0, 0);
+    eventer_set_owner(e, dlc->ci->bound_thread);
     eventer_add(e);
   }
   lookup_ctx_release(dlc);

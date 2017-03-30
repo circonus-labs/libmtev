@@ -389,12 +389,9 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     pthread_t tgt, thr;
     thr = eventer_choose_owner(i++);
     do {
-      eventer_t e = eventer_alloc();
+      eventer_t e = eventer_in_s_us(dispatch_general, self, 0, 0);
       tgt = eventer_choose_owner(i++);
-      e->thr_owner = tgt;
-      e->callback = dispatch_general;
-      e->closure = self;
-      e->mask = EVENTER_TIMER;
+      eventer_set_owner(e, tgt);
       eventer_add(e);
     } while(!pthread_equal(thr,tgt));
   }
@@ -517,7 +514,7 @@ mtev_console_state_lua(mtev_console_closure_t ncct,
     return -1;
   }
   if(argc) {
-    ncct->e->thr_owner = eventer_choose_owner(atoi(argv[0]));
+    eventer_set_owner(ncct->e, eventer_choose_owner(atoi(argv[0])));
   }
   info = calloc(1, sizeof(*info));
   info->self = (mtev_dso_generic_t *)closure;
@@ -559,7 +556,7 @@ lua_repl_prompt(EditLine *el) {
   conf = get_config(info->self);
   lmc = pthread_getspecific(conf->key);
 
-  if(!pthread_equal(ncct->e->thr_owner, pthread_self()))
+  if(!pthread_equal(eventer_get_owner(ncct->e), pthread_self()))
     snprintf(info->prompt, sizeof(info->prompt), "lua_general(...)# ");
   else
     snprintf(info->prompt, sizeof(info->prompt), tl, get_eventer_id(ncct), lmc->lua_state);

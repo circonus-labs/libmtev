@@ -289,8 +289,8 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
     if(rule->pool) {
       eventer_t e = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
       if(e) {
-        e->thr_owner = eventer_choose_owner_pool(rule->pool, rule->pool_rr++);
-        *migrate = !pthread_equal(e->thr_owner, pthread_self());
+        eventer_set_owner(e, eventer_choose_owner_pool(rule->pool, rule->pool_rr++));
+        *migrate = !pthread_equal(eventer_get_owner(e), pthread_self());
       }
     }
     if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
@@ -563,7 +563,7 @@ mtev_http_rest_handler(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    eventer_remove_fd(e->fd);
+    eventer_remove_fde(e);
     (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
     acceptor_closure_free(ac);
     return 0;
@@ -621,7 +621,7 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
 
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
     /* Exceptions cause us to simply snip the connection */
-    eventer_remove_fd(e->fd);
+    eventer_remove_fde(e);
     (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
     acceptor_closure_free(ac);
     return 0;

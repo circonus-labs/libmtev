@@ -258,8 +258,8 @@ static void APPEND_IN(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   e = eventer_find_fd(rc->data.channels[id].pair[0]);
   if(!e) mtevL(nlerr, "WHAT? No event on my side [%d] of the socketpair()\n", rc->data.channels[id].pair[0]);
   else {
-    mtevL(nldeb, "APPEND_IN(%s,%d) => %s\n", rc->id, id, eventer_name_for_callback_e(e->callback, e));
-    if(!(e->mask & EVENTER_WRITE)) eventer_trigger(e, EVENTER_WRITE|EVENTER_READ);
+    mtevL(nldeb, "APPEND_IN(%s,%d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(e), e));
+    if(!(eventer_get_mask(e) & EVENTER_WRITE)) eventer_trigger(e, EVENTER_WRITE|EVENTER_READ);
   }
 }
 
@@ -290,7 +290,7 @@ static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   pthread_mutex_unlock(&rc->lock);
   if(!rc->data.e) mtevL(nlerr, "No event to trigger for reverse_socket framing\n");
   if(rc->data.e) {
-    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(rc->data.e->callback, rc->data.e));
+    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(rc->data.e), rc->data.e));
     eventer_trigger(rc->data.e, EVENTER_WRITE|EVENTER_READ);
   }
 }
@@ -347,15 +347,15 @@ mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
   if(rc->data.xbind) {
     free(rc->data.xbind);
     if(rc->data.proxy_ip4_e) {
-      eventer_remove_fd(rc->data.proxy_ip4_e->fd);
-      rc->data.proxy_ip4_e->opset->close(rc->data.proxy_ip4_e->fd, &mask, rc->data.proxy_ip4_e);
-      mtev_watchdog_on_crash_close_remove_fd(rc->data.proxy_ip4_e->fd);
+      eventer_remove_fde(rc->data.proxy_ip4_e);
+      eventer_close(rc->data.proxy_ip4_e, &mask);
+      mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(rc->data.proxy_ip4_e));
       eventer_free(rc->data.proxy_ip4_e);
     }
     if(rc->data.proxy_ip6_e) {
-      eventer_remove_fd(rc->data.proxy_ip6_e->fd);
-      rc->data.proxy_ip6_e->opset->close(rc->data.proxy_ip6_e->fd, &mask, rc->data.proxy_ip4_e);
-      mtev_watchdog_on_crash_close_remove_fd(rc->data.proxy_ip6_e->fd);
+      eventer_remove_fde(rc->data.proxy_ip6_e);
+      eventer_close(rc->data.proxy_ip6_e, &mask);
+      mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(rc->data.proxy_ip6_e));
       eventer_free(rc->data.proxy_ip6_e);
     }
   }
@@ -393,8 +393,8 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION) goto snip;
 
   /* this damn-well better be our side of the socketpair */
-  if(CHANNEL.pair[0] != e->fd) {
-   mtevL(nlerr, "mtev_reverse_socket_channel_handler: misaligned events, this is a bug (%d != %d)\n", CHANNEL.pair[0], e->fd);
+  if(CHANNEL.pair[0] != eventer_get_fd(e)) {
+   mtevL(nlerr, "mtev_reverse_socket_channel_handler: misaligned events, this is a bug (%d != %d)\n", CHANNEL.pair[0], eventer_get_fd(e));
    shutdown:
     command_out(cct->parent, cct->channel_id, "SHUTDOWN");
     if(needs_unlock) {
@@ -406,8 +406,8 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       pthread_mutex_unlock(&cct->parent->lock);
       needs_unlock = 0;
     }
-    eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &write_mask, e);
+    eventer_remove_fde(e);
+    eventer_close(e, &write_mask);
     CHANNEL.pair[0] = CHANNEL.pair[1] = -1;
     mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
     mtev_reverse_socket_deref(cct->parent);
@@ -430,11 +430,11 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
         goto shutdown;
       }
       if(f->buff_len == 0) goto shutdown;
-      len = e->opset->write(e->fd, f->buff + f->offset, f->buff_filled - f->offset, &write_mask, e);
+      len = eventer_write(e, f->buff + f->offset, f->buff_filled - f->offset, &write_mask);
       if(len < 0 && errno == EAGAIN) break;
       if(len <= 0) goto shutdown;
       if(len > 0) {
-        mtevL(nldeb, "reverse_socket_channel write[%d]: %lld\n", e->fd, (long long)len);
+        mtevL(nldeb, "reverse_socket_channel write[%d]: %lld\n", eventer_get_fd(e), (long long)len);
         f->offset += len;
         write_success = 1;
       }
@@ -446,11 +446,11 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     }
 
     /* try to read some stuff */
-    len = e->opset->read(e->fd, buff, sizeof(buff), &read_mask, e);
+    len = eventer_read(e, buff, sizeof(buff), &read_mask);
     if(len < 0 && (errno != EINPROGRESS && errno != EAGAIN)) goto shutdown;
     if(len == 0) goto shutdown;
     if(len > 0) {
-      mtevL(nldeb, "reverse_socket_channel read[%d]: %lld %s\n", e->fd, (long long)len, len==-1 ? strerror(errno) : "");
+      mtevL(nldeb, "reverse_socket_channel read[%d]: %lld %s\n", eventer_get_fd(e), (long long)len, len==-1 ? strerror(errno) : "");
       reverse_frame_t frame = { cct->channel_id };
       frame.buff = malloc(len);
       memcpy(frame.buff, buff, len);
@@ -509,7 +509,7 @@ socket_error:
   if(mask & EVENTER_READ) {
    next_frame:
     while(rc->data.frame_hdr_read < sizeof(rc->data.frame_hdr)) {
-      len = e->opset->read(e->fd, rc->data.frame_hdr + rc->data.frame_hdr_read, sizeof(rc->data.frame_hdr) - rc->data.frame_hdr_read, &rmask, e);
+      len = eventer_read(e, rc->data.frame_hdr + rc->data.frame_hdr_read, sizeof(rc->data.frame_hdr) - rc->data.frame_hdr_read, &rmask);
       if(len < 0 && errno == EAGAIN) goto try_writes;
       if(len <= 0) goto socket_error;
       rc->data.frame_hdr_read += len;
@@ -543,8 +543,8 @@ socket_error:
     }
     while(rc->data.incoming_inflight.buff_filled < rc->data.incoming_inflight.buff_len) {
       if(!rc->data.incoming_inflight.buff) rc->data.incoming_inflight.buff = malloc(rc->data.incoming_inflight.buff_len);
-      len = e->opset->read(e->fd, rc->data.incoming_inflight.buff + rc->data.incoming_inflight.buff_filled,
-                           rc->data.incoming_inflight.buff_len - rc->data.incoming_inflight.buff_filled, &rmask, e);
+      len = eventer_read(e, rc->data.incoming_inflight.buff + rc->data.incoming_inflight.buff_filled,
+                         rc->data.incoming_inflight.buff_len - rc->data.incoming_inflight.buff_filled, &rmask);
       if(len < 0 && errno == EAGAIN) goto try_writes;
       if(len <= 0) goto socket_error;
       mtevL(nldeb, "frame payload read -> %llu (@%llu/%llu)\n",
@@ -564,16 +564,15 @@ socket_error:
       if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == -1) {
         int fd = mtev_support_connection(rc);
         if(fd >= 0) {
-          eventer_t newe = eventer_alloc();
           channel_closure_t *cct;
-          newe->fd = fd;
-          newe->callback = mtev_reverse_socket_channel_handler;
           cct = malloc(sizeof(*cct));
           cct->channel_id = rc->data.incoming_inflight.channel_id;
           cct->parent = rc;
           mtev_reverse_socket_ref(rc);
-          newe->closure = cct;
-          newe->mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
+
+          eventer_t newe =
+            eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, fd,
+                             EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
           eventer_add(newe);
           mtev_gettimeofday(&rc->data.channels[rc->data.incoming_inflight.channel_id].create_time, NULL);
           rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] = fd;
@@ -611,16 +610,16 @@ socket_error:
         uint32_t nframelen = htonl(f->buff_len);
         memcpy(rc->data.frame_hdr_out, &nchannel_id, sizeof(nchannel_id));
         memcpy(rc->data.frame_hdr_out + sizeof(nchannel_id), &nframelen, sizeof(nframelen));
-        len = e->opset->write(e->fd, rc->data.frame_hdr_out + rc->data.frame_hdr_written,
-                              sizeof(rc->data.frame_hdr_out) - rc->data.frame_hdr_written, &wmask, e);
+        len = eventer_write(e, rc->data.frame_hdr_out + rc->data.frame_hdr_written,
+                            sizeof(rc->data.frame_hdr_out) - rc->data.frame_hdr_written, &wmask);
         if(len < 0 && errno == EAGAIN) goto done_for_now;
         else if(len <= 0) goto socket_error;
         rc->data.frame_hdr_written += len;
         success = 1;
       }
       while(f->offset < f->buff_len) {
-        len = e->opset->write(e->fd, f->buff + f->offset,
-                              f->buff_len - f->offset, &wmask, e);
+        len = eventer_write(e, f->buff + f->offset,
+                            f->buff_len - f->offset, &wmask);
         if(len < 0 && errno == EAGAIN) goto done_for_now;
         else if(len <= 0) goto socket_error;
         f->offset += len;
@@ -650,8 +649,8 @@ mtev_reverse_socket_server_handler(eventer_t e, int mask, void *closure,
   rv = mtev_reverse_socket_handler(e, mask, rc, now);
   if(rv == 0) {
     acceptor_closure_free(ac);
-    eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &mask, e);
+    eventer_remove_fde(e);
+    eventer_close(e, &mask);
   }
   mtev_reverse_socket_deref(rc);
   return rv;
@@ -716,7 +715,7 @@ mtev_reverse_socket_proxy_accept(eventer_t e, int mask, void *closure,
   reverse_socket_t *rc = closure;
 
   salen = sizeof(remote);
-  fd = e->opset->accept(e->fd, &remote.in, &salen, &mask, e);
+  fd = eventer_accept(e, &remote.in, &salen, &mask);
   if(fd >= 0) {
     if(eventer_set_fd_nonblocking(fd)) {
       mtevL(nlerr, "reverse_socket accept eventer_set_fd_nonblocking failed\n");
@@ -745,11 +744,9 @@ mtev_reverse_socket_proxy_setup(reverse_socket_t *rc) {
     salen = sizeof(rc->data.proxy_ip4);
     if(getsockname(fd, (struct sockaddr *)&rc->data.proxy_ip4, &salen)) goto bad4;
     mtev_watchdog_on_crash_close_add_fd(fd);
-    rc->data.proxy_ip4_e = eventer_alloc();
-    rc->data.proxy_ip4_e->fd = fd;
-    rc->data.proxy_ip4_e->mask = EVENTER_READ | EVENTER_EXCEPTION;
-    rc->data.proxy_ip4_e->closure = rc;
-    rc->data.proxy_ip4_e->callback = mtev_reverse_socket_proxy_accept;
+    rc->data.proxy_ip4_e =
+      eventer_alloc_fd(mtev_reverse_socket_proxy_accept, rc, fd,
+                       EVENTER_READ | EVENTER_EXCEPTION);
     eventer_add(rc->data.proxy_ip4_e);
     fd = -1;
    bad4:
@@ -763,11 +760,9 @@ mtev_reverse_socket_proxy_setup(reverse_socket_t *rc) {
     salen = sizeof(rc->data.proxy_ip6);
     if(getsockname(fd, (struct sockaddr *)&rc->data.proxy_ip6, &salen)) goto bad6;
     mtev_watchdog_on_crash_close_add_fd(fd);
-    rc->data.proxy_ip6_e = eventer_alloc();
-    rc->data.proxy_ip6_e->fd = fd;
-    rc->data.proxy_ip6_e->mask = EVENTER_READ | EVENTER_EXCEPTION;
-    rc->data.proxy_ip6_e->closure = rc;
-    rc->data.proxy_ip6_e->callback = mtev_reverse_socket_proxy_accept;
+    rc->data.proxy_ip6_e =
+      eventer_alloc(mtev_reverse_socket_proxy_accept, rc, fd,
+                    EVENTER_READ | EVENTER_EXCEPTION);
     eventer_add(rc->data.proxy_ip6_e);
     fd = -1;
    bad6:
@@ -792,8 +787,8 @@ socket_error:
     mtev_reverse_socket_shutdown(rc, e);
     mtev_reverse_socket_deref(rc);
     acceptor_closure_free(ac);
-    eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &mask, e);
+    eventer_remove_fde(e);
+    eventer_close(e, &mask);
     mtevL(nldeb, "reverse_socket: %s\n", socket_error_string);
     return 0;
   }
@@ -812,7 +807,7 @@ socket_error:
   while(!rc->data.up && rc->data.buff_read < CMD_BUFF_LEN) {
     char *crlf;
 
-    len = e->opset->read(e->fd, rc->data.buff + rc->data.buff_read, 1, &newmask, e);
+    len = eventer_read(e, rc->data.buff + rc->data.buff_read, 1, &newmask);
     if(len < 0 && errno == EAGAIN) return newmask | EVENTER_EXCEPTION;
     if(len < 0) {
       socket_error_string = strerror(errno);
@@ -895,8 +890,8 @@ socket_error:
     /* Setup proxies if we've got them */
     mtev_reverse_socket_proxy_setup(rc);
     rc->data.e = e;
-    e->callback = mtev_reverse_socket_server_handler;
-    return e->callback(e, EVENTER_READ | EVENTER_WRITE, closure, now);
+    eventer_set_callback(e, mtev_reverse_socket_server_handler);
+    return eventer_callback(e, EVENTER_READ | EVENTER_WRITE, closure, now);
   }
   return 0;
 }
@@ -943,16 +938,13 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       if(existing_fd) {
         eventer_t e;
         channel_closure_t *cct;
-        e = eventer_alloc();
         mtev_gettimeofday(&rc->data.channels[chan].create_time, NULL);
-        e->fd = existing_fd;
-        e->callback = mtev_reverse_socket_channel_handler;
         cct = malloc(sizeof(*cct));
         cct->channel_id = chan;
         cct->parent = rc;
-        e->closure = cct;
         mtev_reverse_socket_ref(rc);
-        e->mask = EVENTER_READ | EVENTER_EXCEPTION;
+        e = eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, existing_fd,
+                             EVENTER_READ | EVENTER_EXCEPTION);
         mtevL(nldeb, "mapping reverse proxy on fd %d\n", existing_fd);
         eventer_add(e);
         APPEND_OUT(rc, &f);
@@ -973,23 +965,23 @@ mtev_connection_close(mtev_connection_ctx_t *ctx, eventer_t e) {
   const char *cn_expected;
   GET_EXPECTED_CN(ctx, cn_expected);
 #ifdef DTRACE_ENABLED
-  LIBMTEV_REVERSE_CONNECT_CLOSE(e->fd, ctx->remote_str,
+  LIBMTEV_REVERSE_CONNECT_CLOSE(eventer_get_fd(e), ctx->remote_str,
                      (char *)cn_expected,
                      ctx->wants_shutdown, errno);
 #else
   (void)cn_expected;
 #endif
-  eventer_remove_fd(e->fd);
+  eventer_remove_fde(e);
   ctx->e = NULL;
-  e->opset->close(e->fd, &mask, e);
+  eventer_close(e, &mask);
 }
 
 static void
 mtev_reverse_socket_close(mtev_connection_ctx_t *ctx, eventer_t e) {
   int mask;
   mtev_reverse_socket_shutdown(ctx->consumer_ctx,e);
-  eventer_remove_fd(e->fd);
-  e->opset->close(e->fd, &mask, e);
+  eventer_remove_fde(e);
+  eventer_close(e, &mask);
   ctx->e = NULL;
 }
 
@@ -1025,8 +1017,8 @@ mtev_connection_ctx_free(mtev_connection_ctx_t *ctx) {
   ctx->consumer_free(ctx->consumer_ctx);
   if (ctx->e) {
     int mask = 0;
-    eventer_remove_fd(ctx->e->fd);
-    ctx->e->opset->close(ctx->e->fd, &mask, ctx->e);
+    eventer_remove_fde(ctx->e);
+    eventer_close(ctx->e, &mask);
     eventer_free(ctx->e);
   }
   free(ctx);
@@ -1112,14 +1104,12 @@ mtev_connection_schedule_reattempt(mtev_connection_ctx_t *ctx,
   }
   interval.tv_sec = ctx->current_backoff / 1000;
   interval.tv_usec = (ctx->current_backoff % 1000) * 1000;
-  if(ctx->retry_event)
+  if(ctx->retry_event) {
     eventer_remove(ctx->retry_event);
-  else
-    ctx->retry_event = eventer_alloc();
-  ctx->retry_event->callback = mtev_connection_reinitiate;
-  ctx->retry_event->closure = ctx;
-  ctx->retry_event->mask = EVENTER_TIMER;
-  add_timeval(*now, interval, &ctx->retry_event->whence);
+    eventer_free(ctx->retry_event);
+  }
+  add_timeval(*now, interval, &interval);
+  ctx->retry_event = eventer_alloc_timer(mtev_connection_reinitiate, ctx, &interval);
 #ifdef DTRACE_ENABLED
   LIBMTEV_REVERSE_RESCHEDULE(-1, ctx->remote_str, (char *)cn_expected, ctx->current_backoff);
 #else
@@ -1138,7 +1128,7 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
   eventer_ssl_ctx_t *sslctx = NULL;
 
   GET_EXPECTED_CN(nctx, cn_expected);
-  LIBMTEV_REVERSE_CONNECT_SSL(e->fd, nctx->remote_str, (char *)cn_expected);
+  LIBMTEV_REVERSE_CONNECT_SSL(eventer_get_fd(e), nctx->remote_str, (char *)cn_expected);
 
   if(mask & EVENTER_EXCEPTION) goto error;
 
@@ -1146,7 +1136,7 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
   sslctx = eventer_get_eventer_ssl_ctx(e);
 
   if(rv > 0) {
-    e->callback = nctx->consumer_callback;
+    eventer_set_callback(e, nctx->consumer_callback);
     /* We must make a copy of the acceptor_closure_t for each new
      * connection.
      */
@@ -1169,15 +1159,15 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
         goto error;
       }
     }
-    LIBMTEV_REVERSE_CONNECT_SSL_SUCCESS(e->fd, nctx->remote_str, (char *)cn_expected);
-    return e->callback(e, mask, e->closure, now);
+    LIBMTEV_REVERSE_CONNECT_SSL_SUCCESS(eventer_get_fd(e), nctx->remote_str, (char *)cn_expected);
+    return eventer_callback(e, mask, eventer_get_closure(e), now);
   }
   if(errno == EAGAIN) return mask | EVENTER_EXCEPTION;
   if(sslctx) error = eventer_ssl_get_last_error(sslctx);
   mtevL(nldeb, "SSL upgrade failed.\n");
 
  error:
-  LIBMTEV_REVERSE_CONNECT_SSL_FAILED(e->fd,
+  LIBMTEV_REVERSE_CONNECT_SSL_FAILED(eventer_get_fd(e),
                           nctx->remote_str, (char *)cn_expected,
                           (char *)error, errno);
   if(error) {
@@ -1202,12 +1192,12 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
   socklen_t aerrno_len = sizeof(aerrno);
 
   GET_EXPECTED_CN(nctx, cn_expected);
-  if(getsockopt(e->fd,SOL_SOCKET,SO_ERROR, &aerrno, &aerrno_len) == 0)
+  if(getsockopt(eventer_get_fd(e),SOL_SOCKET,SO_ERROR, &aerrno, &aerrno_len) == 0)
     if(aerrno != 0) goto connect_error;
   aerrno = 0;
 
   if(mask & EVENTER_EXCEPTION) {
-    if(aerrno == 0 && (write(e->fd, e, 0) == -1))
+    if(aerrno == 0 && (write(eventer_get_fd(e), e, 0) == -1))
       aerrno = errno;
  connect_error:
     switch(nctx->r.remote.sa_family) {
@@ -1236,7 +1226,7 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
     }
     mtevL(nlerr, "Error connecting to %s (%s): %s\n",
           remote_str, cn_expected ? cn_expected : "(null)", strerror(aerrno));
-    LIBMTEV_REVERSE_CONNECT_FAILED(e->fd, remote_str, (char *)cn_expected, aerrno);
+    LIBMTEV_REVERSE_CONNECT_FAILED(eventer_get_fd(e), remote_str, (char *)cn_expected, aerrno);
     nctx->close(nctx, e);
     nctx->schedule_reattempt(nctx, now);
     return 0;
@@ -1266,9 +1256,9 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
   eventer_ssl_ctx_set_verify(sslctx, eventer_ssl_verify_cert,
                              nctx->sslconfig);
   EVENTER_ATTACH_SSL(e, sslctx);
-  e->callback = mtev_connection_ssl_upgrade;
-  LIBMTEV_REVERSE_CONNECT_SUCCESS(e->fd, nctx->remote_str, (char *)cn_expected);
-  return e->callback(e, mask, closure, now);
+  eventer_set_callback(e, mtev_connection_ssl_upgrade);
+  LIBMTEV_REVERSE_CONNECT_SUCCESS(eventer_get_fd(e), nctx->remote_str, (char *)cn_expected);
+  return eventer_callback(e, mask, closure, now);
 }
 
 int
@@ -1295,15 +1285,14 @@ mtev_connection_update_timeout(mtev_connection_ctx_t *nctx) {
   mtev_gettimeofday(&now, NULL);
 
   if(!nctx->timeout_event) {
-    nctx->timeout_event = eventer_alloc();
-    nctx->timeout_event->mask = EVENTER_TIMER;
-    nctx->timeout_event->closure = nctx;
-    nctx->timeout_event->callback = mtev_connection_session_timeout;
-    add_timeval(now, diff, &nctx->timeout_event->whence);
+    add_timeval(now, diff, &diff);
+    nctx->timeout_event =
+      eventer_alloc_timer(mtev_connection_session_timeout, nctx, &diff);
     eventer_add(nctx->timeout_event);
   }
   else {
-    add_timeval(now, diff, &nctx->timeout_event->whence);
+    add_timeval(now, diff, &diff);
+    eventer_set_whence(nctx->timeout_event, diff);
     eventer_update(nctx->timeout_event, EVENTER_TIMER);
   }
   return 0;
@@ -1383,15 +1372,12 @@ mtev_connection_initiate_connection(mtev_connection_ctx_t *nctx) {
   }
 
   /* Register a handler for connection completion */
-  e = eventer_alloc();
-  e->fd = fd;
-  e->mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
-  e->callback = mtev_connection_complete_connect;
-  e->closure = nctx;
+  e = eventer_alloc_fd(mtev_connection_complete_connect, nctx, fd,
+                       EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
   nctx->e = e;
   eventer_add(e);
 
-  LIBMTEV_REVERSE_CONNECT(e->fd, nctx->remote_str, (char *)cn_expected);
+  LIBMTEV_REVERSE_CONNECT(eventer_get_fd(e), nctx->remote_str, (char *)cn_expected);
   mtev_connection_update_timeout(nctx);
   return;
  reschedule:
@@ -1645,9 +1631,8 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
  finish_write: 
   while(rc->data.buff_written < rc->data.buff_len) {
     ssize_t len;
-    len = e->opset->write(e->fd, rc->data.buff + rc->data.buff_written,
-                          rc->data.buff_len - rc->data.buff_written,
-                          &mask, e);
+    len = eventer_write(e, rc->data.buff + rc->data.buff_written,
+                        rc->data.buff_len - rc->data.buff_written, &mask);
     if(len < 0 && errno == EAGAIN) return mask | EVENTER_EXCEPTION;
     if(len <= 0) goto fail;
     rc->data.buff_written += len;
@@ -1668,8 +1653,8 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
   }
 
   rc->data.e = e;
-  e->callback = mtev_reverse_socket_client_handler;
-  return e->callback(e, EVENTER_READ|EVENTER_WRITE, closure, now);
+  eventer_set_callback(e, mtev_reverse_socket_client_handler);
+  return eventer_callback(e, EVENTER_READ|EVENTER_WRITE, closure, now);
 
  fail:
   if(rc->data.buff) {
@@ -1701,7 +1686,7 @@ nc_print_reverse_socket_brief(mtev_console_closure_t ncct,
   age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
   if(ctx->data.e) {
     char buff[INET6_ADDRSTRLEN];
-    nc_printf(ncct, "%s [%d]\n", ctx->id, ctx->data.e->fd);
+    nc_printf(ncct, "%s [%d]\n", ctx->id, eventer_get_fd(ctx->data.e));
     if(ctx->data.proxy_ip4_e) {
       inet_ntop(AF_INET, &ctx->data.proxy_ip4.sin_addr, buff, sizeof(buff));
       nc_printf(ncct, "  listening (IPv4): %s :%d\n", buff, ntohs(ctx->data.proxy_ip4.sin_port));
@@ -1836,7 +1821,7 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
   snprintf(scratch, sizeof(scratch), fmt); \
   MJ_KV(node, name, MJ_STR(scratch)); \
 } while(0)
-      MJ_KV(node, "fd", MJ_INT(rc->data.e->fd));
+      MJ_KV(node, "fd", MJ_INT(eventer_get_fd(rc->data.e)));
       sub_timeval(now, rc->data.create_time, &diff);
       age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
       MJ_KV(node, "uptime", MJ_DOUBLE(age));
@@ -1930,7 +1915,7 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
   snprintf(scratch, sizeof(scratch), fmt); \
   xmlSetProp(node, (xmlChar *)name, (xmlChar *)scratch); \
 } while(0)
-      ADD_ATTR(node, "fd", "%d", rc->data.e->fd);
+      ADD_ATTR(node, "fd", "%d", eventer_get_fd(rc->data.e));
       sub_timeval(now, rc->data.create_time, &diff);
       age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
       ADD_ATTR(node, "uptime", "%0.3f", age);

@@ -33,6 +33,7 @@
 
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
+#include "eventer/eventer_impl_private.h"
 #include "mtev_log.h"
 #include "eventer/eventer_SSL_fd_opset.h"
 #include "eventer/OETS_asn1_helper.h"

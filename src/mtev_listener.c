@@ -103,7 +103,7 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
   rv = eventer_SSL_accept(e, &mask);
   if(rv > 0) {
     eventer_ssl_ctx_t *sslctx;
-    e->callback = listener_closure->dispatch_callback;
+    eventer_set_callback(e, listener_closure->dispatch_callback);
     /* We must make a copy of the acceptor_closure_t for each new
      * connection.
      */
@@ -119,12 +119,12 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
         ac->remote_cn[end-cn] = '\0';
       }
     }
-    e->closure = ac;
+    eventer_set_closure(e, ac); 
     mtevL(nldeb, "mtev_listener[%s] SSL_accept on fd %d [%s]\n",
-          eventer_name_for_callback_e(e->callback, e),
-          e->fd, ac->remote_cn ? ac->remote_cn : "anonymous");
+          eventer_name_for_callback_e(eventer_get_callback(e), e),
+          eventer_get_fd(e), ac->remote_cn ? ac->remote_cn : "anonymous");
     if(listener_closure) free(listener_closure);
-    return e->callback(e, mask, e->closure, tv);
+    return eventer_callback(e, mask, eventer_get_closure(e), tv);
   }
   if(errno == EAGAIN) return mask|EVENTER_EXCEPTION;
 
@@ -136,8 +136,8 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
     
   if(listener_closure) free(listener_closure);
   if(ac) acceptor_closure_free(ac);
-  eventer_remove_fd(e->fd);
-  e->opset->close(e->fd, &mask, e);
+  eventer_remove_fde(e);
+  eventer_close(e, &mask);
   return 0;
 }
 
@@ -145,12 +145,14 @@ static void
 mtev_listener_details(char *buf, int buflen, eventer_t e, void *closure) {
   char sbuf[128];
   const char *sbufptr;
-  struct _event stub;
-  listener_closure_t listener_closure = e->closure;
+  eventer_t stub;
+  listener_closure_t listener_closure = eventer_get_closure(e);
 
-  stub.callback = listener_closure->dispatch_callback;
-  stub.closure = listener_closure->dispatch_closure;
-  sbufptr = eventer_name_for_callback_e(stub.callback, &stub);
+  stub = eventer_alloc();
+  eventer_set_callback(stub, listener_closure->dispatch_callback);
+  eventer_set_closure(stub, listener_closure->dispatch_closure);
+  sbufptr = eventer_name_for_callback_e(listener_closure->dispatch_callback, stub);
+  eventer_free(stub);
   strlcpy(sbuf, sbufptr, sizeof(sbuf));
   snprintf(buf, buflen, "listener(%s)", sbuf);
 }
@@ -174,7 +176,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
     ac = malloc(sizeof(*ac));
     memcpy(ac, listener_closure->dispatch_closure, sizeof(*ac));
     salen = sizeof(ac->remote);
-    conn = e->opset->accept(e->fd, &ac->remote.remote_addr, &salen, &newmask, e);
+    conn = eventer_accept(e, &ac->remote.remote_addr, &salen, &newmask);
     if(conn >= 0) {
       eventer_t newe;
       mtevL(nldeb, "mtev_listener[%s] accepted fd %d\n",
@@ -185,10 +187,6 @@ mtev_listener_acceptor(eventer_t e, int mask,
         free(ac);
         goto accept_bail;
       }
-      newe = eventer_alloc();
-      newe->fd = conn;
-      newe->mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
-  
       if(mtev_hash_size(listener_closure->sslconfig)) {
         const char *layer, *cert, *key, *ca, *ciphers, *crl;
         eventer_ssl_ctx_t *ctx;
@@ -207,8 +205,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
         ctx = eventer_ssl_ctx_new(SSL_SERVER, layer, cert, key, ca, ciphers);
         if(!ctx) {
           mtevL(mtev_error, "Failed to create SSL context.\n");
-          newe->opset->close(newe->fd, &newmask, e);
-          eventer_free(newe);
+          close(conn);
           goto socketfail;
         }
         SSLCONFGET(crl, "crl");
@@ -216,8 +213,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
           if(!eventer_ssl_use_crl(ctx, crl)) {
             mtevL(mtev_error, "Failed to load CRL from %s\n", crl);
             eventer_ssl_ctx_free(ctx);
-            newe->opset->close(newe->fd, &newmask, e);
-            eventer_free(newe);
+            close(conn);
             goto socketfail;
           }
         }
@@ -225,17 +221,16 @@ mtev_listener_acceptor(eventer_t e, int mask,
         eventer_ssl_ctx_set_verify(ctx, eventer_ssl_verify_cert,
                                    listener_closure->sslconfig);
         EVENTER_ATTACH_SSL(newe, ctx);
-        newe->callback = mtev_listener_accept_ssl;
-        newe->closure = malloc(sizeof(*listener_closure));
-        memcpy(newe->closure, listener_closure, sizeof(*listener_closure));
-        ((listener_closure_t)newe->closure)->dispatch_closure = ac;
+
+        listener_closure_t lc = malloc(sizeof(*listener_closure));
+        memcpy(lc, listener_closure, sizeof(*listener_closure));
+        lc->dispatch_closure = ac;
+        newe = eventer_alloc_fd(mtev_listener_accept_ssl, lc, conn,
+                                EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
       }
       else {
-        newe->callback = listener_closure->dispatch_callback;
-        /* We must make a copy of the acceptor_closure_t for each new
-         * connection.
-         */
-        newe->closure = ac;
+        newe = eventer_alloc_fd(listener_closure->dispatch_callback, ac, conn,
+                                EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
       }
       eventer_add(newe);
     }
@@ -412,12 +407,8 @@ mtev_listener(char *host, unsigned short port, int type,
   listener_closure->dispatch_closure->dispatch = handler;
   listener_closure->dispatch_closure->service_ctx = service_ctx;
 
-  event = eventer_alloc();
-  event->fd = fd;
-  event->mask = EVENTER_READ | EVENTER_EXCEPTION;
-  event->callback = mtev_listener_acceptor;
-  event->closure = listener_closure;
-
+  event = eventer_alloc_fd(mtev_listener_acceptor, listener_closure, fd,
+                           EVENTER_READ | EVENTER_EXCEPTION);
   eventer_add(event);
   mtevL(nldeb, "mtev_listener(%s, %d, %d, %d, %s, %p) -> success\n",
         host, port, type, backlog,
@@ -525,8 +516,8 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
 
   mtevAssert(ac->rlen >= 0);
   while(ac->rlen < sizeof(cmd)) {
-    len = e->opset->read(e->fd, ((char *)&cmd) + ac->rlen,
-                         sizeof(cmd) - ac->rlen, &mask, e);
+    len = eventer_read(e, ((char *)&cmd) + ac->rlen,
+                       sizeof(cmd) - ac->rlen, &mask);
     if(len == -1 && errno == EAGAIN)
       return EVENTER_READ | EVENTER_EXCEPTION;
 
@@ -539,8 +530,8 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
     int newmask;
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &newmask, e);
+    eventer_remove_fde(e);
+    eventer_close(e, &newmask);
     acceptor_closure_free(ac);
     return 0;
   }
@@ -554,8 +545,8 @@ socket_error:
     delegation_table = (mtev_hash_table *)vdelegation_table;
     if(mtev_hash_retrieve(delegation_table,
                           (char *)&ac->cmd, sizeof(ac->cmd), &vfunc)) {
-      e->callback = *((eventer_func_t *)vfunc);
-      return e->callback(e, callmask, closure, now);
+      eventer_set_callback(e, *((eventer_func_t *)vfunc));
+      return eventer_callback(e, callmask, closure, now);
     }
     else {
     const char *event_name;

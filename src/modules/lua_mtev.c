@@ -219,9 +219,9 @@ mtev_lua_socket_close(lua_State *L) {
   mtevAssert(ci);
 
   mtev_lua_deregister_event(ci, e, 0);
-  eventer_remove_fd(e->fd);
-  e->opset->close(e->fd, &newmask, e);
-  cl = e->closure;
+  eventer_remove_fde(e);
+  eventer_close(e, &newmask);
+  cl = eventer_get_closure(e);
   eventer_free(e);
   if(cl && cl->free) cl->free(cl);
   return 0;
@@ -243,16 +243,14 @@ mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
-  eventer_remove_fd(e->fd);
+  eventer_remove_fde(e);
   mtev_lua_deregister_event(ci, e, 0);
 
-  *(cl->eptr) = eventer_alloc();
-  memcpy(*cl->eptr, e, sizeof(*e));
-  (*cl->eptr)->mask = 0;
-  (*cl->eptr)->refcnt = 1;
+  *(cl->eptr) = eventer_alloc_copy(e);
+  eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
 
-  if(getsockopt(e->fd,SOL_SOCKET,SO_ERROR, &aerrno, &aerrno_len) == 0)
+  if(getsockopt(eventer_get_fd(e),SOL_SOCKET,SO_ERROR, &aerrno, &aerrno_len) == 0)
     if(aerrno != 0) goto connerr;
 
   if(!(mask & EVENTER_EXCEPTION) &&
@@ -303,7 +301,7 @@ mtev_lua_socket_recv_complete(eventer_t e, int mask, void *vcl,
   }
 
   alen = sizeof(cl->address);
-  while((rv = recvfrom(e->fd, inbuff, cl->read_goal, 0,
+  while((rv = recvfrom(eventer_get_fd(e), inbuff, cl->read_goal, 0,
                        (struct sockaddr *)&cl->address, &alen)) == -1 &&
         errno == EINTR);
   if(rv < 0) {
@@ -324,12 +322,10 @@ mtev_lua_socket_recv_complete(eventer_t e, int mask, void *vcl,
 
  alldone:
   if(inbuff) free(inbuff);
-  eventer_remove_fd(e->fd);
+  eventer_remove_fde(e);
   mtev_lua_deregister_event(ci, e, 0);
-  *(cl->eptr) = eventer_alloc();
-  memcpy(*cl->eptr, e, sizeof(*e));
-  (*cl->eptr)->mask = 0;
-  (*cl->eptr)->refcnt = 1;
+  *(cl->eptr) = eventer_alloc_copy(e);
+  eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, args);
   return 0;
@@ -350,19 +346,19 @@ mtev_lua_socket_recv(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
-  cl = e->closure;
+  cl = eventer_get_closure(e);
   cl->read_goal = lua_tointeger(L, 2);
   inbuff = malloc(cl->read_goal);
 
   alen = sizeof(cl->address);
-  while((rv = recvfrom(e->fd, inbuff, cl->read_goal, 0,
+  while((rv = recvfrom(eventer_get_fd(e), inbuff, cl->read_goal, 0,
                        (struct sockaddr *)&cl->address, &alen)) == -1 &&
         errno == EINTR);
   if(rv < 0) {
     if(errno == EAGAIN) {
-      eventer_remove_fd(e->fd);
-      e->callback = mtev_lua_socket_recv_complete;
-      e->mask = EVENTER_READ | EVENTER_EXCEPTION;
+      eventer_remove_fde(e);
+      eventer_set_callback(e, mtev_lua_socket_recv_complete);
+      eventer_set_mask(e, EVENTER_READ | EVENTER_EXCEPTION);
       eventer_add(e);
       free(inbuff);
       return mtev_lua_yield(ci, 0);
@@ -403,7 +399,7 @@ mtev_lua_socket_send_complete(eventer_t e, int mask, void *vcl,
     goto alldone;
   }
   if(cl->sendto) {
-    while((sbytes = sendto(e->fd, cl->outbuff, cl->write_goal, 0,
+    while((sbytes = sendto(eventer_get_fd(e), cl->outbuff, cl->write_goal, 0,
                            (struct sockaddr *)&cl->address,
                            cl->address.sin4.sin_family==AF_INET ?
                                sizeof(cl->address.sin4) :
@@ -411,7 +407,7 @@ mtev_lua_socket_send_complete(eventer_t e, int mask, void *vcl,
           errno == EINTR);
   }
   else {
-    while((sbytes = send(e->fd, cl->outbuff, cl->write_goal, 0)) == -1 &&
+    while((sbytes = send(eventer_get_fd(e), cl->outbuff, cl->write_goal, 0)) == -1 &&
           errno == EINTR);
   }
   if(sbytes > 0) {
@@ -431,12 +427,10 @@ mtev_lua_socket_send_complete(eventer_t e, int mask, void *vcl,
   }
 
  alldone:
-  eventer_remove_fd(e->fd);
+  eventer_remove_fde(e);
   mtev_lua_deregister_event(ci, e, 0);
-  *(cl->eptr) = eventer_alloc();
-  memcpy(*cl->eptr, e, sizeof(*e));
-  (*cl->eptr)->mask = 0;
-  (*cl->eptr)->refcnt = 1;
+  *(cl->eptr) = eventer_alloc_copy(e);
+  eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, args);
   return 0;
@@ -460,17 +454,17 @@ mtev_lua_socket_send(lua_State *L) {
     luaL_error(L, "mtev.socket.send with bad arguments");
   bytes = lua_tolstring(L, 2, &nbytes);
 
-  while((sbytes = send(e->fd, bytes, nbytes, 0)) == -1 && errno == EINTR);
+  while((sbytes = send(eventer_get_fd(e), bytes, nbytes, 0)) == -1 && errno == EINTR);
   if(sbytes < 0 && errno == EAGAIN) {
     struct nl_slcl *cl;
     /* continuation */
-    cl = e->closure;
+    cl = eventer_get_closure(e);
     cl->write_sofar = 0;
     cl->outbuff = bytes;
     cl->write_goal = nbytes;
     cl->sendto = 0;
-    e->callback = mtev_lua_socket_send_complete;
-    e->mask = EVENTER_WRITE | EVENTER_EXCEPTION;
+    eventer_set_callback(e, mtev_lua_socket_send_complete);
+    eventer_set_mask(e, EVENTER_WRITE | EVENTER_EXCEPTION);
     eventer_add(e);
     return mtev_lua_yield(ci, 0);
   }
@@ -534,20 +528,21 @@ mtev_lua_socket_sendto(lua_State *L) {
     a.sin4.sin_port = htons(port);
   }
 
-  while((sbytes = sendto(e->fd, bytes, nbytes, 0, (struct sockaddr *)&a,
+  while((sbytes = sendto(eventer_get_fd(e), bytes, nbytes,
+                         0, (struct sockaddr *)&a,
                          family==AF_INET ? sizeof(a.sin4)
                                          : sizeof(a.sin6))) == -1 &&
         errno == EINTR);
   if(sbytes < 0 && errno == EAGAIN) {
     struct nl_slcl *cl;
     /* continuation */
-    cl = e->closure;
+    cl = eventer_get_closure(e);
     cl->write_sofar = 0;
     cl->outbuff = bytes;
     cl->write_goal = nbytes;
     cl->sendto = 1;
-    e->callback = mtev_lua_socket_send_complete;
-    e->mask = EVENTER_WRITE | EVENTER_EXCEPTION;
+    eventer_set_callback(e, mtev_lua_socket_send_complete);
+    eventer_set_mask(e, EVENTER_WRITE | EVENTER_EXCEPTION);
     eventer_add(e);
     return mtev_lua_yield(ci, 0);
   }
@@ -606,7 +601,7 @@ mtev_lua_socket_bind(lua_State *L) {
     memset (a.sin4.sin_zero, 0, sizeof (a.sin4.sin_zero));
   }
 
-  rv = bind(e->fd, (struct sockaddr *)&a,
+  rv = bind(eventer_get_fd(e), (struct sockaddr *)&a,
             family==AF_INET ? sizeof(a.sin4) : sizeof(a.sin6));
   if(rv == 0) {
     lua_pushinteger(L, 0);
@@ -651,7 +646,7 @@ mtev_lua_socket_accept_complete(eventer_t e, int mask, void *vcl,
   mtevAssert(ci);
 
   inlen = sizeof(addr.in);
-  fd = e->opset->accept(e->fd, &addr.in, &inlen, &newmask, e);
+  fd = eventer_accept(e, &addr.in, &inlen, &newmask);
   if(fd <= 0 && errno == EAGAIN) return newmask | EVENTER_EXCEPTION;
   if(fd < 0) {
     lua_pushnil(cl->L);
@@ -672,22 +667,17 @@ mtev_lua_socket_accept_complete(eventer_t e, int mask, void *vcl,
   if(getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &newcl->send_size, &optlen) != 0)
     newcl->send_size = 4096;
 
-  newe = eventer_alloc();
-  newe->fd = fd;
-  newe->callback = NULL;
-  newe->closure = newcl;
+  newe = eventer_alloc_fd(NULL, newcl, fd, 0);
   newcl->eptr = mtev_lua_event(cl->L, newe);
 
   mtev_lua_register_event(ci, newe);
   nargs = 1;
 
  alldone:
-  eventer_remove_fd(e->fd);
+  eventer_remove_fde(e);
   mtev_lua_deregister_event(ci, e, 0);
-  *(cl->eptr) = eventer_alloc();
-  memcpy(*cl->eptr, e, sizeof(*e));
-  (*cl->eptr)->mask = 0;
-  (*cl->eptr)->refcnt = 1;
+  *(cl->eptr) = eventer_alloc_copy(e);
+  eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, nargs);
   return 0;
@@ -707,7 +697,7 @@ mtev_lua_socket_listen(lua_State *L) {
     luaL_error(L, "must be called as method");
   e = *eptr;
 
-  if((rv = listen(e->fd, lua_tointeger(L, 2))) < 0) {
+  if((rv = listen(eventer_get_fd(e), lua_tointeger(L, 2))) < 0) {
     lua_pushinteger(L, rv);
     lua_pushinteger(L, errno);
     lua_pushstring(L, strerror(errno));
@@ -728,7 +718,7 @@ mtev_lua_socket_own(lua_State *L) {
     luaL_error(L, "must be called as method");
   e = *eptr;
   *eptr = NULL;
-  cl = e->closure;
+  cl = eventer_get_closure(e);
   if(cl->L == L) return 0;
   
   ci = mtev_lua_get_resume_info(cl->L);
@@ -764,7 +754,7 @@ mtev_lua_socket_accept(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
-  cl = e->closure;
+  cl = eventer_get_closure(e);
 
   if(cl->L != L) {
     mtevL(nlerr, "cross-coroutine socket call: use event:own()\n");
@@ -772,12 +762,12 @@ mtev_lua_socket_accept(lua_State *L) {
   }
 
   inlen = sizeof(addr.in);
-  fd = e->opset->accept(e->fd, &addr.in, &inlen, &newmask, e);
+  fd = eventer_accept(e, &addr.in, &inlen, &newmask);
   if(fd < 0) {
     if(errno == EAGAIN) {
       /* Need completion */
-      e->callback = mtev_lua_socket_accept_complete;
-      e->mask = newmask | EVENTER_EXCEPTION;
+      eventer_set_callback(e, mtev_lua_socket_accept_complete);
+      eventer_set_mask(e, newmask | EVENTER_EXCEPTION);
       eventer_add(e);
       mtevL(nldeb, "accept rescheduled\n");
       return mtev_lua_yield(ci, 0);
@@ -800,10 +790,7 @@ mtev_lua_socket_accept(lua_State *L) {
   if(getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &cl->send_size, &optlen) != 0)
     cl->send_size = 4096;
 
-  e = eventer_alloc();
-  e->fd = fd;
-  e->callback = NULL;
-  e->closure = cl;
+  e = eventer_alloc_fd(NULL, cl, fd, 0);
   cl->eptr = mtev_lua_event(L, e);
 
   mtev_lua_register_event(ci, e);
@@ -862,7 +849,8 @@ mtev_lua_socket_setsockopt(lua_State *L) {
     return 2;
   }
 
-  if (setsockopt(e->fd, SOL_SOCKET, type_val, (char*)&value, sizeof(value)) < 0) {
+  if (setsockopt(eventer_get_fd(e), SOL_SOCKET, type_val,
+                 (char*)&value, sizeof(value)) < 0) {
     lua_pushinteger(L, -1);
     lua_pushfstring(L, strerror(errno));
     return 2;
@@ -899,7 +887,7 @@ mtev_lua_socket_connect(lua_State *L) {
       lua_pushfstring(L, "Reverse connection unavailable");
       return 2;
     }
-    if(dup2(fd, e->fd) < 0) {
+    if(dup2(fd, eventer_get_fd(e)) < 0) {
       close(fd);
       lua_pushinteger(L, -1);
       lua_pushfstring(L, "Reverse connection dup2 failed");
@@ -935,7 +923,7 @@ mtev_lua_socket_connect(lua_State *L) {
     a.sin4.sin_port = htons(port);
   }
 
-  rv = connect(e->fd, (struct sockaddr *)&a,
+  rv = connect(eventer_get_fd(e), (struct sockaddr *)&a,
                family==AF_INET ? sizeof(a.sin4) : sizeof(a.sin6));
   if(rv == 0) {
     lua_pushinteger(L, 0);
@@ -943,8 +931,8 @@ mtev_lua_socket_connect(lua_State *L) {
   }
   if(rv == -1 && errno == EINPROGRESS) {
     /* Need completion */
-    e->callback = mtev_lua_socket_connect_complete;
-    e->mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
+    eventer_set_callback(e, mtev_lua_socket_connect_complete);
+    eventer_set_mask(e, EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
     eventer_add(e);
     return mtev_lua_yield(ci, 0);
   }
@@ -966,9 +954,7 @@ mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
   mtevAssert(ci);
   mtev_lua_deregister_event(ci, e, 0);
 
-  *(cl->eptr) = eventer_alloc();
-  memcpy(*cl->eptr, e, sizeof(*e));
-  (*cl->eptr)->refcnt = 1;
+  *(cl->eptr) = eventer_alloc_copy(e);
   mtev_lua_register_event(ci, *cl->eptr);
 
   /* Upgrade completed (successfully???) */
@@ -1031,9 +1017,9 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
   rv = eventer_SSL_connect(e, &tmpmask);
   if(rv <= 0 && errno == EAGAIN) {
     /* Need completion */
-    eventer_remove_fd(e->fd);
-    e->mask = tmpmask | EVENTER_EXCEPTION;
-    e->callback = mtev_lua_ssl_upgrade;
+    eventer_remove_fde(e);
+    eventer_set_mask(e, tmpmask | EVENTER_EXCEPTION);
+    eventer_set_callback(e, mtev_lua_ssl_upgrade);
     eventer_add(e);
     return mtev_lua_yield(ci, 0);
   }
@@ -1054,7 +1040,7 @@ mtev_lua_socket_do_read(eventer_t e, int *mask, struct nl_slcl *cl,
   char buff[4096];
   int len;
   *read_complete = 0;
-  while((len = e->opset->read(e->fd, buff, sizeof(buff), mask, e)) > 0) {
+  while((len = eventer_read(e, buff, sizeof(buff), mask)) > 0) {
     if(cl->read_goal) {
       int remaining = cl->read_goal - cl->read_sofar;
       /* copy up to the goal into the inbuff */
@@ -1135,11 +1121,9 @@ mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
     lua_pushnil(cl->L);
     args = 1;
   }
-  eventer_remove_fd(e->fd);
+  eventer_remove_fde(e);
   mtev_lua_deregister_event(ci, e, 0);
-  *(cl->eptr) = eventer_alloc();
-  memcpy(*cl->eptr, e, sizeof(*e));
-  (*cl->eptr)->refcnt = 1;
+  *(cl->eptr) = eventer_alloc_copy(e);
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, args);
   return 0;
@@ -1159,16 +1143,14 @@ static int on_timeout(eventer_t e, int mask, void *closure,
   lua_rawgeti( L, LUA_REGISTRYINDEX, cb_ref->callback_reference );
   lua_call(L, 0, 0);
 
-  cl = cb_ref->timed_out_eventer->closure;
+  cl = eventer_get_closure(cb_ref->timed_out_eventer);
   ci = mtev_lua_get_resume_info(L);
   assert(ci);
 
   // remove the original read event
-  eventer_remove_fd(cb_ref->timed_out_eventer->fd);
+  eventer_remove_fde(cb_ref->timed_out_eventer);
   mtev_lua_deregister_event(ci, cb_ref->timed_out_eventer, 0);
-  *(cl->eptr) = eventer_alloc();
-  memcpy(*cl->eptr, cb_ref->timed_out_eventer, sizeof(*cb_ref->timed_out_eventer));
-  (*cl->eptr)->refcnt = 1;
+  *(cl->eptr) = eventer_alloc_copy(cb_ref->timed_out_eventer);
   mtev_lua_register_event(ci, *cl->eptr);
 
   // return into the original Lua call which spawned this timeout
@@ -1194,7 +1176,7 @@ mtev_lua_socket_read(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
-  cl = e->closure;
+  cl = eventer_get_closure(e);
   cl->read_goal = 0;
   cl->read_terminator = NULL;
 
@@ -1241,9 +1223,9 @@ mtev_lua_socket_read(lua_State *L) {
   if(args == 1) return 1; /* completed read, return result */
   if(len == -1 && errno == EAGAIN) {
     /* we need to drop into eventer */
-    eventer_remove_fd(e->fd);
-    e->callback = mtev_lua_socket_read_complete;
-    e->mask = mask | EVENTER_EXCEPTION;
+    eventer_remove_fde(e);
+    eventer_set_callback(e, mtev_lua_socket_read_complete);
+    eventer_set_mask(e, eventer_get_mask(e) | EVENTER_EXCEPTION);
     eventer_add(e);
 
     if (lua_gettop(L) == 5 && lua_isfunction(L, 5)) {
@@ -1264,13 +1246,8 @@ mtev_lua_socket_read(lua_State *L) {
       cb_ref->callback_reference = luaL_ref( L, LUA_REGISTRYINDEX );
       cb_ref->timed_out_eventer = e;
 
-      eventer_t timeout_eventer = eventer_alloc();
-      timeout_eventer->mask = EVENTER_TIMER;
-      mtev_gettimeofday(&timeout_eventer->whence, NULL);
-      timeout_eventer->whence.tv_sec += timeout_s;
-      timeout_eventer->whence.tv_usec += timeout_us;
-      timeout_eventer->callback = on_timeout;
-      timeout_eventer->closure = cb_ref;
+      eventer_t timeout_eventer =
+        eventer_in_s_us(on_timeout, cb_ref, timeout_s, timeout_us);
       mtev_lua_register_event(ci, timeout_eventer);
       eventer_add_timed(timeout_eventer);
 
@@ -1307,11 +1284,11 @@ mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
     args = 1;
     goto alldone;
   }
-  while((rv = e->opset->write(e->fd,
-                              cl->outbuff + cl->write_sofar,
-                              MIN(cl->send_size,
-                                  (cl->write_goal - cl->write_sofar)),
-                              &mask, e)) > 0) {
+  while((rv = eventer_write(e,
+                            cl->outbuff + cl->write_sofar,
+                            MIN(cl->send_size,
+                                (cl->write_goal - cl->write_sofar)),
+                            &mask)) > 0) {
     cl->write_sofar += rv;
     mtevAssert(cl->write_sofar <= cl->write_goal);
     if(cl->write_sofar == cl->write_goal) break;
@@ -1333,12 +1310,10 @@ mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
   }
 
  alldone:
-  eventer_remove_fd(e->fd);
+  eventer_remove_fde(e);
   mtev_lua_deregister_event(ci, e, 0);
-  *(cl->eptr) = eventer_alloc();
-  memcpy(*cl->eptr, e, sizeof(*e));
-  (*cl->eptr)->mask = 0;
-  (*cl->eptr)->refcnt = 1;
+  *(cl->eptr) = eventer_alloc_copy(e);
+  eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
   ci->lmc->resume(ci, args);
   return 0;
@@ -1357,7 +1332,7 @@ mtev_lua_socket_write(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
-  cl = e->closure;
+  cl = eventer_get_closure(e);
   cl->write_sofar = 0;
   cl->outbuff = lua_tolstring(L, 2, &cl->write_goal);
 
@@ -1366,11 +1341,11 @@ mtev_lua_socket_write(lua_State *L) {
     luaL_error(L, "cross-coroutine socket call: use event:own()");
   }
 
-  while((rv = e->opset->write(e->fd,
-                              cl->outbuff + cl->write_sofar,
-                              MIN(cl->send_size,
-                                  (cl->write_goal - cl->write_sofar)),
-                              &mask, e)) > 0) {
+  while((rv = eventer_write(e,
+                            cl->outbuff + cl->write_sofar,
+                            MIN(cl->send_size,
+                                (cl->write_goal - cl->write_sofar)),
+                            &mask)) > 0) {
     cl->write_sofar += rv;
     mtevAssert(cl->write_sofar <= cl->write_goal);
     if(cl->write_sofar == cl->write_goal) break;
@@ -1380,9 +1355,9 @@ mtev_lua_socket_write(lua_State *L) {
     return 1;
   }
   if(rv == -1 && errno == EAGAIN) {
-    eventer_remove_fd(e->fd);
-    e->callback = mtev_lua_socket_write_complete;
-    e->mask = mask | EVENTER_EXCEPTION;
+    eventer_remove_fde(e);
+    eventer_set_callback(e, mtev_lua_socket_write_complete);
+    eventer_set_mask(e, eventer_get_mask(e) | EVENTER_EXCEPTION);
     eventer_add(e);
     return mtev_lua_yield(ci, 0);
   }
@@ -1637,7 +1612,6 @@ nl_waitfor(lua_State *L) {
   void *vptr;
   const char *key;
   struct nl_wn_queue *q;
-  struct timeval diff;
   eventer_t e;
   double p_int;
 
@@ -1672,14 +1646,9 @@ nl_waitfor(lua_State *L) {
   /* if the timeout is zero and we didn't return already, don't wait */
   if(p_int == 0.0) return 0;
 
-  q->pending_event = e = eventer_alloc();
-  e->mask = EVENTER_TIMER;
-  e->callback = nl_waitfor_timeout;
-  e->closure = q;
-  mtev_gettimeofday(&e->whence, NULL);
-  diff.tv_sec = floor(p_int);
-  diff.tv_usec = (p_int - floor(p_int)) * 1000000;
-  add_timeval(e->whence, diff, &e->whence);
+  q->pending_event = e =
+    eventer_in_s_us(nl_waitfor_timeout, q,
+                    floor(p_int), (p_int - floor(p_int)) * 1000000);
   mtev_lua_register_event(ci, e);
   eventer_add(e);
   return mtev_lua_yield(ci, 0);
@@ -1708,7 +1677,6 @@ static int
 nl_sleep(lua_State *L) {
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl;
-  struct timeval diff;
   eventer_t e;
   double p_int;
 
@@ -1721,14 +1689,8 @@ nl_sleep(lua_State *L) {
   cl->L = L;
   mtev_gettimeofday(&cl->start, NULL);
 
-  e = eventer_alloc();
-  e->mask = EVENTER_TIMER;
-  e->callback = nl_sleep_complete;
-  e->closure = cl;
-  memcpy(&e->whence, &cl->start, sizeof(cl->start));
-  diff.tv_sec = floor(p_int);
-  diff.tv_usec = (p_int - floor(p_int)) * 1000000;
-  add_timeval(e->whence, diff, &e->whence);
+  e = eventer_in_s_us(nl_sleep_complete, cl, 
+                      floor(p_int), (p_int - floor(p_int)) * 1000000);
   mtev_lua_register_event(ci, e);
   eventer_add(e);
   return mtev_lua_yield(ci, 0);
@@ -2429,11 +2391,7 @@ nl_socket_internal(lua_State *L, int family, int proto) {
   if(getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &cl->send_size, &optlen) != 0)
     cl->send_size = 4096;
 
-  e = eventer_alloc();
-  e->fd = fd;
-  e->mask = EVENTER_EXCEPTION;
-  e->callback = NULL;
-  e->closure = cl;
+  e = eventer_alloc_fd(NULL, cl, fd, EVENTER_EXCEPTION);
   cl->eptr = mtev_lua_event(L, e);
 
   mtev_lua_register_event(ci, e);
@@ -3613,13 +3571,9 @@ int nl_spawn(lua_State *L) {
   cl = calloc(1, sizeof(*cl)); \
   cl->free = nl_extended_free; \
   cl->L = L; \
-  e = eventer_alloc(); \
-  e->fd = ourfd; \
-  e->mask = EVENTER_EXCEPTION; \
-  e->callback = NULL; \
+  e = eventer_alloc_fd(NULL, cl, ourfd, EVENTER_EXCEPTION); \
   cl->eptr = mtev_lua_event(L, e); \
   cl->send_size = 4096; \
-  e->closure = cl; \
   mtev_lua_register_event(ri, e); \
 } while(0)
 
@@ -3945,7 +3899,7 @@ mtev_lua_eventer_gc(lua_State *L) {
   *eptr = NULL;
   if(e) {
     mtev_lua_resume_info_t *ci;
-    struct nl_slcl *cl = e->closure;
+    struct nl_slcl *cl = eventer_get_closure(e);
     int newmask;
 
     if(cl->L) {
@@ -3953,9 +3907,9 @@ mtev_lua_eventer_gc(lua_State *L) {
       mtevAssert(ci);
       mtev_lua_deregister_event(ci, e, 0);
     }
-    if(e->mask & (EVENTER_EXCEPTION|EVENTER_READ|EVENTER_WRITE))
-      eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &newmask, e);
+    if(eventer_get_mask(e) & (EVENTER_EXCEPTION|EVENTER_READ|EVENTER_WRITE))
+      eventer_remove_fde(e);
+    eventer_close(e, &newmask);
     eventer_free(e);
     if(cl->free) cl->free(cl);
   }
