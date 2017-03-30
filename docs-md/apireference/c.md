@@ -1,97 +1,3 @@
-### M
-
-#### MTEV_MAYBE_DECL
-
->C Macro for declaring a "maybe" buffer.
-
-```c
-
-MTEV_MAYBE_DECL(type, name, cnt)
-```
-
-
-  * `type` A C type (e.g. char)
-  * `name` The name of the C variable to declare.
-  * `cnt` The number of type elements initially declared.
-
-A "maybe" buffer is a buffer that is allocated on-stack, but
-if more space is required can be reallocated off stack (malloc).
-One should always call `MTEV_MAYBE_FREE` on any allocated
-maybe buffer.
- 
-
-#### MTEV_MAYBE_DECL_VARS
-
->C Macro for declaring a "maybe" buffer.
-
-```c
-
-MTEV_MAYBE_DECL_VARS(type, name, cnt)
-```
-
-
-  * `type` A C type (e.g. char)
-  * `name` The name of the C variable to declare.
-  * `cnt` The number of type elements initially declared.
- 
-
-#### MTEV_MAYBE_FREE
-
->C Macro to free any heap space associated with a "maybe" buffer.
-
-```c
-
-MTEV_MAYBE_FREE(name)
-```
-
-
-  * `name` The name of the "maybe" buffer.
- 
-
-#### MTEV_MAYBE_INIT_VARS
-
->C Macro for initializing a "maybe" buffer
-
-```c
-
-MTEV_MAYBE_INIT_VARS(name)
-```
-
-
-  * `name` The name of "maybe" buffer.
- 
-
-#### MTEV_MAYBE_REALLOC
-
->C Macro to ensure a maybe buffer has at least cnt elements allocated.
-
-```c
-
-MTEV_MAYBE_REALLOC(name, cnt)
-```
-
-
-  * `name` The name of the "maybe" buffer.
-  * `cnt` The total number of elements expected in the allocation.
-
-This macro will never reduce the size and is a noop if a size smaller
-than or equal to the current allocation size is specified.  It is safe
-to simply run this macro prior to each write to the buffer.
- 
-
-#### MTEV_MAYBE_SIZE
-
->C Macro for number of bytes available in this buffer.
-
-```c
-
-MTEV_MAYBE_SIZE(name)
-```
-
-
-  * `name` The name of the "maybe" buffer.
- 
-
 ### A
 
 #### mtev_amqp_send
@@ -1368,6 +1274,21 @@ mtev_lockfile_acquire(const char *fp)
   * **RETURN** >= 0 on success, -1 on failure
  
 
+#### mtev_lockfile_acquire_owner
+
+>lock the file immediately if possible, return -1 otherwise.
+
+```c
+mtev_lockfile_t 
+mtev_lockfile_acquire_owner(const char *fp, pid_t *owner)
+```
+
+
+  * `fp` the path to the lock file
+  * `owner` is a pointer to a pid.  If the lock is owned by another process, this will be set to that pid, otherwise it will be set to -1.
+  * **RETURN** >= 0 on success, -1 on failure
+ 
+
 #### mtev_lockfile_release
 
 >release a held file lock
@@ -1381,20 +1302,6 @@ mtev_lockfile_release(mtev_lockfile_t fd)
   * `fd` the file lock to release
   * **RETURN** -1 on failure, 0 on success
  
-
-#### mtev_lua_lmc_L
-
->Get the `lua_State *` for this module closure.
-
-```c
-lua_State *
-mtev_lua_lmc_L(lua_module_closure_t *lmc)
-```
-
-
-  * `lmc` the `lua_module_closure_t` that was allocated for this runtime.
-  * **RETURN** a Lua state
-
 
 #### mtev_lua_lmc_alloc
 
@@ -1426,6 +1333,20 @@ mtev_lua_lmc_free(lua_module_closure_t *lmc)
 
 
   * `lmc` The `lua_module_closure_t` to be freed.
+
+
+#### mtev_lua_lmc_L
+
+>Get the `lua_State *` for this module closure.
+
+```c
+lua_State *
+mtev_lua_lmc_L(lua_module_closure_t *lmc)
+```
+
+
+  * `lmc` the `lua_module_closure_t` that was allocated for this runtime.
+  * **RETURN** a Lua state
 
 
 #### mtev_lua_lmc_resume
@@ -1460,6 +1381,157 @@ mtev_lua_lmc_setL(lua_module_closure_t *lmc)
 
 
 ### M
+
+#### mtev_main
+
+>Run a comprehensive mtev setup followed by a "main" routine.
+
+```c
+int 
+mtev_main(const char *appname, const char *config_filename, int debug, int foreground, 
+          mtev_log_op_t lock, const char *glider, const char *drop_to_user, 
+          const char *drop_to_group, int (*passed_child_main)(void))
+```
+
+
+  * `appname` The application name (should be the config root node name).
+  * `config_filename` The path the the config file.
+  * `debug` Enable debugging (logging).
+  * `foreground` 0 to daemonize with watchdog, 1 to foreground, 2 to foreground with watchdog.
+  * `lock` Specifies where to not lock, try lock or exit, or lock or wait.
+  * `glider` A path to an executable to invoke against the process id on crash. May be NULL.
+  * `drop_to_user` A target user for dropping privileges when under watchdog. May be NULL.
+  * `drop_to_group` A target group for dropping privileges when under watchdog. May be NULL.
+  * `passed_child_main` A programmers supplied main function.
+  * **RETURN** -1 on failure, 0 on success if `foreground==1`, or the return value of `main` if run in the foreground.
+ 
+
+#### mtev_main_status
+
+>Determine if that application is already running under this configuration.
+
+```c
+int 
+mtev_main_status(const char *appname, const char *config_filename, int debug, pid_t *pid
+                 pid_t *pgid)
+```
+
+
+  * `appname` The application name (should be the config root node name).
+  * `config_filename` The path the the config file.
+  * `debug` Enable debugging (logging).
+  * `pid` If not null, it is populated with the process id of the running instance.
+  * `pgid` If not null, it is populated with the process group id of the running instance.
+  * **RETURN** 0 on success, -1 on failure.
+ 
+
+#### mtev_main_terminate
+
+>Terminate an already running application under the same configuration.
+
+```c
+int 
+mtev_main_terminate(const char *appname, const char *config_filename, int debug)
+```
+
+
+  * `appname` The application name (should be the config root node name).
+  * `config_filename` The path the the config file.
+  * `debug` Enable debugging (logging).
+  * **RETURN** 0 on success, -1 on failure.  If the application is not running at the time of invocation, termination is considered successful.
+ 
+
+#### MTEV_MAYBE_DECL
+
+>C Macro for declaring a "maybe" buffer.
+
+```c
+
+MTEV_MAYBE_DECL(type, name, cnt)
+```
+
+
+  * `type` A C type (e.g. char)
+  * `name` The name of the C variable to declare.
+  * `cnt` The number of type elements initially declared.
+
+A "maybe" buffer is a buffer that is allocated on-stack, but
+if more space is required can be reallocated off stack (malloc).
+One should always call `MTEV_MAYBE_FREE` on any allocated
+maybe buffer.
+ 
+
+#### MTEV_MAYBE_DECL_VARS
+
+>C Macro for declaring a "maybe" buffer.
+
+```c
+
+MTEV_MAYBE_DECL_VARS(type, name, cnt)
+```
+
+
+  * `type` A C type (e.g. char)
+  * `name` The name of the C variable to declare.
+  * `cnt` The number of type elements initially declared.
+ 
+
+#### MTEV_MAYBE_FREE
+
+>C Macro to free any heap space associated with a "maybe" buffer.
+
+```c
+
+MTEV_MAYBE_FREE(name)
+```
+
+
+  * `name` The name of the "maybe" buffer.
+ 
+
+#### MTEV_MAYBE_INIT_VARS
+
+>C Macro for initializing a "maybe" buffer
+
+```c
+
+MTEV_MAYBE_INIT_VARS(name)
+```
+
+
+  * `name` The name of "maybe" buffer.
+ 
+
+#### MTEV_MAYBE_REALLOC
+
+>C Macro to ensure a maybe buffer has at least cnt elements allocated.
+
+```c
+
+MTEV_MAYBE_REALLOC(name, cnt)
+```
+
+
+  * `name` The name of the "maybe" buffer.
+  * `cnt` The total number of elements expected in the allocation.
+
+This macro will never reduce the size and is a noop if a size smaller
+than or equal to the current allocation size is specified.  It is safe
+to simply run this macro prior to each write to the buffer.
+ 
+
+#### MTEV_MAYBE_SIZE
+
+>C Macro for number of bytes available in this buffer.
+
+```c
+
+MTEV_MAYBE_SIZE(name)
+```
+
+
+  * `name` The name of the "maybe" buffer.
+ 
 
 #### mtev_merge_sort
 
