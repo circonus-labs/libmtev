@@ -4318,7 +4318,7 @@ d_print_comp (struct d_print_info *dpi, int options,
 
   /* Variable used to store the current templates while a previously
      captured scope is used.  */
-  struct d_print_template *saved_templates;
+  struct d_print_template *saved_templates = NULL;
 
   /* Nonzero if templates have been stored in the above variable.  */
   int need_template_restore = 0;

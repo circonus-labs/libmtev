@@ -1,5 +1,10 @@
 .SUFFIXES: .hlo .lo .re .c
 
+Q=
+ifeq ($(V),)
+	Q=@
+endif
+
 CC=@CC@
 AR=@AR@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@

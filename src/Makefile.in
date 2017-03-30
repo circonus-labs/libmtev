@@ -1,8 +1,10 @@
 .SUFFIXES: .hlo .lo .re .c
 
 Q=
+MAKEARGS=
 ifeq ($(V),)
 	Q=@
+	MAKEARGS=-s
 endif
 
 SEMVER_MAJOR=0
@@ -81,7 +83,7 @@ TARGETS=$(LIBMTEV) $(LIBMTEV_MINOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS
 all:	reversion $(TARGETS) make-man build-modules
 
 build-modules:
-	(cd modules && $(MAKE))
+	$(Q)$(MAKE) $(MAKEARGS) -C modules
 
 HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
     mtev_cluster.h mtev_net_heartbeat.h mtev_config.h \
@@ -170,7 +172,7 @@ mtev_time_fast.so:	utils/mtev_time_fast_preload.c
 	$(Q)$(SHLD) $(SHCFLAGS) $(CPPFLAGS) -o $@ utils/mtev_time_fast_preload.c
 
 utils/android-demangle/cp-demangle.lo:	utils/android-demangle/cp-demangle.c
-	$(MAKE) -C utils/android-demangle cp-demangle.lo
+	$(Q)$(MAKE) $(MAKEARGS) -C utils/android-demangle cp-demangle.lo
 
 libmtev-objs/%.lo:	%.lo
 	$(Q)mkdir -p "`dirname $@`"
@@ -193,7 +195,7 @@ libmtev-objs/%.hlo:	%.hlo
 	$(Q)mv $@.noctf $@
 
 make-man:
-	$(Q)(cd man && $(MAKE) -s)
+	$(Q)$(MAKE) $(MAKEARGS) -C man
 
 .PHONY:	reversion
 
@@ -316,10 +318,10 @@ install-libs:	mtevlibs
 	fi
 
 install-modules:
-	(cd modules && $(MAKE) install DESTDIR=$(DESTDIR))
+	$(MAKE) $(MAKEARGS) -C modules install DESTDIR=$(DESTDIR)
 
 install-docs:
-	(cd man && $(MAKE) install DESTDIR=$(DESTDIR))
+	$(MAKE) $(MAKEARGS) -C man install DESTDIR=$(DESTDIR)
 
 install:	install-bins install-docs install-headers install-libs install-modules
 
@@ -331,8 +333,8 @@ clean:
 	rm -f $(LIBMTEV) $(LIBMTEV_V)
 	rm -rf libmtev-objs
 	rm -rf mdb-support/*.lo mdb-support/*.so
-	(cd man && $(MAKE) clean)
-	(cd modules && $(MAKE) clean)
+	$(MAKE) -C man clean
+	$(MAKE) -C modules clean
 
 Makefile.dep:
 	$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
