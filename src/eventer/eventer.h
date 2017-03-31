@@ -87,7 +87,6 @@ typedef struct _fd_opset
 #endif
 *eventer_fd_opset_t;
 
-typedef struct _fd_opset *eventer_fd_opset_t;
 struct _event;
 typedef int (*eventer_func_t)
             (struct _event *e, int mask, void *closure, struct timeval *tv);
