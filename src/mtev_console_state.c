@@ -52,6 +52,7 @@
 #include <errno.h>
 #include <sys/utsname.h>
 #include <inttypes.h>
+#include <dlfcn.h>
 
 int cmd_info_comparek(const void *akv, const void *bv) {
   char *ak = (char *)akv;
@@ -556,7 +557,41 @@ cmd_info_t console_command_log_disconnect = {
 };
 
 cmd_info_t console_command_show_rest = {
-  "rest", mtev_mtev_console_show, NULL, NULL, NULL
+  "rest", mtev_console_show_rest, NULL, NULL, NULL
+};
+
+static void je_write_cb(void *ncct, const char *str) {
+  nc_printf(ncct, "%s", str);
+}
+int
+mtev_console_show_jemalloc(mtev_console_closure_t ncct, int argc, char **argv,
+                           mtev_console_state_t *dstate, void *closure) {
+  const char *opts = "";
+  static void (*my_malloc_stats_print)(void (*write_cb)(void *, const char *), void *cbopaque, const char *opts);
+  if(my_malloc_stats_print == NULL) {
+    my_malloc_stats_print =
+#ifdef RTLD_DEFAULT
+      dlsym(RTLD_DEFAULT, "malloc_stats_print");
+#else
+      dlsym((void *)0, "malloc_stats_print");
+#endif
+  }
+  if(my_malloc_stats_print == NULL) {
+    nc_printf(ncct, "jemalloc not loaded.\n");
+    return 0;
+  }
+  if(argc > 1) {
+    nc_printf(ncct, "takes 0 or 1 arguments\n");
+    return -1;
+  }
+  if(argc == 1) opts = argv[0];
+  my_malloc_stats_print(je_write_cb, ncct, opts);
+nc_printf(ncct, "opts: %s\n", opts);
+  return 0;
+}
+
+cmd_info_t console_command_show_jemalloc = {
+  "jemalloc", mtev_console_show_jemalloc, NULL, NULL, NULL
 };
 
 void
@@ -934,10 +969,11 @@ mtev_console_state_initial() {
   static mtev_console_state_t *_top_level_state = NULL;
   if(!_top_level_state) {
     static mtev_console_state_t *no_state, *show_state, *evdeb, *mtevdeb,
-                                *mtevst, *rdtsc, *log_state, *nolog_state;
+      *mtevst, *rdtsc, *log_state, *nolog_state, *mem_state;
     _top_level_state = mtev_console_state_alloc();
     mtev_console_state_add_cmd(_top_level_state, &console_command_exit);
     show_state = mtev_console_mksubdelegate(_top_level_state, "show");
+    mem_state = mtev_console_mksubdelegate(show_state, "memory");
     log_state = mtev_console_mksubdelegate(_top_level_state, "log");
     no_state = mtev_console_mksubdelegate(_top_level_state, "no");
     nolog_state = mtev_console_mksubdelegate(no_state, "log");
@@ -961,6 +997,7 @@ mtev_console_state_initial() {
     mtev_console_state_add_cmd(show_state, &console_command_version);
     mtev_console_state_add_cmd(show_state, &console_command_log_lines);
     mtev_console_state_add_cmd(show_state, &console_command_show_rest);
+    mtev_console_state_add_cmd(mem_state, &console_command_show_jemalloc);
     (void)no_state;
 
     evdeb = mtev_console_mksubdelegate(
