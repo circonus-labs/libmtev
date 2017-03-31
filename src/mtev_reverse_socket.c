@@ -1292,8 +1292,7 @@ mtev_connection_update_timeout(mtev_connection_ctx_t *nctx) {
   }
   else {
     add_timeval(now, diff, &diff);
-    eventer_set_whence(nctx->timeout_event, diff);
-    eventer_update(nctx->timeout_event, EVENTER_TIMER);
+    eventer_update_whence(nctx->timeout_event, diff);
   }
   return 0;
 }

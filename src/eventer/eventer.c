@@ -129,7 +129,11 @@ int eventer_get_fd(eventer_t e) { return e->fd; }
 /* No setter here */
 
 struct timeval eventer_get_whence(eventer_t e) { return e->whence; }
-void eventer_set_whence(eventer_t e, struct timeval t) { e->whence = t; }
+void eventer_update_whence(eventer_t e, struct timeval t) {
+  if(e->mask != EVENTER_TIMER) return;
+  e->whence = t;
+  eventer_update(e, EVENTER_TIMER);
+}
 
 pthread_t eventer_get_owner(eventer_t e) { return e->thr_owner; }
 void eventer_set_owner(eventer_t e, pthread_t t) { e->thr_owner = t; }
