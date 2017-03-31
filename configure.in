@@ -83,7 +83,7 @@ else
 fi
 SHLDFLAGS="$LDFLAGS"
 
-CPPFLAGS="$CPPFLAGS -DHIDE_EVENTER_ABI -D_REENTRANT "'-I$(top_srcdir)/src'
+CPPFLAGS="$CPPFLAGS -D_REENTRANT "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
 DOTSO=.so
 LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR).$(SEMVER_MINOR)'
