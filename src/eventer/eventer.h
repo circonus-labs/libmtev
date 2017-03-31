@@ -200,7 +200,6 @@ eventer_func_t eventer_get_callback(eventer_t e);
 /*! \fn void eventer_set_callback(eventer_t e, eventer_func_t func)
     \brief Set an event's callback function.
     \param e an event object
-    \return func `eventer_func_t` callback function.
 */
 void eventer_set_callback(eventer_t e, eventer_func_t);
 /*! \fn void *eventer_get_closure(eventer_t e)
