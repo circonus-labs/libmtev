@@ -142,12 +142,8 @@ read_preread(EditLine *el)
 		int mask;
 
 		if(el->el_in_e)
-			chrs = el->
-				el_in_e->
-				opset->
-				read(el->el_in_e->fd, buf,
-				    (size_t) MIN(chrs, EL_BUFSIZ - 1),
-				    &mask, el->el_in_e);
+			chrs = eventer_read(el->el_in_e, buf,
+				    (size_t) MIN(chrs, EL_BUFSIZ - 1), &mask);
 		else
 			chrs = read(el->el_infd, buf,
 			    (size_t) MIN(chrs, EL_BUFSIZ - 1));
@@ -271,11 +267,7 @@ read_char(EditLine *el, char *cp)
 	do {
 		int mask;
 		if(el->el_in_e)
-			num_read = el->
-				el_in_e->
-				opset->
-				read(el->el_in_e->fd, cp, 1,
-				    &mask, el->el_in_e);
+			num_read = eventer_read(el->el_in_e, cp, 1, &mask);
 		else
 			num_read = read(el->el_infd, cp, 1);
 

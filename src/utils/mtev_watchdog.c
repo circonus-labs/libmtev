@@ -676,10 +676,7 @@ static int watchdog_tick(eventer_t e, int mask, void *lifeline, struct timeval *
 eventer_t mtev_watchdog_recurrent_heartbeat(mtev_watchdog_t *hb) {
   eventer_t e;
   mtevAssert(__eventer);
-  e = eventer_alloc();
-  e->mask = EVENTER_RECURRENT;
-  e->callback = watchdog_tick;
-  e->closure = hb;
+  e = eventer_alloc_recurrent(watchdog_tick, hb);
   return e;
 }
 int mtev_watchdog_child_eventer_heartbeat() {

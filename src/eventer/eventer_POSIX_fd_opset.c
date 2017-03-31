@@ -33,6 +33,7 @@
 
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
+#include "eventer/eventer_impl_private.h"
 #include "libmtev_dtrace.h"
 
 #include <sys/socket.h>

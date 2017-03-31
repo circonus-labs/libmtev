@@ -411,12 +411,8 @@ distribute_reporter_across_threads(struct lua_reporter *reporter,
     }
     else {
       eventer_t e;
-      e = eventer_alloc();
-      memcpy(&e->whence, &old, sizeof(old));
-      e->thr_owner = tgt;
-      e->mask = EVENTER_TIMER;
-      e->callback = reporter_f;
-      e->closure = reporter;
+      e = eventer_alloc_timer(reporter_f, reporter, &old);
+      eventer_set_owner(e, tgt);
       mtev_lua_reporter_ref(reporter);
       eventer_add(e);
     }
@@ -443,7 +439,6 @@ mtev_lua_rest_show_waiter(eventer_t e, int mask, void *closure,
   }
   eventer_t conne = mtev_http_connection_event(mtev_http_session_connection(ctx));
   if(conne) {
-    conne->mask =  EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
     eventer_trigger(conne, EVENTER_WRITE);
   }
   return 0;
@@ -484,7 +479,7 @@ mtev_rest_show_lua(mtev_http_rest_closure_t *restc, int n, char **p) {
   mtev_http_session_ctx *ctx = restc->http_ctx;
   eventer_t conne = mtev_http_connection_event_float(mtev_http_session_connection(ctx));
   if(conne) {
-    eventer_remove_fd(conne->fd);
+    eventer_remove_fde(conne);
   }
 
   /* Register our waiter */
@@ -608,19 +603,17 @@ mtev_event_dispose(void *ev) {
   int mask;
   eventer_t *value = ev;
   eventer_t removed, e = *value;
-  mtevL(nldeb, "lua check cleanup: dropping (%p)->fd (%d)\n", e, e->fd);
+  struct nl_generic_cl *cl;
+  mtevL(nldeb, "lua check cleanup: dropping (%p)->fd (%d)\n", e, eventer_get_fd(e));
   removed = eventer_remove(e);
   mtevL(nldeb, "    remove from eventer system %s\n",
         removed ? "succeeded" : "failed");
-  if(e->mask & (EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION)) {
-    mtevL(nldeb, "    closing down fd %d\n", e->fd);
-    e->opset->close(e->fd, &mask, e);
+  if(eventer_get_mask(e) & (EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION)) {
+    mtevL(nldeb, "    closing down fd %d\n", eventer_get_fd(e));
+    eventer_close(e, &mask);
   }
-  if(e->closure) {
-    struct nl_generic_cl *cl;
-    cl = e->closure;
-    if(cl->free) cl->free(cl);
-  }
+  cl = eventer_get_closure(e);
+  if(cl && cl->free) cl->free(cl);
   eventer_free(e);
   free(ev);
 }

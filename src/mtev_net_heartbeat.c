@@ -82,6 +82,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
   char payload_buff[15000 + HDRLEN];
   void *payload = payload_buff;
   int payload_len = sizeof(payload_buff);
+  int fd = eventer_get_fd(e);
 
   char text_buff[15000 + HDRLEN];
   void *text = text_buff;
@@ -101,7 +102,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     msg.msg_iov[1].iov_len = HDR_IVSIZE;
     msg.msg_iov[1].iov_base = ivec;
     msg.msg_iovlen = 2;
-    len = recvmsg(e->fd, &msg, MSG_PEEK);
+    len = recvmsg(fd, &msg, MSG_PEEK);
     if(len == -1 && errno == EAGAIN) break;
     if(len < 0) {
       mtevL(mtev_error, "recvmsg error: %s\n", strerror(errno));
@@ -109,7 +110,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     }
     if(len < (HDR_LENSIZE + HDR_IVSIZE)) {
       /* discard */
-      recvmsg(e->fd, &msg, 0);
+      recvmsg(fd, &msg, 0);
       continue;
     }
     len = ntohl(netlen);
@@ -123,7 +124,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
         free(newpayload);
         free(newtext);
         mtevL(mtev_error, "recvmsg error: payload too large %d\n", len);
-        recvmsg(e->fd, &msg, 0);
+        recvmsg(fd, &msg, 0);
         continue;
       }
       if(payload != payload_buff) free(payload);
@@ -138,7 +139,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     expected = msg.msg_iov[0].iov_len +
       msg.msg_iov[1].iov_len +
       msg.msg_iov[2].iov_len;
-    len = recvmsg(e->fd, &msg, 0);
+    len = recvmsg(fd, &msg, 0);
     if(len != expected) {
       mtevL(mtev_error, "netheartbeat: bad read %d != %d\n", len, expected);
       continue;
@@ -177,7 +178,7 @@ mtev_net_headerbeat_sendall(mtev_net_heartbeat_ctx *ctx, void *payload, int payl
     struct tgt *tgt = &ctx->targets[i];
     switch(tgt->type) {
       case TGT_BROADCAST: fd = ctx->sender_v4_bcast; break;
-      case TGT_MULTICAST: fd = tgt->e->fd; break;
+      case TGT_MULTICAST: fd = eventer_get_fd(tgt->e); break;
       case TGT_DIRECT:
         if(tgt->addr->sa_family == AF_INET) fd = ctx->sender_v4;
         else if(tgt->addr->sa_family == AF_INET6) fd = ctx->sender_v6;
@@ -283,10 +284,11 @@ mtev_net_heartbeat_context_start(mtev_net_heartbeat_ctx *ctx) {
 static void
 drop_e(eventer_t e) {
   int mask;
+  eventer_t tofree;
   if(!e) return;
-  e = eventer_remove(e);
-  if(e->fd) e->opset->close(e->fd, &mask, e);
-  if(e) eventer_free(e);
+  tofree = eventer_remove(e);
+  eventer_close(e, &mask);
+  if(tofree) eventer_free(tofree);
 }
 
 void
@@ -344,11 +346,8 @@ mtev_net_heartbeat_context_create(unsigned short port,
     }
   }
   if (fd >= 0) {
-    ctx->receiver_v4 = eventer_alloc();
-    ctx->receiver_v4->fd = fd;
-    ctx->receiver_v4->mask = EVENTER_READ|EVENTER_EXCEPTION;
-    ctx->receiver_v4->closure = ctx;
-    ctx->receiver_v4->callback = mtev_net_heartbeat_handler;
+    ctx->receiver_v4 = eventer_alloc_fd(mtev_net_heartbeat_handler, ctx, fd,
+                                        EVENTER_READ|EVENTER_EXCEPTION);
     eventer_add(ctx->receiver_v4);
   }
   ctx->sender_v4 = fd; /* yes, can be -1 if broken */
@@ -372,11 +371,8 @@ mtev_net_heartbeat_context_create(unsigned short port,
     }
   }
   if (fd >= 0) {
-    ctx->receiver_v6 = eventer_alloc();
-    ctx->receiver_v6->fd = fd;
-    ctx->receiver_v6->mask = EVENTER_READ|EVENTER_EXCEPTION;
-    ctx->receiver_v6->closure = ctx;
-    ctx->receiver_v6->callback = mtev_net_heartbeat_handler;
+    ctx->receiver_v6 = eventer_alloc_fd(mtev_net_heartbeat_handler, ctx, fd,
+                                        EVENTER_READ|EVENTER_EXCEPTION);
     eventer_add(ctx->receiver_v6);
   }
   ctx->sender_v6 = fd;
@@ -459,11 +455,8 @@ mtev_net_heartbeat_add_multicast(mtev_net_heartbeat_ctx *ctx,
   tgt->type = TGT_MULTICAST;
   tgt->ttl = ttl;
 
-  tgt->e = eventer_alloc();
-  tgt->e->fd = fd;
-  tgt->e->closure = ctx;
-  tgt->e->callback = mtev_net_heartbeat_handler;
-  tgt->e->mask = EVENTER_READ|EVENTER_EXCEPTION;
+  tgt->e = eventer_alloc_fd(mtev_net_heartbeat_handler, ctx, fd,
+                            EVENTER_READ|EVENTER_EXCEPTION);
   eventer_add(tgt->e);
   return 0;
 }

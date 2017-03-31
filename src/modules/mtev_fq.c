@@ -314,9 +314,7 @@ fq_driver_init(mtev_dso_generic_t *img) {
     return 0;
   }
 
-  conf->receiver = eventer_alloc();
-  conf->receiver->mask = EVENTER_RECURRENT;
-  conf->receiver->callback = poll_fq;
+  conf->receiver = eventer_alloc_recurrent(poll_fq, NULL);
   eventer_add(conf->receiver);
   return 0;
 }

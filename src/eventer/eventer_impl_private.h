@@ -33,6 +33,28 @@
 
 #include "mtev_stats.h"
 
+#ifdef HIDE_EVENTER_ABI
+struct _fd_opset {
+  eventer_fd_accept_t accept;
+  eventer_fd_read_t   read;
+  eventer_fd_write_t  write;
+  eventer_fd_close_t  close;
+  const char *name;
+};
+
+struct _event {
+  eventer_func_t      callback;
+  struct timeval      whence;
+  int                 fd;
+  int                 mask;
+  struct _fd_opset   *opset;
+  void               *opset_ctx;
+  void               *closure;
+  pthread_t           thr_owner;
+  mtev_atomic32_t     refcnt;
+};
+#endif
+
 struct _eventer_job_t {
   pthread_mutex_t         lock;
   eventer_hrtime_t        create_hrtime;

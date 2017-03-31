@@ -430,6 +430,26 @@ mtev_dyn_buffer_write_pointer(mtev_dyn_buffer_t *buf)
 
 ### E
 
+#### eventer_accept
+
+>Execute an opset-appropriate `accept` call.
+
+```c
+int 
+eventer_accept(eventer_t e, struct sockaddr *addr, socklen_t *len, int *mask)
+```
+
+
+  * `e` an event object
+  * `addr` a `struct sockaddr` to be populated.
+  * `len` a `socklen_t` pointer to the size of the `addr` argument; updated.
+  * `mask` a point the a mask. If the call does not complete, `*mask` it set.
+  * **RETURN** an opset-appropriate return value. (fd for POSIX, -1 for SSL).
+
+If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
+necessary activity to make progress.
+
+
 #### eventer_add
 
 >Add an event object to the eventer system.
@@ -559,6 +579,97 @@ The allocated event has a refernce count of 1 and is attached to the
 calling thread.
 
 
+#### eventer_alloc_asynch
+
+>Allocate an event to be injected into the eventer system.
+
+```c
+eventer_t 
+eventer_alloc_asynch(eventer_func_t func, void *closure)
+```
+
+
+  * `func` The callback function.
+  * `closure` The closure for the callback function.
+  * **RETURN** A newly allocated asynch event.
+
+The allocated event has a refernce count of 1 and is attached to the
+calling thread.
+
+
+#### eventer_alloc_copy
+
+>Allocate an event copied from another to be injected into the eventer system.
+
+```c
+eventer_t 
+eventer_alloc_copy(eventer_t src)
+```
+
+
+  * `src` a source eventer_t to copy.
+  * **RETURN** A newly allocated event that is a copy of src.
+
+The allocated event has a refernce count of 1.
+
+
+#### eventer_alloc_fd
+
+>Allocate an event to be injected into the eventer system.
+
+```c
+eventer_t 
+eventer_alloc_fd(eventer_func_t func, void *closure, int fd, int mask)
+```
+
+
+  * `func` The callback function.
+  * `closure` The closure for the callback function.
+  * `fd` The file descriptor.
+  * `mask` The mask of activity of interest.
+  * **RETURN** A newly allocated fd event.
+
+The allocated event has a refernce count of 1 and is attached to the
+calling thread.
+
+
+#### eventer_alloc_recurrent
+
+>Allocate an event to be injected into the eventer system.
+
+```c
+eventer_t 
+eventer_alloc_recurrent(eventer_func_t func, void *closure)
+```
+
+
+  * `func` The callback function.
+  * `closure` The closure for the callback function.
+  * **RETURN** A newly allocated recurrent event.
+
+The allocated event has a refernce count of 1 and is attached to the
+calling thread.
+
+
+#### eventer_alloc_timer
+
+>Allocate an event to be injected into the eventer system.
+
+```c
+eventer_t 
+eventer_alloc_timer(eventer_func_t func, void *closure, struct timeval *whence)
+```
+
+
+  * `func` The callback function.
+  * `closure` The closure for the callback function.
+  * `whence` The time at which the event should fire.
+  * **RETURN** A newly allocated timer event.
+
+The allocated event has a refernce count of 1 and is attached to the
+calling thread.
+
+
 #### eventer_allocations_current
 
 ```c
@@ -595,6 +706,28 @@ eventer_at(eventer_func_t func, void *closure, struct timeval whence)
   * **RETURN** an event that has not been added to the eventer.
 
 > Note this does not actually schedule the event. See [`eventer_add_at`](c.md#eventeraddat).
+
+
+#### eventer_callback
+
+>Directly invoke an event's callback.
+
+```c
+int 
+eventer_callback(eventer_t e, int mask, void *closure, struct timeval *now)
+```
+
+
+  * `e` an event object
+  * `mask` the mask that callback should be acting upon (see `eventer_get_mask`)
+  * `closure` the closure on which the callback should act
+  * `now` the time the callback should see as "now".
+  * **RETURN** The return value of the callback function as invoked.
+
+This does not call the callback in the contexts of the eventloop.  This means
+that should the callback return a mask, the event-loop will not interpret it
+and change state appropriately.  The caller must respond appropriately to any
+return values.
 
 
 #### eventer_callback_for_name
@@ -684,6 +817,24 @@ To assign an event to a thread, use the result of this function to assign:
 `e->thr_owner`.
 
 
+#### eventer_close
+
+>Execute an opset-appropriate `close` call.
+
+```c
+int 
+eventer_close(eventer_t e, int *mask)
+```
+
+
+  * `e` an event object
+  * `mask` a point the a mask. If the call does not complete, `*mask` it set.
+  * **RETURN** 0 on sucess or -1 with errno set.
+
+If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
+necessary activity to make progress.
+
+
 #### eventer_deref
 
 >See eventer_free.
@@ -695,6 +846,62 @@ eventer_deref(eventer_t e)
 
 
   * `e` the event to dereference.
+
+
+#### eventer_fd_opset_get_accept
+
+>Retrieve the accept function from an fd opset.
+
+```c
+eventer_fd_accept_t 
+eventer_fd_opset_get_accept(eventer_fd_opset_t opset)
+```
+
+
+  * `opset` an opset (see `eventer_get_fd_opset`)
+  * **RETURN** An eventer_fd_accept_t function
+
+
+#### eventer_fd_opset_get_close
+
+>Retrieve the close function from an fd opset.
+
+```c
+eventer_fd_close_t 
+eventer_fd_opset_get_close(eventer_fd_opset_t opset)
+```
+
+
+  * `opset` an opset (see `eventer_get_fd_opset`)
+  * **RETURN** An eventer_fd_close_t function
+
+
+#### eventer_fd_opset_get_read
+
+>Retrieve the read function from an fd opset.
+
+```c
+eventer_fd_read_t 
+eventer_fd_opset_get_read(eventer_fd_opset_t opset)
+```
+
+
+  * `opset` an opset (see `eventer_get_fd_opset`)
+  * **RETURN** An eventer_fd_read_t function
+
+
+#### eventer_fd_opset_get_write
+
+>Retrieve the write function from an fd opset.
+
+```c
+eventer_fd_write_t 
+eventer_fd_opset_get_write(eventer_fd_opset_t opset)
+```
+
+
+  * `opset` an opset (see `eventer_get_fd_opset`)
+  * **RETURN** An eventer_fd_write_t function
 
 
 #### eventer_find_fd
@@ -752,6 +959,34 @@ eventer_free(eventer_t e)
   * `e` the event to dereference.
 
 
+#### eventer_get_callback
+
+>Retrieve the callback function for an event.
+
+```c
+eventer_func_t 
+eventer_get_callback(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** An `eventer_func_t` callback function.
+
+
+#### eventer_get_closure
+
+>Retrieve an event's closure.
+
+```c
+void *
+eventer_get_closure(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** The previous closure set.
+
+
 #### eventer_get_epoch
 
 >Find the start time of the eventer loop.
@@ -766,6 +1001,71 @@ eventer_get_epoch(struct timeval *epoch)
   * **RETURN** 0 on success; -1 on failure (eventer loop not started).
 
 
+#### eventer_get_fd
+
+>Retrieve the file descriptor for an fd-based event.
+
+```c
+int 
+eventer_get_fd(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** a file descriptor.
+
+
+#### eventer_get_fd_opset
+
+>Retrieve the fd opset from an event.
+
+```c
+eventer_fd_opset_t 
+eventer_get_fd_opset(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** The currently active opset for a fd-based eventer_t.
+
+
+#### eventer_get_mask
+
+>Retrieve the mask for an event.
+
+```c
+int 
+eventer_get_mask(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** a mask of bitwise-or'd valued.
+
+    * `EVENTER_READ` -- trigger/set when a file descriptor is readable.
+    * `EVENTER_WRITE` -- trigger/set when a file descriptor is writeable.
+    * `EVENTER_EXCEPTION` -- trigger/set problems with a file descriptor.
+    * `EVENTER_TIMER` -- trigger/set at a specific time.
+    * `EVENTER_RECURRENT` -- trigger/set on each pass through the event-loop.
+    * `EVENTER_ASYNCH` -- trigger from a non-event-loop thread, set upon completion.
+    * `EVENTER_ASYNCH_WORK` -- set during asynchronous work.
+    * `EVENTER_ASYNCH_CLEANUP` -- set during asynchronous cleanup.
+
+
+#### eventer_get_owner
+
+>Retrieve the thread that owns an event.
+
+```c
+pthread_t 
+eventer_get_owner(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** a `pthread_t` thread.
+
+
 #### eventer_get_pool_for_event
 
 >Determin which eventer pool owns a given event.
@@ -778,6 +1078,20 @@ eventer_get_pool_for_event(eventer_t e)
 
   * `e` an event object.
   * **RETURN** the `eventer_pool_t` to which the event is scheduled.
+
+
+#### eventer_get_whence
+
+>Retrieve the time at which a timer event will fire.
+
+```c
+struct timeval 
+eventer_get_whence(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** A absolute time.
 
 
 #### eventer_gettimeofcallback
@@ -1043,13 +1357,33 @@ eventer_pool_watchdog_timeout(eventer_pool_t *pool, double timeout)
   * `timeout` the deadman timer in seconds.
 
 
+#### eventer_read
+
+>Execute an opset-appropriate `read` call.
+
+```c
+int 
+eventer_read(eventer_t e, void *buff, size_t len, int *mask)
+```
+
+
+  * `e` an event object
+  * `buff` a buffer in which to place read data.
+  * `len` the size of `buff` in bytes.
+  * `mask` a point the a mask. If the call does not complete, `*mask` it set.
+  * **RETURN** the number of bytes read or -1 with errno set.
+
+If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
+necessary activity to make progress.
+
+
 #### eventer_ref
 
 >Add a reference to an event.
 
 ```c
 void 
-eventer_ref(evneter_t e)
+eventer_ref(eventer_t e)
 ```
 
 
@@ -1091,6 +1425,20 @@ eventer_remove_fd(int e)
   * **RETURN** the event object removed if found; NULL if not found.
 
 
+#### eventer_remove_fde
+
+>Removes an fd event from the eventloop based on filedescriptor alone.
+
+```c
+eventer_t 
+eventer_remove_fde(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** The event removed, NULL if no event was present.
+
+
 #### eventer_remove_recurrent
 
 >Remove a recurrent event from the eventer.
@@ -1119,6 +1467,34 @@ eventer_remove_timed(eventer_t e)
   * **RETURN** the event removed, NULL if not found.
 
 
+#### eventer_set_callback
+
+>Set an event's callback function.
+
+```c
+void 
+eventer_set_callback(eventer_t e, eventer_func_t func)
+```
+
+
+  * `e` an event object
+  * **RETURN** func `eventer_func_t` callback function.
+
+
+#### eventer_set_closure
+
+>Set an event's closure.
+
+```c
+void 
+eventer_set_closure(eventer_t e, void *closure)
+```
+
+
+  * `e` an event object
+  * `closure` a pointer to user-data to be supplied during callback.
+
+
 #### eventer_set_fd_blocking
 
 >Set a file descriptor into blocking mode.
@@ -1145,6 +1521,41 @@ eventer_set_fd_nonblocking(int fd)
 
   * `fd` a file descriptor
   * **RETURN** 0 on success, -1 on error (errno set).
+
+
+#### eventer_set_mask
+
+>Change an event's interests or intentions.
+
+```c
+void 
+eventer_set_mask(eventer_t e, int mask)
+```
+
+
+  * `e` an event object
+  * `mask` a new mask
+
+Do not change change a mask from one event "type" to another. fd events
+must remain fd events. Timer must remain timer. Recurrent must remain recurrent.
+Do not alter asynch events at all.  This simply changes the mask of the event
+without changing any eventer state and should be used with extremem care.
+Consider using the callback's return value or `eventer_update` to change
+the mask of an active event in the system.
+
+
+#### eventer_set_owner
+
+>Set the thread that owns an event.
+
+```c
+void 
+eventer_set_owner(eventer_t e, pthread_t t)
+```
+
+
+  * `e` an event object
+  * `t` a `pthread_t` thread; must be a valid event-loop.
 
 
 #### eventer_thread_check
@@ -1192,6 +1603,20 @@ eventer_update(evneter_t e, int mask)
   * `mask` a new mask that is some bitwise or of `EVENTER_READ`, `EVENTER_WRITE`, and `EVENTER_EXCEPTION`
 
 
+#### eventer_update_whence
+
+>Change the time at which a registered timer event should fire.
+
+```c
+void void 
+eventer_update_whence(eventer_t e, struct timeval whence)
+```
+
+
+  * `e` an event object
+  * `whence` an absolute time.
+
+
 #### eventer_wakeup
 
 >Signal up an event loop manually.
@@ -1209,6 +1634,26 @@ If `e` is `NULL` the first thread in the default eventer loop is signalled. The
 eventer loop can wake up on timed events, asynchronous job completions and 
 file descriptor activity.  If, for an external reason, one needs to wake up
 a looping thread, this call is used.
+
+
+#### eventer_write
+
+>Execute an opset-appropriate `write` call.
+
+```c
+int 
+eventer_write(eventer_t e, void *buff, size_t len, int *mask)
+```
+
+
+  * `e` an event object
+  * `buff` a buffer containing data to write.
+  * `len` the size of `buff` in bytes.
+  * `mask` a point the a mask. If the call does not complete, `*mask` it set.
+  * **RETURN** the number of bytes written or -1 with errno set.
+
+If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
+necessary activity to make progress.
 
 
 ### G

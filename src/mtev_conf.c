@@ -290,7 +290,6 @@ static int
 mtev_conf_watch_config_and_journal(eventer_t e, int mask, void *closure,
                                    struct timeval *now) {
   struct recurrent_journaler *rj = closure;
-  eventer_t newe;
 
   if(rj && rj->journal_config && __config_coalesce == 1)
     rj->journal_config(rj->jc_closure);
@@ -302,14 +301,8 @@ mtev_conf_watch_config_and_journal(eventer_t e, int mask, void *closure,
     __coalesce_write = 0;
   }
 
-  /* Schedule the same event to fire a second form now */
-  newe = eventer_alloc();
-  mtev_gettimeofday(&newe->whence, NULL);
-  newe->whence.tv_sec += 1;
-  newe->mask = EVENTER_TIMER;
-  newe->callback = mtev_conf_watch_config_and_journal;
-  newe->closure = closure;
-  eventer_add(newe);
+  /* Schedule the same event to fire a second from now */
+  eventer_add_in_s_us(mtev_conf_watch_config_and_journal, closure, 1, 0);
   return 0;
 }
 
@@ -2206,10 +2199,7 @@ static void
 schedule_background_log_cull(struct log_rotate_crutch *lrc) {
   eventer_t e;
   if(lrc->retain_size < 0 && lrc->retain_seconds < 0) return;
-  e = eventer_alloc();
-  e->closure = lrc;
-  e->callback = mtev_conf_log_cull;
-  e->mask = EVENTER_ASYNCH;
+  e = eventer_alloc_asynch(mtev_conf_log_cull, lrc);
   eventer_add(e);
 }
 
@@ -2230,7 +2220,7 @@ mtev_conf_log_rotate_size(eventer_t e, int mask, void *closure,
 static int
 mtev_conf_log_rotate_time(eventer_t e, int mask, void *closure,
                           struct timeval *now) {
-  struct timeval lnow;
+  struct timeval lnow, whence;
   eventer_t newe;
   struct log_rotate_crutch *lrc = closure;
 
@@ -2240,18 +2230,16 @@ mtev_conf_log_rotate_time(eventer_t e, int mask, void *closure,
     schedule_background_log_cull(lrc);
   }
   
-  newe = eventer_alloc();
-  newe->closure = closure;
   if(!now) { mtev_gettimeofday(&lnow, NULL); now = &lnow; }
   if(e)
-    memcpy(&newe->whence, &e->whence, sizeof(newe->whence));
+    whence = eventer_get_whence(e);
   else if(now) {
-    memcpy(&newe->whence, now, sizeof(newe->whence));
-    newe->whence.tv_sec = (newe->whence.tv_sec / lrc->seconds) * lrc->seconds;
+    memcpy(&whence, now, sizeof(whence));
+    whence.tv_sec = (whence.tv_sec / lrc->seconds) * lrc->seconds;
   }
-  newe->whence.tv_sec += lrc->seconds;
-  newe->mask = EVENTER_TIMER;
-  newe->callback = mtev_conf_log_rotate_time;
+  whence.tv_sec += lrc->seconds;
+
+  newe = eventer_alloc_timer(mtev_conf_log_rotate_time, closure, &whence);
   eventer_add(newe);
   return 0;
 }

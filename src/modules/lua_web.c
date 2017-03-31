@@ -234,7 +234,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   mtev_lua_hash_to_table(L, restc->ac->config);
 
   conne = mtev_http_connection_event_float(mtev_http_session_connection(restc->http_ctx));
-  if(conne) eventer_remove_fd(conne->fd);
+  if(conne) eventer_remove_fde(conne);
   restc->fastpath = lua_web_restc_fastpath;
 
   status = lmc->resume(ri, 2);

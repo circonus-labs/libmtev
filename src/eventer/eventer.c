@@ -50,6 +50,19 @@ stats_handle_t *eventer_unnamed_callback_latency;
 static mtev_atomic64_t ealloccnt;
 static mtev_atomic64_t ealloctotal;
 
+eventer_fd_accept_t eventer_fd_opset_get_accept(eventer_fd_opset_t opset) {
+  return opset->accept;
+}
+eventer_fd_read_t eventer_fd_opset_get_read(eventer_fd_opset_t opset) {
+  return opset->read;
+}
+eventer_fd_write_t eventer_fd_opset_get_write(eventer_fd_opset_t opset) {
+  return opset->write;
+}
+eventer_fd_close_t eventer_fd_opset_get_close(eventer_fd_opset_t opset) {
+  return opset->close;
+}
+
 eventer_t eventer_alloc() {
   eventer_t e;
   e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
@@ -61,12 +74,78 @@ eventer_t eventer_alloc() {
   return e;
 }
 
+eventer_t eventer_alloc_copy(eventer_t src) {
+  eventer_t e = eventer_alloc();
+  memcpy(e, src, sizeof(*e));
+  e->refcnt = 1;
+  return e;
+}
+
+eventer_t eventer_alloc_recurrent(eventer_func_t func, void *closure) {
+  eventer_t e = eventer_alloc();
+  e->mask = EVENTER_RECURRENT;
+  e->callback = func;
+  e->closure = closure;
+  return e;
+}
+
+eventer_t eventer_alloc_timer(eventer_func_t func, void *closure, struct timeval *t) {
+  eventer_t e = eventer_alloc();
+  e->mask = EVENTER_TIMER;
+  e->callback = func;
+  e->closure = closure;
+  memcpy(&e->whence, t, sizeof(e->whence));
+  return e;
+}
+
+eventer_t eventer_alloc_fd(eventer_func_t func, void *closure, int fd, int mask) {
+  eventer_t e = eventer_alloc();
+  e->fd = fd;
+  e->mask = mask;
+  e->callback = func;
+  e->closure = closure;
+  return e;
+}
+
+eventer_t eventer_alloc_asynch(eventer_func_t func, void *closure) {
+  eventer_t e = eventer_alloc();
+  e->mask = EVENTER_ASYNCH;
+  e->callback = func;
+  e->closure = closure;
+  return e;
+}
+
 void eventer_free(eventer_t e) {
   if(mtev_atomic_dec32(&e->refcnt) == 0) {
     mtev_atomic_dec64(&ealloccnt);
     mtev_free(eventer_t_allocator, e);
   }
 }
+
+int eventer_get_mask(eventer_t e) { return e->mask; }
+void eventer_set_mask(eventer_t e, int m) { e->mask = m; }
+
+int eventer_get_fd(eventer_t e) { return e->fd; }
+/* No setter here */
+
+struct timeval eventer_get_whence(eventer_t e) { return e->whence; }
+void eventer_update_whence(eventer_t e, struct timeval t) {
+  if(e->mask != EVENTER_TIMER) return;
+  e->whence = t;
+  eventer_update(e, EVENTER_TIMER);
+}
+
+pthread_t eventer_get_owner(eventer_t e) { return e->thr_owner; }
+void eventer_set_owner(eventer_t e, pthread_t t) { e->thr_owner = t; }
+
+eventer_func_t eventer_get_callback(eventer_t e) { return e->callback; }
+void eventer_set_callback(eventer_t e, eventer_func_t f) { e->callback = f; }
+
+void *eventer_get_closure(eventer_t e) { return e->closure; }
+void eventer_set_closure(eventer_t e, void *c) { e->closure = c; }
+
+eventer_fd_opset_t eventer_get_fd_opset(eventer_t e) { return e->opset; }
+/* No setter here */
 
 int64_t eventer_allocations_current() {
   return ealloccnt;

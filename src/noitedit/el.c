@@ -583,11 +583,7 @@ el_err_vprintf(EditLine *el, const char *fmt, va_list arg)
 	len = vsnprintf(buffer, sizeof(buffer), fmt, arg);
 	if(len > sizeof(buffer)) len = sizeof(buffer);
 	if(el->el_err_e)
-		return el->
-			el_err_e->
-			opset->
-			write(el->el_err_e->fd, buffer, len,
-				&mask, el->el_err_e);
+		return eventer_write(el->el_err_e, buffer, len, &mask);
 	return write(el->el_errfd, buffer, len);
 }
 
@@ -610,11 +606,7 @@ el_std_vprintf(EditLine *el, const char *fmt, va_list arg)
 	len = vsnprintf(buffer, sizeof(buffer), fmt, arg);
 	if(len > sizeof(buffer)) len = sizeof(buffer);
 	if(el->el_out_e)
-		return el->
-			el_out_e->
-			opset->
-			write(el->el_out_e->fd, buffer,
-				len, &mask, el->el_out_e);
+		return eventer_write(el->el_out_e, buffer, len, &mask);
 	return write(el->el_outfd, buffer, len);
 }
 
@@ -635,11 +627,7 @@ el_std_putc(int i, EditLine *el)
 	int mask;
 	unsigned char c = i & 0xff;
 	if(el->el_out_e)
-		return el->
-			el_out_e->
-			opset->
-			write(el->el_out_e->fd, &c,
-				1, &mask, el->el_out_e);
+		return eventer_write(el->el_out_e, &c, 1, &mask);
 	return write(el->el_outfd, &c, 1);
 }
 protected int

@@ -394,8 +394,8 @@ mtev_capabilities_handler(eventer_t e, int mask, void *closure,
 socket_error:
     /* Exceptions cause us to simply snip the connection */
 cleanup_shutdown:
-    eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &newmask, e);
+    eventer_remove_fde(e);
+    eventer_close(e, &newmask);
     if(cl) {
       if(cl->buff) free(cl->buff);
       free(cl);
@@ -411,9 +411,9 @@ cleanup_shutdown:
 
   while(cl->towrite > cl->written) {
     int len;
-    while((len = e->opset->write(e->fd, cl->buff + cl->written,
-                                 cl->towrite - cl->written,
-                                 &newmask, e)) == -1 && errno == EINTR);
+    while((len = eventer_write(e, cl->buff + cl->written,
+                               cl->towrite - cl->written,
+                               &newmask)) == -1 && errno == EINTR);
     if(len < 0) {
       if(errno == EAGAIN) return newmask | EVENTER_EXCEPTION;
       goto socket_error;

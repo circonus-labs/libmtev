@@ -75,35 +75,230 @@ typedef int (*eventer_fd_write_t)
 typedef int (*eventer_fd_close_t)
             (int, int *mask, void *closure);
 
-typedef struct _fd_opset {
+typedef struct _fd_opset
+#ifndef HIDE_EVENTER_ABI
+{
   eventer_fd_accept_t accept;
   eventer_fd_read_t   read;
   eventer_fd_write_t  write;
   eventer_fd_close_t  close;
   const char *name;
-} *eventer_fd_opset_t;
+}
+#endif
+*eventer_fd_opset_t;
 
-typedef struct _event *eventer_t;
-
-typedef struct eventer_pool_t eventer_pool_t;
-
-#include "eventer/eventer_POSIX_fd_opset.h"
-#include "eventer/eventer_SSL_fd_opset.h"
-
+typedef struct _fd_opset *eventer_fd_opset_t;
+struct _event;
 typedef int (*eventer_func_t)
-            (eventer_t e, int mask, void *closure, struct timeval *tv);
-
-struct _event {
+            (struct _event *e, int mask, void *closure, struct timeval *tv);
+typedef struct _event
+#ifndef HIDE_EVENTER_ABI
+{
   eventer_func_t      callback;
   struct timeval      whence;
   int                 fd;
   int                 mask;
-  eventer_fd_opset_t  opset;
+  struct _fd_opset   *opset;
   void               *opset_ctx;
   void               *closure;
   pthread_t           thr_owner;
   mtev_atomic32_t     refcnt;
-};
+}
+#endif
+*eventer_t;
+typedef struct eventer_pool_t eventer_pool_t;
+
+/*! \fn eventer_fd_accept_t eventer_fd_opset_get_accept(eventer_fd_opset_t opset)
+    \brief Retrieve the accept function from an fd opset.
+    \param opset an opset (see `eventer_get_fd_opset`)
+    \return An eventer_fd_accept_t function
+*/
+eventer_fd_accept_t eventer_fd_opset_get_accept(eventer_fd_opset_t opset);
+/*! \fn eventer_fd_read_t eventer_fd_opset_get_read(eventer_fd_opset_t opset)
+    \brief Retrieve the read function from an fd opset.
+    \param opset an opset (see `eventer_get_fd_opset`)
+    \return An eventer_fd_read_t function
+*/
+eventer_fd_read_t eventer_fd_opset_get_read(eventer_fd_opset_t opset);
+/*! \fn eventer_fd_write_t eventer_fd_opset_get_write(eventer_fd_opset_t opset)
+    \brief Retrieve the write function from an fd opset.
+    \param opset an opset (see `eventer_get_fd_opset`)
+    \return An eventer_fd_write_t function
+*/
+eventer_fd_write_t eventer_fd_opset_get_write(eventer_fd_opset_t opset);
+/*! \fn eventer_fd_close_t eventer_fd_opset_get_close(eventer_fd_opset_t opset)
+    \brief Retrieve the close function from an fd opset.
+    \param opset an opset (see `eventer_get_fd_opset`)
+    \return An eventer_fd_close_t function
+*/
+eventer_fd_close_t eventer_fd_opset_get_close(eventer_fd_opset_t opset);
+/*! \fn eventer_fd_opset_t eventer_get_fd_opset(eventer_t e)
+    \brief Retrieve the fd opset from an event.
+    \param e an event object
+    \return The currently active opset for a fd-based eventer_t.
+*/
+eventer_fd_opset_t eventer_get_fd_opset(eventer_t e);
+
+/*! \fn int eventer_get_fd(eventer_t e)
+    \brief Retrieve the file descriptor for an fd-based event.
+    \param e an event object
+    \return a file descriptor.
+*/
+int eventer_get_fd(eventer_t e);
+/*! \fn int eventer_get_mask(eventer_t e)
+    \brief Retrieve the mask for an event.
+    \param e an event object
+    \return a mask of bitwise-or'd valued.
+
+        * `EVENTER_READ` -- trigger/set when a file descriptor is readable.
+        * `EVENTER_WRITE` -- trigger/set when a file descriptor is writeable.
+        * `EVENTER_EXCEPTION` -- trigger/set problems with a file descriptor.
+        * `EVENTER_TIMER` -- trigger/set at a specific time.
+        * `EVENTER_RECURRENT` -- trigger/set on each pass through the event-loop.
+        * `EVENTER_ASYNCH` -- trigger from a non-event-loop thread, set upon completion.
+        * `EVENTER_ASYNCH_WORK` -- set during asynchronous work.
+        * `EVENTER_ASYNCH_CLEANUP` -- set during asynchronous cleanup.
+*/
+int eventer_get_mask(eventer_t e);
+/*! \fn void eventer_set_mask(eventer_t e, int mask)
+    \brief Change an event's interests or intentions.
+    \param e an event object
+    \param mask a new mask
+
+    Do not change change a mask from one event "type" to another. fd events
+    must remain fd events. Timer must remain timer. Recurrent must remain recurrent.
+    Do not alter asynch events at all.  This simply changes the mask of the event
+    without changing any eventer state and should be used with extremem care.
+    Consider using the callback's return value or `eventer_update` to change
+    the mask of an active event in the system.
+*/
+void eventer_set_mask(eventer_t e, int mask);
+/*! \fn struct timeval eventer_get_whence(eventer_t e)
+    \brief Retrieve the time at which a timer event will fire.
+    \param e an event object
+    \return A absolute time.
+*/
+struct timeval eventer_get_whence(eventer_t e);
+/*! \fn pthread_t eventer_get_owner(eventer_t e)
+    \brief Retrieve the thread that owns an event.
+    \param e an event object
+    \return a `pthread_t` thread.
+*/
+pthread_t eventer_get_owner(eventer_t e);
+/*! \fn void eventer_set_owner(eventer_t e, pthread_t t)
+    \brief Set the thread that owns an event.
+    \param e an event object
+    \param t a `pthread_t` thread; must be a valid event-loop.
+*/
+void eventer_set_owner(eventer_t e, pthread_t t);
+/*! \fn eventer_func_t eventer_get_callback(eventer_t e)
+    \brief Retrieve the callback function for an event.
+    \param e an event object
+    \return An `eventer_func_t` callback function.
+*/
+eventer_func_t eventer_get_callback(eventer_t e);
+/*! \fn void eventer_set_callback(eventer_t e, eventer_func_t func)
+    \brief Set an event's callback function.
+    \param e an event object
+*/
+void eventer_set_callback(eventer_t e, eventer_func_t);
+/*! \fn void *eventer_get_closure(eventer_t e)
+    \brief Retrieve an event's closure.
+    \param e an event object
+    \return The previous closure set.
+*/
+void *eventer_get_closure(eventer_t e);
+/*! \fn void eventer_set_closure(eventer_t e, void *closure)
+    \brief Set an event's closure.
+    \param e an event object
+    \param closure a pointer to user-data to be supplied during callback.
+*/
+void eventer_set_closure(eventer_t e, void *);
+
+/* I hate this name, it should be eventer_remove_fd... */
+/*! \fn eventer_t eventer_remove_fde(eventer_t e)
+    \brief Removes an fd event from the eventloop based on filedescriptor alone.
+    \param e an event object
+    \return The event removed, NULL if no event was present.
+*/
+#define eventer_remove_fde(e) eventer_remove_fd(eventer_get_fd(e))
+
+/*! \fn int eventer_callback(eventer_t e, int mask, void *closure, struct timeval *now)
+    \brief Directly invoke an event's callback.
+    \param e an event object
+    \param mask the mask that callback should be acting upon (see `eventer_get_mask`)
+    \param closure the closure on which the callback should act
+    \param now the time the callback should see as "now".
+    \return The return value of the callback function as invoked.
+
+    This does not call the callback in the contexts of the eventloop.  This means
+    that should the callback return a mask, the event-loop will not interpret it
+    and change state appropriately.  The caller must respond appropriately to any
+    return values.
+*/
+#define eventer_callback(e,v1,v2,v3) \
+  eventer_get_callback(e)((e),(v1),(v2),(v3))
+
+/*! \fn int eventer_accept(eventer_t e, struct sockaddr *addr, socklen_t *len, int *mask)
+    \brief Execute an opset-appropriate `accept` call.
+    \param e an event object
+    \param addr a `struct sockaddr` to be populated.
+    \param len a `socklen_t` pointer to the size of the `addr` argument; updated.
+    \param mask a point the a mask. If the call does not complete, `*mask` it set.
+    \return an opset-appropriate return value. (fd for POSIX, -1 for SSL).
+
+    If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
+    necessary activity to make progress.
+*/
+#define eventer_accept(e,v1,v2,v3) \
+  eventer_fd_opset_get_accept(eventer_get_fd_opset(e)) \
+    (eventer_get_fd(e),(v1),(v2),(v3),(e))
+
+/*! \fn int eventer_read(eventer_t e, void *buff, size_t len, int *mask)
+    \brief Execute an opset-appropriate `read` call.
+    \param e an event object
+    \param buff a buffer in which to place read data.
+    \param len the size of `buff` in bytes.
+    \param mask a point the a mask. If the call does not complete, `*mask` it set.
+    \return the number of bytes read or -1 with errno set.
+
+    If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
+    necessary activity to make progress.
+*/
+#define eventer_read(e,v1,v2,v3) \
+  eventer_fd_opset_get_read(eventer_get_fd_opset(e)) \
+    (eventer_get_fd(e),(v1),(v2),(v3),(e))
+
+/*! \fn int eventer_write(eventer_t e, void *buff, size_t len, int *mask)
+    \brief Execute an opset-appropriate `write` call.
+    \param e an event object
+    \param buff a buffer containing data to write.
+    \param len the size of `buff` in bytes.
+    \param mask a point the a mask. If the call does not complete, `*mask` it set.
+    \return the number of bytes written or -1 with errno set.
+
+    If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
+    necessary activity to make progress.
+*/
+#define eventer_write(e,v1,v2,v3) \
+  eventer_fd_opset_get_write(eventer_get_fd_opset(e)) \
+    (eventer_get_fd(e),(v1),(v2),(v3),(e))
+
+/*! \fn int eventer_close(eventer_t e, int *mask)
+    \brief Execute an opset-appropriate `close` call.
+    \param e an event object
+    \param mask a point the a mask. If the call does not complete, `*mask` it set.
+    \return 0 on sucess or -1 with errno set.
+
+    If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
+    necessary activity to make progress.
+*/
+#define eventer_close(e,v1) \
+  eventer_fd_opset_get_close(eventer_get_fd_opset(e)) \
+    (eventer_get_fd(e),(v1),(e))
+
+#include "eventer/eventer_POSIX_fd_opset.h"
+#include "eventer/eventer_SSL_fd_opset.h"
 
 /* allocating, freeing and reference counts:
    When eventer_alloc() is called, the object returned has a refcnt == 1.
@@ -142,13 +337,69 @@ struct _event {
 */
 API_EXPORT(eventer_t) eventer_alloc();
 
+/*! \fn eventer_t eventer_alloc_copy(eventer_t src)
+    \brief Allocate an event copied from another to be injected into the eventer system.
+    \param src a source eventer_t to copy.
+    \return A newly allocated event that is a copy of src.
+
+    The allocated event has a refernce count of 1.
+*/
+API_EXPORT(eventer_t) eventer_alloc_copy(eventer_t src);
+
+/*! \fn eventer_t eventer_alloc_timer(eventer_func_t func, void *closure, struct timeval *whence)
+    \brief Allocate an event to be injected into the eventer system.
+    \param func The callback function.
+    \param closure The closure for the callback function.
+    \param whence The time at which the event should fire.
+    \return A newly allocated timer event.
+
+    The allocated event has a refernce count of 1 and is attached to the
+    calling thread.
+*/
+API_EXPORT(eventer_t) eventer_alloc_timer(eventer_func_t, void *, struct timeval *);
+
+/*! \fn eventer_t eventer_alloc_recurrent(eventer_func_t func, void *closure)
+    \brief Allocate an event to be injected into the eventer system.
+    \param func The callback function.
+    \param closure The closure for the callback function.
+    \return A newly allocated recurrent event.
+
+    The allocated event has a refernce count of 1 and is attached to the
+    calling thread.
+*/
+API_EXPORT(eventer_t) eventer_alloc_recurrent(eventer_func_t, void *);
+
+/*! \fn eventer_t eventer_alloc_fd(eventer_func_t func, void *closure, int fd, int mask)
+    \brief Allocate an event to be injected into the eventer system.
+    \param func The callback function.
+    \param closure The closure for the callback function.
+    \param fd The file descriptor.
+    \param mask The mask of activity of interest.
+    \return A newly allocated fd event.
+
+    The allocated event has a refernce count of 1 and is attached to the
+    calling thread.
+*/
+API_EXPORT(eventer_t) eventer_alloc_fd(eventer_func_t, void *, int, int);
+
+/*! \fn eventer_t eventer_alloc_asynch(eventer_func_t func, void *closure)
+    \brief Allocate an event to be injected into the eventer system.
+    \param func The callback function.
+    \param closure The closure for the callback function.
+    \return A newly allocated asynch event.
+
+    The allocated event has a refernce count of 1 and is attached to the
+    calling thread.
+*/
+API_EXPORT(eventer_t) eventer_alloc_asynch(eventer_func_t, void *);
+
 /*! \fn void eventer_free(eventer_t e)
     \brief Dereferences the event specified.
     \param e the event to dereference.
 */
 API_EXPORT(void)      eventer_free(eventer_t);
 
-/*! \fn void eventer_ref(evneter_t e)
+/*! \fn void eventer_ref(eventer_t e)
     \brief Add a reference to an event.
     \param e the event to reference.
 
@@ -350,6 +601,12 @@ API_EXPORT(void) eventer_init_globals();
 */
 #define eventer_update        __eventer->update
 
+/*! \fn void void eventer_update_whence(eventer_t e, struct timeval whence)
+    \brief Change the time at which a registered timer event should fire.
+    \param e an event object
+    \param whence an absolute time.
+*/
+void eventer_update_whence(eventer_t e, struct timeval w);
 
 /*! \fn eventer_t eventer_remove_fd(int e)
     \brief Remove an event object from the eventer system by file descriptor.
@@ -571,11 +828,7 @@ API_EXPORT(pthread_t) eventer_choose_owner_pool(eventer_pool_t *pool, int);
 */
 static inline eventer_t
 eventer_at(eventer_func_t func, void *cl, struct timeval t) {
-  eventer_t e = eventer_alloc();
-  e->whence = t;
-  e->mask = EVENTER_TIMER;
-  e->callback = func;
-  e->closure = cl;
+  eventer_t e = eventer_alloc_timer(func, cl, &t);
   return e;
 }
 
@@ -602,12 +855,9 @@ eventer_at(eventer_func_t func, void *cl, struct timeval t) {
 static inline eventer_t
 eventer_in(eventer_func_t func, void *cl, struct timeval t) {
   struct timeval __now;
-  eventer_t e = eventer_alloc();
   mtev_gettimeofday(&__now, NULL);
-  add_timeval(__now, t, &e->whence);
-  e->mask = EVENTER_TIMER;
-  e->callback = func;
-  e->closure = cl;
+  add_timeval(__now, t, &t);
+  eventer_t e = eventer_alloc_timer(func, cl, &t);
   return e;
 }
 
@@ -635,12 +885,9 @@ eventer_in(eventer_func_t func, void *cl, struct timeval t) {
 static inline eventer_t
 eventer_in_s_us(eventer_func_t func, void *cl, unsigned long s, unsigned long us) {
   struct timeval __now, diff = { (time_t)s, (suseconds_t)us };
-  eventer_t e = eventer_alloc();
   mtev_gettimeofday(&__now, NULL);
-  add_timeval(__now, diff, &e->whence);
-  e->mask = EVENTER_TIMER;
-  e->callback = func;
-  e->closure = cl;
+  add_timeval(__now, diff, &diff);
+  eventer_t e = eventer_alloc_timer(func, cl, &diff);
   return e;
 }
 

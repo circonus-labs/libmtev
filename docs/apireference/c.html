@@ -860,6 +860,22 @@ buffer has overflowed into dynamic allocation space.</p>
 <li><strong>RETURN</strong> the pointer to the end of the dyn_buffer</li>
 </ul>
 <h3 id="e">E</h3>
+<h4 id="eventeraccept">eventer_accept</h4>
+<blockquote>
+<p>Execute an opset-appropriate <code>accept</code> call.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_accept</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">struct</span> sockaddr *addr, socklen_t *len, <span class="hljs-keyword">int</span> *mask)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>addr</code> a <code>struct sockaddr</code> to be populated.</li>
+<li><code>len</code> a <code>socklen_t</code> pointer to the size of the <code>addr</code> argument; updated.</li>
+<li><code>mask</code> a point the a mask. If the call does not complete, <code>*mask</code> it set.</li>
+<li><strong>RETURN</strong> an opset-appropriate return value. (fd for POSIX, -1 for SSL).</li>
+</ul>
+<p>If the function returns -1 and <code>errno</code> is <code>EAGAIN</code>, the <code>*mask</code> reflects the
+necessary activity to make progress.</p>
 <h4 id="eventeradd">eventer_add</h4>
 <blockquote>
 <p>Add an event object to the eventer system.</p>
@@ -961,6 +977,77 @@ eventer_alloc()
 </ul>
 <p>The allocated event has a refernce count of 1 and is attached to the
 calling thread.</p>
+<h4 id="eventerallocasynch">eventer_alloc_asynch</h4>
+<blockquote>
+<p>Allocate an event to be injected into the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_alloc_asynch(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure)
+</code></pre>
+<ul>
+<li><code>func</code> The callback function.</li>
+<li><code>closure</code> The closure for the callback function.</li>
+<li><strong>RETURN</strong> A newly allocated asynch event.</li>
+</ul>
+<p>The allocated event has a refernce count of 1 and is attached to the
+calling thread.</p>
+<h4 id="eventeralloccopy">eventer_alloc_copy</h4>
+<blockquote>
+<p>Allocate an event copied from another to be injected into the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_alloc_copy(<span class="hljs-keyword">eventer_t</span> src)
+</code></pre>
+<ul>
+<li><code>src</code> a source eventer_t to copy.</li>
+<li><strong>RETURN</strong> A newly allocated event that is a copy of src.</li>
+</ul>
+<p>The allocated event has a refernce count of 1.</p>
+<h4 id="eventerallocfd">eventer_alloc_fd</h4>
+<blockquote>
+<p>Allocate an event to be injected into the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_alloc_fd(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">int</span> fd, <span class="hljs-keyword">int</span> mask)
+</code></pre>
+<ul>
+<li><code>func</code> The callback function.</li>
+<li><code>closure</code> The closure for the callback function.</li>
+<li><code>fd</code> The file descriptor.</li>
+<li><code>mask</code> The mask of activity of interest.</li>
+<li><strong>RETURN</strong> A newly allocated fd event.</li>
+</ul>
+<p>The allocated event has a refernce count of 1 and is attached to the
+calling thread.</p>
+<h4 id="eventerallocrecurrent">eventer_alloc_recurrent</h4>
+<blockquote>
+<p>Allocate an event to be injected into the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_alloc_recurrent(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure)
+</code></pre>
+<ul>
+<li><code>func</code> The callback function.</li>
+<li><code>closure</code> The closure for the callback function.</li>
+<li><strong>RETURN</strong> A newly allocated recurrent event.</li>
+</ul>
+<p>The allocated event has a refernce count of 1 and is attached to the
+calling thread.</p>
+<h4 id="eventeralloctimer">eventer_alloc_timer</h4>
+<blockquote>
+<p>Allocate an event to be injected into the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_alloc_timer(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *whence)
+</code></pre>
+<ul>
+<li><code>func</code> The callback function.</li>
+<li><code>closure</code> The closure for the callback function.</li>
+<li><code>whence</code> The time at which the event should fire.</li>
+<li><strong>RETURN</strong> A newly allocated timer event.</li>
+</ul>
+<p>The allocated event has a refernce count of 1 and is attached to the
+calling thread.</p>
 <h4 id="eventerallocationscurrent">eventer_allocations_current</h4>
 <pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
 eventer_allocations_current()
@@ -991,6 +1078,24 @@ eventer_at(<span class="hljs-keyword">eventer_func_t</span> func, <span class="h
 <blockquote>
 <p>Note this does not actually schedule the event. See <a href="c.html#eventeraddat"><code>eventer_add_at</code></a>.</p>
 </blockquote>
+<h4 id="eventercallback">eventer_callback</h4>
+<blockquote>
+<p>Directly invoke an event&apos;s callback.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_callback</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>mask</code> the mask that callback should be acting upon (see <code>eventer_get_mask</code>)</li>
+<li><code>closure</code> the closure on which the callback should act</li>
+<li><code>now</code> the time the callback should see as &quot;now&quot;.</li>
+<li><strong>RETURN</strong> The return value of the callback function as invoked.</li>
+</ul>
+<p>This does not call the callback in the contexts of the eventloop.  This means
+that should the callback return a mask, the event-loop will not interpret it
+and change state appropriately.  The caller must respond appropriately to any
+return values.</p>
 <h4 id="eventercallbackforname">eventer_callback_for_name</h4>
 <blockquote>
 <p>Find an event callback function that has been registered by name.</p>
@@ -1058,6 +1163,20 @@ modulo the concurrency of the pool.  If the default pool is speicified, special
 assignment behavior applies. See <a href="c.html#eventerchooseowner"><code>eventer_choose_owner</code></a>.</p>
 <p>To assign an event to a thread, use the result of this function to assign:
 <code>e-&gt;thr_owner</code>.</p>
+<h4 id="eventerclose">eventer_close</h4>
+<blockquote>
+<p>Execute an opset-appropriate <code>close</code> call.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_close</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> *mask)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>mask</code> a point the a mask. If the call does not complete, <code>*mask</code> it set.</li>
+<li><strong>RETURN</strong> 0 on sucess or -1 with errno set.</li>
+</ul>
+<p>If the function returns -1 and <code>errno</code> is <code>EAGAIN</code>, the <code>*mask</code> reflects the
+necessary activity to make progress.</p>
 <h4 id="eventerderef">eventer_deref</h4>
 <blockquote>
 <p>See eventer_free.</p>
@@ -1067,6 +1186,50 @@ assignment behavior applies. See <a href="c.html#eventerchooseowner"><code>event
 </span></code></pre>
 <ul>
 <li><code>e</code> the event to dereference.</li>
+</ul>
+<h4 id="eventerfdopsetgetaccept">eventer_fd_opset_get_accept</h4>
+<blockquote>
+<p>Retrieve the accept function from an fd opset.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_accept_t</span> 
+eventer_fd_opset_get_accept(<span class="hljs-keyword">eventer_fd_opset_t</span> opset)
+</code></pre>
+<ul>
+<li><code>opset</code> an opset (see <code>eventer_get_fd_opset</code>)</li>
+<li><strong>RETURN</strong> An eventer_fd_accept_t function</li>
+</ul>
+<h4 id="eventerfdopsetgetclose">eventer_fd_opset_get_close</h4>
+<blockquote>
+<p>Retrieve the close function from an fd opset.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_close_t</span> 
+eventer_fd_opset_get_close(<span class="hljs-keyword">eventer_fd_opset_t</span> opset)
+</code></pre>
+<ul>
+<li><code>opset</code> an opset (see <code>eventer_get_fd_opset</code>)</li>
+<li><strong>RETURN</strong> An eventer_fd_close_t function</li>
+</ul>
+<h4 id="eventerfdopsetgetread">eventer_fd_opset_get_read</h4>
+<blockquote>
+<p>Retrieve the read function from an fd opset.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_read_t</span> 
+eventer_fd_opset_get_read(<span class="hljs-keyword">eventer_fd_opset_t</span> opset)
+</code></pre>
+<ul>
+<li><code>opset</code> an opset (see <code>eventer_get_fd_opset</code>)</li>
+<li><strong>RETURN</strong> An eventer_fd_read_t function</li>
+</ul>
+<h4 id="eventerfdopsetgetwrite">eventer_fd_opset_get_write</h4>
+<blockquote>
+<p>Retrieve the write function from an fd opset.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_write_t</span> 
+eventer_fd_opset_get_write(<span class="hljs-keyword">eventer_fd_opset_t</span> opset)
+</code></pre>
+<ul>
+<li><code>opset</code> an opset (see <code>eventer_get_fd_opset</code>)</li>
+<li><strong>RETURN</strong> An eventer_fd_write_t function</li>
 </ul>
 <h4 id="eventerfindfd">eventer_find_fd</h4>
 <blockquote>
@@ -1111,6 +1274,28 @@ eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
 <ul>
 <li><code>e</code> the event to dereference.</li>
 </ul>
+<h4 id="eventergetcallback">eventer_get_callback</h4>
+<blockquote>
+<p>Retrieve the callback function for an event.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_func_t</span> 
+eventer_get_callback(<span class="hljs-keyword">eventer_t</span> e)
+</code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> An <code>eventer_func_t</code> callback function.</li>
+</ul>
+<h4 id="eventergetclosure">eventer_get_closure</h4>
+<blockquote>
+<p>Retrieve an event&apos;s closure.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> *
+<span class="hljs-title">eventer_get_closure</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> The previous closure set.</li>
+</ul>
 <h4 id="eventergetepoch">eventer_get_epoch</h4>
 <blockquote>
 <p>Find the start time of the eventer loop.</p>
@@ -1122,6 +1307,61 @@ eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
 <li><code>epoch</code> a point to a <code>struct timeval</code> to fill out.</li>
 <li><strong>RETURN</strong> 0 on success; -1 on failure (eventer loop not started).</li>
 </ul>
+<h4 id="eventergetfd">eventer_get_fd</h4>
+<blockquote>
+<p>Retrieve the file descriptor for an fd-based event.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_get_fd</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> a file descriptor.</li>
+</ul>
+<h4 id="eventergetfdopset">eventer_get_fd_opset</h4>
+<blockquote>
+<p>Retrieve the fd opset from an event.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_opset_t</span> 
+eventer_get_fd_opset(<span class="hljs-keyword">eventer_t</span> e)
+</code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> The currently active opset for a fd-based eventer_t.</li>
+</ul>
+<h4 id="eventergetmask">eventer_get_mask</h4>
+<blockquote>
+<p>Retrieve the mask for an event.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_get_mask</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><p><strong>RETURN</strong> a mask of bitwise-or&apos;d valued.</p>
+<ul>
+<li><code>EVENTER_READ</code> -- trigger/set when a file descriptor is readable.</li>
+<li><code>EVENTER_WRITE</code> -- trigger/set when a file descriptor is writeable.</li>
+<li><code>EVENTER_EXCEPTION</code> -- trigger/set problems with a file descriptor.</li>
+<li><code>EVENTER_TIMER</code> -- trigger/set at a specific time.</li>
+<li><code>EVENTER_RECURRENT</code> -- trigger/set on each pass through the event-loop.</li>
+<li><code>EVENTER_ASYNCH</code> -- trigger from a non-event-loop thread, set upon completion.</li>
+<li><code>EVENTER_ASYNCH_WORK</code> -- set during asynchronous work.</li>
+<li><code>EVENTER_ASYNCH_CLEANUP</code> -- set during asynchronous cleanup.</li>
+</ul>
+</li>
+</ul>
+<h4 id="eventergetowner">eventer_get_owner</h4>
+<blockquote>
+<p>Retrieve the thread that owns an event.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">pthread_t</span> 
+eventer_get_owner(<span class="hljs-keyword">eventer_t</span> e)
+</code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> a <code>pthread_t</code> thread.</li>
+</ul>
 <h4 id="eventergetpoolforevent">eventer_get_pool_for_event</h4>
 <blockquote>
 <p>Determin which eventer pool owns a given event.</p>
@@ -1132,6 +1372,17 @@ eventer_get_pool_for_event(<span class="hljs-keyword">eventer_t</span> e)
 <ul>
 <li><code>e</code> an event object.</li>
 <li><strong>RETURN</strong> the <code>eventer_pool_t</code> to which the event is scheduled.</li>
+</ul>
+<h4 id="eventergetwhence">eventer_get_whence</h4>
+<blockquote>
+<p>Retrieve the time at which a timer event will fire.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval 
+<span class="hljs-title">eventer_get_whence</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> A absolute time.</li>
 </ul>
 <h4 id="eventergettimeofcallback">eventer_gettimeofcallback</h4>
 <blockquote>
@@ -1341,12 +1592,28 @@ eventer_pool_concurrency(<span class="hljs-keyword">eventer_pool_t</span> *pool)
 <li><code>pool</code> an eventer pool</li>
 <li><code>timeout</code> the deadman timer in seconds.</li>
 </ul>
+<h4 id="eventerread">eventer_read</h4>
+<blockquote>
+<p>Execute an opset-appropriate <code>read</code> call.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_read</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">void</span> *buff, size_t len, <span class="hljs-keyword">int</span> *mask)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>buff</code> a buffer in which to place read data.</li>
+<li><code>len</code> the size of <code>buff</code> in bytes.</li>
+<li><code>mask</code> a point the a mask. If the call does not complete, <code>*mask</code> it set.</li>
+<li><strong>RETURN</strong> the number of bytes read or -1 with errno set.</li>
+</ul>
+<p>If the function returns -1 and <code>errno</code> is <code>EAGAIN</code>, the <code>*mask</code> reflects the
+necessary activity to make progress.</p>
 <h4 id="eventerref">eventer_ref</h4>
 <blockquote>
 <p>Add a reference to an event.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">eventer_ref</span><span class="hljs-params">(evneter_t e)</span>
+<span class="hljs-title">eventer_ref</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
 <li><code>e</code> the event to reference.</li>
@@ -1379,6 +1646,17 @@ eventer_remove_fd(<span class="hljs-keyword">int</span> e)
 <li><code>fd</code> a file descriptor</li>
 <li><strong>RETURN</strong> the event object removed if found; NULL if not found.</li>
 </ul>
+<h4 id="eventerremovefde">eventer_remove_fde</h4>
+<blockquote>
+<p>Removes an fd event from the eventloop based on filedescriptor alone.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_remove_fde(<span class="hljs-keyword">eventer_t</span> e)
+</code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> The event removed, NULL if no event was present.</li>
+</ul>
 <h4 id="eventerremoverecurrent">eventer_remove_recurrent</h4>
 <blockquote>
 <p>Remove a recurrent event from the eventer.</p>
@@ -1401,6 +1679,28 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <li><code>e</code> an event object (mask must be <code>EVENTER_TIMED</code>).</li>
 <li><strong>RETURN</strong> the event removed, NULL if not found.</li>
 </ul>
+<h4 id="eventersetcallback">eventer_set_callback</h4>
+<blockquote>
+<p>Set an event&apos;s callback function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_set_callback</span><span class="hljs-params">(eventer_t e, eventer_func_t func)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> func <code>eventer_func_t</code> callback function.</li>
+</ul>
+<h4 id="eventersetclosure">eventer_set_closure</h4>
+<blockquote>
+<p>Set an event&apos;s closure.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_set_closure</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">void</span> *closure)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>closure</code> a pointer to user-data to be supplied during callback.</li>
+</ul>
 <h4 id="eventersetfdblocking">eventer_set_fd_blocking</h4>
 <blockquote>
 <p>Set a file descriptor into blocking mode.</p>
@@ -1422,6 +1722,34 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <ul>
 <li><code>fd</code> a file descriptor</li>
 <li><strong>RETURN</strong> 0 on success, -1 on error (errno set).</li>
+</ul>
+<h4 id="eventersetmask">eventer_set_mask</h4>
+<blockquote>
+<p>Change an event&apos;s interests or intentions.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_set_mask</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>mask</code> a new mask</li>
+</ul>
+<p>Do not change change a mask from one event &quot;type&quot; to another. fd events
+must remain fd events. Timer must remain timer. Recurrent must remain recurrent.
+Do not alter asynch events at all.  This simply changes the mask of the event
+without changing any eventer state and should be used with extremem care.
+Consider using the callback&apos;s return value or <code>eventer_update</code> to change
+the mask of an active event in the system.</p>
+<h4 id="eventersetowner">eventer_set_owner</h4>
+<blockquote>
+<p>Set the thread that owns an event.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_set_owner</span><span class="hljs-params">(eventer_t e, pthread_t t)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>t</code> a <code>pthread_t</code> thread; must be a valid event-loop.</li>
 </ul>
 <h4 id="eventerthreadcheck">eventer_thread_check</h4>
 <blockquote>
@@ -1458,6 +1786,17 @@ eventer for any reason.</p>
 <li><code>e</code> an event object</li>
 <li><code>mask</code> a new mask that is some bitwise or of <code>EVENTER_READ</code>, <code>EVENTER_WRITE</code>, and <code>EVENTER_EXCEPTION</code></li>
 </ul>
+<h4 id="eventerupdatewhence">eventer_update_whence</h4>
+<blockquote>
+<p>Change the time at which a registered timer event should fire.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_update_whence</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">struct</span> timeval whence)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>whence</code> an absolute time.</li>
+</ul>
 <h4 id="eventerwakeup">eventer_wakeup</h4>
 <blockquote>
 <p>Signal up an event loop manually.</p>
@@ -1473,6 +1812,22 @@ If <code>e</code> is <code>NULL</code> the first thread in the default eventer l
 eventer loop can wake up on timed events, asynchronous job completions and 
 file descriptor activity.  If, for an external reason, one needs to wake up
 a looping thread, this call is used.</p>
+<h4 id="eventerwrite">eventer_write</h4>
+<blockquote>
+<p>Execute an opset-appropriate <code>write</code> call.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">eventer_write</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">void</span> *buff, size_t len, <span class="hljs-keyword">int</span> *mask)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>buff</code> a buffer containing data to write.</li>
+<li><code>len</code> the size of <code>buff</code> in bytes.</li>
+<li><code>mask</code> a point the a mask. If the call does not complete, <code>*mask</code> it set.</li>
+<li><strong>RETURN</strong> the number of bytes written or -1 with errno set.</li>
+</ul>
+<p>If the function returns -1 and <code>errno</code> is <code>EAGAIN</code>, the <code>*mask</code> reflects the
+necessary activity to make progress.</p>
 <h3 id="g">G</h3>
 <h4 id="mtevgetnanos">mtev_get_nanos</h4>
 <pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 

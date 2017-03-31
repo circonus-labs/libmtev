@@ -53,6 +53,8 @@
 #include <wslay/wslay.h>
 #endif
 
+#define CTXFD(ctx) ((ctx)->conn.e ? eventer_get_fd((ctx)->conn.e) : -1)
+
 #define DEFAULT_MAXWRITE 1<<14 /* 32k */
 #define DEFAULT_BCHAINSIZE ((1 << 15)-(offsetof(struct bchain, _buff)))
 /* 64k - delta */
@@ -389,9 +391,7 @@ eventer_t mtev_http_connection_event(mtev_http_connection *conn) {
 eventer_t mtev_http_connection_event_float(mtev_http_connection *conn) {
   eventer_t e = conn ? conn->e : NULL;
   if(e) {
-    conn->e = eventer_alloc();
-    memcpy(conn->e, e, sizeof(*e));
-    conn->e->refcnt = 1;
+    conn->e = eventer_alloc_copy(e);
   }
   return e;
 }
@@ -566,7 +566,7 @@ set_endpoint(mtev_http_session_ctx *ctx) {
   unsigned short port = 0;
   socklen_t addrlen = sizeof(addr);
   if(ctx->conn.e) {
-    if(getsockname(ctx->conn.e->fd, &addr.addr, &addrlen) == 0) {
+    if(getsockname(eventer_get_fd(ctx->conn.e), &addr.addr, &addrlen) == 0) {
       if(addr.addr4.sin_family == AF_INET) {
         addr.addr4.sin_addr.s_addr = ntohl(addr.addr4.sin_addr.s_addr);
         ip = &addr.addr4.sin_addr;
@@ -684,7 +684,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
       logline = logline_dynamic = malloc(len+1);
       logline_len = len+1;
     }
-    LIBMTEV_HTTP_LOG(ctx->conn.e ? ctx->conn.e->fd : -1, ctx, logline);
+    LIBMTEV_HTTP_LOG(CTXFD(ctx), ctx, logline);
     (void)logline; /* the above line might be CPP'd away */
     free(logline_dynamic);
   }
@@ -736,10 +736,9 @@ _http_perform_write(mtev_http_session_ctx *ctx, int *mask) {
   attempt_write_len = b->size - ctx->res.output_raw_offset;
   attempt_write_len = MIN(attempt_write_len, ctx->max_write);
 
-  len = ctx->conn.e->opset->
-          write(ctx->conn.e->fd,
-                b->buff + b->start + ctx->res.output_raw_offset,
-                attempt_write_len, mask, ctx->conn.e);
+  len = eventer_write(ctx->conn.e,
+                      b->buff + b->start + ctx->res.output_raw_offset,
+                      attempt_write_len, mask);
   if(len == -1 && errno == EAGAIN) {
     *mask |= EVENTER_EXCEPTION;
     pthread_mutex_unlock(&ctx->write_lock);
@@ -754,7 +753,7 @@ _http_perform_write(mtev_http_session_ctx *ctx, int *mask) {
     pthread_mutex_unlock(&ctx->write_lock);
     return -1;
   }
-  mtevL(http_io, " http_write(%d) => %d [\n%.*s\n]\n", ctx->conn.e->fd,
+  mtevL(http_io, " http_write(%d) => %d [\n%.*s\n]\n", eventer_get_fd(ctx->conn.e),
         len, len, b->buff + b->start + ctx->res.output_raw_offset);
   ctx->res.output_raw_offset += len;
   ctx->res.bytes_written += len;
@@ -872,7 +871,7 @@ mtev_http_request_finalize_headers(mtev_http_session_ctx *ctx, mtev_boolean *err
         req->protocol = _protocol_enum(req->protocol_str);
         req->opts |= MTEV_HTTP_CLOSE;
         if(req->protocol == MTEV_HTTP11) req->opts |= MTEV_HTTP_CHUNKED;
-        LIBMTEV_HTTP_REQUEST_START(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
+        LIBMTEV_HTTP_REQUEST_START(CTXFD(ctx), ctx);
       }
       else { /* request headers */
         const char *name, *value;
@@ -996,7 +995,7 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
 
   if(mask & EVENTER_EXCEPTION) {
    full_error:
-    ctx->conn.e->opset->close(ctx->conn.e->fd, &mask, ctx->conn.e);
+    eventer_close(ctx->conn.e, &mask);
     ctx->conn.e = NULL;
     return 0;
   }
@@ -1026,15 +1025,14 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
       if(!in) goto full_error;
     }
 
-    len = ctx->conn.e->opset->read(ctx->conn.e->fd,
-                                   in->buff + in->start + in->size,
-                                   in->allocd - in->size - in->start,
-                                   &mask, ctx->conn.e);
-    mtevL(http_debug, " mtev_http -> read(%d) = %d\n", ctx->conn.e->fd, len);
+    len = eventer_read(ctx->conn.e,
+                       in->buff + in->start + in->size,
+                       in->allocd - in->size - in->start, &mask);
+    mtevL(http_debug, " mtev_http -> read(%d) = %d\n", CTXFD(ctx), len);
     if(len > 0)
-      mtevL(http_io, " mtev_http:read(%d) => %d [\n%.*s\n]\n", ctx->conn.e->fd, len, len, in->buff + in->start + in->size);
+      mtevL(http_io, " mtev_http:read(%d) => %d [\n%.*s\n]\n", CTXFD(ctx), len, len, in->buff + in->start + in->size);
     else
-      mtevL(http_io, " mtev_http:read(%d) => %d\n", ctx->conn.e->fd, len);
+      mtevL(http_io, " mtev_http:read(%d) => %d\n", CTXFD(ctx), len);
     if(len == -1 && errno == EAGAIN) return mask;
     if(len <= 0) goto full_error;
     if(len > 0) in->size += len;
@@ -1130,7 +1128,7 @@ mtev_http_response_release(mtev_http_session_ctx *ctx) {
 void
 mtev_http_ctx_session_release(mtev_http_session_ctx *ctx) {
   if(mtev_atomic_dec32(&ctx->ref_cnt) == 0) {
-    LIBMTEV_HTTP_CLOSE(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
+    LIBMTEV_HTTP_CLOSE(CTXFD(ctx), ctx);
     mtev_http_request_release(ctx);
     if(ctx->req.user_data) RELEASE_BCHAIN(ctx->req.user_data);
     if(ctx->req.first_input) RELEASE_BCHAIN(ctx->req.first_input);
@@ -1231,15 +1229,14 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
     }
     /* pull next chunk */
     if (ctx->conn.e == NULL) return -1;
-    rlen = ctx->conn.e->opset->read(ctx->conn.e->fd,
-                                    in->buff + in->start + in->size,
-                                    in->allocd - in->size - in->start,
-                                    mask, ctx->conn.e);
-    mtevL(http_debug, " mtev_http -> read(%d) = %d\n", ctx->conn.e->fd, rlen);
+    rlen = eventer_read(ctx->conn.e,
+                        in->buff + in->start + in->size,
+                        in->allocd - in->size - in->start, mask);
+    mtevL(http_debug, " mtev_http -> read(%d) = %d\n", CTXFD(ctx), rlen);
     if(rlen > 0)
-      mtevL(http_io, " mtev_http:read(%d) => %d [\n%.*s\n]\n", ctx->conn.e->fd, rlen, rlen, in->buff + in->start + in->size);
+      mtevL(http_io, " mtev_http:read(%d) => %d [\n%.*s\n]\n", CTXFD(ctx), rlen, rlen, in->buff + in->start + in->size);
     else
-      mtevL(http_io, " mtev_http:read(%d) => %d\n", ctx->conn.e->fd, rlen);
+      mtevL(http_io, " mtev_http:read(%d) => %d\n", CTXFD(ctx), rlen);
     if(rlen == -1 && errno == EAGAIN) {
       /* We'd block to read more, but we have data,
        * so do a short read */
@@ -1404,10 +1401,10 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
     if (ctx->req.read_last_chunk == mtev_false) {
       int chunk_size = mtev_http_session_req_consume_read(ctx, compression_type, mask);
       mtevL(http_debug, " ... mtev_http_session_req_consume(%d) chunked -> %d\n",
-            ctx->conn.e->fd, chunk_size);
+            CTXFD(ctx), chunk_size);
       if(chunk_size == 0) {
         mtevL(http_debug, " ... mtev_http_session_req_consume(%d) read last chunk.\n",
-              ctx->conn.e->fd);
+              CTXFD(ctx));
         /* we have reached the end of the chunked input.  
          * switch off chunked reading and set the content length */
         ctx->req.read_last_chunk = mtev_true;
@@ -1644,9 +1641,8 @@ wslay_send_callback(wslay_event_context_ptr ctx,
   }
 
 
-  while((r = session_ctx->conn.e->opset->
-         write(session_ctx->conn.e->fd,
-               data, len, &session_ctx->wanted_eventer_mask, session_ctx->conn.e)) == -1 && errno == EINTR);
+  while((r = eventer_write(session_ctx->conn.e,
+               data, len, &session_ctx->wanted_eventer_mask)) == -1 && errno == EINTR);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_WOULDBLOCK);
@@ -1672,9 +1668,8 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
     return -1;
   }
 
-  while((r = session_ctx->conn.e->opset->read(session_ctx->conn.e->fd,
-                                              buf, len, &session_ctx->wanted_eventer_mask,
-                                              session_ctx->conn.e)) == -1
+  while((r = eventer_read(session_ctx->conn.e,
+                          buf, len, &session_ctx->wanted_eventer_mask)) == -1
         && errno == EINTR);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -1700,9 +1695,9 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
 
   if (!wslay_is_ctrl_frame(arg->opcode)) {
     if (session_ctx->websocket_dispatcher != NULL) {
-      mtevL(http_debug, "   <- websocket_dispatch (%d)\n", session_ctx->conn.e->fd);
+      mtevL(http_debug, "   <- websocket_dispatch (%d)\n", eventer_get_fd(session_ctx->conn.e));
       rv = session_ctx->websocket_dispatcher(session_ctx, arg->opcode, arg->msg, arg->msg_length);
-      mtevL(http_debug, "   <- websocket_dispatch (%d) == %d\n", session_ctx->conn.e->fd, rv);
+      mtevL(http_debug, "   <- websocket_dispatch (%d) == %d\n", eventer_get_fd(session_ctx->conn.e), rv);
       if (rv != 0) {
         /* force the drive loop to abandon this as a websocket */
         session_ctx->is_websocket = mtev_false;
@@ -1729,13 +1724,13 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
    * The last request could have unread upload content, we would have
    * noted that in mtev_http_request_release.
    */
-  mtevL(http_debug, " -> mtev_http_session_drive(%d) [%x]\n", e->fd, origmask);
+  mtevL(http_debug, " -> mtev_http_session_drive(%d) [%x]\n", eventer_get_fd(e), origmask);
   while(ctx->drainage > 0) {
     int len;
-    mtevL(http_debug, "   ... draining last request(%d)\n", e->fd);
+    mtevL(http_debug, "   ... draining last request(%d)\n", eventer_get_fd(e));
     len = mtev_http_session_req_consume(ctx, NULL, ctx->drainage, 0, &mask);
     if(len == -1 && errno == EAGAIN) {
-      mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", e->fd, mask);
+      mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", eventer_get_fd(e), mask);
       return mask;
     }
     if(len <= 0) goto abort_drive;
@@ -1745,27 +1740,27 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
  next_req:
   if(ctx->req.complete != mtev_true) {
     int maybe_write_mask;
-    mtevL(http_debug, "   -> mtev_http_complete_request(%d)\n", e->fd);
+    mtevL(http_debug, "   -> mtev_http_complete_request(%d)\n", eventer_get_fd(e));
     mask = mtev_http_complete_request(ctx, origmask);
     mtevL(http_debug, "   <- mtev_http_complete_request(%d) = %d\n",
-          e->fd, mask);
+          eventer_get_fd(e), mask);
     if(ctx->conn.e == NULL) goto release;
 
 #ifdef HAVE_WSLAY
     if (ctx->did_handshake == mtev_false) {
-      mtevL(http_debug, "   -> checking for websocket(%d)\n", e->fd);
+      mtevL(http_debug, "   -> checking for websocket(%d)\n", eventer_get_fd(e));
       mtev_http_websocket_handshake(ctx);
     }
 
     if (ctx->is_websocket == mtev_true) {
-      mtevL(http_debug, "   ... *is* websocket(%d)\n", e->fd);
+      mtevL(http_debug, "   ... *is* websocket(%d)\n", eventer_get_fd(e));
       /* init the wslay library for websocket communication */
       wslay_event_context_server_init(&ctx->wslay_ctx, &wslay_callbacks, ctx);
     } else {
 #endif
       _http_perform_write(ctx, &maybe_write_mask);
       if(ctx->req.complete != mtev_true) {
-        mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", e->fd,
+        mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", eventer_get_fd(e),
               mask|maybe_write_mask);
         return mask | maybe_write_mask;
       }
@@ -1781,7 +1776,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     if (ctx->is_websocket == mtev_false) {
       begin_span(ctx);
     }
-    LIBMTEV_HTTP_REQUEST_FINISH(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
+    LIBMTEV_HTTP_REQUEST_FINISH(CTXFD(ctx), ctx);
   }
 
   if (ctx->is_websocket == mtev_true) {
@@ -1797,13 +1792,13 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
       goto abort_drive;
     }
 
-    mtevL(http_debug, "   -> mtev_http_session_drive, websocket recv(%d)\n", e->fd);
+    mtevL(http_debug, "   -> mtev_http_session_drive, websocket recv(%d)\n", eventer_get_fd(e));
     if (wslay_event_recv(ctx->wslay_ctx) != 0) {
       /* serious error on the `recv` side, abort */
       goto abort_drive;
     }
 
-    mtevL(http_debug, "   <- mtev_http_session_drive, websocket send(%d)\n", e->fd);
+    mtevL(http_debug, "   <- mtev_http_session_drive, websocket send(%d)\n", eventer_get_fd(e));
     pthread_mutex_lock(&ctx->write_lock);
     if (wslay_event_send(ctx->wslay_ctx) != 0) {
       pthread_mutex_unlock(&ctx->write_lock);
@@ -1822,15 +1817,15 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
   } else {
     /* only dispatch if the response is not closed */
     if(ctx->res.closed == mtev_false) {
-      mtevL(http_debug, "   -> dispatch(%d)\n", e->fd);
+      mtevL(http_debug, "   -> dispatch(%d)\n", eventer_get_fd(e));
       rv = ctx->dispatcher(ctx);
-      mtevL(http_debug, "   <- dispatch(%d) = %d\n", e->fd, rv);
+      mtevL(http_debug, "   <- dispatch(%d) = %d\n", eventer_get_fd(e), rv);
     }
   }
   if(ctx->conn.e) {
-    eventer_t registered_e = eventer_find_fd(e->fd);
+    eventer_t registered_e = eventer_find_fd(eventer_get_fd(e));
     if(registered_e != ctx->conn.e) {
-      mtevL(http_debug, " <- mtev_http_session_drive(%d) [handsoff:%x]\n", e->fd, rv);
+      mtevL(http_debug, " <- mtev_http_session_drive(%d) [handsoff:%x]\n", eventer_get_fd(e), rv);
       return rv;
     }
   }
@@ -1842,24 +1837,24 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
    abort_drive:
     mtev_http_log_request(ctx);
     if(ctx->conn.e) {
-      ctx->conn.e->opset->close(ctx->conn.e->fd, &mask, ctx->conn.e);
+      eventer_close(ctx->conn.e, &mask);
       ctx->conn.e = NULL;
     }
     goto release;
   }
   if(ctx->res.complete == mtev_true) {
     end_span(ctx);
-    LIBMTEV_HTTP_RESPONSE_FINISH(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
+    LIBMTEV_HTTP_RESPONSE_FINISH(CTXFD(ctx), ctx);
     mtev_http_log_request(ctx);
     mtev_http_request_release(ctx);
     mtev_http_response_release(ctx);
   }
   if(ctx->req.complete == mtev_false) goto next_req;
   if(ctx->conn.e) {
-    mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", e->fd, mask|rv);
+    mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", eventer_get_fd(e), mask|rv);
     return mask | rv;
   }
-  mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", e->fd, 0);
+  mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", eventer_get_fd(e), 0);
   goto abort_drive;
 
  release:
@@ -1868,7 +1863,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
    * don't get double freed */
   if(ctx->ac->service_ctx == ctx) ctx->ac->service_ctx = NULL;
   mtev_http_ctx_session_release(ctx);
-  mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", e->fd, 0);
+  mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", eventer_get_fd(e), 0);
   return 0;
 }
 
@@ -1901,7 +1896,7 @@ mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http_websock
   ctx->did_handshake = mtev_false;
   ctx->wslay_ctx = NULL;
 #endif
-  LIBMTEV_HTTP_ACCEPT(e ? e->fd : -1, ctx);
+  LIBMTEV_HTTP_ACCEPT(e ? eventer_get_fd(e) : -1, ctx);
   return ctx;
 }
 
@@ -2361,7 +2356,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
   if(ctx->res.output_started == mtev_false) {
     _http_construct_leader(ctx);
     ctx->res.output_started = mtev_true;
-    LIBMTEV_HTTP_RESPONSE_START(ctx->conn.e ? ctx->conn.e->fd : -1, ctx);
+    LIBMTEV_HTTP_RESPONSE_START(CTXFD(ctx), ctx);
     mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_SEND, false);
   }
   /* encode output to output_raw */
@@ -2440,7 +2435,7 @@ _mtev_http_response_flush(mtev_http_session_ctx *ctx,
 
   rv = _http_perform_write(ctx, &mask);
   if(update_eventer && ctx->conn.e &&
-     eventer_find_fd(ctx->conn.e->fd) == ctx->conn.e) {
+     eventer_find_fd(eventer_get_fd(ctx->conn.e)) == ctx->conn.e) {
       eventer_update(ctx->conn.e, mask);
   }
   if(rv < 0) return mtev_false;
