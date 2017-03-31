@@ -175,7 +175,7 @@ API_EXPORT(void)
   mtev_http_rest_disclose_endpoints(const char *base, const char *expr);
 
 API_EXPORT(int)
-  mtev_mtev_console_show(mtev_console_closure_t ncct, int argc, char **argv,
+  mtev_console_show_rest(mtev_console_closure_t ncct, int argc, char **argv,
                          mtev_console_state_t *dstate, void *);
 
 API_EXPORT(mtev_boolean)

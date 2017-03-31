@@ -51,6 +51,40 @@ mtev_stats_ns(stats_ns_t *parent, const char *name) {
   return stats_register_ns(global_stats, parent, name);
 }
 
+static void
+http_write_to_je(void *cl, const char *buf) {
+  mtev_http_session_ctx *ctx = cl;
+  mtev_http_response_append_str(ctx, buf);
+}
+
+int
+mtev_rest_memory_handler(mtev_http_rest_closure_t *restc,
+                         int npats, char **pats) {
+  static void (*my_malloc_stats_print)(void (*write_cb)(void *, const char *), void *cbopaque, const char *opts);
+
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+
+  if(my_malloc_stats_print == NULL) {
+    my_malloc_stats_print =
+#ifdef RTLD_DEFAULT
+      dlsym(RTLD_DEFAULT, "malloc_stats_print");
+#else
+      dlsym((void *)0, "malloc_stats_print");
+#endif
+  }
+  if(my_malloc_stats_print != NULL) {
+    mtev_http_response_ok(ctx, "application/json");
+    my_malloc_stats_print(http_write_to_je, ctx, "J");
+    mtev_http_response_end(ctx);
+    return 0;
+  }
+
+  mtev_http_response_ok(ctx, "application/json");
+  mtev_http_response_append_str(ctx, "{}\n");
+  mtev_http_response_end(ctx);
+  return 0;
+}
+
 static ssize_t
 http_write_to_mtev(void *cl, const char *buf, size_t len) {
   mtev_http_session_ctx *ctx = cl;
@@ -106,5 +140,8 @@ mtev_stats_rest_init() {
   ) == 0);
   mtevAssert(mtev_http_rest_register_auth(
     "DELETE", "/mtev/", "^stats\\.json$", mtev_rest_stats_delete, mtev_http_rest_client_cert_auth
+  ) == 0);
+  mtevAssert(mtev_http_rest_register_auth(
+    "GET", "/mtev/", "^memory\\.json$", mtev_rest_memory_handler, mtev_http_rest_client_cert_auth
   ) == 0);
 }

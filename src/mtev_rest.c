@@ -145,7 +145,7 @@ mtev_http_rest_permission_denied(mtev_http_rest_closure_t *restc,
   return 0;
 }
 int
-mtev_mtev_console_show(mtev_console_closure_t ncct, int argc, char **argv,
+mtev_console_show_rest(mtev_console_closure_t ncct, int argc, char **argv,
                        mtev_console_state_t *dstate, void *unused) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(&dispatch_points, &iter)) {
