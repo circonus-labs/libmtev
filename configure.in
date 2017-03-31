@@ -359,9 +359,9 @@ AS_IF([test "x$enable_amqp" != "xno"], [
 ])
 
 AC_ARG_ENABLE([wslay],
-    AS_HELP_STRING([--enable-wslay], [Enable websockets using libwslay]))
+    AS_HELP_STRING([--disable-wslay], [Enable websockets using libwslay]))
 
-AS_IF([test "x$enable_wslay" = "xyes"], [
+AS_IF([test "x$enable_wslay" != "xno"], [
   AC_CHECK_LIB(wslay, wslay_event_context_server_init, [
     AC_DEFINE(HAVE_WSLAY, [1], [have libwslay])
     LIBS="-lwslay $LIBS"

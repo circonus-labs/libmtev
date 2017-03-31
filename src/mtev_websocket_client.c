@@ -79,9 +79,8 @@ wslay_send_callback(wslay_event_context_ptr ctx,
     return -1;
   }
 
-  while((r = client->e->opset->write(client->e->fd, data, len,
-                                     &client->wanted_eventer_mask,
-                                     client->e)) == -1
+  while((r = eventer_write(client->e, data, len,
+                           &client->wanted_eventer_mask)) == -1
          && errno == EINTR);
 
   if (r == -1) {
@@ -109,9 +108,8 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
     return -1;
   }
 
-  while((r = client->e->opset->read(client->e->fd,
-                                    buf, len, &client->wanted_eventer_mask,
-                                    client->e)) == -1
+  while((r = eventer_read(client->e,
+                          buf, len, &client->wanted_eventer_mask)) == -1
         && errno == EINTR);
 
   if (r == -1) {
@@ -169,7 +167,7 @@ send_reqheader(eventer_t e, const char *buf, int len, int *mask)
   size_t off = 0;
   ssize_t r;
   while(off < len) {
-    while((r = e->opset->write(e->fd, buf + off, len - off, mask, e)) == -1
+    while((r = eventer_write(e, buf + off, len - off, mask)) == -1
           && errno == EINTR);
     if(r == -1) {
       mtevL(mtev_error, "Websocket client failed while sending headers: %s\n", strerror(errno));
@@ -185,7 +183,7 @@ recv_resheader(eventer_t e, char *buf, int len, int *mask) {
   size_t off = 0;
   ssize_t r;
   while(off < len) {
-    while((r = e->opset->read(e->fd, buf + off, len - off, mask, e)) == -1
+    while((r = eventer_read(e, buf + off, len - off, mask)) == -1
           && errno == EINTR);
     if(r <= 0) {
       mtevL(mtev_error, "Websocket client failed while receiving headers: %s\n", strerror(errno));
@@ -330,7 +328,7 @@ mtev_websocket_client_ssl_upgrade(eventer_t e, int mask, void *closure, struct t
   if(mask & EVENTER_EXCEPTION) goto ssl_upgrade_error;
 
   if(eventer_SSL_connect(e, &mask) > 0) {
-    e->callback = mtev_websocket_client_drive;
+    eventer_set_callback(e, mtev_websocket_client_drive);
     return EVENTER_WRITE | EVENTER_EXCEPTION;
   }
 
@@ -352,12 +350,12 @@ mtev_websocket_client_complete_connect(eventer_t e, int mask, void *closure, str
   int aerrno;
   socklen_t aerrno_len = sizeof(aerrno);
 
-  if(getsockopt(e->fd, SOL_SOCKET, SO_ERROR, &aerrno, &aerrno_len) == 0)
+  if(getsockopt(eventer_get_fd(e), SOL_SOCKET, SO_ERROR, &aerrno, &aerrno_len) == 0)
     if(aerrno != 0) goto connect_error;
   aerrno = 0;
 
   if(mask & EVENTER_EXCEPTION) {
-    if(aerrno == 0 && (write(e->fd, e, 0) == -1))
+    if(aerrno == 0 && (write(eventer_get_fd(e), e, 0) == -1))
       aerrno = errno;
 
 connect_error:
@@ -392,8 +390,8 @@ connect_error:
 
   EVENTER_ATTACH_SSL(e, sslctx);
 
-  e->callback = mtev_websocket_client_ssl_upgrade;
-  return e->callback(e, mask, closure, now);
+  eventer_set_callback(e, mtev_websocket_client_ssl_upgrade);
+  return eventer_callback(e, mask, closure, now);
 }
 #endif
 
@@ -480,12 +478,11 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
     mtev_hash_merge_as_dict(client->sslconfig, sslconfig);
   }
 
-  eventer_t e = eventer_alloc();
-  e->fd = fd;
-  e->mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
-  e->callback = (sslconfig && mtev_hash_size(sslconfig)) ? mtev_websocket_client_complete_connect : mtev_websocket_client_drive;
-  e->closure = client;
-  if(pool) e->thr_owner = eventer_choose_owner_pool(pool, lrand48());
+  eventer_t e = eventer_alloc_fd(
+    (sslconfig && mtev_hash_size(sslconfig)) ? mtev_websocket_client_complete_connect
+                                             : mtev_websocket_client_drive,
+    client, fd, EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
+  if(pool) eventer_set_owner(e, eventer_choose_owner_pool(pool, lrand48()));
   client->e = e;
   eventer_add(e);
   return client;
@@ -588,8 +585,8 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
   int mask; /* value not used, just a dummy for the close() call below */
   pthread_mutex_lock(&client->lock);
   if(!client->closed) {
-    eventer_remove_fd(client->e->fd);
-    client->e->opset->close(client->e->fd, &mask, client->e);
+    eventer_remove_fde(client->e);
+    eventer_close(client->e, &mask);
     eventer_free(client->e);
     if(client->did_handshake)
       wslay_event_context_free(client->wslay_ctx);
