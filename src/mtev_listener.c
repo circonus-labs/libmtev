@@ -218,15 +218,15 @@ mtev_listener_acceptor(eventer_t e, int mask,
           }
         }
 
-        eventer_ssl_ctx_set_verify(ctx, eventer_ssl_verify_cert,
-                                   listener_closure->sslconfig);
-        EVENTER_ATTACH_SSL(newe, ctx);
-
         listener_closure_t lc = malloc(sizeof(*listener_closure));
         memcpy(lc, listener_closure, sizeof(*listener_closure));
         lc->dispatch_closure = ac;
         newe = eventer_alloc_fd(mtev_listener_accept_ssl, lc, conn,
                                 EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
+
+        eventer_ssl_ctx_set_verify(ctx, eventer_ssl_verify_cert,
+                                   listener_closure->sslconfig);
+        EVENTER_ATTACH_SSL(newe, ctx);
       }
       else {
         newe = eventer_alloc_fd(listener_closure->dispatch_callback, ac, conn,
