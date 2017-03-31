@@ -28,11 +28,11 @@
 
 ##### L
 
-[mtev_lockfile_acquire](c.md#mtevlockfileacquire), [mtev_lockfile_release](c.md#mtevlockfilerelease), [mtev_lua_lmc_L](c.md#mtevlualmcL), [mtev_lua_lmc_alloc](c.md#mtevlualmcalloc), [mtev_lua_lmc_free](c.md#mtevlualmcfree), [mtev_lua_lmc_resume](c.md#mtevlualmcresume), [mtev_lua_lmc_setL](c.md#mtevlualmcsetL)
+[mtev_lockfile_acquire](c.md#mtevlockfileacquire), [mtev_lockfile_acquire_owner](c.md#mtevlockfileacquireowner), [mtev_lockfile_release](c.md#mtevlockfilerelease), [mtev_lua_lmc_alloc](c.md#mtevlualmcalloc), [mtev_lua_lmc_free](c.md#mtevlualmcfree), [mtev_lua_lmc_L](c.md#mtevlualmcL), [mtev_lua_lmc_resume](c.md#mtevlualmcresume), [mtev_lua_lmc_setL](c.md#mtevlualmcsetL)
 
 ##### M
 
-[MTEV_MAYBE_DECL](c.md#MTEVMAYBEDECL), [MTEV_MAYBE_DECL_VARS](c.md#MTEVMAYBEDECLVARS), [MTEV_MAYBE_FREE](c.md#MTEVMAYBEFREE), [MTEV_MAYBE_INIT_VARS](c.md#MTEVMAYBEINITVARS), [MTEV_MAYBE_REALLOC](c.md#MTEVMAYBEREALLOC), [MTEV_MAYBE_SIZE](c.md#MTEVMAYBESIZE), [mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile)
+[mtev_main](c.md#mtevmain), [mtev_main_status](c.md#mtevmainstatus), [mtev_main_terminate](c.md#mtevmainterminate), [MTEV_MAYBE_DECL](c.md#MTEVMAYBEDECL), [MTEV_MAYBE_DECL_VARS](c.md#MTEVMAYBEDECLVARS), [MTEV_MAYBE_FREE](c.md#MTEVMAYBEFREE), [MTEV_MAYBE_INIT_VARS](c.md#MTEVMAYBEINITVARS), [MTEV_MAYBE_REALLOC](c.md#MTEVMAYBEREALLOC), [MTEV_MAYBE_SIZE](c.md#MTEVMAYBESIZE), [mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile)
 
 ##### N
 

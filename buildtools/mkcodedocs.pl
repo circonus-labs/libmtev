@@ -17,9 +17,9 @@ my $parts = {
 };
 
 sub mtevcmp {
-  (my $ls = $a) =~ s/^mtev[\._]//;
-  (my $rs = $b) =~ s/^mtev[\._]//;
-  return $ls cmp $rs;
+  (my $ls = $a) =~ s/^mtev[\._]//i;
+  (my $rs = $b) =~ s/^mtev[\._]//i;
+  return lc($ls) cmp lc($rs);
 }
 sub fn_format {
   my $type = shift;

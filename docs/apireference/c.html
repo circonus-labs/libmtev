@@ -526,80 +526,7 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h3 id="m">M</h3>
-<h4 id="mtevmaybedecl">MTEV_MAYBE_DECL</h4>
-<blockquote>
-<p>C Macro for declaring a &quot;maybe&quot; buffer.</p>
-</blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_DECL(type, name, cnt)
-</code></pre>
-<ul>
-<li><code>type</code> A C type (e.g. char)</li>
-<li><code>name</code> The name of the C variable to declare.</li>
-<li><code>cnt</code> The number of type elements initially declared.</li>
-</ul>
-<p>A &quot;maybe&quot; buffer is a buffer that is allocated on-stack, but
-if more space is required can be reallocated off stack (malloc).
-One should always call <code>MTEV_MAYBE_FREE</code> on any allocated
-maybe buffer.</p>
-<h4 id="mtevmaybedeclvars">MTEV_MAYBE_DECL_VARS</h4>
-<blockquote>
-<p>C Macro for declaring a &quot;maybe&quot; buffer.</p>
-</blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_DECL_VARS(type, name, cnt)
-</code></pre>
-<ul>
-<li><code>type</code> A C type (e.g. char)</li>
-<li><code>name</code> The name of the C variable to declare.</li>
-<li><code>cnt</code> The number of type elements initially declared.</li>
-</ul>
-<h4 id="mtevmaybefree">MTEV_MAYBE_FREE</h4>
-<blockquote>
-<p>C Macro to free any heap space associated with a &quot;maybe&quot; buffer.</p>
-</blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_FREE(name)
-</code></pre>
-<ul>
-<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
-</ul>
-<h4 id="mtevmaybeinitvars">MTEV_MAYBE_INIT_VARS</h4>
-<blockquote>
-<p>C Macro for initializing a &quot;maybe&quot; buffer</p>
-</blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_INIT_VARS(name)
-</code></pre>
-<ul>
-<li><code>name</code> The name of &quot;maybe&quot; buffer.</li>
-</ul>
-<h4 id="mtevmayberealloc">MTEV_MAYBE_REALLOC</h4>
-<blockquote>
-<p>C Macro to ensure a maybe buffer has at least cnt elements allocated.</p>
-</blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_REALLOC(name, cnt)
-</code></pre>
-<ul>
-<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
-<li><code>cnt</code> The total number of elements expected in the allocation.</li>
-</ul>
-<p>This macro will never reduce the size and is a noop if a size smaller
-than or equal to the current allocation size is specified.  It is safe
-to simply run this macro prior to each write to the buffer.</p>
-<h4 id="mtevmaybesize">MTEV_MAYBE_SIZE</h4>
-<blockquote>
-<p>C Macro for number of bytes available in this buffer.</p>
-</blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_SIZE(name)
-</code></pre>
-<ul>
-<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
-</ul>
-<h3 id="a">A</h3>
+                                <h3 id="a">A</h3>
 <h4 id="mtevamqpsend">mtev_amqp_send</h4>
 <blockquote>
 <p>Publish an AMQP message to one of the configured amqp brokers.</p>
@@ -1605,6 +1532,18 @@ mtev_lockfile_acquire(<span class="hljs-keyword">const</span> <span class="hljs-
 <li><code>fp</code> the path to the lock file</li>
 <li><strong>RETURN</strong> &gt;= 0 on success, -1 on failure</li>
 </ul>
+<h4 id="mtevlockfileacquireowner">mtev_lockfile_acquire_owner</h4>
+<blockquote>
+<p>lock the file immediately if possible, return -1 otherwise.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_lockfile_t</span> 
+mtev_lockfile_acquire_owner(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fp, <span class="hljs-keyword">pid_t</span> *owner)
+</code></pre>
+<ul>
+<li><code>fp</code> the path to the lock file</li>
+<li><code>owner</code> is a pointer to a pid.  If the lock is owned by another process, this will be set to that pid, otherwise it will be set to -1.</li>
+<li><strong>RETURN</strong> &gt;= 0 on success, -1 on failure</li>
+</ul>
 <h4 id="mtevlockfilerelease">mtev_lockfile_release</h4>
 <blockquote>
 <p>release a held file lock</p>
@@ -1615,17 +1554,6 @@ mtev_lockfile_acquire(<span class="hljs-keyword">const</span> <span class="hljs-
 <ul>
 <li><code>fd</code> the file lock to release</li>
 <li><strong>RETURN</strong> -1 on failure, 0 on success</li>
-</ul>
-<h4 id="mtevlualmcl">mtev_lua_lmc_L</h4>
-<blockquote>
-<p>Get the <code>lua_State *</code> for this module closure.</p>
-</blockquote>
-<pre><code class="lang-c"><span class="hljs-function">lua_State *
-<span class="hljs-title">mtev_lua_lmc_L</span><span class="hljs-params">(lua_module_closure_t *lmc)</span>
-</span></code></pre>
-<ul>
-<li><code>lmc</code> the <code>lua_module_closure_t</code> that was allocated for this runtime.</li>
-<li><strong>RETURN</strong> a Lua state</li>
 </ul>
 <h4 id="mtevlualmcalloc">mtev_lua_lmc_alloc</h4>
 <blockquote>
@@ -1654,6 +1582,17 @@ thread-local fashion.  Also ensure that any use of the eventer does not migrate 
 <ul>
 <li><code>lmc</code> The <code>lua_module_closure_t</code> to be freed.</li>
 </ul>
+<h4 id="mtevlualmcl">mtev_lua_lmc_L</h4>
+<blockquote>
+<p>Get the <code>lua_State *</code> for this module closure.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">lua_State *
+<span class="hljs-title">mtev_lua_lmc_L</span><span class="hljs-params">(lua_module_closure_t *lmc)</span>
+</span></code></pre>
+<ul>
+<li><code>lmc</code> the <code>lua_module_closure_t</code> that was allocated for this runtime.</li>
+<li><strong>RETURN</strong> a Lua state</li>
+</ul>
 <h4 id="mtevlualmcresume">mtev_lua_lmc_resume</h4>
 <blockquote>
 <p>Invoke lua_resume with the correct context based on the <code>lua_module_closure_t</code></p>
@@ -1680,6 +1619,128 @@ thread-local fashion.  Also ensure that any use of the eventer does not migrate 
 <li><strong>RETURN</strong> the previous lua Lua state associated with this closure</li>
 </ul>
 <h3 id="m">M</h3>
+<h4 id="mtevmain">mtev_main</h4>
+<blockquote>
+<p>Run a comprehensive mtev setup followed by a &quot;main&quot; routine.</p>
+</blockquote>
+<pre><code class="lang-c">int 
+mtev_main(const char *appname, const char *config_filename, int debug, int foreground, 
+          mtev_log_op_t lock, const char *glider, const char *drop_to_user, 
+          const char *drop_to_group, int (*passed_child_main)(void))
+</code></pre>
+<ul>
+<li><code>appname</code> The application name (should be the config root node name).</li>
+<li><code>config_filename</code> The path the the config file.</li>
+<li><code>debug</code> Enable debugging (logging).</li>
+<li><code>foreground</code> 0 to daemonize with watchdog, 1 to foreground, 2 to foreground with watchdog.</li>
+<li><code>lock</code> Specifies where to not lock, try lock or exit, or lock or wait.</li>
+<li><code>glider</code> A path to an executable to invoke against the process id on crash. May be NULL.</li>
+<li><code>drop_to_user</code> A target user for dropping privileges when under watchdog. May be NULL.</li>
+<li><code>drop_to_group</code> A target group for dropping privileges when under watchdog. May be NULL.</li>
+<li><code>passed_child_main</code> A programmers supplied main function.</li>
+<li><strong>RETURN</strong> -1 on failure, 0 on success if <code>foreground==1</code>, or the return value of <code>main</code> if run in the foreground.</li>
+</ul>
+<h4 id="mtevmainstatus">mtev_main_status</h4>
+<blockquote>
+<p>Determine if that application is already running under this configuration.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_main_status</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *appname, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *config_filename, <span class="hljs-keyword">int</span> debug, pid_t *pid
+                 pid_t *pgid)</span>
+</span></code></pre>
+<ul>
+<li><code>appname</code> The application name (should be the config root node name).</li>
+<li><code>config_filename</code> The path the the config file.</li>
+<li><code>debug</code> Enable debugging (logging).</li>
+<li><code>pid</code> If not null, it is populated with the process id of the running instance.</li>
+<li><code>pgid</code> If not null, it is populated with the process group id of the running instance.</li>
+<li><strong>RETURN</strong> 0 on success, -1 on failure.</li>
+</ul>
+<h4 id="mtevmainterminate">mtev_main_terminate</h4>
+<blockquote>
+<p>Terminate an already running application under the same configuration.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_main_terminate</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *appname, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *config_filename, <span class="hljs-keyword">int</span> debug)</span>
+</span></code></pre>
+<ul>
+<li><code>appname</code> The application name (should be the config root node name).</li>
+<li><code>config_filename</code> The path the the config file.</li>
+<li><code>debug</code> Enable debugging (logging).</li>
+<li><strong>RETURN</strong> 0 on success, -1 on failure.  If the application is not running at the time of invocation, termination is considered successful.</li>
+</ul>
+<h4 id="mtevmaybedecl">MTEV_MAYBE_DECL</h4>
+<blockquote>
+<p>C Macro for declaring a &quot;maybe&quot; buffer.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_DECL(type, name, cnt)
+</code></pre>
+<ul>
+<li><code>type</code> A C type (e.g. char)</li>
+<li><code>name</code> The name of the C variable to declare.</li>
+<li><code>cnt</code> The number of type elements initially declared.</li>
+</ul>
+<p>A &quot;maybe&quot; buffer is a buffer that is allocated on-stack, but
+if more space is required can be reallocated off stack (malloc).
+One should always call <code>MTEV_MAYBE_FREE</code> on any allocated
+maybe buffer.</p>
+<h4 id="mtevmaybedeclvars">MTEV_MAYBE_DECL_VARS</h4>
+<blockquote>
+<p>C Macro for declaring a &quot;maybe&quot; buffer.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_DECL_VARS(type, name, cnt)
+</code></pre>
+<ul>
+<li><code>type</code> A C type (e.g. char)</li>
+<li><code>name</code> The name of the C variable to declare.</li>
+<li><code>cnt</code> The number of type elements initially declared.</li>
+</ul>
+<h4 id="mtevmaybefree">MTEV_MAYBE_FREE</h4>
+<blockquote>
+<p>C Macro to free any heap space associated with a &quot;maybe&quot; buffer.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_FREE(name)
+</code></pre>
+<ul>
+<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
+</ul>
+<h4 id="mtevmaybeinitvars">MTEV_MAYBE_INIT_VARS</h4>
+<blockquote>
+<p>C Macro for initializing a &quot;maybe&quot; buffer</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_INIT_VARS(name)
+</code></pre>
+<ul>
+<li><code>name</code> The name of &quot;maybe&quot; buffer.</li>
+</ul>
+<h4 id="mtevmayberealloc">MTEV_MAYBE_REALLOC</h4>
+<blockquote>
+<p>C Macro to ensure a maybe buffer has at least cnt elements allocated.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_REALLOC(name, cnt)
+</code></pre>
+<ul>
+<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
+<li><code>cnt</code> The total number of elements expected in the allocation.</li>
+</ul>
+<p>This macro will never reduce the size and is a noop if a size smaller
+than or equal to the current allocation size is specified.  It is safe
+to simply run this macro prior to each write to the buffer.</p>
+<h4 id="mtevmaybesize">MTEV_MAYBE_SIZE</h4>
+<blockquote>
+<p>C Macro for number of bytes available in this buffer.</p>
+</blockquote>
+<pre><code class="lang-c">
+MTEV_MAYBE_SIZE(name)
+</code></pre>
+<ul>
+<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
+</ul>
 <h4 id="mtevmergesort">mtev_merge_sort</h4>
 <blockquote>
 <p>Merge sort data starting at head_ptr_ptr, iteratively</p>

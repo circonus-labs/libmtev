@@ -60,6 +60,43 @@ mtev_lockfile_acquire(const char *fp) {
   return fd;
 }
 
+mtev_lockfile_t
+mtev_lockfile_acquire_owner(const char *fp, pid_t *owner) {
+  mtev_lockfile_t fd;
+  struct flock fl;
+  int frv;
+
+  if(owner) *owner = -1;
+  fd = open(fp, O_RDWR|O_CREAT, 0600);
+  if(fd < 0) return -1;
+
+  memset(&fl, 0, sizeof(fl));
+  fl.l_type = F_WRLCK;
+  fl.l_whence = SEEK_SET;
+  fl.l_start = 0;
+  fl.l_len = 0;
+  while ((frv = fcntl(fd, F_GETLK, &fl)) == -1 && errno == EINTR);
+  if(frv < 0) {
+    close(fd);
+    return -1;
+  }
+  if(fl.l_type != F_UNLCK) {
+    if(owner) *owner = fl.l_pid;
+  }
+
+  memset(&fl, 0, sizeof(fl));
+  fl.l_type = F_WRLCK;
+  fl.l_whence = SEEK_SET;
+  fl.l_start = 0;
+  fl.l_len = 0;
+  while ((frv = fcntl(fd, F_SETLK, &fl)) == -1 && errno == EINTR);
+  if(frv < 0) {
+    close(fd);
+    return -1;
+  }
+  return fd;
+}
+
 int
 mtev_lockfile_release(mtev_lockfile_t fd) {
   int frv;
