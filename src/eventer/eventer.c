@@ -115,6 +115,16 @@ eventer_t eventer_alloc_asynch(eventer_func_t func, void *closure) {
   return e;
 }
 
+eventer_t eventer_alloc_asynch_timeout(eventer_func_t func, void *closure,
+                                       struct timeval *deadline) {
+  eventer_t e = eventer_alloc();
+  e->mask = EVENTER_ASYNCH;
+  e->callback = func;
+  e->closure = closure;
+  memcpy(&e->whence, deadline, sizeof(e->whence));
+  return e;
+}
+
 void eventer_free(eventer_t e) {
   if(mtev_atomic_dec32(&e->refcnt) == 0) {
     mtev_atomic_dec64(&ealloccnt);

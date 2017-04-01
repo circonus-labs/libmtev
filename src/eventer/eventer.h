@@ -392,6 +392,22 @@ API_EXPORT(eventer_t) eventer_alloc_fd(eventer_func_t, void *, int, int);
 */
 API_EXPORT(eventer_t) eventer_alloc_asynch(eventer_func_t, void *);
 
+/*! \fn eventer_t eventer_alloc_asynch_timeout(eventer_func_t func, void *closure, struct timeval *deadline)
+    \brief Allocate an event to be injected into the eventer system.
+    \param func The callback function.
+    \param closure The closure for the callback function.
+    \param deadline an absolute time by which the task must be completed.
+    \return A newly allocated asynch event.
+
+    The allocated event has a refernce count of 1 and is attached to the
+    calling thread.  Depending on the timeout method, there are not hard
+    guarantees on enforcing the deadline; this is more of a guideline for
+    the schedule and the job could be aborted (where the `EVENTER_ASYNCH_WORK`
+    phase is not finished or even started, but the `EVENTER_ASYNCH_CLEANUP`
+    will be called).
+*/
+API_EXPORT(eventer_t) eventer_alloc_asynch_timeout(eventer_func_t, void *, struct timeval *);
+
 /*! \fn void eventer_free(eventer_t e)
     \brief Dereferences the event specified.
     \param e the event to dereference.
