@@ -33,6 +33,7 @@ struct mtev_websocket_client {
   int wanted_eventer_mask;
   char client_key[25];
   mtev_hash_table *sslconfig;
+  mtev_boolean noref; /* see header for description of mtev_websocket_client_new_noref */
   void *closure;
 };
 
@@ -395,10 +396,14 @@ connect_error:
 }
 #endif
 
-mtev_websocket_client_t *
-mtev_websocket_client_new(const char *host, int port, const char *path, const char *service,
-                          mtev_websocket_client_callbacks *callbacks, void *closure, eventer_pool_t *pool,
-                          mtev_hash_table *sslconfig) {
+// using an extra static function rather than just calling `_new` from
+// `_new_noref` and then setting the field because it is possible(but
+// unlikely), if the eventer_t was added to a different thread, for the client
+// to have fired and failed and cleaned up incorrectly before the field is set
+static mtev_websocket_client_t *
+mtev_websocket_client_new_internal(const char *host, int port, const char *path, const char *service,
+                                   mtev_websocket_client_callbacks *callbacks, void *closure, eventer_pool_t *pool,
+                                   mtev_hash_table *sslconfig, mtev_boolean noref) {
 #ifdef HAVE_WSLAY
   int fd = -1, rv;
   int family = AF_INET;
@@ -470,6 +475,7 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
   client->ready_callback = callbacks->ready_callback;
   client->msg_callback = callbacks->msg_callback;
   client->cleanup_callback = callbacks->cleanup_callback;
+  client->noref = noref;
   client->closure = closure;
 
   if(sslconfig && mtev_hash_size(sslconfig)) {
@@ -488,6 +494,28 @@ mtev_websocket_client_new(const char *host, int port, const char *path, const ch
   return client;
 #else
   return NULL;
+#endif
+}
+
+mtev_websocket_client_t *
+mtev_websocket_client_new(const char *host, int port, const char *path, const char *service,
+                          mtev_websocket_client_callbacks *callbacks, void *closure, eventer_pool_t *pool,
+                          mtev_hash_table *sslconfig) {
+#ifdef HAVE_WSLAY
+  return mtev_websocket_client_new_internal(host, port, path, service, callbacks, closure, pool, sslconfig, mtev_false);
+#else
+  return NULL;
+#endif
+}
+
+mtev_boolean
+mtev_websocket_client_new_noref(const char *host, int port, const char *path, const char *service,
+                                mtev_websocket_client_callbacks *callbacks, void *closure, eventer_pool_t *pool,
+                                mtev_hash_table *sslconfig) {
+#ifdef HAVE_WSLAY
+  return NULL != mtev_websocket_client_new_internal(host, port, path, service, callbacks, closure, pool, sslconfig, mtev_true);
+#else
+  return mtev_false;
 #endif
 }
 
@@ -598,6 +626,7 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
     if(client->cleanup_callback) client->cleanup_callback(client, client->closure);
   }
   pthread_mutex_unlock(&client->lock);
+  if(client->noref) free(client);
 }
 #endif
 
@@ -607,6 +636,7 @@ void
 mtev_websocket_client_free(mtev_websocket_client_t *client) {
 #ifdef HAVE_WSLAY
   if(client == NULL) return;
+  mtevAssert(!client->noref);
   if(!client->closed) mtev_websocket_client_cleanup(client);
   free(client);
 #endif

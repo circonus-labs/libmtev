@@ -32,6 +32,22 @@ API_EXPORT(mtev_websocket_client_t *)
                             eventer_pool_t *pool,
                             mtev_hash_table *sslconfig);
 
+/*
+  `mtev_websocket_client_new_noref` creates a client that will be freed by libmtev
+  in exchange for the caller maintaining certain guarantees.
+
+  The guarantees the caller must maintain are:
+    1. The caller must not call `mtev_websocket_client_free()` with a reference to this client.
+    2. The caller must not let a reference to the client escape from the provided callbacks.
+*/
+API_EXPORT(mtev_boolean)
+  mtev_websocket_client_new_noref(const char *url, int port,
+                                  const char *path, const char *service,
+                                  mtev_websocket_client_callbacks *callbacks,
+                                  void *closure,
+                                  eventer_pool_t *pool,
+                                  mtev_hash_table *sslconfig);
+
 API_EXPORT(void)
   mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client,
                                            mtev_websocket_client_ready_callback msg_callback);
