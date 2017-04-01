@@ -85,6 +85,7 @@ SHLDFLAGS="$LDFLAGS"
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
+DTRACEHDR_TRANSFORM="copy"
 DOTSO=.so
 LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR).$(SEMVER_MINOR)'
 MAPFLAGS=""
@@ -124,7 +125,7 @@ case $host in
 	if test "x$GCC" != "xyes" ; then
 	AC_MSG_CHECKING([32 or 64 bit Solaris assembly])
 	if test -n "`echo $CFLAGS | grep m64`" ; then
-		DTRACEFLAGS=-64
+		DTRACEFLAGS="-64 -Z"
 		MAPFLAGS="-Wl,-M -Wl,map64bit"
 		if test -n "`isalist | grep sparc`"; then
 			AC_MSG_RESULT([sparc 64])
@@ -152,7 +153,7 @@ case $host in
 		SHLD="$CC -G"
 	else
 		if test -n "`echo $CFLAGS | grep m64`" ; then
-			DTRACEFLAGS=-64
+			DTRACEFLAGS="-64 -Z"
 			MAPFLAGS="-Wl,-M -Wl,map64bit"
 		fi
 		PICFLAGS="-fPIC"
@@ -180,6 +181,12 @@ case $host in
 	;;
 *-*-linux*)
 	CAP_PLATFORM="linux"
+	DTRACEHDR_TRANSFORM="sdt"
+	if test -x /usr/bin/dtrace ; then
+		# System tap has a header-producing doppelganger
+		DTRACE=/usr/bin/dtrace
+		DTRACEOBJ=dtrace_stub.o
+	fi
 	LDFLAGS="$LDFLAGS -Wl,-E"
 	CPPFLAGS="$CPPFLAGS -D_XOPEN_SOURCE=600 -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE"
 	CPPFLAGS="$CPPFLAGS -D_SVID_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE"
@@ -226,8 +233,12 @@ AS_IF([test "x$DTRACE_ENABLED" = "x1"],
     [ AC_DEFINE(DTRACE_ENABLED, [1], [DTrace enabled.]) ]
 )
 
+## If there's no sys/sdt.h, set the DTRACEHDR_TRANSFORM back to copy
+AC_CHECK_HEADER(sys/sdt.h, [], [ DTRACEHDR_TRANSFORM="copy" ])
+
 AC_SUBST(DTRACEOBJ)
 AC_SUBST(DTRACEHDR)
+AC_SUBST(DTRACEHDR_TRANSFORM)
 AC_SUBST(DTRACEFLAGS)
 AC_SUBST(MAPFLAGS)
 AC_SUBST(CLINKFLAGS)

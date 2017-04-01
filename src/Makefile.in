@@ -221,12 +221,20 @@ $(LIBMTEV_V):	$(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ)
 
 $(LIBMTEV_DTRACEOBJ):    $(FINAL_LIBMTEV_OBJS)
 	@echo "- assembling $@"
-	$(Q)@DTRACE@ @DTRACEFLAGS@ -Z -G -s libmtev_dtrace_probes.d -o $(LIBMTEV_DTRACEOBJ) $(FINAL_LIBMTEV_OBJS)
+	$(Q)@DTRACE@ @DTRACEFLAGS@ -G -s libmtev_dtrace_probes.d -o $(LIBMTEV_DTRACEOBJ) $(FINAL_LIBMTEV_OBJS)
 
 @DTRACEHDR@:    libmtev_dtrace_probes.d
 	$(Q)if test -z "@DTRACE@" ; then \
-		echo "- faking dtrace header" ; \
-		cp ./@DTRACEHDR@.stock ./@DTRACEHDR@ ; \
+		if test "x@DTRACEHDR_TRANSFORM@" == "xcopy" ; then \
+			echo "- faking (stock) dtrace header" ; \
+			cp ./@DTRACEHDR@.stock ./@DTRACEHDR@ ; \
+		elif test "x@DTRACEHDR_TRANSFORM@" == "xsdt" ; then \
+			echo "- faking (dtrace -> sdt) dtrace header" ; \
+			$(top_srcdir)/buildtools/dtrace2sdt.sh ./@DTRACEHDR@.stock ./@DTRACEHDR@ ; \
+		else \
+			echo " *** don't know how to produce dtrace headers" ; \
+			false ; \
+		fi \
 	else \
 		echo "- building dtrace header $@" ; \
 		@DTRACE@ -h -s libmtev_dtrace_probes.d ; \
