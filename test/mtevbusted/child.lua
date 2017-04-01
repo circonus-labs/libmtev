@@ -150,6 +150,8 @@ end
 
 function TestProc:kill()
 
+  if self.proc == nil or self.proc:pid() == -1 then return end
+
   if TEST_OPTIONS['findleaks'] then self:find_leaks() end
 
   self.proc:kill()
