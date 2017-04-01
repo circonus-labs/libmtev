@@ -1225,7 +1225,7 @@ mtev_lua_socket_read(lua_State *L) {
     /* we need to drop into eventer */
     eventer_remove_fde(e);
     eventer_set_callback(e, mtev_lua_socket_read_complete);
-    eventer_set_mask(e, eventer_get_mask(e) | EVENTER_EXCEPTION);
+    eventer_set_mask(e, mask | EVENTER_EXCEPTION);
     eventer_add(e);
 
     if (lua_gettop(L) == 5 && lua_isfunction(L, 5)) {
@@ -1357,7 +1357,7 @@ mtev_lua_socket_write(lua_State *L) {
   if(rv == -1 && errno == EAGAIN) {
     eventer_remove_fde(e);
     eventer_set_callback(e, mtev_lua_socket_write_complete);
-    eventer_set_mask(e, eventer_get_mask(e) | EVENTER_EXCEPTION);
+    eventer_set_mask(e, mask | EVENTER_EXCEPTION);
     eventer_add(e);
     return mtev_lua_yield(ci, 0);
   }
