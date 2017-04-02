@@ -396,10 +396,12 @@ connect_error:
 }
 #endif
 
-// using an extra static function rather than just calling `_new` from
-// `_new_noref` and then setting the field because it is possible(but
-// unlikely), if the eventer_t was added to a different thread, for the client
-// to have fired and failed and cleaned up incorrectly before the field is set
+/*
+  using an extra static function rather than just calling `_new` from
+  `_new_noref` and then setting the field because it is possible(but
+  unlikely), if the eventer_t was added to a different thread, for the client
+  to have fired and failed and cleaned up incorrectly before the field is set
+*/
 static mtev_websocket_client_t *
 mtev_websocket_client_new_internal(const char *host, int port, const char *path, const char *service,
                                    mtev_websocket_client_callbacks *callbacks, void *closure, eventer_pool_t *pool,
@@ -568,7 +570,7 @@ mtev_websocket_client_is_ready(mtev_websocket_client_t *client) {
 #endif
 }
 
-// we lock in this function so that we do cannot return "closed" mid-cleanup
+/* we lock in this function so that we do cannot return "closed" mid-cleanup */
 mtev_boolean
 mtev_websocket_client_is_closed(mtev_websocket_client_t *client) {
 #ifdef HAVE_WSLAY

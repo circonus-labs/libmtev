@@ -70,10 +70,12 @@ API_EXPORT(void)
 API_EXPORT(mtev_boolean)
   mtev_websocket_client_is_ready(mtev_websocket_client_t *client);
 
-// only a true return value of this function should be trusted by the caller. without locking
-// outside of the function, it is possible that the client closes by the time the caller can do
-// anything with the rv. once closed though, the only access will be by the user(and it is up to
-// them to behave well)
+/*
+  only a true return value of this function should be trusted by the caller. without locking
+  outside of the function, it is possible that the client closes by the time the caller can do
+  anything with the rv. once closed though, the only access will be by the user(and it is up to
+  them to behave well)
+*/
 API_EXPORT(mtev_boolean)
   mtev_websocket_client_is_closed(mtev_websocket_client_t *client);
 
