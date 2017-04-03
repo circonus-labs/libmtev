@@ -597,6 +597,29 @@ The allocated event has a refernce count of 1 and is attached to the
 calling thread.
 
 
+#### eventer_alloc_asynch_timeout
+
+>Allocate an event to be injected into the eventer system.
+
+```c
+eventer_t 
+eventer_alloc_asynch_timeout(eventer_func_t func, void *closure, struct timeval *deadline)
+```
+
+
+  * `func` The callback function.
+  * `closure` The closure for the callback function.
+  * `deadline` an absolute time by which the task must be completed.
+  * **RETURN** A newly allocated asynch event.
+
+The allocated event has a refernce count of 1 and is attached to the
+calling thread.  Depending on the timeout method, there are not hard
+guarantees on enforcing the deadline; this is more of a guideline for
+the schedule and the job could be aborted (where the `EVENTER_ASYNCH_WORK`
+phase is not finished or even started, but the `EVENTER_ASYNCH_CLEANUP`
+will be called).
+
+
 #### eventer_alloc_copy
 
 >Allocate an event copied from another to be injected into the eventer system.
@@ -1478,7 +1501,6 @@ eventer_set_callback(eventer_t e, eventer_func_t func)
 
 
   * `e` an event object
-  * **RETURN** func `eventer_func_t` callback function.
 
 
 #### eventer_set_closure
@@ -2493,6 +2515,224 @@ mtev_watchdog_start_child(const char *app, int (*func)(), int child_watchdog_tim
 
 mtev_watchdog_start_child will fork and run the specified function in the child process.  The parent will watch.  The child process must initialize the eventer system and then call mtev_watchdog_child_hearbeat to let the parent know it is alive.  If the eventer system is being used to drive the child process, mtev_watchdog_child_eventer_heartbeat may be called once after the eventer is initalized.  This will induce a regular heartbeat.
  
+
+#### mtev_websocket_client_free
+
+>Free a client
+
+```c
+void 
+mtev_websocket_client_free(mtev_websocket_client_t *client)
+```
+
+
+  * `client` client to be freed
+
+This function will cleanup the client(and hence trigger any set cleanup_callback) first.
+This function does nothing if called with NULL.
+
+
+#### mtev_websocket_client_get_closure
+
+>Access the currently set closure, if any
+
+```c
+void *
+mtev_websocket_client_get_closure(mtev_websocket_client_t *client)
+```
+
+
+  * `client` client to be accessed
+  * **RETURN** most recently set closure, or NULL if never set
+
+
+#### mtev_websocket_client_init_logs
+
+>Enable debug logging to "debug/websocket_client"
+
+```c
+void 
+mtev_websocket_client_init_logs()
+```
+
+
+
+Error logging is always active to "error/websocket_client".
+
+
+#### mtev_websocket_client_is_closed
+
+>Check if a client has closed and can no longer send or receive
+
+```c
+mtev_boolean 
+mtev_websocket_client_is_closed(mtev_websocket_client_t *client)
+```
+
+
+  * `client` client to be checked
+  * **RETURN** boolean indicating whether the client is closed
+
+Only a return value of mtev_true can be trusted(once closed, a client
+cannot re-open). Because the caller is unable to check this status inside
+of a locked section, it is possible that the client closes and invalidates
+the result of this function call before the caller can act on it.
+
+
+#### mtev_websocket_client_is_ready
+
+>Check if a client has completed its handshake and is ready to send messages
+
+```c
+mtev_boolean 
+mtev_websocket_client_is_ready(mtev_websocket_client_t *client)
+```
+
+
+  * `client` client to be checked
+  * **RETURN** boolean indicating whether the client is ready
+
+This function will continue to return true after the client has closed.
+
+
+#### mtev_websocket_client_new
+
+>Construct a new websocket client
+
+```c
+mtev_websocket_client_t *
+mtev_websocket_client_new(const char *host, int port, const char *path, const char *service, 
+                          mtev_websocket_client_callbacks *callbacks, void *closure, 
+                          eventer_pool_t *pool, mtev_hash_table *sslconfig)
+```
+
+
+  * `host` required, host to connect to(ipv4 or ipv6 address)
+  * `port` required, port to connect to on host
+  * `path` required, path portion of URI
+  * `service` required, protocol to connect with
+  * `callbacks` required, struct containing a msg_callback and optionally ready_callback and cleanup_callback
+  * `closure` optional, an opaque pointer that is passed through to the callbacks
+  * `pool` optional, specify an eventer pool; thread will be chosen at random from the pool
+  * `sslconfig` optional, enables SSL using the contained config
+  * **RETURN** a newly constructed mtev_websocket_client_t on success, NULL on failure
+
+ready_callback will be called immediately upon successful completion of the websocket handshake.
+msg_callback is called with the complete contents of each non-control frame received.
+cleanup_callback is called as the last step of cleaning up the client, after the connection has been torn down.
+A client returned from this constructor must be freed with `mtev_websocket_client_free`.
+
+
+#### mtev_websocket_client_new_noref
+
+>Construct a new websocket client that will be freed automatically after cleanup
+
+```c
+mtev_boolean 
+mtev_websocket_client_new_noref(const char *host, int port, const char *path, const char *service, 
+                                mtev_websocket_client_callbacks *callbacks, void *closure, 
+                                eventer_pool_t *pool, mtev_hash_table *sslconfig)
+```
+
+
+  * `host` required, host to connect to(ipv4 or ipv6 address)
+  * `port` required, port to connect to on host
+  * `path` required, path portion of URI
+  * `service` required, protocol to connect with
+  * `callbacks` required, struct containing a msg_callback and optionally ready_callback and cleanup_callback
+  * `closure` optional, an opaque pointer that is passed through to the callbacks
+  * `pool` optional, specify an eventer pool; thread will be chosen at random from the pool
+  * `sslconfig` optional, enables SSL using the contained config
+  * **RETURN** boolean indicating success/failure
+
+Clients allocated by this function are expected to be interacted with solely through the provided callbacks. There are two guarantees the caller must make:
+1. The caller must not let a reference to the client escape from the provided callbacks.
+2. The caller must not call `mtev_websocket_client_free()` with a reference to this client.
+
+
+#### mtev_websocket_client_send
+
+>Enqueue a message
+
+```c
+mtev_boolean 
+mtev_websocket_client_send(mtev_websocket_client_t *client, int opcode, void *buf, size_t len)
+```
+
+
+  * `client` client to send message over
+  * `opcode` opcode as defined in RFC 6455 and referenced in wslay.h
+  * `buf` pointer to buffer containing data to send
+  * `len` number of bytes of buf to send
+  * **RETURN** boolean indicating success/failure
+
+This function makes a copy of buf of length len.
+This function may fail for the following reasons:
+1. The client was not ready. See mtev_websocket_client_is_ready.
+2. The client was already closed. See mtev_websocket_client_is_closed.
+3. Out of memory.
+
+
+#### mtev_websocket_client_set_cleanup_callback
+
+>Set a new cleanup_callback on an existing client
+
+```c
+void 
+mtev_websocket_client_set_cleanup_callback(mtev_websocket_client_t *client
+                                           mtev_websocket_client_cleanup_callback cleanup_callback)
+```
+
+
+  * `client` client to modify
+  * `cleanup_callback` new cleanup_callback to set
+
+
+#### mtev_websocket_client_set_closure
+
+>Set a new closure
+
+```c
+void 
+mtev_websocket_client_set_closure(mtev_websocket_client_t *client, void *closure)
+```
+
+
+  * `client` client to be modified
+  * `closure` closure to be set
+
+If closure is NULL, this has the effect of removing a previously set closure.
+
+
+#### mtev_websocket_client_set_msg_callback
+
+>Set a new msg_callback on an existing client
+
+```c
+void 
+mtev_websocket_client_set_msg_callback(mtev_websocket_client_t *client
+                                       mtev_websocket_client_msg_callback msg_callback)
+```
+
+
+  * `client` client to modify
+  * `msg_callback` new msg_callback to set
+
+
+#### mtev_websocket_client_set_ready_callback
+
+>Set a new ready_callback on an existing client
+
+```c
+void 
+mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client
+                                         mtev_websocket_client_ready_callback ready_callback)
+```
+
+
+  * `client` client to modify
+  * `ready_callback` new ready_callback to set
+
 
 ### Z
 
