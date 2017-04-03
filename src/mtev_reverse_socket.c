@@ -761,8 +761,8 @@ mtev_reverse_socket_proxy_setup(reverse_socket_t *rc) {
     if(getsockname(fd, (struct sockaddr *)&rc->data.proxy_ip6, &salen)) goto bad6;
     mtev_watchdog_on_crash_close_add_fd(fd);
     rc->data.proxy_ip6_e =
-      eventer_alloc(mtev_reverse_socket_proxy_accept, rc, fd,
-                    EVENTER_READ | EVENTER_EXCEPTION);
+      eventer_alloc_fd(mtev_reverse_socket_proxy_accept, rc, fd,
+                       EVENTER_READ | EVENTER_EXCEPTION);
     eventer_add(rc->data.proxy_ip6_e);
     fd = -1;
    bad6:

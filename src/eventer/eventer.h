@@ -334,7 +334,7 @@ void eventer_set_closure(eventer_t e, void *);
     The allocated event has a refernce count of 1 and is attached to the
     calling thread.
 */
-API_EXPORT(eventer_t) eventer_alloc();
+API_EXPORT(eventer_t) eventer_alloc(void);
 
 /*! \fn eventer_t eventer_alloc_copy(eventer_t src)
     \brief Allocate an event copied from another to be injected into the eventer system.
