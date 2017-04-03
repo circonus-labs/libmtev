@@ -272,7 +272,7 @@ mtev_gethrtime_fallback() {
 static inline mtev_hrtime_t 
 mtev_gethrtime_fallback() {
 #if defined(sun) || defined(__sun__)
-    static hrtime_t (*gethrtimesym)();
+    static hrtime_t (*gethrtimesym)(void);
     if(gethrtimesym == NULL) gethrtimesym = dlsym(RTLD_NEXT, "gethrtime");
     /* Maybe we've been loaded from a system that doesn't use libc? */
     if(gethrtimesym == NULL) return (mtev_hrtime_t)gethrtime();

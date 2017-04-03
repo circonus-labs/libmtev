@@ -2236,7 +2236,7 @@ mtev_console_telnet_send_do(mtev_console_closure_t ncct, int option, int init)
 extern void auth_request(void);
 #endif
 #ifdef	ENCRYPTION
-extern void encrypt_send_support();
+extern void encrypt_send_support(mtev_console_closure_t);
 #endif
 
 void
