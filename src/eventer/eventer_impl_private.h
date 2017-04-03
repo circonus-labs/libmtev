@@ -137,11 +137,11 @@ LOCAL_EVENTER_foreach_fdevent (void (*f)(eventer_t e, void *),
 
 void eventer_wakeup_noop(eventer_t);
 void eventer_cross_thread_trigger(eventer_t e, int mask);
-void eventer_cross_thread_process();
-void eventer_impl_init_globals();
-void eventer_dispatch_recurrent();
+void eventer_cross_thread_process(void);
+void eventer_impl_init_globals(void);
+void eventer_dispatch_recurrent(void);
 void eventer_dispatch_timed(struct timeval *next);
-void eventer_mark_callback_time();
+void eventer_mark_callback_time(void);
 
 extern stats_ns_t *eventer_stats_ns;
 extern stats_handle_t *eventer_callback_latency;

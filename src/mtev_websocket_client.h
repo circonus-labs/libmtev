@@ -175,6 +175,6 @@ API_EXPORT(void)
     Error logging is always active to "error/websocket_client".
 */
 API_EXPORT(void)
-  mtev_websocket_client_init_logs();
+  mtev_websocket_client_init_logs(void);
 
 #endif

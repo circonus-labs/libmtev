@@ -241,7 +241,7 @@ child_main() {
 
   if(interactive) {
     mtev_console_init(APPNAME);
-    mtev_console_conf_init(APPNAME);
+    mtev_console_conf_init();
     eventer_set_fd_nonblocking(STDIN_FILENO);
     if(mtev_console_std_init(STDIN_FILENO, STDOUT_FILENO)) {
       mtevL(mtev_stderr, "Failed to initialize IO\n");

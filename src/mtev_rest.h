@@ -69,8 +69,8 @@ struct mtev_http_rest_closure {
   void *closure;
 };
 
-API_EXPORT(void) mtev_http_rest_init();
-API_EXPORT(void) mtev_http_rest_init_globals();
+API_EXPORT(void) mtev_http_rest_init(void);
+API_EXPORT(void) mtev_http_rest_init_globals(void);
 
 API_EXPORT(void)
   mtev_http_rest_clean_request(mtev_http_rest_closure_t *restc);

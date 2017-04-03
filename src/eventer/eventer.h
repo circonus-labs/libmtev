@@ -436,12 +436,12 @@ API_EXPORT(void)      eventer_deref(eventer_t);
 /*! \fn int64_t eventer_allocations_current()
     \return the number of currently allocated eventer objects.
 */
-API_EXPORT(int64_t)   eventer_allocations_current();
+API_EXPORT(int64_t)   eventer_allocations_current(void);
 
 /*! \fn int64_t eventer_allocations_total()
     \return the number of allocated eventer objects over the life of the process.
 */
-API_EXPORT(int64_t)   eventer_allocations_total();
+API_EXPORT(int64_t)   eventer_allocations_total(void);
 
 /*! \fn int eventer_name_callback(const char *name, eventer_func_t callback)
     \brief Register a human/developer readable name for a eventer callback function.
@@ -519,13 +519,13 @@ API_EXPORT(int)
     \brief Get the milliseconds since epoch of the current callback invocation.
     \return milliseconds since epoch of callback invocation, or current time.
  */
-API_EXPORT(uint64_t) eventer_callback_ms();
+API_EXPORT(uint64_t) eventer_callback_ms(void);
 
 /*! \fn uint64_t eventer_callback_us()
     \brief Get the microseconds since epoch of the current callback invocation.
     \return microseconds since epoch of callback invocation, or current time.
  */
-API_EXPORT(uint64_t) eventer_callback_us();
+API_EXPORT(uint64_t) eventer_callback_us(void);
 
 /* These values are set on initialization and are safe to use
  * on any platform.  They will be set to zero on platforms that
@@ -536,7 +536,7 @@ API_EXPORT(int) NE_O_CLOEXEC;
 
 typedef struct _eventer_impl {
   const char         *name;
-  int               (*init)();
+  int               (*init)(void);
   int               (*propset)(const char *key, const char *value);
   void              (*add)(eventer_t e);
   eventer_t         (*remove)(eventer_t e);
@@ -547,7 +547,7 @@ typedef struct _eventer_impl {
   int               (*loop)(int);
   void              (*foreach_fdevent)(void (*f)(eventer_t, void *), void *);
   void              (*wakeup)(eventer_t);
-  void             *(*alloc_spec)();
+  void             *(*alloc_spec)(void);
   struct timeval    max_sleeptime;
   int               maxfds;
   struct {
@@ -570,7 +570,7 @@ API_EXPORT(int) eventer_choose(const char *name);
     This function should be called as that last think in your `child_main` function.
     See [`mtev_main`](c.md#mtevmain`).
 */
-API_EXPORT(void) eventer_loop();
+API_EXPORT(void) eventer_loop(void);
 
 /*! \fn int eventer_is_loop(pthread_t tid)
     \brief Determine if a thread is participating in the eventer loop.
@@ -583,7 +583,7 @@ API_EXPORT(int) eventer_is_loop(pthread_t tid);
     \brief Determine the concurrency of the default eventer loop.
     \return number of threads used for the default eventer loop.
 */
-API_EXPORT(int) eventer_loop_concurrency();
+API_EXPORT(int) eventer_loop_concurrency(void);
 
 /*! \fn void eventer_init_globals()
     \brief Initialize global structures required for eventer operation.
@@ -591,7 +591,7 @@ API_EXPORT(int) eventer_loop_concurrency();
     This function is called by [`mtev_main`](c.md#mtevmain).  Developers should not
     need to call this function directly.
 */
-API_EXPORT(void) eventer_init_globals();
+API_EXPORT(void) eventer_init_globals(void);
 
 #define eventer_propset       __eventer->propset
 #define eventer_init          __eventer->init
@@ -675,7 +675,7 @@ extern eventer_impl_t registered_eventers[];
 
 #include "eventer/eventer_jobq.h"
 
-API_EXPORT(int) eventer_boot_ctor();
+API_EXPORT(int) eventer_boot_ctor(void);
 API_EXPORT(eventer_jobq_t *) eventer_default_backq(eventer_t);
 
 /*! \fn int eventer_impl_propset(const char *key, const char *value)
@@ -697,7 +697,7 @@ API_EXPORT(int) eventer_impl_propset(const char *key, const char *value);
     The target is the `rlim_nofiles` eventer config option. If that configuration
     option is unspecified, 1048576 is used.
 */
-API_EXPORT(int) eventer_impl_setrlimit();
+API_EXPORT(int) eventer_impl_setrlimit(void);
 
 /*! \fn void eventer_add_asynch(eventer_t e)
     \brief Add an asynchronous event to a specific job queue.
@@ -941,7 +941,7 @@ API_EXPORT(int) eventer_set_fd_blocking(int fd);
 API_EXPORT(int) eventer_thread_check(eventer_t);
 
 /* Private */
-API_EXPORT(int) eventer_impl_init();
+API_EXPORT(int) eventer_impl_init(void);
 API_EXPORT(void) eventer_update_timed(eventer_t e, int mask);
 API_EXPORT(void *) eventer_get_spec_for_event(eventer_t);
 API_EXPORT(int) eventer_cpu_sockets_and_cores(int *sockets, int *cores);

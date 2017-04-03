@@ -245,7 +245,7 @@ API_EXPORT(Zipkin_Span *)
   mtev_http_zipkip_span(mtev_http_session_ctx *);
 
 API_EXPORT(void)
-  mtev_http_init();
+  mtev_http_init(void);
 
 MTEV_HOOK_PROTO(http_request_log,
                 (mtev_http_session_ctx *ctx),

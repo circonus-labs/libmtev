@@ -41,7 +41,7 @@ typedef enum {
 } mtev_lock_op_t;
 
 API_EXPORT(void)
-  mtev_init_globals();
+  mtev_init_globals(void);
 
 /*! \fn int mtev_main_status(const char *appname, const char *config_filename, int debug, pid_t *pid, pid_t *pgid)
     \brief Determine if that application is already running under this configuration.

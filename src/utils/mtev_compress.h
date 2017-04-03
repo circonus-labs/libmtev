@@ -111,7 +111,7 @@ API_EXPORT(int)
  * Allocate a new stream compress context
  */
 API_EXPORT(mtev_stream_compress_ctx_t *)
-  mtev_create_stream_compress_ctx();
+  mtev_create_stream_compress_ctx(void);
 
 /**
  * Destroy previosly created stream compress context
@@ -123,7 +123,7 @@ API_EXPORT(void)
  * Allocate a new stream decompress context
  */
 API_EXPORT(mtev_stream_decompress_ctx_t *)
-  mtev_create_stream_decompress_ctx();
+  mtev_create_stream_decompress_ctx(void);
 
 /**
  * Destroy previosly created stream decompress context

@@ -88,11 +88,11 @@ typedef struct _mtev_dso_loader {
 #define MTEV_IMAGE_VERSION(a)        ((a)->version)
 
 API_EXPORT(void)
-  mtev_dso_init();
+  mtev_dso_init(void);
 API_EXPORT(void)
-  mtev_dso_post_init();
+  mtev_dso_post_init(void);
 API_EXPORT(int)
-  mtev_dso_load_failures();
+  mtev_dso_load_failures(void);
 API_EXPORT(int)
   mtev_dso_load(const char *file, const char *name);
 
@@ -123,7 +123,7 @@ API_EXPORT(void *)
 API_EXPORT(void)
   mtev_dso_set_userdata(mtev_image_t *mod, void *newdata);
 API_EXPORT(void *)
-  mtev_dso_alloc_opaque_handle();
+  mtev_dso_alloc_opaque_handle(void);
 
 struct dso_type {
   const char *name;
@@ -133,12 +133,12 @@ struct dso_type {
 API_EXPORT(void)
   mtev_dso_add_type(const char *name, int (*list)(const char ***));
 API_EXPORT(struct dso_type *)
-  mtev_dso_get_types();
+  mtev_dso_get_types(void);
 API_EXPORT(void)
-  mtev_dso_init_globals();
+  mtev_dso_init_globals(void);
 
 MTEV_HOOK_PROTO(dso_post_init,
-                (),
+                (void),
                 void *, closure,
                 (void *closure))
 

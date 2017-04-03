@@ -91,16 +91,16 @@ API_EXPORT(void) mtev_conf_coalesce_changes(uint32_t seconds);
 /* Start the watchdog */
 API_EXPORT(void) mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c);
 /* expose the current "generation" of the config */
-API_EXPORT(uint32_t) mtev_conf_config_gen();
+API_EXPORT(uint32_t) mtev_conf_config_gen(void);
 
 /* marks the config as changed.. if you manipulate the XML tree in any way
  * you must call this function to "let the system know."  This is used
  * to notice changes which are in turn flushed out.
  */
-API_EXPORT(void) mtev_conf_mark_changed();
+API_EXPORT(void) mtev_conf_mark_changed(void);
 
 API_EXPORT(void) mtev_conf_init(const char *toplevel);
-API_EXPORT(void) mtev_conf_init_globals();
+API_EXPORT(void) mtev_conf_init_globals(void);
 API_EXPORT(void)
   mtev_conf_poke(const char *toplevel, const char *key, const char *val);
 API_EXPORT(void)
@@ -120,7 +120,7 @@ mtev_conf_default_hdr(string, char*)
 mtev_conf_default_hdr(uuid, uuid_t)
 
 API_EXPORT(mtev_conf_default_or_optional_t)
-  mtev_conf_optional();
+  mtev_conf_optional(void);
 
 
 #define mtev_conf_description_hdr(name, type) \
@@ -139,10 +139,10 @@ mtev_conf_description_hdr(uuid, uuid_t)
 API_EXPORT(int)
   mtev_conf_get_value(mtev_conf_description_t* description, void *return_value);
 API_EXPORT(int) mtev_conf_save(const char *path);
-API_EXPORT(char *) mtev_conf_config_filename();
+API_EXPORT(char *) mtev_conf_config_filename(void);
 API_EXPORT(void) mtev_conf_write_section(mtev_conf_section_t node, int fd);
 
-API_EXPORT(void) mtev_console_conf_init();
+API_EXPORT(void) mtev_console_conf_init(void);
 
 API_EXPORT(mtev_conf_section_t)
   mtev_conf_get_section(mtev_conf_section_t section, const char *path);
@@ -228,7 +228,7 @@ API_EXPORT(int)
   mtev_conf_write_file(char **err);
 
 API_EXPORT(void)
-  mtev_conf_request_write();
+  mtev_conf_request_write(void);
 
 API_EXPORT(char *)
   mtev_conf_xml_in_mem(size_t *len);
@@ -238,10 +238,10 @@ API_EXPORT(char *)
   mtev_conf_enc_in_mem(size_t *raw_len, size_t *len, mtev_conf_enc_type_t target, mtev_boolean inline_includes);
 
 API_EXPORT(void)
-  mtev_conf_xml_errors_to_debug();
+  mtev_conf_xml_errors_to_debug(void);
 
 API_EXPORT(int)
-  mtev_conf_write_log();
+  mtev_conf_write_log(void);
 
 API_EXPORT(mtev_boolean)
   mtev_conf_env_off(mtev_conf_section_t node, const char *attr);
@@ -272,7 +272,7 @@ API_EXPORT(void) mtev_conf_set_namespace(const char *ns);
 } while(0)
 
 #define EXPOSE_CHECKER(name) \
-  API_EXPORT(pcre *) mtev_conf_get_valid_##name##_checker()
+  API_EXPORT(pcre *) mtev_conf_get_valid_##name##_checker(void)
 #define DECLARE_CHECKER(name) \
 static pcre *checker_valid_##name; \
 pcre *mtev_conf_get_valid_##name##_checker() { return checker_valid_##name; }

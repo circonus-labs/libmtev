@@ -42,7 +42,7 @@
 typedef struct mtev_net_heartbeat_context mtev_net_heartbeat_ctx;
 
 API_EXPORT(void)
-  mtev_net_heartbeat_init();
+  mtev_net_heartbeat_init(void);
 
 API_EXPORT(mtev_net_heartbeat_ctx *)
   mtev_net_heartbeat_from_conf(const char *basepath);

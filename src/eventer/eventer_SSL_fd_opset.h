@@ -59,7 +59,7 @@ typedef int (*eventer_ssl_verify_func_t)(eventer_ssl_ctx_t *,
                                          int, X509_STORE_CTX *, void *);
 
 /* Only the scheduler calls this */
-void eventer_ssl_init();
+void eventer_ssl_init(void);
 
 /* Helper functions */
 API_EXPORT(eventer_ssl_ctx_t *)
@@ -133,7 +133,7 @@ API_EXPORT(int)
 API_EXPORT(int)
   eventer_ssl_get_local_commonname(eventer_ssl_ctx_t *ctx, char *buff, int len);
 API_EXPORT(void)
-  eventer_ssl_init_globals();
+  eventer_ssl_init_globals(void);
 
 #endif
 

@@ -59,14 +59,14 @@ API_EXPORT(mtev_boolean)
    * returns mtev_true if this LWP has been bound to a cpu already
    */
 API_EXPORT(mtev_boolean)
-  mtev_thread_is_bound_to_cpu();
+  mtev_thread_is_bound_to_cpu(void);
 
 /**
  * convenience function if you call pthread_create yourself.  Call this function
  * from within the spawned thread to affine it to the next CPU in tracked sequence
  */
 API_EXPORT(void)
-  mtev_thread_init();
+  mtev_thread_init(void);
 
 /**
  * attempt to schedule as a real-time process within the system.
@@ -88,6 +88,6 @@ API_EXPORT(mtev_boolean)
  * in sequence.  They will silently noop.
  */
 API_EXPORT(void)
-  mtev_thread_disable_binding();
+  mtev_thread_disable_binding(void);
 
 #endif

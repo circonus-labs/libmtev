@@ -73,7 +73,7 @@ void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency
 void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max);
 void *eventer_jobq_consumer(eventer_jobq_t *jobq);
 void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *), void *);
-void eventer_jobq_init_globals();
+void eventer_jobq_init_globals(void);
 
 const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq);
 uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq);

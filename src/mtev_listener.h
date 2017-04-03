@@ -69,7 +69,7 @@ typedef struct {
 } * listener_closure_t;
 
 API_EXPORT(void) mtev_listener_init(const char *toplevel);
-API_EXPORT(void) mtev_listener_init_globals();
+API_EXPORT(void) mtev_listener_init_globals(void);
 
 API_EXPORT(void) mtev_listener_skip(const char *address, int port);
 
@@ -94,6 +94,6 @@ API_EXPORT(int)
   mtev_convert_sockaddr_to_buff(char *, int, struct sockaddr *);
 
 API_EXPORT(mtev_hash_table *)
-  mtev_listener_commands();
+  mtev_listener_commands(void);
 
 #endif
