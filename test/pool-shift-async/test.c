@@ -66,12 +66,9 @@ test(mtev_http_rest_closure_t *restc, int npats, char **pats) {
   restc->fastpath = test_complete;
 
   eventer_t conne = mtev_http_connection_event_float(mtev_http_session_connection(restc->http_ctx));
-  if(conne) eventer_remove_fd(conne->fd);
+  if(conne) eventer_remove_fde(conne);
 
-  eventer_t e = eventer_alloc();
-  e->callback = doasynchstuff;
-  e->closure = restc;
-  e->mask = EVENTER_ASYNCH;
+  eventer_t e = eventer_alloc_asynch(doasynchstuff, restc);
   eventer_add(e);
 
   /* Allow the asynch event to fire before we finish and return */
