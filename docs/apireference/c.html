@@ -991,6 +991,25 @@ eventer_alloc_asynch(<span class="hljs-keyword">eventer_func_t</span> func, <spa
 </ul>
 <p>The allocated event has a refernce count of 1 and is attached to the
 calling thread.</p>
+<h4 id="eventerallocasynchtimeout">eventer_alloc_asynch_timeout</h4>
+<blockquote>
+<p>Allocate an event to be injected into the eventer system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_alloc_asynch_timeout(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *deadline)
+</code></pre>
+<ul>
+<li><code>func</code> The callback function.</li>
+<li><code>closure</code> The closure for the callback function.</li>
+<li><code>deadline</code> an absolute time by which the task must be completed.</li>
+<li><strong>RETURN</strong> A newly allocated asynch event.</li>
+</ul>
+<p>The allocated event has a refernce count of 1 and is attached to the
+calling thread.  Depending on the timeout method, there are not hard
+guarantees on enforcing the deadline; this is more of a guideline for
+the schedule and the job could be aborted (where the <code>EVENTER_ASYNCH_WORK</code>
+phase is not finished or even started, but the <code>EVENTER_ASYNCH_CLEANUP</code>
+will be called).</p>
 <h4 id="eventeralloccopy">eventer_alloc_copy</h4>
 <blockquote>
 <p>Allocate an event copied from another to be injected into the eventer system.</p>
@@ -1688,7 +1707,6 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 </span></code></pre>
 <ul>
 <li><code>e</code> an event object</li>
-<li><strong>RETURN</strong> func <code>eventer_func_t</code> callback function.</li>
 </ul>
 <h4 id="eventersetclosure">eventer_set_closure</h4>
 <blockquote>
@@ -2520,6 +2538,182 @@ mtev_watchdog_start_child(const char *app, int (*func)(), int child_watchdog_tim
 <li><strong>RETURN</strong> Returns on program termination.</li>
 </ul>
 <p>mtev_watchdog_start_child will fork and run the specified function in the child process.  The parent will watch.  The child process must initialize the eventer system and then call mtev_watchdog_child_hearbeat to let the parent know it is alive.  If the eventer system is being used to drive the child process, mtev_watchdog_child_eventer_heartbeat may be called once after the eventer is initalized.  This will induce a regular heartbeat.</p>
+<h4 id="mtevwebsocketclientfree">mtev_websocket_client_free</h4>
+<blockquote>
+<p>Free a client</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_websocket_client_free</span><span class="hljs-params">(mtev_websocket_client_t *client)</span>
+</span></code></pre>
+<ul>
+<li><code>client</code> client to be freed</li>
+</ul>
+<p>This function will cleanup the client(and hence trigger any set cleanup_callback) first.
+This function does nothing if called with NULL.</p>
+<h4 id="mtevwebsocketclientgetclosure">mtev_websocket_client_get_closure</h4>
+<blockquote>
+<p>Access the currently set closure, if any</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> *
+<span class="hljs-title">mtev_websocket_client_get_closure</span><span class="hljs-params">(mtev_websocket_client_t *client)</span>
+</span></code></pre>
+<ul>
+<li><code>client</code> client to be accessed</li>
+<li><strong>RETURN</strong> most recently set closure, or NULL if never set</li>
+</ul>
+<h4 id="mtevwebsocketclientinitlogs">mtev_websocket_client_init_logs</h4>
+<blockquote>
+<p>Enable debug logging to &quot;debug/websocket_client&quot;</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_websocket_client_init_logs</span><span class="hljs-params">()</span>
+</span></code></pre>
+<p>Error logging is always active to &quot;error/websocket_client&quot;.</p>
+<h4 id="mtevwebsocketclientisclosed">mtev_websocket_client_is_closed</h4>
+<blockquote>
+<p>Check if a client has closed and can no longer send or receive</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_websocket_client_is_closed</span><span class="hljs-params">(mtev_websocket_client_t *client)</span>
+</span></code></pre>
+<ul>
+<li><code>client</code> client to be checked</li>
+<li><strong>RETURN</strong> boolean indicating whether the client is closed</li>
+</ul>
+<p>Only a return value of mtev_true can be trusted(once closed, a client
+cannot re-open). Because the caller is unable to check this status inside
+of a locked section, it is possible that the client closes and invalidates
+the result of this function call before the caller can act on it.</p>
+<h4 id="mtevwebsocketclientisready">mtev_websocket_client_is_ready</h4>
+<blockquote>
+<p>Check if a client has completed its handshake and is ready to send messages</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_websocket_client_is_ready</span><span class="hljs-params">(mtev_websocket_client_t *client)</span>
+</span></code></pre>
+<ul>
+<li><code>client</code> client to be checked</li>
+<li><strong>RETURN</strong> boolean indicating whether the client is ready</li>
+</ul>
+<p>This function will continue to return true after the client has closed.</p>
+<h4 id="mtevwebsocketclientnew">mtev_websocket_client_new</h4>
+<blockquote>
+<p>Construct a new websocket client</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_websocket_client_t</span> *
+mtev_websocket_client_new(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *host, <span class="hljs-keyword">int</span> port, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service, 
+                          mtev_websocket_client_callbacks *callbacks, <span class="hljs-keyword">void</span> *closure, 
+                          <span class="hljs-keyword">eventer_pool_t</span> *pool, mtev_hash_table *sslconfig)
+</code></pre>
+<ul>
+<li><code>host</code> required, host to connect to(ipv4 or ipv6 address)</li>
+<li><code>port</code> required, port to connect to on host</li>
+<li><code>path</code> required, path portion of URI</li>
+<li><code>service</code> required, protocol to connect with</li>
+<li><code>callbacks</code> required, struct containing a msg_callback and optionally ready_callback and cleanup_callback</li>
+<li><code>closure</code> optional, an opaque pointer that is passed through to the callbacks</li>
+<li><code>pool</code> optional, specify an eventer pool; thread will be chosen at random from the pool</li>
+<li><code>sslconfig</code> optional, enables SSL using the contained config</li>
+<li><strong>RETURN</strong> a newly constructed mtev_websocket_client_t on success, NULL on failure</li>
+</ul>
+<p>ready_callback will be called immediately upon successful completion of the websocket handshake.
+msg_callback is called with the complete contents of each non-control frame received.
+cleanup_callback is called as the last step of cleaning up the client, after the connection has been torn down.
+A client returned from this constructor must be freed with <code>mtev_websocket_client_free</code>.</p>
+<h4 id="mtevwebsocketclientnewnoref">mtev_websocket_client_new_noref</h4>
+<blockquote>
+<p>Construct a new websocket client that will be freed automatically after cleanup</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_websocket_client_new_noref</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *host, <span class="hljs-keyword">int</span> port, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service, 
+                                mtev_websocket_client_callbacks *callbacks, <span class="hljs-keyword">void</span> *closure, 
+                                eventer_pool_t *pool, mtev_hash_table *sslconfig)</span>
+</span></code></pre>
+<ul>
+<li><code>host</code> required, host to connect to(ipv4 or ipv6 address)</li>
+<li><code>port</code> required, port to connect to on host</li>
+<li><code>path</code> required, path portion of URI</li>
+<li><code>service</code> required, protocol to connect with</li>
+<li><code>callbacks</code> required, struct containing a msg_callback and optionally ready_callback and cleanup_callback</li>
+<li><code>closure</code> optional, an opaque pointer that is passed through to the callbacks</li>
+<li><code>pool</code> optional, specify an eventer pool; thread will be chosen at random from the pool</li>
+<li><code>sslconfig</code> optional, enables SSL using the contained config</li>
+<li><strong>RETURN</strong> boolean indicating success/failure</li>
+</ul>
+<p>Clients allocated by this function are expected to be interacted with solely through the provided callbacks. There are two guarantees the caller must make:</p>
+<ol>
+<li>The caller must not let a reference to the client escape from the provided callbacks.</li>
+<li>The caller must not call <code>mtev_websocket_client_free()</code> with a reference to this client.</li>
+</ol>
+<h4 id="mtevwebsocketclientsend">mtev_websocket_client_send</h4>
+<blockquote>
+<p>Enqueue a message</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_websocket_client_send</span><span class="hljs-params">(mtev_websocket_client_t *client, <span class="hljs-keyword">int</span> opcode, <span class="hljs-keyword">void</span> *buf, size_t len)</span>
+</span></code></pre>
+<ul>
+<li><code>client</code> client to send message over</li>
+<li><code>opcode</code> opcode as defined in RFC 6455 and referenced in wslay.h</li>
+<li><code>buf</code> pointer to buffer containing data to send</li>
+<li><code>len</code> number of bytes of buf to send</li>
+<li><strong>RETURN</strong> boolean indicating success/failure</li>
+</ul>
+<p>This function makes a copy of buf of length len.
+This function may fail for the following reasons:</p>
+<ol>
+<li>The client was not ready. See mtev_websocket_client_is_ready.</li>
+<li>The client was already closed. See mtev_websocket_client_is_closed.</li>
+<li>Out of memory.</li>
+</ol>
+<h4 id="mtevwebsocketclientsetcleanupcallback">mtev_websocket_client_set_cleanup_callback</h4>
+<blockquote>
+<p>Set a new cleanup_callback on an existing client</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_websocket_client_set_cleanup_callback</span><span class="hljs-params">(mtev_websocket_client_t *client
+                                           mtev_websocket_client_cleanup_callback cleanup_callback)</span>
+</span></code></pre>
+<ul>
+<li><code>client</code> client to modify</li>
+<li><code>cleanup_callback</code> new cleanup_callback to set</li>
+</ul>
+<h4 id="mtevwebsocketclientsetclosure">mtev_websocket_client_set_closure</h4>
+<blockquote>
+<p>Set a new closure</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_websocket_client_set_closure</span><span class="hljs-params">(mtev_websocket_client_t *client, <span class="hljs-keyword">void</span> *closure)</span>
+</span></code></pre>
+<ul>
+<li><code>client</code> client to be modified</li>
+<li><code>closure</code> closure to be set</li>
+</ul>
+<p>If closure is NULL, this has the effect of removing a previously set closure.</p>
+<h4 id="mtevwebsocketclientsetmsgcallback">mtev_websocket_client_set_msg_callback</h4>
+<blockquote>
+<p>Set a new msg_callback on an existing client</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_websocket_client_set_msg_callback</span><span class="hljs-params">(mtev_websocket_client_t *client
+                                       mtev_websocket_client_msg_callback msg_callback)</span>
+</span></code></pre>
+<ul>
+<li><code>client</code> client to modify</li>
+<li><code>msg_callback</code> new msg_callback to set</li>
+</ul>
+<h4 id="mtevwebsocketclientsetreadycallback">mtev_websocket_client_set_ready_callback</h4>
+<blockquote>
+<p>Set a new ready_callback on an existing client</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_websocket_client_set_ready_callback</span><span class="hljs-params">(mtev_websocket_client_t *client
+                                         mtev_websocket_client_ready_callback ready_callback)</span>
+</span></code></pre>
+<ul>
+<li><code>client</code> client to modify</li>
+<li><code>ready_callback</code> new ready_callback to set</li>
+</ul>
 <h3 id="z">Z</h3>
 <h4 id="mtevzipkinannotationsetendpoint">mtev_zipkin_annotation_set_endpoint</h4>
 <blockquote>

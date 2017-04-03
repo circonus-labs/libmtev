@@ -61,10 +61,6 @@ mtev_boolean websocket_msg_handler(mtev_websocket_client_t *client, int opcode,
   return mtev_false;
 }
 
-void websocket_cleanup_handler(mtev_websocket_client_t *client, void *closure) {
-  mtev_websocket_client_free(client);
-}
-
 static int
 child_main() {
   /* reload our config, to make sure we have the most current */
@@ -83,10 +79,10 @@ child_main() {
   mtev_websocket_client_callbacks callbacks = {
     websocket_ready_handler,
     websocket_msg_handler,
-    websocket_cleanup_handler
+    NULL
   };
 
-  (void)mtev_websocket_client_new("127.0.0.1", 8888, "/", "echo-protocol",
+  mtev_websocket_client_new_noref("127.0.0.1", 8888, "/", "echo-protocol",
                                   &callbacks, NULL, eventer_pool("default"), NULL);
 
   /* Lastly, spin up the event loop */
