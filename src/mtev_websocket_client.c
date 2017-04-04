@@ -623,7 +623,10 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
     free((void *)client->path);
     free((void *)client->service);
     free((void *)client->host);
-    if(client->sslconfig) mtev_hash_destroy(client->sslconfig, free, free);
+    if(client->sslconfig) {
+      mtev_hash_destroy(client->sslconfig, free, free);
+      free(client->sslconfig);
+    }
     client->closed = mtev_true;
     if(client->cleanup_callback) client->cleanup_callback(client, client->closure);
   }
