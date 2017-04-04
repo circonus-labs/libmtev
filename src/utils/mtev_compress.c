@@ -6,6 +6,8 @@
 
 #define GZIP_WINDOW_BITS 15
 #define GZIP_ENCODING 16
+#define GZIP_DEFAULT_LEVEL 3
+#define GZIP_DEFAULT_MEMLEVEL 9
 
 struct mtev_stream_compress_ctx
 {
@@ -204,8 +206,9 @@ mtev_stream_compress_init(mtev_stream_compress_ctx_t *ctx, mtev_compress_type ty
   switch (type) {
   case MTEV_COMPRESS_GZIP:
     {
-      int err = deflateInit2(&ctx->zlib_compress_ctx, 9, Z_DEFLATED, GZIP_WINDOW_BITS | GZIP_ENCODING, 
-                             8, Z_DEFAULT_STRATEGY);
+      int err = deflateInit2(&ctx->zlib_compress_ctx, GZIP_DEFAULT_LEVEL,
+                             Z_DEFLATED, GZIP_WINDOW_BITS | GZIP_ENCODING,
+                             GZIP_DEFAULT_MEMLEVEL, Z_DEFAULT_STRATEGY);
       if (err != Z_OK) {
         mtevL(mtev_error, "mtev_stream_compress_init: Error creating gzip compression context: %d\n", err);
       }
