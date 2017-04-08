@@ -4,6 +4,7 @@
 #include <zlib.h>
 #include <lz4frame.h>
 
+#define LZ4F_FRAMING_SIZE 15
 #define GZIP_WINDOW_BITS 15
 #define GZIP_ENCODING 16
 #define GZIP_DEFAULT_LEVEL 3
@@ -37,7 +38,7 @@ mtev_compress_bound(mtev_compress_type type, size_t source_len)
 {
   switch(type) {
   case MTEV_COMPRESS_LZ4F:
-    return LZ4F_compressBound(source_len, NULL) + 15;
+    return LZ4F_compressBound(source_len, NULL) + LZ4F_FRAMING_SIZE;
   case MTEV_COMPRESS_GZIP:
     return deflateBound(NULL, source_len);
   case MTEV_COMPRESS_DEFLATE:
@@ -55,7 +56,7 @@ mtev_compress_gzip(const char *data, size_t len, unsigned char **compressed, siz
   size_t max_compressed_len;
   int err;
 
-  err = deflateInit2(&stream, 9, Z_DEFLATED, GZIP_WINDOW_BITS | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY);
+  err = deflateInit2(&stream, GZIP_DEFAULT_LEVEL, Z_DEFLATED, GZIP_WINDOW_BITS | GZIP_ENCODING, GZIP_DEFAULT_MEMLEVEL, Z_DEFAULT_STRATEGY);
   if (err != Z_OK) {
     mtevL(mtev_error, "mtev_http_gzip -> deflateInit2: %d\n", err);
     return err;
@@ -94,7 +95,7 @@ mtev_compress_lz4f(const char *data, size_t len, unsigned char **compressed, siz
     return err;
   }
 
-  *compressed_len = LZ4F_compressBound(len, NULL) + 15;
+  *compressed_len = LZ4F_compressBound(len, NULL) + LZ4F_FRAMING_SIZE;
   *compressed = malloc(*compressed_len);
   if (*compressed == NULL) {
     mtevL(mtev_error, "mtev_http_lz4f: Cannot allocate compression dest\n");
@@ -457,7 +458,7 @@ mtev_stream_decompress_init(mtev_stream_decompress_ctx_t *ctx,
     }
   case MTEV_COMPRESS_GZIP:
     {
-      int err = inflateInit2(&ctx->zlib_decompress_ctx, 15 + 16);
+      int err = inflateInit2(&ctx->zlib_decompress_ctx, GZIP_WINDOW_BITS + GZIP_ENCODING);
       if (err != Z_OK) {
         mtevL(mtev_error, "mtev_stream_decompress_init: gzip error initing the zstream: %s\n",
             ctx->zlib_decompress_ctx.msg);
