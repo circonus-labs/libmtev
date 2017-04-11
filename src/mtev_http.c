@@ -811,7 +811,7 @@ mtev_http_request_finalize_headers(mtev_http_session_ctx *ctx, mtev_boolean *err
   if(req->current_offset <
      req->current_input->start + req->current_input->size) {
     /* There are left-overs */
-    int lsize = req->current_input->size - req->current_offset;
+    int lsize = req->current_input->size - (req->current_offset - req->current_input->start);
     mtevL(http_debug, " mtev_http_request_finalize -- leftovers: %d\n", lsize);
     req->first_input = ALLOC_BCHAIN(lsize);
     req->first_input->prev = NULL;
@@ -1288,6 +1288,7 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
       mtevL(http_debug, " ... last chunked chunk\n");
       /* all that's left is \r\n, just consume this framing */
       in->size -= 2;
+      in->start += 2;
     }
 
     if(in->size == 0) {
