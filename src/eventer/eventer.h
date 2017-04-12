@@ -699,7 +699,7 @@ API_EXPORT(int) eventer_impl_propset(const char *key, const char *value);
 */
 API_EXPORT(int) eventer_impl_setrlimit();
 
-/*! \fn void eventer_add_asynch(eventer_t e)
+/*! \fn void eventer_add_asynch(eventer_jobq_t *q, eventer_t e)
     \brief Add an asynchronous event to a specific job queue.
     \param q a job queue
     \param e an event object
