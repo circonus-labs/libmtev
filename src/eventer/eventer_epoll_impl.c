@@ -218,10 +218,21 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
     if(e->mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
     if(e->mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
     if(e->mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
-    mtevL(eventer_deb, "epoll_ctl(%d, mod, %d)\n", spec->epoll_fd, e->fd);
-    if(epoll_ctl(spec->epoll_fd, ctl_op, e->fd, &_ev) != 0) {
-      mtevFatal(mtev_error, "epoll_ctl(%d, EPOLL_CTL_MOD, %d) -> %s\n",
-            spec->epoll_fd, e->fd, strerror(errno));
+    mtevL(eventer_deb, "epoll_ctl(%d, %s, %d)\n", spec->epoll_fd, 
+	  ctl_op == EPOLL_CTL_ADD ? "add" : "mod", 
+	  e->fd);
+    int epoll_rv = epoll_ctl(spec->epoll_fd, ctl_op, e->fd, &_ev);
+    if(epoll_rv != 0 &&
+       ((ctl_op == EPOLL_CTL_ADD && errno == EEXIST) ||
+	(ctl_op == EPOLL_CTL_MOD && errno == ENOENT))) {
+      /* try the other way */
+      ctl_op = (ctl_op == EPOLL_CTL_ADD) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+      epoll_rv = epoll_ctl(spec->epoll_fd, ctl_op, e->fd, &_ev);
+      if (epoll_rv != 0) {
+	mtevFatal(mtev_error, "epoll_ctl(%d, %s, %d) -> %s\n",
+		  spec->epoll_fd, ctl_op == EPOLL_CTL_ADD ? "add" : "mod", 
+		  e->fd, strerror(errno));
+      }
     }
   }
 }
@@ -285,9 +296,24 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
     e->mask = 0;
     needs_add = 1;
   }
-  if(e != master_fds[fd].e) return;
+  if(e != master_fds[fd].e) {
+    mtevL(eventer_deb, "Incoming event: %p, does not match master list: %p\n", e, master_fds[fd].e);
+    return;
+  }
   lockstate = acquire_master_fd(fd);
-  if(lockstate == EV_ALREADY_OWNED) return;
+  if(lockstate == EV_ALREADY_OWNED) {
+    mtevL(eventer_deb, "Incoming event: %p already owned by this thread\n", e);
+    /* The incoming triggered event is already owned by this thread.  
+       This means our floated event completed before the current
+       event handler even exited.  So it retriggered recursively
+       from inside the event handler.  
+       
+       Treat this special case the same as a cross thread trigger
+       and just queue this event to be picked up on the next loop
+    */
+    eventer_cross_thread_trigger(e, mask);
+    return;
+  }
   mtevAssert(lockstate == EV_OWNED);
 
   mtev_gettimeofday(&__now, NULL);
