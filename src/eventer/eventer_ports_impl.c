@@ -247,6 +247,20 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
     return;
   }
   if(master_fds[fd].e == NULL) {
+    lockstate = acquire_master_fd(fd);
+    if (lockstate == EV_ALREADY_OWNED) {
+      /* The incoming triggered event is already owned by this thread.
+	 This means our floated event completed before the current
+	 event handler even exited.  So it retriggered recursively
+	 from inside the event handler.
+
+	 Treat this special case the same as a cross thread trigger
+	 and just queue this event to be picked up on the next loop
+      */
+      eventer_cross_thread_trigger(e, mask);
+      return;
+    }
+    release_master_fd(fd, lockstate);
     master_fds[fd].e = e;
     e->mask = 0;
   }
@@ -254,15 +268,6 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   lockstate = acquire_master_fd(fd);
   if(lockstate == EV_ALREADY_OWNED) {
     mtevL(eventer_deb, "Incoming event: %p already owned by this thread\n", e);
-    /* The incoming triggered event is already owned by this thread.  
-       This means our floated event completed before the current
-       event handler even exited.  So it retriggered recursively
-       from inside the event handler.  
-       
-       Treat this special case the same as a cross thread trigger
-       and just queue this event to be picked up on the next loop
-    */
-    eventer_cross_thread_trigger(e, mask);
     return;
   }
   mtevAssert(lockstate == EV_OWNED);
