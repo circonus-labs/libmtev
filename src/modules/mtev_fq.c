@@ -211,7 +211,7 @@ static connection_configs *check_connection_conf(mtev_conf_section_t section) {
 }
 
 static void
-init_conns() {
+init_conns(void) {
   mtev_conf_section_t *mqs = mtev_conf_get_sections(NULL, CONFIG_FQ_IN_MQ,
       &the_conf->number_of_conns);
 
