@@ -248,7 +248,7 @@ mtev_gethrtime_fallback(void) {
 #include <mach/mach_time.h>
 
 static inline mtev_hrtime_t 
-mtev_gethrtime_fallback() {
+mtev_gethrtime_fallback(void) {
     static int initialized = 0;
     static mach_timebase_info_data_t    sTimebaseInfo;
     uint64_t t;
@@ -263,14 +263,14 @@ mtev_gethrtime_fallback() {
 #include <time.h>
 #define NANOSEC 1000000000
 static inline mtev_hrtime_t 
-mtev_gethrtime_fallback() {
+mtev_gethrtime_fallback(void) {
   struct timespec ts;
   clock_gettime(CLOCK_UPTIME,&ts);
   return (((u_int64_t) ts.tv_sec) * NANOSEC + ts.tv_nsec);
 }
 #else
 static inline mtev_hrtime_t 
-mtev_gethrtime_fallback() {
+mtev_gethrtime_fallback(void) {
 #if defined(sun) || defined(__sun__)
     static hrtime_t (*gethrtimesym)(void);
     if(gethrtimesym == NULL) gethrtimesym = dlsym(RTLD_NEXT, "gethrtime");

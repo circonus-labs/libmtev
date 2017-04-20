@@ -331,7 +331,6 @@ allocate_pty(int *master, int *slave) {
 #else
   /* STREAMS... sigh */
   char   *slavename;
-  extern char *ptsname();
 
   *master = open("/dev/ptmx", O_RDWR);  /* open master */
   if(*master < 0) return -1;
