@@ -483,9 +483,7 @@ ch_reset(EditLine *el)
  *	Returns 1 if successful, 0 if not.
  */
 protected int
-ch_enlargebufs(el, addlen)
-	EditLine *el;
-	size_t addlen;
+ch_enlargebufs(EditLine *el, size_t addlen)
 {
 	size_t sz, newsz;
 	char *newbuffer, *oldbuf, *oldkbuf;

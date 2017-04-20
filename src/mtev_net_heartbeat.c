@@ -581,6 +581,6 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
 }
 
 void
-mtev_net_heartbeat_init() {
+mtev_net_heartbeat_init(void) {
   global = mtev_net_heartbeat_from_conf("/*/netheartbeat");
 }

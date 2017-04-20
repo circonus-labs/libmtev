@@ -83,9 +83,9 @@ typedef struct lineinfo {
 /*
  * Initializatio of a multi-use environment
  */
-void             el_multi_init();
+void             el_multi_init(void);
 void             el_multi_set_el(EditLine *);
-EditLine        *el_multi_get_el();
+EditLine        *el_multi_get_el(void);
 
 /*
  * Initialization, cleanup, and resetting

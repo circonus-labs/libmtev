@@ -191,7 +191,7 @@ eventer_pool_t *eventer_pool(const char *name) {
   return NULL;
 }
 
-int eventer_loop_concurrency() { return default_pool.__loop_concurrency; }
+int eventer_loop_concurrency(void) { return default_pool.__loop_concurrency; }
 
 /* Multi-threaded event loops...
 
@@ -233,7 +233,7 @@ pthread_t eventer_choose_owner_pool(eventer_pool_t *pool, int i) {
 pthread_t eventer_choose_owner(int i) {
   return eventer_choose_owner_pool(&default_pool, i);
 }
-static struct eventer_impl_data *get_my_impl_data() {
+static struct eventer_impl_data *get_my_impl_data(void) {
   return my_impl_data;
 }
 static struct eventer_impl_data *get_tls_impl_data(pthread_t tid) {
@@ -478,7 +478,7 @@ static void *thrloopwrap(void *vid) {
   return (void *)(intptr_t)__eventer->loop(id);
 }
 
-void eventer_loop() {
+void eventer_loop(void) {
   mtevL(mtev_debug, "eventer_loop() started\n");
   thrloopwrap((void *)(intptr_t)0);
 }
@@ -503,7 +503,7 @@ static void hw_topo_free(hwloc_topology_t *topo) {
   }
 }
 
-static hwloc_topology_t *hw_topo_alloc() {
+static hwloc_topology_t *hw_topo_alloc(void) {
 #ifdef __sun
 #ifdef RUNNING_ON_VALGRIND
   if(RUNNING_ON_VALGRIND != 0) return NULL;
@@ -524,7 +524,7 @@ static hwloc_topology_t *hw_topo_alloc() {
   return NULL;
 }
 
-int eventer_boot_ctor() {
+int eventer_boot_ctor(void) {
   return 0;
 }
 
@@ -547,7 +547,7 @@ int eventer_cpu_sockets_and_cores(int *sockets, int *cores) {
   return 0;
 }
 
-int eventer_impl_setrlimit() {
+int eventer_impl_setrlimit(void) {
   struct rlimit rlim;
   int try;
   getrlimit(RLIMIT_NOFILE, &rlim);
@@ -571,7 +571,7 @@ eventer_impl_tls_data_from_pool(eventer_pool_t *pool) {
   }
 }
 
-void eventer_impl_init_globals() {
+void eventer_impl_init_globals(void) {
   mtev_hash_init(&eventer_pools);
   mtevAssert(mtev_hash_store(&eventer_pools,
                              default_pool.name, strlen(default_pool.name),
@@ -587,7 +587,7 @@ static int periodic_jobq_maintenance(eventer_t e, int mask, void *vjobq, struct 
 static void register_jobq_maintenance(eventer_jobq_t *jobq, void *unused) {
   eventer_add_in_s_us(periodic_jobq_maintenance, jobq, 1, 0);
 }
-int eventer_impl_init() {
+int eventer_impl_init(void) {
   int try;
   char *evdeb;
 
@@ -867,7 +867,7 @@ void eventer_cross_thread_trigger(eventer_t e, int mask) {
   pthread_mutex_unlock(&t->cross_lock);
   eventer_wakeup(e);
 }
-void eventer_cross_thread_process() {
+void eventer_cross_thread_process(void) {
   struct eventer_impl_data *t;
   struct cross_thread_trigger *ctt = NULL;
   t = get_my_impl_data();
@@ -885,13 +885,13 @@ void eventer_cross_thread_process() {
   }
 }
 
-void eventer_mark_callback_time() {
+void eventer_mark_callback_time(void) {
   struct eventer_impl_data *t;
   t = get_my_impl_data();
   mtevAssert(t);
   t->last_cb_ns = mtev_now_us() * NS_PER_US;
 }
-void eventer_dispatch_recurrent() {
+void eventer_dispatch_recurrent(void) {
   struct timeval __now;
   struct eventer_impl_data *t;
   struct recurrent_events *node;
@@ -946,14 +946,14 @@ int eventer_gettimeofcallback(struct timeval *now, void *tzp) {
   }
   return mtev_gettimeofday(now, tzp);
 }
-uint64_t eventer_callback_ms() {
+uint64_t eventer_callback_ms(void) {
   struct eventer_impl_data *t;
   if(NULL != (t = get_my_impl_data())) {
     return t->last_cb_ns / NS_PER_MS;
   }
   return mtev_now_ms();
 }
-uint64_t eventer_callback_us() {
+uint64_t eventer_callback_us(void) {
   struct eventer_impl_data *t;
   if(NULL != (t = get_my_impl_data())) {
     return t->last_cb_ns / NS_PER_US;

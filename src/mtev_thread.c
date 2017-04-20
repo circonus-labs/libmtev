@@ -181,7 +181,7 @@ mtev_thread_create(pthread_t *thread, const pthread_attr_t *attr,
 }
 
 void
-mtev_thread_init() 
+mtev_thread_init(void)
 {  
   if (mtev_disable_binding == mtev_true) {
     return;
@@ -299,13 +299,13 @@ mtev_thread_realtime(uint64_t qns) {
 }
 
 void
-mtev_thread_disable_binding()
+mtev_thread_disable_binding(void)
 {
   mtev_disable_binding = mtev_true;
 }
 
 mtev_boolean
-mtev_thread_is_bound_to_cpu() 
+mtev_thread_is_bound_to_cpu(void)
 {
   return mtev_thread_is_bound;
 }

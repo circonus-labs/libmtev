@@ -544,7 +544,7 @@ typedef struct _eventer_impl {
   eventer_t         (*remove_fd)(int fd);
   eventer_t         (*find_fd)(int fd);
   void              (*trigger)(eventer_t e, int mask);
-  int               (*loop)(int);
+  int               (*loop)(int id);
   void              (*foreach_fdevent)(void (*f)(eventer_t, void *), void *);
   void              (*wakeup)(eventer_t);
   void             *(*alloc_spec)(void);

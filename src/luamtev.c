@@ -61,7 +61,7 @@ usage(const char *prog) {
   return 2;
 }
 static void
-make_config() {
+make_config(void) {
   int fd, len;
   char filename[] = "/tmp/clicmdXXXXXX";
   char *outbuf = NULL;
@@ -191,7 +191,7 @@ int luaopen_hostcli(lua_State *L) {
 }
 
 static int
-child_main() {
+child_main(void) {
   int log_flags;
   mtev_conf_section_t section;
   char *err = NULL;

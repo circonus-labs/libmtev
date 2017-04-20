@@ -32,7 +32,7 @@ int parse_both(const char *in, uuid_t out)
   return 0;
 }
 
-void parse_file()
+void parse_file(void)
 {
   char uuid[UUID_STR_LEN + 1];
   uuid_t result;

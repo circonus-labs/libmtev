@@ -63,7 +63,7 @@ mtev_cpuid(struct cpuid *r, uint32_t eax)
 }
 
 static inline int
-mtev_cpu_vendor() 
+mtev_cpu_vendor(void)
 {
   struct cpuid id;
   

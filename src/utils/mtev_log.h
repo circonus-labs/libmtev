@@ -83,14 +83,14 @@ extern mtev_log_stream_t mtev_notice;
 
 #define N_L_S_ON(ls) ((ls != NULL) && (*((unsigned *)ls) & MTEV_LOG_STREAM_ENABLED))
 
-API_EXPORT(void) mtev_log_enter_sighandler();
-API_EXPORT(void) mtev_log_leave_sighandler();
-API_EXPORT(int) mtev_log_global_enabled();
+API_EXPORT(void) mtev_log_enter_sighandler(void);
+API_EXPORT(void) mtev_log_leave_sighandler(void);
+API_EXPORT(int) mtev_log_global_enabled(void);
 API_EXPORT(void) mtev_log_init(int debug_on);
-API_EXPORT(mtev_boolean) mtev_log_final_resolve();
-API_EXPORT(int) mtev_log_go_asynch();
-API_EXPORT(int) mtev_log_go_synch();
-API_EXPORT(int) mtev_log_reopen_all();
+API_EXPORT(mtev_boolean) mtev_log_final_resolve(void);
+API_EXPORT(int) mtev_log_go_asynch(void);
+API_EXPORT(int) mtev_log_go_synch(void);
+API_EXPORT(int) mtev_log_reopen_all(void);
 API_EXPORT(int) mtev_log_reopen_type(const char *type);
 API_EXPORT(void) mtev_register_logops(const char *name, logops_t *ops);
 API_EXPORT(void *) mtev_log_stream_get_ctx(mtev_log_stream_t);
@@ -168,7 +168,7 @@ API_EXPORT(int)
                                       const char *, size_t, void *),
                               void *closure);
 API_EXPORT(void)
-  mtev_log_init_globals();
+  mtev_log_init_globals(void);
 
 #define mtevLT(ls, t, args...) do { \
   if((ls) && (mtev_log_global_enabled() || N_L_S_ON(ls))) \

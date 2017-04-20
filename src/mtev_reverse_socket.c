@@ -219,7 +219,7 @@ mtev_reverse_socket_deref(void *vrc) {
   }
 }
 
-static void *mtev_reverse_socket_alloc() {
+static void *mtev_reverse_socket_alloc(void) {
   int i;
   pthread_mutexattr_t attr;
   reverse_socket_t *rc = calloc(1, sizeof(*rc));
@@ -1769,7 +1769,7 @@ mtev_console_reverse_opts(mtev_console_closure_t ncct,
 }
 
 static void
-register_console_reverse_commands() {
+register_console_reverse_commands(void) {
   mtev_console_state_t *tl;
   cmd_info_t *showcmd;
 
@@ -1997,7 +1997,7 @@ void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
   mtev_connections_from_config(&reverses, &reverses_lock,
                                "", NULL, "reverse",
                                mtev_reverse_client_handler,
-                               (void *(*)())mtev_reverse_socket_alloc,
+                               mtev_reverse_socket_alloc,
                                NULL,
                                mtev_reverse_socket_deref);
 
@@ -2048,7 +2048,7 @@ mtev_lua_help_initiate_mtev_connection(const char *address, int port,
   return 0;
 }
 void
-mtev_reverse_socket_init_globals() {
+mtev_reverse_socket_init_globals(void) {
   mtev_hash_init(&reverse_sockets);
   mtev_hash_init(&reverses);
 }

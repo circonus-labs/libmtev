@@ -55,13 +55,13 @@ API_EXPORT(const char *) strnstrn(const char *, int, const char *, int);
 API_EXPORT(char *) mtev__strndup(const char *src, size_t len);
 
 
-API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc();
-API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc_sized();
+API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc(void);
+API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc_sized(size_t initial_len);
 API_EXPORT(void) mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str, size_t str_len);
 API_EXPORT(void) mtev_prepend_str_free(mtev_prependable_str_buff_t *buff);
 API_EXPORT(int) mtev_prepend_strlen(mtev_prependable_str_buff_t *buff);
 
-API_EXPORT(mtev_str_buff_t *) mtev_str_buff_alloc();
+API_EXPORT(mtev_str_buff_t *) mtev_str_buff_alloc(void);
 API_EXPORT(mtev_str_buff_t *) mtev_str_buff_alloc_sized(size_t);
 API_EXPORT(void) mtev_append_str_buff(mtev_str_buff_t *buff, const char* str, size_t str_len);
 API_EXPORT(void) mtev_str_buff_free(mtev_str_buff_t *buff);

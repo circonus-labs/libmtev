@@ -393,7 +393,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   }
   release_master_fd(fd, lockstate);
 }
-static int eventer_kqueue_impl_loop() {
+static int eventer_kqueue_impl_loop(int id) {
   struct timeval __dyna_sleep = { 0, 0 };
   KQUEUE_DECL;
   KQUEUE_SETUP(NULL);

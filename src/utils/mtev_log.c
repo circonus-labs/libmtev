@@ -83,12 +83,12 @@ MTEV_HOOK_IMPL(mtev_log_line,
 
 
 static int _mtev_log_siglvl = 0;
-void mtev_log_enter_sighandler() { _mtev_log_siglvl++; }
-void mtev_log_leave_sighandler() { _mtev_log_siglvl--; }
+void mtev_log_enter_sighandler(void) { _mtev_log_siglvl++; }
+void mtev_log_leave_sighandler(void) { _mtev_log_siglvl--; }
 
 #define SUPPORTS_ASYNC(ls) ((ls) && (ls)->ops && (ls)->path && (ls)->ops->supports_async)
 
-static int DEBUG_LOG_ENABLED() {
+static int DEBUG_LOG_ENABLED(void) {
   static int enabled = -1;
   if(enabled == -1) {
     char *env = getenv("MTEV_LOG_DEBUG");
@@ -372,7 +372,7 @@ mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich,
 static mtev_hash_table mtev_loggers;
 static mtev_hash_table mtev_logops;
 
-int mtev_log_global_enabled() {
+int mtev_log_global_enabled(void) {
   return LIBMTEV_LOG_ENABLED();
 }
 
@@ -425,7 +425,7 @@ static void materialize_deps(mtev_log_stream_t ls) {
 }
 
 static void
-mtev_log_dematerialize() {
+mtev_log_dematerialize(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   mtev_log_init_globals();
 
@@ -437,7 +437,7 @@ mtev_log_dematerialize() {
 }
 
 static void
-mtev_log_materialize() {
+mtev_log_materialize(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   mtev_log_init_globals();
 
@@ -449,7 +449,7 @@ mtev_log_materialize() {
 }
 
 static void
-mtev_log_rematerialize() {
+mtev_log_rematerialize(void) {
   mtev_log_dematerialize();
   mtev_log_materialize();
 }
@@ -494,7 +494,7 @@ asynch_log_push(asynch_log_ctx *actx, asynch_log_line *n) {
   ck_fifo_mpmc_enqueue(&actx->q, fifo_entry, n);
 }
 
-asynch_log_ctx *asynch_log_ctx_alloc() {
+asynch_log_ctx *asynch_log_ctx_alloc(void) {
   asynch_log_ctx *actx;
   actx = calloc(1, sizeof(*actx));
   actx->qhead = calloc(1, sizeof(*actx->qhead));
@@ -1215,7 +1215,7 @@ static logops_t jlog_logio_ops = {
 };
 
 static void
-mtev_log_shutdown() {
+mtev_log_shutdown(void) {
   mtev_log_go_synch();
 }
 void
@@ -1367,7 +1367,7 @@ mtev_log_resolve(mtev_log_stream_t ls) {
 }
 
 mtev_boolean
-mtev_log_final_resolve() {
+mtev_log_final_resolve(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     if(!mtev_log_resolve((mtev_log_stream_t)iter.value.ptr)) {
@@ -1822,7 +1822,7 @@ mtev_log_reopen_type(const char *type) {
 }
 
 int
-mtev_log_go_asynch() {
+mtev_log_go_asynch(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   int rv = 0;
   mtev_log_stream_t ls;
@@ -1840,7 +1840,7 @@ mtev_log_go_asynch() {
 }
 
 int
-mtev_log_go_synch() {
+mtev_log_go_synch(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   int rv = 0;
   mtev_log_stream_t ls;
@@ -1859,7 +1859,7 @@ mtev_log_go_synch() {
 }
 
 int
-mtev_log_reopen_all() {
+mtev_log_reopen_all(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   int rv = 0;
   mtev_log_stream_t ls;
@@ -1922,7 +1922,7 @@ mtev_log_stream_to_json(mtev_log_stream_t ls) {
 }
 
 void
-mtev_log_init_globals() {
+mtev_log_init_globals(void) {
   static int initialized = 0;
   if(!initialized) {
     initialized = 1;

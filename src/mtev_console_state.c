@@ -965,7 +965,7 @@ mtev_console_mksubdelegate(mtev_console_state_t *parent, const char *cmd) {
 }
 
 mtev_console_state_t *
-mtev_console_state_initial() {
+mtev_console_state_initial(void) {
   static mtev_console_state_t *_top_level_state = NULL;
   if(!_top_level_state) {
     static mtev_console_state_t *no_state, *show_state, *evdeb, *mtevdeb,

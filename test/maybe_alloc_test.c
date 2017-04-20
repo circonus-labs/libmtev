@@ -8,7 +8,7 @@ int chkmem(const char *ptr, size_t len, char exp) {
   for(cp = ptr; cp < ptr+len; cp++) if(*cp != exp) return 0;
   return 1;
 }
-int main() {
+int main(int argc, char *argv[]) {
   int a = 12345;
   MTEV_MAYBE_DECL(char, buff, 1892);
   int b = 54321;

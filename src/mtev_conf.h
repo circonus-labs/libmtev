@@ -275,7 +275,7 @@ API_EXPORT(void) mtev_conf_set_namespace(const char *ns);
   API_EXPORT(pcre *) mtev_conf_get_valid_##name##_checker(void)
 #define DECLARE_CHECKER(name) \
 static pcre *checker_valid_##name; \
-pcre *mtev_conf_get_valid_##name##_checker() { return checker_valid_##name; }
+pcre *mtev_conf_get_valid_##name##_checker(void) { return checker_valid_##name; }
 #define COMPILE_CHECKER(name, expr) do { \
   const char *errorstr; \
   int erroff; \

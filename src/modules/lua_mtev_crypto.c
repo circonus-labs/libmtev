@@ -49,7 +49,7 @@
 #endif
 
 static __thread BN_CTX *tls_bn_ctx = NULL;
-static BN_CTX *bn_ctx() {
+static BN_CTX *bn_ctx(void) {
   if(!tls_bn_ctx) tls_bn_ctx = BN_CTX_new();
   return tls_bn_ctx;
 }

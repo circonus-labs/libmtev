@@ -64,7 +64,7 @@ struct epoll_spec {
   int event_fd;
 };
 
-static void *eventer_epoll_spec_alloc() {
+static void *eventer_epoll_spec_alloc(void) {
   struct epoll_spec *spec;
   spec = calloc(1, sizeof(*spec));
   spec->epoll_fd = epoll_create(1024);
@@ -97,7 +97,7 @@ static void *eventer_epoll_spec_alloc() {
   return spec;
 }
 
-static int eventer_epoll_impl_init() {
+static int eventer_epoll_impl_init(void) {
   int rv;
 
   maxfds = eventer_impl_setrlimit();
@@ -380,7 +380,7 @@ static int eventer_epoll_eventfd_read(eventer_t e, int mask,
   return EVENTER_READ;
 }
 #endif
-static int eventer_epoll_impl_loop() {
+static int eventer_epoll_impl_loop(int id) {
   struct epoll_event *epev;
   struct epoll_spec *spec;
 

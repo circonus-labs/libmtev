@@ -119,7 +119,7 @@ mtev_prepend_str_alloc_sized(size_t initial_len) {
 }
 
 mtev_prependable_str_buff_t *
-mtev_prepend_str_alloc() {
+mtev_prepend_str_alloc(void) {
   return mtev_prepend_str_alloc_sized(8);
 }
 
@@ -167,7 +167,7 @@ mtev_str_buff_alloc_sized(size_t initial_len) {
 }
 
 mtev_str_buff_t *
-mtev_str_buff_alloc() {
+mtev_str_buff_alloc(void) {
   return mtev_str_buff_alloc_sized(8);
 }
 

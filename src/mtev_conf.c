@@ -154,15 +154,15 @@ void mtev_conf_coalesce_changes(uint32_t seconds) {
   __config_coalesce_time = seconds;
 }
 
-void mtev_conf_request_write() {
+void mtev_conf_request_write(void) {
   __coalesce_write = 1;
 }
 
-uint32_t mtev_conf_config_gen() {
+uint32_t mtev_conf_config_gen(void) {
   return __config_gen;
 }
 
-void mtev_conf_mark_changed() {
+void mtev_conf_mark_changed(void) {
   /* increment the change counter -- in case anyone cares */
   __config_gen++;
   /* reset the coalesce counter.  It is decremented each second and
@@ -436,7 +436,7 @@ mtev_conf_xml_error_ext_func(void *ctx, xmlErrorPtr err) {
 }
 
 void
-mtev_conf_xml_errors_to_debug() {
+mtev_conf_xml_errors_to_debug(void) {
   XML2LOG(xml_debug);
 }
 
@@ -522,7 +522,7 @@ mtev_conf_magic_separate_includes(include_node_t **root_include_nodes, int *cnt)
 }
 
 static void
-mtev_conf_magic_separate() {
+mtev_conf_magic_separate(void) {
   mtev_conf_magic_separate_includes(&config_include_nodes, &config_include_cnt);
   mtevAssert(config_include_nodes == NULL);
   if(backingstore_include_nodes) {
@@ -626,7 +626,7 @@ mtev_conf_kansas_city_shuffle_undo(include_node_t *include_nodes, int include_no
 }
 
 static uint64_t
-usec_now() {
+usec_now(void) {
   uint64_t usec;
   struct timeval tv;
   mtev_gettimeofday(&tv, NULL);
@@ -1338,7 +1338,7 @@ mtev_conf_default(string, char*)
 mtev_conf_default(uuid, uuid_t)
 
 mtev_conf_default_or_optional_t
-mtev_conf_optional() {
+mtev_conf_optional(void) {
   mtev_conf_default_or_optional_t doo = {1};
   return doo;
 }
@@ -1415,7 +1415,7 @@ int mtev_conf_get_value(mtev_conf_description_t* description,
 }
 
 char *
-mtev_conf_config_filename() {
+mtev_conf_config_filename(void) {
   return strdup(master_config_file);
 }
 
@@ -2173,7 +2173,7 @@ mtev_conf_enc_in_mem(size_t *raw_len, size_t *len, mtev_conf_enc_type_t target, 
 }
 
 int
-mtev_conf_write_log() {
+mtev_conf_write_log(void) {
   /* This is deprecated */
   return -1;
 }
@@ -2931,7 +2931,7 @@ conf_t_prompt(EditLine *el) {
   mtev_console_state_add_cmd((a), \
     NCSCMD(cmd, mtev_console_state_delegate, ac, ss, NULL))
 
-void mtev_console_conf_init() {
+void mtev_console_conf_init(void) {
   mtev_console_state_t *tl, *_conf_state, *_conf_t_state,
                        *_write_state, *_unset_state;
 
@@ -3056,7 +3056,7 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
   return mtev_true;
 }
 
-void mtev_conf_init_globals() {
+void mtev_conf_init_globals(void) {
   mtev_hash_init_locks(&_compiled_fallback, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 

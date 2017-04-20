@@ -705,7 +705,7 @@ void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *),
   }
   pthread_mutex_unlock(&all_queues_lock);
 }
-void eventer_jobq_init_globals() {
+void eventer_jobq_init_globals(void) {
   mtev_hash_init(&all_queues);
 }
 

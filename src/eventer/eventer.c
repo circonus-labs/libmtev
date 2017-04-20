@@ -63,7 +63,7 @@ eventer_fd_close_t eventer_fd_opset_get_close(eventer_fd_opset_t opset) {
   return opset->close;
 }
 
-eventer_t eventer_alloc() {
+eventer_t eventer_alloc(void) {
   eventer_t e;
   e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
   e->thr_owner = pthread_self();
@@ -157,11 +157,11 @@ void eventer_set_closure(eventer_t e, void *c) { e->closure = c; }
 eventer_fd_opset_t eventer_get_fd_opset(eventer_t e) { return e->opset; }
 /* No setter here */
 
-int64_t eventer_allocations_current() {
+int64_t eventer_allocations_current(void) {
   return ealloccnt;
 }
 
-int64_t eventer_allocations_total() {
+int64_t eventer_allocations_total(void) {
   return ealloctotal;
 }
 
@@ -285,7 +285,7 @@ int eventer_choose(const char *name) {
   return -1;
 }
 
-void eventer_init_globals() {
+void eventer_init_globals(void) {
   mtev_allocator_options_t opts = mtev_allocator_options_create();
   mtev_allocator_options_fixed_size(opts, sizeof(struct _event));
   mtev_allocator_options_freelist_perthreadlimit(opts, 1000);

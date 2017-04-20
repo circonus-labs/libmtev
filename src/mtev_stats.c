@@ -34,13 +34,13 @@
 static stats_recorder_t *global_stats;
 
 void
-mtev_stats_init() {
+mtev_stats_init(void) {
   if(global_stats == NULL)
     global_stats = stats_recorder_alloc();
 }
 
 stats_recorder_t *
-mtev_stats_recorder() {
+mtev_stats_recorder(void) {
   mtev_stats_init();
   return global_stats;
 }
@@ -133,7 +133,7 @@ mtev_rest_stats_delete(mtev_http_rest_closure_t *restc,
 }
 
 void
-mtev_stats_rest_init() {
+mtev_stats_rest_init(void) {
   mtev_stats_init();
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/mtev/", "^stats\\.json$", mtev_rest_stats_handler, mtev_http_rest_client_cert_auth

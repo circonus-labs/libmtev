@@ -218,7 +218,7 @@ struct lua_reporter {
 };
 
 static struct lua_reporter *
-mtev_lua_reporter_alloc() {
+mtev_lua_reporter_alloc(void) {
     struct lua_reporter *reporter;
     reporter = calloc(1, sizeof(*reporter));
     reporter->pool = eventer_pool("default");
@@ -517,7 +517,7 @@ mtev_console_show_lua(mtev_console_closure_t ncct,
 }
 
 void
-register_console_lua_commands() {
+register_console_lua_commands(void) {
   static int loaded = 0;
   mtev_console_state_t *tl;
   cmd_info_t *showcmd;
@@ -889,7 +889,7 @@ mtev_lua_open(const char *module_name, void *lmc,
 }
 
 void
-mtev_lua_init_globals() {
+mtev_lua_init_globals(void) {
   mtev_hash_init(&mtev_lua_states);
   mtev_hash_init(&mtev_coros);
 }

@@ -228,7 +228,7 @@ mtev_console_closure_free(void *vncct) {
 }
 
 mtev_console_closure_t
-mtev_console_closure_alloc() {
+mtev_console_closure_alloc(void) {
   mtev_console_closure_t new_ncct;
   new_ncct = calloc(1, sizeof(*new_ncct));
   mtev_hash_init(&new_ncct->userdata);

@@ -806,7 +806,7 @@ if test -n "`$CC -V 2>&1 | grep 'Sun C'`"; then
 		CFLAGS="$CFLAGS -errwarn=%all"
 	fi
 else
-	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall"
+	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall -Wold-style-declaration -Wold-style-definition -Wstrict-prototypes"
 	if test "$enable_strict" != "no"; then
 		CFLAGSEXTRAS="$CFLAGSEXTRAS -Werror"
 	fi

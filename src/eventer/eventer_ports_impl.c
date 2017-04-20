@@ -314,7 +314,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   }
   release_master_fd(fd, lockstate);
 }
-static int eventer_ports_impl_loop() {
+static int eventer_ports_impl_loop(int id) {
   struct timeval __dyna_sleep = { 0, 0 };
   struct ports_spec *spec;
   spec = eventer_get_spec_for_event(NULL);

@@ -117,7 +117,7 @@ mtev_cluster_find_node(mtev_cluster_t *cluster, uuid_t nodeid) {
 }
 
 mtev_boolean
-mtev_cluster_enabled() {
+mtev_cluster_enabled(void) {
   return have_clusters;
 }
 
@@ -245,7 +245,7 @@ mtev_cluster_check_timeout(mtev_cluster_t *cluster, struct timeval now) {
   }
 }
 static void
-mtev_cluster_check_timeouts() {
+mtev_cluster_check_timeouts(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
 
   struct timeval now;
@@ -1020,7 +1020,7 @@ rest_update_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
 }
 
 void
-mtev_cluster_init() {
+mtev_cluster_init(void) {
   uuid_t my_id;
   char my_id_str[UUID_STR_LEN+1];
   int i, n_clusters;
@@ -1068,6 +1068,6 @@ mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster) {
 }
 
 struct timeval
-mtev_cluster_get_my_boot_time() {
+mtev_cluster_get_my_boot_time(void) {
   return my_boot_time;
 }

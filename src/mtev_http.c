@@ -2519,7 +2519,7 @@ mtev_http_zipkip_span(mtev_http_session_ctx *ctx) {
 }
 
 void
-mtev_http_init() {
+mtev_http_init(void) {
   struct in_addr remote = { .s_addr = 0xffffffff };
   double np = 0.0, pp = 1.0, dp = 1.0;
   mtev_getip_ipv4(remote, &zipkin_ip_host);
