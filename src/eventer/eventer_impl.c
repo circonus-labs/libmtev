@@ -861,11 +861,13 @@ void eventer_cross_thread_trigger(eventer_t e, int mask) {
   mtevAssert(0 == (ctt->mask & EVENTER_CROSS_THREAD_TRIGGER));
   ctt->mask |= EVENTER_CROSS_THREAD_TRIGGER;
   mtevL(eventer_deb, "queueing fd:%d from t@%d to t@%d\n", e->fd, (int)(intptr_t)pthread_self(), (int)(intptr_t)e->thr_owner);
+  eventer_ref(e);
   pthread_mutex_lock(&t->cross_lock);
   ctt->next = t->cross;
   t->cross = ctt;
   pthread_mutex_unlock(&t->cross_lock);
   eventer_wakeup(e);
+  eventer_deref(e);
 }
 void eventer_cross_thread_process(void) {
   struct eventer_impl_data *t;

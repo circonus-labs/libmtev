@@ -811,7 +811,7 @@ mtev_http_request_finalize_headers(mtev_http_session_ctx *ctx, mtev_boolean *err
   if(req->current_offset <
      req->current_input->start + req->current_input->size) {
     /* There are left-overs */
-    int lsize = req->current_input->size - req->current_offset;
+    int lsize = req->current_input->size - (req->current_offset - req->current_input->start);
     mtevL(http_debug, " mtev_http_request_finalize -- leftovers: %d\n", lsize);
     req->first_input = ALLOC_BCHAIN(lsize);
     req->first_input->prev = NULL;
@@ -1288,6 +1288,7 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
       mtevL(http_debug, " ... last chunked chunk\n");
       /* all that's left is \r\n, just consume this framing */
       in->size -= 2;
+      in->start += 2;
     }
 
     if(in->size == 0) {
@@ -1776,6 +1777,8 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     if (ctx->is_websocket == mtev_false) {
       begin_span(ctx);
     }
+    /* we always respond with the same procotol */
+    ctx->res.protocol = ctx->req.protocol;
     LIBMTEV_HTTP_REQUEST_FINISH(CTXFD(ctx), ctx);
   }
 
@@ -1906,6 +1909,8 @@ mtev_http_response_status_set(mtev_http_session_ctx *ctx,
   check_realloc_response(&ctx->res);
   if(ctx->res.output_started == mtev_true) return mtev_false;
   ctx->res.protocol = ctx->req.protocol;
+  mtevL(http_debug, "mtev_http_response_status_set (%d) protocol: %d, code: %d, reason: %s\n",
+        eventer_get_fd(ctx->conn.e), ctx->res.protocol, code, reason);
   if(code < 100 || code > 999) return mtev_false;
   ctx->res.status_code = code;
   if(ctx->res.status_reason) free(ctx->res.status_reason);
@@ -2103,6 +2108,25 @@ _http_construct_leader(mtev_http_session_ctx *ctx) {
   if(tlen < 0) return -1;
   len = b->size = tlen;
 
+  /*
+    consult the incoming request options to determine our response encoding.
+    give preference to gzip to mimic old behavior
+
+    Only use compression on Chunked encoding under http 1.1 for now
+   */
+
+  if(ctx->res.protocol == MTEV_HTTP11 && (ctx->res.output_options & MTEV_HTTP_CHUNKED)) {
+    if (ctx->req.opts & MTEV_HTTP_GZIP) {
+      mtev_http_response_option_set(ctx, MTEV_HTTP_GZIP);
+    }
+    else if (ctx->req.opts & MTEV_HTTP_DEFLATE) {
+      mtev_http_response_option_set(ctx, MTEV_HTTP_DEFLATE);
+    }
+    else if (ctx->req.opts & MTEV_HTTP_LZ4F) {
+      mtev_http_response_option_set(ctx, MTEV_HTTP_LZ4F);
+    }
+  }
+
 #define CTX_LEADER_APPEND(s, slen) do { \
   if(b->size + slen > DEFAULT_BCHAINSIZE) { \
     b->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE); \
@@ -2205,6 +2229,7 @@ _http_encode_chain(mtev_http_response *res,
     if (err != 0) {
       return mtev_false;
     }
+
     if (olen == 0) {
       if (done) *done = mtev_true;
     }
@@ -2282,7 +2307,7 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
 }
 void
 raw_finalize_encoding(mtev_http_response *res) {
-  if(res->output_options & MTEV_HTTP_GZIP) {
+  if(res->output_options & (MTEV_HTTP_GZIP | MTEV_HTTP_LZ4F)) {
     mtev_boolean finished = mtev_false;
     struct bchain *r = res->output_raw_last;
     mtevAssert((r == NULL && res->output_raw == NULL) ||
@@ -2462,6 +2487,7 @@ mtev_http_response_flush_asynch(mtev_http_session_ctx *ctx,
 
 mtev_boolean
 mtev_http_response_end(mtev_http_session_ctx *ctx) {
+  mtevL(http_debug, " -> mtev_http_response_end(%d)\n", eventer_get_fd(ctx->conn.e));
   if(!mtev_http_response_flush(ctx, mtev_true)) {
     return mtev_false;
   }

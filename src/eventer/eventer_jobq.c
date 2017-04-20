@@ -268,6 +268,7 @@ eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job) {
     ck_pr_inc_64(&jobq->total_jobs);
     ck_pr_inc_32(&jobq->backlog);
   }
+  mtevL(eventer_deb, "jobq %p enqueue job [%p]\n", jobq, job);
   eventer_jobq_maybe_spawn(jobq, 1);
   pthread_mutex_lock(&jobq->lock);
   if(jobq->tailq) {
@@ -414,11 +415,13 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
                              job->fd_event->fd, job->fd_event->mask,
                              job->fd_event->mask);
       start = mtev_gethrtime();
+      mtevL(eventer_deb, "jobq %p running job [%p]\n", jobq, job);
       newmask = job->fd_event->callback(job->fd_event, job->fd_event->mask,
                                         job->fd_event->closure, now);
       duration = mtev_gethrtime() - start;
       LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, newmask);
+      mtevL(eventer_deb, "jobq %p completed job [%p]\n", jobq, job);
       stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
       stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
       if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_end();

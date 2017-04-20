@@ -41,8 +41,10 @@ typedef enum {
   MTEV_COMPRESS_DEFLATE
 } mtev_compress_type;
 
+typedef size_t (*curl_write_callback)(char *ptr, size_t size, size_t nmemb, void *userdata);
 typedef struct mtev_stream_compress_ctx mtev_stream_compress_ctx_t;
 typedef struct mtev_stream_decompress_ctx mtev_stream_decompress_ctx_t;
+typedef struct mtev_decompress_curl_helper mtev_decompress_curl_helper_t;
 
 /**
  * @return worst case destination size for source_len
@@ -168,7 +170,7 @@ API_EXPORT(int)
  * @return 0 on success, non-zero on error
  */
 API_EXPORT(int)
-  mtev_stream_compress_finish(mtev_stream_compress_ctx_t *ctx);
+mtev_stream_compress_finish(mtev_stream_compress_ctx_t *ctx);
 
 /**
  * initialize a streaming decompression session for type
@@ -204,6 +206,17 @@ API_EXPORT(int)
 API_EXPORT(int)
   mtev_stream_decompress_finish(mtev_stream_decompress_ctx_t *ctx);
 
+API_EXPORT(mtev_decompress_curl_helper_t *)
+mtev_decompress_create_curl_helper(curl_write_callback write_function, void *closure, mtev_compress_type type);
 
+API_EXPORT(void)
+  mtev_decompress_destroy_curl_helper(mtev_decompress_curl_helper_t *ch);
+
+/*!
+  \fn size_t mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
+  \brief Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA
+*/
+API_EXPORT(size_t)
+  mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
 
 #endif

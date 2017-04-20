@@ -61,23 +61,37 @@ int main(int argc, char **argv)
   CURL *curl = curl_easy_init();
   struct curl_slist *list = NULL;
 
+  mtev_decompress_curl_helper_t *data_helper = mtev_decompress_create_curl_helper((curl_write_callback)process_response, &data, MTEV_COMPRESS_LZ4F);
+
+
   curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 0);
   curl_easy_setopt(curl, CURLOPT_URL, "http://127.0.0.1");
   curl_easy_setopt(curl, CURLOPT_PORT, 8888);
   curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, process_response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, len);  
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload);
-  curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
+  if (strcmp("lz4f", compression) == 0) {
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, data_helper);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mtev_curl_write_callback);
+    sprintf(content_encoding_header, "Accept-Encoding: %s", compression);
+    list = curl_slist_append(list, content_encoding_header);
+  }
+  else {
+    curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, process_response);
+  }
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, len);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (char *)payload);
   if (strcmp("none", compression) != 0) {
     sprintf(content_encoding_header, "Content-encoding: %s", compression);
     list = curl_slist_append(list, content_encoding_header);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
   }
 
+  if (list) {
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+  }
   int code = curl_easy_perform(curl); 
   free(payload);
+  mtev_decompress_destroy_curl_helper(data_helper);
   if (code != CURLE_OK) {
     printf("Curl returned error: %d: %s\n", code, curl_easy_strerror(code));
     exit(1);
