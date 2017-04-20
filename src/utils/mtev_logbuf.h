@@ -51,7 +51,7 @@ typedef enum {
  * buffer is full. */
 typedef enum {
   /* reject log attempts when buffer is full. */
-  MTEV_LOGBUF_FULL_REJECT,
+  MTEV_LOGBUF_ONFULL_REJECT,
   /* anticipate adding ability to overwrite "oldest" logs when buffer
    * is full. */
 } mtev_logbuf_onfull_t;
@@ -68,15 +68,15 @@ struct _mtev_logbuf_log_t {
 
 /* create a memory buffer that can be used to capture logs with little
  * run-time overhead. */
-mtev_logbuf_t *mtev_logbuf_create(size_t size, mtev_logbuf_onfull_t on_full);
-void mtev_logbuf_destroy(mtev_logbuf_t *logbuf);
+API_EXPORT(mtev_logbuf_t *) mtev_logbuf_create(size_t size, mtev_logbuf_onfull_t on_full);
+API_EXPORT(void) mtev_logbuf_destroy(mtev_logbuf_t *logbuf);
 
-mtev_logbuf_log_t *mtev_logbuf_create_log(mtev_logbuf_type_t *args, size_t nargs);
-void mtev_logbuf_destroy_log(mtev_logbuf_log_t *log);
+API_EXPORT(mtev_logbuf_log_t *) mtev_logbuf_create_log(mtev_logbuf_type_t *args, size_t nargs);
+API_EXPORT(void) mtev_logbuf_destroy_log(mtev_logbuf_log_t *log);
 
-void *
-  mtev_logbuf_log_start(mtev_logbuf_t *logbuf, const mtev_logbuf_log_t *log, struct timeval now);
-void mtev_logbuf_log_commit(const mtev_logbuf_log_t *log, void *buf);
+API_EXPORT(void *)
+mtev_logbuf_log_start(mtev_logbuf_t *logbuf, const mtev_logbuf_log_t *log, struct timeval now);
+API_EXPORT(void) mtev_logbuf_log_commit(const mtev_logbuf_log_t *log, void *buf);
 
 #define MTEV_LOGBUF_LOG_FN(name, type)                                                           \
   static inline void mtev_logbuf_log_##name(void *buf, const mtev_logbuf_log_t *log, size_t arg, \
@@ -95,8 +95,8 @@ MTEV_LOGBUF_LOG_FN(uint32, uint32_t);
 MTEV_LOGBUF_LOG_FN(int64, int64_t);
 MTEV_LOGBUF_LOG_FN(uint64, uint64_t);
 
-void mtev_logbuf_reset(mtev_logbuf_t *logbuf);
-void mtev_logbuf_dump(mtev_log_stream_t ls, mtev_logbuf_t *logbuf);
+API_EXPORT(void) mtev_logbuf_reset(mtev_logbuf_t *logbuf);
+API_EXPORT(void) mtev_logbuf_dump(mtev_log_stream_t ls, mtev_logbuf_t *logbuf);
 
 /* example usage:
  *   mtev_logbuf_type_t logtypes[] = {
