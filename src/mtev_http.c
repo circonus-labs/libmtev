@@ -2223,8 +2223,8 @@ _http_encode_chain(mtev_http_response *res,
   if (final == mtev_true) {
     struct bchain *o = out;
     olen = o->allocd - o->start - 2;
-    err = mtev_stream_compress_flush(res->compress_ctx, 
-                                     (unsigned char *)(o->buff + o->start), 
+    err = mtev_stream_compress_flush(res->compress_ctx,
+                                     (unsigned char *)(o->buff + o->start),
                                      &olen);
     if (err != 0) {
       return mtev_false;
@@ -2314,7 +2314,12 @@ raw_finalize_encoding(mtev_http_response *res) {
            (r != NULL && res->output_raw != NULL));
     while(finished == mtev_false) {
       int hexlen, ilen;
-      struct bchain *out = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+
+      /*
+       * using DEFAULT_BCHAINSIZE * 3 to deal with compression possibly inflating
+       * the size of the data over the original when flushing.
+       */
+      struct bchain *out = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE * 3);
 
       /* The link size is the len(data) + 4 + ceil(log(len(data))/log(16)) */
       ilen = out->allocd;
