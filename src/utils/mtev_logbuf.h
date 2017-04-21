@@ -35,6 +35,34 @@
 #include <mtev_log.h>
 #include "mtev_defines.h"
 
+/*
+ * mtev_logbuf: Logging mechanism with minimal probe effect.
+ *
+ * The mtev_logbuf routines capture log data with minimal run-time
+ * overhead, for later (non-real-time) display. It presents the
+ * following constructs:
+ *
+ * mtev_logbuf_t: A buffer containing captured logging data.
+ * mtev_logbuf_log_t: A description of a log data record.
+ *
+ * The mtev_logbuf_log_t log description specifies the data types of
+ * data to be recorded, as well as information about how to format
+ * that data for display. In other words, the logging display
+ * instructions is constructed at a different point than the log data.
+ * This allows higher-performance log information capture, but at the
+ * expense of some safety and ease-of-use:
+ *
+ * . Regarding safety, it's up to the caller to ensure that the log
+ *   data is fully filled in before marking the log record as
+ *   available for display.
+ *
+ * . Regarding ease-of-use, since the log description is specified at
+ *   a different point than the log data, this means there will be
+ *   multiple code positions to edit when you want to modify a log.
+ *
+ * See test/logbuf_test.c for an example program.
+ */
+
 typedef struct _mtev_logbuf_t mtev_logbuf_t;
 typedef struct _mtev_logbuf_log_t mtev_logbuf_log_t;
 
@@ -66,6 +94,7 @@ typedef enum {
 /* ABI risk: this structure is not opaque, because users need to look
  * into this structure to make logging efficient. */
 struct _mtev_logbuf_log_t {
+  const char *name;
   size_t size;
   size_t align;
   int nargs;
@@ -78,11 +107,12 @@ struct _mtev_logbuf_log_t {
 API_EXPORT(mtev_logbuf_t *) mtev_logbuf_create(size_t size, mtev_logbuf_onfull_t on_full);
 API_EXPORT(void) mtev_logbuf_destroy(mtev_logbuf_t *logbuf);
 
-API_EXPORT(mtev_logbuf_log_t *) mtev_logbuf_create_log(mtev_logbuf_el_t *args, size_t nargs);
+API_EXPORT(mtev_logbuf_log_t *)
+  mtev_logbuf_create_log(const char *name, mtev_logbuf_el_t *args, size_t nargs);
 API_EXPORT(void) mtev_logbuf_destroy_log(mtev_logbuf_log_t *log);
 
 API_EXPORT(void *)
-mtev_logbuf_log_start(mtev_logbuf_t *logbuf, const mtev_logbuf_log_t *log, struct timeval now);
+  mtev_logbuf_log_start(mtev_logbuf_t *logbuf, const mtev_logbuf_log_t *log, struct timeval now);
 API_EXPORT(void) mtev_logbuf_log_commit(const mtev_logbuf_log_t *log, void *buf);
 
 #define MTEV_LOGBUF_LOG_FN(name, type)                                                           \

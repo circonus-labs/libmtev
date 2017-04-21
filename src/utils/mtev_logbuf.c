@@ -95,10 +95,11 @@ void mtev_logbuf_destroy(mtev_logbuf_t *logbuf)
   free((void *) logbuf);
 }
 
-mtev_logbuf_log_t *mtev_logbuf_create_log(mtev_logbuf_el_t *args, size_t nargs)
+mtev_logbuf_log_t *mtev_logbuf_create_log(const char *name, mtev_logbuf_el_t *args, size_t nargs)
 {
   mtev_logbuf_log_t *rval = (mtev_logbuf_log_t *) calloc(1, sizeof(mtev_logbuf_log_t) +
                                                            nargs * sizeof(rval->arg_offsets[0]));
+  rval->name = name;
   rval->size = 0;
   rval->align = ALIGN_OF(logbuf_log_header);
   rval->nargs = nargs;
@@ -256,7 +257,7 @@ void mtev_logbuf_display_log(mtev_log_stream_t ls, mtev_logbuf_log_header_t *log
   const mtev_logbuf_log_t *log = log_header->log;
   for (arg_index = 0; arg_index < log->nargs; arg_index++) {
     int wrote =
-      snprintf(wr_pos, wr_left, "%s%s ", arg_index > 0 ? " " : "", log->args[arg_index].descr);
+      snprintf(wr_pos, wr_left, " %s ", log->args[arg_index].descr);
     wr_pos += wrote;
     wr_left -= wrote;
 
@@ -291,7 +292,7 @@ void mtev_logbuf_display_log(mtev_log_stream_t ls, mtev_logbuf_log_header_t *log
     wr_left -= wrote;
     if (wr_left <= 1) break;
   }
-  mtevLT(ls, &log_header->log_time, "%s\n", display_buf);
+  mtevLT(ls, &log_header->log_time, "%s:%s\n", log->name, display_buf);
 }
 
 void mtev_logbuf_dump(mtev_log_stream_t ls, mtev_logbuf_t *logbuf)

@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 {
   mtev_log_init_globals();
   mtev_logbuf_t *logbuf = mtev_logbuf_create(2048, MTEV_LOGBUF_ONFULL_REJECT);
-  my_log = mtev_logbuf_create_log(log_args, sizeof(log_args) / sizeof(log_args[0]));
+  my_log = mtev_logbuf_create_log("test_log", log_args, sizeof(log_args) / sizeof(log_args[0]));
   /* timestamps will be displayed from these logs, giving a sense of performance. */
   log_string_then_int32(logbuf, "str1", 123);
   log_string_then_int32(logbuf, "str2", 456);
