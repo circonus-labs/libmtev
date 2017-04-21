@@ -178,7 +178,7 @@ void *mtev_logbuf_log_start(mtev_logbuf_t *logbuf, const mtev_logbuf_log_t *log,
   }
 
   mtev_logbuf_log_header_t *next_write_address =
-    (mtev_logbuf_log_header_t *) (((uintptr_t) logbuf->buffer) + logbuf->next_write_idx);
+    (mtev_logbuf_log_header_t *) (((char *) logbuf->buffer) + logbuf->next_write_idx);
   if (avail_fst < needed) {
     if (avail_snd < needed) {
       ck_spinlock_unlock(&logbuf->lock);
@@ -205,7 +205,7 @@ void *mtev_logbuf_log_start(mtev_logbuf_t *logbuf, const mtev_logbuf_log_t *log,
 void mtev_logbuf_log_commit(const mtev_logbuf_log_t *log, void *buf)
 {
   /* fill in the write header with the `mtev_logbuf_log_t *` for this log. */
-  uintptr_t headeraddr = ((uintptr_t) buf) - sizeof(mtev_logbuf_log_header_t);
+  char *headeraddr = ((char *) buf) - sizeof(mtev_logbuf_log_header_t);
   ((mtev_logbuf_log_header_t *) headeraddr)->log = log;
 }
 
@@ -215,7 +215,7 @@ mtev_logbuf_log_header_t *mtev_logbuf_read_one_locked(mtev_logbuf_t *logbuf)
     mtevAssert(logbuf->next_read_idx == 0);
     return 0;
   }
-  uintptr_t read_address = ((uintptr_t) logbuf->buffer) + logbuf->next_read_idx;
+  char *read_address = ((char *) logbuf->buffer) + logbuf->next_read_idx;
   /* the spin-lock protects against updates to the read / write
    * indices... the write operation releases the spin-lock before
    * completing the write, so we need to wait for the write to
@@ -260,7 +260,7 @@ void mtev_logbuf_display_log(mtev_log_stream_t ls, mtev_logbuf_log_header_t *log
     wr_pos += wrote;
     wr_left -= wrote;
 
-    void *arg_ptr = (void *) ((uintptr_t)(log_header + 1) + log->arg_offsets[arg_index]);
+    void *arg_ptr = (void *) ((char *)(log_header + 1) + log->arg_offsets[arg_index]);
     wrote = 0;
     switch (log->args[arg_index].type) {
     case MTEV_LOGBUF_TYPE_EMPTY:
