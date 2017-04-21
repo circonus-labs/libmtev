@@ -106,11 +106,11 @@ MAPPEDHEADERS=utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
     utils/mtev_btrie.h utils/mtev_cht.h utils/mtev_compress.h \
     utils/mtev_confstr.h utils/mtev_cpuid.h utils/mtev_dyn_buffer.h \
     utils/mtev_getip.h utils/mtev_hash.h utils/mtev_hooks.h \
-    utils/mtev_lockfile.h utils/mtev_log.h utils/mtev_memory.h \
-    utils/mtev_mkdir.h utils/mtev_security.h utils/mtev_sem.h \
-    utils/mtev_sort.h utils/mtev_skiplist.h utils/mtev_str.h \
-    utils/mtev_time.h utils/mtev_watchdog.h utils/mtev_uuid_parse.h \
-    utils/mtev_perftimer.h utils/mtev_zipkin.h \
+    utils/mtev_lockfile.h utils/mtev_log.h utils/mtev_logbuf.h \
+    utils/mtev_memory.h utils/mtev_mkdir.h utils/mtev_security.h \
+    utils/mtev_sem.h utils/mtev_sort.h utils/mtev_skiplist.h \
+    utils/mtev_str.h utils/mtev_time.h utils/mtev_watchdog.h \
+    utils/mtev_uuid_parse.h utils/mtev_perftimer.h utils/mtev_zipkin.h \
     utils/mtev_hyperloglog.h json-lib/mtev_arraylist.h \
     utils/mtev_stacktrace.h utils/mtev_maybe_alloc.h \
     json-lib/mtev_bits.h json-lib/mtev_debug.h \
@@ -147,12 +147,12 @@ MTEV_UTILS_OBJS=utils/mtev_b32.hlo utils/mtev_b64.hlo \
     utils/mtev_btrie.hlo utils/mtev_compress.lo utils/mtev_confstr.lo \
     utils/mtev_cpuid.lo utils/mtev_dyn_buffer.hlo utils/mtev_getip.lo \
     utils/mtev_hash.hlo utils/mtev_lockfile.lo utils/mtev_log.lo \
-    utils/mtev_mkdir.lo utils/mtev_security.lo utils/mtev_sem.lo \
-    utils/mtev_time.hlo utils/mtev_skiplist.hlo utils/mtev_sort.hlo \
-    utils/mtev_str.lo utils/mtev_watchdog.lo utils/mtev_zipkin.lo \
-    utils/mtev_memory.lo utils/mtev_cht.hlo utils/mtev_uuid_parse.hlo \
-    utils/mtev_perftimer.lo utils/mtev_hyperloglog.hlo \
-    utils/mtev_stacktrace.lo $(ATOMIC_OBJS) \
+    utils/mtev_logbuf.lo utils/mtev_mkdir.lo utils/mtev_security.lo \
+    utils/mtev_sem.lo utils/mtev_time.hlo utils/mtev_skiplist.hlo \
+    utils/mtev_sort.hlo utils/mtev_str.lo utils/mtev_watchdog.lo \
+    utils/mtev_zipkin.lo utils/mtev_memory.lo utils/mtev_cht.hlo \
+    utils/mtev_uuid_parse.hlo utils/mtev_perftimer.lo \
+    utils/mtev_hyperloglog.hlo utils/mtev_stacktrace.lo $(ATOMIC_OBJS) \
     utils/android-demangle/cp-demangle.lo
 
 LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
