@@ -357,7 +357,7 @@ rabbitmq_manage_connection(void *vconn) {
 }
 
 static int
-init_conns() {
+init_conns(void) {
   mtev_conf_section_t *mqs = mtev_conf_get_sections(NULL, CONFIG_AMQP_IN_MQ,
       &the_conf->number_of_conns);
 
