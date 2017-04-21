@@ -108,6 +108,11 @@ API_EXPORT(mtev_log_stream_t)
   mtev_log_stream_new_on_fd(const char *, int, mtev_hash_table *);
 API_EXPORT(mtev_log_stream_t)
   mtev_log_stream_new_on_file(const char *, mtev_hash_table *);
+API_EXPORT(mtev_log_stream_t) mtev_log_speculate(int nlogs, int nbytes);
+API_EXPORT(void)
+  mtev_log_speculate_commit(mtev_log_stream_t ls, mtev_log_stream_t speculation_ls);
+API_EXPORT(void) mtev_log_speculate_free(mtev_log_stream_t speculation_ls);
+
 API_EXPORT(mtev_boolean) mtev_log_stream_exists(const char *);
 API_EXPORT(mtev_log_stream_t) mtev_log_stream_find(const char *);
 API_EXPORT(void) mtev_log_stream_remove(const char *name);
