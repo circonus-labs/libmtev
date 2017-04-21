@@ -52,14 +52,14 @@ static void *mtev_memory_gc(void *unused);
 static mtev_log_stream_t mem_debug = NULL;
 static pthread_mutex_t mem_debug_lock = PTHREAD_MUTEX_INITIALIZER;
 
-void mtev_memory_init_thread() {
+void mtev_memory_init_thread(void) {
   if(epoch_rec == NULL) {
     epoch_rec = malloc(sizeof(*epoch_rec));
     ck_epoch_register(&epoch_ht, epoch_rec);
   }
 }
 
-void mtev_memory_init() {
+void mtev_memory_init(void) {
   pthread_attr_t tattr;
   pthread_t tid;
   if(initialized) return;
@@ -96,7 +96,7 @@ mtev_boolean mtev_memory_barriers(mtev_boolean *b) {
   return old;
 }
 
-void mtev_memory_maintenance() {
+void mtev_memory_maintenance(void) {
   ck_epoch_record_t epoch_temporary = *epoch_rec;
   if(!mem_debug) {
     pthread_mutex_lock(&mem_debug_lock);
@@ -276,10 +276,10 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   return success ? n_dispatch : -1;
 }
 
-void mtev_memory_begin() {
+void mtev_memory_begin(void) {
   ck_epoch_begin(epoch_rec, NULL);
 }
-void mtev_memory_end() {
+void mtev_memory_end(void) {
   ck_epoch_end(epoch_rec, NULL);
 }
 
@@ -393,7 +393,7 @@ struct mtev_allocator {
   void (*release_impl)(struct mtev_allocator *, void *);
 };
 
-mtev_allocator_options_t mtev_allocator_options_create() {
+mtev_allocator_options_t mtev_allocator_options_create(void) {
   return calloc(1, sizeof(struct mtev_allocator_options));
 }
 void mtev_allocator_options_free(mtev_allocator_options_t ptr) {

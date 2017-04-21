@@ -201,7 +201,7 @@ API_EXPORT(void)
                                 mtev_console_state_t *);
 
 API_EXPORT(mtev_console_state_t *)
-  mtev_console_state_initial();
+  mtev_console_state_initial(void);
 
 API_EXPORT(mtev_console_state_t *)
   mtev_console_state_alloc_empty(void);

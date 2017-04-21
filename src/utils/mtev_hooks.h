@@ -153,7 +153,7 @@ struct mtev_hook_##HOOKNAME##_list { \
 static volatile void *nh_##HOOKNAME##_list = NULL; \
  \
 mtev_boolean \
-HOOKNAME##_hook_exists() { return nh_##HOOKNAME##_list != NULL; } \
+HOOKNAME##_hook_exists(void) { return nh_##HOOKNAME##_list != NULL; } \
 mtev_hook_return_t \
 HOOKNAME##_hook_invoke HOOKPROTO_NC { \
   mtev_hook_return_t rv = MTEV_HOOK_CONTINUE; \
@@ -209,8 +209,8 @@ static inline RTYPE FUNCNAME PROTO { \
   return f_ PARAMS; \
 }
 #define MTEV_RUNTIME_AVAIL(FUNCNAME, SYMBOL) \
-static inline int FUNCNAME##_available () { \
-  static void (*f_) (); \
+static inline int FUNCNAME##_available (void) { \
+  static void (*f_) (void); \
   if(!f_) { \
     f_ = dlsym(MTEV_RTLD_PARAM, #SYMBOL); \
   } \

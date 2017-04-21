@@ -4148,7 +4148,7 @@ nl_cancel_coro(lua_State *L) {
   return 0;
 }
 
-static void mtev_lua_init() {
+static void mtev_lua_init(void) {
   static int done = 0;
   if(done) return;
   done = 1;

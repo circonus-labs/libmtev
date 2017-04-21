@@ -648,6 +648,6 @@ mtev_websocket_client_free(mtev_websocket_client_t *client) {
 }
 
 void
-mtev_websocket_client_init_logs() {
+mtev_websocket_client_init_logs(void) {
   client_deb = mtev_log_stream_find("debug/websocket_client");
 }

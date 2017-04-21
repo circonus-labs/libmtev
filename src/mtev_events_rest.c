@@ -246,7 +246,7 @@ mtev_rest_eventer_logs(mtev_http_rest_closure_t *restc, int n, char **p) {
 }
 
 void
-mtev_events_rest_init() {
+mtev_events_rest_init(void) {
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/eventer/", "^memory\\.json$",
     mtev_rest_eventer_memory, mtev_http_rest_client_cert_auth

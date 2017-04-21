@@ -66,7 +66,7 @@ __RCSID("$NetBSD: el.c,v 1.21 2001/01/05 22:45:30 christos Exp $");
 
 pthread_key_t tputs_hack;
 public void
-el_multi_init() {
+el_multi_init(void) {
   pthread_key_create(&tputs_hack, NULL);
 }
 
@@ -76,7 +76,7 @@ el_multi_set_el(EditLine *el) {
 }
 
 public EditLine *
-el_multi_get_el() {
+el_multi_get_el(void) {
   return (EditLine *)pthread_getspecific(tputs_hack);
 }
 

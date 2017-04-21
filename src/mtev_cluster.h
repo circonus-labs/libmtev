@@ -70,14 +70,14 @@ typedef void (*mtev_cluster_node_update_cb)(mtev_cluster_node_t *updated_node, m
     Initializes the mtev cluster configuration.
  */
 API_EXPORT(void)
-  mtev_cluster_init();
+  mtev_cluster_init(void);
 
 /*! \fn mtev_boolean mtev_cluster_enabled()
     \brief Report on the availability of the clusters feature.
     \return mtev_true if clusters can be configured, otherwise mtev_false.
  */
 API_EXPORT(mtev_boolean)
-  mtev_cluster_enabled();
+  mtev_cluster_enabled(void);
 
 /*! \fn int mtev_cluster_update(mtev_conf_section_t cluster)
     \brief Add or update an mtev cluster.
@@ -222,7 +222,7 @@ API_EXPORT(mtev_boolean)
    \return The boot time of the local node.
  */
 API_EXPORT(struct timeval)
-  mtev_cluster_get_my_boot_time();
+  mtev_cluster_get_my_boot_time(void);
 
 /* \fn int mtev_cluster_set_node_update_callback(mtev_cluster_t *cluster, mtev_cluster_node_update_cb callback)
    \brief Sets a callback which is called everytime a node in the cluster changes it's up-time.

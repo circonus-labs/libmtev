@@ -137,7 +137,7 @@ configure_eventer(const char *appname) {
   return rv;
 }
 
-void cli_log_switches() {
+void cli_log_switches(void) {
   int i;
   mtev_log_stream_t ls;
   for(i=0; i<enable_logs_cnt; i++) {
@@ -164,7 +164,7 @@ static mtev_spinlock_t mtev_init_globals_lock = 0;
 static int mtev_init_globals_once = 0;
 
 void
-mtev_init_globals() {
+mtev_init_globals(void) {
   /* instead of just a cas, we lock.. this makes sure
    * no one leaves this function before the job is done.
    */
@@ -192,7 +192,7 @@ mtev_init_globals() {
 
 __attribute__((constructor))
 static void
-mtev_init_globals_ctor() {
+mtev_init_globals_ctor(void) {
   mtev_init_globals();
   eventer_boot_ctor();
 }

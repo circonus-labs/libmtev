@@ -74,7 +74,7 @@ static void
   mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *, eventer_func_t);
 
 void
-mtev_capabilities_listener_init() {
+mtev_capabilities_listener_init(void) {
   eventer_name_callback("capabilities_transit/1.0", mtev_capabilities_handler);
   mtev_control_dispatch_delegate(mtev_control_dispatch,
                                  MTEV_CAPABILITIES_SERVICE,
@@ -93,7 +93,7 @@ mtev_capabilities_add_feature(const char *feature, const char *version) {
 }
 
 const mtev_hash_table *
-mtev_capabilities_get_features()
+mtev_capabilities_get_features(void)
 {
   return &features;
 }
@@ -424,6 +424,6 @@ cleanup_shutdown:
 }
 
 void
-mtev_capabilities_init_globals() {
+mtev_capabilities_init_globals(void) {
   mtev_hash_init_locks(&features, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }

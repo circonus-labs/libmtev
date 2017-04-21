@@ -123,8 +123,7 @@ noitedit_completion_function(EditLine *el, const char *text, int state) {
   return rv;
 }
 static int
-_edit_qsort_string_compare(i1, i2)
-        const void *i1, *i2;
+_edit_qsort_string_compare(const void *i1, const void *i2)
 {
         /*LINTED const castaway*/
         const char *s1 = ((const char **)i1)[0];

@@ -38,7 +38,7 @@
  * This will remain active in the thread until you call stop
  */
 API_EXPORT(void)
-  mtev_time_start_tsc();
+  mtev_time_start_tsc(void);
 
 /*! \fn void mtev_time_stop_tsc(void)
  *  \brief Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)
@@ -119,14 +119,14 @@ API_EXPORT(int)
    *  \return mtev_gettimeofday() in milliseconds since epoch
    */
 API_EXPORT(uint64_t)
-  mtev_now_ms();
+  mtev_now_ms(void);
 
   /*! \fn uint64_t mtev_now_us()
    *  \brief the current system time in microseconds
    *  \return mtev_gettimeofday() in microseconds since epoch
    */
 API_EXPORT(uint64_t)
-  mtev_now_us();
+  mtev_now_us(void);
 
 typedef struct mtev_time_coreclock_t {
   double ticks_per_nano;   /* ticks per nano on this cpu core */

@@ -59,7 +59,7 @@ const char *ZIPKIN_SERVER_RECV = "sr";
  * zipkin will "turn on" automaticall if there is a publishing hook.
  */
 static bool ze_enable_override = false;
-void mtev_zipkin_enable() { ze_enable_override = true; }
+void mtev_zipkin_enable(void) { ze_enable_override = true; }
 
 static double ze_new_trace_probability = 0.0;
 static double ze_parented_trace_probability = 1.0;
@@ -307,7 +307,7 @@ static __thread struct {
   bool initialized;
 } random_tracer_help;
 static int64_t
-ze_get_traceid() {
+ze_get_traceid(void) {
   int64_t id;
   if(!random_tracer_help.initialized) {
     uint64_t scratch = 0, i;

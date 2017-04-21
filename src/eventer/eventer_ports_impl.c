@@ -64,7 +64,7 @@ struct ports_spec {
   mtev_spinlock_t wakeup_notify;
 };
 
-static void *eventer_ports_spec_alloc() {
+static void *eventer_ports_spec_alloc(void) {
   struct ports_spec *spec;
   spec = calloc(1, sizeof(*spec));
   spec->port_fd = port_create();
@@ -76,7 +76,7 @@ static void *eventer_ports_spec_alloc() {
 }
 
 
-static int eventer_ports_impl_init() {
+static int eventer_ports_impl_init(void) {
   int rv;
 
   maxfds = eventer_impl_setrlimit();
@@ -331,7 +331,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   }
   release_master_fd(fd, lockstate);
 }
-static int eventer_ports_impl_loop() {
+static int eventer_ports_impl_loop(int id) {
   struct timeval __dyna_sleep = { 0, 0 };
   struct ports_spec *spec;
   spec = eventer_get_spec_for_event(NULL);

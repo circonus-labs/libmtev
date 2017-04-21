@@ -228,7 +228,7 @@ mtev_console_closure_free(void *vncct) {
 }
 
 mtev_console_closure_t
-mtev_console_closure_alloc() {
+mtev_console_closure_alloc(void) {
   mtev_console_closure_t new_ncct;
   new_ncct = calloc(1, sizeof(*new_ncct));
   mtev_hash_init(&new_ncct->userdata);
@@ -331,7 +331,6 @@ allocate_pty(int *master, int *slave) {
 #else
   /* STREAMS... sigh */
   char   *slavename;
-  extern char *ptsname();
 
   *master = open("/dev/ptmx", O_RDWR);  /* open master */
   if(*master < 0) return -1;

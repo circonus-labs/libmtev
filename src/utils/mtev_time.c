@@ -121,7 +121,7 @@ struct cclocks {
 static struct cclocks coreclocks[NCPUS] = {{{0.0,0}, PTHREAD_MUTEX_INITIALIZER, 0, 0, 0}};
 
 static void
-mtev_time_reset_scale() {
+mtev_time_reset_scale(void) {
   for(int i=0; i<NCPUS; i++) {
     ck_pr_store_64(&coreclocks[i].calc.skew, 0);
     ck_pr_store_double(&coreclocks[i].calc.ticks_per_nano, 0.0);
@@ -238,7 +238,7 @@ fetch_cclock_scale(int cpuid, struct cclock_scale *cs) {
 #if defined(linux) || defined(__linux) || defined(__linux__)
 #include <time.h>
 static inline mtev_hrtime_t 
-mtev_gethrtime_fallback() {
+mtev_gethrtime_fallback(void) {
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
   return ((ts.tv_sec * 1000000000) + ts.tv_nsec);
@@ -248,7 +248,7 @@ mtev_gethrtime_fallback() {
 #include <mach/mach_time.h>
 
 static inline mtev_hrtime_t 
-mtev_gethrtime_fallback() {
+mtev_gethrtime_fallback(void) {
     static int initialized = 0;
     static mach_timebase_info_data_t    sTimebaseInfo;
     uint64_t t;
@@ -263,16 +263,16 @@ mtev_gethrtime_fallback() {
 #include <time.h>
 #define NANOSEC 1000000000
 static inline mtev_hrtime_t 
-mtev_gethrtime_fallback() {
+mtev_gethrtime_fallback(void) {
   struct timespec ts;
   clock_gettime(CLOCK_UPTIME,&ts);
   return (((u_int64_t) ts.tv_sec) * NANOSEC + ts.tv_nsec);
 }
 #else
 static inline mtev_hrtime_t 
-mtev_gethrtime_fallback() {
+mtev_gethrtime_fallback(void) {
 #if defined(sun) || defined(__sun__)
-    static hrtime_t (*gethrtimesym)();
+    static hrtime_t (*gethrtimesym)(void);
     if(gethrtimesym == NULL) gethrtimesym = dlsym(RTLD_NEXT, "gethrtime");
     /* Maybe we've been loaded from a system that doesn't use libc? */
     if(gethrtimesym == NULL) return (mtev_hrtime_t)gethrtime();
@@ -311,7 +311,7 @@ int mtev_gettimeofday(struct timeval *t, void *ttp) {
   return mtev_gettimeofday_fallback(t, ttp);
 }
 
-uint64_t mtev_now_ms()
+uint64_t mtev_now_ms(void)
 {
   uint64_t rval;
   struct timeval tv;
@@ -322,7 +322,7 @@ uint64_t mtev_now_ms()
   return 0;
 }
 
-uint64_t mtev_now_us()
+uint64_t mtev_now_us(void)
 {
   uint64_t rval;
   struct timeval tv;
@@ -474,7 +474,7 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
 #endif
 
 static void
-mtev_log_reason() {
+mtev_log_reason(void) {
   mtevL(mtev_notice, "mtev_time disabled: %s\n", disable_reason);
 }
 void
@@ -520,7 +520,7 @@ mtev_get_nanos_force(void)
 
 #define PERF_ITERS 10000
 static mtev_boolean
-rdtsc_perf_test() {
+rdtsc_perf_test(void) {
   int i;
   struct timeval tv;
   mtev_hrtime_t start, elapsed_fast, elapsed_system;
@@ -629,7 +629,7 @@ mtev_time_tsc_maintenance(void *unused) {
 #endif
 
 void  
-mtev_time_start_tsc()
+mtev_time_start_tsc(void)
 {
   tdeb_impl = mtev_log_stream_find("debug/time");
 #ifdef __sun
@@ -697,7 +697,7 @@ mtev_time_start_tsc()
 }
 
 void 
-mtev_time_stop_tsc()
+mtev_time_stop_tsc(void)
 {
   thread_disable_rdtsc = mtev_true;
 }
@@ -747,13 +747,13 @@ mtev_get_ticks(void)
 }
 
 mtev_hrtime_t
-mtev_gethrtime()
+mtev_gethrtime(void)
 {
   return mtev_get_nanos();
 }
 
 mtev_hrtime_t
-mtev_sys_gethrtime()
+mtev_sys_gethrtime(void)
 {
   return mtev_gethrtime_fallback();
 }

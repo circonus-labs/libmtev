@@ -1540,8 +1540,7 @@ completion_matches(const char *text, CPFunction *genfunc)
  * Sort function for qsort(). Just wrapper around strcasecmp().
  */
 static int
-_rl_qsort_string_compare(i1, i2)
-	const void *i1, *i2;
+_rl_qsort_string_compare(const void *i1, const void *i2)
 {
 	/*LINTED const castaway*/
 	const char *s1 = ((const char **)i1)[0];
@@ -1557,9 +1556,7 @@ _rl_qsort_string_compare(i1, i2)
  * 'max' is maximum length of string in 'matches'.
  */
 void
-rl_display_match_list (matches, len, max)
-     char **matches;
-     int len, max;
+rl_display_match_list (char **matches, int len, int max)
 {
 	int i, idx, limit, count;
 	int screenwidth = e->el_term.t_size.h;

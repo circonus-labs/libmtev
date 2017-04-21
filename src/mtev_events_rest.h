@@ -38,6 +38,6 @@
 #ifndef MTEV_EVENTS_REST_H
 #define MTEV_EVENTS_REST_H
 
-API_EXPORT(void) mtev_events_rest_init();
+API_EXPORT(void) mtev_events_rest_init(void);
 
 #endif

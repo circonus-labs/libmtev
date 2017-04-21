@@ -52,7 +52,7 @@ static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
 static mtev_hash_table listener_commands;
 mtev_hash_table *
-mtev_listener_commands() {
+mtev_listener_commands(void) {
   return &listener_commands;
 }
 
@@ -636,7 +636,7 @@ mtev_listener_init(const char *toplevel) {
 }
 
 void
-mtev_listener_init_globals() {
+mtev_listener_init_globals(void) {
   mtev_hash_init_locks(&listener_commands, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 

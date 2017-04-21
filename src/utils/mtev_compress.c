@@ -182,7 +182,7 @@ mtev_compress(mtev_compress_type type, const char *data, size_t len,
 }
 
 mtev_stream_compress_ctx_t *
-mtev_create_stream_compress_ctx()
+mtev_create_stream_compress_ctx(void)
 {
   mtev_stream_compress_ctx_t *rval = calloc(1, sizeof(mtev_stream_compress_ctx_t));
   return rval;
@@ -195,7 +195,7 @@ mtev_destroy_stream_compress_ctx(mtev_stream_compress_ctx_t *ctx)
 }
 
 mtev_stream_decompress_ctx_t *
-mtev_create_stream_decompress_ctx()
+mtev_create_stream_decompress_ctx(void)
 {
   mtev_stream_decompress_ctx_t *rval = calloc(1, sizeof(mtev_stream_decompress_ctx_t));
   return rval;

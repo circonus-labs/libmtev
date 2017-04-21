@@ -576,12 +576,12 @@ int mtev_lua_dns_index_func(lua_State *L) {
   return 0;
 }
 
-void mtev_lua_init_dns_globals() {
+void mtev_lua_init_dns_globals(void) {
   mtev_hash_init_locks(&dns_rtypes, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init_locks(&dns_ctypes, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 
-void mtev_lua_init_dns() {
+void mtev_lua_init_dns(void) {
   int i;
   const struct dns_nameval *nv;
   struct dns_ctx *pctx;

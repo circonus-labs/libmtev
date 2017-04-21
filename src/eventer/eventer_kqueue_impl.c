@@ -116,7 +116,7 @@ static int eventer_kqueue_impl_register_wakeup(struct kqueue_spec *spec) {
   return kevent(spec->kqueue_fd, &kev, 1, NULL, 0, NULL);
 }
 
-static void *eventer_kqueue_spec_alloc() {
+static void *eventer_kqueue_spec_alloc(void) {
   struct kqueue_spec *spec;
   spec = calloc(1, sizeof(*spec));
   spec->kqueue_fd = kqueue();
@@ -129,7 +129,7 @@ static void *eventer_kqueue_spec_alloc() {
   return spec;
 }
 
-static int eventer_kqueue_impl_init() {
+static int eventer_kqueue_impl_init(void) {
   int rv;
 
   maxfds = eventer_impl_setrlimit();
@@ -410,7 +410,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   }
   release_master_fd(fd, lockstate);
 }
-static int eventer_kqueue_impl_loop() {
+static int eventer_kqueue_impl_loop(int id) {
   struct timeval __dyna_sleep = { 0, 0 };
   KQUEUE_DECL;
   KQUEUE_SETUP(NULL);

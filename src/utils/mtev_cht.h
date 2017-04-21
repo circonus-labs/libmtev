@@ -45,7 +45,7 @@ typedef struct {
   double owned;
 } mtev_cht_node_t;
 
-API_EXPORT(mtev_cht_t *) mtev_cht_alloc();
+API_EXPORT(mtev_cht_t *) mtev_cht_alloc(void);
 API_EXPORT(mtev_cht_t *)
   mtev_cht_alloc_custom(uint16_t vnodes_per_node, uint8_t nbits);
 API_EXPORT(void) mtev_cht_free(mtev_cht_t *);

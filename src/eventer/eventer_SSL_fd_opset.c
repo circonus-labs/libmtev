@@ -1113,7 +1113,7 @@ int eventer_ssl_config(const char *key, const char *value) {
   }
   return 1;
 }
-void eventer_ssl_init() {
+void eventer_ssl_init(void) {
   eventer_t e;
   int i, numlocks;
   if(__lcks) return;
@@ -1121,7 +1121,7 @@ void eventer_ssl_init() {
   __lcks = CRYPTO_malloc(numlocks * sizeof(*__lcks),__FILE__,__LINE__);
   for(i=0; i<numlocks; i++)
     pthread_mutex_init(&__lcks[i].lock, NULL);
-  CRYPTO_set_id_callback((unsigned long (*)()) pthread_self);
+  CRYPTO_set_id_callback((unsigned long (*)(void)) pthread_self);
   CRYPTO_set_dynlock_create_callback(dynlock_create);
   CRYPTO_set_dynlock_destroy_callback(dynlock_destroy);
   CRYPTO_set_dynlock_lock_callback(lock_dynamic);
@@ -1148,7 +1148,7 @@ void eventer_ssl_init() {
   return;
 }
 
-void eventer_ssl_init_globals() {
+void eventer_ssl_init_globals(void) {
   mtev_hash_init(&ssl_ctx_cache);
 }
 

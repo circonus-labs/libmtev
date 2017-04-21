@@ -475,7 +475,7 @@ mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
 }
 
 static mtev_http_rest_closure_t *
-mtev_http_rest_closure_alloc() {
+mtev_http_rest_closure_alloc(void) {
   mtev_http_rest_closure_t *restc;
   restc = calloc(1, sizeof(*restc));
   return restc;
@@ -929,7 +929,7 @@ match_listener_res(mtev_hash_table *res, mtev_hash_table *config) {
   }
   return mtev_true;
 }
-void mtev_http_rest_load_rules() {
+void mtev_http_rest_load_rules(void) {
   int ai, cnt = 0;
   mtev_conf_section_t *acls;
   char path[256];
@@ -1009,7 +1009,7 @@ void mtev_http_rest_load_rules() {
     oldacls = remove_acl;
   }
 }
-void mtev_http_rest_init() {
+void mtev_http_rest_init(void) {
   mtev_http_init();
   eventer_name_callback("mtev_wire_rest_api/1.0", mtev_http_rest_handler);
   eventer_name_callback("http_rest_api", mtev_http_rest_raw_handler);
@@ -1054,7 +1054,7 @@ mtev_hash_store(&mime_type_defaults, strdup(ext), strlen(ext), strdup(type))
                                  MTEV_CONTROL_PUT,
                                  mtev_http_rest_handler);
 }
-void mtev_http_rest_init_globals() {
+void mtev_http_rest_init_globals(void) {
   mtev_hash_init_locks(&dispatch_points, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init(&mime_type_defaults);
 }

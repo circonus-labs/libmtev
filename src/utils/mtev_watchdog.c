@@ -84,9 +84,9 @@ struct mtev_watchdog_t {
 #define MAX_CRASH_FDS 1024
 #define MAX_HEARTS 1024
 
-const static char *appname = "unknown";
-const static char *glider_path = NULL;
-const static char *trace_dir = "/var/tmp";
+static const char *appname = "unknown";
+static const char *glider_path = NULL;
+static const char *trace_dir = "/var/tmp";
 static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
@@ -181,11 +181,11 @@ static void it_ticks(mtev_watchdog_t *lifeline) {
   if(lifeline == NULL) lifeline = mmap_lifelines;
   if(lifeline) lifeline->ticker++;
 }
-int mtev_watchdog_child_heartbeat() {
+int mtev_watchdog_child_heartbeat(void) {
   it_ticks(NULL);
   return 0;
 }
-int mtev_watchdog_prefork_init() {
+int mtev_watchdog_prefork_init(void) {
   int i;
   const char *async;
   if(NULL != (async = getenv("ASYNCH_CORE_DUMP")))
@@ -227,7 +227,7 @@ void run_glider(int pid, glide_reason_t glide_reason) {
   }
 }
 
-static void close_fds() {
+static void close_fds(void) {
   int i;
   for(i=0;i<MAX_CRASH_FDS;i++)
     if(on_crash_fds_to_close[i] != -1) {
@@ -235,7 +235,7 @@ static void close_fds() {
       close(on_crash_fds_to_close[i]);
     }
 }
-static void stop_other_threads() {
+static void stop_other_threads(void) {
 #ifdef UNSAFE_STOP
 #if defined(__sun__)
   lwpid_t self;
@@ -359,7 +359,7 @@ void subprocess_killed(int sig) {
  *
  */
 
-void clear_signals() {
+void clear_signals(void) {
   sigset_t all;
   struct sigaction act;
   struct itimerval izero;
@@ -476,7 +476,7 @@ mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
   return 0;
 }
 
-int mtev_watchdog_start_child(const char *app, int (*func)(),
+int mtev_watchdog_start_child(const char *app, int (*func)(void),
                               int child_watchdog_timeout_int) {
   double child_watchdog_timeout = (double)child_watchdog_timeout_int;
   int child_pid, crashing_pid = -1;
@@ -639,7 +639,7 @@ int update_retries(int* offset, time_t times[]) {
   return 1;
 }
 
-mtev_watchdog_t *mtev_watchdog_create() {
+mtev_watchdog_t *mtev_watchdog_create(void) {
   int i;
   for(i=0; i<MAX_HEARTS; i++) {
     mtev_watchdog_t *lifeline = &mmap_lifelines[i];
@@ -679,7 +679,7 @@ eventer_t mtev_watchdog_recurrent_heartbeat(mtev_watchdog_t *hb) {
   e = eventer_alloc_recurrent(watchdog_tick, hb);
   return e;
 }
-int mtev_watchdog_child_eventer_heartbeat() {
+int mtev_watchdog_child_eventer_heartbeat(void) {
   eventer_t e;
   e = mtev_watchdog_recurrent_heartbeat(NULL);
   eventer_add_recurrent(e);

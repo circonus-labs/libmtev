@@ -47,7 +47,7 @@
 #include "mtev_log.h"
 
 MTEV_HOOK_IMPL(dso_post_init,
-  (),
+  (void),
   void *, closure,
   (void *closure),
   (closure))
@@ -74,7 +74,7 @@ static mtev_hash_table loaders;
 static mtev_hash_table generics;
 static int mtev_dso_load_failure_count = 0;
 
-int mtev_dso_load_failures() {
+int mtev_dso_load_failures(void) {
   return mtev_dso_load_failure_count;
 }
 mtev_dso_loader_t * mtev_loader_lookup(const char *name) {
@@ -258,7 +258,7 @@ mtev_load_loader_image(mtev_dso_loader_t *loader,
   return (mtev_image_t *)mtev_loader_lookup(loader_name);
 }
 
-void mtev_dso_init() {
+void mtev_dso_init(void) {
   mtev_conf_section_t *sections;
   int i, cnt = 0;
 
@@ -374,7 +374,7 @@ void mtev_dso_init() {
   if(sections) free(sections);
 }
 
-void mtev_dso_post_init() {
+void mtev_dso_post_init(void) {
   if(dso_post_init_hook_invoke() == MTEV_HOOK_ABORT) {
     mtevL(mtev_stderr, "Module post initialization phase failed.\n");
     mtev_dso_load_failure_count++;
@@ -385,12 +385,12 @@ void mtev_dso_post_init() {
 }
 
 void *
-mtev_dso_alloc_opaque_handle() {
+mtev_dso_alloc_opaque_handle(void) {
   return calloc(1, sizeof(struct __extended_image_data));
 }
 
 static struct dso_type *dso_types = NULL;
-struct dso_type *mtev_dso_get_types() { return dso_types; }
+struct dso_type *mtev_dso_get_types(void) { return dso_types; }
 
 void mtev_dso_add_type(const char *name, int (*list)(const char ***)) {
   struct dso_type *node;
@@ -401,7 +401,7 @@ void mtev_dso_add_type(const char *name, int (*list)(const char ***)) {
   dso_types = node;
 }
 
-void mtev_dso_init_globals() {
+void mtev_dso_init_globals(void) {
   mtev_hash_init_locks(&loaders, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init_locks(&generics, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }

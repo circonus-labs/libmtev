@@ -40,12 +40,12 @@ typedef enum {
   MTEV_MM_BARRIER_ASYNCH
 } mtev_memory_maintenance_method_t;
 
-API_EXPORT(void) mtev_memory_init(); /* call once at process start */
-API_EXPORT(void) mtev_memory_init_thread(); /* at subsequent thread start */
-API_EXPORT(void) mtev_memory_maintenance(); /* Call to force reclamation */
+API_EXPORT(void) mtev_memory_init(void); /* call once at process start */
+API_EXPORT(void) mtev_memory_init_thread(void); /* at subsequent thread start */
+API_EXPORT(void) mtev_memory_maintenance(void); /* Call to force reclamation */
 API_EXPORT(int) mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method);
-API_EXPORT(void) mtev_memory_begin(); /* being a block */
-API_EXPORT(void) mtev_memory_end(); /* end a block */
+API_EXPORT(void) mtev_memory_begin(void); /* being a block */
+API_EXPORT(void) mtev_memory_end(void); /* end a block */
 API_EXPORT(mtev_boolean) mtev_memory_barriers(mtev_boolean *); /* do or try */
 API_EXPORT(void *) mtev_memory_safe_malloc(size_t r);
 API_EXPORT(void *) mtev_memory_safe_malloc_cleanup(size_t r, void (*)(void *));
@@ -63,7 +63,7 @@ API_EXPORT(void) mtev_memory_ck_free(void *p, size_t b, bool r);
 typedef struct mtev_allocator_options *mtev_allocator_options_t;
 typedef struct mtev_allocator *mtev_allocator_t;
 
-API_EXPORT(mtev_allocator_options_t) mtev_allocator_options_create();
+API_EXPORT(mtev_allocator_options_t) mtev_allocator_options_create(void);
 API_EXPORT(void) mtev_allocator_options_free(mtev_allocator_options_t);
 API_EXPORT(void)
   mtev_allocator_options_alignment(mtev_allocator_options_t, size_t alignment);

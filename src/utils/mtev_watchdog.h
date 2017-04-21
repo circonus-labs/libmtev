@@ -50,7 +50,7 @@
 child to instrument watchdogs.
  */
 API_EXPORT(int)
-  mtev_watchdog_prefork_init();
+  mtev_watchdog_prefork_init(void);
 
 /*! \fn int update_retries(int retries, int span, retry_data** data)
     \brief Updates the list of retries and signals to quit if the limit is exceeded
@@ -76,7 +76,7 @@ API_EXPORT(int)
     mtev_watchdog_start_child will fork and run the specified function in the child process.  The parent will watch.  The child process must initialize the eventer system and then call mtev_watchdog_child_hearbeat to let the parent know it is alive.  If the eventer system is being used to drive the child process, mtev_watchdog_child_eventer_heartbeat may be called once after the eventer is initalized.  This will induce a regular heartbeat.
  */
 API_EXPORT(int)
-  mtev_watchdog_start_child(const char *app, int (*func)(), int child_watchdog_timeout);
+  mtev_watchdog_start_child(const char *app, int (*func)(void), int child_watchdog_timeout);
 
 /*! \fn int mtev_watchdog_child_heartbeat()
     \return Returns zero on success
@@ -84,7 +84,7 @@ API_EXPORT(int)
     mtev_watchdog_child_heartbeat is called within the child function to alert the parent that the child is still alive and functioning correctly.
  */
 API_EXPORT(int)
-  mtev_watchdog_child_heartbeat();
+  mtev_watchdog_child_heartbeat(void);
 
 typedef struct mtev_watchdog_t mtev_watchdog_t;
 
@@ -95,7 +95,7 @@ typedef struct mtev_watchdog_t mtev_watchdog_t;
  */
 
 API_EXPORT(mtev_watchdog_t *)
-  mtev_watchdog_create();
+  mtev_watchdog_create(void);
 
 /*! \fn int mtev_watchdog_heartbeat(mtev_watchdog_t *hb)
     \param hb is the heart on which to pulse.  If null, the default heart is used.
@@ -113,7 +113,7 @@ API_EXPORT(int)
     mtev_watchdog_child_eventer_heartbeat registers a periodic heartbeat through the eventer subsystem.  The eventer must be initialized before calling this function.
  */
 API_EXPORT(int)
-  mtev_watchdog_child_eventer_heartbeat();
+  mtev_watchdog_child_eventer_heartbeat(void);
 
 /*! \fn eventer_t mtev_watchdog_recurrent_heartbeat(mtev_watchdog_t *hb)
     \param hb is the heart on which to beat.

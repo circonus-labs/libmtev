@@ -49,6 +49,6 @@ API_EXPORT(stats_ns_t *)
   mtev_stats_ns(stats_ns_t *parent, const char *name);
 
 API_EXPORT(void)
-  mtev_stats_rest_init();
+  mtev_stats_rest_init(void);
 
 #endif

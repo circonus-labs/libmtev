@@ -61,7 +61,7 @@ usage(const char *prog) {
   return 2;
 }
 static void
-make_config() {
+make_config(void) {
   int fd, len;
   char filename[] = "/tmp/clicmdXXXXXX";
   char *outbuf = NULL;
@@ -191,7 +191,7 @@ int luaopen_hostcli(lua_State *L) {
 }
 
 static int
-child_main() {
+child_main(void) {
   int log_flags;
   mtev_conf_section_t section;
   char *err = NULL;
@@ -241,7 +241,7 @@ child_main() {
 
   if(interactive) {
     mtev_console_init(APPNAME);
-    mtev_console_conf_init(APPNAME);
+    mtev_console_conf_init();
     eventer_set_fd_nonblocking(STDIN_FILENO);
     if(mtev_console_std_init(STDIN_FILENO, STDOUT_FILENO)) {
       mtevL(mtev_stderr, "Failed to initialize IO\n");

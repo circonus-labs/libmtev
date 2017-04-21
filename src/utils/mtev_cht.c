@@ -171,7 +171,7 @@ mtev_cht_alloc_custom(uint16_t weight, uint8_t nbits) {
 }
 
 mtev_cht_t *
-mtev_cht_alloc() {
+mtev_cht_alloc(void) {
   return mtev_cht_alloc_custom(DEFAULT_WEIGHT, 0);
 }
 void

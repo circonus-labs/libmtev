@@ -184,14 +184,14 @@ int mtev_lua_coroutine_spawn(lua_State *Lp,
     mtev_lua_resume_info_t *(*new_ri_f)(lua_module_closure_t *));
 lua_State *mtev_lua_open(const char *module_name, void *lmc,
                          const char *script_dir, const char *cpath);
-void mtev_lua_init_globals();
-void register_console_lua_commands();
+void mtev_lua_init_globals(void);
+void register_console_lua_commands(void);
 int mtev_lua_traceback(lua_State *L);
 void mtev_lua_new_coro(mtev_lua_resume_info_t *);
 void mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci);
 void mtev_lua_resume_clean_events(mtev_lua_resume_info_t *ci);
 void mtev_lua_pushmodule(lua_State *L, const char *m);
-void mtev_lua_init_dns();
+void mtev_lua_init_dns(void);
 mtev_hash_table *mtev_lua_table_to_hash(lua_State *L, int idx);
 void mtev_lua_hash_to_table(lua_State *L, mtev_hash_table *t);
 int mtev_lua_dns_gc(lua_State *L);
