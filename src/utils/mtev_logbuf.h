@@ -39,6 +39,8 @@ typedef struct _mtev_logbuf_t mtev_logbuf_t;
 typedef struct _mtev_logbuf_log_t mtev_logbuf_log_t;
 
 typedef enum {
+  /* only print description; no data. */
+  MTEV_LOGBUF_TYPE_EMPTY = 0,
   MTEV_LOGBUF_TYPE_STRING = 1,
   MTEV_LOGBUF_TYPE_POINTER = 2,
   MTEV_LOGBUF_TYPE_INT32 = 3,
@@ -46,6 +48,11 @@ typedef enum {
   MTEV_LOGBUF_TYPE_UINT32 = 5,
   MTEV_LOGBUF_TYPE_UINT64 = 6,
 } mtev_logbuf_type_t;
+
+typedef struct {
+  const char *descr;
+  mtev_logbuf_type_t type;
+} mtev_logbuf_el_t;
 
 /* forward compatibility - controls behavior of log buffering when
  * buffer is full. */
@@ -62,7 +69,7 @@ struct _mtev_logbuf_log_t {
   size_t size;
   size_t align;
   int nargs;
-  mtev_logbuf_type_t *args;
+  mtev_logbuf_el_t *args;
   size_t arg_offsets[];
 };
 
@@ -71,7 +78,7 @@ struct _mtev_logbuf_log_t {
 API_EXPORT(mtev_logbuf_t *) mtev_logbuf_create(size_t size, mtev_logbuf_onfull_t on_full);
 API_EXPORT(void) mtev_logbuf_destroy(mtev_logbuf_t *logbuf);
 
-API_EXPORT(mtev_logbuf_log_t *) mtev_logbuf_create_log(mtev_logbuf_type_t *args, size_t nargs);
+API_EXPORT(mtev_logbuf_log_t *) mtev_logbuf_create_log(mtev_logbuf_el_t *args, size_t nargs);
 API_EXPORT(void) mtev_logbuf_destroy_log(mtev_logbuf_log_t *log);
 
 API_EXPORT(void *)
@@ -82,7 +89,7 @@ API_EXPORT(void) mtev_logbuf_log_commit(const mtev_logbuf_log_t *log, void *buf)
   static inline void mtev_logbuf_log_##name(void *buf, const mtev_logbuf_log_t *log, size_t arg, \
                                             type value)                                          \
   {                                                                                              \
-    uintptr_t wr_pos = (uintptr_t) buf + log->args[arg];                                         \
+    uintptr_t wr_pos = (uintptr_t) buf + log->arg_offsets[arg];                                  \
     *((type *) wr_pos) = value;                                                                  \
   }                                                                                              \
   /* to allow macro invocations to use semicolons */                                             \
@@ -97,20 +104,5 @@ MTEV_LOGBUF_LOG_FN(uint64, uint64_t);
 
 API_EXPORT(void) mtev_logbuf_reset(mtev_logbuf_t *logbuf);
 API_EXPORT(void) mtev_logbuf_dump(mtev_log_stream_t ls, mtev_logbuf_t *logbuf);
-
-/* example usage:
- *   mtev_logbuf_type_t logtypes[] = {
- *     MTEV_LOGBUF_TYPE_STRING, MTEV_LOGBUF_TYPE_INT32
- *   };
- *   mtev_logbuf_log_t *log = mtev_logbuf_log_create(logtypes, 2);
- *
- *   static inline void log_string_then_int32(mtev_logbuf_t *logbuf,
- *                                            const char *string, int32_t int) {
- *     void *buf = mtev_logbuf_log_start(logbuf, log);
- *     mtev_logbuf_log_string(buf, log, 0, string);
- *     mtev_logbuf_log_int32(buf, log, 1, int);
- *     mtev_logbuf_log_commit(buf, logbuf);
- *   }
- */
 
 #endif

@@ -95,18 +95,24 @@ void mtev_logbuf_destroy(mtev_logbuf_t *logbuf)
   free((void *) logbuf);
 }
 
-mtev_logbuf_log_t *mtev_logbuf_create_log(mtev_logbuf_type_t *args, size_t nargs)
+mtev_logbuf_log_t *mtev_logbuf_create_log(mtev_logbuf_el_t *args, size_t nargs)
 {
-  mtev_logbuf_log_t *rval =
-    (mtev_logbuf_log_t *) calloc(1, sizeof(mtev_logbuf_log_t) + nargs * sizeof(size_t));
-  rval->args = calloc(nargs, sizeof(mtev_logbuf_type_t));
+  mtev_logbuf_log_t *rval = (mtev_logbuf_log_t *) calloc(1, sizeof(mtev_logbuf_log_t) +
+                                                           nargs * sizeof(rval->arg_offsets[0]));
   rval->size = 0;
   rval->align = ALIGN_OF(logbuf_log_header);
+  rval->nargs = nargs;
+  rval->args = calloc(nargs, sizeof(mtev_logbuf_el_t));
   for (size_t index = 0; index < nargs; index++) {
-    rval->args[index] = args[index];
+    rval->args[index].descr = args[index].descr;
+    rval->args[index].type = args[index].type;
     size_t arg_size = 0;
     size_t arg_align = 0;
-    switch (args[index]) {
+    switch (args[index].type) {
+    case MTEV_LOGBUF_TYPE_EMPTY:
+      /* no data stored in log buffer */
+      rval->arg_offsets[index] = 0;
+      continue;
     case MTEV_LOGBUF_TYPE_STRING:
       arg_size = sizeof(const char *);
       arg_align = ALIGN_OF(string);
@@ -139,7 +145,7 @@ mtev_logbuf_log_t *mtev_logbuf_create_log(mtev_logbuf_type_t *args, size_t nargs
 
     if (arg_align > rval->align) rval->align = arg_align;
     rval->arg_offsets[index] = ((rval->size + arg_align - 1) / arg_align) * arg_align;
-    rval->size += rval->arg_offsets[index] + arg_size;
+    rval->size = rval->arg_offsets[index] + arg_size;
   }
   rval->size = (rval->size + ALIGN_OF(logbuf_log_header)) / ALIGN_OF(logbuf_log_header) *
     ALIGN_OF(logbuf_log_header);
@@ -148,6 +154,7 @@ mtev_logbuf_log_t *mtev_logbuf_create_log(mtev_logbuf_type_t *args, size_t nargs
 
 void mtev_logbuf_destroy_log(mtev_logbuf_log_t *log)
 {
+  free((void *) log->args);
   free((void *) log);
 }
 
@@ -190,15 +197,15 @@ void *mtev_logbuf_log_start(mtev_logbuf_t *logbuf, const mtev_logbuf_log_t *log,
     logbuf->next_write_idx += needed - sizeof(mtev_logbuf_log_t *);
   }
   ck_spinlock_unlock(&logbuf->lock);
-  /* data that gets written to immediately follows the write header. */
   next_write_address->log_time = now;
-  return (void *) (next_write_address + sizeof(mtev_logbuf_log_header_t));
+  /* data that gets written to immediately follows the write header. */
+  return (void *) &next_write_address[1];
 }
 
 void mtev_logbuf_log_commit(const mtev_logbuf_log_t *log, void *buf)
 {
   /* fill in the write header with the `mtev_logbuf_log_t *` for this log. */
-  uintptr_t headeraddr = ((uintptr_t) buf) - sizeof(mtev_logbuf_log_header_t *);
+  uintptr_t headeraddr = ((uintptr_t) buf) - sizeof(mtev_logbuf_log_header_t);
   ((mtev_logbuf_log_header_t *) headeraddr)->log = log;
 }
 
@@ -248,9 +255,16 @@ void mtev_logbuf_display_log(mtev_log_stream_t ls, mtev_logbuf_log_header_t *log
   size_t arg_index;
   const mtev_logbuf_log_t *log = log_header->log;
   for (arg_index = 0; arg_index < log->nargs; arg_index++) {
+    int wrote =
+      snprintf(wr_pos, wr_left, "%s%s ", arg_index > 0 ? " " : "", log->args[arg_index].descr);
+    wr_pos += wrote;
+    wr_left -= wrote;
+
     void *arg_ptr = (void *) ((uintptr_t)(log_header + 1) + log->arg_offsets[arg_index]);
-    int wrote = 0;
-    switch (log->args[arg_index]) {
+    wrote = 0;
+    switch (log->args[arg_index].type) {
+    case MTEV_LOGBUF_TYPE_EMPTY:
+      break;
     case MTEV_LOGBUF_TYPE_STRING:
       wrote = snprintf(wr_pos, wr_left, "%s", *(char **) arg_ptr);
       break;
