@@ -1807,6 +1807,56 @@ mtev_log(mtev_log_stream_t ls, const struct timeval *now,
   return rv;
 }
 
+mtev_log_stream_t
+mtev_log_speculate(int nlogs, int nbytes)
+{
+  membuf_ctx_t *op_ctx;
+  mtev_log_stream_t speculation;
+  speculation = calloc(1, sizeof(*speculation));
+  speculation->ops = &membuf_logio_ops;
+  speculation->type = strdup("memory");
+  speculation->flags |= MTEV_LOG_STREAM_ENABLED;
+  speculation->flags_below |= MTEV_LOG_STREAM_ENABLED;
+  speculation->op_ctx = log_stream_membuf_init(nlogs, nbytes);
+  return speculation;
+}
+
+static int
+mtev_log_speculate_commit_cb(uint64_t idx, const struct timeval *tv,
+                             const char *str, size_t str_bytes, void *v_ls)
+{
+  mtev_log_stream_t ls = v_ls;
+  if((IS_ENABLED_ON(ls) && IS_ENABLED_BELOW(ls)) || LIBMTEV_LOG_ENABLED()) {
+    char tbuf[48], dbuf[1];
+    int tbuflen = 0, dbuflen = 0;
+    if(IS_TIMESTAMPS_BELOW(ls)) {
+      struct tm _tm, *tm;
+      char tempbuf[32];
+      time_t s = (time_t)tv->tv_sec;
+      tm = localtime_r(&s, &_tm);
+      strftime(tempbuf, sizeof(tempbuf), "%Y-%m-%d %H:%M:%S", tm);
+      snprintf(tbuf, sizeof(tbuf), "[%s.%06d] ", tempbuf, (int)tv->tv_usec);
+      tbuflen = strlen(tbuf);
+    }
+    else tbuf[0] = '\0';
+
+    if (mtev_log_line(ls, NULL, tv, tbuf, tbuflen, dbuf, dbuflen, str, str_bytes) <= 0)
+      return -1;
+    return 0;
+  }
+  return -1;
+}
+
+void
+mtev_log_speculate_finish(mtev_log_stream_t ls, mtev_log_stream_t speculation)
+{
+  if (ls != MTEV_LOG_SPECULATE_ROLLBACK)
+    mtev_log_memory_lines(speculation, 0, mtev_log_speculate_commit_cb, ls);
+  log_stream_membuf_free(speculation->op_ctx);
+  free(speculation->type);
+  free(speculation);
+}
+
 int
 mtev_log_reopen_type(const char *type) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
