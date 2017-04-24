@@ -1810,7 +1810,6 @@ mtev_log(mtev_log_stream_t ls, const struct timeval *now,
 mtev_log_stream_t
 mtev_log_speculate(int nlogs, int nbytes)
 {
-  membuf_ctx_t *op_ctx;
   mtev_log_stream_t speculation;
   speculation = calloc(1, sizeof(*speculation));
   speculation->ops = &membuf_logio_ops;
