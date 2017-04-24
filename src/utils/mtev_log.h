@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2005-2009, OmniTI Computer Consulting, Inc.
  * All rights reserved.
- * Copyright (c) 2013, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2013-2017, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -51,6 +51,8 @@ typedef struct _mtev_log_stream mtev_log_stream_t;
 typedef void * mtev_log_stream_public_t;
 #define mtev_log_stream_t mtev_log_stream_public_t
 #endif
+
+#define MTEV_LOG_SPECULATE_ROLLBACK ((mtev_log_stream_t)NULL)
 
 struct _mtev_log_stream_outlet_list {
   mtev_log_stream_t outlet;

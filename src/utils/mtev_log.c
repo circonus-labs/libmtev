@@ -1850,7 +1850,8 @@ mtev_log_speculate_commit_cb(uint64_t idx, const struct timeval *tv,
 void
 mtev_log_speculate_finish(mtev_log_stream_t ls, mtev_log_stream_t speculation)
 {
-  if (ls) mtev_log_memory_lines(speculation, 0, mtev_log_speculate_commit_cb, ls);
+  if (ls != MTEV_LOG_SPECULATE_ROLLBACK)
+    mtev_log_memory_lines(speculation, 0, mtev_log_speculate_commit_cb, ls);
   log_stream_membuf_free(speculation->op_ctx);
   free(speculation->type);
   free(speculation);
