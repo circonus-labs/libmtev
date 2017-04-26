@@ -394,7 +394,6 @@ connect_error:
   eventer_set_callback(e, mtev_websocket_client_ssl_upgrade);
   return eventer_callback(e, mask, closure, now);
 }
-#endif
 
 /*
   using an extra static function rather than just calling `_new` from
@@ -498,6 +497,7 @@ mtev_websocket_client_new_internal(const char *host, int port, const char *path,
   return NULL;
 #endif
 }
+#endif
 
 mtev_websocket_client_t *
 mtev_websocket_client_new(const char *host, int port, const char *path, const char *service,
