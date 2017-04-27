@@ -305,13 +305,16 @@ void bchain_free(struct bchain *b, int line) {
 #define ALLOC_BCHAIN(s) bchain_alloc(s, __LINE__)
 #define FREE_BCHAIN(a) bchain_free(a, __LINE__)
 #define RELEASE_BCHAIN(a) do { \
-  while(a) { \
+  struct bchain *__n = a; \
+  while(__n) { \
     struct bchain *__b; \
-    __b = a; \
-    a = __b->next; \
+    __b = __n; \
+    __n = __b->next; \
     bchain_free(__b, __LINE__); \
   } \
+  a = NULL; \
 } while(0)
+
 struct bchain *bchain_from_data(const void *d, size_t size) {
   struct bchain *n;
   n = ALLOC_BCHAIN(size);
@@ -1272,7 +1275,6 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
       data->size = MIN(in->size, next_chunk);
       in->start += data->size;
       in->size -= data->size;
-      ctx->req.user_data_last = data;
       if (ctx->req.payload_chunked) {
         /* there must be a \r\n at the end of this block */
         str_in_f = strnstrn("\r\n", 2, in->buff + in->start, in->size);
@@ -1349,6 +1351,7 @@ mtev_http_session_decompress(mtev_compress_type type, struct bchain *in,
       ctx->req.decompress_ctx = NULL;
       RELEASE_BCHAIN(*out);
       *out = NULL;
+      *last_out = NULL;
       errno = -errno;
       return -1;
     }
@@ -1477,7 +1480,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
             ctx->req.user_data_last->compression == MTEV_COMPRESS_NONE && 
             ctx->req.user_data_last->size < ctx->req.user_data_last->allocd) {
           out = ctx->req.user_data_last;
-        }          
+        }
         struct bchain *last_out = NULL;
         total_compressed_size += in->size;
         ssize_t s = mtev_http_session_decompress(in->compression, in, ctx, 
