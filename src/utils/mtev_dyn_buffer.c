@@ -12,7 +12,7 @@ mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf)
   buf->size = sizeof(buf->static_buffer);
 }
 
-inline void 
+inline void
 mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
 {
   mtev_dyn_buffer_ensure(buf, len);
@@ -20,7 +20,7 @@ mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
   buf->pos += len;
 }
 
-inline void 
+inline void
 mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
 {
   va_list args;
@@ -42,17 +42,20 @@ mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
 inline void
 mtev_dyn_buffer_ensure(mtev_dyn_buffer_t *buf, size_t len)
 {
-  ptrdiff_t diff = buf->pos - buf->data;
-  if (buf->size < (diff + len)) {
+  size_t used = mtev_dyn_buffer_used(buf);
+  size_t new_size = 0;
+  if (buf->size < (used + len)) {
     if (buf->data == buf->static_buffer) {
-      buf->data = malloc(diff + len);
-      memcpy(buf->data, buf->static_buffer, diff);
+      new_size = (used + len) * 2;
+      buf->data = malloc(new_size);
+      memcpy(buf->data, buf->static_buffer, used);
     } else {
-      buf->data = realloc(buf->data, diff + len);
+      new_size = MAX(buf->size * 2, used + len);
+      buf->data = realloc(buf->data, new_size);
     }
-    buf->pos = buf->data + diff;
-    buf->size = diff + len;
-  }  
+    buf->pos = buf->data + used;
+    buf->size = new_size;
+  }
 }
 
 inline size_t
