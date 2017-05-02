@@ -6,7 +6,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above
@@ -17,7 +17,7 @@
  *       of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written
  *       permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -218,8 +218,8 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
     if(e->mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
     if(e->mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
     if(e->mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
-    mtevL(eventer_deb, "epoll_ctl(%d, %s, %d)\n", spec->epoll_fd, 
-	  ctl_op == EPOLL_CTL_ADD ? "add" : "mod", 
+    mtevL(eventer_deb, "epoll_ctl(%d, %s, %d)\n", spec->epoll_fd,
+	  ctl_op == EPOLL_CTL_ADD ? "add" : "mod",
 	  e->fd);
     int epoll_rv = epoll_ctl(spec->epoll_fd, ctl_op, e->fd, &_ev);
     if(epoll_rv != 0 &&
@@ -229,9 +229,9 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
       ctl_op = (ctl_op == EPOLL_CTL_ADD) ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
       epoll_rv = epoll_ctl(spec->epoll_fd, ctl_op, e->fd, &_ev);
       if (epoll_rv != 0) {
-	mtevFatal(mtev_error, "epoll_ctl(%d, %s, %d) -> %s\n",
-		  spec->epoll_fd, ctl_op == EPOLL_CTL_ADD ? "add" : "mod", 
-		  e->fd, strerror(errno));
+        mtevFatal(mtev_error, "epoll_ctl(%d, %s, %d) -> %s\n",
+                  spec->epoll_fd, ctl_op == EPOLL_CTL_ADD ? "add" : "mod",
+                  e->fd, strerror(errno));
       }
     }
   }
@@ -287,7 +287,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
       mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
     }
     /* mtevAssert(master_fds[fd].e == NULL); */
-    
+
     eventer_cross_thread_trigger(e,mask);
     return;
   }
@@ -295,23 +295,43 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
     lockstate = acquire_master_fd(fd);
     if (lockstate == EV_ALREADY_OWNED) {
       /* The incoming triggered event is already owned by this thread.
-	 This means our floated event completed before the current
-	 event handler even exited.  So it retriggered recursively
-	 from inside the event handler.
-
-	 Treat this special case the same as a cross thread trigger
-	 and just queue this event to be picked up on the next loop
-      */
+       * This means our floated event completed before the current
+       * event handler even exited.  So it retriggered recursively
+       * from inside the event handler.
+       *
+       * Treat this special case the same as a cross thread trigger
+       * and just queue this event to be picked up on the next loop
+       */
       eventer_cross_thread_trigger(e, mask);
       return;
     }
-    release_master_fd(fd, lockstate);
+    /*
+     * If we are readding the event to the master list here, also do the needful
+     * with the epoll_ctl.
+     *
+     * This can happen in cases where some event was floated and the float
+     * completed so fast that we finished the job in the same thread 
+     * that it started in.  Since we `eventer_remove_fd` before we float
+     * the re-add here should replace the fd in the epoll_ctl.
+     */
     master_fds[fd].e = e;
     e->mask = 0;
-    needs_add = 1;
+    struct epoll_event _ev;
+    memset(&_ev, 0, sizeof(_ev));
+    _ev.data.fd = fd;
+    spec = eventer_get_spec_for_event(e);
+    if(mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
+    if(mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
+    if(mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
+
+    mtevL(eventer_deb, "epoll_ctl(%d, add, %d)\n", spec->epoll_fd, fd);
+    if (epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) != 0) {
+      mtevL(mtev_error, "epoll_ctl(%d, add, %d, %d)\n", spec->epoll_fd, fd, errno);
+    }
+    release_master_fd(fd, lockstate);
   }
   if(e != master_fds[fd].e) {
-    mtevL(eventer_deb, "Incoming event: %p, does not match master list: %p\n", e, master_fds[fd].e);
+    mtevL(mtev_error, "Incoming event: %p, does not match master list: %p\n", e, master_fds[fd].e);
     return;
   }
   lockstate = acquire_master_fd(fd);
@@ -323,8 +343,9 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
 
   mtev_gettimeofday(&__now, NULL);
   cbname = eventer_name_for_callback_e(e->callback, e);
-  mtevLT(eventer_deb, &__now, "epoll: fire on %d/%x to %s(%p)\n",
-         fd, mask, cbname?cbname:"???", e->callback);
+  spec = eventer_get_spec_for_event(e);
+  mtevLT(eventer_deb, &__now, "epoll(%d): fire on %d/%x to %s(%p)\n",
+         spec->epoll_fd, fd, mask, cbname?cbname:"???", e->callback);
   mtev_memory_begin();
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
   start = mtev_gethrtime();
@@ -363,7 +384,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         spec = eventer_get_spec_for_event(e);
         mtevL(eventer_deb, "epoll_ctl(%d, add, %d)\n", spec->epoll_fd, fd);
         mtevAssert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) == 0);
-        mtevL(eventer_deb, "moved event[%p] from t@%d to t@%d\n", e, (int)pthread_self(), (int)tgt);
+        mtevL(eventer_deb, "epoll(%d) moved event[%p] from t@%d to t@%d\n", spec->epoll_fd, e, (int)pthread_self(), (int)tgt);
       }
       else {
         int epoll_rv;
@@ -394,7 +415,23 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   }
   else {
     /* see kqueue implementation for details on the next line */
-    if(master_fds[fd].e == e) master_fds[fd].e = NULL;
+    if(master_fds[fd].e == e) {
+
+      /* if newmask == 0 the user has floated the connection.  If we get here
+       * and they have not called `eventer_remove_fd` it is a misuse of mtev.
+       *
+       * Check if they are compliant with floats here and remove_fd if they
+       * forgot to and warn in the log
+       */
+      spec = eventer_get_spec_for_event(e);
+      struct epoll_event _ev;
+      memset(&_ev, 0, sizeof(_ev));
+      _ev.data.fd = fd;
+      if (epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, e->fd, &_ev) == 0) {
+        mtevL(mtev_error, "WARNING: You forgot to 'eventer_remove_fd()' before returning a mask of zero.\n");
+      }
+      master_fds[fd].e = NULL;
+    }
     eventer_free(e);
   }
   release_master_fd(fd, lockstate);
@@ -448,7 +485,7 @@ static int eventer_epoll_impl_loop(int id) {
                           __sleeptime.tv_sec * 1000 + __sleeptime.tv_usec / 1000);
     } while(fd_cnt < 0 && errno == EINTR);
     mtevL(eventer_deb, "debug: epoll_wait(%d, [], %d) => %d\n",
-           spec->epoll_fd, maxfds, fd_cnt);
+          spec->epoll_fd, maxfds, fd_cnt);
     if(fd_cnt < 0) {
       mtevL(eventer_err, "epoll_wait: %s\n", strerror(errno));
     }
@@ -469,6 +506,7 @@ static int eventer_epoll_impl_loop(int id) {
         fd = ev->data.fd;
 
         e = master_fds[fd].e;
+
         /* It's possible that someone removed the event and freed it
          * before we got here.
          */
@@ -481,6 +519,7 @@ static int eventer_epoll_impl_loop(int id) {
   /* NOTREACHED */
   return 0;
 }
+
 static void eventer_epoll_impl_wakeup(eventer_t e) {
 #ifdef HAVE_SYS_EVENTFD_H
   struct epoll_spec *spec;
