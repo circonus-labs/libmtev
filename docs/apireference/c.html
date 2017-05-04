@@ -731,6 +731,73 @@ corresponding mtev_cluster_node_t.</p>
 </ul>
 <p>Takes a configuration section representing a cluster and registers
 it in the global cluster configuration.</p>
+<h4 id="mtevconfstrparseduration">mtev_confstr_parse_duration</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_confstr_parse_duration</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output
+                            <span class="hljs-keyword">const</span> mtev_duration_definition_t *durations)</span>
+</span></code></pre>
+<ul>
+<li><code>input</code> String representing a duration.</li>
+<li><code>output</code> On successful parsing, filled in with the duration corresponding to <code>input</code>.</li>
+<li><code>durations</code> Describes allowable duration suffixes when parsing.</li>
+<li><strong>RETURN</strong> One of:<ul>
+<li><ul>
+<li>MTEV_CONFSTR_PARSE_SUCCESS
+(<code>input</code> was parsed successfully, <code>output</code> filled in)</li>
+</ul>
+</li>
+<li><ul>
+<li>MTEV_CONFSTR_PARSE_ERR_FORMAT (<code>input</code> was not well-formed.)</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Parses a string representing a duration. The string should be
+formatted as a set of (optionally) white-space separated duration
+elements, where a duration element is a number with a resolution
+suffix. For example, <code>&quot;1s&quot;</code> is a duration element representing one
+second, while <code>&quot;3min&quot;</code> is a duration element representing three
+minutes. The total duration is calculated by adding together all
+the duration elements. For example, <code>&quot;1min 30sec&quot;</code>, with
+resolution in seconds, would result in <code>output</code> of <code>90</code>; and
+<code>&quot;1min5ms&quot;</code>, at millisecond resolution, would result in <code>output</code>
+of <code>60005</code>.</p>
+<h4 id="mtevconfstrparsedurationms">mtev_confstr_parse_duration_ms</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_confstr_parse_duration_ms</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output)</span>
+</span></code></pre>
+<p>Convenience function for parsing a duration with resolution in milliseconds.
+See <a href="#mtevconfstrparseduration">mtev_confstr_parse_duration</a>
+and <a href="#mtevgetdurationsms">mtev_get_durations_ms</a>.</p>
+<h4 id="mtevconfstrparsedurationns">mtev_confstr_parse_duration_ns</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_confstr_parse_duration_ns</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output)</span>
+</span></code></pre>
+<p>Convenience function for parsing a duration with resolution in nanoseconds.
+See <a href="#mtevconfstrparseduration">mtev_confstr_parse_duration</a>
+and <a href="#mtevgetdurationsns">mtev_get_durations_ns</a>.</p>
+<h4 id="mtevconfstrparsedurations">mtev_confstr_parse_duration_s</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_confstr_parse_duration_s</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output)</span>
+</span></code></pre>
+<p>Convenience function for parsing a duration with resolution in seconds.
+See <a href="#mtevconfstrparseduration">mtev_confstr_parse_duration</a>
+and <a href="#mtevgetdurationss">mtev_get_durations_s</a>.</p>
+<h4 id="mtevconfstrparsedurationus">mtev_confstr_parse_duration_us</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_confstr_parse_duration_us</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output)</span>
+</span></code></pre>
+<p>Convenience function for parsing a duration with resolution in microseconds.
+See <a href="#mtevconfstrparseduration">mtev_confstr_parse_duration</a>
+and <a href="#mtevgetdurationsus">mtev_get_durations_us</a>.</p>
+<h4 id="mtevcurlwritecallback">mtev_curl_write_callback</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+mtev_curl_write_callback(<span class="hljs-keyword">char</span> *ptr, <span class="hljs-keyword">size_t</span> size, <span class="hljs-keyword">size_t</span> nmemb, <span class="hljs-keyword">void</span> *userdata)
+</code></pre>
+<blockquote>
+<p>Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA</p>
+</blockquote>
 <h3 id="d">D</h3>
 <h4 id="mtevdynbufferadd">mtev_dyn_buffer_add</h4>
 <blockquote>
@@ -891,7 +958,7 @@ necessary activity to make progress.</p>
 <p>Add an asynchronous event to a specific job queue.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">eventer_add_asynch</span><span class="hljs-params">(eventer_t e)</span>
+<span class="hljs-title">eventer_add_asynch</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e)</span>
 </span></code></pre>
 <ul>
 <li><code>q</code> a job queue</li>
@@ -1847,6 +1914,73 @@ a looping thread, this call is used.</p>
 <p>If the function returns -1 and <code>errno</code> is <code>EAGAIN</code>, the <code>*mask</code> reflects the
 necessary activity to make progress.</p>
 <h3 id="g">G</h3>
+<h4 id="mtevgetdurationsms">mtev_get_durations_ms</h4>
+<blockquote>
+<p>Return suffixes for millisecond-resolution durations.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> mtev_duration_definition_t *
+<span class="hljs-title">mtev_get_durations_ms</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<p>Return value is suitable to pass as the second argument to
+mtev_confstr_parse_duration. Millisecond-scale duration suffixes are:</p>
+<ul>
+<li><code>ms</code> (for milliseconds);</li>
+<li><code>s</code> and <code>sec</code> (for seconds);</li>
+<li><code>min</code> (for minutes);</li>
+<li><code>hr</code> (for hours).</li>
+<li><code>d</code> (for days).</li>
+<li><code>w</code> (for weeks).</li>
+</ul>
+<h4 id="mtevgetdurationsns">mtev_get_durations_ns</h4>
+<blockquote>
+<p>Return suffixes for nanosecond-resolution durations.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> mtev_duration_definition_t *
+<span class="hljs-title">mtev_get_durations_ns</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<p>Return value is suitable to pass as the second argument to
+mtev_confstr_parse_duration. Nanosecond-scale duration suffixes are:</p>
+<ul>
+<li><code>ns</code> (for nanoseconds);</li>
+<li><code>us</code> (for microseconds);</li>
+<li><code>ms</code> (for milliseconds);</li>
+<li><code>s</code> and <code>sec</code> (for seconds);</li>
+<li><code>min</code> (for minutes);</li>
+<li><code>hr</code> (for hours).</li>
+</ul>
+<h4 id="mtevgetdurationss">mtev_get_durations_s</h4>
+<blockquote>
+<p>Return suffixes for second-resolution durations.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> mtev_duration_definition_t *
+<span class="hljs-title">mtev_get_durations_s</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<p>Return value is suitable to pass as the second argument to
+mtev_confstr_parse_duration. Second-scale duration suffixes are:</p>
+<ul>
+<li><code>s</code> and <code>sec</code> (for seconds);</li>
+<li><code>min</code> (for minutes);</li>
+<li><code>hr</code> (for hours).</li>
+<li><code>d</code> (for days).</li>
+<li><code>w</code> (for weeks).</li>
+</ul>
+<h4 id="mtevgetdurationsus">mtev_get_durations_us</h4>
+<blockquote>
+<p>Return suffixes for microsecond-resolution durations.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> mtev_duration_definition_t *
+<span class="hljs-title">mtev_get_durations_us</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<p>Return value is suitable to pass as the second argument to
+mtev_confstr_parse_duration. Microsecond-scale duration suffixes are:</p>
+<ul>
+<li><code>us</code> (for microseconds);</li>
+<li><code>ms</code> (for milliseconds);</li>
+<li><code>s</code> and <code>sec</code> (for seconds);</li>
+<li><code>min</code> (for minutes);</li>
+<li><code>hr</code> (for hours).</li>
+<li><code>d</code> (for days).</li>
+</ul>
 <h4 id="mtevgetnanos">mtev_get_nanos</h4>
 <pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 
 mtev_get_nanos(<span class="hljs-keyword">void</span>)
