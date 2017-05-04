@@ -264,6 +264,99 @@ Takes a configuration section representing a cluster and registers
 it in the global cluster configuration.
  
 
+#### mtev_confstr_parse_duration
+
+```c
+int 
+mtev_confstr_parse_duration(const char *input, uint64_t *output
+                            const mtev_duration_definition_t *durations)
+```
+
+  * ``input`` String representing a duration.
+  * ``output`` On successful parsing, filled in with the duration corresponding to `input`.
+  * ``durations`` Describes allowable duration suffixes when parsing.
+  * **RETURN** One of:
+* * MTEV_CONFSTR_PARSE_SUCCESS
+    (`input` was parsed successfully, `output` filled in)
+* * MTEV_CONFSTR_PARSE_ERR_FORMAT (`input` was not well-formed.)
+
+Parses a string representing a duration. The string should be
+formatted as a set of (optionally) white-space separated duration
+elements, where a duration element is a number with a resolution
+suffix. For example, `"1s"` is a duration element representing one
+second, while `"3min"` is a duration element representing three
+minutes. The total duration is calculated by adding together all
+the duration elements. For example, `"1min 30sec"`, with
+resolution in seconds, would result in `output` of `90`; and
+`"1min5ms"`, at millisecond resolution, would result in `output`
+of `60005`.
+ 
+
+#### mtev_confstr_parse_duration_ms
+
+```c
+int 
+mtev_confstr_parse_duration_ms(const char *input, uint64_t *output)
+```
+
+
+Convenience function for parsing a duration with resolution in milliseconds.
+See <A HREF="#mtevconfstrparseduration">mtev_confstr_parse_duration</A>
+and <A HREF="#mtevgetdurationsms">mtev_get_durations_ms</A>.
+ 
+
+#### mtev_confstr_parse_duration_ns
+
+```c
+int 
+mtev_confstr_parse_duration_ns(const char *input, uint64_t *output)
+```
+
+
+Convenience function for parsing a duration with resolution in nanoseconds.
+See <A HREF="#mtevconfstrparseduration">mtev_confstr_parse_duration</A>
+and <A HREF="#mtevgetdurationsns">mtev_get_durations_ns</A>.
+ 
+
+#### mtev_confstr_parse_duration_s
+
+```c
+int 
+mtev_confstr_parse_duration_s(const char *input, uint64_t *output)
+```
+
+
+Convenience function for parsing a duration with resolution in seconds.
+See <A HREF="#mtevconfstrparseduration">mtev_confstr_parse_duration</A>
+and <A HREF="#mtevgetdurationss">mtev_get_durations_s</A>.
+ 
+
+#### mtev_confstr_parse_duration_us
+
+```c
+int 
+mtev_confstr_parse_duration_us(const char *input, uint64_t *output)
+```
+
+
+Convenience function for parsing a duration with resolution in microseconds.
+See <A HREF="#mtevconfstrparseduration">mtev_confstr_parse_duration</A>
+and <A HREF="#mtevgetdurationsus">mtev_get_durations_us</A>.
+ 
+
+#### mtev_curl_write_callback
+
+```c
+size_t 
+mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
+```
+
+  
+> Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA
+
+
+
+
 ### D
 
 #### mtev_dyn_buffer_add
@@ -469,7 +562,7 @@ eventer_add(eventer_t e)
 
 ```c
 void 
-eventer_add_asynch(eventer_t e)
+eventer_add_asynch(eventer_jobq_t *q, eventer_t e)
 ```
 
 
@@ -1679,6 +1772,93 @@ necessary activity to make progress.
 
 
 ### G
+
+#### mtev_get_durations_ms
+
+>Return suffixes for millisecond-resolution durations.
+
+```c
+const mtev_duration_definition_t *
+mtev_get_durations_ms(void)
+```
+
+
+
+Return value is suitable to pass as the second argument to
+mtev_confstr_parse_duration. Millisecond-scale duration suffixes are:
+
+* `ms` (for milliseconds);
+* `s` and `sec` (for seconds);
+* `min` (for minutes);
+* `hr` (for hours).
+* `d` (for days).
+* `w` (for weeks).
+ 
+
+#### mtev_get_durations_ns
+
+>Return suffixes for nanosecond-resolution durations.
+
+```c
+const mtev_duration_definition_t *
+mtev_get_durations_ns(void)
+```
+
+
+
+Return value is suitable to pass as the second argument to
+mtev_confstr_parse_duration. Nanosecond-scale duration suffixes are:
+
+* `ns` (for nanoseconds);
+* `us` (for microseconds);
+* `ms` (for milliseconds);
+* `s` and `sec` (for seconds);
+* `min` (for minutes);
+* `hr` (for hours).
+ 
+
+#### mtev_get_durations_s
+
+>Return suffixes for second-resolution durations.
+
+```c
+const mtev_duration_definition_t *
+mtev_get_durations_s(void)
+```
+
+
+
+Return value is suitable to pass as the second argument to
+mtev_confstr_parse_duration. Second-scale duration suffixes are:
+
+* `s` and `sec` (for seconds);
+* `min` (for minutes);
+* `hr` (for hours).
+* `d` (for days).
+* `w` (for weeks).
+ 
+
+#### mtev_get_durations_us
+
+>Return suffixes for microsecond-resolution durations.
+
+```c
+const mtev_duration_definition_t *
+mtev_get_durations_us(void)
+```
+
+
+
+Return value is suitable to pass as the second argument to
+mtev_confstr_parse_duration. Microsecond-scale duration suffixes are:
+
+* `us` (for microseconds);
+* `ms` (for milliseconds);
+* `s` and `sec` (for seconds);
+* `min` (for minutes);
+* `hr` (for hours).
+* `d` (for days).
+ 
 
 #### mtev_get_nanos
 

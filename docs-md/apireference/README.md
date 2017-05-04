@@ -12,7 +12,7 @@
 
 ##### C
 
-[mtev_cluster_by_name](c.md#mtevclusterbyname), [mtev_cluster_enabled](c.md#mtevclusterenabled), [mtev_cluster_find_node](c.md#mtevclusterfindnode), [mtev_cluster_init](c.md#mtevclusterinit), [mtev_cluster_size](c.md#mtevclustersize), [mtev_cluster_update](c.md#mtevclusterupdate)
+[mtev_cluster_by_name](c.md#mtevclusterbyname), [mtev_cluster_enabled](c.md#mtevclusterenabled), [mtev_cluster_find_node](c.md#mtevclusterfindnode), [mtev_cluster_init](c.md#mtevclusterinit), [mtev_cluster_size](c.md#mtevclustersize), [mtev_cluster_update](c.md#mtevclusterupdate), [mtev_confstr_parse_duration](c.md#mtevconfstrparseduration), [mtev_confstr_parse_duration_ms](c.md#mtevconfstrparsedurationms), [mtev_confstr_parse_duration_ns](c.md#mtevconfstrparsedurationns), [mtev_confstr_parse_duration_s](c.md#mtevconfstrparsedurations), [mtev_confstr_parse_duration_us](c.md#mtevconfstrparsedurationus), [mtev_curl_write_callback](c.md#mtevcurlwritecallback)
 
 ##### D
 
@@ -24,7 +24,7 @@
 
 ##### G
 
-[mtev_get_nanos](c.md#mtevgetnanos), [mtev_getip_ipv4](c.md#mtevgetipipv4), [mtev_gettimeofday](c.md#mtevgettimeofday)
+[mtev_get_durations_ms](c.md#mtevgetdurationsms), [mtev_get_durations_ns](c.md#mtevgetdurationsns), [mtev_get_durations_s](c.md#mtevgetdurationss), [mtev_get_durations_us](c.md#mtevgetdurationsus), [mtev_get_nanos](c.md#mtevgetnanos), [mtev_getip_ipv4](c.md#mtevgetipipv4), [mtev_gettimeofday](c.md#mtevgettimeofday)
 
 ##### L
 

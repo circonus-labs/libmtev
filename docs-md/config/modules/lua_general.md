@@ -18,22 +18,26 @@ startup.
 
    This is the lua load path.  See the lua manual for more details
    on meaning and syntax.
+
  * **cpath** (optional) 
 
    allowed: `/^.+$/`
 
    This is the lua DSO load path.  See the lua manual for more
    details on meaning and syntax.
+
  * **lua_module** (required) 
 
    allowed: `/^.+$/`
 
    The lua module to load.
+
  * **lua_function** (required) 
 
    allowed: `/^.+$/`
 
    The lua function to run in the module.
+
  * **Cpreload** (optional) 
 
    allowed: `/^.*$/`
@@ -42,12 +46,14 @@ startup.
    the context is created.  This is useful if you're writing a
    standalone interpreter or other program that needs to extend lua (without
    shipping another lua module) before you start.
+
  * **concurrent** (optional)  [default: `false`]
 
    allowed: `/^(?:true|on|false|off)$/`
 
    Specify if the function should be invoked in each concurrent
    eventer thread.
+
 ### Examples
 
 #### Loading the lua general module an run somefunction from the somemodule module.
