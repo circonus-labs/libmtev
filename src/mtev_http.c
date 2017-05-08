@@ -1119,7 +1119,7 @@ mtev_http_request_release(mtev_http_session_ctx *ctx) {
   }
   if(ctx->req.first_input) {
     RELEASE_BCHAIN(ctx->req.first_input);
-    ctx-req.first_input = NULL;
+    ctx->req.first_input = NULL;
     ctx->req.last_input = NULL;
     ctx->req.current_input = NULL;
   }
