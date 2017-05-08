@@ -1080,11 +1080,13 @@ mtev_http_session_prime_input(mtev_http_session_ctx *ctx,
 
 void
 mtev_http_request_release(mtev_http_session_ctx *ctx) {
-  if (ctx->req.freed == mtev_false) {
-    mtev_hash_destroy(&ctx->req.querystring, NULL, NULL);
-    mtev_hash_destroy(&ctx->req.headers, NULL, NULL);
-    ctx->req.freed = mtev_true;
+  if (ctx->req.freed == mtev_true) {
+    return;
   }
+
+  mtev_hash_destroy(&ctx->req.querystring, NULL, NULL);
+  mtev_hash_destroy(&ctx->req.headers, NULL, NULL);
+
   /* If we expected a payload, we expect a trailing \r\n */
   if(ctx->req.has_payload) {
     int drained, mask;
@@ -1109,14 +1111,26 @@ mtev_http_request_release(mtev_http_session_ctx *ctx) {
   }
   memset(&ctx->req.state, 0,
          sizeof(ctx->req) - (unsigned long)&(((mtev_http_request *)0)->state));
-  
+
+  if(ctx->req.user_data) {
+    RELEASE_BCHAIN(ctx->req.user_data);
+    ctx->req.user_data = NULL;
+    ctx->req.user_data_last = NULL;
+  }
+  if(ctx->req.first_input) {
+    RELEASE_BCHAIN(ctx->req.first_input);
+    ctx-req.first_input = NULL;
+    ctx->req.last_input = NULL;
+    ctx->req.current_input = NULL;
+  }
   ctx->req.freed = mtev_true;
 }
 void
 mtev_http_response_release(mtev_http_session_ctx *ctx) {
-  if (ctx->res.freed == mtev_false) {
-    mtev_hash_destroy(&ctx->res.headers, free, free);
+  if (ctx->res.freed == mtev_true) {
+    return;
   }
+  mtev_hash_destroy(&ctx->res.headers, free, free);
   if(ctx->res.status_reason) free(ctx->res.status_reason);
   RELEASE_BCHAIN(ctx->res.leader);
   RELEASE_BCHAIN(ctx->res.output);
@@ -1133,8 +1147,6 @@ mtev_http_ctx_session_release(mtev_http_session_ctx *ctx) {
   if(mtev_atomic_dec32(&ctx->ref_cnt) == 0) {
     LIBMTEV_HTTP_CLOSE(CTXFD(ctx), ctx);
     mtev_http_request_release(ctx);
-    if(ctx->req.user_data) RELEASE_BCHAIN(ctx->req.user_data);
-    if(ctx->req.first_input) RELEASE_BCHAIN(ctx->req.first_input);
     mtev_http_response_release(ctx);
     pthread_mutex_destroy(&ctx->write_lock);
 #ifdef HAVE_WSLAY
@@ -1349,7 +1361,6 @@ mtev_http_session_decompress(mtev_compress_type type, struct bchain *in,
       mtev_stream_decompress_finish(dctx);
       mtev_destroy_stream_decompress_ctx(dctx);
       ctx->req.decompress_ctx = NULL;
-      RELEASE_BCHAIN(*out);
       *out = NULL;
       *last_out = NULL;
       errno = -errno;
@@ -1898,6 +1909,8 @@ mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http_websock
   ctx->websocket_dispatcher = wf;
   ctx->ac = ac;
   ctx->is_websocket = mtev_false;
+  ctx->req.freed = mtev_false;
+  ctx->res.freed = mtev_false;
 #ifdef HAVE_WSLAY
   ctx->did_handshake = mtev_false;
   ctx->wslay_ctx = NULL;
