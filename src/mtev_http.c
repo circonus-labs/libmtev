@@ -1084,9 +1084,6 @@ mtev_http_request_release(mtev_http_session_ctx *ctx) {
     return;
   }
 
-  mtev_hash_destroy(&ctx->req.querystring, NULL, NULL);
-  mtev_hash_destroy(&ctx->req.headers, NULL, NULL);
-
   /* If we expected a payload, we expect a trailing \r\n */
   if(ctx->req.has_payload) {
     int drained, mask;
@@ -1109,6 +1106,11 @@ mtev_http_request_release(mtev_http_session_ctx *ctx) {
     mtev_destroy_stream_decompress_ctx(ctx->req.decompress_ctx);
     ctx->req.decompress_ctx = NULL;
   }
+
+  /* free hashes late as session_req_consume relies on them */
+  mtev_hash_destroy(&ctx->req.querystring, NULL, NULL);
+  mtev_hash_destroy(&ctx->req.headers, NULL, NULL);
+
   memset(&ctx->req.state, 0,
          sizeof(ctx->req) - (unsigned long)&(((mtev_http_request *)0)->state));
 
