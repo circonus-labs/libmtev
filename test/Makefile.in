@@ -44,31 +44,31 @@ all:	check
 TESTS=hash_test uuid_test time_test hll_test maybe_alloc_test dyn_buffer_test speculatelog_test pool-shift-async/test
 
 pool-shift-async/test:	pool-shift-async/test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o $@ $<
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 hash_test: hash_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o hash_test hash_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o hash_test hash_test.c -lmtev $(LIBMTEV_LIBS)
 
 uuid_test: uuid_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o uuid_test uuid_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o uuid_test uuid_test.c -lmtev $(LIBMTEV_LIBS)
 
 time_test: time_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o time_test time_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o time_test time_test.c -lmtev $(LIBMTEV_LIBS)
 
 sort_test: sort_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o sort_test sort_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o sort_test sort_test.c -lmtev $(LIBMTEV_LIBS)
 
 hll_test: hll_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o hll_test hll_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o hll_test hll_test.c -lmtev $(LIBMTEV_LIBS)
 
 maybe_alloc_test: maybe_alloc_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o maybe_alloc_test maybe_alloc_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o maybe_alloc_test maybe_alloc_test.c -lmtev $(LIBMTEV_LIBS)
 
 dyn_buffer_test: dyn_buffer_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o dyn_buffer_test dyn_buffer_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o dyn_buffer_test dyn_buffer_test.c -lmtev $(LIBMTEV_LIBS)
 
 speculatelog_test: speculatelog_test.c
-	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -lmtev $(LIBMTEV_LIBS) -o $@ $?
+	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $? -lmtev $(LIBMTEV_LIBS)
 
 .c.o:
 	@echo "- compiling $<"
