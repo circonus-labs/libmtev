@@ -12,33 +12,29 @@ startup.
 ### Module Configuration
 
     
- * **directory** (optional)  [default: `/install/prefix/libexec/mtev/lua/?.lua`]
+ * **`directory`** (optional)  [default: `/install/prefix/libexec/mtev/lua/?.lua`]
 
    allowed: `/^.+$/`
 
    This is the lua load path.  See the lua manual for more details
    on meaning and syntax.
-
- * **cpath** (optional) 
+ * **`cpath`** (optional) 
 
    allowed: `/^.+$/`
 
    This is the lua DSO load path.  See the lua manual for more
    details on meaning and syntax.
-
- * **lua_module** (required) 
+ * **`lua_module`** (required) 
 
    allowed: `/^.+$/`
 
    The lua module to load.
-
- * **lua_function** (required) 
+ * **`lua_function`** (required) 
 
    allowed: `/^.+$/`
 
    The lua function to run in the module.
-
- * **Cpreload** (optional) 
+ * **`Cpreload`** (optional) 
 
    allowed: `/^.*$/`
 
@@ -46,14 +42,12 @@ startup.
    the context is created.  This is useful if you're writing a
    standalone interpreter or other program that needs to extend lua (without
    shipping another lua module) before you start.
-
- * **concurrent** (optional)  [default: `false`]
+ * **`concurrent`** (optional)  [default: `false`]
 
    allowed: `/^(?:true|on|false|off)$/`
 
    Specify if the function should be invoked in each concurrent
    eventer thread.
-
 ### Examples
 
 #### Loading the lua general module an run somefunction from the somemodule module.

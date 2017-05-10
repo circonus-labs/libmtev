@@ -11,42 +11,36 @@ The zipkin_fq module publishes Zipkin traces via Fq.
 ### Module Configuration
 
     
- * **host** (optional)  [default: `127.0.0.1`]
+ * **`host`** (optional)  [default: `127.0.0.1`]
 
    allowed: `/^.+$/`
 
    The Fq host.
-
- * **port** (optional)  [default: `8765`]
+ * **`port`** (optional)  [default: `8765`]
 
    allowed: `/^\d+$/`
 
    The Fq port.
-
- * **user** (optional)  [default: `mtev`]
+ * **`user`** (optional)  [default: `mtev`]
 
    allowed: `/^.+$/`
 
    The Fq user.
-
- * **pass** (optional)  [default: `mtev`]
+ * **`pass`** (optional)  [default: `mtev`]
 
    allowed: `/^.+$/`
 
    The Fq pass.
-
- * **exchange** (optional)  [default: `logging`]
+ * **`exchange`** (optional)  [default: `logging`]
 
    allowed: `/^.+$/`
 
    The Fq exchange.
-
- * **route_prefix** (optional)  [default: `scribe.zipkin.`]
+ * **`route_prefix`** (optional)  [default: `scribe.zipkin.`]
 
    allowed: `/^.+$/`
 
    The routing prefix to which the traceid is appended.
-
 ### Examples
 
 #### Loading the zipkin_fq module.
