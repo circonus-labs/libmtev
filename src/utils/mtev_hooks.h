@@ -150,10 +150,13 @@ struct mtev_hook_##HOOKNAME##_list { \
   CDEF CNAME; \
   struct mtev_hook_##HOOKNAME##_list *next; \
 }; \
-static volatile void *nh_##HOOKNAME##_list = NULL; \
+static volatile void *nh_##HOOKNAME##_list = (volatile void *) NULL; \
  \
 mtev_boolean \
-HOOKNAME##_hook_exists(void) { return nh_##HOOKNAME##_list != NULL; } \
+HOOKNAME##_hook_exists(void) { \
+  return (nh_##HOOKNAME##_list != (volatile void *) NULL) ? mtev_true : mtev_false; \
+} \
+ \
 mtev_hook_return_t \
 HOOKNAME##_hook_invoke HOOKPROTO_NC { \
   mtev_hook_return_t rv = MTEV_HOOK_CONTINUE; \
@@ -177,16 +180,16 @@ void HOOKNAME##_hook_register(const char *name, \
                               CDEF CNAME) { \
   struct mtev_hook_##HOOKNAME##_list *nh; \
   volatile struct mtev_hook_##HOOKNAME##_list *last, *expected; \
-  nh = calloc(1, sizeof(*nh)); \
-  nh->optional_name = name ? strdup(name) : NULL; \
+  nh = (struct mtev_hook_##HOOKNAME##_list *) calloc(1, sizeof(*nh));   \
+  nh->optional_name = name ? strdup(name) : (const char *) NULL; \
   nh->proto = #HOOKPROTO; \
   nh->func = func; \
   nh->CNAME = CNAME; \
   do { \
     nh->next = (struct mtev_hook_##HOOKNAME##_list *)nh_##HOOKNAME##_list; \
     expected = (struct mtev_hook_##HOOKNAME##_list *)nh_##HOOKNAME##_list; \
-    last = mtev_atomic_casptr((volatile void **)&nh_##HOOKNAME##_list, \
-                              nh, expected); \
+    last = (volatile struct mtev_hook_##HOOKNAME##_list *) \
+      mtev_atomic_casptr((volatile void **)&nh_##HOOKNAME##_list, nh, expected); \
   } while(last != expected); \
 }
 
