@@ -1,0 +1,2 @@
+gmake clean
+gmake -j
