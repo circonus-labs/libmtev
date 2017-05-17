@@ -4,6 +4,7 @@
 
 #include <ck_hs.h>
 #include <sys/queue.h>
+#include <stddef.h>
 
 struct lru_entry {
   void *entry;
@@ -44,20 +45,14 @@ static struct ck_malloc malloc_ck_hs = {
 
 static int rand_init = 0;
 
-#define HS_HF_STRING(F)                         \
-  static unsigned long                          \
-  F(const void *k, unsigned long seed)          \
-  {                                             \
-    return mtev_hash__hash(k, strlen(k), seed);   \
-  }
-
-HS_HF_STRING(lru_entry_hash);
-
-#define offset_of(type, member)                 \
-  ((size_t)(&((type *)0)->member))
+static unsigned long
+lru_entry_hash(const void *k, unsigned long seed)
+{
+  return mtev_hash__hash(k, strlen(k), seed);
+}
 
 #define container_of(derived_ptr, type, field)                \
-  ((type *)((char *)(derived_ptr) - offset_of(type, field)))
+  ((type *)((char *)(derived_ptr) - offsetof(type, field)))
 
 static void
 hs_init(ck_hs_t *hs, unsigned int mode, ck_hs_hash_cb_t *hf, ck_hs_compare_cb_t *cf, unsigned long size)
@@ -80,7 +75,7 @@ hs_string_compare(const void *a, const void *b)
 }
 
 mtev_lru_t *
-mtev_lru_create(int32_t max_entries, void (*free_fn)(void *)) 
+mtev_lru_create(int32_t max_entries, void (*free_fn)(void *))
 {
   struct mtev_lru *r = malloc(sizeof(struct mtev_lru));
   if (max_entries <= 0) {
@@ -102,7 +97,7 @@ mtev_lru_create(int32_t max_entries, void (*free_fn)(void *))
 }
 
 void
-mtev_lru_destroy(mtev_lru_t *lru) 
+mtev_lru_destroy(mtev_lru_t *lru)
 {
   mtev_lru_invalidate(lru);
   ck_hs_destroy(&lru->hash);
@@ -152,7 +147,7 @@ expire_oldest_lru_cache_no_lock(mtev_lru_t *c)
   free(e);
 }
 
-static void 
+static void
 add_lru_cache_no_lock(mtev_lru_t *c, struct lru_entry *e)
 {
   if (c->max_entries > 0) {
@@ -164,7 +159,7 @@ add_lru_cache_no_lock(mtev_lru_t *c, struct lru_entry *e)
   c->lru_cache_size++;
 }
 
-static void 
+static void
 touch_lru_cache_no_lock(mtev_lru_t *c, struct lru_entry *e)
 {
   if (c->max_entries > 0) {
