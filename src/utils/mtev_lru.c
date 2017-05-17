@@ -188,6 +188,7 @@ mtev_lru_put(mtev_lru_t *lru, const char *key, size_t key_len, void *val)
   }
   if (previous) {
     struct lru_entry *p = container_of(previous, struct lru_entry, key);
+    TAILQ_REMOVE(&lru->lru_cache, p, list_entry);
     lru->free_fn(p->entry);
     free(p);
   }
