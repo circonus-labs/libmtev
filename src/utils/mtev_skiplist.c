@@ -20,6 +20,7 @@
 #include "mtev_defines.h"
 #include "mtev_skiplist.h"
 #include "mtev_log.h"
+#include "mtev_rand.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,9 +50,9 @@ int mtev_compare_voidptr(const void *a, const void *b) {
 static int get_b_rand(void) {
   static int ph=32; /* More bits than we will ever use */
   static unsigned long randseq;
-  if(ph > 31) { /* Num bits in return of lrand48() */
+  if(ph > 31) { /* Num bits in return of mtev_rand() */
     ph=0;
-    randseq = lrand48();
+    randseq = mtev_rand();
   }
   ph++;
   return ((randseq & (1 << (ph-1))) >> (ph-1));
@@ -74,6 +75,7 @@ static int indexing_compk(const void *a, const void *bv) {
 }
 
 void mtev_skiplist_init(mtev_skiplist *sl) {
+  mtev_rand_init();
   mtev_skiplisti_init(sl);
   sl->index = (mtev_skiplist *)malloc(sizeof(mtev_skiplist));
   mtev_skiplisti_init(sl->index);

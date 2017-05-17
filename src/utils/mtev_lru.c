@@ -1,6 +1,7 @@
 #include "mtev_lru.h"
 #include "mtev_hash.h"
 #include "mtev_log.h"
+#include "mtev_rand.h"
 
 #include <ck_hs.h>
 #include <sys/queue.h>
@@ -43,8 +44,6 @@ static struct ck_malloc malloc_ck_hs = {
   .free = lru_free
 };
 
-static int rand_init = 0;
-
 static unsigned long
 lru_entry_hash(const void *k, unsigned long seed)
 {
@@ -57,13 +56,10 @@ lru_entry_hash(const void *k, unsigned long seed)
 static void
 hs_init(ck_hs_t *hs, unsigned int mode, ck_hs_hash_cb_t *hf, ck_hs_compare_cb_t *cf, unsigned long size)
 {
-  if(!rand_init) {
-    srand48((long int)time(NULL));
-    rand_init = 1;
-  }
+  mtev_rand_init();
   struct ck_malloc *allocator = &malloc_ck_hs;
 
-  if (ck_hs_init(hs, mode | CK_HS_MODE_SPMC, hf, cf, allocator, size, lrand48()) == false) {
+  if (ck_hs_init(hs, mode | CK_HS_MODE_SPMC, hf, cf, allocator, size, mtev_rand()) == false) {
     mtevFatal(mtev_error, "Cannot initialize ck_hs\n");
   }
 }
