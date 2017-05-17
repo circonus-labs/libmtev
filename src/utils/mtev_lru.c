@@ -47,7 +47,7 @@ static struct ck_malloc malloc_ck_hs = {
 static unsigned long
 lru_entry_hash(const void *k, unsigned long seed)
 {
-  return mtev_hash__hash(k, strlen(k), seed);
+  return mtev_hash__hash(k, strlen((const char *)k), seed);
 }
 
 #define container_of(derived_ptr, type, field)                \
@@ -64,7 +64,7 @@ hs_init(ck_hs_t *hs, unsigned int mode, ck_hs_hash_cb_t *hf, ck_hs_compare_cb_t 
   }
 }
 
-static inline bool
+static bool
 hs_string_compare(const void *a, const void *b)
 {
   return strcmp((const char * const)a, (const char * const)b) == 0;
@@ -104,13 +104,15 @@ void
 mtev_lru_invalidate(mtev_lru_t *lru)
 {
   pthread_mutex_lock(&lru->mutex);
-  void *entry;
-  ck_hs_iterator_t it = CK_HS_ITERATOR_INITIALIZER;
-  while(ck_hs_next(&lru->hash, &it, &entry) == true) {
-    struct lru_entry *e = container_of(entry, struct lru_entry, key);
+
+  while (!TAILQ_EMPTY(&lru->lru_cache)) {
+    struct lru_entry *e = TAILQ_FIRST(&lru->lru_cache);
+    TAILQ_REMOVE(&lru->lru_cache, e, list_entry);
     lru->free_fn(e->entry);
     free(e);
   }
+
+  ck_hs_reset(&lru->hash);
   lru->lru_cache_size = 0;
   pthread_mutex_unlock(&lru->mutex);
 }
@@ -171,7 +173,7 @@ mtev_boolean
 mtev_lru_put(mtev_lru_t *lru, const char *key, size_t key_len, void *val)
 {
   unsigned long hash = CK_HS_HASH(&lru->hash, lru_entry_hash, key);
-  struct lru_entry *e = malloc(sizeof(struct lru_entry) + sizeof(key_len));
+  struct lru_entry *e = malloc(sizeof(struct lru_entry) + key_len + 1);
   e->entry = val;
   e->key_len = key_len;
   memcpy(e->key, key, key_len);
