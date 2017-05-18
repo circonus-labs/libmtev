@@ -62,7 +62,7 @@ mtev_boolean websocket_msg_handler(mtev_websocket_client_t *client, int opcode,
 }
 
 static int
-child_main() {
+child_main(void) {
   /* reload our config, to make sure we have the most current */
   if(mtev_conf_load(NULL) == -1) {
     mtevL(mtev_error, "Cannot load config: '%s'\n", config_file);

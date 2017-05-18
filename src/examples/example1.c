@@ -92,7 +92,7 @@ on_node_updated(void *closure, mtev_cluster_node_changes_t node_changes, mtev_cl
   return MTEV_HOOK_CONTINUE;
 }
 
-static void init_cluster() {
+static void init_cluster(void) {
   mtev_cluster_init();
   if (mtev_cluster_enabled() != mtev_false) {
     my_cluster = mtev_cluster_by_name(CLUSTER_NAME);
@@ -118,7 +118,7 @@ static void init_cluster() {
 }
 
 static int
-child_main() {
+child_main(void) {
   /* reload out config, to make sure we have the most current */
 
   if(mtev_conf_load(NULL) == -1) {

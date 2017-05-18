@@ -88,7 +88,7 @@ static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pa
 
 
 static int
-child_main() {
+child_main(void) {
 
   /* reload our config, to make sure we have the most current */
   if(mtev_conf_load(NULL) == -1) {
