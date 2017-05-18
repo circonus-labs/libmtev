@@ -231,7 +231,7 @@ mtev_lru_remove(mtev_lru_t *c, const char *key, size_t key_len)
     free(r);
 
     /* when removing, perform GC every 100K rows */
-    if (c->lru_cache_size % GC_CADENCE == 0) {
+    if (ck_hs_count(&c->hash) > 0 && c->lru_cache_size % GC_CADENCE == 0) {
       ck_hs_gc(&c->hash, GC_CADENCE, (rand() % ck_hs_count(&c->hash)));
     }
   }
