@@ -36,7 +36,7 @@
 static inline
 void mtev_uuid_copy(uuid_t dst, const uuid_t src)
 {
-  memcpy(dst, src, sizeof(uuid_t));
+  memcpy((void *)dst, (const void *)src, sizeof(uuid_t));
 }
 
 #endif
