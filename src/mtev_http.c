@@ -1080,10 +1080,7 @@ mtev_http_session_prime_input(mtev_http_session_ctx *ctx,
 
 void
 mtev_http_request_release(mtev_http_session_ctx *ctx) {
-  pthread_mutex_lock(&ctx->write_lock);
-
   if (ctx->req.freed == mtev_true) {
-    pthread_mutex_unlock(&ctx->write_lock);
     return;
   }
 
@@ -1129,13 +1126,10 @@ mtev_http_request_release(mtev_http_session_ctx *ctx) {
     ctx->req.current_input = NULL;
   }
   ctx->req.freed = mtev_true;
-  pthread_mutex_unlock(&ctx->write_lock);
 }
 void
 mtev_http_response_release(mtev_http_session_ctx *ctx) {
-  pthread_mutex_lock(&ctx->write_lock);
   if (ctx->res.freed == mtev_true) {
-    pthread_mutex_unlock(&ctx->write_lock);
     return;
   }
   mtev_hash_destroy(&ctx->res.headers, free, free);
@@ -1149,8 +1143,6 @@ mtev_http_response_release(mtev_http_session_ctx *ctx) {
   }
   memset(&ctx->res, 0, sizeof(ctx->res));
   ctx->res.freed = mtev_true;
-  pthread_mutex_unlock(&ctx->write_lock);
-
 }
 void
 mtev_http_ctx_session_release(mtev_http_session_ctx *ctx) {
