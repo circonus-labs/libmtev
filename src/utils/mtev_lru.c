@@ -230,10 +230,13 @@ mtev_lru_remove(mtev_lru_t *c, const char *key, size_t key_len)
     rval = r->entry;
     free(r);
 
-    /* when removing, perform GC every 100K rows */
-    if (ck_hs_count(&c->hash) > 0 && c->lru_cache_size % GC_CADENCE == 0) {
+    /* when removing, perform GC every GC_CADENCE changes */
+    int ec = ck_pr_load_32(&c->expire_count);
+    if (ec == GC_CADENCE && ck_hs_count(&c->hash) > 0) {
+      c->expire_count = 0;
       ck_hs_gc(&c->hash, GC_CADENCE, (rand() % ck_hs_count(&c->hash)));
     }
+    c->expire_count++;
   }
   pthread_mutex_unlock(&c->mutex);
   return rval;
