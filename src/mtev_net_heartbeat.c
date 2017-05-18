@@ -33,6 +33,7 @@
 #include "mtev_log.h"
 #include "mtev_conf.h"
 #include "mtev_net_heartbeat.h"
+#include "mtev_rand.h"
 
 #include <unistd.h>
 #include <errno.h>
@@ -221,13 +222,13 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
 
   /* 4 bytes of IV */
   ivec = (unsigned char *)payload + HDR_LENSIZE;
-  hdr[i++] = lrand48();
-  hdr[i++] = lrand48();
-  hdr[i++] = lrand48();
-  hdr[i++] = lrand48();
+  hdr[i++] = mtev_rand();
+  hdr[i++] = mtev_rand();
+  hdr[i++] = mtev_rand();
+  hdr[i++] = mtev_rand();
   /* 2 words of gibberish */
-  hdr[i++] = lrand48();
-  hdr[i++] = lrand48();
+  hdr[i++] = mtev_rand();
+  hdr[i++] = mtev_rand();
   /* 2 words of magic */
   hdr[i++] = htonl(HBPKTMAGIC1);
   hdr[i++] = htonl(HBPKTMAGIC2);
@@ -582,5 +583,6 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
 
 void
 mtev_net_heartbeat_init(void) {
+  mtev_rand_init();
   global = mtev_net_heartbeat_from_conf("/*/netheartbeat");
 }

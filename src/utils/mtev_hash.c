@@ -34,6 +34,7 @@
 #include "mtev_config.h"
 #include "mtev_hash.h"
 #include "mtev_log.h"
+#include "mtev_rand.h"
 #include "mtev_watchdog.h"
 #include <time.h>
 #include <stdio.h>
@@ -126,7 +127,6 @@ hs_compare(const void *previous, const void *compare)
   return false;
 }
 
-static int rand_init;
 void mtev_hash_init(mtev_hash_table *h) {
   return mtev_hash_init_size(h, MTEV_HASH_DEFAULT_SIZE);
 }
@@ -274,15 +274,12 @@ void mtev_hash_init_size(mtev_hash_table *h, int size) {
 }
 
 void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode) {
-  if(!rand_init) {
-    srand48((long int)time(NULL));
-    rand_init = 1;
-  }
+  mtev_rand_init();
 
   if(size < 8) size = 8;
 
   mtevAssert(ck_hs_init(&h->u.hs, CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC, hs_hash, hs_compare, &my_allocator,
-                         size, lrand48()));
+                        size, mtev_rand()));
   mtevAssert(h->u.hs.hf != NULL);
 
   h->u.locks.locks = calloc(1, sizeof(struct locks_container));
