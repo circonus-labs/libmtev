@@ -266,6 +266,12 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
   return 0;
 }
 
+static void
+mtev_net_heartbeat_pulse_namer(char *buf, int buflen, eventer_t e, void *closure) {
+  (void)closure;
+  mtev_net_heartbeat_ctx *ctx = eventer_get_closure(e);
+  snprintf(buf, buflen, "mtev_net_heartbeat_pulse(:%d)", ctx->port);
+}
 static int
 mtev_net_heartbeat_pulse(eventer_t e, int mask, void *closure, struct timeval *now) {
   mtev_net_heartbeat_ctx *ctx = closure;
@@ -583,6 +589,14 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
 
 void
 mtev_net_heartbeat_init(void) {
+  static int inited = 0;
+  if(inited) return;
+  inited = 1;
+  eventer_name_callback_ext("mtev_net_heartbeat_pulse",
+                            mtev_net_heartbeat_pulse,
+                            mtev_net_heartbeat_pulse_namer, NULL);
+  eventer_name_callback("mtev_net_heartbeat_handler",
+                        mtev_net_heartbeat_handler);
   mtev_rand_init();
   global = mtev_net_heartbeat_from_conf("/*/netheartbeat");
 }

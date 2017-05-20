@@ -571,22 +571,34 @@ eventer_impl_tls_data_from_pool(eventer_pool_t *pool) {
   }
 }
 
-void eventer_impl_init_globals(void) {
-  mtev_hash_init(&eventer_pools);
-  mtevAssert(mtev_hash_store(&eventer_pools,
-                             default_pool.name, strlen(default_pool.name),
-                             &default_pool));
-}
-
 static int periodic_jobq_maintenance(eventer_t e, int mask, void *vjobq, struct timeval *now) {
   eventer_jobq_t *jobq = vjobq;
   eventer_jobq_ping(jobq);
   eventer_add_in_s_us(periodic_jobq_maintenance, jobq, 1, 0);
   return 0;
 }
+
 static void register_jobq_maintenance(eventer_jobq_t *jobq, void *unused) {
   eventer_add_in_s_us(periodic_jobq_maintenance, jobq, 1, 0);
 }
+
+static void periodic_jobq_maintenance_namer(char *buf, int buflen,
+                                            eventer_t e, void *cl) {
+  (void)cl;
+  eventer_jobq_t *jobq = eventer_get_closure(e);
+  snprintf(buf, buflen, "maintenance(%s)", jobq->queue_name);
+}
+
+void eventer_impl_init_globals(void) {
+  eventer_name_callback_ext("periodic_jobq_maintenance",
+                            periodic_jobq_maintenance,
+                            periodic_jobq_maintenance_namer, NULL);
+  mtev_hash_init(&eventer_pools);
+  mtevAssert(mtev_hash_store(&eventer_pools,
+                             default_pool.name, strlen(default_pool.name),
+                             &default_pool));
+}
+
 int eventer_impl_init(void) {
   int try;
   char *evdeb;
