@@ -227,10 +227,10 @@ $(LIBMTEV_DTRACEOBJ):    $(FINAL_LIBMTEV_OBJS)
 
 @DTRACEHDR@:    libmtev_dtrace_probes.d
 	$(Q)if test -z "@DTRACE@" ; then \
-		if test "x@DTRACEHDR_TRANSFORM@" == "xcopy" ; then \
+		if test "x@DTRACEHDR_TRANSFORM@" = "xcopy" ; then \
 			echo "- faking (stock) dtrace header" ; \
 			cp ./@DTRACEHDR@.stock ./@DTRACEHDR@ ; \
-		elif test "x@DTRACEHDR_TRANSFORM@" == "xsdt" ; then \
+		elif test "x@DTRACEHDR_TRANSFORM@" = "xsdt" ; then \
 			echo "- faking (dtrace -> sdt) dtrace header" ; \
 			$(top_srcdir)/buildtools/dtrace2sdt.sh ./@DTRACEHDR@.stock ./@DTRACEHDR@ ; \
 		else \
