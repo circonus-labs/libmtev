@@ -1037,9 +1037,10 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
     else
       mtevL(http_io, " mtev_http:read(%d) => %d\n", CTXFD(ctx), len);
     if(len == -1 && errno == EAGAIN) return mask;
-    if(len <= 0) goto full_error;
-    if(len > 0) in->size += len;
+    if(len < 0)  goto full_error;
+    in->size += len;
     rv = mtev_http_request_finalize(ctx, &err);
+    if (rv == mtev_false && len == 0) goto full_error;
     /* walk the bchain and set the compression */
     if (rv == mtev_true) {
       struct bchain *x = ctx->req.first_input;
