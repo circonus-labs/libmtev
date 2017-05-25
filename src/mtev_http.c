@@ -1407,8 +1407,8 @@ mtev_http_session_decompress(mtev_compress_type type, struct bchain *in,
  */
 int
 mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
-                              void *buf, size_t user_len, size_t blen,
-                              int *mask) 
+                              void *buf, const size_t user_len,
+                              const size_t blen, int *mask)
 {
   struct bchain *in, *tofree;
   size_t bytes_read = 0;
@@ -1517,11 +1517,6 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
           ctx->req.user_data = in = in->next;
           tofree->next = NULL;
           RELEASE_BCHAIN(tofree);
-        }
-
-        if (total_decompressed_size > 0) {
-          /* rewrite expected read size based on decompressed size */
-          user_len = MIN(user_len, total_decompressed_size);
         }
       }
 

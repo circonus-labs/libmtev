@@ -178,7 +178,8 @@ API_EXPORT(mtev_boolean)
   mtev_http_session_prime_input(mtev_http_session_ctx *, const void *, size_t);
 API_EXPORT(int)
   mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
-                                void *buf, size_t len, size_t blen, int *mask);
+                                void *buf, const size_t len,
+                                const size_t blen, int *mask);
 API_EXPORT(mtev_boolean)
   mtev_http_response_status_set(mtev_http_session_ctx *, int, const char *);
 API_EXPORT(mtev_boolean)
