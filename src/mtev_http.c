@@ -1751,6 +1751,8 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
   }
 
  next_req:
+  check_realloc_request(&ctx->req);
+  check_realloc_response(&ctx->res);
   if(ctx->req.complete != mtev_true) {
     int maybe_write_mask;
     mtevL(http_debug, "   -> mtev_http_complete_request(%d)\n", eventer_get_fd(e));
