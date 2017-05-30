@@ -1437,6 +1437,8 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
                                  mtev_hash_table *table,
                                  const char *namespace) {
   int i, cnt;
+  mtev_hash_table collide;
+  char *same_space_collision = NULL;
   xmlXPathObjectPtr pobj = NULL;
   xmlXPathContextPtr current_ctxt;
   xmlNodePtr current_node = (xmlNodePtr)section;
@@ -1448,6 +1450,7 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
   }
+  mtev_hash_init(&collide);
   pobj = xmlXPathEval((xmlChar *)path, current_ctxt);
   if(!pobj) goto out;
   if(pobj->type != XPATH_NODESET) goto out;
@@ -1466,6 +1469,11 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
         else freename = 1;
       }
       value = (char *)xmlXPathCastNodeToString(node);
+      if(same_space_collision == NULL &&
+         !mtev_hash_store(&collide, strdup((char *)name),
+                          strlen((const char *)name), NULL)) {
+        same_space_collision = strdup((char *)name);
+      }
       mtev_hash_replace(table,
                         strdup((char *)name), strlen((char *)name),
                         strdup(value), free, free);
@@ -1479,6 +1487,11 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
         else freename = 1;
       }
       value = (char *)xmlXPathCastNodeToString(node);
+      if(same_space_collision == NULL &&
+         !mtev_hash_store(&collide, strdup((char *)name),
+                          strlen((const char *)name), NULL)) {
+        same_space_collision = strdup((char *)name);
+      }
       mtev_hash_replace(table,
                         strdup((char *)name), strlen((char *)name),
                         strdup(value), free, free);
@@ -1486,7 +1499,13 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
     }
     if(freename) xmlFree((void *)name);
   }
+  if(same_space_collision) {
+    mtevL(mtev_notice, "XML to hash collision on key: %s\n",
+          same_space_collision);
+  }
  out:
+  free(same_space_collision);
+  mtev_hash_destroy(&collide, free, NULL);
   if(pobj) xmlXPathFreeObject(pobj);
   if(current_ctxt && current_ctxt != xpath_ctxt)
     xmlXPathFreeContext(current_ctxt);
