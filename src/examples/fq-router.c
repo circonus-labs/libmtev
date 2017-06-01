@@ -84,7 +84,7 @@ on_msg_received(void *closure, fq_client client, int connection_id, fq_msg *mess
   return MTEV_HOOK_CONTINUE;
 }
 static int
-child_main() {
+child_main(void) {
   /* reload out config, to make sure we have the most current */
 
   if(mtev_conf_load(NULL) == -1) {
