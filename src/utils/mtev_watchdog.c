@@ -654,6 +654,7 @@ mtev_watchdog_t *mtev_watchdog_create(void) {
 
 void mtev_watchdog_enable(mtev_watchdog_t *lifeline) {
   if(lifeline == NULL) lifeline = mmap_lifelines;
+  mtev_watchdog_heartbeat(lifeline);
   lifeline->active = HEART_ACTIVE_ON;
 }
 void mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout) {
