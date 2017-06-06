@@ -29,11 +29,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mtev_defines.h>
-#include <mtev_log.h>
-#include <mtev_hooks.h>
-#include <mtev_dso.h>
-#include <mtev_conf.h>
+#include "mtev_defines.h"
+#include "mtev_log.h"
+#include "mtev_hooks.h"
+#include "mtev_dso.h"
+#include "mtev_conf.h"
 #include <fq.h>
 #include "mtev_fq.h"
 
