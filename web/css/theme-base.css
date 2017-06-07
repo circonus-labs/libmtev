@@ -1,0 +1,264 @@
+body {
+  padding-top: 75px;
+  padding-bottom: 30px;
+}
+html {
+  font-size: 14px;
+}
+
+.table td, .table th {
+  padding: 0.3rem;
+}
+
+.card-title {
+  margin-bottom:0;
+}
+a.nav-link {
+  margin-top: 5px;
+}
+
+nav.navbar-fixed-top {
+  background: white url(../i/product-logo.png) no-repeat scroll left top;
+  background-size: 50px 50px;
+  background-position: 80px 12px;
+  padding-left: 55px;
+  max-height: 65px;
+}
+
+div#headerinfo {
+  margin-top: -10px;
+}
+
+#main-log-window div.row {
+  margin-right: 0px;
+  margin-left: -10px;
+}
+
+div.nav-line {
+  z-index:1040;
+  width: 100%;
+  margin-top: 63px;
+  margin-left: 83px;
+}
+nav ul#viewTab {
+  margin-left: 120px;
+  margin-top: 1.5em;
+}
+
+.theme-dropdown .dropdown-menu {
+  display: block;
+  position: static;
+  margin-bottom: 20px;
+}
+
+div.theme-showcase {
+  padding-left: 78px;
+}
+.theme-showcase > p > .btn {
+  margin: 5px 0;
+}
+
+.check-details dl {
+overflow: hidden;
+}
+.check-details dd,
+.check-details dt {
+  float:left;
+  width:50%;
+  padding:0;
+  margin:0;
+}
+.check-details-main dt {
+  width:20%;
+}
+.check-details-main dd {
+  width:80%;
+}
+
+#license progress {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+.snowth-ingestion dl {
+  -webkit-margin-after: 0;
+  -webkit-margin-before: 0;
+}
+.snowth-ingestion dd {
+  text-align:right;
+}
+#check-table tr.check td,
+#eventer table td {
+  font-size: 0.9em;
+}
+#eventer tr.backq {
+  display:none;
+}
+.text-left {
+  text-align:left;
+}
+.text-right {
+  text-align:right;
+}
+.text-center {
+  text-align:center;
+}
+#topology div.jumbotron {
+  padding: 1em 3em;
+}
+#eventer table td:first-child,
+#eventer table th:first-child {
+  padding-left: 1em;
+}
+.destinations progress {
+  margin-top: 4px;
+  margin-bottom: 0px;
+}
+.destinations div.progress-holder {
+  padding-left:0;
+  padding-right:5px;
+}
+.latency .card-header {
+  padding: 0.25rem 1.75rem;
+}
+.latency .card-title h3 {
+  margin-bottom:0;
+}
+.latency .card-title h4 {
+  margin-bottom:0;
+}
+.latency .card-title h4 small {
+  font-size:0.7em;
+}
+
+.recon-types progress {
+  margin-top: 4px;
+  margin-bottom: 0px;
+}
+.recon-types div.progress-holder {
+  padding-left:0;
+  padding-right:5px;
+}
+.recon .card-header {
+  padding: 0.25rem 1.75rem;
+}
+.recon .card-title h3 {
+  margin-bottom:0;
+}
+.recon .card-title h4 {
+  margin-bottom:0;
+}
+.recon .card-title h4 small {
+  font-size:0.7em;
+}
+div.card-dark,
+div.tag-dark {
+  background-color: #333; border-color: #333;
+}
+tr.check-details.collapse.in {
+  display: table-row;
+}
+.label-none {
+  background-color: #fff;
+}
+
+div#main-log-window {
+  height: 10em;
+  overflow-y: scroll;
+}
+div#main-log-window div.row{
+  font-family: monospace, serif;
+  font-size: 0.8em;
+}
+
+div#stateview div.row div.card-block > div {
+  margin-left: 1em;
+}
+div#stateview p {
+  font-size: 0.9em;
+}
+ul.noit-proto > li {
+  clear:both;
+}
+ul.noit-proto-cmd > li {
+  list-style-type: none;
+  display: inline;
+  padding-left: 0.2em;
+  float: left;
+}
+ul.noit-proto-cmd > li:after {
+  content: ", ";
+}
+ul.noit-proto-cmd > li:last-child:after {
+  content: ""
+}
+
+#eventer table tbody button.tag {
+  margin-right:0.5em;
+}
+
+span.snowth-latency {
+  white-space: nowrap;
+}
+/* histogram stuff */
+
+div#modal-histogram {
+  width:600px;
+  position:relative;
+}
+
+svg {
+  font: 10px sans-serif;
+}
+
+.hidden {
+  display:none;
+}
+rect.bin {
+  fill: steelblue;
+}
+rect.bin-less {
+  fill: green;
+}
+rect.bin-select {
+  fill: grey;
+  fill-opacity: 0.8;
+}
+rect.bin-select {
+  fill: grey;
+  fill-opacity: 0.8;
+}
+rect.qbar {
+  fill: url(#lightstripeflip);
+  fill-opacity: 0.7;
+}
+rect.iqr0-25, rect.iqr25-50 {
+  fill: url(#lightstripe);
+}
+rect.iqr0-25, rect.iqr75-100 {
+  fill-opacity: 0.4;
+}
+line.qbar {
+  stroke: green;
+  stroke-width: 0.5px;
+}
+line.iqr50 {
+  stroke: green;
+  stroke-width: 1px;
+}
+div.tooltip {
+  position: absolute;
+  text-align: center;
+  padding: 2px 8px;
+  font: 11px sans-serif;
+  background: lightsteelblue;
+  border: 0px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
