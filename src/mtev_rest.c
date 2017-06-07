@@ -1027,7 +1027,7 @@ mtev_hash_store(&mime_type_defaults, strdup(ext), strlen(ext), strdup(type))
   ADD_MIME_TYPE("jpg", "image/jpg");
   ADD_MIME_TYPE("jpeg", "image/jpg");
   ADD_MIME_TYPE("svg", "image/svg+xml");
-  ADD_MIME_TYPE("json", "application/javascript");
+  ADD_MIME_TYPE("json", "application/json");
   ADD_MIME_TYPE("eot", "application/vnd.ms-fontobject");
   ADD_MIME_TYPE("ttf", "application/octet-stream");
   ADD_MIME_TYPE("woff", "application/font-woff");
