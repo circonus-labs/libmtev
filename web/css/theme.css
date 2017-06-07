@@ -24,6 +24,11 @@ nav.navbar-fixed-top {
   padding-left: 55px;
 }
 
+#main-log-window div.row {
+  margin-right: 0px;
+  margin-left: -10px;
+}
+
 div.nav-line {
   z-index:1040;
   width: 100%;

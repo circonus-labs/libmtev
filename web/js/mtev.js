@@ -29,6 +29,7 @@ var mtev = {};
     return (b / (1024*1024*1024*1024)).toFixed(0) + d("TiB");
   }
   mtev.nice_date = function(m) {
+    if(typeof(m) == 'number') m = new Date(m);
     return  m.getUTCFullYear() +"/"+
      ("0" + (m.getUTCMonth()+1)).slice(-2) +"/"+
      ("0" + m.getUTCDate()).slice(-2) + " " +
@@ -169,7 +170,36 @@ var mtev = {};
       });
     };
   }
-  
+
+  var last_log_idx;
+  function refresh_logs(force) {
+    var qs = "";
+    var $c = $("#main-log-window");
+    if($c.length < 1) return;
+    if(typeof(last_log_idx) !== 'undefined')
+      qs = "?since=" + last_log_idx;
+    else
+      qs = "?last=100";
+    $.ajax("/eventer/logs/internal.json" + qs).done(function (logs) {
+      var atend = force || Math.abs(($c[0].scrollTop + $c[0].clientHeight - $c[0].scrollHeight));
+      for(var i in logs) {
+        var log = logs[i];
+        $row = $("<div class=\"row\"/>");
+        $row.append($("<div class=\"col-md-2 text-muted\"/>").text(mtev.nice_date(log.whence)));
+        $row.append($("<div class=\"col-md-10\"/>").text(log.line));
+        $c.append($row);
+        last_log_idx = log.idx;
+        if(atend < 20) {
+          $c[0].scrollTop = $c[0].scrollHeight;
+          $c[0].scrollLeft = 0;
+        }
+      }
+      var rows = $c.find("> div");
+      var cnt = 0;
+      for(var i = rows.length ; i > 1000; i--)
+        rows[cnt++].remove();
+    });
+}
   function setupInternals() {
     // Pull sockets every 5 seconds
     setInterval(update_eventer("/eventer/sockets.json",
@@ -203,6 +233,9 @@ var mtev = {};
       update_eventer("/eventer/jobq.json",
                      "eventer-jobq", mk_jobq_row)();
     });
+
+    refresh_logs(1);
+    setInterval(refresh_logs, 1000);
   }
    
   var eventer_stats = { jobq: {}, callbacks: {} };
