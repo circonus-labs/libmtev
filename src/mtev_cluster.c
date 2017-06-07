@@ -881,6 +881,94 @@ mtev_cluster_get_config_seq(mtev_cluster_t *cluster) {
   return cluster->config_seq;
 }
 
+static struct json_object *
+mtev_cluster_to_json(mtev_cluster_t *c) {
+  struct json_object *obj, *nodes;
+  obj = MJ_OBJ();
+  int i;
+
+  MJ_KV(obj, "name", MJ_STR(c->name));
+  MJ_KV(obj, "seq", MJ_INT64(c->config_seq));
+  MJ_KV(obj, "port", MJ_INT(c->port));
+  MJ_KV(obj, "period", MJ_INT(c->period));
+  MJ_KV(obj, "timeout", MJ_INT(c->timeout));
+  MJ_KV(obj, "maturity", MJ_INT(c->maturity));
+
+  char uuid_str[UUID_STR_LEN+1];
+  uuid_unparse_lower(c->oldest_node->id, uuid_str);
+  MJ_KV(obj, "oldest_node", MJ_STR(uuid_str));
+
+  MJ_KV(obj, "nodes", (nodes = MJ_ARR()));
+  for(i=0;i<c->node_cnt;i++) {
+    mtev_cluster_node_t *n = &c->nodes[i];
+    struct json_object *node;
+    char uuid_str[UUID_STR_LEN+1], ipstr[INET6_ADDRSTRLEN];
+    node = MJ_OBJ();
+    uuid_unparse_lower(n->id, uuid_str);
+    MJ_KV(node, "id", MJ_STR(uuid_str));
+    MJ_KV(node, "cn", MJ_STR(n->cn));
+    MJ_KV(node, "last_contact", MJ_UINT64(n->last_contact.tv_sec));
+    MJ_KV(node, "boot_time", MJ_UINT64(n->boot_time.tv_sec));
+
+    if(n->addr.addr4.sin_family == AF_INET) {
+      inet_ntop(AF_INET, &n->addr.addr4.sin_addr,
+                ipstr, sizeof(ipstr));
+      MJ_KV(node, "address", MJ_STR(ipstr));
+      MJ_KV(node, "port", MJ_INT(ntohs(n->addr.addr4.sin_port)));
+    }
+    else if(n->addr.addr6.sin6_family == AF_INET6) {
+      inet_ntop(AF_INET6, &n->addr.addr6.sin6_addr,
+                ipstr, sizeof(ipstr));
+      MJ_KV(node, "address", MJ_STR(ipstr));
+      MJ_KV(node, "port", MJ_INT(ntohs(n->addr.addr6.sin6_port)));
+    }
+    MJ_ADD(nodes, node);
+  }
+  return obj;
+}
+
+static int
+rest_show_cluster_json(mtev_http_rest_closure_t *restc, int n, char **p) {
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  struct json_object *doc = NULL, *obj;
+
+  doc = MJ_OBJ();
+
+  char uuid_str[UUID_STR_LEN+1];
+  uuid_unparse_lower(my_cluster_id, uuid_str);
+  MJ_KV(doc, "my_id", MJ_STR((const char *)uuid_str));
+
+  if(n >= 2 && strlen(p[1])) {
+    mtev_cluster_t *c = mtev_cluster_by_name(p[1]);
+    if(!c) goto notfound;
+    obj = MJ_OBJ();
+    MJ_KV(obj, c->name, mtev_cluster_to_json(c));
+    MJ_KV(doc, "clusters", obj);
+  }
+  else {
+    mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+    obj = MJ_OBJ();
+    while(mtev_hash_adv(&global_clusters, &iter)) {
+      mtev_cluster_t *c = (mtev_cluster_t *)iter.value.ptr;
+      MJ_KV(obj, c->name, mtev_cluster_to_json(c));
+    }
+    MJ_KV(doc, "clusters", obj);
+  }
+  mtev_http_response_standard(ctx, 200, "OK", "application/json");
+  mtev_http_response_append_json(ctx, doc);
+  mtev_http_response_end(ctx);
+  goto cleanup;
+
+ notfound:
+  mtev_http_response_standard(ctx, 404, "ERROR", "application/json");
+  mtev_http_response_end(ctx);
+  goto cleanup;
+
+ cleanup:
+  if(doc) MJ_DROP(doc);
+  return 0;
+}
+
 static xmlNodePtr
 mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   int i;
@@ -947,17 +1035,19 @@ rest_show_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
   xmlDocPtr doc;
   xmlNodePtr root;
 
+  if(n == 3 && !strcmp(p[2], ".json"))
+    return  rest_show_cluster_json(restc, n, p);
+
   doc = xmlNewDoc((xmlChar *)"1.0");
   root = xmlNewDocNode(doc, NULL, (xmlChar *)"clusters", NULL);
   xmlDocSetRootElement(doc, root);
-
 
   char uuid_str[UUID_STR_LEN+1];
   uuid_unparse_lower(my_cluster_id, uuid_str);
   xmlSetProp(root, (xmlChar *)"my_id", (xmlChar *)uuid_str);
 
-  if(n == 1) {
-    mtev_cluster_t *c = mtev_cluster_by_name(p[0]);
+  if(n >= 2) {
+    mtev_cluster_t *c = mtev_cluster_by_name(p[1]);
     if(!c) goto notfound;
     xmlAddChild(root, mtev_cluster_to_xmlnode(c));
   }
@@ -1046,7 +1136,7 @@ mtev_cluster_init(void) {
   if(clusters) free(clusters);
 
   mtevAssert(mtev_http_rest_register_auth(
-    "GET", "/", "^cluster(?:/(.+))?$", rest_show_cluster,
+    "GET", "/", "^cluster(/(..*?))?(\\.json)?$", rest_show_cluster,
              mtev_http_rest_client_cert_auth
   ) == 0);
   mtevAssert(mtev_http_rest_register_auth(
