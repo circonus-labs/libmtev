@@ -1,0 +1,64 @@
+        <div class="tab-pane active in fade" id="internals">
+          <div class="panel-group" id="eventer">
+            <div class="card card-default">
+              <div class="card-header">
+                <h4 class="card-title">
+                  <a class="accordion-toggle" data-toggle="collapse" data-parent="#eventer" href="#eventer-jobq">
+                    Job Queues
+                  </a>
+                </h4>
+              </div>
+              <div id="eventer-jobq" class="panel-collapse collapse in">
+                <div class="panel-body">
+                  <table class="table table-condensed">
+                    <thead>
+                      <tr><th></th><th>Queue</th><th class="text-center">Concurrency</th><th class="text-right">Processed</th><th colspan=2 class="text-center">Waiting</th><th colspan=2 class="text-center">Running</th></tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="card card-default">
+              <div class="card-header">
+                <h4 class="card-title">
+                  <a class="accordion-toggle" data-toggle="collapse" data-parent="#eventer" href="#eventer-sockets">
+                    Sockets
+                  </a>
+                </h4>
+              </div>
+              <div id="eventer-sockets" class="panel-collapse collapse">
+                <div class="panel-body">
+                  <table class="table table-condensed">
+                    <thead>
+                      <tr><th>FD</th><th>Opset</th><th>Callback</th><th>Local</th><th>Remote</th></tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="card card-default">
+              <div class="card-header">
+                <h4 class="card-title">
+                  <a class="accordion-toggle" data-toggle="collapse" data-parent="#eventer" href="#eventer-timers">
+                    Timers
+                  </a>
+                </h4>
+              </div>
+              <div id="eventer-timers" class="panel-collapse collapse">
+                <div class="panel-body">
+                  <table class="table table-condensed">
+                    <thead>
+                      <tr><th>Callback</th><th>When</th></tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
