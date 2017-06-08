@@ -61,6 +61,12 @@
 
 #define EVENTER_CHOOSE_THREAD_FOR_EVENT_FD(e) eventer_choose_owner((e)->fd+1)
 
+/*! \fn const char *eventer_get_thread_name(void)
+    \brief Retrieve a human-friendly name for an eventer thread.
+    \return A thread name.
+*/
+const char *eventer_get_thread_name(void);
+
 /* All of these functions act like their POSIX couterparts with two
  * additional arguments.  The first is the mask they require to be active
  * to make progress in the event of an EAGAIN.  The second is a closure
@@ -105,6 +111,7 @@ typedef struct _event
 }
 #endif
 *eventer_t;
+
 typedef struct eventer_pool_t eventer_pool_t;
 
 /*! \fn eventer_fd_accept_t eventer_fd_opset_get_accept(eventer_fd_opset_t opset)

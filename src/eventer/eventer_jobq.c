@@ -218,8 +218,16 @@ eventer_jobq_retrieve(const char *name) {
 static void *
 eventer_jobq_consumer_pthreadentry(void *vp) {
   eventer_jobq_t *jobq = vp;
-  if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE)
+  char thr_name[64];
+  snprintf(thr_name, sizeof(thr_name), "%s/%zu", jobq->queue_name,
+           (uintptr_t)pthread_self());
+  if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) {
     mtev_memory_init_thread();
+    eventer_set_thread_name(thr_name);
+  }
+  else {
+    eventer_set_thread_name_unsafe(thr_name);
+  }
   return eventer_jobq_consumer(jobq);
 }
 static void
