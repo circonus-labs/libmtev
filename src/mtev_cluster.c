@@ -94,7 +94,7 @@ MTEV_HOOK_IMPL(mtev_cluster_handle_node_update,
       struct timeval old_boot_time),
   (closure,node_change,updated_node,cluster,old_boot_time))
 
-static mtev_boolean
+mtev_boolean
 mtev_cluster_node_is_dead(mtev_cluster_node_t *node) {
   return compare_timeval(node->boot_time, boot_time_of_dead_node) == 0;
 }
@@ -801,6 +801,31 @@ mtev_cluster_do_i_own(mtev_cluster_t *c, void *key, size_t klen, int w) {
     node = owners[i]->userdata;
     if(uuid_compare(node->id, my_cluster_id) == 0) return mtev_true;
   }
+  return mtev_false;
+}
+
+mtev_boolean
+mtev_cluster_filter_owners(mtev_cluster_t *c, void *key, size_t klen,
+                           mtev_cluster_node_t **set, int *w,
+                           mtev_cluster_node_filter_func_t filter,
+                           void *closure) {
+  int j = 0, i, wout;
+  mtev_cht_node_t **owners;
+  if(!c || !c->cht || !(*(c->cht))) return mtev_false;
+  if(*w < 1) return false;
+  if(*w > c->node_cnt) *w = c->node_cnt;
+  owners = alloca(sizeof(*owners) * c->node_cnt);
+  wout = mtev_cht_vlookup_n(*(c->cht), key, klen, *w, owners);
+  for(i=0; i<wout; i++) {
+    mtev_cluster_node_t *node;
+    node = owners[i]->userdata;
+    if(filter(node, uuid_compare(node->id, my_cluster_id) == 0, closure)) {
+      set[j++] = node;
+    }
+  }
+  *w = j;
+  if(*w < 0) return mtev_false;
+  if(uuid_compare(set[0]->id, my_cluster_id) == 0) return mtev_true;
   return mtev_false;
 }
 
