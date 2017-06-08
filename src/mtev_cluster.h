@@ -170,6 +170,28 @@ API_EXPORT(int)
 API_EXPORT(mtev_boolean)
   mtev_cluster_do_i_own(mtev_cluster_t *, void *key, size_t klen, int w);
 
+typedef mtev_boolean (*mtev_cluster_node_filter_func_t)(mtev_cluster_node_t *, mtev_boolean, void *);
+
+/* \fn mtev_boolean mtev_cluster_filter_owners(mtev_cluster_t *cluster, void *key, size_t klen, mtev_cluster_node_t **set, int *w, mtev_cluster_node_filter_func_t filter, void *closure)
+   \brief Determines if the local node should possess a given key based on internal CHTs.
+   \param cluster The cluster in question.
+   \param key A pointer to the key.
+   \param klen The length, in bytes, of the key.
+   \param set A caller allocated array of at least *w length.
+   \param w The number of nodes that are supposed to own this key, updated to set length that matches filter.
+   \param filter The function used to qualify nodes.
+   \param closure A user supplied value that is passed to the filter function.
+   \return Returns mtev_true or mtev_false if set[0] is this node.
+
+   This function populates a set of owners for a key, but first filters them
+   according to a user-specified function.
+ */
+API_EXPORT(mtev_boolean)
+  mtev_cluster_filter_owners(mtev_cluster_t *c, void *key, size_t len,
+                             mtev_cluster_node_t **set, int *w,
+                             mtev_cluster_node_filter_func_t filter,
+                             void *closure);
+
 /* \fn void mtev_cluster_enable_payload(mtev_cluster_t *cluster, void* payload, uint8_t payload_length)
    \brief Triggers the attachment of an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)
    \param cluster The cluster in question, may not be NULL.
@@ -216,6 +238,14 @@ API_EXPORT(mtev_cluster_node_t*)
  */
 API_EXPORT(mtev_boolean)
   mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster);
+
+/* \fn mtev_boolean mtev_cluster_node_is_dead(mtev_cluster_node_t *node)
+   \brief Detrmines if the node in question is dead.
+   \param node The node in question.
+   \return Returns true if the node is dead.
+*/
+API_EXPORT(mtev_boolean)
+  mtev_cluster_node_is_dead(mtev_cluster_node_t *node);
 
 /* \fn struct timeval mtev_cluster_get_my_boot_time()
    \brief Returns the boot time of the local node.
