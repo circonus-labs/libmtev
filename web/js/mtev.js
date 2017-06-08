@@ -270,6 +270,7 @@ var mtev = {};
             if(tab.callback) try { cb = eval(tab.callback); } catch(e) {}
             mtev.ui_load(tab.name, tab.id, tab.url, tab.active, cb)
           }
+          mtev.initialTabSelect();
           clearInterval(keepTrying);
         }, 10);
       }
@@ -292,25 +293,28 @@ var mtev = {};
     if(!tabName) return null;
 
     // Add out elements into the DOM
-    var $link = $('<li class="nav-item"><a class="nav-link">' +
-                  tabName + '</a></li>');
-    $("#viewTab").prepend($link);
+    var $li = $('<li class="nav-item"/>');
+    var $link = $('<a class="nav-link">' +
+                  tabName + '</a>');
+    $li.prepend($link);
+    $("#viewTab").prepend($li);
 
     if(!id && url) {
-      $($link).find("a").attr('href', url);
+      $($link).attr('href', url);
       if(cb) cb();
       return;
     }
 
     if(!tabName || !id || $('#' + id).length > 0) return null;
-    $($link).find("a").attr('href', '#' + id);
-    $($link).find("a").attr('data-toggle', 'tab');
-    var $div = $('<div class="tab-pane fade in"></div>').attr('id',id);
+    $($link).attr('href', '#' + id);
+    $($link).attr('data-toggle', 'tab');
+    $($link).attr('role', 'tab');
+    var $div = $('<div class="tab-pane fade in" role="tabpanel"></div>').attr('id',id);
     $("#viewTabContent").prepend($div);
 
     if(active) {
       $("#viewTabContent > div").removeClass("active");
-      $("#viewTab > li > a").removeClass("active");
+      $("#viewTab a.nav-link").removeClass("active");
       $link.addClass("active");
       $div.addClass("active");
     }
@@ -328,25 +332,25 @@ var mtev = {};
       if(cb) cb();
     }
   };
+
+  mtev.initialTabSelect = function() {
+    $('.navbar-nav a.nav-link')
+      .filter(function(i,a) { return $(a).attr('href').startsWith('#') })
+      .click(function (e) {
+        e.preventDefault();
+        $(this).tab('show');
+        var scrollmem = $('body').scrollTop();
+        var loc_no_qs = window.location.href.replace(/\?.*$/, '');
+        if(loc_no_qs != window.location.href)
+          window.history.pushState({},"",loc_no_qs);
+        window.location.hash = this.hash;
+        $('html,body').scrollTop(scrollmem);
+      });
+
+    var hash = window.location.hash.substring(1);
+    if(!hash) return;
+    var nav = hash.split(/:/);
+    if(nav[0]) $('nav a[href="#' + nav[0] + '"]').tab('show');
+  };
 })();
-
-$(document).ready(function() {
-  $('.navbar-nav a.nav-link')
-    .filter(function(i,a) { return $(a).attr('href').startsWith('#') })
-    .click(function (e) {
-      $(this).tab('show');
-      var scrollmem = $('body').scrollTop();
-      var loc_no_qs = window.location.href.replace(/\?.*$/, '');
-      if(loc_no_qs != window.location.href)
-        window.history.pushState({},"",loc_no_qs);
-      window.location.hash = this.hash;
-      $('html,body').scrollTop(scrollmem);
-    });
-
-  var hash = window.location.hash.substring(1);
-  if(!hash) return;
-  var nav = hash.split(/:/);
-
-  if(nav[0]) $('ul.nav a[href="#' + nav[0] + '"]').tab('show');
-});
 

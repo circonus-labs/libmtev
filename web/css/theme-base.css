@@ -13,24 +13,27 @@ html {
 .card-title {
   margin-bottom:0;
 }
-a.nav-link {
-  margin-top: 5px;
-}
 
+nav div.navbar-brand {
+  width: 35px;
+}
 nav.navbar-fixed-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
   background: white url(../i/product-logo.png) no-repeat scroll left top;
   background-size: 50px 50px;
   background-position: 20px 12px;
   padding-left: 35px;
   max-height: 65px;
-  broder-bottom: 1px solid #999;
+  height: 65px;
+  border-bottom: 1px solid #999;
 }
 
-div#headerinfo {
-  margin-top: -10px;
-  position:absolute;
-  right:1em;
-  top:2em;
+#internals .card {
+  margin-bottom: 1em;
 }
 
 #main-log-window div.row {
@@ -44,9 +47,42 @@ div.nav-line {
   margin-top: 63px;
   margin-left: 83px;
 }
-nav ul#viewTab {
-  margin-left: 60px;
-  margin-top: 1.5em;
+#viewTab {
+  margin-left: 45px;
+  margin-top: 2.5em;
+  border:none;
+}
+a.nav-link {
+  margin-left: 0em;
+}
+
+#headerinfo {
+  margin-top: -10px;
+  position:absolute;
+  right:1em;
+  top:2em;
+}
+
+@media (max-width:768px) {
+  #viewTab {
+    background: white;
+    border-bottom: 1px solid #999;
+    margin-left: 0px;
+    margin-top: 66px;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+  }
+  #headerinfo {
+    position:relative;
+    top:0;
+    margin-top:0;
+  }
+  a.nav-link {
+    margin-top: 5px;
+    margin-left: 1em;
+  }
 }
 
 .theme-dropdown .dropdown-menu {
