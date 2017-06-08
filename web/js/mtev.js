@@ -32,7 +32,7 @@ var mtev = {};
     if(typeof(m) == 'number') m = new Date(m);
     return  m.getUTCFullYear() +"/"+
      ("0" + (m.getUTCMonth()+1)).slice(-2) +"/"+
-     ("0" + m.getUTCDate()).slice(-2) + " " +
+     ("0" + m.getUTCDate()).slice(-2) + "&nbsp;" +
      ("0" + m.getUTCHours()).slice(-2) + ":" +
      ("0" + m.getUTCMinutes()).slice(-2) + ":" +
      ("0" + m.getUTCSeconds()).slice(-2);
@@ -185,8 +185,8 @@ var mtev = {};
       for(var i in logs) {
         var log = logs[i];
         $row = $("<div class=\"row\"/>");
-        $row.append($("<div class=\"col-md-2 text-muted\"/>").text(mtev.nice_date(log.whence)));
-        $row.append($("<div class=\"col-md-10\"/>").text(log.line));
+        $row.append($("<div class=\"col-md-3 col-lg-2 text-muted\"/>").html(mtev.nice_date(log.whence)));
+        $row.append($("<div class=\"col-md-9 col-lg-10\"/>").text(log.line));
         $c.append($row);
         last_log_idx = log.idx;
         if(atend < 20) {
@@ -253,13 +253,25 @@ var mtev = {};
 
   mtev.start = function(uijson) {
     var processUI = function(r) {
-      if(r.tabs) {
-        for(var i=r.tabs.length-1;i>=0;i--) {
-          var tab = r.tabs[i];
-          var cb = null;
-          if(tab.callback) try { cb = eval(tab.callback); } catch(e) {}
-          mtev.ui_load(tab.name, tab.id, tab.url, tab.active, cb)
+      var pending = 0;
+      if(r.scripts) {
+        for(var i=0;i<r.scripts.length;i++) {
+          pending++;
+          jQuery.getScript(r.scripts[i], function() { pending--; });
         }
+      }
+      if(r.tabs) {
+        var keepTrying;
+        keepTrying = setInterval(function() {
+          if(pending > 0) return;
+          for(var i=r.tabs.length-1;i>=0;i--) {
+            var tab = r.tabs[i];
+            var cb = null;
+            if(tab.callback) try { cb = eval(tab.callback); } catch(e) {}
+            mtev.ui_load(tab.name, tab.id, tab.url, tab.active, cb)
+          }
+          clearInterval(keepTrying);
+        }, 10);
       }
     }
     if(uijson) {
@@ -324,6 +336,9 @@ $(document).ready(function() {
     .click(function (e) {
       $(this).tab('show');
       var scrollmem = $('body').scrollTop();
+      var loc_no_qs = window.location.href.replace(/\?.*$/, '');
+      if(loc_no_qs != window.location.href)
+        window.history.pushState({},"",loc_no_qs);
       window.location.hash = this.hash;
       $('html,body').scrollTop(scrollmem);
     });

@@ -2525,6 +2525,10 @@ nav.navbar-fixed-top {
   background-size: 50px 50px;
   background-position: 80px 12px;
   padding-left: 55px;
+  max-height: 120px;
+}
+
+@media (min-width: 768px) {
   max-height: 65px;
 }
 

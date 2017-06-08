@@ -20,13 +20,17 @@ a.nav-link {
 nav.navbar-fixed-top {
   background: white url(../i/product-logo.png) no-repeat scroll left top;
   background-size: 50px 50px;
-  background-position: 80px 12px;
-  padding-left: 55px;
+  background-position: 20px 12px;
+  padding-left: 35px;
   max-height: 65px;
+  broder-bottom: 1px solid #999;
 }
 
 div#headerinfo {
   margin-top: -10px;
+  position:absolute;
+  right:1em;
+  top:2em;
 }
 
 #main-log-window div.row {
@@ -41,7 +45,7 @@ div.nav-line {
   margin-left: 83px;
 }
 nav ul#viewTab {
-  margin-left: 120px;
+  margin-left: 60px;
   margin-top: 1.5em;
 }
 

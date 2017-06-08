@@ -21,11 +21,31 @@ docs-html:	gitbook-setup
 docs-pdf:	gitbook-setup
 	PATH=$(shell dirname $(EBOOKCONVERT)):$(shell echo $$PATH) gitbook pdf . docs/libmtev-manual.pdf
 
+COMPRESS_JS=cat
+COMPRESS_CSS=cat
+WEBJS=jquery.min.js tether.min.js bootstrap.min.js d3.v4.min.js d3-scale.v1.min.js \
+	colorbrewer.js circllhist.js circhistd3.js mtev.js
+FWEBJS=$(WEBJS:%.js=web/js/%.js)
+WEBCSS=b-glyphicons.css colorbrewer.css bootstrap-theme.min.css bootstrap.min.css \
+	tether.min.css theme-base.css
+FWEBCSS=$(WEBCSS:%.css=web/css/%.css)
+
+web/js/mtev.min.js:	$(FWEBJS)
+	cat $(FWEBJS) | $(COMPRESS_JS) > $@
+
+web/css/mtev.min.css:	$(FWEBCSS)
+	cat $(FWEBCSS) | $(COMPRESS_CSS) > $@
+
+web-compress:	web/js/mtev.min.js web/css/mtev.min.css
+
+web-distclean:
+	rm -f web/js/mtev.min.js web/css/mtev.min.css
+
 clean:
 	(cd src && $(MAKE) clean)
 	(cd test && $(MAKE) clean)
 
-distclean: 	clean
+distclean: 	clean web-distclean
 	rm -f Makefile config.status config.log
 	(cd src && $(MAKE) distclean)
 	(cd test && $(MAKE) distclean)
