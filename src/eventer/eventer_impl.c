@@ -98,7 +98,15 @@ struct eventer_impl_data {
 };
 
 static __thread struct eventer_impl_data *my_impl_data;
+static __thread char *thread_name;
 static struct eventer_impl_data *eventer_impl_tls_data = NULL;
+
+void eventer_set_thread_name(const char *name) {
+  thread_name = strdup(name);
+}
+const char *eventer_get_thread_name(void) {
+  return thread_name;
+}
 
 #ifdef HAVE_KQUEUE
 extern struct _eventer_impl eventer_kqueue_impl;
@@ -469,9 +477,12 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
 
 static void *thrloopwrap(void *vid) {
   struct eventer_impl_data *t;
+  char thr_name[64];
   int id = (int)(intptr_t)vid;
   t = &eventer_impl_tls_data[id];
   t->id = id;
+  snprintf(thr_name, sizeof(thr_name), "%s/%d", t->pool->name, id);
+  eventer_set_thread_name(thr_name);
   mtev_memory_init(); /* Just in case no one has initialized this */
   mtev_memory_init_thread();
   eventer_per_thread_init(t);
