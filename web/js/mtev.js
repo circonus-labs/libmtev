@@ -316,6 +316,7 @@ var mtev = {};
       $("#viewTabContent > div").removeClass("active");
       $("#viewTab a.nav-link").removeClass("active");
       $link.addClass("active");
+      $div.removeClass("fade");
       $div.addClass("active");
     }
 
