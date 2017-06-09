@@ -311,7 +311,7 @@ mtev_cluster_store_payload(mtev_cluster_node_t *node, const void* payload, uint1
   if(node->payload && node->payload_length < payload_length) {
     node->payload = realloc(node->payload, payload_length);
   } else if(node->payload == NULL) {
-    node->payload = malloc(payload_length);
+    node->payload = calloc(1,payload_length);
   }
   if(node->payload == NULL || payload == NULL) {
     return mtev_false;
@@ -836,7 +836,7 @@ mtev_cluster_set_heartbeat_payload(mtev_cluster_t *cluster,
 
   int payload_len_sum = 0;
   hb_payload_t *hb_payload, *old_payload = NULL;
-  uint16_t *hash_key = malloc(sizeof(uint16_t));
+  uint16_t *hash_key = calloc(1,sizeof(uint16_t));
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
 
   *hash_key = (app_id << 8) | key;
@@ -855,7 +855,7 @@ mtev_cluster_set_heartbeat_payload(mtev_cluster_t *cluster,
   }
 
   if(old_payload == NULL) {
-    hb_payload = malloc(sizeof(hb_payload_t) + sizeof(payload));
+    hb_payload = calloc(1, sizeof(hb_payload_t) + sizeof(payload));
     hb_payload->app_id = app_id;
     hb_payload->key = key;
   } else {
@@ -947,6 +947,7 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
       MJ_KV(node, "address", MJ_STR(ipstr));
       MJ_KV(node, "port", MJ_INT(ntohs(n->addr.addr6.sin6_port)));
     }
+    MJ_KV(node, "dead", MJ_BOOL(mtev_cluster_node_is_dead(n)));
     MJ_ADD(nodes, node);
   }
   return obj;
