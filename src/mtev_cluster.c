@@ -920,8 +920,10 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
   MJ_KV(obj, "maturity", MJ_INT(c->maturity));
 
   char uuid_str[UUID_STR_LEN+1];
-  uuid_unparse_lower(c->oldest_node->id, uuid_str);
-  MJ_KV(obj, "oldest_node", MJ_STR(uuid_str));
+  if(c->oldest_node) {
+    uuid_unparse_lower(c->oldest_node->id, uuid_str);
+    MJ_KV(obj, "oldest_node", MJ_STR(uuid_str));
+  }
 
   MJ_KV(obj, "nodes", (nodes = MJ_ARR()));
   for(i=0;i<c->node_cnt;i++) {
