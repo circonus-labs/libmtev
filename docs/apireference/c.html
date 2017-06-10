@@ -1459,6 +1459,16 @@ eventer_get_pool_for_event(<span class="hljs-keyword">eventer_t</span> e)
 <li><code>e</code> an event object.</li>
 <li><strong>RETURN</strong> the <code>eventer_pool_t</code> to which the event is scheduled.</li>
 </ul>
+<h4 id="eventergetthreadname">eventer_get_thread_name</h4>
+<blockquote>
+<p>Retrieve a human-friendly name for an eventer thread.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">eventer_get_thread_name</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> A thread name.</li>
+</ul>
 <h4 id="eventergetwhence">eventer_get_whence</h4>
 <blockquote>
 <p>Retrieve the time at which a timer event will fire.</p>
