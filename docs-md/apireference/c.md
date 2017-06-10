@@ -1196,6 +1196,19 @@ eventer_get_pool_for_event(eventer_t e)
   * **RETURN** the `eventer_pool_t` to which the event is scheduled.
 
 
+#### eventer_get_thread_name
+
+>Retrieve a human-friendly name for an eventer thread.
+
+```c
+const char *
+eventer_get_thread_name(void)
+```
+
+
+  * **RETURN** A thread name.
+
+
 #### eventer_get_whence
 
 >Retrieve the time at which a timer event will fire.
