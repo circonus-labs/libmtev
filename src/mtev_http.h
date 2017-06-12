@@ -129,6 +129,10 @@ API_EXPORT(eventer_t)
 
 API_EXPORT(void)
   mtev_http_request_start_time(mtev_http_request *, struct timeval *);
+API_EXPORT(int)
+  mtev_http_request_opts(mtev_http_request *);
+API_EXPORT(void)
+  mtev_http_request_set_opts(mtev_http_request *, int);
 API_EXPORT(const char *)
   mtev_http_request_uri_str(mtev_http_request *);
 API_EXPORT(const char *)
@@ -246,6 +250,11 @@ API_EXPORT(Zipkin_Span *)
 
 API_EXPORT(void)
   mtev_http_init(void);
+
+MTEV_HOOK_PROTO(http_post_request,
+                (mtev_http_session_ctx *ctx),
+                void *, closure,
+                (void *closure, mtev_http_session_ctx *ctx))
 
 MTEV_HOOK_PROTO(http_request_log,
                 (mtev_http_session_ctx *ctx),

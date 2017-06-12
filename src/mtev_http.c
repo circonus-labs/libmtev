@@ -67,6 +67,12 @@
 #define HEADER_TRANSFER_ENCODING "transfer-encoding"
 #define HEADER_EXPECT "expect"
 
+MTEV_HOOK_IMPL(http_post_request,
+  (mtev_http_session_ctx *ctx),
+  void *, closure,
+  (void *closure, mtev_http_session_ctx *ctx),
+  (closure,ctx))
+
 MTEV_HOOK_IMPL(http_request_log,
   (mtev_http_session_ctx *ctx),
   void *, closure,
@@ -400,6 +406,12 @@ eventer_t mtev_http_connection_event_float(mtev_http_connection *conn) {
 }
 void mtev_http_request_start_time(mtev_http_request *req, struct timeval *t) {
   memcpy(t, &req->start_time, sizeof(*t));
+}
+int mtev_http_request_opts(mtev_http_request *req) {
+  return req->opts;
+}
+void mtev_http_request_set_opts(mtev_http_request *req, int opts) {
+  req->opts = opts;
 }
 const char *mtev_http_request_uri_str(mtev_http_request *req) {
   return req->uri_str;
@@ -1794,6 +1806,11 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     /* we always respond with the same procotol */
     ctx->res.protocol = ctx->req.protocol;
     LIBMTEV_HTTP_REQUEST_FINISH(CTXFD(ctx), ctx);
+
+    if(http_post_request_hook_invoke(ctx) == MTEV_HOOK_ABORT) {
+      mtevL(http_debug, "hook aborted http session.\n");
+      goto abort_drive;
+    }
   }
 
   if (ctx->is_websocket == mtev_true) {
