@@ -73,11 +73,17 @@ mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
 void
 mtev_lua_lmc_free(lua_module_closure_t *lmc) {
   if(lmc) {
+    if(lmc->lua_state) lua_close(lmc->lua_state);
     if(lmc->pending) {
       mtev_hash_destroy(lmc->pending, free, NULL);
       free(lmc->pending);
     }
     mtev_hash_destroy(&lmc->state_coros, NULL, NULL);
+    pthread_mutex_lock(&mtev_lua_states_lock);
+    mtev_hash_delete(&mtev_lua_states,
+                     (const char*)&lmc->lua_state, sizeof(lmc->lua_state),
+                     free, NULL);
+    pthread_mutex_unlock(&mtev_lua_states_lock);
   }
   free(lmc);
 }
@@ -871,6 +877,7 @@ mtev_lua_open(const char *module_name, void *lmc,
   lua_setfield(L, -2, "cpath");
   lua_pop(L, 1);
 
+  require(L, rv, ffi);
   require(L, rv, mtev);
   require(L, rv, mtev.timeval);
   require(L, rv, mtev.extras);

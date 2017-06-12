@@ -157,6 +157,17 @@ mtev_lua_http_request_cookie(lua_State *L) {
   return 1;
 }
 static int
+mtev_lua_http_request_opts(lua_State *L) {
+  CCALL_DECL(L, mtev_http_request, req, 0);
+  if(lua_gettop(L) == 1) {
+    lua_pushinteger(L, mtev_http_request_opts(req));
+    return 1;
+  }
+  mtev_http_request_set_opts(req, lua_tointeger(L,2));
+  return 0;
+}
+
+static int
 mtev_lua_http_request_payload(lua_State *L) {
   const void *payload = NULL;
   int64_t size;
@@ -192,6 +203,9 @@ mtev_http_request_index_func(lua_State *L) {
       break;
     case 'm':
       REQ_DISPATCH(method);
+      break;
+    case 'o':
+      REQ_DISPATCH(opts);
       break;
     case 'p':
       REQ_DISPATCH(payload);
