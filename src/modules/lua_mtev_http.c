@@ -157,6 +157,17 @@ mtev_lua_http_request_cookie(lua_State *L) {
   return 1;
 }
 static int
+mtev_lua_http_request_opts(lua_State *L) {
+  CCALL_DECL(L, mtev_http_request, req, 0);
+  if(lua_gettop(L) == 1) {
+    lua_pushinteger(L, mtev_http_request_opts(req));
+    return 1;
+  }
+  mtev_http_request_set_opts(req, lua_tointeger(L,2));
+  return 0;
+}
+
+static int
 mtev_lua_http_request_payload(lua_State *L) {
   const void *payload = NULL;
   int64_t size;
@@ -192,6 +203,9 @@ mtev_http_request_index_func(lua_State *L) {
       break;
     case 'm':
       REQ_DISPATCH(method);
+      break;
+    case 'o':
+      REQ_DISPATCH(opts);
       break;
     case 'p':
       REQ_DISPATCH(payload);
@@ -525,3 +539,14 @@ mtev_lua_setup_restc(lua_State *L,
   lua_setmetatable(L, -2);
 }
 
+static void
+mtev_lua_va_mtev_http_session_ctx(lua_State *L, va_list ap) {
+  mtev_http_session_ctx *ctx = va_arg(ap, mtev_http_session_ctx *);
+  mtev_lua_setup_http_ctx(L, ctx);
+}
+int
+luaopen_mtev_http(lua_State *L) {
+  mtev_lua_register_dynamic_ctype("mtev_http_session_ctx *",
+                                  mtev_lua_va_mtev_http_session_ctx);
+  return 0;
+}

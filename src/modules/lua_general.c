@@ -38,6 +38,7 @@
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
 #include <dlfcn.h>
+#include <ctype.h>
 
 #define nldeb mtev_lua_debug_ls
 #define nlerr mtev_lua_error_ls
@@ -45,6 +46,9 @@
 #define MTEV_LUA_REPL_USERDATA "mtev::state::lua_repl"
 
 static int mtev_lua_general_init(mtev_dso_generic_t *);
+static mtev_hash_table hookinfo;
+static pthread_mutex_t hookinfo_lock = PTHREAD_MUTEX_INITIALIZER;
+static mtev_hash_table lua_ctypes;
 
 typedef struct mtev_lua_repl_userdata_t {
   mtev_dso_generic_t *self;
@@ -67,7 +71,7 @@ static lua_general_conf_t *get_config(mtev_dso_generic_t *self) {
   lua_general_conf_t *conf = mtev_image_get_userdata(&self->hdr);
   if(conf) return conf;
   conf = calloc(1, sizeof(*conf));
-  pthread_key_create(&conf->key, NULL);
+  pthread_key_create(&conf->key, (void (*)(void *))mtev_lua_lmc_free);
   mtev_image_set_userdata(&self->hdr, conf);
   return conf;
 }
@@ -136,7 +140,8 @@ lua_general_new_resume_info(lua_module_closure_t *lmc) {
 }
 
 static int
-lua_general_handler(mtev_dso_generic_t *self) {
+lua_general_handler_ex(mtev_dso_generic_t *self,
+                      const char *module, const char *function) {
   int status, rv;
   lua_general_conf_t *conf = get_config(self);
   lua_module_closure_t *lmc = pthread_getspecific(conf->key);
@@ -147,18 +152,18 @@ lua_general_handler(mtev_dso_generic_t *self) {
 
   if(!lmc) mtev_lua_general_init(self);
   lmc = pthread_getspecific(conf->key);
-  if(!lmc || !conf || !conf->module || !conf->function) {
+  if(!lmc || !conf || !module || !function) {
     goto boom;
   }
   ri = lua_general_new_resume_info(lmc);
   L = ri->coro_state;
 
   lua_getglobal(L, "require");
-  lua_pushstring(L, conf->module);
+  lua_pushstring(L, module);
   rv = lua_pcall(L, 1, 1, 0);
   if(rv) {
     int i;
-    mtevL(nlerr, "lua: require %s failed\n", conf->module);
+    mtevL(nlerr, "lua: require %s failed\n", module);
     mtev_lua_traceback(L);
     i = lua_gettop(L);
     if(i>0) {
@@ -174,19 +179,19 @@ lua_general_handler(mtev_dso_generic_t *self) {
   }
   lua_pop(L, lua_gettop(L));
 
-  mtev_lua_pushmodule(L, conf->module);
+  mtev_lua_pushmodule(L, module);
   if(lua_isnil(L, -1)) {
     lua_pop(L, 1);
-    snprintf(errbuf, sizeof(errbuf), "no such module: '%s'", conf->module);
+    snprintf(errbuf, sizeof(errbuf), "no such module: '%s'", module);
     err = errbuf;
     goto boom;
   }
-  lua_getfield(L, -1, conf->function);
+  lua_getfield(L, -1, function);
   lua_remove(L, -2);
   if(!lua_isfunction(L, -1)) {
     lua_pop(L, 1);
     snprintf(errbuf, sizeof(errbuf), "no function '%s' in module '%s'",
-             conf->function, conf->module);
+             function, module);
     err = errbuf;
     goto boom;
   }
@@ -203,6 +208,12 @@ lua_general_handler(mtev_dso_generic_t *self) {
   if(ri) lua_general_ctx_free(ri);
   tragic_failure(self);
   return 0;
+}
+
+static int
+lua_general_handler(mtev_dso_generic_t *self) {
+  lua_general_conf_t *conf = get_config(self);
+  return lua_general_handler_ex(self, conf->module, conf->function);
 }
 
 static int
@@ -254,6 +265,8 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     }
     free(copy);
   }
+  mtev_hash_init(&hookinfo);
+  mtev_hash_init(&lua_ctypes);
   return 0;
 }
 
@@ -313,6 +326,313 @@ lua_general_conf_save(lua_State *L) {
   return 1;
 }
 
+void
+mtev_lua_register_dynamic_ctype_impl(const char *type_name, mtev_lua_push_dynamic_ctype_t func) {
+  mtev_hash_replace(&lua_ctypes, strdup(type_name), strlen(type_name),
+                    func, free, NULL);
+}
+
+#define HOOK_EXTENSION_INVOKE 0
+#define HOOK_EXTENSION_EXISTS 1
+#define HOOK_EXTENSION_PROTO 2
+#define HOOK_EXTENSION_REGISTER 3
+#define HOOK_EXTENSIONS_CNT 4
+static const char *hook_exts[HOOK_EXTENSIONS_CNT] = {
+  "_hook_invoke",
+  "_hook_exists",
+  "_hook_proto",
+  "_hook_register"
+};
+
+typedef struct {
+  char *name;
+  const char *proto;
+  mtev_dso_generic_t *self;
+  mtev_hash_table hooks;
+} lua_hook_info_t;
+
+static void
+ptrim(char *orig, mtev_boolean *is_ptr) {
+  int trimming = 1;
+  int parens = 0;
+  char *in = orig, *out = orig;
+  if(is_ptr) *is_ptr = mtev_false;
+  if(*orig == '\0') return;
+  /* remove front and compress interstitial space */
+  while(*in) {
+    if(isspace(*in)) {
+      if(!trimming) {
+        *out++ = ' ';
+        trimming = 1;
+      }
+    } else {
+      /* not pointers */
+      if(*in == '*' && is_ptr) *is_ptr = mtev_true;
+      trimming = 0;
+      if(*in == '(') trimming = 1;
+      /* note parens */
+      if(*in == ')' && out > orig && out[-1] == ' ') {
+        parens = 1;
+        out--;
+      }
+      *out++ = *in;
+    }
+    in++;
+  }
+  *out = '\0';
+  /* remove trailing whitespace */
+  if(out > orig && out[-1] == ' ') {
+    out--;
+  }
+  /* move in to the "end" or prior to the first ')' */
+  if(parens) in = strchr(orig, ')') - 1;
+  else in = out;
+  out = in - 1;
+  while(*out && out > orig) {
+    if(*out == '(') return; /* indicates a broken hook prototype */
+    if(isspace(*out) || *out == '*') {
+      out++;
+      break;
+    }
+    out--;
+  }
+  while(*in) {
+    *out++ = *in++;
+  }
+  *out = '\0';
+}
+#define MAX_VARARGS 10
+static int
+lua_hook_varargs(lua_State *L, const char *proto, va_list ap) {
+  int clen, i = 0, nargs = 0;
+  char copy[1024], *cp;
+  char *args[MAX_VARARGS];
+  mtevL(nldeb, "hook proto -> %s\n", proto);
+
+  /* is it wrapped in () and short enough */
+  if(*proto != '(') return -1;
+  clen = strlen(proto);
+  if(proto[clen-1] != ')') return -1;
+  if(clen > sizeof(copy)) return -1;
+  memcpy(copy, proto+1, clen-2);
+  clen -= 2;
+  copy[clen] = '\0';
+
+  mtevL(nldeb, "extracting hook prototype args\n");
+  /* extract args */
+  cp = copy;
+  while(*cp && nargs<MAX_VARARGS)  {
+    int paren_cnt = 0;
+    args[nargs++] = cp;
+    while(*cp) {
+      if(*cp == ',' && paren_cnt == 0) break;
+      if(*cp == '(') paren_cnt++;
+      if(*cp == ')') paren_cnt--;
+      cp++;
+    }
+    if(*cp == ',') {
+      *cp++ = '\0';
+    }
+  }
+
+  /* The first are is void *closure, so we need at least one more */
+  if(nargs < 2) return 0;
+
+#define IFVTYPE(str, type, var) \
+    if(!strcmp(args[i],str)) { \
+      type var = va_arg(ap, type);
+#define IFVTYPE_END() }
+
+  /* normalize && convert and push, starting after our closure */
+  for(i=1; i<nargs; i++) {
+    void *vfunc;
+    mtev_boolean is_ptr;
+    ptrim(args[i], &is_ptr);
+    mtevL(nldeb, "args[%d] %s-> '%s'\n", i, is_ptr ? "(ptr) " : "", args[i]);
+    IFVTYPE("char *", char *, str)
+      lua_pushstring(L, str);
+    IFVTYPE_END()
+    else IFVTYPE("const char *", char *, str)
+      lua_pushstring(L, str);
+    IFVTYPE_END()
+    else if(mtev_hash_retrieve(&lua_ctypes, args[i], strlen(args[i]), &vfunc)) {
+      mtev_lua_push_dynamic_ctype_t func = vfunc;
+      func(L, ap);
+      //mtev_lua_setup_http_ctx(L, ctx);
+    } else {
+      mtevL(nlerr, "unknown hook parameter type: '%s' consider mtev_lua_register_dynamic_ctype(...)\n", args[i]);
+      if(is_ptr) {
+        void *ptr = va_arg(ap, void *);
+        lua_pushlightuserdata(L,ptr);
+      } else {
+        lua_pushnil(L);
+      }
+    }
+  }
+  return nargs - 1;
+}
+/* This calls all registered lua functions for a hook
+ * if there is an error, the call is as if it did nothing
+ * and returned MTEV_HOOK_CONTINUE.
+ */
+static mtev_hook_return_t
+lua_hook_vahandler(void *closure, ...) {
+  mtev_hook_return_t hook_rv = MTEV_HOOK_CONTINUE;
+  int rv;
+  va_list ap_top;
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  lua_hook_info_t *lhi = closure;
+  lua_general_conf_t *conf = get_config(lhi->self);
+  lua_module_closure_t *lmc;
+  mtevL(nldeb, "lua hook %s\n", lhi->name);
+
+  lua_State *L;
+  lmc = pthread_getspecific(conf->key);
+  if(!lmc) {
+    mtev_lua_general_init(lhi->self);
+    lmc = pthread_getspecific(conf->key);
+  }
+  if(!lmc) {
+    mtevL(nlerr, "Failed to load lua_general on thread.\n");
+    return MTEV_HOOK_CONTINUE;
+  }
+  L = lmc->lua_state;
+
+  va_start(ap_top, closure);
+  while(mtev_hash_adv(&lhi->hooks, &iter)) {
+    const char *module = iter.key.str;
+    const char *function = module + strlen(module) + 1;
+    mtevL(nldeb, "lua hook %s -> %s\n", module, function);
+    va_list ap;
+
+    lua_getglobal(L, "require");
+    lua_pushstring(L, module);
+    rv = lua_pcall(L, 1, 1, 0);
+    if(rv) {
+      int i;
+      mtevL(nlerr, "lua: require %s failed\n", module);
+      mtev_lua_traceback(L);
+      i = lua_gettop(L);
+      if(i>0 && lua_isstring(L, i)) mtevL(nlerr, "lua: %s\n", lua_tostring(L, i));
+      lua_pop(L,i);
+      continue;
+    }
+    lua_pop(L, lua_gettop(L));
+
+    mtev_lua_pushmodule(L, module);
+    if(lua_isnil(L, -1)) {
+      lua_pop(L, 1);
+      mtevL(nlerr, "no such module: '%s'", module);
+      continue;
+    }
+    lua_getfield(L, -1, function);
+    lua_remove(L, -2);
+    if(!lua_isfunction(L, -1)) {
+      lua_pop(L, 1);
+      mtevL(nlerr, "no function '%s' in module '%s'", function, module);
+      continue;
+    }
+
+    va_copy(ap, ap_top);
+    int nargs = lua_hook_varargs(L, lhi->proto, ap);
+    va_end(ap);
+
+    if(nargs < 0) {
+      mtevL(nlerr, "failed to parse hook proto '%s'\n", lhi->proto);
+      continue;
+    }
+
+    mtevL(nldeb, "calling lua hook %s in %s\n", function, module);
+    rv = lua_pcall(L, nargs, 1, 0);
+    if(rv) {
+      int i;
+      mtev_lua_traceback(L);
+      i = lua_gettop(L);
+      if(i>0 && lua_isstring(L, i)) mtevL(nlerr, "lua: %s\n", lua_tostring(L, i));
+      lua_pop(L,i);
+      continue;
+    }
+    if(lua_gettop(L) == 1) {
+      hook_rv = lua_tointeger(L,1);
+      lua_pop(L,1);
+      if(hook_rv != MTEV_HOOK_CONTINUE) break;
+    }
+  }
+  va_end(ap_top);
+  return MTEV_HOOK_CONTINUE;
+}
+
+static int
+lua_general_hook(lua_State *L) {
+  int i;
+  char symbol[1024];
+  void *f[HOOK_EXTENSIONS_CNT] = { NULL };
+
+  if(lua_gettop(L) != 1 && lua_gettop(L) != 3) {
+    luaL_error(L, "mtev.hook(name,[\"func_name\"])");
+  }
+
+  /* Verify the request is a hook point */
+  const char *basename = lua_tostring(L,1);
+  for(i=0; i<HOOK_EXTENSIONS_CNT; i++) {
+    snprintf(symbol, sizeof(symbol), "%s%s", basename, hook_exts[i]);
+#ifdef RTLD_DEFAULT
+    f[i] = dlsym(RTLD_DEFAULT, symbol);
+#else
+    f[i] = dlsym((void *)0, symbol);
+#endif
+    if(!f[i]) {
+      mtevL(mtev_error, "symbol not found: %s\n", symbol);
+      break;
+    }
+  }
+  if(lua_gettop(L) == 1) {
+    lua_pushboolean(L, i == HOOK_EXTENSIONS_CNT);
+    return 1;
+  }
+  const char *module = lua_tostring(L,2);
+  const char *func_name = lua_tostring(L,3);
+  if(i != HOOK_EXTENSIONS_CNT) luaL_error(L, "hook not valid");
+
+  /* we need the lmc to get a point to self */
+  lua_module_closure_t *lmc;
+  lua_getglobal(L, "mtev_internal_lmc");;
+  lmc = lua_touserdata(L, lua_gettop(L));
+
+  int klen = strlen(module)+1;
+  char *combined = malloc(klen + strlen(func_name) + 1);
+  memcpy(combined, module, klen);
+  memcpy(combined + klen, func_name, strlen(func_name) + 1);
+  klen += strlen(func_name) + 1;
+  /* f is now the register call */
+  pthread_mutex_lock(&hookinfo_lock);
+  void *vlhi;
+  lua_hook_info_t *lhi;
+  if(mtev_hash_retrieve(&hookinfo, basename, strlen(basename), &vlhi)) {
+    lhi = vlhi;
+  } else {
+    lhi = calloc(1, sizeof(*lhi));
+    lhi->name = strdup(basename);
+    lhi->self = lmc->self;
+    mtev_hash_init(&lhi->hooks);
+    mtev_hash_store(&hookinfo, lhi->name, strlen(lhi->name), lhi);
+    snprintf(symbol, sizeof(symbol), "lua/%s", basename);
+
+    void (*fcall)(const char *, mtev_hook_return_t (*)(void *, ...), void *);
+    const char *(*protocall)(void);
+
+    fcall = f[HOOK_EXTENSION_REGISTER];
+    fcall(symbol, lua_hook_vahandler, lhi);
+
+    protocall = f[HOOK_EXTENSION_PROTO];
+    lhi->proto = protocall();
+  }
+  mtev_hash_replace(&lhi->hooks, combined, klen, NULL, free, NULL);
+  pthread_mutex_unlock(&hookinfo_lock);
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
 static const luaL_Reg general_lua_funcs[] =
 {
   {"coroutine_spawn", lua_general_coroutine_spawn },
@@ -320,9 +640,9 @@ static const luaL_Reg general_lua_funcs[] =
   {"reverse_stop", lua_general_reverse_socket_shutdown },
   {"conf_save", lua_general_conf_save },
   {"conf_mark_changed", lua_general_conf_mark_changed },
+  {"hook", lua_general_hook },
   {NULL,  NULL}
 };
-
 
 static int
 mtev_lua_general_init(mtev_dso_generic_t *self) {
@@ -584,8 +904,6 @@ static int
 mtev_lua_general_onload(mtev_image_t *self) {
   nlerr = mtev_log_stream_find("error/lua");
   nldeb = mtev_log_stream_find("debug/lua");
-  if(!nlerr) nlerr = mtev_stderr;
-  if(!nldeb) nldeb = mtev_debug;
   mtev_lua_context_describe(LUA_GENERAL_INFO_MAGIC,
                             describe_lua_general_context);
   mtev_lua_context_describe_json(LUA_GENERAL_INFO_MAGIC,

@@ -152,6 +152,8 @@ struct mtev_hook_##HOOKNAME##_list { \
 }; \
 static volatile void *nh_##HOOKNAME##_list = (volatile void *) NULL; \
  \
+const char * \
+HOOKNAME##_hook_proto(void) { return #HOOKPROTO; } \
 mtev_boolean \
 HOOKNAME##_hook_exists(void) { \
   return (nh_##HOOKNAME##_list != (volatile void *) NULL) ? mtev_true : mtev_false; \

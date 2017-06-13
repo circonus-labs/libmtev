@@ -18,5 +18,6 @@ end
 function eachthread()
   local thread, tid = mtev.thread_self()
   job("THREAD", tid)
+  mtev.hook("http_post_request", "mtev.hooks.http", "disable_compression")
 end
 
