@@ -657,7 +657,7 @@ fixed_umem_allocator_init(struct mtev_allocator *a, mtev_allocator_options_t opt
   a->impl_data = 
     umem_cache_create(a->options.name, a->options.fixed_size,
                       a->options.alignment, NULL, NULL, NULL, a,
-                      NULL, UMC_NODEBUG);
+                      NULL, 0);
 }
 #endif
 mtev_allocator_t mtev_allocator_create(mtev_allocator_options_t opt) {
