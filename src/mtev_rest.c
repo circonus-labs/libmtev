@@ -563,7 +563,6 @@ mtev_http_rest_handler(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    eventer_remove_fde(e);
     (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
     acceptor_closure_free(ac);
     return 0;
@@ -621,7 +620,6 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
 
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
     /* Exceptions cause us to simply snip the connection */
-    eventer_remove_fde(e);
     (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
     acceptor_closure_free(ac);
     return 0;

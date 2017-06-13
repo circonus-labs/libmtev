@@ -1009,9 +1009,14 @@ mtev_http_complete_request(mtev_http_session_ctx *ctx, int mask) {
   mtev_boolean rv, err = mtev_false;
 
   if(mask & EVENTER_EXCEPTION) {
+    eventer_t ine;
    full_error:
+    pthread_mutex_lock(&ctx->write_lock);
+    ine = eventer_remove_fde(ctx->conn.e);
     eventer_close(ctx->conn.e, &mask);
+    if(ine != ctx->conn.e) eventer_free(ctx->conn.e);
     ctx->conn.e = NULL;
+    pthread_mutex_unlock(&ctx->write_lock);
     return 0;
   }
   if(ctx->req.complete == mtev_true) return EVENTER_EXCEPTION;
@@ -1871,8 +1876,13 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
    abort_drive:
     mtev_http_log_request(ctx);
     if(ctx->conn.e) {
+      eventer_t ine;
+      pthread_mutex_lock(&ctx->write_lock);
+      ine = eventer_remove_fde(ctx->conn.e);
       eventer_close(ctx->conn.e, &mask);
+      if(ine != ctx->conn.e) eventer_free(ctx->conn.e);
       ctx->conn.e = NULL;
+      pthread_mutex_unlock(&ctx->write_lock);
     }
     goto release;
   }
