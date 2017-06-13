@@ -101,7 +101,7 @@ static int handler_work(eventer_t e, int mask, void *closure,
     mtev_http_session_ctx *ctx = restc->http_ctx;
 
     /* trigger a continuation of the HTTP connection */
-    conne = mtev_http_session_connection(ctx);
+    conne = mtev_http_connection_event(mtev_http_session_connection(ctx));
     if(conne) {
       eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
     }
@@ -125,16 +125,13 @@ static int handler(mtev_http_rest_closure_t *restc,
 
   /* remove the eventer */
   conne = mtev_http_connection_event_float(mtev_http_session_connection(ctx));
-  if(conne) eventer_remove_fd(conne->fd);
+  if(conne) eventer_remove_fde(conne);
 
   /* set a completion routine */
   restc->fastpath = handler_complete;
 
   /* schedule our work */
-  worke = eventer_alloc();
-  worke->closure = restc;
-  worke->mask = EVENTER_ASYNCH;
-  worke->callback = handler_work;
+  worke = eventer_alloc_asynch(handler_work, restc);
   eventer_add(worke);
   return 0;
 }

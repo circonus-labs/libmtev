@@ -42,8 +42,9 @@ be invoked.
 #### Operations on the file descriptor
 
 While the `fd` field of the `eventer_t` is a normal file descriptor and normal
-POSIX operations can be performed on it (such as read(2), write(2), etc.), it
-is highly recommened to perform actions on it via the `opset` from the `eventer_t`.
+POSIX operations can be performed on it (such as read(2), write(2), etc.). These
+operations are all abstracted away behind the `eventer_read`, `eventer_write`, etc.
+convenience functions.
 
 The opset can be changed to support SSL operations and, in such operations, some
 non-blocking operations can require some non-obvious events to make progress.
@@ -57,11 +58,11 @@ my_callback(eventer_t e, int mask, void *closure, struct timeval *now) {
   size_t len;
   int mask = 0;
 
-  len = e->opset->read(e->fd, buff, sizeof(buff), &mask, e);
+  len = eventer_read(e, buff, sizeof(buff), &mask);
   if (len < 0) {
     if (errno == EAGAIN) return mask|EVENTER_EXCEPTION;
-    eventer_remove_fd(e->fd);
-    e->opset->close(e->fd, &mask, e);
+    eventer_remove_fde(e);
+    eventer_close(e, &mask);
     return 0;
   }
 
@@ -81,7 +82,7 @@ Order of operations (and other) notes:
 
   * To suspend an fd event (A) while an asynch event (B) is run:
     * In A's callback
-      * `eventer_remove_fd(A->fd)`
+      * `eventer_remove_fde(A)`
       * `eventer_ref(A)`
       * pass A as a part of B's closure
       * `eventer_add(B)`
@@ -103,9 +104,7 @@ The return value from recurrent events should be `EVENTER_RECURRENT`.
 ##### recurrent_example.c (snippet)
 
 ```c
-  eventer_t e = eventer_alloc();
-  e->mask = EVENTER_RECURRENT;
-  e->callback = super_often;
+  eventer_t e = eventer_alloc_recurrent(super_often, NULL;
   eventer_add(e);
 ```
 
@@ -124,11 +123,10 @@ The return value of callbacks for timer events should always be 0.
 
 ```c
   eventer_t e;
-  e = eventer_alloc();
-  e->mask = EVENTER_TIMER;
-  mtev_gettimeofday(&e->whence, NULL);
-  e->whence.tv_sec += 5;
-  e->callback = something_to_do_in_five_seconds;
+  struct timeval whence;
+  mtev_gettimeofday(&whence, NULL);
+  whence.tv_sec += 5;
+  e = eventer_alloc_timer(something_to_do_in_five_seconds, NULL, &whence);
   eventer_add(e);
 
   /* equivalent via helpers */
@@ -167,9 +165,7 @@ void child_main() {
   ...
 
   mtevL(mtev_error, "thread %p -> add\n", pthread_self());
-  eventer_t e = eventer_alloc();
-  e->mask = EVENTER_ASYNCH;
-  e->callback = asynch_test;
+  eventer_t e = eventer_alloc_asynch(asynch_test, NULL);
   eventer_add(e);
 
   eventer_loop();
@@ -213,17 +209,15 @@ my_acceptor(eventer_t e, int mask, void *c, struct timeval *now) {
   eventer_pool_t *my_pool = eventer_get_pool_for_event(e);
   int newfd, newmask;
 
-  newfd = e->opset->accept(e->fd, &addr, &addrlen, &newmask, e);
+  newfd = eventer_accept(e, &addr, &addrlen, &newmask);
   if(newfd < 0) return newmask | EVENTER_EXCEPTION;
   if(eventer_set_fd_nonblocking(newfd)) {
     close(newfd);
     return EVENTER_READ|EVENTER_EXCEPTION;
   }
-  newe = eventer_alloc();
-  newe->mask = EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
-  newe->callback = my_handler;
-  mewe->closure = NULL;
-  newe->thr_owner = eventer_choose_owner_pool(my_pool, rand());
+  int mask = EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
+  newe = eventer_alloc_fd(my_handler, NULL, newfd, mask);
+  eventer_set_owner(newe, eventer_choose_owner_pool(my_pool, rand()));
   eventer_add(newe);
 
   return EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
@@ -240,7 +234,7 @@ as the parent (listening) event.
   ...
   if (want_move) {
     eventer_pool_t *my_pool = eventer_get_pool_for_event(e);
-    e->thr_owner = eventer_choose_owner_pool(my_pool, rand());
+    eventer_set_owner(e, eventer_choose_owner_pool(my_pool, rand()));
     return EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
   }
 ```
