@@ -48,6 +48,7 @@
 static int mtev_lua_general_init(mtev_dso_generic_t *);
 static mtev_hash_table hookinfo;
 static pthread_mutex_t hookinfo_lock = PTHREAD_MUTEX_INITIALIZER;
+static mtev_hash_table lua_ctypes;
 
 typedef struct mtev_lua_repl_userdata_t {
   mtev_dso_generic_t *self;
@@ -265,6 +266,7 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     free(copy);
   }
   mtev_hash_init(&hookinfo);
+  mtev_hash_init(&lua_ctypes);
   return 0;
 }
 
@@ -322,6 +324,12 @@ lua_general_conf_save(lua_State *L) {
   /* Invert the response to indicate a truthy success in lua */
   lua_pushboolean(L, mtev_conf_write_file(NULL) ? 0 : 1);
   return 1;
+}
+
+void
+mtev_lua_register_dynamic_ctype_impl(const char *type_name, mtev_lua_push_dynamic_ctype_t func) {
+  mtev_hash_replace(&lua_ctypes, strdup(type_name), strlen(type_name),
+                    func, free, NULL);
 }
 
 #define HOOK_EXTENSION_INVOKE 0
@@ -437,6 +445,7 @@ lua_hook_varargs(lua_State *L, const char *proto, va_list ap) {
 
   /* normalize && convert and push, starting after our closure */
   for(i=1; i<nargs; i++) {
+    void *vfunc;
     mtev_boolean is_ptr;
     ptrim(args[i], &is_ptr);
     mtevL(nldeb, "args[%d] %s-> '%s'\n", i, is_ptr ? "(ptr) " : "", args[i]);
@@ -446,15 +455,16 @@ lua_hook_varargs(lua_State *L, const char *proto, va_list ap) {
     else IFVTYPE("const char *", char *, str)
       lua_pushstring(L, str);
     IFVTYPE_END()
-    else IFVTYPE("mtev_http_session_ctx *", mtev_http_session_ctx *, ctx)
-      mtev_lua_setup_http_ctx(L, ctx);
-    IFVTYPE_END()
-    else {
+    else if(mtev_hash_retrieve(&lua_ctypes, args[i], strlen(args[i]), &vfunc)) {
+      mtev_lua_push_dynamic_ctype_t func = vfunc;
+      func(L, ap);
+      //mtev_lua_setup_http_ctx(L, ctx);
+    } else {
+      mtevL(nlerr, "unknown hook parameter type: '%s' consider mtev_lua_register_dynamic_ctype(...)\n", args[i]);
       if(is_ptr) {
         void *ptr = va_arg(ap, void *);
         lua_pushlightuserdata(L,ptr);
       } else {
-        mtevL(nlerr, "unknown hook parameter type: '%s'\n", args[i]);
         lua_pushnil(L);
       }
     }

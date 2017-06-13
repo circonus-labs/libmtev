@@ -45,6 +45,7 @@
 #include "mtev_rest.h"
 #include "mtev_log.h"
 #include "mtev_json.h"
+#include "mtev_hooks.h"
 
 extern mtev_log_stream_t mtev_lua_debug_ls;
 extern mtev_log_stream_t mtev_lua_error_ls;
@@ -198,6 +199,7 @@ int mtev_lua_dns_gc(lua_State *L);
 int mtev_lua_dns_index_func(lua_State *L);
 int nl_dns_lookup(lua_State *L);
 int luaopen_mtev(lua_State *L);
+int luaopen_mtev_http(lua_State *L);
 int mtev_lua_crypto_newx509(lua_State *L, X509 *x509);
 int mtev_lua_crypto_new_ssl_session(lua_State *L, SSL_SESSION *sess);
 int luaopen_crypto(lua_State *L);
@@ -221,6 +223,13 @@ mtev_lua_ffi_size(lua_State *L, const char *typename, uint32_t *id, size_t *len)
 
 int
 mtev_lua_ffi_new_thing(lua_State *L, uint32_t id, void *mem);
+
+typedef void (*mtev_lua_push_dynamic_ctype_t)(lua_State *, va_list);
+
+MTEV_RUNTIME_RESOLVE(mtev_lua_register_dynamic_ctype, mtev_lua_register_dynamic_ctype_impl, void,
+                     (const char *type_name, mtev_lua_push_dynamic_ctype_t func),
+                     (type_name, func))
+MTEV_RUNTIME_AVAIL(mtev_lua_register_dynamic_ctype, mtev_lua_register_dynamic_ctype_impl)
 
 #define require(L, rv, a) do { \
   lua_getglobal(L, "require"); \

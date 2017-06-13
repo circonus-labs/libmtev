@@ -4450,6 +4450,7 @@ int luaopen_mtev(lua_State *L) {
   LUA_DEFINE_INT(L, MTEV_HOOK_ABORT);
 
   luaopen_mtev_crypto(L);
+  luaopen_mtev_http(L);
   luaopen_bit(L);
   luaopen_pack(L);
   return 0;

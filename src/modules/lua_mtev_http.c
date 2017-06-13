@@ -539,3 +539,14 @@ mtev_lua_setup_restc(lua_State *L,
   lua_setmetatable(L, -2);
 }
 
+static void
+mtev_lua_va_mtev_http_session_ctx(lua_State *L, va_list ap) {
+  mtev_http_session_ctx *ctx = va_arg(ap, mtev_http_session_ctx *);
+  mtev_lua_setup_http_ctx(L, ctx);
+}
+int
+luaopen_mtev_http(lua_State *L) {
+  mtev_lua_register_dynamic_ctype("mtev_http_session_ctx *",
+                                  mtev_lua_va_mtev_http_session_ctx);
+  return 0;
+}
