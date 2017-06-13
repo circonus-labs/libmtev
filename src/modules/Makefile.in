@@ -32,7 +32,8 @@ XML2H=@PERL@ @top_srcdir@/buildtools/xml2h
 LUALIBS=@LUALIBS@
 
 HEADERS=lua_mtev.h
-LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua
+LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua \
+	mtev/hooks/http.lua
 
 FQ_MODULES=@FQ_MODULES@
 AMQP_MODULES=@AMQP_MODULES@
@@ -117,6 +118,7 @@ install-modules:	$(MODULES)
 		$(INSTALL) -m 0755 $(MTEV4LUA) $(DESTDIR)$(libdir)/$(MTEV4LUA); \
 	fi
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)/lua/mtev
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)/lua/mtev/hooks
 	for lua in $(LUA_FILES); do \
 		$(INSTALL) -m 0755 lua-support/$$lua $(DESTDIR)$(MODULES_DIR)/lua/$$lua ; \
 	done
