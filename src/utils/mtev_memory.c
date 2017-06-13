@@ -569,11 +569,12 @@ default_allocator_free(mtev_allocator_t a, void *ptr) {
     /* freelists */
     struct default_allocator_data_container *dadc =
       (struct default_allocator_data_container *)generic_allocator_gettls(a);
-    if(a->options.freelist_limit < dadc->freelist_size) {
+    if(a->options.freelist_limit > dadc->freelist_size) {
       struct mtev_alloc_freelist_node *node = ptr;
       node->next = dadc->freelist;
       dadc->freelist = node;
       dadc->freelist_size++;
+      return;
     }
   }
   a->release_impl(a,ptr);
