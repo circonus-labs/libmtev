@@ -618,7 +618,7 @@ juggling.  The basic idea is:</p>
     mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
 
     <span class="hljs-comment">/* trigger a continuation of the HTTP connection */</span>
-    conne = mtev_http_session_connection(ctx);
+    conne = mtev_http_connection_event(mtev_http_session_connection(ctx));
     <span class="hljs-keyword">if</span>(conne) {
       eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
     }
@@ -642,16 +642,13 @@ juggling.  The basic idea is:</p>
 
   <span class="hljs-comment">/* remove the eventer */</span>
   conne = mtev_http_connection_event_float(mtev_http_session_connection(ctx));
-  <span class="hljs-keyword">if</span>(conne) eventer_remove_fd(conne-&gt;fd);
+  <span class="hljs-keyword">if</span>(conne) eventer_remove_fde(conne);
 
   <span class="hljs-comment">/* set a completion routine */</span>
   restc-&gt;fastpath = handler_complete;
 
   <span class="hljs-comment">/* schedule our work */</span>
-  worke = eventer_alloc();
-  worke-&gt;closure = restc;
-  worke-&gt;mask = EVENTER_ASYNCH;
-  worke-&gt;callback = handler_work;
+  worke = eventer_alloc_asynch(handler_work, restc);
   eventer_add(worke);
   <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
 }

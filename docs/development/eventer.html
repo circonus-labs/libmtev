@@ -559,8 +559,9 @@ returned, the event will be removed from the system and <code>eventer_free</code
 be invoked.</p>
 <h4 id="operations-on-the-file-descriptor">Operations on the file descriptor</h4>
 <p>While the <code>fd</code> field of the <code>eventer_t</code> is a normal file descriptor and normal
-POSIX operations can be performed on it (such as read(2), write(2), etc.), it
-is highly recommened to perform actions on it via the <code>opset</code> from the <code>eventer_t</code>.</p>
+POSIX operations can be performed on it (such as read(2), write(2), etc.). These
+operations are all abstracted away behind the <code>eventer_read</code>, <code>eventer_write</code>, etc.
+convenience functions.</p>
 <p>The opset can be changed to support SSL operations and, in such operations, some
 non-blocking operations can require some non-obvious events to make progress.
 Namely, an SSL read may fail with <code>EAGAIN</code>, but require an <code>EVENTER_WRITE</code> event
@@ -571,11 +572,11 @@ to continue due to a renegotiation.</p>
   <span class="hljs-keyword">size_t</span> len;
   <span class="hljs-keyword">int</span> mask = <span class="hljs-number">0</span>;
 
-  len = e-&gt;opset-&gt;read(e-&gt;fd, buff, <span class="hljs-keyword">sizeof</span>(buff), &amp;mask, e);
+  len = eventer_read(e, buff, <span class="hljs-keyword">sizeof</span>(buff), &amp;mask);
   <span class="hljs-keyword">if</span> (len &lt; <span class="hljs-number">0</span>) {
     <span class="hljs-keyword">if</span> (errno == EAGAIN) <span class="hljs-keyword">return</span> mask|EVENTER_EXCEPTION;
-    eventer_remove_fd(e-&gt;fd);
-    e-&gt;opset-&gt;close(e-&gt;fd, &amp;mask, e);
+    eventer_remove_fde(e);
+    eventer_close(e, &amp;mask);
     <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
   }
 
@@ -595,7 +596,7 @@ to continue due to a renegotiation.</p>
 <li><p>To suspend an fd event (A) while an asynch event (B) is run:</p>
 <ul>
 <li>In A&apos;s callback<ul>
-<li><code>eventer_remove_fd(A-&gt;fd)</code></li>
+<li><code>eventer_remove_fde(A)</code></li>
 <li><code>eventer_ref(A)</code></li>
 <li>pass A as a part of B&apos;s closure</li>
 <li><code>eventer_add(B)</code></li>
@@ -616,9 +617,7 @@ to continue due to a renegotiation.</p>
 Use these with care.  They should be extremely light-weight.</p>
 <p>The return value from recurrent events should be <code>EVENTER_RECURRENT</code>.</p>
 <h5 id="recurrentexamplec-snippet">recurrent_example.c (snippet)</h5>
-<pre><code class="lang-c">  <span class="hljs-keyword">eventer_t</span> e = eventer_alloc();
-  e-&gt;mask = EVENTER_RECURRENT;
-  e-&gt;callback = super_often;
+<pre><code class="lang-c">  <span class="hljs-keyword">eventer_t</span> e = eventer_alloc_recurrent(super_often, <span class="hljs-literal">NULL</span>;
   eventer_add(e);
 </code></pre>
 <h3 id="timed-events">Timed Events</h3>
@@ -629,11 +628,10 @@ an event will perform it&apos;s callback at some point in the future.</p>
 <p>The return value of callbacks for timer events should always be 0.</p>
 <h5 id="timersc-snippet">timers.c (snippet)</h5>
 <pre><code class="lang-c">  <span class="hljs-keyword">eventer_t</span> e;
-  e = eventer_alloc();
-  e-&gt;mask = EVENTER_TIMER;
-  mtev_gettimeofday(&amp;e-&gt;whence, <span class="hljs-literal">NULL</span>);
-  e-&gt;whence.tv_sec += <span class="hljs-number">5</span>;
-  e-&gt;callback = something_to_do_in_five_seconds;
+  <span class="hljs-keyword">struct</span> timeval whence;
+  mtev_gettimeofday(&amp;whence, <span class="hljs-literal">NULL</span>);
+  whence.tv_sec += <span class="hljs-number">5</span>;
+  e = eventer_alloc_timer(something_to_do_in_five_seconds, <span class="hljs-literal">NULL</span>, &amp;whence);
   eventer_add(e);
 
   <span class="hljs-comment">/* equivalent via helpers */</span>
@@ -666,9 +664,7 @@ an event will perform it&apos;s callback at some point in the future.</p>
   ...
 
   mtevL(mtev_error, <span class="hljs-string">&quot;thread %p -&gt; add\n&quot;</span>, pthread_self());
-  <span class="hljs-keyword">eventer_t</span> e = eventer_alloc();
-  e-&gt;mask = EVENTER_ASYNCH;
-  e-&gt;callback = asynch_test;
+  <span class="hljs-keyword">eventer_t</span> e = eventer_alloc_asynch(asynch_test, <span class="hljs-literal">NULL</span>);
   eventer_add(e);
 
   eventer_loop();
@@ -701,17 +697,15 @@ and <code>eventer_choose_owner</code> functions.</p>
   <span class="hljs-keyword">eventer_pool_t</span> *my_pool = eventer_get_pool_for_event(e);
   <span class="hljs-keyword">int</span> newfd, newmask;
 
-  newfd = e-&gt;opset-&gt;accept(e-&gt;fd, &amp;addr, &amp;addrlen, &amp;newmask, e);
+  newfd = eventer_accept(e, &amp;addr, &amp;addrlen, &amp;newmask);
   <span class="hljs-keyword">if</span>(newfd &lt; <span class="hljs-number">0</span>) <span class="hljs-keyword">return</span> newmask | EVENTER_EXCEPTION;
   <span class="hljs-keyword">if</span>(eventer_set_fd_nonblocking(newfd)) {
     close(newfd);
     <span class="hljs-keyword">return</span> EVENTER_READ|EVENTER_EXCEPTION;
   }
-  newe = eventer_alloc();
-  newe-&gt;mask = EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
-  newe-&gt;callback = my_handler;
-  mewe-&gt;closure = <span class="hljs-literal">NULL</span>;
-  newe-&gt;thr_owner = eventer_choose_owner_pool(my_pool, rand());
+  <span class="hljs-keyword">int</span> mask = EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
+  newe = eventer_alloc_fd(my_handler, <span class="hljs-literal">NULL</span>, newfd, mask);
+  eventer_set_owner(newe, eventer_choose_owner_pool(my_pool, rand()));
   eventer_add(newe);
 
   <span class="hljs-keyword">return</span> EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
@@ -724,7 +718,7 @@ as the parent (listening) event.</p>
 <pre><code class="lang-c">  ...
   <span class="hljs-keyword">if</span> (want_move) {
     <span class="hljs-keyword">eventer_pool_t</span> *my_pool = eventer_get_pool_for_event(e);
-    e-&gt;thr_owner = eventer_choose_owner_pool(my_pool, rand());
+    eventer_set_owner(e, eventer_choose_owner_pool(my_pool, rand()));
     <span class="hljs-keyword">return</span> EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
   }
 </code></pre>
