@@ -97,14 +97,7 @@ static int handler_work(eventer_t e, int mask, void *closure,
     sleep(5);
   }
   if(mask == EVENTER_ASYNCH) {
-    eventer_t conne;
-    mtev_http_session_ctx *ctx = restc->http_ctx;
-
-    /* trigger a continuation of the HTTP connection */
-    conne = mtev_http_connection_event(mtev_http_session_connection(ctx));
-    if(conne) {
-      eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
-    }
+    mtev_http_session_resume_after_float(restc->http_ctx);
   }
   return 0;
 }
