@@ -126,6 +126,10 @@ API_EXPORT(eventer_t)
 /* Internally copies and returns the old one */
 API_EXPORT(eventer_t)
   mtev_http_connection_event_float(mtev_http_connection *);
+API_EXPORT(void)
+  mtev_http_connection_resume_after_float(mtev_http_connection *);
+API_EXPORT(void)
+  mtev_http_session_resume_after_float(mtev_http_session_ctx *);
 
 API_EXPORT(void)
   mtev_http_request_start_time(mtev_http_request *, struct timeval *);

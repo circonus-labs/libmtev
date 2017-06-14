@@ -404,6 +404,14 @@ eventer_t mtev_http_connection_event_float(mtev_http_connection *conn) {
   }
   return e;
 }
+void mtev_http_connection_resume_after_float(mtev_http_connection *conn) {
+  if(conn->e) {
+    eventer_trigger(conn->e, EVENTER_READ|EVENTER_WRITE);
+  }
+}
+void mtev_http_session_resume_after_float(mtev_http_session_ctx *ctx) {
+  mtev_http_connection_resume_after_float(&ctx->conn);
+}
 void mtev_http_request_start_time(mtev_http_request *req, struct timeval *t) {
   memcpy(t, &req->start_time, sizeof(*t));
 }
