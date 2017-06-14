@@ -294,7 +294,7 @@ handleconn(struct amqp_conn *conn) {
           case AMQP_CHANNEL_CLOSE_METHOD:
           case AMQP_CONNECTION_CLOSE_METHOD:
           default:
-            mtevL(nlerr ,"closing amqp session[%s] %u\n", conn->host, frame.payload.method.id);
+            mtevL(nlerr ,"closing amqp session[%s] %x\n", conn->host, frame.payload.method.id);
             return;
         }
       }
