@@ -1775,6 +1775,18 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <li><code>e</code> an event object (mask must be <code>EVENTER_TIMED</code>).</li>
 <li><strong>RETURN</strong> the event removed, NULL if not found.</li>
 </ul>
+<h4 id="eventerruninthread">eventer_run_in_thread</h4>
+<blockquote>
+<p>Spawns a thread and runs the event until it returns 0.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_run_in_thread</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>a</code> starting mask for triggering the event.</li>
+</ul>
+<p>This function will remove the event from the eventer and set the socket into blocking mode.</p>
 <h4 id="eventersetcallback">eventer_set_callback</h4>
 <blockquote>
 <p>Set an event&apos;s callback function.</p>

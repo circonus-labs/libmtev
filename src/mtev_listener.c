@@ -48,6 +48,17 @@
 #include "mtev_listener.h"
 #include "mtev_conf.h"
 
+typedef struct {
+  int8_t family;
+  unsigned short port;
+  mtev_boolean fanout;
+  eventer_pool_t *pool;
+  mtev_boolean in_own_thread;
+  eventer_func_t dispatch_callback;
+  acceptor_closure_t *dispatch_closure;
+  mtev_hash_table *sslconfig;
+} * listener_closure_t;
+
 static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
 static mtev_hash_table listener_commands;
@@ -160,10 +171,15 @@ mtev_listener_details(char *buf, int buflen, eventer_t e, void *closure) {
 static int
 mtev_listener_acceptor(eventer_t e, int mask,
                        void *closure, struct timeval *tv) {
+  static int rrincr = 1;
   int conn, newmask = EVENTER_READ;
   socklen_t salen;
   listener_closure_t listener_closure = (listener_closure_t)closure;
   acceptor_closure_t *ac = NULL;
+
+  /* This might not be set, so set it */
+  if(listener_closure->fanout && !listener_closure->pool)
+    listener_closure->pool = eventer_get_pool_for_event(e);
 
   if(mask & EVENTER_EXCEPTION) {
  socketfail:
@@ -179,9 +195,9 @@ mtev_listener_acceptor(eventer_t e, int mask,
     conn = eventer_accept(e, &ac->remote.remote_addr, &salen, &newmask);
     if(conn >= 0) {
       eventer_t newe;
-      mtevL(nldeb, "mtev_listener[%s] accepted fd %d\n",
+      mtevL(nldeb, "mtev_listener[%s] accepted fd %d on %s\n",
             eventer_name_for_callback(listener_closure->dispatch_callback),
-            conn);
+            conn, eventer_get_thread_name());
       if(eventer_set_fd_nonblocking(conn)) {
         close(conn);
         free(ac);
@@ -232,6 +248,11 @@ mtev_listener_acceptor(eventer_t e, int mask,
         newe = eventer_alloc_fd(listener_closure->dispatch_callback, ac, conn,
                                 EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
       }
+
+      if(!listener_closure->pool) eventer_set_owner(newe, eventer_get_owner(e));
+      else {
+        eventer_set_owner(newe, eventer_choose_owner_pool(listener_closure->pool, rrincr++));
+      }
       eventer_add(newe);
     }
     else {
@@ -250,7 +271,10 @@ mtev_listener_acceptor(eventer_t e, int mask,
 
 int
 mtev_listener(char *host, unsigned short port, int type,
-              int backlog, mtev_hash_table *sslconfig,
+              int backlog, mtev_boolean fanout,
+              eventer_pool_t *pool,
+              mtev_boolean in_own_thread,
+              mtev_hash_table *sslconfig,
               mtev_hash_table *config,
               eventer_func_t handler, void *service_ctx) {
   int rv, fd;
@@ -396,6 +420,9 @@ mtev_listener(char *host, unsigned short port, int type,
   listener_closure = calloc(1, sizeof(*listener_closure));
   listener_closure->family = family;
   listener_closure->port = htons(port);
+  listener_closure->fanout = fanout;
+  listener_closure->pool = pool;
+  listener_closure->in_own_thread = in_own_thread;
   listener_closure->sslconfig = calloc(1, sizeof(mtev_hash_table));
   mtev_hash_init(listener_closure->sslconfig);
   mtev_hash_merge_as_dict(listener_closure->sslconfig, sslconfig);
@@ -407,9 +434,16 @@ mtev_listener(char *host, unsigned short port, int type,
   listener_closure->dispatch_closure->dispatch = handler;
   listener_closure->dispatch_closure->service_ctx = service_ctx;
 
+
   event = eventer_alloc_fd(mtev_listener_acceptor, listener_closure, fd,
                            EVENTER_READ | EVENTER_EXCEPTION);
-  eventer_add(event);
+
+  if(in_own_thread) {
+    eventer_run_in_thread(event, EVENTER_READ);
+  }
+  else {
+    eventer_add(event);
+  }
   mtevL(nldeb, "mtev_listener(%s, %d, %d, %d, %s, %p) -> success\n",
         host, port, type, backlog,
         (event_name = eventer_name_for_callback(handler))?event_name:"??",
@@ -434,7 +468,9 @@ mtev_listener_reconfig(const char *toplevel) {
     int portint;
     int backlog;
     eventer_func_t f;
-    mtev_boolean ssl;
+    mtev_boolean ssl, fanout = mtev_false, in_own_thread = mtev_false;
+    eventer_pool_t *pool = NULL;
+    char poolname[256];
     mtev_hash_table *sslconfig, *config;
 
     if(!mtev_conf_get_stringbuf(listener_configs[i],
@@ -484,6 +520,24 @@ mtev_listener_reconfig(const char *toplevel) {
       backlog = 5;
 
     if(!mtev_conf_get_boolean(listener_configs[i],
+                          "ancestor-or-self::node()/@fanout", &fanout))
+      fanout = mtev_false;
+
+    if(mtev_conf_get_stringbuf(listener_configs[i],
+                               "ancestor-or-self::node()/@pool",
+                               poolname, sizeof(poolname))) {
+      pool = eventer_pool(poolname);
+      if(port)
+        mtevL(nlerr, "pool '%s' requested for listener %s:%d\n", poolname, address, port);
+      else
+        mtevL(nlerr, "pool '%s' requested for listener %s\n", poolname, address);
+    }
+
+    if(!mtev_conf_get_boolean(listener_configs[i],
+                              "ancestor-or-self::node()/@accept_thread", &in_own_thread))
+      in_own_thread = mtev_false;
+
+    if(!mtev_conf_get_boolean(listener_configs[i],
                               "ancestor-or-self::node()/@ssl", &ssl))
      ssl = mtev_false;
 
@@ -493,6 +547,7 @@ mtev_listener_reconfig(const char *toplevel) {
     config = mtev_conf_get_hash(listener_configs[i], "config");
 
     if(mtev_listener(address, port, SOCK_STREAM, backlog,
+                     fanout, pool, in_own_thread,
                      sslconfig, config, f, NULL) != 0) {
       mtev_hash_destroy(config,free,free);
       free(config);

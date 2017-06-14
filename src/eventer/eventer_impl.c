@@ -1042,6 +1042,38 @@ void eventer_add_recurrent(eventer_t e) {
   pthread_mutex_unlock(&t->recurrent_lock);
 }
 
+static void *eventer_thread_harness(void *ve) {
+  eventer_t e = ve;
+  char thrname[64];
+  snprintf(thrname, sizeof(thrname),
+           "dedicated_event/%zu", (uintptr_t)pthread_self());
+  eventer_set_thread_name_unsafe(thrname);
+  int mask = e->mask;
+  while(1) {
+    struct timeval now;
+    mtev_gettimeofday(&now, NULL);
+    mask = e->callback(e, mask, e->closure, &now);
+    if(mask == 0) {
+      eventer_free(e);
+      return NULL;
+    }
+    /* give it what it wants, but not an exception */
+    mask &= ~EVENTER_EXCEPTION;
+  }
+}
+void eventer_run_in_thread(eventer_t e, int mask) {
+  eventer_remove_fde(e);
+  eventer_set_fd_blocking(e->fd);
+  e->mask = mask;
+
+  pthread_t tid;
+  pthread_attr_t tattr;
+  mtevL(eventer_deb, "Starting dedicated thread for event on fd: %d\n", e->fd);
+  pthread_attr_init(&tattr);
+  pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
+  pthread_create(&tid, &tattr, eventer_thread_harness, e);
+}
+
 int eventer_thread_check(eventer_t e) {
   return pthread_equal(pthread_self(), e->thr_owner);
 }

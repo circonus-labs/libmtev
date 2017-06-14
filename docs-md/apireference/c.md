@@ -1596,6 +1596,22 @@ eventer_remove_timed(eventer_t e)
   * **RETURN** the event removed, NULL if not found.
 
 
+#### eventer_run_in_thread
+
+>Spawns a thread and runs the event until it returns 0.
+
+```c
+void 
+eventer_run_in_thread(eventer_t e, int mask)
+```
+
+
+  * `e` an event object
+  * `a` starting mask for triggering the event.
+
+This function will remove the event from the eventer and set the socket into blocking mode.
+
+
 #### eventer_set_callback
 
 >Set an event's callback function.
