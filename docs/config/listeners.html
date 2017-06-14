@@ -595,6 +595,20 @@ IPv6 <code>in_addr_any</code> address is used for listening.</p>
 <p>If the value here is <code>on</code>, then the socket passes through SSL negotiation before handed
 to the underlying system driving the specified listener type.</p>
 </li>
+<li><h5 id="fanout">fanout</h5>
+<p>If the value here is <code>on</code>, the new events created for accepted connections will be fanned
+out across threads in the event pool owning the listening socket (usually the default
+event pool).  A different pool can be selected by additionally supplying <code>fanout_pool</code>.</p>
+</li>
+<li><h5 id="fanoutpool">fanout_pool</h5>
+<p>If <code>fanout</code> is <code>on</code>, this will select a named pool on which to distribute new connection
+events.  The value of this attribute should be the name of an event pool.  If not pool
+exists with the specified name, the pool containing the listening event will be used.</p>
+</li>
+<li><h5 id="acceptthread">accept_thread</h5>
+<p>If <code>accept_thread</code> is <code>on</code>, a new dedicated thread will be spawned to handle accepting
+new connections in a blocking fashion.</p>
+</li>
 </ul>
 <h3 id="sslconfig">sslconfig</h3>
 <p>The ssl config allow specification of many aspects of how SSL is negotiated with

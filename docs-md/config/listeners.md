@@ -80,6 +80,23 @@ The following attributes are supported for listeners:
    If the value here is `on`, then the socket passes through SSL negotiation before handed
    to the underlying system driving the specified listener type.
 
+ * ##### fanout
+
+   If the value here is `on`, the new events created for accepted connections will be fanned
+   out across threads in the event pool owning the listening socket (usually the default
+   event pool).  A different pool can be selected by additionally supplying `fanout_pool`.
+
+ * ##### fanout_pool
+
+   If `fanout` is `on`, this will select a named pool on which to distribute new connection
+   events.  The value of this attribute should be the name of an event pool.  If not pool
+   exists with the specified name, the pool containing the listening event will be used.
+
+ * ##### accept_thread
+
+   If `accept_thread` is `on`, a new dedicated thread will be spawned to handle accepting
+   new connections in a blocking fashion.
+
 ### sslconfig
 
 The ssl config allow specification of many aspects of how SSL is negotiated with

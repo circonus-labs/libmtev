@@ -947,6 +947,15 @@ API_EXPORT(int) eventer_set_fd_blocking(int fd);
 */
 API_EXPORT(int) eventer_thread_check(eventer_t);
 
+/*! \fn void eventer_run_in_thread(eventer_t e, int mask)
+    \brief Spawns a thread and runs the event until it returns 0.
+    \param e an event object
+    \param a starting mask for triggering the event.
+
+    This function will remove the event from the eventer and set the socket into blocking mode.
+*/
+API_EXPORT(void) eventer_run_in_thread(eventer_t, int mask);
+
 /* Private */
 API_EXPORT(int) eventer_impl_init(void);
 API_EXPORT(void) eventer_update_timed(eventer_t e, int mask);

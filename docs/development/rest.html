@@ -614,14 +614,7 @@ juggling.  The basic idea is:</p>
     sleep(<span class="hljs-number">5</span>);
   }
   <span class="hljs-keyword">if</span>(mask == EVENTER_ASYNCH) {
-    <span class="hljs-keyword">eventer_t</span> conne;
-    mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
-
-    <span class="hljs-comment">/* trigger a continuation of the HTTP connection */</span>
-    conne = mtev_http_connection_event(mtev_http_session_connection(ctx));
-    <span class="hljs-keyword">if</span>(conne) {
-      eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
-    }
+    mtev_http_session_resume_after_float(restc-&gt;http_ctx);
   }
   <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
 }

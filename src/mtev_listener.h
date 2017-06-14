@@ -60,24 +60,10 @@ typedef struct {
   void (*service_ctx_free)(void *);
 } acceptor_closure_t;
 
-typedef struct {
-  int8_t family;
-  unsigned short port;
-  eventer_func_t dispatch_callback;
-  acceptor_closure_t *dispatch_closure;
-  mtev_hash_table *sslconfig;
-} * listener_closure_t;
-
 API_EXPORT(void) mtev_listener_init(const char *toplevel);
 API_EXPORT(void) mtev_listener_init_globals(void);
 
 API_EXPORT(void) mtev_listener_skip(const char *address, int port);
-
-API_EXPORT(int)
-  mtev_listener(char *host, unsigned short port, int type,
-                int backlog, mtev_hash_table *sslconfig,
-                mtev_hash_table *config,
-                eventer_func_t handler, void *service_ctx);
 
 API_EXPORT(void)
   acceptor_closure_free(acceptor_closure_t *ac);
