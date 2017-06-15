@@ -535,6 +535,8 @@
       <span class="hljs-tag">&lt;<span class="hljs-name">certificate_file</span>&gt;</span>/path/to/server.crt<span class="hljs-tag">&lt;/<span class="hljs-name">certificate_file</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">key_file</span>&gt;</span>/path/to/server.key<span class="hljs-tag">&lt;/<span class="hljs-name">key_file</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">ca_chain</span>&gt;</span>/path/to/ca.crt<span class="hljs-tag">&lt;/<span class="hljs-name">ca_chain</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">layer</span>&gt;</span>tlsv1:all,!sslv2,!sslv3,cipher_server_preference<span class="hljs-tag">&lt;/<span class="hljs-name">layer</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">ciphers</span>&gt;</span>EECDH+AES128+AESGCM:EDH+AES128+AESGCM:!DSS<span class="hljs-tag">&lt;/<span class="hljs-name">ciphers</span>&gt;</span>
     <span class="hljs-tag">&lt;/<span class="hljs-name">sslconfig</span>&gt;</span>
     <span class="hljs-tag">&lt;<span class="hljs-name">consoles</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;mtev_console&quot;</span> <span class="hljs-attr">require_env</span>=<span class="hljs-string">&quot;MTEV_CONTROL&quot;</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">listener</span> <span class="hljs-attr">address</span>=<span class="hljs-string">&quot;127.0.0.1&quot;</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;32322&quot;</span>&gt;</span>
@@ -615,7 +617,7 @@ new connections in a blocking fashion.</p>
 connecting clients.  SSL config supports the follwing keys:</p>
 <ul>
 <li><h5 id="layer">layer</h5>
-<p>This specifies the layer and options we present and is the form <code>&lt;protocol&gt;[:&lt;option&gt;,[&lt;option&gt;[,...]]]</code>.
+<p>This specifies the SSL protocol options we present and is the form <code>&lt;protocol&gt;[:&lt;option&gt;,[&lt;option&gt;[,...]]]</code>.
 Options may be negated with an antecedent <code>!</code>.  Tokens are matched case-insensitively.</p>
 <p>Protocols supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>. </p>
 <p>Options supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>, <code>cipher_server_preference</code></p>
@@ -634,12 +636,13 @@ Options may be negated with an antecedent <code>!</code>.  Tokens are matched ca
 <p>Specifies a PEM encoded certificate revocation list file.  If not specified, no revocation is enforced.</p>
 </li>
 <li><h5 id="ciphers">ciphers</h5>
-<p>Specifies which ciphers should be supported.  Check the OpenSSL manual for more details.</p>
-</li>
-<li><h3 id="config">config</h3>
-<p>Each listener can access the <code>config</code> passed to it; see type-specific documentation.</p>
+<p>Specifies which ciphers should be supported, expressed in the OpenSSL cipher
+list format.  Check the OpenSSL manual for more details.  If not specified, the
+default ciphers supported by the OpenSSL library are used.</p>
 </li>
 </ul>
+<h3 id="config">config</h3>
+<p>   Each listener can access the <code>config</code> passed to it; see type-specific documentation.</p>
 
                                 
                                 </section>
