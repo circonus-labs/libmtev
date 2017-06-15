@@ -197,7 +197,7 @@ static mtev_log_stream_t http_access = NULL;
 //static const char *zipkin_http_uri = "http.uri";
 static const char *zipkin_http_method = "http.method";
 static const char *zipkin_http_hostname = "http.hostname";
-static const char *zipkin_http_status = "http.status";
+static const char *zipkin_http_status = "http.status_code";
 static const char *zipkin_http_bytes_in = "http.bytes_in";
 static const char *zipkin_http_bytes_out = "http.bytes_out";
 static const char *zipkin_ss_done = "ss_done";
@@ -630,39 +630,34 @@ begin_span(mtev_http_session_ctx *ctx) {
                          req->uri_str, false, NULL, sampled);
   set_endpoint(ctx);
   mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_RECV, false);
-  mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_STRING,
-                             zipkin_http_method, false,
-                             req->method_str, strlen(req->method_str), false);
+  mtev_zipkin_span_bannotate_str(ctx->zipkin_span,
+                                 zipkin_http_method, false,
+                                 req->method_str, true);
   if(mtev_hash_retr_str(&req->headers, "host", 4, &host_hdr)) {
     /* someone could screw with the host header, so we indicate a copy */
-    mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_STRING,
-                               zipkin_http_hostname, false,
-                               host_hdr, strlen(host_hdr), true);
+    mtev_zipkin_span_bannotate_str(ctx->zipkin_span,
+                                   zipkin_http_hostname, false,
+                                   host_hdr, true);
   }
 }
 static void
 end_span(mtev_http_session_ctx *ctx) {
   mtev_http_request *req = &ctx->req;
   mtev_http_response *res = &ctx->res;
-  char status_str[4];
-  int64_t nbytesout, nbytesin;
   if(!ctx->zipkin_span) return;
 
-  snprintf(status_str, sizeof(status_str), "%03d", res->status_code);
-  mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_STRING,
-                             zipkin_http_status, false,
-                             status_str, strlen(status_str), false);
+  mtev_zipkin_span_bannotate_i32(ctx->zipkin_span,
+                                 zipkin_http_status, false,
+                                 res->status_code);
 
   if(req->content_length_read) {
-    nbytesin = htonll(req->content_length_read);
-    mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_I64,
-                               zipkin_http_bytes_in, false,
-                               &nbytesin, 8, false);
+    mtev_zipkin_span_bannotate_i64(ctx->zipkin_span,
+                                   zipkin_http_bytes_in, false,
+                                   req->content_length_read);
   }
-  nbytesout = htonll(res->bytes_written);
-  mtev_zipkin_span_bannotate(ctx->zipkin_span, ZIPKIN_I64,
-                             zipkin_http_bytes_out, false,
-                             &nbytesout, 8, false);
+  mtev_zipkin_span_bannotate_i64(ctx->zipkin_span,
+                                 zipkin_http_bytes_out, false,
+                                 res->bytes_written);
 
   mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, zipkin_ss_done, false);
   mtev_zipkin_span_publish(ctx->zipkin_span);

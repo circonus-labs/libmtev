@@ -271,6 +271,19 @@
             
         </li>
     
+        <li class="chapter " data-level="1.2.7.6" data-path="../config/modules/zipkin_jaeger.html">
+            
+                <a href="../config/modules/zipkin_jaeger.html">
+            
+                    
+                    zipkin_jaeger
+            
+                </a>
+            
+
+            
+        </li>
+    
 
             </ul>
             
@@ -2918,6 +2931,18 @@ This function may fail for the following reasons:</p>
 <li><code>port</code> The IP port of the service.</li>
 </ul>
 <p>mtev_zipkin_default_endpoint sets a default endpoint for any new spans created without their own default.  Use this with care, it is application global.  You should likely only call this once at startup.</p>
+<h4 id="mtevzipkindefaultservicename">mtev_zipkin_default_service_name</h4>
+<blockquote>
+<p>Sets the default service name used for new spans.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_default_service_name</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, <span class="hljs-keyword">bool</span> service_name_copy)</span>
+</span></code></pre>
+<ul>
+<li><code>service_name</code> The service name to use.</li>
+<li><code>service_name_copy</code> Whether service_name should be allocated (copied) within the span.</li>
+</ul>
+<p>mtev_zipkin_default_service_name sets a default service name for endpoints for any new spans created without their own default.  Use this with care, it is application global.  You should likely only call this once at startup.</p>
 <h4 id="mtevzipkinencode">mtev_zipkin_encode</h4>
 <blockquote>
 <p>Encode a span into the specified buffer for Zipkin.</p>
@@ -2932,6 +2957,21 @@ mtev_zipkin_encode(<span class="hljs-keyword">unsigned</span> <span class="hljs-
 <li><strong>RETURN</strong> The length of a successful encoding.</li>
 </ul>
 <p>mtev_zipkin_encode will take a span and encode it for Zipkin using the Thift BinaryProtocol.  The return value is always the length of a successful encoding, even if the buffer supplied is too small.  The caller must check the the returned length is less than or equal to the provided length to determine whether the encoding was successful.  The caller may provide a NULL buffer if and only if the provided len is 0.</p>
+<h4 id="mtevzipkinencodelist">mtev_zipkin_encode_list</h4>
+<blockquote>
+<p>Encode a span into the specified buffer for Zipkin.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *buffer, <span class="hljs-keyword">size_t</span> len, Zipkin_Span **spans, <span class="hljs-keyword">int</span> cnt)
+</code></pre>
+<ul>
+<li><code>buffer</code> The target buffer.</li>
+<li><code>len</code> The target buffer&apos;s size.</li>
+<li><code>spans</code> The array of spans to encode.</li>
+<li><code>cnt</code> The number of spans in <code>spans</code>.</li>
+<li><strong>RETURN</strong> The length of a successful encoding.</li>
+</ul>
+<p>mtev_zipkin_encode_list will take a list of spans and encode it for Zipkin using the Thift BinaryProtocol.  The return value is always the length of a successful encoding, even if the buffer supplied is too small.  The caller must check the the returned length is less than or equal to the provided length to determine whether the encoding was successful.  The caller may provide a NULL buffer if and only if the provided len is 0.</p>
 <h4 id="mtevzipkinsampling">mtev_zipkin_sampling</h4>
 <blockquote>
 <p>Set sampling probabilities for different types of traces.</p>
@@ -2979,6 +3019,68 @@ mtev_zipkin_encode(<span class="hljs-keyword">unsigned</span> <span class="hljs-
 <li><strong>RETURN</strong> A new binary annotation.</li>
 </ul>
 <p>mtev_zipkin_span_bannotate make a binary annotation on the provided span.  The returned resource is managed by the span and will be released with it.</p>
+<h4 id="mtevzipkinspanbannotatedouble">mtev_zipkin_span_bannotate_double</h4>
+<blockquote>
+<p>Annotate a span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
+<span class="hljs-title">mtev_zipkin_span_bannotate_double</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">bool</span> key_copy, <span class="hljs-keyword">double</span> value)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to annotate.</li>
+<li><code>annotation_type</code> The type of the value being passed in.</li>
+<li><code>key</code> The key for the annotation</li>
+<li><code>key_copy</code> Whether key should be allocated (copied) within the span.</li>
+<li><code>value</code> The value for the annotation.</li>
+<li><strong>RETURN</strong> A new binary annotation.</li>
+</ul>
+<h4 id="mtevzipkinspanbannotatei32">mtev_zipkin_span_bannotate_i32</h4>
+<blockquote>
+<p>Annotate a span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
+<span class="hljs-title">mtev_zipkin_span_bannotate_i32</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">bool</span> key_copy, int32_t value)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to annotate.</li>
+<li><code>annotation_type</code> The type of the value being passed in.</li>
+<li><code>key</code> The key for the annotation</li>
+<li><code>key_copy</code> Whether key should be allocated (copied) within the span.</li>
+<li><code>value</code> The value for the annotation.</li>
+<li><strong>RETURN</strong> A new binary annotation.</li>
+</ul>
+<h4 id="mtevzipkinspanbannotatei64">mtev_zipkin_span_bannotate_i64</h4>
+<blockquote>
+<p>Annotate a span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
+<span class="hljs-title">mtev_zipkin_span_bannotate_i64</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">bool</span> key_copy, int64_t value)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to annotate.</li>
+<li><code>annotation_type</code> The type of the value being passed in.</li>
+<li><code>key</code> The key for the annotation</li>
+<li><code>key_copy</code> Whether key should be allocated (copied) within the span.</li>
+<li><code>value</code> The value for the annotation.</li>
+<li><strong>RETURN</strong> A new binary annotation.</li>
+</ul>
+<h4 id="mtevzipkinspanbannotatestr">mtev_zipkin_span_bannotate_str</h4>
+<blockquote>
+<p>Annotate a span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
+<span class="hljs-title">mtev_zipkin_span_bannotate_str</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">bool</span> key_copy, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *value
+                               <span class="hljs-keyword">bool</span> value_copy)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to annotate.</li>
+<li><code>annotation_type</code> The type of the value being passed in.</li>
+<li><code>key</code> The key for the annotation</li>
+<li><code>key_copy</code> Whether key should be allocated (copied) within the span.</li>
+<li><code>value</code> The value for the annotation.</li>
+<li><code>value_copy</code> Whether value should be allocated (copied) within the span.</li>
+<li><strong>RETURN</strong> A new binary annotation.</li>
+</ul>
 <h4 id="mtevzipkinspandefaultendpoint">mtev_zipkin_span_default_endpoint</h4>
 <blockquote>
 <p>Sets the default endpoint used for new annotations within the span.</p>
@@ -3036,6 +3138,16 @@ mtev_zipkin_encode(<span class="hljs-keyword">unsigned</span> <span class="hljs-
 <li><code>span</code> The span to publish and release.</li>
 </ul>
 <p>mtev_zipkin_span_publish first publishes, then releases all resources associated with the span.</p>
+<h4 id="mtevzipkinspanref">mtev_zipkin_span_ref</h4>
+<blockquote>
+<p>Increase the reference count to a span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_span_ref</span><span class="hljs-params">(Zipkin_Span *span)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span to reference.</li>
+</ul>
 <h4 id="mtevzipkinstrtoid">mtev_zipkin_str_to_id</h4>
 <blockquote>
 <p>Convert a string Id to an int64_t Id.</p>

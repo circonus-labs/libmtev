@@ -28,11 +28,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mtev_defines.h>
-#include <mtev_log.h>
-#include <mtev_hooks.h>
-#include <mtev_time.h>
-#include <mtev_zipkin.h>
+#include "mtev_defines.h"
+#include "mtev_log.h"
+#include "mtev_hooks.h"
+#include "mtev_time.h"
+#include "mtev_zipkin.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -41,6 +41,66 @@ const char *ZIPKIN_CLIENT_SEND = "cs";
 const char *ZIPKIN_CLIENT_RECV = "cr";
 const char *ZIPKIN_SERVER_SEND = "ss";
 const char *ZIPKIN_SERVER_RECV = "sr";
+
+typedef struct {
+  char *value;
+  bool needs_free;
+} Zipkin_String;
+
+typedef struct {
+  void *value;
+  char data[16];
+  int32_t len;
+  bool needs_free;
+} Zipkin_Binary;
+
+typedef struct {
+  int32_t ipv4;
+  int16_t port;
+  Zipkin_String service_name;
+} Zipkin_Endpoint;
+
+typedef struct Zipkin_Annotation {
+  int64_t timestamp;
+  Zipkin_String value;
+  Zipkin_Endpoint *host;
+  Zipkin_Endpoint _host;
+} Zipkin_Annotation;
+
+typedef struct Zipkin_BinaryAnnotation {
+  Zipkin_String key;
+  Zipkin_Binary value;
+  Zipkin_AnnotationType annotation_type;
+  Zipkin_Endpoint *host;
+  Zipkin_Endpoint _host;
+} Zipkin_BinaryAnnotation;
+
+#define Zipkin_List(A) \
+typedef struct _zl_##A { \
+  A data; \
+  struct _zl_##A *next; \
+} Zipkin_List_##A \
+
+Zipkin_List(Zipkin_Annotation);
+Zipkin_List(Zipkin_BinaryAnnotation);
+
+typedef struct Zipkin_Span {
+  int64_t trace_id;
+  Zipkin_String name;
+  int64_t id;
+  int64_t *parent_id;
+  int64_t _parent_id;
+  Zipkin_List_Zipkin_Annotation *annotations;
+  Zipkin_List_Zipkin_BinaryAnnotation *binary_annotations;
+  bool *debug;
+  bool _debug;
+
+  int64_t timestamp;
+  int64_t duration;
+  /* Not part of the spec, used by us to provide defaults */
+  Zipkin_Endpoint _default_host;
+  mtev_atomic32_t refcnt;
+} Zipkin_Span;
 
 #undef byte
 #define byte unsigned char
@@ -70,6 +130,12 @@ MTEV_HOOK_IMPL(zipkin_publish,
   void *, closure,
   (void *closure, int64_t traceid, int64_t spanid, unsigned char *buffer, size_t len),
   (closure,traceid,spanid,buffer,len))
+
+MTEV_HOOK_IMPL(zipkin_publish_span,
+  (Zipkin_Span *span),
+  void *, closure,
+  (void *closure, Zipkin_Span *span),
+  (closure,span))
 
 static size_t
 ze_bool(byte *buffer, size_t len, bool v) {
@@ -105,15 +171,21 @@ ze_i64(byte *buffer, size_t len, int64_t v) {
   }
   return 8;
 }
-/* static size_t */
-/* ze_double(byte *buffer, size_t len, double v) { */
-/*   if(len > 7) { */
-/*     int64_t *in = (int64_t *)&v; */
-/*     int64_t nv = htonll(*in); */
-/*     memcpy(buffer, &nv, 8); */
-/*   } */
-/*   return 8; */
-/* } */
+/*
+ * We can't include this b/c we don't use it and it will
+ * issue a compiler warning... if we use it later, uncomment.
+ *
+
+static size_t
+ ze_double(byte *buffer, size_t len, double v) {
+   if(len > 7) {
+     int64_t *in = (int64_t *)&v;
+     int64_t nv = htonll(*in);
+     memcpy(buffer, &nv, 8);
+   }
+   return 8;
+ }
+*/
 static size_t
 ze_list_begin(byte *buffer, size_t len, byte fieldtype, int32_t cnt) {
   if(len > 4) {
@@ -241,7 +313,7 @@ ze_Zipkin_BinaryAnnotation(byte *buffer, size_t len,
 static size_t
 ze_Zipkin_Span(byte *buffer, size_t len, Zipkin_Span *v) {
   size_t sofar = 0;
-  ADV_SAFE(ze_struct_begin(buffer,len,"BinaryAnnotation"));
+  ADV_SAFE(ze_struct_begin(buffer,len,"Span"));
 
     ADV_SAFE(ze_field_begin(buffer,len,"trace_id",ZE_I64,1));
     ADV_SAFE(ze_i64(buffer,len,v->trace_id));
@@ -253,7 +325,7 @@ ze_Zipkin_Span(byte *buffer, size_t len, Zipkin_Span *v) {
     ADV_SAFE(ze_Zipkin_String(buffer,len,&v->name));
     ADV_SAFE(ze_field_end(buffer,len));
 
-    ADV_SAFE(ze_field_begin(buffer,len,"id",ZE_I64,1));
+    ADV_SAFE(ze_field_begin(buffer,len,"id",ZE_I64,4));
     ADV_SAFE(ze_i64(buffer,len,v->id));
     ADV_SAFE(ze_field_end(buffer,len));
    
@@ -297,11 +369,34 @@ ze_Zipkin_Span(byte *buffer, size_t len, Zipkin_Span *v) {
       ADV_SAFE(ze_field_end(buffer,len));
     }
 
+    if(v->timestamp) {
+      ADV_SAFE(ze_field_begin(buffer,len,"timestamp",ZE_I64,10));
+      ADV_SAFE(ze_i64(buffer,len,v->timestamp));
+      ADV_SAFE(ze_field_end(buffer,len));
+    }
+
+    if(v->duration) {
+      ADV_SAFE(ze_field_begin(buffer,len,"duration",ZE_I64,11));
+      ADV_SAFE(ze_i64(buffer,len,v->duration));
+      ADV_SAFE(ze_field_end(buffer,len));
+    }
+
     ADV_SAFE(ze_field_stop(buffer,len));
   ADV_SAFE(ze_struct_end(buffer,len));
   return sofar;
 }
 
+static size_t
+ze_Zipkin_Span_List(byte *buffer, size_t len, Zipkin_Span **v, int cnt) {
+  size_t sofar = 0;
+  int i;
+  ADV_SAFE(ze_list_begin(buffer,len,ZE_STRUCT,cnt));
+  for(i=0; i<cnt; i++) {
+    ADV_SAFE(ze_Zipkin_Span(buffer,len,v[i]));
+  }
+  ADV_SAFE(ze_list_end(buffer,len));
+  return sofar;
+}
 static __thread struct {
   unsigned short work[3];
   bool initialized;
@@ -365,9 +460,26 @@ mtev_zipkin_encode(byte *buffer, size_t len, Zipkin_Span *span) {
   return sofar;
 }
 
+size_t
+mtev_zipkin_encode_list(byte *buffer, size_t len, Zipkin_Span **spans, int cnt) {
+  size_t sofar = 0;
+  ADV_SAFE(ze_Zipkin_Span_List(buffer, len, spans, cnt));
+  return sofar;
+}
+
 static Zipkin_Endpoint ze_global_default_endpoint = {
   .service_name = { .value = "mtev", .needs_free = false }
 };
+void
+mtev_zipkin_default_service_name(const char *service_name, bool service_name_copy) {
+  char *tofree = NULL;
+  if(ze_global_default_endpoint.service_name.needs_free)
+    tofree = ze_global_default_endpoint.service_name.value;
+  ze_global_default_endpoint.service_name.value =
+    service_name_copy ? strdup(service_name) : (char *)service_name;
+  free(tofree);
+}
+
 void
 mtev_zipkin_default_endpoint(const char *service_name, bool service_name_copy,
                              struct in_addr host, unsigned short port) {
@@ -383,7 +495,9 @@ mtev_zipkin_span_new(int64_t *trace_id,
   int64_t my_trace_id = 0, my_span_id = 0;
   Zipkin_Span *span;
 
-  if(!ze_enable_override && !zipkin_publish_hook_exists()) return NULL;
+  if(!ze_enable_override &&
+     !zipkin_publish_hook_exists() &&
+     !zipkin_publish_span_hook_exists()) return NULL;
 
   if(!force && debug && *debug) {
     if(ze_debug_trace_probability != 1.0 &&
@@ -418,6 +532,10 @@ mtev_zipkin_span_new(int64_t *trace_id,
 
 
   span = calloc(1, sizeof(*span));
+  span->refcnt = 1;
+  struct timeval nowtv;
+  mtev_gettimeofday(&nowtv,NULL);
+  span->timestamp = mtev_zipkin_timeval_to_timestamp(&nowtv);
   span->name.value = name_copy ? strdup(name) : (char *)name;
   span->name.needs_free = name_copy;
   span->trace_id = *trace_id;
@@ -437,8 +555,14 @@ mtev_zipkin_span_new(int64_t *trace_id,
 }
 
 void
+mtev_zipkin_span_ref(Zipkin_Span *span) {
+  mtev_atomic_inc32(&span->refcnt);
+}
+
+void
 mtev_zipkin_span_drop(Zipkin_Span *span) {
   if(!span) return;
+  if(mtev_atomic_dec32(&span->refcnt) != 0) return;
   if(span->name.needs_free && span->name.value) free(span->name.value);
   while(span->annotations) {
     Zipkin_List_Zipkin_Annotation *node = span->annotations;
@@ -468,39 +592,44 @@ mtev_zipkin_span_drop(Zipkin_Span *span) {
 
 void
 mtev_zipkin_span_publish(Zipkin_Span *span) {
-  unsigned char *buffer, hopeful[4192], *allocd = NULL;
-  size_t len;
-  int64_t traceid, spanid;
-
   if(!span) return;
 
-  len = mtev_zipkin_encode(hopeful,sizeof(hopeful),span);
-  if(len <= sizeof(hopeful)) buffer = hopeful;
-  else {
-    size_t expected_len = len;
-    allocd = malloc(expected_len);
-    if(!allocd) {
-      mtevL(mtev_error, "mtev_zipkin_span_publish malloc(%zu) failed\n",
-            expected_len);
-      return;
-    }
-    len = mtev_zipkin_encode(allocd,expected_len,span);
-    if(len > expected_len) {
-      mtevL(mtev_error, "mtev_zipkin_span_publish short buffer %zu > %zu\n",
-            len, expected_len);
-      free(allocd);
-      return;
-    }
-    buffer = allocd;
+  if(zipkin_publish_span_hook_exists()) {
+    zipkin_publish_span_hook_invoke(span);
   }
-  traceid = span->trace_id;
-  spanid = span->id;
-  mtev_zipkin_span_drop(span);
+  if(zipkin_publish_hook_exists()) {
+    unsigned char *buffer, hopeful[4192], *allocd = NULL;
+    size_t len;
+    int64_t traceid, spanid;
 
-  zipkin_publish_hook_invoke(traceid, spanid, buffer, len);
-  /* PUBLISH HERE */
+    len = mtev_zipkin_encode(hopeful,sizeof(hopeful),span);
+    if(len <= sizeof(hopeful)) buffer = hopeful;
+    else {
+      size_t expected_len = len;
+      allocd = malloc(expected_len);
+      if(!allocd) {
+        mtevL(mtev_error, "mtev_zipkin_span_publish malloc(%zu) failed\n",
+              expected_len);
+        return;
+      }
+      len = mtev_zipkin_encode(allocd,expected_len,span);
+      if(len > expected_len) {
+        mtevL(mtev_error, "mtev_zipkin_span_publish short buffer %zu > %zu\n",
+              len, expected_len);
+        free(allocd);
+        return;
+      }
+      buffer = allocd;
+    }
+    traceid = span->trace_id;
+    spanid = span->id;
+    mtev_zipkin_span_drop(span);
 
-  if(allocd) free(allocd);
+    zipkin_publish_hook_invoke(traceid, spanid, buffer, len);
+    if(allocd) free(allocd);
+  } else {
+    mtev_zipkin_span_drop(span);
+  }
 }
 
 void
@@ -514,24 +643,34 @@ mtev_zipkin_span_default_endpoint(Zipkin_Span *span, const char *service_name,
 }
 
 Zipkin_Annotation *
-mtev_zipkin_span_annotate(Zipkin_Span *span, int64_t *timestamp,
+mtev_zipkin_span_annotate(Zipkin_Span *span, int64_t *timestamp_in,
                           const char *value, bool value_copy) {
   Zipkin_List_Zipkin_Annotation *node;
   Zipkin_Annotation *a;
-  int64_t now;
+  int64_t timestamp;
 
   if(!span) return NULL;
 
   node = calloc(1, sizeof(*node));
   a = &node->data;
 
-  if(!timestamp) {
+  if(timestamp_in) {
+    timestamp = *timestamp_in;
+  } else {
     struct timeval nowtv;
     mtev_gettimeofday(&nowtv,NULL);
-    now = mtev_zipkin_timeval_to_timestamp(&nowtv);
-    timestamp = &now;
+    timestamp = mtev_zipkin_timeval_to_timestamp(&nowtv);
   }
-  a->timestamp = *timestamp;
+  a->timestamp = timestamp;
+
+  /* coerce the span's timestamp to the earliest we see */
+  if(span->timestamp == 0 || a->timestamp < span->timestamp)
+    span->timestamp = a->timestamp;
+  /* set the duration of the span to the largest spread */
+  if(span->timestamp != 0 && a->timestamp > span->timestamp) {
+    int64_t ndur = a->timestamp - span->timestamp;
+    if(ndur > span->duration) span->duration = ndur;
+  }
 
   a->value.needs_free = value_copy;
   a->value.value = value_copy ? strdup(value) : (char *)value;
@@ -570,8 +709,8 @@ mtev_zipkin_span_bannotate(Zipkin_Span *span, Zipkin_AnnotationType atype,
   a->key.value = key_copy ? strdup(key) : (char *)key;
 
   a->value.len = value_len;
-  if(value_copy && value_len <= 8) {
-    /* common encoding no-alloc path for up to 8 bytes */
+  if(value_copy && value_len <= sizeof(a->value.data)) {
+    /* common encoding no-alloc path for up to N bytes */
     memcpy(a->value.data, value, value_len);
     a->value.value = a->value.data;
     a->value.needs_free = false;
@@ -591,6 +730,36 @@ mtev_zipkin_span_bannotate(Zipkin_Span *span, Zipkin_AnnotationType atype,
   node->next = span->binary_annotations;
   span->binary_annotations = node;
   return a;
+}
+
+Zipkin_BinaryAnnotation *
+mtev_zipkin_span_bannotate_str(Zipkin_Span *span,
+                               const char *key, bool key_copy,
+                               const char *val, bool val_copy) {
+  return mtev_zipkin_span_bannotate(span, ZIPKIN_STRING, key, key_copy, val, strlen(val), val_copy);
+}
+
+Zipkin_BinaryAnnotation *
+mtev_zipkin_span_bannotate_i32(Zipkin_Span *span,
+                               const char *key, bool key_copy, int32_t v) {
+  int32_t vnet = htonl(v);
+  return mtev_zipkin_span_bannotate(span, ZIPKIN_I32, key, key_copy, &vnet, 4, true);
+}
+
+Zipkin_BinaryAnnotation *
+mtev_zipkin_span_bannotate_i64(Zipkin_Span *span,
+                               const char *key, bool key_copy, int64_t v) {
+  int64_t vnet = htonll(v);
+  return mtev_zipkin_span_bannotate(span, ZIPKIN_I64, key, key_copy, &vnet, 8, true);
+}
+
+Zipkin_BinaryAnnotation *
+mtev_zipkin_span_bannotate_double(Zipkin_Span *span,
+                                  const char *key, bool key_copy, double v) {
+  double foo = v;
+  int64_t *fooi64 = (int64_t *)&foo;
+  *fooi64 = htonll(*fooi64);
+  return mtev_zipkin_span_bannotate(span, ZIPKIN_I64, key, key_copy, fooi64, 8, true);
 }
 
 void

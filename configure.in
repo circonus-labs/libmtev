@@ -536,7 +536,6 @@ XSLTLIBS=`xslt-config --libs`
 LIBS="$LIBS $XSLTLIBS"
 AC_MSG_RESULT([$XSLTLIBS])
 
-# only used in example programs
 AC_CHECK_HEADER(curl/curl.h, [], [AC_MSG_ERROR([*** libcurl headers required ***])])
 AC_CHECK_LIB(curl, curl_global_init, [ 
   EXAMPLE_LIBS="$LIBS -lcurl"

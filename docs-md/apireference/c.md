@@ -3004,6 +3004,22 @@ mtev_zipkin_default_endpoint(const char *service_name, bool service_name_copy, s
 mtev_zipkin_default_endpoint sets a default endpoint for any new spans created without their own default.  Use this with care, it is application global.  You should likely only call this once at startup.
  
 
+#### mtev_zipkin_default_service_name
+
+>Sets the default service name used for new spans.
+
+```c
+void 
+mtev_zipkin_default_service_name(const char *service_name, bool service_name_copy)
+```
+
+
+  * `service_name` The service name to use.
+  * `service_name_copy` Whether service_name should be allocated (copied) within the span.
+
+mtev_zipkin_default_service_name sets a default service name for endpoints for any new spans created without their own default.  Use this with care, it is application global.  You should likely only call this once at startup.
+ 
+
 #### mtev_zipkin_encode
 
 >Encode a span into the specified buffer for Zipkin.
@@ -3020,6 +3036,25 @@ mtev_zipkin_encode(unsigned char *buffer, size_t len, Zipkin_Span *span)
   * **RETURN** The length of a successful encoding.
 
 mtev_zipkin_encode will take a span and encode it for Zipkin using the Thift BinaryProtocol.  The return value is always the length of a successful encoding, even if the buffer supplied is too small.  The caller must check the the returned length is less than or equal to the provided length to determine whether the encoding was successful.  The caller may provide a NULL buffer if and only if the provided len is 0.
+ 
+
+#### mtev_zipkin_encode_list
+
+>Encode a span into the specified buffer for Zipkin.
+
+```c
+size_t 
+mtev_zipkin_encode_list(unsigned char *buffer, size_t len, Zipkin_Span **spans, int cnt)
+```
+
+
+  * `buffer` The target buffer.
+  * `len` The target buffer's size.
+  * `spans` The array of spans to encode.
+  * `cnt` The number of spans in `spans`.
+  * **RETURN** The length of a successful encoding.
+
+mtev_zipkin_encode_list will take a list of spans and encode it for Zipkin using the Thift BinaryProtocol.  The return value is always the length of a successful encoding, even if the buffer supplied is too small.  The caller must check the the returned length is less than or equal to the provided length to determine whether the encoding was successful.  The caller may provide a NULL buffer if and only if the provided len is 0.
  
 
 #### mtev_zipkin_sampling
@@ -3079,6 +3114,80 @@ mtev_zipkin_span_bannotate(Zipkin_Span *span, Zipkin_AnnotationType annotation_t
   * **RETURN** A new binary annotation.
 
 mtev_zipkin_span_bannotate make a binary annotation on the provided span.  The returned resource is managed by the span and will be released with it.
+ 
+
+#### mtev_zipkin_span_bannotate_double
+
+>Annotate a span.
+
+```c
+Zipkin_BinaryAnnotation * 
+mtev_zipkin_span_bannotate_double(Zipkin_Span *span, const char *key, bool key_copy, double value)
+```
+
+
+  * `span` The span to annotate.
+  * `annotation_type` The type of the value being passed in.
+  * `key` The key for the annotation
+  * `key_copy` Whether key should be allocated (copied) within the span.
+  * `value` The value for the annotation.
+  * **RETURN** A new binary annotation.
+ 
+
+#### mtev_zipkin_span_bannotate_i32
+
+>Annotate a span.
+
+```c
+Zipkin_BinaryAnnotation * 
+mtev_zipkin_span_bannotate_i32(Zipkin_Span *span, const char *key, bool key_copy, int32_t value)
+```
+
+
+  * `span` The span to annotate.
+  * `annotation_type` The type of the value being passed in.
+  * `key` The key for the annotation
+  * `key_copy` Whether key should be allocated (copied) within the span.
+  * `value` The value for the annotation.
+  * **RETURN** A new binary annotation.
+ 
+
+#### mtev_zipkin_span_bannotate_i64
+
+>Annotate a span.
+
+```c
+Zipkin_BinaryAnnotation * 
+mtev_zipkin_span_bannotate_i64(Zipkin_Span *span, const char *key, bool key_copy, int64_t value)
+```
+
+
+  * `span` The span to annotate.
+  * `annotation_type` The type of the value being passed in.
+  * `key` The key for the annotation
+  * `key_copy` Whether key should be allocated (copied) within the span.
+  * `value` The value for the annotation.
+  * **RETURN** A new binary annotation.
+ 
+
+#### mtev_zipkin_span_bannotate_str
+
+>Annotate a span.
+
+```c
+Zipkin_BinaryAnnotation * 
+mtev_zipkin_span_bannotate_str(Zipkin_Span *span, const char *key, bool key_copy, const char *value
+                               bool value_copy)
+```
+
+
+  * `span` The span to annotate.
+  * `annotation_type` The type of the value being passed in.
+  * `key` The key for the annotation
+  * `key_copy` Whether key should be allocated (copied) within the span.
+  * `value` The value for the annotation.
+  * `value_copy` Whether value should be allocated (copied) within the span.
+  * **RETURN** A new binary annotation.
  
 
 #### mtev_zipkin_span_default_endpoint
@@ -3152,6 +3261,19 @@ mtev_zipkin_span_publish(Zipkin_Span *span)
   * `span` The span to publish and release.
 
 mtev_zipkin_span_publish first publishes, then releases all resources associated with the span.
+ 
+
+#### mtev_zipkin_span_ref
+
+>Increase the reference count to a span.
+
+```c
+void 
+mtev_zipkin_span_ref(Zipkin_Span *span)
+```
+
+
+  * `span` The span to reference.
  
 
 #### mtev_zipkin_str_to_id
