@@ -194,7 +194,7 @@ struct wslay_event_callbacks wslay_callbacks = {
 static mtev_log_stream_t http_debug = NULL;
 static mtev_log_stream_t http_io = NULL;
 static mtev_log_stream_t http_access = NULL;
-//static const char *zipkin_http_uri = "http.uri";
+static const char *zipkin_http_uri = "http.uri";
 static const char *zipkin_http_method = "http.method";
 static const char *zipkin_http_hostname = "http.hostname";
 static const char *zipkin_http_status = "http.status_code";
@@ -627,9 +627,12 @@ begin_span(mtev_http_session_ctx *ctx) {
     sampled = true;
   ctx->zipkin_span =
     mtev_zipkin_span_new(trace_id, parent_span_id, span_id,
-                         req->uri_str, false, NULL, sampled);
+                         req->uri_str, true, NULL, sampled);
   set_endpoint(ctx);
   mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_RECV, false);
+  mtev_zipkin_span_bannotate_str(ctx->zipkin_span,
+                                 zipkin_http_uri, false,
+                                 req->uri_str, true);
   mtev_zipkin_span_bannotate_str(ctx->zipkin_span,
                                  zipkin_http_method, false,
                                  req->method_str, true);
