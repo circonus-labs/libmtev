@@ -37,11 +37,7 @@ src/libmtev*dylib
 src/libmtev_dtrace_probes.h
 test/Makefile
 test/mtevbusted-script
-test/hash_test
-test/uuid_test
-test/time_test
-test/hll_test
-test/maybe_alloc_test
+test/*_test
 test/test_harness
 test/sort_test
 test/test_detail.xml
