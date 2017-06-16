@@ -55,6 +55,7 @@
 #include "mtev_conf.h"
 #include "mtev_memory.h"
 #include "mtev_thread.h"
+#include "mtev_zipkin.h"
 #include "mtev_time.h"
 #include "mtev_watchdog.h"
 #include "mtev_lockfile.h"
@@ -322,6 +323,7 @@ mtev_main(const char *appname,
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
   mtev_init_globals();
+  mtev_zipkin_default_service_name(appname, mtev_true);
 
   char *require_invariant_tsc = getenv("MTEV_RDTSC_REQUIRE_INVARIANT");
   if (require_invariant_tsc && strcmp(require_invariant_tsc, "0") == 0) {

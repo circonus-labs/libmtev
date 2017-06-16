@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>fq · GitBook</title>
+        <title>zipkin_jaeger · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.2">
@@ -53,10 +53,10 @@
     <link rel="shortcut icon" href="../../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="lua_general.html" />
+    <link rel="next" href="../../development/" />
     
     
-    <link rel="prev" href="amqp.html" />
+    <link rel="prev" href="zipkin_fq.html" />
     
 
     </head>
@@ -219,7 +219,7 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.2.7.2" data-path="fq.html">
+        <li class="chapter " data-level="1.2.7.2" data-path="fq.html">
             
                 <a href="fq.html">
             
@@ -271,7 +271,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.6" data-path="zipkin_jaeger.html">
+        <li class="chapter active" data-level="1.2.7.6" data-path="zipkin_jaeger.html">
             
                 <a href="zipkin_jaeger.html">
             
@@ -524,7 +524,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="../.." >fq</a>
+        <a href="../.." >zipkin_jaeger</a>
     </h1>
 </div>
 
@@ -539,39 +539,46 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="fq">fq</h1>
-<p>The fq module consumed and publishes message via fq.</p>
+                                <h1 id="zipkinjaeger">zipkin_jaeger</h1>
+<p>The zipkin_jaeger module publishes Zipkin traces to Jaeger.</p>
 <ul>
 <li><strong>loader</strong>: C</li>
-<li><strong>image</strong>: fq.so</li>
+<li><strong>image</strong>: zipkin_jaeger.so</li>
 </ul>
 <h3 id="module-configuration">Module Configuration</h3>
-<pre><code>No module-level options available for this module.
-</code></pre><h3 id="examples">Examples</h3>
-<h4 id="loading-the-fq-module">Loading the fq module.</h4>
-<pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">root</span>&gt;</span>
+<ul>
+<li><p><strong><code>host</code></strong> (optional)  [default: <code>127.0.0.1</code>]</p>
+<p>allowed: <code>/^.+$/</code></p>
+<p>The jager collector host.</p>
+</li>
+<li><p><strong><code>port</code></strong> (optional)  [default: <code>14268</code>]</p>
+<p>allowed: <code>/^\d+$/</code></p>
+<p>The jaeger collector port.</p>
+</li>
+<li><p><strong><code>period</code></strong> (optional)  [default: <code>500</code>]</p>
+<p>allowed: <code>/^\d+$/</code></p>
+<p>The submission frequency in ms.</p>
+</li>
+<li><p><strong><code>max_batch</code></strong> (optional)  [default: <code>500</code>]</p>
+<p>allowed: <code>/^\d+$/</code></p>
+<p>The submission max batch size.</p>
+</li>
+<li><p><strong><code>backlog</code></strong> (optional)  [default: <code>5000</code>]</p>
+<p>allowed: <code>/^\d+$/</code></p>
+<p>The max backlog before spans are dropped.</p>
+</li>
+<li><p><strong><code>retries</code></strong> (optional)  [default: <code>0</code>]</p>
+<p>allowed: <code>/^\d+$/</code></p>
+<p>The number of HTTP retries upon failure..</p>
+<h3 id="examples">Examples</h3>
+</li>
+</ul>
+<h4 id="loading-the-zipkinjaeger-module">Loading the zipkin_jaeger module.</h4>
+<pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">noit</span>&gt;</span>
         <span class="hljs-tag">&lt;<span class="hljs-name">modules</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">module</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;fq&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;fq&quot;</span>/&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">module</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;zipkin_jaeger&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;zipkin_jaeger&quot;</span>/&gt;</span>
         <span class="hljs-tag">&lt;/<span class="hljs-name">modules</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">network</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">mq</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;fq&quot;</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">host</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-name">host</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">port</span>&gt;</span>8765<span class="hljs-tag">&lt;/<span class="hljs-name">port</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">user</span>&gt;</span>user<span class="hljs-tag">&lt;/<span class="hljs-name">user</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">pass</span>&gt;</span>pass<span class="hljs-tag">&lt;/<span class="hljs-name">pass</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">exchange</span>&gt;</span>exchange<span class="hljs-tag">&lt;/<span class="hljs-name">exchange</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">program</span>&gt;</span>prefix:&quot;in.&quot;<span class="hljs-tag">&lt;/<span class="hljs-name">program</span>&gt;</span>
-          <span class="hljs-tag">&lt;/<span class="hljs-name">mq</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">mq</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;fq&quot;</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">host</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-name">host</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">port</span>&gt;</span>8765<span class="hljs-tag">&lt;/<span class="hljs-name">port</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">user</span>&gt;</span>user<span class="hljs-tag">&lt;/<span class="hljs-name">user</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">pass</span>&gt;</span>pass<span class="hljs-tag">&lt;/<span class="hljs-name">pass</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">exchange</span>&gt;</span>exchange<span class="hljs-tag">&lt;/<span class="hljs-name">exchange</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">program</span>&gt;</span>prefix:&quot;in2.&quot;<span class="hljs-tag">&lt;/<span class="hljs-name">program</span>&gt;</span>
-          <span class="hljs-tag">&lt;/<span class="hljs-name">mq</span>&gt;</span>
-        <span class="hljs-tag">&lt;/<span class="hljs-name">network</span>&gt;</span>
-      <span class="hljs-tag">&lt;/<span class="hljs-name">root</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">noit</span>&gt;</span>
 </code></pre>
 
                                 
@@ -600,12 +607,12 @@
 
             
                 
-                <a href="amqp.html" class="navigation navigation-prev " aria-label="Previous page: amqp">
+                <a href="zipkin_fq.html" class="navigation navigation-prev " aria-label="Previous page: zipkin_fq">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="lua_general.html" class="navigation navigation-next " aria-label="Next page: lua_general">
+                <a href="../../development/" class="navigation navigation-next " aria-label="Next page: Development">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -616,7 +623,7 @@
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"fq","level":"1.2.7.2","depth":3,"next":{"title":"lua_general","level":"1.2.7.3","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},"previous":{"title":"amqp","level":"1.2.7.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/fq.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"../..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"zipkin_jaeger","level":"1.2.7.6","depth":3,"next":{"title":"Development","level":"1.3","depth":1,"path":"development/README.md","ref":"development/README.md","articles":[{"title":"Important Starting Notes","level":"1.3.1","depth":2,"path":"development/important.md","ref":"development/important.md","articles":[]},{"title":"mtev_main","level":"1.3.2","depth":2,"path":"development/mtev_main.md","ref":"development/mtev_main.md","articles":[]},{"title":"Eventer","level":"1.3.3","depth":2,"path":"development/eventer.md","ref":"development/eventer.md","articles":[]},{"title":"REST and HTTP","level":"1.3.4","depth":2,"path":"development/rest.md","ref":"development/rest.md","articles":[]},{"title":"Logging","level":"1.3.5","depth":2,"path":"development/logging.md","ref":"development/logging.md","articles":[]},{"title":"Hooks","level":"1.3.6","depth":2,"path":"development/hooks.md","ref":"development/hooks.md","articles":[]}]},"previous":{"title":"zipkin_fq","level":"1.2.7.5","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/zipkin_jaeger.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"../..","book":{"language":""}});
         });
     </script>
 </div>

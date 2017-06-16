@@ -73,62 +73,9 @@ typedef enum {
   ZIPKIN_STRING
 } Zipkin_AnnotationType;
 
-typedef struct {
-  char *value;
-  bool needs_free;
-} Zipkin_String;
-
-typedef struct {
-  void *value;
-  char data[8];
-  int32_t len;
-  bool needs_free;
-} Zipkin_Binary;
-
-typedef struct {
-  int32_t ipv4;
-  int16_t port;
-  Zipkin_String service_name;
-} Zipkin_Endpoint;
-
-typedef struct {
-  int64_t timestamp;
-  Zipkin_String value;
-  Zipkin_Endpoint *host;
-  Zipkin_Endpoint _host;
-} Zipkin_Annotation;
-
-typedef struct {
-  Zipkin_String key;
-  Zipkin_Binary value;
-  Zipkin_AnnotationType annotation_type;
-  Zipkin_Endpoint *host;
-  Zipkin_Endpoint _host;
-} Zipkin_BinaryAnnotation;
-
-#define Zipkin_List(A) \
-typedef struct _zl_##A { \
-  A data; \
-  struct _zl_##A *next; \
-} Zipkin_List_##A \
-
-Zipkin_List(Zipkin_Annotation);
-Zipkin_List(Zipkin_BinaryAnnotation);
-
-typedef struct {
-  int64_t trace_id;
-  Zipkin_String name;
-  int64_t id;
-  int64_t *parent_id;
-  int64_t _parent_id;
-  Zipkin_List_Zipkin_Annotation *annotations;
-  Zipkin_List_Zipkin_BinaryAnnotation *binary_annotations;
-  bool *debug;
-  bool _debug;
-
-  /* Not part of the spec, used by us to provide defaults */
-  Zipkin_Endpoint _default_host;
-} Zipkin_Span;
+typedef struct Zipkin_Span Zipkin_Span;
+typedef struct Zipkin_Annotation Zipkin_Annotation;
+typedef struct Zipkin_BinaryAnnotation Zipkin_BinaryAnnotation;
 
 /*! \fn int64_t mtev_zipkin_timeval_to_timestamp(struct timeval *tv)
     \brief Convert a struct timeval to a timestamp.
@@ -157,6 +104,13 @@ API_EXPORT(Zipkin_Span *)
   mtev_zipkin_span_new(int64_t *, int64_t *, int64_t *, const char *,
                        bool, bool *, bool );
 
+/*! \fn void mtev_zipkin_span_ref(Zipkin_Span *span)
+    \brief Increase the reference count to a span.
+    \param span The span to reference.
+ */
+API_EXPORT(void)
+  mtev_zipkin_span_ref(Zipkin_Span *);
+
 /*! \fn void mtev_zipkin_span_drop(Zipkin_Span *span)
     \brief Release resources allociated with span without publishing.
     \param span The span to release.
@@ -174,6 +128,17 @@ API_EXPORT(void)
  */
 API_EXPORT(void)
   mtev_zipkin_span_publish(Zipkin_Span *);
+
+/*! \fn void mtev_zipkin_default_service_name(const char *service_name, bool service_name_copy)
+    \brief Sets the default service name used for new spans.
+    \param service_name The service name to use.
+    \param service_name_copy Whether service_name should be allocated (copied) within the span.
+
+    mtev_zipkin_default_service_name sets a default service name for endpoints for any new spans created without their own default.  Use this with care, it is application global.  You should likely only call this once at startup.
+ */
+
+API_EXPORT(void)
+  mtev_zipkin_default_service_name(const char *, bool);
 
 /*! \fn void mtev_zipkin_default_endpoint(const char *service_name, bool service_name_copy, struct in_addr host, unsigned short port)
     \brief Sets the default endpoint used for new spans.
@@ -252,6 +217,59 @@ API_EXPORT(Zipkin_BinaryAnnotation *)
   mtev_zipkin_span_bannotate(Zipkin_Span *, Zipkin_AnnotationType,
                              const char *, bool, const void *, int32_t, bool);
 
+/*! \fn Zipkin_BinaryAnnotation * mtev_zipkin_span_bannotate_str(Zipkin_Span *span, const char *key, bool key_copy, const char *value, bool value_copy)
+    \brief Annotate a span.
+    \param span The span to annotate.
+    \param annotation_type The type of the value being passed in.
+    \param key The key for the annotation
+    \param key_copy Whether key should be allocated (copied) within the span.
+    \param value The value for the annotation.
+    \param value_copy Whether value should be allocated (copied) within the span.
+    \return A new binary annotation.
+ */
+
+API_EXPORT(Zipkin_BinaryAnnotation *)
+  mtev_zipkin_span_bannotate_str(Zipkin_Span *, const char *, bool, const char *, bool);
+
+/*! \fn Zipkin_BinaryAnnotation * mtev_zipkin_span_bannotate_i64(Zipkin_Span *span, const char *key, bool key_copy, int64_t value)
+    \brief Annotate a span.
+    \param span The span to annotate.
+    \param annotation_type The type of the value being passed in.
+    \param key The key for the annotation
+    \param key_copy Whether key should be allocated (copied) within the span.
+    \param value The value for the annotation.
+    \return A new binary annotation.
+ */
+
+API_EXPORT(Zipkin_BinaryAnnotation *)
+  mtev_zipkin_span_bannotate_i64(Zipkin_Span *, const char *, bool, int64_t);
+
+/*! \fn Zipkin_BinaryAnnotation * mtev_zipkin_span_bannotate_i32(Zipkin_Span *span, const char *key, bool key_copy, int32_t value)
+    \brief Annotate a span.
+    \param span The span to annotate.
+    \param annotation_type The type of the value being passed in.
+    \param key The key for the annotation
+    \param key_copy Whether key should be allocated (copied) within the span.
+    \param value The value for the annotation.
+    \return A new binary annotation.
+ */
+
+API_EXPORT(Zipkin_BinaryAnnotation *)
+  mtev_zipkin_span_bannotate_i32(Zipkin_Span *, const char *, bool, int32_t);
+
+/*! \fn Zipkin_BinaryAnnotation * mtev_zipkin_span_bannotate_double(Zipkin_Span *span, const char *key, bool key_copy, double value)
+    \brief Annotate a span.
+    \param span The span to annotate.
+    \param annotation_type The type of the value being passed in.
+    \param key The key for the annotation
+    \param key_copy Whether key should be allocated (copied) within the span.
+    \param value The value for the annotation.
+    \return A new binary annotation.
+ */
+
+API_EXPORT(Zipkin_BinaryAnnotation *)
+  mtev_zipkin_span_bannotate_double(Zipkin_Span *, const char *, bool, double);
+
 /*! \fn void mtev_zipkin_bannotation_set_endpoint(Zipkin_BinaryAnnotation *annotation, const char *service_name, bool service_name_copy, struct in_addr host, unsigned short port)
     \brief Sets the endpoint for an annotation.
     \param annotation The annotation to update.
@@ -279,6 +297,19 @@ API_EXPORT(void)
 API_EXPORT(size_t)
   mtev_zipkin_encode(unsigned char *, size_t, Zipkin_Span *);
 
+/*! \fn size_t mtev_zipkin_encode_list(unsigned char *buffer, size_t len, Zipkin_Span **spans, int cnt)
+    \brief Encode a span into the specified buffer for Zipkin.
+    \param buffer The target buffer.
+    \param len The target buffer's size.
+    \param spans The array of spans to encode.
+    \param cnt The number of spans in `spans`.
+    \return The length of a successful encoding.
+
+    mtev_zipkin_encode_list will take a list of spans and encode it for Zipkin using the Thift BinaryProtocol.  The return value is always the length of a successful encoding, even if the buffer supplied is too small.  The caller must check the the returned length is less than or equal to the provided length to determine whether the encoding was successful.  The caller may provide a NULL buffer if and only if the provided len is 0.
+ */
+API_EXPORT(size_t)
+  mtev_zipkin_encode_list(unsigned char *, size_t, Zipkin_Span **, int);
+
 /*! \fn void mtev_zipkin_sampling(double new_traces, double parented_traces, double debug_traces)
     \brief Set sampling probabilities for different types of traces.
     \param new_traces probability of createing a new trace (trace_id == NULL)
@@ -305,6 +336,11 @@ MTEV_HOOK_PROTO(zipkin_publish,
                 (int64_t traceid, int64_t spanid, unsigned char *buffer, size_t len),
                 void *, closure,
                 (void *closure, int64_t traceid, int64_t spanid, unsigned char *buffer, size_t len));
+
+MTEV_HOOK_PROTO(zipkin_publish_span,
+                (Zipkin_Span *span),
+                void *, closure,
+                (void *closure, Zipkin_Span *));
 
 
 #endif
