@@ -11,6 +11,8 @@ Network listeners and their services are specified via configuration.
       <certificate_file>/path/to/server.crt</certificate_file>
       <key_file>/path/to/server.key</key_file>
       <ca_chain>/path/to/ca.crt</ca_chain>
+      <layer>tlsv1:all,!sslv2,!sslv3,cipher_server_preference</layer>
+      <ciphers>EECDH+AES128+AESGCM:EDH+AES128+AESGCM:!DSS</ciphers>
     </sslconfig>
     <consoles type="mtev_console" require_env="MTEV_CONTROL">
       <listener address="127.0.0.1" port="32322">
@@ -104,7 +106,7 @@ connecting clients.  SSL config supports the follwing keys:
 
  * ##### layer
 
-   This specifies the layer and options we present and is the form `<protocol>[:<option>,[<option>[,...]]]`.
+   This specifies the SSL protocol options we present and is the form `<protocol>[:<option>,[<option>[,...]]]`.
    Options may be negated with an antecedent `!`.  Tokens are matched case-insensitively.
 
    Protocols supported (depending on openssl): `SSLv2`, `SSLv3`, `TLSv1`, `TLSv1.1`, `TLSv1.2`. 
@@ -131,9 +133,11 @@ connecting clients.  SSL config supports the follwing keys:
 
  * ##### ciphers
 
-   Specifies which ciphers should be supported.  Check the OpenSSL manual for more details.
+   Specifies which ciphers should be supported, expressed in the OpenSSL cipher
+   list format.  Check the OpenSSL manual for more details.  If not specified, the
+   default ciphers supported by the OpenSSL library are used.
 
- * ### config
+### config
 
    Each listener can access the `config` passed to it; see type-specific documentation.
 
