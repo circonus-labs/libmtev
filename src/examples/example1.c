@@ -44,7 +44,7 @@ usage(const char *prog) {
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, "c:Ddk:")) != EOF) {
+  while((c = getopt(argc, argv, "c:Ddk:l:L:")) != EOF) {
     switch(c) {
       case 'c':
         config_file = optarg;
@@ -57,6 +57,11 @@ parse_cli_args(int argc, char * const *argv) {
         else if(!strcmp(optarg, "status")) proc_op = PROC_OP_STATUS;
         else proc_op = PROC_OP_ERROR;
         break;
+      case 'l':
+        mtev_main_enable_log(optarg);
+        break;
+      case 'L':
+        mtev_main_disable_log(optarg);
     }
   }
 }
@@ -117,6 +122,49 @@ static void init_cluster(void) {
   }
 }
 
+static int handler_work(eventer_t e, int mask, void *closure,
+                        struct timeval *now) {
+  mtev_http_rest_closure_t *restc = closure;
+  if(mask == EVENTER_ASYNCH_WORK) {
+    sleep(1);
+    mtev_http_session_ctx *ctx = restc->http_ctx;
+    mtev_http_response_appendf(ctx, "Passing by %s\n", eventer_get_thread_name());
+  }
+  if(mask == EVENTER_ASYNCH) {
+    mtev_http_session_resume_after_float(restc->http_ctx);
+  }
+  return 0;
+}
+
+static int handler_complete(mtev_http_rest_closure_t *restc,
+                            int npats, char **pats) {
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  mtev_http_response_appendf(ctx, "Good-bye from %s\n", eventer_get_thread_name());
+  mtev_http_response_end(ctx);
+  return 0;
+}
+
+static int handler(mtev_http_rest_closure_t *restc,
+                   int npats, char **pats) {
+  eventer_t conne, worke;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+
+  /* remove the eventer */
+  conne = mtev_http_connection_event_float(mtev_http_session_connection(ctx));
+  if(conne) eventer_remove_fde(conne);
+
+  /* set a completion routine */
+  restc->fastpath = handler_complete;
+
+  mtev_http_response_ok(ctx, "text/plain");
+  mtev_http_response_appendf(ctx, "Hello from %s\n", eventer_get_thread_name());
+
+  /* schedule our work */
+  worke = eventer_alloc_asynch(handler_work, restc);
+  eventer_add(worke);
+  return 0;
+}
+
 static int
 child_main(void) {
   /* reload out config, to make sure we have the most current */
@@ -141,10 +189,15 @@ child_main(void) {
   mtev_conf_watch_and_journal_watchdog(NULL, NULL);
 
   mtev_http_rest_register_auth(
+    "GET", "/", "^test$", handler,
+           mtev_http_rest_client_cert_auth
+  );
+  mtev_http_rest_register_auth(
     "GET", "/", "^(.*)$", mtev_rest_simple_file_handler,
            mtev_http_rest_client_cert_auth
   );
 
+  eventer_name_callback("handler_work", handler_work);
   /* Lastly, spin up the event loop */
   eventer_loop();
   return 0;
