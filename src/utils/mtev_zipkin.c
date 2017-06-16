@@ -100,6 +100,8 @@ struct Zipkin_Span {
   /* Not part of the spec, used by us to provide defaults */
   Zipkin_Endpoint _default_host;
   mtev_atomic32_t refcnt;
+};
+
 
 #undef byte
 #define byte unsigned char
