@@ -60,20 +60,20 @@ typedef struct {
   Zipkin_String service_name;
 } Zipkin_Endpoint;
 
-typedef struct Zipkin_Annotation {
+struct Zipkin_Annotation {
   int64_t timestamp;
   Zipkin_String value;
   Zipkin_Endpoint *host;
   Zipkin_Endpoint _host;
-} Zipkin_Annotation;
+};
 
-typedef struct Zipkin_BinaryAnnotation {
+struct Zipkin_BinaryAnnotation {
   Zipkin_String key;
   Zipkin_Binary value;
   Zipkin_AnnotationType annotation_type;
   Zipkin_Endpoint *host;
   Zipkin_Endpoint _host;
-} Zipkin_BinaryAnnotation;
+};
 
 #define Zipkin_List(A) \
 typedef struct _zl_##A { \
@@ -84,7 +84,7 @@ typedef struct _zl_##A { \
 Zipkin_List(Zipkin_Annotation);
 Zipkin_List(Zipkin_BinaryAnnotation);
 
-typedef struct Zipkin_Span {
+struct Zipkin_Span {
   int64_t trace_id;
   Zipkin_String name;
   int64_t id;
@@ -100,7 +100,6 @@ typedef struct Zipkin_Span {
   /* Not part of the spec, used by us to provide defaults */
   Zipkin_Endpoint _default_host;
   mtev_atomic32_t refcnt;
-} Zipkin_Span;
 
 #undef byte
 #define byte unsigned char
@@ -583,11 +582,13 @@ mtev_zipkin_span_drop(Zipkin_Span *span) {
       free(a->_host.service_name.value);
     }
     span->binary_annotations = node->next;
+    free(node);
   }
   if(span->_default_host.service_name.needs_free &&
      span->_default_host.service_name.value) {
     free(span->_default_host.service_name.value);
   }
+  free(span);
 }
 
 void
