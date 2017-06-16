@@ -7,7 +7,7 @@
     <parameter name="host"
                required="optional"
                default="127.0.0.1"
-               allowed=".+">The jager collector host.</parameter>
+               allowed=".+">The jaeger collector host.</parameter>
     <parameter name="port"
                required="optional"
                default="14268"
