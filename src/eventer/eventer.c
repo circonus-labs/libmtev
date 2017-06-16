@@ -50,6 +50,46 @@ stats_handle_t *eventer_unnamed_callback_latency;
 static mtev_atomic64_t ealloccnt;
 static mtev_atomic64_t ealloctotal;
 
+static struct {
+  char *name;
+  eventer_context_opset_t *opset;
+} eventer_contexts[MAX_EVENT_CTXS];
+static int eventer_contexts_cnt = 0;
+
+void eventer_callback_prep(eventer_t e, int m, void *c, struct timeval *n) {
+  for(int i=0; i<eventer_contexts_cnt; i++) {
+    if(eventer_contexts[i].opset->eventer_t_callback_prep) {
+      eventer_contexts[i].opset->eventer_t_callback_prep(e,m,c,n);
+    }
+  }
+}
+
+void eventer_callback_cleanup(eventer_t e, int m) {
+  for(int i=0; i<eventer_contexts_cnt; i++) {
+    if(eventer_contexts[i].opset->eventer_t_callback_cleanup) {
+      eventer_contexts[i].opset->eventer_t_callback_cleanup(e,m);
+    }
+  }
+}
+
+int eventer_register_context(const char *name, eventer_context_opset_t *o) {
+  int idx = eventer_contexts_cnt++;
+  eventer_contexts[idx].name = strdup(name);
+  eventer_contexts[idx].opset = o;
+  return idx;
+}
+void *eventer_get_context(eventer_t e, int idx) {
+  if(idx < 0 || idx >= eventer_contexts_cnt) return NULL;
+  return e->ctx[idx].data;
+}
+
+void *eventer_set_context(eventer_t e, int idx, void *data) {
+  if(idx < 0 || idx >= eventer_contexts_cnt) return NULL;
+  void *old = e->ctx[idx].data;
+  e->ctx[idx].data = data;
+  return old;
+}
+
 eventer_fd_accept_t eventer_fd_opset_get_accept(eventer_fd_opset_t opset) {
   return opset->accept;
 }
@@ -71,13 +111,23 @@ eventer_t eventer_alloc(void) {
   e->refcnt = 1;
   mtev_atomic_inc64(&ealloccnt);
   mtev_atomic_inc64(&ealloctotal);
+  for(int i=0; i<eventer_contexts_cnt; i++) {
+    if(eventer_contexts[i].opset->eventer_t_init) {
+      e = eventer_contexts[i].opset->eventer_t_init(e);
+    }
+  }
   return e;
 }
 
 eventer_t eventer_alloc_copy(eventer_t src) {
-  eventer_t e = eventer_alloc();
+  eventer_t e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
   memcpy(e, src, sizeof(*e));
   e->refcnt = 1;
+  for(int i=0; i<eventer_contexts_cnt; i++) {
+    if(eventer_contexts[i].opset->eventer_t_copy) {
+      eventer_contexts[i].opset->eventer_t_copy(e, src);
+    }
+  }
   return e;
 }
 
@@ -128,6 +178,11 @@ eventer_t eventer_alloc_asynch_timeout(eventer_func_t func, void *closure,
 void eventer_free(eventer_t e) {
   if(mtev_atomic_dec32(&e->refcnt) == 0) {
     mtev_atomic_dec64(&ealloccnt);
+    for(int i=0; i<eventer_contexts_cnt; i++) {
+      if(eventer_contexts[i].opset->eventer_t_deinit) {
+        eventer_contexts[i].opset->eventer_t_deinit(e);
+      }
+    }
     mtev_free(eventer_t_allocator, e);
   }
 }

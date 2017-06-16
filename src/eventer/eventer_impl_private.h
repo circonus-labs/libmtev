@@ -33,6 +33,11 @@
 
 #include "mtev_stats.h"
 
+typedef struct eventer_context_t {
+  void *data;
+} eventer_context_t;
+
+#define MAX_EVENT_CTXS 1
 #ifdef HIDE_EVENTER_ABI
 struct _fd_opset {
   eventer_fd_accept_t accept;
@@ -52,6 +57,9 @@ struct _event {
   void               *closure;
   pthread_t           thr_owner;
   mtev_atomic32_t     refcnt;
+#ifdef MAX_EVENT_CTXS
+  eventer_context_t     ctx[MAX_EVENT_CTXS];
+#endif
 };
 #endif
 
@@ -144,6 +152,20 @@ void eventer_impl_init_globals(void);
 void eventer_dispatch_recurrent(void);
 void eventer_dispatch_timed(struct timeval *next);
 void eventer_mark_callback_time(void);
+void eventer_set_this_event(eventer_t e);
+void eventer_callback_prep(eventer_t, int, void *, struct timeval *);
+void eventer_callback_cleanup(eventer_t, int);
+
+static inline int eventer_run_callback(eventer_t e, int m, void *c, struct timeval *n) {
+  int rmask;
+  eventer_t previous_event = eventer_get_this_event();
+  eventer_set_this_event(e);
+  eventer_callback_prep(e, m, c, n);
+  rmask = e->callback(e, m, c, n);
+  eventer_callback_cleanup(e, rmask);
+  eventer_set_this_event(previous_event);
+  return rmask;
+}
 
 extern stats_ns_t *eventer_stats_ns;
 extern stats_handle_t *eventer_callback_latency;

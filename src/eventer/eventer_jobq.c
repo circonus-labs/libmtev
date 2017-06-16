@@ -379,8 +379,10 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
                                  my_precious->fd, my_precious->mask,
                                  EVENTER_ASYNCH_CLEANUP);
           start = mtev_gethrtime();
-          my_precious->callback(my_precious, EVENTER_ASYNCH_CLEANUP,
-                                my_precious->closure, &job->finish_time);
+          eventer_set_this_event(my_precious);
+          eventer_run_callback(my_precious, EVENTER_ASYNCH_CLEANUP,
+                       my_precious->closure, &job->finish_time);
+          eventer_set_this_event(NULL);
           duration = mtev_gethrtime() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)my_precious, (void *)my_precious->callback, NULL, -1);
           stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
@@ -424,8 +426,8 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
                              job->fd_event->mask);
       start = mtev_gethrtime();
       mtevL(eventer_deb, "jobq %p running job [%p]\n", jobq, job);
-      newmask = job->fd_event->callback(job->fd_event, job->fd_event->mask,
-                                        job->fd_event->closure, now);
+      newmask = eventer_run_callback(job->fd_event, job->fd_event->mask,
+                             job->fd_event->closure, now);
       duration = mtev_gethrtime() - start;
       LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, newmask);
@@ -548,8 +550,8 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
                              job->fd_event->fd, job->fd_event->mask,
                              EVENTER_ASYNCH_CLEANUP);
       start = mtev_gethrtime();
-      job->fd_event->callback(job->fd_event, EVENTER_ASYNCH_CLEANUP,
-                              job->fd_event->closure, &job->finish_time);
+      eventer_run_callback(job->fd_event, EVENTER_ASYNCH_CLEANUP,
+                   job->fd_event->closure, &job->finish_time);
       duration = mtev_gethrtime() - start;
       LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, -1);
@@ -603,8 +605,8 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
                                  job->fd_event->fd, job->fd_event->mask,
                                  EVENTER_ASYNCH_WORK);
           start = mtev_gethrtime();
-          job->fd_event->callback(job->fd_event, EVENTER_ASYNCH_WORK,
-                                  job->fd_event->closure, &start_time);
+          eventer_run_callback(job->fd_event, EVENTER_ASYNCH_WORK,
+                       job->fd_event->closure, &start_time);
           duration = mtev_gethrtime() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                   (void *)job->fd_event->callback, NULL, -1);
@@ -646,8 +648,8 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
                                job->fd_event->fd, job->fd_event->mask,
                                EVENTER_ASYNCH_CLEANUP);
         start = mtev_gethrtime();
-        job->fd_event->callback(job->fd_event, EVENTER_ASYNCH_CLEANUP,
-                                job->fd_event->closure, &job->finish_time);
+        eventer_run_callback(job->fd_event, EVENTER_ASYNCH_CLEANUP,
+                     job->fd_event->closure, &job->finish_time);
         duration = mtev_gethrtime() - start;
         LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                 (void *)job->fd_event->callback, NULL, -1);

@@ -97,6 +97,14 @@ struct eventer_impl_data {
   mtev_hrtime_t last_cb_ns;
 };
 
+static __thread eventer_t current_eventer_in_callback;
+/* private */
+void eventer_set_this_event(eventer_t e) { current_eventer_in_callback = e; }
+
+eventer_t
+eventer_get_this_event(void) {
+  return current_eventer_in_callback;
+}
 static __thread struct eventer_impl_data *my_impl_data;
 static pthread_key_t thread_name_key;
 struct thread_name {
@@ -857,8 +865,8 @@ void eventer_dispatch_timed(struct timeval *next) {
                            (void *)timed_event->callback, (char *)cbname, -1,
                            timed_event->mask, EVENTER_TIMER);
     start = mtev_gethrtime();
-    newmask = timed_event->callback(timed_event, EVENTER_TIMER,
-                                    timed_event->closure, &now);
+    newmask = eventer_run_callback(timed_event, EVENTER_TIMER,
+                           timed_event->closure, &now);
     duration = mtev_gethrtime() - start;
     stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
     stats_set_hist_intscale(eventer_latency_handle_for_callback(timed_event->callback), duration, -9, 1);
@@ -967,7 +975,7 @@ void eventer_dispatch_recurrent(void) {
     int rv;
     uint64_t start, duration;
     start = mtev_gethrtime();
-    rv = node->e->callback(node->e, EVENTER_RECURRENT, node->e->closure, &__now);
+    rv = eventer_run_callback(node->e, EVENTER_RECURRENT, node->e->closure, &__now);
     if(rv != 0) {
       /* For RECURRENT calls, we don't want to overmeasure what are noops...
        * So we trust that the call returns 0 after such a noop, but
@@ -1052,7 +1060,7 @@ static void *eventer_thread_harness(void *ve) {
   while(1) {
     struct timeval now;
     mtev_gettimeofday(&now, NULL);
-    mask = e->callback(e, mask, e->closure, &now);
+    eventer_run_callback(e, mask, e->closure, &now);
     if(mask == 0) {
       eventer_free(e);
       return NULL;

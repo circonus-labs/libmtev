@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2007, OmniTI Computer Consulting, Inc.
  * All rights reserved.
- * Copyright (c) 2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2015-2017, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -200,7 +200,6 @@ static const char *zipkin_http_hostname = "http.hostname";
 static const char *zipkin_http_status = "http.status_code";
 static const char *zipkin_http_bytes_in = "http.bytes_in";
 static const char *zipkin_http_bytes_out = "http.bytes_out";
-static const char *zipkin_ss_done = "ss_done";
 static struct in_addr zipkin_ip_host;
 
 #define CTX_ADD_HEADER(a,b) \
@@ -606,12 +605,16 @@ static void
 begin_span(mtev_http_session_ctx *ctx) {
   mtev_http_request *req = &ctx->req;
   const char *trace_hdr = NULL, *parent_span_hdr = NULL, *span_hdr = NULL,
-             *sampled_hdr = NULL, *host_hdr;
+             *sampled_hdr = NULL, *host_hdr, *mtev_event_hdr = NULL;
   char *endptr = NULL;
   int64_t trace_id_buf, parent_span_id_buf, span_id_buf;
   int64_t *trace_id, *parent_span_id, *span_id;
   bool sampled = false;
+  mtev_zipkin_event_trace_level_t _trace_events = ZIPKIN_TRACE_EVENT_NONE,
+                                  *trace_events = NULL;
 
+  (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_MTEV_EVENT_L,
+                           strlen(HEADER_ZIPKIN_MTEV_EVENT_L), &mtev_event_hdr);
   (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_TRACEID_L,
                            strlen(HEADER_ZIPKIN_TRACEID_L), &trace_hdr);
   (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_PARENTSPANID_L,
@@ -623,11 +626,18 @@ begin_span(mtev_http_session_ctx *ctx) {
   trace_id = mtev_zipkin_str_to_id(trace_hdr, &trace_id_buf);
   parent_span_id = mtev_zipkin_str_to_id(parent_span_hdr, &parent_span_id_buf);
   span_id = mtev_zipkin_str_to_id(span_hdr, &span_id_buf);
-  if(sampled_hdr && (0 == strtoll(sampled_hdr, &endptr, 10)) && endptr != NULL)
+  if(sampled_hdr && (1 == strtoll(sampled_hdr, &endptr, 10)) && endptr != NULL)
     sampled = true;
+  if(mtev_event_hdr) {
+    unsigned long long lvl = strtoll(mtev_event_hdr, NULL, 10);
+    if(lvl == 1) _trace_events = ZIPKIN_TRACE_EVENT_LIFETIME;
+    if(lvl > 1) _trace_events = ZIPKIN_TRACE_EVENT_CALLBACKS;
+    trace_events = &_trace_events;
+  }
   ctx->zipkin_span =
     mtev_zipkin_span_new(trace_id, parent_span_id, span_id,
                          req->uri_str, true, NULL, sampled);
+  mtev_zipkin_attach_to_eventer(ctx->conn.e, ctx->zipkin_span, false, trace_events);
   set_endpoint(ctx);
   mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_RECV, false);
   mtev_zipkin_span_bannotate_str(ctx->zipkin_span,
@@ -662,7 +672,7 @@ end_span(mtev_http_session_ctx *ctx) {
                                  zipkin_http_bytes_out, false,
                                  res->bytes_written);
 
-  mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, zipkin_ss_done, false);
+  mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_SEND_DONE, false);
   mtev_zipkin_span_publish(ctx->zipkin_span);
   ctx->zipkin_span = NULL;
 }
@@ -951,6 +961,7 @@ mtev_http_request_finalize_headers(mtev_http_session_ctx *ctx, mtev_boolean *err
     req->content_length = strtoll(val, NULL, 10);
   }
 
+  begin_span(ctx);
   if(mtev_hash_retrieve(&req->headers, HEADER_EXPECT,
                         sizeof(HEADER_EXPECT)-1, &vval)) {
     const char *val = vval;
@@ -1810,10 +1821,6 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     mtev_http_process_querystring(&ctx->req);
     inplace_urldecode(ctx->req.uri_str);
 
-    /* do zipkin spans make sense for websockets? */
-    if (ctx->is_websocket == mtev_false) {
-      begin_span(ctx);
-    }
     /* we always respond with the same procotol */
     ctx->res.protocol = ctx->req.protocol;
     LIBMTEV_HTTP_REQUEST_FINISH(CTXFD(ctx), ctx);
@@ -1822,6 +1829,7 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
       mtevL(http_debug, "hook aborted http session.\n");
       goto abort_drive;
     }
+    mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_RECV_DONE, false);
   }
 
   if (ctx->is_websocket == mtev_true) {
@@ -2601,14 +2609,9 @@ mtev_http_zipkip_span(mtev_http_session_ctx *ctx) {
 void
 mtev_http_init(void) {
   struct in_addr remote = { .s_addr = 0xffffffff };
-  double np = 0.0, pp = 1.0, dp = 1.0;
   mtev_getip_ipv4(remote, &zipkin_ip_host);
 
   zipkin_ip_host.s_addr = ntohl(zipkin_ip_host.s_addr);
-  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@new", &np);
-  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@parented", &pp);
-  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@debug", &dp);
-  mtev_zipkin_sampling(np,pp,dp);
 
   http_debug = mtev_log_stream_find("debug/http");
   http_access = mtev_log_stream_find("http/access");
