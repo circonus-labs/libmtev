@@ -5,6 +5,7 @@
 *.hlo
 *.o
 *.so
+*.ctfso
 *.xmlh
 *.swp
 _book/
@@ -18,6 +19,7 @@ config.status
 /node_modules/
 src/Makefile
 src/**/Makefile
+src/modules/mtev_lua/
 !src/modules/example/Makefile
 src/dhparam*.txt
 src/js/node_modules/
