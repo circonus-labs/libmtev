@@ -247,6 +247,7 @@ static void mtev_lua_reporter_deref(struct lua_reporter *reporter) {
     if(reporter->root) MJ_DROP(reporter->root);
     reporter->root = NULL;
     pthread_mutex_destroy(&reporter->lock);
+    free(reporter);
   }
 }
 static int
