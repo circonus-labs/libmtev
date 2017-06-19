@@ -235,12 +235,6 @@ mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
   int args = 0, aerrno;
   socklen_t aerrno_len = sizeof(aerrno);
 
-  /* If the pointer has been cleared, this has been gc'd */
-  if(!*(cl->eptr)) {
-    mtevL(nlerr, "mtev.eventer callback post GC\n");
-    return 0;
-  }
-
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
   eventer_remove_fde(e);
@@ -277,12 +271,6 @@ mtev_lua_socket_recv_complete(eventer_t e, int mask, void *vcl,
   int rv, args = 0;
   void *inbuff = NULL;
   socklen_t alen;
-
-  /* If the pointer has been cleared, this has been gc'd */
-  if(!*(cl->eptr)) {
-    mtevL(nlerr, "mtev.eventer callback post GC\n");
-    return 0;
-  }
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
@@ -360,6 +348,7 @@ mtev_lua_socket_recv(lua_State *L) {
       eventer_set_callback(e, mtev_lua_socket_recv_complete);
       eventer_set_mask(e, EVENTER_READ | EVENTER_EXCEPTION);
       eventer_add(e);
+      *eptr = NULL;
       free(inbuff);
       return mtev_lua_yield(ci, 0);
     }
@@ -383,12 +372,6 @@ mtev_lua_socket_send_complete(eventer_t e, int mask, void *vcl,
   struct nl_slcl *cl = vcl;
   int sbytes;
   int args = 0;
-
-  /* If the pointer has been cleared, this has been gc'd */
-  if(!*(cl->eptr)) {
-    mtevL(nlerr, "mtev.eventer callback post GC\n");
-    return 0;
-  }
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
@@ -466,6 +449,7 @@ mtev_lua_socket_send(lua_State *L) {
     eventer_set_callback(e, mtev_lua_socket_send_complete);
     eventer_set_mask(e, EVENTER_WRITE | EVENTER_EXCEPTION);
     eventer_add(e);
+    *eptr = NULL;
     return mtev_lua_yield(ci, 0);
   }
   lua_pushinteger(L, sbytes);
@@ -544,6 +528,7 @@ mtev_lua_socket_sendto(lua_State *L) {
     eventer_set_callback(e, mtev_lua_socket_send_complete);
     eventer_set_mask(e, EVENTER_WRITE | EVENTER_EXCEPTION);
     eventer_add(e);
+    *eptr = NULL;
     return mtev_lua_yield(ci, 0);
   }
   lua_pushinteger(L, sbytes);
@@ -635,12 +620,6 @@ mtev_lua_socket_accept_complete(eventer_t e, int mask, void *vcl,
     struct sockaddr_in6 in6;
   } addr;
   socklen_t inlen, optlen;
-
-  /* If the pointer has been cleared, this has been gc'd */
-  if(!*(cl->eptr)) {
-    mtevL(nlerr, "mtev.eventer callback post GC\n");
-    return 0;
-  }
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
@@ -769,6 +748,7 @@ mtev_lua_socket_accept(lua_State *L) {
       eventer_set_callback(e, mtev_lua_socket_accept_complete);
       eventer_set_mask(e, newmask | EVENTER_EXCEPTION);
       eventer_add(e);
+      *eptr = NULL;
       mtevL(nldeb, "accept rescheduled\n");
       return mtev_lua_yield(ci, 0);
     }
@@ -934,6 +914,7 @@ mtev_lua_socket_connect(lua_State *L) {
     eventer_set_callback(e, mtev_lua_socket_connect_complete);
     eventer_set_mask(e, EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
     eventer_add(e);
+    *eptr = NULL;
     return mtev_lua_yield(ci, 0);
   }
   lua_pushinteger(L, -1);
@@ -1021,6 +1002,7 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
     eventer_set_mask(e, tmpmask | EVENTER_EXCEPTION);
     eventer_set_callback(e, mtev_lua_ssl_upgrade);
     eventer_add(e);
+    *eptr = NULL;
     return mtev_lua_yield(ci, 0);
   }
   lua_pushinteger(L, (rv > 0) ? 0 : -1);
@@ -1102,12 +1084,6 @@ mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
     eventer_remove_timed(cl->timeout_event);
     mtev_lua_deregister_event(ci, cl->timeout_event, 1);
     cl->timeout_event = NULL;
-  }
-
-  /* If the pointer has been cleared, this has been gc'd */
-  if(!*(cl->eptr)) {
-    mtevL(nlerr, "mtev.eventer callback post GC\n");
-    return 0;
   }
 
   len = mtev_lua_socket_do_read(e, &mask, cl, &args);
@@ -1227,6 +1203,7 @@ mtev_lua_socket_read(lua_State *L) {
     eventer_set_callback(e, mtev_lua_socket_read_complete);
     eventer_set_mask(e, mask | EVENTER_EXCEPTION);
     eventer_add(e);
+    *eptr = NULL;
 
     if (lua_gettop(L) == 5 && lua_isfunction(L, 5)) {
       double timeout_user;
@@ -1269,12 +1246,6 @@ mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
   struct nl_slcl *cl = vcl;
   int rv;
   int args = 0;
-
-  /* If the pointer has been cleared, this has been gc'd */
-  if(!*(cl->eptr)) {
-    mtevL(nlerr, "mtev.eventer callback post GC\n");
-    return 0;
-  }
 
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
@@ -1359,6 +1330,7 @@ mtev_lua_socket_write(lua_State *L) {
     eventer_set_callback(e, mtev_lua_socket_write_complete);
     eventer_set_mask(e, mask | EVENTER_EXCEPTION);
     eventer_add(e);
+    *eptr = NULL;
     return mtev_lua_yield(ci, 0);
   }
   lua_pushinteger(L, -1);
