@@ -119,8 +119,11 @@ mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci) {
   pthread_mutex_lock(&coro_lock);
   mtevAssert(mtev_hash_delete(&mtev_coros,
                           (const char *)&ci->coro_state, sizeof(ci->coro_state),
-                          NULL, NULL));
+                          free, NULL));
   pthread_mutex_unlock(&coro_lock);
+  mtevL(nldeb, "coro_store <- %p [deleted]\n", ci->coro_state);
+  ci->coro_state = NULL;
+  ci->coro_state_ref = 0;
 }
 
 void
@@ -128,13 +131,15 @@ mtev_lua_set_resume_info(lua_State *L, mtev_lua_resume_info_t *ri) {
   lua_getglobal(L, "mtev_internal_lmc");
   ri->lmc = lua_touserdata(L, lua_gettop(L));
   mtevL(nldeb, "coro_store -> %p\n", ri->coro_state);
-  mtev_hash_store(&ri->lmc->state_coros,
-                  (const char *)&ri->coro_state, sizeof(ri->coro_state),
-                  ri); 
+  lua_State **Lp = malloc(sizeof(*Lp));
+  *Lp = ri->coro_state;
+  mtevAssert(mtev_hash_store(&ri->lmc->state_coros,
+                             (const char *)Lp, sizeof(*Lp),
+                             ri)); 
   pthread_mutex_lock(&coro_lock);
-  mtev_hash_store(&mtev_coros,
-                  (const char *)&ri->coro_state, sizeof(ri->coro_state),
-                  ri); 
+  mtevAssert(mtev_hash_store(&mtev_coros,
+                             (const char *)Lp, sizeof(*Lp),
+                             ri));
   pthread_mutex_unlock(&coro_lock);
 }
 
@@ -363,6 +368,7 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
     ri = iter.value.ptr;
     if(!pthread_equal(me, ri->lmc->owner)) continue;
     if(ri) describe_lua_context_ncct(ncct, ri);
+    mtevL(nldeb, "describing lua state %p\n", L);
     nc_printf(ncct, "\tstack:\n");
     while (lua_getstack(L, level++, &ar));
     level--;
@@ -562,13 +568,15 @@ mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
   ri->coro_state_ref = luaL_ref(L, -2);
   lua_pop(L, 1); /* pops mtev_coros */
   mtevL(nldeb, "coro_store -> %p\n", ri->coro_state);
-  mtev_hash_store(&lmc->state_coros,
-                  (const char *)&ri->coro_state, sizeof(ri->coro_state),
-                  ri);
+  lua_State **Lp = malloc(sizeof(*Lp));
+  *Lp = ri->coro_state;
+  mtevAssert(mtev_hash_store(&lmc->state_coros,
+                  (const char *)Lp, sizeof(*Lp),
+                  ri));
   pthread_mutex_lock(&coro_lock);
-  mtev_hash_store(&mtev_coros,
-                  (const char *)&ri->coro_state, sizeof(ri->coro_state),
-                  ri);
+  mtevAssert(mtev_hash_store(&mtev_coros,
+                  (const char *)Lp, sizeof(*Lp),
+                  ri));
   pthread_mutex_unlock(&coro_lock);
   return;
 }
@@ -594,12 +602,14 @@ mtev_lua_get_resume_info(lua_State *L) {
   lua_pushthread(L);
   ri->coro_state_ref = luaL_ref(L, -2);
   lua_pop(L, 1); /* pops mtev_coros */
-  mtev_hash_store(&ri->lmc->state_coros,
-                  (const char *)&ri->coro_state, sizeof(ri->coro_state),
-                  ri);
-  mtev_hash_store(&mtev_coros,
-                  (const char *)&ri->coro_state, sizeof(ri->coro_state),
-                  ri);
+  lua_State **Lp = malloc(sizeof(*Lp));
+  *Lp = ri->coro_state;
+  mtevAssert(mtev_hash_store(&ri->lmc->state_coros,
+                  (const char *)Lp, sizeof(*Lp),
+                  ri));
+  mtevAssert(mtev_hash_store(&mtev_coros,
+                  (const char *)Lp, sizeof(*Lp),
+                  ri));
   pthread_mutex_unlock(&coro_lock);
   return ri;
 }
