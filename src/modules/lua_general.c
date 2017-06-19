@@ -45,6 +45,7 @@
 
 #define MTEV_LUA_REPL_USERDATA "mtev::state::lua_repl"
 
+static int general_loaded = 0;
 static int mtev_lua_general_init(mtev_dso_generic_t *);
 static mtev_hash_table hookinfo;
 static pthread_mutex_t hookinfo_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -265,8 +266,6 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     }
     free(copy);
   }
-  mtev_hash_init(&hookinfo);
-  mtev_hash_init(&lua_ctypes);
   return 0;
 }
 
@@ -328,6 +327,7 @@ lua_general_conf_save(lua_State *L) {
 
 void
 mtev_lua_register_dynamic_ctype_impl(const char *type_name, mtev_lua_push_dynamic_ctype_t func) {
+  if(!general_loaded) return;
   mtev_hash_replace(&lua_ctypes, strdup(type_name), strlen(type_name),
                     func, free, NULL);
 }
@@ -902,6 +902,8 @@ mtev_lua_general_register_console_commands(mtev_image_t *self) {
 }
 static int
 mtev_lua_general_onload(mtev_image_t *self) {
+  mtev_hash_init(&lua_ctypes);
+  mtev_hash_init(&hookinfo);
   nlerr = mtev_log_stream_find("error/lua");
   nldeb = mtev_log_stream_find("debug/lua");
   mtev_lua_context_describe(LUA_GENERAL_INFO_MAGIC,
@@ -909,6 +911,7 @@ mtev_lua_general_onload(mtev_image_t *self) {
   mtev_lua_context_describe_json(LUA_GENERAL_INFO_MAGIC,
                                  describe_lua_general_context_json);
   mtev_lua_general_register_console_commands(self);
+  general_loaded = 1;
   return 0;
 }
 

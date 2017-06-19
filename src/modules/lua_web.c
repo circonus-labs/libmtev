@@ -320,6 +320,7 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
       }
       if(!module || !method || !mount) {
         mtevL(mtev_error, "Invalid lua_web mount syntax in '%s'\n", iter.key.str);
+        free(copy);
         return -1;
       }
       conf->mounts[i].name = strdup(iter.key.str + strlen("mount_"));
@@ -328,6 +329,7 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
       conf->mounts[i].mount = strdup(mount); 
       conf->mounts[i].expr = expr ? strdup(expr) : strdup("(.*)$"); 
       i++;
+      free(copy);
     }
   }
   memset(&iter, 0, sizeof(iter));
