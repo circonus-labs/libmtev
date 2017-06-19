@@ -1,4 +1,4 @@
-.SUFFIXES: .lo .@MODULEEXT@ .xml .xmlh .ctfso .so
+.SUFFIXES: .lo .@MODULEEXT@ .xml .xmlh .so
 
 Q=
 ifeq ($(V),)
@@ -62,59 +62,73 @@ all:	$(MODULES) $(MTEV4LUA)
 
 zipkin_jaeger.lo:	zipkin_jaeger.xmlh
 
-zipkin_jaeger.ctfso:	zipkin_jaeger.lo
+zipkin_jaeger.@MODULEEXT@:	zipkin_jaeger.lo
 	@echo "- linking $@"
-	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $< -lcurl
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $^ -lcurl
+	$(Q)if test -x "$(CTFMERGE)" ; then \
+		echo "- merging CTF ($@)" ; \
+		$(CTFMERGE) -l @VERSION@ -o $@ $^ ; \
+	fi
 
 zipkin_fq.lo:	zipkin_fq.xmlh
 
-zipkin_fq.ctfso:	zipkin_fq.lo
+zipkin_fq.@MODULEEXT@:	zipkin_fq.lo
 	@echo "- linking $@"
-	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $< -lfq
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $^ -lfq
+	$(Q)if test -x "$(CTFMERGE)" ; then \
+		echo "- merging CTF ($@)" ; \
+		$(CTFMERGE) -l @VERSION@ -o $@ $^ ; \
+	fi
 
 mtev_fq.lo:	fq.xmlh
 
-fq.ctfso:	mtev_fq.lo
+fq.@MODULEEXT@:	mtev_fq.lo
 	@echo "- linking $@"
-	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $< -lfq
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $^ -lfq
+	$(Q)if test -x "$(CTFMERGE)" ; then \
+		echo "- merging CTF ($@)" ; \
+		$(CTFMERGE) -l @VERSION@ -o $@ $^ ; \
+	fi
 
 mtev_amqp.lo:	amqp.xmlh
 
-amqp.ctfso:	mtev_amqp.lo
+amqp.@MODULEEXT@:	mtev_amqp.lo
 	@echo "- linking $@"
-	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $< -lrabbitmq
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $^ -lrabbitmq
+	$(Q)if test -x "$(CTFMERGE)" ; then \
+		echo "- merging CTF ($@)" ; \
+		$(CTFMERGE) -l @VERSION@ -o $@ $^ ; \
+	fi
 
 LUA_MODULE_OBJS=lua.lo lua_web.lo lua_general.lo lua_mtev_http.lo
 
 lua_general.lo:	lua_general.xmlh
 lua_web.lo:	lua_web.xmlh
 
-lua_mtev.ctfso:	$(LUA_MODULE_OBJS)
+lua_mtev.@MODULEEXT@:	$(LUA_MODULE_OBJS)
 	@echo "- linking $@"
-	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $< $(LUALIBS)
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $^ $(LUALIBS)
+	$(Q)if test -x "$(CTFMERGE)" ; then \
+		echo "- merging CTF ($@)" ; \
+		$(CTFMERGE) -l @VERSION@ -o $@ $^ ; \
+	fi
 
 # luajit always uses .so
 MTEV_LUA_OBJS=lua_mtev_crypto.lo lua_mtev.lo lua_mtev_dns.lo \
 	lua_lpack.lo lua_bit.lo
 
-mtev_lua/mtev.ctfso:	$(MTEV_LUA_OBJS)
+mtev_lua/mtev.@MODULEEXT@:	$(MTEV_LUA_OBJS)
 	$(Q)mkdir -p mtev_lua
 	@echo "- linking $@"
-	$(Q)$(MODULELD) $(SHLDFLAGS) -o mtev_lua/mtev.ctfso $< -lcrypto -ludns
-
-.lo.ctfso:
-	@echo "- linking $@"
-	@(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $<
-
-.ctfso.so:
-	$(Q)cp $< $@
+	$(Q)$(MODULELD) $(SHLDFLAGS) -o mtev_lua/mtev.@MODULEEXT@ $^ -lcrypto -ludns
 	$(Q)if test -x "$(CTFMERGE)" ; then \
 		echo "- merging CTF ($@)" ; \
-		$(CTFMERGE) -l @VERSION@ -o $@ $< ; \
+		$(CTFMERGE) -l @VERSION@ -o $@ $^ ; \
 	fi
 
-.ctfso.@MODULEEXT@:
-	$(Q)cp $< $@
+.lo.@MODULEEXT@:
+	@echo "- linking $@"
+	@(Q)$(MODULELD) $(SHLDFLAGS) -o $@ $<
 	$(Q)if test -x "$(CTFMERGE)" ; then \
 		echo "- merging CTF ($@)" ; \
 		$(CTFMERGE) -l @VERSION@ -o $@ $< ; \
