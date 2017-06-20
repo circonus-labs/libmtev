@@ -61,18 +61,32 @@ mtev_zipkin_inst_curl_headers(struct curl_slist *inheaders) {
 static inline CURLcode mtev_zipkin_curl_easy_perform(CURL *curl) {
   static const char *zipkin_http_uri = "http.uri";
   static const char *zipkin_http_status = "http.status_code";
+  static const char *zipkin_peer_port = "peer.port";
+  static const char *zipkin_peer_ipv4 = "peer.ipv4";
+  static const char *zipkin_peer_ipv6 = "peer.ipv6";
   Zipkin_Span *span = mtev_zipkin_client_span(NULL);
   CURLcode rv;
 
   if(!span) return curl_easy_perform(curl);
  
   long httpcode = 0;
+  long port = 0;
+  char *ip = NULL;
   char *url = NULL;
 
   mtev_zipkin_span_annotate(span, NULL, ZIPKIN_CLIENT_SEND, false);
   rv = curl_easy_perform(curl);
   if(CURLE_OK == curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode)) {
     mtev_zipkin_span_bannotate_i32(span, zipkin_http_status, false, httpcode);
+  }
+  if(CURLE_OK == curl_easy_getinfo(curl, CURLINFO_PRIMARY_PORT, &port) && port) {
+    mtev_zipkin_span_bannotate_i32(span, zipkin_peer_port, false, port);
+  }
+  if(CURLE_OK == curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip) && ip) {
+    if(strchr(ip, ':'))
+      mtev_zipkin_span_bannotate_str(span, zipkin_peer_ipv6, false, ip, true);
+    else
+      mtev_zipkin_span_bannotate_str(span, zipkin_peer_ipv4, false, ip, true);
   }
   if(CURLE_OK == curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &url) && url) {
     mtev_zipkin_span_bannotate_str(span, zipkin_http_uri, false, url, true);
