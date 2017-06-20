@@ -61,6 +61,7 @@ struct rest_raw_payload {
 };
 
 struct rest_url_dispatcher {
+  char *nice_name;
   char *method;
   char *expression_s;
   char *websocket_protocol;
@@ -267,6 +268,9 @@ mtev_http_get_websocket_handler(mtev_http_rest_closure_t *restc)
   struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
   if (rule != NULL) {
       /* We match, set 'er up */
+    mtev_zipkin_span_rename(mtev_http_zipkip_span(restc->http_ctx),
+                            rule->nice_name ? rule->nice_name : rule->expression_s,
+                            false);
     restc->websocket_handler_memo = rule->websocket_handler;
     restc->closure = rule->closure;
     if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
@@ -284,6 +288,9 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
   struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
   if (rule != NULL) {
       /* We match, set 'er up */
+    mtev_zipkin_span_rename(mtev_http_zipkip_span(restc->http_ctx),
+                            rule->nice_name ? rule->nice_name : rule->expression_s,
+                            false);
     restc->fastpath = rule->handler;
     restc->closure = rule->closure;
     if(rule->pool) {
@@ -447,6 +454,8 @@ mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
   }
   rule = calloc(1, sizeof(*rule));
   rule->method = strdup(method);
+  rule->nice_name = malloc(strlen(base) + strlen(expr) + 2);
+  sprintf(rule->nice_name, "%s %s", base, expr);
   rule->expression_s = strdup(expr);
   rule->expression = pcre_expr;
   rule->extra = pcre_study(rule->expression, 0, &error);

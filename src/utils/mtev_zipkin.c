@@ -33,14 +33,26 @@
 #include "mtev_hooks.h"
 #include "mtev_time.h"
 #include "mtev_zipkin.h"
+#include "eventer/eventer.h"
 
 #include <ctype.h>
 #include <string.h>
 
+const char *ZIPKIN_SPAN_KIND = "span.kind";
+const char *ZIPKIN_INTERNAL = "internal";
+const char *ZIPKIN_MTEV_EVENTER_MASK = "eventer.mask";
+const char *ZIPKIN_MTEV_EVENTER_RMASK = "eventer.return";
+const char *ZIPKIN_MTEV_EVENTER_THREAD = "eventer.thread";
+const char *ZIPKIN_INTERNAL_START = "internal_start";
+const char *ZIPKIN_INTERNAL_DONE = "internal_done";
 const char *ZIPKIN_CLIENT_SEND = "cs";
+const char *ZIPKIN_CLIENT_SEND_DONE = "cs_done";
 const char *ZIPKIN_CLIENT_RECV = "cr";
+const char *ZIPKIN_CLIENT_RECV_DONE = "cr_done";
 const char *ZIPKIN_SERVER_SEND = "ss";
+const char *ZIPKIN_SERVER_SEND_DONE = "ss_done";
 const char *ZIPKIN_SERVER_RECV = "sr";
+const char *ZIPKIN_SERVER_RECV_DONE = "sr_done";
 
 typedef struct {
   char *value;
@@ -102,6 +114,12 @@ struct Zipkin_Span {
   mtev_atomic32_t refcnt;
 };
 
+void mtev_zipkin_span_rename(Zipkin_Span *span, const char *name, bool copy) {
+  if(span == NULL) return;
+  if(span->name.needs_free) free(span->name.value);
+  span->name.needs_free = copy;
+  span->name.value = copy ? strdup(name) : (char *)name;
+}
 
 #undef byte
 #define byte unsigned char
@@ -630,9 +648,8 @@ mtev_zipkin_span_publish(Zipkin_Span *span) {
 
     zipkin_publish_hook_invoke(traceid, spanid, buffer, len);
     if(allocd) free(allocd);
-  } else {
-    mtev_zipkin_span_drop(span);
   }
+  mtev_zipkin_span_drop(span);
 }
 
 void
@@ -794,15 +811,249 @@ mtev_zipkin_sampling(double new_traces, double parented_traces,
 }
 
 int64_t *
-mtev_zipkin_str_to_id(const char *in, int64_t *buf) {
-  int64_t out;
+mtev_zipkin_str_to_id(const char *orig_in, int64_t *buf) {
+  uint64_t out;
+  const char *in = orig_in;
   char *end;
   if(!in) return NULL;
   while(*in && isspace(*in)) in++;
   if(in[0] == '0' && (in[1] == 'x' || in[1] == 'X')) in += 2;
   if(*in == '\0') return NULL;
-  out = strtoll(in, &end, 16);
+  out = strtoull(in, &end, 16);
   if(*end != '\0' && !isspace(*end)) return NULL;
-  *buf = out;
+  *buf = *((int64_t *)&out);
   return buf;
+}
+
+/* This adds context to the eventer systems */
+
+typedef struct {
+  mtev_zipkin_event_trace_level_t trace_events;
+  bool my_span;
+  Zipkin_Span *parent_span;
+  Zipkin_Span *span;
+  Zipkin_Span *client;
+} zipkin_eventer_ctx_t;
+
+static int zipkin_ctx_idx = -1;
+static mtev_zipkin_event_trace_level_t zipkin_trace_events;
+static const char *generic_eventer_callback_name = "eventer_callback";
+static inline zipkin_eventer_ctx_t *get_my_ctx(eventer_t e) {
+  if(zipkin_ctx_idx < 0) return NULL;
+  if(e == NULL) e = eventer_get_this_event();
+  return eventer_get_context(e, zipkin_ctx_idx);
+}
+static void zipkin_eventer_ctx_free(zipkin_eventer_ctx_t *ctx) {
+  if(ctx == NULL) return;
+  if(ctx->span) {
+    if(ctx->my_span) {
+      mtev_zipkin_span_annotate(ctx->span, NULL, ZIPKIN_INTERNAL_DONE, false);
+      mtev_zipkin_span_bannotate_str(ctx->span, ZIPKIN_SPAN_KIND, false, ZIPKIN_INTERNAL, false);
+      mtev_zipkin_span_publish(ctx->span);
+    } else {
+      mtev_zipkin_span_drop(ctx->span);
+    }
+  }
+  mtev_zipkin_span_drop(ctx->parent_span);
+  mtev_zipkin_span_drop(ctx->client);
+  free(ctx);
+}
+
+Zipkin_Span *mtev_zipkin_active_span(eventer_t e) {
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(ctx) return ctx->span ? ctx->span : ctx->parent_span;
+  return NULL;
+}
+
+Zipkin_Span *mtev_zipkin_client_span(eventer_t e) {
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  return ctx ? ctx->client : NULL;
+}
+bool mtev_zipkin_client_trace_hdr(eventer_t e, char *buf, size_t len) {
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(ctx && ctx->client) {
+    int rv = snprintf(buf, len, HEADER_ZIPKIN_TRACEID ": 0x%" PRIx64,
+                      ctx->client->trace_id);
+    if(rv > 0 && rv < len) return true;
+  }
+  return false;
+}
+bool mtev_zipkin_client_parent_hdr(eventer_t e, char *buf, size_t len) {
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(ctx && ctx->client && ctx->client->parent_id) {
+    int rv = snprintf(buf, len, HEADER_ZIPKIN_PARENTSPANID ": 0x%" PRIx64,
+                      *ctx->client->parent_id);
+    if(rv > 0 && rv < len) return true;
+  }
+  return false;
+}
+bool mtev_zipkin_client_span_hdr(eventer_t e, char *buf, size_t len) {
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(ctx && ctx->client) {
+    int rv = snprintf(buf, len, HEADER_ZIPKIN_SPANID ": 0x%" PRIx64,
+                      ctx->client->id);
+    if(rv > 0 && rv < len) return true;
+  }
+  return false;
+}
+void
+mtev_zipkin_client_new(eventer_t e, const char *name, bool name_copy) {
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(!ctx) return;
+  Zipkin_Span *parent = ctx->span ? ctx->span : ctx->parent_span; 
+  if(!parent) return;
+  if(ctx->client) {
+    /* close it up */
+    mtev_zipkin_span_drop(ctx->client);
+    ctx->client = NULL;
+  }
+  ctx->client = mtev_zipkin_span_new(
+    &parent->trace_id, &parent->id, NULL, name, name_copy, parent->debug, false
+  );
+  return;
+}
+void mtev_zipkin_client_drop(eventer_t e) {
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(ctx && ctx->client) {
+    mtev_zipkin_span_drop(ctx->client);
+    ctx->client = NULL;
+  }
+}
+void mtev_zipkin_client_publish(eventer_t e) {
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(ctx && ctx->client) {
+    mtev_zipkin_span_publish(ctx->client);
+    ctx->client = NULL;
+  }
+}
+void mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_child, mtev_zipkin_event_trace_level_t *track) {
+  if(!span) return;
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(ctx) zipkin_eventer_ctx_free(ctx);
+  ctx = calloc(1, sizeof(*ctx));
+  ctx->trace_events = track ? *track : zipkin_trace_events;
+  if(new_child) {
+    const char *cbname = eventer_name_for_callback_e(eventer_get_callback(e), e);
+    if(cbname == NULL) cbname = generic_eventer_callback_name;
+    ctx->span = mtev_zipkin_span_new(
+       &span->trace_id, &span->id, NULL, cbname, true, span->debug, false
+    );
+    ctx->my_span = true;
+    mtev_zipkin_span_annotate(ctx->span, NULL, ZIPKIN_INTERNAL_START, false);
+  } else {
+    ctx->span = span;
+    mtev_zipkin_span_ref(span);
+  }
+  eventer_set_context(e, zipkin_ctx_idx, ctx);
+}
+void zipkin_eventer_callback_prep(eventer_t e, int mask, void *closure, struct timeval *now) {
+  zipkin_eventer_ctx_t *ctx;
+  if(zipkin_ctx_idx < 0) return;
+  ctx = eventer_get_context(e, zipkin_ctx_idx);
+  if(!ctx || !ctx->parent_span) return;
+  int64_t ts = mtev_zipkin_timeval_to_timestamp(now);
+  if(ctx->trace_events != ZIPKIN_TRACE_EVENT_CALLBACKS) return;
+
+  const char *cbname = eventer_name_for_callback_e(eventer_get_callback(e), e);
+  if(cbname == NULL) cbname = generic_eventer_callback_name;
+  ctx->span = mtev_zipkin_span_new(
+     &ctx->parent_span->trace_id, &ctx->parent_span->id, NULL,
+     cbname, true, ctx->parent_span->debug, false
+  );
+  ctx->my_span = true;
+  mtev_zipkin_span_annotate(ctx->span, &ts, ZIPKIN_INTERNAL_START, false);
+  mtev_zipkin_span_bannotate_str(ctx->span, ZIPKIN_MTEV_EVENTER_THREAD, false, eventer_get_thread_name(), false);
+  mtev_zipkin_span_bannotate_i32(ctx->span, ZIPKIN_MTEV_EVENTER_MASK, false, mask);
+}
+void zipkin_eventer_callback_cleanup(eventer_t e, int mask) {
+  zipkin_eventer_ctx_t *ctx;
+  if(zipkin_ctx_idx < 0) return;
+  ctx = eventer_get_context(e, zipkin_ctx_idx);
+  if(!ctx || !ctx->parent_span) return;
+  if(ctx->trace_events != ZIPKIN_TRACE_EVENT_CALLBACKS) return;
+  mtevAssert(ctx->my_span);
+  mtev_zipkin_span_bannotate_i32(ctx->span, ZIPKIN_MTEV_EVENTER_RMASK, false, mask);
+  mtev_zipkin_span_annotate(ctx->span, NULL, ZIPKIN_INTERNAL_DONE, false);
+  mtev_zipkin_span_bannotate_str(ctx->span, ZIPKIN_SPAN_KIND, false, ZIPKIN_INTERNAL, false);
+  mtev_zipkin_span_publish(ctx->span);
+  ctx->my_span = false;
+  ctx->span = NULL;
+}
+static eventer_t zipkin_eventer_init(eventer_t e) {
+  eventer_t parent;
+  zipkin_eventer_ctx_t *pctx, *ctx;
+  if(zipkin_ctx_idx < 0) return e;
+  if(NULL == (parent = eventer_get_this_event())) return e;
+  if(NULL == (pctx = eventer_get_context(parent, zipkin_ctx_idx))) return e;
+
+  mtev_zipkin_span_ref(pctx->span);
+
+  ctx = calloc(1, sizeof(*ctx));
+  ctx->trace_events = pctx->trace_events;
+  if(ctx->trace_events == ZIPKIN_TRACE_EVENT_LIFETIME) {
+    ctx->span = mtev_zipkin_span_new(&pctx->span->trace_id,
+                                     &pctx->span->id, NULL,
+                                     generic_eventer_callback_name, false,
+                                     pctx->span->debug, false);
+    mtev_zipkin_span_annotate(ctx->span, NULL, ZIPKIN_INTERNAL_START, false);
+    ctx->my_span = true;
+    mtev_zipkin_span_drop(pctx->span);
+  } else if(ctx->trace_events == ZIPKIN_TRACE_EVENT_CALLBACKS) {
+    ctx->parent_span = pctx->span;
+  } else {
+    ctx->span = pctx->span;
+  }
+  eventer_set_context(e, zipkin_ctx_idx, ctx);
+  return e;
+}
+static void zipkin_eventer_deinit(eventer_t e) {
+  zipkin_eventer_ctx_t *ctx;
+  if(zipkin_ctx_idx < 0) return;
+  ctx = eventer_get_context(e, zipkin_ctx_idx);
+  if(ctx && ctx->my_span) {
+    const char *cbname = eventer_name_for_callback_e(eventer_get_callback(e), e);
+    if(cbname && !strcmp(generic_eventer_callback_name, ctx->span->name.value)) {
+      if(ctx->span->name.needs_free) free(ctx->span->name.value);
+      ctx->span->name.value = strdup(cbname);
+      ctx->span->name.needs_free = true;
+    }
+  }
+  zipkin_eventer_ctx_free(ctx);
+}
+static void zipkin_eventer_copy(eventer_t tgt, const eventer_t src) {
+  zipkin_eventer_ctx_t *tgt_ctx, *src_ctx;
+  if(zipkin_ctx_idx < 0) return;
+  src_ctx = eventer_get_context(src, zipkin_ctx_idx);
+  if(!src_ctx) return;
+  tgt_ctx = calloc(1, sizeof(*tgt_ctx));
+  memcpy(tgt_ctx, src_ctx, sizeof(*tgt_ctx));
+  src_ctx->my_span = false;
+  mtev_zipkin_span_ref(tgt_ctx->span);
+  eventer_set_context(tgt, zipkin_ctx_idx, tgt_ctx);
+}
+eventer_context_opset_t zipkin_eventer_context_ops = {
+  .eventer_t_init = zipkin_eventer_init,
+  .eventer_t_deinit = zipkin_eventer_deinit,
+  .eventer_t_copy = zipkin_eventer_copy,
+  .eventer_t_callback_prep = zipkin_eventer_callback_prep,
+  .eventer_t_callback_cleanup = zipkin_eventer_callback_cleanup
+};
+
+void mtev_zipkin_event_trace_level(mtev_zipkin_event_trace_level_t lvl) {
+  zipkin_trace_events = lvl;
+  switch(zipkin_trace_events) {
+    case ZIPKIN_TRACE_EVENT_LIFETIME:
+      mtevL(mtev_notice, "zipkin tracing of eventer_t lifetimes.\n");
+      break;
+    case ZIPKIN_TRACE_EVENT_CALLBACKS:
+      mtevL(mtev_notice, "zipkin tracing of eventer_t callbacks.\n");
+      break;
+    default: break;
+  }
+}
+void mtev_zipkin_eventer_init(void) {
+  if(zipkin_ctx_idx >= 0) return;
+  zipkin_ctx_idx = eventer_register_context("zipkin", &zipkin_eventer_context_ops);
+  mtevL(mtev_notice, "distributed tracing contexts %s\n",
+        (zipkin_ctx_idx < 0) ? "failed to register" : "registered");
 }

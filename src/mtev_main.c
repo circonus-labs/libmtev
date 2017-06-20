@@ -164,6 +164,17 @@ void cli_log_switches(void) {
 static mtev_spinlock_t mtev_init_globals_lock = 0;
 static int mtev_init_globals_once = 0;
 
+static void zipkin_conf(void) {
+  double np = 0.0, pp = 1.0, dp = 1.0;
+  int lvl = 0;
+  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@new", &np);
+  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@parented", &pp);
+  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@debug", &dp);
+  (void)mtev_conf_get_int(NULL, "//zipkin//@trace_event", &lvl);
+  mtev_zipkin_sampling(np,pp,dp);
+  mtev_zipkin_event_trace_level(lvl);
+}
+
 void
 mtev_init_globals(void) {
   /* instead of just a cas, we lock.. this makes sure
@@ -324,6 +335,7 @@ mtev_main(const char *appname,
 
   mtev_init_globals();
   mtev_zipkin_default_service_name(appname, mtev_true);
+  mtev_zipkin_eventer_init();
 
   char *require_invariant_tsc = getenv("MTEV_RDTSC_REQUIRE_INVARIANT");
   if (require_invariant_tsc && strcmp(require_invariant_tsc, "0") == 0) {
@@ -358,6 +370,8 @@ mtev_main(const char *appname,
     fprintf(stderr, "Cannot load config: '%s'\n", config_filename);
     exit(-1);
   }
+
+  zipkin_conf();
 
   char* root_section_path = alloca(strlen(appname)+2);
   sprintf(root_section_path, "/%s", appname);

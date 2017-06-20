@@ -112,6 +112,40 @@ typedef struct _event
 #endif
 *eventer_t;
 
+typedef struct eventer_context_opset_t {
+  eventer_t (*eventer_t_init)(eventer_t);
+  void (*eventer_t_deinit)(eventer_t);
+  void (*eventer_t_copy)(eventer_t, const eventer_t);
+  void (*eventer_t_callback_prep)(eventer_t, int, void *, struct timeval *);
+  void (*eventer_t_callback_cleanup)(eventer_t, int);
+} eventer_context_opset_t;
+
+/*! \fn int eventer_register_context(const char *name, eventer_context_opset_t *opset)
+    \brief Register an eventer carry context.
+    \param name a string naming the context class.
+    \param opset an opset for context maintenance
+    \return A `ctx_idx`, -1 on failure.
+*/
+int eventer_register_context(const char *name,
+                             eventer_context_opset_t *opset);
+
+/*! \fn int eventer_get_context(eventer_t e, int ctx_idx)
+    \brief Get a context for an event.
+    \param e an event object
+    \param ctx_idx is an idx returned from `eventer_register_context`
+    \return The attached context.
+*/
+void *eventer_get_context(eventer_t e, int ctx_idx);
+
+/*! \fn void *eventer_set_context(eventer_t e, int ctx_idx, void *data)
+    \brief Set a context for an event.
+    \param e an event object
+    \param ctx_idx is an idx returned from `eventer_register_context`
+    \param data is new context data.
+    \return The previously attached context.
+*/
+void *eventer_set_context(eventer_t e, int ctx_idx, void *);
+
 typedef struct eventer_pool_t eventer_pool_t;
 
 /*! \fn eventer_fd_accept_t eventer_fd_opset_get_accept(eventer_fd_opset_t opset)
@@ -955,6 +989,12 @@ API_EXPORT(int) eventer_thread_check(eventer_t);
     This function will remove the event from the eventer and set the socket into blocking mode.
 */
 API_EXPORT(void) eventer_run_in_thread(eventer_t, int mask);
+
+/*! \fn eventer_t eventer_get_this_event(void)
+    \brief Get the eventer_t (if any) of which we are currently in the callback.
+    \return An eventer_t or NULL.
+*/
+API_EXPORT(eventer_t) eventer_get_this_event(void);
 
 /* Private */
 API_EXPORT(int) eventer_impl_init(void);
