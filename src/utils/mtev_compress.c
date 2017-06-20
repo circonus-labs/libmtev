@@ -56,6 +56,7 @@ mtev_compress_gzip(const char *data, size_t len, unsigned char **compressed, siz
   size_t max_compressed_len;
   int err;
 
+  memset(&stream, 0, sizeof(stream));
   err = deflateInit2(&stream, GZIP_DEFAULT_LEVEL, Z_DEFLATED, GZIP_WINDOW_BITS | GZIP_ENCODING, GZIP_DEFAULT_MEMLEVEL, Z_DEFAULT_STRATEGY);
   if (err != Z_OK) {
     mtevL(mtev_error, "mtev_http_gzip -> deflateInit2: %d\n", err);
