@@ -41,7 +41,7 @@ LUA_FILES=mtevbusted/init.lua mtevbusted/cli.lua mtevbusted/api.lua mtevbusted/c
 
 all:	check
 
-TESTS=hash_test uuid_test time_test hll_test maybe_alloc_test dyn_buffer_test speculatelog_test lru_test pool-shift-async/test
+TESTS=hash_test uuid_test time_test hll_test maybe_alloc_test dyn_buffer_test speculatelog_test lru_test pool-shift-async/test b64encodev
 
 pool-shift-async/test:	pool-shift-async/test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
@@ -72,6 +72,9 @@ speculatelog_test: speculatelog_test.c
 
 lru_test: lru_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o lru_test lru_test.c -lmtev $(LIBMTEV_LIBS)
+
+b64encodev: b64encodev.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 .c.o:
 	@echo "- compiling $<"

@@ -70,6 +70,17 @@ API_EXPORT(size_t) mtev_b64_max_decode_len(size_t);
     mtev_b64_encode encodes an input string into a base64 representation with no linefeeds.
  */
 API_EXPORT(int) mtev_b64_encode(const unsigned char *, size_t, char *, size_t);
+/*! \fn int mtev_b64_encodev(const struct iovec *iov, size_t iov_len, char *dest, size_t dest_len)
+    \brief Encode raw data as base64 encoded output into the provided buffer.
+    \param iov The io-vectors containing the raw data.
+    \param iovcnt The number of io-vectors.
+    \param dest The destination buffer to which the function will produce.
+    \param dest_len The size of the destination buffer.
+    \return The size of the encoded output.  Returns zero is out_sz is too small.
+
+    mtev_b64_encode encodes an input string into a base64 representation with no linefeeds.
+ */
+API_EXPORT(int) mtev_b64_encodev(const struct iovec *, size_t, char *, size_t);
 /*! \fn size_t mtev_b64_encode_len(size_t src_len)
     \brief Calculate how large a buffer must be to contain the base-64 encoding for a given number of bytes.
     \param src_len The size (in bytes) of the raw data buffer that might be encoded.
