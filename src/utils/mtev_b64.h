@@ -78,7 +78,7 @@ API_EXPORT(int) mtev_b64_encode(const unsigned char *, size_t, char *, size_t);
     \param dest_len The size of the destination buffer.
     \return The size of the encoded output.  Returns zero is out_sz is too small.
 
-    mtev_b64_encode encodes an input string into a base64 representation with no linefeeds.
+    mtev_b64_encodev encodes an input string into a base64 representation with no linefeeds.
  */
 API_EXPORT(int) mtev_b64_encodev(const struct iovec *, size_t, char *, size_t);
 /*! \fn size_t mtev_b64_encode_len(size_t src_len)
