@@ -467,6 +467,8 @@ mtev_stream_decompress_init(mtev_stream_decompress_ctx_t *ctx,
       }
       return 0;
     }
+  case MTEV_COMPRESS_NONE:
+    return 0;
   default:
     return -1;
   };
@@ -543,6 +545,11 @@ mtev_stream_decompress(mtev_stream_decompress_ctx_t *ctx,
   case MTEV_COMPRESS_GZIP:
     return mtev_stream_decompress_gzip(ctx, compressed, compressed_len,
                                        decompressed, decompressed_len);
+  case MTEV_COMPRESS_NONE:
+    if(*decompressed_len < *compressed_len) return -1;
+    memcpy(decompressed, compressed, *compressed_len);
+    *decompressed_len = *compressed_len;
+    return 0;
   default:
     return -1;
   };
