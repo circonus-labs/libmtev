@@ -12,15 +12,7 @@
 struct _mtev_waterlevel_t
 {
   int cur;
-  /* threshold to cross to toggle enabled/disabled status. threshold will assume one of three
-   * values:
-   *  - high, meaning that the waterlevel is ENABLED, and crossing the threshold will disable;
-   *  - low, meaning that the waterlevel is DISABLED, and crossing the threshold will enable;
-   *  - MTEV_WATERLEVEL_CROSS_SENTINEL, meaning that we've _signalled_
-   *    that the waterlevel should be disabled, and are waiting for
-   *    the user to ack.
-   */
-  int cross;
+  int wait_descend;
   int low;
   int high;
 };
@@ -28,29 +20,47 @@ struct _mtev_waterlevel_t
 mtev_waterlevel_t *mtev_waterlevel_create(int low, int high)
 {
   mtev_waterlevel_t *wl = calloc(1, sizeof(mtev_waterlevel_t));
-  /* start out enabled, so we must cross the high-water-mark to toggle status */
-  wl->cross = high;
+  wl->wait_descend = 0;
   wl->low = low;
   wl->high = high;
   return wl;
 }
 
-mtev_waterlevel_toggle_t mtev_waterlevel_adjust(mtev_waterlevel_t *wl, int by)
+static mtev_waterlevel_toggle_t
+mtev_waterlevel_adjust_up(mtev_waterlevel_t *wl, unsigned int adjustment)
 {
+  int signed_adjustment = (int) adjustment;
+  int old_val;
+
+  do {
+    old_val = ck_pr_load_int(&wl->cur);
+    if (old_val == wl->high) {
+      if (ck_pr_cas_int(&wl->wait_descend, 0, 1))
+        return MTEV_WATERLEVEL_TOGGLE_DISABLE;
+      else
+        return MTEV_WATERLEVEL_TOGGLE_DISABLED;
+    }
+  } while (ck_pr_cas_int(&wl->cur, old_val, old_val+signed_adjustment) == false);
+  return MTEV_WATERLEVEL_TOGGLE_KEEP;
+}
+
+mtev_waterlevel_toggle_t mtev_waterlevel_raise_one(mtev_waterlevel_t *wl)
+{
+  return mtev_waterlevel_adjust_up(wl, 1);
+}
+
+mtev_waterlevel_toggle_t mtev_waterlevel_lower(mtev_waterlevel_t *wl, unsigned int by)
+{
+  int signed_adjustment = -1 * ((int) by);
   int old_val;
   int new_val;
 
   do {
     old_val = ck_pr_load_int(&wl->cur);
-    new_val = old_val+by;
+    new_val = old_val+signed_adjustment;
   } while (ck_pr_cas_int(&wl->cur, old_val, new_val) == false);
-  
-  if (new_val >= wl->high) {
-    if (ck_pr_cas_int(&wl->cross, wl->high, MTEV_WATERLEVEL_CROSS_SENTINEL))
-      return MTEV_WATERLEVEL_TOGGLE_DISABLE;
-  }
-  else if (new_val <= wl->low) {
-    if (ck_pr_cas_int(&wl->cross, wl->low, MTEV_WATERLEVEL_CROSS_SENTINEL))
+  if (new_val < wl->low) {
+    if (ck_pr_cas_int(&wl->wait_descend, 2, 3))
       return MTEV_WATERLEVEL_TOGGLE_ENABLE;
   }
   return MTEV_WATERLEVEL_TOGGLE_KEEP;
@@ -58,18 +68,16 @@ mtev_waterlevel_toggle_t mtev_waterlevel_adjust(mtev_waterlevel_t *wl, int by)
 
 mtev_waterlevel_toggle_t mtev_waterlevel_ack(mtev_waterlevel_t *wl, mtev_waterlevel_toggle_t t)
 {
-  mtevAssert(wl->cross == MTEV_WATERLEVEL_CROSS_SENTINEL);
   switch (t) {
     case MTEV_WATERLEVEL_TOGGLE_DISABLE:
-      ck_pr_cas_int(&wl->cross, MTEV_WATERLEVEL_CROSS_SENTINEL, wl->low);
-      break;
+      ck_pr_cas_int(&wl->wait_descend, 1, 2);
+      return mtev_waterlevel_lower(wl, 0);
+
     case MTEV_WATERLEVEL_TOGGLE_ENABLE:
-      ck_pr_cas_int(&wl->cross, MTEV_WATERLEVEL_CROSS_SENTINEL, wl->high);
+      ck_pr_cas_int(&wl->wait_descend, 3, 0);
+      return mtev_waterlevel_adjust_up(wl, 0);
     default:
       break;
   }
-  /* Value _was_ across the threshold, but it's possible that it's
-   * already crossed to the other threshold, in which case we might
-   * need to toggle again. */
-  return mtev_waterlevel_adjust(wl, 0);
+  return MTEV_WATERLEVEL_TOGGLE_KEEP;
 }
