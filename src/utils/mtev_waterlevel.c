@@ -7,12 +7,15 @@
 #include <ck_pr.h>
 #include <stdint.h>
 
-#define MTEV_WATERLEVEL_CROSS_SENTINEL (INT_MIN)
+#define MTEV_WATERLEVEL_STATE_ENABLED 0
+#define MTEV_WATERLEVEL_STATE_DISABLING 1
+#define MTEV_WATERLEVEL_STATE_DISABLED 2
+#define MTEV_WATERLEVEL_STATE_ENABLING 3
 
 struct _mtev_waterlevel_t
 {
   int cur;
-  int wait_descend;
+  int state;
   int low;
   int high;
 };
@@ -20,7 +23,7 @@ struct _mtev_waterlevel_t
 mtev_waterlevel_t *mtev_waterlevel_create(int low, int high)
 {
   mtev_waterlevel_t *wl = calloc(1, sizeof(mtev_waterlevel_t));
-  wl->wait_descend = 0;
+  wl->state = MTEV_WATERLEVEL_STATE_ENABLED;
   wl->low = low;
   wl->high = high;
   return wl;
@@ -35,7 +38,8 @@ mtev_waterlevel_adjust_up(mtev_waterlevel_t *wl, unsigned int adjustment)
   do {
     old_val = ck_pr_load_int(&wl->cur);
     if (old_val == wl->high) {
-      if (ck_pr_cas_int(&wl->wait_descend, 0, 1))
+      if (ck_pr_cas_int(&wl->state, MTEV_WATERLEVEL_STATE_ENABLED,
+                        MTEV_WATERLEVEL_STATE_DISABLING))
         return MTEV_WATERLEVEL_TOGGLE_DISABLE;
       else
         return MTEV_WATERLEVEL_TOGGLE_DISABLED;
@@ -60,7 +64,7 @@ mtev_waterlevel_toggle_t mtev_waterlevel_lower(mtev_waterlevel_t *wl, unsigned i
     new_val = old_val+signed_adjustment;
   } while (ck_pr_cas_int(&wl->cur, old_val, new_val) == false);
   if (new_val < wl->low) {
-    if (ck_pr_cas_int(&wl->wait_descend, 2, 3))
+    if (ck_pr_cas_int(&wl->state, MTEV_WATERLEVEL_STATE_DISABLED, MTEV_WATERLEVEL_STATE_ENABLING))
       return MTEV_WATERLEVEL_TOGGLE_ENABLE;
   }
   return MTEV_WATERLEVEL_TOGGLE_KEEP;
@@ -70,11 +74,14 @@ mtev_waterlevel_toggle_t mtev_waterlevel_ack(mtev_waterlevel_t *wl, mtev_waterle
 {
   switch (t) {
     case MTEV_WATERLEVEL_TOGGLE_DISABLE:
-      ck_pr_cas_int(&wl->wait_descend, 1, 2);
+      mtevEvalAssert(ck_pr_cas_int(&wl->state, MTEV_WATERLEVEL_STATE_DISABLING,
+                                   MTEV_WATERLEVEL_STATE_DISABLED));
       return mtev_waterlevel_lower(wl, 0);
 
     case MTEV_WATERLEVEL_TOGGLE_ENABLE:
-      ck_pr_cas_int(&wl->wait_descend, 3, 0);
+      mtevEvalAssert(ck_pr_cas_int(&wl->state,
+                                   MTEV_WATERLEVEL_STATE_ENABLING,
+                                   MTEV_WATERLEVEL_STATE_ENABLED));
       return mtev_waterlevel_adjust_up(wl, 0);
     default:
       break;
