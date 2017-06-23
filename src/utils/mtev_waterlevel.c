@@ -5,6 +5,9 @@
 #include "mtev_waterlevel.h"
 #include "mtev_log.h"
 #include <ck_pr.h>
+#include <stdint.h>
+
+#define MTEV_WATERLEVEL_CROSS_SENTINEL (INT_MIN)
 
 struct _mtev_waterlevel_t
 {
@@ -13,8 +16,9 @@ struct _mtev_waterlevel_t
    * values:
    *  - high, meaning that the waterlevel is ENABLED, and crossing the threshold will disable;
    *  - low, meaning that the waterlevel is DISABLED, and crossing the threshold will enable;
-   *  - -1, meaning that we've _signalled_ that the waterlevel should be disabled, and are waiting
-   *    for the user to ack.
+   *  - MTEV_WATERLEVEL_CROSS_SENTINEL, meaning that we've _signalled_
+   *    that the waterlevel should be disabled, and are waiting for
+   *    the user to ack.
    */
   int cross;
   int low;
@@ -37,16 +41,16 @@ mtev_waterlevel_toggle_t mtev_waterlevel_adjust(mtev_waterlevel_t *wl, int by)
   int new_val;
 
   do {
-    old_val = (volatile int) wl->cur;
+    old_val = ck_pr_load_int(&wl->cur);
     new_val = old_val+by;
   } while (ck_pr_cas_int(&wl->cur, old_val, new_val) == false);
   
   if (new_val >= wl->high) {
-    if (ck_pr_cas_int(&wl->cross, wl->high, -1))
+    if (ck_pr_cas_int(&wl->cross, wl->high, MTEV_WATERLEVEL_CROSS_SENTINEL))
       return MTEV_WATERLEVEL_TOGGLE_DISABLE;
   }
   else if (new_val <= wl->low) {
-    if (ck_pr_cas_int(&wl->cross, wl->low, -1))
+    if (ck_pr_cas_int(&wl->cross, wl->low, MTEV_WATERLEVEL_CROSS_SENTINEL))
       return MTEV_WATERLEVEL_TOGGLE_ENABLE;
   }
   return MTEV_WATERLEVEL_TOGGLE_KEEP;
@@ -54,31 +58,18 @@ mtev_waterlevel_toggle_t mtev_waterlevel_adjust(mtev_waterlevel_t *wl, int by)
 
 mtev_waterlevel_toggle_t mtev_waterlevel_ack(mtev_waterlevel_t *wl, mtev_waterlevel_toggle_t t)
 {
-  mtevAssert(wl->cross == -1);
+  mtevAssert(wl->cross == MTEV_WATERLEVEL_CROSS_SENTINEL);
   switch (t) {
     case MTEV_WATERLEVEL_TOGGLE_DISABLE:
-      /* Value _was_ above the "high" threshold, and caller has now
-       * run something to disable inflow, so no new work will be
-       * added. It's possible, though, that enough has drained that we
-       * need to re-enable inflow. */
-      ck_pr_cas_int(&wl->cross, -1, wl->low);
-      if (wl->cur <= wl->low) {
-        /* fell below threshold, so we should enable, now. however,
-         * it's possible that someone else has already started to
-         * enable. */
-        if (ck_pr_cas_int(&wl->cross, wl->low, -1))
-          return MTEV_WATERLEVEL_TOGGLE_ENABLE;
-      }
+      ck_pr_cas_int(&wl->cross, MTEV_WATERLEVEL_CROSS_SENTINEL, wl->low);
       break;
     case MTEV_WATERLEVEL_TOGGLE_ENABLE:
-      /* same logic as above, but with high/low swapped. */
-      ck_pr_cas_int(&wl->cross, -1, wl->high);
-      if (wl->cur >= wl->high) {
-        if (ck_pr_cas_int(&wl->cross, wl->high, -1))
-          return MTEV_WATERLEVEL_TOGGLE_DISABLE;
-      }
+      ck_pr_cas_int(&wl->cross, MTEV_WATERLEVEL_CROSS_SENTINEL, wl->high);
     default:
       break;
   }
-  return MTEV_WATERLEVEL_TOGGLE_KEEP;
+  /* Value _was_ across the threshold, but it's possible that it's
+   * already crossed to the other threshold, in which case we might
+   * need to toggle again. */
+  return mtev_waterlevel_adjust(wl, 0);
 }
