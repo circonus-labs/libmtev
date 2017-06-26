@@ -23,5 +23,7 @@ mtev_flow_regulator_toggle_t mtev_flow_regulator_raise_one(mtev_flow_regulator_t
 mtev_flow_regulator_toggle_t mtev_flow_regulator_lower(mtev_flow_regulator_t *fr, unsigned int by);
 mtev_flow_regulator_toggle_t
   mtev_flow_regulator_ack(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t);
+mtev_flow_regulator_toggle_t
+  mtev_flow_regulator_stabilize(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t);
 
 #endif

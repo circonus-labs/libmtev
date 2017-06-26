@@ -95,3 +95,14 @@ mtev_flow_regulator_toggle_t
   }
   return MTEV_FLOW_REGULATOR_TOGGLE_KEEP;
 }
+
+mtev_flow_regulator_toggle_t
+  mtev_flow_regulator_stabilize(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t)
+{
+  mtev_flow_regulator_toggle_t last_t;
+  do {
+    last_t = t;
+    t = mtev_flow_regulator_ack(fr, last_t);
+  } while (t != MTEV_FLOW_REGULATOR_TOGGLE_KEEP);
+  return last_t;
+}
