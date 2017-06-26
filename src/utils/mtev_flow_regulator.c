@@ -22,8 +22,10 @@ struct _mtev_flow_regulator_t
 
 mtev_flow_regulator_t *mtev_flow_regulator_create(int low, int high)
 {
+  mtevAssert(low < high);
   mtev_flow_regulator_t *fr = calloc(1, sizeof(mtev_flow_regulator_t));
-  fr->state = MTEV_FLOW_REGULATOR_STATE_ENABLED;
+  fr->state = high > 0 ? MTEV_FLOW_REGULATOR_STATE_ENABLED
+                       : MTEV_FLOW_REGULATOR_STATE_DISABLED;
   fr->low = low;
   fr->high = high;
   return fr;
