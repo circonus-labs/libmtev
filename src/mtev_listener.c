@@ -171,7 +171,6 @@ mtev_listener_details(char *buf, int buflen, eventer_t e, void *closure) {
 static int
 mtev_listener_acceptor(eventer_t e, int mask,
                        void *closure, struct timeval *tv) {
-  static int rrincr = 1;
   int conn, newmask = EVENTER_READ;
   socklen_t salen;
   listener_closure_t listener_closure = (listener_closure_t)closure;
@@ -251,7 +250,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
 
       if(!listener_closure->pool) eventer_set_owner(newe, eventer_get_owner(e));
       else {
-        eventer_set_owner(newe, eventer_choose_owner_pool(listener_closure->pool, rrincr++));
+        eventer_set_owner(newe, eventer_choose_owner_pool(listener_closure->pool, eventer_get_fd(newe)+1));
       }
       eventer_add(newe);
     }

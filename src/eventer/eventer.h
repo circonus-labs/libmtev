@@ -59,7 +59,7 @@
 
 #define EVENTER_DEFAULT_ASYNCH_ABORT EVENTER_EVIL_BRUTAL
 
-#define EVENTER_CHOOSE_THREAD_FOR_EVENT_FD(e) eventer_choose_owner((e)->fd+1)
+#define EVENTER_CHOOSE_THREAD_FOR_EVENT_FD(e) eventer_choose_owner(eventer_get_fd(e)+1)
 
 /*! \fn const char *eventer_get_thread_name(void)
     \brief Retrieve a human-friendly name for an eventer thread.
