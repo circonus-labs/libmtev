@@ -50,7 +50,7 @@ typedef enum {
   MTEV_FLOW_REGULATOR_TOGGLE_ENABLE=1,
 } mtev_flow_regulator_toggle_t;
 
-mtev_flow_regulator_t *mtev_flow_regulator_create(int low, int high);
+mtev_flow_regulator_t *mtev_flow_regulator_create(unsigned int low, unsigned int high);
 void mtev_flow_regulator_destroy(mtev_flow_regulator_t *fr);
 mtev_flow_regulator_toggle_t mtev_flow_regulator_raise_one(mtev_flow_regulator_t *fr);
 mtev_flow_regulator_toggle_t mtev_flow_regulator_lower(mtev_flow_regulator_t *fr, unsigned int by);
