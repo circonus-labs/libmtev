@@ -354,6 +354,8 @@ ze_Zipkin_Span(byte *buffer, size_t len, Zipkin_Span *v) {
       ADV_SAFE(ze_field_end(buffer,len));
     }
 
+    mtevL(mtev_debug, "ze_Zipkin_Span -> %" PRIx64 " (%s) span: %" PRIx64 "\n",
+          v->trace_id, v->name.value, v->id);
     if(v->annotations) {
       int cnt = 0;
       Zipkin_List_Zipkin_Annotation *node;
@@ -520,7 +522,7 @@ mtev_zipkin_span_new(int64_t *trace_id,
 
   if(!force && debug && *debug) {
     if(ze_debug_trace_probability != 1.0 &&
-       drand48() > ze_new_trace_probability) return NULL;
+       drand48() > ze_debug_trace_probability) return NULL;
     force = true;
   }
 
@@ -532,6 +534,7 @@ mtev_zipkin_span_new(int64_t *trace_id,
     trace_id = &my_trace_id;
     /* Without a trace_id passed, it makes no sense to respect the span ids */
     parent_span_id = span_id = NULL;
+    force = true;
   }
 
   if(parent_span_id && !span_id) {
@@ -546,10 +549,12 @@ mtev_zipkin_span_new(int64_t *trace_id,
     span_id = trace_id;
   }
 
-  if(!force && ze_parented_trace_probability != 1.0 &&
-     drand48() > ze_parented_trace_probability) return NULL;
+  if(parent_span_id) {
+    if(!force && ze_parented_trace_probability != 1.0 &&
+       drand48() > ze_parented_trace_probability) return NULL;
+  }
 
-
+  mtevL(mtev_debug, "trace(%s) [%"PRIx64" : %"PRIx64"]\n", name, *trace_id, *span_id);
   span = calloc(1, sizeof(*span));
   span->refcnt = 1;
   struct timeval nowtv;
@@ -615,6 +620,7 @@ void
 mtev_zipkin_span_publish(Zipkin_Span *span) {
   if(!span) return;
 
+  mtevL(mtev_debug, "publish(%s) [%"PRIx64" : %"PRIx64"]\n", span->name.value, span->trace_id, span->id);
   if(zipkin_publish_span_hook_exists()) {
     zipkin_publish_span_hook_invoke(span);
   }
@@ -868,6 +874,14 @@ Zipkin_Span *mtev_zipkin_active_span(eventer_t e) {
 Zipkin_Span *mtev_zipkin_client_span(eventer_t e) {
   zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
   return ctx ? ctx->client : NULL;
+}
+bool mtev_zipkin_client_sampled_hdr(eventer_t e, char *buf, size_t len) {
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(ctx && ctx->client && ctx->client->debug && *ctx->client->debug) {
+    int rv = snprintf(buf, len, HEADER_ZIPKIN_SAMPLED ": 1");
+    if(rv > 0 && rv < len) return true;
+  }
+  return false;
 }
 bool mtev_zipkin_client_trace_hdr(eventer_t e, char *buf, size_t len) {
   zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
