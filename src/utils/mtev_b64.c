@@ -127,40 +127,38 @@ mtev_b64_encodev(const struct iovec *iov, size_t iovcnt,
       src_len -= 3;
       len -= 3;
     }
-    if (len > 0) {
-      crossiovlen = 0;
-      while (src_len > 0 && crossiovlen < sizeof(crossiovbuf))
-      {
-        while (len > 0 && crossiovlen < sizeof(crossiovbuf)) {
-          crossiovbuf[crossiovlen] = *bptr;
-          crossiovlen++;
-          bptr++;
-          src_len--;
-          len--;
-        }
-        if (crossiovlen < sizeof(crossiovbuf) && src_len > 0) {
-          iov_index++;
-          bptr = (unsigned char *) iov[iov_index].iov_base;
-          len = iov[iov_index].iov_len;
-        }
+    crossiovlen = 0;
+    while (src_len > 0 && crossiovlen < sizeof(crossiovbuf))
+    {
+      while (len > 0 && crossiovlen < sizeof(crossiovbuf)) {
+        crossiovbuf[crossiovlen] = *bptr;
+        crossiovlen++;
+        bptr++;
+        src_len--;
+        len--;
       }
-      if (crossiovlen > 0) {
-        *eptr++ = __b64[crossiovbuf[0] >> 2];
-        if (crossiovlen == 1) {
-          *eptr++ = __b64[(crossiovbuf[0] & 0x03) << 4];
-          *eptr++ = '=';
+      if (crossiovlen < sizeof(crossiovbuf) && src_len > 0) {
+        iov_index++;
+        bptr = (unsigned char *) iov[iov_index].iov_base;
+        len = iov[iov_index].iov_len;
+      }
+    }
+    if (crossiovlen > 0) {
+      *eptr++ = __b64[crossiovbuf[0] >> 2];
+      if (crossiovlen == 1) {
+        *eptr++ = __b64[(crossiovbuf[0] & 0x03) << 4];
+        *eptr++ = '=';
+        *eptr = '=';
+      }
+      else {
+        *eptr++ = __b64[((crossiovbuf[0] & 0x03) << 4) + (crossiovbuf[1] >> 4)];
+        if (crossiovlen == 2) {
+          *eptr++ = __b64[(crossiovbuf[1] & 0x0f) << 2];
           *eptr = '=';
         }
         else {
-          *eptr++ = __b64[((crossiovbuf[0] & 0x03) << 4) + (crossiovbuf[1] >> 4)];
-          if (crossiovlen == 2) {
-            *eptr++ = __b64[(crossiovbuf[1] & 0x0f) << 2];
-            *eptr = '=';
-          }
-          else {
-            *eptr++ = __b64[((crossiovbuf[1] & 0x0f) << 2) + (crossiovbuf[2] >> 6)];
-            *eptr++ = __b64[crossiovbuf[2] & 0x3f];
-          }
+          *eptr++ = __b64[((crossiovbuf[1] & 0x0f) << 2) + (crossiovbuf[2] >> 6)];
+          *eptr++ = __b64[crossiovbuf[2] & 0x3f];
         }
       }
     }
