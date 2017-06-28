@@ -64,7 +64,7 @@ mtev_flow_regulator_toggle_t mtev_flow_regulator_lower(mtev_flow_regulator_t *fr
   unsigned int new_val;
 
   do {
-    old_val = ck_pr_load_int(&fr->cur);
+    old_val = ck_pr_load_uint(&fr->cur);
     mtevAssert(old_val >= by);
     new_val = old_val - by;
   } while (ck_pr_cas_uint(&fr->cur, old_val, new_val) == false);
