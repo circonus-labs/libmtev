@@ -8,6 +8,9 @@ libmtev = ffi.load('mtev')
 
 function charstar(str)
   if type(str) == 'number' then
+    if str < 1 then
+      str = 1
+    end
     return ffi.new("char[?]", str, 0)
   end
   local len = string.len(str)

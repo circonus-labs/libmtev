@@ -88,31 +88,79 @@ mtev_b64_max_decode_len(size_t src_len) {
 int
 mtev_b64_encode(const unsigned char *src, size_t src_len,
                 char *dest, size_t dest_len) {
-  const unsigned char *bptr = src;
+  struct iovec iov;
+
+  iov.iov_base = (void *) src;
+  iov.iov_len = src_len;
+  return mtev_b64_encodev(&iov, 1, dest, dest_len);
+}
+
+int
+mtev_b64_encodev(const struct iovec *iov, size_t iovcnt,
+                 char *dest, size_t dest_len) {
+  const unsigned char *bptr;
+  size_t iov_index;
+  size_t src_len;
   char *eptr = dest;
-  int len = src_len;
-  int n = (((src_len + 2) / 3) * 4);
+  int len;
+  int n;
+  unsigned char crossiovbuf[3];
+  size_t crossiovlen;
+
+  src_len = 0;
+  for (iov_index = 0; iov_index < iovcnt; iov_index++)
+    src_len += iov[iov_index].iov_len;
+  n = (((src_len + 2) / 3) * 4);
 
   if(dest_len < n) return 0;
 
-  while(len > 2) {
-    *eptr++ = __b64[bptr[0] >> 2];
-    *eptr++ = __b64[((bptr[0] & 0x03) << 4) + (bptr[1] >> 4)];
-    *eptr++ = __b64[((bptr[1] & 0x0f) << 2) + (bptr[2] >> 6)];
-    *eptr++ = __b64[bptr[2] & 0x3f];
-    bptr += 3;
-    len -= 3;
-  }
-  if(len != 0) {
-    *eptr++ = __b64[bptr[0] >> 2];
-    if(len > 1) {
+  iov_index = 0;
+  bptr = (unsigned char *) iov[0].iov_base;
+  len = iov[0].iov_len;
+  while (src_len > 0) {
+    while (len > 2) {
+      *eptr++ = __b64[bptr[0] >> 2];
       *eptr++ = __b64[((bptr[0] & 0x03) << 4) + (bptr[1] >> 4)];
-      *eptr++ = __b64[(bptr[1] & 0x0f) << 2];
-      *eptr = '=';
-    } else {
-      *eptr++ = __b64[(bptr[0] & 0x03) << 4];
-      *eptr++ = '=';
-      *eptr = '=';
+      *eptr++ = __b64[((bptr[1] & 0x0f) << 2) + (bptr[2] >> 6)];
+      *eptr++ = __b64[bptr[2] & 0x3f];
+      bptr += 3;
+      src_len -= 3;
+      len -= 3;
+    }
+    crossiovlen = 0;
+    while (src_len > 0 && crossiovlen < sizeof(crossiovbuf))
+    {
+      while (len > 0 && crossiovlen < sizeof(crossiovbuf)) {
+        crossiovbuf[crossiovlen] = *bptr;
+        crossiovlen++;
+        bptr++;
+        src_len--;
+        len--;
+      }
+      if (crossiovlen < sizeof(crossiovbuf) && src_len > 0) {
+        iov_index++;
+        bptr = (unsigned char *) iov[iov_index].iov_base;
+        len = iov[iov_index].iov_len;
+      }
+    }
+    if (crossiovlen > 0) {
+      *eptr++ = __b64[crossiovbuf[0] >> 2];
+      if (crossiovlen == 1) {
+        *eptr++ = __b64[(crossiovbuf[0] & 0x03) << 4];
+        *eptr++ = '=';
+        *eptr = '=';
+      }
+      else {
+        *eptr++ = __b64[((crossiovbuf[0] & 0x03) << 4) + (crossiovbuf[1] >> 4)];
+        if (crossiovlen == 2) {
+          *eptr++ = __b64[(crossiovbuf[1] & 0x0f) << 2];
+          *eptr = '=';
+        }
+        else {
+          *eptr++ = __b64[((crossiovbuf[1] & 0x0f) << 2) + (crossiovbuf[2] >> 6)];
+          *eptr++ = __b64[crossiovbuf[2] & 0x3f];
+        }
+      }
     }
   }
   return n;
