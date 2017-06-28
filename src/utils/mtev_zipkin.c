@@ -816,6 +816,14 @@ mtev_zipkin_sampling(double new_traces, double parented_traces,
   ze_debug_trace_probability = debug_traces;
 }
 
+void
+mtev_zipkin_get_sampling(double *new_traces, double *parented_traces,
+	                 double *debug_traces) {
+  if(new_traces) *new_traces = ze_new_trace_probability;
+  if(parented_traces) *parented_traces = ze_parented_trace_probability;
+  if(debug_traces) *debug_traces = ze_debug_trace_probability;
+}
+
 int64_t *
 mtev_zipkin_str_to_id(const char *orig_in, int64_t *buf) {
   uint64_t out;

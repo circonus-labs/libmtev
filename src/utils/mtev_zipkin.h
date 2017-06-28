@@ -330,6 +330,18 @@ API_EXPORT(size_t)
 API_EXPORT(size_t)
   mtev_zipkin_encode_list(unsigned char *, size_t, Zipkin_Span **, int);
 
+/*! \fn void mtev_zipkin_get_sampling(double *new_traces, double *parented_traces, double *debug_traces)
+    \brief Get sampling probabilities for different types of traces.
+    \param new_traces probability pointer to populate
+    \param parented_traces probability pointer to populate
+    \param debug_traces probability pointer to populate
+
+    mtev_zipkin_get_sampling gets sampling probabilities for creating new traces.  See `mtev_zipkin_sampling` and the opentracing specification for more details on what each probability means.
+ */
+API_EXPORT(void)
+  mtev_zipkin_get_sampling(double *new_traces, double *parented_traces,
+                           double *debug_traces);
+
 /*! \fn void mtev_zipkin_sampling(double new_traces, double parented_traces, double debug_traces)
     \brief Set sampling probabilities for different types of traces.
     \param new_traces probability of createing a new trace (trace_id == NULL)

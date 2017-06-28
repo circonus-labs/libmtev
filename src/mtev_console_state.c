@@ -206,6 +206,45 @@ mtev_console_coreclocks_toggle(mtev_console_closure_t ncct, int argc, char **arg
 }
 
 static int
+mtev_console_zipkin(mtev_console_closure_t ncct, int argc, char **argv,
+                    mtev_console_state_t *dstate, void *onoff) {
+  double np, pp, dp;
+  char *endptr;
+  mtev_zipkin_get_sampling(&np, &pp, &dp);
+  double snp = np, spp = pp, sdp = dp;
+#define PLINE(ncct, name,a,b,c) \
+    nc_printf(ncct, " %-7s |   %6.2f%%   |      %6.2f%%    |       %6.2f%%      |\n", \
+              name, (a), (b), (c))
+  if(argc == 0) {
+    nc_printf(ncct, "         |  New Traces | Parented Traces | Debugging Requests |\n");
+    PLINE(ncct, "Set To:", np * 100.0, pp * 100.0, dp * 100.0);
+  }
+  else if(argc == 3 &&
+     (!strcmp(argv[0], "-") || (snp = strtod(argv[0], &endptr)/100.0, endptr != NULL)) &&
+     (!strcmp(argv[1], "-") || (spp = strtod(argv[1], &endptr)/100.0, endptr != NULL)) &&
+     (!strcmp(argv[2], "-") || (sdp = strtod(argv[2], &endptr)/100.0, endptr != NULL)) &&
+     (snp >= 0 && snp <= 1.0) &&
+     (spp >= 0 && spp <= 1.0) &&
+     (sdp >= 0 && sdp <= 1.0)) {
+    mtev_zipkin_sampling(snp, spp, sdp);
+    nc_printf(ncct, "         |  New Traces | Parented Traces | Debugging Requests |\n");
+    PLINE(ncct, "Was:", np * 100.0, pp * 100.0, dp * 100.0);
+    PLINE(ncct, "Set to:", snp * 100.0, spp * 100.0, sdp * 100.0);
+  }
+  else {
+    nc_printf(ncct, "takes no arguments or three arguments:\n");
+    nc_printf(ncct, "   zipkin\n");
+    nc_printf(ncct, "       shows current probabilities\n");
+    nc_printf(ncct, "   zipkin 90 - 100\n");
+    nc_printf(ncct, "       set new trace creation to a 90%% probability\n");
+    nc_printf(ncct, "       leaves trace creation when a parent is present unchanged\n");
+    nc_printf(ncct, "       sets debugging trace creation to 100%%\n");
+    nc_printf(ncct, "       shows previous and current probabilities\n");
+  }
+  return 0;
+}
+
+static int
 mtev_console_hang_action(eventer_t e, int m, void *cl, struct timeval *now) {
   pause();
   return 0;
@@ -269,6 +308,9 @@ cmd_info_t console_command_eventer_memory = {
 };
 cmd_info_t console_command_coreclocks = {
   "coreclocks", mtev_console_coreclocks, NULL, NULL, NULL
+};
+cmd_info_t console_command_zipkin = {
+  "zipkin", mtev_console_zipkin, NULL, NULL, NULL
 };
 cmd_info_t console_command_jobq = {
   "jobq", mtev_console_jobq, NULL, NULL, (void *)1
@@ -1017,6 +1059,7 @@ mtev_console_state_initial(void) {
 
     mtevst = mtev_console_mksubdelegate(_top_level_state, "mtev");
     mtev_console_state_add_cmd(mtevst, &console_command_jobq);
+    mtev_console_state_add_cmd(mtevst, &console_command_zipkin);
     rdtsc = mtev_console_mksubdelegate(mtevst, "rdtsc");
     mtev_console_state_add_cmd(rdtsc, &console_command_rdtsc_status);
     mtev_console_state_add_cmd(rdtsc, &console_command_rdtsc_enable);
