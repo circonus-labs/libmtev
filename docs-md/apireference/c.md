@@ -154,6 +154,25 @@ mtev_b64_encode_len(size_t src_len)
   * **RETURN** The size of the buffer that would be needed to store an encoded version of an input string.
  
 
+#### mtev_b64_encodev
+
+>Encode raw data as base64 encoded output into the provided buffer.
+
+```c
+int 
+mtev_b64_encodev(const struct iovec *iov, size_t iov_len, char *dest, size_t dest_len)
+```
+
+
+  * `iov` The io-vectors containing the raw data.
+  * `iovcnt` The number of io-vectors.
+  * `dest` The destination buffer to which the function will produce.
+  * `dest_len` The size of the destination buffer.
+  * **RETURN** The size of the encoded output.  Returns zero is out_sz is too small.
+
+mtev_b64_encodev encodes an input string into a base64 representation with no linefeeds.
+ 
+
 #### mtev_b64_max_decode_len
 
 >Calculate how large a buffer must be to contain a decoded base-64-encoded string of a given length.
@@ -1103,6 +1122,21 @@ eventer_get_closure(eventer_t e)
   * **RETURN** The previous closure set.
 
 
+#### eventer_get_context
+
+>Get a context for an event.
+
+```c
+int 
+eventer_get_context(eventer_t e, int ctx_idx)
+```
+
+
+  * `e` an event object
+  * `ctx_idx` is an idx returned from `eventer_register_context`
+  * **RETURN** The attached context.
+
+
 #### eventer_get_epoch
 
 >Find the start time of the eventer loop.
@@ -1194,6 +1228,19 @@ eventer_get_pool_for_event(eventer_t e)
 
   * `e` an event object.
   * **RETURN** the `eventer_pool_t` to which the event is scheduled.
+
+
+#### eventer_get_this_event
+
+>Get the eventer_t (if any) of which we are currently in the callback.
+
+```c
+eventer_t 
+eventer_get_this_event(void)
+```
+
+
+  * **RETURN** An eventer_t or NULL.
 
 
 #### eventer_get_thread_name
@@ -1526,6 +1573,21 @@ event and copy the contents of the old event into it allowing the
 original to be freed.
 
 
+#### eventer_register_context
+
+>Register an eventer carry context.
+
+```c
+int 
+eventer_register_context(const char *name, eventer_context_opset_t *opset)
+```
+
+
+  * `name` a string naming the context class.
+  * `opset` an opset for context maintenance
+  * **RETURN** A `ctx_idx`, -1 on failure.
+
+
 #### eventer_remove
 
 >Remove an event object from the eventer system.
@@ -1637,6 +1699,22 @@ eventer_set_closure(eventer_t e, void *closure)
 
   * `e` an event object
   * `closure` a pointer to user-data to be supplied during callback.
+
+
+#### eventer_set_context
+
+>Set a context for an event.
+
+```c
+void *
+eventer_set_context(eventer_t e, int ctx_idx, void *data)
+```
+
+
+  * `e` an event object
+  * `ctx_idx` is an idx returned from `eventer_register_context`
+  * `data` is new context data.
+  * **RETURN** The previously attached context.
 
 
 #### eventer_set_fd_blocking
@@ -1799,6 +1877,167 @@ eventer_write(eventer_t e, void *buff, size_t len, int *mask)
 If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
 necessary activity to make progress.
 
+
+### F
+
+#### mtev_flow_regulator_ack
+
+>Acknowledge processing mtev_flow_regulator_toggle_t instruction.
+
+```c
+mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_ack(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t)
+```
+
+
+  * `t` Instruction returned from previous call to `mtev_flow_regulator_raise_one`, `mtev_flow_regulator_lower`, or `mtev_flow_regulator_ack`.
+  * **RETURN** New flow-toggle instruction.
+
+The flow-regulator is designed to be usable in multi-producer
+(where multiple concurrent entities may produce work) /
+multi-consumer (where multiple concurrent entities may mark work
+completed) scenarios, which means that many entities may be adding
+and removing work from the flow-regulator at the same time. As
+such, when one entity observes that the flow-regulator has become
+disabled and takes some action to pause further work generation,
+it's possible that enough work will have drained from the
+flow-regulator that it needs to be re-enabled... Or, that after
+re-enabling the flow-regulator, enough work was already being
+scheduled that it needs to be disabled again. So
+`mtev_flow_regulator_ack` returns a _new_ instruction, in case the
+flow-regulator needs further adjustment. Clients are expected to
+call this function in a loop, with the function's previous return
+value, until the flow-regulator settles on
+`MTEV_FLOW_REGULATOR_TOGGLE_KEEP` or
+`MTEV_FLOW_REGULATOR_TOGGLE_DISABLED`. (There is no harm in
+continuing to call `mtev_flow_regulator_ack` after it reaches one
+of these values: it will eventually settle on
+`MTEV_FLOW_REGULATOR_TOGGLE_KEEP`.)
+
+The toggle-instruction should be interpreted as follows:
+
+* `MTEV_FLOW_REGULATOR_TOGGLE_DISABLED`: Flow control is currently
+  disabled. No client action necessary.
+* `MTEV_FLOW_REGULATOR_TOGGLE_DISABLE`: Flow control _was_ enabled,
+  and we've started transitioning to DISABLED. (The transition to
+  DISABLED is not complete until the client calls
+  `mtev_flow_regulator_ack`, again.) Client MAY try to prevent
+  generating new work before calling `mtev_flow_regulator_ack`, again.
+* `MTEV_FLOW_REGULATOR_TOGGLE_KEEP`: No client action required.
+* `MTEV_FLOW_REGULATOR_TOGGLE_ENABLE`: Flow control _was_ disabled,
+  and has just started transitioning to ENABLED. (The transition to
+  ENABLED is not complete until the client calls
+  `mtev_flow_regulator_ack`, again.) Client MAY re-enable
+  work-generation before calling `mtev_flow_regulator_ack`, again.
+
+
+To facilitate multi-producer / multi-consumer use, the
+flow-regulator enforces that only _one_ client will see a
+flow-toggling result (_i.e._ `MTEV_FLOW_REGULATOR_TOGGLE_ENABLE`
+or `MTEV_FLOW_REGULATOR_TOGGLE_DISABLE`) until that client calls
+`mtev_flow_regulator_ack`, and that the same toggling result will
+not occur twice in a row across all concurrent clients.
+ 
+
+#### mtev_flow_regulator_create
+
+>Create a flow-regulator object.
+
+```c
+mtev_flow_regulator_t *
+mtev_flow_regulator_create(unsigned int low, unsigned int high)
+```
+
+
+  * `low` Threshold that indicates when work flow should be re-enabled.
+  * `high` Threshold at which to stop work flow. Must be strictly greater than `low`.
+  * **RETURN** Flow-regulator object.
+
+The returned flow-regulator object is "enabled" on creation. When
+`high` work items are added (by `mtev_flow_regulator_raise_one`)
+without being removed (by `mtev_flow_regulator_lower`), the
+flow-regulator will become disabled. When `high - low` work-items
+are subsequently marked done (by `mtev_flow_regulator_lower`),
+without new work being added (by `mtev_flow_regulator_raise_one`),
+the flow-regulator will transition back to "enabled".
+ 
+
+#### mtev_flow_regulator_destroy
+
+>Destroy a flow-regulator object.
+
+```c
+void 
+mtev_flow_regulator_destroy(mtev_flow_regulator_t *fr)
+```
+
+
+ 
+
+#### mtev_flow_regulator_lower
+
+>Release space for work-items in a flow-regulator.
+
+```c
+mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_lower(mtev_flow_regulator_t *fr, unsigned int by)
+```
+
+
+  * `by` Number of work-items to mark completed.
+  * **RETURN** Action to take on releasing work.
+
+See `mtev_flow_regulator_ack` for description of how to handle the
+return value. This function will return one of:
+
+  * `MTEV_FLOW_REGULATOR_TOGGLE_KEEP`
+  * `MTEV_FLOW_REGULATOR_TOGGLE_ENABLE`
+ 
+
+#### mtev_flow_regulator_raise_one
+
+>Reserve space for a work-item in a flow-regulator.
+
+```c
+mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_raise_one(mtev_flow_regulator_t *fr)
+```
+
+
+  * **RETURN** Success / fail status on inserting work.
+
+See `mtev_flow_regulator_ack` for description of how to handle the
+return value. This function will return one of:
+
+* `MTEV_FLOW_REGULATOR_TOGGLE_DISABLED`
+* `MTEV_FLOW_REGULATOR_TOGGLE_DISABLE`
+* `MTEV_FLOW_REGULATOR_TOGGLE_KEEP`
+
+Note that, unless the return value was
+`MTEV_FLOW_REGULATOR_TOGGLE_KEEP`, space was _not_ reserved in the
+flow-regulator for the work-item.
+ 
+
+#### mtev_flow_regulator_stabilize
+
+```c
+mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_stabilize(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t)
+```
+
+  * `t` Instruction returned from previous call to `mtev_flow_regulator_raise_one`, `mtev_flow_regulator_lower`, or `mtev_flow_regulator_ack`.
+  * **RETURN** New flow-toggle instruction.
+
+This function is a simple wrapper around
+`mtev_flow_regulator_ack`, to simplify handling in cases where the
+client needs take no explicit action to enable or disable
+work-production before calling `mtev_flow_regulator_ack`. It
+simply calls `mtev_flow_regulator_ack` in a loop until
+`mtev_flow_regulator_ack` returns
+`MTEV_FLOW_REGULATOR_TOGGLE_KEEP`, and returns the previous toggle
+instruction, which the client would then use to enable or disable
+work-generation.
+ 
 
 ### G
 
@@ -2945,6 +3184,20 @@ mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client
 
 ### Z
 
+#### mtev_zipkin_active_span
+
+>Find the currently active span of work.
+
+```c
+Zipkin_Span * 
+mtev_zipkin_active_span(eventer_t e)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+  * **RETURN** A span or NULL if no span is currently active.
+
+
 #### mtev_zipkin_annotation_set_endpoint
 
 >Sets the endpoint for an annotation.
@@ -2965,6 +3218,23 @@ mtev_zipkin_annotation_set_endpoint(Zipkin_Annotation *annotation, const char *s
 mtev_zipkin_annotation_set_endpoint sets an endpoint for the provided annotation.
  
 
+#### mtev_zipkin_attach_to_eventer
+
+>Attach an active span (or new child span) to an event.
+
+```c
+void 
+mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_child
+                              mtev_zipkin_event_trace_level_t *track)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+  * `span` An existing zipkin span.
+  * `new_child` Whether or not a child should be created under the provided span.
+  * `track` Specifies how event activity should be tracked.
+
+
 #### mtev_zipkin_bannotation_set_endpoint
 
 >Sets the endpoint for an annotation.
@@ -2984,6 +3254,125 @@ mtev_zipkin_bannotation_set_endpoint(Zipkin_BinaryAnnotation *annotation, const 
 
 mtev_zipkin_bannotation_set_endpoint sets an endpoint for the provided annotation.
  
+
+#### mtev_zipkin_client_drop
+
+>Discard a client span if one exists.
+
+```c
+void 
+mtev_zipkin_client_drop(eventer_t e)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+
+
+#### mtev_zipkin_client_new
+
+>Create a new span for client user (remote calling)
+
+```c
+void 
+mtev_zipkin_client_new(eventer_t e, const char *name, bool name_copy)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+  * `name` A string to name the span
+  * `name_copy` Whether name should be allocated (copied) within the span.
+
+
+#### mtev_zipkin_client_parent_hdr
+
+>Format a parent span HTTP header for an HTTP request.
+
+```c
+bool 
+mtev_zipkin_client_parent_hdr(eventer_t e, char *buf, size_t len)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+  * `buf` An output buffer for "Header: Value"
+  * `len` The available space in `buf`
+  * **RETURN** True if successful, false if no trace is available of len is too short.
+
+
+#### mtev_zipkin_client_publish
+
+>Publish a client span if one exists.
+
+```c
+void 
+mtev_zipkin_client_publish(eventer_t e)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+
+
+#### mtev_zipkin_client_sampled_hdr
+
+>Format a sampled HTTP header for an HTTP request.
+
+```c
+bool 
+mtev_zipkin_client_sampled_hdr(eventer_t e, char *buf, size_t len)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+  * `buf` An output buffer for "Header: Value"
+  * `len` The available space in `buf`
+  * **RETURN** True if successful, false if no trace is available of len is too short.
+
+
+#### mtev_zipkin_client_span
+
+>Retrieve the current client span should one exist.
+
+```c
+Zipkin_Span * 
+mtev_zipkin_client_span(eventer_t e)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+  * **RETURN** A span for client actions or NULL is no span exists.
+
+
+#### mtev_zipkin_client_span_hdr
+
+>Format a span HTTP header for an HTTP request.
+
+```c
+bool 
+mtev_zipkin_client_span_hdr(eventer_t e, char *buf, size_t len)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+  * `buf` An output buffer for "Header: Value"
+  * `len` The available space in `buf`
+  * **RETURN** True if successful, false if no trace is available of len is too short.
+
+
+#### mtev_zipkin_client_trace_hdr
+
+>Format a trace HTTP header for an HTTP request.
+
+```c
+bool 
+mtev_zipkin_client_trace_hdr(eventer_t e, char *buf, size_t len)
+```
+
+
+  * `e` An event object (or NULL for the current event)
+  * `buf` An output buffer for "Header: Value"
+  * `len` The available space in `buf`
+  * **RETURN** True if successful, false if no trace is available of len is too short.
+
 
 #### mtev_zipkin_default_endpoint
 
@@ -3055,6 +3444,48 @@ mtev_zipkin_encode_list(unsigned char *buffer, size_t len, Zipkin_Span **spans, 
   * **RETURN** The length of a successful encoding.
 
 mtev_zipkin_encode_list will take a list of spans and encode it for Zipkin using the Thift BinaryProtocol.  The return value is always the length of a successful encoding, even if the buffer supplied is too small.  The caller must check the the returned length is less than or equal to the provided length to determine whether the encoding was successful.  The caller may provide a NULL buffer if and only if the provided len is 0.
+ 
+
+#### mtev_zipkin_event_trace_level
+
+>Globally set the default event trace level.
+
+```c
+void 
+mtev_zipkin_event_trace_level(mtev_zipkin_event_trace_level_t level)
+```
+
+
+  * `level` The new global default level for event tracing.
+
+
+#### mtev_zipkin_eventer_init
+
+>Initialize zipkin contexts for the eventer.
+
+```c
+void 
+mtev_zipkin_eventer_init(void)
+```
+
+
+
+
+#### mtev_zipkin_get_sampling
+
+>Get sampling probabilities for different types of traces.
+
+```c
+void 
+mtev_zipkin_get_sampling(double *new_traces, double *parented_traces, double *debug_traces)
+```
+
+
+  * `new_traces` probability pointer to populate
+  * `parented_traces` probability pointer to populate
+  * `debug_traces` probability pointer to populate
+
+mtev_zipkin_get_sampling gets sampling probabilities for creating new traces.  See `mtev_zipkin_sampling` and the opentracing specification for more details on what each probability means.
  
 
 #### mtev_zipkin_sampling
@@ -3274,6 +3705,21 @@ mtev_zipkin_span_ref(Zipkin_Span *span)
 
 
   * `span` The span to reference.
+ 
+
+#### mtev_zipkin_span_rename
+
+>Rename a span after it has been created, but before publishing.
+
+```c
+void 
+mtev_zipkin_span_rename(Zipkin_Span *span, const char *name, bool name_copy)
+```
+
+
+  * `span` The span to rename.
+  * `name` The new name for the span.
+  * `name_copy` If the passed name will be freed or lost (copy required).
  
 
 #### mtev_zipkin_str_to_id
