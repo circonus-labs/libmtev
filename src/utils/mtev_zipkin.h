@@ -379,6 +379,15 @@ API_EXPORT(void) mtev_zipkin_client_new(eventer_t e, const char *, bool);
 */
 API_EXPORT(Zipkin_Span *) mtev_zipkin_client_span(eventer_t e);
 
+/*! \fn bool mtev_zipkin_client_sampled_hdr(eventer_t e, char *buf, size_t len)
+    \brief Format a sampled HTTP header for an HTTP request.
+    \param e An event object (or NULL for the current event)
+    \param buf An output buffer for "Header: Value"
+    \param len The available space in `buf`
+    \return True if successful, false if no trace is available of len is too short.
+*/
+API_EXPORT(bool) mtev_zipkin_client_sampled_hdr(eventer_t e, char *, size_t);
+
 /*! \fn bool mtev_zipkin_client_trace_hdr(eventer_t e, char *buf, size_t len)
     \brief Format a trace HTTP header for an HTTP request.
     \param e An event object (or NULL for the current event)

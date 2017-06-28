@@ -42,13 +42,13 @@ mtev_zipkin_inst_curl_headers_name(struct curl_slist *inheaders,
   char hdr[128];
   snprintf(name, sizeof(name), "curl: %s", uri);
   mtev_zipkin_client_new(NULL, name, true);
-  if(mtev_zipkin_client_trace_hdr(NULL, hdr, sizeof(hdr))) {
+  if(mtev_zipkin_client_trace_hdr(NULL, hdr, sizeof(hdr)))
     inheaders = curl_slist_append(inheaders, hdr);
-    inheaders = curl_slist_append(inheaders, HEADER_ZIPKIN_SAMPLED ": 1");
-  }
   if(mtev_zipkin_client_parent_hdr(NULL, hdr, sizeof(hdr)))
     inheaders = curl_slist_append(inheaders, hdr);
   if(mtev_zipkin_client_span_hdr(NULL, hdr, sizeof(hdr)))
+    inheaders = curl_slist_append(inheaders, hdr);
+  if(mtev_zipkin_client_sampled_hdr(NULL, hdr, sizeof(hdr)))
     inheaders = curl_slist_append(inheaders, hdr);
   return inheaders;
 }

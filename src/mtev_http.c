@@ -609,7 +609,8 @@ begin_span(mtev_http_session_ctx *ctx) {
   char *endptr = NULL;
   int64_t trace_id_buf, parent_span_id_buf, span_id_buf;
   int64_t *trace_id, *parent_span_id, *span_id;
-  bool sampled = false;
+  bool sampled_value = false;
+  bool *sampled = NULL;
   mtev_zipkin_event_trace_level_t _trace_events = ZIPKIN_TRACE_EVENT_NONE,
                                   *trace_events = NULL;
 
@@ -626,8 +627,10 @@ begin_span(mtev_http_session_ctx *ctx) {
   trace_id = mtev_zipkin_str_to_id(trace_hdr, &trace_id_buf);
   parent_span_id = mtev_zipkin_str_to_id(parent_span_hdr, &parent_span_id_buf);
   span_id = mtev_zipkin_str_to_id(span_hdr, &span_id_buf);
-  if(sampled_hdr && (1 == strtoll(sampled_hdr, &endptr, 10)) && endptr != NULL)
-    sampled = true;
+  if(sampled_hdr) {
+    sampled_value = ((1 == strtoll(sampled_hdr, &endptr, 10)) && endptr != NULL);
+    sampled = &sampled_value;
+  }
   if(mtev_event_hdr) {
     unsigned long long lvl = strtoll(mtev_event_hdr, NULL, 10);
     if(lvl == 1) _trace_events = ZIPKIN_TRACE_EVENT_LIFETIME;
@@ -636,7 +639,7 @@ begin_span(mtev_http_session_ctx *ctx) {
   }
   ctx->zipkin_span =
     mtev_zipkin_span_new(trace_id, parent_span_id, span_id,
-                         req->uri_str, true, NULL, sampled);
+                         req->uri_str, true, sampled, false);
   mtev_zipkin_attach_to_eventer(ctx->conn.e, ctx->zipkin_span, false, trace_events);
   set_endpoint(ctx);
   mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_RECV, false);
