@@ -1208,37 +1208,39 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
   /* chunked encoding read */
   int next_chunk = ctx->req.payload_chunked ? -1 : 0;
   /* We attempt to consume from the first_input */
-  struct bchain *in, *tofree;
+  struct bchain *head, *tail, *tofree;
   const char *str_in_f;
   while(1) {
     int rlen;
-    in = ctx->req.first_input;
-    if(!in) {
-      in = ctx->req.first_input = ctx->req.last_input =
+    head = ctx->req.first_input;
+    if(!head) {
+      head = ctx->req.first_input = ctx->req.last_input =
         ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
     }
 
     if (ctx->req.payload_chunked == mtev_false) {
-      if (in->size == in->allocd) {
-        next_chunk = in->size;
+      /* if we have a completely full 'head' bchain, read it now */
+      if (head->size == head->allocd) {
+        next_chunk = head->size;
         goto successful_chunk_size;
       }
-    } else {
-      str_in_f = strnstrn("\r\n", 2, in->buff + in->start, in->size);
+    }
+    else {
+      str_in_f = strnstrn("\r\n", 2, head->buff + head->start, head->size);
       if(str_in_f) {
         unsigned int clen = 0;
-        const char *cp = in->buff + in->start;
-        const char *cp_begin = in->buff + in->start;
+        const char *cp = head->buff + head->start;
+        const char *cp_begin = head->buff + head->start;
         while(cp <= str_in_f) {
           if(*cp >= '0' && *cp <= '9') clen = (clen << 4) | (*cp - '0');
           else if(*cp >= 'a' && *cp <= 'f') clen = (clen << 4) | (*cp - 'a' + 10);
           else if(*cp >= 'A' && *cp <= 'F') clen = (clen << 4) | (*cp - 'A' + 10);
           else if(*cp == '\r' && cp[1] == '\n') {
             mtevL(http_debug, "Found for chunk length(%d)\n", clen);
-            if (in->size - 2 >= clen) {
+            if (head->size - 2 >= clen) {
               next_chunk = clen;
-              in->start += cp - cp_begin + 2;
-              in->size -= cp - cp_begin + 2;
+              head->start += cp - cp_begin + 2;
+              head->size -= cp - cp_begin + 2;
               goto successful_chunk_size;
             } else {
               /**
@@ -1251,16 +1253,16 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
                */
               struct bchain *new_in = ALLOC_BCHAIN(MAX(clen + (cp - cp_begin + 2), 
                                                        DEFAULT_BCHAINSIZE));
-              memcpy(new_in->buff, cp_begin, in->size);
-              new_in->size = in->size;
+              memcpy(new_in->buff, cp_begin, head->size);
+              new_in->size = head->size;
               new_in->start = 0;
-              new_in->compression = in->compression;
-              new_in->next = in->next;
-            
-              /* the current 'in' buffer must be consumed as it's data was copied */
+              new_in->compression = head->compression;
+              new_in->next = head->next;
+
+              /* the current 'head' buffer must be consumed as it's data was copied */
               ctx->req.first_input = ctx->req.last_input = new_in;
-              in->next = NULL;
-              RELEASE_BCHAIN(in);
+              head->next = NULL;
+              RELEASE_BCHAIN(head);
               break;
             }
           }
@@ -1273,23 +1275,24 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
       }
     }
 
-    in = ctx->req.last_input;
-    if (!in) {
-      in = ctx->req.first_input = ctx->req.last_input =
+    tail = ctx->req.last_input;
+    if (!tail) {
+      tail = ctx->req.first_input = ctx->req.last_input =
           ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
     }
-    else if (in->start + in->size >= in->allocd) {
-      in->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
-      in = ctx->req.last_input = in->next;
+    else if (tail->start + tail->size >= tail->allocd) {
+      tail->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+      tail = ctx->req.last_input = tail->next;
     }
     /* pull next chunk */
     if (ctx->conn.e == NULL) return -1;
     rlen = eventer_read(ctx->conn.e,
-                        in->buff + in->start + in->size,
-                        in->allocd - in->size - in->start, mask);
+                        tail->buff + tail->start + tail->size,
+                        tail->allocd - tail->size - tail->start, mask);
     mtevL(http_debug, " mtev_http -> read(%d) = %d\n", CTXFD(ctx), rlen);
     if(rlen > 0)
-      mtevL(http_io, " mtev_http:read(%d) => %d [\n%.*s\n]\n", CTXFD(ctx), rlen, rlen, in->buff + in->start + in->size);
+      mtevL(http_io, " mtev_http:read(%d) => %d [\n%.*s\n]\n", CTXFD(ctx), rlen, rlen, 
+            tail->buff + tail->start + tail->size);
     else
       mtevL(http_io, " mtev_http:read(%d) => %d\n", CTXFD(ctx), rlen);
     if(rlen == -1 && errno == EAGAIN) {
@@ -1304,7 +1307,7 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
       mtevL(http_debug, " ... mtev_http_session_req_consume = -1 (error)\n");
       return -2;
     }
-    in->size += rlen;
+    tail->size += rlen;
     if (ctx->req.payload_chunked == mtev_false) {
       next_chunk += rlen;
     }
@@ -1313,6 +1316,12 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
  successful_chunk_size:
   {
     if (next_chunk > 0) {
+      /* ensure we are looking at the first input */
+      head = ctx->req.first_input;
+      if (head == NULL) {
+        /* nothing to read */
+        return -1;
+      }
       mtevL(http_debug, " ... have chunk (%d)\n", next_chunk);
       struct bchain *data = ALLOC_BCHAIN(next_chunk);
       data->compression = compression_type;
@@ -1323,32 +1332,33 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
       if (ctx->req.user_data == NULL) {
         ctx->req.user_data = data;
       }
-      memcpy(data->buff + data->size, in->buff + in->start, MIN(in->size, next_chunk));
-      data->size = MIN(in->size, next_chunk);
-      in->start += data->size;
-      in->size -= data->size;
+      size_t copy_size = MIN(head->size, next_chunk);
+      memcpy(data->buff + data->start + data->size, head->buff + head->start, copy_size);
+      data->size += copy_size;
+      head->start += copy_size;
+      head->size -= copy_size;
       if (ctx->req.payload_chunked) {
         /* there must be a \r\n at the end of this block */
-        str_in_f = strnstrn("\r\n", 2, in->buff + in->start, in->size);
-        if(in->size < 2 || strncmp(in->buff + in->start, "\r\n", 2) != 0) {
+        str_in_f = strnstrn("\r\n", 2, head->buff + head->start, head->size);
+        if(head->size < 2 || strncmp(head->buff + head->start, "\r\n", 2) != 0) {
           mtevL(mtev_error, "HTTP chunked encoding error, no trailing CRLF.\n");
           return -2;
         }
         /* skip the \r\n framing */
-        in->size-=2;
-        in->start+=2;
+        head->size-=2;
+        head->start+=2;
       }
     } else if (next_chunk == 0 && ctx->req.payload_chunked) {
       mtevL(http_debug, " ... last chunked chunk\n");
       /* all that's left is \r\n, just consume this framing */
-      in->size -= 2;
-      in->start += 2;
+      head->size -= 2;
+      head->start += 2;
     }
 
-    if(in->size == 0) {
-      tofree = in;
-      ctx->req.first_input = in = in->next;
-      if(ctx->req.last_input == tofree) ctx->req.last_input = in;
+    if(head->size == 0) {
+      tofree = head;
+      ctx->req.first_input = head = head->next;
+      if(ctx->req.last_input == tofree) ctx->req.last_input = head;
       tofree->next = NULL;
       RELEASE_BCHAIN(tofree);
     }
