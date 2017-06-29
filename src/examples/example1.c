@@ -122,13 +122,30 @@ static void init_cluster(void) {
   }
 }
 
+static int handler_subwork(eventer_t e, int mask, void *closure,
+                        struct timeval *now) {
+  uintptr_t len = (uintptr_t)closure;
+  int i;
+  int us = (len % 1000000);
+  int lvl = (len / 10) % 10;
+  if(mask == EVENTER_ASYNCH_WORK) {
+    for(i=0;i<(10-lvl)/2;i++) {
+      long foo = lrand48() * 100;
+      foo += (lvl-1) * 10;
+      foo += i;
+      usleep(us/10);
+      eventer_add_asynch_dep(NULL, eventer_alloc_asynch(handler_subwork, (void *)foo));
+    }
+  }
+  return 0;
+}
 static int handler_work(eventer_t e, int mask, void *closure,
                         struct timeval *now) {
   mtev_http_rest_closure_t *restc = closure;
   if(mask == EVENTER_ASYNCH_WORK) {
-    sleep(1);
     mtev_http_session_ctx *ctx = restc->http_ctx;
     mtev_http_response_appendf(ctx, "Passing by %s\n", eventer_get_thread_name());
+    eventer_add_asynch_dep(NULL, eventer_alloc_asynch(handler_subwork, (void *)20));
   }
   if(mask == EVENTER_ASYNCH) {
     mtev_http_session_resume_after_float(restc->http_ctx);
@@ -198,6 +215,7 @@ child_main(void) {
   );
 
   eventer_name_callback("handler_work", handler_work);
+  eventer_name_callback("handler_subwork", handler_subwork);
   /* Lastly, spin up the event loop */
   eventer_loop();
   return 0;

@@ -60,8 +60,9 @@ eventer_jobq_t *eventer_jobq_create(const char *queue_name);
 eventer_jobq_t *eventer_jobq_create_backq(const char *queue_name);
 eventer_jobq_t *eventer_jobq_create_ms(const char *queue_name,
                                        eventer_jobq_memory_safety_t);
+eventer_job_t *eventer_jobq_inflight(void);
 eventer_jobq_t *eventer_jobq_retrieve(const char *name);
-void eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job);
+void eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent);
 eventer_job_t *eventer_jobq_dequeue(eventer_jobq_t *jobq);
 eventer_job_t *eventer_jobq_dequeue_nowait(eventer_jobq_t *jobq);
 void eventer_jobq_destroy(eventer_jobq_t *jobq);

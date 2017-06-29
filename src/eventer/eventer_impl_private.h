@@ -76,6 +76,8 @@ struct _eventer_job_t {
   uint32_t                inflight;
   uint32_t                has_cleanedup;
   void                  (*cleanup)(struct _eventer_job_t *);
+  uint32_t                dependents;
+  struct _eventer_job_t  *waiting;
   struct _eventer_job_t  *next;
   struct _eventer_jobq_t *jobq;
 };
