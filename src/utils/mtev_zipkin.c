@@ -1076,6 +1076,6 @@ void mtev_zipkin_event_trace_level(mtev_zipkin_event_trace_level_t lvl) {
 void mtev_zipkin_eventer_init(void) {
   if(zipkin_ctx_idx >= 0) return;
   zipkin_ctx_idx = eventer_register_context("zipkin", &zipkin_eventer_context_ops);
-  mtevL(mtev_notice, "distributed tracing contexts %s\n",
+  mtevL(mtev_debug, "distributed tracing contexts %s\n",
         (zipkin_ctx_idx < 0) ? "failed to register" : "registered");
 }
