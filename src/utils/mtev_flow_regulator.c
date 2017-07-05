@@ -43,8 +43,9 @@ mtev_flow_regulator_adjust_up(mtev_flow_regulator_t *fr, unsigned int adjustment
   do {
     old_val = ck_pr_load_uint(&fr->cur);
     if (old_val == fr->high) {
-      if (ck_pr_cas_uint(&fr->state, MTEV_FLOW_REGULATOR_STATE_ENABLED,
-                        MTEV_FLOW_REGULATOR_STATE_DISABLING))
+      if (adjustment > 0 &&
+          ck_pr_cas_uint(&fr->state, MTEV_FLOW_REGULATOR_STATE_ENABLED,
+                         MTEV_FLOW_REGULATOR_STATE_DISABLING))
         return MTEV_FLOW_REGULATOR_TOGGLE_DISABLE;
       else
         return MTEV_FLOW_REGULATOR_TOGGLE_DISABLED;
