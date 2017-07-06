@@ -177,17 +177,17 @@ API_EXPORT(void)
   mtev_log_init_globals(void);
 
 #define mtevLT(ls, t, args...) do { \
-  if((ls) && (mtev_log_global_enabled() || N_L_S_ON(ls))) \
-    mtev_log(ls, t, __FILE__, __LINE__, args); \
+  if((ls) && (mtev_log_global_enabled() || N_L_S_ON((ls)))) \
+    mtev_log((ls), t, __FILE__, __LINE__, args); \
 } while(0)
 #define mtevL(ls, args...) do { \
-  if((ls) && (mtev_log_global_enabled() || N_L_S_ON(ls))) { \
-    mtev_log(ls, NULL, __FILE__, __LINE__, args); \
+  if((ls) && (mtev_log_global_enabled() || N_L_S_ON((ls)))) { \
+    mtev_log((ls), NULL, __FILE__, __LINE__, args); \
   } \
 } while(0)
 #define mtevFatal(ls,args...) do {\
   mtev_log_go_synch(); \
-  mtevL(ls, "[FATAL] " args); \
+  mtevL((ls), "[FATAL] " args); \
   abort(); \
 } while(0)
 
