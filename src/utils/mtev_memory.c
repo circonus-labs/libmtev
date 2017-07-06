@@ -176,6 +176,13 @@ mtev_gc_sync_complete(struct asynch_reclaim *ar) {
   free(ar);
 }
 
+#ifdef HAVE_CK_EPOCH_SYNCHRONIZE_WAIT
+static void
+mtev_memory_sync_wait(ck_epoch_t *e, ck_epoch_record_t *rec, void *c) {
+  /* just don't take a whole core */
+  usleep(100);
+}
+#endif
 static void *
 mtev_memory_gc(void *unused) {
   (void)unused;
@@ -186,7 +193,11 @@ mtev_memory_gc(void *unused) {
     ck_epoch_end(epoch_rec, NULL);
     ck_fifo_spsc_dequeue_lock(&gc_queue);
     while(ck_fifo_spsc_dequeue(&gc_queue, &ar)) {
+#ifdef HAVE_CK_EPOCH_SYNCHRONIZE_WAIT
+      ck_epoch_synchronize_wait(epoch_rec, mtev_memory_sync_wait, NULL);
+#else
       ck_epoch_synchronize(epoch_rec);
+#endif
       ck_fifo_spsc_enqueue_lock(ar->backq);
       ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(ar->backq);
       if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
