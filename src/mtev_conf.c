@@ -286,6 +286,23 @@ mtev_conf_set_namespace(const char *ns) {
   }
 }
 
+void
+mtev_conf_correct_namespace(mtev_conf_section_t cp, mtev_conf_section_t cc) {
+  xmlNodePtr parent = cp, child = cc;
+  if(child->ns) {
+    xmlNsPtr oldns = child->ns;
+    child->ns = NULL;
+    while(oldns) {
+      xmlNsPtr newns = xmlSearchNs(parent->doc, xmlDocGetRootElement(parent->doc), oldns->prefix);
+      if(!newns) newns = xmlNewNs(xmlDocGetRootElement(parent->doc), oldns->href, oldns->prefix);
+      oldns = oldns->next;
+    }
+    child->ns = parent->ns;
+  }
+  if(child->children) mtev_conf_correct_namespace(parent, child->children);
+  if(child->next) mtev_conf_correct_namespace(parent, child->next);
+}
+
 static int
 mtev_conf_watch_config_and_journal(eventer_t e, int mask, void *closure,
                                    struct timeval *now) {

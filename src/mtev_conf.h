@@ -230,6 +230,9 @@ API_EXPORT(int)
 API_EXPORT(void)
   mtev_conf_request_write(void);
 
+API_EXPORT(void)
+  mtev_conf_correct_namespace(mtev_conf_section_t parent, mtev_conf_section_t child);
+
 API_EXPORT(char *)
   mtev_conf_xml_in_mem(size_t *len);
 
