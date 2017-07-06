@@ -72,7 +72,7 @@ on_node_updated(void *closure, mtev_cluster_node_changes_t node_changes, mtev_cl
   mtev_boolean i_am_oldest = mtev_cluster_am_i_oldest_node(my_cluster);
 
   mtevL(mtev_stderr, "The cluster topology has changed (seq=%"PRId64"): I am oldest node: %d\n",
-      updated_node->config_seq, i_am_oldest);
+      mtev_cluster_node_get_config_seq(updated_node), i_am_oldest);
   if(node_changes & MTEV_CLUSTER_NODE_REBOOTED) {
     mtevL(mtev_stderr, "Found new node\n");
   }
@@ -80,7 +80,7 @@ on_node_updated(void *closure, mtev_cluster_node_changes_t node_changes, mtev_cl
     mtevL(mtev_stderr, "Node's payload has changed:\n");
   }
 
-  if(updated_node->payload) {
+  if(mtev_cluster_node_has_payload(updated_node)) {
     char* payload = NULL;
     char* payload2 = NULL;
     assert(mtev_cluster_get_heartbeat_payload(updated_node, 2, 1, (void**)&payload) == -1);

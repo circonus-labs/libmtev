@@ -3598,7 +3598,9 @@ mtev_lua_push_cluster_node(lua_State *L, mtev_cluster_node_t *node) {
   if(node == NULL) {
     lua_pushnil(L);
   } else {
-    uuid_unparse_lower(node->id, uuid_str);
+    uuid_t nodeid;
+    mtev_cluster_node_get_id(node, nodeid);
+    uuid_unparse_lower(nodeid, uuid_str);
 
     lua_createtable(L, 0, 3);
 
@@ -3607,19 +3609,25 @@ mtev_lua_push_cluster_node(lua_State *L, mtev_cluster_node_t *node) {
     lua_settable(L, -3);
 
     lua_pushstring(L, "boot_time");
-    mtev_lua_push_timeval(L, node->boot_time);
+    mtev_lua_push_timeval(L, mtev_cluster_node_get_boot_time(node));
     lua_settable(L, -3);
 
     lua_pushstring(L, "last_contact");
-    mtev_lua_push_timeval(L, node->last_contact);
+    mtev_lua_push_timeval(L, mtev_cluster_node_get_last_contact(node));
     lua_settable(L, -3);
 
     lua_pushstring(L, "address");
-    char node_name[128];
-    if (node->addr.addr4.sin_family == AF_INET) {
-      inet_ntop(AF_INET, &node->addr.addr4.sin_addr, node_name, sizeof(node_name));
-    } else if (node->addr.addr6.sin6_family == AF_INET6) {
-      inet_ntop(AF_INET6, &node->addr.addr6.sin6_addr, node_name, sizeof(node_name));
+    char node_name[128] = "unknown";
+    struct sockaddr *addr = NULL;
+    switch(mtev_cluster_node_get_addr(node, &addr, NULL)) {
+      case AF_INET:
+        inet_ntop(AF_INET, &((struct sockaddr_in *)addr)->sin_addr, node_name, sizeof(node_name));
+        break;
+      case AF_INET6:
+        inet_ntop(AF_INET6, &((struct sockaddr_in6 *)addr)->sin6_addr, node_name, sizeof(node_name));
+        break;
+      default:
+        strlcpy(node_name, "unknown", sizeof(node_name));
     }
     lua_pushstring(L, node_name);
     lua_settable(L, -3);
