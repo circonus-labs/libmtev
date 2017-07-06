@@ -33,6 +33,7 @@
 #include <libxml/tree.h>
 #include <inttypes.h>
 
+#include "mtev_uuid.h"
 #include "mtev_rest.h"
 #include "mtev_conf.h"
 #include "mtev_hash.h"
@@ -67,6 +68,54 @@ typedef struct {
   uint8_t data_len;
   void* data;
 } hb_payload_t;
+
+struct mtev_cluster_node_t {
+  uuid_t id;
+  char cn[256];
+  union {
+    struct sockaddr_in addr4;
+    struct sockaddr_in6 addr6;
+  } addr;
+  socklen_t address_len;
+  struct timeval last_contact;
+  struct timeval boot_time;
+  uint64_t config_seq;
+  void *payload;
+  uint16_t payload_length;
+  uint8_t number_of_payloads;
+};
+
+void
+mtev_cluster_node_get_id(mtev_cluster_node_t *node, uuid_t out) {
+  mtev_uuid_copy(out, node->id);
+}
+int8_t
+mtev_cluster_node_get_addr(mtev_cluster_node_t *node, struct sockaddr **addr, socklen_t *addrlen) {
+  if(addr) *addr = (struct sockaddr *)&node->addr.addr4;
+  if(addrlen) *addrlen = node->address_len;
+  return node->addr.addr4.sin_family;
+}
+mtev_boolean
+mtev_cluster_node_has_payload(mtev_cluster_node_t *node) {
+  return node->payload != NULL;
+}
+const char *
+mtev_cluster_node_get_cn(mtev_cluster_node_t *node) {
+  return node->cn;
+}
+struct timeval
+mtev_cluster_node_get_boot_time(mtev_cluster_node_t *node) {
+  return node->boot_time;
+}
+struct timeval
+mtev_cluster_node_get_last_contact(mtev_cluster_node_t *node) {
+  return node->last_contact;
+}
+int64_t
+mtev_cluster_node_get_config_seq(mtev_cluster_node_t *node) {
+  return node->config_seq;
+}
+
 
 /* All allocated with mtev_memory_safe commands */
 struct mtev_cluster_t {
@@ -142,7 +191,6 @@ deferred_cht_free(void *vptr) {
   if(!vptr) return;
   chtp = vptr;
   if(*chtp) mtev_cht_free(*chtp);
-  free(vptr);
 }
 
 #define MEMWRITE_DECL(p, len) void *mw_wp = (p); int mw_wa = (len); int mw_wn=0
@@ -451,7 +499,7 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
   mtev_conf_section_t n;
 
   snprintf(xpath_search, sizeof(xpath_search),
-           "//clusters/cluster[@name=\"%s\"]", cluster->name);
+           "//clusters//cluster[@name=\"%s\"]", cluster->name);
   n = mtev_conf_get_section(NULL, xpath_search);
   parent = (xmlNodePtr)n;
 
@@ -772,6 +820,14 @@ mtev_cluster_is_that_me(mtev_cluster_node_t *node) {
   return uuid_compare(node->id, my_cluster_id) == 0;
 }
 
+mtev_cluster_node_t *
+mtev_cluster_get_node(mtev_cluster_t *c, uuid_t id) {
+  int i;
+  for(i=0; i<c->node_cnt; i++) {
+    if(uuid_compare(c->nodes[i].id, id) == 0) return &c->nodes[i];
+  }
+  return NULL;
+}
 int
 mtev_cluster_get_nodes(mtev_cluster_t *c,
                        mtev_cluster_node_t **nodes, int n,
@@ -824,7 +880,7 @@ mtev_cluster_filter_owners(mtev_cluster_t *c, void *key, size_t klen,
     }
   }
   *w = j;
-  if(*w < 0) return mtev_false;
+  if(*w <= 0) return mtev_false;
   if(uuid_compare(set[0]->id, my_cluster_id) == 0) return mtev_true;
   return mtev_false;
 }
@@ -899,6 +955,11 @@ mtev_cluster_get_heartbeat_payload(mtev_cluster_node_t *node, uint8_t app_id,
   }
 
   return -1;
+}
+
+const char *
+mtev_cluster_get_name(mtev_cluster_t *cluster) {
+  return cluster->name;
 }
 
 int64_t
@@ -1157,7 +1218,7 @@ mtev_cluster_init(void) {
      uuid_parse(my_id_str, my_id) == 0) {
     mtev_cluster_set_self(my_id);
   }
-  clusters = mtev_conf_get_sections(NULL, "//clusters/cluster", &n_clusters);
+  clusters = mtev_conf_get_sections(NULL, "//clusters//cluster", &n_clusters);
   for(i=0;i<n_clusters;i++) {
     mtev_cluster_update_internal(clusters[i], mtev_false);
   }
