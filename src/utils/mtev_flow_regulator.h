@@ -128,14 +128,11 @@ mtev_flow_regulator_toggle_t mtev_flow_regulator_lower(mtev_flow_regulator_t *fr
 
     * `MTEV_FLOW_REGULATOR_TOGGLE_DISABLED`: Flow control is currently
       disabled. No client action necessary.
-    * `MTEV_FLOW_REGULATOR_TOGGLE_DISABLE`: Flow control _was_
-      enabled, and we've started transitioning to DISABLED. (The
-      transition to DISABLED is not complete until the client calls
-      `mtev_flow_regulator_ack`.) Client MAY try to prevent generating
-      new work before calling `mtev_flow_regulator_ack`. Note:
-      `mtev_flow_regulator_ack` WILL NOT return `DISABLE`, this
-      toggle-instruction will only ever be returned by
-      `mtev_flow_regulator_raise_one`.
+    * `MTEV_FLOW_REGULATOR_TOGGLE_DISABLE`: Flow control _was_ enabled,
+      and we've started transitioning to DISABLED. (The transition to
+      DISABLED is not complete until the client calls
+      `mtev_flow_regulator_ack`, again.) Client MAY try to prevent
+      generating new work before calling `mtev_flow_regulator_ack`, again.
     * `MTEV_FLOW_REGULATOR_TOGGLE_KEEP`: No client action required.
     * `MTEV_FLOW_REGULATOR_TOGGLE_ENABLE`: Flow control _was_ disabled,
       and has just started transitioning to ENABLED. (The transition to
