@@ -907,9 +907,12 @@ eventer_at(eventer_func_t func, void *cl, struct timeval t) {
     \param whence the time at which to run the callback.
     \return N/A (C Macro).
 */
-#define eventer_add_at(func, cl, t) do { \
-  eventer_add(eventer_at(func,cl,t)); \
-} while(0)
+static inline eventer_t
+eventer_add_at(eventer_func_t func, void *cl, struct timeval t) {
+  eventer_t e = eventer_at(func,cl,t);
+  eventer_add(e);
+  return e;
+}
 
 /*! \fn eventer_t eventer_in(eventer_func_t func, void *closure, struct timeval diff)
     \brief Convenience function to create an event to run a callback in the future
@@ -936,9 +939,12 @@ eventer_in(eventer_func_t func, void *cl, struct timeval t) {
     \param diff the amount of time to wait before running the callback.
     \return N/A (C Macro).
 */
-#define eventer_add_in(func, cl, t) do { \
-  eventer_add(eventer_in(func,cl,t)); \
-} while(0)
+static inline eventer_t
+eventer_add_in(eventer_func_t func, void *cl, struct timeval t) {
+  eventer_t e = eventer_in(func,cl,t);
+  eventer_add(e);
+  return e;
+}
 
 /*! \fn eventer_t eventer_in_s_us(eventer_func_t func, void *closure, unsigned long seconds, unsigned long microseconds)
     \brief Convenience function to create an event to run a callback in the future
@@ -967,9 +973,12 @@ eventer_in_s_us(eventer_func_t func, void *cl, unsigned long s, unsigned long us
     \param microseconds the number of microseconds (in addition to `seconds`) to wait before running the callback.
     \return N/A (C Macro).
 */
-#define eventer_add_in_s_us(func, cl, s, us) do { \
-  eventer_add(eventer_in_s_us(func,cl,s,us)); \
-} while(0)
+static inline eventer_t
+eventer_add_in_s_us(eventer_func_t func, void *cl, unsigned long s, unsigned long us) {
+  eventer_t e = eventer_in_s_us(func,cl,s,us);
+  eventer_add(e);
+  return e;
+}
 
 /* Helpers to set sockets non-blocking / blocking */
 /*! \fn int eventer_set_fd_nonblocking(int fd)
