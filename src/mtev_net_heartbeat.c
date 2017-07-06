@@ -276,14 +276,14 @@ static int
 mtev_net_heartbeat_pulse(eventer_t e, int mask, void *closure, struct timeval *now) {
   mtev_net_heartbeat_ctx *ctx = closure;
   mtev_net_heartbeat_serialize_and_send(ctx);
-  eventer_add_in_s_us(mtev_net_heartbeat_pulse, ctx,
+  ctx->hb_event = eventer_add_in_s_us(mtev_net_heartbeat_pulse, ctx,
                       ctx->period_ms/1000,
                       (ctx->period_ms%1000)*1000);
   return 0;
 }
 void
 mtev_net_heartbeat_context_start(mtev_net_heartbeat_ctx *ctx) {
-  eventer_add_in_s_us(mtev_net_heartbeat_pulse, ctx,
+  ctx->hb_event = eventer_add_in_s_us(mtev_net_heartbeat_pulse, ctx,
                       ctx->period_ms/1000,
                       (ctx->period_ms%1000)*1000);
 }
@@ -394,7 +394,7 @@ mtev_net_heartbeat_add_untyped(mtev_net_heartbeat_ctx *ctx,
   if(ctx->n_targets == 1) ctx->targets = calloc(1, sizeof(struct tgt));
   else ctx->targets = realloc(ctx->targets, (ctx->n_targets * sizeof(struct tgt)));
   tgt = &ctx->targets[ctx->n_targets-1];
-
+  memset(tgt, 0, sizeof(*tgt));
   tgt->addr = malloc(len);
   memcpy(tgt->addr, addr, len);
   tgt->len = len;
