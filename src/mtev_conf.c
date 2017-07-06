@@ -2818,11 +2818,11 @@ mtev_console_config_cd(mtev_console_closure_t ncct,
   xmlNodePtr node = NULL;
   char *dest;
 
+  mtev_conf_xml_xpath(NULL, &xpath_ctxt);
   if(!master_config || !xpath_ctxt) {
-    nc_printf(ncct, "no config");
+    nc_printf(ncct, "no config\n");
     return -1;
   }
-  mtev_conf_xml_xpath(NULL, &xpath_ctxt);
   if(argc != 1 && !closure) {
     nc_printf(ncct, "requires one argument\n");
     return -1;
