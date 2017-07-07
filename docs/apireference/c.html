@@ -690,6 +690,14 @@ mtev_b64_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 <li><strong>RETURN</strong> The size of the buffer that would be needed to decode the input string.</li>
 </ul>
 <h3 id="c">C</h3>
+<h4 id="mtevclusteralivefilter">mtev_cluster_alive_filter</h4>
+<blockquote>
+<p>A <code>mtev_cluster_node_filter_func_t</code> for alive nodes.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_cluster_node_filter_func_t</span> 
+mtev_cluster_alive_filter()
+</code></pre>
+<p>This function is available to be passed as the <code>filter</code> argument to <code>mtev_cluster_filter_owners</code>.</p>
 <h4 id="mtevclusteramioldestnode">mtev_cluster_am_i_oldest_node</h4>
 <blockquote>
 <p>Determines if the local node is the oldest node within the cluster.</p>

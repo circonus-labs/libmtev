@@ -861,6 +861,11 @@ mtev_cluster_do_i_own(mtev_cluster_t *c, void *key, size_t klen, int w) {
 }
 
 mtev_boolean
+mtev_cluster_alive_filter(mtev_cluster_node_t *node, mtev_boolean me, void *closure) {
+  return !mtev_cluster_node_is_dead(node);
+}
+
+mtev_boolean
 mtev_cluster_filter_owners(mtev_cluster_t *c, void *key, size_t klen,
                            mtev_cluster_node_t **set, int *w,
                            mtev_cluster_node_filter_func_t filter,

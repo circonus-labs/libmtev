@@ -163,6 +163,15 @@ API_EXPORT(mtev_boolean)
 
 typedef mtev_boolean (*mtev_cluster_node_filter_func_t)(mtev_cluster_node_t *, mtev_boolean, void *);
 
+/*! \fn mtev_cluster_node_filter_func_t mtev_cluster_alive_filter()
+    \brief A `mtev_cluster_node_filter_func_t` for alive nodes.
+
+    This function is available to be passed as the `filter` argument to `mtev_cluster_filter_owners`.
+*/
+
+API_EXPORT(mtev_boolean)
+  mtev_cluster_alive_filter(mtev_cluster_node_t *node, mtev_boolean me, void *closure);
+
 /*! \fn mtev_boolean mtev_cluster_filter_owners(mtev_cluster_t *cluster, void *key, size_t klen, mtev_cluster_node_t **set, int *w, mtev_cluster_node_filter_func_t filter, void *closure)
     \brief Determines if the local node should possess a given key based on internal CHTs.
     \param cluster The cluster in question.
