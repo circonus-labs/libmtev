@@ -163,7 +163,7 @@ API_EXPORT(mtev_boolean)
 
 typedef mtev_boolean (*mtev_cluster_node_filter_func_t)(mtev_cluster_node_t *, mtev_boolean, void *);
 
-/*! \fn mtev_cluster_node_filter_func_t mtev_cluster_alive_filter()
+/*! \var mtev_cluster_node_filter_func_t mtev_cluster_alive_filter
     \brief A `mtev_cluster_node_filter_func_t` for alive nodes.
 
     This function is available to be passed as the `filter` argument to `mtev_cluster_filter_owners`.

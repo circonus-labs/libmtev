@@ -195,8 +195,7 @@ mtev_b64_max_decode_len(size_t src_len)
 
 ```c
 mtev_cluster_node_filter_func_t 
-mtev_cluster_alive_filter()
-```
+mtev_cluster_alive_filter```
 
 
 

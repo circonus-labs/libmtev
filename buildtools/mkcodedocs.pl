@@ -13,6 +13,7 @@ my $MAXLINE=79;
 my $parts = {
   'md' => 'notes',
   'fn' => 'c',
+  'var' => 'c',
   'lua' => 'lua'
 };
 
@@ -33,6 +34,7 @@ sub fn_format {
   my $lead = "";
   my $lang = "";
   $lang = "c" if ($type eq 'fn');
+  $lang = "c" if ($type eq 'var');
   $lang = "lua" if ($type eq 'lua');
 
   my $form = "```$lang\n$ret\n$fn";
@@ -60,16 +62,20 @@ sub fn_format {
 sub format_md {
   my $type = shift;
   my $in = shift;
+  my $dtype;
   my $func = "anon_$uk"; $uk++;
   if($type eq 'md') {
     $in =~ s/^.*$//;
     return ($func, $in);
   }
 
-  if($in =~ /\\(?:fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)(\(.*)/) {
-    $func = $2;
+  if($in =~ /\\(var|fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)\s*(?:\(|\n)/) {
+    $dtype = $1;
+    $func = $3;
   }
 
+  $in =~ s/\\(var)\s*([^\n]*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)()[ \t]*\n\\brief\s+([^\n]*)
+          /sprintf("#### %s\n\n>%s\n\n%s\n", $3, $5, fn_format($1,$2,$3,$4));/xesg;
   $in =~ s/\\(fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)(\(.*?\))\n\\brief\s+([^\n]*)
           /sprintf("#### %s\n\n>%s\n\n%s\n", $3, $5, fn_format($1,$2,$3,$4));/xesg;
   $in =~ s/\\(fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)(\(.*?\))\n
@@ -86,14 +92,15 @@ sub xlate {
   $/ = undef;
   my $a = <F>;
   close(F);
-  while($a =~ /\/\*!\s+(\\(md|fn|lua).*?)\*\//smg) {
+  while($a =~ /\/\*!\s+(\\(md|var|fn|lua).*?)\*\//smg) {
     my $type = $2;
     my $b = $1;
     $b =~ s/^(?:\t| {4})//gm;
     my $func;
     ($func, $b) = format_md($type, $b);
-    $docs{$type} ||= {};
-    $docs{$type}->{$func} = $b;
+    my $part = $parts->{$type} || "notes";
+    $docs{$part} ||= {};
+    $docs{$part}->{$func} = $b;
   }
   return 1;
 }
@@ -116,7 +123,7 @@ finddepth({
 
 my $idx = {};
 for my $part (keys %docs) {
-  my $pname = $parts->{$part} || 'notes';
+  my $pname = $part;
   open(F, ">$outdir/$pname.md");
   my $lt = "";
   for my $func (sort mtevcmp keys %{$docs{$part}}) {
