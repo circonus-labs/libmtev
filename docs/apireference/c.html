@@ -690,6 +690,17 @@ mtev_b64_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 <li><strong>RETURN</strong> The size of the buffer that would be needed to decode the input string.</li>
 </ul>
 <h3 id="c">C</h3>
+<h4 id="mtevclusteramioldestnode">mtev_cluster_am_i_oldest_node</h4>
+<blockquote>
+<p>Determines if the local node is the oldest node within the cluster.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_cluster_am_i_oldest_node</span><span class="hljs-params">(<span class="hljs-keyword">const</span> mtev_cluster_t *cluster)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question.</li>
+<li><strong>RETURN</strong> Returns mtev_true if there is no node in the cluster with a higher up-time than this one.</li>
+</ul>
 <h4 id="mtevclusterbyname">mtev_cluster_by_name</h4>
 <blockquote>
 <p>Find the cluster with the registered name.</p>
@@ -702,6 +713,22 @@ mtev_cluster_by_name(<span class="hljs-keyword">const</span> <span class="hljs-k
 <li><strong>RETURN</strong> Returns a pointer to the cluster or NULL is not found.</li>
 </ul>
 <p>Takes a name and finds a globally registered cluster by that name.</p>
+<h4 id="mtevclusterdoiown">mtev_cluster_do_i_own</h4>
+<blockquote>
+<p>Determines if the local node should possess a given key based on internal CHTs.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_cluster_do_i_own</span><span class="hljs-params">(mtev_cluster_t *cluster, <span class="hljs-keyword">void</span> *key, size_t klen, <span class="hljs-keyword">int</span> w)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question.</li>
+<li><code>key</code> A pointer to the key.</li>
+<li><code>klen</code> The length, in bytes, of the key.</li>
+<li><code>w</code> The number of nodes that are supposed to own this key.</li>
+<li><strong>RETURN</strong> Returns mtev_true or mtev_false based on ownership status.</li>
+</ul>
+<p>This function determines if the local node is among the w nodes in this
+cluster that should own the specified key.</p>
 <h4 id="mtevclusterenabled">mtev_cluster_enabled</h4>
 <blockquote>
 <p>Report on the availability of the clusters feature.</p>
@@ -712,6 +739,25 @@ mtev_cluster_by_name(<span class="hljs-keyword">const</span> <span class="hljs-k
 <ul>
 <li><strong>RETURN</strong> mtev_true if clusters can be configured, otherwise mtev_false.</li>
 </ul>
+<h4 id="mtevclusterfilterowners">mtev_cluster_filter_owners</h4>
+<blockquote>
+<p>Determines if the local node should possess a given key based on internal CHTs.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_cluster_filter_owners</span><span class="hljs-params">(mtev_cluster_t *cluster, <span class="hljs-keyword">void</span> *key, size_t klen, mtev_cluster_node_t **<span class="hljs-built_in">set</span>, 
+                           <span class="hljs-keyword">int</span> *w, mtev_cluster_node_filter_func_t filter, <span class="hljs-keyword">void</span> *closure)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question.</li>
+<li><code>key</code> A pointer to the key.</li>
+<li><code>klen</code> The length, in bytes, of the key.</li>
+<li><code>set</code> A caller allocated array of at least *w length.</li>
+<li><code>w</code> The number of nodes that are supposed to own this key, updated to set length that matches filter.</li>
+<li><code>filter</code> The function used to qualify nodes.</li>
+<li><code>closure</code> A user supplied value that is passed to the filter function.</li>
+<li><strong>RETURN</strong> Returns mtev_true or mtev_false if set[0] is this node.</li>
+</ul>
+<p>This function populates a set of owners for a key, but first filters them according to a user-specified function.</p>
 <h4 id="mtevclusterfindnode">mtev_cluster_find_node</h4>
 <blockquote>
 <p>Find a node by uuid within a cluster.</p>
@@ -726,6 +772,102 @@ mtev_cluster_find_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster
 </ul>
 <p>Takes a cluster and a node UUID and returns a pointer to the 
 corresponding mtev_cluster_node_t.</p>
+<h4 id="mtevclustergetconfigseq">mtev_cluster_get_config_seq</h4>
+<blockquote>
+<p>Returns the current config sequence of the given cluster</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
+mtev_cluster_get_config_seq(<span class="hljs-keyword">mtev_cluster_t</span> *cluster)
+</code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question, may not be NULL.</li>
+</ul>
+<p>This function returns the current config sequence of the given cluster</p>
+<h4 id="mtevclustergetheartbeatpayload">mtev_cluster_get_heartbeat_payload</h4>
+<blockquote>
+<p>Gets the current value of a payload segment from a node.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_cluster_get_heartbeat_payload</span><span class="hljs-params">(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key, <span class="hljs-keyword">void</span> **payload)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question, may not be NULL.</li>
+<li><code>app_id</code> Used to identify the application that attached the payload.</li>
+<li><code>key</code> Used to identify the payload amongst other payloads from the application.</li>
+<li><code>payload</code> Pointer to a payload pointer.</li>
+<li><strong>RETURN</strong> The length of the payload, -1 if that payload segment does not exist.</li>
+</ul>
+<h4 id="mtevclustergetmyboottime">mtev_cluster_get_my_boot_time</h4>
+<blockquote>
+<p>Returns the boot time of the local node.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval 
+<span class="hljs-title">mtev_cluster_get_my_boot_time</span><span class="hljs-params">()</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> The boot time of the local node.</li>
+</ul>
+<h4 id="mtevclustergetname">mtev_cluster_get_name</h4>
+<blockquote>
+<p>Returns the name of the cluster.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">mtev_cluster_get_name</span><span class="hljs-params">(mtev_cluster_t *cluster)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> a cluster</li>
+<li><strong>RETURN</strong> A pointer to the cluster&apos;s name.</li>
+</ul>
+<h4 id="mtevclustergetnode">mtev_cluster_get_node</h4>
+<blockquote>
+<p>Find a node in a cluster by id.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_cluster_node_t</span> * 
+mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster, <span class="hljs-keyword">uuid_t</span> id)
+</code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question.</li>
+<li><code>id</code> The uuid of the node in question.</li>
+<li><strong>RETURN</strong> An <code>mtev_cluster_node_t *</code> if one is found with the provided id, otherwise NULL,</li>
+</ul>
+<h4 id="mtevclustergetnodes">mtev_cluster_get_nodes</h4>
+<blockquote>
+<p>Reports all nodes in the cluster (possible excluding the local node)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_cluster_get_nodes</span><span class="hljs-params">(mtev_cluster_t *cluster, mtev_cluster_node_t **nodes, <span class="hljs-keyword">int</span> n
+                       mtev_boolean includeme)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question.</li>
+<li><code>nodes</code> The destination array to which a node list will be written.</li>
+<li><code>n</code> The number of positions available in the passed nodes array.</li>
+<li><code>includeme</code> Whether the local node should included in the list.</li>
+<li><strong>RETURN</strong> Returns the number of nodes populated in the supplied nodes array.  If insufficient space is available, a negative value is returned whose absolute value indicates the required size of the input array.</li>
+</ul>
+<p>Enumerates the nodes in a cluster into a provided nodes array.</p>
+<h4 id="mtevclustergetoldestnode">mtev_cluster_get_oldest_node</h4>
+<blockquote>
+<p>Returns the oldest node within the given cluster.</p>
+</blockquote>
+<pre><code class="lang-c">
+mtev_cluster_get_oldest_node(<span class="hljs-keyword">const</span> <span class="hljs-keyword">mtev_cluster_t</span> *cluster)
+</code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question.</li>
+<li><strong>RETURN</strong> Returns the node in the given cluster with the highest up-time.</li>
+</ul>
+<h4 id="mtevclustergetself">mtev_cluster_get_self</h4>
+<blockquote>
+<p>Reports the UUID of the local node.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_cluster_get_self</span><span class="hljs-params">(uuid_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>id</code> The UUID to be updated.</li>
+</ul>
+<p>Pouplates the passed uuid_t with the local node&apos;s UUID.</p>
 <h4 id="mtevclusterinit">mtev_cluster_init</h4>
 <blockquote>
 <p>Initialize the mtev cluster configuration.</p>
@@ -734,6 +876,79 @@ corresponding mtev_cluster_node_t.</p>
 <span class="hljs-title">mtev_cluster_init</span><span class="hljs-params">()</span>
 </span></code></pre>
 <p>Initializes the mtev cluster configuration.</p>
+<h4 id="mtevclusternodegetid">mtev_cluster_node_get_id</h4>
+<blockquote>
+<p>Retrieve the ID of a cluster node.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_cluster_node_get_id</span><span class="hljs-params">(mtev_cluster_node_t *node, uuid_t out)</span>
+</span></code></pre>
+<ul>
+<li><code>node</code> The node in question.</li>
+<li><code>out</code> A <code>uuid_t</code> to fill in.</li>
+</ul>
+<h4 id="mtevclusternodehaspayload">mtev_cluster_node_has_payload</h4>
+<blockquote>
+<p>Determine a cluster node has a custom payload attached.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_cluster_node_has_payload</span><span class="hljs-params">(mtev_cluster_node_t *node)</span>
+</span></code></pre>
+<ul>
+<li><code>node</code> The node in question.</li>
+<li><strong>RETURN</strong> True if there is a payload, false otherwise.</li>
+</ul>
+<h4 id="mtevclusternodeisdead">mtev_cluster_node_is_dead</h4>
+<blockquote>
+<p>Detrmines if the node in question is dead.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_cluster_node_is_dead</span><span class="hljs-params">(mtev_cluster_node_t *node)</span>
+</span></code></pre>
+<ul>
+<li><code>node</code> The node in question.</li>
+<li><strong>RETURN</strong> Returns true if the node is dead.</li>
+</ul>
+<h4 id="mtevclustersetheartbeatpayload">mtev_cluster_set_heartbeat_payload</h4>
+<blockquote>
+<p>Triggers the attachment of an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_cluster_set_heartbeat_payload</span><span class="hljs-params">(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key, <span class="hljs-keyword">void</span>* payload
+                                   uint8_t payload_length)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question, may not be NULL.</li>
+<li><code>app_id</code> Used to identify the application that attached the payload.</li>
+<li><code>key</code> Used to identify the payload amongst other payloads from the application.</li>
+<li><code>payload</code> A pointer to the payload that should be attached to every heartbeat message.</li>
+<li><code>payload_length</code> The number of bytes to be read from payload.</li>
+<li><strong>RETURN</strong> Returns mtev_true if the payload was not enabled yet</li>
+</ul>
+<p>This function triggers the attachment of an arbitrary payload to the cluster heartbeats (see mtev_cluster_get_payload)</p>
+<h4 id="mtevclustersetnodeupdatecallback">mtev_cluster_set_node_update_callback</h4>
+<blockquote>
+<p>Sets a callback which is called everytime a node in the cluster changes it&apos;s up-time.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_cluster_set_node_update_callback</span><span class="hljs-params">(mtev_cluster_t *cluster, mtev_cluster_node_update_cb callback)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question.</li>
+<li><code>callback</code> Function pointer to the function that should be called.</li>
+<li><strong>RETURN</strong> Returns mtev_true if the cluster is not NULL, mtev_false otherwise</li>
+</ul>
+<h4 id="mtevclustersetself">mtev_cluster_set_self</h4>
+<blockquote>
+<p>Sets the UUID of the local node.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_cluster_set_self</span><span class="hljs-params">(uuid_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>id</code> The UUID.</li>
+</ul>
+<p>Sets the local node&apos;s cluster identity, potentially updating the on-disk configuration.</p>
 <h4 id="mtevclustersize">mtev_cluster_size</h4>
 <blockquote>
 <p>Report the number of nodes in the cluster.</p>
@@ -746,6 +961,18 @@ corresponding mtev_cluster_node_t.</p>
 <li><strong>RETURN</strong> The number of nodes in the cluster.</li>
 </ul>
 <p>Determines the number of nodes in the given cluster.</p>
+<h4 id="mtevclusterunsetheartbeatpayload">mtev_cluster_unset_heartbeat_payload</h4>
+<blockquote>
+<p>Detaches (clears) an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_cluster_unset_heartbeat_payload</span><span class="hljs-params">(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key)</span>
+</span></code></pre>
+<ul>
+<li><code>cluster</code> The cluster in question, may not be NULL.</li>
+<li><code>app_id</code> Used to identify the application that attached the payload.</li>
+<li><code>key</code> Used to identify the payload amongst other payloads from the application.</li>
+</ul>
 <h4 id="mtevclusterupdate">mtev_cluster_update</h4>
 <blockquote>
 <p>Add or update an mtev cluster.</p>
@@ -2061,14 +2288,11 @@ of these values: it will eventually settle on
 <ul>
 <li><code>MTEV_FLOW_REGULATOR_TOGGLE_DISABLED</code>: Flow control is currently
 disabled. No client action necessary.</li>
-<li><code>MTEV_FLOW_REGULATOR_TOGGLE_DISABLE</code>: Flow control <em>was</em>
-enabled, and we&apos;ve started transitioning to DISABLED. (The
-transition to DISABLED is not complete until the client calls
-<code>mtev_flow_regulator_ack</code>.) Client MAY try to prevent generating
-new work before calling <code>mtev_flow_regulator_ack</code>. Note:
-<code>mtev_flow_regulator_ack</code> WILL NOT return <code>DISABLE</code>, this
-toggle-instruction will only ever be returned by
-<code>mtev_flow_regulator_raise_one</code>.</li>
+<li><code>MTEV_FLOW_REGULATOR_TOGGLE_DISABLE</code>: Flow control <em>was</em> enabled,
+and we&apos;ve started transitioning to DISABLED. (The transition to
+DISABLED is not complete until the client calls
+<code>mtev_flow_regulator_ack</code>, again.) Client MAY try to prevent
+generating new work before calling <code>mtev_flow_regulator_ack</code>, again.</li>
 <li><code>MTEV_FLOW_REGULATOR_TOGGLE_KEEP</code>: No client action required.</li>
 <li><code>MTEV_FLOW_REGULATOR_TOGGLE_ENABLE</code>: Flow control <em>was</em> disabled,
 and has just started transitioning to ENABLED. (The transition to

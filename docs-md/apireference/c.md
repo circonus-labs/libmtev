@@ -189,6 +189,20 @@ mtev_b64_max_decode_len(size_t src_len)
 
 ### C
 
+#### mtev_cluster_am_i_oldest_node
+
+>Determines if the local node is the oldest node within the cluster.
+
+```c
+mtev_boolean 
+mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster)
+```
+
+
+  * `cluster` The cluster in question.
+  * **RETURN** Returns mtev_true if there is no node in the cluster with a higher up-time than this one.
+ 
+
 #### mtev_cluster_by_name
 
 >Find the cluster with the registered name.
@@ -205,6 +219,26 @@ mtev_cluster_by_name(const char *name)
 Takes a name and finds a globally registered cluster by that name.
  
 
+#### mtev_cluster_do_i_own
+
+>Determines if the local node should possess a given key based on internal CHTs.
+
+```c
+mtev_boolean 
+mtev_cluster_do_i_own(mtev_cluster_t *cluster, void *key, size_t klen, int w)
+```
+
+
+  * `cluster` The cluster in question.
+  * `key` A pointer to the key.
+  * `klen` The length, in bytes, of the key.
+  * `w` The number of nodes that are supposed to own this key.
+  * **RETURN** Returns mtev_true or mtev_false based on ownership status.
+
+This function determines if the local node is among the w nodes in this
+cluster that should own the specified key.
+
+
 #### mtev_cluster_enabled
 
 >Report on the availability of the clusters feature.
@@ -217,6 +251,29 @@ mtev_cluster_enabled()
 
   * **RETURN** mtev_true if clusters can be configured, otherwise mtev_false.
  
+
+#### mtev_cluster_filter_owners
+
+>Determines if the local node should possess a given key based on internal CHTs.
+
+```c
+mtev_boolean 
+mtev_cluster_filter_owners(mtev_cluster_t *cluster, void *key, size_t klen, mtev_cluster_node_t **set, 
+                           int *w, mtev_cluster_node_filter_func_t filter, void *closure)
+```
+
+
+  * `cluster` The cluster in question.
+  * `key` A pointer to the key.
+  * `klen` The length, in bytes, of the key.
+  * `set` A caller allocated array of at least *w length.
+  * `w` The number of nodes that are supposed to own this key, updated to set length that matches filter.
+  * `filter` The function used to qualify nodes.
+  * `closure` A user supplied value that is passed to the filter function.
+  * **RETURN** Returns mtev_true or mtev_false if set[0] is this node.
+
+This function populates a set of owners for a key, but first filters them according to a user-specified function.
+
 
 #### mtev_cluster_find_node
 
@@ -236,6 +293,129 @@ Takes a cluster and a node UUID and returns a pointer to the
 corresponding mtev_cluster_node_t.
  
 
+#### mtev_cluster_get_config_seq
+
+>Returns the current config sequence of the given cluster
+
+```c
+int64_t 
+mtev_cluster_get_config_seq(mtev_cluster_t *cluster)
+```
+
+
+  * `cluster` The cluster in question, may not be NULL.
+
+This function returns the current config sequence of the given cluster
+ 
+
+#### mtev_cluster_get_heartbeat_payload
+
+>Gets the current value of a payload segment from a node.
+
+```c
+int 
+mtev_cluster_get_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key, void **payload)
+```
+
+
+  * `cluster` The cluster in question, may not be NULL.
+  * `app_id` Used to identify the application that attached the payload.
+  * `key` Used to identify the payload amongst other payloads from the application.
+  * `payload` Pointer to a payload pointer.
+  * **RETURN** The length of the payload, -1 if that payload segment does not exist.
+
+
+#### mtev_cluster_get_my_boot_time
+
+>Returns the boot time of the local node.
+
+```c
+struct timeval 
+mtev_cluster_get_my_boot_time()
+```
+
+
+  * **RETURN** The boot time of the local node.
+
+
+#### mtev_cluster_get_name
+
+>Returns the name of the cluster.
+
+```c
+const char *
+mtev_cluster_get_name(mtev_cluster_t *cluster)
+```
+
+
+  * `cluster` a cluster
+  * **RETURN** A pointer to the cluster's name.
+
+
+#### mtev_cluster_get_node
+
+>Find a node in a cluster by id.
+
+```c
+mtev_cluster_node_t * 
+mtev_cluster_get_node(mtev_cluster_t *cluster, uuid_t id)
+```
+
+
+  * `cluster` The cluster in question.
+  * `id` The uuid of the node in question.
+  * **RETURN** An `mtev_cluster_node_t *` if one is found with the provided id, otherwise NULL,
+
+
+#### mtev_cluster_get_nodes
+
+>Reports all nodes in the cluster (possible excluding the local node)
+
+```c
+int 
+mtev_cluster_get_nodes(mtev_cluster_t *cluster, mtev_cluster_node_t **nodes, int n
+                       mtev_boolean includeme)
+```
+
+
+  * `cluster` The cluster in question.
+  * `nodes` The destination array to which a node list will be written.
+  * `n` The number of positions available in the passed nodes array.
+  * `includeme` Whether the local node should included in the list.
+  * **RETURN** Returns the number of nodes populated in the supplied nodes array.  If insufficient space is available, a negative value is returned whose absolute value indicates the required size of the input array.
+
+Enumerates the nodes in a cluster into a provided nodes array.
+
+
+#### mtev_cluster_get_oldest_node
+
+>Returns the oldest node within the given cluster.
+
+```c
+
+mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster)
+```
+
+
+  * `cluster` The cluster in question.
+  * **RETURN** Returns the node in the given cluster with the highest up-time.
+ 
+
+#### mtev_cluster_get_self
+
+>Reports the UUID of the local node.
+
+```c
+void 
+mtev_cluster_get_self(uuid_t id)
+```
+
+
+  * `id` The UUID to be updated.
+
+Pouplates the passed uuid_t with the local node's UUID.
+
+
 #### mtev_cluster_init
 
 >Initialize the mtev cluster configuration.
@@ -249,6 +429,99 @@ mtev_cluster_init()
 
 Initializes the mtev cluster configuration.
  
+
+#### mtev_cluster_node_get_id
+
+>Retrieve the ID of a cluster node.
+
+```c
+void 
+mtev_cluster_node_get_id(mtev_cluster_node_t *node, uuid_t out)
+```
+
+
+  * `node` The node in question.
+  * `out` A `uuid_t` to fill in.
+
+
+#### mtev_cluster_node_has_payload
+
+>Determine a cluster node has a custom payload attached.
+
+```c
+mtev_boolean 
+mtev_cluster_node_has_payload(mtev_cluster_node_t *node)
+```
+
+
+  * `node` The node in question.
+  * **RETURN** True if there is a payload, false otherwise.
+
+
+#### mtev_cluster_node_is_dead
+
+>Detrmines if the node in question is dead.
+
+```c
+mtev_boolean 
+mtev_cluster_node_is_dead(mtev_cluster_node_t *node)
+```
+
+
+  * `node` The node in question.
+  * **RETURN** Returns true if the node is dead.
+
+
+#### mtev_cluster_set_heartbeat_payload
+
+>Triggers the attachment of an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)
+
+```c
+void 
+mtev_cluster_set_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key, void* payload
+                                   uint8_t payload_length)
+```
+
+
+  * `cluster` The cluster in question, may not be NULL.
+  * `app_id` Used to identify the application that attached the payload.
+  * `key` Used to identify the payload amongst other payloads from the application.
+  * `payload` A pointer to the payload that should be attached to every heartbeat message.
+  * `payload_length` The number of bytes to be read from payload.
+  * **RETURN** Returns mtev_true if the payload was not enabled yet
+
+This function triggers the attachment of an arbitrary payload to the cluster heartbeats (see mtev_cluster_get_payload)
+
+
+#### mtev_cluster_set_node_update_callback
+
+>Sets a callback which is called everytime a node in the cluster changes it's up-time.
+
+```c
+int 
+mtev_cluster_set_node_update_callback(mtev_cluster_t *cluster, mtev_cluster_node_update_cb callback)
+```
+
+
+  * `cluster` The cluster in question.
+  * `callback` Function pointer to the function that should be called.
+  * **RETURN** Returns mtev_true if the cluster is not NULL, mtev_false otherwise
+
+
+#### mtev_cluster_set_self
+
+>Sets the UUID of the local node.
+
+```c
+void 
+mtev_cluster_set_self(uuid_t id)
+```
+
+
+  * `id` The UUID.
+
+Sets the local node's cluster identity, potentially updating the on-disk configuration.
+
 
 #### mtev_cluster_size
 
@@ -265,6 +538,21 @@ mtev_cluster_size(mtev_cluster_t *cluster)
 
 Determines the number of nodes in the given cluster.
  
+
+#### mtev_cluster_unset_heartbeat_payload
+
+>Detaches (clears) an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)
+
+```c
+void 
+mtev_cluster_unset_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key)
+```
+
+
+  * `cluster` The cluster in question, may not be NULL.
+  * `app_id` Used to identify the application that attached the payload.
+  * `key` Used to identify the payload amongst other payloads from the application.
+
 
 #### mtev_cluster_update
 
@@ -1937,14 +2225,11 @@ The toggle-instruction should be interpreted as follows:
 
 * `MTEV_FLOW_REGULATOR_TOGGLE_DISABLED`: Flow control is currently
   disabled. No client action necessary.
-* `MTEV_FLOW_REGULATOR_TOGGLE_DISABLE`: Flow control _was_
-  enabled, and we've started transitioning to DISABLED. (The
-  transition to DISABLED is not complete until the client calls
-  `mtev_flow_regulator_ack`.) Client MAY try to prevent generating
-  new work before calling `mtev_flow_regulator_ack`. Note:
-  `mtev_flow_regulator_ack` WILL NOT return `DISABLE`, this
-  toggle-instruction will only ever be returned by
-  `mtev_flow_regulator_raise_one`.
+* `MTEV_FLOW_REGULATOR_TOGGLE_DISABLE`: Flow control _was_ enabled,
+  and we've started transitioning to DISABLED. (The transition to
+  DISABLED is not complete until the client calls
+  `mtev_flow_regulator_ack`, again.) Client MAY try to prevent
+  generating new work before calling `mtev_flow_regulator_ack`, again.
 * `MTEV_FLOW_REGULATOR_TOGGLE_KEEP`: No client action required.
 * `MTEV_FLOW_REGULATOR_TOGGLE_ENABLE`: Flow control _was_ disabled,
   and has just started transitioning to ENABLED. (The transition to
