@@ -1886,6 +1886,16 @@ nl_readdir(lua_State *L) {
   return 1;
 }
 static int
+nl_realpath(lua_State *L) {
+  char path[PATH_MAX], *rpath;
+  if(lua_gettop(L) != 1 || !lua_isstring(L,1))
+    luaL_error(L, "bad call to mtev.realpath");
+  rpath = realpath(lua_tostring(L,1), path);
+  if(rpath) lua_pushstring(L, rpath);
+  else lua_pushnil(L);
+  return 1;
+}
+static int
 nl_log_up(lua_State *L) {
   int i, n;
   const char *log_dest, *message;
@@ -4225,6 +4235,13 @@ static const luaL_Reg mtevlib[] = {
   { "chmod", nl_chmod },
   { "stat", nl_stat },
   { "readdir", nl_readdir },
+  { "realpath", nl_realpath },
+/*! \lua path = mtev.realpath(inpath)
+    \brief Return the real path of a relative path.
+    \param inpath a relative path as a string
+    \return The non-relative path inpath refers to (or nil on error).
+*/
+
   { "getuid", nl_getuid },
   { "getgid", nl_getgid },
   { "geteuid", nl_geteuid },

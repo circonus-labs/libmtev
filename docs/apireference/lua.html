@@ -741,6 +741,18 @@ has elapsed, the call will return with a nil value for status.  The lua
 subsystem exists within a complex system that might handle process in different
 ways, so it does not rely on <code>SIGCHLD</code> signal delivery and instead polls the
 system using <code>waitpid</code> every 20ms.</p>
+<h3 id="r">R</h3>
+<h4 id="mtevrealpath">mtev.realpath</h4>
+<blockquote>
+<p>Return the real path of a relative path.</p>
+</blockquote>
+<pre><code class="lang-lua">path = 
+mtev.realpath(inpath)
+</code></pre>
+<ul>
+<li><code>inpath</code> a relative path as a string</li>
+<li><strong>RETURN</strong> The non-relative path inpath refers to (or nil on error).</li>
+</ul>
 <h3 id="s">S</h3>
 <h4 id="mtevsleep">mtev.sleep</h4>
 <pre><code class="lang-lua">slept = 

@@ -260,6 +260,22 @@ ways, so it does not rely on `SIGCHLD` signal delivery and instead polls the
 system using `waitpid` every 20ms.
 
 
+### R
+
+#### mtev.realpath
+
+>Return the real path of a relative path.
+
+```lua
+path = 
+mtev.realpath(inpath)
+```
+
+
+  * `inpath` a relative path as a string
+  * **RETURN** The non-relative path inpath refers to (or nil on error).
+
+
 ### S
 
 #### mtev.sleep
