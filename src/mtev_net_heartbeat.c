@@ -283,9 +283,7 @@ mtev_net_heartbeat_pulse(eventer_t e, int mask, void *closure, struct timeval *n
 }
 void
 mtev_net_heartbeat_context_start(mtev_net_heartbeat_ctx *ctx) {
-  ctx->hb_event = eventer_add_in_s_us(mtev_net_heartbeat_pulse, ctx,
-                      ctx->period_ms/1000,
-                      (ctx->period_ms%1000)*1000);
+  ctx->hb_event = eventer_add_in_s_us(mtev_net_heartbeat_pulse, ctx, 0, 0);
 }
 
 static void
