@@ -3114,27 +3114,6 @@ mtev_time_toggle_tsc(mtev_boolean enable)
  * will keep going using the state from the last start/stop_tsc
  
 
-### U
-
-#### update_retries
-
->Updates the list of retries and signals to quit if the limit is exceeded
-
-```c
-int 
-update_retries(int retries, int span, retry_data** data)
-```
-
-
-  * `offset` The current location in the data array to place the new time in
-  * `times` An array of times used to determine if there have been too many restarts
-  * **RETURN** Returns 1 to signal a quit, 0 otherwise
-
-.
-
-update_retries will iterate through a list of times the task has restarted. If it determines that the system has been restarted too many times in too short a period, it will return 1 and the program will terminate. Otherwise, it will return 0 and the program will restart.
- 
-
 ### W
 
 #### mtev_watchdog_child_eventer_heartbeat

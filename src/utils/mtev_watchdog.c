@@ -476,6 +476,24 @@ mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
   return 0;
 }
 
+static int
+update_retries(int* offset, time_t times[]) {
+  int i;
+  time_t currtime = time(NULL);
+  time_t cutoff = currtime - span;
+
+  times[*offset % retries] = currtime;
+  *offset = *offset + 1;
+
+  for (i=0; i < retries; i++) {
+    if (times[i] < cutoff) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
 int mtev_watchdog_start_child(const char *app, int (*func)(void),
                               int child_watchdog_timeout_int) {
   double child_watchdog_timeout = (double)child_watchdog_timeout_int;
@@ -620,23 +638,6 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
       }
     }
   }
-}
-
-int update_retries(int* offset, time_t times[]) {
-  int i;
-  time_t currtime = time(NULL);
-  time_t cutoff = currtime - span;
-
-  times[*offset % retries] = currtime;
-  *offset = *offset + 1;
-
-  for (i=0; i < retries; i++) {
-    if (times[i] < cutoff) {
-      return 0;
-    }
-  }
-
-  return 1;
 }
 
 mtev_watchdog_t *mtev_watchdog_create(void) {

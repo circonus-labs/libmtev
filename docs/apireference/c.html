@@ -3035,21 +3035,6 @@ mtev_sys_gethrtime(<span class="hljs-keyword">void</span>)
 <li>This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread</li>
 <li>will keep going using the state from the last start/stop_tsc</li>
 </ul>
-<h3 id="u">U</h3>
-<h4 id="updateretries">update_retries</h4>
-<blockquote>
-<p>Updates the list of retries and signals to quit if the limit is exceeded</p>
-</blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
-<span class="hljs-title">update_retries</span><span class="hljs-params">(<span class="hljs-keyword">int</span> retries, <span class="hljs-keyword">int</span> span, retry_data** data)</span>
-</span></code></pre>
-<ul>
-<li><code>offset</code> The current location in the data array to place the new time in</li>
-<li><code>times</code> An array of times used to determine if there have been too many restarts</li>
-<li><strong>RETURN</strong> Returns 1 to signal a quit, 0 otherwise</li>
-</ul>
-<p>.</p>
-<p>update_retries will iterate through a list of times the task has restarted. If it determines that the system has been restarted too many times in too short a period, it will return 1 and the program will terminate. Otherwise, it will return 0 and the program will restart.</p>
 <h3 id="w">W</h3>
 <h4 id="mtevwatchdogchildeventerheartbeat">mtev_watchdog_child_eventer_heartbeat</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
