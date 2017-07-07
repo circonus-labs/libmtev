@@ -28,7 +28,7 @@ function _file(name)
   local inp = io.open(sourcedir(3) .. name,  "rb")
   if inp == nil then return nil end
   local data = inp:read("*all")
-  inp:close();
+  inp:close()
   return data
 end
 
@@ -36,7 +36,7 @@ function _filejson(name)
   local inp = io.open(sourcedir(3) .. name,  "rb")
   if inp == nil then return nil end
   local data = inp:read("*all")
-  inp:close();
+  inp:close()
   local doc, err = mtev.parsejson(data)
   if doc == nil then return nil, err end
   return doc:document()
