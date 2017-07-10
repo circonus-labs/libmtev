@@ -5,6 +5,8 @@
 #ifndef MTEV_FLOW_REGULATOR_H
 #define MTEV_FLOW_REGULATOR_H
 
+#include <mtev_defines.h>
+
 /*! \file mtev_flow_regulator.h
 
     Throughput limiter for event-driven processes. Libmtev encourages
@@ -38,8 +40,9 @@
     `mtev_flow_regulator_ack` in a loop, until it returns that the
     flow has stabilized. For cases where no explicit action has to be
     taken between raising / lowering the work level and acknowledging
-    the current flow state, `mtev_flow_regulator_stabilize` can be
-    used to simplify the looping logic.
+    the current flow state, `mtev_flow_regulator_stable_try_raise_one`
+    and `mtev_flow_regulator_stable_lower` can be used to simplify the
+    looping logic.
 */
 
 typedef struct _mtev_flow_regulator_t mtev_flow_regulator_t;
@@ -150,21 +153,26 @@ mtev_flow_regulator_toggle_t mtev_flow_regulator_lower(mtev_flow_regulator_t *fr
  */
 mtev_flow_regulator_toggle_t
   mtev_flow_regulator_ack(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t);
-/*! \fn mtev_flow_regulator_toggle_t mtev_flow_regulator_stabilize(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t)
-    \param t Instruction returned from previous call to `mtev_flow_regulator_raise_one`, `mtev_flow_regulator_lower`, or `mtev_flow_regulator_ack`.
-    \return New flow-toggle instruction.
+/*! \fn mtev_flow_regulator_toggle_t mtev_flow_regulator_stable_try_raise_one(mtev_flow_regulator_t *fr)
+    \return mtev_true if work-item was successfully added to the flow regulator, mtev_false otherwise.
 
     This function is a simple wrapper around
-    `mtev_flow_regulator_ack`, to simplify handling in cases where the
-    client needs take no explicit action to enable or disable
-    work-production before calling `mtev_flow_regulator_ack`. It
-    simply calls `mtev_flow_regulator_ack` in a loop until
-    `mtev_flow_regulator_ack` returns
-    `MTEV_FLOW_REGULATOR_TOGGLE_KEEP`, and returns the previous toggle
-    instruction, which the client would then use to enable or disable
-    work-generation.
+    `mtev_flow_regulator_raise_one` and `mtev_flow_regulator_ack`, to
+    simplify handling in cases where the client needs take no explicit
+    action to enable or disable work-production before calling
+    `mtev_flow_regulator_ack`.
  */
-mtev_flow_regulator_toggle_t
-  mtev_flow_regulator_stabilize(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t);
+mtev_boolean mtev_flow_regulator_stable_try_raise_one(mtev_flow_regulator_t *fr);
+/*! \fn mtev_flow_regulator_toggle_t mtev_flow_regulator_stable_lower(mtev_flow_regulator_t *fr, unsigned int by)
+    \return `mtev_true` if the caller is responsible for re-scheduling work-creation for the flow-regulator, `mtev_false` otherwise.
+
+    This function is a simple wrapper around
+    `mtev_flow_regulator_lower` and `mtev_flow_regulator_ack`, to
+    simplify handling in cases where the client needs take no explicit
+    action to enable or disable work-production before calling
+    `mtev_flow_regulator_ack`.
+ */
+mtev_boolean
+  mtev_flow_regulator_stable_lower(mtev_flow_regulator_t *fr, unsigned int by);
 
 #endif
