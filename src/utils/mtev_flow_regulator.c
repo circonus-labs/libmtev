@@ -96,13 +96,56 @@ mtev_flow_regulator_toggle_t
   return MTEV_FLOW_REGULATOR_TOGGLE_KEEP;
 }
 
-mtev_flow_regulator_toggle_t
-  mtev_flow_regulator_stabilize(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t)
-{
+mtev_boolean
+mtev_flow_regulator_stable_try_raise_one(mtev_flow_regulator_t *fr) {
+  mtev_flow_regulator_toggle_t t = mtev_flow_regulator_raise_one(fr);
+  do {
+    switch (t) {
+    case MTEV_FLOW_REGULATOR_TOGGLE_DISABLED:
+      /* no room to work, don't need to ACK. */
+      return mtev_false;
+
+    case MTEV_FLOW_REGULATOR_TOGGLE_DISABLE:
+      /* no room to work for now, need to ACK, but maybe some more
+       * room will be created as we process the ACK, so may need to
+       * try again. */
+      t = mtev_flow_regulator_ack(fr, t);
+      /* only possible return values from `ack` above are `ENABLE` and
+       * `KEEP`. If `ENABLE`, we'll need to loop through again. */
+      if (t == MTEV_FLOW_REGULATOR_TOGGLE_KEEP) {
+        /* still disabled, so return `mtev_false` early to prevent
+         * client from trying to add data. */
+        return mtev_false;
+      }
+      mtevAssert(t == MTEV_FLOW_REGULATOR_TOGGLE_ENABLE);
+      break;
+
+    case MTEV_FLOW_REGULATOR_TOGGLE_KEEP:
+      /* successfully added a work item. when we exit the loop, we'll
+       * return `mtev_true` at the bottom. */
+      break;
+
+    case MTEV_FLOW_REGULATOR_TOGGLE_ENABLE:
+      /* Enough work drained while we were blocked trying to add this
+       * work item that we may be able to do the work, now. */
+      if ((t = mtev_flow_regulator_ack(fr, t)) ==
+          MTEV_FLOW_REGULATOR_TOGGLE_KEEP) {
+        /* successfully enabled, try to add the data agan. */
+        t = mtev_flow_regulator_raise_one(fr);
+      }
+      break;
+    }
+  } while (t != MTEV_FLOW_REGULATOR_TOGGLE_KEEP);
+  return mtev_true;
+}
+
+mtev_boolean mtev_flow_regulator_stable_lower(mtev_flow_regulator_t *fr,
+                                              unsigned int by) {
+  mtev_flow_regulator_toggle_t t = mtev_flow_regulator_lower(fr, by);
   mtev_flow_regulator_toggle_t last_t;
   do {
     last_t = t;
     t = mtev_flow_regulator_ack(fr, last_t);
   } while (t != MTEV_FLOW_REGULATOR_TOGGLE_KEEP);
-  return last_t;
+  return last_t == MTEV_FLOW_REGULATOR_TOGGLE_ENABLE ? mtev_true : mtev_false;
 }
