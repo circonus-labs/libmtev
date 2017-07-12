@@ -41,7 +41,7 @@ typedef enum {
   MTEV_COMPRESS_DEFLATE
 } mtev_compress_type;
 
-typedef size_t (*curl_write_callback)(char *ptr, size_t size, size_t nmemb, void *userdata);
+typedef size_t (*mtev_curl_write_func_t)(char *ptr, size_t size, size_t nmemb, void *userdata);
 typedef struct mtev_stream_compress_ctx mtev_stream_compress_ctx_t;
 typedef struct mtev_stream_decompress_ctx mtev_stream_decompress_ctx_t;
 typedef struct mtev_decompress_curl_helper mtev_decompress_curl_helper_t;
@@ -207,7 +207,7 @@ API_EXPORT(int)
   mtev_stream_decompress_finish(mtev_stream_decompress_ctx_t *ctx);
 
 API_EXPORT(mtev_decompress_curl_helper_t *)
-mtev_decompress_create_curl_helper(curl_write_callback write_function, void *closure, mtev_compress_type type);
+mtev_decompress_create_curl_helper(mtev_curl_write_func_t write_function, void *closure, mtev_compress_type type);
 
 API_EXPORT(void)
   mtev_decompress_destroy_curl_helper(mtev_decompress_curl_helper_t *ch);
