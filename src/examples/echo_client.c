@@ -61,7 +61,7 @@ int main(int argc, char **argv)
   CURL *curl = curl_easy_init();
   struct curl_slist *list = NULL;
 
-  mtev_decompress_curl_helper_t *data_helper = mtev_decompress_create_curl_helper((curl_write_callback)process_response, &data, MTEV_COMPRESS_LZ4F);
+  mtev_decompress_curl_helper_t *data_helper = mtev_decompress_create_curl_helper((mtev_curl_write_func_t)process_response, &data, MTEV_COMPRESS_LZ4F);
 
 
   curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 0);

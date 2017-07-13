@@ -28,7 +28,7 @@ struct mtev_stream_decompress_ctx
 
 struct mtev_decompress_curl_helper
 {
-  curl_write_callback write_function;
+  mtev_curl_write_func_t write_function;
   void *write_closure;
   mtev_stream_decompress_ctx_t decompress_ctx;
 };
@@ -573,7 +573,7 @@ mtev_stream_decompress_finish(mtev_stream_decompress_ctx_t *ctx)
 }
 
 mtev_decompress_curl_helper_t *
-mtev_decompress_create_curl_helper(curl_write_callback write_function, void *closure, mtev_compress_type type)
+mtev_decompress_create_curl_helper(mtev_curl_write_func_t write_function, void *closure, mtev_compress_type type)
 {
   mtev_decompress_curl_helper_t *ch = malloc(sizeof(mtev_decompress_curl_helper_t));
   ch->write_function = write_function;
