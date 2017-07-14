@@ -48,7 +48,7 @@ var mtev = {};
     if(days) time = time + days + d("d ")
     if(hours) time = time + hours + d("h ")
     if(minutes) time = time + minutes + d("m ")
-    if(seconds) time = time + seconds + d("s ")
+    if(seconds || time == "") time = time + seconds + d("s ")
     return time;
   }
   
