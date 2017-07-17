@@ -205,7 +205,7 @@ void HOOKNAME##_hook_register(const char *name, \
 static inline RTYPE FUNCNAME PROTO { \
   static RTYPE (*f_) PROTO; \
   if(!f_) { \
-    f_ = static_cast<RTYPE (*)PROTO>(dlsym(MTEV_RTLD_PARAM, #SYMBOL)); \
+    f_ = reinterpret_cast<RTYPE (*)PROTO>(dlsym(MTEV_RTLD_PARAM, #SYMBOL)); \
     if(!f_) { \
       mtevL(mtev_stderr, "runtime resolution of '%s %s%s' failed.\n", \
             #RTYPE, #FUNCNAME, #PROTO); \
@@ -218,7 +218,7 @@ static inline RTYPE FUNCNAME PROTO { \
 static inline int FUNCNAME##_available (void) { \
   static void (*f_) (void); \
   if(!f_) { \
-    f_ = static_cast<void (*)(void)>(dlsym(MTEV_RTLD_PARAM, #SYMBOL)); \
+    f_ = reinterpret_cast<void (*)(void)>(dlsym(MTEV_RTLD_PARAM, #SYMBOL)); \
   } \
   return (f_ != NULL); \
 }
