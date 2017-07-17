@@ -230,7 +230,7 @@ mtev_lua_setup_restc(lua_State *L,
                      mtev_http_rest_closure_t *restc);
 
 int
-mtev_lua_ffi_size(lua_State *L, const char *typename, uint32_t *id, size_t *len);
+mtev_lua_ffi_size(lua_State *L, const char *type_name, uint32_t *id, size_t *len);
 
 int
 mtev_lua_ffi_new_thing(lua_State *L, uint32_t id, void *mem);
