@@ -200,6 +200,29 @@ void HOOKNAME##_hook_register(const char *name, \
 #else
 #define MTEV_RTLD_PARAM (void *)0
 #endif
+#ifdef __cplusplus
+#define MTEV_RUNTIME_RESOLVE(FUNCNAME, SYMBOL, RTYPE, PROTO, PARAMS) \
+static inline RTYPE FUNCNAME PROTO { \
+  static RTYPE (*f_) PROTO; \
+  if(!f_) { \
+    f_ = static_cast<RTYPE (*)PROTO>(dlsym(MTEV_RTLD_PARAM, #SYMBOL)); \
+    if(!f_) { \
+      mtevL(mtev_stderr, "runtime resolution of '%s %s%s' failed.\n", \
+            #RTYPE, #FUNCNAME, #PROTO); \
+    } \
+    mtevAssert(f_); \
+  } \
+  return f_ PARAMS; \
+}
+#define MTEV_RUNTIME_AVAIL(FUNCNAME, SYMBOL) \
+static inline int FUNCNAME##_available (void) { \
+  static void (*f_) (void); \
+  if(!f_) { \
+    f_ = static_cast<void (*)(void)>(dlsym(MTEV_RTLD_PARAM, #SYMBOL)); \
+  } \
+  return (f_ != NULL); \
+}
+#else
 #define MTEV_RUNTIME_RESOLVE(FUNCNAME, SYMBOL, RTYPE, PROTO, PARAMS) \
 static inline RTYPE FUNCNAME PROTO { \
   static RTYPE (*f_) PROTO; \
@@ -221,4 +244,5 @@ static inline int FUNCNAME##_available (void) { \
   } \
   return (f_ != NULL); \
 }
+#endif
 #endif
