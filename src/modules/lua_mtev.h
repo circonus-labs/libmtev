@@ -211,6 +211,17 @@ int mtev_lua_yield(mtev_lua_resume_info_t *ci, int nargs);
 void mtev_lua_register_event(mtev_lua_resume_info_t *ci, eventer_t e);
 void mtev_lua_deregister_event(mtev_lua_resume_info_t *ci, eventer_t e,
                                      int tofree);
+
+MTEV_RUNTIME_RESOLVE(mtev_lua_yield_dyn, mtev_lua_yield, int,
+                     (mtev_lua_resume_info_t *ci, int nargs),
+                     (ci, nargs));
+MTEV_RUNTIME_AVAIL(mtev_lua_yield_dyn, mtev_lua_yield)
+MTEV_RUNTIME_RESOLVE(mtev_lua_get_resume_info_dyn, mtev_lua_get_resume_info,
+                     mtev_lua_resume_info_t *,
+                     (lua_State *L),
+                     (L));
+MTEV_RUNTIME_AVAIL(mtev_lua_get_resume_info_dyn, mtev_lua_get_resume_info)
+
 void
 mtev_lua_setup_http_ctx(lua_State *L,
                         mtev_http_session_ctx *http_ctx);
