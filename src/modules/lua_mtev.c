@@ -1026,7 +1026,7 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
   else {
     mtevL(nldeb, "ssl_connect completed\n");
   }
-  return 1;
+  return nargs;
 }
 
 static int
