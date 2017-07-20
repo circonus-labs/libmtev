@@ -1877,7 +1877,6 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
      * more communication
      */
     *done = 0;
-    // return ctx->wanted_eventer_mask | EVENTER_EXCEPTION | EVENTER_WRITE;
     return (wslay_event_want_write(ctx->wslay_ctx) ? EVENTER_WRITE : 0) | EVENTER_READ | EVENTER_EXCEPTION;
 #endif
 
