@@ -862,6 +862,7 @@ mtev_lua_socket_connect(lua_State *L) {
 
   if(target && !strncmp(target, "reverse:", 8)) {
     int fd = mtev_reverse_socket_connect(target+8, -1);
+    mtevL(nldeb, "e:connect %s -> %d\n", target, fd);
     if(fd < 0) {
       lua_pushinteger(L, -1);
       lua_pushfstring(L, "Reverse connection unavailable");
@@ -905,6 +906,7 @@ mtev_lua_socket_connect(lua_State *L) {
 
   rv = connect(eventer_get_fd(e), (struct sockaddr *)&a,
                family==AF_INET ? sizeof(a.sin4) : sizeof(a.sin6));
+  mtevL(nldeb, "e:connect %s -> %d\n", target, rv);
   if(rv == 0) {
     lua_pushinteger(L, 0);
     return 1;
@@ -928,6 +930,7 @@ mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
   struct nl_slcl *cl = vcl;
   int rv, nargs;
 
+  mtevL(nldeb, "ssl_upgrade attempt\n");
   rv = eventer_SSL_connect(e, &mask);
   if(rv <= 0 && errno == EAGAIN) return mask | EVENTER_EXCEPTION;
 
@@ -951,6 +954,10 @@ mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
       lua_pushlstring(cl->L, err, strlen(err));
       nargs++;
     }
+    mtevL(nldeb, "ssl_upgrade failed: %s\n", err ? err : "unknown");
+  }
+  else {
+    mtevL(nldeb, "ssl_upgrade completed\n");
   }
   ci->lmc->resume(ci, nargs);
   return 0;
@@ -961,7 +968,7 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
   eventer_ssl_ctx_t *sslctx;
   mtev_lua_resume_info_t *ci;
   eventer_t e, *eptr;
-  int tmpmask, rv;
+  int tmpmask, rv, nargs = 1;
 
   ci = mtev_lua_get_resume_info(L);
   mtevAssert(ci);
@@ -981,6 +988,7 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
   if(!sslctx) {
     lua_pushinteger(L, -1);
     lua_pushstring(L, "ssl_client context creation failed");
+    mtevL(nldeb, "ssl_client context creation failed\n");
     return 2;
   }
 
@@ -995,6 +1003,7 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
    * it comes back with an EAGAIN.
    */
   tmpmask = EVENTER_READ|EVENTER_WRITE;
+  mtevL(nldeb, "ssl_connect attempt\n");
   rv = eventer_SSL_connect(e, &tmpmask);
   if(rv <= 0 && errno == EAGAIN) {
     /* Need completion */
@@ -1010,8 +1019,12 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
     err = eventer_ssl_get_last_error(sslctx);
     if(err) {
       lua_pushstring(L, err);
-      return 2;
+      nargs++;
     }
+    mtevL(nldeb, "ssl_connect failed: %s\n", err ? err : "unknown");
+  }
+  else {
+    mtevL(nldeb, "ssl_connect completed\n");
   }
   return 1;
 }

@@ -49,6 +49,28 @@
 #include <ck_pr.h>
 #include <ck_fifo.h>
 
+#if defined(linux) || defined(__linux) || defined(__linux__)
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <sched.h>
+#include <sys/syscall.h>
+
+#ifndef gettid
+static uint32_t
+getthreadid(void)
+{
+  return syscall(__NR_gettid);
+}
+#endif
+#else
+static uint32_t
+getthreadid(void)
+{
+  return (uint32_t)(uintptr_t)pthread_self();
+}
+#endif
+
 #define mtev_log_impl
 #include "mtev_log.h"
 #include "mtev_hash.h"
@@ -1748,7 +1770,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
     }
     else tbuf[0] = '\0';
     if(IS_DEBUG_BELOW(ls) || logspan) {
-      snprintf(dbuf, sizeof(dbuf), "[t@%zx,%s:%d] ", (uintptr_t)pthread_self(), file, line);
+      snprintf(dbuf, sizeof(dbuf), "[t@%u,%s:%d] ", getthreadid(), file, line);
       dbuflen = strlen(dbuf);
     }
     else dbuf[0] = '\0';

@@ -119,6 +119,17 @@ API_EXPORT(Zipkin_Span *)
   mtev_zipkin_span_new(int64_t *, int64_t *, int64_t *, const char *,
                        bool, bool *, bool );
 
+/*! \fn bool mtev_zipkin_span_get_ids(Zipkin_Span *span, int64_t *traceid, int64_t *parent_id, int64_t *id)
+    \brief Fetch the various IDs from a span.
+    \param span The span on which to operate.
+    \param traceid A pointer to a trace id to populate.
+    \param parent_id A pointer to a parent span id to populate.
+    \param span_id A pointer to a span id to populate.
+    \return True if the span has a parent, false otherwise.
+*/
+API_EXPORT(bool)
+  mtev_zipkin_span_get_ids(Zipkin_Span *, int64_t *, int64_t *, int64_t *);
+
 /*! \fn void mtev_zipkin_span_rename(Zipkin_Span *span, const char *name, bool name_copy)
     \brief Rename a span after it has been created, but before publishing.
     \param span The span to rename.
