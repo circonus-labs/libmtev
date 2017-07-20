@@ -57,6 +57,7 @@
 #include "mtev_json.h"
 #include "mtev_str.h"
 #include "mtev_thread.h"
+#include "mtev_zipkin.h"
 #include <jlog.h>
 #include <jlog_private.h>
 #ifdef DTRACE_ENABLED
@@ -1721,6 +1722,8 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
    * Save a copy and restore it before we return.
    */
   int old_errno = errno;
+  Zipkin_Span *logspan = mtev_zipkin_active_span(NULL);
+  if(!mtev_zipkin_span_logs_attached(logspan)) logspan = NULL;
 
 #define ENSURE_NOW() do { \
   if(now == NULL) { \
@@ -1729,7 +1732,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
   } \
 } while(0)
 
-  if((IS_ENABLED_ON(ls) && IS_ENABLED_BELOW(ls)) || LIBMTEV_LOG_ENABLED()) {
+  if((IS_ENABLED_ON(ls) && IS_ENABLED_BELOW(ls)) || LIBMTEV_LOG_ENABLED() || logspan) {
     int len;
     char tbuf[48], dbuf[80];
     int tbuflen = 0, dbuflen = 0;
@@ -1744,7 +1747,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
       tbuflen = strlen(tbuf);
     }
     else tbuf[0] = '\0';
-    if(IS_DEBUG_BELOW(ls)) {
+    if(IS_DEBUG_BELOW(ls) || logspan) {
       snprintf(dbuf, sizeof(dbuf), "[t@%zx,%s:%d] ", (uintptr_t)pthread_self(), file, line);
       dbuflen = strlen(dbuf);
     }
@@ -1776,6 +1779,13 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
         ENSURE_NOW();
         rv = mtev_log_line(ls, NULL, now, tbuf, tbuflen, dbuf, dbuflen, dynbuff, len);
       }
+      if(logspan) {
+        char lsbuff[1024];
+        snprintf(lsbuff, sizeof(lsbuff), "mtev_log%.*s %.*s",
+                 dbuflen, dbuf, len, dynbuff);
+        int64_t now_us = (int64_t)now->tv_sec * 1000000 + (int64_t)now->tv_usec;
+        mtev_zipkin_span_annotate(logspan, &now_us, lsbuff, true);
+      }
       free(dynbuff);
     }
     else {
@@ -1786,6 +1796,13 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
       if(IS_ENABLED_ON(ls)) {
         ENSURE_NOW();
         rv = mtev_log_line(ls, NULL, now, tbuf, tbuflen, dbuf, dbuflen, buffer, len);
+      }
+      if(logspan) {
+        char lsbuff[1024];
+        snprintf(lsbuff, sizeof(lsbuff), "mtev_log%.*s %.*s",
+                 dbuflen, dbuf, len, buffer);
+        int64_t now_us = (int64_t)now->tv_sec * 1000000 + (int64_t)now->tv_usec;
+        mtev_zipkin_span_annotate(logspan, &now_us, lsbuff, true);
       }
     }
     errno = old_errno;

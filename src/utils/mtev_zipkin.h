@@ -37,7 +37,6 @@
  */
 
 #include <mtev_defines.h>
-#include <eventer/eventer.h>
 
 #include <sys/types.h>
 #include <stdbool.h>
@@ -45,6 +44,9 @@
 #include <arpa/inet.h>
 
 #include <mtev_hooks.h>
+
+/* Avoid the eventer/eventer.h header */
+struct _event;
 
 extern const char *ZIPKIN_CLIENT_SEND;
 extern const char *ZIPKIN_CLIENT_SEND_DONE;
@@ -57,6 +59,8 @@ extern const char *ZIPKIN_SERVER_RECV_DONE;
 
 #define HEADER_ZIPKIN_MTEV_EVENT "X-mtev-Trace-Event"
 #define HEADER_ZIPKIN_MTEV_EVENT_L "x-mtev-trace-event"
+#define HEADER_ZIPKIN_MTEV_LOGS "X-mtev-Trace-Logs"
+#define HEADER_ZIPKIN_MTEV_LOGS_L "x-mtev-trace-logs"
 #define HEADER_ZIPKIN_TRACEID "X-B3-TraceId"
 #define HEADER_ZIPKIN_TRACEID_L "x-b3-traceid"
 #define HEADER_ZIPKIN_SPANID "X-B3-SpanId"
@@ -374,7 +378,7 @@ API_EXPORT(void) mtev_zipkin_eventer_init(void);
     \param e An event object (or NULL for the current event)
     \return A span or NULL if no span is currently active.
 */
-API_EXPORT(Zipkin_Span *) mtev_zipkin_active_span(eventer_t e);
+API_EXPORT(Zipkin_Span *) mtev_zipkin_active_span(struct _event *e);
 
 /*! \fn void mtev_zipkin_client_new(eventer_t e, const char *name, bool name_copy)
     \brief Create a new span for client user (remote calling)
@@ -382,14 +386,14 @@ API_EXPORT(Zipkin_Span *) mtev_zipkin_active_span(eventer_t e);
     \param name A string to name the span
     \param name_copy Whether name should be allocated (copied) within the span.
 */
-API_EXPORT(void) mtev_zipkin_client_new(eventer_t e, const char *, bool);
+API_EXPORT(void) mtev_zipkin_client_new(struct _event *e, const char *, bool);
 
 /*! \fn Zipkin_Span * mtev_zipkin_client_span(eventer_t e)
     \brief Retrieve the current client span should one exist.
     \param e An event object (or NULL for the current event)
     \return A span for client actions or NULL is no span exists.
 */
-API_EXPORT(Zipkin_Span *) mtev_zipkin_client_span(eventer_t e);
+API_EXPORT(Zipkin_Span *) mtev_zipkin_client_span(struct _event *e);
 
 /*! \fn bool mtev_zipkin_client_sampled_hdr(eventer_t e, char *buf, size_t len)
     \brief Format a sampled HTTP header for an HTTP request.
@@ -398,7 +402,7 @@ API_EXPORT(Zipkin_Span *) mtev_zipkin_client_span(eventer_t e);
     \param len The available space in `buf`
     \return True if successful, false if no trace is available of len is too short.
 */
-API_EXPORT(bool) mtev_zipkin_client_sampled_hdr(eventer_t e, char *, size_t);
+API_EXPORT(bool) mtev_zipkin_client_sampled_hdr(struct _event *e, char *, size_t);
 
 /*! \fn bool mtev_zipkin_client_trace_hdr(eventer_t e, char *buf, size_t len)
     \brief Format a trace HTTP header for an HTTP request.
@@ -407,7 +411,7 @@ API_EXPORT(bool) mtev_zipkin_client_sampled_hdr(eventer_t e, char *, size_t);
     \param len The available space in `buf`
     \return True if successful, false if no trace is available of len is too short.
 */
-API_EXPORT(bool) mtev_zipkin_client_trace_hdr(eventer_t e, char *, size_t);
+API_EXPORT(bool) mtev_zipkin_client_trace_hdr(struct _event *e, char *, size_t);
 
 /*! \fn bool mtev_zipkin_client_parent_hdr(eventer_t e, char *buf, size_t len)
     \brief Format a parent span HTTP header for an HTTP request.
@@ -416,7 +420,7 @@ API_EXPORT(bool) mtev_zipkin_client_trace_hdr(eventer_t e, char *, size_t);
     \param len The available space in `buf`
     \return True if successful, false if no trace is available of len is too short.
 */
-API_EXPORT(bool) mtev_zipkin_client_parent_hdr(eventer_t e, char *, size_t);
+API_EXPORT(bool) mtev_zipkin_client_parent_hdr(struct _event *e, char *, size_t);
 
 /*! \fn bool mtev_zipkin_client_span_hdr(eventer_t e, char *buf, size_t len)
     \brief Format a span HTTP header for an HTTP request.
@@ -425,19 +429,19 @@ API_EXPORT(bool) mtev_zipkin_client_parent_hdr(eventer_t e, char *, size_t);
     \param len The available space in `buf`
     \return True if successful, false if no trace is available of len is too short.
 */
-API_EXPORT(bool) mtev_zipkin_client_span_hdr(eventer_t e, char *, size_t);
+API_EXPORT(bool) mtev_zipkin_client_span_hdr(struct _event *e, char *, size_t);
 
 /*! \fn void mtev_zipkin_client_drop(eventer_t e)
     \brief Discard a client span if one exists.
     \param e An event object (or NULL for the current event)
 */
-API_EXPORT(void) mtev_zipkin_client_drop(eventer_t e);
+API_EXPORT(void) mtev_zipkin_client_drop(struct _event *e);
 
 /*! \fn void mtev_zipkin_client_publish(eventer_t e)
     \brief Publish a client span if one exists.
     \param e An event object (or NULL for the current event)
 */
-API_EXPORT(void) mtev_zipkin_client_publish(eventer_t e);
+API_EXPORT(void) mtev_zipkin_client_publish(struct _event *e);
 
 /*! \fn void mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_child, mtev_zipkin_event_trace_level_t *track)
     \brief Attach an active span (or new child span) to an event.
@@ -447,9 +451,24 @@ API_EXPORT(void) mtev_zipkin_client_publish(eventer_t e);
     \param track Specifies how event activity should be tracked.
 */
 API_EXPORT(void)
-  mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span,
+  mtev_zipkin_attach_to_eventer(struct _event *e, Zipkin_Span *span,
                                 bool new_child,
                                 mtev_zipkin_event_trace_level_t *track);
+
+/*! \fn void mtev_zipkin_span_attach_logs(Zipkin_Span *span, bool on)
+    \brief Enable mtev_log appending if span is active.
+    \param span A zipkin span (NULL allowed)
+    \param on Wether to enable or disable log appending.
+*/
+API_EXPORT(void)
+  mtev_zipkin_span_attach_logs(Zipkin_Span *span, bool on);
+
+/*! \fn bool mtev_zipkin_span_logs_attached(Zipkin_Span *span)
+    \brief Report whether a span should have logs attached.
+    \param span A zipkin span to report on.
+*/
+API_EXPORT(bool)
+  mtev_zipkin_span_logs_attached(Zipkin_Span *span);
 
 /*! \fn void mtev_zipkin_event_trace_level(mtev_zipkin_event_trace_level_t level)
     \brief Globally set the default event trace level.

@@ -109,10 +109,16 @@ struct Zipkin_Span {
 
   int64_t timestamp;
   int64_t duration;
+  bool mtevlogging;
   /* Not part of the spec, used by us to provide defaults */
   Zipkin_Endpoint _default_host;
   mtev_atomic32_t refcnt;
 };
+
+inline bool mtev_zipkin_span_logs_attached(Zipkin_Span *span) {
+  if(span) return span->mtevlogging;
+  return false;
+}
 
 void mtev_zipkin_span_rename(Zipkin_Span *span, const char *name, bool copy) {
   if(span == NULL) return;
@@ -786,6 +792,12 @@ mtev_zipkin_span_bannotate_double(Zipkin_Span *span,
   int64_t *fooi64 = (int64_t *)&foo;
   *fooi64 = htonll(*fooi64);
   return mtev_zipkin_span_bannotate(span, ZIPKIN_I64, key, key_copy, fooi64, 8, true);
+}
+
+void
+mtev_zipkin_span_attach_logs(Zipkin_Span *span, bool on) {
+  if(!span) return;
+  span->mtevlogging = on;
 }
 
 void

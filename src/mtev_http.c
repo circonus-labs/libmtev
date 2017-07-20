@@ -605,7 +605,8 @@ static void
 begin_span(mtev_http_session_ctx *ctx) {
   mtev_http_request *req = &ctx->req;
   const char *trace_hdr = NULL, *parent_span_hdr = NULL, *span_hdr = NULL,
-             *sampled_hdr = NULL, *host_hdr, *mtev_event_hdr = NULL;
+             *sampled_hdr = NULL, *host_hdr, *mtev_event_hdr = NULL,
+             *mtev_log_hdr = NULL;
   char *endptr = NULL;
   int64_t trace_id_buf, parent_span_id_buf, span_id_buf;
   int64_t *trace_id, *parent_span_id, *span_id;
@@ -616,6 +617,8 @@ begin_span(mtev_http_session_ctx *ctx) {
 
   (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_MTEV_EVENT_L,
                            strlen(HEADER_ZIPKIN_MTEV_EVENT_L), &mtev_event_hdr);
+  (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_MTEV_LOGS_L,
+                           strlen(HEADER_ZIPKIN_MTEV_LOGS_L), &mtev_log_hdr);
   (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_TRACEID_L,
                            strlen(HEADER_ZIPKIN_TRACEID_L), &trace_hdr);
   (void)mtev_hash_retr_str(&req->headers, HEADER_ZIPKIN_PARENTSPANID_L,
@@ -641,6 +644,10 @@ begin_span(mtev_http_session_ctx *ctx) {
     mtev_zipkin_span_new(trace_id, parent_span_id, span_id,
                          req->uri_str, true, sampled, false);
   mtev_zipkin_attach_to_eventer(ctx->conn.e, ctx->zipkin_span, false, trace_events);
+  if(mtev_log_hdr) {
+    bool on = (1 == strtoll(mtev_log_hdr, NULL, 10));
+    mtev_zipkin_span_attach_logs(ctx->zipkin_span, on);
+  }
   set_endpoint(ctx);
   mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_RECV, false);
   mtev_zipkin_span_bannotate_str(ctx->zipkin_span,
