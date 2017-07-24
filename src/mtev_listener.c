@@ -523,7 +523,7 @@ mtev_listener_reconfig(const char *toplevel) {
       fanout = mtev_false;
 
     if(mtev_conf_get_stringbuf(listener_configs[i],
-                               "ancestor-or-self::node()/@pool",
+                               "ancestor-or-self::node()/@fanout_pool",
                                poolname, sizeof(poolname))) {
       pool = eventer_pool(poolname);
       if(port)
