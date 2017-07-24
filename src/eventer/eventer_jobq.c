@@ -440,8 +440,11 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
    * (a standalone queue with no backq itself)
    */
   mtevAssert(jobq);
+  int32_t max_amount = (int32_t)jobq->backlog;
+  if(max_amount < 1) max_amount = 1;
   while((job = eventer_jobq_dequeue_nowait(jobq)) != NULL) {
     int newmask;
+    max_amount--;
     if(job->fd_event) {
       uint64_t start, duration;
       if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_begin();
@@ -470,6 +473,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
     mtevAssert(job->timeout_event == NULL);
     ck_pr_dec_32(&jobq->inflight);
     free(job);
+    if(max_amount < 0) break;
   }
   return EVENTER_RECURRENT;
 }
