@@ -90,4 +90,7 @@ API_EXPORT(mtev_boolean)
 API_EXPORT(void)
   mtev_thread_disable_binding(void);
 
+API_EXPORT(uint32_t)
+  mtev_thread_id(void);
+
 #endif
