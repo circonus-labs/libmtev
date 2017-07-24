@@ -43,6 +43,7 @@
 #include "mtev_hooks.h"
 #include "mtev_time.h"
 #include "mtev_json.h"
+#include "mtev_zipkin.h"
 
 #ifdef mtev_log_impl
 typedef struct _mtev_log_stream mtev_log_stream_t;
@@ -177,12 +178,27 @@ API_EXPORT(void)
   mtev_log_init_globals(void);
 
 #define mtevLT(ls, t, args...) do { \
-  if((ls) && (mtev_log_global_enabled() || N_L_S_ON((ls)))) \
-    mtev_log((ls), t, __FILE__, __LINE__, args); \
+  if((ls)) { \
+    bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
+    if(!mtevLT_doit) { \
+      Zipkin_Span *mtevLT_span = mtev_zipkin_active_span(NULL); \
+      mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span); \
+    } \
+    if(mtevLT_doit) { \
+      mtev_log((ls), t, __FILE__, __LINE__, args); \
+    } \
+  } \
 } while(0)
 #define mtevL(ls, args...) do { \
-  if((ls) && (mtev_log_global_enabled() || N_L_S_ON((ls)))) { \
-    mtev_log((ls), NULL, __FILE__, __LINE__, args); \
+  if((ls)) { \
+    bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
+    if(!mtevLT_doit) { \
+      Zipkin_Span *mtevLT_span = mtev_zipkin_active_span(NULL); \
+      mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span); \
+    } \
+    if(mtevLT_doit) { \
+      mtev_log((ls), NULL, __FILE__, __LINE__, args); \
+    } \
   } \
 } while(0)
 #define mtevFatal(ls,args...) do {\

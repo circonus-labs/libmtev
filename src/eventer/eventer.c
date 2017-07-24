@@ -79,6 +79,7 @@ int eventer_register_context(const char *name, eventer_context_opset_t *o) {
   return idx;
 }
 void *eventer_get_context(eventer_t e, int idx) {
+  if(!e) return NULL;
   if(idx < 0 || idx >= eventer_contexts_cnt) return NULL;
   return e->ctx[idx].data;
 }
