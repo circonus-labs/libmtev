@@ -63,17 +63,30 @@ kern_return_t  thread_policy_set(
 #include <sys/syscall.h>
 
 #ifndef gettid
-static pid_t
-gettid(void)
+static uint32_t
+getthreadid(void)
 {
   return syscall(__NR_gettid);
 }
-#endif /* gettid */
+#endif
+#else
+static uint32_t
+getthreadid(void)
+{
+  return (uint32_t)(uintptr_t)pthread_self();
+}
 #endif
 
 static uint32_t mtev_current_cpu;
 static __thread mtev_boolean mtev_thread_is_bound = mtev_false;
+static __thread uint32_t mtev_current_thread_id;
 static mtev_boolean mtev_disable_binding = mtev_false;
+
+uint32_t
+mtev_thread_id(void) {
+  if(!mtev_current_thread_id) mtev_current_thread_id = getthreadid();
+  return mtev_current_thread_id;
+}
 
 mtev_boolean
 mtev_thread_bind_to_cpu(int cpu)
@@ -98,7 +111,7 @@ mtev_thread_bind_to_cpu(int cpu)
   cpu_set_t s;
   CPU_ZERO(&s);
   CPU_SET(cpu, &s);
-  int x = sched_setaffinity(gettid(), sizeof(s), &s);
+  int x = sched_setaffinity(getthreadid(), sizeof(s), &s);
   if (x == 0) {
     mtev_thread_is_bound = mtev_true;
     //mtevL(mtev_debug, "Bound to CPU %i\n", cpu);
@@ -143,7 +156,7 @@ mtev_thread_unbind_from_cpu(void)
 #if defined(linux) || defined(__linux) || defined(__linux__)
   cpu_set_t s;
   CPU_ZERO(&s);
-  int x = sched_setaffinity(gettid(), sizeof(s), &s);
+  int x = sched_setaffinity(getthreadid(), sizeof(s), &s);
   if (x == 0) {
     mtev_thread_is_bound = mtev_false;
     mtevL(mtev_debug, "Unbound from CPUs\n");
@@ -287,11 +300,11 @@ mtev_thread_realtime(uint64_t qns) {
   sp.sched_priority = sched_get_priority_max(SCHED_RR);
   if((err = pthread_setschedparam(pthread_self(), SCHED_RR, &sp)) != 0) {
     mtevL(mtev_debug, "Failed changing thread %d/%d to %s scheduling class: %d/%s.\n",
-          (int)getpid(), (int)gettid(), "SCHED_RR", err, strerror(err));
+          (int)getpid(), (int)getthreadid(), "SCHED_RR", err, strerror(err));
     return mtev_false;
   }
   mtevL(mtev_debug, "%d/%d -> %s scheduling class\n",
-        (int)getpid(), (int)gettid(), "SCHED_RR");
+        (int)getpid(), (int)getthreadid(), "SCHED_RR");
   return mtev_true;
 #else
   return mtev_false;
