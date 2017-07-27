@@ -89,29 +89,26 @@ static int mtev_lua_dns_eventer(eventer_t e, int mask, void *closure,
 static int mtev_lua_dns_timeouts(eventer_t e, int mask, void *closure,
                                  struct timeval *now) {
   dns_ctx_handle_t *h = closure;
+  mtevAssert(h->timeout == e);
+  h->timeout = NULL; /* freed upon return */
   dns_timeouts(h->ctx, 0, now->tv_sec);
   return 0;
 }
 
 static void eventer_dns_utm_fn(struct dns_ctx *ctx, int timeout, void *data) {
   dns_ctx_handle_t *h = data;
-  eventer_t e = NULL, newe = NULL;
   if(h == NULL) return;
-  if(ctx == NULL) {
-    if(h->timeout) e = eventer_remove(h->timeout);
+  if(h->timeout) {
+    eventer_remove(h->timeout);
+    eventer_free(h->timeout);
+    h->timeout = NULL;
   }
-  else {
-    mtevAssert(h->ctx == ctx);
-    if(timeout < 0) e = eventer_remove(h->timeout);
-    else {
-      newe = eventer_in_s_us(mtev_lua_dns_timeouts, h, timeout, 0);
-    }
-  }
-  if(e) eventer_free(e);
-  if(newe) {
-    eventer_add(newe);
-  }
-  h->timeout = newe;
+  if(ctx == NULL) return;
+
+  mtevAssert(h->ctx == ctx);
+  if(timeout < 0) return;
+  h->timeout = eventer_in_s_us(mtev_lua_dns_timeouts, h, timeout, 0);
+  eventer_add(h->timeout);
 }
 
 static void dns_ctx_handle_free(void *vh) {
