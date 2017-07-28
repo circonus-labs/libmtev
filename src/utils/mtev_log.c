@@ -133,6 +133,7 @@ typedef struct {
   int segmentsize;
   int segmentcut;
   char *segment;
+  pthread_mutex_t lock;
 } membuf_ctx_t;
 
 static membuf_ctx_t *
@@ -145,12 +146,14 @@ log_stream_membuf_init(int nlogs, int nbytes) {
   membuf->segmentcut = membuf->segmentsize;
   membuf->offsets = calloc(nlogs, sizeof(*membuf->offsets));
   membuf->noffsets = nlogs;
+  pthread_mutex_init(&membuf->lock, NULL);
   return membuf;
 }
 static void
 log_stream_membuf_free(membuf_ctx_t *membuf) {
   if(membuf->offsets) free(membuf->offsets);
   if(membuf->segment) free(membuf->segment);
+  pthread_mutex_destroy(&membuf->lock);
   free(membuf);
 }
 
@@ -181,7 +184,6 @@ membuf_logio_writev(mtev_log_stream_t ls, const struct timeval *whence,
   struct timeval __now;
   int i, offset, headoffset, headend, tailoffset, tailend,
       attemptoffset = -3, attemptend = -1, nexttailoff, nexttail;
-  pthread_rwlock_t *lock = ls->lock;
   membuf_ctx_t *membuf = ls->op_ctx;
   size_t len = sizeof(*whence);
 
@@ -192,8 +194,8 @@ membuf_logio_writev(mtev_log_stream_t ls, const struct timeval *whence,
     mtev_gettimeofday(&__now, NULL);
     whence = &__now;
   }
- 
-  if(lock) pthread_rwlock_wrlock(lock); 
+
+  pthread_mutex_lock(&membuf->lock); 
   /* use tail */
   offset = membuf->offsets[membuf->tail % membuf->noffsets];
   if(offset + len > membuf->segmentcut)
@@ -240,7 +242,7 @@ membuf_logio_writev(mtev_log_stream_t ls, const struct timeval *whence,
   }
   membuf->tail = nexttail;
 
-  if(lock) pthread_rwlock_unlock(lock); 
+  pthread_mutex_unlock(&membuf->lock); 
   return len;
 }
 
@@ -297,13 +299,12 @@ mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines,
                                const char *, size_t, void *),
                       void *closure) {
   int nmsg;
-  pthread_rwlock_t *lock = ls->lock;
   uint64_t idx;
   if(strcmp(ls->type, "memory")) return -1;
   membuf_ctx_t *membuf = ls->op_ctx;
   if(membuf == NULL) return 0;
 
-  if(lock) pthread_rwlock_wrlock(lock);
+  pthread_mutex_lock(&membuf->lock); 
   nmsg = ((membuf->tail % membuf->noffsets) >= (membuf->head % membuf->noffsets)) ?
            ((membuf->tail % membuf->noffsets) - (membuf->head % membuf->noffsets)) :
            ((membuf->tail % membuf->noffsets) + membuf->noffsets - (membuf->head % membuf->noffsets));
@@ -312,7 +313,7 @@ mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines,
   log_lines = MIN(log_lines,nmsg);
   idx = (membuf->tail >= log_lines) ?
           (membuf->tail - log_lines) : 0;
-  if(lock) pthread_rwlock_unlock(lock);
+  pthread_mutex_unlock(&membuf->lock); 
   return mtev_log_memory_lines_since(ls, idx, f, closure);
 }
 
@@ -322,21 +323,20 @@ mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich,
                                     const char *, size_t, void *),
                             void *closure) {
   int nmsg, count = 0;
-  pthread_rwlock_t *lock = ls->lock;
   uint64_t idx = afterwhich;
   if(strcmp(ls->type, "memory")) return -1;
   membuf_ctx_t *membuf = ls->op_ctx;
   if(membuf == NULL) return 0;
 
-  if(lock) pthread_rwlock_wrlock(lock);
-  if(membuf->head == membuf->tail) return 0;
+  pthread_mutex_lock(&membuf->lock); 
+  if(membuf->head == membuf->tail) goto leave;
   nmsg = ((membuf->tail % membuf->noffsets) >= (membuf->head % membuf->noffsets)) ?
            ((membuf->tail % membuf->noffsets) - (membuf->head % membuf->noffsets)) :
            ((membuf->tail % membuf->noffsets) + membuf->noffsets - (membuf->head % membuf->noffsets));
   assert(nmsg < membuf->noffsets);
   /* We want stuff *after* this, so add one */
   idx++;
-  if(idx == membuf->tail) return 0;
+  if(idx == membuf->tail) goto leave;
 
   /* If we're asked for a starting index outside our range, then we should set it to head. */
   if((membuf->head > membuf->tail && idx < membuf->head && idx >= membuf->tail) ||
@@ -360,7 +360,8 @@ mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich,
     idx = nidx;
     count++;
   }
-  if(lock) pthread_rwlock_unlock(lock);
+ leave:
+  pthread_mutex_unlock(&membuf->lock); 
   return count;
 }
 #define IS_ENABLED_ON(ls) ((ls)->flags & MTEV_LOG_STREAM_ENABLED)
