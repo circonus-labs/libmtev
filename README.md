@@ -1,5 +1,11 @@
 ![](https://github.com/circonus-labs/libmtev/blob/master/docs-md/assets/mtev-logo.png?raw=true)
 
+<a href="https://scan.coverity.com/projects/circonus-labs-libmtev">
+  <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/10772/badge.svg"/>
+</a>
+
+
 libmtev - a toolkit for building high-performance servers.
 
 [Read the documentation.](http://circonus-labs.github.io/libmtev/)
