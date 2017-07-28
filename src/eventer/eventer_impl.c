@@ -54,6 +54,7 @@ static struct timeval *eventer_impl_epoch = NULL;
 static int PARALLELISM_MULTIPLIER = 4;
 static int EVENTER_DEBUGGING = 0;
 static int desired_nofiles = 1024*1024;
+static stats_ns_t *pool_ns, *threads_ns;
 
 #define NS_PER_S 1000000000
 #define NS_PER_MS 1000000
@@ -95,6 +96,8 @@ struct eventer_impl_data {
   eventer_pool_t *pool;
   mtev_watchdog_t *hb;
   mtev_hrtime_t last_cb_ns;
+  mtev_hrtime_t last_loop_start;
+  stats_handle_t *loop_times;
 };
 
 static __thread eventer_t current_eventer_in_callback;
@@ -190,6 +193,7 @@ struct eventer_pool_t {
   uint32_t __loop_concurrency;
   uint32_t __loops_started;
   double hb_timeout;
+  stats_handle_t *loop_times;
 };
 
 static eventer_pool_t default_pool = { "default", 0 };
@@ -209,6 +213,9 @@ void eventer_pool_create(const char *name, int concurrency) {
   } else {
     np = calloc(1, sizeof(*np));
     np->name = strdup(name);
+    mtevAssert(pool_ns);
+    stats_ns_t *tns = mtev_stats_ns(pool_ns, np->name);
+    np->loop_times = stats_register(tns, "cycletime", STATS_TYPE_HISTOGRAM);
     mtev_hash_store(&eventer_pools, np->name, strlen(np->name), np);
   }
   np->__loop_concurrency = concurrency;
@@ -526,6 +533,8 @@ static void *thrloopwrap(void *vid) {
   t = &eventer_impl_tls_data[id];
   t->id = id;
   snprintf(thr_name, sizeof(thr_name), "%s/%d", t->pool->name, id);
+  stats_ns_t *tns = mtev_stats_ns(threads_ns, thr_name);
+  t->loop_times = stats_register(tns, "cycletime", STATS_TYPE_HISTOGRAM);
   mtev_memory_init(); /* Just in case no one has initialized this */
   mtev_memory_init_thread();
   eventer_set_thread_name(thr_name);
@@ -650,6 +659,13 @@ void eventer_impl_init_globals(void) {
                             periodic_jobq_maintenance,
                             periodic_jobq_maintenance_namer, NULL);
   mtev_hash_init(&eventer_pools);
+
+  pool_ns = mtev_stats_ns(eventer_stats_ns, "pool");
+  threads_ns = mtev_stats_ns(eventer_stats_ns, "threads");
+
+  stats_ns_t *tns = mtev_stats_ns(pool_ns, "default");
+  default_pool.loop_times = stats_register(tns, "cycletime", STATS_TYPE_HISTOGRAM);
+
   mtevAssert(mtev_hash_store(&eventer_pools,
                              default_pool.name, strlen(default_pool.name),
                              &default_pool));
@@ -849,6 +865,16 @@ void eventer_dispatch_timed(struct timeval *next) {
      * we could be multithreaded, so if we pop forever we could starve
      * ourselves. */
   t = get_my_impl_data();
+
+  /* we enter here once per loop, use this opportunity to count */
+  mtev_hrtime_t nowhr = mtev_gethrtime();
+  if(t->last_loop_start) {
+    mtev_hrtime_t elapsed = nowhr - t->last_loop_start;
+    stats_set_hist_intscale(t->loop_times, elapsed, -9, 1);
+    stats_set_hist_intscale(t->pool->loop_times, elapsed, -9, 1);
+  }
+  t->last_loop_start = nowhr;
+
   max_timed_events_to_process = t->timed_events->size;
   while(max_timed_events_to_process-- > 0) {
     int newmask;
