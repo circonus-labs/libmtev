@@ -418,11 +418,11 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   if(CHANNEL.pair[0] != eventer_get_fd(e)) {
    mtevL(nlerr, "mtev_reverse_socket_channel_handler: misaligned events, this is a bug (%d != %d)\n", CHANNEL.pair[0], eventer_get_fd(e));
    shutdown:
-    command_out(cct->parent, cct->channel_id, "SHUTDOWN");
     if(needs_unlock) {
       pthread_mutex_unlock(&cct->parent->lock);
       needs_unlock = 0;
     }
+    command_out(cct->parent, cct->channel_id, "SHUTDOWN");
    snip:
     if(needs_unlock) {
       pthread_mutex_unlock(&cct->parent->lock);
