@@ -334,20 +334,22 @@ request_compression_type(mtev_http_request *req)
 {
   const char *content_encoding = NULL;
   if (req == NULL || req->freed) return MTEV_COMPRESS_NONE;
-  
+
   mtev_hash_table *headers = mtev_http_request_headers_table(req);
-  mtev_hash_retr_str(headers, "content-encoding", strlen("content-encoding"), 
-                     &content_encoding);
+  if (!mtev_hash_retr_str(headers, "content-encoding", strlen("content-encoding"), 
+                          &content_encoding) ) {
+    return MTEV_COMPRESS_NONE;
+  }
 
   if (content_encoding == NULL) {
     return MTEV_COMPRESS_NONE;
   }
-  
+
   /* there is no official mime-type for LZ4 check for anything containing lzf4 */
   if (strstr(content_encoding, "lz4f") != NULL) {
     /* check for lz4f and x-lz4f */
     return MTEV_COMPRESS_LZ4F;
-  } else if (strstr(content_encoding, "gzip") != NULL) {    
+  } else if (strstr(content_encoding, "gzip") != NULL) {
     /* gzip and x-gzip */
     return MTEV_COMPRESS_GZIP;
   }

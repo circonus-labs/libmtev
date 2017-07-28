@@ -169,31 +169,26 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
   jobq->isbackq = isbackq;
   if(pthread_mutexattr_init(&mutexattr) != 0) {
     mtevL(mtev_error, "Cannot initialize lock attributes\n");
-    jobq = NULL;
-    goto out;
+    goto error_out;
   }
   if(pthread_mutex_init(&jobq->lock, &mutexattr) != 0) {
     mtevL(mtev_error, "Cannot initialize lock\n");
-    jobq = NULL;
-    goto out;
+    goto error_out;
   }
   if(sem_init(&jobq->semaphore, 0, 0) != 0) {
     mtevL(mtev_error, "Cannot initialize semaphore: %s\n",
           strerror(errno));
-    jobq = NULL;
-    goto out;
+    goto error_out;
   }
   if(pthread_key_create(&jobq->activejob, NULL)) {
     mtevL(mtev_error, "Cannot initialize thread-specific activejob: %s\n",
           strerror(errno));
-    jobq = NULL;
-    goto out;
+    goto error_out;
   }
   if(pthread_key_create(&jobq->threadenv, NULL)) {
     mtevL(mtev_error, "Cannot initialize thread-specific sigsetjmp env: %s\n",
           strerror(errno));
-    jobq = NULL;
-    goto out;
+    goto error_out;
   }
   if(mtev_hash_store(&all_queues, jobq->queue_name, strlen(jobq->queue_name),
                      jobq) == 0) {
@@ -209,9 +204,15 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     stats_rob_i32(jobq_ns, "backlog", (void *)&jobq->backlog);
     stats_rob_i64(jobq_ns, "timeouts", (void *)&jobq->timeouts);
   }
- out:
   pthread_mutex_unlock(&all_queues_lock);
   return jobq;
+
+ error_out:
+  free((void *)jobq->queue_name);
+  free((void *)jobq);
+  pthread_mutex_unlock(&all_queues_lock);
+  return NULL;
+
 }
 
 eventer_jobq_t *

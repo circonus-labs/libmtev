@@ -508,13 +508,9 @@ mtev_get_nanos_force(void)
   } else if(global_rdtsc_function != NULL) {
     ticks = global_rdtsc_function(&cpuid);
   }
-  if(fetch_cclock_scale(cpuid, &cs) == mtev_false) {
-    (void)ticks_to_nanos_skewed_ex(cpuid, ticks, &cs);
-    (void)ticks_to_nanos_skewed_ex(cpuid, coreclocks[cpuid].last_ticks, &cs);
-  } else {
-    (void)ticks_to_nanos_skewed_ex(cpuid, ticks, &cs);
-    (void)ticks_to_nanos_skewed_ex(cpuid, coreclocks[cpuid].last_ticks, &cs);
-  }
+  fetch_cclock_scale(cpuid, &cs);
+  (void)ticks_to_nanos_skewed_ex(cpuid, ticks, &cs);
+  (void)ticks_to_nanos_skewed_ex(cpuid, coreclocks[cpuid].last_ticks, &cs);
   return ticks;
 }
 
@@ -660,6 +656,7 @@ mtev_time_start_tsc(void)
           mtev_log_reason();
           enable_rdtsc = mtev_false;
           global_rdtsc_function = NULL;
+          pthread_mutex_unlock(&maintenance_thread_lock);
           return;
         }
       }
@@ -677,6 +674,7 @@ mtev_time_start_tsc(void)
         mtev_log_reason();
         enable_rdtsc = mtev_false;
         global_rdtsc_function = NULL;
+        pthread_mutex_unlock(&maintenance_thread_lock);
         return;
       }
       maintenance_started = mtev_true;
@@ -762,7 +760,7 @@ static mtev_boolean
 mtev_time_possibly_maintain(int cpuid, uint64_t ticks)
 {
 #ifdef ENABLE_RDTSC
-  if(unlikely(cpuid < 0 || cpuid > NCPUS)) return  mtev_false;
+  if(unlikely(cpuid < 0 || cpuid >= NCPUS)) return  mtev_false;
 
   uint64_t nanos = ticks_to_nanos(cpuid, ticks);
   uint64_t last_nanos = ticks_to_nanos(cpuid, coreclocks[cpuid].last_ticks);

@@ -827,7 +827,7 @@ static char *
 package_manip_path(char *in, const char *find, const char *replace) {
   char *ocp, *npath = in;
   if(NULL != (ocp = strstr(in, find))) {
-    int nlen = strlen(in) + strlen(replace);
+    int nlen = strlen(in) + strlen(replace) + 1; //NUL term
     npath = malloc(nlen);
     memcpy(npath, in, ocp-in);
     npath[ocp-in] = '\0';

@@ -294,6 +294,28 @@ static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
     eventer_trigger(rc->data.e, EVENTER_WRITE|EVENTER_READ);
   }
 }
+static void APPEND_OUT_NO_LOCK(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
+  int id;
+  reverse_frame_t *frame = malloc(sizeof(*frame));
+  memcpy(frame, frame_to_copy, sizeof(*frame));
+  rc->data.out_bytes += frame->buff_len;
+  rc->data.out_frames += 1;
+  id = frame->channel_id & 0x7fff;
+  rc->data.channels[id].out_bytes += frame->buff_len;
+  rc->data.channels[id].out_frames += 1;
+  if(rc->data.outgoing_tail) {
+    rc->data.outgoing_tail->next = frame;
+    rc->data.outgoing_tail = frame;
+  }
+  else {
+    rc->data.outgoing = rc->data.outgoing_tail = frame;
+  }
+  if(!rc->data.e) mtevL(nlerr, "No event to trigger for reverse_socket framing\n");
+  if(rc->data.e) {
+    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(rc->data.e), rc->data.e));
+    eventer_trigger(rc->data.e, EVENTER_WRITE|EVENTER_READ);
+  }
+}
 
 static void
 command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
@@ -455,7 +477,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       frame.buff = malloc(len);
       memcpy(frame.buff, buff, len);
       frame.buff_len = frame.buff_filled = len;
-      APPEND_OUT(cct->parent, &frame);
+      APPEND_OUT_NO_LOCK(cct->parent, &frame);
       read_success = 1;
     }
     pthread_mutex_unlock(&cct->parent->lock);
@@ -491,6 +513,7 @@ mtev_reverse_socket_handler(eventer_t e, int mask, void *closure,
   int wmask = EVENTER_EXCEPTION;
   int len;
   int success = 0;
+  bool needs_unlock = false;
   reverse_socket_t *rc = closure;
   const char *socket_error_string = "protocol error";
 
@@ -502,6 +525,10 @@ mtev_reverse_socket_handler(eventer_t e, int mask, void *closure,
 socket_error:
     /* Exceptions cause us to simply snip the connection */
     mtevL(nldeb, "%s reverse_socket: %s\n", rc->id, socket_error_string);
+    if (needs_unlock) {
+      pthread_mutex_unlock(&rc->lock);
+      needs_unlock = false;
+    }
     mtev_reverse_socket_shutdown(rc, e);
     return 0;    
   }
@@ -602,6 +629,7 @@ socket_error:
   if(mask & EVENTER_WRITE) {
    try_writes:
     pthread_mutex_lock(&rc->lock);
+    needs_unlock = true;
     if(rc->data.outgoing) {
       ssize_t len;
       reverse_frame_t *f = rc->data.outgoing;
@@ -633,8 +661,12 @@ socket_error:
       POP_OUT(rc);
     }
     pthread_mutex_unlock(&rc->lock);
+    needs_unlock = false;
   }
  done_for_now: 
+  if (needs_unlock) {
+    pthread_mutex_unlock(&rc->lock);
+  }
   if(success && rc->data.nctx) mtev_connection_update_timeout(rc->data.nctx);
   return rmask|wmask;
 }

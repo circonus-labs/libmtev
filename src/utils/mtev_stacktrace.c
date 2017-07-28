@@ -136,7 +136,11 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
     if(i != 0 || sb.st_size == 0) mtevL(ls, "error writing stacktrace\n");
     lseek(_global_stack_trace_fd, SEEK_SET, 0);
     i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff)-1, sb.st_size));
-    stackbuff[i] = '\0';
+    if (i >= 0) {
+      stackbuff[i] = '\0';
+    } else {
+      snprintf(stackbuff, sizeof(stackbuff) - 1, "*** Cannot read stacktrace from %d ***", _global_stack_trace_fd);
+    }
     char *prevcp = stackbuff, *cp;
     mtevL(ls, "STACKTRACE(%d):\n", getpid());
 #if defined(linux) || defined(__linux) || defined(__linux__)
