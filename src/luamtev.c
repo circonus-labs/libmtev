@@ -93,27 +93,33 @@ make_config(void) {
                  lua_file, function);
   if(len == -1) {
     fprintf(stderr, "Failed to generate config\n");
+    free(outbuf);
     exit(-2);
   }
   if(dump_template) {
     if(write(STDOUT_FILENO, outbuf, len) < 0) {
+      free(outbuf);
       exit(-1);
     }
+    free(outbuf);
     exit(0);
   }
   fd = mkstemp(filename);
   if(fd < 0) {
     fprintf(stderr, "Faile to open config: %s\n", filename);
+    free(outbuf);
     exit(-2);
   }
   if(write(fd, outbuf, len) != len) {
     fprintf(stderr, "Faile to write config: %s\n", filename);
     unlink(filename);
+    free(outbuf);
     exit(-2);
   }
   close(fd);
   needs_unlink = true;
   config_file = strdup(filename);
+  free(outbuf);
 }
 
 #if defined(__GLIBC__) && __GLIBC__ >= 2

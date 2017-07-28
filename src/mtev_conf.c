@@ -3084,7 +3084,7 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
       regex = NULL;
     }
   }
-
+  free(reqs);
   return mtev_false;
 
  quickoff:
