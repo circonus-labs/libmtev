@@ -1,4 +1,4 @@
-![](https://github.com/circonus-labs/libmtev/blob/master/docs-md/assets/mtev-logo.png?raw=true)
+<img src="https://github.com/circonus-labs/libmtev/blob/master/docs-md/assets/mtev-logo.png?raw=true" align=right>
 
 <a href="https://scan.coverity.com/projects/circonus-labs-libmtev">
   <img alt="Coverity Scan Build Status"
