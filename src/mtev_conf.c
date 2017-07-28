@@ -1306,6 +1306,7 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
   xmlNode* node = (xmlNode*) section;
   int buff_len = 512;
   char *buff = alloca(buff_len);
+  char *onheap = NULL;
   while (node && node->name) {
     int desc_id = get_descendant_id(node);
     int current_entry_len = strlen((const char *)node->name);
@@ -1315,10 +1316,8 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
     } else {
       buff_len = current_entry_len + sizeof("/descendant::[999999]\0");
       current_entry = malloc(buff_len);
-      if (buff_len != 512) {
-        free(buff);
-      }
-      buff = current_entry;
+      free(onheap);
+      buff = onheap = current_entry;
     }
 
     if (desc_id > 1) {
@@ -1332,10 +1331,7 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
     node = node->parent;
   }
 
-  if (buff_len != 512) {
-    free(buff);
-  }
-
+  free(onheap);
   char *result = strndup(xpath->string, (size_t)mtev_prepend_strlen(xpath));
   mtev_prepend_str_free(xpath);
   return result;
