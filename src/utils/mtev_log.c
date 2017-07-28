@@ -553,8 +553,12 @@ asynch_logio_writer(void *vls) {
     if(lock) pthread_rwlock_unlock(lock);
     if(max > 0) {
       /* we didn't hit our limit... so we ran the queue dry */
-      /* 200ms if there was nothing, 10ms otherwise */
+      /* 200ms if there was nothing, 10ms otherwise..
+       *
+       * unlock before sleep */
+      pthread_mutex_unlock(&actx->singleton);
       usleep(fast ? 10000 : 200000);
+      pthread_mutex_lock(&actx->singleton);
     }
   }
   mtevL(mtev_debug, "stopping asynchronous %s writer[%d/%p]\n",
@@ -809,7 +813,7 @@ posix_logio_cull(mtev_log_stream_t ls, int age, ssize_t bytes) {
   if(!d) return -1;
 
 #ifdef _PC_NAME_MAX
-  size = pathconf(path, _PC_NAME_MAX);
+  size = pathconf(dir, _PC_NAME_MAX);
   if(size < 0) size = PATH_MAX + 128;
 #endif
   size = MIN(size, PATH_MAX + 128);
@@ -951,8 +955,18 @@ jlog_logio_cleanse(mtev_log_stream_t ls) {
 
   /* populate earliest, if this fails, we assume */
   readers = jlog_pending_readers(log, log->current_log, &earliest);
-  if(readers < 0) return -1;
-  if(readers == 0) return 0;
+  if(readers < 0) {
+    if (d) {
+      closedir(d);
+    }
+    return -1;
+  }
+  if(readers == 0) {
+    if (d) {
+      closedir(d);
+    }
+    return 0;
+  }
 
 #ifdef _PC_NAME_MAX
   size = pathconf(path, _PC_NAME_MAX);

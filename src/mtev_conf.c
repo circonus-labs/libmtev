@@ -1148,7 +1148,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
       if((include_nodes[inc_idx].doc) || (include_nodes[inc_idx].snippet)) {
         xmlNodePtr n, more_kids;
         mtev_conf_magic_mix(infile, include_nodes[inc_idx].doc, &(include_nodes[inc_idx]));
-        strncpy(include_nodes[inc_idx].path, infile, sizeof(include_nodes[inc_idx].path));
+        strncpy(include_nodes[inc_idx].path, infile, sizeof(include_nodes[inc_idx].path) - 1); // room for NUL 
         include_nodes[inc_idx].insertion_point = node;
         include_nodes[inc_idx].root = xmlDocGetRootElement(include_nodes[inc_idx].doc);
         include_nodes[inc_idx].old_children = (j == 0) ? node->children : NULL;
@@ -1306,6 +1306,7 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
   xmlNode* node = (xmlNode*) section;
   int buff_len = 512;
   char *buff = alloca(buff_len);
+  char *onheap = NULL;
   while (node && node->name) {
     int desc_id = get_descendant_id(node);
     int current_entry_len = strlen((const char *)node->name);
@@ -1315,7 +1316,8 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
     } else {
       buff_len = current_entry_len + sizeof("/descendant::[999999]\0");
       current_entry = malloc(buff_len);
-      buff = current_entry;
+      free(onheap);
+      buff = onheap = current_entry;
     }
 
     if (desc_id > 1) {
@@ -1329,10 +1331,7 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
     node = node->parent;
   }
 
-  if (buff_len != 512) {
-    free(buff);
-  }
-
+  free(onheap);
   char *result = strndup(xpath->string, (size_t)mtev_prepend_strlen(xpath));
   mtev_prepend_str_free(xpath);
   return result;
@@ -1786,8 +1785,11 @@ mtev_conf_property_iter(mtev_conf_section_t section,
 
 int
 mtev_conf_set_string(mtev_conf_section_t section,
-                     const char *path, const char *value) {
+                     const char *path, const char *value) 
+{
+  mtev_conf_section_t *sections = NULL;
   xmlNodePtr current_node = (xmlNodePtr)section;
+
   if(!current_node) return 0;
   if(strchr(path, '/')) return 0;
   if(path[0] == '@') {
@@ -1797,12 +1799,12 @@ mtev_conf_set_string(mtev_conf_section_t section,
   else {
     int cnt;
     xmlNodePtr child_node = NULL;
-    mtev_conf_section_t *sections;
     sections = mtev_conf_get_sections(section, path, &cnt);
     if(cnt > 1) {
       char *spath = section ? (char *)xmlGetNodePath(section) : strdup("(root)");
       mtevL(mtev_error, "Ambiguous set_string \"%s\" \"%s\"\n", spath, path);
       free(spath);
+      free(sections);
       return 0;
     }
     if(cnt == 0) {
@@ -1829,6 +1831,7 @@ mtev_conf_set_string(mtev_conf_section_t section,
     mtevL(mtev_error, "local config write failed: %s\n", err ? err : "unkown");
     free(err);
   }
+  free(sections);
   return 1;
 }
 
@@ -3082,8 +3085,6 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
     }
   }
 
-  if(regex) pcre_free(regex);
-  free(reqs);
   return mtev_false;
 
  quickoff:

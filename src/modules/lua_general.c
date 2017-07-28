@@ -143,17 +143,22 @@ lua_general_new_resume_info(lua_module_closure_t *lmc) {
 static int
 lua_general_handler_ex(mtev_dso_generic_t *self,
                       const char *module, const char *function) {
-  int status, rv;
-  lua_general_conf_t *conf = get_config(self);
-  lua_module_closure_t *lmc = pthread_getspecific(conf->key);
-  mtev_lua_resume_info_t *ri = NULL;
-  const char *err = NULL;
   char errbuf[128];
+  int status, rv;
+  const char *err = NULL;
+  mtev_lua_resume_info_t *ri = NULL;
   lua_State *L;
+  lua_general_conf_t *conf = get_config(self);
+  if (!conf) {
+    goto boom;
+  }
+
+  lua_module_closure_t *lmc = pthread_getspecific(conf->key);
 
   if(!lmc) mtev_lua_general_init(self);
   lmc = pthread_getspecific(conf->key);
-  if(!lmc || !conf || !module || !function) {
+
+  if(!lmc || !module || !function) {
     goto boom;
   }
   ri = lua_general_new_resume_info(lmc);

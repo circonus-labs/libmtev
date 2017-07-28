@@ -714,7 +714,9 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
   new_cluster->period = period;
   new_cluster->timeout = timeout;
   new_cluster->maturity = maturity;
-  qsort(nlist, n_nodes, sizeof(*nlist), mtev_cluster_node_compare);
+  if (nlist != NULL) {
+    qsort(nlist, n_nodes, sizeof(*nlist), mtev_cluster_node_compare);
+  }
   new_cluster->node_cnt = n_nodes;
   new_cluster->nodes = nlist; nlist = NULL;
   mtev_hash_init_locks(&new_cluster->hb_payloads, 8, MTEV_HASH_LOCK_MODE_NONE);
@@ -912,6 +914,7 @@ mtev_cluster_set_heartbeat_payload(mtev_cluster_t *cluster,
   }
 
   if(payload_len_sum + payload_length > MAX_PAYLOAD_LEN_SUM) {
+    free(hash_key);
     return mtev_false;
   }
 
@@ -1059,7 +1062,7 @@ rest_show_cluster_json(mtev_http_rest_closure_t *restc, int n, char **p) {
   goto cleanup;
 
  cleanup:
-  if(doc) MJ_DROP(doc);
+  MJ_DROP(doc);
   return 0;
 }
 

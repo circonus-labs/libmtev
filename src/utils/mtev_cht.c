@@ -196,7 +196,7 @@ mtev_cht_set_nodes(mtev_cht_t *cht, int node_cnt, mtev_cht_node_t *nodes) {
   if(cht->ring) free(cht->ring);
   cht->ring = NULL;
   if(node_cnt) {
-    cht->ring = calloc(node_cnt * cht->weight, sizeof(*cht->ring));
+    cht->ring = calloc(node_cnt * (int)cht->weight, sizeof(*cht->ring));
     mtev_cht_calculate_ring(cht);
   }
   return node_cnt;
@@ -207,7 +207,7 @@ mtev_cht_vlookup_n(mtev_cht_t *cht, const void *key, size_t keylen,
                    int w, mtev_cht_node_t **nodes) {
   int i, l, r, m = 0, rsize = cht->node_cnt * cht->weight;
   int w_out = 0;
-  int found[CHT_MAX_W];
+  int found[CHT_MAX_W] = {-1};
   uint32_t val, hash;
 
   if(w > CHT_MAX_W) w = CHT_MAX_W;

@@ -158,17 +158,22 @@ static int
 lua_web_handler(mtev_http_rest_closure_t *restc,
                 int npats, char **pats) {
   int status, rv, mask = 0;
-  lua_web_conf_t *conf = the_one_conf;
-  lua_module_closure_t *lmc = mtev_lua_web_setup_lmc(conf->self);
   mtev_lua_resume_info_t *ri;
   mtev_lua_resume_rest_info_t *ctx = NULL;
   lua_State *L;
   eventer_t conne = NULL;
-  mtev_http_response *res = mtev_http_session_response(restc->http_ctx);
 
-  if(!lmc || !conf) {
+  lua_web_conf_t *conf = the_one_conf;
+  if(!conf) {
     goto boom;
   }
+
+  lua_module_closure_t *lmc = mtev_lua_web_setup_lmc(conf->self);
+  if(!lmc) {
+    goto boom;
+  }
+
+  mtev_http_response *res = mtev_http_session_response(restc->http_ctx);
 
   if(!mtev_rest_complete_upload(restc, &mask)) return mask;
 

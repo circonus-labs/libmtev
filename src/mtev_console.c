@@ -413,7 +413,7 @@ mtev_console_std(eventer_t e, int mask, void *closure,
   int newmask;
   int keep_going;
   mtev_console_closure_t ncct = closure;
-  if(mask & EVENTER_EXCEPTION || (ncct && ncct->wants_shutdown)) {
+  if(mask & EVENTER_EXCEPTION || (ncct->wants_shutdown)) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
 
@@ -424,7 +424,7 @@ socket_error:
   }
 
   if(mtev_console_continue_sending(ncct, &newmask) < 0) {
-    if((ncct != NULL && ncct->wants_shutdown) || errno != EAGAIN) goto socket_error;
+    if(ncct->wants_shutdown || errno != EAGAIN) goto socket_error;
     return newmask | EVENTER_EXCEPTION;
   }
 

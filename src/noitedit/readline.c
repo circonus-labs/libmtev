@@ -693,6 +693,7 @@ _history_expand_command(const char *command, size_t cmdlen, char **result)
 					else {
 						from = NULL;
             if(tempcmd) free(tempcmd);
+            free(line);
 						return (-1);
 					}
 				}

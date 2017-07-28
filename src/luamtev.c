@@ -282,5 +282,15 @@ int main(int argc, char **argv, char **envp) {
   mtev_main(APPNAME, config_file, debug, foreground,
             MTEV_LOCK_OP_LOCK, NULL, droptouser, droptogroup,
             child_main);
+
+  free(function);
+  free(lua_addcpath);
+  free(lua_cpath);
+  free(lua_addlpath);
+  free(lua_lpath);
+  free(modules_path);
+  free(config_file);
+  free(droptouser);
+  free(droptogroup);
   return 0;
 }

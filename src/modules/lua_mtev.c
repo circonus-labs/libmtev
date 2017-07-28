@@ -4044,6 +4044,7 @@ mtev_lua_serialize(lua_State *L, int index){
     case(LUA_TNIL): // we already returned NULL
     default: 
       free(data);
+      data = NULL;
       mtevL(nlerr, "Cannot serialize unsupported lua type %d\n", type);
   }
 
@@ -4113,6 +4114,7 @@ nl_shared_set(lua_State *L) {
   } else {
     if(lua_isnil(L,2)) {
       mtev_hash_delete(&shared_table, key, key_len, free, mtev_lua_free_data);
+      free(data);
     } else {
       mtev_hash_replace(&shared_table, strdup(key), key_len, data, free, mtev_lua_free_data);
     }

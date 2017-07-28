@@ -392,7 +392,7 @@ term_end(EditLine *el)
 private void
 term_alloc(EditLine *el, const struct termcapstr *t, char *cap)
 {
-	char termbuf[TC_BUFSIZE];
+	char termbuf[TC_BUFSIZE] = {0};
 	int tlen, clen;
 	char **tlist = el->el_term.t_str;
 	char **tmp, **str = &tlist[t - tstr];
@@ -500,6 +500,7 @@ term_alloc_display(EditLine *el)
 		b[i] = (char *) el_malloc((size_t) (sizeof(char) * (c->h + 1)));
 		if (b[i] == NULL) {
       while(i>0) el_free(b[--i]);
+      el_free(b);
 			return (-1);
     }
 	}
