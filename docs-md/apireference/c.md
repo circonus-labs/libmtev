@@ -2338,25 +2338,36 @@ Note that, unless the return value was
 flow-regulator for the work-item.
  
 
-#### mtev_flow_regulator_stabilize
+#### mtev_flow_regulator_stable_lower
 
 ```c
 mtev_flow_regulator_toggle_t 
-mtev_flow_regulator_stabilize(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t)
+mtev_flow_regulator_stable_lower(mtev_flow_regulator_t *fr, unsigned int by)
 ```
 
-  * `t` Instruction returned from previous call to `mtev_flow_regulator_raise_one`, `mtev_flow_regulator_lower`, or `mtev_flow_regulator_ack`.
-  * **RETURN** New flow-toggle instruction.
+  * **RETURN** `mtev_true` if the caller is responsible for re-scheduling work-creation for the flow-regulator, `mtev_false` otherwise.
 
 This function is a simple wrapper around
-`mtev_flow_regulator_ack`, to simplify handling in cases where the
-client needs take no explicit action to enable or disable
-work-production before calling `mtev_flow_regulator_ack`. It
-simply calls `mtev_flow_regulator_ack` in a loop until
-`mtev_flow_regulator_ack` returns
-`MTEV_FLOW_REGULATOR_TOGGLE_KEEP`, and returns the previous toggle
-instruction, which the client would then use to enable or disable
-work-generation.
+`mtev_flow_regulator_lower` and `mtev_flow_regulator_ack`, to
+simplify handling in cases where the client needs take no explicit
+action to enable or disable work-production before calling
+`mtev_flow_regulator_ack`.
+ 
+
+#### mtev_flow_regulator_stable_try_raise_one
+
+```c
+mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_stable_try_raise_one(mtev_flow_regulator_t *fr)
+```
+
+  * **RETURN** mtev_true if work-item was successfully added to the flow regulator, mtev_false otherwise.
+
+This function is a simple wrapper around
+`mtev_flow_regulator_raise_one` and `mtev_flow_regulator_ack`, to
+simplify handling in cases where the client needs take no explicit
+action to enable or disable work-production before calling
+`mtev_flow_regulator_ack`.
  
 
 ### G
@@ -3823,6 +3834,20 @@ mtev_zipkin_span_annotate(Zipkin_Span *span, int64_t *timestamp, const char *val
 mtev_zipkin_span_annotate make an annotation on the provided span.  The returned resource is managed by the span and will be released with it.
  
 
+#### mtev_zipkin_span_attach_logs
+
+>Enable mtev_log appending if span is active.
+
+```c
+void 
+mtev_zipkin_span_attach_logs(Zipkin_Span *span, bool on)
+```
+
+
+  * `span` A zipkin span (NULL allowed)
+  * `on` Wether to enable or disable log appending.
+
+
 #### mtev_zipkin_span_bannotate
 
 >Annotate a span.
@@ -3954,6 +3979,36 @@ mtev_zipkin_span_drop(Zipkin_Span *span)
 
 mtev_zipkin_span_drop releases all resources associated with the span.
  
+
+#### mtev_zipkin_span_get_ids
+
+>Fetch the various IDs from a span.
+
+```c
+bool 
+mtev_zipkin_span_get_ids(Zipkin_Span *span, int64_t *traceid, int64_t *parent_id, int64_t *id)
+```
+
+
+  * `span` The span on which to operate.
+  * `traceid` A pointer to a trace id to populate.
+  * `parent_id` A pointer to a parent span id to populate.
+  * `span_id` A pointer to a span id to populate.
+  * **RETURN** True if the span has a parent, false otherwise.
+
+
+#### mtev_zipkin_span_logs_attached
+
+>Report whether a span should have logs attached.
+
+```c
+bool 
+mtev_zipkin_span_logs_attached(Zipkin_Span *span)
+```
+
+
+  * `span` A zipkin span to report on.
+
 
 #### mtev_zipkin_span_new
 

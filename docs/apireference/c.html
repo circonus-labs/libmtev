@@ -2377,23 +2377,30 @@ return value. This function will return one of:</p>
 <p>Note that, unless the return value was
 <code>MTEV_FLOW_REGULATOR_TOGGLE_KEEP</code>, space was <em>not</em> reserved in the
 flow-regulator for the work-item.</p>
-<h4 id="mtevflowregulatorstabilize">mtev_flow_regulator_stabilize</h4>
+<h4 id="mtevflowregulatorstablelower">mtev_flow_regulator_stable_lower</h4>
 <pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span> 
-mtev_flow_regulator_stabilize(<span class="hljs-keyword">mtev_flow_regulator_t</span> *fr, <span class="hljs-keyword">mtev_flow_regulator_toggle_t</span> t)
+mtev_flow_regulator_stable_lower(<span class="hljs-keyword">mtev_flow_regulator_t</span> *fr, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">int</span> by)
 </code></pre>
 <ul>
-<li><code>t</code> Instruction returned from previous call to <code>mtev_flow_regulator_raise_one</code>, <code>mtev_flow_regulator_lower</code>, or <code>mtev_flow_regulator_ack</code>.</li>
-<li><strong>RETURN</strong> New flow-toggle instruction.</li>
+<li><strong>RETURN</strong> <code>mtev_true</code> if the caller is responsible for re-scheduling work-creation for the flow-regulator, <code>mtev_false</code> otherwise.</li>
 </ul>
 <p>This function is a simple wrapper around
-<code>mtev_flow_regulator_ack</code>, to simplify handling in cases where the
-client needs take no explicit action to enable or disable
-work-production before calling <code>mtev_flow_regulator_ack</code>. It
-simply calls <code>mtev_flow_regulator_ack</code> in a loop until
-<code>mtev_flow_regulator_ack</code> returns
-<code>MTEV_FLOW_REGULATOR_TOGGLE_KEEP</code>, and returns the previous toggle
-instruction, which the client would then use to enable or disable
-work-generation.</p>
+<code>mtev_flow_regulator_lower</code> and <code>mtev_flow_regulator_ack</code>, to
+simplify handling in cases where the client needs take no explicit
+action to enable or disable work-production before calling
+<code>mtev_flow_regulator_ack</code>.</p>
+<h4 id="mtevflowregulatorstabletryraiseone">mtev_flow_regulator_stable_try_raise_one</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span> 
+mtev_flow_regulator_stable_try_raise_one(<span class="hljs-keyword">mtev_flow_regulator_t</span> *fr)
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> mtev_true if work-item was successfully added to the flow regulator, mtev_false otherwise.</li>
+</ul>
+<p>This function is a simple wrapper around
+<code>mtev_flow_regulator_raise_one</code> and <code>mtev_flow_regulator_ack</code>, to
+simplify handling in cases where the client needs take no explicit
+action to enable or disable work-production before calling
+<code>mtev_flow_regulator_ack</code>.</p>
 <h3 id="g">G</h3>
 <h4 id="mtevgetdurationsms">mtev_get_durations_ms</h4>
 <blockquote>
@@ -3581,6 +3588,17 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <li><strong>RETURN</strong> A new annotation.</li>
 </ul>
 <p>mtev_zipkin_span_annotate make an annotation on the provided span.  The returned resource is managed by the span and will be released with it.</p>
+<h4 id="mtevzipkinspanattachlogs">mtev_zipkin_span_attach_logs</h4>
+<blockquote>
+<p>Enable mtev_log appending if span is active.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_zipkin_span_attach_logs</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">bool</span> on)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> A zipkin span (NULL allowed)</li>
+<li><code>on</code> Wether to enable or disable log appending.</li>
+</ul>
 <h4 id="mtevzipkinspanbannotate">mtev_zipkin_span_bannotate</h4>
 <blockquote>
 <p>Annotate a span.</p>
@@ -3689,6 +3707,30 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <li><code>span</code> The span to release.</li>
 </ul>
 <p>mtev_zipkin_span_drop releases all resources associated with the span.</p>
+<h4 id="mtevzipkinspangetids">mtev_zipkin_span_get_ids</h4>
+<blockquote>
+<p>Fetch the various IDs from a span.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span> 
+<span class="hljs-title">mtev_zipkin_span_get_ids</span><span class="hljs-params">(Zipkin_Span *span, int64_t *traceid, int64_t *parent_id, int64_t *id)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> The span on which to operate.</li>
+<li><code>traceid</code> A pointer to a trace id to populate.</li>
+<li><code>parent_id</code> A pointer to a parent span id to populate.</li>
+<li><code>span_id</code> A pointer to a span id to populate.</li>
+<li><strong>RETURN</strong> True if the span has a parent, false otherwise.</li>
+</ul>
+<h4 id="mtevzipkinspanlogsattached">mtev_zipkin_span_logs_attached</h4>
+<blockquote>
+<p>Report whether a span should have logs attached.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span> 
+<span class="hljs-title">mtev_zipkin_span_logs_attached</span><span class="hljs-params">(Zipkin_Span *span)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> A zipkin span to report on.</li>
+</ul>
 <h4 id="mtevzipkinspannew">mtev_zipkin_span_new</h4>
 <blockquote>
 <p>Allocate a new tracing span.</p>
