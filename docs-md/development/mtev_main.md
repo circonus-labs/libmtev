@@ -88,4 +88,4 @@ The arguments to `mtev_main` are what is important here.
  * ##### child_main
 
    This is the surrogate main where the application should be initialized and run.  Note that it should
-   not return.  Typically this function will end with an `event_loop()` which is non-retruning.
+   not return.  Typically this function will end with an `event_loop()` which is non-returning.
