@@ -3904,17 +3904,19 @@ mtev_lua_eventer_gc(lua_State *L) {
     mtev_lua_resume_info_t *ci;
     struct nl_slcl *cl = eventer_get_closure(e);
     int newmask;
-
-    if(cl->L) {
-      ci = mtev_lua_get_resume_info(cl->L);
-      mtevAssert(ci);
-      mtev_lua_deregister_event(ci, e, 0);
+    if(cl) {
+      if(cl->L) {
+        ci = mtev_lua_get_resume_info(cl->L);
+        mtevAssert(ci);
+        mtev_lua_deregister_event(ci, e, 0);
+      }
+      if(eventer_get_mask(e) & (EVENTER_EXCEPTION|EVENTER_READ|EVENTER_WRITE))
+        eventer_remove_fde(e);
+      eventer_close(e, &newmask);
+      if(cl->free) cl->free(cl);
+      eventer_set_closure(e, NULL);
     }
-    if(eventer_get_mask(e) & (EVENTER_EXCEPTION|EVENTER_READ|EVENTER_WRITE))
-      eventer_remove_fde(e);
-    eventer_close(e, &newmask);
     eventer_free(e);
-    if(cl->free) cl->free(cl);
   }
   return 0;
 }

@@ -625,12 +625,15 @@ mtev_event_dispose(void *ev) {
   removed = eventer_remove(e);
   mtevL(nldeb, "    remove from eventer system %s\n",
         removed ? "succeeded" : "failed");
-  if(eventer_get_mask(e) & (EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION)) {
-    mtevL(nldeb, "    closing down fd %d\n", eventer_get_fd(e));
-    eventer_close(e, &mask);
-  }
   cl = eventer_get_closure(e);
-  if(cl && cl->free) cl->free(cl);
+  if(cl) {
+    if(eventer_get_mask(e) & (EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION)) {
+      mtevL(nldeb, "    closing down fd %d\n", eventer_get_fd(e));
+      eventer_close(e, &mask);
+    }
+    if(cl && cl->free) cl->free(cl);
+    eventer_set_closure(e, NULL);
+  }
   eventer_free(e);
   free(ev);
 }
