@@ -43,6 +43,7 @@
 #include <pcre.h>
 
 typedef void * mtev_conf_section_t;
+API_EXPORT(mtev_conf_section_t) MTEV_CONF_ROOT;
 
 typedef enum {
   MTEV_PARAM_INT8,

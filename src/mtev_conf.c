@@ -66,6 +66,7 @@ MTEV_HOOK_IMPL(mtev_conf_delete_section,
 
 const char *_mtev_branch = MTEV_BRANCH;
 const char *_mtev_version = MTEV_VERSION;
+mtev_conf_section_t MTEV_CONF_ROOT = NULL;
 
 static mtev_hash_table global_param_sets;
 
