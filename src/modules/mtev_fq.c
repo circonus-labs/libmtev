@@ -53,7 +53,7 @@ MTEV_HOOK_IMPL(mtev_fq_handle_message_dyn,
 
 typedef struct connection_configs {
   char* host;
-  int port;
+  int32_t port;
   char* user;
   char* pass;
 } connection_configs;
@@ -192,8 +192,8 @@ static connection_configs *check_connection_conf(mtev_conf_section_t section) {
       mtev_conf_default_string("localhost"));
   mtev_conf_get_value(&desc, &configs_table->host);
 
-  desc = mtev_conf_description_int(section, CONFIG_FQ_PORT,
-      "Port number of the fq broker", mtev_conf_default_int(8765));
+  desc = mtev_conf_description_int32(section, CONFIG_FQ_PORT,
+      "Port number of the fq broker", mtev_conf_default_int32(8765));
   mtev_conf_get_value(&desc, &configs_table->port);
 
   desc = mtev_conf_description_string(section, CONFIG_FQ_USER,
@@ -212,11 +212,11 @@ static connection_configs *check_connection_conf(mtev_conf_section_t section) {
 
 static void
 init_conns(void) {
-  mtev_conf_section_t *mqs = mtev_conf_get_sections(NULL, CONFIG_FQ_IN_MQ,
+  mtev_conf_section_t *mqs = mtev_conf_get_sections(MTEV_CONF_ROOT, CONFIG_FQ_IN_MQ,
       &the_conf->number_of_conns);
 
   if(the_conf->number_of_conns == 0) {
-    free(mqs);
+    mtev_conf_release_sections(mqs, the_conf->number_of_conns);
     return;
   }
 
@@ -234,7 +234,7 @@ init_conns(void) {
     free(exchange);
     free(program);
   }
-  free(mqs);
+  mtev_conf_release_sections(mqs, the_conf->number_of_conns);
 }
 
 /* Do not mtevL in these functions, as they may implement mtevL */

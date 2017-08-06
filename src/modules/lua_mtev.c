@@ -2695,16 +2695,19 @@ nl_conf_get_string(lua_State *L) {
     char *element, *base;
     SPLIT_PATH(path, base, element);
     
-    section = mtev_conf_get_section(NULL, base);
-    if(!section || !element) lua_pushboolean(L, 0);
+    section = mtev_conf_get_section(MTEV_CONF_ROOT, base);
+    if(mtev_conf_section_is_empty(section) || !element) {
+      lua_pushboolean(L, 0);
+    }
     else {
       mtev_conf_set_string(section, element, lua_tostring(L,2));
       lua_pushboolean(L, 1);
     }
+    mtev_conf_release_section(section);
     return 1;
   }
   if(path &&
-     mtev_conf_get_string(NULL, path, &val)) {
+     mtev_conf_get_string(MTEV_CONF_ROOT, path, &val)) {
     lua_pushstring(L,val);
     free(val);
   }
@@ -2720,7 +2723,7 @@ nl_conf_get_string_list(lua_State *L) {
   const char *base_path = lua_tostring(L,1);
   const char *child_path = lua_tostring(L,2);
 
-  mtev_conf_section_t* mqs = mtev_conf_get_sections(NULL, base_path, &cnt);
+  mtev_conf_section_t* mqs = mtev_conf_get_sections(MTEV_CONF_ROOT, base_path, &cnt);
 
   if(mqs == NULL) {
     lua_pushnil(L);
@@ -2730,6 +2733,7 @@ nl_conf_get_string_list(lua_State *L) {
       if(!mtev_conf_get_string(mqs[i], child_path, &val)) {
         char *msg = alloca(strlen(base_path) + strlen(child_path) + 256);
         sprintf(msg, "Unable to read option entry: %s%s", base_path, child_path);
+        mtev_conf_release_sections(mqs, cnt);
         return luaL_error(L, msg);
       }
       lua_pushinteger(L, i + 1);
@@ -2737,30 +2741,33 @@ nl_conf_get_string_list(lua_State *L) {
       lua_settable(L, -3);
       free(val);
     }
-    free(mqs);
+    mtev_conf_release_sections(mqs, cnt);
   }
 
   return 1;
 }
 static int
 nl_conf_get_integer(lua_State *L) {
-  int val;
+  int32_t val;
   const char *path = lua_tostring(L,1);
   if(path && lua_gettop(L) == 2) {
     mtev_conf_section_t section;
     char *element, *base;
     SPLIT_PATH(path, base, element);
 
-    section = mtev_conf_get_section(NULL, base);
-    if(!section || !element) lua_pushboolean(L, 0);
+    section = mtev_conf_get_section(MTEV_CONF_ROOT, base);
+    if(mtev_conf_section_is_empty(section) || !element) {
+      lua_pushboolean(L, 0);
+    }
     else {
       mtev_conf_set_string(section, element, lua_tostring(L,2));
       lua_pushboolean(L, 1);
     }
+    mtev_conf_release_section(section);
     return 1;
   }
   if(path &&
-     mtev_conf_get_int(NULL, path, &val)) {
+     mtev_conf_get_int32(MTEV_CONF_ROOT, path, &val)) {
     lua_pushinteger(L,val);
   }
   else lua_pushnil(L);
@@ -2775,16 +2782,19 @@ nl_conf_get_boolean(lua_State *L) {
     char *element, *base;
     SPLIT_PATH(path, base, element);
 
-    section = mtev_conf_get_section(NULL, base);
-    if(!section || !element) lua_pushboolean(L, 0);
+    section = mtev_conf_get_section(MTEV_CONF_ROOT, base);
+    if(mtev_conf_section_is_empty(section) || !element) {
+      lua_pushboolean(L, 0);
+    }
     else {
       mtev_conf_set_string(section, element, lua_toboolean(L,2) ? "true" : "false");
       lua_pushboolean(L, 1);
     }
+    mtev_conf_release_section(section);
     return 1;
   }
   if(path &&
-     mtev_conf_get_boolean(NULL, path, &val)) {
+     mtev_conf_get_boolean(MTEV_CONF_ROOT, path, &val)) {
     lua_pushboolean(L,val);
   }
   else lua_pushnil(L);
@@ -2799,16 +2809,19 @@ nl_conf_get_float(lua_State *L) {
     char *element, *base;
     SPLIT_PATH(path, base, element);
     
-    section = mtev_conf_get_section(NULL, base);
-    if(!section || !element) lua_pushboolean(L, 0);
+    section = mtev_conf_get_section(MTEV_CONF_ROOT, base);
+    if(mtev_conf_section_is_empty(section) || !element) {
+      lua_pushboolean(L, 0);
+    }
     else {
       mtev_conf_set_string(section, element, lua_tostring(L,2));
       lua_pushboolean(L, 1);
     }
+    mtev_conf_release_section(section);
     return 1;
   }
   if(path &&
-     mtev_conf_get_float(NULL, path, &val)) {
+     mtev_conf_get_float(MTEV_CONF_ROOT, path, &val)) {
     lua_pushnumber(L,val);
   }
   else lua_pushnil(L);
@@ -2821,16 +2834,18 @@ nl_conf_replace_value(lua_State *L) {
     mtev_conf_section_t section;
     char *element, *base;
     SPLIT_PATH(path, base, element);
-    while (NULL != (section = mtev_conf_get_section(NULL, path))) {
+    while (!mtev_conf_section_is_empty(section = mtev_conf_get_section(MTEV_CONF_ROOT, path))) {
       mtev_conf_remove_section(section);
     }
-    section = mtev_conf_get_section(NULL, base);
-    if(!section) {
+    section = mtev_conf_get_section(MTEV_CONF_ROOT, base);
+    if(mtev_conf_section_is_empty(section)) {
       lua_pushboolean(L, 0);
+      mtev_conf_release_section(section);
       return 1;
     }
     mtev_conf_set_string(section, element, lua_tostring(L,2));
     lua_pushboolean(L, 1);
+    mtev_conf_release_section(section);
   }
   else lua_pushnil(L);
   return 1;
@@ -2842,16 +2857,18 @@ nl_conf_replace_boolean(lua_State *L) {
     mtev_conf_section_t section;
     char *element, *base;
     SPLIT_PATH(path, base, element);
-    while (NULL != (section = mtev_conf_get_section(NULL, path))) {
+    while (!mtev_conf_section_is_empty(section = mtev_conf_get_section(MTEV_CONF_ROOT, path))) {
       mtev_conf_remove_section(section);
     }
-    section = mtev_conf_get_section(NULL, base);
-    if(!section) {
+    section = mtev_conf_get_section(MTEV_CONF_ROOT, base);
+    if(mtev_conf_section_is_empty(section)) {
       lua_pushboolean(L, 0);
+      mtev_conf_release_section(section);
       return 1;
     }
     mtev_conf_set_string(section, element, lua_toboolean(L,2) ? "true" : "false");
     lua_pushboolean(L, 1);
+    mtev_conf_release_section(section);
   }
   else lua_pushnil(L);
   return 1;
