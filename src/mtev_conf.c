@@ -67,6 +67,8 @@ MTEV_HOOK_IMPL(mtev_conf_delete_section,
 const char *_mtev_branch = MTEV_BRANCH;
 const char *_mtev_version = MTEV_VERSION;
 
+static mtev_hash_table global_param_sets;
+
 static const int globflags = 0 |
 #ifdef GLOB_NOMAGIC
   GLOB_NOMAGIC |
@@ -93,6 +95,149 @@ static mtev_log_stream_t xml_debug = NULL;
 static xmlDocPtr master_config = NULL;
 static int config_include_cnt = -1;
 static int backingstore_include_cnt = -1;
+
+struct param_entry {
+  char *name;
+  char *xpath;
+  mtev_param_type_t ptype;
+  void *memory;
+  mtev_param_parser_t parse;
+  mtev_param_validator_t validate;
+};
+
+
+mtev_boolean
+mtev_conf_register_global_param(const char *name, const char *xpath,
+                                mtev_param_type_t ptype, void *mem,
+                                mtev_param_parser_t parse,
+                                mtev_param_validator_t validate) {
+  struct param_entry *p = calloc(1, sizeof(*p));
+  p->name = strdup(name);
+  if(xpath) p->xpath = strdup(xpath);
+  p->ptype = ptype;
+  p->memory = mem;
+  p->parse = parse;
+  p->validate = validate;
+  if(mtev_hash_store(&global_param_sets, p->name, strlen(p->name), p))
+    return mtev_true;
+  free(p->name);
+  free(p->xpath);
+  free(p);
+  return mtev_false;
+}
+
+static mtev_boolean
+mtev_conf_update_global_param(const char *name, const char *value,
+                              mtev_boolean *running, mtev_boolean *config) {
+  void *vp;
+  struct param_entry *p;
+  char *endptr;
+  mtev_boolean b;
+  float f;
+  double d;
+  if(running) *running = mtev_false;
+  if(config) *config = mtev_false;
+  if(!mtev_hash_retrieve(&global_param_sets, name, strlen(name), &vp))
+    return mtev_false;
+  p = vp;
+
+  switch(p->ptype) {
+    case MTEV_PARAM_BOOLEAN:
+      if(p->parse) {
+        if(!p->parse(value, p->ptype, &b)) return mtev_true;
+        if(p->validate && !p->validate(p->ptype, &b)) return mtev_true;
+        *((mtev_boolean *)p->memory) = b;
+        if(running) *running = mtev_true;
+      }
+      else if(!strcasecmp(value, "on") || !strcasecmp(value, "true")) {
+        b = mtev_true;
+        if(p->validate && !p->validate(p->ptype, &b)) return mtev_true;
+        *((mtev_boolean *)p->memory) = b;
+        if(running) *running = mtev_true;
+      }
+      else if(!strcasecmp(value, "off") || !strcasecmp(value, "false")) {
+        b = mtev_true;
+        if(p->validate && !p->validate(p->ptype, &b)) return mtev_true;
+        *((mtev_boolean *)p->memory) = b;
+        if(running) *running = mtev_true;
+      }
+      else {
+        return mtev_true;
+      }
+      break;
+    case MTEV_PARAM_FLOAT:
+      if(p->parse) {
+        if(!p->parse(value, p->ptype, &f)) return mtev_true;
+        if(p->validate && !p->validate(p->ptype, &f)) return mtev_true;
+        *((float *)p->memory) = f;
+        if(running) *running = mtev_true;
+      }
+      else {
+        f = strtof(value, &endptr);
+        if(endptr != NULL) {
+          if(p->validate && !p->validate(p->ptype, &f)) return mtev_true;
+          *((float *)p->memory) = f;
+          if(running) *running = mtev_true;
+        }
+        else {
+          return mtev_true;
+        }
+      }
+      break;
+    case MTEV_PARAM_DOUBLE:
+      if(p->parse) {
+        if(!p->parse(value, p->ptype, &d)) return mtev_true;
+        if(p->validate && !p->validate(p->ptype, &d)) return mtev_true;
+        *((double *)p->memory) = d;
+        if(running) *running = mtev_true;
+      }
+      else {
+        d = strtod(value, &endptr);
+        if(endptr != NULL) {
+          if(p->validate && !p->validate(p->ptype, &d)) return mtev_true;
+          *((double *)p->memory) = d;
+          if(running) *running = mtev_true;
+        }
+        else {
+          return mtev_true;
+        }
+      }
+      break;
+#define SAFE_ASSIGN(p, value, hct, ct) do { \
+  hct tval; \
+  ct dcval; \
+  if(p->parse) { \
+    if(!p->parse(value, p->ptype, &dcval)) return mtev_true; \
+    if(p->validate && !p->validate(p->ptype, &dcval)) return mtev_true; \
+    *((ct *)p->memory) = dcval; \
+  } \
+  else { \
+    tval = strtoll(value, &endptr, 10); \
+    if(endptr == NULL) return mtev_true; \
+    dcval = (ct)tval; \
+    if((hct)dcval != tval) return mtev_true; \
+    if(p->validate && !p->validate(p->ptype, &dcval)) return mtev_true; \
+    *((ct *)p->memory) = dcval; \
+  } \
+  if(running) *running = mtev_true; \
+} while(0)
+     case MTEV_PARAM_INT8: SAFE_ASSIGN(p, value, int64_t, int8_t); break;
+     case MTEV_PARAM_INT16: SAFE_ASSIGN(p, value, int64_t, int16_t); break;
+     case MTEV_PARAM_INT32: SAFE_ASSIGN(p, value, int64_t, int32_t); break;
+     case MTEV_PARAM_INT64: SAFE_ASSIGN(p, value, int64_t, int64_t); break;
+     case MTEV_PARAM_UINT8: SAFE_ASSIGN(p, value, uint64_t, uint8_t); break;
+     case MTEV_PARAM_UINT16: SAFE_ASSIGN(p, value, uint64_t, uint16_t); break;
+     case MTEV_PARAM_UINT32: SAFE_ASSIGN(p, value, uint64_t, uint32_t); break;
+     case MTEV_PARAM_UINT64: SAFE_ASSIGN(p, value, uint64_t, uint64_t); break;
+  }
+
+  if(p->xpath) {
+    if(mtev_conf_set_string(NULL, p->xpath, value) > 0) {
+      if(config) *config = mtev_true;
+    }
+  }
+  return mtev_true;
+}
 
 struct include_node_t{
   xmlNodePtr insertion_point;
@@ -1788,10 +1933,31 @@ mtev_conf_set_string(mtev_conf_section_t section,
                      const char *path, const char *value) 
 {
   mtev_conf_section_t *sections = NULL;
+  const char *prefix = NULL;
   xmlNodePtr current_node = (xmlNodePtr)section;
 
-  if(!current_node) return 0;
-  if(strchr(path, '/')) return 0;
+  if(!current_node) {
+    return mtev_conf_set_string(master_config, path, value);
+  }
+  if(NULL != (prefix = strrchr(path, '/'))) {
+    int cnt;
+    char *dup = strndup(path, prefix-path);
+    sections = mtev_conf_get_sections(section, dup, &cnt);
+    mtev_conf_section_t copy;
+    if(cnt > 1 || cnt == 0) {
+      char *spath = section ? (char *)xmlGetNodePath(section) : strdup("(root)");
+      mtevL(mtev_error, "%s set_string \"%s\" \"%s\"\n",
+            cnt ? "Ambiguous" : "Path missing", spath, dup);
+      free(spath);
+      free(dup);
+      free(sections);
+      return 0;
+    }
+    copy = sections[0];
+    free(sections);
+    free(dup);
+    return mtev_conf_set_string(copy, prefix+1, value);
+  }
   if(path[0] == '@') {
     xmlSetProp(current_node, (xmlChar *)path+1, (xmlChar *)value);
     CONF_DIRTY(current_node);
@@ -2962,6 +3128,55 @@ conf_t_prompt(EditLine *el) {
   return info->prompt;
 }
 
+static int
+  mtev_console_set(mtev_console_closure_t ncct, int argc, char **argv,
+                   mtev_console_state_t *state, void *closure) {
+  if(argc == 2) {
+    mtev_boolean running, saved, success;
+    success = mtev_conf_update_global_param(argv[0], argv[1], &running, &saved);
+    if(!success) nc_printf(ncct, "no such parameter\n");
+    else {
+      if(running) nc_printf(ncct, "set running config\n");
+      else nc_printf(ncct, "error setting running config\n");
+      if(saved) nc_printf(ncct, "set on-disk config\n");
+      else nc_printf(ncct, "error setting on-disk config\n");
+    }
+    return 0;
+  }
+  else {
+    nc_printf(ncct, "config set <param> <value>\n");
+  }
+  return -1;
+}
+
+static int
+deref_strcmp(const void *a, const void *b) {
+  return strcmp(*((char **)a), *((char **)b));
+}
+static char *
+mtev_console_set_complete(mtev_console_closure_t ncct,
+                          mtev_console_state_stack_t *stack,
+                          mtev_console_state_t *state,
+                          int argc, char **argv,
+                          int idx) {
+  char *copy = NULL;
+  const char **params;
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  int i = 0, count = mtev_hash_size(&global_param_sets);
+  if(argc > 1 || count == 0 || idx >= count) return NULL;
+  params = calloc(count, sizeof(*params));
+  while(i < count && mtev_hash_adv(&global_param_sets, &iter)) {
+    if(strlen(argv[0]) <= strlen(iter.key.str) &&
+       0 == memcmp(argv[0], iter.key.str, strlen(argv[0]))) {
+      params[i++] = iter.key.str;
+    }
+  }
+  qsort(params, i, sizeof(*params), deref_strcmp);
+  if(idx < i) copy = strdup(params[idx]);
+  free(params);
+  return copy;
+}
+
 #define NEW_STATE(a) (a) = mtev_console_state_alloc()
 #define ADD_CMD(a,cmd,func,ac,ss,c) \
   mtev_console_state_add_cmd((a), \
@@ -3003,6 +3218,9 @@ void mtev_console_conf_init(void) {
   NEW_STATE(_conf_state);
   ADD_CMD(_conf_state, "terminal",
           mtev_console_state_conf_terminal, NULL, _conf_t_state, NULL);
+  ADD_CMD(_conf_state, "set",
+          mtev_console_set, mtev_console_set_complete, _conf_t_state, NULL);
+
 
   ADD_CMD(tl, "configure",
           mtev_console_state_delegate, mtev_console_opt_delegate,
@@ -3018,6 +3236,7 @@ void mtev_console_conf_init(void) {
   mtev_console_state_add_cmd(showcmd->dstate,
     NCSCMD("conf", mtev_console_conf_show_xpath,
            NULL, NULL, NULL));
+
 }
 
 mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
@@ -3094,6 +3313,7 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
 }
 
 void mtev_conf_init_globals(void) {
+  mtev_hash_init(&global_param_sets);
   mtev_hash_init_locks(&_compiled_fallback, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 

@@ -44,6 +44,28 @@
 
 typedef void * mtev_conf_section_t;
 
+typedef enum {
+  MTEV_PARAM_INT8,
+  MTEV_PARAM_UINT8,
+  MTEV_PARAM_INT16,
+  MTEV_PARAM_UINT16,
+  MTEV_PARAM_INT32,
+  MTEV_PARAM_UINT32,
+  MTEV_PARAM_INT64,
+  MTEV_PARAM_UINT64,
+  MTEV_PARAM_FLOAT,
+  MTEV_PARAM_DOUBLE,
+  MTEV_PARAM_BOOLEAN
+} mtev_param_type_t;
+
+typedef mtev_boolean (*mtev_param_validator_t)(mtev_param_type_t, void *mem);
+typedef mtev_boolean (*mtev_param_parser_t)(const char *, mtev_param_type_t, void *mem);
+mtev_boolean
+mtev_conf_register_global_param(const char *name, const char *xpath,
+                                mtev_param_type_t ptype, void *mem,
+                                mtev_param_parser_t parser,
+                                mtev_param_validator_t validator);
+
 #define MTEV_CONF_T_USERDATA "mtev::state::conf_t"
 typedef struct {
   char *path;
