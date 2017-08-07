@@ -326,4 +326,15 @@ MTEV_HOOK_PROTO(mtev_conf_delete_section,
                 (void *closure, const char *root, const char *path,
                  const char *name, const char **err));
 
+
+/* COMPAT for future */
+#define mtev_conf_get_int32 mtev_conf_get_int
+#define mtev_conf_section_is_empty(a) (!(a))
+static inline void mtev_conf_release_section(mtev_conf_section_t a) {}
+static inline void mtev_conf_release_sections(mtev_conf_section_t *a, int c) {
+  free(a);
+}
+#define mtev_conf_section_to_xmlnodeptr(a) ((xmlNodePtr)(a))
+#define mtev_conf_section_from_xmlnodeptr(a) ((mtev_conf_section_t)(a))
+
 #endif
