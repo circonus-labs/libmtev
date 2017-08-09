@@ -106,6 +106,9 @@ function HttpClient:do_request(method, uri, _headers, payload, http_version)
     if headers["User-Agent"] == nil then
         headers["User-Agent"] = "libmtev/0"
     end
+    if headers["Accept"] == nil then
+        headers["Accept"] = "*/*"
+    end
     for header, value in pairs(headers) do
       if value ~= nil then sstr = sstr .. header .. ": " .. value .. "\r\n" end
     end
