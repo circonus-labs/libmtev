@@ -876,6 +876,7 @@ void eventer_dispatch_timed(struct timeval *next) {
   t->last_loop_start = nowhr;
 
   max_timed_events_to_process = t->timed_events->size;
+  if(max_timed_events_to_process == 0) mtev_gettimeofday(&now, NULL);
   while(max_timed_events_to_process-- > 0) {
     int newmask;
     uint64_t start, duration;
