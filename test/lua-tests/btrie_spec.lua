@@ -19,7 +19,10 @@ local nsl
 pcall((function() nsl = ffi.load('nsl') end))
 local inet_pton, AF_INET6
 local AF_INET = 2
-if nsl ~= nil then
+if jit.os == "Linux" then
+  inet_pton = ffi.C.inet_pton
+  AF_INET6 = 10
+elseif nsl ~= nil then
   inet_pton = nsl.inet_pton
   AF_INET6 = 26
 else
