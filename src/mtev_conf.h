@@ -44,6 +44,7 @@
 
 typedef void * mtev_conf_section_t;
 API_EXPORT(mtev_conf_section_t) MTEV_CONF_ROOT;
+API_EXPORT(mtev_conf_section_t) MTEV_CONF_EMPTY;
 
 typedef enum {
   MTEV_PARAM_INT8,
