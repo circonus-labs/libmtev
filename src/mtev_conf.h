@@ -330,6 +330,7 @@ MTEV_HOOK_PROTO(mtev_conf_delete_section,
 
 /* COMPAT for future */
 #define mtev_conf_get_int32 mtev_conf_get_int
+#define mtev_conf_string_to_int32 mtev_conf_string_to_int
 #define mtev_conf_section_is_empty(a) (!(a))
 static inline void mtev_conf_release_section(mtev_conf_section_t a) {}
 static inline void mtev_conf_release_sections(mtev_conf_section_t *a, int c) {
