@@ -93,7 +93,7 @@ API_EXPORT(void *)
 
 typedef struct _console_state {
   console_prompt_func_t      console_prompt_function;
-  mtev_skiplist              cmds;
+  mtev_skiplist             *cmds;
   state_free_func_t          statefree;
 } mtev_console_state_t;
 

@@ -642,8 +642,8 @@ mtev_console_add_help(const char *topic, console_cmd_func_t topic_func,
   mtev_console_state_t *s = console_command_help.dstate;
   if(!s) {
     console_command_help.dstate = s = calloc(1, sizeof(*s));
-    mtev_skiplist_init(&s->cmds);
-    mtev_skiplist_set_compare(&s->cmds, cmd_info_compare, cmd_info_comparek);
+    s->cmds = mtev_skiplist_alloc();
+    mtev_skiplist_set_compare(s->cmds, cmd_info_compare, cmd_info_comparek);
   }
   mtev_console_state_add_cmd(s, NCSCMD(topic, topic_func, ac, NULL, NULL));
 }
@@ -832,9 +832,9 @@ mtev_console_render_help(mtev_console_closure_t ncct,
     nc_printf(ncct, "No help available.\n");
     return -1;
   }
-  for(iter = mtev_skiplist_getlist(&dstate->cmds); iter;
-      mtev_skiplist_next(&dstate->cmds,&iter)) {
-    cmd_info_t *cmd = iter->data;
+  for(iter = mtev_skiplist_getlist(dstate->cmds); iter;
+      mtev_skiplist_next(dstate->cmds,&iter)) {
+    cmd_info_t *cmd = mtev_skiplist_data(iter);
     if(strcmp(cmd->name, "help")) nc_printf(ncct, "  ==> '%s'\n", cmd->name);
   }
   return 0;
@@ -872,16 +872,16 @@ _mtev_console_state_do(mtev_console_closure_t ncct,
     nc_printf(ncct, "arguments expected\n");
     return -1;
   }
-  cmd = mtev_skiplist_find_neighbors(&stack->state->cmds, argv[0],
+  cmd = mtev_skiplist_find_neighbors(stack->state->cmds, argv[0],
                                      NULL, NULL, &next);
   if(!cmd) {
     int ambiguous = 0;
     if(next) {
       cmd_info_t *pcmd = NULL;
-      cmd = next->data;
+      cmd = mtev_skiplist_data(next);
       amb = next;
-      mtev_skiplist_next(&stack->state->cmds, &amb);
-      if(amb) pcmd = amb->data;
+      mtev_skiplist_next(stack->state->cmds, &amb);
+      if(amb) pcmd = mtev_skiplist_data(amb);
       /* So cmd is the next in line... pcmd is the one after that.
        * If they both strncasecmp to 0, we're ambiguous,
        *    neither, then we're not found.
@@ -903,9 +903,9 @@ _mtev_console_state_do(mtev_console_closure_t ncct,
       if(ambiguous || !strcmp(argv[0], "?")) {
         char *partial = ambiguous ? argv[0] : "";
         if(ambiguous) nc_printf(ncct, "Ambiguous command: '%s'\n", argv[0]);
-        amb = ambiguous ? next : mtev_skiplist_getlist(&stack->state->cmds);
-        for(; amb; mtev_skiplist_next(&stack->state->cmds, &amb)) {
-          cmd = amb->data;
+        amb = ambiguous ? next : mtev_skiplist_getlist(stack->state->cmds);
+        for(; amb; mtev_skiplist_next(stack->state->cmds, &amb)) {
+          cmd = mtev_skiplist_data(amb);
           if(!strlen(partial) || strncasecmp(cmd->name, partial, strlen(partial)) == 0)
             nc_printf(ncct, "\t%s\n", cmd->name);
           else
@@ -913,7 +913,7 @@ _mtev_console_state_do(mtev_console_closure_t ncct,
         }
       }
       else {
-        cmd = mtev_skiplist_find(&stack->state->cmds, "", NULL);
+        cmd = mtev_skiplist_find(stack->state->cmds, "", NULL);
         if(cmd) {
           if(ncct->state_stack->name) free(ncct->state_stack->name);
           ncct->state_stack->name = strdup(cmd->name);
@@ -937,8 +937,8 @@ mtev_console_state_t *
 mtev_console_state_alloc_empty(void) {
   mtev_console_state_t *s;
   s = calloc(1, sizeof(*s));
-  mtev_skiplist_init(&s->cmds);
-  mtev_skiplist_set_compare(&s->cmds, cmd_info_compare, cmd_info_comparek);
+  s->cmds = mtev_skiplist_alloc();
+  mtev_skiplist_set_compare(s->cmds, cmd_info_compare, cmd_info_comparek);
   return s;
 }
 
@@ -955,14 +955,14 @@ mtev_console_state_alloc(void) {
 int
 mtev_console_state_add_cmd(mtev_console_state_t *state,
                            cmd_info_t *cmd) {
-  return (mtev_skiplist_insert(&state->cmds, cmd) != NULL);
+  return (mtev_skiplist_insert(state->cmds, cmd) != NULL);
 }
 
 cmd_info_t *
 mtev_console_state_get_cmd(mtev_console_state_t *state,
                            const char *name) {
   cmd_info_t *cmd;
-  cmd = mtev_skiplist_find(&state->cmds, name, NULL);
+  cmd = mtev_skiplist_find(state->cmds, name, NULL);
   return cmd;
 }
 
@@ -973,7 +973,7 @@ mtev_console_state_build(console_prompt_func_t promptf, cmd_info_t **clist,
   state = mtev_console_state_alloc();
   state->console_prompt_function = promptf;
   while(*clist) {
-    mtev_skiplist_insert(&state->cmds, *clist);
+    mtev_skiplist_insert(state->cmds, *clist);
     clist++;
   }
   state->statefree = sfreef;
