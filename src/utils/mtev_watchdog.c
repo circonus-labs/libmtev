@@ -91,6 +91,7 @@ static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
 static mtev_atomic32_t on_crash_fds_to_close[MAX_CRASH_FDS];
+static double global_child_watchdog_timeout = CHILD_WATCHDOG_TIMEOUT;
 
 typedef enum {
   GLIDE_CRASH,
@@ -398,7 +399,7 @@ void setup_signals(sigset_t *mysigs) {
   mtevAssert(setitimer(ITIMER_REAL, &attention, NULL) == 0);
 }
 
-static int mtev_heartcheck(double child_watchdog_timeout, double *ltt, int *heartno) {
+static int mtev_heartcheck(double *ltt, int *heartno) {
   int i;
   struct timeval now;
   mtev_gettimeofday(&now, NULL);
@@ -408,7 +409,7 @@ static int mtev_heartcheck(double child_watchdog_timeout, double *ltt, int *hear
 
     *heartno = i;
     age = last_tick_time(lifeline, &now);
-    double local_timeout = (lifeline->timeout_override != 0.0) ? lifeline->timeout_override : child_watchdog_timeout;
+    double local_timeout = (lifeline->timeout_override != 0.0) ? lifeline->timeout_override : global_child_watchdog_timeout;
     if (lifeline->active == HEART_ACTIVE_OFF) break;
     if (lifeline->active == HEART_ACTIVE_SKIP) continue;
     if (lifeline->action == CRASHY_NOTATALL && age > local_timeout) {
@@ -496,7 +497,6 @@ update_retries(int* offset, time_t times[]) {
 
 int mtev_watchdog_start_child(const char *app, int (*func)(void),
                               int child_watchdog_timeout_int) {
-  double child_watchdog_timeout = (double)child_watchdog_timeout_int;
   int child_pid, crashing_pid = -1;
   time_t time_data[retries];
   int offset = 0;
@@ -504,8 +504,10 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
   memset(time_data, 0, sizeof(time_data));
 
   appname = strdup(app);
-  if(child_watchdog_timeout == 0.0)
-    child_watchdog_timeout = CHILD_WATCHDOG_TIMEOUT;
+  if(child_watchdog_timeout_int == 0)
+    global_child_watchdog_timeout = CHILD_WATCHDOG_TIMEOUT;
+  else
+    global_child_watchdog_timeout = (double)child_watchdog_timeout_int;
   while(1) {
     int heartno = 0;
     double ltt = 0;
@@ -613,7 +615,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
               goto out_loop2;
             }
             else if(mtev_monitored_child_pid == child_pid &&
-                    mtev_heartcheck(child_watchdog_timeout, &ltt, &heartno)) {
+                    mtev_heartcheck(&ltt, &heartno)) {
               mtevL(mtev_error,
                     "[monitor] Watchdog timeout on heart#%d (%f s)... terminating child\n",
                     heartno, ltt);
@@ -661,6 +663,11 @@ void mtev_watchdog_enable(mtev_watchdog_t *lifeline) {
 void mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout) {
   if(lifeline == NULL) lifeline = mmap_lifelines;
   lifeline->timeout_override = timeout;
+}
+double mtev_watchdog_get_timeout(mtev_watchdog_t *lifeline) {
+  if(lifeline == NULL) return 0;
+  if(lifeline->timeout_override != 0.0) return lifeline->timeout_override;
+  return global_child_watchdog_timeout;
 }
 void mtev_watchdog_disable(mtev_watchdog_t *lifeline) {
   if(lifeline == NULL) lifeline = mmap_lifelines;

@@ -313,6 +313,13 @@ int eventer_is_loop(pthread_t tid) {
     if(pthread_equal(eventer_impl_tls_data[i].tid, tid)) return i;
   return -1;
 }
+
+double eventer_watchdog_timeout(void) {
+  struct eventer_impl_data *t = get_my_impl_data();
+  if(t == NULL) return 0.0;
+  return mtev_watchdog_get_timeout(t->hb);
+}
+
 void *eventer_get_spec_for_event(eventer_t e) {
   struct eventer_impl_data *t;
   if(e == NULL) t = get_my_impl_data();

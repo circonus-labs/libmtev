@@ -3609,9 +3609,27 @@ nl_eventer_loop_concurrency(lua_State *L) {
   return 1;
 }
 
+/*! \lua rv = mtev.watchdog_child_heartbeat()
+    \brief Heartbeat from a child process.
+    \return The return value of `mtev_watchdog_child_heartbeat()`
+*/
 static int
 nl_watchdog_child_heartbeat(lua_State *L) {
   lua_pushinteger(L, mtev_watchdog_child_heartbeat());
+  return 1;
+}
+
+/*! \lua timeout = mtev.watchdog_timeout()
+    \brief Return the watchdog timeout on the current thread.
+    \return A timeout in seconds, or nil if no watchdog configured.
+*/
+static int
+nl_watchdog_timeout(lua_State *L) {
+  double timeout = eventer_watchdog_timeout();
+  if(timeout != 0.0)
+    lua_pushnumber(L, timeout);
+  else
+    lua_pushnil(L);
   return 1;
 }
 
@@ -4360,6 +4378,7 @@ static const luaL_Reg mtevlib[] = {
   { "shared_set", nl_shared_set},
   { "shared_get", nl_shared_get},
   { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
+  { "watchdog_timeout", nl_watchdog_timeout },
   { "cluster_details", nl_cluster_details },
   { "cluster_get_self", nl_cluster_get_self },
   { NULL, NULL }
