@@ -120,11 +120,10 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
   char *buf, *mallocd = NULL;
 
   safe_size = MAX(grnam_buflen, pwnam_buflen);
-  if(safe_size >=0){
-    if(NULL == (buf = alloca(safe_size))) {
+  mtevAssert(safe_size > 0); 
+  if(NULL == (buf = alloca(safe_size))) {
     free(mallocd);
     BAIL("alloca failed");
-    }
   }
 
  retry_user:
