@@ -293,7 +293,7 @@ mtev_confstr_parse_time_gm(const char *input, uint64_t *output)
       if(! is_valid_time(construct_tzoffs.tm_hour, construct_tzoffs.tm_min, 0))
         return MTEV_CONFSTR_PARSE_ERR_FORMAT;
       input = iter;
-      tz_offset = (construct_tzoffs.tm_hour * 60 + construct_tzoffs.tm_min) * 60;
+      tz_offset = ((int64_t) construct_tzoffs.tm_hour * 60 + construct_tzoffs.tm_min) * 60;
       if(tzchr == '-')
         tz_offset *= -1;
       break;

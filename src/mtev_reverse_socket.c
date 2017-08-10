@@ -1174,7 +1174,7 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
     const char *cert_error = eventer_ssl_get_peer_error(sslctx);
     mtevL(nlerr, "[%s] [%s] mtev_connection_ssl_upgrade: %s [%s]\n",
       nctx->remote_str ? nctx->remote_str : "(null)",
-      cn_expected ? cn_expected : "(null)", error, cert_error);
+      cn_expected, error, cert_error);
   }
   nctx->close(nctx, e);
   mtev_connection_schedule_reattempt(nctx, now);

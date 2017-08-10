@@ -1447,7 +1447,6 @@ mtev_ssl_ctx_index_func(lua_State *L) {
         const char *ciphername;
         lua_newtable(L);
         while(NULL != (ciphername = eventer_ssl_get_cipher_list(ssl_ctx,i))) {
-          if(!ciphername) break;
           lua_pushnumber(L, ++i);
           lua_pushstring(L, ciphername);
           lua_settable(L,-3);
@@ -2822,10 +2821,6 @@ nl_conf_replace_value(lua_State *L) {
     mtev_conf_section_t section;
     char *element, *base;
     SPLIT_PATH(path, base, element);
-    if (!element) {
-      lua_pushboolean(L, 0);
-      return 1;
-    }
     while (NULL != (section = mtev_conf_get_section(NULL, path))) {
       mtev_conf_remove_section(section);
     }
@@ -2847,10 +2842,6 @@ nl_conf_replace_boolean(lua_State *L) {
     mtev_conf_section_t section;
     char *element, *base;
     SPLIT_PATH(path, base, element);
-    if (!element) {
-      lua_pushboolean(L, 0);
-      return 1;
-    }
     while (NULL != (section = mtev_conf_get_section(NULL, path))) {
       mtev_conf_remove_section(section);
     }
@@ -4041,7 +4032,7 @@ mtev_lua_serialize(lua_State *L, int index){
     case(LUA_TTABLE):
       data->value.table = mtev_lua_serialize_table(L, index);
       break;
-    case(LUA_TNIL): // we already returned NULL
+    //case(LUA_TNIL):  we already returned NULL
     default: 
       free(data);
       mtevL(nlerr, "Cannot serialize unsupported lua type %d\n", type);

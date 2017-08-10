@@ -814,7 +814,6 @@ posix_logio_cull(mtev_log_stream_t ls, int age, ssize_t bytes) {
   size = MIN(size, PATH_MAX + 128);
   de = alloca(size);
 
-  if(!d) return -1;
   pathlen = strlen(filename);
   now = time(NULL);
   while(portable_readdir_r(d, de, &entry) == 0 && entry != NULL) {
