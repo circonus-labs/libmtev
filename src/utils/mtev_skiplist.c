@@ -111,6 +111,9 @@ void mtev_skiplist_init(mtev_skiplist *sl) {
   mtev_skiplist_set_compare(sl->index, indexing_comp, indexing_compk);
 }
 
+mtev_skiplist *mtev_skiplist_indexes(mtev_skiplist *sl) {
+  return sl->index;
+}
 void mtev_skiplist_set_compare(mtev_skiplist *sl,
                                mtev_skiplist_comparator_t comp,
                               mtev_skiplist_comparator_t compk) {

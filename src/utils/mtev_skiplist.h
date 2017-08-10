@@ -63,6 +63,7 @@ void *mtev_skiplist_next(mtev_skiplist *sl, mtev_skiplist_node **);
 void *mtev_skiplist_previous(mtev_skiplist *sl, mtev_skiplist_node **);
 void *mtev_skiplist_data(mtev_skiplist_node *);
 int   mtev_skiplist_size(mtev_skiplist *);
+mtev_skiplist *mtev_skiplist_indexes(mtev_skiplist *);
 
 mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
                                                  const void *data,
