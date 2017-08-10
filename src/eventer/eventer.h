@@ -851,6 +851,12 @@ API_EXPORT(uint32_t) eventer_pool_concurrency(eventer_pool_t *);
 */
 API_EXPORT(void) eventer_pool_watchdog_timeout(eventer_pool_t *pool, double timeout);
 
+/*! \fn double eventer_watchdog_timeout(void)
+    \brief Return the current watchdog timeout on this thread.
+    \return A timeout in seconds, 0.0 if none configured.
+*/
+API_EXPORT(double) eventer_watchdog_timeout(void);
+
 /*! \fn pthread_t eventer_choose_owner(int n)
     \brief Find a thread in the default eventer pool.
     \param n an integer.
