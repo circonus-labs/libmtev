@@ -4032,7 +4032,6 @@ mtev_lua_serialize(lua_State *L, int index){
     case(LUA_TTABLE):
       data->value.table = mtev_lua_serialize_table(L, index);
       break;
-    //case(LUA_TNIL):  we already returned NULL
     default: 
       free(data);
       mtevL(nlerr, "Cannot serialize unsupported lua type %d\n", type);
