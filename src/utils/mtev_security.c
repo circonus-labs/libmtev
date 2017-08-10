@@ -135,6 +135,7 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
           pwnam_buflen = safe_size * 2;
           safe_size = MAX(grnam_buflen, pwnam_buflen);
           free(mallocd);
+          mtevAssert(safe_size > 0); 
           buf = mallocd = malloc(safe_size);
           goto retry_user;
         }

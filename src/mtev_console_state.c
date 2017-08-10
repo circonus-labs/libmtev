@@ -725,7 +725,7 @@ expand_range(const char *range, char ***set, int max_count, const char **err) {
     pcre_copy_substring(range, ovector, rv, 3, buff, sizeof(buff));
     mask = atoi(buff);
     if(mask == 32) full = 1; /* host implies.. the host */
-    if(mask < 0 || mask > 32) {
+    if(mask <= 0 || mask > 32) {
       *err = "invalid netmask";
       return 0;
     }

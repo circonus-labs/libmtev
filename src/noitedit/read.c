@@ -270,9 +270,8 @@ read_char(EditLine *el, char *cp)
 			num_read = eventer_read(el->el_in_e, cp, 1, &mask);
 		else
 			num_read = read(el->el_infd, cp, 1);
-
-		if (num_read)
-			break;
+                if(num_read > 0)
+                        break;
 		if (num_read == -1) {
 			if (errno == EAGAIN) return 0;
 		 	if (!tried && read__fixio(el->el_infd, errno) == 0) {
