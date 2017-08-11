@@ -666,7 +666,7 @@ remove_emancipated_child_node(xmlNodePtr oldp, xmlNodePtr node) {
   else {
     xmlNodePtr prev;
     for(prev = oldp->children; prev->next && prev->next != node; prev = prev->next);
-    if(prev) prev->next = node->next;
+    prev->next = node->next;
     if(node->next) node->next->prev = prev;
   }
 }
@@ -1231,7 +1231,7 @@ mtev_conf_load(const char *path) {
   char actual_path[PATH_MAX];
   int rv;
 
-  if(path == NULL && master_config_file[0])
+  if(master_config_file[0])
     path = master_config_file;
   else if(realpath(path, actual_path) != NULL) path = actual_path;
   if(!path) {
