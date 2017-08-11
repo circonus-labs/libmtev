@@ -1597,7 +1597,7 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
 
   rv = inet_pton(family, target, &a);
   if(rv != 1) {
-    family = family == AF_INET6;
+    family = AF_INET6;
     rv = inet_pton(family, target, &a);
     if(rv != 1) {
       memset(&a, 0, sizeof(a));
