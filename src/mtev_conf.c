@@ -1231,9 +1231,9 @@ mtev_conf_load(const char *path) {
   char actual_path[PATH_MAX];
   int rv;
 
-  if(master_config_file[0])
+  if(path == NULL && master_config_file[0])
     path = master_config_file;
-  else if(realpath(path, actual_path) != NULL) path = actual_path;
+  else if(path != NULL && realpath(path, actual_path) != NULL) path = actual_path;
   if(!path) {
     mtevL(mtev_error, "no config file specified\n");
     return -1;

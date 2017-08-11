@@ -806,10 +806,10 @@ mtev_time_maintain(void)
 mtev_boolean
 mtev_time_fast_mode(const char **reason)
 {
-  *reason = ready_rdtsc ? NULL : disable_reason;
+  if(reason) *reason = ready_rdtsc ? NULL : disable_reason;
 #ifdef ENABLE_RDTSC
   if (ready_rdtsc && use_system_gettimeofday) {
-    *reason = "using system gettimeofday() for performance reasons";
+    if(reason) *reason = "using system gettimeofday() for performance reasons";
   }
 #endif
   return ready_rdtsc;
