@@ -235,22 +235,22 @@ touch_lfu_cache_no_lock(mtev_lfu_t *c, struct lfu_entry *e)
   if (c->max_entries > 0) {
     struct lfu_cache_entry *bucket = e->frequency_list_head;
     struct lfu_cache_entry *next_bucket = STAILQ_NEXT(bucket, list_entry);
-
+    size_t bucket_freq = bucket->frequency;
     mtev_boolean need_new_bucket = mtev_false;
 
     if (next_bucket == NULL ||
         next_bucket == STAILQ_FIRST(&c->lfu_frequency_list) ||
-        next_bucket->frequency != bucket->frequency + 1) {
+        next_bucket->frequency != bucket_freq + 1) {
       need_new_bucket = mtev_true;
     }
     struct lfu_cache_entry *empty = remove_from_frequency_list_no_lock(c, e);
     if (need_new_bucket) {
       if (empty != NULL) {
         next_bucket = empty;
-        next_bucket->frequency = bucket->frequency + 1;
+        next_bucket->frequency = bucket_freq + 1;
         insert_to_bucket_list(c, next_bucket, bucket);
       } else {
-        next_bucket = new_frequency_bucket_no_lock(c, bucket->frequency + 1, bucket);
+        next_bucket = new_frequency_bucket_no_lock(c, bucket_freq + 1, bucket);
       }
     }
 
