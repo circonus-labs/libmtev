@@ -106,6 +106,20 @@ int main(int argc, char **argv)
   }
 
   mtev_lfu_destroy(lfu);
+
+  lfu = mtev_lfu_create(0, noop_free);
+
+  for (int j = 0; j < 10; j++) {
+    mtev_lfu_put(lfu, datas[j].key, strlen(datas[j].key), &datas[j]);
+  }
+
+  for (int j = 0; j < 10; j++) {
+    void *d = mtev_lfu_get(lfu, datas[j].key, strlen(datas[j].key));
+    if (d != NULL) {
+      FAIL("Zero sized LFU should always return NULL");
+    }
+  }
+
   printf("SUCCESS\n");
 
 }
