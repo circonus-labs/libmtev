@@ -194,7 +194,7 @@ static eventer_t eventer_ports_impl_remove(eventer_t e) {
 }
 static void eventer_ports_impl_update(eventer_t e, int mask) {
   if(e->mask & EVENTER_TIMER) {
-    eventer_update_timed(e,mask,&e->whence);
+    eventer_update_timed_internal(e,mask,&e->whence);
     return;
   }
   alter_fd(e, mask);

@@ -854,7 +854,7 @@ eventer_t eventer_remove_timed(eventer_t e) {
   pthread_mutex_unlock(&t->te_lock);
   return removed;
 }
-void eventer_update_timed(eventer_t e, int mask, struct timeval *new_whence) {
+void eventer_update_timed_internal(eventer_t e, int mask, struct timeval *new_whence) {
   struct eventer_impl_data *t;
   mtevAssert(mask & EVENTER_TIMER);
   t = get_event_impl_data(e);

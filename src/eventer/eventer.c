@@ -197,7 +197,7 @@ int eventer_get_fd(eventer_t e) { return e->fd; }
 struct timeval eventer_get_whence(eventer_t e) { return e->whence; }
 void eventer_update_whence(eventer_t e, struct timeval t) {
   if(e->mask != EVENTER_TIMER) return;
-  eventer_update_timed(e, EVENTER_TIMER, &t);
+  eventer_update_timed_internal(e, EVENTER_TIMER, &t);
 }
 
 pthread_t eventer_get_owner(eventer_t e) { return e->thr_owner; }

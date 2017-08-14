@@ -222,7 +222,7 @@ static eventer_t eventer_kqueue_impl_remove(eventer_t e) {
 }
 static void eventer_kqueue_impl_update(eventer_t e, int mask) {
   if(e->mask & EVENTER_TIMER) {
-    eventer_update_timed(e, mask, &e->whence);
+    eventer_update_timed_internal(e, mask, &e->whence);
     return;
   }
   mtevL(eventer_deb, "kqueue: update(%d, %x->%x)\n", e->fd, e->mask, mask);

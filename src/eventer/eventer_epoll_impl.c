@@ -205,7 +205,7 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
   struct epoll_event _ev;
   int ctl_op = EPOLL_CTL_MOD;
   if(e->mask & EVENTER_TIMER) {
-    eventer_update_timed(e,mask,&e->whence);
+    eventer_update_timed_internal(e,mask,&e->whence);
     return;
   }
   memset(&_ev, 0, sizeof(_ev));
