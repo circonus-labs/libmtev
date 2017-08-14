@@ -265,7 +265,6 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *val)
 {
   /* a max size of zero means to disable the LFU */
   if (lfu->max_entries == 0) {
-    /* we don't want calling code to error */
     return mtev_false;
   }
 
