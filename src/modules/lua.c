@@ -307,7 +307,7 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
     snprintf(state_str, sizeof(state_str), "0x%llx", (unsigned long long)(uintptr_t)L);
 
     MJ_KV(jcoros, state_str, jcoro = MJ_OBJ());
-    if(ri) describe_lua_context_json(jcoro, ri);
+    describe_lua_context_json(jcoro, ri);
     while (lua_getstack(L, level++, &ar));
     level--;
     MJ_KV(jcoro, "stack", jstack = MJ_ARR());
@@ -368,7 +368,7 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
     L = *((lua_State **)iter.key.ptr);
     ri = iter.value.ptr;
     if(!pthread_equal(me, ri->lmc->owner)) continue;
-    if(ri) describe_lua_context_ncct(ncct, ri);
+    describe_lua_context_ncct(ncct, ri);
     mtevL(nldeb, "describing lua state %p\n", L);
     nc_printf(ncct, "\tstack:\n");
     while (lua_getstack(L, level++, &ar));

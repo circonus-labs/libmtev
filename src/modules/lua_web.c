@@ -114,10 +114,8 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
   mtev_lua_resume_rest_info_t *ctx = ri->context_data;
   mtev_http_rest_closure_t *restc = NULL;
   eventer_t conne = NULL;
-  if(ctx) {
-    restc = ctx->restc;
-    conne = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
-  }
+  restc = ctx->restc;
+  conne = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
 
   mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
 
@@ -323,7 +321,7 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
           if(expr) *expr++ = '\0';
         }
       }
-      if(!module || !method || !mount) {
+      if(!method || !mount) {
         mtevL(mtev_error, "Invalid lua_web mount syntax in '%s'\n", iter.key.str);
         free(copy);
         return -1;

@@ -1629,7 +1629,7 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
 
   rv = inet_pton(family, target, &a);
   if(rv != 1) {
-    family = family == AF_INET ? AF_INET6 : AF_INET;
+    family = AF_INET6;
     rv = inet_pton(family, target, &a);
     if(rv != 1) {
       memset(&a, 0, sizeof(a));
@@ -1649,7 +1649,6 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
     memcpy(&rc->data.tgt.ipv6.sin6_addr, &a.addr6, sizeof(a.addr6));
     rc->data.tgt_len = sizeof(struct sockaddr_in6);
   }
-  else goto fail;
 
   snprintf(reverse_intro, sizeof(reverse_intro),
            "REVERSE /%s%s%s\r\n\r\n", channel_name,
