@@ -156,6 +156,7 @@ void eventer_dispatch_timed(struct timeval *next);
 void eventer_mark_callback_time(void);
 void eventer_set_this_event(eventer_t e);
 void eventer_callback_prep(eventer_t, int, void *, struct timeval *);
+void eventer_update_timed(eventer_t e, int mask, struct timeval *);
 void eventer_callback_cleanup(eventer_t, int);
 
 static inline int eventer_run_callback(eventer_t e, int m, void *c, struct timeval *n) {

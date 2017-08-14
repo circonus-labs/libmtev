@@ -854,13 +854,14 @@ eventer_t eventer_remove_timed(eventer_t e) {
   pthread_mutex_unlock(&t->te_lock);
   return removed;
 }
-void eventer_update_timed(eventer_t e, int mask) {
+void eventer_update_timed(eventer_t e, int mask, struct timeval *new_whence) {
   struct eventer_impl_data *t;
   mtevAssert(mask & EVENTER_TIMER);
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->te_lock);
   mtev_skiplist_remove_compare(t->timed_events, e, NULL, mtev_compare_voidptr);
   mtev_skiplist_remove_compare(t->staged_timed_events, e, NULL, mtev_compare_voidptr);
+  e->whence = *new_whence;
   mtev_skiplist_insert(t->staged_timed_events, e);
   pthread_mutex_unlock(&t->te_lock);
 }

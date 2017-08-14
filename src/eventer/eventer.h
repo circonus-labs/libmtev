@@ -1025,7 +1025,6 @@ API_EXPORT(eventer_t) eventer_get_this_event(void);
 
 /* Private */
 API_EXPORT(int) eventer_impl_init(void);
-API_EXPORT(void) eventer_update_timed(eventer_t e, int mask);
 API_EXPORT(void *) eventer_get_spec_for_event(eventer_t);
 API_EXPORT(int) eventer_cpu_sockets_and_cores(int *sockets, int *cores);
 
