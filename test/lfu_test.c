@@ -120,6 +120,22 @@ int main(int argc, char **argv)
     }
   }
 
+  mtev_lfu_destroy(lfu);
+
+  lfu = mtev_lfu_create(10, noop_free);
+
+  mtev_lfu_put(lfu, datas[0].key, strlen(datas[0].key), &datas[0]);
+
+  void *d = mtev_lfu_get(lfu, datas[0].key, strlen(datas[0].key));
+  if (d != &datas[0]) {
+    FAIL("get failed after put");
+  }
+  d = mtev_lfu_get(lfu, datas[0].key, strlen(datas[0].key));
+  if (d != &datas[0]) {
+    FAIL("2nd get failed after put");
+  }
+  mtev_lfu_destroy(lfu);
+
   printf("SUCCESS\n");
 
 }

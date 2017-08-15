@@ -11,7 +11,7 @@
 
 struct lfu_cache_entry;
 
-STAILQ_HEAD(frequency_list, lfu_cache_entry);
+TAILQ_HEAD(frequency_list, lfu_cache_entry);
 
 struct lfu_entry {
   void *entry;
@@ -24,7 +24,7 @@ struct lfu_entry {
 struct lfu_cache_entry {
   size_t frequency;
   STAILQ_HEAD(lfu_cache, lfu_entry) lfu_cache;
-  STAILQ_ENTRY(lfu_cache_entry) list_entry;
+  TAILQ_ENTRY(lfu_cache_entry) list_entry;
 };
 
 struct mtev_lfu {
@@ -92,7 +92,7 @@ mtev_lfu_create(int32_t max_entries, void (*free_fn)(void *))
   } else {
     hs_init(&r->hash, CK_HS_MODE_OBJECT | CK_HS_MODE_DELETE, lfu_entry_hash, hs_string_compare, max_entries * 2);
   }
-  STAILQ_INIT(&r->lfu_frequency_list);
+  TAILQ_INIT(&r->lfu_frequency_list);
   r->lfu_cache_size = 0;
   r->expire_count = 0;
   r->max_entries = max_entries;
@@ -118,9 +118,9 @@ mtev_lfu_invalidate(mtev_lfu_t *lfu)
 {
   pthread_mutex_lock(&lfu->mutex);
 
-  while (!STAILQ_EMPTY(&lfu->lfu_frequency_list)) {
-    struct lfu_cache_entry *e = STAILQ_FIRST(&lfu->lfu_frequency_list);
-    STAILQ_REMOVE(&lfu->lfu_frequency_list, e, lfu_cache_entry, list_entry);
+  while (!TAILQ_EMPTY(&lfu->lfu_frequency_list)) {
+    struct lfu_cache_entry *e = TAILQ_FIRST(&lfu->lfu_frequency_list);
+    TAILQ_REMOVE(&lfu->lfu_frequency_list, e, list_entry);
     while (!STAILQ_EMPTY(&e->lfu_cache)) {
       struct lfu_entry *le = STAILQ_FIRST(&e->lfu_cache);
       STAILQ_REMOVE(&e->lfu_cache, le, lfu_entry, freq_list_entry);
@@ -143,13 +143,10 @@ remove_from_frequency_list_no_lock(mtev_lfu_t *lfu, struct lfu_entry *le)
   if (STAILQ_FIRST(&le->frequency_list_head->lfu_cache) == NULL) {
 
     /* we can remove the entire frequency bucket */
-    STAILQ_REMOVE(&lfu->lfu_frequency_list, le->frequency_list_head, lfu_cache_entry, list_entry);
+    TAILQ_REMOVE(&lfu->lfu_frequency_list, le->frequency_list_head, list_entry);
     /* don't free, instead return the bucket for possible reuse */
     rval = le->frequency_list_head;
-    rval->list_entry.stqe_next = NULL;
     rval->frequency = 0;
-    rval->lfu_cache.stqh_first = NULL;
-    rval->lfu_cache.stqh_last = &rval->lfu_cache.stqh_first;
   }
   le->frequency_list_head = NULL;
   return rval;
@@ -164,7 +161,7 @@ static void
 expire_least_lfu_cache_no_lock(mtev_lfu_t *c)
 {
   /* peek at the first entry in the frequency list */
-  struct lfu_cache_entry *e = STAILQ_FIRST(&c->lfu_frequency_list);
+  struct lfu_cache_entry *e = TAILQ_FIRST(&c->lfu_frequency_list);
   struct lfu_entry *le = STAILQ_FIRST(&e->lfu_cache);
 
   struct lfu_cache_entry *empty = remove_from_frequency_list_no_lock(c, le);
@@ -192,10 +189,10 @@ expire_least_lfu_cache_no_lock(mtev_lfu_t *c)
 static inline void
 insert_to_bucket_list(mtev_lfu_t *c, struct lfu_cache_entry *bucket, struct lfu_cache_entry *prior)
 {
-  if (prior) {
-    STAILQ_INSERT_AFTER(&c->lfu_frequency_list, prior, bucket, list_entry);
+  if (prior && !TAILQ_EMPTY(&c->lfu_frequency_list) && bucket != prior) {
+    TAILQ_INSERT_AFTER(&c->lfu_frequency_list, prior, bucket, list_entry);
   } else {
-    STAILQ_INSERT_HEAD(&c->lfu_frequency_list, bucket, list_entry);
+    TAILQ_INSERT_HEAD(&c->lfu_frequency_list, bucket, list_entry);
   }
 }
 
@@ -217,7 +214,7 @@ add_lfu_cache_no_lock(mtev_lfu_t *c, struct lfu_entry *le)
       expire_least_lfu_cache_no_lock(c);
     }
     /* new entries always go in the list at frequency == 1 */
-    struct lfu_cache_entry *e = STAILQ_FIRST(&c->lfu_frequency_list);
+    struct lfu_cache_entry *e = TAILQ_FIRST(&c->lfu_frequency_list);
     if (e == NULL || e->frequency > 1) {
       /* make a frequency bucket of 1 */
       e = new_frequency_bucket_no_lock(c, 1, NULL);
@@ -234,21 +231,27 @@ touch_lfu_cache_no_lock(mtev_lfu_t *c, struct lfu_entry *e)
 {
   if (c->max_entries > 0) {
     struct lfu_cache_entry *bucket = e->frequency_list_head;
-    struct lfu_cache_entry *next_bucket = STAILQ_NEXT(bucket, list_entry);
+    struct lfu_cache_entry *next_bucket = TAILQ_NEXT(bucket, list_entry);
+    struct lfu_cache_entry *prev_bucket = TAILQ_PREV(bucket, frequency_list, list_entry);
     size_t bucket_freq = bucket->frequency;
     mtev_boolean need_new_bucket = mtev_false;
 
     if (next_bucket == NULL ||
-        next_bucket == STAILQ_FIRST(&c->lfu_frequency_list) ||
+        next_bucket == TAILQ_FIRST(&c->lfu_frequency_list) ||
         next_bucket->frequency != bucket_freq + 1) {
       need_new_bucket = mtev_true;
     }
     struct lfu_cache_entry *empty = remove_from_frequency_list_no_lock(c, e);
     if (need_new_bucket) {
       if (empty != NULL) {
+        /* reuse this bucket instead of allocating */
+        empty->frequency = bucket_freq + 1;
+        if (next_bucket && next_bucket->frequency < empty->frequency) {
+          insert_to_bucket_list(c, empty, next_bucket);
+        } else if (prev_bucket && prev_bucket->frequency < empty->frequency) {
+          insert_to_bucket_list(c, empty, prev_bucket);
+        }
         next_bucket = empty;
-        next_bucket->frequency = bucket_freq + 1;
-        insert_to_bucket_list(c, next_bucket, bucket);
       } else {
         next_bucket = new_frequency_bucket_no_lock(c, bucket_freq + 1, bucket);
       }
