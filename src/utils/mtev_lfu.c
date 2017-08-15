@@ -248,11 +248,13 @@ touch_lfu_cache_no_lock(mtev_lfu_t *c, struct lfu_entry *e)
         empty->frequency = bucket_freq + 1;
         if (next_bucket && next_bucket->frequency < empty->frequency) {
           insert_to_bucket_list(c, empty, next_bucket);
-        } else if (prev_bucket && prev_bucket->frequency < empty->frequency) {
+        } else {
+          /* if prev_bucket is NULL it will get stuck on the head */
           insert_to_bucket_list(c, empty, prev_bucket);
         }
         next_bucket = empty;
       } else {
+        /* our old bucket isn't empty, so we insert the next bucket right after it */
         next_bucket = new_frequency_bucket_no_lock(c, bucket_freq + 1, bucket);
       }
     }
