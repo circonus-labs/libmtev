@@ -82,8 +82,6 @@ mtev_cpuid_feature(int feature)
   uint64_t features;
   int vendor;
 
-  if (feature < 0 || feature >= MTEV_CPU_FEATURE_LENGTH)
-    return mtev_false;
 
   vendor = mtev_cpu_vendor();
 

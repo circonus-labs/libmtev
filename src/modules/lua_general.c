@@ -881,7 +881,7 @@ lua_repl_prompt(EditLine *el) {
   conf = get_config(info->self);
   lmc = pthread_getspecific(conf->key);
 
-  if(!pthread_equal(eventer_get_owner(ncct->e), pthread_self()))
+  if(!lmc || !pthread_equal(eventer_get_owner(ncct->e), pthread_self()))
     snprintf(info->prompt, sizeof(info->prompt), "lua_general(...)# ");
   else
     snprintf(info->prompt, sizeof(info->prompt), tl, get_eventer_id(ncct), lmc->lua_state);
