@@ -187,7 +187,7 @@ expire_least_lfu_cache_no_lock(mtev_lfu_t *c)
 }
 
 static inline void
-insert_to_bucket_list(mtev_lfu_t *c, struct lfu_cache_entry *bucket, struct lfu_cache_entry *prior)
+insert_to_bucket_list_after(mtev_lfu_t *c, struct lfu_cache_entry *bucket, struct lfu_cache_entry *prior)
 {
   if (prior && !TAILQ_EMPTY(&c->lfu_frequency_list) && bucket != prior) {
     TAILQ_INSERT_AFTER(&c->lfu_frequency_list, prior, bucket, list_entry);
@@ -202,7 +202,7 @@ new_frequency_bucket_no_lock(mtev_lfu_t *c, size_t freq, struct lfu_cache_entry 
   struct lfu_cache_entry *e = calloc(1, sizeof(struct lfu_cache_entry));
   e->frequency = freq;
   STAILQ_INIT(&e->lfu_cache);
-  insert_to_bucket_list(c, e, prior);
+  insert_to_bucket_list_after(c, e, prior);
   return e;
 }
 
@@ -246,12 +246,8 @@ touch_lfu_cache_no_lock(mtev_lfu_t *c, struct lfu_entry *e)
       if (empty != NULL) {
         /* reuse this bucket instead of allocating */
         empty->frequency = bucket_freq + 1;
-        if (next_bucket && next_bucket->frequency < empty->frequency) {
-          insert_to_bucket_list(c, empty, next_bucket);
-        } else {
-          /* if prev_bucket is NULL it will get stuck on the head */
-          insert_to_bucket_list(c, empty, prev_bucket);
-        }
+        /* if prev_bucket is NULL it will get stuck on the head */
+        insert_to_bucket_list_after(c, empty, prev_bucket);
         next_bucket = empty;
       } else {
         /* our old bucket isn't empty, so we insert the next bucket right after it */
