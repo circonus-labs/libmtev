@@ -111,7 +111,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     }
     if(len < (HDR_LENSIZE + HDR_IVSIZE)) {
       /* discard */
-      recvmsg(fd, &msg, 0);
+      (void) recvmsg(fd, &msg, 0);
       continue;
     }
     len = ntohl(netlen);
@@ -125,7 +125,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
         free(newpayload);
         free(newtext);
         mtevL(mtev_error, "recvmsg error: payload too large %d\n", len);
-        recvmsg(fd, &msg, 0);
+        (void) recvmsg(fd, &msg, 0);
         continue;
       }
       if(payload != payload_buff) free(payload);

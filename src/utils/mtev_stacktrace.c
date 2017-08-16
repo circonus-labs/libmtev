@@ -119,7 +119,9 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
     /* This is Async-Signal-Safe (at least on Illumos) */
     char tmpfilename[MAXPATHLEN];
     snprintf(tmpfilename, sizeof(tmpfilename), "/var/tmp/mtev_%d_XXXXXX", (int)getpid());
+    oldmask = umask(0600);
     _global_stack_trace_fd = mkstemp(tmpfilename);
+    umask(oldmask);
     if(_global_stack_trace_fd >= 0) unlink(tmpfilename);
   }
   if(_global_stack_trace_fd >= 0) {

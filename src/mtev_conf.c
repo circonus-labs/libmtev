@@ -1947,7 +1947,7 @@ mtev_conf_set_string(mtev_conf_section_t section,
     sections = mtev_conf_get_sections(section, dup, &cnt);
     mtev_conf_section_t copy;
     if(cnt > 1 || cnt == 0) {
-      char *spath = section ? (char *)xmlGetNodePath(section) : strdup("(root)");
+      char *spath = (char *)xmlGetNodePath(section);
       mtevL(mtev_error, "%s set_string \"%s\" \"%s\"\n",
             cnt ? "Ambiguous" : "Path missing", spath, dup);
       free(spath);
