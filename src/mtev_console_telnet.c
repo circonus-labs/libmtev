@@ -124,7 +124,7 @@ int	not42 = 1;
 static void
 netflush(mtev_console_closure_t ncct) {
   int unused;
-  mtev_console_continue_sending(ncct, &unused);
+  (void) mtev_console_continue_sending(ncct, &unused);
 }
 static void set_termbuf(mtev_console_closure_t ncct);
 static void init_termbuf(mtev_console_closure_t ncct);
