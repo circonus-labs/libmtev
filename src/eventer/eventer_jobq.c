@@ -516,6 +516,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     mtevL(eventer_deb, "jobq[%s] over provisioned, backing out.",
           jobq->queue_name);
     ck_pr_dec_32(&jobq->concurrency);
+    if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) mtev_memory_fini_thread();
     pthread_exit(NULL);
     return NULL;
   }
@@ -686,6 +687,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
   if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
   pthread_cleanup_pop(0);
   mtevL(eventer_deb, "jobq[%s/%p] -> terminating\n", jobq->queue_name, pthread_self_ptr());
+  if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) mtev_memory_fini_thread();
   pthread_exit(NULL);
   return NULL;
 }

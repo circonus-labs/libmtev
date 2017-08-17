@@ -52,10 +52,21 @@ static void *mtev_memory_gc(void *unused);
 static mtev_log_stream_t mem_debug = NULL;
 static pthread_mutex_t mem_debug_lock = PTHREAD_MUTEX_INITIALIZER;
 
+mtev_boolean mtev_memory_thread_initialized(void) {
+  return epoch_rec != NULL;
+}
+
 void mtev_memory_init_thread(void) {
   if(epoch_rec == NULL) {
     epoch_rec = malloc(sizeof(*epoch_rec));
     ck_epoch_register(&epoch_ht, epoch_rec);
+  }
+}
+
+void mtev_memory_fini_thread(void) {
+  if(epoch_rec != NULL) {
+    ck_epoch_unregister(epoch_rec);
+    epoch_rec = NULL;
   }
 }
 
