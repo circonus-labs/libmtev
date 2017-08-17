@@ -34,12 +34,12 @@
 #include "mtev_config.h"
 #include "mtev_hash.h"
 #include "mtev_log.h"
+#include "mtev_memory.h"
 #include "mtev_rand.h"
 #include "mtev_watchdog.h"
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ck_epoch.h>
 #include <unistd.h>
 
 #define ONSTACK_KEY_SIZE 128
@@ -151,6 +151,11 @@ static struct ck_malloc my_allocator = {
   .free = ht_free
 };
 
+static struct ck_malloc mtev_memory_allocator = {
+  .malloc = mtev_memory_ck_malloc,
+  .free = mtev_memory_ck_free
+};
+
 #define CK_HS_EMPTY     NULL
 #define CK_HS_TOMBSTONE ((void *)~(uintptr_t)0)
 #define CK_HS_G     (2)
@@ -181,7 +186,7 @@ struct locks_container {
   union {
     pthread_mutex_t hs_lock;
     mtev_spinlock_t hs_spinlock;
-  } locks;  
+  } locks;
 };
 
 static inline void
@@ -286,6 +291,21 @@ void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lo
 
   mtev_hash_set_lock_mode_funcs(h, lock_mode);
 }
+
+void mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode) {
+  mtev_rand_init();
+
+  if(size < 8) size = 8;
+
+  mtevAssert(ck_hs_init(&h->u.hs, CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC, hs_hash, hs_compare, &mtev_memory_allocator,
+                        size, mtev_rand()));
+  mtevAssert(h->u.hs.hf != NULL);
+
+  h->u.locks.locks = calloc(1, sizeof(struct locks_container));
+
+  mtev_hash_set_lock_mode_funcs(h, lock_mode);
+}
+
 
 int mtev_hash_size(mtev_hash_table *h) {
   if(h->u.hs.hf == NULL) {
@@ -494,16 +514,13 @@ void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src) {
   }
 }
 
-int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter) {
-  return mtev_hash_next(h, iter, &iter->key.str, &iter->klen, &iter->value.ptr);
-}
-
-/* mtev_hash_next(_str) should not use anything in iter past the
+/* _mtev_hash_next(_str) should not use anything in iter past the
  * ck_hs_iterator_t b/c older consumers could have the smaller
  * version of the mtev_hash_iter allocated on stack.
  */
-int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
-                const char **k, int *klen, void **data) {
+int _mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
+                    const char **k, int *klen, void **data, 
+                    mtev_boolean spmc) {
   void *cursor = NULL;
   ck_key_t *key;
   ck_hash_attr_t *data_struct;
@@ -514,7 +531,11 @@ int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
     mtev_hash_init(h);
   }
 
-  if(!ck_hs_next(&h->u.hs, &iter->iter, &cursor)) return 0;
+  if (spmc) {
+    if(!ck_hs_next_spmc(&h->u.hs, &iter->iter, &cursor)) return 0;
+  } else {
+    if(!ck_hs_next(&h->u.hs, &iter->iter, &cursor)) return 0;
+  }
   key = (ck_key_t *)cursor;
   data_struct = index_attribute_container(key);
   if (data_struct) {
@@ -524,6 +545,20 @@ int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
   }
   return 1;
 }
+
+int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter) {
+  return _mtev_hash_next(h, iter, &iter->key.str, &iter->klen, &iter->value.ptr, mtev_false);
+}
+
+int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter) {
+  return _mtev_hash_next(h, iter, &iter->key.str, &iter->klen, &iter->value.ptr, mtev_true);
+}
+
+int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
+                    const char **k, int *klen, void **data) {
+  return _mtev_hash_next(h, iter, k, klen, data, mtev_false);
+}
+
 
 int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
                        const char **k, int *klen, const char **dstr) {

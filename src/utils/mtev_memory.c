@@ -55,7 +55,7 @@ static pthread_mutex_t mem_debug_lock = PTHREAD_MUTEX_INITIALIZER;
 void mtev_memory_init_thread(void) {
   if(epoch_rec == NULL) {
     epoch_rec = malloc(sizeof(*epoch_rec));
-    ck_epoch_register(&epoch_ht, epoch_rec);
+    ck_epoch_register(&epoch_ht, epoch_rec, NULL);
   }
 }
 
@@ -110,8 +110,8 @@ void mtev_memory_maintenance(void) {
        epoch_temporary.n_peak != epoch_rec->n_peak ||
        epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
       mtevL(mem_debug,
-            "summary: [%u/%u/%u] %u pending, %u peak, %lu reclamations -> "
-              "[%u/%u/%u] %u pending, %u peak, %lu reclamations\n",
+            "summary: [%u/%u/%u] %u pending, %u peak, %u reclamations -> "
+              "[%u/%u/%u] %u pending, %u peak, %u reclamations\n",
               epoch_temporary.state, epoch_temporary.epoch,epoch_temporary.active,
               epoch_temporary.n_pending, epoch_temporary.n_peak, epoch_temporary.n_dispatch,
               epoch_rec->state, epoch_rec->epoch,epoch_rec->active,
@@ -165,8 +165,8 @@ mtev_gc_sync_complete(struct asynch_reclaim *ar) {
      epoch_temporary.n_peak != epoch_rec->n_peak ||
      epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
     mtevL(mem_debug,
-          "[%p:asynch] summary: [%u/%u/%u] %u pending, %u peak, %lu reclamations -> "
-            "[%u/%u/%u] %u pending, %u peak, %lu reclamations\n",
+          "[%p:asynch] summary: [%u/%u/%u] %u pending, %u peak, %u reclamations -> "
+            "[%u/%u/%u] %u pending, %u peak, %u reclamations\n",
             epoch_rec,
             epoch_temporary.state, epoch_temporary.epoch,epoch_temporary.active,
             epoch_temporary.n_pending, epoch_temporary.n_peak, epoch_temporary.n_dispatch,
@@ -273,8 +273,8 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
        epoch_temporary.n_peak != epoch_rec->n_peak ||
        epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
       mtevL(mem_debug,
-            "[%p:%s] summary: [%u/%u/%u] %u pending, %u peak, %lu reclamations -> "
-              "[%u/%u/%u] %u pending, %u peak, %lu reclamations\n",
+            "[%p:%s] summary: [%u/%u/%u] %u pending, %u peak, %u reclamations -> "
+              "[%u/%u/%u] %u pending, %u peak, %u reclamations\n",
               epoch_rec, (method == MTEV_MM_TRY) ? "try" : "barrier",
               epoch_temporary.state, epoch_temporary.epoch,epoch_temporary.active,
               epoch_temporary.n_pending, epoch_temporary.n_peak, epoch_temporary.n_dispatch,
