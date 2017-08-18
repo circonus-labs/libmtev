@@ -374,7 +374,7 @@ int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
   ck_hash_attr_t *attr = NULL;
 
   if(h->u.hs.hf == NULL) {
-    mtevL(mtev_error, "warning: null hashtable in mtev_hash_replace... initializing\n");
+    mtevL(mtev_error, "warning: null hashtable in mtev_hash_set... initializing\n");
     mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
   }
@@ -415,7 +415,7 @@ int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
       free(attr);
     }
   }
-  return 1;
+  return ret;
 }
 
 int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data) {
