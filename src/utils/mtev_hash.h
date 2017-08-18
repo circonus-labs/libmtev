@@ -135,8 +135,17 @@ void mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mod
  * mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().
  * */
 int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data);
+/* replace and delete (call keyfree and datafree functions) anything that was 
+ * already in this hash location
+ */
 int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
                       NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree);
+
+/* replace and return the old value and old key that was in this hash location
+ */
+int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
+                  char **oldkey, void **olddata);
+
 int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data);
 int mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr);
 int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen,

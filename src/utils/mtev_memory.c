@@ -194,7 +194,7 @@ mtev_memory_gc(void *unused) {
     ck_fifo_spsc_dequeue_lock(&gc_queue);
     while(ck_fifo_spsc_dequeue(&gc_queue, &ar)) {
 #ifdef HAVE_CK_EPOCH_SYNCHRONIZE_WAIT
-      ck_epoch_synchronize_wait(epoch_rec, mtev_memory_sync_wait, NULL);
+      ck_epoch_synchronize_wait(&epoch_ht, mtev_memory_sync_wait, NULL);
 #else
       ck_epoch_synchronize(epoch_rec);
 #endif

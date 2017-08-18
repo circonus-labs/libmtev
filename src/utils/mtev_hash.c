@@ -315,18 +315,25 @@ int mtev_hash_size(mtev_hash_table *h) {
   }
   return ck_hs_count(&h->u.hs);
 }
+
 int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
                       NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree) {
   long hashv;
   int ret;
   void *retrieved_key = NULL;
   ck_hash_attr_t *data_struct;
-  ck_hash_attr_t *attr = calloc(1, sizeof(ck_hash_attr_t) + klen + 1);
+  ck_hash_attr_t *attr = NULL;
 
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_replace... initializing\n");
     mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
+  }
+
+  if (h->u.hs.m == &mtev_memory_allocator) {
+    attr = mtev_memory_safe_calloc(1, sizeof(ck_hash_attr_t) + klen + 1);
+  } else {
+    attr = calloc(1, sizeof(ck_hash_attr_t) + klen + 1);
   }
 
   memcpy(attr->key.label, k, klen);
@@ -345,23 +352,37 @@ int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
         if (keyfree) keyfree(data_struct->key_ptr);
         if (datafree) datafree(data_struct->data);
       }
-      free(data_struct);
+      if (h->u.hs.m == &mtev_memory_allocator) {
+        mtev_memory_safe_free(data_struct);
+      } else {
+        free(data_struct);
+      }
     }
   }
   else {
-    free(attr);
+    if (h->u.hs.m == &mtev_memory_allocator) {
+      mtev_memory_safe_free(attr);
+    } else {
+      free(attr);
+    }
   }
   return 1;
 }
 int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data) {
   long hashv;
   int ret = 0;
-  ck_hash_attr_t *attr = calloc(1, sizeof(ck_hash_attr_t) + klen + 1);
+  ck_hash_attr_t *attr = NULL;
 
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_store... initializing\n");
     mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
+  }
+
+  if (h->u.hs.m == &mtev_memory_allocator) {
+    attr = mtev_memory_safe_calloc(1, sizeof(ck_hash_attr_t) + klen + 1);
+  } else {
+    attr = calloc(1, sizeof(ck_hash_attr_t) + klen + 1);
   }
 
   memcpy(attr->key.label, k, klen);
@@ -373,9 +394,70 @@ int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data) {
   LOCK(h);
   ret = ck_hs_put(&h->u.hs, hashv, &attr->key);
   UNLOCK(h);
-  if (!ret) free(attr);
+  if (!ret) {
+    if (h->u.hs.m == &mtev_memory_allocator) {
+      mtev_memory_safe_free(attr);
+    } else {
+      free(attr);
+    }
+  }
   return ret;
 }
+
+int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
+                  char **oldkey, void **olddata) 
+{
+  long hashv;
+  int ret;
+  void *retrieved_key = NULL;
+  ck_hash_attr_t *data_struct;
+  ck_hash_attr_t *attr = NULL;
+
+  if(h->u.hs.hf == NULL) {
+    mtevL(mtev_error, "warning: null hashtable in mtev_hash_replace... initializing\n");
+    mtev_stacktrace(mtev_error);
+    mtev_hash_init(h);
+  }
+
+  if (h->u.hs.m == &mtev_memory_allocator) {
+    attr = mtev_memory_safe_calloc(1, sizeof(ck_hash_attr_t) + klen + 1);
+  } else {
+    attr = calloc(1, sizeof(ck_hash_attr_t) + klen + 1);
+  }
+
+  memcpy(attr->key.label, k, klen);
+  attr->key.label[klen] = 0;
+  attr->key.len = klen + sizeof(uint32_t);
+  attr->data = data;
+  attr->key_ptr = (char*)k;
+  hashv = CK_HS_HASH(&h->u.hs, hs_hash, &attr->key);
+  LOCK(h);
+  ret = ck_hs_set(&h->u.hs, hashv, &attr->key, &retrieved_key);
+  UNLOCK(h);
+  if (ret) {
+    if (retrieved_key) {
+      data_struct = index_attribute_container(retrieved_key);
+      if (data_struct) {
+        if (oldkey) *oldkey = data_struct->key_ptr;
+        if (olddata) *olddata = data_struct->data;
+      }
+      if (h->u.hs.m == &mtev_memory_allocator) {
+        mtev_memory_safe_free(data_struct);
+      } else {
+        free(data_struct);
+      }
+    }
+  }
+  else {
+    if (h->u.hs.m == &mtev_memory_allocator) {
+      mtev_memory_safe_free(attr);
+    } else {
+      free(attr);
+    }
+  }
+  return 1;
+}
+
 int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data) {
   long hashv;
   ck_key_t *retrieved_key;
@@ -455,7 +537,11 @@ int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen,
     if (data_struct) {
       if (keyfree) keyfree(data_struct->key_ptr);
       if (datafree) datafree(data_struct->data);
-      free(data_struct);
+      if (h->u.hs.m == &mtev_memory_allocator) {
+        mtev_memory_safe_free(data_struct);
+      } else {
+        free(data_struct);
+      }
       if(key != &onstack_key.key) free(key);
       return 1;
     }
@@ -483,7 +569,11 @@ void mtev_hash_delete_all(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHash
     if (data_struct) {
       if (keyfree) keyfree(data_struct->key_ptr);
       if (datafree) datafree(data_struct->data);
-      free(data_struct);
+      if (h->u.hs.m == &mtev_memory_allocator) {
+        mtev_memory_safe_free(data_struct);
+      } else {
+        free(data_struct);
+      }
     }
   }
   ck_hs_reset_size(&h->u.hs, count);
