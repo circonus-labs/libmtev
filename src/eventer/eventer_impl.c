@@ -121,7 +121,11 @@ eventer_set_thread_name_internal(const char *name, mtev_boolean unsafe) {
   struct thread_name *to_free = pthread_getspecific(thread_name_key);
   if(to_free != NULL) {
     char *oldname = to_free->name;
-    to_free->name = unsafe ? strdup(name) : mtev_memory_safe_strdup(name);
+    if(name) {
+      to_free->name = unsafe ? strdup(name) : mtev_memory_safe_strdup(name);
+    } else {
+      to_free->name = NULL;
+    }
     if(to_free->unsafe) free(oldname);
     else mtev_memory_safe_free(oldname);
     to_free->unsafe = unsafe;
@@ -129,7 +133,11 @@ eventer_set_thread_name_internal(const char *name, mtev_boolean unsafe) {
   else {
     to_free = calloc(1, sizeof(*to_free));
     to_free->unsafe = unsafe;
-    to_free->name = unsafe ? strdup(name) : mtev_memory_safe_strdup(name);
+    if(name) {
+      to_free->name = unsafe ? strdup(name) : mtev_memory_safe_strdup(name);
+    } else {
+      to_free->name = NULL;
+    }
     pthread_setspecific(thread_name_key, to_free);
   }
 }
