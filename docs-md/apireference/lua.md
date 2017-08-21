@@ -330,3 +330,31 @@ The return is an `mtev.json` object not a string. You must invoke
 the `tostring` method to convert it to a simple string.
 
 
+### W
+
+#### mtev.watchdog_child_heartbeat
+
+>Heartbeat from a child process.
+
+```lua
+rv = 
+mtev.watchdog_child_heartbeat()
+```
+
+
+  * **RETURN** The return value of `mtev_watchdog_child_heartbeat()`
+
+
+#### mtev.watchdog_timeout
+
+>Return the watchdog timeout on the current thread.
+
+```lua
+timeout = 
+mtev.watchdog_timeout()
+```
+
+
+  * **RETURN** A timeout in seconds, or nil if no watchdog configured.
+
+

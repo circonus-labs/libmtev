@@ -2178,6 +2178,19 @@ file descriptor activity.  If, for an external reason, one needs to wake up
 a looping thread, this call is used.
 
 
+#### eventer_watchdog_timeout
+
+>Return the current watchdog timeout on this thread.
+
+```c
+double 
+eventer_watchdog_timeout(void)
+```
+
+
+  * **RETURN** A timeout in seconds, 0.0 if none configured.
+
+
 #### eventer_write
 
 >Execute an opset-appropriate `write` call.
@@ -3200,6 +3213,20 @@ mtev_watchdog_enable(mtev_watchdog_t *hb)
 mtev_watchdog_enable will make the parent respect and act on failed heartbeats.
  
 
+#### mtev_watchdog_get_timeout
+
+>returns the timeout configured for this watchdog.
+
+```c
+double 
+mtev_watchdog_get_timeout(mtev_watchdog_t *hb)
+```
+
+
+  * `hb` the heart on which to act
+  * **RETURN** A timeout in seconds, 0 if hb is NULL.
+ 
+
 #### mtev_watchdog_heartbeat
 
 ```c
@@ -3217,7 +3244,7 @@ mtev_watchdog_heartbeat will pulse on the specified heart.
 
 ```c
 void 
-mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout)
+mtev_watchdog_override_timeout(mtev_watchdog_t *hb, double timeout)
 ```
 
   * `hb` the heart on which to act

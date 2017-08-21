@@ -794,6 +794,27 @@ mtev.tojson(obj, maxdepth = <span class="hljs-number">-1</span>)
 counterparts (like userdata, lightuserdata, functions, threads, etc.).
 The return is an <code>mtev.json</code> object not a string. You must invoke
 the <code>tostring</code> method to convert it to a simple string.</p>
+<h3 id="w">W</h3>
+<h4 id="mtevwatchdogchildheartbeat">mtev.watchdog_child_heartbeat</h4>
+<blockquote>
+<p>Heartbeat from a child process.</p>
+</blockquote>
+<pre><code class="lang-lua">rv = 
+mtev.watchdog_child_heartbeat()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> The return value of <code>mtev_watchdog_child_heartbeat()</code></li>
+</ul>
+<h4 id="mtevwatchdogtimeout">mtev.watchdog_timeout</h4>
+<blockquote>
+<p>Return the watchdog timeout on the current thread.</p>
+</blockquote>
+<pre><code class="lang-lua">timeout = 
+mtev.watchdog_timeout()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> A timeout in seconds, or nil if no watchdog configured.</li>
+</ul>
 
                                 
                                 </section>

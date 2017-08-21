@@ -2244,6 +2244,16 @@ If <code>e</code> is <code>NULL</code> the first thread in the default eventer l
 eventer loop can wake up on timed events, asynchronous job completions and 
 file descriptor activity.  If, for an external reason, one needs to wake up
 a looping thread, this call is used.</p>
+<h4 id="eventerwatchdogtimeout">eventer_watchdog_timeout</h4>
+<blockquote>
+<p>Return the current watchdog timeout on this thread.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">double</span> 
+<span class="hljs-title">eventer_watchdog_timeout</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> A timeout in seconds, 0.0 if none configured.</li>
+</ul>
 <h4 id="eventerwrite">eventer_write</h4>
 <blockquote>
 <p>Execute an opset-appropriate <code>write</code> call.</p>
@@ -3091,6 +3101,17 @@ mtev_watchdog_create()
 <li><code>hb</code> the heart on which to act</li>
 </ul>
 <p>mtev_watchdog_enable will make the parent respect and act on failed heartbeats.</p>
+<h4 id="mtevwatchdoggettimeout">mtev_watchdog_get_timeout</h4>
+<blockquote>
+<p>returns the timeout configured for this watchdog.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">double</span> 
+<span class="hljs-title">mtev_watchdog_get_timeout</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
+</span></code></pre>
+<ul>
+<li><code>hb</code> the heart on which to act</li>
+<li><strong>RETURN</strong> A timeout in seconds, 0 if hb is NULL.</li>
+</ul>
 <h4 id="mtevwatchdogheartbeat">mtev_watchdog_heartbeat</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
 <span class="hljs-title">mtev_watchdog_heartbeat</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
@@ -3102,7 +3123,7 @@ mtev_watchdog_create()
 <p>mtev_watchdog_heartbeat will pulse on the specified heart.</p>
 <h4 id="mtevwatchdogoverridetimeout">mtev_watchdog_override_timeout</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_watchdog_override_timeout</span><span class="hljs-params">(mtev_watchdog_t *lifeline, <span class="hljs-keyword">double</span> timeout)</span>
+<span class="hljs-title">mtev_watchdog_override_timeout</span><span class="hljs-params">(mtev_watchdog_t *hb, <span class="hljs-keyword">double</span> timeout)</span>
 </span></code></pre>
 <ul>
 <li><code>hb</code> the heart on which to act</li>
