@@ -33,6 +33,28 @@
 #include "utils/mtev_skiplist.h"
 #include "utils/mtev_hash.h"
 
+struct _iskiplist {
+  mtev_skiplist_comparator_t compare;
+  mtev_skiplist_comparator_t comparek;
+  int height;
+  int preheight;
+  int size;
+  struct _mtev_skiplist_node *top;
+  struct _mtev_skiplist_node *bottom;
+  struct _iskiplist *index;
+};
+
+struct _mtev_skiplist_node {
+  void *data;
+  struct _mtev_skiplist_node *next;
+  struct _mtev_skiplist_node *prev;
+  struct _mtev_skiplist_node *down;
+  struct _mtev_skiplist_node *up;
+  struct _mtev_skiplist_node *previndex;
+  struct _mtev_skiplist_node *nextindex;
+  mtev_skiplist *sl;
+};
+
 static int mtev_skiplist_walk_init(mdb_walk_state_t *s) {
   mtev_skiplist l;
   mtev_skiplist_node n;
