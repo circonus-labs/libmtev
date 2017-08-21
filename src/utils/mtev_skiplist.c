@@ -106,7 +106,7 @@ mtev_skiplist *mtev_skiplist_alloc(void) {
 void mtev_skiplist_init(mtev_skiplist *sl) {
   mtev_rand_init();
   mtev_skiplisti_init(sl);
-  sl->index = (mtev_skiplist *)malloc(sizeof(mtev_skiplist));
+  sl->index = calloc(1, sizeof(*sl->index));
   mtev_skiplisti_init(sl->index);
   mtev_skiplist_set_compare(sl->index, indexing_comp, indexing_compk);
 }
@@ -436,6 +436,7 @@ void mtev_skiplist_destroy(mtev_skiplist *sl, mtev_freefunc_t myfree) {
   if(sl->index) {
     while(mtev_skiplist_pop(sl->index, mtev_skiplisti_destroy) != NULL);
     free((void *) sl->index);
+    sl->index = NULL;
   }
   mtev_skiplist_remove_all(sl, myfree);
 }
