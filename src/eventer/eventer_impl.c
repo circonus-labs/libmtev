@@ -503,14 +503,12 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   pthread_mutex_init(&t->cross_lock, NULL);
   pthread_mutex_init(&t->te_lock, NULL);
   pthread_mutex_init(&t->recurrent_lock, NULL);
-  t->timed_events = calloc(1, sizeof(*t->timed_events));
-  mtev_skiplist_init(t->timed_events);
+  t->timed_events = mtev_skiplist_alloc();
   mtev_skiplist_set_compare(t->timed_events,
                             eventer_timecompare, eventer_timecompare);
   mtev_skiplist_add_index(t->timed_events,
                           mtev_compare_voidptr, mtev_compare_voidptr);
-  t->staged_timed_events = calloc(1, sizeof(*t->staged_timed_events));
-  mtev_skiplist_init(t->staged_timed_events);
+  t->staged_timed_events = mtev_skiplist_alloc();
   mtev_skiplist_set_compare(t->staged_timed_events,
                             eventer_timecompare, eventer_timecompare);
   mtev_skiplist_add_index(t->staged_timed_events,
@@ -891,7 +889,7 @@ void eventer_dispatch_timed(struct timeval *next) {
   }
   t->last_loop_start = nowhr;
 
-  max_timed_events_to_process = t->timed_events->size;
+  max_timed_events_to_process = mtev_skiplist_size(t->timed_events);
   if(max_timed_events_to_process == 0) mtev_gettimeofday(&now, NULL);
   while(max_timed_events_to_process-- > 0) {
     int newmask;
@@ -945,7 +943,7 @@ void eventer_dispatch_timed(struct timeval *next) {
   }
 
   /* Sweep the staged timed events into the processing queue */
-  if(t->staged_timed_events->size) {
+  if(mtev_skiplist_size(t->staged_timed_events)) {
     eventer_t timed_event;
     pthread_mutex_lock(&t->te_lock);
     while(NULL !=
@@ -974,11 +972,11 @@ eventer_foreach_timedevent(void (*f)(eventer_t e, void *), void *closure) {
     pthread_mutex_lock(&t->te_lock);
     for(iter = mtev_skiplist_getlist(t->timed_events); iter;
         mtev_skiplist_next(t->timed_events,&iter)) {
-      if(iter->data) f(iter->data, closure);
+      if(mtev_skiplist_data(iter)) f(mtev_skiplist_data(iter), closure);
     }
     for(iter = mtev_skiplist_getlist(t->staged_timed_events); iter;
         mtev_skiplist_next(t->staged_timed_events,&iter)) {
-      if(iter->data) f(iter->data, closure);
+      if(mtev_skiplist_data(iter)) f(mtev_skiplist_data(iter), closure);
     }
     pthread_mutex_unlock(&t->te_lock);
   }

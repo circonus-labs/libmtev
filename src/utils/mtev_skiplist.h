@@ -31,31 +31,14 @@
 typedef int (*mtev_skiplist_comparator_t)(const void *, const void *);
 typedef void (*mtev_freefunc_t)(void *);
 
+struct _iskiplist;
 struct _mtev_skiplist_node;
 
-typedef struct _iskiplist {
-  mtev_skiplist_comparator_t compare;
-  mtev_skiplist_comparator_t comparek;
-  int height;
-  int preheight;
-  int size;
-  struct _mtev_skiplist_node *top;
-  struct _mtev_skiplist_node *bottom;
-  struct _iskiplist *index;
-} mtev_skiplist;
+typedef struct _iskiplist mtev_skiplist;
+typedef struct _mtev_skiplist_node mtev_skiplist_node;
 
-typedef struct _mtev_skiplist_node {
-  void *data;
-  struct _mtev_skiplist_node *next;
-  struct _mtev_skiplist_node *prev;
-  struct _mtev_skiplist_node *down;
-  struct _mtev_skiplist_node *up;
-  struct _mtev_skiplist_node *previndex;
-  struct _mtev_skiplist_node *nextindex;
-  mtev_skiplist *sl;
-} mtev_skiplist_node;
-
-
+mtev_skiplist *mtev_skiplist_alloc(void);
+void mtev_skiplist_free(mtev_skiplist *);
 void mtev_skiplist_init(mtev_skiplist *sl);
 void mtev_skiplist_set_compare(mtev_skiplist *sl, mtev_skiplist_comparator_t,
                                mtev_skiplist_comparator_t);
@@ -79,6 +62,8 @@ void *mtev_skiplist_find_neighbors(mtev_skiplist *sl, const void *data,
 void *mtev_skiplist_next(mtev_skiplist *sl, mtev_skiplist_node **);
 void *mtev_skiplist_previous(mtev_skiplist *sl, mtev_skiplist_node **);
 void *mtev_skiplist_data(mtev_skiplist_node *);
+int   mtev_skiplist_size(mtev_skiplist *);
+mtev_skiplist *mtev_skiplist_indexes(mtev_skiplist *);
 
 mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
                                                  const void *data,

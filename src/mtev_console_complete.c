@@ -59,15 +59,15 @@ mtev_console_opt_delegate(mtev_console_closure_t ncct,
   if(state == NULL) return NULL;
   i = 0;
   if(argc == 0) {
-    for(next = mtev_skiplist_getlist(&state->cmds); next;
-        mtev_skiplist_next(&state->cmds,&next)) {
-      cmd = next->data;
+    for(next = mtev_skiplist_getlist(state->cmds); next;
+        mtev_skiplist_next(state->cmds,&next)) {
+      cmd = mtev_skiplist_data(next);
       if(idx == i) return strdup(cmd->name);
       i++;
     }
   }
 
-  cmd = mtev_skiplist_find_neighbors(&state->cmds, argv[0],
+  cmd = mtev_skiplist_find_neighbors(state->cmds, argv[0],
                                      NULL, &curr, &next);
   if(cmd) {
     if(argc != 1) {
@@ -82,12 +82,12 @@ mtev_console_opt_delegate(mtev_console_closure_t ncct,
   if(!next) return NULL;
   i = 0;
   while(next) {
-    cmd = next->data;
+    cmd = mtev_skiplist_data(next);
     if(cmd && strncasecmp(cmd->name, argv[0], strlen(argv[0])) == 0) {
       if(idx == i) return strdup(cmd->name);
       i++;
     }
-    mtev_skiplist_next(&state->cmds, &next);
+    mtev_skiplist_next(state->cmds, &next);
   }
   return NULL;
 }
