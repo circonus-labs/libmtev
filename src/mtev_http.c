@@ -1324,13 +1324,13 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
 
  successful_chunk_size:
   {
+    /* ensure we are looking at the first input */
+    head = ctx->req.first_input;
+    if (head == NULL) {
+      /* nothing to read */
+      return -1;
+    }
     if (next_chunk > 0) {
-      /* ensure we are looking at the first input */
-      head = ctx->req.first_input;
-      if (head == NULL) {
-        /* nothing to read */
-        return -1;
-      }
       mtevL(http_debug, " ... have chunk (%d)\n", next_chunk);
       struct bchain *data = ALLOC_BCHAIN(next_chunk);
       data->compression = compression_type;
