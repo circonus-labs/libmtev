@@ -600,8 +600,8 @@ mtev_websocket_client_send(mtev_websocket_client_t *client, int opcode,
     opcode, msg, msg_len
   };
   rv = wslay_event_queue_msg(client->wslay_ctx, &msgarg);
-  eventer_trigger(client->e, 0);
   pthread_mutex_unlock(&client->lock);
+  eventer_update(client->e, EVENTER_WRITE | EVENTER_READ | EVENTER_EXCEPTION);
   return rv ? mtev_false : mtev_true;
 #else
   return mtev_false;

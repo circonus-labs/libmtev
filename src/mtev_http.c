@@ -2593,7 +2593,7 @@ mtev_http_websocket_queue_msg(mtev_http_session_ctx *ctx, int opcode,
   pthread_mutex_lock(&ctx->write_lock);
   rv = !wslay_event_queue_msg(ctx->wslay_ctx, &msgarg);
   pthread_mutex_unlock(&ctx->write_lock);
-  mtev_http_session_trigger(ctx, 0);
+  if (ctx->conn.e) eventer_update(ctx->conn.e, EVENTER_WRITE | EVENTER_READ | EVENTER_EXCEPTION);
   return rv;
 #else
   return mtev_false;
