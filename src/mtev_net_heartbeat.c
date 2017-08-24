@@ -469,20 +469,21 @@ mtev_net_heartbeat_add_multicast(mtev_net_heartbeat_ctx *ctx,
 mtev_net_heartbeat_ctx *
 mtev_net_heartbeat_from_conf(const char *basepath) {
   mtev_net_heartbeat_ctx *ctx = NULL;
-  int port = 0, period = 200, i, cnt;
+  int i, cnt;
+  int32_t period = 200, port = 0;
   char *keyhex;
   unsigned char key[32] = { 0 };
   mtev_conf_section_t section, *notes;
-  section = mtev_conf_get_section(NULL, basepath);
-  if(!section) return ctx;
+  section = mtev_conf_get_section(MTEV_CONF_ROOT, basepath);
+  if(mtev_conf_section_is_empty(section)) goto out;
   if(!mtev_conf_get_string(section, "self::node()/@key", &keyhex)) {
     mtevL(mtev_error, "netheartbeat section found, but no key attribute!\n");
-    return ctx;
+    goto out;
   }
   if(strlen(keyhex) != 64) {
     mtevL(mtev_error, "netheartbeat key must be 32 bytes (64 hex)!\n");
     free(keyhex);
-    return ctx;
+    goto out;
   }
   for(i=0;i<64;i++) {
     int v = 0;
@@ -492,25 +493,26 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
     else {
       mtevL(mtev_error, "netheartbeat key must be hexidecimal!\n");
       free(keyhex);
-      return ctx;
+      goto out;
     }
     key[i/2] = (key[i/2] << 4) | v;
   }
   free(keyhex);
 
-  (void)mtev_conf_get_int(section, "self::node()/@port", &port);
+  (void)mtev_conf_get_int32(section, "self::node()/@port", &port);
   if(port == 0) {
     mtevL(mtev_error, "netheartbeat section found, but no port attribute!\n");
-    return ctx;
+    goto out;
   }
-  (void)mtev_conf_get_int(section, "self::node()/@period", &period);
+  (void)mtev_conf_get_int32(section, "self::node()/@period", &period);
 
   global = mtev_net_heartbeat_context_create(port, key, period);
   
   notes = mtev_conf_get_sections(section, "self::node()//notify", &cnt);
   for(i=0;i<cnt;i++) {
     char addr_str[INET6_ADDRSTRLEN];
-    int port = 0, ttl = 1, rv;
+    int32_t port = 0, ttl = 1;
+    int rv;
     char type_str[32];
     int8_t family;
     union {
@@ -522,8 +524,8 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
     struct sockaddr_in in4;
     struct sockaddr_in6 in6;
 
-    (void)mtev_conf_get_int(notes[i], "self::node()/@ttl", &ttl);
-    (void)mtev_conf_get_int(notes[i], "self::node()/@port", &port);
+    (void)mtev_conf_get_int32(notes[i], "self::node()/@ttl", &ttl);
+    (void)mtev_conf_get_int32(notes[i], "self::node()/@port", &port);
     if(port <= 0 || port > 0xffff) {
       mtevL(mtev_error, "netheartbeat bad port %d in notify\n", port);
       continue;
@@ -579,9 +581,11 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
       mtevL(mtev_error, "netbroadcast notify type unknown: %s\n", type_str);
     }
   }
-  free(notes);
+  mtev_conf_release_sections(notes, cnt);
 
   mtev_net_heartbeat_context_start(ctx);
+ out:
+  mtev_conf_release_section(section);
   return ctx;
 }
 

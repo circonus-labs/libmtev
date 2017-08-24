@@ -42,7 +42,11 @@
 #include <uuid/uuid.h>
 #include <pcre.h>
 
-typedef void * mtev_conf_section_t;
+typedef struct mtev_conf_section {
+  void *opaque1;
+  void *opaque2;
+} mtev_conf_section_t;
+
 API_EXPORT(mtev_conf_section_t) MTEV_CONF_ROOT;
 API_EXPORT(mtev_conf_section_t) MTEV_CONF_EMPTY;
 
@@ -78,7 +82,7 @@ typedef struct {
 
 enum mtev_conf_type {
   MTEV_CONF_TYPE_BOOLEAN,
-  MTEV_CONF_TYPE_INT,
+  MTEV_CONF_TYPE_INT32,
   MTEV_CONF_TYPE_INT64,
   MTEV_CONF_TYPE_FLOAT,
   MTEV_CONF_TYPE_DOUBLE,
@@ -88,7 +92,7 @@ enum mtev_conf_type {
 
 typedef union mtev_conf_value_t {
   mtev_boolean val_bool;
-  int val_int;
+  int32_t val_int32;
   int64_t val_int64;
   float val_float;
   double val_double;
@@ -136,7 +140,7 @@ API_EXPORT(mtev_conf_default_or_optional_t) \
   mtev_conf_default_##name (type default_value);
 
 mtev_conf_default_hdr(boolean, int)
-mtev_conf_default_hdr(int, int)
+mtev_conf_default_hdr(int32, int32_t)
 mtev_conf_default_hdr(int64, int64_t)
 mtev_conf_default_hdr(float, float)
 mtev_conf_default_hdr(double, double)
@@ -153,7 +157,7 @@ extern mtev_conf_description_t \
     char* description, mtev_conf_default_or_optional_t default_or_optional);
 
 mtev_conf_description_hdr(boolean, int)
-mtev_conf_description_hdr(int, int)
+mtev_conf_description_hdr(int32, int32_t)
 mtev_conf_description_hdr(int64, int64_t)
 mtev_conf_description_hdr(float, float)
 mtev_conf_description_hdr(double, double)
@@ -170,9 +174,22 @@ API_EXPORT(void) mtev_console_conf_init(void);
 
 API_EXPORT(mtev_conf_section_t)
   mtev_conf_get_section(mtev_conf_section_t section, const char *path);
+API_EXPORT(void)
+  mtev_conf_release_section(mtev_conf_section_t section);
 API_EXPORT(mtev_conf_section_t *)
   mtev_conf_get_sections(mtev_conf_section_t section, const char *path,
                          int *cnt);
+API_EXPORT(void)
+  mtev_conf_release_sections(mtev_conf_section_t *sections, int cnt);
+
+struct _xmlNode;
+API_EXPORT(mtev_conf_section_t)
+  mtev_conf_section_from_xmlnodeptr(struct _xmlNode *node);
+API_EXPORT(struct _xmlNode *)
+  mtev_conf_section_to_xmlnodeptr(mtev_conf_section_t section);
+API_EXPORT(mtev_boolean)
+  mtev_conf_section_is_empty(mtev_conf_section_t section);
+
 API_EXPORT(int)
   mtev_conf_remove_section(mtev_conf_section_t section);
 
@@ -183,18 +200,18 @@ API_EXPORT(mtev_hash_table *)
                                 const char *path, const char *ns);
 
 API_EXPORT(char*)
-mtev_conf_section_to_xpath(mtev_conf_section_t* section);
+  mtev_conf_section_to_xpath(mtev_conf_section_t section);
 
 API_EXPORT(int) mtev_conf_get_string(mtev_conf_section_t section,
                                      const char *path, char **value);
 
 API_EXPORT(int) mtev_conf_get_stringbuf(mtev_conf_section_t section,
                                         const char *path, char *value, int len);
-API_EXPORT(int) mtev_conf_get_int(mtev_conf_section_t section,
-                                  const char *path, int *value);
+API_EXPORT(int) mtev_conf_get_int32(mtev_conf_section_t section,
+                                  const char *path, int32_t *value);
 API_EXPORT(int) mtev_conf_get_int64(mtev_conf_section_t section,
                                     const char *path, int64_t *value);
-API_EXPORT(int) mtev_conf_string_to_int(const char *str);
+API_EXPORT(int32_t) mtev_conf_string_to_int32(const char *str);
 API_EXPORT(int) mtev_conf_get_float(mtev_conf_section_t section,
                                     const char *path, float *value);
 API_EXPORT(float) mtev_conf_string_to_float(const char *str);
@@ -218,8 +235,8 @@ API_EXPORT(int)
 
 API_EXPORT(int) mtev_conf_set_string(mtev_conf_section_t section,
                                      const char *path, const char *value);
-API_EXPORT(int) mtev_conf_set_int(mtev_conf_section_t section,
-                                  const char *path, int value);
+API_EXPORT(int) mtev_conf_set_int32(mtev_conf_section_t section,
+                                    const char *path, int32_t value);
 API_EXPORT(int) mtev_conf_set_float(mtev_conf_section_t section,
                                     const char *path, float value);
 API_EXPORT(int) mtev_conf_set_double(mtev_conf_section_t section,
@@ -326,17 +343,5 @@ MTEV_HOOK_PROTO(mtev_conf_delete_section,
                 void *, closure,
                 (void *closure, const char *root, const char *path,
                  const char *name, const char **err));
-
-
-/* COMPAT for future */
-#define mtev_conf_get_int32 mtev_conf_get_int
-#define mtev_conf_string_to_int32 mtev_conf_string_to_int
-#define mtev_conf_section_is_empty(a) (!(a))
-static inline void mtev_conf_release_section(mtev_conf_section_t a) {}
-static inline void mtev_conf_release_sections(mtev_conf_section_t *a, int c) {
-  free(a);
-}
-#define mtev_conf_section_to_xmlnodeptr(a) ((xmlNodePtr)(a))
-#define mtev_conf_section_from_xmlnodeptr(a) ((mtev_conf_section_t)(a))
 
 #endif

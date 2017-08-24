@@ -1523,13 +1523,13 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
   char path[256];
 
   snprintf(path, sizeof(path), "/%s/%ss//%s", toplevel ? toplevel : "*", type, type);
-  mtev_configs = mtev_conf_get_sections(NULL, path, &cnt);
+  mtev_configs = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
   mtevL(nldeb, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     char address[256];
     const char *expected_cn = NULL;
     unsigned short port;
-    int portint;
+    int32_t portint;
     mtev_hash_table *sslconfig, *config;
 
     if(!mtev_conf_get_stringbuf(mtev_configs[i],
@@ -1548,8 +1548,8 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
       continue;
     }
 
-    if(!mtev_conf_get_int(mtev_configs[i],
-                          "ancestor-or-self::node()/@port", &portint))
+    if(!mtev_conf_get_int32(mtev_configs[i],
+                            "ancestor-or-self::node()/@port", &portint))
       portint = 0;
     port = (unsigned short) portint;
     if(address[0] != '/' && (portint == 0 || (port != portint))) {
@@ -1574,7 +1574,7 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
     mtev_hash_destroy(config,free,free);
     free(config);
   }
-  free(mtev_configs);
+  mtev_conf_release_sections(mtev_configs, cnt);
   return found;
 }
 

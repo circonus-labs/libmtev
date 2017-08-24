@@ -458,14 +458,14 @@ mtev_listener_reconfig(const char *toplevel) {
 
   snprintf(path, sizeof(path), "/%s/listeners//listener|/%s/include/listeners//listener",
            toplevel ? toplevel : "*", toplevel ? toplevel : "*");
-  listener_configs = mtev_conf_get_sections(NULL, path, &cnt);
+  listener_configs = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
   mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     char address[256];
     char type[256];
     unsigned short port;
-    int portint;
-    int backlog;
+    int32_t portint;
+    int32_t backlog;
     eventer_func_t f;
     mtev_boolean ssl, fanout = mtev_false, in_own_thread = mtev_false;
     eventer_pool_t *pool = NULL;
@@ -490,8 +490,8 @@ mtev_listener_reconfig(const char *toplevel) {
       address[0] = '*';
       address[1] = '\0';
     }
-    if(!mtev_conf_get_int(listener_configs[i],
-                          "ancestor-or-self::node()/@port", &portint))
+    if(!mtev_conf_get_int32(listener_configs[i],
+                            "ancestor-or-self::node()/@port", &portint))
       portint = 0;
     port = (unsigned short) portint;
     if(address[0] != '/' && (portint == 0 || (port != portint))) {
@@ -514,8 +514,8 @@ mtev_listener_reconfig(const char *toplevel) {
         mtevL(mtev_error, "Operator forced skipping listener %s\n", address);
       continue;
     }
-    if(!mtev_conf_get_int(listener_configs[i],
-                          "ancestor-or-self::node()/@backlog", &backlog))
+    if(!mtev_conf_get_int32(listener_configs[i],
+                            "ancestor-or-self::node()/@backlog", &backlog))
       backlog = 5;
 
     if(!mtev_conf_get_boolean(listener_configs[i],
@@ -557,7 +557,7 @@ mtev_listener_reconfig(const char *toplevel) {
       free(sslconfig);
     }
   }
-  free(listener_configs);
+  mtev_conf_release_sections(listener_configs, cnt);
 }
 int
 mtev_control_dispatch(eventer_t e, int mask, void *closure,

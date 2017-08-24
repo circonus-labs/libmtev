@@ -944,7 +944,7 @@ void mtev_http_rest_load_rules(void) {
   struct mtev_rest_acl_rule *remove_rule;
 
   snprintf(path, sizeof(path), "//rest//acl");
-  acls = mtev_conf_get_sections(NULL, path, &cnt);
+  acls = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
   mtevL(mtev_debug, "Found %d acl stanzas\n", cnt);
   for(ai = cnt-1; ai>=0; ai--) {
     char tbuff[32];
@@ -986,9 +986,9 @@ void mtev_http_rest_load_rules(void) {
       compile_re(rules[ri], newacl_rule, url);
       compile_listener_res(rules[ri], &newacl_rule->listener_res);
     }
-    free(rules);
+    mtev_conf_release_sections(rules, rcnt);
   }
-  free(acls);
+  mtev_conf_release_sections(acls, cnt);
 
   oldacls = global_rest_acls;
   global_rest_acls = newhead;

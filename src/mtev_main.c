@@ -107,7 +107,7 @@ configure_eventer(const char *appname) {
   char appscratch[1024];
 
   snprintf(appscratch, sizeof(appscratch), "/%s/eventer/config", appname);
-  table = mtev_conf_get_hash(NULL, appscratch);
+  table = mtev_conf_get_hash(MTEV_CONF_ROOT, appscratch);
   if(table) {
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
     while(mtev_hash_adv(table, &iter)) {
@@ -166,11 +166,11 @@ static int mtev_init_globals_once = 0;
 
 static void zipkin_conf(void) {
   double np = 0.0, pp = 1.0, dp = 1.0;
-  int lvl = 0;
-  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@new", &np);
-  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@parented", &pp);
-  (void)mtev_conf_get_double(NULL, "//zipkin//probability/@debug", &dp);
-  (void)mtev_conf_get_int(NULL, "//zipkin//@trace_event", &lvl);
+  int32_t lvl = 0;
+  (void)mtev_conf_get_double(MTEV_CONF_ROOT, "//zipkin//probability/@new", &np);
+  (void)mtev_conf_get_double(MTEV_CONF_ROOT, "//zipkin//probability/@parented", &pp);
+  (void)mtev_conf_get_double(MTEV_CONF_ROOT, "//zipkin//probability/@debug", &dp);
+  (void)mtev_conf_get_int32(MTEV_CONF_ROOT, "//zipkin//@trace_event", &lvl);
   mtev_zipkin_sampling(np,pp,dp);
   mtev_zipkin_event_trace_level(lvl);
 }
@@ -229,7 +229,7 @@ mtev_main_terminate(const char *appname,
   lockfd = -1;
   lockfile[0] = '\0';
   snprintf(appscratch, sizeof(appscratch), "/%s/@lockfile", appname);
-  if(!mtev_conf_get_stringbuf(NULL, appscratch,
+  if(!mtev_conf_get_stringbuf(MTEV_CONF_ROOT, appscratch,
                              lockfile, sizeof(lockfile))) {
     mtevL(mtev_debug, "No lockfile specified for application.\n");
     return -1;
@@ -284,7 +284,7 @@ mtev_main_status(const char *appname,
   lockfd = -1;
   lockfile[0] = '\0';
   snprintf(appscratch, sizeof(appscratch), "/%s/@lockfile", appname);
-  if(!mtev_conf_get_stringbuf(NULL, appscratch,
+  if(!mtev_conf_get_stringbuf(MTEV_CONF_ROOT, appscratch,
                              lockfile, sizeof(lockfile))) {
     mtevL(mtev_debug, "No lockfile specified for application.\n");
     return -1;
@@ -325,11 +325,11 @@ mtev_main(const char *appname,
   char appscratch[1024];
   char *glider = (char *)_glider;
   char *watchdog_timeout_str;
-  int retry_val;
-  int span_val;
+  int32_t retry_val;
+  int32_t span_val;
   int ret;
   int cnt;
-  mtev_conf_section_t root;
+  mtev_conf_section_t *root;
  
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
@@ -375,8 +375,8 @@ mtev_main(const char *appname,
 
   char* root_section_path = alloca(strlen(appname)+2);
   sprintf(root_section_path, "/%s", appname);
-  root = mtev_conf_get_sections(NULL, root_section_path, &cnt);
-  free(root);
+  root = mtev_conf_get_sections(MTEV_CONF_ROOT, root_section_path, &cnt);
+  mtev_conf_release_sections(root, cnt);
   if(cnt==0) {
     fprintf(stderr, "The config must have <%s> as its root node\n", appname);
     exit(-1);
@@ -390,35 +390,38 @@ mtev_main(const char *appname,
   cli_log_switches();
 
   snprintf(appscratch, sizeof(appscratch), "/%s/watchdog|/%s/include/watchdog", appname, appname);
-  watchdog_conf = mtev_conf_get_section(NULL, appscratch);
+  watchdog_conf = mtev_conf_get_section(MTEV_CONF_ROOT, appscratch);
 
   if(!glider) (void) mtev_conf_get_string(watchdog_conf, "@glider", &glider);
   if(mtev_watchdog_glider(glider)) {
     mtevL(mtev_stderr, "Invalid glider, exiting.\n");
+    mtev_conf_release_section(watchdog_conf);
     exit(-1);
   }
   (void)mtev_conf_get_string(watchdog_conf, "@tracedir", &trace_dir);
   if(trace_dir) {
     if(mtev_watchdog_glider_trace_dir(trace_dir)) {
       mtevL(mtev_stderr, "Invalid glider tracedir, exiting.\n");
+      mtev_conf_release_section(watchdog_conf);
       exit(-1);
     }
   }
 
-  ret = mtev_conf_get_int(watchdog_conf, "@retries", &retry_val);
+  ret = mtev_conf_get_int32(watchdog_conf, "@retries", &retry_val);
   if((ret == 0) || (retry_val == 0)){
     retry_val = 5;
   }
-  ret = mtev_conf_get_int(watchdog_conf, "@span", &span_val);
+  ret = mtev_conf_get_int32(watchdog_conf, "@span", &span_val);
   if((ret == 0) || (span_val == 0)){
     span_val = 60;
   }
+  mtev_conf_release_section(watchdog_conf);
 
   mtev_watchdog_ratelimit(retry_val, span_val);
 
   /* Lastly, run through all other system inits */
   snprintf(appscratch, sizeof(appscratch), "/%s/eventer/@implementation", appname);
-  if(!mtev_conf_get_stringbuf(NULL, appscratch, conf_str, sizeof(conf_str))) {
+  if(!mtev_conf_get_stringbuf(MTEV_CONF_ROOT, appscratch, conf_str, sizeof(conf_str))) {
     mtevL(mtev_stderr, "Cannot find '%s' in configuration\n", appscratch);
     exit(-1);
   }
@@ -446,7 +449,7 @@ mtev_main(const char *appname,
   lockfile[0] = '\0';
   snprintf(appscratch, sizeof(appscratch), "/%s/@lockfile", appname);
   if(lock != MTEV_LOCK_OP_NONE &&
-     mtev_conf_get_stringbuf(NULL, appscratch,
+     mtev_conf_get_stringbuf(MTEV_CONF_ROOT, appscratch,
                              lockfile, sizeof(lockfile))) {
     do {
       pid_t owner;

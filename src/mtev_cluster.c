@@ -500,8 +500,8 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
 
   snprintf(xpath_search, sizeof(xpath_search),
            "//clusters//cluster[@name=\"%s\"]", cluster->name);
-  n = mtev_conf_get_section(NULL, xpath_search);
-  parent = (xmlNodePtr)n;
+  n = mtev_conf_get_section(MTEV_CONF_ROOT, xpath_search);
+  parent = mtev_conf_section_to_xmlnodeptr(n);
 
   snprintf(new_seq_str, sizeof(new_seq_str), "%"PRId64, cluster->config_seq);
   if(!create) {
@@ -517,12 +517,14 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
   else {
     char port[6], period[8], timeout[8], maturity[8];
     if(parent) return 0;
-    n = mtev_conf_get_section(NULL, "//clusters");
-    if(!n) {
+    mtev_conf_release_section(n);
+    n = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
+    if(mtev_conf_section_is_empty(n)) {
       mtevL(mtev_error, "Cluster config attempted with no 'clusters' section.\n");
+      mtev_conf_release_section(n);
       return 0;
     }
-    container = (xmlNodePtr)n;
+    container = mtev_conf_section_to_xmlnodeptr(n);
     parent = xmlNewNode(NULL, (xmlChar *)"cluster");
     xmlSetProp(parent, (xmlChar *)"name", (xmlChar *)cluster->name);
     snprintf(port, sizeof(port), "%d", cluster->port);
@@ -563,11 +565,10 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
   }
   if(container) xmlAddChild(container, parent);
 
-  /* Dirty the right nodes */
-  if(container) CONF_DIRTY(container);
-  else CONF_DIRTY(parent);
+  CONF_DIRTY(n);
   mtev_conf_mark_changed();
   mtev_conf_request_write();
+  mtev_conf_release_section(n);
 
   return 1;
 }
@@ -654,7 +655,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
     nlist = mtev_memory_safe_calloc(n_nodes, sizeof(*nlist));
     for(i=0;i<n_nodes;i++) {
       int family;
-      int port;
+      int32_t port;
       union {
         struct in_addr addr4;
         struct in6_addr addr6;
@@ -671,7 +672,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
         mtevL(mtev_error, "Cluster '%s' node %d has no cn\n", name, i);
         goto bail;
       }
-      if(!mtev_conf_get_int(nodes[i], "@port", &port) || port < 0 || port > 0xffff) {
+      if(!mtev_conf_get_int32(nodes[i], "@port", &port) || port < 0 || port > 0xffff) {
         mtevL(mtev_error, "Cluster '%s' node %d has no (or bad) port\n", name, i);
         goto bail;
       }
@@ -764,7 +765,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
   pthread_mutex_unlock(&c_lock);
 
  bail:
-  if(nodes) free(nodes);
+  mtev_conf_release_sections(nodes, n_nodes);
   if(name) mtev_memory_safe_free(name);
   if(key) mtev_memory_safe_free(key);
   if(new_cluster) mtev_memory_safe_free(new_cluster);
@@ -796,18 +797,20 @@ mtev_cluster_set_self(uuid_t id) {
        my_id_str[UUID_STR_LEN+1];
   uuid_copy(my_cluster_id, id);
   uuid_unparse_lower(my_cluster_id, my_id_str);
-  if(!mtev_conf_get_stringbuf(NULL, "//clusters/@my_id",
+  if(!mtev_conf_get_stringbuf(MTEV_CONF_ROOT, "//clusters/@my_id",
                               old_uuid, sizeof(old_uuid)) ||
      strcmp(old_uuid, my_id_str)) {
     mtev_conf_section_t c;
-    c = mtev_conf_get_section(NULL, "//clusters");
-    if(c) {
-      xmlUnsetProp((xmlNodePtr)c, (xmlChar *)"my_id");
-      xmlSetProp((xmlNodePtr)c, (xmlChar *)"my_id", (xmlChar *)my_id_str);
+    c = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
+    if(!mtev_conf_section_is_empty(c)) {
+      xmlNodePtr cnode = mtev_conf_section_to_xmlnodeptr(c);
+      xmlUnsetProp(cnode, (xmlChar *)"my_id");
+      xmlSetProp(cnode, (xmlChar *)"my_id", (xmlChar *)my_id_str);
       CONF_DIRTY(c);
       mtev_conf_mark_changed();
       mtev_conf_request_write();
     }
+    mtev_conf_release_section(c);
   }
 }
 void
@@ -1183,7 +1186,7 @@ rest_update_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
   root = xmlDocGetRootElement(indoc);
   if(!root || strcmp((const char *)root->name, "cluster"))
     FAIL("bad root node: not cluster");
-  status = mtev_cluster_update_internal(root, mtev_true);
+  status = mtev_cluster_update_internal(mtev_conf_section_from_xmlnodeptr(root), mtev_true);
   if(status < 0) {
     FAIL("failed to update");
   }
@@ -1218,19 +1221,22 @@ mtev_cluster_init(void) {
   mtev_gettimeofday(&my_boot_time, NULL);
   mtev_hash_init_locks(&global_clusters, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 
-  parent = mtev_conf_get_section(NULL, "//clusters");
-  if(!parent) return;
+  parent = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
+  if(mtev_conf_section_is_empty(parent)) {
+    mtev_conf_release_section(parent);
+    return;
+  }
 
   have_clusters = mtev_true;
   if(mtev_conf_get_stringbuf(parent, "@my_id", my_id_str, sizeof(my_id_str)) &&
      uuid_parse(my_id_str, my_id) == 0) {
     mtev_cluster_set_self(my_id);
   }
-  clusters = mtev_conf_get_sections(NULL, "//clusters//cluster", &n_clusters);
+  clusters = mtev_conf_get_sections(MTEV_CONF_ROOT, "//clusters//cluster", &n_clusters);
   for(i=0;i<n_clusters;i++) {
     mtev_cluster_update_internal(clusters[i], mtev_false);
   }
-  if(clusters) free(clusters);
+  mtev_conf_release_sections(clusters, n_clusters);
 
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/", "^cluster(/(..*?))?(\\.json)?$", rest_show_cluster,

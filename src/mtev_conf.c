@@ -55,6 +55,7 @@
 #include "mtev_security.h"
 #include "mtev_hooks.h"
 #include "mtev_str.h"
+#include "mtev_thread.h"
 
 MTEV_HOOK_IMPL(mtev_conf_delete_section,
                 (const char *root, const char *path,
@@ -66,10 +67,80 @@ MTEV_HOOK_IMPL(mtev_conf_delete_section,
 
 const char *_mtev_branch = MTEV_BRANCH;
 const char *_mtev_version = MTEV_VERSION;
-mtev_conf_section_t MTEV_CONF_ROOT = NULL;
-mtev_conf_section_t MTEV_CONF_EMPTY = NULL;
 
+static pthread_mutex_t global_config_lock;
+#ifdef DEBUG_LOCKING
+static int global_lock_cnt = 0;
+static int global_thread_id = -1;
+#endif
+
+static inline void _glock(pthread_mutex_t *lock) {
+#ifdef DEBUG_LOCKING
+  mtevAssert(lock == &global_config_lock);
+  mtevL(mtev_debug, "mtev_conf_lock(t@%d)\n", mtev_thread_id());
+#endif
+  pthread_mutex_lock(lock);
+#ifdef DEBUG_LOCKING
+  mtevAssert(global_lock_cnt > 0 || global_thread_id == -1);
+  global_thread_id = mtev_thread_id();
+  global_lock_cnt++;
+  mtevL(mtev_debug, "mtev_conf_lock(t@%d) ++> %d\n", global_thread_id, global_lock_cnt);
+  mtev_stacktrace(mtev_debug);
+#endif
+}
+static inline void _gunlock(pthread_mutex_t *lock) {
+#ifdef DEBUG_LOCKING
+  mtevAssert(lock == &global_config_lock);
+  mtevAssert(global_lock_cnt > 0);
+  mtevAssert(global_thread_id == mtev_thread_id());
+  global_lock_cnt--;
+  if(global_lock_cnt == 0) global_thread_id = -1;
+  mtevL(mtev_debug, "mtev_conf_lock(t@%d) --> %d\n", mtev_thread_id(), global_lock_cnt);
+  mtev_stacktrace(mtev_debug);
+#endif
+  pthread_mutex_unlock(lock);
+}
+
+mtev_conf_section_t MTEV_CONF_ROOT = {
+  .opaque1 = &global_config_lock, .opaque2 = NULL
+};
+mtev_conf_section_t MTEV_CONF_EMPTY = {
+  .opaque1 = NULL, .opaque2 = NULL
+};
 static mtev_hash_table global_param_sets;
+
+mtev_boolean
+mtev_conf_section_is_empty(mtev_conf_section_t section) {
+  return section.opaque1 == NULL && section.opaque2 == NULL;
+}
+
+void
+mtev_conf_acquire_section(mtev_conf_section_t section) {
+  if(section.opaque1) _glock((pthread_mutex_t *)section.opaque1);
+}
+void
+mtev_conf_release_section(mtev_conf_section_t section) {
+  if(section.opaque1) _gunlock((pthread_mutex_t *)section.opaque1);
+}
+
+void
+mtev_conf_release_sections(mtev_conf_section_t *sections, int cnt) {
+  int i = 0;
+  for(i=0; i<cnt; i++) mtev_conf_release_section(sections[i]);
+  free(sections);
+}
+
+mtev_conf_section_t
+mtev_conf_section_from_xmlnodeptr(xmlNodePtr node) {
+  mtev_conf_section_t section = { .opaque2 = node };
+  if(section.opaque2) section.opaque1 = &global_config_lock;
+  return section;
+}
+
+xmlNodePtr
+mtev_conf_section_to_xmlnodeptr(mtev_conf_section_t section) {
+  return (xmlNodePtr)section.opaque2;
+}
 
 static const int globflags = 0 |
 #ifdef GLOB_NOMAGIC
@@ -234,7 +305,7 @@ mtev_conf_update_global_param(const char *name, const char *value,
   }
 
   if(p->xpath) {
-    if(mtev_conf_set_string(NULL, p->xpath, value) > 0) {
+    if(mtev_conf_set_string(MTEV_CONF_ROOT, p->xpath, value) > 0) {
       if(config) *config = mtev_true;
     }
   }
@@ -323,9 +394,11 @@ struct recurrent_journaler {
   void *jc_closure;
 };
 
-void mtev_conf_write_section(mtev_conf_section_t node, int fd) {
+void mtev_conf_write_section(mtev_conf_section_t section, int fd) {
   xmlOutputBufferPtr out;
   xmlCharEncodingHandlerPtr enc;
+  mtev_conf_acquire_section(section);
+  xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(section);
 
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
   out = xmlOutputBufferCreateFd(fd, enc);
@@ -335,6 +408,7 @@ void mtev_conf_write_section(mtev_conf_section_t node, int fd) {
     mtevL(mtev_debug, "Odd error writeing LF to conf\n");
   }
   xmlFree(enc);
+  mtev_conf_release_section(section);
 }
 
 static void
@@ -435,7 +509,10 @@ mtev_conf_set_namespace(const char *ns) {
 
 void
 mtev_conf_correct_namespace(mtev_conf_section_t cp, mtev_conf_section_t cc) {
-  xmlNodePtr parent = cp, child = cc;
+  xmlNodePtr parent = mtev_conf_section_to_xmlnodeptr(cp),
+             child = mtev_conf_section_to_xmlnodeptr(cc);
+  mtev_conf_acquire_section(cp);
+  mtev_conf_acquire_section(cc);
   if(child->ns) {
     xmlNsPtr oldns = child->ns;
     child->ns = NULL;
@@ -446,8 +523,12 @@ mtev_conf_correct_namespace(mtev_conf_section_t cp, mtev_conf_section_t cc) {
     }
     child->ns = parent->ns;
   }
-  if(child->children) mtev_conf_correct_namespace(parent, child->children);
-  if(child->next) mtev_conf_correct_namespace(parent, child->next);
+  if(child->children)
+    mtev_conf_correct_namespace(cp, mtev_conf_section_from_xmlnodeptr(child->children));
+  if(child->next)
+    mtev_conf_correct_namespace(cp, mtev_conf_section_from_xmlnodeptr(child->next));
+  mtev_conf_release_section(cc);
+  mtev_conf_release_section(cp);
 }
 
 static int
@@ -821,18 +902,21 @@ remove_emancipated_child_node(xmlNodePtr oldp, xmlNodePtr node) {
 void
 mtev_conf_include_remove(mtev_conf_section_t vnode) {
   int i;
-  xmlNodePtr node = vnode;
+  mtev_conf_acquire_section(vnode);
+  xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(vnode);
   for(i=0;i<config_include_cnt;i++) {
     if(node->parent == config_include_nodes[i].insertion_point) {
       remove_emancipated_child_node(config_include_nodes[i].root, node);
     }
   }
+  mtev_conf_release_section(vnode);
 }
 
 void
 mtev_conf_backingstore_remove(mtev_conf_section_t vnode) {
   int i;
-  xmlNodePtr node = vnode;
+  mtev_conf_acquire_section(vnode);
+  xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(vnode);
   mtev_xml_userdata_t *subctx = node->_private;
   for(i=0;i<backingstore_include_cnt;i++) {
     if(node->parent == backingstore_include_nodes[i].insertion_point) {
@@ -850,19 +934,23 @@ mtev_conf_backingstore_remove(mtev_conf_section_t vnode) {
     node->_private = NULL;
   }
   /* If we're deleted, we'll mark the parent as dirty */
-  if(node->parent) mtev_conf_backingstore_dirty(node->parent);
+  if(node->parent) mtev_conf_backingstore_dirty(mtev_conf_section_from_xmlnodeptr(node->parent));
+  mtev_conf_release_section(vnode);
 }
 
 void
 mtev_conf_backingstore_dirty(mtev_conf_section_t vnode) {
-  xmlNodePtr node = vnode;
+  mtev_conf_acquire_section(vnode);
+  xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(vnode);
   mtev_xml_userdata_t *subctx = node->_private;
   if(subctx) {
     mtevL(mtev_debug, "backingstore[%s] marked dirty\n", subctx->path);
     subctx->dirty_time = usec_now();
-    return;
   }
-  if(node->parent) mtev_conf_backingstore_dirty(node->parent);
+  else if(node->parent) {
+    mtev_conf_backingstore_dirty(mtev_conf_section_from_xmlnodeptr(node->parent));
+  }
+  mtev_conf_release_section(vnode);
 }
 
 static int
@@ -1399,9 +1487,9 @@ static int mtev_conf_check_value(mtev_conf_description_t* description) {
     rv = mtev_conf_get_boolean(description->section, description->path,
         &description->value.val_bool);
     break;
-  case MTEV_CONF_TYPE_INT:
-    rv = mtev_conf_get_int(description->section, description->path,
-        &description->value.val_int);
+  case MTEV_CONF_TYPE_INT32:
+    rv = mtev_conf_get_int32(description->section, description->path,
+        &description->value.val_int32);
     break;
   case MTEV_CONF_TYPE_INT64:
     rv = mtev_conf_get_int64(description->section, description->path,
@@ -1444,13 +1532,15 @@ get_descendant_id(xmlNode* node) {
 }
 
 char*
-mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
-  if (section == NULL) {
+mtev_conf_section_to_xpath(mtev_conf_section_t section) {
+  if (mtev_conf_section_is_empty(section)) {
     return NULL;
   }
 
+  mtev_conf_acquire_section(section);
+
   mtev_prependable_str_buff_t *xpath = mtev_prepend_str_alloc();
-  xmlNode* node = (xmlNode*) section;
+  xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(section);
   int buff_len = 512;
   char *buff = alloca(buff_len);
   char *onheap = NULL;
@@ -1481,6 +1571,7 @@ mtev_conf_section_to_xpath(mtev_conf_section_t* section) {
   free(onheap);
   char *result = strndup(xpath->string, (size_t)mtev_prepend_strlen(xpath));
   mtev_prepend_str_free(xpath);
+  mtev_conf_release_section(section);
   return result;
 }
 
@@ -1517,7 +1608,7 @@ mtev_conf_description_##name (mtev_conf_section_t section, char *path, \
 }
 
 mtev_conf_description(boolean, MTEV_CONF_TYPE_BOOLEAN)
-mtev_conf_description(int, MTEV_CONF_TYPE_INT)
+mtev_conf_description(int32, MTEV_CONF_TYPE_INT32)
 mtev_conf_description(int64, MTEV_CONF_TYPE_INT64)
 mtev_conf_description(float, MTEV_CONF_TYPE_FLOAT)
 mtev_conf_description(double, MTEV_CONF_TYPE_DOUBLE)
@@ -1546,9 +1637,9 @@ int mtev_conf_get_value(mtev_conf_description_t* description,
     memcpy(return_value, &description->value.val_bool,
         sizeof(description->value.val_bool));
     break;
-  case MTEV_CONF_TYPE_INT:
-    memcpy(return_value, &description->value.val_int,
-        sizeof(description->value.val_int));
+  case MTEV_CONF_TYPE_INT32:
+    memcpy(return_value, &description->value.val_int32,
+        sizeof(description->value.val_int32));
     break;
   case MTEV_CONF_TYPE_INT64:
     memcpy(return_value, &description->value.val_int64,
@@ -1603,12 +1694,15 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
   mtev_hash_table collide;
   char *same_space_collision = NULL;
   xmlXPathObjectPtr pobj = NULL;
-  xmlXPathContextPtr current_ctxt;
-  xmlNodePtr current_node = (xmlNodePtr)section;
+  xmlXPathContextPtr current_ctxt = NULL;
+
+  mtev_conf_acquire_section(section);
+
+  xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
   xmlNodePtr node;
 
   current_ctxt = xpath_ctxt;
-  if(!xpath_ctxt) return;
+  if(!xpath_ctxt) goto out;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1672,6 +1766,7 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
   if(pobj) xmlXPathFreeObject(pobj);
   if(current_ctxt && current_ctxt != xpath_ctxt)
     xmlXPathFreeContext(current_ctxt);
+  mtev_conf_release_section(section);
 }
 
 void
@@ -1681,14 +1776,17 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
                         const char *namespace) {
   unsigned int cnt;
   xmlXPathObjectPtr pobj = NULL;
-  xmlXPathContextPtr current_ctxt;
-  xmlNodePtr current_node = (xmlNodePtr)section;
+  xmlXPathContextPtr current_ctxt = NULL;
+
+  mtev_conf_acquire_section(section);
+
+  xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
   xmlNodePtr node, parent_node;
   char xpath_expr[1024];
   char *inheritid;
 
   current_ctxt = xpath_ctxt;
-  if(!xpath_ctxt) return;
+  if(!xpath_ctxt) goto out;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1714,24 +1812,27 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
   if(cnt > 1 && node) {
     parent_node = xmlXPathNodeSetItem(pobj->nodesetval, cnt-2);
     if(parent_node != current_node)
-      mtev_conf_get_into_hash(parent_node, (const char *)node->name, table, namespace);
+      mtev_conf_get_into_hash(mtev_conf_section_from_xmlnodeptr(parent_node),
+                              (const char *)node->name, table, namespace);
   }
   /* 2. */
   inheritid = (char *)xmlGetProp(node, (xmlChar *)"inherit");
   if(inheritid) {
     snprintf(xpath_expr, sizeof(xpath_expr), "//*[@id=\"%s\"]", inheritid);
-    mtev_conf_get_into_hash(NULL, xpath_expr, table, namespace);
+    mtev_conf_get_into_hash(MTEV_CONF_ROOT, xpath_expr, table, namespace);
     xmlFree(inheritid);
   }
   /* 3. */
-  mtev_conf_get_elements_into_hash(node, "*", table, namespace);
+  mtev_conf_get_elements_into_hash(mtev_conf_section_from_xmlnodeptr(node), "*", table, namespace);
 
  out:
   if(pobj) xmlXPathFreeObject(pobj);
   if(current_ctxt && current_ctxt != xpath_ctxt)
     xmlXPathFreeContext(current_ctxt);
+  mtev_conf_release_section(section);
 }
 
+/* No locks required */
 mtev_hash_table *
 mtev_conf_get_namespaced_hash(mtev_conf_section_t section,
                               const char *path, const char *ns) {
@@ -1748,6 +1849,7 @@ mtev_conf_get_namespaced_hash(mtev_conf_section_t section,
   return table;
 }
 
+/* No locks required */
 mtev_hash_table *
 mtev_conf_get_hash(mtev_conf_section_t section, const char *path) {
   mtev_hash_table *table = NULL;
@@ -1760,13 +1862,16 @@ mtev_conf_get_hash(mtev_conf_section_t section, const char *path) {
 
 mtev_conf_section_t
 mtev_conf_get_section(mtev_conf_section_t section, const char *path) {
-  mtev_conf_section_t subsection = NULL;
+  mtev_conf_section_t subsection = MTEV_CONF_EMPTY;
   xmlXPathObjectPtr pobj = NULL;
   xmlXPathContextPtr current_ctxt;
-  xmlNodePtr current_node = (xmlNodePtr)section;
+
+  mtev_conf_acquire_section(section);
+
+  xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
 
   current_ctxt = xpath_ctxt;
-  if(!xpath_ctxt) return NULL;
+  if(!xpath_ctxt) goto out;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1775,11 +1880,13 @@ mtev_conf_get_section(mtev_conf_section_t section, const char *path) {
   if(!pobj) goto out;
   if(pobj->type != XPATH_NODESET) goto out;
   if(xmlXPathNodeSetIsEmpty(pobj->nodesetval)) goto out;
-  subsection = (mtev_conf_section_t)xmlXPathNodeSetItem(pobj->nodesetval, 0);
+  subsection = mtev_conf_section_from_xmlnodeptr(xmlXPathNodeSetItem(pobj->nodesetval, 0));
  out:
   if(pobj) xmlXPathFreeObject(pobj);
   if(current_ctxt && current_ctxt != xpath_ctxt)
     xmlXPathFreeContext(current_ctxt);
+  mtev_conf_acquire_section(subsection);
+  mtev_conf_release_section(section);
   return subsection;
 }
 
@@ -1790,11 +1897,13 @@ mtev_conf_get_sections(mtev_conf_section_t section,
   mtev_conf_section_t *sections = NULL;
   xmlXPathObjectPtr pobj = NULL;
   xmlXPathContextPtr current_ctxt;
-  xmlNodePtr current_node = (xmlNodePtr)section;
 
+  mtev_conf_acquire_section(section);
+
+  xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
   *cnt = 0;
   current_ctxt = xpath_ctxt;
-  if(!xpath_ctxt) return NULL;
+  if(!xpath_ctxt) goto out;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1805,22 +1914,27 @@ mtev_conf_get_sections(mtev_conf_section_t section,
   if(xmlXPathNodeSetIsEmpty(pobj->nodesetval)) goto out;
   *cnt = xmlXPathNodeSetGetLength(pobj->nodesetval);
   sections = calloc(*cnt, sizeof(*sections));
-  for(i=0; i<*cnt; i++)
-    sections[i] = (mtev_conf_section_t)xmlXPathNodeSetItem(pobj->nodesetval, i);
+  for(i=0; i<*cnt; i++) {
+    sections[i] = mtev_conf_section_from_xmlnodeptr(xmlXPathNodeSetItem(pobj->nodesetval, i));
+    mtev_conf_acquire_section(sections[i]);
+  }
  out:
   if(pobj) xmlXPathFreeObject(pobj);
   if(current_ctxt && current_ctxt != xpath_ctxt)
     xmlXPathFreeContext(current_ctxt);
+  mtev_conf_release_section(section);
   return sections;
 }
 
 int
 mtev_conf_remove_section(mtev_conf_section_t section) {
-  if (!section) return -1;
-  xmlNodePtr node = (xmlNodePtr) section;
+  if (mtev_conf_section_is_empty(section)) return -1;
+  xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(section);
   xmlUnlinkNode(node);
   xmlFreeNode(node);
   mtev_conf_mark_changed();
+  mtevAssert(section.opaque1);
+  mtev_conf_release_section(section);
   return 0;
 }
 
@@ -1832,11 +1946,14 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
   char fullpath[1024];
   int rv = 1, i;
   xmlXPathObjectPtr pobj = NULL;
-  xmlXPathContextPtr current_ctxt;
-  xmlNodePtr current_node = (xmlNodePtr)section;
+  xmlXPathContextPtr current_ctxt = NULL;
+
+  if(!xpath_ctxt) return 0;
+
+  mtev_conf_acquire_section(section);
+  xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
 
   current_ctxt = xpath_ctxt;
-  if(!xpath_ctxt) return 0;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1875,9 +1992,11 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
   if(pobj) xmlXPathFreeObject(pobj);
   if(current_ctxt && current_ctxt != xpath_ctxt)
     xmlXPathFreeContext(current_ctxt);
+  mtev_conf_release_section(section);
   return rv;
 }
 
+/* No locks required */
 int
 mtev_conf_get_uuid(mtev_conf_section_t section,
                    const char *path, uuid_t out) {
@@ -1889,6 +2008,7 @@ mtev_conf_get_uuid(mtev_conf_section_t section,
   return 0;
 }
 
+/* No locks required */
 int
 mtev_conf_get_string(mtev_conf_section_t section,
                      const char *path, char **value) {
@@ -1901,6 +2021,7 @@ mtev_conf_get_string(mtev_conf_section_t section,
   return 0;
 }
 
+/* No locks required */
 int
 mtev_conf_get_stringbuf(mtev_conf_section_t section,
                         const char *path, char *buf, int len) {
@@ -1917,16 +2038,20 @@ int
 mtev_conf_property_iter(mtev_conf_section_t section,
                         int (*f)(const char *key, const char *val, void *closure),
                         void *closure) {
+
   int cnt = 0;
-  xmlNodePtr node = (xmlNodePtr)section;
+  mtev_conf_acquire_section(section);
+  xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(section);
   xmlAttr *prop;
-  if(!node) return 0;
-  for(prop = node->properties; prop; prop = prop->next) {
-    const char *key = (const char *)prop->name;
-    char *value = (char *)xmlGetProp(node, prop->name);
-    cnt += f(key,value,closure);
-    xmlFree(value);
+  if(mtev_conf_section_is_empty(section)) {
+    for(prop = node->properties; prop; prop = prop->next) {
+      const char *key = (const char *)prop->name;
+      char *value = (char *)xmlGetProp(node, prop->name);
+      cnt += f(key,value,closure);
+      xmlFree(value);
+    }
   }
+  mtev_conf_release_section(section);
   return cnt;
 }
 
@@ -1934,12 +2059,18 @@ int
 mtev_conf_set_string(mtev_conf_section_t section,
                      const char *path, const char *value) 
 {
+  int rv;
   mtev_conf_section_t *sections = NULL;
   const char *prefix = NULL;
-  xmlNodePtr current_node = (xmlNodePtr)section;
+
+  mtev_conf_acquire_section(section);
+
+  xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
 
   if(!current_node) {
-    return mtev_conf_set_string(master_config, path, value);
+    rv = mtev_conf_set_string(mtev_conf_section_from_xmlnodeptr((xmlNodePtr)master_config), path, value);
+    mtev_conf_release_section(section);
+    return rv;
   }
   if(NULL != (prefix = strrchr(path, '/'))) {
     int cnt;
@@ -1947,32 +2078,39 @@ mtev_conf_set_string(mtev_conf_section_t section,
     sections = mtev_conf_get_sections(section, dup, &cnt);
     mtev_conf_section_t copy;
     if(cnt > 1 || cnt == 0) {
-      char *spath = (char *)xmlGetNodePath(section);
+      char *spath = mtev_conf_section_is_empty(section) ?
+        strdup("(root)") :
+        (char *)xmlGetNodePath(mtev_conf_section_to_xmlnodeptr(section));
       mtevL(mtev_error, "%s set_string \"%s\" \"%s\"\n",
             cnt ? "Ambiguous" : "Path missing", spath, dup);
       free(spath);
       free(dup);
-      free(sections);
+      mtev_conf_release_sections(sections, cnt);
+      mtev_conf_release_section(section);
       return 0;
     }
     copy = sections[0];
-    free(sections);
     free(dup);
-    return mtev_conf_set_string(copy, prefix+1, value);
+    mtev_conf_release_sections(sections, cnt);
+    rv = mtev_conf_set_string(copy, prefix+1, value);
+    mtev_conf_release_section(section);
+    return rv;
   }
   if(path[0] == '@') {
     xmlSetProp(current_node, (xmlChar *)path+1, (xmlChar *)value);
-    CONF_DIRTY(current_node);
+    CONF_DIRTY(section);
   }
   else {
     int cnt;
     xmlNodePtr child_node = NULL;
     sections = mtev_conf_get_sections(section, path, &cnt);
     if(cnt > 1) {
-      char *spath = (char *)xmlGetNodePath(section);
+      char *spath = (char *)xmlGetNodePath(mtev_conf_section_to_xmlnodeptr(section));
       mtevL(mtev_error, "Ambiguous set_string \"%s\" \"%s\"\n", spath, path);
       free(spath);
       free(sections);
+      mtev_conf_release_section(section);
+      mtev_conf_release_sections(sections, cnt);
       return 0;
     }
     if(cnt == 0) {
@@ -1986,12 +2124,13 @@ mtev_conf_set_string(mtev_conf_section_t section,
     else if(cnt == 1) {
       xmlChar *encoded;
       encoded = xmlEncodeEntitiesReentrant(current_node->doc, (xmlChar *)value);
-      xmlNodeSetContent((xmlNodePtr)sections[0], encoded);
-      child_node = sections[0];
+      child_node = mtev_conf_section_to_xmlnodeptr(sections[0]);
+      xmlNodeSetContent(child_node, encoded);
       xmlFree(encoded);
     }
     if(child_node != NULL)
-      CONF_DIRTY(child_node);
+      CONF_DIRTY(mtev_conf_section_from_xmlnodeptr(child_node));
+    mtev_conf_release_sections(sections, cnt);
   }
   mtev_conf_mark_changed();
   char *err;
@@ -1999,12 +2138,12 @@ mtev_conf_set_string(mtev_conf_section_t section,
     mtevL(mtev_error, "local config write failed: %s\n", err ? err : "unkown");
     free(err);
   }
-  free(sections);
+  mtev_conf_release_section(section);
   return 1;
 }
 
-int
-mtev_conf_string_to_int(const char *str) {
+int32_t
+mtev_conf_string_to_int32(const char *str) {
   int base = 10;
   if(!str) return 0;
   if(str[0] == '0') {
@@ -2014,18 +2153,20 @@ mtev_conf_string_to_int(const char *str) {
   return strtol(str, NULL, base);
 }
 
+/* No locks required */
 int
-mtev_conf_get_int(mtev_conf_section_t section,
-                  const char *path, int *value) {
+mtev_conf_get_int32(mtev_conf_section_t section,
+                    const char *path, int32_t *value) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
-    *value = (int)mtev_conf_string_to_int(str);
+    *value = (int)mtev_conf_string_to_int32(str);
     xmlFree(str);
     return 1;
   }
   return 0;
 }
 
+/* No locks required */
 int
 mtev_conf_get_int64(mtev_conf_section_t section,
                     const char *path, int64_t *value) {
@@ -2038,6 +2179,7 @@ mtev_conf_get_int64(mtev_conf_section_t section,
   return 0;
 }
 
+/* No locks required */
 int
 mtev_conf_set_int(mtev_conf_section_t section,
                   const char *path, int value) {
@@ -2052,6 +2194,7 @@ mtev_conf_string_to_double(const char *str) {
   return strtod(str,NULL);
 }
 
+/* No locks required */
 int
 mtev_conf_get_double(mtev_conf_section_t section,
                     const char *path, double *value) {
@@ -2073,6 +2216,7 @@ mtev_conf_string_to_float(const char *str) {
   return atof(str);
 }
 
+/* No locks required */
 int
 mtev_conf_get_float(mtev_conf_section_t section,
                     const char *path, float *value) {
@@ -2088,6 +2232,7 @@ mtev_conf_get_float(mtev_conf_section_t section,
   return 0;
 }
 
+/* No locks required */
 int
 mtev_conf_set_float(mtev_conf_section_t section,
                     const char *path, float value) {
@@ -2096,6 +2241,7 @@ mtev_conf_set_float(mtev_conf_section_t section,
   return mtev_conf_set_string(section,path,buffer);
 }
 
+/* No locks required */
 int
 mtev_conf_set_double(mtev_conf_section_t section,
                      const char *path, double value) {
@@ -2111,6 +2257,7 @@ mtev_conf_string_to_boolean(const char *str) {
   return mtev_false;
 }
 
+/* No locks required */
 int
 mtev_conf_get_boolean(mtev_conf_section_t section,
                       const char *path, mtev_boolean *value) {
@@ -2123,6 +2270,7 @@ mtev_conf_get_boolean(mtev_conf_section_t section,
   return 0;
 }
 
+/* No locks required */
 int
 mtev_conf_set_boolean(mtev_conf_section_t section,
                       const char *path, mtev_boolean value) {
@@ -2216,13 +2364,16 @@ int
 mtev_conf_reload(mtev_console_closure_t ncct,
                  int argc, char **argv,
                  mtev_console_state_t *state, void *closure) {
+  _glock(&global_config_lock);
   XML2CONSOLE(ncct);
   if(mtev_conf_load_internal(master_config_file)) {
     XML2LOG(xml_debug);
     nc_printf(ncct, "error loading config\n");
+    _gunlock(&global_config_lock);
     return -1;
   }
   XML2LOG(xml_debug);
+  _gunlock(&global_config_lock);
   return 0;
 }
 
@@ -2237,9 +2388,11 @@ mtev_conf_write_terminal(mtev_console_closure_t ncct,
                                 mtev_console_close_xml,
                                 ncct, enc);
 
+  _glock(&global_config_lock);
   mtev_conf_kansas_city_shuffle_undo(config_include_nodes, config_include_cnt);
   xmlSaveFormatFileTo(out, master_config, "utf8", 1);
   mtev_conf_kansas_city_shuffle_redo(config_include_nodes, config_include_cnt);
+  _gunlock(&global_config_lock);
   return 0;
 }
 
@@ -2270,6 +2423,8 @@ mtev_conf_write_file(char **err) {
   uid_t uid = geteuid();
   gid_t gid = getegid();
 
+  _glock(&global_config_lock);
+
   if(stat(master_config_file, &st) == 0) {
     mode = st.st_mode;
     uid = st.st_uid;
@@ -2283,12 +2438,14 @@ mtev_conf_write_file(char **err) {
     snprintf(errstr, sizeof(errstr), "Failed to open tmp file: %s",
              strerror(errno));
     if(err) *err = strdup(errstr);
+    _gunlock(&global_config_lock);
     return -1;
   }
   if(fchown(fd, uid, gid) < 0) {
     close(fd);
     unlink(master_file_tmp);
     if(err) *err = strdup("internal error: fchown failed");
+    _gunlock(&global_config_lock);
     return -1;
   }
 
@@ -2298,6 +2455,7 @@ mtev_conf_write_file(char **err) {
     close(fd);
     unlink(master_file_tmp);
     if(err) *err = strdup("internal error: OutputBufferCreate failed");
+    _gunlock(&global_config_lock);
     return -1;
   }
   mtev_conf_kansas_city_shuffle_undo(config_include_nodes, config_include_cnt);
@@ -2309,16 +2467,19 @@ mtev_conf_write_file(char **err) {
   close(fd);
   if(len <= 0) {
     if(err) *err = strdup("internal error: writing to tmp file failed.");
+    _gunlock(&global_config_lock);
     return -1;
   }
   if(rename(master_file_tmp, master_config_file) != 0) {
     snprintf(errstr, sizeof(errstr), "Failed to replace file: %s",
              strerror(errno));
     if(err) *err = strdup(errstr);
+    _gunlock(&global_config_lock);
     return -1;
   }
   snprintf(errstr, sizeof(errstr), "%d bytes written.", len);
   if(err) *err = strdup(errstr);
+  _gunlock(&global_config_lock);
   return 0;
 }
 
@@ -2329,6 +2490,7 @@ mtev_conf_xml_in_mem(size_t *len) {
   xmlCharEncodingHandlerPtr enc;
   char *rv;
 
+  _glock(&global_config_lock);
   clv = calloc(1, sizeof(*clv));
   clv->target = CONFIG_XML;
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
@@ -2342,11 +2504,13 @@ mtev_conf_xml_in_mem(size_t *len) {
     mtevL(mtev_error, "Error logging configuration\n");
     if(clv->buff) free(clv->buff);
     free(clv);
+    _gunlock(&global_config_lock);
     return NULL;
   }
   rv = clv->buff;
   *len = clv->len;
   free(clv);
+  _gunlock(&global_config_lock);
   return rv;
 }
 
@@ -2357,6 +2521,7 @@ mtev_conf_enc_in_mem(size_t *raw_len, size_t *len, mtev_conf_enc_type_t target, 
   xmlCharEncodingHandlerPtr enc;
   char *rv;
 
+  _glock(&global_config_lock);
   clv = calloc(1, sizeof(*clv));
   clv->target = target;
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
@@ -2370,12 +2535,14 @@ mtev_conf_enc_in_mem(size_t *raw_len, size_t *len, mtev_conf_enc_type_t target, 
     mtevL(mtev_error, "Error logging configuration\n");
     if(clv->buff) free(clv->buff);
     free(clv);
+    _gunlock(&global_config_lock);
     return NULL;
   }
   rv = clv->buff;
   *raw_len = clv->raw_len;
   *len = clv->len;
   free(clv);
+  _gunlock(&global_config_lock);
   return rv;
 }
 
@@ -2453,12 +2620,13 @@ mtev_conf_log_rotate_time(eventer_t e, int mask, void *closure,
 
 int
 mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
-  int i, cnt = 0, max_time, max_size, retain_seconds = -1, retain_size = -1, rv = 0;
+  int i, cnt = 0, rv = 0;
+  int32_t max_time, max_size, retain_seconds = -1, retain_size = -1;
   mtev_conf_section_t *log_configs;
   char path[256];
 
   snprintf(path, sizeof(path), "/%s/logs//log|/%s/include/logs//log", toplevel, toplevel);
-  log_configs = mtev_conf_get_sections(NULL, path, &cnt);
+  log_configs = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
   mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     mtev_log_stream_t ls;
@@ -2480,18 +2648,18 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
     ls = mtev_log_stream_find(name);
     if(!ls) continue;
 
-    if(mtev_conf_get_int(log_configs[i],    
-                         "ancestor-or-self::node()/@rotate_seconds",
-                         &max_time) && max_time) {
+    if(mtev_conf_get_int32(log_configs[i],    
+                           "ancestor-or-self::node()/@rotate_seconds",
+                           &max_time) && max_time) {
       struct log_rotate_crutch *lrc;
       if(max_time < 600) {
         fprintf(stderr, "rotate_seconds must be >= 600s (10 minutes)\n");
         if(validate) { rv = -1; break; }
         else exit(-2);
       }
-      mtev_conf_get_int(log_configs[i],
-                        "ancestor-or-self::node()/@retain_seconds",
-                        &retain_seconds);
+      mtev_conf_get_int32(log_configs[i],
+                          "ancestor-or-self::node()/@retain_seconds",
+                          &retain_seconds);
       if(!validate) {
         lrc = calloc(1, sizeof(*lrc));
         lrc->ls = ls;
@@ -2502,18 +2670,18 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
       }
     }
 
-    if(mtev_conf_get_int(log_configs[i],    
-                         "ancestor-or-self::node()/@rotate_bytes",
-                         &max_size) && max_size) {
+    if(mtev_conf_get_int32(log_configs[i],    
+                           "ancestor-or-self::node()/@rotate_bytes",
+                           &max_size) && max_size) {
       struct log_rotate_crutch *lrc;
       if(max_size < 102400) {
         fprintf(stderr, "rotate_bytes must be >= 102400 (100k)\n");
         if(validate) { rv = -1; break; }
         else exit(-2);
       }
-      mtev_conf_get_int(log_configs[i],
-                        "ancestor-or-self::node()/@retain_bytes",
-                        &retain_size);
+      mtev_conf_get_int32(log_configs[i],
+                          "ancestor-or-self::node()/@retain_bytes",
+                          &retain_size);
       if(!validate) {
         lrc = calloc(1, sizeof(*lrc));
         lrc->ls = ls;
@@ -2524,7 +2692,7 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
       }
     }
   }
-  free(log_configs);
+  mtev_conf_release_sections(log_configs, cnt);
   return rv;
 }
 
@@ -2545,7 +2713,7 @@ mtev_conf_log_init(const char *toplevel,
   }
 
   snprintf(path, sizeof(path), "/%s/logs//log|/%s/include/logs//log", toplevel, toplevel);
-  log_configs = mtev_conf_get_sections(NULL, path, &cnt);
+  log_configs = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
   mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     int flags;
@@ -2558,6 +2726,7 @@ mtev_conf_log_init(const char *toplevel,
                                 "ancestor-or-self::node()/@name",
                                 name, sizeof(name))) {
       mtevL(mtev_error, "log section %d does not have a name attribute\n", i+1);
+      mtev_conf_release_sections(log_configs, cnt);
       exit(-1);
     }
 
@@ -2582,6 +2751,7 @@ mtev_conf_log_init(const char *toplevel,
                              path[0] ? path : NULL, NULL, config);
     if(!ls) {
       fprintf(stderr, "Error configuring log: %s[%s:%s]\n", name, type, path);
+      mtev_conf_release_sections(log_configs, cnt);
       exit(-1);
     }
 
@@ -2626,14 +2796,15 @@ mtev_conf_log_init(const char *toplevel,
       if(!outlet) {
         fprintf(stderr, "Cannot find outlet '%s' for %s[%s:%s]\n", oname,
               name, type, path);
+        mtev_conf_release_sections(log_configs, cnt);
         exit(-1);
       }
       else
         mtev_log_stream_add_stream(ls, outlet);
     }
-    if(outlets) free(outlets);
+    mtev_conf_release_sections(outlets, ocnt);
   }
-  if(log_configs) free(log_configs);
+  mtev_conf_release_sections(log_configs, cnt);
   if(mtev_conf_log_init_rotate(toplevel, mtev_true)) exit(-1);
 
   if(mtev_security_usergroup(user, group, mtev_true)) {
@@ -2646,19 +2817,19 @@ void
 mtev_conf_security_init(const char *toplevel, const char *user,
                         const char *group, const char *chrootpath) {
   int i, ccnt = 0;
-  mtev_conf_section_t *secnode, *caps;
+  mtev_conf_section_t secnode, *caps;
   char path[256];
   char username[128], groupname[128], chrootpathname[PATH_MAX];
 
   snprintf(path, sizeof(path), "/%s/security|/%s/include/security",
            toplevel, toplevel);
-  secnode = mtev_conf_get_section(NULL, path);
+  secnode = mtev_conf_get_section(MTEV_CONF_ROOT, path);
 
   if(user) {
     strlcpy(username, user, sizeof(username));
     user = username;
   }
-  else if(secnode &&
+  else if(!mtev_conf_section_is_empty(secnode) &&
           mtev_conf_get_stringbuf(secnode, "self::node()/@user",
                                   username, sizeof(username))) {
     user = username;
@@ -2667,7 +2838,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
     strlcpy(groupname, group, sizeof(groupname));
     group = groupname;
   }
-  else if(secnode &&
+  else if(!mtev_conf_section_is_empty(secnode) &&
           mtev_conf_get_stringbuf(secnode, "self::node()/@group",
                                   groupname, sizeof(groupname))) {
     group = groupname;
@@ -2676,7 +2847,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
     strlcpy(chrootpathname, chrootpath, sizeof(chrootpathname));
     chrootpath = chrootpathname;
   }
-  else if(secnode &&
+  else if(!mtev_conf_section_is_empty(secnode) &&
           mtev_conf_get_stringbuf(secnode, "self::node()/@chrootpath",
                                   chrootpathname, sizeof(chrootpathname))) {
     chrootpath = chrootpathname;
@@ -2685,6 +2856,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
   /* chroot first */
   if(chrootpath && mtev_security_chroot(chrootpath)) {
     mtevL(mtev_stderr, "Failed to chroot(), exiting.\n");
+    mtev_conf_release_section(secnode);
     exit(2);
   }
 
@@ -2720,6 +2892,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
       captype = MTEV_SECURITY_CAP_INHERITABLE;
     else {
       mtevL(mtev_error, "Unsupport capability type: '%s'\n", captype_str);
+      mtev_conf_release_sections(caps, ccnt);
       exit(2);
     }
 
@@ -2729,12 +2902,13 @@ mtev_conf_security_init(const char *toplevel, const char *user,
       if(mtev_security_setcaps(captype, capstring) != 0) {
         mtevL(mtev_error, "Failed to set security capabilities: %s / %s\n",
               captype_str, capstring);
+        mtev_conf_release_sections(caps, ccnt);
         exit(2);
       }
       free(capstring);
     }
   }
-  if(caps) free(caps);
+  mtev_conf_release_sections(caps, ccnt);
 
   /* drop uid/gid last */
   if(mtev_security_usergroup(user, group, mtev_false)) { /* no take backs */
@@ -2832,9 +3006,9 @@ mtev_console_config_section(mtev_console_closure_t ncct,
     goto bad;
   }
   if(delete) {
-    node = (mtev_conf_section_t)xmlXPathNodeSetItem(pobj->nodesetval, 0);
+    node = xmlXPathNodeSetItem(pobj->nodesetval, 0);
     if(node) {
-      CONF_REMOVE(node);
+      CONF_REMOVE(mtev_conf_section_from_xmlnodeptr(node));
       xmlUnlinkNode(node);
       mtev_conf_mark_changed();
     }
@@ -2855,7 +3029,7 @@ mtev_console_config_section(mtev_console_closure_t ncct,
     err = "path invalid?";
     goto bad;
   }
-  node = (mtev_conf_section_t)xmlXPathNodeSetItem(pobj->nodesetval, 0);
+  node = xmlXPathNodeSetItem(pobj->nodesetval, 0);
   if((newnode = xmlNewChild(node, NULL, (xmlChar *)argv[0], NULL)) != NULL) {
     mtev_conf_mark_changed();
     free(info->path);
@@ -2888,16 +3062,19 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
   xmlDocPtr master_config = NULL;
   xmlNodePtr node = NULL;
 
-  mtev_conf_xml_xpath(&master_config, &xpath_ctxt);
   if(argc > 1) {
     nc_printf(ncct, "too many arguments\n");
     return -1;
   }
 
+  _glock(&global_config_lock);
+  mtev_conf_xml_xpath(&master_config, &xpath_ctxt);
+
   info = mtev_console_userdata_get(ncct, MTEV_CONF_T_USERDATA);
   if(info && info->path) path = basepath = info->path;
   if(!info && argc == 0) {
     nc_printf(ncct, "argument required when not in configuration mode\n");
+    _gunlock(&global_config_lock);
     return -1;
   }
 
@@ -2910,6 +3087,7 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
 
   if(!master_config || !xpath_ctxt) {
     nc_printf(ncct, "no config\n");
+    _gunlock(&global_config_lock);
     return -1;
   }
 
@@ -2939,7 +3117,7 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
   cnt = xmlXPathNodeSetGetLength(pobj->nodesetval);
   titled = 0;
   for(i=0; i<cnt; i++) {
-    node = (mtev_conf_section_t)xmlXPathNodeSetItem(pobj->nodesetval, i);
+    node = xmlXPathNodeSetItem(pobj->nodesetval, i);
     if(node->children && node->children == xmlGetLastChild(node) &&
       xmlNodeIsText(node->children)) {
       if(!titled++) nc_printf(ncct, "== Section Settings ==\n");
@@ -2963,7 +3141,7 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
   cnt = xmlXPathNodeSetGetLength(pobj->nodesetval);
   titled = 0;
   for(i=0; i<cnt; i++) {
-    node = (mtev_conf_section_t)xmlXPathNodeSetItem(pobj->nodesetval, i);
+    node = xmlXPathNodeSetItem(pobj->nodesetval, i);
     if(!(node->children && node->children == xmlGetLastChild(node) &&
          xmlNodeIsText(node->children))) {
       if(!titled++) nc_printf(ncct, "== Subsections ==\n");
@@ -2971,9 +3149,11 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
     }
   }
   xmlXPathFreeObject(pobj);
+  _gunlock(&global_config_lock);
   return 0;
  bad:
   if(pobj) xmlXPathFreeObject(pobj);
+  _gunlock(&global_config_lock);
   return -1;
 }
 
@@ -2989,13 +3169,16 @@ mtev_console_config_cd(mtev_console_closure_t ncct,
   xmlNodePtr node = NULL;
   char *dest;
 
+  _glock(&global_config_lock);
   mtev_conf_xml_xpath(NULL, &xpath_ctxt);
   if(!master_config || !xpath_ctxt) {
     nc_printf(ncct, "no config\n");
+    _gunlock(&global_config_lock);
     return -1;
   }
   if(argc != 1 && !closure) {
     nc_printf(ncct, "requires one argument\n");
+    _gunlock(&global_config_lock);
     return -1;
   }
   dest = argc ? argv[0] : (char *)closure;
@@ -3020,7 +3203,7 @@ mtev_console_config_cd(mtev_console_closure_t ncct,
     goto bad;
   }
 
-  node = (mtev_conf_section_t)xmlXPathNodeSetItem(pobj->nodesetval, 0);
+  node = xmlXPathNodeSetItem(pobj->nodesetval, 0);
   if(!node) {
     err = "internal XML error";
     goto bad;
@@ -3050,11 +3233,13 @@ mtev_console_config_cd(mtev_console_closure_t ncct,
   free(path);
   if(pobj) xmlXPathFreeObject(pobj);
   if(closure) mtev_console_state_pop(ncct, argc, argv, NULL, NULL);
+  _gunlock(&global_config_lock);
   return 0;
  bad:
   if(path) free(path);
   if(pobj) xmlXPathFreeObject(pobj);
   nc_printf(ncct, "%s [%s]\n", err, xpath);
+  _gunlock(&global_config_lock);
   return -1;
 }
 
@@ -3250,10 +3435,14 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
   int erroff, ovector[30];
   int i, cnt;
 
+  mtev_conf_acquire_section(node);
+
   snprintf(xpath, sizeof(xpath), "ancestor-or-self::node()/@%s",
            attr ? attr : "require_env");
-  if(!mtev_conf_get_stringbuf(node, xpath, buff, sizeof(buff)))
+  if(!mtev_conf_get_stringbuf(node, xpath, buff, sizeof(buff))) {
+    mtev_conf_release_section(node);
     return mtev_false;
+  }
 
   reqs = mtev_conf_get_sections(node, "ancestor-or-self::node()", &cnt);
 
@@ -3306,15 +3495,21 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
     }
   }
   free(reqs);
+  mtev_conf_release_section(node);
   return mtev_false;
 
  quickoff:
   if(regex) pcre_free(regex);
   free(reqs);
+  mtev_conf_release_section(node);
   return mtev_true;
 }
 
 void mtev_conf_init_globals(void) {
+  pthread_mutexattr_t mattr;
+  pthread_mutexattr_init(&mattr);
+  pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&global_config_lock, &mattr);
   mtev_hash_init(&global_param_sets);
   mtev_hash_init_locks(&_compiled_fallback, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
