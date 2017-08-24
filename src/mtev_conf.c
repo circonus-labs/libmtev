@@ -1584,7 +1584,7 @@ mtev_conf_default_##name (type default_value) { \
 }
 
 mtev_conf_default(boolean, int)
-mtev_conf_default(int, int)
+mtev_conf_default(int32, int)
 mtev_conf_default(int64, int64_t)
 mtev_conf_default(float, float)
 mtev_conf_default(double, double)
