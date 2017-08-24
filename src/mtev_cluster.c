@@ -1237,6 +1237,7 @@ mtev_cluster_init(void) {
     mtev_cluster_update_internal(clusters[i], mtev_false);
   }
   mtev_conf_release_sections(clusters, n_clusters);
+  mtev_conf_release_section(parent);
 
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/", "^cluster(/(..*?))?(\\.json)?$", rest_show_cluster,
