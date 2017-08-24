@@ -294,6 +294,20 @@ handleconn(struct amqp_conn *conn) {
           case AMQP_CHANNEL_CLOSE_METHOD:
           case AMQP_CONNECTION_CLOSE_METHOD:
           default:
+            if(frame.payload.method.id == AMQP_CHANNEL_CLOSE_METHOD) {
+              amqp_channel_close_t *c = frame.payload.method.decoded;
+              if(c && c->reply_text.bytes) {
+                mtevL(nlerr ,"channel closed: [%.*s] closing amqp session[%s]\n",
+                      (int)c->reply_text.len, (char *)c->reply_text.bytes, conn->host);
+              }
+            }
+            if(frame.payload.method.id == AMQP_CONNECTION_CLOSE_METHOD) {
+              amqp_connection_close_t *c = frame.payload.method.decoded;
+              if(c && c->reply_text.bytes) {
+                mtevL(nlerr ,"connection closed: [%.*s] closing amqp session[%s]\n",
+                      (int)c->reply_text.len, (char *)c->reply_text.bytes, conn->host);
+              }
+            }
             mtevL(nlerr ,"closing amqp session[%s] %x\n", conn->host, frame.payload.method.id);
             return;
         }
@@ -307,6 +321,7 @@ rabbitmq_manage_connection(void *vconn) {
   struct amqp_conn *conn = vconn;
 
   while(1) {
+    amqp_bytes_t queuename = { .bytes = NULL };
     conn->conn = amqp_new_connection();
     amqp_socket_t *socket = amqp_tcp_socket_new(conn->conn);
     if (!socket) {
@@ -333,7 +348,7 @@ rabbitmq_manage_connection(void *vconn) {
                            amqp_empty_bytes, 0, 0, 0, 1,
                            amqp_empty_table);
       die_on_amqp_error(amqp_get_rpc_reply(conn->conn), "declaring queue");
-      amqp_bytes_t queuename = amqp_bytes_malloc_dup(r->queue);
+      queuename = amqp_bytes_malloc_dup(r->queue);
       mtevAssert(queuename.bytes != NULL);
       amqp_queue_bind(conn->conn, 1, queuename,
                       amqp_cstring_bytes(conn->exchange),
@@ -352,6 +367,9 @@ rabbitmq_manage_connection(void *vconn) {
     die_on_amqp_error(amqp_connection_close(conn->conn, AMQP_REPLY_SUCCESS), "Closing connection");
 
   teardown:
+    if(queuename.bytes != NULL) {
+      amqp_bytes_free(queuename);
+    }
     amqp_destroy_connection(conn->conn);
   }
 }
