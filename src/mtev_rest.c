@@ -655,6 +655,7 @@ rest_xml_payload_free(void *f) {
   if (xmlin) {
     if(xmlin->buffer) free(xmlin->buffer);
     if(xmlin->indoc) xmlFreeDoc(xmlin->indoc);
+    free(xmlin);
   }
 }
 
