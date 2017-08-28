@@ -576,7 +576,7 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
 
 int mtev_cluster_update_internal(mtev_conf_section_t cluster,
     mtev_boolean booted) {
-  int rv = -1, i, n_nodes, port, period, timeout, maturity;
+  int rv = -1, i, n_nodes = 0, port, period, timeout, maturity;
   int64_t seq;
   char bufstr[1024];
   mtev_conf_section_t *nodes = NULL;

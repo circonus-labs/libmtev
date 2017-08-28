@@ -2789,11 +2789,12 @@ mtev_conf_log_init(const char *toplevel,
 
     mtev_log_stream_removeall_streams(ls);
     for(o=0; o<ocnt; o++) {
-      mtev_log_stream_t outlet;
+      mtev_log_stream_t outlet = NULL;
       char oname[256];
-      mtev_conf_get_stringbuf(outlets[o], "@name",
-                              oname, sizeof(oname));
-      outlet = mtev_log_stream_find(oname);
+      if (mtev_conf_get_stringbuf(outlets[o], "@name",
+                                  oname, sizeof(oname))) {
+          outlet = mtev_log_stream_find(oname);
+      }
       if(!outlet) {
         fprintf(stderr, "Cannot find outlet '%s' for %s[%s:%s]\n", oname,
               name, type, path);
@@ -2883,16 +2884,21 @@ mtev_conf_security_init(const char *toplevel, const char *user,
     }
 
     captype_str[0] = '\0'; 
-    mtev_conf_get_stringbuf(caps[i], "ancestor-or-self::node()/@type",
-                            captype_str, sizeof(captype_str));
-    if(!strcasecmp(captype_str, "permitted"))
-      captype = MTEV_SECURITY_CAP_PERMITTED;
-    else if(!strcasecmp(captype_str, "effective"))
-      captype = MTEV_SECURITY_CAP_EFFECTIVE;
-    else if(!strcasecmp(captype_str, "inheritable"))
-      captype = MTEV_SECURITY_CAP_INHERITABLE;
-    else {
-      mtevL(mtev_error, "Unsupport capability type: '%s'\n", captype_str);
+    if (mtev_conf_get_stringbuf(caps[i], "ancestor-or-self::node()/@type",
+                                captype_str, sizeof(captype_str))) {
+      if(!strcasecmp(captype_str, "permitted"))
+        captype = MTEV_SECURITY_CAP_PERMITTED;
+      else if(!strcasecmp(captype_str, "effective"))
+        captype = MTEV_SECURITY_CAP_EFFECTIVE;
+      else if(!strcasecmp(captype_str, "inheritable"))
+        captype = MTEV_SECURITY_CAP_INHERITABLE;
+      else {
+        mtevL(mtev_error, "Unsupported capability type: '%s'\n", captype_str);
+        mtev_conf_release_sections(caps, ccnt);
+        exit(2);
+      }
+    } else {
+      mtevL(mtev_error, "Capability type missing\n");
       mtev_conf_release_sections(caps, ccnt);
       exit(2);
     }
