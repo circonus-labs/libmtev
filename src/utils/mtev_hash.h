@@ -117,14 +117,35 @@ void mtev_hash_init_size(mtev_hash_table *h, int size);
  */
 void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode);
 
+/**
+ * Choose the lock mode when initing the hash.
+ * 
+ * It's worth noting that the lock only affects the write side of the hash,
+ * the read side remains completely lock free.
+ * 
+ * This variant will use mtev_memory ck allocator functions to allow this
+ * hash to participate in SMR via mtev_memory block.  You need to wrap 
+ * memory blocks in mtev_memory_begin()/mtev_memory_end()
+ */
+void mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode);
+
 /* NOTE! "k" and "data" MUST NOT be transient buffers, as the hash table
  * implementation does not duplicate them.  You provide a pair of
  * NoitHashFreeFunc functions to free up their storage when you call
  * mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().
  * */
 int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data);
+/* replace and delete (call keyfree and datafree functions) anything that was 
+ * already in this hash location
+ */
 int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
                       NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree);
+
+/* replace and return the old value and old key that was in this hash location
+ */
+int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
+                  char **oldkey, void **olddata);
+
 int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data);
 int mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr);
 int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen,
@@ -152,6 +173,20 @@ void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src);
      }
 */
 int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter);
+
+/* This is an iterator and requires that if the hash it written to
+   during the iteration process, you must employ SMR on the hash itself
+   to prevent destruction of memory for hash resizes by using the 
+   special init function mtev_hash_init_mtev_memory.
+
+   To use:
+   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+
+   while(mtev_hash_adv_spmc(h, &iter)) {
+   .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
+   }
+*/
+int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter);
 
 /* These are older, more painful APIs... use mtev_hash_adv */
 /* Note that neither of these sets the key, value, or klen in iter */
