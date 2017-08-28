@@ -48,11 +48,9 @@ typedef enum mtev_hash_lock_mode {
   MTEV_HASH_LOCK_MODE_SPIN = 2
 } mtev_hash_lock_mode_t;
 
-typedef enum mtev_hash_return_code {
-  MTEV_HASH_FAILURE=0,
-  MTEV_HASH_SUCCESS=1,
-  MTEV_HASH_SUCCESS_REPLACEMENT=2
-} mtev_hash_return_code_t;
+#define MTEV_HASH_FAILURE 0
+#define MTEV_HASH_SUCCESS 1
+#define MTEV_HASH_SUCCESS_REPLACEMENT 2
 
 typedef struct mtev_hash_table {
   union {
@@ -148,9 +146,9 @@ int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
 
 /* replace and return the old value and old key that was in this hash location
  * 
- * will return 1 on successful set with no replacement
- * will return 0 on failure to set
- * will return 2 on successful set with replacement
+ * will return MTEV_HASH_SUCCESS on successful set with no replacement
+ * will return MTEV_HASH_FAILURE on failure to set
+ * will return MTEV_HASH_SUCCESS_REPLACEMENT on successful set with replacement
  */
 int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
                   char **oldkey, void **olddata);
