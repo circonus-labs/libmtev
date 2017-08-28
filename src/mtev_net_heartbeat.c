@@ -506,7 +506,7 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
   }
   (void)mtev_conf_get_int32(section, "self::node()/@period", &period);
 
-  global = mtev_net_heartbeat_context_create(port, key, period);
+  ctx = mtev_net_heartbeat_context_create(port, key, period);
   
   notes = mtev_conf_get_sections(section, "self::node()//notify", &cnt);
   for(i=0;i<cnt;i++) {
@@ -563,17 +563,17 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
       in_len = sizeof(in6);
     }
     if(!strcmp(type_str, "direct")) {
-      if(mtev_net_heartbeat_add_target(global, in, in_len)) {
+      if(mtev_net_heartbeat_add_target(ctx, in, in_len)) {
         mtevL(mtev_error, "netheartbeat error adding: %s:%d\n", addr_str, port);
       }
     }
     else if(!strcmp(type_str, "broadcast")) {
-      if(mtev_net_heartbeat_add_broadcast(global, in, in_len)) {
+      if(mtev_net_heartbeat_add_broadcast(ctx, in, in_len)) {
         mtevL(mtev_error, "netheartbeat error adding: %s:%d\n", addr_str, port);
       }
     }
     else if(!strcmp(type_str, "multicast")) {
-      if(mtev_net_heartbeat_add_multicast(global, in, in_len, ttl)) {
+      if(mtev_net_heartbeat_add_multicast(ctx, in, in_len, ttl)) {
         mtevL(mtev_error, "netheartbeat error adding: %s:%d\n", addr_str, port);
       }
     }
