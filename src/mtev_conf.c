@@ -2108,7 +2108,6 @@ mtev_conf_set_string(mtev_conf_section_t section,
       char *spath = (char *)xmlGetNodePath(mtev_conf_section_to_xmlnodeptr(section));
       mtevL(mtev_error, "Ambiguous set_string \"%s\" \"%s\"\n", spath, path);
       free(spath);
-      free(sections);
       mtev_conf_release_section(section);
       mtev_conf_release_sections(sections, cnt);
       return 0;
