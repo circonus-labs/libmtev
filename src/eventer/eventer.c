@@ -255,9 +255,11 @@ struct callback_details {
 static void
 free_callback_details(void *vcd) {
   struct callback_details *cd = (struct callback_details *)vcd;
-  if(cd->simple_name) free(cd->simple_name);
-  /* We can't just go and free the stats handle as the metrics system has a ref to it */
-  free(vcd);
+  if (vcd) {
+    if(cd->simple_name) free(cd->simple_name);
+    /* We can't just go and free the stats handle as the metrics system has a ref to it */
+    free(vcd);
+  }
 }
 
 static mtev_hash_table __name_to_func;
