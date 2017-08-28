@@ -932,8 +932,8 @@ mtev_http_request_finalize_headers(mtev_http_session_ctx *ctx, mtev_boolean *err
           struct bchain *b;
           const char *prefix = NULL;
           int l1, l2;
-          mtev_hash_retr_str(&req->headers, last_name, strlen(last_name),
-                             &prefix);
+          if (!mtev_hash_retr_str(&req->headers, last_name, strlen(last_name),
+                                  &prefix)) FAIL;
           if(!prefix) FAIL;
           l1 = strlen(prefix);
           l2 = strlen(value);

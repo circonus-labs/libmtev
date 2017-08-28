@@ -910,7 +910,7 @@ socket_error:
   pthread_rwlock_unlock(&reverse_sockets_lock);
   if(rv == 0) {
     snprintf(errbuf, sizeof(errbuf), "'%s' id in use", rc->id);
-    if(rc->id) free(rc->id);
+    free(rc->id);
     rc->id = NULL;
     socket_error_string = errbuf;
     goto socket_error;
