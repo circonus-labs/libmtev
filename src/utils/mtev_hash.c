@@ -321,7 +321,7 @@ int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
   char *oldkey = NULL;
   void *olddata = NULL;
   int ret = mtev_hash_set(h, k, klen, data, &oldkey, &olddata);
-  if (ret) {
+  if (ret == MTEV_HASH_SUCCESS_REPLACEMENT) {
     if (keyfree) keyfree(oldkey);
     if (datafree) datafree(olddata);
   }
@@ -398,6 +398,7 @@ int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
     if (retrieved_key) {
       data_struct = index_attribute_container(retrieved_key);
       if (data_struct) {
+        ret = MTEV_HASH_SUCCESS_REPLACEMENT;
         if (oldkey) *oldkey = data_struct->key_ptr;
         if (olddata) *olddata = data_struct->data;
       }
