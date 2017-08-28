@@ -225,6 +225,7 @@ child_main(void) {
     mtevL(mtev_stderr, "Permissions issue, are you running as the right user?\n");
     exit(2);
   }
+  free(err);
   if(needs_unlink) {
     mtev_conf_disable_writes(mtev_true);
     unlink(config_file);
@@ -251,8 +252,8 @@ child_main(void) {
   if(interactive) {
     mtev_console_init(APPNAME);
     mtev_console_conf_init();
-    eventer_set_fd_nonblocking(STDIN_FILENO);
-    if(mtev_console_std_init(STDIN_FILENO, STDOUT_FILENO)) {
+    if(eventer_set_fd_nonblocking(STDIN_FILENO) != 0 ||
+       mtev_console_std_init(STDIN_FILENO, STDOUT_FILENO)) {
       mtevL(mtev_stderr, "Failed to initialize IO\n");
       exit(2);
     }
