@@ -1539,7 +1539,8 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
       continue;
     }
     config = mtev_conf_get_hash(mtev_configs[i], "config");
-    mtev_hash_retr_str(config, "cn", strlen("cn"), &expected_cn);
+    if(!mtev_hash_retr_str(config, "cn", strlen("cn"), &expected_cn))
+      expected_cn = NULL;
 
     /* if destination is specified, exact match either the address or CN */
     if(destination && strcmp(address, destination) &&

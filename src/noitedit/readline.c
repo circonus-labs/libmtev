@@ -692,8 +692,8 @@ _history_expand_command(const char *command, size_t cmdlen, char **result)
 						from = strdup(search);
 					else {
 						from = NULL;
+						if(line != tempcmd) free(line);
 						free(tempcmd);
-						free(line);
 						return (-1);
 					}
 				}

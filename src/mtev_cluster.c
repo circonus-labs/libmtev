@@ -540,6 +540,7 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
     xmlSetProp(parent, (xmlChar *)"key", (xmlChar *)cluster->key);
     xmlSetProp(parent, (xmlChar *)"seq", (xmlChar *)new_seq_str);
   }
+  if(cluster->node_cnt > 0) mtevAssert(cluster->nodes);
   for(i=0;i<cluster->node_cnt;i++) {
     xmlNodePtr node;
     char uuid_str[UUID_STR_LEN+1], port[6], ipstr[INET6_ADDRSTRLEN];
@@ -733,12 +734,14 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
       /* This is considered a successful update. We have the most recent */
       rv = 2;
       mtevL(mtev_debug, "Cluster '%s' is too old\n", new_cluster->name);
+      pthread_mutex_unlock(&c_lock);
       goto bail;
     }
     if(!mtev_cluster_update_config(new_cluster, mtev_false)) {
       mtevL(mtev_error, "Cluster '%s', failed to write to config.\n",
             new_cluster->name);
       rv = -1;
+      pthread_mutex_unlock(&c_lock);
       goto bail;
     }
     mtev_cluster_compile(new_cluster);
@@ -752,6 +755,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
       mtevL(mtev_error, "Cluster '%s', failed to write to config.\n",
             new_cluster->name);
       rv = -1;
+      pthread_mutex_unlock(&c_lock);
       goto bail;
     }
     mtev_cluster_compile(new_cluster);

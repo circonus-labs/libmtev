@@ -1807,10 +1807,12 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
    *   2. our "inherit" config if it exists.
    *   3. our config.
    */
-  node = xmlXPathNodeSetItem(pobj->nodesetval, cnt-1);
+  node = NULL;
+  if(cnt > 0)
+    node = xmlXPathNodeSetItem(pobj->nodesetval, (int)(cnt-1));
   /* 1. */
   if(cnt > 1 && node) {
-    parent_node = xmlXPathNodeSetItem(pobj->nodesetval, cnt-2);
+    parent_node = xmlXPathNodeSetItem(pobj->nodesetval, (int)(cnt-2));
     if(parent_node != current_node)
       mtev_conf_get_into_hash(mtev_conf_section_from_xmlnodeptr(parent_node),
                               (const char *)node->name, table, namespace);
