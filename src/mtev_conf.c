@@ -2894,11 +2894,13 @@ mtev_conf_security_init(const char *toplevel, const char *user,
         captype = MTEV_SECURITY_CAP_INHERITABLE;
       else {
         mtevL(mtev_error, "Unsupported capability type: '%s'\n", captype_str);
+        mtev_conf_release_section(secnode);
         mtev_conf_release_sections(caps, ccnt);
         exit(2);
       }
     } else {
       mtevL(mtev_error, "Capability type missing\n");
+      mtev_conf_release_section(secnode);
       mtev_conf_release_sections(caps, ccnt);
       exit(2);
     }
@@ -2909,6 +2911,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
       if(mtev_security_setcaps(captype, capstring) != 0) {
         mtevL(mtev_error, "Failed to set security capabilities: %s / %s\n",
               captype_str, capstring);
+        mtev_conf_release_section(secnode);
         mtev_conf_release_sections(caps, ccnt);
         exit(2);
       }
@@ -2916,6 +2919,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
     }
   }
   mtev_conf_release_sections(caps, ccnt);
+  mtev_conf_release_section(secnode);
 
   /* drop uid/gid last */
   if(mtev_security_usergroup(user, group, mtev_false)) { /* no take backs */
