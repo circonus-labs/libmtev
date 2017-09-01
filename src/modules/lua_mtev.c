@@ -137,6 +137,7 @@ static void
 nl_extended_free(void *vcl) {
   struct nl_slcl *cl = vcl;
   if(cl->inbuff) free(cl->inbuff);
+  if(cl->eptr) *cl->eptr = NULL;
   free(cl);
 }
 static void
