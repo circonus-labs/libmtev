@@ -273,6 +273,8 @@ static void POP_OUT(reverse_socket_t *rc) {
 static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   int id;
   reverse_frame_t *frame = malloc(sizeof(*frame));
+  eventer_t trigger_e = NULL;
+
   memcpy(frame, frame_to_copy, sizeof(*frame));
   pthread_mutex_lock(&rc->lock);
   rc->data.out_bytes += frame->buff_len;
@@ -287,11 +289,12 @@ static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   else {
     rc->data.outgoing = rc->data.outgoing_tail = frame;
   }
+  if(rc->data.e) trigger_e = eventer_alloc_copy(rc->data.e);
   pthread_mutex_unlock(&rc->lock);
-  if(!rc->data.e) mtevL(nlerr, "No event to trigger for reverse_socket framing\n");
-  if(rc->data.e) {
-    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(rc->data.e), rc->data.e));
-    eventer_trigger(rc->data.e, EVENTER_WRITE|EVENTER_READ);
+  if(!trigger_e) mtevL(nlerr, "No event to trigger for reverse_socket framing\n");
+  else {
+    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(trigger_e), trigger_e));
+    eventer_trigger(trigger_e, EVENTER_WRITE|EVENTER_READ);
   }
 }
 static void APPEND_OUT_NO_LOCK(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
@@ -666,6 +669,10 @@ socket_error:
     pthread_mutex_unlock(&rc->lock);
   }
   if(success && rc->data.nctx) mtev_connection_update_timeout(rc->data.nctx);
+  if(e != rc->data.e) {
+    eventer_set_mask(rc->data.e, rmask|wmask);
+    return 0;
+  }
   return rmask|wmask;
 }
 
