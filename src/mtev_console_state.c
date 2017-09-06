@@ -628,7 +628,6 @@ mtev_console_show_jemalloc(mtev_console_closure_t ncct, int argc, char **argv,
   }
   if(argc == 1) opts = argv[0];
   my_malloc_stats_print(je_write_cb, ncct, opts);
-nc_printf(ncct, "opts: %s\n", opts);
   return 0;
 }
 
