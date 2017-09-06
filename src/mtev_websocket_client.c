@@ -618,7 +618,6 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
   if(!client->closed) {
     eventer_remove_fde(client->e);
     eventer_close(client->e, &mask);
-    eventer_free(client->e);
     if(client->did_handshake)
       wslay_event_context_free(client->wslay_ctx);
     free((void *)client->path);
