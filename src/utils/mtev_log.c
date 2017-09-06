@@ -1483,6 +1483,15 @@ mtev_log_stream_find(const char *name) {
     return (mtev_log_stream_t)vls;
   }
   newls = mtev_log_stream_new_internal(name, NULL, NULL, NULL, NULL, NULL);
+  if (!newls) {
+    /* We may have lost a race..... try to retrieve it again */
+    if(mtev_hash_retrieve(&mtev_loggers, name, strlen(name), &vls)) {
+      return (mtev_log_stream_t)vls;
+    }
+    else {
+      mtevFatal(mtev_error, "Couldn't open stream: %s\n", name);
+    }
+  }
 
   /* Special case debug and stderr to match their boot conditions */
   if(!strcmp(name, "debug")) newls->flags = BOOT_DEBUG_FLAGS;
