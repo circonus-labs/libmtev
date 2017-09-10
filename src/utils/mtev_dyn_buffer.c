@@ -32,10 +32,10 @@ mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
   needed = vsnprintf((char *)buf->pos, available, format, args);
   if (needed > (available - 1)) {
     mtev_dyn_buffer_ensure(buf, needed + 1); /* ensure we have space for the trailing NUL too */
-    needed = snprintf((char *)buf->pos, needed + 1, format, args);
+    needed = vsnprintf((char *)buf->pos, needed + 1, format, args);
   }
-  va_end(args);
   /* (v)snprintf ensures NUL termination */
+  va_end(args);
   buf->pos += needed;
 }
 
