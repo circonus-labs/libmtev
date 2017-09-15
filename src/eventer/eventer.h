@@ -906,6 +906,23 @@ eventer_at(eventer_func_t func, void *cl, struct timeval t) {
   return e;
 }
 
+/*! \fn eventer_t eventer_at_next_opportunity(eventer_func_t func, void *closure, pthread_t owner)
+    \brief Convenience function to create an event to run a callback on a specific thread.
+    \param func the callback function to run.
+    \param closure the closure to be passed to the callback.
+    \param owner the event-loop thread on which to run the callback.
+    \return an event that has not been added to the eventer.
+
+    > Note this does not actually schedule the event. See [`eventer_add_at_next_opportunity`](c.md#eventeraddatnextopportunity).
+*/
+static inline eventer_t
+eventer_at_next_opportunity(eventer_func_t func, void *cl, pthread_t owner) {
+  struct timeval t = { 0, 0 };
+  eventer_t e = eventer_alloc_timer(func, cl, &t);
+  eventer_set_owner(e, owner);
+  return e;
+}
+
 /*! \fn eventer_t eventer_add_at(eventer_func_t func, void *closure, struct timeval whence)
     \brief Convenience function to schedule a callback at a specific time.
     \param func the callback function to run.
@@ -916,6 +933,20 @@ eventer_at(eventer_func_t func, void *cl, struct timeval t) {
 static inline eventer_t
 eventer_add_at(eventer_func_t func, void *cl, struct timeval t) {
   eventer_t e = eventer_at(func,cl,t);
+  eventer_add(e);
+  return e;
+}
+
+/*! \fn eventer_t eventer_add_at_next_opportunity(eventer_func_t func, void *closure, pthread_t owner)
+    \brief Convenience function to schedule a callback to run in a specific event-loop thread.
+    \param func the callback function to run.
+    \param closure the closure to be passed to the callback.
+    \param owner the event-loop thread in which to run the callback.
+    \return N/A (C Macro).
+*/
+static inline eventer_t
+eventer_add_at_next_opportunity(eventer_func_t func, void *cl, pthread_t owner) {
+  eventer_t e = eventer_at_next_opportunity(func,cl,owner);
   eventer_add(e);
   return e;
 }
