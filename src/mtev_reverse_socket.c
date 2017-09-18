@@ -192,6 +192,8 @@ typedef struct {
   reverse_socket_t *parent;
 } channel_closure_t;
 
+static int mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, struct timeval *tv);
+
 static void
 mtev_reverse_socket_free(void *vrc) {
   reverse_socket_t *rc = vrc;
@@ -273,7 +275,7 @@ static void POP_OUT(reverse_socket_t *rc) {
 static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   int id;
   reverse_frame_t *frame = malloc(sizeof(*frame));
-  eventer_t trigger_e = NULL;
+  eventer_t wakeup_e = NULL;
 
   memcpy(frame, frame_to_copy, sizeof(*frame));
   pthread_mutex_lock(&rc->lock);
@@ -289,17 +291,23 @@ static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   else {
     rc->data.outgoing = rc->data.outgoing_tail = frame;
   }
-  if(rc->data.e) trigger_e = eventer_alloc_copy(rc->data.e);
+  if(rc->data.e) {
+    mtev_reverse_socket_ref(rc);
+    wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup,
+                                                    (void *)rc, eventer_get_owner(rc->data.e));
+  }
   pthread_mutex_unlock(&rc->lock);
-  if(!trigger_e) mtevL(nlerr, "No event to trigger for reverse_socket framing\n");
+  if(!wakeup_e) mtevL(nlerr, "No event to trigger for reverse_socket framing\n");
   else {
-    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(trigger_e), trigger_e));
-    eventer_trigger(trigger_e, EVENTER_WRITE|EVENTER_READ);
+    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
+    eventer_add(wakeup_e);
   }
 }
 static void APPEND_OUT_NO_LOCK(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   int id;
   reverse_frame_t *frame = malloc(sizeof(*frame));
+  eventer_t wakeup_e = NULL;
+
   memcpy(frame, frame_to_copy, sizeof(*frame));
   rc->data.out_bytes += frame->buff_len;
   rc->data.out_frames += 1;
@@ -313,10 +321,15 @@ static void APPEND_OUT_NO_LOCK(reverse_socket_t *rc, reverse_frame_t *frame_to_c
   else {
     rc->data.outgoing = rc->data.outgoing_tail = frame;
   }
-  if(!rc->data.e) mtevL(nlerr, "No event to trigger for reverse_socket framing\n");
   if(rc->data.e) {
-    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(rc->data.e), rc->data.e));
-    eventer_trigger(rc->data.e, EVENTER_WRITE|EVENTER_READ);
+    mtev_reverse_socket_ref(rc);
+    wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup,
+                                                    (void *)rc, eventer_get_owner(rc->data.e));
+  }
+  if(!wakeup_e) mtevL(nlerr, "No event to trigger for reverse_socket framing\n");
+  else {
+    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
+    eventer_add(wakeup_e);
   }
 }
 
@@ -487,6 +500,18 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     needs_unlock = 0;
   }
   return read_mask | write_mask | EVENTER_EXCEPTION;
+}
+
+static int
+mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, struct timeval *tv)
+{
+  reverse_socket_t *rc = closure;
+  if (rc->data.e) {
+    eventer_remove_fde(rc->data.e);
+    eventer_trigger(rc->data.e, EVENTER_READ|EVENTER_WRITE);
+  }
+  mtev_reverse_socket_deref(rc);
+  return 0;
 }
 
 static int
@@ -2026,6 +2051,8 @@ void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
                         mtev_connection_complete_connect);
   eventer_name_callback("mtev_connection_session_timeout",
                         mtev_connection_session_timeout);
+  eventer_name_callback("mtev_reverse_socket_wakeup",
+                        mtev_reverse_socket_wakeup);
 
   mtev_control_dispatch_delegate(mtev_control_dispatch,
                                  MTEV_CONTROL_REVERSE,
