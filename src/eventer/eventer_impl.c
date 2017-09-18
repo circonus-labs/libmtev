@@ -833,6 +833,8 @@ void eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e) {
 
 void eventer_add_timed(eventer_t e) {
   struct eventer_impl_data *t;
+  int should_wake = (e->whence.tv_sec == 0 && e->whence.tv_usec == 0);
+
   mtevAssert(e->mask & EVENTER_TIMER);
   if(EVENTER_DEBUGGING) {
     const char *cbname;
@@ -841,9 +843,14 @@ void eventer_add_timed(eventer_t e) {
           cbname ? cbname : "???");
   }
   t = get_event_impl_data(e);
+  if (should_wake) eventer_ref(e);
   pthread_mutex_lock(&t->te_lock);
   mtev_skiplist_insert(t->staged_timed_events, e);
   pthread_mutex_unlock(&t->te_lock);
+  if (should_wake) {
+    eventer_wakeup(e);
+    eventer_deref(e);
+  }
 }
 eventer_t eventer_remove_timed(eventer_t e) {
   struct eventer_impl_data *t;
