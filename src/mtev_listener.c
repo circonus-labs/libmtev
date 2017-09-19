@@ -48,6 +48,60 @@
 #include "mtev_listener.h"
 #include "mtev_conf.h"
 
+struct mtev_acceptor_closure_t {
+  union {
+    struct sockaddr remote_addr;
+    struct sockaddr_in remote_addr4;
+    struct sockaddr_in6 remote_addr6;
+  } remote;
+  char *remote_cn;
+  mtev_hash_table *config;
+  void *service_ctx;
+  eventer_func_t dispatch;
+  uint32_t cmd;
+  int rlen;
+  void (*service_ctx_free)(void *);
+};
+
+struct sockaddr *
+mtev_acceptor_closure_remote(mtev_acceptor_closure_t *ac) {
+  return &ac->remote.remote_addr;
+}
+const char *
+mtev_acceptor_closure_remote_cn(mtev_acceptor_closure_t *ac) {
+  return ac->remote_cn;
+}
+void *
+mtev_acceptor_closure_ctx(mtev_acceptor_closure_t *ac) {
+  return ac->service_ctx;
+}
+void
+mtev_acceptor_closure_ctx_free(mtev_acceptor_closure_t *ac) {
+  if(ac->service_ctx_free)
+    ac->service_ctx_free(ac->service_ctx);
+  ac->service_ctx_free = NULL;
+  ac->service_ctx = NULL;
+  return;
+}
+eventer_func_t
+mtev_acceptor_closure_dispatch(mtev_acceptor_closure_t *ac) {
+  return ac->dispatch;
+}
+mtev_hash_table *
+mtev_acceptor_closure_config(mtev_acceptor_closure_t *ac) {
+  return ac->config;
+}
+void
+mtev_acceptor_closure_set_ctx(mtev_acceptor_closure_t *ac,
+                              void *ctx, void (*freefunc)(void *)) {
+  ac->service_ctx = ctx;
+  ac->service_ctx_free = freefunc;
+}
+uint32_t
+mtev_acceptor_closure_cmd(mtev_acceptor_closure_t *ac) {
+  return ac->cmd;
+}
+
 typedef struct {
   int8_t family;
   unsigned short port;
@@ -55,7 +109,7 @@ typedef struct {
   eventer_pool_t *pool;
   mtev_boolean in_own_thread;
   eventer_func_t dispatch_callback;
-  acceptor_closure_t *dispatch_closure;
+  mtev_acceptor_closure_t *dispatch_closure;
   mtev_hash_table *sslconfig;
 } * listener_closure_t;
 
@@ -68,7 +122,7 @@ mtev_listener_commands(void) {
 }
 
 void
-acceptor_closure_free(acceptor_closure_t *ac) {
+mtev_acceptor_closure_free(mtev_acceptor_closure_t *ac) {
   if (ac) {
     if(ac->remote_cn) free(ac->remote_cn);
     if(ac->service_ctx_free && ac->service_ctx)
@@ -107,7 +161,7 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
   const char *sslerr = "no closure";
   int rv;
   listener_closure_t listener_closure = (listener_closure_t)closure;
-  acceptor_closure_t *ac = NULL;
+  mtev_acceptor_closure_t *ac = NULL;
   if(!closure) {
     mtevL(mtev_error, "SSL accept failed: no closure\n");
     goto socketfail;
@@ -118,7 +172,7 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
   if(rv > 0) {
     eventer_ssl_ctx_t *sslctx;
     eventer_set_callback(e, listener_closure->dispatch_callback);
-    /* We must make a copy of the acceptor_closure_t for each new
+    /* We must make a copy of the mtev_acceptor_closure_t for each new
      * connection.
      */
     if((sslctx = eventer_get_eventer_ssl_ctx(e)) != NULL) {
@@ -165,7 +219,7 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
  socketfail:
     
   if(listener_closure) free(listener_closure);
-  if(ac) acceptor_closure_free(ac);
+  if(ac) mtev_acceptor_closure_free(ac);
   eventer_remove_fde(e);
   eventer_close(e, &mask);
   return 0;
@@ -193,7 +247,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
   int conn, newmask = EVENTER_READ;
   socklen_t salen;
   listener_closure_t listener_closure = (listener_closure_t)closure;
-  acceptor_closure_t *ac = NULL;
+  mtev_acceptor_closure_t *ac = NULL;
 
   /* This might not be set, so set it */
   if(listener_closure->fanout && !listener_closure->pool)
@@ -201,7 +255,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
 
   if(mask & EVENTER_EXCEPTION) {
  socketfail:
-    if(ac) acceptor_closure_free(ac);
+    if(ac) mtev_acceptor_closure_free(ac);
     /* We don't shut down the socket, it's our listener! */
     return EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
   }
@@ -275,7 +329,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
     }
     else {
       if(errno == EAGAIN) {
-        if(ac) acceptor_closure_free(ac);
+        if(ac) mtev_acceptor_closure_free(ac);
       }
       else if(errno != EINTR) {
         mtevL(mtev_error, "accept socket error: %s\n", strerror(errno));
@@ -585,7 +639,7 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
   int len = 0, callmask = mask;
   void *vdelegation_table;
   mtev_hash_table *delegation_table = NULL;
-  acceptor_closure_t *ac = closure;
+  mtev_acceptor_closure_t *ac = closure;
 
   mtevAssert(ac->rlen >= 0);
   while(ac->rlen < sizeof(cmd)) {
@@ -605,7 +659,7 @@ socket_error:
     /* Exceptions cause us to simply snip the connection */
     eventer_remove_fde(e);
     eventer_close(e, &newmask);
-    acceptor_closure_free(ac);
+    mtev_acceptor_closure_free(ac);
     return 0;
   }
 

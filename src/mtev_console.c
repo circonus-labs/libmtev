@@ -315,13 +315,13 @@ mtev_console_dispatch(eventer_t e, char *buffer,
 }
 
 void
-mtev_console_motd(eventer_t e, acceptor_closure_t *ac,
+mtev_console_motd(eventer_t e, mtev_acceptor_closure_t *ac,
                   mtev_console_closure_t ncct) {
-  int ssl;
-  ssl = eventer_get_eventer_ssl_ctx(e) ? 1 : 0;
+  int ssl = eventer_get_eventer_ssl_ctx(e) ? 1 : 0;
+  const char *remote_cn = mtev_acceptor_closure_remote_cn(ac);
   nc_printf(ncct, "mtev%s: %s\n",
             ssl ? "(secure)" : "",
-            ac->remote_cn ? ac->remote_cn : "(no auth)");
+            remote_cn ? remote_cn : "(no auth)");
 }
 
 int
@@ -503,8 +503,8 @@ mtev_console_handler(eventer_t e, int mask, void *closure,
                      struct timeval *now) {
   int newmask = EVENTER_READ | EVENTER_EXCEPTION;
   int keep_going;
-  acceptor_closure_t *ac = closure;
-  mtev_console_closure_t ncct = ac->service_ctx;
+  mtev_acceptor_closure_t *ac = closure;
+  mtev_console_closure_t ncct = mtev_acceptor_closure_ctx(ac);
 
   if(mask & EVENTER_EXCEPTION || (ncct && ncct->wants_shutdown)) {
 socket_error:
@@ -512,19 +512,19 @@ socket_error:
 
     /* This removes the log feed which is important to do before calling close */
     eventer_remove_fde(e);
-    acceptor_closure_free(ac);
+    mtev_acceptor_closure_free(ac);
     eventer_close(e, &newmask);
     return 0;
   }
 
-  if(!ac->service_ctx) {
-    ncct = ac->service_ctx = mtev_console_closure_alloc();
+  if(!ncct) {
+    ncct = mtev_console_closure_alloc();
     mtevL(mtev_debug, "ncct alloc() -> %p\n", (void *)ncct);
-    ac->service_ctx_free = mtev_console_closure_free;
+    mtev_acceptor_closure_set_ctx(ac, ncct, mtev_console_closure_free);
   }
   if(!ncct->initialized) {
     const char *line_protocol = NULL;
-    (void)mtev_hash_retr_str(ac->config,
+    (void)mtev_hash_retr_str(mtev_acceptor_closure_config(ac),
                              "line_protocol", strlen("line_protocol"),
                              &line_protocol);
     if(mtev_console_initialize(ncct, line_protocol, e, e)) goto socket_error;
@@ -560,7 +560,7 @@ socket_error:
     len = eventer_read(e, sbuf, sizeof(sbuf)-1, &newmask);
     if(len == 0 || (len < 0 && errno != EAGAIN)) {
       eventer_remove_fde(e);
-      acceptor_closure_free(ac);
+      mtev_acceptor_closure_free(ac);
       eventer_close(e, &newmask);
       return 0;
     }

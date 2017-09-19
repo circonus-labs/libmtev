@@ -77,12 +77,12 @@ mtev_reverse_socket_acl(mtev_reverse_acl_decider_t f) {
 }
 
 mtev_reverse_acl_decision_t
-mtev_reverse_socket_denier(const char *id, acceptor_closure_t *ac) {
+mtev_reverse_socket_denier(const char *id, mtev_acceptor_closure_t *ac) {
   return MTEV_ACL_DENY;
 }
 
 static int
-mtev_reverse_socket_allowed(const char *id, acceptor_closure_t *ac) {
+mtev_reverse_socket_allowed(const char *id, mtev_acceptor_closure_t *ac) {
   struct reverse_access_list *acl;
   for(acl = access_list; acl; acl = acl->next) {
     switch(acl->allow(id,ac)) {
@@ -673,12 +673,12 @@ int
 mtev_reverse_socket_server_handler(eventer_t e, int mask, void *closure,
                                    struct timeval *now) {
   int rv;
-  acceptor_closure_t *ac = closure;
-  reverse_socket_t *rc = ac->service_ctx;
+  mtev_acceptor_closure_t *ac = closure;
+  reverse_socket_t *rc = mtev_acceptor_closure_ctx(ac);
   mtev_reverse_socket_ref(rc);
   rv = mtev_reverse_socket_handler(e, mask, rc, now);
   if(rv == 0) {
-    acceptor_closure_free(ac);
+    mtev_acceptor_closure_free(ac);
     eventer_remove_fde(e);
     eventer_close(e, &mask);
   }
@@ -807,8 +807,8 @@ mtev_reverse_socket_acceptor(eventer_t e, int mask, void *closure,
   ssize_t len = 0;
   const char *socket_error_string = "unknown socket error";
   char errbuf[80];
-  acceptor_closure_t *ac = closure;
-  reverse_socket_t *rc = ac->service_ctx;
+  mtev_acceptor_closure_t *ac = closure;
+  reverse_socket_t *rc = mtev_acceptor_closure_ctx(ac);
 
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
@@ -816,20 +816,22 @@ socket_error:
     mtev_reverse_socket_ref(rc);
     mtev_reverse_socket_shutdown(rc, e);
     mtev_reverse_socket_deref(rc);
-    acceptor_closure_free(ac);
+    mtev_acceptor_closure_free(ac);
     eventer_remove_fde(e);
     eventer_close(e, &mask);
     mtevL(nldeb, "reverse_socket: %s\n", socket_error_string);
     return 0;
   }
 
-  if(!ac->service_ctx) {
-    rc = ac->service_ctx = mtev_reverse_socket_alloc();
-    ac->service_ctx_free = mtev_reverse_socket_deref;
+  if(!rc) {
+    rc = mtev_reverse_socket_alloc();
+    mtev_acceptor_closure_set_ctx(ac, rc, mtev_reverse_socket_deref);
     if(!rc->data.buff) rc->data.buff = malloc(CMD_BUFF_LEN);
     /* expect: "REVERSE /<id>\r\n"  ... "REVE" already read */
     /*              [ 5 ][ X][ 2]  */
   }
+
+  const char *remote_cn = mtev_acceptor_closure_remote_cn(ac);
 
   /* Herein we read one byte at a time to ensure we don't accidentally
    * consume pipelined frames.
@@ -874,9 +876,9 @@ socket_error:
       for(req = cn_required_prefixes; *req; req++) {
         int reqlen = strlen(*req);
         if(!strncmp(rc->id, *req, reqlen)) {
-          if(strcmp(rc->id+reqlen, ac->remote_cn ? ac->remote_cn : "")) {
+          if(strcmp(rc->id+reqlen, remote_cn ? remote_cn : "")) {
             mtevL(nlerr, "attempted reverse connection '%s' invalid remote '%s'\n",
-                  rc->id+reqlen, ac->remote_cn ? ac->remote_cn : "");
+                  rc->id+reqlen, remote_cn ? remote_cn : "");
             free(rc->id);
             rc->id = NULL;
             goto socket_error;
@@ -887,7 +889,7 @@ socket_error:
       switch(mtev_reverse_socket_allowed(rc->id, ac)) {
         case MTEV_ACL_DENY:
           mtevL(nlerr, "attempted reverse connection '%s' from '%s' denied by policy\n",
-                  rc->id, ac->remote_cn ? ac->remote_cn : "");
+                  rc->id, remote_cn ? remote_cn : "");
           free(rc->id);
           rc->id = NULL;
           goto socket_error;
@@ -1167,7 +1169,7 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
 
   if(rv > 0) {
     eventer_set_callback(e, nctx->consumer_callback);
-    /* We must make a copy of the acceptor_closure_t for each new
+    /* We must make a copy of the mtev_acceptor_closure_t for each new
      * connection.
      */
     if(sslctx != NULL) {

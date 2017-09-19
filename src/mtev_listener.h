@@ -45,20 +45,8 @@
 #endif
 #include <netinet/in.h>
 
-typedef struct {
-  union {
-    struct sockaddr remote_addr;
-    struct sockaddr_in remote_addr4;
-    struct sockaddr_in6 remote_addr6;
-  } remote;
-  char *remote_cn;
-  mtev_hash_table *config;
-  void *service_ctx;
-  eventer_func_t dispatch;
-  uint32_t cmd;
-  int rlen;
-  void (*service_ctx_free)(void *);
-} acceptor_closure_t;
+struct mtev_acceptor_closure_t;
+typedef struct mtev_acceptor_closure_t mtev_acceptor_closure_t;
 
 API_EXPORT(void) mtev_listener_init(const char *toplevel);
 API_EXPORT(void) mtev_listener_init_globals(void);
@@ -66,7 +54,32 @@ API_EXPORT(void) mtev_listener_init_globals(void);
 API_EXPORT(void) mtev_listener_skip(const char *address, int port);
 
 API_EXPORT(void)
-  acceptor_closure_free(acceptor_closure_t *ac);
+  mtev_acceptor_closure_free(mtev_acceptor_closure_t *ac);
+
+API_EXPORT(struct sockaddr *)
+  mtev_acceptor_closure_remote(mtev_acceptor_closure_t *);
+
+API_EXPORT(const char *)
+  mtev_acceptor_closure_remote_cn(mtev_acceptor_closure_t *);
+
+API_EXPORT(void *)
+  mtev_acceptor_closure_ctx(mtev_acceptor_closure_t *);
+
+API_EXPORT(void)
+  mtev_acceptor_closure_ctx_free(mtev_acceptor_closure_t *);
+
+API_EXPORT(mtev_hash_table *)
+  mtev_acceptor_closure_config(mtev_acceptor_closure_t *);
+
+API_EXPORT(eventer_func_t)
+  mtev_acceptor_closure_dispatch(mtev_acceptor_closure_t *);
+
+API_EXPORT(void)
+  mtev_acceptor_closure_set_ctx(mtev_acceptor_closure_t *,
+                                void *, void (*)(void *));
+
+API_EXPORT(uint32_t)
+  mtev_acceptor_closure_cmd(mtev_acceptor_closure_t *);
 
 API_EXPORT(void)
   mtev_control_dispatch_delegate(eventer_func_t listener_dispatch,
