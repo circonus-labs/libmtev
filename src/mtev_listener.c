@@ -155,7 +155,7 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
      port = ntohs(ac->remote.remote_addr4.sin_port);
      break;
      case AF_INET6:
-     (void)inet_ntop(AF_INET, &ac->remote.remote_addr6.sin6_addr, ip, sizeof(ip));
+     (void)inet_ntop(AF_INET6, &ac->remote.remote_addr6.sin6_addr, ip, sizeof(ip));
      port = ntohs(ac->remote.remote_addr6.sin6_port);
      break;
      default: break;
