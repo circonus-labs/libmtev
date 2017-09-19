@@ -86,11 +86,11 @@ filterLoader(busted, {
 
 outputHandlerLoader(
   busted, 'junit',
-  { arguments = { filename }, language = 'en' }
+  { arguments = { filename }, language = 'en', verbose = true }
 )
 outputHandlerLoader(
   busted, 'gtest',
-  { language = 'en' }
+  { language = 'en', verbose = true }
 )
 
 if mtev.stat("lua-support/init.lua") ~= nil then
