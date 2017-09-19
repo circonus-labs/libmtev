@@ -72,7 +72,7 @@ json_spit_event(eventer_t e, void *closure) {
           }
           break;
         case AF_INET6:
-          if(inet_ntop(AF_INET, &addr.ip6.sin6_addr, ip, sizeof(ip))) {
+          if(inet_ntop(AF_INET6, &addr.ip6.sin6_addr, ip, sizeof(ip))) {
             ao = MJ_OBJ();
             MJ_KV(ao, "address", MJ_STR(ip));
             MJ_KV(ao, "port", MJ_INT(ntohs(addr.ip6.sin6_port)));

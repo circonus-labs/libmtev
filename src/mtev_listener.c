@@ -108,7 +108,10 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
   int rv;
   listener_closure_t listener_closure = (listener_closure_t)closure;
   acceptor_closure_t *ac = NULL;
-  if(!closure) goto socketfail;
+  if(!closure) {
+    mtevL(mtev_error, "SSL accept failed: no closure\n");
+    goto socketfail;
+  }
   ac = listener_closure->dispatch_closure;
 
   rv = eventer_SSL_accept(e, &mask);
@@ -141,9 +144,25 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
 
   sslerr = eventer_ssl_get_peer_error(eventer_get_eventer_ssl_ctx(e));
   if(!sslerr) sslerr = eventer_ssl_get_last_error(eventer_get_eventer_ssl_ctx(e));
-  if(!sslerr) sslerr = strerror(errno);
+  if(!sslerr && errno) sslerr = strerror(errno);
+  if(!sslerr) sslerr = "connection closed";
+
+  char ip[INET6_ADDRSTRLEN] = "unknown";
+  int port = 0;
+  switch(ac->remote.remote_addr.sa_family) {
+    case AF_INET:
+     (void)inet_ntop(AF_INET, &ac->remote.remote_addr4.sin_addr, ip, sizeof(ip));
+     port = ntohs(ac->remote.remote_addr4.sin_port);
+     break;
+     case AF_INET6:
+     (void)inet_ntop(AF_INET6, &ac->remote.remote_addr6.sin6_addr, ip, sizeof(ip));
+     port = ntohs(ac->remote.remote_addr6.sin6_port);
+     break;
+     default: break;
+  }
+  mtevL(mtev_error, "SSL accept failed from %s:%d: %s\n", ip, port, sslerr);
+
  socketfail:
-  mtevL(mtev_error, "SSL accept failed: %s\n", sslerr);
     
   if(listener_closure) free(listener_closure);
   if(ac) acceptor_closure_free(ac);
