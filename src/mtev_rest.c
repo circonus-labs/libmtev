@@ -317,6 +317,7 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
   const char *uri_str;
   const char *remote_cn = "";
   int ovector[30];
+  mtev_hash_table *config = mtev_acceptor_closure_config(restc->ac);
 
   if(restc->remote_cn) remote_cn = restc->remote_cn;
   uri_str = mtev_http_request_uri_str(req);
@@ -327,7 +328,7 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
     if(acl->url && pcre_exec(acl->url, NULL, uri_str, strlen(uri_str), 0, 0,
                              ovector, sizeof(ovector)/sizeof(*ovector)) <= 0)
       continue;
-    if(!match_listener_res(acl->listener_res, restc->ac->config))
+    if(!match_listener_res(acl->listener_res, config))
       continue;
     for(rule = acl->rules; rule; rule = rule->next) {
       if(rule->cn && pcre_exec(rule->cn, NULL, remote_cn, strlen(remote_cn), 0, 0,
@@ -336,7 +337,7 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
       if(rule->url && pcre_exec(rule->url, NULL, uri_str, strlen(uri_str), 0, 0,
                                 ovector, sizeof(ovector)/sizeof(*ovector)) <= 0)
         continue;
-      if(!match_listener_res(rule->listener_res, restc->ac->config))
+      if(!match_listener_res(rule->listener_res, config))
         continue;
       return rule->allow;
     }
@@ -566,30 +567,31 @@ int
 mtev_http_rest_handler(eventer_t e, int mask, void *closure,
                        struct timeval *now) {
   int rv, done = 0;
-  acceptor_closure_t *ac = closure;
-  mtev_http_rest_closure_t *restc = ac->service_ctx;
+  mtev_acceptor_closure_t *ac = closure;
+  mtev_http_rest_closure_t *restc = mtev_acceptor_closure_ctx(ac);
 
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
     (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
-    acceptor_closure_free(ac);
+    mtev_acceptor_closure_free(ac);
     return 0;
   }
 
-  if(!ac->service_ctx) {
+  if(!restc) {
     const char *primer = "";
-    ac->service_ctx = restc = mtev_http_rest_closure_alloc();
-    ac->service_ctx_free = mtev_http_rest_closure_free;
+    const char *remote_cn = mtev_acceptor_closure_remote_cn(ac);
+    restc = mtev_http_rest_closure_alloc();
+    mtev_acceptor_closure_set_ctx(ac, restc, mtev_http_rest_closure_free);
     restc->ac = ac;
-    restc->remote_cn = strdup(ac->remote_cn ? ac->remote_cn : "");
+    restc->remote_cn = strdup(remote_cn ? remote_cn : "");
     restc->http_ctx =
         mtev_http_session_ctx_websocket_new(mtev_rest_request_dispatcher,
                                             mtev_rest_websocket_dispatcher, 
                                             restc, 
                                             e, ac);
     
-    switch(ac->cmd) {
+    switch(mtev_acceptor_closure_cmd(ac)) {
       case MTEV_CONTROL_DELETE:
         primer = "DELE";
         break;
@@ -615,7 +617,7 @@ socket_error:
   }
   rv = mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
   if(done) {
-    acceptor_closure_free(ac);
+    mtev_acceptor_closure_free(ac);
   }
   return rv;
 }
@@ -624,18 +626,18 @@ int
 mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
                            struct timeval *now) {
   int rv, done = 0;
-  acceptor_closure_t *ac = closure;
-  mtev_http_rest_closure_t *restc = ac->service_ctx;
+  mtev_acceptor_closure_t *ac = closure;
+  mtev_http_rest_closure_t *restc = mtev_acceptor_closure_ctx(ac);
 
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
     /* Exceptions cause us to simply snip the connection */
     (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
-    acceptor_closure_free(ac);
+    mtev_acceptor_closure_free(ac);
     return 0;
   }
-  if(!ac->service_ctx) {
-    ac->service_ctx = restc = mtev_http_rest_closure_alloc();
-    ac->service_ctx_free = mtev_http_rest_closure_free;
+  if(!restc) {
+    restc = mtev_http_rest_closure_alloc();
+    mtev_acceptor_closure_set_ctx(ac, restc, mtev_http_rest_closure_free);
     restc->ac = ac;
     restc->http_ctx =
       mtev_http_session_ctx_websocket_new(mtev_rest_request_dispatcher, 
@@ -644,7 +646,7 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
   }
   rv = mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
   if(done) {
-    acceptor_closure_free(ac);
+    mtev_acceptor_closure_free(ac);
   }
   return rv;
 }
@@ -794,14 +796,15 @@ mtev_rest_simple_file_handler(mtev_http_rest_closure_t *restc,
   void *contents = MAP_FAILED;
   const char *dot = NULL, *slash;
   const char *content_type = "application/octet-stream";
+  mtev_hash_table *config = mtev_acceptor_closure_config(restc->ac);
 
   if(npats != 1 ||
-     !mtev_hash_retr_str(restc->ac->config,
+     !mtev_hash_retr_str(config,
                          "document_root", strlen("document_root"),
                          &document_root)) {
     goto not_found;
   }
-  if(!mtev_hash_retr_str(restc->ac->config,
+  if(!mtev_hash_retr_str(config,
                          "index_file", strlen("index_file"),
                          &index_file)) {
     index_file = "index.html";
@@ -853,7 +856,7 @@ mtev_rest_simple_file_handler(mtev_http_rest_closure_t *restc,
     char ext[PATH_MAX];
     strlcpy(ext, "mime_type_", sizeof(ext));
     strlcpy(ext+strlen(ext), dot+1, sizeof(ext)-strlen(ext));
-    if(!mtev_hash_retr_str(restc->ac->config,
+    if(!mtev_hash_retr_str(config,
                            ext, strlen(ext),
                            &content_type)) {
       if(!mtev_hash_retr_str(&mime_type_defaults, dot+1, strlen(dot+1),

@@ -57,7 +57,7 @@ typedef mtev_boolean (*rest_authorize_func_t)(mtev_http_rest_closure_t *,
                                               int npats, char **pats);
 struct mtev_http_rest_closure {
   mtev_http_session_ctx *http_ctx;
-  acceptor_closure_t *ac;
+  mtev_acceptor_closure_t *ac;
   char *remote_cn;
   rest_request_handler fastpath;
   rest_websocket_message_handler websocket_handler_memo;

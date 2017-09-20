@@ -234,7 +234,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
     goto boom;
   }
   mtev_lua_setup_restc(L, restc);
-  mtev_lua_hash_to_table(L, restc->ac->config);
+  mtev_lua_hash_to_table(L, mtev_acceptor_closure_config(restc->ac));
 
   conne = mtev_http_connection_event_float(mtev_http_session_connection(restc->http_ctx));
   if(conne) eventer_remove_fde(conne);

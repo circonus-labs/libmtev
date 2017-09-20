@@ -383,12 +383,20 @@ mtev_capabilities_tobuff(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     xmlFreeDoc(xmldoc);
 }
 
+static void mtev_capsvc_closure_free(void *v) {
+  mtev_capsvc_closure_t *cl = v;
+  if(cl) {
+    free(cl->buff);
+    free(cl);
+  }
+}
+
 int
 mtev_capabilities_handler(eventer_t e, int mask, void *closure,
                           struct timeval *now) {
   int newmask = EVENTER_WRITE | EVENTER_EXCEPTION;
-  acceptor_closure_t *ac = closure;
-  mtev_capsvc_closure_t *cl = ac->service_ctx;
+  mtev_acceptor_closure_t *ac = closure;
+  mtev_capsvc_closure_t *cl = mtev_acceptor_closure_ctx(ac);
 
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
@@ -396,17 +404,14 @@ socket_error:
 cleanup_shutdown:
     eventer_remove_fde(e);
     eventer_close(e, &newmask);
-    if(cl) {
-      if(cl->buff) free(cl->buff);
-      free(cl);
-    }
-    acceptor_closure_free(ac);
+    mtev_acceptor_closure_free(ac);
     return 0;
   }
 
-  if(!ac->service_ctx) {
-    cl = ac->service_ctx = calloc(1, sizeof(*cl));
-    mtev_capabilities_tobuff(cl, ac->dispatch);
+  if(!cl) {
+    cl = calloc(1, sizeof(*cl));
+    mtev_acceptor_closure_set_ctx(ac, cl, mtev_capsvc_closure_free);
+    mtev_capabilities_tobuff(cl, mtev_acceptor_closure_dispatch(ac));
   }
 
   while(cl->towrite > cl->written) {

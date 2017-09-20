@@ -78,10 +78,10 @@ typedef enum {
   MTEV_ACL_ABSTAIN
 } mtev_reverse_acl_decision_t;
 
-typedef mtev_reverse_acl_decision_t (*mtev_reverse_acl_decider_t)(const char *, acceptor_closure_t *);
+typedef mtev_reverse_acl_decision_t (*mtev_reverse_acl_decider_t)(const char *, mtev_acceptor_closure_t *);
 API_EXPORT(void) mtev_reverse_socket_acl(mtev_reverse_acl_decider_t f);
 API_EXPORT(mtev_reverse_acl_decision_t)
-  mtev_reverse_socket_denier(const char *id, acceptor_closure_t *ac);
+  mtev_reverse_socket_denier(const char *id, mtev_acceptor_closure_t *ac);
 
 API_EXPORT(void) mtev_reverse_socket_init(const char *p, const char **cn_p);
 API_EXPORT(int) mtev_reverse_socket_connect(const char *id, int existing_fd);

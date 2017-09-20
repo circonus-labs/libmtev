@@ -158,7 +158,7 @@ struct mtev_http_session_ctx {
   mtev_http_dispatch_func dispatcher;
   mtev_http_websocket_dispatch_func websocket_dispatcher;
   void *dispatcher_closure;
-  acceptor_closure_t *ac;
+  mtev_acceptor_closure_t *ac;
   Zipkin_Span *zipkin_span;
   mtev_boolean is_websocket;
 #ifdef HAVE_WSLAY
@@ -706,7 +706,8 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
   strftime(timestr, sizeof(timestr), "%d/%b/%Y:%H:%M:%S -0000", tm);
   sub_timeval(end_time, ctx->req.start_time, &diff);
   time_ms = diff.tv_sec * 1000 + (double)diff.tv_usec / 1000.0;
-  mtev_convert_sockaddr_to_buff(ip, sizeof(ip), &ctx->ac->remote.remote_addr);
+  struct sockaddr *remote = mtev_acceptor_closure_remote(ctx->ac);
+  mtev_convert_sockaddr_to_buff(ip, sizeof(ip), remote);
   if(LIBMTEV_HTTP_LOG_ENABLED()) {
     char logline_static[4096], *logline_dynamic = NULL;
     char *logline = logline_static;
@@ -1939,23 +1940,25 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
 
  release:
   *done = 1;
-  /* We're about to release, unhook us from the acceptor_closure so we
+  /* We're about to release, unhook us from the mtev_acceptor_closure so we
    * don't get double freed */
-  if(ctx->ac->service_ctx == ctx) ctx->ac->service_ctx = NULL;
+  if(mtev_acceptor_closure_ctx(ctx->ac) == ctx) {
+    mtev_acceptor_closure_set_ctx(ctx->ac, NULL, NULL);
+  }
   mtev_http_ctx_session_release(ctx);
   mtevL(http_debug, " <- mtev_http_session_drive(%d) [%x]\n", eventer_get_fd(e), 0);
   return 0;
 }
 
 mtev_http_session_ctx *
-mtev_http_session_ctx_new(mtev_http_dispatch_func f, void *c, eventer_t e, acceptor_closure_t *ac)
+mtev_http_session_ctx_new(mtev_http_dispatch_func f, void *c, eventer_t e, mtev_acceptor_closure_t *ac)
 {
   return mtev_http_session_ctx_websocket_new(f, NULL, c, e, ac);
 }
 
 mtev_http_session_ctx *
 mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http_websocket_dispatch_func wf,
-                                    void *c, eventer_t e, acceptor_closure_t *ac)
+                                    void *c, eventer_t e, mtev_acceptor_closure_t *ac)
 {
   mtev_http_session_ctx *ctx;
   ctx = calloc(1, sizeof(*ctx));
