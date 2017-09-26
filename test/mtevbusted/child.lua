@@ -18,7 +18,6 @@ function mk_coroutine_reader(start, done, fd)
       end
       output = output .. line
     end
-    print("END")
     mtev.notify(done, output)
     fd:close()
     return nil
