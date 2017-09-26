@@ -5,6 +5,25 @@ function env_flatten(tbl)
   return nt
 end
 
+-- makes a basic corouting reader on an fd
+function mk_coroutine_reader(start, done, fd)
+  mtev.coroutine_spawn(function()
+    local fd = fd:own()
+    local output = ''
+    mtev.waitfor(start,1)
+    while true do
+      local line = fd:read("\n")
+      if line == nil then
+        break
+      end
+      output = output .. line
+    end
+    mtev.notify(done, output)
+    fd:close()
+    return nil
+  end)
+end
+
 -- Start and Stop
 
 function find_test_dir()
@@ -55,6 +74,41 @@ end
 function TestProc:waitfor(key, timeout)
   local rkey, line = mtev.waitfor(key, timeout)
   return line
+end
+
+function TestProc:capturecommand(props)
+  if self.proc ~= nil then error("can't start already started proc") end
+  local proc, in_e, out_e, err_e =
+    mtev.spawn(self.path, self.argv, self.env)
+  self.stdout_start, self.stderr_start = mtev.uuid(), mtev.uuid()
+  self.stdout, self.stderr = mtev.uuid(), mtev.uuid()
+  self.proc = proc
+  if proc ~= nil then
+    in_e:close()
+    mk_coroutine_reader(self.stdout_start, self.stdout, out_e)
+    mk_coroutine_reader(self.stderr_start, self.stderr, err_e)
+  else
+    error("cannot start proc")
+  end
+  mtev.notify(self.stdout_start, true)
+  mtev.notify(self.stderr_start, true)
+
+  local stdout_key, stdout_data = mtev.waitfor(self.stdout, self.timeout)
+  local stderr_key, stderr_data = mtev.waitfor(self.stderr, self.timeout)
+
+  local ret = self.proc:wait(1)
+
+  if ret == nil then
+    self.proc:kill()
+    ret = self.proc:wait(10)
+  end
+  if ret == nil then
+    error("Couldn't quit process")
+  end
+
+  self.proc = nil
+
+  return ret, stdout_data, stderr_data
 end
 
 function TestProc:start(props)
@@ -172,6 +226,10 @@ function start_child(props)
   local proc = TestProc:new(props)
   proc:start()
   return proc
+end
+function run_command_synchronously_return_output(props)
+  local proc = TestProc:new(props)
+  return proc:capturecommand()
 end
 function kill_child(child)
   child:kill()
