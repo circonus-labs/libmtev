@@ -96,8 +96,16 @@ function TestProc:capturecommand(props)
   local stdout_key, stdout_data = mtev.waitfor(self.stdout, self.timeout)
   local stderr_key, stderr_data = mtev.waitfor(self.stderr, self.timeout)
 
-  self.proc:kill()
-  self.proc:wait(10)
+  local ret = self.proc:wait(1)
+
+  if ret == nil then
+    self.proc:kill()
+    ret = self.proc:wait(10)
+  end
+  if ret == nil then
+    error("Couldn't quit process")
+  end
+
   self.proc = nil
 
   return stdout_data, stderr_data
