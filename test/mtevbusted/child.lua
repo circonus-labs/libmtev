@@ -57,6 +57,42 @@ function TestProc:waitfor(key, timeout)
   return line
 end
 
+function TestProc:capturecommand(props)
+  if self.proc ~= nil then error("can't start already started proc") end
+  local proc, in_e, out_e, err_e =
+    mtev.spawn(self.path, self.argv, self.env)
+  self.start, self.output = mtev.uuid(), mtev.uuid()
+  self.proc = proc
+  if proc ~= nil then
+    in_e:close()
+    err_e:close()
+    mtev.coroutine_spawn(function()
+      local out_e = out_e:own()
+      local output = ''
+      mtev.waitfor(self.start,1)
+      while true do
+        local line = out_e:read("\n")
+        if line == nil then
+          break
+        end
+        output = output .. line
+      end
+      mtev.notify(self.output, output)
+      return nil
+    end)
+  else
+    error("cannot start proc")
+  end
+  mtev.notify(self.start, true)
+  local key, data = mtev.waitfor(self.output,self.timeout)
+
+  self.proc:kill()
+  self.proc:wait(10)
+  self.proc = nil
+
+  return data
+end
+
 function TestProc:start(props)
   if self.proc ~= nil then error("can't start already started proc") end
   local proc, in_e, out_e, err_e =
@@ -172,6 +208,10 @@ function start_child(props)
   local proc = TestProc:new(props)
   proc:start()
   return proc
+end
+function run_command_synchronously_return_output(props)
+  local proc = TestProc:new(props)
+  return proc:capturecommand()
 end
 function kill_child(child)
   child:kill()
