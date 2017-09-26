@@ -5,6 +5,26 @@ function env_flatten(tbl)
   return nt
 end
 
+-- makes a basic corouting reader on an fd
+function mk_coroutine_reader(start, done, fd)
+  mtev.coroutine_spawn(function()
+    local fd = fd:own()
+    local output = ''
+    mtev.waitfor(start,1)
+    while true do
+      local line = fd:read("\n")
+      if line == nil then
+        break
+      end
+      output = output .. line
+    end
+    print("END")
+    mtev.notify(done, output)
+    fd:close()
+    return nil
+  end)
+end
+
 -- Start and Stop
 
 function find_test_dir()
@@ -61,36 +81,27 @@ function TestProc:capturecommand(props)
   if self.proc ~= nil then error("can't start already started proc") end
   local proc, in_e, out_e, err_e =
     mtev.spawn(self.path, self.argv, self.env)
-  self.start, self.output = mtev.uuid(), mtev.uuid()
+  self.stdout_start, self.stderr_start = mtev.uuid(), mtev.uuid()
+  self.stdout, self.stderr = mtev.uuid(), mtev.uuid()
   self.proc = proc
   if proc ~= nil then
     in_e:close()
-    err_e:close()
-    mtev.coroutine_spawn(function()
-      local out_e = out_e:own()
-      local output = ''
-      mtev.waitfor(self.start,1)
-      while true do
-        local line = out_e:read("\n")
-        if line == nil then
-          break
-        end
-        output = output .. line
-      end
-      mtev.notify(self.output, output)
-      return nil
-    end)
+    mk_coroutine_reader(self.stdout_start, self.stdout, out_e)
+    mk_coroutine_reader(self.stderr_start, self.stderr, err_e)
   else
     error("cannot start proc")
   end
-  mtev.notify(self.start, true)
-  local key, data = mtev.waitfor(self.output,self.timeout)
+  mtev.notify(self.stdout_start, true)
+  mtev.notify(self.stderr_start, true)
+
+  local stdout_key, stdout_data = mtev.waitfor(self.stdout, self.timeout)
+  local stderr_key, stderr_data = mtev.waitfor(self.stderr, self.timeout)
 
   self.proc:kill()
   self.proc:wait(10)
   self.proc = nil
 
-  return data
+  return stdout_data, stderr_data
 end
 
 function TestProc:start(props)
