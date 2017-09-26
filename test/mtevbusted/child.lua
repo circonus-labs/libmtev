@@ -108,7 +108,7 @@ function TestProc:capturecommand(props)
 
   self.proc = nil
 
-  return stdout_data, stderr_data
+  return ret, stdout_data, stderr_data
 end
 
 function TestProc:start(props)
