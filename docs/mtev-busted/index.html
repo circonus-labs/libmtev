@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>Telnet · GitBook</title>
+        <title>mtev-busted · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.2">
@@ -53,10 +53,10 @@
     <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="dtrace.html" />
+    <link rel="next" href="../apireference/" />
     
     
-    <link rel="prev" href="rest.html" />
+    <link rel="prev" href="../luamtev/" />
     
 
     </head>
@@ -391,9 +391,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4" data-path="./">
+        <li class="chapter " data-level="1.4" data-path="../operations/">
             
-                <a href="./">
+                <a href="../operations/">
             
                     
                     Operations
@@ -405,9 +405,9 @@
             <ul class="articles">
                 
     
-        <li class="chapter " data-level="1.4.1" data-path="rest.html">
+        <li class="chapter " data-level="1.4.1" data-path="../operations/rest.html">
             
-                <a href="rest.html">
+                <a href="../operations/rest.html">
             
                     
                     REST
@@ -418,9 +418,9 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.4.2" data-path="telnet_console.html">
+        <li class="chapter " data-level="1.4.2" data-path="../operations/telnet_console.html">
             
-                <a href="telnet_console.html">
+                <a href="../operations/telnet_console.html">
             
                     
                     Telnet
@@ -431,9 +431,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.3" data-path="dtrace.html">
+        <li class="chapter " data-level="1.4.3" data-path="../operations/dtrace.html">
             
-                <a href="dtrace.html">
+                <a href="../operations/dtrace.html">
             
                     
                     DTrace
@@ -462,9 +462,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.6" data-path="../mtev-busted/">
+        <li class="chapter active" data-level="1.6" data-path="./">
             
-                <a href="../mtev-busted/">
+                <a href="./">
             
                     
                     mtev-busted
@@ -550,7 +550,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href=".." >Telnet</a>
+        <a href=".." >mtev-busted</a>
     </h1>
 </div>
 
@@ -565,61 +565,9 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="telnet-console-observability">Telnet Console Observability</h1>
-<p>A full telnet console is available for online operations of libmtev applications.
-To enable the telnet console, add something like the following to your configuration.
-Note that &quot;bad things&quot; can be done via the telnet console, so restricting access makes
-good sense.</p>
-<h5 id="listenerconf">listener.conf</h5>
-<pre><code>   &lt;consoles type=&quot;mtev_console&quot;&gt;
-      &lt;listener address=&quot;127.0.0.1&quot; port=&quot;32322&quot;&gt;
-        &lt;config&gt;
-          &lt;line_protocol&gt;telnet&lt;/line_protocol&gt;
-        &lt;/config&gt;
-      &lt;/listener&gt;
-    &lt;/consoles&gt;
-</code></pre><p>The telnet console support tab completion, so navigating and exploring the possibilities
-can be an interactive experience.</p>
-<h2 id="logs">Logs</h2>
-<pre><code class="lang-console">app# show log internal
-[1] Hello world.
-
-app# show log internal 100
-[1] Hello world.
-
-app# log details debug/eventer
-{ &quot;name&quot;: &quot;debug\/eventer&quot;,
-  &quot;enabled&quot;: false,
-  &quot;debugging&quot;: false,
-  &quot;timestamps&quot;: false,
-  &quot;facility&quot;: false,
-  &quot;outlets&quot;: [ { &quot;name&quot;: &quot;debug&quot;,
-                 &quot;outlets&quot;: [ { &quot;name&quot;: &quot;stderr&quot; } ] } ] }
-
-app# log notice Hello from the console
-logged.
-</code></pre>
-<h3 id="commands">Commands</h3>
-<h5 id="show-log-logname--lines"><code>show log &lt;logname&gt; [# lines]</code></h5>
-<blockquote>
-<p>Show the last requested number lines (23 if omitted) of <code>&lt;logname&gt;</code> if it is a &quot;memory&quot; type log.</p>
-</blockquote>
-<h5 id="log-details-logname"><code>log details &lt;logname&gt;</code></h5>
-<blockquote>
-<p>Show the details of the the <code>&lt;logname&gt;</code> log stream, including outlets.</p>
-</blockquote>
-<h5 id="log-to-logname-something-to-log"><code>log to &lt;logname&gt; &lt;something to log&gt;</code></h5>
-<blockquote>
-<p>Cause a <code>&lt;something to log&gt;</code> to be immediately logged to the specified log.</p>
-</blockquote>
-<h5 id="log-disconnect-logname-tgtlogname"><code>log [dis]connect &lt;logname&gt; [tgtlogname]</code></h5>
-<blockquote>
-<p>Connect or disconnect <code>&lt;tgtlogname&gt;</code> as an outlets for <code>&lt;logname&gt;</code>. If <code>&lt;tgtlogname&gt;</code> is omitted, the attached console is used.</p>
-</blockquote>
-<h5 id="no-log-enablefacilitydebugtimestamps-logname"><code>[no] log &lt;enable|facility|debug|timestamps&gt; &lt;logname&gt;</code></h5>
-<blockquote>
-<p>Sets (or unsets) flags on the specified log.</p>
-</blockquote>
+                                <h1 id="mtev-busted">mtev-busted</h1>
+<p>mtev-busted is simlply some subset of the excellent <a href="http://olivinelabs.com/busted/" target="_blank">busted</a>
+testing framework running under luamtev and leveraging the non-blocking libmtev runtime.</p>
 
                                 
                                 </section>
@@ -647,12 +595,12 @@ logged.
 
             
                 
-                <a href="rest.html" class="navigation navigation-prev " aria-label="Previous page: REST">
+                <a href="../luamtev/" class="navigation navigation-prev " aria-label="Previous page: luamtev">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="dtrace.html" class="navigation navigation-next " aria-label="Next page: DTrace">
+                <a href="../apireference/" class="navigation navigation-next " aria-label="Next page: Reference">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -663,7 +611,7 @@ logged.
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Telnet","level":"1.4.2","depth":2,"next":{"title":"DTrace","level":"1.4.3","depth":2,"path":"operations/dtrace.md","ref":"operations/dtrace.md","articles":[]},"previous":{"title":"REST","level":"1.4.1","depth":2,"path":"operations/rest.md","ref":"operations/rest.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"operations/telnet_console.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"mtev-busted","level":"1.6","depth":1,"next":{"title":"Reference","level":"1.7","depth":1,"path":"apireference/README.md","ref":"apireference/README.md","articles":[{"title":"C API","level":"1.7.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]}]},"previous":{"title":"luamtev","level":"1.5","depth":1,"path":"luamtev/README.md","ref":"luamtev/README.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"mtev-busted/README.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

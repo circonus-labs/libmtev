@@ -449,7 +449,33 @@
             
         </li>
     
-        <li class="chapter " data-level="1.5" data-path="./">
+        <li class="chapter " data-level="1.5" data-path="../luamtev/">
+            
+                <a href="../luamtev/">
+            
+                    
+                    luamtev
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6" data-path="../mtev-busted/">
+            
+                <a href="../mtev-busted/">
+            
+                    
+                    mtev-busted
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7" data-path="./">
             
                 <a href="./">
             
@@ -463,7 +489,7 @@
             <ul class="articles">
                 
     
-        <li class="chapter active" data-level="1.5.1" data-path="c.html">
+        <li class="chapter active" data-level="1.7.1" data-path="c.html">
             
                 <a href="c.html">
             
@@ -476,7 +502,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.5.2" data-path="lua.html">
+        <li class="chapter " data-level="1.7.2" data-path="lua.html">
             
                 <a href="lua.html">
             
@@ -1310,6 +1336,19 @@ This happens _often</em>, so do light work.</p>
 </ul>
 <p>This adds the <code>e</code> event to the eventer. <code>e</code> must have a mask of
 <code>EVENTER_TIMED</code>.</p>
+<h4 id="eventeraddtimernextopportunity">eventer_add_timer_next_opportunity</h4>
+<blockquote>
+<p>Convenience function to schedule a callback to run in a specific event-loop thread.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_add_timer_next_opportunity(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">pthread_t</span> owner)
+</code></pre>
+<ul>
+<li><code>func</code> the callback function to run.</li>
+<li><code>closure</code> the closure to be passed to the callback.</li>
+<li><code>owner</code> the event-loop thread in which to run the callback.</li>
+<li><strong>RETURN</strong> N/A (C Macro).</li>
+</ul>
 <h4 id="eventeralloc">eventer_alloc</h4>
 <blockquote>
 <p>Allocate an event to be injected into the eventer system.</p>
@@ -1412,6 +1451,22 @@ eventer_alloc_timer(<span class="hljs-keyword">eventer_func_t</span> func, <span
 </ul>
 <p>The allocated event has a refernce count of 1 and is attached to the
 calling thread.</p>
+<h4 id="eventeralloctimernextopportunity">eventer_alloc_timer_next_opportunity</h4>
+<blockquote>
+<p>Convenience function to create an event to run a callback on a specific thread.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+eventer_alloc_timer_next_opportunity(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">pthread_t</span> owner)
+</code></pre>
+<ul>
+<li><code>func</code> the callback function to run.</li>
+<li><code>closure</code> the closure to be passed to the callback.</li>
+<li><code>owner</code> the event-loop thread on which to run the callback.</li>
+<li><strong>RETURN</strong> an event that has not been added to the eventer.</li>
+</ul>
+<blockquote>
+<p>Note this does not actually schedule the event. See <a href="c.html#eventeraddtimernextopportunity"><code>eventer_add_timer_next_opportunity</code></a>.</p>
+</blockquote>
 <h4 id="eventerallocationscurrent">eventer_allocations_current</h4>
 <pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
 eventer_allocations_current()
@@ -3872,7 +3927,7 @@ mtev_zipkin_timeval_to_timestamp(<span class="hljs-keyword">struct</span> timeva
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"C API","level":"1.5.1","depth":2,"next":{"title":"Lua API","level":"1.5.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]},"previous":{"title":"Reference","level":"1.5","depth":1,"path":"apireference/README.md","ref":"apireference/README.md","articles":[{"title":"C API","level":"1.5.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},{"title":"Lua API","level":"1.5.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]}]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/c.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"C API","level":"1.7.1","depth":2,"next":{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]},"previous":{"title":"Reference","level":"1.7","depth":1,"path":"apireference/README.md","ref":"apireference/README.md","articles":[{"title":"C API","level":"1.7.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]}]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/c.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

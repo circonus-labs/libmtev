@@ -30,6 +30,10 @@
     1. [Telnet](operations/telnet_console.md)
     1. [DTrace](operations/dtrace.md)
 
+  1. [luamtev](luamtev/README.md)
+
+  1. [mtev-busted](mtev-busted/README.md)
+
   1. [Reference](apireference/README.md)
     1. [C API](apireference/c.md)
     1. [Lua API](apireference/lua.md)

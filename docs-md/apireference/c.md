@@ -995,6 +995,22 @@ This adds the `e` event to the eventer. `e` must have a mask of
 `EVENTER_TIMED`.
 
 
+#### eventer_add_timer_next_opportunity
+
+>Convenience function to schedule a callback to run in a specific event-loop thread.
+
+```c
+eventer_t 
+eventer_add_timer_next_opportunity(eventer_func_t func, void *closure, pthread_t owner)
+```
+
+
+  * `func` the callback function to run.
+  * `closure` the closure to be passed to the callback.
+  * `owner` the event-loop thread in which to run the callback.
+  * **RETURN** N/A (C Macro).
+
+
 #### eventer_alloc
 
 >Allocate an event to be injected into the eventer system.
@@ -1123,6 +1139,24 @@ eventer_alloc_timer(eventer_func_t func, void *closure, struct timeval *whence)
 
 The allocated event has a refernce count of 1 and is attached to the
 calling thread.
+
+
+#### eventer_alloc_timer_next_opportunity
+
+>Convenience function to create an event to run a callback on a specific thread.
+
+```c
+eventer_t 
+eventer_alloc_timer_next_opportunity(eventer_func_t func, void *closure, pthread_t owner)
+```
+
+
+  * `func` the callback function to run.
+  * `closure` the closure to be passed to the callback.
+  * `owner` the event-loop thread on which to run the callback.
+  * **RETURN** an event that has not been added to the eventer.
+
+> Note this does not actually schedule the event. See [`eventer_add_timer_next_opportunity`](c.md#eventeraddtimernextopportunity).
 
 
 #### eventer_allocations_current
