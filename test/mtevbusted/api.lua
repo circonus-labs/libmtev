@@ -99,6 +99,6 @@ function HTTP(method, host, port, uri, headers, payload, _pp)
   client:get_response(100000000)
   local output = table.concat(output_buf)
   mtev.log("debug/http/out", "%s\n\n", output)
-  return client.code, _pp(output), output
+  return client.code, _pp(output), output, in_headers
 end
 
