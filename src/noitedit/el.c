@@ -176,7 +176,7 @@ public int
 el_set(EditLine *el, int op, ...)
 {
 	va_list va;
-	int rv;
+	int rv = 0;
 
 	if (el == NULL)
 		return (-1);
