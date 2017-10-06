@@ -1,5 +1,23 @@
 # DTrace-accessible Observability
 
+See the [DTrace Guide](http://dtrace.org/guide/preface.html) for general
+information on how to use DTrace.
+
+libmtev includes a number of [Statically Defined
+Trace](http://dtrace.org/guide/chp-usdt.html#chp-usdt) points (SDTs) for key
+events in the system.
+
+Probes will be visible using the provider `libmtev<pid>` where `<pid>` is the
+process ID of a libmtev application. To trace all PIDs of all libmtev
+applications currently running, one would use the [provider
+definition](http://dtrace.org/guide/chp-prog.html#chp-prog-2)
+`libmtev*:::`.
+
+List all available libmtev probes:
+```
+dtrace -l -n 'libmtev*:::'
+```
+
 ## DTrace probe definitions
 
 ### Logging
@@ -37,5 +55,18 @@ provider libmtev {
   probe reverse-connect-ssl (int, char *, char *);
   probe reverse-connect-ssl-success (int, char *, char *);
   probe reverse-connect-ssl-failed (int, char *, char *, char *, int);
+};
+```
+
+### HTTP Server
+```
+provider libmtev {
+  probe http-accept (int, struct mtev_http_session_ctx *);
+  probe http-request-start (int, struct mtev_http_session_ctx *);
+  probe http-request-finish (int, struct mtev_http_session_ctx *);
+  probe http-response-start (int, struct mtev_http_session_ctx *);
+  probe http-response-finish (int, struct mtev_http_session_ctx *);
+  probe http-log (int, struct mtev_http_session_ctx *, char *);
+  probe http-close (int, struct mtev_http_session_ctx *);
 };
 ```
