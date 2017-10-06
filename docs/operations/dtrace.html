@@ -7,7 +7,7 @@
         <title>DTrace · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
-        <meta name="generator" content="GitBook 3.2.2">
+        <meta name="generator" content="GitBook 3.2.3">
         
         
         
@@ -566,7 +566,19 @@
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="dtrace-accessible-observability">DTrace-accessible Observability</h1>
-<h2 id="dtrace-probe-definitions">DTrace probe definitions</h2>
+<p>See the <a href="http://dtrace.org/guide/preface.html" target="_blank">DTrace Guide</a> for general
+information on how to use DTrace.</p>
+<p>libmtev includes a number of <a href="http://dtrace.org/guide/chp-usdt.html#chp-usdt" target="_blank">Statically Defined
+Trace</a> points (SDTs) for key
+events in the system.</p>
+<p>Probes will be visible using the provider <code>libmtev&lt;pid&gt;</code> where <code>&lt;pid&gt;</code> is the
+process ID of a libmtev application. To trace all PIDs of all libmtev
+applications currently running, one would use the <a href="http://dtrace.org/guide/chp-prog.html#chp-prog-2" target="_blank">provider
+definition</a>
+<code>libmtev*:::</code>.</p>
+<p>List all available libmtev probes:</p>
+<pre><code>dtrace -l -n &apos;libmtev*:::&apos;
+</code></pre><h2 id="dtrace-probe-definitions">DTrace probe definitions</h2>
 <h3 id="logging">Logging</h3>
 <pre><code>provider libmtev {
   probe log (char *facility, char *file, int line, char *msg);
@@ -595,6 +607,16 @@
   probe reverse-connect-ssl (int, char *, char *);
   probe reverse-connect-ssl-success (int, char *, char *);
   probe reverse-connect-ssl-failed (int, char *, char *, char *, int);
+};
+</code></pre><h3 id="http-server">HTTP Server</h3>
+<pre><code>provider libmtev {
+  probe http-accept (int, struct mtev_http_session_ctx *);
+  probe http-request-start (int, struct mtev_http_session_ctx *);
+  probe http-request-finish (int, struct mtev_http_session_ctx *);
+  probe http-response-start (int, struct mtev_http_session_ctx *);
+  probe http-response-finish (int, struct mtev_http_session_ctx *);
+  probe http-log (int, struct mtev_http_session_ctx *, char *);
+  probe http-close (int, struct mtev_http_session_ctx *);
 };
 </code></pre>
                                 
@@ -639,7 +661,7 @@
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"DTrace","level":"1.4.3","depth":2,"next":{"title":"luamtev","level":"1.5","depth":1,"path":"luamtev/README.md","ref":"luamtev/README.md","articles":[]},"previous":{"title":"Telnet","level":"1.4.2","depth":2,"path":"operations/telnet_console.md","ref":"operations/telnet_console.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"operations/dtrace.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"DTrace","level":"1.4.3","depth":2,"next":{"title":"luamtev","level":"1.5","depth":1,"path":"luamtev/README.md","ref":"luamtev/README.md","articles":[]},"previous":{"title":"Telnet","level":"1.4.2","depth":2,"path":"operations/telnet_console.md","ref":"operations/telnet_console.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"operations/dtrace.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
