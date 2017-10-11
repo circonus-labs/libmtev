@@ -53,6 +53,7 @@
 #include <libxml/HTMLparser.h>
 #include <openssl/md5.h>
 #include <openssl/hmac.h>
+#include <openssl/sha.h>
 
 #include "mtev_conf.h"
 #include "mtev_reverse_socket.h"
@@ -2340,6 +2341,43 @@ nl_sha1(lua_State *L) {
   return 1;
 }
 static int
+nl_sha256_hex(lua_State *L) {
+  int i;
+  SHA256_CTX ctx;
+  size_t inlen;
+  const char *in;
+  unsigned char sha256[SHA256_DIGEST_LENGTH];
+  char sha256_hex[SHA256_DIGEST_LENGTH * 2 + 1];
+
+  if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha256_hex");
+  SHA256_Init(&ctx);
+  in = lua_tolstring(L, 1, &inlen);
+  SHA256_Update(&ctx, (const void *)in, (unsigned long)inlen);
+  SHA256_Final(sha256, &ctx);
+  for(i=0;i<SHA256_DIGEST_LENGTH;i++) {
+    sha256_hex[i*2] = _hexchars[(sha256[i] >> 4) & 0xf];
+    sha256_hex[i*2+1] = _hexchars[sha256[i] & 0xf];
+  }
+  sha256_hex[i*2] = '\0';
+  lua_pushstring(L, sha256_hex);
+  return 1;
+}
+static int
+nl_sha256(lua_State *L) {
+  SHA256_CTX ctx;
+  size_t inlen;
+  const char *in;
+  unsigned char sha256[SHA256_DIGEST_LENGTH];
+
+  if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha256");
+  SHA256_Init(&ctx);
+  in = lua_tolstring(L, 1, &inlen);
+  SHA256_Update(&ctx, (const void *)in, (unsigned long)inlen);
+  SHA256_Final(sha256, &ctx);
+  lua_pushlstring(L, (char *)sha256, sizeof(sha256));
+  return 1;
+}
+static int
 nl_gettimeofday(lua_State *L) {
   struct timeval now;
   mtev_gettimeofday(&now, NULL);
@@ -4306,6 +4344,8 @@ static const luaL_Reg mtevlib[] = {
   { "md5", nl_md5 },
   { "sha1_hex", nl_sha1_hex },
   { "sha1", nl_sha1 },
+  { "sha256_hex", nl_sha256_hex },
+  { "sha256", nl_sha256 },
 
 /*! \lua matcher = mtev.pcre(pcre_expression)
     \param pcre_expression a perl compatible regular expression
