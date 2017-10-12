@@ -90,7 +90,7 @@
 
 ##### S
 
-[mtev.sleep](lua.md#mtev.sleep), [mtev.spawn](lua.md#mtev.spawn)
+[mtev.sha256](lua.md#mtev.sha256), [mtev.sha256_hex](lua.md#mtev.sha256hex), [mtev.sleep](lua.md#mtev.sleep), [mtev.spawn](lua.md#mtev.spawn)
 
 ##### T
 

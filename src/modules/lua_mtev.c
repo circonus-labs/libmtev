@@ -4344,7 +4344,18 @@ static const luaL_Reg mtevlib[] = {
   { "md5", nl_md5 },
   { "sha1_hex", nl_sha1_hex },
   { "sha1", nl_sha1 },
+
+/*! \lua digest_hex = mtev.sha256_hex(s)
+    \param s a string
+    \return the SHA256 digest of the input string, encoded in hexadecimal format
+*/
   { "sha256_hex", nl_sha256_hex },
+
+
+/*! \lua digest = mtev.sha256(s)
+    \param s a string
+    \return the SHA256 digest of the input string
+*/
   { "sha256", nl_sha256 },
 
 /*! \lua matcher = mtev.pcre(pcre_expression)
