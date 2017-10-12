@@ -289,6 +289,21 @@ mtev.sha256(s)
   * **RETURN** the SHA256 digest of the input string
 
 
+#### mtev.sha256_hash
+
+```lua
+digest_hex = 
+mtev.sha256_hash(s)
+```
+
+  * `s` a string
+  * **RETURN** the SHA256 digest of the input string, encoded in hexadecimal format
+
+**DEPRECATED**
+
+Use sha256_hex instead.
+
+
 #### mtev.sha256_hex
 
 ```lua
