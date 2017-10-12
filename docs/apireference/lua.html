@@ -780,6 +780,32 @@ mtev.realpath(inpath)
 <li><strong>RETURN</strong> The non-relative path inpath refers to (or nil on error).</li>
 </ul>
 <h3 id="s">S</h3>
+<h4 id="mtevsha256">mtev.sha256</h4>
+<pre><code class="lang-lua">digest = 
+mtev.sha256(s)
+</code></pre>
+<ul>
+<li><code>s</code> a string</li>
+<li><strong>RETURN</strong> the SHA256 digest of the input string</li>
+</ul>
+<h4 id="mtevsha256hash">mtev.sha256_hash</h4>
+<pre><code class="lang-lua">digest_hex = 
+mtev.sha256_hash(s)
+</code></pre>
+<ul>
+<li><code>s</code> a string</li>
+<li><strong>RETURN</strong> the SHA256 digest of the input string, encoded in hexadecimal format</li>
+</ul>
+<p><strong>DEPRECATED</strong></p>
+<p>Use sha256_hex instead.</p>
+<h4 id="mtevsha256hex">mtev.sha256_hex</h4>
+<pre><code class="lang-lua">digest_hex = 
+mtev.sha256_hex(s)
+</code></pre>
+<ul>
+<li><code>s</code> a string</li>
+<li><strong>RETURN</strong> the SHA256 digest of the input string, encoded in hexadecimal format</li>
+</ul>
 <h4 id="mtevsleep">mtev.sleep</h4>
 <pre><code class="lang-lua">slept = 
 mtev.sleep(duration_s)

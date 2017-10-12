@@ -53,6 +53,7 @@
 #include <libxml/HTMLparser.h>
 #include <openssl/md5.h>
 #include <openssl/hmac.h>
+#include <openssl/sha.h>
 
 #include "mtev_conf.h"
 #include "mtev_reverse_socket.h"
@@ -2231,38 +2232,6 @@ nl_hmac_sha256_encode(lua_State *L) {
   return 1;
 }
 
-static int
-nl_sha256_hash(lua_State *L) {
-  size_t messagelen;
-  const unsigned char *message;
-  unsigned char digest[SHA256_DIGEST_LENGTH];
-  const size_t ENCODED_LEN = SHA256_DIGEST_LENGTH*2;
-  unsigned char result[ENCODED_LEN+1];
-
-  if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha256_hash");
-  
-  /*Clean out the buffer.*/
-  memset(result,'\0',sizeof(char)*(ENCODED_LEN+1));
-  message = (const unsigned char *)lua_tolstring(L, 1, &messagelen);
-  
-  /*Calculate SHA-256 hash.*/
-  SHA256_CTX ctx;
-  SHA256_Init(&ctx);
-  SHA256_Update(&ctx, message, messagelen);
-  SHA256_Final(digest, &ctx);
- 
-  /*Store digest in hex encoded string.*/
-  for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-  {
-      sprintf((char *)&result[i*2], "%02x", (unsigned int)digest[i]);
-  }
-
-  /*Return hex encoded string.*/
-  lua_pushlstring(L, (char *)result, ENCODED_LEN);
-
-  return 1;
-}
-
 static const char _hexchars[16] =
   {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 static int
@@ -2337,6 +2306,43 @@ nl_sha1(lua_State *L) {
   SHA1_Update(&ctx, (const void *)in, (unsigned long)inlen);
   SHA1_Final(sha1, &ctx);
   lua_pushlstring(L, (char *)sha1, sizeof(sha1));
+  return 1;
+}
+static int
+nl_sha256_hex(lua_State *L) {
+  int i;
+  SHA256_CTX ctx;
+  size_t inlen;
+  const char *in;
+  unsigned char sha256[SHA256_DIGEST_LENGTH];
+  char sha256_hex[SHA256_DIGEST_LENGTH * 2 + 1];
+
+  if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha256_hex");
+  SHA256_Init(&ctx);
+  in = lua_tolstring(L, 1, &inlen);
+  SHA256_Update(&ctx, (const void *)in, (unsigned long)inlen);
+  SHA256_Final(sha256, &ctx);
+  for(i=0;i<SHA256_DIGEST_LENGTH;i++) {
+    sha256_hex[i*2] = _hexchars[(sha256[i] >> 4) & 0xf];
+    sha256_hex[i*2+1] = _hexchars[sha256[i] & 0xf];
+  }
+  sha256_hex[i*2] = '\0';
+  lua_pushstring(L, sha256_hex);
+  return 1;
+}
+static int
+nl_sha256(lua_State *L) {
+  SHA256_CTX ctx;
+  size_t inlen;
+  const char *in;
+  unsigned char sha256[SHA256_DIGEST_LENGTH];
+
+  if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha256");
+  SHA256_Init(&ctx);
+  in = lua_tolstring(L, 1, &inlen);
+  SHA256_Update(&ctx, (const void *)in, (unsigned long)inlen);
+  SHA256_Final(sha256, &ctx);
+  lua_pushlstring(L, (char *)sha256, sizeof(sha256));
   return 1;
 }
 static int
@@ -4301,11 +4307,33 @@ static const luaL_Reg mtevlib[] = {
   { "utf8tohtml", nl_utf8tohtml },
   { "hmac_sha1_encode", nl_hmac_sha1_encode },
   { "hmac_sha256_encode", nl_hmac_sha256_encode },
-  { "sha256_hash", nl_sha256_hash},
+
+/*! \lua digest_hex = mtev.sha256_hash(s)
+    \param s a string
+    \return the SHA256 digest of the input string, encoded in hexadecimal format
+
+    **DEPRECATED**
+
+    Use sha256_hex instead.
+*/
+  { "sha256_hash", nl_sha256_hex},
   { "md5_hex", nl_md5_hex },
   { "md5", nl_md5 },
   { "sha1_hex", nl_sha1_hex },
   { "sha1", nl_sha1 },
+
+/*! \lua digest_hex = mtev.sha256_hex(s)
+    \param s a string
+    \return the SHA256 digest of the input string, encoded in hexadecimal format
+*/
+  { "sha256_hex", nl_sha256_hex },
+
+
+/*! \lua digest = mtev.sha256(s)
+    \param s a string
+    \return the SHA256 digest of the input string
+*/
+  { "sha256", nl_sha256 },
 
 /*! \lua matcher = mtev.pcre(pcre_expression)
     \param pcre_expression a perl compatible regular expression
