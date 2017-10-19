@@ -119,6 +119,13 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
     /* This is Async-Signal-Safe (at least on Illumos) */
     char tmpfilename[MAXPATHLEN];
     snprintf(tmpfilename, sizeof(tmpfilename), "/var/tmp/mtev_%d_XXXXXX", (int)getpid());
+    /* coverity[SECURE_TEMP]
+     * Coverity warns about calling `mkstemp` in a tmp directory without setting the umask,
+     * but it is impossible to set the umask for a single thread, and code running in other
+     * threads may rely on the umask having a specific value. It is unsafe to set umask here.
+     * The vulnerability that coverity is concerned with will have to do with opening a file
+     * with too-wide permissions, but `mkstemp` uses narrow permissions of 0600 on every
+     * platform that libmtev supports, so this is not a vulnerability for us. */
     _global_stack_trace_fd = mkstemp(tmpfilename);
     if(_global_stack_trace_fd >= 0) unlink(tmpfilename);
   }
