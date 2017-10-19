@@ -119,7 +119,7 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
     /* This is Async-Signal-Safe (at least on Illumos) */
     char tmpfilename[MAXPATHLEN];
     snprintf(tmpfilename, sizeof(tmpfilename), "/var/tmp/mtev_%d_XXXXXX", (int)getpid());
-    /* coverity[SECURE_TEMP]
+    /* coverity[secure_temp]
      * Coverity warns about calling `mkstemp` in a tmp directory without setting the umask,
      * but it is impossible to set the umask for a single thread, and code running in other
      * threads may rely on the umask having a specific value. It is unsafe to set umask here.
