@@ -564,7 +564,7 @@ lua_hook_vahandler(void *closure, ...) {
     }
   }
   va_end(ap_top);
-  return MTEV_HOOK_CONTINUE;
+  return hook_rv;
 }
 
 static int
