@@ -25,7 +25,7 @@ and run-time mechanics to the caller.
   </example>
 ```
 
-In addition to a confgiuration snippet similar to the above, the HTTP REST subsystem
+In addition to a configuration snippet similar to the above, the HTTP REST subsystem
 must be programmatically initialized via a call to `mtev_http_rest_init()`.
 
 The REST listener is implemented on a non-compliant HTTP listener by
@@ -93,7 +93,7 @@ Bot the CAPA HTTP verb and a GET of /capa will return the application capabiliti
 
 #### GET /capa.json
 
-Capanilities are also available in JSON format.
+Capabilities are also available in JSON format.
 
 ```
 # curl http://127.0.0.1:8888/capa.json

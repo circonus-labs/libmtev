@@ -587,7 +587,7 @@ and run-time mechanics to the caller.</p>
   &lt;/root&gt;
   ]]&gt;&lt;/programlisting&gt;
   &lt;/example&gt;
-</code></pre><p>In addition to a confgiuration snippet similar to the above, the HTTP REST subsystem
+</code></pre><p>In addition to a configuration snippet similar to the above, the HTTP REST subsystem
 must be programmatically initialized via a call to <code>mtev_http_rest_init()</code>.</p>
 <p>The REST listener is implemented on a non-compliant HTTP listener by
 subverting the four-byte control words &quot;DELE&quot;, &quot;MERG&quot;, &quot;GET &quot;, &quot;HEAD&quot;,
@@ -644,7 +644,7 @@ via <code>mtev_control_dispatch_delegate(...)</code>.&lt;/para&gt;</p>
   &lt;modules/&gt;
 &lt;/mtev_capabilities&gt;
 </code></pre><h4 id="get-capajson">GET /capa.json</h4>
-<p>Capanilities are also available in JSON format.</p>
+<p>Capabilities are also available in JSON format.</p>
 <pre><code># curl http://127.0.0.1:8888/capa.json
 
 {
