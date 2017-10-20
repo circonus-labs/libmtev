@@ -3,8 +3,8 @@
 The logging system within libmtev represents a directed acyclic graph of
 input-output chains. Each node in the graph has a unique name and is called
 a "log_stream." Log_streams without a `type` attribute have output to downstream nodes
-("outlets").  Nodes with a `type` attribute havd additional output
-characteristics (like outputing to a file).
+("outlets").  Nodes with a `type` attribute have additional output
+characteristics (like outputting to a file).
 
 Upon startup, the system will establish several built-in log_streams, only one of
 which has a type.  The "stderr" log_stream has a type of `file` and an output
@@ -16,16 +16,16 @@ For more information on logging via the API, see the development section
 of this documentation relaated to logging.  The "debug" log_stream is
 disabled by default.
 
-Logs are heirarchical in nomenclature as a convenience.  If, in your code, you
+Logs are hierarchical in nomenclature as a convenience.  If, in your code, you
 request a log named "error/foo" and no such log exists in the configuration,
 a new untyped log will be created and its outlet will be set to "error".  This
 is recursive, so "debug/myapp/facility1" will (unless configured otherwise)
 outlet to "debug/myapp" which will outlet to "debug."  This makes it very simple
 to semantically separate logs into new error and debugging facilities without
 worrying about them being lost, while providing the flexibility to configure
-where this things go if other outcomes are desired.
+where things go if other outcomes are desired.
 
-All logging configuration exists within the toplevel XML node `<logs>`.
+All logging configuration exists within the top-level XML node `<logs>`.
 Individual log_streams are declared using `<log>` stanzas and outlets are
 declared using `<outlet>` stanzas.  A log_stream uses all `<outlet>` stanzas
 that are its direct child or direct child of any ancestor node.
@@ -77,7 +77,7 @@ The "error/example" and "error/sample" log_stream are similarly configured to ou
 log_stream as its outlet.  But, we've declared the "error" log_stream in this configuration so that
 we can manipulate its outlets.  The `<components>`, `<error>`, and `<debug>`
 nodes have no special meaning by name; they are simply used as descriptive
-heirarchical containers to allow us to share outlet configuration and to
+hierarchical containers to allow us to share outlet configuration and to
 logically isolate our intentions.
 
 The "error" log_stream already exists as a built-in log_stream.  The declaration here
@@ -90,7 +90,7 @@ to store recent log lines.  We have a limit ot 10000 log lines and 1000000 bytes
 is also only active if the environment variable INMEM is set.
 
 The "logfile" log_stream is of type `file` and will auto-rotate files as they hit
-10 million bytes and delete old log files as the cummulative space consumed
+10 million bytes and delete old log files as the cumulative space consumed
 exceeds 50 million bytes.  Timestamps are turned on for this log_stream.
 
 The "http/access" log_stream is of type `jlog` which is create a [Jlog](https://github.com/omniti-labs/jlog)

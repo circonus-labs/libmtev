@@ -35,7 +35,7 @@ This example demonstrates many powerful concepts of the libmtev configuration sy
 There are three listener stanzas nested above and we'll walk through each.  The first
 is the `<listener address="127.0.0.1" port="32322">`.  With this, you can telnet to
 127.0.0.1 port 32322 and talk with your libmtev application.  The console is extensible
-so you can add applications specific command, control, and interogation capabilities.
+so you can add application-specific command, control, and interrogation capabilities.
 
 This listener has a `<config>` stanza underneath it that sets `line_protocol` to `telnet`.
 `line_protocol` is a configuration option for listeners of type `mtev_console`.  You'll
