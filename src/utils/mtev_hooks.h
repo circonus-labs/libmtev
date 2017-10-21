@@ -137,6 +137,8 @@ typedef enum {
 } mtev_hook_return_t;
 
 #define MTEV_HOOK_PROTO(HOOKNAME, HOOKPROTO_NC, CDEF, CNAME, HOOKPROTO) \
+API_EXPORT(const char *) HOOKNAME##_hook_proto(void); \
+API_EXPORT(mtev_boolean) HOOKNAME##_hook_exists(void); \
 API_EXPORT(mtev_hook_return_t) HOOKNAME##_hook_invoke HOOKPROTO_NC; \
 API_EXPORT(void) HOOKNAME##_hook_register(const char *name, \
     mtev_hook_return_t (*func) HOOKPROTO, CDEF CNAME);
