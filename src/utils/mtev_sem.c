@@ -38,10 +38,11 @@
 
 #include "mtev_defines.h"
 #include "mtev_sem.h"
+#include "mtev_log.h"
+#include <errno.h>
 
 #ifndef WORKING_SEM_INIT
 #include <pthread.h>
-#include <errno.h>
 
 int
 mtev_sem_init(mtev_sem_t *s, int unused, int value) {
@@ -98,6 +99,18 @@ mtev_sem_destroy(mtev_sem_t *s)
 {
   pthread_mutex_destroy(&s->lock);
   pthread_cond_destroy(&s->cond);
+}
+
+#else
+
+void
+mtev_sem_wait_noeintr(sem_t *s)
+{
+  int rv;
+  while ((rv = sem_wait(s)) < 0 && errno == EINTR) continue;
+  if (rv != 0)
+    mtevFatal(mtev_error, "Unexpected error from sem_wait(%p): %d (%s)\n",
+              (void *) s, errno, strerror(errno));
 }
 
 #endif

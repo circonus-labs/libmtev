@@ -67,6 +67,20 @@
     \param s the semaphore to destroy
     \return 0 on success or -1 on failure
  */
+/*! \fn void mtev_sem_wait_noeintr(mtev_sem_t *s)
+    \brief Convenience function that delegates to sem_wait, swallowing EINTR errors.
+    \param s the semaphore on which to wait
+    \return 0 on success or -1 on failure
+
+    This function is built on sem_wait, and sem_wait can fail in other ways besides
+    EINTR, such as due to EINVAL. These other failures will be due to mis-use of the
+    semaphore API -- e.g., by trying to `sem_wait` on a structure that was never
+    initialized with `sem_init`. Mis-using thread-synchronization primitives will
+    often lead to subtle, serious, and hard-to-reproduce bugs, so this function will
+    mtevFatal on other errors, rather than forcing clients to deal with (likely)
+    un-handlable errors. If your client code can handle these other errors, use
+    sem_wait directly, do not use this function.
+ */
 #ifndef WORKING_SEM_INIT
 
 #include <pthread.h>
@@ -91,12 +105,15 @@ API_EXPORT(void) mtev_sem_destroy(mtev_sem_t *);
 #define sem_post mtev_sem_post
 #define sem_getvalue mtev_sem_getvalue
 #define sem_destroy mtev_sem_destroy
+#define mtev_sem_wait_noeintr(sem) do { mtev_sem_wait(sem); } while(0)
 
 #else /* WORKING_SEM_INIT */
 
 #ifdef HAVE_SEMAPHORE_H
 #include <semaphore.h>
 #endif
+
+API_EXPORT(void) mtev_sem_wait_noeintr(sem_t *);
 
 #endif
 
