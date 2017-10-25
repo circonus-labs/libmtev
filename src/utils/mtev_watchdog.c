@@ -522,6 +522,8 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
     if(child_pid == 0) {
       mtev_time_start_tsc();
       mtev_monitored_child_pid = getpid();
+      mtevL(mtev_notice, "%s booting [managed, pid: %d]\n", appname,
+            (int)mtev_monitored_child_pid);
       if(glider_path)
         mtevL(mtev_error, "catching faults with glider\n");
       else if(allow_async_dumps)
