@@ -10,7 +10,7 @@
                allowed=".+">The jaeger collector host.</parameter>
     <parameter name="port"
                required="optional"
-               default="14268"
+               default="9411"
                allowed="\d+">The jaeger collector port.</parameter>
     <parameter name="period"
                required="optional"

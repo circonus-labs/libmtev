@@ -42,7 +42,7 @@
 #define MAX_HALF_SLEEP_US 64000 /* 128ms / 2 */
 
 static char *zc_host = "127.0.0.1";
-static unsigned short zc_port = 14268;
+static unsigned short zc_port = 9411;
 static uint32_t zc_period = 500;
 static uint32_t zc_max_batch = 500;
 static uint32_t zc_backlog = 5000;
@@ -118,7 +118,7 @@ jaeger_publish_thrift(unsigned char *buff, size_t buflen, uint32_t retries) {
   if(!curl) {
     char url[1024];
     struct curl_slist *headers=NULL;
-    snprintf(url, sizeof(url), "http://%s:%d/api/traces?format=zipkin.thrift", zc_host, zc_port);
+    snprintf(url, sizeof(url), "http://%s:%d/api/v1/spans", zc_host, zc_port);
     headers = curl_slist_append(headers, "Content-Type: application/x-thrift");
     curl = curl_easy_init();
     curl_easy_setopt(curl, CURLOPT_URL, url);
