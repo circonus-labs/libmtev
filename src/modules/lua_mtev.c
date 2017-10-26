@@ -3823,7 +3823,7 @@ mtev_lua_process_wait_ex(struct nl_slcl *cl, mtev_boolean needs_yield) {
   if(cl->spawn_info->pid == -1) {
     lua_pushnil(L);
     lua_pushinteger(L, EINVAL);
-    return 1;
+    return 2;
   }
   while((rv = waitpid(cl->spawn_info->pid, &status, WNOHANG)) == -1 && errno == EINTR);
   if(rv == cl->spawn_info->pid) {
