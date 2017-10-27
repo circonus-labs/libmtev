@@ -97,8 +97,24 @@ static void *eventer_epoll_spec_alloc(void) {
   return spec;
 }
 
+#ifdef HAVE_SYS_EVENTFD_H
+static int eventer_epoll_awaken(eventer_t e, int mask,
+                                void *closure, struct timeval *now) {
+  (void)mask;
+  (void)now;
+  (void)closure;
+  uint64_t dummy;
+  int unused __attribute__((unused));
+  unused = read(e->fd, &dummy, sizeof(dummy));
+  return EVENTER_READ;
+}
+#endif
 static int eventer_epoll_impl_init(void) {
   int rv;
+
+#ifdef HAVE_SYS_EVENTFD_H
+  eventer_name_callback("eventer_epoll_awaken", eventer_epoll_awaken);
+#endif
 
   maxfds = eventer_impl_setrlimit();
   master_fds = calloc(maxfds, sizeof(*master_fds));
@@ -436,18 +452,6 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   }
   release_master_fd(fd, lockstate);
 }
-#ifdef HAVE_SYS_EVENTFD_H
-static int eventer_epoll_eventfd_read(eventer_t e, int mask,
-                                      void *closure, struct timeval *now) {
-  (void)mask;
-  (void)now;
-  (void)closure;
-  uint64_t dummy;
-  int unused __attribute__((unused));
-  unused = read(e->fd, &dummy, sizeof(dummy));
-  return EVENTER_READ;
-}
-#endif
 static int eventer_epoll_impl_loop(int id) {
   struct epoll_event *epev;
   struct epoll_spec *spec;
@@ -458,7 +462,7 @@ static int eventer_epoll_impl_loop(int id) {
 #ifdef HAVE_SYS_EVENTFD_H
   if(spec->event_fd >= 0) {
     eventer_t e = eventer_alloc();
-    e->callback = eventer_epoll_eventfd_read;
+    e->callback = eventer_epoll_awaken;
     e->fd = spec->event_fd;
     e->mask = EVENTER_READ;
     eventer_add(e);
