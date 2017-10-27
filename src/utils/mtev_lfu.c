@@ -64,7 +64,7 @@ static struct ck_malloc malloc_ck_hs = {
 static unsigned long
 lfu_entry_hash(const void *k, unsigned long seed)
 {
-  struct lfu_key *key = (struct lfu_key *)k;
+  const struct lfu_key *key = (const struct lfu_key *)k;
   return mtev_hash__hash(key->key, key->key_len, seed);
 }
 
@@ -85,8 +85,8 @@ hs_init(ck_hs_t *hs, unsigned int mode, ck_hs_hash_cb_t *hf, ck_hs_compare_cb_t 
 static bool
 hs_lfu_key_compare(const void *a, const void *b)
 {
-  struct lfu_key *left = (struct lfu_key *)a;
-  struct lfu_key *right = (struct lfu_key *)b;
+  const struct lfu_key *left = (const struct lfu_key *)a;
+  const struct lfu_key *right = (const struct lfu_key *)b;
 
   if (left->key_len < right->key_len) return -1;
   if (left->key_len > right->key_len) return 1;
