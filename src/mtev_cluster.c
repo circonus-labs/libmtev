@@ -985,8 +985,12 @@ mtev_cluster_get_config_seq(mtev_cluster_t *cluster) {
 static struct json_object *
 mtev_cluster_to_json(mtev_cluster_t *c) {
   struct json_object *obj, *nodes;
+  struct timeval now;
   obj = MJ_OBJ();
   int i;
+
+  mtev_gettimeofday(&now, NULL);
+
 
   MJ_KV(obj, "name", MJ_STR(c->name));
   MJ_KV(obj, "seq", MJ_INT64(c->config_seq));
@@ -1010,6 +1014,7 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
     uuid_unparse_lower(n->id, uuid_str);
     MJ_KV(node, "id", MJ_STR(uuid_str));
     MJ_KV(node, "cn", MJ_STR(n->cn));
+    MJ_KV(node, "reference_time", MJ_UINT64(now.tv_sec));
     MJ_KV(node, "last_contact", MJ_UINT64(n->last_contact.tv_sec));
     MJ_KV(node, "boot_time", MJ_UINT64(n->boot_time.tv_sec));
 
