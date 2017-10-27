@@ -8,6 +8,7 @@
 #include <stddef.h>
 
 #define GC_CADENCE 10000
+#define ALLOCA_LIMIT 1024
 
 struct lfu_cache_entry;
 
@@ -88,8 +89,7 @@ hs_lfu_key_compare(const void *a, const void *b)
   const struct lfu_key *left = (const struct lfu_key *)a;
   const struct lfu_key *right = (const struct lfu_key *)b;
 
-  if (left->key_len < right->key_len) return -1;
-  if (left->key_len > right->key_len) return 1;
+  if (left->key_len != right->key_len) return false;
 
   return memcmp(left->key, right->key, left->key_len) == 0;
 }
@@ -279,12 +279,21 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *val)
   if (lfu->max_entries == 0) {
     return mtev_false;
   }
+  struct lfu_key *tempkey = NULL;
+  if (key_len <= ALLOCA_LIMIT) {
+    tempkey = alloca(sizeof(struct lfu_key) + key_len);
+  } else {
+    tempkey = malloc(sizeof(struct lfu_key) + key_len);
+  }
 
-  struct lfu_key *tempkey = alloca(sizeof(struct lfu_key) + key_len);
   tempkey->key_len = key_len;
   memcpy(tempkey->key, key, key_len);
 
   unsigned long hash = CK_HS_HASH(&lfu->hash, lfu_entry_hash, tempkey);
+  if (key_len > ALLOCA_LIMIT) {
+    free(tempkey);
+  }
+
   struct lfu_entry *e = malloc(sizeof(struct lfu_entry) + key_len + 1);
   e->entry = val;
   e->key.key_len = key_len;
@@ -319,12 +328,22 @@ mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len)
     return NULL;
   }
 
-  struct lfu_key *tempkey = alloca(sizeof(struct lfu_key) + key_len);
+  struct lfu_key *tempkey = NULL;
+  if (key_len <= ALLOCA_LIMIT) {
+    tempkey = alloca(sizeof(struct lfu_key) + key_len);
+  } else {
+    tempkey = malloc(sizeof(struct lfu_key) + key_len);
+  }
+
   tempkey->key_len = key_len;
   memcpy(tempkey->key, key, key_len);
 
   unsigned long hash = CK_HS_HASH(&c->hash, lfu_entry_hash, tempkey);
   void *entry = ck_hs_get(&c->hash, hash, tempkey);
+
+  if (key_len > ALLOCA_LIMIT) {
+    free(tempkey);
+  }
 
   if (entry != NULL) {
     struct lfu_entry *r = container_of(entry, struct lfu_entry, key);
@@ -344,7 +363,12 @@ mtev_lfu_remove(mtev_lfu_t *c, const char *key, size_t key_len)
   if (c->max_entries == 0) {
     return NULL;
   }
-  struct lfu_key *tempkey = alloca(sizeof(struct lfu_key) + key_len);
+  struct lfu_key *tempkey = NULL;
+  if (key_len <= ALLOCA_LIMIT) {
+    tempkey = alloca(sizeof(struct lfu_key) + key_len);
+  } else {
+    tempkey = malloc(sizeof(struct lfu_key) + key_len);
+  }
   tempkey->key_len = key_len;
   memcpy(tempkey->key, key, key_len);
 
@@ -352,6 +376,10 @@ mtev_lfu_remove(mtev_lfu_t *c, const char *key, size_t key_len)
   void *rval = NULL;
   pthread_mutex_lock(&c->mutex);
   void *entry = ck_hs_remove(&c->hash, hash, tempkey);
+  if (key_len > ALLOCA_LIMIT) {
+    free(tempkey);
+  }
+
   if (entry != NULL) {
     struct lfu_entry *r = container_of(entry, struct lfu_entry, key);
     if (c->max_entries > 0) {
