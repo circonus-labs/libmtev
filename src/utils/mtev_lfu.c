@@ -339,6 +339,7 @@ mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len)
   memcpy(tempkey->key, key, key_len);
 
   unsigned long hash = CK_HS_HASH(&c->hash, lfu_entry_hash, tempkey);
+  pthread_mutex_lock(&c->mutex);
   void *entry = ck_hs_get(&c->hash, hash, tempkey);
 
   if (key_len > ALLOCA_LIMIT) {
@@ -347,11 +348,11 @@ mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len)
 
   if (entry != NULL) {
     struct lfu_entry *r = container_of(entry, struct lfu_entry, key);
-    pthread_mutex_lock(&c->mutex);
     touch_lfu_cache_no_lock(c, r);
     pthread_mutex_unlock(&c->mutex);
     return r->entry;
   }
+  pthread_mutex_unlock(&c->mutex);
   return NULL;
 }
 
