@@ -35,6 +35,7 @@
 #include "mtev_defines.h"
 
 typedef struct mtev_lfu mtev_lfu_t;
+typedef void *mtev_lfu_entry_token;
 
 /*!
  * \fn mtev_lfu_create(int32_t max_entries, void (*free_fn)(void *))
@@ -73,11 +74,27 @@ API_EXPORT(mtev_boolean)
   mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *value);
 
 /*!
- * \fn mtev_lfu_get(mtev_lfu_t *lfu, const char *key, size_t key_len)
+ * \fn mtev_lfu_entry_token mtev_lfu_get(mtev_lfu_t *lfu, const char *key, size_t key_len, void **value)
  * \brief Get an item from the LFU by key 
+ * 
+ * This will fetch the item at "key" and put the value in "value". It will also
+ * return a token as the return value of the function.  This token is used
+ * as the checkout of the item from the LFU.  When you are finished using
+ * the value, you must call "mtev_lfu_release(mtev_lfu_t *lfu, mtev_lfu_entry_token token)"
+ * to let the LFU know that reclamation for that key/value is possible.
  */
-API_EXPORT(void *)
-  mtev_lfu_get(mtev_lfu_t *lfu, const char *key, size_t key_len);
+API_EXPORT(mtev_lfu_entry_token)
+  mtev_lfu_get(mtev_lfu_t *lfu, const char *key, size_t key_len, void **value);
+
+/*!
+ * \fn void mtev_lfu_release(mtev_lfu_t *lfu, mtev_lfu_entry_token token)
+ * \brief Surrender an item back to the LFU
+ * 
+ * To be memory safe LFU tokens must be released back to the LFU when
+ * the user is finished using them.
+ */
+API_EXPORT(void)
+  mtev_lfu_release(mtev_lfu_t *lfu, mtev_lfu_entry_token token);
 
 /*!
  * \fn mtev_lfu_remove(mtev_lfu_t *lfu, const char *key, size_t key_len)

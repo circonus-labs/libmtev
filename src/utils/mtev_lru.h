@@ -35,6 +35,7 @@
 #include "mtev_defines.h"
 
 typedef struct mtev_lru mtev_lru_t;
+typedef void *mtev_lru_entry_token;
 
 /**
  * make an LRU cache of max_entries.  call free_fn when an item is evicted.
@@ -53,8 +54,11 @@ API_EXPORT(void)
 API_EXPORT(mtev_boolean)
   mtev_lru_put(mtev_lru_t *lru, const char *key, size_t key_len, void *value);
 
-API_EXPORT(void *)
-  mtev_lru_get(mtev_lru_t *lru, const char *key, size_t key_len);
+API_EXPORT(mtev_lru_entry_token)
+  mtev_lru_get(mtev_lru_t *lru, const char *key, size_t key_len, void **value);
+
+API_EXPORT(void)
+  mtev_lru_release(mtev_lru_t *lru, mtev_lru_entry_token token);
 
 /**
  * remove key from cache.  This does not call the free_fn, instead it returns the value

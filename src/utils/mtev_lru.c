@@ -7,11 +7,18 @@
 #include <sys/queue.h>
 #include <stddef.h>
 
+#define ALLOCA_LIMIT 1024
+
+struct lru_key {
+  size_t key_len;
+  char key[];
+};
+
 struct lru_entry {
   void *entry;
-  size_t key_len;
+  uint64_t ref_cnt;
   TAILQ_ENTRY(lru_entry) list_entry;
-  char key[];
+  struct lru_key key;
 };
 
 struct mtev_lru {
@@ -47,7 +54,8 @@ static struct ck_malloc malloc_ck_hs = {
 static unsigned long
 lru_entry_hash(const void *k, unsigned long seed)
 {
-  return mtev_hash__hash(k, strlen((const char *)k), seed);
+  const struct lru_key *key = (const struct lru_key *)k;
+  return mtev_hash__hash(key->key, key->key_len, seed);
 }
 
 #define container_of(derived_ptr, type, field)                \
@@ -65,9 +73,14 @@ hs_init(ck_hs_t *hs, unsigned int mode, ck_hs_hash_cb_t *hf, ck_hs_compare_cb_t 
 }
 
 static bool
-hs_string_compare(const void *a, const void *b)
+hs_lru_key_compare(const void *a, const void *b)
 {
-  return strcmp((const char * const)a, (const char * const)b) == 0;
+  const struct lru_key *left = (const struct lru_key *)a;
+  const struct lru_key *right = (const struct lru_key *)b;
+
+  if (left->key_len != right->key_len) return false;
+
+  return memcmp(left->key, right->key, left->key_len) == 0;
 }
 
 mtev_lru_t *
@@ -75,9 +88,9 @@ mtev_lru_create(int32_t max_entries, void (*free_fn)(void *))
 {
   struct mtev_lru *r = malloc(sizeof(struct mtev_lru));
   if (max_entries <= 0) {
-    hs_init(&r->hash, CK_HS_MODE_OBJECT | CK_HS_MODE_DELETE, lru_entry_hash, hs_string_compare, 1024);
+    hs_init(&r->hash, CK_HS_MODE_OBJECT | CK_HS_MODE_DELETE, lru_entry_hash, hs_lru_key_compare, 1024);
   } else {
-    hs_init(&r->hash, CK_HS_MODE_OBJECT | CK_HS_MODE_DELETE, lru_entry_hash, hs_string_compare, max_entries * 2);
+    hs_init(&r->hash, CK_HS_MODE_OBJECT | CK_HS_MODE_DELETE, lru_entry_hash, hs_lru_key_compare, max_entries * 2);
   }
   TAILQ_INIT(&r->lru_cache);
   r->lru_cache_size = 0;
@@ -108,8 +121,7 @@ mtev_lru_invalidate(mtev_lru_t *lru)
   while (!TAILQ_EMPTY(&lru->lru_cache)) {
     struct lru_entry *e = TAILQ_FIRST(&lru->lru_cache);
     TAILQ_REMOVE(&lru->lru_cache, e, list_entry);
-    lru->free_fn(e->entry);
-    free(e);
+    mtev_lru_release(lru, e);
   }
 
   ck_hs_reset(&lru->hash);
@@ -129,8 +141,8 @@ expire_oldest_lru_cache_no_lock(mtev_lru_t *c)
   c->lru_cache_size--;
 
   /* remove from hs */
-  unsigned long hash = CK_HS_HASH(&c->hash, lru_entry_hash, e->key);
-  ck_hs_remove(&c->hash, hash, e->key);
+  unsigned long hash = CK_HS_HASH(&c->hash, lru_entry_hash, &e->key);
+  ck_hs_remove(&c->hash, hash, &e->key);
 
   int ec = ck_pr_load_32(&c->expire_count);
   if (ec == GC_CADENCE) {
@@ -139,10 +151,7 @@ expire_oldest_lru_cache_no_lock(mtev_lru_t *c)
   }
   c->expire_count++;
 
-  if (e->entry != NULL) {
-    c->free_fn(e->entry);
-  }
-  free(e);
+  mtev_lru_release(c, e);
 }
 
 static void
@@ -172,16 +181,16 @@ touch_lru_cache_no_lock(mtev_lru_t *c, struct lru_entry *e)
 mtev_boolean
 mtev_lru_put(mtev_lru_t *lru, const char *key, size_t key_len, void *val)
 {
-  unsigned long hash = CK_HS_HASH(&lru->hash, lru_entry_hash, key);
   struct lru_entry *e = malloc(sizeof(struct lru_entry) + key_len + 1);
   e->entry = val;
-  e->key_len = key_len;
-  memcpy(e->key, key, key_len);
-  e->key[key_len] = '\0';
+  e->ref_cnt = 1;
+  e->key.key_len = key_len;
+  memcpy(e->key.key, key, key_len);
+  unsigned long hash = CK_HS_HASH(&lru->hash, lru_entry_hash, &e->key);
 
   pthread_mutex_lock(&lru->mutex);
   void *previous = NULL;
-  if (ck_hs_set(&lru->hash, hash, e->key, &previous) == false) {
+  if (ck_hs_set(&lru->hash, hash, &e->key, &previous) == false) {
     free(e);
     pthread_mutex_unlock(&lru->mutex);
     return mtev_false;
@@ -189,38 +198,82 @@ mtev_lru_put(mtev_lru_t *lru, const char *key, size_t key_len, void *val)
   if (previous) {
     struct lru_entry *p = container_of(previous, struct lru_entry, key);
     TAILQ_REMOVE(&lru->lru_cache, p, list_entry);
-    lru->free_fn(p->entry);
-    free(p);
+    mtev_lru_release(lru, p);
   }
   add_lru_cache_no_lock(lru, e);
   pthread_mutex_unlock(&lru->mutex);
   return mtev_true;
 }
 
-void *
-mtev_lru_get(mtev_lru_t *c, const char *key, size_t key_len)
+mtev_lru_entry_token
+mtev_lru_get(mtev_lru_t *c, const char *key, size_t key_len, void **value)
 {
-  unsigned long hash = CK_HS_HASH(&c->hash, lru_entry_hash, key);
-  void *entry = ck_hs_get(&c->hash, hash, key);
+  struct lru_key *tempkey = NULL;
+  if (key_len <= ALLOCA_LIMIT) {
+    tempkey = alloca(sizeof(struct lru_key) + key_len);
+  } else {
+    tempkey = malloc(sizeof(struct lru_key) + key_len);
+  }
+  tempkey->key_len = key_len;
+  memcpy(tempkey->key, key, key_len);
+  
+  unsigned long hash = CK_HS_HASH(&c->hash, lru_entry_hash, tempkey);
+  void *entry = ck_hs_get(&c->hash, hash, tempkey);
+  if (key_len > ALLOCA_LIMIT) {
+    free(tempkey);
+  }
 
   if (entry != NULL) {
     struct lru_entry *r = container_of(entry, struct lru_entry, key);
     pthread_mutex_lock(&c->mutex);
     touch_lru_cache_no_lock(c, r);
     pthread_mutex_unlock(&c->mutex);
-    return r->entry;
+    *value = r->entry;
+    ck_pr_inc_64(&r->ref_cnt);
+    return r;
   }
+  *value = NULL;
   return NULL;
+}
+
+void
+mtev_lru_release(mtev_lru_t *c, mtev_lru_entry_token token)
+{
+  bool zero = false;
+  if (token == NULL) {
+    return;
+  }
+  struct lru_entry *r = (struct lru_entry *)token;
+
+  ck_pr_dec_64_zero(&r->ref_cnt, &zero);
+  if (zero) {
+    /* free it */
+    c->free_fn(r->entry);
+    free(r);
+  }
 }
 
 
 void *
 mtev_lru_remove(mtev_lru_t *c, const char *key, size_t key_len)
 {
-  unsigned long hash = CK_HS_HASH(&c->hash, lru_entry_hash, key);
+
+  struct lru_key *tempkey = NULL;
+  if (key_len <= ALLOCA_LIMIT) {
+    tempkey = alloca(sizeof(struct lru_key) + key_len);
+  } else {
+    tempkey = malloc(sizeof(struct lru_key) + key_len);
+  }
+  tempkey->key_len = key_len;
+  memcpy(tempkey->key, key, key_len);
+
+  unsigned long hash = CK_HS_HASH(&c->hash, lru_entry_hash, tempkey);
   void *rval = NULL;
   pthread_mutex_lock(&c->mutex);
-  void *entry = ck_hs_remove(&c->hash, hash, key);
+  void *entry = ck_hs_remove(&c->hash, hash, tempkey);
+  if (key_len > ALLOCA_LIMIT) {
+    free(tempkey);
+  }
   if (entry != NULL) {
     struct lru_entry *r = container_of(entry, struct lru_entry, key);
     if (c->max_entries > 0) {
@@ -228,7 +281,8 @@ mtev_lru_remove(mtev_lru_t *c, const char *key, size_t key_len)
     }
     c->lru_cache_size--;
     rval = r->entry;
-    free(r);
+    r->entry = NULL;
+    mtev_lru_release(c, r);
 
     /* when removing, perform GC every GC_CADENCE changes */
     int ec = ck_pr_load_32(&c->expire_count);
