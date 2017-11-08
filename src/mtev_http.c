@@ -120,6 +120,7 @@ struct mtev_http_request {
   struct timeval start_time;
   char *orig_qs;
   mtev_stream_decompress_ctx_t *decompress_ctx;
+  stats_handle_t *record;
 };
 
 struct mtev_http_response {
@@ -374,6 +375,14 @@ mtev_http_is_websocket(mtev_http_session_ctx *ctx) {
   return ctx->is_websocket;
 }
 
+void
+mtev_http_session_track_latency(mtev_http_session_ctx *ctx, stats_handle_t *h) {
+  ctx->req.record = h;
+}
+void
+mtev_http_request_track_latency(mtev_http_request *req, stats_handle_t *h) {
+  req->record = h;
+}
 void
 mtev_http_session_set_dispatcher(mtev_http_session_ctx *ctx,
                                  int (*d)(mtev_http_session_ctx *), void *dc) {
@@ -698,13 +707,17 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
   struct timeval end_time, diff;
 
   if(ctx->req.start_time.tv_sec == 0) return;
-  if(http_request_log_hook_invoke(ctx) != MTEV_HOOK_CONTINUE) return;
 
   mtev_gettimeofday(&end_time, NULL);
   now = end_time.tv_sec;
+  sub_timeval(end_time, ctx->req.start_time, &diff);
+
+  if(ctx->req.record)
+    stats_set_hist_intscale(ctx->req.record, diff.tv_sec * 1000000UL + diff.tv_usec, -6, 1);
+  if(http_request_log_hook_invoke(ctx) != MTEV_HOOK_CONTINUE) return;
+
   tm = gmtime_r(&now, &tbuf);
   strftime(timestr, sizeof(timestr), "%d/%b/%Y:%H:%M:%S -0000", tm);
-  sub_timeval(end_time, ctx->req.start_time, &diff);
   time_ms = diff.tv_sec * 1000 + (double)diff.tv_usec / 1000.0;
   struct sockaddr *remote = mtev_acceptor_closure_remote(ctx->ac);
   mtev_convert_sockaddr_to_buff(ip, sizeof(ip), remote);
@@ -1131,7 +1144,7 @@ mtev_http_request_release(mtev_http_session_ctx *ctx) {
   if (ctx->req.freed == mtev_true) {
     return;
   }
-
+  ctx->req.record = NULL;
   /* If we expected a payload, we expect a trailing \r\n */
   if(ctx->req.has_payload) {
     int drained, mask;

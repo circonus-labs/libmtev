@@ -75,7 +75,10 @@ struct rest_url_dispatcher {
   int pool_rr; /* used for round-robin */
   /* Chain to the next one */
   struct rest_url_dispatcher *next;
+  stats_handle_t *latency;
 };
+
+static stats_ns_t *rest_stats;
 
 void
 mtev_rest_mountpoint_set_handler(mtev_rest_mountpoint_t *mountpoint,
@@ -271,6 +274,7 @@ mtev_http_get_websocket_handler(mtev_http_rest_closure_t *restc)
     mtev_zipkin_span_rename(mtev_http_zipkip_span(restc->http_ctx),
                             rule->nice_name ? rule->nice_name : rule->expression_s,
                             false);
+    mtev_http_session_track_latency(restc->http_ctx, rule->latency);
     restc->websocket_handler_memo = rule->websocket_handler;
     restc->closure = rule->closure;
     if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
@@ -291,6 +295,7 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
     mtev_zipkin_span_rename(mtev_http_zipkip_span(restc->http_ctx),
                             rule->nice_name ? rule->nice_name : rule->expression_s,
                             false);
+    mtev_http_session_track_latency(restc->http_ctx, rule->latency);
     restc->fastpath = rule->handler;
     restc->closure = rule->closure;
     if(rule->pool) {
@@ -455,8 +460,8 @@ mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
   }
   rule = calloc(1, sizeof(*rule));
   rule->method = strdup(method);
-  rule->nice_name = malloc(strlen(base) + strlen(expr) + 2);
-  sprintf(rule->nice_name, "%s %s", base, expr);
+  rule->nice_name = malloc(strlen(base) + strlen(expr) + 3);
+  sprintf(rule->nice_name, "%s(%s)", base, expr);
   rule->expression_s = strdup(expr);
   rule->expression = pcre_expr;
   rule->extra = pcre_study(rule->expression, 0, &error);
@@ -465,6 +470,7 @@ mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
   rule->websocket_protocol = websocket_protocol != NULL ? strdup(websocket_protocol) : NULL;
   rule->closure = closure;
   rule->auth = auth;
+  rule->latency = stats_register(rest_stats, rule->nice_name, STATS_TYPE_HISTOGRAM);
 
   /* Make sure we have a container */
   if(!mtev_hash_retrieve(&dispatch_points, base, strlen(base), &vcont)) {
@@ -1022,6 +1028,7 @@ void mtev_http_rest_load_rules(void) {
 }
 void mtev_http_rest_init(void) {
   mtev_http_init();
+  rest_stats = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "rest");
   eventer_name_callback("mtev_wire_rest_api/1.0", mtev_http_rest_handler);
   eventer_name_callback("http_rest_api", mtev_http_rest_raw_handler);
 
