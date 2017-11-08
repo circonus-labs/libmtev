@@ -1,4 +1,4 @@
-var mtev = {};
+var mtev = { loaded: false };
 
 (function() {
   var defaultUI = {
@@ -260,20 +260,36 @@ var mtev = {};
           jQuery.getScript(r.scripts[i], function() { pending--; });
         }
       }
+      var load_pending = 1;
+      var finish_load = function(cb) {
+        return function() {
+          load_pending--;
+          if(cb) cb();
+          if(load_pending == 0) {
+            mtev.loaded = true;
+            $(document).trigger("mtev-loaded");
+          }
+        }
+      }
       if(r.tabs) {
         var keepTrying;
+        load_pending++;
         keepTrying = setInterval(function() {
           if(pending > 0) return;
           for(var i=r.tabs.length-1;i>=0;i--) {
             var tab = r.tabs[i];
             var cb = null;
-            if(tab.callback) try { cb = eval(tab.callback); } catch(e) {}
-            mtev.ui_load(tab.name, tab.id, tab.url, tab.active, cb)
+            if(tab.callback) try { cb = eval(tab.callback); }
+                             catch(e) { console.log(tab.callback, e); }
+            load_pending++;
+            mtev.ui_load(tab.name, tab.id, tab.url, tab.active, finish_load(cb))
           }
           mtev.initialTabSelect();
           clearInterval(keepTrying);
+          finish_load(null)();
         }, 10);
       }
+      finish_load(null)();
     }
     if(uijson) {
       jQuery.ajax(uijson).done(processUI).fail(function() {
