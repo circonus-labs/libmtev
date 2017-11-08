@@ -127,10 +127,10 @@ overflow: hidden;
   text-align:right;
 }
 #check-table tr.check td,
-#eventer table td {
+#internal table td {
   font-size: 0.9em;
 }
-#eventer tr.backq {
+#internals tr.backq {
   display:none;
 }
 .text-left {
@@ -145,8 +145,8 @@ overflow: hidden;
 #topology div.jumbotron {
   padding: 1em 3em;
 }
-#eventer table td:first-child,
-#eventer table th:first-child {
+#internals table td:first-child,
+#internals table th:first-child {
   padding-left: 1em;
 }
 .destinations progress {
@@ -232,7 +232,7 @@ ul.noit-proto-cmd > li:last-child:after {
   content: ""
 }
 
-#eventer table tbody button.tag {
+#internals table tbody button.tag {
   margin-right:0.5em;
 }
 

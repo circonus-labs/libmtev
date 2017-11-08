@@ -1,4 +1,4 @@
-var mtev = { loaded: false };
+var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
 
 (function() {
   var defaultUI = {
@@ -15,6 +15,23 @@ var mtev = { loaded: false };
         "url": "http://circonus-labs.github.io/libmtev/"
       }
     ]
+  };
+
+  mtev.toHex = function(s) {
+    var s = unescape(encodeURIComponent(s))
+    var h = ''
+    for (var i = 0; i < s.length; i++) {
+      h += s.charCodeAt(i).toString(16)
+    }
+    return h
+  };
+
+  mtev.fromHex = function(h) {
+    var s = ''
+    for (var i = 0; i < h.length; i+=2) {
+      s += String.fromCharCode(parseInt(h.substr(i, 2), 16))
+    }
+    return decodeURIComponent(escape(s))
   };
 
   mtev.hist = CirconusHistogram({ minbarwidth: 5, width: 600, height: 200, yaxis: true, xaxis: true, hudlegend: true });
@@ -71,11 +88,19 @@ var mtev = { loaded: false };
     mtev.hist.render("#modal-histogram", d);
   }
   function $hist_button(name, stats, subname) {
-    if(stats && stats.hasOwnProperty(name)) {
+    if(!Array.isArray(name)) {
+      name = [name];
+    }
+    var display_name = name.join(".");
+    while(name.length > 0) {
+      if(!stats || !stats.hasOwnProperty(name[0])) return null;
+      stats = stats[name.shift()];
+    }
+    if(stats) {
       var $perf = $modalButton(" ", "histModal").on('click', function() {
-        var v = stats[name];
+        var v = stats;
         if(subname) v = v[subname];
-        mtev.displayHistogram(name, v, subname || "");
+        mtev.displayHistogram(display_name, v, subname || "");
       });
       $perf.addClass("glyphicon");
       $perf.addClass("glyphicon-stats");
@@ -104,13 +129,13 @@ var mtev = { loaded: false };
     $cb = $("<small/>").text(parseFloat(detail.avg_wait_ms).toFixed(3) + "ms");
     var $perf, $td;
     $td = $("<td class=\"text-right\"/>");
-    $perf = $hist_button(jobq, eventer_stats.jobq, "wait");
+    $perf = $hist_button(jobq, mtev.stats.eventer.jobq, "wait");
     if($perf) $td.append($perf);
     $td.append($cb);
     $tr.append($td);
     $tr.append($("<td class=\"text-left\"/>").append($badge(detail.backlog)));
     $cb = $("<small/>").text(parseFloat(detail.avg_run_ms).toFixed(3) + "ms");
-    $perf = $hist_button(jobq, eventer_stats.jobq, "latency");
+    $perf = $hist_button(jobq, mtev.stats.eventer.jobq, "latency");
     $td = $("<td class=\"text-right\"/>");
     if($perf) $td.append($perf);
     $td.append($cb);
@@ -121,7 +146,7 @@ var mtev = { loaded: false };
   function mk_timer_row(event) {
     var $tr = $("<tr/>");
     var $cb = $("<span/>").text(event.callback);
-    var $perf = $hist_button(event.callback, eventer_stats.callbacks);
+    var $perf = $hist_button(event.callback, mtev.stats.eventer.callbacks);
     var $td = $("<td/>");
     if ($perf !== null) { $td.append($perf); }
     $td.append($cb)
@@ -138,7 +163,7 @@ var mtev = { loaded: false };
     $tr.append($("<td/>").html(event.fd + "&nbsp").append($badge(mask.join("|")).addClass('pull-right')));
     $tr.append($("<td/>").html('<small>'+event.impl+'</small>'));
     var $cb = $("<span/>").text(event.callback);
-    var $perf = $hist_button(event.callback, eventer_stats.callbacks);
+    var $perf = $hist_button(event.callback, mtev.stats.eventer.callbacks);
     var $td = $("<td/>");
     if ($perf !== null) { $td.append($perf); }
     $td.append($cb)
@@ -200,6 +225,58 @@ var mtev = { loaded: false };
         rows[cnt++].remove();
     });
 }
+  function handlePerfData(obj, path, ptr) {
+    var dname = path.join(".");
+    var added = false;
+    var id = "stat-id-" + mtev.toHex(dname);
+    var $tbl = $("#internal-stats tbody");
+    var $item = $tbl.find("#" + id);
+    if($item.length == 0) {
+      $item = $("#internal-stat-template").clone();
+      $item.attr('id', id);
+      added = true;
+    }
+    $item.find("span.stat-name").text(dname);
+    if(ptr._type == "s") $item.find("span.stat-value").text(ptr._value);
+    else if(!Array.isArray(ptr._value)) {
+      $item.find("span.stat-value").text(ptr._value);
+    }
+    else {
+      $item.find("span.stat-value").empty().append($hist_button(path.slice(), obj));
+    }
+    if(added) {
+      var appended = false;
+      // stick it in the right place.
+      var $r = $tbl.find("tr").get().reverse();
+      for(var i=0; i<$r.length; i++) {
+        var name = mtev.fromHex($r[i].getAttribute('id').substring(8));
+        if(name.localeCompare(dname) < 0) {
+          $item.insertAfter($($r[i]));
+          appended = true;
+          break;
+        }
+      }
+      if(!appended) $tbl.append($item);
+    }
+  }
+  mtev.updatePerfUI = function(stats, path, ptr) {
+    if(!$("#internal-stats").hasClass("show")) return;
+    if(path == undefined) path = [];
+    if(ptr == undefined) {
+      ptr = stats;
+      for(var i=0;i<path.length;i++) ptr = ptr[path[i]];
+    }
+    for(var name in ptr) {
+      if(name == "_type" && ptr.hasOwnProperty("_value")) {
+        handlePerfData(stats,path,ptr);
+      }
+      else if(name.substring(0,1) != "_") {
+        var child = path.slice()
+        child.push(name)
+        mtev.updatePerfUI(stats, child, ptr[name])
+      }
+    }
+  }
   function setupInternals() {
     // Pull sockets every 5 seconds
     setInterval(update_eventer("/eventer/sockets.json",
@@ -237,11 +314,11 @@ var mtev = { loaded: false };
     refresh_logs(1);
     setInterval(refresh_logs, 1000);
   }
-   
-  var eventer_stats = { jobq: {}, callbacks: {} };
+  
   function refreshMtevStats(cb) {
     jQuery.ajax("/mtev/stats.json").done(function(r) {
-      eventer_stats = r.mtev.eventer;
+      mtev.stats = r.mtev;
+      mtev.updatePerfUI(mtev, ["stats"]);
       if(cb) cb();
     });
   }
@@ -251,6 +328,11 @@ var mtev = { loaded: false };
     setInterval(refreshMtevStats, 20000);
   };
 
+  $(document).on('mtev-loaded', function() {
+    $("#internal-stats").on("shown.bs.collapse", function() {
+      refreshMtevStats();
+    });
+  });
   mtev.start = function(uijson) {
     var processUI = function(r) {
       var pending = 0;
