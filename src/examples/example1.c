@@ -191,6 +191,7 @@ child_main(void) {
     exit(2);
   }
   eventer_init();
+  mtev_dso_init();
   mtev_console_init(APPNAME);
   mtev_console_conf_init();
   mtev_http_rest_init();
@@ -199,7 +200,6 @@ child_main(void) {
   mtev_stats_rest_init();
   mtev_listener_init(APPNAME);
   init_cluster();
-  mtev_dso_init();
   mtev_dso_post_init();
 
   mtev_conf_coalesce_changes(10); /* 10 seconds of no changes before we write */
