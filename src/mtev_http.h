@@ -188,6 +188,13 @@ API_EXPORT(int)
   mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
                                 void *buf, const size_t len,
                                 const size_t blen, int *mask);
+
+API_EXPORT(void)
+  mtev_http_session_track_latency(mtev_http_session_ctx *ctx, stats_handle_t *h);
+
+API_EXPORT(void)
+  mtev_http_request_track_latency(mtev_http_request *req, stats_handle_t *h);
+
 API_EXPORT(mtev_boolean)
   mtev_http_response_status_set(mtev_http_session_ctx *, int, const char *);
 API_EXPORT(mtev_boolean)
