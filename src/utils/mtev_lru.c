@@ -218,6 +218,7 @@ mtev_lru_get(mtev_lru_t *c, const char *key, size_t key_len, void **value)
   memcpy(tempkey->key, key, key_len);
   
   unsigned long hash = CK_HS_HASH(&c->hash, lru_entry_hash, tempkey);
+  pthread_mutex_lock(&c->mutex);
   void *entry = ck_hs_get(&c->hash, hash, tempkey);
   if (key_len > ALLOCA_LIMIT) {
     free(tempkey);
@@ -225,13 +226,13 @@ mtev_lru_get(mtev_lru_t *c, const char *key, size_t key_len, void **value)
 
   if (entry != NULL) {
     struct lru_entry *r = container_of(entry, struct lru_entry, key);
-    pthread_mutex_lock(&c->mutex);
     touch_lru_cache_no_lock(c, r);
+    ck_pr_inc_64(&r->ref_cnt);
     pthread_mutex_unlock(&c->mutex);
     *value = r->entry;
-    ck_pr_inc_64(&r->ref_cnt);
     return r;
   }
+  pthread_mutex_unlock(&c->mutex);
   *value = NULL;
   return NULL;
 }

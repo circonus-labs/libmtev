@@ -348,8 +348,8 @@ mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len, void **value)
   if (entry != NULL) {
     struct lfu_entry *r = container_of(entry, struct lfu_entry, key);
     touch_lfu_cache_no_lock(c, r);
-    pthread_mutex_unlock(&c->mutex);
     ck_pr_inc_64(&r->ref_cnt);
+    pthread_mutex_unlock(&c->mutex);
     *value = r->entry;
     return r;
   }
