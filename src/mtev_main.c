@@ -106,7 +106,7 @@ configure_eventer(const char *appname) {
   mtev_hash_table *table;
   char appscratch[1024];
 
-  snprintf(appscratch, sizeof(appscratch), "/%s/eventer/config", appname);
+  snprintf(appscratch, sizeof(appscratch), "/%s//eventer//config", appname);
   table = mtev_conf_get_hash(MTEV_CONF_ROOT, appscratch);
   if(table) {
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
@@ -330,7 +330,7 @@ mtev_main(const char *appname,
   int ret;
   int cnt;
   mtev_conf_section_t *root;
- 
+
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
   mtev_init_globals();
