@@ -424,8 +424,7 @@ mtev_main(const char *appname,
   snprintf(appscratch, sizeof(appscratch), "/%s/eventer/@implementation|/%s/include/eventer/@implementation",
            appname, appname);
   if(!mtev_conf_get_stringbuf(MTEV_CONF_ROOT, appscratch, conf_str, sizeof(conf_str))) {
-    mtevL(mtev_stderr, "Cannot find '%s' in configuration\n", appscratch);
-    exit(-1);
+    strlcpy(conf_str, DEFAULT_EVENTER, sizeof(conf_str));
   }
   if(eventer_choose(conf_str) == -1) {
     mtevL(mtev_stderr, "Cannot choose eventer %s\n", conf_str);

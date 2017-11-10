@@ -571,25 +571,6 @@ mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c) {
   mtev_conf_watch_config_and_journal(NULL, EVENTER_TIMER, rj, &__now);
 }
 
-static mtev_hash_table _compiled_fallback;
-
-static struct {
-  const char *key;
-  const char *val;
-} config_info[] = {
-  /*
-   * These are compile-time fallbacks to be used in the event
-   * that the current running config does not have values for
-   * these config paths.
-   *
-   * PLEASE: keep them alphabetically sorted.
-   */
-  { "/%s/eventer/@implementation|/%s/include/eventer/@implementation", DEFAULT_EVENTER },
-  { "/%s/modules/@directory|/%s/eventer/modules/@directory", MTEV_MODULES_DIR },
-
-  { NULL, NULL }
-};
-
 #define MAX_SUPPRESSIONS 128
 static struct {
   xmlErrorDomain domain;
@@ -685,25 +666,12 @@ mtev_conf_xml_errors_to_debug(void) {
   XML2LOG(xml_debug);
 }
 
-void
-mtev_conf_poke(const char *toplevel, const char *key, const char *val) {
-  char keystr[256];
-  snprintf(keystr, sizeof(keystr), key, toplevel, toplevel);
-  mtev_hash_store(&_compiled_fallback,
-                  strdup(keystr), strlen(keystr),
-                  (void *)strdup(val));
-}
-
 DECLARE_CHECKER(name)
 void mtev_conf_init(const char *toplevel) {
-  int i;
-
   xml_debug = mtev_log_stream_find("debug/xml");
 
   COMPILE_CHECKER(name, "^[-_\\.:/a-zA-Z0-9]+$");
   XML2LOG(mtev_error);
-  for(i = 0; config_info[i].key != NULL; i++)
-    mtev_conf_poke(toplevel, config_info[i].key, config_info[i].val);
   xmlKeepBlanksDefault(0);
   xmlInitParser();
   xmlXPathInit();
@@ -1944,7 +1912,7 @@ mtev_conf_remove_section(mtev_conf_section_t section) {
 int
 _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
                       const char *path, char **value) {
-  const char *str, *interest;
+  const char *interest;
   char fullpath[1024];
   int rv = 1, i;
   xmlXPathObjectPtr pobj = NULL;
@@ -1983,11 +1951,6 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
     snprintf(fullpath, sizeof(fullpath), "%s/%s", (char *)basepath, path);
     free(basepath);
     interest = fullpath;
-  }
-  if(mtev_hash_retr_str(&_compiled_fallback,
-                        interest, strlen(interest), &str)) {
-    *value = (char *)xmlStrdup((xmlChar *)str);
-    goto found;
   }
   rv = 0;
  found:
@@ -3522,6 +3485,5 @@ void mtev_conf_init_globals(void) {
   pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
   pthread_mutex_init(&global_config_lock, &mattr);
   mtev_hash_init(&global_param_sets);
-  mtev_hash_init_locks(&_compiled_fallback, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 

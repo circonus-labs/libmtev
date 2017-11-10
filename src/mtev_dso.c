@@ -149,7 +149,7 @@ int mtev_load_image(const char *file, const char *name,
   else {
     char *basepath, *base, *brk;
     if(!mtev_conf_get_string(MTEV_CONF_ROOT, "//modules/@directory", &basepath))
-      basepath = strdup("");
+      basepath = strdup(MTEV_MODULES_DIR);
     for (base = strtok_r(basepath, ";:", &brk);
          base;
          base = strtok_r(NULL, ";:", &brk)) {
