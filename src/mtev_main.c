@@ -106,7 +106,8 @@ configure_eventer(const char *appname) {
   mtev_hash_table *table;
   char appscratch[1024];
 
-  snprintf(appscratch, sizeof(appscratch), "/%s/eventer/config", appname);
+  snprintf(appscratch, sizeof(appscratch), "/%s/eventer/config|/%s/include/eventer/config",
+           appname, appname);
   table = mtev_conf_get_hash(MTEV_CONF_ROOT, appscratch);
   if(table) {
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
@@ -420,7 +421,8 @@ mtev_main(const char *appname,
   mtev_watchdog_ratelimit(retry_val, span_val);
 
   /* Lastly, run through all other system inits */
-  snprintf(appscratch, sizeof(appscratch), "/%s/eventer/@implementation", appname);
+  snprintf(appscratch, sizeof(appscratch), "/%s/eventer/@implementation|/%s/include/eventer/@implementation",
+           appname, appname);
   if(!mtev_conf_get_stringbuf(MTEV_CONF_ROOT, appscratch, conf_str, sizeof(conf_str))) {
     mtevL(mtev_stderr, "Cannot find '%s' in configuration\n", appscratch);
     exit(-1);
