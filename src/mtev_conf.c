@@ -584,8 +584,8 @@ static struct {
    *
    * PLEASE: keep them alphabetically sorted.
    */
-  { "/%s/eventer/@implementation", DEFAULT_EVENTER },
-  { "/%s/modules/@directory", MTEV_MODULES_DIR },
+  { "/%s/eventer/@implementation|/%s/include/eventer/@implementation", DEFAULT_EVENTER },
+  { "/%s/modules/@directory|/%s/eventer/modules/@directory", MTEV_MODULES_DIR },
 
   { NULL, NULL }
 };
@@ -688,7 +688,7 @@ mtev_conf_xml_errors_to_debug(void) {
 void
 mtev_conf_poke(const char *toplevel, const char *key, const char *val) {
   char keystr[256];
-  snprintf(keystr, sizeof(keystr), key, toplevel);
+  snprintf(keystr, sizeof(keystr), key, toplevel, toplevel);
   mtev_hash_store(&_compiled_fallback,
                   strdup(keystr), strlen(keystr),
                   (void *)strdup(val));
