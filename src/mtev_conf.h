@@ -130,8 +130,6 @@ API_EXPORT(void) mtev_conf_mark_changed(void);
 API_EXPORT(void) mtev_conf_init(const char *toplevel);
 API_EXPORT(void) mtev_conf_init_globals(void);
 API_EXPORT(void)
-  mtev_conf_poke(const char *toplevel, const char *key, const char *val);
-API_EXPORT(void)
   mtev_override_console_stopword(int (*f)(const char *));
 API_EXPORT(int) mtev_conf_load(const char *path);
 
