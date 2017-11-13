@@ -313,6 +313,8 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *val)
     if (empty) {
       free(empty);
     }
+    /* we just removed an item, reduce the cache size to match */
+    lfu->lfu_cache_size--;
   }
   add_lfu_cache_no_lock(lfu, e);
   pthread_mutex_unlock(&lfu->mutex);
