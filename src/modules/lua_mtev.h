@@ -202,7 +202,8 @@ int luaopen_mtev(lua_State *L);
 int luaopen_mtev_http(lua_State *L);
 int mtev_lua_crypto_newx509(lua_State *L, X509 *x509);
 int mtev_lua_crypto_new_ssl_session(lua_State *L, SSL_SESSION *sess);
-int luaopen_crypto(lua_State *L);
+int luaopen_mtev_crypto(lua_State *L);
+int luaopen_mtev_stats(lua_State *);
 int luaopen_pack(lua_State *L); /* from lua_lpack.c */
 int luaopen_bit(lua_State *L); /* from lua_bit.c */
 mtev_lua_resume_info_t *mtev_lua_get_resume_info(lua_State *L);
