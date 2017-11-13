@@ -21,6 +21,7 @@ struct lfu_key {
 
 struct lfu_entry {
   void *entry;
+  uint64_t ref_cnt;
   STAILQ_ENTRY(lfu_entry) freq_list_entry;
   struct lfu_cache_entry *frequency_list_head;
   struct lfu_key key;
@@ -135,8 +136,7 @@ mtev_lfu_invalidate(mtev_lfu_t *lfu)
     while (!STAILQ_EMPTY(&e->lfu_cache)) {
       struct lfu_entry *le = STAILQ_FIRST(&e->lfu_cache);
       STAILQ_REMOVE(&e->lfu_cache, le, lfu_entry, freq_list_entry);
-      lfu->free_fn(le->entry);
-      free(le);
+      mtev_lfu_release(lfu, le);
     }
     free(e);
   }
@@ -190,8 +190,7 @@ expire_least_lfu_cache_no_lock(mtev_lfu_t *c)
   }
   c->expire_count++;
 
-  c->free_fn(le->entry);
-  free(le);
+  mtev_lfu_release(c, le);
   if (empty) {
     free(empty);
   }
@@ -297,6 +296,7 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *val)
   struct lfu_entry *e = malloc(sizeof(struct lfu_entry) + key_len + 1);
   e->entry = val;
   e->key.key_len = key_len;
+  e->ref_cnt = 1;
   memcpy(e->key.key, key, key_len);
 
   pthread_mutex_lock(&lfu->mutex);
@@ -309,8 +309,7 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *val)
   if (previous) {
     struct lfu_entry *p = container_of(previous, struct lfu_entry, key);
     struct lfu_cache_entry *empty = remove_from_frequency_list_no_lock(lfu, p);
-    lfu->free_fn(p->entry);
-    free(p);
+    mtev_lfu_release(lfu, p);
     if (empty) {
       free(empty);
     }
@@ -320,8 +319,8 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *val)
   return mtev_true;
 }
 
-void *
-mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len)
+mtev_lfu_entry_token
+mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len, void **value)
 {
   /* a max size of zero means to disable the LFU */
   if (c->max_entries == 0) {
@@ -349,11 +348,31 @@ mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len)
   if (entry != NULL) {
     struct lfu_entry *r = container_of(entry, struct lfu_entry, key);
     touch_lfu_cache_no_lock(c, r);
+    ck_pr_inc_64(&r->ref_cnt);
     pthread_mutex_unlock(&c->mutex);
-    return r->entry;
+    *value = r->entry;
+    return r;
   }
   pthread_mutex_unlock(&c->mutex);
+  *value = NULL;
   return NULL;
+}
+
+void
+mtev_lfu_release(mtev_lfu_t *c, mtev_lfu_entry_token token)
+{
+  bool zero = false;
+  if (token == NULL) {
+    return;
+  }
+  struct lfu_entry *r = (struct lfu_entry *)token;
+
+  ck_pr_dec_64_zero(&r->ref_cnt, &zero);
+  if (zero) {
+    /* free it */
+    c->free_fn(r->entry);
+    free(r);
+  }
 }
 
 
@@ -391,7 +410,8 @@ mtev_lfu_remove(mtev_lfu_t *c, const char *key, size_t key_len)
     }
     c->lfu_cache_size--;
     rval = r->entry;
-    free(r);
+    r->entry = NULL;
+    mtev_lfu_release(c, r);
 
     /* when removing, perform GC every GC_CADENCE changes */
     int ec = ck_pr_load_32(&c->expire_count);

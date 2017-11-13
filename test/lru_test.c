@@ -57,11 +57,13 @@ int main(int argc, char **argv)
 
   /* test that the last 5 entries are what remains in the LRU */
   for (int j = 5; j < 10; j++) {
-    void *d = mtev_lru_get(lru, datas[j].key, strlen(datas[j].key));
+    void *d = NULL;
+    mtev_lru_entry_token t = mtev_lru_get(lru, datas[j].key, strlen(datas[j].key), &d);
     struct data* dd = (struct data *)d;
     if (dd->i != datas[j].i) {
       FAIL("LRU expected %d, got %d", datas[j].i, dd->i);
     }
+    mtev_lru_release(lru, t);
   }
 
   mtev_lru_invalidate(lru);

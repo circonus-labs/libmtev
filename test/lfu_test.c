@@ -57,18 +57,24 @@ int main(int argc, char **argv)
 
   /* test that the last 5 entries are what remains in the LRU */
   for (int j = 5; j < 10; j++) {
-    void *d = mtev_lfu_get(lfu, datas[j].key, strlen(datas[j].key));
+    void *d = NULL;
+    mtev_lfu_entry_token token = mtev_lfu_get(lfu, datas[j].key, strlen(datas[j].key), &d);
     struct data* dd = (struct data *)d;
     if (dd->i != datas[j].i) {
       FAIL("LFU expected %d, got %d", datas[j].i, dd->i);
     }
+    mtev_lfu_release(lfu, token);
   }
 
 
   /* now get 3 of the items to bump their frequency count up */
-  void *x = mtev_lfu_get(lfu, "five", 4);
-  void *y = mtev_lfu_get(lfu, "six", 3);
-  void *z = mtev_lfu_get(lfu, "seven", 5);
+  void *x, *y, *z;
+  mtev_lfu_entry_token t = mtev_lfu_get(lfu, "five", 4, &x);
+  mtev_lfu_release(lfu, t);
+  t = mtev_lfu_get(lfu, "six", 3, &y);
+  mtev_lfu_release(lfu, t);
+  t = mtev_lfu_get(lfu, "seven", 5, &z);
+  mtev_lfu_release(lfu, t);
 
   /* add zero through four items.. these will evict themselves and shouldn't touch five->nine
    * since five->nine have higher frequency counts */
@@ -77,10 +83,15 @@ int main(int argc, char **argv)
   }
 
   /* five->nine should remain */
-  void *dx = mtev_lfu_get(lfu, "five", 4);
-  void *dy = mtev_lfu_get(lfu, "six", 3);
-  void *dz = mtev_lfu_get(lfu, "seven", 5);
-  void *db = mtev_lfu_get(lfu, "nine", 4);
+  void *dx, *dy, *dz, *db;
+  t = mtev_lfu_get(lfu, "five", 4, &dx);
+  mtev_lfu_release(lfu, t);
+  t = mtev_lfu_get(lfu, "six", 3, &dy);
+  mtev_lfu_release(lfu, t);
+  t = mtev_lfu_get(lfu, "seven", 5, &dz);
+  mtev_lfu_release(lfu, t);
+  t = mtev_lfu_get(lfu, "nine", 4, &db);
+  mtev_lfu_release(lfu, t);
 
   if (x != dx) {
     FAIL("LFU expected five to be in cache");
@@ -114,7 +125,8 @@ int main(int argc, char **argv)
   }
 
   for (int j = 0; j < 10; j++) {
-    void *d = mtev_lfu_get(lfu, datas[j].key, strlen(datas[j].key));
+    void *d = NULL;
+    t = mtev_lfu_get(lfu, datas[j].key, strlen(datas[j].key), &d);
     if (d != NULL) {
       FAIL("Zero sized LFU should always return NULL");
     }
@@ -126,11 +138,14 @@ int main(int argc, char **argv)
 
   mtev_lfu_put(lfu, datas[0].key, strlen(datas[0].key), &datas[0]);
 
-  void *d = mtev_lfu_get(lfu, datas[0].key, strlen(datas[0].key));
+  void *d;
+  t = mtev_lfu_get(lfu, datas[0].key, strlen(datas[0].key), &d);
+  mtev_lfu_release(lfu, t);
   if (d != &datas[0]) {
     FAIL("get failed after put");
   }
-  d = mtev_lfu_get(lfu, datas[0].key, strlen(datas[0].key));
+  t = mtev_lfu_get(lfu, datas[0].key, strlen(datas[0].key), &d);
+  mtev_lfu_release(lfu, t);
   if (d != &datas[0]) {
     FAIL("2nd get failed after put");
   }
