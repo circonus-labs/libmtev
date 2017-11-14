@@ -4420,8 +4420,6 @@ static const luaL_Reg mtevlib[] = {
   { NULL, NULL }
 };
 
-int luaopen_mtev_crypto(lua_State *L);
-
 int luaopen_mtev(lua_State *L) {
   mtev_lua_init();
 
@@ -4518,6 +4516,7 @@ int luaopen_mtev(lua_State *L) {
   LUA_DEFINE_INT(L, MTEV_HOOK_DONE);
   LUA_DEFINE_INT(L, MTEV_HOOK_ABORT);
 
+  luaopen_mtev_stats(L);
   luaopen_mtev_crypto(L);
   luaopen_mtev_http(L);
   luaopen_bit(L);

@@ -95,14 +95,16 @@ http_write_to_mtev(void *cl, const char *buf, size_t len) {
 int
 mtev_rest_stats_handler(mtev_http_rest_closure_t *restc,
                         int npats, char **pats) {
-  bool simple = false;
-  const char *format;
+  bool simple = false, reset = false;
+  const char *format, *reset_str;
   mtev_http_session_ctx *ctx = restc->http_ctx;
 
+  reset_str = mtev_http_request_querystring(mtev_http_session_request(ctx), "reset");
+  if(reset_str && !strcmp(reset_str, "1")) reset = true;
   format = mtev_http_request_querystring(mtev_http_session_request(ctx), "format");
   if(format && !strcmp(format, "simple")) simple = true;
   mtev_http_response_ok(ctx, "application/json");
-  stats_recorder_output_json(global_stats, false, simple, http_write_to_mtev, ctx);
+  stats_recorder_output_json(global_stats, reset, simple, http_write_to_mtev, ctx);
   mtev_http_response_end(ctx);
   return 0;
 }
