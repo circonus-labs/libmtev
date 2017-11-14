@@ -16,7 +16,7 @@ The zipkin_jaeger module publishes Zipkin traces to Jaeger.
    allowed: `/^.+$/`
 
    The jaeger collector host.
- * **`port`** (optional)  [default: `14268`]
+ * **`port`** (optional)  [default: `9411`]
 
    allowed: `/^\d+$/`
 

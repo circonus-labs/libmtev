@@ -7,7 +7,7 @@
         <title>C API · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
-        <meta name="generator" content="GitBook 3.2.3">
+        <meta name="generator" content="GitBook 3.2.2">
         
         
         
@@ -2466,6 +2466,73 @@ mtev_flow_regulator_stable_try_raise_one(<span class="hljs-keyword">mtev_flow_re
 simplify handling in cases where the client needs take no explicit
 action to enable or disable work-production before calling
 <code>mtev_flow_regulator_ack</code>.</p>
+<h4 id="mtevfrrhadjustprob">mtev_frrh_adjust_prob</h4>
+<blockquote>
+<p>Change the replacement probability on a <code>mtev_frrh_t</code>.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_frrh_adjust_prob</span><span class="hljs-params">(mtev_frrh_t *cache, uint32_t prob)</span>
+</span></code></pre>
+<ul>
+<li><code>cache</code> the <code>mtev_frrh_t</code> on which to change the probability.</li>
+<li><code>prob</code> is the probability of replaement on collision (0 to UINT_MAX).</li>
+</ul>
+<h4 id="mtevfrrhalloc">mtev_frrh_alloc</h4>
+<blockquote>
+<p>Allocate a fast random replacement hash.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_frrh_t</span> * 
+mtev_frrh_alloc(<span class="hljs-keyword">uint64_t</span> size, <span class="hljs-keyword">size_t</span> datasize, <span class="hljs-keyword">uint32_t</span> prob, mtev_frrh_hash hashf, 
+                mtev_frrh_alloc_entry allocf, mtev_frrh_free_entry freef)
+</code></pre>
+<ul>
+<li><code>size</code> is the total capacity of the hash.</li>
+<li><code>datasize</code> is the fixed-size of the data which will be stored.</li>
+<li><code>prob</code> is the probability of replaement on collision (0 to UINT_MAX).</li>
+<li><code>hashf</code> is the hashing function, NULL uses XXH64.</li>
+<li><code>allocf</code> is the allocation function to use, NULL uses malloc.</li>
+<li><code>freef</code> is the free function to use, NULL uses free.</li>
+<li><strong>RETURN</strong> a pointer to a <code>mtev_frrh_t</code> on success, NULL otherwise.</li>
+</ul>
+<h4 id="mtevfrrhget">mtev_frrh_get</h4>
+<blockquote>
+<p>Retrieves the data associated with the provided key from the cache.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> * 
+<span class="hljs-title">mtev_frrh_get</span><span class="hljs-params">(mtev_frrh_t *cache, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *key, uint32_t keylen)</span>
+</span></code></pre>
+<ul>
+<li><code>cache</code> a <code>mtev_frrh_t</code>.</li>
+<li><code>key</code> a pointer to the key.</li>
+<li><code>keylen</code> the length of the key in bytes.</li>
+<li><strong>RETURN</strong> a pointer to a copy of the data store with the key.</li>
+</ul>
+<h4 id="mtevfrrhset">mtev_frrh_set</h4>
+<blockquote>
+<p>Possibly set a key-value pair in a <code>mtev_frrh_t</code></p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<span class="hljs-title">mtev_frrh_set</span><span class="hljs-params">(mtev_frrh_t *cache, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *key, uint32_t keylen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *data)</span>
+</span></code></pre>
+<ul>
+<li><code>cache</code> a <code>mtev_frrh_t</code>.</li>
+<li><code>key</code> a pointer to the key.</li>
+<li><code>keylen</code> the length of the key in bytes.</li>
+<li><code>data</code> a pointer to the data (must be of the specified datasize for the <code>mtev_frrh_t</code>.</li>
+<li><strong>RETURN</strong> <code>mtev_true</code> if added, <code>mtev_false</code> if not.</li>
+</ul>
+<h4 id="mtevfrrhstats">mtev_frrh_stats</h4>
+<blockquote>
+<p>Retrieve access and hit statatistics.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_frrh_stats</span><span class="hljs-params">(mtev_frrh_t *cache, uint64_t *accesses, uint64_t *hits)</span>
+</span></code></pre>
+<ul>
+<li><code>cache</code> the <code>mtev_frrh_t</code> in question.</li>
+<li><code>accesses</code> is an optional out pointer to store the number of accesses.</li>
+<li><code>hits</code> is an optional out pointer to store the number of hits.</li>
+</ul>
 <h3 id="g">G</h3>
 <h4 id="mtevgetdurationsms">mtev_get_durations_ms</h4>
 <blockquote>
@@ -2972,6 +3039,25 @@ user and group for the calling process.  This is thread-safe.</p>
 <li><code>s</code> the semaphore on which to wait</li>
 <li><strong>RETURN</strong> 0 on success or -1 on failure</li>
 </ul>
+<h4 id="mtevsemwaitnoeintr">mtev_sem_wait_noeintr</h4>
+<blockquote>
+<p>Convenience function that delegates to sem_wait, swallowing EINTR errors.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_sem_wait_noeintr</span><span class="hljs-params">(mtev_sem_t *s)</span>
+</span></code></pre>
+<ul>
+<li><code>s</code> the semaphore on which to wait</li>
+<li><strong>RETURN</strong> 0 on success or -1 on failure</li>
+</ul>
+<p>This function is built on sem_wait, and sem_wait can fail in other ways besides
+EINTR, such as due to EINVAL. These other failures will be due to mis-use of the
+semaphore API -- e.g., by trying to <code>sem_wait</code> on a structure that was never
+initialized with <code>sem_init</code>. Mis-using thread-synchronization primitives will
+often lead to subtle, serious, and hard-to-reproduce bugs, so this function will
+mtevFatal on other errors, rather than forcing clients to deal with (likely)
+un-handlable errors. If your client code can handle these other errors, use
+sem_wait directly, do not use this function.</p>
 <h4 id="mtevsortcomparefunction">mtev_sort_compare_function</h4>
 <blockquote>
 <p>Function definition to compare sortable entries</p>
@@ -3927,7 +4013,7 @@ mtev_zipkin_timeval_to_timestamp(<span class="hljs-keyword">struct</span> timeva
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"C API","level":"1.7.1","depth":2,"next":{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]},"previous":{"title":"Reference","level":"1.7","depth":1,"path":"apireference/README.md","ref":"apireference/README.md","articles":[{"title":"C API","level":"1.7.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]}]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/c.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"C API","level":"1.7.1","depth":2,"next":{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]},"previous":{"title":"Reference","level":"1.7","depth":1,"path":"apireference/README.md","ref":"apireference/README.md","articles":[{"title":"C API","level":"1.7.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]}]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/c.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
