@@ -24,7 +24,7 @@
 
 ##### F
 
-[mtev_flow_regulator_ack](c.md#mtevflowregulatorack), [mtev_flow_regulator_create](c.md#mtevflowregulatorcreate), [mtev_flow_regulator_destroy](c.md#mtevflowregulatordestroy), [mtev_flow_regulator_lower](c.md#mtevflowregulatorlower), [mtev_flow_regulator_raise_one](c.md#mtevflowregulatorraiseone), [mtev_flow_regulator_stable_lower](c.md#mtevflowregulatorstablelower), [mtev_flow_regulator_stable_try_raise_one](c.md#mtevflowregulatorstabletryraiseone)
+[mtev_flow_regulator_ack](c.md#mtevflowregulatorack), [mtev_flow_regulator_create](c.md#mtevflowregulatorcreate), [mtev_flow_regulator_destroy](c.md#mtevflowregulatordestroy), [mtev_flow_regulator_lower](c.md#mtevflowregulatorlower), [mtev_flow_regulator_raise_one](c.md#mtevflowregulatorraiseone), [mtev_flow_regulator_stable_lower](c.md#mtevflowregulatorstablelower), [mtev_flow_regulator_stable_try_raise_one](c.md#mtevflowregulatorstabletryraiseone), [mtev_frrh_adjust_prob](c.md#mtevfrrhadjustprob), [mtev_frrh_alloc](c.md#mtevfrrhalloc), [mtev_frrh_get](c.md#mtevfrrhget), [mtev_frrh_set](c.md#mtevfrrhset), [mtev_frrh_stats](c.md#mtevfrrhstats)
 
 ##### G
 
@@ -44,7 +44,7 @@
 
 ##### S
 
-[mtev_security_chroot](c.md#mtevsecuritychroot), [mtev_security_setcaps](c.md#mtevsecuritysetcaps), [mtev_security_usergroup](c.md#mtevsecurityusergroup), [mtev_sem_destroy](c.md#mtevsemdestroy), [mtev_sem_getvalue](c.md#mtevsemgetvalue), [mtev_sem_init](c.md#mtevseminit), [mtev_sem_post](c.md#mtevsempost), [mtev_sem_trywait](c.md#mtevsemtrywait), [mtev_sem_wait](c.md#mtevsemwait), [mtev_sort_compare_function](c.md#mtevsortcomparefunction), [mtev_sort_next_function](c.md#mtevsortnextfunction), [mtev_sort_set_next_function](c.md#mtevsortsetnextfunction), [mtev_sys_gethrtime](c.md#mtevsysgethrtime)
+[mtev_security_chroot](c.md#mtevsecuritychroot), [mtev_security_setcaps](c.md#mtevsecuritysetcaps), [mtev_security_usergroup](c.md#mtevsecurityusergroup), [mtev_sem_destroy](c.md#mtevsemdestroy), [mtev_sem_getvalue](c.md#mtevsemgetvalue), [mtev_sem_init](c.md#mtevseminit), [mtev_sem_post](c.md#mtevsempost), [mtev_sem_trywait](c.md#mtevsemtrywait), [mtev_sem_wait](c.md#mtevsemwait), [mtev_sem_wait_noeintr](c.md#mtevsemwaitnoeintr), [mtev_sort_compare_function](c.md#mtevsortcomparefunction), [mtev_sort_next_function](c.md#mtevsortnextfunction), [mtev_sort_set_next_function](c.md#mtevsortsetnextfunction), [mtev_sys_gethrtime](c.md#mtevsysgethrtime)
 
 ##### T
 

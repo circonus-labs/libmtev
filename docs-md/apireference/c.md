@@ -2417,6 +2417,88 @@ action to enable or disable work-production before calling
 `mtev_flow_regulator_ack`.
  
 
+#### mtev_frrh_adjust_prob
+
+>Change the replacement probability on a `mtev_frrh_t`.
+
+```c
+void 
+mtev_frrh_adjust_prob(mtev_frrh_t *cache, uint32_t prob)
+```
+
+
+  * `cache` the `mtev_frrh_t` on which to change the probability.
+  * `prob` is the probability of replaement on collision (0 to UINT_MAX).
+
+
+#### mtev_frrh_alloc
+
+>Allocate a fast random replacement hash.
+
+```c
+mtev_frrh_t * 
+mtev_frrh_alloc(uint64_t size, size_t datasize, uint32_t prob, mtev_frrh_hash hashf, 
+                mtev_frrh_alloc_entry allocf, mtev_frrh_free_entry freef)
+```
+
+
+  * `size` is the total capacity of the hash.
+  * `datasize` is the fixed-size of the data which will be stored.
+  * `prob` is the probability of replaement on collision (0 to UINT_MAX).
+  * `hashf` is the hashing function, NULL uses XXH64.
+  * `allocf` is the allocation function to use, NULL uses malloc.
+  * `freef` is the free function to use, NULL uses free.
+  * **RETURN** a pointer to a `mtev_frrh_t` on success, NULL otherwise.
+ 
+
+#### mtev_frrh_get
+
+>Retrieves the data associated with the provided key from the cache.
+
+```c
+const void * 
+mtev_frrh_get(mtev_frrh_t *cache, const void *key, uint32_t keylen)
+```
+
+
+  * `cache` a `mtev_frrh_t`.
+  * `key` a pointer to the key.
+  * `keylen` the length of the key in bytes.
+  * **RETURN** a pointer to a copy of the data store with the key.
+
+
+#### mtev_frrh_set
+
+>Possibly set a key-value pair in a `mtev_frrh_t`
+
+```c
+mtev_boolean 
+mtev_frrh_set(mtev_frrh_t *cache, const void *key, uint32_t keylen, const void *data)
+```
+
+
+  * `cache` a `mtev_frrh_t`.
+  * `key` a pointer to the key.
+  * `keylen` the length of the key in bytes.
+  * `data` a pointer to the data (must be of the specified datasize for the `mtev_frrh_t`.
+  * **RETURN** `mtev_true` if added, `mtev_false` if not.
+
+
+#### mtev_frrh_stats
+
+>Retrieve access and hit statatistics.
+
+```c
+void 
+mtev_frrh_stats(mtev_frrh_t *cache, uint64_t *accesses, uint64_t *hits)
+```
+
+
+  * `cache` the `mtev_frrh_t` in question.
+  * `accesses` is an optional out pointer to store the number of accesses.
+  * `hits` is an optional out pointer to store the number of hits.
+
+
 ### G
 
 #### mtev_get_durations_ms
@@ -3030,6 +3112,29 @@ mtev_sem_wait(mtev_sem_t *s)
 
   * `s` the semaphore on which to wait
   * **RETURN** 0 on success or -1 on failure
+ 
+
+#### mtev_sem_wait_noeintr
+
+>Convenience function that delegates to sem_wait, swallowing EINTR errors.
+
+```c
+void 
+mtev_sem_wait_noeintr(mtev_sem_t *s)
+```
+
+
+  * `s` the semaphore on which to wait
+  * **RETURN** 0 on success or -1 on failure
+
+This function is built on sem_wait, and sem_wait can fail in other ways besides
+EINTR, such as due to EINVAL. These other failures will be due to mis-use of the
+semaphore API -- e.g., by trying to `sem_wait` on a structure that was never
+initialized with `sem_init`. Mis-using thread-synchronization primitives will
+often lead to subtle, serious, and hard-to-reproduce bugs, so this function will
+mtevFatal on other errors, rather than forcing clients to deal with (likely)
+un-handlable errors. If your client code can handle these other errors, use
+sem_wait directly, do not use this function.
  
 
 #### mtev_sort_compare_function
