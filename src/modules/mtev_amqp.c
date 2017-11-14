@@ -374,6 +374,17 @@ rabbitmq_manage_connection(void *vconn) {
   }
 }
 
+static mtev_hook_return_t
+connect_conns(void *img) {
+  for(int section_id = 0; section_id != the_conf->number_of_conns; ++section_id) {
+    struct amqp_conn *cc = &the_conf->amqp_conns[section_id];
+    if(pthread_create(&the_conf->amqp_conns[section_id].tid, NULL,
+                      rabbitmq_manage_connection, cc) != 0) {
+      return MTEV_HOOK_ABORT;
+    }
+  }
+  return MTEV_HOOK_CONTINUE;
+}
 static int
 init_conns(void) {
   mtev_conf_section_t *mqs = mtev_conf_get_sections(MTEV_CONF_ROOT, CONFIG_AMQP_IN_MQ,
@@ -410,18 +421,9 @@ init_conns(void) {
       cc->exchange = strdup("amq.direct");
     mtev_conf_get_string(mqs[section_id], CONFIG_AMQP_BINDINGKEY, &cc->bindingkey);
 
-    if(pthread_create(&the_conf->amqp_conns[section_id].tid, NULL,
-                      rabbitmq_manage_connection, cc) != 0) {
-      mtevL(nlerr, "Failed to start thread for amqp: %s\n", strerror(errno));
-      goto bail;
-    }
   }
   mtev_conf_release_sections(mqs, the_conf->number_of_conns);
   return 0;
-
- bail:
-  mtev_conf_release_sections(mqs, the_conf->number_of_conns);
-  return -1;
 }
 
 static uint64_t dtag;
@@ -560,6 +562,8 @@ amqp_driver_init(mtev_dso_generic_t *img) {
     mtevL(nlerr, "No amqp reciever setting found in the config!\n");
     return 0;
   }
+
+  dso_post_init_hook_register("amqp_connect", connect_conns, img);
 
   conf->receiver = eventer_alloc_recurrent(poll_amqp, NULL);
   eventer_add(conf->receiver);
