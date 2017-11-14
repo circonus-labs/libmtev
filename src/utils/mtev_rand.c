@@ -13,5 +13,8 @@ mtev_rand_init(void){
 inline uint64_t
 mtev_rand(void)
 {
-  return lrand48();
+  uint64_t v = lrand48();
+  v = (v << 31) | (uint64_t)lrand48();
+  v = (v << 31) | (uint64_t)lrand48();
+  return v;
 }

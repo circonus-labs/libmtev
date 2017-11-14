@@ -41,13 +41,16 @@ LUA_FILES=mtevbusted/init.lua mtevbusted/cli.lua mtevbusted/api.lua mtevbusted/c
 
 all:	check
 
-TESTS=hash_test uuid_test time_test hll_test maybe_alloc_test dyn_buffer_test speculatelog_test lru_test lfu_test pool-shift-async/test flowreg/test
+TESTS=frrh_test hash_test uuid_test time_test hll_test maybe_alloc_test dyn_buffer_test speculatelog_test lru_test lfu_test pool-shift-async/test flowreg/test
 
 pool-shift-async/test:	pool-shift-async/test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 flowreg/test:	flowreg/test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+
+frrh_test: frrh_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o frrh_test frrh_test.c -lmtev $(LIBMTEV_LIBS)
 
 hash_test: hash_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o hash_test hash_test.c -lmtev $(LIBMTEV_LIBS)
