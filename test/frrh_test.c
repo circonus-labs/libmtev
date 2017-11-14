@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #define KEYSPACE 10000
 #define KEYLEN 100
