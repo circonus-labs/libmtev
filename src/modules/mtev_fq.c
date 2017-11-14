@@ -56,19 +56,14 @@ typedef struct connection_configs {
   int32_t port;
   char* user;
   char* pass;
+  char *exchange;
+  char *program;
 } connection_configs;
-
-static void
-connection_configs_free(connection_configs *c) {
-  free(c->host);
-  free(c->user);
-  free(c->pass);
-  free(c);
-}
 
 struct fq_module_config {
   eventer_t receiver;
   fq_client* fq_conns;
+  connection_configs **configs;
   int number_of_conns;
 };
 
@@ -129,7 +124,7 @@ static int poll_fq(eventer_t e, int mask, void *unused, struct timeval *now) {
   fq_msg *m;
 
   for (int client = 0; client != the_conf->number_of_conns; ++client) {
-    while (NULL != (m = fq_client_receive(the_conf->fq_conns[client]))) {
+    while (the_conf->fq_conns[client] && NULL != (m = fq_client_receive(the_conf->fq_conns[client]))) {
       mtev_fq_handle_message_dyn_hook_invoke(the_conf->fq_conns[client], client, m, m->payload, m->payload_len);
       fq_msg_deref(m);
       cnt++;
@@ -210,6 +205,19 @@ static connection_configs *check_connection_conf(mtev_conf_section_t section) {
   return configs_table;
 }
 
+static mtev_hook_return_t
+connect_conns(void *unused) {
+  for (int section_id = 0; section_id != the_conf->number_of_conns; ++section_id) {
+    connect_fq_client(&the_conf->fq_conns[section_id],
+                     the_conf->configs[section_id]->host,
+                     the_conf->configs[section_id]->port,
+                     the_conf->configs[section_id]->user,
+                     the_conf->configs[section_id]->pass,
+                     the_conf->configs[section_id]->exchange,
+                     the_conf->configs[section_id]->program);
+  }
+  return MTEV_HOOK_CONTINUE;
+}
 static void
 init_conns(void) {
   mtev_conf_section_t *mqs = mtev_conf_get_sections(MTEV_CONF_ROOT, CONFIG_FQ_IN_MQ,
@@ -220,19 +228,12 @@ init_conns(void) {
     return;
   }
 
-  the_conf->fq_conns = malloc(the_conf->number_of_conns * sizeof(fq_client));
-
+  the_conf->fq_conns = calloc(the_conf->number_of_conns, sizeof(fq_client));
+  the_conf->configs = calloc(the_conf->number_of_conns, sizeof(connection_configs *));
   for (int section_id = 0; section_id != the_conf->number_of_conns; ++section_id) {
-    char *exchange = NULL, *program = NULL;
-    connection_configs *connection_configs = check_connection_conf(mqs[section_id]);
-    mtev_conf_get_string(mqs[section_id], CONFIG_FQ_EXCHANGE, &exchange);
-    mtev_conf_get_string(mqs[section_id], CONFIG_FQ_PROGRAM, &program);
-    connect_fq_client(&the_conf->fq_conns[section_id], connection_configs->host,
-        connection_configs->port, connection_configs->user,
-        connection_configs->pass, exchange, program);
-    connection_configs_free(connection_configs);
-    free(exchange);
-    free(program);
+    the_conf->configs[section_id] = check_connection_conf(mqs[section_id]);
+    mtev_conf_get_string(mqs[section_id], CONFIG_FQ_EXCHANGE, &the_conf->configs[section_id]->exchange);
+    mtev_conf_get_string(mqs[section_id], CONFIG_FQ_PROGRAM, &the_conf->configs[section_id]->program);
   }
   mtev_conf_release_sections(mqs, the_conf->number_of_conns);
 }
@@ -308,6 +309,7 @@ fq_driver_init(mtev_dso_generic_t *img) {
   nlerr = mtev_log_stream_find("error/fq");
   nldeb = mtev_log_stream_find("debug/fq");
   init_conns();
+  dso_post_init_hook_register("fq_connect", connect_conns, NULL);
 
   if (the_conf->number_of_conns == 0) {
     mtevL(nlerr, "No fq reciever setting found in the config!\n");
