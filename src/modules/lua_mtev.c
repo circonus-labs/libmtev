@@ -6,7 +6,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above
@@ -17,7 +17,7 @@
  *       of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written
  *       permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -178,11 +178,11 @@ inbuff_addlstring(struct nl_slcl *cl, const char *b, int l) {
   char *newbuf;
 
   if (cl->inbuff_len < 0 || l < 0) {
-    mtevFatal(mtev_error, "Error (inbuff_addlstring): Invalid Argument to inbuff_addlstring: An argument was negative (ci->inbuff_len: %d, l: %d)\n", 
+    mtevFatal(mtev_error, "Error (inbuff_addlstring): Invalid Argument to inbuff_addlstring: An argument was negative (ci->inbuff_len: %d, l: %d)\n",
             cl->inbuff_len, l);
   }
   if (cl->inbuff_len + l < 0) {
-    mtevFatal(mtev_error, "Error (inbuff_addlstring): Addition Overflow im inbuff_addlstring (ci->inbuff_len: %d, l: %d, sum: %d\n", 
+    mtevFatal(mtev_error, "Error (inbuff_addlstring): Addition Overflow im inbuff_addlstring (ci->inbuff_len: %d, l: %d, sum: %d\n",
             cl->inbuff_len, l, cl->inbuff_len+l);
   }
 
@@ -191,7 +191,7 @@ inbuff_addlstring(struct nl_slcl *cl, const char *b, int l) {
   if(newsize) {
     newbuf = cl->inbuff_allocd ? realloc(cl->inbuff, newsize) : malloc(newsize);
     if (!newbuf) {
-      mtevFatal(mtev_error, "Error (inbuff_addlstring): Couldn't allocate newbuf: %d (%s) - inbuff_allocd %d, newsize %d\n", 
+      mtevFatal(mtev_error, "Error (inbuff_addlstring): Couldn't allocate newbuf: %d (%s) - inbuff_allocd %d, newsize %d\n",
               errno, strerror(errno), cl->inbuff_allocd, newsize);
     }
     cl->inbuff = newbuf;
@@ -633,7 +633,7 @@ mtev_lua_socket_accept_complete(eventer_t e, int mask, void *vcl,
     lua_pushnil(cl->L);
     goto alldone;
   }
-  
+
   if(eventer_set_fd_nonblocking(fd)) {
     close(fd);
     lua_pushnil(cl->L);
@@ -701,7 +701,7 @@ mtev_lua_socket_own(lua_State *L) {
   *eptr = NULL;
   cl = eventer_get_closure(e);
   if(cl->L == L) return 0;
-  
+
   ci = mtev_lua_get_resume_info(cl->L);
   mtevAssert(ci);
   mtev_lua_deregister_event(ci, e, 0);
@@ -1065,7 +1065,7 @@ mtev_lua_socket_do_read(eventer_t e, int *mask, struct nl_slcl *cl,
       if(cp) {
         lua_pushlstring(cl->L, cl->inbuff, cl->inbuff_len);
         *read_complete = 1;
-        
+
         cl->read_sofar = len - remaining;
         cl->inbuff_len = 0;
         if(cl->read_sofar > 0) { /* We have to buffer this for next read */
@@ -1675,7 +1675,7 @@ nl_sleep(lua_State *L) {
   cl->L = L;
   mtev_gettimeofday(&cl->start, NULL);
 
-  e = eventer_in_s_us(nl_sleep_complete, cl, 
+  e = eventer_in_s_us(nl_sleep_complete, cl,
                       floor(p_int), (p_int - floor(p_int)) * 1000000);
   mtev_lua_register_event(ci, e);
   eventer_add(e);
@@ -2549,7 +2549,7 @@ nl_gunzip_deflate(lua_State *L) {
       free(data);
       luaL_error(L, "HTTP client internal error: out-of-memory"); break;
   }
-  
+
   lua_pushnil(L);
   return 1;
 }
@@ -2557,7 +2557,7 @@ static int
 nl_gunzip(lua_State *L) {
   struct gunzip_crutch *crutch;
   z_stream *stream;
-  
+
   crutch = (struct gunzip_crutch *)lua_newuserdata(L, sizeof(*crutch));
   crutch->stream = malloc(sizeof(*stream));
   memset(crutch->stream, 0, sizeof(*crutch->stream));
@@ -2658,7 +2658,7 @@ nl_pcre(lua_State *L) {
   const char *errstr;
   int erroff;
 
-  expr = lua_tostring(L,1); 
+  expr = lua_tostring(L,1);
   re = pcre_compile(expr, 0, &errstr, &erroff, NULL);
   if(!re) {
     lua_pushnil(L);
@@ -2701,7 +2701,7 @@ nl_conf_get_string(lua_State *L) {
     mtev_conf_section_t section;
     char *element, *base;
     SPLIT_PATH(path, base, element);
-    
+
     section = mtev_conf_get_section(MTEV_CONF_ROOT, base);
     if(mtev_conf_section_is_empty(section) || !element) {
       lua_pushboolean(L, 0);
@@ -2815,7 +2815,7 @@ nl_conf_get_float(lua_State *L) {
     mtev_conf_section_t section;
     char *element, *base;
     SPLIT_PATH(path, base, element);
-    
+
     section = mtev_conf_get_section(MTEV_CONF_ROOT, base);
     if(mtev_conf_section_is_empty(section) || !element) {
       lua_pushboolean(L, 0);
@@ -3149,7 +3149,7 @@ nl_parsexml(lua_State *L) {
   const char *in;
   size_t inlen;
 
-  if(lua_gettop(L) != 1) luaL_error(L, "parsexml requires one argument"); 
+  if(lua_gettop(L) != 1) luaL_error(L, "parsexml requires one argument");
 
   in = lua_tolstring(L, 1, &inlen);
   mtev_conf_xml_errors_to_debug();
@@ -3159,7 +3159,7 @@ nl_parsexml(lua_State *L) {
     return 1;
   }
 
-  docptr = (xmlDocPtr *)lua_newuserdata(L, sizeof(doc)); 
+  docptr = (xmlDocPtr *)lua_newuserdata(L, sizeof(doc));
   *docptr = doc;
   luaL_getmetatable(L, "mtev.xmldoc");
   lua_setmetatable(L, -2);
@@ -3411,7 +3411,7 @@ nl_parsejson(lua_State *L) {
   const char *in;
   size_t inlen;
 
-  if(lua_gettop(L) != 1) luaL_error(L, "parsejson requires one argument"); 
+  if(lua_gettop(L) != 1) luaL_error(L, "parsejson requires one argument");
 
   in = lua_tolstring(L, 1, &inlen);
   doc = calloc(1, sizeof(*doc));
@@ -3427,7 +3427,7 @@ nl_parsejson(lua_State *L) {
     return 3;
   }
 
-  docptr = (json_crutch **)lua_newuserdata(L, sizeof(doc)); 
+  docptr = (json_crutch **)lua_newuserdata(L, sizeof(doc));
   *docptr = doc;
   luaL_getmetatable(L, "mtev.json");
   lua_setmetatable(L, -2);
@@ -4076,7 +4076,7 @@ mtev_lua_serialize(lua_State *L, int index){
     case(LUA_TTABLE):
       data->value.table = mtev_lua_serialize_table(L, index);
       break;
-    default: 
+    default:
       free(data);
       data = NULL;
       mtevL(nlerr, "Cannot serialize unsupported lua type %d\n", type);
@@ -4120,11 +4120,11 @@ mtev_lua_deserialize(lua_State *L, const lua_data_t *data){
       lua_pushboolean(L, data->value.boolean);
       break;
     case(LUA_TTABLE):
-      // 
+      //
       mtev_lua_deserialize_table(L, data->value.table);
       break;
     case(LUA_TNIL): // we already returned NULL
-    default: 
+    default:
       mtevL(nlerr, "Cannot deserialize unsupported lua type %d\n", data->lua_type);
   }
 }
@@ -4404,7 +4404,7 @@ static const luaL_Reg mtevlib[] = {
     \param argv an array of arguments (first argument is the process name)
     \param env an optional array of "K=V" strings.
     \return an object with the mtev.process metatable set.
- 
+
     This function spawns a new subprocess running the binary specified as
     the first argument.
 */
@@ -4523,4 +4523,3 @@ int luaopen_mtev(lua_State *L) {
   luaopen_pack(L);
   return 0;
 }
-
