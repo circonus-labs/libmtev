@@ -266,11 +266,11 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
       ptr = stats;
       for(var i=0;i<path.length;i++) ptr = ptr[path[i]];
     }
-    for(var name in ptr) {
-      if(name == "_type" && ptr.hasOwnProperty("_value")) {
-        handlePerfData(stats,path,ptr);
-      }
-      else if(name.substring(0,1) != "_") {
+    if(ptr.hasOwnProperty("_type") && ptr.hasOwnProperty("_value")) {
+      handlePerfData(stats,path,ptr);
+    }
+    else {
+      for(var name in ptr) {
         var child = path.slice()
         child.push(name)
         mtev.updatePerfUI(stats, child, ptr[name])
