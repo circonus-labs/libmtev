@@ -256,7 +256,7 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
           break;
         }
       }
-      if(!appended) $tbl.append($item);
+      if(!appended) $tbl.prepend($item);
     }
   }
   mtev.updatePerfUI = function(stats, path, ptr) {
@@ -318,7 +318,7 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
   function refreshMtevStats(cb) {
     jQuery.ajax("/mtev/stats.json").done(function(r) {
       mtev.stats = r.mtev;
-      mtev.updatePerfUI(mtev, ["stats"]);
+      mtev.updatePerfUI(r, ["mtev"]);
       if(cb) cb();
     });
   }
