@@ -476,6 +476,7 @@ typedef struct asynch_log_ctx {
   mtev_atomic32_t gen;  /* generation */
   int pid;
   int is_asynch;
+  int last_errno;
 } asynch_log_ctx;
 
 static asynch_log_line *
@@ -572,9 +573,12 @@ posix_logio_asynch_write(asynch_log_ctx *actx, asynch_log_line *line) {
   struct posix_op_ctx *po;
   int rv = -1;
   po = actx->userdata;
-  if(po && po->fd >= 0)
+  actx->last_errno = 0;
+  if(po && po->fd >= 0) {
     rv = write(po->fd, line->buf_dynamic ? line->buf_dynamic : line->buf_static,
                line->len);
+    if(rv < 0) actx->last_errno = errno;
+  }
   return rv;
 }
 
@@ -630,6 +634,7 @@ posix_logio_open(mtev_log_stream_t ls) {
 
   if (actx->is_asynch &&
       asynch_thread_create(ls, actx, asynch_logio_writer)) {
+    actx->last_errno = errno;
     return -1;
   }
   return 0;
@@ -1038,11 +1043,13 @@ mtev_log_jlog_err(void *ctx, const char *format, ...) {
 int jlog_logio_asynch_write(asynch_log_ctx *actx, asynch_log_line *line) {
   int rv;
   jlog_ctx *log = actx->userdata;
+  actx->last_errno = 0;
   rv = jlog_ctx_write(log, line->buf_dynamic ?
                              line->buf_dynamic :
                              line->buf_static,
                       line->len);
   if(rv == -1) {
+    actx->last_errno = jlog_ctx_errno(log);
     mtevL(mtev_error, "jlog_ctx_write failed(%d): %s\n",
           jlog_ctx_errno(log), jlog_ctx_err_string(log));
   }
