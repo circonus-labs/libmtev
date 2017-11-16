@@ -3410,14 +3410,18 @@ nl_tojson(lua_State *L) {
 // mtev_json_object* on the lua stack, so other C functions can make
 // use of it.
 static int
-nl__unwrap_json(lua_State *L){
+mtev_lua_json_unwrap(lua_State *L){
   json_crutch **docptr;
   mtev_json_object **unwrapped;
   if (lua_gettop(L) != 1) luaL_error(L, "_unwrap_json requires one argument");
-  docptr = (json_crutch **) lua_touserdata(L, 1);
+  docptr = lua_touserdata(L, lua_upvalueindex(1));
+  if(docptr != lua_touserdata(L, 1))
+  if(docptr == NULL || (*docptr)->root == NULL) return 0;
+
   unwrapped = (mtev_json_object **) lua_newuserdata(L, sizeof(mtev_json_object*));
-  mtevAssert(unwrapped);
-  *unwrapped = (*docptr)->root;
+  *unwrapped = mtev_json_object_get((*docptr)->root);
+  luaL_getmetatable(L, "mtev.json_object");
+  lua_setmetatable(L, -2);
   return 1;
 }
 
@@ -3459,6 +3463,13 @@ mtev_lua_json_gc(lua_State *L) {
   return 0;
 }
 static int
+mtev_lua_json_object_gc(lua_State *L) {
+  struct json_object **json;
+  json = (struct json_object **)lua_touserdata(L,1);
+  if(*json) mtev_json_object_put(*json);
+  return 0;
+}
+static int
 mtev_json_index_func(lua_State *L) {
   int n;
   const char *k;
@@ -3480,6 +3491,8 @@ mtev_json_index_func(lua_State *L) {
     case 't':
      LUA_DISPATCH(tostring, mtev_lua_json_tostring);
      break;
+    case 'u':
+     LUA_DISPATCH(unwrap, mtev_lua_json_unwrap);
     default:
      break;
   }
@@ -4413,7 +4426,6 @@ static const luaL_Reg mtevlib[] = {
     The return is an `mtev.json` object not a string. You must invoke
     the `tostring` method to convert it to a simple string.
 */
-  { "_unwrap_json", nl__unwrap_json },
 
 /*! \lua mtev.process = mtev.spawn(path, argv, env)
     \brief Spawn a subprocess.
@@ -4469,6 +4481,10 @@ int luaopen_mtev(lua_State *L) {
 
   luaL_newmetatable(L, "mtev.pcre");
   lua_pushcfunction(L, mtev_lua_pcre_gc);
+  lua_setfield(L, -2, "__gc");
+
+  luaL_newmetatable(L, "mtev.json_object");
+  lua_pushcfunction(L, mtev_lua_json_object_gc);
   lua_setfield(L, -2, "__gc");
 
   luaL_newmetatable(L, "mtev.json");
