@@ -3413,7 +3413,7 @@ static int
 mtev_lua_json_unwrap(lua_State *L){
   json_crutch **docptr;
   mtev_json_object **unwrapped;
-  if (lua_gettop(L) != 1) luaL_error(L, "_unwrap_json requires one argument");
+  if (lua_gettop(L) != 1) luaL_error(L, "unwrap requires one argument");
   docptr = lua_touserdata(L, lua_upvalueindex(1));
   if(docptr != lua_touserdata(L, 1))
   if(docptr == NULL || (*docptr)->root == NULL) return 0;
