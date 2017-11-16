@@ -634,6 +634,7 @@ posix_logio_open(mtev_log_stream_t ls) {
 
   if (actx->is_asynch &&
       asynch_thread_create(ls, actx, asynch_logio_writer)) {
+    actx->last_errno = errno;
     return -1;
   }
   return 0;
