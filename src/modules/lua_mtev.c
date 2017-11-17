@@ -1804,6 +1804,7 @@ nl_close(lua_State *L) {
   return 0;
 }
 
+/* \lua mtev.chmod() */
 static int
 nl_chmod(lua_State *L) {
   int rv;
@@ -1816,6 +1817,7 @@ nl_chmod(lua_State *L) {
   return 2;
 }
 
+/* \lua mtev.stat() */
 static int
 nl_stat(lua_State *L) {
   struct stat st;
@@ -1850,6 +1852,7 @@ nl_stat(lua_State *L) {
   return 1;
 }
 
+/* \lua mtev.readdir() */
 static int
 nl_readdir(lua_State *L) {
   const char *path;
@@ -1918,6 +1921,7 @@ nl_realpath(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
+/* \lua mtev.log_up() */
 static int
 nl_log_up(lua_State *L) {
   int i, n;
@@ -2002,6 +2006,7 @@ nl_log(lua_State *L) {
   \param facility the name of the mtev_log_stream (e.g. "debug")
   \param flags true enables, false disables
 */
+/* \lua mtev.enable_log() */
 static int
 nl_enable_log(lua_State *L) {
   int n = lua_gettop(L);
@@ -2019,6 +2024,7 @@ nl_enable_log(lua_State *L) {
   }
   return 0;
 }
+/* \lua mtev.lockfile_acquire() */
 static int
 nl_lockfile_acquire(lua_State *L) {
   mtev_lockfile_t val = -1;
@@ -2030,6 +2036,7 @@ nl_lockfile_acquire(lua_State *L) {
   lua_pushinteger(L, val);
   return 1;
 }
+/* \lua mtev.lockfile_release() */
 static int
 nl_lockfile_release(lua_State *L) {
   int rv;
@@ -2039,6 +2046,7 @@ nl_lockfile_release(lua_State *L) {
   lua_pushinteger(L, rv);
   return 1;
 }
+/* \lua mtev.crc32() */
 static int
 nl_crc32(lua_State *L) {
   size_t inlen;
@@ -2053,6 +2061,7 @@ nl_crc32(lua_State *L) {
   lua_pushnumber(L, (double)crc32(start, (Bytef *)input, inlen));
   return 1;
 }
+/* \lua mtev.base32_decode() */
 static int
 nl_base32_decode(lua_State *L) {
   size_t inlen, decoded_len;
@@ -2076,6 +2085,7 @@ nl_base32_decode(lua_State *L) {
   if(needs_free) free(decoded);
   return 1;
 }
+/* \lua mtev.base32_encode() */
 static int
 nl_base32_encode(lua_State *L) {
   size_t inlen, encoded_len;
@@ -2100,6 +2110,7 @@ nl_base32_encode(lua_State *L) {
   if(needs_free) free(encoded);
   return 1;
 }
+/*! \lua mtev.base64_decode() */
 static int
 nl_base64_decode(lua_State *L) {
   size_t inlen, decoded_len;
@@ -2123,6 +2134,7 @@ nl_base64_decode(lua_State *L) {
   if(needs_free) free(decoded);
   return 1;
 }
+/*! \lua mtev.base64_encode() */
 static int
 nl_base64_encode(lua_State *L) {
   size_t inlen, encoded_len;
@@ -2147,6 +2159,7 @@ nl_base64_encode(lua_State *L) {
   if(needs_free) free(encoded);
   return 1;
 }
+/*! \lua mtev.utf8tohtml() */
 static int
 nl_utf8tohtml(lua_State *L) {
   int in_idx = 1, tags_idx = 2;
@@ -2219,6 +2232,7 @@ nl_utf8tohtml(lua_State *L) {
   luaL_error(L, "utf8tohtml failure");
   return 0;
 }
+/*! \lua mtev.hmac_sha1_encode() */
 static int
 nl_hmac_sha1_encode(lua_State *L) {
   size_t messagelen, keylen, encoded_len;
@@ -2240,6 +2254,7 @@ nl_hmac_sha1_encode(lua_State *L) {
 
   return 1;
 }
+/*! \lua mtev.hmac_sha256_encode() */
 static int
 nl_hmac_sha256_encode(lua_State *L) {
   size_t messagelen, keylen, encoded_len;
@@ -2262,6 +2277,7 @@ nl_hmac_sha256_encode(lua_State *L) {
   return 1;
 }
 
+/*! \lua mtev.md5_hex() */
 static const char _hexchars[16] =
   {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 static int
@@ -2286,6 +2302,7 @@ nl_md5_hex(lua_State *L) {
   lua_pushstring(L, md5_hex);
   return 1;
 }
+/*! \lua mtev.md5() */
 static int
 nl_md5(lua_State *L) {
   MD5_CTX ctx;
@@ -2301,6 +2318,7 @@ nl_md5(lua_State *L) {
   lua_pushlstring(L, (char *)md5, sizeof(md5));
   return 1;
 }
+/*! \lua mtev.sha1_hex() */
 static int
 nl_sha1_hex(lua_State *L) {
   int i;
@@ -2323,6 +2341,7 @@ nl_sha1_hex(lua_State *L) {
   lua_pushstring(L, sha1_hex);
   return 1;
 }
+/*! \lua mtev.sha1() */
 static int
 nl_sha1(lua_State *L) {
   SHA_CTX ctx;
@@ -2394,6 +2413,7 @@ nl_gettimeofday(lua_State *L) {
   lua_pushinteger(L, now.tv_usec);
   return 2;
 }
+/*! \lua mtev.uuid() */
 static int
 nl_uuid(lua_State *L) {
   uuid_t out;
@@ -2403,6 +2423,7 @@ nl_uuid(lua_State *L) {
   lua_pushstring(L, uuid_str);
   return 1;
 }
+/*! \lua mtev.socket_internal() */
 static int
 nl_socket_internal(lua_State *L, int family, int proto) {
   struct nl_slcl *cl;
@@ -2439,6 +2460,7 @@ nl_socket_internal(lua_State *L, int family, int proto) {
   mtev_lua_register_event(ci, e);
   return 1;
 }
+/*! \lua mtev.socket() */
 static int
 nl_socket(lua_State *L) {
   int n = lua_gettop(L);
@@ -2475,6 +2497,7 @@ struct gunzip_crutch {
   z_stream *stream;
   void *scratch_buffer;
 };
+/*! \lua mtev.gunzip_deflate() */
 static int
 nl_gunzip_deflate(lua_State *L) {
   struct gunzip_crutch *crutch;
@@ -2594,6 +2617,7 @@ nl_gunzip_deflate(lua_State *L) {
   lua_pushnil(L);
   return 1;
 }
+/*! \lua mtev.gunzip() */
 static int
 nl_gunzip(lua_State *L) {
   struct gunzip_crutch *crutch;
@@ -2710,7 +2734,7 @@ mtev_lua_pcre_match(lua_State *L) {
     `options` is an option table with the optional fields `limit`
     (`PCRE_CONFIG_MATCH_LIMIT`) and `limit_recurse` (`PCRE_CONFIG_MATCH_LIMIT_RECURSION`).
     See the pcreapi man page for more details.
- */
+*/
 static int
 nl_pcre(lua_State *L) {
   pcre *re;
@@ -2753,7 +2777,7 @@ mtev_lua_pcre_gc(lua_State *L) {
   if(*endp == '/') *endp = '\0'; \
   element = endp + 1; \
 } while(0)
-
+/*! \lua mtev.conf_get_string() */
 static int
 nl_conf_get_string(lua_State *L) {
   char *val;
@@ -2782,6 +2806,7 @@ nl_conf_get_string(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
+/*! \lua mtev.conf_get_string_list() */
 static int
 nl_conf_get_string_list(lua_State *L) {
   char *val;
@@ -2814,6 +2839,7 @@ nl_conf_get_string_list(lua_State *L) {
 
   return 1;
 }
+/*! \lua mtev.conf_get_integer() */
 static int
 nl_conf_get_integer(lua_State *L) {
   int32_t val;
@@ -2841,6 +2867,7 @@ nl_conf_get_integer(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
+/*! \lua mtev.conf_get_boolean() */
 static int
 nl_conf_get_boolean(lua_State *L) {
   mtev_boolean val;
@@ -2868,6 +2895,7 @@ nl_conf_get_boolean(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
+/*! \lua mtev.conf_get_float() */
 static int
 nl_conf_get_float(lua_State *L) {
   float val;
@@ -2895,6 +2923,7 @@ nl_conf_get_float(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
+/*! \lua mtev.conf_replace_value() */
 static int
 nl_conf_replace_value(lua_State *L) {
   const char *path = lua_tostring(L,1);
@@ -2918,6 +2947,7 @@ nl_conf_replace_value(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
+/*! \lua mtev.conf_replace_boolean() */
 static int
 nl_conf_replace_boolean(lua_State *L) {
   const char *path = lua_tostring(L,1);
@@ -3204,6 +3234,7 @@ mtev_xmlnode_index_func(lua_State *L) {
   luaL_error(L, "mtev.xmlnode no such element: %s", k);
   return 0;
 }
+/*! \lua mtev.parsexml() */
 static int
 nl_parsexml(lua_State *L) {
   xmlDocPtr *docptr, doc;
@@ -3352,6 +3383,7 @@ mtev_json_object_to_luatype(lua_State *L, mtev_json_object *o) {
   }
   return 1;
 }
+
 /*! \lua obj = mtev.json:document()
     \brief return a lua prepresentation of an `mtev.json` object
     \return a lua object (usually a table)
@@ -3477,9 +3509,12 @@ nl_tojson(lua_State *L) {
   return 1;
 }
 
-// Removes wrapping around mtev_json_object structure, and leaves a
-// mtev_json_object* on the lua stack, so other C functions can make
-// use of it.
+/* \lua mtev.json:unrwap()
+   \brief Removes wrapping around mtev_json_object structure, and leaves a
+   mtev_json_object* on the lua stack, so other C functions can make
+   use of it.
+   \return mtev_json_object
+*/
 static int
 mtev_lua_json_unwrap(lua_State *L){
   json_crutch **docptr;
@@ -3496,6 +3531,7 @@ mtev_lua_json_unwrap(lua_State *L){
   return 1;
 }
 
+/*! \lua mtev.parsejson() */
 static int
 nl_parsejson(lua_State *L) {
   json_crutch **docptr, *doc;
@@ -3716,6 +3752,7 @@ int nl_spawn(lua_State *L) {
   return 2;
 }
 
+/*! \lua mtev.thread_self() */
 static int
 nl_thread_self(lua_State *L) {
   lua_module_closure_t *lmc;
@@ -3728,6 +3765,7 @@ nl_thread_self(lua_State *L) {
   return 2;
 }
 
+/*! \lua mtev.eventer_loop_concurrency() */
 static int
 nl_eventer_loop_concurrency(lua_State *L) {
   lua_pushinteger(L, eventer_loop_concurrency());
@@ -3820,6 +3858,7 @@ mtev_lua_push_cluster_details(lua_State *L, mtev_cluster_t *cluster, mtev_cluste
   lua_settable(L, -3);
 }
 
+/* \lua mtev.cluster_details() */
 static int
 nl_cluster_details(lua_State *L) {
   int n;
@@ -3851,6 +3890,7 @@ nl_cluster_details(lua_State *L) {
   return 1;
 }
 
+/* \lua mtev.cluster_get_self() */
 static int
 nl_cluster_get_self(lua_State *L) {
   static uuid_t my_cluster_id;
@@ -4230,7 +4270,6 @@ mtev_lua_deserialize(lua_State *L, const lua_data_t *data){
       lua_pushboolean(L, data->value.boolean);
       break;
     case(LUA_TTABLE):
-      //
       mtev_lua_deserialize_table(L, data->value.table);
       break;
     case(LUA_TNIL): // we already returned NULL
@@ -4238,7 +4277,7 @@ mtev_lua_deserialize(lua_State *L, const lua_data_t *data){
       mtevL(nlerr, "Cannot deserialize unsupported lua type %d\n", data->lua_type);
   }
 }
-
+/* \lua mtev.shared_set() */
 static int
 nl_shared_set(lua_State *L) {
   void* vdata;
@@ -4267,7 +4306,7 @@ nl_shared_set(lua_State *L) {
 
   return 0;
 }
-
+/* \lua mte.shared_get() */
 static int
 nl_shared_get(lua_State *L) {
   lua_data_t *data;
@@ -4287,6 +4326,7 @@ nl_shared_get(lua_State *L) {
   return 1;
 }
 
+/* \lua mtev.cancel_coro() */
 static int
 nl_cancel_coro(lua_State *L) {
   mtev_lua_resume_info_t *ci;
