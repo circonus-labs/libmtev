@@ -87,7 +87,7 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
     $("#modal-histogram").empty();
     mtev.hist.render("#modal-histogram", d);
   }
-  function $hist_button(name, stats, subname) {
+  mtev.$hist_button = function(name, stats, subname) {
     if(!Array.isArray(name)) {
       name = [name];
     }
@@ -129,13 +129,13 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
     $cb = $("<small/>").text(parseFloat(detail.avg_wait_ms).toFixed(3) + "ms");
     var $perf, $td;
     $td = $("<td class=\"text-right\"/>");
-    $perf = $hist_button(jobq, mtev.stats.eventer.jobq, "wait");
+    $perf = mtev.$hist_button(jobq, mtev.stats.eventer.jobq, "wait");
     if($perf) $td.append($perf);
     $td.append($cb);
     $tr.append($td);
     $tr.append($("<td class=\"text-left\"/>").append($badge(detail.backlog)));
     $cb = $("<small/>").text(parseFloat(detail.avg_run_ms).toFixed(3) + "ms");
-    $perf = $hist_button(jobq, mtev.stats.eventer.jobq, "latency");
+    $perf = mtev.$hist_button(jobq, mtev.stats.eventer.jobq, "latency");
     $td = $("<td class=\"text-right\"/>");
     if($perf) $td.append($perf);
     $td.append($cb);
@@ -146,7 +146,7 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
   function mk_timer_row(event) {
     var $tr = $("<tr/>");
     var $cb = $("<span/>").text(event.callback);
-    var $perf = $hist_button(event.callback, mtev.stats.eventer.callbacks);
+    var $perf = mtev.$hist_button(event.callback, mtev.stats.eventer.callbacks);
     var $td = $("<td/>");
     if ($perf !== null) { $td.append($perf); }
     $td.append($cb)
@@ -163,7 +163,7 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
     $tr.append($("<td/>").html(event.fd + "&nbsp").append($badge(mask.join("|")).addClass('pull-right')));
     $tr.append($("<td/>").html('<small>'+event.impl+'</small>'));
     var $cb = $("<span/>").text(event.callback);
-    var $perf = $hist_button(event.callback, mtev.stats.eventer.callbacks);
+    var $perf = mtev.$hist_button(event.callback, mtev.stats.eventer.callbacks);
     var $td = $("<td/>");
     if ($perf !== null) { $td.append($perf); }
     $td.append($cb)
@@ -242,7 +242,7 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
       $item.find("span.stat-value").text(ptr._value);
     }
     else {
-      $item.find("span.stat-value").empty().append($hist_button(path.slice(), obj));
+      $item.find("span.stat-value").empty().append(mtev.$hist_button(path.slice(), obj));
     }
     if(added) {
       var appended = false;
