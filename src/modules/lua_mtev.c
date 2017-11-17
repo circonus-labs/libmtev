@@ -1659,6 +1659,10 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
   return 0;
 }
 
+/*! \lua slept = mtev.sleep(duration_s)
+  \param duration_s the number of sections to sleep
+  \return the number of sections slept.
+*/
 static int
 nl_sleep(lua_State *L) {
   mtev_lua_resume_info_t *ci;
@@ -1899,6 +1903,11 @@ nl_readdir(lua_State *L) {
 
   return 1;
 }
+/*! \lua path = mtev.realpath(inpath)
+  \brief Return the real path of a relative path.
+  \param inpath a relative path as a string
+  \return The non-relative path inpath refers to (or nil on error).
+*/
 static int
 nl_realpath(lua_State *L) {
   char path[PATH_MAX], *rpath;
@@ -1937,6 +1946,15 @@ nl_log_up(lua_State *L) {
   lua_pop(L, 1); /* "string" table */
   return 0;
 }
+/*! \lua len = mtev.print(format, ...)
+  \param format a format string see printf(3c)
+  \param ... arguments to be used within the specified format
+  \return the number of bytes written
+
+  This function is effectively the `mtev.log` function with the first argument
+  set to "error".  It is also aliased into the global `print` symbol such that
+  one cannot accidentally call the print builtin.
+*/
 static int
 nl_print(lua_State *L) {
   int n = lua_gettop(L);
@@ -1962,6 +1980,13 @@ nl_print(lua_State *L) {
   lua_call(L, n, 0);
   return 0;
 }
+/*! \lua len = mtev.log(facility, format, ...)
+  \brief write message into the libmtev logging system
+  \param facility the name of the mtev_log_stream (e.g. "error")
+  \param format a format string see printf(3c)
+  \param ... arguments to be used within the specified format
+  \return the number of bytes written
+*/
 static int
 nl_log(lua_State *L) {
   int n = lua_gettop(L);
@@ -1972,6 +1997,11 @@ nl_log(lua_State *L) {
   lua_call(L, n-1, 0);
   return 0;
 }
+/*! \lua mtev.enable_log(facility, flags = true)
+  \brief Enable or disable a log facility by name.
+  \param facility the name of the mtev_log_stream (e.g. "debug")
+  \param flags true enables, false disables
+*/
 static int
 nl_enable_log(lua_State *L) {
   int n = lua_gettop(L);
@@ -2308,6 +2338,10 @@ nl_sha1(lua_State *L) {
   lua_pushlstring(L, (char *)sha1, sizeof(sha1));
   return 1;
 }
+/*! \lua digest_hex = mtev.sha256_hex(s)
+  \param s a string
+  \return the SHA256 digest of the input string, encoded in hexadecimal format
+*/
 static int
 nl_sha256_hex(lua_State *L) {
   int i;
@@ -2330,6 +2364,10 @@ nl_sha256_hex(lua_State *L) {
   lua_pushstring(L, sha256_hex);
   return 1;
 }
+/*! \lua digest = mtev.sha256(s)
+  \param s a string
+  \return the SHA256 digest of the input string
+*/
 static int
 nl_sha256(lua_State *L) {
   SHA256_CTX ctx;
@@ -2345,6 +2383,9 @@ nl_sha256(lua_State *L) {
   lua_pushlstring(L, (char *)sha256, sizeof(sha256));
   return 1;
 }
+/*! \lua sec, usec = mtev.gettimeofday()
+  \return the seconds and microseconds since epoch (1970 UTC)
+*/
 static int
 nl_gettimeofday(lua_State *L) {
   struct timeval now;
@@ -2650,6 +2691,26 @@ mtev_lua_pcre_match(lua_State *L) {
   pgi->offset += ovector[1]; /* endof the overall match */
   return cnt+1;
 }
+
+/*! \lua matcher = mtev.pcre(pcre_expression)
+    \param pcre_expression a perl compatible regular expression
+    \return a matcher function `rv, m, ... = matcher(subject, options)`
+
+    A compiled pcre matcher function takes a string subject as the first
+    argument and optional options as second argument.
+
+    The matcher will return first whether there was a match (true/false).
+    If true, the next return value will be to entire scope of the match
+    followed by any capture subexpressions.  If the same subject variable
+    is supplied, subsequent calls will act on the remainder of the subject
+    past previous matches (allowing for global search emulation).  If the
+    subject changes, the match starting location is reset to the beginning.
+    The caller can force a reset by calling `matcher(nil)`.
+
+    `options` is an option table with the optional fields `limit`
+    (`PCRE_CONFIG_MATCH_LIMIT`) and `limit_recurse` (`PCRE_CONFIG_MATCH_LIMIT_RECURSION`).
+    See the pcreapi man page for more details.
+ */
 static int
 nl_pcre(lua_State *L) {
   pcre *re;
@@ -3386,7 +3447,17 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx, int limit) {
   }
   return NULL;
 }
+/*! \lua jsonobj = mtev.tojson(obj, maxdepth = -1)
+  \brief Convert a lua object into a json doucument.
+  \param obj a lua object (usually a table).
+  \param maxdepth if specified limits the recursion.
+  \return an mtev.json object.
 
+  This converts a lua object, ignoring types that do not have JSON
+  counterparts (like userdata, lightuserdata, functions, threads, etc.).
+  The return is an `mtev.json` object not a string. You must invoke
+  the `tostring` method to convert it to a simple string.
+*/
 static int
 nl_tojson(lua_State *L) {
   json_crutch **docptr, *doc;
@@ -3508,6 +3579,16 @@ struct spawn_info {
   eventer_t err;
 };
 
+/*! \lua mtev.process = mtev.spawn(path, argv, env)
+  \brief Spawn a subprocess.
+  \param path the path to the executable to spawn
+  \param argv an array of arguments (first argument is the process name)
+  \param env an optional array of "K=V" strings.
+  \return an object with the mtev.process metatable set.
+
+  This function spawns a new subprocess running the binary specified as
+  the first argument.
+*/
 int nl_spawn(lua_State *L) {
   int in[2] = {-1,-1}, out[2] = {-1,-1}, err[2] = {-1,-1};
   int arg_count = 0, rv;
@@ -4253,55 +4334,13 @@ static const luaL_Reg mtevlib[] = {
   { "waitfor", nl_waitfor },
   { "notify", nl_waitfor_notify },
   { "sleep", nl_sleep },
-/*! \lua slept = mtev.sleep(duration_s)
-    \param duration_s the number of sections to sleep
-    \return the number of sections slept.
-*/
-
   { "gettimeofday", nl_gettimeofday },
-/*! \lua sec, usec = mtev.gettimeofday()
-    \return the seconds and microseconds since epoch (1970 UTC)
-*/
-
   { "uuid", nl_uuid },
   { "socket", nl_socket },
   { "dns", nl_dns_lookup },
-/*! \lua mtev.dns = mtev.dns(nameserver = nil)
-    \brief Create an `mtev.dns` object for DNS lookups.
-    \param nameserver an optional argument specifying the nameserver to use.
-    \return an `mtev.dns` object.
-
-    This function creates an `mtev.dns` object that can be used to perform
-    lookups and IP address validation.
-*/
-
   { "log", nl_log },
-/*! \lua len = mtev.log(facility, format, ...)
-    \brief write message into the libmtev logging system
-    \param facility the name of the mtev_log_stream (e.g. "error")
-    \param format a format string see printf(3c)
-    \param ... arguments to be used within the specified format
-    \return the number of bytes written
-*/
-
   { "enable_log", nl_enable_log },
-/*! \lua mtev.enable_log(facility, flags = true)
-    \brief Enable or disable a log facility by name.
-    \param facility the name of the mtev_log_stream (e.g. "debug")
-    \param flags true enables, false disables
-*/
-
   { "print", nl_print },
-/*! \lua len = mtev.print(format, ...)
-    \param format a format string see printf(3c)
-    \param ... arguments to be used within the specified format
-    \return the number of bytes written
-
-    This function is effectively the `mtev.log` function with the first argument
-    set to "error".  It is also aliased into the global `print` symbol such that
-    one cannot accidentally call the print builtin.
-*/
-
   { "unlink", nl_unlink },
   { "rmdir", nl_rmdir },
   { "mkdir", nl_mkdir },
@@ -4314,12 +4353,6 @@ static const luaL_Reg mtevlib[] = {
   { "stat", nl_stat },
   { "readdir", nl_readdir },
   { "realpath", nl_realpath },
-/*! \lua path = mtev.realpath(inpath)
-    \brief Return the real path of a relative path.
-    \param inpath a relative path as a string
-    \return The non-relative path inpath refers to (or nil on error).
-*/
-
   { "getuid", nl_getuid },
   { "getgid", nl_getgid },
   { "geteuid", nl_geteuid },
@@ -4336,53 +4369,21 @@ static const luaL_Reg mtevlib[] = {
   { "utf8tohtml", nl_utf8tohtml },
   { "hmac_sha1_encode", nl_hmac_sha1_encode },
   { "hmac_sha256_encode", nl_hmac_sha256_encode },
-
-/*! \lua digest_hex = mtev.sha256_hash(s)
+  /*! \lua digest_hex = mtev.sha256_hash(s)
     \param s a string
     \return the SHA256 digest of the input string, encoded in hexadecimal format
 
     **DEPRECATED**
 
     Use sha256_hex instead.
-*/
+  */
   { "sha256_hash", nl_sha256_hex},
   { "md5_hex", nl_md5_hex },
   { "md5", nl_md5 },
   { "sha1_hex", nl_sha1_hex },
   { "sha1", nl_sha1 },
-
-/*! \lua digest_hex = mtev.sha256_hex(s)
-    \param s a string
-    \return the SHA256 digest of the input string, encoded in hexadecimal format
-*/
   { "sha256_hex", nl_sha256_hex },
-
-
-/*! \lua digest = mtev.sha256(s)
-    \param s a string
-    \return the SHA256 digest of the input string
-*/
   { "sha256", nl_sha256 },
-
-/*! \lua matcher = mtev.pcre(pcre_expression)
-    \param pcre_expression a perl compatible regular expression
-    \return a matcher function `rv, m, ... = matcher(subject, options)`
-
-    A compiled pcre matcher function takes a string subject as the first
-    argument and optional options as second argument.
-
-    The matcher will return first whether there was a match (true/false).
-    If true, the next return value will be to entire scope of the match
-    followed by any capture subexpressions.  If the same subject variable
-    is supplied, subsequent calls will act on the remainder of the subject
-    past previous matches (allowing for global search emulation).  If the
-    subject changes, the match starting location is reset to the beginning.
-    The caller can force a reset by calling `matcher(nil)`.
-
-    `options` is an option table with the optional fields `limit`
-    (`PCRE_CONFIG_MATCH_LIMIT`) and `limit_recurse` (`PCRE_CONFIG_MATCH_LIMIT_RECURSION`).
-    See the pcreapi man page for more details.
- */
   { "pcre", nl_pcre },
   { "gunzip", nl_gunzip },
   { "conf", nl_conf_get_string },
@@ -4415,28 +4416,6 @@ static const luaL_Reg mtevlib[] = {
 */
 
   { "tojson", nl_tojson },
-/*! \lua jsonobj = mtev.tojson(obj, maxdepth = -1)
-    \brief Convert a lua object into a json doucument.
-    \param obj a lua object (usually a table).
-    \param maxdepth if specified limits the recursion.
-    \return an mtev.json object.
-
-    This converts a lua object, ignoring types that do not have JSON
-    counterparts (like userdata, lightuserdata, functions, threads, etc.).
-    The return is an `mtev.json` object not a string. You must invoke
-    the `tostring` method to convert it to a simple string.
-*/
-
-/*! \lua mtev.process = mtev.spawn(path, argv, env)
-    \brief Spawn a subprocess.
-    \param path the path to the executable to spawn
-    \param argv an array of arguments (first argument is the process name)
-    \param env an optional array of "K=V" strings.
-    \return an object with the mtev.process metatable set.
-
-    This function spawns a new subprocess running the binary specified as
-    the first argument.
-*/
   { "spawn", nl_spawn },
   { "thread_self", nl_thread_self },
   { "eventer_loop_concurrency", nl_eventer_loop_concurrency },

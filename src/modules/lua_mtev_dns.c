@@ -200,7 +200,14 @@ void lookup_ctx_release(dns_lookup_ctx_t *v) {
     free(v);
   }
 }
+/*! \lua mtev.dns = mtev.dns(nameserver = nil)
+  \brief Create an `mtev.dns` object for DNS lookups.
+  \param nameserver an optional argument specifying the nameserver to use.
+  \return an `mtev.dns` object.
 
+  This function creates an `mtev.dns` object that can be used to perform
+  lookups and IP address validation.
+*/
 int nl_dns_lookup(lua_State *L) {
   dns_lookup_ctx_t *dlc, **holder;
   const char *nameserver = NULL;
