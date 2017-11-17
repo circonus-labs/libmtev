@@ -134,6 +134,7 @@ mtev_lua_push_timeval(lua_State *L, struct timeval time) {
   lua_pushinteger(L, time.tv_usec);
   lua_call(L, 2, 1);
 }
+/*! \lua mtev.extended_free() */
 static void
 nl_extended_free(void *vcl) {
   struct nl_slcl *cl = vcl;
@@ -2867,7 +2868,8 @@ nl_conf_get_integer(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
-/*! \lua mtev.conf_get_boolean() */
+/*! \lua mtev.conf_get_boolean()
+*/
 static int
 nl_conf_get_boolean(lua_State *L) {
   mtev_boolean val;
@@ -3509,7 +3511,7 @@ nl_tojson(lua_State *L) {
   return 1;
 }
 
-/* \lua mtev.json:unrwap()
+/*! \lua mtev.json:unrwap()
    \brief Removes wrapping around mtev_json_object structure, and leaves a
    mtev_json_object* on the lua stack, so other C functions can make
    use of it.
@@ -3858,7 +3860,7 @@ mtev_lua_push_cluster_details(lua_State *L, mtev_cluster_t *cluster, mtev_cluste
   lua_settable(L, -3);
 }
 
-/* \lua mtev.cluster_details() */
+/*! \lua mtev.cluster_details() */
 static int
 nl_cluster_details(lua_State *L) {
   int n;
@@ -3890,7 +3892,7 @@ nl_cluster_details(lua_State *L) {
   return 1;
 }
 
-/* \lua mtev.cluster_get_self() */
+/*! \lua mtev.cluster_get_self() */
 static int
 nl_cluster_get_self(lua_State *L) {
   static uuid_t my_cluster_id;
@@ -4277,7 +4279,7 @@ mtev_lua_deserialize(lua_State *L, const lua_data_t *data){
       mtevL(nlerr, "Cannot deserialize unsupported lua type %d\n", data->lua_type);
   }
 }
-/* \lua mtev.shared_set() */
+/*! \lua mtev.shared_set() */
 static int
 nl_shared_set(lua_State *L) {
   void* vdata;
@@ -4306,7 +4308,8 @@ nl_shared_set(lua_State *L) {
 
   return 0;
 }
-/* \lua mte.shared_get() */
+/*! \lua mtev.shared_get()
+*/
 static int
 nl_shared_get(lua_State *L) {
   lua_data_t *data;
@@ -4326,7 +4329,7 @@ nl_shared_get(lua_State *L) {
   return 1;
 }
 
-/* \lua mtev.cancel_coro() */
+/*! \lua mtev.cancel_coro() */
 static int
 nl_cancel_coro(lua_State *L) {
   mtev_lua_resume_info_t *ci;
