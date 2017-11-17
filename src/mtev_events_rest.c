@@ -220,8 +220,10 @@ mtev_rest_eventer_logs(mtev_http_rest_closure_t *restc, int n, char **p) {
 
   mtevAssert(n==1);
   ls = mtev_log_stream_find(p[0]);
-  if(!ls || strcmp(mtev_log_stream_get_type(ls),"memory"))
-    goto not_found;
+  if(!ls) goto not_found;
+  const char *ls_type = mtev_log_stream_get_type(ls);
+  if(!ls_type) goto not_found;
+  if(strcmp(ls_type,"memory")) goto not_found;
 
   doc = MJ_ARR();
   if(endptr != since_s)
