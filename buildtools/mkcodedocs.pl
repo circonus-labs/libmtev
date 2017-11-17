@@ -37,7 +37,9 @@ sub fn_format {
   $lang = "c" if ($type eq 'var');
   $lang = "lua" if ($type eq 'lua');
 
-  my $form = "```$lang\n$ret\n$fn";
+  my $form = "```$lang\n";
+  $form .= "$ret\n" if($ret);
+  $form .= "$fn";
   while(scalar(@p) > 0) {
     if((length($seg) + 2 + length($p[0])) < $MAXLINE) {
       if(length($seg)) { $seg = "$seg, $p[0]"; }
@@ -56,7 +58,6 @@ sub fn_format {
   }
   if(length($seg)) { $form .= "$lead$seg\n"; }
   $form .= "```\n";
-
   return $form;
 }
 sub format_md {
