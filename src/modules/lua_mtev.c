@@ -134,7 +134,8 @@ mtev_lua_push_timeval(lua_State *L, struct timeval time) {
   lua_pushinteger(L, time.tv_usec);
   lua_call(L, 2, 1);
 }
-/*! \lua mtev.extended_free() */
+/*! \lua mtev.extended_free()
+*/
 static void
 nl_extended_free(void *vcl) {
   struct nl_slcl *cl = vcl;
@@ -1661,8 +1662,8 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
 }
 
 /*! \lua slept = mtev.sleep(duration_s)
-  \param duration_s the number of sections to sleep
-  \return the number of sections slept.
+\param duration_s the number of sections to sleep
+\return the number of sections slept.
 */
 static int
 nl_sleep(lua_State *L) {
@@ -1805,7 +1806,8 @@ nl_close(lua_State *L) {
   return 0;
 }
 
-/* \lua mtev.chmod() */
+/* \lua mtev.chmod()
+*/
 static int
 nl_chmod(lua_State *L) {
   int rv;
@@ -1818,7 +1820,8 @@ nl_chmod(lua_State *L) {
   return 2;
 }
 
-/* \lua mtev.stat() */
+/* \lua mtev.stat()
+*/
 static int
 nl_stat(lua_State *L) {
   struct stat st;
@@ -1853,7 +1856,8 @@ nl_stat(lua_State *L) {
   return 1;
 }
 
-/* \lua mtev.readdir() */
+/* \lua mtev.readdir()
+*/
 static int
 nl_readdir(lua_State *L) {
   const char *path;
@@ -1908,9 +1912,9 @@ nl_readdir(lua_State *L) {
   return 1;
 }
 /*! \lua path = mtev.realpath(inpath)
-  \brief Return the real path of a relative path.
-  \param inpath a relative path as a string
-  \return The non-relative path inpath refers to (or nil on error).
+\brief Return the real path of a relative path.
+\param inpath a relative path as a string
+\return The non-relative path inpath refers to (or nil on error).
 */
 static int
 nl_realpath(lua_State *L) {
@@ -1922,7 +1926,8 @@ nl_realpath(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
-/* \lua mtev.log_up() */
+/* \lua mtev.log_up()
+*/
 static int
 nl_log_up(lua_State *L) {
   int i, n;
@@ -1952,13 +1957,13 @@ nl_log_up(lua_State *L) {
   return 0;
 }
 /*! \lua len = mtev.print(format, ...)
-  \param format a format string see printf(3c)
-  \param ... arguments to be used within the specified format
-  \return the number of bytes written
+\param format a format string see printf(3c)
+\param ... arguments to be used within the specified format
+\return the number of bytes written
 
-  This function is effectively the `mtev.log` function with the first argument
-  set to "error".  It is also aliased into the global `print` symbol such that
-  one cannot accidentally call the print builtin.
+This function is effectively the `mtev.log` function with the first argument
+set to "error".  It is also aliased into the global `print` symbol such that
+one cannot accidentally call the print builtin.
 */
 static int
 nl_print(lua_State *L) {
@@ -1986,11 +1991,11 @@ nl_print(lua_State *L) {
   return 0;
 }
 /*! \lua len = mtev.log(facility, format, ...)
-  \brief write message into the libmtev logging system
-  \param facility the name of the mtev_log_stream (e.g. "error")
-  \param format a format string see printf(3c)
-  \param ... arguments to be used within the specified format
-  \return the number of bytes written
+\brief write message into the libmtev logging system
+\param facility the name of the mtev_log_stream (e.g. "error")
+\param format a format string see printf(3c)
+\param ... arguments to be used within the specified format
+\return the number of bytes written
 */
 static int
 nl_log(lua_State *L) {
@@ -2003,11 +2008,10 @@ nl_log(lua_State *L) {
   return 0;
 }
 /*! \lua mtev.enable_log(facility, flags = true)
-  \brief Enable or disable a log facility by name.
-  \param facility the name of the mtev_log_stream (e.g. "debug")
-  \param flags true enables, false disables
+\brief Enable or disable a log facility by name.
+\param facility the name of the mtev_log_stream (e.g. "debug")
+\param flags true enables, false disables
 */
-/* \lua mtev.enable_log() */
 static int
 nl_enable_log(lua_State *L) {
   int n = lua_gettop(L);
@@ -2025,7 +2029,8 @@ nl_enable_log(lua_State *L) {
   }
   return 0;
 }
-/* \lua mtev.lockfile_acquire() */
+/* \lua mtev.lockfile_acquire()
+*/
 static int
 nl_lockfile_acquire(lua_State *L) {
   mtev_lockfile_t val = -1;
@@ -2037,7 +2042,8 @@ nl_lockfile_acquire(lua_State *L) {
   lua_pushinteger(L, val);
   return 1;
 }
-/* \lua mtev.lockfile_release() */
+/* \lua mtev.lockfile_release()
+*/
 static int
 nl_lockfile_release(lua_State *L) {
   int rv;
@@ -2047,7 +2053,8 @@ nl_lockfile_release(lua_State *L) {
   lua_pushinteger(L, rv);
   return 1;
 }
-/* \lua mtev.crc32() */
+/* \lua mtev.crc32()
+*/
 static int
 nl_crc32(lua_State *L) {
   size_t inlen;
@@ -2062,7 +2069,8 @@ nl_crc32(lua_State *L) {
   lua_pushnumber(L, (double)crc32(start, (Bytef *)input, inlen));
   return 1;
 }
-/* \lua mtev.base32_decode() */
+/* \lua mtev.base32_decode()
+*/
 static int
 nl_base32_decode(lua_State *L) {
   size_t inlen, decoded_len;
@@ -2086,7 +2094,8 @@ nl_base32_decode(lua_State *L) {
   if(needs_free) free(decoded);
   return 1;
 }
-/* \lua mtev.base32_encode() */
+/* \lua mtev.base32_encode()
+*/
 static int
 nl_base32_encode(lua_State *L) {
   size_t inlen, encoded_len;
@@ -2111,7 +2120,8 @@ nl_base32_encode(lua_State *L) {
   if(needs_free) free(encoded);
   return 1;
 }
-/*! \lua mtev.base64_decode() */
+/*! \lua mtev.base64_decode()
+*/
 static int
 nl_base64_decode(lua_State *L) {
   size_t inlen, decoded_len;
@@ -2135,7 +2145,8 @@ nl_base64_decode(lua_State *L) {
   if(needs_free) free(decoded);
   return 1;
 }
-/*! \lua mtev.base64_encode() */
+/*! \lua mtev.base64_encode()
+*/
 static int
 nl_base64_encode(lua_State *L) {
   size_t inlen, encoded_len;
@@ -2160,7 +2171,8 @@ nl_base64_encode(lua_State *L) {
   if(needs_free) free(encoded);
   return 1;
 }
-/*! \lua mtev.utf8tohtml() */
+/*! \lua mtev.utf8tohtml()
+*/
 static int
 nl_utf8tohtml(lua_State *L) {
   int in_idx = 1, tags_idx = 2;
@@ -2233,7 +2245,8 @@ nl_utf8tohtml(lua_State *L) {
   luaL_error(L, "utf8tohtml failure");
   return 0;
 }
-/*! \lua mtev.hmac_sha1_encode() */
+/*! \lua mtev.hmac_sha1_encode()
+*/
 static int
 nl_hmac_sha1_encode(lua_State *L) {
   size_t messagelen, keylen, encoded_len;
@@ -2255,7 +2268,8 @@ nl_hmac_sha1_encode(lua_State *L) {
 
   return 1;
 }
-/*! \lua mtev.hmac_sha256_encode() */
+/*! \lua mtev.hmac_sha256_encode()
+*/
 static int
 nl_hmac_sha256_encode(lua_State *L) {
   size_t messagelen, keylen, encoded_len;
@@ -2278,7 +2292,8 @@ nl_hmac_sha256_encode(lua_State *L) {
   return 1;
 }
 
-/*! \lua mtev.md5_hex() */
+/*! \lua mtev.md5_hex()
+*/
 static const char _hexchars[16] =
   {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 static int
@@ -2303,7 +2318,8 @@ nl_md5_hex(lua_State *L) {
   lua_pushstring(L, md5_hex);
   return 1;
 }
-/*! \lua mtev.md5() */
+/*! \lua mtev.md5()
+*/
 static int
 nl_md5(lua_State *L) {
   MD5_CTX ctx;
@@ -2319,7 +2335,8 @@ nl_md5(lua_State *L) {
   lua_pushlstring(L, (char *)md5, sizeof(md5));
   return 1;
 }
-/*! \lua mtev.sha1_hex() */
+/*! \lua mtev.sha1_hex()
+*/
 static int
 nl_sha1_hex(lua_State *L) {
   int i;
@@ -2342,7 +2359,8 @@ nl_sha1_hex(lua_State *L) {
   lua_pushstring(L, sha1_hex);
   return 1;
 }
-/*! \lua mtev.sha1() */
+/*! \lua mtev.sha1()
+*/
 static int
 nl_sha1(lua_State *L) {
   SHA_CTX ctx;
@@ -2359,8 +2377,8 @@ nl_sha1(lua_State *L) {
   return 1;
 }
 /*! \lua digest_hex = mtev.sha256_hex(s)
-  \param s a string
-  \return the SHA256 digest of the input string, encoded in hexadecimal format
+\param s a string
+\return the SHA256 digest of the input string, encoded in hexadecimal format
 */
 static int
 nl_sha256_hex(lua_State *L) {
@@ -2385,8 +2403,8 @@ nl_sha256_hex(lua_State *L) {
   return 1;
 }
 /*! \lua digest = mtev.sha256(s)
-  \param s a string
-  \return the SHA256 digest of the input string
+\param s a string
+\return the SHA256 digest of the input string
 */
 static int
 nl_sha256(lua_State *L) {
@@ -2404,7 +2422,7 @@ nl_sha256(lua_State *L) {
   return 1;
 }
 /*! \lua sec, usec = mtev.gettimeofday()
-  \return the seconds and microseconds since epoch (1970 UTC)
+\return the seconds and microseconds since epoch (1970 UTC)
 */
 static int
 nl_gettimeofday(lua_State *L) {
@@ -2414,7 +2432,8 @@ nl_gettimeofday(lua_State *L) {
   lua_pushinteger(L, now.tv_usec);
   return 2;
 }
-/*! \lua mtev.uuid() */
+/*! \lua mtev.uuid()
+*/
 static int
 nl_uuid(lua_State *L) {
   uuid_t out;
@@ -2424,7 +2443,8 @@ nl_uuid(lua_State *L) {
   lua_pushstring(L, uuid_str);
   return 1;
 }
-/*! \lua mtev.socket_internal() */
+/*! \lua mtev.socket_internal()
+*/
 static int
 nl_socket_internal(lua_State *L, int family, int proto) {
   struct nl_slcl *cl;
@@ -2461,7 +2481,8 @@ nl_socket_internal(lua_State *L, int family, int proto) {
   mtev_lua_register_event(ci, e);
   return 1;
 }
-/*! \lua mtev.socket() */
+/*! \lua mtev.socket()
+*/
 static int
 nl_socket(lua_State *L) {
   int n = lua_gettop(L);
@@ -2498,7 +2519,8 @@ struct gunzip_crutch {
   z_stream *stream;
   void *scratch_buffer;
 };
-/*! \lua mtev.gunzip_deflate() */
+/*! \lua mtev.gunzip_deflate()
+*/
 static int
 nl_gunzip_deflate(lua_State *L) {
   struct gunzip_crutch *crutch;
@@ -2618,7 +2640,8 @@ nl_gunzip_deflate(lua_State *L) {
   lua_pushnil(L);
   return 1;
 }
-/*! \lua mtev.gunzip() */
+/*! \lua mtev.gunzip()
+*/
 static int
 nl_gunzip(lua_State *L) {
   struct gunzip_crutch *crutch;
@@ -2718,23 +2741,23 @@ mtev_lua_pcre_match(lua_State *L) {
 }
 
 /*! \lua matcher = mtev.pcre(pcre_expression)
-    \param pcre_expression a perl compatible regular expression
-    \return a matcher function `rv, m, ... = matcher(subject, options)`
+\param pcre_expression a perl compatible regular expression
+\return a matcher function `rv, m, ... = matcher(subject, options)`
 
-    A compiled pcre matcher function takes a string subject as the first
-    argument and optional options as second argument.
+A compiled pcre matcher function takes a string subject as the first
+argument and optional options as second argument.
 
-    The matcher will return first whether there was a match (true/false).
-    If true, the next return value will be to entire scope of the match
-    followed by any capture subexpressions.  If the same subject variable
-    is supplied, subsequent calls will act on the remainder of the subject
-    past previous matches (allowing for global search emulation).  If the
-    subject changes, the match starting location is reset to the beginning.
-    The caller can force a reset by calling `matcher(nil)`.
+The matcher will return first whether there was a match (true/false).
+If true, the next return value will be to entire scope of the match
+followed by any capture subexpressions.  If the same subject variable
+is supplied, subsequent calls will act on the remainder of the subject
+past previous matches (allowing for global search emulation).  If the
+subject changes, the match starting location is reset to the beginning.
+The caller can force a reset by calling `matcher(nil)`.
 
-    `options` is an option table with the optional fields `limit`
-    (`PCRE_CONFIG_MATCH_LIMIT`) and `limit_recurse` (`PCRE_CONFIG_MATCH_LIMIT_RECURSION`).
-    See the pcreapi man page for more details.
+`options` is an option table with the optional fields `limit`
+(`PCRE_CONFIG_MATCH_LIMIT`) and `limit_recurse` (`PCRE_CONFIG_MATCH_LIMIT_RECURSION`).
+See the pcreapi man page for more details.
 */
 static int
 nl_pcre(lua_State *L) {
@@ -2778,7 +2801,8 @@ mtev_lua_pcre_gc(lua_State *L) {
   if(*endp == '/') *endp = '\0'; \
   element = endp + 1; \
 } while(0)
-/*! \lua mtev.conf_get_string() */
+/*! \lua mtev.conf_get_string()
+*/
 static int
 nl_conf_get_string(lua_State *L) {
   char *val;
@@ -2807,7 +2831,8 @@ nl_conf_get_string(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
-/*! \lua mtev.conf_get_string_list() */
+/*! \lua mtev.conf_get_string_list()
+*/
 static int
 nl_conf_get_string_list(lua_State *L) {
   char *val;
@@ -2840,7 +2865,8 @@ nl_conf_get_string_list(lua_State *L) {
 
   return 1;
 }
-/*! \lua mtev.conf_get_integer() */
+/*! \lua mtev.conf_get_integer()
+*/
 static int
 nl_conf_get_integer(lua_State *L) {
   int32_t val;
@@ -2897,7 +2923,8 @@ nl_conf_get_boolean(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
-/*! \lua mtev.conf_get_float() */
+/*! \lua mtev.conf_get_float()
+*/
 static int
 nl_conf_get_float(lua_State *L) {
   float val;
@@ -2925,7 +2952,8 @@ nl_conf_get_float(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
-/*! \lua mtev.conf_replace_value() */
+/*! \lua mtev.conf_replace_value()
+*/
 static int
 nl_conf_replace_value(lua_State *L) {
   const char *path = lua_tostring(L,1);
@@ -2949,7 +2977,8 @@ nl_conf_replace_value(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
-/*! \lua mtev.conf_replace_boolean() */
+/*! \lua mtev.conf_replace_boolean()
+*/
 static int
 nl_conf_replace_boolean(lua_State *L) {
   const char *path = lua_tostring(L,1);
@@ -3236,7 +3265,8 @@ mtev_xmlnode_index_func(lua_State *L) {
   luaL_error(L, "mtev.xmlnode no such element: %s", k);
   return 0;
 }
-/*! \lua mtev.parsexml() */
+/*! \lua mtev.parsexml()
+*/
 static int
 nl_parsexml(lua_State *L) {
   xmlDocPtr *docptr, doc;
@@ -3299,11 +3329,11 @@ mtev_xmldoc_index_func(lua_State *L) {
 }
 
 /*! \lua obj = mtev.json:tostring()
-    \brief return a JSON-formatted string of an `mtev.json` object
-    \return a lua string
+\brief return a JSON-formatted string of an `mtev.json` object
+\return a lua string
 
-    Returns a JSON document (as a string) representing the underlying
-    `mtev.json` object.
+Returns a JSON document (as a string) representing the underlying
+`mtev.json` object.
 */
 static int
 mtev_lua_json_tostring(lua_State *L) {
@@ -3387,11 +3417,11 @@ mtev_json_object_to_luatype(lua_State *L, mtev_json_object *o) {
 }
 
 /*! \lua obj = mtev.json:document()
-    \brief return a lua prepresentation of an `mtev.json` object
-    \return a lua object (usually a table)
+\brief return a lua prepresentation of an `mtev.json` object
+\return a lua object (usually a table)
 
-    Returns a fair representation of the underlying JSON document
-    as native lua objects.
+Returns a fair representation of the underlying JSON document
+as native lua objects.
 */
 static int
 mtev_lua_json_document(lua_State *L) {
@@ -3482,15 +3512,15 @@ mtev_lua_thing_to_json_object(lua_State *L, int idx, int limit) {
   return NULL;
 }
 /*! \lua jsonobj = mtev.tojson(obj, maxdepth = -1)
-  \brief Convert a lua object into a json doucument.
-  \param obj a lua object (usually a table).
-  \param maxdepth if specified limits the recursion.
-  \return an mtev.json object.
+\brief Convert a lua object into a json doucument.
+\param obj a lua object (usually a table).
+\param maxdepth if specified limits the recursion.
+\return an mtev.json object.
 
-  This converts a lua object, ignoring types that do not have JSON
-  counterparts (like userdata, lightuserdata, functions, threads, etc.).
-  The return is an `mtev.json` object not a string. You must invoke
-  the `tostring` method to convert it to a simple string.
+This converts a lua object, ignoring types that do not have JSON
+counterparts (like userdata, lightuserdata, functions, threads, etc.).
+The return is an `mtev.json` object not a string. You must invoke
+the `tostring` method to convert it to a simple string.
 */
 static int
 nl_tojson(lua_State *L) {
@@ -3511,12 +3541,10 @@ nl_tojson(lua_State *L) {
   return 1;
 }
 
-/*! \lua mtev.json:unrwap()
-   \brief Removes wrapping around mtev_json_object structure, and leaves a
-   mtev_json_object* on the lua stack, so other C functions can make
-   use of it.
-   \return mtev_json_object
-*/
+// Removes wrapping around mtev_json_object structure, and leaves a
+// mtev_json_object* on the lua stack, so other C functions can make
+// use of it.
+// (unstable, undocumented)
 static int
 mtev_lua_json_unwrap(lua_State *L){
   json_crutch **docptr;
@@ -3533,7 +3561,17 @@ mtev_lua_json_unwrap(lua_State *L){
   return 1;
 }
 
-/*! \lua mtev.parsejson() */
+/*! \lua jsonobj, err, offset = mtev.parsejson(string)
+\brief Convert a JSON strint to an `mtev.json`.
+\param string is a JSON formatted string.
+\return an mtev.json object plus errors on failure.
+
+This converts a JSON string to a lua object.  As lua
+does not support table keys with nil values, this
+implementation sets them to nil and thus elides the keys.
+If parsing fails nil is returned followed by the error and
+the byte offset into the string where the error occurred.
+*/
 static int
 nl_parsejson(lua_State *L) {
   json_crutch **docptr, *doc;
@@ -3618,14 +3656,14 @@ struct spawn_info {
 };
 
 /*! \lua mtev.process = mtev.spawn(path, argv, env)
-  \brief Spawn a subprocess.
-  \param path the path to the executable to spawn
-  \param argv an array of arguments (first argument is the process name)
-  \param env an optional array of "K=V" strings.
-  \return an object with the mtev.process metatable set.
+\brief Spawn a subprocess.
+\param path the path to the executable to spawn
+\param argv an array of arguments (first argument is the process name)
+\param env an optional array of "K=V" strings.
+\return an object with the mtev.process metatable set.
 
-  This function spawns a new subprocess running the binary specified as
-  the first argument.
+This function spawns a new subprocess running the binary specified as
+the first argument.
 */
 int nl_spawn(lua_State *L) {
   int in[2] = {-1,-1}, out[2] = {-1,-1}, err[2] = {-1,-1};
@@ -3754,7 +3792,8 @@ int nl_spawn(lua_State *L) {
   return 2;
 }
 
-/*! \lua mtev.thread_self() */
+/*! \lua mtev.thread_self()
+*/
 static int
 nl_thread_self(lua_State *L) {
   lua_module_closure_t *lmc;
@@ -3767,7 +3806,8 @@ nl_thread_self(lua_State *L) {
   return 2;
 }
 
-/*! \lua mtev.eventer_loop_concurrency() */
+/*! \lua mtev.eventer_loop_concurrency()
+*/
 static int
 nl_eventer_loop_concurrency(lua_State *L) {
   lua_pushinteger(L, eventer_loop_concurrency());
@@ -3775,8 +3815,8 @@ nl_eventer_loop_concurrency(lua_State *L) {
 }
 
 /*! \lua rv = mtev.watchdog_child_heartbeat()
-    \brief Heartbeat from a child process.
-    \return The return value of `mtev_watchdog_child_heartbeat()`
+\brief Heartbeat from a child process.
+\return The return value of `mtev_watchdog_child_heartbeat()`
 */
 static int
 nl_watchdog_child_heartbeat(lua_State *L) {
@@ -3785,8 +3825,8 @@ nl_watchdog_child_heartbeat(lua_State *L) {
 }
 
 /*! \lua timeout = mtev.watchdog_timeout()
-    \brief Return the watchdog timeout on the current thread.
-    \return A timeout in seconds, or nil if no watchdog configured.
+\brief Return the watchdog timeout on the current thread.
+\return A timeout in seconds, or nil if no watchdog configured.
 */
 static int
 nl_watchdog_timeout(lua_State *L) {
@@ -3860,7 +3900,8 @@ mtev_lua_push_cluster_details(lua_State *L, mtev_cluster_t *cluster, mtev_cluste
   lua_settable(L, -3);
 }
 
-/*! \lua mtev.cluster_details() */
+/*! \lua mtev.cluster_details()
+*/
 static int
 nl_cluster_details(lua_State *L) {
   int n;
@@ -3892,7 +3933,8 @@ nl_cluster_details(lua_State *L) {
   return 1;
 }
 
-/*! \lua mtev.cluster_get_self() */
+/*! \lua mtev.cluster_get_self()
+*/
 static int
 nl_cluster_get_self(lua_State *L) {
   static uuid_t my_cluster_id;
@@ -3904,8 +3946,8 @@ nl_cluster_get_self(lua_State *L) {
 }
 
 /*! \lua pid = mtev.process:pid()
-    \brief Return the process id of a spawned process.
-    \return The process id.
+\brief Return the process id of a spawned process.
+\return The process id.
 */
 static int
 mtev_lua_process_pid(lua_State *L) {
@@ -3919,9 +3961,9 @@ mtev_lua_process_pid(lua_State *L) {
 }
 
 /*! \lua success, errno = mtev.process:kill(signal)
-    \brief Kill a spawned process.
-    \param signal the integer signal to deliver, if omitted `SIGTERM` is used.
-    \return true on success or false and an errno on failure.
+\brief Kill a spawned process.
+\param signal the integer signal to deliver, if omitted `SIGTERM` is used.
+\return true on success or false and an errno on failure.
 */
 static int
 mtev_lua_process_kill(lua_State *L) {
@@ -4007,16 +4049,16 @@ mtev_lua_process_wait_ex(struct nl_slcl *cl, mtev_boolean needs_yield) {
 }
 
 /*! \lua status, errno = mtev.process:wait(timeout)
-    \brief Attempt to wait for a spawned process to terminate.
-    \param timeout an option time in second to wait for exit (0 in unspecified).
-    \return The process status and an errno if applicable.
+\brief Attempt to wait for a spawned process to terminate.
+\param timeout an option time in second to wait for exit (0 in unspecified).
+\return The process status and an errno if applicable.
 
-    Wait for a process (using `waitpid` with the `WNOHANG` option) to terminate
-    and return its exit status.  If the process has not exited and the timeout
-    has elapsed, the call will return with a nil value for status.  The lua
-    subsystem exists within a complex system that might handle process in different
-    ways, so it does not rely on `SIGCHLD` signal delivery and instead polls the
-    system using `waitpid` every 20ms.
+Wait for a process (using `waitpid` with the `WNOHANG` option) to terminate
+and return its exit status.  If the process has not exited and the timeout
+has elapsed, the call will return with a nil value for status.  The lua
+subsystem exists within a complex system that might handle process in different
+ways, so it does not rely on `SIGCHLD` signal delivery and instead polls the
+system using `waitpid` every 20ms.
 */
 static int
 mtev_lua_process_wait(lua_State *L) {
@@ -4279,7 +4321,8 @@ mtev_lua_deserialize(lua_State *L, const lua_data_t *data){
       mtevL(nlerr, "Cannot deserialize unsupported lua type %d\n", data->lua_type);
   }
 }
-/*! \lua mtev.shared_set() */
+/*! \lua mtev.shared_set()
+*/
 static int
 nl_shared_set(lua_State *L) {
   void* vdata;
@@ -4329,7 +4372,8 @@ nl_shared_get(lua_State *L) {
   return 1;
 }
 
-/*! \lua mtev.cancel_coro() */
+/*! \lua mtev.cancel_coro()
+*/
 static int
 nl_cancel_coro(lua_State *L) {
   mtev_lua_resume_info_t *ci;
@@ -4412,14 +4456,14 @@ static const luaL_Reg mtevlib[] = {
   { "utf8tohtml", nl_utf8tohtml },
   { "hmac_sha1_encode", nl_hmac_sha1_encode },
   { "hmac_sha256_encode", nl_hmac_sha256_encode },
-  /*! \lua digest_hex = mtev.sha256_hash(s)
-    \param s a string
-    \return the SHA256 digest of the input string, encoded in hexadecimal format
+/*! \lua digest_hex = mtev.sha256_hash(s)
+\param s a string
+\return the SHA256 digest of the input string, encoded in hexadecimal format
 
-    **DEPRECATED**
+**DEPRECATED**
 
-    Use sha256_hex instead.
-  */
+Use sha256_hex instead.
+*/
   { "sha256_hash", nl_sha256_hex},
   { "md5_hex", nl_md5_hex },
   { "md5", nl_md5 },
@@ -4446,18 +4490,6 @@ static const luaL_Reg mtevlib[] = {
   { "conf_replace_number", nl_conf_replace_value },
   { "parsexml", nl_parsexml },
   { "parsejson", nl_parsejson },
-/*! \lua jsonobj, err, offset = mtev.parsejson(string)
-    \brief Convert a JSON strint to an `mtev.json`.
-    \param string is a JSON formatted string.
-    \return an mtev.json object plus errors on failure.
-
-    This converts a JSON string to a lua object.  As lua
-    does not support table keys with nil values, this
-    implementation sets them to nil and thus elides the keys.
-    If parsing fails nil is returned followed by the error and
-    the byte offset into the string where the error occurred.
-*/
-
   { "tojson", nl_tojson },
   { "spawn", nl_spawn },
   { "thread_self", nl_thread_self },
