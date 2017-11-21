@@ -200,7 +200,14 @@ void lookup_ctx_release(dns_lookup_ctx_t *v) {
     free(v);
   }
 }
+/*! \lua mtev.dns = mtev.dns(nameserver = nil)
+\brief Create an `mtev.dns` object for DNS lookups.
+\param nameserver an optional argument specifying the nameserver to use.
+\return an `mtev.dns` object.
 
+This function creates an `mtev.dns` object that can be used to perform
+lookups and IP address validation.
+*/
 int nl_dns_lookup(lua_State *L) {
   dns_lookup_ctx_t *dlc, **holder;
   const char *nameserver = NULL;
@@ -397,13 +404,13 @@ static void dns_cb(struct dns_ctx *ctx, void *result, void *data) {
 }
 
 /*! \lua bool, family = mtev.dns:is_valid_ip(ipstr)
-    \brief Determine address family of an IP address.
-    \param ipstr a string of an potential IP address.
-    \return if the address is valid and, if it is, the family.
+\brief Determine address family of an IP address.
+\param ipstr a string of an potential IP address.
+\return if the address is valid and, if it is, the family.
 
-    The first return is true if the suplied string is a valid IPv4 or IPv6
-    address, otherwise false.  If the address is valid, the second argument
-    will be the address family as an integer, otherwise nil.
+The first return is true if the suplied string is a valid IPv4 or IPv6
+address, otherwise false.  If the address is valid, the second argument
+will be the address family as an integer, otherwise nil.
 */
 int
 mtev_dns_lua_is_valid_ip(lua_State *L) {
@@ -438,28 +445,28 @@ mtev_dns_lua_is_valid_ip(lua_State *L) {
 }
 
 /*! \lua record = mtev.dns:lookup(query, rtype = "A", ctype = "IN")
-    \brief Perform a DNS lookup.
-    \param query a string representing the DNS query.
-    \param rtype the DNS resource type (default "A").
-    \param ctype the DNS class type (default "IN").
-    \return a lua table, nil if the lookup fails.
+\brief Perform a DNS lookup.
+\param query a string representing the DNS query.
+\param rtype the DNS resource type (default "A").
+\param ctype the DNS class type (default "IN").
+\return a lua table, nil if the lookup fails.
 
-    DNS lookup works cooperatively with the eventer to schedule an
-    lookup and yield the current coroutine to the event loop.  If
-    successful the table returned will contain field(s) for the
-    requested resource. Possible fields are:
+DNS lookup works cooperatively with the eventer to schedule an
+lookup and yield the current coroutine to the event loop.  If
+successful the table returned will contain field(s) for the
+requested resource. Possible fields are:
 
-     * `a` and `ttl`
-     * `aaaa` and `ttl`
-     * `mx` and `preference`
-     * `cname` and `ttl`
-     * `ptr` and `ttl`
-     * `ns` and `ttl`
-     * `mb` and `ttl`
-     * `md` and `ttl`
-     * `mf` and `ttl`
-     * `mg` and `ttl`
-     * `mr` and `ttl`
+* `a` and `ttl`
+* `aaaa` and `ttl`
+* `mx` and `preference`
+* `cname` and `ttl`
+* `ptr` and `ttl`
+* `ns` and `ttl`
+* `mb` and `ttl`
+* `md` and `ttl`
+* `mf` and `ttl`
+* `mg` and `ttl`
+* `mr` and `ttl`
 */
 static int mtev_lua_dns_lookup(lua_State *L) {
   dns_lookup_ctx_t *dlc, **holder;

@@ -405,7 +405,6 @@ Enumerates the nodes in a cluster into a provided nodes array.
 >Returns the oldest node within the given cluster.
 
 ```c
-
 mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster)
 ```
 
@@ -1629,7 +1628,6 @@ eventer_get_whence(eventer_t e)
 >Get the time of the last invoked callback in this thread.
 
 ```c
-
 eventer_gettimeofcallback(struct timeval *now, void *tzp)
 ```
 
@@ -2821,7 +2819,6 @@ mtev_main_terminate(const char *appname, const char *config_filename, int debug)
 >C Macro for declaring a "maybe" buffer.
 
 ```c
-
 MTEV_MAYBE_DECL(type, name, cnt)
 ```
 
@@ -2841,7 +2838,6 @@ maybe buffer.
 >C Macro for declaring a "maybe" buffer.
 
 ```c
-
 MTEV_MAYBE_DECL_VARS(type, name, cnt)
 ```
 
@@ -2856,7 +2852,6 @@ MTEV_MAYBE_DECL_VARS(type, name, cnt)
 >C Macro to free any heap space associated with a "maybe" buffer.
 
 ```c
-
 MTEV_MAYBE_FREE(name)
 ```
 
@@ -2869,7 +2864,6 @@ MTEV_MAYBE_FREE(name)
 >C Macro for initializing a "maybe" buffer
 
 ```c
-
 MTEV_MAYBE_INIT_VARS(name)
 ```
 
@@ -2882,7 +2876,6 @@ MTEV_MAYBE_INIT_VARS(name)
 >C Macro to ensure a maybe buffer has at least cnt elements allocated.
 
 ```c
-
 MTEV_MAYBE_REALLOC(name, cnt)
 ```
 
@@ -2900,7 +2893,6 @@ to simply run this macro prior to each write to the buffer.
 >C Macro for number of bytes available in this buffer.
 
 ```c
-
 MTEV_MAYBE_SIZE(name)
 ```
 

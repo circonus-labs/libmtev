@@ -7,7 +7,7 @@
         <title>C API · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
-        <meta name="generator" content="GitBook 3.2.2">
+        <meta name="generator" content="GitBook 3.2.3">
         
         
         
@@ -884,8 +884,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Returns the oldest node within the given cluster.</p>
 </blockquote>
-<pre><code class="lang-c">
-mtev_cluster_get_oldest_node(<span class="hljs-keyword">const</span> <span class="hljs-keyword">mtev_cluster_t</span> *cluster)
+<pre><code class="lang-c">mtev_cluster_get_oldest_node(<span class="hljs-keyword">const</span> <span class="hljs-keyword">mtev_cluster_t</span> *cluster)
 </code></pre>
 <ul>
 <li><code>cluster</code> The cluster in question.</li>
@@ -1839,8 +1838,7 @@ eventer_get_this_event(<span class="hljs-keyword">void</span>)
 <blockquote>
 <p>Get the time of the last invoked callback in this thread.</p>
 </blockquote>
-<pre><code class="lang-c">
-eventer_gettimeofcallback(<span class="hljs-keyword">struct</span> timeval *now, <span class="hljs-keyword">void</span> *tzp)
+<pre><code class="lang-c">eventer_gettimeofcallback(<span class="hljs-keyword">struct</span> timeval *now, <span class="hljs-keyword">void</span> *tzp)
 </code></pre>
 <ul>
 <li><code>now</code> a <code>struct timeval</code> to populate with the request time.</li>
@@ -2800,8 +2798,7 @@ mtev_main(const char *appname, const char *config_filename, int debug, int foreg
 <blockquote>
 <p>C Macro for declaring a &quot;maybe&quot; buffer.</p>
 </blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_DECL(type, name, cnt)
+<pre><code class="lang-c">MTEV_MAYBE_DECL(type, name, cnt)
 </code></pre>
 <ul>
 <li><code>type</code> A C type (e.g. char)</li>
@@ -2816,8 +2813,7 @@ maybe buffer.</p>
 <blockquote>
 <p>C Macro for declaring a &quot;maybe&quot; buffer.</p>
 </blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_DECL_VARS(type, name, cnt)
+<pre><code class="lang-c">MTEV_MAYBE_DECL_VARS(type, name, cnt)
 </code></pre>
 <ul>
 <li><code>type</code> A C type (e.g. char)</li>
@@ -2828,8 +2824,7 @@ MTEV_MAYBE_DECL_VARS(type, name, cnt)
 <blockquote>
 <p>C Macro to free any heap space associated with a &quot;maybe&quot; buffer.</p>
 </blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_FREE(name)
+<pre><code class="lang-c">MTEV_MAYBE_FREE(name)
 </code></pre>
 <ul>
 <li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
@@ -2838,8 +2833,7 @@ MTEV_MAYBE_FREE(name)
 <blockquote>
 <p>C Macro for initializing a &quot;maybe&quot; buffer</p>
 </blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_INIT_VARS(name)
+<pre><code class="lang-c">MTEV_MAYBE_INIT_VARS(name)
 </code></pre>
 <ul>
 <li><code>name</code> The name of &quot;maybe&quot; buffer.</li>
@@ -2848,8 +2842,7 @@ MTEV_MAYBE_INIT_VARS(name)
 <blockquote>
 <p>C Macro to ensure a maybe buffer has at least cnt elements allocated.</p>
 </blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_REALLOC(name, cnt)
+<pre><code class="lang-c">MTEV_MAYBE_REALLOC(name, cnt)
 </code></pre>
 <ul>
 <li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
@@ -2862,8 +2855,7 @@ to simply run this macro prior to each write to the buffer.</p>
 <blockquote>
 <p>C Macro for number of bytes available in this buffer.</p>
 </blockquote>
-<pre><code class="lang-c">
-MTEV_MAYBE_SIZE(name)
+<pre><code class="lang-c">MTEV_MAYBE_SIZE(name)
 </code></pre>
 <ul>
 <li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
@@ -4013,7 +4005,7 @@ mtev_zipkin_timeval_to_timestamp(<span class="hljs-keyword">struct</span> timeva
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"C API","level":"1.7.1","depth":2,"next":{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]},"previous":{"title":"Reference","level":"1.7","depth":1,"path":"apireference/README.md","ref":"apireference/README.md","articles":[{"title":"C API","level":"1.7.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]}]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/c.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"C API","level":"1.7.1","depth":2,"next":{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]},"previous":{"title":"Reference","level":"1.7","depth":1,"path":"apireference/README.md","ref":"apireference/README.md","articles":[{"title":"C API","level":"1.7.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},{"title":"Lua API","level":"1.7.2","depth":2,"path":"apireference/lua.md","ref":"apireference/lua.md","articles":[]}]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/c.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

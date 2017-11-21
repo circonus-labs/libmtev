@@ -1,3 +1,103 @@
+### B
+
+#### mtev.base64_decode
+
+```lua
+mtev.base64_decode()
+```
+
+
+
+#### mtev.base64_encode
+
+```lua
+mtev.base64_encode()
+```
+
+
+
+### C
+
+#### mtev.cancel_coro
+
+```lua
+mtev.cancel_coro()
+```
+
+
+
+#### mtev.cluster_details
+
+```lua
+mtev.cluster_details()
+```
+
+
+
+#### mtev.cluster_get_self
+
+```lua
+mtev.cluster_get_self()
+```
+
+
+
+#### mtev.conf_get_boolean
+
+```lua
+mtev.conf_get_boolean()
+```
+
+
+
+#### mtev.conf_get_float
+
+```lua
+mtev.conf_get_float()
+```
+
+
+
+#### mtev.conf_get_integer
+
+```lua
+mtev.conf_get_integer()
+```
+
+
+
+#### mtev.conf_get_string
+
+```lua
+mtev.conf_get_string()
+```
+
+
+
+#### mtev.conf_get_string_list
+
+```lua
+mtev.conf_get_string_list()
+```
+
+
+
+#### mtev.conf_replace_boolean
+
+```lua
+mtev.conf_replace_boolean()
+```
+
+
+
+#### mtev.conf_replace_value
+
+```lua
+mtev.conf_replace_value()
+```
+
+
+
 ### D
 
 #### mtev.dns
@@ -55,17 +155,17 @@ lookup and yield the current coroutine to the event loop.  If
 successful the table returned will contain field(s) for the
 requested resource. Possible fields are:
 
- * `a` and `ttl`
- * `aaaa` and `ttl`
- * `mx` and `preference`
- * `cname` and `ttl`
- * `ptr` and `ttl`
- * `ns` and `ttl`
- * `mb` and `ttl`
- * `md` and `ttl`
- * `mf` and `ttl`
- * `mg` and `ttl`
- * `mr` and `ttl`
+* `a` and `ttl`
+* `aaaa` and `ttl`
+* `mx` and `preference`
+* `cname` and `ttl`
+* `ptr` and `ttl`
+* `ns` and `ttl`
+* `mb` and `ttl`
+* `md` and `ttl`
+* `mf` and `ttl`
+* `mg` and `ttl`
+* `mr` and `ttl`
 
 
 ### E
@@ -75,13 +175,28 @@ requested resource. Possible fields are:
 >Enable or disable a log facility by name.
 
 ```lua
-
 mtev.enable_log(facility, flags = true)
 ```
 
 
   * `facility` the name of the mtev_log_stream (e.g. "debug")
   * `flags` true enables, false disables
+
+
+#### mtev.eventer_loop_concurrency
+
+```lua
+mtev.eventer_loop_concurrency()
+```
+
+
+
+#### mtev.extended_free
+
+```lua
+mtev.extended_free()
+```
+
 
 
 ### G
@@ -94,6 +209,40 @@ mtev.gettimeofday()
 ```
 
   * **RETURN** the seconds and microseconds since epoch (1970 UTC)
+
+
+#### mtev.gunzip
+
+```lua
+mtev.gunzip()
+```
+
+
+
+#### mtev.gunzip_deflate
+
+```lua
+mtev.gunzip_deflate()
+```
+
+
+
+### H
+
+#### mtev.hmac_sha1_encode
+
+```lua
+mtev.hmac_sha1_encode()
+```
+
+
+
+#### mtev.hmac_sha256_encode
+
+```lua
+mtev.hmac_sha256_encode()
+```
+
 
 
 ### J
@@ -148,6 +297,24 @@ mtev.log(facility, format, ...)
   * **RETURN** the number of bytes written
 
 
+### M
+
+#### mtev.md5
+
+```lua
+mtev.md5()
+```
+
+
+
+#### mtev.md5_hex
+
+```lua
+mtev.md5_hex()
+```
+
+
+
 ### P
 
 #### mtev.parsejson
@@ -168,6 +335,14 @@ does not support table keys with nil values, this
 implementation sets them to nil and thus elides the keys.
 If parsing fails nil is returned followed by the error and
 the byte offset into the string where the error occurred.
+
+
+#### mtev.parsexml
+
+```lua
+mtev.parsexml()
+```
+
 
 
 #### mtev.pcre
@@ -194,7 +369,7 @@ The caller can force a reset by calling `matcher(nil)`.
 `options` is an option table with the optional fields `limit`
 (`PCRE_CONFIG_MATCH_LIMIT`) and `limit_recurse` (`PCRE_CONFIG_MATCH_LIMIT_RECURSION`).
 See the pcreapi man page for more details.
- 
+
 
 #### mtev.print
 
@@ -278,6 +453,22 @@ mtev.realpath(inpath)
 
 ### S
 
+#### mtev.sha1
+
+```lua
+mtev.sha1()
+```
+
+
+
+#### mtev.sha1_hex
+
+```lua
+mtev.sha1_hex()
+```
+
+
+
 #### mtev.sha256
 
 ```lua
@@ -315,6 +506,22 @@ mtev.sha256_hex(s)
   * **RETURN** the SHA256 digest of the input string, encoded in hexadecimal format
 
 
+#### mtev.shared_get
+
+```lua
+mtev.shared_get()
+```
+
+
+
+#### mtev.shared_set
+
+```lua
+mtev.shared_set()
+```
+
+
+
 #### mtev.sleep
 
 ```lua
@@ -324,6 +531,22 @@ mtev.sleep(duration_s)
 
   * `duration_s` the number of sections to sleep
   * **RETURN** the number of sections slept.
+
+
+#### mtev.socket
+
+```lua
+mtev.socket()
+```
+
+
+
+#### mtev.socket_internal
+
+```lua
+mtev.socket_internal()
+```
+
 
 
 #### mtev.spawn
@@ -340,12 +563,20 @@ mtev.spawn(path, argv, env)
   * `argv` an array of arguments (first argument is the process name)
   * `env` an optional array of "K=V" strings.
   * **RETURN** an object with the mtev.process metatable set.
- 
+
 This function spawns a new subprocess running the binary specified as
 the first argument.
 
 
 ### T
+
+#### mtev.thread_self
+
+```lua
+mtev.thread_self()
+```
+
+
 
 #### mtev.tojson
 
@@ -365,6 +596,24 @@ This converts a lua object, ignoring types that do not have JSON
 counterparts (like userdata, lightuserdata, functions, threads, etc.).
 The return is an `mtev.json` object not a string. You must invoke
 the `tostring` method to convert it to a simple string.
+
+
+### U
+
+#### mtev.utf8tohtml
+
+```lua
+mtev.utf8tohtml()
+```
+
+
+
+#### mtev.uuid
+
+```lua
+mtev.uuid()
+```
+
 
 
 ### W

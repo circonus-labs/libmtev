@@ -7,7 +7,7 @@
         <title>Lua API · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
-        <meta name="generator" content="GitBook 3.2.2">
+        <meta name="generator" content="GitBook 3.2.3">
         
         
         
@@ -563,7 +563,45 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h3 id="d">D</h3>
+                                <h3 id="b">B</h3>
+<h4 id="mtevbase64decode">mtev.base64_decode</h4>
+<pre><code class="lang-lua">mtev.base64_decode()
+</code></pre>
+<h4 id="mtevbase64encode">mtev.base64_encode</h4>
+<pre><code class="lang-lua">mtev.base64_encode()
+</code></pre>
+<h3 id="c">C</h3>
+<h4 id="mtevcancelcoro">mtev.cancel_coro</h4>
+<pre><code class="lang-lua">mtev.cancel_coro()
+</code></pre>
+<h4 id="mtevclusterdetails">mtev.cluster_details</h4>
+<pre><code class="lang-lua">mtev.cluster_details()
+</code></pre>
+<h4 id="mtevclustergetself">mtev.cluster_get_self</h4>
+<pre><code class="lang-lua">mtev.cluster_get_self()
+</code></pre>
+<h4 id="mtevconfgetboolean">mtev.conf_get_boolean</h4>
+<pre><code class="lang-lua">mtev.conf_get_boolean()
+</code></pre>
+<h4 id="mtevconfgetfloat">mtev.conf_get_float</h4>
+<pre><code class="lang-lua">mtev.conf_get_float()
+</code></pre>
+<h4 id="mtevconfgetinteger">mtev.conf_get_integer</h4>
+<pre><code class="lang-lua">mtev.conf_get_integer()
+</code></pre>
+<h4 id="mtevconfgetstring">mtev.conf_get_string</h4>
+<pre><code class="lang-lua">mtev.conf_get_string()
+</code></pre>
+<h4 id="mtevconfgetstringlist">mtev.conf_get_string_list</h4>
+<pre><code class="lang-lua">mtev.conf_get_string_list()
+</code></pre>
+<h4 id="mtevconfreplaceboolean">mtev.conf_replace_boolean</h4>
+<pre><code class="lang-lua">mtev.conf_replace_boolean()
+</code></pre>
+<h4 id="mtevconfreplacevalue">mtev.conf_replace_value</h4>
+<pre><code class="lang-lua">mtev.conf_replace_value()
+</code></pre>
+<h3 id="d">D</h3>
 <h4 id="mtevdns">mtev.dns</h4>
 <blockquote>
 <p>Create an <code>mtev.dns</code> object for DNS lookups.</p>
@@ -626,13 +664,18 @@ requested resource. Possible fields are:</p>
 <blockquote>
 <p>Enable or disable a log facility by name.</p>
 </blockquote>
-<pre><code class="lang-lua">
-mtev.enable_log(facility, flags = <span class="hljs-keyword">true</span>)
+<pre><code class="lang-lua">mtev.enable_log(facility, flags = <span class="hljs-keyword">true</span>)
 </code></pre>
 <ul>
 <li><code>facility</code> the name of the mtev_log_stream (e.g. &quot;debug&quot;)</li>
 <li><code>flags</code> true enables, false disables</li>
 </ul>
+<h4 id="mteveventerloopconcurrency">mtev.eventer_loop_concurrency</h4>
+<pre><code class="lang-lua">mtev.eventer_loop_concurrency()
+</code></pre>
+<h4 id="mtevextendedfree">mtev.extended_free</h4>
+<pre><code class="lang-lua">mtev.extended_free()
+</code></pre>
 <h3 id="g">G</h3>
 <h4 id="mtevgettimeofday">mtev.gettimeofday</h4>
 <pre><code class="lang-lua">sec, usec = 
@@ -641,6 +684,19 @@ mtev.gettimeofday()
 <ul>
 <li><strong>RETURN</strong> the seconds and microseconds since epoch (1970 UTC)</li>
 </ul>
+<h4 id="mtevgunzip">mtev.gunzip</h4>
+<pre><code class="lang-lua">mtev.gunzip()
+</code></pre>
+<h4 id="mtevgunzipdeflate">mtev.gunzip_deflate</h4>
+<pre><code class="lang-lua">mtev.gunzip_deflate()
+</code></pre>
+<h3 id="h">H</h3>
+<h4 id="mtevhmacsha1encode">mtev.hmac_sha1_encode</h4>
+<pre><code class="lang-lua">mtev.hmac_sha1_encode()
+</code></pre>
+<h4 id="mtevhmacsha256encode">mtev.hmac_sha256_encode</h4>
+<pre><code class="lang-lua">mtev.hmac_sha256_encode()
+</code></pre>
 <h3 id="j">J</h3>
 <h4 id="mtevjsondocument">mtev.json:document</h4>
 <blockquote>
@@ -680,6 +736,13 @@ mtev.log(facility, format, ...)
 <li><code>...</code> arguments to be used within the specified format</li>
 <li><strong>RETURN</strong> the number of bytes written</li>
 </ul>
+<h3 id="m">M</h3>
+<h4 id="mtevmd5">mtev.md5</h4>
+<pre><code class="lang-lua">mtev.md5()
+</code></pre>
+<h4 id="mtevmd5hex">mtev.md5_hex</h4>
+<pre><code class="lang-lua">mtev.md5_hex()
+</code></pre>
 <h3 id="p">P</h3>
 <h4 id="mtevparsejson">mtev.parsejson</h4>
 <blockquote>
@@ -697,6 +760,9 @@ does not support table keys with nil values, this
 implementation sets them to nil and thus elides the keys.
 If parsing fails nil is returned followed by the error and
 the byte offset into the string where the error occurred.</p>
+<h4 id="mtevparsexml">mtev.parsexml</h4>
+<pre><code class="lang-lua">mtev.parsexml()
+</code></pre>
 <h4 id="mtevpcre">mtev.pcre</h4>
 <pre><code class="lang-lua">matcher = 
 mtev.pcre(pcre_expression)
@@ -780,6 +846,12 @@ mtev.realpath(inpath)
 <li><strong>RETURN</strong> The non-relative path inpath refers to (or nil on error).</li>
 </ul>
 <h3 id="s">S</h3>
+<h4 id="mtevsha1">mtev.sha1</h4>
+<pre><code class="lang-lua">mtev.sha1()
+</code></pre>
+<h4 id="mtevsha1hex">mtev.sha1_hex</h4>
+<pre><code class="lang-lua">mtev.sha1_hex()
+</code></pre>
 <h4 id="mtevsha256">mtev.sha256</h4>
 <pre><code class="lang-lua">digest = 
 mtev.sha256(s)
@@ -806,6 +878,12 @@ mtev.sha256_hex(s)
 <li><code>s</code> a string</li>
 <li><strong>RETURN</strong> the SHA256 digest of the input string, encoded in hexadecimal format</li>
 </ul>
+<h4 id="mtevsharedget">mtev.shared_get</h4>
+<pre><code class="lang-lua">mtev.shared_get()
+</code></pre>
+<h4 id="mtevsharedset">mtev.shared_set</h4>
+<pre><code class="lang-lua">mtev.shared_set()
+</code></pre>
 <h4 id="mtevsleep">mtev.sleep</h4>
 <pre><code class="lang-lua">slept = 
 mtev.sleep(duration_s)
@@ -814,6 +892,12 @@ mtev.sleep(duration_s)
 <li><code>duration_s</code> the number of sections to sleep</li>
 <li><strong>RETURN</strong> the number of sections slept.</li>
 </ul>
+<h4 id="mtevsocket">mtev.socket</h4>
+<pre><code class="lang-lua">mtev.socket()
+</code></pre>
+<h4 id="mtevsocketinternal">mtev.socket_internal</h4>
+<pre><code class="lang-lua">mtev.socket_internal()
+</code></pre>
 <h4 id="mtevspawn">mtev.spawn</h4>
 <blockquote>
 <p>Spawn a subprocess.</p>
@@ -830,6 +914,9 @@ mtev.spawn(path, argv, env)
 <p>This function spawns a new subprocess running the binary specified as
 the first argument.</p>
 <h3 id="t">T</h3>
+<h4 id="mtevthreadself">mtev.thread_self</h4>
+<pre><code class="lang-lua">mtev.thread_self()
+</code></pre>
 <h4 id="mtevtojson">mtev.tojson</h4>
 <blockquote>
 <p>Convert a lua object into a json doucument.</p>
@@ -846,6 +933,13 @@ mtev.tojson(obj, maxdepth = <span class="hljs-number">-1</span>)
 counterparts (like userdata, lightuserdata, functions, threads, etc.).
 The return is an <code>mtev.json</code> object not a string. You must invoke
 the <code>tostring</code> method to convert it to a simple string.</p>
+<h3 id="u">U</h3>
+<h4 id="mtevutf8tohtml">mtev.utf8tohtml</h4>
+<pre><code class="lang-lua">mtev.utf8tohtml()
+</code></pre>
+<h4 id="mtevuuid">mtev.uuid</h4>
+<pre><code class="lang-lua">mtev.uuid()
+</code></pre>
 <h3 id="w">W</h3>
 <h4 id="mtevwatchdogchildheartbeat">mtev.watchdog_child_heartbeat</h4>
 <blockquote>
@@ -906,7 +1000,7 @@ mtev.watchdog_timeout()
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Lua API","level":"1.7.2","depth":2,"previous":{"title":"C API","level":"1.7.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/lua.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.2","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Lua API","level":"1.7.2","depth":2,"previous":{"title":"C API","level":"1.7.1","depth":2,"path":"apireference/c.md","ref":"apireference/c.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"apireference/lua.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
