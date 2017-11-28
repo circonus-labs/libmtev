@@ -1624,7 +1624,7 @@ nl_waitfor(lua_State *L) {
     mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q);
   } else {
     q = vptr;
-    if(q->L || q->pending_event) luaL_error(L, "waitfor cannot be called concurrently");
+    if(q->L) luaL_error(L, "waitfor cannot be called concurrently");
     q->L = L;
   }
 
