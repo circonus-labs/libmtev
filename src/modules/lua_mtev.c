@@ -1565,6 +1565,8 @@ nl_waitfor_notify(lua_State *L) {
     mtevAssert(ci);
     mtevAssert(eventer_remove(q->pending_event));
     mtev_lua_deregister_event(ci, q->pending_event, 0);
+    eventer_free(q->pending_event);
+    q->pending_event = NULL;
     ci->lmc->resume(ci, nargs);
     return 0;
   }
@@ -1581,6 +1583,9 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
 
   ci = mtev_lua_get_resume_info(q->L);
 
+  mtevAssert(e == q->pending_event);
+
+  q->pending_event = NULL;
   q->L = NULL;
 
   mtevAssert(ci);
@@ -1619,7 +1624,7 @@ nl_waitfor(lua_State *L) {
     mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q);
   } else {
     q = vptr;
-    if(q->L) luaL_error(L, "waitfor cannot be called concurrently");
+    if(q->L || q->pending_event) luaL_error(L, "waitfor cannot be called concurrently");
     q->L = L;
   }
 
