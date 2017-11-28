@@ -72,6 +72,8 @@
 
 extern const char *eventer_get_thread_name(void);
 
+static pthread_mutex_t resize_lock = PTHREAD_MUTEX_INITIALIZER;
+
 MTEV_HOOK_IMPL(mtev_log_line,
                (mtev_log_stream_t ls, const struct timeval *whence,
                 const char *timebuf, int timebuflen,
@@ -433,11 +435,13 @@ mtev_log_dematerialize(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   mtev_log_init_globals();
 
+  pthread_mutex_lock(&resize_lock);
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     mtev_log_stream_t ls = iter.value.ptr;
     ls->deps_materialized = 0;
     debug_printf("dematerializing(%s)\n", ls->name);
   }
+  pthread_mutex_unlock(&resize_lock);
 }
 
 static void
@@ -445,11 +449,13 @@ mtev_log_materialize(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   mtev_log_init_globals();
 
+  pthread_mutex_lock(&resize_lock);
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     mtev_log_stream_t ls = iter.value.ptr;
     debug_printf("materializing(%s)\n", ls->name);
     materialize_deps(ls);
   }
+  pthread_mutex_unlock(&resize_lock);
 }
 
 static void
@@ -1360,14 +1366,17 @@ mtev_log_stream_new_on_fd(const char *name, int fd, mtev_hash_table *config) {
    * for an explanation.
    */
   lsname = strdup(ls->name);
+  pthread_mutex_lock(&resize_lock);
   if(mtev_hash_store(&mtev_loggers,
                      lsname, strlen(ls->name), ls) == 0) {
+    pthread_mutex_unlock(&resize_lock);
     free(lsname);
     free(ls->name);
     free(ls);
     asynch_log_ctx_free(actx);
     return NULL;
   }
+  pthread_mutex_unlock(&resize_lock);
   return ls;
 }
 
@@ -1393,12 +1402,15 @@ mtev_log_resolve(mtev_log_stream_t ls) {
 mtev_boolean
 mtev_log_final_resolve(void) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  pthread_mutex_lock(&resize_lock);
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     if(!mtev_log_resolve((mtev_log_stream_t)iter.value.ptr)) {
+      pthread_mutex_unlock(&resize_lock);
       mtevL(mtev_stderr, "Failed to resolve log: %s\n", iter.key.str);
       return mtev_false;
     }
   }
+  pthread_mutex_unlock(&resize_lock);
   return mtev_true;
 }
 
@@ -1442,11 +1454,14 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
      */
     char *lsname;
     lsname = strdup(ls->name);
+    pthread_mutex_lock(&resize_lock);
     if(mtev_hash_store(&mtev_loggers,
                        lsname, strlen(ls->name), ls) == 0) {
+      pthread_mutex_unlock(&resize_lock);
       free(lsname);
       goto freebail;
     }
+    pthread_mutex_unlock(&resize_lock);
     ls->lock = calloc(1, sizeof(*ls->lock));
     mtev_log_init_rwlock(ls);
   }
@@ -1519,11 +1534,13 @@ mtev_log_stream_remove(const char *name) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   mtev_log_stream_t ls;
 
+  pthread_mutex_lock(&resize_lock);
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     ls = iter.value.ptr;
     mtev_log_stream_remove_stream(ls, name);
   }
   mtev_hash_delete(&mtev_loggers, name, strlen(name), free, NULL);
+  pthread_mutex_unlock(&resize_lock);
 }
 
 void
@@ -1915,11 +1932,13 @@ mtev_log_reopen_type(const char *type) {
   int rv = 0;
   mtev_log_stream_t ls;
 
+  pthread_mutex_lock(&resize_lock);
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     ls = iter.value.ptr;
     if(ls->ops && ls->type && !strcmp(ls->type, type))
       if(ls->ops->reopenop(ls) < 0) rv = -1;
   }
+  pthread_mutex_unlock(&resize_lock);
   return rv;
 }
 
@@ -1929,6 +1948,7 @@ mtev_log_go_asynch(void) {
   int rv = 0;
   mtev_log_stream_t ls;
 
+  pthread_mutex_lock(&resize_lock);
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     ls = iter.value.ptr;
     if(SUPPORTS_ASYNC(ls)) {
@@ -1938,6 +1958,7 @@ mtev_log_go_asynch(void) {
       if(ls->ops->reopenop(ls) < 0) rv = -1;
     }
   }
+  pthread_mutex_unlock(&resize_lock);
   return rv;
 }
 
@@ -1947,6 +1968,7 @@ mtev_log_go_synch(void) {
   int rv = 0;
   mtev_log_stream_t ls;
 
+  pthread_mutex_lock(&resize_lock);
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     ls = iter.value.ptr;
     if(SUPPORTS_ASYNC(ls)) {
@@ -1957,6 +1979,7 @@ mtev_log_go_synch(void) {
       asynch_logio_drain(actx);
     }
   }
+  pthread_mutex_unlock(&resize_lock);
   return rv;
 }
 
@@ -1966,10 +1989,12 @@ mtev_log_reopen_all(void) {
   int rv = 0;
   mtev_log_stream_t ls;
 
+  pthread_mutex_lock(&resize_lock);
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     ls = iter.value.ptr;
     if(ls->ops) if(ls->ops->reopenop(ls) < 0) rv = -1;
   }
+  pthread_mutex_unlock(&resize_lock);
   return rv;
 }
 
@@ -1978,11 +2003,13 @@ mtev_log_list(mtev_log_stream_t *loggers, int nsize) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   int count = 0, total = 0, out_of_space_flag = 1;
 
+  pthread_mutex_lock(&resize_lock);
   while(mtev_hash_adv(&mtev_loggers, &iter)) {
     if(count < nsize) loggers[count++] = (mtev_log_stream_t)iter.value.ptr;
     else out_of_space_flag = -1;
     total++;
   }
+  pthread_mutex_unlock(&resize_lock);
   return total * out_of_space_flag;
 }
 
