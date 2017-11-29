@@ -787,11 +787,12 @@ int eventer_impl_init(void) {
   return 0;
 }
 
-void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
+void eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
   eventer_job_t *job;
   /* always use 0, if unspecified */
   if(eventer_is_loop(e->thr_owner) < 0) e->thr_owner = eventer_impl_tls_data[0].tid;
   job = calloc(1, sizeof(*job));
+  job->subqueue = subqueue;
   job->fd_event = e;
   job->jobq = q ? q : __default_jobq;
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
@@ -808,12 +809,16 @@ void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
   }
   eventer_jobq_enqueue(q ? q : __default_jobq, job, NULL);
 }
+void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
+  eventer_add_asynch_subqueue(q, e, 0);
+}
 
-void eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e) {
+void eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
   eventer_job_t *job;
   /* always use 0, if unspecified */
   if(eventer_is_loop(e->thr_owner) < 0) e->thr_owner = eventer_impl_tls_data[0].tid;
   job = calloc(1, sizeof(*job));
+  job->subqueue = subqueue;
   job->fd_event = e;
   job->jobq = q ? q : __default_jobq;
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
@@ -829,6 +834,9 @@ void eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e) {
     eventer_add(job->timeout_event);
   }
   eventer_jobq_enqueue(job->jobq, job, eventer_jobq_inflight());
+}
+void eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e) {
+  eventer_add_asynch_dep_subqueue(q, e, 0);
 }
 
 void eventer_add_timed(eventer_t e) {
