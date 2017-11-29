@@ -746,7 +746,7 @@ API_EXPORT(int) eventer_impl_setrlimit(void);
     \param e an event object
 
     This adds the `e` event to the job queue `q`.  `e` must have a mask
-    of `EVENETER_ASYNCH`.
+    of `EVENTER_ASYNCH`.
 */
 API_EXPORT(void) eventer_add_asynch(eventer_jobq_t *q, eventer_t e);
 
@@ -757,7 +757,7 @@ API_EXPORT(void) eventer_add_asynch(eventer_jobq_t *q, eventer_t e);
     \param id is a fairly competing subqueue identifier
 
     This adds the `e` event to the job queue `q`.  `e` must have a mask
-    of `EVENETER_ASYNCH`.
+    of `EVENTER_ASYNCH`.
 */
 API_EXPORT(void) eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
 
@@ -767,7 +767,7 @@ API_EXPORT(void) eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uin
     \param e an event object
 
     This adds the `e` event to the job queue `q`.  `e` must have a mask
-    of `EVENETER_ASYNCH`.  This should be called from within a asynch callback
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
     during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
     of the currently executing job.
 */
@@ -780,7 +780,7 @@ API_EXPORT(void) eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e);
     \param id is a fairly competing subqueue identifier
 
     This adds the `e` event to the job queue `q`.  `e` must have a mask
-    of `EVENETER_ASYNCH`.  This should be called from within a asynch callback
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
     during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
     of the currently executing job.
 */

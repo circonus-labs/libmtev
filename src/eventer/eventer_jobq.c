@@ -139,7 +139,7 @@ mark_squeue_job_completed(eventer_jobq_t *jobq, eventer_job_t *job) {
     if(ck_pr_load_32(&squeue->inflight) == 0 && squeue->headq == NULL) {
       /* There are no more jobs and we're not in the default subqueue...
        * tear it down. */
-      /* squeue->prev must exists (because we're not &jobq->queue) */
+      /* squeue->prev must exist (because we're not &jobq->queue) */
       squeue->prev->next = squeue->next;
       squeue->next->prev = squeue->prev;
       unsigned long hash = CK_HS_HASH(jobq->subqueues, __ck_hash_from_uint64,
@@ -430,9 +430,9 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
   uint32_t tgt_inflight = 0;
   /* We're going to spin around our work queues aiming for a balance
    * of inflight jobs per queue.
-   * first choose the next queue with <= (concurrent/queues) inflight jobs.
-   * there are possible rounding errors, so next bump by one and repeat.
-   * and if we have no jobs it means some of the queues have no more work,
+   * First choose the next queue with <= (concurrent/queues) inflight jobs.
+   * There are possible rounding errors, so next bump by one and repeat.
+   * If we have no jobs it means some of the queues have no more work,
    * so we run one last time with no inflight limit.
    */
   while(job == NULL) {
@@ -599,7 +599,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
     }
     mtevAssert(job->timeout_event == NULL);
     mtevAssert(job->subqueue == 0);
-    /* Because subqueue == 0, there's nothing fancy to do; squeue is out static queue. */
+    /* Because subqueue == 0, there's nothing fancy to do; squeue is our static queue. */
     ck_pr_dec_32(&job->squeue->inflight);
     ck_pr_dec_32(&jobq->inflight);
     free(job);
