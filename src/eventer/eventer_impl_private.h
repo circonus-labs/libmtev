@@ -104,6 +104,8 @@ struct _eventer_jobq_t {
   uint32_t                subqueue_count;
   ck_hs_t                *subqueues;
   eventer_jobsq_t        *current_squeue;
+  /* This isn't just doubly-linked,
+   * it is circular w/ queue as a fixed participant. */
   eventer_jobsq_t         queue;
   pthread_key_t           threadenv;
   pthread_key_t           activejob;
