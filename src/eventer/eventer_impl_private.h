@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2007, OmniTI Computer Consulting, Inc.
  * All rights reserved.
- * Copyright (c) 2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2015-2017, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -39,7 +39,7 @@ typedef struct eventer_context_t {
   void *data;
 } eventer_context_t;
 
-#define MAX_EVENT_CTXS 1
+#define MAX_EVENT_CTXS 3
 #ifdef HIDE_EVENTER_ABI
 struct _fd_opset {
   eventer_fd_accept_t accept;
