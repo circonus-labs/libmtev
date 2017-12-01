@@ -35,6 +35,7 @@
 #include "mtev_memory.h"
 #include "mtev_log.h"
 #include "mtev_thread.h"
+#include "mtev_rand.h"
 #include "eventer/eventer.h"
 #include "eventer/eventer_impl_private.h"
 #include "libmtev_dtrace.h"
@@ -65,14 +66,100 @@ eventer_jobq_queue_completion(eventer_job_t *job) {
     if(job->waiting)
       eventer_jobq_queue_completion(job->waiting);
     memcpy(&wakeupcopy, job->fd_event, sizeof(wakeupcopy));
+    /* All backq completion jobs do not use subqueues */
+    job->subqueue = 0;
     eventer_jobq_enqueue(eventer_default_backq(job->fd_event), job, NULL);
     eventer_wakeup(&wakeupcopy);
+  }
+}
+static unsigned long
+__ck_hash_from_uint64(const void *key, unsigned long seed) {
+  unsigned long v = *(uint64_t *)key;
+  return v^seed;
+}
+static bool
+__ck_hash_compare_uint64(const void *a, const void *b) {
+  return *(uint64_t *)a == *(uint64_t *)b;
+}
+static void *
+gen_malloc(size_t r)
+{
+  return malloc(r);
+}
+
+static void
+gen_free(void *p, size_t b, bool r)
+{
+  (void)b;
+  (void)r;
+  free(p);
+  return;
+}
+static struct ck_malloc malloc_ck_hs = {
+  .malloc = gen_malloc,
+  .free = gen_free
+};
+static eventer_jobsq_t *
+eventer_jobq_get_sq_nolock(eventer_jobq_t *jobq, uint64_t subqueue) {
+  if(subqueue == 0) return &jobq->queue;
+
+  if(!jobq->subqueues) {
+    jobq->subqueues = calloc(1, sizeof(*jobq->subqueues));
+    if(ck_hs_init(jobq->subqueues,
+                  CK_HS_MODE_OBJECT | CK_HS_MODE_DELETE | CK_HS_MODE_SPMC,
+                  __ck_hash_from_uint64, __ck_hash_compare_uint64,
+                  &malloc_ck_hs, 100, mtev_rand()) == false) {
+      mtevFatal(mtev_error, "Cannot initialize ck_hs\n");
+    }
+  }
+  unsigned long hash = CK_HS_HASH(jobq->subqueues, __ck_hash_from_uint64, &subqueue);
+  void *entry = ck_hs_get(jobq->subqueues, hash, &subqueue);
+  if(entry) return (eventer_jobsq_t *)entry;
+  eventer_jobsq_t *squeue = calloc(1, sizeof(*squeue));
+  squeue->subqueue = subqueue;
+  mtevEvalAssert(ck_hs_set(jobq->subqueues, hash, &squeue->subqueue, &entry));
+  mtevAssert(entry == NULL);
+  jobq->subqueue_count++;
+  /* Insert this jobsq in front of the fixed queue */
+  squeue->next = jobq->queue.next;
+  jobq->queue.next = squeue;
+  squeue->prev = squeue->next->prev;
+  squeue->next->prev = squeue;
+  return squeue;
+}
+
+static void
+mark_squeue_job_completed(eventer_jobq_t *jobq, eventer_job_t *job) {
+  bool done;
+  ck_pr_dec_32_zero(&job->squeue->inflight, &done);
+  if(job->squeue != &jobq->queue && done) {
+    pthread_mutex_lock(&jobq->lock);
+    eventer_jobsq_t *squeue = job->squeue;
+    /* recheck predicate with lock */
+    if(ck_pr_load_32(&squeue->inflight) == 0 && squeue->headq == NULL) {
+      /* There are no more jobs and we're not in the default subqueue...
+       * tear it down. */
+      /* squeue->prev must exist (because we're not &jobq->queue) */
+      squeue->prev->next = squeue->next;
+      squeue->next->prev = squeue->prev;
+      unsigned long hash = CK_HS_HASH(jobq->subqueues, __ck_hash_from_uint64,
+                                      &squeue->subqueue);
+      void *entry = ck_hs_remove(jobq->subqueues, hash, &squeue->subqueue);
+      mtevAssert(entry == squeue);
+      jobq->subqueue_count--;
+      /* If the current pointer for RR assignement is here, advance it */
+      if(jobq->current_squeue == squeue) jobq->current_squeue = squeue->next;
+
+      free(squeue);
+    }
+    pthread_mutex_unlock(&jobq->lock);
   }
 }
 static void
 eventer_jobq_finished_job(eventer_jobq_t *jobq, eventer_job_t *job) {
   int ntries;
   eventer_hrtime_t wait_time, run_time;
+  mark_squeue_job_completed(jobq, job);
   ck_pr_dec_32(&jobq->inflight);
   if(job->create_hrtime > job->start_hrtime) wait_time = 0;
   else wait_time = job->start_hrtime - job->create_hrtime;
@@ -164,6 +251,8 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     return jobq;
   }
   jobq = calloc(1, sizeof(*jobq));
+  jobq->subqueue_count = 1;
+  jobq->current_squeue = jobq->queue.next = jobq->queue.prev = &jobq->queue;
   jobq->queue_name = strdup(queue_name);
   jobq->mem_safety = mem_safety;
   jobq->isbackq = isbackq;
@@ -287,6 +376,7 @@ eventer_jobq_maybe_spawn(eventer_jobq_t *jobq, int bump) {
     mtevAssert(jobq->pending_cancels != jobq->desired_concurrency);
   }
 }
+
 void
 eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
   job->next = NULL;
@@ -309,14 +399,15 @@ eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *pa
 
   eventer_jobq_maybe_spawn(jobq, 1);
   pthread_mutex_lock(&jobq->lock);
-  if(jobq->tailq) {
+  job->squeue = eventer_jobq_get_sq_nolock(jobq, job->subqueue);
+  if(job->squeue->tailq) {
     /* If there is a tail (queue has items), just push it on the end. */
-    jobq->tailq->next = job;
-    jobq->tailq = job;
+    job->squeue->tailq->next = job;
+    job->squeue->tailq = job;
   }
   else {
     /* Otherwise, this is the first and only item on the list. */
-    jobq->headq = jobq->tailq = job;
+    job->squeue->headq = job->squeue->tailq = job;
   }
   pthread_mutex_unlock(&jobq->lock);
 
@@ -327,6 +418,7 @@ eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *pa
 static eventer_job_t *
 __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
   eventer_job_t *job = NULL;
+  int cycles = 0;
 
   /* Wait for a job */
   if(should_wait) while(sem_wait(&jobq->semaphore) && errno == EINTR);
@@ -334,12 +426,38 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
   else if(sem_trywait(&jobq->semaphore)) return NULL;
 
   pthread_mutex_lock(&jobq->lock);
-  if(jobq->headq) {
-    /* If there are items, pop and advance the header pointer */
-    job = jobq->headq;
-    jobq->headq = jobq->headq->next;
-    if(!jobq->headq) jobq->tailq = NULL;
+  eventer_jobsq_t *starting_point = jobq->current_squeue;
+  uint32_t tgt_inflight = 0;
+  /* We're going to spin around our work queues aiming for a balance
+   * of inflight jobs per queue.
+   * First choose the next queue with <= (concurrent/queues) inflight jobs.
+   * There are possible rounding errors, so next bump by one and repeat.
+   * If we have no jobs it means some of the queues have no more work,
+   * so we run one last time with no inflight limit.
+   */
+  while(job == NULL) {
+    eventer_jobsq_t *squeue = jobq->current_squeue;
+    if(squeue == starting_point) {
+      cycles++;
+      tgt_inflight = (jobq->concurrency / jobq->subqueue_count);
+      if(cycles == 1 && tgt_inflight == 0) {
+        cycles = 2; tgt_inflight = 1;
+      }
+
+      if(cycles == 1) tgt_inflight--;
+      else if(cycles == 2) (void)tgt_inflight; /* no op */
+      else if(cycles == 3) tgt_inflight = UINT32_MAX;
+      else break;
+    }
+    if(squeue->headq && squeue->inflight <= tgt_inflight) {
+      /* If there are items, pop and advance the header pointer */
+      job = squeue->headq;
+      squeue->headq = squeue->headq->next;
+      if(!squeue->headq) squeue->tailq = NULL;
+    }
+    jobq->current_squeue = jobq->current_squeue->next;
   }
+  if(job) ck_pr_inc_32(&job->squeue->inflight);
   pthread_mutex_unlock(&jobq->lock);
 
   if(job) {
@@ -369,6 +487,14 @@ eventer_jobq_destroy(eventer_jobq_t *jobq) {
                    (NoitHashFreeFunc) free, 0);
   pthread_mutex_unlock(&all_queues_lock);
 
+  if(jobq->subqueues) {
+    ck_hs_iterator_t iterator = CK_HS_ITERATOR_INITIALIZER;
+    void *entry;
+    while(ck_hs_next(jobq->subqueues, &iterator, &entry)) {
+      free(entry);
+    }
+    free(jobq->subqueues);
+  }
   pthread_mutex_destroy(&jobq->lock);
   sem_destroy(&jobq->semaphore);
 }
@@ -472,6 +598,9 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
       job->fd_event = NULL;
     }
     mtevAssert(job->timeout_event == NULL);
+    mtevAssert(job->subqueue == 0);
+    /* Because subqueue == 0, there's nothing fancy to do; squeue is our static queue. */
+    ck_pr_dec_32(&job->squeue->inflight);
     ck_pr_dec_32(&jobq->inflight);
     free(job);
     if(max_amount < 0) break;
@@ -539,6 +668,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
 
     mtev_hrtime_t nowhr = mtev_gethrtime();
     if(!job->fd_event) {
+      mark_squeue_job_completed(jobq, job);
       free(job);
       ck_pr_dec_32(&jobq->inflight);
       /* We might want to decrease our concurrency here */

@@ -33,6 +33,8 @@
 
 #include "mtev_stats.h"
 
+#include <ck_hs.h>
+
 typedef struct eventer_context_t {
   void *data;
 } eventer_context_t;
@@ -72,6 +74,7 @@ struct _eventer_job_t {
   pthread_t               executor;
   eventer_t               timeout_event;
   eventer_t               fd_event;
+  uint64_t                subqueue;
   int                     timeout_triggered; /* set, if it expires in-flight */
   uint32_t                inflight;
   uint32_t                has_cleanedup;
@@ -80,7 +83,16 @@ struct _eventer_job_t {
   struct _eventer_job_t  *waiting;
   struct _eventer_job_t  *next;
   struct _eventer_jobq_t *jobq;
+  struct _eventer_jobsq_t *squeue;
 };
+
+typedef struct _eventer_jobsq_t {
+  uint64_t                subqueue;
+  uint32_t                inflight;
+  eventer_job_t          *headq;
+  eventer_job_t          *tailq;
+  struct _eventer_jobsq_t *prev, *next;
+} eventer_jobsq_t;
 
 struct _eventer_jobq_t {
   const char             *queue_name;
@@ -89,8 +101,12 @@ struct _eventer_jobq_t {
   uint32_t                concurrency;
   uint32_t                desired_concurrency;
   uint32_t                pending_cancels;
-  eventer_job_t          *headq;
-  eventer_job_t          *tailq;
+  uint32_t                subqueue_count;
+  ck_hs_t                *subqueues;
+  eventer_jobsq_t        *current_squeue;
+  /* This isn't just doubly-linked,
+   * it is circular w/ queue as a fixed participant. */
+  eventer_jobsq_t         queue;
   pthread_key_t           threadenv;
   pthread_key_t           activejob;
   uint32_t                backlog;
