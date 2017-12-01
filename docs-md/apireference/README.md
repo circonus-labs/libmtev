@@ -30,9 +30,13 @@
 
 [mtev_get_durations_ms](c.md#mtevgetdurationsms), [mtev_get_durations_ns](c.md#mtevgetdurationsns), [mtev_get_durations_s](c.md#mtevgetdurationss), [mtev_get_durations_us](c.md#mtevgetdurationsus), [mtev_get_nanos](c.md#mtevgetnanos), [mtev_getip_ipv4](c.md#mtevgetipipv4), [mtev_gettimeofday](c.md#mtevgettimeofday)
 
+##### H
+
+[mtev_hash__hash](c.md#mtevhashhash), [mtev_hash_adv](c.md#mtevhashadv), [mtev_hash_adv_spmc](c.md#mtevhashadvspmc), [mtev_hash_delete](c.md#mtevhashdelete), [mtev_hash_delete_all](c.md#mtevhashdeleteall), [mtev_hash_destroy](c.md#mtevhashdestroy), [mtev_hash_init](c.md#mtevhashinit), [mtev_hash_init_locks](c.md#mtevhashinitlocks), [mtev_hash_init_mtev_memory](c.md#mtevhashinitmtevmemory), [mtev_hash_init_size](c.md#mtevhashinitsize), [mtev_hash_merge_as_dict](c.md#mtevhashmergeasdict), [mtev_hash_next](c.md#mtevhashnext), [mtev_hash_next_str](c.md#mtevhashnextstr), [mtev_hash_replace](c.md#mtevhashreplace), [mtev_hash_retr_str](c.md#mtevhashretrstr), [mtev_hash_retrieve](c.md#mtevhashretrieve), [mtev_hash_set](c.md#mtevhashset), [mtev_hash_size](c.md#mtevhashsize), [mtev_hash_store](c.md#mtevhashstore)
+
 ##### L
 
-[mtev_lockfile_acquire](c.md#mtevlockfileacquire), [mtev_lockfile_acquire_owner](c.md#mtevlockfileacquireowner), [mtev_lockfile_release](c.md#mtevlockfilerelease), [mtev_lua_lmc_alloc](c.md#mtevlualmcalloc), [mtev_lua_lmc_free](c.md#mtevlualmcfree), [mtev_lua_lmc_L](c.md#mtevlualmcL), [mtev_lua_lmc_resume](c.md#mtevlualmcresume), [mtev_lua_lmc_setL](c.md#mtevlualmcsetL)
+[mtev_lfu_create](c.md#mtevlfucreate), [mtev_lfu_destroy](c.md#mtevlfudestroy), [mtev_lfu_get](c.md#mtevlfuget), [mtev_lfu_invalidate](c.md#mtevlfuinvalidate), [mtev_lfu_put](c.md#mtevlfuput), [mtev_lfu_release](c.md#mtevlfurelease), [mtev_lfu_remove](c.md#mtevlfuremove), [mtev_lfu_size](c.md#mtevlfusize), [mtev_lockfile_acquire](c.md#mtevlockfileacquire), [mtev_lockfile_acquire_owner](c.md#mtevlockfileacquireowner), [mtev_lockfile_release](c.md#mtevlockfilerelease), [mtev_lua_lmc_alloc](c.md#mtevlualmcalloc), [mtev_lua_lmc_free](c.md#mtevlualmcfree), [mtev_lua_lmc_L](c.md#mtevlualmcL), [mtev_lua_lmc_resume](c.md#mtevlualmcresume), [mtev_lua_lmc_setL](c.md#mtevlualmcsetL)
 
 ##### M
 

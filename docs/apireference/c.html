@@ -2645,7 +2645,250 @@ mtev_get_nanos(<span class="hljs-keyword">void</span>)
 <li></li>
 <li>If the fast path is taken, ttp is ignored.</li>
 </ul>
+<h3 id="h">H</h3>
+<h4 id="mtevhashhash">mtev_hash__hash</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span> 
+mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">uint32_t</span> length, <span class="hljs-keyword">uint32_t</span> initval)
+</code></pre>
+<blockquote>
+<p>the internal hash function that mtev_hash_table uses exposed for external usage</p>
+</blockquote>
+<h4 id="mtevhashadv">mtev_hash_adv</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_adv</span><span class="hljs-params">(mtev_hash_table *h, mtev_hash_iter *iter)</span>
+</span></code></pre>
+<blockquote>
+<p>iterate through key/values in the hash_table</p>
+</blockquote>
+<p>  This is an iterator and requires the hash to not be written to during the
+   iteration process.
+   To use:
+ mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;</p>
+<p> while(mtev_hash_adv(h, &amp;iter)) {
+   .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
+ }</p>
+<h4 id="mtevhashadvspmc">mtev_hash_adv_spmc</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_adv_spmc</span><span class="hljs-params">(mtev_hash_table *h, mtev_hash_iter *iter)</span>
+</span></code></pre>
+<blockquote>
+<p>iterate through the key/values in the hash_table</p>
+</blockquote>
+<p>   This is an iterator and requires that if the hash it written to
+   during the iteration process, you must employ SMR on the hash itself
+   to prevent destruction of memory for hash resizes by using the
+   special init function mtev_hash_init_mtev_memory.</p>
+<p>   To use:
+   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;</p>
+<p>   while(mtev_hash_adv_spmc(h, &amp;iter)) {
+   .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
+   }</p>
+<h4 id="mtevhashdelete">mtev_hash_delete</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_delete</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, NoitHashFreeFunc keyfree
+                 NoitHashFreeFunc datafree)</span>
+</span></code></pre>
+<blockquote>
+<p>remove the key/value stored at &quot;k&quot; and call keyfree and datafree if they are provided</p>
+</blockquote>
+<h4 id="mtevhashdeleteall">mtev_hash_delete_all</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_hash_delete_all</span><span class="hljs-params">(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)</span>
+</span></code></pre>
+<blockquote>
+<p>remove all keys and values and call keyfree and datafree if they are provided</p>
+</blockquote>
+<h4 id="mtevhashdestroy">mtev_hash_destroy</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_hash_destroy</span><span class="hljs-params">(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)</span>
+</span></code></pre>
+<blockquote>
+<p>remove all keys and values and call keyfree and datafree if they are provided but also wipe out the underlying map</p>
+</blockquote>
+<p>  This must be called on any hash_table that has been mtev_hash_inited or it will leak memory</p>
+<h4 id="mtevhashinit">mtev_hash_init</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_hash_init</span><span class="hljs-params">(mtev_hash_table *h)</span>
+</span></code></pre>
+<blockquote>
+<p>initialize a hash_table</p>
+</blockquote>
+<p>  will default to LOCK_MODE_NONE and MTEV_HASH_DEFAULT_SIZE (1&lt;&lt;7)</p>
+<h4 id="mtevhashinitlocks">mtev_hash_init_locks</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_hash_init_locks</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">int</span> size, mtev_hash_lock_mode_t lock_mode)</span>
+</span></code></pre>
+<blockquote>
+<p>choose the lock mode when initing the hash.</p>
+</blockquote>
+<p>  It&apos;s worth noting that the lock only affects the write side of the hash,
+  the read side remains completely lock free.</p>
+<h4 id="mtevhashinitmtevmemory">mtev_hash_init_mtev_memory</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_hash_init_mtev_memory</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">int</span> size, mtev_hash_lock_mode_t lock_mode)</span>
+</span></code></pre>
+<blockquote>
+<p>choose the lock mode when initing the hash.</p>
+</blockquote>
+<p>  It&apos;s worth noting that the lock only affects the write side of the hash,
+  the read side remains completely lock free.</p>
+<p>  This variant will use mtev_memory ck allocator functions to allow this
+  hash to participate in SMR via mtev_memory transactions.  You need to wrap
+  memory transactions in mtev_memory_begin()/mtev_memory_end()</p>
+<h4 id="mtevhashinitsize">mtev_hash_init_size</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_hash_init_size</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">int</span> size)</span>
+</span></code></pre>
+<blockquote>
+<p>initialize a hash_table with an initial size</p>
+</blockquote>
+<p>  will default to LOCK_MODE_NONE</p>
+<h4 id="mtevhashmergeasdict">mtev_hash_merge_as_dict</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_hash_merge_as_dict</span><span class="hljs-params">(mtev_hash_table *dst, mtev_hash_table *src)</span>
+</span></code></pre>
+<blockquote>
+<p>merge string values in &quot;src&quot; into &quot;dst&quot;</p>
+</blockquote>
+<p>  This is a convenience function only.  It assumes that all keys and values
+  in the destination hash are strings and allocated with malloc() and
+  assumes that the source contains only keys and values that can be
+  suitably duplicated by strdup().</p>
+<h4 id="mtevhashnext">mtev_hash_next</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_next</span><span class="hljs-params">(mtev_hash_table *h, mtev_hash_iter *iter, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **k, <span class="hljs-keyword">int</span> *klen
+               <span class="hljs-keyword">void</span> **data)</span>
+</span></code></pre>
+<blockquote>
+<p>iterate through the key/values in the hash_table</p>
+</blockquote>
+<p>  These are older, more painful APIs... use mtev_hash_adv
+   Note that neither of these sets the key, value, or klen in iter</p>
+<h4 id="mtevhashnextstr">mtev_hash_next_str</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_next_str</span><span class="hljs-params">(mtev_hash_table *h, mtev_hash_iter *iter, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **k, <span class="hljs-keyword">int</span> *klen
+                   <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **dstr)</span>
+</span></code></pre>
+<blockquote>
+<p>iterate through the key/values in the hash_table as strings</p>
+</blockquote>
+<p>  These are older, more painful APIs... use mtev_hash_adv </p>
+<h4 id="mtevhashreplace">mtev_hash_replace</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_replace</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data, 
+                  NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)</span>
+</span></code></pre>
+<blockquote>
+<p>replace and delete (call keyfree and datafree functions) anything that was already in this hash location</p>
+</blockquote>
+<h4 id="mtevhashretrstr">mtev_hash_retr_str</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_retr_str</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **dstr)</span>
+</span></code></pre>
+<blockquote>
+<p>fetch the value at &quot;k&quot; into &quot;data&quot; as a string</p>
+</blockquote>
+<h4 id="mtevhashretrieve">mtev_hash_retrieve</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_retrieve</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> **data)</span>
+</span></code></pre>
+<blockquote>
+<p>fetch the value at &quot;k&quot; into &quot;data&quot;</p>
+</blockquote>
+<h4 id="mtevhashset">mtev_hash_set</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_set</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data, <span class="hljs-keyword">char</span> **oldkey
+              <span class="hljs-keyword">void</span> **olddata)</span>
+</span></code></pre>
+<blockquote>
+<p>replace and return the old value and old key that was in this hash location</p>
+</blockquote>
+<p>  will return MTEV_HASH_SUCCESS on successful set with no replacement
+  will return MTEV_HASH_FAILURE on failure to set
+  will return MTEV_HASH_SUCCESS_REPLACEMENT on successful set with replacement</p>
+<h4 id="mtevhashsize">mtev_hash_size</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_size</span><span class="hljs-params">(mtev_hash_table *h)</span>
+</span></code></pre>
+<blockquote>
+<p>return the number of entries in the hash_table</p>
+</blockquote>
+<h4 id="mtevhashstore">mtev_hash_store</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<span class="hljs-title">mtev_hash_store</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data)</span>
+</span></code></pre>
+<blockquote>
+<p>put something in the hash_table</p>
+</blockquote>
+<p>  This will fail if the key already exists in the hash_table</p>
+<p>  NOTE! &quot;k&quot; and &quot;data&quot; MUST NOT be transient buffers, as the hash table
+  implementation does not duplicate them.  You provide a pair of
+  NoitHashFreeFunc functions to free up their storage when you call
+  mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().</p>
 <h3 id="l">L</h3>
+<h4 id="mtevlfucreate">mtev_lfu_create</h4>
+<pre><code class="lang-c">mtev_lfu_create(<span class="hljs-keyword">int32_t</span> max_entries, <span class="hljs-keyword">void</span> (*free_fn)(<span class="hljs-keyword">void</span> *))
+</code></pre>
+<blockquote>
+<p>Create an LFU of max_entries size</p>
+</blockquote>
+<p>  Will call free_fn when an item is evicted. if free_fn is null, call free().
+  If max_entries == -1 then this devolves to a normal hashtable.</p>
+<h4 id="mtevlfudestroy">mtev_lfu_destroy</h4>
+<pre><code class="lang-c">mtev_lfu_destroy(<span class="hljs-keyword">mtev_lfu_t</span> *)
+</code></pre>
+<blockquote>
+<p>Destroy the LFU</p>
+</blockquote>
+<h4 id="mtevlfuget">mtev_lfu_get</h4>
+<pre><code class="lang-c"><span class="hljs-function">mtev_lfu_entry_token 
+<span class="hljs-title">mtev_lfu_get</span><span class="hljs-params">(mtev_lfu_t *lfu, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, size_t key_len, <span class="hljs-keyword">void</span> **value)</span>
+</span></code></pre>
+<blockquote>
+<p>Get an item from the LFU by key</p>
+</blockquote>
+<p>  This will fetch the item at &quot;key&quot; and put the value in &quot;value&quot;. It will also
+  return a token as the return value of the function.  This token is used
+  as the checkout of the item from the LFU.  When you are finished using
+  the value, you must call &quot;mtev_lfu_release(mtev_lfu_t *lfu, mtev_lfu_entry_token token)&quot;
+  to let the LFU know that reclamation for that key/value is possible.</p>
+<h4 id="mtevlfuinvalidate">mtev_lfu_invalidate</h4>
+<pre><code class="lang-c">mtev_lfu_invalidate(<span class="hljs-keyword">mtev_lfu_t</span> *)
+</code></pre>
+<blockquote>
+<p>Remove all entries from the LFU</p>
+</blockquote>
+<h4 id="mtevlfuput">mtev_lfu_put</h4>
+<pre><code class="lang-c">mtev_lfu_put(<span class="hljs-keyword">mtev_lfu_t</span> *lfu, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">size_t</span> key_len, <span class="hljs-keyword">void</span> *value)
+</code></pre>
+<blockquote>
+<p>Put a new item into the LFU</p>
+</blockquote>
+<p>  If some other thread has added a val at this key this will overwrite it and
+  restart the frequency count at 1.</p>
+<p>  This will cause an eviction of the least frequently used item if the cache is full.</p>
+<h4 id="mtevlfurelease">mtev_lfu_release</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">mtev_lfu_release</span><span class="hljs-params">(mtev_lfu_t *lfu, mtev_lfu_entry_token token)</span>
+</span></code></pre>
+<blockquote>
+<p>Surrender an item back to the LFU</p>
+</blockquote>
+<p>  To be memory safe LFU tokens must be released back to the LFU when
+  the user is finished using them.</p>
+<h4 id="mtevlfuremove">mtev_lfu_remove</h4>
+<pre><code class="lang-c">mtev_lfu_remove(<span class="hljs-keyword">mtev_lfu_t</span> *lfu, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">size_t</span> key_len)
+</code></pre>
+<blockquote>
+<p>Remove key from the LFU</p>
+</blockquote>
+<p>  This does not call the free_fn, instead it returns the value</p>
+<h4 id="mtevlfusize">mtev_lfu_size</h4>
+<pre><code class="lang-c">mtev_lfu_size(<span class="hljs-keyword">mtev_lfu_t</span> *lfu)
+</code></pre>
+<blockquote>
+<p>Return the total entry count in the LFU</p>
+</blockquote>
 <h4 id="mtevlockfileacquire">mtev_lockfile_acquire</h4>
 <blockquote>
 <p>lock the file immediately if possible, return -1 otherwise.</p>

@@ -2631,7 +2631,437 @@ mtev_gettimeofday(struct timeval *t, void **ttp)
  * If the fast path is taken, ttp is ignored.
  
 
+### H
+
+#### mtev_hash__hash
+
+```c
+uint32_t 
+mtev_hash__hash(const char *k, uint32_t length, uint32_t initval)
+```
+
+  
+> the internal hash function that mtev_hash_table uses exposed for external usage
+
+
+ 
+
+#### mtev_hash_adv
+
+```c
+int 
+mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter)
+```
+
+  
+> iterate through key/values in the hash_table
+
+
+
+  This is an iterator and requires the hash to not be written to during the
+   iteration process.
+   To use:
+ mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+
+ while(mtev_hash_adv(h, &iter)) {
+   .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
+ }
+
+
+#### mtev_hash_adv_spmc
+
+```c
+int 
+mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter)
+```
+
+  
+> iterate through the key/values in the hash_table
+
+
+
+   This is an iterator and requires that if the hash it written to
+   during the iteration process, you must employ SMR on the hash itself
+   to prevent destruction of memory for hash resizes by using the
+   special init function mtev_hash_init_mtev_memory.
+
+   To use:
+   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+
+   while(mtev_hash_adv_spmc(h, &iter)) {
+   .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
+   }
+
+
+#### mtev_hash_delete
+
+```c
+int 
+mtev_hash_delete(mtev_hash_table *h, const char *k, int klen, NoitHashFreeFunc keyfree
+                 NoitHashFreeFunc datafree)
+```
+
+  
+> remove the key/value stored at "k" and call keyfree and datafree if they are provided
+
+
+ 
+
+#### mtev_hash_delete_all
+
+```c
+void 
+mtev_hash_delete_all(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
+```
+
+  
+> remove all keys and values and call keyfree and datafree if they are provided
+
+
+ 
+
+#### mtev_hash_destroy
+
+```c
+void 
+mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
+```
+
+  
+> remove all keys and values and call keyfree and datafree if they are provided but also wipe out the underlying map
+
+
+
+  This must be called on any hash_table that has been mtev_hash_inited or it will leak memory
+ 
+
+#### mtev_hash_init
+
+```c
+void 
+mtev_hash_init(mtev_hash_table *h)
+```
+
+  
+> initialize a hash_table
+
+
+
+  will default to LOCK_MODE_NONE and MTEV_HASH_DEFAULT_SIZE (1<<7)
+ 
+
+#### mtev_hash_init_locks
+
+```c
+void 
+mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode)
+```
+
+  
+> choose the lock mode when initing the hash.
+
+
+
+  It's worth noting that the lock only affects the write side of the hash,
+  the read side remains completely lock free.
+ 
+
+#### mtev_hash_init_mtev_memory
+
+```c
+void 
+mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode)
+```
+
+  
+> choose the lock mode when initing the hash.
+
+
+
+  It's worth noting that the lock only affects the write side of the hash,
+  the read side remains completely lock free.
+
+  This variant will use mtev_memory ck allocator functions to allow this
+  hash to participate in SMR via mtev_memory transactions.  You need to wrap
+  memory transactions in mtev_memory_begin()/mtev_memory_end()
+ 
+
+#### mtev_hash_init_size
+
+```c
+void 
+mtev_hash_init_size(mtev_hash_table *h, int size)
+```
+
+  
+> initialize a hash_table with an initial size
+
+
+
+  will default to LOCK_MODE_NONE
+ 
+
+#### mtev_hash_merge_as_dict
+
+```c
+void 
+mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src)
+```
+
+  
+> merge string values in "src" into "dst"
+
+
+
+  This is a convenience function only.  It assumes that all keys and values
+  in the destination hash are strings and allocated with malloc() and
+  assumes that the source contains only keys and values that can be
+  suitably duplicated by strdup().
+ 
+
+#### mtev_hash_next
+
+```c
+int 
+mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen
+               void **data)
+```
+
+  
+> iterate through the key/values in the hash_table
+
+
+
+
+  These are older, more painful APIs... use mtev_hash_adv
+   Note that neither of these sets the key, value, or klen in iter
+
+
+#### mtev_hash_next_str
+
+```c
+int 
+mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen
+                   const char **dstr)
+```
+
+  
+> iterate through the key/values in the hash_table as strings
+
+
+
+
+  These are older, more painful APIs... use mtev_hash_adv 
+
+#### mtev_hash_replace
+
+```c
+int 
+mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data, 
+                  NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
+```
+
+  
+> replace and delete (call keyfree and datafree functions) anything that was already in this hash location
+
+
+ 
+
+#### mtev_hash_retr_str
+
+```c
+int 
+mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr)
+```
+
+  
+> fetch the value at "k" into "data" as a string
+
+
+ 
+
+#### mtev_hash_retrieve
+
+```c
+int 
+mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data)
+```
+
+  
+> fetch the value at "k" into "data"
+
+
+ 
+
+#### mtev_hash_set
+
+```c
+int 
+mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data, char **oldkey
+              void **olddata)
+```
+
+  
+> replace and return the old value and old key that was in this hash location
+
+
+
+  will return MTEV_HASH_SUCCESS on successful set with no replacement
+  will return MTEV_HASH_FAILURE on failure to set
+  will return MTEV_HASH_SUCCESS_REPLACEMENT on successful set with replacement
+ 
+
+#### mtev_hash_size
+
+```c
+int 
+mtev_hash_size(mtev_hash_table *h)
+```
+
+  
+> return the number of entries in the hash_table
+
+
+ 
+
+#### mtev_hash_store
+
+```c
+int 
+mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data)
+```
+
+  
+> put something in the hash_table
+
+
+
+  This will fail if the key already exists in the hash_table
+
+  NOTE! "k" and "data" MUST NOT be transient buffers, as the hash table
+  implementation does not duplicate them.  You provide a pair of
+  NoitHashFreeFunc functions to free up their storage when you call
+  mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().
+ 
+
 ### L
+
+#### mtev_lfu_create
+
+```c
+mtev_lfu_create(int32_t max_entries, void (*free_fn)(void *))
+```
+
+  
+> Create an LFU of max_entries size
+
+
+
+  Will call free_fn when an item is evicted. if free_fn is null, call free().
+  If max_entries == -1 then this devolves to a normal hashtable.
+ 
+
+#### mtev_lfu_destroy
+
+```c
+mtev_lfu_destroy(mtev_lfu_t *)
+```
+
+  
+> Destroy the LFU
+
+
+ 
+
+#### mtev_lfu_get
+
+```c
+mtev_lfu_entry_token 
+mtev_lfu_get(mtev_lfu_t *lfu, const char *key, size_t key_len, void **value)
+```
+
+  
+> Get an item from the LFU by key
+
+
+
+  This will fetch the item at "key" and put the value in "value". It will also
+  return a token as the return value of the function.  This token is used
+  as the checkout of the item from the LFU.  When you are finished using
+  the value, you must call "mtev_lfu_release(mtev_lfu_t *lfu, mtev_lfu_entry_token token)"
+  to let the LFU know that reclamation for that key/value is possible.
+ 
+
+#### mtev_lfu_invalidate
+
+```c
+mtev_lfu_invalidate(mtev_lfu_t *)
+```
+
+  
+> Remove all entries from the LFU
+
+
+ 
+
+#### mtev_lfu_put
+
+```c
+mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *value)
+```
+
+  
+> Put a new item into the LFU
+
+
+
+  If some other thread has added a val at this key this will overwrite it and
+  restart the frequency count at 1.
+
+  This will cause an eviction of the least frequently used item if the cache is full.
+ 
+
+#### mtev_lfu_release
+
+```c
+void 
+mtev_lfu_release(mtev_lfu_t *lfu, mtev_lfu_entry_token token)
+```
+
+  
+> Surrender an item back to the LFU
+
+
+
+  To be memory safe LFU tokens must be released back to the LFU when
+  the user is finished using them.
+ 
+
+#### mtev_lfu_remove
+
+```c
+mtev_lfu_remove(mtev_lfu_t *lfu, const char *key, size_t key_len)
+```
+
+  
+> Remove key from the LFU
+
+
+
+  This does not call the free_fn, instead it returns the value
+ 
+
+#### mtev_lfu_size
+
+```c
+mtev_lfu_size(mtev_lfu_t *lfu)
+```
+
+  
+> Return the total entry count in the LFU
+
+
+ 
 
 #### mtev_lockfile_acquire
 

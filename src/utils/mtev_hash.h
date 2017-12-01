@@ -56,13 +56,13 @@ typedef struct mtev_hash_table {
   union {
     ck_hs_t hs;
     /**
-     * This is evil.  In order to maintain ABI compat 
+     * This is evil.  In order to maintain ABI compat
      * we are sneaking lock info into a pointer
      * in the leftover space for cache alignment
-     * 
+     *
      * A ck_hs_t is ~48 bytes but since it has
      * always been declared up to a cache line
-     * there is trailing space we can sneak a 
+     * there is trailing space we can sneak a
      * pointer into
      */
     struct {
@@ -104,73 +104,131 @@ CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
 #define MTEV_HASH_ITER_ZERO { CK_HS_ITERATOR_INITIALIZER }
 #define MTEV_HASH_DEFAULT_SIZE (1<<7)
 
-/**
- * will default to LOCK_MODE_MUTEX
+/*!
+  \fn void mtev_hash_init(mtev_hash_table *h)
+  \brief initialize a hash_table
+
+  will default to LOCK_MODE_NONE and MTEV_HASH_DEFAULT_SIZE (1<<7)
  */
 void mtev_hash_init(mtev_hash_table *h);
-/**
- * will default to LOCK_MODE_MUTEX
+
+/*!
+  \fn void mtev_hash_init_size(mtev_hash_table *h, int size)
+  \brief initialize a hash_table with an initial size
+
+  will default to LOCK_MODE_NONE
  */
 void mtev_hash_init_size(mtev_hash_table *h, int size);
-/**
- * Choose the lock mode when initing the hash.
- * 
- * It's worth noting that the lock only affects the write side of the hash,
- * the read side remains completely lock free.
+
+/*!
+  \fn void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode)
+  \brief choose the lock mode when initing the hash.
+
+  It's worth noting that the lock only affects the write side of the hash,
+  the read side remains completely lock free.
  */
 void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode);
 
-/**
- * Choose the lock mode when initing the hash.
- * 
- * It's worth noting that the lock only affects the write side of the hash,
- * the read side remains completely lock free.
- * 
- * This variant will use mtev_memory ck allocator functions to allow this
- * hash to participate in SMR via mtev_memory block.  You need to wrap 
- * memory blocks in mtev_memory_begin()/mtev_memory_end()
+/*!
+  \fn void mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode)
+  \brief choose the lock mode when initing the hash.
+
+  It's worth noting that the lock only affects the write side of the hash,
+  the read side remains completely lock free.
+
+  This variant will use mtev_memory ck allocator functions to allow this
+  hash to participate in SMR via mtev_memory transactions.  You need to wrap
+  memory transactions in mtev_memory_begin()/mtev_memory_end()
  */
 void mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode);
 
-/* NOTE! "k" and "data" MUST NOT be transient buffers, as the hash table
- * implementation does not duplicate them.  You provide a pair of
- * NoitHashFreeFunc functions to free up their storage when you call
- * mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().
- * */
+/*!
+  \fn int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data)
+  \brief put something in the hash_table
+
+  This will fail if the key already exists in the hash_table
+
+  NOTE! "k" and "data" MUST NOT be transient buffers, as the hash table
+  implementation does not duplicate them.  You provide a pair of
+  NoitHashFreeFunc functions to free up their storage when you call
+  mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().
+ */
 int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data);
-/* replace and delete (call keyfree and datafree functions) anything that was 
- * already in this hash location
+
+/*!
+  \fn int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
+  \brief replace and delete (call keyfree and datafree functions) anything that was already in this hash location
  */
 int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
                       NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree);
 
-/* replace and return the old value and old key that was in this hash location
- * 
- * will return MTEV_HASH_SUCCESS on successful set with no replacement
- * will return MTEV_HASH_FAILURE on failure to set
- * will return MTEV_HASH_SUCCESS_REPLACEMENT on successful set with replacement
+/*!
+  \fn int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data, char **oldkey, void **olddata)
+  \brief replace and return the old value and old key that was in this hash location
+
+  will return MTEV_HASH_SUCCESS on successful set with no replacement
+  will return MTEV_HASH_FAILURE on failure to set
+  will return MTEV_HASH_SUCCESS_REPLACEMENT on successful set with replacement
  */
 int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
                   char **oldkey, void **olddata);
 
+/*!
+  \fn int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data)
+  \brief fetch the value at "k" into "data"
+ */
 int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data);
+
+/*!
+  \fn int mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr)
+  \brief fetch the value at "k" into "data" as a string
+ */
 int mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr);
+
+/*!
+  \fn int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
+  \brief remove the key/value stored at "k" and call keyfree and datafree if they are provided
+ */
 int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen,
                      NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree);
+
+/*!
+  \fn void mtev_hash_delete_all(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
+  \brief remove all keys and values and call keyfree and datafree if they are provided
+ */
 void mtev_hash_delete_all(mtev_hash_table *h, NoitHashFreeFunc keyfree,
                           NoitHashFreeFunc datafree);
+/*!
+  \fn void mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
+  \brief remove all keys and values and call keyfree and datafree if they are provided but also wipe out the underlying map
+
+  This must be called on any hash_table that has been mtev_hash_inited or it will leak memory
+ */
 void mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree,
                        NoitHashFreeFunc datafree);
+
+/*!
+  \fn int mtev_hash_size(mtev_hash_table *h)
+  \brief return the number of entries in the hash_table
+ */
 int mtev_hash_size(mtev_hash_table *h);
 
-/* This is a convenience function only.  It assumes that all keys and values
- * in the destination hash are strings and allocated with malloc() and
- * assumes that the source contains only keys and values that can be
- * suitably duplicated by strdup().
+/*!
+  \fn void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src)
+  \brief merge string values in "src" into "dst"
+
+  This is a convenience function only.  It assumes that all keys and values
+  in the destination hash are strings and allocated with malloc() and
+  assumes that the source contains only keys and values that can be
+  suitably duplicated by strdup().
  */
 void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src);
 
-/* This is an iterator and requires the hash to not be written to during the
+/*!
+  \fn  int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter)
+  \brief iterate through key/values in the hash_table
+
+  This is an iterator and requires the hash to not be written to during the
    iteration process.
    To use:
      mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
@@ -181,9 +239,13 @@ void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src);
 */
 int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter);
 
-/* This is an iterator and requires that if the hash it written to
+/*!
+  \fn int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter)
+  \brief iterate through the key/values in the hash_table
+
+   This is an iterator and requires that if the hash it written to
    during the iteration process, you must employ SMR on the hash itself
-   to prevent destruction of memory for hash resizes by using the 
+   to prevent destruction of memory for hash resizes by using the
    special init function mtev_hash_init_mtev_memory.
 
    To use:
@@ -195,13 +257,32 @@ int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter);
 */
 int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter);
 
-/* These are older, more painful APIs... use mtev_hash_adv */
-/* Note that neither of these sets the key, value, or klen in iter */
+/*!
+  \fn int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen, void **data)
+  \brief iterate through the key/values in the hash_table
+
+
+  These are older, more painful APIs... use mtev_hash_adv
+   Note that neither of these sets the key, value, or klen in iter
+*/
 int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
                    const char **k, int *klen, void **data);
+
+/*!
+  \fn int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen, const char **dstr)
+  \brief iterate through the key/values in the hash_table as strings
+
+
+  These are older, more painful APIs... use mtev_hash_adv */
+/* Note that neither of these sets the key, value, or klen in iter */
 int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
                        const char **k, int *klen, const char **dstr);
 
+
+/*!
+  \fn uint32_t mtev_hash__hash(const char *k, uint32_t length, uint32_t initval)
+  \brief the internal hash function that mtev_hash_table uses exposed for external usage
+ */
 uint32_t mtev_hash__hash(const char *k, uint32_t length, uint32_t initval);
 
 #endif
