@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2007, OmniTI Computer Consulting, Inc.
  * All rights reserved.
- * Copyright (c) 2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2015-2017, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -36,6 +36,7 @@
 #include "mtev_hash.h"
 #include "mtev_stats.h"
 #include "mtev_memory.h"
+#include "mtev_task.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -73,6 +74,7 @@ void eventer_callback_cleanup(eventer_t e, int m) {
 }
 
 int eventer_register_context(const char *name, eventer_context_opset_t *o) {
+  if(eventer_contexts_cnt >= MAX_EVENT_CTXS) return -1;
   int idx = eventer_contexts_cnt++;
   eventer_contexts[idx].name = strdup(name);
   eventer_contexts[idx].opset = o;
@@ -362,6 +364,7 @@ void eventer_init_globals(void) {
   stats_rob_i64(eventer_stats_ns, "events_current", (void *)&ealloccnt);
   eventer_impl_init_globals();
   eventer_ssl_init_globals();
+  mtev_task_eventer_init();
 }
 
 
