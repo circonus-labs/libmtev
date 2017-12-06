@@ -131,12 +131,11 @@ eventer_jobq_get_sq_nolock(eventer_jobq_t *jobq, uint64_t subqueue) {
 static void
 mark_squeue_job_completed(eventer_jobq_t *jobq, eventer_job_t *job) {
   bool done;
-  ck_pr_dec_32_zero(&job->squeue->inflight, &done);
-  if(job->squeue != &jobq->queue && done) {
-    pthread_mutex_lock(&jobq->lock);
+  if(job->squeue != &jobq->queue) {
     eventer_jobsq_t *squeue = job->squeue;
-    /* recheck predicate with lock */
-    if(ck_pr_load_32(&squeue->inflight) == 0 && squeue->headq == NULL) {
+    pthread_mutex_lock(&jobq->lock);
+    ck_pr_dec_32_zero(&job->squeue->inflight, &done);
+    if(done && squeue->headq == NULL) {
       /* There are no more jobs and we're not in the default subqueue...
        * tear it down. */
       /* squeue->prev must exist (because we're not &jobq->queue) */
