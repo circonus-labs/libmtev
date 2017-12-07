@@ -7,7 +7,10 @@ if [ $? -eq 0 ]; then
   TSTAMP=`git show --format=%at | head -1`
   echo "    * version -> $HASH"
   SYM=`git name-rev $HASH | awk '{print $2;}' | sed -e 's/\^.*//'`
-  if [ -z "`echo $SYM | grep '^tags/'`" ]; then
+  TAG=`git describe --tags --exact-match 2>/dev/null`
+  if [ -n "$TAG" ]; then
+    SYM="$TAG"
+  elif [ -z "`echo $SYM | grep '^tags/'`" ]; then
     SYM="branches/$SYM"
   fi
   echo "    * symbolic -> $SYM"
