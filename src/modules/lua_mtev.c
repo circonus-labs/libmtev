@@ -40,6 +40,7 @@
 #include <signal.h>
 #include <spawn.h>
 #include <dirent.h>
+#include <stdint.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #ifdef HAVE_SYS_FILIO_H
@@ -3390,18 +3391,31 @@ mtev_json_object_to_luatype(lua_State *L, mtev_json_object *o) {
       int64_t i64;
       uint64_t u64;
       char istr[64];
+      /* push "double" if we can accurately represent the number in a
+       * double; otherwise, push a string. doubles have 52-bit mantissas.
+       */
+#define REPR_LUA_INT_MAX(t) (t(1) << 52)
       switch(mtev_json_object_get_int_overflow(o)) {
         case mtev_json_overflow_int:
+          /* 32-bit number, can be represented accurately. */
           lua_pushnumber(L, mtev_json_object_get_int(o)); break;
         case mtev_json_overflow_int64:
           i64 = mtev_json_object_get_int64(o);
-          snprintf(istr, sizeof(istr), "%" PRId64, i64);
-          lua_pushstring(L, istr);
+          if (i64 > -REPR_LUA_INT_MAX(INT64_C) && i64 < REPR_LUA_INT_MAX(INT64_C))
+            lua_pushnumber(L, i64);
+          else {
+            snprintf(istr, sizeof(istr), "%" PRId64, i64);
+            lua_pushstring(L, istr);
+          }
           break;
         case mtev_json_overflow_uint64:
           u64 = mtev_json_object_get_uint64(o);
-          snprintf(istr, sizeof(istr), "%" PRIu64, u64);
-          lua_pushstring(L, istr);
+          if (u64 < REPR_LUA_INT_MAX(UINT64_C))
+            lua_pushnumber(L, u64);
+          else {
+            snprintf(istr, sizeof(istr), "%" PRIu64, u64);
+            lua_pushstring(L, istr);
+          }
           break;
       }
       break;
