@@ -566,20 +566,20 @@
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="important-notes">Important Notes</h1>
-<p>In this section we will call out important notes that effect all developers
+<p>In this section we will call out important notes that affect all developers
 that will integrate libmtev.  These notes will be reinforced in other more
 specific sections, but often deal with the interaction between components.</p>
 <h3 id="the-eventer-and-the-watchdog-and-you">The Eventer and the Watchdog and You</h3>
 <p>The eventer is the core operational concept of libmtev; it is its heart.
 Unlike some simple event loops out there, libmtev uses multi-threaded
-event loops (called and eventer_pools).  By default, there is one eventer_pool
+event loops (called eventer_pools).  By default, there is one eventer_pool
 in the system, but more can be configured.  In addition to the traditional
 event loop concept, asynchronous job queues (&quot;eventer_jobq&quot;) are available
-for operations that stand to block the normal event loops.  These queues
-are named and can have different concurrencies based on work load.</p>
-<p>So you have multiple asynch queues, each with configurable and run-time
-adjustable concurrency plus multiple pools each with multiple threads running
-a &quot;traditional&quot; event loop.</p>
+for operations having the potential to block the normal event loops.  These
+queues are named and can have different concurrencies based on work load.</p>
+<p>So you have multiple asynch queues, each with configurable and
+run-time-adjustable concurrency plus multiple pools each with multiple threads
+running a &quot;traditional&quot; event loop.</p>
 <p>In evented systems, it is important that you don&apos;t &quot;block&quot; the loop.  It is
 so important, in fact, that the watchdog exists to ensure that you don&apos;t
 mistakenly do so.  The watchdog is responsible for making sure that the
@@ -587,27 +587,28 @@ program does not stall in the event loop.  This also means that your event
 loops are responsible for issuing a heartbeat such that the watchdog knows
 you have not stalled.  While this is C, and you can do almost anything, if
 you attempt to disable the heartbeats, you&apos;re doing it wrong and things will
-break in unexpected and often in ways that will adversely effect production
+break unexpectedly and often in ways that will adversely affect production
 applications. Don&apos;t do that.  You can set different watchdog timeouts per
 eventer_pool.</p>
 <h3 id="multi-thread-safety">Multi-thread Safety</h3>
 <h4 id="memory-management">Memory Management</h4>
-<p>Multi-threaded apps can be hard.  Specifically memory management.  The <code>safe_</code>
-memory management routines in <code>mtev_memory.h</code> are there to help, but they
-are not a silver bullet.  They wrap <code>libck</code> epoch memory reclamation and
-make it such that memory touched <em>inside</em> an event callback will not be
-freed until the callback returns.  Again, not a silver bullet.</p>
+<p>Multi-threaded apps can be hard, specifically in the area of memory management.
+The <code>safe_</code> memory management routines in <code>mtev_memory.h</code> are there to help,
+but they are not a silver bullet.  They wrap
+<a href="http://concurrencykit.org/" target="_blank">libck</a> epoch memory reclamation and make it such
+that memory touched <em>inside</em> an event callback will not be freed until the
+callback returns.  Again, not a silver bullet.</p>
 <h4 id="configuration">Configuration</h4>
-<p>The <code>mtev_conf_</code> subsystem is not thread-safe.  Interaction with with
-configuration should be done in the main thread only.  You have the
-explicit ability to schedule things on thread 1 and updates should be
-scheduled there.  It is recommended that the configuration be read in
-thread 1 and thread-safe in-memory structures be used to represent the
-config such that multiple threads can read the non-canonical copy.
-This will likely be fixed to be completely thread-safe in a future release.</p>
+<p>The <code>mtev_conf_</code> subsystem is not thread-safe.  Interaction with configuration
+should be done in the main thread (thread 1) only.  You have the explicit
+ability to schedule things on thread 1 and updates should be scheduled there.
+It is recommended that the configuration be read in thread 1 and thread-safe
+in-memory structures be used to represent the config such that multiple threads
+can read the non-canonical copy.  This will likely be fixed to be completely
+thread-safe in a future release.</p>
 <h4 id="keep-related-events-together">Keep Related Events Together</h4>
 <p>The event system is thread-safe, but that doesn&apos;t mean you can&apos;t do bad things.
-Specifically, one should only event manipulate events in the current event loop.
+Specifically, one should only manipulate events in the current event loop.
 Case in point, if you have a read/write event and a timeout event that can
 shutdown the read/write event, the two events should exist in the same event
 loop thread.  Complications arise if the timeout fires and attempts to manipulate

@@ -568,17 +568,22 @@
                                 <h1 id="the-eventer">The Eventer</h1>
 <p>The eventer is designed to perform micro tasks without the overhead of a
 context switch.  The underlying goal is to support millions of &quot;seemingly&quot;
-concurrent heavy tasks by making modifying the tasks to be reactive to
-state changes, make small, non-blocking progress and yielding control back
-to the event loop.</p>
+concurrent heavy tasks by modifying the tasks to be reactive to state changes,
+make small, non-blocking progress, and yielding control back to the event loop.</p>
 <p>Not all work can be done in a non-blocking fashion (e.g. disk reads/writes,
 and intense computational work).  For this, the eventer provides work queues
 that allow for blocking operations.</p>
-<p>Events (eventer_t) have a <code>callback</code> and a <code>closure</code> at their heart.  The
+<p>Events (<code>eventer_t</code>) have a <code>callback</code> and a <code>closure</code> at their heart.  The
 rest of the fields dictate when, why and possibly where the callback will be
 invoked with the provided closure.</p>
 <p>Event types are dictated by the <code>mask</code> set in the <code>eventer_t</code> object.
-There are four basic event types available for use.</p>
+There are four basic event types available for use:</p>
+<ul>
+<li><a href="#file-descriptor-activity">File Descriptor Activity</a></li>
+<li><a href="#recurrent-events">Recurrent Events</a></li>
+<li><a href="#timed-events">Timed Events</a></li>
+<li><a href="#asynchronous-events">Asynchronous Events</a></li>
+</ul>
 <h3 id="file-descriptor-activity">File Descriptor Activity</h3>
 <pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> EVENTER_READ             0x01</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> EVENTER_WRITE            0x02</span>
@@ -626,7 +631,7 @@ to continue due to a renegotiation.</p>
 </code></pre>
 <p>Order of operations (and other) notes:</p>
 <ul>
-<li><p>Always set a fd as non-blocking after creation using <code>eventer_set_fd_nonblocking(int fd)</code></p>
+<li><p>Always set an fd as non-blocking after creation using <code>eventer_set_fd_nonblocking(int fd)</code></p>
 </li>
 <li><p>Remember that <code>connect(2)</code> can block and often sets <code>errno = EINPROGRESS</code> and not <code>EAGAIN</code></p>
 </li>
@@ -652,7 +657,7 @@ to continue due to a renegotiation.</p>
 <h3 id="recurrent-events">Recurrent Events</h3>
 <pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> EVENTER_RECURRENT        0x80</span>
 </code></pre>
-<p>Recurrent events are registered to run <em>every</em> time through an event loop.
+<p>Recurrent events are registered to run <strong>every</strong> time through an event loop.
 Use these with care.  They should be extremely light-weight.</p>
 <p>The return value from recurrent events should be <code>EVENTER_RECURRENT</code>.</p>
 <h5 id="recurrentexamplec-snippet">recurrent_example.c (snippet)</h5>
@@ -663,7 +668,7 @@ Use these with care.  They should be extremely light-weight.</p>
 <pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> EVENTER_TIMER            0x08</span>
 </code></pre>
 <p>By setting the <code>mask</code> to <code>EVENTER_TIMER</code> and the <code>whence</code> to a desired time,
-an event will perform it&apos;s callback at some point in the future.</p>
+an event will perform its callback at some point in the future.</p>
 <p>The return value of callbacks for timer events should always be 0.</p>
 <h5 id="timersc-snippet">timers.c (snippet)</h5>
 <pre><code class="lang-c">  <span class="hljs-keyword">eventer_t</span> e;
@@ -686,7 +691,7 @@ an event will perform it&apos;s callback at some point in the future.</p>
   <span class="hljs-comment">/* or */</span>
   eventer_add_in_s_us(something_to_do_in_five_seconds, <span class="hljs-literal">NULL</span>, <span class="hljs-number">5</span>, <span class="hljs-number">0</span>);
 </code></pre>
-<h3 id="asynchrous-events">Asynchrous Events</h3>
+<h3 id="asynchronous-events">Asynchronous Events</h3>
 <pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> EVENTER_ASYNCH_WORK      0x10</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> EVENTER_ASYNCH_CLEANUP   0x20</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> EVENTER_ASYNCH           (EVENTER_ASYNCH_WORK | EVENTER_ASYNCH_CLEANUP)</span>
@@ -716,10 +721,10 @@ an event will perform it&apos;s callback at some point in the future.</p>
 [2016-12-04 12:01:50.216863] [error] thread 0x7fffcf7093c0 -&gt; 0030
 </code></pre><p>It is important to note the life-cycle of an asynchronous event:</p>
 <ol>
-<li>the event is added from some thread A (usually an event loop thread)</li>
-<li>a jobq thread B will invoke the <code>callback</code> with <code>mask = EVENTER_ASYNCH_WORK</code> if <code>whence</code> is set and in the future.</li>
-<li>thread B will invoke the <code>callback</code> with <code>mask = EVENTER_ASYNCH_CLEANUP</code></li>
-<li>the event will return to thread A and <code>callback</code> will be invoked with <code>mask = EVENTER_ASYNCH</code></li>
+<li>The event is added from some thread A (usually an event loop thread)</li>
+<li>A jobq thread B will invoke the <code>callback</code> with <code>mask = EVENTER_ASYNCH_WORK</code> if <code>whence</code> is set and in the future.</li>
+<li>Thread B will invoke the <code>callback</code> with <code>mask = EVENTER_ASYNCH_CLEANUP</code></li>
+<li>The event will return to thread A and <code>callback</code> will be invoked with <code>mask = EVENTER_ASYNCH</code></li>
 </ol>
 <h3 id="choosing-threads">Choosing Threads</h3>
 <p>By default new events are created on the &quot;current&quot; event loop thread.  This

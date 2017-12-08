@@ -566,7 +566,7 @@
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="rest">REST</h1>
-<p>The default network listening framework allows for simply registration
+<p>The default network listening framework allows for simple registration
 of REST-based services via HTTP service.</p>
 <h5 id="appconf-snippet">app.conf (snippet)</h5>
 <pre><code>&lt;app&gt;
@@ -591,7 +591,7 @@ which can be used as a filter for ACL rules in the <code>rest/acl</code> config
 section.  The <code>document_root</code> is set, which will enable serving of
 static files on URLs that do not otherwise match routing rules. The
 ACL rule for <code>internal</code> set that all urls are allowed followed by a
-a blanket deny rule.  Other listeners that might not specify an <code>acl</code>
+blanket deny rule.  Other listeners that might not specify an <code>acl</code>
 option would not see the first ACL allowing any URL, but still see the
 blanket deny rule.</p>
 <h2 id="registering-a-rest-handler">Registering a REST handler.</h2>
@@ -631,7 +631,7 @@ request, it might be necessary to schedule some asynchronous work and
 complete the response later.  This is possible, but requires a bit of
 juggling.  The basic idea is:</p>
 <ul>
-<li>from you handler:<ul>
+<li>from your handler:<ul>
 <li>copy and remove the connection&apos;s event from the eventer</li>
 <li>set the rest&apos;s fastpath to a completion routine</li>
 <li>schedule asynchronous work</li>
@@ -692,7 +692,7 @@ so unless you are doing something special it can be much easier
 to simply first invoke the <code>mtev_rest_complete_upload</code> convenience
 wrapper.</p>
 <p>It must be called as the first action inside your REST callback handler.
-Any manipulation of the restc (closures in particular) will have undefined
+Any manipulation of the <code>restc</code> (closures in particular) will have undefined
 outcome.</p>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
                    <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{

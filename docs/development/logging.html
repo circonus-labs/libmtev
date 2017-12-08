@@ -568,9 +568,10 @@
                                 <h1 id="logging">Logging</h1>
 <p>Logging within libmtev depends heavily upon <a href="../config/logging.html">logging configuration</a>.</p>
 <h3 id="dtrace">DTrace</h3>
-<p>The logging system is instruemented with DTrace, so despite any configuration settings an
-operator can leverage DTrace to sniff logs (regardless of their outlets or disabled state)
-using the <code>libmtev*:::log</code> probe. See <a href="../operations/dtrace.html">DTrace operations</a>.</p>
+<p>The logging system is instruemented with DTrace, so despite any configuration
+settings, an operator can leverage DTrace to sniff logs (regardless of their
+outlets or disabled state) using the <code>libmtev*:::log</code> probe. See <a href="../operations/dtrace.html">DTrace
+operations</a>.</p>
 <h3 id="logstream">log_stream</h3>
 <p>The C logging API requires directing each log statements to an <code>mtev_log_stream_t</code>.  There
 are four builtin log stream: <code>mtev_stderr</code>, <code>mtev_error</code>, <code>mtev_notice</code>, and <code>mtev_debug</code>.
