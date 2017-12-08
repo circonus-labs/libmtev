@@ -4,11 +4,12 @@ Logging within libmtev depends heavily upon [logging configuration](../config/lo
 
 ### DTrace
 
-The logging system is instruemented with DTrace, so despite any configuration settings an
-operator can leverage DTrace to sniff logs (regardless of their outlets or disabled state)
-using the `libmtev*:::log` probe. See [DTrace operations](../operations/dtrace.md).
+The logging system is instruemented with DTrace, so despite any configuration
+settings, an operator can leverage DTrace to sniff logs (regardless of their
+outlets or disabled state) using the `libmtev*:::log` probe. See [DTrace
+operations](../operations/dtrace.md).
 
-### log_stream
+### log\_stream
 
 The C logging API requires directing each log statements to an `mtev_log_stream_t`.  There
 are four builtin log stream: `mtev_stderr`, `mtev_error`, `mtev_notice`, and `mtev_debug`.

@@ -2,20 +2,24 @@
 
 The eventer is designed to perform micro tasks without the overhead of a
 context switch.  The underlying goal is to support millions of "seemingly"
-concurrent heavy tasks by making modifying the tasks to be reactive to
-state changes, make small, non-blocking progress and yielding control back
-to the event loop.
+concurrent heavy tasks by modifying the tasks to be reactive to state changes,
+make small, non-blocking progress, and yielding control back to the event loop.
 
 Not all work can be done in a non-blocking fashion (e.g. disk reads/writes,
 and intense computational work).  For this, the eventer provides work queues
 that allow for blocking operations.
 
-Events (eventer_t) have a `callback` and a `closure` at their heart.  The
+Events (`eventer_t`) have a `callback` and a `closure` at their heart.  The
 rest of the fields dictate when, why and possibly where the callback will be
 invoked with the provided closure.
 
 Event types are dictated by the `mask` set in the `eventer_t` object.
-There are four basic event types available for use.
+There are four basic event types available for use:
+
+ * [File Descriptor Activity](#file-descriptor-activity)
+ * [Recurrent Events](#recurrent-events)
+ * [Timed Events](#timed-events)
+ * [Asynchronous Events](#asynchronous-events)
 
 ### File Descriptor Activity
 
@@ -74,7 +78,7 @@ my_callback(eventer_t e, int mask, void *closure, struct timeval *now) {
 
 Order of operations (and other) notes:
 
-  * Always set a fd as non-blocking after creation using `eventer_set_fd_nonblocking(int fd)`
+  * Always set an fd as non-blocking after creation using `eventer_set_fd_nonblocking(int fd)`
 
   * Remember that `connect(2)` can block and often sets `errno = EINPROGRESS` and not `EAGAIN`
 
@@ -96,7 +100,7 @@ Order of operations (and other) notes:
 #define EVENTER_RECURRENT        0x80
 ```
 
-Recurrent events are registered to run *every* time through an event loop.
+Recurrent events are registered to run **every** time through an event loop.
 Use these with care.  They should be extremely light-weight.
 
 The return value from recurrent events should be `EVENTER_RECURRENT`.
@@ -115,7 +119,7 @@ The return value from recurrent events should be `EVENTER_RECURRENT`.
 ```
 
 By setting the `mask` to `EVENTER_TIMER` and the `whence` to a desired time,
-an event will perform it's callback at some point in the future.
+an event will perform its callback at some point in the future.
 
 The return value of callbacks for timer events should always be 0.
 
@@ -143,7 +147,7 @@ The return value of callbacks for timer events should always be 0.
   eventer_add_in_s_us(something_to_do_in_five_seconds, NULL, 5, 0);
 ```
 
-### Asynchrous Events
+### Asynchronous Events
 
 ```c
 #define EVENTER_ASYNCH_WORK      0x10
@@ -151,7 +155,7 @@ The return value of callbacks for timer events should always be 0.
 #define EVENTER_ASYNCH           (EVENTER_ASYNCH_WORK | EVENTER_ASYNCH_CLEANUP)
 ```
 
-##### asynch_example.c
+##### asynch\_example.c
 
 ```c
 static int
@@ -172,7 +176,7 @@ void child_main() {
 }
 ```
 
-##### asynch_example.c (output)
+##### asynch\_example.c (output)
 
 ```
 [2016-12-04 12:01:50.216744] [error] thread 0x7fffcf7093c0 -> add
@@ -183,10 +187,10 @@ void child_main() {
 
 It is important to note the life-cycle of an asynchronous event:
 
- 1. the event is added from some thread A (usually an event loop thread)
- 1. a jobq thread B will invoke the `callback` with `mask = EVENTER_ASYNCH_WORK` if `whence` is set and in the future.
- 1. thread B will invoke the `callback` with `mask = EVENTER_ASYNCH_CLEANUP`
- 1. the event will return to thread A and `callback` will be invoked with `mask = EVENTER_ASYNCH`
+ 1. The event is added from some thread A (usually an event loop thread)
+ 1. A jobq thread B will invoke the `callback` with `mask = EVENTER_ASYNCH_WORK` if `whence` is set and in the future.
+ 1. Thread B will invoke the `callback` with `mask = EVENTER_ASYNCH_CLEANUP`
+ 1. The event will return to thread A and `callback` will be invoked with `mask = EVENTER_ASYNCH`
 
 ### Choosing Threads
 
@@ -201,7 +205,7 @@ and `eventer_choose_owner` functions.
 
 To take an event and move it to a random thread within its current eventer pool:
 
-##### move_event1.c (snippet)
+##### move\_event1.c (snippet)
 
 ```c
 static int
@@ -228,7 +232,7 @@ In the above example, a new connection is received and the new event
 that is created is assigned to a random thread within the same pool
 as the parent (listening) event.
 
-##### move_event2.c (snippet)
+##### move\_event2.c (snippet)
 
 ```c
   ...

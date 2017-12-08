@@ -1,6 +1,6 @@
 # REST
 
-The default network listening framework allows for simply registration
+The default network listening framework allows for simple registration
 of REST-based services via HTTP service.
 
 ##### app.conf (snippet)
@@ -31,7 +31,7 @@ which can be used as a filter for ACL rules in the `rest/acl` config
 section.  The `document_root` is set, which will enable serving of
 static files on URLs that do not otherwise match routing rules. The
 ACL rule for `internal` set that all urls are allowed followed by a
-a blanket deny rule.  Other listeners that might not specify an `acl`
+blanket deny rule.  Other listeners that might not specify an `acl`
 option would not see the first ACL allowing any URL, but still see the
 blanket deny rule.
 
@@ -77,7 +77,7 @@ request, it might be necessary to schedule some asynchronous work and
 complete the response later.  This is possible, but requires a bit of
 juggling.  The basic idea is:
 
- * from you handler:
+ * from your handler:
   * copy and remove the connection's event from the eventer
   * set the rest's fastpath to a completion routine
   * schedule asynchronous work
@@ -139,7 +139,7 @@ to simply first invoke the `mtev_rest_complete_upload` convenience
 wrapper.
 
 It must be called as the first action inside your REST callback handler.
-Any manipulation of the restc (closures in particular) will have undefined
+Any manipulation of the `restc` (closures in particular) will have undefined
 outcome.
 
 ```c
