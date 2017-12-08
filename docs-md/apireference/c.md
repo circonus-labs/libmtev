@@ -889,7 +889,7 @@ eventer_add_asynch(eventer_jobq_t *q, eventer_t e)
   * `e` an event object
 
 This adds the `e` event to the job queue `q`.  `e` must have a mask
-of `EVENETER_ASYNCH`.
+of `EVENTER_ASYNCH`.
 
 
 #### eventer_add_asynch_dep
@@ -898,7 +898,7 @@ of `EVENETER_ASYNCH`.
 
 ```c
 void 
-eventer_add_asynch_dep(eventer_t e)
+eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e)
 ```
 
 
@@ -906,9 +906,47 @@ eventer_add_asynch_dep(eventer_t e)
   * `e` an event object
 
 This adds the `e` event to the job queue `q`.  `e` must have a mask
-of `EVENETER_ASYNCH`.  This should be called from within a asynch callback
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
 during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
 of the currently executing job.
+
+
+#### eventer_add_asynch_dep_subqueue
+
+>Add an asynchronous event to a specific job queue dependent on the current job.
+
+```c
+void 
+eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+  * `id` is a fairly competing subqueue identifier
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
+#### eventer_add_asynch_subqueue
+
+>Add an asynchronous event to a specific job queue.
+
+```c
+void 
+eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+  * `id` is a fairly competing subqueue identifier
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.
 
 
 #### eventer_add_at
