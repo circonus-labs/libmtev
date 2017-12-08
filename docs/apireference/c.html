@@ -1253,22 +1253,52 @@ necessary activity to make progress.</p>
 <li><code>e</code> an event object</li>
 </ul>
 <p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
-of <code>EVENETER_ASYNCH</code>.</p>
+of <code>EVENTER_ASYNCH</code>.</p>
 <h4 id="eventeraddasynchdep">eventer_add_asynch_dep</h4>
 <blockquote>
 <p>Add an asynchronous event to a specific job queue dependent on the current job.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">eventer_add_asynch_dep</span><span class="hljs-params">(eventer_t e)</span>
+<span class="hljs-title">eventer_add_asynch_dep</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e)</span>
 </span></code></pre>
 <ul>
 <li><code>q</code> a job queue</li>
 <li><code>e</code> an event object</li>
 </ul>
 <p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
-of <code>EVENETER_ASYNCH</code>.  This should be called from within a asynch callback
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
 during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
 of the currently executing job.</p>
+<h4 id="eventeraddasynchdepsubqueue">eventer_add_asynch_dep_subqueue</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue dependent on the current job.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_add_asynch_dep_subqueue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><code>id</code> is a fairly competing subqueue identifier</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
+<h4 id="eventeraddasynchsubqueue">eventer_add_asynch_subqueue</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<span class="hljs-title">eventer_add_asynch_subqueue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><code>id</code> is a fairly competing subqueue identifier</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.</p>
 <h4 id="eventeraddat">eventer_add_at</h4>
 <blockquote>
 <p>Convenience function to schedule a callback at a specific time.</p>
