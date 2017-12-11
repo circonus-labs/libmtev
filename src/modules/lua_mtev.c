@@ -1553,7 +1553,12 @@ nl_waitfor_notify(lua_State *L) {
   if(!mtev_hash_retrieve(ci->lmc->pending, key, strlen(key), &vptr)) {
     q = calloc(1, sizeof(*q));
     q->key = strdup(key);
-    mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q);
+    if (mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q) == 0) {
+      free(q->key);
+      free(q);
+      mtevAssert(mtev_hash_retrieve(ci->lmc->pending, key, strlen(key), &vptr));
+      q = vptr;
+    }
   } else {
     q = vptr;
   }
@@ -1622,8 +1627,16 @@ nl_waitfor(lua_State *L) {
     q = calloc(1, sizeof(*q));
     q->key = strdup(key);
     q->L = L;
-    mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q);
-  } else {
+    if (mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q) == 0) {
+      free(q->key);
+      free(q);
+      mtevAssert(mtev_hash_retrieve(ci->lmc->pending, key, strlen(key), &vptr));
+      q = vptr;
+      if(q->L) luaL_error(L, "waitfor cannot be called concurrently");
+      q->L = L;
+    }
+  }
+  else {
     q = vptr;
     if(q->L) luaL_error(L, "waitfor cannot be called concurrently");
     q->L = L;

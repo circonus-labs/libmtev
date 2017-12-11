@@ -407,7 +407,7 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
     lmc->resume = lua_web_resume;
     lmc->owner = pthread_self();
     lmc->pending = calloc(1, sizeof(*lmc->pending));
-    mtev_hash_init(lmc->pending);
+    mtev_hash_init_locks(lmc->pending, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
     pthread_setspecific(conf->key, lmc);
   }
   if(lmc->lua_state == NULL) {
