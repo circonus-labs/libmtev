@@ -62,7 +62,7 @@ mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
   lua_module_closure_t *lmc;
   lmc = calloc(1, sizeof(*lmc));
   lmc->pending = calloc(1, sizeof(*lmc->pending));
-  mtev_hash_init(lmc->pending);
+  mtev_hash_init_locks(lmc->pending, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init(&lmc->state_coros);
   lmc->owner = pthread_self();
   lmc->self = self;
@@ -75,7 +75,7 @@ mtev_lua_lmc_free(lua_module_closure_t *lmc) {
   if(lmc) {
     if(lmc->lua_state) lua_close(lmc->lua_state);
     if(lmc->pending) {
-      mtev_hash_destroy(lmc->pending, free, NULL);
+      mtev_hash_destroy(lmc->pending, free, free);
       free(lmc->pending);
     }
     mtev_hash_destroy(&lmc->state_coros, NULL, NULL);
