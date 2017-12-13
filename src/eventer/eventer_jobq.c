@@ -496,6 +496,7 @@ eventer_jobq_destroy(eventer_jobq_t *jobq) {
   }
   pthread_mutex_destroy(&jobq->lock);
   sem_destroy(&jobq->semaphore);
+  free(jobq);
 }
 int
 eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
