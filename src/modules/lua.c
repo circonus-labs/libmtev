@@ -75,7 +75,7 @@ mtev_lua_lmc_free(lua_module_closure_t *lmc) {
   if(lmc) {
     if(lmc->lua_state) lua_close(lmc->lua_state);
     if(lmc->pending) {
-      mtev_hash_destroy(lmc->pending, free, NULL);
+      mtev_hash_destroy(lmc->pending, free, free);
       free(lmc->pending);
     }
     mtev_hash_destroy(&lmc->state_coros, NULL, NULL);
