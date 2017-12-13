@@ -1550,10 +1550,17 @@ nl_waitfor_notify(lua_State *L) {
     return 0;
   }
   key = lua_tostring(L, 1);
+  if(!key) luaL_error(L, "notify called without key");
   if(!mtev_hash_retrieve(ci->lmc->pending, key, strlen(key), &vptr)) {
     q = calloc(1, sizeof(*q));
     q->key = strdup(key);
-    mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q);
+    /* This should never fail.... if it does, we have multiple threads interacting,
+     * which is unexpected behavior */
+    if (mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q) == 0) {
+      free(q->key);
+      free(q);
+      luaL_error(L, "error storing nl_wn_queue object in hash in nl_waitfor_notify");
+    }
   } else {
     q = vptr;
   }
@@ -1622,7 +1629,13 @@ nl_waitfor(lua_State *L) {
     q = calloc(1, sizeof(*q));
     q->key = strdup(key);
     q->L = L;
-    mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q);
+    /* This should never fail.... if it does, we have multiple threads interacting,
+     * which is unexpected behavior */
+    if (mtev_hash_store(ci->lmc->pending, q->key, strlen(q->key), q) == 0) {
+      free(q->key);
+      free(q);
+      luaL_error(L, "error storing nl_wn_queue object in hash in nl_waitfor");
+    }
   } else {
     q = vptr;
     if(q->L) luaL_error(L, "waitfor cannot be called concurrently");
