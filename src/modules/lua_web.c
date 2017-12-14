@@ -114,8 +114,10 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
   mtev_lua_resume_rest_info_t *ctx = ri->context_data;
   mtev_http_rest_closure_t *restc = NULL;
   eventer_t conne = NULL;
-  restc = ctx->restc;
-  conne = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
+  if(ctx) {
+    restc = ctx->restc;
+    conne = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
+  }
 
   mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
 
@@ -133,7 +135,7 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
       lua_gc(ri->coro_state, LUA_GCCOLLECT, 0);
       return 0;
     default: /* The complicated case */
-      ctx->httpcode = 500;
+      if(ctx) ctx->httpcode = 500;
       base = lua_gettop(ri->coro_state);
       if(base>0) {
         mtev_lua_traceback(ri->coro_state);
@@ -141,16 +143,14 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
         if(lua_isstring(ri->coro_state, base)) {
           err = lua_tostring(ri->coro_state, base);
           mtevL(mtev_error, "lua error: %s\n", err);
-          if(!ctx->err) ctx->err = strdup(err);
+          if(ctx && !ctx->err) ctx->err = strdup(err);
         }
       }
       rv = -1;
   }
 
-  lua_web_restc_fastpath(restc, 0, NULL);
-  if(conne) {
-    eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
-  }
+  if(restc) lua_web_restc_fastpath(restc, 0, NULL);
+  if(conne) eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
   return rv;
 }
 
