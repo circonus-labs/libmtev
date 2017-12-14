@@ -188,7 +188,7 @@ recv_resheader(eventer_t e, char *buf, int len, int *mask) {
     while((r = eventer_read(e, buf + off, len - off, mask)) == -1
           && errno == EINTR);
     if(r <= 0) {
-      mtevL(client_err, "Websocket client failed while receiving headers: %s\n", strerror(errno));
+      mtevL(client_deb, "Websocket client failed while receiving headers: %s\n", strerror(errno));
       return -1;
     } else if(r > 0) {
       off += r;
@@ -248,7 +248,7 @@ mtev_websocket_client_recv_handshake(mtev_websocket_client_t *client) {
 
   char *res_accept_key = strstr(resheader, "Sec-WebSocket-Accept");
   if(res_accept_key == NULL) {
-    mtevL(client_err, "Websocket client couldn't find accept key in response headers\n");
+    mtevL(client_deb, "Websocket client couldn't find accept key in response headers\n");
     return mtev_false;
   }
   /* skip the header text */
@@ -286,7 +286,7 @@ abort_drive:
     
     if(client->sent_handshake && mask & EVENTER_READ) {
       if(mtev_websocket_client_recv_handshake(client) == mtev_false) {
-        mtevL(client_err, "mtev_websocket_client_recv_handshake failed, aborting drive\n");
+        mtevL(client_deb, "mtev_websocket_client_recv_handshake failed, aborting drive\n");
         goto abort_drive;
       }
       wslay_event_context_client_init(&client->wslay_ctx, &wslay_callbacks, client);
