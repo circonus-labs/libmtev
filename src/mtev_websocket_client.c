@@ -38,6 +38,7 @@ struct mtev_websocket_client {
 };
 
 static mtev_log_stream_t client_deb;
+static mtev_log_stream_t client_err;
 
 #ifdef HAVE_WSLAY
 static ssize_t wslay_send_callback(wslay_event_context_ptr ctx,
@@ -88,7 +89,7 @@ wslay_send_callback(wslay_event_context_ptr ctx,
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       wslay_event_set_error(client->wslay_ctx, WSLAY_ERR_WOULDBLOCK);
     } else {
-      mtevL(mtev_error, "websocket client's wslay_send_callback failed: %s\n", strerror(errno));
+      mtevL(client_err, "websocket client's wslay_send_callback failed: %s\n", strerror(errno));
       wslay_event_set_error(client->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     }
   }
@@ -117,11 +118,11 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       wslay_event_set_error(client->wslay_ctx, WSLAY_ERR_WOULDBLOCK);
     } else {
-      mtevL(mtev_error, "websocket client's wslay_recv_callback failed: %s\n", strerror(errno));
+      mtevL(client_err, "websocket client's wslay_recv_callback failed: %s\n", strerror(errno));
       wslay_event_set_error(client->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     }
   } else if (r == 0) {
-    mtevL(mtev_error, "websocket client's wslay_recv_callback received zero bytes\n");
+    mtevL(client_err, "websocket client's wslay_recv_callback received zero bytes\n");
     wslay_event_set_error(client->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     r = -1;
   }
@@ -154,7 +155,7 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
         client->should_close = mtev_true;
       }
     } else {
-       mtevL(mtev_error, "Websocket client has no handler function set, aborting connection\n");
+       mtevL(client_err, "Websocket client has no handler function set, aborting connection\n");
        client->should_close = mtev_true;
     }
   }
@@ -171,7 +172,7 @@ send_reqheader(eventer_t e, const char *buf, int len, int *mask)
     while((r = eventer_write(e, buf + off, len - off, mask)) == -1
           && errno == EINTR);
     if(r == -1) {
-      mtevL(mtev_error, "Websocket client failed while sending headers: %s\n", strerror(errno));
+      mtevL(client_err, "Websocket client failed while sending headers: %s\n", strerror(errno));
       return mtev_false;
     }
     off += r;
@@ -187,7 +188,7 @@ recv_resheader(eventer_t e, char *buf, int len, int *mask) {
     while((r = eventer_read(e, buf + off, len - off, mask)) == -1
           && errno == EINTR);
     if(r <= 0) {
-      mtevL(mtev_error, "Websocket client failed while receiving headers: %s\n", strerror(errno));
+      mtevL(client_deb, "Websocket client failed while receiving headers: %s\n", strerror(errno));
       return -1;
     } else if(r > 0) {
       off += r;
@@ -196,7 +197,7 @@ recv_resheader(eventer_t e, char *buf, int len, int *mask) {
       return off;
     }
   }
-  mtevL(mtev_error, "Websocket client received headers that were too long\n");
+  mtevL(client_err, "Websocket client received headers that were too long\n");
   return -1;
 }
 
@@ -247,7 +248,7 @@ mtev_websocket_client_recv_handshake(mtev_websocket_client_t *client) {
 
   char *res_accept_key = strstr(resheader, "Sec-WebSocket-Accept");
   if(res_accept_key == NULL) {
-    mtevL(mtev_error, "Websocket client couldn't find accept key in response headers\n");
+    mtevL(client_deb, "Websocket client couldn't find accept key in response headers\n");
     return mtev_false;
   }
   /* skip the header text */
@@ -256,7 +257,7 @@ mtev_websocket_client_recv_handshake(mtev_websocket_client_t *client) {
   if(!strncmp(accept_key, res_accept_key, mtev_b64_encode_len(SHA_DIGEST_LENGTH))) {
     return mtev_true;
   } else {
-    mtevL(mtev_error, "Websocket client found incorrect accept key in response headers\n");
+    mtevL(client_err, "Websocket client found incorrect accept key in response headers\n");
     return mtev_false;
   }
 }
@@ -277,7 +278,7 @@ abort_drive:
   if(!client->did_handshake) {
     if(!client->sent_handshake && mask & EVENTER_WRITE) {
       if(mtev_websocket_client_send_handshake(client) == mtev_false) {
-        mtevL(mtev_error, "mtev_websocket_client_send_handshake failed, aborting drive\n");
+        mtevL(client_err, "mtev_websocket_client_send_handshake failed, aborting drive\n");
         goto abort_drive;
       }
       client->sent_handshake = mtev_true;
@@ -285,7 +286,7 @@ abort_drive:
     
     if(client->sent_handshake && mask & EVENTER_READ) {
       if(mtev_websocket_client_recv_handshake(client) == mtev_false) {
-        mtevL(mtev_error, "mtev_websocket_client_recv_handshake failed, aborting drive\n");
+        mtevL(client_deb, "mtev_websocket_client_recv_handshake failed, aborting drive\n");
         goto abort_drive;
       }
       wslay_event_context_client_init(&client->wslay_ctx, &wslay_callbacks, client);
@@ -300,7 +301,7 @@ abort_drive:
 
   if (wslay_event_want_read(client->wslay_ctx) == 0
       && wslay_event_want_write(client->wslay_ctx) == 0) {
-    mtevL(mtev_error, "Websocket client's wslay context didn't want read or write, aborting drive\n");
+    mtevL(client_err, "Websocket client's wslay context didn't want read or write, aborting drive\n");
     goto abort_drive;
   }
 
@@ -336,7 +337,7 @@ mtev_websocket_client_ssl_upgrade(eventer_t e, int mask, void *closure, struct t
   if(errno == EAGAIN) return mask | EVENTER_EXCEPTION;
 
 ssl_upgrade_error:
-  mtevL(mtev_error, "[%s:%d%s (%s)] mtev_websocket_client_ssl_upgrade: %s [%s]\n",
+  mtevL(client_err, "[%s:%d%s (%s)] mtev_websocket_client_ssl_upgrade: %s [%s]\n",
         client->host, client->port, client->path, client->service,
         eventer_ssl_get_last_error(sslctx), eventer_ssl_get_peer_error(sslctx));
   mtev_websocket_client_cleanup(client);
@@ -360,7 +361,7 @@ mtev_websocket_client_complete_connect(eventer_t e, int mask, void *closure, str
       aerrno = errno;
 
 connect_error:
-    mtevL(mtev_error, "mtev_websocket_client_complete_connect error connecting to %s:%d%s (%s): %s\n",
+    mtevL(client_err, "mtev_websocket_client_complete_connect error connecting to %s:%d%s (%s): %s\n",
           client->host, client->port, client->path, client->service, strerror(aerrno));
     mtev_websocket_client_cleanup(client);
     return 0;
@@ -380,7 +381,7 @@ connect_error:
   if(!sslctx) goto connect_error;
   if(crl) {
     if(!eventer_ssl_use_crl(sslctx, crl)) {
-      mtevL(mtev_error, "mtev_websocket_client_complete_connect failed to load CRL from %s\n", crl);
+      mtevL(client_err, "mtev_websocket_client_complete_connect failed to load CRL from %s\n", crl);
       eventer_ssl_ctx_free(sslctx);
       goto connect_error;
     }
@@ -424,7 +425,7 @@ mtev_websocket_client_new_internal(const char *host, int port, const char *path,
     family = AF_INET6;
     rv = inet_pton(family, host, &addr);
     if(rv != 1) {
-      mtevL(mtev_error, "mtev_websocket_client_new cannot translate '%s' to IP\n", host);
+      mtevL(client_err, "mtev_websocket_client_new cannot translate '%s' to IP\n", host);
       return NULL;
     }
   }
@@ -446,13 +447,13 @@ mtev_websocket_client_new_internal(const char *host, int port, const char *path,
   }
 
   if((fd = socket(family, SOCK_STREAM, 0)) == -1) {
-    mtevL(mtev_error, "mtev_websocket_client_new failed to open socket: %s\n", strerror(errno));
+    mtevL(client_err, "mtev_websocket_client_new failed to open socket: %s\n", strerror(errno));
     return NULL;
   }
 
   if(eventer_set_fd_nonblocking(fd)) {
     close(fd);
-    mtevL(mtev_error, "mtev_websocket_client_new failed to set socket to non-blocking\n");
+    mtevL(client_err, "mtev_websocket_client_new failed to set socket to non-blocking\n");
     return NULL;
   }
 
@@ -460,7 +461,7 @@ mtev_websocket_client_new_internal(const char *host, int port, const char *path,
   if(rv == -1 && errno != EINPROGRESS) {
     close(fd);
     fd = -1;
-    mtevL(mtev_error, "mtev_websocket_client_new failed to connect to %s:%d\n", host, port);
+    mtevL(client_err, "mtev_websocket_client_new failed to connect to %s:%d\n", host, port);
     return NULL;
   }
 
@@ -650,4 +651,5 @@ mtev_websocket_client_free(mtev_websocket_client_t *client) {
 void
 mtev_websocket_client_init_logs(void) {
   client_deb = mtev_log_stream_find("debug/websocket_client");
+  client_err = mtev_log_stream_find("error/websocket_client");
 }
