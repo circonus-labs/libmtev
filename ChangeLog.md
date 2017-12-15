@@ -6,8 +6,9 @@
 
 ### 1.0.1
 
- * Reworked logging within websockets support code.
+ * Rework logging within websockets support code.
  * Various documentation fixes and updates.
+ * Fixes crash in `lua_web` `mtev.coroutine_spawn`
  * Fixes memory leak in lua `mtev.waitfor`/`mtev.notify`.
  * Fixes memory leak when destroying an eventer jobq.
 
