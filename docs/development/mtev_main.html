@@ -606,7 +606,7 @@ facilitates configuration loading, logging setup, privilege separation and watch
 <p>The arguments to <code>mtev_main</code> are what is important here.</p>
 <ul>
 <li><h5 id="appname">APPNAME</h5>
-<p>This is a simple name of your app, it must match the name of the root node in your XML configuration document.</p>
+<p>This is the name of your app, and must match the name of the root node in your XML configuration document.</p>
 </li>
 <li><h5 id="configfile">config_file</h5>
 <p>The path to the config file. It is highly recommended that libmtev applications tie this to the <code>-c</code> CLI flag.</p>
@@ -635,7 +635,7 @@ If <code>MTEV_LOCK_OP_WAIT</code> is used, the application will wait for the loc
 <li><h5 id="droptouser--droptogroup">droptouser &amp; droptogroup</h5>
 <p>If the application is run as the root user and these are specified, this informs <code>mtev_main</code> and its
 initialization routines that you intend to drop privileges and ensures that initialization processes
-that must be performed as the specified user and group are done so as in that context.</p>
+that must be performed as the specified user and group are done so in that context.</p>
 <div class="panel panel-warning"><div class="panel-heading"><h3 class="panel-title" id="caution-security-warning"><i class="fa fa-exclamation-triangle"></i> Caution: Security Warning</h3></div><div class="panel-body"><p>The developer is responsible for dropping privileges during the initialization sequence in
 <code>child_main</code> via the <code>mtev_conf_security_init(...)</code> API call.</p></div></div>
 </li>

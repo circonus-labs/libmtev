@@ -44,7 +44,7 @@ The arguments to `mtev_main` are what is important here.
 
  * ##### APPNAME
 
-   This is a simple name of your app, it must match the name of the root node in your XML configuration document.
+   This is the name of your app, and must match the name of the root node in your XML configuration document.
 
  * ##### config_file
 
@@ -79,7 +79,7 @@ The arguments to `mtev_main` are what is important here.
 
    If the application is run as the root user and these are specified, this informs `mtev_main` and its
    initialization routines that you intend to drop privileges and ensures that initialization processes
-   that must be performed as the specified user and group are done so as in that context.
+   that must be performed as the specified user and group are done so in that context.
 
    > #### Caution::Security Warning
    > The developer is responsible for dropping privileges during the initialization sequence in

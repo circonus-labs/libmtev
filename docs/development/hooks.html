@@ -565,7 +565,7 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="abitrary-hooks">Abitrary Hooks</h1>
+                                <h1 id="arbitrary-hooks">Arbitrary Hooks</h1>
 <p>Building a callout API makes sense for common, structured
 features in software, but occassionlly there is a need to provide
 somewhat arbitrary hook points after the software is designed
@@ -573,14 +573,14 @@ and the mtev_hooks system is what satisfies this need.</p>
 <p>The design goals here are somewhat specific in that we
 would like to allow for a large number of hook points at low cost
 when not instrumented.  As such, a hash lookup of registered hooks
-would be considered to expensive.  Additionally, we want to provide
-strong, compile-time type safety as it can be all to easy to hook
-something with a function with a slightly incorrect protoype that
-could result in disasterous corruption or crashes (or perhaps worse
-daftly subtle bugs that are punishing to troubleshoot).</p>
-<p>The hooks system is simple a set of two macros; one allowing
+would be considered too expensive.  Additionally, we want to provide
+strong, compile-time type safety as it can be all too easy to hook
+something with a function using a slightly incorrect protoype that
+could result in disastrous corruption or crashes (or, perhaps worse,
+extremely subtle bugs that are punishing to troubleshoot).</p>
+<p>The hooks system is simply a set of two macros; one allowing
 for the declaration of function prototypes for registering and invoking
- specific programmer-specifiec instrumentation point and the other
+specific programmer-specific instrumentation points, and the other
 providing an implementation of the registration and invocation
 routines.  Due to the nature of C, the macro calling conventions are
 less than elegant, but ultimately require no complicated implementation
@@ -588,10 +588,10 @@ by the programmer.</p>
 <h3 id="hook-declaration">Hook Declaration</h3>
 <p>Declaring hooks is done by calling the <code>MTEV_HOOK_PROTO</code> macro with
 the name of the hook (a term that composes a valid C function name),
-the arguments it expects, the type of closure (usually a void *),
+the arguments it expects, the type of closure (usually a <code>void *</code>),
 and some variations on those themes that provide CPP enough info
 to construct an implementation with no programmer &quot;programming.&quot;</p>
-<p>The declaration of a hook &quot;foo&quot; will yield in two functions:
+<p>The declaration of a hook &quot;foo&quot; will result in two functions:
 <code>foo_hook_invoke</code> and <code>foo_hook_register</code>.</p>
 <h5 id="declaring-a-hook-foo-in-a-header">Declaring a hook &quot;foo&quot; (in a header)</h5>
 <p>This hook &quot;foo&quot; takes a <code>struct timeval *</code> as an argument in addition
@@ -611,17 +611,17 @@ MTEV_HOOK_IMPL(foo, (<span class="hljs-keyword">struct</span> timeval *now),
 <h3 id="hook-usage">Hook Usage</h3>
 <p>Once the hook is implemented, it can be used by the application
 and instrumented by code at runtime. In the below example, we&apos;ll
-invoke the foo instrumentation and assuming no issues arise,
+invoke the <code>foo</code> instrumentation and assuming no issues arise,
 we&apos;ll invoke the original <code>foo_work()</code> function.</p>
-<h5 id="instrumenting-a-dunction-conditionally">Instrumenting a dunction conditionally.</h5>
+<h5 id="instrumenting-a-function-conditionally">Instrumenting a function conditionally</h5>
 <p>Before we instrument, suppose we have:</p>
-<pre><code class="lang-c">  <span class="hljs-comment">/* preable code */</span>
+<pre><code class="lang-c">  <span class="hljs-comment">/* preamble code */</span>
   foo_work();
   <span class="hljs-comment">/* postamble code */</span>
 </code></pre>
 <p>Now we wish to allow programmers to add instrumentation
 immediately before this code that can conditionally prevent its
-executation, we would modify the above code to look like:</p>
+execution, so we would modify the above code to look like:</p>
 <pre><code class="lang-c">  <span class="hljs-comment">/* preamble code */</span>
   <span class="hljs-keyword">struct</span> timeval now;
   mtev_gettimeofday(&amp;now, <span class="hljs-literal">NULL</span>);
@@ -631,7 +631,7 @@ executation, we would modify the above code to look like:</p>
   <span class="hljs-comment">/* postamble code */</span>
 </code></pre>
 <p>If the hook should not conditionally cause or prevent code
-to run, the invoke function&apos;s return value can be ignored.</p>
+to run, the <code>_invoke</code> function&apos;s return value can be ignored.</p>
 <p>In order to register a function that allows the above execution
 on every other subsequent execution one would provide the following:</p>
 <pre><code class="lang-c">  <span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-title">my_sample_hook</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now)</span> </span>{
@@ -644,8 +644,8 @@ on every other subsequent execution one would provide the following:</p>
   }
 </code></pre>
 <p>The implementation of the hook can be elsewhere in the code, even
-in a dynamically loaded module.  When the hook is regsitered (you
-must orchestrate the calling of <code>my_init_function</code>, the behavior of
+in a dynamically loaded module.  When the hook is registered (you
+must orchestrate the calling of <code>my_init_function</code>), the behavior of
 the <code>foo_work()</code> callsite will change and our hook will be called.
 Given the above implementation, the <code>struct timeval</code> will be ignored,
 but every other time we reach the call site, <code>foo_work()</code> will be
