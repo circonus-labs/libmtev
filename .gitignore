@@ -44,3 +44,4 @@ test/test_harness
 test/sort_test
 test/test_detail.xml
 test/pool-shift-async/test
+test/flowreg/test
