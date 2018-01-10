@@ -4,6 +4,12 @@
 
 ## 1.0
 
+### 1.0.2
+
+ * Fix use-after-free in Zipkin span publication.
+ * Sensibly set a default IP address for Zipkin spans.
+ * Protect against crash when tracing is enabled after boot.
+
 ### 1.0.1
 
  * Rework logging within websockets support code.
