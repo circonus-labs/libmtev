@@ -663,6 +663,7 @@ mtev_zipkin_span_publish(Zipkin_Span *span) {
 
     zipkin_publish_hook_invoke(traceid, spanid, buffer, len);
     if(allocd) free(allocd);
+    return;
   }
   mtev_zipkin_span_drop(span);
 }
