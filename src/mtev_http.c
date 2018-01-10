@@ -1937,9 +1937,9 @@ mtev_http_session_drive(eventer_t e, int origmask, void *closure,
     goto release;
   }
   if(ctx->res.complete == mtev_true) {
-    end_span(ctx);
     LIBMTEV_HTTP_RESPONSE_FINISH(CTXFD(ctx), ctx);
     mtev_http_log_request(ctx);
+    end_span(ctx);
     mtev_http_request_release(ctx);
     mtev_http_response_release(ctx);
   }
