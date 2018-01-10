@@ -33,6 +33,7 @@
 #include "mtev_hooks.h"
 #include "mtev_time.h"
 #include "mtev_zipkin.h"
+#include "mtev_getip.h"
 #include "eventer/eventer.h"
 
 #include <ctype.h>
@@ -464,8 +465,13 @@ ze_update_Zipkin_Endpoint(Zipkin_Endpoint *e, const char *service_name,
       service_name_copy ? strdup(service_name) : (char *)service_name;
     e->service_name.needs_free = service_name_copy;
   }
-  if(host.s_addr) memcpy(&e->ipv4, &host, 4);
-  if(port) memcpy(&e->port, &port, 2);
+  if(host.s_addr) {
+    memcpy(&e->ipv4, &host, 4);
+    e->ipv4 = ntohl(e->ipv4);
+  }
+  if(port) {
+    memcpy(&e->port, &port, 2);
+  }
 }
 
 /* Exposed Implementation */
@@ -1101,4 +1107,9 @@ void mtev_zipkin_eventer_init(void) {
   zipkin_ctx_idx = eventer_register_context("zipkin", &zipkin_eventer_context_ops);
   mtevL(mtev_debug, "distributed tracing contexts %s\n",
         (zipkin_ctx_idx < 0) ? "failed to register" : "registered");
+
+  struct in_addr remote, local;
+  memset(&remote, 8, sizeof(remote)); /* 8.8.8.8 */
+  mtev_getip_ipv4(remote, &local);
+  mtev_zipkin_default_endpoint(NULL, false, local, 0);
 }
