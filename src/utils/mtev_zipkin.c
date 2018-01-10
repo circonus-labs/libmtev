@@ -1028,11 +1028,11 @@ static eventer_t zipkin_eventer_init(eventer_t e) {
   if(NULL == (parent = eventer_get_this_event())) return e;
   if(NULL == (pctx = eventer_get_context(parent, zipkin_ctx_idx))) return e;
 
-  mtev_zipkin_span_ref(pctx->span);
+  if(pctx->span) mtev_zipkin_span_ref(pctx->span);
 
   ctx = calloc(1, sizeof(*ctx));
   ctx->trace_events = pctx->trace_events;
-  if(ctx->trace_events == ZIPKIN_TRACE_EVENT_LIFETIME) {
+  if(pctx->span && ctx->trace_events == ZIPKIN_TRACE_EVENT_LIFETIME) {
     ctx->span = mtev_zipkin_span_new(&pctx->span->trace_id,
                                      &pctx->span->id, NULL,
                                      generic_eventer_callback_name, false,
