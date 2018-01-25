@@ -68,8 +68,9 @@ static mtev_boolean
 huge_hash_mkdir(const char *path)
 {
   char to_make[PATH_MAX];
+  size_t copy_len = strlen(path);
   memset(to_make, 0, PATH_MAX);
-  memcpy(to_make, path, strlen(path));
+  memcpy(to_make, path, MIN(copy_len, PATH_MAX));
   strlcat(to_make, "/dummy", sizeof(to_make));
   if (mkdir_for_file(to_make, 0777)) {
     mtevL(mtev_error, "mkdir %s: %s\n", to_make, strerror(errno));
