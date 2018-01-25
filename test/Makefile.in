@@ -55,6 +55,9 @@ frrh_test: frrh_test.c
 hash_test: hash_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o hash_test hash_test.c -lmtev $(LIBMTEV_LIBS)
 
+huge_hash_test: huge_hash_test.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o huge_hash_test huge_hash_test.c -lmtev $(LIBMTEV_LIBS)
+
 uuid_test: uuid_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o uuid_test uuid_test.c -lmtev $(LIBMTEV_LIBS)
 
