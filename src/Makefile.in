@@ -74,11 +74,11 @@ NOWHOLE_ARCHIVE=@NOWHOLE_ARCHIVE@
 DTRACEOBJ=@DTRACEOBJ@
 LIBMTEV_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.lo)
 LIBMTEV_V=libmtev@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
-LIBMTEV_MINOR=libmtev@DOTSO@.$(SEMVER_MAJOR).$(SEMVER_MINOR)@DOTDYLIB@
+LIBMTEV_MAJOR=libmtev@DOTSO@.$(SEMVER_MAJOR)@DOTDYLIB@
 LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
 FAST_TIME_PRELOAD=@FAST_TIME_PRELOAD@
 
-TARGETS=$(LIBMTEV) $(LIBMTEV_MINOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS@
+TARGETS=$(LIBMTEV) $(LIBMTEV_MAJOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS@
 
 all:	reversion $(TARGETS) make-man build-modules
 
@@ -215,8 +215,8 @@ mtev_version.h:
 $(LIBMTEV):	$(LIBMTEV_V)
 	$(Q)ln -sf $(LIBMTEV_V) $(LIBMTEV)
 
-$(LIBMTEV_MINOR):	$(LIBMTEV_V)
-	$(Q)ln -sf $(LIBMTEV_V) $(LIBMTEV_MINOR)
+$(LIBMTEV_MAJOR):	$(LIBMTEV_V)
+	$(Q)ln -sf $(LIBMTEV_V) $(LIBMTEV_MAJOR)
 
 $(LIBMTEV_V):	$(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ)
 	@echo "- linking $@"
@@ -323,7 +323,7 @@ install-libs:	mtevlibs
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)
 	$(INSTALL) -m 0755 $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV_V)
 	ln -sf $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV)
-	ln -sf $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV_MINOR)
+	ln -sf $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV_MAJOR)
 	if test -n "@MDB_MODS@" ; then \
 		$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)/usr/lib/mdb/proc/amd64 ; \
 		$(INSTALL) -m 0755 mdb-support/libmtev.so $(DESTDIR)/usr/lib/mdb/proc/amd64/libmtev.so ; \
