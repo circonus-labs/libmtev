@@ -98,7 +98,7 @@ CPPFLAGS="$CPPFLAGS -D_REENTRANT "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
 DTRACEHDR_TRANSFORM="copy"
 DOTSO=.so
-LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR).$(SEMVER_MINOR)'
+LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR)'
 MAPFLAGS=""
 
 case $host in
@@ -114,7 +114,7 @@ case $host in
 	MODULELD="$CC -bundle -flat_namespace -undefined suppress"
 	SHLD="$CC -dynamiclib -single_module -undefined dynamic_lookup -fPIC"
   DOTDYLIB=.dylib
-	LD_LIBMTEV_VERSION='-current_version $(SEMVER_MAJOR).$(SEMVER_MINOR) -install_name $(libdir)/libmtev.$(LIBMTEV_VERSION).dylib'
+	LD_LIBMTEV_VERSION='-current_version $(SEMVER_MAJOR) -install_name $(libdir)/libmtev.$(LIBMTEV_VERSION).dylib'
 	MODULEEXT=bundle
 	# This is needed for luajit on Mac OS X
 	if test "x$ENABLE_LUA" = "xluajit"; then
