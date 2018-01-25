@@ -40,7 +40,8 @@ static int do_test() {
 
   while(mtev_huge_hash_adv(iter)) {
     size_t key_len;
-    printf("%s\n", (const char *)mtev_huge_hash_iter_key(iter, &key_len));
+    const char *k = (const char *)mtev_huge_hash_iter_key(iter, &key_len); 
+    printf("%.*s\n", key_len, k);
   }
 
   mtev_huge_hash_destroy_iter(iter);
