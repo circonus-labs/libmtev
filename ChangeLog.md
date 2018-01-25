@@ -2,6 +2,16 @@
 
 # 1
 
+## 1.1
+
+### 1.1.0
+
+ * Add new structure, `mtev_huge_hash`, which uses LMDB to provide a
+   disk-backed hash table of arbitrary size. If a dependency on LMDB is
+   undesirable, one may configure with `--disable-lmdb`.
+ * Change SONAME to include just the major version, making future minor-version
+   bumps easier.
+
 ## 1.0
 
 ### 1.0.2
