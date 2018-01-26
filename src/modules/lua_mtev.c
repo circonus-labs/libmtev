@@ -3861,7 +3861,7 @@ int nl_spawn(lua_State *L) {
   return 2;
 }
 
-/*! \lua mtev.thread_self()
+/*! \lua thread, tid = mtev.thread_self()
 */
 static int
 nl_thread_self(lua_State *L) {

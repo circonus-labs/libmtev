@@ -406,6 +406,7 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
     mtev_hash_init(&lmc->state_coros);
     lmc->resume = lua_web_resume;
     lmc->owner = pthread_self();
+    lmc->eventer_id = eventer_is_loop(lmc->owner);
     lmc->pending = calloc(1, sizeof(*lmc->pending));
     mtev_hash_init(lmc->pending);
     pthread_setspecific(conf->key, lmc);
