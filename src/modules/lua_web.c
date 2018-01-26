@@ -329,10 +329,10 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
         return -1;
       }
       conf->mounts[i].name = strdup(iter.key.str + strlen("mount_"));
-      conf->mounts[i].module = strdup(module); 
-      conf->mounts[i].method = strdup(method); 
-      conf->mounts[i].mount = strdup(mount); 
-      conf->mounts[i].expr = expr ? strdup(expr) : strdup("(.*)$"); 
+      conf->mounts[i].module = strdup(module);
+      conf->mounts[i].method = strdup(method);
+      conf->mounts[i].mount = strdup(mount);
+      conf->mounts[i].expr = expr ? strdup(expr) : strdup("(.*)$");
       i++;
       free(copy);
     }
@@ -406,6 +406,7 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
     mtev_hash_init(&lmc->state_coros);
     lmc->resume = lua_web_resume;
     lmc->owner = pthread_self();
+    lmc->eventer_id = eventer_is_loop(lmc->owner);
     lmc->pending = calloc(1, sizeof(*lmc->pending));
     mtev_hash_init(lmc->pending);
     pthread_setspecific(conf->key, lmc);

@@ -1733,6 +1733,10 @@ nl_unlink(lua_State *L) {
   return 3;
 }
 
+/*! \lua ok, errno, errstr = mtev.rmdir(path)
+\param path string
+\return boolean success flag, error number, string representation of error
+ */
 static int
 nl_rmdir(lua_State *L) {
   int rv;
@@ -1746,6 +1750,10 @@ nl_rmdir(lua_State *L) {
   return 3;
 }
 
+/*! \lua ok, errno, errstr = mtev.mkdir(path)
+\param path string
+\return boolean success flag, error number, string representation of error
+*/
 static int
 nl_mkdir(lua_State *L) {
   int rv;
@@ -1759,6 +1767,10 @@ nl_mkdir(lua_State *L) {
   return 3;
 }
 
+/*! \lua ok, errno, errstr = mtev.mkdir_for_file(path)
+  \param path string
+  \return boolean success flag, error number, string representation of error
+*/
 static int
 nl_mkdir_for_file(lua_State *L) {
   int rv;
@@ -1772,6 +1784,9 @@ nl_mkdir_for_file(lua_State *L) {
   return 3;
 }
 
+/*! \lua path = mtev.getcwd()
+\return path string or nil
+*/
 static int
 nl_getcwd(lua_State *L) {
   char *rp, path[PATH_MAX * 4];
@@ -1782,6 +1797,24 @@ nl_getcwd(lua_State *L) {
 }
 
 
+
+/*! \lua fh = mtev.open(file, flags)
+  \param file to open (string)
+  \param integer flag
+  \return file handle
+
+  The following flag constants are pre-defined:
+  `O_RDONLY`,
+  `O_WRONLY`,
+  `O_RDWR`,
+  `O_APPEND`,
+  `O_SYNC`,
+  `O_NOFOLLOW`,
+  `O_CREAT`,
+  `O_TRUNC`,
+  `O_EXCL`
+  see `man 2 open` for their semantics.
+*/
 static int
 nl_open(lua_State *L) {
   const char *file;
@@ -1801,6 +1834,8 @@ nl_open(lua_State *L) {
   return 3;
 }
 
+/*! \lua mtev.write(fd, str)
+*/
 static int
 nl_write(lua_State *L) {
   int fd, rv;
@@ -1817,6 +1852,8 @@ nl_write(lua_State *L) {
   return 2;
 }
 
+/*! \lua mtev.close(fd)
+ */
 static int
 nl_close(lua_State *L) {
   if(lua_gettop(L) != 1 || !lua_isnumber(L, 1))
@@ -1945,8 +1982,8 @@ nl_realpath(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
-/* \lua mtev.log_up()
-*/
+
+// not exposed
 static int
 nl_log_up(lua_State *L) {
   int i, n;
@@ -3824,7 +3861,7 @@ int nl_spawn(lua_State *L) {
   return 2;
 }
 
-/*! \lua mtev.thread_self()
+/*! \lua thread, tid = mtev.thread_self()
 */
 static int
 nl_thread_self(lua_State *L) {

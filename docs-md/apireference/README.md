@@ -70,7 +70,7 @@
 
 ##### C
 
-[mtev.cancel_coro](lua.md#mtev.cancelcoro), [mtev.cluster_details](lua.md#mtev.clusterdetails), [mtev.cluster_get_self](lua.md#mtev.clustergetself), [mtev.conf_get_boolean](lua.md#mtev.confgetboolean), [mtev.conf_get_float](lua.md#mtev.confgetfloat), [mtev.conf_get_integer](lua.md#mtev.confgetinteger), [mtev.conf_get_string](lua.md#mtev.confgetstring), [mtev.conf_get_string_list](lua.md#mtev.confgetstringlist), [mtev.conf_replace_boolean](lua.md#mtev.confreplaceboolean), [mtev.conf_replace_value](lua.md#mtev.confreplacevalue)
+[mtev.cancel_coro](lua.md#mtev.cancelcoro), [mtev.close](lua.md#mtev.close), [mtev.cluster_details](lua.md#mtev.clusterdetails), [mtev.cluster_get_self](lua.md#mtev.clustergetself), [mtev.conf_get_boolean](lua.md#mtev.confgetboolean), [mtev.conf_get_float](lua.md#mtev.confgetfloat), [mtev.conf_get_integer](lua.md#mtev.confgetinteger), [mtev.conf_get_string](lua.md#mtev.confgetstring), [mtev.conf_get_string_list](lua.md#mtev.confgetstringlist), [mtev.conf_replace_boolean](lua.md#mtev.confreplaceboolean), [mtev.conf_replace_value](lua.md#mtev.confreplacevalue)
 
 ##### D
 
@@ -82,7 +82,7 @@
 
 ##### G
 
-[mtev.gettimeofday](lua.md#mtev.gettimeofday), [mtev.gunzip](lua.md#mtev.gunzip), [mtev.gunzip_deflate](lua.md#mtev.gunzipdeflate)
+[mtev.getcwd](lua.md#mtev.getcwd), [mtev.gettimeofday](lua.md#mtev.gettimeofday), [mtev.gunzip](lua.md#mtev.gunzip), [mtev.gunzip_deflate](lua.md#mtev.gunzipdeflate)
 
 ##### H
 
@@ -98,7 +98,11 @@
 
 ##### M
 
-[mtev.md5](lua.md#mtev.md5), [mtev.md5_hex](lua.md#mtev.md5hex)
+[mtev.md5](lua.md#mtev.md5), [mtev.md5_hex](lua.md#mtev.md5hex), [mtev.mkdir](lua.md#mtev.mkdir), [mtev.mkdir_for_file](lua.md#mtev.mkdirforfile)
+
+##### O
+
+[mtev.open](lua.md#mtev.open)
 
 ##### P
 
@@ -106,7 +110,7 @@
 
 ##### R
 
-[mtev.realpath](lua.md#mtev.realpath)
+[mtev.realpath](lua.md#mtev.realpath), [mtev.rmdir](lua.md#mtev.rmdir)
 
 ##### S
 
@@ -122,5 +126,5 @@
 
 ##### W
 
-[mtev.watchdog_child_heartbeat](lua.md#mtev.watchdogchildheartbeat), [mtev.watchdog_timeout](lua.md#mtev.watchdogtimeout)
+[mtev.watchdog_child_heartbeat](lua.md#mtev.watchdogchildheartbeat), [mtev.watchdog_timeout](lua.md#mtev.watchdogtimeout), [mtev.write](lua.md#mtev.write)
 

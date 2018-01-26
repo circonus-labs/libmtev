@@ -601,13 +601,13 @@
 <h5 id="b">B</h5>
 <p><a href="lua.html#mtev.base64decode">mtev.base64_decode</a>, <a href="lua.html#mtev.base64encode">mtev.base64_encode</a></p>
 <h5 id="c">C</h5>
-<p><a href="lua.html#mtev.cancelcoro">mtev.cancel_coro</a>, <a href="lua.html#mtev.clusterdetails">mtev.cluster_details</a>, <a href="lua.html#mtev.clustergetself">mtev.cluster_get_self</a>, <a href="lua.html#mtev.confgetboolean">mtev.conf_get_boolean</a>, <a href="lua.html#mtev.confgetfloat">mtev.conf_get_float</a>, <a href="lua.html#mtev.confgetinteger">mtev.conf_get_integer</a>, <a href="lua.html#mtev.confgetstring">mtev.conf_get_string</a>, <a href="lua.html#mtev.confgetstringlist">mtev.conf_get_string_list</a>, <a href="lua.html#mtev.confreplaceboolean">mtev.conf_replace_boolean</a>, <a href="lua.html#mtev.confreplacevalue">mtev.conf_replace_value</a></p>
+<p><a href="lua.html#mtev.cancelcoro">mtev.cancel_coro</a>, <a href="lua.html#mtev.close">mtev.close</a>, <a href="lua.html#mtev.clusterdetails">mtev.cluster_details</a>, <a href="lua.html#mtev.clustergetself">mtev.cluster_get_self</a>, <a href="lua.html#mtev.confgetboolean">mtev.conf_get_boolean</a>, <a href="lua.html#mtev.confgetfloat">mtev.conf_get_float</a>, <a href="lua.html#mtev.confgetinteger">mtev.conf_get_integer</a>, <a href="lua.html#mtev.confgetstring">mtev.conf_get_string</a>, <a href="lua.html#mtev.confgetstringlist">mtev.conf_get_string_list</a>, <a href="lua.html#mtev.confreplaceboolean">mtev.conf_replace_boolean</a>, <a href="lua.html#mtev.confreplacevalue">mtev.conf_replace_value</a></p>
 <h5 id="d">D</h5>
 <p><a href="lua.html#mtev.dns">mtev.dns</a>, <a href="lua.html#mtev.dns:isvalidip">mtev.dns:is_valid_ip</a>, <a href="lua.html#mtev.dns:lookup">mtev.dns:lookup</a></p>
 <h5 id="e">E</h5>
 <p><a href="lua.html#mtev.enablelog">mtev.enable_log</a>, <a href="lua.html#mtev.eventerloopconcurrency">mtev.eventer_loop_concurrency</a>, <a href="lua.html#mtev.extendedfree">mtev.extended_free</a></p>
 <h5 id="g">G</h5>
-<p><a href="lua.html#mtev.gettimeofday">mtev.gettimeofday</a>, <a href="lua.html#mtev.gunzip">mtev.gunzip</a>, <a href="lua.html#mtev.gunzipdeflate">mtev.gunzip_deflate</a></p>
+<p><a href="lua.html#mtev.getcwd">mtev.getcwd</a>, <a href="lua.html#mtev.gettimeofday">mtev.gettimeofday</a>, <a href="lua.html#mtev.gunzip">mtev.gunzip</a>, <a href="lua.html#mtev.gunzipdeflate">mtev.gunzip_deflate</a></p>
 <h5 id="h">H</h5>
 <p><a href="lua.html#mtev.hmacsha1encode">mtev.hmac_sha1_encode</a>, <a href="lua.html#mtev.hmacsha256encode">mtev.hmac_sha256_encode</a></p>
 <h5 id="j">J</h5>
@@ -615,11 +615,13 @@
 <h5 id="l">L</h5>
 <p><a href="lua.html#mtev.log">mtev.log</a></p>
 <h5 id="m">M</h5>
-<p><a href="lua.html#mtev.md5">mtev.md5</a>, <a href="lua.html#mtev.md5hex">mtev.md5_hex</a></p>
+<p><a href="lua.html#mtev.md5">mtev.md5</a>, <a href="lua.html#mtev.md5hex">mtev.md5_hex</a>, <a href="lua.html#mtev.mkdir">mtev.mkdir</a>, <a href="lua.html#mtev.mkdirforfile">mtev.mkdir_for_file</a></p>
+<h5 id="o">O</h5>
+<p><a href="lua.html#mtev.open">mtev.open</a></p>
 <h5 id="p">P</h5>
 <p><a href="lua.html#mtev.parsejson">mtev.parsejson</a>, <a href="lua.html#mtev.parsexml">mtev.parsexml</a>, <a href="lua.html#mtev.pcre">mtev.pcre</a>, <a href="lua.html#mtev.print">mtev.print</a>, <a href="lua.html#mtev.process:kill">mtev.process:kill</a>, <a href="lua.html#mtev.process:pid">mtev.process:pid</a>, <a href="lua.html#mtev.process:wait">mtev.process:wait</a></p>
 <h5 id="r">R</h5>
-<p><a href="lua.html#mtev.realpath">mtev.realpath</a></p>
+<p><a href="lua.html#mtev.realpath">mtev.realpath</a>, <a href="lua.html#mtev.rmdir">mtev.rmdir</a></p>
 <h5 id="s">S</h5>
 <p><a href="lua.html#mtev.sha1">mtev.sha1</a>, <a href="lua.html#mtev.sha1hex">mtev.sha1_hex</a>, <a href="lua.html#mtev.sha256">mtev.sha256</a>, <a href="lua.html#mtev.sha256hash">mtev.sha256_hash</a>, <a href="lua.html#mtev.sha256hex">mtev.sha256_hex</a>, <a href="lua.html#mtev.sharedget">mtev.shared_get</a>, <a href="lua.html#mtev.sharedset">mtev.shared_set</a>, <a href="lua.html#mtev.sleep">mtev.sleep</a>, <a href="lua.html#mtev.socket">mtev.socket</a>, <a href="lua.html#mtev.socketinternal">mtev.socket_internal</a>, <a href="lua.html#mtev.spawn">mtev.spawn</a></p>
 <h5 id="t">T</h5>
@@ -627,7 +629,7 @@
 <h5 id="u">U</h5>
 <p><a href="lua.html#mtev.utf8tohtml">mtev.utf8tohtml</a>, <a href="lua.html#mtev.uuid">mtev.uuid</a></p>
 <h5 id="w">W</h5>
-<p><a href="lua.html#mtev.watchdogchildheartbeat">mtev.watchdog_child_heartbeat</a>, <a href="lua.html#mtev.watchdogtimeout">mtev.watchdog_timeout</a></p>
+<p><a href="lua.html#mtev.watchdogchildheartbeat">mtev.watchdog_child_heartbeat</a>, <a href="lua.html#mtev.watchdogtimeout">mtev.watchdog_timeout</a>, <a href="lua.html#mtev.write">mtev.write</a></p>
 
                                 
                                 </section>

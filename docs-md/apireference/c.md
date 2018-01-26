@@ -5,7 +5,7 @@
 >Publish an AMQP message to one of the configured amqp brokers.
 
 ```c
-void 
+void
 mtev_amqp_send(struct amqp_envelope_t_ *env, int mandatory, int immediate, int id)
 ```
 
@@ -21,8 +21,8 @@ mtev_amqp_send(struct amqp_envelope_t_ *env, int mandatory, int immediate, int i
 >Publish an AMQP message to one of the configured amqp brokers.
 
 ```c
-void 
-mtev_amqp_send_data(char *exchange, char *route, int mandatory, int immediate, void *payload, 
+void
+mtev_amqp_send_data(char *exchange, char *route, int mandatory, int immediate, void *payload,
                     int len, int id)
 ```
 
@@ -43,7 +43,7 @@ mtev_amqp_send_data(char *exchange, char *route, int mandatory, int immediate, v
 >Decode a base32 encoded input buffer into the provided output buffer.
 
 ```c
-int 
+int
 mtev_b32_decode(const char *src, size_t src_len, unsigned char *dest, size_t dest_len)
 ```
 
@@ -62,7 +62,7 @@ mtev_b32_decode decodes input until an the entire input is consumed or until an 
 >Encode raw data as base32 encoded output into the provided buffer.
 
 ```c
-int 
+int
 mtev_b32_encode(const unsigned char *src, size_t src_len, char *dest, size_t dest_len)
 ```
 
@@ -79,7 +79,7 @@ mtev_b32_encode(const unsigned char *src, size_t src_len, char *dest, size_t des
 >Calculate how large a buffer must be to contain the base-32 encoding for a given number of bytes.
 
 ```c
-size_t 
+size_t
 mtev_b32_encode_len(size_t src_len)
 ```
 
@@ -93,7 +93,7 @@ mtev_b32_encode_len(size_t src_len)
 >Calculate how large a buffer must be to contain a decoded base-32-encoded string of a given length.
 
 ```c
-size_t 
+size_t
 mtev_b32_max_decode_len(size_t src_len)
 ```
 
@@ -107,7 +107,7 @@ mtev_b32_max_decode_len(size_t src_len)
 >Decode a base64 encoded input buffer into the provided output buffer.
 
 ```c
-int 
+int
 mtev_b64_decode(const char *src, size_t src_len, unsigned char *dest, size_t dest_len)
 ```
 
@@ -126,7 +126,7 @@ mtev_b64_decode decodes input until an the entire input is consumed or until an 
 >Encode raw data as base64 encoded output into the provided buffer.
 
 ```c
-int 
+int
 mtev_b64_encode(const unsigned char *src, size_t src_len, char *dest, size_t dest_len)
 ```
 
@@ -145,7 +145,7 @@ mtev_b64_encode encodes an input string into a base64 representation with no lin
 >Calculate how large a buffer must be to contain the base-64 encoding for a given number of bytes.
 
 ```c
-size_t 
+size_t
 mtev_b64_encode_len(size_t src_len)
 ```
 
@@ -159,7 +159,7 @@ mtev_b64_encode_len(size_t src_len)
 >Encode raw data as base64 encoded output into the provided buffer.
 
 ```c
-int 
+int
 mtev_b64_encodev(const struct iovec *iov, size_t iov_len, char *dest, size_t dest_len)
 ```
 
@@ -178,7 +178,7 @@ mtev_b64_encodev encodes an input string into a base64 representation with no li
 >Calculate how large a buffer must be to contain a decoded base-64-encoded string of a given length.
 
 ```c
-size_t 
+size_t
 mtev_b64_max_decode_len(size_t src_len)
 ```
 
@@ -194,7 +194,7 @@ mtev_b64_max_decode_len(size_t src_len)
 >A `mtev_cluster_node_filter_func_t` for alive nodes.
 
 ```c
-mtev_cluster_node_filter_func_t 
+mtev_cluster_node_filter_func_t
 mtev_cluster_alive_filter```
 
 
@@ -207,7 +207,7 @@ This function is available to be passed as the `filter` argument to `mtev_cluste
 >Determines if the local node is the oldest node within the cluster.
 
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster)
 ```
 
@@ -237,7 +237,7 @@ Takes a name and finds a globally registered cluster by that name.
 >Determines if the local node should possess a given key based on internal CHTs.
 
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_cluster_do_i_own(mtev_cluster_t *cluster, void *key, size_t klen, int w)
 ```
 
@@ -257,7 +257,7 @@ cluster that should own the specified key.
 >Report on the availability of the clusters feature.
 
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_cluster_enabled()
 ```
 
@@ -270,8 +270,8 @@ mtev_cluster_enabled()
 >Determines if the local node should possess a given key based on internal CHTs.
 
 ```c
-mtev_boolean 
-mtev_cluster_filter_owners(mtev_cluster_t *cluster, void *key, size_t klen, mtev_cluster_node_t **set, 
+mtev_boolean
+mtev_cluster_filter_owners(mtev_cluster_t *cluster, void *key, size_t klen, mtev_cluster_node_t **set,
                            int *w, mtev_cluster_node_filter_func_t filter, void *closure)
 ```
 
@@ -302,7 +302,7 @@ mtev_cluster_find_node(mtev_cluster_t *cluster, uuid_t nodeid)
   * `nodeid` The nodeid being searched for.
   * **RETURN** Returns a pointer to the mtev_cluster_node_t or NULL if not found.
 
-Takes a cluster and a node UUID and returns a pointer to the 
+Takes a cluster and a node UUID and returns a pointer to the
 corresponding mtev_cluster_node_t.
  
 
@@ -311,7 +311,7 @@ corresponding mtev_cluster_node_t.
 >Returns the current config sequence of the given cluster
 
 ```c
-int64_t 
+int64_t
 mtev_cluster_get_config_seq(mtev_cluster_t *cluster)
 ```
 
@@ -326,7 +326,7 @@ This function returns the current config sequence of the given cluster
 >Gets the current value of a payload segment from a node.
 
 ```c
-int 
+int
 mtev_cluster_get_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key, void **payload)
 ```
 
@@ -343,7 +343,7 @@ mtev_cluster_get_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id, uint
 >Returns the boot time of the local node.
 
 ```c
-struct timeval 
+struct timeval
 mtev_cluster_get_my_boot_time()
 ```
 
@@ -370,7 +370,7 @@ mtev_cluster_get_name(mtev_cluster_t *cluster)
 >Find a node in a cluster by id.
 
 ```c
-mtev_cluster_node_t * 
+mtev_cluster_node_t *
 mtev_cluster_get_node(mtev_cluster_t *cluster, uuid_t id)
 ```
 
@@ -385,7 +385,7 @@ mtev_cluster_get_node(mtev_cluster_t *cluster, uuid_t id)
 >Reports all nodes in the cluster (possible excluding the local node)
 
 ```c
-int 
+int
 mtev_cluster_get_nodes(mtev_cluster_t *cluster, mtev_cluster_node_t **nodes, int n
                        mtev_boolean includeme)
 ```
@@ -418,7 +418,7 @@ mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster)
 >Reports the UUID of the local node.
 
 ```c
-void 
+void
 mtev_cluster_get_self(uuid_t id)
 ```
 
@@ -433,7 +433,7 @@ Pouplates the passed uuid_t with the local node's UUID.
 >Initialize the mtev cluster configuration.
 
 ```c
-void 
+void
 mtev_cluster_init()
 ```
 
@@ -447,7 +447,7 @@ Initializes the mtev cluster configuration.
 >Retrieve the ID of a cluster node.
 
 ```c
-void 
+void
 mtev_cluster_node_get_id(mtev_cluster_node_t *node, uuid_t out)
 ```
 
@@ -461,7 +461,7 @@ mtev_cluster_node_get_id(mtev_cluster_node_t *node, uuid_t out)
 >Determine a cluster node has a custom payload attached.
 
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_cluster_node_has_payload(mtev_cluster_node_t *node)
 ```
 
@@ -475,7 +475,7 @@ mtev_cluster_node_has_payload(mtev_cluster_node_t *node)
 >Detrmines if the node in question is dead.
 
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_cluster_node_is_dead(mtev_cluster_node_t *node)
 ```
 
@@ -489,7 +489,7 @@ mtev_cluster_node_is_dead(mtev_cluster_node_t *node)
 >Triggers the attachment of an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)
 
 ```c
-void 
+void
 mtev_cluster_set_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key, void* payload
                                    uint8_t payload_length)
 ```
@@ -510,7 +510,7 @@ This function triggers the attachment of an arbitrary payload to the cluster hea
 >Sets a callback which is called everytime a node in the cluster changes it's up-time.
 
 ```c
-int 
+int
 mtev_cluster_set_node_update_callback(mtev_cluster_t *cluster, mtev_cluster_node_update_cb callback)
 ```
 
@@ -525,7 +525,7 @@ mtev_cluster_set_node_update_callback(mtev_cluster_t *cluster, mtev_cluster_node
 >Sets the UUID of the local node.
 
 ```c
-void 
+void
 mtev_cluster_set_self(uuid_t id)
 ```
 
@@ -540,7 +540,7 @@ Sets the local node's cluster identity, potentially updating the on-disk configu
 >Report the number of nodes in the cluster.
 
 ```c
-int 
+int
 mtev_cluster_size(mtev_cluster_t *cluster)
 ```
 
@@ -556,7 +556,7 @@ Determines the number of nodes in the given cluster.
 >Detaches (clears) an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)
 
 ```c
-void 
+void
 mtev_cluster_unset_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key)
 ```
 
@@ -571,7 +571,7 @@ mtev_cluster_unset_heartbeat_payload(mtev_cluster_t *cluster, uint8_t app_id, ui
 >Add or update an mtev cluster.
 
 ```c
-int 
+int
 mtev_cluster_update(mtev_conf_section_t cluster)
 ```
 
@@ -586,7 +586,7 @@ it in the global cluster configuration.
 #### mtev_confstr_parse_duration
 
 ```c
-int 
+int
 mtev_confstr_parse_duration(const char *input, uint64_t *output
                             const mtev_duration_definition_t *durations)
 ```
@@ -614,7 +614,7 @@ of `60005`.
 #### mtev_confstr_parse_duration_ms
 
 ```c
-int 
+int
 mtev_confstr_parse_duration_ms(const char *input, uint64_t *output)
 ```
 
@@ -627,7 +627,7 @@ and <A HREF="#mtevgetdurationsms">mtev_get_durations_ms</A>.
 #### mtev_confstr_parse_duration_ns
 
 ```c
-int 
+int
 mtev_confstr_parse_duration_ns(const char *input, uint64_t *output)
 ```
 
@@ -640,7 +640,7 @@ and <A HREF="#mtevgetdurationsns">mtev_get_durations_ns</A>.
 #### mtev_confstr_parse_duration_s
 
 ```c
-int 
+int
 mtev_confstr_parse_duration_s(const char *input, uint64_t *output)
 ```
 
@@ -653,7 +653,7 @@ and <A HREF="#mtevgetdurationss">mtev_get_durations_s</A>.
 #### mtev_confstr_parse_duration_us
 
 ```c
-int 
+int
 mtev_confstr_parse_duration_us(const char *input, uint64_t *output)
 ```
 
@@ -666,11 +666,11 @@ and <A HREF="#mtevgetdurationsus">mtev_get_durations_us</A>.
 #### mtev_curl_write_callback
 
 ```c
-size_t 
+size_t
 mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 ```
 
-  
+
 > Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA
 
 
@@ -683,7 +683,7 @@ mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 >add data to the dyn_buffer.
 
 ```c
-void 
+void
 mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
 ```
 
@@ -698,7 +698,7 @@ mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
 >add data to the dyn_buffer using printf semantics.
 
 ```c
-void 
+void
 mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
 ```
 
@@ -718,7 +718,7 @@ data NUL terminated.
 >move the write_pointer forward len bytes
 
 ```c
-void 
+void
 mtev_dyn_buffer_advance(mtev_dyn_buffer_t *buf)
 ```
 
@@ -731,7 +731,7 @@ mtev_dyn_buffer_advance(mtev_dyn_buffer_t *buf)
 >return the front of the dyn_buffer
 
 ```c
-void 
+void
 mtev_dyn_buffer_data(mtev_dyn_buffer_t *buf)
 ```
 
@@ -745,13 +745,13 @@ mtev_dyn_buffer_data(mtev_dyn_buffer_t *buf)
 >destroy the dyn_buffer
 
 ```c
-void 
+void
 mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf)
 ```
 
 
   * `buf` the buffer to destroy
-  
+
    This must be called at the end of dyn_buffer interactions in case the
    buffer has overflowed into dynamic allocation space.
  
@@ -761,7 +761,7 @@ mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf)
 >possibly grow the dyn_buffer so it can fit len bytes
 
 ```c
-void 
+void
 mtev_dyn_buffer_ensure(mtev_dyn_buffer_t *buf, size_t len)
 ```
 
@@ -775,13 +775,13 @@ mtev_dyn_buffer_ensure(mtev_dyn_buffer_t *buf, size_t len)
 >initialize a dyn_buffer
 
 ```c
-void 
+void
 mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf)
 ```
 
 
   * `buf` the buffer to init
-  
+
    Provided for completeness or non-stack allocations.
  
 
@@ -790,7 +790,7 @@ mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf)
 >move the write position to the beginning of the buffer
 
 ```c
-void 
+void
 mtev_dyn_buffer_reset(mtev_dyn_buffer_t *buf)
 ```
 
@@ -803,7 +803,7 @@ mtev_dyn_buffer_reset(mtev_dyn_buffer_t *buf)
 >return the total size of the buffer
 
 ```c
-void 
+void
 mtev_dyn_buffer_size(mtev_dyn_buffer_t *buf)
 ```
 
@@ -817,7 +817,7 @@ mtev_dyn_buffer_size(mtev_dyn_buffer_t *buf)
 >return the total used space of the buffer
 
 ```c
-void 
+void
 mtev_dyn_buffer_used(mtev_dyn_buffer_t *buf)
 ```
 
@@ -831,7 +831,7 @@ mtev_dyn_buffer_used(mtev_dyn_buffer_t *buf)
 >return the end of the dyn_buffer
 
 ```c
-void 
+void
 mtev_dyn_buffer_write_pointer(mtev_dyn_buffer_t *buf)
 ```
 
@@ -847,7 +847,7 @@ mtev_dyn_buffer_write_pointer(mtev_dyn_buffer_t *buf)
 >Execute an opset-appropriate `accept` call.
 
 ```c
-int 
+int
 eventer_accept(eventer_t e, struct sockaddr *addr, socklen_t *len, int *mask)
 ```
 
@@ -867,7 +867,7 @@ necessary activity to make progress.
 >Add an event object to the eventer system.
 
 ```c
-void 
+void
 eventer_add(eventer_t e)
 ```
 
@@ -880,7 +880,7 @@ eventer_add(eventer_t e)
 >Add an asynchronous event to a specific job queue.
 
 ```c
-void 
+void
 eventer_add_asynch(eventer_jobq_t *q, eventer_t e)
 ```
 
@@ -897,7 +897,7 @@ of `EVENTER_ASYNCH`.
 >Add an asynchronous event to a specific job queue dependent on the current job.
 
 ```c
-void 
+void
 eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e)
 ```
 
@@ -916,7 +916,7 @@ of the currently executing job.
 >Add an asynchronous event to a specific job queue dependent on the current job.
 
 ```c
-void 
+void
 eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
 ```
 
@@ -936,7 +936,7 @@ of the currently executing job.
 >Add an asynchronous event to a specific job queue.
 
 ```c
-void 
+void
 eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
 ```
 
@@ -954,7 +954,7 @@ of `EVENTER_ASYNCH`.
 >Convenience function to schedule a callback at a specific time.
 
 ```c
-eventer_t 
+eventer_t
 eventer_add_at(eventer_func_t func, void *closure, struct timeval whence)
 ```
 
@@ -970,7 +970,7 @@ eventer_add_at(eventer_func_t func, void *closure, struct timeval whence)
 >Convenience function to create an event to run a callback in the future
 
 ```c
-eventer_t 
+eventer_t
 eventer_add_in(eventer_func_t func, void *closure, struct timeval diff)
 ```
 
@@ -986,7 +986,7 @@ eventer_add_in(eventer_func_t func, void *closure, struct timeval diff)
 >Convenience function to create an event to run a callback in the future
 
 ```c
-eventer_t 
+eventer_t
 eventer_add_in_s_us(eventer_func_t func, void *closure, unsigned long seconds
                     unsigned long microseconds)
 ```
@@ -1004,7 +1004,7 @@ eventer_add_in_s_us(eventer_func_t func, void *closure, unsigned long seconds
 >Add an event to run during every loop cycle.
 
 ```c
-void 
+void
 eventer_add_recurrent(eventer_t e)
 ```
 
@@ -1021,7 +1021,7 @@ This happens _often_, so do light work.
 >Add a timed event to the eventer system.
 
 ```c
-void 
+void
 eventer_add_timed(eventer_t e)
 ```
 
@@ -1037,7 +1037,7 @@ This adds the `e` event to the eventer. `e` must have a mask of
 >Convenience function to schedule a callback to run in a specific event-loop thread.
 
 ```c
-eventer_t 
+eventer_t
 eventer_add_timer_next_opportunity(eventer_func_t func, void *closure, pthread_t owner)
 ```
 
@@ -1053,7 +1053,7 @@ eventer_add_timer_next_opportunity(eventer_func_t func, void *closure, pthread_t
 >Allocate an event to be injected into the eventer system.
 
 ```c
-eventer_t 
+eventer_t
 eventer_alloc()
 ```
 
@@ -1069,7 +1069,7 @@ calling thread.
 >Allocate an event to be injected into the eventer system.
 
 ```c
-eventer_t 
+eventer_t
 eventer_alloc_asynch(eventer_func_t func, void *closure)
 ```
 
@@ -1087,7 +1087,7 @@ calling thread.
 >Allocate an event to be injected into the eventer system.
 
 ```c
-eventer_t 
+eventer_t
 eventer_alloc_asynch_timeout(eventer_func_t func, void *closure, struct timeval *deadline)
 ```
 
@@ -1110,7 +1110,7 @@ will be called).
 >Allocate an event copied from another to be injected into the eventer system.
 
 ```c
-eventer_t 
+eventer_t
 eventer_alloc_copy(eventer_t src)
 ```
 
@@ -1126,7 +1126,7 @@ The allocated event has a refernce count of 1.
 >Allocate an event to be injected into the eventer system.
 
 ```c
-eventer_t 
+eventer_t
 eventer_alloc_fd(eventer_func_t func, void *closure, int fd, int mask)
 ```
 
@@ -1146,7 +1146,7 @@ calling thread.
 >Allocate an event to be injected into the eventer system.
 
 ```c
-eventer_t 
+eventer_t
 eventer_alloc_recurrent(eventer_func_t func, void *closure)
 ```
 
@@ -1164,7 +1164,7 @@ calling thread.
 >Allocate an event to be injected into the eventer system.
 
 ```c
-eventer_t 
+eventer_t
 eventer_alloc_timer(eventer_func_t func, void *closure, struct timeval *whence)
 ```
 
@@ -1183,7 +1183,7 @@ calling thread.
 >Convenience function to create an event to run a callback on a specific thread.
 
 ```c
-eventer_t 
+eventer_t
 eventer_alloc_timer_next_opportunity(eventer_func_t func, void *closure, pthread_t owner)
 ```
 
@@ -1199,7 +1199,7 @@ eventer_alloc_timer_next_opportunity(eventer_func_t func, void *closure, pthread
 #### eventer_allocations_current
 
 ```c
-int64_t 
+int64_t
 eventer_allocations_current()
 ```
 
@@ -1209,7 +1209,7 @@ eventer_allocations_current()
 #### eventer_allocations_total
 
 ```c
-int64_t 
+int64_t
 eventer_allocations_total()
 ```
 
@@ -1221,7 +1221,7 @@ eventer_allocations_total()
 >Convenience function to create an event to run a callback at a specific time.
 
 ```c
-eventer_t 
+eventer_t
 eventer_at(eventer_func_t func, void *closure, struct timeval whence)
 ```
 
@@ -1239,7 +1239,7 @@ eventer_at(eventer_func_t func, void *closure, struct timeval whence)
 >Directly invoke an event's callback.
 
 ```c
-int 
+int
 eventer_callback(eventer_t e, int mask, void *closure, struct timeval *now)
 ```
 
@@ -1261,7 +1261,7 @@ return values.
 >Find an event callback function that has been registered by name.
 
 ```c
-evneter_func_t 
+evneter_func_t
 eventer_callback_for_name(const char *name)
 ```
 
@@ -1275,7 +1275,7 @@ eventer_callback_for_name(const char *name)
 >Get the milliseconds since epoch of the current callback invocation.
 
 ```c
-uint64_t 
+uint64_t
 eventer_callback_ms()
 ```
 
@@ -1288,7 +1288,7 @@ eventer_callback_ms()
 >Get the microseconds since epoch of the current callback invocation.
 
 ```c
-uint64_t 
+uint64_t
 eventer_callback_us()
 ```
 
@@ -1301,7 +1301,7 @@ eventer_callback_us()
 >Find a thread in the default eventer pool.
 
 ```c
-pthread_t 
+pthread_t
 eventer_choose_owner(int n)
 ```
 
@@ -1326,7 +1326,7 @@ To assign an event to a thread, use the result of this function to assign:
 >Find a thread in a specific eventer pool.
 
 ```c
-pthread_t 
+pthread_t
 eventer_choose_owner_pool(eventer_pool_t *pool, int n)
 ```
 
@@ -1348,7 +1348,7 @@ To assign an event to a thread, use the result of this function to assign:
 >Execute an opset-appropriate `close` call.
 
 ```c
-int 
+int
 eventer_close(eventer_t e, int *mask)
 ```
 
@@ -1366,7 +1366,7 @@ necessary activity to make progress.
 >See eventer_free.
 
 ```c
-void 
+void
 eventer_deref(eventer_t e)
 ```
 
@@ -1379,7 +1379,7 @@ eventer_deref(eventer_t e)
 >Retrieve the accept function from an fd opset.
 
 ```c
-eventer_fd_accept_t 
+eventer_fd_accept_t
 eventer_fd_opset_get_accept(eventer_fd_opset_t opset)
 ```
 
@@ -1393,7 +1393,7 @@ eventer_fd_opset_get_accept(eventer_fd_opset_t opset)
 >Retrieve the close function from an fd opset.
 
 ```c
-eventer_fd_close_t 
+eventer_fd_close_t
 eventer_fd_opset_get_close(eventer_fd_opset_t opset)
 ```
 
@@ -1407,7 +1407,7 @@ eventer_fd_opset_get_close(eventer_fd_opset_t opset)
 >Retrieve the read function from an fd opset.
 
 ```c
-eventer_fd_read_t 
+eventer_fd_read_t
 eventer_fd_opset_get_read(eventer_fd_opset_t opset)
 ```
 
@@ -1421,7 +1421,7 @@ eventer_fd_opset_get_read(eventer_fd_opset_t opset)
 >Retrieve the write function from an fd opset.
 
 ```c
-eventer_fd_write_t 
+eventer_fd_write_t
 eventer_fd_opset_get_write(eventer_fd_opset_t opset)
 ```
 
@@ -1435,7 +1435,7 @@ eventer_fd_opset_get_write(eventer_fd_opset_t opset)
 >Find an event object in the eventer system by file descriptor.
 
 ```c
-eventer_t 
+eventer_t
 eventer_find_fd(int e)
 ```
 
@@ -1449,7 +1449,7 @@ eventer_find_fd(int e)
 >Run a user-provided function over all registered file descriptor events.
 
 ```c
-void 
+void
 eventer_foreach_fdevent(void (*fn)(eventer_t, void *), void *closure)
 ```
 
@@ -1463,7 +1463,7 @@ eventer_foreach_fdevent(void (*fn)(eventer_t, void *), void *closure)
 >Run a user-provided function over all registered timed events.
 
 ```c
-void 
+void
 eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
 ```
 
@@ -1477,7 +1477,7 @@ eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
 >Dereferences the event specified.
 
 ```c
-void 
+void
 eventer_free(eventer_t e)
 ```
 
@@ -1490,7 +1490,7 @@ eventer_free(eventer_t e)
 >Retrieve the callback function for an event.
 
 ```c
-eventer_func_t 
+eventer_func_t
 eventer_get_callback(eventer_t e)
 ```
 
@@ -1518,7 +1518,7 @@ eventer_get_closure(eventer_t e)
 >Get a context for an event.
 
 ```c
-int 
+int
 eventer_get_context(eventer_t e, int ctx_idx)
 ```
 
@@ -1533,7 +1533,7 @@ eventer_get_context(eventer_t e, int ctx_idx)
 >Find the start time of the eventer loop.
 
 ```c
-int 
+int
 eventer_get_epoch(struct timeval *epoch)
 ```
 
@@ -1547,7 +1547,7 @@ eventer_get_epoch(struct timeval *epoch)
 >Retrieve the file descriptor for an fd-based event.
 
 ```c
-int 
+int
 eventer_get_fd(eventer_t e)
 ```
 
@@ -1561,7 +1561,7 @@ eventer_get_fd(eventer_t e)
 >Retrieve the fd opset from an event.
 
 ```c
-eventer_fd_opset_t 
+eventer_fd_opset_t
 eventer_get_fd_opset(eventer_t e)
 ```
 
@@ -1575,7 +1575,7 @@ eventer_get_fd_opset(eventer_t e)
 >Retrieve the mask for an event.
 
 ```c
-int 
+int
 eventer_get_mask(eventer_t e)
 ```
 
@@ -1598,7 +1598,7 @@ eventer_get_mask(eventer_t e)
 >Retrieve the thread that owns an event.
 
 ```c
-pthread_t 
+pthread_t
 eventer_get_owner(eventer_t e)
 ```
 
@@ -1626,7 +1626,7 @@ eventer_get_pool_for_event(eventer_t e)
 >Get the eventer_t (if any) of which we are currently in the callback.
 
 ```c
-eventer_t 
+eventer_t
 eventer_get_this_event(void)
 ```
 
@@ -1652,7 +1652,7 @@ eventer_get_thread_name(void)
 >Retrieve the time at which a timer event will fire.
 
 ```c
-struct timeval 
+struct timeval
 eventer_get_whence(eventer_t e)
 ```
 
@@ -1686,7 +1686,7 @@ or other system facilities.
 >Set properties for the event loop.
 
 ```c
-int 
+int
 eventer_impl_propset(const char *key, const char *value)
 ```
 
@@ -1705,7 +1705,7 @@ for valid properties.
 >Attempt to set the rlimit on allowable open files.
 
 ```c
-int 
+int
 eventer_impl_setrlimit()
 ```
 
@@ -1721,7 +1721,7 @@ option is unspecified, 1048576 is used.
 >Convenience function to create an event to run a callback in the future
 
 ```c
-eventer_t 
+eventer_t
 eventer_in(eventer_func_t func, void *closure, struct timeval diff)
 ```
 
@@ -1739,7 +1739,7 @@ eventer_in(eventer_func_t func, void *closure, struct timeval diff)
 >Convenience function to create an event to run a callback in the future
 
 ```c
-eventer_t 
+eventer_t
 eventer_in_s_us(eventer_func_t func, void *closure, unsigned long seconds
                 unsigned long microseconds)
 ```
@@ -1759,7 +1759,7 @@ eventer_in_s_us(eventer_func_t func, void *closure, unsigned long seconds
 >Initialize global structures required for eventer operation.
 
 ```c
-void 
+void
 eventer_init_globals()
 ```
 
@@ -1774,7 +1774,7 @@ need to call this function directly.
 >Determine if a thread is participating in the eventer loop.
 
 ```c
-int 
+int
 eventer_is_loop(pthread_t tid)
 ```
 
@@ -1788,7 +1788,7 @@ eventer_is_loop(pthread_t tid)
 >Start the event loop.
 
 ```c
-void 
+void
 eventer_loop()
 ```
 
@@ -1804,7 +1804,7 @@ See [`mtev_main`](c.md#mtevmain`).
 >Determine the concurrency of the default eventer loop.
 
 ```c
-int 
+int
 eventer_loop_concurrency()
 ```
 
@@ -1817,7 +1817,7 @@ eventer_loop_concurrency()
 >Register a human/developer readable name for a eventer callback function.
 
 ```c
-int 
+int
 eventer_name_callback(const char *name, eventer_func_t callback)
 ```
 
@@ -1832,8 +1832,8 @@ eventer_name_callback(const char *name, eventer_func_t callback)
 >Register a functional describer for a callback and it's event object.
 
 ```c
-int 
-eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen, 
+int
+eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen,
                           eventer_t e, void *closure), void *closure)
 ```
 
@@ -1886,7 +1886,7 @@ eventer_pool(const char *name)
 >Retrieve the concurrency of an eventer pool.
 
 ```c
-uint32_t 
+uint32_t
 eventer_pool_concurrency(eventer_pool_t *pool)
 ```
 
@@ -1914,7 +1914,7 @@ eventer_pool_name(eventer_pool_t *pool)
 >Set a custom watchdog timeout for threads in an eventer pool.
 
 ```c
-void 
+void
 eventer_pool_watchdog_timeout(eventer_pool_t *pool, double timeout)
 ```
 
@@ -1928,7 +1928,7 @@ eventer_pool_watchdog_timeout(eventer_pool_t *pool, double timeout)
 >Execute an opset-appropriate `read` call.
 
 ```c
-int 
+int
 eventer_read(eventer_t e, void *buff, size_t len, int *mask)
 ```
 
@@ -1948,7 +1948,7 @@ necessary activity to make progress.
 >Add a reference to an event.
 
 ```c
-void 
+void
 eventer_ref(eventer_t e)
 ```
 
@@ -1968,7 +1968,7 @@ original to be freed.
 >Register an eventer carry context.
 
 ```c
-int 
+int
 eventer_register_context(const char *name, eventer_context_opset_t *opset)
 ```
 
@@ -1983,7 +1983,7 @@ eventer_register_context(const char *name, eventer_context_opset_t *opset)
 >Remove an event object from the eventer system.
 
 ```c
-eventer_t 
+eventer_t
 eventer_remove(eventer_t e)
 ```
 
@@ -1997,7 +1997,7 @@ eventer_remove(eventer_t e)
 >Remove an event object from the eventer system by file descriptor.
 
 ```c
-eventer_t 
+eventer_t
 eventer_remove_fd(int e)
 ```
 
@@ -2011,7 +2011,7 @@ eventer_remove_fd(int e)
 >Removes an fd event from the eventloop based on filedescriptor alone.
 
 ```c
-eventer_t 
+eventer_t
 eventer_remove_fde(eventer_t e)
 ```
 
@@ -2025,7 +2025,7 @@ eventer_remove_fde(eventer_t e)
 >Remove a recurrent event from the eventer.
 
 ```c
-eventer_t 
+eventer_t
 eventer_remove_recurrent(eventer_t e)
 ```
 
@@ -2039,7 +2039,7 @@ eventer_remove_recurrent(eventer_t e)
 >Remove a timed event from the eventer.
 
 ```c
-eventer_t 
+eventer_t
 eventer_remove_timed(eventer_t e)
 ```
 
@@ -2053,7 +2053,7 @@ eventer_remove_timed(eventer_t e)
 >Spawns a thread and runs the event until it returns 0.
 
 ```c
-void 
+void
 eventer_run_in_thread(eventer_t e, int mask)
 ```
 
@@ -2069,7 +2069,7 @@ This function will remove the event from the eventer and set the socket into blo
 >Set an event's callback function.
 
 ```c
-void 
+void
 eventer_set_callback(eventer_t e, eventer_func_t func)
 ```
 
@@ -2082,7 +2082,7 @@ eventer_set_callback(eventer_t e, eventer_func_t func)
 >Set an event's closure.
 
 ```c
-void 
+void
 eventer_set_closure(eventer_t e, void *closure)
 ```
 
@@ -2112,7 +2112,7 @@ eventer_set_context(eventer_t e, int ctx_idx, void *data)
 >Set a file descriptor into blocking mode.
 
 ```c
-int 
+int
 eventer_set_fd_blocking(int fd)
 ```
 
@@ -2126,7 +2126,7 @@ eventer_set_fd_blocking(int fd)
 >Set a file descriptor into non-blocking mode.
 
 ```c
-int 
+int
 eventer_set_fd_nonblocking(int fd)
 ```
 
@@ -2140,7 +2140,7 @@ eventer_set_fd_nonblocking(int fd)
 >Change an event's interests or intentions.
 
 ```c
-void 
+void
 eventer_set_mask(eventer_t e, int mask)
 ```
 
@@ -2161,7 +2161,7 @@ the mask of an active event in the system.
 >Set the thread that owns an event.
 
 ```c
-void 
+void
 eventer_set_owner(eventer_t e, pthread_t t)
 ```
 
@@ -2175,7 +2175,7 @@ eventer_set_owner(eventer_t e, pthread_t t)
 >Determine if the calling thread "owns" an event.
 
 ```c
-int 
+int
 eventer_thread_check(eventer_t e)
 ```
 
@@ -2189,7 +2189,7 @@ eventer_thread_check(eventer_t e)
 >Trigger an unregistered eventer and incorporate the outcome into the eventer.
 
 ```c
-void 
+void
 eventer_trigger(eventer_t e, int mask)
 ```
 
@@ -2206,7 +2206,7 @@ eventer for any reason.
 >Change the activity mask for file descriptor events.
 
 ```c
-void 
+void
 eventer_update(evneter_t e, int mask)
 ```
 
@@ -2220,7 +2220,7 @@ eventer_update(evneter_t e, int mask)
 >Change the time at which a registered timer event should fire.
 
 ```c
-void void 
+void void
 eventer_update_whence(eventer_t e, struct timeval whence)
 ```
 
@@ -2234,7 +2234,7 @@ eventer_update_whence(eventer_t e, struct timeval whence)
 >Signal up an event loop manually.
 
 ```c
-void 
+void
 eventer_wakeup(eventer_t e)
 ```
 
@@ -2243,7 +2243,7 @@ eventer_wakeup(eventer_t e)
 
 The event `e` is used to determine which thread of the eventer loop to wake up.
 If `e` is `NULL` the first thread in the default eventer loop is signalled. The
-eventer loop can wake up on timed events, asynchronous job completions and 
+eventer loop can wake up on timed events, asynchronous job completions and
 file descriptor activity.  If, for an external reason, one needs to wake up
 a looping thread, this call is used.
 
@@ -2253,7 +2253,7 @@ a looping thread, this call is used.
 >Return the current watchdog timeout on this thread.
 
 ```c
-double 
+double
 eventer_watchdog_timeout(void)
 ```
 
@@ -2266,7 +2266,7 @@ eventer_watchdog_timeout(void)
 >Execute an opset-appropriate `write` call.
 
 ```c
-int 
+int
 eventer_write(eventer_t e, void *buff, size_t len, int *mask)
 ```
 
@@ -2288,7 +2288,7 @@ necessary activity to make progress.
 >Acknowledge processing mtev_flow_regulator_toggle_t instruction.
 
 ```c
-mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_toggle_t
 mtev_flow_regulator_ack(mtev_flow_regulator_t *fr, mtev_flow_regulator_toggle_t t)
 ```
 
@@ -2370,7 +2370,7 @@ the flow-regulator will transition back to "enabled".
 >Destroy a flow-regulator object.
 
 ```c
-void 
+void
 mtev_flow_regulator_destroy(mtev_flow_regulator_t *fr)
 ```
 
@@ -2382,7 +2382,7 @@ mtev_flow_regulator_destroy(mtev_flow_regulator_t *fr)
 >Release space for work-items in a flow-regulator.
 
 ```c
-mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_toggle_t
 mtev_flow_regulator_lower(mtev_flow_regulator_t *fr, unsigned int by)
 ```
 
@@ -2402,7 +2402,7 @@ return value. This function will return one of:
 >Reserve space for a work-item in a flow-regulator.
 
 ```c
-mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_toggle_t
 mtev_flow_regulator_raise_one(mtev_flow_regulator_t *fr)
 ```
 
@@ -2424,7 +2424,7 @@ flow-regulator for the work-item.
 #### mtev_flow_regulator_stable_lower
 
 ```c
-mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_toggle_t
 mtev_flow_regulator_stable_lower(mtev_flow_regulator_t *fr, unsigned int by)
 ```
 
@@ -2440,7 +2440,7 @@ action to enable or disable work-production before calling
 #### mtev_flow_regulator_stable_try_raise_one
 
 ```c
-mtev_flow_regulator_toggle_t 
+mtev_flow_regulator_toggle_t
 mtev_flow_regulator_stable_try_raise_one(mtev_flow_regulator_t *fr)
 ```
 
@@ -2458,7 +2458,7 @@ action to enable or disable work-production before calling
 >Change the replacement probability on a `mtev_frrh_t`.
 
 ```c
-void 
+void
 mtev_frrh_adjust_prob(mtev_frrh_t *cache, uint32_t prob)
 ```
 
@@ -2472,8 +2472,8 @@ mtev_frrh_adjust_prob(mtev_frrh_t *cache, uint32_t prob)
 >Allocate a fast random replacement hash.
 
 ```c
-mtev_frrh_t * 
-mtev_frrh_alloc(uint64_t size, size_t datasize, uint32_t prob, mtev_frrh_hash hashf, 
+mtev_frrh_t *
+mtev_frrh_alloc(uint64_t size, size_t datasize, uint32_t prob, mtev_frrh_hash hashf,
                 mtev_frrh_alloc_entry allocf, mtev_frrh_free_entry freef)
 ```
 
@@ -2492,7 +2492,7 @@ mtev_frrh_alloc(uint64_t size, size_t datasize, uint32_t prob, mtev_frrh_hash ha
 >Retrieves the data associated with the provided key from the cache.
 
 ```c
-const void * 
+const void *
 mtev_frrh_get(mtev_frrh_t *cache, const void *key, uint32_t keylen)
 ```
 
@@ -2508,7 +2508,7 @@ mtev_frrh_get(mtev_frrh_t *cache, const void *key, uint32_t keylen)
 >Possibly set a key-value pair in a `mtev_frrh_t`
 
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_frrh_set(mtev_frrh_t *cache, const void *key, uint32_t keylen, const void *data)
 ```
 
@@ -2525,7 +2525,7 @@ mtev_frrh_set(mtev_frrh_t *cache, const void *key, uint32_t keylen, const void *
 >Retrieve access and hit statatistics.
 
 ```c
-void 
+void
 mtev_frrh_stats(mtev_frrh_t *cache, uint64_t *accesses, uint64_t *hits)
 ```
 
@@ -2626,16 +2626,15 @@ mtev_confstr_parse_duration. Microsecond-scale duration suffixes are:
 
 #### mtev_get_nanos
 
+>Like mtev_gethrtime. It actually is the implementation of mtev_gethrtime()
+
 ```c
-uint64_t 
+uint64_t
 mtev_get_nanos(void)
 ```
 
- *  
-> Like mtev_gethrtime. It actually is the implementation of mtev_gethrtime()
 
-
- *    * **RETURN** number of nanos seconds from an arbitrary time in the past.
+  * **RETURN** number of nanos seconds from an arbitrary time in the past.
  
 
 #### mtev_getip_ipv4
@@ -2643,7 +2642,7 @@ mtev_get_nanos(void)
 >find the local IPv4 address that would be used to talk to remote
 
 ```c
-int 
+int
 mtev_getip_ipv4(struct in_addr remote, struct in_addr *local)
 ```
 
@@ -2655,18 +2654,17 @@ mtev_getip_ipv4(struct in_addr remote, struct in_addr *local)
 
 #### mtev_gettimeofday
 
+>Maybe fast-pathed version of gettimeofday
+
 ```c
-int 
+int
 mtev_gettimeofday(struct timeval *t, void **ttp)
 ```
 
- *  
-> Maybe fast-pathed version of gettimeofday
 
+  * **RETURN** same as system gettimeofday();
 
- *    * **RETURN** same as system gettimeofday();
- * 
- * If the fast path is taken, ttp is ignored.
+   If the fast path is taken, ttp is ignored.
  
 
 ### H
@@ -2674,11 +2672,11 @@ mtev_gettimeofday(struct timeval *t, void **ttp)
 #### mtev_hash__hash
 
 ```c
-uint32_t 
+uint32_t
 mtev_hash__hash(const char *k, uint32_t length, uint32_t initval)
 ```
 
-  
+
 > the internal hash function that mtev_hash_table uses exposed for external usage
 
 
@@ -2687,11 +2685,11 @@ mtev_hash__hash(const char *k, uint32_t length, uint32_t initval)
 #### mtev_hash_adv
 
 ```c
-int 
+int
 mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter)
 ```
 
-  
+
 > iterate through key/values in the hash_table
 
 
@@ -2709,11 +2707,11 @@ mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter)
 #### mtev_hash_adv_spmc
 
 ```c
-int 
+int
 mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter)
 ```
 
-  
+
 > iterate through the key/values in the hash_table
 
 
@@ -2734,12 +2732,12 @@ mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter)
 #### mtev_hash_delete
 
 ```c
-int 
+int
 mtev_hash_delete(mtev_hash_table *h, const char *k, int klen, NoitHashFreeFunc keyfree
                  NoitHashFreeFunc datafree)
 ```
 
-  
+
 > remove the key/value stored at "k" and call keyfree and datafree if they are provided
 
 
@@ -2748,11 +2746,11 @@ mtev_hash_delete(mtev_hash_table *h, const char *k, int klen, NoitHashFreeFunc k
 #### mtev_hash_delete_all
 
 ```c
-void 
+void
 mtev_hash_delete_all(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
 ```
 
-  
+
 > remove all keys and values and call keyfree and datafree if they are provided
 
 
@@ -2761,11 +2759,11 @@ mtev_hash_delete_all(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeF
 #### mtev_hash_destroy
 
 ```c
-void 
+void
 mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
 ```
 
-  
+
 > remove all keys and values and call keyfree and datafree if they are provided but also wipe out the underlying map
 
 
@@ -2776,11 +2774,11 @@ mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc
 #### mtev_hash_init
 
 ```c
-void 
+void
 mtev_hash_init(mtev_hash_table *h)
 ```
 
-  
+
 > initialize a hash_table
 
 
@@ -2791,11 +2789,11 @@ mtev_hash_init(mtev_hash_table *h)
 #### mtev_hash_init_locks
 
 ```c
-void 
+void
 mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode)
 ```
 
-  
+
 > choose the lock mode when initing the hash.
 
 
@@ -2807,11 +2805,11 @@ mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mo
 #### mtev_hash_init_mtev_memory
 
 ```c
-void 
+void
 mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode)
 ```
 
-  
+
 > choose the lock mode when initing the hash.
 
 
@@ -2827,11 +2825,11 @@ mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mode_t l
 #### mtev_hash_init_size
 
 ```c
-void 
+void
 mtev_hash_init_size(mtev_hash_table *h, int size)
 ```
 
-  
+
 > initialize a hash_table with an initial size
 
 
@@ -2842,11 +2840,11 @@ mtev_hash_init_size(mtev_hash_table *h, int size)
 #### mtev_hash_merge_as_dict
 
 ```c
-void 
+void
 mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src)
 ```
 
-  
+
 > merge string values in "src" into "dst"
 
 
@@ -2860,12 +2858,12 @@ mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src)
 #### mtev_hash_next
 
 ```c
-int 
+int
 mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen
                void **data)
 ```
 
-  
+
 > iterate through the key/values in the hash_table
 
 
@@ -2878,12 +2876,12 @@ mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *kl
 #### mtev_hash_next_str
 
 ```c
-int 
+int
 mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen
                    const char **dstr)
 ```
 
-  
+
 > iterate through the key/values in the hash_table as strings
 
 
@@ -2894,12 +2892,12 @@ mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int
 #### mtev_hash_replace
 
 ```c
-int 
-mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data, 
+int
+mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
                   NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
 ```
 
-  
+
 > replace and delete (call keyfree and datafree functions) anything that was already in this hash location
 
 
@@ -2908,11 +2906,11 @@ mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
 #### mtev_hash_retr_str
 
 ```c
-int 
+int
 mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr)
 ```
 
-  
+
 > fetch the value at "k" into "data" as a string
 
 
@@ -2921,11 +2919,11 @@ mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dst
 #### mtev_hash_retrieve
 
 ```c
-int 
+int
 mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data)
 ```
 
-  
+
 > fetch the value at "k" into "data"
 
 
@@ -2934,12 +2932,12 @@ mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data)
 #### mtev_hash_set
 
 ```c
-int 
+int
 mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data, char **oldkey
               void **olddata)
 ```
 
-  
+
 > replace and return the old value and old key that was in this hash location
 
 
@@ -2952,11 +2950,11 @@ mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data, char **ol
 #### mtev_hash_size
 
 ```c
-int 
+int
 mtev_hash_size(mtev_hash_table *h)
 ```
 
-  
+
 > return the number of entries in the hash_table
 
 
@@ -2965,11 +2963,11 @@ mtev_hash_size(mtev_hash_table *h)
 #### mtev_hash_store
 
 ```c
-int 
+int
 mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data)
 ```
 
-  
+
 > put something in the hash_table
 
 
@@ -2990,7 +2988,7 @@ mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data)
 mtev_lfu_create(int32_t max_entries, void (*free_fn)(void *))
 ```
 
-  
+
 > Create an LFU of max_entries size
 
 
@@ -3005,7 +3003,7 @@ mtev_lfu_create(int32_t max_entries, void (*free_fn)(void *))
 mtev_lfu_destroy(mtev_lfu_t *)
 ```
 
-  
+
 > Destroy the LFU
 
 
@@ -3014,11 +3012,11 @@ mtev_lfu_destroy(mtev_lfu_t *)
 #### mtev_lfu_get
 
 ```c
-mtev_lfu_entry_token 
+mtev_lfu_entry_token
 mtev_lfu_get(mtev_lfu_t *lfu, const char *key, size_t key_len, void **value)
 ```
 
-  
+
 > Get an item from the LFU by key
 
 
@@ -3036,7 +3034,7 @@ mtev_lfu_get(mtev_lfu_t *lfu, const char *key, size_t key_len, void **value)
 mtev_lfu_invalidate(mtev_lfu_t *)
 ```
 
-  
+
 > Remove all entries from the LFU
 
 
@@ -3048,7 +3046,7 @@ mtev_lfu_invalidate(mtev_lfu_t *)
 mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *value)
 ```
 
-  
+
 > Put a new item into the LFU
 
 
@@ -3062,11 +3060,11 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *value)
 #### mtev_lfu_release
 
 ```c
-void 
+void
 mtev_lfu_release(mtev_lfu_t *lfu, mtev_lfu_entry_token token)
 ```
 
-  
+
 > Surrender an item back to the LFU
 
 
@@ -3081,7 +3079,7 @@ mtev_lfu_release(mtev_lfu_t *lfu, mtev_lfu_entry_token token)
 mtev_lfu_remove(mtev_lfu_t *lfu, const char *key, size_t key_len)
 ```
 
-  
+
 > Remove key from the LFU
 
 
@@ -3095,7 +3093,7 @@ mtev_lfu_remove(mtev_lfu_t *lfu, const char *key, size_t key_len)
 mtev_lfu_size(mtev_lfu_t *lfu)
 ```
 
-  
+
 > Return the total entry count in the LFU
 
 
@@ -3106,7 +3104,7 @@ mtev_lfu_size(mtev_lfu_t *lfu)
 >lock the file immediately if possible, return -1 otherwise.
 
 ```c
-mtev_lockfile_t 
+mtev_lockfile_t
 mtev_lockfile_acquire(const char *fp)
 ```
 
@@ -3120,7 +3118,7 @@ mtev_lockfile_acquire(const char *fp)
 >lock the file immediately if possible, return -1 otherwise.
 
 ```c
-mtev_lockfile_t 
+mtev_lockfile_t
 mtev_lockfile_acquire_owner(const char *fp, pid_t *owner)
 ```
 
@@ -3135,7 +3133,7 @@ mtev_lockfile_acquire_owner(const char *fp, pid_t *owner)
 >release a held file lock
 
 ```c
-int 
+int
 mtev_lockfile_release(mtev_lockfile_t fd)
 ```
 
@@ -3168,7 +3166,7 @@ mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_info_t *resume)
 >Free a `lua_module_closure_t` structure that has been allocated.
 
 ```c
-void 
+void
 mtev_lua_lmc_free(lua_module_closure_t *lmc)
 ```
 
@@ -3195,7 +3193,7 @@ mtev_lua_lmc_L(lua_module_closure_t *lmc)
 >Invoke lua_resume with the correct context based on the `lua_module_closure_t`
 
 ```c
-int 
+int
 mtev_lua_lmc_resume(lua_module_closure_t *lmc, mtev_lua_resume_info_t *ri, int nargs)
 ```
 
@@ -3228,9 +3226,9 @@ mtev_lua_lmc_setL(lua_module_closure_t *lmc)
 >Run a comprehensive mtev setup followed by a "main" routine.
 
 ```c
-int 
-mtev_main(const char *appname, const char *config_filename, int debug, int foreground, 
-          mtev_log_op_t lock, const char *glider, const char *drop_to_user, 
+int
+mtev_main(const char *appname, const char *config_filename, int debug, int foreground,
+          mtev_log_op_t lock, const char *glider, const char *drop_to_user,
           const char *drop_to_group, int (*passed_child_main)(void))
 ```
 
@@ -3252,7 +3250,7 @@ mtev_main(const char *appname, const char *config_filename, int debug, int foreg
 >Determine if that application is already running under this configuration.
 
 ```c
-int 
+int
 mtev_main_status(const char *appname, const char *config_filename, int debug, pid_t *pid
                  pid_t *pgid)
 ```
@@ -3271,7 +3269,7 @@ mtev_main_status(const char *appname, const char *config_filename, int debug, pi
 >Terminate an already running application under the same configuration.
 
 ```c
-int 
+int
 mtev_main_terminate(const char *appname, const char *config_filename, int debug)
 ```
 
@@ -3373,8 +3371,8 @@ MTEV_MAYBE_SIZE(name)
 >Merge sort data starting at head_ptr_ptr, iteratively
 
 ```c
-void 
-mtev_merge_sort(void **head_ptr_ptr, mtev_sort_next_function next, 
+void
+mtev_merge_sort(void **head_ptr_ptr, mtev_sort_next_function next,
                 mtev_sort_set_next_function set_next, mtev_sort_compare_function compare)
 ```
 
@@ -3389,7 +3387,7 @@ mtev_merge_sort(void **head_ptr_ptr, mtev_sort_next_function next,
 >Create directories along a path.
 
 ```c
-int 
+int
 mkdir_for_file(const char *file, mode_t m)
 ```
 
@@ -3406,29 +3404,29 @@ Creates all directories from / (as needed) to hold a named file.
 #### mtev_now_ms
 
 ```c
-uint64_t 
+uint64_t
 mtev_now_ms()
 ```
 
-   *  
+
 > the current system time in milliseconds
 
 
-   *    * **RETURN** mtev_gettimeofday() in milliseconds since epoch
+    * **RETURN** mtev_gettimeofday() in milliseconds since epoch
    
 
 #### mtev_now_us
 
 ```c
-uint64_t 
+uint64_t
 mtev_now_us()
 ```
 
-   *  
+
 > the current system time in microseconds
 
 
-   *    * **RETURN** mtev_gettimeofday() in microseconds since epoch
+    * **RETURN** mtev_gettimeofday() in microseconds since epoch
    
 
 ### S
@@ -3438,7 +3436,7 @@ mtev_now_us()
 >chroot(2) to the specified directory.
 
 ```c
-int 
+int
 mtev_security_chroot(const char *path)
 ```
 
@@ -3455,7 +3453,7 @@ environment.
 >change the capabilities of the process
 
 ```c
-int 
+int
 mtev_security_setcaps(mtev_security_captype_t type, const char *capstring)
 ```
 
@@ -3473,7 +3471,7 @@ process.
 >change the effective or real, effective and saved user and group
 
 ```c
-int 
+int
 mtev_security_usergroup(const char *user, const char *group, mtev_boolean effective)
 ```
 
@@ -3492,7 +3490,7 @@ user and group for the calling process.  This is thread-safe.
 >releases all resources related to a semaphore
 
 ```c
-int 
+int
 mtev_sem_destroy(mtev_sem_t *s)
 ```
 
@@ -3506,7 +3504,7 @@ mtev_sem_destroy(mtev_sem_t *s)
 >retrieves the current value of a semaphore, placing it in *value
 
 ```c
-int 
+int
 mtev_sem_getvalue(mtev_sem_t *s, int *value)
 ```
 
@@ -3521,7 +3519,7 @@ mtev_sem_getvalue(mtev_sem_t *s, int *value)
 >initializes a counting semaphore for first time use.
 
 ```c
-int 
+int
 mtev_sem_init(mtev_sem_t *s, int unused, int value)
 ```
 
@@ -3537,7 +3535,7 @@ mtev_sem_init(mtev_sem_t *s, int unused, int value)
 >increments the value of the semaphore releasing any waiters.
 
 ```c
-int 
+int
 mtev_sem_post(mtev_sem_t *s)
 ```
 
@@ -3551,7 +3549,7 @@ mtev_sem_post(mtev_sem_t *s)
 >decrements the value of the semaphore if greater than 0 or fails
 
 ```c
-int 
+int
 mtev_sem_trywait(mtev_sem_t *s)
 ```
 
@@ -3565,7 +3563,7 @@ mtev_sem_trywait(mtev_sem_t *s)
 >decrements the value of the semaphore waiting if required.
 
 ```c
-int 
+int
 mtev_sem_wait(mtev_sem_t *s)
 ```
 
@@ -3579,7 +3577,7 @@ mtev_sem_wait(mtev_sem_t *s)
 >Convenience function that delegates to sem_wait, swallowing EINTR errors.
 
 ```c
-void 
+void
 mtev_sem_wait_noeintr(mtev_sem_t *s)
 ```
 
@@ -3602,7 +3600,7 @@ sem_wait directly, do not use this function.
 >Function definition to compare sortable entries
 
 ```c
-int 
+int
 mtev_sort_compare_function(void *left, void *right)
 ```
 
@@ -3631,7 +3629,7 @@ mtev_sort_next_function(void *current)
 >Function definition to re-order objects
 
 ```c
-int 
+int
 mtev_sort_set_next_function(void *current, void *value)
 ```
 
@@ -3642,112 +3640,105 @@ mtev_sort_set_next_function(void *current, void *value)
 
 #### mtev_sys_gethrtime
 
+>Exposes the system gethrtime() or equivalent impl
+
 ```c
-mtev_hrtime_t 
+mtev_hrtime_t
 mtev_sys_gethrtime(void)
 ```
 
- *  
-> Exposes the system gethrtime() or equivalent impl
 
-
- *    * **RETURN** mtev_hrtime_t the system high-res time
+  * **RETURN** mtev_hrtime_t the system high-res time
  
 
 ### T
 
 #### mtev_time_fast_mode
 
+>check to see if fast mode is enabled
+
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_time_fast_mode(const char **reason)
 ```
 
- *  
-> check to see if fast mode is enabled
 
-
- *    * **RETURN** true if fast mode is on, false otherwise, the reason param will contain a text description
+  * **RETURN** true if fast mode is on, false otherwise, the reason param will contain a text description
  
 
 #### mtev_time_maintain
 
+>Usually this is managed for you, but this is safe to call at any time
+
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_time_maintain(void)
 ```
 
- *  
-> Usually this is managed for you, but this is safe to call at any time
 
+  * **RETURN** mtev_true if it was successful in parameterizing the CPU for rdtsc, mtev_false otherwise
 
- *    * **RETURN** mtev_true if it was successful in parameterizing the CPU for rdtsc, mtev_false otherwise
- * 
- * Safe to call at any time but if you start_tsc, you should never need to call this
- * as the maintenance system can do it for you. However, if you find you need to call it
- * you must be bound to a thread using the mtev_thread APIs and the function will return
- * whether it was successful in parameterizing the CPU for rdtsc use.
+Safe to call at any time but if you start_tsc, you should never need to call this
+as the maintenance system can do it for you. However, if you find you need to call it
+you must be bound to a thread using the mtev_thread APIs and the function will return
+whether it was successful in parameterizing the CPU for rdtsc use.
  
 
 #### mtev_time_start_tsc
 
+>use TSC clock if possible for this CPU num
+
 ```c
-void 
+void
 mtev_time_start_tsc()
 ```
 
- *  
-> use TSC clock if possible for this CPU num
 
 
- * 
- * This will remain active in the thread until you call stop
+   This will remain active in the thread until you call stop
  
 
 #### mtev_time_stop_tsc
 
+>Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)
+
 ```c
-void 
+void
 mtev_time_stop_tsc(void)
 ```
-
- *  
-> Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)
 
 
  
 
 #### mtev_time_toggle_require_invariant_tsc
 
+>will switch on/off the requirement of an invariant tsc.  This must be run before any call to mtev_time_toggle_tsc() or mtev_time_tsc_start() and is a one time call.
+
 ```c
-void 
+void
 mtev_time_toggle_require_invariant_tsc(mtev_boolean enable)
 ```
 
- *  
-> will switch on/off the requirement of an invariant tsc.  This must be run before any call to mtev_time_toggle_tsc() or mtev_time_tsc_start() and is a one time call.
 
 
- *
- * Defaults to enabled.
+   Defaults to enabled.
  
 
 #### mtev_time_toggle_tsc
 
+>will switch on/off rdtsc usage across all cores regardless of detected state of rdtsc or start/stop usage.
+
 ```c
-void 
+void
 mtev_time_toggle_tsc(mtev_boolean enable)
 ```
 
- *  
-> will switch on/off rdtsc usage across all cores regardless of detected state of rdtsc or start/stop usage.
 
 
- * 
- * Defaults to enabled.
- * 
- * This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread
- * will keep going using the state from the last start/stop_tsc
+   Defaults to enabled.
+
+   This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread
+   will keep going using the state from the last start/stop_tsc
  
 
 ### W
@@ -3755,7 +3746,7 @@ mtev_time_toggle_tsc(mtev_boolean enable)
 #### mtev_watchdog_child_eventer_heartbeat
 
 ```c
-int 
+int
 mtev_watchdog_child_eventer_heartbeat()
 ```
 
@@ -3767,7 +3758,7 @@ mtev_watchdog_child_eventer_heartbeat registers a periodic heartbeat through the
 #### mtev_watchdog_child_heartbeat
 
 ```c
-int 
+int
 mtev_watchdog_child_heartbeat()
 ```
 
@@ -3791,7 +3782,7 @@ mtev_watchdog_create creates a new heartbeat that must be assessed for livelines
 #### mtev_watchdog_disable
 
 ```c
-void 
+void
 mtev_watchdog_disable(mtev_watchdog_t *hb)
 ```
 
@@ -3803,7 +3794,7 @@ mtev_watchdog_disable will make the parent ignore failed heartbeats.
 #### mtev_watchdog_enable
 
 ```c
-void 
+void
 mtev_watchdog_enable(mtev_watchdog_t *hb)
 ```
 
@@ -3817,7 +3808,7 @@ mtev_watchdog_enable will make the parent respect and act on failed heartbeats.
 >returns the timeout configured for this watchdog.
 
 ```c
-double 
+double
 mtev_watchdog_get_timeout(mtev_watchdog_t *hb)
 ```
 
@@ -3829,7 +3820,7 @@ mtev_watchdog_get_timeout(mtev_watchdog_t *hb)
 #### mtev_watchdog_heartbeat
 
 ```c
-int 
+int
 mtev_watchdog_heartbeat(mtev_watchdog_t *hb)
 ```
 
@@ -3842,7 +3833,7 @@ mtev_watchdog_heartbeat will pulse on the specified heart.
 #### mtev_watchdog_override_timeout
 
 ```c
-void 
+void
 mtev_watchdog_override_timeout(mtev_watchdog_t *hb, double timeout)
 ```
 
@@ -3858,7 +3849,7 @@ for a specific heart in the system.
 >Prepare the program to split into a child/parent-monitor relationship.
 
 ```c
-int 
+int
 mtev_watchdog_prefork_init()
 ```
 
@@ -3872,7 +3863,7 @@ child to instrument watchdogs.
 #### mtev_watchdog_recurrent_heartbeat
 
 ```c
-eventer_t 
+eventer_t
 mtev_watchdog_recurrent_heartbeat(mtev_watchdog_t *hb)
 ```
 
@@ -3887,7 +3878,7 @@ mtev_watchdog_recurrent_heartbeat creates a recurrent eventer_t to beat a heart.
 >Starts a function as a separate child under close watch.
 
 ```c
-int 
+int
 mtev_watchdog_start_child(const char *app, int (*func)(), int child_watchdog_timeout)
 ```
 
@@ -3905,7 +3896,7 @@ mtev_watchdog_start_child will fork and run the specified function in the child 
 >Free a client
 
 ```c
-void 
+void
 mtev_websocket_client_free(mtev_websocket_client_t *client)
 ```
 
@@ -3935,7 +3926,7 @@ mtev_websocket_client_get_closure(mtev_websocket_client_t *client)
 >Enable debug logging to "debug/websocket_client"
 
 ```c
-void 
+void
 mtev_websocket_client_init_logs()
 ```
 
@@ -3949,7 +3940,7 @@ Error logging is always active to "error/websocket_client".
 >Check if a client has closed and can no longer send or receive
 
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_websocket_client_is_closed(mtev_websocket_client_t *client)
 ```
 
@@ -3968,7 +3959,7 @@ the result of this function call before the caller can act on it.
 >Check if a client has completed its handshake and is ready to send messages
 
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_websocket_client_is_ready(mtev_websocket_client_t *client)
 ```
 
@@ -3985,8 +3976,8 @@ This function will continue to return true after the client has closed.
 
 ```c
 mtev_websocket_client_t *
-mtev_websocket_client_new(const char *host, int port, const char *path, const char *service, 
-                          mtev_websocket_client_callbacks *callbacks, void *closure, 
+mtev_websocket_client_new(const char *host, int port, const char *path, const char *service,
+                          mtev_websocket_client_callbacks *callbacks, void *closure,
                           eventer_pool_t *pool, mtev_hash_table *sslconfig)
 ```
 
@@ -4012,9 +4003,9 @@ A client returned from this constructor must be freed with `mtev_websocket_clien
 >Construct a new websocket client that will be freed automatically after cleanup
 
 ```c
-mtev_boolean 
-mtev_websocket_client_new_noref(const char *host, int port, const char *path, const char *service, 
-                                mtev_websocket_client_callbacks *callbacks, void *closure, 
+mtev_boolean
+mtev_websocket_client_new_noref(const char *host, int port, const char *path, const char *service,
+                                mtev_websocket_client_callbacks *callbacks, void *closure,
                                 eventer_pool_t *pool, mtev_hash_table *sslconfig)
 ```
 
@@ -4039,7 +4030,7 @@ Clients allocated by this function are expected to be interacted with solely thr
 >Enqueue a message
 
 ```c
-mtev_boolean 
+mtev_boolean
 mtev_websocket_client_send(mtev_websocket_client_t *client, int opcode, void *buf, size_t len)
 ```
 
@@ -4062,7 +4053,7 @@ This function may fail for the following reasons:
 >Set a new cleanup_callback on an existing client
 
 ```c
-void 
+void
 mtev_websocket_client_set_cleanup_callback(mtev_websocket_client_t *client
                                            mtev_websocket_client_cleanup_callback cleanup_callback)
 ```
@@ -4077,7 +4068,7 @@ mtev_websocket_client_set_cleanup_callback(mtev_websocket_client_t *client
 >Set a new closure
 
 ```c
-void 
+void
 mtev_websocket_client_set_closure(mtev_websocket_client_t *client, void *closure)
 ```
 
@@ -4093,7 +4084,7 @@ If closure is NULL, this has the effect of removing a previously set closure.
 >Set a new msg_callback on an existing client
 
 ```c
-void 
+void
 mtev_websocket_client_set_msg_callback(mtev_websocket_client_t *client
                                        mtev_websocket_client_msg_callback msg_callback)
 ```
@@ -4108,7 +4099,7 @@ mtev_websocket_client_set_msg_callback(mtev_websocket_client_t *client
 >Set a new ready_callback on an existing client
 
 ```c
-void 
+void
 mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client
                                          mtev_websocket_client_ready_callback ready_callback)
 ```
@@ -4125,7 +4116,7 @@ mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client
 >Find the currently active span of work.
 
 ```c
-Zipkin_Span * 
+Zipkin_Span *
 mtev_zipkin_active_span(eventer_t e)
 ```
 
@@ -4139,8 +4130,8 @@ mtev_zipkin_active_span(eventer_t e)
 >Sets the endpoint for an annotation.
 
 ```c
-void 
-mtev_zipkin_annotation_set_endpoint(Zipkin_Annotation *annotation, const char *service_name, 
+void
+mtev_zipkin_annotation_set_endpoint(Zipkin_Annotation *annotation, const char *service_name,
                                     bool service_name_copy, struct in_addr host, unsigned short port)
 ```
 
@@ -4159,7 +4150,7 @@ mtev_zipkin_annotation_set_endpoint sets an endpoint for the provided annotation
 >Attach an active span (or new child span) to an event.
 
 ```c
-void 
+void
 mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_child
                               mtev_zipkin_event_trace_level_t *track)
 ```
@@ -4176,8 +4167,8 @@ mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_child
 >Sets the endpoint for an annotation.
 
 ```c
-void 
-mtev_zipkin_bannotation_set_endpoint(Zipkin_BinaryAnnotation *annotation, const char *service_name, 
+void
+mtev_zipkin_bannotation_set_endpoint(Zipkin_BinaryAnnotation *annotation, const char *service_name,
                                      bool service_name_copy, struct in_addr host, unsigned short port)
 ```
 
@@ -4196,7 +4187,7 @@ mtev_zipkin_bannotation_set_endpoint sets an endpoint for the provided annotatio
 >Discard a client span if one exists.
 
 ```c
-void 
+void
 mtev_zipkin_client_drop(eventer_t e)
 ```
 
@@ -4209,7 +4200,7 @@ mtev_zipkin_client_drop(eventer_t e)
 >Create a new span for client user (remote calling)
 
 ```c
-void 
+void
 mtev_zipkin_client_new(eventer_t e, const char *name, bool name_copy)
 ```
 
@@ -4224,7 +4215,7 @@ mtev_zipkin_client_new(eventer_t e, const char *name, bool name_copy)
 >Format a parent span HTTP header for an HTTP request.
 
 ```c
-bool 
+bool
 mtev_zipkin_client_parent_hdr(eventer_t e, char *buf, size_t len)
 ```
 
@@ -4240,7 +4231,7 @@ mtev_zipkin_client_parent_hdr(eventer_t e, char *buf, size_t len)
 >Publish a client span if one exists.
 
 ```c
-void 
+void
 mtev_zipkin_client_publish(eventer_t e)
 ```
 
@@ -4253,7 +4244,7 @@ mtev_zipkin_client_publish(eventer_t e)
 >Format a sampled HTTP header for an HTTP request.
 
 ```c
-bool 
+bool
 mtev_zipkin_client_sampled_hdr(eventer_t e, char *buf, size_t len)
 ```
 
@@ -4269,7 +4260,7 @@ mtev_zipkin_client_sampled_hdr(eventer_t e, char *buf, size_t len)
 >Retrieve the current client span should one exist.
 
 ```c
-Zipkin_Span * 
+Zipkin_Span *
 mtev_zipkin_client_span(eventer_t e)
 ```
 
@@ -4283,7 +4274,7 @@ mtev_zipkin_client_span(eventer_t e)
 >Format a span HTTP header for an HTTP request.
 
 ```c
-bool 
+bool
 mtev_zipkin_client_span_hdr(eventer_t e, char *buf, size_t len)
 ```
 
@@ -4299,7 +4290,7 @@ mtev_zipkin_client_span_hdr(eventer_t e, char *buf, size_t len)
 >Format a trace HTTP header for an HTTP request.
 
 ```c
-bool 
+bool
 mtev_zipkin_client_trace_hdr(eventer_t e, char *buf, size_t len)
 ```
 
@@ -4315,7 +4306,7 @@ mtev_zipkin_client_trace_hdr(eventer_t e, char *buf, size_t len)
 >Sets the default endpoint used for new spans.
 
 ```c
-void 
+void
 mtev_zipkin_default_endpoint(const char *service_name, bool service_name_copy, struct in_addr host
                              unsigned short port)
 ```
@@ -4334,7 +4325,7 @@ mtev_zipkin_default_endpoint sets a default endpoint for any new spans created w
 >Sets the default service name used for new spans.
 
 ```c
-void 
+void
 mtev_zipkin_default_service_name(const char *service_name, bool service_name_copy)
 ```
 
@@ -4350,7 +4341,7 @@ mtev_zipkin_default_service_name sets a default service name for endpoints for a
 >Encode a span into the specified buffer for Zipkin.
 
 ```c
-size_t 
+size_t
 mtev_zipkin_encode(unsigned char *buffer, size_t len, Zipkin_Span *span)
 ```
 
@@ -4368,7 +4359,7 @@ mtev_zipkin_encode will take a span and encode it for Zipkin using the Thift Bin
 >Encode a span into the specified buffer for Zipkin.
 
 ```c
-size_t 
+size_t
 mtev_zipkin_encode_list(unsigned char *buffer, size_t len, Zipkin_Span **spans, int cnt)
 ```
 
@@ -4387,7 +4378,7 @@ mtev_zipkin_encode_list will take a list of spans and encode it for Zipkin using
 >Globally set the default event trace level.
 
 ```c
-void 
+void
 mtev_zipkin_event_trace_level(mtev_zipkin_event_trace_level_t level)
 ```
 
@@ -4400,7 +4391,7 @@ mtev_zipkin_event_trace_level(mtev_zipkin_event_trace_level_t level)
 >Initialize zipkin contexts for the eventer.
 
 ```c
-void 
+void
 mtev_zipkin_eventer_init(void)
 ```
 
@@ -4412,7 +4403,7 @@ mtev_zipkin_eventer_init(void)
 >Get sampling probabilities for different types of traces.
 
 ```c
-void 
+void
 mtev_zipkin_get_sampling(double *new_traces, double *parented_traces, double *debug_traces)
 ```
 
@@ -4429,7 +4420,7 @@ mtev_zipkin_get_sampling gets sampling probabilities for creating new traces.  S
 >Set sampling probabilities for different types of traces.
 
 ```c
-void 
+void
 mtev_zipkin_sampling(double new_traces, double parented_traces, double debug_traces)
 ```
 
@@ -4446,7 +4437,7 @@ mtev_zipkin_sampling sets sampling probabilities for creating new traces. Defaul
 >Annotate a span.
 
 ```c
-Zipkin_Annotation * 
+Zipkin_Annotation *
 mtev_zipkin_span_annotate(Zipkin_Span *span, int64_t *timestamp, const char *value, bool value_copy)
 ```
 
@@ -4465,7 +4456,7 @@ mtev_zipkin_span_annotate make an annotation on the provided span.  The returned
 >Enable mtev_log appending if span is active.
 
 ```c
-void 
+void
 mtev_zipkin_span_attach_logs(Zipkin_Span *span, bool on)
 ```
 
@@ -4479,8 +4470,8 @@ mtev_zipkin_span_attach_logs(Zipkin_Span *span, bool on)
 >Annotate a span.
 
 ```c
-Zipkin_BinaryAnnotation * 
-mtev_zipkin_span_bannotate(Zipkin_Span *span, Zipkin_AnnotationType annotation_type, const char *key, 
+Zipkin_BinaryAnnotation *
+mtev_zipkin_span_bannotate(Zipkin_Span *span, Zipkin_AnnotationType annotation_type, const char *key,
                            bool key_copy, const void *value, int32_t value_len, bool value_copy)
 ```
 
@@ -4502,7 +4493,7 @@ mtev_zipkin_span_bannotate make a binary annotation on the provided span.  The r
 >Annotate a span.
 
 ```c
-Zipkin_BinaryAnnotation * 
+Zipkin_BinaryAnnotation *
 mtev_zipkin_span_bannotate_double(Zipkin_Span *span, const char *key, bool key_copy, double value)
 ```
 
@@ -4520,7 +4511,7 @@ mtev_zipkin_span_bannotate_double(Zipkin_Span *span, const char *key, bool key_c
 >Annotate a span.
 
 ```c
-Zipkin_BinaryAnnotation * 
+Zipkin_BinaryAnnotation *
 mtev_zipkin_span_bannotate_i32(Zipkin_Span *span, const char *key, bool key_copy, int32_t value)
 ```
 
@@ -4538,7 +4529,7 @@ mtev_zipkin_span_bannotate_i32(Zipkin_Span *span, const char *key, bool key_copy
 >Annotate a span.
 
 ```c
-Zipkin_BinaryAnnotation * 
+Zipkin_BinaryAnnotation *
 mtev_zipkin_span_bannotate_i64(Zipkin_Span *span, const char *key, bool key_copy, int64_t value)
 ```
 
@@ -4556,7 +4547,7 @@ mtev_zipkin_span_bannotate_i64(Zipkin_Span *span, const char *key, bool key_copy
 >Annotate a span.
 
 ```c
-Zipkin_BinaryAnnotation * 
+Zipkin_BinaryAnnotation *
 mtev_zipkin_span_bannotate_str(Zipkin_Span *span, const char *key, bool key_copy, const char *value
                                bool value_copy)
 ```
@@ -4576,8 +4567,8 @@ mtev_zipkin_span_bannotate_str(Zipkin_Span *span, const char *key, bool key_copy
 >Sets the default endpoint used for new annotations within the span.
 
 ```c
-void 
-mtev_zipkin_span_default_endpoint(Zipkin_Span *span, const char *service_name, bool service_name_copy, 
+void
+mtev_zipkin_span_default_endpoint(Zipkin_Span *span, const char *service_name, bool service_name_copy,
                                   struct in_addr host, unsigned short port)
 ```
 
@@ -4596,7 +4587,7 @@ mtev_zipkin_span_default_endpoint sets a default endpoint for any annotations or
 >Release resources allociated with span without publishing.
 
 ```c
-void 
+void
 mtev_zipkin_span_drop(Zipkin_Span *span)
 ```
 
@@ -4611,7 +4602,7 @@ mtev_zipkin_span_drop releases all resources associated with the span.
 >Fetch the various IDs from a span.
 
 ```c
-bool 
+bool
 mtev_zipkin_span_get_ids(Zipkin_Span *span, int64_t *traceid, int64_t *parent_id, int64_t *id)
 ```
 
@@ -4628,7 +4619,7 @@ mtev_zipkin_span_get_ids(Zipkin_Span *span, int64_t *traceid, int64_t *parent_id
 >Report whether a span should have logs attached.
 
 ```c
-bool 
+bool
 mtev_zipkin_span_logs_attached(Zipkin_Span *span)
 ```
 
@@ -4641,8 +4632,8 @@ mtev_zipkin_span_logs_attached(Zipkin_Span *span)
 >Allocate a new tracing span.
 
 ```c
-Zipkin_Span * 
-mtev_zipkin_span_new(int64_t *trace_id, int64_t *parent_span_id, int64_t *span_id, 
+Zipkin_Span *
+mtev_zipkin_span_new(int64_t *trace_id, int64_t *parent_span_id, int64_t *span_id,
                      const char *name, bool name_copy, bool debug, bool force)
 ```
 
@@ -4664,7 +4655,7 @@ mtev_zipkin_span_new allocates a new span in the system. The caller must eventua
 >Pulish then release resources allociated with span without publishing.
 
 ```c
-void 
+void
 mtev_zipkin_span_publish(Zipkin_Span *span)
 ```
 
@@ -4679,7 +4670,7 @@ mtev_zipkin_span_publish first publishes, then releases all resources associated
 >Increase the reference count to a span.
 
 ```c
-void 
+void
 mtev_zipkin_span_ref(Zipkin_Span *span)
 ```
 
@@ -4692,7 +4683,7 @@ mtev_zipkin_span_ref(Zipkin_Span *span)
 >Rename a span after it has been created, but before publishing.
 
 ```c
-void 
+void
 mtev_zipkin_span_rename(Zipkin_Span *span, const char *name, bool name_copy)
 ```
 
@@ -4707,7 +4698,7 @@ mtev_zipkin_span_rename(Zipkin_Span *span, const char *name, bool name_copy)
 >Convert a string Id to an int64_t Id.
 
 ```c
-int64_t * 
+int64_t *
 mtev_zipkin_str_to_id(const char *in, int64_t *buf)
 ```
 
@@ -4724,7 +4715,7 @@ mtev_zipkin_str_to_id will take string form id (trace_id, parent_span_id, or spa
 >Convert a struct timeval to a timestamp.
 
 ```c
-int64_t 
+int64_t
 mtev_zipkin_timeval_to_timestamp(struct timeval *tv)
 ```
 

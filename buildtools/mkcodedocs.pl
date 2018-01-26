@@ -75,6 +75,8 @@ sub format_md {
     $func = $3;
   }
 
+  $in =~ s/^[ \t]*//g;
+
   $in =~ s/\\(var)\s*([^\n]*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)()[ \t]*\n\\brief\s+([^\n]*)
           /sprintf("#### %s\n\n>%s\n\n%s\n", $3, $5, fn_format($1,$2,$3,$4));/xesg;
   $in =~ s/\\(fn|lua)\s*(.*?)([a-zA-Z\._][a-zA-Z0-9:\._]*)(\(.*?\))\n\\brief\s+([^\n]*)
@@ -84,6 +86,9 @@ sub format_md {
   $in =~ s/\\brief\s+(.*)/\n> $1\n\n/g;
   $in =~ s/\\param\s+(\S+)\s(.*)/  * `$1` $2/g;
   $in =~ s/\\return\s+(.*)/  * **RETURN** $1/g;
+
+  # remove all trailing whitespace
+  $in =~ s/[ \t]+\n/\n/gsm;
 
   return ($func, "$in\n\n");
 }
