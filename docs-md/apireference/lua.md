@@ -26,6 +26,14 @@ mtev.cancel_coro()
 
 
 
+#### mtev.close
+
+```lua
+mtev.close(fd)
+```
+
+ 
+
 #### mtev.cluster_details
 
 ```lua
@@ -105,7 +113,7 @@ mtev.conf_replace_value()
 >Create an `mtev.dns` object for DNS lookups.
 
 ```lua
-mtev.dns = 
+mtev.dns =
 mtev.dns(nameserver = nil)
 ```
 
@@ -122,7 +130,7 @@ lookups and IP address validation.
 >Determine address family of an IP address.
 
 ```lua
-bool, family = 
+bool, family =
 mtev.dns:is_valid_ip(ipstr)
 ```
 
@@ -140,7 +148,7 @@ will be the address family as an integer, otherwise nil.
 >Perform a DNS lookup.
 
 ```lua
-record = 
+record =
 mtev.dns:lookup(query, rtype = "A", ctype = "IN")
 ```
 
@@ -201,10 +209,20 @@ mtev.extended_free()
 
 ### G
 
+#### mtev.getcwd
+
+```lua
+path =
+mtev.getcwd()
+```
+
+  * **RETURN** path string or nil
+
+
 #### mtev.gettimeofday
 
 ```lua
-sec, usec = 
+sec, usec =
 mtev.gettimeofday()
 ```
 
@@ -252,7 +270,7 @@ mtev.hmac_sha256_encode()
 >return a lua prepresentation of an `mtev.json` object
 
 ```lua
-obj = 
+obj =
 mtev.json:document()
 ```
 
@@ -268,7 +286,7 @@ as native lua objects.
 >return a JSON-formatted string of an `mtev.json` object
 
 ```lua
-obj = 
+obj =
 mtev.json:tostring()
 ```
 
@@ -286,7 +304,7 @@ Returns a JSON document (as a string) representing the underlying
 >write message into the libmtev logging system
 
 ```lua
-len = 
+len =
 mtev.log(facility, format, ...)
 ```
 
@@ -315,6 +333,54 @@ mtev.md5_hex()
 
 
 
+#### mtev.mkdir
+
+```lua
+ok, errno, errstr =
+mtev.mkdir(path)
+```
+
+  * `path` string
+  * **RETURN** boolean success flag, error number, string representation of error
+
+
+#### mtev.mkdir_for_file
+
+```lua
+ok, errno, errstr =
+mtev.mkdir_for_file(path)
+```
+
+    * `path` string
+    * **RETURN** boolean success flag, error number, string representation of error
+
+
+### O
+
+#### mtev.open
+
+```lua
+fh =
+mtev.open(file, flags)
+```
+
+    * `file` to open (string)
+    * `integer` flag
+    * **RETURN** file handle
+
+  The following flag constants are pre-defined:
+  `O_RDONLY`,
+  `O_WRONLY`,
+  `O_RDWR`,
+  `O_APPEND`,
+  `O_SYNC`,
+  `O_NOFOLLOW`,
+  `O_CREAT`,
+  `O_TRUNC`,
+  `O_EXCL`
+  see `man 2 open` for their semantics.
+
+
 ### P
 
 #### mtev.parsejson
@@ -322,7 +388,7 @@ mtev.md5_hex()
 >Convert a JSON strint to an `mtev.json`.
 
 ```lua
-jsonobj, err, offset = 
+jsonobj, err, offset =
 mtev.parsejson(string)
 ```
 
@@ -348,7 +414,7 @@ mtev.parsexml()
 #### mtev.pcre
 
 ```lua
-matcher = 
+matcher =
 mtev.pcre(pcre_expression)
 ```
 
@@ -374,7 +440,7 @@ See the pcreapi man page for more details.
 #### mtev.print
 
 ```lua
-len = 
+len =
 mtev.print(format, ...)
 ```
 
@@ -392,7 +458,7 @@ one cannot accidentally call the print builtin.
 >Kill a spawned process.
 
 ```lua
-success, errno = 
+success, errno =
 mtev.process:kill(signal)
 ```
 
@@ -406,7 +472,7 @@ mtev.process:kill(signal)
 >Return the process id of a spawned process.
 
 ```lua
-pid = 
+pid =
 mtev.process:pid()
 ```
 
@@ -419,7 +485,7 @@ mtev.process:pid()
 >Attempt to wait for a spawned process to terminate.
 
 ```lua
-status, errno = 
+status, errno =
 mtev.process:wait(timeout)
 ```
 
@@ -442,7 +508,7 @@ system using `waitpid` every 20ms.
 >Return the real path of a relative path.
 
 ```lua
-path = 
+path =
 mtev.realpath(inpath)
 ```
 
@@ -450,6 +516,17 @@ mtev.realpath(inpath)
   * `inpath` a relative path as a string
   * **RETURN** The non-relative path inpath refers to (or nil on error).
 
+
+#### mtev.rmdir
+
+```lua
+ok, errno, errstr =
+mtev.rmdir(path)
+```
+
+  * `path` string
+  * **RETURN** boolean success flag, error number, string representation of error
+ 
 
 ### S
 
@@ -472,7 +549,7 @@ mtev.sha1_hex()
 #### mtev.sha256
 
 ```lua
-digest = 
+digest =
 mtev.sha256(s)
 ```
 
@@ -483,7 +560,7 @@ mtev.sha256(s)
 #### mtev.sha256_hash
 
 ```lua
-digest_hex = 
+digest_hex =
 mtev.sha256_hash(s)
 ```
 
@@ -498,7 +575,7 @@ Use sha256_hex instead.
 #### mtev.sha256_hex
 
 ```lua
-digest_hex = 
+digest_hex =
 mtev.sha256_hex(s)
 ```
 
@@ -525,7 +602,7 @@ mtev.shared_set()
 #### mtev.sleep
 
 ```lua
-slept = 
+slept =
 mtev.sleep(duration_s)
 ```
 
@@ -554,7 +631,7 @@ mtev.socket_internal()
 >Spawn a subprocess.
 
 ```lua
-mtev.process = 
+mtev.process =
 mtev.spawn(path, argv, env)
 ```
 
@@ -583,7 +660,7 @@ mtev.thread_self()
 >Convert a lua object into a json doucument.
 
 ```lua
-jsonobj = 
+jsonobj =
 mtev.tojson(obj, maxdepth = -1)
 ```
 
@@ -623,7 +700,7 @@ mtev.uuid()
 >Heartbeat from a child process.
 
 ```lua
-rv = 
+rv =
 mtev.watchdog_child_heartbeat()
 ```
 
@@ -636,11 +713,19 @@ mtev.watchdog_child_heartbeat()
 >Return the watchdog timeout on the current thread.
 
 ```lua
-timeout = 
+timeout =
 mtev.watchdog_timeout()
 ```
 
 
   * **RETURN** A timeout in seconds, or nil if no watchdog configured.
+
+
+#### mtev.write
+
+```lua
+mtev.write(fd, str)
+```
+
 
 

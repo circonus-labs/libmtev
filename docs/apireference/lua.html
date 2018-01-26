@@ -574,6 +574,9 @@
 <h4 id="mtevcancelcoro">mtev.cancel_coro</h4>
 <pre><code class="lang-lua">mtev.cancel_coro()
 </code></pre>
+<h4 id="mtevclose">mtev.close</h4>
+<pre><code class="lang-lua">mtev.close(fd)
+</code></pre>
 <h4 id="mtevclusterdetails">mtev.cluster_details</h4>
 <pre><code class="lang-lua">mtev.cluster_details()
 </code></pre>
@@ -606,7 +609,7 @@
 <blockquote>
 <p>Create an <code>mtev.dns</code> object for DNS lookups.</p>
 </blockquote>
-<pre><code class="lang-lua">mtev.dns = 
+<pre><code class="lang-lua">mtev.dns =
 mtev.dns(nameserver = <span class="hljs-keyword">nil</span>)
 </code></pre>
 <ul>
@@ -619,7 +622,7 @@ lookups and IP address validation.</p>
 <blockquote>
 <p>Determine address family of an IP address.</p>
 </blockquote>
-<pre><code class="lang-lua">bool, family = 
+<pre><code class="lang-lua">bool, family =
 mtev.dns:is_valid_ip(ipstr)
 </code></pre>
 <ul>
@@ -633,7 +636,7 @@ will be the address family as an integer, otherwise nil.</p>
 <blockquote>
 <p>Perform a DNS lookup.</p>
 </blockquote>
-<pre><code class="lang-lua">record = 
+<pre><code class="lang-lua">record =
 mtev.dns:lookup(query, rtype = <span class="hljs-string">&quot;A&quot;</span>, ctype = <span class="hljs-string">&quot;IN&quot;</span>)
 </code></pre>
 <ul>
@@ -677,8 +680,15 @@ requested resource. Possible fields are:</p>
 <pre><code class="lang-lua">mtev.extended_free()
 </code></pre>
 <h3 id="g">G</h3>
+<h4 id="mtevgetcwd">mtev.getcwd</h4>
+<pre><code class="lang-lua">path =
+mtev.getcwd()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> path string or nil</li>
+</ul>
 <h4 id="mtevgettimeofday">mtev.gettimeofday</h4>
-<pre><code class="lang-lua">sec, usec = 
+<pre><code class="lang-lua">sec, usec =
 mtev.gettimeofday()
 </code></pre>
 <ul>
@@ -702,7 +712,7 @@ mtev.gettimeofday()
 <blockquote>
 <p>return a lua prepresentation of an <code>mtev.json</code> object</p>
 </blockquote>
-<pre><code class="lang-lua">obj = 
+<pre><code class="lang-lua">obj =
 mtev.json:document()
 </code></pre>
 <ul>
@@ -714,7 +724,7 @@ as native lua objects.</p>
 <blockquote>
 <p>return a JSON-formatted string of an <code>mtev.json</code> object</p>
 </blockquote>
-<pre><code class="lang-lua">obj = 
+<pre><code class="lang-lua">obj =
 mtev.json:<span class="hljs-built_in">tostring</span>()
 </code></pre>
 <ul>
@@ -727,7 +737,7 @@ mtev.json:<span class="hljs-built_in">tostring</span>()
 <blockquote>
 <p>write message into the libmtev logging system</p>
 </blockquote>
-<pre><code class="lang-lua">len = 
+<pre><code class="lang-lua">len =
 mtev.log(facility, format, ...)
 </code></pre>
 <ul>
@@ -743,12 +753,45 @@ mtev.log(facility, format, ...)
 <h4 id="mtevmd5hex">mtev.md5_hex</h4>
 <pre><code class="lang-lua">mtev.md5_hex()
 </code></pre>
+<h4 id="mtevmkdir">mtev.mkdir</h4>
+<pre><code class="lang-lua">ok, errno, errstr =
+mtev.mkdir(path)
+</code></pre>
+<ul>
+<li><code>path</code> string</li>
+<li><strong>RETURN</strong> boolean success flag, error number, string representation of error</li>
+</ul>
+<h4 id="mtevmkdirforfile">mtev.mkdir_for_file</h4>
+<pre><code class="lang-lua">ok, errno, errstr =
+mtev.mkdir_for_file(path)
+</code></pre>
+<pre><code>* `path` string
+* **RETURN** boolean success flag, error number, string representation of error
+</code></pre><h3 id="o">O</h3>
+<h4 id="mtevopen">mtev.open</h4>
+<pre><code class="lang-lua">fh =
+mtev.open(file, flags)
+</code></pre>
+<pre><code>* `file` to open (string)
+* `integer` flag
+* **RETURN** file handle
+</code></pre><p>  The following flag constants are pre-defined:
+  <code>O_RDONLY</code>,
+  <code>O_WRONLY</code>,
+  <code>O_RDWR</code>,
+  <code>O_APPEND</code>,
+  <code>O_SYNC</code>,
+  <code>O_NOFOLLOW</code>,
+  <code>O_CREAT</code>,
+  <code>O_TRUNC</code>,
+  <code>O_EXCL</code>
+  see <code>man 2 open</code> for their semantics.</p>
 <h3 id="p">P</h3>
 <h4 id="mtevparsejson">mtev.parsejson</h4>
 <blockquote>
 <p>Convert a JSON strint to an <code>mtev.json</code>.</p>
 </blockquote>
-<pre><code class="lang-lua">jsonobj, err, offset = 
+<pre><code class="lang-lua">jsonobj, err, offset =
 mtev.parsejson(<span class="hljs-built_in">string</span>)
 </code></pre>
 <ul>
@@ -764,7 +807,7 @@ the byte offset into the string where the error occurred.</p>
 <pre><code class="lang-lua">mtev.parsexml()
 </code></pre>
 <h4 id="mtevpcre">mtev.pcre</h4>
-<pre><code class="lang-lua">matcher = 
+<pre><code class="lang-lua">matcher =
 mtev.pcre(pcre_expression)
 </code></pre>
 <ul>
@@ -784,7 +827,7 @@ The caller can force a reset by calling <code>matcher(nil)</code>.</p>
 (<code>PCRE_CONFIG_MATCH_LIMIT</code>) and <code>limit_recurse</code> (<code>PCRE_CONFIG_MATCH_LIMIT_RECURSION</code>).
 See the pcreapi man page for more details.</p>
 <h4 id="mtevprint">mtev.print</h4>
-<pre><code class="lang-lua">len = 
+<pre><code class="lang-lua">len =
 mtev.<span class="hljs-built_in">print</span>(format, ...)
 </code></pre>
 <ul>
@@ -799,7 +842,7 @@ one cannot accidentally call the print builtin.</p>
 <blockquote>
 <p>Kill a spawned process.</p>
 </blockquote>
-<pre><code class="lang-lua">success, errno = 
+<pre><code class="lang-lua">success, errno =
 mtev.process:kill(signal)
 </code></pre>
 <ul>
@@ -810,7 +853,7 @@ mtev.process:kill(signal)
 <blockquote>
 <p>Return the process id of a spawned process.</p>
 </blockquote>
-<pre><code class="lang-lua">pid = 
+<pre><code class="lang-lua">pid =
 mtev.process:pid()
 </code></pre>
 <ul>
@@ -820,7 +863,7 @@ mtev.process:pid()
 <blockquote>
 <p>Attempt to wait for a spawned process to terminate.</p>
 </blockquote>
-<pre><code class="lang-lua">status, errno = 
+<pre><code class="lang-lua">status, errno =
 mtev.process:wait(timeout)
 </code></pre>
 <ul>
@@ -838,12 +881,20 @@ system using <code>waitpid</code> every 20ms.</p>
 <blockquote>
 <p>Return the real path of a relative path.</p>
 </blockquote>
-<pre><code class="lang-lua">path = 
+<pre><code class="lang-lua">path =
 mtev.realpath(inpath)
 </code></pre>
 <ul>
 <li><code>inpath</code> a relative path as a string</li>
 <li><strong>RETURN</strong> The non-relative path inpath refers to (or nil on error).</li>
+</ul>
+<h4 id="mtevrmdir">mtev.rmdir</h4>
+<pre><code class="lang-lua">ok, errno, errstr =
+mtev.rmdir(path)
+</code></pre>
+<ul>
+<li><code>path</code> string</li>
+<li><strong>RETURN</strong> boolean success flag, error number, string representation of error</li>
 </ul>
 <h3 id="s">S</h3>
 <h4 id="mtevsha1">mtev.sha1</h4>
@@ -853,7 +904,7 @@ mtev.realpath(inpath)
 <pre><code class="lang-lua">mtev.sha1_hex()
 </code></pre>
 <h4 id="mtevsha256">mtev.sha256</h4>
-<pre><code class="lang-lua">digest = 
+<pre><code class="lang-lua">digest =
 mtev.sha256(s)
 </code></pre>
 <ul>
@@ -861,7 +912,7 @@ mtev.sha256(s)
 <li><strong>RETURN</strong> the SHA256 digest of the input string</li>
 </ul>
 <h4 id="mtevsha256hash">mtev.sha256_hash</h4>
-<pre><code class="lang-lua">digest_hex = 
+<pre><code class="lang-lua">digest_hex =
 mtev.sha256_hash(s)
 </code></pre>
 <ul>
@@ -871,7 +922,7 @@ mtev.sha256_hash(s)
 <p><strong>DEPRECATED</strong></p>
 <p>Use sha256_hex instead.</p>
 <h4 id="mtevsha256hex">mtev.sha256_hex</h4>
-<pre><code class="lang-lua">digest_hex = 
+<pre><code class="lang-lua">digest_hex =
 mtev.sha256_hex(s)
 </code></pre>
 <ul>
@@ -885,7 +936,7 @@ mtev.sha256_hex(s)
 <pre><code class="lang-lua">mtev.shared_set()
 </code></pre>
 <h4 id="mtevsleep">mtev.sleep</h4>
-<pre><code class="lang-lua">slept = 
+<pre><code class="lang-lua">slept =
 mtev.sleep(duration_s)
 </code></pre>
 <ul>
@@ -902,7 +953,7 @@ mtev.sleep(duration_s)
 <blockquote>
 <p>Spawn a subprocess.</p>
 </blockquote>
-<pre><code class="lang-lua">mtev.process = 
+<pre><code class="lang-lua">mtev.process =
 mtev.spawn(path, argv, env)
 </code></pre>
 <ul>
@@ -921,7 +972,7 @@ the first argument.</p>
 <blockquote>
 <p>Convert a lua object into a json doucument.</p>
 </blockquote>
-<pre><code class="lang-lua">jsonobj = 
+<pre><code class="lang-lua">jsonobj =
 mtev.tojson(obj, maxdepth = <span class="hljs-number">-1</span>)
 </code></pre>
 <ul>
@@ -945,7 +996,7 @@ the <code>tostring</code> method to convert it to a simple string.</p>
 <blockquote>
 <p>Heartbeat from a child process.</p>
 </blockquote>
-<pre><code class="lang-lua">rv = 
+<pre><code class="lang-lua">rv =
 mtev.watchdog_child_heartbeat()
 </code></pre>
 <ul>
@@ -955,12 +1006,15 @@ mtev.watchdog_child_heartbeat()
 <blockquote>
 <p>Return the watchdog timeout on the current thread.</p>
 </blockquote>
-<pre><code class="lang-lua">timeout = 
+<pre><code class="lang-lua">timeout =
 mtev.watchdog_timeout()
 </code></pre>
 <ul>
 <li><strong>RETURN</strong> A timeout in seconds, or nil if no watchdog configured.</li>
 </ul>
+<h4 id="mtevwrite">mtev.write</h4>
+<pre><code class="lang-lua">mtev.write(fd, str)
+</code></pre>
 
                                 
                                 </section>

@@ -570,7 +570,7 @@
 <blockquote>
 <p>Publish an AMQP message to one of the configured amqp brokers.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_amqp_send</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> amqp_envelope_t_ *env, <span class="hljs-keyword">int</span> mandatory, <span class="hljs-keyword">int</span> immediate, <span class="hljs-keyword">int</span> id)</span>
 </span></code></pre>
 <ul>
@@ -583,8 +583,8 @@
 <blockquote>
 <p>Publish an AMQP message to one of the configured amqp brokers.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_amqp_send_data</span><span class="hljs-params">(<span class="hljs-keyword">char</span> *exchange, <span class="hljs-keyword">char</span> *route, <span class="hljs-keyword">int</span> mandatory, <span class="hljs-keyword">int</span> immediate, <span class="hljs-keyword">void</span> *payload, 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_amqp_send_data</span><span class="hljs-params">(<span class="hljs-keyword">char</span> *exchange, <span class="hljs-keyword">char</span> *route, <span class="hljs-keyword">int</span> mandatory, <span class="hljs-keyword">int</span> immediate, <span class="hljs-keyword">void</span> *payload,
                     <span class="hljs-keyword">int</span> len, <span class="hljs-keyword">int</span> id)</span>
 </span></code></pre>
 <ul>
@@ -601,7 +601,7 @@
 <blockquote>
 <p>Decode a base32 encoded input buffer into the provided output buffer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_b32_decode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
 </span></code></pre>
 <ul>
@@ -616,7 +616,7 @@
 <blockquote>
 <p>Encode raw data as base32 encoded output into the provided buffer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_b32_encode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
 </span></code></pre>
 <ul>
@@ -630,7 +630,7 @@
 <blockquote>
 <p>Calculate how large a buffer must be to contain the base-32 encoding for a given number of bytes.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
 mtev_b32_encode_len(<span class="hljs-keyword">size_t</span> src_len)
 </code></pre>
 <ul>
@@ -641,7 +641,7 @@ mtev_b32_encode_len(<span class="hljs-keyword">size_t</span> src_len)
 <blockquote>
 <p>Calculate how large a buffer must be to contain a decoded base-32-encoded string of a given length.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
 mtev_b32_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 </code></pre>
 <ul>
@@ -652,7 +652,7 @@ mtev_b32_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 <blockquote>
 <p>Decode a base64 encoded input buffer into the provided output buffer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_b64_decode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
 </span></code></pre>
 <ul>
@@ -667,7 +667,7 @@ mtev_b32_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 <blockquote>
 <p>Encode raw data as base64 encoded output into the provided buffer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_b64_encode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
 </span></code></pre>
 <ul>
@@ -682,7 +682,7 @@ mtev_b32_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 <blockquote>
 <p>Calculate how large a buffer must be to contain the base-64 encoding for a given number of bytes.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
 mtev_b64_encode_len(<span class="hljs-keyword">size_t</span> src_len)
 </code></pre>
 <ul>
@@ -693,7 +693,7 @@ mtev_b64_encode_len(<span class="hljs-keyword">size_t</span> src_len)
 <blockquote>
 <p>Encode raw data as base64 encoded output into the provided buffer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_b64_encodev</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> iovec *iov, size_t iov_len, <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
 </span></code></pre>
 <ul>
@@ -708,7 +708,7 @@ mtev_b64_encode_len(<span class="hljs-keyword">size_t</span> src_len)
 <blockquote>
 <p>Calculate how large a buffer must be to contain a decoded base-64-encoded string of a given length.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
 mtev_b64_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 </code></pre>
 <ul>
@@ -720,7 +720,7 @@ mtev_b64_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 <blockquote>
 <p>A <code>mtev_cluster_node_filter_func_t</code> for alive nodes.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_cluster_node_filter_func_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_cluster_node_filter_func_t</span>
 mtev_cluster_alive_filter
 </code></pre>
 <p>This function is available to be passed as the <code>filter</code> argument to <code>mtev_cluster_filter_owners</code>.</p>
@@ -728,7 +728,7 @@ mtev_cluster_alive_filter
 <blockquote>
 <p>Determines if the local node is the oldest node within the cluster.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_cluster_am_i_oldest_node</span><span class="hljs-params">(<span class="hljs-keyword">const</span> mtev_cluster_t *cluster)</span>
 </span></code></pre>
 <ul>
@@ -751,7 +751,7 @@ mtev_cluster_by_name(<span class="hljs-keyword">const</span> <span class="hljs-k
 <blockquote>
 <p>Determines if the local node should possess a given key based on internal CHTs.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_cluster_do_i_own</span><span class="hljs-params">(mtev_cluster_t *cluster, <span class="hljs-keyword">void</span> *key, size_t klen, <span class="hljs-keyword">int</span> w)</span>
 </span></code></pre>
 <ul>
@@ -767,7 +767,7 @@ cluster that should own the specified key.</p>
 <blockquote>
 <p>Report on the availability of the clusters feature.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_cluster_enabled</span><span class="hljs-params">()</span>
 </span></code></pre>
 <ul>
@@ -777,8 +777,8 @@ cluster that should own the specified key.</p>
 <blockquote>
 <p>Determines if the local node should possess a given key based on internal CHTs.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
-<span class="hljs-title">mtev_cluster_filter_owners</span><span class="hljs-params">(mtev_cluster_t *cluster, <span class="hljs-keyword">void</span> *key, size_t klen, mtev_cluster_node_t **<span class="hljs-built_in">set</span>, 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">mtev_cluster_filter_owners</span><span class="hljs-params">(mtev_cluster_t *cluster, <span class="hljs-keyword">void</span> *key, size_t klen, mtev_cluster_node_t **<span class="hljs-built_in">set</span>,
                            <span class="hljs-keyword">int</span> *w, mtev_cluster_node_filter_func_t filter, <span class="hljs-keyword">void</span> *closure)</span>
 </span></code></pre>
 <ul>
@@ -804,13 +804,13 @@ mtev_cluster_find_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster
 <li><code>nodeid</code> The nodeid being searched for.</li>
 <li><strong>RETURN</strong> Returns a pointer to the mtev_cluster_node_t or NULL if not found.</li>
 </ul>
-<p>Takes a cluster and a node UUID and returns a pointer to the 
+<p>Takes a cluster and a node UUID and returns a pointer to the
 corresponding mtev_cluster_node_t.</p>
 <h4 id="mtevclustergetconfigseq">mtev_cluster_get_config_seq</h4>
 <blockquote>
 <p>Returns the current config sequence of the given cluster</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span>
 mtev_cluster_get_config_seq(<span class="hljs-keyword">mtev_cluster_t</span> *cluster)
 </code></pre>
 <ul>
@@ -821,7 +821,7 @@ mtev_cluster_get_config_seq(<span class="hljs-keyword">mtev_cluster_t</span> *cl
 <blockquote>
 <p>Gets the current value of a payload segment from a node.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_cluster_get_heartbeat_payload</span><span class="hljs-params">(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key, <span class="hljs-keyword">void</span> **payload)</span>
 </span></code></pre>
 <ul>
@@ -835,7 +835,7 @@ mtev_cluster_get_config_seq(<span class="hljs-keyword">mtev_cluster_t</span> *cl
 <blockquote>
 <p>Returns the boot time of the local node.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval
 <span class="hljs-title">mtev_cluster_get_my_boot_time</span><span class="hljs-params">()</span>
 </span></code></pre>
 <ul>
@@ -856,7 +856,7 @@ mtev_cluster_get_config_seq(<span class="hljs-keyword">mtev_cluster_t</span> *cl
 <blockquote>
 <p>Find a node in a cluster by id.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_cluster_node_t</span> * 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_cluster_node_t</span> *
 mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster, <span class="hljs-keyword">uuid_t</span> id)
 </code></pre>
 <ul>
@@ -868,7 +868,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Reports all nodes in the cluster (possible excluding the local node)</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_cluster_get_nodes</span><span class="hljs-params">(mtev_cluster_t *cluster, mtev_cluster_node_t **nodes, <span class="hljs-keyword">int</span> n
                        mtev_boolean includeme)</span>
 </span></code></pre>
@@ -894,7 +894,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Reports the UUID of the local node.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_cluster_get_self</span><span class="hljs-params">(uuid_t id)</span>
 </span></code></pre>
 <ul>
@@ -905,7 +905,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Initialize the mtev cluster configuration.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_cluster_init</span><span class="hljs-params">()</span>
 </span></code></pre>
 <p>Initializes the mtev cluster configuration.</p>
@@ -913,7 +913,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Retrieve the ID of a cluster node.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_cluster_node_get_id</span><span class="hljs-params">(mtev_cluster_node_t *node, uuid_t out)</span>
 </span></code></pre>
 <ul>
@@ -924,7 +924,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Determine a cluster node has a custom payload attached.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_cluster_node_has_payload</span><span class="hljs-params">(mtev_cluster_node_t *node)</span>
 </span></code></pre>
 <ul>
@@ -935,7 +935,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Detrmines if the node in question is dead.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_cluster_node_is_dead</span><span class="hljs-params">(mtev_cluster_node_t *node)</span>
 </span></code></pre>
 <ul>
@@ -946,7 +946,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Triggers the attachment of an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_cluster_set_heartbeat_payload</span><span class="hljs-params">(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key, <span class="hljs-keyword">void</span>* payload
                                    uint8_t payload_length)</span>
 </span></code></pre>
@@ -963,7 +963,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Sets a callback which is called everytime a node in the cluster changes it&apos;s up-time.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_cluster_set_node_update_callback</span><span class="hljs-params">(mtev_cluster_t *cluster, mtev_cluster_node_update_cb callback)</span>
 </span></code></pre>
 <ul>
@@ -975,7 +975,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Sets the UUID of the local node.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_cluster_set_self</span><span class="hljs-params">(uuid_t id)</span>
 </span></code></pre>
 <ul>
@@ -986,7 +986,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Report the number of nodes in the cluster.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_cluster_size</span><span class="hljs-params">(mtev_cluster_t *cluster)</span>
 </span></code></pre>
 <ul>
@@ -998,7 +998,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Detaches (clears) an arbitrary payload to the cluster heartbeats (see mtev_cluster_handle_node_update)</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_cluster_unset_heartbeat_payload</span><span class="hljs-params">(mtev_cluster_t *cluster, uint8_t app_id, uint8_t key)</span>
 </span></code></pre>
 <ul>
@@ -1010,7 +1010,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <blockquote>
 <p>Add or update an mtev cluster.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_cluster_update</span><span class="hljs-params">(mtev_conf_section_t cluster)</span>
 </span></code></pre>
 <ul>
@@ -1020,7 +1020,7 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <p>Takes a configuration section representing a cluster and registers
 it in the global cluster configuration.</p>
 <h4 id="mtevconfstrparseduration">mtev_confstr_parse_duration</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_confstr_parse_duration</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output
                             <span class="hljs-keyword">const</span> mtev_duration_definition_t *durations)</span>
 </span></code></pre>
@@ -1052,35 +1052,35 @@ resolution in seconds, would result in <code>output</code> of <code>90</code>; a
 <code>&quot;1min5ms&quot;</code>, at millisecond resolution, would result in <code>output</code>
 of <code>60005</code>.</p>
 <h4 id="mtevconfstrparsedurationms">mtev_confstr_parse_duration_ms</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_confstr_parse_duration_ms</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output)</span>
 </span></code></pre>
 <p>Convenience function for parsing a duration with resolution in milliseconds.
 See <a href="#mtevconfstrparseduration">mtev_confstr_parse_duration</a>
 and <a href="#mtevgetdurationsms">mtev_get_durations_ms</a>.</p>
 <h4 id="mtevconfstrparsedurationns">mtev_confstr_parse_duration_ns</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_confstr_parse_duration_ns</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output)</span>
 </span></code></pre>
 <p>Convenience function for parsing a duration with resolution in nanoseconds.
 See <a href="#mtevconfstrparseduration">mtev_confstr_parse_duration</a>
 and <a href="#mtevgetdurationsns">mtev_get_durations_ns</a>.</p>
 <h4 id="mtevconfstrparsedurations">mtev_confstr_parse_duration_s</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_confstr_parse_duration_s</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output)</span>
 </span></code></pre>
 <p>Convenience function for parsing a duration with resolution in seconds.
 See <a href="#mtevconfstrparseduration">mtev_confstr_parse_duration</a>
 and <a href="#mtevgetdurationss">mtev_get_durations_s</a>.</p>
 <h4 id="mtevconfstrparsedurationus">mtev_confstr_parse_duration_us</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_confstr_parse_duration_us</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *input, uint64_t *output)</span>
 </span></code></pre>
 <p>Convenience function for parsing a duration with resolution in microseconds.
 See <a href="#mtevconfstrparseduration">mtev_confstr_parse_duration</a>
 and <a href="#mtevgetdurationsus">mtev_get_durations_us</a>.</p>
 <h4 id="mtevcurlwritecallback">mtev_curl_write_callback</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
 mtev_curl_write_callback(<span class="hljs-keyword">char</span> *ptr, <span class="hljs-keyword">size_t</span> size, <span class="hljs-keyword">size_t</span> nmemb, <span class="hljs-keyword">void</span> *userdata)
 </code></pre>
 <blockquote>
@@ -1091,7 +1091,7 @@ mtev_curl_write_callback(<span class="hljs-keyword">char</span> *ptr, <span clas
 <blockquote>
 <p>add data to the dyn_buffer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_add</span><span class="hljs-params">(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)</span>
 </span></code></pre>
 <ul>
@@ -1103,7 +1103,7 @@ mtev_curl_write_callback(<span class="hljs-keyword">char</span> *ptr, <span clas
 <blockquote>
 <p>add data to the dyn_buffer using printf semantics.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_add_printf</span><span class="hljs-params">(mtev_dyn_buffer_t *buf, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, ...)</span>
 </span></code></pre>
 <ul>
@@ -1118,7 +1118,7 @@ data NUL terminated.</p>
 <blockquote>
 <p>move the write_pointer forward len bytes</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_advance</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
 </span></code></pre>
 <ul>
@@ -1128,7 +1128,7 @@ data NUL terminated.</p>
 <blockquote>
 <p>return the front of the dyn_buffer</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_data</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
 </span></code></pre>
 <ul>
@@ -1139,7 +1139,7 @@ data NUL terminated.</p>
 <blockquote>
 <p>destroy the dyn_buffer</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_destroy</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
 </span></code></pre>
 <ul>
@@ -1152,7 +1152,7 @@ buffer has overflowed into dynamic allocation space.</p>
 <blockquote>
 <p>possibly grow the dyn_buffer so it can fit len bytes</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_ensure</span><span class="hljs-params">(mtev_dyn_buffer_t *buf, size_t len)</span>
 </span></code></pre>
 <ul>
@@ -1163,7 +1163,7 @@ buffer has overflowed into dynamic allocation space.</p>
 <blockquote>
 <p>initialize a dyn_buffer</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_init</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
 </span></code></pre>
 <ul>
@@ -1175,7 +1175,7 @@ buffer has overflowed into dynamic allocation space.</p>
 <blockquote>
 <p>move the write position to the beginning of the buffer</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_reset</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
 </span></code></pre>
 <ul>
@@ -1185,7 +1185,7 @@ buffer has overflowed into dynamic allocation space.</p>
 <blockquote>
 <p>return the total size of the buffer</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_size</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
 </span></code></pre>
 <ul>
@@ -1196,7 +1196,7 @@ buffer has overflowed into dynamic allocation space.</p>
 <blockquote>
 <p>return the total used space of the buffer</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_used</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
 </span></code></pre>
 <ul>
@@ -1207,7 +1207,7 @@ buffer has overflowed into dynamic allocation space.</p>
 <blockquote>
 <p>return the end of the dyn_buffer</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_write_pointer</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
 </span></code></pre>
 <ul>
@@ -1219,7 +1219,7 @@ buffer has overflowed into dynamic allocation space.</p>
 <blockquote>
 <p>Execute an opset-appropriate <code>accept</code> call.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_accept</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">struct</span> sockaddr *addr, socklen_t *len, <span class="hljs-keyword">int</span> *mask)</span>
 </span></code></pre>
 <ul>
@@ -1235,7 +1235,7 @@ necessary activity to make progress.</p>
 <blockquote>
 <p>Add an event object to the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_add</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1245,7 +1245,7 @@ necessary activity to make progress.</p>
 <blockquote>
 <p>Add an asynchronous event to a specific job queue.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_add_asynch</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1258,7 +1258,7 @@ of <code>EVENTER_ASYNCH</code>.</p>
 <blockquote>
 <p>Add an asynchronous event to a specific job queue dependent on the current job.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_add_asynch_dep</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1273,7 +1273,7 @@ of the currently executing job.</p>
 <blockquote>
 <p>Add an asynchronous event to a specific job queue dependent on the current job.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_add_asynch_dep_subqueue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
 </span></code></pre>
 <ul>
@@ -1289,7 +1289,7 @@ of the currently executing job.</p>
 <blockquote>
 <p>Add an asynchronous event to a specific job queue.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_add_asynch_subqueue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
 </span></code></pre>
 <ul>
@@ -1303,7 +1303,7 @@ of <code>EVENTER_ASYNCH</code>.</p>
 <blockquote>
 <p>Convenience function to schedule a callback at a specific time.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_add_at(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval whence)
 </code></pre>
 <ul>
@@ -1316,7 +1316,7 @@ eventer_add_at(<span class="hljs-keyword">eventer_func_t</span> func, <span clas
 <blockquote>
 <p>Convenience function to create an event to run a callback in the future</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_add_in(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval diff)
 </code></pre>
 <ul>
@@ -1329,7 +1329,7 @@ eventer_add_in(<span class="hljs-keyword">eventer_func_t</span> func, <span clas
 <blockquote>
 <p>Convenience function to create an event to run a callback in the future</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_add_in_s_us(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> seconds
                     <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> microseconds)
 </code></pre>
@@ -1344,7 +1344,7 @@ eventer_add_in_s_us(<span class="hljs-keyword">eventer_func_t</span> func, <span
 <blockquote>
 <p>Add an event to run during every loop cycle.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_add_recurrent</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1357,7 +1357,7 @@ This happens _often</em>, so do light work.</p>
 <blockquote>
 <p>Add a timed event to the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_add_timed</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1369,7 +1369,7 @@ This happens _often</em>, so do light work.</p>
 <blockquote>
 <p>Convenience function to schedule a callback to run in a specific event-loop thread.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_add_timer_next_opportunity(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">pthread_t</span> owner)
 </code></pre>
 <ul>
@@ -1382,7 +1382,7 @@ eventer_add_timer_next_opportunity(<span class="hljs-keyword">eventer_func_t</sp
 <blockquote>
 <p>Allocate an event to be injected into the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_alloc()
 </code></pre>
 <ul>
@@ -1394,7 +1394,7 @@ calling thread.</p>
 <blockquote>
 <p>Allocate an event to be injected into the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_alloc_asynch(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure)
 </code></pre>
 <ul>
@@ -1408,7 +1408,7 @@ calling thread.</p>
 <blockquote>
 <p>Allocate an event to be injected into the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_alloc_asynch_timeout(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *deadline)
 </code></pre>
 <ul>
@@ -1427,7 +1427,7 @@ will be called).</p>
 <blockquote>
 <p>Allocate an event copied from another to be injected into the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_alloc_copy(<span class="hljs-keyword">eventer_t</span> src)
 </code></pre>
 <ul>
@@ -1439,7 +1439,7 @@ eventer_alloc_copy(<span class="hljs-keyword">eventer_t</span> src)
 <blockquote>
 <p>Allocate an event to be injected into the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_alloc_fd(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">int</span> fd, <span class="hljs-keyword">int</span> mask)
 </code></pre>
 <ul>
@@ -1455,7 +1455,7 @@ calling thread.</p>
 <blockquote>
 <p>Allocate an event to be injected into the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_alloc_recurrent(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure)
 </code></pre>
 <ul>
@@ -1469,7 +1469,7 @@ calling thread.</p>
 <blockquote>
 <p>Allocate an event to be injected into the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_alloc_timer(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *whence)
 </code></pre>
 <ul>
@@ -1484,7 +1484,7 @@ calling thread.</p>
 <blockquote>
 <p>Convenience function to create an event to run a callback on a specific thread.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_alloc_timer_next_opportunity(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">pthread_t</span> owner)
 </code></pre>
 <ul>
@@ -1497,14 +1497,14 @@ eventer_alloc_timer_next_opportunity(<span class="hljs-keyword">eventer_func_t</
 <p>Note this does not actually schedule the event. See <a href="c.html#eventeraddtimernextopportunity"><code>eventer_add_timer_next_opportunity</code></a>.</p>
 </blockquote>
 <h4 id="eventerallocationscurrent">eventer_allocations_current</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span>
 eventer_allocations_current()
 </code></pre>
 <ul>
 <li><strong>RETURN</strong> the number of currently allocated eventer objects.</li>
 </ul>
 <h4 id="eventerallocationstotal">eventer_allocations_total</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span>
 eventer_allocations_total()
 </code></pre>
 <ul>
@@ -1514,7 +1514,7 @@ eventer_allocations_total()
 <blockquote>
 <p>Convenience function to create an event to run a callback at a specific time.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_at(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval whence)
 </code></pre>
 <ul>
@@ -1530,7 +1530,7 @@ eventer_at(<span class="hljs-keyword">eventer_func_t</span> func, <span class="h
 <blockquote>
 <p>Directly invoke an event&apos;s callback.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_callback</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now)</span>
 </span></code></pre>
 <ul>
@@ -1548,7 +1548,7 @@ return values.</p>
 <blockquote>
 <p>Find an event callback function that has been registered by name.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">evneter_func_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">evneter_func_t</span>
 eventer_callback_for_name(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)
 </code></pre>
 <ul>
@@ -1559,7 +1559,7 @@ eventer_callback_for_name(<span class="hljs-keyword">const</span> <span class="h
 <blockquote>
 <p>Get the milliseconds since epoch of the current callback invocation.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span>
 eventer_callback_ms()
 </code></pre>
 <ul>
@@ -1569,7 +1569,7 @@ eventer_callback_ms()
 <blockquote>
 <p>Get the microseconds since epoch of the current callback invocation.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span>
 eventer_callback_us()
 </code></pre>
 <ul>
@@ -1579,7 +1579,7 @@ eventer_callback_us()
 <blockquote>
 <p>Find a thread in the default eventer pool.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">pthread_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">pthread_t</span>
 eventer_choose_owner(<span class="hljs-keyword">int</span> n)
 </code></pre>
 <ul>
@@ -1598,7 +1598,7 @@ the remaining threads we reduce potential overloading of the &quot;main&quot; th
 <blockquote>
 <p>Find a thread in a specific eventer pool.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">pthread_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">pthread_t</span>
 eventer_choose_owner_pool(<span class="hljs-keyword">eventer_pool_t</span> *pool, <span class="hljs-keyword">int</span> n)
 </code></pre>
 <ul>
@@ -1615,7 +1615,7 @@ assignment behavior applies. See <a href="c.html#eventerchooseowner"><code>event
 <blockquote>
 <p>Execute an opset-appropriate <code>close</code> call.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_close</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> *mask)</span>
 </span></code></pre>
 <ul>
@@ -1629,7 +1629,7 @@ necessary activity to make progress.</p>
 <blockquote>
 <p>See eventer_free.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_deref</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1639,7 +1639,7 @@ necessary activity to make progress.</p>
 <blockquote>
 <p>Retrieve the accept function from an fd opset.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_accept_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_accept_t</span>
 eventer_fd_opset_get_accept(<span class="hljs-keyword">eventer_fd_opset_t</span> opset)
 </code></pre>
 <ul>
@@ -1650,7 +1650,7 @@ eventer_fd_opset_get_accept(<span class="hljs-keyword">eventer_fd_opset_t</span>
 <blockquote>
 <p>Retrieve the close function from an fd opset.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_close_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_close_t</span>
 eventer_fd_opset_get_close(<span class="hljs-keyword">eventer_fd_opset_t</span> opset)
 </code></pre>
 <ul>
@@ -1661,7 +1661,7 @@ eventer_fd_opset_get_close(<span class="hljs-keyword">eventer_fd_opset_t</span> 
 <blockquote>
 <p>Retrieve the read function from an fd opset.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_read_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_read_t</span>
 eventer_fd_opset_get_read(<span class="hljs-keyword">eventer_fd_opset_t</span> opset)
 </code></pre>
 <ul>
@@ -1672,7 +1672,7 @@ eventer_fd_opset_get_read(<span class="hljs-keyword">eventer_fd_opset_t</span> o
 <blockquote>
 <p>Retrieve the write function from an fd opset.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_write_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_write_t</span>
 eventer_fd_opset_get_write(<span class="hljs-keyword">eventer_fd_opset_t</span> opset)
 </code></pre>
 <ul>
@@ -1683,7 +1683,7 @@ eventer_fd_opset_get_write(<span class="hljs-keyword">eventer_fd_opset_t</span> 
 <blockquote>
 <p>Find an event object in the eventer system by file descriptor.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_find_fd(<span class="hljs-keyword">int</span> e)
 </code></pre>
 <ul>
@@ -1694,7 +1694,7 @@ eventer_find_fd(<span class="hljs-keyword">int</span> e)
 <blockquote>
 <p>Run a user-provided function over all registered file descriptor events.</p>
 </blockquote>
-<pre><code class="lang-c">void 
+<pre><code class="lang-c">void
 eventer_foreach_fdevent(void (*fn)(eventer_t, void *), void *closure)
 </code></pre>
 <ul>
@@ -1705,7 +1705,7 @@ eventer_foreach_fdevent(void (*fn)(eventer_t, void *), void *closure)
 <blockquote>
 <p>Run a user-provided function over all registered timed events.</p>
 </blockquote>
-<pre><code class="lang-c">void 
+<pre><code class="lang-c">void
 eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
 </code></pre>
 <ul>
@@ -1716,7 +1716,7 @@ eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
 <blockquote>
 <p>Dereferences the event specified.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_free</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1726,7 +1726,7 @@ eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
 <blockquote>
 <p>Retrieve the callback function for an event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_func_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_func_t</span>
 eventer_get_callback(<span class="hljs-keyword">eventer_t</span> e)
 </code></pre>
 <ul>
@@ -1748,7 +1748,7 @@ eventer_get_callback(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Get a context for an event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_get_context</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> ctx_idx)</span>
 </span></code></pre>
 <ul>
@@ -1760,7 +1760,7 @@ eventer_get_callback(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Find the start time of the eventer loop.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_get_epoch</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> timeval *epoch)</span>
 </span></code></pre>
 <ul>
@@ -1771,7 +1771,7 @@ eventer_get_callback(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Retrieve the file descriptor for an fd-based event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_get_fd</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1782,7 +1782,7 @@ eventer_get_callback(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Retrieve the fd opset from an event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_opset_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_fd_opset_t</span>
 eventer_get_fd_opset(<span class="hljs-keyword">eventer_t</span> e)
 </code></pre>
 <ul>
@@ -1793,7 +1793,7 @@ eventer_get_fd_opset(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Retrieve the mask for an event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_get_mask</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1815,7 +1815,7 @@ eventer_get_fd_opset(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Retrieve the thread that owns an event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">pthread_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">pthread_t</span>
 eventer_get_owner(<span class="hljs-keyword">eventer_t</span> e)
 </code></pre>
 <ul>
@@ -1837,7 +1837,7 @@ eventer_get_pool_for_event(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Get the eventer_t (if any) of which we are currently in the callback.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_get_this_event(<span class="hljs-keyword">void</span>)
 </code></pre>
 <ul>
@@ -1857,7 +1857,7 @@ eventer_get_this_event(<span class="hljs-keyword">void</span>)
 <blockquote>
 <p>Retrieve the time at which a timer event will fire.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval
 <span class="hljs-title">eventer_get_whence</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -1884,7 +1884,7 @@ or other system facilities.</p>
 <blockquote>
 <p>Set properties for the event loop.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_impl_propset</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *value)</span>
 </span></code></pre>
 <ul>
@@ -1899,7 +1899,7 @@ for valid properties.</p>
 <blockquote>
 <p>Attempt to set the rlimit on allowable open files.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_impl_setrlimit</span><span class="hljs-params">()</span>
 </span></code></pre>
 <ul>
@@ -1911,7 +1911,7 @@ option is unspecified, 1048576 is used.</p>
 <blockquote>
 <p>Convenience function to create an event to run a callback in the future</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_in(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval diff)
 </code></pre>
 <ul>
@@ -1927,7 +1927,7 @@ eventer_in(<span class="hljs-keyword">eventer_func_t</span> func, <span class="h
 <blockquote>
 <p>Convenience function to create an event to run a callback in the future</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_in_s_us(<span class="hljs-keyword">eventer_func_t</span> func, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> seconds
                 <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> microseconds)
 </code></pre>
@@ -1945,7 +1945,7 @@ eventer_in_s_us(<span class="hljs-keyword">eventer_func_t</span> func, <span cla
 <blockquote>
 <p>Initialize global structures required for eventer operation.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_init_globals</span><span class="hljs-params">()</span>
 </span></code></pre>
 <p>This function is called by <a href="c.html#mtevmain"><code>mtev_main</code></a>.  Developers should not
@@ -1954,7 +1954,7 @@ need to call this function directly.</p>
 <blockquote>
 <p>Determine if a thread is participating in the eventer loop.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_is_loop</span><span class="hljs-params">(pthread_t tid)</span>
 </span></code></pre>
 <ul>
@@ -1965,7 +1965,7 @@ need to call this function directly.</p>
 <blockquote>
 <p>Start the event loop.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_loop</span><span class="hljs-params">()</span>
 </span></code></pre>
 <ul>
@@ -1977,7 +1977,7 @@ See <a href="c.html#mtevmain%60"><code>mtev_main</code></a>.</p>
 <blockquote>
 <p>Determine the concurrency of the default eventer loop.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_loop_concurrency</span><span class="hljs-params">()</span>
 </span></code></pre>
 <ul>
@@ -1987,7 +1987,7 @@ See <a href="c.html#mtevmain%60"><code>mtev_main</code></a>.</p>
 <blockquote>
 <p>Register a human/developer readable name for a eventer callback function.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_name_callback</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, eventer_func_t callback)</span>
 </span></code></pre>
 <ul>
@@ -1999,8 +1999,8 @@ See <a href="c.html#mtevmain%60"><code>mtev_main</code></a>.</p>
 <blockquote>
 <p>Register a functional describer for a callback and it&apos;s event object.</p>
 </blockquote>
-<pre><code class="lang-c">int 
-eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen, 
+<pre><code class="lang-c">int
+eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff, int bufflen,
                           eventer_t e, void *closure), void *closure)
 </code></pre>
 <ul>
@@ -2042,7 +2042,7 @@ eventer_pool(<span class="hljs-keyword">const</span> <span class="hljs-keyword">
 <blockquote>
 <p>Retrieve the concurrency of an eventer pool.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span>
 eventer_pool_concurrency(<span class="hljs-keyword">eventer_pool_t</span> *pool)
 </code></pre>
 <ul>
@@ -2064,7 +2064,7 @@ eventer_pool_concurrency(<span class="hljs-keyword">eventer_pool_t</span> *pool)
 <blockquote>
 <p>Set a custom watchdog timeout for threads in an eventer pool.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_pool_watchdog_timeout</span><span class="hljs-params">(eventer_pool_t *pool, <span class="hljs-keyword">double</span> timeout)</span>
 </span></code></pre>
 <ul>
@@ -2075,7 +2075,7 @@ eventer_pool_concurrency(<span class="hljs-keyword">eventer_pool_t</span> *pool)
 <blockquote>
 <p>Execute an opset-appropriate <code>read</code> call.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_read</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">void</span> *buff, size_t len, <span class="hljs-keyword">int</span> *mask)</span>
 </span></code></pre>
 <ul>
@@ -2091,7 +2091,7 @@ necessary activity to make progress.</p>
 <blockquote>
 <p>Add a reference to an event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_ref</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -2107,7 +2107,7 @@ original to be freed.</p>
 <blockquote>
 <p>Register an eventer carry context.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_register_context</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, eventer_context_opset_t *opset)</span>
 </span></code></pre>
 <ul>
@@ -2119,7 +2119,7 @@ original to be freed.</p>
 <blockquote>
 <p>Remove an event object from the eventer system.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_remove(<span class="hljs-keyword">eventer_t</span> e)
 </code></pre>
 <ul>
@@ -2130,7 +2130,7 @@ eventer_remove(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Remove an event object from the eventer system by file descriptor.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_remove_fd(<span class="hljs-keyword">int</span> e)
 </code></pre>
 <ul>
@@ -2141,7 +2141,7 @@ eventer_remove_fd(<span class="hljs-keyword">int</span> e)
 <blockquote>
 <p>Removes an fd event from the eventloop based on filedescriptor alone.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_remove_fde(<span class="hljs-keyword">eventer_t</span> e)
 </code></pre>
 <ul>
@@ -2152,7 +2152,7 @@ eventer_remove_fde(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Remove a recurrent event from the eventer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_remove_recurrent(<span class="hljs-keyword">eventer_t</span> e)
 </code></pre>
 <ul>
@@ -2163,7 +2163,7 @@ eventer_remove_recurrent(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Remove a timed event from the eventer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 </code></pre>
 <ul>
@@ -2174,7 +2174,7 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Spawns a thread and runs the event until it returns 0.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_run_in_thread</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask)</span>
 </span></code></pre>
 <ul>
@@ -2186,7 +2186,7 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Set an event&apos;s callback function.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_set_callback</span><span class="hljs-params">(eventer_t e, eventer_func_t func)</span>
 </span></code></pre>
 <ul>
@@ -2196,7 +2196,7 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Set an event&apos;s closure.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_set_closure</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">void</span> *closure)</span>
 </span></code></pre>
 <ul>
@@ -2220,7 +2220,7 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Set a file descriptor into blocking mode.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_set_fd_blocking</span><span class="hljs-params">(<span class="hljs-keyword">int</span> fd)</span>
 </span></code></pre>
 <ul>
@@ -2231,7 +2231,7 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Set a file descriptor into non-blocking mode.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_set_fd_nonblocking</span><span class="hljs-params">(<span class="hljs-keyword">int</span> fd)</span>
 </span></code></pre>
 <ul>
@@ -2242,7 +2242,7 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <blockquote>
 <p>Change an event&apos;s interests or intentions.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_set_mask</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask)</span>
 </span></code></pre>
 <ul>
@@ -2259,7 +2259,7 @@ the mask of an active event in the system.</p>
 <blockquote>
 <p>Set the thread that owns an event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_set_owner</span><span class="hljs-params">(eventer_t e, pthread_t t)</span>
 </span></code></pre>
 <ul>
@@ -2270,7 +2270,7 @@ the mask of an active event in the system.</p>
 <blockquote>
 <p>Determine if the calling thread &quot;owns&quot; an event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_thread_check</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -2281,7 +2281,7 @@ the mask of an active event in the system.</p>
 <blockquote>
 <p>Trigger an unregistered eventer and incorporate the outcome into the eventer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_trigger</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask)</span>
 </span></code></pre>
 <ul>
@@ -2294,7 +2294,7 @@ eventer for any reason.</p>
 <blockquote>
 <p>Change the activity mask for file descriptor events.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_update</span><span class="hljs-params">(evneter_t e, <span class="hljs-keyword">int</span> mask)</span>
 </span></code></pre>
 <ul>
@@ -2305,7 +2305,7 @@ eventer for any reason.</p>
 <blockquote>
 <p>Change the time at which a registered timer event should fire.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_update_whence</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">struct</span> timeval whence)</span>
 </span></code></pre>
 <ul>
@@ -2316,7 +2316,7 @@ eventer for any reason.</p>
 <blockquote>
 <p>Signal up an event loop manually.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_wakeup</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -2324,14 +2324,14 @@ eventer for any reason.</p>
 </ul>
 <p>The event <code>e</code> is used to determine which thread of the eventer loop to wake up.
 If <code>e</code> is <code>NULL</code> the first thread in the default eventer loop is signalled. The
-eventer loop can wake up on timed events, asynchronous job completions and 
+eventer loop can wake up on timed events, asynchronous job completions and
 file descriptor activity.  If, for an external reason, one needs to wake up
 a looping thread, this call is used.</p>
 <h4 id="eventerwatchdogtimeout">eventer_watchdog_timeout</h4>
 <blockquote>
 <p>Return the current watchdog timeout on this thread.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">double</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">double</span>
 <span class="hljs-title">eventer_watchdog_timeout</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
 </span></code></pre>
 <ul>
@@ -2341,7 +2341,7 @@ a looping thread, this call is used.</p>
 <blockquote>
 <p>Execute an opset-appropriate <code>write</code> call.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">eventer_write</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">void</span> *buff, size_t len, <span class="hljs-keyword">int</span> *mask)</span>
 </span></code></pre>
 <ul>
@@ -2358,7 +2358,7 @@ necessary activity to make progress.</p>
 <blockquote>
 <p>Acknowledge processing mtev_flow_regulator_toggle_t instruction.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span>
 mtev_flow_regulator_ack(<span class="hljs-keyword">mtev_flow_regulator_t</span> *fr, <span class="hljs-keyword">mtev_flow_regulator_toggle_t</span> t)
 </code></pre>
 <ul>
@@ -2430,14 +2430,14 @@ the flow-regulator will transition back to &quot;enabled&quot;.</p>
 <blockquote>
 <p>Destroy a flow-regulator object.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_flow_regulator_destroy</span><span class="hljs-params">(mtev_flow_regulator_t *fr)</span>
 </span></code></pre>
 <h4 id="mtevflowregulatorlower">mtev_flow_regulator_lower</h4>
 <blockquote>
 <p>Release space for work-items in a flow-regulator.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span>
 mtev_flow_regulator_lower(<span class="hljs-keyword">mtev_flow_regulator_t</span> *fr, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">int</span> by)
 </code></pre>
 <ul>
@@ -2454,7 +2454,7 @@ return value. This function will return one of:</p>
 <blockquote>
 <p>Reserve space for a work-item in a flow-regulator.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span>
 mtev_flow_regulator_raise_one(<span class="hljs-keyword">mtev_flow_regulator_t</span> *fr)
 </code></pre>
 <ul>
@@ -2471,7 +2471,7 @@ return value. This function will return one of:</p>
 <code>MTEV_FLOW_REGULATOR_TOGGLE_KEEP</code>, space was <em>not</em> reserved in the
 flow-regulator for the work-item.</p>
 <h4 id="mtevflowregulatorstablelower">mtev_flow_regulator_stable_lower</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span>
 mtev_flow_regulator_stable_lower(<span class="hljs-keyword">mtev_flow_regulator_t</span> *fr, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">int</span> by)
 </code></pre>
 <ul>
@@ -2483,7 +2483,7 @@ simplify handling in cases where the client needs take no explicit
 action to enable or disable work-production before calling
 <code>mtev_flow_regulator_ack</code>.</p>
 <h4 id="mtevflowregulatorstabletryraiseone">mtev_flow_regulator_stable_try_raise_one</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_flow_regulator_toggle_t</span>
 mtev_flow_regulator_stable_try_raise_one(<span class="hljs-keyword">mtev_flow_regulator_t</span> *fr)
 </code></pre>
 <ul>
@@ -2498,7 +2498,7 @@ action to enable or disable work-production before calling
 <blockquote>
 <p>Change the replacement probability on a <code>mtev_frrh_t</code>.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_frrh_adjust_prob</span><span class="hljs-params">(mtev_frrh_t *cache, uint32_t prob)</span>
 </span></code></pre>
 <ul>
@@ -2509,8 +2509,8 @@ action to enable or disable work-production before calling
 <blockquote>
 <p>Allocate a fast random replacement hash.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_frrh_t</span> * 
-mtev_frrh_alloc(<span class="hljs-keyword">uint64_t</span> size, <span class="hljs-keyword">size_t</span> datasize, <span class="hljs-keyword">uint32_t</span> prob, mtev_frrh_hash hashf, 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_frrh_t</span> *
+mtev_frrh_alloc(<span class="hljs-keyword">uint64_t</span> size, <span class="hljs-keyword">size_t</span> datasize, <span class="hljs-keyword">uint32_t</span> prob, mtev_frrh_hash hashf,
                 mtev_frrh_alloc_entry allocf, mtev_frrh_free_entry freef)
 </code></pre>
 <ul>
@@ -2526,7 +2526,7 @@ mtev_frrh_alloc(<span class="hljs-keyword">uint64_t</span> size, <span class="hl
 <blockquote>
 <p>Retrieves the data associated with the provided key from the cache.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> * 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *
 <span class="hljs-title">mtev_frrh_get</span><span class="hljs-params">(mtev_frrh_t *cache, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *key, uint32_t keylen)</span>
 </span></code></pre>
 <ul>
@@ -2539,7 +2539,7 @@ mtev_frrh_alloc(<span class="hljs-keyword">uint64_t</span> size, <span class="hl
 <blockquote>
 <p>Possibly set a key-value pair in a <code>mtev_frrh_t</code></p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_frrh_set</span><span class="hljs-params">(mtev_frrh_t *cache, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *key, uint32_t keylen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *data)</span>
 </span></code></pre>
 <ul>
@@ -2553,7 +2553,7 @@ mtev_frrh_alloc(<span class="hljs-keyword">uint64_t</span> size, <span class="hl
 <blockquote>
 <p>Retrieve access and hit statatistics.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_frrh_stats</span><span class="hljs-params">(mtev_frrh_t *cache, uint64_t *accesses, uint64_t *hits)</span>
 </span></code></pre>
 <ul>
@@ -2630,26 +2630,20 @@ mtev_confstr_parse_duration. Microsecond-scale duration suffixes are:</p>
 <li><code>d</code> (for days).</li>
 </ul>
 <h4 id="mtevgetnanos">mtev_get_nanos</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 
+<blockquote>
+<p>Like mtev_gethrtime. It actually is the implementation of mtev_gethrtime()</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span>
 mtev_get_nanos(<span class="hljs-keyword">void</span>)
 </code></pre>
 <ul>
-<li><blockquote>
-<p>Like mtev_gethrtime. It actually is the implementation of mtev_gethrtime()</p>
-</blockquote>
-</li>
-</ul>
-<ul>
-<li><ul>
 <li><strong>RETURN</strong> number of nanos seconds from an arbitrary time in the past.</li>
-</ul>
-</li>
 </ul>
 <h4 id="mtevgetipipv4">mtev_getip_ipv4</h4>
 <blockquote>
 <p>find the local IPv4 address that would be used to talk to remote</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_getip_ipv4</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> in_addr remote, <span class="hljs-keyword">struct</span> in_addr *local)</span>
 </span></code></pre>
 <ul>
@@ -2658,33 +2652,27 @@ mtev_get_nanos(<span class="hljs-keyword">void</span>)
 <li><strong>RETURN</strong> 0 on success, -1 on failure</li>
 </ul>
 <h4 id="mtevgettimeofday">mtev_gettimeofday</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<blockquote>
+<p>Maybe fast-pathed version of gettimeofday</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_gettimeofday</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> timeval *t, <span class="hljs-keyword">void</span> **ttp)</span>
 </span></code></pre>
 <ul>
-<li><blockquote>
-<p>Maybe fast-pathed version of gettimeofday</p>
-</blockquote>
+<li><p><strong>RETURN</strong> same as system gettimeofday();</p>
+<p>If the fast path is taken, ttp is ignored.</p>
 </li>
-</ul>
-<ul>
-<li><ul>
-<li><strong>RETURN</strong> same as system gettimeofday();</li>
-</ul>
-</li>
-<li></li>
-<li>If the fast path is taken, ttp is ignored.</li>
 </ul>
 <h3 id="h">H</h3>
 <h4 id="mtevhashhash">mtev_hash__hash</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span>
 mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">uint32_t</span> length, <span class="hljs-keyword">uint32_t</span> initval)
 </code></pre>
 <blockquote>
 <p>the internal hash function that mtev_hash_table uses exposed for external usage</p>
 </blockquote>
 <h4 id="mtevhashadv">mtev_hash_adv</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_adv</span><span class="hljs-params">(mtev_hash_table *h, mtev_hash_iter *iter)</span>
 </span></code></pre>
 <blockquote>
@@ -2698,7 +2686,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
    .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
  }</p>
 <h4 id="mtevhashadvspmc">mtev_hash_adv_spmc</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_adv_spmc</span><span class="hljs-params">(mtev_hash_table *h, mtev_hash_iter *iter)</span>
 </span></code></pre>
 <blockquote>
@@ -2714,7 +2702,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
    .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
    }</p>
 <h4 id="mtevhashdelete">mtev_hash_delete</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_delete</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, NoitHashFreeFunc keyfree
                  NoitHashFreeFunc datafree)</span>
 </span></code></pre>
@@ -2722,14 +2710,14 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 <p>remove the key/value stored at &quot;k&quot; and call keyfree and datafree if they are provided</p>
 </blockquote>
 <h4 id="mtevhashdeleteall">mtev_hash_delete_all</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_hash_delete_all</span><span class="hljs-params">(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)</span>
 </span></code></pre>
 <blockquote>
 <p>remove all keys and values and call keyfree and datafree if they are provided</p>
 </blockquote>
 <h4 id="mtevhashdestroy">mtev_hash_destroy</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_hash_destroy</span><span class="hljs-params">(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)</span>
 </span></code></pre>
 <blockquote>
@@ -2737,7 +2725,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 </blockquote>
 <p>  This must be called on any hash_table that has been mtev_hash_inited or it will leak memory</p>
 <h4 id="mtevhashinit">mtev_hash_init</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_hash_init</span><span class="hljs-params">(mtev_hash_table *h)</span>
 </span></code></pre>
 <blockquote>
@@ -2745,7 +2733,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 </blockquote>
 <p>  will default to LOCK_MODE_NONE and MTEV_HASH_DEFAULT_SIZE (1&lt;&lt;7)</p>
 <h4 id="mtevhashinitlocks">mtev_hash_init_locks</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_hash_init_locks</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">int</span> size, mtev_hash_lock_mode_t lock_mode)</span>
 </span></code></pre>
 <blockquote>
@@ -2754,7 +2742,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 <p>  It&apos;s worth noting that the lock only affects the write side of the hash,
   the read side remains completely lock free.</p>
 <h4 id="mtevhashinitmtevmemory">mtev_hash_init_mtev_memory</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_hash_init_mtev_memory</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">int</span> size, mtev_hash_lock_mode_t lock_mode)</span>
 </span></code></pre>
 <blockquote>
@@ -2766,7 +2754,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
   hash to participate in SMR via mtev_memory transactions.  You need to wrap
   memory transactions in mtev_memory_begin()/mtev_memory_end()</p>
 <h4 id="mtevhashinitsize">mtev_hash_init_size</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_hash_init_size</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">int</span> size)</span>
 </span></code></pre>
 <blockquote>
@@ -2774,7 +2762,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 </blockquote>
 <p>  will default to LOCK_MODE_NONE</p>
 <h4 id="mtevhashmergeasdict">mtev_hash_merge_as_dict</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_hash_merge_as_dict</span><span class="hljs-params">(mtev_hash_table *dst, mtev_hash_table *src)</span>
 </span></code></pre>
 <blockquote>
@@ -2785,7 +2773,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
   assumes that the source contains only keys and values that can be
   suitably duplicated by strdup().</p>
 <h4 id="mtevhashnext">mtev_hash_next</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_next</span><span class="hljs-params">(mtev_hash_table *h, mtev_hash_iter *iter, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **k, <span class="hljs-keyword">int</span> *klen
                <span class="hljs-keyword">void</span> **data)</span>
 </span></code></pre>
@@ -2795,7 +2783,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 <p>  These are older, more painful APIs... use mtev_hash_adv
    Note that neither of these sets the key, value, or klen in iter</p>
 <h4 id="mtevhashnextstr">mtev_hash_next_str</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_next_str</span><span class="hljs-params">(mtev_hash_table *h, mtev_hash_iter *iter, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **k, <span class="hljs-keyword">int</span> *klen
                    <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **dstr)</span>
 </span></code></pre>
@@ -2804,29 +2792,29 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 </blockquote>
 <p>  These are older, more painful APIs... use mtev_hash_adv </p>
 <h4 id="mtevhashreplace">mtev_hash_replace</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
-<span class="hljs-title">mtev_hash_replace</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data, 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_hash_replace</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data,
                   NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)</span>
 </span></code></pre>
 <blockquote>
 <p>replace and delete (call keyfree and datafree functions) anything that was already in this hash location</p>
 </blockquote>
 <h4 id="mtevhashretrstr">mtev_hash_retr_str</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_retr_str</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **dstr)</span>
 </span></code></pre>
 <blockquote>
 <p>fetch the value at &quot;k&quot; into &quot;data&quot; as a string</p>
 </blockquote>
 <h4 id="mtevhashretrieve">mtev_hash_retrieve</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_retrieve</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> **data)</span>
 </span></code></pre>
 <blockquote>
 <p>fetch the value at &quot;k&quot; into &quot;data&quot;</p>
 </blockquote>
 <h4 id="mtevhashset">mtev_hash_set</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_set</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data, <span class="hljs-keyword">char</span> **oldkey
               <span class="hljs-keyword">void</span> **olddata)</span>
 </span></code></pre>
@@ -2837,14 +2825,14 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
   will return MTEV_HASH_FAILURE on failure to set
   will return MTEV_HASH_SUCCESS_REPLACEMENT on successful set with replacement</p>
 <h4 id="mtevhashsize">mtev_hash_size</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_size</span><span class="hljs-params">(mtev_hash_table *h)</span>
 </span></code></pre>
 <blockquote>
 <p>return the number of entries in the hash_table</p>
 </blockquote>
 <h4 id="mtevhashstore">mtev_hash_store</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_hash_store</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data)</span>
 </span></code></pre>
 <blockquote>
@@ -2871,7 +2859,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 <p>Destroy the LFU</p>
 </blockquote>
 <h4 id="mtevlfuget">mtev_lfu_get</h4>
-<pre><code class="lang-c"><span class="hljs-function">mtev_lfu_entry_token 
+<pre><code class="lang-c"><span class="hljs-function">mtev_lfu_entry_token
 <span class="hljs-title">mtev_lfu_get</span><span class="hljs-params">(mtev_lfu_t *lfu, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, size_t key_len, <span class="hljs-keyword">void</span> **value)</span>
 </span></code></pre>
 <blockquote>
@@ -2898,7 +2886,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
   restart the frequency count at 1.</p>
 <p>  This will cause an eviction of the least frequently used item if the cache is full.</p>
 <h4 id="mtevlfurelease">mtev_lfu_release</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_lfu_release</span><span class="hljs-params">(mtev_lfu_t *lfu, mtev_lfu_entry_token token)</span>
 </span></code></pre>
 <blockquote>
@@ -2923,7 +2911,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 <blockquote>
 <p>lock the file immediately if possible, return -1 otherwise.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_lockfile_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_lockfile_t</span>
 mtev_lockfile_acquire(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fp)
 </code></pre>
 <ul>
@@ -2934,7 +2922,7 @@ mtev_lockfile_acquire(<span class="hljs-keyword">const</span> <span class="hljs-
 <blockquote>
 <p>lock the file immediately if possible, return -1 otherwise.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_lockfile_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_lockfile_t</span>
 mtev_lockfile_acquire_owner(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fp, <span class="hljs-keyword">pid_t</span> *owner)
 </code></pre>
 <ul>
@@ -2946,7 +2934,7 @@ mtev_lockfile_acquire_owner(<span class="hljs-keyword">const</span> <span class=
 <blockquote>
 <p>release a held file lock</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_lockfile_release</span><span class="hljs-params">(mtev_lockfile_t fd)</span>
 </span></code></pre>
 <ul>
@@ -2974,7 +2962,7 @@ thread-local fashion.  Also ensure that any use of the eventer does not migrate 
 <blockquote>
 <p>Free a <code>lua_module_closure_t</code> structure that has been allocated.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_lua_lmc_free</span><span class="hljs-params">(lua_module_closure_t *lmc)</span>
 </span></code></pre>
 <ul>
@@ -2995,7 +2983,7 @@ thread-local fashion.  Also ensure that any use of the eventer does not migrate 
 <blockquote>
 <p>Invoke lua_resume with the correct context based on the <code>lua_module_closure_t</code></p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_lua_lmc_resume</span><span class="hljs-params">(lua_module_closure_t *lmc, mtev_lua_resume_info_t *ri, <span class="hljs-keyword">int</span> nargs)</span>
 </span></code></pre>
 <ul>
@@ -3021,9 +3009,9 @@ thread-local fashion.  Also ensure that any use of the eventer does not migrate 
 <blockquote>
 <p>Run a comprehensive mtev setup followed by a &quot;main&quot; routine.</p>
 </blockquote>
-<pre><code class="lang-c">int 
-mtev_main(const char *appname, const char *config_filename, int debug, int foreground, 
-          mtev_log_op_t lock, const char *glider, const char *drop_to_user, 
+<pre><code class="lang-c">int
+mtev_main(const char *appname, const char *config_filename, int debug, int foreground,
+          mtev_log_op_t lock, const char *glider, const char *drop_to_user,
           const char *drop_to_group, int (*passed_child_main)(void))
 </code></pre>
 <ul>
@@ -3042,7 +3030,7 @@ mtev_main(const char *appname, const char *config_filename, int debug, int foreg
 <blockquote>
 <p>Determine if that application is already running under this configuration.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_main_status</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *appname, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *config_filename, <span class="hljs-keyword">int</span> debug, pid_t *pid
                  pid_t *pgid)</span>
 </span></code></pre>
@@ -3058,7 +3046,7 @@ mtev_main(const char *appname, const char *config_filename, int debug, int foreg
 <blockquote>
 <p>Terminate an already running application under the same configuration.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_main_terminate</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *appname, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *config_filename, <span class="hljs-keyword">int</span> debug)</span>
 </span></code></pre>
 <ul>
@@ -3137,8 +3125,8 @@ to simply run this macro prior to each write to the buffer.</p>
 <blockquote>
 <p>Merge sort data starting at head_ptr_ptr, iteratively</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_merge_sort</span><span class="hljs-params">(<span class="hljs-keyword">void</span> **head_ptr_ptr, mtev_sort_next_function next, 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_merge_sort</span><span class="hljs-params">(<span class="hljs-keyword">void</span> **head_ptr_ptr, mtev_sort_next_function next,
                 mtev_sort_set_next_function set_next, mtev_sort_compare_function compare)</span>
 </span></code></pre>
 <ul>
@@ -3150,7 +3138,7 @@ to simply run this macro prior to each write to the buffer.</p>
 <blockquote>
 <p>Create directories along a path.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mkdir_for_file</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *file, mode_t m)</span>
 </span></code></pre>
 <ul>
@@ -3161,43 +3149,27 @@ to simply run this macro prior to each write to the buffer.</p>
 <p>Creates all directories from / (as needed) to hold a named file.</p>
 <h3 id="n">N</h3>
 <h4 id="mtevnowms">mtev_now_ms</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span>
 mtev_now_ms()
 </code></pre>
-<ul>
-<li><blockquote>
+<blockquote>
 <p>the current system time in milliseconds</p>
 </blockquote>
-</li>
-</ul>
-<ul>
-<li><ul>
-<li><strong>RETURN</strong> mtev_gettimeofday() in milliseconds since epoch</li>
-</ul>
-</li>
-</ul>
-<h4 id="mtevnowus">mtev_now_us</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span> 
+<pre><code>* **RETURN** mtev_gettimeofday() in milliseconds since epoch
+</code></pre><h4 id="mtevnowus">mtev_now_us</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span>
 mtev_now_us()
 </code></pre>
-<ul>
-<li><blockquote>
+<blockquote>
 <p>the current system time in microseconds</p>
 </blockquote>
-</li>
-</ul>
-<ul>
-<li><ul>
-<li><strong>RETURN</strong> mtev_gettimeofday() in microseconds since epoch</li>
-</ul>
-</li>
-</ul>
-<h3 id="s">S</h3>
+<pre><code>* **RETURN** mtev_gettimeofday() in microseconds since epoch
+</code></pre><h3 id="s">S</h3>
 <h4 id="mtevsecuritychroot">mtev_security_chroot</h4>
 <blockquote>
 <p>chroot(2) to the specified directory.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_security_chroot</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path)</span>
 </span></code></pre>
 <ul>
@@ -3210,7 +3182,7 @@ environment.</p>
 <blockquote>
 <p>change the capabilities of the process</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_security_setcaps</span><span class="hljs-params">(mtev_security_captype_t type, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *capstring)</span>
 </span></code></pre>
 <ul>
@@ -3224,7 +3196,7 @@ process.</p>
 <blockquote>
 <p>change the effective or real, effective and saved user and group</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_security_usergroup</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *user, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *group, mtev_boolean effective)</span>
 </span></code></pre>
 <ul>
@@ -3239,7 +3211,7 @@ user and group for the calling process.  This is thread-safe.</p>
 <blockquote>
 <p>releases all resources related to a semaphore</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_sem_destroy</span><span class="hljs-params">(mtev_sem_t *s)</span>
 </span></code></pre>
 <ul>
@@ -3250,7 +3222,7 @@ user and group for the calling process.  This is thread-safe.</p>
 <blockquote>
 <p>retrieves the current value of a semaphore, placing it in *value</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_sem_getvalue</span><span class="hljs-params">(mtev_sem_t *s, <span class="hljs-keyword">int</span> *value)</span>
 </span></code></pre>
 <ul>
@@ -3262,7 +3234,7 @@ user and group for the calling process.  This is thread-safe.</p>
 <blockquote>
 <p>initializes a counting semaphore for first time use.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_sem_init</span><span class="hljs-params">(mtev_sem_t *s, <span class="hljs-keyword">int</span> unused, <span class="hljs-keyword">int</span> value)</span>
 </span></code></pre>
 <ul>
@@ -3275,7 +3247,7 @@ user and group for the calling process.  This is thread-safe.</p>
 <blockquote>
 <p>increments the value of the semaphore releasing any waiters.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_sem_post</span><span class="hljs-params">(mtev_sem_t *s)</span>
 </span></code></pre>
 <ul>
@@ -3286,7 +3258,7 @@ user and group for the calling process.  This is thread-safe.</p>
 <blockquote>
 <p>decrements the value of the semaphore if greater than 0 or fails</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_sem_trywait</span><span class="hljs-params">(mtev_sem_t *s)</span>
 </span></code></pre>
 <ul>
@@ -3297,7 +3269,7 @@ user and group for the calling process.  This is thread-safe.</p>
 <blockquote>
 <p>decrements the value of the semaphore waiting if required.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_sem_wait</span><span class="hljs-params">(mtev_sem_t *s)</span>
 </span></code></pre>
 <ul>
@@ -3308,7 +3280,7 @@ user and group for the calling process.  This is thread-safe.</p>
 <blockquote>
 <p>Convenience function that delegates to sem_wait, swallowing EINTR errors.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_sem_wait_noeintr</span><span class="hljs-params">(mtev_sem_t *s)</span>
 </span></code></pre>
 <ul>
@@ -3327,7 +3299,7 @@ sem_wait directly, do not use this function.</p>
 <blockquote>
 <p>Function definition to compare sortable entries</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_sort_compare_function</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *left, <span class="hljs-keyword">void</span> *right)</span>
 </span></code></pre>
 <ul>
@@ -3350,7 +3322,7 @@ sem_wait directly, do not use this function.</p>
 <blockquote>
 <p>Function definition to re-order objects</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_sort_set_next_function</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *current, <span class="hljs-keyword">void</span> *value)</span>
 </span></code></pre>
 <ul>
@@ -3358,117 +3330,76 @@ sem_wait directly, do not use this function.</p>
 <li><code>value</code> the value that should be directly after current</li>
 </ul>
 <h4 id="mtevsysgethrtime">mtev_sys_gethrtime</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">mtev_hrtime_t</span> 
+<blockquote>
+<p>Exposes the system gethrtime() or equivalent impl</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_hrtime_t</span>
 mtev_sys_gethrtime(<span class="hljs-keyword">void</span>)
 </code></pre>
 <ul>
-<li><blockquote>
-<p>Exposes the system gethrtime() or equivalent impl</p>
-</blockquote>
-</li>
-</ul>
-<ul>
-<li><ul>
 <li><strong>RETURN</strong> mtev_hrtime_t the system high-res time</li>
-</ul>
-</li>
 </ul>
 <h3 id="t">T</h3>
 <h4 id="mtevtimefastmode">mtev_time_fast_mode</h4>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<blockquote>
+<p>check to see if fast mode is enabled</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_time_fast_mode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **reason)</span>
 </span></code></pre>
 <ul>
-<li><blockquote>
-<p>check to see if fast mode is enabled</p>
-</blockquote>
-</li>
-</ul>
-<ul>
-<li><ul>
 <li><strong>RETURN</strong> true if fast mode is on, false otherwise, the reason param will contain a text description</li>
 </ul>
-</li>
-</ul>
 <h4 id="mtevtimemaintain">mtev_time_maintain</h4>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<blockquote>
+<p>Usually this is managed for you, but this is safe to call at any time</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_time_maintain</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
 </span></code></pre>
 <ul>
-<li><blockquote>
-<p>Usually this is managed for you, but this is safe to call at any time</p>
-</blockquote>
-</li>
-</ul>
-<ul>
-<li><ul>
 <li><strong>RETURN</strong> mtev_true if it was successful in parameterizing the CPU for rdtsc, mtev_false otherwise</li>
 </ul>
-</li>
-<li></li>
-<li>Safe to call at any time but if you start_tsc, you should never need to call this</li>
-<li>as the maintenance system can do it for you. However, if you find you need to call it</li>
-<li>you must be bound to a thread using the mtev_thread APIs and the function will return</li>
-<li>whether it was successful in parameterizing the CPU for rdtsc use.</li>
-</ul>
+<p>Safe to call at any time but if you start_tsc, you should never need to call this
+as the maintenance system can do it for you. However, if you find you need to call it
+you must be bound to a thread using the mtev_thread APIs and the function will return
+whether it was successful in parameterizing the CPU for rdtsc use.</p>
 <h4 id="mtevtimestarttsc">mtev_time_start_tsc</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_time_start_tsc</span><span class="hljs-params">()</span>
-</span></code></pre>
-<ul>
-<li><blockquote>
+<blockquote>
 <p>use TSC clock if possible for this CPU num</p>
 </blockquote>
-</li>
-</ul>
-<ul>
-<li></li>
-<li>This will remain active in the thread until you call stop</li>
-</ul>
-<h4 id="mtevtimestoptsc">mtev_time_stop_tsc</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_time_stop_tsc</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_time_start_tsc</span><span class="hljs-params">()</span>
 </span></code></pre>
-<ul>
-<li><blockquote>
+<p>   This will remain active in the thread until you call stop</p>
+<h4 id="mtevtimestoptsc">mtev_time_stop_tsc</h4>
+<blockquote>
 <p>Turn off TSC usage for the current cpu of this thread (from when start_tsc was called)</p>
 </blockquote>
-</li>
-</ul>
-<h4 id="mtevtimetogglerequireinvarianttsc">mtev_time_toggle_require_invariant_tsc</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_time_toggle_require_invariant_tsc</span><span class="hljs-params">(mtev_boolean enable)</span>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_time_stop_tsc</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
 </span></code></pre>
-<ul>
-<li><blockquote>
+<h4 id="mtevtimetogglerequireinvarianttsc">mtev_time_toggle_require_invariant_tsc</h4>
+<blockquote>
 <p>will switch on/off the requirement of an invariant tsc.  This must be run before any call to mtev_time_toggle_tsc() or mtev_time_tsc_start() and is a one time call.</p>
 </blockquote>
-</li>
-</ul>
-<p> *</p>
-<ul>
-<li>Defaults to enabled.</li>
-</ul>
-<h4 id="mtevtimetoggletsc">mtev_time_toggle_tsc</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_time_toggle_tsc</span><span class="hljs-params">(mtev_boolean enable)</span>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_time_toggle_require_invariant_tsc</span><span class="hljs-params">(mtev_boolean enable)</span>
 </span></code></pre>
-<ul>
-<li><blockquote>
+<p>   Defaults to enabled.</p>
+<h4 id="mtevtimetoggletsc">mtev_time_toggle_tsc</h4>
+<blockquote>
 <p>will switch on/off rdtsc usage across all cores regardless of detected state of rdtsc or start/stop usage.</p>
 </blockquote>
-</li>
-</ul>
-<ul>
-<li></li>
-<li>Defaults to enabled.</li>
-<li></li>
-<li>This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread</li>
-<li>will keep going using the state from the last start/stop_tsc</li>
-</ul>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_time_toggle_tsc</span><span class="hljs-params">(mtev_boolean enable)</span>
+</span></code></pre>
+<p>   Defaults to enabled.</p>
+<p>   This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread
+   will keep going using the state from the last start/stop_tsc</p>
 <h3 id="w">W</h3>
 <h4 id="mtevwatchdogchildeventerheartbeat">mtev_watchdog_child_eventer_heartbeat</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_watchdog_child_eventer_heartbeat</span><span class="hljs-params">()</span>
 </span></code></pre>
 <ul>
@@ -3476,7 +3407,7 @@ mtev_sys_gethrtime(<span class="hljs-keyword">void</span>)
 </ul>
 <p>mtev_watchdog_child_eventer_heartbeat registers a periodic heartbeat through the eventer subsystem.  The eventer must be initialized before calling this function.</p>
 <h4 id="mtevwatchdogchildheartbeat">mtev_watchdog_child_heartbeat</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_watchdog_child_heartbeat</span><span class="hljs-params">()</span>
 </span></code></pre>
 <ul>
@@ -3492,7 +3423,7 @@ mtev_watchdog_create()
 </ul>
 <p>mtev_watchdog_create creates a new heartbeat that must be assessed for liveliness by the parent.</p>
 <h4 id="mtevwatchdogdisable">mtev_watchdog_disable</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_watchdog_disable</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
 </span></code></pre>
 <ul>
@@ -3500,7 +3431,7 @@ mtev_watchdog_create()
 </ul>
 <p>mtev_watchdog_disable will make the parent ignore failed heartbeats.</p>
 <h4 id="mtevwatchdogenable">mtev_watchdog_enable</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_watchdog_enable</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
 </span></code></pre>
 <ul>
@@ -3511,7 +3442,7 @@ mtev_watchdog_create()
 <blockquote>
 <p>returns the timeout configured for this watchdog.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">double</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">double</span>
 <span class="hljs-title">mtev_watchdog_get_timeout</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
 </span></code></pre>
 <ul>
@@ -3519,7 +3450,7 @@ mtev_watchdog_create()
 <li><strong>RETURN</strong> A timeout in seconds, 0 if hb is NULL.</li>
 </ul>
 <h4 id="mtevwatchdogheartbeat">mtev_watchdog_heartbeat</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_watchdog_heartbeat</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
 </span></code></pre>
 <ul>
@@ -3528,7 +3459,7 @@ mtev_watchdog_create()
 </ul>
 <p>mtev_watchdog_heartbeat will pulse on the specified heart.</p>
 <h4 id="mtevwatchdogoverridetimeout">mtev_watchdog_override_timeout</h4>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_watchdog_override_timeout</span><span class="hljs-params">(mtev_watchdog_t *hb, <span class="hljs-keyword">double</span> timeout)</span>
 </span></code></pre>
 <ul>
@@ -3541,7 +3472,7 @@ for a specific heart in the system.</p>
 <blockquote>
 <p>Prepare the program to split into a child/parent-monitor relationship.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_watchdog_prefork_init</span><span class="hljs-params">()</span>
 </span></code></pre>
 <ul>
@@ -3550,7 +3481,7 @@ for a specific heart in the system.</p>
 <p>mtev_watchdog_prefork_init sets up the necessary plumbing to bridge across a
 child to instrument watchdogs.</p>
 <h4 id="mtevwatchdogrecurrentheartbeat">mtev_watchdog_recurrent_heartbeat</h4>
-<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 mtev_watchdog_recurrent_heartbeat(<span class="hljs-keyword">mtev_watchdog_t</span> *hb)
 </code></pre>
 <ul>
@@ -3562,7 +3493,7 @@ mtev_watchdog_recurrent_heartbeat(<span class="hljs-keyword">mtev_watchdog_t</sp
 <blockquote>
 <p>Starts a function as a separate child under close watch.</p>
 </blockquote>
-<pre><code class="lang-c">int 
+<pre><code class="lang-c">int
 mtev_watchdog_start_child(const char *app, int (*func)(), int child_watchdog_timeout)
 </code></pre>
 <ul>
@@ -3576,7 +3507,7 @@ mtev_watchdog_start_child(const char *app, int (*func)(), int child_watchdog_tim
 <blockquote>
 <p>Free a client</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_websocket_client_free</span><span class="hljs-params">(mtev_websocket_client_t *client)</span>
 </span></code></pre>
 <ul>
@@ -3599,7 +3530,7 @@ This function does nothing if called with NULL.</p>
 <blockquote>
 <p>Enable debug logging to &quot;debug/websocket_client&quot;</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_websocket_client_init_logs</span><span class="hljs-params">()</span>
 </span></code></pre>
 <p>Error logging is always active to &quot;error/websocket_client&quot;.</p>
@@ -3607,7 +3538,7 @@ This function does nothing if called with NULL.</p>
 <blockquote>
 <p>Check if a client has closed and can no longer send or receive</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_websocket_client_is_closed</span><span class="hljs-params">(mtev_websocket_client_t *client)</span>
 </span></code></pre>
 <ul>
@@ -3622,7 +3553,7 @@ the result of this function call before the caller can act on it.</p>
 <blockquote>
 <p>Check if a client has completed its handshake and is ready to send messages</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_websocket_client_is_ready</span><span class="hljs-params">(mtev_websocket_client_t *client)</span>
 </span></code></pre>
 <ul>
@@ -3635,8 +3566,8 @@ the result of this function call before the caller can act on it.</p>
 <p>Construct a new websocket client</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-keyword">mtev_websocket_client_t</span> *
-mtev_websocket_client_new(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *host, <span class="hljs-keyword">int</span> port, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service, 
-                          mtev_websocket_client_callbacks *callbacks, <span class="hljs-keyword">void</span> *closure, 
+mtev_websocket_client_new(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *host, <span class="hljs-keyword">int</span> port, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service,
+                          mtev_websocket_client_callbacks *callbacks, <span class="hljs-keyword">void</span> *closure,
                           <span class="hljs-keyword">eventer_pool_t</span> *pool, mtev_hash_table *sslconfig)
 </code></pre>
 <ul>
@@ -3658,9 +3589,9 @@ A client returned from this constructor must be freed with <code>mtev_websocket_
 <blockquote>
 <p>Construct a new websocket client that will be freed automatically after cleanup</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
-<span class="hljs-title">mtev_websocket_client_new_noref</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *host, <span class="hljs-keyword">int</span> port, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service, 
-                                mtev_websocket_client_callbacks *callbacks, <span class="hljs-keyword">void</span> *closure, 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">mtev_websocket_client_new_noref</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *host, <span class="hljs-keyword">int</span> port, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service,
+                                mtev_websocket_client_callbacks *callbacks, <span class="hljs-keyword">void</span> *closure,
                                 eventer_pool_t *pool, mtev_hash_table *sslconfig)</span>
 </span></code></pre>
 <ul>
@@ -3683,7 +3614,7 @@ A client returned from this constructor must be freed with <code>mtev_websocket_
 <blockquote>
 <p>Enqueue a message</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">mtev_boolean 
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">mtev_websocket_client_send</span><span class="hljs-params">(mtev_websocket_client_t *client, <span class="hljs-keyword">int</span> opcode, <span class="hljs-keyword">void</span> *buf, size_t len)</span>
 </span></code></pre>
 <ul>
@@ -3704,7 +3635,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Set a new cleanup_callback on an existing client</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_websocket_client_set_cleanup_callback</span><span class="hljs-params">(mtev_websocket_client_t *client
                                            mtev_websocket_client_cleanup_callback cleanup_callback)</span>
 </span></code></pre>
@@ -3716,7 +3647,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Set a new closure</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_websocket_client_set_closure</span><span class="hljs-params">(mtev_websocket_client_t *client, <span class="hljs-keyword">void</span> *closure)</span>
 </span></code></pre>
 <ul>
@@ -3728,7 +3659,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Set a new msg_callback on an existing client</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_websocket_client_set_msg_callback</span><span class="hljs-params">(mtev_websocket_client_t *client
                                        mtev_websocket_client_msg_callback msg_callback)</span>
 </span></code></pre>
@@ -3740,7 +3671,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Set a new ready_callback on an existing client</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_websocket_client_set_ready_callback</span><span class="hljs-params">(mtev_websocket_client_t *client
                                          mtev_websocket_client_ready_callback ready_callback)</span>
 </span></code></pre>
@@ -3753,7 +3684,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Find the currently active span of work.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">Zipkin_Span * 
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_Span *
 <span class="hljs-title">mtev_zipkin_active_span</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -3764,8 +3695,8 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Sets the endpoint for an annotation.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_zipkin_annotation_set_endpoint</span><span class="hljs-params">(Zipkin_Annotation *annotation, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_zipkin_annotation_set_endpoint</span><span class="hljs-params">(Zipkin_Annotation *annotation, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name,
                                     <span class="hljs-keyword">bool</span> service_name_copy, <span class="hljs-keyword">struct</span> in_addr host, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">short</span> port)</span>
 </span></code></pre>
 <ul>
@@ -3780,7 +3711,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Attach an active span (or new child span) to an event.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_attach_to_eventer</span><span class="hljs-params">(eventer_t e, Zipkin_Span *span, <span class="hljs-keyword">bool</span> new_child
                               mtev_zipkin_event_trace_level_t *track)</span>
 </span></code></pre>
@@ -3794,8 +3725,8 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Sets the endpoint for an annotation.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_zipkin_bannotation_set_endpoint</span><span class="hljs-params">(Zipkin_BinaryAnnotation *annotation, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_zipkin_bannotation_set_endpoint</span><span class="hljs-params">(Zipkin_BinaryAnnotation *annotation, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name,
                                      <span class="hljs-keyword">bool</span> service_name_copy, <span class="hljs-keyword">struct</span> in_addr host, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">short</span> port)</span>
 </span></code></pre>
 <ul>
@@ -3810,7 +3741,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Discard a client span if one exists.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_client_drop</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -3820,7 +3751,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Create a new span for client user (remote calling)</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_client_new</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, <span class="hljs-keyword">bool</span> name_copy)</span>
 </span></code></pre>
 <ul>
@@ -3832,7 +3763,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Format a parent span HTTP header for an HTTP request.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span>
 <span class="hljs-title">mtev_zipkin_client_parent_hdr</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">char</span> *buf, size_t len)</span>
 </span></code></pre>
 <ul>
@@ -3845,7 +3776,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Publish a client span if one exists.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_client_publish</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -3855,7 +3786,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Format a sampled HTTP header for an HTTP request.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span>
 <span class="hljs-title">mtev_zipkin_client_sampled_hdr</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">char</span> *buf, size_t len)</span>
 </span></code></pre>
 <ul>
@@ -3868,7 +3799,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Retrieve the current client span should one exist.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">Zipkin_Span * 
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_Span *
 <span class="hljs-title">mtev_zipkin_client_span</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
@@ -3879,7 +3810,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Format a span HTTP header for an HTTP request.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span>
 <span class="hljs-title">mtev_zipkin_client_span_hdr</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">char</span> *buf, size_t len)</span>
 </span></code></pre>
 <ul>
@@ -3892,7 +3823,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Format a trace HTTP header for an HTTP request.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span>
 <span class="hljs-title">mtev_zipkin_client_trace_hdr</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">char</span> *buf, size_t len)</span>
 </span></code></pre>
 <ul>
@@ -3905,7 +3836,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Sets the default endpoint used for new spans.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_default_endpoint</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, <span class="hljs-keyword">bool</span> service_name_copy, <span class="hljs-keyword">struct</span> in_addr host
                              <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">short</span> port)</span>
 </span></code></pre>
@@ -3920,7 +3851,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Sets the default service name used for new spans.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_default_service_name</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, <span class="hljs-keyword">bool</span> service_name_copy)</span>
 </span></code></pre>
 <ul>
@@ -3932,7 +3863,7 @@ This function may fail for the following reasons:</p>
 <blockquote>
 <p>Encode a span into the specified buffer for Zipkin.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
 mtev_zipkin_encode(<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *buffer, <span class="hljs-keyword">size_t</span> len, Zipkin_Span *span)
 </code></pre>
 <ul>
@@ -3946,7 +3877,7 @@ mtev_zipkin_encode(<span class="hljs-keyword">unsigned</span> <span class="hljs-
 <blockquote>
 <p>Encode a span into the specified buffer for Zipkin.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">size_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
 mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *buffer, <span class="hljs-keyword">size_t</span> len, Zipkin_Span **spans, <span class="hljs-keyword">int</span> cnt)
 </code></pre>
 <ul>
@@ -3961,7 +3892,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Globally set the default event trace level.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_event_trace_level</span><span class="hljs-params">(mtev_zipkin_event_trace_level_t level)</span>
 </span></code></pre>
 <ul>
@@ -3971,14 +3902,14 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Initialize zipkin contexts for the eventer.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_eventer_init</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
 </span></code></pre>
 <h4 id="mtevzipkingetsampling">mtev_zipkin_get_sampling</h4>
 <blockquote>
 <p>Get sampling probabilities for different types of traces.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_get_sampling</span><span class="hljs-params">(<span class="hljs-keyword">double</span> *new_traces, <span class="hljs-keyword">double</span> *parented_traces, <span class="hljs-keyword">double</span> *debug_traces)</span>
 </span></code></pre>
 <ul>
@@ -3991,7 +3922,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Set sampling probabilities for different types of traces.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_sampling</span><span class="hljs-params">(<span class="hljs-keyword">double</span> new_traces, <span class="hljs-keyword">double</span> parented_traces, <span class="hljs-keyword">double</span> debug_traces)</span>
 </span></code></pre>
 <ul>
@@ -4004,7 +3935,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Annotate a span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">Zipkin_Annotation * 
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_Annotation *
 <span class="hljs-title">mtev_zipkin_span_annotate</span><span class="hljs-params">(Zipkin_Span *span, int64_t *timestamp, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *value, <span class="hljs-keyword">bool</span> value_copy)</span>
 </span></code></pre>
 <ul>
@@ -4019,7 +3950,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Enable mtev_log appending if span is active.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_span_attach_logs</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">bool</span> on)</span>
 </span></code></pre>
 <ul>
@@ -4030,8 +3961,8 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Annotate a span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
-<span class="hljs-title">mtev_zipkin_span_bannotate</span><span class="hljs-params">(Zipkin_Span *span, Zipkin_AnnotationType annotation_type, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, 
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation *
+<span class="hljs-title">mtev_zipkin_span_bannotate</span><span class="hljs-params">(Zipkin_Span *span, Zipkin_AnnotationType annotation_type, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key,
                            <span class="hljs-keyword">bool</span> key_copy, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *value, int32_t value_len, <span class="hljs-keyword">bool</span> value_copy)</span>
 </span></code></pre>
 <ul>
@@ -4049,7 +3980,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Annotate a span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation *
 <span class="hljs-title">mtev_zipkin_span_bannotate_double</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">bool</span> key_copy, <span class="hljs-keyword">double</span> value)</span>
 </span></code></pre>
 <ul>
@@ -4064,7 +3995,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Annotate a span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation *
 <span class="hljs-title">mtev_zipkin_span_bannotate_i32</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">bool</span> key_copy, int32_t value)</span>
 </span></code></pre>
 <ul>
@@ -4079,7 +4010,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Annotate a span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation *
 <span class="hljs-title">mtev_zipkin_span_bannotate_i64</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">bool</span> key_copy, int64_t value)</span>
 </span></code></pre>
 <ul>
@@ -4094,7 +4025,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Annotate a span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation * 
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_BinaryAnnotation *
 <span class="hljs-title">mtev_zipkin_span_bannotate_str</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">bool</span> key_copy, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *value
                                <span class="hljs-keyword">bool</span> value_copy)</span>
 </span></code></pre>
@@ -4111,8 +4042,8 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Sets the default endpoint used for new annotations within the span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
-<span class="hljs-title">mtev_zipkin_span_default_endpoint</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, <span class="hljs-keyword">bool</span> service_name_copy, 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_zipkin_span_default_endpoint</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *service_name, <span class="hljs-keyword">bool</span> service_name_copy,
                                   <span class="hljs-keyword">struct</span> in_addr host, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">short</span> port)</span>
 </span></code></pre>
 <ul>
@@ -4127,7 +4058,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Release resources allociated with span without publishing.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_span_drop</span><span class="hljs-params">(Zipkin_Span *span)</span>
 </span></code></pre>
 <ul>
@@ -4138,7 +4069,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Fetch the various IDs from a span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span>
 <span class="hljs-title">mtev_zipkin_span_get_ids</span><span class="hljs-params">(Zipkin_Span *span, int64_t *traceid, int64_t *parent_id, int64_t *id)</span>
 </span></code></pre>
 <ul>
@@ -4152,7 +4083,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Report whether a span should have logs attached.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">bool</span>
 <span class="hljs-title">mtev_zipkin_span_logs_attached</span><span class="hljs-params">(Zipkin_Span *span)</span>
 </span></code></pre>
 <ul>
@@ -4162,8 +4093,8 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Allocate a new tracing span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function">Zipkin_Span * 
-<span class="hljs-title">mtev_zipkin_span_new</span><span class="hljs-params">(int64_t *trace_id, int64_t *parent_span_id, int64_t *span_id, 
+<pre><code class="lang-c"><span class="hljs-function">Zipkin_Span *
+<span class="hljs-title">mtev_zipkin_span_new</span><span class="hljs-params">(int64_t *trace_id, int64_t *parent_span_id, int64_t *span_id,
                      <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, <span class="hljs-keyword">bool</span> name_copy, <span class="hljs-keyword">bool</span> debug, <span class="hljs-keyword">bool</span> force)</span>
 </span></code></pre>
 <ul>
@@ -4181,7 +4112,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Pulish then release resources allociated with span without publishing.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_span_publish</span><span class="hljs-params">(Zipkin_Span *span)</span>
 </span></code></pre>
 <ul>
@@ -4192,7 +4123,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Increase the reference count to a span.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_span_ref</span><span class="hljs-params">(Zipkin_Span *span)</span>
 </span></code></pre>
 <ul>
@@ -4202,7 +4133,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Rename a span after it has been created, but before publishing.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> 
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_zipkin_span_rename</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, <span class="hljs-keyword">bool</span> name_copy)</span>
 </span></code></pre>
 <ul>
@@ -4214,7 +4145,7 @@ mtev_zipkin_encode_list(<span class="hljs-keyword">unsigned</span> <span class="
 <blockquote>
 <p>Convert a string Id to an int64_t Id.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> * 
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> *
 mtev_zipkin_str_to_id(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *in, <span class="hljs-keyword">int64_t</span> *buf)
 </code></pre>
 <ul>
@@ -4227,7 +4158,7 @@ mtev_zipkin_str_to_id(<span class="hljs-keyword">const</span> <span class="hljs-
 <blockquote>
 <p>Convert a struct timeval to a timestamp.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span> 
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span>
 mtev_zipkin_timeval_to_timestamp(<span class="hljs-keyword">struct</span> timeval *tv)
 </code></pre>
 <ul>
