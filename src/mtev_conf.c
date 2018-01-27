@@ -2585,7 +2585,8 @@ mtev_conf_log_rotate_time(eventer_t e, int mask, void *closure,
 int
 mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
   int i, cnt = 0, rv = 0;
-  int32_t max_time, max_size, retain_seconds = -1, retain_size = -1;
+  int32_t max_time, retain_seconds = -1;
+  int64_t max_size, retain_size = -1;
   mtev_conf_section_t *log_configs;
   char path[256];
 
@@ -2634,7 +2635,7 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
       }
     }
 
-    if(mtev_conf_get_int32(log_configs[i],    
+    if(mtev_conf_get_int64(log_configs[i],    
                            "ancestor-or-self::node()/@rotate_bytes",
                            &max_size) && max_size) {
       struct log_rotate_crutch *lrc;
@@ -2643,7 +2644,7 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
         if(validate) { rv = -1; break; }
         else exit(-2);
       }
-      mtev_conf_get_int32(log_configs[i],
+      mtev_conf_get_int64(log_configs[i],
                           "ancestor-or-self::node()/@retain_bytes",
                           &retain_size);
       if(!validate) {
