@@ -4,6 +4,11 @@
 
 ## 1.1
 
+=== TBD
+
+ * Allow 64bit integers for size-based log rotation parameters.
+ * Make `mtev.thread_self` work in lua_web as it does in lua_general.
+
 ### 1.1.0
 
  * Add new structure, `mtev_huge_hash`, which uses LMDB to provide a
