@@ -2622,7 +2622,7 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
         if(validate) { rv = -1; break; }
         else exit(-2);
       }
-      mtev_conf_get_int32(log_configs[i],
+      (void)mtev_conf_get_int32(log_configs[i],
                           "ancestor-or-self::node()/@retain_seconds",
                           &retain_seconds);
       if(!validate) {
@@ -2644,7 +2644,7 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
         if(validate) { rv = -1; break; }
         else exit(-2);
       }
-      mtev_conf_get_int64(log_configs[i],
+      (void)mtev_conf_get_int64(log_configs[i],
                           "ancestor-or-self::node()/@retain_bytes",
                           &retain_size);
       if(!validate) {
