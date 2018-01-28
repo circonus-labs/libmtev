@@ -8,6 +8,7 @@
 
  * Allow 64bit integers for size-based log rotation parameters.
  * Make `mtev.thread_self` work in lua_web as it does in lua_general.
+ * Const-ify mtev_huge_hash APIs.
 
 ### 1.1.0
 
