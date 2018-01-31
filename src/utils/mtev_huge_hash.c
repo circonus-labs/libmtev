@@ -188,7 +188,7 @@ void mtev_huge_hash_destroy(mtev_huge_hash_t *hh)
 }
 
 mtev_boolean 
-mtev_huge_hash_replace(mtev_huge_hash_t *hh, void *k, size_t klen, void *val, size_t dlen)
+mtev_huge_hash_replace(mtev_huge_hash_t *hh, const void *k, size_t klen, const void *val, size_t dlen)
 {
 #ifndef HAVE_LMDB
   return mtev_false;
@@ -213,9 +213,9 @@ mtev_huge_hash_replace(mtev_huge_hash_t *hh, void *k, size_t klen, void *val, si
     return mtev_false;
   }
 
-  key.mv_data = k;
+  key.mv_data = (void *)k;
   key.mv_size = klen;
-  data.mv_data = val;
+  data.mv_data = (void *)val;
   data.mv_size = dlen;
   
   rc = mdb_cursor_put(cursor, &key, &data, 0);
@@ -247,7 +247,7 @@ mtev_huge_hash_replace(mtev_huge_hash_t *hh, void *k, size_t klen, void *val, si
 }
 
 mtev_boolean 
-mtev_huge_hash_store(mtev_huge_hash_t *hh, void *k, size_t klen, void *val, size_t dlen)
+mtev_huge_hash_store(mtev_huge_hash_t *hh, const void *k, size_t klen, const void *val, size_t dlen)
 {
 #ifndef HAVE_LMDB
   return mtev_false;
@@ -272,7 +272,7 @@ mtev_huge_hash_store(mtev_huge_hash_t *hh, void *k, size_t klen, void *val, size
     return mtev_false;
   }
 
-  key.mv_data = k;
+  key.mv_data = (void *)k;
   key.mv_size = klen;
   rc = mdb_cursor_get(cursor, &key, &data, MDB_SET);
   if (rc == 0) {
@@ -283,7 +283,7 @@ mtev_huge_hash_store(mtev_huge_hash_t *hh, void *k, size_t klen, void *val, size
     return mtev_false;
   }
 
-  data.mv_data = val;
+  data.mv_data = (void *)val;
   data.mv_size = dlen;
 
   rc = mdb_cursor_put(cursor, &key, &data, 0);
@@ -315,8 +315,8 @@ mtev_huge_hash_store(mtev_huge_hash_t *hh, void *k, size_t klen, void *val, size
 }
 
 
-void *
-mtev_huge_hash_retrieve(mtev_huge_hash_t *hh, void *k, size_t klen, size_t *data_len)
+const void *
+mtev_huge_hash_retrieve(mtev_huge_hash_t *hh, const void *k, size_t klen, size_t *data_len)
 {
 #ifndef HAVE_LMDB
   return NULL;
@@ -342,7 +342,7 @@ mtev_huge_hash_retrieve(mtev_huge_hash_t *hh, void *k, size_t klen, size_t *data
     return NULL;
   }
 
-  key.mv_data = k;
+  key.mv_data = (void *)k;
   key.mv_size = klen;
   rc = mdb_cursor_get(cursor, &key, &data, MDB_SET);
   if (rc != 0) {
@@ -361,7 +361,7 @@ mtev_huge_hash_retrieve(mtev_huge_hash_t *hh, void *k, size_t klen, size_t *data
 }
 
 mtev_boolean
-mtev_huge_hash_delete(mtev_huge_hash_t *hh, void *k, size_t klen)
+mtev_huge_hash_delete(mtev_huge_hash_t *hh, const void *k, size_t klen)
 {
 #ifndef HAVE_LMDB
   return mtev_false;
@@ -385,7 +385,7 @@ mtev_huge_hash_delete(mtev_huge_hash_t *hh, void *k, size_t klen)
     return mtev_false;
   }
 
-  key.mv_data = k;
+  key.mv_data = (void *)k;
   key.mv_size = klen;
   rc = mdb_cursor_get(cursor, &key, &data, MDB_SET);
   if (rc != 0) {
