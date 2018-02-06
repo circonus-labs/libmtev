@@ -4,11 +4,15 @@
 
 ## 1.1
 
+### 1.1.2
+
+ * Fix potential use-after-free in reverse connections. (#317)
+
 ### 1.1.1
 
  * Allow 64bit integers for size-based log rotation parameters.
- * Make `mtev.thread_self` work in lua_web as it does in lua_general.
- * Const-ify mtev_huge_hash APIs.
+ * Make `mtev.thread_self` work in lua\_web as it does in lua\_general.
+ * Const-ify mtev\_huge\_hash APIs.
 
 ### 1.1.0
 
