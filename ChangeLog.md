@@ -2,13 +2,19 @@
 
 # 1
 
+## 1.2
+
+### 1.2.0
+
+ * No changes, semver bump due to 1.1.3's new eventer calls.
+
 ## 1.1
 
 ### 1.1.3
 
- * Add eventer_jobq documentation.
- * Add eventer_jobq_set_max_backlog.
- * Add "try" variants for the eventer_add_asynch calls.
+ * Add `eventer_jobq` documentation.
+ * Add `eventer_jobq_set_max_backlog`.
+ * Add "try" variants for the `eventer_add_asynch` calls.
 
 ### 1.1.2
 
