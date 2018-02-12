@@ -377,17 +377,8 @@ eventer_jobq_maybe_spawn(eventer_jobq_t *jobq, int bump) {
 }
 
 void
-eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
-  job->next = NULL;
-  /* Do not increase the concurrency from zero for a noop */
-  if(ck_pr_load_32(&jobq->concurrency) == 0 && job->fd_event == NULL) {
-    free(job);
-    return;
-  }
-  if(job->fd_event) {
-    ck_pr_inc_64(&jobq->total_jobs);
-    ck_pr_inc_32(&jobq->backlog);
-  }
+eventer_jobq_enqueue_internal(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
+  if(job->fd_event) ck_pr_inc_64(&jobq->total_jobs);
   mtevL(eventer_deb, "jobq %p enqueue job [%p]\n", jobq, job);
 
   /* If the parent is not NULL, setup a dependency */
@@ -412,6 +403,44 @@ eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *pa
 
   /* Signal consumers */
   sem_post(&jobq->semaphore);
+}
+
+mtev_boolean
+eventer_jobq_try_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
+  job->next = NULL;
+  /* Do not increase the concurrency from zero for a noop */
+  if(ck_pr_load_32(&jobq->concurrency) == 0 && job->fd_event == NULL) {
+    free(job);
+    return mtev_true;
+  }
+  if(job->fd_event) {
+   if(jobq->max_backlog) {
+     /* Enforce a quick failure */
+     uint32_t bl;
+     do {
+       bl = ck_pr_load_32(&jobq->backlog);
+       if(bl >= jobq->max_backlog) {
+         free(job);
+         return mtev_false;
+       }
+     } while(!ck_pr_cas_32(&jobq->backlog, bl, bl+1));
+   }
+   else ck_pr_inc_32(&jobq->backlog);
+  }
+  eventer_jobq_enqueue_internal(jobq, job, parent);
+  return mtev_true;
+}
+
+void
+eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
+  job->next = NULL;
+  /* Do not increase the concurrency from zero for a noop */
+  if(ck_pr_load_32(&jobq->concurrency) == 0 && job->fd_event == NULL) {
+    free(job);
+    return;
+  }
+  if(job->fd_event) ck_pr_inc_32(&jobq->backlog);
+  eventer_jobq_enqueue_internal(jobq, job, parent);
 }
 
 static eventer_job_t *
@@ -838,6 +867,10 @@ static void jobq_fire_blanks(eventer_jobq_t *jobq, int n) {
 
 void eventer_jobq_ping(eventer_jobq_t *jobq) {
   jobq_fire_blanks(jobq, 1);
+}
+
+void eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max) {
+  jobq->max_backlog = max;
 }
 
 void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max) {

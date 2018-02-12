@@ -121,6 +121,7 @@ struct _eventer_jobq_t {
   mtev_boolean            isbackq;
   uint32_t                min_concurrency;
   uint32_t                max_concurrency;
+  uint32_t                max_backlog;
 };
 
 #ifdef LOCAL_EVENTER

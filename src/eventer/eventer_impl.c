@@ -809,6 +809,7 @@ void eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subque
   }
   eventer_jobq_enqueue(q ? q : __default_jobq, job, NULL);
 }
+
 void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
   eventer_add_asynch_subqueue(q, e, 0);
 }
@@ -835,8 +836,75 @@ void eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t su
   }
   eventer_jobq_enqueue(job->jobq, job, eventer_jobq_inflight());
 }
+
 void eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e) {
   eventer_add_asynch_dep_subqueue(q, e, 0);
+}
+
+mtev_boolean eventer_try_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
+  eventer_t timeout = NULL;
+  eventer_job_t *job;
+  /* always use 0, if unspecified */
+  if(eventer_is_loop(e->thr_owner) < 0) e->thr_owner = eventer_impl_tls_data[0].tid;
+  job = calloc(1, sizeof(*job));
+  job->subqueue = subqueue;
+  job->fd_event = e;
+  job->jobq = q ? q : __default_jobq;
+  job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
+  /* If we're debugging the eventer, these cross thread timeouts will
+   * make it impossible for us to slowly trace an asynch job. */
+  if(e->whence.tv_sec) {
+    timeout = job->timeout_event = eventer_alloc();
+    job->timeout_event->thr_owner = e->thr_owner;
+    memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
+    job->timeout_event->mask = EVENTER_TIMER;
+    job->timeout_event->closure = job;
+    job->timeout_event->callback = eventer_jobq_execute_timeout;
+    eventer_add(job->timeout_event);
+  }
+  if(eventer_jobq_try_enqueue(q ? q : __default_jobq, job, NULL)) return mtev_true;
+  if(timeout) {
+    eventer_remove(timeout);
+    eventer_free(timeout);
+  }
+  return mtev_false;
+}
+
+mtev_boolean eventer_try_add_asynch(eventer_jobq_t *q, eventer_t e) {
+  return eventer_try_add_asynch_subqueue(q, e, 0);
+}
+
+mtev_boolean eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
+  eventer_t timeout = NULL;
+  eventer_job_t *job;
+  /* always use 0, if unspecified */
+  if(eventer_is_loop(e->thr_owner) < 0) e->thr_owner = eventer_impl_tls_data[0].tid;
+  job = calloc(1, sizeof(*job));
+  job->subqueue = subqueue;
+  job->fd_event = e;
+  job->jobq = q ? q : __default_jobq;
+  job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
+  /* If we're debugging the eventer, these cross thread timeouts will
+   * make it impossible for us to slowly trace an asynch job. */
+  if(e->whence.tv_sec) {
+    timeout = job->timeout_event = eventer_alloc();
+    job->timeout_event->thr_owner = e->thr_owner;
+    memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
+    job->timeout_event->mask = EVENTER_TIMER;
+    job->timeout_event->closure = job;
+    job->timeout_event->callback = eventer_jobq_execute_timeout;
+    eventer_add(job->timeout_event);
+  }
+  if(eventer_jobq_try_enqueue(job->jobq, job, eventer_jobq_inflight())) return mtev_true;
+  if(timeout) {
+    eventer_remove(timeout);
+    eventer_free(timeout);
+  }
+  return mtev_false;
+}
+
+mtev_boolean eventer_try_add_asynch_dep(eventer_jobq_t *q, eventer_t e) {
+  return eventer_try_add_asynch_dep_subqueue(q, e, 0);
 }
 
 void eventer_add_timed(eventer_t e) {
