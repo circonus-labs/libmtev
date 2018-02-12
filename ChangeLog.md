@@ -4,6 +4,12 @@
 
 ## 1.1
 
+### 1.1.3
+
+ * Add eventer_jobq documentation.
+ * Add eventer_jobq_set_max_backlog.
+ * Add "try" variants for the eventer_add_asynch calls.
+
 ### 1.1.2
 
  * Fix potential use-after-free in reverse connections. (#317)
