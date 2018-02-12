@@ -63,6 +63,7 @@ eventer_jobq_t *eventer_jobq_create_ms(const char *queue_name,
 eventer_job_t *eventer_jobq_inflight(void);
 eventer_jobq_t *eventer_jobq_retrieve(const char *name);
 void eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent);
+mtev_boolean eventer_jobq_try_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent);
 eventer_job_t *eventer_jobq_dequeue(eventer_jobq_t *jobq);
 eventer_job_t *eventer_jobq_dequeue_nowait(eventer_jobq_t *jobq);
 void eventer_jobq_destroy(eventer_jobq_t *jobq);
@@ -72,6 +73,7 @@ int eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
                                    struct timeval *now);
 void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency);
 void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max);
+void eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max);
 void *eventer_jobq_consumer(eventer_jobq_t *jobq);
 void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *), void *);
 void eventer_jobq_init_globals(void);

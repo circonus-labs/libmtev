@@ -786,6 +786,56 @@ API_EXPORT(void) eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e);
 */
 API_EXPORT(void) eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
 
+/*! \fn mtev_boolean eventer_try_add_asynch(eventer_jobq_t *q, eventer_t e)
+    \brief Add an asynchronous event to a specific job queue.
+    \param q a job queue
+    \param e an event object
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.
+*/
+API_EXPORT(mtev_boolean) eventer_try_add_asynch(eventer_jobq_t *q, eventer_t e);
+
+/*! \fn mtev_boolean eventer_try_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+    \brief Add an asynchronous event to a specific job queue.
+    \param q a job queue
+    \param e an event object
+    \param id is a fairly competing subqueue identifier
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.
+*/
+API_EXPORT(mtev_boolean) eventer_try_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
+
+/*! \fn mtev_boolean eventer_try_add_asynch_dep(eventer_jobq_t *q, eventer_t e)
+    \brief Add an asynchronous event to a specific job queue dependent on the current job.
+    \param q a job queue
+    \param e an event object
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
+API_EXPORT(mtev_boolean) eventer_try_add_asynch_dep(eventer_jobq_t *q, eventer_t e);
+
+/*! \fn mtev_boolean eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+    \brief Add an asynchronous event to a specific job queue dependent on the current job.
+    \param q a job queue
+    \param e an event object
+    \param id is a fairly competing subqueue identifier
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
+API_EXPORT(mtev_boolean) eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
+
 /*! \fn void eventer_add_timed(eventer_t e)
     \brief Add a timed event to the eventer system.
     \param e an event object
