@@ -650,6 +650,7 @@ the first argument.
 #### mtev.thread_self
 
 ```lua
+thread, tid =
 mtev.thread_self()
 ```
 

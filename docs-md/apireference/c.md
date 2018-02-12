@@ -1783,6 +1783,131 @@ eventer_is_loop(pthread_t tid)
   * **RETURN** 0 if the specified thread lives outside the eventer loop; 1 otherwise.
 
 
+#### eventer_jobq_create
+
+>Create a new jobq.
+
+```c
+eventer_jobq_t *
+eventer_jobq_create(const char *queue_name)
+```
+
+
+  * `queue_name` a name for the new jobq
+  * **RETURN** a pointer to a new (or existing) jobq with that name. NULL on error.
+
+
+#### eventer_jobq_create_backq
+
+>Create a new jobq for use as a return queue.
+
+```c
+eventer_jobq_t *
+eventer_jobq_create_backq(const char *queue_name)
+```
+
+
+  * `queue_name` a name for the new jobq
+  * **RETURN** a pointer to a new (or existing) jobq with that name. NULL on error.
+
+
+#### eventer_jobq_create_ms
+
+>Create a new jobq with the specified memory safety.
+
+```c
+eventer_jobq_t *
+eventer_jobq_create_ms(const char *queue_name, eventer_jobq_memory_safety_t safety)
+```
+
+
+  * `queue_name` a name for the new jobq
+  * `safety` a specific mtev_memory safey level for epoch-based memory reclamation schemes.
+  * **RETURN** a pointer to a new (or existing) jobq with that name. NULL on error.
+
+
+#### eventer_jobq_destroy
+
+>Destory a jobq.
+
+```c
+void
+eventer_jobq_destroy(eventer_jobq_t *jobq)
+```
+
+
+
+
+#### eventer_jobq_inflight
+
+>Reveal the currently executing job (visiable to a callee).
+
+```c
+eventer_job_t *
+eventer_jobq_inflight(void)
+```
+
+
+  * **RETURN** the job that is currentlt running in the calling thread.
+
+
+#### eventer_jobq_retrieve
+
+>Find a jobq by name.
+
+```c
+eventer_jobq_t *
+eventer_jobq_retrieve(const char *name)
+```
+
+
+  * `name` the name of a jobq
+  * **RETURN** a jobq or NULL if no such jobq exists.
+
+
+#### eventer_jobq_set_concurrency
+
+>Set a jobq's concurrency level.
+
+```c
+void
+eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency)
+```
+
+
+  * `jobq` the jobq to modify
+  * `new_concurrency` the new number of desired threads
+
+
+#### eventer_jobq_set_max_backlog
+
+>Set and advisory limit on the backlog a jobq will handle.
+
+```c
+void
+eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max)
+```
+
+
+  * `jobq` the jobq to modify
+  * `max` a maximum pending jobs count before eventer_try_add_asynch calls will fail.
+
+
+#### eventer_jobq_set_min_max
+
+>Set the upper and lower bounds on concurrency for a jobq.
+
+```c
+void
+eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max)
+```
+
+
+  * `jobq` the jobq to modify
+  * `min` a minimum number of threads to maintain
+  * `max` a maximum number of threads to not exceed
+
+
 #### eventer_loop
 
 >Start the event loop.
@@ -2199,6 +2324,84 @@ eventer_trigger(eventer_t e, int mask)
 
 This is often used to "start back up" an event that has been removed from the
 eventer for any reason.
+
+
+#### eventer_try_add_asynch
+
+>Add an asynchronous event to a specific job queue.
+
+```c
+mtev_boolean
+eventer_try_add_asynch(eventer_jobq_t *q, eventer_t e)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.
+
+
+#### eventer_try_add_asynch_dep
+
+>Add an asynchronous event to a specific job queue dependent on the current job.
+
+```c
+mtev_boolean
+eventer_try_add_asynch_dep(eventer_jobq_t *q, eventer_t e)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
+#### eventer_try_add_asynch_dep_subqueue
+
+>Add an asynchronous event to a specific job queue dependent on the current job.
+
+```c
+mtev_boolean
+eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+  * `id` is a fairly competing subqueue identifier
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
+#### eventer_try_add_asynch_subqueue
+
+>Add an asynchronous event to a specific job queue.
+
+```c
+mtev_boolean
+eventer_try_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+  * `id` is a fairly competing subqueue identifier
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.
 
 
 #### eventer_update
@@ -2978,6 +3181,128 @@ mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data)
   implementation does not duplicate them.  You provide a pair of
   NoitHashFreeFunc functions to free up their storage when you call
   mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().
+ 
+
+#### mtev_huge_hash_adv
+
+```c
+int
+mtev_huge_hash_adv(mtev_huge_hash_iter_t *iter)
+```
+
+
+> iterate through key/values in the hash_table
+
+
+
+   To use:
+ mtev_huge_hash_iter_t *iter = mtev_huge_hash_create_iter(hh);
+
+ while(mtev_huge_hash_adv(iter)) {
+   size_t key_len, data_len;
+   void *k = mtev_huge_hash_iter_key(iter, &key_len);
+   void *d = mtev_huge_hash_iter_value(iter, &data_len);
+ }
+
+
+#### mtev_huge_hash_create
+
+```c
+mtev_huge_hash_t *
+mtev_huge_hash_create(const char *path)
+```
+
+
+> create or open a huge_hash
+
+
+
+  Failure to open or create will return NULL and errno will be set appropriately.
+  See: mtev_huge_hash_strerror()
+ 
+
+\fn mtev_huge_hash_iter_t *mtev_huge_hash_create_iter(mtev_huge_hash_t *hh);
+
+> create an iterator for walking the huge_hash
+
+
+
+  Note that the existence of an interator can prevent calls to mtev_huge_hash_store
+  from completing if the underlying data has to resize.  Iterate with caution.
+
+
+#### mtev_huge_hash_delete
+
+```c
+mtev_boolean
+mtev_huge_hash_delete(mtev_huge_hash_t *hh, const void *k, size_t klen)
+```
+
+
+> remove the key/value stored at "k"
+
+
+ 
+
+#### mtev_huge_hash_replace
+
+```c
+int
+mtev_huge_hash_replace(mtev_huge_hash_t *hh, const void *k, size_t klen, const void *data
+                       size_t dlen)
+```
+
+
+> replace anything that was already in this hash location
+
+
+ 
+
+#### mtev_huge_hash_retrieve
+
+```c
+const void *
+mtev_huge_hash_retrieve(mtev_huge_hash_t *hh, const void *k, size_t klen, size_t *data_len)
+```
+
+
+> return the value at "k" and fill data_len with sizeof the data
+
+
+
+  The memory returned here is owned by the huge_hash.  Do not modify
+ 
+
+#### mtev_huge_hash_size
+
+```c
+size_t
+mtev_huge_hash_size(mtev_huge_hash_t *hh)
+```
+
+
+> return the number of entries in the huge_hash
+
+
+ 
+
+#### mtev_huge_hash_store
+
+```c
+int
+mtev_huge_hash_store(mtev_huge_hash_t *hh, const void *k, size_t klen, const void *data
+                     size_t dlen)
+```
+
+
+> put something in the huge_hash
+
+
+
+  This will fail if the key already exists in the hash_table
+  Copies are made of `k` and `data`
+
+  Returns mtev_true on success
  
 
 ### L

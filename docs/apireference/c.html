@@ -1961,6 +1961,102 @@ need to call this function directly.</p>
 <li><code>tid</code> a thread</li>
 <li><strong>RETURN</strong> 0 if the specified thread lives outside the eventer loop; 1 otherwise.</li>
 </ul>
+<h4 id="eventerjobqcreate">eventer_jobq_create</h4>
+<blockquote>
+<p>Create a new jobq.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_jobq_t</span> *
+eventer_jobq_create(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *queue_name)
+</code></pre>
+<ul>
+<li><code>queue_name</code> a name for the new jobq</li>
+<li><strong>RETURN</strong> a pointer to a new (or existing) jobq with that name. NULL on error.</li>
+</ul>
+<h4 id="eventerjobqcreatebackq">eventer_jobq_create_backq</h4>
+<blockquote>
+<p>Create a new jobq for use as a return queue.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_jobq_t</span> *
+eventer_jobq_create_backq(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *queue_name)
+</code></pre>
+<ul>
+<li><code>queue_name</code> a name for the new jobq</li>
+<li><strong>RETURN</strong> a pointer to a new (or existing) jobq with that name. NULL on error.</li>
+</ul>
+<h4 id="eventerjobqcreatems">eventer_jobq_create_ms</h4>
+<blockquote>
+<p>Create a new jobq with the specified memory safety.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_jobq_t</span> *
+eventer_jobq_create_ms(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *queue_name, <span class="hljs-keyword">eventer_jobq_memory_safety_t</span> safety)
+</code></pre>
+<ul>
+<li><code>queue_name</code> a name for the new jobq</li>
+<li><code>safety</code> a specific mtev_memory safey level for epoch-based memory reclamation schemes.</li>
+<li><strong>RETURN</strong> a pointer to a new (or existing) jobq with that name. NULL on error.</li>
+</ul>
+<h4 id="eventerjobqdestroy">eventer_jobq_destroy</h4>
+<blockquote>
+<p>Destory a jobq.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_jobq_destroy</span><span class="hljs-params">(eventer_jobq_t *jobq)</span>
+</span></code></pre>
+<h4 id="eventerjobqinflight">eventer_jobq_inflight</h4>
+<blockquote>
+<p>Reveal the currently executing job (visiable to a callee).</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_job_t</span> *
+eventer_jobq_inflight(<span class="hljs-keyword">void</span>)
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> the job that is currentlt running in the calling thread.</li>
+</ul>
+<h4 id="eventerjobqretrieve">eventer_jobq_retrieve</h4>
+<blockquote>
+<p>Find a jobq by name.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_jobq_t</span> *
+eventer_jobq_retrieve(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)
+</code></pre>
+<ul>
+<li><code>name</code> the name of a jobq</li>
+<li><strong>RETURN</strong> a jobq or NULL if no such jobq exists.</li>
+</ul>
+<h4 id="eventerjobqsetconcurrency">eventer_jobq_set_concurrency</h4>
+<blockquote>
+<p>Set a jobq&apos;s concurrency level.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_jobq_set_concurrency</span><span class="hljs-params">(eventer_jobq_t *jobq, uint32_t new_concurrency)</span>
+</span></code></pre>
+<ul>
+<li><code>jobq</code> the jobq to modify</li>
+<li><code>new_concurrency</code> the new number of desired threads</li>
+</ul>
+<h4 id="eventerjobqsetmaxbacklog">eventer_jobq_set_max_backlog</h4>
+<blockquote>
+<p>Set and advisory limit on the backlog a jobq will handle.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_jobq_set_max_backlog</span><span class="hljs-params">(eventer_jobq_t *jobq, uint32_t max)</span>
+</span></code></pre>
+<ul>
+<li><code>jobq</code> the jobq to modify</li>
+<li><code>max</code> a maximum pending jobs count before eventer_try_add_asynch calls will fail.</li>
+</ul>
+<h4 id="eventerjobqsetminmax">eventer_jobq_set_min_max</h4>
+<blockquote>
+<p>Set the upper and lower bounds on concurrency for a jobq.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_jobq_set_min_max</span><span class="hljs-params">(eventer_jobq_t *jobq, uint32_t min, uint32_t max)</span>
+</span></code></pre>
+<ul>
+<li><code>jobq</code> the jobq to modify</li>
+<li><code>min</code> a minimum number of threads to maintain</li>
+<li><code>max</code> a maximum number of threads to not exceed</li>
+</ul>
 <h4 id="eventerloop">eventer_loop</h4>
 <blockquote>
 <p>Start the event loop.</p>
@@ -2290,6 +2386,68 @@ the mask of an active event in the system.</p>
 </ul>
 <p>This is often used to &quot;start back up&quot; an event that has been removed from the
 eventer for any reason.</p>
+<h4 id="eventertryaddasynch">eventer_try_add_asynch</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_try_add_asynch</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.</p>
+<h4 id="eventertryaddasynchdep">eventer_try_add_asynch_dep</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue dependent on the current job.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_try_add_asynch_dep</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
+<h4 id="eventertryaddasynchdepsubqueue">eventer_try_add_asynch_dep_subqueue</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue dependent on the current job.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_try_add_asynch_dep_subqueue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><code>id</code> is a fairly competing subqueue identifier</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
+<h4 id="eventertryaddasynchsubqueue">eventer_try_add_asynch_subqueue</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_try_add_asynch_subqueue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><code>id</code> is a fairly competing subqueue identifier</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.</p>
 <h4 id="eventerupdate">eventer_update</h4>
 <blockquote>
 <p>Change the activity mask for file descriptor events.</p>
@@ -2843,6 +3001,76 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
   implementation does not duplicate them.  You provide a pair of
   NoitHashFreeFunc functions to free up their storage when you call
   mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().</p>
+<h4 id="mtevhugehashadv">mtev_huge_hash_adv</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_huge_hash_adv</span><span class="hljs-params">(mtev_huge_hash_iter_t *iter)</span>
+</span></code></pre>
+<blockquote>
+<p>iterate through key/values in the hash_table</p>
+</blockquote>
+<p>   To use:
+ mtev_huge_hash_iter_t *iter = mtev_huge_hash_create_iter(hh);</p>
+<p> while(mtev_huge_hash_adv(iter)) {
+   size_t key_len, data_len;
+   void <em>k = mtev_huge_hash_iter_key(iter, &amp;key_len);
+   void </em>d = mtev_huge_hash_iter_value(iter, &amp;data_len);
+ }</p>
+<h4 id="mtevhugehashcreate">mtev_huge_hash_create</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_huge_hash_t</span> *
+mtev_huge_hash_create(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path)
+</code></pre>
+<blockquote>
+<p>create or open a huge_hash</p>
+</blockquote>
+<p>  Failure to open or create will return NULL and errno will be set appropriately.
+  See: mtev_huge_hash_strerror()</p>
+<p>\fn mtev_huge_hash_iter_t <em>mtev_huge_hash_create_iter(mtev_huge_hash_t </em>hh);</p>
+<blockquote>
+<p>create an iterator for walking the huge_hash</p>
+</blockquote>
+<p>  Note that the existence of an interator can prevent calls to mtev_huge_hash_store
+  from completing if the underlying data has to resize.  Iterate with caution.</p>
+<h4 id="mtevhugehashdelete">mtev_huge_hash_delete</h4>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">mtev_huge_hash_delete</span><span class="hljs-params">(mtev_huge_hash_t *hh, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, size_t klen)</span>
+</span></code></pre>
+<blockquote>
+<p>remove the key/value stored at &quot;k&quot;</p>
+</blockquote>
+<h4 id="mtevhugehashreplace">mtev_huge_hash_replace</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_huge_hash_replace</span><span class="hljs-params">(mtev_huge_hash_t *hh, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, size_t klen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *data
+                       size_t dlen)</span>
+</span></code></pre>
+<blockquote>
+<p>replace anything that was already in this hash location</p>
+</blockquote>
+<h4 id="mtevhugehashretrieve">mtev_huge_hash_retrieve</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *
+<span class="hljs-title">mtev_huge_hash_retrieve</span><span class="hljs-params">(mtev_huge_hash_t *hh, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, size_t klen, size_t *data_len)</span>
+</span></code></pre>
+<blockquote>
+<p>return the value at &quot;k&quot; and fill data_len with sizeof the data</p>
+</blockquote>
+<p>  The memory returned here is owned by the huge_hash.  Do not modify</p>
+<h4 id="mtevhugehashsize">mtev_huge_hash_size</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
+mtev_huge_hash_size(<span class="hljs-keyword">mtev_huge_hash_t</span> *hh)
+</code></pre>
+<blockquote>
+<p>return the number of entries in the huge_hash</p>
+</blockquote>
+<h4 id="mtevhugehashstore">mtev_huge_hash_store</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_huge_hash_store</span><span class="hljs-params">(mtev_huge_hash_t *hh, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, size_t klen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *data
+                     size_t dlen)</span>
+</span></code></pre>
+<blockquote>
+<p>put something in the huge_hash</p>
+</blockquote>
+<p>  This will fail if the key already exists in the hash_table
+  Copies are made of <code>k</code> and <code>data</code></p>
+<p>  Returns mtev_true on success</p>
 <h3 id="l">L</h3>
 <h4 id="mtevlfucreate">mtev_lfu_create</h4>
 <pre><code class="lang-c">mtev_lfu_create(<span class="hljs-keyword">int32_t</span> max_entries, <span class="hljs-keyword">void</span> (*free_fn)(<span class="hljs-keyword">void</span> *))

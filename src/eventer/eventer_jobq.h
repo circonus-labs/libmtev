@@ -56,24 +56,77 @@ typedef enum {
 
 typedef struct _eventer_jobq_t eventer_jobq_t;
 
-eventer_jobq_t *eventer_jobq_create(const char *queue_name);
-eventer_jobq_t *eventer_jobq_create_backq(const char *queue_name);
-eventer_jobq_t *eventer_jobq_create_ms(const char *queue_name,
-                                       eventer_jobq_memory_safety_t);
-eventer_job_t *eventer_jobq_inflight(void);
-eventer_jobq_t *eventer_jobq_retrieve(const char *name);
+/*! \fn eventer_jobq_t *eventer_jobq_create(const char *queue_name)
+    \brief Create a new jobq.
+    \param queue_name a name for the new jobq
+    \return a pointer to a new (or existing) jobq with that name. NULL on error.
+*/
+API_EXPORT(eventer_jobq_t *) eventer_jobq_create(const char *queue_name);
+
+/*! \fn eventer_jobq_t *eventer_jobq_create_backq(const char *queue_name)
+    \brief Create a new jobq for use as a return queue.
+    \param queue_name a name for the new jobq
+    \return a pointer to a new (or existing) jobq with that name. NULL on error.
+*/
+API_EXPORT(eventer_jobq_t *) eventer_jobq_create_backq(const char *queue_name);
+
+/*! \fn eventer_jobq_t *eventer_jobq_create_ms(const char *queue_name, eventer_jobq_memory_safety_t safety)
+    \brief Create a new jobq with the specified memory safety.
+    \param queue_name a name for the new jobq
+    \param safety a specific mtev_memory safey level for epoch-based memory reclamation schemes.
+    \return a pointer to a new (or existing) jobq with that name. NULL on error.
+*/
+API_EXPORT(eventer_jobq_t *) eventer_jobq_create_ms(const char *queue_name,
+                                                    eventer_jobq_memory_safety_t);
+
+/*! \fn eventer_job_t *eventer_jobq_inflight(void)
+    \brief Reveal the currently executing job (visiable to a callee).
+    \return the job that is currentlt running in the calling thread.
+*/
+API_EXPORT(eventer_job_t *) eventer_jobq_inflight(void);
+
+/*! \fn eventer_jobq_t *eventer_jobq_retrieve(const char *name)
+    \brief Find a jobq by name.
+    \param name the name of a jobq
+    \return a jobq or NULL if no such jobq exists.
+*/
+API_EXPORT(eventer_jobq_t *) eventer_jobq_retrieve(const char *name);
+
+/*! \fn void eventer_jobq_destroy(eventer_jobq_t *jobq)
+    \brief Destory a jobq.
+*/
+API_EXPORT(void) eventer_jobq_destroy(eventer_jobq_t *jobq);
+
+/*! \fn void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency)
+    \brief Set a jobq's concurrency level.
+    \param jobq the jobq to modify
+    \param new_concurrency the new number of desired threads
+*/
+API_EXPORT(void) eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency);
+
+/*! \fn void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max)
+    \brief Set the upper and lower bounds on concurrency for a jobq.
+    \param jobq the jobq to modify
+    \param min a minimum number of threads to maintain
+    \param max a maximum number of threads to not exceed
+*/
+API_EXPORT(void) eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max);
+
+/*! \fn void eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max)
+    \brief Set and advisory limit on the backlog a jobq will handle.
+    \param jobq the jobq to modify
+    \param max a maximum pending jobs count before eventer_try_add_asynch calls will fail.
+*/
+API_EXPORT(void) eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max);
+
 void eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent);
 mtev_boolean eventer_jobq_try_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent);
 eventer_job_t *eventer_jobq_dequeue(eventer_jobq_t *jobq);
 eventer_job_t *eventer_jobq_dequeue_nowait(eventer_jobq_t *jobq);
-void eventer_jobq_destroy(eventer_jobq_t *jobq);
 int eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
                                  struct timeval *now);
 int eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
                                    struct timeval *now);
-void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency);
-void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max);
-void eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max);
 void *eventer_jobq_consumer(eventer_jobq_t *jobq);
 void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *), void *);
 void eventer_jobq_init_globals(void);
