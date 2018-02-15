@@ -4,6 +4,10 @@
 
 ## 1.2
 
+### 1.2.1
+
+ * Improve debug messages for reverse sockets.
+
 ### 1.2.0
 
  * No changes, semver bump due to 1.1.3's new eventer calls.
