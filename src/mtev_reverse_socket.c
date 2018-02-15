@@ -552,7 +552,7 @@ mtev_reverse_socket_handler(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    mtevL(nldeb, "%s reverse_socket: %s\n", rc->id, socket_error_string);
+    mtevL(nldeb, "%s mtev_reverse_socket_handler: socket error: %s\n", rc->id, socket_error_string);
     if (needs_unlock) {
       pthread_mutex_unlock(&rc->lock);
       needs_unlock = false;
@@ -565,8 +565,14 @@ socket_error:
    next_frame:
     while(rc->data.frame_hdr_read < sizeof(rc->data.frame_hdr)) {
       len = eventer_read(e, rc->data.frame_hdr + rc->data.frame_hdr_read, sizeof(rc->data.frame_hdr) - rc->data.frame_hdr_read, &rmask);
-      if(len < 0 && errno == EAGAIN) goto try_writes;
-      if(len <= 0) goto socket_error;
+      if(len < 0 && errno == EAGAIN) {
+        mtevL(nldeb, "%s mtev_reverse_socket_handler: next frame, got EAGAIN, goto try_writes\n", rc->id);
+        goto try_writes;
+      }
+      if(len <= 0) {
+        socket_error_string = "data frame eventer_read error";
+        goto socket_error;
+      }
       rc->data.frame_hdr_read += len;
       success = 1;
     }
@@ -583,7 +589,8 @@ socket_error:
         rc->data.incoming_inflight.command = 0;
       }
       rc->data.incoming_inflight.buff_len = ntohl(nframelen);
-      mtevL(nldeb, "next_frame_in(%s%d,%llu)\n",
+      mtevL(nldeb, "%s mtev_reverse_socket_handler: next_frame_in(%s%d,%llu)\n",
+            rc->id,
             rc->data.incoming_inflight.command ? "!" : "",
             rc->data.incoming_inflight.channel_id,
             (unsigned long long)rc->data.incoming_inflight.buff_len);
@@ -600,8 +607,14 @@ socket_error:
       if(!rc->data.incoming_inflight.buff) rc->data.incoming_inflight.buff = malloc(rc->data.incoming_inflight.buff_len);
       len = eventer_read(e, rc->data.incoming_inflight.buff + rc->data.incoming_inflight.buff_filled,
                          rc->data.incoming_inflight.buff_len - rc->data.incoming_inflight.buff_filled, &rmask);
-      if(len < 0 && errno == EAGAIN) goto try_writes;
-      if(len <= 0) goto socket_error;
+      if(len < 0 && errno == EAGAIN) {
+        mtevL(nldeb, "%s mtev_reverse_socket_handler: frame payload read, got EAGAIN, goto try_writes\n", rc->id);
+        goto try_writes;
+      }
+      if(len <= 0) {
+        socket_error_string = "buffer eventer_read error";
+        goto socket_error;
+      }
       mtevL(nldeb, "frame payload read -> %llu (@%llu/%llu)\n",
             (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
             (unsigned long long)rc->data.incoming_inflight.buff_len);
@@ -611,7 +624,8 @@ socket_error:
 
     /* we have a complete inbound frame here (w/ data) */
     if(rc->data.incoming_inflight.command) {
-      mtevL(nldeb, "inbound command channel:%d '%.*s'\n",
+      mtevL(nldeb, "%s mtev_reverse_socket_handler: inbound command channel:%d '%.*s'\n",
+            rc->id,
             rc->data.incoming_inflight.channel_id,
             (int)rc->data.incoming_inflight.buff_len, (char *)rc->data.incoming_inflight.buff);
     }
@@ -666,7 +680,10 @@ socket_error:
         memcpy(rc->data.frame_hdr_out + sizeof(nchannel_id), &nframelen, sizeof(nframelen));
         len = eventer_write(e, rc->data.frame_hdr_out + rc->data.frame_hdr_written,
                             sizeof(rc->data.frame_hdr_out) - rc->data.frame_hdr_written, &wmask);
-        if(len < 0 && errno == EAGAIN) goto done_for_now;
+        if(len < 0 && errno == EAGAIN) {
+          mtevL(nldeb, "%s (channel %d) mtev_reverse_socket_handler: try_writes for frame, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id);
+          goto done_for_now;
+        }
         else if(len <= 0) goto socket_error;
         rc->data.frame_hdr_written += len;
         success = 1;
@@ -674,12 +691,16 @@ socket_error:
       while(f->offset < f->buff_len) {
         len = eventer_write(e, f->buff + f->offset,
                             f->buff_len - f->offset, &wmask);
-        if(len < 0 && errno == EAGAIN) goto done_for_now;
+        if(len < 0 && errno == EAGAIN) {
+          mtevL(nldeb, "%s (channel %d) mtev_reverse_socket_handler: try_writes for buffer, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id);
+          goto done_for_now;
+        }
         else if(len <= 0) goto socket_error;
         f->offset += len;
         success = 1;
       }
-      mtevL(nldeb, "frame_out(%04x, %llu) %llu/%llu of body\n",
+      mtevL(nldeb, "%s mtev_reverse_socket_handler: frame_out(%04x, %llu) %llu/%llu of body\n",
+            rc->id,
             f->channel_id, (unsigned long long)f->buff_len,
             (unsigned long long)f->offset, (unsigned long long)f->buff_len);
       /* reset for next frame */
@@ -693,7 +714,14 @@ socket_error:
   if (needs_unlock) {
     pthread_mutex_unlock(&rc->lock);
   }
-  if(success && rc->data.nctx) mtev_connection_update_timeout(rc->data.nctx);
+  if(success && rc->data.nctx) {
+    mtevL(nldeb, "%s mtev_reverse_socket_handler: done_for_now finished, updating timeout\n", rc->id);
+    mtev_connection_update_timeout(rc->data.nctx);
+  }
+  else {
+    mtevL(nldeb, "%s mtev_reverse_socket_handler: done_for_now without finishing, will retry later: success %d, nctx %s\n",
+            rc->id, success, (rc->data.nctx) ? "not null" : "null");
+  }
   if(e != rc->data.e) {
     eventer_set_mask(rc->data.e, rmask|wmask);
     return 0;
