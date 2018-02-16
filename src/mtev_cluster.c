@@ -1096,12 +1096,14 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   snprintf(maturity, sizeof(maturity), "%d", c->maturity);
   xmlSetProp(cluster, (xmlChar *)"maturity", (xmlChar *)maturity);
 
-  xmlNodePtr node;
-  char uuid_str[UUID_STR_LEN+1];
-  uuid_unparse_lower(c->oldest_node->id, uuid_str);
-  node = xmlNewNode(NULL, (xmlChar *)"oldest_node");
-  xmlSetProp(node, (xmlChar *)"uuid", (xmlChar *)uuid_str);
-  xmlAddChild(cluster, node);
+  if(c->oldest_node) {
+    xmlNodePtr node;
+    char uuid_str[UUID_STR_LEN+1];
+    uuid_unparse_lower(c->oldest_node->id, uuid_str);
+    node = xmlNewNode(NULL, (xmlChar *)"oldest_node");
+    xmlSetProp(node, (xmlChar *)"uuid", (xmlChar *)uuid_str);
+    xmlAddChild(cluster, node);
+  }
 
   for(i=0;i<c->node_cnt;i++) {
     mtev_cluster_node_t *n = &c->nodes[i];
@@ -1151,9 +1153,11 @@ rest_show_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
   root = xmlNewDocNode(doc, NULL, (xmlChar *)"clusters", NULL);
   xmlDocSetRootElement(doc, root);
 
-  char uuid_str[UUID_STR_LEN+1];
-  uuid_unparse_lower(my_cluster_id, uuid_str);
-  xmlSetProp(root, (xmlChar *)"my_id", (xmlChar *)uuid_str);
+  if (!uuid_is_null(my_cluster_id)) {
+    char uuid_str[UUID_STR_LEN+1];
+    uuid_unparse_lower(my_cluster_id, uuid_str);
+    xmlSetProp(root, (xmlChar *)"my_id", (xmlChar *)uuid_str);
+  }
 
   if(n >= 2) {
     mtev_cluster_t *c = mtev_cluster_by_name(p[1]);
@@ -1232,15 +1236,29 @@ mtev_cluster_init(void) {
 
   parent = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
   if(mtev_conf_section_is_empty(parent)) {
+    // No clusters found: bail
     mtev_conf_release_section(parent);
     return;
   }
 
   have_clusters = mtev_true;
-  if(mtev_conf_get_stringbuf(parent, "@my_id", my_id_str, sizeof(my_id_str)) &&
-     uuid_parse(my_id_str, my_id) == 0) {
-    mtev_cluster_set_self(my_id);
+
+  // Set global cluster ID
+  if(mtev_conf_get_stringbuf(parent, "@my_id", my_id_str, sizeof(my_id_str))) {
+    int rv = uuid_parse(my_id_str, my_id);
+    if (rv != 0) {
+      mtevL(mtev_error, "Error parsing //clusters/@my_id: %s\n", my_id_str);
+    }
+    else {
+      mtev_cluster_set_self(my_id);
+      mtevL(mtev_debug,"//clusters/@myid was set to %s\n", my_id_str);
+    }
   }
+  else {
+    mtevL(mtev_debug,"//clusters/@myid not set.\n");
+  }
+
+  // register individual clusters
   clusters = mtev_conf_get_sections(MTEV_CONF_ROOT, "//clusters//cluster", &n_clusters);
   for(i=0;i<n_clusters;i++) {
     mtev_cluster_update_internal(clusters[i], mtev_false);
@@ -1248,6 +1266,7 @@ mtev_cluster_init(void) {
   mtev_conf_release_sections(clusters, n_clusters);
   mtev_conf_release_section(parent);
 
+  // register REST endpoints
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/", "^cluster(/(..*?))?(\\.json)?$", rest_show_cluster,
              mtev_http_rest_client_cert_auth
