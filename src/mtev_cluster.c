@@ -50,6 +50,9 @@ static mtev_hash_table global_clusters;
 
 static const struct timeval boot_time_of_dead_node = { 0, 0 };
 
+static mtev_log_stream_t cerror = NULL;
+static mtev_log_stream_t cdebug = NULL;
+
 #define HEART_BEAT_HDR_LEN 1 + UUID_SIZE + sizeof(uint64_t) + sizeof(uint64_t) + 1
 #define MAX_PAYLOAD_LEN_SUM  1518 - 14/*ETH*/ - 20 /*IP*/ - HEART_BEAT_HDR_LEN - 4 /*FCS*/
 
@@ -304,7 +307,7 @@ mtev_cluster_check_timeouts(void) {
   }
 }
 
-static int 
+static int
 mtev_cluster_info_compose(void *payload, int len, void *c) {
   hb_payload_t *hb_payload;
 
@@ -681,7 +684,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
         mtevL(mtev_error, "Cluster '%s' node %d has no address\n", name, i);
         goto bail;
       }
-      
+
       family = AF_INET;
       rv = inet_pton(family, bufstr, &a);
       if(rv != 1) {
@@ -1229,6 +1232,9 @@ mtev_cluster_init(void) {
   int i, n_clusters;
   mtev_conf_section_t *clusters, parent;
 
+  cerror = mtev_log_stream_find("error/cluster");
+  cdebug = mtev_log_stream_find("error/cluster");
+
   mtev_net_heartbeat_init();
 
   mtev_gettimeofday(&my_boot_time, NULL);
@@ -1247,15 +1253,15 @@ mtev_cluster_init(void) {
   if(mtev_conf_get_stringbuf(parent, "@my_id", my_id_str, sizeof(my_id_str))) {
     int rv = uuid_parse(my_id_str, my_id);
     if (rv != 0) {
-      mtevL(mtev_error, "Error parsing //clusters/@my_id: %s\n", my_id_str);
+      mtevL(cerror, "Error parsing //clusters/@my_id: %s\n", my_id_str);
     }
     else {
       mtev_cluster_set_self(my_id);
-      mtevL(mtev_debug,"//clusters/@myid was set to %s\n", my_id_str);
+      mtevL(cdebug,"//clusters/@my_id was set to %s\n", my_id_str);
     }
   }
   else {
-    mtevL(mtev_debug,"//clusters/@myid not set.\n");
+    mtevL(cdebug,"//clusters/@my_id not set.\n");
   }
 
   // register individual clusters
