@@ -4,6 +4,11 @@
 
 ## 1.2
 
+### 1.2.2
+
+ * Fix bugs causing performance issues with reverse socket
+   connections.
+
 ### 1.2.1
 
  * Improve debug messages for reverse sockets.
