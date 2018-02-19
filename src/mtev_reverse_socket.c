@@ -541,6 +541,7 @@ mtev_reverse_socket_handler(eventer_t e, int mask, void *closure,
   int wmask = EVENTER_EXCEPTION;
   int len;
   int success = 0;
+  int reads_remaining=500, writes_remaining=500;
   bool needs_unlock = false;
   reverse_socket_t *rc = closure;
   const char *socket_error_string = "protocol error";
@@ -662,12 +663,12 @@ socket_error:
   }
   APPEND_IN(rc, &rc->data.incoming_inflight);
   rc->data.frame_hdr_read = 0;
-  goto next_frame;
+  if (--reads_remaining) goto next_frame;
 
  try_writes:
   pthread_mutex_lock(&rc->lock);
   needs_unlock = true;
-  if(rc->data.outgoing) {
+  while (--writes_remaining && rc->data.outgoing) {
     ssize_t len;
     reverse_frame_t *f = rc->data.outgoing;
     while(rc->data.frame_hdr_written < sizeof(rc->data.frame_hdr_out)) {
@@ -723,7 +724,10 @@ socket_error:
     eventer_set_mask(rc->data.e, rmask|wmask);
     return 0;
   }
-  return rmask|wmask;
+
+  return (reads_remaining && writes_remaining) ?
+      rmask|wmask :
+      EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
 }
 
 int
