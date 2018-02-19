@@ -561,155 +561,152 @@ socket_error:
     return 0;    
   }
 
-  if(mask & EVENTER_READ) {
-   next_frame:
-    while(rc->data.frame_hdr_read < sizeof(rc->data.frame_hdr)) {
-      len = eventer_read(e, rc->data.frame_hdr + rc->data.frame_hdr_read, sizeof(rc->data.frame_hdr) - rc->data.frame_hdr_read, &rmask);
-      if(len < 0 && errno == EAGAIN) {
-        mtevL(nldeb, "%s mtev_reverse_socket_handler: next frame, got EAGAIN, goto try_writes\n", rc->id);
-        goto try_writes;
-      }
-      if(len <= 0) {
-        socket_error_string = "data frame eventer_read error";
-        goto socket_error;
-      }
-      rc->data.frame_hdr_read += len;
-      success = 1;
+ next_frame:
+  while(rc->data.frame_hdr_read < sizeof(rc->data.frame_hdr)) {
+    len = eventer_read(e, rc->data.frame_hdr + rc->data.frame_hdr_read, sizeof(rc->data.frame_hdr) - rc->data.frame_hdr_read, &rmask);
+    if(len < 0 && errno == EAGAIN) {
+      mtevL(nldeb, "%s mtev_reverse_socket_handler: next frame, got EAGAIN, goto try_writes\n", rc->id);
+      goto try_writes;
     }
-    if(rc->data.incoming_inflight.buff_len == 0) {
-      uint16_t nchannel_id;
-      uint32_t nframelen;
-      memcpy(&nchannel_id, rc->data.frame_hdr, sizeof(nchannel_id));
-      memcpy(&nframelen, rc->data.frame_hdr + sizeof(nchannel_id), sizeof(nframelen));
-      rc->data.incoming_inflight.channel_id = ntohs(nchannel_id);
-      if(rc->data.incoming_inflight.channel_id & 0x8000) {
-        rc->data.incoming_inflight.channel_id &= 0x7fff;
-        rc->data.incoming_inflight.command = 1;
-      } else {
-        rc->data.incoming_inflight.command = 0;
-      }
-      rc->data.incoming_inflight.buff_len = ntohl(nframelen);
-      mtevL(nldeb, "%s mtev_reverse_socket_handler: next_frame_in(%s%d,%llu)\n",
-            rc->id,
-            rc->data.incoming_inflight.command ? "!" : "",
-            rc->data.incoming_inflight.channel_id,
-            (unsigned long long)rc->data.incoming_inflight.buff_len);
-      if(rc->data.incoming_inflight.buff_len > MAX_FRAME_LEN) {
-        socket_error_string = "oversized_frame";
-        goto socket_error;
-      }
-      if(rc->data.incoming_inflight.channel_id >= MAX_CHANNELS) {
-        socket_error_string = "invalid_channel";
-        goto socket_error;
-      }
+    if(len <= 0) {
+      socket_error_string = "data frame eventer_read error";
+      goto socket_error;
     }
-    while(rc->data.incoming_inflight.buff_filled < rc->data.incoming_inflight.buff_len) {
-      if(!rc->data.incoming_inflight.buff) rc->data.incoming_inflight.buff = malloc(rc->data.incoming_inflight.buff_len);
-      len = eventer_read(e, rc->data.incoming_inflight.buff + rc->data.incoming_inflight.buff_filled,
-                         rc->data.incoming_inflight.buff_len - rc->data.incoming_inflight.buff_filled, &rmask);
-      if(len < 0 && errno == EAGAIN) {
-        mtevL(nldeb, "%s mtev_reverse_socket_handler: frame payload read, got EAGAIN, goto try_writes\n", rc->id);
-        goto try_writes;
-      }
-      if(len <= 0) {
-        socket_error_string = "buffer eventer_read error";
-        goto socket_error;
-      }
-      mtevL(nldeb, "frame payload read -> %llu (@%llu/%llu)\n",
-            (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
-            (unsigned long long)rc->data.incoming_inflight.buff_len);
-      rc->data.incoming_inflight.buff_filled += len;
-      success = 1;
+    rc->data.frame_hdr_read += len;
+    success = 1;
+  }
+  if(rc->data.incoming_inflight.buff_len == 0) {
+    uint16_t nchannel_id;
+    uint32_t nframelen;
+    memcpy(&nchannel_id, rc->data.frame_hdr, sizeof(nchannel_id));
+    memcpy(&nframelen, rc->data.frame_hdr + sizeof(nchannel_id), sizeof(nframelen));
+    rc->data.incoming_inflight.channel_id = ntohs(nchannel_id);
+    if(rc->data.incoming_inflight.channel_id & 0x8000) {
+      rc->data.incoming_inflight.channel_id &= 0x7fff;
+      rc->data.incoming_inflight.command = 1;
+    } else {
+      rc->data.incoming_inflight.command = 0;
     }
+    rc->data.incoming_inflight.buff_len = ntohl(nframelen);
+    mtevL(nldeb, "%s mtev_reverse_socket_handler: next_frame_in(%s%d,%llu)\n",
+          rc->id,
+          rc->data.incoming_inflight.command ? "!" : "",
+          rc->data.incoming_inflight.channel_id,
+          (unsigned long long)rc->data.incoming_inflight.buff_len);
+    if(rc->data.incoming_inflight.buff_len > MAX_FRAME_LEN) {
+      socket_error_string = "oversized_frame";
+      goto socket_error;
+    }
+    if(rc->data.incoming_inflight.channel_id >= MAX_CHANNELS) {
+      socket_error_string = "invalid_channel";
+      goto socket_error;
+    }
+  }
+  while(rc->data.incoming_inflight.buff_filled < rc->data.incoming_inflight.buff_len) {
+    if(!rc->data.incoming_inflight.buff) rc->data.incoming_inflight.buff = malloc(rc->data.incoming_inflight.buff_len);
+    len = eventer_read(e, rc->data.incoming_inflight.buff + rc->data.incoming_inflight.buff_filled,
+                       rc->data.incoming_inflight.buff_len - rc->data.incoming_inflight.buff_filled, &rmask);
+    if(len < 0 && errno == EAGAIN) {
+      mtevL(nldeb, "%s mtev_reverse_socket_handler: frame payload read, got EAGAIN, goto try_writes\n", rc->id);
+      goto try_writes;
+    }
+    if(len <= 0) {
+      socket_error_string = "buffer eventer_read error";
+      goto socket_error;
+    }
+    mtevL(nldeb, "frame payload read -> %llu (@%llu/%llu)\n",
+          (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
+          (unsigned long long)rc->data.incoming_inflight.buff_len);
+    rc->data.incoming_inflight.buff_filled += len;
+    success = 1;
+  }
 
-    /* we have a complete inbound frame here (w/ data) */
-    if(rc->data.incoming_inflight.command) {
-      mtevL(nldeb, "%s mtev_reverse_socket_handler: inbound command channel:%d '%.*s'\n",
-            rc->id,
-            rc->data.incoming_inflight.channel_id,
-            (int)rc->data.incoming_inflight.buff_len, (char *)rc->data.incoming_inflight.buff);
-    }
-    IFCMD(&rc->data.incoming_inflight, "CONNECT") {
-      if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == -1) {
-        int fd = mtev_support_connection(rc);
-        if(fd >= 0) {
-          channel_closure_t *cct;
-          cct = malloc(sizeof(*cct));
-          cct->channel_id = rc->data.incoming_inflight.channel_id;
-          cct->parent = rc;
-          mtev_reverse_socket_ref(rc);
-
-          eventer_t newe =
-            eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, fd,
-                             EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
-          eventer_add(newe);
-          mtev_gettimeofday(&rc->data.channels[rc->data.incoming_inflight.channel_id].create_time, NULL);
-          rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] = fd;
-          memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
-          rc->data.frame_hdr_read = 0;
-          goto next_frame;
-        }
-      }
-    }
+  /* we have a complete inbound frame here (w/ data) */
+  if(rc->data.incoming_inflight.command) {
+    mtevL(nldeb, "%s mtev_reverse_socket_handler: inbound command channel:%d '%.*s'\n",
+          rc->id,
+          rc->data.incoming_inflight.channel_id,
+          (int)rc->data.incoming_inflight.buff_len, (char *)rc->data.incoming_inflight.buff);
+  }
+  IFCMD(&rc->data.incoming_inflight, "CONNECT") {
     if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == -1) {
-      /* but the channel disappeared */
-      /* send a reset, but not in response to a reset */
-      IFCMD(&rc->data.incoming_inflight, "RESET") { } /* noop */
-      else command_out(rc, rc->data.incoming_inflight.channel_id, "RESET");
-      free(rc->data.incoming_inflight.buff);
-      memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
-      rc->data.frame_hdr_read = 0;
-      goto next_frame;
+      int fd = mtev_support_connection(rc);
+      if(fd >= 0) {
+        channel_closure_t *cct;
+        cct = malloc(sizeof(*cct));
+        cct->channel_id = rc->data.incoming_inflight.channel_id;
+        cct->parent = rc;
+        mtev_reverse_socket_ref(rc);
+
+        eventer_t newe =
+          eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, fd,
+                           EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
+        eventer_add(newe);
+        mtev_gettimeofday(&rc->data.channels[rc->data.incoming_inflight.channel_id].create_time, NULL);
+        rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] = fd;
+        memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
+        rc->data.frame_hdr_read = 0;
+        goto next_frame;
+      }
     }
-    APPEND_IN(rc, &rc->data.incoming_inflight);
+  }
+  if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == -1) {
+    /* but the channel disappeared */
+    /* send a reset, but not in response to a reset */
+    IFCMD(&rc->data.incoming_inflight, "RESET") { } /* noop */
+    else command_out(rc, rc->data.incoming_inflight.channel_id, "RESET");
+    free(rc->data.incoming_inflight.buff);
+    memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
     rc->data.frame_hdr_read = 0;
     goto next_frame;
   }
+  APPEND_IN(rc, &rc->data.incoming_inflight);
+  rc->data.frame_hdr_read = 0;
+  goto next_frame;
 
-  if(mask & EVENTER_WRITE) {
-   try_writes:
-    pthread_mutex_lock(&rc->lock);
-    needs_unlock = true;
-    if(rc->data.outgoing) {
-      ssize_t len;
-      reverse_frame_t *f = rc->data.outgoing;
-      while(rc->data.frame_hdr_written < sizeof(rc->data.frame_hdr_out)) {
-        uint16_t nchannel_id = htons(f->channel_id);
-        uint32_t nframelen = htonl(f->buff_len);
-        memcpy(rc->data.frame_hdr_out, &nchannel_id, sizeof(nchannel_id));
-        memcpy(rc->data.frame_hdr_out + sizeof(nchannel_id), &nframelen, sizeof(nframelen));
-        len = eventer_write(e, rc->data.frame_hdr_out + rc->data.frame_hdr_written,
-                            sizeof(rc->data.frame_hdr_out) - rc->data.frame_hdr_written, &wmask);
-        if(len < 0 && errno == EAGAIN) {
-          mtevL(nldeb, "%s (channel %d) mtev_reverse_socket_handler: try_writes for frame, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id);
-          goto done_for_now;
-        }
-        else if(len <= 0) goto socket_error;
-        rc->data.frame_hdr_written += len;
-        success = 1;
+ try_writes:
+  pthread_mutex_lock(&rc->lock);
+  needs_unlock = true;
+  if(rc->data.outgoing) {
+    ssize_t len;
+    reverse_frame_t *f = rc->data.outgoing;
+    while(rc->data.frame_hdr_written < sizeof(rc->data.frame_hdr_out)) {
+      uint16_t nchannel_id = htons(f->channel_id);
+      uint32_t nframelen = htonl(f->buff_len);
+      memcpy(rc->data.frame_hdr_out, &nchannel_id, sizeof(nchannel_id));
+      memcpy(rc->data.frame_hdr_out + sizeof(nchannel_id), &nframelen, sizeof(nframelen));
+      len = eventer_write(e, rc->data.frame_hdr_out + rc->data.frame_hdr_written,
+                          sizeof(rc->data.frame_hdr_out) - rc->data.frame_hdr_written, &wmask);
+      if(len < 0 && errno == EAGAIN) {
+        mtevL(nldeb, "%s (channel %d) mtev_reverse_socket_handler: try_writes for frame, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id);
+        goto done_for_now;
       }
-      while(f->offset < f->buff_len) {
-        len = eventer_write(e, f->buff + f->offset,
-                            f->buff_len - f->offset, &wmask);
-        if(len < 0 && errno == EAGAIN) {
-          mtevL(nldeb, "%s (channel %d) mtev_reverse_socket_handler: try_writes for buffer, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id);
-          goto done_for_now;
-        }
-        else if(len <= 0) goto socket_error;
-        f->offset += len;
-        success = 1;
-      }
-      mtevL(nldeb, "%s mtev_reverse_socket_handler: frame_out(%04x, %llu) %llu/%llu of body\n",
-            rc->id,
-            f->channel_id, (unsigned long long)f->buff_len,
-            (unsigned long long)f->offset, (unsigned long long)f->buff_len);
-      /* reset for next frame */
-      rc->data.frame_hdr_written = 0;
-      POP_OUT(rc);
+      else if(len <= 0) goto socket_error;
+      rc->data.frame_hdr_written += len;
+      success = 1;
     }
-    pthread_mutex_unlock(&rc->lock);
-    needs_unlock = false;
+    while(f->offset < f->buff_len) {
+      len = eventer_write(e, f->buff + f->offset,
+                          f->buff_len - f->offset, &wmask);
+      if(len < 0 && errno == EAGAIN) {
+        mtevL(nldeb, "%s (channel %d) mtev_reverse_socket_handler: try_writes for buffer, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id);
+        goto done_for_now;
+      }
+      else if(len <= 0) goto socket_error;
+      f->offset += len;
+      success = 1;
+    }
+    mtevL(nldeb, "%s mtev_reverse_socket_handler: frame_out(%04x, %llu) %llu/%llu of body\n",
+          rc->id,
+          f->channel_id, (unsigned long long)f->buff_len,
+          (unsigned long long)f->offset, (unsigned long long)f->buff_len);
+    /* reset for next frame */
+    rc->data.frame_hdr_written = 0;
+    POP_OUT(rc);
   }
+  pthread_mutex_unlock(&rc->lock);
+  needs_unlock = false;
+
  done_for_now: 
   if (needs_unlock) {
     pthread_mutex_unlock(&rc->lock);
