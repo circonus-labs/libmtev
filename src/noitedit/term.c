@@ -428,7 +428,8 @@ term_alloc(EditLine *el, const struct termcapstr *t, char *cap)
          */
 	tlen = 0;
 	for (tmp = tlist; tmp < &tlist[T_str]; tmp++)
-		if (*tmp != NULL && *tmp != '\0' && *tmp != *str) {
+		/* http://cvsweb.netbsd.org/bsdweb.cgi/src/lib/libedit/terminal.c.diff?r1=1.22&r2=1.24 */
+		if (*tmp != NULL && **tmp != '\0' && *tmp != *str) {
 			char *ptr;
 
 			for (ptr = *tmp; *ptr != '\0'; termbuf[tlen++] = *ptr++)
