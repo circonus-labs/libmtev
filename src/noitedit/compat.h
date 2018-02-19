@@ -37,7 +37,7 @@
 #include "mtev_defines.h"
 
 #ifndef __RCSID
-#define  __RCSID(x) static const char rcsid[] = x
+#define  __RCSID(x) __attribute__ ((unused)) static const char rcsid[] = x;
 #endif
 #ifndef __COPYRIGHT
 #define  __COPYRIGHT(x)
