@@ -216,6 +216,7 @@ static inline void uuid_unparse_lower(uuid_t in, char *out) {
 #define portable_readdir_r(a,b,c) (((*(c)) = readdir_r(a,b)) == NULL)
 #else
 /* https://lwn.net/Articles/696474/ */
+#if defined(linux) || defined(__linux) || defined(__linux__)
 #if defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 24)
 #if HAVE_DIRENT_H
 #include <dirent.h>
@@ -226,6 +227,7 @@ static inline int portable_readdir_r(DIR *dirp, struct dirent *entry, struct dir
   return readdir_r(dirp, entry, result);
 #pragma GCC diagnostic pop
 }
+#endif
 #else
 #define portable_readdir_r readdir_r
 #endif
