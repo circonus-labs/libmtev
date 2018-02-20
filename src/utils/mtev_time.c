@@ -601,7 +601,7 @@ mtev_time_tsc_maintenance(void *unused) {
         for(int j=0; j<(NCPUS/64); j++)
           if(bits_ready[j] != bits_needed[j]) is_ready = mtev_false;
         if(ready_rdtsc != is_ready) {
-          mtevL(mtev_notice, "mtev_time -> fast mode %s\n", is_ready ? "enabled" : "disabled");
+          mtevL(mtev_debug, "mtev_time -> fast mode %s\n", is_ready ? "enabled" : "disabled");
           ready_rdtsc = is_ready;
           if(!ready_rdtsc) {
             disable_reason = "not all processors synchronized";
