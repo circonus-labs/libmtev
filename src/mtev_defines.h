@@ -228,6 +228,8 @@ static inline int portable_readdir_r(DIR *dirp, struct dirent *entry, struct dir
   return readdir_r(dirp, entry, result);
 #pragma GCC diagnostic pop
 }
+#else
+#define portable_readdir_r readdir_r
 #endif
 #else
 #define portable_readdir_r readdir_r
