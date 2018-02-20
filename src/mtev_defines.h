@@ -229,9 +229,11 @@ static inline int portable_readdir_r(DIR *dirp, struct dirent *entry, struct dir
 #pragma GCC diagnostic pop
 }
 #else
+/* glibc < 2.24 */
 #define portable_readdir_r readdir_r
 #endif
 #else
+/* not glibc */
 #define portable_readdir_r readdir_r
 #endif
 #endif
