@@ -215,7 +215,20 @@ static inline void uuid_unparse_lower(uuid_t in, char *out) {
 #if defined(__sun) && !defined(HAVE_POSIX_READDIR_R)
 #define portable_readdir_r(a,b,c) (((*(c)) = readdir_r(a,b)) == NULL)
 #else
+/* https://lwn.net/Articles/696474/ */
+#if defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 24)
+#if HAVE_DIRENT_H
+#include <dirent.h>
+#endif
+static inline int portable_readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  return readdir_r(dirp, entry, result);
+#pragma GCC diagnostic pop
+}
+#else
 #define portable_readdir_r readdir_r
+#endif
 #endif
 #include "noitedit/strlcpy.h"
 
