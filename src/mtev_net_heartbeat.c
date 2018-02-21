@@ -301,7 +301,10 @@ mtev_net_heartbeat_destroy(mtev_net_heartbeat_ctx *ctx) {
   int i;
   drop_e(ctx->receiver_v4);
   drop_e(ctx->receiver_v6);
-  drop_e(ctx->hb_event);
+  if(ctx->hb_event) {
+    eventer_remove(ctx->hb_event);
+    eventer_free(ctx->hb_event);
+  }
   for(i=0;i<ctx->n_targets;i++)
     drop_e(ctx->targets[i].e);
   if(ctx->sender_v4_bcast >= 0)
