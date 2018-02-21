@@ -70,6 +70,12 @@
 #include "mtev_watchdog.h"
 #include "mtev_cluster.h"
 
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/syscall.h>
+#define gettid() syscall(SYS_gettid)
+#endif
+
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
 
@@ -3870,7 +3876,11 @@ nl_thread_self(lua_State *L) {
   lua_getglobal(L, "mtev_internal_lmc");;
   lmc = lua_touserdata(L, lua_gettop(L));
   lua_pop(L, 1);
+#ifdef __linux__
+  lua_pushinteger(L, (int) gettid());
+#else
   lua_pushinteger(L, (int)(intptr_t)pthread_self());
+#endif
   lua_pushinteger(L, (lmc) ? lmc->eventer_id : -1);
   return 2;
 }
