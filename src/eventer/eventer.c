@@ -110,7 +110,6 @@ eventer_t eventer_alloc(void) {
   eventer_t e;
   e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
   e->thr_owner = pthread_self();
-  e->opset = eventer_POSIX_fd_opset;
   e->refcnt = 1;
   mtev_atomic_inc64(&ealloccnt);
   mtev_atomic_inc64(&ealloctotal);
@@ -155,6 +154,7 @@ eventer_t eventer_alloc_fd(eventer_func_t func, void *closure, int fd, int mask)
   eventer_t e = eventer_alloc();
   e->fd = fd;
   e->mask = mask;
+  e->opset = eventer_POSIX_fd_opset;
   e->callback = func;
   e->closure = closure;
   return e;
