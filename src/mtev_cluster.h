@@ -112,11 +112,12 @@ API_EXPORT(int) mtev_cluster_size(mtev_cluster_t *);
 
     Sets the local node's cluster identity, potentially updating the on-disk configuration.
 */
-API_EXPORT(void) mtev_cluster_set_self(uuid_t);
+API_EXPORT(int) mtev_cluster_set_self(uuid_t);
 
 /*! \fn void mtev_cluster_get_self(uuid_t id)
     \brief Reports the UUID of the local node.
     \param id The UUID to be updated.
+    \return Returns -1 on error
 
     Pouplates the passed uuid_t with the local node's UUID.
 */
