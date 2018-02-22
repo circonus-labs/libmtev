@@ -824,6 +824,7 @@ mtev_cluster_set_self(uuid_t id) {
   }
   return 0;
 }
+
 void
 mtev_cluster_get_self(uuid_t id) {
   uuid_copy(id, my_cluster_id);
@@ -1007,7 +1008,7 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
   MJ_KV(obj, "maturity", MJ_INT(c->maturity));
 
   char uuid_str[UUID_STR_LEN+1];
-  if(c->oldest_node) {
+  if(c->oldest_node && !uuid_is_null(c->oldest_node->id)) {
     uuid_unparse_lower(c->oldest_node->id, uuid_str);
     MJ_KV(obj, "oldest_node", MJ_STR(uuid_str));
   }
@@ -1050,9 +1051,11 @@ rest_show_cluster_json(mtev_http_rest_closure_t *restc, int n, char **p) {
 
   doc = MJ_OBJ();
 
-  char uuid_str[UUID_STR_LEN+1];
-  uuid_unparse_lower(my_cluster_id, uuid_str);
-  MJ_KV(doc, "my_id", MJ_STR((const char *)uuid_str));
+  if(!uuid_is_null(my_cluster_id)) {
+    char uuid_str[UUID_STR_LEN+1];
+    uuid_unparse_lower(my_cluster_id, uuid_str);
+    MJ_KV(doc, "my_id", MJ_STR((const char *)uuid_str));
+  }
 
   if(n >= 2 && strlen(p[1])) {
     mtev_cluster_t *c = mtev_cluster_by_name(p[1]);
@@ -1103,7 +1106,7 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   snprintf(maturity, sizeof(maturity), "%d", c->maturity);
   xmlSetProp(cluster, (xmlChar *)"maturity", (xmlChar *)maturity);
 
-  if(c->oldest_node) {
+  if(c->oldest_node && !uuid_is_null(c->oldest_node->id)) {
     xmlNodePtr node;
     char uuid_str[UUID_STR_LEN+1];
     uuid_unparse_lower(c->oldest_node->id, uuid_str);
