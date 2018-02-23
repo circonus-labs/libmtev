@@ -255,7 +255,7 @@ mtev_cluster_on_node_changed(mtev_cluster_t *cluster,
     if (compare_timeval(*new_boot_time, my_boot_time) == 0) {
       char node_name[128];
       mtev_cluster_node_to_string(sender, node_name, sizeof(node_name));
-      mtevL(mtev_debug,
+      mtevL(cdebug,
           "The following node in the cluster %s had the same startup time we have: '%s'\n",
           cluster->name, node_name);
       my_boot_time.tv_usec = random() % 1000000;
@@ -270,7 +270,7 @@ mtev_cluster_on_node_changed(mtev_cluster_t *cluster,
 
     char node_name[128];
     mtev_cluster_node_to_string(sender, node_name, sizeof(node_name));
-    mtevL(mtev_debug, "Oldest node of mtev_cluster '%s' is now '%s' \n",
+    mtevL(cdebug, "Oldest node of mtev_cluster '%s' is now '%s' \n",
         cluster->name, node_name);
   }
 
@@ -287,7 +287,7 @@ mtev_cluster_check_timeout(mtev_cluster_t *cluster, struct timeval now) {
             && sub_timeval_ms(now, node->boot_time) > cluster->maturity) {
           char node_name[128];
           mtev_cluster_node_to_string(node, node_name, sizeof(node_name));
-          mtevL(mtev_debug, "Heartbeat timeout of cluster node %s\n",
+          mtevL(cdebug, "Heartbeat timeout of cluster node %s\n",
               node_name);
           mtev_cluster_on_node_changed(cluster, node, &boot_time_of_dead_node, node->config_seq, MTEV_CLUSTER_NODE_DIED);
         }
@@ -407,12 +407,12 @@ mtev_cluster_info_process(void *msg, int len, void *c) {
 
   // We currently support only one version
   if(understood_version < HEARTBEAT_MESSAGE_VERSION) {
-    mtevL(mtev_error, "Received a cluster heartbeat message with an incompatible understood_version (%d)\n", understood_version);
+    mtevL(cerror, "Received a cluster heartbeat message with an incompatible understood_version (%d)\n", understood_version);
     return 0;
   }
 
   if(version != HEARTBEAT_MESSAGE_VERSION) {
-    mtevL(mtev_error, "Received a cluster heartbeat message with an incompatible header version (%d)\n", version);
+    mtevL(cerror, "Received a cluster heartbeat message with an incompatible header version (%d)\n", version);
     return 0;
   }
 
@@ -452,7 +452,7 @@ mtev_cluster_announce(mtev_cluster_t *cluster) {
   strlcpy((char *)key, cluster->key, sizeof(key));
   cluster->hbctx = mtev_net_heartbeat_context_create(cluster->port, key, cluster->period);
   if(!cluster->hbctx) {
-    mtevL(mtev_error, "cluster '%s' cannot heartbeat\n", cluster->name);
+    mtevL(cerror, "cluster '%s' cannot heartbeat\n", cluster->name);
     return;
   }
   for(i=0;i<cluster->node_cnt;i++) {
@@ -523,7 +523,7 @@ mtev_cluster_update_config(mtev_cluster_t *cluster, mtev_boolean create) {
     mtev_conf_release_section(n);
     n = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
     if(mtev_conf_section_is_empty(n)) {
-      mtevL(mtev_error, "Cluster config attempted with no 'clusters' section.\n");
+      mtevL(cerror, "Cluster config attempted with no 'clusters' section.\n");
       mtev_conf_release_section(n);
       return 0;
     }
@@ -590,36 +590,36 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
   mtev_cluster_node_t *nlist = NULL;
 
   if(!mtev_conf_get_stringbuf(cluster, "@name", bufstr, sizeof(bufstr))) {
-    mtevL(mtev_error, "Cluster has no name, skipping.\n");
+    mtevL(cerror, "Cluster has no name, skipping.\n");
     goto bail;
   }
   name = mtev_memory_safe_strdup(bufstr);
 
   if(!mtev_conf_get_stringbuf(cluster, "@key", bufstr, sizeof(bufstr))) {
-    mtevL(mtev_error, "Cluster has no key, skipping.\n");
+    mtevL(cerror, "Cluster has no key, skipping.\n");
     goto bail;
   }
   key = mtev_memory_safe_strdup(bufstr);
 
   if(!mtev_conf_get_stringbuf(cluster, "@seq", bufstr, sizeof(bufstr)) ||
      bufstr[0] == '\0') {
-    mtevL(mtev_error, "Cluster '%s' has no seq, skipping.\n", name);
+    mtevL(cerror, "Cluster '%s' has no seq, skipping.\n", name);
     goto bail;
   }
   seq = strtoll(bufstr, &endptr, 10);
   if(*endptr) {
-    mtevL(mtev_error, "Cluster '%s' seq invalid.\n", name);
+    mtevL(cerror, "Cluster '%s' seq invalid.\n", name);
     goto bail;
   }
 
   if(!mtev_conf_get_stringbuf(cluster, "@port", bufstr, sizeof(bufstr)) ||
      bufstr[0] == '\0') {
-    mtevL(mtev_error, "Cluster '%s' has no port, skipping.\n", name);
+    mtevL(cerror, "Cluster '%s' has no port, skipping.\n", name);
     goto bail;
   }
   port = strtoll(bufstr, &endptr, 10);
   if(*endptr || port <= 0 || port > 0xffff) {
-    mtevL(mtev_error, "Cluster '%s' port invalid.\n", name);
+    mtevL(cerror, "Cluster '%s' port invalid.\n", name);
     goto bail;
   }
 
@@ -629,7 +629,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
   }
   period = strtoll(bufstr, &endptr, 10);
   if(*endptr || period < 0 || period > 5000) {
-    mtevL(mtev_error, "Cluster '%s' period invalid.\n", name);
+    mtevL(cerror, "Cluster '%s' period invalid.\n", name);
     goto bail;
   }
 
@@ -639,7 +639,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
   }
   timeout = strtoll(bufstr, &endptr, 10);
   if(*endptr || timeout < period) {
-    mtevL(mtev_error, "Cluster '%s' timeout invalid.\n", name);
+    mtevL(cerror, "Cluster '%s' timeout invalid.\n", name);
     goto bail;
   }
 
@@ -649,7 +649,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
   } else {
     maturity = strtoll(bufstr, &endptr, 10);
     if(*endptr || maturity < 0) {
-      mtevL(mtev_error, "Cluster '%s' maturity invalid.\n", name);
+      mtevL(cerror, "Cluster '%s' maturity invalid.\n", name);
       goto bail;
     }
   }
@@ -668,20 +668,20 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
 
       if(!mtev_conf_get_stringbuf(nodes[i], "@id", uuid_str, sizeof(uuid_str)) ||
          uuid_parse(uuid_str, nlist[i].id) != 0) {
-        mtevL(mtev_error, "Cluster '%s' node %d has no (or bad) id\n", name, i);
+        mtevL(cerror, "Cluster '%s' node %d has no (or bad) id\n", name, i);
         goto bail;
       }
       if(!mtev_conf_get_stringbuf(nodes[i], "@cn",
         nlist[i].cn, sizeof(nlist[i].cn))) {
-        mtevL(mtev_error, "Cluster '%s' node %d has no cn\n", name, i);
+        mtevL(cerror, "Cluster '%s' node %d has no cn\n", name, i);
         goto bail;
       }
       if(!mtev_conf_get_int32(nodes[i], "@port", &port) || port < 0 || port > 0xffff) {
-        mtevL(mtev_error, "Cluster '%s' node %d has no (or bad) port\n", name, i);
+        mtevL(cerror, "Cluster '%s' node %d has no (or bad) port\n", name, i);
         goto bail;
       }
       if(!mtev_conf_get_stringbuf(nodes[i], "@address", bufstr, sizeof(bufstr))) {
-        mtevL(mtev_error, "Cluster '%s' node %d has no address\n", name, i);
+        mtevL(cerror, "Cluster '%s' node %d has no address\n", name, i);
         goto bail;
       }
 
@@ -691,7 +691,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
         family = AF_INET6;
         rv = inet_pton(family, bufstr, &a);
         if(rv != 1) {
-          mtevL(mtev_error, "Cluster '%s' node '%s' has bad address '%s'\n",
+          mtevL(cerror, "Cluster '%s' node '%s' has bad address '%s'\n",
                 name, uuid_str, bufstr);
           goto bail;
         }
@@ -736,12 +736,12 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
     if(new_cluster->config_seq <= old_cluster->config_seq) {
       /* This is considered a successful update. We have the most recent */
       rv = 2;
-      mtevL(mtev_debug, "Cluster '%s' is too old\n", new_cluster->name);
+      mtevL(cdebug, "Cluster '%s' is too old\n", new_cluster->name);
       pthread_mutex_unlock(&c_lock);
       goto bail;
     }
     if(!mtev_cluster_update_config(new_cluster, mtev_false)) {
-      mtevL(mtev_error, "Cluster '%s', failed to write to config.\n",
+      mtevL(cerror, "Cluster '%s', failed to write to config.\n",
             new_cluster->name);
       rv = -1;
       pthread_mutex_unlock(&c_lock);
@@ -755,7 +755,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster,
   }
   else {
     if(!mtev_cluster_update_config(new_cluster, booted && mtev_true)) {
-      mtevL(mtev_error, "Cluster '%s', failed to write to config.\n",
+      mtevL(cerror, "Cluster '%s', failed to write to config.\n",
             new_cluster->name);
       rv = -1;
       pthread_mutex_unlock(&c_lock);
@@ -805,7 +805,7 @@ mtev_cluster_set_self(uuid_t id) {
   mtev_conf_section_t c;
   c = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
   if(!have_clusters || mtev_conf_section_is_empty(c)) {
-    mtevL(mtev_error, "Trying to set //clusters/@my_id but no clusters section is found.");
+    mtevL(cerror, "Trying to set //clusters/@my_id but no clusters section is found.\n");
     mtev_conf_release_section(c);
     return -1;
   }
@@ -1261,7 +1261,7 @@ mtev_cluster_init(void) {
       mtevL(cerror, "Error parsing //clusters/@my_id: %s\n", my_id_str);
     }
     else {
-      mtevL(cdebug,"Setting //clusters/@my_id to %s\n", my_id_str);
+      mtevL(cdebug,"Found cluster configuration with my_id: %s\n", my_id_str);
       mtev_cluster_set_self(my_id);
     }
   }
