@@ -1258,7 +1258,9 @@ mtev_cluster_init(void) {
   if(mtev_conf_get_stringbuf(parent, "@my_id", my_id_str, sizeof(my_id_str))) {
     int rv = uuid_parse(my_id_str, my_id);
     if (rv != 0) {
-      mtevL(cerror, "Error parsing //clusters/@my_id: %s\n", my_id_str);
+      mtevL(cerror, "Invalid cluster configuration: my_id=%s\n", my_id_str);
+      mtev_conf_release_section(parent);
+      return;
     }
     else {
       mtevL(cdebug,"Found cluster configuration with my_id: %s\n", my_id_str);
@@ -1266,7 +1268,9 @@ mtev_cluster_init(void) {
     }
   }
   else {
-    mtevL(cdebug,"//clusters/@my_id not set.\n");
+    mtevL(cdebug,"//clusters/@my_id not set. Generating a new one\n");
+    uuid_generate(my_id);
+    mtev_cluster_set_self(my_id);
   }
 
   // register individual clusters
