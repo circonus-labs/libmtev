@@ -66,65 +66,65 @@
 
 ##### B
 
-[mtev.base64_decode](lua.md#mtev.base64decode), [mtev.base64_encode](lua.md#mtev.base64encode)
+[mtev.base64_decode](lua.md#mtevbase64decode), [mtev.base64_encode](lua.md#mtevbase64encode)
 
 ##### C
 
-[mtev.cancel_coro](lua.md#mtev.cancelcoro), [mtev.close](lua.md#mtev.close), [mtev.cluster_details](lua.md#mtev.clusterdetails), [mtev.cluster_get_self](lua.md#mtev.clustergetself), [mtev.conf_get_boolean](lua.md#mtev.confgetboolean), [mtev.conf_get_float](lua.md#mtev.confgetfloat), [mtev.conf_get_integer](lua.md#mtev.confgetinteger), [mtev.conf_get_string](lua.md#mtev.confgetstring), [mtev.conf_get_string_list](lua.md#mtev.confgetstringlist), [mtev.conf_replace_boolean](lua.md#mtev.confreplaceboolean), [mtev.conf_replace_value](lua.md#mtev.confreplacevalue)
+[mtev.cancel_coro](lua.md#mtevcancelcoro), [mtev.close](lua.md#mtevclose), [mtev.cluster_details](lua.md#mtevclusterdetails), [mtev.cluster_get_self](lua.md#mtevclustergetself), [mtev.conf_get_boolean](lua.md#mtevconfgetboolean), [mtev.conf_get_float](lua.md#mtevconfgetfloat), [mtev.conf_get_integer](lua.md#mtevconfgetinteger), [mtev.conf_get_string](lua.md#mtevconfgetstring), [mtev.conf_get_string_list](lua.md#mtevconfgetstringlist), [mtev.conf_replace_boolean](lua.md#mtevconfreplaceboolean), [mtev.conf_replace_value](lua.md#mtevconfreplacevalue)
 
 ##### D
 
-[mtev.dns](lua.md#mtev.dns), [mtev.dns:is_valid_ip](lua.md#mtev.dns:isvalidip), [mtev.dns:lookup](lua.md#mtev.dns:lookup)
+[mtev.dns](lua.md#mtevdns), [mtev.dns:is_valid_ip](lua.md#mtevdns:isvalidip), [mtev.dns:lookup](lua.md#mtevdns:lookup)
 
 ##### E
 
-[mtev.enable_log](lua.md#mtev.enablelog), [mtev.eventer_loop_concurrency](lua.md#mtev.eventerloopconcurrency), [mtev.extended_free](lua.md#mtev.extendedfree)
+[mtev.enable_log](lua.md#mtevenablelog), [mtev.eventer_loop_concurrency](lua.md#mteveventerloopconcurrency), [mtev.extended_free](lua.md#mtevextendedfree)
 
 ##### G
 
-[mtev.getcwd](lua.md#mtev.getcwd), [mtev.gettimeofday](lua.md#mtev.gettimeofday), [mtev.gunzip](lua.md#mtev.gunzip), [mtev.gunzip_deflate](lua.md#mtev.gunzipdeflate)
+[mtev.getcwd](lua.md#mtevgetcwd), [mtev.gettimeofday](lua.md#mtevgettimeofday), [mtev.gunzip](lua.md#mtevgunzip), [mtev.gunzip_deflate](lua.md#mtevgunzipdeflate)
 
 ##### H
 
-[mtev.hmac_sha1_encode](lua.md#mtev.hmacsha1encode), [mtev.hmac_sha256_encode](lua.md#mtev.hmacsha256encode)
+[mtev.hmac_sha1_encode](lua.md#mtevhmacsha1encode), [mtev.hmac_sha256_encode](lua.md#mtevhmacsha256encode)
 
 ##### J
 
-[mtev.json:document](lua.md#mtev.json:document), [mtev.json:tostring](lua.md#mtev.json:tostring)
+[mtev.json:document](lua.md#mtevjson:document), [mtev.json:tostring](lua.md#mtevjson:tostring)
 
 ##### L
 
-[mtev.log](lua.md#mtev.log)
+[mtev.log](lua.md#mtevlog)
 
 ##### M
 
-[mtev.md5](lua.md#mtev.md5), [mtev.md5_hex](lua.md#mtev.md5hex), [mtev.mkdir](lua.md#mtev.mkdir), [mtev.mkdir_for_file](lua.md#mtev.mkdirforfile)
+[mtev.md5](lua.md#mtevmd5), [mtev.md5_hex](lua.md#mtevmd5hex), [mtev.mkdir](lua.md#mtevmkdir), [mtev.mkdir_for_file](lua.md#mtevmkdirforfile)
 
 ##### O
 
-[mtev.open](lua.md#mtev.open)
+[mtev.open](lua.md#mtevopen)
 
 ##### P
 
-[mtev.parsejson](lua.md#mtev.parsejson), [mtev.parsexml](lua.md#mtev.parsexml), [mtev.pcre](lua.md#mtev.pcre), [mtev.print](lua.md#mtev.print), [mtev.process:kill](lua.md#mtev.process:kill), [mtev.process:pid](lua.md#mtev.process:pid), [mtev.process:wait](lua.md#mtev.process:wait)
+[mtev.parsejson](lua.md#mtevparsejson), [mtev.parsexml](lua.md#mtevparsexml), [mtev.pcre](lua.md#mtevpcre), [mtev.print](lua.md#mtevprint), [mtev.process:kill](lua.md#mtevprocess:kill), [mtev.process:pid](lua.md#mtevprocess:pid), [mtev.process:wait](lua.md#mtevprocess:wait)
 
 ##### R
 
-[mtev.realpath](lua.md#mtev.realpath), [mtev.rmdir](lua.md#mtev.rmdir)
+[mtev.realpath](lua.md#mtevrealpath), [mtev.rmdir](lua.md#mtevrmdir)
 
 ##### S
 
-[mtev.sha1](lua.md#mtev.sha1), [mtev.sha1_hex](lua.md#mtev.sha1hex), [mtev.sha256](lua.md#mtev.sha256), [mtev.sha256_hash](lua.md#mtev.sha256hash), [mtev.sha256_hex](lua.md#mtev.sha256hex), [mtev.shared_get](lua.md#mtev.sharedget), [mtev.shared_set](lua.md#mtev.sharedset), [mtev.sleep](lua.md#mtev.sleep), [mtev.socket](lua.md#mtev.socket), [mtev.socket_internal](lua.md#mtev.socketinternal), [mtev.spawn](lua.md#mtev.spawn)
+[mtev.sha1](lua.md#mtevsha1), [mtev.sha1_hex](lua.md#mtevsha1hex), [mtev.sha256](lua.md#mtevsha256), [mtev.sha256_hash](lua.md#mtevsha256hash), [mtev.sha256_hex](lua.md#mtevsha256hex), [mtev.shared_get](lua.md#mtevsharedget), [mtev.shared_set](lua.md#mtevsharedset), [mtev.sleep](lua.md#mtevsleep), [mtev.socket](lua.md#mtevsocket), [mtev.socket_internal](lua.md#mtevsocketinternal), [mtev.spawn](lua.md#mtevspawn)
 
 ##### T
 
-[mtev.thread_self](lua.md#mtev.threadself), [mtev.tojson](lua.md#mtev.tojson)
+[mtev.thread_self](lua.md#mtevthreadself), [mtev.tojson](lua.md#mtevtojson)
 
 ##### U
 
-[mtev.utf8tohtml](lua.md#mtev.utf8tohtml), [mtev.uuid](lua.md#mtev.uuid)
+[mtev.utf8tohtml](lua.md#mtevutf8tohtml), [mtev.uuid](lua.md#mtevuuid)
 
 ##### W
 
-[mtev.watchdog_child_heartbeat](lua.md#mtev.watchdogchildheartbeat), [mtev.watchdog_timeout](lua.md#mtev.watchdogtimeout), [mtev.write](lua.md#mtev.write)
+[mtev.watchdog_child_heartbeat](lua.md#mtevwatchdogchildheartbeat), [mtev.watchdog_timeout](lua.md#mtevwatchdogtimeout), [mtev.write](lua.md#mtevwrite)
 

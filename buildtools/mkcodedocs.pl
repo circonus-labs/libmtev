@@ -154,7 +154,7 @@ for my $pname (sort keys %$idx) {
     print F "##### " . uc($lt) . "\n\n";
     my $sep = "";
     for my $func (@{$idx->{$pname}->{$lt}}) {
-       (my $anchor = $func) =~ s/_//g;
+       (my $anchor = $func) =~ s/[._]//g;
        printf F "%s[%s](%s.md#%s)", $sep, $func, $pname, $anchor;
        $sep = ", ";
     }
