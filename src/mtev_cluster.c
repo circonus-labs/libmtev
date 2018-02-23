@@ -815,6 +815,7 @@ mtev_cluster_set_self(uuid_t id) {
   if(!mtev_conf_get_stringbuf(MTEV_CONF_ROOT, "//clusters/@my_id",
                               old_uuid, sizeof(old_uuid)) ||
      strcmp(old_uuid, my_id_str)) {
+    mtevL(cdebug, "Setting //clusters/@my_id to %s\n", my_id_str);
     xmlUnsetProp(cnode, (xmlChar *)"my_id");
     xmlSetProp(cnode, (xmlChar *)"my_id", (xmlChar *)my_id_str);
     CONF_DIRTY(c);
