@@ -1240,7 +1240,7 @@ mtev_cluster_init(void) {
   mtev_conf_section_t *clusters, parent;
 
   cerror = mtev_log_stream_find("error/cluster");
-  cdebug = mtev_log_stream_find("error/cluster");
+  cdebug = mtev_log_stream_find("debug/cluster");
 
   mtev_net_heartbeat_init();
 
