@@ -820,8 +820,8 @@ mtev_cluster_set_self(uuid_t id) {
     CONF_DIRTY(c);
     mtev_conf_mark_changed();
     mtev_conf_request_write();
-    mtev_conf_release_section(c);
   }
+  mtev_conf_release_section(c);
   return 0;
 }
 
