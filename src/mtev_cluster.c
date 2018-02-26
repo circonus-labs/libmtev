@@ -798,28 +798,33 @@ mtev_cluster_size(mtev_cluster_t *c) {
   return c ? c->node_cnt : 0;
 }
 
-void
+int
 mtev_cluster_set_self(uuid_t id) {
   char old_uuid[UUID_STR_LEN+1],
        my_id_str[UUID_STR_LEN+1];
+  mtev_conf_section_t c;
+  c = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
+  if(!have_clusters || mtev_conf_section_is_empty(c)) {
+    mtevL(mtev_error, "Trying to set //clusters/@my_id but no clusters section is found.");
+    mtev_conf_release_section(c);
+    return -1;
+  }
   uuid_copy(my_cluster_id, id);
   uuid_unparse_lower(my_cluster_id, my_id_str);
+  xmlNodePtr cnode = mtev_conf_section_to_xmlnodeptr(c);
   if(!mtev_conf_get_stringbuf(MTEV_CONF_ROOT, "//clusters/@my_id",
                               old_uuid, sizeof(old_uuid)) ||
      strcmp(old_uuid, my_id_str)) {
-    mtev_conf_section_t c;
-    c = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
-    if(!mtev_conf_section_is_empty(c)) {
-      xmlNodePtr cnode = mtev_conf_section_to_xmlnodeptr(c);
-      xmlUnsetProp(cnode, (xmlChar *)"my_id");
-      xmlSetProp(cnode, (xmlChar *)"my_id", (xmlChar *)my_id_str);
-      CONF_DIRTY(c);
-      mtev_conf_mark_changed();
-      mtev_conf_request_write();
-    }
+    xmlUnsetProp(cnode, (xmlChar *)"my_id");
+    xmlSetProp(cnode, (xmlChar *)"my_id", (xmlChar *)my_id_str);
+    CONF_DIRTY(c);
+    mtev_conf_mark_changed();
+    mtev_conf_request_write();
     mtev_conf_release_section(c);
   }
+  return 0;
 }
+
 void
 mtev_cluster_get_self(uuid_t id) {
   uuid_copy(id, my_cluster_id);
@@ -1003,7 +1008,7 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
   MJ_KV(obj, "maturity", MJ_INT(c->maturity));
 
   char uuid_str[UUID_STR_LEN+1];
-  if(c->oldest_node) {
+  if(c->oldest_node && !uuid_is_null(c->oldest_node->id)) {
     uuid_unparse_lower(c->oldest_node->id, uuid_str);
     MJ_KV(obj, "oldest_node", MJ_STR(uuid_str));
   }
@@ -1046,9 +1051,11 @@ rest_show_cluster_json(mtev_http_rest_closure_t *restc, int n, char **p) {
 
   doc = MJ_OBJ();
 
-  char uuid_str[UUID_STR_LEN+1];
-  uuid_unparse_lower(my_cluster_id, uuid_str);
-  MJ_KV(doc, "my_id", MJ_STR((const char *)uuid_str));
+  if(!uuid_is_null(my_cluster_id)) {
+    char uuid_str[UUID_STR_LEN+1];
+    uuid_unparse_lower(my_cluster_id, uuid_str);
+    MJ_KV(doc, "my_id", MJ_STR((const char *)uuid_str));
+  }
 
   if(n >= 2 && strlen(p[1])) {
     mtev_cluster_t *c = mtev_cluster_by_name(p[1]);
@@ -1099,7 +1106,7 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   snprintf(maturity, sizeof(maturity), "%d", c->maturity);
   xmlSetProp(cluster, (xmlChar *)"maturity", (xmlChar *)maturity);
 
-  if(c->oldest_node) {
+  if(c->oldest_node && !uuid_is_null(c->oldest_node->id)) {
     xmlNodePtr node;
     char uuid_str[UUID_STR_LEN+1];
     uuid_unparse_lower(c->oldest_node->id, uuid_str);
@@ -1242,22 +1249,20 @@ mtev_cluster_init(void) {
 
   parent = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
   if(mtev_conf_section_is_empty(parent)) {
-    // No clusters found: bail
     mtev_conf_release_section(parent);
     return;
   }
-
   have_clusters = mtev_true;
 
-  // Set global cluster ID
+  // set global cluster id
   if(mtev_conf_get_stringbuf(parent, "@my_id", my_id_str, sizeof(my_id_str))) {
     int rv = uuid_parse(my_id_str, my_id);
     if (rv != 0) {
       mtevL(cerror, "Error parsing //clusters/@my_id: %s\n", my_id_str);
     }
     else {
+      mtevL(cdebug,"Setting //clusters/@my_id to %s\n", my_id_str);
       mtev_cluster_set_self(my_id);
-      mtevL(cdebug,"//clusters/@my_id was set to %s\n", my_id_str);
     }
   }
   else {
