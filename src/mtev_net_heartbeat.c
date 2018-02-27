@@ -57,7 +57,6 @@ struct mtev_net_heartbeat_context {
   int       sender_v4;
   int       sender_v4_bcast;
   int       sender_v6;
-  mtev_hash_table hosts;
   eventer_t hb_event;
 
   int (*create_output)(void *buf, int len, void *);
