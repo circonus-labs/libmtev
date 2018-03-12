@@ -207,7 +207,11 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
       qs = "?last=100";
     $.ajax("/eventer/logs/internal.json" + qs).done(function (logs) {
       var atend = force || Math.abs(($c[0].scrollTop + $c[0].clientHeight - $c[0].scrollHeight));
-      for(var i in logs) {
+      var begin = 0;
+      if (logs.length > 1000) {
+        begin = logs.length - 1000;
+      }
+      for (var i = begin; i < logs.length; i++) {
         var log = logs[i];
         $row = $("<div class=\"row\"/>");
         $row.append($("<div class=\"col-md-3 col-lg-2 text-muted\"/>").html(mtev.nice_date(log.whence)));
