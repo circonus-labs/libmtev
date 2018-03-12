@@ -4,6 +4,18 @@
 
 ## 1.2
 
+### 1.2.3
+
+ * Address responsiveness of UI when there are a large number of log lines.
+   (#379)
+ * Fix for misuse of non-file-descriptor events as file-descriptor events. Apps
+   will now crash if they misuse events this way, rather than being allowed to,
+   for example, call `eventer_close` on a non-file-descriptor event, which
+   would have undefined behavior. (#375)
+ * Support for building with GNU libc v2.24+ and GCC 7 (#370)
+ * Various mtev\_cluster-related fixes.
+ * Fix anchors in Lua code docs.
+
 ### 1.2.2
 
  * Fix bugs causing performance issues with reverse socket
