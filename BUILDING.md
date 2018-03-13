@@ -9,6 +9,7 @@
  * liblz4
  * libcircllhist
  * libcircmetrics
+ * circonus-platform-library-librabbitmq-c
  * libcurl
  * luajit 2.0+
  * ncurses
@@ -16,6 +17,8 @@
  * pcre
  * udns
  * wslay (optional, for websockets support)
+ * sqllite
+ * RabbitMQ
 
 ## Platforms
 
@@ -36,37 +39,49 @@
 **NOTE:** The version of libck shipped with Xenial (16.04) is too old.
 You will need to build a current version from [source](http://concurrencykit.org/).
 
+Run the following as root (sudo):
+
     apt-get install autoconf build-essential git \
 		zlib1g-dev uuid-dev libpcre3-dev libssl-dev \
 		libxslt1-dev xsltproc libncurses5-dev libhwloc-dev \
-        libluajit-5.1-dev libudns-dev liblz4-dev
+        libluajit-5.1-dev libudns-dev liblz4-dev \
+        rabbitmq-server \
+        circonus-platform-library-librabbitmq-c
 
-    # (build and install ck, jlog, libcircllhist, libcircmetrics, and fq now)
-
-    git clone https://github.com/circonus-labs/libmtev
-    cd libmtev
-    autoreconf -i
-    CPPFLAGS="-I/usr/include/luajit-2.0" ./configure
-    make
+Now skip forward to the section below on *Downloading and Building the Package Dependencies*.  Then come back and continue with the section below, *Building Libmtev*.
 
 ### Linux (RHEL/CentOS 6+)
 
 **NOTE** The EPEL (Extra Packages for Enterprise Linux) repo will be used.
 This is required for liblz4 and libudns.
 
+Run the following as root (sudo):
+
     yum groupinstall "Development Tools"
     yum install epel-release autoconf git \
         curl-devel hwloc-devel libuuid-devel libxslt-devel \
         lz4-devel ncurses-devel openssl-devel pcre-devel \
-        udns-devel
+        udns-devel rabbitmq-server \
+        circonus-platform-library-librabbitmq-c
 
-    # (build and install ck, luajit, jlog, libcircllhist, libcircmetrics, and fq now)
+Now skip forward to the section below on *Downloading and Building the Package Dependencies*.  Then come back and continue with the next step, *Building Libmtev*.
+
+### Building Libmtev (RHEL/CentOS/Ubuntu)
+
+Once you have all the dependencies built and installed, clone the source for libmtev and follow these steps to run the build process:
 
     git clone https://github.com/circonus-labs/libmtev
     cd libmtev
     autoreconf -i
-    CPPFLAGS="-I/usr/local/include/luajit-2.0" ./configure
+    CPPFLAGS="-I/usr/local/include/luajit" ./configure
     make
+
+You may have to modify the CPPFLAGS and LDFLAGS definition to include the library headers from the right location, or otherwise you might get build errors.  For example, these settings may work for your environment:
+
+    export CPPFLAGS="-I/opt/circonus/include -I/opt/circonus/include/luajit"`
+    export LDFLAGS="-L/opt/circonus/lib -Wl,-rpath=/opt/circonus/lib"
+
+NOTE: Make sure to rerun `./configure` after you change the definition of these flags and before you try to `make` again.
 
 ### OmniOS
 
@@ -91,3 +106,20 @@ Set up a [development environment](https://omnios.omniti.com/wiki.php/DevEnv) fi
     ./configure
     export MAKE=gmake
     gmake
+
+### Download and Build Package Dependencies
+
+Gather the following as zip files and extract into subfolders of a suitable package building folder on your box:
+
+Third-Party libraries:
+[ConcurrencyKit (ck)](http://concurrencykit.org/)
+[LuaJit](http://luajit.org)
+[sqllite](https://www.sqlite.org/index.html)
+
+Circonus libraries:
+[jlog](https://github.com/omniti-labs/jlog)
+[libcircllhist](https://github.com/circonus-labs/libcircllhist)
+[libcircmetrics](https://github.com/circonus-labs/libcircmetrics)
+[fq](https://github.com/circonus-labs/fq)
+
+After downloading and extracting zips, build and install these packages per the README and BUILD instructions included with each package.  Sometimes this means `autoconf`, `./configure`, `make`, and then `sudo make install` - and sometimes only the `make` and `sudo make install` are required.
