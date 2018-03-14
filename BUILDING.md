@@ -3,23 +3,24 @@
 ## Requirements
 
  * concurrencykit (ck) 0.5+
- * fq
  * hwloc
  * jlog 2.2+
  * liblz4
  * libcircllhist
  * libcircmetrics
- * circonus-platform-library-librabbitmq-c
  * libcurl
  * luajit 2.0+
  * ncurses
  * openssl
  * pcre
  * udns
- * wslay (optional, for websockets support)
  * sqllite
- * RabbitMQ
 
+ Optional:
+ * wslay (for websockets support)
+ * librabbitmq-c
+ * fq
+ 
 ## Platforms
 
 ### FreeBSD 10+
@@ -45,8 +46,7 @@ Run the following as root (sudo):
 		zlib1g-dev uuid-dev libpcre3-dev libssl-dev \
 		libxslt1-dev xsltproc libncurses5-dev libhwloc-dev \
         libluajit-5.1-dev libudns-dev liblz4-dev \
-        rabbitmq-server \
-        circonus-platform-library-librabbitmq-c
+        librabbitmq-c
 
 Now skip forward to the section below on *Downloading and Building the Package Dependencies*.  Then come back and continue with the section below, *Building Libmtev*.
 
@@ -61,8 +61,7 @@ Run the following as root (sudo):
     yum install epel-release autoconf git \
         curl-devel hwloc-devel libuuid-devel libxslt-devel \
         lz4-devel ncurses-devel openssl-devel pcre-devel \
-        udns-devel rabbitmq-server \
-        circonus-platform-library-librabbitmq-c
+        udns-devel librabbitmq-c
 
 Now skip forward to the section below on *Downloading and Building the Package Dependencies*.  Then come back and continue with the next step, *Building Libmtev*.
 
