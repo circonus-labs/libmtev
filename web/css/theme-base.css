@@ -191,6 +191,7 @@ overflow: hidden;
   font-size:0.7em;
 }
 div.card-dark,
+table.card-dark,
 div.tag-dark {
   background-color: #333; border-color: #333;
 }
