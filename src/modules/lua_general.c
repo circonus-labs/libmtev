@@ -907,7 +907,7 @@ mtev_lua_general_register_console_commands(mtev_image_t *self) {
 }
 static int
 mtev_lua_general_onload(mtev_image_t *self) {
-  mtev_hash_init(&lua_ctypes);
+  mtev_hash_init_locks(&lua_ctypes, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init(&hookinfo);
   nlerr = mtev_log_stream_find("error/lua");
   nldeb = mtev_log_stream_find("debug/lua");
