@@ -4,6 +4,12 @@
 
 ## 1.2
 
+### 1.2.4
+
+ * Fix race in mtev\_lua initialization (#380).
+ * Scalability improvements in the UI.
+ * Docs: updated build requirements with optional modules.
+
 ### 1.2.3
 
  * Address responsiveness of UI when there are a large number of log lines.
