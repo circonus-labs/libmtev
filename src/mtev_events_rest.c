@@ -52,6 +52,7 @@ json_spit_event(eventer_t e, void *closure) {
     struct sockaddr_in6 ip6;
   } addr;
   socklen_t addrlen;
+  if(!e->opset) return;
   eo = MJ_OBJ();
  
   epool = eventer_get_pool_for_event(e); 
