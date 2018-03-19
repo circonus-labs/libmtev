@@ -463,6 +463,7 @@ static int eventer_epoll_impl_loop(int id) {
   if(spec->event_fd >= 0) {
     eventer_t e = eventer_alloc();
     e->callback = eventer_epoll_awaken;
+    e->opset = eventer_POSIX_fd_opset;
     e->fd = spec->event_fd;
     e->mask = EVENTER_READ;
     eventer_add(e);
