@@ -4,6 +4,10 @@
 
 ## 1.2
 
+### 1.2.5
+
+ * Fixes bug affecting event reporting via rest
+
 ### 1.2.4
 
  * Fix race in mtev\_lua initialization (#380).
