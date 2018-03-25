@@ -4060,6 +4060,76 @@ mtev_lua_process_kill(lua_State *L) {
   return 2;
 }
 
+#define MAKE_LUA_WFUNC_BOOL(name) static int \
+mtev_lua_process_##name(lua_State *L) { \
+  int status = luaL_checkinteger(L, 1); \
+  lua_pushboolean(L, name(status)); \
+  return 1; \
+}
+
+#define MAKE_LUA_WFUNC_INT(name) static int \
+mtev_lua_process_##name(lua_State *L) { \
+  int status = luaL_checkinteger(L, 1); \
+  lua_pushinteger(L, name(status)); \
+  return 1; \
+}
+
+/*! \lua mtev.WIFEXITED(status)
+\param status a process status returned by `mtev.process:wait(timeout)`
+\return true if the process terminated normally
+*/
+MAKE_LUA_WFUNC_BOOL(WIFEXITED)
+
+/*! \lua mtev.WIFSIGNALED(status)
+\param status a process status returned by `mtev.process:wait(timeout)`
+\return true if the process terminated due to receipt of a signal
+*/
+MAKE_LUA_WFUNC_BOOL(WIFSIGNALED)
+
+/*! \lua mtev.WCOREDUMP(status)
+\param status a process status returned by `mtev.process:wait(timeout)`
+\return true if the process produced a core dump
+
+Only valid if `mtev.WIFSIGNALED(status)` is also true.
+*/
+MAKE_LUA_WFUNC_BOOL(WCOREDUMP)
+
+/*! \lua mtev.WIFSTOPPED(status)
+\param status a process status returned by `mtev.process:wait(timeout)`
+\return true if the process was stopped, but not terminated
+*/
+MAKE_LUA_WFUNC_BOOL(WIFSTOPPED)
+
+/*! \lua mtev.WIFCONTINUED(status)
+\param status a process status returned by `mtev.process:wait(timeout)`
+\return true if the process has continued after a job control stop, but not terminated
+*/
+MAKE_LUA_WFUNC_BOOL(WIFCONTINUED)
+
+/*! \lua mtev.WEXITSTATUS(status)
+\param status a process status returned by `mtev.process:wait(timeout)`
+\return the exit status of the process
+
+Only valid if `mtev.WIFEXITED(status)` is true.
+*/
+MAKE_LUA_WFUNC_INT(WEXITSTATUS)
+
+/*! \lua mtev.WTERMSIG(status)
+\param status a process status returned by `mtev.process:wait(timeout)`
+\return the number of the signal that caused the termination of the process
+
+Only valid if `mtev.WIFSIGNALED(status)` is true.
+*/
+MAKE_LUA_WFUNC_INT(WTERMSIG)
+
+/*! \lua mtev.WSTOPSIG(status)
+\param status a process status returned by `mtev.process:wait(timeout)`
+\return the number of the signal that caused the process to stop
+
+Only valid if `mtev.WIFSTOPPED(status)` is true.
+*/
+MAKE_LUA_WFUNC_INT(WSTOPSIG)
+
 static int mtev_lua_process_wait_ex(struct nl_slcl *, mtev_boolean);
 
 static int
@@ -4561,6 +4631,15 @@ Use sha256_hex instead.
   { "parsexml", nl_parsexml },
   { "parsejson", nl_parsejson },
   { "tojson", nl_tojson },
+#define BIND_LUA_WFUNC(name)  { #name, mtev_lua_process_##name },
+  BIND_LUA_WFUNC(WIFEXITED)
+  BIND_LUA_WFUNC(WIFSIGNALED)
+  BIND_LUA_WFUNC(WCOREDUMP)
+  BIND_LUA_WFUNC(WIFSTOPPED)
+  BIND_LUA_WFUNC(WIFCONTINUED)
+  BIND_LUA_WFUNC(WEXITSTATUS)
+  BIND_LUA_WFUNC(WTERMSIG)
+  BIND_LUA_WFUNC(WSTOPSIG)
   { "spawn", nl_spawn },
   { "thread_self", nl_thread_self },
   { "eventer_loop_concurrency", nl_eventer_loop_concurrency },
