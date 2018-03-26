@@ -4,6 +4,15 @@
 
 ## 1.2
 
+### 1.2.6
+
+ * Add Lua code to get the exit code and other flags from return
+   value of waitpid()
+ * Fix some tests that were not working properly
+ * Fix some inconsistent behavior with posix_spawnp call in lua
+   handler between Linux and Solaris
+
+
 ### 1.2.5
 
  * Fixes bug affecting event reporting via rest
