@@ -3820,6 +3820,21 @@ int nl_spawn(lua_State *L) {
     mtevL(nldeb, "posix_spawnattr_init(%d) -> %s\n", errno, strerror(errno));
     goto err;
   }
+
+/* This is to ensure that we get consistent behavior between
+ * Solaris and Linux - they each treat failing to launch a process
+ * differently, and we want the behavior to be consistent */
+#if defined(POSIX_SPAWN_NOEXECERR_NP)
+  short flags;
+  if (posix_spawnattr_getflags(attr, &flags)) {
+    mtevFatal(mtev_error, "Couldn't get flags in posix_spawnattr_init\n");
+  }
+  flags |= POSIX_SPAWN_NOEXECERR_NP;
+  if (posix_spawnattr_setflags(attr, flags)) {
+    mtevFatal(mtev_error, "Couldn't set flags in posix_spawnattr_init\n");
+  }
+#endif
+
   rv = posix_spawnp(&spawn_info->pid, path, filea, attr,
                    (char * const *)argv, (char * const *)envp);
   if(rv != 0) {

@@ -24,8 +24,12 @@ describe("process management", function()
   it("errors", function()
     local proc = mtev.spawn("/bin/nopenope")
     local status, errno = proc:wait(1)
-    assert.is_nil(status)
-    assert.is_not_nil(errno)
+    assert.is_not_nil(status)
+    assert.is_nil(errno)
+    assert.is_true(mtev.WIFEXITED(status))
+    -- "127" is what you get when you try to execute a
+    -- process that doesn't exist
+    assert.is_equal(127, mtev.WEXITSTATUS(status))
   end)
 
   it("fails", function()
