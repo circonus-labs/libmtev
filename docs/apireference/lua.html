@@ -1013,9 +1013,69 @@ mtev.watchdog_timeout()
 <ul>
 <li><strong>RETURN</strong> A timeout in seconds, or nil if no watchdog configured.</li>
 </ul>
+<h4 id="mtevwcoredump">mtev.WCOREDUMP</h4>
+<pre><code class="lang-lua">mtev.WCOREDUMP(status)
+</code></pre>
+<ul>
+<li><code>status</code> a process status returned by <code>mtev.process:wait(timeout)</code></li>
+<li><strong>RETURN</strong> true if the process produced a core dump</li>
+</ul>
+<p>Only valid if <code>mtev.WIFSIGNALED(status)</code> is also true.</p>
+<h4 id="mtevwexitstatus">mtev.WEXITSTATUS</h4>
+<pre><code class="lang-lua">mtev.WEXITSTATUS(status)
+</code></pre>
+<ul>
+<li><code>status</code> a process status returned by <code>mtev.process:wait(timeout)</code></li>
+<li><strong>RETURN</strong> the exit status of the process</li>
+</ul>
+<p>Only valid if <code>mtev.WIFEXITED(status)</code> is true.</p>
+<h4 id="mtevwifcontinued">mtev.WIFCONTINUED</h4>
+<pre><code class="lang-lua">mtev.WIFCONTINUED(status)
+</code></pre>
+<ul>
+<li><code>status</code> a process status returned by <code>mtev.process:wait(timeout)</code></li>
+<li><strong>RETURN</strong> true if the process has continued after a job control stop, but not terminated</li>
+</ul>
+<h4 id="mtevwifexited">mtev.WIFEXITED</h4>
+<pre><code class="lang-lua">mtev.WIFEXITED(status)
+</code></pre>
+<ul>
+<li><code>status</code> a process status returned by <code>mtev.process:wait(timeout)</code></li>
+<li><strong>RETURN</strong> true if the process terminated normally</li>
+</ul>
+<h4 id="mtevwifsignaled">mtev.WIFSIGNALED</h4>
+<pre><code class="lang-lua">mtev.WIFSIGNALED(status)
+</code></pre>
+<ul>
+<li><code>status</code> a process status returned by <code>mtev.process:wait(timeout)</code></li>
+<li><strong>RETURN</strong> true if the process terminated due to receipt of a signal</li>
+</ul>
+<h4 id="mtevwifstopped">mtev.WIFSTOPPED</h4>
+<pre><code class="lang-lua">mtev.WIFSTOPPED(status)
+</code></pre>
+<ul>
+<li><code>status</code> a process status returned by <code>mtev.process:wait(timeout)</code></li>
+<li><strong>RETURN</strong> true if the process was stopped, but not terminated</li>
+</ul>
 <h4 id="mtevwrite">mtev.write</h4>
 <pre><code class="lang-lua">mtev.write(fd, str)
 </code></pre>
+<h4 id="mtevwstopsig">mtev.WSTOPSIG</h4>
+<pre><code class="lang-lua">mtev.WSTOPSIG(status)
+</code></pre>
+<ul>
+<li><code>status</code> a process status returned by <code>mtev.process:wait(timeout)</code></li>
+<li><strong>RETURN</strong> the number of the signal that caused the process to stop</li>
+</ul>
+<p>Only valid if <code>mtev.WIFSTOPPED(status)</code> is true.</p>
+<h4 id="mtevwtermsig">mtev.WTERMSIG</h4>
+<pre><code class="lang-lua">mtev.WTERMSIG(status)
+</code></pre>
+<ul>
+<li><code>status</code> a process status returned by <code>mtev.process:wait(timeout)</code></li>
+<li><strong>RETURN</strong> the number of the signal that caused the termination of the process</li>
+</ul>
+<p>Only valid if <code>mtev.WIFSIGNALED(status)</code> is true.</p>
 
                                 
                                 </section>
@@ -1069,7 +1129,7 @@ mtev.watchdog_timeout()
         
     
         
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/3.1.1/anchor.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js"></script>
         
     
         

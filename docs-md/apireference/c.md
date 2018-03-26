@@ -424,6 +424,7 @@ mtev_cluster_get_self(uuid_t id)
 
 
   * `id` The UUID to be updated.
+  * **RETURN** Returns -1 on error
 
 Pouplates the passed uuid_t with the local node's UUID.
 

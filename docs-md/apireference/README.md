@@ -126,5 +126,5 @@
 
 ##### W
 
-[mtev.watchdog_child_heartbeat](lua.md#mtevwatchdogchildheartbeat), [mtev.watchdog_timeout](lua.md#mtevwatchdogtimeout), [mtev.write](lua.md#mtevwrite)
+[mtev.watchdog_child_heartbeat](lua.md#mtevwatchdogchildheartbeat), [mtev.watchdog_timeout](lua.md#mtevwatchdogtimeout), [mtev.WCOREDUMP](lua.md#mtevWCOREDUMP), [mtev.WEXITSTATUS](lua.md#mtevWEXITSTATUS), [mtev.WIFCONTINUED](lua.md#mtevWIFCONTINUED), [mtev.WIFEXITED](lua.md#mtevWIFEXITED), [mtev.WIFSIGNALED](lua.md#mtevWIFSIGNALED), [mtev.WIFSTOPPED](lua.md#mtevWIFSTOPPED), [mtev.write](lua.md#mtevwrite), [mtev.WSTOPSIG](lua.md#mtevWSTOPSIG), [mtev.WTERMSIG](lua.md#mtevWTERMSIG)
 

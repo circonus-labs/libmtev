@@ -722,11 +722,99 @@ mtev.watchdog_timeout()
   * **RETURN** A timeout in seconds, or nil if no watchdog configured.
 
 
+#### mtev.WCOREDUMP
+
+```lua
+mtev.WCOREDUMP(status)
+```
+
+  * `status` a process status returned by `mtev.process:wait(timeout)`
+  * **RETURN** true if the process produced a core dump
+
+Only valid if `mtev.WIFSIGNALED(status)` is also true.
+
+
+#### mtev.WEXITSTATUS
+
+```lua
+mtev.WEXITSTATUS(status)
+```
+
+  * `status` a process status returned by `mtev.process:wait(timeout)`
+  * **RETURN** the exit status of the process
+
+Only valid if `mtev.WIFEXITED(status)` is true.
+
+
+#### mtev.WIFCONTINUED
+
+```lua
+mtev.WIFCONTINUED(status)
+```
+
+  * `status` a process status returned by `mtev.process:wait(timeout)`
+  * **RETURN** true if the process has continued after a job control stop, but not terminated
+
+
+#### mtev.WIFEXITED
+
+```lua
+mtev.WIFEXITED(status)
+```
+
+  * `status` a process status returned by `mtev.process:wait(timeout)`
+  * **RETURN** true if the process terminated normally
+
+
+#### mtev.WIFSIGNALED
+
+```lua
+mtev.WIFSIGNALED(status)
+```
+
+  * `status` a process status returned by `mtev.process:wait(timeout)`
+  * **RETURN** true if the process terminated due to receipt of a signal
+
+
+#### mtev.WIFSTOPPED
+
+```lua
+mtev.WIFSTOPPED(status)
+```
+
+  * `status` a process status returned by `mtev.process:wait(timeout)`
+  * **RETURN** true if the process was stopped, but not terminated
+
+
 #### mtev.write
 
 ```lua
 mtev.write(fd, str)
 ```
 
+
+
+#### mtev.WSTOPSIG
+
+```lua
+mtev.WSTOPSIG(status)
+```
+
+  * `status` a process status returned by `mtev.process:wait(timeout)`
+  * **RETURN** the number of the signal that caused the process to stop
+
+Only valid if `mtev.WIFSTOPPED(status)` is true.
+
+
+#### mtev.WTERMSIG
+
+```lua
+mtev.WTERMSIG(status)
+```
+
+  * `status` a process status returned by `mtev.process:wait(timeout)`
+  * **RETURN** the number of the signal that caused the termination of the process
+
+Only valid if `mtev.WIFSIGNALED(status)` is true.
 
 
