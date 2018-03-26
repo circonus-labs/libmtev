@@ -3,6 +3,7 @@ ffi.cdef([=[
 void *malloc(size_t);
 char *strdup(const char *);
 void free(void *);
+char *strsignal(int sig);
 ]=])
 libmtev = ffi.load('mtev')
 
@@ -17,4 +18,8 @@ function charstar(str)
   local buf = ffi.new("char[?]", len+1, 0)
   ffi.copy(buf, str, len)
   return buf
+end
+
+function strsignal(sig)
+  return ffi.string(ffi.C.strsignal(sig))
 end
