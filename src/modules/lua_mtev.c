@@ -2064,6 +2064,19 @@ nl_log(lua_State *L) {
   lua_call(L, n-1, 0);
   return 0;
 }
+/*! \lua boolean = mtev.log_enabled(facility)
+\brief Determine the enabled status of a log.
+\param facility the name of the mtev_log_stream (e.g. "debug")
+\return a boolean indicating the enabled status of the log facility
+*/
+static int
+nl_log_enabled(lua_State *L) {
+  const char *logname = luaL_checkstring(L,1);
+  mtev_log_stream_t ls = mtev_log_stream_find(logname);
+  if(!ls) return 0;
+  lua_pushboolean(L, N_L_S_ON(ls));
+  return 1;
+}
 /*! \lua mtev.enable_log(facility, flags = true)
 \brief Enable or disable a log facility by name.
 \param facility the name of the mtev_log_stream (e.g. "debug")
@@ -4581,6 +4594,7 @@ static const luaL_Reg mtevlib[] = {
   { "socket", nl_socket },
   { "dns", nl_dns_lookup },
   { "log", nl_log },
+  { "log_enabled", nl_log_enabled },
   { "enable_log", nl_enable_log },
   { "print", nl_print },
   { "unlink", nl_unlink },
