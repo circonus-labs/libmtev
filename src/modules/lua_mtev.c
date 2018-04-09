@@ -3398,6 +3398,84 @@ mtev_xmldoc_index_func(lua_State *L) {
   return 0;
 }
 
+/* \lua bool = mtev.cluster:am_i_oldest_node()
+\return whether the invoking code is running on the oldest node in the cluster.
+*/
+
+static int
+mtev_lua_cluster_am_i_oldest_node(lua_State *L) {
+  int n = lua_gettop(L);
+  /* the first arg is implicitly self (it's a method) */
+  void *udata = lua_touserdata(L, lua_upvalueindex(1));
+  if(udata != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+  if(n != 1) luaL_error(L, "expects no arguments, got %d", n);
+  const char *cluster_name = (const char *)udata;
+  mtev_cluster_t *cluster = mtev_cluster_by_name(cluster_name);
+  if(cluster == NULL) luaL_error(L, "no such cluster");
+  lua_pushboolean(L, mtev_cluster_am_i_oldest_node(cluster));
+  return 1;
+}
+
+/* \lua cnt = mtev.cluster:size()
+\return the number of nodes in the cluster.
+*/
+
+static int
+mtev_lua_cluster_size(lua_State *L) {
+  int n = lua_gettop(L);
+  /* the first arg is implicitly self (it's a method) */
+  void *udata = lua_touserdata(L, lua_upvalueindex(1));
+  if(udata != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+  if(n != 1) luaL_error(L, "expects no arguments, got %d", n);
+  const char *cluster_name = (const char *)udata;
+  mtev_cluster_t *cluster = mtev_cluster_by_name(cluster_name);
+  if(cluster == NULL) luaL_error(L, "no such cluster");
+  lua_pushinteger(L, mtev_cluster_size(cluster));
+  return 1;
+}
+
+static int
+mtev_cluster_index_func(lua_State *L) {
+  void *udata;
+  int n;
+  n = lua_gettop(L); /* number of arguments */
+  mtevAssert(n == 2);
+  if(!luaL_checkudata(L, 1, "mtev.cluster")) {
+    luaL_error(L, "metatable error, arg1 not a mtev.xmldoc!");
+  }
+  udata = lua_touserdata(L, 1);
+  if(!lua_isstring(L, 2)) {
+    luaL_error(L, "metatable error, arg2 not a string!");
+  }
+  const char *k = lua_tostring(L, 2);
+  switch(*k) {
+    case 'a':
+      LUA_DISPATCH(am_i_oldest_node, mtev_lua_cluster_am_i_oldest_node);
+      break;
+    case 's':
+      LUA_DISPATCH(size, mtev_lua_cluster_size);
+      break;
+  }
+  luaL_error(L, "mtev.cluster no such element: %s", k);
+  return 0;
+}
+
+/*! \lua cluster = mtev.cluster(name)
+\param name name of cluster
+\return a cluster object
+*/
+static int
+nl_mtev_cluster(lua_State *L) {
+  const char *cluster_name = luaL_checkstring(L,1);
+  char *obj = lua_newuserdata(L, strlen(cluster_name)+1);
+  memcpy(obj, cluster_name, strlen(cluster_name)+1);
+  luaL_getmetatable(L, "mtev.cluster");
+  lua_setmetatable(L, -2);
+  return 1;
+}
+
 /*! \lua obj = mtev.json:tostring()
 \brief return a JSON-formatted string of an `mtev.json` object
 \return a lua string
@@ -4586,6 +4664,7 @@ static void mtev_lua_init(void) {
 
 static const luaL_Reg mtevlib[] = {
   { "cancel_coro", nl_cancel_coro },
+  { "cluster", nl_mtev_cluster },
   { "waitfor", nl_waitfor },
   { "notify", nl_waitfor_notify },
   { "sleep", nl_sleep },
@@ -4735,6 +4814,10 @@ int luaopen_mtev(lua_State *L) {
 
   luaL_newmetatable(L, "mtev.xmlnode");
   lua_pushcclosure(L, mtev_xmlnode_index_func, 0);
+  lua_setfield(L, -2, "__index");
+
+  luaL_newmetatable(L, "mtev.cluster");
+  lua_pushcclosure(L, mtev_cluster_index_func, 0);
   lua_setfield(L, -2, "__index");
 
   luaL_newmetatable(L, "mtev.xpathiter");
