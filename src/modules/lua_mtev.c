@@ -4014,113 +4014,6 @@ nl_watchdog_timeout(lua_State *L) {
   return 1;
 }
 
-static void
-mtev_lua_push_cluster_node(lua_State *L, mtev_cluster_node_t *node) {
-  char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
-  if(node == NULL) {
-    lua_pushnil(L);
-  } else {
-    uuid_t nodeid;
-    mtev_cluster_node_get_id(node, nodeid);
-    uuid_unparse_lower(nodeid, uuid_str);
-
-    lua_createtable(L, 0, 3);
-
-    lua_pushstring(L, "id");
-    lua_pushstring(L, uuid_str);
-    lua_settable(L, -3);
-
-    lua_pushstring(L, "boot_time");
-    mtev_lua_push_timeval(L, mtev_cluster_node_get_boot_time(node));
-    lua_settable(L, -3);
-
-    lua_pushstring(L, "last_contact");
-    mtev_lua_push_timeval(L, mtev_cluster_node_get_last_contact(node));
-    lua_settable(L, -3);
-
-    lua_pushstring(L, "address");
-    char node_name[128] = "unknown";
-    struct sockaddr *addr = NULL;
-    switch(mtev_cluster_node_get_addr(node, &addr, NULL)) {
-      case AF_INET:
-        inet_ntop(AF_INET, &((struct sockaddr_in *)addr)->sin_addr, node_name, sizeof(node_name));
-        break;
-      case AF_INET6:
-        inet_ntop(AF_INET6, &((struct sockaddr_in6 *)addr)->sin6_addr, node_name, sizeof(node_name));
-        break;
-      default:
-        strlcpy(node_name, "unknown", sizeof(node_name));
-    }
-    lua_pushstring(L, node_name);
-    lua_settable(L, -3);
-  }
-}
-
-static void
-mtev_lua_push_cluster_details(lua_State *L, mtev_cluster_t *cluster, mtev_cluster_node_t **nodes, int number_of_nodes) {
-  int i;
-
-  lua_createtable(L, 0, 2);
-
-  lua_pushstring(L, "oldest_node");
-  mtev_lua_push_cluster_node(L, mtev_cluster_get_oldest_node(cluster));
-  lua_settable(L, -3);
-
-  lua_pushstring(L, "nodes");
-  lua_createtable(L, number_of_nodes, 0);
-  for(i=0; i != number_of_nodes; ++i) {
-    lua_pushinteger(L, i+1);
-    mtev_lua_push_cluster_node(L, nodes[i]);
-    lua_settable(L, -3);
-  }
-  lua_settable(L, -3);
-}
-
-/*! \lua mtev.cluster_details()
-*/
-static int
-nl_cluster_details(lua_State *L) {
-  int n;
-  const char *cluster_name;
-  mtev_cluster_t *cluster;
-  mtev_cluster_node_t **nodes;
-  int number_of_nodes;
-  n = lua_gettop(L);
-  mtevAssert(n == 2);
-
-  if(!lua_isstring(L, 2)) {
-    luaL_error(L, "second parameter to cluster_details must be a string!");
-  }
-  cluster_name = lua_tostring(L, 2);
-
-  cluster = mtev_cluster_by_name(cluster_name);
-  if(cluster == NULL) {
-    lua_pushnil(L);
-  } else {
-    number_of_nodes = mtev_cluster_size(cluster);
-    nodes = calloc(number_of_nodes, sizeof(mtev_cluster_node_t*));
-
-    mtev_cluster_get_nodes(cluster, nodes, number_of_nodes, mtev_true);
-
-    mtev_lua_push_cluster_details(L, cluster, nodes, number_of_nodes);
-    free(nodes);
-  }
-
-  return 1;
-}
-
-/*! \lua mtev.cluster_get_self()
-*/
-static int
-nl_cluster_get_self(lua_State *L) {
-  static uuid_t my_cluster_id;
-  char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
-  mtev_cluster_get_self(my_cluster_id);
-  uuid_unparse_lower(my_cluster_id, uuid_str);
-  lua_pushstring(L, uuid_str);
-  return 1;
-}
-
 /*! \lua pid = mtev.process:pid()
 \brief Return the process id of a spawned process.
 \return The process id.
@@ -4755,8 +4648,6 @@ Use sha256_hex instead.
   { "shared_get", nl_shared_get},
   { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
   { "watchdog_timeout", nl_watchdog_timeout },
-  { "cluster_details", nl_cluster_details },
-  { "cluster_get_self", nl_cluster_get_self },
   { NULL, NULL }
 };
 
