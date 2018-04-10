@@ -248,10 +248,10 @@ API_EXPORT(mtev_cluster_node_t*)
 /*! \fn mtev_boolean mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster)
     \brief Determines if the local node is the oldest node within the cluster.
     \param cluster The cluster in question.
-    \return Returns mtev_true if there is no node in the cluster with a higher up-time than this one.
+    \return Returns mtev_false if there is a node in the cluster with a higher up-time than this one.
  */
 API_EXPORT(mtev_boolean)
-  mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster);
+  mtev_cluster_am_i_oldest_visible_node(const mtev_cluster_t *cluster);
 
 /*! \fn mtev_boolean mtev_cluster_node_is_dead(mtev_cluster_node_t *node)
     \brief Detrmines if the node in question is dead.

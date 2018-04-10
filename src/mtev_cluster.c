@@ -1304,9 +1304,9 @@ mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster) {
 }
 
 mtev_boolean
-mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster) {
+mtev_cluster_am_i_oldest_visible_node(const mtev_cluster_t *cluster) {
   if (cluster == NULL || cluster->oldest_node == NULL)
-    return mtev_false;
+    return mtev_true;
   return uuid_compare(cluster->oldest_node->id, my_cluster_id) == 0;
 }
 

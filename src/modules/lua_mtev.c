@@ -3398,12 +3398,12 @@ mtev_xmldoc_index_func(lua_State *L) {
   return 0;
 }
 
-/* \lua bool = mtev.cluster:am_i_oldest_node()
+/* \lua bool = mtev.cluster:am_i_oldest_visible_node()
 \return whether the invoking code is running on the oldest node in the cluster.
 */
 
 static int
-mtev_lua_cluster_am_i_oldest_node(lua_State *L) {
+mtev_lua_cluster_am_i_oldest_visible_node(lua_State *L) {
   int n = lua_gettop(L);
   /* the first arg is implicitly self (it's a method) */
   void *udata = lua_touserdata(L, lua_upvalueindex(1));
@@ -3413,7 +3413,7 @@ mtev_lua_cluster_am_i_oldest_node(lua_State *L) {
   const char *cluster_name = (const char *)udata;
   mtev_cluster_t *cluster = mtev_cluster_by_name(cluster_name);
   if(cluster == NULL) luaL_error(L, "no such cluster");
-  lua_pushboolean(L, mtev_cluster_am_i_oldest_node(cluster));
+  lua_pushboolean(L, mtev_cluster_am_i_oldest_visible_node(cluster));
   return 1;
 }
 
@@ -3452,7 +3452,7 @@ mtev_cluster_index_func(lua_State *L) {
   const char *k = lua_tostring(L, 2);
   switch(*k) {
     case 'a':
-      LUA_DISPATCH(am_i_oldest_node, mtev_lua_cluster_am_i_oldest_node);
+      LUA_DISPATCH(am_i_oldest_visible_node, mtev_lua_cluster_am_i_oldest_visible_node);
       break;
     case 's':
       LUA_DISPATCH(size, mtev_lua_cluster_size);
@@ -3469,6 +3469,8 @@ mtev_cluster_index_func(lua_State *L) {
 static int
 nl_mtev_cluster(lua_State *L) {
   const char *cluster_name = luaL_checkstring(L,1);
+  // We store the cluster name in the lua object not the reference to the mtev_cluster_t, since this
+  // might be changing over time.
   char *obj = lua_newuserdata(L, strlen(cluster_name)+1);
   memcpy(obj, cluster_name, strlen(cluster_name)+1);
   luaL_getmetatable(L, "mtev.cluster");
