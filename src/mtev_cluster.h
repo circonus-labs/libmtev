@@ -277,18 +277,31 @@ API_EXPORT(void)
 API_EXPORT(mtev_boolean)
   mtev_cluster_node_has_payload(mtev_cluster_node_t *node);
 
+/*! \fn int8_t mtev_cluster_node_get_addr(mtev_cluster_node_t *node, struct sockaddr **addr, socklen_t *addrlen)
+ */
 API_EXPORT(int8_t)
   mtev_cluster_node_get_addr(mtev_cluster_node_t *node, struct sockaddr **addr, socklen_t *addrlen);
 
+/*! \fn const char* mtev_cluster_node_get_cn(mtev_cluster_node_t *node)
+    \return cn (canonical name) of the cluster node
+ */
 API_EXPORT(const char *)
   mtev_cluster_node_get_cn(mtev_cluster_node_t *node);
 
+/*! \fn struct timeval mtev_cluster_node_get_boot_time(mtev_cluster_node_t *node)
+  \return boot time as timeval struct
+ */
 API_EXPORT(struct timeval)
   mtev_cluster_node_get_boot_time(mtev_cluster_node_t *node);
 
+/*! \fn struct timeval mtev_cluster_node_get_last_contact(mtev_cluster_node_t *node)
+\return time of last contact to the given node
+*/
 API_EXPORT(struct timeval)
   mtev_cluster_node_get_last_contact(mtev_cluster_node_t *node);
 
+/*! \fn int64_t mtev_cluster_node_get_config_seq(mtev_cluster_node_t *node)
+*/
 API_EXPORT(int64_t)
   mtev_cluster_node_get_config_seq(mtev_cluster_node_t *node);
 
