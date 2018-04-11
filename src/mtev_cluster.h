@@ -248,10 +248,10 @@ API_EXPORT(mtev_cluster_node_t*)
 /*! \fn mtev_boolean mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster)
     \brief Determines if the local node is the oldest node within the cluster.
     \param cluster The cluster in question.
-    \return Returns mtev_true if there is no node in the cluster with a higher up-time than this one.
+    \return Returns mtev_false if there is a node in the cluster with a higher up-time than this one.
  */
 API_EXPORT(mtev_boolean)
-  mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster);
+  mtev_cluster_am_i_oldest_visible_node(const mtev_cluster_t *cluster);
 
 /*! \fn mtev_boolean mtev_cluster_node_is_dead(mtev_cluster_node_t *node)
     \brief Detrmines if the node in question is dead.
@@ -277,18 +277,31 @@ API_EXPORT(void)
 API_EXPORT(mtev_boolean)
   mtev_cluster_node_has_payload(mtev_cluster_node_t *node);
 
+/*! \fn int8_t mtev_cluster_node_get_addr(mtev_cluster_node_t *node, struct sockaddr **addr, socklen_t *addrlen)
+ */
 API_EXPORT(int8_t)
   mtev_cluster_node_get_addr(mtev_cluster_node_t *node, struct sockaddr **addr, socklen_t *addrlen);
 
+/*! \fn const char* mtev_cluster_node_get_cn(mtev_cluster_node_t *node)
+    \return cn (canonical name) of the cluster node
+ */
 API_EXPORT(const char *)
   mtev_cluster_node_get_cn(mtev_cluster_node_t *node);
 
+/*! \fn struct timeval mtev_cluster_node_get_boot_time(mtev_cluster_node_t *node)
+  \return boot time as timeval struct
+ */
 API_EXPORT(struct timeval)
   mtev_cluster_node_get_boot_time(mtev_cluster_node_t *node);
 
+/*! \fn struct timeval mtev_cluster_node_get_last_contact(mtev_cluster_node_t *node)
+\return time of last contact to the given node
+*/
 API_EXPORT(struct timeval)
   mtev_cluster_node_get_last_contact(mtev_cluster_node_t *node);
 
+/*! \fn int64_t mtev_cluster_node_get_config_seq(mtev_cluster_node_t *node)
+*/
 API_EXPORT(int64_t)
   mtev_cluster_node_get_config_seq(mtev_cluster_node_t *node);
 
