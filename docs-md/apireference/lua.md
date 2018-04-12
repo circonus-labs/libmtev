@@ -34,20 +34,15 @@ mtev.close(fd)
 
  
 
-#### mtev.cluster_details
+#### mtev.cluster
 
 ```lua
-mtev.cluster_details()
+cluster =
+mtev.cluster(name)
 ```
 
-
-
-#### mtev.cluster_get_self
-
-```lua
-mtev.cluster_get_self()
-```
-
+  * `name` name of cluster
+  * **RETURN** a cluster object
 
 
 #### mtev.conf_get_boolean
@@ -313,6 +308,20 @@ mtev.log(facility, format, ...)
   * `format` a format string see printf(3c)
   * `...` arguments to be used within the specified format
   * **RETURN** the number of bytes written
+
+
+#### mtev.log_enabled
+
+>Determine the enabled status of a log.
+
+```lua
+boolean =
+mtev.log_enabled(facility)
+```
+
+
+  * `facility` the name of the mtev_log_stream (e.g. "debug")
+  * **RETURN** a boolean indicating the enabled status of the log facility
 
 
 ### M

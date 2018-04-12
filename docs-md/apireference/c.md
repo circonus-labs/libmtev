@@ -213,7 +213,7 @@ mtev_cluster_am_i_oldest_node(const mtev_cluster_t *cluster)
 
 
   * `cluster` The cluster in question.
-  * **RETURN** Returns mtev_true if there is no node in the cluster with a higher up-time than this one.
+  * **RETURN** Returns mtev_false if there is a node in the cluster with a higher up-time than this one.
  
 
 #### mtev_cluster_by_name
@@ -443,6 +443,44 @@ mtev_cluster_init()
 Initializes the mtev cluster configuration.
  
 
+#### mtev_cluster_node_get_addr
+
+```c
+int8_t
+mtev_cluster_node_get_addr(mtev_cluster_node_t *node, struct sockaddr **addr, socklen_t *addrlen)
+```
+
+ 
+
+#### mtev_cluster_node_get_boot_time
+
+```c
+struct timeval
+mtev_cluster_node_get_boot_time(mtev_cluster_node_t *node)
+```
+
+    * **RETURN** boot time as timeval struct
+ 
+
+#### mtev_cluster_node_get_cn
+
+```c
+const char*
+mtev_cluster_node_get_cn(mtev_cluster_node_t *node)
+```
+
+  * **RETURN** cn (canonical name) of the cluster node
+ 
+
+#### mtev_cluster_node_get_config_seq
+
+```c
+int64_t
+mtev_cluster_node_get_config_seq(mtev_cluster_node_t *node)
+```
+
+
+
 #### mtev_cluster_node_get_id
 
 >Retrieve the ID of a cluster node.
@@ -455,6 +493,16 @@ mtev_cluster_node_get_id(mtev_cluster_node_t *node, uuid_t out)
 
   * `node` The node in question.
   * `out` A `uuid_t` to fill in.
+
+
+#### mtev_cluster_node_get_last_contact
+
+```c
+struct timeval
+mtev_cluster_node_get_last_contact(mtev_cluster_node_t *node)
+```
+
+  * **RETURN** time of last contact to the given node
 
 
 #### mtev_cluster_node_has_payload

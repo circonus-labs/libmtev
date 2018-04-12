@@ -733,7 +733,7 @@ mtev_cluster_alive_filter
 </span></code></pre>
 <ul>
 <li><code>cluster</code> The cluster in question.</li>
-<li><strong>RETURN</strong> Returns mtev_true if there is no node in the cluster with a higher up-time than this one.</li>
+<li><strong>RETURN</strong> Returns mtev_false if there is a node in the cluster with a higher up-time than this one.</li>
 </ul>
 <h4 id="mtevclusterbyname">mtev_cluster_by_name</h4>
 <blockquote>
@@ -910,6 +910,26 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <span class="hljs-title">mtev_cluster_init</span><span class="hljs-params">()</span>
 </span></code></pre>
 <p>Initializes the mtev cluster configuration.</p>
+<h4 id="mtevclusternodegetaddr">mtev_cluster_node_get_addr</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">int8_t</span>
+mtev_cluster_node_get_addr(<span class="hljs-keyword">mtev_cluster_node_t</span> *node, <span class="hljs-keyword">struct</span> sockaddr **addr, <span class="hljs-keyword">socklen_t</span> *addrlen)
+</code></pre>
+<h4 id="mtevclusternodegetboottime">mtev_cluster_node_get_boot_time</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval
+<span class="hljs-title">mtev_cluster_node_get_boot_time</span><span class="hljs-params">(mtev_cluster_node_t *node)</span>
+</span></code></pre>
+<pre><code>* **RETURN** boot time as timeval struct
+</code></pre><h4 id="mtevclusternodegetcn">mtev_cluster_node_get_cn</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span>*
+<span class="hljs-title">mtev_cluster_node_get_cn</span><span class="hljs-params">(mtev_cluster_node_t *node)</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> cn (canonical name) of the cluster node</li>
+</ul>
+<h4 id="mtevclusternodegetconfigseq">mtev_cluster_node_get_config_seq</h4>
+<pre><code class="lang-c"><span class="hljs-keyword">int64_t</span>
+mtev_cluster_node_get_config_seq(<span class="hljs-keyword">mtev_cluster_node_t</span> *node)
+</code></pre>
 <h4 id="mtevclusternodegetid">mtev_cluster_node_get_id</h4>
 <blockquote>
 <p>Retrieve the ID of a cluster node.</p>
@@ -920,6 +940,13 @@ mtev_cluster_get_node(<span class="hljs-keyword">mtev_cluster_t</span> *cluster,
 <ul>
 <li><code>node</code> The node in question.</li>
 <li><code>out</code> A <code>uuid_t</code> to fill in.</li>
+</ul>
+<h4 id="mtevclusternodegetlastcontact">mtev_cluster_node_get_last_contact</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval
+<span class="hljs-title">mtev_cluster_node_get_last_contact</span><span class="hljs-params">(mtev_cluster_node_t *node)</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> time of last contact to the given node</li>
 </ul>
 <h4 id="mtevclusternodehaspayload">mtev_cluster_node_has_payload</h4>
 <blockquote>

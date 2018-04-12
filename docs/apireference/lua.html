@@ -577,12 +577,14 @@
 <h4 id="mtevclose">mtev.close</h4>
 <pre><code class="lang-lua">mtev.close(fd)
 </code></pre>
-<h4 id="mtevclusterdetails">mtev.cluster_details</h4>
-<pre><code class="lang-lua">mtev.cluster_details()
+<h4 id="mtevcluster">mtev.cluster</h4>
+<pre><code class="lang-lua">cluster =
+mtev.cluster(name)
 </code></pre>
-<h4 id="mtevclustergetself">mtev.cluster_get_self</h4>
-<pre><code class="lang-lua">mtev.cluster_get_self()
-</code></pre>
+<ul>
+<li><code>name</code> name of cluster</li>
+<li><strong>RETURN</strong> a cluster object</li>
+</ul>
 <h4 id="mtevconfgetboolean">mtev.conf_get_boolean</h4>
 <pre><code class="lang-lua">mtev.conf_get_boolean()
 </code></pre>
@@ -745,6 +747,17 @@ mtev.log(facility, format, ...)
 <li><code>format</code> a format string see printf(3c)</li>
 <li><code>...</code> arguments to be used within the specified format</li>
 <li><strong>RETURN</strong> the number of bytes written</li>
+</ul>
+<h4 id="mtevlogenabled">mtev.log_enabled</h4>
+<blockquote>
+<p>Determine the enabled status of a log.</p>
+</blockquote>
+<pre><code class="lang-lua">boolean =
+mtev.log_enabled(facility)
+</code></pre>
+<ul>
+<li><code>facility</code> the name of the mtev_log_stream (e.g. &quot;debug&quot;)</li>
+<li><strong>RETURN</strong> a boolean indicating the enabled status of the log facility</li>
 </ul>
 <h3 id="m">M</h3>
 <h4 id="mtevmd5">mtev.md5</h4>

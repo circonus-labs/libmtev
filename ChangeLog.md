@@ -4,6 +4,14 @@
 
 ## 1.2
 
+### 1.2.7
+
+ * Add lua functions mtev.log_enabled(), mtev.cluster()
+ * Remove experimental lua functions mtev.cluster_details() and
+   mtev.cluster_get_self()
+ * Remove unused function mtev_conf_correct_namespace()
+ * Add more documentation for mtev_cluster_*
+
 ### 1.2.6
 
  * Add Lua code to get the exit code and other flags from return
