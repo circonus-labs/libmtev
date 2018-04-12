@@ -12,7 +12,7 @@
 
 ##### C
 
-[mtev_cluster_alive_filter](c.md#mtevclusteralivefilter), [mtev_cluster_am_i_oldest_node](c.md#mtevclusteramioldestnode), [mtev_cluster_by_name](c.md#mtevclusterbyname), [mtev_cluster_do_i_own](c.md#mtevclusterdoiown), [mtev_cluster_enabled](c.md#mtevclusterenabled), [mtev_cluster_filter_owners](c.md#mtevclusterfilterowners), [mtev_cluster_find_node](c.md#mtevclusterfindnode), [mtev_cluster_get_config_seq](c.md#mtevclustergetconfigseq), [mtev_cluster_get_heartbeat_payload](c.md#mtevclustergetheartbeatpayload), [mtev_cluster_get_my_boot_time](c.md#mtevclustergetmyboottime), [mtev_cluster_get_name](c.md#mtevclustergetname), [mtev_cluster_get_node](c.md#mtevclustergetnode), [mtev_cluster_get_nodes](c.md#mtevclustergetnodes), [mtev_cluster_get_oldest_node](c.md#mtevclustergetoldestnode), [mtev_cluster_get_self](c.md#mtevclustergetself), [mtev_cluster_init](c.md#mtevclusterinit), [mtev_cluster_node_get_id](c.md#mtevclusternodegetid), [mtev_cluster_node_has_payload](c.md#mtevclusternodehaspayload), [mtev_cluster_node_is_dead](c.md#mtevclusternodeisdead), [mtev_cluster_set_heartbeat_payload](c.md#mtevclustersetheartbeatpayload), [mtev_cluster_set_node_update_callback](c.md#mtevclustersetnodeupdatecallback), [mtev_cluster_set_self](c.md#mtevclustersetself), [mtev_cluster_size](c.md#mtevclustersize), [mtev_cluster_unset_heartbeat_payload](c.md#mtevclusterunsetheartbeatpayload), [mtev_cluster_update](c.md#mtevclusterupdate), [mtev_confstr_parse_duration](c.md#mtevconfstrparseduration), [mtev_confstr_parse_duration_ms](c.md#mtevconfstrparsedurationms), [mtev_confstr_parse_duration_ns](c.md#mtevconfstrparsedurationns), [mtev_confstr_parse_duration_s](c.md#mtevconfstrparsedurations), [mtev_confstr_parse_duration_us](c.md#mtevconfstrparsedurationus), [mtev_curl_write_callback](c.md#mtevcurlwritecallback)
+[mtev_cluster_alive_filter](c.md#mtevclusteralivefilter), [mtev_cluster_am_i_oldest_node](c.md#mtevclusteramioldestnode), [mtev_cluster_by_name](c.md#mtevclusterbyname), [mtev_cluster_do_i_own](c.md#mtevclusterdoiown), [mtev_cluster_enabled](c.md#mtevclusterenabled), [mtev_cluster_filter_owners](c.md#mtevclusterfilterowners), [mtev_cluster_find_node](c.md#mtevclusterfindnode), [mtev_cluster_get_config_seq](c.md#mtevclustergetconfigseq), [mtev_cluster_get_heartbeat_payload](c.md#mtevclustergetheartbeatpayload), [mtev_cluster_get_my_boot_time](c.md#mtevclustergetmyboottime), [mtev_cluster_get_name](c.md#mtevclustergetname), [mtev_cluster_get_node](c.md#mtevclustergetnode), [mtev_cluster_get_nodes](c.md#mtevclustergetnodes), [mtev_cluster_get_oldest_node](c.md#mtevclustergetoldestnode), [mtev_cluster_get_self](c.md#mtevclustergetself), [mtev_cluster_init](c.md#mtevclusterinit), [mtev_cluster_node_get_addr](c.md#mtevclusternodegetaddr), [mtev_cluster_node_get_boot_time](c.md#mtevclusternodegetboottime), [mtev_cluster_node_get_cn](c.md#mtevclusternodegetcn), [mtev_cluster_node_get_config_seq](c.md#mtevclusternodegetconfigseq), [mtev_cluster_node_get_id](c.md#mtevclusternodegetid), [mtev_cluster_node_get_last_contact](c.md#mtevclusternodegetlastcontact), [mtev_cluster_node_has_payload](c.md#mtevclusternodehaspayload), [mtev_cluster_node_is_dead](c.md#mtevclusternodeisdead), [mtev_cluster_set_heartbeat_payload](c.md#mtevclustersetheartbeatpayload), [mtev_cluster_set_node_update_callback](c.md#mtevclustersetnodeupdatecallback), [mtev_cluster_set_self](c.md#mtevclustersetself), [mtev_cluster_size](c.md#mtevclustersize), [mtev_cluster_unset_heartbeat_payload](c.md#mtevclusterunsetheartbeatpayload), [mtev_cluster_update](c.md#mtevclusterupdate), [mtev_confstr_parse_duration](c.md#mtevconfstrparseduration), [mtev_confstr_parse_duration_ms](c.md#mtevconfstrparsedurationms), [mtev_confstr_parse_duration_ns](c.md#mtevconfstrparsedurationns), [mtev_confstr_parse_duration_s](c.md#mtevconfstrparsedurations), [mtev_confstr_parse_duration_us](c.md#mtevconfstrparsedurationus), [mtev_curl_write_callback](c.md#mtevcurlwritecallback)
 
 ##### D
 
@@ -70,7 +70,7 @@
 
 ##### C
 
-[mtev.cancel_coro](lua.md#mtevcancelcoro), [mtev.close](lua.md#mtevclose), [mtev.cluster_details](lua.md#mtevclusterdetails), [mtev.cluster_get_self](lua.md#mtevclustergetself), [mtev.conf_get_boolean](lua.md#mtevconfgetboolean), [mtev.conf_get_float](lua.md#mtevconfgetfloat), [mtev.conf_get_integer](lua.md#mtevconfgetinteger), [mtev.conf_get_string](lua.md#mtevconfgetstring), [mtev.conf_get_string_list](lua.md#mtevconfgetstringlist), [mtev.conf_replace_boolean](lua.md#mtevconfreplaceboolean), [mtev.conf_replace_value](lua.md#mtevconfreplacevalue)
+[mtev.cancel_coro](lua.md#mtevcancelcoro), [mtev.close](lua.md#mtevclose), [mtev.cluster](lua.md#mtevcluster), [mtev.conf_get_boolean](lua.md#mtevconfgetboolean), [mtev.conf_get_float](lua.md#mtevconfgetfloat), [mtev.conf_get_integer](lua.md#mtevconfgetinteger), [mtev.conf_get_string](lua.md#mtevconfgetstring), [mtev.conf_get_string_list](lua.md#mtevconfgetstringlist), [mtev.conf_replace_boolean](lua.md#mtevconfreplaceboolean), [mtev.conf_replace_value](lua.md#mtevconfreplacevalue)
 
 ##### D
 
@@ -94,7 +94,7 @@
 
 ##### L
 
-[mtev.log](lua.md#mtevlog)
+[mtev.log](lua.md#mtevlog), [mtev.log_enabled](lua.md#mtevlogenabled)
 
 ##### M
 
