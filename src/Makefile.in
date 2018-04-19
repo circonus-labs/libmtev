@@ -160,6 +160,7 @@ MTEV_UTILS_OBJS=utils/mtev_b32.hlo utils/mtev_b64.hlo \
     utils/mtev_rand.hlo $(ATOMIC_OBJS) \
     utils/mtev_flow_regulator.lo utils/mtev_lfu.lo utils/mtev_frrh.lo \
     utils/mtev_huge_hash.lo \
+    utils/tzinfo.lo \
     utils/android-demangle/cp-demangle.lo
 
 LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \

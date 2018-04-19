@@ -665,6 +665,32 @@ mtev.thread_self()
 
 
 
+#### mtev.timezone
+
+```lua
+mtev.timezone =
+mtev.timezone(zonename)
+```
+
+ *   * `zonename` is the name of the timezone (e.g. "UTC" or "US/Eastern")
+ *   * **RETURN** an mtev.timezone object.
+ 
+
+#### mtev.timezone:extract
+
+```lua
+a,... =
+mtev.timezone:extract(time, field1, ...)
+```
+
+  * `time` is the offset in seconds from UNIX epoch.
+  * `field1` is a field to extract in the time local to the timezone object.
+  * **RETURN** The value of each each requested field.
+
+Valid fields are "second", "minute", "hour", "monthday", "month", "weekday",
+"yearday", "year", "dst", "offset", and "zonename."
+
+
 #### mtev.tojson
 
 >Convert a lua object into a json doucument.
