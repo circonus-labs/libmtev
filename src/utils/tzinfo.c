@@ -137,7 +137,7 @@ static struct tzinfo *parse_tzfile(int fd, const char **err) {
     int pos = zi->tz[i].idx;
     int end = pos;
     if(end < 0 || end >= zi->charcnt) ERR("malformed file");
-    while(end < zi->charcnt && zi->strbuf[end] != 0) end++;
+    while(end < zi->charcnt-1 && zi->strbuf[end] != 0) end++;
     if(zi->strbuf[end] != 0) ERR("malformed file");
     zi->tz[i].name = zi->strbuf + pos;
   }
