@@ -240,7 +240,7 @@ fetch_cclock_scale(int cpuid, struct cclock_scale *cs) {
 static inline mtev_hrtime_t 
 mtev_gethrtime_fallback(void) {
   struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+  clock_gettime(CLOCK_MONOTONIC, &ts);
   return ((ts.tv_sec * 1000000000) + ts.tv_nsec);
 }
 #elif defined(__MACH__)
