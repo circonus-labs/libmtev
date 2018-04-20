@@ -55,6 +55,7 @@
 #include <openssl/md5.h>
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
+#include <libtz.h>
 
 #include "mtev_conf.h"
 #include "mtev_reverse_socket.h"
@@ -1374,6 +1375,92 @@ mtev_lua_socket_ssl_ctx(lua_State *L) {
   ssl_ctx_holder = (eventer_ssl_ctx_t **)lua_newuserdata(L, sizeof(ssl_ctx));
   *ssl_ctx_holder = ssl_ctx;
   luaL_getmetatable(L, "mtev.eventer.ssl_ctx");
+  lua_setmetatable(L, -2);
+  return 1;
+}
+/*! \lua a,... = mtev.timezone:extract(time, field1, ...)
+\param time is the offset in seconds from UNIX epoch.
+\param field1 is a field to extract in the time local to the timezone object.
+\return The value of each each requested field.
+
+Valid fields are "second", "minute", "hour", "monthday", "month", "weekday",
+"yearday", "year", "dst", "offset", and "zonename."
+*/
+static int
+mtev_lua_timezone_extract(lua_State *L) {
+  struct tm *res, stack_buf;
+  tzinfo_t **zi = lua_touserdata(L, lua_upvalueindex(1));
+  const tzzone_t *tz = NULL;
+  const char *field = NULL;
+  int n = lua_gettop(L);
+  if(n < 3) luaL_error(L, "mtev.timezone:extract(time, ...)");
+  if(lua_touserdata(L,1) != zi) luaL_error(L, "must be called as method");
+  time_t seconds = luaL_checkinteger(L,2);
+  res = libtz_zonetime(*zi, &seconds, &stack_buf, &tz);
+  if(!res) luaL_error(L, "Failed timezone conversion");
+  int i, nresults = 0;
+  for(i=3;i<=n;i++) {
+    field = luaL_checkstring(L,i);
+    if(!strcmp(field, "second")) lua_pushinteger(L, res->tm_sec);
+    else if(!strcmp(field, "minute")) lua_pushinteger(L, res->tm_min);
+    else if(!strcmp(field, "hour")) lua_pushinteger(L, res->tm_hour);
+    else if(!strcmp(field, "monthday")) lua_pushinteger(L, res->tm_mday);
+    else if(!strcmp(field, "weekday")) lua_pushinteger(L, res->tm_wday+1);
+    else if(!strcmp(field, "yearday")) lua_pushinteger(L, res->tm_yday+1);
+    else if(!strcmp(field, "month")) lua_pushinteger(L, res->tm_mon+1);
+    else if(!strcmp(field, "year")) lua_pushinteger(L, res->tm_year+1900);
+    else if(!strcmp(field, "dst")) lua_pushboolean(L, res->tm_isdst);
+    else if(!strcmp(field, "offset")) lua_pushboolean(L, libtz_tzzone_offset(tz));
+    else if(!strcmp(field, "zonename")) lua_pushstring(L, libtz_tzzone_name(tz));
+    else luaL_error(L, "unknown extraction '%s'", field);
+    nresults++;
+  }
+  return nresults;
+}
+static int
+mtev_timezone_index_func(lua_State *L) {
+  const char *k;
+  tzinfo_t **udata;
+  int n = lua_gettop(L);
+  mtevAssert(n == 2);
+  udata = (tzinfo_t**) luaL_testudata(L, 1, "mtev.timezone");
+  if(udata == NULL) {
+    luaL_error(L, "metatable error, arg1 not a mtev.timezone!");
+  }
+  if(!lua_isstring(L, 2)) {
+    luaL_error(L, "metatable error, arg2 not a string!");
+  }
+  k = lua_tostring(L, 2);
+  switch(*k) {
+    case 'e':
+      LUA_DISPATCH(extract, mtev_lua_timezone_extract);
+      break;
+    default:
+      break;
+  }
+  luaL_error(L, "mtev.eventer no such element: %s", k);
+  return 0;
+}
+static int
+mtev_lua_timezone_gc(lua_State *L) {
+  tzinfo_t **zip = lua_touserdata(L, 1);
+  libtz_free_tzinfo(*zip);
+  return 0;
+}
+/*! \lua mtev.timezone = mtev.timezone(zonename)
+ * \param zonename is the name of the timezone (e.g. "UTC" or "US/Eastern")
+ * \return an mtev.timezone object.
+ */
+static int
+nl_timezone(lua_State *L) {
+  const char *err;
+  if(lua_gettop(L) != 1) luaL_error(L, "timezone(<tzname>)");
+  const char *zonename = luaL_checkstring(L,1);
+  tzinfo_t *zi = libtz_open(zonename, &err);
+  if(!zi) luaL_error(L, err);
+  tzinfo_t **zip = lua_newuserdata(L, sizeof(tzinfo_t *));
+  *zip = zi;
+  luaL_getmetatable(L, "mtev.timezone");
   lua_setmetatable(L, -2);
   return 1;
 }
@@ -4596,6 +4683,7 @@ static const luaL_Reg mtevlib[] = {
   { "base32_encode", nl_base32_encode },
   { "base64_decode", nl_base64_decode },
   { "base64_encode", nl_base64_encode },
+  { "timezone", nl_timezone },
   { "utf8tohtml", nl_utf8tohtml },
   { "hmac_sha1_encode", nl_hmac_sha1_encode },
   { "hmac_sha256_encode", nl_hmac_sha256_encode },
@@ -4655,6 +4743,12 @@ Use sha256_hex instead.
 
 int luaopen_mtev(lua_State *L) {
   mtev_lua_init();
+
+  luaL_newmetatable(L, "mtev.timezone");
+  lua_pushcclosure(L, mtev_timezone_index_func, 0);
+  lua_setfield(L, -2, "__index");
+  lua_pushcfunction(L, mtev_lua_timezone_gc);
+  lua_setfield(L, -2, "__gc");
 
   luaL_newmetatable(L, "mtev.eventer");
   lua_pushcclosure(L, mtev_eventer_index_func, 0);

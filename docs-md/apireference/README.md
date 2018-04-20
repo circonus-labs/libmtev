@@ -118,7 +118,7 @@
 
 ##### T
 
-[mtev.thread_self](lua.md#mtevthreadself), [mtev.tojson](lua.md#mtevtojson)
+[mtev.thread_self](lua.md#mtevthreadself), [mtev.timezone](lua.md#mtevtimezone), [mtev.timezone:extract](lua.md#mtevtimezone:extract), [mtev.tojson](lua.md#mtevtojson)
 
 ##### U
 
