@@ -60,7 +60,11 @@ struct tzinfo {
 };
 
 #ifndef DEFAULT_ZONEINFO
+#ifdef __sun
+#define DEFAULT_ZONEINFO "/usr/share/lib/zoneinfo"
+#else
 #define DEFAULT_ZONEINFO "/usr/share/zoneinfo"
+#endif
 #endif
 static const char *base_default = DEFAULT_ZONEINFO;
 static char *base = NULL;
@@ -100,8 +104,8 @@ static struct tzinfo *parse_tzfile(int fd, const char **err) {
   if(err) *err = NULL;
   if(fd < 0) ERR("bad file");
   char buf[5];
-  if(read(fd, buf, 5) != 5) ERR("failure to read header");
-  if(memcmp(buf, "TZif2", 5)) ERR("invalid header");
+  if(read(fd, buf, 4) != 4) ERR("failure to read header");
+  if(memcmp(buf, "TZif", 4)) ERR("invalid header");
   if(lseek(fd, 28, SEEK_SET) != 28) ERR("data missing");
   if(readInt(fd, &zi->leapcnt) != 0) ERR("missing leap cnt");
   if(readInt(fd, &zi->timecnt) != 0) ERR("missing time cnt");
