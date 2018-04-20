@@ -53,7 +53,7 @@ struct tzinfo {
   int typecnt;
   int charcnt;
   int *trans_times;
-  int8_t *trans_types;
+  uint8_t *trans_types;
   char *strbuf;
   struct tzzone *tz, *normaltz;
   int *leap_secs;
@@ -118,8 +118,10 @@ static struct tzinfo *parse_tzfile(int fd, const char **err) {
   int i;
   for(i=0; i<zi->timecnt; i++)
     if(readInt(fd, &zi->trans_times[i]) != 0) ERR("short file");
-  for(i=0; i<zi->timecnt; i++)
+  for(i=0; i<zi->timecnt; i++) {
     if(read(fd, &zi->trans_types[i], 1) != 1) ERR("short file");
+    if(zi->trans_types[i] >= zi->typecnt) ERR("bad data");
+  }
   for(i=0; i<zi->typecnt; i++) {
     if(readInt(fd, &zi->tz[i].offset) != 0) ERR("short file");
     if(read(fd, &zi->tz[i].dst, 1) != 1) ERR("short file");
