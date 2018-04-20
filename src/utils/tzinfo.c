@@ -136,7 +136,7 @@ static struct tzinfo *parse_tzfile(int fd, const char **err) {
   for(i=0; i<zi->typecnt; i++) {
     int pos = zi->tz[i].idx;
     int end = pos;
-    if(pos >= zi->charcnt) ERR("malformed file");
+    if(end < 0 || end >= zi->charcnt) ERR("malformed file");
     while(end < zi->charcnt && zi->strbuf[end] != 0) end++;
     if(zi->strbuf[end] != 0) ERR("malformed file");
     zi->tz[i].name = zi->strbuf + pos;
@@ -235,7 +235,7 @@ libtz_strftime(char *buf, size_t buflen, const char *fmt, const struct tm *tm, c
   for(in=0, out=0; fmt[in] != '\0' && out < sizeof(pfmt)-1;) {
     if(fmt[in] == '%') {
       if(fmt[in+1] == 'Z') {
-        size_t len = snprintf(pfmt+out, sizeof(pfmt)-out, "%s", libtz_tzzone_name(tz));
+        ssize_t len = snprintf(pfmt+out, sizeof(pfmt)-out, "%s", libtz_tzzone_name(tz));
         if(len < 0) return len;
         out += len;
         in += 2;
@@ -247,7 +247,7 @@ libtz_strftime(char *buf, size_t buflen, const char *fmt, const struct tm *tm, c
         offset *= sign;
         int hours = offset / 3600;
         int minutes = (offset - 3600*hours) / 60;
-        size_t len = snprintf(pfmt+out, sizeof(pfmt)-out, "%c%02d%02d", sign > 0 ? '+' : '-', hours, minutes);
+        ssize_t len = snprintf(pfmt+out, sizeof(pfmt)-out, "%c%02d%02d", sign > 0 ? '+' : '-', hours, minutes);
         if(len < 0) return len;
         out += len;
         in += 2;
