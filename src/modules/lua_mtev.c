@@ -1423,10 +1423,10 @@ mtev_timezone_index_func(lua_State *L) {
   tzinfo_t **udata;
   int n = lua_gettop(L);
   mtevAssert(n == 2);
-  if(!luaL_checkudata(L, 1, "mtev.timezone")) {
+  udata = (tzinfo_t**) luaL_testudata(L, 1, "mtev.timezone");
+  if(udata == NULL) {
     luaL_error(L, "metatable error, arg1 not a mtev.timezone!");
   }
-  udata = lua_touserdata(L, 1);
   if(!lua_isstring(L, 2)) {
     luaL_error(L, "metatable error, arg2 not a string!");
   }
