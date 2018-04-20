@@ -104,7 +104,9 @@ make_config(void) {
     free(outbuf);
     exit(0);
   }
+  mode_t old_umask = umask(077);
   fd = mkstemp(filename);
+  umask(old_umask);
   if(fd < 0) {
     fprintf(stderr, "Faile to open config: %s\n", filename);
     free(outbuf);
