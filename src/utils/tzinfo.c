@@ -89,6 +89,7 @@ static int readInt(int fd, int *target) {
   *target = ntohl(*target);
   return 0;
 }
+#undef ERR
 #define ERR(str) do { \
   if(err) *err = (str); \
   libtz_free_tzinfo(zi); \
