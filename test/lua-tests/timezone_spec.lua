@@ -1,5 +1,14 @@
 describe("test timezones", function()
 
+  it("Can use UTC", function()
+    local zi = mtev.timezone("UTC")
+    assert.is_not_nil(zi)
+    local now = os.time()
+    local hour = math.floor(now / 3600) % 24
+    local uhour = zi:extract(now, 'hour')
+    assert.are.equal(hour, uhour)
+  end)
+
   it("Can use US/Eastern", function()
     local zi = mtev.timezone("US/Eastern")
     assert.is_not_nil(zi)

@@ -111,12 +111,14 @@ static struct tzinfo *parse_tzfile(int fd, const char **err) {
   if(readInt(fd, &zi->timecnt) != 0) ERR("missing time cnt");
   if(readInt(fd, &zi->typecnt) != 0) ERR("missing type cnt");
   if(readInt(fd, &zi->charcnt) != 0) ERR("missing char cnt");
-  if(zi->timecnt < 1 || zi->timecnt > 10240) ERR("bad time cnt");
+  if(zi->timecnt < 0 || zi->timecnt > 10240) ERR("bad time cnt");
   if(zi->typecnt < 1 || zi->typecnt > 10240) ERR("bad type cnt");
   if(zi->leapcnt < 0 || zi->leapcnt > 10240) ERR("bad leap cnt");
   if(zi->charcnt < 1 || zi->charcnt > 256000) ERR("bad char cnt");
-  zi->trans_times = calloc(zi->timecnt, sizeof(int));
-  zi->trans_types = calloc(zi->timecnt, sizeof(int));
+  if(zi->timecnt > 0) {
+    zi->trans_times = calloc(zi->timecnt, sizeof(int));
+    zi->trans_types = calloc(zi->timecnt, sizeof(int));
+  }
   zi->leap_secs = calloc(zi->leapcnt * 2, sizeof(int));
   zi->tz = calloc(zi->typecnt, sizeof(*zi->tz));
   int i;
