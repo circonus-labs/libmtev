@@ -61,14 +61,19 @@ mtev_rest_heap_profiler_handler(mtev_http_rest_closure_t *restc, int npats, char
     mtevL(mtev_notice, "Dumping heap profile to file: %s\n", mname);
     int r = mallctl("prof.dump", NULL, NULL, &mname, sizeof(const char *));
     mtevL(mtev_notice, "Dumping result: %d\n", r);
-    mtev_http_response_ok(ctx, "application/x-jemalloc-heap-profile");
     int fd = open(name, O_RDONLY);
     unlink(name);
     if (fd >= 0) {
       struct stat s;
-      fstat(fd, &s);
-      mtev_http_response_append_mmap(ctx, fd, s.st_size, MAP_SHARED, 0);
-      close(fd);
+      if (fstat(fd, &s) == 0) {
+	mtev_http_response_ok(ctx, "application/x-jemalloc-heap-profile");
+	mtev_http_response_append_mmap(ctx, fd, s.st_size, MAP_SHARED, 0);
+	close(fd);
+      } else {
+	close(fd);
+	error_str = "Cannot fstat temp file\n";
+	goto error;
+      }
     }
   }
   mtev_http_response_end(ctx);
