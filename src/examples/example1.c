@@ -10,6 +10,7 @@
 #include <mtev_capabilities_listener.h>
 #include <mtev_events_rest.h>
 #include <mtev_stats.h>
+#include <mtev_heap_profiler.h>
 #include <eventer/eventer.h>
 #include <inttypes.h>
 
@@ -198,6 +199,7 @@ child_main(void) {
   mtev_capabilities_listener_init();
   mtev_events_rest_init();
   mtev_stats_rest_init();
+  mtev_heap_profiler_rest_init();
   mtev_listener_init(APPNAME);
   init_cluster();
   mtev_dso_post_init();
