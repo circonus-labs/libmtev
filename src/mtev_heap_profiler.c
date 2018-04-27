@@ -3,6 +3,12 @@
 
 #include <dlfcn.h>
 #include <link.h>
+#include <stdio.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 static int (*mallctl)(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
 static mtev_boolean jemalloc_loaded = mtev_false;
@@ -24,40 +30,46 @@ mtev_rest_heap_profiler_handler(mtev_http_rest_closure_t *restc, int npats, char
     goto error;
   }
 
-  char *prefix = NULL;
   mtev_boolean active = mtev_false;
+  mtev_boolean active_present = mtev_false;
   mtev_boolean dump = mtev_false;
   void *value;
-  if (mtev_hash_retrieve(h, "prefix", strlen("prefix"), &value)) {
-    prefix = strdup((char *) value);
-  }
   if (mtev_hash_retrieve(h, "active", strlen("active"), &value)) {
     active = strcmp((char *)value, "true") == 0;
+    active_present = mtev_true;
   }
   if (mtev_hash_retrieve(h, "trigger_dump", strlen("trigger_dump"), &value)) {
     dump = strcmp((char *)value, "true") == 0;
   }
 
-  mtev_http_response_ok(ctx, "text/plain");
-  if (prefix != NULL) {
-    mallctl("opt.prof_prefix", NULL, NULL, &prefix, sizeof(char *));
-    mtev_http_response_append_str(ctx, "Set dump prefix to: %s\n", prefix);
-  }
   if (active) {
     bool bactive = true;
     mallctl("prof.active", NULL, NULL, &bactive, sizeof(bool));
+    mtev_http_response_ok(ctx, "text/plain");
     mtev_http_response_append_str(ctx, "Profiling is activated\n");
-  } else {
+  } else if (active_present) {
     bool bactive = false;
     mallctl("prof.active", NULL, NULL, &bactive, sizeof(bool));
+    mtev_http_response_ok(ctx, "text/plain");
     mtev_http_response_append_str(ctx, "Profiling is deactivated\n");
   }
 
   if (dump) {
-    mallctl("prof.dump", NULL, NULL, NULL, 0);
-    mtev_http_response_append_str(ctx, "Dumped heap profile\n");
+    char name[PATH_MAX];
+    snprintf(name, PATH_MAX, "/tmp/heap_profile.%d", getpid());
+    const char *mname = name;
+    mtevL(mtev_notice, "Dumping heap profile to file: %s\n", mname);
+    int r = mallctl("prof.dump", NULL, NULL, &mname, sizeof(const char *));
+    mtevL(mtev_notice, "Dumping result: %d\n", r);
+    mtev_http_response_ok(ctx, "application/x-jemalloc-heap-profile");
+    int fd = open(name, O_RDONLY);
+    unlink(name);
+    if (fd >= 0) {
+      struct stat s;
+      fstat(fd, &s);
+      mtev_http_response_append_mmap(ctx, fd, s.st_size, MAP_SHARED, 0);
+    }
   }
-
   mtev_http_response_end(ctx);
   return 0;
 
@@ -72,16 +84,13 @@ mtev_rest_heap_profiler_handler(mtev_http_rest_closure_t *restc, int npats, char
 
 void mtev_heap_profiler_init(void)
 {
-  /* it's loaded so we can enable mallctl */
-#ifdef RTLD_DEFAULT
-  mallctl = dlsym(RTLD_DEFAULT, "mallctl");
-#else
-  mallctl = dlsym((void *)0, "mallctl");
-#endif
-
-  if (mallctl) {
-    bool active = false;
-    mallctl("opt.prof_active", NULL, NULL, &active, sizeof(bool));
+  void *handle = dlopen("libjemalloc.so.2", RTLD_NOW | RTLD_NOLOAD);
+  
+  if (handle) {
+    mallctl = dlsym(handle, "mallctl");
+    if (mallctl) jemalloc_loaded = mtev_true;
+  } else {
+    jemalloc_loaded = mtev_false;
   }
 }
 

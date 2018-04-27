@@ -70,7 +70,7 @@ parse_cli_args(int argc, char * const *argv) {
 static mtev_hook_return_t
 on_node_updated(void *closure, mtev_cluster_node_changes_t node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
     struct timeval old_boot_time) {
-  mtev_boolean i_am_oldest = mtev_cluster_am_i_oldest_node(my_cluster);
+  mtev_boolean i_am_oldest = mtev_cluster_am_i_oldest_visible_node(my_cluster);
 
   mtevL(mtev_stderr, "The cluster topology has changed (seq=%"PRId64"): I am oldest node: %d\n",
       mtev_cluster_node_get_config_seq(updated_node), i_am_oldest);
@@ -183,6 +183,18 @@ static int handler(mtev_http_rest_closure_t *restc,
   return 0;
 }
 
+static int leak_handler(mtev_http_rest_closure_t *restc,
+			int npats, char **pats) {
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+
+  void *x = malloc(512 * 1024);
+  memset(x, 0, 512*1024);
+  mtev_http_response_ok(ctx, "text/plain");
+  mtev_http_response_append_str(ctx, "Leaked 512K\n");
+  mtev_http_response_end(ctx);
+  return 0;
+}
+
 static int
 child_main(void) {
   /* reload out config, to make sure we have the most current */
@@ -212,6 +224,10 @@ child_main(void) {
            mtev_http_rest_client_cert_auth
   );
   mtev_http_rest_register_auth(
+    "GET", "/", "^leak$", leak_handler,
+           mtev_http_rest_client_cert_auth
+  );
+  mtev_http_rest_register_auth(
     "GET", "/", "^(.*)$", mtev_rest_simple_file_handler,
            mtev_http_rest_client_cert_auth
   );
@@ -226,7 +242,6 @@ int main(int argc, char **argv) {
   pid_t pid, pgid;
   parse_cli_args(argc, argv);
   if(!config_file) exit(usage(argv[0]));
-  
   mtev_memory_init();
   switch(proc_op) {
     case PROC_OP_START:
