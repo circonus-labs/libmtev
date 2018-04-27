@@ -68,6 +68,7 @@ mtev_rest_heap_profiler_handler(mtev_http_rest_closure_t *restc, int npats, char
       struct stat s;
       fstat(fd, &s);
       mtev_http_response_append_mmap(ctx, fd, s.st_size, MAP_SHARED, 0);
+      close(fd);
     }
   }
   mtev_http_response_end(ctx);
