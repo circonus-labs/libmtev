@@ -54,7 +54,7 @@ mtev_rest_heap_profiler_handler(mtev_http_rest_closure_t *restc, int npats, char
     mtev_http_response_append_str(ctx, "Profiling is deactivated\n");
   }
 
-  if (dump) {
+  if (!active_present && dump) {
     char name[PATH_MAX];
     snprintf(name, PATH_MAX, "/tmp/heap_profile.%d", getpid());
     const char *mname = name;
@@ -84,14 +84,14 @@ mtev_rest_heap_profiler_handler(mtev_http_rest_closure_t *restc, int npats, char
 
 void mtev_heap_profiler_init(void)
 {
-  void *handle = dlopen("libjemalloc.so.2", RTLD_NOW | RTLD_NOLOAD);
-  
-  if (handle) {
-    mallctl = dlsym(handle, "mallctl");
-    if (mallctl) jemalloc_loaded = mtev_true;
-  } else {
-    jemalloc_loaded = mtev_false;
-  }
+  mallctl = 
+#ifdef RTLD_DEFAULT
+  dlsym(RTLD_DEFAULT, "mallctl");
+#else
+  dlsym(NULL, "mallctl");
+#endif
+  if (mallctl) jemalloc_loaded = mtev_true;
+  else jemalloc_loaded = mtev_false;
 }
 
 void mtev_heap_profiler_rest_init(void)
