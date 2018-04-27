@@ -24,6 +24,7 @@
     1. [REST and HTTP](development/rest.md)
     1. [Logging](development/logging.md)
     1. [Hooks](development/hooks.md)
+    1. [jemalloc](development/jemalloc.md)
 
   1. [Operations](operations/README.md)
     1. [REST](operations/rest.md)
