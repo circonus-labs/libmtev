@@ -844,12 +844,12 @@ package_manip_path(char *in, const char *find, const char *replace) {
 }
 
 static int MTEV_JIT_OFF(void) {
-  static int enabled = -1;
-  if(enabled == -1) {
+  static int jit_off = -1;
+  if(jit_off == -1) {
     char *env = getenv("MTEV_JIT_OFF");
-    enabled = env ? atoi(env) : 0;
+    jit_off = env ? atoi(env) : 0;
   }
-  return enabled;
+  return jit_off;
 }
 
 lua_State *
