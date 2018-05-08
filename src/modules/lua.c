@@ -843,6 +843,15 @@ package_manip_path(char *in, const char *find, const char *replace) {
   return npath;
 }
 
+static int MTEV_JIT_OFF(void) {
+  static int enabled = -1;
+  if(enabled == -1) {
+    char *env = getenv("MTEV_JIT_OFF");
+    enabled = env ? atoi(env) : 0;
+  }
+  return enabled;
+}
+
 lua_State *
 mtev_lua_open(const char *module_name, void *lmc,
               const char *script_dir, const char *cpath) {
@@ -854,6 +863,13 @@ mtev_lua_open(const char *module_name, void *lmc,
 
   lua_gc(L, LUA_GCSTOP, 0);  /* stop collector during initialization */
   luaL_openlibs(L);  /* open libraries */
+
+  if(MTEV_JIT_OFF()) {
+    lua_getglobal(L, "jit");
+    lua_getfield(L, -1, "off");
+    lua_call(L, 0, 0);
+    lua_pop(L, 1);
+  }
 
   lua_newtable(L);
   lua_setglobal(L, "mtev_coros");
