@@ -355,7 +355,7 @@ eventer_pool_t *eventer_get_pool_for_event(eventer_t e) {
 int eventer_impl_propset(const char *key, const char *value) {
   if(!strcasecmp(key, "concurrency")) {
     if(ck_pr_load_32(&init_called) != 0) {
-      mtevL(mtev_error, "Cannot change eventer concurrent after startup\n");
+      mtevL(mtev_error, "Cannot change eventer concurrency after startup\n");
       return -1;
     }
     int requested = atoi(value);
@@ -365,7 +365,7 @@ int eventer_impl_propset(const char *key, const char *value) {
   }
   if(!strncasecmp(key, "loop_", strlen("loop_"))) {
     if(ck_pr_load_32(&init_called) != 0) {
-      mtevL(mtev_error, "Cannot change alternate eventer loop concurrent after startup\n");
+      mtevL(mtev_error, "Cannot change alternate eventer loop concurrency after startup\n");
       return -1;
     }
     char *nv = alloca(strlen(value)+1), *tok;
