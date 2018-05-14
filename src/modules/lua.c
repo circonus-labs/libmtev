@@ -843,6 +843,24 @@ package_manip_path(char *in, const char *find, const char *replace) {
   return npath;
 }
 
+static int MTEV_JIT_OFF(void) {
+  static int jit_off = -1;
+  if(jit_off == -1) {
+    char *env = getenv("MTEV_JIT_OFF");
+    jit_off = env ? atoi(env) : 0;
+  }
+  return jit_off;
+}
+
+static int MTEV_JIT_OPT(void) {
+  static int jit_opt = -2;
+  if(jit_opt == -2) {
+    char *env = getenv("MTEV_JIT_OPT");
+    jit_opt = env ? atoi(env) : -1;
+  }
+  return jit_opt;
+}
+
 lua_State *
 mtev_lua_open(const char *module_name, void *lmc,
               const char *script_dir, const char *cpath) {
@@ -854,6 +872,22 @@ mtev_lua_open(const char *module_name, void *lmc,
 
   lua_gc(L, LUA_GCSTOP, 0);  /* stop collector during initialization */
   luaL_openlibs(L);  /* open libraries */
+
+  if(MTEV_JIT_OFF()) {
+    lua_getglobal(L, "jit");
+    lua_getfield(L, -1, "off");
+    lua_call(L, 0, 0);
+    lua_pop(L, 1);
+  }
+
+  if(MTEV_JIT_OPT() >= 0) {
+    lua_getglobal(L, "jit");
+    lua_getfield(L, -1, "opt");
+    lua_getfield(L, -1, "start");
+    lua_pushinteger(L, MTEV_JIT_OPT());
+    lua_call(L, 1, 0);
+    lua_pop(L, 2);
+  }
 
   lua_newtable(L);
   lua_setglobal(L, "mtev_coros");
