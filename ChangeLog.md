@@ -4,6 +4,12 @@
 
 ## 1.2
 
+### 1.2.8
+ * Allow control of JIT and optimizations for LuaJIT
+ * Add heap profiling with jemalloc
+ * Add support for mtev.timezone
+ * Change clock timings to be hypervisor friendly
+
 ### 1.2.7
 
  * Add lua functions mtev.log_enabled(), mtev.cluster()
