@@ -93,6 +93,7 @@ MTEV_HOOK_IMPL(mtev_amqp_handle_connection_dyn,
 #define CONFIG_AMQP_PASS "self::node()/pass"
 #define CONFIG_AMQP_EXCHANGE "self::node()/exchange"
 #define CONFIG_AMQP_BINDINGKEY "self::node()/bindingkey"
+#define CONFIG_AMQP_QUEUENAME "self::node()/queuename"
 
 #define ENV_MANDATORY 1
 #define ENV_IMMEDIATE 2
@@ -112,6 +113,7 @@ struct amqp_module_config {
     char *vhost;
     char *exchange;
     char *bindingkey;
+    char *queuename;
     int32_t framesize;
   } *amqp_conns;
   int number_of_conns;
@@ -345,7 +347,7 @@ rabbitmq_manage_connection(void *vconn) {
     if(conn->bindingkey && strlen(conn->bindingkey)) {
       amqp_queue_declare_ok_t *r =
         amqp_queue_declare(conn->conn, 1,
-                           amqp_empty_bytes, 0, 0, 0, 1,
+                           conn->queuename ? amqp_cstring_bytes(conn->queuename) : amqp_empty_bytes, 0, 0, 0, 1,
                            amqp_empty_table);
       die_on_amqp_error(amqp_get_rpc_reply(conn->conn), "declaring queue");
       queuename = amqp_bytes_malloc_dup(r->queue);
@@ -420,7 +422,7 @@ init_conns(void) {
     if(!mtev_conf_get_string(mqs[section_id], CONFIG_AMQP_EXCHANGE, &cc->exchange))
       cc->exchange = strdup("amq.direct");
     mtev_conf_get_string(mqs[section_id], CONFIG_AMQP_BINDINGKEY, &cc->bindingkey);
-
+    mtev_conf_get_string(mqs[section_id], CONFIG_AMQP_QUEUENAME, &cc->queuename);
   }
   mtev_conf_release_sections(mqs, the_conf->number_of_conns);
   return 0;
