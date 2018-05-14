@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>REST and HTTP · GitBook</title>
+        <title>jemalloc · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.3">
@@ -53,10 +53,10 @@
     <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="logging.html" />
+    <link rel="next" href="../operations/" />
     
     
-    <link rel="prev" href="eventer.html" />
+    <link rel="prev" href="hooks.html" />
     
 
     </head>
@@ -347,7 +347,7 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.3.4" data-path="rest.html">
+        <li class="chapter " data-level="1.3.4" data-path="rest.html">
             
                 <a href="rest.html">
             
@@ -386,7 +386,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.7" data-path="jemalloc.html">
+        <li class="chapter active" data-level="1.3.7" data-path="jemalloc.html">
             
                 <a href="jemalloc.html">
             
@@ -563,7 +563,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href=".." >REST and HTTP</a>
+        <a href=".." >jemalloc</a>
     </h1>
 </div>
 
@@ -578,148 +578,27 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="rest">REST</h1>
-<p>The default network listening framework allows for simple registration
-of REST-based services via HTTP service.</p>
-<h5 id="appconf-snippet">app.conf (snippet)</h5>
-<pre><code>&lt;app&gt;
-  &lt;listener type=&quot;http_rest_api&quot; address=&quot;127.0.0.1&quot; port=&quot;80&quot;&gt;
-    &lt;config&gt;
-      &lt;acl&gt;internal&lt;/acl&gt;
-      &lt;document_root&gt;/path/to/docroot&lt;/document_root&gt;
-    &lt;/config&gt;
-  &lt;/listener&gt;
-  &lt;rest&gt;
-    &lt;acl type=&quot;deny&quot; listener_acl=&quot;^internal$&quot;&gt;
-      &lt;rule type=&quot;allow&quot; url=&quot;.&quot;/&gt;
-    &lt;/acl&gt;
-    &lt;acl type=&quot;deny&quot;&gt;&lt;/acl&gt;
-  &lt;/rest&gt;
-&lt;/app&gt;
-</code></pre><p>More information about listener configuration can be found in the
-<a href="../config/listeners.html">listener configuration</a> section.</p>
-<p>The above config establishes a REST-capable listener listening on
-<code>localhost</code> port 80.  The &quot;ACL&quot; config option is set to <code>internal</code>
-which can be used as a filter for ACL rules in the <code>rest/acl</code> config
-section.  The <code>document_root</code> is set, which will enable serving of
-static files on URLs that do not otherwise match routing rules. The
-ACL rule for <code>internal</code> set that all urls are allowed followed by a
-blanket deny rule.  Other listeners that might not specify an <code>acl</code>
-option would not see the first ACL allowing any URL, but still see the
-blanket deny rule.</p>
-<h2 id="registering-a-rest-handler">Registering a REST handler.</h2>
-<h5 id="myhandlerc-snippet">myhandler.c (snippet)</h5>
-<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_rest.h&gt;</span></span>
-
-<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span>
-<span class="hljs-title">my_rest_handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
-                <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
-  mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
-  mtev_http_response_ok(ctx, <span class="hljs-string">&quot;text/plain&quot;</span>);
-  mtev_http_response_append(ctx, <span class="hljs-string">&quot;myhandler: &quot;</span>, <span class="hljs-built_in">strlen</span>(<span class="hljs-string">&quot;myhandler: &quot;</span>));
-  mtev_http_response_append(ctx, pats[<span class="hljs-number">0</span>], <span class="hljs-built_in">strlen</span>(pats[<span class="hljs-number">0</span>]));
-  mtev_http_response_append(ctx, <span class="hljs-string">&quot;\n&quot;</span>, <span class="hljs-number">1</span>);
-  mtev_http_response_end(ctx);
-  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
-}
-
-<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">child_main</span><span class="hljs-params">()</span> </span>{
- ...
-
-  mtev_http_rest_register_auth(
-    <span class="hljs-string">&quot;GET&quot;</span>, <span class="hljs-string">&quot;/&quot;</span>, <span class="hljs-string">&quot;^myhandler/(.+)$&quot;</span>, my_rest_handler,
-           mtev_http_rest_client_cert_auth
-  );
-  mtev_http_rest_register_auth(
-    <span class="hljs-string">&quot;GET&quot;</span>, <span class="hljs-string">&quot;/&quot;</span>, <span class="hljs-string">&quot;^(.*)$&quot;</span>, mtev_rest_simple_file_handler,
-           mtev_http_rest_client_cert_auth
-  );
-  eventer_loop();
-  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
-}
-</code></pre>
-<h2 id="handling-asynchronous-work">Handling asynchronous work.</h2>
-<p>In order to complete some complex action in response to an inbound REST
-request, it might be necessary to schedule some asynchronous work and
-complete the response later.  This is possible, but requires a bit of
-juggling.  The basic idea is:</p>
-<ul>
-<li>from your handler:<ul>
-<li>copy and remove the connection&apos;s event from the eventer</li>
-<li>set the rest&apos;s fastpath to a completion routine</li>
-<li>schedule asynchronous work</li>
-<li>return 0;</li>
-</ul>
-</li>
-<li>from the async job&apos;s completion:<ul>
-<li>trigger the connection&apos;s event</li>
-</ul>
-</li>
-</ul>
-<h5 id="sleepyc-snippet">sleepy.c (snippet)</h5>
-<pre><code class="lang-c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;mtev_rest.h&gt;</span></span>
-
-<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler_work</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">int</span> mask, <span class="hljs-keyword">void</span> *closure,
-                        <span class="hljs-keyword">struct</span> timeval *now)</span> </span>{
-  <span class="hljs-keyword">mtev_http_rest_closure_t</span> *restc = closure;
-  <span class="hljs-keyword">if</span>(mask == EVENTER_ASYNCH_WORK) {
-    sleep(<span class="hljs-number">5</span>);
-  }
-  <span class="hljs-keyword">if</span>(mask == EVENTER_ASYNCH) {
-    mtev_http_session_resume_after_float(restc-&gt;http_ctx);
-  }
-  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
-}
-
-<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler_complete</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
-                            <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
-  mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
-  mtev_http_response_ok(ctx, <span class="hljs-string">&quot;text/plain&quot;</span>);
-  mtev_http_response_append(ctx, <span class="hljs-string">&quot;Hello world\n&quot;</span>, <span class="hljs-built_in">strlen</span>(<span class="hljs-string">&quot;Hello world\n&quot;</span>));
-  mtev_http_response_end(ctx);
-  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
-}
-
-<span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
-                   <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
-  <span class="hljs-keyword">eventer_t</span> conne, worke;
-  mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
-
-  <span class="hljs-comment">/* remove the eventer */</span>
-  conne = mtev_http_connection_event_float(mtev_http_session_connection(ctx));
-  <span class="hljs-keyword">if</span>(conne) eventer_remove_fde(conne);
-
-  <span class="hljs-comment">/* set a completion routine */</span>
-  restc-&gt;fastpath = handler_complete;
-
-  <span class="hljs-comment">/* schedule our work */</span>
-  worke = eventer_alloc_asynch(handler_work, restc);
-  eventer_add(worke);
-  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
-}
-</code></pre>
-<h2 id="handling-postput-data">Handling POST/PUT data</h2>
-<p>Reading data from the HTTP request is done by calling the
-<code>mtev_http_session_req_consume</code> function.  This can be tedious,
-so unless you are doing something special it can be much easier
-to simply first invoke the <code>mtev_rest_complete_upload</code> convenience
-wrapper.</p>
-<p>It must be called as the first action inside your REST callback handler.
-Any manipulation of the <code>restc</code> (closures in particular) will have undefined
-outcome.</p>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> <span class="hljs-title">handler</span><span class="hljs-params">(mtev_http_rest_closure_t *restc,
-                   <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
-  <span class="hljs-keyword">int</span> mask;
-  <span class="hljs-keyword">void</span> *payload;
-  <span class="hljs-keyword">int64_t</span> payload_len;
-  mtev_http_request *req = mtev_http_session_request(restc-&gt;http_ctx);
-
-  <span class="hljs-keyword">if</span>(!mtev_rest_complete_upload(restc, &amp;mask)) <span class="hljs-keyword">return</span> mask;
-  payload = mtev_http_request_get_upload(req, &amp;payload_len);
-
-  ...
-}
-</code></pre>
+                                <h1 id="jemalloc">jemalloc</h1>
+<p>libmtev has some special support available if you are running with the jemalloc
+allocator loaded.</p>
+<h2 id="malloc-statistics">malloc statistics.</h2>
+<p>Malloc statistics (in JSON) are available at the URL: <code>/mtev/memory.json</code></p>
+<h2 id="heap-profiling">Heap Profiling</h2>
+<p>To perform heap profiling you must have jemalloc heap profiling enabled 
+via environment variable:</p>
+<p><code>export MALLOC_CONF=&quot;prof:true,prof_active:false&quot;</code></p>
+<p>Or via the special <code>/etc/malloc.conf</code> string file:</p>
+<p><code>sudo ln -s &apos;prof:true,prof_active:false&apos; /etc/malloc.conf</code></p>
+<p>You can then flip on heap profiling in your mtev app by curling:</p>
+<p><code>/mtev/heap_profile?active=true</code></p>
+<p>This will turn on profiling from that moment until you disable it via:</p>
+<p><code>/mtev/heap_profile?active=false</code></p>
+<p>To get periodic heap profile dumps from your running application do:</p>
+<p><code>curl yourmachine:yourport/mtev/heap_profile?trigger_dump=true &gt; profile.prof</code></p>
+<p>This will spit back jeprof format heap information which can then be passed
+to the <code>jeprof</code> analysis program for further analysis:</p>
+<p><code>jeprof /path/to/your/executable profile.prof</code></p>
+<p>For more information on jemalloc heap profiling, see here: <a href="https://github.com/jemalloc/jemalloc/wiki/Use-Case%3A-Heap-Profiling" target="_blank">jemalloc heap profiling</a></p>
 
                                 
                                 </section>
@@ -747,12 +626,12 @@ outcome.</p>
 
             
                 
-                <a href="eventer.html" class="navigation navigation-prev " aria-label="Previous page: Eventer">
+                <a href="hooks.html" class="navigation navigation-prev " aria-label="Previous page: Hooks">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="logging.html" class="navigation navigation-next " aria-label="Next page: Logging">
+                <a href="../operations/" class="navigation navigation-next " aria-label="Next page: Operations">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -763,7 +642,7 @@ outcome.</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"REST and HTTP","level":"1.3.4","depth":2,"next":{"title":"Logging","level":"1.3.5","depth":2,"path":"development/logging.md","ref":"development/logging.md","articles":[]},"previous":{"title":"Eventer","level":"1.3.3","depth":2,"path":"development/eventer.md","ref":"development/eventer.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/rest.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"jemalloc","level":"1.3.7","depth":2,"next":{"title":"Operations","level":"1.4","depth":1,"path":"operations/README.md","ref":"operations/README.md","articles":[{"title":"REST","level":"1.4.1","depth":2,"path":"operations/rest.md","ref":"operations/rest.md","articles":[]},{"title":"Telnet","level":"1.4.2","depth":2,"path":"operations/telnet_console.md","ref":"operations/telnet_console.md","articles":[]},{"title":"DTrace","level":"1.4.3","depth":2,"path":"operations/dtrace.md","ref":"operations/dtrace.md","articles":[]}]},"previous":{"title":"Hooks","level":"1.3.6","depth":2,"path":"development/hooks.md","ref":"development/hooks.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"development/jemalloc.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

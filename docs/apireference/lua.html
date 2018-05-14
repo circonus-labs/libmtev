@@ -384,6 +384,19 @@
             
         </li>
     
+        <li class="chapter " data-level="1.3.7" data-path="../development/jemalloc.html">
+            
+                <a href="../development/jemalloc.html">
+            
+                    
+                    jemalloc
+            
+                </a>
+            
+
+            
+        </li>
+    
 
             </ul>
             
@@ -982,6 +995,31 @@ the first argument.</p>
 <pre><code class="lang-lua">thread, tid =
 mtev.thread_self()
 </code></pre>
+<h4 id="mtevtimezone">mtev.timezone</h4>
+<pre><code class="lang-lua">mtev.timezone =
+mtev.timezone(zonename)
+</code></pre>
+<ul>
+<li><ul>
+<li><code>zonename</code> is the name of the timezone (e.g. &quot;UTC&quot; or &quot;US/Eastern&quot;)</li>
+</ul>
+</li>
+<li><ul>
+<li><strong>RETURN</strong> an mtev.timezone object.</li>
+</ul>
+</li>
+</ul>
+<h4 id="mtevtimezoneextract">mtev.timezone:extract</h4>
+<pre><code class="lang-lua">a,... =
+mtev.timezone:extract(time, field1, ...)
+</code></pre>
+<ul>
+<li><code>time</code> is the offset in seconds from UNIX epoch.</li>
+<li><code>field1</code> is a field to extract in the time local to the timezone object.</li>
+<li><strong>RETURN</strong> The value of each each requested field.</li>
+</ul>
+<p>Valid fields are &quot;second&quot;, &quot;minute&quot;, &quot;hour&quot;, &quot;monthday&quot;, &quot;month&quot;, &quot;weekday&quot;,
+&quot;yearday&quot;, &quot;year&quot;, &quot;dst&quot;, &quot;offset&quot;, and &quot;zonename.&quot;</p>
 <h4 id="mtevtojson">mtev.tojson</h4>
 <blockquote>
 <p>Convert a lua object into a json doucument.</p>
