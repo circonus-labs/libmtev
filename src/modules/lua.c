@@ -852,6 +852,15 @@ static int MTEV_JIT_OFF(void) {
   return jit_off;
 }
 
+static int MTEV_JIT_OPT(void) {
+  static int jit_opt = -2;
+  if(jit_opt == -2) {
+    char *env = getenv("MTEV_JIT_OPT");
+    jit_opt = env ? atoi(env) : -1;
+  }
+  return jit_opt;
+}
+
 lua_State *
 mtev_lua_open(const char *module_name, void *lmc,
               const char *script_dir, const char *cpath) {
@@ -869,6 +878,15 @@ mtev_lua_open(const char *module_name, void *lmc,
     lua_getfield(L, -1, "off");
     lua_call(L, 0, 0);
     lua_pop(L, 1);
+  }
+
+  if(MTEV_JIT_OPT() >= 0) {
+    lua_getglobal(L, "jit");
+    lua_getfield(L, -1, "opt");
+    lua_getfield(L, -1, "start");
+    lua_pushinteger(L, MTEV_JIT_OPT());
+    lua_call(L, 1, 0);
+    lua_pop(L, 2);
   }
 
   lua_newtable(L);
