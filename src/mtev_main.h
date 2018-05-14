@@ -68,6 +68,15 @@ API_EXPORT(int)
   mtev_main_terminate(const char *appname,
                       const char *config_filename, int debug);
 
+
+/*! \fn void mtev_main_eventer_config(const char *name, const char *value)
+    \brief Set <eventer><config> options for an app that need not be specified explicitly in a config.
+    \param name The config key name
+    \param value The value of the config option
+*/
+API_EXPORT(void)
+  mtev_main_eventer_config(const char *name, const char *value);
+
 /*! \fn int mtev_main(const char *appname, const char *config_filename, int debug, int foreground, mtev_log_op_t lock, const char *glider, const char *drop_to_user, const char *drop_to_group, int (*passed_child_main)(void))
     \brief Run a comprehensive mtev setup followed by a "main" routine.
     \param appname The application name (should be the config root node name).

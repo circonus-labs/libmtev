@@ -83,6 +83,15 @@ static mtev_log_stream_t mtev_baked_log(const char *name) {
   return NULL;
 }
 
+static mtev_hash_table mtev_base_eventer_config;
+void
+mtev_main_eventer_config(const char *name, const char *value) {
+  if(value == NULL)
+    mtev_hash_delete(&mtev_base_eventer_config, name, strlen(name), free, free);
+  else
+    mtev_hash_replace(&mtev_base_eventer_config, strdup(name), strlen(name),
+                      strdup(value), free, free);
+}
 void
 mtev_main_enable_log(const char *name) {
   mtev_log_stream_t baked;
@@ -103,33 +112,41 @@ static int
 configure_eventer(const char *appname) {
   int rv = 0;
   mtev_boolean rlim_found = mtev_false;
-  mtev_hash_table *table;
+  mtev_hash_table *table, *table2;
   char appscratch[1024];
 
   snprintf(appscratch, sizeof(appscratch), "/%s/eventer/config|/%s/include/eventer/config",
            appname, appname);
-  table = mtev_conf_get_hash(MTEV_CONF_ROOT, appscratch);
-  if(table) {
-    mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-    while(mtev_hash_adv(table, &iter)) {
-      int subrv;
-      /* We want to set a sane default if the user doesn't provide an
-       * rlim_nofiles value... however, we have to try to set the user
-       * value before we set the default, because otherwise, if snowth
-       * is being run as a non-privileged user and we set a default
-       * lower than the user specified one, we can't raise it. Ergo -
-       * try to set from the config first, then set a default if one
-       * isn't specified */
-      if ((strlen(iter.key.str) == strlen("rlim_nofiles")) &&
-          (strncmp(iter.key.str, "rlim_nofiles", strlen(iter.key.str)) == 0) ) {
-        rlim_found = mtev_true;
-      }
-      if((subrv = eventer_propset(iter.key.str, iter.value.str)) != 0)
-        rv = subrv;
-    }
-    mtev_hash_destroy(table, free, free);
-    free(table);
+  table = calloc(1, sizeof(*table));
+  mtev_hash_init(table);
+  mtev_hash_merge_as_dict(table, &mtev_base_eventer_config);
+  table2 = mtev_conf_get_hash(MTEV_CONF_ROOT, appscratch);
+  if(table2) {
+    mtev_hash_merge_as_dict(table, table2);
+    mtev_hash_destroy(table2, free, free);
+    free(table2);
   }
+  
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  while(mtev_hash_adv(table, &iter)) {
+    int subrv;
+    /* We want to set a sane default if the user doesn't provide an
+     * rlim_nofiles value... however, we have to try to set the user
+     * value before we set the default, because otherwise, if snowth
+     * is being run as a non-privileged user and we set a default
+     * lower than the user specified one, we can't raise it. Ergo -
+     * try to set from the config first, then set a default if one
+     * isn't specified */
+    if ((strlen(iter.key.str) == strlen("rlim_nofiles")) &&
+        (strncmp(iter.key.str, "rlim_nofiles", strlen(iter.key.str)) == 0) ) {
+      rlim_found = mtev_true;
+    }
+    if((subrv = eventer_propset(iter.key.str, iter.value.str)) != 0)
+      rv = subrv;
+  }
+
+  mtev_hash_destroy(table, free, free);
+  free(table);
 
   /* If no rlim_nofiles configuration was found, set a default
    * of (2048*2048) */
@@ -199,6 +216,7 @@ mtev_init_globals(void) {
     mtev_capabilities_add_feature("http_accept_encoding_lz4f", lz4f_version);
 
     mtev_init_globals_once = 1;
+    mtev_hash_init(&mtev_base_eventer_config);
   }
   mtev_spinlock_unlock(&mtev_init_globals_lock);
 }

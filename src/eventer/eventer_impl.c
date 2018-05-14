@@ -55,6 +55,7 @@ static int PARALLELISM_MULTIPLIER = 4;
 static int EVENTER_DEBUGGING = 0;
 static int desired_nofiles = 1024*1024;
 static stats_ns_t *pool_ns, *threads_ns;
+static uint32_t init_called = 0;
 
 #define NS_PER_S 1000000000
 #define NS_PER_MS 1000000
@@ -353,12 +354,20 @@ eventer_pool_t *eventer_get_pool_for_event(eventer_t e) {
 
 int eventer_impl_propset(const char *key, const char *value) {
   if(!strcasecmp(key, "concurrency")) {
+    if(ck_pr_load_32(&init_called) != 0) {
+      mtevL(mtev_error, "Cannot change eventer concurrent after startup\n");
+      return -1;
+    }
     int requested = atoi(value);
     if(requested < 1) requested = 1;
     __default_loop_concurrency = requested;
     return 0;
   }
   if(!strncasecmp(key, "loop_", strlen("loop_"))) {
+    if(ck_pr_load_32(&init_called) != 0) {
+      mtevL(mtev_error, "Cannot change alternate eventer loop concurrent after startup\n");
+      return -1;
+    }
     char *nv = alloca(strlen(value)+1), *tok;
     memcpy(nv, value, strlen(value)+1);
     const char *name = key + strlen("loop_");
@@ -410,7 +419,16 @@ int eventer_impl_propset(const char *key, const char *value) {
     }
 #undef ADVTOK
 
-    eventer_jobq_t *jq = eventer_jobq_create_ms(name, mem_safety);
+    eventer_jobq_t *jq = eventer_jobq_retrieve(name);
+    if(jq && jq->mem_safety != mem_safety) {
+      mtevL(mtev_error, "eventer jobq '%s' cannot be redefined\n", name);
+      return -1;
+    }
+    if(!jq) jq = eventer_jobq_create_ms(name, mem_safety);
+    if(!jq) {
+      mtevL(mtev_error, "eventer jobq '%s' could not be created\n", name);
+      return -1;
+    }
     eventer_jobq_set_concurrency(jq, concurrency);
     eventer_jobq_set_min_max(jq, min, max);
     return 0;
@@ -687,6 +705,9 @@ void eventer_impl_init_globals(void) {
 int eventer_impl_init(void) {
   int try;
   char *evdeb;
+
+  mtevAssert(ck_pr_load_32(&init_called) == 0);
+  ck_pr_inc_32(&init_called);
 
   (void)try;
 #ifdef SOCK_CLOEXEC
