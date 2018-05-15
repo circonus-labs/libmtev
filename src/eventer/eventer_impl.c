@@ -411,7 +411,7 @@ int eventer_impl_propset(const char *key, const char *value) {
     if(tok) {
       if(!strcmp(tok, "gc")) mem_safety = EVENTER_JOBQ_MS_GC;
       else if(!strcmp(tok, "cs")) mem_safety = EVENTER_JOBQ_MS_CS;
-      else if(!strcmp(tok, "none")) {
+      else if(strcmp(tok, "none")) {
         mtevL(mtev_error, "eventer jobq '%s' has unknown memory safety setting: %s\n",
               name, tok);
         return -1;
