@@ -289,6 +289,8 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     jobq->desired_concurrency = 1;
     stats_rob_i32(jobq_ns, "concurrency", (void *)&jobq->concurrency);
     stats_rob_i32(jobq_ns, "desired_concurrency", (void *)&jobq->desired_concurrency);
+    stats_rob_i32(jobq_ns, "min_concurrency", (void *)&jobq->min_concurrency);
+    stats_rob_i32(jobq_ns, "max_concurrency", (void *)&jobq->max_concurrency);
     stats_rob_i32(jobq_ns, "backlog", (void *)&jobq->backlog);
     stats_rob_i64(jobq_ns, "timeouts", (void *)&jobq->timeouts);
   }

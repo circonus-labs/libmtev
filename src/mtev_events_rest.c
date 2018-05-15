@@ -129,6 +129,8 @@ json_spit_jobq(eventer_jobq_t *jobq, void *closure) {
   MJ_KV(doc, jobq->queue_name, jo = MJ_OBJ());
   MJ_KV(jo, "concurrency", MJ_INT(jobq->concurrency));
   MJ_KV(jo, "desired_concurrency", MJ_INT(jobq->desired_concurrency));
+  MJ_KV(jo, "min_concurrency", MJ_INT(jobq->min_concurrency));
+  MJ_KV(jo, "max_concurrency", MJ_INT(jobq->max_concurrency));
   MJ_KV(jo, "total_jobs", MJ_INT64(jobq->total_jobs));
   MJ_KV(jo, "backlog", MJ_INT(jobq->backlog));
   MJ_KV(jo, "inflight", MJ_INT(jobq->inflight));
