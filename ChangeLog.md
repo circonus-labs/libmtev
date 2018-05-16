@@ -4,6 +4,15 @@
 
 ## 1.2
 
+### 1.2.9
+ * Add mtev_main_eventer_config (see docs)
+ * Expose min/max concurrency in jobq display
+ * Deprecate `strnstrn` and expose `mtev_memmem`
+ * Deprecate `mtev__strndup` for `mtev_strndup`
+ * Fix "none" as an explicity memory safety declaration in eventer jobq configs
+ * Support optional `queuename` in mtev_amqp module
+ * Compile mtev_str functions with aggressive optimizations
+
 ### 1.2.8
  * Allow control of JIT and optimizations for LuaJIT
  * Add heap profiling with jemalloc
