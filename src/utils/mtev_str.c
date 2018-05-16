@@ -35,13 +35,11 @@
 #include "mtev_str.h"
 #include "mtev_log.h"
 
-#ifndef HAVE_STRNSTRN
-
 #define GROWTH_FACTOR(a) (((a) + ((a) >> 1))+1)
 
 #define KMPPATSIZE 256
-static void kmp_precompute(const char *pattern, int pattern_len,
-                           int *compile_buf) {
+static inline void
+kmp_precompute(const char *pattern, int pattern_len, int *compile_buf) {
   int i=0, j=-1;
 
   compile_buf[0] = j;
@@ -56,8 +54,9 @@ static void kmp_precompute(const char *pattern, int pattern_len,
   }
 }
 
-const char *strnstrn(const char *needle, int needle_len,
-                     const char *haystack, int haystack_len) {
+static inline const char *
+match_needle_haystack(const char *needle, int needle_len,
+                    const char *haystack, int haystack_len) {
   int i=0, j=0, compiled[KMPPATSIZE];
 
   if(needle_len > KMPPATSIZE) {
@@ -74,6 +73,23 @@ const char *strnstrn(const char *needle, int needle_len,
     }
   }
   return NULL;
+}
+
+#ifndef HAVE_STRNSTRN
+const char *strnstrn(const char *needle, int needle_len,
+                     const char *haystack, int haystack_len) {
+  return match_needle_haystack(needle, needle_len, haystack, haystack_len);
+}
+#endif
+
+void *
+mtev_memmem(const void *haystack, size_t haystack_len,
+            const void *needle, size_t needle_len) {
+#ifndef BROKEN_MEMMEM
+  return memmem(haystack, haystack_len, needle, needle_len);
+#else
+  return match_needle_haystack(needle, needle_len, haystack, haystack_len);
+#endif
 }
 
 char *
@@ -195,6 +211,4 @@ mtev_str_buff_to_string(mtev_str_buff_t **buff) {
   *buff = NULL;
   return string;
 }
-
-#endif
 
