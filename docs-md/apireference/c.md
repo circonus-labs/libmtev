@@ -3619,6 +3619,20 @@ mtev_main(const char *appname, const char *config_filename, int debug, int foreg
   * **RETURN** -1 on failure, 0 on success if `foreground==1`, or the return value of `main` if run in the foreground.
  
 
+#### mtev_main_eventer_config
+
+>Set <eventer><config> options for an app that need not be specified explicitly in a config.
+
+```c
+void
+mtev_main_eventer_config(const char *name, const char *value)
+```
+
+
+  * `name` The config key name
+  * `value` The value of the config option
+
+
 #### mtev_main_status
 
 >Determine if that application is already running under this configuration.
@@ -3802,6 +3816,93 @@ mtev_now_us()
 
     * **RETURN** mtev_gettimeofday() in microseconds since epoch
    
+
+### R
+
+#### mtev_rand
+
+>Generate a pseudo-random number between [0,2^64)
+
+```c
+uint64_t
+mtev_rand(void)
+```
+
+
+  * **RETURN** A pseudo-random number in the range [0,2^64)
+ 
+
+#### mtev_rand_buf
+
+>Fill a buffer with pseudo-random bytes.
+
+```c
+size_t
+mtev_rand_buf(void *buf, size_t len)
+```
+
+
+  * `buf` A buffer to fill.
+  * `len` The number of bytes to populate.
+  * **RETURN** The number of bytes written to `buf` (always `len`).
+ 
+
+#### mtev_rand_buf_secure
+
+>Fill a buffer with securely random bytes.
+
+```c
+size_t
+mtev_rand_buf_secure(void *buf, size_t len)
+```
+
+
+  * `buf` A buffer to fill.
+  * `len` The number of bytes to populate.
+  * **RETURN** The number of bytes written to `buf` (< len if insufficient entropy).
+ 
+
+#### mtev_rand_buf_trysecure
+
+>Fill a buffer with likely secure, but possibly pseudo-random bytes.
+
+```c
+size_t
+mtev_rand_buf_trysecure(void *buf, size_t len)
+```
+
+
+  * `buf` A buffer to fill.
+  * `len` The number of bytes to populate.
+  * **RETURN** The number of bytes written to `buf` (always `len`).
+ 
+
+#### mtev_rand_secure
+
+>Generate a secure random number.
+
+```c
+int
+mtev_rand_secure(uint64_t *out)
+```
+
+
+  * `out` A pointer to a `uint64_t` in which a securely generated random number will be stored.
+  * **RETURN** 0 on success, -1 on failure (not enough entropy available).
+ 
+
+#### mtev_rand_trysecure
+
+>Generate a likely secure, but possibly pseudo-random number between [0,2^64)
+
+```c
+uint64_t
+mtev_rand_trysecure(void)
+```
+
+
+  * **RETURN** A random pseudo-random number in the range [0,2^64)
+ 
 
 ### S
 

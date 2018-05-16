@@ -40,11 +40,15 @@
 
 ##### M
 
-[mtev_main](c.md#mtevmain), [mtev_main_status](c.md#mtevmainstatus), [mtev_main_terminate](c.md#mtevmainterminate), [MTEV_MAYBE_DECL](c.md#MTEVMAYBEDECL), [MTEV_MAYBE_DECL_VARS](c.md#MTEVMAYBEDECLVARS), [MTEV_MAYBE_FREE](c.md#MTEVMAYBEFREE), [MTEV_MAYBE_INIT_VARS](c.md#MTEVMAYBEINITVARS), [MTEV_MAYBE_REALLOC](c.md#MTEVMAYBEREALLOC), [MTEV_MAYBE_SIZE](c.md#MTEVMAYBESIZE), [mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile)
+[mtev_main](c.md#mtevmain), [mtev_main_eventer_config](c.md#mtevmaineventerconfig), [mtev_main_status](c.md#mtevmainstatus), [mtev_main_terminate](c.md#mtevmainterminate), [MTEV_MAYBE_DECL](c.md#MTEVMAYBEDECL), [MTEV_MAYBE_DECL_VARS](c.md#MTEVMAYBEDECLVARS), [MTEV_MAYBE_FREE](c.md#MTEVMAYBEFREE), [MTEV_MAYBE_INIT_VARS](c.md#MTEVMAYBEINITVARS), [MTEV_MAYBE_REALLOC](c.md#MTEVMAYBEREALLOC), [MTEV_MAYBE_SIZE](c.md#MTEVMAYBESIZE), [mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile)
 
 ##### N
 
 [mtev_now_ms](c.md#mtevnowms), [mtev_now_us](c.md#mtevnowus)
+
+##### R
+
+[mtev_rand](c.md#mtevrand), [mtev_rand_buf](c.md#mtevrandbuf), [mtev_rand_buf_secure](c.md#mtevrandbufsecure), [mtev_rand_buf_trysecure](c.md#mtevrandbuftrysecure), [mtev_rand_secure](c.md#mtevrandsecure), [mtev_rand_trysecure](c.md#mtevrandtrysecure)
 
 ##### S
 
