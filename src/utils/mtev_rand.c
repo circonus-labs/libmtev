@@ -3,33 +3,10 @@
 
 #include <openssl/rand.h>
 
-static int rand_init = 0;
+/* We leave this stub here for backware compatibility. */
+#undef mtev_rand_init
+void mtev_rand_init(void){ }
 
-inline int
-mtev_secure_rand(uint64_t *out)
-{
-  if(RAND_bytes((void *)out, sizeof(*out)) != 0) {
-    return -1;
-  }
-  return 0;
-}
-
-void
-mtev_rand_init(void){
-  if(rand_init == 0) {
-    uint64_t seed;
-    if(mtev_secure_rand(&seed) != 0) seed = time(NULL);
-    srand48((long int)seed);
-    rand_init = 1;
-  }
-}
-
-inline uint64_t
-mtev_trysecure_rand(void) {
-  uint64_t rv;
-  if(mtev_secure_rand(&rv) == 0) return rv;
-  return mtev_rand();
-}
 
 static __thread struct {
   unsigned short work[3];
@@ -42,7 +19,7 @@ mtev_rand(void)
   if(!random_tracer_help.initialized) {
     uint64_t scratch = 0, i;
     mtev_hrtime_t t;
-    if(mtev_secure_rand(&scratch) != 0) {
+    if(mtev_rand_secure(&scratch) != 0) {
       for(i=0;i<8;i++) {
         t = mtev_gethrtime();
         scratch = (scratch << 8) ^ t;
@@ -57,4 +34,46 @@ mtev_rand(void)
   /* coverity[DC.WEAK_CRYPTO] */
   v = (v << 31) ^ jrand48(random_tracer_help.work);
   return v;
+}
+
+inline int
+mtev_rand_secure(uint64_t *out)
+{
+  if(RAND_bytes((void *)out, sizeof(*out)) != 1) {
+    return -1;
+  }
+  return 0;
+}
+
+inline uint64_t
+mtev_rand_trysecure(void) {
+  uint64_t rv;
+  if(mtev_rand_secure(&rv) == 0) return rv;
+  return mtev_rand();
+}
+
+size_t
+mtev_rand_buf(void *vbuf, size_t len) {
+  uint8_t *buf = vbuf;
+  for(int i = 0; i < len; i+=sizeof(uint64_t)) {
+    uint64_t rblob = mtev_rand();
+    memcpy(buf+i, &rblob, (len-i < sizeof(uint64_t)) ? len - i : sizeof(uint64_t));
+  }
+  return len;
+}
+
+size_t
+mtev_rand_buf_secure(void *vbuf, size_t len) {
+  if(RAND_bytes(vbuf, len) != 1) return 0;
+  return len;
+}
+
+size_t
+mtev_rand_buf_trysecure(void *vbuf, size_t len) {
+  uint8_t *buf = vbuf;
+  for(int i = 0; i < len; i+=sizeof(uint64_t)) {
+    uint64_t rblob = mtev_rand_trysecure();
+    memcpy(buf+i, &rblob, (len-i < sizeof(uint64_t)) ? len - i : sizeof(uint64_t));
+  }
+  return len;
 }
