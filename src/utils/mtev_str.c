@@ -88,7 +88,7 @@ mtev_memmem(const void *haystack, size_t haystack_len,
 #ifndef BROKEN_MEMMEM
   return memmem(haystack, haystack_len, needle, needle_len);
 #else
-  return match_needle_haystack(needle, needle_len, haystack, haystack_len);
+  return (void *)match_needle_haystack(needle, needle_len, haystack, haystack_len);
 #endif
 }
 
