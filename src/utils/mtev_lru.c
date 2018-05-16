@@ -147,7 +147,7 @@ expire_oldest_lru_cache_no_lock(mtev_lru_t *c)
   int ec = ck_pr_load_32(&c->expire_count);
   if (ec == GC_CADENCE) {
     c->expire_count = 0;
-    ck_hs_gc(&c->hash, GC_CADENCE, (rand() % ck_hs_count(&c->hash)));
+    ck_hs_gc(&c->hash, GC_CADENCE, (mtev_rand() % ck_hs_count(&c->hash)));
   }
   c->expire_count++;
 
@@ -289,7 +289,7 @@ mtev_lru_remove(mtev_lru_t *c, const char *key, size_t key_len)
     int ec = ck_pr_load_32(&c->expire_count);
     if (ec == GC_CADENCE && ck_hs_count(&c->hash) > 0) {
       c->expire_count = 0;
-      ck_hs_gc(&c->hash, GC_CADENCE, (rand() % ck_hs_count(&c->hash)));
+      ck_hs_gc(&c->hash, GC_CADENCE, (mtev_rand() % ck_hs_count(&c->hash)));
     }
     c->expire_count++;
   }

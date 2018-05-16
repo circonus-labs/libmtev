@@ -40,4 +40,10 @@ API_EXPORT(void)
 API_EXPORT(uint64_t)
   mtev_rand(void);
 
+API_EXPORT(uint64_t)
+  mtev_trysecure_rand(void);
+
+API_EXPORT(int)
+  mtev_secure_rand(uint64_t *);
+
 #endif /* MTEV_RAND_H */

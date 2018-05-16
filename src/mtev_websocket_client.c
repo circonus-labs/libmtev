@@ -1,5 +1,6 @@
 #include "mtev_websocket_client.h"
 #include "mtev_http.h"
+#include "mtev_rand.h"
 #include "utils/mtev_log.h"
 #include "utils/mtev_b64.h"
 
@@ -134,8 +135,11 @@ wslay_genmask_callback(wslay_event_context_ptr ctx,
                        uint8_t *buf, size_t len,
                        void *user_data) {
   int i;
-  for(i = 0; i < len; i++)
-    buf[i] = lrand48();
+  for(i = 0; i < len; i+=sizeof(uint64_t)) {
+    uint64_t rblob = mtev_trysecure_rand();
+    if(len - i < sizeof(uint64_t)) memcpy(buf+i, &rblob, len - i);
+    else memcpy(buf+i, &rblob, sizeof(uint64_t));
+  }
   return 0;
 }
 
@@ -208,8 +212,11 @@ mtev_websocket_client_create_key(char *dest) {
   /* base64 encoded length is 4*ceil(n/3) so a pre-encoding length of 18 gives
    * us an encoded length of 24 */
   unsigned char buf[18];
-  for(int i = 0; i < 18; i++)
-    buf[i] = lrand48();
+  for(int i = 0; i < 18; i+=sizeof(uint64_t)) {
+    uint64_t rblob = mtev_trysecure_rand();
+    if(18-i < sizeof(uint64_t)) memcpy(buf+i, &rblob, 18-i);
+    else memcpy(buf+i, &rblob, sizeof(uint64_t));
+  }
   mtev_b64_encode(buf, 18, dest, 24);
 }
 
