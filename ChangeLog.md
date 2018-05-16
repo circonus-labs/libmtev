@@ -4,6 +4,10 @@
 
 ## 1.2
 
+### 1.2.x
+ * Make strnstrn and mtev_memmem "like Linux" on other platforms
+   with respect to the needle_len == 0 case.
+
 ### 1.2.9
  * Add mtev_main_eventer_config (see docs)
  * Expose min/max concurrency in jobq display
