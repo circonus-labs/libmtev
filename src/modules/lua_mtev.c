@@ -1062,8 +1062,7 @@ mtev_lua_socket_do_read(eventer_t e, int *mask, struct nl_slcl *cl,
     else if(cl->read_terminator) {
       const char *cp;
       int remaining = len;
-      cp = strnstrn(cl->read_terminator, strlen(cl->read_terminator),
-                    buff, len);
+      cp = mtev_memmem(buff, len, cl->read_terminator, strlen(cl->read_terminator));
       if(cp) remaining = cp - buff + strlen(cl->read_terminator);
       inbuff_addlstring(cl, buff, MIN(len, remaining));
       cl->read_sofar += len;
@@ -1200,8 +1199,8 @@ mtev_lua_socket_read(lua_State *L) {
     if(cl->read_sofar) {
       const char *cp;
       /* Ugh... inernalism */
-      cp = strnstrn(cl->read_terminator, strlen(cl->read_terminator),
-                    cl->inbuff, cl->read_sofar);
+      cp = mtev_memmem(cl->inbuff, cl->read_sofar,
+                       cl->read_terminator, strlen(cl->read_terminator));
       if(cp) {
         /* Here we matched... and we _know_ that someone actually wants:
          * strlen(cl->read_terminator) + cp - cl->inbuff.buffer bytes...

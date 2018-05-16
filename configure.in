@@ -588,6 +588,25 @@ int main(void){sem_t s;return (0 != sem_init(&s,0,0));}
 	]
 )
 
+AC_MSG_CHECKING([whether memmem works])
+AC_TRY_RUN(
+	[
+#include <string.h>
+int main(void){
+	const char *hay = "hay_for_horses";
+	return (memmem(hay, strlen(hay), "for_", 4) != (hay+4) || memmem(hay, strlen(hay), "Z", 0) != hay);
+}
+	],
+	[
+		AC_MSG_RESULT(yes)
+	],
+	[
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([****** memmem busted, using an internal version])
+		AC_DEFINE(BROKEN_MEMMEM, [1], [broken  memmem])
+	]
+)
+
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS(ssetugid strlcpy strnstrn openpty inet_pton inet_ntop getopt \
 	poll vasprintf strlcat strndup vasprintf)

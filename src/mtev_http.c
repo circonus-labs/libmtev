@@ -547,7 +547,7 @@ _fixup_bchain(struct bchain *b) {
      */
     f = b->next;
     if(!f) return mtev_false; /* Nothing left, can't complete the line */
-    str_in_f = strnstrn("\r\n", 2, f->buff + f->start, f->size);
+    str_in_f = mtev_memmem(f->buff + f->start, f->size, "\r\n", 2);
     if(!str_in_f) return mtev_false; /* nothing in next chain -- too long */
     str_in_f += 2;
     end_in_f = (str_in_f - f->buff - f->start);
@@ -849,10 +849,9 @@ mtev_http_request_finalize_headers(mtev_http_session_ctx *ctx, mtev_boolean *err
               REQ_PATSIZE - inset) == 0) goto match;
   }
   start = MAX((ssize_t)(req->current_offset) - REQ_PATSIZE, (ssize_t)(req->current_input->start));
-  mstr = strnstrn(REQ_PAT, REQ_PATSIZE,
-                  req->current_input->buff + start,
-                  req->current_input->size -
-                    (start - req->current_input->start));
+  mstr = mtev_memmem(req->current_input->buff + start,
+                     req->current_input->size - (start - req->current_input->start),
+                     REQ_PAT, REQ_PATSIZE);
   if(!mstr && req->current_input->next) {
     req->current_input = req->current_input->next;
     req->current_offset = req->current_input->start;
@@ -1249,7 +1248,7 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
       }
     }
     else {
-      str_in_f = strnstrn("\r\n", 2, head->buff + head->start, head->size);
+      str_in_f = mtev_memmem(head->buff + head->start, head->size, "\r\n", 2);
       if(str_in_f) {
         unsigned int clen = 0;
         const char *cp = head->buff + head->start;
@@ -1362,7 +1361,7 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
       head->size -= copy_size;
       if (ctx->req.payload_chunked) {
         /* there must be a \r\n at the end of this block */
-        str_in_f = strnstrn("\r\n", 2, head->buff + head->start, head->size);
+        str_in_f = mtev_memmem(head->buff + head->start, head->size, "\r\n", 2);
         if(head->size < 2 || strncmp(head->buff + head->start, "\r\n", 2) != 0) {
           mtevL(mtev_error, "HTTP chunked encoding error, no trailing CRLF.\n");
           return -2;

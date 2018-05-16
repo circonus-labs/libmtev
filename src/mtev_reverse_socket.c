@@ -907,7 +907,7 @@ socket_error:
       goto socket_error;
     }
     rc->data.buff_read += len;
-    crlf = (char *)strnstrn("\r\n\r\n", 4, rc->data.buff, rc->data.buff_read); /* end of request */
+    crlf = (char *)mtev_memmem(rc->data.buff, rc->data.buff_read, "\r\n\r\n", 4); /* end of request */
     if(crlf) {
       const char **req;
       char *anchor;
@@ -922,7 +922,7 @@ socket_error:
       /* Find a X-Bind "header" */
       rc->data.xbind = extract_xbind(rc->data.buff, &rc->data.proxy_ip4, &rc->data.proxy_ip6);
 
-      if(NULL == (crlf = (char *)strnstrn("\r\n", 2, rc->data.buff, rc->data.buff_read))) {
+      if(NULL == (crlf = (char *)mtev_memmem(rc->data.buff, rc->data.buff_read, "\r\n", 2))) {
         socket_error_string = "no end of line found";
         goto socket_error;
       }
