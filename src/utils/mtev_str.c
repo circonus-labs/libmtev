@@ -59,6 +59,7 @@ match_needle_haystack(const char *needle, int needle_len,
                     const char *haystack, int haystack_len) {
   int i=0, j=0, compiled[KMPPATSIZE];
 
+  if(needle_len == 0) return haystack;
   if(needle_len > KMPPATSIZE) {
     mtevFatal(mtev_error, "errorin strnstrn: needle_len (%d) < KMPPATSIZE (%d)\n",
             needle_len, KMPPATSIZE);
