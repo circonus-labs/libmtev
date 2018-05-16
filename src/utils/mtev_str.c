@@ -93,7 +93,7 @@ mtev_memmem(const void *haystack, size_t haystack_len,
 }
 
 char *
-mtev__strndup(const char *src, size_t len) {
+mtev_strndup(const char *src, size_t len) {
   int slen;
   char *dst;
   for(slen = 0; slen < len; slen++)
@@ -102,6 +102,11 @@ mtev__strndup(const char *src, size_t len) {
   memcpy(dst, src, slen);
   dst[slen] = '\0';
   return dst;
+}
+
+char *
+mtev__strndup(const char *src, size_t len) {
+  return mtev_strndup(src, len);
 }
 
 void

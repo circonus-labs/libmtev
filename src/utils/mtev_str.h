@@ -55,7 +55,8 @@ API_EXPORT(const char *) strnstrn(const char *, int, const char *, int) __attrib
 API_EXPORT(void *) mtev_memmem(const void *haystack, size_t haystacklen,
                                const void *needle, size_t needlelen);
 
-API_EXPORT(char *) mtev__strndup(const char *src, size_t len);
+API_EXPORT(char *) mtev__strndup(const char *src, size_t len) __attribute__((deprecated)); /*1.2.9*/
+API_EXPORT(char *) mtev_strndup(const char *src, size_t len);
 
 API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc(void);
 API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc_sized(size_t initial_len);

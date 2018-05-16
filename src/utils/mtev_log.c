@@ -1520,7 +1520,7 @@ mtev_log_stream_find(const char *name) {
   else if(!strcmp(name, "stderr")) newls->flags = BOOT_STDERR_FLAGS;
 
   if(NULL != (last_sep = strrchr(name, '/'))) {
-    char *parent = mtev__strndup(name, (int)(last_sep - name));
+    char *parent = mtev_strndup(name, (int)(last_sep - name));
     mtev_log_stream_add_stream(newls, mtev_log_stream_find(parent));
     free(parent);
   }
