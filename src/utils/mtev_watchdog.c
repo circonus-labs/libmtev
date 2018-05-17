@@ -551,7 +551,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
           case SIGCHLD:
             if(child_pid != crashing_pid && crashing_pid != -1) {
               mtevL(mtev_error, "[monitoring] suspending services while reaping emancipated child %d\n", crashing_pid);
-              while((rv = waitpid(crashing_pid, &status, 0) == -1) && errno == EINTR);
+              while((rv = waitpid(crashing_pid, &status, 0)) == -1 && errno == EINTR);
               if(rv == crashing_pid) {
                 mtevL(mtev_error, "[monitor] emancipated child %d [%d/%d] reaped.\n",
                       crashing_pid, WEXITSTATUS(status), WTERMSIG(status));
@@ -628,6 +628,10 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
               }
               kill(child_pid, SIGKILL);
               mtev_monitored_child_pid = -1;
+              if(!allow_async_dumps) {
+                crashing_pid = child_pid;
+                goto out_loop2;
+              }
             }
             mtev_log_reopen_type("file");
             break;
@@ -636,6 +640,19 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
         }
       }
      out_loop2:
+      if(crashing_pid > 0 && !allow_async_dumps) {
+        int rv, status;
+        mtevL(mtev_error, "[monitor] waiting for %d to exit.\n", crashing_pid);
+        while((rv = waitpid(crashing_pid, &status, 0)) == -1 && errno == EINTR);
+        if(rv != crashing_pid) {
+          mtevL(mtev_error, "[monitor] unexpected wait! %d != %d\n", crashing_pid, rv);
+        }
+        else {
+          child_sig = WTERMSIG(status);
+          exit_val = WEXITSTATUS(status);
+        }
+        crashing_pid = -1;
+      }
       if(child_sig >= 0) {
         mtevL(mtev_error, "[monitor] %s child died [%d/%d], restarting.\n",
               app, exit_val, sig);
