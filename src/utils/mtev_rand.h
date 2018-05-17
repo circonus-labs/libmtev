@@ -34,10 +34,56 @@
 
 #include "mtev_defines.h"
 
-API_EXPORT(void)
-  mtev_rand_init(void);
+/* mtev rand no long requires initialization, this is a noop */
+#define mtev_rand_init()
 
+/*! \fn uint64_t mtev_rand(void)
+    \brief Generate a pseudo-random number between [0,2^64)
+    \return A pseudo-random number in the range [0,2^64)
+ */
 API_EXPORT(uint64_t)
   mtev_rand(void);
+
+/*! \fn uint64_t mtev_rand_trysecure(void)
+    \brief Generate a likely secure, but possibly pseudo-random number between [0,2^64)
+    \return A random pseudo-random number in the range [0,2^64)
+ */
+API_EXPORT(uint64_t)
+  mtev_rand_trysecure(void);
+
+/*! \fn int mtev_rand_secure(uint64_t *out)
+    \brief Generate a secure random number.
+    \param out A pointer to a `uint64_t` in which a securely generated random number will be stored.
+    \return 0 on success, -1 on failure (not enough entropy available).
+ */
+API_EXPORT(int)
+  mtev_rand_secure(uint64_t *);
+
+/*! \fn size_t mtev_rand_buf(void *buf, size_t len)
+    \brief Fill a buffer with pseudo-random bytes.
+    \param buf A buffer to fill.
+    \param len The number of bytes to populate.
+    \return The number of bytes written to `buf` (always `len`).
+ */
+API_EXPORT(size_t)
+  mtev_rand_buf(void *, size_t);
+
+/*! \fn size_t mtev_rand_buf_trysecure(void *buf, size_t len)
+    \brief Fill a buffer with likely secure, but possibly pseudo-random bytes.
+    \param buf A buffer to fill.
+    \param len The number of bytes to populate.
+    \return The number of bytes written to `buf` (always `len`).
+ */
+API_EXPORT(size_t)
+  mtev_rand_buf_trysecure(void *, size_t);
+
+/*! \fn size_t mtev_rand_buf_secure(void *buf, size_t len)
+    \brief Fill a buffer with securely random bytes.
+    \param buf A buffer to fill.
+    \param len The number of bytes to populate.
+    \return The number of bytes written to `buf` (< len if insufficient entropy).
+ */
+API_EXPORT(size_t)
+  mtev_rand_buf_secure(void *, size_t);
 
 #endif /* MTEV_RAND_H */

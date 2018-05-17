@@ -34,6 +34,7 @@
 #include "mtev_time.h"
 #include "mtev_zipkin.h"
 #include "mtev_getip.h"
+#include "mtev_rand.h"
 #include "eventer/eventer.h"
 
 #include <ctype.h>
@@ -423,33 +424,15 @@ ze_Zipkin_Span_List(byte *buffer, size_t len, Zipkin_Span **v, int cnt) {
   ADV_SAFE(ze_list_end(buffer,len));
   return sofar;
 }
-static __thread struct {
-  unsigned short work[3];
-  bool initialized;
-} random_tracer_help;
+
 static int64_t
 ze_get_traceid(void) {
-  int64_t id;
-  if(!random_tracer_help.initialized) {
-    uint64_t scratch = 0, i;
-    mtev_hrtime_t t;
-    for(i=0;i<8;i++) {
-      t = mtev_gethrtime();
-      scratch = (scratch << 8) ^ t;
-    }
-    memcpy(random_tracer_help.work, ((unsigned char *)&scratch)+2, 6);
-    mtevL(mtev_debug, "trace for thread [%lx] initialized [%02x%02x%02x]\n",
-          (unsigned long)pthread_self(),
-          random_tracer_help.work[0],
-          random_tracer_help.work[1],
-          random_tracer_help.work[2]);
-  }
+  int64_t id = mtev_rand();
   /* We sacrifice half the keyspace here because we want to avoid
    * sensible people using uint64_t from incorrectly decoding an int64_t.
    * Java and other languages without unsigned types are the plague.
    */
-  id = jrand48(random_tracer_help.work);
-  id = (id << 31) ^ jrand48(random_tracer_help.work);
+  if (id < 0) return ~id;
   return id;
 }
 
@@ -539,13 +522,13 @@ mtev_zipkin_span_new(int64_t *trace_id,
 
   if(!force && debug && *debug) {
     if(ze_debug_trace_probability != 1.0 &&
-       drand48() > ze_debug_trace_probability) return NULL;
+       /* coverity[DC.WEAK_CRYPTO] */ drand48() > ze_debug_trace_probability) return NULL;
     force = true;
   }
 
   if(!trace_id) {
     if(!force && ze_new_trace_probability != 1.0 &&
-       drand48() > ze_new_trace_probability) return NULL;
+       /* coverity[DC.WEAK_CRYPTO] */ drand48() > ze_new_trace_probability) return NULL;
 
     my_trace_id = ze_get_traceid();
     trace_id = &my_trace_id;
@@ -568,7 +551,7 @@ mtev_zipkin_span_new(int64_t *trace_id,
 
   if(parent_span_id) {
     if(!force && ze_parented_trace_probability != 1.0 &&
-       drand48() > ze_parented_trace_probability) return NULL;
+       /* coverity[DC.WEAK_CRYPTO] */ drand48() > ze_parented_trace_probability) return NULL;
   }
 
   span = calloc(1, sizeof(*span));

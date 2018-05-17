@@ -3295,6 +3295,17 @@ mtev_main(const char *appname, const char *config_filename, int debug, int foreg
 <li><code>passed_child_main</code> A programmers supplied main function.</li>
 <li><strong>RETURN</strong> -1 on failure, 0 on success if <code>foreground==1</code>, or the return value of <code>main</code> if run in the foreground.</li>
 </ul>
+<h4 id="mtevmaineventerconfig">mtev_main_eventer_config</h4>
+<blockquote>
+<p>Set <eventer><config> options for an app that need not be specified explicitly in a config.</config></eventer></p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_main_eventer_config</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *value)</span>
+</span></code></pre>
+<ul>
+<li><code>name</code> The config key name</li>
+<li><code>value</code> The value of the config option</li>
+</ul>
 <h4 id="mtevmainstatus">mtev_main_status</h4>
 <blockquote>
 <p>Determine if that application is already running under this configuration.</p>
@@ -3433,7 +3444,75 @@ mtev_now_us()
 <p>the current system time in microseconds</p>
 </blockquote>
 <pre><code>* **RETURN** mtev_gettimeofday() in microseconds since epoch
-</code></pre><h3 id="s">S</h3>
+</code></pre><h3 id="r">R</h3>
+<h4 id="mtevrand">mtev_rand</h4>
+<blockquote>
+<p>Generate a pseudo-random number between [0,2^64)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span>
+mtev_rand(<span class="hljs-keyword">void</span>)
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> A pseudo-random number in the range [0,2^64)</li>
+</ul>
+<h4 id="mtevrandbuf">mtev_rand_buf</h4>
+<blockquote>
+<p>Fill a buffer with pseudo-random bytes.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
+mtev_rand_buf(<span class="hljs-keyword">void</span> *buf, <span class="hljs-keyword">size_t</span> len)
+</code></pre>
+<ul>
+<li><code>buf</code> A buffer to fill.</li>
+<li><code>len</code> The number of bytes to populate.</li>
+<li><strong>RETURN</strong> The number of bytes written to <code>buf</code> (always <code>len</code>).</li>
+</ul>
+<h4 id="mtevrandbufsecure">mtev_rand_buf_secure</h4>
+<blockquote>
+<p>Fill a buffer with securely random bytes.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
+mtev_rand_buf_secure(<span class="hljs-keyword">void</span> *buf, <span class="hljs-keyword">size_t</span> len)
+</code></pre>
+<ul>
+<li><code>buf</code> A buffer to fill.</li>
+<li><code>len</code> The number of bytes to populate.</li>
+<li><strong>RETURN</strong> The number of bytes written to <code>buf</code> (&lt; len if insufficient entropy).</li>
+</ul>
+<h4 id="mtevrandbuftrysecure">mtev_rand_buf_trysecure</h4>
+<blockquote>
+<p>Fill a buffer with likely secure, but possibly pseudo-random bytes.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
+mtev_rand_buf_trysecure(<span class="hljs-keyword">void</span> *buf, <span class="hljs-keyword">size_t</span> len)
+</code></pre>
+<ul>
+<li><code>buf</code> A buffer to fill.</li>
+<li><code>len</code> The number of bytes to populate.</li>
+<li><strong>RETURN</strong> The number of bytes written to <code>buf</code> (always <code>len</code>).</li>
+</ul>
+<h4 id="mtevrandsecure">mtev_rand_secure</h4>
+<blockquote>
+<p>Generate a secure random number.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_rand_secure</span><span class="hljs-params">(uint64_t *out)</span>
+</span></code></pre>
+<ul>
+<li><code>out</code> A pointer to a <code>uint64_t</code> in which a securely generated random number will be stored.</li>
+<li><strong>RETURN</strong> 0 on success, -1 on failure (not enough entropy available).</li>
+</ul>
+<h4 id="mtevrandtrysecure">mtev_rand_trysecure</h4>
+<blockquote>
+<p>Generate a likely secure, but possibly pseudo-random number between [0,2^64)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span>
+mtev_rand_trysecure(<span class="hljs-keyword">void</span>)
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> A random pseudo-random number in the range [0,2^64)</li>
+</ul>
+<h3 id="s">S</h3>
 <h4 id="mtevsecuritychroot">mtev_security_chroot</h4>
 <blockquote>
 <p>chroot(2) to the specified directory.</p>

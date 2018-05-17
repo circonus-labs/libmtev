@@ -37,6 +37,7 @@
 #include "mtev_rest.h"
 #include "mtev_conf.h"
 #include "mtev_hash.h"
+#include "mtev_rand.h"
 #include "mtev_memory.h"
 #include "mtev_cluster.h"
 #include "mtev_cht.h"
@@ -258,7 +259,7 @@ mtev_cluster_on_node_changed(mtev_cluster_t *cluster,
       mtevL(cdebug,
           "The following node in the cluster %s had the same startup time we have: '%s'\n",
           cluster->name, node_name);
-      my_boot_time.tv_usec = random() % 1000000;
+      my_boot_time.tv_usec = mtev_rand() % 1000000;
       return;
     }
   }
