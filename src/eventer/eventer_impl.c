@@ -390,7 +390,7 @@ int eventer_impl_propset(const char *key, const char *value) {
     const char *name = key + strlen("jobq_");
     if(strlen(name) == 0) return -1;
 
-    uint32_t concurrency, min = 0, max = 0;
+    uint32_t concurrency, min = 0, max = 0, backlog = 0;
     eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_NONE;
 
     ADVTOK;
@@ -417,6 +417,8 @@ int eventer_impl_propset(const char *key, const char *value) {
         return -1;
       }
     }
+    ADVTOK;
+    if(tok) backlog = atoi(tok);
 #undef ADVTOK
 
     eventer_jobq_t *jq = eventer_jobq_retrieve(name);
@@ -431,6 +433,7 @@ int eventer_impl_propset(const char *key, const char *value) {
     }
     eventer_jobq_set_concurrency(jq, concurrency);
     eventer_jobq_set_min_max(jq, min, max);
+    eventer_jobq_set_max_backlog(jq, backlog);
     return 0;
   }
   if(!strcasecmp(key, "default_queue_threads")) {
