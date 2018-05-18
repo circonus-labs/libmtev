@@ -2128,7 +2128,7 @@ mtev_conf_get_uint32(mtev_conf_section_t section,
                      const char *path, uint32_t *value) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
-    *value = (int)mtev_conf_string_to_uint32(str);
+    *value = mtev_conf_string_to_uint32(str);
     xmlFree(str);
     return 1;
   }
