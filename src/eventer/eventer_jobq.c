@@ -920,3 +920,6 @@ const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq) {
 uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq) {
   return jobq->concurrency;
 }
+eventer_jobq_memory_safety_t eventer_jobq_get_memory_safety(eventer_jobq_t *jobq) {
+  return jobq->mem_safety;
+}
