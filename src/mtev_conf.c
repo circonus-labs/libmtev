@@ -1439,6 +1439,14 @@ static int mtev_conf_check_value(mtev_conf_description_t* description) {
     rv = mtev_conf_get_int64(description->section, description->path,
         &description->value.val_int64);
     break;
+  case MTEV_CONF_TYPE_UINT32:
+    rv = mtev_conf_get_uint32(description->section, description->path,
+        &description->value.val_uint32);
+    break;
+  case MTEV_CONF_TYPE_UINT64:
+    rv = mtev_conf_get_uint64(description->section, description->path,
+        &description->value.val_uint64);
+    break;
   case MTEV_CONF_TYPE_FLOAT:
     rv = mtev_conf_get_float(description->section, description->path,
         &description->value.val_float);
@@ -1554,6 +1562,8 @@ mtev_conf_description_##name (mtev_conf_section_t section, char *path, \
 mtev_conf_description(boolean, MTEV_CONF_TYPE_BOOLEAN)
 mtev_conf_description(int32, MTEV_CONF_TYPE_INT32)
 mtev_conf_description(int64, MTEV_CONF_TYPE_INT64)
+mtev_conf_description(uint32, MTEV_CONF_TYPE_UINT32)
+mtev_conf_description(uint64, MTEV_CONF_TYPE_UINT64)
 mtev_conf_description(float, MTEV_CONF_TYPE_FLOAT)
 mtev_conf_description(double, MTEV_CONF_TYPE_DOUBLE)
 mtev_conf_description(string, MTEV_CONF_TYPE_STRING)
@@ -1588,6 +1598,14 @@ int mtev_conf_get_value(mtev_conf_description_t* description,
   case MTEV_CONF_TYPE_INT64:
     memcpy(return_value, &description->value.val_int64,
         sizeof(description->value.val_int64));
+    break;
+  case MTEV_CONF_TYPE_UINT32:
+    memcpy(return_value, &description->value.val_uint32,
+        sizeof(description->value.val_uint32));
+    break;
+  case MTEV_CONF_TYPE_UINT64:
+    memcpy(return_value, &description->value.val_uint64,
+        sizeof(description->value.val_uint64));
     break;
   case MTEV_CONF_TYPE_FLOAT:
     memcpy(return_value, &description->value.val_float,
@@ -2082,6 +2100,17 @@ mtev_conf_set_string(mtev_conf_section_t section,
   return 1;
 }
 
+uint32_t
+mtev_conf_string_to_uint32(const char *str) {
+  int base = 10;
+  if(!str) return 0;
+  if(str[0] == '0') {
+    if(str[1] == 'x') base = 16;
+    else base = 8;
+  }
+  return strtoul(str, NULL, base);
+}
+
 int32_t
 mtev_conf_string_to_int32(const char *str) {
   int base = 10;
@@ -2095,11 +2124,37 @@ mtev_conf_string_to_int32(const char *str) {
 
 /* No locks required */
 int
+mtev_conf_get_uint32(mtev_conf_section_t section,
+                     const char *path, uint32_t *value) {
+  char *str;
+  if(_mtev_conf_get_string(section,NULL,path,&str)) {
+    *value = mtev_conf_string_to_uint32(str);
+    xmlFree(str);
+    return 1;
+  }
+  return 0;
+}
+
+/* No locks required */
+int
 mtev_conf_get_int32(mtev_conf_section_t section,
                     const char *path, int32_t *value) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
     *value = (int)mtev_conf_string_to_int32(str);
+    xmlFree(str);
+    return 1;
+  }
+  return 0;
+}
+
+/* No locks required */
+int
+mtev_conf_get_uint64(mtev_conf_section_t section,
+                     const char *path, uint64_t *value) {
+  char *str;
+  if(_mtev_conf_get_string(section,NULL,path,&str)) {
+    *value = strtoull(str, NULL, 10);
     xmlFree(str);
     return 1;
   }

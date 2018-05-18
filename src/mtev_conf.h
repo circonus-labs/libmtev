@@ -87,13 +87,17 @@ enum mtev_conf_type {
   MTEV_CONF_TYPE_FLOAT,
   MTEV_CONF_TYPE_DOUBLE,
   MTEV_CONF_TYPE_STRING,
-  MTEV_CONF_TYPE_UUID
+  MTEV_CONF_TYPE_UUID,
+  MTEV_CONF_TYPE_UINT32,
+  MTEV_CONF_TYPE_UINT64
 };
 
 typedef union mtev_conf_value_t {
   mtev_boolean val_bool;
   int32_t val_int32;
   int64_t val_int64;
+  uint32_t val_uint32;
+  uint64_t val_uint64;
   float val_float;
   double val_double;
   char* val_string;
@@ -209,6 +213,10 @@ API_EXPORT(int) mtev_conf_get_int32(mtev_conf_section_t section,
                                   const char *path, int32_t *value);
 API_EXPORT(int) mtev_conf_get_int64(mtev_conf_section_t section,
                                     const char *path, int64_t *value);
+API_EXPORT(int) mtev_conf_get_uint32(mtev_conf_section_t section,
+                                     const char *path, uint32_t *value);
+API_EXPORT(int) mtev_conf_get_uint64(mtev_conf_section_t section,
+                                     const char *path, uint64_t *value);
 API_EXPORT(int32_t) mtev_conf_string_to_int32(const char *str);
 API_EXPORT(int) mtev_conf_get_float(mtev_conf_section_t section,
                                     const char *path, float *value);
