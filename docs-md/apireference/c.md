@@ -1928,6 +1928,20 @@ eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency)
   * `new_concurrency` the new number of desired threads
 
 
+#### eventer_jobq_set_floor
+
+>Set a jobq's minimum active thread count.
+
+```c
+void
+eventer_jobq_set_floor(eventer_jobq_t *jobq, uint32_t new_floor)
+```
+
+
+  * `jobq` the jobq to modify
+  * `new_floor` the new number of minimum threads
+
+
 #### eventer_jobq_set_max_backlog
 
 >Set and advisory limit on the backlog a jobq will handle.
@@ -1944,7 +1958,7 @@ eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max)
 
 #### eventer_jobq_set_min_max
 
->Set the upper and lower bounds on concurrency for a jobq.
+>Set the upper and lower bounds on desired concurrency for a jobq.
 
 ```c
 void

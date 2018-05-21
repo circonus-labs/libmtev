@@ -2075,6 +2075,17 @@ eventer_jobq_retrieve(<span class="hljs-keyword">const</span> <span class="hljs-
 <li><code>jobq</code> the jobq to modify</li>
 <li><code>new_concurrency</code> the new number of desired threads</li>
 </ul>
+<h4 id="eventerjobqsetfloor">eventer_jobq_set_floor</h4>
+<blockquote>
+<p>Set a jobq&apos;s minimum active thread count.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_jobq_set_floor</span><span class="hljs-params">(eventer_jobq_t *jobq, uint32_t new_floor)</span>
+</span></code></pre>
+<ul>
+<li><code>jobq</code> the jobq to modify</li>
+<li><code>new_floor</code> the new number of minimum threads</li>
+</ul>
 <h4 id="eventerjobqsetmaxbacklog">eventer_jobq_set_max_backlog</h4>
 <blockquote>
 <p>Set and advisory limit on the backlog a jobq will handle.</p>
@@ -2088,7 +2099,7 @@ eventer_jobq_retrieve(<span class="hljs-keyword">const</span> <span class="hljs-
 </ul>
 <h4 id="eventerjobqsetminmax">eventer_jobq_set_min_max</h4>
 <blockquote>
-<p>Set the upper and lower bounds on concurrency for a jobq.</p>
+<p>Set the upper and lower bounds on desired concurrency for a jobq.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_jobq_set_min_max</span><span class="hljs-params">(eventer_jobq_t *jobq, uint32_t min, uint32_t max)</span>

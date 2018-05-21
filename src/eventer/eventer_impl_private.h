@@ -119,6 +119,7 @@ struct _eventer_jobq_t {
   stats_handle_t         *run_latency;
   eventer_jobq_memory_safety_t mem_safety;
   mtev_boolean            isbackq;
+  uint32_t                floor_concurrency;
   uint32_t                min_concurrency;
   uint32_t                max_concurrency;
   uint32_t                max_backlog;
