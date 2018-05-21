@@ -627,11 +627,12 @@ to 5.0 unless overriden by the application).</p>
 <li><h5 id="jobqname">jobq_&lt;name&gt;</h5>
 <p>This establishes a new named jobq and sets parameters around concurrency
 and memory safety.  The format of the value is:
-<code>concurrency[,min[,max[,safety]]]</code>.  Concurrency, min, and max are all
-integers. Concurrency must be greater than zero.  If minimum is omitted or
+<code>concurrency[,min[,max[,safety[,backlog]]]]</code>.  Concurrency, min, max, and backlog are all
+unsigned integers. Concurrency must be greater than zero.  If minimum is omitted or
 zero, no minimum is set.  If max is omitted, it is set to min.  If max is
 zero, there is no maximum.  Safety can be one of <code>none</code> (default), <code>cs</code>, or
-<code>gc</code>.  For more information om memory settings see <a href="https://github.com/circonus-labs/libmtev/tree/master/src/eventer/eventer_jobq.h" target="_blank">eventer_jobq.h</a> and <a href="https://github.com/circonus-labs/libmtev/tree/master/src/utils/mtev_memory.h" target="_blank">mtev_memory.h</a>.</p>
+<code>gc</code>.  For more information om memory settings see <a href="https://github.com/circonus-labs/libmtev/tree/master/src/eventer/eventer_jobq.h" target="_blank">eventer_jobq.h</a> and <a href="https://github.com/circonus-labs/libmtev/tree/master/src/utils/mtev_memory.h" target="_blank">mtev_memory.h</a>. Backlog sets
+the advisory queue length backlog limit for the queue.</p>
 <blockquote>
 <p>Note that this merely creates the jobq. One must find and use it
 programmatically within the software.  It is designed to have a code-free

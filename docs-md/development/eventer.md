@@ -149,6 +149,21 @@ The return value of callbacks for timer events should always be 0.
 
 ### Asynchronous Events
 
+Asynchronous events within libmtev run within the context of an `eventer_jobq_t`.
+Programmatically, or via configuration, these job queues can be created.  The
+context of the job queue can control how many threads are running and how many
+events may be queued using an advisory limit.  Job queue concurrency can be
+controlled are run-time.
+
+Job queues have several attributes related to concurrency: min, floor, desired, and max.
+
+The min and the max describe "functional correctness" constraints on the jobq.  For example,
+if it would "malfunction" if more than one job ran concurrency, then the max should be set
+to one.  Setting the concurrency (or desired concurrency) for a jobq sets a target thread
+count to be achieved if there is work to be done.  Floor sets a minimum thread count to
+maintain even if there is no work to be done.  Min and max should not be changed at run-time
+and provide the domain boundaries for floor and desired.
+
 ```c
 #define EVENTER_ASYNCH_WORK      0x10
 #define EVENTER_ASYNCH_CLEANUP   0x20

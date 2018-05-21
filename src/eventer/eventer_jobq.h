@@ -104,8 +104,15 @@ API_EXPORT(void) eventer_jobq_destroy(eventer_jobq_t *jobq);
 */
 API_EXPORT(void) eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency);
 
+/*! \fn void eventer_jobq_set_floor(eventer_jobq_t *jobq, uint32_t new_floor)
+    \brief Set a jobq's minimum active thread count.
+    \param jobq the jobq to modify
+    \param new_floor the new number of minimum threads
+*/
+API_EXPORT(void) eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency);
+
 /*! \fn void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max)
-    \brief Set the upper and lower bounds on concurrency for a jobq.
+    \brief Set the upper and lower bounds on desired concurrency for a jobq.
     \param jobq the jobq to modify
     \param min a minimum number of threads to maintain
     \param max a maximum number of threads to not exceed
@@ -133,6 +140,8 @@ void eventer_jobq_init_globals(void);
 
 const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq);
 uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq);
+void eventer_jobq_get_min_max(eventer_jobq_t *jobq, uint32_t *min_, uint32_t *max_);
 eventer_jobq_memory_safety_t eventer_jobq_get_memory_safety(eventer_jobq_t *jobq);
+uint32_t eventer_jobq_get_floor(eventer_jobq_t *jobq);
 
 #endif

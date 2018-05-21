@@ -289,6 +289,7 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     jobq->desired_concurrency = 1;
     stats_rob_i32(jobq_ns, "concurrency", (void *)&jobq->concurrency);
     stats_rob_i32(jobq_ns, "desired_concurrency", (void *)&jobq->desired_concurrency);
+    stats_rob_i32(jobq_ns, "floor_concurrency", (void *)&jobq->floor_concurrency);
     stats_rob_i32(jobq_ns, "min_concurrency", (void *)&jobq->min_concurrency);
     stats_rob_i32(jobq_ns, "max_concurrency", (void *)&jobq->max_concurrency);
     stats_rob_i32(jobq_ns, "backlog", (void *)&jobq->backlog);
@@ -650,7 +651,7 @@ jobq_thread_should_terminate(eventer_jobq_t *jobq, mtev_boolean want_reduce) {
   while(1) {
     have = ck_pr_load_32(&jobq->concurrency);
     if(want_reduce) {
-      want = ck_pr_load_32(&jobq->min_concurrency);
+      want = ck_pr_load_32(&jobq->floor_concurrency);
     } else {
       want = ck_pr_load_32(&jobq->desired_concurrency);
     }
@@ -875,12 +876,23 @@ void eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max) {
   jobq->max_backlog = max;
 }
 
+void eventer_jobq_set_floor(eventer_jobq_t *jobq, uint32_t floor_concurrency) {
+  if(floor_concurrency > jobq->min_concurrency)
+  jobq->min_concurrency = floor_concurrency;
+  if(jobq->min_concurrency > jobq->max_concurrency) jobq->max_concurrency = jobq->min_concurrency;
+  jobq->floor_concurrency = floor_concurrency;
+  if(jobq->desired_concurrency < jobq->floor_concurrency || jobq->desired_concurrency > jobq->max_concurrency) {
+    /* set concurrency will handle capping this in bounds */
+    eventer_jobq_set_concurrency(jobq, jobq->desired_concurrency);
+  }
+}
 void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max) {
   mtevAssert(min <= max);
   mtevAssert(!jobq->isbackq);
   jobq->min_concurrency = min;
   jobq->max_concurrency = max;
-  if(jobq->desired_concurrency < min || jobq->desired_concurrency > max) {
+  if(min < jobq->floor_concurrency) jobq->floor_concurrency = min;
+  if(jobq->desired_concurrency < jobq->floor_concurrency || jobq->desired_concurrency > jobq->max_concurrency) {
     /* set concurrency will handle capping this in bounds */
     eventer_jobq_set_concurrency(jobq, jobq->desired_concurrency);
   }
@@ -920,6 +932,13 @@ const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq) {
 uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq) {
   return jobq->concurrency;
 }
+void eventer_jobq_get_min_max(eventer_jobq_t *jobq, uint32_t *min_, uint32_t *max_) {
+  if(min_) *min_ = jobq->min_concurrency;
+  if(max_) *max_ = jobq->max_concurrency;
+}
 eventer_jobq_memory_safety_t eventer_jobq_get_memory_safety(eventer_jobq_t *jobq) {
   return jobq->mem_safety;
+}
+uint32_t eventer_jobq_get_floor(eventer_jobq_t *jobq) {
+  return jobq->floor_concurrency;
 }
