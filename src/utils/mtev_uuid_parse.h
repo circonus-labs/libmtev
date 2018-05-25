@@ -39,5 +39,8 @@
 /* follows the semantics of uuid_parse */
 API_EXPORT(int)
   mtev_uuid_parse(const char *in, uuid_t uu);
+/* follows the semantics of uuid_unparse_lower */
+API_EXPORT(void)
+  mtev_uuid_unparse_lower(const uuid_t uu, char *out);
 
 #endif
