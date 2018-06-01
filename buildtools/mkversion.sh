@@ -44,7 +44,8 @@ cat > $1 <<EOF
 #include <stdio.h>
 
 static inline int mtev_build_version(char *buff, int len) {
-  const char *start = MTEV_BRANCH;
+  char start[256] = {0};
+  memcpy(start, MTEV_BRANCH, sizeof(MTEV_BRANCH));
   if(!strncmp(start, "branches/", 9)) 
     return snprintf(buff, len, "%s.%s", start+9, MTEV_VERSION);
   if(!strncmp(start, "tags/", 5)) 
