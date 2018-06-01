@@ -36,10 +36,26 @@
 #include <mtev_defines.h>
 #include <uuid/uuid.h>
 
-/* follows the semantics of uuid_parse */
+/*!
+ \fn int mtev_uuid_parse(const char *in, uuid_t uu)
+ \brief Parse "in" in UUID format into "uu".
+ \return 0 on success, non-zero on parse error
+
+ Follows the same semantics of uuid_parse from libuuid
+*/
 API_EXPORT(int)
   mtev_uuid_parse(const char *in, uuid_t uu);
-/* follows the semantics of uuid_unparse_lower */
+
+/*!
+  \fn void mtev_uuid_unparse_lower(const uuid_t uu, char *out)
+  \brief Unparse "uu" into "out".
+
+  Follows the same semantics of uuid_unparse_lower from libuuid.
+
+  There is no bounds checking of "out", caller must ensure that "out"
+  is at least UUID_STR_LEN in size.  This also does not NULL terminate
+  "out".  That is also up to the caller.
+*/
 API_EXPORT(void)
   mtev_uuid_unparse_lower(const uuid_t uu, char *out);
 

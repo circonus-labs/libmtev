@@ -58,6 +58,10 @@
 
 [mtev_time_fast_mode](c.md#mtevtimefastmode), [mtev_time_maintain](c.md#mtevtimemaintain), [mtev_time_start_tsc](c.md#mtevtimestarttsc), [mtev_time_stop_tsc](c.md#mtevtimestoptsc), [mtev_time_toggle_require_invariant_tsc](c.md#mtevtimetogglerequireinvarianttsc), [mtev_time_toggle_tsc](c.md#mtevtimetoggletsc)
 
+##### U
+
+[mtev_uuid_parse](c.md#mtevuuidparse), [mtev_uuid_unparse_lower](c.md#mtevuuidunparselower)
+
 ##### W
 
 [mtev_watchdog_child_eventer_heartbeat](c.md#mtevwatchdogchildeventerheartbeat), [mtev_watchdog_child_heartbeat](c.md#mtevwatchdogchildheartbeat), [mtev_watchdog_create](c.md#mtevwatchdogcreate), [mtev_watchdog_disable](c.md#mtevwatchdogdisable), [mtev_watchdog_enable](c.md#mtevwatchdogenable), [mtev_watchdog_get_timeout](c.md#mtevwatchdoggettimeout), [mtev_watchdog_heartbeat](c.md#mtevwatchdogheartbeat), [mtev_watchdog_override_timeout](c.md#mtevwatchdogoverridetimeout), [mtev_watchdog_prefork_init](c.md#mtevwatchdogpreforkinit), [mtev_watchdog_recurrent_heartbeat](c.md#mtevwatchdogrecurrentheartbeat), [mtev_watchdog_start_child](c.md#mtevwatchdogstartchild), [mtev_websocket_client_free](c.md#mtevwebsocketclientfree), [mtev_websocket_client_get_closure](c.md#mtevwebsocketclientgetclosure), [mtev_websocket_client_init_logs](c.md#mtevwebsocketclientinitlogs), [mtev_websocket_client_is_closed](c.md#mtevwebsocketclientisclosed), [mtev_websocket_client_is_ready](c.md#mtevwebsocketclientisready), [mtev_websocket_client_new](c.md#mtevwebsocketclientnew), [mtev_websocket_client_new_noref](c.md#mtevwebsocketclientnewnoref), [mtev_websocket_client_send](c.md#mtevwebsocketclientsend), [mtev_websocket_client_set_cleanup_callback](c.md#mtevwebsocketclientsetcleanupcallback), [mtev_websocket_client_set_closure](c.md#mtevwebsocketclientsetclosure), [mtev_websocket_client_set_msg_callback](c.md#mtevwebsocketclientsetmsgcallback), [mtev_websocket_client_set_ready_callback](c.md#mtevwebsocketclientsetreadycallback)

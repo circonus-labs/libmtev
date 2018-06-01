@@ -3756,6 +3756,30 @@ whether it was successful in parameterizing the CPU for rdtsc use.</p>
 <p>   Defaults to enabled.</p>
 <p>   This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread
    will keep going using the state from the last start/stop_tsc</p>
+<h3 id="u">U</h3>
+<h4 id="mtevuuidparse">mtev_uuid_parse</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_uuid_parse</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *in, uuid_t uu)</span>
+</span></code></pre>
+<blockquote>
+<p>Parse &quot;in&quot; in UUID format into &quot;uu&quot;.</p>
+</blockquote>
+<ul>
+<li><p><strong>RETURN</strong> 0 on success, non-zero on parse error</p>
+<p>Follows the same semantics of uuid_parse from libuuid</p>
+</li>
+</ul>
+<h4 id="mtevuuidunparselower">mtev_uuid_unparse_lower</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_uuid_unparse_lower</span><span class="hljs-params">(<span class="hljs-keyword">const</span> uuid_t uu, <span class="hljs-keyword">char</span> *out)</span>
+</span></code></pre>
+<blockquote>
+<p>Unparse &quot;uu&quot; into &quot;out&quot;.</p>
+</blockquote>
+<p>  Follows the same semantics of uuid_unparse_lower from libuuid.</p>
+<p>  There is no bounds checking of &quot;out&quot;, caller must ensure that &quot;out&quot;
+  is at least UUID_STR_LEN in size.  This also does not NULL terminate
+  &quot;out&quot;.  That is also up to the caller.</p>
 <h3 id="w">W</h3>
 <h4 id="mtevwatchdogchildeventerheartbeat">mtev_watchdog_child_eventer_heartbeat</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>

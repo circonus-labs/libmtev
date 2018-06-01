@@ -4230,6 +4230,43 @@ mtev_time_toggle_tsc(mtev_boolean enable)
    will keep going using the state from the last start/stop_tsc
  
 
+### U
+
+#### mtev_uuid_parse
+
+```c
+int
+mtev_uuid_parse(const char *in, uuid_t uu)
+```
+
+
+> Parse "in" in UUID format into "uu".
+
+
+   * **RETURN** 0 on success, non-zero on parse error
+
+ Follows the same semantics of uuid_parse from libuuid
+
+
+#### mtev_uuid_unparse_lower
+
+```c
+void
+mtev_uuid_unparse_lower(const uuid_t uu, char *out)
+```
+
+
+> Unparse "uu" into "out".
+
+
+
+  Follows the same semantics of uuid_unparse_lower from libuuid.
+
+  There is no bounds checking of "out", caller must ensure that "out"
+  is at least UUID_STR_LEN in size.  This also does not NULL terminate
+  "out".  That is also up to the caller.
+
+
 ### W
 
 #### mtev_watchdog_child_eventer_heartbeat
