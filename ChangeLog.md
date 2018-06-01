@@ -5,17 +5,17 @@
 ## 1.2
 
 ### 1.2.x
- * Make strnstrn and mtev_memmem "like Linux" on other platforms
-   with respect to the needle_len == 0 case.
+ * Make `strnstrn` and `mtev_memmem` "like Linux" on other platforms
+   with respect to the `needle_len == 0` case.
 
 ### 1.2.9
- * Add mtev_main_eventer_config (see docs)
+ * Add `mtev_main_eventer_config` (see docs)
  * Expose min/max concurrency in jobq display
  * Deprecate `strnstrn` and expose `mtev_memmem`
  * Deprecate `mtev__strndup` for `mtev_strndup`
  * Fix "none" as an explicity memory safety declaration in eventer jobq configs
- * Support optional `queuename` in mtev_amqp module
- * Compile mtev_str functions with aggressive optimizations
+ * Support optional `queuename` in `mtev_amqp` module
+ * Compile `mtev_str` functions with aggressive optimizations
 
 ### 1.2.8
  * Allow control of JIT and optimizations for LuaJIT
@@ -25,18 +25,18 @@
 
 ### 1.2.7
 
- * Add lua functions mtev.log_enabled(), mtev.cluster()
- * Remove experimental lua functions mtev.cluster_details() and
-   mtev.cluster_get_self()
- * Remove unused function mtev_conf_correct_namespace()
- * Add more documentation for mtev_cluster_*
+ * Add lua functions `mtev.log_enabled()`, `mtev.cluster()`
+ * Remove experimental lua functions `mtev.cluster_details()` and
+   `mtev.cluster_get_self()`
+ * Remove unused function `mtev_conf_correct_namespace()`
+ * Add more documentation for `mtev_cluster_*`
 
 ### 1.2.6
 
  * Add Lua code to get the exit code and other flags from return
-   value of waitpid()
+   value of `waitpid()`
  * Fix some tests that were not working properly
- * Fix some inconsistent behavior with posix_spawnp call in lua
+ * Fix some inconsistent behavior with `posix_spawnp` call in lua
    handler between Linux and Solaris
 
 
@@ -91,7 +91,7 @@
 
  * Allow 64bit integers for size-based log rotation parameters.
  * Make `mtev.thread_self` work in lua\_web as it does in lua\_general.
- * Const-ify mtev\_huge\_hash APIs.
+ * Const-ify `mtev_huge_hash` APIs.
 
 ### 1.1.0
 
