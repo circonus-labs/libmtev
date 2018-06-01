@@ -2,11 +2,20 @@
 
 # 1
 
-## 1.2
+## 1.3
 
-### 1.2.x
+### 1.3.0
+ * Add optimized `mtev_uuid_unparse_lower` function
+ * Add buffer-based `mtev_rand` functions
  * Make `strnstrn` and `mtev_memmem` "like Linux" on other platforms
-   with respect to the `needle_len == 0` case.
+   with respect to the `needle_len == 0` case
+ * Eventer `max_backlog` now settable via configuration
+ * Add memory safety accessor
+ * Add floor for jobqs
+ * `ASYNCH_CORE_DUMP=0` should waitpid before launching next child
+ * Various Coverity fixes
+
+## 1.2
 
 ### 1.2.9
  * Add `mtev_main_eventer_config` (see docs)
