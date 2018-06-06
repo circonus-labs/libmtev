@@ -4,6 +4,9 @@
 
 ## 1.3
 
+### 1.3.1
+ * Fix null termination in `mtev_uuid_unparse_lower`
+
 ### 1.3.0
  * Add optimized `mtev_uuid_unparse_lower` function
  * Add buffer-based `mtev_rand` functions
