@@ -70,4 +70,5 @@ void mtev_uuid_unparse_lower(const uuid_t uu, char *out)
       break;
     };
   }
+  *w = '\0';
 }
