@@ -3757,6 +3757,34 @@ whether it was successful in parameterizing the CPU for rdtsc use.</p>
 <p>   This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread
    will keep going using the state from the last start/stop_tsc</p>
 <h3 id="u">U</h3>
+<h4 id="mtevuuidclear">mtev_uuid_clear</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_uuid_clear</span><span class="hljs-params">(uuid_t uu)</span>
+</span></code></pre>
+<blockquote>
+<p>Set a uuid to the null uuid.</p>
+</blockquote>
+<p> Follows the same semantics of uuid_clear from libuuid</p>
+<h4 id="mtevuuidcopy">mtev_uuid_copy</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_uuid_copy</span><span class="hljs-params">(uuid_t dst, <span class="hljs-keyword">const</span> uuid_t src)</span>
+</span></code></pre>
+<blockquote>
+<p>Copy src to dst.</p>
+</blockquote>
+<p> Follows the same semantics of uuid_copy from libuuid</p>
+<h4 id="mtevuuidisnull">mtev_uuid_is_null</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_uuid_is_null</span><span class="hljs-params">(<span class="hljs-keyword">const</span> uuid_t uu)</span>
+</span></code></pre>
+<blockquote>
+<p>Determine if the supplied uuid is the null uuid.</p>
+</blockquote>
+<ul>
+<li><p><strong>RETURN</strong> 0 if not null, 1 if null.</p>
+<p>Follows the same semantics of uuid_is_null from libuuid</p>
+</li>
+</ul>
 <h4 id="mtevuuidparse">mtev_uuid_parse</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_uuid_parse</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *in, uuid_t uu)</span>
@@ -3769,6 +3797,17 @@ whether it was successful in parameterizing the CPU for rdtsc use.</p>
 <p>Follows the same semantics of uuid_parse from libuuid</p>
 </li>
 </ul>
+<h4 id="mtevuuidunparse">mtev_uuid_unparse</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_uuid_unparse</span><span class="hljs-params">(<span class="hljs-keyword">const</span> uuid_t uu, <span class="hljs-keyword">char</span> *out)</span>
+</span></code></pre>
+<blockquote>
+<p>Unparse &quot;uu&quot; into &quot;out&quot;.</p>
+</blockquote>
+<p>  Follows the same semantics of uuid_unparse from libuuid.</p>
+<p>  There is no bounds checking of &quot;out&quot;, caller must ensure that &quot;out&quot;
+  is at least UUID_STR_LEN in size.  This also does not NULL terminate
+  &quot;out&quot;.  That is also up to the caller.</p>
 <h4 id="mtevuuidunparselower">mtev_uuid_unparse_lower</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_uuid_unparse_lower</span><span class="hljs-params">(<span class="hljs-keyword">const</span> uuid_t uu, <span class="hljs-keyword">char</span> *out)</span>

@@ -4232,6 +4232,52 @@ mtev_time_toggle_tsc(mtev_boolean enable)
 
 ### U
 
+#### mtev_uuid_clear
+
+```c
+void
+mtev_uuid_clear(uuid_t uu)
+```
+
+
+> Set a uuid to the null uuid.
+
+
+
+ Follows the same semantics of uuid_clear from libuuid
+
+
+#### mtev_uuid_copy
+
+```c
+void
+mtev_uuid_copy(uuid_t dst, const uuid_t src)
+```
+
+
+> Copy src to dst.
+
+
+
+ Follows the same semantics of uuid_copy from libuuid
+
+
+#### mtev_uuid_is_null
+
+```c
+void
+mtev_uuid_is_null(const uuid_t uu)
+```
+
+
+> Determine if the supplied uuid is the null uuid.
+
+
+   * **RETURN** 0 if not null, 1 if null.
+
+ Follows the same semantics of uuid_is_null from libuuid
+
+
 #### mtev_uuid_parse
 
 ```c
@@ -4246,6 +4292,25 @@ mtev_uuid_parse(const char *in, uuid_t uu)
    * **RETURN** 0 on success, non-zero on parse error
 
  Follows the same semantics of uuid_parse from libuuid
+
+
+#### mtev_uuid_unparse
+
+```c
+void
+mtev_uuid_unparse(const uuid_t uu, char *out)
+```
+
+
+> Unparse "uu" into "out".
+
+
+
+  Follows the same semantics of uuid_unparse from libuuid.
+
+  There is no bounds checking of "out", caller must ensure that "out"
+  is at least UUID_STR_LEN in size.  This also does not NULL terminate
+  "out".  That is also up to the caller.
 
 
 #### mtev_uuid_unparse_lower
