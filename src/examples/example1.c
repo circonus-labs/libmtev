@@ -183,6 +183,14 @@ static int handler(mtev_http_rest_closure_t *restc,
   return 0;
 }
 
+static int hello_handler(mtev_http_rest_closure_t *restc,
+                         int npats, char **pats) {
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  mtev_http_response_ok(ctx, "text/plain");
+  mtev_http_response_append_str(ctx, "Hello world.\n");
+  mtev_http_response_end(ctx);
+  return 0;
+}
 static int leak_handler(mtev_http_rest_closure_t *restc,
 			int npats, char **pats) {
   mtev_http_session_ctx *ctx = restc->http_ctx;
@@ -203,6 +211,7 @@ child_main(void) {
     mtevL(mtev_error, "Cannot load config: '%s'\n", config_file);
     exit(2);
   }
+eventer_max_sleeptime.tv_usec = 10000;
   eventer_init();
   mtev_dso_init();
   mtev_console_init(APPNAME);
@@ -219,6 +228,10 @@ child_main(void) {
   mtev_conf_coalesce_changes(10); /* 10 seconds of no changes before we write */
   mtev_conf_watch_and_journal_watchdog(NULL, NULL);
 
+  mtev_http_rest_register_auth(
+    "GET", "/", "^hello$", hello_handler,
+           mtev_http_rest_client_cert_auth
+  );
   mtev_http_rest_register_auth(
     "GET", "/", "^test$", handler,
            mtev_http_rest_client_cert_auth

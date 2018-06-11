@@ -33,10 +33,41 @@
 #ifndef UTILS_MTEV_UUID_COPY_H
 #define UTILS_MTEV_UUID_COPY_H
 
+static const uint8_t uuid_zero_uint8[16] = { 0 };
+
+/*!
+ \fn void mtev_uuid_copy(uuid_t dst, const uuid_t src)
+ \brief Copy src to dst.
+
+ Follows the same semantics of uuid_copy from libuuid
+*/
 static inline
 void mtev_uuid_copy(uuid_t dst, const uuid_t src)
 {
   memcpy((void *)dst, (const void *)src, sizeof(uuid_t));
+}
+
+/*!
+ \fn void mtev_uuid_is_null(const uuid_t uu)
+ \brief Determine if the supplied uuid is the null uuid.
+ \return 0 if not null, 1 if null.
+
+ Follows the same semantics of uuid_is_null from libuuid
+*/
+static inline
+int mtev_uuid_is_null(const uuid_t uu) {
+  return 0 == memcmp(uu, uuid_zero_uint8, 16);
+}
+
+/*!
+ \fn void mtev_uuid_clear(uuid_t uu)
+ \brief Set a uuid to the null uuid.
+
+ Follows the same semantics of uuid_clear from libuuid
+*/
+static inline
+void mtev_uuid_clear(uuid_t uu) {
+  memset(uu, 0, 16);
 }
 
 #endif
