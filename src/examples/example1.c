@@ -11,6 +11,7 @@
 #include <mtev_events_rest.h>
 #include <mtev_stats.h>
 #include <mtev_heap_profiler.h>
+#include <mtev_uuid.h>
 #include <eventer/eventer.h>
 #include <inttypes.h>
 
@@ -112,7 +113,7 @@ static void init_cluster(void) {
     mtev_cluster_handle_node_update_hook_register("cluster-topology-listener", on_node_updated, NULL);
 
     char uuid_str[UUID_STR_LEN + 1];
-    uuid_unparse(my_cluster_id, uuid_str);
+    mtev_uuid_unparse(my_cluster_id, uuid_str);
     mtevL(mtev_stderr, "Initialized cluster. My uuid is: %s\n", uuid_str);
 
     assert(mtev_cluster_set_heartbeat_payload(my_cluster, 1, 1, my_payload2, sizeof(my_payload)));

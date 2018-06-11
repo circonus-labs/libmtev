@@ -59,7 +59,7 @@ huge_hash_test: huge_hash_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o huge_hash_test huge_hash_test.c -lmtev $(LIBMTEV_LIBS)
 
 uuid_test: uuid_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o uuid_test uuid_test.c -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o uuid_test uuid_test.c -lmtev $(LIBMTEV_LIBS) -luuid
 
 time_test: time_test.c
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o time_test time_test.c -lmtev $(LIBMTEV_LIBS)

@@ -33,6 +33,17 @@
 #ifndef UTILS_MTEV_UUID_H
 #define UTILS_MTEV_UUID_H
 
+#undef UUID_STR_LEN
+#define UUID_STR_LEN 36
+
+#ifndef UUID_PRINTABLE_STRING_LENGTH
+#define UUID_PRINTABLE_STRING_LENGTH UUID_STR_LEN + 1
+#endif
+
+#ifndef _UUID_UUID_H
+typedef unsigned char uuid_t[16];
+#endif
+
 #include "mtev_uuid_parse.h"
 #include "mtev_uuid_copy.h"
 #include "mtev_uuid_generate.h"

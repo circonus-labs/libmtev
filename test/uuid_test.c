@@ -1,3 +1,4 @@
+#include <uuid/uuid.h>
 #include <mtev_uuid.h>
 #include <mtev_time.h>
 #include <pthread.h>
@@ -227,7 +228,7 @@ int main(int argc, char **argv)
     }
   }
   printf("libuuid unparse time: %llu\n", libuuid_time);
-  printf("mtev unparse time: %llu\n", mtev_time);
+  printf("mtev unparse time: %" PRIu64 "\n", mtev_time);
   printf("* Speedup: %3.2fx\n", (double)libuuid_time / (double) mtev_time);
   
   printf("* SUCCESS\n");

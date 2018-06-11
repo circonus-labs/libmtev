@@ -170,25 +170,6 @@ static inline void add_timeval(struct timeval a, struct timeval b,
   out->tv_sec = a.tv_sec + b.tv_sec;
 }
 
-#include <uuid/uuid.h>
-
-#undef UUID_STR_LEN
-#define UUID_STR_LEN 36
-
-#ifndef UUID_PRINTABLE_STRING_LENGTH
-#define UUID_PRINTABLE_STRING_LENGTH UUID_STR_LEN + 1
-#endif
-
-#ifndef HAVE_UUID_UNPARSE_LOWER
-/* Sigh, need to implement out own */
-#include <ctype.h>
-static inline void uuid_unparse_lower(uuid_t in, char *out) {
-  int i;
-  uuid_unparse(in, out);
-  for(i=0;i<UUID_STR_LEN;i++) out[i] = tolower(out[i]);
-}
-#endif
-
 #ifdef HAVE_TERMIO_H
 #define USE_TERMIO
 #endif
@@ -240,9 +221,7 @@ static inline int portable_readdir_r(DIR *dirp, struct dirent *entry, struct dir
 #include "noitedit/strlcpy.h"
 
 #define UUID_REGEX "[0-9a-fA-F]{4}(?:[0-9a-fA-F]{4}-){4}[0-9a-fA-F]{12}"
-#include <uuid/uuid.h>
-struct uuid_dummy { uuid_t foo; };
-#define UUID_SIZE sizeof(struct uuid_dummy)
+#define UUID_SIZE 16
 
 #if defined(BSD) || defined(__FreeBSD__)
 typedef uint64_t mtev_hrtime_t;

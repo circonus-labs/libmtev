@@ -1961,7 +1961,7 @@ mtev_conf_get_uuid(mtev_conf_section_t section,
                    const char *path, uuid_t out) {
   char *str;
   if(_mtev_conf_get_string(section,NULL,path,&str)) {
-    if(uuid_parse(str, out) == 0) return 1;
+    if(mtev_uuid_parse(str, out) == 0) return 1;
     return 0;
   }
   return 0;

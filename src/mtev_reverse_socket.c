@@ -1735,8 +1735,8 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
 
   /* We've finished our preamble... so now we will switch handlers */
   if(!rc->id) {
-    uuid_generate(tmpid);
-    uuid_unparse_lower(tmpid, tmpidstr);
+    mtev_uuid_generate(tmpid);
+    mtev_uuid_unparse_lower(tmpid, tmpidstr);
     snprintf(client_id, sizeof(client_id), "client/%s", tmpidstr);
     rc->id = strdup(client_id);
     pthread_rwlock_wrlock(&reverse_sockets_lock);
