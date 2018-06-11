@@ -4247,6 +4247,22 @@ mtev_uuid_clear(uuid_t uu)
  Follows the same semantics of uuid_clear from libuuid
 
 
+#### mtev_uuid_compare
+
+```c
+int
+mtev_uuid_compare(const uuid_t uu1, const uuid_t uu2)
+```
+
+
+> Compare to uuids
+
+
+   * **RETURN** 0 if equal, -1 if uu1 is less than uu2, 1 otherwise.
+
+ Follows the same semantics of uuid_compare from libuuid
+
+
 #### mtev_uuid_copy
 
 ```c
@@ -4260,6 +4276,21 @@ mtev_uuid_copy(uuid_t dst, const uuid_t src)
 
 
  Follows the same semantics of uuid_copy from libuuid
+
+
+#### mtev_uuid_generate
+
+```c
+void
+mtev_uuid_generate(uuid_t uu)
+```
+
+
+> Generate a V4 uuid.
+
+
+
+ Follows the same semantics of uuid_generate from libuuid
 
 
 #### mtev_uuid_is_null

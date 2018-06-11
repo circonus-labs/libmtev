@@ -35,5 +35,6 @@
 
 #include "mtev_uuid_parse.h"
 #include "mtev_uuid_copy.h"
+#include "mtev_uuid_generate.h"
 
 #endif

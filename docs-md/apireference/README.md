@@ -60,7 +60,7 @@
 
 ##### U
 
-[mtev_uuid_clear](c.md#mtevuuidclear), [mtev_uuid_copy](c.md#mtevuuidcopy), [mtev_uuid_is_null](c.md#mtevuuidisnull), [mtev_uuid_parse](c.md#mtevuuidparse), [mtev_uuid_unparse](c.md#mtevuuidunparse), [mtev_uuid_unparse_lower](c.md#mtevuuidunparselower), [mtev_uuid_unparse_upper](c.md#mtevuuidunparseupper)
+[mtev_uuid_clear](c.md#mtevuuidclear), [mtev_uuid_compare](c.md#mtevuuidcompare), [mtev_uuid_copy](c.md#mtevuuidcopy), [mtev_uuid_generate](c.md#mtevuuidgenerate), [mtev_uuid_is_null](c.md#mtevuuidisnull), [mtev_uuid_parse](c.md#mtevuuidparse), [mtev_uuid_unparse](c.md#mtevuuidunparse), [mtev_uuid_unparse_lower](c.md#mtevuuidunparselower), [mtev_uuid_unparse_upper](c.md#mtevuuidunparseupper)
 
 ##### W
 

@@ -1,4 +1,4 @@
-#include <mtev_uuid_parse.h>
+#include <mtev_uuid.h>
 #include <mtev_time.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -147,7 +147,37 @@ int main(int argc, char **argv)
   printf("* Broken UUIDs expectedly fail\n");
 
   mtev_hrtime_t libuuid_time = 0;
+  mtev_hrtime_t gstart, gend;
+
+  gstart = mtev_gethrtime();
+  for (int i = 0; i < 10000; i++) {
+    uuid_t x;
+    uuid_generate(x);
+  }
+  libuuid_time = mtev_gethrtime() - gstart;
+
+  gstart = mtev_gethrtime();
+  uuid_t last_uuid;
+  mtev_uuid_clear(last_uuid);
+  gstart = mtev_gethrtime();
+  for (int i = 0; i < 10000; i++) {
+    uuid_t x;
+    mtev_uuid_generate(x);
+    if(mtev_uuid_compare(x, last_uuid) == 0) {
+      abort();
+      FAIL("mtev_uuid_generate failed");
+    }
+    char expected[UUID_STR_LEN + 1];
+    mtev_uuid_unparse(x, expected);
+    mtev_uuid_copy(last_uuid, x);
+  }
+  mtev_time = mtev_gethrtime() - gstart;
+  printf("* generate speedup: %3.2fx\n", (double)libuuid_time / (double) mtev_time);
+  
+
+  libuuid_time = mtev_gethrtime() - gstart;
   mtev_time = 0;
+  libuuid_time = 0;
   for (int i = 0; i < 5000; i++) {
     uuid_t x;
     uuid_generate(x);
@@ -192,9 +222,9 @@ int main(int argc, char **argv)
     mtev_time += end - now;
     
     if (strncasecmp(expected, test, UUID_STR_LEN) != 0) {
+      printf("Expected: %s, got: %s\n", expected, test);
       FAIL("uuid_unparse and mtev_variant do not equal: %s : %s\n", expected, test);
     }
-    printf("Expected: %s, got: %s\n", expected, test);
   }
   printf("libuuid unparse time: %llu\n", libuuid_time);
   printf("mtev unparse time: %llu\n", mtev_time);
