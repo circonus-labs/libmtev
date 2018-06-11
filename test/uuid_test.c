@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
   mtev_hrtime_t libuuid_time = 0;
   mtev_time = 0;
-  for (int i = 0; i < 10000; i++) {
+  for (int i = 0; i < 5000; i++) {
     uuid_t x;
     uuid_generate(x);
     char expected[UUID_STR_LEN + 1];
@@ -164,6 +164,34 @@ int main(int argc, char **argv)
     mtev_time += end - now;
     
     if (strncmp(expected, test, UUID_STR_LEN) != 0) {
+      FAIL("uuid_unparse_lower and mtev_variant do not equal: %s : %s\n", expected, test);
+    }
+
+    now = mtev_gethrtime();
+    uuid_unparse_upper(x, expected);
+    end = mtev_gethrtime();
+    libuuid_time += end - now;
+
+    now = mtev_gethrtime();
+    mtev_uuid_unparse_upper(x, test);
+    end = mtev_gethrtime();
+    mtev_time += end - now;
+    
+    if (strncmp(expected, test, UUID_STR_LEN) != 0) {
+      FAIL("uuid_unparse_upper and mtev_variant do not equal: %s : %s\n", expected, test);
+    }
+
+    now = mtev_gethrtime();
+    uuid_unparse(x, expected);
+    end = mtev_gethrtime();
+    libuuid_time += end - now;
+
+    now = mtev_gethrtime();
+    mtev_uuid_unparse(x, test);
+    end = mtev_gethrtime();
+    mtev_time += end - now;
+    
+    if (strncasecmp(expected, test, UUID_STR_LEN) != 0) {
       FAIL("uuid_unparse and mtev_variant do not equal: %s : %s\n", expected, test);
     }
     printf("Expected: %s, got: %s\n", expected, test);

@@ -60,10 +60,23 @@ API_EXPORT(void)
   mtev_uuid_unparse_lower(const uuid_t uu, char *out);
 
 /*!
+  \fn void mtev_uuid_unparse_upper(const uuid_t uu, char *out)
+  \brief Unparse "uu" into "out".
+
+  Follows the same semantics of uuid_unparse_upper from libuuid.
+
+  There is no bounds checking of "out", caller must ensure that "out"
+  is at least UUID_STR_LEN in size.  This also does not NULL terminate
+  "out".  That is also up to the caller.
+*/
+API_EXPORT(void)
+  mtev_uuid_unparse_upper(const uuid_t uu, char *out);
+
+/*!
   \fn void mtev_uuid_unparse(const uuid_t uu, char *out)
   \brief Unparse "uu" into "out".
 
-  Follows the same semantics of uuid_unparse from libuuid.
+  Follows the same semantics of uuid_unparse_lower from libuuid.
 
   There is no bounds checking of "out", caller must ensure that "out"
   is at least UUID_STR_LEN in size.  This also does not NULL terminate

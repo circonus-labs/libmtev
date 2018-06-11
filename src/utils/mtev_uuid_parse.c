@@ -18,17 +18,14 @@ static unsigned char lut[256] = {
   10,11,12,13,14,15          // abcdef 
 };
 
-static unsigned char reverse_lut[16] = {
-  '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
-};
-
 #define hexvalue(c) ((unsigned long)lut[(unsigned char)(c)])
 
-static unsigned char reverse_uut[16] = {
+static char reverse_lut[16] = {
+  '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
+};
+static char reverse_uut[16] = {
   '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
 };
-
-#define HEXvalue(c) ((unsigned long)uut[(unsigned char)(c)])
 
 int mtev_uuid_parse(const char *in, uuid_t uu)
 {
@@ -60,13 +57,14 @@ int mtev_uuid_parse(const char *in, uuid_t uu)
   return 0;
 }
 
-void mtev_uuid_unparse_lower(const uuid_t uu, char *out)
+static inline void
+mtev_uuid_unparse_internal(const uuid_t uu, char *out, char *cmap)
 {
   char *w = out;
   /* dash after 4 then every 2 for a few steps */
   for (int i = 0; i < 16; i++) {
-    *w++ = reverse_lut[(uu[i] & 0xf0) >> 4];
-    *w++ = reverse_lut[uu[i] & 0x0f];
+    *w++ = cmap[(uu[i] & 0xf0) >> 4];
+    *w++ = cmap[uu[i] & 0x0f];
     switch (i) {
     case 3:
     case 5:
@@ -79,21 +77,15 @@ void mtev_uuid_unparse_lower(const uuid_t uu, char *out)
   *w = '\0';
 }
 
+void mtev_uuid_unparse_lower(const uuid_t uu, char *out)
+{
+  mtev_uuid_unparse_internal(uu, out, reverse_lut);
+}
 void mtev_uuid_unparse(const uuid_t uu, char *out)
 {
-  char *w = out;
-  /* dash after 4 then every 2 for a few steps */
-  for (int i = 0; i < 16; i++) {
-    *w++ = reverse_uut[(uu[i] & 0xf0) >> 4];
-    *w++ = reverse_uut[uu[i] & 0x0f];
-    switch (i) {
-    case 3:
-    case 5:
-    case 7:
-    case 9:
-      *w++ = '-';
-      break;
-    };
-  }
-  *w = '\0';
+  mtev_uuid_unparse_internal(uu, out, reverse_lut);
+}
+void mtev_uuid_unparse_upper(const uuid_t uu, char *out)
+{
+  mtev_uuid_unparse_internal(uu, out, reverse_uut);
 }
