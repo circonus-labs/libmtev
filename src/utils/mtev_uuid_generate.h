@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2018, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -30,57 +30,19 @@
  */
 
 
-#ifndef UTILS_MTEV_UUID_COPY_H
-#define UTILS_MTEV_UUID_COPY_H
+#ifndef UTILS_MTEV_UUID_GENERATE_H
+#define UTILS_MTEV_UUID_GENERATE_H
 
-static const uint8_t uuid_zero_uint8[16] = { 0 };
-
-/*!
- \fn void mtev_uuid_copy(uuid_t dst, const uuid_t src)
- \brief Copy src to dst.
-
- Follows the same semantics of uuid_copy from libuuid
-*/
-static inline
-void mtev_uuid_copy(uuid_t dst, const uuid_t src)
-{
-  memcpy((void *)dst, (const void *)src, sizeof(uuid_t));
-}
+#include <mtev_defines.h>
+#include <uuid/uuid.h>
 
 /*!
- \fn int mtev_uuid_compare(const uuid_t uu1, const uuid_t uu2)
- \brief Compare to uuids
- \return 0 if equal, -1 if uu1 is less than uu2, 1 otherwise.
+ \fn void mtev_uuid_generate(uuid_t uu)
+ \brief Generate a V4 uuid.
 
- Follows the same semantics of uuid_compare from libuuid
+ Follows the same semantics of uuid_generate from libuuid
 */
-static inline
-int mtev_uuid_compare(const uuid_t uu1, const uuid_t uu2)
-{
-  return memcmp((const void *)uu1, (const void *)uu2, sizeof(uuid_t));
-}
-
-/*!
- \fn void mtev_uuid_is_null(const uuid_t uu)
- \brief Determine if the supplied uuid is the null uuid.
- \return 0 if not null, 1 if null.
-
- Follows the same semantics of uuid_is_null from libuuid
-*/
-static inline
-int mtev_uuid_is_null(const uuid_t uu) {
-  return 0 == memcmp(uu, uuid_zero_uint8, 16);
-}
-
-/*!
- \fn void mtev_uuid_clear(uuid_t uu)
- \brief Set a uuid to the null uuid.
-
- Follows the same semantics of uuid_clear from libuuid
-*/
-static inline
-void mtev_uuid_clear(uuid_t uu) {
-  memset(uu, 0, 16);
-}
+API_EXPORT(void)
+  mtev_uuid_generate(uuid_t uu);
 
 #endif

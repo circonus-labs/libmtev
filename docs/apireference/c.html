@@ -3765,6 +3765,18 @@ whether it was successful in parameterizing the CPU for rdtsc use.</p>
 <p>Set a uuid to the null uuid.</p>
 </blockquote>
 <p> Follows the same semantics of uuid_clear from libuuid</p>
+<h4 id="mtevuuidcompare">mtev_uuid_compare</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_uuid_compare</span><span class="hljs-params">(<span class="hljs-keyword">const</span> uuid_t uu1, <span class="hljs-keyword">const</span> uuid_t uu2)</span>
+</span></code></pre>
+<blockquote>
+<p>Compare to uuids</p>
+</blockquote>
+<ul>
+<li><p><strong>RETURN</strong> 0 if equal, -1 if uu1 is less than uu2, 1 otherwise.</p>
+<p>Follows the same semantics of uuid_compare from libuuid</p>
+</li>
+</ul>
 <h4 id="mtevuuidcopy">mtev_uuid_copy</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_uuid_copy</span><span class="hljs-params">(uuid_t dst, <span class="hljs-keyword">const</span> uuid_t src)</span>
@@ -3773,6 +3785,14 @@ whether it was successful in parameterizing the CPU for rdtsc use.</p>
 <p>Copy src to dst.</p>
 </blockquote>
 <p> Follows the same semantics of uuid_copy from libuuid</p>
+<h4 id="mtevuuidgenerate">mtev_uuid_generate</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_uuid_generate</span><span class="hljs-params">(uuid_t uu)</span>
+</span></code></pre>
+<blockquote>
+<p>Generate a V4 uuid.</p>
+</blockquote>
+<p> Follows the same semantics of uuid_generate from libuuid</p>
 <h4 id="mtevuuidisnull">mtev_uuid_is_null</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_uuid_is_null</span><span class="hljs-params">(<span class="hljs-keyword">const</span> uuid_t uu)</span>
