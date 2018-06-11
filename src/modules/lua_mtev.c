@@ -1738,7 +1738,10 @@ nl_waitfor(lua_State *L) {
     return available_nargs;
   }
   /* if the timeout is zero and we didn't return already, don't wait */
-  if(p_int == 0.0) return 0;
+  if(p_int == 0.0) {
+    q->L = NULL;
+    return 0;
+  }
 
   q->pending_event = e =
     eventer_in_s_us(nl_waitfor_timeout, q,
