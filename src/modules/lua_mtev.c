@@ -1622,6 +1622,9 @@ nl_wn_queue_pop(struct nl_wn_queue *q, lua_State *L) {
   free(n);
   return nargs;
 }
+/* \lua mtev.notify(key, ...)
+\brief Send notification message on given key.
+*/
 static int
 nl_waitfor_notify(lua_State *L) {
   mtev_lua_resume_info_t *ci;
@@ -1658,10 +1661,12 @@ nl_waitfor_notify(lua_State *L) {
     q->L = NULL;
 
     mtevAssert(ci);
-    mtevAssert(eventer_remove(q->pending_event));
-    mtev_lua_deregister_event(ci, q->pending_event, 0);
-    eventer_free(q->pending_event);
-    q->pending_event = NULL;
+    if(q->pending_event) {
+      mtevAssert(eventer_remove(q->pending_event));
+      mtev_lua_deregister_event(ci, q->pending_event, 0);
+      eventer_free(q->pending_event);
+      q->pending_event = NULL;
+    }
     ci->lmc->resume(ci, nargs);
     return 0;
   }
@@ -1694,6 +1699,10 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
   return 0;
 }
 
+/*! \lua ... = mtev.waitfor(key, [timeout])
+\brief Suspend until for notification on key is received or the timeout is reached.
+\return arguments passed to mtev.notify() including the key.
+*/
 static int
 nl_waitfor(lua_State *L) {
   mtev_lua_resume_info_t *ci;
@@ -1702,15 +1711,19 @@ nl_waitfor(lua_State *L) {
   struct nl_wn_queue *q;
   eventer_t e;
   double p_int;
+  mtev_boolean have_timeout = mtev_false;
 
   ci = mtev_lua_get_resume_info(L);
   mtevAssert(ci);
-  if(lua_gettop(L) != 2) {
-    luaL_error(L, "waitfor(key, timeout) wrong arguments");
+  if(lua_gettop(L) < 1 || lua_gettop(L) > 2) {
+    luaL_error(L, "waitfor(key, [timeout]) wrong arguments");
   }
-  p_int = lua_tonumber(L, 2);
-
   key = lua_tostring(L, 1);
+  if(lua_gettop(L) == 2) {
+    p_int = lua_tonumber(L, 2);
+    have_timeout = mtev_true;
+  }
+
   if(!key) luaL_error(L, "waitfor called without key");
   if(!mtev_hash_retrieve(ci->lmc->pending, key, strlen(key), &vptr)) {
     q = calloc(1, sizeof(*q));
@@ -1736,6 +1749,9 @@ nl_waitfor(lua_State *L) {
       mtev_hash_delete(ci->lmc->pending, q->key, strlen(q->key), free, free);
     }
     return available_nargs;
+  }
+  if(!have_timeout) {
+    return mtev_lua_yield(ci, 0);
   }
   /* if the timeout is zero and we didn't return already, don't wait */
   if(p_int == 0.0) {
@@ -1772,7 +1788,7 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
 
 /*! \lua slept = mtev.sleep(duration_s)
 \param duration_s the number of sections to sleep
-\return the number of sections slept.
+\return the time slept as mtev.timeval object
 */
 static int
 nl_sleep(lua_State *L) {
