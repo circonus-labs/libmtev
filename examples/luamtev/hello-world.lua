@@ -1,36 +1,11 @@
 -- luamtev applications need to be wrapped in a module
 module(...,package.seeall)
 
--- cache pid/tid
-local pid, tid = mtev.thread_self()
+local HttpClient = require('mtev.HttpClient')
 
--- initialize RNG
+-- Seed the random number generator
 local s,us = mtev.gettimeofday()
 math.randomseed(us)
-
-function coro_main(coro_id, w)
-  -- Q: Is there any way to get the identity of the currently running coroutine?
-  --    like mtev.thread_self() just for co-routines?
-  local wait = math.random(w)
-  mtev.log("out","Hello from coro %d! waiting %d\n", coro_id, wait)
-
-  -- suspend this co-routine. Yield to event loop.
-  local slept = mtev.sleep(wait)
-  mtev.notify("SLEEP", coro_id, slept:seconds())
-
-  -- do some async I/O from the co-routine
-  local proc = mtev.spawn("/bin/echo", { "echo", "Hello from echo" })
-  local status, errno = proc:wait(1)
-  mtev.notify("PROC", coro_id)
-  -- Q: How can we communicate with the subprocess?
-  --    - read from stdout/stderr
-  --    - write to stdin
-
-  -- TODO: Add HTTP GET example
-
-  -- tell main() we are done
-  mtev.notify("DONE", coro_id)
-end
 
 --
 -- The main function is executed concurrently by all lua threads
@@ -40,10 +15,9 @@ end
 -- Apparently <default_queue_threads>10</default_queue_threads> in eventer/config is not doing it.
 --
 function main()
-  -- Get parameters form the environment variables:
-  -- Q: How to pass command line arguments to luamtev? ... is that possible at all?
-  local N = tonumber(os.getenv("LUA_COROS")) or 10
-  local WAIT = tonumber(os.getenv("LUA_WAIT")) or 5
+  -- Read-in command line arguments
+  local N = tonumber(arg[2]) or 10
+  local WAIT = tonumber(arg[3]) or 5
 
   -- Say Hi!
   mtev.log("stdout", "Hello from thread %d/%d!\n", mtev.thread_self())
@@ -52,6 +26,7 @@ function main()
   mtev.log("out", "Hi from debug channel!\n")
 
   -- Communicate between threads with shared state.
+  -- Inter-thread communication is currently pretty limited. We only have mtev.shared_set/get()
   local x = mtev.shared_get("X")
   if not x then
     -- this is a race condition here
@@ -60,13 +35,6 @@ function main()
   else
     mtev.log("out", "- found %s\n", x)
   end
-  -- Discussion: Inter-thread communication seems to be pretty limited.
-  -- For mtev.shared_set/get():
-  -- - only string values are supported
-  -- - no atomic operations "upsert" (mtev.shared_inc?)
-  -- - no locking to avoid races (mtev.shared_lock()/shared_unlock()?)
-  -- Q: Are there any other possibilities to communicate between threads?
-  --    E.g. locks, semaphores, queues?
 
   -- Let's spawn some coroutines
   for i=1,N do
@@ -83,6 +51,10 @@ function main()
   end
   for i=1,N do
     local key, coro = mtev.waitfor("PROC")
+    mtev.log("out", "coro-%d notified %s\n", coro, key)
+  end
+  for i=1,N do
+    local key, coro = mtev.waitfor("HTTP")
     mtev.log("out", "coro-%d notified %s\n", coro, key)
   end
   for i=1,N do
@@ -110,4 +82,56 @@ function main()
   --    -> Ignore the problem (concurrent one-shot applications might not common)
   mtev.log("out", "EXIT!\n")
   os.exit(0)
+end
+
+-- Main function of the coroutine
+function coro_main(coro_id, w)
+  local coro = coroutine.running()
+  local wait = math.random(w)
+  mtev.log("out","Hello from coro %d at %p. Waiting %ds\n", coro_id, coro, wait)
+
+  -- suspend this co-routine. Yield to event loop.
+  local slept = mtev.sleep(wait)
+  mtev.notify("SLEEP", coro_id, slept:seconds())
+
+  -- do some async I/O from the co-routine
+  local proc = mtev.spawn("/bin/echo", { "echo", "Hello from echo" })
+  local status, errno = proc:wait(1)
+  mtev.notify("PROC", coro_id)
+  -- It's also possible to communicate with the process via stdin/out/err
+  -- See /test/mtevbusted/child.lua for examples.
+
+  -- make an HTTP request
+  local result = HTTP("google.com","/")
+  mtev.log("http", "%s\n", result) -- This goes to http.log
+  mtev.notify("HTTP", coro_id)
+
+  -- tell main() we are done
+  mtev.notify("DONE", coro_id)
+end
+
+function HTTP(host, path)
+  local port = 80
+  local headers = {}
+  local method = "GET"
+  local ip
+  local dns = mtev.dns()
+  if not dns.is_valid_ip(host) then
+    local r = dns:lookup(host)
+    ip = r.a
+  end
+
+  local output_buf = {}
+  local callbacks = {}
+  callbacks.consume = function (str) output_buf[#output_buf+1] =  str end
+  callbacks.headers = function (hdrs) in_headers = hdrs end
+
+  local client = HttpClient:new(callbacks)
+  local rv, err = client:connect(ip, port)
+  if rv ~= 0 then error("Connection failed") end
+  headers.Host = host
+  headers.Accept = 'text/HTML'
+  client:do_request(method, path, headers, nil, "1.1")
+  client:get_response(100000000)
+  return table.concat(output_buf)
 end
