@@ -9,7 +9,7 @@
 void mtev_uuid_generate(uuid_t uu)
 {
   uint8_t *p = uu;
-  size_t ss = mtev_rand_buf(p, 16);
+  size_t ss = mtev_rand_buf(p, sizeof(uuid_t));
   assert(ss == 16);
   p[6] = (p[6] & 0x0f) | 0x40;
   p[8] = (p[8] & 0x3f) | 0x80;
