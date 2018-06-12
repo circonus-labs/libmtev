@@ -33,6 +33,8 @@
 #ifndef UTILS_MTEV_UUID_COPY_H
 #define UTILS_MTEV_UUID_COPY_H
 
+#include <mtev_uuid.h>
+
 static const uint8_t uuid_zero_uint8[16] = { 0 };
 
 /*!

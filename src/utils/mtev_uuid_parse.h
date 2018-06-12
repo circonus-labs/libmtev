@@ -34,6 +34,7 @@
 #define UTILS_MTEV_UUID_PARSE_H
 
 #include <mtev_defines.h>
+#include <mtev_uuid.h>
 
 /*!
  \fn int mtev_uuid_parse(const char *in, uuid_t uu)
