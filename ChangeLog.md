@@ -4,6 +4,10 @@
 
 ## 1.3
 
+### 1.3.2
+ * Implement required subset of mtev_uuid_ function and remove libuuid dependency.
+ * Applications must explicitly include and link libuuid if they want to use it.
+
 ### 1.3.1
  * Fix null termination in `mtev_uuid_unparse_lower`
 

@@ -481,15 +481,10 @@ AC_CHECK_HEADERS(valgrind/valgrind.h)
 AC_CHECK_HEADERS(priv.h)
 AC_CHECK_FUNCS(setppriv)
 
-AC_CHECK_FUNC(uuid_generate, , [
-	AC_MSG_WARN([uuid_generate not available])
-	AC_SEARCH_LIBS(uuid_generate, uuid e2fs-uuid, , [AC_MSG_ERROR([*** uuid is required ***])])])
-
 # Some libraries provide an unparse_lower command
 # we use that, so if it isn't present, we'll need
 # to implement it.
 AC_CHECK_FUNC(fdwalk, [AC_DEFINE(HAVE_FDWALK, [1], [have fdwalk])], )
-AC_CHECK_FUNC(uuid_unparse_lower, [AC_DEFINE(HAVE_UUID_UNPARSE_LOWER, [1], [have unparse_lower])], )
 AC_CHECK_LIB(util, openpty, , )
 AC_CHECK_LIB(termcap, tputs, , )
 AC_CHECK_LIB(curses, clear, , [AC_MSG_ERROR([curses not found, but required])])
@@ -885,6 +880,11 @@ AC_SUBST(SHLDFLAGS)
 if test -n "`$CC -V 2>&1 | grep 'Sun C'`"; then
 	if test "$enable_string" != "no"; then
 		CFLAGS="$CFLAGS -errwarn=%all"
+	fi
+elif test -n "`$CC --version 2>&1 | grep 'clang'`"; then
+	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall"
+	if test "$enable_string" != "no"; then
+		CFLAGSEXTRAS="$CFLAGSEXTRAS -Werror"
 	fi
 else
 	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall -Wold-style-declaration -Wold-style-definition -Wstrict-prototypes"
