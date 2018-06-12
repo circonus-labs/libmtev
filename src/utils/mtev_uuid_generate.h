@@ -34,7 +34,6 @@
 #define UTILS_MTEV_UUID_GENERATE_H
 
 #include <mtev_defines.h>
-#include <uuid/uuid.h>
 
 /*!
  \fn void mtev_uuid_generate(uuid_t uu)

@@ -2594,8 +2594,8 @@ static int
 nl_uuid(lua_State *L) {
   uuid_t out;
   char uuid_str[UUID_STR_LEN+1];
-  uuid_generate(out);
-  uuid_unparse_lower(out, uuid_str);
+  mtev_uuid_generate(out);
+  mtev_uuid_unparse_lower(out, uuid_str);
   lua_pushstring(L, uuid_str);
   return 1;
 }

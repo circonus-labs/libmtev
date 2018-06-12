@@ -38,8 +38,8 @@
 #include "mtev_hash.h"
 #include "mtev_console.h"
 #include "mtev_hooks.h"
+#include "mtev_uuid.h"
 
-#include <uuid/uuid.h>
 #include <pcre.h>
 
 typedef struct mtev_conf_section {

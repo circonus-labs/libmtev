@@ -26,7 +26,7 @@
 ### FreeBSD 10+
 
     pkg install autoconf gcc git gmake \
-        concurrencykit e2fsprogs-libuuid hwloc liblz4 \
+        concurrencykit hwloc liblz4 \
         libxml2 libxslt luajit pcre udns
 
     git clone https://github.com/circonus-labs/libmtev
@@ -43,7 +43,7 @@ You will need to build a current version from [source](http://concurrencykit.org
 Run the following as root (sudo):
 
     apt-get install autoconf build-essential git \
-		zlib1g-dev uuid-dev libpcre3-dev libssl-dev \
+		zlib1g-dev libpcre3-dev libssl-dev \
 		libxslt1-dev xsltproc libncurses5-dev libhwloc-dev \
         libluajit-5.1-dev libudns-dev liblz4-dev \
         librabbitmq-c
@@ -59,7 +59,7 @@ Run the following as root (sudo):
 
     yum groupinstall "Development Tools"
     yum install epel-release autoconf git \
-        curl-devel hwloc-devel libuuid-devel libxslt-devel \
+        curl-devel hwloc-devel libxslt-devel \
         lz4-devel ncurses-devel openssl-devel pcre-devel \
         udns-devel librabbitmq-c
 
@@ -93,7 +93,7 @@ Set up a [development environment](https://omnios.omniti.com/wiki.php/DevEnv) fi
     pkg install developer/debug/mdb developer/versioning/git \
         field/ck field/fq platform/library/hwloc platform/library/jlog \
         platform/library/libcircllhist platform/library/libcircmetrics \
-        platform/library/liblz4 platform/library/udns platform/library/uuid \
+        platform/library/liblz4 platform/library/udns \
         platform/library/wslay platform/runtime/luajit
 
     git clone git@github.com:circonus-labs/libmtev.git

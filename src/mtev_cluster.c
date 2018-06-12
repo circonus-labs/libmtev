@@ -156,14 +156,14 @@ static int
 mtev_cluster_node_compare(const void *a, const void *b) {
   const mtev_cluster_node_t *node_a = a;
   const mtev_cluster_node_t *node_b = b;
-  return uuid_compare(node_a->id, node_b->id);
+  return mtev_uuid_compare(node_a->id, node_b->id);
 }
 
 mtev_cluster_node_t *
 mtev_cluster_find_node(mtev_cluster_t *cluster, uuid_t nodeid) {
   int i;
   for(i=0; i<cluster->node_cnt; i++) {
-    if(!uuid_compare(cluster->nodes[i].id, nodeid))
+    if(!mtev_uuid_compare(cluster->nodes[i].id, nodeid))
       return &cluster->nodes[i];
   }
   return NULL;
@@ -252,7 +252,7 @@ mtev_cluster_on_node_changed(mtev_cluster_t *cluster,
   sender->boot_time = *new_boot_time;
   sender->config_seq = seq;
 
-  if (uuid_compare(my_cluster_id, sender->id) != 0) {
+  if (mtev_uuid_compare(my_cluster_id, sender->id) != 0) {
     if (compare_timeval(*new_boot_time, my_boot_time) == 0) {
       char node_name[128];
       mtev_cluster_node_to_string(sender, node_name, sizeof(node_name));
@@ -488,7 +488,7 @@ mtev_cluster_compile(mtev_cluster_t *cluster) {
   nodes = calloc(sizeof(*nodes), cluster->node_cnt);
   for(i=0; i<cluster->node_cnt; i++) {
     char uuid_str[UUID_STR_LEN+1];
-    uuid_unparse_lower(cluster->nodes[i].id, uuid_str);
+    mtev_uuid_unparse_lower(cluster->nodes[i].id, uuid_str);
     nodes[i].name = strdup(uuid_str);
     nodes[i].userdata = &cluster->nodes[i];
   }
@@ -551,7 +551,7 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
     xmlNodePtr node;
     char uuid_str[UUID_STR_LEN+1], port[6], ipstr[INET6_ADDRSTRLEN];
     node = xmlNewNode(NULL, (xmlChar *)"node");
-    uuid_unparse_lower(cluster->nodes[i].id, uuid_str);
+    mtev_uuid_unparse_lower(cluster->nodes[i].id, uuid_str);
     xmlSetProp(node, (xmlChar *)"id", (xmlChar *)uuid_str);
     xmlSetProp(node, (xmlChar *)"cn", (xmlChar *)cluster->nodes[i].cn);
     if(cluster->nodes[i].addr.addr4.sin_family == AF_INET) {
@@ -667,7 +667,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
       char uuid_str[UUID_STR_LEN+1];
 
       if(!mtev_conf_get_stringbuf(nodes[i], "@id", uuid_str, sizeof(uuid_str)) ||
-         uuid_parse(uuid_str, nlist[i].id) != 0) {
+         mtev_uuid_parse(uuid_str, nlist[i].id) != 0) {
         mtevL(cerror, "Cluster '%s' node %d has no (or bad) id\n", name, i);
         goto bail;
       }
@@ -813,8 +813,8 @@ mtev_cluster_set_self(uuid_t id) {
     mtev_conf_release_section(c);
     return -1;
   }
-  uuid_copy(my_cluster_id, id);
-  uuid_unparse_lower(my_cluster_id, my_id_str);
+  mtev_uuid_copy(my_cluster_id, id);
+  mtev_uuid_unparse_lower(my_cluster_id, my_id_str);
   xmlNodePtr cnode = mtev_conf_section_to_xmlnodeptr(c);
   if(!mtev_conf_get_stringbuf(MTEV_CONF_ROOT, "//clusters/@my_id",
                               old_uuid, sizeof(old_uuid)) ||
@@ -832,21 +832,21 @@ mtev_cluster_set_self(uuid_t id) {
 
 void
 mtev_cluster_get_self(uuid_t id) {
-  uuid_copy(id, my_cluster_id);
+  mtev_uuid_copy(id, my_cluster_id);
 }
 
 mtev_boolean
 mtev_cluster_is_that_me(mtev_cluster_node_t *node) {
   if (node == NULL)
     return mtev_false;
-  return uuid_compare(node->id, my_cluster_id) == 0;
+  return mtev_uuid_compare(node->id, my_cluster_id) == 0;
 }
 
 mtev_cluster_node_t *
 mtev_cluster_get_node(mtev_cluster_t *c, uuid_t id) {
   int i;
   for(i=0; i<c->node_cnt; i++) {
-    if(uuid_compare(c->nodes[i].id, id) == 0) return &c->nodes[i];
+    if(mtev_uuid_compare(c->nodes[i].id, id) == 0) return &c->nodes[i];
   }
   return NULL;
 }
@@ -858,7 +858,7 @@ mtev_cluster_get_nodes(mtev_cluster_t *c,
   if(!c) return 0;
   if(n < c->node_cnt) return -(c->node_cnt);
   for(i=0;i<n && i<c->node_cnt; i++) {
-    if(includeme || uuid_compare(c->nodes[i].id, my_cluster_id)) {
+    if(includeme || mtev_uuid_compare(c->nodes[i].id, my_cluster_id)) {
       nodes[o++] = &c->nodes[i];
     }
   }
@@ -877,7 +877,7 @@ mtev_cluster_do_i_own(mtev_cluster_t *c, void *key, size_t klen, int w) {
   for(i=0; i<wout; i++) {
     mtev_cluster_node_t *node;
     node = owners[i]->userdata;
-    if(uuid_compare(node->id, my_cluster_id) == 0) return mtev_true;
+    if(mtev_uuid_compare(node->id, my_cluster_id) == 0) return mtev_true;
   }
   return mtev_false;
 }
@@ -902,13 +902,13 @@ mtev_cluster_filter_owners(mtev_cluster_t *c, void *key, size_t klen,
   for(i=0; i<wout; i++) {
     mtev_cluster_node_t *node;
     node = owners[i]->userdata;
-    if(filter(node, uuid_compare(node->id, my_cluster_id) == 0, closure)) {
+    if(filter(node, mtev_uuid_compare(node->id, my_cluster_id) == 0, closure)) {
       set[j++] = node;
     }
   }
   *w = j;
   if(*w <= 0) return mtev_false;
-  if(uuid_compare(set[0]->id, my_cluster_id) == 0) return mtev_true;
+  if(mtev_uuid_compare(set[0]->id, my_cluster_id) == 0) return mtev_true;
   return mtev_false;
 }
 
@@ -1013,8 +1013,8 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
   MJ_KV(obj, "maturity", MJ_INT(c->maturity));
 
   char uuid_str[UUID_STR_LEN+1];
-  if(c->oldest_node && !uuid_is_null(c->oldest_node->id)) {
-    uuid_unparse_lower(c->oldest_node->id, uuid_str);
+  if(c->oldest_node && !mtev_uuid_is_null(c->oldest_node->id)) {
+    mtev_uuid_unparse_lower(c->oldest_node->id, uuid_str);
     MJ_KV(obj, "oldest_node", MJ_STR(uuid_str));
   }
 
@@ -1024,7 +1024,7 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
     struct json_object *node;
     char uuid_str[UUID_STR_LEN+1], ipstr[INET6_ADDRSTRLEN];
     node = MJ_OBJ();
-    uuid_unparse_lower(n->id, uuid_str);
+    mtev_uuid_unparse_lower(n->id, uuid_str);
     MJ_KV(node, "id", MJ_STR(uuid_str));
     MJ_KV(node, "cn", MJ_STR(n->cn));
     MJ_KV(node, "reference_time", MJ_UINT64(now.tv_sec));
@@ -1056,9 +1056,9 @@ rest_show_cluster_json(mtev_http_rest_closure_t *restc, int n, char **p) {
 
   doc = MJ_OBJ();
 
-  if(!uuid_is_null(my_cluster_id)) {
+  if(!mtev_uuid_is_null(my_cluster_id)) {
     char uuid_str[UUID_STR_LEN+1];
-    uuid_unparse_lower(my_cluster_id, uuid_str);
+    mtev_uuid_unparse_lower(my_cluster_id, uuid_str);
     MJ_KV(doc, "my_id", MJ_STR((const char *)uuid_str));
   }
 
@@ -1111,10 +1111,10 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   snprintf(maturity, sizeof(maturity), "%d", c->maturity);
   xmlSetProp(cluster, (xmlChar *)"maturity", (xmlChar *)maturity);
 
-  if(c->oldest_node && !uuid_is_null(c->oldest_node->id)) {
+  if(c->oldest_node && !mtev_uuid_is_null(c->oldest_node->id)) {
     xmlNodePtr node;
     char uuid_str[UUID_STR_LEN+1];
-    uuid_unparse_lower(c->oldest_node->id, uuid_str);
+    mtev_uuid_unparse_lower(c->oldest_node->id, uuid_str);
     node = xmlNewNode(NULL, (xmlChar *)"oldest_node");
     xmlSetProp(node, (xmlChar *)"uuid", (xmlChar *)uuid_str);
     xmlAddChild(cluster, node);
@@ -1125,7 +1125,7 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
     xmlNodePtr node;
     char uuid_str[UUID_STR_LEN+1], port[6], ipstr[INET6_ADDRSTRLEN], time[11];
     node = xmlNewNode(NULL, (xmlChar *)"node");
-    uuid_unparse_lower(n->id, uuid_str);
+    mtev_uuid_unparse_lower(n->id, uuid_str);
     xmlSetProp(node, (xmlChar *)"id", (xmlChar *)uuid_str);
     xmlSetProp(node, (xmlChar *)"cn", (xmlChar *)n->cn);
 
@@ -1168,9 +1168,9 @@ rest_show_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
   root = xmlNewDocNode(doc, NULL, (xmlChar *)"clusters", NULL);
   xmlDocSetRootElement(doc, root);
 
-  if (!uuid_is_null(my_cluster_id)) {
+  if (!mtev_uuid_is_null(my_cluster_id)) {
     char uuid_str[UUID_STR_LEN+1];
-    uuid_unparse_lower(my_cluster_id, uuid_str);
+    mtev_uuid_unparse_lower(my_cluster_id, uuid_str);
     xmlSetProp(root, (xmlChar *)"my_id", (xmlChar *)uuid_str);
   }
 
@@ -1261,7 +1261,7 @@ mtev_cluster_init(void) {
 
   // set global cluster id
   if(mtev_conf_get_stringbuf(parent, "@my_id", my_id_str, sizeof(my_id_str))) {
-    int rv = uuid_parse(my_id_str, my_id);
+    int rv = mtev_uuid_parse(my_id_str, my_id);
     if (rv != 0) {
       mtevL(cerror, "Invalid cluster configuration: my_id=%s\n", my_id_str);
       mtev_conf_release_section(parent);
@@ -1274,7 +1274,7 @@ mtev_cluster_init(void) {
   }
   else {
     mtevL(cdebug,"//clusters/@my_id not set. Generating a new one\n");
-    uuid_generate(my_id);
+    mtev_uuid_generate(my_id);
     mtev_cluster_set_self(my_id);
   }
 
@@ -1308,7 +1308,7 @@ mtev_boolean
 mtev_cluster_am_i_oldest_visible_node(const mtev_cluster_t *cluster) {
   if (cluster == NULL || cluster->oldest_node == NULL)
     return mtev_true;
-  return uuid_compare(cluster->oldest_node->id, my_cluster_id) == 0;
+  return mtev_uuid_compare(cluster->oldest_node->id, my_cluster_id) == 0;
 }
 
 struct timeval
