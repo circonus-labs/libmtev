@@ -58,7 +58,7 @@ struct _event {
   void               *opset_ctx;
   void               *closure;
   pthread_t           thr_owner;
-  mtev_atomic32_t     refcnt;
+  uint32_t             refcnt;
 #ifdef MAX_EVENT_CTXS
   eventer_context_t     ctx[MAX_EVENT_CTXS];
 #endif
@@ -130,14 +130,14 @@ struct _eventer_jobq_t {
 typedef enum { EV_OWNED, EV_ALREADY_OWNED } ev_lock_state_t;
 static ev_lock_state_t
 acquire_master_fd(int fd) {
-  if(mtev_spinlock_trylock(&master_fds[fd].lock)) {
+  if(ck_spinlock_trylock(&master_fds[fd].lock)) {
     master_fds[fd].executor = pthread_self();
     return EV_OWNED;
   }
   if(pthread_equal(master_fds[fd].executor, pthread_self())) {
     return EV_ALREADY_OWNED;
   }
-  mtev_spinlock_lock(&master_fds[fd].lock);
+  ck_spinlock_lock(&master_fds[fd].lock);
   master_fds[fd].executor = pthread_self();
   return EV_OWNED;
 }
@@ -145,7 +145,7 @@ static void
 release_master_fd(int fd, ev_lock_state_t as) {
   if(as == EV_OWNED) {
     memset(&master_fds[fd].executor, 0, sizeof(master_fds[fd].executor));
-    mtev_spinlock_unlock(&master_fds[fd].lock);
+    ck_spinlock_unlock(&master_fds[fd].lock);
   }
 }
 

@@ -39,7 +39,6 @@
 #include "eventer/eventer.h"
 #include "mtev_compress.h"
 #include "mtev_hash.h"
-#include "mtev_atomic.h"
 #include "mtev_hooks.h"
 #include "mtev_listener.h"
 #include "mtev_zipkin.h"
@@ -98,9 +97,9 @@ API_EXPORT(void)
   mtev_http_ctx_session_release(mtev_http_session_ctx *ctx);
 API_EXPORT(uint32_t)
   mtev_http_session_ref_cnt(mtev_http_session_ctx *);
-API_EXPORT(uint32_t)
+API_EXPORT(mtev_boolean)
   mtev_http_session_ref_dec(mtev_http_session_ctx *);
-API_EXPORT(uint32_t)
+API_EXPORT(void)
   mtev_http_session_ref_inc(mtev_http_session_ctx *);
 API_EXPORT(void)
   mtev_http_session_trigger(mtev_http_session_ctx *, int state);

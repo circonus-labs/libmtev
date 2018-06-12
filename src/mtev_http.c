@@ -149,7 +149,7 @@ struct mtev_http_response {
 };
 
 struct mtev_http_session_ctx {
-  mtev_atomic32_t ref_cnt;
+  uint32_t ref_cnt;
   int64_t drainage;
   pthread_mutex_t write_lock;
   int max_write;
@@ -396,13 +396,15 @@ void mtev_http_session_trigger(mtev_http_session_ctx *ctx, int state) {
   if(ctx->conn.e) eventer_trigger(ctx->conn.e, state);
 }
 uint32_t mtev_http_session_ref_cnt(mtev_http_session_ctx *ctx) {
-  return ctx->ref_cnt;
+  return ck_pr_load_32(&ctx->ref_cnt);
 }
-uint32_t mtev_http_session_ref_dec(mtev_http_session_ctx *ctx) {
-  return mtev_atomic_dec32(&ctx->ref_cnt);
+mtev_boolean mtev_http_session_ref_dec(mtev_http_session_ctx *ctx) {
+  bool zero;
+  ck_pr_dec_32_zero(&ctx->ref_cnt, &zero);
+  return zero;
 }
-uint32_t mtev_http_session_ref_inc(mtev_http_session_ctx *ctx) {
-  return mtev_atomic_inc32(&ctx->ref_cnt);
+void mtev_http_session_ref_inc(mtev_http_session_ctx *ctx) {
+  ck_pr_inc_32(&ctx->ref_cnt);
 }
 eventer_t mtev_http_connection_event(mtev_http_connection *conn) {
   return conn ? conn->e : NULL;
@@ -1206,7 +1208,7 @@ mtev_http_response_release(mtev_http_session_ctx *ctx) {
 }
 void
 mtev_http_ctx_session_release(mtev_http_session_ctx *ctx) {
-  if(mtev_atomic_dec32(&ctx->ref_cnt) == 0) {
+  if(mtev_http_session_ref_dec(ctx)) {
     LIBMTEV_HTTP_CLOSE(CTXFD(ctx), ctx);
     mtev_http_request_release(ctx);
     mtev_http_response_release(ctx);

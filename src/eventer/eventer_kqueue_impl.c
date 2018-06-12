@@ -32,7 +32,6 @@
 
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "mtev_atomic.h"
 #include "mtev_skiplist.h"
 #include "mtev_memory.h"
 #include "mtev_log.h"
@@ -43,6 +42,7 @@
 #include <stdlib.h>
 #include <sys/event.h>
 #include <pthread.h>
+#include <ck_spinlock.h>
 
 struct _eventer_impl eventer_kqueue_impl;
 #define LOCAL_EVENTER eventer_kqueue_impl
@@ -56,7 +56,7 @@ struct _eventer_impl eventer_kqueue_impl;
 static const struct timeval __dyna_increment = { 0, 10000 }; /* 10 ms */
 typedef struct kqueue_spec {
   int kqueue_fd;
-  mtev_spinlock_t wakeup_notify;
+  ck_spinlock_t wakeup_notify;
   pthread_mutex_t lock;
   struct {
     struct kevent *__ke_vec;
@@ -286,7 +286,7 @@ alter_kqueue_mask(eventer_t e, int oldmask, int newmask) {
 static void eventer_kqueue_impl_wakeup(eventer_t e) {
   KQUEUE_DECL;
   KQUEUE_SETUP(e);
-  if(mtev_spinlock_trylock(&kqs->wakeup_notify))
+  if(ck_spinlock_trylock(&kqs->wakeup_notify))
     eventer_kqueue_impl_wakeup_spec(kqs);
 }
 
@@ -446,7 +446,7 @@ static int eventer_kqueue_impl_loop(int id) {
     fd_cnt = kevent(kqs->kqueue_fd, ke_vec, ke_vec_used,
                     ke_vec, ke_vec_a,
                     &__kqueue_sleeptime);
-    kqs->wakeup_notify = 0;
+    ck_spinlock_init(&kqs->wakeup_notify);
     if(fd_cnt > 0 || ke_vec_used)
       mtevL(eventer_deb, "[t@%zx] kevent(%d, [...], %d) => %d\n", (intptr_t)pthread_self(), kqs->kqueue_fd, ke_vec_used, fd_cnt);
     ke_vec_used = 0;

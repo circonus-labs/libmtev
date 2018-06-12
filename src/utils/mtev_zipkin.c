@@ -114,7 +114,7 @@ struct Zipkin_Span {
   bool mtevlogging;
   /* Not part of the spec, used by us to provide defaults */
   Zipkin_Endpoint _default_host;
-  mtev_atomic32_t refcnt;
+  uint32_t refcnt;
 };
 
 inline bool mtev_zipkin_span_logs_attached(Zipkin_Span *span) {
@@ -579,13 +579,15 @@ mtev_zipkin_span_new(int64_t *trace_id,
 
 void
 mtev_zipkin_span_ref(Zipkin_Span *span) {
-  mtev_atomic_inc32(&span->refcnt);
+  ck_pr_inc_32(&span->refcnt);
 }
 
 void
 mtev_zipkin_span_drop(Zipkin_Span *span) {
   if(!span) return;
-  if(mtev_atomic_dec32(&span->refcnt) != 0) return;
+  bool zero;
+  ck_pr_dec_32_zero(&span->refcnt, &zero);
+  if(!zero) return;
   if(span->name.needs_free && span->name.value) free(span->name.value);
   while(span->annotations) {
     Zipkin_List_Zipkin_Annotation *node = span->annotations;

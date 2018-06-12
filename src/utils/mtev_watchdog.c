@@ -90,7 +90,7 @@ static const char *trace_dir = "/var/tmp";
 static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
-static mtev_atomic32_t on_crash_fds_to_close[MAX_CRASH_FDS];
+static int on_crash_fds_to_close[MAX_CRASH_FDS];
 static double global_child_watchdog_timeout = CHILD_WATCHDOG_TIMEOUT;
 
 typedef enum {
@@ -280,7 +280,7 @@ void mtev_watchdog_on_crash_close_remove_fd(int fd) {
 void mtev_watchdog_on_crash_close_add_fd(int fd) {
   int i;
   for(i=0; i<MAX_CRASH_FDS; i++)
-    if(mtev_atomic_cas32(&on_crash_fds_to_close[i], fd, -1) == -1) return;
+    if(ck_pr_cas_int(&on_crash_fds_to_close[i], -1, fd)) return;
 
   /* If we get here, it means that we failed to find a slot,
    * so we can't safely dump core asynchronously anymore.

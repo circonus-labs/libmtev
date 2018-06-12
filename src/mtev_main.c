@@ -44,6 +44,7 @@
 #endif
 #include <zlib.h>
 #include <lz4frame.h>
+#include <ck_spinlock.h>
 
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
@@ -179,7 +180,7 @@ void cli_log_switches(void) {
   }
 }
 
-static mtev_spinlock_t mtev_init_globals_lock = 0;
+static ck_spinlock_t mtev_init_globals_lock = CK_SPINLOCK_INITIALIZER;
 static int mtev_init_globals_once = 0;
 
 static void zipkin_conf(void) {
@@ -198,7 +199,7 @@ mtev_init_globals(void) {
   /* instead of just a cas, we lock.. this makes sure
    * no one leaves this function before the job is done.
    */
-  mtev_spinlock_lock(&mtev_init_globals_lock);
+  ck_spinlock_lock(&mtev_init_globals_lock);
   if(mtev_init_globals_once == 0) {
     mtev_memory_init();
     eventer_init_globals();
@@ -218,7 +219,7 @@ mtev_init_globals(void) {
     mtev_init_globals_once = 1;
     mtev_hash_init(&mtev_base_eventer_config);
   }
-  mtev_spinlock_unlock(&mtev_init_globals_lock);
+  ck_spinlock_unlock(&mtev_init_globals_lock);
 }
 
 __attribute__((constructor))

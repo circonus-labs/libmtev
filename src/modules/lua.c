@@ -33,6 +33,7 @@
 
 #include "mtev_defines.h"
 #include "mtev_json.h"
+#include <ck_pr.h>
 
 #include <unistd.h>
 #ifdef HAVE_ALLOCA_H
@@ -225,7 +226,7 @@ struct lua_reporter {
   struct timeval start;
   mtev_console_closure_t ncct;
   mtev_json_object *root;
-  mtev_atomic32_t outstanding;
+  uint32_t outstanding;
 };
 
 static struct lua_reporter *
@@ -239,10 +240,12 @@ mtev_lua_reporter_alloc(void) {
     return reporter;
 }
 static void mtev_lua_reporter_ref(struct lua_reporter *reporter) {
-    mtev_atomic_inc32(&reporter->outstanding);
+    ck_pr_inc_32(&reporter->outstanding);
 }
 static void mtev_lua_reporter_deref(struct lua_reporter *reporter) {
-  if(mtev_atomic_dec32(&reporter->outstanding) == 0) {
+  bool zero;
+  ck_pr_dec_32_zero(&reporter->outstanding, &zero);
+  if(zero) {
     if(reporter->ncct) reporter->ncct = NULL;
     if(reporter->root) MJ_DROP(reporter->root);
     reporter->root = NULL;
@@ -446,7 +449,7 @@ mtev_lua_rest_show_waiter(eventer_t e, int mask, void *closure,
   int age = sub_timeval_ms(*now, reporter->start);
 
   /* If we're not ready and we've not timed out */
-  if(reporter->outstanding > 1 && age < reporter->timeout_ms) {
+  if(ck_pr_load_32(&reporter->outstanding) > 1 && age < reporter->timeout_ms) {
     eventer_add_in_s_us(mtev_lua_rest_show_waiter, reporter, 0, 100000);
     return 0;
   }
@@ -522,7 +525,7 @@ mtev_console_show_lua(mtev_console_closure_t ncct,
   crutch->ncct = ncct;
   distribute_reporter_across_threads(crutch, mtev_console_lua_thread_reporter_ncct);
   /* Wait for completion */
-  while(crutch->outstanding > 1) {
+  while(ck_pr_load_32(&crutch->outstanding) > 1) {
     usleep(500);
   }
   mtev_lua_reporter_deref(crutch);

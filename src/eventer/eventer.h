@@ -36,8 +36,9 @@
 
 #include "mtev_defines.h"
 #include "mtev_log.h"
-#include "mtev_atomic.h"
 #include "mtev_time.h"
+#include <ck_pr.h>
+#include <ck_spinlock.h>
 #include <sys/time.h>
 #include <sys/socket.h>
 
@@ -107,7 +108,7 @@ typedef struct _event
   void               *opset_ctx;
   void               *closure;
   pthread_t           thr_owner;
-  mtev_atomic32_t     refcnt;
+  uint32_t            refcnt;
 }
 #endif
 *eventer_t;
@@ -594,7 +595,7 @@ typedef struct _eventer_impl {
   struct {
     eventer_t e;
     pthread_t executor;
-    mtev_spinlock_t lock;
+    ck_spinlock_t lock;
   }                 *master_fds;
 } *eventer_impl_t;
 

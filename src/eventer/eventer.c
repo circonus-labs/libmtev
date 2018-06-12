@@ -48,8 +48,8 @@ mtev_log_stream_t eventer_deb;
 stats_ns_t *eventer_stats_ns;
 stats_handle_t *eventer_callback_latency;
 stats_handle_t *eventer_unnamed_callback_latency;
-static mtev_atomic64_t ealloccnt;
-static mtev_atomic64_t ealloctotal;
+static uint64_t ealloccnt;
+static uint64_t ealloctotal;
 
 static struct {
   char *name;
@@ -111,8 +111,8 @@ eventer_t eventer_alloc(void) {
   e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
   e->thr_owner = pthread_self();
   e->refcnt = 1;
-  mtev_atomic_inc64(&ealloccnt);
-  mtev_atomic_inc64(&ealloctotal);
+  ck_pr_inc_64(&ealloccnt);
+  ck_pr_inc_64(&ealloctotal);
   for(int i=0; i<eventer_contexts_cnt; i++) {
     if(eventer_contexts[i].opset->eventer_t_init) {
       e = eventer_contexts[i].opset->eventer_t_init(e);
@@ -179,8 +179,10 @@ eventer_t eventer_alloc_asynch_timeout(eventer_func_t func, void *closure,
 }
 
 void eventer_free(eventer_t e) {
-  if(mtev_atomic_dec32(&e->refcnt) == 0) {
-    mtev_atomic_dec64(&ealloccnt);
+  bool zero;
+  ck_pr_dec_32_zero(&e->refcnt, &zero);
+  if(zero) {
+    ck_pr_dec_64(&ealloccnt);
     for(int i=0; i<eventer_contexts_cnt; i++) {
       if(eventer_contexts[i].opset->eventer_t_deinit) {
         eventer_contexts[i].opset->eventer_t_deinit(e);
@@ -215,18 +217,15 @@ eventer_fd_opset_t eventer_get_fd_opset(eventer_t e) { return e->opset; }
 /* No setter here */
 
 int64_t eventer_allocations_current(void) {
-  return ealloccnt;
+  return (int64_t)ck_pr_load_64(&ealloccnt);
 }
 
 int64_t eventer_allocations_total(void) {
-  return ealloctotal;
+  return (int64_t)ck_pr_load_64(&ealloctotal);
 }
 
 void eventer_ref(eventer_t e) {
-  register int32_t newval;
-  newval = mtev_atomic_inc32(&e->refcnt);
-  mtevAssert(newval != 1);
-  (void)newval;
+  ck_pr_inc_32(&e->refcnt);
 }
 
 void eventer_deref(eventer_t e) {

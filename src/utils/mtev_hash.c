@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ck_spinlock.h>
 
 #define ONSTACK_KEY_SIZE 128
 
@@ -185,7 +186,7 @@ struct locks_container {
   void (*unlock)(struct locks_container *h);
   union {
     pthread_mutex_t hs_lock;
-    mtev_spinlock_t hs_spinlock;
+    ck_spinlock_t hs_spinlock;
   } locks;
 };
 
@@ -201,12 +202,12 @@ none_unlock(struct locks_container *h) {
 
 static inline void
 spinlock_lock(struct locks_container *h) {
-  mtev_spinlock_lock(&h->locks.hs_spinlock);
+  ck_spinlock_lock(&h->locks.hs_spinlock);
 }
 
 static inline void
 spinlock_unlock(struct locks_container *h) {
-  mtev_spinlock_unlock(&h->locks.hs_spinlock);
+  ck_spinlock_unlock(&h->locks.hs_spinlock);
 }
 
 static inline void
@@ -257,7 +258,7 @@ mtev_hash_set_lock_mode_funcs(mtev_hash_table *h, mtev_hash_lock_mode_t lock_mod
     lc->unlock = &mutex_unlock;
     break;
   case MTEV_HASH_LOCK_MODE_SPIN:
-    lc->locks.hs_spinlock = 0;
+    ck_spinlock_init(&lc->locks.hs_spinlock);
     lc->lock = &spinlock_lock;
     lc->unlock = &spinlock_unlock;
     break;

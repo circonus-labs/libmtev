@@ -184,7 +184,7 @@ typedef struct {
   reverse_socket_data_t data;
   char *id;
   pthread_mutex_t lock;
-  mtev_atomic32_t refcnt;
+  uint32_t refcnt;
 } reverse_socket_t;
 
 typedef struct {
@@ -210,13 +210,14 @@ mtev_reverse_socket_free(void *vrc) {
 void
 mtev_reverse_socket_ref(void *vrc) {
   reverse_socket_t *rc = (reverse_socket_t*)vrc;
-  mtev_atomic_inc32(&rc->refcnt);
+  ck_pr_inc_32(&rc->refcnt);
 }
 void
 mtev_reverse_socket_deref(void *vrc) {
   reverse_socket_t *rc = (reverse_socket_t*)vrc;
-
-  if(mtev_atomic_dec32(&rc->refcnt) == 0) {
+  bool zero;
+  ck_pr_dec_32_zero(&rc->refcnt, &zero);
+  if(zero) {
     mtev_reverse_socket_free(rc);
   }
 }
@@ -1119,11 +1120,13 @@ mtev_connection_ctx_free(mtev_connection_ctx_t *ctx) {
 
 void
 mtev_connection_ctx_ref(mtev_connection_ctx_t *ctx) {
-  mtev_atomic_inc32(&ctx->refcnt);
+  ck_pr_inc_32(&ctx->refcnt);
 }
 void
 mtev_connection_ctx_deref(mtev_connection_ctx_t *ctx) {
-  if(mtev_atomic_dec32(&ctx->refcnt) == 0) {
+  bool zero;
+  ck_pr_dec_32_zero(&ctx->refcnt, &zero);
+  if(zero) {
     mtev_connection_ctx_free(ctx);
   }
 }

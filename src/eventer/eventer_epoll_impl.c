@@ -33,7 +33,6 @@
 
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "mtev_atomic.h"
 #include "mtev_skiplist.h"
 #include "mtev_memory.h"
 #include "mtev_log.h"

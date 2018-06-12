@@ -67,7 +67,7 @@ typedef struct {
   struct cache_finfo cert_finfo;
   struct cache_finfo key_finfo;
   struct cache_finfo ca_finfo;
-  mtev_atomic32_t refcnt;
+  uint32_t refcnt;
 } ssl_ctx_cache_node;
 
 static mtev_hash_table ssl_ctx_cache;
@@ -527,17 +527,17 @@ verify_cb(int ok, X509_STORE_CTX *x509ctx) {
  */
 static void
 ssl_ctx_cache_node_free(ssl_ctx_cache_node *node) {
-  mtev_atomic32_t endval;
+  bool zero;
   if(!node) return;
-  endval = mtev_atomic_dec32(&node->refcnt);
-  if(endval == 0) {
-    mtevL(eventer_deb, "ssl_ctx_cache_node_free(%p -> %d) freeing\n", node, endval);
+  ck_pr_dec_32_zero(&node->refcnt, &zero);
+  if(zero) {
+    mtevL(eventer_deb, "ssl_ctx_cache_node_free(%p -> 0) freeing\n", node);
     SSL_CTX_free(node->internal_ssl_ctx);
     free(node->key);
     free(node);
   }
   else {
-    mtevL(eventer_deb, "ssl_ctx_cache_node_free(%p -> %d)\n", node, endval);
+    mtevL(eventer_deb, "ssl_ctx_cache_node_free(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
   }
 }
 
@@ -592,21 +592,19 @@ static ssl_ctx_cache_node *
 ssl_ctx_cache_get(const char *key) {
   void *vnode;
   ssl_ctx_cache_node *node = NULL;
-  mtev_atomic32_t newval;
   pthread_mutex_lock(&ssl_ctx_cache_lock);
   if(mtev_hash_retrieve(&ssl_ctx_cache, key, strlen(key), &vnode)) {
     node = vnode;
-    newval = mtev_atomic_inc32(&node->refcnt);
+    ck_pr_inc_32(&node->refcnt);
   }
   pthread_mutex_unlock(&ssl_ctx_cache_lock);
-  if(node) mtevL(eventer_deb, "ssl_ctx_cache->get(%p -> %d)\n", node, newval);
+  if(node) mtevL(eventer_deb, "ssl_ctx_cache->get(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
   return node;
 }
 
 static ssl_ctx_cache_node *
 ssl_ctx_cache_set(ssl_ctx_cache_node *node) {
   void *vnode;
-  mtev_atomic32_t newval;
   pthread_mutex_lock(&ssl_ctx_cache_lock);
   if(mtev_hash_retrieve(&ssl_ctx_cache, node->key, strlen(node->key),
                         &vnode)) {
@@ -615,9 +613,9 @@ ssl_ctx_cache_set(ssl_ctx_cache_node *node) {
   else {
     mtev_hash_store(&ssl_ctx_cache, node->key, strlen(node->key), node);
   }
-  newval = mtev_atomic_inc32(&node->refcnt);
+  ck_pr_inc_32(&node->refcnt);
   pthread_mutex_unlock(&ssl_ctx_cache_lock);
-  mtevL(eventer_deb, "ssl_ctx_cache->set(%p -> %d)\n", node, newval);
+  mtevL(eventer_deb, "ssl_ctx_cache->set(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
   return node;
 }
 
