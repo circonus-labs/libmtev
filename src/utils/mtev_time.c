@@ -549,6 +549,7 @@ mtev_time_tsc_maintenance(void *unused) {
   int delay_us = 0;
   (void)unused;
   long nrcpus = sysconf(_SC_NPROCESSORS_ONLN);
+  mtev_thread_setname("tsc_maint");
   mtev_thread_bind_to_cpu(0);
   if(!mtev_thread_is_bound_to_cpu()) {
     mtevL(mtev_error, "No cpu:thread binding support, using slower timings.\n");

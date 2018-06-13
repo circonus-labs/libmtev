@@ -390,6 +390,8 @@ AC_CHECK_LIB(posix4, sem_wait, , )
 AC_CHECK_LIB(pthread, pthread_create, , )
 AC_CHECK_LIB(execinfo, backtrace, , )
 
+AC_CHECK_FUNC(pthread_setname_np, AC_DEFINE(HAVE_PTHREAD_SETNAME_NP, [1], [pthread_setname_np]))
+
 # Check for LuaJIT
 OLD_LIBS=$LIBS
 LIBS=

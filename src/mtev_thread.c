@@ -194,6 +194,15 @@ mtev_thread_create(pthread_t *thread, const pthread_attr_t *attr,
 }
 
 void
+mtev_thread_setname(const char *name) {
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  char thrname[16] = "\0";
+  if(!strcmp(name, "default/0")) return;
+  strlcat(thrname, name, sizeof(thrname));
+  pthread_setname_np(pthread_self(), thrname);
+#endif
+}
+void
 mtev_thread_init(void)
 {  
   if (mtev_disable_binding == mtev_true) {
