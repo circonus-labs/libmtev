@@ -56,7 +56,7 @@ static __thread mtev_hash_table *dns_ctx_store = NULL;
 typedef struct dns_ctx_handle {
   char *ns;
   struct dns_ctx *ctx;
-  mtev_atomic32_t refcnt;
+  uint32_t refcnt;
   eventer_t e; /* eventer handling UDP traffic */
   eventer_t timeout; /* the timeout managed by libudns */
 } dns_ctx_handle_t;
@@ -74,7 +74,7 @@ typedef struct dns_lookup_ctx {
   int in_lua;         /* If we're in a lua C call */
   int in_lua_direct;  /* Should we return or yield */
   int in_lua_nrr;     /* possible return val */
-  mtev_atomic32_t refcnt;
+  uint32_t refcnt;
 } dns_lookup_ctx_t;
 
 static __thread dns_ctx_handle_t *default_ctx_handle = NULL;
@@ -135,13 +135,13 @@ static dns_ctx_handle_t *dns_ctx_alloc(const char *ns) {
   if(ns == NULL && default_ctx_handle != NULL) {
     /* special case -- default context */
     h = default_ctx_handle;
-    mtev_atomic_inc32(&h->refcnt);
+    ck_pr_inc_32(&h->refcnt);
     goto bail;
   }
   if(ns &&
      mtev_hash_retrieve(dns_ctx_store, ns, strlen(ns), &vh)) {
     h = (dns_ctx_handle_t *)vh;
-    mtev_atomic_inc32(&h->refcnt);
+    ck_pr_inc_32(&h->refcnt);
   }
   else {
     int failed = 0;
@@ -178,11 +178,13 @@ static dns_ctx_handle_t *dns_ctx_alloc(const char *ns) {
 static void dns_ctx_release(dns_ctx_handle_t *h) {
   if(h->ns == NULL) {
     /* Special case for the default */
-    mtev_atomic_dec32(&h->refcnt);
+    ck_pr_dec_32(&h->refcnt);
     return;
   }
   if(!dns_ctx_store) dns_ctx_store = calloc(1, sizeof(*dns_ctx_store));
-  if(mtev_atomic_dec32(&h->refcnt) == 0) {
+  bool zero;
+  ck_pr_dec_32_zero(&h->refcnt, &zero);
+  if(zero) {
     /* I was the last one */
     mtevAssert(mtev_hash_delete(dns_ctx_store, h->ns, strlen(h->ns),
                             NULL, dns_ctx_handle_free));
@@ -191,7 +193,9 @@ static void dns_ctx_release(dns_ctx_handle_t *h) {
 
 void lookup_ctx_release(dns_lookup_ctx_t *v) {
   if(!v) return;
-  if(mtev_atomic_dec32(&v->refcnt) == 0) {
+  bool zero;
+  ck_pr_dec_32_zero(&v->refcnt, &zero);
+  if(zero) {
     if(v->results) free(v->results);
     v->results = NULL;
     if(v->error) free(v->error);
@@ -495,7 +499,7 @@ static int mtev_lua_dns_lookup(lua_State *L) {
 
   dlc->in_lua = 1;
   /* We own this at least until return */
-  mtev_atomic_inc32(&dlc->refcnt);
+  ck_pr_inc_32(&dlc->refcnt);
 
   ctype_up = alloca(strlen(ctype)+1);
   for(d = ctype_up, c = ctype; *c; d++, c++) *d = toupper(*c);
@@ -515,7 +519,7 @@ static int mtev_lua_dns_lookup(lua_State *L) {
     dlc->query_rtype = (enum dns_type)((struct dns_nameval *)vnv_pair)->val;
 
   dlc->active = 1;
-  mtev_atomic_inc32(&dlc->refcnt);
+  ck_pr_inc_32(&dlc->refcnt);
   if(!dlc->error) {
     int abs;
     if(!dns_ptodn(query, strlen(query), dlc->dn, sizeof(dlc->dn), &abs) ||

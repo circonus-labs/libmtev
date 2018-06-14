@@ -36,6 +36,8 @@
 
 #include "mtev_defines.h"
 
+//#warning "mtev_atomics is deprecated, use concurrencykit"
+
 typedef volatile int32_t mtev_atomic32_t;
 typedef volatile int64_t mtev_atomic64_t;
 
@@ -139,8 +141,8 @@ mtev_atomic_cas64(volatile mtev_atomic64_t *ptr,
 #else
   /* These have to be unsigned or bit shifting doesn't work
    * properly */
-  register uint32_t old_high = *ptr >> 32, old_low = *ptr;
-  register uint32_t new_high = rpl >> 32, new_low = rpl;
+  uint32_t old_high = *ptr >> 32, old_low = *ptr;
+  uint32_t new_high = rpl >> 32, new_low = rpl;
   /* We need to break the 64-bit variables into 2 32-bit variables, do a 
    * compare-and-swap, then combine the results */
   prev = mtev_atomic_cas64_asm(ptr, old_high, old_low, new_high, new_low);
@@ -191,7 +193,7 @@ static inline int mtev_spinlock_trylock(volatile mtev_spinlock_t *lock) {
 #ifndef mtev_atomic_add32
 static inline mtev_atomic32_t mtev_atomic_add32(volatile mtev_atomic32_t *loc,
                                                 volatile mtev_atomic32_t diff) {
-  register mtev_atomic32_t current;
+  mtev_atomic32_t current;
   do {
     current = *(loc);
   } while(mtev_atomic_cas32(loc, current + diff, current) != current);
@@ -202,7 +204,7 @@ static inline mtev_atomic32_t mtev_atomic_add32(volatile mtev_atomic32_t *loc,
 #ifndef mtev_atomic_add64
 static inline mtev_atomic64_t mtev_atomic_add64(volatile mtev_atomic64_t *loc,
                                                 volatile mtev_atomic64_t diff) {
-  register mtev_atomic64_t current;
+  mtev_atomic64_t current;
   do {
     current = *(loc);
   } while(mtev_atomic_cas64(loc, current + diff, current) != current);
@@ -213,7 +215,7 @@ static inline mtev_atomic64_t mtev_atomic_add64(volatile mtev_atomic64_t *loc,
 #ifndef mtev_atomic_sub32
 static inline mtev_atomic32_t mtev_atomic_sub32(volatile mtev_atomic32_t *loc,
                                                 volatile mtev_atomic32_t diff) {
-  register mtev_atomic32_t current;
+  mtev_atomic32_t current;
   do {
     current = *(loc);
   } while(mtev_atomic_cas32(loc, current - diff, current) != current);
@@ -224,7 +226,7 @@ static inline mtev_atomic32_t mtev_atomic_sub32(volatile mtev_atomic32_t *loc,
 #ifndef mtev_atomic_sub64
 static inline mtev_atomic64_t mtev_atomic_sub64(volatile mtev_atomic64_t *loc,
                                                 volatile mtev_atomic64_t diff) {
-  register mtev_atomic64_t current;
+  mtev_atomic64_t current;
   do {
     current = *(loc);
   } while(mtev_atomic_cas64(loc, current - diff, current) != current);

@@ -116,7 +116,7 @@ struct cclocks {
 
   /* counts */
   uint64_t fast;
-  mtev_atomic64_t desyncs;
+  uint64_t desyncs;
 } CK_CC_CACHELINE;
 static struct cclocks coreclocks[NCPUS] = {{{0.0,0}, PTHREAD_MUTEX_INITIALIZER, 0, 0, 0}};
 
@@ -432,7 +432,7 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
     else {
       if(h2 - coreclocks[cpuid].last_sync > DELINQUENT_NS) {
         if(ck_pr_load_64(&coreclocks[cpuid].calc.skew) != 0) {
-          mtev_atomic_inc64(&coreclocks[cpuid].desyncs);
+          ck_pr_inc_64(&coreclocks[cpuid].desyncs);
           ck_pr_store_64(&coreclocks[cpuid].calc.skew, 0);
         }
         mtevL(tdeb, "CPU:%d desync! [%" PRId64 ",%" PRId64 "]\n",
@@ -723,7 +723,7 @@ mtev_get_nanos(void)
       return nanos;
 #if 0
     }
-    mtev_atomic_inc64(&coreclocks[cpuid].desyncs);
+    ck_pr_inc_64(&coreclocks[cpuid].desyncs);
     ck_pr_store_64(&coreclocks[cpuid].calc.skew, 0);
 #endif
   }

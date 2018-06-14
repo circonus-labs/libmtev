@@ -41,7 +41,7 @@
 #include "mtev_listener.h"
 
 typedef struct mtev_connection_ctx_t {
-  mtev_atomic32_t refcnt;
+  uint32_t refcnt;
   union {
     struct sockaddr remote;
     struct sockaddr_un remote_un;

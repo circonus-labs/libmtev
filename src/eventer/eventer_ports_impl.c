@@ -33,7 +33,6 @@
 
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
-#include "mtev_atomic.h"
 #include "mtev_skiplist.h"
 #include "mtev_memory.h"
 #include "mtev_log.h"
@@ -46,6 +45,7 @@
 #include <signal.h>
 #include <port.h>
 #include <pthread.h>
+#include <ck_spinlock.h>
 
 #define MAX_PORT_EVENTS 1024
 
@@ -61,7 +61,7 @@ struct _eventer_impl eventer_ports_impl;
 static const struct timeval __dyna_increment = { 0, 1000 }; /* 1 ms */
 struct ports_spec {
   int port_fd;
-  mtev_spinlock_t wakeup_notify;
+  ck_spinlock_t wakeup_notify;
 };
 
 static void *eventer_ports_spec_alloc(void) {
@@ -368,7 +368,7 @@ static int eventer_ports_impl_loop(int id) {
 
     ret = port_getn(spec->port_fd, pevents, MAX_PORT_EVENTS, &fd_cnt,
                     &__ports_sleeptime);
-    spec->wakeup_notify = 0; /* force unlock */
+    ck_spinlock_init(&spec->wakeup_notify); /* force unlock */
     /* The timeout case is a tad complex with ports.  -1/ETIME is clearly
      * a timeout.  However, it i spossible that we got that and fd_cnt isn't
      * 0, which means we both timed out and got events... WTF?
@@ -430,7 +430,7 @@ static int eventer_ports_impl_loop(int id) {
 static void
 eventer_ports_impl_wakeup(eventer_t e) {
   struct ports_spec *spec = eventer_get_spec_for_event(e);
-  if(mtev_spinlock_trylock(&spec->wakeup_notify))
+  if(ck_spinlock_trylock(&spec->wakeup_notify))
     port_send(spec->port_fd, 0, NULL);
 }
 

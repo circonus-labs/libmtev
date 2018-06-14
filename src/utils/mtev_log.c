@@ -52,7 +52,6 @@
 #define mtev_log_impl
 #include "mtev_log.h"
 #include "mtev_hash.h"
-#include "mtev_atomic.h"
 #include "mtev_hooks.h"
 #include "mtev_json.h"
 #include "mtev_str.h"
@@ -117,7 +116,7 @@ struct _mtev_log_stream {
   mtev_hash_table *config;
   struct _mtev_log_stream_outlet_list *outlets;
   pthread_rwlock_t *lock;
-  mtev_atomic32_t written;
+  uint32_t written;
   unsigned deps_materialized:1;
   unsigned flags_below;
 };
@@ -479,7 +478,7 @@ typedef struct asynch_log_ctx {
   void *userdata;
   pthread_t writer;
   pthread_mutex_t singleton;
-  mtev_atomic32_t gen;  /* generation */
+  uint32_t gen;  /* generation */
   int pid;
   int is_asynch;
   int last_errno;
@@ -539,12 +538,12 @@ static void *
 asynch_logio_writer(void *vls) {
   mtev_log_stream_t ls = vls;
   asynch_log_ctx *actx = ls->op_ctx;
-  int gen;
-  gen = mtev_atomic_inc32(&actx->gen);
+  uint32_t gen;
+  gen = ck_pr_faa_32(&actx->gen, 1) + 1;
   pthread_mutex_lock(&actx->singleton);
   mtevL(mtev_debug, "starting asynchronous %s writer[%d/%p]\n",
         actx->name, (int)getpid(), (void *)(intptr_t)pthread_self());
-  while(gen == actx->gen) {
+  while(gen == ck_pr_load_32(&actx->gen)) {
     pthread_rwlock_t *lock;
     int fast = 0, max = 1000;
     asynch_log_line *line;
@@ -598,7 +597,7 @@ asynch_thread_create(mtev_log_stream_t ls, asynch_log_ctx *actx, void* function)
       pthread_mutex_destroy(&actx->singleton);
     }
     pthread_mutex_init(&actx->singleton, NULL);
-    mtev_atomic_inc32(&actx->gen);
+    ck_pr_inc_32(&actx->gen);
     actx->pid = pid;
   }
   pthread_attr_init(&tattr);
@@ -721,7 +720,7 @@ posix_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
 
     if(po && po->fd >= 0) rv = write(po->fd, buf, len);
     if(lock) pthread_rwlock_unlock(lock);
-    if(rv > 0) mtev_atomic_add32(&ls->written, rv);
+    if(rv > 0) ck_pr_add_32(&ls->written, rv);
     return rv;
   }
   line = malloc(sizeof(*line));
@@ -734,7 +733,7 @@ posix_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
     memcpy(line->buf_static, buf, len);
   }
   rv = line->len = len;
-  mtev_atomic_add32(&ls->written, rv);
+  ck_pr_add_32(&ls->written, rv);
   asynch_log_push(actx, line);
   return rv;
 }
@@ -1953,7 +1952,7 @@ mtev_log_go_asynch(void) {
     ls = iter.value.ptr;
     if(SUPPORTS_ASYNC(ls)) {
       asynch_log_ctx *actx = ls->op_ctx;
-      mtev_atomic_inc32(&actx->gen);
+      ck_pr_inc_32(&actx->gen);
       actx->is_asynch = 1;
       if(ls->ops->reopenop(ls) < 0) rv = -1;
     }
@@ -1973,7 +1972,7 @@ mtev_log_go_synch(void) {
     ls = iter.value.ptr;
     if(SUPPORTS_ASYNC(ls)) {
       asynch_log_ctx *actx = ls->op_ctx;
-      mtev_atomic_inc32(&actx->gen);
+      ck_pr_inc_32(&actx->gen);
       actx->is_asynch = 0;
       if(ls->ops->reopenop(ls) < 0) rv = -1;
       asynch_logio_drain(actx);

@@ -385,7 +385,7 @@ void mtev_memory_safe_free(void *p) {
   mtev_memory_ck_free_func(p, 0, true, mtev_memory_real_free);
 }
 
-static mtev_atomic32_t nallocators;
+static uint32_t nallocators;
 struct mtev_allocator_options {
   char name[32];
   mtev_boolean wants_fill;
@@ -685,8 +685,8 @@ fixed_umem_allocator_init(struct mtev_allocator *a, mtev_allocator_options_t opt
 mtev_allocator_t mtev_allocator_create(mtev_allocator_options_t opt) {
   mtev_allocator_t allocator = calloc(1, sizeof(*allocator));
   if(opt->name[0] == '\0') {
-    int id = mtev_atomic_inc32(&nallocators);
-    snprintf(opt->name, sizeof(opt->name), "mtev_umem_n%d_%d",
+    uint32_t id = ck_pr_faa_32(&nallocators, 1) + 1;
+    snprintf(opt->name, sizeof(opt->name), "mtev_umem_n%u_%d",
              id, (int)opt->fixed_size);
   }
   if(0) { }

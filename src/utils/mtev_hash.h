@@ -37,8 +37,8 @@
 #define _MTEV_HASH_H
 
 #include "mtev_config.h"
-#include "mtev_atomic.h"
 #include <ck_hs.h>
+#include <ck_spinlock.h>
 
 typedef void (*NoitHashFreeFunc)(void *);
 

@@ -34,7 +34,8 @@
 #ifndef UTILS_MTEV_HOOKS
 #define UTILS_MTEV_HOOKS
 
-#include <mtev_atomic.h>
+#include <mtev_defines.h>
+#include <ck_pr.h>
 #include <assert.h>
 #include <dlfcn.h>
 
@@ -152,13 +153,13 @@ struct mtev_hook_##HOOKNAME##_list { \
   CDEF CNAME; \
   struct mtev_hook_##HOOKNAME##_list *next; \
 }; \
-static volatile void *nh_##HOOKNAME##_list = (volatile void *) NULL; \
+static void *nh_##HOOKNAME##_list = NULL; \
  \
 const char * \
 HOOKNAME##_hook_proto(void) { return #HOOKPROTO; } \
 mtev_boolean \
 HOOKNAME##_hook_exists(void) { \
-  return (nh_##HOOKNAME##_list != (volatile void *) NULL) ? mtev_true : mtev_false; \
+  return (ck_pr_load_ptr((void **)&nh_##HOOKNAME##_list) != NULL) ? mtev_true : mtev_false; \
 } \
  \
 mtev_hook_return_t \
@@ -166,7 +167,7 @@ HOOKNAME##_hook_invoke HOOKPROTO_NC { \
   mtev_hook_return_t rv = MTEV_HOOK_CONTINUE; \
   struct mtev_hook_##HOOKNAME##_list *h; \
   struct mtev_hook_##HOOKNAME##_list *list = \
-    (struct mtev_hook_##HOOKNAME##_list *)nh_##HOOKNAME##_list; \
+    ck_pr_load_ptr(&nh_##HOOKNAME##_list); \
   for(h = list; h; h = h->next) { \
     if(h->func) { \
       mtev_hook_return_t trv; \
@@ -183,7 +184,6 @@ void HOOKNAME##_hook_register(const char *name, \
                               mtev_hook_return_t (*func) HOOKPROTO, \
                               CDEF CNAME) { \
   struct mtev_hook_##HOOKNAME##_list *nh; \
-  volatile struct mtev_hook_##HOOKNAME##_list *last, *expected; \
   nh = (struct mtev_hook_##HOOKNAME##_list *) calloc(1, sizeof(*nh));   \
   nh->optional_name = name ? strdup(name) : (const char *) NULL; \
   nh->proto = #HOOKPROTO; \
@@ -191,10 +191,7 @@ void HOOKNAME##_hook_register(const char *name, \
   nh->CNAME = CNAME; \
   do { \
     nh->next = (struct mtev_hook_##HOOKNAME##_list *)nh_##HOOKNAME##_list; \
-    expected = (struct mtev_hook_##HOOKNAME##_list *)nh_##HOOKNAME##_list; \
-    last = (volatile struct mtev_hook_##HOOKNAME##_list *) \
-      mtev_atomic_casptr((volatile void **)&nh_##HOOKNAME##_list, nh, expected); \
-  } while(last != expected); \
+  } while(!ck_pr_cas_ptr((void **)&nh_##HOOKNAME##_list, nh_##HOOKNAME##_list, nh)); \
 }
 
 #ifdef RTLD_DEFAULT
