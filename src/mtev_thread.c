@@ -197,9 +197,13 @@ void
 mtev_thread_setname(const char *name) {
 #ifdef HAVE_PTHREAD_SETNAME_NP
   char thrname[16] = "\0";
-  if(!strcmp(name, "default/0")) return;
-  strlcat(thrname, name, sizeof(thrname));
-  pthread_setname_np(pthread_self(), thrname);
+  if(!name)
+    pthread_setname_np(pthread_self(), "terminating_thread");
+  else {
+    if(!strcmp(name, "default/0")) return;
+    strlcat(thrname, name, sizeof(thrname));
+    pthread_setname_np(pthread_self(), thrname);
+  }
 #endif
 }
 void
