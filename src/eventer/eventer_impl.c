@@ -1225,7 +1225,7 @@ static void *eventer_thread_harness(void *ve) {
   eventer_t e = ve;
   char thrname[64];
   snprintf(thrname, sizeof(thrname),
-           "dedicated_event/%zu", (uintptr_t)pthread_self());
+           "dedicated/%u", mtev_thread_id());
   eventer_set_thread_name_unsafe(thrname);
   int mask = e->mask;
   while(1) {
