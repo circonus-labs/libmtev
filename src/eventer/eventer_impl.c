@@ -141,6 +141,7 @@ eventer_set_thread_name_internal(const char *name, mtev_boolean unsafe) {
     }
     pthread_setspecific(thread_name_key, to_free);
   }
+  mtev_thread_setname(name);
 }
 static void
 eventer_thread_name_free(void *vtn) {
