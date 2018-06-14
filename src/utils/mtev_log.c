@@ -536,10 +536,13 @@ asynch_logio_drain(asynch_log_ctx *actx) {
 
 static void *
 asynch_logio_writer(void *vls) {
+  char thr_name[16];
   mtev_log_stream_t ls = vls;
   asynch_log_ctx *actx = ls->op_ctx;
   uint32_t gen;
   gen = ck_pr_faa_32(&actx->gen, 1) + 1;
+  snprintf(thr_name, sizeof(thr_name), "l:%s", ls->name);
+  mtev_thread_setname(thr_name);
   pthread_mutex_lock(&actx->singleton);
   mtevL(mtev_debug, "starting asynchronous %s writer[%d/%p]\n",
         actx->name, (int)getpid(), (void *)(intptr_t)pthread_self());
