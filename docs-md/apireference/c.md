@@ -1971,6 +1971,20 @@ eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max)
   * `max` a maximum number of threads to not exceed
 
 
+#### eventer_jobq_set_shortname
+
+>Set a "shorter" name for a jobq to be used in terse displays.
+
+```c
+void
+eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *name)
+```
+
+
+  * `jobq` the jobq to modify
+  * `name` a shorter name for a job (clipped to 13 characters)
+
+
 #### eventer_loop
 
 >Start the event loop.

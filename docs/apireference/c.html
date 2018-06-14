@@ -2109,6 +2109,17 @@ eventer_jobq_retrieve(<span class="hljs-keyword">const</span> <span class="hljs-
 <li><code>min</code> a minimum number of threads to maintain</li>
 <li><code>max</code> a maximum number of threads to not exceed</li>
 </ul>
+<h4 id="eventerjobqsetshortname">eventer_jobq_set_shortname</h4>
+<blockquote>
+<p>Set a &quot;shorter&quot; name for a jobq to be used in terse displays.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_jobq_set_shortname</span><span class="hljs-params">(eventer_jobq_t *jobq, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)</span>
+</span></code></pre>
+<ul>
+<li><code>jobq</code> the jobq to modify</li>
+<li><code>name</code> a shorter name for a job (clipped to 13 characters)</li>
+</ul>
 <h4 id="eventerloop">eventer_loop</h4>
 <blockquote>
 <p>Start the event loop.</p>
