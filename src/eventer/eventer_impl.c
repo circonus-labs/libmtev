@@ -538,6 +538,8 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
 
   snprintf(qname, sizeof(qname), "default_back_queue/%d", t->id);
   t->__global_backq = eventer_jobq_create_backq(qname);
+  snprintf(qname, sizeof(qname), "bq:%d", t->id);
+  eventer_jobq_set_shortname(t->__global_backq, qname);
   e = eventer_alloc();
   e->mask = EVENTER_RECURRENT;
   e->closure = t->__global_backq;
@@ -567,7 +569,7 @@ static void *thrloopwrap(void *vid) {
   int id = (int)(intptr_t)vid;
   t = &eventer_impl_tls_data[id];
   t->id = id;
-  snprintf(thr_name, sizeof(thr_name), "%s/%d", t->pool->name, id);
+  snprintf(thr_name, sizeof(thr_name), "e:%s/%d", t->pool->name, id);
   stats_ns_t *tns = mtev_stats_ns(threads_ns, thr_name);
   t->loop_times = stats_register(tns, "cycletime", STATS_TYPE_HISTOGRAM);
   mtev_memory_init(); /* Just in case no one has initialized this */
@@ -765,6 +767,7 @@ int eventer_impl_init(void) {
   if(!eventer_deb) eventer_deb = mtev_debug;
 
   __default_jobq = eventer_jobq_create("default_queue");
+  eventer_jobq_set_shortname(__default_jobq, "default");
   eventer_jobq_set_concurrency(__default_jobq, __default_queue_threads);
 
   mtevAssert(eventer_impl_tls_data == NULL);
