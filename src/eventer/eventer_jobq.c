@@ -333,8 +333,8 @@ static void *
 eventer_jobq_consumer_pthreadentry(void *vp) {
   eventer_jobq_t *jobq = vp;
   char thr_name[64];
-  snprintf(thr_name, sizeof(thr_name), "%s/%zu", jobq->queue_name,
-           (uintptr_t)pthread_self());
+  snprintf(thr_name, sizeof(thr_name), "q:%s",
+           jobq->short_name ? jobq->short_name : jobq->queue_name);
   if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) {
     mtev_memory_init_thread();
     eventer_set_thread_name(thr_name);
@@ -528,6 +528,7 @@ eventer_jobq_destroy(eventer_jobq_t *jobq) {
   }
   pthread_mutex_destroy(&jobq->lock);
   sem_destroy(&jobq->semaphore);
+  if(jobq->short_name) mtev_memory_safe_free((void *)jobq->short_name);
   free(jobq);
 }
 int
@@ -872,6 +873,16 @@ void eventer_jobq_ping(eventer_jobq_t *jobq) {
   jobq_fire_blanks(jobq, 1);
 }
 
+void eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *name) {
+  if(jobq->short_name) mtev_memory_safe_free((void *)jobq->short_name);
+  if(name == NULL) jobq->short_name = NULL;
+  else {
+    /* we append this to "q:" so this gives us up to 16 including \0 */
+    char *p = mtev_memory_safe_malloc(14);
+    strlcpy(p, name, 14);
+    jobq->short_name = p;
+  }
+}
 void eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max) {
   jobq->max_backlog = max;
 }

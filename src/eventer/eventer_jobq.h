@@ -97,6 +97,13 @@ API_EXPORT(eventer_jobq_t *) eventer_jobq_retrieve(const char *name);
 */
 API_EXPORT(void) eventer_jobq_destroy(eventer_jobq_t *jobq);
 
+/*! \fn void eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *name)
+    \brief Set a "shorter" name for a jobq to be used in terse displays.
+    \param jobq the jobq to modify
+    \param name a shorter name for a job (clipped to 13 characters)
+*/
+API_EXPORT(void) eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *name);
+
 /*! \fn void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency)
     \brief Set a jobq's concurrency level.
     \param jobq the jobq to modify
