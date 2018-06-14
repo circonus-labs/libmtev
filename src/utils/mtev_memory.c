@@ -197,6 +197,7 @@ mtev_memory_sync_wait(ck_epoch_t *e, ck_epoch_record_t *rec, void *c) {
 static void *
 mtev_memory_gc(void *unused) {
   (void)unused;
+  mtev_thread_setname("mtev_memory_gc");
   mtev_memory_init_thread();
   while(1) {
     struct asynch_reclaim *ar;
