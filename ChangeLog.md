@@ -4,9 +4,15 @@
 
 ## 1.3
 
+### 1.3.3
+ * Deprecate built-in atomics in favor of ConcurrencyKit.
+ * Support naming threads, add names for some common threads.
+
 ### 1.3.2
- * Implement required subset of mtev_uuid_ function and remove libuuid dependency.
- * Applications must explicitly include and link libuuid if they want to use it.
+ * Implement required subset of `mtev_uuid_*` functions and remove libuuid
+   dependency.
+ * Applications must explicitly include and link libuuid if they want to use
+   it.
 
 ### 1.3.1
  * Fix null termination in `mtev_uuid_unparse_lower`
