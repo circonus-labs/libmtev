@@ -995,7 +995,7 @@ void zipkin_eventer_callback_prep(eventer_t e, int mask, void *closure, struct t
   if(ctx->span) ctx->span->mtevlogging = ctx->parent_span->mtevlogging;
   ctx->my_span = true;
   mtev_zipkin_span_annotate(ctx->span, &ts, ZIPKIN_INTERNAL_START, false);
-  mtev_zipkin_span_bannotate_str(ctx->span, ZIPKIN_MTEV_EVENTER_THREAD, false, eventer_get_thread_name(), false);
+  mtev_zipkin_span_bannotate_str(ctx->span, ZIPKIN_MTEV_EVENTER_THREAD, false, eventer_get_thread_name(), true);
   mtev_zipkin_span_bannotate_i32(ctx->span, ZIPKIN_MTEV_EVENTER_MASK, false, mask);
 }
 void zipkin_eventer_callback_cleanup(eventer_t e, int mask) {
