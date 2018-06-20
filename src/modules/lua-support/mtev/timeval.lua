@@ -33,6 +33,7 @@ local string = require("string")
 module("mtev.timeval")
 
 local metat = { }
+metat.__index = metat
 
 function new(sec, usec)
   local o = base.setmetatable( { sec = sec, usec = usec }, metat)
@@ -46,6 +47,8 @@ end
 function seconds(self)
   return self.sec + (self.usec / 1000000.0)
 end
+
+metat.seconds = seconds
 
 function metat.__add(o1, o2)
   local secs = o1.sec + o2.sec

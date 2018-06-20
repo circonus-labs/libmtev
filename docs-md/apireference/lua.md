@@ -364,6 +364,21 @@ mtev.mkdir_for_file(path)
     * **RETURN** boolean success flag, error number, string representation of error
 
 
+### N
+
+#### mtev.notify
+
+>Send notification message on given key, to be received by mtev.waitfor(key)
+
+```lua
+mtev.notify(key, ...)
+```
+
+
+  * `key` key specifying notification channel
+  * `...` additional args to be included in the message
+
+
 ### O
 
 #### mtev.open
@@ -616,7 +631,7 @@ mtev.sleep(duration_s)
 ```
 
   * `duration_s` the number of sections to sleep
-  * **RETURN** the number of sections slept.
+  * **RETURN** the time slept as mtev.timeval object
 
 
 #### mtev.socket
@@ -730,6 +745,19 @@ mtev.uuid()
 
 
 ### W
+
+#### mtev.waitfor
+
+>Suspend until for notification on key is received or the timeout is reached.
+
+```lua
+... =
+mtev.waitfor(key, [timeout])
+```
+
+
+  * **RETURN** arguments passed to mtev.notify() including the key.
+
 
 #### mtev.watchdog_child_heartbeat
 
