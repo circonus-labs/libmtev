@@ -1712,7 +1712,7 @@ nl_waitfor(lua_State *L) {
   const char *key;
   struct nl_wn_queue *q;
   eventer_t e;
-  double p_int;
+  double p_int = 0.0;
   mtev_boolean have_timeout = mtev_false;
 
   ci = mtev_lua_get_resume_info(L);
