@@ -1622,8 +1622,10 @@ nl_wn_queue_pop(struct nl_wn_queue *q, lua_State *L) {
   free(n);
   return nargs;
 }
-/* \lua mtev.notify(key, ...)
-\brief Send notification message on given key.
+/*! \lua mtev.notify(key, ...)
+\brief Send notification message on given key, to be received by mtev.waitfor(key)
+\param key key specifying notification channel
+\param ... additional args to be included in the message
 */
 static int
 nl_waitfor_notify(lua_State *L) {
