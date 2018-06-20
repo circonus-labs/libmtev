@@ -793,7 +793,18 @@ mtev.mkdir_for_file(path)
 </code></pre>
 <pre><code>* `path` string
 * **RETURN** boolean success flag, error number, string representation of error
-</code></pre><h3 id="o">O</h3>
+</code></pre><h3 id="n">N</h3>
+<h4 id="mtevnotify">mtev.notify</h4>
+<blockquote>
+<p>Send notification message on given key, to be received by mtev.waitfor(key)</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.notify(key, ...)
+</code></pre>
+<ul>
+<li><code>key</code> key specifying notification channel</li>
+<li><code>...</code> additional args to be included in the message</li>
+</ul>
+<h3 id="o">O</h3>
 <h4 id="mtevopen">mtev.open</h4>
 <pre><code class="lang-lua">fh =
 mtev.open(file, flags)
@@ -967,7 +978,7 @@ mtev.sleep(duration_s)
 </code></pre>
 <ul>
 <li><code>duration_s</code> the number of sections to sleep</li>
-<li><strong>RETURN</strong> the number of sections slept.</li>
+<li><strong>RETURN</strong> the time slept as mtev.timeval object</li>
 </ul>
 <h4 id="mtevsocket">mtev.socket</h4>
 <pre><code class="lang-lua">mtev.socket()
@@ -1044,6 +1055,16 @@ the <code>tostring</code> method to convert it to a simple string.</p>
 <pre><code class="lang-lua">mtev.uuid()
 </code></pre>
 <h3 id="w">W</h3>
+<h4 id="mtevwaitfor">mtev.waitfor</h4>
+<blockquote>
+<p>Suspend until for notification on key is received or the timeout is reached.</p>
+</blockquote>
+<pre><code class="lang-lua">... =
+mtev.waitfor(key, [timeout])
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> arguments passed to mtev.notify() including the key.</li>
+</ul>
 <h4 id="mtevwatchdogchildheartbeat">mtev.watchdog_child_heartbeat</h4>
 <blockquote>
 <p>Heartbeat from a child process.</p>
