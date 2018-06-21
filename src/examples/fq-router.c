@@ -99,6 +99,7 @@ child_main(void) {
   mtev_listener_init(APPNAME);
   mtev_cluster_init();
   mtev_dso_init();
+  mtev_dso_post_init();
 
   mtev_fq_handle_message_hook_register("fq-router", on_msg_received, NULL);
 
