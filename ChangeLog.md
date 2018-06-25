@@ -4,6 +4,11 @@
 
 ## 1.3
 
+### 1.3.4
+ * Add luamtev `mtev.timeval:seconds()` method.
+ * Add luamtev examples.
+ * Crash fix for Zipkin thread annotations.
+
 ### 1.3.3
  * Deprecate built-in atomics in favor of ConcurrencyKit.
  * Support naming threads, add names for some common threads.
