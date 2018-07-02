@@ -624,6 +624,10 @@ mtev_event_dispose(void *ev) {
   eventer_t *value = ev;
   eventer_t removed, e = *value;
   struct nl_generic_cl *cl;
+  if(e == NULL) {
+    free(ev);
+    return;
+  }
   mtevL(nldeb, "lua check cleanup: dropping (%p)->fd (%d)\n", e, eventer_get_fd(e));
   removed = eventer_remove(e);
   mtevL(nldeb, "    remove from eventer system %s\n",
