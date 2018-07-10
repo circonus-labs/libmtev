@@ -96,12 +96,12 @@ test_harness:       $(TESTHARNESS_OBJS)
 check-lua:
 	@echo
 	@echo "Running luajit-based tests via test_harness..."
-	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LUA_PATH="$(LUAROCKS_PATH)" ./mtevbusted-wrapper.sh
+	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_PRELOAD=../src/libmtev@DOTSO@ LUA_PATH="$(LUAROCKS_PATH)" ./mtevbusted-wrapper.sh
 
 check-standalone: $(TESTS)
 	@echo
 	@echo "Running other tests via script..."
-	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./run_standalone_tests.sh $(TESTS)
+	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_PRELOAD=../src/libmtev@DOTSO@ ./run_standalone_tests.sh $(TESTS)
 
 install:	mtevbusted-script
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)
