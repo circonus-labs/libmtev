@@ -5,6 +5,14 @@ if [[ -n "$_DYLD_LIBRARY_PATH" ]]; then
 	export DYLD_LIBRARY_PATH
 fi
 
+if [[ "`uname`" == "SunOS" ]]; then
+	LD_PRELOAD_64=$_LD_PRELOAD
+	export LD_PRELOAD_64
+else
+	LD_PRELOAD=$_LD_PRELOAD
+	export LD_PRELOAD
+fi
+
 rv=0
 for cmd in $@; do
 	exe="./$cmd"
