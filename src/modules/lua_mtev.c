@@ -846,6 +846,56 @@ mtev_lua_socket_setsockopt(lua_State *L) {
   return 1;
 }
 static int
+mtev_lua_socket_gen_name(lua_State *L,
+                         int (*namefunc)(int, struct sockaddr *, socklen_t *)) {
+  mtev_lua_resume_info_t *ci;
+  eventer_t e, *eptr;
+  char ip[INET6_ADDRSTRLEN];
+  union {
+    struct sockaddr a;
+    struct sockaddr_in ip4;
+    struct sockaddr_in6 ip6;
+  } addr;
+  socklen_t addrlen;
+
+  ci = mtev_lua_get_resume_info(L);
+  mtevAssert(ci);
+
+  eptr = lua_touserdata(L, lua_upvalueindex(1));
+  if(eptr != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+  e = *eptr;
+ 
+  if(namefunc(eventer_get_fd(e), &addr.a, &addrlen) == 0) {
+    switch(addr.a.sa_family) {
+      case AF_INET:
+        if(inet_ntop(AF_INET, &addr.ip4.sin_addr, ip, sizeof(ip))) {
+          lua_pushstring(L, ip);
+          lua_pushinteger(L, ntohs(addr.ip4.sin_port));
+          return 2;
+        }
+        break;
+      case AF_INET6:
+        if(inet_ntop(AF_INET6, &addr.ip6.sin6_addr, ip, sizeof(ip))) {
+          lua_pushstring(L, ip);
+          lua_pushinteger(L, ntohs(addr.ip6.sin6_port));
+          return 2;
+        }
+        break;
+      default: break;
+    }
+  }
+  return 0;
+}
+static int
+mtev_lua_socket_peer_name(lua_State *L) {
+  return mtev_lua_socket_gen_name(L, getpeername);
+}
+static int
+mtev_lua_socket_sock_name(lua_State *L) {
+  return mtev_lua_socket_gen_name(L, getsockname);
+}
+static int
 mtev_lua_socket_connect(lua_State *L) {
   mtev_lua_resume_info_t *ci;
   eventer_t e, *eptr;
@@ -1495,6 +1545,9 @@ mtev_eventer_index_func(lua_State *L) {
     case 'o':
      LUA_DISPATCH(own, mtev_lua_socket_own);
      break;
+    case 'p':
+     LUA_DISPATCH(peer_name, mtev_lua_socket_peer_name);
+     break;
     case 'r':
      LUA_DISPATCH(read, mtev_lua_socket_read);
      LUA_DISPATCH(recv, mtev_lua_socket_recv);
@@ -1505,6 +1558,7 @@ mtev_eventer_index_func(lua_State *L) {
      LUA_DISPATCH(setsockopt, mtev_lua_socket_setsockopt);
      LUA_DISPATCH(ssl_upgrade_socket, mtev_lua_socket_connect_ssl);
      LUA_DISPATCH(ssl_ctx, mtev_lua_socket_ssl_ctx);
+     LUA_DISPATCH(sock_name, mtev_lua_socket_sock_name);
      break;
     case 'w':
      LUA_DISPATCH(write, mtev_lua_socket_write);
