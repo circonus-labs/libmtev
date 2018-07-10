@@ -137,8 +137,6 @@ mtev_lua_push_timeval(lua_State *L, struct timeval time) {
   lua_pushinteger(L, time.tv_usec);
   lua_call(L, 2, 1);
 }
-/*! \lua mtev.extended_free()
-*/
 static void
 nl_extended_free(void *vcl) {
   struct nl_slcl *cl = vcl;
@@ -1530,37 +1528,118 @@ mtev_eventer_index_func(lua_State *L) {
   k = lua_tostring(L, 2);
   switch(*k) {
     case 'a':
+/*! \lua mtev.eventer = mtev.eventer:accept()
+\brief Accept a new connection.
+\return a new eventer object representing the new connection.
+*/
      LUA_DISPATCH(accept, mtev_lua_socket_accept);
      break;
     case 'b':
+/*! \lua rv, err = mtev.eventer:bind(address, port)
+\brief Bind a socket to an address.
+\param address the IP address to which to bind.
+\param port the port to which to bind.
+\return rv is 0 on success, on error rv is non-zero and err contains an error message.
+*/
      LUA_DISPATCH(bind, mtev_lua_socket_bind);
      break;
     case 'c':
+/*! \lua rv = mtev.eventer:close()
+\brief Closes the socket.
+*/
      LUA_DISPATCH(close, mtev_lua_socket_close);
+/*! \lua rv, err = mtev.eventer:connect(target[, port])
+\brief Request a connection on a socket.
+\param target the target address for a connection.  Either an IP address (in which case a port is required), or a `reverse:` connection for reverse tunnelled connections.
+\return rv is 0 on success, non-zero on failure with err holding the error message.
+*/
      LUA_DISPATCH(connect, mtev_lua_socket_connect);
      break;
     case 'l':
+/*! \lua rv, errno, err = mtev.eventer:listen(backlog)
+\brief Listen on a socket.
+\param backlog the listen backlog.
+\return rv is 0 on success, on failure rv is non-zero and errno and err contain error information.
+*/
      LUA_DISPATCH(listen, mtev_lua_socket_listen);
      break;
     case 'o':
+/*! \lua mtev.eventer:own()
+\brief Declare ownership of an event within a spawned co-routine.
+*/
      LUA_DISPATCH(own, mtev_lua_socket_own);
      break;
     case 'p':
+/*! \lua address, port = mtev.eventer:peer_name()
+\brief Get details of the remote side of a socket.
+\return local address, local port
+*/
      LUA_DISPATCH(peer_name, mtev_lua_socket_peer_name);
      break;
     case 'r':
+/*! \lua payload = mtev.eventer:read(stop)
+\brief Read data from a socket.
+\param stop is either an integer describing a number of bytes to read or a string describing an inclusive read terminator.
+\return the payload read, or nothing on error.
+*/
      LUA_DISPATCH(read, mtev_lua_socket_read);
+/*! \lua rv, payload, address, port = mtev.eventer:recv(nbytes)
+\brief Receive bytes from a socket.
+\param nbytes the number of bytes to receive.
+\return rv is the return of the `recvfrom` libc call, < 0 if error, otherwise it represents the number of bytes received. payload is a lua string representing the data received. address and port are those of the sender of the packet.
+*/
      LUA_DISPATCH(recv, mtev_lua_socket_recv);
      break;
     case 's':
+/*! \lua nbytes, err = mtev.eventer:send(payload)
+\brief Send data over a socket.
+\param payload the payload to send as a lua string.
+\return bytes is -1 on error, otherwise the number of bytes sent. err contains error messages.
+*/
      LUA_DISPATCH(send, mtev_lua_socket_send);
+/*! \lua nbytes, err = mtev.eventer:sendto(payload, address, port)
+\brief Send data over a disconnected socket.
+\param payload the payload to send as a lua string.
+\param address is the destination address for the payload.
+\param port is the destination port for the payload.
+\return bytes is -1 on error, otherwise the number of bytes sent. err contains error messages.
+*/
      LUA_DISPATCH(sendto, mtev_lua_socket_sendto);
+/*! \lua rv, err = mtev.eventer:setsockopt(feature, value)
+\brief Set a socket option.
+\param feature is on the the OS `SO_` parameters as a string.
+\param value is the value to which `feature` should be set.
+\return rv is 0 on success, -1 on failure. err contains error messages.
+*/
      LUA_DISPATCH(setsockopt, mtev_lua_socket_setsockopt);
+/*! \lua rv, err = mtev.eventer:ssl_upgrade_socket(cert, key[, ca[, ciphers[, snihost[, layer]]]])
+\brief Upgrade a normal TCP socket to SSL.
+\param cert a path to a PEM-encoded certificate file.
+\param key a path to a PEM-encoded key file.
+\param ca a path to a PEM-encoded CA chain.
+\param ciphers an OpenSSL cipher preference list.
+\param snihost the host name to which we're connecting (SNI).
+\param layer a desired SSL layer.
+\return rv is 0 on success, -1 on failure. err contains error messages.
+*/
      LUA_DISPATCH(ssl_upgrade_socket, mtev_lua_socket_connect_ssl);
+/*! \lua mtev.eventer.ssl_ctx = mtev.eventer:ssl_ctx()
+\brief Gets the SSL context associated with an SSL-upgraded event.
+\return an mtev.eventer.ssl_ctx object.
+*/
      LUA_DISPATCH(ssl_ctx, mtev_lua_socket_ssl_ctx);
+/*! \lua address, port = mtev.eventer:sock_name()
+\brief Get details of the local side of a socket.
+\return local address, local port
+*/
      LUA_DISPATCH(sock_name, mtev_lua_socket_sock_name);
      break;
     case 'w':
+/*! \lua nbytes = mtev.eventer:write(data)
+\brief Writes data to a socket.
+\param data a lua string that contains the data to write.
+\return the number of bytes written.
+*/
      LUA_DISPATCH(write, mtev_lua_socket_write);
      break;
     default:
@@ -2015,6 +2094,8 @@ nl_write(lua_State *L) {
 }
 
 /*! \lua mtev.close(fd)
+\brief Close a file descripto.
+\param fd the integer file descriptor to close.
  */
 static int
 nl_close(lua_State *L) {
@@ -2024,7 +2105,11 @@ nl_close(lua_State *L) {
   return 0;
 }
 
-/* \lua mtev.chmod()
+/*! \lua rv = mtev.chmod(file, mode)
+\brief Change the mode of a file.
+\param file the path to a target file.
+\param a new file mode.
+\return rv is the return as documented by the `chmod` libc call.
 */
 static int
 nl_chmod(lua_State *L) {
@@ -2674,8 +2759,6 @@ nl_uuid(lua_State *L) {
   lua_pushstring(L, uuid_str);
   return 1;
 }
-/*! \lua mtev.socket_internal()
-*/
 static int
 nl_socket_internal(lua_State *L, int family, int proto) {
   struct nl_slcl *cl;
@@ -2712,7 +2795,14 @@ nl_socket_internal(lua_State *L, int family, int proto) {
   mtev_lua_register_event(ci, e);
   return 1;
 }
-/*! \lua mtev.socket()
+/*! \lua mtev.eventer = mtev.socket(address[, type])
+\brief Open a socket for eventer-friendly interaction.
+\param address a string 'inet', 'inet6' or an address to connect to
+\param type an optional string 'tcp' or 'udp' (default is 'tcp')
+\return an eventer object.
+
+No connect() call is performed here, the address provided is only used
+to ascertain the address family for the socket.
 */
 static int
 nl_socket(lua_State *L) {
@@ -2750,8 +2840,6 @@ struct gunzip_crutch {
   z_stream *stream;
   void *scratch_buffer;
 };
-/*! \lua mtev.gunzip_deflate()
-*/
 static int
 nl_gunzip_deflate(lua_State *L) {
   struct gunzip_crutch *crutch;

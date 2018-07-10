@@ -587,9 +587,27 @@
 <h4 id="mtevcancelcoro">mtev.cancel_coro</h4>
 <pre><code class="lang-lua">mtev.cancel_coro()
 </code></pre>
+<h4 id="mtevchmod">mtev.chmod</h4>
+<blockquote>
+<p>Change the mode of a file.</p>
+</blockquote>
+<pre><code class="lang-lua">rv =
+mtev.chmod(file, mode)
+</code></pre>
+<ul>
+<li><code>file</code> the path to a target file.</li>
+<li><code>a</code> new file mode.</li>
+<li><strong>RETURN</strong> rv is the return as documented by the <code>chmod</code> libc call.</li>
+</ul>
 <h4 id="mtevclose">mtev.close</h4>
+<blockquote>
+<p>Close a file descripto.</p>
+</blockquote>
 <pre><code class="lang-lua">mtev.close(fd)
 </code></pre>
+<ul>
+<li><code>fd</code> the integer file descriptor to close.</li>
+</ul>
 <h4 id="mtevcluster">mtev.cluster</h4>
 <pre><code class="lang-lua">cluster =
 mtev.cluster(name)
@@ -688,11 +706,180 @@ requested resource. Possible fields are:</p>
 <li><code>facility</code> the name of the mtev_log_stream (e.g. &quot;debug&quot;)</li>
 <li><code>flags</code> true enables, false disables</li>
 </ul>
+<h4 id="mteveventeraccept">mtev.eventer:accept</h4>
+<blockquote>
+<p>Accept a new connection.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.eventer =
+mtev.eventer:accept()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> a new eventer object representing the new connection.</li>
+</ul>
+<h4 id="mteveventerbind">mtev.eventer:bind</h4>
+<blockquote>
+<p>Bind a socket to an address.</p>
+</blockquote>
+<pre><code class="lang-lua">rv, err =
+mtev.eventer:bind(address, port)
+</code></pre>
+<ul>
+<li><code>address</code> the IP address to which to bind.</li>
+<li><code>port</code> the port to which to bind.</li>
+<li><strong>RETURN</strong> rv is 0 on success, on error rv is non-zero and err contains an error message.</li>
+</ul>
+<h4 id="mteveventerclose">mtev.eventer:close</h4>
+<blockquote>
+<p>Closes the socket.</p>
+</blockquote>
+<pre><code class="lang-lua">rv =
+mtev.eventer:close()
+</code></pre>
+<h4 id="mteveventerconnect">mtev.eventer:connect</h4>
+<blockquote>
+<p>Request a connection on a socket.</p>
+</blockquote>
+<pre><code class="lang-lua">rv, err =
+mtev.eventer:connect(target[, port])
+</code></pre>
+<ul>
+<li><code>target</code> the target address for a connection.  Either an IP address (in which case a port is required), or a <code>reverse:</code> connection for reverse tunnelled connections.</li>
+<li><strong>RETURN</strong> rv is 0 on success, non-zero on failure with err holding the error message.</li>
+</ul>
+<h4 id="mteveventerlisten">mtev.eventer:listen</h4>
+<blockquote>
+<p>Listen on a socket.</p>
+</blockquote>
+<pre><code class="lang-lua">rv, errno, err =
+mtev.eventer:listen(backlog)
+</code></pre>
+<ul>
+<li><code>backlog</code> the listen backlog.</li>
+<li><strong>RETURN</strong> rv is 0 on success, on failure rv is non-zero and errno and err contain error information.</li>
+</ul>
+<h4 id="mteveventerown">mtev.eventer:own</h4>
+<blockquote>
+<p>Declare ownership of an event within a spawned co-routine.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.eventer:own()
+</code></pre>
+<h4 id="mteveventerpeername">mtev.eventer:peer_name</h4>
+<blockquote>
+<p>Get details of the remote side of a socket.</p>
+</blockquote>
+<pre><code class="lang-lua">address, port =
+mtev.eventer:peer_name()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> local address, local port</li>
+</ul>
+<h4 id="mteveventerread">mtev.eventer:read</h4>
+<blockquote>
+<p>Read data from a socket.</p>
+</blockquote>
+<pre><code class="lang-lua">payload =
+mtev.eventer:read(stop)
+</code></pre>
+<ul>
+<li><code>stop</code> is either an integer describing a number of bytes to read or a string describing an inclusive read terminator.</li>
+<li><strong>RETURN</strong> the payload read, or nothing on error.</li>
+</ul>
+<h4 id="mteveventerrecv">mtev.eventer:recv</h4>
+<blockquote>
+<p>Receive bytes from a socket.</p>
+</blockquote>
+<pre><code class="lang-lua">rv, payload, address, port =
+mtev.eventer:recv(nbytes)
+</code></pre>
+<ul>
+<li><code>nbytes</code> the number of bytes to receive.</li>
+<li><strong>RETURN</strong> rv is the return of the <code>recvfrom</code> libc call, &lt; 0 if error, otherwise it represents the number of bytes received. payload is a lua string representing the data received. address and port are those of the sender of the packet.</li>
+</ul>
+<h4 id="mteveventersend">mtev.eventer:send</h4>
+<blockquote>
+<p>Send data over a socket.</p>
+</blockquote>
+<pre><code class="lang-lua">nbytes, err =
+mtev.eventer:send(payload)
+</code></pre>
+<ul>
+<li><code>payload</code> the payload to send as a lua string.</li>
+<li><strong>RETURN</strong> bytes is -1 on error, otherwise the number of bytes sent. err contains error messages.</li>
+</ul>
+<h4 id="mteveventersendto">mtev.eventer:sendto</h4>
+<blockquote>
+<p>Send data over a disconnected socket.</p>
+</blockquote>
+<pre><code class="lang-lua">nbytes, err =
+mtev.eventer:sendto(payload, address, port)
+</code></pre>
+<ul>
+<li><code>payload</code> the payload to send as a lua string.</li>
+<li><code>address</code> is the destination address for the payload.</li>
+<li><code>port</code> is the destination port for the payload.</li>
+<li><strong>RETURN</strong> bytes is -1 on error, otherwise the number of bytes sent. err contains error messages.</li>
+</ul>
+<h4 id="mteveventersetsockopt">mtev.eventer:setsockopt</h4>
+<blockquote>
+<p>Set a socket option.</p>
+</blockquote>
+<pre><code class="lang-lua">rv, err =
+mtev.eventer:setsockopt(feature, value)
+</code></pre>
+<ul>
+<li><code>feature</code> is on the the OS <code>SO_</code> parameters as a string.</li>
+<li><code>value</code> is the value to which <code>feature</code> should be set.</li>
+<li><strong>RETURN</strong> rv is 0 on success, -1 on failure. err contains error messages.</li>
+</ul>
+<h4 id="mteveventersockname">mtev.eventer:sock_name</h4>
+<blockquote>
+<p>Get details of the local side of a socket.</p>
+</blockquote>
+<pre><code class="lang-lua">address, port =
+mtev.eventer:sock_name()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> local address, local port</li>
+</ul>
+<h4 id="mteveventersslctx">mtev.eventer:ssl_ctx</h4>
+<blockquote>
+<p>Gets the SSL context associated with an SSL-upgraded event.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.eventer.ssl_ctx =
+mtev.eventer:ssl_ctx()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> an mtev.eventer.ssl_ctx object.</li>
+</ul>
+<h4 id="mteveventersslupgradesocket">mtev.eventer:ssl_upgrade_socket</h4>
+<blockquote>
+<p>Upgrade a normal TCP socket to SSL.</p>
+</blockquote>
+<pre><code class="lang-lua">rv, err =
+mtev.eventer:ssl_upgrade_socket(cert, key[, ca[, ciphers[, snihost[, layer]]]])
+</code></pre>
+<ul>
+<li><code>cert</code> a path to a PEM-encoded certificate file.</li>
+<li><code>key</code> a path to a PEM-encoded key file.</li>
+<li><code>ca</code> a path to a PEM-encoded CA chain.</li>
+<li><code>ciphers</code> an OpenSSL cipher preference list.</li>
+<li><code>snihost</code> the host name to which we&apos;re connecting (SNI).</li>
+<li><code>layer</code> a desired SSL layer.</li>
+<li><strong>RETURN</strong> rv is 0 on success, -1 on failure. err contains error messages.</li>
+</ul>
+<h4 id="mteveventerwrite">mtev.eventer:write</h4>
+<blockquote>
+<p>Writes data to a socket.</p>
+</blockquote>
+<pre><code class="lang-lua">nbytes =
+mtev.eventer:write(data)
+</code></pre>
+<ul>
+<li><code>data</code> a lua string that contains the data to write.</li>
+<li><strong>RETURN</strong> the number of bytes written.</li>
+</ul>
 <h4 id="mteveventerloopconcurrency">mtev.eventer_loop_concurrency</h4>
 <pre><code class="lang-lua">mtev.eventer_loop_concurrency()
-</code></pre>
-<h4 id="mtevextendedfree">mtev.extended_free</h4>
-<pre><code class="lang-lua">mtev.extended_free()
 </code></pre>
 <h3 id="g">G</h3>
 <h4 id="mtevgetcwd">mtev.getcwd</h4>
@@ -711,9 +898,6 @@ mtev.gettimeofday()
 </ul>
 <h4 id="mtevgunzip">mtev.gunzip</h4>
 <pre><code class="lang-lua">mtev.gunzip()
-</code></pre>
-<h4 id="mtevgunzipdeflate">mtev.gunzip_deflate</h4>
-<pre><code class="lang-lua">mtev.gunzip_deflate()
 </code></pre>
 <h3 id="h">H</h3>
 <h4 id="mtevhmacsha1encode">mtev.hmac_sha1_encode</h4>
@@ -981,11 +1165,19 @@ mtev.sleep(duration_s)
 <li><strong>RETURN</strong> the time slept as mtev.timeval object</li>
 </ul>
 <h4 id="mtevsocket">mtev.socket</h4>
-<pre><code class="lang-lua">mtev.socket()
+<blockquote>
+<p>Open a socket for eventer-friendly interaction.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.eventer =
+mtev.socket(address[, <span class="hljs-built_in">type</span>])
 </code></pre>
-<h4 id="mtevsocketinternal">mtev.socket_internal</h4>
-<pre><code class="lang-lua">mtev.socket_internal()
-</code></pre>
+<ul>
+<li><code>address</code> a string &apos;inet&apos;, &apos;inet6&apos; or an address to connect to</li>
+<li><code>type</code> an optional string &apos;tcp&apos; or &apos;udp&apos; (default is &apos;tcp&apos;)</li>
+<li><strong>RETURN</strong> an eventer object.</li>
+</ul>
+<p>No connect() call is performed here, the address provided is only used
+to ascertain the address family for the socket.</p>
 <h4 id="mtevspawn">mtev.spawn</h4>
 <blockquote>
 <p>Spawn a subprocess.</p>
@@ -1201,7 +1393,7 @@ mtev.watchdog_timeout()
         
     
         
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.1/anchor.min.js"></script>
         
     
         

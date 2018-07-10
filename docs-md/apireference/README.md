@@ -78,7 +78,7 @@
 
 ##### C
 
-[mtev.cancel_coro](lua.md#mtevcancelcoro), [mtev.close](lua.md#mtevclose), [mtev.cluster](lua.md#mtevcluster), [mtev.conf_get_boolean](lua.md#mtevconfgetboolean), [mtev.conf_get_float](lua.md#mtevconfgetfloat), [mtev.conf_get_integer](lua.md#mtevconfgetinteger), [mtev.conf_get_string](lua.md#mtevconfgetstring), [mtev.conf_get_string_list](lua.md#mtevconfgetstringlist), [mtev.conf_replace_boolean](lua.md#mtevconfreplaceboolean), [mtev.conf_replace_value](lua.md#mtevconfreplacevalue)
+[mtev.cancel_coro](lua.md#mtevcancelcoro), [mtev.chmod](lua.md#mtevchmod), [mtev.close](lua.md#mtevclose), [mtev.cluster](lua.md#mtevcluster), [mtev.conf_get_boolean](lua.md#mtevconfgetboolean), [mtev.conf_get_float](lua.md#mtevconfgetfloat), [mtev.conf_get_integer](lua.md#mtevconfgetinteger), [mtev.conf_get_string](lua.md#mtevconfgetstring), [mtev.conf_get_string_list](lua.md#mtevconfgetstringlist), [mtev.conf_replace_boolean](lua.md#mtevconfreplaceboolean), [mtev.conf_replace_value](lua.md#mtevconfreplacevalue)
 
 ##### D
 
@@ -86,11 +86,11 @@
 
 ##### E
 
-[mtev.enable_log](lua.md#mtevenablelog), [mtev.eventer_loop_concurrency](lua.md#mteveventerloopconcurrency), [mtev.extended_free](lua.md#mtevextendedfree)
+[mtev.enable_log](lua.md#mtevenablelog), [mtev.eventer:accept](lua.md#mteveventer:accept), [mtev.eventer:bind](lua.md#mteveventer:bind), [mtev.eventer:close](lua.md#mteveventer:close), [mtev.eventer:connect](lua.md#mteveventer:connect), [mtev.eventer:listen](lua.md#mteveventer:listen), [mtev.eventer:own](lua.md#mteveventer:own), [mtev.eventer:peer_name](lua.md#mteveventer:peername), [mtev.eventer:read](lua.md#mteveventer:read), [mtev.eventer:recv](lua.md#mteveventer:recv), [mtev.eventer:send](lua.md#mteveventer:send), [mtev.eventer:sendto](lua.md#mteveventer:sendto), [mtev.eventer:setsockopt](lua.md#mteveventer:setsockopt), [mtev.eventer:sock_name](lua.md#mteveventer:sockname), [mtev.eventer:ssl_ctx](lua.md#mteveventer:sslctx), [mtev.eventer:ssl_upgrade_socket](lua.md#mteveventer:sslupgradesocket), [mtev.eventer:write](lua.md#mteveventer:write), [mtev.eventer_loop_concurrency](lua.md#mteveventerloopconcurrency)
 
 ##### G
 
-[mtev.getcwd](lua.md#mtevgetcwd), [mtev.gettimeofday](lua.md#mtevgettimeofday), [mtev.gunzip](lua.md#mtevgunzip), [mtev.gunzip_deflate](lua.md#mtevgunzipdeflate)
+[mtev.getcwd](lua.md#mtevgetcwd), [mtev.gettimeofday](lua.md#mtevgettimeofday), [mtev.gunzip](lua.md#mtevgunzip)
 
 ##### H
 
@@ -126,7 +126,7 @@
 
 ##### S
 
-[mtev.sha1](lua.md#mtevsha1), [mtev.sha1_hex](lua.md#mtevsha1hex), [mtev.sha256](lua.md#mtevsha256), [mtev.sha256_hash](lua.md#mtevsha256hash), [mtev.sha256_hex](lua.md#mtevsha256hex), [mtev.shared_get](lua.md#mtevsharedget), [mtev.shared_set](lua.md#mtevsharedset), [mtev.sleep](lua.md#mtevsleep), [mtev.socket](lua.md#mtevsocket), [mtev.socket_internal](lua.md#mtevsocketinternal), [mtev.spawn](lua.md#mtevspawn)
+[mtev.sha1](lua.md#mtevsha1), [mtev.sha1_hex](lua.md#mtevsha1hex), [mtev.sha256](lua.md#mtevsha256), [mtev.sha256_hash](lua.md#mtevsha256hash), [mtev.sha256_hex](lua.md#mtevsha256hex), [mtev.shared_get](lua.md#mtevsharedget), [mtev.shared_set](lua.md#mtevsharedset), [mtev.sleep](lua.md#mtevsleep), [mtev.socket](lua.md#mtevsocket), [mtev.spawn](lua.md#mtevspawn)
 
 ##### T
 

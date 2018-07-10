@@ -26,12 +26,31 @@ mtev.cancel_coro()
 
 
 
+#### mtev.chmod
+
+>Change the mode of a file.
+
+```lua
+rv =
+mtev.chmod(file, mode)
+```
+
+
+  * `file` the path to a target file.
+  * `a` new file mode.
+  * **RETURN** rv is the return as documented by the `chmod` libc call.
+
+
 #### mtev.close
+
+>Close a file descripto.
 
 ```lua
 mtev.close(fd)
 ```
 
+
+  * `fd` the integer file descriptor to close.
  
 
 #### mtev.cluster
@@ -186,18 +205,234 @@ mtev.enable_log(facility, flags = true)
   * `flags` true enables, false disables
 
 
-#### mtev.eventer_loop_concurrency
+#### mtev.eventer:accept
+
+>Accept a new connection.
 
 ```lua
-mtev.eventer_loop_concurrency()
+mtev.eventer =
+mtev.eventer:accept()
+```
+
+
+  * **RETURN** a new eventer object representing the new connection.
+
+
+#### mtev.eventer:bind
+
+>Bind a socket to an address.
+
+```lua
+rv, err =
+mtev.eventer:bind(address, port)
+```
+
+
+  * `address` the IP address to which to bind.
+  * `port` the port to which to bind.
+  * **RETURN** rv is 0 on success, on error rv is non-zero and err contains an error message.
+
+
+#### mtev.eventer:close
+
+>Closes the socket.
+
+```lua
+rv =
+mtev.eventer:close()
 ```
 
 
 
-#### mtev.extended_free
+
+#### mtev.eventer:connect
+
+>Request a connection on a socket.
 
 ```lua
-mtev.extended_free()
+rv, err =
+mtev.eventer:connect(target[, port])
+```
+
+
+  * `target` the target address for a connection.  Either an IP address (in which case a port is required), or a `reverse:` connection for reverse tunnelled connections.
+  * **RETURN** rv is 0 on success, non-zero on failure with err holding the error message.
+
+
+#### mtev.eventer:listen
+
+>Listen on a socket.
+
+```lua
+rv, errno, err =
+mtev.eventer:listen(backlog)
+```
+
+
+  * `backlog` the listen backlog.
+  * **RETURN** rv is 0 on success, on failure rv is non-zero and errno and err contain error information.
+
+
+#### mtev.eventer:own
+
+>Declare ownership of an event within a spawned co-routine.
+
+```lua
+mtev.eventer:own()
+```
+
+
+
+
+#### mtev.eventer:peer_name
+
+>Get details of the remote side of a socket.
+
+```lua
+address, port =
+mtev.eventer:peer_name()
+```
+
+
+  * **RETURN** local address, local port
+
+
+#### mtev.eventer:read
+
+>Read data from a socket.
+
+```lua
+payload =
+mtev.eventer:read(stop)
+```
+
+
+  * `stop` is either an integer describing a number of bytes to read or a string describing an inclusive read terminator.
+  * **RETURN** the payload read, or nothing on error.
+
+
+#### mtev.eventer:recv
+
+>Receive bytes from a socket.
+
+```lua
+rv, payload, address, port =
+mtev.eventer:recv(nbytes)
+```
+
+
+  * `nbytes` the number of bytes to receive.
+  * **RETURN** rv is the return of the `recvfrom` libc call, < 0 if error, otherwise it represents the number of bytes received. payload is a lua string representing the data received. address and port are those of the sender of the packet.
+
+
+#### mtev.eventer:send
+
+>Send data over a socket.
+
+```lua
+nbytes, err =
+mtev.eventer:send(payload)
+```
+
+
+  * `payload` the payload to send as a lua string.
+  * **RETURN** bytes is -1 on error, otherwise the number of bytes sent. err contains error messages.
+
+
+#### mtev.eventer:sendto
+
+>Send data over a disconnected socket.
+
+```lua
+nbytes, err =
+mtev.eventer:sendto(payload, address, port)
+```
+
+
+  * `payload` the payload to send as a lua string.
+  * `address` is the destination address for the payload.
+  * `port` is the destination port for the payload.
+  * **RETURN** bytes is -1 on error, otherwise the number of bytes sent. err contains error messages.
+
+
+#### mtev.eventer:setsockopt
+
+>Set a socket option.
+
+```lua
+rv, err =
+mtev.eventer:setsockopt(feature, value)
+```
+
+
+  * `feature` is on the the OS `SO_` parameters as a string.
+  * `value` is the value to which `feature` should be set.
+  * **RETURN** rv is 0 on success, -1 on failure. err contains error messages.
+
+
+#### mtev.eventer:sock_name
+
+>Get details of the local side of a socket.
+
+```lua
+address, port =
+mtev.eventer:sock_name()
+```
+
+
+  * **RETURN** local address, local port
+
+
+#### mtev.eventer:ssl_ctx
+
+>Gets the SSL context associated with an SSL-upgraded event.
+
+```lua
+mtev.eventer.ssl_ctx =
+mtev.eventer:ssl_ctx()
+```
+
+
+  * **RETURN** an mtev.eventer.ssl_ctx object.
+
+
+#### mtev.eventer:ssl_upgrade_socket
+
+>Upgrade a normal TCP socket to SSL.
+
+```lua
+rv, err =
+mtev.eventer:ssl_upgrade_socket(cert, key[, ca[, ciphers[, snihost[, layer]]]])
+```
+
+
+  * `cert` a path to a PEM-encoded certificate file.
+  * `key` a path to a PEM-encoded key file.
+  * `ca` a path to a PEM-encoded CA chain.
+  * `ciphers` an OpenSSL cipher preference list.
+  * `snihost` the host name to which we're connecting (SNI).
+  * `layer` a desired SSL layer.
+  * **RETURN** rv is 0 on success, -1 on failure. err contains error messages.
+
+
+#### mtev.eventer:write
+
+>Writes data to a socket.
+
+```lua
+nbytes =
+mtev.eventer:write(data)
+```
+
+
+  * `data` a lua string that contains the data to write.
+  * **RETURN** the number of bytes written.
+
+
+#### mtev.eventer_loop_concurrency
+
+```lua
+mtev.eventer_loop_concurrency()
 ```
 
 
@@ -228,14 +463,6 @@ mtev.gettimeofday()
 
 ```lua
 mtev.gunzip()
-```
-
-
-
-#### mtev.gunzip_deflate
-
-```lua
-mtev.gunzip_deflate()
 ```
 
 
@@ -636,18 +863,20 @@ mtev.sleep(duration_s)
 
 #### mtev.socket
 
+>Open a socket for eventer-friendly interaction.
+
 ```lua
-mtev.socket()
+mtev.eventer =
+mtev.socket(address[, type])
 ```
 
 
+  * `address` a string 'inet', 'inet6' or an address to connect to
+  * `type` an optional string 'tcp' or 'udp' (default is 'tcp')
+  * **RETURN** an eventer object.
 
-#### mtev.socket_internal
-
-```lua
-mtev.socket_internal()
-```
-
+No connect() call is performed here, the address provided is only used
+to ascertain the address family for the socket.
 
 
 #### mtev.spawn
