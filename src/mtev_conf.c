@@ -2430,8 +2430,8 @@ mtev_conf_write_file(char **err) {
   unlink(master_file_tmp);
   fd = open(master_file_tmp, O_CREAT|O_EXCL|O_WRONLY|NE_O_CLOEXEC, mode);
   if(fd < 0) {
-    snprintf(errstr, sizeof(errstr), "Failed to open tmp file: %s",
-             strerror(errno));
+    snprintf(errstr, sizeof(errstr), "Failed to open tmp file (%s): %s",
+             master_file_tmp, strerror(errno));
     if(err) *err = strdup(errstr);
     _gunlock(&global_config_lock);
     return -1;
