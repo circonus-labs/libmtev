@@ -3446,7 +3446,8 @@ mtev_lfu_invalidate(mtev_lfu_t *)
 
 ```c
 void
-mtev_lfu_iterate(mtev_lfu_t *, void (*callback)(void *value))
+mtev_lfu_iterate(mtev_lfu_t *, void (*callback)(mtev_lfu_t *lfu, const char *key,
+                 size_t key_len, void *value, void *closure), void *closure)
 ```
 
 
@@ -3457,6 +3458,9 @@ mtev_lfu_iterate(mtev_lfu_t *, void (*callback)(void *value))
   This leaves the LFU locked during iteration which will starve
   out other operations.  Keep this in mind if you are storing
   a lot of stuff in the LFU and have multithreaded access to it.
+
+  The "key" and "value" passed to the callback function is direct
+  LFU memory and should not be freed.
 
 
 #### mtev_lfu_put
