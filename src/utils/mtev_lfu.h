@@ -62,6 +62,14 @@ API_EXPORT(void)
   mtev_lfu_invalidate(mtev_lfu_t *lfu);
 
 /*!
+  \fn void mtev_lfu_iterate(mtev_lfu_t *, void (*callback)(void *value))
+  \brief Iterate through all entries in the LFU
+*/
+API_EXPORT(void)
+  mtev_lfu_iterate(mtev_lfu_t *lfu, void (*callback)(void *value));
+
+
+/*!
   \fn mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *value)
   \brief Put a new item into the LFU
 

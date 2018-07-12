@@ -146,6 +146,22 @@ mtev_lfu_invalidate(mtev_lfu_t *lfu)
   pthread_mutex_unlock(&lfu->mutex);
 }
 
+void
+mtev_lfu_iterate(mtev_lfu_t *lfu, void (*callback)(void *value))
+{
+  pthread_mutex_lock(&lfu->mutex);
+
+  ck_hs_iterator_t it = CK_HS_ITERATOR_INITIALIZER;
+  void *value;
+  while(ck_hs_next(&lfu->hash, &it, &value)) {
+    struct lfu_entry *p = container_of(value, struct lfu_entry, key);
+    callback(p->entry);
+  }
+
+  pthread_mutex_unlock(&lfu->mutex);
+}
+
+
 static struct lfu_cache_entry *
 remove_from_frequency_list_no_lock(mtev_lfu_t *lfu, struct lfu_entry *le)
 {
