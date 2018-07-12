@@ -62,8 +62,11 @@ API_EXPORT(void)
   mtev_lfu_invalidate(mtev_lfu_t *lfu);
 
 /*!
-  \fn void mtev_lfu_iterate(mtev_lfu_t *, void (*callback)(mtev_lfu_t *lfu, const char *key, size_t key_len, void *value, void *closure), void *closure)
+  \fn void mtev_lfu_iterate(mtev_lfu_t *lfu, void (*callback)(mtev_lfu_t *lfu, const char *key, size_t key_len, void *value, void *closure), void *closure)
   \brief Iterate through all entries in the LFU
+  \param lfu The LFU to iterate
+  \param callback This function is called for each item in the LFU
+  \param closure The pointer to pass as the last param to the callback
 
   This leaves the LFU locked during iteration which will starve
   out other operations.  Keep this in mind if you are storing

@@ -3169,13 +3169,16 @@ mtev_huge_hash_size(<span class="hljs-keyword">mtev_huge_hash_t</span> *hh)
 </blockquote>
 <h4 id="mtevlfuiterate">mtev_lfu_iterate</h4>
 <pre><code class="lang-c">void
-mtev_lfu_iterate(mtev_lfu_t *, void (*callback)(mtev_lfu_t *lfu, const char *key,
+mtev_lfu_iterate(mtev_lfu_t *lfu, void (*callback)(mtev_lfu_t *lfu, const char *key,
                  size_t key_len, void *value, void *closure), void *closure)
 </code></pre>
 <blockquote>
 <p>Iterate through all entries in the LFU</p>
 </blockquote>
-<p>  This leaves the LFU locked during iteration which will starve
+<pre><code>* `lfu` The LFU to iterate
+* `callback` This function is called for each item in the LFU
+* `closure` The pointer to pass as the last param to the callback
+</code></pre><p>  This leaves the LFU locked during iteration which will starve
   out other operations.  Keep this in mind if you are storing
   a lot of stuff in the LFU and have multithreaded access to it.</p>
 <p>  The &quot;key&quot; and &quot;value&quot; passed to the callback function is direct
