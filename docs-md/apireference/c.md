@@ -3442,6 +3442,23 @@ mtev_lfu_invalidate(mtev_lfu_t *)
 
  
 
+#### mtev_lfu_iterate
+
+```c
+void
+mtev_lfu_iterate(mtev_lfu_t *, void (*callback)(void *value))
+```
+
+
+> Iterate through all entries in the LFU
+
+
+
+  This leaves the LFU locked during iteration which will starve
+  out other operations.  Keep this in mind if you are storing
+  a lot of stuff in the LFU and have multithreaded access to it.
+
+
 #### mtev_lfu_put
 
 ```c

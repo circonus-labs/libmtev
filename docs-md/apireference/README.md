@@ -36,7 +36,7 @@
 
 ##### L
 
-[mtev_lfu_create](c.md#mtevlfucreate), [mtev_lfu_destroy](c.md#mtevlfudestroy), [mtev_lfu_get](c.md#mtevlfuget), [mtev_lfu_invalidate](c.md#mtevlfuinvalidate), [mtev_lfu_put](c.md#mtevlfuput), [mtev_lfu_release](c.md#mtevlfurelease), [mtev_lfu_remove](c.md#mtevlfuremove), [mtev_lfu_size](c.md#mtevlfusize), [mtev_lockfile_acquire](c.md#mtevlockfileacquire), [mtev_lockfile_acquire_owner](c.md#mtevlockfileacquireowner), [mtev_lockfile_release](c.md#mtevlockfilerelease), [mtev_lua_lmc_alloc](c.md#mtevlualmcalloc), [mtev_lua_lmc_free](c.md#mtevlualmcfree), [mtev_lua_lmc_L](c.md#mtevlualmcL), [mtev_lua_lmc_resume](c.md#mtevlualmcresume), [mtev_lua_lmc_setL](c.md#mtevlualmcsetL)
+[mtev_lfu_create](c.md#mtevlfucreate), [mtev_lfu_destroy](c.md#mtevlfudestroy), [mtev_lfu_get](c.md#mtevlfuget), [mtev_lfu_invalidate](c.md#mtevlfuinvalidate), [mtev_lfu_iterate](c.md#mtevlfuiterate), [mtev_lfu_put](c.md#mtevlfuput), [mtev_lfu_release](c.md#mtevlfurelease), [mtev_lfu_remove](c.md#mtevlfuremove), [mtev_lfu_size](c.md#mtevlfusize), [mtev_lockfile_acquire](c.md#mtevlockfileacquire), [mtev_lockfile_acquire_owner](c.md#mtevlockfileacquireowner), [mtev_lockfile_release](c.md#mtevlockfilerelease), [mtev_lua_lmc_alloc](c.md#mtevlualmcalloc), [mtev_lua_lmc_free](c.md#mtevlualmcfree), [mtev_lua_lmc_L](c.md#mtevlualmcL), [mtev_lua_lmc_resume](c.md#mtevlualmcresume), [mtev_lua_lmc_setL](c.md#mtevlualmcsetL)
 
 ##### M
 

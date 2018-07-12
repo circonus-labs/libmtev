@@ -3167,6 +3167,16 @@ mtev_huge_hash_size(<span class="hljs-keyword">mtev_huge_hash_t</span> *hh)
 <blockquote>
 <p>Remove all entries from the LFU</p>
 </blockquote>
+<h4 id="mtevlfuiterate">mtev_lfu_iterate</h4>
+<pre><code class="lang-c">void
+mtev_lfu_iterate(mtev_lfu_t *, void (*callback)(void *value))
+</code></pre>
+<blockquote>
+<p>Iterate through all entries in the LFU</p>
+</blockquote>
+<p>  This leaves the LFU locked during iteration which will starve
+  out other operations.  Keep this in mind if you are storing
+  a lot of stuff in the LFU and have multithreaded access to it.</p>
 <h4 id="mtevlfuput">mtev_lfu_put</h4>
 <pre><code class="lang-c">mtev_lfu_put(<span class="hljs-keyword">mtev_lfu_t</span> *lfu, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">size_t</span> key_len, <span class="hljs-keyword">void</span> *value)
 </code></pre>
