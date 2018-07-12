@@ -3442,6 +3442,30 @@ mtev_lfu_invalidate(mtev_lfu_t *)
 
  
 
+#### mtev_lfu_iterate
+
+```c
+void
+mtev_lfu_iterate(mtev_lfu_t *lfu, void (*callback)(mtev_lfu_t *lfu, const char *key,
+                 size_t key_len, void *value, void *closure), void *closure)
+```
+
+
+> Iterate through all entries in the LFU
+
+
+    * `lfu` The LFU to iterate
+    * `callback` This function is called for each item in the LFU
+    * `closure` The pointer to pass as the last param to the callback
+
+  This leaves the LFU locked during iteration which will starve
+  out other operations.  Keep this in mind if you are storing
+  a lot of stuff in the LFU and have multithreaded access to it.
+
+  The "key" and "value" passed to the callback function is direct
+  LFU memory and should not be freed.
+
+
 #### mtev_lfu_put
 
 ```c
