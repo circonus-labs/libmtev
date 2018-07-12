@@ -4,6 +4,12 @@
 
 ## 1.3
 
+### 1.3.5
+ * Add lua mtev.eventer:{sock,peer}_name().
+ * Add mtev_lfu_iterate.
+ * Fix null pointer dereference in lua event cleanup.
+ * More documentation.
+
 ### 1.3.4
  * Add luamtev `mtev.timeval:seconds()` method.
  * Add luamtev examples.
