@@ -64,6 +64,10 @@ API_EXPORT(void)
 /*!
   \fn void mtev_lfu_iterate(mtev_lfu_t *, void (*callback)(void *value))
   \brief Iterate through all entries in the LFU
+
+  This leaves the LFU locked during iteration which will starve
+  out other operations.  Keep this in mind if you are storing
+  a lot of stuff in the LFU and have multithreaded access to it.
 */
 API_EXPORT(void)
   mtev_lfu_iterate(mtev_lfu_t *lfu, void (*callback)(void *value));
