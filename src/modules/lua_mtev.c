@@ -80,6 +80,7 @@
 
 static mtev_hash_table shared_table = MTEV_HASH_EMPTY;
 static pthread_mutex_t shared_table_mutex;
+static uint64_t shared_seq;
 
 
 typedef struct {
@@ -4762,6 +4763,17 @@ nl_shared_get(lua_State *L) {
   return 1;
 }
 
+/*! \lua seq = mtev.shared_seq()
+\brief returns a sequence number that is increasing across all mtev-lua states and coroutines
+\return seq the sequence number
+*/
+static int
+nl_shared_seq(lua_State *L) {
+  lua_pushnumber(L, ck_pr_faa_64(&shared_seq, 1));
+  return 1;
+}
+
+
 /*! \lua mtev.cancel_coro()
 */
 static int
@@ -4898,6 +4910,7 @@ Use sha256_hex instead.
   { "eventer_loop_concurrency", nl_eventer_loop_concurrency },
   { "shared_set", nl_shared_set},
   { "shared_get", nl_shared_get},
+  { "shared_seq", nl_shared_seq},
   { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
   { "watchdog_timeout", nl_watchdog_timeout },
   { NULL, NULL }

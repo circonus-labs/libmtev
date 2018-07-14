@@ -94,6 +94,10 @@ function coro_main(coro_id, w)
   local slept = mtev.sleep(wait)
   mtev.notify("SLEEP", coro_id, slept:seconds())
 
+  -- retrieve a global sequence number
+  local n = mtev.shared_seq("key")
+  mtev.log("out", "Global sequence %d.\n", coro_id, n)
+
   -- do some async I/O from the co-routine
   local proc = mtev.spawn("/bin/echo", { "echo", "Hello from echo" })
   local status, errno = proc:wait(1)
