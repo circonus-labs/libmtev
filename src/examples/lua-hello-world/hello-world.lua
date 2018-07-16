@@ -41,7 +41,10 @@ function main()
     mtev.coroutine_spawn(coro_main, i, WAIT)
   end
 
-  -- Q: Is there a way to list all co-routines within this lua state?
+  -- List all co-routines within this lua state
+  for i, coro in pairs(mtev_coros) do
+    mtev.log("out", "coroutine %d : %s\n", i, coroutine.status(coro))
+  end
 
   -- Join co-routines
   local results = {}
