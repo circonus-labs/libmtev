@@ -213,6 +213,9 @@ void eventer_set_callback(eventer_t e, eventer_func_t f) { e->callback = f; }
 void *eventer_get_closure(eventer_t e) { return e->closure; }
 void eventer_set_closure(eventer_t e, void *c) { e->closure = c; }
 
+void *eventer_aco_get_closure(eventer_aco_t e) { return e->closure; }
+void eventer_aco_set_closure(eventer_aco_t e, void *c) { e->closure = c; }
+
 eventer_fd_opset_t eventer_get_fd_opset(eventer_t e) { return e->opset; }
 /* No setter here */
 

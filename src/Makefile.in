@@ -1,4 +1,4 @@
-.SUFFIXES: .hlo .lo .re .c
+.SUFFIXES: .hlo .lo .Slo .re .c .S
 
 Q=
 MAKEARGS=
@@ -80,7 +80,10 @@ FAST_TIME_PRELOAD=@FAST_TIME_PRELOAD@
 
 TARGETS=$(LIBMTEV) $(LIBMTEV_MAJOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS@
 
-all:	reversion $(TARGETS) make-man build-modules
+all:	reversion $(TARGETS) make-man build-modules ex
+
+ex:
+	$(Q)$(MAKE) $(MAKEARGS) -C examples
 
 build-modules:
 	$(Q)$(MAKE) $(MAKEARGS) -C modules
@@ -93,6 +96,7 @@ HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
     mtev_stats.h mtev_heap_profiler.h mtev_thread.h mtev_tokenizer.h \
     mtev_xml.h mtev_websocket_client.h eventer/OETS_asn1_helper.h \
     eventer/eventer.h eventer/eventer_POSIX_fd_opset.h \
+    eventer/eventer_aco_opset.h \
     eventer/eventer_SSL_fd_opset.h eventer/eventer_jobq.h \
     noitedit/chared.h noitedit/common.h noitedit/compat.h \
     noitedit/el.h noitedit/el_term.h noitedit/emacs.h noitedit/fcns.h \
@@ -100,7 +104,8 @@ HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
     noitedit/histedit.h noitedit/key.h noitedit/map.h noitedit/parse.h \
     noitedit/prompt.h noitedit/refresh.h noitedit/search.h \
     noitedit/sig.h noitedit/strlcpy.h noitedit/sys.h \
-    noitedit/tokenizer.h noitedit/tty.h noitedit/vi.h
+    noitedit/tokenizer.h noitedit/tty.h noitedit/vi.h \
+    aco/aco.h aco/aco_assert_override.h
 
 MAPPEDHEADERS=utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
     utils/mtev_btrie.h utils/mtev_cht.h utils/mtev_compress.h \
@@ -144,6 +149,7 @@ ATOMIC_OBJS=$(ATOMIC_REL_OBJS:%.lo=utils/%.lo)
 
 EVENTER_LIB_OBJS=eventer/OETS_asn1_helper.lo eventer/eventer.lo \
     eventer/eventer_POSIX_fd_opset.lo eventer/eventer_SSL_fd_opset.lo \
+    eventer/eventer_aco_opset.lo \
     eventer/eventer_impl.lo eventer/eventer_jobq.lo \
     $(EVENTER_IMPL_OBJS)
 
@@ -171,9 +177,11 @@ LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
     mtev_reverse_socket.lo mtev_capabilities_listener.lo mtev_dso.lo \
     mtev_events_rest.lo mtev_net_heartbeat.lo mtev_websocket_client.lo \
 		mtev_heap_profiler.lo \
+    aco/aco.hlo aco/acosw.Slo \
     $(MTEVEDIT_LIB_OBJS) $(EVENTER_LIB_OBJS) $(MTEV_UTILS_OBJS) \
     $(JSON_LIB_OBJS)
 
+FINAL2_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.Slo=libmtev-objs/%.Slo)
 FINAL1_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
 FINAL_LIBMTEV_OBJS=$(FINAL1_LIBMTEV_OBJS:%.hlo=libmtev-objs/%.hlo)
 
@@ -183,6 +191,16 @@ mtev_time_fast.so:	utils/mtev_time_fast_preload.c
 
 utils/android-demangle/cp-demangle.lo:	utils/android-demangle/cp-demangle.c
 	$(Q)$(MAKE) $(MAKEARGS) -C utils/android-demangle cp-demangle.lo
+
+libmtev-objs/%.Slo:	%.Slo
+	$(Q)mkdir -p "`dirname $@`"
+	@echo "- making private $@"
+	$(Q)cp $(@:libmtev-objs/%.Slo=%.Slo) $@.noctf
+	$(Q)if test -x "$(CTFCONVERT)" ; then \
+		echo "- making CTF ($@)" ; \
+		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
+	fi
+	$(Q)mv $@.noctf $@
 
 libmtev-objs/%.lo:	%.lo
 	$(Q)mkdir -p "`dirname $@`"
@@ -272,6 +290,10 @@ mdb-support/libmtev.so:	mdb-support/libmtev.lo mdb-support/mdb_help.lo
 	@echo "- compiling $<"
 	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
 
+.S.Slo:
+	@echo "- assembling $<"
+	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) $(CHOTOPT) -fPIC -c $< -o $@
+
 .c.o:
 	@echo "- compiling $<"
 	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
@@ -299,6 +321,7 @@ mtev_tokenizer.c:
 install-headers:	$(HEADERS) $(MAPPEDHEADERS)
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)/aco
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)/eventer
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(includedir)/noitedit
 	$(INSTALL) -m 0755 ../buildtools/xml2h $(DESTDIR)$(bindir)/mtev-xml2h

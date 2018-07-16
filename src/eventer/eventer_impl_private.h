@@ -32,6 +32,7 @@
  */
 
 #include "mtev_stats.h"
+#include "aco/aco.h"
 
 #include <ck_hs.h>
 
@@ -40,30 +41,45 @@ typedef struct eventer_context_t {
 } eventer_context_t;
 
 #define MAX_EVENT_CTXS 3
-#ifdef HIDE_EVENTER_ABI
 struct _fd_opset {
   eventer_fd_accept_t accept;
   eventer_fd_read_t   read;
   eventer_fd_write_t  write;
   eventer_fd_close_t  close;
+  eventer_fd_set_opset_t set_opset;
+  eventer_fd_get_opset_ctx_t get_opset_ctx;
+  eventer_fd_set_opset_ctx_t set_opset_ctx;
   const char *name;
 };
 
-struct _event {
-  eventer_func_t      callback;
-  struct timeval      whence;
-  int                 fd;
-  int                 mask;
-  struct _fd_opset   *opset;
-  void               *opset_ctx;
-  void               *closure;
-  pthread_t           thr_owner;
-  uint32_t             refcnt;
-#ifdef MAX_EVENT_CTXS
-  eventer_context_t     ctx[MAX_EVENT_CTXS];
-#endif
+#define EVENTER_STRUCT(name) \
+struct name { \
+  eventer_func_t      callback; \
+  struct timeval      whence; \
+  int                 fd; \
+  int                 mask; \
+  struct _fd_opset   *opset; \
+  void               *opset_ctx; \
+  void               *closure; \
+  pthread_t           thr_owner; \
+  uint32_t            refcnt; \
+  eventer_context_t   ctx[MAX_EVENT_CTXS]; \
+}
+
+EVENTER_STRUCT(_event);
+EVENTER_STRUCT(_event_aco);
+
+struct aco_cb_ctx {
+  void *closure;
+  int rv;
+  int mask;
+  int private_errno;
+
+  struct timeval *timeout;
+  eventer_t timeout_e;
 };
-#endif
+
+int eventer_aco_resume(aco_t *co);
 
 struct _eventer_job_t {
   pthread_mutex_t         lock;
@@ -196,3 +212,6 @@ stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f);
 
 int eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name);
 void eventer_jobq_ping(eventer_jobq_t *jobq);
+void *aco_get_opset_ctx(void *closure);
+struct _fd_opset *aco_get_opset(void *closure);
+int aco_shutdown(aco_t *co);

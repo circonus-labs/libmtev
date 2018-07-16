@@ -73,8 +73,7 @@ POSIX_write(int fd, const void *buffer, size_t len,
 }
 
 static int
-POSIX_close(int fd,
-            int *mask, void *closure) {
+POSIX_close(int fd, int *mask, void *closure) {
   int rv;
   *mask = 0;
   LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
@@ -84,11 +83,32 @@ POSIX_close(int fd,
   return rv;
 }
 
+static void
+POSIX_set_opset(void *closure, struct _fd_opset *v) {
+  eventer_t e = closure;
+  e->opset = v;
+}
+
+static void *
+POSIX_get_opset_ctx(void *closure) {
+  eventer_t e = closure;
+  return e->opset_ctx;
+}
+
+static void
+POSIX_set_opset_ctx(void *closure, void *v) {
+  eventer_t e = closure;
+  e->opset_ctx = v;
+}
+
 struct _fd_opset _eventer_POSIX_fd_opset = {
   POSIX_accept,
   POSIX_read,
   POSIX_write,
   POSIX_close,
+  POSIX_set_opset,
+  POSIX_get_opset_ctx,
+  POSIX_set_opset_ctx,
   "POSIX"
 };
 

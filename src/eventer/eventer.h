@@ -73,6 +73,8 @@ const char *eventer_get_thread_name(void);
  * to make progress in the event of an EAGAIN.  The second is a closure
  * which is the event itself.
  */
+typedef struct _fd_opset *eventer_fd_opset_t;
+
 typedef int (*eventer_fd_accept_t)
             (int, struct sockaddr *, socklen_t *, int *mask, void *closure);
 typedef int (*eventer_fd_read_t)
@@ -81,37 +83,20 @@ typedef int (*eventer_fd_write_t)
             (int, const void *, size_t, int *mask, void *closure);
 typedef int (*eventer_fd_close_t)
             (int, int *mask, void *closure);
-
-typedef struct _fd_opset
-#ifndef HIDE_EVENTER_ABI
-{
-  eventer_fd_accept_t accept;
-  eventer_fd_read_t   read;
-  eventer_fd_write_t  write;
-  eventer_fd_close_t  close;
-  const char *name;
-}
-#endif
-*eventer_fd_opset_t;
+typedef void (*eventer_fd_set_opset_t)
+             (void *closure, eventer_fd_opset_t opset);
+typedef void *(*eventer_fd_get_opset_ctx_t)
+              (void *closure);
+typedef void (*eventer_fd_set_opset_ctx_t)
+             (void *closure, void *newctx);
 
 struct _event;
 typedef int (*eventer_func_t)
             (struct _event *e, int mask, void *closure, struct timeval *tv);
-typedef struct _event
-#ifndef HIDE_EVENTER_ABI
-{
-  eventer_func_t      callback;
-  struct timeval      whence;
-  int                 fd;
-  int                 mask;
-  struct _fd_opset   *opset;
-  void               *opset_ctx;
-  void               *closure;
-  pthread_t           thr_owner;
-  uint32_t            refcnt;
-}
-#endif
-*eventer_t;
+typedef struct _event *eventer_t;
+typedef struct _event_aco *eventer_aco_t;
+
+typedef void (*eventer_asynch_func_t)(void *closure);
 
 typedef struct eventer_context_opset_t {
   eventer_t (*eventer_t_init)(eventer_t);
@@ -256,6 +241,19 @@ void *eventer_get_closure(eventer_t e);
 */
 void eventer_set_closure(eventer_t e, void *);
 
+/*! \fn void *eventer_aco_get_closure(eventer_aco_t e)
+    \brief Retrieve an event's closure.
+    \param e an event object
+    \return The previous closure set.
+*/
+void *eventer_aco_get_closure(eventer_aco_t e);
+/*! \fn void eventer_aco_set_closure(eventer_aco_t e, void *closure)
+    \brief Set an event's closure.
+    \param e an event object
+    \param closure a pointer to user-data to be supplied during callback.
+*/
+void eventer_aco_set_closure(eventer_aco_t e, void *);
+
 /* I hate this name, it should be eventer_remove_fd... */
 /*! \fn eventer_t eventer_remove_fde(eventer_t e)
     \brief Removes an fd event from the eventloop based on filedescriptor alone.
@@ -291,9 +289,8 @@ void eventer_set_closure(eventer_t e, void *);
     If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
     necessary activity to make progress.
 */
-#define eventer_accept(e,v1,v2,v3) \
-  eventer_fd_opset_get_accept(eventer_get_fd_opset(e)) \
-    (eventer_get_fd(e),(v1),(v2),(v3),(e))
+API_EXPORT(int)
+  eventer_accept(eventer_t e, struct sockaddr *addr, socklen_t *len, int *mask);
 
 /*! \fn int eventer_read(eventer_t e, void *buff, size_t len, int *mask)
     \brief Execute an opset-appropriate `read` call.
@@ -306,11 +303,9 @@ void eventer_set_closure(eventer_t e, void *);
     If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
     necessary activity to make progress.
 */
-#define eventer_read(e,v1,v2,v3) \
-  eventer_fd_opset_get_read(eventer_get_fd_opset(e)) \
-    (eventer_get_fd(e),(v1),(v2),(v3),(e))
+API_EXPORT(int) eventer_read(eventer_t e, void *buff, size_t len, int *mask);
 
-/*! \fn int eventer_write(eventer_t e, void *buff, size_t len, int *mask)
+/*! \fn int eventer_write(eventer_t e, const void *buff, size_t len, int *mask)
     \brief Execute an opset-appropriate `write` call.
     \param e an event object
     \param buff a buffer containing data to write.
@@ -321,9 +316,7 @@ void eventer_set_closure(eventer_t e, void *);
     If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
     necessary activity to make progress.
 */
-#define eventer_write(e,v1,v2,v3) \
-  eventer_fd_opset_get_write(eventer_get_fd_opset(e)) \
-    (eventer_get_fd(e),(v1),(v2),(v3),(e))
+API_EXPORT(int) eventer_write(eventer_t e, const void *buff, size_t len, int *mask);
 
 /*! \fn int eventer_close(eventer_t e, int *mask)
     \brief Execute an opset-appropriate `close` call.
@@ -334,12 +327,55 @@ void eventer_set_closure(eventer_t e, void *);
     If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
     necessary activity to make progress.
 */
-#define eventer_close(e,v1) \
-  eventer_fd_opset_get_close(eventer_get_fd_opset(e)) \
-    (eventer_get_fd(e),(v1),(e))
+API_EXPORT(int) eventer_close(eventer_t e, int *mask);
 
 #include "eventer/eventer_POSIX_fd_opset.h"
 #include "eventer/eventer_SSL_fd_opset.h"
+#include "eventer/eventer_aco_opset.h"
+
+/*! \fn void eventer_aco_sleep(struct timeval *duration)
+    \brief Execute a sleep within an aco context.
+    \param duration the time to suspend.
+*/
+API_EXPORT(void) eventer_aco_sleep(struct timeval *duration);
+
+/*! \fn int eventer_aco_accept(eventer_t e, struct sockaddr *addr, socklen_t *len, struct timeval *timeout)
+    \brief Execute an opset-appropriate `accept` call.
+    \param e an event object
+    \param addr a `struct sockaddr` to be populated.
+    \param len a `socklen_t` pointer to the size of the `addr` argument; updated.
+    \param timeout if not NULL, the time after which we fail -1, ETIME
+    \return an opset-appropriate return value. (fd for POSIX, -1 for SSL).
+*/
+API_EXPORT(int)
+  eventer_aco_accept(eventer_aco_t e, struct sockaddr *addr, socklen_t *len, struct timeval *timeout);
+
+/*! \fn int eventer_aco_read(eventer_aco_t e, void *buff, size_t len, struct timeval *timeout)
+    \brief Execute an opset-appropriate `read` call.
+    \param e an event object
+    \param buff a buffer in which to place read data.
+    \param len the size of `buff` in bytes.
+    \param timeout if not NULL, the time after which we fail -1, ETIME
+    \return the number of bytes read or -1 with errno set.
+*/
+API_EXPORT(int) eventer_aco_read(eventer_aco_t e, void *buff, size_t len, struct timeval *timeout);
+
+/*! \fn int eventer_aco_write(eventer_aco_t e, const void *buff, size_t len, struct timeval *timeout)
+    \brief Execute an opset-appropriate `write` call.
+    \param e an event object
+    \param buff a buffer containing data to write.
+    \param len the size of `buff` in bytes.
+    \param timeout if not NULL, the time after which we fail -1, ETIME
+    \return the number of bytes written or -1 with errno set.
+*/
+API_EXPORT(int) eventer_aco_write(eventer_aco_t e, const void *buff, size_t len, struct timeval *timeout);
+
+/*! \fn int eventer_aco_close(eventer_aco_t e)
+    \brief Execute an opset-appropriate `close` call.
+    \param e an event object
+    \return 0 on sucess or -1 with errno set.
+*/
+API_EXPORT(int) eventer_aco_close(eventer_aco_t e);
 
 /* allocating, freeing and reference counts:
    When eventer_alloc() is called, the object returned has a refcnt == 1.
@@ -837,6 +873,69 @@ API_EXPORT(mtev_boolean) eventer_try_add_asynch_dep(eventer_jobq_t *q, eventer_t
 */
 API_EXPORT(mtev_boolean) eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
 
+/*! \fn mtev_boolean eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+    \brief Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
+    \param q a job queue
+    \param e an event object
+    \param id is a fairly competing subqueue identifier
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
+API_EXPORT(mtev_boolean) eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
+#define eventer_aco_try_run_asynch_queue(q,e) eventer_aco_try_run_asynch_queue_subqueue(q,e,0)
+#define eventer_aco_try_run_asynch(e) eventer_aco_try_run_asynch_queue_subqueue(NULL,e,0)
+
+/*! \fn mtev_boolean eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+    \brief Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
+    \param q a job queue
+    \param e an event object
+    \param id is a fairly competing subqueue identifier
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
+API_EXPORT(void) eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
+#define eventer_aco_run_asynch_queue(q,e) eventer_aco_run_asynch_queue_subqueue(q,e,0)
+#define eventer_aco_run_asynch(e) eventer_aco_run_asynch_queue_subqueue(NULL,e,0)
+
+/*! \fn void eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
+    \brief Asynchronously execute a function.
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+    \param id the subqueue within the jobq.
+*/
+API_EXPORT(void) eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id);
+
+/*! \fn void eventer_aco_simple_asynch_queue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q)
+    \brief Asynchronously execute a function.
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+*/
+#define eventer_aco_simple_asynch_queue(f,c,q) eventer_aco_simple_asynch_queue_subqueue(f,c,q,0)
+
+/*! \fn void eventer_aco_simple_asynch(eventer_asynch_func_t func, void *closure)
+    \brief Asynchronously execute a function.
+    \param func the function to execute.
+    \param closure the closure for the function.
+*/
+#define eventer_aco_simple_asynch(f,c) eventer_aco_simple_asynch_queue_subqueue(f,c,NULL,0)
+
+/*! \fn void eventer_aco_free(eventer_aco_t e)
+    \brief Dereferences the event specified.
+    \param e the event to dereference.
+*/
+API_EXPORT(void)      eventer_aco_free(eventer_aco_t);
+
+
 /*! \fn void eventer_add_timed(eventer_t e)
     \brief Add a timed event to the eventer system.
     \param e an event object
@@ -938,7 +1037,7 @@ API_EXPORT(double) eventer_watchdog_timeout(void);
     \return a pthread_t of an eventer loop thread in the default eventer pool.
 
     This return the first thread when 0 is passed as an argument.  All non-zero arguments
-    are spread acorss the remaining threads (if existent) as `n` modulo one less than
+    are spread across the remaining threads (if existent) as `n` modulo one less than
     the concurrency of the default event pool.
 
     This is done because many systems aren't thread safe and can only schedule their
@@ -1133,5 +1232,8 @@ API_EXPORT(eventer_t) eventer_get_this_event(void);
 API_EXPORT(int) eventer_impl_init(void);
 API_EXPORT(void *) eventer_get_spec_for_event(eventer_t);
 API_EXPORT(int) eventer_cpu_sockets_and_cores(int *sockets, int *cores);
+
+API_EXPORT(void) eventer_aco_start(void (*func)(void), void *closure);
+API_EXPORT(void *) eventer_aco_arg(void);
 
 #endif

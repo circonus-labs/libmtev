@@ -36,6 +36,7 @@
 #include "eventer/eventer_impl_private.h"
 #include "mtev_log.h"
 #include "eventer/eventer_SSL_fd_opset.h"
+#include "eventer/eventer_aco_opset.h"
 #include "eventer/OETS_asn1_helper.h"
 #include "libmtev_dtrace.h"
 
@@ -856,13 +857,18 @@ SSL_get_eventer_ssl_ctx(const SSL *ssl) {
 
 eventer_ssl_ctx_t *
 eventer_get_eventer_ssl_ctx(const eventer_t e) {
-  return (e->opset == eventer_SSL_fd_opset) ? e->opset_ctx : NULL;
+  /* This is a hacky layering violation, but there's only one so don't generalize yet. */
+  if((e->opset == eventer_aco_fd_opset && aco_get_opset(e) != eventer_SSL_fd_opset) ||
+     e->opset != eventer_SSL_fd_opset) {
+    return NULL;
+  }
+  return e->opset->get_opset_ctx(e);
 }
 
 void
 eventer_set_eventer_ssl_ctx(eventer_t e, eventer_ssl_ctx_t *ctx) {
-  e->opset = eventer_SSL_fd_opset;
-  e->opset_ctx = ctx;
+  e->opset->set_opset(e, eventer_SSL_fd_opset);
+  e->opset->set_opset_ctx(e, ctx);
   SSL_set_fd(ctx->ssl, e->fd);
 }
 
@@ -887,6 +893,24 @@ static int
 _noallowed_eventer_SSL_accept(int fd, struct sockaddr *addr, socklen_t *len,
                               int *mask, void *closure) {
   return -1;
+}
+
+static void
+eventer_SSL_set_opset(void *closure, struct _fd_opset *v) {
+  eventer_t e = closure;
+  e->opset= v;
+}
+
+static void *
+eventer_SSL_get_opset_ctx(void *closure) {
+  eventer_t e = closure;
+  return e->opset_ctx;
+}
+
+static void
+eventer_SSL_set_opset_ctx(void *closure, void *v) {
+  eventer_t e = closure;
+  e->opset_ctx = v;
 }
 
 static int 
@@ -923,7 +947,7 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
                void *closure) {
   int rv, sslerror;
   eventer_t e = closure;
-  eventer_ssl_ctx_t *ctx = e->opset_ctx;
+  eventer_ssl_ctx_t *ctx = e->opset->get_opset_ctx(e);
   int (*sslop)(SSL *) = NULL;
   const char *opstr = NULL;
 
@@ -1011,9 +1035,9 @@ eventer_SSL_renegotiate(eventer_t e) {
 int
 eventer_SSL_accept(eventer_t e, int *mask) {
   int rv;
-  LIBMTEV_EVENTER_ACCEPT_ENTRY(e->fd, NULL, 0, *mask, e->opset_ctx);
+  LIBMTEV_EVENTER_ACCEPT_ENTRY(e->fd, NULL, 0, *mask, e->opset->get_opset_ctx(e));
   rv = eventer_SSL_rw(SSL_OP_ACCEPT, e->fd, NULL, 0, mask, e);
-  LIBMTEV_EVENTER_ACCEPT_RETURN(e->fd, NULL, 0, *mask, e->opset_ctx, rv);
+  LIBMTEV_EVENTER_ACCEPT_RETURN(e->fd, NULL, 0, *mask, e->opset->get_opset_ctx(e), rv);
   return rv;
 }
 int
@@ -1021,7 +1045,8 @@ eventer_SSL_connect(eventer_t e, int *mask) {
   return eventer_SSL_rw(SSL_OP_CONNECT, e->fd, NULL, 0, mask, e);
 }
 static int
-eventer_SSL_read(int fd, void *buffer, size_t len, int *mask, void *closure) {
+eventer_SSL_read(int fd, void *buffer, size_t len, int *mask,
+                 void *closure) {
   int rv;
   LIBMTEV_EVENTER_READ_ENTRY(fd, buffer, len, *mask, closure);
   rv = eventer_SSL_rw(SSL_OP_READ, fd, buffer, len, mask, closure);
@@ -1043,14 +1068,14 @@ static int
 eventer_SSL_close(int fd, int *mask, void *closure) {
   int rv;
   eventer_t e = closure;
-  eventer_ssl_ctx_t *ctx = e->opset_ctx;
+  eventer_ssl_ctx_t *ctx = e->opset->get_opset_ctx(e);
   LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
   ERR_clear_error();
   SSL_shutdown(ctx->ssl);
   eventer_ssl_ctx_free(ctx);
   rv = close(fd);
   if(mask) *mask = 0;
-  e->opset_ctx = NULL;
+  e->opset->set_opset_ctx(e, NULL);
 #ifdef DTRACE_ENABLED
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
 #else
@@ -1064,6 +1089,9 @@ struct _fd_opset _eventer_SSL_fd_opset = {
   eventer_SSL_read,
   eventer_SSL_write,
   eventer_SSL_close,
+  eventer_SSL_set_opset,
+  eventer_SSL_get_opset_ctx,
+  eventer_SSL_set_opset_ctx,
   "SSL"
 };
 

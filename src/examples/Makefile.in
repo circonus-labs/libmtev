@@ -25,13 +25,15 @@ EC_OBJS=	echo_client.o
 
 EX1_OBJS=	example1.o
 
+ACO_OBJS=	aco.o
+
 FQR_OBJS=	fq-router.o
 
 WSC_OBJS=	websocket_client.o
 
 WSS_OBJS=	websocket_server.o
 
-all:	echo_server echo_client example1 fq-router websocket_client websocket_server
+all:	echo_server echo_client example1 fq-router websocket_client websocket_server aco
 
 .c.o:
 	@echo "- compiling $<"
@@ -48,6 +50,10 @@ echo_client:	$(EC_OBJS)
 example1:	$(EX1_OBJS)
 	@echo "- linking $@"
 	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(EX1_OBJS) $(LIBS) -lmtev
+
+aco:	$(ACO_OBJS)
+	@echo "- linking $@"
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(ACO_OBJS) $(LIBS) -lmtev
 
 fq-router:	$(FQR_OBJS)
 	@echo "- linking $@"
