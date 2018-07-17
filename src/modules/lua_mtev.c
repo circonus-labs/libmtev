@@ -80,7 +80,7 @@
 
 static mtev_hash_table shared_table = MTEV_HASH_EMPTY;
 static pthread_mutex_t shared_table_mutex;
-
+static mtev_hash_table *shared_seq_table;
 
 typedef struct {
   mtev_hash_table string_keys;
@@ -4762,6 +4762,30 @@ nl_shared_get(lua_State *L) {
   return 1;
 }
 
+/*! \lua seq = mtev.shared_seq(keyname)
+\brief returns a sequence number that is increasing across all mtev-lua states and coroutines
+\param keyname the globally unique name of the sequence to return and post-increment.
+\return seq the sequence number
+*/
+static int
+nl_shared_seq(lua_State *L) {
+  void *vseq;
+  const char *key = luaL_checkstring(L,1);
+  while(1) {
+    if(mtev_hash_retrieve(shared_seq_table, key, strlen(key), &vseq)) {
+      lua_pushnumber(L, ck_pr_faa_64((uint64_t *)vseq, 1));
+      return 1;
+    }
+    uint64_t *seq = calloc(1, sizeof(*seq));
+    char *key_copy = strdup(key);
+    if(!mtev_hash_store(shared_seq_table, key_copy, strlen(key_copy), seq)) {
+      free(key_copy);
+      free(seq);
+    }
+  }
+}
+
+
 /*! \lua mtev.cancel_coro()
 */
 static int
@@ -4898,12 +4922,15 @@ Use sha256_hex instead.
   { "eventer_loop_concurrency", nl_eventer_loop_concurrency },
   { "shared_set", nl_shared_set},
   { "shared_get", nl_shared_get},
+  { "shared_seq", nl_shared_seq},
   { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
   { "watchdog_timeout", nl_watchdog_timeout },
   { NULL, NULL }
 };
 
 int luaopen_mtev(lua_State *L) {
+  shared_seq_table = calloc(1, sizeof(*shared_seq_table));
+  mtev_hash_init_locks(shared_seq_table, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_lua_init();
 
   luaL_newmetatable(L, "mtev.timezone");

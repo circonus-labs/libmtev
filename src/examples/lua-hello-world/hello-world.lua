@@ -41,7 +41,10 @@ function main()
     mtev.coroutine_spawn(coro_main, i, WAIT)
   end
 
-  -- Q: Is there a way to list all co-routines within this lua state?
+  -- List all co-routines within this lua state
+  for i, coro in pairs(mtev_coros) do
+    mtev.log("out", "coroutine %d : %s\n", i, coroutine.status(coro))
+  end
 
   -- Join co-routines
   local results = {}
@@ -93,6 +96,14 @@ function coro_main(coro_id, w)
   -- suspend this co-routine. Yield to event loop.
   local slept = mtev.sleep(wait)
   mtev.notify("SLEEP", coro_id, slept:seconds())
+
+  -- retrieve a global sequence number
+  local cnt = 10
+  repeat
+    mtev.log("out", "Global sequence key1 from coro %d: %d.\n", coro_id, mtev.shared_seq("key1"))
+    mtev.log("out", "Global sequence key2 from coro %d: %d.\n", coro_id, mtev.shared_seq("key2"))
+    cnt = cnt - 1
+  until cnt < 0
 
   -- do some async I/O from the co-routine
   local proc = mtev.spawn("/bin/echo", { "echo", "Hello from echo" })
