@@ -475,7 +475,7 @@ mtev_calibrate_rdtsc_ticks(int cpuid, uint64_t ticks)
 
 static void
 mtev_log_reason(void) {
-  mtevL(mtev_notice, "mtev_time disabled: %s\n", disable_reason);
+  mtevL(tdeb, "mtev_time disabled: %s\n", disable_reason);
 }
 void
 mtev_time_toggle_tsc(mtev_boolean enable) 
@@ -640,7 +640,7 @@ mtev_time_start_tsc(void)
 #ifdef ENABLE_RDTSC
   long nrcpus = sysconf(_SC_NPROCESSORS_ONLN);
   if(nrcpus > NCPUS) {
-    mtevL(mtev_error, "mtev_time_start_tsc failed, too many CPUs: %d > %d\n",
+    mtevL(tdeb, "mtev_time_start_tsc failed, too many CPUs: %d > %d\n",
           (int)nrcpus, NCPUS);
     enable_rdtsc = mtev_false;
   }
@@ -652,7 +652,7 @@ mtev_time_start_tsc(void)
     if(maintenance_started == mtev_false) {
       if (mtev_cpuid_feature(MTEV_CPU_FEATURE_INVARIANT_TSC) == mtev_false) {
         if(require_invariant_tsc) {
-          mtevL(mtev_notice, "fast time support disabled due to lack of invariant TSC support\n");
+          mtevL(tdeb, "fast time support disabled due to lack of invariant TSC support\n");
           disable_reason = "no invariant TSC";
           mtev_log_reason();
           enable_rdtsc = mtev_false;
@@ -670,7 +670,7 @@ mtev_time_start_tsc(void)
         global_rdtsc_function = mtev_rdtsc;
       }
       else {
-        mtevL(mtev_notice, "CPU is wrong vendor or missing feature.  Cannot use TSC clock.\n");
+        mtevL(tdeb, "CPU is wrong vendor or missing feature.  Cannot use TSC clock.\n");
         disable_reason = "No CPU support for TSC";
         mtev_log_reason();
         enable_rdtsc = mtev_false;
