@@ -60,6 +60,8 @@ __RCSID("$NetBSD: term.c,v 1.32 2001/01/23 15:55:31 jdolecek Exp $");
 #endif
 #if !_MSC_VER
 #include <curses.h>
+/* Seriously curses.h? You #define reg? */
+#undef reg
 #ifndef NCURSES_CONST
 /* ncurses conflicts with termcap on some boxes... and supersets it. */
 #ifdef HAVE_TERMCAP_H
