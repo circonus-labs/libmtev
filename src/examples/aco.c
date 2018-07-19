@@ -34,7 +34,7 @@ static char *droptouser = NULL, *droptogroup = NULL;
 
 static int
 usage(const char *prog) {
-	fprintf(stderr, "%s <-c conffile> [-k <start|stop|status>] [-D] [-d]\n\n", prog);
+  fprintf(stderr, "%s <-c conffile> [-k <start|stop|status>] [-D] [-d]\n\n", prog);
   fprintf(stderr, "\t-c conffile\tthe configuration file to load\n");
   fprintf(stderr, "\t-D\t\trun in the foreground (don't daemonize)\n");
   fprintf(stderr, "\t-d\t\tturn on debugging\n");
@@ -69,13 +69,22 @@ parse_cli_args(int argc, char * const *argv) {
 static void asynch_hello(void *closure) {
   mtev_http_rest_closure_t *restc = closure;
   mtev_http_session_ctx *ctx = restc->http_ctx;
+  sleep(1);
   mtev_http_response_append_str(ctx, "Hello world.\n");
+}
+void subcall2(mtev_http_rest_closure_t *restc) {
+  eventer_aco_simple_asynch(asynch_hello, restc);
+  mtevL(mtev_debug, "subcall2 return\n");
+}
+void subcall1(mtev_http_rest_closure_t *restc) {
+  subcall2(restc);
+  mtevL(mtev_debug, "subcall1 return\n");
 }
 static int hello_handler(mtev_http_rest_closure_t *restc,
                          int npats, char **pats) {
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_ok(ctx, "text/plain");
-  eventer_aco_simple_asynch(asynch_hello, restc);
+  subcall1(restc);
   mtev_http_response_end(ctx);
   return 0;
 }

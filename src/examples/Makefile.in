@@ -68,7 +68,7 @@ websocket_server:	$(WSS_OBJS)
 	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(WSS_OBJS) $(LIBS) -lmtev
 
 clean:
-	rm -f *.o example1 websocket_server websocket_client fq-router echo_server echo_client
+	rm -f *.o example1 websocket_server websocket_client fq-router echo_server echo_client aco
 
 distclean:	clean
 	rm -f Makefile

@@ -31,13 +31,17 @@
 #include "mtev_defines.h"
 #include "mtev_log.h"
 #include "mtev_stacktrace.h"
+#include "mtev_sort.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <errno.h>
 #if defined(linux) || defined(__linux) || defined(__linux__)
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include <dlfcn.h>
+#include <link.h>
 #endif
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -51,21 +55,241 @@
 #if defined(__MACH__) && defined(__APPLE__)
 #include <libproc.h>
 #endif
+#ifdef HAVE_LIBDWARF
+#include <libdwarf/libdwarf.h>
+#include <libdwarf/dwarf.h>
+#endif
+#ifdef HAVE_LIBUNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+#endif
 #include "android-demangle/demangle.h"
 #include "android-demangle/cp-demangle.h"
 
+struct line_info {
+  uintptr_t addr;
+  int lineno;
+  const char *file;
+  struct line_info *next;
+};
+#ifdef HAVE_LIBDWARF
+static void *line_info_next(void *c) {
+  return ((struct line_info *)c)->next;
+}
+static void line_info_set_next(void *c, void *n) {
+  ((struct line_info *)c)->next = n;
+}
+static int line_info_cmp(void *left, void *right) {
+  struct line_info *l = left;
+  struct line_info *r = right;
+  if(l->addr < r->addr) return -1;
+  return (l->addr == r->addr) ? 0 : 1;
+}
+struct dmap_node {
+  char *file;
+  uintptr_t base;
+  Dwarf_Debug dbg;
+  struct dmap_node *next;
+  char **srcfiles;
+  struct line_info *info;
+};
+static struct dmap_node *line_info_mapping = NULL;
+
 static void
-mtev_print_stackline(mtev_log_stream_t ls, uintptr_t self, const char *addrline) {
+dw_mtev_log(Dwarf_Error err, Dwarf_Ptr closure) {
+  mtevL((mtev_log_stream_t)closure, "dwarf init error: %s\n", dwarf_errmsg(err));
+}
+
+static char *
+dup_filename(const char *in) {
+  const char *str = in, *n;
+  n = strstr(str, "/tmp/");
+  if(n) {
+    n = strchr(n+5, '/');
+    if(n) str = n-3;
+  }
+  else {
+    n = strstr(str, "/home/");
+    if(n) n = strchr(n+6, '/');
+    if(n) str = n-3;
+  }
+  char *out = strdup(str);
+  if(in != str && strlen(out) > 3) {
+    out[0] = out[1] = out[2] = '.';
+  }
+  return out;
+}
+static void
+mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
+  Dwarf_Line *lines;
+  char **srcfiles;
+  Dwarf_Signed nlines = 0, nsrcfiles = 0;
+  Dwarf_Error error = 0;
+  if(dwarf_srcfiles(die, &srcfiles, &nsrcfiles, &error)) {
+    return;
+  }
+  node->srcfiles = calloc(nsrcfiles, sizeof(char *));
+  for(int i=0; i<nsrcfiles; i++) node->srcfiles[i] = dup_filename(srcfiles[i]);
+  if(!dwarf_srclines(die, &lines, &nlines, &error)) {
+    for(int i = 0; i < nlines; i++) {
+      Dwarf_Unsigned uno;
+      Dwarf_Addr addr;
+      struct line_info li = { .next = NULL };
+      if(!dwarf_lineno(lines[i], &uno, &error)) li.lineno = (int)uno;
+      if(!dwarf_line_srcfileno(lines[i], &uno, &error)) li.file = node->srcfiles[uno-1];
+      if(!dwarf_lineaddr(lines[i], &addr, &error)) {
+        li.addr = (uintptr_t)addr;
+        struct line_info *head = calloc(1, sizeof(li));
+        memcpy(head, &li, sizeof(li));
+        head->next = node->info;
+        node->info = head;
+      }
+    }
+  }
+  dwarf_srclines_dealloc(node->dbg, lines, nlines);
+}
+static void
+recurse_die(struct dmap_node *node, Dwarf_Die die, int level) {
+  Dwarf_Die cur_die=die;
+  Dwarf_Die sib_die=die;
+  Dwarf_Die child = 0;
+  Dwarf_Error error;
+
+  if(level > 8) return;
+  mtev_register_die(node, die, level);
+
+  if(dwarf_child(cur_die, &child, &error) == DW_DLV_OK) {
+    recurse_die(node, child, level+1);
+    sib_die = child;
+    int res = DW_DLV_OK;
+    do {
+      cur_die = sib_die;
+      res = dwarf_siblingof(node->dbg, cur_die, &sib_die, &error);
+      recurse_die(node, sib_die, level+1);
+    } while(res == DW_DLV_OK);
+  }
+}
+static struct dmap_node *
+mtev_dwarf_load(const char *file, uintptr_t base) {
+  struct dmap_node *node = calloc(1, sizeof(*node));
+  node->file = strdup(file);
+  node->base = base;
+  mtevL(mtev_debug, "dwarf loading %s @ %p\n", file, (void *)base);
+  int fd = open(node->file, O_RDONLY);
+  Dwarf_Error err;
+  if(fd >= 0) {
+    if(dwarf_init(fd, DW_DLC_READ, dw_mtev_log, mtev_error, &node->dbg, &err) == DW_DLV_OK) {
+      while(1) {
+        Dwarf_Unsigned cu_header_length = 0;
+        Dwarf_Half version_stamp = 0;
+        Dwarf_Unsigned abbrev_offset = 0;
+        Dwarf_Half address_size = 0;
+        Dwarf_Unsigned next_cu_header = 0;
+        Dwarf_Error error;
+        Dwarf_Die no_die = 0;
+        Dwarf_Die cu_die = 0;
+        if(dwarf_next_cu_header(node->dbg, &cu_header_length,
+                                &version_stamp, &abbrev_offset, &address_size,
+                                &next_cu_header, &error) != DW_DLV_OK) break;
+        if(dwarf_siblingof(node->dbg, no_die, &cu_die, &error) != DW_DLV_OK) break;
+        recurse_die(node, cu_die, 0);
+        dwarf_dealloc(node->dbg, cu_die, DW_DLA_DIE);
+      }
+    }
+    dwarf_finish(node->dbg, &err);
+    node->dbg = 0;
+    close(fd);
+  }
+  mtev_merge_sort((void **)&node->info, line_info_next, line_info_set_next, line_info_cmp);
+  return node;
+}
+void
+mtev_dwarf_refresh_file(const char *file, uintptr_t base) {
+  struct dmap_node *node;
+  if(!line_info_mapping) line_info_mapping = mtev_dwarf_load(file, base);
+  else {
+    struct dmap_node *prev = NULL;
+    for(node = line_info_mapping; node; node = node->next) {
+      prev = node;
+      if(!strcmp(node->file, file) && node->base == base) return;
+    }
+    if(prev) prev->next = mtev_dwarf_load(file, base);
+  }
+}
+static void
+mtev_dwarf_walk_map(void (*f)(const char *, uintptr_t)) {
+#if defined(linux) || defined(__linux) || defined(__linux__)
+  Dl_info dlip;
+  struct link_map *map;
+  void *main_f = dlsym(NULL, "main");
+  if(dladdr1(main_f, &dlip, (void **)&map, RTLD_DL_LINKMAP)) {
+    f(dlip.dli_fname, 0);
+    for(;map;map=map->l_next) {
+      f(map->l_name, map->l_addr);
+    }
+  }
+#else
+#endif
+}
+#endif
+void
+mtev_dwarf_refresh(void) {
+#ifdef HAVE_LIBDWARF
+  mtev_dwarf_walk_map(mtev_dwarf_refresh_file);
+#else
+  return;
+#endif
+}
+
+static struct line_info *
+find_line(uintptr_t addr, ssize_t *offset) {
+#ifdef HAVE_LIBDWARF
+  struct dmap_node *node = NULL, *iter;
+  for(iter = line_info_mapping; iter; iter = iter->next) {
+    if(iter->base <= addr) {
+      if(!node) node = iter;
+      else if(iter->base > node->base) node = iter;
+    }
+  }
+  if(!node) return NULL;
+  struct line_info *found = NULL;
+  for(struct line_info *info = node->info; info; info = info->next) {
+    if(node->base + info->addr <= addr) {
+      /* Limit lines to those within 256 instruction bytes to the target */
+      if(addr - (node->base + info->addr)) found = info;
+    } else break;
+  }
+#endif
+  if(found && offset) {
+    uintptr_t faddr = found->addr + node->base;
+    *offset = addr > faddr ? (ssize_t)(addr - faddr) : (ssize_t)-1 * (faddr - addr);
+  }
+  return found;
+}
+
+static void
+mtev_print_stackline(mtev_log_stream_t ls, uintptr_t self,
+                     const char *extra_thr, const char *addrline) {
   char *tick;
   char addrpostline[16384], scratch[8192], postfix_copy[32], trailer_copy[32];
   strlcpy(addrpostline, addrline, sizeof(addrpostline));
+  if(isspace(addrpostline[0])) goto print;
   tick = strchr(addrpostline, '\'');
   if(!tick) tick = strchr(addrpostline, '(');
+  if(!tick) tick = strchr(addrpostline, '[');
   if(tick) {
     char *trailer = NULL;
     char *postfix;
     if(*tick == '(') {
       postfix = strchr(tick, ')');
+      if(postfix) {
+        *postfix++ = '\0';
+        trailer = postfix;
+        strlcpy(trailer_copy, trailer, sizeof(trailer_copy));
+      }
+    }
+    if(*tick == '[') {
+      postfix = strchr(tick, ']');
       if(postfix) {
         *postfix++ = '\0';
         trailer = postfix;
@@ -91,7 +315,7 @@ mtev_print_stackline(mtev_log_stream_t ls, uintptr_t self, const char *addrline)
     }
   }
  print:
-  mtevL(ls, "t@%"PRIu64"> %s\n", self, addrpostline);
+  mtevL(ls, "t@%"PRIu64"%s> %s\n", self, extra_thr ? extra_thr : "", addrpostline);
 }
 #if defined(__sun__)
 int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
@@ -107,11 +331,13 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
 static int _global_stack_trace_fd = -1;
 #endif
 
-void mtev_stacktrace(mtev_log_stream_t ls) {
+static void
+mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
+                         const char *extra_thr, void **callstack, int frames) {
 #if defined(__sun__)
   ucontext_t ucp;
   getcontext(&ucp);
-  mtevL(ls, "STACKTRACE(%d):\n", getpid());
+  mtevL(ls, "STACKTRACE(%d%s):\n", getpid(), extra_thr);
   walkcontext(&ucp, mtev_simple_stack_print, ls);
 #else
   if(_global_stack_trace_fd < 0) {
@@ -132,12 +358,53 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
   if(_global_stack_trace_fd >= 0) {
     struct stat sb;
     char stackbuff[65536];
-    void* callstack[128];
     int unused __attribute__((unused));
-    int i, frames = backtrace(callstack, 128);
+    int i;
     lseek(_global_stack_trace_fd, 0, SEEK_SET);
     unused = ftruncate(_global_stack_trace_fd, 0);
-    backtrace_symbols_fd(callstack, frames, _global_stack_trace_fd);
+    for(i=0; i<frames; i++) {
+      Dl_info dlip;
+      void *base = NULL;
+      int len = 0;
+      ssize_t info_off = 0;
+      struct line_info *info = find_line((uintptr_t)callstack[i], &info_off);
+#if defined(linux) || defined(__linux) || defined(__linux__)
+      struct link_map *map;
+      if(dladdr1((void *)callstack[i], &dlip, (void **)&map, RTLD_DL_LINKMAP)) {
+        while(map) {
+          if(dlip.dli_fbase == (void *)map->l_addr) {
+            base = dlip.dli_fbase;
+            break;
+          }
+          map = map->l_next;;
+        }
+#else
+      if(dladdr((void *)callstack[i], &dlip)) {
+#endif
+        const char *fname = dlip.dli_fname;
+        const char *sname = dlip.dli_sname ? dlip.dli_sname : "";
+        char buff[256];
+        buff[0] = '\0';
+        if(info) {
+          if(info_off > 256 || info_off < -256)
+            snprintf(buff, sizeof(buff), "\n\t(%s:%d off: %zd)", info->file, info->lineno, info_off);
+          else
+            snprintf(buff, sizeof(buff), "\n\t(%s:%d)", info->file, info->lineno);
+        }
+        if(base || dlip.dli_sname) {
+          base = dlip.dli_saddr ? dlip.dli_saddr : base;
+          len = snprintf(stackbuff, sizeof(stackbuff), "%s'%s+0x%"PRIx64"%s\n",
+                         fname, sname, (uintptr_t)(callstack[i]-base), buff);
+        } else {
+          len = snprintf(stackbuff, sizeof(stackbuff), "%s[0x%"PRIx64"]%s\n",
+                         fname, (uintptr_t)(callstack[i]-base), buff);
+        }
+        if(dlip.dli_saddr == caller && i == 0) continue;
+      } else {
+        len = snprintf(stackbuff, sizeof(stackbuff), "%016"PRIx64"\n", (uintptr_t)callstack[i]);
+      }
+      write(_global_stack_trace_fd, stackbuff, len);
+    }
     memset(&sb, 0, sizeof(sb));
     while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);
     if(i != 0 || sb.st_size == 0) mtevL(ls, "error writing stacktrace\n");
@@ -149,7 +416,7 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
       snprintf(stackbuff, sizeof(stackbuff) - 1, "*** Cannot read stacktrace from %d ***", _global_stack_trace_fd);
     }
     char *prevcp = stackbuff, *cp;
-    mtevL(ls, "STACKTRACE(%d):\n", getpid());
+    mtevL(ls, "STACKTRACE(%d%s):\n", getpid(), extra_thr ? extra_thr : "");
 #if defined(linux) || defined(__linux) || defined(__linux__)
     uintptr_t self = syscall(SYS_gettid);
 #else
@@ -157,13 +424,116 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
 #endif
     while(NULL != (cp = strchr(prevcp, '\n'))) {
       *cp++ = '\0';
-      mtev_print_stackline(ls, self, prevcp);
+      mtev_print_stackline(ls, self, extra_thr, prevcp);
       prevcp = cp;
     }
-    mtev_print_stackline(ls, self, prevcp);
+    mtev_print_stackline(ls, self, extra_thr, prevcp);
   }
   else {
     mtevL(ls, "stacktrace unavailable\n");
   }
 #endif
+}
+
+void mtev_stacktrace(mtev_log_stream_t ls) {
+  void* callstack[128];
+  int frames = backtrace(callstack, 128);
+  mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, callstack, frames);
+}
+
+int
+mtev_aco_stacktrace(mtev_log_stream_t ls, aco_t *co) {
+  void *ips[128];
+  char extra_thr[32];
+  int cnt = mtev_aco_backtrace(co, ips, sizeof(ips)/sizeof(*ips));
+  snprintf(extra_thr, sizeof(extra_thr), "/%" PRIx64, (uintptr_t)co);
+  mtev_stacktrace_internal(ls, mtev_aco_stacktrace, extra_thr, ips, cnt);
+  return cnt;
+}
+
+int mtev_aco_backtrace(aco_t *co, void **addrs, int addrs_len) {
+    void *stk;
+    size_t stksz;
+    size_t offset = 0;
+    int i = 0;
+
+    if(co->is_end) return 0;
+    if(aco_get_co() == co) return 0;
+    if(addrs_len < 1) return 0;
+
+    // sp points to the next frame back
+    void *sp = co->reg[ACO_REG_IDX_SP];
+    if(co->share_stack->owner == co) {
+        stk = co->reg[ACO_REG_IDX_SP];
+        stksz = co->share_stack->align_retptr - sp;
+    } else {
+        stk = co->save_stack.ptr;
+        stksz = co->save_stack.valid_sz;
+        // saved stack is offset from one on which it usually functions
+        offset = co->reg[ACO_REG_IDX_SP] - co->save_stack.ptr;
+        // we're not active so look off into the save stack
+        sp -= offset;
+    }
+    void *ip = co->reg[ACO_REG_IDX_RETADDR];
+
+#if defined(HAVE_LIBUNWIND)
+    unw_cursor_t cursor;
+    unw_context_t uc;
+
+#ifdef __x86_64__
+    /* r12 r13 r14 r15 rip rsp rbx rbp */
+    uc.uc_mcontext.gregs[REG_R12] = (uintptr_t)co->reg[0];
+    uc.uc_mcontext.gregs[REG_R13] = (uintptr_t)co->reg[1];
+    uc.uc_mcontext.gregs[REG_R14] = (uintptr_t)co->reg[2];
+    uc.uc_mcontext.gregs[REG_R15] = (uintptr_t)co->reg[3];
+    uc.uc_mcontext.gregs[REG_RIP] = (uintptr_t)ip;
+    uc.uc_mcontext.gregs[REG_RSP] = (uintptr_t)sp;
+    uc.uc_mcontext.gregs[REG_RBX] = (uintptr_t)co->reg[6];
+    uc.uc_mcontext.gregs[REG_RBP] = (uintptr_t)co->reg[7] - offset;
+    uc.uc_stack.ss_sp = (void *)sp;
+    uc.uc_stack.ss_size = stksz;
+#else
+#error "Unimplemented architecture."
+#endif
+    unw_init_local(&cursor, &uc);
+    addrs[i++] = co->reg[ACO_REG_IDX_RETADDR];
+    //mtevL(mtev_debug, "STK CHECK: %p << [%p,%p] << %p\n", stk, sp, (void *) uc.uc_mcontext.gregs[REG_RBP], stk+stksz);
+    while (unw_step(&cursor) > 0 && i < addrs_len) {
+      unw_word_t uip, usp, urbp;
+      unw_get_reg(&cursor, UNW_REG_IP, &uip);
+      unw_get_reg(&cursor, UNW_REG_SP, &usp);
+      unw_get_reg(&cursor, UNW_X86_64_RBP, &urbp);
+
+      sp = (void *)(urbp - offset); // This is where we're about to jump to
+      //mtevL(mtev_debug, "STK CHECK: %p << [%p,%p] << %p\n", stk, (void *)(usp - offset), sp, stk+stksz);
+      if(sp < stk || sp >= stk + stksz) break;
+
+      addrs[i++] = (void *)uip;
+      if(addrs[i-1] == co->share_stack->align_retptr) break;
+
+      // At each step, we must jump back into our saved stack
+      // this effects out stack pointer and our return frame pointer
+      unw_set_reg(&cursor, UNW_REG_SP, usp - offset);
+      unw_set_reg(&cursor, UNW_X86_64_RBP, urbp - offset);
+    }
+    /* This worked... */
+    if(addrs_len > 1 && i > 1) return i;
+    i = 0;
+#endif
+
+    // This will only work (mostly) with -fno-omit-framepointers
+    sp = co->reg[ACO_REG_IDX_BP] - offset;
+    while(i < addrs_len) {
+      addrs[i++] = ip;
+      // we could be at the top of the unwind, so we're done.
+      if(ip == co->share_stack->align_retptr) break;
+      // if for some reason we're outside of our stack, there's a smash
+      if(sp < stk || sp >= stk + stksz || *((void **)sp) == NULL) break;
+
+      // IP is the RBP + WORD
+      ip = *(void **)(sp + sizeof(void *));
+      // prior stack point is RBP.
+      sp = *(void **)sp - offset;
+    }
+    return i;
 }

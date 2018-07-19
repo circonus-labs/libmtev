@@ -428,7 +428,7 @@ mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
   char *envcp;
   struct sigaction sa;
   stack_t altstack;
-  size_t altstack_size = 0, default_altstack_size = 262144;
+  size_t altstack_size = 0, default_altstack_size = 4*1024*1024;
   static const int signals[] = {
     SIGSEGV,
     SIGABRT,

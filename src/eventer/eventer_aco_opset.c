@@ -34,6 +34,7 @@
 #include "eventer/eventer_impl_private.h"
 #include "eventer/eventer_aco_opset.h"
 #include "libmtev_dtrace.h"
+#include "mtev_stacktrace.h"
 #include "aco/aco.h"
 
 #include <sys/socket.h>
@@ -51,6 +52,7 @@ typedef struct aco_opset_info_t {
 #define WORRISOME_STACK 2048
 int
 eventer_aco_resume(aco_t *co) {
+mtev_aco_stacktrace(mtev_error, co);
   aco_resume(co);
   if(co->save_stack.valid_sz > WORRISOME_STACK)
     mtevL(eventer_deb, "aco resume stack copy %zd bytes\n", co->save_stack.valid_sz);
