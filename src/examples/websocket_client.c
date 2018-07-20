@@ -6,6 +6,7 @@
 #include <mtev_main.h>
 #include <mtev_memory.h>
 #include <mtev_http.h>
+#include <mtev_rand.h>
 #include <mtev_rest.h>
 #include <mtev_cluster.h>
 #include <mtev_capabilities_listener.h>
@@ -56,7 +57,7 @@ mtev_boolean websocket_msg_handler(mtev_websocket_client_t *client, int opcode,
   size_t len;
   snprintf(buf, msg_len, "%s", msg);
   mtevL(mtev_error, "I received a message! %s\n", buf);
-  len = snprintf(buf, sizeof(buf), "%ld", lrand48());
+  len = snprintf(buf, sizeof(buf), "%ld", mtev_rand());
   mtev_websocket_client_send(client, opcode, buf, len);
   return mtev_false;
 }

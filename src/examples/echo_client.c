@@ -71,7 +71,7 @@ int main(int argc, char **argv)
   if (strcmp("lz4f", compression) == 0) {
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, data_helper);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mtev_curl_write_callback);
-    sprintf(content_encoding_header, "Accept-Encoding: %s", compression);
+    snprintf(content_encoding_header, sizeof(content_encoding_header), "Accept-Encoding: %s", compression);
     list = curl_slist_append(list, content_encoding_header);
   }
   else {

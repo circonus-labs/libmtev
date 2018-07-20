@@ -12,6 +12,7 @@
 #include <mtev_stats.h>
 #include <mtev_heap_profiler.h>
 #include <mtev_uuid.h>
+#include <mtev_rand.h>
 #include <eventer/eventer.h>
 #include <inttypes.h>
 
@@ -132,7 +133,7 @@ static int handler_subwork(eventer_t e, int mask, void *closure,
   int lvl = (len / 10) % 10;
   if(mask == EVENTER_ASYNCH_WORK) {
     for(i=0;i<(10-lvl)/2;i++) {
-      long foo = lrand48() * 100;
+      long foo = mtev_rand() * 100;
       foo += (lvl-1) * 10;
       foo += i;
       usleep(us/10);
