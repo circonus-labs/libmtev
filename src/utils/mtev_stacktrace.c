@@ -324,7 +324,17 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
   char addrpreline[16384];
   self = _lwp_self();
   addrtosymstr((void *)pc, addrpreline, sizeof(addrpreline));
-  mtev_print_stackline(ls, self, addrpreline);
+  ssize_t info_off = 0;
+  struct line_info *info = find_line((uintptr_t)pc, &info_off);
+  if(info) {
+    char buff[1024];
+    if(info_off > 256 || info_off < -256)
+      snprintf(buff, sizeof(buff), "\n\t(%s:%d off: %zd)", info->file, info->lineno, info_off);
+    else
+      snprintf(buff, sizeof(buff), "\n\t(%s:%d)", info->file, info->lineno);
+    strlcat(addrpreline, buff, sizeof(addrpreline));
+  }
+  mtev_print_stackline(ls, self, NULL, addrpreline);
   return 0;
 }
 #else
