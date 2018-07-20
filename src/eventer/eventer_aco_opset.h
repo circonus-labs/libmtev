@@ -38,9 +38,28 @@
 
 extern eventer_fd_opset_t eventer_aco_fd_opset;
 
+/*! \fn eventer_aco_t eventer_set_eventer_aco_co(eventer_t e, aco_t *co)
+    \brief Convert an eventer_t into an eventer_aco_t.
+    \param e an event object
+    \param co a coroutine to which the event should bound. NULL to revert.
+    \return The converted event.
+
+    The input event is modified in-place.  If the NULL is passed as co,
+    then the event is reverted and NULL is returned.  You almost always
+    want to be calling this on a brand-new object or a `eventer_alloc_copy`
+    of a pre-existing object.
+*/
 API_EXPORT(eventer_aco_t)
   eventer_set_eventer_aco_co(eventer_t e, aco_t *co);
 
+/*! \fn eventer_aco_t eventer_set_eventer_aco(eventer_t e)
+    \brief Convert an eventer_t into an eventer_aco_t.
+    \param e an event object
+    \return The converted event.
+
+    This calls `eventer_set_eventer_aco_co` with the current aco
+    as the `co` argument.
+*/
 API_EXPORT(eventer_aco_t)
   eventer_set_eventer_aco(eventer_t e);
 

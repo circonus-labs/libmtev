@@ -79,7 +79,7 @@ eventer_set_eventer_aco_co(eventer_t e, aco_t *co) {
     e->opset = info->original_opset;
     e->opset_ctx = info->original_opset_ctx;
     free(info);
-    return (eventer_aco_t)e;
+    return NULL;
   }
   mtevAssert(e->opset != eventer_aco_fd_opset);
   eventer_ref(e);

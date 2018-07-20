@@ -902,7 +902,30 @@ API_EXPORT(mtev_boolean) eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_
     of the currently executing job.
 */
 API_EXPORT(void) eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
+
+/*! \fn mtev_boolean eventer_aco_run_asynch_queue(eventer_jobq_t *q, eventer_t e)
+    \brief Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
+    \param q a job queue
+    \param e an event object
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
 #define eventer_aco_run_asynch_queue(q,e) eventer_aco_run_asynch_queue_subqueue(q,e,0)
+
+/*! \fn mtev_boolean eventer_aco_run_asynch(eventer_t e)
+    \brief Add an asynchronous event dependent on the current job and wait until completion.
+    \param e an event object
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the default job queue.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
 #define eventer_aco_run_asynch(e) eventer_aco_run_asynch_queue_subqueue(NULL,e,0)
 
 /*! \fn void eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
