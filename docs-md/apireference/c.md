@@ -928,6 +928,19 @@ eventer_aco_accept(eventer_t e, struct sockaddr *addr, socklen_t *len, struct ti
   * **RETURN** an opset-appropriate return value. (fd for POSIX, -1 for SSL).
 
 
+#### eventer_aco_arg
+
+>Gets the argument used to start an aco coroutine.
+
+```c
+void *
+eventer_aco_arg(void)
+```
+
+
+  * **RETURN** The closure parameter that was passed to `eventer_aco_start`.
+
+
 #### eventer_aco_close
 
 >Execute an opset-appropriate `close` call.
@@ -1116,6 +1129,35 @@ eventer_aco_sleep(struct timeval *duration)
 
 
   * `duration` the time to suspend.
+
+
+#### eventer_aco_start
+
+>Start a new aco coroutine to be eventer driven.
+
+```c
+void
+eventer_aco_start(void (*func)(void), void *closure)
+```
+
+
+  * `func` The function to start.
+  * `closure` The closure to set (available within `func` via `eventer_aco_arg()`)
+
+
+#### eventer_aco_start_stack
+
+>Start a new aco coroutine to be eventer driven.
+
+```c
+void
+eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz)
+```
+
+
+  * `func` The function to start.
+  * `closure` The closure to set (available within `func` via `eventer_aco_arg()`)
+  * `stksz` A specified maximum stack size other than the default 32k.
 
 
 #### eventer_aco_try_run_asynch_queue_subqueue

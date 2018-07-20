@@ -1312,6 +1312,16 @@ necessary activity to make progress.</p>
 <li><code>timeout</code> if not NULL, the time after which we fail -1, ETIME</li>
 <li><strong>RETURN</strong> an opset-appropriate return value. (fd for POSIX, -1 for SSL).</li>
 </ul>
+<h4 id="eventeracoarg">eventer_aco_arg</h4>
+<blockquote>
+<p>Gets the argument used to start an aco coroutine.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> *
+<span class="hljs-title">eventer_aco_arg</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> The closure parameter that was passed to <code>eventer_aco_start</code>.</li>
+</ul>
 <h4 id="eventeracoclose">eventer_aco_close</h4>
 <blockquote>
 <p>Execute an opset-appropriate <code>close</code> call.</p>
@@ -1462,6 +1472,29 @@ of the currently executing job.</p>
 </span></code></pre>
 <ul>
 <li><code>duration</code> the time to suspend.</li>
+</ul>
+<h4 id="eventeracostart">eventer_aco_start</h4>
+<blockquote>
+<p>Start a new aco coroutine to be eventer driven.</p>
+</blockquote>
+<pre><code class="lang-c">void
+eventer_aco_start(void (*func)(void), void *closure)
+</code></pre>
+<ul>
+<li><code>func</code> The function to start.</li>
+<li><code>closure</code> The closure to set (available within <code>func</code> via <code>eventer_aco_arg()</code>)</li>
+</ul>
+<h4 id="eventeracostartstack">eventer_aco_start_stack</h4>
+<blockquote>
+<p>Start a new aco coroutine to be eventer driven.</p>
+</blockquote>
+<pre><code class="lang-c">void
+eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz)
+</code></pre>
+<ul>
+<li><code>func</code> The function to start.</li>
+<li><code>closure</code> The closure to set (available within <code>func</code> via <code>eventer_aco_arg()</code>)</li>
+<li><code>stksz</code> A specified maximum stack size other than the default 32k.</li>
 </ul>
 <h4 id="eventeracotryrunasynchqueuesubqueue">eventer_aco_try_run_asynch_queue_subqueue</h4>
 <blockquote>

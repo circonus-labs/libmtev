@@ -1251,12 +1251,30 @@ API_EXPORT(void) eventer_run_in_thread(eventer_t, int mask);
 */
 API_EXPORT(eventer_t) eventer_get_this_event(void);
 
+/*! \fn void eventer_aco_start(void (*func)(void), void *closure)
+    \brief Start a new aco coroutine to be eventer driven.
+    \param func The function to start.
+    \param closure The closure to set (available within `func` via `eventer_aco_arg()`)
+*/
+API_EXPORT(void) eventer_aco_start(void (*func)(void), void *closure);
+
+/*! \fn void eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz)
+    \brief Start a new aco coroutine to be eventer driven.
+    \param func The function to start.
+    \param closure The closure to set (available within `func` via `eventer_aco_arg()`)
+    \param stksz A specified maximum stack size other than the default 32k.
+*/
+API_EXPORT(void) eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz);
+
+/*! \fn void * eventer_aco_arg(void)
+    \brief Gets the argument used to start an aco coroutine.
+    \return The closure parameter that was passed to `eventer_aco_start`.
+*/
+API_EXPORT(void *) eventer_aco_arg(void);
+
 /* Private */
 API_EXPORT(int) eventer_impl_init(void);
 API_EXPORT(void *) eventer_get_spec_for_event(eventer_t);
 API_EXPORT(int) eventer_cpu_sockets_and_cores(int *sockets, int *cores);
-
-API_EXPORT(void) eventer_aco_start(void (*func)(void), void *closure);
-API_EXPORT(void *) eventer_aco_arg(void);
 
 #endif

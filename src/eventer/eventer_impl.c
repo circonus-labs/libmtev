@@ -59,6 +59,7 @@ static int desired_nofiles = 1024*1024;
 static stats_ns_t *pool_ns, *threads_ns;
 static uint32_t init_called = 0;
 
+#define DEFAULT_ACO_STACK_SIZE (32 * 1024)
 #define NS_PER_S 1000000000
 #define NS_PER_MS 1000000
 #define NS_PER_US 1000
@@ -1387,19 +1388,22 @@ void eventer_aco_free(eventer_aco_t e) {
   eventer_free((eventer_t)e);
 }
 
-void eventer_aco_start(void (*func)(void), void *closure) {
+void eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz) {
   struct eventer_impl_data *t = get_my_impl_data();
   mtevAssert(t);
   eventer_aco_setup(t);
   struct aco_cb_ctx *ctx = calloc(1, sizeof(*ctx));
   ctx->closure = closure;
-  aco_t *co = aco_create(t->aco_main_co, t->aco_sstk, 32*1024, func, ctx);
+  aco_t *co = aco_create(t->aco_main_co, t->aco_sstk, stksz, func, ctx);
   void *prevco;
   uintptr_t coptr = (uintptr_t)co;
   unsigned long hash = CK_HS_HASH(t->aco_registry, __ck_hash_from_uint64, &coptr);
   mtevEvalAssert(ck_hs_set(t->aco_registry, hash, co, &prevco));
   mtevAssert(prevco == NULL);
   (void)eventer_aco_resume(co);
+}
+void eventer_aco_start(void (*func)(void), void *closure) {
+  eventer_aco_start_stack(func, closure, DEFAULT_ACO_STACK_SIZE);
 }
 
 int eventer_aco_shutdown(aco_t *co) {
