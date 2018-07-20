@@ -403,7 +403,7 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
       } else {
         len = snprintf(stackbuff, sizeof(stackbuff), "%016"PRIx64"\n", (uintptr_t)callstack[i]);
       }
-      write(_global_stack_trace_fd, stackbuff, len);
+      (void)write(_global_stack_trace_fd, stackbuff, len);
     }
     memset(&sb, 0, sizeof(sb));
     while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);
