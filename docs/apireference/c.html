@@ -347,7 +347,20 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.4" data-path="../development/rest.html">
+        <li class="chapter " data-level="1.3.4" data-path="../development/eventer-aco.html">
+            
+                <a href="../development/eventer-aco.html">
+            
+                    
+                    Eventer (ACO)
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../development/rest.html">
             
                 <a href="../development/rest.html">
             
@@ -360,7 +373,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.5" data-path="../development/logging.html">
+        <li class="chapter " data-level="1.3.6" data-path="../development/logging.html">
             
                 <a href="../development/logging.html">
             
@@ -373,7 +386,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.6" data-path="../development/hooks.html">
+        <li class="chapter " data-level="1.3.7" data-path="../development/hooks.html">
             
                 <a href="../development/hooks.html">
             
@@ -386,7 +399,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.7" data-path="../development/jemalloc.html">
+        <li class="chapter " data-level="1.3.8" data-path="../development/jemalloc.html">
             
                 <a href="../development/jemalloc.html">
             
@@ -1272,6 +1285,202 @@ buffer has overflowed into dynamic allocation space.</p>
 </ul>
 <p>If the function returns -1 and <code>errno</code> is <code>EAGAIN</code>, the <code>*mask</code> reflects the
 necessary activity to make progress.</p>
+<h4 id="eventeracoaccept">eventer_aco_accept</h4>
+<blockquote>
+<p>Execute an opset-appropriate <code>accept</code> call.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">eventer_aco_accept</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">struct</span> sockaddr *addr, socklen_t *len, <span class="hljs-keyword">struct</span> timeval *timeout)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>addr</code> a <code>struct sockaddr</code> to be populated.</li>
+<li><code>len</code> a <code>socklen_t</code> pointer to the size of the <code>addr</code> argument; updated.</li>
+<li><code>timeout</code> if not NULL, the time after which we fail -1, ETIME</li>
+<li><strong>RETURN</strong> an opset-appropriate return value. (fd for POSIX, -1 for SSL).</li>
+</ul>
+<h4 id="eventeracoclose">eventer_aco_close</h4>
+<blockquote>
+<p>Execute an opset-appropriate <code>close</code> call.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">eventer_aco_close</span><span class="hljs-params">(eventer_aco_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> 0 on sucess or -1 with errno set.</li>
+</ul>
+<h4 id="eventeracofree">eventer_aco_free</h4>
+<blockquote>
+<p>Dereferences the event specified.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_free</span><span class="hljs-params">(eventer_aco_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> the event to dereference.</li>
+</ul>
+<h4 id="eventeracogetclosure">eventer_aco_get_closure</h4>
+<blockquote>
+<p>Retrieve an event&apos;s closure.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> *
+<span class="hljs-title">eventer_aco_get_closure</span><span class="hljs-params">(eventer_aco_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> The previous closure set.</li>
+</ul>
+<h4 id="eventeracoread">eventer_aco_read</h4>
+<blockquote>
+<p>Execute an opset-appropriate <code>read</code> call.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">eventer_aco_read</span><span class="hljs-params">(eventer_aco_t e, <span class="hljs-keyword">void</span> *buff, size_t len, <span class="hljs-keyword">struct</span> timeval *timeout)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>buff</code> a buffer in which to place read data.</li>
+<li><code>len</code> the size of <code>buff</code> in bytes.</li>
+<li><code>timeout</code> if not NULL, the time after which we fail -1, ETIME</li>
+<li><strong>RETURN</strong> the number of bytes read or -1 with errno set.</li>
+</ul>
+<h4 id="eventeracorunasynch">eventer_aco_run_asynch</h4>
+<blockquote>
+<p>Add an asynchronous event dependent on the current job and wait until completion.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_aco_run_asynch</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the default job queue.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
+<h4 id="eventeracorunasynchqueue">eventer_aco_run_asynch_queue</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_aco_run_asynch_queue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
+<h4 id="eventeracorunasynchqueuesubqueue">eventer_aco_run_asynch_queue_subqueue</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_aco_run_asynch_queue_subqueue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><code>id</code> is a fairly competing subqueue identifier</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
+<h4 id="eventeracosetclosure">eventer_aco_set_closure</h4>
+<blockquote>
+<p>Set an event&apos;s closure.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_set_closure</span><span class="hljs-params">(eventer_aco_t e, <span class="hljs-keyword">void</span> *closure)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>closure</code> a pointer to user-data to be supplied during callback.</li>
+</ul>
+<h4 id="eventeracosimpleasynch">eventer_aco_simple_asynch</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_simple_asynch</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure)</span>
+</span></code></pre>
+<ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+</ul>
+<h4 id="eventeracosimpleasynchqueue">eventer_aco_simple_asynch_queue</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_simple_asynch_queue</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q)</span>
+</span></code></pre>
+<ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+</ul>
+<h4 id="eventeracosimpleasynchqueuesubqueue">eventer_aco_simple_asynch_queue_subqueue</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_simple_asynch_queue_subqueue</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+<li><code>id</code> the subqueue within the jobq.</li>
+</ul>
+<h4 id="eventeracosleep">eventer_aco_sleep</h4>
+<blockquote>
+<p>Execute a sleep within an aco context.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_sleep</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> timeval *duration)</span>
+</span></code></pre>
+<ul>
+<li><code>duration</code> the time to suspend.</li>
+</ul>
+<h4 id="eventeracotryrunasynchqueuesubqueue">eventer_aco_try_run_asynch_queue_subqueue</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_aco_try_run_asynch_queue_subqueue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><code>id</code> is a fairly competing subqueue identifier</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
+<h4 id="eventeracowrite">eventer_aco_write</h4>
+<blockquote>
+<p>Execute an opset-appropriate <code>write</code> call.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">eventer_aco_write</span><span class="hljs-params">(eventer_aco_t e, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *buff, size_t len, <span class="hljs-keyword">struct</span> timeval *timeout)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>buff</code> a buffer containing data to write.</li>
+<li><code>len</code> the size of <code>buff</code> in bytes.</li>
+<li><code>timeout</code> if not NULL, the time after which we fail -1, ETIME</li>
+<li><strong>RETURN</strong> the number of bytes written or -1 with errno set.</li>
+</ul>
 <h4 id="eventeradd">eventer_add</h4>
 <blockquote>
 <p>Add an event object to the eventer system.</p>
@@ -1628,7 +1837,7 @@ eventer_choose_owner(<span class="hljs-keyword">int</span> n)
 <li><strong>RETURN</strong> a pthread_t of an eventer loop thread in the default eventer pool.</li>
 </ul>
 <p>This return the first thread when 0 is passed as an argument.  All non-zero arguments
-are spread acorss the remaining threads (if existent) as <code>n</code> modulo one less than
+are spread across the remaining threads (if existent) as <code>n</code> modulo one less than
 the concurrency of the default event pool.</p>
 <p>This is done because many systems aren&apos;t thread safe and can only schedule their
 work on a single thread (thread 1). By spreading all thread-safe workloads across
@@ -2375,6 +2584,35 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <li><code>data</code> is new context data.</li>
 <li><strong>RETURN</strong> The previously attached context.</li>
 </ul>
+<h4 id="eventerseteventeraco">eventer_set_eventer_aco</h4>
+<blockquote>
+<p>Convert an eventer_t into an eventer_aco_t.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_aco_t</span>
+eventer_set_eventer_aco(<span class="hljs-keyword">eventer_t</span> e)
+</code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> The converted event.</li>
+</ul>
+<p>This calls <code>eventer_set_eventer_aco_co</code> with the current aco
+as the <code>co</code> argument.</p>
+<h4 id="eventerseteventeracoco">eventer_set_eventer_aco_co</h4>
+<blockquote>
+<p>Convert an eventer_t into an eventer_aco_t.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_aco_t</span>
+eventer_set_eventer_aco_co(<span class="hljs-keyword">eventer_t</span> e, <span class="hljs-keyword">aco_t</span> *co)
+</code></pre>
+<ul>
+<li><code>e</code> an event object</li>
+<li><code>co</code> a coroutine to which the event should bound. NULL to revert.</li>
+<li><strong>RETURN</strong> The converted event.</li>
+</ul>
+<p>The input event is modified in-place.  If the NULL is passed as co,
+then the event is reverted and NULL is returned.  You almost always
+want to be calling this on a brand-new object or a <code>eventer_alloc_copy</code>
+of a pre-existing object.</p>
 <h4 id="eventersetfdblocking">eventer_set_fd_blocking</h4>
 <blockquote>
 <p>Set a file descriptor into blocking mode.</p>
@@ -2563,7 +2801,7 @@ a looping thread, this call is used.</p>
 <p>Execute an opset-appropriate <code>write</code> call.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
-<span class="hljs-title">eventer_write</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">void</span> *buff, size_t len, <span class="hljs-keyword">int</span> *mask)</span>
+<span class="hljs-title">eventer_write</span><span class="hljs-params">(eventer_t e, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *buff, size_t len, <span class="hljs-keyword">int</span> *mask)</span>
 </span></code></pre>
 <ul>
 <li><code>e</code> an event object</li>

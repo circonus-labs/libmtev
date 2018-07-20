@@ -345,7 +345,20 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.4" data-path="../development/rest.html">
+        <li class="chapter " data-level="1.3.4" data-path="../development/eventer-aco.html">
+            
+                <a href="../development/eventer-aco.html">
+            
+                    
+                    Eventer (ACO)
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../development/rest.html">
             
                 <a href="../development/rest.html">
             
@@ -358,7 +371,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.5" data-path="../development/logging.html">
+        <li class="chapter " data-level="1.3.6" data-path="../development/logging.html">
             
                 <a href="../development/logging.html">
             
@@ -371,7 +384,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.6" data-path="../development/hooks.html">
+        <li class="chapter " data-level="1.3.7" data-path="../development/hooks.html">
             
                 <a href="../development/hooks.html">
             
@@ -384,7 +397,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.3.7" data-path="../development/jemalloc.html">
+        <li class="chapter " data-level="1.3.8" data-path="../development/jemalloc.html">
             
                 <a href="../development/jemalloc.html">
             
@@ -1153,6 +1166,17 @@ mtev.sha256_hex(s)
 <h4 id="mtevsharedget">mtev.shared_get</h4>
 <pre><code class="lang-lua">mtev.shared_get()
 </code></pre>
+<h4 id="mtevsharedseq">mtev.shared_seq</h4>
+<blockquote>
+<p>returns a sequence number that is increasing across all mtev-lua states and coroutines</p>
+</blockquote>
+<pre><code class="lang-lua">seq =
+mtev.shared_seq(keyname)
+</code></pre>
+<ul>
+<li><code>keyname</code> the globally unique name of the sequence to return and post-increment.</li>
+<li><strong>RETURN</strong> seq the sequence number</li>
+</ul>
 <h4 id="mtevsharedset">mtev.shared_set</h4>
 <pre><code class="lang-lua">mtev.shared_set()
 </code></pre>

@@ -842,6 +842,20 @@ mtev.shared_get()
 
 
 
+#### mtev.shared_seq
+
+>returns a sequence number that is increasing across all mtev-lua states and coroutines
+
+```lua
+seq =
+mtev.shared_seq(keyname)
+```
+
+
+  * `keyname` the globally unique name of the sequence to return and post-increment.
+  * **RETURN** seq the sequence number
+
+
 #### mtev.shared_set
 
 ```lua
