@@ -3650,7 +3650,6 @@ mtev_xmldoc_index_func(lua_State *L) {
 /* \lua bool = mtev.cluster:am_i_oldest_visible_node()
 \return whether the invoking code is running on the oldest node in the cluster.
 */
-
 static int
 mtev_lua_cluster_am_i_oldest_visible_node(lua_State *L) {
   int n = lua_gettop(L);
@@ -3669,7 +3668,6 @@ mtev_lua_cluster_am_i_oldest_visible_node(lua_State *L) {
 /* \lua cnt = mtev.cluster:size()
 \return the number of nodes in the cluster.
 */
-
 static int
 mtev_lua_cluster_size(lua_State *L) {
   int n = lua_gettop(L);
@@ -3713,11 +3711,13 @@ mtev_cluster_index_func(lua_State *L) {
 
 /*! \lua cluster = mtev.cluster(name)
 \param name name of cluster
-\return a cluster object
+\return a cluster object or nil if no cluster of that name is found.
 */
 static int
 nl_mtev_cluster(lua_State *L) {
   const char *cluster_name = luaL_checkstring(L,1);
+  mtev_cluster_t *cluster = mtev_cluster_by_name(cluster_name);
+  if(cluster == NULL) return 0;
   // We store the cluster name in the lua object not the reference to the mtev_cluster_t, since this
   // might be changing over time.
   char *obj = lua_newuserdata(L, strlen(cluster_name)+1);
