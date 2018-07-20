@@ -454,6 +454,7 @@ mtev_main(const char *appname,
     exit(-1);
   }
 
+  mtev_dwarf_refresh();
   mtev_watchdog_prefork_init();
 
   if(foreground != 1 && chdir("/") != 0) {
@@ -500,13 +501,17 @@ mtev_main(const char *appname,
   if(foreground == 1) {
     mtev_time_start_tsc();
     mtevL(mtev_notice, "%s booting [unmanaged, pid: %d]\n", appname, (int)getpid());
-    mtev_setup_crash_signals(mtev_self_diagnose);
+    const char *diagnose = getenv("MTEV_DIAGNOSE_CRASH");
+    if(!diagnose || strcmp(diagnose,"0")) mtev_setup_crash_signals(mtev_self_diagnose);
     int rv = passed_child_main();
     mtev_lockfile_release(lockfd);
     return rv;
   }
 
-  watchdog_timeout_str = getenv("WATCHDOG_TIMEOUT");
+  watchdog_timeout_str = getenv("MTEV_WATCHDOG_TIMEOUT");
+  // Legacy check
+  if(!watchdog_timeout_str)
+    watchdog_timeout_str = getenv("WATCHDOG_TIMEOUT");
   if(watchdog_timeout_str) {
     watchdog_timeout = atoi(watchdog_timeout_str);
     mtevL(mtev_notice, "Setting watchdog timeout to %d\n",

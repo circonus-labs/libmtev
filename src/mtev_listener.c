@@ -48,6 +48,8 @@
 #include "mtev_listener.h"
 #include "mtev_conf.h"
 
+static mtev_hash_table *aco_listeners;
+
 struct mtev_acceptor_closure_t {
   union {
     struct sockaddr remote_addr;
@@ -523,6 +525,24 @@ mtev_listener(char *host, unsigned short port, int type,
   return 0;
 }
 
+static void
+post_aco_wrap_dispatch(void) {
+  eventer_t e = eventer_aco_arg();
+  eventer_aco_t aco_e = eventer_set_eventer_aco(e);
+  /* We're done with our service_ctx hi-jacking, pull it and zero it */
+  mtev_acceptor_closure_t *ac = eventer_aco_get_closure(aco_e);
+  void (*f)(void) = mtev_acceptor_closure_ctx(ac);
+  mtev_acceptor_closure_set_ctx(ac, NULL, NULL);
+  f();
+  aco_exit();
+}
+static int
+pre_aco_wrap_dispatch(eventer_t e, int mask, void *closure, struct timeval *now) {
+  eventer_remove_fde(e);
+  eventer_aco_start(post_aco_wrap_dispatch, eventer_alloc_copy(e));
+  return 0;
+}
+
 void
 mtev_listener_reconfig(const char *toplevel) {
   int i, cnt = 0;
@@ -544,6 +564,7 @@ mtev_listener_reconfig(const char *toplevel) {
     eventer_pool_t *pool = NULL;
     char poolname[256];
     mtev_hash_table *sslconfig, *config;
+    void *service_ctx = NULL;
 
     if(!mtev_conf_get_stringbuf(listener_configs[i],
                                 "ancestor-or-self::node()/@type",
@@ -552,6 +573,13 @@ mtev_listener_reconfig(const char *toplevel) {
       continue;
     }
     f = eventer_callback_for_name(type);
+    if(!f) {
+      /* If we have an aco method, we hi-jack the service_ctx to be the function
+       * because we need to run a wrapper dispatch function that is an eventer_func_t
+       */
+      if(mtev_hash_retrieve(aco_listeners, type, strlen(type), &service_ctx))
+        f = pre_aco_wrap_dispatch;
+    }
     if(!f) {
       mtevL(mtev_error,
             "Cannot find handler for listener type: '%s'\n", type);
@@ -620,7 +648,7 @@ mtev_listener_reconfig(const char *toplevel) {
 
     if(mtev_listener(address, port, SOCK_STREAM, backlog,
                      fanout, pool, in_own_thread,
-                     sslconfig, config, f, NULL) != 0) {
+                     sslconfig, config, f, service_ctx) != 0) {
       mtev_hash_destroy(config,free,free);
       free(config);
     }
@@ -760,6 +788,15 @@ mtev_listener_init(const char *toplevel) {
   eventer_name_callback("mtev_listener_accept_ssl", mtev_listener_accept_ssl);
   eventer_name_callback("control_dispatch", mtev_control_dispatch);
   mtev_listener_reconfig(toplevel);
+}
+
+void
+mtev_listener_register_aco_function(const char *name, void(*func)(void)) {
+  if(!aco_listeners) {
+    aco_listeners = calloc(1, sizeof(*aco_listeners));
+    mtev_hash_init_locks(aco_listeners, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+  }
+  mtev_hash_store(aco_listeners, strdup(name), strlen(name), func);
 }
 
 void

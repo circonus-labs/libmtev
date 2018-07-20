@@ -92,6 +92,9 @@ API_EXPORT(int)
 API_EXPORT(int)
   mtev_convert_sockaddr_to_buff(char *, int, struct sockaddr *);
 
+API_EXPORT(void)
+  mtev_listener_register_aco_function(const char *name, void(*func)(void));
+
 API_EXPORT(mtev_hash_table *)
   mtev_listener_commands(void);
 

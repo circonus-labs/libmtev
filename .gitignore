@@ -3,6 +3,7 @@
 *.bundle
 *.lo
 *.hlo
+*.Slo
 *.o
 *.so
 *.ctfso

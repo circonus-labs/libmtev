@@ -67,6 +67,7 @@ struct mtev_http_rest_closure {
   void *call_closure;
   void (*call_closure_free)(void *);
   void *closure;
+  mtev_boolean aco_enabled;
 };
 
 API_EXPORT(void) mtev_http_rest_init(void);
@@ -170,6 +171,10 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_rest_mountpoint_set_eventer_pool(mtev_rest_mountpoint_t *mountpoint,
                                   eventer_pool_t *pool);
+
+API_EXPORT(void)
+  mtev_rest_mountpoint_set_aco(mtev_rest_mountpoint_t *mountpoint,
+                               mtev_boolean enabled);
 
 API_EXPORT(void)
   mtev_http_rest_disclose_endpoints(const char *base, const char *expr);

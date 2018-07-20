@@ -45,6 +45,7 @@
 #include "mtev_conf.h"
 #include "mtev_hash.h"
 #include "mtev_log.h"
+#include "mtev_stacktrace.h"
 
 MTEV_HOOK_IMPL(dso_post_init,
   (void),
@@ -213,6 +214,7 @@ int mtev_load_image(const char *file, const char *name,
     free(namecopy);
     return -1;
   }
+  mtev_dwarf_refresh();
   ((struct __extended_image_data *)obj->opaque_handle)->dlhandle = dlhandle;
   return 0;
 }

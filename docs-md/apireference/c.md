@@ -911,6 +911,293 @@ If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
 necessary activity to make progress.
 
 
+#### eventer_aco_accept
+
+>Execute an opset-appropriate `accept` call.
+
+```c
+int
+eventer_aco_accept(eventer_t e, struct sockaddr *addr, socklen_t *len, struct timeval *timeout)
+```
+
+
+  * `e` an event object
+  * `addr` a `struct sockaddr` to be populated.
+  * `len` a `socklen_t` pointer to the size of the `addr` argument; updated.
+  * `timeout` if not NULL, the time after which we fail -1, ETIME
+  * **RETURN** an opset-appropriate return value. (fd for POSIX, -1 for SSL).
+
+
+#### eventer_aco_arg
+
+>Gets the argument used to start an aco coroutine.
+
+```c
+void *
+eventer_aco_arg(void)
+```
+
+
+  * **RETURN** The closure parameter that was passed to `eventer_aco_start`.
+
+
+#### eventer_aco_close
+
+>Execute an opset-appropriate `close` call.
+
+```c
+int
+eventer_aco_close(eventer_aco_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** 0 on sucess or -1 with errno set.
+
+
+#### eventer_aco_free
+
+>Dereferences the event specified.
+
+```c
+void
+eventer_aco_free(eventer_aco_t e)
+```
+
+
+  * `e` the event to dereference.
+
+
+#### eventer_aco_get_closure
+
+>Retrieve an event's closure.
+
+```c
+void *
+eventer_aco_get_closure(eventer_aco_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** The previous closure set.
+
+
+#### eventer_aco_read
+
+>Execute an opset-appropriate `read` call.
+
+```c
+int
+eventer_aco_read(eventer_aco_t e, void *buff, size_t len, struct timeval *timeout)
+```
+
+
+  * `e` an event object
+  * `buff` a buffer in which to place read data.
+  * `len` the size of `buff` in bytes.
+  * `timeout` if not NULL, the time after which we fail -1, ETIME
+  * **RETURN** the number of bytes read or -1 with errno set.
+
+
+#### eventer_aco_run_asynch
+
+>Add an asynchronous event dependent on the current job and wait until completion.
+
+```c
+mtev_boolean
+eventer_aco_run_asynch(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the default job queue.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
+#### eventer_aco_run_asynch_queue
+
+>Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
+
+```c
+mtev_boolean
+eventer_aco_run_asynch_queue(eventer_jobq_t *q, eventer_t e)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
+#### eventer_aco_run_asynch_queue_subqueue
+
+>Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
+
+```c
+mtev_boolean
+eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+  * `id` is a fairly competing subqueue identifier
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
+#### eventer_aco_set_closure
+
+>Set an event's closure.
+
+```c
+void
+eventer_aco_set_closure(eventer_aco_t e, void *closure)
+```
+
+
+  * `e` an event object
+  * `closure` a pointer to user-data to be supplied during callback.
+
+
+#### eventer_aco_simple_asynch
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_simple_asynch(eventer_asynch_func_t func, void *closure)
+```
+
+
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+
+
+#### eventer_aco_simple_asynch_queue
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_simple_asynch_queue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q)
+```
+
+
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+
+
+#### eventer_aco_simple_asynch_queue_subqueue
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
+```
+
+
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+  * `id` the subqueue within the jobq.
+
+
+#### eventer_aco_sleep
+
+>Execute a sleep within an aco context.
+
+```c
+void
+eventer_aco_sleep(struct timeval *duration)
+```
+
+
+  * `duration` the time to suspend.
+
+
+#### eventer_aco_start
+
+>Start a new aco coroutine to be eventer driven.
+
+```c
+void
+eventer_aco_start(void (*func)(void), void *closure)
+```
+
+
+  * `func` The function to start.
+  * `closure` The closure to set (available within `func` via `eventer_aco_arg()`)
+
+
+#### eventer_aco_start_stack
+
+>Start a new aco coroutine to be eventer driven.
+
+```c
+void
+eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz)
+```
+
+
+  * `func` The function to start.
+  * `closure` The closure to set (available within `func` via `eventer_aco_arg()`)
+  * `stksz` A specified maximum stack size other than the default 32k.
+
+
+#### eventer_aco_try_run_asynch_queue_subqueue
+
+>Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
+
+```c
+mtev_boolean
+eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
+```
+
+
+  * `q` a job queue
+  * `e` an event object
+  * `id` is a fairly competing subqueue identifier
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
+#### eventer_aco_write
+
+>Execute an opset-appropriate `write` call.
+
+```c
+int
+eventer_aco_write(eventer_aco_t e, const void *buff, size_t len, struct timeval *timeout)
+```
+
+
+  * `e` an event object
+  * `buff` a buffer containing data to write.
+  * `len` the size of `buff` in bytes.
+  * `timeout` if not NULL, the time after which we fail -1, ETIME
+  * **RETURN** the number of bytes written or -1 with errno set.
+
+
 #### eventer_add
 
 >Add an event object to the eventer system.
@@ -1359,7 +1646,7 @@ eventer_choose_owner(int n)
   * **RETURN** a pthread_t of an eventer loop thread in the default eventer pool.
 
 This return the first thread when 0 is passed as an argument.  All non-zero arguments
-are spread acorss the remaining threads (if existent) as `n` modulo one less than
+are spread across the remaining threads (if existent) as `n` modulo one less than
 the concurrency of the default event pool.
 
 This is done because many systems aren't thread safe and can only schedule their
@@ -2309,6 +2596,43 @@ eventer_set_context(eventer_t e, int ctx_idx, void *data)
   * **RETURN** The previously attached context.
 
 
+#### eventer_set_eventer_aco
+
+>Convert an eventer_t into an eventer_aco_t.
+
+```c
+eventer_aco_t
+eventer_set_eventer_aco(eventer_t e)
+```
+
+
+  * `e` an event object
+  * **RETURN** The converted event.
+
+This calls `eventer_set_eventer_aco_co` with the current aco
+as the `co` argument.
+
+
+#### eventer_set_eventer_aco_co
+
+>Convert an eventer_t into an eventer_aco_t.
+
+```c
+eventer_aco_t
+eventer_set_eventer_aco_co(eventer_t e, aco_t *co)
+```
+
+
+  * `e` an event object
+  * `co` a coroutine to which the event should bound. NULL to revert.
+  * **RETURN** The converted event.
+
+The input event is modified in-place.  If the NULL is passed as co,
+then the event is reverted and NULL is returned.  You almost always
+want to be calling this on a brand-new object or a `eventer_alloc_copy`
+of a pre-existing object.
+
+
 #### eventer_set_fd_blocking
 
 >Set a file descriptor into blocking mode.
@@ -2547,7 +2871,7 @@ eventer_watchdog_timeout(void)
 
 ```c
 int
-eventer_write(eventer_t e, void *buff, size_t len, int *mask)
+eventer_write(eventer_t e, const void *buff, size_t len, int *mask)
 ```
 
 

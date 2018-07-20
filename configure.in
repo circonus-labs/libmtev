@@ -51,6 +51,8 @@ AC_ARG_ENABLE(rdtsc,
 	enable_rdtsc="$enableval",
 	enable_rdtsc=yes)
 
+: ${CFLAGS="-g -O2 -fno-omit-frame-pointer"}
+: ${CXXFLAGS="-g -O2 -fno-omit-frame-pointer"}
 AC_PROG_CC
 AC_PROG_CC_STDC
 AC_C_INLINE
@@ -362,6 +364,8 @@ AC_CHECK_SIZEOF(long int, 4)
 AC_CHECK_SIZEOF(long long int, 8)
 AC_CHECK_SIZEOF(void *, 1)
 
+AC_CHECK_LIB(dwarf, dwarf_init, , )
+AC_CHECK_LIB(unwind, unw_backtrace, , )
 AC_CHECK_HEADER(ck_pr.h, [], [AC_MSG_ERROR([*** libck (headers) required ***])])
 AC_CHECK_LIB(ck, ck_ht_init, , [AC_MSG_ERROR([*** concurrencyckit (libck) is required ***])])
 AC_CHECK_FUNCS(ck_epoch_synchronize_wait)

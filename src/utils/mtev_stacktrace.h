@@ -33,6 +33,7 @@
 
 #include "mtev_defines.h"
 #include "mtev_log.h"
+#include "aco/aco.h"
 
 API_EXPORT(void)
   mtev_stacktrace(mtev_log_stream_t ls);
@@ -41,5 +42,15 @@ API_EXPORT(void)
 API_EXPORT(int)
   mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg);
 #endif
+
+API_EXPORT(int)
+  mtev_aco_stacktrace(mtev_log_stream_t ls, aco_t *co);
+
+API_EXPORT(int)
+  mtev_aco_backtrace(aco_t *co, void **addrs, int addrs_len);
+
+// Call this function after loading any modules.
+API_EXPORT(void)
+  mtev_dwarf_refresh(void);
 
 #endif

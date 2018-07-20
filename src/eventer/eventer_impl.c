@@ -32,6 +32,8 @@
  */
 
 #include "mtev_defines.h"
+#include "mtev_rand.h"
+#include "aco/aco.h"
 #include "eventer/eventer.h"
 #include "eventer/eventer_impl_private.h"
 #include "mtev_memory.h"
@@ -57,9 +59,26 @@ static int desired_nofiles = 1024*1024;
 static stats_ns_t *pool_ns, *threads_ns;
 static uint32_t init_called = 0;
 
+#define DEFAULT_ACO_STACK_SIZE (32 * 1024)
 #define NS_PER_S 1000000000
 #define NS_PER_MS 1000000
 #define NS_PER_US 1000
+
+static unsigned long __ck_hash_from_uint64(const void *key, unsigned long seed) {
+  return (*(uint64_t *)key) ^ seed;
+}
+static bool __ck_hash_compare_uint64(const void *a, const void *b) {
+  return *(uint64_t *)a == *(uint64_t *)b;
+}
+static void * gen_malloc(size_t r) { return malloc(r); }
+
+static void gen_free(void *p, size_t b, bool r) {
+  (void)b; (void)r; free(p); return;
+}
+static struct ck_malloc malloc_ck_hs = {
+  .malloc = gen_malloc,
+  .free = gen_free
+};
 
 int eventer_timecompare(const void *av, const void *bv) {
   /* Herein we avoid equality.  This function is only used as a comparator
@@ -99,6 +118,9 @@ struct eventer_impl_data {
   mtev_hrtime_t last_cb_ns;
   mtev_hrtime_t last_loop_start;
   stats_handle_t *loop_times;
+  aco_t *aco_main_co;
+  aco_share_stack_t *aco_sstk;
+  ck_hs_t *aco_registry;
 };
 
 static __thread eventer_t current_eventer_in_callback;
@@ -563,11 +585,34 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   ck_pr_inc_32(&t->pool->__loops_started);
 }
 
+static void mtev_aco_last_word(void) {
+  aco_t* co = aco_get_co();
+  // do some log about the offending `co`
+  mtevL(mtev_error,"error: customized co_protector_last_word triggered \n");
+  mtevFatal(mtev_error, "error: co:%p should call `aco_exit(co)` instead of direct "
+      "`return` in co_fp:%p to finish its execution\n", co, (void*)co->fp);
+}
+
+static void eventer_aco_setup(struct eventer_impl_data *t) {
+  if(!t->aco_main_co) {
+    t->aco_main_co = aco_create(NULL, NULL, 0, NULL, NULL);
+    t->aco_registry = calloc(1, sizeof(*t->aco_registry));
+    if(ck_hs_init(t->aco_registry,
+                  CK_HS_MODE_DIRECT | CK_HS_MODE_DELETE | CK_HS_MODE_SPMC,
+                  __ck_hash_from_uint64, __ck_hash_compare_uint64,
+                  &malloc_ck_hs, 100, mtev_rand()) == false) {
+      mtevFatal(mtev_error, "Cannot initialize ck_hs (aco_registry)\n");
+    }
+    t->aco_sstk = aco_share_stack_new(0);
+  }
+}
 static void *thrloopwrap(void *vid) {
   struct eventer_impl_data *t;
   char thr_name[64];
+  aco_thread_init(mtev_aco_last_word);
   int id = (int)(intptr_t)vid;
   t = &eventer_impl_tls_data[id];
+  eventer_aco_setup(t);
   t->id = id;
   snprintf(thr_name, sizeof(thr_name), "e:%s/%d", t->pool->name, id);
   stats_ns_t *tns = mtev_stats_ns(threads_ns, thr_name);
@@ -1260,4 +1305,120 @@ int eventer_thread_check(eventer_t e) {
   return pthread_equal(pthread_self(), e->thr_owner);
 }
 
+int eventer_accept(eventer_t e, struct sockaddr *addr, socklen_t *len, int *mask) {
+  if(e->opset == eventer_aco_fd_opset) {
+    /* fake a aco accept */
+    return eventer_aco_accept((eventer_aco_t)e, addr, len, NULL);
+  }
+  mtevAssert(aco_get_co() == NULL || aco_get_co() == get_my_impl_data()->aco_main_co);
+  return eventer_fd_opset_get_accept(eventer_get_fd_opset(e))
+         (e->fd, addr, len, mask, e);
+}
+
+int eventer_read(eventer_t e, void *buff, size_t len, int *mask) {
+  if(e->opset == eventer_aco_fd_opset) {
+    /* fake a aco read */
+    return eventer_aco_read((eventer_aco_t)e, buff, len, NULL);
+  }
+  mtevAssert(aco_get_co() == NULL || aco_get_co() == get_my_impl_data()->aco_main_co);
+  return eventer_fd_opset_get_read(eventer_get_fd_opset(e))
+         (e->fd, buff, len, mask, e);
+}
+
+int eventer_write(eventer_t e, const void *buff, size_t len, int *mask) {
+  if(e->opset == eventer_aco_fd_opset) {
+    /* fake a aco write */
+    return eventer_aco_write((eventer_aco_t)e, buff, len, NULL);
+  }
+  mtevAssert(e->opset != eventer_aco_fd_opset);
+  mtevAssert(aco_get_co() == NULL || aco_get_co() == get_my_impl_data()->aco_main_co);
+  return eventer_fd_opset_get_write(eventer_get_fd_opset(e))
+         (e->fd, buff, len, mask, e);
+}
+
+int eventer_close(eventer_t e, int *mask) {
+  if(e->opset == eventer_aco_fd_opset) {
+    /* fake a aco close */
+    return eventer_aco_close((eventer_aco_t)e);
+  }
+  mtevAssert(aco_get_co() == NULL || aco_get_co() == get_my_impl_data()->aco_main_co);
+  return eventer_fd_opset_get_close(eventer_get_fd_opset(e))
+         (e->fd, mask, e);
+}
+
+int eventer_aco_accept(eventer_aco_t e, struct sockaddr *addr, socklen_t *len, struct timeval *timeout) {
+  mtevAssert(e->opset == eventer_aco_fd_opset);
+  mtevAssert(aco_get_co() != NULL);
+  int mask;
+  struct aco_cb_ctx *ctx = aco_get_arg();
+  if(timeout) ctx->timeout = timeout;
+  return eventer_fd_opset_get_accept(eventer_get_fd_opset((eventer_t)e))
+         (e->fd, addr, len, &mask, (eventer_t)e);
+}
+
+int eventer_aco_read(eventer_aco_t e, void *buff, size_t len, struct timeval *timeout) {
+  mtevAssert(e->opset == eventer_aco_fd_opset);
+  mtevAssert(aco_get_co() != NULL);
+  int mask;
+  struct aco_cb_ctx *ctx = aco_get_arg();
+  if(timeout) ctx->timeout = timeout;
+  return eventer_fd_opset_get_read(eventer_get_fd_opset((eventer_t)e))
+           (e->fd, buff, len, &mask, (eventer_t)e);
+}
+
+int eventer_aco_write(eventer_aco_t e, const void *buff, size_t len, struct timeval *timeout) {
+  mtevAssert(e->opset == eventer_aco_fd_opset);
+  mtevAssert(aco_get_co() != NULL);
+  int mask;
+  struct aco_cb_ctx *ctx = aco_get_arg();
+  if(timeout) ctx->timeout = timeout;
+  return eventer_fd_opset_get_write(eventer_get_fd_opset((eventer_t)e))
+         (e->fd, buff, len, &mask, (eventer_t)e);
+}
+
+int eventer_aco_close(eventer_aco_t e) {
+  mtevAssert(e->opset == eventer_aco_fd_opset);
+  mtevAssert(aco_get_co() != NULL);
+  int mask;
+  return eventer_fd_opset_get_close(eventer_get_fd_opset((eventer_t)e))
+         (e->fd, &mask, (eventer_t)e);
+}
+
+void eventer_aco_free(eventer_aco_t e) {
+  eventer_free((eventer_t)e);
+}
+
+void eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz) {
+  struct eventer_impl_data *t = get_my_impl_data();
+  mtevAssert(t);
+  eventer_aco_setup(t);
+  struct aco_cb_ctx *ctx = calloc(1, sizeof(*ctx));
+  ctx->closure = closure;
+  aco_t *co = aco_create(t->aco_main_co, t->aco_sstk, stksz, func, ctx);
+  void *prevco;
+  uintptr_t coptr = (uintptr_t)co;
+  unsigned long hash = CK_HS_HASH(t->aco_registry, __ck_hash_from_uint64, &coptr);
+  mtevEvalAssert(ck_hs_set(t->aco_registry, hash, co, &prevco));
+  mtevAssert(prevco == NULL);
+  (void)eventer_aco_resume(co);
+}
+void eventer_aco_start(void (*func)(void), void *closure) {
+  eventer_aco_start_stack(func, closure, DEFAULT_ACO_STACK_SIZE);
+}
+
+int eventer_aco_shutdown(aco_t *co) {
+  struct eventer_impl_data *t = get_my_impl_data();
+  mtevAssert(t);
+  free(co->arg);
+  uintptr_t coptr = (uintptr_t)co;
+  unsigned long hash = CK_HS_HASH(t->aco_registry, __ck_hash_from_uint64, &coptr);
+  ck_hs_remove(t->aco_registry, hash, co);
+  aco_destroy(co);
+  return 0;
+}
+
+void *eventer_aco_arg(void) {
+  struct aco_cb_ctx *ctx = aco_get_arg();
+  return ctx->closure;
+}
 
