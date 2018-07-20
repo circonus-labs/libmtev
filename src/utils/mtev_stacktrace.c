@@ -243,6 +243,7 @@ mtev_dwarf_refresh(void) {
 
 static struct line_info *
 find_line(uintptr_t addr, ssize_t *offset) {
+  struct line_info *found = NULL;
 #ifdef HAVE_LIBDWARF
   struct dmap_node *node = NULL, *iter;
   for(iter = line_info_mapping; iter; iter = iter->next) {
@@ -252,18 +253,17 @@ find_line(uintptr_t addr, ssize_t *offset) {
     }
   }
   if(!node) return NULL;
-  struct line_info *found = NULL;
   for(struct line_info *info = node->info; info; info = info->next) {
     if(node->base + info->addr <= addr) {
       /* Limit lines to those within 256 instruction bytes to the target */
       if(addr - (node->base + info->addr)) found = info;
     } else break;
   }
-#endif
   if(found && offset) {
     uintptr_t faddr = found->addr + node->base;
     *offset = addr > faddr ? (ssize_t)(addr - faddr) : (ssize_t)-1 * (faddr - addr);
   }
+#endif
   return found;
 }
 
