@@ -431,7 +431,20 @@
             <ul class="articles">
                 
     
-        <li class="chapter " data-level="1.4.1" data-path="../operations/rest.html">
+        <li class="chapter " data-level="1.4.1" data-path="../operations/env.html">
+            
+                <a href="../operations/env.html">
+            
+                    
+                    Environment
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="../operations/rest.html">
             
                 <a href="../operations/rest.html">
             
@@ -444,7 +457,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.2" data-path="../operations/telnet_console.html">
+        <li class="chapter " data-level="1.4.3" data-path="../operations/telnet_console.html">
             
                 <a href="../operations/telnet_console.html">
             
@@ -457,7 +470,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.3" data-path="../operations/dtrace.html">
+        <li class="chapter " data-level="1.4.4" data-path="../operations/dtrace.html">
             
                 <a href="../operations/dtrace.html">
             
@@ -592,7 +605,7 @@
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="the-eventer-aco">The Eventer (ACO)</h1>
-<p>Non-blocking programming can be a real min bender.  While using the classic
+<p>Non-blocking programming can be a real mind bender.  While using the classic
 event system is fast and extremely powerful, it can be difficult to cope
 with context.  When there isn&apos;t data available and you need to be called
 back later, you must track that context yourself through closures and
@@ -621,7 +634,7 @@ so it is also important that you keep you stack usage small.  Turning on
 debug logging will report stack sizes of co-routines as they are resumes.
 Additionally, your compiler can help you: <code>-Wstack-size=1024</code> for example.</p>
 <p>Co-routines do not &quot;manage&quot; <a href="eventer#asynchronous-events">asynchronous events</a>,
-but cab place calls to them.</p>
+but can place calls to them.</p>
 <h2 id="relationship-with-the-classic-event-system">Relationship with the classic event system.</h2>
 <p>You can create and schedule classic events from anywhere in the system
 including a co-routine.  Special interactions with events will yield/resume
@@ -653,7 +666,7 @@ object (breaking the type safety), it will be treated as if it is a call to its
   aco_exit();
 }
 
-<span class="hljs-function">ivoid <span class="hljs-title">calling_function</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>{
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">calling_function</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>{
   <span class="hljs-keyword">struct</span> timeval *sleep_time = <span class="hljs-built_in">malloc</span>(<span class="hljs-keyword">sizeof</span>(*sleep_time));
   sleep_time-&gt;tv_sec = <span class="hljs-number">2</span>;
   sleep_time-&gt;tv_usec = <span class="hljs-number">0</span>;

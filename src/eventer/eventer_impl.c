@@ -1402,7 +1402,7 @@ void eventer_aco_start(void (*func)(void), void *closure) {
   (void)eventer_aco_resume(co);
 }
 
-int aco_shutdown(aco_t *co) {
+int eventer_aco_shutdown(aco_t *co) {
   struct eventer_impl_data *t = get_my_impl_data();
   mtevAssert(t);
   free(co->arg);

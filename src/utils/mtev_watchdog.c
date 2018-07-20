@@ -189,8 +189,9 @@ int mtev_watchdog_child_heartbeat(void) {
 int mtev_watchdog_prefork_init(void) {
   int i;
   const char *async;
-  if(NULL != (async = getenv("ASYNCH_CORE_DUMP")))
-    allow_async_dumps = atoi(async);
+  async = getenv("MTEV_ASYNCH_CORE_DUMP");
+  if(!async) async = getenv("ASYNCH_CORE_DUMP");
+  if(async) allow_async_dumps = atoi(async);
   watcher = getpid();
   for(i=0;i<MAX_CRASH_FDS;i++)
     on_crash_fds_to_close[i] = -1;

@@ -508,7 +508,10 @@ mtev_main(const char *appname,
     return rv;
   }
 
-  watchdog_timeout_str = getenv("WATCHDOG_TIMEOUT");
+  watchdog_timeout_str = getenv("MTEV_WATCHDOG_TIMEOUT");
+  // Legacy check
+  if(!watchdog_timeout_str)
+    watchdog_timeout_str = getenv("WATCHDOG_TIMEOUT");
   if(watchdog_timeout_str) {
     watchdog_timeout = atoi(watchdog_timeout_str);
     mtevL(mtev_notice, "Setting watchdog timeout to %d\n",

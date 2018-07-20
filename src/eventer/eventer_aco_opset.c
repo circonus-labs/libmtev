@@ -52,11 +52,10 @@ typedef struct aco_opset_info_t {
 #define WORRISOME_STACK 2048
 int
 eventer_aco_resume(aco_t *co) {
-mtev_aco_stacktrace(mtev_error, co);
   aco_resume(co);
   if(co->save_stack.valid_sz > WORRISOME_STACK)
     mtevL(eventer_deb, "aco resume stack copy %zd bytes\n", co->save_stack.valid_sz);
-  if(co->is_end) return aco_shutdown(co);
+  if(co->is_end) return eventer_aco_shutdown(co);
   return 1;
 }
 
@@ -172,7 +171,7 @@ eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t s
 }
 
 static int
-aco_timeout(eventer_t e, int mask, void *closure, struct timeval *now) {
+priv_aco_timeout(eventer_t e, int mask, void *closure, struct timeval *now) {
   aco_opset_info_t *info = closure;
   struct aco_cb_ctx *ctx = info->aco_co->arg;
   ctx->timeout_e = NULL;
@@ -188,7 +187,7 @@ eventer_aco_sleep(struct timeval *timeout) {
   mtevAssert(!ctx->timeout_e);
   aco_opset_info_t *info = calloc(1, sizeof(*info));
   info->aco_co = aco_get_co();
-  ctx->timeout_e = eventer_in(aco_timeout, info, *timeout);
+  ctx->timeout_e = eventer_in(priv_aco_timeout, info, *timeout);
   eventer_add(ctx->timeout_e);
   aco_yield();
   free(info);
@@ -196,7 +195,7 @@ eventer_aco_sleep(struct timeval *timeout) {
 
 #define ACO_TIMEOUT_CALL(name, params, args) \
 static int \
-aco_##name params { \
+priv_aco_##name params { \
   eventer_t e = closure; \
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx; \
   struct aco_cb_ctx *ctx = aco_get_arg(); \
@@ -205,7 +204,7 @@ aco_##name params { \
   mtevAssert(aco_get_co() == info->aco_co); \
   mtevAssert(!ctx->timeout_e); \
   if(ctx->timeout) { \
-    ctx->timeout_e = eventer_in(aco_timeout, info, *ctx->timeout); \
+    ctx->timeout_e = eventer_in(priv_aco_timeout, info, *ctx->timeout); \
     ctx->timeout = NULL; \
     eventer_add(ctx->timeout_e); \
   } \
@@ -249,7 +248,7 @@ ACO_TIMEOUT_CALL(write,
                  (fd, buffer, len, mask, closure));
 
 static int
-aco_close(int fd,
+priv_aco_close(int fd,
           int *mask, void *closure) {
   eventer_t e = closure;
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx;
@@ -261,41 +260,41 @@ aco_close(int fd,
 }
 
 struct _fd_opset *
-aco_get_opset(void *closure) {
+eventer_aco_get_opset(void *closure) {
   eventer_t e = closure;
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx;
   return info->original_opset;
 }
 
 static void
-aco_set_opset(void *closure, struct _fd_opset *opset) {
+priv_aco_set_opset(void *closure, struct _fd_opset *opset) {
   eventer_t e = closure;
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx;
   info->original_opset = opset;
 }
 
 void *
-aco_get_opset_ctx(void *closure) {
+eventer_aco_get_opset_ctx(void *closure) {
   eventer_t e = closure;
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx;
   return info->original_opset_ctx;
 }
 
 static void
-aco_set_opset_ctx(void *closure, void *newctx) {
+priv_aco_set_opset_ctx(void *closure, void *newctx) {
   eventer_t e = closure;
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx;
   info->original_opset_ctx = newctx;
 }
 
 struct _fd_opset _eventer_aco_fd_opset = {
-  aco_accept,
-  aco_read,
-  aco_write,
-  aco_close,
-  aco_set_opset,
-  aco_get_opset_ctx,
-  aco_set_opset_ctx,
+  priv_aco_accept,
+  priv_aco_read,
+  priv_aco_write,
+  priv_aco_close,
+  priv_aco_set_opset,
+  eventer_aco_get_opset_ctx,
+  priv_aco_set_opset_ctx,
   "aco"
 };
 

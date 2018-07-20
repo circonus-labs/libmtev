@@ -1,6 +1,6 @@
 # The Eventer (ACO)
 
-Non-blocking programming can be a real min bender.  While using the classic
+Non-blocking programming can be a real mind bender.  While using the classic
 event system is fast and extremely powerful, it can be difficult to cope
 with context.  When there isn't data available and you need to be called
 back later, you must track that context yourself through closures and
@@ -35,7 +35,7 @@ debug logging will report stack sizes of co-routines as they are resumes.
 Additionally, your compiler can help you: `-Wstack-size=1024` for example.
 
 Co-routines do not "manage" [asynchronous events](eventer#asynchronous-events),
-but cab place calls to them.
+but can place calls to them.
 
 ## Relationship with the classic event system.
 
@@ -73,7 +73,7 @@ static void my_coroutine(void) {
   aco_exit();
 }
 
-ivoid calling_function(void) {
+void calling_function(void) {
   struct timeval *sleep_time = malloc(sizeof(*sleep_time));
   sleep_time->tv_sec = 2;
   sleep_time->tv_usec = 0;

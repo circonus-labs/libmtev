@@ -28,6 +28,7 @@
     1. [jemalloc](development/jemalloc.md)
 
   1. [Operations](operations/README.md)
+    1. [Environment](operations/env.md)
     1. [REST](operations/rest.md)
     1. [Telnet](operations/telnet_console.md)
     1. [DTrace](operations/dtrace.md)

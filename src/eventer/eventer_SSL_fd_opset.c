@@ -858,7 +858,7 @@ SSL_get_eventer_ssl_ctx(const SSL *ssl) {
 eventer_ssl_ctx_t *
 eventer_get_eventer_ssl_ctx(const eventer_t e) {
   /* This is a hacky layering violation, but there's only one so don't generalize yet. */
-  if((e->opset == eventer_aco_fd_opset && aco_get_opset(e) != eventer_SSL_fd_opset) ||
+  if((e->opset == eventer_aco_fd_opset && eventer_aco_get_opset(e) != eventer_SSL_fd_opset) ||
      e->opset != eventer_SSL_fd_opset) {
     return NULL;
   }
