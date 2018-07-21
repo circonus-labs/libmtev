@@ -116,7 +116,7 @@ struct _mtev_log_stream {
   mtev_hash_table *config;
   struct _mtev_log_stream_outlet_list *outlets;
   pthread_rwlock_t *lock;
-  uint32_t written;
+  uint64_t written;
   unsigned deps_materialized:1;
   unsigned flags_below;
 };
@@ -630,7 +630,7 @@ posix_logio_open(mtev_log_stream_t ls) {
   while((rv = fstat(fd, &sb)) != 0 && errno == EINTR);
   if(rv == 0) {
     memcpy(&po->sb, &sb, sizeof(sb));
-    ls->written = (int32_t)sb.st_size;
+    ls->written = sb.st_size;
   }
 
   actx = asynch_log_ctx_alloc();
@@ -688,7 +688,7 @@ posix_logio_reopen(mtev_log_stream_t ls) {
           sb.st_gid = po->sb.st_gid;
           memcpy(&po->sb, &sb, sizeof(sb));
         }
-        ls->written = (int32_t)sb.st_size;
+        ls->written = sb.st_size;
       }
       rv = 0;
     }
@@ -723,7 +723,7 @@ posix_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
 
     if(po && po->fd >= 0) rv = write(po->fd, buf, len);
     if(lock) pthread_rwlock_unlock(lock);
-    if(rv > 0) ck_pr_add_32(&ls->written, rv);
+    if(rv > 0) ck_pr_add_64(&ls->written, rv);
     return rv;
   }
   line = malloc(sizeof(*line));
@@ -736,7 +736,7 @@ posix_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
     memcpy(line->buf_static, buf, len);
   }
   rv = line->len = len;
-  ck_pr_add_32(&ls->written, rv);
+  ck_pr_add_64(&ls->written, rv);
   asynch_log_push(actx, line);
   return rv;
 }
