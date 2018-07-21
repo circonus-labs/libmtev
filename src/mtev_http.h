@@ -249,7 +249,7 @@ API_EXPORT(void)
   mtev_http_response_status_set(ctx, code, name); \
   mtev_http_response_header_set(ctx, "Content-Type", type); \
   if(mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED) == mtev_false) \
-    mtev_http_response_option_set(ctx, MTEV_HTTP_CLOSE); \
+    (void)mtev_http_response_option_set(ctx, MTEV_HTTP_CLOSE); \
 } while(0)
 
 API_EXPORT(void)
