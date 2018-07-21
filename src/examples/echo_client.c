@@ -82,7 +82,7 @@ int main(int argc, char **argv)
   curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, len);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (char *)payload);
   if (strcmp("none", compression) != 0) {
-    sprintf(content_encoding_header, "Content-encoding: %s", compression);
+    snprintf(content_encoding_header, sizeof(content_encoding_header), "Content-encoding: %s", compression);
     list = curl_slist_append(list, content_encoding_header);
   }
 
