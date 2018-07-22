@@ -449,7 +449,27 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
 
 void mtev_stacktrace(mtev_log_stream_t ls) {
   void* callstack[128];
+#if defined(HAVE_LIBUNWIND)
+  int frames = 0;
+  unw_cursor_t cursor;
+  unw_context_t context;
+
+  // Initialize cursor to current frame for local unwinding.
+  unw_getcontext(&context);
+  unw_init_local(&cursor, &context);
+
+  // Unwind frames one by one, going up the frame stack.
+  while (unw_step(&cursor) > 0 && frames<128) {
+    unw_word_t pc;
+    unw_get_reg(&cursor, UNW_REG_IP, &pc);
+    if (pc == 0) {
+      break;
+    }
+    callstack[frames++] = (void *)pc;
+  }
+#else
   int frames = backtrace(callstack, 128);
+#endif
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, callstack, frames);
 }
 
