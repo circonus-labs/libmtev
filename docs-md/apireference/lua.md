@@ -61,7 +61,7 @@ mtev.cluster(name)
 ```
 
   * `name` name of cluster
-  * **RETURN** a cluster object
+  * **RETURN** a cluster object or nil if no cluster of that name is found.
 
 
 #### mtev.conf_get_boolean

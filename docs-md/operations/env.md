@@ -6,7 +6,7 @@ any libmtev application.
 
  * ##### EVENTER_DEBUGGING
 
-   If set to 1 it will enable `debug/eventer' log stream.   
+   If set to 1 it will enable the `debug/eventer` log stream.
 
  * ##### MTEV_JIT_OFF
 
@@ -28,7 +28,7 @@ any libmtev application.
 
  * ##### MTEV_THREAD_BINDING_DISABLE
 
-   If set to 1, threads created via mtev_thread will not be bound to CPUs.
+   If set to 1, threads created via `mtev_thread` will not be bound to CPUs.
 
  * ##### MTEV_DIAGNOSE_CRASH
 
@@ -49,7 +49,7 @@ any libmtev application.
 
  * ##### MTEV_ALTSTACK_SIZE
 
-   A size (in bytes) for the altstack for handlink crashes.
+   A size (in bytes) for the altstack for handling crashes.
 
  * ##### MTEV_WATCHDOG_TIMEOUT
 

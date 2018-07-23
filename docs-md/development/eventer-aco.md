@@ -18,20 +18,20 @@ In order to use ACO, you must start an ACO procedure.  This procedure
 runs a function that should not return, but instead call `aco_exit()`.
 Within this function, the execution is in the context of a "green thread."
 
-Once in this function, the stack pointer is switch to an alternate
+Once in this function, the stack pointer is switched to an alternate
 co-routine "shared stack" (one per operating system thread).  Each co-routine on a 
 given operating system thread will have a small "save stack".  When the
 thread performs an operation that would normally require using a callback
 within the classic event system, it yields control back to the event loop.
-When an event triggers that would allow this co-routing to continue it is
+When an event triggers that would allow this co-routine to continue, it is
 resumed.  If the co-routine wasn't the last one on the "shared stack" then
 it is swapped in ("shared stack" copied to the current owner's "save stack"
 and the resuming thread's "save stack" copied into the "shared stack").
 
 This stack swapping means that a coroutine's "save stack" can be right-sized
 and occupy very little space.  The copying can be expensive for larger stacks
-so it is also important that you keep you stack usage small.  Turning on
-debug logging will report stack sizes of co-routines as they are resumes.
+so it is also important that you keep your stack usage small.  Turning on
+debug logging will report stack sizes of co-routines as they are resumed.
 Additionally, your compiler can help you: `-Wstack-size=1024` for example.
 
 Co-routines do not "manage" [asynchronous events](eventer#asynchronous-events),
@@ -51,13 +51,13 @@ Not all classic events make sense to interact with.
    waiting for the completion of an asynchronous event is quite useful. This is
    what the `eventer_aco_simple_asynch` and `eventer_aco_run_asynch` families of
    functions do.
- * File descriptor based events are the obvious deep integration.  Each of the
+ * File-descriptor-based events are the obvious deep integration.  Each of the
    `eventer_aco_` variants to read, write, accept, and close events have
    optional timeouts as parameters instead of a mask.
 
-If a normal `eventer_read` (or write, etc.) function is called upon an eventer_aco_t
-object (breaking the type safety), it will be treated as if it is a call to its
-`eventer_aco_` counterpart with no timeout.
+If a normal `eventer_read` (or write, etc.) function is called upon an
+`eventer_aco_t` object (breaking the type safety), it will be treated as if it
+is a call to its `eventer_aco_` counterpart with no timeout.
 
 ## Examples
 
@@ -205,3 +205,4 @@ static int child_main(void) {
   eventer_loop();
 
 }
+```
