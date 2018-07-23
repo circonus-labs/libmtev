@@ -47,6 +47,13 @@ typedef struct aco_opset_info_t {
   void                *original_opset_ctx;
 
   aco_t               *aco_co;
+
+  struct timeval       accept_timeout;
+  struct timeval       read_timeout;
+  struct timeval       write_timeout;
+  unsigned             has_accept_timeout:1;
+  unsigned             has_read_timeout:1;
+  unsigned             has_write_timeout:1;
 } aco_opset_info_t;
 
 #define WORRISOME_STACK 2048
@@ -58,6 +65,21 @@ eventer_aco_resume(aco_t *co) {
   if(co->is_end) return eventer_aco_shutdown(co);
   return 1;
 }
+
+#define TIMEOUT_SETTER(name) \
+void \
+eventer_aco_set_##name##_timeout(eventer_aco_t e, struct timeval *t) { \
+  mtevAssert(e->opset == eventer_aco_fd_opset); \
+  aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx; \
+  if(!t) info->has_##name##_timeout = 0; \
+  else { \
+    memcpy(&info->name##_timeout, t, sizeof(*t)); \
+    info->has_##name##_timeout = 1; \
+  } \
+}
+TIMEOUT_SETTER(accept)
+TIMEOUT_SETTER(read)
+TIMEOUT_SETTER(write)
 
 static int
 eventer_aco_callback_wrapper(eventer_t e, int mask, void *closure, struct timeval *tv) {
@@ -203,6 +225,7 @@ priv_aco_##name params { \
 \
   mtevAssert(aco_get_co() == info->aco_co); \
   mtevAssert(!ctx->timeout_e); \
+  if(!ctx->timeout && info->has_##name##_timeout) ctx->timeout = &info->name##_timeout; \
   if(ctx->timeout) { \
     ctx->timeout_e = eventer_in(priv_aco_timeout, info, *ctx->timeout); \
     ctx->timeout = NULL; \
