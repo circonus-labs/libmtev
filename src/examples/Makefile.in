@@ -33,7 +33,9 @@ WSC_OBJS=	websocket_client.o
 
 WSS_OBJS=	websocket_server.o
 
-all:	echo_server echo_client example1 fq-router websocket_client websocket_server aco
+EXTRA_TARGETS=@EXTRA_EXAMPLES@
+
+all:	echo_server echo_client example1 aco $(EXTRA_TARGETS)
 
 .c.o:
 	@echo "- compiling $<"

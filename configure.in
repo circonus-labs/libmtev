@@ -453,6 +453,7 @@ AS_IF([test "x$enable_fq" != "xno"], [
 		FQ_MODULES="$FQ_MODULES fq.$MODULEEXT"
 	], [AC_MSG_ERROR([*** can't build fq, no -lfq ***])])
 	LIBS=$OLD_LIBS
+	EXTRA_EXAMPLES="$EXTRA_EXAMPLES fq-router"
 ])
 
 AC_ARG_ENABLE([amqp],
@@ -477,6 +478,7 @@ AS_IF([test "x$enable_wslay" != "xno"], [
   ], [
     AC_MSG_ERROR([*** can't build websocket support, no -lwslay ***])
   ])
+  EXTRA_EXAMPLES="$EXTRA_EXAMPLES websocket_client websocket_server"
 ])
 
 AC_CHECK_FUNCS(posix_madvise madvise)
@@ -882,6 +884,7 @@ SHCFLAGS="$PICFLAGS $CFLAGS"
 AC_SUBST(SHCFLAGS)
 AC_SUBST(LD)
 AC_SUBST(SHLDFLAGS)
+AC_SUBST(EXTRA_EXAMPLES)
 
 if test -n "`$CC -V 2>&1 | grep 'Sun C'`"; then
 	if test "$enable_string" != "no"; then
