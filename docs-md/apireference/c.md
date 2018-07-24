@@ -1070,7 +1070,7 @@ eventer_aco_set_accept_timeout(eventer_aco_t e, struct timeval *duration)
 
 
   * `e` the ACO event to update.
-  * `duration` a timeout duration, NULL will under the default.
+  * `duration` a timeout duration, NULL will undo the default.
 
 
 #### eventer_aco_set_closure
@@ -1098,7 +1098,7 @@ eventer_aco_set_read_timeout(eventer_aco_t e, struct timeval *duration)
 
 
   * `e` the ACO event to update.
-  * `duration` a timeout duration, NULL will under the default.
+  * `duration` a timeout duration, NULL will undo the default.
 
 
 #### eventer_aco_set_write_timeout
@@ -1112,7 +1112,7 @@ eventer_aco_set_write_timeout(eventer_aco_t e, struct timeval *duration)
 
 
   * `e` the ACO event to update.
-  * `duration` a timeout duration, NULL will under the default.
+  * `duration` a timeout duration, NULL will undo the default.
 
 
 #### eventer_aco_simple_asynch
