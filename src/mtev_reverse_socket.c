@@ -1058,13 +1058,10 @@ mtev_connection_close(mtev_connection_ctx_t *ctx, eventer_t e) {
   int mask = 0;
   const char *cn_expected;
   GET_EXPECTED_CN(ctx, cn_expected);
-#ifdef DTRACE_ENABLED
   LIBMTEV_REVERSE_CONNECT_CLOSE(eventer_get_fd(e), ctx->remote_str,
                      (char *)cn_expected,
                      ctx->wants_shutdown, errno);
-#else
   (void)cn_expected;
-#endif
   eventer_remove_fde(e);
   ctx->e = NULL;
   eventer_close(e, &mask);
@@ -1206,11 +1203,8 @@ mtev_connection_schedule_reattempt(mtev_connection_ctx_t *ctx,
   }
   add_timeval(*now, interval, &interval);
   ctx->retry_event = eventer_alloc_timer(mtev_connection_reinitiate, ctx, &interval);
-#ifdef DTRACE_ENABLED
   LIBMTEV_REVERSE_RESCHEDULE(-1, ctx->remote_str, (char *)cn_expected, ctx->current_backoff);
-#else
   (void)cn_expected;
-#endif
   eventer_add(ctx->retry_event);
 }
 

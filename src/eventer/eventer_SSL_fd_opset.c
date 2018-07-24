@@ -1076,11 +1076,8 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   rv = close(fd);
   if(mask) *mask = 0;
   e->opset->set_opset_ctx(e, NULL);
-#ifdef DTRACE_ENABLED
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
-#else
   (void)rv;
-#endif
   return 0;
 }
 

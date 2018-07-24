@@ -59,12 +59,7 @@
 #include "mtev_zipkin.h"
 #include <jlog.h>
 #include <jlog_private.h>
-#ifdef DTRACE_ENABLED
 #include "libmtev_dtrace.h"
-#else
-#define LIBMTEV_LOG(a,b,c,d)
-#define LIBMTEV_LOG_ENABLED() 0
-#endif
 
 #define BOOT_STDERR_FLAGS MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS
 #define BOOT_DEBUG_FLAGS MTEV_LOG_STREAM_TIMESTAMPS
