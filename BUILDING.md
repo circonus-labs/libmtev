@@ -18,6 +18,8 @@
 
  Optional:
  * wslay (for websockets support)
+ * libunwind (for better stack traces)
+ * libdwarf (for better stack traces)
  * librabbitmq-c
  * fq
  
