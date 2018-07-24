@@ -2,11 +2,24 @@
 
 # 1
 
+## 1.4
+
+### 1.4.0
+
+ * New `eventer_aco_*` functions that provide [Arkenstone Co-Routines](https://github.com/hnes/libaco)
+   (ACO) which allow for writing asynchronous code in a seemingly blocking
+   manner. See the [Eventer (ACO)](http://circonus-labs.github.io/libmtev/development/eventer-aco.html)
+   documentation for details.
+ * New Lua function `mtev.shared_seq()` for retrieving a global sequence
+   number.
+ * If libunwind and/or libdwarf are available, stack traces will be more
+   informative.
+
 ## 1.3
 
 ### 1.3.5
- * Add lua mtev.eventer:{sock,peer}_name().
- * Add mtev_lfu_iterate.
+ * Add lua `mtev.eventer:{sock,peer}_name()`.
+ * Add `mtev_lfu_iterate`.
  * Fix null pointer dereference in lua event cleanup.
  * More documentation.
 
