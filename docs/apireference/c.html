@@ -1416,6 +1416,17 @@ of the currently executing job.</p>
 of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
 during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
 of the currently executing job.</p>
+<h4 id="eventeracosetaccepttimeout">eventer_aco_set_accept_timeout</h4>
+<blockquote>
+<p>Change the default timeout for ACO events.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_set_accept_timeout</span><span class="hljs-params">(eventer_aco_t e, <span class="hljs-keyword">struct</span> timeval *duration)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> the ACO event to update.</li>
+<li><code>duration</code> a timeout duration, NULL will under the default.</li>
+</ul>
 <h4 id="eventeracosetclosure">eventer_aco_set_closure</h4>
 <blockquote>
 <p>Set an event&apos;s closure.</p>
@@ -1426,6 +1437,28 @@ of the currently executing job.</p>
 <ul>
 <li><code>e</code> an event object</li>
 <li><code>closure</code> a pointer to user-data to be supplied during callback.</li>
+</ul>
+<h4 id="eventeracosetreadtimeout">eventer_aco_set_read_timeout</h4>
+<blockquote>
+<p>Change the default timeout for ACO events.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_set_read_timeout</span><span class="hljs-params">(eventer_aco_t e, <span class="hljs-keyword">struct</span> timeval *duration)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> the ACO event to update.</li>
+<li><code>duration</code> a timeout duration, NULL will under the default.</li>
+</ul>
+<h4 id="eventeracosetwritetimeout">eventer_aco_set_write_timeout</h4>
+<blockquote>
+<p>Change the default timeout for ACO events.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_set_write_timeout</span><span class="hljs-params">(eventer_aco_t e, <span class="hljs-keyword">struct</span> timeval *duration)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> the ACO event to update.</li>
+<li><code>duration</code> a timeout duration, NULL will under the default.</li>
 </ul>
 <h4 id="eventeracosimpleasynch">eventer_aco_simple_asynch</h4>
 <blockquote>

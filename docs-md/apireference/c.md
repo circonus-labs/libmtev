@@ -1059,6 +1059,20 @@ during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
 of the currently executing job.
 
 
+#### eventer_aco_set_accept_timeout
+
+>Change the default timeout for ACO events.
+
+```c
+void
+eventer_aco_set_accept_timeout(eventer_aco_t e, struct timeval *duration)
+```
+
+
+  * `e` the ACO event to update.
+  * `duration` a timeout duration, NULL will under the default.
+
+
 #### eventer_aco_set_closure
 
 >Set an event's closure.
@@ -1071,6 +1085,34 @@ eventer_aco_set_closure(eventer_aco_t e, void *closure)
 
   * `e` an event object
   * `closure` a pointer to user-data to be supplied during callback.
+
+
+#### eventer_aco_set_read_timeout
+
+>Change the default timeout for ACO events.
+
+```c
+void
+eventer_aco_set_read_timeout(eventer_aco_t e, struct timeval *duration)
+```
+
+
+  * `e` the ACO event to update.
+  * `duration` a timeout duration, NULL will under the default.
+
+
+#### eventer_aco_set_write_timeout
+
+>Change the default timeout for ACO events.
+
+```c
+void
+eventer_aco_set_write_timeout(eventer_aco_t e, struct timeval *duration)
+```
+
+
+  * `e` the ACO event to update.
+  * `duration` a timeout duration, NULL will under the default.
 
 
 #### eventer_aco_simple_asynch
