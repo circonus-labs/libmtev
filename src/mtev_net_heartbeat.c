@@ -564,6 +564,10 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
       in = (struct sockaddr *)&in6;
       in_len = sizeof(in6);
     }
+    else {
+      mtevL(mtev_error, "netheartbeat bad address family: %d\n", family);
+      continue;
+    }
     if(!strcmp(type_str, "direct")) {
       if(mtev_net_heartbeat_add_target(ctx, in, in_len)) {
         mtevL(mtev_error, "netheartbeat error adding: %s:%d\n", addr_str, port);
