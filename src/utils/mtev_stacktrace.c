@@ -66,6 +66,8 @@
 #include "android-demangle/demangle.h"
 #include "android-demangle/cp-demangle.h"
 
+static mtev_boolean (*global_file_filter)(const char *);
+
 struct line_info {
   uintptr_t addr;
   int lineno;
@@ -206,6 +208,7 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
 void
 mtev_dwarf_refresh_file(const char *file, uintptr_t base) {
   struct dmap_node *node;
+  if(global_file_filter && global_file_filter(file)) return;
   if(!line_info_mapping) line_info_mapping = mtev_dwarf_load(file, base);
   else {
     struct dmap_node *prev = NULL;
@@ -232,6 +235,11 @@ mtev_dwarf_walk_map(void (*f)(const char *, uintptr_t)) {
 #endif
 }
 #endif
+
+void
+mtev_dwarf_filter(mtev_boolean (*f)(const char *file)) {
+  global_file_filter = f;
+}
 void
 mtev_dwarf_refresh(void) {
 #ifdef HAVE_LIBDWARF
