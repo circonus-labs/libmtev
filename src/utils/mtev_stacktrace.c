@@ -94,6 +94,7 @@ struct dmap_node {
   struct dmap_node *next;
   char **srcfiles;
   struct line_info *info;
+  int count;
 };
 static struct dmap_node *line_info_mapping = NULL;
 
@@ -145,31 +146,12 @@ mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
         memcpy(head, &li, sizeof(li));
         head->next = node->info;
         node->info = head;
+        node->count++;
       }
     }
   }
   dwarf_srclines_dealloc(node->dbg, lines, nlines);
-}
-static void
-recurse_die(struct dmap_node *node, Dwarf_Die die, int level) {
-  Dwarf_Die cur_die=die;
-  Dwarf_Die sib_die=die;
-  Dwarf_Die child = 0;
-  Dwarf_Error error;
-
-  if(level > 8) return;
-  mtev_register_die(node, die, level);
-
-  if(dwarf_child(cur_die, &child, &error) == DW_DLV_OK) {
-    recurse_die(node, child, level+1);
-    sib_die = child;
-    int res = DW_DLV_OK;
-    do {
-      cur_die = sib_die;
-      res = dwarf_siblingof(node->dbg, cur_die, &sib_die, &error);
-      recurse_die(node, sib_die, level+1);
-    } while(res == DW_DLV_OK);
-  }
+  return;
 }
 static struct dmap_node *
 mtev_dwarf_load(const char *file, uintptr_t base) {
@@ -186,19 +168,23 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
         Dwarf_Half version_stamp = 0;
         Dwarf_Unsigned abbrev_offset = 0;
         Dwarf_Half address_size = 0;
+        Dwarf_Half length_size = 0;
+        Dwarf_Half extension_size = 0;
         Dwarf_Unsigned next_cu_header = 0;
         Dwarf_Error error;
         Dwarf_Die no_die = 0;
         Dwarf_Die cu_die = 0;
-        if(dwarf_next_cu_header(node->dbg, &cu_header_length,
-                                &version_stamp, &abbrev_offset, &address_size,
-                                &next_cu_header, &error) != DW_DLV_OK) break;
+        if(dwarf_next_cu_header_b(node->dbg, &cu_header_length,
+                                  &version_stamp, &abbrev_offset, &address_size,
+                                  &length_size, &extension_size,
+                                  &next_cu_header, &error) != DW_DLV_OK) break;
         if(dwarf_siblingof(node->dbg, no_die, &cu_die, &error) != DW_DLV_OK) break;
-        recurse_die(node, cu_die, 0);
+        mtev_register_die(node, cu_die, 0);
         dwarf_dealloc(node->dbg, cu_die, DW_DLA_DIE);
       }
     }
     dwarf_finish(node->dbg, &err);
+    mtevL(mtev_debug, "dwarf loaded %s @ %p (%d items)\n", file, (void *)base, node->count);
     node->dbg = 0;
     close(fd);
   }
@@ -208,6 +194,7 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
 void
 mtev_dwarf_refresh_file(const char *file, uintptr_t base) {
   struct dmap_node *node;
+  if(!file || strlen(file) == 0) return;
   if(global_file_filter && global_file_filter(file)) return;
   if(!line_info_mapping) line_info_mapping = mtev_dwarf_load(file, base);
   else {
