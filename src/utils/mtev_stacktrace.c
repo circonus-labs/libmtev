@@ -51,6 +51,7 @@
 #if defined(__sun__)
 #include <ucontext.h>
 #include <sys/lwp.h>
+#include <procfs.h>
 #endif
 #if defined(__MACH__) && defined(__APPLE__)
 #include <libproc.h>
@@ -213,10 +214,53 @@ mtev_dwarf_walk_map(void (*f)(const char *, uintptr_t)) {
   struct link_map *map;
   void *main_f = dlsym(NULL, "main");
   if(dladdr1(main_f, &dlip, (void **)&map, RTLD_DL_LINKMAP)) {
+    /* The executable maps at 0x0, regardless of other claims */
     f(dlip.dli_fname, 0);
     for(;map;map=map->l_next) {
       f(map->l_name, map->l_addr);
     }
+  }
+#elif defined(__sun__)
+  char mapname[PATH_MAX];
+  int pid = getpid();
+  snprintf(mapname, sizeof(mapname), "/proc/%d/xmap", pid);
+  int mapfd = open(mapname, O_RDONLY);
+  if(mapfd >= 0) {
+    int rv;
+    struct stat st;
+    while(-1 == (rv = fstat(mapfd, &st)) && errno == EINTR) {}
+    if(rv >= 0) {
+      int nmap = st.st_size / sizeof(prxmap_t);
+      prxmap_t *maps = calloc(nmap, sizeof(prxmap_t));
+      if(read(mapfd, (void *)maps, st.st_size) == st.st_size) {
+        for(int i=0; i<nmap; i++) {
+          char inname[PATH_MAX];
+          char pathname[4096];
+          /* We're debugging instruction pointers, they have to be executable */
+          if((maps[i].pr_mflags & MA_EXEC) == 0) continue;
+          /* Illumos has the annoying thing where it will map a lib in
+           * several separate, but otherwise contiguous, chunks.
+           * skip those as we mapped the whole object at the base addr. */
+          if(i > 0 &&
+             !strcmp(maps[i-1].pr_mapname, maps[i].pr_mapname) &&
+             maps[i-1].pr_vaddr + maps[i-1].pr_size == maps[i].pr_vaddr &&
+             maps[i-1].pr_offset + maps[i-1].pr_size == maps[i].pr_offset) {
+            continue;
+          }
+          /* The map name is an object that soft links to the path, resolve it. */
+          snprintf(inname, sizeof(inname), "/proc/%d/path/%s", pid, maps[i].pr_mapname);
+          if((rv = resolvepath(inname, pathname, sizeof(pathname))) != -1) {
+            pathname[rv] = '\0'; /* pathname isn't terminated by resolvepath, sigh. */
+            /* a.out (our exec) might be mapped above one, but for addr resolution
+             * it still must be treated like a 0x0 mapping. */
+            uintptr_t base_addr = !strcmp(maps[i].pr_mapname, "a.out") ? 0 : maps[i].pr_vaddr;
+            f(pathname, base_addr);
+          }
+        }
+      }
+      free(maps);
+    }
+    close(mapfd);
   }
 #else
 #endif
@@ -321,15 +365,15 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
   addrtosymstr((void *)pc, addrpreline, sizeof(addrpreline));
   ssize_t info_off = 0;
   struct line_info *info = find_line((uintptr_t)pc, &info_off);
+  mtev_print_stackline(ls, self, NULL, addrpreline);
   if(info) {
     char buff[1024];
     if(info_off > 256 || info_off < -256)
-      snprintf(buff, sizeof(buff), "\n\t(%s:%d off: %zd)", info->file, info->lineno, info_off);
+      snprintf(buff, sizeof(buff), "\t(%s:%d off: %zd)", info->file, info->lineno, info_off);
     else
-      snprintf(buff, sizeof(buff), "\n\t(%s:%d)", info->file, info->lineno);
-    strlcat(addrpreline, buff, sizeof(addrpreline));
+      snprintf(buff, sizeof(buff), "\t(%s:%d)", info->file, info->lineno);
+    mtev_print_stackline(ls, self, NULL, buff);
   }
-  mtev_print_stackline(ls, self, NULL, addrpreline);
   return 0;
 }
 #else
