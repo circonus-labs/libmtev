@@ -4,6 +4,15 @@
 
 ## 1.4
 
+### 1.4.1
+
+ * Implement optional DWARF filtering to skip certain files.
+ * No need for recursion in DWARF processing to get source line info.
+ * Implement DWARF map loading on illumos.
+ * Fix possible uninitialized variable usage in net-heartbeat address handling.
+ * Expose additional reverse-connection-related probes even when DTrace is not
+   in use.
+
 ### 1.4.0
 
  * New `eventer_aco_*` functions that provide [Arkenstone Co-Routines](https://github.com/hnes/libaco)
