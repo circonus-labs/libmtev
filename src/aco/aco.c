@@ -1,4 +1,4 @@
-// Copyright 2018 Sen Han 00hnes@gmail.com
+// Copyright 2018 Sen Han <00hnes@gmail.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -358,11 +358,7 @@ aco_t* aco_create(
     assert(0);
 }
 
-#if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-__attribute__((no_sanitize_address))
-#endif
-#endif
+aco_attr_no_asan
 void aco_resume(aco_t* resume_co){
     assert(resume_co != NULL && resume_co->main_co != NULL 
         && resume_co->is_end == 0
