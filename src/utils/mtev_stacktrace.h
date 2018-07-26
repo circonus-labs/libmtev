@@ -53,4 +53,7 @@ API_EXPORT(int)
 API_EXPORT(void)
   mtev_dwarf_refresh(void);
 
+API_EXPORT(void)
+  mtev_dwarf_filter(mtev_boolean (*f)(const char *file));
+
 #endif
