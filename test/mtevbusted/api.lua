@@ -57,6 +57,9 @@ end
 function API:HTTP(method, uri, payload, _pp)
   return HTTP(method, self.host, self.port, uri, self.headers, payload, _pp)
 end
+function API:HTTP_pcall(method, uri, payload, _pp)
+  return pcall(HTTP, method, self.host, self.port, uri, self.headers, payload, _pp)
+end
 
 function HTTP(method, host, port, uri, headers, payload, _pp)
   _pp = _pp or function(o)
