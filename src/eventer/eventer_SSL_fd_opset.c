@@ -86,6 +86,7 @@ struct eventer_ssl_ctx_t {
   char    *cert_error;
   char    *san_list;
   char    *last_error;
+  char    *sni_name;
   eventer_ssl_verify_func_t verify_cb;
   void    *verify_cb_closure;
   unsigned no_more_negotiations:1;
@@ -449,6 +450,10 @@ eventer_ssl_get_peer_san_list(eventer_ssl_ctx_t *ctx) {
   return ctx->san_list;
 }
 const char *
+eventer_ssl_get_sni_name(eventer_ssl_ctx_t *ctx) {
+  return ctx->sni_name;
+}
+const char *
 eventer_ssl_get_cipher_list(eventer_ssl_ctx_t *ctx, int prio) {
   return SSL_get_cipher_list(ctx->ssl, prio);
 }
@@ -551,6 +556,7 @@ eventer_ssl_ctx_free(eventer_ssl_ctx_t *ctx) {
   if(ctx->cert_error) free(ctx->cert_error);
   if(ctx->last_error) free(ctx->last_error);
   if(ctx->san_list) free(ctx->san_list);
+  if(ctx->sni_name) free(ctx->sni_name);
   free(ctx);
 }
 
@@ -618,6 +624,17 @@ ssl_ctx_cache_set(ssl_ctx_cache_node *node) {
   pthread_mutex_unlock(&ssl_ctx_cache_lock);
   mtevL(eventer_deb, "ssl_ctx_cache->set(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
   return node;
+}
+
+static
+int eventer_ssl_ctx_get_sni(SSL *ssl, int *ad, void *arg) {
+  eventer_ssl_ctx_t *ctx = arg;
+  const char *name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+  if(name) {
+    free(ctx->sni_name);
+    ctx->sni_name = strdup(name);
+  }
+  return SSL_TLSEXT_ERR_OK;
 }
 
 eventer_ssl_ctx_t *
@@ -701,6 +718,17 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
       ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
                                  TLSv1_2_server_method() : TLSv1_2_client_method());
 #endif
+
+#if defined(SSL_TXT_TLSV1_2) && defined(HAVE_TLSV1_2_SERVER) && defined(HAVE_TLSV1_2_CLIENT)
+    if(ctx->ssl_ctx == NULL)
+      ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
+                                 TLSv1_2_server_method() : TLSv1_2_client_method());
+#endif
+#if defined(SSL_TXT_TLSV1_1) && defined(HAVE_TLSV1_1_SERVER) && defined(HAVE_TLSV1_1_CLIENT)
+    if(ctx->ssl_ctx == NULL)
+      ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
+                                 TLSv1_1_server_method() : TLSv1_1_client_method());
+#endif
     if(ctx->ssl_ctx == NULL)
       ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
                                  SSLv23_server_method() : SSLv23_client_method());
@@ -743,10 +771,13 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
       }
     }
 
-    if (type == SSL_SERVER)
+    if (type == SSL_SERVER) {
+      SSL_CTX_set_tlsext_servername_callback(ctx->ssl_ctx, eventer_ssl_ctx_get_sni);
+      SSL_CTX_set_tlsext_servername_arg(ctx->ssl_ctx, ctx);
       SSL_CTX_set_session_id_context(ctx->ssl_ctx,
               (unsigned char *)EVENTER_SSL_DATANAME,
               sizeof(EVENTER_SSL_DATANAME)-1);
+    }
 #ifdef SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
     ctx_options &= ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS;
 #endif

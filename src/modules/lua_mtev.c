@@ -1697,6 +1697,7 @@ mtev_ssl_ctx_index_func(lua_State *L) {
       }
       break;
     case 's':
+      LUA_RETSTRING(sni_name, eventer_ssl_get_sni_name(ssl_ctx));
       LUA_RETSTRING(san_list, eventer_ssl_get_peer_san_list(ssl_ctx));
       LUA_RETSTRING(subject, eventer_ssl_get_peer_subject(ssl_ctx));
       LUA_RETINTEGER(start_time, eventer_ssl_get_peer_start_time(ssl_ctx));
