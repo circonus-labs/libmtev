@@ -4,6 +4,14 @@
 
 ## 1.4
 
+### 1.4.2
+
+ * Change SSL behaviour to default to TLSv1.2, TLSv1.1 and then SSLv23 based
+   on availability as the default.
+ * Support retrieving the client-provided SNI name in the eventer:
+   `eventer_ssl_get_sni_name` and `mtev.ssl_ctx:sni_name()`
+ * Fix overflow/underflow in eventer_find_fd with wild fds (like -1).
+
 ### 1.4.1
 
  * Implement optional DWARF filtering to skip certain files.
