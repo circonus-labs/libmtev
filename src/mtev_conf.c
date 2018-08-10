@@ -3483,7 +3483,8 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
       /* existence checking */
       if((envval != NULL) ? negate : !negate) goto quickoff;
     }
-    else if(envval) {
+    else {
+      if(!envval) envval = "";
       if(regex) {
         int rv = pcre_exec(regex, NULL, envval, strlen(envval),
                            0, 0, ovector, sizeof(ovector)/sizeof(*ovector));
