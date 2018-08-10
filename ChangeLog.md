@@ -11,6 +11,7 @@
  * Support retrieving the client-provided SNI name in the eventer:
    `eventer_ssl_get_sni_name` and `mtev.ssl_ctx:sni_name()`
  * Fix overflow/underflow in eventer_find_fd with wild fds (like -1).
+ * Fix bug in matching environmental config exclusions with a failed getenv()
 
 ### 1.4.1
 
