@@ -262,6 +262,7 @@ static eventer_t eventer_kqueue_impl_remove_fd(int fd) {
   return eiq;
 }
 static eventer_t eventer_kqueue_impl_find_fd(int fd) {
+  if(fd < 0 || fd >= maxfds) return NULL;
   return master_fds[fd].e;
 }
 static void
