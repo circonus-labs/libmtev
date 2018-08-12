@@ -4,6 +4,10 @@
 
 ## 1.4
 
+### 1.4.3
+
+ * Fix bug in tls sni name extraction. (double-free)
+
 ### 1.4.2
 
  * Change SSL behaviour to default to TLSv1.2, TLSv1.1 and then SSLv23 based
