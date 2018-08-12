@@ -628,7 +628,7 @@ ssl_ctx_cache_set(ssl_ctx_cache_node *node) {
 
 static
 int eventer_ssl_ctx_get_sni(SSL *ssl, int *ad, void *arg) {
-  eventer_ssl_ctx_t *ctx = arg;
+  eventer_ssl_ctx_t *ctx = SSL_get_eventer_ssl_ctx(ssl);
   const char *name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
   if(name) {
     free(ctx->sni_name);
@@ -773,7 +773,6 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
 
     if (type == SSL_SERVER) {
       SSL_CTX_set_tlsext_servername_callback(ctx->ssl_ctx, eventer_ssl_ctx_get_sni);
-      SSL_CTX_set_tlsext_servername_arg(ctx->ssl_ctx, ctx);
       SSL_CTX_set_session_id_context(ctx->ssl_ctx,
               (unsigned char *)EVENTER_SSL_DATANAME,
               sizeof(EVENTER_SSL_DATANAME)-1);
