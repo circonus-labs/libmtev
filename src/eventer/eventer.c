@@ -109,7 +109,7 @@ eventer_fd_close_t eventer_fd_opset_get_close(eventer_fd_opset_t opset) {
 eventer_t eventer_alloc(void) {
   eventer_t e;
   e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
-  e->thr_owner = pthread_self();
+  e->thr_owner = eventer_in_loop() ? pthread_self() : eventer_choose_owner(0);
   e->refcnt = 1;
   ck_pr_inc_64(&ealloccnt);
   ck_pr_inc_64(&ealloctotal);

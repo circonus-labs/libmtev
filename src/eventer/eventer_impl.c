@@ -64,6 +64,10 @@ static uint32_t init_called = 0;
 #define NS_PER_MS 1000000
 #define NS_PER_US 1000
 
+static void *thrloopwrap(void *);
+static pthread_mutex_t loop_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t loop_cond = PTHREAD_COND_INITIALIZER;
+
 static unsigned long __ck_hash_from_uint64(const void *key, unsigned long seed) {
   return (*(uint64_t *)key) ^ seed;
 }
@@ -216,6 +220,7 @@ mtev_log_stream_t eventer_deb = NULL;
 
 static uint32_t __default_queue_threads = 5;
 static uint32_t __total_loop_count = 0;
+static uint32_t __total_loops_waiting = 0;
 static uint32_t __default_loop_concurrency = 0;
 static eventer_jobq_t *__default_jobq;
 
@@ -327,6 +332,9 @@ pthread_t eventer_choose_owner(int i) {
 static struct eventer_impl_data *get_my_impl_data(void) {
   return my_impl_data;
 }
+mtev_boolean eventer_in_loop(void) {
+  return my_impl_data ? mtev_true : mtev_false;
+}
 static struct eventer_impl_data *get_tls_impl_data(pthread_t tid) {
   int i;
   for(i=0;i<__total_loop_count;i++) {
@@ -337,7 +345,8 @@ static struct eventer_impl_data *get_tls_impl_data(pthread_t tid) {
   return NULL;
 }
 static struct eventer_impl_data *get_event_impl_data(eventer_t e) {
-  return get_tls_impl_data(e->thr_owner);
+  struct eventer_impl_data *t = get_tls_impl_data(e->thr_owner);
+  return t;
 }
 int eventer_is_loop(pthread_t tid) {
   int i;
@@ -606,6 +615,7 @@ static void eventer_aco_setup(struct eventer_impl_data *t) {
     t->aco_sstk = aco_share_stack_new(0);
   }
 }
+
 static void *thrloopwrap(void *vid) {
   struct eventer_impl_data *t;
   char thr_name[64];
@@ -621,12 +631,26 @@ static void *thrloopwrap(void *vid) {
   mtev_memory_init_thread();
   eventer_set_thread_name(thr_name);
   eventer_per_thread_init(t);
+  /* We wait on a barrier, for eventer_loop* */
+  pthread_mutex_lock(&loop_lock);
+  ck_pr_inc_32(&__total_loops_waiting);
+  pthread_cond_wait(&loop_cond, &loop_lock);
+  pthread_mutex_unlock(&loop_lock);
+  mtevL(mtev_debug, "eventer_loop(%s) started\n", thr_name);
   return (void *)(intptr_t)__eventer->loop(id);
 }
 
+void eventer_loop_return(void) {
+  while(ck_pr_load_32(&__total_loop_count) != ck_pr_load_32(&__total_loops_waiting)) {
+    usleep(100);
+    mtevL(mtev_debug, "Waiting for primed loops to start.\n");
+  }
+  pthread_cond_broadcast(&loop_cond);
+}
+
 void eventer_loop(void) {
-  mtevL(mtev_debug, "eventer_loop() started\n");
-  thrloopwrap((void *)(intptr_t)0);
+  eventer_loop_return();
+  while(1) pause();
 }
 
 static void eventer_loop_prime(eventer_pool_t *pool, int start) {
@@ -838,7 +862,7 @@ int eventer_impl_init(void) {
 
   /* first the default pool */
   eventer_impl_tls_data_from_pool(&default_pool);
-  eventer_per_thread_init(&eventer_impl_tls_data[0]);
+  pthread_create(&eventer_impl_tls_data[0].tid, NULL, thrloopwrap, NULL);
   /* thread 0 is this thread, so we prime starting at 1 */
   eventer_loop_prime(&default_pool, 1);
   accum_check += default_pool.__loop_concurrency;

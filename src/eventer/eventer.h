@@ -678,6 +678,12 @@ API_EXPORT(void) eventer_loop(void);
 */
 API_EXPORT(int) eventer_is_loop(pthread_t tid);
 
+/*! \fn mtev_boolean eventer_in_loop(void)
+    \brief Determine if the current thread is an event loop thread.
+    \return mtev_true if currently in an event loop thread, mtev_false otherwise.
+*/
+API_EXPORT(mtev_boolean) eventer_in_loop(void);
+
 /*! \fn int eventer_loop_concurrency()
     \brief Determine the concurrency of the default eventer loop.
     \return number of threads used for the default eventer loop.
