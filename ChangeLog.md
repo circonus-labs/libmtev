@@ -4,6 +4,11 @@
 
 ## 1.4
 
+### 1.4.4
+
+ * Fix bug in mtev_conf_env_off lock relaasing.
+ * Expose mtev_backtrace as a portable backtrace.
+
 ### 1.4.3
 
  * Fix bug in tls sni name extraction. (double-free)
