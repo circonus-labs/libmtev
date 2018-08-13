@@ -143,11 +143,10 @@ end
 function HttpClient:set_timeout(timeout, timeout_callback)
   if timeout == nil or timeout <= 0 then
     self.timeout = nil
-    self.timeout_callback = nil
+    self.on_timeout = nil
   else
-    assert(timeout_callback)
     self.timeout = timeout
-    self.on_timeout = timeout_callback
+    self.on_timeout = timeout_callback or function() end
   end
 end
 
