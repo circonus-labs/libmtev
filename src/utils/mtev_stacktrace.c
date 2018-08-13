@@ -506,7 +506,7 @@ int mtev_backtrace(void **callstack, int cnt) {
     callstack[frames++] = (void *)pc;
   }
 #else
-  int frames = backtrace(callstack, cnt);
+  frames = backtrace(callstack, cnt);
 #endif
   return frames;
 }
