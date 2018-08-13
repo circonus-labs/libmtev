@@ -47,6 +47,9 @@ API_EXPORT(int)
   mtev_aco_stacktrace(mtev_log_stream_t ls, aco_t *co);
 
 API_EXPORT(int)
+  mtev_backtrace(void **ips, int cnt);
+
+API_EXPORT(int)
   mtev_aco_backtrace(aco_t *co, void **addrs, int addrs_len);
 
 // Call this function after loading any modules.

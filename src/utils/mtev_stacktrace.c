@@ -486,10 +486,9 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
 #endif
 }
 
-void mtev_stacktrace(mtev_log_stream_t ls) {
-  void* callstack[128];
-#if defined(HAVE_LIBUNWIND)
+int mtev_backtrace(void **callstack, int cnt) {
   int frames = 0;
+#if defined(HAVE_LIBUNWIND)
   unw_cursor_t cursor;
   unw_context_t context;
 
@@ -498,7 +497,7 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
   unw_init_local(&cursor, &context);
 
   // Unwind frames one by one, going up the frame stack.
-  while (unw_step(&cursor) > 0 && frames<128) {
+  while (unw_step(&cursor) > 0 && frames<cnt) {
     unw_word_t pc;
     unw_get_reg(&cursor, UNW_REG_IP, &pc);
     if (pc == 0) {
@@ -507,8 +506,13 @@ void mtev_stacktrace(mtev_log_stream_t ls) {
     callstack[frames++] = (void *)pc;
   }
 #else
-  int frames = backtrace(callstack, 128);
+  int frames = backtrace(callstack, cnt);
 #endif
+  return frames;
+}
+void mtev_stacktrace(mtev_log_stream_t ls) {
+  void* callstack[128];
+  int frames = mtev_backtrace(callstack, 128);
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, callstack, frames);
 }
 
