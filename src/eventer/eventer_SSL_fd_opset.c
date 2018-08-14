@@ -719,16 +719,6 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
                                  TLSv1_2_server_method() : TLSv1_2_client_method());
 #endif
 
-#if defined(SSL_TXT_TLSV1_2) && defined(HAVE_TLSV1_2_SERVER) && defined(HAVE_TLSV1_2_CLIENT)
-    if(ctx->ssl_ctx == NULL)
-      ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
-                                 TLSv1_2_server_method() : TLSv1_2_client_method());
-#endif
-#if defined(SSL_TXT_TLSV1_1) && defined(HAVE_TLSV1_1_SERVER) && defined(HAVE_TLSV1_1_CLIENT)
-    if(ctx->ssl_ctx == NULL)
-      ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
-                                 TLSv1_1_server_method() : TLSv1_1_client_method());
-#endif
     if(ctx->ssl_ctx == NULL)
       ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
                                  SSLv23_server_method() : SSLv23_client_method());
