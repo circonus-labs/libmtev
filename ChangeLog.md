@@ -4,6 +4,16 @@
 
 ## 1.4
 
+### 1.4.5
+
+ * Back off aggressive SSL context stance in 1.4.2, Just use v23 by default.
+ * Change default event loop's main thread (thread 0) to run separate from the
+   main application thread.
+ * Add `eventer_loop_return()` which return control to the main thread.
+ * Add `mtev_boolean eventer_in_loop()` as a near-zero cost boolean call
+   (compared to `int eventer_is_loop()` which returns the internal ID or -1)
+ * Postpone non-primary thread event loops start until `eventer_loop` is called.
+
 ### 1.4.4
 
  * Fix bug in `mtev_conf_env_off` lock releasing.

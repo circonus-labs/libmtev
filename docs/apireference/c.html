@@ -2252,6 +2252,16 @@ eventer_in(<span class="hljs-keyword">eventer_func_t</span> func, <span class="h
 <blockquote>
 <p>Note this does not actually schedule the event. See <a href="c.html#eventeraddin"><code>eventer_add_in</code></a>.</p>
 </blockquote>
+<h4 id="eventerinloop">eventer_in_loop</h4>
+<blockquote>
+<p>Determine if the current thread is an event loop thread.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_in_loop</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> mtev_true if currently in an event loop thread, mtev_false otherwise.</li>
+</ul>
 <h4 id="eventerinsus">eventer_in_s_us</h4>
 <blockquote>
 <p>Convenience function to create an event to run a callback in the future</p>
@@ -2418,7 +2428,7 @@ eventer_jobq_retrieve(<span class="hljs-keyword">const</span> <span class="hljs-
 <ul>
 <li><strong>RETURN</strong> N/A (does not return)</li>
 </ul>
-<p>This function should be called as that last think in your <code>child_main</code> function.
+<p>This function should be called as that last thing in your <code>child_main</code> function.
 See <a href="c.html#mtevmain%60"><code>mtev_main</code></a>.</p>
 <h4 id="eventerloopconcurrency">eventer_loop_concurrency</h4>
 <blockquote>
@@ -2430,6 +2440,16 @@ See <a href="c.html#mtevmain%60"><code>mtev_main</code></a>.</p>
 <ul>
 <li><strong>RETURN</strong> number of threads used for the default eventer loop.</li>
 </ul>
+<h4 id="eventerloopreturn">eventer_loop_return</h4>
+<blockquote>
+<p>Start the event loop and return control to the caller.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_loop_return</span><span class="hljs-params">()</span>
+</span></code></pre>
+<p>This function should be called as that last thing in your <code>child_main</code> function.
+Be sure not to return or exit after calling this as it could terminate your program.
+See <a href="c.html#mtevmain%60"><code>mtev_main</code></a>.</p>
 <h4 id="eventernamecallback">eventer_name_callback</h4>
 <blockquote>
 <p>Register a human/developer readable name for a eventer callback function.</p>

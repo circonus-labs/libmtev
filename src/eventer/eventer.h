@@ -666,10 +666,19 @@ API_EXPORT(int) eventer_choose(const char *name);
     \brief Start the event loop.
     \return N/A (does not return)
 
-    This function should be called as that last think in your `child_main` function.
+    This function should be called as that last thing in your `child_main` function.
     See [`mtev_main`](c.md#mtevmain`).
 */
 API_EXPORT(void) eventer_loop(void);
+
+/*! \fn void eventer_loop_return()
+    \brief Start the event loop and return control to the caller.
+
+    This function should be called as that last thing in your `child_main` function.
+    Be sure not to return or exit after calling this as it could terminate your program.
+    See [`mtev_main`](c.md#mtevmain`).
+*/
+API_EXPORT(void) eventer_loop_return(void);
 
 /*! \fn int eventer_is_loop(pthread_t tid)
     \brief Determine if a thread is participating in the eventer loop.

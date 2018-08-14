@@ -2112,6 +2112,19 @@ eventer_in(eventer_func_t func, void *closure, struct timeval diff)
 > Note this does not actually schedule the event. See [`eventer_add_in`](c.md#eventeraddin).
 
 
+#### eventer_in_loop
+
+>Determine if the current thread is an event loop thread.
+
+```c
+mtev_boolean
+eventer_in_loop(void)
+```
+
+
+  * **RETURN** mtev_true if currently in an event loop thread, mtev_false otherwise.
+
+
 #### eventer_in_s_us
 
 >Convenience function to create an event to run a callback in the future
@@ -2326,7 +2339,7 @@ eventer_loop()
 
   * **RETURN** N/A (does not return)
 
-This function should be called as that last think in your `child_main` function.
+This function should be called as that last thing in your `child_main` function.
 See [`mtev_main`](c.md#mtevmain`).
 
 
@@ -2341,6 +2354,22 @@ eventer_loop_concurrency()
 
 
   * **RETURN** number of threads used for the default eventer loop.
+
+
+#### eventer_loop_return
+
+>Start the event loop and return control to the caller.
+
+```c
+void
+eventer_loop_return()
+```
+
+
+
+This function should be called as that last thing in your `child_main` function.
+Be sure not to return or exit after calling this as it could terminate your program.
+See [`mtev_main`](c.md#mtevmain`).
 
 
 #### eventer_name_callback
