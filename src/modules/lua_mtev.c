@@ -4804,6 +4804,8 @@ static void mtev_lua_init(void) {
   if(done) return;
   done = 1;
   mtev_lua_init_globals();
+  shared_seq_table = calloc(1, sizeof(*shared_seq_table));
+  mtev_hash_init_locks(shared_seq_table, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   register_console_lua_commands();
   eventer_name_callback("lua/sleep", nl_sleep_complete);
   eventer_name_callback("lua/socket_read",
@@ -4930,8 +4932,6 @@ Use sha256_hex instead.
 };
 
 int luaopen_mtev(lua_State *L) {
-  shared_seq_table = calloc(1, sizeof(*shared_seq_table));
-  mtev_hash_init_locks(shared_seq_table, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_lua_init();
 
   luaL_newmetatable(L, "mtev.timezone");
