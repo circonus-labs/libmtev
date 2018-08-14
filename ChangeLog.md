@@ -4,6 +4,10 @@
 
 ## 1.4
 
+###
+
+ * Fix mtev.shared_seq() producing duplicate keys during startup.
+
 ### 1.4.5
 
  * Back off aggressive SSL context stance in 1.4.2, Just use v23 by default.
