@@ -87,6 +87,7 @@ struct mtev_cluster_node_t {
   void *payload;
   uint16_t payload_length;
   uint8_t number_of_payloads;
+  int idx; /* This is just the offset into the cluster's nodes array */
 };
 
 void
@@ -118,6 +119,10 @@ mtev_cluster_node_get_last_contact(mtev_cluster_node_t *node) {
 int64_t
 mtev_cluster_node_get_config_seq(mtev_cluster_node_t *node) {
   return node->config_seq;
+}
+int
+mtev_cluster_node_get_idx(mtev_cluster_node_t *node) {
+  return node->idx;
 }
 
 
@@ -722,6 +727,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
   if (nlist != NULL) {
     qsort(nlist, n_nodes, sizeof(*nlist), mtev_cluster_node_compare);
   }
+  for(i=0; i<n_nodes; i++) nlist[i].idx = i;
   new_cluster->node_cnt = n_nodes;
   new_cluster->nodes = nlist; nlist = NULL;
   mtev_hash_init_locks(&new_cluster->hb_payloads, 8, MTEV_HASH_LOCK_MODE_NONE);

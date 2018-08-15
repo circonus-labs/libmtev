@@ -237,6 +237,14 @@ API_EXPORT(int)
 API_EXPORT(int64_t)
   mtev_cluster_get_config_seq(mtev_cluster_t *cluster);
 
+/*! \fn int mtev_cluster_node_get_idx(mtev_cluster_node_t *node)
+    \brief Get the unique integer idx of the node within it's cluster.
+    \param node The node in question
+    \return A number between 0 and cluster_size - 1.
+ */
+API_EXPORT(int)
+  mtev_cluster_node_get_idx(mtev_cluster_node_t *node);
+
 /*! \fn  mtev_cluster_get_oldest_node(const mtev_cluster_t *cluster)
     \brief Returns the oldest node within the given cluster.
     \param cluster The cluster in question.

@@ -980,6 +980,17 @@ mtev_cluster_node_get_config_seq(<span class="hljs-keyword">mtev_cluster_node_t<
 <li><code>node</code> The node in question.</li>
 <li><code>out</code> A <code>uuid_t</code> to fill in.</li>
 </ul>
+<h4 id="mtevclusternodegetidx">mtev_cluster_node_get_idx</h4>
+<blockquote>
+<p>Get the unique integer idx of the node within it&apos;s cluster.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_cluster_node_get_idx</span><span class="hljs-params">(mtev_cluster_node_t *node)</span>
+</span></code></pre>
+<ul>
+<li><code>node</code> The node in question</li>
+<li><strong>RETURN</strong> A number between 0 and cluster_size - 1.</li>
+</ul>
 <h4 id="mtevclusternodegetlastcontact">mtev_cluster_node_get_last_contact</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval
 <span class="hljs-title">mtev_cluster_node_get_last_contact</span><span class="hljs-params">(mtev_cluster_node_t *node)</span>

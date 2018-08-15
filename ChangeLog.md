@@ -7,6 +7,8 @@
 ###
 
  * Fix mtev.shared_seq() producing duplicate keys during startup.
+ * Add mtev_cluster_node_get_idx to get a node's deterministic offset in a
+   cluster topology.
 
 ### 1.4.5
 
