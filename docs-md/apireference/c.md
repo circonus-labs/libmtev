@@ -495,6 +495,20 @@ mtev_cluster_node_get_id(mtev_cluster_node_t *node, uuid_t out)
   * `out` A `uuid_t` to fill in.
 
 
+#### mtev_cluster_node_get_idx
+
+>Get the unique integer idx of the node within it's cluster.
+
+```c
+int
+mtev_cluster_node_get_idx(mtev_cluster_node_t *node)
+```
+
+
+  * `node` The node in question
+  * **RETURN** A number between 0 and cluster_size - 1.
+ 
+
 #### mtev_cluster_node_get_last_contact
 
 ```c
