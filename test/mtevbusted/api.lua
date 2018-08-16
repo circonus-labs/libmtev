@@ -20,7 +20,7 @@ function sourcedir(lvl)
   if src == nil then return nil end
   if src:sub(1,1) == "@" then src = src:sub(2) end
   local idx = src:find("/[^/]+$")
-  if idx < 1 then return nil end
+  if idx == nil or idx < 1 then return nil end
   return src:sub(1,idx)
 end
 
