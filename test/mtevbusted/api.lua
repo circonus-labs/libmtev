@@ -47,7 +47,7 @@ API.__index = API;
 function API:new(host, port)
   local obj = { host = host or apihost,
                 port = port or apiport,
-                headers = {} }
+                _headers = {} }
   setmetatable(obj, API)
   return obj
 end
@@ -59,22 +59,22 @@ function API:ssl(config)
   return self
 end
 function API:headers(headers)
-  self.headers = headers or {}
+  self._headers = headers or {}
   return self
 end
 function API:HTTP(method, uri, payload, _pp)
-  return HTTP(method, self.host, self.port, uri, self.headers, payload, _pp, {})
+  return HTTP(method, self.host, self.port, uri, self._headers, payload, _pp, {})
 end
 function API:HTTP_pcall(method, uri, payload, _pp)
-  return pcall(HTTP, method, self.host, self.port, uri, self.headers, payload, _pp, {})
+  return pcall(HTTP, method, self.host, self.port, uri, self._headers, payload, _pp, {})
 end
 function API:HTTPS(method, uri, payload, _pp, config)
   if config == nil then config = self.sslconfig end
-  return HTTP(method, self.host, self.port, uri, self.headers, payload, _pp, config)
+  return HTTP(method, self.host, self.port, uri, self._headers, payload, _pp, config)
 end
 function API:HTTPS_pcall(method, uri, payload, _pp, config)
   if config == nil then config = self.sslconfig end
-  return pcall(HTTP, method, self.host, self.port, uri, self.headers, payload, _pp, config)
+  return pcall(HTTP, method, self.host, self.port, uri, self._headers, payload, _pp, config)
 end
 
 function HTTP(method, host, port, uri, headers, payload, _pp, config)
@@ -117,7 +117,7 @@ function HTTP(method, host, port, uri, headers, payload, _pp, config)
   if rv ~= 0 then return -1, { error =  "client:connect failed" } end
 
   headers.Host = host
-  headers.Accept = 'application/json'
+  if headers.Accept ~= nil then headers.Accept = 'application/json' end
   mtev.log("debug/http", "%s\n", mtev.tojson({method, uri, headers, payload}):tostring())
   local rv = client:do_request(method, uri, headers, payload, "1.1")
   client:get_response(100000000)
