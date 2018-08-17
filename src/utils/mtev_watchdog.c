@@ -540,6 +540,9 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
       sigemptyset(&mysigs);
       sigaddset(&mysigs, SIGCHLD);
       sigaddset(&mysigs, SIGALRM);
+      sigaddset(&mysigs, SIGTERM);
+      sigaddset(&mysigs, SIGQUIT);
+      sigaddset(&mysigs, SIGINT);
       setup_signals(&mysigs);
       mtev_monitored_child_pid = child_pid;
       while(1) {
@@ -548,7 +551,15 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
           mtevL(mtev_error, "[monitor] sigwait error: %s\n", strerror(errno));
           continue;
         }
+        const char *signame = NULL;
         switch(sig) {
+          case SIGTERM: if(!signame) signame = "SIGTERM";
+          case SIGQUIT: if(!signame) signame = "SIGQUIT";
+          case SIGINT:  if(!signame) signame = "SIGINT";
+            mtevL(mtev_error, "[monitor] received signal %s, shutting down.\n", signame);
+            if(mtev_monitored_child_pid > 0) kill(mtev_monitored_child_pid, sig);
+            exit(0);
+            break;
           case SIGCHLD:
             if(child_pid != crashing_pid && crashing_pid != -1) {
               mtevL(mtev_error, "[monitoring] suspending services while reaping emancipated child %d\n", crashing_pid);
