@@ -5,7 +5,7 @@ function env_flatten(tbl)
   return nt
 end
 
--- makes a basic corouting reader on an fd
+-- makes a basic coroutine reader on an fd
 function mk_coroutine_reader(start, done, fd)
   mtev.coroutine_spawn(function()
     local fd = fd:own()
@@ -78,6 +78,7 @@ end
 
 function TestProc:capturecommand(props)
   if self.proc ~= nil then error("can't start already started proc") end
+  if self.path == nil then self.path = self.argv[1] end
   local proc, in_e, out_e, err_e =
     mtev.spawn(self.path, self.argv, self.env)
   self.stdout_start, self.stderr_start = mtev.uuid(), mtev.uuid()
