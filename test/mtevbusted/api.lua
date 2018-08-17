@@ -46,22 +46,38 @@ API = {};
 API.__index = API;
 function API:new(host, port)
   local obj = { host = host or apihost,
-                port = port or apiport }
+                port = port or apiport,
+                headers = {} }
   setmetatable(obj, API)
   return obj
+end
+function API:ssl(config)
+  local copy = {}
+  for k,v in pairs(config) do copy[k] = v end
+  copy.use_ssl = true
+  self.sslconfig = copy
+  return self
 end
 function API:headers(headers)
   self.headers = headers or {}
   return self
 end
 function API:HTTP(method, uri, payload, _pp)
-  return HTTP(method, self.host, self.port, uri, self.headers, payload, _pp)
+  return HTTP(method, self.host, self.port, uri, self.headers, payload, _pp, {})
 end
 function API:HTTP_pcall(method, uri, payload, _pp)
-  return pcall(HTTP, method, self.host, self.port, uri, self.headers, payload, _pp)
+  return pcall(HTTP, method, self.host, self.port, uri, self.headers, payload, _pp, {})
+end
+function API:HTTPS(method, uri, payload, _pp, config)
+  if config == nil then config = self.sslconfig end
+  return HTTP(method, self.host, self.port, uri, self.headers, payload, _pp, config)
+end
+function API:HTTPS_pcall(method, uri, payload, _pp, config)
+  if config == nil then config = self.sslconfig end
+  return pcall(HTTP, method, self.host, self.port, uri, self.headers, payload, _pp, config)
 end
 
-function HTTP(method, host, port, uri, headers, payload, _pp)
+function HTTP(method, host, port, uri, headers, payload, _pp, config)
   _pp = _pp or function(o)
     local doc, err, offset = mtev.parsejson(o)
     if doc == nil then
@@ -90,9 +106,14 @@ function HTTP(method, host, port, uri, headers, payload, _pp)
   local callbacks = {}
   callbacks.consume = function (str) output_buf[#output_buf+1] =  str end
   callbacks.headers = function (hdrs) in_headers = hdrs end
+  callbacks.certfile = function() return config.certificate_file end
+  callbacks.keyfile = function() return config.key_file end
+  local ca_chain = config.ca_chain and config.ca_chain or mtev.conf_get_string("/noit/eventer/config/default_ca_chain")
+  callbacks.cachain = function() return ca_chain end
+  callbacks.ciphers = function() return config.ciphers end
 
   local client = HttpClient:new(callbacks)
-  local rv, err = client:connect(host, port, false, host)
+  local rv, err = client:connect(host, port, config.use_ssl and config.use_ssl or false, host)
   if rv ~= 0 then return -1, { error =  "client:connect failed" } end
 
   headers.Host = host
