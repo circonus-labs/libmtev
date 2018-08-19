@@ -203,6 +203,16 @@ function TestProc:wait(timeout)
   return self.proc:wait(timeout)
 end
 
+function TestProc:pause()
+  if self.proc == nil or self.proc:pid() == -1 then return end
+  self.proc:pgkill(19)
+end
+
+function TestProc:resume()
+  if self.proc == nil or self.proc:pid() == -1 then return end
+  self.proc:pgkill(18)
+end
+
 function TestProc:kill()
 
   if self.proc == nil or self.proc:pid() == -1 then return end

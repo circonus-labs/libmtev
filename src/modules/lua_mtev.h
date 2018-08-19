@@ -155,6 +155,7 @@ struct nl_slcl {
   size_t read_sofar;
   size_t read_goal;
   const char *read_terminator;
+	size_t read_terminator_len;
   const char *outbuff;
   size_t write_sofar;
   size_t write_goal;

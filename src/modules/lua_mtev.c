@@ -339,6 +339,7 @@ mtev_lua_socket_recv(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   cl = eventer_get_closure(e);
   cl->read_goal = lua_tointeger(L, 2);
   inbuff = malloc(cl->read_goal);
@@ -438,6 +439,7 @@ mtev_lua_socket_send(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   if(lua_gettop(L) != 2)
     luaL_error(L, "mtev.socket.send with bad arguments");
   bytes = lua_tolstring(L, 2, &nbytes);
@@ -488,6 +490,7 @@ mtev_lua_socket_sendto(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   if(lua_gettop(L) != 4)
     luaL_error(L, "mtev.socket.sendto with bad arguments");
   bytes = lua_tolstring(L, 2, &nbytes);
@@ -563,6 +566,7 @@ mtev_lua_socket_bind(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   target = lua_tostring(L, 2);
   if(!target) target = "";
   port = lua_tointeger(L, 3);
@@ -680,6 +684,7 @@ mtev_lua_socket_listen(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
 
   if((rv = listen(eventer_get_fd(e), lua_tointeger(L, 2))) < 0) {
     lua_pushinteger(L, rv);
@@ -738,6 +743,7 @@ mtev_lua_socket_accept(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   cl = eventer_get_closure(e);
 
   if(cl->L != L) {
@@ -801,6 +807,7 @@ mtev_lua_socket_setsockopt(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   type = lua_tostring(L, 2);
   value = lua_tointeger(L, 3);
 
@@ -863,6 +870,7 @@ mtev_lua_socket_gen_name(lua_State *L,
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
  
   if(namefunc(eventer_get_fd(e), &addr.a, &addrlen) == 0) {
     switch(addr.a.sa_family) {
@@ -913,6 +921,7 @@ mtev_lua_socket_connect(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   target = lua_tostring(L, 2);
 
   if(target && !strncmp(target, "reverse:", 8)) {
@@ -1032,6 +1041,7 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   cert = lua_tostring(L, 2);
   key = lua_tostring(L, 3);
   ca = lua_tostring(L, 4);
@@ -1110,8 +1120,8 @@ mtev_lua_socket_do_read(eventer_t e, int *mask, struct nl_slcl *cl,
     else if(cl->read_terminator) {
       const char *cp;
       int remaining = len;
-      cp = mtev_memmem(buff, len, cl->read_terminator, strlen(cl->read_terminator));
-      if(cp) remaining = cp - buff + strlen(cl->read_terminator);
+      cp = mtev_memmem(buff, len, cl->read_terminator, cl->read_terminator_len);
+      if(cp) remaining = cp - buff + cl->read_terminator_len;
       inbuff_addlstring(cl, buff, MIN(len, remaining));
       cl->read_sofar += len;
       if(cp) {
@@ -1219,9 +1229,11 @@ mtev_lua_socket_read(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   cl = eventer_get_closure(e);
   cl->read_goal = 0;
   cl->read_terminator = NULL;
+  cl->read_terminator_len = 0;
 
   if(cl->L != L) {
     mtevL(nlerr, "cross-coroutine socket call: use event:own()\n");
@@ -1243,19 +1255,20 @@ mtev_lua_socket_read(lua_State *L) {
     }
   }
   else {
-    cl->read_terminator = lua_tostring(L, 2);
+    cl->read_terminator = lua_tolstring(L, 2, &cl->read_terminator_len);
     if(cl->read_sofar) {
       const char *cp;
       /* Ugh... inernalism */
       cp = mtev_memmem(cl->inbuff, cl->read_sofar,
-                       cl->read_terminator, strlen(cl->read_terminator));
+                       cl->read_terminator, cl->read_terminator_len);
       if(cp) {
         /* Here we matched... and we _know_ that someone actually wants:
-         * strlen(cl->read_terminator) + cp - cl->inbuff.buffer bytes...
+         * cl->read_terminator_len + cp - cl->inbuff.buffer bytes...
          * give it to them.
          */
-        cl->read_goal = strlen(cl->read_terminator) + cp - cl->inbuff;
+        cl->read_goal = cl->read_terminator_len + cp - cl->inbuff;
         cl->read_terminator = NULL;
+        cl->read_terminator_len = 0;
         mtevAssert(cl->read_goal <= cl->read_sofar);
         goto i_know_better;
       }
@@ -1370,6 +1383,7 @@ mtev_lua_socket_write(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
   cl = eventer_get_closure(e);
   cl->write_sofar = 0;
   cl->outbuff = lua_tolstring(L, 2, &cl->write_goal);
@@ -1412,6 +1426,7 @@ mtev_lua_socket_ssl_ctx(lua_State *L) {
   if(eptr != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   e = *eptr;
+  if(e == NULL) luaL_error(L, "invalid event");
 
   ssl_ctx = eventer_get_eventer_ssl_ctx(e);
   if(!ssl_ctx) {
@@ -4281,13 +4296,8 @@ mtev_lua_process_pid(lua_State *L) {
   return 1;
 }
 
-/*! \lua success, errno = mtev.process:kill(signal)
-\brief Kill a spawned process.
-\param signal the integer signal to deliver, if omitted `SIGTERM` is used.
-\return true on success or false and an errno on failure.
-*/
 static int
-mtev_lua_process_kill(lua_State *L) {
+mtev_lua_process_kill_internal(lua_State *L, pid_t pid) {
   struct spawn_info *spawn_info;
   int signal_no = SIGTERM;
   /* the first arg is implicitly self (it's a method) */
@@ -4303,12 +4313,40 @@ mtev_lua_process_kill(lua_State *L) {
     lua_pushinteger(L, ESRCH);
   }
   else {
-    int rv = kill(spawn_info->pid, signal_no);
+    int rv = kill(pid, signal_no);
     lua_pushboolean(L, (rv == 0));
     if(rv < 0) lua_pushinteger(L, errno);
     else lua_pushnil(L);
   }
   return 2;
+}
+
+/*! \lua success, errno = mtev.process:kill(signal)
+\brief Kill a spawned process.
+\param signal the integer signal to deliver, if omitted `SIGTERM` is used.
+\return true on success or false and an errno on failure.
+*/
+static int
+mtev_lua_process_kill(lua_State *L) {
+  struct spawn_info *spawn_info;
+  spawn_info = lua_touserdata(L, lua_upvalueindex(1));
+  if(spawn_info != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+  return mtev_lua_process_kill_internal(L, spawn_info->pid);
+}
+
+/*! \lua success, errno = mtev.process:pgkill(signal)
+\brief Kill a spawned process group.
+\param signal the integer signal to deliver, if omitted `SIGTERM` is used.
+\return true on success or false and an errno on failure.
+*/
+static int
+mtev_lua_process_pgkill(lua_State *L) {
+  struct spawn_info *spawn_info;
+  spawn_info = lua_touserdata(L, lua_upvalueindex(1));
+  if(spawn_info != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+  return mtev_lua_process_kill_internal(L, 0 - spawn_info->pid);
 }
 
 #define MAKE_LUA_WFUNC_BOOL(name) static int \
@@ -4499,6 +4537,7 @@ mtev_lua_process_index_func(lua_State *L) {
       break;
     case 'p':
       LUA_DISPATCH(pid, mtev_lua_process_pid);
+      LUA_DISPATCH(pgkill, mtev_lua_process_pgkill);
       break;
     case 'w':
       LUA_DISPATCH(wait, mtev_lua_process_wait);

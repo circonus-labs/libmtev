@@ -79,6 +79,7 @@ end
 
 function HTTP(method, host, port, uri, headers, payload, _pp, config)
   _pp = _pp or function(o)
+    if o == nil or o == '' then return nil end
     local doc, err, offset = mtev.parsejson(o)
     if doc == nil then
       mtev.log("error", "json parse error: %s @%d\n", err, offset)
