@@ -6,6 +6,7 @@
 
  * Make mtev_hash_merge_as_dict safe for NULL values.
  * Fix reported memory leak in dwarf reading.
+ * Fix race conditions in freeing mtev_websocket_client_t
 
 ### 1.4.6
 
