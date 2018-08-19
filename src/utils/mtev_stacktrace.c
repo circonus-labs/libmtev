@@ -93,7 +93,10 @@ struct dmap_node {
   uintptr_t base;
   Dwarf_Debug dbg;
   struct dmap_node *next;
-  char **srcfiles;
+  struct srcfilelist {
+    char **srcfiles;
+    struct srcfilelist *next;
+  } *files;
   struct line_info *info;
   int count;
 };
@@ -132,15 +135,18 @@ mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
   if(dwarf_srcfiles(die, &srcfiles, &nsrcfiles, &error)) {
     return;
   }
-  node->srcfiles = calloc(nsrcfiles, sizeof(char *));
-  for(int i=0; i<nsrcfiles; i++) node->srcfiles[i] = dup_filename(srcfiles[i]);
+  struct srcfilelist *mylist = calloc(1, sizeof(*mylist));
+  mylist->next = node->files;
+  node->files = mylist;
+  mylist->srcfiles = calloc(nsrcfiles, sizeof(char *));
+  for(int i=0; i<nsrcfiles; i++) mylist->srcfiles[i] = dup_filename(srcfiles[i]);
   if(!dwarf_srclines(die, &lines, &nlines, &error)) {
     for(int i = 0; i < nlines; i++) {
       Dwarf_Unsigned uno;
       Dwarf_Addr addr;
       struct line_info li = { .next = NULL };
       if(!dwarf_lineno(lines[i], &uno, &error)) li.lineno = (int)uno;
-      if(!dwarf_line_srcfileno(lines[i], &uno, &error)) li.file = node->srcfiles[uno-1];
+      if(!dwarf_line_srcfileno(lines[i], &uno, &error)) li.file = mylist->srcfiles[uno-1];
       if(!dwarf_lineaddr(lines[i], &addr, &error)) {
         li.addr = (uintptr_t)addr;
         struct line_info *head = calloc(1, sizeof(li));
