@@ -4,6 +4,9 @@
 
 ## 1.4
 
+ * Make mtev_hash_merge_as_dict safe for NULL values.
+ * Fix reported memory leak in dwarf reading.
+
 ### 1.4.6
 
  * Fix mtev.shared_seq() producing duplicate keys during startup.
