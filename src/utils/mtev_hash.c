@@ -562,7 +562,7 @@ void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src) {
   if(src == NULL || dst == NULL) return;
   while(mtev_hash_adv(src, &iter)) {
     mtev_hash_replace(dst, strdup(iter.key.str), iter.klen,
-                      strdup(iter.value.str), free, free);
+                      iter.value.str ? strdup(iter.value.str) : NULL, free, free);
   }
 }
 
