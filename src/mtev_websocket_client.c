@@ -34,7 +34,7 @@ struct mtev_websocket_client {
   int wanted_eventer_mask;
   char client_key[25];
   mtev_hash_table *sslconfig;
-  mtev_boolean noref; /* see header for description of mtev_websocket_client_new_noref */
+  uint32_t refcnt;
   void *closure;
 };
 
@@ -42,6 +42,16 @@ static mtev_log_stream_t client_deb;
 static mtev_log_stream_t client_err;
 
 #ifdef HAVE_WSLAY
+static void
+mtev_websocket_client_ref(mtev_websocket_client_t *client) {
+  ck_pr_inc_32(&client->refcnt);
+}
+static void
+mtev_websocket_client_deref(mtev_websocket_client_t *client) {
+  bool zero;
+  ck_pr_dec_32_zero(&client->refcnt, &zero);
+  if(zero) free(client);
+}
 static ssize_t wslay_send_callback(wslay_event_context_ptr ctx,
                             const uint8_t *data, size_t len, int flags,
                             void *user_data);
@@ -270,6 +280,7 @@ mtev_websocket_client_drive(eventer_t e, int mask, void *closure, struct timeval
   if(mask & EVENTER_EXCEPTION || client->should_close || client->closed) {
 abort_drive:
     mtev_websocket_client_cleanup(client);
+    mtev_websocket_client_deref(client);
     return 0;
   }
 
@@ -339,6 +350,7 @@ ssl_upgrade_error:
         client->host, client->port, client->path, client->service,
         eventer_ssl_get_last_error(sslctx), eventer_ssl_get_peer_error(sslctx));
   mtev_websocket_client_cleanup(client);
+  mtev_websocket_client_deref(client);
   return 0;
 }
 
@@ -362,6 +374,7 @@ connect_error:
     mtevL(client_err, "mtev_websocket_client_complete_connect error connecting to %s:%d%s (%s): %s\n",
           client->host, client->port, client->path, client->service, strerror(aerrno));
     mtev_websocket_client_cleanup(client);
+    mtev_websocket_client_deref(client);
     return 0;
   }
 
@@ -475,7 +488,7 @@ mtev_websocket_client_new_internal(const char *host, int port, const char *path,
   client->ready_callback = callbacks->ready_callback;
   client->msg_callback = callbacks->msg_callback;
   client->cleanup_callback = callbacks->cleanup_callback;
-  client->noref = noref;
+  client->refcnt = noref ? 1 : 2;
   client->closure = closure;
 
   if(sslconfig && mtev_hash_size(sslconfig)) {
@@ -490,6 +503,7 @@ mtev_websocket_client_new_internal(const char *host, int port, const char *path,
     client, fd, EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
   if(pool) eventer_set_owner(e, eventer_choose_owner_pool(pool, lrand48()));
   client->e = e;
+  mtev_websocket_client_ref(client);
   eventer_add(e);
   return client;
 #else
@@ -615,6 +629,7 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
   int mask; /* value not used, just a dummy for the close() call below */
   pthread_mutex_lock(&client->lock);
   if(!client->closed) {
+    client->closed = mtev_true;
     eventer_remove_fde(client->e);
     eventer_close(client->e, &mask);
     if(client->did_handshake)
@@ -626,11 +641,10 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client) {
       mtev_hash_destroy(client->sslconfig, free, free);
       free(client->sslconfig);
     }
-    client->closed = mtev_true;
     if(client->cleanup_callback) client->cleanup_callback(client, client->closure);
   }
   pthread_mutex_unlock(&client->lock);
-  if(client->noref) free(client);
+  mtev_websocket_client_deref(client);
 }
 #endif
 
@@ -640,9 +654,10 @@ void
 mtev_websocket_client_free(mtev_websocket_client_t *client) {
 #ifdef HAVE_WSLAY
   if(client == NULL) return;
-  mtevAssert(!client->noref);
-  if(!client->closed) mtev_websocket_client_cleanup(client);
-  free(client);
+  if(!client->closed) {
+   mtev_websocket_client_cleanup(client);
+  }
+  mtev_websocket_client_deref(client);
 #endif
 }
 
