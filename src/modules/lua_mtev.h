@@ -119,6 +119,7 @@ struct mtev_lua_resume_info {
   mtev_hash_table *events; /* Any eventers we need to cleanup */
   int context_magic;
   void *context_data;
+  struct mtev_lua_resume_info *(*new_ri_f)(lua_module_closure_t *);
 };
 #define LUA_GENERAL_INFO_MAGIC 0x918243fa
 
@@ -155,7 +156,7 @@ struct nl_slcl {
   size_t read_sofar;
   size_t read_goal;
   const char *read_terminator;
-	size_t read_terminator_len;
+  size_t read_terminator_len;
   const char *outbuff;
   size_t write_sofar;
   size_t write_goal;
@@ -208,6 +209,7 @@ int luaopen_mtev_stats(lua_State *);
 int luaopen_pack(lua_State *L); /* from lua_lpack.c */
 int luaopen_bit(lua_State *L); /* from lua_bit.c */
 mtev_lua_resume_info_t *mtev_lua_get_resume_info(lua_State *L);
+mtev_lua_resume_info_t *mtev_lua_find_resume_info(lua_State *L, mtev_boolean lua_error);
 void mtev_lua_set_resume_info(lua_State *L, mtev_lua_resume_info_t *ri);
 int mtev_lua_yield(mtev_lua_resume_info_t *ci, int nargs);
 void mtev_lua_register_event(mtev_lua_resume_info_t *ci, eventer_t e);

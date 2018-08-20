@@ -137,7 +137,9 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
 
 static mtev_lua_resume_info_t *
 lua_general_new_resume_info(lua_module_closure_t *lmc) {
-  return mtev_lua_new_resume_info(lmc, LUA_GENERAL_INFO_MAGIC);
+  mtev_lua_resume_info_t *ri = mtev_lua_new_resume_info(lmc, LUA_GENERAL_INFO_MAGIC);
+  ri->new_ri_f = lua_general_new_resume_info;
+  return ri;
 }
 
 static int

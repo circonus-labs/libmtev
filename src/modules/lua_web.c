@@ -284,7 +284,9 @@ mtev_lua_web_driver_onload(mtev_image_t *self) {
 
 static mtev_lua_resume_info_t *
 lua_web_new_resume_info(lua_module_closure_t *lmc) {
-  return mtev_lua_new_resume_info(lmc, LUA_REST_INFO_MAGIC);
+  mtev_lua_resume_info_t *ri = mtev_lua_new_resume_info(lmc, LUA_REST_INFO_MAGIC);
+  ri->new_ri_f = lua_web_new_resume_info;
+  return ri;
 }
 
 static int
