@@ -27,6 +27,22 @@
       and thus allows for multiple separate lua web services to be mounted in a single instance. Module is the name of the lua module the
       system will require, the function named "handler" will be called. Method is the HTTP method to serve (e.g. GET). The mount
       is the uri "directory" that will be handled by this `mount_[name]` stanza.  Expr is a PCRE that further restricts the URIs handled.</parameter>
+    <parameter name="gc_full"
+               required="optional"
+               default="1000"
+               allowed="^(?:0|[1-9]\d*)$">Specify how many yield/resume iterations may happen before a full garbage collection cycle is performed (0 means never).</parameter>
+    <parameter name="gc_step"
+               required="optional"
+               default="0"
+               allowed="^(?:0|[1-9]\d*)$">Specify the parameter to normal lua_gc LUA_GCSTEP calls.</parameter>
+    <parameter name="gc_stepmul"
+               required="optional"
+               default="1"
+               allowed="^(?:[1-9]\d*)$">Set the lua gc step multiplier.</parameter>
+    <parameter name="gc_pause"
+               required="optional"
+               default="200"
+               allowed="^(?:[1-9]\d*)$">Set the lua gc pause percentage.</parameter>
   </moduleconfig>
   <examples>
     <example>
