@@ -718,6 +718,20 @@ mtev.process:kill(signal)
   * **RETURN** true on success or false and an errno on failure.
 
 
+#### mtev.process:pgkill
+
+>Kill a spawned process group.
+
+```lua
+success, errno =
+mtev.process:pgkill(signal)
+```
+
+
+  * `signal` the integer signal to deliver, if omitted `SIGTERM` is used.
+  * **RETURN** true on success or false and an errno on failure.
+
+
 #### mtev.process:pid
 
 >Return the process id of a spawned process.
@@ -1038,6 +1052,62 @@ mtev.WCOREDUMP(status)
   * **RETURN** true if the process produced a core dump
 
 Only valid if `mtev.WIFSIGNALED(status)` is also true.
+
+
+#### mtev.websocket_client:close
+
+>Close a websocket client.
+
+```lua
+mtev.websocket_client:close()
+```
+
+
+
+
+#### mtev.websocket_client:send
+
+```lua
+mtev.websocket_client:send(opcode, payload)
+```
+
+  * `opcode` The websocket opcode.
+  * `payload` The payload.
+
+> Send a message over a websocket client.
+
+
+
+The client object has fields exposing: `CONTINUATION`, `TEXT`,
+`BINARY`, `CONNECTION_CLOSE`, `PING`, and `PONG`.
+
+
+#### mtev.websocket_client_connect
+
+>Create a new web socket client.
+
+```lua
+success =
+mtev.websocket_client_connect(host, port, uri, service, callbacks, sslconfig)
+```
+
+
+  * `host` The host
+  * `port` The port
+  * `uri` The uri
+  * `service` The service
+  * `callbacks` A table of callbacks
+  * `sslconfig` An optional non-empty table of ssl configuration.
+  * **RETURN** True or false for success.
+
+Callbacks may include:
+  * ready = function(mtev.websocket_client) return boolean
+  * message = function(mtev.websocket_client, opcode, payload) return boolean
+  * cleanup = function(mtev.websocket_client)
+
+If callbacks returning boolean return false, the connection will shutdown.
+sslconfig can contain `ca_chain` `key` `cert` `layer` `ciphers` just as
+with other SSL functions.
 
 
 #### mtev.WEXITSTATUS

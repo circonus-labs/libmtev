@@ -118,7 +118,7 @@
 
 ##### P
 
-[mtev.parsejson](lua.md#mtevparsejson), [mtev.parsexml](lua.md#mtevparsexml), [mtev.pcre](lua.md#mtevpcre), [mtev.print](lua.md#mtevprint), [mtev.process:kill](lua.md#mtevprocess:kill), [mtev.process:pid](lua.md#mtevprocess:pid), [mtev.process:wait](lua.md#mtevprocess:wait)
+[mtev.parsejson](lua.md#mtevparsejson), [mtev.parsexml](lua.md#mtevparsexml), [mtev.pcre](lua.md#mtevpcre), [mtev.print](lua.md#mtevprint), [mtev.process:kill](lua.md#mtevprocess:kill), [mtev.process:pgkill](lua.md#mtevprocess:pgkill), [mtev.process:pid](lua.md#mtevprocess:pid), [mtev.process:wait](lua.md#mtevprocess:wait)
 
 ##### R
 
@@ -138,5 +138,5 @@
 
 ##### W
 
-[mtev.waitfor](lua.md#mtevwaitfor), [mtev.watchdog_child_heartbeat](lua.md#mtevwatchdogchildheartbeat), [mtev.watchdog_timeout](lua.md#mtevwatchdogtimeout), [mtev.WCOREDUMP](lua.md#mtevWCOREDUMP), [mtev.WEXITSTATUS](lua.md#mtevWEXITSTATUS), [mtev.WIFCONTINUED](lua.md#mtevWIFCONTINUED), [mtev.WIFEXITED](lua.md#mtevWIFEXITED), [mtev.WIFSIGNALED](lua.md#mtevWIFSIGNALED), [mtev.WIFSTOPPED](lua.md#mtevWIFSTOPPED), [mtev.write](lua.md#mtevwrite), [mtev.WSTOPSIG](lua.md#mtevWSTOPSIG), [mtev.WTERMSIG](lua.md#mtevWTERMSIG)
+[mtev.waitfor](lua.md#mtevwaitfor), [mtev.watchdog_child_heartbeat](lua.md#mtevwatchdogchildheartbeat), [mtev.watchdog_timeout](lua.md#mtevwatchdogtimeout), [mtev.WCOREDUMP](lua.md#mtevWCOREDUMP), [mtev.websocket_client:close](lua.md#mtevwebsocketclient:close), [mtev.websocket_client:send](lua.md#mtevwebsocketclient:send), [mtev.websocket_client_connect](lua.md#mtevwebsocketclientconnect), [mtev.WEXITSTATUS](lua.md#mtevWEXITSTATUS), [mtev.WIFCONTINUED](lua.md#mtevWIFCONTINUED), [mtev.WIFEXITED](lua.md#mtevWIFEXITED), [mtev.WIFSIGNALED](lua.md#mtevWIFSIGNALED), [mtev.WIFSTOPPED](lua.md#mtevWIFSTOPPED), [mtev.write](lua.md#mtevwrite), [mtev.WSTOPSIG](lua.md#mtevWSTOPSIG), [mtev.WTERMSIG](lua.md#mtevWTERMSIG)
 

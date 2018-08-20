@@ -71,6 +71,7 @@
 #include "mtev_watchdog.h"
 #include "mtev_cluster.h"
 #include "mtev_thread.h"
+#include "mtev_websocket_client.h"
 
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
@@ -1743,6 +1744,280 @@ mtev_ssl_ctx_index_func(lua_State *L) {
   }
   luaL_error(L, "mtev.eventer.ssl_ctx no such element: %s", k);
   return 0;
+}
+
+struct websocket_lua_t {
+  mtev_websocket_client_t *client;
+  lua_State *L;
+  int self_idx;
+  int cb_ready, cb_message, cb_cleanup;
+};
+
+/*! \lua mtev.websocket_client:send(opcode, payload)
+    \param opcode The websocket opcode.
+    \param payload The payload.
+    \brief Send a message over a websocket client.
+
+    The client object has fields exposing: `CONTINUATION`, `TEXT`,
+    `BINARY`, `CONNECTION_CLOSE`, `PING`, and `PONG`.
+*/
+static int
+mtev_lua_ws_send(lua_State *L) {
+  struct websocket_lua_t *udata = lua_touserdata(L, lua_upvalueindex(1));
+  int n = lua_gettop(L);
+  if(n != 3) luaL_error(L, "mtev.websocket_client:send(opcode, buffer)");
+  if(lua_touserdata(L,1) != udata) luaL_error(L, "must be called as method");
+  int opcode = lua_tointeger(L,2);
+  size_t len;
+  const char *data = lua_tolstring(L,3,&len);
+  lua_pushboolean(L, mtev_websocket_client_send(udata->client, opcode, (void *)data, len));
+  return 1;
+}
+static void
+mtev_lua_ws_unref_bits(lua_State *L, struct websocket_lua_t *udata) {
+  if(udata->self_idx >= 0) {
+    luaL_unref(L, LUA_REGISTRYINDEX, udata->self_idx);
+    udata->self_idx = -1;
+  }
+  if(udata->cb_ready >= 0) {
+    luaL_unref(L, LUA_REGISTRYINDEX, udata->cb_ready);
+    udata->cb_ready = -1;
+  }
+  if(udata->cb_message >= 0) {
+    luaL_unref(L, LUA_REGISTRYINDEX, udata->cb_message);
+    udata->cb_message = -1;
+  }
+  if(udata->cb_cleanup >= 0) {
+    luaL_unref(L, LUA_REGISTRYINDEX, udata->cb_cleanup);
+    udata->cb_cleanup = -1;
+  }
+}
+static void
+mtev_lua_ws_close_internal(lua_State *L, struct websocket_lua_t *udata) {
+  mtev_lua_ws_unref_bits(L, udata);
+  if(udata->client) {
+    mtev_websocket_client_t *client = udata->client;
+    udata->client = NULL;
+    mtev_websocket_client_free(client);
+  }
+}
+/*! \lua mtev.websocket_client:close()
+    \brief Close a websocket client.
+*/
+static int
+mtev_lua_ws_close(lua_State *L) {
+  struct websocket_lua_t *udata = lua_touserdata(L, lua_upvalueindex(1));
+  int n = lua_gettop(L);
+  if(n != 1) luaL_error(L, "mtev.websocket_client:close()");
+  if(lua_touserdata(L,1) != udata) luaL_error(L, "must be called as method");
+  return 1;
+}
+static int
+mtev_lua_ws_gc(lua_State *L) {
+  struct websocket_lua_t *udata = lua_touserdata(L,1);
+  mtev_lua_ws_close_internal(L, udata);
+  mtev_lua_ws_unref_bits(L, udata);
+  mtev_lua_resume_info_t *ci = mtev_lua_find_resume_info(L, mtev_false);
+  if(ci) mtev_lua_cancel_coro(ci);
+  return 0;
+}
+static int
+mtev_websocket_client_index_func(lua_State *L) {
+  int n;
+  const char *k;
+  struct websocket_lua_t *udata;
+  n = lua_gettop(L); /* number of arguments */
+  mtevAssert(n == 2);
+  if(!luaL_checkudata(L, 1, "mtev.websocket_client")) {
+    luaL_error(L, "metatable error, arg1 not a mtev.websocket_client!");
+  }
+  udata = lua_touserdata(L, 1);
+  if(!lua_isstring(L, 2)) {
+    luaL_error(L, "metatable error, arg2 not a string!");
+  }
+  k = lua_tostring(L, 2);
+  switch(*k) {
+    /* Values from the websocket RFC */
+    case 'B':
+      if(!strcmp(k, "BINARY")) { lua_pushinteger(L, 2); return 1; }
+      break;
+    case 'C':
+      if(!strcmp(k, "CONTINUATION")) { lua_pushinteger(L, 0); return 1; }
+      if(!strcmp(k, "CONNECTION_CLOSE")) { lua_pushinteger(L, 8); return 1; }
+      break;
+    case 'P':
+      if(!strcmp(k, "PING")) { lua_pushinteger(L, 9); return 1; }
+      if(!strcmp(k, "PONG")) { lua_pushinteger(L, 10); return 1; }
+      break;
+    case 'T':
+      if(!strcmp(k, "TEXT")) { lua_pushinteger(L, 1); return 1; }
+      break;
+    case 'c':
+      LUA_DISPATCH(close, mtev_lua_ws_close);
+    case 's':
+      LUA_DISPATCH(send, mtev_lua_ws_send);
+      break;
+  }
+  luaL_error(L, "mtev.websocket_client no such element: %s\n", k);
+  return 0;
+}
+
+static mtev_boolean nl_ws_cb_ready(mtev_websocket_client_t *client,
+                                   void *closure) {
+  struct websocket_lua_t *udata = closure;
+  if(udata->client == NULL) return mtev_false;
+  if(udata->L == NULL) return mtev_false;
+  mtevAssert(udata->client == client);
+  mtev_boolean rv = mtev_true;
+  lua_State *L = udata->L;
+
+  if(udata->cb_ready >= 0) {
+    lua_rawgeti(L, LUA_REGISTRYINDEX, udata->cb_ready);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, udata->self_idx);
+    int lrv = lua_pcall(L, 1, 1, 0);
+    if(lrv) {
+      int i;
+      mtevL(nlerr, "lua: ws ready handler failed\n");
+      mtev_lua_traceback(L);
+      i = lua_gettop(L);
+      if(i>0 && lua_isstring(L, i)) mtevL(nlerr, "lua: %s\n", lua_tostring(L, i));
+      lua_pop(L,i);
+      rv = mtev_false;
+    }
+    else {
+      rv = lua_toboolean(L,1);
+    }
+    lua_pop(L,lua_gettop(L));
+  }
+  return rv;
+}
+static mtev_boolean nl_ws_cb_message(mtev_websocket_client_t *client,
+                                     int opcode, const unsigned char *msg,
+                                     size_t msg_len, void *closure) {
+  struct websocket_lua_t *udata = closure;
+  if(udata->client == NULL) return mtev_false;
+  if(udata->L == NULL) return mtev_false;
+  mtevAssert(udata->client == client);
+  mtev_boolean rv = mtev_true;
+  lua_State *L = udata->L;
+
+  if(udata->cb_message >= 0) {
+    lua_rawgeti(L, LUA_REGISTRYINDEX, udata->cb_message);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, udata->self_idx);
+    lua_pushinteger(L, opcode);
+    lua_pushlstring(L, (const char *)msg, msg_len);
+    int lrv = lua_pcall(L, 3, 1, 0);
+    if(lrv) {
+      int i;
+      mtevL(nlerr, "lua: ws ready handler failed\n");
+      mtev_lua_traceback(L);
+      i = lua_gettop(L);
+      if(i>0 && lua_isstring(L, i)) mtevL(nlerr, "lua: %s\n", lua_tostring(L, i));
+      lua_pop(L,i);
+      rv = mtev_false;
+    }
+    else {
+      rv = lua_toboolean(L,1);
+    }
+    lua_pop(L,lua_gettop(L));
+  }
+  return rv;
+}
+static void nl_ws_cb_cleanup(mtev_websocket_client_t *client,
+                             void *closure) {
+  struct websocket_lua_t *udata = closure;
+  lua_State *L = udata->L;
+  if(udata->L == NULL) return;
+
+  if(udata->cb_cleanup >= 0) {
+    lua_rawgeti(L, LUA_REGISTRYINDEX, udata->cb_cleanup);
+    if(udata->client == NULL) lua_pushnil(L);
+    else lua_rawgeti(L, LUA_REGISTRYINDEX, udata->self_idx);
+    int lrv = lua_pcall(L, 1, 0, 0);
+    if(lrv) {
+      int i;
+      mtevL(nlerr, "lua: ws ready handler failed\n");
+      mtev_lua_traceback(L);
+      i = lua_gettop(L);
+      if(i>0 && lua_isstring(L, i)) mtevL(nlerr, "lua: %s\n", lua_tostring(L, i));
+    }
+    lua_pop(L,lua_gettop(L));
+  }
+  mtev_lua_ws_close_internal(L, udata);
+}
+static mtev_websocket_client_callbacks lua_ws_callbacks = {
+  nl_ws_cb_ready,
+  nl_ws_cb_message,
+  nl_ws_cb_cleanup
+};
+
+/*! \lua success = mtev.websocket_client_connect(host, port, uri, service, callbacks, sslconfig)
+    \brief Create a new web socket client.
+    \param host The host
+    \param port The port
+    \param uri The uri
+    \param service The service
+    \param callbacks A table of callbacks
+    \param sslconfig An optional non-empty table of ssl configuration.
+    \return True or false for success.
+
+    Callbacks may include:
+      * ready = function(mtev.websocket_client) return boolean
+      * message = function(mtev.websocket_client, opcode, payload) return boolean
+      * cleanup = function(mtev.websocket_client)
+    
+    If callbacks returning boolean return false, the connection will shutdown.
+    sslconfig can contain `ca_chain` `key` `cert` `layer` `ciphers` just as
+    with other SSL functions.
+*/
+static int
+nl_websocket_client_connect(lua_State *L) {
+  int n = lua_gettop(L);
+  if(n < 5 || n > 6) luaL_error(L, "wrong args");
+  const char *host = lua_tostring(L,1);
+  int port = lua_tointeger(L,2);
+  const char *path = lua_tostring(L,3);
+  const char *service = lua_tostring(L,4);
+  mtev_hash_table *sslconfig = NULL;
+  if(host == NULL) luaL_error(L, "bad host argument");
+  if(path == NULL) luaL_error(L, "bad path argument");
+  if(service == NULL) luaL_error(L, "bad service argument");
+  if(!lua_istable(L,5)) luaL_error(L, "bad callback table");
+  
+  if(n == 6) {
+    sslconfig = mtev_lua_table_to_hash(L, 6);
+  }
+
+  mtev_lua_resume_info_t *ci = mtev_lua_find_resume_info(L, mtev_true);
+  mtev_lua_resume_info_t *ri = ci->new_ri_f(ci->lmc);
+
+  struct websocket_lua_t *state = lua_newuserdata(ri->coro_state, sizeof(*state));
+  state->L = ri->coro_state;
+  luaL_getmetatable(state->L, "mtev.websocket_client");
+  lua_setmetatable(state->L, -2);
+  state->self_idx = luaL_ref(state->L, LUA_REGISTRYINDEX);
+  lua_rawgeti(state->L, LUA_REGISTRYINDEX, state->self_idx);
+#define SET_CB(name) do { \
+  lua_getfield(L,5,#name); \
+  if(lua_isnil(L,-1)) { state->cb_##name = -1; break; } \
+  if(!lua_isfunction(L,-1)) luaL_error(L, "callback " #name " not function"); \
+  lua_xmove(L, state->L, 1); \
+  state->cb_##name = luaL_ref(state->L, LUA_REGISTRYINDEX); \
+} while(0)
+  SET_CB(ready);
+  SET_CB(message);
+  SET_CB(cleanup);
+  state->client =
+    mtev_websocket_client_new(host, port, path, service,
+                              &lua_ws_callbacks, state, NULL, sslconfig);
+  if(sslconfig) mtev_hash_destroy(sslconfig, NULL, NULL);
+  free(sslconfig);
+  if(state->client == NULL) {
+    lua_pushboolean(L,mtev_false);
+    return 1;
+  }
+  lua_pushboolean(L,mtev_true);
+  return 1;
 }
 
 struct nl_wn_queue_node {
@@ -4972,6 +5247,7 @@ Use sha256_hex instead.
   { "shared_seq", nl_shared_seq},
   { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
   { "watchdog_timeout", nl_watchdog_timeout },
+  { "websocket_client_connect", nl_websocket_client_connect },
   { NULL, NULL }
 };
 
@@ -4993,6 +5269,13 @@ int luaopen_mtev(lua_State *L) {
   luaL_newmetatable(L, "mtev.eventer.ssl_ctx");
   lua_pushcclosure(L, mtev_ssl_ctx_index_func, 0);
   lua_setfield(L, -2, "__index");
+
+  luaL_newmetatable(L, "mtev.websocket_client");
+  lua_pushcclosure(L, mtev_websocket_client_index_func, 0);
+  lua_setfield(L, -2, "__index");
+  luaL_newmetatable(L, "mtev.websocket_client");
+  lua_pushcclosure(L, mtev_lua_ws_gc, 0);
+  lua_setfield(L, -2, "__gc");
 
   luaL_newmetatable(L, "mtev.process");
   lua_pushcfunction(L, mtev_lua_process_gc);
