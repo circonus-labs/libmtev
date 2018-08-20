@@ -585,7 +585,7 @@ mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
   return;
 }
 mtev_lua_resume_info_t *
-mtev_lua_get_resume_info(lua_State *L) {
+mtev_lua_get_resume_info_internal(lua_State *L, mtev_boolean create) {
   mtev_lua_resume_info_t *ri;
   void *v = NULL;
   pthread_mutex_lock(&coro_lock);
@@ -594,6 +594,10 @@ mtev_lua_get_resume_info(lua_State *L) {
     ri = v;
     mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
     return ri;
+  }
+  if(!create) {
+    pthread_mutex_unlock(&coro_lock);
+    return NULL;
   }
   ri = calloc(1, sizeof(*ri));
   ri->bound_thread = pthread_self();
@@ -617,6 +621,17 @@ mtev_lua_get_resume_info(lua_State *L) {
   pthread_mutex_unlock(&coro_lock);
   return ri;
 }
+mtev_lua_resume_info_t *
+mtev_lua_get_resume_info(lua_State *L) {
+  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_true);
+  return ri;
+}
+mtev_lua_resume_info_t *
+mtev_lua_find_resume_info(lua_State *L, mtev_boolean lua_error) {
+  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_false);
+  if(ri == NULL && lua_error) luaL_error(L, "coro terminated");
+  return ri;
+}
 
 static void
 mtev_event_dispose(void *ev) {
@@ -629,9 +644,11 @@ mtev_event_dispose(void *ev) {
     return;
   }
   mtevL(nldeb, "lua check cleanup: dropping (%p)->fd (%d)\n", e, eventer_get_fd(e));
-  removed = eventer_remove(e);
-  mtevL(nldeb, "    remove from eventer system %s\n",
-        removed ? "succeeded" : "failed");
+  if(eventer_get_mask(e) != 0) {
+    removed = eventer_remove(e);
+    mtevL(nldeb, "    remove from eventer system %s\n",
+          removed ? "succeeded" : "failed");
+  }
   cl = eventer_get_closure(e);
   if(cl) {
     if(eventer_get_mask(e) & (EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION)) {
@@ -823,7 +840,10 @@ mtev_lua_coroutine_spawn(lua_State *Lp,
   ri_parent = mtev_lua_get_resume_info(Lp);
   mtevAssert(ri_parent);
 
+  if(new_ri_f == NULL) new_ri_f = ri_parent->new_ri_f;
+
   ri = new_ri_f(ri_parent->lmc);
+  ri->new_ri_f = new_ri_f;
   L = ri->coro_state;
   lua_xmove(Lp, L, nargs);
 #if !defined(LUA_JITLIBNAME) && LUA_VERSION_NUM < 502
