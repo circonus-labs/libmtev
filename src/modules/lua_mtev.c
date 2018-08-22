@@ -1018,10 +1018,6 @@ mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
 
   ci = mtev_lua_find_resume_info(cl->L, mtev_false);
   if(!ci) { mtev_lua_eventer_cl_cleanup(e); return 0; }
-  mtev_lua_deregister_event(ci, e, 0);
-
-  *(cl->eptr) = eventer_alloc_copy(e);
-  mtev_lua_register_event(ci, *cl->eptr);
 
   /* Upgrade completed (successfully???) */
   nargs = 1;
@@ -1041,6 +1037,13 @@ mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
   else {
     mtevL(nldeb, "ssl_upgrade completed\n");
   }
+
+  eventer_remove_fde(e);
+  mtev_lua_deregister_event(ci, e, 0);
+  *(cl->eptr) = eventer_alloc_copy(e);
+  eventer_set_mask(*cl->eptr, 0);
+  mtev_lua_register_event(ci, *cl->eptr);
+
   ci->lmc->resume(ci, nargs);
   return 0;
 }
