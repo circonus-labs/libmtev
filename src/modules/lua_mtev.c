@@ -1854,6 +1854,7 @@ mtev_websocket_client_index_func(lua_State *L) {
       break;
     case 'c':
       LUA_DISPATCH(close, mtev_lua_ws_close);
+      break;
     case 's':
       LUA_DISPATCH(send, mtev_lua_ws_send);
       break;
