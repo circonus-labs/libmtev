@@ -54,6 +54,10 @@ typedef struct mtev_lua_resume_info mtev_lua_resume_info_t;
 
 typedef int (*mtev_lua_resume_t)(mtev_lua_resume_info_t *info, int nargs);
 
+typedef struct lua_module_gc_params lua_module_gc_params_t;
+
+API_EXPORT(lua_module_gc_params_t *) mtev_lua_config_gc_params(mtev_hash_table *);
+
 typedef struct lua_module_closure {
   lua_State *lua_state;
   mtev_hash_table *pending;
@@ -62,7 +66,11 @@ typedef struct lua_module_closure {
   int eventer_id;
   mtev_hash_table state_coros;
   mtev_dso_generic_t *self;
+  lua_module_gc_params_t *gcparams;
 } lua_module_closure_t;
+
+API_EXPORT(void) mtev_lua_set_gc_params(lua_module_closure_t *, lua_module_gc_params_t *);
+API_EXPORT(void) mtev_lua_gc(lua_module_closure_t *);
 
 /*! \fn lua_module_closure_t *mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_info_t *resume)
     \brief Allocated and initialize a `lua_module_closure_t` for a new runtime.

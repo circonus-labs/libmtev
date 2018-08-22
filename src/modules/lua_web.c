@@ -55,6 +55,7 @@ typedef struct lua_web_conf {
   int max_post_size;
   mtev_dso_generic_t *self;
   pthread_key_t key;
+  lua_module_gc_params_t *gc_params;
 } lua_web_conf_t;
 
 static lua_module_closure_t *mtev_lua_web_setup_lmc(mtev_dso_generic_t *self);
@@ -129,10 +130,8 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
 
   switch(status) {
     case 0:
-      lua_gc(ri->lmc->lua_state, LUA_GCCOLLECT, 0);
-      break;
     case LUA_YIELD:
-      lua_gc(ri->coro_state, LUA_GCCOLLECT, 0);
+      mtev_lua_gc(ri->lmc);
       return 0;
     default: /* The complicated case */
       if(ctx) ctx->httpcode = 500;
@@ -363,6 +362,7 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     free(copy);
   }
 
+  conf->gc_params = mtev_lua_config_gc_params(o);
   conf->max_post_size = DEFAULT_MAX_POST_SIZE;
   return 0;
 }
@@ -403,14 +403,8 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
   lua_module_closure_t *lmc = pthread_getspecific(conf->key);
 
   if(!lmc) {
-    lmc = calloc(1, sizeof(*lmc));
-    lmc->self = self;
-    mtev_hash_init(&lmc->state_coros);
-    lmc->resume = lua_web_resume;
-    lmc->owner = pthread_self();
-    lmc->eventer_id = eventer_is_loop(lmc->owner);
-    lmc->pending = calloc(1, sizeof(*lmc->pending));
-    mtev_hash_init(lmc->pending);
+    lmc = mtev_lua_lmc_alloc(self, lua_web_resume);
+    mtev_lua_set_gc_params(lmc, conf->gc_params);
     pthread_setspecific(conf->key, lmc);
   }
   if(lmc->lua_state == NULL) {

@@ -642,6 +642,23 @@ shipping another lua module) before you start.</p>
 <p>allowed: <code>/^(?:true|on|false|off)$/</code></p>
 <p>Specify if the function should be invoked in each concurrent
 eventer thread.</p>
+</li>
+<li><p><strong><code>gc_full</code></strong> (optional)  [default: <code>1000</code>]</p>
+<p>allowed: <code>/^^(?:0|[1-9]\d*)$$/</code></p>
+<p>Specify how many yield/resume iterations may happen before a
+full garbage collection cycle is performed (0 means never).</p>
+</li>
+<li><p><strong><code>gc_step</code></strong> (optional)  [default: <code>0</code>]</p>
+<p>allowed: <code>/^^(?:0|[1-9]\d*)$$/</code></p>
+<p>Specify the parameter to normal lua_gc LUA_GCSTEP calls.</p>
+</li>
+<li><p><strong><code>gc_stepmul</code></strong> (optional)  [default: <code>1</code>]</p>
+<p>allowed: <code>/^^(?:[1-9]\d*)$$/</code></p>
+<p>Set the lua gc step multiplier.</p>
+</li>
+<li><p><strong><code>gc_pause</code></strong> (optional)  [default: <code>200</code>]</p>
+<p>allowed: <code>/^^(?:[1-9]\d*)$$/</code></p>
+<p>Set the lua gc pause percentage.</p>
 <h3 id="examples">Examples</h3>
 </li>
 </ul>

@@ -48,6 +48,27 @@ startup.
 
    Specify if the function should be invoked in each concurrent
    eventer thread.
+ * **`gc_full`** (optional)  [default: `1000`]
+
+   allowed: `/^^(?:0|[1-9]\d*)$$/`
+
+   Specify how many yield/resume iterations may happen before a
+   full garbage collection cycle is performed (0 means never).
+ * **`gc_step`** (optional)  [default: `0`]
+
+   allowed: `/^^(?:0|[1-9]\d*)$$/`
+
+   Specify the parameter to normal lua_gc LUA_GCSTEP calls.
+ * **`gc_stepmul`** (optional)  [default: `1`]
+
+   allowed: `/^^(?:[1-9]\d*)$$/`
+
+   Set the lua gc step multiplier.
+ * **`gc_pause`** (optional)  [default: `200`]
+
+   allowed: `/^^(?:[1-9]\d*)$$/`
+
+   Set the lua gc pause percentage.
 ### Examples
 
 #### Loading the lua general module an run somefunction from the somemodule module.

@@ -58,6 +58,79 @@ static pthread_mutex_t mtev_lua_states_lock = PTHREAD_MUTEX_INITIALIZER;
 static mtev_hash_table mtev_coros;
 static pthread_mutex_t coro_lock = PTHREAD_MUTEX_INITIALIZER;
 
+struct lua_module_gc_params {
+  int iters_since_full;
+  int full_every;
+  int steps;
+  int steps_multiplier, set_steps_multiplier;
+  int pause_size, set_pause_size;
+};
+
+static lua_module_gc_params_t default_gc_params = {
+  .iters_since_full = 0,
+  .full_every = 1000,
+  .steps = 0,
+  .steps_multiplier = 1, .set_steps_multiplier = 1,
+  .pause_size = 200, .set_pause_size = 200
+};
+
+lua_module_gc_params_t *
+mtev_lua_config_gc_params(mtev_hash_table *o) {
+  lua_module_gc_params_t *p = calloc(1, sizeof(*p));
+  memcpy(p, &default_gc_params, sizeof(*p));
+  if(o) {
+    const char *str;
+    if(mtev_hash_retr_str(o, "gc_full", strlen("gc_full"), &str))
+      p->full_every = atoi(str);
+    if(mtev_hash_retr_str(o, "gc_step", strlen("gc_step"), &str))
+      p->steps = atoi(str);
+    if(mtev_hash_retr_str(o, "gc_pause", strlen("gc_pause"), &str))
+      p->set_pause_size = atoi(str);
+    if(mtev_hash_retr_str(o, "gc_stepmul", strlen("gc_stepmul"), &str))
+      p->set_steps_multiplier = atoi(str);
+  }
+  return p;
+}
+
+void
+mtev_lua_set_gc_params(lua_module_closure_t *lmc, lua_module_gc_params_t *p) {
+  if(lmc->gcparams == NULL) {
+    lua_module_gc_params_t *newp = calloc(1, sizeof(*newp));
+    memcpy(newp, p, sizeof(*p));
+    lmc->gcparams = newp;
+  }
+  else {
+    memcpy(lmc->gcparams, p, sizeof(*p));
+  }
+}
+
+void
+mtev_lua_gc(lua_module_closure_t *lmc) {
+  lua_State *L = lmc->lua_state;
+  lua_module_gc_params_t *p = lmc->gcparams;
+  if(!p) {
+    lua_gc(L, LUA_GCCOLLECT, 0);
+    return;
+  }
+
+  if(p->steps_multiplier != p->set_steps_multiplier) {
+    lua_gc(L, LUA_GCSETSTEPMUL, p->set_steps_multiplier);
+    p->steps_multiplier = p->set_steps_multiplier;
+  }
+  if(p->pause_size != p->set_pause_size) {
+    lua_gc(L, LUA_GCSETPAUSE, p->set_pause_size);
+    p->pause_size = p->set_pause_size;
+  }
+
+  p->iters_since_full++;
+  if(p->full_every && (p->iters_since_full > p->full_every)) {
+    p->iters_since_full = 0;
+    lua_gc(L, LUA_GCCOLLECT, 0);
+    return;
+  }
+  lua_gc(L, LUA_GCSTEP, p->steps);
+}
+
 lua_module_closure_t *
 mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
   lua_module_closure_t *lmc;
@@ -66,6 +139,7 @@ mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
   mtev_hash_init(lmc->pending);
   mtev_hash_init(&lmc->state_coros);
   lmc->owner = pthread_self();
+  lmc->eventer_id = eventer_is_loop(lmc->owner);
   lmc->self = self;
   lmc->resume = resume;
   return lmc;
@@ -272,7 +346,8 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
     char state_str[32];
     char thr_str[32];
     lua_State **Lptr = (lua_State **)iter.key.ptr;
-    pthread_t tgt = (pthread_t)(intptr_t)iter.value.ptr;
+    lua_module_closure_t *lmc = iter.value.ptr;
+    pthread_t tgt = lmc->owner;
     if(!pthread_equal(me, tgt)) continue;
 
     int thr_id = eventer_is_loop(me);
@@ -352,11 +427,20 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
   pthread_mutex_lock(&mtev_lua_states_lock);
   while(mtev_hash_adv(&mtev_lua_states, &iter)) {
     lua_State **Lptr = (lua_State **)iter.key.ptr;
-    pthread_t tgt = (pthread_t)(intptr_t)iter.value.ptr;
+    lua_module_closure_t *lmc = iter.value.ptr;
+    pthread_t tgt = lmc->owner;
     if(!pthread_equal(me, tgt)) continue;
     nc_printf(ncct, "master (state:%p)\n", *Lptr);
     nc_printf(ncct, "\tmemory: %d kb\n", lua_gc(*Lptr, LUA_GCCOUNT, 0));
-    nc_printf(ncct, "\n");
+    if(lmc->gcparams) {
+      lua_module_gc_params_t *p = lmc->gcparams;
+      if(p->full_every) {
+        nc_printf(ncct, "\tgc: %d/%d to full\n", p->iters_since_full, p->full_every);
+      } else {
+        nc_printf(ncct, "\tgc: full\n");
+      }
+    }
+    
   }
   pthread_mutex_unlock(&mtev_lua_states_lock);
 
@@ -371,6 +455,7 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
     L = *((lua_State **)iter.key.ptr);
     ri = iter.value.ptr;
     if(!pthread_equal(me, ri->lmc->owner)) continue;
+    nc_printf(ncct, "\n");
     describe_lua_context_ncct(ncct, ri);
     mtevL(nldeb, "describing lua state %p\n", L);
     nc_printf(ncct, "\tstack:\n");
@@ -961,11 +1046,12 @@ mtev_lua_open(const char *module_name, void *lmc,
 
   Lptr = malloc(sizeof(*Lptr));
   *Lptr = L;
-  pthread_mutex_lock(&mtev_lua_states_lock);
-  mtev_hash_store(&mtev_lua_states,
-                  (const char *)Lptr, sizeof(*Lptr),
-                  (void *)(intptr_t)pthread_self());
-  pthread_mutex_unlock(&mtev_lua_states_lock);
+  if(lmc) {
+    pthread_mutex_lock(&mtev_lua_states_lock);
+    mtev_hash_store(&mtev_lua_states,
+                    (const char *)Lptr, sizeof(*Lptr), lmc);
+    pthread_mutex_unlock(&mtev_lua_states_lock);
+  }
 
   return L;
 }

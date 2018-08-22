@@ -63,6 +63,7 @@ typedef struct lua_general_conf {
   const char *module;
   const char *function;
   const char **Cpreloads;
+  lua_module_gc_params_t *gc_params;
   mtev_boolean concurrent;
   mtev_boolean booted;
   mtev_boolean tragedy_terminates;
@@ -114,7 +115,7 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
   switch(status) {
     case 0: break;
     case LUA_YIELD:
-      lua_gc(ri->coro_state, LUA_GCCOLLECT, 0);
+      mtev_lua_gc(ri->lmc);
       return 0;
     default: /* The complicated case */
       mtevL(nlerr, "lua coro resume failed: %d\n", status);
@@ -273,6 +274,7 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     }
     free(copy);
   }
+  conf->gc_params = mtev_lua_config_gc_params(o);
   return 0;
 }
 
@@ -661,9 +663,8 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
   if(lmc) return 0;
 
   if(!lmc) {
-    lmc = calloc(1, sizeof(*lmc));
-    lmc->self = self;
-    mtev_hash_init(&lmc->state_coros);
+    lmc = mtev_lua_lmc_alloc(self, lua_general_resume);
+    mtev_lua_set_gc_params(lmc, conf->gc_params);
     pthread_setspecific(conf->key, lmc);
   }
 
@@ -672,9 +673,6 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     return -1;
   }
 
-  lmc->resume = lua_general_resume;
-  lmc->owner = pthread_self();
-  lmc->eventer_id = eventer_is_loop(lmc->owner);
   lmc->lua_state = mtev_lua_open(self->hdr.name, lmc,
                                  conf->script_dir, conf->cpath);
   mtevL(nldeb, "lua_general opening state -> %p\n", lmc->lua_state);
