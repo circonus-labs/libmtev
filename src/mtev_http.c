@@ -603,7 +603,6 @@ set_endpoint(mtev_http_session_ctx *ctx) {
   if(ctx->conn.e) {
     if(getsockname(eventer_get_fd(ctx->conn.e), &addr.addr, &addrlen) == 0) {
       if(addr.addr4.sin_family == AF_INET) {
-        addr.addr4.sin_addr.s_addr = ntohl(addr.addr4.sin_addr.s_addr);
         ip = &addr.addr4.sin_addr;
         port = ntohs(addr.addr4.sin_port);
       }
@@ -2648,10 +2647,8 @@ mtev_http_zipkip_span(mtev_http_session_ctx *ctx) {
 
 void
 mtev_http_init(void) {
-  struct in_addr remote = { .s_addr = 0xffffffff };
+  struct in_addr remote = { .s_addr = 0x08080808 };
   mtev_getip_ipv4(remote, &zipkin_ip_host);
-
-  zipkin_ip_host.s_addr = ntohl(zipkin_ip_host.s_addr);
 
   http_debug = mtev_log_stream_find("debug/http");
   http_access = mtev_log_stream_find("http/access");
