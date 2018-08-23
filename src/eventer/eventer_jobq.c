@@ -573,7 +573,6 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
           eventer_set_this_event(NULL);
           duration = mtev_gethrtime() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)my_precious, (void *)my_precious->callback, NULL, -1);
-          stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
           stats_set_hist_intscale(eventer_latency_handle_for_callback(my_precious->callback), duration, -9, 1);
         }
       }
@@ -744,7 +743,6 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
         duration = mtev_gethrtime() - start;
         LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, -1);
-        stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
         stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
         eventer_jobq_finished_job(jobq, job);
         pthread_mutex_unlock(&job->lock);
@@ -798,7 +796,6 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
           duration = mtev_gethrtime() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                   (void *)job->fd_event->callback, NULL, -1);
-          stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
           stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
           mtevL(eventer_deb, "jobq[%s] -> dispatch END\n", jobq->queue_name);
           if(job->fd_event && job->fd_event->mask & EVENTER_CANCEL)
@@ -841,7 +838,6 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
         duration = mtev_gethrtime() - start;
         LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                 (void *)job->fd_event->callback, NULL, -1);
-        stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
         stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
       }
 

@@ -127,17 +127,17 @@ static void init_cluster(void) {
 
 static int handler_subwork(eventer_t e, int mask, void *closure,
                         struct timeval *now) {
-  uintptr_t len = (uintptr_t)closure;
-  int i;
-  int us = (len % 1000000);
-  int lvl = (len / 10) % 10;
+  uintptr_t param = (uintptr_t)closure;
+  int lvl = param % 10;
   if(mask == EVENTER_ASYNCH_WORK) {
-    for(i=0;i<(10-lvl)/2;i++) {
-      long foo = mtev_rand() * 100;
-      foo += (lvl-1) * 10;
-      foo += i;
-      usleep(us/10);
-      eventer_add_asynch_dep(NULL, eventer_alloc_asynch(handler_subwork, (void *)foo));
+    for(int i=0;i<(6-lvl)/2;i++) {
+      uintptr_t nparam = mtev_rand() % 100000;
+      nparam /= 10;
+      nparam *= 10;
+      nparam += lvl + 1;
+      mtevL(mtev_error, "doing something useless: %d\n", lvl);
+      usleep(nparam);
+      eventer_add_asynch_dep(NULL, eventer_alloc_asynch(handler_subwork, (void *)nparam));
     }
   }
   return 0;
