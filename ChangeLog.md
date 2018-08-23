@@ -11,6 +11,8 @@
  * Remove local callback latency tracking
  * Add per-pool callback latency tracking
  * Skip epoch reclamation in threads that have never freed anything.
+ * Always do asynchronous barrier epoch collection from the eventloop.
+ * Batch asynchronous epoch reclamation to reduce epoch synching.
  * Fix lua/ssl_upgrade eventer actuation.
  * Add granular lua garbage collection configuration
    default: step 1000 time before a full collect.

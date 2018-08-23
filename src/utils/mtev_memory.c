@@ -201,25 +201,46 @@ mtev_memory_gc(void *unused) {
   (void)unused;
   mtev_thread_setname("mtev_memory_gc");
   mtev_memory_init_thread();
+  const int max_setsize = 100;
   while(1) {
     struct asynch_reclaim *ar;
+    struct asynch_reclaim *arset[max_setsize];;
+
+    /* These are various pending lists from other threads.
+     * Let's pull a whole bunch of these lists as one time.
+     */
+    ck_fifo_spsc_dequeue_lock(&gc_queue);
+    int setsize = 0;
+    while(setsize < max_setsize && ck_fifo_spsc_dequeue(&gc_queue, &ar)) {
+      arset[setsize++] = ar;
+    }
+    ck_fifo_spsc_dequeue_unlock(&gc_queue);
+
+    /* Now we have isolated lists of things that have been freed in the past.
+     * Let's make sure they are in the epoch past by moving out epoch forward
+     * and synchronizing.
+     */
     ck_epoch_begin(epoch_rec, NULL);
     ck_epoch_end(epoch_rec, NULL);
-    ck_fifo_spsc_dequeue_lock(&gc_queue);
-    while(ck_fifo_spsc_dequeue(&gc_queue, &ar)) {
+
 #ifdef HAVE_CK_EPOCH_SYNCHRONIZE_WAIT
-      ck_epoch_synchronize_wait(&epoch_ht, mtev_memory_sync_wait, NULL);
+    ck_epoch_synchronize_wait(&epoch_ht, mtev_memory_sync_wait, NULL);
 #else
-      ck_epoch_synchronize(epoch_rec);
+    ck_epoch_synchronize(epoch_rec);
 #endif
+
+    /* Now we hand them back from where they came and they are guaranteed
+     * to to be epoch safe.
+     */
+    for(int i=0; i<setsize; i++) {
+      ar = arset[i];
       ck_fifo_spsc_enqueue_lock(ar->backq);
       ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(ar->backq);
       if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
       ck_fifo_spsc_enqueue(ar->backq, fifo_entry, ar);
       ck_fifo_spsc_enqueue_unlock(ar->backq);
     }
-    ck_fifo_spsc_dequeue_unlock(&gc_queue);
-    usleep(500000);
+    if(setsize != max_setsize) usleep(500000);
   }
   return NULL;
 }
@@ -261,6 +282,8 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   }
   mtevAssert(epoch_rec->active == 0);
   switch(method) {
+    case MTEV_MM_NONE:
+      break;
     case MTEV_MM_BARRIER:
       ck_epoch_barrier(epoch_rec);
       success = mtev_true;

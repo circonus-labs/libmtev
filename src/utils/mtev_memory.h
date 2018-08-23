@@ -37,7 +37,8 @@
 typedef enum {
   MTEV_MM_BARRIER,
   MTEV_MM_TRY,
-  MTEV_MM_BARRIER_ASYNCH
+  MTEV_MM_BARRIER_ASYNCH,
+  MTEV_MM_NONE
 } mtev_memory_maintenance_method_t;
 
 API_EXPORT(void) mtev_memory_init(void); /* call once at process start */
