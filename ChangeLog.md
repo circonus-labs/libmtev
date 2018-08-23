@@ -2,26 +2,30 @@
 
 # 1
 
-## 1.4
+## 1.5
 
- * Make mtev_hash_merge_as_dict safe for NULL values.
- * Fix reported memory leak in dwarf reading.
- * Fix race conditions in freeing mtev_websocket_client_t
+### 1.5.0
+
+ * Make `mtev_hash_merge_as_dict` safe for NULL values.
+ * Fix reported memory leak in DWARF reading.
+ * Fix race conditions in freeing `mtev_websocket_client_t`.
  * Fix race in lua state (mtev lua coroutine) GC.
- * Remove local callback latency tracking
- * Add per-pool callback latency tracking
+ * Remove local callback latency tracking.
+ * Add per-pool callback latency tracking.
  * Skip epoch reclamation in threads that have never freed anything.
  * Always do asynchronous barrier epoch collection from the eventloop.
  * Batch asynchronous epoch reclamation to reduce epoch synching.
- * Fix lua/ssl_upgrade eventer actuation.
- * Add granular lua garbage collection configuration
+ * Fix lua/ssl\_upgrade eventer actuation.
+ * Add granular lua garbage collection configuration.
    default: step 1000 time before a full collect.
  * Monitor process now passes TERM, QUIT, and INT signals to child.
 
+## 1.4
+
 ### 1.4.6
 
- * Fix mtev.shared_seq() producing duplicate keys during startup.
- * Add mtev_cluster_node_get_idx to get a node's deterministic offset in a
+ * Fix `mtev.shared_seq()` producing duplicate keys during startup.
+ * Add `mtev_cluster_node_get_idx` to get a node's deterministic offset in a
    cluster topology.
 
 ### 1.4.5
