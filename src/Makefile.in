@@ -369,14 +369,15 @@ install:	install-bins install-docs install-headers install-libs install-modules
 clean:
 	rm -f *.lo *.o *.hlo *.Slo libmtev_dtrace_probes.h
 	for subdir in aco eventer noitedit utils json-lib; do \
-		rm -f $$subdir/*.lo $$subdir/*.o $$subdir/*.hlo $$subdir/.Slo ; \
+		rm -f $$subdir/*.lo $$subdir/*.o $$subdir/*.hlo $$subdir/*.Slo ; \
 	done
-	rm -f $(LIBMTEV) $(LIBMTEV_V)
+	rm -f $(LIBMTEV) $(LIBMTEV_V) @LUA_LUAMTEV@
 	rm -rf libmtev-objs
 	rm -rf mdb-support/*.lo mdb-support/*.so
 	$(MAKE) -C man clean
 	$(MAKE) -C modules clean
 	$(MAKE) -C examples clean
+	$(MAKE) -C utils/android-demangle clean
 
 Makefile.dep:
 	$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep

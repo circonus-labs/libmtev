@@ -168,7 +168,7 @@ install-amqp:	$(AMQP_MODULES)
 	done
 
 clean:
-	rm -f *.lo *.so *.@MODULEEXT@ *.xmlh $(RABBITMQ_DRIVER_OBJS)
+	rm -f *.lo *.so *.@MODULEEXT@ *.xmlh $(RABBITMQ_DRIVER_OBJS) $(LUA_MODULES) $(MTEV4LUA)
 
 distclean:	clean
 	rm -f Makefile
