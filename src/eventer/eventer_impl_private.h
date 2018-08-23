@@ -206,8 +206,10 @@ static inline int eventer_run_callback(eventer_t e, int m, void *c, struct timev
 }
 
 extern stats_ns_t *eventer_stats_ns;
-extern stats_handle_t *eventer_callback_latency;
+extern stats_handle_t *eventer_callback_latency_orphaned;
+extern __thread stats_handle_t *eventer_callback_pool_latency;
 extern stats_handle_t *eventer_unnamed_callback_latency;
+#define eventer_callback_latency (eventer_callback_pool_latency ? eventer_callback_pool_latency : eventer_callback_latency_orphaned)
 stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f);
 
 int eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name);

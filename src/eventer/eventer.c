@@ -46,7 +46,7 @@ eventer_impl_t __eventer;
 mtev_log_stream_t eventer_err;
 mtev_log_stream_t eventer_deb;
 stats_ns_t *eventer_stats_ns;
-stats_handle_t *eventer_callback_latency;
+stats_handle_t *eventer_callback_latency_orphaned;
 stats_handle_t *eventer_unnamed_callback_latency;
 static uint64_t ealloccnt;
 static uint64_t ealloctotal;
@@ -356,9 +356,9 @@ void eventer_init_globals(void) {
   eventer_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "eventer");
   mtev_hash_init_locks(&__name_to_func, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init_locks(&__func_to_name, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
-  eventer_callback_latency =
+  eventer_callback_latency_orphaned =
     stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
-                   "_aggregate", STATS_TYPE_HISTOGRAM_FAST);
+                   "_orphaned", STATS_TYPE_HISTOGRAM_FAST);
   eventer_unnamed_callback_latency =
     stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
                    "_unnamed", STATS_TYPE_HISTOGRAM_FAST);
