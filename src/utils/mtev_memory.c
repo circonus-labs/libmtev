@@ -48,6 +48,7 @@ static ck_fifo_spsc_t gc_queue;
 static __thread ck_fifo_spsc_t *return_gc_queue;
 static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
+static __thread mtev_boolean needs_maintenance = mtev_false;
 static void *mtev_memory_gc(void *unused);
 static mtev_log_stream_t mem_debug = NULL;
 static pthread_mutex_t mem_debug_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -108,6 +109,7 @@ mtev_boolean mtev_memory_barriers(mtev_boolean *b) {
 }
 
 void mtev_memory_maintenance(void) {
+  if(!needs_maintenance) return;
   ck_epoch_record_t epoch_temporary = *epoch_rec;
   if(!mem_debug) {
     pthread_mutex_lock(&mem_debug_lock);
@@ -229,6 +231,8 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   unsigned long n_dispatch = 0;
   mtev_boolean success = mtev_false;
   ck_epoch_record_t epoch_temporary =  *epoch_rec;
+
+  if(!needs_maintenance) return -1;
 
   if(!mem_debug) {
     pthread_mutex_lock(&mem_debug_lock);
@@ -370,6 +374,7 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
 
   if (r == true) {
     /* Destruction requires safe memory reclamation. */
+    needs_maintenance = mtev_true;
     ck_epoch_call(epoch_rec, &e->epoch_entry, f);
   } else {
     f(&e->epoch_entry);
