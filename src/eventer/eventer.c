@@ -125,6 +125,8 @@ eventer_t eventer_alloc_copy(eventer_t src) {
   eventer_t e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
   memcpy(e, src, sizeof(*e));
   e->refcnt = 1;
+  ck_pr_inc_64(&ealloccnt);
+  ck_pr_inc_64(&ealloctotal);
   for(int i=0; i<eventer_contexts_cnt; i++) {
     if(eventer_contexts[i].opset->eventer_t_copy) {
       eventer_contexts[i].opset->eventer_t_copy(e, src);
