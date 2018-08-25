@@ -150,8 +150,8 @@ mtev_lua_eventer_cl_cleanup(eventer_t e) {
     }
     if(eventer_get_mask(e) & (EVENTER_EXCEPTION|EVENTER_READ|EVENTER_WRITE)) {
       eventer_remove_fde(e);
-      eventer_close(e, &newmask);
     }
+    eventer_close(e, &newmask);
     if(cl->free) cl->free(cl);
     eventer_set_closure(e, NULL);
   }
