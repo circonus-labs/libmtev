@@ -524,19 +524,10 @@ int eventer_get_epoch(struct timeval *epoch) {
 int NE_SOCK_CLOEXEC = 0;
 int NE_O_CLOEXEC = 0;
 
-#define ITERS_PER_COLLECT 1000
-
 static int
 eventer_mtev_memory_maintenance(eventer_t e, int mask, void *c,
                                 struct timeval *now) {
-  unsigned int *counter = (unsigned int *)c;
-
-  if((*counter)++ > ITERS_PER_COLLECT) {
-    mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
-    *counter = 0;
-    return EVENTER_RECURRENT;
-  }
-  mtev_memory_maintenance_ex(MTEV_MM_NONE);
+  mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
   return 0;
 }
 static void eventer_per_thread_init(struct eventer_impl_data *t) {
@@ -574,7 +565,7 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
 
   e = eventer_alloc();
   e->mask = EVENTER_RECURRENT;
-  e->closure = calloc(1,sizeof(unsigned int));
+  e->closure = NULL;
   e->callback = eventer_mtev_memory_maintenance;
   eventer_add_recurrent(e);
 
