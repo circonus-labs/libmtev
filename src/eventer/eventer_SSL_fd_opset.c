@@ -1097,6 +1097,7 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   if(mask) *mask = 0;
   e->opset->set_opset_ctx(e, NULL);
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
+  e->fd = -1;
   (void)rv;
   return 0;
 }
