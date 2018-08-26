@@ -48,7 +48,12 @@ static ck_fifo_spsc_t gc_queue;
 static __thread ck_fifo_spsc_t *return_gc_queue;
 static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
-static __thread mtev_boolean needs_maintenance = mtev_false;
+/* needs_maintenance is used to avoid doing unnecessary work
+ * in the epoch free cycle.
+ * 0    means not participating, (never freed)
+ * &1   means freed something.
+ */
+static __thread uint64_t needs_maintenance = 0;
 static void *mtev_memory_gc(void *unused);
 static mtev_log_stream_t mem_debug = NULL;
 static pthread_mutex_t mem_debug_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -109,7 +114,7 @@ mtev_boolean mtev_memory_barriers(mtev_boolean *b) {
 }
 
 void mtev_memory_maintenance(void) {
-  if(!needs_maintenance) return;
+  if((needs_maintenance & 1) == 0) return;
   ck_epoch_record_t epoch_temporary = *epoch_rec;
   if(!mem_debug) {
     pthread_mutex_lock(&mem_debug_lock);
@@ -136,7 +141,6 @@ void mtev_memory_maintenance(void) {
 struct asynch_reclaim {
   ck_epoch_record_t *owner;
   ck_stack_t pending[CK_EPOCH_LENGTH];
-  unsigned int n_pending;
   ck_fifo_spsc_t *backq;
 };
 
@@ -253,7 +257,7 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   mtev_boolean success = mtev_false;
   ck_epoch_record_t epoch_temporary =  *epoch_rec;
 
-  if(!needs_maintenance) return -1;
+  if(needs_maintenance == 0) return -1;
 
   if(!mem_debug) {
     pthread_mutex_lock(&mem_debug_lock);
@@ -280,6 +284,12 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
     }
     method = MTEV_MM_BARRIER;
   }
+  /* If the 1 bit isn't set, we've not freed on this thread since last invocation.
+   * no sense in doing work to pass an "empty todo list" to asynch collection or
+   * attempt a poll or barrier.
+   */
+  if((needs_maintenance & 1) == 0) return 0;
+  needs_maintenance++; /* unsets the 1 bit */
   mtevAssert(epoch_rec->active == 0);
   switch(method) {
     case MTEV_MM_NONE:
@@ -296,7 +306,6 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
       ar->owner = epoch_rec;
       ar->backq = return_gc_queue;
       memcpy(ar->pending, epoch_rec->pending, sizeof(ar->pending));
-      ar->n_pending = epoch_rec->n_pending;
       memset(epoch_rec->pending, 0, sizeof(ar->pending));
       ck_fifo_spsc_enqueue_lock(&gc_queue);
       ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(&gc_queue);
@@ -397,7 +406,7 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
 
   if (r == true) {
     /* Destruction requires safe memory reclamation. */
-    needs_maintenance = mtev_true;
+    needs_maintenance |= 1;
     ck_epoch_call(epoch_rec, &e->epoch_entry, f);
   } else {
     f(&e->epoch_entry);
