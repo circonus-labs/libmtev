@@ -38,6 +38,7 @@
 
 #include <sys/socket.h>
 #include <unistd.h>
+#include <errno.h>
 
 static int
 POSIX_accept(int fd, struct sockaddr *addr, socklen_t *len,
@@ -75,10 +76,14 @@ POSIX_write(int fd, const void *buffer, size_t len,
 static int
 POSIX_close(int fd, int *mask, void *closure) {
   eventer_t e = closure;
-  int rv;
+  int rv = -1;
   *mask = 0;
   LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
-  rv = close(fd);
+  if(fd < 0) {
+    errno = EBADFD;
+  } else {
+    rv = close(fd);
+  }
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
   mtevL(eventer_deb, "POSIX_close(%d) -> %d\n", fd, rv);
   e->fd = -1;
