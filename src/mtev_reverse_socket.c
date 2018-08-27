@@ -939,7 +939,7 @@ socket_error:
         int reqlen = strlen(*req);
         if(!strncmp(rc->id, *req, reqlen)) {
           if(strcmp(rc->id+reqlen, remote_cn ? remote_cn : "")) {
-            mtevL(nlerr, "attempted reverse connection '%s' invalid remote '%s'\n",
+            mtevL(nldeb, "attempted reverse connection '%s' invalid remote '%s'\n",
                   rc->id+reqlen, remote_cn ? remote_cn : "");
             free(rc->id);
             rc->id = NULL;
@@ -950,7 +950,7 @@ socket_error:
 
       switch(mtev_reverse_socket_allowed(rc->id, ac)) {
         case MTEV_ACL_DENY:
-          mtevL(nlerr, "attempted reverse connection '%s' from '%s' denied by policy\n",
+          mtevL(nldeb, "attempted reverse connection '%s' from '%s' denied by policy\n",
                   rc->id, remote_cn ? remote_cn : "");
           free(rc->id);
           rc->id = NULL;
