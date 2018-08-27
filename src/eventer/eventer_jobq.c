@@ -434,13 +434,48 @@ eventer_jobq_try_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t
   return mtev_true;
 }
 
+struct jobq_stage {
+  struct jobq_stage *next;
+  eventer_jobq_t *jobq;
+  eventer_job_t *job, *parent;
+};
+static struct jobq_stage *pending_boot_head, *pending_boot_tail;
+void
+eventer_jobq_stage_process_boot(void) {
+  mtevAssert(eventer_loop_started());
+  struct jobq_stage *node;
+  while(NULL != (node = pending_boot_head)) {
+    eventer_jobq_enqueue(node->jobq, node->job, node->parent);
+    pending_boot_head = pending_boot_head->next;
+    free(node);
+  }
+  pending_boot_tail = pending_boot_head;
+}
+static void
+eventer_jobq_stage_until_boot(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
+  struct jobq_stage *node = calloc(1, sizeof(*node));
+  node->jobq = jobq;
+  node->job = job;
+  node->parent = parent;
+  if(pending_boot_tail) pending_boot_tail->next = node;
+  else pending_boot_head = node;
+  pending_boot_tail = node;
+}
 void
 eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
+  static mtev_boolean started = mtev_false;
   job->next = NULL;
   /* Do not increase the concurrency from zero for a noop */
   if(ck_pr_load_32(&jobq->concurrency) == 0 && job->fd_event == NULL) {
     free(job);
     return;
+  }
+  if(!started) {
+    started = eventer_loop_started();
+    if(!started) {
+      eventer_jobq_stage_until_boot(jobq, job, parent); 
+      return;
+    }
   }
   if(job->fd_event) ck_pr_inc_32(&jobq->backlog);
   eventer_jobq_enqueue_internal(jobq, job, parent);
