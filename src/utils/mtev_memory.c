@@ -45,6 +45,8 @@
 static int initialized = 0;
 static int asynch_gc = 0;
 static ck_fifo_spsc_t gc_queue;
+static uint64_t gc_queue_enqueued = 0;
+static uint64_t gc_queue_requeued = 0;
 static __thread ck_fifo_spsc_t *return_gc_queue;
 static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
@@ -70,21 +72,40 @@ void mtev_memory_init_thread(void) {
 }
 
 void mtev_memory_fini_thread(void) {
+  if(return_gc_queue != NULL) {
+    uint64_t st_enq = ck_pr_load_64(&gc_queue_enqueued);
+    mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
+    while(ck_pr_load_64(&gc_queue_requeued) < st_enq) {
+      mtev_memory_maintenance_ex(MTEV_MM_NONE);
+      usleep(100);
+    }
+    mtev_memory_maintenance_ex(MTEV_MM_NONE);
+    ck_fifo_spsc_entry_t *garbage = NULL;
+    ck_fifo_spsc_deinit(return_gc_queue, &garbage);
+    while (garbage != NULL) {
+      ck_fifo_spsc_entry_t *n = garbage->next;
+      free(garbage);
+      garbage = n;
+    }
+  }
   if(epoch_rec != NULL) {
     ck_epoch_unregister(epoch_rec);
     epoch_rec = NULL;
   }
 }
 
-void mtev_memory_init(void) {
+void
+mtev_memory_gc_asynch(void) {
+  static pid_t work_pid;
+  pid_t current_pid;
   pthread_attr_t tattr;
   pthread_t tid;
-  if(initialized) return;
-  initialized = 1;
-  ck_epoch_init(&epoch_ht);
-  mtev_memory_init_thread();
 
-  ck_fifo_spsc_init(&gc_queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
+  current_pid = getpid();
+  /* If the work pid is this pid, we already have a thread running. */
+  if(current_pid == work_pid) return;
+  work_pid = current_pid;
+
   pthread_attr_init(&tattr);
   pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
   asynch_gc = 1;
@@ -95,6 +116,20 @@ void mtev_memory_init(void) {
     mtevL(mem_debug, "mtev_memory failed to spawn gc thread\n");
     asynch_gc = 0;
   }
+}
+static void mtev_memory_gc_restart_thread(void) {
+  /* If we think we're async, we should have a thread */
+  if(ck_pr_load_int(&asynch_gc)) mtev_memory_gc_asynch();
+}
+void mtev_memory_init(void) {
+  if(initialized) return;
+  initialized = 1;
+
+  ck_epoch_init(&epoch_ht);
+  mtev_memory_init_thread();
+
+  ck_fifo_spsc_init(&gc_queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
+  pthread_atfork(NULL,NULL,mtev_memory_gc_restart_thread);
 }
 
 typedef bool (*e_sweep_t)(ck_epoch_record_t *);
@@ -206,7 +241,8 @@ mtev_memory_gc(void *unused) {
   mtev_thread_setname("mtev_memory_gc");
   mtev_memory_init_thread();
   const int max_setsize = 100;
-  while(1) {
+  mtevL(mem_debug, "GC maintenance thread pid:%d exiting.\n", getpid());
+  while(ck_pr_load_int(&asynch_gc) == 1) {
     struct asynch_reclaim *ar;
     struct asynch_reclaim *arset[max_setsize];;
 
@@ -241,11 +277,14 @@ mtev_memory_gc(void *unused) {
       ck_fifo_spsc_enqueue_lock(ar->backq);
       ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(ar->backq);
       if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
+      ck_pr_inc_64(&gc_queue_requeued);
       ck_fifo_spsc_enqueue(ar->backq, fifo_entry, ar);
       ck_fifo_spsc_enqueue_unlock(ar->backq);
     }
     if(setsize != max_setsize) usleep(500000);
   }
+  mtevL(mem_debug, "GC maintenance thread pid:%d exiting.\n", getpid());
+  mtev_memory_fini_thread();
   return NULL;
 }
 
@@ -310,6 +349,7 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
       ck_fifo_spsc_enqueue_lock(&gc_queue);
       ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(&gc_queue);
       if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
+      ck_pr_inc_64(&gc_queue_enqueued);
       ck_fifo_spsc_enqueue(&gc_queue, fifo_entry, ar);
       ck_fifo_spsc_enqueue_unlock(&gc_queue);
       success = mtev_true;

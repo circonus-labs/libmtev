@@ -42,6 +42,7 @@ typedef enum {
 } mtev_memory_maintenance_method_t;
 
 API_EXPORT(void) mtev_memory_init(void); /* call once at process start */
+API_EXPORT(void) mtev_memory_gc_asynch(void); /* Make asynch gc work */
 API_EXPORT(void) mtev_memory_init_thread(void); /* at subsequent thread start */
 API_EXPORT(void) mtev_memory_fini_thread(void); /* at thread exit */
 API_EXPORT(mtev_boolean) mtev_memory_thread_initialized(void);

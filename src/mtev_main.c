@@ -503,6 +503,7 @@ mtev_main(const char *appname,
     mtevL(mtev_notice, "%s booting [unmanaged, pid: %d]\n", appname, (int)getpid());
     const char *diagnose = getenv("MTEV_DIAGNOSE_CRASH");
     if(!diagnose || strcmp(diagnose,"0")) mtev_setup_crash_signals(mtev_self_diagnose);
+    mtev_memory_gc_asynch();
     int rv = passed_child_main();
     mtev_lockfile_release(lockfd);
     return rv;
@@ -556,6 +557,7 @@ mtev_main(const char *appname,
 
   signal(SIGHUP, SIG_IGN);
   mtevL(mtev_notice, "%s booting [manager, pid: %d]\n", appname, (int)getpid());
+  pthread_atfork(NULL, NULL, mtev_memory_gc_asynch);
   rv = mtev_watchdog_start_child(appname, passed_child_main, watchdog_timeout);
   mtev_lockfile_release(lockfd);
   return rv;
