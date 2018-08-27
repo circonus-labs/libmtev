@@ -130,6 +130,8 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
 
   switch(status) {
     case 0:
+      mtev_lua_gc(ri->lmc);
+      break;
     case LUA_YIELD:
       mtev_lua_gc(ri->lmc);
       return 0;

@@ -1044,9 +1044,9 @@ mtev_lua_open(const char *module_name, void *lmc,
 
   lua_gc(L, LUA_GCRESTART, 0);
 
-  Lptr = malloc(sizeof(*Lptr));
-  *Lptr = L;
   if(lmc) {
+    Lptr = malloc(sizeof(*Lptr));
+    *Lptr = L;
     pthread_mutex_lock(&mtev_lua_states_lock);
     mtev_hash_store(&mtev_lua_states,
                     (const char *)Lptr, sizeof(*Lptr), lmc);
