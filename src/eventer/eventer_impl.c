@@ -221,6 +221,7 @@ static uint32_t __default_queue_threads = 5;
 static uint32_t __total_loop_count = 0;
 static uint32_t __total_loops_waiting = 0;
 static uint32_t __default_loop_concurrency = 0;
+static uint32_t __global_loops_should_start = 0;
 static eventer_jobq_t *__default_jobq;
 
 struct eventer_pool_t {
@@ -629,7 +630,7 @@ static void *thrloopwrap(void *vid) {
 
   /* Wait until all threads have started */
   ck_pr_inc_32(&__total_loops_waiting);
-  while (ck_pr_load_32(&__total_loops_waiting) != ck_pr_load_32(&__total_loop_count)) {
+  while (ck_pr_load_32(&__global_loops_should_start) != 1) {
     usleep(100);
   }
 
@@ -642,6 +643,7 @@ void eventer_loop_return(void) {
     usleep(100);
     mtevL(mtev_debug, "Waiting for primed loops to start.\n");
   }
+  ck_pr_store_32(&__global_loops_should_start, 1);
 }
 
 void eventer_loop(void) {
