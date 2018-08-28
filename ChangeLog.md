@@ -4,6 +4,15 @@
 
 ## 1.5
 
+### 1.5.1
+
+ * Fix a bug where we were not always closing the socket/connection
+   in lua_web_resume - could cause connections to hang.
+ * Fix a lock contention issue that occurred at startup.
+ * Fix a memory leak in the lua path.
+ * Fix some clean targets in the Makefile that were inadequate.
+ * Move some logging from error log to debug log.
+
 ### 1.5.0
 
  * Make `mtev_hash_merge_as_dict` safe for NULL values.
