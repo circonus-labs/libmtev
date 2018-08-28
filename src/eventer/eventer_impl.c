@@ -66,8 +66,6 @@ __thread stats_handle_t *eventer_callback_pool_latency;
 #define NS_PER_US 1000
 
 static void *thrloopwrap(void *);
-static pthread_mutex_t loop_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t loop_cond = PTHREAD_COND_INITIALIZER;
 
 static unsigned long __ck_hash_from_uint64(const void *key, unsigned long seed) {
   return (*(uint64_t *)key) ^ seed;
@@ -223,6 +221,7 @@ static uint32_t __default_queue_threads = 5;
 static uint32_t __total_loop_count = 0;
 static uint32_t __total_loops_waiting = 0;
 static uint32_t __default_loop_concurrency = 0;
+static uint32_t __global_loops_should_start = 0;
 static eventer_jobq_t *__default_jobq;
 
 struct eventer_pool_t {
@@ -628,11 +627,13 @@ static void *thrloopwrap(void *vid) {
   mtev_memory_init_thread();
   eventer_set_thread_name(thr_name);
   eventer_per_thread_init(t);
-  /* We wait on a barrier, for eventer_loop* */
-  pthread_mutex_lock(&loop_lock);
+
+  /* Wait until all threads have started */
   ck_pr_inc_32(&__total_loops_waiting);
-  pthread_cond_wait(&loop_cond, &loop_lock);
-  pthread_mutex_unlock(&loop_lock);
+  while (ck_pr_load_32(&__global_loops_should_start) != 1) {
+    usleep(100);
+  }
+
   mtevL(mtev_debug, "eventer_loop(%s) started\n", thr_name);
   return (void *)(intptr_t)__eventer->loop(id);
 }
@@ -642,7 +643,7 @@ void eventer_loop_return(void) {
     usleep(100);
     mtevL(mtev_debug, "Waiting for primed loops to start.\n");
   }
-  pthread_cond_broadcast(&loop_cond);
+  ck_pr_store_32(&__global_loops_should_start, 1);
 }
 
 void eventer_loop(void) {
