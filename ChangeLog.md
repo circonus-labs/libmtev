@@ -4,6 +4,10 @@
 
 ## 1.5
 
+### 1.5.2
+
+ * Fix gc_full=1 to fire on every invocation as documented.
+
 ### 1.5.1
 
  * Fix a bug where we were not always closing the socket/connection
