@@ -123,7 +123,7 @@ mtev_lua_gc(lua_module_closure_t *lmc) {
   }
 
   p->iters_since_full++;
-  if(p->full_every && (p->iters_since_full > p->full_every)) {
+  if(p->full_every && (p->iters_since_full >= p->full_every)) {
     p->iters_since_full = 0;
     lua_gc(L, LUA_GCCOLLECT, 0);
     return;
