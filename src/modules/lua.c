@@ -205,6 +205,7 @@ void
 mtev_lua_set_resume_info(lua_State *L, mtev_lua_resume_info_t *ri) {
   lua_getglobal(L, "mtev_internal_lmc");
   ri->lmc = lua_touserdata(L, lua_gettop(L));
+  lua_pop(L,1);
   mtevL(nldeb, "coro_store -> %p\n", ri->coro_state);
   lua_State **Lp = malloc(sizeof(*Lp));
   *Lp = ri->coro_state;
@@ -648,27 +649,13 @@ mtev_lua_traceback(lua_State *L) {
   return 1;
 }
 
-void 
+void
 mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
-  lua_module_closure_t *lmc = ri->lmc;
-  lua_State *L = lmc->lua_state;
-  lua_getglobal(L, "mtev_coros");
-  ri->coro_state = lua_newthread(L);
-  ri->coro_state_ref = luaL_ref(L, -2);
-  lua_pop(L, 1); /* pops mtev_coros */
-  mtevL(nldeb, "coro_store -> %p\n", ri->coro_state);
-  lua_State **Lp = malloc(sizeof(*Lp));
-  *Lp = ri->coro_state;
-  mtevAssert(mtev_hash_store(&lmc->state_coros,
-                  (const char *)Lp, sizeof(*Lp),
-                  ri));
-  pthread_mutex_lock(&coro_lock);
-  mtevAssert(mtev_hash_store(&mtev_coros,
-                  (const char *)Lp, sizeof(*Lp),
-                  ri));
-  pthread_mutex_unlock(&coro_lock);
+  mtevL(mtev_error, "mtev_lua_new_coro is an invalid API.\n");
+  mtev_stacktrace(mtev_error);
   return;
 }
+
 mtev_lua_resume_info_t *
 mtev_lua_get_resume_info_internal(lua_State *L, mtev_boolean create) {
   mtev_lua_resume_info_t *ri;
