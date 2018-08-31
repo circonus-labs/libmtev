@@ -723,7 +723,7 @@ mtev_event_dispose(void *ev) {
   }
   cl = eventer_get_closure(e);
   if(cl) {
-    if(eventer_get_mask(e) & (EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION)) {
+    if(eventer_get_fd_opset(e) != NULL) {
       mtevL(nldeb, "    closing down fd %d\n", eventer_get_fd(e));
       eventer_close(e, &mask);
     }

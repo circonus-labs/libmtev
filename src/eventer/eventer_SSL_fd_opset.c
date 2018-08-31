@@ -1086,14 +1086,18 @@ eventer_SSL_write(int fd, const void *buffer, size_t len, int *mask,
 /* Close simply shuts down the SSL site and closes the file descriptor. */
 static int
 eventer_SSL_close(int fd, int *mask, void *closure) {
-  int rv;
+  int rv = -1;
   eventer_t e = closure;
   eventer_ssl_ctx_t *ctx = e->opset->get_opset_ctx(e);
   LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
   ERR_clear_error();
   SSL_shutdown(ctx->ssl);
   eventer_ssl_ctx_free(ctx);
-  rv = close(fd);
+  if(fd < 0) {
+    errno = EBADFD;
+  } else {
+    rv = close(fd);
+  }
   if(mask) *mask = 0;
   e->opset->set_opset_ctx(e, NULL);
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
