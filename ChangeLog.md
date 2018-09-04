@@ -4,14 +4,23 @@
 
 ## 1.5
 
+### 1.5.3
+
+ * Fix asynchronous memory reclamation.
+ * Do not start eventer threads before `eventer_loop`.
+ * Protect against attempting to close invalid file descriptors.
+ * Do proper cleanup of eventer objects, even if not registered. This bug was
+   introduced in 1.5.0 with the lua GC race fix.
+ * Fix internal accounting stats for eventer allocations.
+
 ### 1.5.2
 
- * Fix gc_full=1 to fire on every invocation as documented.
+ * Fix `gc_full=1` to fire on every invocation as documented.
 
 ### 1.5.1
 
  * Fix a bug where we were not always closing the socket/connection
-   in lua_web_resume - could cause connections to hang.
+   in `lua_web_resume` - could cause connections to hang.
  * Fix a lock contention issue that occurred at startup.
  * Fix a memory leak in the lua path.
  * Fix some clean targets in the Makefile that were inadequate.
