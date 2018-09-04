@@ -702,9 +702,6 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     free(symbol);
   }
 
-  lmc->pending = calloc(1, sizeof(*lmc->pending));
-  mtev_hash_init(lmc->pending);
-
   if(conf->booted) return true;
   conf->booted = mtev_true;
   eventer_add_in_s_us(dispatch_general, self, 0, 0);
