@@ -571,7 +571,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
               else if(rv != 0 && errno != ECHILD) {
                 mtevL(mtev_error, "[monitor] unexpected return from emancipated waitpid: %d (%s)\n", rv, strerror(errno));
               }
-              mtevL(mtev_error, "[monitor] resuming serivces for child %d\n", child_pid);
+              mtevL(mtev_error, "[monitor] resuming services for child %d\n", child_pid);
               crashing_pid =-1;
             }
 
