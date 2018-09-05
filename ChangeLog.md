@@ -4,6 +4,13 @@
 
 ## 1.5
 
+### 1.5.4
+
+ * Revert "Do not start eventer threads before `eventer_loop`". It caused more
+   problems than it solved.
+ * Don't gate startup of event loops.
+ * Fix a leak of per-thread Lua closure structs.
+
 ### 1.5.3
 
  * Fix asynchronous memory reclamation.
