@@ -193,8 +193,6 @@ void eventer_set_this_event(eventer_t e);
 void eventer_callback_prep(eventer_t, int, void *, struct timeval *);
 void eventer_update_timed_internal(eventer_t e, int mask, struct timeval *);
 void eventer_callback_cleanup(eventer_t, int);
-mtev_boolean eventer_loop_started(void);
-void eventer_jobq_stage_process_boot(void);
 
 static inline int eventer_run_callback(eventer_t e, int m, void *c, struct timeval *n) {
   int rmask;
