@@ -65,7 +65,6 @@ __thread stats_handle_t *eventer_callback_pool_latency;
 #define NS_PER_MS 1000000
 #define NS_PER_US 1000
 
-static void eventer_start_threads(void);
 static void *thrloopwrap(void *);
 
 static unsigned long __ck_hash_from_uint64(const void *key, unsigned long seed) {
@@ -223,9 +222,6 @@ static uint32_t __total_loop_count = 0;
 static uint32_t __total_loops_waiting = 0;
 static uint32_t __default_loop_concurrency = 0;
 static uint32_t __global_loops_should_start = 0;
-mtev_boolean eventer_loop_started(void) {
-  return __global_loops_should_start != 0;
-}
 static eventer_jobq_t *__default_jobq;
 
 struct eventer_pool_t {
@@ -347,7 +343,6 @@ static struct eventer_impl_data *get_tls_impl_data(pthread_t tid) {
     if(pthread_equal(eventer_impl_tls_data[i].tid, tid))
       return &eventer_impl_tls_data[i];
   }
-  if(tid == 0) return &eventer_impl_tls_data[0];
   mtevL(mtev_error, "get_tls_impl_data called from non-eventer thread\n");
   return NULL;
 }
@@ -536,12 +531,32 @@ eventer_mtev_memory_maintenance(eventer_t e, int mask, void *c,
   return 0;
 }
 static void eventer_per_thread_init(struct eventer_impl_data *t) {
+  char qname[80];
   eventer_t e;
 
-  mtevAssert(my_impl_data == NULL);
+  if(t->timed_events != NULL) return;
+
   t->tid = pthread_self();
   my_impl_data = t;
 
+  pthread_mutex_init(&t->cross_lock, NULL);
+  pthread_mutex_init(&t->te_lock, NULL);
+  pthread_mutex_init(&t->recurrent_lock, NULL);
+  t->timed_events = mtev_skiplist_alloc();
+  mtev_skiplist_set_compare(t->timed_events,
+                            eventer_timecompare, eventer_timecompare);
+  mtev_skiplist_add_index(t->timed_events,
+                          mtev_compare_voidptr, mtev_compare_voidptr);
+  t->staged_timed_events = mtev_skiplist_alloc();
+  mtev_skiplist_set_compare(t->staged_timed_events,
+                            eventer_timecompare, eventer_timecompare);
+  mtev_skiplist_add_index(t->staged_timed_events,
+                          mtev_compare_voidptr, mtev_compare_voidptr);
+
+  snprintf(qname, sizeof(qname), "default_back_queue/%d", t->id);
+  t->__global_backq = eventer_jobq_create_backq(qname);
+  snprintf(qname, sizeof(qname), "bq:%d", t->id);
+  eventer_jobq_set_shortname(t->__global_backq, qname);
   e = eventer_alloc();
   e->mask = EVENTER_RECURRENT;
   e->closure = t->__global_backq;
@@ -615,14 +630,11 @@ static void *thrloopwrap(void *vid) {
 }
 
 void eventer_loop_return(void) {
-  eventer_start_threads();
   while(ck_pr_load_32(&__total_loop_count) != ck_pr_load_32(&__total_loops_waiting)) {
     usleep(100);
     mtevL(mtev_debug, "Waiting for primed loops to start.\n");
   }
   ck_pr_store_32(&__global_loops_should_start, 1);
-  /* Any pending jobs that need to be queued */
-  eventer_jobq_stage_process_boot();
 }
 
 void eventer_loop(void) {
@@ -640,8 +652,7 @@ static void eventer_loop_prime(eventer_pool_t *pool, int start) {
     mtevAssert(pool == eventer_impl_tls_data[adjidx].pool);
     pthread_create(&tid, NULL, thrloopwrap, (void *)(intptr_t)adjidx);
   }
-  while(ck_pr_load_32(&pool->__loops_started) < ck_pr_load_32(&pool->__loop_concurrency))
-    usleep(100);
+  while(ck_pr_load_32(&pool->__loops_started) < ck_pr_load_32(&pool->__loop_concurrency));
 }
 
 static void hw_topo_free(hwloc_topology_t *topo) {
@@ -716,31 +727,6 @@ eventer_impl_tls_data_from_pool(eventer_pool_t *pool) {
     int adjidx = pool->__global_tid_offset + i;
     struct eventer_impl_data *t = &eventer_impl_tls_data[adjidx];
     t->pool = pool;
-  }
-}
-static void
-eventer_impl_tls_data_setup(int count) {
-  char qname[80];
-  for(int i=0; i<count ;i++) {
-    struct eventer_impl_data *t = &eventer_impl_tls_data[i];
-    pthread_mutex_init(&t->cross_lock, NULL);
-    pthread_mutex_init(&t->te_lock, NULL);
-    pthread_mutex_init(&t->recurrent_lock, NULL);
-    t->timed_events = mtev_skiplist_alloc();
-    mtev_skiplist_set_compare(t->timed_events,
-                              eventer_timecompare, eventer_timecompare);
-    mtev_skiplist_add_index(t->timed_events,
-                            mtev_compare_voidptr, mtev_compare_voidptr);
-    t->staged_timed_events = mtev_skiplist_alloc();
-    mtev_skiplist_set_compare(t->staged_timed_events,
-                              eventer_timecompare, eventer_timecompare);
-    mtev_skiplist_add_index(t->staged_timed_events,
-                            mtev_compare_voidptr, mtev_compare_voidptr);
-
-    snprintf(qname, sizeof(qname), "default_back_queue/%d", t->id);
-    t->__global_backq = eventer_jobq_create_backq(qname);
-    snprintf(qname, sizeof(qname), "bq:%d", t->id);
-    eventer_jobq_set_shortname(t->__global_backq, qname);
   }
 }
 
@@ -862,29 +848,30 @@ int eventer_impl_init(void) {
   }
   eventer_impl_tls_data = calloc(__total_loop_count, sizeof(*eventer_impl_tls_data));
 
+  int accum_check = 0;
+
+  /* first the default pool */
+  eventer_impl_tls_data_from_pool(&default_pool);
+  pthread_create(&eventer_impl_tls_data[0].tid, NULL, thrloopwrap, NULL);
+  /* thread 0 is this thread, so we prime starting at 1 */
+  eventer_loop_prime(&default_pool, 1);
+  accum_check += default_pool.__loop_concurrency;
+
+  /* then everythign but the default pool */
   memset(&iter, 0, sizeof(iter));
   while(mtev_hash_adv(&eventer_pools, &iter)) {
     eventer_pool_t *pool = iter.value.ptr;
+    if(pool == &default_pool) continue;
     eventer_impl_tls_data_from_pool(pool);
+    eventer_loop_prime(pool, 0); /* prime all threads starting at 0 */
+    accum_check += pool->__loop_concurrency;
   }
-  eventer_impl_tls_data_setup(__total_loop_count);
+  mtevAssert(accum_check == __total_loop_count);
 
   eventer_ssl_init();
 
   eventer_jobq_process_each(register_jobq_maintenance, NULL);
   return 0;
-}
-
-static void eventer_start_threads(void) {
-  int accum_check = 0;
-  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  memset(&iter, 0, sizeof(iter));
-  while(mtev_hash_adv(&eventer_pools, &iter)) {
-    eventer_pool_t *pool = iter.value.ptr;
-    eventer_loop_prime(pool, 0);
-    accum_check += pool->__loop_concurrency;
-  }
-  mtevAssert(accum_check == __total_loop_count);
 }
 
 void eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
@@ -1169,7 +1156,6 @@ void eventer_cross_thread_trigger(eventer_t e, int mask) {
   struct eventer_impl_data *t;
   struct cross_thread_trigger *ctt;
   t = get_event_impl_data(e);
-  if(e->thr_owner == 0) e->thr_owner = t->tid;
   ctt = malloc(sizeof(*ctt));
   ctt->e = e;
   ctt->mask = mask;
