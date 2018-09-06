@@ -69,11 +69,11 @@ make_config(void) {
 
   if(!modules_path) modules_path = MTEV_MODULES_DIR;
 
-  if(!lua_lpath) lua_lpath = MTEV_MODULES_DIR "/lua/?.lua;%s/?.lua";
+  if(!lua_lpath) lua_lpath = MTEV_MODULES_DIR "/lua/?.lua;%s/?.lua;{package.path}";
   if(getcwd(cwd, sizeof(cwd)) == NULL) memcpy(cwd, ".", 2);
   snprintf(lpath, sizeof(lpath), lua_lpath, cwd);
 
-  if(!lua_cpath) lua_cpath = MTEV_LIB_DIR "/mtev_lua/?.so";
+  if(!lua_cpath) lua_cpath = MTEV_LIB_DIR "/mtev_lua/?.so;{package.cpath}";
   if(!modules_path || !lua_lpath || !lua_cpath) {
     fprintf(stderr, "Trouble finding paths, use -L or -C to fix this.\n");
     exit(-2);

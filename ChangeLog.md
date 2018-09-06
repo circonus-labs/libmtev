@@ -7,6 +7,7 @@
 ### 1.5.x
 
  * Fix early loop starts cause mtevbusted to detect boot too early.
+ * Add the libluajit default path/cpath to luamtev by default
 
 ### 1.5.4
 
