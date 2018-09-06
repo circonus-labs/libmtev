@@ -44,7 +44,7 @@ function TestProc:new(props)
   local obj = {}
   for k,v in pairs(props) do obj[k] = v end
   obj.timeout = obj.timeout or 5
-  if obj.boot_match == nil then obj.boot_match = "eventer_loop%(.*%) started" end
+  if obj.boot_match == nil then obj.boot_match = "eventer_loops started" end
   if obj.dir == nil then obj.dir = find_test_dir() end
   if obj.env == nil then
    obj.env = { UMEM_DEBUG = "default" }

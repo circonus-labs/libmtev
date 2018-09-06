@@ -4,6 +4,10 @@
 
 ## 1.5
 
+### 1.5.x
+
+ * Fix early loop starts cause mtevbusted to detect boot too early.
+
 ### 1.5.4
 
  * Revert "Do not start eventer threads before `eventer_loop`". It caused more

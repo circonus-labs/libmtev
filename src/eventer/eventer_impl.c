@@ -628,6 +628,7 @@ void eventer_loop_return(void) {
     usleep(100);
     mtevL(mtev_debug, "Waiting for primed loops to start.\n");
   }
+  mtevL(mtev_debug, "eventer_loops started\n");
 }
 
 void eventer_loop(void) {
