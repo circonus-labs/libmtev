@@ -2402,7 +2402,7 @@ mtev_http_process_output_bchain(mtev_http_session_ctx *ctx,
 }
 void
 raw_finalize_encoding(mtev_http_response *res) {
-  if(res->output_options & (MTEV_HTTP_GZIP | MTEV_HTTP_LZ4F)) {
+  if(res->output_options & (MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE | MTEV_HTTP_LZ4F)) {
     mtev_boolean finished = mtev_false;
     struct bchain *r = res->output_raw_last;
     mtevAssert((r == NULL && res->output_raw == NULL) ||
@@ -2434,21 +2434,23 @@ raw_finalize_encoding(mtev_http_response *res) {
         mtevAssert(out->start+out->size+2 <= out->allocd);
         out->buff[out->start + out->size++] = '\r';
         out->buff[out->start + out->size++] = '\n';
-        out->start = 0;
-        /* terminate */
-        out->size += 2;
-        out->buff[hexlen] = '\r';
-        out->buff[hexlen+1] = '\n';
-        /* backfill */
-        out->size += hexlen;
-        while(hexlen > 0) {
-          out->buff[hexlen - 1] = _hexchars[ilen & 0xf];
-          ilen >>= 4;
-          hexlen--;
-        }
-        while(out->buff[out->start] == '0') {
-          out->start++;
-          out->size--;
+        if(res->output_options & MTEV_HTTP_CHUNKED) {
+          out->start = 0;
+          /* terminate */
+          out->size += 2;
+          out->buff[hexlen] = '\r';
+          out->buff[hexlen+1] = '\n';
+          /* backfill */
+          out->size += hexlen;
+          while(hexlen > 0) {
+            out->buff[hexlen - 1] = _hexchars[ilen & 0xf];
+            ilen >>= 4;
+            hexlen--;
+          }
+          while(out->buff[out->start] == '0') {
+            out->start++;
+            out->size--;
+          }
         }
         if(r == NULL)
           res->output_raw = out;
