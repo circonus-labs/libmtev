@@ -186,6 +186,9 @@ int mtev_watchdog_child_heartbeat(void) {
   it_ticks(NULL);
   return 0;
 }
+void mtev_watchdog_disable_asynch_core_dump(void) {
+  allow_async_dumps = 0;
+}
 int mtev_watchdog_prefork_init(void) {
   int i;
   const char *async;

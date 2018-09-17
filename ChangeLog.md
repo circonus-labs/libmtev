@@ -4,6 +4,10 @@
 
 ## 1.5
 
+### 1.5.x
+
+ * Introduce mtev_watchdog_disable_asynch_core_dump()
+
 ### 1.5.5
 
  * Fix early loop starts cause mtevbusted to detect boot too early.
