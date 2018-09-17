@@ -197,8 +197,8 @@ API_EXPORT(int)
 /*! \fn void mtev_watchdog_disable_asynch_core_dump(void)
     \brief Disable asynchronous core dumps.
 
-    Disable starting a new child while a faulting prior child is still dumping.  This will be
-    overridden by the MTEV_ASYNCH_CORE_DUMP is present.
+    Disable starting a new child while a faulting prior child is still dumping.  This must be called
+    before `mtev_main` and will be overridden by the MTEV_ASYNCH_CORE_DUMP environment variable.
  */
 API_EXPORT(void)
   mtev_watchdog_disable_asynch_core_dump(void);
