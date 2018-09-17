@@ -460,7 +460,10 @@ mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
   pcre *pcre_expr;
   int blen = strlen(base);
   /* base must end in a /, 'cause I said so */
-  if(blen == 0 || base[blen-1] != '/') return NULL;
+  if(blen == 0 || base[blen-1] != '/') {
+    mtevL(mtev_error, "rest rule base must end in /!\n");
+    return NULL;
+  }
   pcre_expr = pcre_compile(expr, 0, &error, &erroffset, NULL);
   if(!pcre_expr) {
     mtevL(mtev_error, "Error in rest expr(%s) '%s'@%d: %s\n",
