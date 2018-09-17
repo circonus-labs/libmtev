@@ -144,12 +144,29 @@ API_EXPORT(void)
 API_EXPORT(double)
   mtev_watchdog_get_timeout(mtev_watchdog_t *hb);
 
+/*! \fn int mtev_watchdog_glider(const char *path)
+    \brief Sets a glider command.
+    \param path the full path to the executable.
+    \return 0 on success, non-zero on failure.
+
+    `path` is invoked with two parameters, the process id of the faulting child, and the reason for the fault (one of `crash`, `watchdog`, or `unknown`.
+ */
 API_EXPORT(int)
   mtev_watchdog_glider(const char *path);
 
+/*! \fn int mtev_watchdog_glider_trace_dir(const char *path)
+    \brief Set the directory to store glider output.
+    \param path a full path to a directory.
+    \return 0 on success, non-zero on failure.
+ */
 API_EXPORT(int)
   mtev_watchdog_glider_trace_dir(const char *path);
 
+/*! \fn void mtev_watchdog_ratelimit(int retry_val, int span_val)
+    \brief Set rate limiting for child restarting.
+    \param retry_val the number of times to retry in the given `span_val`
+    \param span_val the number of seconds over which to attempt retries.
+ */
 API_EXPORT(void)
   mtev_watchdog_ratelimit(int retry_val, int span_val);
 
@@ -157,7 +174,7 @@ API_EXPORT(void)
    \brief registers a file descriptor for close on crash
    \param fd the file descripto
 
-   Registers a file descriptor to be close on crash in the event that ASYNCH_CORE_DUMP is set in the environment.
+   Registers a file descriptor to be close on crash in the event that async core dumping is enabled.
  */
 API_EXPORT(void)
   mtev_watchdog_on_crash_close_add_fd(int fd);
@@ -166,7 +183,7 @@ API_EXPORT(void)
    \brief deregisters a file descriptor for close on crash
    \param fd the file descripto
 
-   Deregisters a file descriptor to be close on crash in the event that ASYNCH_CORE_DUMP is set in the environment.
+   Deregisters a file descriptor to be close on crash in the event that async core dumping is enabled.
  */
 API_EXPORT(void)
   mtev_watchdog_on_crash_close_remove_fd(int fd);
@@ -176,5 +193,14 @@ API_EXPORT(void)
 
 API_EXPORT(int)
   mtev_setup_crash_signals(void (*)(int, siginfo_t *, void *));
+
+/*! \fn void mtev_watchdog_disable_asynch_core_dump(void)
+    \brief Disable asynchronous core dumps.
+
+    Disable starting a new child while a faulting prior child is still dumping.  This will be
+    overridden by the MTEV_ASYNCH_CORE_DUMP is present.
+ */
+API_EXPORT(void)
+  mtev_watchdog_disable_asynch_core_dump(void);
   
 #endif
