@@ -4258,6 +4258,15 @@ mtev_watchdog_create()
 <li><code>hb</code> the heart on which to act</li>
 </ul>
 <p>mtev_watchdog_disable will make the parent ignore failed heartbeats.</p>
+<h4 id="mtevwatchdogdisableasynchcoredump">mtev_watchdog_disable_asynch_core_dump</h4>
+<blockquote>
+<p>Disable asynchronous core dumps.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_watchdog_disable_asynch_core_dump</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<p>Disable starting a new child while a faulting prior child is still dumping.  This must be called
+before <code>mtev_main</code> and will be overridden by the MTEV_ASYNCH_CORE_DUMP environment variable.</p>
 <h4 id="mtevwatchdogenable">mtev_watchdog_enable</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_watchdog_enable</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
@@ -4276,6 +4285,29 @@ mtev_watchdog_create()
 <ul>
 <li><code>hb</code> the heart on which to act</li>
 <li><strong>RETURN</strong> A timeout in seconds, 0 if hb is NULL.</li>
+</ul>
+<h4 id="mtevwatchdogglider">mtev_watchdog_glider</h4>
+<blockquote>
+<p>Sets a glider command.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_watchdog_glider</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path)</span>
+</span></code></pre>
+<ul>
+<li><code>path</code> the full path to the executable.</li>
+<li><strong>RETURN</strong> 0 on success, non-zero on failure.</li>
+</ul>
+<p><code>path</code> is invoked with two parameters, the process id of the faulting child, and the reason for the fault (one of <code>crash</code>, <code>watchdog</code>, or <code>unknown</code>.</p>
+<h4 id="mtevwatchdogglidertracedir">mtev_watchdog_glider_trace_dir</h4>
+<blockquote>
+<p>Set the directory to store glider output.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_watchdog_glider_trace_dir</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path)</span>
+</span></code></pre>
+<ul>
+<li><code>path</code> a full path to a directory.</li>
+<li><strong>RETURN</strong> 0 on success, non-zero on failure.</li>
 </ul>
 <h4 id="mtevwatchdogheartbeat">mtev_watchdog_heartbeat</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
@@ -4308,6 +4340,17 @@ for a specific heart in the system.</p>
 </ul>
 <p>mtev_watchdog_prefork_init sets up the necessary plumbing to bridge across a
 child to instrument watchdogs.</p>
+<h4 id="mtevwatchdogratelimit">mtev_watchdog_ratelimit</h4>
+<blockquote>
+<p>Set rate limiting for child restarting.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_watchdog_ratelimit</span><span class="hljs-params">(<span class="hljs-keyword">int</span> retry_val, <span class="hljs-keyword">int</span> span_val)</span>
+</span></code></pre>
+<ul>
+<li><code>retry_val</code> the number of times to retry in the given <code>span_val</code></li>
+<li><code>span_val</code> the number of seconds over which to attempt retries.</li>
+</ul>
 <h4 id="mtevwatchdogrecurrentheartbeat">mtev_watchdog_recurrent_heartbeat</h4>
 <pre><code class="lang-c"><span class="hljs-keyword">eventer_t</span>
 mtev_watchdog_recurrent_heartbeat(<span class="hljs-keyword">mtev_watchdog_t</span> *hb)

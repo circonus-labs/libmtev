@@ -4879,6 +4879,21 @@ mtev_watchdog_disable(mtev_watchdog_t *hb)
 mtev_watchdog_disable will make the parent ignore failed heartbeats.
  
 
+#### mtev_watchdog_disable_asynch_core_dump
+
+>Disable asynchronous core dumps.
+
+```c
+void
+mtev_watchdog_disable_asynch_core_dump(void)
+```
+
+
+
+Disable starting a new child while a faulting prior child is still dumping.  This must be called
+before `mtev_main` and will be overridden by the MTEV_ASYNCH_CORE_DUMP environment variable.
+ 
+
 #### mtev_watchdog_enable
 
 ```c
@@ -4903,6 +4918,36 @@ mtev_watchdog_get_timeout(mtev_watchdog_t *hb)
 
   * `hb` the heart on which to act
   * **RETURN** A timeout in seconds, 0 if hb is NULL.
+ 
+
+#### mtev_watchdog_glider
+
+>Sets a glider command.
+
+```c
+int
+mtev_watchdog_glider(const char *path)
+```
+
+
+  * `path` the full path to the executable.
+  * **RETURN** 0 on success, non-zero on failure.
+
+`path` is invoked with two parameters, the process id of the faulting child, and the reason for the fault (one of `crash`, `watchdog`, or `unknown`.
+ 
+
+#### mtev_watchdog_glider_trace_dir
+
+>Set the directory to store glider output.
+
+```c
+int
+mtev_watchdog_glider_trace_dir(const char *path)
+```
+
+
+  * `path` a full path to a directory.
+  * **RETURN** 0 on success, non-zero on failure.
  
 
 #### mtev_watchdog_heartbeat
@@ -4946,6 +4991,20 @@ mtev_watchdog_prefork_init()
 
 mtev_watchdog_prefork_init sets up the necessary plumbing to bridge across a
 child to instrument watchdogs.
+ 
+
+#### mtev_watchdog_ratelimit
+
+>Set rate limiting for child restarting.
+
+```c
+void
+mtev_watchdog_ratelimit(int retry_val, int span_val)
+```
+
+
+  * `retry_val` the number of times to retry in the given `span_val`
+  * `span_val` the number of seconds over which to attempt retries.
  
 
 #### mtev_watchdog_recurrent_heartbeat
