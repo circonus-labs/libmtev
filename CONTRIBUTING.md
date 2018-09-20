@@ -43,4 +43,13 @@ should be done under the same license that the file currently holds.  New files
 should be licensed using a 3-clause BSD license as is most common throughout
 the repository.
 
+## Making a release
 
+ * Fixes with no ABI changes should do in patch releases.
+ * New APIs that are insignificant can go in patch releases.
+ * New APIs bringing any significant functionality should be in minor releases.
+ * Breaking ABI changes (with rare exceptions) should go into a new major release.
+
+We use master for releases.  Make sure the ChangeLog.md is up to date and that the
+version in `src/Makefile.in` reflects the new release version.  Commit and push
+these in the same commit.  Tag the commit as <major>.<minor>.<patch>.
