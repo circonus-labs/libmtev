@@ -122,7 +122,7 @@ MAPPEDHEADERS=utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
     utils/mtev_stacktrace.h utils/mtev_maybe_alloc.h \
     utils/mtev_lru.h utils/mtev_uuid_copy.h utils/mtev_uuid.h \
     utils/mtev_flow_regulator.h utils/mtev_lfu.h utils/mtev_frrh.h \
-    utils/mtev_huge_hash.h \
+    utils/mtev_huge_hash.h utils/mtev_intern.h \
     json-lib/mtev_bits.h json-lib/mtev_debug.h \
     json-lib/mtev_json_object.h json-lib/mtev_json_tokener.h \
     json-lib/mtev_json_util.h json-lib/mtev_json.h \
@@ -169,7 +169,7 @@ MTEV_UTILS_OBJS=utils/mtev_b32.hlo utils/mtev_b64.hlo \
     utils/mtev_stacktrace.lo utils/mtev_lru.lo utils/mtev_task.lo \
     utils/mtev_rand.hlo $(ATOMIC_OBJS) \
     utils/mtev_flow_regulator.lo utils/mtev_lfu.lo utils/mtev_frrh.lo \
-    utils/mtev_huge_hash.lo \
+    utils/mtev_huge_hash.lo utils/mtev_intern.hlo \
     utils/tzinfo.lo \
     utils/android-demangle/cp-demangle.lo
 
