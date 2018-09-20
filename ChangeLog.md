@@ -4,7 +4,7 @@
 
 ## 1.5
 
-### 1.5.x
+### 1.5.6
 
  * Introduce mtev_watchdog_disable_asynch_core_dump()
 
