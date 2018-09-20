@@ -4,6 +4,11 @@
 
 ## 1.5
 
+### 1.5.7
+
+ * Revert "Adopt libslz's faster gzip/deflate encoding". The
+   behavior was not consistent with the previous implementation.
+
 ### 1.5.6
 
  * Introduce mtev_watchdog_disable_asynch_core_dump()
