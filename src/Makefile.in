@@ -33,6 +33,7 @@ MODULES_DIR=@MODULES_DIR@
 CC=@CC@
 SHLD=@SHLD@
 CPPFLAGS=-I$(top_srcdir)/src -I$(top_srcdir)/src/json-lib \
+	-I$(top_srcdir)/src/slz-lib \
 	-I$(top_srcdir)/src/utils @CPPFLAGS@ -DHIDE_EVENTER_ABI
 CHOTOPT=@CHOTOPT@
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
@@ -133,6 +134,8 @@ JSON_LIB_OBJS=json-lib/mtev_arraylist.lo json-lib/mtev_debug.lo \
     json-lib/mtev_json_util.lo json-lib/mtev_linkhash.lo \
     json-lib/mtev_printbuf.lo
 
+SLZ_LIB_OBJS=slz-lib/slz.hlo
+
 MTEVEDIT_LIB_OBJS=noitedit/chared.lo noitedit/common.lo \
     noitedit/el.lo noitedit/emacs.lo noitedit/fcns.lo \
     noitedit/fgetln.lo noitedit/help.lo noitedit/hist.lo \
@@ -179,7 +182,7 @@ LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
 		mtev_heap_profiler.lo \
     aco/aco.hlo aco/acosw.Slo \
     $(MTEVEDIT_LIB_OBJS) $(EVENTER_LIB_OBJS) $(MTEV_UTILS_OBJS) \
-    $(JSON_LIB_OBJS)
+    $(JSON_LIB_OBJS) $(SLZ_LIB_OBJS)
 
 FINAL2_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.Slo=libmtev-objs/%.Slo)
 FINAL1_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
