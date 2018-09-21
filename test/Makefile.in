@@ -39,9 +39,12 @@ LUAROCKS=@LUAROCKS@
 LUAROCKS_PATH=@LUAROCKS_PATH@
 LUA_FILES=mtevbusted/init.lua mtevbusted/cli.lua mtevbusted/api.lua mtevbusted/child.lua
 
-all:	check
+all:	geturllz4f check
 
 TESTS=frrh_test uuid_test time_test hll_test maybe_alloc_test dyn_buffer_test speculatelog_test lru_test lfu_test pool-shift-async/test flowreg/test async-pingpong/test
+
+geturllz4f:	geturllz4f.c
+	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS) -lcurl
 
 async-pingpong/test:	async-pingpong/test.c
 	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
@@ -117,4 +120,4 @@ install:	mtevbusted-script
 check:	check-standalone check-lua
 
 clean:
-	rm -f $(TESTS)
+	rm -f $(TESTS) geturllz4f
