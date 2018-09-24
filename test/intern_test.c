@@ -150,5 +150,5 @@ int main(int argc, char **argv) {
     printf("%30s %12.0f/s (%6.1f ns/op)\n", workload[wl].name,
            1000000000.0 * (double)cnt /(double)elapsed, ns_per_op[wl]);
   }
-
+  free(info);
 }

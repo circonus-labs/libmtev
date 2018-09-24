@@ -185,11 +185,11 @@ struct mtev_intern_free_list {
   struct mtev_intern_free_node *head;
   size_t lsize; /* All framgents in the list have *at least* lsize bytes */
   uint32_t cnt;
-  pl_lock_t lock;
+  mtev_plock_t lock;
 };
 
 struct mtev_intern_pool {
-  pl_lock_t plock;
+  mtev_plock_t plock;
   /* Finding things */
   struct ck_hs  map;
   /* big ol' slabs of memory */
@@ -254,11 +254,11 @@ replace_free_node(mtev_intern_pool_t *pool,
    */
   if(idx >= pool->nfreeslots) idx = pool->nfreeslots - 1;
 
-  pl_take_s(&pool->freeslots[idx].lock);
+  mtev_plock_take_s(&pool->freeslots[idx].lock);
   node->next = pool->freeslots[idx].head;
   pool->freeslots[idx].head = node;
   ck_pr_inc_32(&pool->freeslots[idx].cnt);
-  pl_drop_s(&pool->freeslots[idx].lock);
+  mtev_plock_drop_s(&pool->freeslots[idx].lock);
 }
 
 static inline void
@@ -310,10 +310,10 @@ borrow_free_node(mtev_intern_pool_t *pool,
   size_t oldsize;
   struct mtev_intern_free_node *n;
 
-  pl_take_r(&l->lock);
+  mtev_plock_take_r(&l->lock);
   n = l->head;
   if(!n) {
-     pl_drop_r(&l->lock);
+     mtev_plock_drop_r(&l->lock);
     return NULL;
   }
   assert(len > 8);        // header
@@ -327,36 +327,36 @@ retry:
    * the bytes from be done. */
   while((oldsize = ck_pr_load_64(&n->size)) - len >= l->lsize) {
     if(ck_pr_cas_64(&n->size, oldsize, oldsize - len) == true) {
-      pl_drop_r(&l->lock);
+      mtev_plock_drop_r(&l->lock);
       return n->base + oldsize - len;
     }
     else ck_pr_stall();
   }
   /* stealing this much space would drop this node into a new freeslot
    * which means we need to remove head an need an s lock */
-  if(!pl_try_rtos(&l->lock)) {
-    pl_drop_r(&l->lock);
-    pl_take_s(&l->lock);
+  if(!mtev_plock_try_rtos(&l->lock)) {
+    mtev_plock_drop_r(&l->lock);
+    mtev_plock_take_s(&l->lock);
   }
   /* we reacquire head, because someone might have done stuff between
    * our drop_r and take_s */
   n = l->head;
   /* so much so, that we could have no list at all anymore */
   if(!n) {
-    pl_drop_s(&l->lock);
+    mtev_plock_drop_s(&l->lock);
     return NULL;
   }
   /* or be back in the situation that our borrowing doesn't require
    * moving this node, in which case we drop back into 'R' and retry. */
   if(ck_pr_load_64(&n->size) - len >= l->lsize) {
-    pl_stor(&l->lock);
+    mtev_plock_stor(&l->lock);
     goto retry;
   }
   /* but now we have the real deal... a node that will require reinsertion
    * at another level once we've taken out part... take a 'W' and steal head */
-  pl_stow(&l->lock);
+  mtev_plock_stow(&l->lock);
   l->head = l->head->next;
-  pl_drop_w(&l->lock);
+  mtev_plock_drop_w(&l->lock);
   ck_pr_dec_32(&l->cnt);
   /* n is now exclusively ours */
   oldsize = n->size;
@@ -515,6 +515,7 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
   }
   if(!attr) attr = &default_attrs;
   mtev_intern_pool_t *pool = calloc(1, sizeof(*pool));
+  mtev_plock_init(&pool->plock, mtev_false);
   pool->poolid = oldcnt;
   pool->extent_size = attr->extent_size;
   if(attr->backing_directory) {
@@ -524,6 +525,9 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
    * power-of-two freeslots levels. */
   pool->nfreeslots = fast_log2_ru(pool->extent_size) - SMALLEST_POWER + 1;
   pool->freeslots = calloc(pool->nfreeslots, sizeof(*pool->freeslots));
+  for(int i = 0; i < pool->nfreeslots; i++) {
+    mtev_plock_init(&pool->plock, mtev_false);
+  }
   /* Build out our power-of-two tiers */
   pool->freeslots[0].lsize = SMALLEST_ALLOC;
   for(int i = 1; i < pool->nfreeslots; i++) {
@@ -564,9 +568,9 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
      * that is successful, try again.
      */
     if(attempt == 1) {
-      pl_take_w(&pool->plock);
+      mtev_plock_take_w(&pool->plock);
       size_t replaced = unstage_replace_free_nodes_with_w(pool);
-      pl_drop_w(&pool->plock);
+      mtev_plock_drop_w(&pool->plock);
       if(replaced) continue;
     }
     /* If we're here, there was no free space!
@@ -575,7 +579,7 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
      * to acquire the 'S' lock and then see if someone already did all this
      * work such that we can not do it twice. */
     uint32_t lastextentid = ck_pr_load_32(&pool->extent_id);
-    pl_take_s(&pool->plock);
+    mtev_plock_take_s(&pool->plock);
     /* skip this work if someone did it while we were waiting */
     if(ck_pr_load_32(&pool->extent_id) == lastextentid) {
       void *base = pool_extend(pool, 0);
@@ -585,7 +589,7 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
       node->size = pool->extent_size;
       replace_free_node(pool, node);
     }
-    pl_drop_s(&pool->plock);
+    mtev_plock_drop_s(&pool->plock);
   }
 }
 
@@ -610,10 +614,10 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
     unsigned long hash = CK_HS_HASH(&pool->map, mi_hash, ii);
 
     /* ck_hs_remove is read-concurrent safe */
-    pl_take_s(&pool->plock);
+    mtev_plock_take_s(&pool->plock);
     assert(ck_pr_load_32(&ii->refcnt) == 0);
     assert(ck_hs_remove(&pool->map, hash, ii));
-    pl_drop_s(&pool->plock);
+    mtev_plock_drop_s(&pool->plock);
 
     ck_pr_dec_32(&pool->item_count);
 
@@ -658,7 +662,7 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
   memcpy(lookfor->v, buff, len);
   unsigned long hash = CK_HS_HASH(&pool->map, mi_hash, lookfor);
 
-  pl_take_r(&pool->plock);
+  mtev_plock_take_r(&pool->plock);
 
  retry_fetch:
   /* Look for it */
@@ -673,9 +677,9 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
     }
     /* prev == 0, then it is being freed */
     if(prev == 0) goto retry_fetch;
-    pl_drop_r(&pool->plock);
+    mtev_plock_drop_r(&pool->plock);
   } else {
-    pl_drop_r(&pool->plock);
+    mtev_plock_drop_r(&pool->plock);
     /* align len on a 4 byte boundary and add the 8 byte header */
     size_t alen = ((len + 3) & ~3) + 8;
 
@@ -693,10 +697,10 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
     ii->nt = nt;
     memcpy(ii->v, buff, len);
 
-    pl_take_w(&pool->plock);
+    mtev_plock_take_w(&pool->plock);
     /* Attempt to store this in our mapping */
     if(ck_hs_put(&pool->map, hash, ii) == false) {
-      pl_wtos(&pool->plock);
+      mtev_plock_wtos(&pool->plock);
       /* The put failed, so we need to accumulate the ii we created
        * in our trashpile to give it back. We don't give it back here
        * because we aren't in the right lockstate, we don't want to
@@ -724,13 +728,13 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
         if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
       }
       if(prev == 0) {
-        pl_stor(&pool->plock);
+        mtev_plock_stor(&pool->plock);
         goto retry_fetch;
       }
-      pl_drop_s(&pool->plock);
+      mtev_plock_drop_s(&pool->plock);
     }
     else {
-      pl_drop_w(&pool->plock);
+      mtev_plock_drop_w(&pool->plock);
       ck_pr_inc_32(&pool->item_count);
     }
   }
@@ -842,11 +846,11 @@ compact_freelist(mtev_intern_pool_t *pool) {
   /* Take the list */
   for(int i=0; i<pool->nfreeslots; i++) {
     struct mtev_intern_free_list *l = &pool->freeslots[i];
-    pl_take_w(&l->lock);
+    mtev_plock_take_w(&l->lock);
     last->next = l->head;
     l->head = NULL;
     l->cnt = 0;
-    pl_drop_w(&l->lock);
+    mtev_plock_drop_w(&l->lock);
     while(last->next) last = last->next;
   }
 
@@ -889,8 +893,8 @@ compact_freelist(mtev_intern_pool_t *pool) {
    * reads when we do and re-insert the free nodes.  We could
    * accidentally include a staged freenode that is referenced
    * in an in-flight read. */
-  pl_take_w(&pool->plock);
-  pl_drop_w(&pool->plock);
+  mtev_plock_take_w(&pool->plock);
+  mtev_plock_drop_w(&pool->plock);
 
   /* Replace them all back into the freeslots */
   struct mtev_intern_free_node *toinsert;
@@ -922,7 +926,7 @@ mtev_intern_pool_compact(mtev_intern_pool_t *pool, mtev_boolean force) {
 void
 mtev_intern_pool_stats(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats) {
   if(!pool) pool = all_pools[0];
-  pl_take_r(&pool->plock);
+  mtev_plock_take_r(&pool->plock);
   memset(stats, 0, sizeof(*stats));
   stats->item_count = ck_pr_load_32(&pool->item_count);
   for(struct mtev_intern_pool_extent *node = pool->extents; node; node = node->next) {
@@ -935,17 +939,17 @@ mtev_intern_pool_stats(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats
   }
   stats->staged_count = ck_pr_load_32(&pool->staged_free_nodes_count);
   stats->staged_size = ck_pr_load_64(&pool->staged_free_nodes_size);
-  pl_drop_r(&pool->plock);
+  mtev_plock_drop_r(&pool->plock);
   stats->fragments_total = stats->staged_count;
   stats->available_total = stats->staged_size;
   for(int i=0; i<32; i++) {
     if(i < pool->nfreeslots && pool->freeslots[i].head) {
-      pl_take_r(&pool->freeslots[i].lock);
+      mtev_plock_take_r(&pool->freeslots[i].lock);
       for(struct mtev_intern_free_node *node = pool->freeslots[i].head; node; node = node->next) {
         stats->available[i] += node->size;
       }
       stats->fragments[i] = pool->freeslots[i].cnt;
-      pl_drop_r(&pool->freeslots[i].lock);
+      mtev_plock_drop_r(&pool->freeslots[i].lock);
       stats->available_total += stats->available[i];
       stats->fragments_total += stats->fragments[i];
     }
