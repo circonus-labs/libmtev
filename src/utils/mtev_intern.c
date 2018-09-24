@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2019, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -515,7 +515,7 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
   }
   if(!attr) attr = &default_attrs;
   mtev_intern_pool_t *pool = calloc(1, sizeof(*pool));
-  mtev_plock_init(&pool->plock, mtev_false);
+  mtev_plock_init(&pool->plock, mtev_true);
   pool->poolid = oldcnt;
   pool->extent_size = attr->extent_size;
   if(attr->backing_directory) {

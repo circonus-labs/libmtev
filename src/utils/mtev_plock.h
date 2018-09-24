@@ -1,6 +1,7 @@
 /* plock - progressive locks
  *
  * Copyright (C) 2012-2017 Willy Tarreau <w@1wt.eu>
+ * Copyright (C) 2018 Circonus, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
