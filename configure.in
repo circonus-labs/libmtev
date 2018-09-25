@@ -395,6 +395,7 @@ AC_CHECK_LIB(pthread, pthread_create, , )
 AC_CHECK_LIB(execinfo, backtrace, , )
 
 AC_CHECK_FUNC(pthread_setname_np, AC_DEFINE(HAVE_PTHREAD_SETNAME_NP, [1], [pthread_setname_np]))
+AC_CHECK_FUNC(pthread_rwlockattr_setkind_np, AC_DEFINE(HAVE_PTHREAD_RWLOCKATTR_SETKIND_NP, [1], [pthread_rwlockattr_setkind_np]))
 
 # Check for LuaJIT
 OLD_LIBS=$LIBS
