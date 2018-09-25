@@ -1282,7 +1282,11 @@ mtev_plock_init(mtev_plock_t *lock, mtev_plock_type_t type) {
   memset(lock, 0, sizeof(*lock));
   lock->type = type;
   if(lock->type == MTEV_PLOCK_HEAVY) {
-    pthread_rwlock_init(&lock->impl.heavy.rwlock, NULL);
+    pthread_rwlockattr_t attr;
+    pthread_rwlockattr_init(&attr);
+    pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NP);
+    pthread_rwlock_init(&lock->impl.heavy.rwlock, &attr);
+    pthread_rwlockattr_destroy(&attr);
     pthread_mutex_init(&lock->impl.heavy.slock, NULL);
   }
 }
