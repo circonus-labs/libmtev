@@ -489,6 +489,7 @@ mtev_zipkin_default_service_name(const char *service_name, bool service_name_cop
   char *tofree = NULL;
   if(ze_global_default_endpoint.service_name.needs_free)
     tofree = ze_global_default_endpoint.service_name.value;
+  ze_global_default_endpoint.service_name.needs_free = service_name_copy;
   ze_global_default_endpoint.service_name.value =
     service_name_copy ? strdup(service_name) : (char *)service_name;
   free(tofree);
