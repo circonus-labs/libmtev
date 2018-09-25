@@ -515,7 +515,7 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
   }
   if(!attr) attr = &default_attrs;
   mtev_intern_pool_t *pool = calloc(1, sizeof(*pool));
-  mtev_plock_init(&pool->plock, mtev_true);
+  mtev_plock_init(&pool->plock, MTEV_PLOCK_HEAVY);
   pool->poolid = oldcnt;
   pool->extent_size = attr->extent_size;
   if(attr->backing_directory) {
@@ -526,7 +526,7 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
   pool->nfreeslots = fast_log2_ru(pool->extent_size) - SMALLEST_POWER + 1;
   pool->freeslots = calloc(pool->nfreeslots, sizeof(*pool->freeslots));
   for(int i = 0; i < pool->nfreeslots; i++) {
-    mtev_plock_init(&pool->plock, mtev_false);
+    mtev_plock_init(&pool->plock, MTEV_PLOCK_ATOMIC);
   }
   /* Build out our power-of-two tiers */
   pool->freeslots[0].lsize = SMALLEST_ALLOC;

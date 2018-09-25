@@ -30,8 +30,13 @@
 #include <pthread.h>
 #include <errno.h>
 
+typedef enum {
+  MTEV_PLOCK_ATOMIC,
+  MTEV_PLOCK_HEAVY
+} mtev_plock_type_t;
+
 typedef struct mtev_plock {
-  uint32_t heavy;
+  mtev_plock_type_t type;
   union {
     struct {
       pthread_rwlock_t rwlock;
@@ -1273,10 +1278,10 @@ static void pl_wait_unlock_int(const unsigned int *lock, const unsigned int mask
 )
 
 static inline void
-mtev_plock_init(mtev_plock_t *lock, mtev_boolean heavy) {
+mtev_plock_init(mtev_plock_t *lock, mtev_plock_type_t type) {
   memset(lock, 0, sizeof(*lock));
-  lock->heavy = heavy;
-  if(lock->heavy) {
+  lock->type = type;
+  if(lock->type == MTEV_PLOCK_HEAVY) {
     pthread_rwlock_init(&lock->impl.heavy.rwlock, NULL);
     pthread_mutex_init(&lock->impl.heavy.slock, NULL);
   }
@@ -1284,7 +1289,7 @@ mtev_plock_init(mtev_plock_t *lock, mtev_boolean heavy) {
 
 static inline void
 mtev_plock_destroy(mtev_plock_t *lock) {
-  if(lock->heavy) {
+  if(lock->type == MTEV_PLOCK_HEAVY) {
     pthread_mutex_destroy(&lock->impl.heavy.slock);
     pthread_rwlock_destroy(&lock->impl.heavy.rwlock);
   }
@@ -1292,51 +1297,51 @@ mtev_plock_destroy(mtev_plock_t *lock) {
 
 static inline void
 mtev_plock_heavy_take_r(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_rwlock_rdlock(&lock->impl.heavy.rwlock);
   assert(rv == 0);
 }
 
 #define mtev_plock_take_r(lock) do { \
-  if((lock)->heavy) mtev_plock_heavy_take_r(lock); else pl_take_r(&((lock)->impl.atomic)); \
+  if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_take_r(lock); else pl_take_r(&((lock)->impl.atomic)); \
 } while(0)
 
 static inline void
 mtev_plock_heavy_drop_r(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_rwlock_unlock(&lock->impl.heavy.rwlock);
   assert(rv == 0);
 }
 
 #define mtev_plock_drop_r(lock) do { \
-  if((lock)->heavy) mtev_plock_heavy_drop_r(lock); else pl_drop_r(&((lock)->impl.atomic)); \
+  if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_drop_r(lock); else pl_drop_r(&((lock)->impl.atomic)); \
 } while(0)
 
 static inline void
 mtev_plock_heavy_take_s(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_mutex_lock(&lock->impl.heavy.slock);
   assert(rv == 0);
 }
 
 #define mtev_plock_take_s(lock) do { \
-  if((lock)->heavy) mtev_plock_heavy_take_s(lock); else pl_take_s(&((lock)->impl.atomic)); \
+  if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_take_s(lock); else pl_take_s(&((lock)->impl.atomic)); \
 } while(0)
 
 static inline void
 mtev_plock_heavy_drop_s(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_mutex_unlock(&lock->impl.heavy.slock);
   assert(rv == 0);
 }
 
 #define mtev_plock_drop_s(lock) do { \
-  if((lock)->heavy) mtev_plock_heavy_drop_s(lock); else pl_drop_s(&((lock)->impl.atomic)); \
+  if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_drop_s(lock); else pl_drop_s(&((lock)->impl.atomic)); \
 } while(0)
 
 static inline void
 mtev_plock_heavy_take_w(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_mutex_lock(&lock->impl.heavy.slock);
   assert(rv == 0);
   rv = pthread_rwlock_wrlock(&lock->impl.heavy.rwlock);
@@ -1344,12 +1349,12 @@ mtev_plock_heavy_take_w(mtev_plock_t *lock) {
 }
 
 #define mtev_plock_take_w(lock) do { \
-  if((lock)->heavy) mtev_plock_heavy_take_w(lock); else pl_take_w(&((lock)->impl.atomic)); \
+  if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_take_w(lock); else pl_take_w(&((lock)->impl.atomic)); \
 } while(0)
 
 static inline void
 mtev_plock_heavy_drop_w(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_rwlock_unlock(&lock->impl.heavy.rwlock);
   assert(rv == 0);
   rv = pthread_mutex_unlock(&lock->impl.heavy.slock);
@@ -1357,12 +1362,12 @@ mtev_plock_heavy_drop_w(mtev_plock_t *lock) {
 }
 
 #define mtev_plock_drop_w(lock) do { \
-  if((lock)->heavy) mtev_plock_heavy_drop_w(lock); else pl_drop_w(&((lock)->impl.atomic)); \
+  if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_drop_w(lock); else pl_drop_w(&((lock)->impl.atomic)); \
 } while(0)
 
 static inline mtev_boolean
 mtev_plock_heavy_try_rtos(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_mutex_trylock(&lock->impl.heavy.slock);
   if(rv < 0) {
     assert(errno == EBUSY);
@@ -1374,13 +1379,13 @@ mtev_plock_heavy_try_rtos(mtev_plock_t *lock) {
 }
 
 #define mtev_plock_try_rtos(lock) ( \
-  ((lock)->heavy) ? mtev_plock_heavy_try_rtos(lock) : \
+  ((lock)->type == MTEV_PLOCK_HEAVY) ? mtev_plock_heavy_try_rtos(lock) : \
     pl_try_rtos(&((lock)->impl.atomic)) \
 )
 
 static inline void
 mtev_plock_heavy_stor(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   /* This seems like it would be priority inversion, but is not.
    * Since we always acquire the mutex before the wrlock and we
    * have the mutex, no one could be waiting for the wrlock right
@@ -1393,29 +1398,29 @@ mtev_plock_heavy_stor(mtev_plock_t *lock) {
 }
 
 #define mtev_plock_stor(lock) do { \
-  if((lock)->heavy) mtev_plock_heavy_stor(lock); else pl_stor(&((lock)->impl.atomic)); \
+  if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_stor(lock); else pl_stor(&((lock)->impl.atomic)); \
 } while(0)
 
 static inline void
 mtev_plock_heavy_stow(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_rwlock_wrlock(&lock->impl.heavy.rwlock);
   assert(rv == 0);
 }
 
 #define mtev_plock_stow(lock) do { \
-  if((lock)->heavy) mtev_plock_heavy_stow(lock); else pl_stow(&((lock)->impl.atomic)); \
+  if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_stow(lock); else pl_stow(&((lock)->impl.atomic)); \
 } while(0)
 
 static inline void
 mtev_plock_heavy_wtos(mtev_plock_t *lock) {
-  assert(lock->heavy);
+  assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_rwlock_unlock(&lock->impl.heavy.rwlock);
   assert(rv == 0);
 }
 
 #define mtev_plock_wtos(lock) do { \
-  if((lock)->heavy) mtev_plock_heavy_wtos(lock); else pl_wtos(&((lock)->impl.atomic)); \
+  if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_wtos(lock); else pl_wtos(&((lock)->impl.atomic)); \
 } while(0)
 
 #endif
