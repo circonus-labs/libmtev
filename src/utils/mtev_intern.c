@@ -149,12 +149,6 @@ fast_log2_ru(uint32_t v) {
   v*=2;
   v--;
   return fast_log2_rd(v);
-  v |= v >> 1;
-  v |= v >> 2;
-  v |= v >> 4;
-  v |= v >> 8;
-  v |= v >> 16;
-  return MultiplyDeBruijnBitPosition[(uint32_t)(v * 0x07C4ACDDU) >> 27];
 }
 
 
@@ -652,7 +646,9 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
 
   /* This sucks, but if the key is "really big" we'll need to alloc to
    * construct our key. */
-  if(len + 8 > MAX_WITHOUT_MALLOC) lookfor = malloc(len+8);
+  if(len + sizeof(mtev_intern_internal_t) > MAX_WITHOUT_MALLOC) {
+    lookfor = malloc(len + sizeof(mtev_intern_internal_t));
+  }
 
   /* construct our key to look for an existing copy */
   lookfor->poolid = pool->poolid;
