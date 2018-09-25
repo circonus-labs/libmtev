@@ -27,6 +27,7 @@
 #ifndef PL_PLOCK_H
 #define PL_PLOCK_H
 
+#include <mtev_defines.h>
 #include <pthread.h>
 #include <errno.h>
 
@@ -1284,7 +1285,9 @@ mtev_plock_init(mtev_plock_t *lock, mtev_plock_type_t type) {
   if(lock->type == MTEV_PLOCK_HEAVY) {
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
+#ifdef HAVE_PTHREAD_RWLOCKATTR_SETKIND_NP
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NP);
+#endif
     pthread_rwlock_init(&lock->impl.heavy.rwlock, &attr);
     pthread_rwlockattr_destroy(&attr);
     pthread_mutex_init(&lock->impl.heavy.slock, NULL);
