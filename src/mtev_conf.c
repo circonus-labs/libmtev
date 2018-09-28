@@ -2713,6 +2713,7 @@ mtev_conf_log_init(const char *toplevel,
   mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     int flags;
+    int dedup_s = -1;
     mtev_log_stream_t ls;
     char name[256], type[256], path[256];
     mtev_hash_table *config;
@@ -2750,6 +2751,11 @@ mtev_conf_log_init(const char *toplevel,
       mtev_conf_release_sections(log_configs, cnt);
       exit(-1);
     }
+
+    (void)mtev_conf_get_int32(log_configs[i],
+                              "ancestor-or-self::node()/@dedup_seconds",
+                              &dedup_s);
+    if(dedup_s >= 0) mtev_log_stream_set_dedup_s(ls, dedup_s);
 
     flags = mtev_log_stream_get_flags(ls);
     if(mtev_conf_get_boolean(log_configs[i],
