@@ -197,7 +197,7 @@ end
 
 function repl_eval(string, emit)
   local f = assert(loadstring(string))
-  emit = emit or print_wrapA
+  emit = emit or print_wrap
   local printmagic = {
     __index = function(t,k)
       if k == 'print' then return emit end
