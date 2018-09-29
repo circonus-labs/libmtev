@@ -871,16 +871,6 @@ static int mtev_lua_panic(lua_State *L) {
   return 0;
 }
 
-/* static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) { */
-/*   (void)ud; (void)osize;  /\* not used *\/ */
-/*   if (nsize == 0) { */
-/*     free(ptr); */
-/*     return NULL; */
-/*   } */
-/*   else */
-/*     return realloc(ptr, nsize); */
-/* } */
-
 mtev_lua_resume_info_t *
 mtev_lua_new_resume_info(lua_module_closure_t *lmc, int magic) {
   mtev_lua_resume_info_t *ri;
