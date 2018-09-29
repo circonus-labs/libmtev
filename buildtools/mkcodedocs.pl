@@ -92,12 +92,17 @@ sub format_md {
 
   return ($func, "$in\n\n");
 }
+
 sub xlate {
   my $in = shift;
   open(F, "<$in") || die " <<< $in ";
   $/ = undef;
   my $a = <F>;
   close(F);
+  # remove leading -- in lua files
+  if ($in =~ /.lua$/) {
+      $a =~ s/^--+//gm;
+  }
   while($a =~ /\/\*!\s+(\\(md|var|fn|lua).*?)\*\//smg) {
     my $type = $2;
     my $b = $1;
@@ -110,7 +115,6 @@ sub xlate {
   }
   return 1;
 }
-
 
 finddepth({
   untaint => 1,
