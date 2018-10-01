@@ -527,8 +527,9 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
   for(int i = 1; i < pool->nfreeslots; i++) {
     pool->freeslots[i].lsize = pool->freeslots[i-1].lsize << 1;
   }
-  ck_hs_init(&pool->map, CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC,
-             mi_hash, mi_compare, &mi_alloc, attr->estimated_item_count * 2, mtev_rand());
+  mtevAssert(ck_hs_init(&pool->map, CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC,
+                        mi_hash, mi_compare, &mi_alloc,
+                        attr->estimated_item_count * 2, mtev_rand()));
   all_pools[oldcnt] = pool;
   return pool;
 }
