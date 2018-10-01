@@ -343,8 +343,7 @@ mtev_stream_compress_flush_gzip(mtev_stream_compress_ctx_t *ctx,
     return 0;
   }
   long s = 0;
-  s = slz_encode(&ctx->slz_compress_ctx, out, "", 1, 0);
-  s += slz_finish(&ctx->slz_compress_ctx, out + s);
+  s = slz_finish(&ctx->slz_compress_ctx, out);
   *out_len = s;
   ctx->flushed = mtev_true;
   return 0;
