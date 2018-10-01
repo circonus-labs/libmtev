@@ -398,7 +398,8 @@ pool_extend(mtev_intern_pool_t *pool, size_t size) {
     }
     /* write a nul at the last byte.. if we fail, we'll pick i tup on the fstat check */
     (void)lseek(newe->fd, SEEK_SET, size-1);
-    (void)write(newe->fd, "", 1);
+    rv = write(newe->fd, "", 1);
+    assert(rv == 1);
     struct stat sb;
     while(0 != (rv = fstat(newe->fd, &sb)) && errno == EINTR);
     assert(rv == 0 && sb.st_size == size);
