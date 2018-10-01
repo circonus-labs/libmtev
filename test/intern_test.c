@@ -73,8 +73,8 @@ void load_words(void) {
   char buff[1024];
   FILE *fp = fopen("/usr/share/dict/words", "rb");
   if(fp == NULL) {
-    fprintf(stderr, "Failed to open /usr/share/dict/words\n");
-    exit(-1);
+    fprintf(stderr, "Skipping test, no /usr/share/dict/words (or variant)\n");
+    exit(0);
   }
   while(fgets(buff, sizeof(buff), fp)) cnt++;
   rewind(fp);
@@ -151,4 +151,5 @@ int main(int argc, char **argv) {
            1000000000.0 * (double)cnt /(double)elapsed, ns_per_op[wl]);
   }
   free(info);
+  return 0;
 }

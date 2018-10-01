@@ -23,6 +23,17 @@ ffi.cdef([=[
   void mtev_intern_pool_stats(mtev_intern_pool_t *, mtev_intern_pool_stats_t *);
 ]=])
 
+-- 100k repeatably unique "words"
+  local words = function()
+    local i = 100000
+    math.randomseed(1)
+    return function ()
+      i = i - 1
+      if i < 0 then return nil end
+      return mtev.sha256_hex(math.random())
+    end
+  end
+
 describe("intern strings", function()
   local default_pool = ffi.cast("mtev_intern_pool_t *", 0)
   local f,g,h
@@ -52,7 +63,7 @@ describe("intern strings", function()
   end)
   it("loads the dictionary 2x", function()
     for i = 1,2 do
-      for v in io.lines("/usr/share/dict/words") do 
+      for v in words() do 
         libmtev.mtev_intern_str(v, 0)
         if i == 1 then cnt = cnt + 1 end
       end
@@ -67,7 +78,7 @@ describe("intern strings", function()
     assert.is_not_equal(stats[0].allocated, stats[0].available_total)
   end)
   it("loads the dictionary again (dropping)", function()
-    for v in io.lines("/usr/share/dict/words") do 
+    for v in words() do 
       local f = libmtev.mtev_intern_str(v, 0)
       -- release for the two prior loads and this one
       for i = 1,3 do libmtev.mtev_intern_release(f) end
