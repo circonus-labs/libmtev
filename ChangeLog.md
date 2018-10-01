@@ -4,6 +4,9 @@
 
 ## 1.5
 
+ * Fix libslz's trailing byte problem and integrate it.
+ * mtev_intern implementation for share strings and byte buffers.
+
 ### 1.5.7
 
  * Revert "Adopt libslz's faster gzip/deflate encoding". The
