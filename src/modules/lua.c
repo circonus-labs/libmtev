@@ -1016,8 +1016,7 @@ mtev_lua_open(const char *module_name, void *lmc,
 
   require(L, rv, ffi);
   require(L, rv, mtev);
-  require(L, rv, mtev.timeval);
-  require(L, rv, mtev.extras);
+  require(L, rv, mtev.lua_init);
 
   lua_gc(L, LUA_GCRESTART, 0);
 
