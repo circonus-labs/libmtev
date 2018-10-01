@@ -69,6 +69,7 @@
 extern const char *eventer_get_thread_name(void);
 
 static pthread_mutex_t resize_lock = PTHREAD_MUTEX_INITIALIZER;
+static int min_flush_seconds = ((MTEV_LOG_DEFAULT_DEDUP_S-1) / 2) + 1;
 
 MTEV_HOOK_IMPL(mtev_log_line,
                (mtev_log_stream_t ls, const struct timeval *whence,
@@ -1259,6 +1260,32 @@ static void
 mtev_log_shutdown(void) {
   mtev_log_go_synch();
 }
+
+static void *
+mtev_log_flusher(void *vstop) {
+  mtev_boolean *stop = vstop;
+  while(!*stop) {
+    struct timeval now;
+    mtev_gettimeofday(&now, NULL);
+    mtev_log_dedup_flush(&now);
+    sleep(min_flush_seconds);
+  }
+  return NULL;
+}
+mtev_boolean stop_asynch_dedup_flush = mtev_false;;
+void
+mtev_log_dedup_init(void) {
+  static pid_t thispid = 0;
+  pid_t pid = getpid();
+  if(thispid != pid) {
+    pthread_t tid;
+    pthread_attr_t tattr;
+    pthread_attr_init(&tattr);
+    pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&tid, &tattr, mtev_log_flusher, &stop_asynch_dedup_flush);
+    thispid = pid;
+  }
+}
 void
 mtev_log_init(int debug_on) {
   mtev_log_init_globals();
@@ -1279,6 +1306,8 @@ mtev_log_init(int debug_on) {
                       (debug_on ? MTEV_LOG_STREAM_DEBUG : 0);
   if(debug_on) mtev_debug->flags |= MTEV_LOG_STREAM_ENABLED;
   else mtev_debug->flags &= ~MTEV_LOG_STREAM_ENABLED;
+  mtev_log_dedup_init();
+  pthread_atfork(NULL, NULL, mtev_log_dedup_init);
 }
 
 void
@@ -1305,6 +1334,7 @@ int
 mtev_log_stream_set_dedup_s(mtev_log_stream_t ls, int s) {
   int prev = ls->dedup_s;
   ls->dedup_s = s;
+  if(s > 0 && s < min_flush_seconds) min_flush_seconds = s;
   return prev;
 }
 
@@ -1779,13 +1809,97 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
   }
   return rv;
 }
+static void
+mtev_log_dedup_flush_stream(mtev_log_stream_t ls, const struct timeval *now) {
+  struct timeval __now;
+  if(!ls->dedup_s && ls->dedup_cnt > 0) return;
+  char tbuf[48], last_dbuf[sizeof(ls->dedup_last_dbuf)];
+  int tbuflen = 0, last_dbuflen = 0;
+  MTEV_MAYBE_DECL(char, buffer, 4096);
+
+  if(!now) {
+    mtev_gettimeofday(&__now, NULL);
+    now = &__now;
+  }
+
+  if(IS_TIMESTAMPS_BELOW(ls)) {
+    struct tm _tm, *tm;
+    char tempbuf[32];
+    time_t s = (time_t)now->tv_sec;
+    tm = localtime_r(&s, &_tm);
+    strftime(tempbuf, sizeof(tempbuf), "%Y-%m-%d %H:%M:%S", tm);
+    snprintf(tbuf, sizeof(tbuf), "[%s.%06d] ", tempbuf, (int)now->tv_usec);
+    tbuflen = strlen(tbuf);
+  }
+  else tbuf[0] = '\0';
+
+  struct timeval diff;
+  int dedup_diff_s = 0, dedup_cnt = 0;
+  const char *last_file = NULL;
+  int last_line = 0;
+  buffer[0] = '\0';
+
+  ck_spinlock_lock(&ls->dedup_lock);
+  sub_timeval(*now, ls->dedup_last_time, &diff);
+  if(diff.tv_sec < ls->dedup_s && ls->dedup_last_buffer) {
+    dedup_diff_s = diff.tv_sec;
+    dedup_cnt = ls->dedup_cnt;
+    ls->dedup_cnt = 0;
+    ls->dedup_last_time = *now;
+    /* We need a copy of last buffer as we're not modifying it
+     * and will use it after the lock is released. */
+    int bufferlen = strlen(ls->dedup_last_buffer);
+    memcpy(buffer, ls->dedup_last_buffer, bufferlen+1);
+    memcpy(last_dbuf, ls->dedup_last_dbuf, sizeof(last_dbuf));
+    last_dbuflen = ls->dedup_last_dbuflen;
+    last_file = ls->dedup_last_file;
+    last_line = ls->dedup_last_line;
+  }
+  ck_spinlock_unlock(&ls->dedup_lock);
+
+  if(dedup_cnt > 0) {
+    MTEV_MAYBE_DECL(char, oldlog, 4096);
+    int olen = 4095;
+    do {
+      MTEV_MAYBE_REALLOC(oldlog, olen + 1);
+      olen = snprintf(oldlog, MTEV_MAYBE_SIZE(oldlog),
+                      "(seen %d times over last %d seconds) %s",
+                      dedup_cnt, dedup_diff_s, buffer);
+    } while(olen >= MTEV_MAYBE_SIZE(oldlog));
+    LIBMTEV_LOG(ls->name, last_file, last_line, oldlog);
+    if(IS_ENABLED_ON(ls)) {
+      (void)mtev_log_line(ls, NULL, now, tbuf, tbuflen,
+                          last_dbuf, last_dbuflen, oldlog, olen);
+    }
+    MTEV_MAYBE_FREE(oldlog);
+  }
+  MTEV_MAYBE_FREE(buffer);
+}
+void
+mtev_log_dedup_flush(const struct timeval *now) {
+  struct timeval __now;
+  if(!now) {
+    mtev_gettimeofday(&__now, NULL);
+    now = &__now;
+  }
+
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  mtev_log_stream_t ls;
+
+  pthread_mutex_lock(&resize_lock);
+  while(mtev_hash_adv(&mtev_loggers, &iter)) {
+    ls = iter.value.ptr;
+    mtev_log_dedup_flush_stream(ls, now);
+  }
+  pthread_mutex_unlock(&resize_lock);
+}
+
 int
 mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
           const char *file, int line,
           const char *format, va_list arg) {
   int rv = 0, allocd = 0;
   MTEV_MAYBE_DECL(char, buffer, 4096);
-  MTEV_MAYBE_DECL(char, newformat, 1024);
   struct timeval __now;
 #ifdef va_copy
   va_list copy;
@@ -1808,8 +1922,8 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
 
   if((IS_ENABLED_ON(ls) && IS_ENABLED_BELOW(ls)) || LIBMTEV_LOG_ENABLED() || logspan) {
     int len;
-    char tbuf[48], dbuf[sizeof(ls->dedup_last_dbuf)];
-    int tbuflen = 0, dbuflen = 0;
+    char tbuf[48], dbuf[sizeof(ls->dedup_last_dbuf)], last_dbuf[sizeof(ls->dedup_last_dbuf)];
+    int tbuflen = 0, dbuflen = 0, last_dbuflen = 0;
     if(IS_TIMESTAMPS_BELOW(ls)) {
       struct tm _tm, *tm;
       char tempbuf[32];
@@ -1865,6 +1979,8 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
 
     int dedup_cnt = 0;
     int dedup_diff_s;
+    const char *last_file = "unknown";
+    int last_line = 0;
     char *last_buffer = NULL;
     if(ls->dedup_s && _mtev_log_siglvl == 0) {
       ENSURE_NOW();
@@ -1903,8 +2019,12 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
       }
       dedup_diff_s = diff.tv_sec;
       dedup_cnt = ls->dedup_cnt;
+      memcpy(last_dbuf, ls->dedup_last_dbuf, sizeof(last_dbuf));
+      last_dbuflen = ls->dedup_last_dbuflen;
       ls->dedup_cnt = 0;
       ls->dedup_last_time = *now;
+      last_file = ls->dedup_last_file;
+      last_line = ls->dedup_last_line;
       ls->dedup_last_file = file;
       ls->dedup_last_line = line;
       ls->dedup_last_hash = hash;
@@ -1920,15 +2040,15 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
       int olen = 4095;
       do {
         MTEV_MAYBE_REALLOC(oldlog, olen + 1);
-        olen = snprintf(oldlog, MTEV_MAYBE_SIZE(newformat),
+        olen = snprintf(oldlog, MTEV_MAYBE_SIZE(oldlog),
                          "(seen %d times over last %d seconds) %s",
                          dedup_cnt, dedup_diff_s, last_buffer);
       } while(olen >= MTEV_MAYBE_SIZE(oldlog));
-      LIBMTEV_LOG(ls->name, ls->dedup_last_file, ls->dedup_last_line, oldlog);
+      LIBMTEV_LOG(ls->name, last_file, last_line, oldlog);
       if(IS_ENABLED_ON(ls)) {
         ENSURE_NOW();
         rv = mtev_log_line(ls, NULL, now, tbuf, tbuflen,
-                           ls->dedup_last_dbuf, ls->dedup_last_dbuflen, oldlog, olen);
+                           last_dbuf, last_dbuflen, oldlog, olen);
       }
       if(last_buffer != buffer) free(last_buffer);
     }
@@ -1943,7 +2063,6 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
     }
 
     MTEV_MAYBE_FREE(buffer);
-    MTEV_MAYBE_FREE(newformat);
     errno = old_errno;
     if(rv == len) return 0;
     return -1;

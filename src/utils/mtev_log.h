@@ -130,6 +130,8 @@ API_EXPORT(mtev_log_stream_t)
 API_EXPORT(void) mtev_log_stream_reopen(mtev_log_stream_t ls);
 API_EXPORT(int) mtev_log_stream_cull(mtev_log_stream_t ls,
                                      int age, ssize_t bytes);
+API_EXPORT(void) mtev_log_dedup_flush(const struct timeval *now);
+API_EXPORT(void) mtev_log_dedup_init(void);
 
 #define MTEV_LOG_RENAME_AUTOTIME ((const char *)-1)
 
