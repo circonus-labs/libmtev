@@ -43,13 +43,21 @@ function WatchHandler:new(proc, key)
   return setmetatable(o, self)
 end
 
--- return wait for next line of output
-function WatchHandler:watch(timeout)
+--/*!
+--\hlua line = mtev.LogWatch:wait(timeout)
+--\brief wait for match
+--\param timeout maximial time to wait in seconds
+--\return line matched or nil on timeout
+--*/
+function WatchHandler:wait(timeout)
   local rkey, line = mtev.waitfor(self.key, timeout)
   return line
 end
 
--- stop watching / drain queue
+--/*!
+--\hlua mtev.LogWatch:stop()
+--\brief stop watching, drain watch queue
+--*/
 function WatchHandler:stop()
   o.proc.log_watchers[self.key] = nil
   repeat
@@ -71,7 +79,7 @@ Proc.__index = Proc
 --\param opts.dir working directory of the process, defaults to CWD
 --\param opts.env table with environment variables, defaults to ENV
 --\param opts.boot_match message that signals readiness of process
---\param opts.boot_timeout time to wait until boot_watch in seconds, defaults to 5s
+--\param opts.boot_timeout time to wait until boot_match appars in stderr in seconds, defaults to 5s
 --\return a Proc object
 --*/
 function Proc:new(opts)
@@ -123,8 +131,8 @@ function Proc:logwatch(regex, limit)
 end
 
 --/*!
---\lua self = mtev.Proc:loglisten(f)
---\brief Execute f on each log line
+--\hlua self = mtev.Proc:loglisten(f)
+--\brief Execute f on each line emitted to stderr
 --*/
 function Proc:loglisten(func)
   table.insert(self.log_writers, func)
@@ -132,8 +140,8 @@ function Proc:loglisten(func)
 end
 
 --/*!
---\lua self = mtev.Proc:loglog(stream, [prefix])
---\brief Forward process output to mtev log stream
+--\hlua self = mtev.Proc:loglog(stream, [prefix])
+--\brief Forward process output on stderr to mtev log stream
 --*/
 function Proc:loglog(stream, prefix)
   assert(stream)
@@ -147,8 +155,8 @@ function Proc:loglog(stream, prefix)
 end
 
 --/*!
---\lua self = mtev.Proc:loglog(file)
---\brief Write process output to file
+--\hlua self = mtev.Proc:logwrite(file)
+--\brief Write process output on stderr to file
 --*/
 function Proc:logwrite(file)
   local outp = io.open(self.dir .. '/' .. file,  "wb")
@@ -236,21 +244,36 @@ function Proc:ready()
   return true
 end
 
+--/*!
+--\hlua pid = mtev.Proc:pid()
+--*/
 function Proc:pid()
   if self.proc == nil then return -1 end
   return self.proc:pid()
 end
 
+--/*!
+--\hlua status = mtev.Proc:wait(timeout)
+--\brief wait for a process to exit
+--*/
 function Proc:wait(timeout)
   if self.proc == nil then return nil end
   return self.proc:wait(timeout)
 end
 
+--/*!
+--\hlua status = mtev.Proc:pause()
+--\brief send SIGSTOP signal
+--*/
 function Proc:pause()
   if self.proc == nil or self.proc:pid() == -1 then return end
   self.proc:pgkill(19)
 end
 
+--/*!
+--\hlua status = mtev.Proc:resume()
+--\brief send SIGCONT signal
+--*/
 function Proc:resume()
   if self.proc == nil or self.proc:pid() == -1 then return end
   self.proc:pgkill(18)
