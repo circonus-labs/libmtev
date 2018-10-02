@@ -214,7 +214,6 @@ function repl_eval(string, emit)
   f()
 end
 
-
 function mtev_coros_resume(co,...)
   local rv = {_G.coroutine._resume(co,...)}
   if _G.coroutine.status(co) == "dead" then
@@ -226,3 +225,12 @@ end
 
 _G.coroutine._resume = _G.coroutine.resume
 _G.coroutine.resume = mtev_coros_resume
+
+--/*!
+--\lua time = mtev.time()
+--\return the seconds since epoch (1970 UTC) as float
+--*/
+function _G.mtev.time()
+  local sec, usec = mtev.gettimeofday()
+  return sec + usec / 1000000
+end
