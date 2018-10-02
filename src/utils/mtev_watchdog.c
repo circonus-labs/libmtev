@@ -56,6 +56,7 @@
 #endif
 
 #include "eventer/eventer.h"
+#include "mtev_conf.h"
 #include "mtev_log.h"
 #include "mtev_time.h"
 #include "mtev_watchdog.h"
@@ -87,6 +88,7 @@ struct mtev_watchdog_t {
 static const char *appname = "unknown";
 static const char *glider_path = NULL;
 static const char *trace_dir = "/var/tmp";
+mtev_boolean save_traces = mtev_true;
 static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
@@ -225,8 +227,13 @@ void run_glider(int pid, glide_reason_t glide_reason) {
       case GLIDE_WATCHDOG: glide_reason_str = "watchdog"; break;
       default: glide_reason_str = "unknown";
     }
-    snprintf(cmd, sizeof(cmd), "%s %d %s > %s/%s.%d.trc",
-             glider_path, pid, glide_reason_str, trace_dir, appname, pid);
+    if(save_traces) {
+        snprintf(cmd, sizeof(cmd), "%s %d %s > %s/%s.%d.trc",
+                 glider_path, pid, glide_reason_str, trace_dir, appname, pid);
+    }
+    else {
+        snprintf(cmd, sizeof(cmd), "%s %d %s", glider_path, pid, glide_reason_str);
+    }
     unused = system(cmd);
     if(oldpath) unused = chdir(oldpath);
   }
@@ -548,6 +555,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
       sigaddset(&mysigs, SIGINT);
       setup_signals(&mysigs);
       mtev_monitored_child_pid = child_pid;
+      mtev_conf_get_boolean(MTEV_CONF_ROOT, "//watchdog/@save_traces", &save_traces);
       while(1) {
         int status, rv;
         if(sigwait(&mysigs, &sig) == -1) {
