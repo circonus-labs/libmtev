@@ -2168,7 +2168,7 @@ nl_waitfor(lua_State *L) {
     luaL_error(L, "waitfor(key, [timeout]) wrong arguments");
   }
   key = lua_tostring(L, 1);
-  if(lua_gettop(L) == 2) {
+  if(lua_gettop(L) == 2 && !lua_isnil(L, 2)) {
     p_int = lua_tonumber(L, 2);
     have_timeout = mtev_true;
   }
