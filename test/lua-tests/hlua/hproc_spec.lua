@@ -42,4 +42,13 @@ describe("high level process management", function()
        assert.truthy(w:wait())
   end)
 
+
+  it("mtev.sh() / mtev.exec() can read stdout/stderr", function()
+       -- this test exercises mtev.system() through mtev.sh()
+       local status, out, err = mtev.sh("echo 1; echo 2 > /dev/stderr", 3, "/bin/bash")
+       assert.is_truthy(status)
+       assert.same(out, "1\n")
+       assert.same(err, "2\n")
+  end)
+  
 end)
