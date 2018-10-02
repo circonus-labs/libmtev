@@ -174,11 +174,11 @@ function Proc:start()
   self.key_ready = "proc-ready-" .. mtev.uuid()
   mtev.coroutine_spawn(function()
       local err_e = err_e:own()
-      local started = false
+      local ready = false
       while true do
         local line = err_e:read("\n")
         if line == nil then
-          if not started then mtev.notify(self.key_ready, false) end
+          if not ready then mtev.notify(self.key_ready, false) end
           break
         end
         for _, write in ipairs(self.log_writers) do
@@ -195,9 +195,9 @@ function Proc:start()
             end
           end
         end
-        if not started and line:find(self.boot_match) then
+        if not ready and line:find(self.boot_match) then
           mtev.notify(self.key_ready, true)
-          started = true
+          ready = true
         end
       end
       for _, hook in ipairs(self.hook_term) do
