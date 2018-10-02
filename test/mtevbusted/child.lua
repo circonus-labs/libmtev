@@ -9,16 +9,16 @@ end
 function mk_coroutine_reader(start, done, fd)
   mtev.coroutine_spawn(function()
     local fd = fd:own()
-    local output = ''
+    local output = {}
     mtev.waitfor(start,1)
     while true do
       local line = fd:read("\n")
       if line == nil then
         break
       end
-      output = output .. line
+      table.insert(output, line)
     end
-    mtev.notify(done, output)
+    mtev.notify(done, table.concat(output))
     fd:close()
     return nil
   end)
