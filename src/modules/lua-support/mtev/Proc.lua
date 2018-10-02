@@ -190,7 +190,7 @@ function Proc:start()
   self.proc = proc
   in_e:close()
   out_e:close()
-  self.key_ready = mtev.uuid()
+  self.key_ready = "proc-ready-" .. mtev.uuid()
   mtev.coroutine_spawn(function()
       local err_e = err_e:own()
       local started = false
@@ -228,20 +228,37 @@ function Proc:start()
 end
 
 --/*!
---\lua status = Proc:ready(timeout)
+--\hlua status = Proc:ready()
 --\brief wait for the process to become ready
 --\return status true/false depending on weather the process became ready
---Cleans up process that did not become ready
+--Kills processes that did not become ready in time
 --*/
 function Proc:ready()
   local key, ok = mtev.waitfor(self.key_ready, self.boot_timeout)
   if not ok then -- cleanup process that could not start
-    self.proc:kill()
-    self.proc:wait(10)
+    assert(self:kill(10), "Failed to failing kill child process")
     self.proc = nil
     return false
   end
   return true
+end
+
+--/*!
+--\hlua ok, status, errno = Proc:kill(timeout)
+--\brief Kill process by sending SIGTERM, then SIGKILL
+--\param timeout for the signals
+--\return ok true if process was terminated, status, errno as returned by mtev.proc:wait()
+--*/
+function Proc:kill(timeout)
+  timeout = timeout or 2
+  if self.proc == nil or self.proc:pid() == -1 then return end
+  local ok, errno = self.proc:kill()
+  if not ok then error("Faild to deliver kill signal rv=" .. tostring(errno)) end
+  local term, status, errno = self:wait(timeout)
+  if term then return true, status, errno end
+  local ok, errno = self.proc:kill(9)
+  if not ok then error("Failed to deliver kill signal rv=" .. tostring(errno)) end
+  return self:wait(timeout)
 end
 
 --/*!
@@ -253,12 +270,19 @@ function Proc:pid()
 end
 
 --/*!
---\hlua status = mtev.Proc:wait(timeout)
---\brief wait for a process to exit
+--\hlua term, status, errno = mtev.Proc:wait(timeout)
+--\brief wait for a process to terminate
+--\return trem is true if the process terminated and status, errno as returned by mtev.process:wait()
 --*/
 function Proc:wait(timeout)
   if self.proc == nil then return nil end
-  return self.proc:wait(timeout)
+  local status, errno = self.proc:wait(timeout)
+  if status then
+    if mtev.WIFEXITED(status) or mtev.WIFSIGNALED(status) then
+      return true, status
+    end
+  end
+  return false, status, errno
 end
 
 --/*!
