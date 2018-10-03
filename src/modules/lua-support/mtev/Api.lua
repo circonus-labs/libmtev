@@ -1,9 +1,9 @@
 --
--- mtev.API
+-- mtev.Api
 --
 -- Wrapper class for HTTP/HTTPS APIs
 --
-module("mtev.API", package.seeall)
+module("mtev.Api", package.seeall)
 
 local HttpClient = require('mtev.HttpClient')
 
@@ -11,7 +11,7 @@ local function HTTP(method, host, port, uri, headers, payload, sslconfig)
   assert(method)
   assert(host)
   assert(port)
-  local ssl = not not sslconfig
+  local ssl = not not sslconfig -- convert to bool
   sslconfig = sslconfig or {}
   headers = headers or {}
   local in_headers = {}
@@ -109,8 +109,8 @@ end
 --
 -- Class: API
 --
-Api = {};
-Api.__index = Api;
+Api = {}
+Api.__index = Api
 
 
 -- Direct use of this constructor is discouraged.

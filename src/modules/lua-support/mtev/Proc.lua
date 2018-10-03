@@ -236,10 +236,11 @@ function Proc:kill(timeout)
   local ok, errno = self.proc:kill()
   if not ok then error("Faild to deliver kill signal rv=" .. tostring(errno)) end
   local term, status, errno = self:wait(timeout)
-  if term then return true, status, errno end
+  if term or mtev.WIFSIGNALED(status) then return true, status, errno end
   local ok, errno = self.proc:kill(9)
   if not ok then error("Failed to deliver kill signal rv=" .. tostring(errno)) end
-  return self:wait(timeout)
+  local term, status, errno = self:wait(timeout)
+  return (term or mtev.WIFSIGNALED(status)), status, errno
 end
 
 --/*!
@@ -253,15 +254,14 @@ end
 --/*!
 --\hlua term, status, errno = mtev.Proc:wait(timeout)
 --\brief wait for a process to terminate
---\return trem is true if the process terminated and status, errno as returned by mtev.process:wait()
+--\return term is true if the process terminated normally; status, errno as in mtev.process:wait()
+--In the case of normal termination, status is passed throught the WEXITSTATUS() before returning.
 --*/
 function Proc:wait(timeout)
   if self.proc == nil then return nil end
   local status, errno = self.proc:wait(timeout)
-  if status then
-    if mtev.WIFEXITED(status) or mtev.WIFSIGNALED(status) then
-      return true, status
-    end
+  if status and mtev.WIFEXITED(status) then
+    return true, mtev.WEXITSTATUS(status)
   end
   return false, status, errno
 end
