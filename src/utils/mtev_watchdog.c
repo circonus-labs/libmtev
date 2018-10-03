@@ -212,6 +212,10 @@ int mtev_watchdog_prefork_init(void) {
   return 0;
 }
 
+void mtev_watchdog_disable_trace_output(void) {
+  save_trace_output = mtev_false;
+}
+
 int mtev_monitored_child_pid = -1;
 
 void run_glider(int pid, glide_reason_t glide_reason) {
@@ -555,7 +559,6 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
       sigaddset(&mysigs, SIGINT);
       setup_signals(&mysigs);
       mtev_monitored_child_pid = child_pid;
-      mtev_conf_get_boolean(MTEV_CONF_ROOT, "//watchdog/@save_trace_output", &save_trace_output);
       while(1) {
         int status, rv;
         if(sigwait(&mysigs, &sig) == -1) {

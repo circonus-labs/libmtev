@@ -342,6 +342,7 @@ mtev_main(const char *appname,
   char conf_str[1024];
   char lockfile[PATH_MAX];
   char *trace_dir = NULL;
+  mtev_boolean save_trace_output = mtev_true;
   char appscratch[1024];
   char *glider = (char *)_glider;
   char *watchdog_timeout_str;
@@ -425,6 +426,10 @@ mtev_main(const char *appname,
       mtev_conf_release_section(watchdog_conf);
       exit(-1);
     }
+  }
+  (void)mtev_conf_get_boolean(watchdog_conf, "@save_trace_output", &save_trace_output);
+  if(!save_trace_output) {
+    mtev_watchdog_disable_trace_output();
   }
 
   ret = mtev_conf_get_int32(watchdog_conf, "@retries", &retry_val);
