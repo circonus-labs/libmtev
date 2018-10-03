@@ -42,9 +42,6 @@
 #include <fcntl.h>
 
 static mtev_allocator_t eventer_t_allocator;
-eventer_impl_t __eventer;
-mtev_log_stream_t eventer_err;
-mtev_log_stream_t eventer_deb;
 stats_ns_t *eventer_stats_ns;
 stats_handle_t *eventer_callback_latency_orphaned;
 stats_handle_t *eventer_unnamed_callback_latency;
