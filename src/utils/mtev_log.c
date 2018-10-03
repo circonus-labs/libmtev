@@ -1866,7 +1866,7 @@ mtev_log_dedup_flush_stream(mtev_log_stream_t ls, const struct timeval *now) {
                       "(seen %d times over last %d seconds) %s",
                       dedup_cnt, dedup_diff_s, buffer);
     } while(olen >= MTEV_MAYBE_SIZE(oldlog));
-    LIBMTEV_LOG(ls->name, last_file, last_line, oldlog);
+    LIBMTEV_LOG(ls->name, (char *)last_file, last_line, oldlog);
     /* The above macro may not use last_file or last_line */
     (void)last_file;
     (void)last_line;
@@ -2047,7 +2047,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
                          "(seen %d times over last %d seconds) %s",
                          dedup_cnt, dedup_diff_s, last_buffer);
       } while(olen >= MTEV_MAYBE_SIZE(oldlog));
-      LIBMTEV_LOG(ls->name, last_file, last_line, oldlog);
+      LIBMTEV_LOG(ls->name, (char *)last_file, last_line, oldlog);
       /* The above macro may not use last_file or last_line */
       (void)last_file;
       (void)last_line;
