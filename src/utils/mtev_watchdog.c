@@ -56,7 +56,6 @@
 #endif
 
 #include "eventer/eventer.h"
-#include "mtev_conf.h"
 #include "mtev_log.h"
 #include "mtev_time.h"
 #include "mtev_watchdog.h"
@@ -88,7 +87,7 @@ struct mtev_watchdog_t {
 static const char *appname = "unknown";
 static const char *glider_path = NULL;
 static const char *trace_dir = "/var/tmp";
-mtev_boolean save_trace_output = mtev_true;
+static mtev_boolean save_trace_output = mtev_true;
 static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
