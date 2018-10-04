@@ -3482,6 +3482,185 @@ mtev_huge_hash_size(<span class="hljs-keyword">mtev_huge_hash_t</span> *hh)
 <p>  This will fail if the key already exists in the hash_table
   Copies are made of <code>k</code> and <code>data</code></p>
 <p>  Returns mtev_true on success</p>
+<h3 id="i">I</h3>
+<h4 id="mtevintern">mtev_intern</h4>
+<blockquote>
+<p>Like <code>mtev_intern_pool</code> invoked with <code>MTEV_INTERN_DEFAULT_POOL</code>.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_intern_t</span>
+mtev_intern(<span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *buff, <span class="hljs-keyword">size_t</span> len)
+</code></pre>
+<ul>
+<li><code>buff</code> The data to be interned.</li>
+<li><code>len</code> The length of data to be considered (0, 2^23)</li>
+<li><strong>RETURN</strong> A new, or pre-existing intern from the default pool.</li>
+</ul>
+<h4 id="mtevinterncopy">mtev_intern_copy</h4>
+<blockquote>
+<p>Return a reference to an existing <code>mtev_intern_t</code>.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_intern_t</span>
+mtev_intern_copy(<span class="hljs-keyword">const</span> <span class="hljs-keyword">mtev_intern_t</span> iv)
+</code></pre>
+<ul>
+<li><code>iv</code> An existing, valid <code>mtev_intern_t</code></li>
+<li><strong>RETURN</strong> A reference to the interned data.</li>
+</ul>
+<p>The copy must be released just as if you created it via <code>mtev_intern_pool</code>.</p>
+<h4 id="mtevinterngetcstr">mtev_intern_get_cstr</h4>
+<blockquote>
+<p>Retrieve the string from an <code>mtev_intern_t</code> type.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">mtev_intern_get_cstr</span><span class="hljs-params">(<span class="hljs-keyword">const</span> mtev_intern_t iv, size_t *len)</span>
+</span></code></pre>
+<ul>
+<li><code>iv</code> The interned data.</li>
+<li><code>len</code> An out value for the length of the string. Unused if NULL.</li>
+<li><strong>RETURN</strong> The string contained in the interned value.</li>
+</ul>
+<p>The return value is only valid until <code>mtev_intern_release*</code> is called.</p>
+<h4 id="mtevinterngetptr">mtev_intern_get_ptr</h4>
+<blockquote>
+<p>Retrieve the data from an <code>mtev_intern_t</code> type.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *
+<span class="hljs-title">mtev_intern_get_ptr</span><span class="hljs-params">(<span class="hljs-keyword">const</span> mtev_intern_t iv, size_t *len)</span>
+</span></code></pre>
+<ul>
+<li><code>iv</code> The interned data.</li>
+<li><code>len</code> An out value for the length of the string. Unused if NULL.</li>
+<li><strong>RETURN</strong> The memory contained in the interned value.</li>
+</ul>
+<p>The return value is only valid until <code>mtev_intern_release*</code> is called.</p>
+<h4 id="mtevinterngetrefcnt">mtev_intern_get_refcnt</h4>
+<blockquote>
+<p>Retrieve the current refcnt for an intern item.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span>
+mtev_intern_get_refcnt(<span class="hljs-keyword">mtev_intern_t</span> iv)
+</code></pre>
+<ul>
+<li><code>iv</code> The interned value.</li>
+<li><strong>RETURN</strong> The number of references currently outstanding.</li>
+</ul>
+<h4 id="mtevinternpool">mtev_intern_pool</h4>
+<blockquote>
+<p>Request an interned data item with specific contents.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_intern_t</span>
+mtev_intern_pool(<span class="hljs-keyword">mtev_intern_pool_t</span> *pool, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *buff, <span class="hljs-keyword">size_t</span> len)
+</code></pre>
+<ul>
+<li><code>pool</code> The pool in which to intern the data.</li>
+<li><code>buff</code> The data to be interned.</li>
+<li><code>len</code> The length of data to be considered (0, 2^23)</li>
+<li><strong>RETURN</strong> A new, or pre-existing intern from the pool.</li>
+</ul>
+<p>This function will attempt to find the specified data in the pool, but create it on absence.
+The reference count of the interned object returned will be increased and it must be released
+using <code>mtev_intern_release_pool</code>.</p>
+<h4 id="mtevinternpoolcompact">mtev_intern_pool_compact</h4>
+<blockquote>
+<p>Attempt a compaction of an intern pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_intern_pool_compact</span><span class="hljs-params">(mtev_intern_pool_t *pool, mtev_boolean force)</span>
+</span></code></pre>
+<ul>
+<li><code>pool</code> The pool to compact.</li>
+<li><code>force</code> A boolean dictating if compaction should be forced.</li>
+<li><strong>RETURN</strong> The number of free fragment merges that occurred.</li>
+</ul>
+<p>This function will walk all the free fragment lists within the
+pool joining adjacent ones and promoting them into the the right
+slabs.  If force is false, compaction will be avoided if there are less
+than approximately 1.5x fragments as there were after the previous successful
+compaction.</p>
+<h4 id="mtevinternpoolitemcount">mtev_intern_pool_item_count</h4>
+<blockquote>
+<p>Return the number of unique interned items in a pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span>
+mtev_intern_pool_item_count(<span class="hljs-keyword">mtev_intern_pool_t</span> *pool)
+</code></pre>
+<ul>
+<li><code>pool</code> The pool to analyze.</li>
+<li><strong>RETURN</strong> The number of unique interned items.</li>
+</ul>
+<h4 id="mtevinternpoolnew">mtev_intern_pool_new</h4>
+<blockquote>
+<p>Create a new intern pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_intern_pool_t</span> *
+mtev_intern_pool_new(<span class="hljs-keyword">mtev_intern_pool_attr_t</span> *attr)
+</code></pre>
+<ul>
+<li><code>attr</code> the attributes describing the pool.</li>
+<li><strong>RETURN</strong> A new intern pool.</li>
+</ul>
+<h4 id="mtevinternpoolstats">mtev_intern_pool_stats</h4>
+<blockquote>
+<p>Return statistics for an intern pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_intern_pool_stats</span><span class="hljs-params">(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats)</span>
+</span></code></pre>
+<ul>
+<li><code>pool</code> The pool to inspect.</li>
+<li><code>stats</code> The statistics structure to fill out.</li>
+</ul>
+<h4 id="mtevinternpoolstr">mtev_intern_pool_str</h4>
+<blockquote>
+<p>Request an interned string item with specific contents.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_intern_t</span>
+mtev_intern_pool_str(<span class="hljs-keyword">mtev_intern_pool_t</span> *pool, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *buff, <span class="hljs-keyword">size_t</span> len)
+</code></pre>
+<ul>
+<li><code>pool</code> The pool in which to intern the string.</li>
+<li><code>buff</code> The string to be interned.</li>
+<li><code>len</code> The length of <code>buff</code>. <code>len</code> must be less than 2^23-1. If 0, strlen will be invoked.</li>
+<li><strong>RETURN</strong> A new, or pre-existing intern from the pool.</li>
+</ul>
+<p>This function will attempt to find the specified string in the pool, but create it on absence.
+The reference count of the interned string returned will be increased and it must be released
+using <code>mtev_intern_release_pool</code>.</p>
+<h4 id="mtevinternrelease">mtev_intern_release</h4>
+<blockquote>
+<p>Release interned data back to the default pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_intern_release</span><span class="hljs-params">(mtev_intern_t iv)</span>
+</span></code></pre>
+<ul>
+<li><code>iv</code> The interned value to release.</li>
+</ul>
+<h4 id="mtevinternreleasepool">mtev_intern_release_pool</h4>
+<blockquote>
+<p>Release interned data back to a pool.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_intern_release_pool</span><span class="hljs-params">(mtev_intern_pool_t *pool, mtev_intern_t iv)</span>
+</span></code></pre>
+<ul>
+<li><code>pool</code> The pool to release <code>iv</code> to.</li>
+<li><code>iv</code> The interned value to release.</li>
+</ul>
+<p>Interned values must be released to the pool they were retrieved from.  Attempting
+to release to a different pool will cause a crash.</p>
+<h4 id="mtevinternstr">mtev_intern_str</h4>
+<blockquote>
+<p>Like <code>mtev_intern_pool</code> invoked with <code>MTEV_INTERN_DEFAULT_POOL</code>.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_intern_t</span>
+mtev_intern_str(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *buff, <span class="hljs-keyword">size_t</span> len)
+</code></pre>
+<ul>
+<li><code>buff</code> The string to be interned.</li>
+<li><code>len</code> The length of string. <code>len</code> must be less than 2^23-1. If 0, strlen will be invoked.</li>
+<li><strong>RETURN</strong> A new, or pre-existing intern from the default pool.</li>
+</ul>
 <h3 id="l">L</h3>
 <h4 id="mtevlfucreate">mtev_lfu_create</h4>
 <pre><code class="lang-c">mtev_lfu_create(<span class="hljs-keyword">int32_t</span> max_entries, <span class="hljs-keyword">void</span> (*free_fn)(<span class="hljs-keyword">void</span> *))

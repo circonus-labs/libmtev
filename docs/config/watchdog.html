@@ -616,11 +616,14 @@
 </code></pre>
 <p>The following watchdog attributes are supported:</p>
 <ul>
-<li><h5 id="tracedir">trace_dir</h5>
+<li><h5 id="tracedir">tracedir</h5>
 <p>A directory to deposit trace files.  Trace files contain the output of the <code>glider</code> command.  File names are of the format <code>{appname}.{pid}.trc</code>.</p>
 </li>
 <li><h5 id="glider">glider</h5>
 <p>The full path to an executable to invoke when a monitor process crashes or is killed due to inactivity.  It is invoked with two arguments: process id and reason (one of &quot;crash&quot;, &quot;watchdog&quot;, or &quot;unknown&quot;).</p>
+</li>
+<li><h5 id="savetraceoutput">save_trace_output</h5>
+<p>Choose whether to store any output that the glider may produce on stdout. Its value is &quot;true&quot; or &quot;false&quot;, and the default is &quot;true&quot; if not specified. If true, the glider output is saved as described in the <code>tracedir</code> attribute above. Some gliders may produce their own output files, in which case the stdout stream is unnecessary and one may choose to ignore it by setting this attribute to &quot;false&quot;.</p>
 </li>
 <li><h5 id="retries">retries</h5>
 <p>The maximum number of restart attempts to be made over <code>span</code> seconds. Default: 5 retries over 60 seconds.</p>

@@ -3791,6 +3791,235 @@ mtev_huge_hash_store(mtev_huge_hash_t *hh, const void *k, size_t klen, const voi
   Returns mtev_true on success
  
 
+### I
+
+#### mtev_intern
+
+>Like `mtev_intern_pool` invoked with `MTEV_INTERN_DEFAULT_POOL`.
+
+```c
+mtev_intern_t
+mtev_intern(const void *buff, size_t len)
+```
+
+
+  * `buff` The data to be interned.
+  * `len` The length of data to be considered (0, 2^23)
+  * **RETURN** A new, or pre-existing intern from the default pool.
+ 
+
+#### mtev_intern_copy
+
+>Return a reference to an existing `mtev_intern_t`.
+
+```c
+mtev_intern_t
+mtev_intern_copy(const mtev_intern_t iv)
+```
+
+
+  * `iv` An existing, valid `mtev_intern_t`
+  * **RETURN** A reference to the interned data.
+
+The copy must be released just as if you created it via `mtev_intern_pool`.
+ 
+
+#### mtev_intern_get_cstr
+
+>Retrieve the string from an `mtev_intern_t` type.
+
+```c
+const char *
+mtev_intern_get_cstr(const mtev_intern_t iv, size_t *len)
+```
+
+
+  * `iv` The interned data.
+  * `len` An out value for the length of the string. Unused if NULL.
+  * **RETURN** The string contained in the interned value.
+
+The return value is only valid until `mtev_intern_release*` is called.
+ 
+
+#### mtev_intern_get_ptr
+
+>Retrieve the data from an `mtev_intern_t` type.
+
+```c
+const void *
+mtev_intern_get_ptr(const mtev_intern_t iv, size_t *len)
+```
+
+
+  * `iv` The interned data.
+  * `len` An out value for the length of the string. Unused if NULL.
+  * **RETURN** The memory contained in the interned value.
+
+The return value is only valid until `mtev_intern_release*` is called.
+ 
+
+#### mtev_intern_get_refcnt
+
+>Retrieve the current refcnt for an intern item.
+
+```c
+uint32_t
+mtev_intern_get_refcnt(mtev_intern_t iv)
+```
+
+
+  * `iv` The interned value.
+  * **RETURN** The number of references currently outstanding.
+
+
+#### mtev_intern_pool
+
+>Request an interned data item with specific contents.
+
+```c
+mtev_intern_t
+mtev_intern_pool(mtev_intern_pool_t *pool, const void *buff, size_t len)
+```
+
+
+  * `pool` The pool in which to intern the data.
+  * `buff` The data to be interned.
+  * `len` The length of data to be considered (0, 2^23)
+  * **RETURN** A new, or pre-existing intern from the pool.
+
+This function will attempt to find the specified data in the pool, but create it on absence.
+The reference count of the interned object returned will be increased and it must be released
+using `mtev_intern_release_pool`.
+ 
+
+#### mtev_intern_pool_compact
+
+>Attempt a compaction of an intern pool.
+
+```c
+int
+mtev_intern_pool_compact(mtev_intern_pool_t *pool, mtev_boolean force)
+```
+
+
+  * `pool` The pool to compact.
+  * `force` A boolean dictating if compaction should be forced.
+  * **RETURN** The number of free fragment merges that occurred.
+
+This function will walk all the free fragment lists within the
+pool joining adjacent ones and promoting them into the the right
+slabs.  If force is false, compaction will be avoided if there are less
+than approximately 1.5x fragments as there were after the previous successful
+compaction.
+  
+
+#### mtev_intern_pool_item_count
+
+>Return the number of unique interned items in a pool.
+
+```c
+uint32_t
+mtev_intern_pool_item_count(mtev_intern_pool_t *pool)
+```
+
+
+  * `pool` The pool to analyze.
+  * **RETURN** The number of unique interned items.
+ 
+
+#### mtev_intern_pool_new
+
+>Create a new intern pool.
+
+```c
+mtev_intern_pool_t *
+mtev_intern_pool_new(mtev_intern_pool_attr_t *attr)
+```
+
+
+  * `attr` the attributes describing the pool.
+  * **RETURN** A new intern pool.
+ 
+
+#### mtev_intern_pool_stats
+
+>Return statistics for an intern pool.
+
+```c
+void
+mtev_intern_pool_stats(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats)
+```
+
+
+  * `pool` The pool to inspect.
+  * `stats` The statistics structure to fill out.
+ 
+
+#### mtev_intern_pool_str
+
+>Request an interned string item with specific contents.
+
+```c
+mtev_intern_t
+mtev_intern_pool_str(mtev_intern_pool_t *pool, const char *buff, size_t len)
+```
+
+
+  * `pool` The pool in which to intern the string.
+  * `buff` The string to be interned.
+  * `len` The length of `buff`. `len` must be less than 2^23-1. If 0, strlen will be invoked.
+  * **RETURN** A new, or pre-existing intern from the pool.
+
+This function will attempt to find the specified string in the pool, but create it on absence.
+The reference count of the interned string returned will be increased and it must be released
+using `mtev_intern_release_pool`.
+ 
+
+#### mtev_intern_release
+
+>Release interned data back to the default pool.
+
+```c
+void
+mtev_intern_release(mtev_intern_t iv)
+```
+
+
+  * `iv` The interned value to release.
+ 
+
+#### mtev_intern_release_pool
+
+>Release interned data back to a pool.
+
+```c
+void
+mtev_intern_release_pool(mtev_intern_pool_t *pool, mtev_intern_t iv)
+```
+
+
+  * `pool` The pool to release `iv` to.
+  * `iv` The interned value to release.
+
+Interned values must be released to the pool they were retrieved from.  Attempting
+to release to a different pool will cause a crash.
+
+
+#### mtev_intern_str
+
+>Like `mtev_intern_pool` invoked with `MTEV_INTERN_DEFAULT_POOL`.
+
+```c
+mtev_intern_t
+mtev_intern_str(const char *buff, size_t len)
+```
+
+
+  * `buff` The string to be interned.
+  * `len` The length of string. `len` must be less than 2^23-1. If 0, strlen will be invoked.
+  * **RETURN** A new, or pre-existing intern from the default pool.
+ 
+
 ### L
 
 #### mtev_lfu_create
