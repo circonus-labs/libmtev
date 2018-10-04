@@ -16,13 +16,17 @@ When "things go wrong" the parent (monitor) process will trace the monitored chi
 
 The following watchdog attributes are supported:
 
- * ##### trace_dir
+ * ##### tracedir
 
    A directory to deposit trace files.  Trace files contain the output of the `glider` command.  File names are of the format `{appname}.{pid}.trc`.
 
  * ##### glider
 
    The full path to an executable to invoke when a monitor process crashes or is killed due to inactivity.  It is invoked with two arguments: process id and reason (one of "crash", "watchdog", or "unknown").
+
+ * ##### save_trace_output
+
+   Choose whether to store any output that the glider may produce on stdout. Its value is "true" or "false", and the default is "true" if not specified. If true, the glider output is saved as described in the `tracedir` attribute above. Some gliders may produce their own output files, in which case the stdout stream is unnecessary and one may choose to ignore it by setting this attribute to "false".
 
  * ##### retries
 

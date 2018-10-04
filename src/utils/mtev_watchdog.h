@@ -203,4 +203,7 @@ API_EXPORT(int)
 API_EXPORT(void)
   mtev_watchdog_disable_asynch_core_dump(void);
   
+API_EXPORT(void)
+  mtev_watchdog_disable_trace_output(void);
+
 #endif

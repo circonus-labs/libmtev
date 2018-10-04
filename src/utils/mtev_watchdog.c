@@ -87,6 +87,7 @@ struct mtev_watchdog_t {
 static const char *appname = "unknown";
 static const char *glider_path = NULL;
 static const char *trace_dir = "/var/tmp";
+static mtev_boolean save_trace_output = mtev_true;
 static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
@@ -210,6 +211,10 @@ int mtev_watchdog_prefork_init(void) {
   return 0;
 }
 
+void mtev_watchdog_disable_trace_output(void) {
+  save_trace_output = mtev_false;
+}
+
 int mtev_monitored_child_pid = -1;
 
 void run_glider(int pid, glide_reason_t glide_reason) {
@@ -225,8 +230,13 @@ void run_glider(int pid, glide_reason_t glide_reason) {
       case GLIDE_WATCHDOG: glide_reason_str = "watchdog"; break;
       default: glide_reason_str = "unknown";
     }
-    snprintf(cmd, sizeof(cmd), "%s %d %s > %s/%s.%d.trc",
-             glider_path, pid, glide_reason_str, trace_dir, appname, pid);
+    if(save_trace_output) {
+        snprintf(cmd, sizeof(cmd), "%s %d %s > %s/%s.%d.trc",
+                 glider_path, pid, glide_reason_str, trace_dir, appname, pid);
+    }
+    else {
+        snprintf(cmd, sizeof(cmd), "%s %d %s", glider_path, pid, glide_reason_str);
+    }
     unused = system(cmd);
     if(oldpath) unused = chdir(oldpath);
   }
