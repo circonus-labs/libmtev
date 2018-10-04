@@ -119,6 +119,10 @@ journaled log for external consumption.
 
    If "on"/"true", the stream is disabled and attempts to log to the facility will result in a single branch instruction.
 
+ * ##### dedup_seconds
+
+  Specifies the number of seconds over which to deduplicated consecutive, identical log lines.  The default is 5 seconds.
+
 ## Log Types
 
 ### memory

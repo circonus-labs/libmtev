@@ -33,6 +33,7 @@ function eachthread()
     text:record("  1234")
     i32:record(mtev.timeval.now().sec)
     u64:record(time.usec)
+    mtev.log("error", "This is a dedup test\n")
   until false
 end
 

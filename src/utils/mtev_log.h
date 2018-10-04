@@ -53,6 +53,7 @@ typedef void * mtev_log_stream_public_t;
 #define mtev_log_stream_t mtev_log_stream_public_t
 #endif
 
+#define MTEV_LOG_DEFAULT_DEDUP_S 5
 #define MTEV_LOG_SPECULATE_ROLLBACK ((mtev_log_stream_t)NULL)
 
 struct _mtev_log_stream_outlet_list {
@@ -98,6 +99,8 @@ API_EXPORT(int) mtev_log_reopen_type(const char *type);
 API_EXPORT(void) mtev_register_logops(const char *name, logops_t *ops);
 API_EXPORT(void *) mtev_log_stream_get_ctx(mtev_log_stream_t);
 API_EXPORT(void) mtev_log_stream_set_ctx(mtev_log_stream_t, void *);
+API_EXPORT(int) mtev_log_stream_get_dedup_s(mtev_log_stream_t);
+API_EXPORT(int) mtev_log_stream_set_dedup_s(mtev_log_stream_t, int);
 API_EXPORT(int) mtev_log_stream_get_flags(mtev_log_stream_t);
 API_EXPORT(int) mtev_log_stream_set_flags(mtev_log_stream_t, int);
 API_EXPORT(const char *) mtev_log_stream_get_type(mtev_log_stream_t);
@@ -127,6 +130,8 @@ API_EXPORT(mtev_log_stream_t)
 API_EXPORT(void) mtev_log_stream_reopen(mtev_log_stream_t ls);
 API_EXPORT(int) mtev_log_stream_cull(mtev_log_stream_t ls,
                                      int age, ssize_t bytes);
+API_EXPORT(void) mtev_log_dedup_flush(const struct timeval *now);
+API_EXPORT(void) mtev_log_dedup_init(void);
 
 #define MTEV_LOG_RENAME_AUTOTIME ((const char *)-1)
 
