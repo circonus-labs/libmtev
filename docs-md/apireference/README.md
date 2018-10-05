@@ -34,6 +34,10 @@
 
 [mtev_hash__hash](c.md#mtevhashhash), [mtev_hash_adv](c.md#mtevhashadv), [mtev_hash_adv_spmc](c.md#mtevhashadvspmc), [mtev_hash_delete](c.md#mtevhashdelete), [mtev_hash_delete_all](c.md#mtevhashdeleteall), [mtev_hash_destroy](c.md#mtevhashdestroy), [mtev_hash_init](c.md#mtevhashinit), [mtev_hash_init_locks](c.md#mtevhashinitlocks), [mtev_hash_init_mtev_memory](c.md#mtevhashinitmtevmemory), [mtev_hash_init_size](c.md#mtevhashinitsize), [mtev_hash_merge_as_dict](c.md#mtevhashmergeasdict), [mtev_hash_next](c.md#mtevhashnext), [mtev_hash_next_str](c.md#mtevhashnextstr), [mtev_hash_replace](c.md#mtevhashreplace), [mtev_hash_retr_str](c.md#mtevhashretrstr), [mtev_hash_retrieve](c.md#mtevhashretrieve), [mtev_hash_set](c.md#mtevhashset), [mtev_hash_size](c.md#mtevhashsize), [mtev_hash_store](c.md#mtevhashstore), [mtev_huge_hash_adv](c.md#mtevhugehashadv), [mtev_huge_hash_create](c.md#mtevhugehashcreate), [mtev_huge_hash_create_iter](c.md#mtevhugehashcreateiter), [mtev_huge_hash_delete](c.md#mtevhugehashdelete), [mtev_huge_hash_replace](c.md#mtevhugehashreplace), [mtev_huge_hash_retrieve](c.md#mtevhugehashretrieve), [mtev_huge_hash_size](c.md#mtevhugehashsize), [mtev_huge_hash_store](c.md#mtevhugehashstore)
 
+##### I
+
+[mtev_intern](c.md#mtevintern), [mtev_intern_copy](c.md#mtevinterncopy), [mtev_intern_get_cstr](c.md#mtevinterngetcstr), [mtev_intern_get_ptr](c.md#mtevinterngetptr), [mtev_intern_get_refcnt](c.md#mtevinterngetrefcnt), [mtev_intern_pool](c.md#mtevinternpool), [mtev_intern_pool_compact](c.md#mtevinternpoolcompact), [mtev_intern_pool_item_count](c.md#mtevinternpoolitemcount), [mtev_intern_pool_new](c.md#mtevinternpoolnew), [mtev_intern_pool_stats](c.md#mtevinternpoolstats), [mtev_intern_pool_str](c.md#mtevinternpoolstr), [mtev_intern_release](c.md#mtevinternrelease), [mtev_intern_release_pool](c.md#mtevinternreleasepool), [mtev_intern_str](c.md#mtevinternstr)
+
 ##### L
 
 [mtev_lfu_create](c.md#mtevlfucreate), [mtev_lfu_destroy](c.md#mtevlfudestroy), [mtev_lfu_get](c.md#mtevlfuget), [mtev_lfu_invalidate](c.md#mtevlfuinvalidate), [mtev_lfu_iterate](c.md#mtevlfuiterate), [mtev_lfu_put](c.md#mtevlfuput), [mtev_lfu_release](c.md#mtevlfurelease), [mtev_lfu_remove](c.md#mtevlfuremove), [mtev_lfu_size](c.md#mtevlfusize), [mtev_lockfile_acquire](c.md#mtevlockfileacquire), [mtev_lockfile_acquire_owner](c.md#mtevlockfileacquireowner), [mtev_lockfile_release](c.md#mtevlockfilerelease), [mtev_lua_lmc_alloc](c.md#mtevlualmcalloc), [mtev_lua_lmc_free](c.md#mtevlualmcfree), [mtev_lua_lmc_L](c.md#mtevlualmcL), [mtev_lua_lmc_resume](c.md#mtevlualmcresume), [mtev_lua_lmc_setL](c.md#mtevlualmcsetL)
@@ -72,6 +76,10 @@
 
 ## Lua
 
+##### A
+
+[mtev.Api:get](lua.md#mtevApi:get), [mtev.Api:http](lua.md#mtevApi:http), [mtev.Api:https](lua.md#mtevApi:https), [mtev.Api:post](lua.md#mtevApi:post), [mtev.Api:put](lua.md#mtevApi:put), [mtev.Api:request](lua.md#mtevApi:request), [mtev.ApiResponse:check](lua.md#mtevApiResponse:check), [mtev.ApiResponse:json](lua.md#mtevApiResponse:json), [mtev.ApiResponse:rc](lua.md#mtevApiResponse:rc), [mtev.ApiResponse:text](lua.md#mtevApiResponse:text), [mtev.ApiResponse:xml](lua.md#mtevApiResponse:xml)
+
 ##### B
 
 [mtev.base64_decode](lua.md#mtevbase64decode), [mtev.base64_encode](lua.md#mtevbase64encode)
@@ -86,7 +94,7 @@
 
 ##### E
 
-[mtev.enable_log](lua.md#mtevenablelog), [mtev.eventer:accept](lua.md#mteveventer:accept), [mtev.eventer:bind](lua.md#mteveventer:bind), [mtev.eventer:close](lua.md#mteveventer:close), [mtev.eventer:connect](lua.md#mteveventer:connect), [mtev.eventer:listen](lua.md#mteveventer:listen), [mtev.eventer:own](lua.md#mteveventer:own), [mtev.eventer:peer_name](lua.md#mteveventer:peername), [mtev.eventer:read](lua.md#mteveventer:read), [mtev.eventer:recv](lua.md#mteveventer:recv), [mtev.eventer:send](lua.md#mteveventer:send), [mtev.eventer:sendto](lua.md#mteveventer:sendto), [mtev.eventer:setsockopt](lua.md#mteveventer:setsockopt), [mtev.eventer:sock_name](lua.md#mteveventer:sockname), [mtev.eventer:ssl_ctx](lua.md#mteveventer:sslctx), [mtev.eventer:ssl_upgrade_socket](lua.md#mteveventer:sslupgradesocket), [mtev.eventer:write](lua.md#mteveventer:write), [mtev.eventer_loop_concurrency](lua.md#mteveventerloopconcurrency)
+[mtev.enable_log](lua.md#mtevenablelog), [mtev.eventer:accept](lua.md#mteveventer:accept), [mtev.eventer:bind](lua.md#mteveventer:bind), [mtev.eventer:close](lua.md#mteveventer:close), [mtev.eventer:connect](lua.md#mteveventer:connect), [mtev.eventer:listen](lua.md#mteveventer:listen), [mtev.eventer:own](lua.md#mteveventer:own), [mtev.eventer:peer_name](lua.md#mteveventer:peername), [mtev.eventer:read](lua.md#mteveventer:read), [mtev.eventer:recv](lua.md#mteveventer:recv), [mtev.eventer:send](lua.md#mteveventer:send), [mtev.eventer:sendto](lua.md#mteveventer:sendto), [mtev.eventer:setsockopt](lua.md#mteveventer:setsockopt), [mtev.eventer:sock_name](lua.md#mteveventer:sockname), [mtev.eventer:ssl_ctx](lua.md#mteveventer:sslctx), [mtev.eventer:ssl_upgrade_socket](lua.md#mteveventer:sslupgradesocket), [mtev.eventer:write](lua.md#mteveventer:write), [mtev.eventer_loop_concurrency](lua.md#mteveventerloopconcurrency), [mtev.exec](lua.md#mtevexec)
 
 ##### G
 
@@ -102,7 +110,7 @@
 
 ##### L
 
-[mtev.log](lua.md#mtevlog), [mtev.log_enabled](lua.md#mtevlogenabled)
+[mtev.log](lua.md#mtevlog), [mtev.log_enabled](lua.md#mtevlogenabled), [mtev.LogWatch:stop](lua.md#mtevLogWatch:stop), [mtev.LogWatch:wait](lua.md#mtevLogWatch:wait)
 
 ##### M
 
@@ -118,7 +126,7 @@
 
 ##### P
 
-[mtev.parsejson](lua.md#mtevparsejson), [mtev.parsexml](lua.md#mtevparsexml), [mtev.pcre](lua.md#mtevpcre), [mtev.print](lua.md#mtevprint), [mtev.process:kill](lua.md#mtevprocess:kill), [mtev.process:pgkill](lua.md#mtevprocess:pgkill), [mtev.process:pid](lua.md#mtevprocess:pid), [mtev.process:wait](lua.md#mtevprocess:wait)
+[mtev.parsejson](lua.md#mtevparsejson), [mtev.parsexml](lua.md#mtevparsexml), [mtev.pcre](lua.md#mtevpcre), [mtev.print](lua.md#mtevprint), [Proc:kill](lua.md#Proc:kill), [mtev.Proc:loglisten](lua.md#mtevProc:loglisten), [mtev.Proc:loglog](lua.md#mtevProc:loglog), [mtev.Proc:logwatch](lua.md#mtevProc:logwatch), [mtev.Proc:logwrite](lua.md#mtevProc:logwrite), [mtev.Proc:new](lua.md#mtevProc:new), [mtev.Proc:pause](lua.md#mtevProc:pause), [mtev.Proc:pid](lua.md#mtevProc:pid), [Proc:ready](lua.md#Proc:ready), [mtev.Proc:resume](lua.md#mtevProc:resume), [mtev.Proc:start](lua.md#mtevProc:start), [mtev.Proc:wait](lua.md#mtevProc:wait), [mtev.process:kill](lua.md#mtevprocess:kill), [mtev.process:pgkill](lua.md#mtevprocess:pgkill), [mtev.process:pid](lua.md#mtevprocess:pid), [mtev.process:wait](lua.md#mtevprocess:wait)
 
 ##### R
 
@@ -126,11 +134,11 @@
 
 ##### S
 
-[mtev.sha1](lua.md#mtevsha1), [mtev.sha1_hex](lua.md#mtevsha1hex), [mtev.sha256](lua.md#mtevsha256), [mtev.sha256_hash](lua.md#mtevsha256hash), [mtev.sha256_hex](lua.md#mtevsha256hex), [mtev.shared_get](lua.md#mtevsharedget), [mtev.shared_seq](lua.md#mtevsharedseq), [mtev.shared_set](lua.md#mtevsharedset), [mtev.sleep](lua.md#mtevsleep), [mtev.socket](lua.md#mtevsocket), [mtev.spawn](lua.md#mtevspawn)
+[mtev.sh](lua.md#mtevsh), [mtev.sha1](lua.md#mtevsha1), [mtev.sha1_hex](lua.md#mtevsha1hex), [mtev.sha256](lua.md#mtevsha256), [mtev.sha256_hash](lua.md#mtevsha256hash), [mtev.sha256_hex](lua.md#mtevsha256hex), [mtev.shared_get](lua.md#mtevsharedget), [mtev.shared_seq](lua.md#mtevsharedseq), [mtev.shared_set](lua.md#mtevsharedset), [mtev.sleep](lua.md#mtevsleep), [mtev.socket](lua.md#mtevsocket), [mtev.spawn](lua.md#mtevspawn)
 
 ##### T
 
-[mtev.thread_self](lua.md#mtevthreadself), [mtev.timezone](lua.md#mtevtimezone), [mtev.timezone:extract](lua.md#mtevtimezone:extract), [mtev.tojson](lua.md#mtevtojson)
+[mtev.thread_self](lua.md#mtevthreadself), [mtev.time](lua.md#mtevtime), [mtev.timezone](lua.md#mtevtimezone), [mtev.timezone:extract](lua.md#mtevtimezone:extract), [mtev.tojson](lua.md#mtevtojson)
 
 ##### U
 
@@ -139,4 +147,8 @@
 ##### W
 
 [mtev.waitfor](lua.md#mtevwaitfor), [mtev.watchdog_child_heartbeat](lua.md#mtevwatchdogchildheartbeat), [mtev.watchdog_timeout](lua.md#mtevwatchdogtimeout), [mtev.WCOREDUMP](lua.md#mtevWCOREDUMP), [mtev.websocket_client:close](lua.md#mtevwebsocketclient:close), [mtev.websocket_client:send](lua.md#mtevwebsocketclient:send), [mtev.websocket_client_connect](lua.md#mtevwebsocketclientconnect), [mtev.WEXITSTATUS](lua.md#mtevWEXITSTATUS), [mtev.WIFCONTINUED](lua.md#mtevWIFCONTINUED), [mtev.WIFEXITED](lua.md#mtevWIFEXITED), [mtev.WIFSIGNALED](lua.md#mtevWIFSIGNALED), [mtev.WIFSTOPPED](lua.md#mtevWIFSTOPPED), [mtev.write](lua.md#mtevwrite), [mtev.WSTOPSIG](lua.md#mtevWSTOPSIG), [mtev.WTERMSIG](lua.md#mtevWTERMSIG)
+
+##### X
+
+[mtev.xmldoc:root](lua.md#mtevxmldoc:root), [mtev.xmldoc:tostring](lua.md#mtevxmldoc:tostring), [mtev.xmldoc:xpath](lua.md#mtevxmldoc:xpath), [mtev.xmlnode:addchild](lua.md#mtevxmlnode:addchild), [mtev.xmlnode:attr](lua.md#mtevxmlnode:attr), [mtev.xmlnode:children](lua.md#mtevxmlnode:children), [mtev.xmlnode:contents](lua.md#mtevxmlnode:contents), [mtev.xmlnode:name](lua.md#mtevxmlnode:name), [mtev.xmlnode:next](lua.md#mtevxmlnode:next)
 
