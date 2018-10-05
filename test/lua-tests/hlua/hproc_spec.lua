@@ -7,7 +7,7 @@ describe("high level process management", function()
       boot_match = "OK",
     }
     assert.is_true(p:start():ready())
-    assert.is_true(p:wait())
+    assert.is_true(p:wait(3))
   end)
 
   it("kills hung processes", function()
