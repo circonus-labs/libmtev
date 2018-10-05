@@ -37,9 +37,10 @@ describe("high level process management", function()
          argv = { "bash", "-c", [[ printf "OK\n" > /dev/stderr; sleep .1; printf "XXX SIGNAL XXX\n" > /dev/stderr]] },
          boot_match = "OK",
        }
-       local w = p:logwatch("SIGNAL", 1)
+       local w = p:logwatch("SIGNAL")
        assert.is_true(p:start():ready())
        assert.truthy(w:wait())
+       w:stop()
   end)
 
 

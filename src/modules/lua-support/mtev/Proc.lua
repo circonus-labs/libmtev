@@ -40,7 +40,7 @@ end
 --\brief stop watching, drain watch queue
 --*/
 function WatchHandler:stop()
-  o.proc.log_watchers[self.key] = nil
+  self.proc.log_watchers[self.key] = nil
   repeat
     local rkey = mtev.waitfor(self.key, 0)
   until rkey == nil
