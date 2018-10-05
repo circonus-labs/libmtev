@@ -602,7 +602,92 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h3 id="b">B</h3>
+                                <h3 id="a">A</h3>
+<h4 id="mtevapiget">mtev.Api:get</h4>
+<blockquote>
+<p>Isse a GET request</p>
+</blockquote>
+<pre><code class="lang-lua">api_response =
+mtev.Api:get(path, payload, headers)
+</code></pre>
+<h4 id="mtevapihttp">mtev.Api:http</h4>
+<blockquote>
+<p>Wraps an HTTP Api</p>
+</blockquote>
+<pre><code class="lang-lua">api =
+mtev.Api:http(host, port, [headers])
+</code></pre>
+<p>Example:</p>
+<pre><code>local api = mtev.Api:http(host, port, [headers])
+local result_text = api:get(&quot;/&quot;):check():text()
+local result_table = api:get(&quot;/&quot;):check():json()
+</code></pre><h4 id="mtevapihttps">mtev.Api:https</h4>
+<blockquote>
+<p>Wraps an HTTPS Api</p>
+</blockquote>
+<pre><code class="lang-lua">api =
+mtev.Api:https(host, port, [headers], [sslconfig])
+</code></pre>
+<h4 id="mtevapipost">mtev.Api:post</h4>
+<blockquote>
+<p>Issue a POST request</p>
+</blockquote>
+<pre><code class="lang-lua">api_response =
+mtev.Api:post(path, payload, headers)
+</code></pre>
+<h4 id="mtevapiput">mtev.Api:put</h4>
+<blockquote>
+<p>Issue a PUT request</p>
+</blockquote>
+<pre><code class="lang-lua">api_response =
+mtev.Api:put(path, payload, headers)
+</code></pre>
+<h4 id="mtevapirequest">mtev.Api:request</h4>
+<blockquote>
+<p>Issue a HTTP(S) request</p>
+</blockquote>
+<pre><code class="lang-lua">api_response =
+mtev.Api:request(method, path, payload, [headers])
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> an mtev.ApiResponse object</li>
+</ul>
+<h4 id="mtevapiresponsecheck">mtev.ApiResponse:check</h4>
+<blockquote>
+<p>Raise and error unless rc == 200</p>
+</blockquote>
+<pre><code class="lang-lua">self =
+mtev.ApiResponse:check()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> self</li>
+</ul>
+<h4 id="mtevapiresponsejson">mtev.ApiResponse:json</h4>
+<pre><code class="lang-lua">t =
+mtev.ApiResponse:json()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> parsed payload of response as table t</li>
+</ul>
+<h4 id="mtevapiresponserc">mtev.ApiResponse:rc</h4>
+<pre><code class="lang-lua">rc =
+mtev.ApiResponse:rc()
+</code></pre>
+<h4 id="mtevapiresponsetext">mtev.ApiResponse:text</h4>
+<blockquote>
+<p>return payload of response as string</p>
+</blockquote>
+<pre><code class="lang-lua">text =
+mtev.ApiResponse:text()
+</code></pre>
+<h4 id="mtevapiresponsexml">mtev.ApiResponse:xml</h4>
+<pre><code class="lang-lua">t =
+mtev.ApiResponse:xml()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> parsed payload of response as table mtev.xmldoc</li>
+</ul>
+<h3 id="b">B</h3>
 <h4 id="mtevbase64decode">mtev.base64_decode</h4>
 <pre><code class="lang-lua">mtev.base64_decode()
 </code></pre>
@@ -907,6 +992,16 @@ mtev.eventer:write(data)
 <h4 id="mteveventerloopconcurrency">mtev.eventer_loop_concurrency</h4>
 <pre><code class="lang-lua">mtev.eventer_loop_concurrency()
 </code></pre>
+<h4 id="mtevexec">mtev.exec</h4>
+<blockquote>
+<p>Spawn process return output on stdout, stderr as strings</p>
+</blockquote>
+<pre><code class="lang-lua">status, stdout, stderr =
+mtev.exec(path, argv, env, timeout)
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> status is nil if a timeout was hit, stdout, stderr contain process output</li>
+</ul>
 <h3 id="g">G</h3>
 <h4 id="mtevgetcwd">mtev.getcwd</h4>
 <pre><code class="lang-lua">path =
@@ -982,6 +1077,23 @@ mtev.log_enabled(facility)
 <li><code>facility</code> the name of the mtev_log_stream (e.g. &quot;debug&quot;)</li>
 <li><strong>RETURN</strong> a boolean indicating the enabled status of the log facility</li>
 </ul>
+<h4 id="mtevlogwatchstop">mtev.LogWatch:stop</h4>
+<blockquote>
+<p>stop watching, drain watch queue</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.LogWatch:stop()
+</code></pre>
+<h4 id="mtevlogwatchwait">mtev.LogWatch:wait</h4>
+<blockquote>
+<p>wait for match</p>
+</blockquote>
+<pre><code class="lang-lua">line =
+mtev.LogWatch:wait(timeout)
+</code></pre>
+<ul>
+<li><code>timeout</code> maximial time to wait in seconds</li>
+<li><strong>RETURN</strong> line matched or nil on timeout</li>
+</ul>
 <h3 id="m">M</h3>
 <h4 id="mtevmd5">mtev.md5</h4>
 <pre><code class="lang-lua">mtev.md5()
@@ -1051,8 +1163,14 @@ implementation sets them to nil and thus elides the keys.
 If parsing fails nil is returned followed by the error and
 the byte offset into the string where the error occurred.</p>
 <h4 id="mtevparsexml">mtev.parsexml</h4>
-<pre><code class="lang-lua">mtev.parsexml()
+<blockquote>
+<p>Parse xml string</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.parsexml(str)
 </code></pre>
+<ul>
+<li><strong>RETURN</strong> mtev.xmldoc representation</li>
+</ul>
 <h4 id="mtevpcre">mtev.pcre</h4>
 <pre><code class="lang-lua">matcher =
 mtev.pcre(pcre_expression)
@@ -1085,6 +1203,116 @@ mtev.<span class="hljs-built_in">print</span>(format, ...)
 <p>This function is effectively the <code>mtev.log</code> function with the first argument
 set to &quot;error&quot;.  It is also aliased into the global <code>print</code> symbol such that
 one cannot accidentally call the print builtin.</p>
+<h4 id="prockill">Proc:kill</h4>
+<blockquote>
+<p>Kill process by sending SIGTERM, then SIGKILL</p>
+</blockquote>
+<pre><code class="lang-lua">ok, status, errno =
+Proc:kill(timeout)
+</code></pre>
+<ul>
+<li><code>timeout</code> for the signals</li>
+<li><strong>RETURN</strong> ok true if process was terminated, status, errno as returned by mtev.proc:wait()</li>
+</ul>
+<h4 id="mtevprocloglisten">mtev.Proc:loglisten</h4>
+<blockquote>
+<p>Execute f on each line emitted to stderr</p>
+</blockquote>
+<pre><code class="lang-lua">self =
+mtev.Proc:loglisten(f)
+</code></pre>
+<h4 id="mtevprocloglog">mtev.Proc:loglog</h4>
+<blockquote>
+<p>Forward process output on stderr to mtev log stream</p>
+</blockquote>
+<pre><code class="lang-lua">self =
+mtev.Proc:loglog(stream, [prefix])
+</code></pre>
+<h4 id="mtevproclogwatch">mtev.Proc:logwatch</h4>
+<blockquote>
+<p>Watch stderr for a line maching regexp</p>
+</blockquote>
+<pre><code class="lang-lua">watch =
+mtev.Proc:logwatch(regex, [limit])
+</code></pre>
+<ul>
+<li><code>regex</code> is either a regex string or a function that consumes lines</li>
+<li><code>limit</code> is the maximal number of matches to find. Default infinite.</li>
+<li><strong>RETURN</strong> watch an mtev.LogWatch object</li>
+</ul>
+<h4 id="mtevproclogwrite">mtev.Proc:logwrite</h4>
+<blockquote>
+<p>Write process output on stderr to file</p>
+</blockquote>
+<pre><code class="lang-lua">self =
+mtev.Proc:logwrite(file)
+</code></pre>
+<h4 id="mtevprocnew">mtev.Proc:new</h4>
+<blockquote>
+<p>Create and control a subprocess</p>
+</blockquote>
+<pre><code class="lang-lua">proc =
+mtev.Proc:new(opts)
+</code></pre>
+<ul>
+<li><code>opts.path</code> path of the executable</li>
+<li><code>opts.argv</code> list of command line arguments (including process name)</li>
+<li><code>opts.dir</code> working directory of the process, defaults to CWD</li>
+<li><code>opts.env</code> table with environment variables, defaults to ENV</li>
+<li><code>opts.boot_match</code> message that signals readiness of process</li>
+<li><code>opts.boot_timeout</code> time to wait until boot_match appars in stderr in seconds, defaults to 5s</li>
+<li><strong>RETURN</strong> a Proc object</li>
+</ul>
+<h4 id="mtevprocpause">mtev.Proc:pause</h4>
+<blockquote>
+<p>send SIGSTOP signal</p>
+</blockquote>
+<pre><code class="lang-lua">status =
+mtev.Proc:pause()
+</code></pre>
+<h4 id="mtevprocpid">mtev.Proc:pid</h4>
+<pre><code class="lang-lua">pid =
+mtev.Proc:pid()
+</code></pre>
+<h4 id="procready">Proc:ready</h4>
+<blockquote>
+<p>wait for the process to become ready</p>
+</blockquote>
+<pre><code class="lang-lua">status =
+Proc:ready()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> status true/false depending on weather the process became ready
+Kills processes that did not become ready in time</li>
+</ul>
+<h4 id="mtevprocresume">mtev.Proc:resume</h4>
+<blockquote>
+<p>send SIGCONT signal</p>
+</blockquote>
+<pre><code class="lang-lua">status =
+mtev.Proc:resume()
+</code></pre>
+<h4 id="mtevprocstart">mtev.Proc:start</h4>
+<blockquote>
+<p>start process</p>
+</blockquote>
+<pre><code class="lang-lua">ok, msg =
+mtev.Proc:start()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> self</li>
+</ul>
+<h4 id="mtevprocwait">mtev.Proc:wait</h4>
+<blockquote>
+<p>wait for a process to terminate</p>
+</blockquote>
+<pre><code class="lang-lua">term, status, errno =
+mtev.Proc:wait(timeout)
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> term is true if the process terminated normally; status, errno as in mtev.process:wait()
+In the case of normal termination, status is passed throught the WEXITSTATUS() before returning.</li>
+</ul>
 <h4 id="mtevprocesskill">mtev.process:kill</h4>
 <blockquote>
 <p>Kill a spawned process.</p>
@@ -1155,6 +1383,18 @@ mtev.rmdir(path)
 <li><strong>RETURN</strong> boolean success flag, error number, string representation of error</li>
 </ul>
 <h3 id="s">S</h3>
+<h4 id="mtevsh">mtev.sh</h4>
+<blockquote>
+<p>Run shell command, return output</p>
+</blockquote>
+<pre><code class="lang-lua">status, stdout, stderr =
+mtev.sh(command, [timeout], [shell])
+</code></pre>
+<ul>
+<li><code>command</code> to run</li>
+<li><code>timeout</code> defaults to nil (infinite wait)</li>
+<li><code>shell</code> which shell to use, defaults to $SHELL then to &quot;/bin/sh&quot;</li>
+</ul>
 <h4 id="mtevsha1">mtev.sha1</h4>
 <pre><code class="lang-lua">mtev.sha1()
 </code></pre>
@@ -1246,6 +1486,13 @@ the first argument.</p>
 <pre><code class="lang-lua">thread, tid =
 mtev.thread_self()
 </code></pre>
+<h4 id="mtevtime">mtev.time</h4>
+<pre><code class="lang-lua">time =
+mtev.time()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> the seconds since epoch (1970 UTC) as float</li>
+</ul>
 <h4 id="mtevtimezone">mtev.timezone</h4>
 <pre><code class="lang-lua">mtev.timezone =
 mtev.timezone(zonename)
@@ -1431,6 +1678,67 @@ with other SSL functions.</p>
 <li><strong>RETURN</strong> the number of the signal that caused the termination of the process</li>
 </ul>
 <p>Only valid if <code>mtev.WIFSIGNALED(status)</code> is true.</p>
+<h3 id="x">X</h3>
+<h4 id="mtevxmldocroot">mtev.xmldoc:root</h4>
+<pre><code class="lang-lua">node =
+mtev.xmldoc:root()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> mtev.xmlnode containing root of document</li>
+</ul>
+<h4 id="mtevxmldoctostring">mtev.xmldoc:tostring</h4>
+<pre><code class="lang-lua">str =
+mtev.xmldoc:<span class="hljs-built_in">tostring</span>()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> string representation of xmldoc</li>
+</ul>
+<h4 id="mtevxmldocxpath">mtev.xmldoc:xpath</h4>
+<pre><code class="lang-lua">iter
+mtev.xmldoc:xpath(xpath, [node])
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> iterator over mtev.xmlnode objects</li>
+</ul>
+<h4 id="mtevxmlnodeaddchild">mtev.xmlnode:addchild</h4>
+<blockquote>
+<p>Add child to the given xml node</p>
+</blockquote>
+<pre><code class="lang-lua">child =
+mtev.xmlnode:addchild(str)
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> child mtev.xmlnode</li>
+</ul>
+<h4 id="mtevxmlnodeattr">mtev.xmlnode:attr</h4>
+<pre><code class="lang-lua">val =
+mtev.xmlnode:attr(key)
+</code></pre>
+<h4 id="mtevxmlnodechildren">mtev.xmlnode:children</h4>
+<pre><code class="lang-lua">iter =
+mtev.xmlnode:children()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> iterator over child mtev.xmlnodes</li>
+</ul>
+<h4 id="mtevxmlnodecontents">mtev.xmlnode:contents</h4>
+<pre><code class="lang-lua">str =
+mtev.xmlnode:contents()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> content of xml node as string</li>
+</ul>
+<h4 id="mtevxmlnodename">mtev.xmlnode:name</h4>
+<pre><code class="lang-lua">str =
+mtev.xmlnode:name()
+</code></pre>
+<h4 id="mtevxmlnodenext">mtev.xmlnode:next</h4>
+<pre><code class="lang-lua">sibling =
+mtev.xmlnode:<span class="hljs-built_in">next</span>()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> next sibling xml node</li>
+</ul>
 
                                 
                                 </section>
