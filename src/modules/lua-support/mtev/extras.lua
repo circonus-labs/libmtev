@@ -225,12 +225,3 @@ end
 
 _G.coroutine._resume = _G.coroutine.resume
 _G.coroutine.resume = mtev_coros_resume
-
---/*!
---\lua time = mtev.time()
---\return the seconds since epoch (1970 UTC) as float
---*/
-function _G.mtev.time()
-  local sec, usec = mtev.gettimeofday()
-  return sec + usec / 1000000
-end
