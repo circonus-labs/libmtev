@@ -1981,7 +1981,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
     }
 
     int dedup_cnt = 0;
-    int dedup_diff_s;
+    int dedup_diff_s = 0;
     const char *last_file = "unknown";
     int last_line = 0;
     char *last_buffer = NULL;

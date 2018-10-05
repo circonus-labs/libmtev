@@ -767,7 +767,7 @@ mtev_lua_resume_clean_events(mtev_lua_resume_info_t *ci) {
 void
 mtev_lua_pushmodule(lua_State *L, const char *m) {
   int stack_pos = 0;
-  char *copy, *part, *brkt;
+  char *copy, *part, *brkt = NULL;
   copy = alloca(strlen(m)+1);
   mtevAssert(copy);
   memcpy(copy,m,strlen(m)+1);
