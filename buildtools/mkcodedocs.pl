@@ -99,7 +99,7 @@ sub xlate {
   $/ = undef;
   my $a = <F>;
   close(F);
-  # remove leading -- in lua files
+  # remove leading "--" in lua files
   if ($in =~ /.lua$/) {
       $a =~ s/^--+//gm;
   }
