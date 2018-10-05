@@ -66,14 +66,14 @@ function ApiResponse:new(code, output, headers)
 end
 
 --/*!
---\hlua rc = mtev.ApiResponse:rc()
+--\lua rc = mtev.ApiResponse:rc()
 --*/
 function ApiResponse:rc()
   return self.code
 end
 
 --/*!
---\hlua self = mtev.ApiResponse:check()
+--\lua self = mtev.ApiResponse:check()
 --\brief Raise and error unless rc == 200
 --\return self
 --*/
@@ -85,7 +85,7 @@ function ApiResponse:check()
 end
 
 --/*!
---\hlua text = mtev.ApiResponse:text()
+--\lua text = mtev.ApiResponse:text()
 --\brief return payload of response as string
 --*/
 function ApiResponse:text()
@@ -93,7 +93,7 @@ function ApiResponse:text()
 end
 
 --/*!
---\hlua t = mtev.ApiResponse:json()
+--\lua t = mtev.ApiResponse:json()
 --\return parsed payload of response as table t
 --*/
 function ApiResponse:json()
@@ -107,7 +107,7 @@ function ApiResponse:json()
 end
 
 --/*!
---\hlua t = mtev.ApiResponse:xml()
+--\lua t = mtev.ApiResponse:xml()
 --\return parsed payload of response as table mtev.xmldoc
 --*/
 function ApiResponse:xml()
@@ -138,7 +138,7 @@ function Api:new(host, port, headers, sslconfig)
 end
 
 --/*!
---\hlua api = mtev.Api:http(host, port, [headers])
+--\lua api = mtev.Api:http(host, port, [headers])
 --\brief Wraps an HTTP Api
 --
 --Example:
@@ -153,7 +153,7 @@ function Api:http(host, port, headers)
 end
 
 --/*!
---\hlua api = mtev.Api:https(host, port, [headers], [sslconfig])
+--\lua api = mtev.Api:https(host, port, [headers], [sslconfig])
 --\brief Wraps an HTTPS Api
 --*/
 function Api:https(host, port, headers, sslconfig)
@@ -161,7 +161,7 @@ function Api:https(host, port, headers, sslconfig)
 end
 
 --/*!
---\hlua api_response = mtev.Api:request(method, path, payload, [headers])
+--\lua api_response = mtev.Api:request(method, path, payload, [headers])
 --\brief Issue a HTTP(S) request
 --\return an mtev.ApiResponse object
 --*/
@@ -173,7 +173,7 @@ function Api:request(method, path, payload, headers)
 end
 
 --/*!
---\hlua api_response = mtev.Api:get(path, payload, headers)
+--\lua api_response = mtev.Api:get(path, payload, headers)
 --\brief Isse a GET request
 --*/
 function Api:get(...)
@@ -181,7 +181,7 @@ function Api:get(...)
 end
 
 --/*!
---\hlua api_response = mtev.Api:post(path, payload, headers)
+--\lua api_response = mtev.Api:post(path, payload, headers)
 --\brief Issue a POST request
 --*/
 function Api:post(...)
@@ -189,7 +189,7 @@ function Api:post(...)
 end
 
 --/*!
---\hlua api_response = mtev.Api:put(path, payload, headers)
+--\lua api_response = mtev.Api:put(path, payload, headers)
 --\brief Issue a PUT request
 --*/
 function Api:put(...)

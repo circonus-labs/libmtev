@@ -25,7 +25,7 @@ function WatchHandler:new(proc, key)
 end
 
 --/*!
---\hlua line = mtev.LogWatch:wait(timeout)
+--\lua line = mtev.LogWatch:wait(timeout)
 --\brief wait for match
 --\param timeout maximial time to wait in seconds
 --\return line matched or nil on timeout
@@ -36,7 +36,7 @@ function WatchHandler:wait(timeout)
 end
 
 --/*!
---\hlua mtev.LogWatch:stop()
+--\lua mtev.LogWatch:stop()
 --\brief stop watching, drain watch queue
 --*/
 function WatchHandler:stop()
@@ -53,7 +53,7 @@ local Proc = {}
 Proc.__index = Proc
 
 --/*!
---\hlua proc = mtev.Proc:new(opts)
+--\lua proc = mtev.Proc:new(opts)
 --\brief Create and control a subprocess
 --\param opts.path path of the executable
 --\param opts.argv list of command line arguments (including process name)
@@ -85,7 +85,7 @@ function Proc:new(opts)
 end
 
 --/*!
---\hlua watch = mtev.Proc:logwatch(regex, [limit])
+--\lua watch = mtev.Proc:logwatch(regex, [limit])
 --\brief Watch stderr for a line maching regexp
 --\param regex is either a regex string or a function that consumes lines
 --\param limit is the maximal number of matches to find. Default infinite.
@@ -112,7 +112,7 @@ function Proc:logwatch(regex, limit)
 end
 
 --/*!
---\hlua self = mtev.Proc:loglisten(f)
+--\lua self = mtev.Proc:loglisten(f)
 --\brief Execute f on each line emitted to stderr
 --*/
 function Proc:loglisten(func)
@@ -121,7 +121,7 @@ function Proc:loglisten(func)
 end
 
 --/*!
---\hlua self = mtev.Proc:loglog(stream, [prefix])
+--\lua self = mtev.Proc:loglog(stream, [prefix])
 --\brief Forward process output on stderr to mtev log stream
 --*/
 function Proc:loglog(stream, prefix)
@@ -136,7 +136,7 @@ function Proc:loglog(stream, prefix)
 end
 
 --/*!
---\hlua self = mtev.Proc:logwrite(file)
+--\lua self = mtev.Proc:logwrite(file)
 --\brief Write process output on stderr to file
 --*/
 function Proc:logwrite(file)
@@ -157,7 +157,7 @@ function Proc:logwrite(file)
 end
 
 --/*!
---\hlua ok, msg = mtev.Proc:start()
+--\lua ok, msg = mtev.Proc:start()
 --\brief start process
 --\return self
 --*/
@@ -209,7 +209,7 @@ function Proc:start()
 end
 
 --/*!
---\hlua status = Proc:ready()
+--\lua status = Proc:ready()
 --\brief wait for the process to become ready
 --\return status true/false depending on weather the process became ready
 --Kills processes that did not become ready in time
@@ -225,7 +225,7 @@ function Proc:ready()
 end
 
 --/*!
---\hlua ok, status, errno = Proc:kill(timeout)
+--\lua ok, status, errno = Proc:kill(timeout)
 --\brief Kill process by sending SIGTERM, then SIGKILL
 --\param timeout for the signals
 --\return ok true if process was terminated, status, errno as returned by mtev.proc:wait()
@@ -244,7 +244,7 @@ function Proc:kill(timeout)
 end
 
 --/*!
---\hlua pid = mtev.Proc:pid()
+--\lua pid = mtev.Proc:pid()
 --*/
 function Proc:pid()
   if self.proc == nil then return -1 end
@@ -252,7 +252,7 @@ function Proc:pid()
 end
 
 --/*!
---\hlua term, status, errno = mtev.Proc:wait(timeout)
+--\lua term, status, errno = mtev.Proc:wait(timeout)
 --\brief wait for a process to terminate
 --\return term is true if the process terminated normally; status, errno as in mtev.process:wait()
 --In the case of normal termination, status is passed throught the WEXITSTATUS() before returning.
@@ -267,7 +267,7 @@ function Proc:wait(timeout)
 end
 
 --/*!
---\hlua status = mtev.Proc:pause()
+--\lua status = mtev.Proc:pause()
 --\brief send SIGSTOP signal
 --*/
 function Proc:pause()
@@ -276,7 +276,7 @@ function Proc:pause()
 end
 
 --/*!
---\hlua status = mtev.Proc:resume()
+--\lua status = mtev.Proc:resume()
 --\brief send SIGCONT signal
 --*/
 function Proc:resume()
