@@ -106,6 +106,17 @@ function ApiResponse:json()
   return doc:document()
 end
 
+--/*!
+--\hlua t = mtev.ApiResponse:xml()
+--\return parsed payload of response as table mtev.xmldoc
+--*/
+function ApiResponse:xml()
+  local o = self.output
+  if not o or o == '' then return nil end
+  local doc = mtev.parsexml(o)
+  return doc
+end
+
 --
 -- Class: API
 --

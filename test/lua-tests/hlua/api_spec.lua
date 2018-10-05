@@ -22,6 +22,12 @@ Content-Type: text/plain
 { "msg" : "Hello World!" }]])
           client:close()
         end
+        local client = e:accept()
+        client:write([[HTTP/1.0 200
+Content-Type: text/plain
+
+<xml>Hello World</xml>]])
+        client:close()
         e:close()
         mtev.notify(key_listen)
     end)
@@ -29,6 +35,7 @@ Content-Type: text/plain
     local api = mtev.Api:http("localhost", port)
     assert.same(api:get("/"):check():text(), [[{ "msg" : "Hello World!" }]])
     assert.same(api:get("/"):check():json(), { msg = "Hello World!" })
+    assert.same(api:get("/"):check():xml():root():contents(),"Hello World")
     assert.truthy(mtev.waitfor(key_listen, 3))
  end)
 
