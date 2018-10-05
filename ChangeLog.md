@@ -4,6 +4,8 @@
 
 ## 1.5
 
+### 1.5.8
+
  * Fix libslz's trailing byte problem and integrate it.
  * `mtev_intern` implementation for share strings and byte buffers.
  * Implement log dedupping `dedup_seconds` configuration option.
