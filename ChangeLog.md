@@ -7,6 +7,9 @@
  * Fix libslz's trailing byte problem and integrate it.
  * mtev_intern implementation for share strings and byte buffers.
  * Implement log dedupping `dedup_seconds` configuration option.
+ * Add lua classes mtev.Proc / mtev.Api
+ * Add lua functions mtev.time, mtev.exec, mtev.sh
+ * Document mtev.xml* functionality
 
 ### 1.5.7
 
