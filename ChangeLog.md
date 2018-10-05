@@ -5,11 +5,13 @@
 ## 1.5
 
  * Fix libslz's trailing byte problem and integrate it.
- * mtev_intern implementation for share strings and byte buffers.
+ * `mtev_intern` implementation for share strings and byte buffers.
  * Implement log dedupping `dedup_seconds` configuration option.
+ * Watchdog config option to disable saving of glider stdout, useful in cases
+   where the glider produces its own output files.
  * Add lua classes mtev.Proc / mtev.Api
- * Add lua functions mtev.time, mtev.exec, mtev.sh
- * Document mtev.xml* functionality
+ * Add lua functions `mtev.time`, `mtev.exec`, `mtev.sh`
+ * Document mtev.xml\* functionality.
 
 ### 1.5.7
 
@@ -18,7 +20,7 @@
 
 ### 1.5.6
 
- * Introduce mtev_watchdog_disable_asynch_core_dump()
+ * Introduce `mtev_watchdog_disable_asynch_core_dump()`
 
 ### 1.5.5
 
