@@ -60,7 +60,11 @@ endef
 
 HEADERS=lua_mtev.h
 LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua \
-	mtev/hooks/http.lua
+	mtev/hooks/http.lua \
+	mtev/lua_init.lua \
+	mtev/mtev.lua \
+	mtev/Api.lua \
+	mtev/Proc.lua
 
 FQ_MODULES=@FQ_MODULES@
 AMQP_MODULES=@AMQP_MODULES@

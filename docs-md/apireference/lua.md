@@ -1,3 +1,139 @@
+### A
+
+#### mtev.Api:get
+
+>Isse a GET request
+
+```lua
+api_response =
+mtev.Api:get(path, payload, headers)
+```
+
+
+
+
+#### mtev.Api:http
+
+>Wraps an HTTP Api
+
+```lua
+api =
+mtev.Api:http(host, port, [headers])
+```
+
+
+
+Example:
+```
+local api = mtev.Api:http(host, port, [headers])
+local result_text = api:get("/"):check():text()
+local result_table = api:get("/"):check():json()
+```
+
+
+#### mtev.Api:https
+
+>Wraps an HTTPS Api
+
+```lua
+api =
+mtev.Api:https(host, port, [headers], [sslconfig])
+```
+
+
+
+
+#### mtev.Api:post
+
+>Issue a POST request
+
+```lua
+api_response =
+mtev.Api:post(path, payload, headers)
+```
+
+
+
+
+#### mtev.Api:put
+
+>Issue a PUT request
+
+```lua
+api_response =
+mtev.Api:put(path, payload, headers)
+```
+
+
+
+
+#### mtev.Api:request
+
+>Issue a HTTP(S) request
+
+```lua
+api_response =
+mtev.Api:request(method, path, payload, [headers])
+```
+
+
+  * **RETURN** an mtev.ApiResponse object
+
+
+#### mtev.ApiResponse:check
+
+>Raise and error unless rc == 200
+
+```lua
+self =
+mtev.ApiResponse:check()
+```
+
+
+  * **RETURN** self
+
+
+#### mtev.ApiResponse:json
+
+```lua
+t =
+mtev.ApiResponse:json()
+```
+
+  * **RETURN** parsed payload of response as table t
+
+
+#### mtev.ApiResponse:rc
+
+```lua
+rc =
+mtev.ApiResponse:rc()
+```
+
+
+
+#### mtev.ApiResponse:text
+
+>return payload of response as string
+
+```lua
+text =
+mtev.ApiResponse:text()
+```
+
+
+
+
+#### mtev.ApiResponse:xml
+
+```lua
+t =
+mtev.ApiResponse:xml()
+```
+
+  * **RETURN** parsed payload of response as table mtev.xmldoc
+
+
 ### B
 
 #### mtev.base64_decode
@@ -437,6 +573,19 @@ mtev.eventer_loop_concurrency()
 
 
 
+#### mtev.exec
+
+>Spawn process return output on stdout, stderr as strings
+
+```lua
+status, stdout, stderr =
+mtev.exec(path, argv, env, timeout)
+```
+
+
+  * **RETURN** status is nil if a timeout was hit, stdout, stderr contain process output
+
+
 ### G
 
 #### mtev.getcwd
@@ -551,6 +700,31 @@ mtev.log_enabled(facility)
   * **RETURN** a boolean indicating the enabled status of the log facility
 
 
+#### mtev.LogWatch:stop
+
+>stop watching, drain watch queue
+
+```lua
+mtev.LogWatch:stop()
+```
+
+
+
+
+#### mtev.LogWatch:wait
+
+>wait for match
+
+```lua
+line =
+mtev.LogWatch:wait(timeout)
+```
+
+
+  * `timeout` maximial time to wait in seconds
+  * **RETURN** line matched or nil on timeout
+
+
 ### M
 
 #### mtev.md5
@@ -656,10 +830,14 @@ the byte offset into the string where the error occurred.
 
 #### mtev.parsexml
 
+>Parse xml string
+
 ```lua
-mtev.parsexml()
+mtev.parsexml(str)
 ```
 
+
+  * **RETURN** mtev.xmldoc representation
 
 
 #### mtev.pcre
@@ -702,6 +880,164 @@ mtev.print(format, ...)
 This function is effectively the `mtev.log` function with the first argument
 set to "error".  It is also aliased into the global `print` symbol such that
 one cannot accidentally call the print builtin.
+
+
+#### Proc:kill
+
+>Kill process by sending SIGTERM, then SIGKILL
+
+```lua
+ok, status, errno =
+Proc:kill(timeout)
+```
+
+
+  * `timeout` for the signals
+  * **RETURN** ok true if process was terminated, status, errno as returned by mtev.proc:wait()
+
+
+#### mtev.Proc:loglisten
+
+>Execute f on each line emitted to stderr
+
+```lua
+self =
+mtev.Proc:loglisten(f)
+```
+
+
+
+
+#### mtev.Proc:loglog
+
+>Forward process output on stderr to mtev log stream
+
+```lua
+self =
+mtev.Proc:loglog(stream, [prefix])
+```
+
+
+
+
+#### mtev.Proc:logwatch
+
+>Watch stderr for a line maching regexp
+
+```lua
+watch =
+mtev.Proc:logwatch(regex, [limit])
+```
+
+
+  * `regex` is either a regex string or a function that consumes lines
+  * `limit` is the maximal number of matches to find. Default infinite.
+  * **RETURN** watch an mtev.LogWatch object
+
+
+#### mtev.Proc:logwrite
+
+>Write process output on stderr to file
+
+```lua
+self =
+mtev.Proc:logwrite(file)
+```
+
+
+
+
+#### mtev.Proc:new
+
+>Create and control a subprocess
+
+```lua
+proc =
+mtev.Proc:new(opts)
+```
+
+
+  * `opts.path` path of the executable
+  * `opts.argv` list of command line arguments (including process name)
+  * `opts.dir` working directory of the process, defaults to CWD
+  * `opts.env` table with environment variables, defaults to ENV
+  * `opts.boot_match` message that signals readiness of process
+  * `opts.boot_timeout` time to wait until boot_match appars in stderr in seconds, defaults to 5s
+  * **RETURN** a Proc object
+
+
+#### mtev.Proc:pause
+
+>send SIGSTOP signal
+
+```lua
+status =
+mtev.Proc:pause()
+```
+
+
+
+
+#### mtev.Proc:pid
+
+```lua
+pid =
+mtev.Proc:pid()
+```
+
+
+
+#### Proc:ready
+
+>wait for the process to become ready
+
+```lua
+status =
+Proc:ready()
+```
+
+
+  * **RETURN** status true/false depending on weather the process became ready
+Kills processes that did not become ready in time
+
+
+#### mtev.Proc:resume
+
+>send SIGCONT signal
+
+```lua
+status =
+mtev.Proc:resume()
+```
+
+
+
+
+#### mtev.Proc:start
+
+>start process
+
+```lua
+ok, msg =
+mtev.Proc:start()
+```
+
+
+  * **RETURN** self
+
+
+#### mtev.Proc:wait
+
+>wait for a process to terminate
+
+```lua
+term, status, errno =
+mtev.Proc:wait(timeout)
+```
+
+
+  * **RETURN** term is true if the process terminated normally; status, errno as in mtev.process:wait()
+In the case of normal termination, status is passed throught the WEXITSTATUS() before returning.
 
 
 #### mtev.process:kill
@@ -794,6 +1130,21 @@ mtev.rmdir(path)
  
 
 ### S
+
+#### mtev.sh
+
+>Run shell command, return output
+
+```lua
+status, stdout, stderr =
+mtev.sh(command, [timeout], [shell])
+```
+
+
+  * `command` to run
+  * `timeout` defaults to nil (infinite wait)
+  * `shell` which shell to use, defaults to $SHELL then to "/bin/sh"
+
 
 #### mtev.sha1
 
@@ -935,6 +1286,16 @@ thread, tid =
 mtev.thread_self()
 ```
 
+
+
+#### mtev.time
+
+```lua
+time =
+mtev.time()
+```
+
+  * **RETURN** the seconds since epoch (1970 UTC) as float
 
 
 #### mtev.timezone
@@ -1192,5 +1553,98 @@ mtev.WTERMSIG(status)
   * **RETURN** the number of the signal that caused the termination of the process
 
 Only valid if `mtev.WIFSIGNALED(status)` is true.
+
+
+### X
+
+#### mtev.xmldoc:root
+
+```lua
+node =
+mtev.xmldoc:root()
+```
+
+  * **RETURN** mtev.xmlnode containing root of document
+
+
+#### mtev.xmldoc:tostring
+
+```lua
+str =
+mtev.xmldoc:tostring()
+```
+
+  * **RETURN** string representation of xmldoc
+
+
+#### mtev.xmldoc:xpath
+
+```lua
+iter
+mtev.xmldoc:xpath(xpath, [node])
+```
+
+  * **RETURN** iterator over mtev.xmlnode objects
+
+
+#### mtev.xmlnode:addchild
+
+>Add child to the given xml node
+
+```lua
+child =
+mtev.xmlnode:addchild(str)
+```
+
+
+  * **RETURN** child mtev.xmlnode
+
+
+#### mtev.xmlnode:attr
+
+```lua
+val =
+mtev.xmlnode:attr(key)
+```
+
+
+
+#### mtev.xmlnode:children
+
+```lua
+iter =
+mtev.xmlnode:children()
+```
+
+  * **RETURN** iterator over child mtev.xmlnodes
+
+
+#### mtev.xmlnode:contents
+
+```lua
+str =
+mtev.xmlnode:contents()
+```
+
+  * **RETURN** content of xml node as string
+
+
+#### mtev.xmlnode:name
+
+```lua
+str =
+mtev.xmlnode:name()
+```
+
+
+
+#### mtev.xmlnode:next
+
+```lua
+sibling =
+mtev.xmlnode:next()
+```
+
+  * **RETURN** next sibling xml node
 
 

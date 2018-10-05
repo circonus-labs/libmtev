@@ -871,16 +871,6 @@ static int mtev_lua_panic(lua_State *L) {
   return 0;
 }
 
-/* static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) { */
-/*   (void)ud; (void)osize;  /\* not used *\/ */
-/*   if (nsize == 0) { */
-/*     free(ptr); */
-/*     return NULL; */
-/*   } */
-/*   else */
-/*     return realloc(ptr, nsize); */
-/* } */
-
 mtev_lua_resume_info_t *
 mtev_lua_new_resume_info(lua_module_closure_t *lmc, int magic) {
   mtev_lua_resume_info_t *ri;
@@ -1026,8 +1016,7 @@ mtev_lua_open(const char *module_name, void *lmc,
 
   require(L, rv, ffi);
   require(L, rv, mtev);
-  require(L, rv, mtev.timeval);
-  require(L, rv, mtev.extras);
+  require(L, rv, mtev.lua_init);
 
   lua_gc(L, LUA_GCRESTART, 0);
 

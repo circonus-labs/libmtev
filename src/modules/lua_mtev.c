@@ -2168,7 +2168,7 @@ nl_waitfor(lua_State *L) {
     luaL_error(L, "waitfor(key, [timeout]) wrong arguments");
   }
   key = lua_tostring(L, 1);
-  if(lua_gettop(L) == 2) {
+  if(lua_gettop(L) == 2 && !lua_isnil(L, 2)) {
     p_int = lua_tonumber(L, 2);
     have_timeout = mtev_true;
   }
@@ -3635,6 +3635,7 @@ nl_conf_replace_boolean(lua_State *L) {
   else lua_pushnil(L);
   return 1;
 }
+
 struct xpath_iter {
   xmlXPathContextPtr ctxt;
   xmlXPathObjectPtr pobj;
@@ -3659,6 +3660,11 @@ mtev_lua_xpath_iter(lua_State *L) {
   }
   return 0;
 }
+
+/*!
+\lua iter mtev.xmldoc:xpath(xpath, [node])
+\return iterator over mtev.xmlnode objects
+*/
 static int
 mtev_lua_xpath(lua_State *L) {
   int n;
@@ -3698,6 +3704,10 @@ mtev_lua_xpath(lua_State *L) {
   lua_pushcclosure(L, mtev_lua_xpath_iter, 1);
   return 1;
 }
+
+/*!
+\lua str = mtev.xmlnode:name()
+*/
 static int
 mtev_lua_xmlnode_name(lua_State *L) {
   xmlNodePtr *nodeptr;
@@ -3717,6 +3727,11 @@ mtev_lua_xmlnode_name(lua_State *L) {
   luaL_error(L,"must be called with no arguments");
   return 0;
 }
+
+
+/*!
+\lua val = mtev.xmlnode:attr(key)
+*/
 static int
 mtev_lua_xmlnode_attr(lua_State *L) {
   xmlNodePtr *nodeptr;
@@ -3746,6 +3761,11 @@ mtev_lua_xmlnode_attr(lua_State *L) {
   luaL_error(L,"must be called with one argument");
   return 0;
 }
+
+/*!
+\lua str = mtev.xmlnode:contents()
+\return content of xml node as string
+*/
 static int
 mtev_lua_xmlnode_contents(lua_State *L) {
   xmlNodePtr *nodeptr;
@@ -3773,6 +3793,11 @@ mtev_lua_xmlnode_contents(lua_State *L) {
   luaL_error(L,"must be called with no arguments");
   return 0;
 }
+
+/*!
+\lua sibling = mtev.xmlnode:next()
+\return next sibling xml node
+*/
 static int
 mtev_lua_xmlnode_next(lua_State *L) {
   xmlNodePtr *nodeptr;
@@ -3788,6 +3813,12 @@ mtev_lua_xmlnode_next(lua_State *L) {
   }
   return 0;
 }
+
+/*!
+\lua child = mtev.xmlnode:addchild(str)
+\brief Add child to the given xml node
+\return child mtev.xmlnode
+*/
 static int
 mtev_lua_xmlnode_addchild(lua_State *L) {
   xmlNodePtr *nodeptr;
@@ -3806,6 +3837,11 @@ mtev_lua_xmlnode_addchild(lua_State *L) {
   luaL_error(L,"must be called with one argument");
   return 0;
 }
+
+/*!
+\lua iter = mtev.xmlnode:children()
+\return iterator over child mtev.xmlnodes
+*/
 static int
 mtev_lua_xmlnode_children(lua_State *L) {
   xmlNodePtr *nodeptr, node, cnode;
@@ -3822,6 +3858,11 @@ mtev_lua_xmlnode_children(lua_State *L) {
   lua_pushcclosure(L, mtev_lua_xmlnode_next, 1);
   return 1;
 }
+
+/*!
+\lua str = mtev.xmldoc:tostring()
+\return string representation of xmldoc
+*/
 static int
 mtev_lua_xml_tostring(lua_State *L) {
   int n;
@@ -3839,6 +3880,11 @@ mtev_lua_xml_tostring(lua_State *L) {
   free(xmlstring);
   return 1;
 }
+
+/*!
+\lua node = mtev.xmldoc:root()
+\return mtev.xmlnode containing root of document
+*/
 static int
 mtev_lua_xml_docroot(lua_State *L) {
   int n;
@@ -3898,7 +3944,11 @@ mtev_xmlnode_index_func(lua_State *L) {
   luaL_error(L, "mtev.xmlnode no such element: %s", k);
   return 0;
 }
-/*! \lua mtev.parsexml()
+
+/*!
+\lua mtev.parsexml(str)
+\brief Parse xml string
+\return mtev.xmldoc representation
 */
 static int
 nl_parsexml(lua_State *L) {

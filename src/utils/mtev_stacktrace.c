@@ -165,7 +165,8 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
   struct dmap_node *node = calloc(1, sizeof(*node));
   node->file = strdup(file);
   node->base = base;
-  mtevL(mtev_debug, "dwarf loading %s @ %p\n", file, (void *)base);
+  mtev_log_stream_t dwarf_log = mtev_log_stream_find("debug/dwarf");
+  mtevL(dwarf_log, "dwarf loading %s @ %p\n", file, (void *)base);
   int fd = open(node->file, O_RDONLY);
   Dwarf_Error err;
   if(fd >= 0) {
@@ -191,7 +192,7 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
       }
     }
     dwarf_finish(node->dbg, &err);
-    mtevL(mtev_debug, "dwarf loaded %s @ %p (%d items)\n", file, (void *)base, node->count);
+    mtevL(dwarf_log, "dwarf loaded %s @ %p (%d items)\n", file, (void *)base, node->count);
     node->dbg = 0;
     close(fd);
   }
