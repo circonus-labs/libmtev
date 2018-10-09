@@ -1273,6 +1273,16 @@ mtev_log_flusher(void *vstop) {
   return NULL;
 }
 mtev_boolean stop_asynch_dedup_flush = mtev_false;;
+static void prep_resize_lock(void) {
+  pthread_mutex_lock(&resize_lock);
+}
+static void mtev_log_dedup_init_parent(void) {
+  pthread_mutex_unlock(&resize_lock);
+}
+static void mtev_log_dedup_init_child(void) {
+  pthread_mutex_unlock(&resize_lock);
+  mtev_log_dedup_init();
+}
 void
 mtev_log_dedup_init(void) {
   static pid_t thispid = 0;
@@ -1307,7 +1317,7 @@ mtev_log_init(int debug_on) {
   if(debug_on) mtev_debug->flags |= MTEV_LOG_STREAM_ENABLED;
   else mtev_debug->flags &= ~MTEV_LOG_STREAM_ENABLED;
   mtev_log_dedup_init();
-  pthread_atfork(NULL, NULL, mtev_log_dedup_init);
+  pthread_atfork(prep_resize_lock, mtev_log_dedup_init_parent, mtev_log_dedup_init_child);
 }
 
 void
