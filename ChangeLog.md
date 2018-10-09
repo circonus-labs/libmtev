@@ -4,6 +4,11 @@
 
 ## 1.5
 
+### 1.5.9
+
+ * Revert changes to child.lua in mtevbusted - they were causing
+   issues resulting in test failures.
+
 ### 1.5.8
 
  * Fix libslz's trailing byte problem and integrate it.
