@@ -28,7 +28,7 @@ function TestProc:new(props)
   local self = setmetatable({}, TestProc)
   local p = { unpack(props) }
   p.boot_timeout = p.timeout or 5
-  p.boot_match = o.boot_match or "eventer_loops started"
+  p.boot_match = p.boot_match or "eventer_loops started"
   p.dir = p.dir or find_test_dir()
   if p.env == nil then
     p.env = { UMEM_DEBUG = "default" }
