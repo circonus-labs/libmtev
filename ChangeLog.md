@@ -4,6 +4,10 @@
 
 ## 1.5
 
+### 1.5.10
+
+ * Fix unsafe fork (fork while resize_lock held) in logging subsystem.
+
 ### 1.5.9
 
  * Revert changes to child.lua in mtevbusted - they were causing
