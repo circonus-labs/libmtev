@@ -9,7 +9,7 @@ if [ $? -eq 0 ]; then
   SYM=`git name-rev $HASH | awk '{print $2;}' | sed -e 's/\^.*//'`
   TAG=`git describe --tags --exact-match 2>/dev/null`
   if [ -n "$TAG" ]; then
-    SYM="$TAG"
+    SYM="tags/$TAG"
   elif [ -z "`echo $SYM | grep '^tags/'`" ]; then
     SYM="branches/$SYM"
   fi
@@ -49,7 +49,7 @@ static inline int mtev_build_version(char *buff, int len) {
   if(!strncmp(start, "branches/", 9)) 
     return snprintf(buff, len, "%s.%s", start+9, MTEV_VERSION);
   if(!strncmp(start, "tags/", 5)) 
-    return snprintf(buff, len, "%s.%s", start+5, MTEV_VERSION);
+    return snprintf(buff, len, "%s", start+5);
   return snprintf(buff, len, "%s.%s", MTEV_BRANCH, MTEV_VERSION);
 }
 
