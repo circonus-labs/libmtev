@@ -1968,6 +1968,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
       allocd = MTEV_MAYBE_SIZE(buffer);
       while(len > allocd) { /* guaranteed true the first time */
         MTEV_MAYBE_REALLOC(buffer, len);
+        allocd = MTEV_MAYBE_SIZE(buffer);
 #ifdef va_copy
         va_copy(copy, arg);
         len = vsnprintf(buffer, allocd, format, copy);
