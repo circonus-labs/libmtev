@@ -4,6 +4,11 @@
 
 ## 1.5
 
+### 1.5.11
+
+ * Fix tagged release version extraction.
+ * Fix infinite loop when logging oversized log entries introduced in 1.5.8
+
 ### 1.5.10
 
  * Fix unsafe fork (fork while resize_lock held) in logging subsystem.
