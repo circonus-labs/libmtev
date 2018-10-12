@@ -150,8 +150,9 @@ mtev_console_eventer_memory(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_jobq(mtev_console_closure_t ncct, int argc, char **argv,
                   mtev_console_state_t *dstate, void *unused) {
-  if(argc != 3) {
-    nc_printf(ncct, "<jobq> concurrency <n>\n");
+  if(argc != 3 && argc != 2) {
+    nc_printf(ncct, "<jobq> <floor|concurrency|min|max> <n>\n");
+    nc_printf(ncct, "<jobq> <ping|post>\n");
     return -1;
   }
   eventer_jobq_t *jobq;
@@ -160,12 +161,45 @@ mtev_console_jobq(mtev_console_closure_t ncct, int argc, char **argv,
     nc_printf(ncct, "No such jobq.\n");
     return -1;
   }
-  if(strcmp(argv[1], "concurrency")) {
-    nc_printf(ncct, "Unknown jobq command: %s\n", argv[1]);
+  if(argc == 2) {
+    /* It's a post */
+    if(!strcmp(argv[1], "post")) {
+      eventer_jobq_post(jobq);
+      nc_printf(ncct, "jobq posted\n");
+    } else if(!strcmp(argv[1], "ping")) {
+      eventer_jobq_ping(jobq);
+      nc_printf(ncct, "jobq pinged\n");
+    }
+    else {
+      nc_printf(ncct, "Unknown jobq command: %s\n", argv[1]);
+      return -1;
+    }
+    return 0;
   }
-  uint32_t new_concurrency = strtoul(argv[2], NULL, 10);
-  eventer_jobq_set_concurrency(jobq, new_concurrency);
-  nc_printf(ncct, "Setting '%s' jobq concurrency to %u\n", jobq->queue_name, new_concurrency);
+  if(!strcmp(argv[1], "concurrency")) {
+    uint32_t new_concurrency = strtoul(argv[2], NULL, 10);
+    eventer_jobq_set_concurrency(jobq, new_concurrency);
+    nc_printf(ncct, "Setting '%s' jobq concurrency to %u\n", jobq->queue_name, new_concurrency);
+  } else if(!strcmp(argv[1], "floor")) {
+    uint32_t new_concurrency = strtoul(argv[2], NULL, 10);
+    eventer_jobq_set_floor(jobq, new_concurrency);
+    nc_printf(ncct, "Setting '%s' jobq floor to %u\n", jobq->queue_name, new_concurrency);
+  } else if(!strcmp(argv[1], "min")) {
+    uint32_t min, max;
+    eventer_jobq_get_min_max(jobq, &min, &max);
+    min = strtoul(argv[2], NULL, 10);
+    eventer_jobq_set_min_max(jobq, min, max);
+    nc_printf(ncct, "Setting '%s' jobq min to %u\n", jobq->queue_name, min);
+  } else if(!strcmp(argv[1], "max")) {
+    uint32_t min, max;
+    eventer_jobq_get_min_max(jobq, &min, &max);
+    max = strtoul(argv[2], NULL, 10);
+    eventer_jobq_set_min_max(jobq, min, max);
+    nc_printf(ncct, "Setting '%s' jobq max to %u\n", jobq->queue_name, max);
+  } else {
+    nc_printf(ncct, "Unknown jobq command: %s\n", argv[1]);
+    return -1;
+  }
   return 0;
 }
 

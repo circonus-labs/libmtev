@@ -853,6 +853,12 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     eventer_set_thread_name(NULL);
     mtev_memory_fini_thread();
   }
+  /* If we've gotten here and there's a backlog... something odd is happening.
+   * We should kick up another thread potentially.
+   */
+  if(ck_pr_load_32(&jobq->backlog) > 0) {
+    eventer_jobq_maybe_spawn(jobq, 0);
+  }
   pthread_exit(NULL);
   return NULL;
 }
@@ -867,6 +873,20 @@ static void jobq_fire_blanks(eventer_jobq_t *jobq, int n) {
 
 void eventer_jobq_ping(eventer_jobq_t *jobq) {
   jobq_fire_blanks(jobq, 1);
+}
+
+static int
+eventer_jobq_post_noop(eventer_t e, int mask, void *c, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)c;
+  (void)now;
+  return 0;
+}
+void eventer_jobq_post(eventer_jobq_t *jobq) {
+  sem_post(&jobq->semaphore);
+  eventer_add_asynch(jobq, eventer_alloc_asynch(eventer_jobq_post_noop, NULL));
+  sem_post(&jobq->semaphore);
 }
 
 void eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *name) {

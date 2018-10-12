@@ -116,7 +116,7 @@ API_EXPORT(void) eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new
     \param jobq the jobq to modify
     \param new_floor the new number of minimum threads
 */
-API_EXPORT(void) eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency);
+API_EXPORT(void) eventer_jobq_set_floor(eventer_jobq_t *jobq, uint32_t new_concurrency);
 
 /*! \fn void eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, uint32_t max)
     \brief Set the upper and lower bounds on desired concurrency for a jobq.
@@ -132,6 +132,12 @@ API_EXPORT(void) eventer_jobq_set_min_max(eventer_jobq_t *jobq, uint32_t min, ui
     \param max a maximum pending jobs count before eventer_try_add_asynch calls will fail.
 */
 API_EXPORT(void) eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max);
+
+/*! \fn void eventer_jobq_post(eventer_jobq_t *jobq)
+    \brief Wake up a jobq to see if there are pending events.
+    \param jobq the jobq to post to.
+*/
+API_EXPORT(void) eventer_jobq_post(eventer_jobq_t *jobq);
 
 void eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent);
 mtev_boolean eventer_jobq_try_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent);
