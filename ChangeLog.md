@@ -4,6 +4,13 @@
 
 ## 1.5
 
+### 1.5.12
+
+ * Be extra precautious when shutting down the last thread in a pool to make sure
+   there is no backlog.
+ * Fix header to expose eventer_jobq_set_floor correctly.
+ * Expose more controls for jobq mutation via console.
+
 ### 1.5.11
 
  * Fix tagged release version extraction.
