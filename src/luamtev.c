@@ -31,6 +31,9 @@ static char *lua_addcpath = NULL;
 static char *lua_lpath = NULL;
 static char *lua_addlpath = NULL;
 static char *lua_file = NULL;
+/* This is mainly used for scripting and a single
+ * eventer thread is a more-than-sufficient default. */
+static int concurrency = 1;
 static int debug = 0;
 static char *function = "main";
 static int foreground = 1;
@@ -52,8 +55,9 @@ usage(const char *prog) {
   fprintf(stderr, "\t-C <path>\t\tlua package.cpath\n");
   fprintf(stderr, "\t-C +<path>\t\tappend to package.cpath\n");
   fprintf(stderr, "\t-M <path>\t\tmtev modules path\n");
-  fprintf(stderr, "\t-m\t\t\tDaemonize and run managed.\n");
-  fprintf(stderr, "\t-m -m\t\t\tRun managed.\n");
+  fprintf(stderr, "\t-m\t\t\tdaemonize and run managed\n");
+  fprintf(stderr, "\t-m -m\t\t\trun managed\n");
+  fprintf(stderr, "\t-n <#threads>\t\tspecify concurrency\n");
   fprintf(stderr, "\t-d\t\t\tturn on debugging\n");
   fprintf(stderr, "\t-e <func>\t\tspecify a function entrypoint (default: main)\n");
   fprintf(stderr, "\n%s -T\n", prog);
@@ -84,6 +88,7 @@ make_config(void) {
   if(lua_addcpath) len += 1 + strlen(lua_addcpath);
   outbuf = malloc(len+1);
   len = snprintf(outbuf, len, CONFIG_TMPL,
+                 concurrency,
                  modules_path, lpath,
                  lua_addlpath ? ";" : "",
                  lua_addlpath ? lua_addlpath : "",
@@ -133,7 +138,7 @@ make_config(void) {
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, POSIXLY_COMPLIANT_PLUS "c:de:g:l:miu:C:L:M:T")) != EOF) {
+  while((c = getopt(argc, argv, POSIXLY_COMPLIANT_PLUS "c:de:g:l:mn:iu:C:L:M:T")) != EOF) {
     switch(c) {
       case 'd': debug = 1; break;
       case 'i': interactive = 1; break;
@@ -156,6 +161,7 @@ parse_cli_args(int argc, char * const *argv) {
         if(foreground == 1) foreground = 0;
         else foreground = 2;
         break;
+      case 'n': concurrency = atoi(optarg); break;
     }
   }
   if(optind > (argc-1) && !dump_template) {
