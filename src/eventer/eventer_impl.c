@@ -392,7 +392,7 @@ int eventer_impl_propset(const char *key, const char *value) {
       return -1;
     }
     int requested = atoi(value);
-    if(requested < 1) requested = 1;
+    if(requested < 0) requested = 0;
     __default_loop_concurrency = requested;
     return 0;
   }

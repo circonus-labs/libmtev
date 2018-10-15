@@ -39,9 +39,10 @@ The keys and values supported are:
  * ##### concurrency
 
    The number of event loop threads to start.  This effects the concurrency
-   of the default event loop and sets the default of any non-default event loops.
-   If not specified, the library will attempt to make a reasonable guess as to
-   a good concurrency level based on the number of CPU cores in the system.
+   of the default event loop and sets the default of any non-default event
+   loops.  If not specified or specified as 0, the library will attempt to
+   make a reasonable guess as to a good concurrency level based on the number
+   of CPU cores in the system.
 
  * ##### loop_&lt;name&gt;
 
