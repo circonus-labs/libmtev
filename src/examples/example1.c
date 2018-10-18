@@ -210,10 +210,8 @@ child_main(void) {
   /* reload out config, to make sure we have the most current */
 
   if(mtev_conf_load(NULL) == -1) {
-    mtevL(mtev_error, "Cannot load config: '%s'\n", config_file);
-    exit(2);
+    mtevStartupTerminate(mtev_error, "Cannot load config: '%s'\n", config_file);
   }
-eventer_max_sleeptime.tv_usec = 10000;
   eventer_init();
   mtev_dso_init();
   mtev_console_init(APPNAME);

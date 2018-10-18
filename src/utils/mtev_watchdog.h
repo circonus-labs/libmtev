@@ -144,6 +144,13 @@ API_EXPORT(void)
 API_EXPORT(double)
   mtev_watchdog_get_timeout(mtev_watchdog_t *hb);
 
+/*! \fn uint32_t mtev_watchdog_number_of_starts(void)
+    \brief Determine the number of times a child has been lauched.
+    \return The number of times fork has returned in the parent.  In a running server, 0 means you're the first generation.
+ */
+API_EXPORT(uint32_t)
+  mtev_watchdog_number_of_starts(void);
+
 /*! \fn int mtev_watchdog_glider(const char *path)
     \brief Sets a glider command.
     \param path the full path to the executable.
