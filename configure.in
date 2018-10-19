@@ -209,7 +209,7 @@ case $host in
 	MODULEEXT=so
 	LDFLAGS="$LDFLAGS -L/usr/local/lib"
 	CFLAGS="$CFLAGS -I/usr/local/include"
-	RLDFLAG="-Wl,--rpath="
+	RLDFLAG="-Wl,--enable-new-dtags -Wl,--rpath="
 	WHOLE_ARCHIVE="-Wl,--whole-archive"
 	NOWHOLE_ARCHIVE="-Wl,--no-whole-archive"
 	;;
@@ -228,7 +228,7 @@ case $host in
 	MODULELD="$CC -shared"
 	SHLD="$CC -shared"
 	MODULEEXT=so
-	RLDFLAG="-Wl,--rpath="
+	RLDFLAG="-Wl,--enable-new-dtags -Wl,--rpath="
 	WHOLE_ARCHIVE="-Wl,--whole-archive"
 	NOWHOLE_ARCHIVE="-Wl,--no-whole-archive"
 	;;
@@ -240,13 +240,13 @@ case $host in
 	LDFLAGS="$LDFLAGS -export-dynamic -L/usr/local/lib"
 	CFLAGS="$CFLAGS -DCOMPAT_43TTY -I/usr/local/include"
 	MODULEEXT=so
-	RLDFLAG="-Wl,--rpath="
+	RLDFLAG="-Wl,--enable-new-dtags -Wl,--rpath="
 	;;
 *)
 	PICFLAGS="-fpic"
 	MODULELD="$CC -shared"
 	MODULEEXT=so
-	RLDFLAG="-Wl,--rpath="
+	RLDFLAG="-Wl,--enable-new-dtags -Wl,--rpath="
 	;;
 esac
 
