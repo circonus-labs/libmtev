@@ -108,6 +108,7 @@ API_EXPORT(mtev_intern_t)
  */
 API_EXPORT(mtev_intern_t)
   mtev_intern_str(const char *, size_t);
+#define miNEW(a) mtev_intern_str((a), 0)
 
 /*! \fn mtev_intern_t mtev_intern(const void *buff, size_t len)
     \brief Like `mtev_intern_pool` invoked with `MTEV_INTERN_DEFAULT_POOL`.
@@ -117,6 +118,7 @@ API_EXPORT(mtev_intern_t)
  */
 API_EXPORT(mtev_intern_t)
   mtev_intern(const void *, size_t);
+#define miNEWL(a, b) mtev_intern_str((a), (b))
 
 /*! \fn mtev_intern_t mtev_intern_copy(const mtev_intern_t iv)
     \brief Return a reference to an existing `mtev_intern_t`.
@@ -127,6 +129,7 @@ API_EXPORT(mtev_intern_t)
  */
 API_EXPORT(mtev_intern_t)
   mtev_intern_copy(const mtev_intern_t);
+#define miCOPY(a) mtev_intern_copy(a)
 
 /*! \fn void mtev_intern_release_pool(mtev_intern_pool_t *pool, mtev_intern_t iv)
     \brief Release interned data back to a pool.
@@ -145,6 +148,7 @@ API_EXPORT(void)
  */
 API_EXPORT(void)
   mtev_intern_release(mtev_intern_t);
+#define miFREE(a) mtev_intern_release(a)
 
 /*! \fn uint32_t mtev_intern_get_refcnt(mtev_intern_t iv)
     \brief Retrieve the current refcnt for an intern item.
