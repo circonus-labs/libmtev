@@ -4,6 +4,14 @@
 
 ## 1.5
 
+### 1.5.x
+
+ * Have luamtev use a default pool concurrency of 1, add -n option.
+ * mtev_intern_release will release to the originating pool.
+ * mi{STR,STRL,PTR,PTRL,NEW,NEWL,COPY,FREE} macros added for ease-of-use
+ * Change the default build to use DT_RUNPATH over DT_RPATH where applicable.
+ * Disable log dedup in luamtev by default.
+
 ### 1.5.12
 
  * Be extra precautious when shutting down the last thread in a pool to make sure
