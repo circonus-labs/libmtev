@@ -785,7 +785,7 @@ mtev_intern_copy(const mtev_intern_t i) {
 
 inline void
 mtev_intern_release_pool(mtev_intern_pool_t *pool, mtev_intern_t i) {
-  if(i.opaque1) return;
+  if(i.opaque1 == 0) return;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
   mtev_intern_internal_release(pool, ii, mtev_true);
 }
