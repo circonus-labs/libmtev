@@ -113,7 +113,7 @@
  */
 
 
-const mtev_intern_t mtev_intern_null;
+const mtev_intern_t mtev_intern_null = { .opaque1 = 0 };
 
 /* While we don't want consumers to allocate things as small as 2 bytes,
  * b/c we do best-fit allocations, we can have left over fragments as small
@@ -777,6 +777,7 @@ mtev_intern_str(const char *buff, size_t len) {
 
 mtev_intern_t
 mtev_intern_copy(const mtev_intern_t i) {
+  if(i.opaque1 == 0) return mtev_intern_null;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
   ck_pr_inc_32(&ii->refcnt);
   return i;
@@ -784,17 +785,21 @@ mtev_intern_copy(const mtev_intern_t i) {
 
 inline void
 mtev_intern_release_pool(mtev_intern_pool_t *pool, mtev_intern_t i) {
+  if(i.opaque1) return;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
   mtev_intern_internal_release(pool, ii, mtev_true);
 }
 
 void
 mtev_intern_release(mtev_intern_t i) {
-  mtev_intern_release_pool(all_pools[0], i);
+  if(i.opaque1 == 0) return;
+  mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
+  mtev_intern_release_pool(all_pools[ii->poolid], i);
 }
 
 uint32_t
 mtev_intern_get_refcnt(mtev_intern_t i) {
+  if(i.opaque1 == 0) return 1;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
   return ck_pr_load_32(&ii->refcnt);
 }

@@ -140,7 +140,7 @@ API_EXPORT(void)
   mtev_intern_release_pool(mtev_intern_pool_t *, mtev_intern_t);
 
 /*! \fn void mtev_intern_release(mtev_intern_t iv)
-    \brief Release interned data back to the default pool.
+    \brief Release interned data back to the pool from which it was allocated.
     \param iv The interned value to release.
  */
 API_EXPORT(void)
@@ -162,6 +162,8 @@ API_EXPORT(uint32_t)
 
     The return value is only valid until `mtev_intern_release*` is called.
  */
+#define miSTR(a) mtev_intern_get_str((a), NULL)
+#define miSTRL(a,b) mtev_intern_get_str((a), (b))
 API_EXPORT(const char *)
   mtev_intern_get_str(const mtev_intern_t, size_t *);
 
@@ -173,6 +175,8 @@ API_EXPORT(const char *)
 
     The return value is only valid until `mtev_intern_release*` is called.
  */
+#define miPTR(a) mtev_intern_get_ptr((a), NULL)
+#define miPTRL(a,b) mtev_intern_get_ptr((a), (b))
 API_EXPORT(const void *)
   mtev_intern_get_ptr(const mtev_intern_t, size_t *);
 
