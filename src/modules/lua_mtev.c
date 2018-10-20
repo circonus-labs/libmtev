@@ -833,6 +833,10 @@ mtev_lua_socket_setsockopt(lua_State *L) {
     type_val = SO_BROADCAST;
   else if (strcmp(type, "SO_REUSEADDR") == 0)
     type_val = SO_REUSEADDR;
+#ifdef SO_REUSEPORT
+  else if (strcmp(type, "SO_REUSEPORT") == 0)
+    type_val = SO_REUSEPORT;
+#endif
   else if (strcmp(type, "SO_KEEPALIVE") == 0)
     type_val = SO_KEEPALIVE;
   else if (strcmp(type, "SO_LINGER") == 0)

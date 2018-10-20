@@ -9,6 +9,9 @@ describe("Api test", function()
         assert(e)
         local err, errno = e:setsockopt("SO_REUSEADDR", 1)
         if err ~= 0 then error("Can't se REUSEADDR -> " .. errno) end
+        local err, errno = e:setsockopt("SO_REUSEPORT", 1)
+        -- This might simply not available on this platform...
+        -- if err ~= 0 then error("Can't se REUSEPORT -> " .. errno) end
         local err, errno = e:bind('0.0.0.0', port)
         if err ~= 0 then error("binding error -> " .. errno) end
         local err, errno, msg = e:listen(2)
@@ -32,7 +35,7 @@ Content-Type: text/plain
         mtev.notify(key_listen)
     end)
     assert.truthy(mtev.waitfor(key_listen, 3))
-    local api = mtev.Api:http("localhost", port)
+    local api = mtev.Api:http("127.0.0.1", port)
     assert.same(api:get("/"):check():text(), [[{ "msg" : "Hello World!" }]])
     assert.same(api:get("/"):check():json(), { msg = "Hello World!" })
     assert.same(api:get("/"):check():xml():root():contents(),"Hello World")

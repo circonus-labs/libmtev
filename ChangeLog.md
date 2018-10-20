@@ -11,6 +11,7 @@
  * mi{STR,STRL,PTR,PTRL,NEW,NEWL,COPY,FREE} macros added for ease-of-use
  * Change the default build to use DT_RUNPATH over DT_RPATH where applicable.
  * Disable log dedup in luamtev by default.
+ * Add SO_REUSEPORT to lua setsockopt if available.
 
 ### 1.5.12
 
