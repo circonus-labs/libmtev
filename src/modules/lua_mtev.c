@@ -1604,8 +1604,11 @@ mtev_eventer_index_func(lua_State *L) {
      LUA_DISPATCH(listen, mtev_lua_socket_listen);
      break;
     case 'o':
-/*! \lua mtev.eventer:own()
+/*! \lua ev = mtev.eventer:own()
 \brief Declare ownership of an event within a spawned co-routine.
+\return New eventer object 'ev' that is owed by the calling co-routine
+
+The old eventer object will be disowned and invalid for use!
 */
      LUA_DISPATCH(own, mtev_lua_socket_own);
      break;
