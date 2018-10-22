@@ -4,7 +4,7 @@
 
 ## 1.5
 
-### 1.5.x
+### 1.5.13
 
  * Have luamtev use a default pool concurrency of 1, add -n option.
  * mtev_intern_release will release to the originating pool.
