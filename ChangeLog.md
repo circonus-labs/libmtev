@@ -4,6 +4,13 @@
 
 ## 1.5
 
+### 1.5.14
+
+ * Fix improper calculation of required space in base64 encode/decode that
+   could allow two bytes of overrun in decoding into a "too small" buffer.
+ * Documentation fixes.
+ * Implement mtevStartupTerminate and mtevTerminate
+
 ### 1.5.13
 
  * Have luamtev use a default pool concurrency of 1, add -n option.
