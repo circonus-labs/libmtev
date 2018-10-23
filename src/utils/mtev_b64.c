@@ -49,8 +49,16 @@ mtev_b64_decode(const char *src, size_t src_len,
   unsigned char *dcp = dest;
   unsigned char ch, in[4], out[3];
   int ib = 0, ob = 3, needed = (((src_len + 3) / 4) * 3);
+  /* Needed here is 2 bytes shy of what could be needed...
+   * decoding can be "short" up to 2 bytes. */
 
-  if(dest_len < needed) return 0;
+  if(dest_len < needed - 2) return 0;
+  else if(src_len > 1 && src[src_len-2] != '=' && src[src_len-1] == '=') {
+    if(dest_len < needed - 1) return 0;
+  }
+  else if(src_len > 1 && src[src_len-2] != '=' && src[src_len-1] != '=') {
+    if(dest_len < needed) return 0;
+  }
   while(cp <= ((unsigned char *)src+src_len)) {
     if((*cp >= 'A') && (*cp <= 'Z')) ch = *cp - 'A';
     else if((*cp >= 'a') && (*cp <= 'z')) ch = *cp - 'a' + 26;
