@@ -243,7 +243,7 @@ mtev_main_terminate(const char *appname,
   mtev_conf_use_namespace(appname);
   mtev_conf_init(appname);
   if(mtev_conf_load(config_filename) == -1) {
-    fprintf(stderr, "Cannot load config: '%s'\n", config_filename);
+    mtevStartupTerminate(mtev_error, "Cannot load config: '%s'\n", config_filename);
     return -1;
   }
   lockfd = -1;
@@ -298,8 +298,7 @@ mtev_main_status(const char *appname,
   mtev_conf_use_namespace(appname);
   mtev_conf_init(appname);
   if(mtev_conf_load(config_filename) == -1) {
-    fprintf(stderr, "Cannot load config: '%s'\n", config_filename);
-    return -1;
+    mtevStartupTerminate(mtev_error, "Cannot load config: '%s'\n", config_filename);
   }
   lockfd = -1;
   lockfile[0] = '\0';
@@ -388,8 +387,7 @@ mtev_main(const char *appname,
   mtev_conf_use_namespace(appname);
   mtev_conf_init(appname);
   if(mtev_conf_load(config_filename) == -1) {
-    fprintf(stderr, "Cannot load config: '%s'\n", config_filename);
-    exit(-1);
+    mtevStartupTerminate(mtev_error, "Cannot load config: '%s'\n", config_filename);
   }
 
   zipkin_conf();
@@ -399,8 +397,7 @@ mtev_main(const char *appname,
   root = mtev_conf_get_sections(MTEV_CONF_ROOT, root_section_path, &cnt);
   mtev_conf_release_sections(root, cnt);
   if(cnt==0) {
-    fprintf(stderr, "The config must have <%s> as its root node\n", appname);
-    exit(-1);
+    mtevStartupTerminate(mtev_error, "The config must have <%s> as its root node\n", appname);
   }
 
   /* Reinitialize the logging system now that we have a config */
@@ -531,14 +528,12 @@ mtev_main(const char *appname,
   if(foreground == 0) {
     fd = open("/dev/null", O_RDONLY);
     if(fd < 0 || dup2(fd, STDIN_FILENO) < 0) {
-      fprintf(stderr, "Failed to setup stdin: %s\n", strerror(errno));
-      exit(-1);
+      mtevStartupTerminate(mtev_error, "Failed to setup stdin: %s\n", strerror(errno));
     }
     close(fd);
     fd = open("/dev/null", O_WRONLY);
     if(fd < 0 || dup2(fd, STDOUT_FILENO) < 0 || dup2(fd, STDERR_FILENO) < 0) {
-      fprintf(stderr, "Failed to setup std{out,err}: %s\n", strerror(errno));
-      exit(-1);
+      mtevStartupTerminate(mtev_error, "Failed to setup std{out,err}: %s\n", strerror(errno));
     }
     close(fd);
 

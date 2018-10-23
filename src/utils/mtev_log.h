@@ -125,8 +125,7 @@ API_EXPORT(void) mtev_log_stream_add_stream(mtev_log_stream_t ls,
                                             mtev_log_stream_t outlet);
 API_EXPORT(void) mtev_log_stream_removeall_streams(mtev_log_stream_t ls);
 API_EXPORT(mtev_log_stream_t)
-                 mtev_log_stream_remove_stream(mtev_log_stream_t ls,
-                                               const char *name);
+  mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name);
 API_EXPORT(void) mtev_log_stream_reopen(mtev_log_stream_t ls);
 API_EXPORT(int) mtev_log_stream_cull(mtev_log_stream_t ls,
                                      int age, ssize_t bytes);
@@ -210,6 +209,21 @@ API_EXPORT(void)
   mtev_log_go_synch(); \
   mtevL((ls), "[FATAL] " args); \
   abort(); \
+} while(0)
+
+/* inline prototype here so we don't have circular includes */
+#define mtevTerminate(ls,args...) do {\
+  mtev_log_go_synch(); \
+  mtevL((ls), "[TERMINATE] " args); \
+  exit(2); \
+} while(0)
+
+extern uint32_t mtev_watchdog_number_of_starts(void);
+#define mtevStartupTerminate(ls,args...) do {\
+  if(mtev_watchdog_number_of_starts() > 0) { \
+    mtevFatal(ls,args); \
+  } \
+  mtevTerminate(ls,args); \
 } while(0)
 
 #ifdef NDEBUG

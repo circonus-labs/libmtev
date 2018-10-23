@@ -8,8 +8,9 @@ endif
 top_srcdir=@top_srcdir@
 
 CC=@CC@
-CPPFLAGS=-I$(top_srcdir)/src @CPPFLAGS@ -DHIDE_EVENTER_ABI \
-	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/modules
+CPPFLAGS=-I$(top_srcdir)/src -DHIDE_EVENTER_ABI \
+	-I$(top_srcdir)/src/json-lib -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/modules \
+	@CPPFLAGS@
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
 LDFLAGS=@LDFLAGS@

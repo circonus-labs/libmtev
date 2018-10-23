@@ -91,6 +91,7 @@ static mtev_boolean save_trace_output = mtev_true;
 static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
+static uint32_t number_of_starts = 0;
 static int on_crash_fds_to_close[MAX_CRASH_FDS];
 static double global_child_watchdog_timeout = CHILD_WATCHDOG_TIMEOUT;
 
@@ -99,6 +100,9 @@ typedef enum {
   GLIDE_WATCHDOG
 } glide_reason_t;
 
+uint32_t mtev_watchdog_number_of_starts(void) {
+  return number_of_starts;
+}
 int mtev_watchdog_glider(const char *path) {
   glider_path = path;
   if(glider_path) {
@@ -548,6 +552,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
       exit(func());
     }
     else {
+      number_of_starts++;
       sigset_t mysigs;
       int child_sig = -1, sig = -1, exit_val = -1;
       sigemptyset(&mysigs);
@@ -618,7 +623,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
                   exit(0);
                 }
                 else if(child_sig == SIGINT || child_sig == SIGQUIT ||
-                   (child_sig == 0 && (exit_val == 2 || exit_val < 0))) {
+                   (child_sig == 0 && (exit_val == 2 || exit_val <= 0))) {
                   mtevL(mtev_error, "[monitor] %s shutdown acknowledged.\n", app);
                   exit(0);
                 }
