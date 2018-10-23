@@ -2256,6 +2256,19 @@ eventer_jobq_inflight(void)
   * **RETURN** the job that is currentlt running in the calling thread.
 
 
+#### eventer_jobq_post
+
+>Wake up a jobq to see if there are pending events.
+
+```c
+void
+eventer_jobq_post(eventer_jobq_t *jobq)
+```
+
+
+  * `jobq` the jobq to post to.
+
+
 #### eventer_jobq_retrieve
 
 >Find a jobq by name.
@@ -3977,7 +3990,7 @@ using `mtev_intern_release_pool`.
 
 #### mtev_intern_release
 
->Release interned data back to the default pool.
+>Release interned data back to the pool from which it was allocated.
 
 ```c
 void

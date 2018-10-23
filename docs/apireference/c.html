@@ -2362,6 +2362,16 @@ eventer_jobq_inflight(<span class="hljs-keyword">void</span>)
 <ul>
 <li><strong>RETURN</strong> the job that is currentlt running in the calling thread.</li>
 </ul>
+<h4 id="eventerjobqpost">eventer_jobq_post</h4>
+<blockquote>
+<p>Wake up a jobq to see if there are pending events.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_jobq_post</span><span class="hljs-params">(eventer_jobq_t *jobq)</span>
+</span></code></pre>
+<ul>
+<li><code>jobq</code> the jobq to post to.</li>
+</ul>
 <h4 id="eventerjobqretrieve">eventer_jobq_retrieve</h4>
 <blockquote>
 <p>Find a jobq by name.</p>
@@ -3628,7 +3638,7 @@ The reference count of the interned string returned will be increased and it mus
 using <code>mtev_intern_release_pool</code>.</p>
 <h4 id="mtevinternrelease">mtev_intern_release</h4>
 <blockquote>
-<p>Release interned data back to the default pool.</p>
+<p>Release interned data back to the pool from which it was allocated.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_intern_release</span><span class="hljs-params">(mtev_intern_t iv)</span>

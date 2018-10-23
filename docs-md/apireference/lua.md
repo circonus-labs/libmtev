@@ -414,10 +414,14 @@ mtev.eventer:listen(backlog)
 >Declare ownership of an event within a spawned co-routine.
 
 ```lua
+ev =
 mtev.eventer:own()
 ```
 
 
+  * **RETURN** New eventer object 'ev' that is owed by the calling co-routine
+
+The old eventer object will be disowned and invalid for use!
 
 
 #### mtev.eventer:peer_name

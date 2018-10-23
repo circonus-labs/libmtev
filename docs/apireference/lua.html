@@ -872,8 +872,13 @@ mtev.eventer:listen(backlog)
 <blockquote>
 <p>Declare ownership of an event within a spawned co-routine.</p>
 </blockquote>
-<pre><code class="lang-lua">mtev.eventer:own()
+<pre><code class="lang-lua">ev =
+mtev.eventer:own()
 </code></pre>
+<ul>
+<li><strong>RETURN</strong> New eventer object &apos;ev&apos; that is owed by the calling co-routine</li>
+</ul>
+<p>The old eventer object will be disowned and invalid for use!</p>
 <h4 id="mteveventerpeername">mtev.eventer:peer_name</h4>
 <blockquote>
 <p>Get details of the remote side of a socket.</p>
