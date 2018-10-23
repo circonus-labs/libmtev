@@ -48,7 +48,7 @@ mtev_b64_decode(const char *src, size_t src_len,
   const unsigned char *cp = (unsigned char *)src;
   unsigned char *dcp = dest;
   unsigned char ch, in[4], out[3];
-  int ib = 0, ob = 3, needed = (((src_len / 4) * 3) - 2);
+  int ib = 0, ob = 3, needed = (((src_len + 3) / 4) * 3);
 
   if(dest_len < needed) return 0;
   while(cp <= ((unsigned char *)src+src_len)) {
@@ -82,7 +82,7 @@ mtev_b64_decode(const char *src, size_t src_len,
 
 size_t
 mtev_b64_max_decode_len(size_t src_len) {
-  return (src_len / 4) * 3;
+  return ((src_len + 3) / 4) * 3;
 }
 
 int
