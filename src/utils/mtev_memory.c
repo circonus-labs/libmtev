@@ -50,6 +50,7 @@ static uint64_t gc_queue_requeued = 0;
 static __thread ck_fifo_spsc_t *return_gc_queue;
 static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
+static __thread int begin_end_depth = 0;
 /* needs_maintenance is used to avoid doing unnecessary work
  * in the epoch free cycle.
  * 0    means not participating, (never freed)
@@ -72,6 +73,10 @@ void mtev_memory_init_thread(void) {
 }
 
 void mtev_memory_fini_thread(void) {
+  if(begin_end_depth > 1) {
+    ck_epoch_end(epoch_rec, NULL);
+    begin_end_depth = 0; // setting this doesn't actually matter.
+  }
   if(return_gc_queue != NULL) {
     uint64_t st_enq = ck_pr_load_64(&gc_queue_enqueued);
     mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
@@ -87,6 +92,7 @@ void mtev_memory_fini_thread(void) {
       free(garbage);
       garbage = n;
     }
+    return_gc_queue = NULL;
   }
   if(epoch_rec != NULL) {
     ck_epoch_unregister(epoch_rec);
@@ -298,6 +304,8 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
 
   if(needs_maintenance == 0) return -1;
 
+  mtevAssert(begin_end_depth == 0);
+
   if(!mem_debug) {
     pthread_mutex_lock(&mem_debug_lock);
     if (!mem_debug)
@@ -376,10 +384,12 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
 }
 
 void mtev_memory_begin(void) {
-  ck_epoch_begin(epoch_rec, NULL);
+  if(begin_end_depth == 0) ck_epoch_begin(epoch_rec, NULL);
+  begin_end_depth++;
 }
 void mtev_memory_end(void) {
-  ck_epoch_end(epoch_rec, NULL);
+  begin_end_depth--;
+  if(begin_end_depth == 0) ck_epoch_end(epoch_rec, NULL);
 }
 
 struct safe_epoch {

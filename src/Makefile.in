@@ -122,7 +122,7 @@ MAPPEDHEADERS=utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
     utils/mtev_stacktrace.h utils/mtev_maybe_alloc.h \
     utils/mtev_lru.h utils/mtev_uuid_copy.h utils/mtev_uuid.h \
     utils/mtev_flow_regulator.h utils/mtev_lfu.h utils/mtev_frrh.h \
-    utils/mtev_huge_hash.h utils/mtev_intern.h \
+    utils/mtev_huge_hash.h utils/mtev_intern.h utils/mtev_plock.h \
     json-lib/mtev_bits.h json-lib/mtev_debug.h \
     json-lib/mtev_json_object.h json-lib/mtev_json_tokener.h \
     json-lib/mtev_json_util.h json-lib/mtev_json.h \
