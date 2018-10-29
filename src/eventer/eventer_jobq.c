@@ -693,7 +693,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
   while(1) {
     pthread_setspecific(jobq->activejob, NULL);
     if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_end();
-    if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
+    if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
     job = eventer_jobq_dequeue(jobq);
     if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_begin();
     if(!job) continue;
