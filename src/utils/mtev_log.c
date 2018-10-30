@@ -2049,7 +2049,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
       /* Same log line */
       last_buffer = buffer;
     }
-    if(last_buffer) {
+    if(last_buffer && dedup_cnt > 0) {
       MTEV_MAYBE_DECL(char, oldlog, 4096);
       int olen = 4095;
       do {
@@ -2067,8 +2067,8 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
         rv = mtev_log_line(ls, NULL, now, tbuf, tbuflen,
                            last_dbuf, last_dbuflen, oldlog, olen);
       }
-      if(last_buffer != buffer) free(last_buffer);
     }
+    if(last_buffer && last_buffer != buffer) free(last_buffer);
 
     if(last_buffer != buffer) {
       /* Already logged above as a ganged dedup */
