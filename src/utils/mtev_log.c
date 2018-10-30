@@ -1964,10 +1964,10 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
 #else
     len = vsnprintf(buffer, MTEV_MAYBE_SIZE(buffer), format, arg);
 #endif
-    if(len > MTEV_MAYBE_SIZE(buffer) && _mtev_log_siglvl == 0) {
+    if(len >= MTEV_MAYBE_SIZE(buffer) && _mtev_log_siglvl == 0) {
       allocd = MTEV_MAYBE_SIZE(buffer);
-      while(len > allocd) { /* guaranteed true the first time */
-        MTEV_MAYBE_REALLOC(buffer, len);
+      while(len >= allocd) { /* guaranteed true the first time */
+        MTEV_MAYBE_REALLOC(buffer, len+1);
         allocd = MTEV_MAYBE_SIZE(buffer);
 #ifdef va_copy
         va_copy(copy, arg);
