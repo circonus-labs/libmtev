@@ -4,6 +4,11 @@
 
 ## 1.5
 
+### 1.5.15
+ * Make mtev_memory_{begin,end} recursively safe.
+ * Use asynch barrier SMR in jobqs.
+ * Avoid clipping last letter off long log lines.
+
 ### 1.5.14
 
  * Fix improper calculation of required space in base64 encode/decode that
