@@ -308,7 +308,7 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
 
 eventer_jobq_t *
 eventer_jobq_create_backq(const char *queue_name) {
-  return eventer_jobq_create_internal(queue_name, EVENTER_JOBQ_MS_NONE, mtev_true);
+  return eventer_jobq_create_internal(queue_name, EVENTER_JOBQ_MS_CS, mtev_true);
 }
 eventer_jobq_t *
 eventer_jobq_create_ms(const char *queue_name,
@@ -317,7 +317,7 @@ eventer_jobq_create_ms(const char *queue_name,
 }
 eventer_jobq_t *
 eventer_jobq_create(const char *queue_name) {
-  return eventer_jobq_create_internal(queue_name, EVENTER_JOBQ_MS_NONE, mtev_false);
+  return eventer_jobq_create_internal(queue_name, EVENTER_JOBQ_MS_CS, mtev_false);
 }
 
 eventer_jobq_t *

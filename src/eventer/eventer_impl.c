@@ -424,7 +424,7 @@ int eventer_impl_propset(const char *key, const char *value) {
     if(strlen(name) == 0) return -1;
 
     uint32_t concurrency, min = 0, max = 0, backlog = 0;
-    eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_NONE;
+    eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_CS;
 
     ADVTOK;
     concurrency = atoi(tok);
@@ -444,7 +444,8 @@ int eventer_impl_propset(const char *key, const char *value) {
     if(tok) {
       if(!strcmp(tok, "gc")) mem_safety = EVENTER_JOBQ_MS_GC;
       else if(!strcmp(tok, "cs")) mem_safety = EVENTER_JOBQ_MS_CS;
-      else if(strcmp(tok, "none")) {
+      else if(!strcmp(tok, "none")) mem_safety = EVENTER_JOBQ_MS_NONE;
+      else {
         mtevL(mtev_error, "eventer jobq '%s' has unknown memory safety setting: %s\n",
               name, tok);
         return -1;
@@ -1198,6 +1199,7 @@ void eventer_dispatch_recurrent(void) {
   eventer_gettimeofcallback(&__now, NULL);
 
   pthread_mutex_lock(&t->recurrent_lock);
+  mtev_memory_begin();
   for(node = t->recurrent_events; node; node = node->next) {
     int rv;
     uint64_t start, duration;
@@ -1213,6 +1215,7 @@ void eventer_dispatch_recurrent(void) {
       stats_set_hist_intscale(eventer_latency_handle_for_callback(node->e->callback), duration, -9, 1);
     }
   }
+  mtev_memory_end();
   pthread_mutex_unlock(&t->recurrent_lock);
 }
 eventer_t eventer_remove_recurrent(eventer_t e) {
