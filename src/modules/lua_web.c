@@ -190,8 +190,6 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
 
     mtev_lua_set_resume_info(lmc->lua_state, ri);
 
-    lua_pop(lmc->lua_state, 1); /* pops mtev_coros */
-
     restc->call_closure = ri;
     restc->call_closure_free = rest_lua_ctx_free;
   }
