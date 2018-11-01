@@ -14,3 +14,11 @@ mtev.Api = require("mtev.Api")
 mtev.Proc = require("mtev.Proc")
 
 require("mtev.mtev")
+
+--
+-- Global Helper Functions
+--
+
+function errorf(...) error(string.format(...)) end
+
+function printf(...) print(string.format(...)) end

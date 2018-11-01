@@ -156,7 +156,7 @@ function HttpClient:get_headers()
     local cookie_count = 1;
     if str == nil then error("no response") end
     self.protocol, self.code = string.match(str, "^HTTP/(%d.%d)%s+(%d+)%s+")
-    if self.protocol == nil then error("malformed HTTP response") end
+    if self.protocol == nil then errorf("malformed HTTP response:\n%s", str) end
     self.code = tonumber(self.code)
     self.headers = Headers()
     self.cookies = {}
