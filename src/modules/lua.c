@@ -104,13 +104,14 @@ mtev_lua_set_gc_params(lua_module_closure_t *lmc, lua_module_gc_params_t *p) {
   }
 }
 
-void
-mtev_lua_gc(lua_module_closure_t *lmc) {
+static int
+mtev_lua_gc_callback(eventer_t e, int mask, void *c, struct timeval *now) {
+  lua_module_closure_t *lmc = c;
   lua_State *L = lmc->lua_state;
   lua_module_gc_params_t *p = lmc->gcparams;
   if(!p) {
     lua_gc(L, LUA_GCCOLLECT, 0);
-    return;
+    return 0;
   }
 
   if(p->steps_multiplier != p->set_steps_multiplier) {
@@ -126,10 +127,27 @@ mtev_lua_gc(lua_module_closure_t *lmc) {
   if(p->full_every && (p->iters_since_full >= p->full_every)) {
     p->iters_since_full = 0;
     lua_gc(L, LUA_GCCOLLECT, 0);
-    return;
+    return 0;
   }
   lua_gc(L, LUA_GCSTEP, p->steps);
+  return 0;
 }
+void
+mtev_lua_gc(lua_module_closure_t *lmc) {
+  eventer_add_in_s_us(mtev_lua_gc_callback, lmc, 0, 0);
+}
+
+void
+mtev_lua_gc_full(lua_module_closure_t *lmc) {
+  lua_module_gc_params_t *p = lmc->gcparams;
+  if(p) {
+    /* Fake the tracking so as to induce a full,
+     * if p is not set, a full will occur anyway. */
+    p->iters_since_full = p->full_every;
+  }
+  eventer_add_in_s_us(mtev_lua_gc_callback, lmc, 0, 0);
+}
+
 
 lua_module_closure_t *
 mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
@@ -183,11 +201,9 @@ mtev_lua_lmc_setL(lua_module_closure_t *lmc, lua_State *L) {
 
 void
 mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci) {
-  lua_getglobal(ci->lmc->lua_state, "mtev_coros");
-  luaL_unref(ci->lmc->lua_state, -1, ci->coro_state_ref);
-  lua_pop(ci->lmc->lua_state, 1);
-  lua_gc(ci->lmc->lua_state, LUA_GCCOLLECT, 0);
   mtevL(nldeb, "coro_store <- %p\n", ci->coro_state);
+  luaL_unref(ci->lmc->lua_state, LUA_REGISTRYINDEX, ci->coro_state_ref);
+  mtev_lua_gc_full(ci->lmc);
   mtevAssert(mtev_hash_delete(&ci->lmc->state_coros,
                           (const char *)&ci->coro_state, sizeof(ci->coro_state),
                           NULL, NULL));
@@ -678,10 +694,9 @@ mtev_lua_get_resume_info_internal(lua_State *L, mtev_boolean create) {
   ri->lmc = lua_touserdata(L, lua_gettop(L));
   lua_pop(L, 1);
   mtevL(nldeb, "coro_store -> %p\n", ri->coro_state);
-  lua_getglobal(L, "mtev_coros");
   lua_pushthread(L);
-  ri->coro_state_ref = luaL_ref(L, -2);
-  lua_pop(L, 1); /* pops mtev_coros */
+  ri->coro_state_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  
   lua_State **Lp = malloc(sizeof(*Lp));
   *Lp = ri->coro_state;
   mtevAssert(mtev_hash_store(&ri->lmc->state_coros,
@@ -879,11 +894,9 @@ mtev_lua_new_resume_info(lua_module_closure_t *lmc, int magic) {
   ri->bound_thread = lmc->owner;
   ri->context_magic = magic;
   ri->lmc = lmc;
-  lua_getglobal(lmc->lua_state, "mtev_coros");
   ri->coro_state = lua_newthread(lmc->lua_state);
-  ri->coro_state_ref = luaL_ref(lmc->lua_state, -2);
+  ri->coro_state_ref = luaL_ref(lmc->lua_state, LUA_REGISTRYINDEX);
   mtev_lua_set_resume_info(lmc->lua_state, ri);
-  lua_pop(lmc->lua_state, 1); /* pops mtev_coros */
   mtevL(nldeb, "lua_general(%p) -> starting new job (%p)\n",
         lmc->lua_state, ri->coro_state);
   return ri;
@@ -977,9 +990,6 @@ mtev_lua_open(const char *module_name, void *lmc,
     lua_call(L, 1, 0);
     lua_pop(L, 2);
   }
-
-  lua_newtable(L);
-  lua_setglobal(L, "mtev_coros");
 
   if(lmc) {
     lua_pushlightuserdata(L, lmc);

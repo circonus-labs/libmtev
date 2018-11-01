@@ -4,7 +4,13 @@
 
 ## 1.5
 
+### 1.5.x
+
+ * Apply lua GC on next tick and not inline.
+ * Make "cs" the default jobq memory safety level.
+
 ### 1.5.15
+
  * Make mtev_memory_{begin,end} recursively safe.
  * Use asynch barrier SMR in jobqs.
  * Avoid clipping last letter off long log lines.
