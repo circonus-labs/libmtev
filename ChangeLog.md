@@ -4,6 +4,10 @@
 
 ## 1.5
 
+### 1.5.18
+
+ * Move SMR maintenance into the eventer (out of a callback)
+
 ### 1.5.17
 
  * Fix off-by-on error in lua\_web lua stack management (crash fix).
