@@ -4,6 +4,11 @@
 
 ## 1.5
 
+### 1.5.19
+
+ * Fix livelock in mtev_intern when racing for a removed object
+ * Make the SMR cleanup in thread termination asynch (fix CPU burn)
+
 ### 1.5.18
 
  * Move SMR maintenance into the eventer (out of a callback)
