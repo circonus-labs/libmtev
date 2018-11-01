@@ -185,9 +185,8 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
     ctx = ri->context_data = calloc(1, sizeof(mtev_lua_resume_rest_info_t));
     ctx->restc = restc;
     ri->lmc = lmc;
-    lua_getglobal(lmc->lua_state, "mtev_coros");
     ri->coro_state = lua_newthread(lmc->lua_state);
-    ri->coro_state_ref = luaL_ref(lmc->lua_state, -2);
+    ri->coro_state_ref = luaL_ref(lmc->lua_state, LUA_REGISTRYINDEX);
 
     mtev_lua_set_resume_info(lmc->lua_state, ri);
 

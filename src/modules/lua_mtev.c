@@ -2112,7 +2112,7 @@ nl_waitfor_notify(lua_State *L) {
     ci = mtev_lua_find_resume_info(q->L, mtev_false);
     if(!ci) q->L = NULL;
   }
-  if(q->L) {
+  if(lua_isyieldable(L) && q->L) {
     lua_xmove(L, q->L, nargs);
     q->L = NULL;
 
