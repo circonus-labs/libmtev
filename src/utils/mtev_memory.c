@@ -45,8 +45,8 @@
 static int initialized = 0;
 static int asynch_gc = 0;
 static ck_fifo_spsc_t gc_queue;
-static uint64_t gc_queue_enqueued = 0;
-static uint64_t gc_queue_requeued = 0;
+static __thread uint64_t gc_queue_enqueued = 0;
+static __thread uint64_t gc_queue_requeued = 0;
 static __thread ck_fifo_spsc_t *return_gc_queue;
 static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
@@ -78,8 +78,8 @@ void mtev_memory_fini_thread(void) {
     begin_end_depth = 0; // setting this doesn't actually matter.
   }
   if(return_gc_queue != NULL) {
+    mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
     uint64_t st_enq = ck_pr_load_64(&gc_queue_enqueued);
-    mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
     while(ck_pr_load_64(&gc_queue_requeued) < st_enq) {
       mtev_memory_maintenance_ex(MTEV_MM_NONE);
       usleep(100);
@@ -183,6 +183,7 @@ struct asynch_reclaim {
   ck_epoch_record_t *owner;
   ck_stack_t pending[CK_EPOCH_LENGTH];
   ck_fifo_spsc_t *backq;
+  uint64_t *requeued;
 };
 
 CK_STACK_CONTAINER(struct ck_epoch_entry, stack_entry, epoch_entry_container)
@@ -283,9 +284,9 @@ mtev_memory_gc(void *unused) {
       ck_fifo_spsc_enqueue_lock(ar->backq);
       ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(ar->backq);
       if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
-      ck_pr_inc_64(&gc_queue_requeued);
       ck_fifo_spsc_enqueue(ar->backq, fifo_entry, ar);
       ck_fifo_spsc_enqueue_unlock(ar->backq);
+      ck_pr_inc_64(ar->requeued);
     }
     if(setsize != max_setsize) usleep(500000);
   }
@@ -350,14 +351,15 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
       ar = malloc(sizeof(*ar));
       ar->owner = epoch_rec;
       ar->backq = return_gc_queue;
+      ar->requeued = &gc_queue_requeued;
       memcpy(ar->pending, epoch_rec->pending, sizeof(ar->pending));
       memset(epoch_rec->pending, 0, sizeof(ar->pending));
       ck_fifo_spsc_enqueue_lock(&gc_queue);
       ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(&gc_queue);
       if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
-      ck_pr_inc_64(&gc_queue_enqueued);
       ck_fifo_spsc_enqueue(&gc_queue, fifo_entry, ar);
       ck_fifo_spsc_enqueue_unlock(&gc_queue);
+      ck_pr_inc_64(&gc_queue_enqueued);
       success = mtev_true;
       break;
   }
