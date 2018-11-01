@@ -4,6 +4,10 @@
 
 ## 1.5
 
+### 1.5.17
+
+ * Fix off-by-on error in lua_web lua stack management (crash fix)
+
 ### 1.5.16
 
  * Apply lua GC on next tick and not inline.
