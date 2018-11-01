@@ -524,12 +524,6 @@ int eventer_get_epoch(struct timeval *epoch) {
 int NE_SOCK_CLOEXEC = 0;
 int NE_O_CLOEXEC = 0;
 
-static int
-eventer_mtev_memory_maintenance(eventer_t e, int mask, void *c,
-                                struct timeval *now) {
-  mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
-  return 0;
-}
 static void eventer_per_thread_init(struct eventer_impl_data *t) {
   char qname[80];
   eventer_t e;
@@ -561,12 +555,6 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   e->mask = EVENTER_RECURRENT;
   e->closure = t->__global_backq;
   e->callback = eventer_jobq_consume_available;
-  eventer_add_recurrent(e);
-
-  e = eventer_alloc();
-  e->mask = EVENTER_RECURRENT;
-  e->closure = NULL;
-  e->callback = eventer_mtev_memory_maintenance;
   eventer_add_recurrent(e);
 
   /* The "main" thread uses a NULL heartbeat,
@@ -809,8 +797,6 @@ int eventer_impl_init(void) {
                         eventer_jobq_execute_timeout);
   eventer_name_callback("eventer_jobq_consume_available",
                         eventer_jobq_consume_available);
-  eventer_name_callback("eventer_mtev_memory_maintenance",
-                        eventer_mtev_memory_maintenance);
 
   eventer_impl_epoch = malloc(sizeof(struct timeval));
   mtev_gettimeofday(eventer_impl_epoch, NULL);
@@ -1194,6 +1180,8 @@ void eventer_dispatch_recurrent(void) {
   struct eventer_impl_data *t;
   struct recurrent_events *node;
   t = get_my_impl_data();
+
+  mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
 
   eventer_mark_callback_time();
   eventer_gettimeofcallback(&__now, NULL);
