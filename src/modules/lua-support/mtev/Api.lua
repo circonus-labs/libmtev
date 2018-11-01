@@ -78,8 +78,8 @@ end
 --\return self
 --*/
 function ApiResponse:check()
-  if self:rc() ~= 200 then
-    error("API requests failed: " .. self.output)
+  if self:rc() < 200 or self:rc() > 299 then
+    errorf("API requests failed (%d): %s", self:rc(), self.output)
   end
   return self
 end
