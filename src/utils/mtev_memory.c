@@ -304,8 +304,6 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
 
   if(needs_maintenance == 0) return -1;
 
-  mtevAssert(begin_end_depth == 0);
-
   if(!mem_debug) {
     pthread_mutex_lock(&mem_debug_lock);
     if (!mem_debug)
