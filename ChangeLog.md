@@ -6,7 +6,9 @@
 
 ### 1.5.17
 
- * Fix off-by-on error in lua_web lua stack management (crash fix)
+ * Fix off-by-on error in lua\_web lua stack management (crash fix).
+ * Lua: Add `printf()`, `errorf()` functions.
+ * Improve `Api.lua` error reporting, accept 2xx return codes.
 
 ### 1.5.16
 
@@ -15,7 +17,7 @@
 
 ### 1.5.15
 
- * Make mtev_memory_{begin,end} recursively safe.
+ * Make `mtev_memory_{begin,end}` recursively safe.
  * Use asynch barrier SMR in jobqs.
  * Avoid clipping last letter off long log lines.
 
@@ -29,17 +31,17 @@
 ### 1.5.13
 
  * Have luamtev use a default pool concurrency of 1, add -n option.
- * mtev_intern_release will release to the originating pool.
+ * `mtev_intern_release` will release to the originating pool.
  * mi{STR,STRL,PTR,PTRL,NEW,NEWL,COPY,FREE} macros added for ease-of-use
- * Change the default build to use DT_RUNPATH over DT_RPATH where applicable.
+ * Change the default build to use `DT_RUNPATH` over `DT_RPATH` where applicable.
  * Disable log dedup in luamtev by default.
- * Add SO_REUSEPORT to lua setsockopt if available.
+ * Add `SO_REUSEPORT` to lua setsockopt if available.
 
 ### 1.5.12
 
  * Be extra precautious when shutting down the last thread in a pool to make sure
    there is no backlog.
- * Fix header to expose eventer_jobq_set_floor correctly.
+ * Fix header to expose `eventer_jobq_set_floor` correctly.
  * Expose more controls for jobq mutation via console.
 
 ### 1.5.11
@@ -49,7 +51,7 @@
 
 ### 1.5.10
 
- * Fix unsafe fork (fork while resize_lock held) in logging subsystem.
+ * Fix unsafe fork (fork while resize\_lock held) in logging subsystem.
 
 ### 1.5.9
 
