@@ -5205,6 +5205,19 @@ mtev_watchdog_heartbeat(mtev_watchdog_t *hb)
 mtev_watchdog_heartbeat will pulse on the specified heart.
  
 
+#### mtev_watchdog_number_of_starts
+
+>Determine the number of times a child has been lauched.
+
+```c
+uint32_t
+mtev_watchdog_number_of_starts(void)
+```
+
+
+  * **RETURN** The number of times fork has returned in the parent.  In a running server, 0 means you're the first generation.
+ 
+
 #### mtev_watchdog_override_timeout
 
 ```c

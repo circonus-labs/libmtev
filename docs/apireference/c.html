@@ -4507,6 +4507,16 @@ before <code>mtev_main</code> and will be overridden by the MTEV_ASYNCH_CORE_DUM
 <li><strong>RETURN</strong> Returns zero on success</li>
 </ul>
 <p>mtev_watchdog_heartbeat will pulse on the specified heart.</p>
+<h4 id="mtevwatchdognumberofstarts">mtev_watchdog_number_of_starts</h4>
+<blockquote>
+<p>Determine the number of times a child has been lauched.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span>
+mtev_watchdog_number_of_starts(<span class="hljs-keyword">void</span>)
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> The number of times fork has returned in the parent.  In a running server, 0 means you&apos;re the first generation.</li>
+</ul>
 <h4 id="mtevwatchdogoverridetimeout">mtev_watchdog_override_timeout</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_watchdog_override_timeout</span><span class="hljs-params">(mtev_watchdog_t *hb, <span class="hljs-keyword">double</span> timeout)</span>
