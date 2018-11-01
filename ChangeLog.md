@@ -4,7 +4,7 @@
 
 ## 1.5
 
-### 1.5.x
+### 1.5.16
 
  * Apply lua GC on next tick and not inline.
  * Make "cs" the default jobq memory safety level.
