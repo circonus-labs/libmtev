@@ -79,13 +79,43 @@
 #include "noitedit/fcns.h"
 #include "noitedit/map.h"
 
+#define OL(a) do { \
+  pthread_mutex_lock(&(a)->outbuf_lock); \
+} while(0)
+#define OUL(a) do { \
+  pthread_mutex_unlock(&(a)->outbuf_lock); \
+} while(0)
+
+static int
+nc_write_with_lock(mtev_console_closure_t ncct, const void *buf, int len) {
+  if(len == 0) return 0;
+  if(!ncct->outbuf_allocd) {
+    ncct->outbuf = malloc(len);
+    if(!ncct->outbuf) return 0;
+    ncct->outbuf_allocd = len;
+  }
+  else if(ncct->outbuf_allocd < ncct->outbuf_len + len) {
+    char *newbuf;
+    newbuf = realloc(ncct->outbuf, ncct->outbuf_len + len);
+    if(!newbuf) return 0;
+    ncct->outbuf = newbuf;
+  }
+  memcpy(ncct->outbuf + ncct->outbuf_len, buf, len);
+  ncct->outbuf_len += len;
+  return len;
+}
+
 static void
 nc_telnet_cooker(mtev_console_closure_t ncct) {
   char *tmpbuf, *p, *n;
   int r;
 
+  OL(ncct);
   tmpbuf = ncct->outbuf;
-  if(ncct->outbuf_len == 0) return;
+  if(ncct->outbuf_len == 0) {
+    OUL(ncct);
+    return;
+  }
 
   p = ncct->outbuf + ncct->outbuf_completed;
   r = ncct->outbuf_len - ncct->outbuf_completed;
@@ -93,6 +123,7 @@ nc_telnet_cooker(mtev_console_closure_t ncct) {
   /* No '\n'? Nothin' to do */
   if(!n) {
     ncct->outbuf_cooked = ncct->outbuf_len;
+    OUL(ncct);
     return;
   }
 
@@ -102,16 +133,18 @@ nc_telnet_cooker(mtev_console_closure_t ncct) {
   ncct->outbuf_len = 0;
   ncct->outbuf_completed = 0;
   ncct->outbuf_cooked = 0;
+
   do {
-    nc_write(ncct, p, n-p);   r -= n-p;
+    nc_write_with_lock(ncct, p, n-p);   r -= n-p;
     if(n == tmpbuf || *(n-1) != '\r')
-      nc_write(ncct, "\r", 1);
+      nc_write_with_lock(ncct, "\r", 1);
     p = n;
     n = memchr(p+1, '\n', r-1);
   } while(n);
-  nc_write(ncct, p, r);
+  nc_write_with_lock(ncct, p, r);
   ncct->outbuf_cooked = ncct->outbuf_len;
   free(tmpbuf);
+  OUL(ncct);
 }
 int
 nc_printf(mtev_console_closure_t ncct, const char *fmt, ...) {
@@ -122,16 +155,21 @@ nc_printf(mtev_console_closure_t ncct, const char *fmt, ...) {
   va_end(arg);
   return len;
 }
+
 int
 nc_vprintf(mtev_console_closure_t ncct, const char *fmt, va_list arg) {
 #ifdef va_copy
   va_list copy;
 #endif
   int lenwanted;
-  
+
+  OL(ncct);  
   if(!ncct->outbuf_allocd) {
     ncct->outbuf = malloc(4096);
-    if(!ncct->outbuf) return 0;
+    if(!ncct->outbuf) {
+      OUL(ncct);
+      return 0;
+    }
     ncct->outbuf_allocd = 4096;
   }
   while(1) {
@@ -150,6 +188,7 @@ nc_vprintf(mtev_console_closure_t ncct, const char *fmt, va_list arg) {
     if(ncct->outbuf_len + lenwanted < ncct->outbuf_allocd) {
       /* All went well, things are as we want them. */
       ncct->outbuf_len += lenwanted;
+      OUL(ncct);
       return lenwanted;
     }
 
@@ -160,6 +199,7 @@ nc_vprintf(mtev_console_closure_t ncct, const char *fmt, va_list arg) {
     lenwanted *= 4096;
     newbuf = realloc(ncct->outbuf, lenwanted);
     if(!newbuf) {
+      OUL(ncct);
       return 0;
     }
     ncct->outbuf = newbuf;
@@ -167,23 +207,14 @@ nc_vprintf(mtev_console_closure_t ncct, const char *fmt, va_list arg) {
   }
   /* NOTREACHED */
 }
+
 int
 nc_write(mtev_console_closure_t ncct, const void *buf, int len) {
-  if(len == 0) return 0;
-  if(!ncct->outbuf_allocd) {
-    ncct->outbuf = malloc(len);
-    if(!ncct->outbuf) return 0;
-    ncct->outbuf_allocd = len;
-  }
-  else if(ncct->outbuf_allocd < ncct->outbuf_len + len) {
-    char *newbuf;
-    newbuf = realloc(ncct->outbuf, ncct->outbuf_len + len);
-    if(!newbuf) return 0;
-    ncct->outbuf = newbuf;
-  }
-  memcpy(ncct->outbuf + ncct->outbuf_len, buf, len);
-  ncct->outbuf_len += len;
-  return len;
+  int rv;
+  OL(ncct);
+  rv = nc_write_with_lock(ncct, buf, len);
+  OUL(ncct);
+  return rv;
 }
 
 static void
@@ -224,6 +255,7 @@ mtev_console_closure_free(void *vncct) {
   if(lf) {
     mtev_log_stream_free(lf);
   }
+  pthread_mutex_destroy(&ncct->outbuf_lock);
   free(ncct);
 }
 
@@ -235,6 +267,7 @@ mtev_console_closure_alloc(void) {
   mtev_console_state_push_state(new_ncct, mtev_console_state_initial());
   new_ncct->pty_master = -1;
   new_ncct->pty_slave = -1;
+  pthread_mutex_init(&new_ncct->outbuf_lock, NULL);
   return new_ncct;
 }
 
@@ -269,12 +302,14 @@ mtev_console_continue_sending(mtev_console_closure_t ncct,
   eventer_t e = ncct->e;
   if(!ncct->outbuf_len) return 0;
   if(ncct->output_cooker) ncct->output_cooker(ncct);
+  OL(ncct);
   while(ncct->outbuf_len > ncct->outbuf_completed) {
     len = eventer_write(e, ncct->outbuf + ncct->outbuf_completed,
                         ncct->outbuf_len - ncct->outbuf_completed, mask);
     if(len < 0) {
       if(errno == EAGAIN) return -1;
       /* Do something else here? */
+      OUL(ncct);
       return -1;
     }
     ncct->outbuf_completed += len;
@@ -284,6 +319,7 @@ mtev_console_continue_sending(mtev_console_closure_t ncct,
   ncct->outbuf = NULL;
   ncct->outbuf_allocd = ncct->outbuf_len =
     ncct->outbuf_completed = ncct->outbuf_cooked = 0;
+  OUL(ncct);
   return len;
 }
 
