@@ -88,7 +88,7 @@
 
 static int
 nc_write_with_lock(mtev_console_closure_t ncct, const void *buf, int len) {
-  if(len == 0) return 0;
+  if(len <= 0) return 0;
   if(!ncct->outbuf_allocd) {
     ncct->outbuf = malloc(len);
     if(!ncct->outbuf) return 0;
