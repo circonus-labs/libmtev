@@ -307,9 +307,9 @@ mtev_console_continue_sending(mtev_console_closure_t ncct,
     len = eventer_write(e, ncct->outbuf + ncct->outbuf_completed,
                         ncct->outbuf_len - ncct->outbuf_completed, mask);
     if(len < 0) {
+      OUL(ncct);
       if(errno == EAGAIN) return -1;
       /* Do something else here? */
-      OUL(ncct);
       return -1;
     }
     ncct->outbuf_completed += len;
