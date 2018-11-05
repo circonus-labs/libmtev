@@ -126,6 +126,7 @@ typedef struct __mtev_console_closure {
   int   pty_slave;
 
   /* Output buffer for non-blocking sends */
+  pthread_mutex_t outbuf_lock;
   char *outbuf;
   int   outbuf_allocd;
   int   outbuf_len;
