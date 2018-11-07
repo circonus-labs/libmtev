@@ -287,6 +287,8 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     jobq->wait_latency = stats_register(jobq_ns, "wait", STATS_TYPE_HISTOGRAM);
     jobq->run_latency = stats_register(jobq_ns, "latency", STATS_TYPE_HISTOGRAM);
     jobq->desired_concurrency = 1;
+    stats_set_str(stats_register(jobq_ns, "mem_safety", STATS_TYPE_STRING),
+                  eventer_jobq_memory_safety_name(jobq->mem_safety));
     stats_rob_i32(jobq_ns, "concurrency", (void *)&jobq->concurrency);
     stats_rob_i32(jobq_ns, "desired_concurrency", (void *)&jobq->desired_concurrency);
     stats_rob_i32(jobq_ns, "floor_concurrency", (void *)&jobq->floor_concurrency);
@@ -679,6 +681,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     ck_pr_dec_32(&jobq->concurrency);
     if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) {
       eventer_set_thread_name(NULL);
+      mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
       mtev_memory_fini_thread();
     }
     pthread_exit(NULL);
@@ -846,11 +849,11 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     }
   }
   if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_end();
-  if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
   pthread_cleanup_pop(0);
   mtevL(eventer_deb, "jobq[%s/%p] -> terminating\n", jobq->queue_name, pthread_self_ptr());
   if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) {
     eventer_set_thread_name(NULL);
+    mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
     mtev_memory_fini_thread();
   }
   /* If we've gotten here and there's a backlog... something odd is happening.

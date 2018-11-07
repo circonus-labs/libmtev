@@ -34,7 +34,9 @@
 #include <ck_epoch.h>
 #include <ck_fifo.h>
 #include "mtev_log.h"
+#include "mtev_stacktrace.h"
 #include "mtev_memory.h"
+#include "mtev_stats.h"
 #include "mtev_thread.h"
 
 #if defined(HAVE_LIBUMEM) && defined(HAVE_UMEM_H)
@@ -44,7 +46,11 @@
 
 static int initialized = 0;
 static int asynch_gc = 0;
+static int gc_is_waiting = 0;
 static ck_fifo_spsc_t gc_queue;
+static struct timeval last_safe_gc;
+static uint64_t last_safe_gc_seconds;
+static uint64_t asynch_cycles;
 static __thread uint64_t gc_queue_enqueued = 0;
 static __thread uint64_t gc_queue_requeued = 0;
 static __thread ck_fifo_spsc_t *return_gc_queue;
@@ -60,6 +66,12 @@ static __thread uint64_t needs_maintenance = 0;
 static void *mtev_memory_gc(void *unused);
 static mtev_log_stream_t mem_debug = NULL;
 static pthread_mutex_t mem_debug_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static stats_ns_t *mem_stats_ns;
+static stats_handle_t *gc_sync_wait;
+static stats_handle_t *safe_allocations;
+static stats_handle_t *safe_frees_completed;
+static stats_handle_t *safe_frees_requested;
 
 mtev_boolean mtev_memory_thread_initialized(void) {
   return epoch_rec != NULL;
@@ -130,6 +142,18 @@ static void mtev_memory_gc_restart_thread(void) {
 void mtev_memory_init(void) {
   if(initialized) return;
   initialized = 1;
+
+  mtev_stats_init();
+  mem_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "memory");
+  stats_ns_t *smr_ns = mtev_stats_ns(mem_stats_ns, "smr");
+  gc_sync_wait = stats_register(smr_ns, "gc_sync_wait", STATS_TYPE_HISTOGRAM_FAST);
+  stats_rob_i32(smr_ns, "enabled", (void *)&asynch_gc);
+  stats_rob_i32(smr_ns, "gc_waiting", (void *)&gc_is_waiting);
+  stats_rob_i64(smr_ns, "gc_cycles", (void *)&asynch_cycles);
+  stats_rob_i64(smr_ns, "gc_last_time", (void *)&last_safe_gc_seconds);
+  safe_allocations = stats_register_fanout(smr_ns, "allocations", STATS_TYPE_COUNTER, 16);
+  safe_frees_completed = stats_register_fanout(smr_ns, "frees_completed", STATS_TYPE_COUNTER, 16);
+  safe_frees_requested = stats_register_fanout(smr_ns, "frees_requested", STATS_TYPE_COUNTER, 16);
 
   ck_epoch_init(&epoch_ht);
   mtev_memory_init_thread();
@@ -248,7 +272,7 @@ mtev_memory_gc(void *unused) {
   mtev_thread_setname("mtev_memory_gc");
   mtev_memory_init_thread();
   const int max_setsize = 100;
-  mtevL(mem_debug, "GC maintenance thread pid:%d exiting.\n", getpid());
+  mtevL(mem_debug, "GC maintenance thread pid:%d starting.\n", getpid());
   while(ck_pr_load_int(&asynch_gc) == 1) {
     struct asynch_reclaim *ar;
     struct asynch_reclaim *arset[max_setsize];;
@@ -256,12 +280,15 @@ mtev_memory_gc(void *unused) {
     /* These are various pending lists from other threads.
      * Let's pull a whole bunch of these lists as one time.
      */
-    ck_fifo_spsc_dequeue_lock(&gc_queue);
     int setsize = 0;
-    while(setsize < max_setsize && ck_fifo_spsc_dequeue(&gc_queue, &ar)) {
-      arset[setsize++] = ar;
-    }
-    ck_fifo_spsc_dequeue_unlock(&gc_queue);
+    do {
+      ck_fifo_spsc_dequeue_lock(&gc_queue);
+      while(setsize < max_setsize && ck_fifo_spsc_dequeue(&gc_queue, &ar)) {
+        arset[setsize++] = ar;
+      }
+      ck_fifo_spsc_dequeue_unlock(&gc_queue);
+      if(setsize == 0) usleep(1000000);
+    } while(setsize == 0);
 
     /* Now we have isolated lists of things that have been freed in the past.
      * Let's make sure they are in the epoch past by moving out epoch forward
@@ -270,11 +297,20 @@ mtev_memory_gc(void *unused) {
     ck_epoch_begin(epoch_rec, NULL);
     ck_epoch_end(epoch_rec, NULL);
 
+    uint64_t start, duration;
+    start = mtev_gethrtime();
+    ck_pr_store_int(&gc_is_waiting, 1);
 #ifdef HAVE_CK_EPOCH_SYNCHRONIZE_WAIT
     ck_epoch_synchronize_wait(&epoch_ht, mtev_memory_sync_wait, NULL);
 #else
     ck_epoch_synchronize(epoch_rec);
 #endif
+    ck_pr_store_int(&gc_is_waiting, 0);
+    duration = mtev_gethrtime() - start;
+    stats_set_hist_intscale(gc_sync_wait, duration, -9, 1);
+    mtev_gettimeofday(&last_safe_gc, NULL);
+    last_safe_gc_seconds = last_safe_gc.tv_sec;
+    asynch_cycles++;
 
     /* Now we hand them back from where they came and they are guaranteed
      * to to be epoch safe.
@@ -303,6 +339,7 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   mtev_boolean success = mtev_false;
   ck_epoch_record_t epoch_temporary =  *epoch_rec;
 
+  mtevAssert(begin_end_depth == 0);
   if(needs_maintenance == 0) return -1;
 
   if(!mem_debug) {
@@ -402,6 +439,7 @@ static void mtev_memory_real_free(ck_epoch_entry_t *e) {
   struct safe_epoch *se = (struct safe_epoch *)e;
   if(se->cleanup) se->cleanup(se+1);
   free(e);
+  stats_add64(safe_frees_completed, 1);
   return;
 }
 
@@ -411,6 +449,7 @@ void *mtev_memory_safe_malloc(size_t r) {
   b = malloc(sizeof(*b) + r);
   b->magic = MTEV_EPOCH_SAFE_MAGIC;
   b->cleanup = NULL;
+  stats_add64(safe_allocations, 1);
   return b + 1;
 }
 
@@ -420,6 +459,7 @@ void *mtev_memory_safe_malloc_cleanup(size_t r, void (*f)(void *)) {
   b = malloc(sizeof(*b) + r);
   b->magic = MTEV_EPOCH_SAFE_MAGIC;
   b->cleanup = f;
+  stats_add64(safe_allocations, 1);
   return b + 1;
 }
 
@@ -453,6 +493,7 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
   if(p == NULL) return;
   (void)b;
   mtevAssert(e->magic == MTEV_EPOCH_SAFE_MAGIC);
+  stats_add64(safe_frees_requested, 1);
 
   if (r == true) {
     /* Destruction requires safe memory reclamation. */

@@ -54,6 +54,16 @@ typedef enum {
   EVENTER_JOBQ_MS_NONE /* managed nothing at all */
 } eventer_jobq_memory_safety_t;
 
+static inline const char *
+eventer_jobq_memory_safety_name(eventer_jobq_memory_safety_t ms) {
+  switch(ms) {
+    case EVENTER_JOBQ_MS_NONE: return "none";
+    case EVENTER_JOBQ_MS_CS: return "cs";
+    case EVENTER_JOBQ_MS_GC: return "gc";
+  }
+  return "unknown";
+}
+
 typedef struct _eventer_jobq_t eventer_jobq_t;
 
 /*! \fn eventer_jobq_t *eventer_jobq_create(const char *queue_name)

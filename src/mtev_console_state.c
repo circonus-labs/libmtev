@@ -95,6 +95,7 @@ mtev_console_spit_jobq(eventer_jobq_t *jobq, void *c) {
   mtev_console_closure_t ncct = c;
   int qlen = 0;
   nc_printf(ncct, "=== %s ===\n", jobq->queue_name);
+  nc_printf(ncct, " safety: %s\n", eventer_jobq_memory_safety_name(jobq->mem_safety));
   nc_printf(ncct, " concurrency: %d/%d\n", jobq->concurrency, jobq->desired_concurrency);
   nc_printf(ncct, " min/max: %d/%d\n", jobq->min_concurrency, jobq->max_concurrency);
   sem_getvalue(&jobq->semaphore, &qlen);
