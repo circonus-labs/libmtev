@@ -4,6 +4,12 @@
 
 ## 1.5
 
+### 1.5.x
+
+ * Make SSL "connection closed" accept failures a debug message.
+ * Remove port from SSL connection failures so they log dedup.
+ * Make ncct (telnet console) output thread safe (crash fix).
+
 ### 1.5.19
 
  * Fix livelock in mtev_intern when racing for a removed object

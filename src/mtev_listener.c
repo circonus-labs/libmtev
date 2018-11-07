@@ -201,22 +201,22 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
   sslerr = eventer_ssl_get_peer_error(eventer_get_eventer_ssl_ctx(e));
   if(!sslerr) sslerr = eventer_ssl_get_last_error(eventer_get_eventer_ssl_ctx(e));
   if(!sslerr && errno) sslerr = strerror(errno);
-  if(!sslerr) sslerr = "connection closed";
 
   char ip[INET6_ADDRSTRLEN] = "unknown";
-  int port = 0;
   switch(ac->remote.remote_addr.sa_family) {
     case AF_INET:
      (void)inet_ntop(AF_INET, &ac->remote.remote_addr4.sin_addr, ip, sizeof(ip));
-     port = ntohs(ac->remote.remote_addr4.sin_port);
      break;
      case AF_INET6:
      (void)inet_ntop(AF_INET6, &ac->remote.remote_addr6.sin6_addr, ip, sizeof(ip));
-     port = ntohs(ac->remote.remote_addr6.sin6_port);
      break;
      default: break;
   }
-  mtevL(mtev_error, "SSL accept failed from %s:%d: %s\n", ip, port, sslerr);
+  if(!sslerr) {
+    mtevL(mtev_debug, "SSL accept failed from %s: connection closed\n", ip);
+  } else {
+    mtevL(mtev_error, "SSL accept failed from %s: %s\n", ip, sslerr);
+  }
 
  socketfail:
     
