@@ -9,6 +9,10 @@
  * Make SSL "connection closed" accept failures a debug message.
  * Remove port from SSL connection failures so they log dedup.
  * Make ncct (telnet console) output thread safe (crash fix).
+ * Fix leak of thread name in SMR context.
+ * Add `eventer_jobq_memory_safety_name()` function.
+ * Add reporting on SMR activity.
+ * Avoid unnecessary epoch synchronization (SMR), when there is no work to do.
 
 ### 1.5.19
 
