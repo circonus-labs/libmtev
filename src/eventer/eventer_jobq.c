@@ -687,7 +687,6 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     ck_pr_dec_32(&jobq->concurrency);
     if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) {
       eventer_set_thread_name(NULL);
-      mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
       mtev_memory_fini_thread();
     }
     pthread_exit(NULL);
@@ -859,7 +858,6 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
   mtevL(eventer_deb, "jobq[%s/%p] -> terminating\n", jobq->queue_name, pthread_self_ptr());
   if(jobq->mem_safety != EVENTER_JOBQ_MS_NONE) {
     eventer_set_thread_name(NULL);
-    mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
     mtev_memory_fini_thread();
   }
   /* If we've gotten here and there's a backlog... something odd is happening.
