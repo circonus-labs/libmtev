@@ -731,7 +731,9 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
         if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
       }
       if(prev == 0) {
-        mtev_plock_stor(&pool->plock);
+        mtev_plock_drop_s(&pool->plock);
+        ck_pr_stall();
+        mtev_plock_take_r(&pool->plock);
         goto retry_fetch;
       }
       mtev_plock_drop_s(&pool->plock);
@@ -784,6 +786,7 @@ mtev_intern_t
 mtev_intern_copy(const mtev_intern_t i) {
   if(i.opaque1 == 0) return mtev_intern_null;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
+  assert(ck_pr_load_32(&ii->refcnt) != 0);
   ck_pr_inc_32(&ii->refcnt);
   return i;
 }

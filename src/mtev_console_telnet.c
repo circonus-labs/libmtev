@@ -1703,7 +1703,7 @@ pty_write(mtev_console_closure_t ncct, void *buf, int len) {
     /* split it up */
     for(i=0; i<len; i+=sizeof(ncct->telnet->_pty_buf)) {
       pty_write(ncct, (unsigned char *)buf + i,
-                MIN(sizeof(ncct->telnet->_pty_buf),len-i));
+                MIN(sizeof(ncct->telnet->_pty_buf),(size_t)(len-i)));
     }
   }
   while(ncct->telnet->_pty_fill + len > (int)sizeof(ncct->telnet->_pty_buf)) {

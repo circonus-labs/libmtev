@@ -937,7 +937,8 @@ mtev_console_state_delegate(mtev_console_closure_t ncct,
                             mtev_console_state_t *dstate,
                             void *closure) {
   (void)closure;
-  mtev_console_state_stack_t tmps = { 0 };
+  mtev_console_state_stack_t tmps;
+  memset(&tmps, 0, sizeof(tmps));
 
   if(argc == 0) {
     mtev_console_render_help(ncct, dstate);

@@ -1372,7 +1372,7 @@ mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
   }
   while((rv = eventer_write(e,
                             cl->outbuff + cl->write_sofar,
-                            MIN(cl->send_size,
+                            MIN((size_t)cl->send_size,
                                 (cl->write_goal - cl->write_sofar)),
                             &mask)) > 0) {
     cl->write_sofar += rv;
@@ -1430,7 +1430,7 @@ mtev_lua_socket_write(lua_State *L) {
 
   while((rv = eventer_write(e,
                             cl->outbuff + cl->write_sofar,
-                            MIN(cl->send_size,
+                            MIN((size_t)cl->send_size,
                                 (cl->write_goal - cl->write_sofar)),
                             &mask)) > 0) {
     cl->write_sofar += rv;
@@ -3338,7 +3338,8 @@ mtev_lua_pcre_match(lua_State *L) {
   struct pcre_global_info *pgi;
   int i, cnt, ovector[30];
   size_t inlen;
-  struct pcre_extra e = { 0 };
+  struct pcre_extra e;
+  memset(&e, 0, sizeof(e));
 
   pgi = (struct pcre_global_info *)lua_touserdata(L, lua_upvalueindex(1));
   subject = lua_tolstring(L,1,&inlen);

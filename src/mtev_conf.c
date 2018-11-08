@@ -1544,7 +1544,7 @@ mtev_conf_section_to_xpath(mtev_conf_section_t section) {
 #define mtev_conf_default(name, type) \
 mtev_conf_default_or_optional_t \
 mtev_conf_default_##name (type default_value) { \
-  mtev_conf_default_or_optional_t doo = {0}; \
+  mtev_conf_default_or_optional_t doo = {0, .value = { .val_string = NULL }}; \
   memcpy(&doo.value, &default_value, sizeof(type)); \
   return doo; \
 }

@@ -466,9 +466,9 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
     }
     memset(&sb, 0, sizeof(sb));
     while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);
-    if(i != 0 || sb.st_size == 0) mtevL(ls, "error writing stacktrace\n");
+    if(i != 0 || sb.st_size <= 0) mtevL(ls, "error writing stacktrace\n");
     lseek(_global_stack_trace_fd, SEEK_SET, 0);
-    i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff)-1, sb.st_size));
+    i = read(_global_stack_trace_fd, stackbuff, MIN(sizeof(stackbuff)-1, (size_t)sb.st_size));
     if (i >= 0) {
       stackbuff[i] = '\0';
     } else {

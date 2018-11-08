@@ -537,7 +537,7 @@ amqp_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
     snprintf(route, sizeof(route), "mtev.log.%s", mtev_log_stream_get_name(ls));
   } else {
     prefix++;
-    strlcpy(exchange, path, MIN(sizeof(exchange), (prefix - path)));
+    strlcpy(exchange, path, MIN(sizeof(exchange), (size_t)(prefix - path)));
     snprintf(route, sizeof(route), "%s.%s", prefix, mtev_log_stream_get_name(ls));
   }
   mtev_amqp_send_data(exchange, route, false, false, (void *)buf, len, -1);

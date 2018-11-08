@@ -892,7 +892,7 @@ if test -n "`$CC -V 2>&1 | grep 'Sun C'`"; then
 		CFLAGS="$CFLAGS -errwarn=%all"
 	fi
 elif test -n "`$CC --version 2>&1 | grep 'clang'`"; then
-	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall"
+	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall -Wextra"
 	if test "$enable_string" != "no"; then
 		CFLAGSEXTRAS="$CFLAGSEXTRAS -Werror"
 	fi
