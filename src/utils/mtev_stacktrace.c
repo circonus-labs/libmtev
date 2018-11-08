@@ -128,6 +128,7 @@ dup_filename(const char *in) {
 }
 static void
 mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
+  (void)level;
   Dwarf_Line *lines;
   char **srcfiles;
   Dwarf_Signed nlines = 0, nsrcfiles = 0;
@@ -307,7 +308,7 @@ find_line(uintptr_t addr, ssize_t *offset) {
   }
   if(found && offset) {
     uintptr_t faddr = found->addr + node->base;
-    *offset = addr > faddr ? (ssize_t)(addr - faddr) : (ssize_t)-1 * (faddr - addr);
+    *offset = addr > faddr ? (ssize_t)(addr - faddr) : (ssize_t)(-1 * (faddr - addr));
   }
 #endif
   return found;

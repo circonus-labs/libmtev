@@ -227,6 +227,7 @@ ze_list_begin(byte *buffer, size_t len, byte fieldtype, int32_t cnt) {
 static size_t
 ze_field_begin(byte *buffer, size_t len, const char *name,
                byte fieldtype, int16_t fieldid) {
+  (void)name;
   size_t sofar;
   if(len < 3) return 3;
   sofar = ze_byte(buffer, len, fieldtype);
@@ -248,7 +249,7 @@ ze_Zipkin_Binary(byte *buffer, size_t len, Zipkin_Binary *v) {
   size_t sofar;
   int32_t vlen = v->len;
   if(v->len < 0) vlen = 0;
-  if(4 + vlen > len) return 4 + vlen;
+  if(4 + (size_t)vlen > len) return 4 + vlen;
   sofar = ze_i32(buffer, len, vlen);
   memcpy(buffer + sofar, v->value, vlen);
   return sofar + vlen;
@@ -737,7 +738,7 @@ mtev_zipkin_span_bannotate(Zipkin_Span *span, Zipkin_AnnotationType atype,
   a->key.value = key_copy ? strdup(key) : (char *)key;
 
   a->value.len = value_len;
-  if(value_copy && value_len <= sizeof(a->value.data)) {
+  if(value_copy && value_len <= (int32_t)sizeof(a->value.data)) {
     /* common encoding no-alloc path for up to N bytes */
     memcpy(a->value.data, value, value_len);
     a->value.value = a->value.data;
@@ -895,7 +896,7 @@ bool mtev_zipkin_client_sampled_hdr(eventer_t e, char *buf, size_t len) {
   zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
   if(ctx && ctx->client && ctx->client->debug && *ctx->client->debug) {
     int rv = snprintf(buf, len, HEADER_ZIPKIN_SAMPLED ": 1");
-    if(rv > 0 && rv < len) return true;
+    if(rv > 0 && (size_t)rv < len) return true;
   }
   return false;
 }
@@ -904,7 +905,7 @@ bool mtev_zipkin_client_trace_hdr(eventer_t e, char *buf, size_t len) {
   if(ctx && ctx->client) {
     int rv = snprintf(buf, len, HEADER_ZIPKIN_TRACEID ": 0x%" PRIx64,
                       ctx->client->trace_id);
-    if(rv > 0 && rv < len) return true;
+    if(rv > 0 && (size_t)rv < len) return true;
   }
   return false;
 }
@@ -913,7 +914,7 @@ bool mtev_zipkin_client_parent_hdr(eventer_t e, char *buf, size_t len) {
   if(ctx && ctx->client && ctx->client->parent_id) {
     int rv = snprintf(buf, len, HEADER_ZIPKIN_PARENTSPANID ": 0x%" PRIx64,
                       *ctx->client->parent_id);
-    if(rv > 0 && rv < len) return true;
+    if(rv > 0 && (size_t)rv < len) return true;
   }
   return false;
 }
@@ -922,7 +923,7 @@ bool mtev_zipkin_client_span_hdr(eventer_t e, char *buf, size_t len) {
   if(ctx && ctx->client) {
     int rv = snprintf(buf, len, HEADER_ZIPKIN_SPANID ": 0x%" PRIx64,
                       ctx->client->id);
-    if(rv > 0 && rv < len) return true;
+    if(rv > 0 && (size_t)rv < len) return true;
   }
   return false;
 }
@@ -980,6 +981,7 @@ void mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_chil
   eventer_set_context(e, zipkin_ctx_idx, ctx);
 }
 void zipkin_eventer_callback_prep(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)closure;
   zipkin_eventer_ctx_t *ctx;
   if(zipkin_ctx_idx < 0) return;
   ctx = eventer_get_context(e, zipkin_ctx_idx);

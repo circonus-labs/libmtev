@@ -308,14 +308,18 @@ void mtev_watchdog_on_crash_close_add_fd(int fd) {
 
 void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
 #if defined(__sun__)
+  (void)si;
   walkcontext(uc, mtev_simple_stack_print, mtev_error);
 #else
+  (void)si;
+  (void)uc;
   mtev_stacktrace(mtev_error);
 #endif
   raise(sig);
 }
 
 void emancipate(int sig, siginfo_t *si, void *uc) {
+  (void)si;
   mtev_log_enter_sighandler();
   mtevL(mtev_error, "emancipate: process %d, monitored %d, signal %d\n", getpid(), mtev_monitored_child_pid, sig);
   if(getpid() == watcher) {
@@ -330,6 +334,7 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
 #if defined(__sun__)
     walkcontext(uc, mtev_simple_stack_print, mtev_error);
 #else
+    (void)uc;
     mtev_stacktrace(mtev_error);
 #endif
 
@@ -348,7 +353,7 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
 }
 
 void subprocess_killed(int sig) {
-  mtevL(mtev_error, "got a signal from spawned process.... exiting\n");
+  mtevL(mtev_error, "got a signal %d from spawned process.... exiting\n", sig);
   exit(-1);
 }
 
@@ -442,7 +447,7 @@ static void *alt_stack_ptr = NULL; /* dupe leak detector */
 int
 mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
   /* trace handlers */
-  int i;
+  size_t i;
   char *envcp;
   struct sigaction sa;
   stack_t altstack;
@@ -728,6 +733,9 @@ int mtev_watchdog_heartbeat(mtev_watchdog_t *hb) {
   return 0;
 }
 static int watchdog_tick(eventer_t e, int mask, void *lifeline, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   it_ticks(lifeline);
   return 0;
 }

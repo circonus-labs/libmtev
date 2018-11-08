@@ -109,6 +109,9 @@ mtev_console_spit_jobq(eventer_jobq_t *jobq, void *c) {
 static int
 mtev_console_eventer_timers(mtev_console_closure_t ncct, int argc, char **argv,
                             mtev_console_state_t *dstate, void *unused) {
+  (void)argv;
+  (void)dstate;
+  (void)unused;
   if(argc != 0) return -1;
   eventer_foreach_timedevent(mtev_console_spit_event, ncct);
   return 0;
@@ -116,6 +119,9 @@ mtev_console_eventer_timers(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_eventer_sockets(mtev_console_closure_t ncct, int argc, char **argv,
                              mtev_console_state_t *dstate, void *unused) {
+  (void)argv;
+  (void)dstate;
+  (void)unused;
   if(argc != 0) return -1;
   eventer_foreach_fdevent(mtev_console_spit_event, ncct);
   return 0;
@@ -123,6 +129,8 @@ mtev_console_eventer_sockets(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_eventer_jobq(mtev_console_closure_t ncct, int argc, char **argv,
                              mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
   eventer_jobq_t *jobq;
   if(argc != 1) {
     eventer_jobq_process_each(mtev_console_spit_jobq, (void *)ncct);
@@ -140,6 +148,10 @@ mtev_console_eventer_jobq(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_eventer_memory(mtev_console_closure_t ncct, int argc, char **argv,
                             mtev_console_state_t *dstate, void *unused) {
+  (void)argc;
+  (void)argv;
+  (void)dstate;
+  (void)unused;
   int64_t eventer_allocd, eventer_total;
   eventer_allocd = eventer_allocations_current();
   eventer_total = eventer_allocations_total();
@@ -151,6 +163,8 @@ mtev_console_eventer_memory(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_jobq(mtev_console_closure_t ncct, int argc, char **argv,
                   mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
   if(argc != 3 && argc != 2) {
     nc_printf(ncct, "<jobq> <floor|concurrency|min|max> <n>\n");
     nc_printf(ncct, "<jobq> <ping|post>\n");
@@ -207,6 +221,8 @@ mtev_console_jobq(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_coreclocks(mtev_console_closure_t ncct, int argc, char **argv,
                         mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
   int i = 0;
   mtev_time_coreclock_t info;
   mtev_boolean brief = mtev_true;
@@ -225,7 +241,11 @@ mtev_console_coreclocks(mtev_console_closure_t ncct, int argc, char **argv,
 
 static int
 mtev_console_time_status(mtev_console_closure_t ncct, int argc, char **argv,
-                         mtev_console_state_t *dstate, void *onoff) {
+                         mtev_console_state_t *dstate, void *unused) {
+  (void)argc;
+  (void)argv;
+  (void)dstate;
+  (void)unused;
   const char *reason;
   mtev_boolean status;
   status = mtev_time_fast_mode(&reason);
@@ -237,13 +257,19 @@ mtev_console_time_status(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_coreclocks_toggle(mtev_console_closure_t ncct, int argc, char **argv,
                                mtev_console_state_t *dstate, void *onoff) {
+  (void)ncct;
+  (void)argc;
+  (void)argv;
+  (void)dstate;
   mtev_time_toggle_tsc(onoff != NULL);
   return 0;
 }
 
 static int
 mtev_console_zipkin(mtev_console_closure_t ncct, int argc, char **argv,
-                    mtev_console_state_t *dstate, void *onoff) {
+                    mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
   double np, pp, dp;
   char *endptr;
   mtev_zipkin_get_sampling(&np, &pp, &dp);
@@ -282,12 +308,18 @@ mtev_console_zipkin(mtev_console_closure_t ncct, int argc, char **argv,
 
 static int
 mtev_console_hang_action(eventer_t e, int m, void *cl, struct timeval *now) {
+  (void)e;
+  (void)m;
+  (void)cl;
+  (void)now;
   pause();
   return 0;
 }
 int
 mtev_console_hang(mtev_console_closure_t ncct, int argc, char **argv,
                    mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
   if(argc == 1) {
     int id = atoi(argv[0]);
     nc_printf(ncct, "hang: %d\n", id);
@@ -364,6 +396,10 @@ cmd_info_t console_command_rdtsc_disable = {
 static int
 mtev_console_version(mtev_console_closure_t ncct, int argc, char **argv,
                      mtev_console_state_t *dstate, void *unused) {
+  (void)argc;
+  (void)argv;
+  (void)dstate;
+  (void)unused;
   char buff[256];
   struct utsname utsn;
   nc_printf(ncct,   "build sysname:\t%s\nbuild nodename:\t%s\n"
@@ -398,6 +434,8 @@ mtev_console_log_a_line(uint64_t idx, const struct timeval *whence,
 static int
 mtev_console_log_lines(mtev_console_closure_t ncct, int argc, char **argv,
                        mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
   mtev_log_stream_t ls;
   int log_lines = 23;
   if(argc < 1 || argc > 2) return -1;
@@ -421,6 +459,8 @@ mtev_console_log_lines(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_log_output(mtev_console_closure_t ncct, int argc, char **argv,
                         mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
   mtev_log_stream_t ls;
   int i, len = 0;
   char *buff;
@@ -445,6 +485,8 @@ mtev_console_log_output(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_log_details(mtev_console_closure_t ncct, int argc, char **argv,
                          mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
   mtev_log_stream_t ls;
   if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
     nc_printf(ncct, "log <logname> thing to log\n");
@@ -460,6 +502,7 @@ mtev_console_log_details(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_log_connect(mtev_console_closure_t ncct, int argc, char **argv,
                          mtev_console_state_t *dstate, void *should_connect) {
+  (void)dstate;
   const char *tgt_name = (argc == 2) ? argv[1] : ncct->feed_path;
   if(argc == 0 || argc > 2 ||
      !mtev_log_stream_exists(argv[0]) ||
@@ -477,6 +520,7 @@ mtev_console_log_connect(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_log_enable(mtev_console_closure_t ncct, int argc, char **argv,
                         mtev_console_state_t *dstate, void *doit) {
+  (void)dstate;
   if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
     nc_printf(ncct, "no such log\n");
     return 0;
@@ -492,6 +536,7 @@ mtev_console_log_enable(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_log_facility(mtev_console_closure_t ncct, int argc, char **argv,
                           mtev_console_state_t *dstate, void *doit) {
+  (void)dstate;
   if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
     nc_printf(ncct, "no such log\n");
     return 0;
@@ -507,6 +552,7 @@ mtev_console_log_facility(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_log_debug(mtev_console_closure_t ncct, int argc, char **argv,
                        mtev_console_state_t *dstate, void *doit) {
+  (void)dstate;
   if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
     nc_printf(ncct, "no such log\n");
     return 0;
@@ -522,6 +568,7 @@ mtev_console_log_debug(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_console_log_timestamps(mtev_console_closure_t ncct, int argc, char **argv,
                             mtev_console_state_t *dstate, void *doit) {
+  (void)dstate;
   if(argc != 1 || !mtev_log_stream_exists(argv[0])) {
     nc_printf(ncct, "no such log\n");
     return 0;
@@ -539,6 +586,9 @@ mtev_console_memory_log_opts_ex(mtev_console_closure_t ncct,
                              mtev_console_state_stack_t *stack,
                              mtev_console_state_t *dstate,
                              int argc, char **argv, int idx, int which) {
+  (void)ncct;
+  (void)stack;
+  (void)dstate;
   mtev_log_stream_t *loggers;
   int cnt, i, offset = 0;
 
@@ -644,6 +694,8 @@ static void je_write_cb(void *ncct, const char *str) {
 int
 mtev_console_show_jemalloc(mtev_console_closure_t ncct, int argc, char **argv,
                            mtev_console_state_t *dstate, void *closure) {
+  (void)dstate;
+  (void)closure;
   const char *opts = "";
   static void (*my_malloc_stats_print)(void (*write_cb)(void *, const char *), void *cbopaque, const char *opts);
   if(my_malloc_stats_print == NULL) {
@@ -694,6 +746,7 @@ mtev_console_set_default_prompt(const char *prompt) {
 }
 static char *
 mtev_console_state_prompt(EditLine *el) {
+  (void)el;
   static char *tl = "mtev# ";
   if(default_prompt) return default_prompt;
   return tl;
@@ -822,6 +875,8 @@ mtev_console_generic_apply(mtev_console_closure_t ncct,
                            int argc, char **argv,
                            mtev_console_state_t *dstate,
                            void *closure) {
+  (void)dstate;
+  (void)closure;
   int i, j, count;
   char *name, *range;
   char **nargv, **expanded = NULL;
@@ -881,6 +936,7 @@ mtev_console_state_delegate(mtev_console_closure_t ncct,
                             int argc, char **argv,
                             mtev_console_state_t *dstate,
                             void *closure) {
+  (void)closure;
   mtev_console_state_stack_t tmps = { 0 };
 
   if(argc == 0) {
@@ -1116,12 +1172,18 @@ mtev_console_state_push_state(mtev_console_closure_t ncct,
 
 static int
 mtev_console_crash_action(eventer_t e, int m, void *cl, struct timeval *now) {
+  (void)e;
+  (void)m;
+  (void)cl;
+  (void)now;
   *((volatile int *)0) = 0;
   return 0;
 }
 int
 mtev_console_crash(mtev_console_closure_t ncct, int argc, char **argv,
                    mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
   if(argc == 1) {
     int id = atoi(argv[0]);
     nc_printf(ncct, "crash: %d\n", id);
@@ -1136,16 +1198,27 @@ mtev_console_crash(mtev_console_closure_t ncct, int argc, char **argv,
 int
 mtev_console_shutdown(mtev_console_closure_t ncct, int argc, char **argv,
                       mtev_console_state_t *dstate, void *unused) {
+  (void)ncct;
+  (void)argc;
+  (void)argv;
+  (void)dstate;
+  (void)unused;
   exit(2);
 }
 int
 mtev_console_restart(mtev_console_closure_t ncct, int argc, char **argv,
                      mtev_console_state_t *dstate, void *unused) {
+  (void)ncct;
+  (void)argc;
+  (void)argv;
+  (void)dstate;
+  (void)unused;
   exit(1);
 }
 int
 mtev_console_help(mtev_console_closure_t ncct, int argc, char **argv,
                   mtev_console_state_t *dstate, void *unused) {
+  (void)unused;
   mtev_console_state_stack_t *current;
   current = ncct->state_stack;
 
@@ -1180,6 +1253,9 @@ mtev_console_help(mtev_console_closure_t ncct, int argc, char **argv,
 int
 mtev_console_state_pop(mtev_console_closure_t ncct, int argc, char **argv,
                        mtev_console_state_t *dstate, void *unused) {
+  (void)argv;
+  (void)unused;
+  (void)dstate;
   mtev_console_state_stack_t *current;
 
   if(argc) {

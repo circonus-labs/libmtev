@@ -233,7 +233,15 @@ struct eventer_pool_t {
   stats_handle_t *cb_times;
 };
 
-static eventer_pool_t default_pool = { "default", 0 };
+static eventer_pool_t default_pool = {
+  .name = "default",
+  .__global_tid_offset = 0,
+  .__loop_concurrency = 0,
+  .__loops_started = 0,
+  .hb_timeout = 0,
+  .loop_times = NULL,
+  .cb_times = NULL
+};
 static mtev_hash_table eventer_pools;
 
 void eventer_pool_create(const char *name, int concurrency) {
@@ -272,7 +280,7 @@ void eventer_pool_watchdog_timeout(eventer_pool_t *pool, double timeout) {
   pool->hb_timeout = timeout;
   if(eventer_impl_tls_data != NULL) {
     int base = pool->__global_tid_offset;
-    int offset;
+    size_t offset;
     for(offset = 0; offset < pool->__loop_concurrency; offset++) {
       if(eventer_impl_tls_data[base+offset].hb) {
         mtev_watchdog_override_timeout(eventer_impl_tls_data[base+offset].hb, pool->hb_timeout);
@@ -337,7 +345,7 @@ mtev_boolean eventer_in_loop(void) {
   return my_impl_data ? mtev_true : mtev_false;
 }
 static struct eventer_impl_data *get_tls_impl_data(pthread_t tid) {
-  int i;
+  size_t i;
   for(i=0;i<__total_loop_count;i++) {
     if(pthread_equal(eventer_impl_tls_data[i].tid, tid))
       return &eventer_impl_tls_data[i];
@@ -350,7 +358,7 @@ static struct eventer_impl_data *get_event_impl_data(eventer_t e) {
   return t;
 }
 int eventer_is_loop(pthread_t tid) {
-  int i;
+  size_t i;
   for(i=0;i<__total_loop_count;i++)
     if(pthread_equal(eventer_impl_tls_data[i].tid, tid)) return i;
   return -1;
@@ -626,7 +634,7 @@ void eventer_loop(void) {
 }
 
 static void eventer_loop_prime(eventer_pool_t *pool, int start) {
-  int i;
+  size_t i;
   mtevL(mtev_debug, "Starting eventer pool '%s' with concurrency of %d\n",
         pool->name, pool->__loop_concurrency);
   for(i=start; i<pool->__loop_concurrency; i++) {
@@ -705,7 +713,7 @@ int eventer_impl_setrlimit(void) {
 
 static void
 eventer_impl_tls_data_from_pool(eventer_pool_t *pool) {
-  int i;
+  size_t i;
   for (i=0; i<pool->__loop_concurrency; i++) {
     int adjidx = pool->__global_tid_offset + i;
     struct eventer_impl_data *t = &eventer_impl_tls_data[adjidx];
@@ -714,6 +722,9 @@ eventer_impl_tls_data_from_pool(eventer_pool_t *pool) {
 }
 
 static int periodic_jobq_maintenance(eventer_t e, int mask, void *vjobq, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   eventer_jobq_t *jobq = vjobq;
   eventer_jobq_ping(jobq);
   eventer_add_in_s_us(periodic_jobq_maintenance, jobq, 1, 0);
@@ -721,6 +732,7 @@ static int periodic_jobq_maintenance(eventer_t e, int mask, void *vjobq, struct 
 }
 
 static void register_jobq_maintenance(eventer_jobq_t *jobq, void *unused) {
+  (void)unused;
   eventer_add_in_s_us(periodic_jobq_maintenance, jobq, 1, 0);
 }
 
@@ -829,7 +841,7 @@ int eventer_impl_init(void) {
   }
   eventer_impl_tls_data = calloc(__total_loop_count, sizeof(*eventer_impl_tls_data));
 
-  int accum_check = 0;
+  size_t accum_check = 0;
 
   /* first the default pool */
   eventer_impl_tls_data_from_pool(&default_pool);
@@ -1117,7 +1129,7 @@ void eventer_dispatch_timed(struct timeval *next) {
 void
 eventer_foreach_timedevent(void (*f)(eventer_t e, void *), void *closure) {
   mtev_skiplist_node *iter = NULL;
-  int i;
+  size_t i;
   for(i=0;i<__total_loop_count;i++) {
     struct eventer_impl_data *t = &eventer_impl_tls_data[i];
     pthread_mutex_lock(&t->te_lock);
@@ -1249,7 +1261,7 @@ uint64_t eventer_callback_us(void) {
   return mtev_now_us();
 }
 
-void eventer_wakeup_noop(eventer_t e) { }
+void eventer_wakeup_noop(eventer_t e) { (void)e; }
 void eventer_add_recurrent(eventer_t e) {
   struct eventer_impl_data *t;
   struct recurrent_events *node;

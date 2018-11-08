@@ -81,6 +81,8 @@ static __thread dns_ctx_handle_t *default_ctx_handle = NULL;
 
 static int mtev_lua_dns_eventer(eventer_t e, int mask, void *closure,
                                 struct timeval *now) {
+  (void)e;
+  (void)mask;
   dns_ctx_handle_t *h = closure;
   dns_ioevent(h->ctx, now->tv_sec);
   return EVENTER_READ | EVENTER_EXCEPTION;
@@ -88,6 +90,7 @@ static int mtev_lua_dns_eventer(eventer_t e, int mask, void *closure,
 
 static int mtev_lua_dns_timeouts(eventer_t e, int mask, void *closure,
                                  struct timeval *now) {
+  (void)mask;
   dns_ctx_handle_t *h = closure;
   mtevAssert(h->timeout == e);
   h->timeout = NULL; /* freed upon return */
@@ -377,6 +380,9 @@ static void dns_resume(dns_lookup_ctx_t *dlc) {
 }
 static int dns_resume_event(eventer_t e, int mask, void *closure,
                             struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   dns_resume(closure);
   return 0;
 }

@@ -160,6 +160,7 @@ static char *el_rl_prompt = NULL;
 static char *
 _get_prompt(EditLine *el)
 {
+	(void)el;
 	return (el_rl_prompt);
 }
 
@@ -479,7 +480,7 @@ _rl_compat_sub(const char *str, const char *what, const char *with,
 {
 	char *result;
 	const char *temp, *new;
-	int len, with_len, what_len, add;
+	size_t len, with_len, what_len, add;
 	size_t size, i;
 
 	result = malloc((size = 16));
@@ -665,7 +666,7 @@ _history_expand_command(const char *command, size_t cmdlen, char **result)
 			g_on = 2;
 		else if (*cmd == 's' || *cmd == '&') {
 			char *what, *with, delim;
-			int len, from_len;
+			size_t len, from_len;
 			size_t size;
 
 			if (*cmd == '&' && (from == NULL || to == NULL))
@@ -1264,6 +1265,7 @@ history_search_prefix(const char *str, int direction)
 int
 history_search_pos(const char *str, int direction, int pos)
 {
+	(void)direction;
 	HistEvent ev;
 	int curr_num, off;
 
@@ -1481,6 +1483,7 @@ username_completion_function(const char *text, int state)
 static unsigned char
 _el_rl_complete(EditLine *el, int ch)
 {
+	(void)el;
 	return (unsigned char) rl_complete(0, ch);
 }
 
@@ -1493,7 +1496,7 @@ completion_matches(const char *text, CPFunction *genfunc)
 {
 	char **match_list = NULL, *retstr, *prevstr;
 	size_t match_list_len, max_equal, which, i;
-	int matches;
+	size_t matches;
 
 	if (h == NULL || e == NULL)
 		rl_initialize();
@@ -1805,6 +1808,7 @@ rl_read_key(void)
 void
 rl_reset_terminal(const char *p)
 {
+	(void)p;
 
 	if (h == NULL || e == NULL)
 		rl_initialize();

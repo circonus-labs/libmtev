@@ -136,7 +136,7 @@ static char **
 completion_matches(EditLine *el, const char *text, NCPFunction *genfunc) {
   char **match_list = NULL, *retstr, *prevstr;
   size_t match_list_len, max_equal, which, i;
-  int matches;
+  size_t matches;
 
   matches = 0;
   match_list_len = 1;
@@ -209,6 +209,7 @@ mtev_edit_display_match_list (EditLine *el, char **matches, int len, int max)
 
 unsigned char
 mtev_edit_complete(EditLine *el, int invoking_key) {
+  (void)invoking_key;
   static const char *rl_basic_word_break_characters = " \t\n\"\\'@$><=;|&{(";
   static const char *rl_special_prefixes = NULL;
   static const int   rl_completion_append_character = ' ';

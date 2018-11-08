@@ -48,7 +48,7 @@ mtev_b64_decode(const char *src, size_t src_len,
   const unsigned char *cp = (unsigned char *)src;
   unsigned char *dcp = dest;
   unsigned char ch, in[4], out[3];
-  int ib = 0, ob = 3, needed = (((src_len + 3) / 4) * 3);
+  size_t ib = 0, ob = 3, needed = (((src_len + 3) / 4) * 3);
   /* Needed here is 2 bytes shy of what could be needed...
    * decoding can be "short" up to 2 bytes. */
 
@@ -110,8 +110,8 @@ mtev_b64_encodev(const struct iovec *iov, size_t iovcnt,
   size_t iov_index;
   size_t src_len;
   char *eptr = dest;
-  int len;
-  int n;
+  size_t len;
+  size_t n;
   unsigned char crossiovbuf[3];
   size_t crossiovlen;
 

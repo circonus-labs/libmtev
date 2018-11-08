@@ -1698,7 +1698,7 @@ netclear(mtev_console_closure_t ncct) {
 
 static void
 pty_write(mtev_console_closure_t ncct, void *buf, int len) {
-  if(len > sizeof(ncct->telnet->_pty_buf)) {
+  if(len > (int)sizeof(ncct->telnet->_pty_buf)) {
     int i;
     /* split it up */
     for(i=0; i<len; i+=sizeof(ncct->telnet->_pty_buf)) {
@@ -1706,7 +1706,7 @@ pty_write(mtev_console_closure_t ncct, void *buf, int len) {
                 MIN(sizeof(ncct->telnet->_pty_buf),len-i));
     }
   }
-  while(ncct->telnet->_pty_fill + len > sizeof(ncct->telnet->_pty_buf)) {
+  while(ncct->telnet->_pty_fill + len > (int)sizeof(ncct->telnet->_pty_buf)) {
     ptyflush(ncct);
   }
   memcpy(ncct->telnet->_pty_buf + ncct->telnet->_pty_fill, buf, len);

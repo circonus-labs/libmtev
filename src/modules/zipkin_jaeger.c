@@ -59,7 +59,7 @@ struct span_list {
 };
 
 static pthread_mutex_t todo_queue_lock = PTHREAD_MUTEX_INITIALIZER;
-static int todo_queue_size;
+static unsigned int todo_queue_size;
 static struct span_list *todo_queue_head, *todo_queue_tail;
 
 static void todo_enqueue(Zipkin_Span *span) {
@@ -99,12 +99,14 @@ static Zipkin_Span *todo_dequeue(void) {
 
 static mtev_hook_return_t
 zipkin_jaeger_queue(void *closure, Zipkin_Span *span) {
+  (void)closure;
   todo_enqueue(span);
   return MTEV_HOOK_CONTINUE;
 }
 
 static size_t
 debug_writefile(void *b, size_t s, size_t n, FILE *v) {
+  (void)v;
   mtevL(debugls, "%.*s\n", (int)(s*n), (char *)b);
   return s*n;
 }
@@ -161,7 +163,7 @@ zipking_jaeger_submitter(void *unused) {
   trigger_time = last_submit + zc_period * 1000000ULL;
   while(1) {
     size_t len;
-    int i, cnt = 0;
+    size_t i, cnt = 0;
     while(1) {
       while(cnt < zc_max_batch && NULL != (spans[cnt] = todo_dequeue())) cnt++;
       if(cnt >= zc_max_batch || (now = mtev_gethrtime()) >= trigger_time) break;
@@ -188,7 +190,7 @@ zipking_jaeger_submitter(void *unused) {
       last_submit = mtev_gethrtime();
       trigger_time = last_submit + zc_period * 1000000ULL;
       if(jaeger_publish_thrift(buff, len, zc_retries) == 0) {
-        mtevL(debugls, "zipkin published %d spans to jaeger\n", cnt);
+        mtevL(debugls, "zipkin published %zd spans to jaeger\n", cnt);
       }
     }
     for(i=0; i<cnt; i++) {
@@ -214,6 +216,7 @@ zipking_jaeger_submitter(void *unused) {
 
 static int
 zipkin_jaeger_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
+  (void)img;
   RCONFSTR(host);
   RCONFINT(port);
   RCONFINT(period);
@@ -225,6 +228,7 @@ zipkin_jaeger_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
 
 static int
 zipkin_jaeger_driver_init(mtev_dso_generic_t *img) {
+  (void)img;
   pthread_attr_t tattr;
   pthread_attr_init(&tattr);
   pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);

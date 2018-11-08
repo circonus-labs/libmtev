@@ -229,6 +229,7 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
 
 static void
 mtev_listener_details(char *buf, int buflen, eventer_t e, void *closure) {
+  (void)closure;
   char sbuf[128];
   const char *sbufptr;
   eventer_t stub;
@@ -246,6 +247,7 @@ mtev_listener_details(char *buf, int buflen, eventer_t e, void *closure) {
 static int
 mtev_listener_acceptor(eventer_t e, int mask,
                        void *closure, struct timeval *tv) {
+  (void)tv;
   int conn, newmask = EVENTER_READ;
   socklen_t salen;
   listener_closure_t listener_closure = (listener_closure_t)closure;
@@ -538,6 +540,9 @@ post_aco_wrap_dispatch(void) {
 }
 static int
 pre_aco_wrap_dispatch(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)mask;
+  (void)closure;
+  (void)now;
   eventer_remove_fde(e);
   eventer_aco_start(post_aco_wrap_dispatch, eventer_alloc_copy(e));
   return 0;
@@ -670,7 +675,7 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
   mtev_acceptor_closure_t *ac = closure;
 
   mtevAssert(ac->rlen >= 0);
-  while(ac->rlen < sizeof(cmd)) {
+  while(ac->rlen < (int)sizeof(cmd)) {
     len = eventer_read(e, ((char *)&cmd) + ac->rlen,
                        sizeof(cmd) - ac->rlen, &mask);
     if(len == -1 && errno == EAGAIN)
@@ -679,7 +684,7 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
     if(len > 0) ac->rlen += len;
     if(len <= 0) break;
   }
-  mtevAssert(ac->rlen >= 0 && ac->rlen <= sizeof(cmd));
+  mtevAssert(ac->rlen >= 0 && ac->rlen <= (int)sizeof(cmd));
 
   if(callmask & EVENTER_EXCEPTION || ac->rlen != sizeof(cmd)) {
     int newmask;

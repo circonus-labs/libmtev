@@ -53,6 +53,8 @@ static mtev_log_stream_t debugls = NULL;
 static mtev_hook_return_t
 zipkin_fq_publish(void *closure, int64_t traceid, int64_t spanid,
                   unsigned char *buf, size_t len) {
+  (void)closure;
+  (void)spanid;
   if(N_L_S_ON(debugls)) {
     int blen;
     char *b64buf;
@@ -91,6 +93,7 @@ zipkin_fq_publish(void *closure, int64_t traceid, int64_t spanid,
 
 static int
 zipkin_fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
+  (void)img;
   RCONFSTR(host);
   RCONFSTR(exchange);
   RCONFSTR(routing_prefix);
@@ -104,10 +107,12 @@ zipkin_fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
 
 static void
 debug_logger(fq_client client, const char *str) {
+  (void)client;
   mtevL(mtev_debug, "zipkin_fq: %s\n", str);
 }
 static int
 zipkin_fq_driver_init(mtev_dso_generic_t *img) {
+  (void)img;
   debugls = mtev_log_stream_find("debug/zipkin_fq");
   fq_client_init(&zc_client, 0, debug_logger);
   fq_client_creds(zc_client, zc_host, zc_port, zc_user, zc_pass);

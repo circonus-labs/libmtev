@@ -47,7 +47,8 @@ parse_cli_args(int argc, char * const *argv) {
 }
 
 static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
-
+  (void)npats;
+  (void)pats;
   /* intentionally small */
   size_t buffer_size = 98;
   char *buffer = alloca(buffer_size);

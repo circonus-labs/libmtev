@@ -613,7 +613,7 @@ static int mtev_lua_crypto_bn_dup(lua_State *L) {
 }
 static int mtev_lua_crypto_bn_tobin(lua_State *L) {
   unsigned char buf[1024], *ptr = buf;
-  int len;
+  size_t len;
   BN_METH_DECL(0);
   len = BN_num_bytes(bn);
   if(len > sizeof(buf)) ptr = malloc(len);
@@ -625,7 +625,7 @@ static int mtev_lua_crypto_bn_tobin(lua_State *L) {
 }
 static int mtev_lua_crypto_bn_tompi(lua_State *L) {
   unsigned char buf[1024], *ptr = buf;
-  int len;
+  size_t len;
   BN_METH_DECL(0);
   len = BN_bn2mpi(bn, NULL);
   if(len > sizeof(buf)) ptr = malloc(len);
@@ -895,7 +895,7 @@ mtev_lua_crypto_bignum_new(lua_State *L) {
 }
 static int
 mtev_lua_crypto_rand_bytes(lua_State *L) {
-  int nbytes = 0;
+  size_t nbytes = 0;
   char *errstr;
   char errbuf[120];
   unsigned char buff[1024], *ptr = buff;
@@ -922,7 +922,7 @@ mtev_lua_crypto_rand_bytes(lua_State *L) {
 
 static int
 mtev_lua_crypto_pseudo_rand_bytes(lua_State *L) {
-  int nbytes = 0;
+  size_t nbytes = 0;
   char *errstr;
   char errbuf[120];
   unsigned char buff[1024], *ptr = buff;

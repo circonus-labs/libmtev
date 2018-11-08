@@ -210,6 +210,8 @@ static DH *dh1024_tmp = NULL, *dh2048_tmp = NULL;
 static const char *dh1024_file = NULL, *dh2048_file = NULL;
 static int
 generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
+  (void)e;
+  (void)now;
   int bits = (int)(intptr_t)cl;
   if(mask != EVENTER_ASYNCH_WORK) return 0;
   switch(bits) {
@@ -238,6 +240,9 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
 }
 static DH *
 tmp_dh_callback(SSL *s, int is_export, int keylen) {
+  (void)s;
+  (void)is_export;
+  (void)keylen;
   if(dh2048_tmp) return dh2048_tmp;
   if(dh1024_tmp) return dh1024_tmp;
   return NULL;
@@ -246,6 +251,8 @@ tmp_dh_callback(SSL *s, int is_export, int keylen) {
 static int
 eventer_ssl_verify_dates(eventer_ssl_ctx_t *ctx, int ok,
                          X509_STORE_CTX *x509ctx, void *closure) {
+  (void)ok;
+  (void)closure;
   time_t now;
   int err;
   X509 *peer;
@@ -562,6 +569,8 @@ eventer_ssl_ctx_free(eventer_ssl_ctx_t *ctx) {
 
 static void
 eventer_SSL_server_info_callback(const SSL *ssl, int type, int val) {
+  (void)type;
+  (void)val;
   eventer_ssl_ctx_t *ctx;
 
   if (ssl->state != SSL3_ST_SR_CLNT_HELLO_A &&
@@ -628,6 +637,8 @@ ssl_ctx_cache_set(ssl_ctx_cache_node *node) {
 
 static
 int eventer_ssl_ctx_get_sni(SSL *ssl, int *ad, void *arg) {
+  (void)ad;
+  (void)arg;
   eventer_ssl_ctx_t *ctx = SSL_get_eventer_ssl_ctx(ssl);
   const char *name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
   if(name) {
@@ -912,6 +923,11 @@ eventer_ssl_ctx_set_verify(eventer_ssl_ctx_t *ctx,
 static int
 _noallowed_eventer_SSL_accept(int fd, struct sockaddr *addr, socklen_t *len,
                               int *mask, void *closure) {
+  (void)fd;
+  (void)addr;
+  (void)len;
+  (void)mask;
+  (void)closure;
   return -1;
 }
 
@@ -1125,6 +1141,8 @@ eventer_fd_opset_t eventer_SSL_fd_opset = &_eventer_SSL_fd_opset;
 struct CRYPTO_dynlock_value { pthread_mutex_t lock; };
 static struct CRYPTO_dynlock_value *__lcks = NULL;
 static void lock_static(int mode, int type, const char *f, int l) {
+  (void)f;
+  (void)l;
   if(mode & CRYPTO_LOCK) pthread_mutex_lock(&__lcks[type].lock);
   else pthread_mutex_unlock(&__lcks[type].lock);
 }
@@ -1135,11 +1153,15 @@ static struct CRYPTO_dynlock_value *dynlock_create(const char *f, int l) {
 }
 static void dynlock_destroy(struct CRYPTO_dynlock_value *lock,
                             const char *f, int l) {
+  (void)f;
+  (void)l;
   pthread_mutex_destroy(&lock->lock);
   CRYPTO_free(lock);
 }
 static void lock_dynamic(int mode, struct CRYPTO_dynlock_value *lock,
                          const char *f, int l) {
+  (void)f;
+  (void)l;
   if(mode & CRYPTO_LOCK) pthread_mutex_lock(&lock->lock);
   else pthread_mutex_unlock(&lock->lock);
 }

@@ -546,6 +546,7 @@ mtev_lua_va_mtev_http_session_ctx(lua_State *L, va_list ap) {
 }
 int
 luaopen_mtev_http(lua_State *L) {
+  (void)L;
   mtev_lua_register_dynamic_ctype("mtev_http_session_ctx *",
                                   mtev_lua_va_mtev_http_session_ctx);
   return 0;

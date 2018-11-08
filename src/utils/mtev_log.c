@@ -139,10 +139,10 @@ struct posix_op_ctx {
 typedef struct {
   uint64_t head;
   uint64_t tail;
-  int noffsets;
-  int *offsets;
-  int segmentsize;
-  int segmentcut;
+  unsigned int noffsets;
+  unsigned int *offsets;
+  unsigned int segmentsize;
+  unsigned int segmentcut;
   char *segment;
   pthread_mutex_t lock;
 } membuf_ctx_t;
@@ -267,6 +267,7 @@ membuf_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
 }
 static int
 membuf_logio_reopen(mtev_log_stream_t ls) {
+  (void)ls;
   return 0;
 }
 static int
@@ -283,11 +284,16 @@ membuf_logio_size(mtev_log_stream_t ls) {
 }
 static int
 membuf_logio_rename(mtev_log_stream_t ls, const char *newname) {
+  (void)ls;
+  (void)newname;
   /* Not supported (and makes no sense) */
   return -1;
 }
 static int
 membuf_logio_cull(mtev_log_stream_t ls, int age, ssize_t bytes) {
+  (void)ls;
+  (void)age;
+  (void)bytes;
   /* Could be supported, but wouldn't reduce memory usage, so why bother? */
   return -1;
 }
@@ -309,7 +315,7 @@ mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines,
                       int (*f)(uint64_t, const struct timeval *,
                                const char *, size_t, void *),
                       void *closure) {
-  int nmsg;
+  unsigned int nmsg;
   uint64_t idx;
   if(strcmp(ls->type, "memory")) return -1;
   membuf_ctx_t *membuf = ls->op_ctx;
@@ -320,9 +326,9 @@ mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines,
            ((membuf->tail % membuf->noffsets) - (membuf->head % membuf->noffsets)) :
            ((membuf->tail % membuf->noffsets) + membuf->noffsets - (membuf->head % membuf->noffsets));
   assert(nmsg < membuf->noffsets);
-  if(log_lines == 0) log_lines = nmsg;
+  if(log_lines <= 0) log_lines = nmsg;
   log_lines = MIN(log_lines,nmsg);
-  idx = (membuf->tail >= log_lines) ?
+  idx = (membuf->tail >= (unsigned int)log_lines) ?
           (membuf->tail - log_lines) : 0;
   pthread_mutex_unlock(&membuf->lock); 
   return mtev_log_memory_lines_since(ls, idx, f, closure);
@@ -333,7 +339,7 @@ mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich,
                             int (*f)(uint64_t, const struct timeval *,
                                     const char *, size_t, void *),
                             void *closure) {
-  int nmsg, count = 0;
+  unsigned int nmsg = 0, count = 0;
   uint64_t idx = afterwhich;
   if(strcmp(ls->type, "memory")) return -1;
   membuf_ctx_t *membuf = ls->op_ctx;
@@ -822,7 +828,8 @@ posix_logio_cull(mtev_log_stream_t ls, int age, ssize_t bytes) {
   struct dirent *de, *entry;
   char *filename;
   char dir[PATH_MAX], path[PATH_MAX];
-  int size = 0, cnt = 0, pathlen, i;
+  int size = 0, cnt = 0, i;
+  size_t pathlen;
 
   mtevL(mtev_debug, "cull(%s, %d, %lld)\n", ls->path, age,
         (long long)bytes);
@@ -888,7 +895,7 @@ posix_logio_cull(mtev_log_stream_t ls, int age, ssize_t bytes) {
       remove = 1;
       old_str = " [age]";
     }
-    if(bytes >= 0 && cumm_size > bytes) {
+    if(bytes >= 0 && (ssize_t)cumm_size > bytes) {
       remove = 1;
       size_str = " [size]";
     }
@@ -1050,6 +1057,7 @@ jlog_logio_reopen(mtev_log_stream_t ls) {
 }
 static void
 mtev_log_jlog_err(void *ctx, const char *format, ...) {
+  (void)ctx;
   struct timeval now;
   va_list arg;
   va_start(arg, format);
@@ -1236,11 +1244,16 @@ jlog_logio_size(mtev_log_stream_t ls) {
 }
 static int
 jlog_logio_rename(mtev_log_stream_t ls, const char *newname) {
+  (void)ls;
+  (void)newname;
   /* Not supported (and makes no sense) */
   return -1;
 }
 static int
 jlog_logio_cull(mtev_log_stream_t ls, int age, ssize_t bytes) {
+  (void)ls;
+  (void)age;
+  (void)bytes;
   /* Not supported (and makes no sense) */
   return -1;
 }
@@ -1725,7 +1738,8 @@ mtev_log_writev(mtev_log_stream_t ls, const struct timeval *whence,
                 const struct iovec *iov, int iovcnt) {
   /* This emulates writev into a buffer for ops that don't support it */
   char stackbuff[4096], *tofree = NULL, *buff = NULL;
-  int i, s = 0, ins = 0, maxi_nomalloc = 0;
+  int i, ins = 0, maxi_nomalloc = 0;
+  size_t s = 0;
 
   if(!ls->ops) return -1;
   if(ls->ops->writevop) return ls->ops->writevop(ls, whence, iov, iovcnt);
@@ -1875,7 +1889,7 @@ mtev_log_dedup_flush_stream(mtev_log_stream_t ls, const struct timeval *now) {
       olen = snprintf(oldlog, MTEV_MAYBE_SIZE(oldlog),
                       "(seen %d times over last %d seconds) %s",
                       dedup_cnt, dedup_diff_s, buffer);
-    } while(olen >= MTEV_MAYBE_SIZE(oldlog));
+    } while(olen >= (ssize_t)MTEV_MAYBE_SIZE(oldlog));
     LIBMTEV_LOG(ls->name, (char *)last_file, last_line, oldlog);
     /* The above macro may not use last_file or last_line */
     (void)last_file;
@@ -1964,7 +1978,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
 #else
     len = vsnprintf(buffer, MTEV_MAYBE_SIZE(buffer), format, arg);
 #endif
-    if(len >= MTEV_MAYBE_SIZE(buffer) && _mtev_log_siglvl == 0) {
+    if(len >= (ssize_t)MTEV_MAYBE_SIZE(buffer) && _mtev_log_siglvl == 0) {
       allocd = MTEV_MAYBE_SIZE(buffer);
       while(len >= allocd) { /* guaranteed true the first time */
         MTEV_MAYBE_REALLOC(buffer, len+1);
@@ -1980,7 +1994,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
     }
     else {
       /* This should only happen within a signal handler */
-      if(len > MTEV_MAYBE_SIZE(buffer)) len = MTEV_MAYBE_SIZE(buffer);
+      if(len > (ssize_t)MTEV_MAYBE_SIZE(buffer)) len = MTEV_MAYBE_SIZE(buffer);
     }
 
     if(logspan) {
@@ -2057,7 +2071,7 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
         olen = snprintf(oldlog, MTEV_MAYBE_SIZE(oldlog),
                          "(seen %d times over last %d seconds) %s",
                          dedup_cnt, dedup_diff_s, last_buffer);
-      } while(olen >= MTEV_MAYBE_SIZE(oldlog));
+      } while(olen >= (ssize_t)MTEV_MAYBE_SIZE(oldlog));
       LIBMTEV_LOG(ls->name, (char *)last_file, last_line, oldlog);
       /* The above macro may not use last_file or last_line */
       (void)last_file;
@@ -2116,6 +2130,7 @@ static int
 mtev_log_speculate_commit_cb(uint64_t idx, const struct timeval *tv,
                              const char *str, size_t str_bytes, void *v_ls)
 {
+  (void)idx;
   mtev_log_stream_t ls = v_ls;
   if((IS_ENABLED_ON(ls) && IS_ENABLED_BELOW(ls)) || LIBMTEV_LOG_ENABLED()) {
     char tbuf[48], dbuf[1];

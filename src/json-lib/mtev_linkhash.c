@@ -134,7 +134,7 @@ int jl_lh_table_insert(struct jl_lh_table *t, void *k, const void *v)
 	while( 1 ) {
 		if(t->table[n].k == LH_EMPTY || t->table[n].k == LH_FREED) break;
 		t->collisions++;
-		if(++n == t->size) n = 0;
+		if(++n == (unsigned long)t->size) n = 0;
 	}
 
 	t->table[n].k = k;
@@ -165,7 +165,7 @@ struct jl_lh_entry* jl_lh_table_lookup_entry(struct jl_lh_table *t, const void *
 		if(t->table[n].k == LH_EMPTY) return NULL;
 		if(t->table[n].k != LH_FREED &&
 		   t->equal_fn(t->table[n].k, k)) return &t->table[n];
-		if(++n == t->size) n = 0;
+		if(++n == (unsigned long)t->size) n = 0;
 	}
 }
 

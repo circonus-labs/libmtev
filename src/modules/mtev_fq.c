@@ -120,6 +120,10 @@ static void my_auth_handler(fq_client c, int error) {
 }
 
 static int poll_fq(eventer_t e, int mask, void *unused, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)unused;
+  (void)now;
   int cnt = 0;
   fq_msg *m;
 
@@ -207,6 +211,7 @@ static connection_configs *check_connection_conf(mtev_conf_section_t section) {
 
 static mtev_hook_return_t
 connect_conns(void *unused) {
+  (void)unused;
   for (int section_id = 0; section_id != the_conf->number_of_conns; ++section_id) {
     connect_fq_client(&the_conf->fq_conns[section_id],
                      the_conf->configs[section_id]->host,
@@ -267,12 +272,14 @@ mtev_fq_send_data_function(char *exchange, char *route, void *payload, int len, 
 
 static int
 fq_logio_open(mtev_log_stream_t ls) {
+  (void)ls;
   return 0;
 }
 
 static int
 fq_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
                const void *buf, size_t len) {
+  (void)whence;
   char exchange[127], route[127], *prefix, *path;
   path = (char *)mtev_log_stream_get_path(ls);
   prefix = strchr(path, '/');
@@ -323,6 +330,7 @@ fq_driver_init(mtev_dso_generic_t *img) {
 
 static int
 fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
+  (void)img;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(options, &iter)) {
     mtevL(mtev_error, "%s %s!\n", iter.key.str, iter.value.str);

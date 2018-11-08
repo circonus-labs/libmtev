@@ -47,12 +47,14 @@ parse_cli_args(int argc, char * const *argv) {
 }
 
 mtev_boolean websocket_ready_handler(mtev_websocket_client_t *client, void *closure) {
+  (void)closure;
   return mtev_websocket_client_send(client, 0x1, "Hello world!", 13);
 }
 
 mtev_boolean websocket_msg_handler(mtev_websocket_client_t *client, int opcode,
                                    const unsigned char *msg, size_t msg_len,
                                    void *closure) {
+  (void)closure;
   char buf[256];
   size_t len;
   snprintf(buf, msg_len, "%s", msg);

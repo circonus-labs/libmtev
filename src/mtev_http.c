@@ -252,6 +252,7 @@ static void check_realloc_request(mtev_http_request *req) {
 }
 
 struct bchain *bchain_alloc(size_t size, int line) {
+  (void)line;
   struct bchain *n;
   /* mmap is greater than 1MB, inline otherwise */
   if (size >= 1048576) {
@@ -302,6 +303,7 @@ struct bchain *bchain_mmap(int fd, size_t len, int flags, off_t offset) {
   return n;
 }
 void bchain_free(struct bchain *b, int line) {
+  (void)line;
   /*mtevL(mtev_error, "bchain_free(%p) : %d\n", b, line);*/
   if(b->type == BCHAIN_MMAP) {
     munmap(b->buff, b->allocd);
@@ -1033,6 +1035,7 @@ mtev_http_process_querystring(mtev_http_request *req) {
 }
 static mtev_boolean
 mtev_http_request_finalize_payload(mtev_http_session_ctx *ctx, mtev_boolean *err) {
+  (void)err;
   ctx->req.complete = mtev_true;
   return mtev_true;
 }
@@ -1481,6 +1484,7 @@ mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
                               void *buf, const size_t user_len,
                               const size_t blen, int *mask)
 {
+  (void)blen;
   struct bchain *in, *tofree;
   size_t bytes_read = 0;
   mtev_compress_type compression_type = request_compression_type(&ctx->req);
@@ -1713,6 +1717,8 @@ wslay_send_callback(wslay_event_context_ptr ctx,
                     const uint8_t *data, size_t len, int flags,
                     void *user_data)
 {
+  (void)ctx;
+  (void)flags;
   ssize_t r;
   mtev_http_session_ctx *session_ctx = user_data;
   session_ctx->wanted_eventer_mask = 0;
@@ -1742,6 +1748,8 @@ static ssize_t
 wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
                     int flags, void *user_data)
 {
+  (void)ctx;
+  (void)flags;
   ssize_t r;
   mtev_http_session_ctx *session_ctx = user_data;
   session_ctx->wanted_eventer_mask = 0;
@@ -1773,6 +1781,7 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
                            const struct wslay_event_on_msg_recv_arg *arg,
                            void *user_data)
 {
+  (void)ctx;
   mtev_http_session_ctx *session_ctx = user_data;
   int rv = 0;
 
@@ -1796,6 +1805,7 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
 int
 mtev_http_session_drive(eventer_t e, int origmask, void *closure,
                         struct timeval *now, int *done) {
+  (void)now;
   mtev_http_session_ctx *ctx = closure;
   int rv = 0;
   int mask = origmask;
@@ -2123,7 +2133,7 @@ mtev_http_response_vappend(mtev_http_session_ctx *ctx,
 #else
   len = vsnprintf(buffer, sizeof(buffer), format, arg);
 #endif
-  if(len > sizeof(buffer)) {
+  if(len > (int)sizeof(buffer)) {
     int allocd = sizeof(buffer);
     while(len > allocd) { /* guaranteed true the first time */
       if(len > allocd) allocd = len;

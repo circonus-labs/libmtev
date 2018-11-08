@@ -262,6 +262,9 @@ mtev_gc_sync_complete(struct asynch_reclaim *ar) {
 #ifdef HAVE_CK_EPOCH_SYNCHRONIZE_WAIT
 static void
 mtev_memory_sync_wait(ck_epoch_t *e, ck_epoch_record_t *rec, void *c) {
+  (void)e;
+  (void)rec;
+  (void)c;
   /* just don't take a whole core */
   usleep(100);
 }
@@ -417,7 +420,7 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
     if(epoch_rec->n_dispatch > epoch_temporary.n_dispatch)
       n_dispatch = epoch_rec->n_dispatch - epoch_temporary.n_dispatch;
   }
-  return success ? n_dispatch : -1;
+  return success ? (int)n_dispatch : -1;
 }
 
 void mtev_memory_begin(void) {
@@ -733,6 +736,7 @@ default_allocator_free(mtev_allocator_t a, void *ptr) {
 
 static void
 default_allocator_release(mtev_allocator_t a, void *ptr) {
+  (void)a;
   free(ptr);
 }
 

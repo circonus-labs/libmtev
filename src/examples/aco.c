@@ -82,6 +82,8 @@ void subcall1(mtev_http_rest_closure_t *restc) {
 }
 static int hello_handler(mtev_http_rest_closure_t *restc,
                          int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_ok(ctx, "text/plain");
   subcall1(restc);
@@ -91,6 +93,7 @@ static int hello_handler(mtev_http_rest_closure_t *restc,
 
 static void
 workie(void *closure) {
+  (void)closure;
   mtevL(mtev_error, "doing asynch stuff...\n");
   sleep(1);
   mtevL(mtev_error, "done asynch stuff...\n");

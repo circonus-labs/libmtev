@@ -308,6 +308,7 @@ mtev_thread_realtime(uint64_t qns) {
         (int)getpid(), (int)_lwp_self(), pcinfo.pc_clname);
   return mtev_true;
 #elif defined(linux) || defined(__linux) || defined(__linux__)
+  (void)qns;
   int err;
   struct sched_param sp;
   sp.sched_priority = sched_get_priority_max(SCHED_RR);
@@ -320,6 +321,7 @@ mtev_thread_realtime(uint64_t qns) {
         (int)getpid(), (int)getthreadid(), "SCHED_RR");
   return mtev_true;
 #else
+  (void)qns;
   return mtev_false;
 #endif
 }

@@ -204,7 +204,7 @@ deferred_cht_free(void *vptr) {
 
 #define MEMWRITE_DECL(p, len) void *mw_wp = (p); int mw_wa = (len); int mw_wn=0
 #define MEMWRITE(what,n) do { \
-  if(mw_wn + (n) > mw_wa) return -(mw_wn + (n)); \
+  if(mw_wn + (int)(n) > mw_wa) return -(mw_wn + (n)); \
   memcpy(mw_wp, what, n); \
   mw_wn += (n); \
   mw_wp = payload + mw_wn; \
@@ -212,13 +212,13 @@ deferred_cht_free(void *vptr) {
 #define MEMWRITE_WRITTEN mw_wn
 #define MEMREAD_DECL(p, len) void *mw_rp = (p); int mw_ra = (len); int mw_rn=0
 #define MEMGET(what, n) do { \
-  if(mw_rn + (n) > mw_ra) return -(mw_rn); \
+  if(mw_rn + (int)(n) > mw_ra) return -(mw_rn); \
   what = mw_rp; \
   mw_rn += (n); \
   mw_rp += (n); \
 } while(0)
 #define MEMREAD(what, n) do { \
-  if(mw_rn + (n) > mw_ra) return -(mw_rn); \
+  if(mw_rn + (int)(n) > mw_ra) return -(mw_rn); \
   memcpy(what, mw_rp, n); \
   mw_rn += (n); \
   mw_rp += (n); \
@@ -890,6 +890,8 @@ mtev_cluster_do_i_own(mtev_cluster_t *c, void *key, size_t klen, int w) {
 
 mtev_boolean
 mtev_cluster_alive_filter(mtev_cluster_node_t *node, mtev_boolean me, void *closure) {
+  (void)me;
+  (void)closure;
   return !mtev_cluster_node_is_dead(node);
 }
 
@@ -923,7 +925,7 @@ mtev_cluster_set_heartbeat_payload(mtev_cluster_t *cluster,
     uint8_t app_id, uint8_t key, void *payload, uint8_t payload_length) {
   assert(payload);
 
-  int payload_len_sum = 0;
+  unsigned int payload_len_sum = 0;
   hb_payload_t *hb_payload, *old_payload = NULL;
   uint16_t *hash_key = calloc(1,sizeof(uint16_t));
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
@@ -1208,6 +1210,8 @@ rest_show_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
 
 static int
 rest_update_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
+  (void)n;
+  (void)p;
   mtev_http_session_ctx *ctx = restc->http_ctx;
   const char *error = "internal error";
   int complete = 0, mask = 0, error_code = 500, status;

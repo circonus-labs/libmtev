@@ -337,6 +337,7 @@ private void
 /*ARGSUSED*/
 re_insert(EditLine *el, char *d, int dat, int dlen, char *s, int num)
 {
+	(void)el;
 	char *a, *b;
 
 	if (num <= 0)
@@ -380,6 +381,7 @@ private void
 /*ARGSUSED*/
 re_delete(EditLine *el, char *d, int dat, int dlen, int num)
 {
+	(void)el;
 	char *a, *b;
 
 	if (num <= 0)
@@ -913,7 +915,7 @@ re_update_line(EditLine *el, char *old, char *new, int i)
 private void
 re__copy_and_pad(char *dst, char *src, size_t width)
 {
-	int i;
+	size_t i;
 
 	for (i = 0; i < width; i++) {
 		if (*src == '\0')

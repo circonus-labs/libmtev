@@ -187,6 +187,7 @@ eventer_jobq_finished_job(eventer_jobq_t *jobq, eventer_job_t *job) {
 static void
 eventer_jobq_handler(int signo)
 {
+  (void)signo;
   eventer_jobq_t *jobq;
   eventer_job_t *job;
   sigjmp_buf *env;
@@ -357,7 +358,7 @@ eventer_jobq_maybe_spawn(eventer_jobq_t *jobq, int bump) {
   int32_t current = ck_pr_load_32(&jobq->concurrency);
   int32_t backlog = ck_pr_load_32(&jobq->backlog) + bump;
   int32_t inflight = ck_pr_load_32(&jobq->inflight);
-  if(current == 0 || (current < jobq->desired_concurrency && current < (backlog + inflight))) {
+  if(current == 0 || (current < (int32_t)jobq->desired_concurrency && current < (backlog + inflight))) {
     /* we need another thread, maybe... this is a race as we do the
      * increment in the new thread, but we check there and back it out
      * if we did something we weren't supposed to. */
@@ -536,6 +537,9 @@ eventer_jobq_destroy(eventer_jobq_t *jobq) {
 int
 eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
                              struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   eventer_job_t *job = closure;
   job->timeout_triggered = 1;
   job->timeout_event = NULL;
@@ -595,6 +599,8 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
 int
 eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
                                struct timeval *now) {
+  (void)e;
+  (void)mask;
   eventer_jobq_t *jobq = closure;
   eventer_job_t *job;
   /* This can only be called with a backq jobq

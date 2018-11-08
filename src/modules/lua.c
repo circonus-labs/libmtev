@@ -106,6 +106,9 @@ mtev_lua_set_gc_params(lua_module_closure_t *lmc, lua_module_gc_params_t *p) {
 
 static int
 mtev_lua_gc_callback(eventer_t e, int mask, void *c, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   lua_module_closure_t *lmc = c;
   lua_State *L = lmc->lua_state;
   lua_module_gc_params_t *p = lmc->gcparams;
@@ -347,6 +350,9 @@ static void mtev_lua_reporter_deref(struct lua_reporter *reporter) {
 static int
 mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
                                       struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   struct lua_reporter *reporter = closure;
   mtev_hash_iter zero = MTEV_HASH_ITER_ZERO, iter;
   pthread_t me;
@@ -430,6 +436,9 @@ mtev_console_lua_thread_reporter_json(eventer_t e, int mask, void *closure,
 static int
 mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
                                       struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   struct lua_reporter *reporter = closure;
   mtev_console_closure_t ncct = reporter->ncct;
   mtev_hash_iter zero = MTEV_HASH_ITER_ZERO, iter;
@@ -513,7 +522,7 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
 static void
 distribute_reporter_across_threads(struct lua_reporter *reporter,
                                    eventer_func_t reporter_f) {
-  int i = 0;
+  size_t i = 0;
   pthread_t me, tgt;
   mtev_boolean include_me = mtev_false;
   struct timeval old = { 1ULL, 0ULL };
@@ -545,6 +554,8 @@ distribute_reporter_across_threads(struct lua_reporter *reporter,
 static int
 mtev_lua_rest_show_waiter(eventer_t e, int mask, void *closure,
                           struct timeval *now) {
+  (void)e;
+  (void)mask;
   struct lua_reporter *reporter = closure;
   mtev_http_rest_closure_t *restc = reporter->restc;
   mtev_http_session_ctx *ctx = restc->http_ctx;
@@ -563,6 +574,8 @@ mtev_lua_rest_show_waiter(eventer_t e, int mask, void *closure,
 }
 static int
 mtev_rest_show_lua_complete(mtev_http_rest_closure_t *restc, int n, char **p) {
+  (void)n;
+  (void)p;
   struct lua_reporter *reporter = restc->call_closure;
 
   mtev_http_response_ok(restc->http_ctx, "application/json");
@@ -576,6 +589,8 @@ mtev_rest_show_lua_complete(mtev_http_rest_closure_t *restc, int n, char **p) {
 }
 static int
 mtev_rest_show_lua(mtev_http_rest_closure_t *restc, int n, char **p) {
+  (void)n;
+  (void)p;
   eventer_pool_t *pool;
   struct lua_reporter *crutch;
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
@@ -613,6 +628,8 @@ mtev_console_show_lua(mtev_console_closure_t ncct,
                       int argc, char **argv,
                       mtev_console_state_t *dstate,
                       void *closure) {
+  (void)dstate;
+  (void)closure;
   struct lua_reporter *crutch;
 
   crutch = mtev_lua_reporter_alloc();
@@ -667,6 +684,7 @@ mtev_lua_traceback(lua_State *L) {
 
 void
 mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
+  (void)ri;
   mtevL(mtev_error, "mtev_lua_new_coro is an invalid API.\n");
   mtev_stacktrace(mtev_error);
   return;
@@ -966,6 +984,7 @@ static int MTEV_JIT_OPT(void) {
 lua_State *
 mtev_lua_open(const char *module_name, void *lmc,
               const char *script_dir, const char *cpath) {
+  (void)module_name;
   int rv;
   const char *existing_ppath, *existing_cpath;
   char *npath;

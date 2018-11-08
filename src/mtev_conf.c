@@ -341,7 +341,7 @@ typedef struct mtev_xml_userdata {
 static mtev_xml_userdata_t *backingstore_freelist = NULL;
 static uint64_t last_config_flush = 0;
 
-static int default_is_stopword(const char *f) { return 0; }
+static int default_is_stopword(const char *f) { (void)f; return 0; }
 static int (*is_stopnode_name)(const char *) = default_is_stopword; 
 
 void mtev_override_console_stopword(int (*f)(const char *)) {
@@ -510,6 +510,9 @@ mtev_conf_set_namespace(const char *ns) {
 static int
 mtev_conf_watch_config_and_journal(eventer_t e, int mask, void *closure,
                                    struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   struct recurrent_journaler *rj = closure;
 
   if(rj && rj->journal_config && __config_coalesce == 1)
@@ -568,8 +571,12 @@ mtev_conf_xml_console_error_ext_func(void *ctx, xmlErrorPtr err) {
   int i;
   mtev_console_closure_t ncct = ctx;
   if(!ctx) return;
-  for(i=0;i<MAX_SUPPRESSIONS;i++)
-    if(suppressions[i].domain == err->domain && suppressions[i].code == err->code) return;
+  for(i=0;i<MAX_SUPPRESSIONS;i++) {
+    if(suppressions[i].domain == (xmlErrorDomain)err->domain &&
+       suppressions[i].code == (xmlParserErrors)err->code) {
+      return;
+    }
+  }
   if(err->file)
     nc_printf(ncct, "XML error [%d/%d] in %s on line %d %s\n",
               err->domain, err->code, err->file, err->line, err->message);
@@ -624,8 +631,12 @@ mtev_conf_xml_error_ext_func(void *ctx, xmlErrorPtr err) {
   struct timeval __now;
   mtev_log_stream_t ls = ctx;
   if(!ls) return;
-  for(i=0;i<MAX_SUPPRESSIONS;i++)
-    if(suppressions[i].domain == err->domain && suppressions[i].code == err->code) return;
+  for(i=0;i<MAX_SUPPRESSIONS;i++) {
+    if(suppressions[i].domain == (xmlErrorDomain)err->domain &&
+       suppressions[i].code == (xmlParserErrors)err->code) {
+      return;
+    }
+  }
   mtev_gettimeofday(&__now,  NULL);
   if(err->file)
     mtev_log(ls, &__now, err->file, err->line,
@@ -644,6 +655,7 @@ mtev_conf_xml_errors_to_debug(void) {
 
 DECLARE_CHECKER(name)
 void mtev_conf_init(const char *toplevel) {
+  (void)toplevel;
   xml_debug = mtev_log_stream_find("debug/xml");
 
   COMPILE_CHECKER(name, "^[-_\\.:/a-zA-Z0-9]+$");
@@ -976,6 +988,7 @@ mtev_conf_backingstore_write(mtev_xml_userdata_t *ctx, mtev_boolean skip,
 
 static void
 mtev_conf_shatter_write(xmlDocPtr doc) {
+  (void)doc;
   if(backingstore_freelist) {
     mtev_xml_userdata_t *fl, *last;
     for(fl = backingstore_freelist; fl; ) {
@@ -1029,6 +1042,7 @@ mtev_conf_shatter_write(xmlDocPtr doc) {
 
 static void
 mtev_conf_shatter_postwrite(xmlDocPtr doc) {
+  (void)doc;
   if(backingstore_include_nodes) {
     int i;
     for(i=0; i<backingstore_include_cnt; i++) {
@@ -1300,7 +1314,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
     is_snippet = (snippet && strcmp(snippet, "false"));
     if(snippet) xmlFree(snippet);
 
-    for (j=0; j<tl_globs[i].gl_pathc; j++) {
+    for (j=0; j<(int)tl_globs[i].gl_pathc; j++) {
       path = tl_globs[i].gl_pathv[j];
       if(!path) continue;
       include_nodes[inc_idx].snippet = is_snippet;
@@ -1545,7 +1559,7 @@ mtev_conf_default(uuid, uuid_t)
 
 mtev_conf_default_or_optional_t
 mtev_conf_optional(void) {
-  mtev_conf_default_or_optional_t doo = {1};
+  mtev_conf_default_or_optional_t doo = {1, .value = { .val_string = NULL } };
   return doo;
 }
 
@@ -1554,8 +1568,8 @@ mtev_conf_description_t \
 mtev_conf_description_##name (mtev_conf_section_t section, char *path, \
   char* description, mtev_conf_default_or_optional_t default_or_optional) { \
   mtev_conf_description_t desc = { section, path, type_enum, \
-      description }; \
-  desc.default_or_optional = default_or_optional; \
+      description, default_or_optional, \
+      .value = { .val_string = NULL } }; \
   return desc; \
 }
 
@@ -1644,6 +1658,7 @@ mtev_conf_xml_xpath(xmlDocPtr *mc, xmlXPathContextPtr *xp) {
 
 int
 mtev_conf_save(const char *path) {
+  (void)path;
   return -1;
 }
 
@@ -2359,6 +2374,10 @@ int
 mtev_conf_reload(mtev_console_closure_t ncct,
                  int argc, char **argv,
                  mtev_console_state_t *state, void *closure) {
+  (void)argc;
+  (void)argv;
+  (void)state;
+  (void)closure;
   _glock(&global_config_lock);
   XML2CONSOLE(ncct);
   if(mtev_conf_load_internal(master_config_file)) {
@@ -2376,6 +2395,10 @@ int
 mtev_conf_write_terminal(mtev_console_closure_t ncct,
                          int argc, char **argv,
                          mtev_console_state_t *state, void *closure) {
+  (void)argc;
+  (void)argv;
+  (void)state;
+  (void)closure;
   xmlOutputBufferPtr out;
   xmlCharEncodingHandlerPtr enc;
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
@@ -2395,6 +2418,10 @@ int
 mtev_conf_write_file_console(mtev_console_closure_t ncct,
                              int argc, char **argv,
                              mtev_console_state_t *state, void *closure) {
+  (void)argc;
+  (void)argv;
+  (void)state;
+  (void)closure;
   int rv;
   char *err = NULL;
   rv = mtev_conf_write_file(&err);
@@ -2558,6 +2585,8 @@ struct log_rotate_crutch {
 static int
 mtev_conf_log_cull(eventer_t e, int mask, void *closure,
                    struct timeval *now) {
+  (void)e;
+  (void)now;
   struct log_rotate_crutch *lrc = closure;
   if(!(mask & EVENTER_ASYNCH_WORK)) return 0;
   mtev_log_stream_cull(lrc->ls, lrc->retain_seconds, lrc->retain_size);
@@ -2575,6 +2604,9 @@ schedule_background_log_cull(struct log_rotate_crutch *lrc) {
 static int
 mtev_conf_log_rotate_size(eventer_t e, int mask, void *closure,
                           struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   struct log_rotate_crutch *lrc = closure;
   if(mtev_log_stream_written(lrc->ls) > lrc->max_size) {
     mtev_log_stream_rename(lrc->ls, MTEV_LOG_RENAME_AUTOTIME);
@@ -2589,6 +2621,7 @@ mtev_conf_log_rotate_size(eventer_t e, int mask, void *closure,
 static int
 mtev_conf_log_rotate_time(eventer_t e, int mask, void *closure,
                           struct timeval *now) {
+  (void)mask;
   struct timeval lnow, whence;
   eventer_t newe;
   struct log_rotate_crutch *lrc = closure;
@@ -2942,6 +2975,9 @@ static int
 mtev_console_state_conf_terminal(mtev_console_closure_t ncct,
                                  int argc, char **argv,
                                  mtev_console_state_t *state, void *closure) {
+  (void)argv;
+  (void)state;
+  (void)closure;
   mtev_conf_t_userdata_t *info;
   if(argc) {
     nc_printf(ncct, "extra arguments not expected.\n");
@@ -2960,6 +2996,7 @@ static int
 mtev_console_config_section(mtev_console_closure_t ncct,
                             int argc, char **argv,
                             mtev_console_state_t *state, void *closure) {
+  (void)state;
   const char *err = "internal error";
   char *path, xpath[1024];
   mtev_conf_t_userdata_t *info;
@@ -3065,6 +3102,8 @@ int
 mtev_console_generic_show(mtev_console_closure_t ncct,
                           int argc, char **argv,
                           mtev_console_state_t *state, void *closure) {
+  (void)state;
+  (void)closure;
   int i, cnt, titled = 0, cliplen = 0;
   const char *path = "", *basepath = NULL;
   char xpath[1024];
@@ -3173,6 +3212,7 @@ int
 mtev_console_config_cd(mtev_console_closure_t ncct,
                        int argc, char **argv,
                        mtev_console_state_t *state, void *closure) {
+  (void)state;
   const char *err = "internal error";
   char *path = NULL, xpath[1024];
   mtev_conf_t_userdata_t *info;
@@ -3259,6 +3299,8 @@ static int
 mtev_console_conf_show_xpath(mtev_console_closure_t ncct,
                              int argc, char **argv,
                              mtev_console_state_t *state, void *closure) {
+  (void)state;
+  (void)closure;
   xmlXPathObjectPtr pobj = NULL;
   xmlNodePtr node = NULL;
   mtev_boolean xmlOut = mtev_false;
@@ -3328,8 +3370,10 @@ conf_t_prompt(EditLine *el) {
 }
 
 static int
-  mtev_console_set(mtev_console_closure_t ncct, int argc, char **argv,
-                   mtev_console_state_t *state, void *closure) {
+mtev_console_set(mtev_console_closure_t ncct, int argc, char **argv,
+                 mtev_console_state_t *state, void *closure) {
+  (void)state;
+  (void)closure;
   if(argc == 2) {
     mtev_boolean running, saved, success;
     success = mtev_conf_update_global_param(argv[0], argv[1], &running, &saved);
@@ -3358,6 +3402,9 @@ mtev_console_set_complete(mtev_console_closure_t ncct,
                           mtev_console_state_t *state,
                           int argc, char **argv,
                           int idx) {
+  (void)ncct;
+  (void)stack;
+  (void)state;
   char *copy = NULL;
   const char **params;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;

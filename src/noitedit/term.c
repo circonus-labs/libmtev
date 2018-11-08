@@ -670,7 +670,7 @@ mc_again:
 				 * from col 0
 				 */
 				if (EL_CAN_TAB ?
-				    (-del > (((unsigned int) where >> 3) +
+				    ((unsigned int)(0-del) > (((unsigned int) where >> 3) +
 				     (where & 07)))
 				    : (-del > where)) {
 					term__putc('\r');	/* do a CR */
@@ -1299,6 +1299,8 @@ protected int
 /*ARGSUSED*/
 term_telltc(EditLine *el, int argc, char **argv)
 {
+	(void)argc;
+	(void)argv;
 	const struct termcapstr *t;
 	char **ts;
 	char upbuf[EL_BUFSIZ];
@@ -1336,6 +1338,7 @@ protected int
 /*ARGSUSED*/
 term_settc(EditLine *el, int argc, char **argv)
 {
+	(void)argc;
 	const struct termcapstr *ts;
 	const struct termcapval *tv;
 	char *what, *how;
@@ -1413,6 +1416,8 @@ protected int
 /*ARGSUSED*/
 term_echotc(EditLine *el, int argc, char **argv)
 {
+	(void)argc;
+	(void)argv;
 	char *cap, *scap, *ep;
 	int arg_need, arg_cols, arg_rows;
 	int verbose = 0, silent = 0;

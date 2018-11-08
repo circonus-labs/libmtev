@@ -897,7 +897,7 @@ elif test -n "`$CC --version 2>&1 | grep 'clang'`"; then
 		CFLAGSEXTRAS="$CFLAGSEXTRAS -Werror"
 	fi
 else
-	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall -Wold-style-declaration -Wold-style-definition -Wstrict-prototypes"
+	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall -Wextra -Wold-style-declaration -Wold-style-definition -Wstrict-prototypes"
 	if test "$enable_strict" != "no"; then
 		CFLAGSEXTRAS="$CFLAGSEXTRAS -Werror"
 	fi

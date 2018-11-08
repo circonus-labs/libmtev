@@ -232,6 +232,9 @@ lua_general_coroutine_spawn(lua_State *Lp) {
 
 int
 dispatch_general(eventer_t e, int mask, void *cl, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   return lua_general_handler((mtev_dso_generic_t *)cl);
 }
 
@@ -413,7 +416,7 @@ ptrim(char *orig, mtev_boolean *is_ptr) {
 #define MAX_VARARGS 10
 static int
 lua_hook_varargs(lua_State *L, const char *proto, va_list ap) {
-  int clen, i = 0, nargs = 0;
+  unsigned int clen, i = 0, nargs = 0;
   char copy[1024], *cp;
   char *args[MAX_VARARGS];
   mtevL(nldeb, "hook proto -> %s\n", proto);
@@ -738,6 +741,7 @@ describe_lua_general_context_json(mtev_json_object *jcoro,
 
 static void
 lua_repl_raw_off(mtev_console_state_t *state, mtev_console_closure_t ncct) {
+  (void)state;
   mtev_console_userdata_set(ncct, MTEV_CONSOLE_RAW_MODE,
                             MTEV_CONSOLE_RAW_MODE_OFF, NULL);
 }
@@ -771,6 +775,8 @@ static int
 mtev_console_lua_repl_execute(mtev_console_closure_t ncct,
                               int argc, char **argv,
                               mtev_console_state_t *state, void *closure) {
+  (void)state;
+  (void)closure;
   lua_State *L;
   mtev_lua_repl_userdata_t *info;
   lua_general_conf_t *conf = NULL;
@@ -851,6 +857,7 @@ mtev_console_state_lua(mtev_console_closure_t ncct,
 
 static int
 get_eventer_id(mtev_console_closure_t ncct) {
+  (void)ncct;
   int idx = 0;
   pthread_t stop, tid;
   stop = eventer_choose_owner(idx);
@@ -926,7 +933,8 @@ mtev_dso_generic_t lua_general = {
     "lua_general",
     "general services in lua",
     lua_general_xml_description,
-    mtev_lua_general_onload
+    mtev_lua_general_onload,
+    0
   },
   mtev_lua_general_config,
   mtev_lua_general_init

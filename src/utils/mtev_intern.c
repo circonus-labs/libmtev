@@ -402,7 +402,7 @@ pool_extend(mtev_intern_pool_t *pool, size_t size) {
     assert(rv == 1);
     struct stat sb;
     while(0 != (rv = fstat(newe->fd, &sb)) && errno == EINTR);
-    assert(rv == 0 && sb.st_size == size);
+    assert(rv == 0 && sb.st_size > 0 && (size_t)sb.st_size == size);
     flags = MAP_SHARED;
 #ifdef MAP_NONBLOCK
     flags |= MAP_NONBLOCK;
@@ -439,7 +439,7 @@ more_free_nodes(mtev_intern_pool_t *pool) {
     struct mtev_intern_free_node *nodes = base;
     nodes[cnt-1].next = NULL;
     /* Zip through them and link them all together as a link list. */
-    for(int i=0; i<cnt-1; i++) {
+    for(unsigned int i=0; i<cnt-1; i++) {
       nodes[i].next = &nodes[i+1];
     }
     /* Atomically prepend this linked list into mifns.
