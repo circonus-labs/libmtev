@@ -133,6 +133,10 @@ static struct amqp_module_config *get_config(mtev_dso_generic_t *self) {
 }
 
 static int poll_amqp(eventer_t e, int mask, void *unused, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)unused;
+  (void)now;
   int client = 0;
   amqp_envelope_t *env = NULL;
   for (client = 0; client != the_conf->number_of_conns; ++client) {
@@ -378,6 +382,7 @@ rabbitmq_manage_connection(void *vconn) {
 
 static mtev_hook_return_t
 connect_conns(void *img) {
+  (void)img;
   for(int section_id = 0; section_id != the_conf->number_of_conns; ++section_id) {
     struct amqp_conn *cc = &the_conf->amqp_conns[section_id];
     if(pthread_create(&the_conf->amqp_conns[section_id].tid, NULL,
@@ -516,12 +521,14 @@ mtev_amqp_send_data_function(char *exchange, char *route, int mandatory, int imm
 
 static int
 amqp_logio_open(mtev_log_stream_t ls) {
+  (void)ls;
   return 0;
 }
 
 static int
 amqp_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
                const void *buf, size_t len) {
+  (void)whence;
   char exchange[127], route[127], *prefix, *path;
   path = (char *)mtev_log_stream_get_path(ls);
   prefix = strchr(path, '/');
@@ -574,6 +581,7 @@ amqp_driver_init(mtev_dso_generic_t *img) {
 
 static int
 amqp_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
+  (void)img;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(options, &iter)) {
     mtevL(nldeb, "AMQP module config: %s=%s\n", iter.key.str, iter.value.str);

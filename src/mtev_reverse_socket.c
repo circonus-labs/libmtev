@@ -78,6 +78,8 @@ mtev_reverse_socket_acl(mtev_reverse_acl_decider_t f) {
 
 mtev_reverse_acl_decision_t
 mtev_reverse_socket_denier(const char *id, mtev_acceptor_closure_t *ac) {
+  (void)id;
+  (void)ac;
   return MTEV_ACL_DENY;
 }
 
@@ -95,8 +97,8 @@ mtev_reverse_socket_allowed(const char *id, mtev_acceptor_closure_t *ac) {
   return 1;
 }
 
-static const int MAX_FRAME_LEN = 65530;
-static const int CMD_BUFF_LEN = 4096;
+static const size_t MAX_FRAME_LEN = 65530;
+static const size_t CMD_BUFF_LEN = 4096;
 
 static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
@@ -138,11 +140,11 @@ typedef struct {
 
   /* used to write the next frame */
   char frame_hdr_out[6];
-  int frame_hdr_written;
+  size_t frame_hdr_written;
 
   /* used to read the next frame */
   char frame_hdr[6];
-  int frame_hdr_read;
+  size_t frame_hdr_read;
   reverse_frame_t incoming_inflight;
 
   struct {
@@ -158,9 +160,9 @@ typedef struct {
   } channels[MAX_CHANNELS];
   int last_allocated_channel;
   char *buff;
-  int buff_len;
-  int buff_read;
-  int buff_written;
+  size_t buff_len;
+  size_t buff_read;
+  size_t buff_written;
   union {
     struct sockaddr ip;
     struct sockaddr_in ipv4;
@@ -336,7 +338,9 @@ static void APPEND_OUT_NO_LOCK(reverse_socket_t *rc, reverse_frame_t *frame_to_c
 
 static void
 command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
-  reverse_frame_t frame = { id | 0x8000 };
+  reverse_frame_t frame;
+  memset(&frame, 0, sizeof(frame));
+  frame.channel_id = id | 0x8000;
   mtevL(nldeb, "command out channel:%d '%s'\n", id, command);
   frame.buff = strdup(command);
   frame.buff_len = frame.buff_filled = strlen(frame.buff);
@@ -345,6 +349,7 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
 
 static void
 mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t e) {
+  (void)e;
   eventer_t ce = NULL;
   mtev_reverse_socket_ref(rc);
   if(rc->data.channels[i].pair[0] >= 0) {
@@ -379,6 +384,7 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t
 
 static void
 mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
+  (void)e;
   int mask, i;
   pthread_mutex_lock(&rc->lock);
   mtevL(nldeb, "mtev_reverse_socket_shutdown(%s)\n", rc->id);
@@ -419,6 +425,7 @@ mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
 static int
 mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
                                     struct timeval *now) {
+  (void)now;
   char buff[MAX_FRAME_LEN];
   channel_closure_t *cct = closure;
   ssize_t len;
@@ -490,7 +497,9 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     if(len == 0) goto shutdown;
     if(len > 0) {
       mtevL(nldeb, "reverse_socket_channel read[%d]: %lld %s\n", eventer_get_fd(e), (long long)len, len==-1 ? strerror(errno) : "");
-      reverse_frame_t frame = { cct->channel_id };
+      reverse_frame_t frame;
+      memset(&frame, 0, sizeof(frame));
+      frame.channel_id = cct->channel_id;
       frame.buff = malloc(len);
       memcpy(frame.buff, buff, len);
       frame.buff_len = frame.buff_filled = len;
@@ -506,6 +515,9 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
 static int
 mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, struct timeval *tv)
 {
+  (void)e;
+  (void)mask;
+  (void)tv;
   reverse_socket_t *rc = closure;
   if (rc->data.e) {
     eventer_remove_fde(rc->data.e);
@@ -538,6 +550,7 @@ mtev_support_connection(reverse_socket_t *rc) {
 static int
 mtev_reverse_socket_handler(eventer_t e, int mask, void *closure,
                             struct timeval *now) {
+  (void)now;
   int rmask = EVENTER_EXCEPTION;
   int wmask = EVENTER_EXCEPTION;
   int len;
@@ -797,6 +810,7 @@ extract_xbind(char *in, struct sockaddr_in *in4, struct sockaddr_in6 *in6) {
 int
 mtev_reverse_socket_proxy_accept(eventer_t e, int mask, void *closure,
                                  struct timeval *now) {
+  (void)now;
   int fd;
   socklen_t salen;
   union {
@@ -1004,7 +1018,9 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       if(rc->data.channels[chan].pair[0] == -1) break;
     }
     if(i<MAX_CHANNELS) {
-      reverse_frame_t f = { chan | 0x8000 };
+      reverse_frame_t f;
+      memset(&f, 0, sizeof(f));
+      f.channel_id = chan | 0x8000;
       f.buff = strdup("CONNECT");
       f.buff_len = strlen(f.buff);
       op = "socketpair";
@@ -1144,6 +1160,9 @@ mtev_connection_ctx_dealloc(mtev_connection_ctx_t *ctx) {
 int
 mtev_connection_reinitiate(eventer_t e, int mask, void *closure,
                          struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   mtev_connection_ctx_t *ctx = closure;
   ctx->retry_event = NULL;
   mtev_connection_initiate_connection(closure);
@@ -1354,6 +1373,9 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
 int
 mtev_connection_session_timeout(eventer_t e, int mask, void *closure,
                                 struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   mtev_connection_ctx_t *nctx = closure;
   eventer_t fde = nctx->e;
   nctx->timeout_event = NULL;
@@ -1808,6 +1830,8 @@ mtev_console_show_reverse(mtev_console_closure_t ncct,
                           int argc, char **argv,
                           mtev_console_state_t *dstate,
                           void *closure) {
+  (void)dstate;
+  (void)closure;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   int n = 0, i;
   reverse_socket_t **ctx;
@@ -1875,6 +1899,8 @@ register_console_reverse_commands(void) {
 static int
 rest_show_reverse_json(mtev_http_rest_closure_t *restc,
                        int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   mtev_json_object *doc, *node, *channels;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   const char *want_id = NULL;
@@ -1964,6 +1990,8 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
 static int
 rest_show_reverse(mtev_http_rest_closure_t *restc,
                   int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   xmlDocPtr doc;
   xmlNodePtr root;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;

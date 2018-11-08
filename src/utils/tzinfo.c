@@ -233,7 +233,7 @@ libtz_zonetime(const tzinfo_t *zi, const time_t *timep, struct tm *result, const
 size_t
 libtz_strftime(char *buf, size_t buflen, const char *fmt, const struct tm *tm, const tzzone_t *tz) {
   char pfmt[2048];
-  int in, out;
+  size_t in, out;
   for(in=0, out=0; fmt[in] != '\0' && out < sizeof(pfmt)-1;) {
     if(fmt[in] == '%') {
       if(fmt[in+1] == 'Z') {

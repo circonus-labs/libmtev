@@ -254,6 +254,7 @@ mtev_lua_socket_close(lua_State *L) {
 static int
 mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
                                  struct timeval *now) {
+  (void)now;
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   int args = 0, aerrno;
@@ -290,6 +291,7 @@ mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
 static int
 mtev_lua_socket_recv_complete(eventer_t e, int mask, void *vcl,
                               struct timeval *now) {
+  (void)now;
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   int rv, args = 0;
@@ -393,6 +395,7 @@ mtev_lua_socket_recv(lua_State *L) {
 static int
 mtev_lua_socket_send_complete(eventer_t e, int mask, void *vcl,
                               struct timeval *now) {
+  (void)now;
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   int sbytes;
@@ -638,6 +641,8 @@ mtev_lua_event(lua_State *L, eventer_t e) {
 static int
 mtev_lua_socket_accept_complete(eventer_t e, int mask, void *vcl,
                                 struct timeval *now) {
+  (void)mask;
+  (void)now;
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl, *newcl;
   eventer_t newe;
@@ -1012,6 +1017,7 @@ mtev_lua_socket_connect(lua_State *L) {
 static int
 mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
                      struct timeval *now) {
+  (void)now;
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   int rv, nargs;
@@ -1174,6 +1180,7 @@ mtev_lua_socket_do_read(eventer_t e, int *mask, struct nl_slcl *cl,
 static int
 mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
                               struct timeval *now) {
+  (void)now;
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   int len;
@@ -1207,8 +1214,10 @@ mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
   return 0;
 }
 
-static int on_timeout(eventer_t e, int mask, void *closure,
-    struct timeval *now) {
+static int
+on_timeout(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)mask;
+  (void)now;
   struct nl_slcl *cl;
     mtev_lua_resume_info_t *ci;
   lua_timeout_callback_ref* cb_ref;
@@ -1347,6 +1356,7 @@ mtev_lua_socket_read(lua_State *L) {
 static int
 mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
                                struct timeval *now) {
+  (void)now;
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   int rv;
@@ -1936,6 +1946,7 @@ static mtev_boolean nl_ws_cb_message(mtev_websocket_client_t *client,
 }
 static void nl_ws_cb_cleanup(mtev_websocket_client_t *client,
                              void *closure) {
+  (void)client;
   struct websocket_lua_t *udata = closure;
   lua_State *L = udata->L;
   if(udata->L == NULL) return;
@@ -2135,6 +2146,8 @@ nl_waitfor_notify(lua_State *L) {
 
 static int
 nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
+  (void)mask;
+  (void)now;
   mtev_lua_resume_info_t *ci;
   struct nl_wn_queue *q = vcl;
 
@@ -2226,6 +2239,7 @@ nl_waitfor(lua_State *L) {
 
 static int
 nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
+  (void)mask;
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   struct timeval diff;
@@ -3170,7 +3184,7 @@ nl_gunzip_deflate(lua_State *L) {
   Bytef *data = NULL;
   uLong outlen = 0;
   uLong newoutlen = 0;
-  int limit = 1024*1024;
+  size_t limit = 1024*1024;
   int allow_restart = 1;
   int zerr, n = lua_gettop(L);
   enum {
@@ -3315,7 +3329,7 @@ mtev_lua_gunzip_gc(lua_State *L) {
 
 struct pcre_global_info {
   pcre *re;
-  int offset;
+  size_t offset;
   const char *subject; /* we only use this for pointer equivalency testing */
 };
 static int
@@ -4778,6 +4792,7 @@ static int mtev_lua_process_wait_ex(struct nl_slcl *, mtev_boolean);
 
 static int
 mtev_lua_process_wait_wakeup(eventer_t e, int mask, void *vcl, struct timeval *now) {
+  (void)mask;
   mtev_lua_resume_info_t *ci;
   struct nl_slcl *cl = vcl;
   int rv;
@@ -4847,7 +4862,8 @@ system using `waitpid` every 20ms.
 static int
 mtev_lua_process_wait(lua_State *L) {
   struct spawn_info *spawn_info;
-  struct nl_slcl dummy = { };
+  struct nl_slcl dummy;
+  memset(&dummy, 0, sizeof(dummy));
   /* the first arg is implicitly self (it's a method) */
   spawn_info = lua_touserdata(L, lua_upvalueindex(1));
   if(spawn_info != lua_touserdata(L, 1))

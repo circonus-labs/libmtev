@@ -141,6 +141,8 @@ json_spit_jobq(eventer_jobq_t *jobq, void *closure) {
 
 static int
 mtev_rest_eventer_timers(mtev_http_rest_closure_t *restc, int n, char **p) {
+  (void)n;
+  (void)p;
   mtev_json_object *doc = MJ_ARR();
   eventer_foreach_timedevent(json_spit_event, doc);
 
@@ -152,6 +154,8 @@ mtev_rest_eventer_timers(mtev_http_rest_closure_t *restc, int n, char **p) {
 }
 static int
 mtev_rest_eventer_memory(mtev_http_rest_closure_t *restc, int n, char **p) {
+  (void)n;
+  (void)p;
   mtev_json_object *doc = MJ_OBJ(), *eobj;
 
   MJ_KV(doc, "eventer_t", eobj = MJ_OBJ());
@@ -166,6 +170,8 @@ mtev_rest_eventer_memory(mtev_http_rest_closure_t *restc, int n, char **p) {
 }
 static int
 mtev_rest_eventer_sockets(mtev_http_rest_closure_t *restc, int n, char **p) {
+  (void)n;
+  (void)p;
   mtev_json_object *doc = MJ_ARR();
 
   eventer_foreach_fdevent(json_spit_event, doc);
@@ -178,6 +184,8 @@ mtev_rest_eventer_sockets(mtev_http_rest_closure_t *restc, int n, char **p) {
 }
 static int
 mtev_rest_eventer_jobq(mtev_http_rest_closure_t *restc, int n, char **p) {
+  (void)n;
+  (void)p;
   mtev_json_object *doc = MJ_OBJ();
 
   eventer_jobq_process_each(json_spit_jobq, doc);

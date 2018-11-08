@@ -360,6 +360,7 @@ history_def_add(ptr_t p, HistEvent *ev, const char *str)
 private void
 history_def_delete(history_t *h, HistEvent *ev, hentry_t *hp)
 {
+	(void)ev;
 	if (hp == &h->list) {
     abort();
   }
@@ -427,6 +428,7 @@ history_def_enter(ptr_t p, HistEvent *ev, const char *str)
 private void
 history_def_init(ptr_t *p, HistEvent *ev, int n)
 {
+	(void)ev;
 	history_t *h = (history_t *) h_malloc(sizeof(history_t));
 
 	if (n <= 0)

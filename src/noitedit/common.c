@@ -60,6 +60,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_end_of_file(EditLine *el, int c)
 {
+	(void)c;
 
 	re_goto_bottom(el);
 	*el->el_line.lastchar = '\0';
@@ -131,6 +132,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_delete_prev_word(EditLine *el, int c)
 {
+	(void)c;
 	char *cp, *p, *kp;
 
 	if (el->el_line.cursor == el->el_line.buffer)
@@ -159,6 +161,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_delete_next_char(EditLine *el, int c)
 {
+	(void)c;
 #ifdef notdef			/* XXX */
 #define	EL	el->el_line
 	(void) el->el_err_printf(el,
@@ -210,6 +213,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_kill_line(EditLine *el, int c)
 {
+	(void)c;
 	char *kp, *cp;
 
 	cp = el->el_line.cursor;
@@ -231,6 +235,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_move_to_end(EditLine *el, int c)
 {
+	(void)c;
 
 	el->el_line.cursor = el->el_line.lastchar;
 	if (el->el_map.type == MAP_VI) {
@@ -254,6 +259,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_move_to_beg(EditLine *el, int c)
 {
+	(void)c;
 
 	el->el_line.cursor = el->el_line.buffer;
 
@@ -303,6 +309,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_next_char(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor >= el->el_line.lastchar)
 		return (CC_ERROR);
@@ -328,6 +335,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_prev_word(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor == el->el_line.buffer)
 		return (CC_ERROR);
@@ -354,6 +362,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_prev_char(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor > el->el_line.buffer) {
 		el->el_line.cursor -= el->el_state.argument;
@@ -467,6 +476,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_unassigned(EditLine *el, int c)
 {
+	(void)c;
 
 	term_beep(el);
 	term__flush();
@@ -486,6 +496,8 @@ protected el_action_t
 /*ARGSUSED*/
 ed_tty_sigint(EditLine *el, int c)
 {
+	(void)el;
+	(void)c;
 
 	return (CC_NORM);
 }
@@ -499,6 +511,8 @@ protected el_action_t
 /*ARGSUSED*/
 ed_tty_dsusp(EditLine *el, int c)
 {
+	(void)el;
+	(void)c;
 
 	return (CC_NORM);
 }
@@ -512,6 +526,8 @@ protected el_action_t
 /*ARGSUSED*/
 ed_tty_flush_output(EditLine *el, int c)
 {
+	(void)el;
+	(void)c;
 
 	return (CC_NORM);
 }
@@ -525,6 +541,8 @@ protected el_action_t
 /*ARGSUSED*/
 ed_tty_sigquit(EditLine *el, int c)
 {
+	(void)el;
+	(void)c;
 
 	return (CC_NORM);
 }
@@ -538,6 +556,8 @@ protected el_action_t
 /*ARGSUSED*/
 ed_tty_sigtstp(EditLine *el, int c)
 {
+	(void)el;
+	(void)c;
 
 	return (CC_NORM);
 }
@@ -551,6 +571,8 @@ protected el_action_t
 /*ARGSUSED*/
 ed_tty_stop_output(EditLine *el, int c)
 {
+	(void)el;
+	(void)c;
 
 	return (CC_NORM);
 }
@@ -564,6 +586,8 @@ protected el_action_t
 /*ARGSUSED*/
 ed_tty_start_output(EditLine *el, int c)
 {
+	(void)el;
+	(void)c;
 
 	return (CC_NORM);
 }
@@ -577,6 +601,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_newline(EditLine *el, int c)
 {
+	(void)c;
 
 	re_goto_bottom(el);
 	*el->el_line.lastchar++ = '\n';
@@ -595,6 +620,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_delete_prev_char(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor <= el->el_line.buffer)
 		return (CC_ERROR);
@@ -615,6 +641,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_clear_screen(EditLine *el, int c)
 {
+	(void)c;
 
 	term_clear_screen(el);	/* clear the whole real screen */
 	re_clear_display(el);	/* reset everything */
@@ -630,6 +657,8 @@ protected el_action_t
 /*ARGSUSED*/
 ed_redisplay(EditLine *el, int c)
 {
+	(void)el;
+	(void)c;
 
 	return (CC_REDISPLAY);
 }
@@ -643,6 +672,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_start_over(EditLine *el, int c)
 {
+	(void)c;
 
 	ch_reset(el);
 	return (CC_REFRESH);
@@ -657,6 +687,8 @@ protected el_action_t
 /*ARGSUSED*/
 ed_sequence_lead_in(EditLine *el, int c)
 {
+	(void)el;
+	(void)c;
 
 	return (CC_NORM);
 }
@@ -670,6 +702,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_prev_history(EditLine *el, int c)
 {
+	(void)c;
 	char beep = 0;
 
 	el->el_chared.c_undo.action = NOP;
@@ -705,6 +738,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_next_history(EditLine *el, int c)
 {
+	(void)c;
 
 	el->el_chared.c_undo.action = NOP;
 	*el->el_line.lastchar = '\0';	/* just in case */
@@ -727,6 +761,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_search_prev_history(EditLine *el, int c)
 {
+	(void)c;
 	const char *hp;
 	int h;
 	bool_t found = 0;
@@ -795,6 +830,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_search_next_history(EditLine *el, int c)
 {
+	(void)c;
 	const char *hp;
 	int h;
 	bool_t found = 0;
@@ -849,6 +885,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_prev_line(EditLine *el, int c)
 {
+	(void)c;
 	char *ptr;
 	int nchars = c_hpos(el);
 
@@ -892,6 +929,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_next_line(EditLine *el, int c)
 {
+	(void)c;
 	char *ptr;
 	int nchars = c_hpos(el);
 
@@ -926,6 +964,7 @@ protected el_action_t
 /*ARGSUSED*/
 ed_command(EditLine *el, int c)
 {
+	(void)c;
 	char tmpbuf[EL_BUFSIZ];
 	int tmplen;
 

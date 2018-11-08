@@ -133,6 +133,7 @@ mtev_capabilities_features_ncprint(mtev_console_closure_t ncct) {
 
 static void
 mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
+    (void)curr;
     const char **mod_names;
     struct utsname utsn;
     char vbuff[128];
@@ -394,6 +395,7 @@ static void mtev_capsvc_closure_free(void *v) {
 int
 mtev_capabilities_handler(eventer_t e, int mask, void *closure,
                           struct timeval *now) {
+  (void)now;
   int newmask = EVENTER_WRITE | EVENTER_EXCEPTION;
   mtev_acceptor_closure_t *ac = closure;
   mtev_capsvc_closure_t *cl = mtev_acceptor_closure_ctx(ac);

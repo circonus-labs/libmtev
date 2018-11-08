@@ -95,6 +95,7 @@ read_debug(EditLine *el)
 private int
 read__fixio(int fd, int e)
 {
+	(void)fd;
 
 	switch (e) {
 	case -1:		/* Make sure that the code is reachable */

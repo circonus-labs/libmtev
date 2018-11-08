@@ -77,6 +77,8 @@ static mtev_net_heartbeat_ctx *global;
 
 static int
 mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)mask;
+  (void)now;
   mtev_net_heartbeat_ctx *ctx = closure;
   unsigned char ivec[16];
   char payload_buff[15000 + HDRLEN];
@@ -95,7 +97,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     EVP_CIPHER_CTX evp_ctx;
     int len, expected, outlen1, outlen2;
     unsigned int netlen;
-    int *hdr;
+    uint32_t *hdr;
 
     msg.msg_iov[0].iov_len = HDR_LENSIZE;
     msg.msg_iov[0].iov_base = &netlen;
@@ -273,6 +275,9 @@ mtev_net_heartbeat_pulse_namer(char *buf, int buflen, eventer_t e, void *closure
 }
 static int
 mtev_net_heartbeat_pulse(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   mtev_net_heartbeat_ctx *ctx = closure;
   mtev_net_heartbeat_serialize_and_send(ctx);
   ctx->hb_event = eventer_add_in_s_us(mtev_net_heartbeat_pulse, ctx,

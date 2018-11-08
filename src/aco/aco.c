@@ -45,7 +45,7 @@ void aco_runtime_test(void){
     (   \
         (((uintptr_t)(src) & 0x0f) == 0) && (((uintptr_t)(dst) & 0x0f) == 0) \
         &&  \
-        (((sz) & 0x0f) == 0x08) && (((sz) >> 4) >= 0) && (((sz) >> 4) <= 8) \
+        (((sz) & 0x0f) == 0x08) && (((sz) >> 4) <= 8) \
     )
 
 #define aco_amd64_inline_short_aligned_memcpy(dst, src, sz) do {\

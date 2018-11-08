@@ -166,7 +166,7 @@ mtev_confstr_parse_duration(const char *input, uint64_t *output,
     /* find multiplier attached to unit string. */
     for(duration_idx=0;
         durations[duration_idx].key != 0 &&
-          (input - unit_str != durations[duration_idx].key_len ||
+          (input - unit_str != (ssize_t)durations[duration_idx].key_len ||
            memcmp(unit_str, durations[duration_idx].key, input - unit_str));
         duration_idx++) {
     }

@@ -77,6 +77,10 @@ parse_cli_args(int argc, char * const *argv) {
 }
 static mtev_hook_return_t
 on_msg_received(void *closure, fq_client client, int connection_id, fq_msg *message, void * a, size_t b) {
+  (void)closure;
+  (void)client;
+  (void)a;
+  (void)b;
   mtevL(mtev_stderr, "Received message via connection %d: %s\n", connection_id, message->payload);
 
   fq_msg_route(message, "testing.foo", strlen("testing.foo"));

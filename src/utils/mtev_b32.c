@@ -64,7 +64,7 @@ mtev_b32_decode(const char *src, size_t src_len,
   const unsigned char *cp = (unsigned char *)src;
   unsigned char *dcp = dest;
   unsigned char ch, in[8] = { 0 }, out[5];
-  int ib = 0, ob = 5, needed = ((src_len / 8) * 5);
+  size_t ib = 0, ob = 5, needed = ((src_len / 8) * 5);
 
   if(dest_len < needed) return 0;
   while(cp <= ((unsigned char *)src+src_len)) {
@@ -108,7 +108,7 @@ mtev_b32_encode(const unsigned char *src, size_t src_len,
   const unsigned char *bptr = src;
   char *eptr = dest;
   int len = src_len;
-  int i, n = ((src_len + 4) / 5) * 8;
+  size_t i, n = ((src_len + 4) / 5) * 8;
 
   if(dest_len < n) return 0;
 

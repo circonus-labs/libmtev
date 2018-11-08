@@ -48,15 +48,15 @@
 struct rest_xml_payload {
   char *buffer;
   xmlDocPtr indoc;
-  int len;
-  int allocd;
+  size_t len;
+  size_t allocd;
   int complete;
 };
 
 struct rest_raw_payload {
   char *buffer;
-  int len;
-  int allocd;
+  size_t len;
+  size_t allocd;
   int complete;
 };
 
@@ -151,6 +151,8 @@ static mtev_boolean
 static int
 mtev_http_rest_permission_denied(mtev_http_rest_closure_t *restc,
                                  int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_standard(ctx, 403, "DENIED", "text/xml");
   mtev_http_response_end(ctx);
@@ -159,6 +161,10 @@ mtev_http_rest_permission_denied(mtev_http_rest_closure_t *restc,
 int
 mtev_console_show_rest(mtev_console_closure_t ncct, int argc, char **argv,
                        mtev_console_state_t *dstate, void *unused) {
+  (void)argc;
+  (void)argv;
+  (void)dstate;
+  (void)unused;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(&dispatch_points, &iter)) {
     struct rule_container *cont = iter.value.ptr;
@@ -187,6 +193,8 @@ mtev_console_show_rest(mtev_console_closure_t ncct, int argc, char **argv,
 static int
 mtev_http_rest_endpoints(mtev_http_rest_closure_t *restc,
                          int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   mtev_json_object *doc = MJ_OBJ();
@@ -325,6 +333,8 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
 mtev_boolean
 mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
                                int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   struct mtev_rest_acl *acl;
   struct mtev_rest_acl_rule *rule;
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
@@ -558,6 +568,9 @@ struct mtev_rest_aco_ctx_t {
 };
 static int
 next_tick_resume(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   mtev_http_connection_resume_after_float((mtev_http_connection *)closure);
   return 0;
 }

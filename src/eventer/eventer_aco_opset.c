@@ -83,6 +83,9 @@ TIMEOUT_SETTER(write)
 
 static int
 eventer_aco_callback_wrapper(eventer_t e, int mask, void *closure, struct timeval *tv) {
+  (void)mask;
+  (void)closure;
+  (void)tv;
   mtevAssert(e->opset == eventer_aco_fd_opset);
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx;
   struct aco_cb_ctx *ctx = info->aco_co->arg;
@@ -128,6 +131,8 @@ struct aco_asynch_simple_ctx {
 
 static int
 eventer_aco_simple_asynch_wrapper(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)now;
   struct aco_asynch_simple_ctx *simple_ctx = closure;
   if(mask == EVENTER_ASYNCH_WORK) {
     simple_ctx->func(simple_ctx->closure);
@@ -158,6 +163,7 @@ struct aco_asynch_cb_ctx {
 
 static int
 eventer_aco_asynch_wrapper(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
   struct aco_asynch_cb_ctx *ctx = closure;
   ctx->e->callback(ctx->e, mask, ctx->e->closure, now);
   if(mask == EVENTER_ASYNCH) {
@@ -194,6 +200,9 @@ eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t s
 
 static int
 priv_aco_timeout(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
   aco_opset_info_t *info = closure;
   struct aco_cb_ctx *ctx = info->aco_co->arg;
   ctx->timeout_e = NULL;

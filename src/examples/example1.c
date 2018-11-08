@@ -72,6 +72,8 @@ parse_cli_args(int argc, char * const *argv) {
 static mtev_hook_return_t
 on_node_updated(void *closure, mtev_cluster_node_changes_t node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
     struct timeval old_boot_time) {
+  (void)closure;
+  (void)old_boot_time;
   mtev_boolean i_am_oldest = mtev_cluster_am_i_oldest_visible_node(my_cluster);
 
   mtevL(mtev_stderr, "The cluster topology has changed (seq=%"PRId64"): I am oldest node: %d\n",
@@ -127,6 +129,8 @@ static void init_cluster(void) {
 
 static int handler_subwork(eventer_t e, int mask, void *closure,
                         struct timeval *now) {
+  (void)e;
+  (void)now;
   uintptr_t param = (uintptr_t)closure;
   int lvl = param % 10;
   if(mask == EVENTER_ASYNCH_WORK) {
@@ -144,6 +148,8 @@ static int handler_subwork(eventer_t e, int mask, void *closure,
 }
 static int handler_work(eventer_t e, int mask, void *closure,
                         struct timeval *now) {
+  (void)e;
+  (void)now;
   mtev_http_rest_closure_t *restc = closure;
   if(mask == EVENTER_ASYNCH_WORK) {
     mtev_http_session_ctx *ctx = restc->http_ctx;
@@ -158,6 +164,8 @@ static int handler_work(eventer_t e, int mask, void *closure,
 
 static int handler_complete(mtev_http_rest_closure_t *restc,
                             int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_appendf(ctx, "Good-bye from %s\n", eventer_get_thread_name());
   mtev_http_response_end(ctx);
@@ -166,6 +174,8 @@ static int handler_complete(mtev_http_rest_closure_t *restc,
 
 static int handler(mtev_http_rest_closure_t *restc,
                    int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   eventer_t conne, worke;
   mtev_http_session_ctx *ctx = restc->http_ctx;
 
@@ -187,6 +197,8 @@ static int handler(mtev_http_rest_closure_t *restc,
 
 static int hello_handler(mtev_http_rest_closure_t *restc,
                          int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_ok(ctx, "text/plain");
   mtev_http_response_append_str(ctx, "Hello world.\n");
@@ -195,6 +207,8 @@ static int hello_handler(mtev_http_rest_closure_t *restc,
 }
 static int leak_handler(mtev_http_rest_closure_t *restc,
 			int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   mtev_http_session_ctx *ctx = restc->http_ctx;
 
   void *x = malloc(512 * 1024);

@@ -142,6 +142,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_paste_next(EditLine *el, int c)
 {
+	(void)c;
 
 	return (cv_paste(el, 0));
 }
@@ -155,6 +156,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_paste_prev(EditLine *el, int c)
 {
+	(void)c;
 
 	return (cv_paste(el, 1));
 }
@@ -168,6 +170,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_prev_space_word(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor == el->el_line.buffer)
 		return (CC_ERROR);
@@ -193,6 +196,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_prev_word(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor == el->el_line.buffer)
 		return (CC_ERROR);
@@ -218,6 +222,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_next_space_word(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor == el->el_line.lastchar)
 		return (CC_ERROR);
@@ -244,6 +249,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_next_word(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor == el->el_line.lastchar)
 		return (CC_ERROR);
@@ -293,6 +299,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_change_meta(EditLine *el, int c)
 {
+	(void)c;
 
 	/*
          * Delete with insert == change: first we delete and then we leave in
@@ -310,6 +317,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_insert_at_bol(EditLine *el, int c)
 {
+	(void)c;
 
 	el->el_line.cursor = el->el_line.buffer;
 	el->el_chared.c_vcmd.ins = el->el_line.cursor;
@@ -330,6 +338,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_replace_char(EditLine *el, int c)
 {
+	(void)c;
 
 	el->el_map.current = el->el_map.key;
 	el->el_state.inputmode = MODE_REPLACE_1;
@@ -349,6 +358,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_replace_mode(EditLine *el, int c)
 {
+	(void)c;
 
 	el->el_map.current = el->el_map.key;
 	el->el_state.inputmode = MODE_REPLACE;
@@ -368,6 +378,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_substitute_char(EditLine *el, int c)
 {
+	(void)c;
 
 	c_delafter(el, el->el_state.argument);
 	el->el_map.current = el->el_map.key;
@@ -383,6 +394,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_substitute_line(EditLine *el, int c)
 {
+	(void)c;
 
 	(void) em_kill_line(el, 0);
 	el->el_map.current = el->el_map.key;
@@ -398,6 +410,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_change_to_eol(EditLine *el, int c)
 {
+	(void)c;
 
 	(void) ed_kill_line(el, 0);
 	el->el_map.current = el->el_map.key;
@@ -413,6 +426,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_insert(EditLine *el, int c)
 {
+	(void)c;
 
 	el->el_map.current = el->el_map.key;
 
@@ -432,6 +446,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_add(EditLine *el, int c)
 {
+	(void)c;
 	int ret;
 
 	el->el_map.current = el->el_map.key;
@@ -459,6 +474,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_add_at_eol(EditLine *el, int c)
 {
+	(void)c;
 
 	el->el_map.current = el->el_map.key;
 	el->el_line.cursor = el->el_line.lastchar;
@@ -479,6 +495,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_delete_meta(EditLine *el, int c)
 {
+	(void)c;
 
 	return (cv_action(el, DELETE));
 }
@@ -492,6 +509,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_end_word(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor == el->el_line.lastchar)
 		return (CC_ERROR);
@@ -516,6 +534,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_to_end_word(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_line.cursor == el->el_line.lastchar)
 		return (CC_ERROR);
@@ -540,6 +559,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_undo(EditLine *el, int c)
 {
+	(void)c;
 	char *cp, *kp;
 	char temp;
 	int i, size;
@@ -619,7 +639,7 @@ vi_undo(EditLine *el, int c)
 
 		el->el_line.cursor = un->ptr;
 		size = (int) (el->el_line.cursor - el->el_line.lastchar);
-		if (size < un->isize)
+		if (size < (int)un->isize)
 			size = un->isize;
 		cp = un->ptr;
 		kp = un->buf;
@@ -647,6 +667,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_command_mode(EditLine *el, int c)
 {
+	(void)c;
 	int size;
 
 	/* [Esc] cancels pending action */
@@ -707,6 +728,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_delete_prev_char(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_chared.c_vcmd.ins == 0)
 		return (CC_ERROR);
@@ -730,6 +752,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_list_or_eof(EditLine *el, int c)
 {
+	(void)c;
 
 #ifdef notyet
 	if (el->el_line.cursor == el->el_line.lastchar &&
@@ -756,6 +779,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_kill_line_prev(EditLine *el, int c)
 {
+	(void)c;
 	char *kp, *cp;
 
 	cp = el->el_line.buffer;
@@ -777,6 +801,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_search_prev(EditLine *el, int c)
 {
+	(void)c;
 
 	return (cv_search(el, ED_SEARCH_PREV_HISTORY));
 }
@@ -790,6 +815,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_search_next(EditLine *el, int c)
 {
+	(void)c;
 
 	return (cv_search(el, ED_SEARCH_NEXT_HISTORY));
 }
@@ -803,6 +829,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_repeat_search_next(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_search.patlen == 0)
 		return (CC_ERROR);
@@ -819,6 +846,7 @@ vi_repeat_search_next(EditLine *el, int c)
 protected el_action_t
 vi_repeat_search_prev(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_search.patlen == 0)
 		return (CC_ERROR);
@@ -837,6 +865,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_next_char(EditLine *el, int c)
 {
+	(void)c;
 	char ch;
 
 	if (el_getc(el, &ch) != 1)
@@ -858,6 +887,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_prev_char(EditLine *el, int c)
 {
+	(void)c;
 	char ch;
 
 	if (el_getc(el, &ch) != 1)
@@ -878,6 +908,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_to_next_char(EditLine *el, int c)
 {
+	(void)c;
 	char ch;
 
 	if (el_getc(el, &ch) != 1)
@@ -896,6 +927,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_to_prev_char(EditLine *el, int c)
 {
+	(void)c;
 	char ch;
 
 	if (el_getc(el, &ch) != 1)
@@ -913,6 +945,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_repeat_next_char(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_search.chacha == 0)
 		return (CC_ERROR);
@@ -933,6 +966,7 @@ protected el_action_t
 /*ARGSUSED*/
 vi_repeat_prev_char(EditLine *el, int c)
 {
+	(void)c;
 
 	if (el->el_search.chacha == 0)
 		return (CC_ERROR);

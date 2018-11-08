@@ -118,7 +118,7 @@ struct cclocks {
   uint64_t fast;
   uint64_t desyncs;
 } CK_CC_CACHELINE;
-static struct cclocks coreclocks[NCPUS] = {{{0.0,0}, PTHREAD_MUTEX_INITIALIZER, 0, 0, 0}};
+static struct cclocks coreclocks[NCPUS] = {{{0.0,0}, PTHREAD_MUTEX_INITIALIZER, 0, 0, 0, 0, 0, 0}};
 
 static void
 mtev_time_reset_scale(void) {
@@ -210,6 +210,7 @@ ticks_to_nanos(int cpuid, const uint64_t ticks)
 static inline uint64_t
 ticks_to_nanos_skewed_ex(int cpuid, const uint64_t ticks, struct cclock_scale *cs)
 {
+  (void)cpuid;
   int64_t *skewptr = (int64_t *)&cs->skew;
   return (uint64_t)(((double) ticks / cs->ticks_per_nano) + *skewptr);
 }

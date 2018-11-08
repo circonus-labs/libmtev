@@ -164,6 +164,8 @@ protected int
 /*ARGSUSED*/
 hist_list(EditLine *el, int argc, char **argv)
 {
+	(void)argc;
+	(void)argv;
 	const char *str;
 
 	if (el->el_history.ref == NULL)

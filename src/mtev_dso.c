@@ -64,7 +64,9 @@ mtev_dso_loader_t __mtev_image_loader = {
     MTEV_LOADER_ABI_VERSION,
     "image",
     "Basic binary image loader",
-    NULL
+    NULL,
+    NULL,
+    0
   },
   NULL,
   NULL,
@@ -223,6 +225,7 @@ static mtev_image_t *
 mtev_load_generic_image(mtev_dso_loader_t *loader,
                         char *g_name,
                         mtev_conf_section_t section) {
+  (void)loader;
   char g_file[PATH_MAX];
 
   if(!mtev_conf_get_stringbuf(section, "ancestor-or-self::node()/@image",
@@ -243,6 +246,7 @@ static mtev_image_t *
 mtev_load_loader_image(mtev_dso_loader_t *loader,
                        char *loader_name,
                        mtev_conf_section_t section) {
+  (void)loader;
   char loader_file[PATH_MAX];
 
   if(!mtev_conf_get_stringbuf(section, "ancestor-or-self::node()/@image",

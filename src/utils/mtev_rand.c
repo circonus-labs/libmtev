@@ -55,7 +55,7 @@ mtev_rand_trysecure(void) {
 size_t
 mtev_rand_buf(void *vbuf, size_t len) {
   uint8_t *buf = vbuf;
-  for(int i = 0; i < len; i+=sizeof(uint64_t)) {
+  for(unsigned int i = 0; i < len; i+=sizeof(uint64_t)) {
     uint64_t rblob = mtev_rand();
     memcpy(buf+i, &rblob, (len-i < sizeof(uint64_t)) ? len - i : sizeof(uint64_t));
   }
@@ -71,7 +71,7 @@ mtev_rand_buf_secure(void *vbuf, size_t len) {
 size_t
 mtev_rand_buf_trysecure(void *vbuf, size_t len) {
   uint8_t *buf = vbuf;
-  for(int i = 0; i < len; i+=sizeof(uint64_t)) {
+  for(unsigned int i = 0; i < len; i+=sizeof(uint64_t)) {
     uint64_t rblob = mtev_rand_trysecure();
     memcpy(buf+i, &rblob, (len-i < sizeof(uint64_t)) ? len - i : sizeof(uint64_t));
   }

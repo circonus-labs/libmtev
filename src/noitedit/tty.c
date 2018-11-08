@@ -569,6 +569,7 @@ protected void
 /*ARGSUSED*/
 tty_end(EditLine *el)
 {
+	(void)el;
 
 	/* XXX: Maybe reset to an initial state? */
 }
@@ -1042,6 +1043,7 @@ protected int
 /*ARGSUSED*/
 tty_stty(EditLine *el, int argc, char **argv)
 {
+  	(void)argc;
 	const ttymodes_t *m;
 	char x = '\0', *d;
 	int aflag = 0;

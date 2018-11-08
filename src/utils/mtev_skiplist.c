@@ -252,11 +252,13 @@ static int mtev_skiplisti_find_compare(mtev_skiplist *sl,
   return count;
 }
 void *mtev_skiplist_next(mtev_skiplist *sl, mtev_skiplist_node **iter) {
+  (void)sl;
   if(!*iter) return NULL;
   *iter = (*iter)->next;
   return (*iter)?((*iter)->data):NULL;
 }
 void *mtev_skiplist_previous(mtev_skiplist *sl, mtev_skiplist_node **iter) {
+  (void)sl;
   if(!*iter) return NULL;
   *iter = (*iter)->prev;
   /* do not expose the first, "placeholder" column to users. */

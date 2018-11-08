@@ -273,8 +273,8 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
     case mtev_json_tokener_state_null:
       jl_printbuf_memappend_fast(tok->pb, &c, 1);
       if(strncasecmp(mtev_json_null_str, tok->pb->buf,
-		     mtev_json_min(tok->st_pos+1, strlen(mtev_json_null_str))) == 0) {
-	if(tok->st_pos == strlen(mtev_json_null_str)) {
+		     mtev_json_min(tok->st_pos+1, (int)strlen(mtev_json_null_str))) == 0) {
+	if(tok->st_pos == (int)strlen(mtev_json_null_str)) {
 	  current = NULL;
 	  saved_state = mtev_json_tokener_state_finish;
 	  state = mtev_json_tokener_state_eatws;
@@ -436,16 +436,16 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
     case mtev_json_tokener_state_boolean:
       jl_printbuf_memappend_fast(tok->pb, &c, 1);
       if(strncasecmp(mtev_json_true_str, tok->pb->buf,
-		     mtev_json_min(tok->st_pos+1, strlen(mtev_json_true_str))) == 0) {
-	if(tok->st_pos == strlen(mtev_json_true_str)) {
+		     mtev_json_min(tok->st_pos+1, (int)strlen(mtev_json_true_str))) == 0) {
+	if(tok->st_pos == (int)strlen(mtev_json_true_str)) {
 	  current = mtev_json_object_new_boolean(1);
 	  saved_state = mtev_json_tokener_state_finish;
 	  state = mtev_json_tokener_state_eatws;
 	  goto redo_char;
 	}
       } else if(strncasecmp(mtev_json_false_str, tok->pb->buf,
-			    mtev_json_min(tok->st_pos+1, strlen(mtev_json_false_str))) == 0) {
-	if(tok->st_pos == strlen(mtev_json_false_str)) {
+			    mtev_json_min(tok->st_pos+1, (int)strlen(mtev_json_false_str))) == 0) {
+	if(tok->st_pos == (int)strlen(mtev_json_false_str)) {
 	  current = mtev_json_object_new_boolean(0);
 	  saved_state = mtev_json_tokener_state_finish;
 	  state = mtev_json_tokener_state_eatws;
@@ -488,9 +488,9 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
           }
           else {
             uint64_t u64;
-            u64 = strtoll(tok->pb->buf, NULL, 10);
+            u64 = strtoull(tok->pb->buf, NULL, 10);
             mtev_json_object_set_uint64(current, u64);
-            if(u64 != numi)
+            if(numi < 0 || u64 != (size_t)numi)
               mtev_json_object_set_int_overflow(current, mtev_json_overflow_uint64);
           }
         } else if(tok->is_double && sscanf(tok->pb->buf, "%lf", &numd) == 1) {

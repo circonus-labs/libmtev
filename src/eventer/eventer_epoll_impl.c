@@ -453,6 +453,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   release_master_fd(fd, lockstate);
 }
 static int eventer_epoll_impl_loop(int id) {
+  (void)id;
   struct epoll_event *epev;
   struct epoll_spec *spec;
 

@@ -92,6 +92,8 @@ rest_lua_ctx_free(void *cl) {
 static int
 lua_web_restc_fastpath(mtev_http_rest_closure_t *restc,
                        int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   mtev_lua_resume_info_t *ri = restc->call_closure;
   mtev_http_response *res = mtev_http_session_response(restc->http_ctx);
   mtev_lua_resume_rest_info_t *ctx = ri->context_data;
@@ -158,6 +160,8 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
 static int
 lua_web_handler(mtev_http_rest_closure_t *restc,
                 int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   int status, rv, mask = 0;
   mtev_lua_resume_info_t *ri;
   mtev_lua_resume_rest_info_t *ctx = NULL;
@@ -274,6 +278,7 @@ describe_lua_rest_context_json(mtev_json_object *jcoro,
 
 static int
 mtev_lua_web_driver_onload(mtev_image_t *self) {
+  (void)self;
   mtev_lua_context_describe(LUA_REST_INFO_MAGIC, describe_lua_rest_context);
   mtev_lua_context_describe_json(LUA_REST_INFO_MAGIC,
                                  describe_lua_rest_context_json);

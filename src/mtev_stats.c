@@ -60,6 +60,8 @@ http_write_to_je(void *cl, const char *buf) {
 int
 mtev_rest_memory_handler(mtev_http_rest_closure_t *restc,
                          int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   static void (*my_malloc_stats_print)(void (*write_cb)(void *, const char *), void *cbopaque, const char *opts);
 
   mtev_http_session_ctx *ctx = restc->http_ctx;
@@ -95,6 +97,8 @@ http_write_to_mtev(void *cl, const char *buf, size_t len) {
 int
 mtev_rest_stats_handler(mtev_http_rest_closure_t *restc,
                         int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   bool simple = false, reset = false;
   const char *format, *reset_str;
   mtev_http_session_ctx *ctx = restc->http_ctx;
@@ -112,6 +116,8 @@ mtev_rest_stats_handler(mtev_http_rest_closure_t *restc,
 int
 mtev_rest_stats_delete(mtev_http_rest_closure_t *restc,
                         int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   const char *type;
   int cleared = 0;
   char cleared_str[32];

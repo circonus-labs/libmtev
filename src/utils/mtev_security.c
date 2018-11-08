@@ -218,6 +218,8 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
 int mtev_security_setcaps(mtev_security_captype_t type,
                           const char *capstring) {
 #ifndef CAP_SUPPORTED
+  (void)type;
+  (void)capstring;
   mtevL(mtev_error, "Capabilities not supported on this platform.\n");
   return -1;
 #endif

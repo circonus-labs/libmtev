@@ -55,6 +55,8 @@ static int my_websocket_msg_handler(mtev_http_rest_closure_t *restc,
 }
 
 static int my_rest_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
+  (void)npats;
+  (void)pats;
   char *s = "Rest is working\n";
   mtev_http_response_append(restc->http_ctx, s, strlen(s));
   mtev_http_response_status_set(restc->http_ctx, 200, "OK");

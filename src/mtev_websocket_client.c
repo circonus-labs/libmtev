@@ -83,6 +83,8 @@ wslay_send_callback(wslay_event_context_ptr ctx,
                     const uint8_t *data, size_t len, int flags,
                     void *user_data)
 {
+  (void)ctx;
+  (void)flags;
   ssize_t r;
   mtev_websocket_client_t *client = user_data;
   client->wanted_eventer_mask = 0;
@@ -112,6 +114,8 @@ static ssize_t
 wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
                     int flags, void *user_data)
 {
+  (void)ctx;
+  (void)flags;
   ssize_t r;
   mtev_websocket_client_t *client = user_data;
   client->wanted_eventer_mask = 0;
@@ -144,6 +148,8 @@ static int
 wslay_genmask_callback(wslay_event_context_ptr ctx,
                        uint8_t *buf, size_t len,
                        void *user_data) {
+  (void)ctx;
+  (void)user_data;
   (void)mtev_rand_buf_trysecure(buf, len);
   return 0;
 }
@@ -153,6 +159,8 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
                            const struct wslay_event_on_msg_recv_arg *arg,
                            void *user_data)
 {
+  (void)ctx;
+  (void)user_data;
   mtev_websocket_client_t *client = user_data;
   mtev_boolean rv = 0;
 
@@ -175,8 +183,8 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
 static mtev_boolean
 send_reqheader(eventer_t e, const char *buf, int len, int *mask)
 {
-  size_t off = 0;
-  ssize_t r;
+  int off = 0;
+  int r;
   while(off < len) {
     while((r = eventer_write(e, buf + off, len - off, mask)) == -1
           && errno == EINTR);
@@ -191,8 +199,8 @@ send_reqheader(eventer_t e, const char *buf, int len, int *mask)
 
 static ssize_t
 recv_resheader(eventer_t e, char *buf, int len, int *mask) {
-  size_t off = 0;
-  ssize_t r;
+  int off = 0;
+  int r;
   while(off < len) {
     while((r = eventer_read(e, buf + off, len - off, mask)) == -1
           && errno == EINTR);
@@ -275,6 +283,8 @@ mtev_websocket_client_cleanup(mtev_websocket_client_t *client);
 
 static int
 mtev_websocket_client_drive(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)now;
   mtev_websocket_client_t *client = closure;
 
   if(mask & EVENTER_EXCEPTION || client->should_close || client->closed) {
@@ -333,6 +343,7 @@ abort_drive:
 
 static int
 mtev_websocket_client_ssl_upgrade(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)now;
   mtev_websocket_client_t *client = closure;
   eventer_ssl_ctx_t *sslctx = eventer_get_eventer_ssl_ctx(e);
 

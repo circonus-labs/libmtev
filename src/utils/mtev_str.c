@@ -95,7 +95,7 @@ mtev_memmem(const void *haystack, size_t haystack_len,
 
 char *
 mtev_strndup(const char *src, size_t len) {
-  int slen;
+  size_t slen;
   char *dst;
   for(slen = 0; slen < len; slen++)
     if(src[slen] == '\0') break;
@@ -113,7 +113,7 @@ mtev__strndup(const char *src, size_t len) {
 void
 mtev_prepend_str(mtev_prependable_str_buff_t *buff, const char* str,
     size_t str_len) {
-  if (buff->string - buff->buff < str_len) {
+  if (buff->string - buff->buff < (ssize_t)str_len) {
     int bytes_stored = buff->buff_len - (buff->string - buff->buff);
     int new_buff_len = GROWTH_FACTOR(buff->buff_len + str_len);
     char* tmp = calloc(1, new_buff_len + 1);

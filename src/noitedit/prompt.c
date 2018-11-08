@@ -63,6 +63,7 @@ private char *
 /*ARGSUSED*/
 prompt_default(EditLine *el)
 {
+	(void)el;
 	static char a[3] = {'?', ' ', '\0'};
 
 	return (a);
@@ -76,6 +77,7 @@ private char *
 /*ARGSUSED*/
 prompt_default_r(EditLine *el)
 {
+	(void)el;
 	static char a[1] = {'\0'};
 
 	return (a);
@@ -131,6 +133,7 @@ protected void
 /*ARGSUSED*/
 prompt_end(EditLine *el)
 {
+	(void)el;
 }
 
 

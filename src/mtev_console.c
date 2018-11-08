@@ -326,6 +326,7 @@ mtev_console_continue_sending(mtev_console_closure_t ncct,
 static void
 mtev_console_dispatch(eventer_t e, char *buffer,
                       mtev_console_closure_t ncct) {
+  (void)e;
   char **cmds;
   HistEvent ev;
   int i, cnt = 2048;
@@ -446,6 +447,7 @@ mtev_console_initialize(mtev_console_closure_t ncct,
 static int
 mtev_console_std(eventer_t e, int mask, void *closure,
                  struct timeval *now) {
+  (void)now;
   int newmask;
   int keep_going;
   mtev_console_closure_t ncct = closure;
@@ -537,6 +539,7 @@ int mtev_console_std_init(int infd, int outfd) {
 int
 mtev_console_handler(eventer_t e, int mask, void *closure,
                      struct timeval *now) {
+  (void)now;
   int newmask = EVENTER_READ | EVENTER_EXCEPTION;
   int keep_going;
   mtev_acceptor_closure_t *ac = closure;
@@ -636,11 +639,13 @@ socket_error:
 
 static int
 mtev_console_logio_open(mtev_log_stream_t ls) {
+  (void)ls;
   return 0;
 }
 static int
 mtev_console_logio_reopen(mtev_log_stream_t ls) {
   /* no op */
+  (void)ls;
   return 0;
 }
 static int
@@ -675,6 +680,7 @@ static logops_t mtev_console_logio_ops = {
   NULL,
   mtev_console_logio_close,
   NULL,
+  NULL,
   NULL
 };
 
@@ -686,6 +692,7 @@ mtev_console_write_xml(void *vncct, const char *buffer, int len) {
 
 int
 mtev_console_close_xml(void *vncct) {
+  (void)vncct;
   return 0;
 }
 

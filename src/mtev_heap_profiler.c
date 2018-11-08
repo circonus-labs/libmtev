@@ -16,6 +16,8 @@ static mtev_boolean jemalloc_loaded = mtev_false;
 int
 mtev_rest_heap_profiler_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) 
 {
+  (void)npats;
+  (void)pats;
   mtev_http_session_ctx *ctx = restc->http_ctx;
   const char *error_str = NULL;
 
