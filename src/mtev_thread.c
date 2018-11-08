@@ -204,6 +204,8 @@ mtev_thread_setname(const char *name) {
     strlcat(thrname, name, sizeof(thrname));
     pthread_setname_np(pthread_self(), thrname);
   }
+#else
+  (void)name;
 #endif
 }
 void
