@@ -77,6 +77,7 @@ static int mtev_skiplist_walk_step(mdb_walk_state_t *s) {
 }
 
 static void mtev_skiplist_walk_fini(mdb_walk_state_t *s) {
+  (void)s;
 }
 
 
@@ -382,6 +383,7 @@ hs_compare(const void *previous, const void *compare)
 }
 
 int mtev_hash_retrieve2(struct ck_hs_map *hs, ck_key_t *key, void **data) {
+  (void)hs;
   ck_hash_attr_t *data_struct;
 
   if (key) {
@@ -500,22 +502,27 @@ static int mtev_hash_walk_step(mdb_walk_state_t *s) {
   return WALK_DONE;
 }
 static void mtev_hash_walk_fini(mdb_walk_state_t *s) {
+  (void)s;
 }
 
 static int
 _print_hash_bucket_data_cb(uintptr_t addr, const void *u, void *data)
 {
+  (void)u;
+  (void)data;
   mdb_printf("%p\n", addr);
   return WALK_NEXT;
 }
 
 static int
 mtev_log_dcmd(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
+  (void)addr;
+  (void)flags;
   mtev_hash_table l;
   struct ck_hs_map map;
   void **buckets;
   uintptr_t vmem;
-  int bucket = 0;
+  size_t bucket = 0;
   char logname[128];
 
   if(argv == 0) {
@@ -583,12 +590,15 @@ typedef struct {
 
 static int
 membuf_print_dmcd(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
+  (void)flags;
   unsigned opt_v = FALSE;
   int rv = DCMD_OK;
   struct _mtev_log_stream ls;
   char logtype[128];
   membuf_ctx_t mb, *membuf;
-  int log_lines = 0, idx, nmsg;
+  int nmsg;
+  size_t log_lines = 0;
+  size_t idx;
   int *offsets;
   uint64_t opt_n = 0;
 

@@ -713,7 +713,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
       ck_pr_dec_32(&jobq->inflight);
       /* We might want to decrease our concurrency here */
       if(jobq_thread_should_terminate(jobq, mtev_false)) break;
-      if(last_job_hrtime && (nowhr - last_job_hrtime > THREAD_IDLE_NS)) {
+      if(last_job_hrtime && ((uint64_t)nowhr - (uint64_t)last_job_hrtime > THREAD_IDLE_NS)) {
         if(jobq_thread_should_terminate(jobq, mtev_true)) break;
       }
       continue;

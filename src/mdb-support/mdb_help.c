@@ -82,6 +82,8 @@ const mdb_modinfo_t *_mdb_accum(const mdb_modinfo_t *toadd) {
 }
 
 int _print_addr_cb(uintptr_t addr, const void *u, void *data) {
+  (void)u;
+  (void)data;
   mdb_printf("%p\n", addr);
   return WALK_NEXT;
 }

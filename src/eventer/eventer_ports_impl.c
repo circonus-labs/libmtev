@@ -110,6 +110,7 @@ static void alter_fd_associate(eventer_t e, int mask, struct ports_spec *spec) {
 }
 
 static void alter_fd_dissociate(eventer_t e, int mask, struct ports_spec *spec) {
+  (void)mask;
   int s_errno = 0, ret;
   errno = 0;
   ret = port_dissociate(spec->port_fd, PORT_SOURCE_FD, e->fd);
@@ -333,6 +334,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   release_master_fd(fd, lockstate);
 }
 static int eventer_ports_impl_loop(int id) {
+  (void)id;
   struct timeval __dyna_sleep = { 0, 0 };
   struct ports_spec *spec;
   spec = eventer_get_spec_for_event(NULL);
@@ -393,7 +395,7 @@ static int eventer_ports_impl_loop(int id) {
     }
 
     if(fd_cnt > 0) {
-      int idx;
+      unsigned int idx;
       /* Loop a last time to process */
       __dyna_sleep.tv_sec = __dyna_sleep.tv_usec = 0; /* reset */
       for(idx = 0; idx < fd_cnt; idx++) {

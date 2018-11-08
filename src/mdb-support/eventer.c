@@ -81,6 +81,7 @@ static int mtev_fds_walk_step(mdb_walk_state_t *s) {
 }
 
 static void mtev_fds_walk_fini(mdb_walk_state_t *s) {
+  (void)s;
 }
 
 static mdb_walker_t _eventer_walkers[] = {
@@ -101,6 +102,7 @@ struct jobq_crutch {
 };
 
 static int _jobq_cb(uintptr_t addr, const void *u, void *data) {
+  (void)u;
   char queue_name[128];
   struct jobq_crutch *c = data;
   eventer_jobq_t jq;
@@ -113,6 +115,7 @@ static int _jobq_cb(uintptr_t addr, const void *u, void *data) {
 
 static int
 mtev_jobq_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
+  (void)addr;
   struct jobq_crutch c = { .flags = flags, .name = NULL };
   GElf_Sym sym;
   int rv;
@@ -125,6 +128,10 @@ mtev_jobq_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv)
 
 static int
 mtev_timed_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
+  (void)addr;
+  (void)flags;
+  (void)argc;
+  (void)argv;
   GElf_Sym sym;
   uintptr_t deref_addr;
   int rv;
@@ -137,6 +144,8 @@ mtev_timed_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv
 
 static int
 mtev_fds_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
+  (void)addr;
+  (void)flags;
   int fd;
   struct _eventer_impl l;
   struct _event e;
@@ -185,6 +194,9 @@ static const mdb_bitmask_t mask_bits[] = {
 
 static int
 mtev_print_event_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) {
+  (void)flags;
+  (void)argc;
+  (void)argv;
   struct _event e;
   if(mdb_vread(&e, sizeof(e), addr) == -1) {
     mdb_warn("invalid read\n");

@@ -252,7 +252,7 @@ mtev_dwarf_walk_map(void (*f)(const char *, uintptr_t)) {
           if(i > 0 &&
              !strcmp(maps[i-1].pr_mapname, maps[i].pr_mapname) &&
              maps[i-1].pr_vaddr + maps[i-1].pr_size == maps[i].pr_vaddr &&
-             maps[i-1].pr_offset + maps[i-1].pr_size == maps[i].pr_offset) {
+             maps[i-1].pr_offset + (ssize_t)maps[i-1].pr_size == maps[i].pr_offset) {
             continue;
           }
           /* The map name is an object that soft links to the path, resolve it. */
@@ -366,6 +366,7 @@ mtev_print_stackline(mtev_log_stream_t ls, uintptr_t self,
 }
 #if defined(__sun__)
 int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
+  (void)sig;
   lwpid_t self;
   mtev_log_stream_t ls = usrarg;
   char addrpreline[16384];
@@ -392,6 +393,9 @@ static void
 mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
                          const char *extra_thr, void **callstack, int frames) {
 #if defined(__sun__)
+  (void)caller;
+  (void)callstack;
+  (void)frames;
   ucontext_t ucp;
   getcontext(&ucp);
   mtevL(ls, "STACKTRACE(%d%s):\n", getpid(), extra_thr);
