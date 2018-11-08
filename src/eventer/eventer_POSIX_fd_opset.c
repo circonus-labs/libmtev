@@ -43,6 +43,7 @@
 static int
 POSIX_accept(int fd, struct sockaddr *addr, socklen_t *len,
              int *mask, void *closure) {
+  (void)closure;
   int rv;
   LIBMTEV_EVENTER_ACCEPT_ENTRY(fd, (void *)addr, *len, *mask, closure);
   *mask = EVENTER_READ | EVENTER_EXCEPTION;
@@ -54,6 +55,7 @@ POSIX_accept(int fd, struct sockaddr *addr, socklen_t *len,
 static int
 POSIX_read(int fd, void *buffer, size_t len,
            int *mask, void *closure) {
+  (void)closure;
   int rv;
   LIBMTEV_EVENTER_READ_ENTRY(fd, buffer, len, *mask, closure);
   *mask = EVENTER_READ | EVENTER_EXCEPTION;
@@ -65,6 +67,7 @@ POSIX_read(int fd, void *buffer, size_t len,
 static int
 POSIX_write(int fd, const void *buffer, size_t len,
             int *mask, void *closure) {
+  (void)closure;
   int rv;
   LIBMTEV_EVENTER_WRITE_ENTRY(fd, (char *)buffer, len, *mask, closure);
   *mask = EVENTER_WRITE | EVENTER_EXCEPTION;
