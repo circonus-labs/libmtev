@@ -100,7 +100,8 @@ mtev_capabilities_get_features(void)
 
 static int
 mtev_capabilities_rest(mtev_http_rest_closure_t *restc, int n, char **p) {
-  mtev_capsvc_closure_t cl = { 0 };
+  mtev_capsvc_closure_t cl;
+  memset(&cl, 0, sizeof(cl));
   const char *mtype = "application/xml";
   if(n > 0 && !strcmp(p[0], ".json")) {
     mtev_capabilities_tobuff_json(&cl, NULL);

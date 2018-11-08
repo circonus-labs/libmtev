@@ -5,6 +5,7 @@
 #include "mtev_intern.h"
 #include "mtev_perftimer.h"
 #include "mtev_rand.h"
+#include "mtev_log.h"
 
 struct workload {
   const char *name;
@@ -104,6 +105,16 @@ void *thr(void *closure) {
   return NULL;
 }
 
+void *singles(void *vstr) {
+  char *str = vstr;
+  mtevL(mtev_stderr, "starting %p\n", pthread_self());
+  for(int i=0; i<1000000; i++) {
+    mtev_intern_t mi = miNEW(str);
+    miFREE(mi);
+    //mtevL(mtev_stderr, "%p : %d\n", pthread_self(), i);
+  }
+}
+
 int NTHREAD = 10;
 int main(int argc, char **argv) {
   mtev_perftimer_t timer;
@@ -151,5 +162,13 @@ int main(int argc, char **argv) {
            1000000000.0 * (double)cnt /(double)elapsed, ns_per_op[wl]);
   }
   free(info);
+
+  for(i=0; i<NTHREAD; i++) {
+    pthread_create(&info[i].tid, NULL, singles, "");
+  }
+  for(i=0; i<NTHREAD; i++) {
+    void *ignored;
+    pthread_join(info[i].tid, &ignored);
+  }
   return 0;
 }

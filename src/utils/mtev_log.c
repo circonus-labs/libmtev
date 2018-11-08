@@ -327,7 +327,7 @@ mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines,
            ((membuf->tail % membuf->noffsets) + membuf->noffsets - (membuf->head % membuf->noffsets));
   assert(nmsg < membuf->noffsets);
   if(log_lines <= 0) log_lines = nmsg;
-  log_lines = MIN(log_lines,nmsg);
+  log_lines = MIN((unsigned int)log_lines,nmsg);
   idx = (membuf->tail >= (unsigned int)log_lines) ?
           (membuf->tail - log_lines) : 0;
   pthread_mutex_unlock(&membuf->lock); 

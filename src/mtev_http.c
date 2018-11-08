@@ -152,7 +152,7 @@ struct mtev_http_session_ctx {
   uint32_t ref_cnt;
   int64_t drainage;
   pthread_mutex_t write_lock;
-  int max_write;
+  size_t max_write;
   mtev_http_connection conn;
   mtev_http_request req;
   mtev_http_response res;
@@ -1277,7 +1277,7 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
                * enough to hold the entire chunk, copy in the chunk data that
                * we have already read and then keep reading.
                */
-              struct bchain *new_in = ALLOC_BCHAIN(MAX(clen + (cp - cp_begin + 2), 
+              struct bchain *new_in = ALLOC_BCHAIN(MAX(clen + (unsigned int)(cp - cp_begin + 2), 
                                                        DEFAULT_BCHAINSIZE));
               memcpy(new_in->buff, cp_begin, head->size);
               new_in->size = head->size;
@@ -1358,7 +1358,7 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
       if (ctx->req.user_data == NULL) {
         ctx->req.user_data = data;
       }
-      size_t copy_size = MIN(head->size, next_chunk);
+      size_t copy_size = MIN(head->size, (size_t)next_chunk);
       memcpy(data->buff + data->start + data->size, head->buff + head->start, copy_size);
       data->size += copy_size;
       head->start += copy_size;
