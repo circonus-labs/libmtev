@@ -677,7 +677,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
   eventer_job_t *job;
   uint32_t current_count;
   sigjmp_buf env;
-  mtev_hrtime_t last_job_hrtime = 0;
+  volatile mtev_hrtime_t last_job_hrtime = 0;
 
   current_count = ck_pr_faa_32(&jobq->concurrency, 1) + 1;
   mtevL(eventer_deb, "jobq[%s/%p] -> %d\n", jobq->queue_name, pthread_self_ptr(), current_count);
