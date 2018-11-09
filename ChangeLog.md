@@ -4,6 +4,11 @@
 
 ## 1.5
 
+### 1.5.22
+
+ * Eventer thread naming no longer requires SMR.
+ * Fix REST-driven jemalloc heap profiler.
+
 ### 1.5.21
 
  * Fix SMR regression in jobs thread winddown.
