@@ -68,14 +68,13 @@ mtev_rest_heap_profiler_handler(mtev_http_rest_closure_t *restc, int npats, char
   } else if(dump) {
     char *name = malloc(PATH_MAX);
     snprintf(name, PATH_MAX, "/tmp/heap_profile.%d", getpid());
-    mtevL(mtev_notice, "Dumping heap profile to file: %s\n", name);
+    mtevL(mtev_debug, "Dumping heap profile to file: %s\n", name);
     int r = mallctl("prof.dump", NULL, NULL, &name, sizeof(const char *));
     if(r != 0) {
       error_str = strerror(r);
       free(name);
       goto error;
     }
-    mtevL(mtev_notice, "Dumping result: %d\n", r);
     int fd = open(name, O_RDONLY);
     unlink(name);
     free(name);
