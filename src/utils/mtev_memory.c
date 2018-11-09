@@ -51,9 +51,14 @@ static ck_fifo_spsc_t gc_queue;
 static struct timeval last_safe_gc;
 static uint64_t last_safe_gc_seconds;
 static uint64_t asynch_cycles;
-static __thread uint64_t gc_queue_enqueued = 0;
-static __thread uint64_t gc_queue_requeued = 0;
-static __thread ck_fifo_spsc_t *return_gc_queue;
+typedef struct {
+  uint64_t enqueued;
+  uint64_t requeued;
+  ck_fifo_spsc_t *queue;
+  uint32_t disowned;
+  ck_spinlock_t disown_lock;
+} gc_asynch_queue_t;
+static __thread gc_asynch_queue_t *gc_return;
 static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec;
 static __thread int begin_end_depth = 0;
@@ -73,14 +78,69 @@ static stats_handle_t *safe_allocations;
 static stats_handle_t *safe_frees_completed;
 static stats_handle_t *safe_frees_requested;
 
+struct asynch_reclaim {
+  ck_epoch_record_t *owner;
+  ck_stack_t pending[CK_EPOCH_LENGTH];
+  gc_asynch_queue_t *gc_return;
+};
+
+static void mtev_gc_sync_complete(struct asynch_reclaim *, mtev_boolean);
+
+static void
+mtev_memory_queue_asynch(void) {
+  struct asynch_reclaim *ar;
+  ar = malloc(sizeof(*ar));
+  ar->owner = epoch_rec;
+  ar->gc_return = gc_return;
+  memcpy(ar->pending, epoch_rec->pending, sizeof(ar->pending));
+  memset(epoch_rec->pending, 0, sizeof(ar->pending));
+  ck_fifo_spsc_enqueue_lock(&gc_queue);
+  ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(&gc_queue);
+  if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
+  ck_fifo_spsc_enqueue(&gc_queue, fifo_entry, ar);
+  ck_fifo_spsc_enqueue_unlock(&gc_queue);
+  ck_pr_inc_64(&gc_return->enqueued);
+}
+
+static bool
+terminate_gc_return(gc_asynch_queue_t *now_mine) {
+  if(ck_pr_load_64(&now_mine->requeued) == ck_pr_load_64(&now_mine->enqueued)) {
+    struct asynch_reclaim *ar;
+
+    ck_fifo_spsc_dequeue_lock(now_mine->queue);
+    while(ck_fifo_spsc_dequeue(now_mine->queue, &ar)) {
+      mtev_gc_sync_complete(ar, mtev_false);
+    }
+    ck_fifo_spsc_dequeue_unlock(now_mine->queue);
+
+    ck_fifo_spsc_entry_t *garbage = NULL;
+    ck_fifo_spsc_deinit(now_mine->queue, &garbage);
+    while (garbage != NULL) {
+      ck_fifo_spsc_entry_t *n = garbage->next;
+      free(garbage);
+      garbage = n;
+    }
+    free(now_mine->queue);
+    free(now_mine);
+    return true;
+  }
+  return false;
+}
+
 mtev_boolean mtev_memory_thread_initialized(void) {
   return epoch_rec != NULL;
 }
 
 void mtev_memory_init_thread(void) {
   if(epoch_rec == NULL) {
+    mtevL(mem_debug, "mtev_memory_fini_thread()\n");
     epoch_rec = malloc(sizeof(*epoch_rec));
     ck_epoch_register(&epoch_ht, epoch_rec, NULL);
+  }
+  if(!gc_return) {
+    gc_return = calloc(1, sizeof(*gc_return));
+    gc_return->queue = calloc(1, sizeof(*gc_return->queue));
+    ck_fifo_spsc_init(gc_return->queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
   }
 }
 
@@ -90,22 +150,19 @@ void mtev_memory_fini_thread(void) {
     begin_end_depth = 0; // setting this doesn't actually matter.
   }
   mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
-  if(return_gc_queue != NULL) {
-    uint64_t st_enq = ck_pr_load_64(&gc_queue_enqueued);
-    while(ck_pr_load_64(&gc_queue_requeued) < st_enq) {
-      mtev_memory_maintenance_ex(MTEV_MM_NONE);
-      usleep(100);
+  mtevL(mem_debug, "mtev_memory_fini_thread()\n");
+  if(gc_return && gc_return->queue != NULL) {
+    if(asynch_gc) {
+      ck_pr_store_32(&gc_return->disowned, 1);
+      mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
+      mtev_memory_queue_asynch(); // this forces an enqueue
+    } else {
+      mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
+      terminate_gc_return(gc_return);
     }
-    mtev_memory_maintenance_ex(MTEV_MM_NONE);
-    ck_fifo_spsc_entry_t *garbage = NULL;
-    ck_fifo_spsc_deinit(return_gc_queue, &garbage);
-    while (garbage != NULL) {
-      ck_fifo_spsc_entry_t *n = garbage->next;
-      free(garbage);
-      garbage = n;
-    }
-    return_gc_queue = NULL;
+    gc_return = NULL; // This is handled in the gc thread
   }
+  free(gc_return);
   if(epoch_rec != NULL) {
     ck_epoch_unregister(epoch_rec);
     epoch_rec = NULL;
@@ -203,21 +260,14 @@ void mtev_memory_maintenance(void) {
   }
 }
 
-struct asynch_reclaim {
-  ck_epoch_record_t *owner;
-  ck_stack_t pending[CK_EPOCH_LENGTH];
-  ck_fifo_spsc_t *backq;
-  uint64_t *requeued;
-};
-
 CK_STACK_CONTAINER(struct ck_epoch_entry, stack_entry, epoch_entry_container)
 
 static void
-mtev_gc_sync_complete(struct asynch_reclaim *ar) {
+mtev_gc_sync_complete(struct asynch_reclaim *ar, mtev_boolean accounting) {
   int i;
   unsigned long n_dispatch = 0;
-  ck_epoch_record_t epoch_temporary = *epoch_rec;
 
+  mtevL(mem_debug, "mtev_memory_sync_complete\n");
   for(i=0;i<CK_EPOCH_LENGTH;i++) {
     unsigned int epoch = i & (CK_EPOCH_LENGTH - 1);
     ck_stack_entry_t *head, *next, *cursor;
@@ -232,9 +282,15 @@ mtev_gc_sync_complete(struct asynch_reclaim *ar) {
     }
 
   }
+
+  if(!accounting) {
+    free(ar);
+    return;
+  }
+
+  ck_epoch_record_t epoch_temporary = *epoch_rec;
   if(epoch_rec->n_pending > epoch_rec->n_peak)
     epoch_rec->n_peak = epoch_rec->n_pending;
-
   epoch_rec->n_dispatch += n_dispatch;
   epoch_rec->n_pending -= n_dispatch;
 
@@ -269,6 +325,7 @@ mtev_memory_sync_wait(ck_epoch_t *e, ck_epoch_record_t *rec, void *c) {
   usleep(100);
 }
 #endif
+
 static void *
 mtev_memory_gc(void *unused) {
   (void)unused;
@@ -320,12 +377,18 @@ mtev_memory_gc(void *unused) {
      */
     for(int i=0; i<setsize; i++) {
       ar = arset[i];
-      ck_fifo_spsc_enqueue_lock(ar->backq);
-      ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(ar->backq);
+      ck_fifo_spsc_enqueue_lock(ar->gc_return->queue);
+      ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(ar->gc_return->queue);
       if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
-      ck_fifo_spsc_enqueue(ar->backq, fifo_entry, ar);
-      ck_fifo_spsc_enqueue_unlock(ar->backq);
-      ck_pr_inc_64(ar->requeued);
+      ck_fifo_spsc_enqueue(ar->gc_return->queue, fifo_entry, ar);
+      ck_fifo_spsc_enqueue_unlock(ar->gc_return->queue);
+      ck_pr_inc_64(&ar->gc_return->requeued);
+
+      /* Who owns this return queue?  If it is disowned, we need to handle it. */
+      if(ck_pr_load_32(&ar->gc_return->disowned) != 0) {
+        /* enqueued will not increase, so when requeued matches it, we're done */
+        terminate_gc_return(ar->gc_return);
+      }
     }
     if(setsize != max_setsize) usleep(500000);
   }
@@ -344,12 +407,13 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
 
   mtevAssert(begin_end_depth == 0);
 
-  if(return_gc_queue) {
-    ck_fifo_spsc_dequeue_lock(return_gc_queue);
-    while(ck_fifo_spsc_dequeue(return_gc_queue, &ar)) {
-      mtev_gc_sync_complete(ar);
+  /* regardless of invocation intent, we cleanup our backq */
+  if(gc_return && gc_return->queue) {
+    ck_fifo_spsc_dequeue_lock(gc_return->queue);
+    while(ck_fifo_spsc_dequeue(gc_return->queue, &ar)) {
+      mtev_gc_sync_complete(ar, mtev_true);
     }
-    ck_fifo_spsc_dequeue_unlock(return_gc_queue);
+    ck_fifo_spsc_dequeue_unlock(gc_return->queue);
   }
 
   if(needs_maintenance == 0) return -1;
@@ -361,11 +425,6 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
     pthread_mutex_unlock(&mem_debug_lock);
   }
 
-  /* regardless of invocation intent, we cleanup our backq */
-  if(!return_gc_queue) {
-    return_gc_queue = calloc(1, sizeof(*return_gc_queue));
-    ck_fifo_spsc_init(return_gc_queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
-  }
   if(!asynch_gc && method == MTEV_MM_BARRIER_ASYNCH) {
     if(error_once) {
       mtevL(mtev_error, "mtev_memory asynch gc not enabled, forcing synch\n");
@@ -391,18 +450,7 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
       success = ck_epoch_poll(epoch_rec);
       break;
     case MTEV_MM_BARRIER_ASYNCH:
-      ar = malloc(sizeof(*ar));
-      ar->owner = epoch_rec;
-      ar->backq = return_gc_queue;
-      ar->requeued = &gc_queue_requeued;
-      memcpy(ar->pending, epoch_rec->pending, sizeof(ar->pending));
-      memset(epoch_rec->pending, 0, sizeof(ar->pending));
-      ck_fifo_spsc_enqueue_lock(&gc_queue);
-      ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(&gc_queue);
-      if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
-      ck_fifo_spsc_enqueue(&gc_queue, fifo_entry, ar);
-      ck_fifo_spsc_enqueue_unlock(&gc_queue);
-      ck_pr_inc_64(&gc_queue_enqueued);
+      mtev_memory_queue_asynch();
       success = mtev_true;
       break;
   }
@@ -513,6 +561,7 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
 }
 
 void mtev_memory_ck_free(void *p, size_t b, bool r) {
+  mtevAssert(gc_return);
   mtev_memory_ck_free_func(p, b, r, mtev_memory_real_free);
 }
 
