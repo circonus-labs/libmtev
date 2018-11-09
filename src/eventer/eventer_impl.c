@@ -135,48 +135,16 @@ eventer_get_this_event(void) {
   return current_eventer_in_callback;
 }
 static __thread struct eventer_impl_data *my_impl_data;
-static pthread_key_t thread_name_key;
-struct thread_name {
-  char *name;
-  mtev_boolean unsafe;
-};
+static __thread char thread_name[65];
 static struct eventer_impl_data *eventer_impl_tls_data = NULL;
 
 static inline void
 eventer_set_thread_name_internal(const char *name, mtev_boolean unsafe) {
-  struct thread_name *to_free = pthread_getspecific(thread_name_key);
-  if(to_free != NULL) {
-    char *oldname = to_free->name;
-    if(name) {
-      to_free->name = unsafe ? strdup(name) : mtev_memory_safe_strdup(name);
-    } else {
-      to_free->name = NULL;
-    }
-    if(to_free->unsafe) free(oldname);
-    else mtev_memory_safe_free(oldname);
-    to_free->unsafe = unsafe;
-  }
-  else {
-    to_free = calloc(1, sizeof(*to_free));
-    to_free->unsafe = unsafe;
-    if(name) {
-      to_free->name = unsafe ? strdup(name) : mtev_memory_safe_strdup(name);
-    } else {
-      to_free->name = NULL;
-    }
-    pthread_setspecific(thread_name_key, to_free);
-  }
+  (void)unsafe;
+  thread_name[64] = '\0';
+  if(name) strlcpy(thread_name, name, sizeof(thread_name));
+  else thread_name[0] ='\0';
   mtev_thread_setname(name);
-}
-static void
-eventer_thread_name_free(void *vtn) {
-  struct thread_name *to_free = vtn;
-  if(to_free == NULL) return;
-  if(to_free->name != NULL) {
-    if(to_free->unsafe) free(to_free->name);
-    else mtev_memory_safe_free(to_free->name);
-  }
-  free(to_free);
 }
 void eventer_set_thread_name(const char *name) {
   eventer_set_thread_name_internal(name, mtev_false);
@@ -185,9 +153,7 @@ void eventer_set_thread_name_unsafe(const char *name) {
   eventer_set_thread_name_internal(name, mtev_true);
 }
 const char *eventer_get_thread_name(void) {
-  struct thread_name *thread_name = pthread_getspecific(thread_name_key);
-  if(!thread_name) return NULL;
-  return thread_name->name;
+  return thread_name;
 }
 
 #ifdef HAVE_KQUEUE
@@ -744,7 +710,6 @@ static void periodic_jobq_maintenance_namer(char *buf, int buflen,
 }
 
 void eventer_impl_init_globals(void) {
-  pthread_key_create(&thread_name_key, eventer_thread_name_free);
   eventer_name_callback_ext("periodic_jobq_maintenance",
                             periodic_jobq_maintenance,
                             periodic_jobq_maintenance_namer, NULL);
