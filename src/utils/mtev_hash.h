@@ -101,7 +101,7 @@ CK_CC_CONTAINER(ck_key_t, struct ck_hash_attr, key,
                 index_attribute_container)
 
 #define MTEV_HASH_EMPTY { {{ NULL, NULL, 0, 0, NULL, NULL}} }
-#define MTEV_HASH_ITER_ZERO { .iter = CK_HS_ITERATOR_INITIALIZER, .key.ptr = NULL, .value.ptr = NULL, .klen = 0 }
+#define MTEV_HASH_ITER_ZERO { .iter = CK_HS_ITERATOR_INITIALIZER, .key = { .ptr = NULL }, .value = { .ptr = NULL }, .klen = 0 }
 #define MTEV_HASH_DEFAULT_SIZE (1<<7)
 
 /*!
