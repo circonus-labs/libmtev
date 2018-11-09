@@ -136,6 +136,10 @@ typedef struct __mtev_console_closure {
   /* This tracks telnet protocol state (if we're doing telnet) */
   mtev_console_telnet_closure_t telnet;
   void (*output_cooker)(struct __mtev_console_closure *);
+
+  /* Storing history */
+  pthread_mutex_t hist_file_lock;
+  char *hist_file;
 } * mtev_console_closure_t;
 
 API_EXPORT(int) mtev_console_std_init(int infd, int outfd);
