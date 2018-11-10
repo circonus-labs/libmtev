@@ -152,7 +152,7 @@ void mtev_memory_fini_thread(void) {
   mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
   mtevL(mem_debug, "mtev_memory_fini_thread()\n");
   if(gc_return && gc_return->queue != NULL) {
-    if(asynch_gc) {
+    if(ck_pr_load_int(&asynch_gc)) {
       ck_pr_store_32(&gc_return->disowned, 1);
       mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
       mtev_memory_queue_asynch(); // this forces an enqueue
