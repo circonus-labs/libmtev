@@ -133,7 +133,7 @@ mtev_boolean mtev_memory_thread_initialized(void) {
 
 void mtev_memory_init_thread(void) {
   if(epoch_rec == NULL) {
-    mtevL(mem_debug, "mtev_memory_fini_thread()\n");
+    mtevL(mem_debug, "mtev_memory_init_thread()\n");
     epoch_rec = malloc(sizeof(*epoch_rec));
     ck_epoch_register(&epoch_ht, epoch_rec, NULL);
   }
