@@ -58,9 +58,9 @@ typedef struct {
   uint32_t disowned;
   ck_spinlock_t disown_lock;
 } gc_asynch_queue_t;
-static __thread gc_asynch_queue_t *gc_return;
+static __thread gc_asynch_queue_t *gc_return = NULL;
 static ck_epoch_t epoch_ht;
-static __thread ck_epoch_record_t *epoch_rec;
+static __thread ck_epoch_record_t *epoch_rec = NULL;
 static __thread int begin_end_depth = 0;
 /* needs_maintenance is used to avoid doing unnecessary work
  * in the epoch free cycle.
