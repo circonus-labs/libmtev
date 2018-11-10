@@ -137,7 +137,7 @@ void mtev_memory_init_thread(void) {
     epoch_rec = malloc(sizeof(*epoch_rec));
     ck_epoch_register(&epoch_ht, epoch_rec, NULL);
   }
-  if(!gc_return) {
+  if(gc_return == NULL) {
     gc_return = calloc(1, sizeof(*gc_return));
     gc_return->queue = calloc(1, sizeof(*gc_return->queue));
     ck_fifo_spsc_init(gc_return->queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
