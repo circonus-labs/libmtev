@@ -267,7 +267,7 @@ mtev_gc_sync_complete(struct asynch_reclaim *ar, mtev_boolean accounting) {
   int i;
   unsigned long n_dispatch = 0;
 
-  mtevL(mem_debug, "mtev_memory_sync_complete\n");
+  mtevL(mem_debug, "mtev_gc_sync_complete\n");
   for(i=0;i<CK_EPOCH_LENGTH;i++) {
     unsigned int epoch = i & (CK_EPOCH_LENGTH - 1);
     ck_stack_entry_t *head, *next, *cursor;
