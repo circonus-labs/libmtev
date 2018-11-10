@@ -89,8 +89,8 @@ void mtev_memory_fini_thread(void) {
     ck_epoch_end(epoch_rec, NULL);
     begin_end_depth = 0; // setting this doesn't actually matter.
   }
+  mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
   if(return_gc_queue != NULL) {
-    mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
     uint64_t st_enq = ck_pr_load_64(&gc_queue_enqueued);
     while(ck_pr_load_64(&gc_queue_requeued) < st_enq) {
       mtev_memory_maintenance_ex(MTEV_MM_NONE);
@@ -343,6 +343,15 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   ck_epoch_record_t epoch_temporary =  *epoch_rec;
 
   mtevAssert(begin_end_depth == 0);
+
+  if(return_gc_queue) {
+    ck_fifo_spsc_dequeue_lock(return_gc_queue);
+    while(ck_fifo_spsc_dequeue(return_gc_queue, &ar)) {
+      mtev_gc_sync_complete(ar);
+    }
+    ck_fifo_spsc_dequeue_unlock(return_gc_queue);
+  }
+
   if(needs_maintenance == 0) return -1;
 
   if(!mem_debug) {
@@ -357,12 +366,6 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
     return_gc_queue = calloc(1, sizeof(*return_gc_queue));
     ck_fifo_spsc_init(return_gc_queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
   }
-  ck_fifo_spsc_dequeue_lock(return_gc_queue);
-  while(ck_fifo_spsc_dequeue(return_gc_queue, &ar)) {
-    mtev_gc_sync_complete(ar);
-  }
-  ck_fifo_spsc_dequeue_unlock(return_gc_queue);
-
   if(!asynch_gc && method == MTEV_MM_BARRIER_ASYNCH) {
     if(error_once) {
       mtevL(mtev_error, "mtev_memory asynch gc not enabled, forcing synch\n");
