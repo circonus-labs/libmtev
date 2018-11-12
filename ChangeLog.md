@@ -4,7 +4,7 @@
 
 ## 1.5
 
-### 1.5.x
+### 1.5.23
 
  * Do not block thread exit for SMR, instead disown the return queue and
    allow gc thread to cleanup (this also fixes leaks at thread exit) #465
