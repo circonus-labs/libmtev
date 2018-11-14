@@ -83,6 +83,22 @@ typedef struct mtev_watchdog_t mtev_watchdog_t;
 API_EXPORT(mtev_watchdog_t *)
   mtev_watchdog_create(void);
 
+/*! \fn void mtev_watchdog_set_name(mtev_watchdog_t *hb, const char *name)
+    \param hb the heart to name
+    \param name a new name for this heart
+ */
+
+API_EXPORT(void)
+  mtev_watchdog_set_name(mtev_watchdog_t *hb, const char *name);
+
+/*! \fn const char *mtev_watchdog_get_name(mtev_watchdog_t *hb)
+    \param hb the heart from which to retrieve a name
+    \return the name of the heart (or NULL)
+ */
+
+API_EXPORT(const char *)
+  mtev_watchdog_get_name(mtev_watchdog_t *hb);
+
 /*! \fn int mtev_watchdog_heartbeat(mtev_watchdog_t *hb)
     \param hb is the heart on which to pulse.  If null, the default heart is used.
     \return Returns zero on success

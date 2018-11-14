@@ -66,7 +66,8 @@ struct mtev_watchdog_t {
   enum {
     CRASHY_NOTATALL = 0,
     CRASHY_CRASH = 0x00dead00,
-    CRASHY_RESTART = 0x99dead99
+    CRASHY_RESTART = 0x99dead99,
+    WATCHDOG_VICTIM = 0x005133400
   } action;
   enum {
     HEART_ACTIVE_OFF = 0,
@@ -78,9 +79,36 @@ struct mtev_watchdog_t {
     int last_ticker;
   } parent_view;
   double timeout_override;
+  int sig;
+  pthread_t thread;
+  char name[128];
 };
 
+static const char *short_strsignal(int sig) {
+  switch(sig) {
+    case SIGINT: return "sigint";
+    case SIGHUP: return "sighup";
+    case SIGUSR1: return "sigusr1";
+    case SIGUSR2: return "sigusr2";
+    case SIGSEGV: return "sigsegv";
+    case SIGTRAP: return "sigtrap";
+    case SIGILL: return "sigill";
+    case SIGSTOP: return "sigstop";
+    case SIGCONT: return "sigcont";
+    case SIGABRT: return "sigabrt";
+    case SIGBUS: return "sigbus";
+    case SIGFPE: return "sigfpe";
+#ifdef SIGIOT
+#if SIGIOT != SIGABRT
+    case SIGIOT: return "sigiot";
+#endif
+#endif
+  }
+  return NULL;
+}
+
 #define CHILD_WATCHDOG_TIMEOUT 5.0 /*seconds*/
+#define WATCHDOG_VICTIM_TIMEOUT 2.0 /*seconds*/
 #define MAX_CRASH_FDS 1024
 #define MAX_HEARTS 1024
 
@@ -221,7 +249,7 @@ void mtev_watchdog_disable_trace_output(void) {
 
 int mtev_monitored_child_pid = -1;
 
-void run_glider(int pid, glide_reason_t glide_reason) {
+void run_glider(int pid, glide_reason_t glide_reason, const char *detail) {
   const char *glide_reason_str = "unkown";
   char cmd[1024];
   int unused __attribute__((unused));
@@ -235,11 +263,13 @@ void run_glider(int pid, glide_reason_t glide_reason) {
       default: glide_reason_str = "unknown";
     }
     if(save_trace_output) {
-        snprintf(cmd, sizeof(cmd), "%s %d %s > %s/%s.%d.trc",
-                 glider_path, pid, glide_reason_str, trace_dir, appname, pid);
+        snprintf(cmd, sizeof(cmd), "%s %d %s%s%s > %s/%s.%d.trc",
+                 glider_path, pid, glide_reason_str,
+                 detail ? "/" : "", detail ? detail : "", trace_dir, appname, pid);
     }
     else {
-        snprintf(cmd, sizeof(cmd), "%s %d %s", glider_path, pid, glide_reason_str);
+        snprintf(cmd, sizeof(cmd), "%s %d %s%s%s", glider_path, pid, glide_reason_str,
+                 detail ? "/" : "", detail ? detail : "");
     }
     unused = system(cmd);
     if(oldpath) unused = chdir(oldpath);
@@ -318,16 +348,45 @@ void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
   raise(sig);
 }
 
+static mtev_watchdog_t *find_stopped_heart(void) {
+  for(int i=0; i<MAX_HEARTS; i++) {
+    mtev_watchdog_t *lifeline = &mmap_lifelines[i];
+    if(lifeline->action == WATCHDOG_VICTIM) return lifeline;
+  }
+  return NULL;
+}
+
 void emancipate(int sig, siginfo_t *si, void *uc) {
   (void)si;
+  mtev_watchdog_t *hb = NULL;
   mtev_log_enter_sighandler();
+  if(sig == SIGUSR2 && si->si_pid != mtev_monitored_child_pid) {
+    hb = find_stopped_heart();
+#ifdef HAVE_PTHREAD_SIGQUEUE
+    if(!hb) {
+      mtevL(mtev_error, "Watchdog received, but no stopped heart found.\n");
+    }
+    else {
+      sigval_t sv = { .sival_int = sig };
+      pthread_sigqueue(hb->thread, SIGTRAP, sv);
+    }
+    mtev_log_leave_sighandler();
+    return;
+#else
+    mtevL(mtev_error, "Watchdogged on %s, no pthread_sigqueue\n", hb->name);
+#endif
+  }
   mtevL(mtev_error, "emancipate: process %d, monitored %d, signal %d\n", getpid(), mtev_monitored_child_pid, sig);
   if(getpid() == watcher) {
-    run_glider(mtev_monitored_child_pid, GLIDE_CRASH);
+    char sigval[12];
+    const char *signame = short_strsignal(sig);
+    snprintf(sigval, sizeof(sigval), "%d", sig);
+    run_glider(mtev_monitored_child_pid, GLIDE_CRASH, signame ? signame : sigval);
     kill(mtev_monitored_child_pid, sig);
   }
   else if (getpid() == mtev_monitored_child_pid){
     it_ticks_crash(NULL); /* slow notification path */
+    mmap_lifelines[0].sig = sig; /* communicate the signal as it will be hidden by our STOP */
     kill(mtev_monitored_child_pid, SIGSTOP); /* stop and wait for a glide */
 
     /* attempt a simple stack trace */
@@ -362,10 +421,23 @@ void subprocess_killed(int sig) {
  *
  *  /-----------------/                /---------------------------------/
  *  /  Child running  / --> (hang) --> / Parent tick age > timeout       /
- *  /-----------------/   (no crash)   /     SIGSTOP -> glide -> SIGKILL /
+ *  /-----------------/   (no crash)   /          SIGUSR2                /
  *         |                           /---------------------------------/
- *       (segv)
- *         |
+ *         |                                |           |
+ *         |           +--------------------+           |
+ *         |           |                                |
+ *       (segv)      (usr2)        /------------------------------------/
+ *         |           |           / Parent tick age > timeout + margin /
+ *         |           |           / SIGSTOP -> glide -> SIGKILL        / 
+ *         |           |           /------------------------------------/
+ *         |           |
+ *         |        /-------------------------------------/
+ *         |        / Find timed-out (watchdogged) thread /
+ *         |        /    pthread_sigqueue                 /
+ *         |        /-------------------------------------/
+ *         |                   |
+ *         |                 (trap)
+ *         |                   |
  *  /--------------------------------------------------/
  *  /   `emancipate`                                   /
  *  /  Child annotates shared memory CRASHED indicator / -(notices crash)
@@ -421,8 +493,7 @@ void setup_signals(sigset_t *mysigs) {
   attention.it_interval.tv_usec = 77000;
   mtevAssert(setitimer(ITIMER_REAL, &attention, NULL) == 0);
 }
-
-static int mtev_heartcheck(double *ltt, int *heartno) {
+static int mtev_heartcheck(double *ltt, int *heartno, const char **thrname) {
   int i;
   struct timeval now;
   mtev_gettimeofday(&now, NULL);
@@ -431,13 +502,19 @@ static int mtev_heartcheck(double *ltt, int *heartno) {
     double age;
 
     *heartno = i;
+    *thrname = (lifeline->name[0] == '\0') ? NULL : lifeline->name;
     age = last_tick_time(lifeline, &now);
     double local_timeout = (lifeline->timeout_override != 0.0) ? lifeline->timeout_override : global_child_watchdog_timeout;
     if (lifeline->active == HEART_ACTIVE_OFF) break;
     if (lifeline->active == HEART_ACTIVE_SKIP) continue;
     if (lifeline->action == CRASHY_NOTATALL && age > local_timeout) {
       *ltt = age;
+      lifeline->action = WATCHDOG_VICTIM;
       return 1;
+    }
+    if (lifeline->action == WATCHDOG_VICTIM && age > local_timeout + WATCHDOG_VICTIM_TIMEOUT) {
+      *ltt = age;
+      return 2;
     }
   }
   return 0;
@@ -457,6 +534,8 @@ mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
     SIGABRT,
     SIGBUS,
     SIGILL,
+    SIGUSR2,
+    SIGTRAP,
 #ifdef SIGIOT
     SIGIOT,
 #endif
@@ -533,6 +612,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
     global_child_watchdog_timeout = (double)child_watchdog_timeout_int;
   while(1) {
     int heartno = 0;
+    const char *thrname = NULL;
     double ltt = 0;
     /* This sets up things so we start alive */
     it_ticks_zero(NULL);
@@ -569,16 +649,17 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
       setup_signals(&mysigs);
       mtev_monitored_child_pid = child_pid;
       while(1) {
-        int status, rv;
+        int status, rv, hcs;
         if(sigwait(&mysigs, &sig) == -1) {
           mtevL(mtev_error, "[monitor] sigwait error: %s\n", strerror(errno));
           continue;
         }
         const char *signame = NULL;
         switch(sig) {
-          case SIGTERM: if(!signame) signame = "SIGTERM";
-          case SIGQUIT: if(!signame) signame = "SIGQUIT";
-          case SIGINT:  if(!signame) signame = "SIGINT";
+          case SIGTERM:
+          case SIGQUIT:
+          case SIGINT:
+            signame = short_strsignal(sig);
             mtevL(mtev_error, "[monitor] received signal %s, shutting down.\n", signame);
             if(mtev_monitored_child_pid > 0) kill(mtev_monitored_child_pid, sig);
             exit(0);
@@ -607,9 +688,18 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
               if(WIFSTOPPED(status)) {
                 mtevL(mtev_error, "[monitor] %s %d has stopped.\n", app, rv);
                 if(it_ticks_crashed(NULL) && crashing_pid == -1) {
+                  mtev_watchdog_t *hb = find_stopped_heart();
                   crashing_pid = mtev_monitored_child_pid;
-                  mtevL(mtev_error, "[monitor] %s %d has crashed.\n", app, crashing_pid);
-                  run_glider(crashing_pid, GLIDE_CRASH);
+                  if(hb) {
+                    mtevL(mtev_error, "[monitor] %s %d has watchdogged.\n", app, crashing_pid);
+                    run_glider(crashing_pid, GLIDE_WATCHDOG, hb->name[0] ? hb->name : NULL);
+                  } else {
+                    char sigval[12];
+                    const char *signame = short_strsignal(mmap_lifelines[0].sig);
+                    snprintf(sigval, sizeof(sigval), "%d", mmap_lifelines[0].sig);
+                    mtevL(mtev_error, "[monitor] %s %d has crashed.\n", app, crashing_pid);
+                    run_glider(crashing_pid, GLIDE_CRASH, signame ? signame : sigval);
+                  }
                   kill(crashing_pid, SIGCONT);
                 }
               } else {
@@ -652,20 +742,27 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
               goto out_loop2;
             }
             else if(mtev_monitored_child_pid == child_pid &&
-                    mtev_heartcheck(&ltt, &heartno)) {
-              mtevL(mtev_error,
-                    "[monitor] Watchdog timeout on heart#%d (%f s)... terminating child\n",
-                    heartno, ltt);
-              if(glider_path) {
-                kill(child_pid, SIGSTOP);
-                run_glider(child_pid, GLIDE_WATCHDOG);
-                kill(child_pid, SIGCONT);
-              }
-              kill(child_pid, SIGKILL);
-              mtev_monitored_child_pid = -1;
-              if(!allow_async_dumps) {
-                crashing_pid = child_pid;
-                goto out_loop2;
+                    (hcs = mtev_heartcheck(&ltt, &heartno, &thrname))) {
+              if(hcs == 1) {
+                mtevL(mtev_error,
+                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... requesting termination\n",
+                      heartno, thrname ? thrname : "unnamed", ltt);
+                kill(child_pid, SIGUSR2);
+              } else {
+                mtevL(mtev_error,
+                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... terminating child\n",
+                      heartno, thrname ? thrname : "unnamed", ltt);
+                if(glider_path) {
+                  kill(child_pid, SIGSTOP);
+                  run_glider(child_pid, GLIDE_WATCHDOG, thrname);
+                  kill(child_pid, SIGCONT);
+                }
+                kill(child_pid, SIGKILL);
+                mtev_monitored_child_pid = -1;
+                if(!allow_async_dumps) {
+                  crashing_pid = child_pid;
+                  goto out_loop2;
+                }
               }
             }
             mtev_log_reopen_type("file");
@@ -703,6 +800,7 @@ mtev_watchdog_t *mtev_watchdog_create(void) {
     if(lifeline->active == HEART_ACTIVE_OFF) {
       lifeline->active = HEART_ACTIVE_ON;
       mtevL(mtev_debug, "activating heart: %d\n", i);
+      lifeline->thread = pthread_self();
       return lifeline;
     }
   }
@@ -712,7 +810,35 @@ mtev_watchdog_t *mtev_watchdog_create(void) {
 void mtev_watchdog_enable(mtev_watchdog_t *lifeline) {
   if(lifeline == NULL) lifeline = mmap_lifelines;
   mtev_watchdog_heartbeat(lifeline);
+  lifeline->thread = pthread_self();
   lifeline->active = HEART_ACTIVE_ON;
+}
+void mtev_watchdog_set_name(mtev_watchdog_t *lifeline, const char *name) {
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  if(name == NULL) {
+    lifeline->name[0] = '\0';
+    return;
+  }
+  const char *cp = name;
+  char *outp = lifeline->name;
+  while(*cp && (outp - lifeline->name) < (ssize_t)sizeof(lifeline->name) - 2) {
+    if((*cp >= 'a' && *cp <= 'z') ||
+       (*cp >= 'A' && *cp <= 'Z') ||
+       (*cp >= '0' && *cp <= '9') ||
+       *cp == ':' || *cp == '/' || *cp == '-' || *cp == '_') {
+      *outp++ = *cp;
+    }
+    else {
+      *outp++ = '_';
+    }
+    cp++;
+  }
+  *outp = '\0';
+}
+const char *mtev_watchdog_get_name(mtev_watchdog_t *lifeline) {
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  if(lifeline->name[0] == '\0') return NULL;
+  return lifeline->name;
 }
 void mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout) {
   if(lifeline == NULL) lifeline = mmap_lifelines;

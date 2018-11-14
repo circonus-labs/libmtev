@@ -580,6 +580,7 @@ static void *thrloopwrap(void *vid) {
   mtev_memory_init_thread();
   eventer_set_thread_name(thr_name);
   eventer_per_thread_init(t);
+  mtev_watchdog_set_name(t->hb, thr_name);
 
   ck_pr_inc_32(&__total_loops_waiting);
   mtevL(mtev_debug, "eventer_loop(%s) started\n", thr_name);
