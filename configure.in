@@ -613,7 +613,7 @@ int main(void){
 
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS(ssetugid strlcpy strnstrn openpty inet_pton inet_ntop getopt \
-	poll vasprintf strlcat strndup vasprintf)
+	poll vasprintf strlcat strndup vasprintf pthread_sigqueue)
 
 # Checks for header files.
 AC_CHECK_HEADERS(sys/file.h sys/types.h dirent.h sys/param.h fcntl.h errno.h limits.h \
