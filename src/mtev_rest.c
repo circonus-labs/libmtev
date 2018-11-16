@@ -305,6 +305,9 @@ mtev_http_get_websocket_handler(mtev_http_rest_closure_t *restc)
 
 static rest_request_handler
 mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
+  /* This function is short-circuited by setting fastpath, which it does */
+  if(restc->fastpath) return restc->fastpath;
+
   struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
   if (rule != NULL) {
       /* We match, set 'er up */
@@ -315,10 +318,17 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
     restc->fastpath = rule->handler;
     restc->closure = rule->closure;
     restc->aco_enabled = rule->aco_enabled;
-    if(rule->pool) {
+    *migrate = mtev_false;
+    if(!mtev_http_session_aco(restc->http_ctx)) {
+      /* If we've started ACO, we can migrate to a new eventer thread */
       eventer_t e = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
       if(e) {
-        eventer_set_owner(e, eventer_choose_owner_pool(rule->pool, rule->pool_rr++));
+        if(rule->pool) {
+          eventer_set_owner(e, eventer_choose_owner_pool(rule->pool, rule->pool_rr++));
+        }
+        else {
+          eventer_set_owner(e, eventer_choose_owner(rule->pool_rr++));
+        }
         *migrate = !pthread_equal(eventer_get_owner(e), pthread_self());
       }
     }
@@ -584,6 +594,7 @@ mtev_rest_aco_handler(void) {
   eventer_func_t orig_callback = eventer_get_callback(newe);
   void *closure = eventer_get_closure(newe);
 
+  mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_true);
   eventer_set_eventer_aco(newe);
 
   struct timeval now;
@@ -592,6 +603,7 @@ mtev_rest_aco_handler(void) {
 
   /* Put this event back out of aco mode. */
   eventer_set_eventer_aco_co(newe, NULL);
+  mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_false);
 
   /* trigger the event */
   eventer_add_timer_next_opportunity(next_tick_resume, conne, pthread_self());
@@ -609,11 +621,12 @@ mtev_rest_aco_session_continue(eventer_t e, int mask, void *closure, struct time
 }
 int
 mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
-  mtev_boolean migrate = mtev_false, aco_setup = mtev_false;;
+  mtev_boolean migrate = mtev_false;
   mtev_http_rest_closure_t *restc = mtev_http_session_dispatcher_closure(ctx);
   rest_request_handler handler = restc->fastpath;
-  aco_setup = (restc->fastpath != NULL);
   if(!handler) handler = mtev_http_get_handler(restc, &migrate);
+  /* mtev_http_get_handler sets restc->fastpath, and upon re-entering this function
+   * we will avoid a second call to mtev_http_het_handler. */
   if(migrate) return EVENTER_READ|EVENTER_WRITE;
   if(!handler) {
     mtev_http_response_status_set(ctx, 404, "NOT FOUND");
@@ -622,7 +635,20 @@ mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
     mtev_http_response_end(ctx);
     return 0;
   }
-  if(!aco_setup && restc->aco_enabled) {
+  /* If this rest endpoint is aco enabled, we have some serious shenanigans to pull,
+   * but only if the session isn't already in the ACO state.  If it is in the ACO state
+   * we should just pretend it is a normal endpoint and trust that we're in this function
+   * within the callstack of a coroutine.
+   */
+  if(!mtev_http_session_aco(restc->http_ctx) && restc->aco_enabled) {
+    /* This is the shenanigans to quit out of the encapsulating
+     * http session driver (by floating and returning 0).
+     * We schedule the session continuation which will start a coroutine
+     * and run the original http session driver again within the
+     * context of a coroutine and when we re-enter here,
+     * while we'll match the second predicate, we'll fail the first
+     * and receive normal service instead.
+     */
     mtev_http_connection *conne = mtev_http_session_connection(ctx);
     eventer_t olde = mtev_http_connection_event_float(conne);
     eventer_remove_fde(olde);

@@ -153,6 +153,7 @@ struct mtev_http_session_ctx {
   int64_t drainage;
   pthread_mutex_t write_lock;
   size_t max_write;
+  mtev_boolean aco_enabled;
   mtev_http_connection conn;
   mtev_http_request req;
   mtev_http_response res;
@@ -360,6 +361,14 @@ request_compression_type(mtev_http_request *req)
   return MTEV_COMPRESS_NONE;
 }
 
+void
+mtev_http_session_set_aco(mtev_http_session_ctx *ctx, mtev_boolean nv) {
+  ctx->aco_enabled = nv;
+}
+mtev_boolean
+mtev_http_session_aco(mtev_http_session_ctx *ctx) {
+  return ctx->aco_enabled;
+}
 mtev_http_request *
 mtev_http_session_request(mtev_http_session_ctx *ctx) {
   return &ctx->req;
