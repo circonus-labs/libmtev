@@ -103,7 +103,7 @@ static int upload_handler(mtev_http_rest_closure_t *restc,
   mtev_http_session_ctx *ctx = restc->http_ctx;
   int64_t size;
   int mask;
-  if(!mtev_rest_complete_upload(restc, &mask)) return mask;
+  mtevAssert(mtev_rest_complete_upload(restc, &mask));
   const void *buffer = mtev_http_request_get_upload(mtev_http_session_request(ctx), &size);
   (void)buffer;
 
