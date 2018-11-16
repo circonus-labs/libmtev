@@ -564,7 +564,6 @@ mtev_rest_websocket_dispatcher(mtev_http_session_ctx *ctx, uint8_t opcode, const
 
 struct mtev_rest_aco_ctx_t {
   mtev_http_session_ctx *http_ctx;
-  rest_request_handler handler;
 };
 static int
 next_tick_resume(eventer_t e, int mask, void *closure, struct timeval *now) {
@@ -581,17 +580,15 @@ mtev_rest_aco_handler(void) {
   /* First set this event into aco mode. */
   mtev_http_connection *conne = mtev_http_session_connection(aco_ctx->http_ctx);
   eventer_t newe = mtev_http_connection_event(conne);
+
+  eventer_func_t orig_callback = eventer_get_callback(newe);
+  void *closure = eventer_get_closure(newe);
+
   eventer_set_eventer_aco(newe);
 
-  /* Call our handler. */
-  mtev_http_rest_closure_t *restc = mtev_http_session_dispatcher_closure(aco_ctx->http_ctx);
-  
-  void *old_closure = restc, *new_closure;
-  mtev_http_response *res = mtev_http_session_response(aco_ctx->http_ctx);
-  aco_ctx->handler(restc, restc->nparams, restc->params);
-  new_closure = mtev_http_session_dispatcher_closure(aco_ctx->http_ctx);
-  if(old_closure == new_closure &&
-     mtev_http_response_closed(res)) mtev_http_rest_clean_request(restc);
+  struct timeval now;
+  mtev_gettimeofday(&now, NULL);
+  orig_callback(newe, EVENTER_READ|EVENTER_WRITE, closure, &now);
 
   /* Put this event back out of aco mode. */
   eventer_set_eventer_aco_co(newe, NULL);
@@ -601,11 +598,21 @@ mtev_rest_aco_handler(void) {
   free(aco_ctx);
   aco_exit();
 }
+static int
+mtev_rest_aco_session_continue(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  struct mtev_rest_aco_ctx_t *aco_ctx = closure;
+  eventer_aco_start(mtev_rest_aco_handler, aco_ctx);
+  return 0;
+}
 int
 mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
-  mtev_boolean migrate = mtev_false;
+  mtev_boolean migrate = mtev_false, aco_setup = mtev_false;;
   mtev_http_rest_closure_t *restc = mtev_http_session_dispatcher_closure(ctx);
   rest_request_handler handler = restc->fastpath;
+  aco_setup = (restc->fastpath != NULL);
   if(!handler) handler = mtev_http_get_handler(restc, &migrate);
   if(migrate) return EVENTER_READ|EVENTER_WRITE;
   if(!handler) {
@@ -615,14 +622,13 @@ mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
     mtev_http_response_end(ctx);
     return 0;
   }
-  if(restc->aco_enabled) {
+  if(!aco_setup && restc->aco_enabled) {
     mtev_http_connection *conne = mtev_http_session_connection(ctx);
     eventer_t olde = mtev_http_connection_event_float(conne);
     eventer_remove_fde(olde);
     struct mtev_rest_aco_ctx_t *aco_ctx = calloc(1, sizeof(*aco_ctx));
     aco_ctx->http_ctx = ctx;
-    aco_ctx->handler = handler;
-    eventer_aco_start(mtev_rest_aco_handler, aco_ctx);
+    eventer_add_timer_next_opportunity(mtev_rest_aco_session_continue, aco_ctx, pthread_self());
     return 0;
   }
   void *old_closure = restc, *new_closure;

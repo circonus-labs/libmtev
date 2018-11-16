@@ -714,6 +714,7 @@ void eventer_impl_init_globals(void) {
   eventer_name_callback_ext("periodic_jobq_maintenance",
                             periodic_jobq_maintenance,
                             periodic_jobq_maintenance_namer, NULL);
+  eventer_aco_init();
   mtev_hash_init(&eventer_pools);
 
   pool_ns = mtev_stats_ns(eventer_stats_ns, "pool");

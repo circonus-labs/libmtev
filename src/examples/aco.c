@@ -80,6 +80,38 @@ void subcall1(mtev_http_rest_closure_t *restc) {
   subcall2(restc);
   mtevL(mtev_debug, "subcall1 return\n");
 }
+static int upload_handler_no_aco(mtev_http_rest_closure_t *restc,
+                           int npats, char **pats) {
+  (void)npats;
+  (void)pats;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  int64_t size;
+  int mask;
+  if(!mtev_rest_complete_upload(restc, &mask)) return mask;
+  const void *buffer = mtev_http_request_get_upload(mtev_http_session_request(ctx), &size);
+  (void)buffer;
+
+  mtev_http_response_ok(ctx, "text/plain");
+  mtev_http_response_appendf(ctx, "read %zd bytes...\n", size);
+  mtev_http_response_end(ctx);
+  return 0;
+}
+static int upload_handler(mtev_http_rest_closure_t *restc,
+                          int npats, char **pats) {
+  (void)npats;
+  (void)pats;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  int64_t size;
+  int mask;
+  mtevAssert(mtev_rest_complete_upload(restc, &mask));
+  const void *buffer = mtev_http_request_get_upload(mtev_http_session_request(ctx), &size);
+  (void)buffer;
+
+  mtev_http_response_ok(ctx, "text/plain");
+  mtev_http_response_appendf(ctx, "read %zd bytes...\n", size);
+  mtev_http_response_end(ctx);
+  return 0;
+}
 static int hello_handler(mtev_http_rest_closure_t *restc,
                          int npats, char **pats) {
   (void)npats;
@@ -158,6 +190,15 @@ child_main(void) {
     "GET", "/", "^hello$", hello_handler
   );
   mtev_rest_mountpoint_set_auth(rule, mtev_http_rest_client_cert_auth);
+  mtev_rest_mountpoint_set_aco(rule, mtev_true);
+
+  rule = mtev_http_rest_new_rule(
+    "POST", "/", "^upload2$", upload_handler_no_aco
+  );
+
+  rule = mtev_http_rest_new_rule(
+    "POST", "/", "^upload$", upload_handler
+  );
   mtev_rest_mountpoint_set_aco(rule, mtev_true);
 
   mtev_http_rest_register_auth(

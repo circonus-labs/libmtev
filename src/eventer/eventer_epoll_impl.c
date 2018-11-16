@@ -233,9 +233,9 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
     if(e->mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
     if(e->mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
     if(e->mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
-    mtevL(eventer_deb, "epoll_ctl(%d, %s, %d)\n", spec->epoll_fd,
+    mtevL(eventer_deb, "epoll_ctl(%d, %s, %d) -> %x\n", spec->epoll_fd,
 	  ctl_op == EPOLL_CTL_ADD ? "add" : "mod",
-	  e->fd);
+	  e->fd, e->mask);
     int epoll_rv = epoll_ctl(spec->epoll_fd, ctl_op, e->fd, &_ev);
     if(epoll_rv != 0 &&
        ((ctl_op == EPOLL_CTL_ADD && errno == EEXIST) ||
@@ -406,7 +406,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         int epoll_rv;
         int epoll_cmd = (e->mask == 0 || needs_add) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
         spec = eventer_get_spec_for_event(e);
-        mtevL(eventer_deb, "epoll_ctl(%d, %s, %d)\n", spec->epoll_fd, epoll_cmd == EPOLL_CTL_ADD ? "add" : "mod", fd);
+        mtevL(eventer_deb, "epoll_ctl(%d, %s, %d) => %x\n", spec->epoll_fd, epoll_cmd == EPOLL_CTL_ADD ? "add" : "mod", fd, e->mask);
         epoll_rv = epoll_ctl(spec->epoll_fd, epoll_cmd, fd, &_ev);
         if(epoll_rv != 0 &&
            ((epoll_cmd == EPOLL_CTL_ADD && errno == EEXIST) ||

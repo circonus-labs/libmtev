@@ -214,6 +214,7 @@ stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f);
 
 int eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name);
 void eventer_jobq_ping(eventer_jobq_t *jobq);
+void eventer_aco_init(void);
 void *eventer_aco_get_opset_ctx(void *closure);
 struct _fd_opset *eventer_aco_get_opset(void *closure);
 int eventer_aco_shutdown(aco_t *co);
