@@ -205,7 +205,10 @@ void eventer_update_whence(eventer_t e, struct timeval t) {
 }
 
 pthread_t eventer_get_owner(eventer_t e) { return e->thr_owner; }
-void eventer_set_owner(eventer_t e, pthread_t t) { e->thr_owner = t; }
+void eventer_set_owner(eventer_t e, pthread_t t) {
+  if(e->opset == eventer_aco_fd_opset) return;
+  e->thr_owner = t;
+}
 
 eventer_func_t eventer_get_callback(eventer_t e) { return e->callback; }
 void eventer_set_callback(eventer_t e, eventer_func_t f) { e->callback = f; }

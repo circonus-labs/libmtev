@@ -104,6 +104,10 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_http_session_trigger(mtev_http_session_ctx *, int state);
 
+API_EXPORT(void)
+  mtev_http_session_set_aco(mtev_http_session_ctx *, mtev_boolean nv);
+API_EXPORT(mtev_boolean)
+  mtev_http_session_aco(mtev_http_session_ctx *);
 API_EXPORT(mtev_http_request *)
   mtev_http_session_request(mtev_http_session_ctx *);
 API_EXPORT(mtev_http_response *)
