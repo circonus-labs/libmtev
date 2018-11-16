@@ -95,6 +95,25 @@ eventer_aco_callback_wrapper(eventer_t e, int mask, void *closure, struct timeva
   return ctx->mask;
 }
 
+static void
+eventer_aco_namer(char *buf, int buflen, eventer_t e, void *cl) {
+  (void)cl;
+  aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx;
+  if(info->original_callback == eventer_aco_callback_wrapper) {
+    snprintf(buf, buflen, "eventer_aco_callback_wrapper");
+  }
+  else {
+    snprintf(buf, buflen, "%s",
+             eventer_name_for_callback_e(info->original_callback, e));
+  }
+}
+void
+eventer_aco_init(void) {
+  eventer_name_callback_ext("eventer_aco_callback_wrapper",
+                            eventer_aco_callback_wrapper,
+                            eventer_aco_namer, NULL);
+}
+
 eventer_aco_t
 eventer_set_eventer_aco_co(eventer_t e, aco_t *co) {
   if(co == NULL) {
