@@ -90,6 +90,7 @@ eventer_aco_callback_wrapper(eventer_t e, int mask, void *closure, struct timeva
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx;
   struct aco_cb_ctx *ctx = info->aco_co->arg;
   mtevAssert(pthread_equal(e->thr_owner, pthread_self()));
+  mtevL(eventer_deb, "eventer resuming on (%d)\n", e->fd);
   if(!eventer_aco_resume(info->aco_co)) return 0;
   return ctx->mask;
 }
@@ -248,7 +249,9 @@ priv_aco_##name params { \
       e->mask = *mask; \
       ctx->mask = *mask; \
       if(!added) { eventer_add(e); added = 1; } \
+      mtevL(eventer_deb, #name"(%d) causing yield\n", e->fd); \
       aco_yield(); \
+      mtevL(eventer_deb, #name"(%d) resumed\n", e->fd); \
       if(ctx->private_errno == ETIME) { \
         errno = ctx->private_errno; \
         ctx->private_errno = 0; \
