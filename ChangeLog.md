@@ -4,6 +4,15 @@
 
 ## 1.5
 
+### 1.5.x
+
+ * Fix support for aco-style REST handlers. This bug manifested as failed
+   upload support.
+ * Rearchitect the watchdog timeouts to allow children to cooperate and signal
+   into the correct thread so we get a SIGTRAP-induced stack trace from the
+   offending thread. (only systems with pthread_sigqueue, like Linux).
+ * Articulate in logs and in glider invocation which thread watchdogged.
+
 ### 1.5.23
 
  * Do not block thread exit for SMR, instead disown the return queue and
