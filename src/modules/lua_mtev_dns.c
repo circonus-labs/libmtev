@@ -534,9 +534,13 @@ static int mtev_lua_dns_lookup(lua_State *L) {
       dlc->error = strdup("submission error");
     }
     else {
-      struct timeval now;
-      mtev_gettimeofday(&now, NULL);
-      dns_timeouts(dlc->h->ctx, -1, now.tv_sec);
+      /* There is potential that dlc->h was set to NULL as a side-effet of the
+       * dns_cb callback within dns_submit_db in the prior predicate */
+      if(dlc->h) {
+        struct timeval now;
+        mtev_gettimeofday(&now, NULL);
+        dns_timeouts(dlc->h->ctx, -1, now.tv_sec);
+      }
     }
   }
   if(dlc->error) {
