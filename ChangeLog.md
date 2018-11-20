@@ -4,10 +4,12 @@
 
 ## 1.5
 
-### 1.5.x
+### 1.5.24
 
+ * Fix DNS fast failures in lua could cause null pointer dereference.
  * Fix support for aco-style REST handlers. This bug manifested as failed
    upload support.
+ * Fix naming of aco events.  They now report the underlying event.
  * Rearchitect the watchdog timeouts to allow children to cooperate and signal
    into the correct thread so we get a SIGTRAP-induced stack trace from the
    offending thread. (only systems with pthread_sigqueue, like Linux).
