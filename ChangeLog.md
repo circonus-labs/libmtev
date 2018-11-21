@@ -4,6 +4,11 @@
 
 ## 1.5
 
+### 1.5.25
+
+ * Fix hangs in HTTP content upload when clients paused in the middle
+   of a block (bug introduced in 1.5.24)
+
 ### 1.5.24
 
  * Fix DNS fast failures in lua could cause null pointer dereference.
