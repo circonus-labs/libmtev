@@ -1321,7 +1321,12 @@ mtev_http_session_req_consume_read(mtev_http_session_ctx *ctx,
     }
     /* pull next chunk */
     if (ctx->conn.e == NULL) return -1;
-    if(ctx->req.first_input && ctx->req.first_input->size) break;
+    if(mtev_http_session_aco(ctx) &&
+       ctx->req.payload_chunked == mtev_false &&
+       ctx->req.first_input && ctx->req.first_input->size) {
+      next_chunk = head->size;
+      goto successful_chunk_size;
+    }
     rlen = eventer_read(ctx->conn.e,
                         tail->buff + tail->start + tail->size,
                         tail->allocd - tail->size - tail->start, mask);
