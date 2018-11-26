@@ -79,7 +79,6 @@ static stats_handle_t *safe_frees_completed;
 static stats_handle_t *safe_frees_requested;
 
 struct asynch_reclaim {
-  ck_epoch_record_t *owner;
   ck_stack_t pending[CK_EPOCH_LENGTH];
   gc_asynch_queue_t *gc_return;
 };
@@ -90,7 +89,6 @@ static void
 mtev_memory_queue_asynch(void) {
   struct asynch_reclaim *ar;
   ar = malloc(sizeof(*ar));
-  ar->owner = epoch_rec;
   ar->gc_return = gc_return;
   memcpy(ar->pending, epoch_rec->pending, sizeof(ar->pending));
   memset(epoch_rec->pending, 0, sizeof(ar->pending));
@@ -133,9 +131,12 @@ mtev_boolean mtev_memory_thread_initialized(void) {
 
 void mtev_memory_init_thread(void) {
   if(epoch_rec == NULL) {
+    epoch_rec = ck_epoch_recycle(&epoch_ht, NULL);
     mtevL(mem_debug, "mtev_memory_init_thread()\n");
-    epoch_rec = malloc(sizeof(*epoch_rec));
-    ck_epoch_register(&epoch_ht, epoch_rec, NULL);
+    if(epoch_rec == NULL) {
+      epoch_rec = malloc(sizeof(*epoch_rec));
+      ck_epoch_register(&epoch_ht, epoch_rec, NULL);
+    }
   }
   if(gc_return == NULL) {
     gc_return = calloc(1, sizeof(*gc_return));
