@@ -67,11 +67,11 @@ __thread stats_handle_t *eventer_callback_pool_latency;
 
 static void *thrloopwrap(void *);
 
-static unsigned long __ck_hash_from_uint64(const void *key, unsigned long seed) {
-  return (*(uint64_t *)key) ^ seed;
+static unsigned long __ck_hash_from_ptr(const void *key, unsigned long seed) {
+  return (uintptr_t)key ^ seed;
 }
-static bool __ck_hash_compare_uint64(const void *a, const void *b) {
-  return *(uint64_t *)a == *(uint64_t *)b;
+static bool __ck_hash_compare_ptr(const void *a, const void *b) {
+  return a == b;
 }
 static void * gen_malloc(size_t r) { return malloc(r); }
 
@@ -555,8 +555,8 @@ static void eventer_aco_setup(struct eventer_impl_data *t) {
     t->aco_main_co = aco_create(NULL, NULL, 0, NULL, NULL);
     t->aco_registry = calloc(1, sizeof(*t->aco_registry));
     if(ck_hs_init(t->aco_registry,
-                  CK_HS_MODE_DIRECT | CK_HS_MODE_DELETE | CK_HS_MODE_SPMC,
-                  __ck_hash_from_uint64, __ck_hash_compare_uint64,
+                  CK_HS_MODE_OBJECT | CK_HS_MODE_DELETE | CK_HS_MODE_SPMC,
+                  __ck_hash_from_ptr, __ck_hash_compare_ptr,
                   &malloc_ck_hs, 100, mtev_rand()) == false) {
       mtevFatal(mtev_error, "Cannot initialize ck_hs (aco_registry)\n");
     }
@@ -1374,8 +1374,7 @@ void eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz) {
   ctx->closure = closure;
   aco_t *co = aco_create(t->aco_main_co, t->aco_sstk, stksz, func, ctx);
   void *prevco;
-  uintptr_t coptr = (uintptr_t)co;
-  unsigned long hash = CK_HS_HASH(t->aco_registry, __ck_hash_from_uint64, &coptr);
+  unsigned long hash = CK_HS_HASH(t->aco_registry, __ck_hash_from_ptr, co);
   mtevEvalAssert(ck_hs_set(t->aco_registry, hash, co, &prevco));
   mtevAssert(prevco == NULL);
   (void)eventer_aco_resume(co);
@@ -1388,9 +1387,8 @@ int eventer_aco_shutdown(aco_t *co) {
   struct eventer_impl_data *t = get_my_impl_data();
   mtevAssert(t);
   free(co->arg);
-  uintptr_t coptr = (uintptr_t)co;
-  unsigned long hash = CK_HS_HASH(t->aco_registry, __ck_hash_from_uint64, &coptr);
-  ck_hs_remove(t->aco_registry, hash, co);
+  unsigned long hash = CK_HS_HASH(t->aco_registry, __ck_hash_from_ptr, co);
+  mtevEvalAssert(ck_hs_remove(t->aco_registry, hash, co));
   aco_destroy(co);
   return 0;
 }
