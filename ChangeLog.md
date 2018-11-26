@@ -4,6 +4,11 @@
 
 ## 1.5
 
+### 1.5.26
+
+ * Fix ACO registry mismanagement causing crashes.
+ * Fix leak of `ck_epoch_record` on thread termination.
+
 ### 1.5.25
 
  * Fix hangs in HTTP content upload when clients paused in the middle
