@@ -4464,6 +4464,14 @@ before <code>mtev_main</code> and will be overridden by the MTEV_ASYNCH_CORE_DUM
 <li><code>hb</code> the heart on which to act</li>
 </ul>
 <p>mtev_watchdog_enable will make the parent respect and act on failed heartbeats.</p>
+<h4 id="mtevwatchdoggetname">mtev_watchdog_get_name</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">mtev_watchdog_get_name</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
+</span></code></pre>
+<ul>
+<li><code>hb</code> the heart from which to retrieve a name</li>
+<li><strong>RETURN</strong> the name of the heart (or NULL)</li>
+</ul>
 <h4 id="mtevwatchdoggettimeout">mtev_watchdog_get_timeout</h4>
 <blockquote>
 <p>returns the timeout configured for this watchdog.</p>
@@ -4559,6 +4567,14 @@ mtev_watchdog_recurrent_heartbeat(<span class="hljs-keyword">mtev_watchdog_t</sp
 <li><strong>RETURN</strong> Returns and event that the caller must schedule.</li>
 </ul>
 <p>mtev_watchdog_recurrent_heartbeat creates a recurrent eventer_t to beat a heart.</p>
+<h4 id="mtevwatchdogsetname">mtev_watchdog_set_name</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_watchdog_set_name</span><span class="hljs-params">(mtev_watchdog_t *hb, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)</span>
+</span></code></pre>
+<ul>
+<li><code>hb</code> the heart to name</li>
+<li><code>name</code> a new name for this heart</li>
+</ul>
 <h4 id="mtevwatchdogstartchild">mtev_watchdog_start_child</h4>
 <blockquote>
 <p>Starts a function as a separate child under close watch.</p>

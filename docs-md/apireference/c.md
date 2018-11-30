@@ -5148,6 +5148,17 @@ mtev_watchdog_enable(mtev_watchdog_t *hb)
 mtev_watchdog_enable will make the parent respect and act on failed heartbeats.
  
 
+#### mtev_watchdog_get_name
+
+```c
+const char *
+mtev_watchdog_get_name(mtev_watchdog_t *hb)
+```
+
+  * `hb` the heart from which to retrieve a name
+  * **RETURN** the name of the heart (or NULL)
+ 
+
 #### mtev_watchdog_get_timeout
 
 >returns the timeout configured for this watchdog.
@@ -5273,6 +5284,17 @@ mtev_watchdog_recurrent_heartbeat(mtev_watchdog_t *hb)
   * **RETURN** Returns and event that the caller must schedule.
 
 mtev_watchdog_recurrent_heartbeat creates a recurrent eventer_t to beat a heart.
+ 
+
+#### mtev_watchdog_set_name
+
+```c
+void
+mtev_watchdog_set_name(mtev_watchdog_t *hb, const char *name)
+```
+
+  * `hb` the heart to name
+  * `name` a new name for this heart
  
 
 #### mtev_watchdog_start_child

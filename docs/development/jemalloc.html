@@ -607,9 +607,14 @@
                                 <h1 id="jemalloc">jemalloc</h1>
 <p>libmtev has some special support available if you are running with the jemalloc
 allocator loaded.</p>
+<blockquote>
+<p>Note that if your application isn&apos;t directly linked with jemalloc, libmtev will
+still notice its presence at run-time if loaded via <code>LD_PRELOAD</code>.  So, the following
+can be used in conjunction with an operator&apos;s force loading of libjemalloc.so</p>
+</blockquote>
 <h2 id="malloc-statistics">malloc statistics.</h2>
 <p>Malloc statistics (in JSON) are available at the URL: <code>/mtev/memory.json</code></p>
-<h2 id="heap-profiling">Heap Profiling</h2>
+<h2 id="activating-jemalloc-profiling">Activating jemalloc profiling</h2>
 <p>To perform heap profiling you must have jemalloc heap profiling enabled 
 via environment variable:</p>
 <p><code>export MALLOC_CONF=&quot;prof:true,prof_active:false&quot;</code></p>
@@ -619,11 +624,16 @@ via environment variable:</p>
 <p><code>/mtev/heap_profile?active=true</code></p>
 <p>This will turn on profiling from that moment until you disable it via:</p>
 <p><code>/mtev/heap_profile?active=false</code></p>
+<p>In a variety of cases, it might be desirable to have profiling active from the point
+of application start.  To do this set <code>prof_active:true</code> in the <code>MALLOC_CONF</code>.</p>
+<h2 id="heap-profiling">Heap Profiling</h2>
 <p>To get periodic heap profile dumps from your running application do:</p>
 <p><code>curl yourmachine:yourport/mtev/heap_profile?trigger_dump=true &gt; profile.prof</code></p>
 <p>This will spit back jeprof format heap information which can then be passed
-to the <code>jeprof</code> analysis program for further analysis:</p>
-<p><code>jeprof /path/to/your/executable profile.prof</code></p>
+to the <code>jeprof</code> analysis program for further analysis.  For example, to show
+allocations by source code line, but from a perspective outside of libmtev&apos;s use of
+SMR (<code>mtev_memory_</code>) and libck&apos;s hash tables (<code>ck_hs_</code>), one could run:</p>
+<p><code>jeprof --text --lines --exclude=&apos;(mtev_memory_|ck_hs_)&apos; /path/to/your/executable profile.prof</code></p>
 <p>For more information on jemalloc heap profiling, see here: <a href="https://github.com/jemalloc/jemalloc/wiki/Use-Case%3A-Heap-Profiling" target="_blank">jemalloc heap profiling</a></p>
 
                                 
