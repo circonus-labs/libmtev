@@ -305,13 +305,12 @@ borrow_free_node(mtev_intern_pool_t *pool,
   struct mtev_intern_free_node *n;
 
   mtev_plock_take_r(&l->lock);
-  n = l->head;
+  n = ck_pr_load_ptr(&l->head);
   if(!n) {
      mtev_plock_drop_r(&l->lock);
     return NULL;
   }
   assert(len > 8);        // header
-  assert(len <= n->size); // not too big
   assert((len & 3) == 0); // aligned
 
 retry:
@@ -334,7 +333,7 @@ retry:
   }
   /* we reacquire head, because someone might have done stuff between
    * our drop_r and take_s */
-  n = l->head;
+  n = ck_pr_load_ptr(&l->head);
   /* so much so, that we could have no list at all anymore */
   if(!n) {
     mtev_plock_drop_s(&l->lock);
@@ -349,12 +348,12 @@ retry:
   /* but now we have the real deal... a node that will require reinsertion
    * at another level once we've taken out part... take a 'W' and steal head */
   mtev_plock_stow(&l->lock);
-  l->head = l->head->next;
+  l->head = ck_pr_load_ptr(&n->next);
   mtev_plock_drop_w(&l->lock);
   ck_pr_dec_32(&l->cnt);
   /* n is now exclusively ours */
-  oldsize = n->size;
-  n->size -= len;
+  oldsize = ck_pr_load_64(&n->size);
+  n->size = oldsize - len;
   void *rv = n->base + oldsize - len;
   if(n->size == 0) {
     /* If there is nothing left, we can give this fragment back */
