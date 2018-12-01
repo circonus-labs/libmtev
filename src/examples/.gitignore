@@ -5,3 +5,8 @@ websocket_server
 websocket_client
 echo_client
 echo_server
+.mtev.console
+*.crt
+*.csr
+*.key
+demoCA/

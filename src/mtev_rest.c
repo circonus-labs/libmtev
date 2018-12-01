@@ -34,6 +34,8 @@
 #include "mtev_defines.h"
 #include "mtev_listener.h"
 #include "mtev_http.h"
+#include "mtev_http1.h"
+#include "mtev_http2.h"
 #include "mtev_rest.h"
 #include "mtev_conf.h"
 #include "mtev_json.h"
@@ -318,8 +320,8 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
     restc->fastpath = rule->handler;
     restc->closure = rule->closure;
     restc->aco_enabled = rule->aco_enabled;
-    *migrate = mtev_false;
-    if(!mtev_http_session_aco(restc->http_ctx)) {
+    if(migrate) *migrate = mtev_false;
+    if(migrate && !mtev_http_session_aco(restc->http_ctx)) {
       /* If we've started ACO, we can migrate to a new eventer thread */
       eventer_t e = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
       if(e) {
@@ -523,11 +525,25 @@ mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
 }
 
 static mtev_http_rest_closure_t *
-mtev_http_rest_closure_alloc(void) {
+mtev_http_rest_closure_alloc(mtev_http_session_ctx *ctx) {
   mtev_http_rest_closure_t *restc;
   restc = calloc(1, sizeof(*restc));
+  if(ctx) {
+    mtev_acceptor_closure_t *ac = mtev_http_session_acceptor_closure(ctx);
+    const char *remote_cn = mtev_acceptor_closure_remote_cn(ac);
+    restc->http_ctx = ctx;
+    restc->remote_cn = strdup(remote_cn ? remote_cn : "");
+    restc->ac = ac;
+  }
   return restc;
 }
+
+static inline void *
+mtev_http_rest_closure_alloc_as_voidptr(mtev_http_session_ctx *ctx) {
+  return mtev_http_rest_closure_alloc(ctx);
+}
+
+
 void
 mtev_http_rest_clean_request(mtev_http_rest_closure_t *restc) {
   int i;
@@ -582,6 +598,49 @@ next_tick_resume(eventer_t e, int mask, void *closure, struct timeval *now) {
   (void)now;
   mtev_http_connection_resume_after_float((mtev_http_connection *)closure);
   return 0;
+}
+static void
+mtev_rest_http2_aco_handler(void) {
+  struct mtev_rest_aco_ctx_t *aco_ctx = eventer_aco_arg();
+  mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_true);
+
+  mtev_http2_session_resume_aco((mtev_http2_session_ctx *)aco_ctx->http_ctx);
+
+  mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_false);
+  mtev_http_session_ref_dec(aco_ctx->http_ctx);
+  free(aco_ctx);
+  aco_exit();
+}
+static int
+mtev_rest_aco_http2_continue(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  struct mtev_rest_aco_ctx_t *aco_ctx = closure;
+  eventer_aco_start(mtev_rest_http2_aco_handler, aco_ctx);
+  return 0;
+}
+int
+mtev_rest_request_http2_dispatcher(mtev_http_session_ctx *ctx) {
+  mtev_http_rest_closure_t *restc = mtev_http_session_dispatcher_closure(ctx);
+  rest_request_handler handler = restc->fastpath;
+  if(!handler) handler = mtev_http_get_handler(restc, NULL);
+
+  if(!handler) {
+    mtev_http_response_status_set(ctx, 404, "NOT FOUND");
+    mtev_http_rest_clean_request(restc);
+    mtev_http_response_end(ctx);
+    return 0;
+  }
+
+  if(!mtev_http_session_aco(restc->http_ctx) && restc->aco_enabled) {
+    struct mtev_rest_aco_ctx_t *aco_ctx = calloc(1, sizeof(*aco_ctx));
+    mtev_http_session_ref_inc(ctx);
+    aco_ctx->http_ctx = ctx;
+    eventer_add_timer_next_opportunity(mtev_rest_aco_http2_continue, aco_ctx, pthread_self());
+    return 0;
+  }
+  return handler(restc, restc->nparams, restc->params);
 }
 static void
 mtev_rest_aco_handler(void) {
@@ -690,15 +749,15 @@ socket_error:
   if(!restc) {
     const char *primer = "";
     const char *remote_cn = mtev_acceptor_closure_remote_cn(ac);
-    restc = mtev_http_rest_closure_alloc();
+    restc = mtev_http_rest_closure_alloc(NULL);
     mtev_acceptor_closure_set_ctx(ac, restc, mtev_http_rest_closure_free);
     restc->ac = ac;
     restc->remote_cn = strdup(remote_cn ? remote_cn : "");
     restc->http_ctx =
-        mtev_http_session_ctx_websocket_new(mtev_rest_request_dispatcher,
-                                            mtev_rest_websocket_dispatcher, 
-                                            restc, 
-                                            e, ac);
+        mtev_http1_session_ctx_websocket_new(mtev_rest_request_dispatcher,
+                                             mtev_rest_websocket_dispatcher, 
+                                             restc, 
+                                             e, ac);
     
     switch(mtev_acceptor_closure_cmd(ac)) {
       case MTEV_CONTROL_DELETE:
@@ -722,9 +781,36 @@ socket_error:
       default:
         goto socket_error;
     }
-    mtev_http_session_prime_input(restc->http_ctx, primer, 4);
+    mtev_http1_session_prime_input(restc->http1_ctx, primer, 4);
   }
   rv = mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
+  if(done) {
+    mtev_acceptor_closure_free(ac);
+  }
+  return rv;
+}
+
+int
+mtev_http2_rest_raw_handler(eventer_t e, int mask, void *closure,
+                            struct timeval *now) {
+  int done = 0;
+  mtev_acceptor_closure_t *ac = closure;
+  mtev_http2_parent_session *h2 = mtev_acceptor_closure_ctx(ac);
+
+  if(mask & EVENTER_EXCEPTION) {
+    /* Exceptions cause us to simply snip the connection */
+    (void)mtev_http2_session_drive(e, mask, h2, now, &done);
+    mtev_acceptor_closure_free(ac);
+    return 0;
+  }
+
+  if(!h2) {
+    h2 = mtev_http2_parent_session_new(mtev_rest_request_http2_dispatcher,
+                                       mtev_http_rest_closure_alloc_as_voidptr,
+                                       e, ac, 100);
+    mtev_acceptor_closure_set_ctx(ac, h2, mtev_http2_ctx_acceptor_free);
+  }
+  int rv = mtev_http2_session_drive(e, mask, h2, now, &done);
   if(done) {
     mtev_acceptor_closure_free(ac);
   }
@@ -745,13 +831,13 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
     return 0;
   }
   if(!restc) {
-    restc = mtev_http_rest_closure_alloc();
+    restc = mtev_http_rest_closure_alloc(NULL);
     mtev_acceptor_closure_set_ctx(ac, restc, mtev_http_rest_closure_free);
     restc->ac = ac;
     restc->http_ctx =
-      mtev_http_session_ctx_websocket_new(mtev_rest_request_dispatcher, 
-                                          mtev_rest_websocket_dispatcher,
-                                          restc, e, ac);
+      mtev_http1_session_ctx_websocket_new(mtev_rest_request_dispatcher, 
+                                           mtev_rest_websocket_dispatcher,
+                                           restc, e, ac);
   }
   rv = mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
   if(done) {
@@ -1134,6 +1220,10 @@ void mtev_http_rest_init(void) {
   rest_stats = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "rest");
   eventer_name_callback("mtev_wire_rest_api/1.0", mtev_http_rest_handler);
   eventer_name_callback("http_rest_api", mtev_http_rest_raw_handler);
+
+  eventer_name_callback("mtev_wire_rest_api/1.0/alpn:h2", mtev_http2_rest_raw_handler);
+  eventer_name_callback("http_rest_api/alpn:h2", mtev_http2_rest_raw_handler);
+  eventer_name_callback("control_dispatch/alpn:h2", mtev_http2_rest_raw_handler);
 
   /* some default mime types */
 #define ADD_MIME_TYPE(ext, type) \

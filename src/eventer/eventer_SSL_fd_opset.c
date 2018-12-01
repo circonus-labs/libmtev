@@ -71,6 +71,7 @@ typedef struct {
   uint32_t refcnt;
 } ssl_ctx_cache_node;
 
+static mtev_hash_table alpn_funcs;
 static mtev_hash_table ssl_ctx_cache;
 static pthread_mutex_t ssl_ctx_cache_lock = PTHREAD_MUTEX_INITIALIZER;
 static int ssl_ctx_cache_expiry = 5;
@@ -91,6 +92,7 @@ struct eventer_ssl_ctx_t {
   void    *verify_cb_closure;
   unsigned no_more_negotiations:1;
   unsigned renegotiated:1;
+  uint8_t *npn;
 };
 
 #define ssl_ctx ssl_ctx_cn->internal_ssl_ctx
@@ -848,6 +850,85 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   return NULL;
 }
 
+#ifndef OPENSSL_NO_NEXTPROTONEG
+static int next_proto_cb(SSL *ssl, const unsigned char **data,
+                         unsigned int *len, void *arg) {
+  (void)ssl;
+  eventer_ssl_ctx_t *ctx = (eventer_ssl_ctx_t *)arg;
+
+  *data = ctx->npn;
+  *len = (unsigned int)(1 + *ctx->npn);
+  return SSL_TLSEXT_ERR_OK;
+}
+#endif /* !OPENSSL_NO_NEXTPROTONEG */
+
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+
+static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
+                                unsigned char *outlen, const unsigned char *in,
+                                unsigned int inlen, void *arg) {
+  int rv;
+  (void)ssl;
+  eventer_SSL_alpn_func_t f = (eventer_SSL_alpn_func_t)arg;
+
+  rv = f(out, outlen, in, inlen);
+
+  if (rv != 1) {
+    return SSL_TLSEXT_ERR_NOACK;
+  }
+
+  return SSL_TLSEXT_ERR_OK;
+}
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
+
+void
+eventer_ssl_alpn_register(const char *name, eventer_SSL_alpn_func_t f) {
+  mtev_hash_replace(&alpn_funcs, strdup(name), strlen(name), f, free, NULL);
+}
+
+int
+eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn) {
+  eventer_SSL_alpn_func_t f = NULL;
+  if(npn) {
+    void *vf = NULL;
+    if(mtev_hash_retrieve(&alpn_funcs, npn, strlen(npn), &vf)) {
+      f = vf;
+    }
+  }
+  if(npn && f) {
+    ctx->npn = malloc(1 + strlen(npn));
+    ctx->npn[0] = strlen(npn);
+    memcpy(ctx->npn+1, npn, ctx->npn[0]);
+
+#ifndef OPENSSL_NO_NEXTPROTONEG
+    SSL_CTX_set_next_protos_advertised_cb(ctx->ssl_ctx, next_proto_cb, ctx);
+#endif /* !OPENSSL_NO_NEXTPROTONEG */
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+    SSL_CTX_set_alpn_select_cb(ctx->ssl_ctx, alpn_select_proto_cb, f);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
+  }
+  else {
+    free(ctx->npn);
+    ctx->npn = NULL;
+  }
+  return 0;
+}
+
+void
+eventer_ssl_get_alpn_selected(eventer_ssl_ctx_t *ctx, const uint8_t **alpn, uint8_t *len) {
+  if(!ctx || !ctx->ssl) return;
+  unsigned int ilen = 0;
+#ifndef OPENSSL_NO_NEXTPROTONEG
+  SSL_get0_next_proto_negotiated(ctx->ssl, alpn, &ilen);
+#endif /* !OPENSSL_NO_NEXTPROTONEG */
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+  if (*alpn == NULL) {
+    SSL_get0_alpn_selected(ctx->ssl, alpn, &ilen);
+  }
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
+  *len = ilen;
+}
+
 int
 eventer_ssl_use_crl(eventer_ssl_ctx_t *ctx, const char *crl_file) {
   int ret;
@@ -1220,5 +1301,6 @@ void eventer_ssl_init(void) {
 
 void eventer_ssl_init_globals(void) {
   mtev_hash_init(&ssl_ctx_cache);
+  mtev_hash_init(&alpn_funcs);
 }
 

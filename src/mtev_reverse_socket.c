@@ -1910,7 +1910,6 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
   struct timeval now, diff;
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
 
-  mtev_http_process_querystring(req);
   want_id = mtev_http_request_querystring(req, "id");
 
   mtev_gettimeofday(&now, NULL);
@@ -2003,7 +2002,6 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
   xmlNodePtr node, channels;
   mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
 
-  mtev_http_process_querystring(req);
   want_id = mtev_http_request_querystring(req, "id");
 
   mtev_gettimeofday(&now, NULL);
