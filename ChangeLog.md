@@ -4,6 +4,10 @@
 
 ## 1.5
 
+### 1.5.27
+
+ * Fix mtev_intern memory volatility/ordering issues.
+
 ### 1.5.26
 
  * Fix ACO registry mismanagement causing crashes.
