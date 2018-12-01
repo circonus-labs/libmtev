@@ -92,7 +92,7 @@ build-modules:
 HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
     mtev_cluster.h mtev_net_heartbeat.h mtev_config.h \
     mtev_conf_private.h mtev_console.h mtev_console_telnet.h \
-    mtev_defines.h mtev_events_rest.h mtev_http.h mtev_http2.h mtev_listener.h \
+    mtev_defines.h mtev_events_rest.h mtev_http.h mtev_listener.h \
     mtev_main.h mtev_dso.h mtev_reverse_socket.h mtev_rest.h \
     mtev_stats.h mtev_heap_profiler.h mtev_thread.h mtev_tokenizer.h \
     mtev_xml.h mtev_websocket_client.h eventer/OETS_asn1_helper.h \
