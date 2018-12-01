@@ -4,6 +4,10 @@
 
 ## 1.5
 
+### 1.5.28
+
+ * Fix failed merge (install target broken).
+
 ### 1.5.27
 
  * Fix mtev_intern memory volatility/ordering issues.
