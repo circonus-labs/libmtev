@@ -456,9 +456,10 @@ static int eventer_epoll_impl_loop(int id) {
   (void)id;
   struct epoll_event *epev;
   struct epoll_spec *spec;
+  int max_fds_at_once = 1024;
 
   spec = eventer_get_spec_for_event(NULL);
-  epev = malloc(sizeof(*epev) * maxfds);
+  epev = malloc(sizeof(*epev) * max_fds_at_once);
 
 #ifdef HAVE_SYS_EVENTFD_H
   if(spec->event_fd >= 0) {
@@ -487,11 +488,11 @@ static int eventer_epoll_impl_loop(int id) {
 
     /* Now we move on to our fd-based events */
     do {
-      fd_cnt = epoll_wait(spec->epoll_fd, epev, maxfds,
+      fd_cnt = epoll_wait(spec->epoll_fd, epev, max_fds_at_once,
                           __sleeptime.tv_sec * 1000 + __sleeptime.tv_usec / 1000);
     } while(fd_cnt < 0 && errno == EINTR);
     mtevL(eventer_deb, "debug: epoll_wait(%d, [], %d) => %d\n",
-          spec->epoll_fd, maxfds, fd_cnt);
+          spec->epoll_fd, max_fds_at_once, fd_cnt);
     if(fd_cnt < 0) {
       mtevL(eventer_err, "epoll_wait: %s\n", strerror(errno));
     }
