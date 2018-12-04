@@ -269,6 +269,7 @@ struct bchain *bchain_alloc(size_t size, int line) {
       free(n);
       return NULL;
     }
+    n->mmap_size = size;
   }
   else {
     n = malloc(size + offsetof(struct bchain, _buff));
@@ -295,6 +296,7 @@ struct bchain *bchain_mmap(int fd, size_t len, int flags, off_t offset) {
   n->type = BCHAIN_MMAP;
   n->buff = buff;
   n->size = len;
+  n->mmap_size = len;
   n->allocd = len;
 #if defined(HAVE_POSIX_MADVISE)
   posix_madvise(buff, len, POSIX_MADV_SEQUENTIAL);
@@ -307,7 +309,7 @@ void bchain_free(struct bchain *b, int line) {
   (void)line;
   /*mtevL(mtev_error, "bchain_free(%p) : %d\n", b, line);*/
   if(b->type == BCHAIN_MMAP) {
-    munmap(b->buff, b->allocd);
+    munmap(b->buff, b->mmap_size);
   }
   free(b);
 }

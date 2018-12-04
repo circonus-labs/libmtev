@@ -72,11 +72,12 @@ typedef struct mtev_http_response mtev_http_response;
 
 struct bchain {
   bchain_type_t type;
+  mtev_compress_type compression;
   struct bchain *next, *prev;
   size_t start; /* where data starts (buff + start) */
   size_t size;  /* data length (past start) */
   size_t allocd;/* total allocation */
-  mtev_compress_type compression;
+  size_t mmap_size; /* size of original mmap */
   char *buff;
   char _buff[1]; /* over allocate as needed */
 };
