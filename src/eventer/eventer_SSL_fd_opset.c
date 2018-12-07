@@ -895,7 +895,7 @@ eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn) {
       f = vf;
     }
   }
-  if(npn && f) {
+  if(npn && strlen(npn) <= 0xff && f) {
     ctx->npn = malloc(1 + strlen(npn));
     ctx->npn[0] = strlen(npn);
     memcpy(ctx->npn+1, npn, ctx->npn[0]);
