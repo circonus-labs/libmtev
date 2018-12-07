@@ -807,6 +807,7 @@ mtev_http2_rest_raw_handler(eventer_t e, int mask, void *closure,
   if(!h2) {
     h2 = mtev_http2_parent_session_new(mtev_rest_request_http2_dispatcher,
                                        mtev_http_rest_closure_alloc_as_voidptr,
+                                       mtev_http_rest_closure_free,
                                        e, ac, 100);
     mtev_acceptor_closure_set_ctx(ac, h2, mtev_http2_ctx_acceptor_free);
   }

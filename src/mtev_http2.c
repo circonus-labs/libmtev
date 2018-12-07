@@ -50,6 +50,7 @@ struct mtev_http2_parent_session {
   nghttp2_session *session;
   mtev_http_dispatch_func dispatcher;
   void *(*closure_creator)(mtev_http_session_ctx *);
+  void (*closure_free)(void *);
   mtev_acceptor_closure_t *ac;
   unsigned char *inbuff;
   size_t inbuff_wp;
@@ -101,6 +102,7 @@ struct mtev_http2_session_ctx {
   mtev_http2_request req;
   mtev_http2_response res;
   void *dispatcher_closure;
+  void (*dispatcher_closure_free)(void *);
   struct mtev_http2_parent_session *parent;
 };
 
@@ -137,12 +139,39 @@ mtev_boolean mtev_http2_session_ref_dec(mtev_http2_session_ctx *ctx) {
   if(zero) {
     mtevL(h2_debug, "http2 freeing stream(%p) <- %d\n", ctx->parent, ctx->stream_id);
     /* This is where we free the request and response */
+    mtev_http_log_request((mtev_http_session_ctx *)ctx);
 
+    /* free request */
+    RELEASE_BCHAIN(ctx->req.user_data);
+    free(ctx->req.uri_str);
+    free(ctx->req.method_str);
+    free(ctx->req.orig_qs);
+    if(ctx->req.upload.freefunc) {
+      ctx->req.upload.freefunc(ctx->req.upload.data, ctx->req.upload.size,
+                               ctx->req.upload.freeclosure);
+    }
+    mtev_hash_destroy(&ctx->req.querystring, NULL, NULL);
+    mtev_hash_destroy(&ctx->req.headers, free, free);
     if (ctx->req.decompress_ctx != NULL) {
       mtev_stream_decompress_finish(ctx->req.decompress_ctx);
       mtev_destroy_stream_decompress_ctx(ctx->req.decompress_ctx);
       ctx->req.decompress_ctx = NULL;
     }
+
+    /* free response */
+    mtev_hash_destroy(&ctx->res.headers, free, free);
+    mtev_hash_destroy(&ctx->res.trailers, free, free);
+    RELEASE_BCHAIN(ctx->res.output);
+    RELEASE_BCHAIN(ctx->res.output_raw);
+    if(ctx->res.compress_ctx) {
+      mtev_stream_compress_finish(ctx->res.compress_ctx);
+      mtev_destroy_stream_compress_ctx(ctx->res.compress_ctx);
+    }
+
+    if(ctx->dispatcher_closure_free) {
+      ctx->dispatcher_closure_free(ctx->dispatcher_closure);
+    }
+    free(ctx);
   }
   return zero;
 }
@@ -425,11 +454,12 @@ mtev_http2_response_header_set(mtev_http2_session_ctx *ctx,
                                const char *key, const char *value) {
   if(ctx->res.complete || ctx->res.closed) return mtev_false;
   char *lkey = strdup(key);
+  char *lval = strdup(value);
   for(char *cp = lkey; *cp; cp++) { *cp = tolower(*cp); }
   if(!ctx->res.output_started) {
-    mtev_hash_replace(&ctx->res.headers, lkey, strlen(lkey), (void *)value, free, free);
+    mtev_hash_replace(&ctx->res.headers, lkey, strlen(lkey), lval, free, free);
   } else {
-    mtev_hash_replace(&ctx->res.trailers, lkey, strlen(lkey), (void *)value, free, free);
+    mtev_hash_replace(&ctx->res.trailers, lkey, strlen(lkey), lval, free, free);
   }
   return mtev_true;
 }
@@ -511,6 +541,7 @@ delayed_trigger(eventer_t e, int mask, void *cl, struct timeval *now) {
   mtev_http2_session_ctx *ctx = cl;
   mtevL(h2_debug, "http2 aco delayed trigger (%p -> %d)\n", ctx->parent, ctx->stream_id);
   mtev_http2_session_trigger(ctx, EVENTER_READ|EVENTER_WRITE);
+  mtev_http2_session_ref_dec(ctx);
   return 0;
 }
 mtev_boolean
@@ -592,6 +623,7 @@ mtev_http2_response_flush(mtev_http2_session_ctx *ctx,
     }
     else {
       mtevL(h2_debug, "http2 aco flush, deferring\n");
+      mtev_http2_session_ref_inc(ctx);
       eventer_add_timer_next_opportunity(delayed_trigger, ctx, pthread_self());
     }
   }
@@ -663,6 +695,7 @@ mtev_http2_parent_session_deref(mtev_http2_parent_session *sess, mtev_boolean dr
     mtevAssert(mtev_hash_size(&sess->streams) == 0);
     mtev_hash_destroy(&sess->streams, NULL, NULL);
     free(sess->inbuff);
+    free(sess);
   }
 }
 
@@ -770,7 +803,7 @@ on_header_callback(nghttp2_session *session,
                         mtev_strndup((const char *)value, valuelen), free, free);
     }
     else if(HDR_NAME(":method")) {
-      free(stream->req.uri_str);
+      free(stream->req.method_str);
       stream->req.method_str = mtev_strndup((const char *)value, valuelen);
     }
     else if(HDR_NAME(":path")) {
@@ -918,6 +951,7 @@ initialize_nghttp2_session(struct mtev_http2_parent_session *ctx) {
 mtev_http2_parent_session *
 mtev_http2_parent_session_new(mtev_http_dispatch_func f,
                               void *(*closure_creator)(mtev_http_session_ctx *),
+                              void (*closure_free)(void *),
                               eventer_t e, mtev_acceptor_closure_t *ac,
                               int max_streams) {
   mtev_http2_parent_session *sess = calloc(1, sizeof(*sess));
@@ -927,6 +961,7 @@ mtev_http2_parent_session_new(mtev_http_dispatch_func f,
   sess->ac = ac;
   sess->dispatcher = f;
   sess->closure_creator = closure_creator;
+  sess->closure_free = closure_free;
   sess->inbuff_size = 1 << 16;
   sess->inbuff = malloc(sess->inbuff_size);
   mtev_hash_init(&sess->streams);
@@ -962,6 +997,7 @@ mtev_http2_session_new(mtev_http2_parent_session *parent, int32_t stream_id) {
   mtev_http2_parent_session_ref(parent);
   sess->parent = parent;
   sess->dispatcher_closure = parent->closure_creator((mtev_http_session_ctx *)sess);
+  sess->dispatcher_closure_free = parent->closure_free;
 
   sess->req.http_type = MTEV_HTTP_2;
   sess->res.http_type = MTEV_HTTP_2;
@@ -1055,6 +1091,7 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
   return (mask | EVENTER_READ | EVENTER_EXCEPTION);
 
  full_shutdown:
+  ctx->e = NULL;
   *done = 1;
   /* We're done, but the accept closure free will take care of dropping
    * our lest reference to the parent session, so no need to deref here.
