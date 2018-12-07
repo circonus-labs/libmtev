@@ -19,7 +19,7 @@ ffi.cdef([=[
   const char *mtev_intern_get_str(mtev_intern_t);
   void mtev_intern_release(mtev_intern_t);
   int mtev_intern_pool_item_count(mtev_intern_pool_t *);
-  int mtev_intern_pool_compact(mtev_intern_pool_t *);
+  int mtev_intern_pool_compact(mtev_intern_pool_t *, bool);
   void mtev_intern_pool_stats(mtev_intern_pool_t *, mtev_intern_pool_stats_t *);
 ]=])
 
@@ -100,7 +100,7 @@ describe("intern strings", function()
     end
   end)
   it("compacts", function()
-    compaction_count = libmtev.mtev_intern_pool_compact(default_pool)
+    compaction_count = libmtev.mtev_intern_pool_compact(default_pool, true)
     assert.is_not_equal(0, compaction_count)
   end)
   it("has consolidated freelist", function()

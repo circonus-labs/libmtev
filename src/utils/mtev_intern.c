@@ -202,6 +202,7 @@ struct mtev_intern_pool {
   struct mtev_intern_free_node *staged_free_nodes;
   uint32_t staged_free_nodes_count;
   uint64_t staged_free_nodes_size;
+  ck_spinlock_t compaction_lock;
 
   /* This is a freelist of nodes to be reused */
   ck_spinlock_t mifns_lock;
@@ -622,6 +623,8 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
     node->base = ii;
     node->size = 8 + ((ii->len + 3) & ~3);
     stage_replace_free_node(pool, node);
+
+    mtev_intern_pool_compact(pool, mtev_false);
   }
 }
 mtev_intern_t
@@ -922,6 +925,9 @@ mtev_intern_pool_compact(mtev_intern_pool_t *pool, mtev_boolean force) {
   int cnt = 0;
   if(!pool) pool = all_pools[0];
   int current_fragments = 0;
+
+  if(!ck_spinlock_trylock(&pool->compaction_lock)) return 0;
+
   for(int i=0; i<pool->nfreeslots; i++) {
     current_fragments += pool->freeslots[i].cnt;
   }
@@ -931,6 +937,7 @@ mtev_intern_pool_compact(mtev_intern_pool_t *pool, mtev_boolean force) {
     cnt = compact_freelist(pool);
     pool->last_fragment_compact = current_fragments - cnt;
   }
+  ck_spinlock_unlock(&pool->compaction_lock);
   return cnt;
 }
 void
