@@ -91,17 +91,9 @@ describe("intern strings", function()
     assert.is_equal(0, stats[0].item_count)
     start_frags = stats[0].fragments_total
   end)
-  it("has spread freelist", function()
-    local stats = ffi.new("mtev_intern_pool_stats_t[1]")
-    libmtev.mtev_intern_pool_stats(default_pool, stats)
-    assert.is_equal(stats[0].allocated, stats[0].available_total)
-    for i = 0,31 do
-      assert.is_not_equal(stats[0].available_total, stats[0].available[i])
-    end
-  end)
   it("compacts", function()
     compaction_count = libmtev.mtev_intern_pool_compact(default_pool, true)
-    assert.is_not_equal(0, compaction_count)
+    assert.is_not_equal(-1, compaction_count)
   end)
   it("has consolidated freelist", function()
     local stats = ffi.new("mtev_intern_pool_stats_t[1]")

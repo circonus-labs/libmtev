@@ -32,6 +32,7 @@
 #include "mtev_defines.h"
 #include "mtev_log.h"
 #include "mtev_intern.h"
+#include "eventer/eventer.h"
 #include "mtev_rand.h"
 #include "mtev_sort.h"
 #include "mtev_hash.h"
@@ -884,7 +885,9 @@ compact_freelist(mtev_intern_pool_t *pool) {
   ck_pr_sub_64(&pool->staged_free_nodes_size, staged_size);
 
   /* Perhaps we actually have no work to do at all? */
-  if(surrogate->next == NULL) return 0;
+  if(surrogate->next == NULL) {
+    return 0;
+  }
 
   /* Sort it */
   mtev_merge_sort((void **)&surrogate->next, next_free_node, set_next_free_node, compare_free_node);
@@ -920,29 +923,66 @@ compact_freelist(mtev_intern_pool_t *pool) {
   return cnt;
 }
 
+static int
+mtev_intern_pool_compact_asynch(eventer_t e, int mask, void *cl, struct timeval *now) {
+  (void)now;
+  (void)e;
+  mtev_intern_pool_t *pool = cl;
+  if(mask == EVENTER_ASYNCH_WORK) {
+    int current_fragments = 0;
+    for(int i=0; i<pool->nfreeslots; i++) {
+      current_fragments += pool->freeslots[i].cnt;
+    }
+    current_fragments += pool->staged_free_nodes_count;
+    int cnt = compact_freelist(pool);
+    pool->last_fragment_compact = current_fragments - cnt;
+    ck_spinlock_unlock(&pool->compaction_lock);
+  }
+  return 0;
+}
+
 int
 mtev_intern_pool_compact(mtev_intern_pool_t *pool, mtev_boolean force) {
   int cnt = 0;
   if(!pool) pool = all_pools[0];
   int current_fragments = 0;
 
-  if(!ck_spinlock_trylock(&pool->compaction_lock)) return 0;
+  /* compactions are safe to run simultaneously, but pointless.
+   * the lock here avoid unnecessary work. */
+  while(!ck_spinlock_trylock(&pool->compaction_lock)) {
+    if(!force) return 0;
+    ck_pr_stall();
+  }
 
   for(int i=0; i<pool->nfreeslots; i++) {
     current_fragments += pool->freeslots[i].cnt;
   }
   current_fragments += pool->staged_free_nodes_count;
   /* increase of 1.5 */
-  if(force || current_fragments > pool->last_fragment_compact + (pool->last_fragment_compact >> 1)) {
-    cnt = compact_freelist(pool);
-    pool->last_fragment_compact = current_fragments - cnt;
+  if(!force && current_fragments < pool->last_fragment_compact + (pool->last_fragment_compact >> 1)) {
+    ck_spinlock_unlock(&pool->compaction_lock);
+    return 0;
   }
+
+  /* We want to compact, should we do it here or spawna job? */
+  if(!force && eventer_in_loop()) {
+    eventer_t e = eventer_alloc_asynch(mtev_intern_pool_compact_asynch, pool);
+    eventer_add(e);
+    /* Intentionally leaving here without unlocking...
+     * the asynch task will unlock upon completion. */
+    return -1;
+  }
+
+  cnt = compact_freelist(pool);
+  pool->last_fragment_compact = current_fragments - cnt;
   ck_spinlock_unlock(&pool->compaction_lock);
   return cnt;
 }
 void
 mtev_intern_pool_stats(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats) {
   if(!pool) pool = all_pools[0];
+  /* An in-flight compactions can really screw with stats */
+  ck_spinlock_lock(&pool->compaction_lock);
   mtev_plock_take_r(&pool->plock);
   memset(stats, 0, sizeof(*stats));
   stats->item_count = ck_pr_load_32(&pool->item_count);
@@ -971,4 +1011,5 @@ mtev_intern_pool_stats(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats
       stats->fragments_total += stats->fragments[i];
     }
   }
+  ck_spinlock_unlock(&pool->compaction_lock);
 }
