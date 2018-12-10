@@ -63,8 +63,8 @@ mtev_b64_decode(const char *src, size_t src_len,
     if((*cp >= 'A') && (*cp <= 'Z')) ch = *cp - 'A';
     else if((*cp >= 'a') && (*cp <= 'z')) ch = *cp - 'a' + 26;
     else if((*cp >= '0') && (*cp <= '9')) ch = *cp - '0' + 52;
-    else if(*cp == '+') ch = 62;
-    else if(*cp == '/') ch = 63;
+    else if(*cp == '+' || *cp == '-') ch = 62;
+    else if(*cp == '/' || *cp == '_') ch = 63;
     else if(*cp == '=') ch = 0xff;
     else if(isspace((int)*cp)) { cp++; continue; }
     else break;
