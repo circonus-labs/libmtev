@@ -196,13 +196,16 @@ API_EXPORT(uint32_t)
     \brief Attempt a compaction of an intern pool.
     \param pool The pool to compact.
     \param force A boolean dictating if compaction should be forced.
-    \return The number of free fragment merges that occurred.
+    \return The number of free fragment merges that occurred, -1 if it will be performed asynch.
 
     This function will walk all the free fragment lists within the
     pool joining adjacent ones and promoting them into the the right
     slabs.  If force is false, compaction will be avoided if there are less
     than approximately 1.5x fragments as there were after the previous successful
-    compaction.
+    compaction.  If this is called from an eventer thread (not a jobq), it will be
+    scheduled to be done in the default jobq (work deferred) and will return -1
+    instead of a measurement of compaction.  If force is specified, it will be done
+    synchronously regardless of callsite location.
   */
 API_EXPORT(int)
   mtev_intern_pool_compact(mtev_intern_pool_t *, mtev_boolean force);
