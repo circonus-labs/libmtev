@@ -847,8 +847,10 @@ mtev_lua_hash_to_table(lua_State *L,
   lua_createtable(L, 0, kcnt);
   if(t) {
     while(mtev_hash_adv(t, &iter)) {
-      lua_pushlstring(L, iter.value.str, strlen(iter.value.str));
-      lua_setfield(L, -2, iter.key.str);
+      if(iter.value.str != NULL) {
+        lua_pushlstring(L, iter.value.str, strlen(iter.value.str));
+        lua_setfield(L, -2, iter.key.str);
+      }
     }
   }
   return;

@@ -5,6 +5,7 @@
 ## 1.5
 
  * Make base64 decoding also accept URL alphabet (rfc4648).
+ * Fix crash in hash to lua table conversion where value is NULL.
 
 ### 1.5.28
 
