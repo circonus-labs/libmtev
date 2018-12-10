@@ -4,6 +4,8 @@
 
 ## 1.5
 
+ * Make base64 decoding also accept URL alphabet (rfc4648).
+
 ### 1.5.28
 
  * Fix failed merge (install target broken).
