@@ -6,6 +6,8 @@
 
  * Make base64 decoding also accept URL alphabet (rfc4648).
  * Fix crash in hash to lua table conversion where value is NULL.
+ * Provide mtev_intern compaction as a side effect of mtev_intern_release
+   (this prevents pathological mmap leaks if programmers fail to compact).
 
 ### 1.5.28
 
