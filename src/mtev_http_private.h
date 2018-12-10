@@ -32,8 +32,9 @@
 #ifndef _MTEV_HTTP_PRIVATE_H
 #define _MTEV_HTTP_PRIVATE_H
 
-#include <mtev_defines.h>
-#include <mtev_http.h>
+#include "mtev_defines.h"
+#include "mtev_http.h"
+#include "mtev_rest.h"
 
 #define HTTP_SESSION_BASE \
   uint32_t http_type; \
@@ -70,6 +71,7 @@ struct mtev_http_session_ctx {
 void mtev_http_begin_span(mtev_http_session_ctx *ctx);
 void mtev_http_end_span(mtev_http_session_ctx *ctx);
 void mtev_http_log_request(mtev_http_session_ctx *ctx);
+int mtev_http1_http2_upgrade(mtev_http1_session_ctx *ctx);
 
 typedef enum {
   BCHAIN_INLINE = 0,
@@ -286,8 +288,10 @@ raw_finalize_encoding(mtev_http_response *res) {
       ilen = out->size;
       if (ilen > 0) {
         mtevAssert(out->start+out->size+2 <= out->allocd);
-        out->buff[out->start + out->size++] = '\r';
-        out->buff[out->start + out->size++] = '\n';
+        if(res->http_type == MTEV_HTTP_1) {
+          out->buff[out->start + out->size++] = '\r';
+          out->buff[out->start + out->size++] = '\n';
+        }
         if(res->output_options & MTEV_HTTP_CHUNKED) {
           out->start = 0;
           /* terminate */

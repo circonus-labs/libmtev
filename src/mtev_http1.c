@@ -39,6 +39,8 @@
 #include "mtev_getip.h"
 #include "mtev_conf.h"
 #include "mtev_compress.h"
+#include "mtev_rest.h"
+#include "mtev_http2.h"
 #include "libmtev_dtrace.h"
 
 #include <errno.h>
@@ -1504,6 +1506,10 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
           eventer_get_fd(e), mask);
     if(ctx->conn.e == NULL) goto release;
 
+    if(mtev_http1_http2_upgrade(ctx)) {
+      *done = 0;
+      return EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
+    }
 #ifdef HAVE_WSLAY
     if (ctx->did_handshake == mtev_false) {
       mtevL(http_debug, "   -> checking for websocket(%d)\n", eventer_get_fd(e));

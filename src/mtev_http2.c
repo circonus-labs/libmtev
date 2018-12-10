@@ -33,6 +33,7 @@
 #include "mtev_http.h"
 #include "mtev_http_private.h"
 #include "mtev_str.h"
+#include "mtev_b64.h"
 
 #include <errno.h>
 
@@ -95,7 +96,7 @@ struct mtev_http2_session_ctx {
   HTTP_SESSION_BASE;
 
   int32_t stream_id;
-  enum { H2_NORMAL = 0, H2_PAUSED } paused;
+  enum { H2_NORMAL = 0, H2_PAUSED, H2_UNPAUSED } paused;
   enum { H2_SYNCH = 0, H2_ASYNCH } floated;
   uint32_t ref_cnt;
   mtev_boolean aco_enabled;
@@ -140,6 +141,7 @@ mtev_boolean mtev_http2_session_ref_dec(mtev_http2_session_ctx *ctx) {
     mtevL(h2_debug, "http2 freeing stream(%p) <- %d\n", ctx->parent, ctx->stream_id);
     /* This is where we free the request and response */
     mtev_http_log_request((mtev_http_session_ctx *)ctx);
+    mtev_http_end_span((mtev_http_session_ctx *)ctx);
 
     /* free request */
     RELEASE_BCHAIN(ctx->req.user_data);
@@ -510,11 +512,13 @@ mtev_http2_data_provider_read(nghttp2_session *session, int32_t stream_id,
   /* Determine if "this is it" and we should set the EOF flag */
   if(ctx->res.complete && ctx->res.output_raw == NULL) {
     *data_flags = NGHTTP2_DATA_FLAG_EOF;
+    mtevL(h2_debug, "http2 (%p -> %d) sending final data frame\n", ctx->parent, ctx->stream_id);
     if(mtev_hash_size(&ctx->res.trailers) > 0) {
+      mtevL(h2_debug, "http2 (%p -> %d) has trailers\n", ctx->parent, ctx->stream_id);
       *data_flags |= NGHTTP2_DATA_FLAG_NO_END_STREAM;
 
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-      int i = 0, nhdrs = mtev_hash_size(&ctx->res.headers);
+      int i = 0, nhdrs = mtev_hash_size(&ctx->res.trailers);
       nghttp2_nv hdrs[nhdrs];
       for(int j=0; j<2; j++) {
         memset(&iter, 0, sizeof(iter));
@@ -531,6 +535,9 @@ mtev_http2_data_provider_read(nghttp2_session *session, int32_t stream_id,
       nghttp2_submit_trailer(session, ctx->stream_id, hdrs, nhdrs);
     }
   }
+  mtevL(h2_debug, "http2 (%p -> %d) fed ouput %zd bytes\n",
+        ctx->parent, ctx->stream_id, sofar);
+  ctx->res.bytes_written += sofar;
   return sofar;
 }
 static int
@@ -549,7 +556,11 @@ mtev_http2_response_flush(mtev_http2_session_ctx *ctx,
                          mtev_boolean final) {
   int rv = 0;
   /* can't finalize twice */
-  if(ctx->res.complete && !final) return mtev_false;
+  if(ctx->res.complete && !final) {
+    mtevL(h2_debug, "http2 response flush attempt to re-finalize.\n");
+    ctx->paused = H2_UNPAUSED;
+    return mtev_false;
+  }
 
   if (ctx->req.opts & MTEV_HTTP_GZIP) {
     mtev_http2_response_option_set(ctx, MTEV_HTTP_GZIP);
@@ -590,29 +601,36 @@ mtev_http2_response_flush(mtev_http2_session_ctx *ctx,
     if(rv != 0) {
       mtevL(h2_debug, "https submit headers(%p -> %u) -> %s\n", ctx->parent, ctx->stream_id,
             nghttp2_strerror(rv));
-      return mtev_false;
+      ctx->res.closed = mtev_true;
+      ctx->res.complete = mtev_true;
     }
-
-    nghttp2_data_provider data_prd = {
-      .source = { .ptr = ctx },
-      .read_callback = mtev_http2_data_provider_read
-    };
-    mtevL(h2_debug, "http2 start self data provider (%p -> %d)\n", ctx->parent, ctx->stream_id);
-    rv = nghttp2_submit_data(ctx->parent->session, NGHTTP2_FLAG_END_STREAM, ctx->stream_id,
-                             &data_prd);
-    if(rv != 0) {
-      mtevL(h2_debug, "http submit data(%p -> %u) -> %s\n", ctx->parent, ctx->stream_id,
-            nghttp2_strerror(rv));
+    else {
+      nghttp2_data_provider data_prd = {
+        .source = { .ptr = ctx },
+        .read_callback = mtev_http2_data_provider_read
+      };
+      mtevL(h2_debug, "http2 start self data provider (%p -> %d)\n", ctx->parent, ctx->stream_id);
+      rv = nghttp2_submit_data(ctx->parent->session, NGHTTP2_FLAG_END_STREAM, ctx->stream_id,
+                               &data_prd);
+      if(rv != 0) {
+        mtevL(h2_debug, "http submit data(%p -> %u) -> %s\n", ctx->parent, ctx->stream_id,
+              nghttp2_strerror(rv));
+        rv = nghttp2_submit_rst_stream(ctx->parent->session, NGHTTP2_FLAG_NONE, ctx->stream_id, NGHTTP2_STREAM_CLOSED);
+        ctx->res.closed = mtev_true;
+        ctx->res.complete = mtev_true;
+      }
     }
   }
 
   mtev_http_encode_output_raw((mtev_http_session_ctx *)ctx, &final);
 
   if(final) {
-    ctx->res.closed = mtev_true;
-    ctx->res.complete = final;
+    mtevL(h2_debug, "http2 (%p -> %d) finalizing output chain\n", ctx->parent, ctx->stream_id);
     raw_finalize_encoding((mtev_http_response *)&ctx->res);
+    ctx->res.complete = mtev_true;
   }
+
+  ctx->paused = H2_UNPAUSED;
 
   if(ctx->aco_enabled) {
     /* We're not inside the connection event, we're outside... that means
@@ -624,7 +642,7 @@ mtev_http2_response_flush(mtev_http2_session_ctx *ctx,
     else {
       mtevL(h2_debug, "http2 aco flush, deferring\n");
       mtev_http2_session_ref_inc(ctx);
-      eventer_add_timer_next_opportunity(delayed_trigger, ctx, pthread_self());
+      eventer_add_timer_next_opportunity(delayed_trigger, ctx, eventer_get_owner(ctx->parent->e));
     }
   }
 
@@ -639,6 +657,7 @@ mtev_http2_response_flush_asynch(mtev_http2_session_ctx *ctx,
 mtev_boolean
 mtev_http2_response_end(mtev_http2_session_ctx *ctx) {
   if(!mtev_http2_response_flush(ctx, mtev_true)) {
+    mtevL(h2_debug, "http2 response_end failed\n");
     return mtev_false;
   }
   return mtev_true;
@@ -721,6 +740,7 @@ static ssize_t send_callback(nghttp2_session *session, const uint8_t *data,
 static int
 on_begin_headers_callback(nghttp2_session *session,
                           const nghttp2_frame *frame, void *user_data) {
+  (void)session;
   mtev_http2_parent_session *p_session = (mtev_http2_parent_session *)user_data;
   mtev_http_session_ctx *stream;
   mtevL(h2_debug, "http2 begin headers(%p) -> %d\n", p_session, frame->hd.stream_id);
@@ -733,8 +753,6 @@ on_begin_headers_callback(nghttp2_session *session,
   if(!stream) {
     return -1;
   }
-  nghttp2_session_set_stream_user_data(session, frame->hd.stream_id,
-                                       stream);
   return 0;
 }
 
@@ -749,7 +767,8 @@ on_stream_close_callback(nghttp2_session *session, int32_t stream_id,
   }
   mtevAssert(stream_id == stream->stream_id);
   mtevAssert(p_session == stream->parent);
-  mtevL(h2_debug, "http2 closing stream(%p) <- %d\n", p_session, stream_id);
+  mtevL(h2_debug, "http2 closing stream(%p) <- %d [%s]\n", p_session, stream_id,
+        nghttp2_strerror(error_code));
   mtev_hash_delete(&p_session->streams, (void *)&stream_id, sizeof(stream_id),
                    NULL, (NoitHashFreeFunc)mtev_http2_ctx_session_release);
   return 0;
@@ -889,6 +908,7 @@ on_frame_recv_callback(nghttp2_session *session,
     stream->req.content_length = stream->req.user_data_bytes;
     /* FALLTRHU */
   case NGHTTP2_HEADERS:
+    mtev_http_begin_span((mtev_http_session_ctx *)stream);
     stream->req.complete = mtev_true;
     mtevL(h2_debug, "http2 request end (%s) (%p -> %d)\n",
           frame->hd.type == NGHTTP2_DATA ? "data" : "headers",
@@ -944,16 +964,22 @@ initialize_nghttp2_session(struct mtev_http2_parent_session *ctx) {
   nghttp2_session_callbacks_set_on_frame_recv_callback(callbacks, on_frame_recv_callback);
   nghttp2_session_callbacks_set_on_frame_not_send_callback(callbacks, on_frame_not_send_callback);
   nghttp2_session_callbacks_set_before_frame_send_callback(callbacks, before_frame_send_callback);
-  nghttp2_session_server_new(&ctx->session, callbacks, ctx);
+  nghttp2_option *option;
+  mtevEvalAssert(nghttp2_option_new(&option) == 0);
+  nghttp2_option_set_no_closed_streams(option, 1);
+  nghttp2_session_server_new2(&ctx->session, callbacks, ctx, option);
+  nghttp2_option_del(option);
   nghttp2_session_callbacks_del(callbacks);
 }
 
 mtev_http2_parent_session *
-mtev_http2_parent_session_new(mtev_http_dispatch_func f,
-                              void *(*closure_creator)(mtev_http_session_ctx *),
-                              void (*closure_free)(void *),
-                              eventer_t e, mtev_acceptor_closure_t *ac,
-                              int max_streams) {
+mtev_http2_parent_session_new_ex(mtev_http_dispatch_func f,
+                                 void *(*closure_creator)(mtev_http_session_ctx *),
+                                 void (*closure_free)(void *),
+                                 eventer_t e, mtev_acceptor_closure_t *ac,
+                                 int max_streams, int head_req,
+                                 uint8_t *settings, size_t settings_len) {
+  int rv;
   mtev_http2_parent_session *sess = calloc(1, sizeof(*sess));
   sess->ref_cnt = 1;
   sess->http_type = MTEV_HTTP_2;
@@ -968,8 +994,18 @@ mtev_http2_parent_session_new(mtev_http_dispatch_func f,
 
   initialize_nghttp2_session(sess);
 
+  if(settings && settings_len) {
+    rv = nghttp2_session_upgrade2(sess->session, settings, settings_len,
+                                  head_req, NULL);
+    if(rv != 0) {
+      mtevL(h2_debug, "http2 session upgrade failed: %s\n", nghttp2_strerror(rv));
+      mtev_http2_parent_session_deref(sess, mtev_true);
+      return NULL;
+    }
+  }
+
   nghttp2_settings_entry iv[1] = {{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, max_streams}};
-  int rv = nghttp2_submit_settings(sess->session, NGHTTP2_FLAG_NONE, iv, 1);
+  rv = nghttp2_submit_settings(sess->session, NGHTTP2_FLAG_NONE, iv, 1);
   if(rv == 0) {
     rv = nghttp2_session_send(sess->session);
     if(rv == 0) {
@@ -980,6 +1016,15 @@ mtev_http2_parent_session_new(mtev_http_dispatch_func f,
   mtevL(h2_debug, "http2 session failed: %s\n", nghttp2_strerror(rv));
   mtev_http2_parent_session_deref(sess, mtev_true);
   return NULL;
+}
+
+mtev_http2_parent_session *
+mtev_http2_parent_session_new(mtev_http_dispatch_func f,
+                              void *(*closure_creator)(mtev_http_session_ctx *),
+                              void (*closure_free)(void *),
+                              eventer_t e, mtev_acceptor_closure_t *ac,
+                              int max_streams) {
+  return mtev_http2_parent_session_new_ex(f, closure_creator, closure_free, e, ac, max_streams, 0, NULL, 0);
 }
 
 mtev_http_session_ctx *
@@ -1001,6 +1046,7 @@ mtev_http2_session_new(mtev_http2_parent_session *parent, int32_t stream_id) {
 
   sess->req.http_type = MTEV_HTTP_2;
   sess->res.http_type = MTEV_HTTP_2;
+  mtev_gettimeofday(&sess->req.start_time, NULL);
   mtev_hash_init(&sess->req.headers);
   mtev_hash_init(&sess->req.querystring);
   sess->req.opts = MTEV_HTTP_CLOSE | MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE;
@@ -1009,6 +1055,8 @@ mtev_http2_session_new(mtev_http2_parent_session *parent, int32_t stream_id) {
   sess->res.output_options = MTEV_HTTP_CLOSE;
 
   mtevL(h2_debug, "http2 new stream(%p) -> %d\n", parent, stream_id);
+  nghttp2_session_set_stream_user_data(parent->session, stream_id,
+                                       sess);
   return (mtev_http_session_ctx *)sess;
 }
 
@@ -1023,12 +1071,16 @@ mtev_http2_resume_all_unpaused_streams(mtev_http2_parent_session *ctx) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(&ctx->streams, &iter)) {
     mtev_http2_session_ctx *ctx = iter.value.ptr;
+    /* If we're done, we're done. */
+    if(ctx->res.closed) continue;
     /* We can only resume (dispatch) complete requests that are not ACO */
-    if(ctx->req.complete && ctx->aco_enabled == mtev_false) {
+    if(ctx->req.complete && !ctx->res.complete && ctx->aco_enabled == mtev_false) {
       ctx->parent->dispatcher((mtev_http_session_ctx *)ctx);
     }
-    if(ctx->paused == H2_PAUSED) {
+    if(ctx->paused == H2_UNPAUSED) {
       ctx->paused = H2_NORMAL;
+      mtevL(h2_debug, "http2 session resuming with output data (%p -> %d)\n",
+            ctx->parent, ctx->stream_id);
       nghttp2_session_resume_data(ctx->parent->session, ctx->stream_id);
     }
   }
@@ -1058,6 +1110,10 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
         if(errno == EAGAIN) {
           break;
         }
+        goto full_shutdown; 
+      }
+      if(len == 0) {
+        mtevL(h2_debug, "http session(%p) ended read->0\n", ctx);
         goto full_shutdown; 
       }
       ctx->inbuff_wp += len;
@@ -1098,6 +1154,101 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
    */
   eventer_close(e, &mask);
   return 0;
+}
+
+int
+mtev_http1_http2_upgrade(mtev_http1_session_ctx *ctx) {
+  mtev_acceptor_closure_t *ac;
+  const char *upgrade = NULL, *connection = NULL, *hdr_settings = NULL;
+  char conn_lower[128], *cp;
+  uint8_t settings[256];
+
+  /* We have to rewire the whole world as a part of an upgrade...
+   * We only know how to do this is the acceptor closure is within
+   * the context of an mtev_rest handler... otherwise, you're just
+   * out of luck, it is complexity we can't accomodate.
+   */
+  ac = mtev_http1_session_acceptor_closure(ctx);
+  if(!mtev_rest_owns_accept_closure(ac))
+    return 0;
+  mtev_http_rest_closure_t *restc = mtev_acceptor_closure_ctx(ac);
+  mtev_boolean aco_enabled = restc->aco_enabled;
+
+  mtev_http1_request *req1 = mtev_http1_session_request(ctx);
+  mtev_hash_table *headers = mtev_http1_request_headers_table(req1);
+  if (headers == NULL) return 0;
+
+  if(!mtev_hash_retr_str(headers, "connection", strlen("connection"), &connection))
+    return 0;
+  strlcpy(conn_lower, connection, sizeof(conn_lower));
+  for(cp = conn_lower; *cp; cp++) *cp = tolower(*cp);
+  if(!strstr(conn_lower, "upgrade")) return 0;
+  if(!strstr(conn_lower, "http2-settings")) return 0;
+  if(!mtev_hash_retr_str(headers, "upgrade", strlen("upgrade"), &upgrade))
+    return 0;
+  if(!mtev_hash_retr_str(headers, "http2-settings", strlen("http2-settings"), &hdr_settings))
+    return 0;
+
+  ssize_t settings_len = strlen(hdr_settings);
+  if(settings_len > (ssize_t)sizeof(settings)) {
+    return 0;
+  }
+  settings_len = mtev_b64_decode(hdr_settings, sizeof(hdr_settings), settings, sizeof(settings));
+  if(settings_len <= 0) {
+    return 0;
+  }
+
+  /* Now we need to setup an http2 context */
+  mtevL(h2_debug, "Upgrading http1 -> http2\n");
+  mtev_http1_connection *conne = mtev_http1_session_connection(ctx);
+  eventer_t e = mtev_http1_connection_event(conne);
+#define UPGRADE_MESSAGE "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: HTTP/2.0\r\n\r\n"
+  int mask = 0;
+  ssize_t elen = eventer_write(e, UPGRADE_MESSAGE, sizeof(UPGRADE_MESSAGE)-1, &mask);
+  if(elen != sizeof(UPGRADE_MESSAGE)-1) {
+    return -1;
+  }
+
+  mtev_http1_session_ref_inc(ctx);
+  mtev_http2_parent_session *sess =
+    mtev_rest_http2_session_for_upgrade(ctx, settings, settings_len);
+  if(sess == NULL) {
+    mtev_http1_session_ref_dec(ctx);
+    return -1;
+  }
+
+  mtev_http2_session_ctx *h2c = (mtev_http2_session_ctx *)mtev_http2_session_new(sess, 1);
+  /* We need to move the request information over from the http1 req to this new one */
+  const char *uri_str = mtev_http1_request_uri_str(req1);
+  const char *orig_qs = mtev_http1_request_orig_querystring(req1);
+  if(orig_qs) {
+    int total_len = strlen(uri_str) + 1 + strlen(orig_qs) + 1;
+    h2c->req.uri_str = malloc(total_len);
+    snprintf(h2c->req.uri_str, total_len, "%s?%s", uri_str, orig_qs);
+  } else {
+    h2c->req.uri_str = strdup(mtev_http1_request_uri_str(req1));
+  }
+  mtev_http2_process_querystring(&h2c->req);
+  h2c->req.method_str = strdup(mtev_http1_request_method_str(req1));
+  h2c->req.opts = mtev_http1_request_opts(req1) & ~MTEV_HTTP_CHUNKED;
+  h2c->req.opts |= MTEV_HTTP_CLOSE | MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE;
+  mtev_hash_table *hdr1 = mtev_http1_request_headers_table(req1);
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  while(mtev_hash_adv(hdr1, &iter)) {
+    mtev_hash_replace(&h2c->req.headers, strdup(iter.key.str), iter.klen,
+                      strdup(iter.value.str), free, free);
+  }
+
+  /* mark the restc as aco, but not the session... it will fix itself correctly
+   * in mtev_rest. */
+  restc = h2c->dispatcher_closure;
+  restc->aco_enabled = aco_enabled;
+
+  mtev_http_begin_span((mtev_http_session_ctx *)h2c);
+  h2c->req.complete = mtev_true;
+
+  mtev_http1_session_ref_dec(ctx);
+  return 1;
 }
 
 /* This registers the npn/alpn stuff with the eventer */

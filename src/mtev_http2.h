@@ -53,6 +53,13 @@ typedef struct mtev_http2_response mtev_http2_response;
 
 
 API_EXPORT(mtev_http2_parent_session *)
+  mtev_http2_parent_session_new_ex(mtev_http_dispatch_func f,
+                                   void *(closure_creator)(mtev_http_session_ctx *),
+                                   void (*closure_free)(void *),
+                                   eventer_t e, mtev_acceptor_closure_t *ac,
+                                   int max_streams, int head_req,
+                                   uint8_t *settings, size_t settings_len);
+API_EXPORT(mtev_http2_parent_session *)
   mtev_http2_parent_session_new(mtev_http_dispatch_func f,
                                 void *(closure_creator)(mtev_http_session_ctx *),
                                 void (*closure_free)(void *),

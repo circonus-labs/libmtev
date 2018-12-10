@@ -77,6 +77,9 @@ void *
 mtev_acceptor_closure_ctx(mtev_acceptor_closure_t *ac) {
   return ac->service_ctx;
 }
+void (*mtev_acceptor_closure_ctx_free_func(mtev_acceptor_closure_t *ac))(void*) {
+  return ac->service_ctx_free;
+}
 void
 mtev_acceptor_closure_ctx_free(mtev_acceptor_closure_t *ac) {
   if(ac->service_ctx_free)
@@ -295,6 +298,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
         SSLCONFGET(ca, "ca_chain");
         SSLCONFGET(ciphers, "ciphers");
         SSLCONFGET(npn, "npn");
+        if(!npn) npn="h2";
         ctx = eventer_ssl_ctx_new(SSL_SERVER, layer, cert, key, ca, ciphers);
         if(!ctx) {
           mtevL(mtev_error, "Failed to create SSL context.\n");

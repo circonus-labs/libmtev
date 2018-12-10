@@ -818,6 +818,32 @@ mtev_http2_rest_raw_handler(eventer_t e, int mask, void *closure,
   return rv;
 }
 
+mtev_http2_parent_session *
+mtev_rest_http2_session_for_upgrade(mtev_http1_session_ctx *ctx, void *settings, size_t settings_len) {
+  mtev_http1_connection *conne = mtev_http1_session_connection(ctx);
+  eventer_t e = mtev_http1_connection_event(conne);
+  mtev_acceptor_closure_t *ac = eventer_get_closure(e);
+  mtev_http1_request *req = mtev_http1_session_request(ctx);
+  const char *method = mtev_http1_request_method_str(req);
+  int head_req = method ? !strcasecmp(method, "HEAD") : 0;
+
+  mtev_http2_parent_session *h2;
+  h2 = mtev_http2_parent_session_new_ex(mtev_rest_request_http2_dispatcher,
+                                        mtev_http_rest_closure_alloc_as_voidptr,
+                                        mtev_http_rest_closure_free,
+                                        e, ac, 100, head_req, settings, settings_len);
+  mtev_acceptor_closure_set_ctx(ac, h2, mtev_http2_ctx_acceptor_free);
+  eventer_set_callback(e, mtev_http2_rest_raw_handler);
+  eventer_set_closure(e, ac);
+  return h2;
+}
+
+mtev_boolean
+mtev_rest_owns_accept_closure(mtev_acceptor_closure_t *ac) {
+  return mtev_acceptor_closure_ctx_free_func(ac) ==
+         mtev_http_rest_closure_free;
+}
+
 int
 mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
                            struct timeval *now) {
