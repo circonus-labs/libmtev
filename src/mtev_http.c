@@ -320,10 +320,10 @@ mtev_http_response_vappend(mtev_http_session_ctx *ctx,
 #else
   len = vsnprintf(buffer, sizeof(buffer), format, arg);
 #endif
-  if(len > (int)sizeof(buffer)) {
+  if(len >= (int)sizeof(buffer)) {
     int allocd = sizeof(buffer);
-    while(len > allocd) { /* guaranteed true the first time */
-      if(len > allocd) allocd = len;
+    while(len >= allocd) { /* guaranteed true the first time */
+      if(len >= allocd) allocd = len + 1;
       if(dynbuff) free(dynbuff);
       dynbuff = malloc(allocd);
       assert(dynbuff);
