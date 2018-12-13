@@ -34,21 +34,18 @@
 #ifndef _MTEV_HTTP_H
 #define _MTEV_HTTP_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 #include <libxml/tree.h>
-#include "eventer/eventer.h"
-#include "mtev_compress.h"
-#include "mtev_hash.h"
-#include "mtev_hooks.h"
-#include "mtev_listener.h"
-#include "mtev_zipkin.h"
+#include <eventer/eventer.h>
+#include <mtev_compress.h>
+#include <mtev_hash.h>
+#include <mtev_hooks.h>
+#include <mtev_listener.h>
+#include <mtev_zipkin.h>
 
 typedef enum {
   MTEV_HTTP_OTHER, MTEV_HTTP_GET, MTEV_HTTP_HEAD, MTEV_HTTP_POST
 } mtev_http_method;
-typedef enum {
-  MTEV_HTTP09, MTEV_HTTP10, MTEV_HTTP11
-} mtev_http_protocol;
 
 #define MTEV_HTTP_CHUNKED      0x0001
 #define MTEV_HTTP_CLOSE        0x0002
@@ -56,44 +53,20 @@ typedef enum {
 #define MTEV_HTTP_DEFLATE      0x0020
 #define MTEV_HTTP_LZ4F         0x0100
 
-typedef enum {
-  BCHAIN_INLINE = 0,
-  BCHAIN_MMAP
-} bchain_type_t;
-
 struct bchain;
-
 struct mtev_http_connection;
 typedef struct mtev_http_connection mtev_http_connection;
 struct mtev_http_request;
 typedef struct mtev_http_request mtev_http_request;
 struct mtev_http_response;
 typedef struct mtev_http_response mtev_http_response;
-
-struct bchain {
-  bchain_type_t type;
-  mtev_compress_type compression;
-  struct bchain *next, *prev;
-  size_t start; /* where data starts (buff + start) */
-  size_t size;  /* data length (past start) */
-  size_t allocd;/* total allocation */
-  size_t mmap_size; /* size of original mmap */
-  char *buff;
-  char _buff[1]; /* over allocate as needed */
-};
-
 struct mtev_http_session_ctx;
 typedef struct mtev_http_session_ctx mtev_http_session_ctx;
 typedef int (*mtev_http_dispatch_func) (mtev_http_session_ctx *);
 typedef int (*mtev_http_websocket_dispatch_func) (mtev_http_session_ctx *, uint8_t opcode, const unsigned char *msg, size_t msg_len);
 
-API_EXPORT(mtev_http_session_ctx *)
-  mtev_http_session_ctx_new(mtev_http_dispatch_func, void *, eventer_t, mtev_acceptor_closure_t *);
-
-API_EXPORT(mtev_http_session_ctx *)
-  mtev_http_session_ctx_websocket_new(mtev_http_dispatch_func, mtev_http_websocket_dispatch_func,
-                            void *, eventer_t, mtev_acceptor_closure_t *);
-
+API_EXPORT(mtev_acceptor_closure_t *)
+  mtev_http_session_acceptor_closure(mtev_http_session_ctx *ctx);
 API_EXPORT(void)
   mtev_http_ctx_session_release(mtev_http_session_ctx *ctx);
 API_EXPORT(uint32_t)
@@ -115,8 +88,6 @@ API_EXPORT(mtev_http_response *)
   mtev_http_session_response(mtev_http_session_ctx *);
 API_EXPORT(mtev_http_connection *)
   mtev_http_session_connection(mtev_http_session_ctx *);
-API_EXPORT(mtev_boolean)
-  mtev_http_is_websocket(mtev_http_session_ctx *);
 
 API_EXPORT(void *)
   mtev_http_session_dispatcher_closure(mtev_http_session_ctx *);
@@ -134,6 +105,9 @@ API_EXPORT(void)
   mtev_http_connection_resume_after_float(mtev_http_connection *);
 API_EXPORT(void)
   mtev_http_session_resume_after_float(mtev_http_session_ctx *);
+
+API_EXPORT(mtev_boolean)
+  mtev_http_is_websocket(mtev_http_session_ctx *);
 
 API_EXPORT(void)
   mtev_http_request_start_time(mtev_http_request *, struct timeval *);
@@ -180,14 +154,9 @@ API_EXPORT(size_t)
 API_EXPORT(void)
   mtev_http_ctx_acceptor_free(void *); /* just calls mtev_http_session_ctx_release */
 
-API_EXPORT(void)
-  mtev_http_process_querystring(mtev_http_request *);
-
 API_EXPORT(int)
   mtev_http_session_drive(eventer_t, int, void *, struct timeval *, int *done);
 
-API_EXPORT(mtev_boolean)
-  mtev_http_session_prime_input(mtev_http_session_ctx *, const void *, size_t);
 API_EXPORT(int)
   mtev_http_session_req_consume(mtev_http_session_ctx *ctx,
                                 void *buf, const size_t len,
@@ -196,9 +165,11 @@ API_EXPORT(int)
 API_EXPORT(void)
   mtev_http_session_track_latency(mtev_http_session_ctx *ctx, stats_handle_t *h);
 
-API_EXPORT(void)
-  mtev_http_request_track_latency(mtev_http_request *req, stats_handle_t *h);
+API_EXPORT(stats_handle_t *)
+  mtev_http_session_latency(mtev_http_session_ctx *ctx);
 
+API_EXPORT(int)
+  mtev_http_response_status(mtev_http_response *);
 API_EXPORT(mtev_boolean)
   mtev_http_response_status_set(mtev_http_session_ctx *, int, const char *);
 API_EXPORT(mtev_boolean)
@@ -217,8 +188,6 @@ API_EXPORT(mtev_boolean)
 API_EXPORT(mtev_boolean)
   mtev_http_response_append(mtev_http_session_ctx *, const void *, size_t);
 API_EXPORT(mtev_boolean)
-  mtev_http_response_append_bchain(mtev_http_session_ctx *, struct bchain *);
-API_EXPORT(mtev_boolean)
   mtev_http_response_append_mmap(mtev_http_session_ctx *,
                                  int fd, size_t len, int flags, off_t offset);
 
@@ -234,12 +203,6 @@ API_EXPORT(mtev_boolean)
 API_EXPORT(mtev_boolean) mtev_http_response_end(mtev_http_session_ctx *);
 API_EXPORT(size_t)
   mtev_http_response_buffered(mtev_http_session_ctx *);
-
-API_EXPORT(mtev_boolean)
-  mtev_http_websocket_queue_msg(mtev_http_session_ctx *, int opcode, const unsigned char *msg, size_t msg_len);
-
-API_EXPORT(void)
-  mtev_http_create_websocket_accept_key(char *dest, size_t dest_len, const char *client_key);
 
 #define mtev_http_response_server_error(ctx, type) \
   mtev_http_response_standard(ctx, 500, "ERROR", type)
@@ -266,10 +229,8 @@ API_EXPORT(Zipkin_Span *)
 API_EXPORT(void)
   mtev_http_init(void);
 
-MTEV_HOOK_PROTO(http_post_request,
-                (mtev_http_session_ctx *ctx),
-                void *, closure,
-                (void *closure, mtev_http_session_ctx *ctx))
+#include <mtev_http1.h>
+#include <mtev_http2.h>
 
 MTEV_HOOK_PROTO(http_request_log,
                 (mtev_http_session_ctx *ctx),

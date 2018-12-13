@@ -197,6 +197,10 @@ child_main(void) {
   );
 
   rule = mtev_http_rest_new_rule(
+    "GET", "/", "^upload2$", upload_handler_no_aco
+  );
+
+  rule = mtev_http_rest_new_rule(
     "POST", "/", "^upload$", upload_handler
   );
   mtev_rest_mountpoint_set_aco(rule, mtev_true);

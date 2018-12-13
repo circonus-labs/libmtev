@@ -469,6 +469,8 @@ AS_IF([test "x$enable_amqp" != "xno"], [
 	LIBS=$OLD_LIBS
 ])
 
+AC_CHECK_LIB(nghttp2, nghttp2_session_get_stream_user_data, ,
+             [ AC_MSG_ERROR([*** libnghttp2 required ***]) ])
 AC_ARG_ENABLE([wslay],
     AS_HELP_STRING([--disable-wslay], [Disable websockets (libwslay)]))
 

@@ -77,6 +77,9 @@ void *
 mtev_acceptor_closure_ctx(mtev_acceptor_closure_t *ac) {
   return ac->service_ctx;
 }
+void (*mtev_acceptor_closure_ctx_free_func(mtev_acceptor_closure_t *ac))(void*) {
+  return ac->service_ctx_free;
+}
 void
 mtev_acceptor_closure_ctx_free(mtev_acceptor_closure_t *ac) {
   if(ac->service_ctx_free)
@@ -280,7 +283,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
         goto accept_bail;
       }
       if(mtev_hash_size(listener_closure->sslconfig)) {
-        const char *layer, *cert, *key, *ca, *ciphers, *crl;
+        const char *layer, *cert, *key, *ca, *ciphers, *crl, *npn;
         eventer_ssl_ctx_t *ctx;
         /* We have an SSL configuration.  While our socket accept is
          * complete, we now have to SSL_accept, which could require
@@ -294,6 +297,8 @@ mtev_listener_acceptor(eventer_t e, int mask,
         SSLCONFGET(key, "key_file");
         SSLCONFGET(ca, "ca_chain");
         SSLCONFGET(ciphers, "ciphers");
+        SSLCONFGET(npn, "npn");
+        if(!npn) npn="h2";
         ctx = eventer_ssl_ctx_new(SSL_SERVER, layer, cert, key, ca, ciphers);
         if(!ctx) {
           mtevL(mtev_error, "Failed to create SSL context.\n");
@@ -308,6 +313,9 @@ mtev_listener_acceptor(eventer_t e, int mask,
             close(conn);
             goto socketfail;
           }
+        }
+        if(npn) {
+          eventer_ssl_alpn_advertise(ctx, npn);
         }
 
         listener_closure_t lc = malloc(sizeof(*listener_closure));
@@ -665,6 +673,40 @@ mtev_listener_reconfig(const char *toplevel) {
   }
   mtev_conf_release_sections(listener_configs, cnt);
 }
+mtev_boolean
+mtev_listener_apply_alpn(eventer_t e, int *mask, void *closure,
+                         struct timeval *now) {
+  eventer_ssl_ctx_t *sslctx;
+  if((sslctx = eventer_get_eventer_ssl_ctx(e)) == NULL) return 0;
+  const uint8_t *alpn = NULL;
+  uint8_t alpnlen = 0;
+  eventer_ssl_get_alpn_selected(sslctx, &alpn, &alpnlen);
+  if(alpnlen && alpn) {
+    const char *name = eventer_name_for_callback(eventer_get_callback(e));
+    char buff[128];
+    snprintf(buff, sizeof(buff), "%s/alpn:%.*s", name, (int)alpnlen, alpn);
+    eventer_func_t alpn_f = eventer_callback_for_name(buff);
+    if(alpn_f == NULL) {
+      mtevL(mtev_debug, "No registered callback for '%s'\n", buff);
+      return mtev_false;
+    }
+    mtevL(mtev_debug, "Upgrading %s -> %s\n", name, buff);
+    eventer_set_callback(e, alpn_f);
+    *mask = alpn_f(e, *mask, closure, now);
+    return mtev_true;
+  }
+  return mtev_false;
+}
+
+int
+mtev_listener_http2(eventer_t e, int mask, void *closure,
+                    struct timeval *now) {
+  (void)mask;
+  (void)closure;
+  (void)now;
+  eventer_close(e, &mask);
+  return 0;
+}
 int
 mtev_control_dispatch(eventer_t e, int mask, void *closure,
                       struct timeval *now) {
@@ -673,6 +715,11 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
   void *vdelegation_table;
   mtev_hash_table *delegation_table = NULL;
   mtev_acceptor_closure_t *ac = closure;
+
+  int alpn_mask = mask;
+  if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
+    return alpn_mask;
+  }
 
   mtevAssert(ac->rlen >= 0);
   while(ac->rlen < (int)sizeof(cmd)) {

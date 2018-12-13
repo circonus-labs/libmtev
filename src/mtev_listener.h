@@ -65,6 +65,8 @@ API_EXPORT(const char *)
 API_EXPORT(void *)
   mtev_acceptor_closure_ctx(mtev_acceptor_closure_t *);
 
+void (*mtev_acceptor_closure_ctx_free_func(mtev_acceptor_closure_t *))(void*);
+
 API_EXPORT(void)
   mtev_acceptor_closure_ctx_free(mtev_acceptor_closure_t *);
 

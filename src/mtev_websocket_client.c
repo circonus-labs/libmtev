@@ -254,7 +254,7 @@ mtev_websocket_client_recv_handshake(mtev_websocket_client_t *client) {
   char resheader[8192];
   char accept_key[mtev_b64_encode_len(SHA_DIGEST_LENGTH) + 1];
 
-  mtev_http_create_websocket_accept_key(accept_key,
+  mtev_http1_create_websocket_accept_key(accept_key,
                                         mtev_b64_encode_len(SHA_DIGEST_LENGTH) + 1,
                                         client->client_key);
 

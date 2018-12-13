@@ -96,6 +96,16 @@ API_EXPORT(int) eventer_SSL_connect(eventer_t e, int *mask);
 API_EXPORT(int)
   eventer_ssl_use_crl(eventer_ssl_ctx_t *ctx, const char *crl_file);
 
+typedef int (*eventer_SSL_alpn_func_t)(const unsigned char **out,
+                                       unsigned char *outlen,
+                                       const unsigned char *in,
+                                       unsigned int inlen);
+API_EXPORT(void)
+  eventer_ssl_alpn_register(const char *name, eventer_SSL_alpn_func_t f);
+
+API_EXPORT(int)
+  eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn);
+
 API_EXPORT(int)
   eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
                           X509_STORE_CTX *x509ctx, void *closure);
@@ -112,6 +122,8 @@ GET_SET_X509_NAME_PROTO(issuer);
 GET_SET_X509_NAME_PROTO(subject);
 GET_SET_X509_NAME_PROTO(error);
 GET_SET_X509_NAME_PROTO(san_list);
+API_EXPORT(void)
+  eventer_ssl_get_alpn_selected(eventer_ssl_ctx_t *ctx, const uint8_t **alpn, uint8_t *len);
 API_EXPORT(const char *)
   eventer_ssl_get_last_error(eventer_ssl_ctx_t *ctx);
 API_EXPORT(X509 *)
