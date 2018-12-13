@@ -36,7 +36,7 @@ WSS_OBJS=	websocket_server.o
 
 EXTRA_TARGETS=@EXTRA_EXAMPLES@
 
-all:	test-server.crt echo_server echo_client example1 aco $(EXTRA_TARGETS)
+all:	testcerts echo_server echo_client example1 aco $(EXTRA_TARGETS)
 
 .c.o:
 	@echo "- compiling $<"

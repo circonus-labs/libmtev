@@ -534,6 +534,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
       logline_len = len+1;
     }
     int fd = -1;
+    (void)fd;
     mtev_http_connection *conn = mtev_http_session_connection(ctx);
     if(conn) {
       eventer_t e = mtev_http_connection_event(conn);
