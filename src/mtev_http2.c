@@ -35,6 +35,7 @@
 #include "mtev_str.h"
 #include "mtev_b64.h"
 
+#include <ctype.h>
 #include <errno.h>
 
 #include <nghttp2/nghttp2.h>
