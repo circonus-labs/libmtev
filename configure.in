@@ -525,6 +525,9 @@ AC_CHECK_LIB(ssl, SSL_library_init, ,
 	]
 )
 
+AC_CHECK_FUNC(SSL_CTX_set_next_protos_advertised_cb, ,
+              [AC_DEFINE(OPENSSL_NO_NEXTPROTONEG, [1], [OPENSSL_NO_NEXTPROTONEG])])
+
 AC_MSG_CHECKING([libxml2 cflags])
 XML2CFLAGS=`xml2-config --cflags`
 CFLAGS="$CFLAGS $XML2CFLAGS"
