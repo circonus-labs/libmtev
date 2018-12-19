@@ -270,13 +270,14 @@ stage_replace_free_node(mtev_intern_pool_t *pool,
    *               |                    | P = allocate (refcnt@1)
    * refcnt (1->2) |                    |
    */
+  uint64_t size = node->size;
   node->next = ck_pr_load_ptr(&pool->staged_free_nodes);
   while(!ck_pr_cas_ptr(&pool->staged_free_nodes, node->next, node)) {
     ck_pr_stall();
     node->next = ck_pr_load_ptr(&pool->staged_free_nodes);
   }
   ck_pr_inc_32(&pool->staged_free_nodes_count);
-  ck_pr_add_64(&pool->staged_free_nodes_size, node->size);
+  ck_pr_add_64(&pool->staged_free_nodes_size, size);
 }
 
 static inline size_t
