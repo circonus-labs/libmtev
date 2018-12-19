@@ -632,7 +632,7 @@ mtev_http1_request_finalize_headers(mtev_http1_session_ctx *ctx, mtev_boolean *e
         req->protocol = _protocol_enum(req->protocol_str);
         req->opts |= MTEV_HTTP_CLOSE;
         if(req->protocol == MTEV_HTTP11) req->opts |= MTEV_HTTP_CHUNKED;
-        LIBMTEV_HTTP_REQUEST_START(CTXFD(ctx), ctx);
+        LIBMTEV_HTTP_REQUEST_START(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
       }
       else { /* request headers */
         const char *name, *value;
@@ -917,7 +917,7 @@ mtev_http1_response_release(mtev_http1_session_ctx *ctx) {
 void
 mtev_http1_ctx_session_release(mtev_http1_session_ctx *ctx) {
   if(mtev_http1_session_ref_dec(ctx)) {
-    LIBMTEV_HTTP_CLOSE(CTXFD(ctx), ctx);
+    LIBMTEV_HTTP_CLOSE(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
     mtev_http1_request_release(ctx);
     mtev_http1_response_release(ctx);
     pthread_mutex_destroy(&ctx->write_lock);
@@ -1538,7 +1538,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
 
     /* we always respond with the same procotol */
     ctx->res.protocol = ctx->req.protocol;
-    LIBMTEV_HTTP_REQUEST_FINISH(CTXFD(ctx), ctx);
+    LIBMTEV_HTTP_REQUEST_FINISH(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
 
     if(http_post_request_hook_invoke(ctx) == MTEV_HOOK_ABORT) {
       mtevL(http_debug, "hook aborted http session.\n");
@@ -1616,7 +1616,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
     goto release;
   }
   if(ctx->res.complete == mtev_true) {
-    LIBMTEV_HTTP_RESPONSE_FINISH(CTXFD(ctx), ctx);
+    LIBMTEV_HTTP_RESPONSE_FINISH(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
     mtev_http_log_request((mtev_http_session_ctx *)ctx);
     mtev_http_end_span((mtev_http_session_ctx *)ctx);
     mtev_http1_request_release(ctx);
@@ -1677,7 +1677,7 @@ mtev_http1_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http1_webso
   ctx->did_handshake = mtev_false;
   ctx->wslay_ctx = NULL;
 #endif
-  LIBMTEV_HTTP_ACCEPT(e ? eventer_get_fd(e) : -1, ctx);
+  LIBMTEV_HTTP_ACCEPT(e ? eventer_get_fd(e) : -1, (mtev_http_session_ctx *)ctx);
   return (mtev_http_session_ctx *)ctx;
 }
 
@@ -1866,7 +1866,7 @@ _mtev_http1_response_flush(mtev_http1_session_ctx *ctx,
   if(ctx->res.output_started == mtev_false) {
     _http_construct_leader(ctx);
     ctx->res.output_started = mtev_true;
-    LIBMTEV_HTTP_RESPONSE_START(CTXFD(ctx), ctx);
+    LIBMTEV_HTTP_RESPONSE_START(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
     mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_SEND, false);
   }
   /* encode output to output_raw */
