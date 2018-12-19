@@ -781,7 +781,7 @@ socket_error:
       default:
         goto socket_error;
     }
-    mtev_http1_session_prime_input(restc->http1_ctx, primer, 4);
+    mtev_http1_session_prime_input((mtev_http1_session_ctx *)restc->http_ctx, primer, 4);
   }
   rv = mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
   if(done) {

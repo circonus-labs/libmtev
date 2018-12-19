@@ -47,7 +47,7 @@ static int my_websocket_msg_handler(mtev_http_rest_closure_t *restc,
                                     int opcode, const unsigned char *msg, size_t msg_len)
 {
   /* simply echo back what was sent */
-  mtev_boolean x = mtev_http1_websocket_queue_msg(restc->http1_ctx, opcode, msg, msg_len);
+  mtev_boolean x = mtev_http1_websocket_queue_msg((mtev_http1_session_ctx *)restc->http_ctx, opcode, msg, msg_len);
   if (debug == 1) {
     mtevL(mtev_debug, "Queue websocket message.. success == %d\n", x);
   }
