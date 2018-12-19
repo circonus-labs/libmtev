@@ -4,6 +4,7 @@
 
 ## 1.5
 
+ * Fix memory leak in SMR queue during thread shutdown.
  * Make base64 decoding also accept URL alphabet (rfc4648).
  * Fix crash in hash to lua table conversion where value is NULL.
  * Provide mtev_intern compaction as a side effect of mtev_intern_release
