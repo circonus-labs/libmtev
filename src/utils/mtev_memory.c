@@ -104,9 +104,11 @@ static bool
 terminate_gc_return(gc_asynch_queue_t *now_mine) {
   if(ck_pr_load_64(&now_mine->requeued) == ck_pr_load_64(&now_mine->enqueued)) {
     struct asynch_reclaim *ar;
+    ck_fifo_spsc_entry_t *entry;
 
     ck_fifo_spsc_dequeue_lock(now_mine->queue);
-    while(ck_fifo_spsc_dequeue(now_mine->queue, &ar)) {
+    CK_FIFO_SPSC_FOREACH(now_mine->queue, entry) {
+      ar = (struct asynch_reclaim *)entry->value;
       mtev_gc_sync_complete(ar, mtev_false);
     }
     ck_fifo_spsc_dequeue_unlock(now_mine->queue);
