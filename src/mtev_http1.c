@@ -912,6 +912,7 @@ mtev_http1_response_release(mtev_http1_session_ctx *ctx) {
     mtev_destroy_stream_compress_ctx(ctx->res.compress_ctx);
   }
   memset(&ctx->res, 0, sizeof(ctx->res));
+  ctx->res.http_type = MTEV_HTTP_1;
   ctx->res.freed = mtev_true;
 }
 void
