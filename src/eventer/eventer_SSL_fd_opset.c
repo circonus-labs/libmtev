@@ -918,6 +918,7 @@ eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn) {
 void
 eventer_ssl_get_alpn_selected(eventer_ssl_ctx_t *ctx, const uint8_t **alpn, uint8_t *len) {
   if(!ctx || !ctx->ssl) return;
+  (void)alpn;
   unsigned int ilen = 0;
 #ifndef OPENSSL_NO_NEXTPROTONEG
   SSL_get0_next_proto_negotiated(ctx->ssl, alpn, &ilen);
