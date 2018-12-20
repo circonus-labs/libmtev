@@ -618,11 +618,13 @@ socket_error:
       rc->data.incoming_inflight.command = 0;
     }
     rc->data.incoming_inflight.buff_len = ntohl(nframelen);
-    mtevL(nldeb, "%s mtev_reverse_socket_handler: next_frame_in(%s%d,%llu)\n",
+    mtevL(nldeb, "%s mtev_reverse_socket_handler: next_frame_in(%s%d,%llu) - pair [%d,%d]\n",
           rc->id,
           rc->data.incoming_inflight.command ? "!" : "",
           rc->data.incoming_inflight.channel_id,
-          (unsigned long long)rc->data.incoming_inflight.buff_len);
+          (unsigned long long)rc->data.incoming_inflight.buff_len,
+          rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
+          rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
     if(rc->data.incoming_inflight.buff_len > MAX_FRAME_LEN) {
       mtevL(nldeb, "%s mtev_reverse_socket_handler: oversized frame (%zd > %zd), goto socket_error\n",
               rc->id, rc->data.incoming_inflight.buff_len, MAX_FRAME_LEN);
@@ -650,7 +652,7 @@ socket_error:
       socket_error_string = "buffer eventer_read error";
       goto socket_error;
     }
-    mtevL(nldeb, "frame payload read -> %llu (@%llu/%llu) - incoming channel id %d, pair %d->%d\n",
+    mtevL(nldeb, "frame payload read -> %llu (@%llu/%llu) - incoming channel id %d, pair [%d,%d]\n",
           (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
           (unsigned long long)rc->data.incoming_inflight.buff_len,
           rc->data.incoming_inflight.channel_id,
@@ -696,7 +698,10 @@ socket_error:
     /* send a reset, but not in response to a reset */
     IFCMD(&rc->data.incoming_inflight, "RESET") { } /* noop */
     else {
-      mtevL(nldeb, "%s mtev_reverse_socket_handler - sending reset due to channel fd -1\n", rc->id);
+      mtevL(nldeb, "%s mtev_reverse_socket_handler - sending reset  - incoming channel id %d, pair [%d,%d]\n",
+              rc->id, rc->data.incoming_inflight.channel_id,
+              rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
+              rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
       command_out(rc, rc->data.incoming_inflight.channel_id, "RESET");
     }
     free(rc->data.incoming_inflight.buff);
