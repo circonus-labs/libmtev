@@ -703,8 +703,9 @@ socket_error:
           (int)rc->data.incoming_inflight.buff_len, (char *)rc->data.incoming_inflight.buff);
   }
   IFCMD(&rc->data.incoming_inflight, "CONNECT") {
-    mtevL(nldeb, "%s mtev_reverse_socket_handler - got connect request(channel_id.pair[0] = %d)\n", rc->id,
-            rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0]);
+    mtevL(nldeb, "%s mtev_reverse_socket_handler - got connect request - incoming channel id %d, pair [%d,%d]\n",
+            rc->id, rc->data.incoming_inflight.channel_id, rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
+            rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
     if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == -1) {
       int fd = mtev_support_connection(rc);
       if(fd >= 0) {
