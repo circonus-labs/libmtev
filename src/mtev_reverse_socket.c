@@ -650,9 +650,12 @@ socket_error:
       socket_error_string = "buffer eventer_read error";
       goto socket_error;
     }
-    mtevL(nldeb, "frame payload read -> %llu (@%llu/%llu)\n",
+    mtevL(nldeb, "frame payload read -> %llu (@%llu/%llu) - incoming channel id %d, pair %d->%d\n",
           (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
-          (unsigned long long)rc->data.incoming_inflight.buff_len);
+          (unsigned long long)rc->data.incoming_inflight.buff_len,
+          rc->data.incoming_inflight.channel_id,
+          rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
+          rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
     rc->data.incoming_inflight.buff_filled += len;
     success = 1;
   }
@@ -1054,9 +1057,11 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       f.buff = strdup("CONNECT");
       f.buff_len = strlen(f.buff);
       op = "socketpair";
+      mtevL(nldeb, "mtev_reverse_socket_connect - sending connect message (channel id %d, chan %d, id %s, existing_fd %d)\n",
+              f.channel_id, chan, id, existing_fd);
       if(existing_fd >= 0) {
         fd = existing_fd;
-        mtevL(nldeb, "mtev_reverse_socket_connect - setting fd for %s [channel %d] pair[0] - %d\n", id, chan, existing_fd);
+        mtevL(nldeb, "mtev_reverse_socket_connect - setting fd for %s [channel %d] pair[0] from existing_fd - %d\n", id, chan, existing_fd);
         rc->data.channels[chan].pair[0] = fd;
       }
       else if(socketpair(AF_LOCAL, SOCK_STREAM, 0, rc->data.channels[chan].pair) < 0) {
@@ -1064,6 +1069,8 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = -1;
       }
       else {
+        mtevL(nldeb, "mtev_reverse_socket_connect - set fds for %s [channel %d] from socketpair - [0] = %d, [1] = %d\n",
+                id, chan, rc->data.channels[chan].pair[0], rc->data.channels[chan].pair[1]);
         op = "O_NONBLOCK";
         if(eventer_set_fd_nonblocking(rc->data.channels[chan].pair[0]) ||
            eventer_set_fd_nonblocking(rc->data.channels[chan].pair[1])) {
@@ -1091,6 +1098,9 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         mtevL(nldeb, "mtev_reverse_socket_connect - mapping reverse proxy on fd %d for %s [channel %d]\n", existing_fd, id, chan);
         eventer_add(e);
         APPEND_OUT(rc, &f);
+      }
+      else {
+        mtevL(nldeb, "mtev_reverse_socket_connect - no existing_fd for %s [channel %d]\n", id, chan);
       }
     }
   }
