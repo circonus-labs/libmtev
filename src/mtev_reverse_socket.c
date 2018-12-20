@@ -652,8 +652,8 @@ socket_error:
       socket_error_string = "buffer eventer_read error";
       goto socket_error;
     }
-    mtevL(nldeb, "frame payload read -> %llu (@%llu/%llu) - incoming channel id %d, pair [%d,%d]\n",
-          (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
+    mtevL(nldeb, "%s frame payload read -> %llu (@%llu/%llu) - incoming channel id %d, pair [%d,%d]\n",
+          rc->id, (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
           (unsigned long long)rc->data.incoming_inflight.buff_len,
           rc->data.incoming_inflight.channel_id,
           rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
