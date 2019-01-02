@@ -1194,7 +1194,7 @@ mtev_http1_http2_upgrade(mtev_http1_session_ctx *ctx) {
   if(settings_len > (ssize_t)sizeof(settings)) {
     return 0;
   }
-  settings_len = mtev_b64_decode(hdr_settings, sizeof(hdr_settings), settings, sizeof(settings));
+  settings_len = mtev_b64_decode(hdr_settings, settings_len, settings, sizeof(settings));
   if(settings_len <= 0) {
     return 0;
   }
