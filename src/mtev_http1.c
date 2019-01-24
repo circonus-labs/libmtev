@@ -1043,6 +1043,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       mtevL(http_debug, " ... mtev_http1_session_req_consume = -1 (EAGAIN)\n");
       return -1;
     }
+    if(rlen == 0 && next_chunk > 0) goto successful_chunk_size;
     if(rlen <= 0) {
       mtevL(http_debug, " ... mtev_http1_session_req_consume = -1 (error)\n");
       return -2;
