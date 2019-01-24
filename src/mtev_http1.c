@@ -677,7 +677,8 @@ mtev_http1_request_finalize_headers(mtev_http1_session_ctx *ctx, mtev_boolean *e
   /* headers are done... we could need to read a payload */
   if(mtev_hash_retrieve(&req->headers,
                         HEADER_TRANSFER_ENCODING,
-                        sizeof(HEADER_TRANSFER_ENCODING)-1, &vval)) {
+                        sizeof(HEADER_TRANSFER_ENCODING)-1, &vval)
+      && vval && !strcmp(vval, "chunked")) {
     req->has_payload = mtev_true;
     req->payload_chunked = mtev_true;
     req->read_last_chunk = mtev_false;
@@ -952,8 +953,9 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
     }
 
     if (ctx->req.payload_chunked == mtev_false) {
-      /* if we have a completely full 'head' bchain, read it now */
-      if (head->size == head->allocd) {
+      /* we should skip the read if the block is full or we know we need to read data and there is some buffered */
+      if (head->size == head->allocd ||
+         ((ctx->req.content_length) && (ctx->req.content_length - ctx->req.content_length_read) > 0 && head->size > 0)) {
         next_chunk = head->size;
         goto successful_chunk_size;
       }
@@ -1042,6 +1044,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       mtevL(http_debug, " ... mtev_http1_session_req_consume = -1 (EAGAIN)\n");
       return -1;
     }
+    if(rlen == 0 && next_chunk > 0) goto successful_chunk_size;
     if(rlen <= 0) {
       mtevL(http_debug, " ... mtev_http1_session_req_consume = -1 (error)\n");
       return -2;
@@ -1213,7 +1216,6 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
       if (in->compression != MTEV_COMPRESS_NONE) {
         mtevL(http_debug, " ... decompress bchain\n");
         size_t total_decompressed_size = 0;
-        size_t total_compressed_size = 0;
 
         struct bchain *out = NULL;
 
@@ -1224,7 +1226,6 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
           out = ctx->req.user_data_last;
         }
         struct bchain *last_out = NULL;
-        total_compressed_size += in->size;
 
         if(ctx->req.decompress_ctx == NULL) {
           ctx->req.decompress_ctx = mtev_create_stream_decompress_ctx();
