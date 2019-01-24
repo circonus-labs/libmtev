@@ -1214,7 +1214,6 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
       if (in->compression != MTEV_COMPRESS_NONE) {
         mtevL(http_debug, " ... decompress bchain\n");
         size_t total_decompressed_size = 0;
-        size_t total_compressed_size = 0;
 
         struct bchain *out = NULL;
 
@@ -1225,7 +1224,6 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
           out = ctx->req.user_data_last;
         }
         struct bchain *last_out = NULL;
-        total_compressed_size += in->size;
 
         if(ctx->req.decompress_ctx == NULL) {
           ctx->req.decompress_ctx = mtev_create_stream_decompress_ctx();
