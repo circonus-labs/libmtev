@@ -953,8 +953,9 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
     }
 
     if (ctx->req.payload_chunked == mtev_false) {
-      /* if we have a completely full 'head' bchain, read it now */
-      if (head->size == head->allocd) {
+      /* if we have a completely full 'head' bchain or we've read the full
+       * content length, read it now */
+      if (head->size == head->allocd || (size_t)ctx->req.content_length == head->size) {
         next_chunk = head->size;
         goto successful_chunk_size;
       }
