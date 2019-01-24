@@ -922,6 +922,10 @@ rest_get_xml_upload(mtev_http_rest_closure_t *restc,
       rxc->indoc = xmlParseMemory(rxc->buffer, rxc->len);
       rxc->complete = 1;
     }
+    if(len == 0) {
+      *complete = 1;
+      return NULL;
+    }
   }
 
   *complete = 1;
@@ -998,6 +1002,10 @@ rest_get_raw_upload(mtev_http_rest_closure_t *restc,
     if(rxc->len == mtev_http_request_content_length(req)) {
       *size = rxc->len;
       rxc->complete = 1;
+    }
+    if(len == 0) {
+      *complete = 1;
+      return NULL;
     }
   }
 
