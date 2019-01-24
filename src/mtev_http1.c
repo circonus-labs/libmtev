@@ -677,7 +677,8 @@ mtev_http1_request_finalize_headers(mtev_http1_session_ctx *ctx, mtev_boolean *e
   /* headers are done... we could need to read a payload */
   if(mtev_hash_retrieve(&req->headers,
                         HEADER_TRANSFER_ENCODING,
-                        sizeof(HEADER_TRANSFER_ENCODING)-1, &vval)) {
+                        sizeof(HEADER_TRANSFER_ENCODING)-1, &vval)
+      && vval && !strcmp(vval, "chunked")) {
     req->has_payload = mtev_true;
     req->payload_chunked = mtev_true;
     req->read_last_chunk = mtev_false;
