@@ -225,6 +225,13 @@ HTTP_DIS(mtev_boolean, response_header_set, session_ctx *, ctx,
          (mtev_http_session_ctx *ctx, const char *k, const char *v), (t_ctx, k, v))
 
 mtev_boolean
+mtev_http_websocket_queue_msg(mtev_http_session_ctx *ctx, int opcode,
+                              const unsigned char *msg, size_t msg_len) {
+  if(ctx->http_type != MTEV_HTTP_1) return mtev_false;
+  return mtev_http1_websocket_queue_msg((mtev_http1_session_ctx *)ctx, opcode, msg, msg_len);
+}
+
+mtev_boolean
 mtev_http_response_append(mtev_http_session_ctx *ctx,
                           const void *b, size_t l) {
   struct bchain *o;
