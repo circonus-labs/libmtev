@@ -10,6 +10,8 @@
  * Provide mtev_intern compaction as a side effect of mtev_intern_release
    (this prevents pathological mmap leaks if programmers fail to compact).
  * Fix several http bugs around payload reading.
+ * Fix mtev.notify/mtev.waitfor when the notify originates in an unyieldable
+   context and a waitfor is pending. (C -> lua -> C -> lua -> mtev.notify)
 
 ### 1.5.28
 
