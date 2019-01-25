@@ -255,7 +255,9 @@ mtev_console_closure_free(void *vncct) {
   if(lf) {
     mtev_log_stream_free(lf);
   }
+  free(ncct->hist_file);
   pthread_mutex_destroy(&ncct->outbuf_lock);
+  pthread_mutex_destroy(&ncct->hist_file_lock);
   free(ncct);
 }
 
@@ -268,6 +270,7 @@ mtev_console_closure_alloc(void) {
   new_ncct->pty_master = -1;
   new_ncct->pty_slave = -1;
   pthread_mutex_init(&new_ncct->outbuf_lock, NULL);
+  pthread_mutex_init(&new_ncct->hist_file_lock, NULL);
   return new_ncct;
 }
 
@@ -338,7 +341,14 @@ mtev_console_dispatch(eventer_t e, char *buffer,
   /* < 0 is an error, that's fine.  We want it in the history to "fix" */
   /* > 0 means we had arguments, so let's put it in the history */
   /* 0 means nothing -- and that isn't worthy of history inclusion */
-  if(i) history(ncct->hist, &ev, H_ENTER, buffer);
+  if(i && strcmp(buffer, "exit")) {
+    history(ncct->hist, &ev, H_ENTER, buffer);
+    if(ncct->hist_file) {
+      pthread_mutex_lock(&ncct->hist_file_lock);
+      history(ncct->hist, &ev, H_SAVE, ncct->hist_file);
+      pthread_mutex_unlock(&ncct->hist_file_lock);
+    }
+  }
 
   raw = (mtev_console_userdata_get(ncct, MTEV_CONSOLE_RAW_MODE) ==
          MTEV_CONSOLE_RAW_MODE_ON);
@@ -394,6 +404,7 @@ allocate_pty(int *master, int *slave) {
 static int
 mtev_console_initialize(mtev_console_closure_t ncct,
                         const char *line_protocol,
+                        const char *hist_file,
                         eventer_t in, eventer_t out) {
   ncct->e = out;
   if(allocate_pty(&ncct->pty_master, &ncct->pty_slave)) {
@@ -406,7 +417,13 @@ mtev_console_initialize(mtev_console_closure_t ncct,
     HistEvent ev;
 
     ncct->hist = history_init();
+    ncct->hist_file = hist_file ? strdup(hist_file) : NULL;
     history(ncct->hist, &ev, H_SETSIZE, 500);
+    if(ncct->hist_file) {
+      pthread_mutex_lock(&ncct->hist_file_lock);
+      history(ncct->hist, &ev, H_LOAD, ncct->hist_file);
+      pthread_mutex_unlock(&ncct->hist_file_lock);
+    }
     ncct->el = el_init("mtev", ncct->pty_master, NULL,
                        eventer_get_fd(in), in, eventer_get_fd(out), out);
     if(!ncct->el) return -1;
@@ -529,7 +546,7 @@ int mtev_console_std_init(int infd, int outfd) {
   ncct = mtev_console_closure_alloc();
   in = eventer_alloc_fd(mtev_console_std, ncct, infd, EVENTER_READ|EVENTER_EXCEPTION);
   out = eventer_alloc_fd(mtev_console_std, ncct, outfd, EVENTER_WRITE|EVENTER_EXCEPTION);
-  if(mtev_console_initialize(ncct, NULL, in, out)) {
+  if(mtev_console_initialize(ncct, NULL, NULL, in, out)) {
     return -1;
   }
   eventer_add(in);
@@ -563,10 +580,14 @@ socket_error:
   }
   if(!ncct->initialized) {
     const char *line_protocol = NULL;
+    const char *hist_file = NULL;
     (void)mtev_hash_retr_str(mtev_acceptor_closure_config(ac),
                              "line_protocol", strlen("line_protocol"),
                              &line_protocol);
-    if(mtev_console_initialize(ncct, line_protocol, e, e)) goto socket_error;
+    (void)mtev_hash_retr_str(mtev_acceptor_closure_config(ac),
+                             "history_file", strlen("history_file"),
+                             &hist_file);
+    if(mtev_console_initialize(ncct, line_protocol, hist_file, e, e)) goto socket_error;
     mtev_console_motd(e, ac, ncct);
   }
 
