@@ -2085,6 +2085,41 @@ nl_wn_queue_pop(struct nl_wn_queue *q, lua_State *L) {
   free(n);
   return nargs;
 }
+
+static int
+nl_waitfor_ping(eventer_t e, int mask, void *vcl, struct timeval *now) {
+  (void)mask;
+  (void)now;
+  mtev_lua_resume_info_t *ci;
+  struct nl_wn_queue *q = vcl;
+
+  ci = mtev_lua_find_resume_info(q->L, mtev_false);
+  if(!ci) return 0;
+  mtevAssert(e != q->pending_event);
+  mtev_lua_deregister_event(ci, e, 0);
+
+  int available_nargs = 0;
+  if(q->L) {
+    available_nargs = nl_wn_queue_pop(q, q->L);
+  }
+  /* There could be nothing... */
+  if(available_nargs == 0) return 0;
+
+  if(q->pending_event) {
+    eventer_t te = eventer_remove(q->pending_event);
+    q->pending_event = NULL;
+    q->L = NULL;
+    if(te) mtev_lua_deregister_event(ci, te, 0);
+  }
+
+  if(q->head == NULL) {
+    mtev_hash_delete(ci->lmc->pending, q->key, strlen(q->key), free, free);
+  }
+
+  ci->lmc->resume(ci, available_nargs);
+  return 0;
+}
+
 /*! \lua mtev.notify(key, ...)
 \brief Send notification message on given key, to be received by mtev.waitfor(key)
 \param key key specifying notification channel
@@ -2140,6 +2175,15 @@ nl_waitfor_notify(lua_State *L) {
   }
   else {
     nl_wn_queue_push(q, L, nargs);
+    /* There's a chance that they are actively waiting but we
+     * can't directly resume them due to us not being yieldable.
+     * In this case, we should ping them to wake up.
+     */
+    if(q->L) {
+      eventer_t newe = eventer_in_s_us(nl_waitfor_ping, q, 0, 0);
+      mtev_lua_register_event(ci, newe);
+      eventer_add(newe);
+    }
   }
   return 0;
 }
@@ -2155,6 +2199,11 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
   if(!ci) return 0;
   mtevAssert(e == q->pending_event);
 
+  int available_nargs = 0;
+  if(q->L) {
+    available_nargs = nl_wn_queue_pop(q, q->L);
+  }
+
   q->pending_event = NULL;
   q->L = NULL;
 
@@ -2164,7 +2213,7 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
     mtev_hash_delete(ci->lmc->pending, q->key, strlen(q->key), free, free);
   }
 
-  ci->lmc->resume(ci, 0);
+  ci->lmc->resume(ci, available_nargs);
   return 0;
 }
 
