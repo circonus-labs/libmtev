@@ -3917,13 +3917,16 @@ mtev_intern_pool_compact(mtev_intern_pool_t *pool, mtev_boolean force)
 
   * `pool` The pool to compact.
   * `force` A boolean dictating if compaction should be forced.
-  * **RETURN** The number of free fragment merges that occurred.
+  * **RETURN** The number of free fragment merges that occurred, -1 if it will be performed asynch.
 
 This function will walk all the free fragment lists within the
 pool joining adjacent ones and promoting them into the the right
 slabs.  If force is false, compaction will be avoided if there are less
 than approximately 1.5x fragments as there were after the previous successful
-compaction.
+compaction.  If this is called from an eventer thread (not a jobq), it will be
+scheduled to be done in the default jobq (work deferred) and will return -1
+instead of a measurement of compaction.  If force is specified, it will be done
+synchronously regardless of callsite location.
   
 
 #### mtev_intern_pool_item_count

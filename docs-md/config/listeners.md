@@ -137,6 +137,11 @@ connecting clients.  SSL config supports the follwing keys:
    list format.  Check the OpenSSL manual for more details.  If not specified, the
    default ciphers supported by the OpenSSL library are used.
 
+ * ##### npn
+
+   Specifies which NPN (next-protocol-negotiation) to offer.  If omitted, `h2` is used and the http2
+   protocol is exposed.  Specifying `none` will disable this NPN registration.
+
 ### config
 
    Each listener can access the `config` passed to it; see type-specific documentation.

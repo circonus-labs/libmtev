@@ -314,7 +314,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
             goto socketfail;
           }
         }
-        if(npn) {
+        if(npn && strcasecmp(npn, "none")) {
           eventer_ssl_alpn_advertise(ctx, npn);
         }
 
