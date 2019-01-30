@@ -12,7 +12,7 @@ facilitates configuration loading, logging setup, privilege separation and watch
 static char *config_file = "/path/to/simple.conf";
 static int debug = 0;
 static int foreground = 0;
-static cahr *glider = NULL;
+static char *glider = NULL;
 static char *droptouser = NULL;
 static char *droptogroup = NULL;
 static mtev_lock_op_t lockop = MTEV_LOCK_OP_LOCK;
