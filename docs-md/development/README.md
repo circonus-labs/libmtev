@@ -13,7 +13,7 @@ are very sophisticated, you need not worry about these subtleties and can
 simple use the APIs you need when you need them.
 
 Many subsystems require explicit initialization before they are used and
-some subsystem initializations require prior initialiation of dependednt
+some subsystem initializations require prior initialization of dependent
 subsystems.  This can cause a bit of boilerplate in your startup sequence
 which will seem unnecessary at first, but when your application becomes
 sufficiently complex you will appreciate it dearly.
