@@ -91,7 +91,7 @@ Order of operations (and other) notes:
       * pass A as a part of B's closure
       * `eventer_add(B)`
       * `return 0`
-    * in B's callback with `mask = EVNETER_ASYNCH_WORK`
+    * in B's callback with `mask = EVENTER_ASYNCH_WORK`
       * `eventer_trigger(A, EVENTER_READ|EVENTER_WRITE)`
 
 ### Recurrent Events
