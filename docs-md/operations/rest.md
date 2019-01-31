@@ -31,7 +31,7 @@ must be programmatically initialized via a call to `mtev_http_rest_init()`.
 The REST listener is implemented on a non-compliant HTTP listener by
 subverting the four-byte control words "DELE", "MERG", "GET ", "HEAD",
 "POST", "PUT " and dropping them into a compliant HTTP state machine.  While
-the session intiiation is not strictly compliant with the HTTP specification
+the session initiation is not strictly compliant with the HTTP specification
 it happily serves all known browsers and plays nicely with HTTP proxies as
 well.
 
@@ -40,7 +40,7 @@ the REST handler is served on that listening socket.  If the more general
 type of `control_dispatch` is used, then a full control channel
 is served and the REST services are superimposed on that.  Listeners
 of type `control_dispatch` are even less HTTP compliant, but
-still serve all web browers and proxies correctly.
+still serve all web browsers and proxies correctly.
 
 ### The capabilities endpoint
 

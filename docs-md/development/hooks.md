@@ -1,7 +1,7 @@
 # Arbitrary Hooks
 
 Building a callout API makes sense for common, structured
-features in software, but occassionlly there is a need to provide
+features in software, but occasionally there is a need to provide
 somewhat arbitrary hook points after the software is designed
 and the mtev\_hooks system is what satisfies this need.
 
@@ -10,7 +10,7 @@ would like to allow for a large number of hook points at low cost
 when not instrumented.  As such, a hash lookup of registered hooks
 would be considered too expensive.  Additionally, we want to provide
 strong, compile-time type safety as it can be all too easy to hook
-something with a function using a slightly incorrect protoype that
+something with a function using a slightly incorrect prototype that
 could result in disastrous corruption or crashes (or, perhaps worse,
 extremely subtle bugs that are punishing to troubleshoot).
 

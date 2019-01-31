@@ -13,14 +13,14 @@ operations](../operations/dtrace.md).
 
 The C logging API requires directing each log statements to an `mtev_log_stream_t`.  There
 are four builtin log stream: `mtev_stderr`, `mtev_error`, `mtev_notice`, and `mtev_debug`.
-Their behvior can be modified via configuration or programmatically via the API.
+Their behavior can be modified via configuration or programmatically via the API.
 
-Before uing the log system it must be initialized via `mtev_log_init(int debug)`, but `mtev_main`
+Before using the log system it must be initialized via `mtev_log_init(int debug)`, but `mtev_main`
 handles this for you.
 
 #### Startup sequence
 
-Within your `child_main` that is called by `mtev_main`, you should reopnen all logs and then
+Within your `child_main` that is called by `mtev_main`, you should reopen all logs and then
 enable rotation (config driven).
 
 ```c
