@@ -2,16 +2,29 @@
 
 # 1
 
-## 1.5
+## 1.6
 
+### 1.6.0
+
+ * Add HTTP/2 support (via libnghttp2).
+   * A TLS-enabled listener may disable HTTP/2 upgrade support by setting an
+     `npn` value of `none` in the
+     [sslconfig](http://circonus-labs.github.io/libmtev/config/listeners.html#sslconfig).
+ * Console listeners may now specify an optional `history_file` attribute to
+   preserve command history across console sessions.
+ * Reduce memory usage in highly concurrent configurations on Linux by limiting
+   the number of file descriptors in a given invocation of `epoll_wait`.
  * Fix memory leak in SMR queue during thread shutdown.
- * Make base64 decoding also accept URL alphabet (rfc4648).
+ * Make base64 decoding also accept URL alphabet
+   ([rfc4648](https://tools.ietf.org/html/rfc4648)).
  * Fix crash in hash to lua table conversion where value is NULL.
- * Provide mtev_intern compaction as a side effect of mtev_intern_release
+ * Provide mtev_intern compaction as a side effect of `mtev_intern_release`
    (this prevents pathological mmap leaks if programmers fail to compact).
  * Fix several http bugs around payload reading.
  * Fix mtev.notify/mtev.waitfor when the notify originates in an unyieldable
    context and a waitfor is pending. (C -> lua -> C -> lua -> mtev.notify)
+
+## 1.5
 
 ### 1.5.28
 
