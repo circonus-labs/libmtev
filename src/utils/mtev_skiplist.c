@@ -170,6 +170,7 @@ void *mtev_skiplist_find_neighbors(mtev_skiplist *sl,
                                    mtev_skiplist_node **next) {
   void *ret;
   mtev_skiplist_node *aiter;
+  if(!sl) return 0;
   if(!sl->compare) return 0;
   if(iter)
     ret = mtev_skiplist_find_neighbors_compare(sl, data, iter,
