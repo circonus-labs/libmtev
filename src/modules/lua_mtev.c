@@ -2051,6 +2051,7 @@ struct nl_wn_queue {
   char *key;
   lua_State *L;
   eventer_t pending_event;
+  eventer_t ping_event;
   struct nl_wn_queue_node *head, *tail;
 };
 static void
@@ -2095,7 +2096,8 @@ nl_waitfor_ping(eventer_t e, int mask, void *vcl, struct timeval *now) {
 
   ci = mtev_lua_find_resume_info(q->L, mtev_false);
   if(!ci) return 0;
-  mtevAssert(e != q->pending_event);
+  mtevAssert(e == q->ping_event);
+  q->ping_event = NULL;
   mtev_lua_deregister_event(ci, e, 0);
 
   int available_nargs = 0;
@@ -2180,9 +2182,12 @@ nl_waitfor_notify(lua_State *L) {
      * In this case, we should ping them to wake up.
      */
     if(q->L) {
-      eventer_t newe = eventer_in_s_us(nl_waitfor_ping, q, 0, 0);
-      mtev_lua_register_event(ci, newe);
-      eventer_add(newe);
+      if(q->ping_event == NULL) {
+        eventer_t newe = eventer_in_s_us(nl_waitfor_ping, q, 0, 0);
+        q->ping_event = newe;
+        mtev_lua_register_event(ci, newe);
+        eventer_add(newe);
+      }
     }
   }
   return 0;
@@ -2204,6 +2209,14 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
     available_nargs = nl_wn_queue_pop(q, q->L);
   }
 
+  if(q->ping_event) {
+    eventer_t removed = eventer_remove(q->ping_event);
+    if(removed) {
+      mtev_lua_deregister_event(ci, removed, 0);
+      eventer_free(removed);
+    }
+    q->ping_event = NULL;
+  }
   q->pending_event = NULL;
   q->L = NULL;
 
@@ -2264,6 +2277,14 @@ nl_waitfor(lua_State *L) {
   if(available_nargs > 0) {
     q->L = NULL;
     if(q->head == NULL) {
+      if(q->ping_event) {
+        eventer_t removed = eventer_remove(q->ping_event);
+        if(removed) {
+          mtev_lua_deregister_event(ci, removed, 0);
+          eventer_free(removed);
+        }
+        q->ping_event = NULL;
+      }
       mtev_hash_delete(ci->lmc->pending, q->key, strlen(q->key), free, free);
     }
     return available_nargs;
