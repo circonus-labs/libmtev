@@ -4,6 +4,11 @@
 
 ## 1.6
 
+### 1.6.1
+
+ * Fix bug in mtev.notify/mtev.waitfor where trying to notify from an
+   unyieldable context multiple times in a row could cause crashes or hangs.
+
 ### 1.6.0
 
  * Add HTTP/2 support (via libnghttp2).
