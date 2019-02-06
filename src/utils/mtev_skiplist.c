@@ -154,6 +154,7 @@ void mtev_skiplist_add_index(mtev_skiplist *sl,
 }
 
 mtev_skiplist_node *mtev_skiplist_getlist(mtev_skiplist *sl) {
+  if(!sl) return NULL;
   if(!sl->bottom) return NULL;
   return sl->bottom->next;
 }
@@ -196,6 +197,11 @@ void *mtev_skiplist_find_neighbors_compare(mtev_skiplist *sli,
                                            mtev_skiplist_comparator_t comp) {
   mtev_skiplist_node *m = NULL;
   mtev_skiplist *sl;
+
+  /* If we weren't passed a skiplist, there's nothing
+   * to compare */
+  if (!sli) return NULL;
+
   if(iter) *iter = NULL;
   if(prev) *prev = NULL;
   if(next) *next = NULL;
@@ -217,6 +223,13 @@ static int mtev_skiplisti_find_compare(mtev_skiplist *sl,
                                        mtev_skiplist_comparator_t comp) {
   mtev_skiplist_node *m = NULL;
   int count=0;
+
+  /* If we weren't passed a skiplist, there's nothing
+   * to compare - we don't want to return 0, since that
+   * conveys equality - there's no good way out of this,
+   * so we should just assert */
+  mtevAssert(sl != NULL);
+
   if(ret) *ret = NULL;
   if(prev) *prev = NULL;
   if(next) *next = NULL;
@@ -267,6 +280,10 @@ void *mtev_skiplist_previous(mtev_skiplist *sl, mtev_skiplist_node **iter) {
   return (*iter)?((*iter)->data):NULL;
 }
 void *mtev_skiplist_data(mtev_skiplist_node *m) {
+  /* Returning NULL here suggests that m->data was NULL,
+   * so we can't really return something that shows that
+   * m was NULL - we should assert */
+  mtevAssert(m != NULL);
   return m->data;
 }
 int mtev_skiplist_size(mtev_skiplist *sl) {
@@ -275,6 +292,7 @@ int mtev_skiplist_size(mtev_skiplist *sl) {
 }
 mtev_skiplist_node *mtev_skiplist_insert(mtev_skiplist *sl,
                                          const void *data) {
+  if(!sl) return 0;
   if(!sl->compare) return 0;
   return mtev_skiplist_insert_compare(sl, data, sl->compare);
 }
@@ -284,6 +302,7 @@ mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
                                                  mtev_skiplist_comparator_t comp) {
   mtev_skiplist_node *m, *p, *tmp, *ret = NULL, **stack;
   int nh=1, ch, stacki;
+  if (!sl) return NULL;
   if(!sl->top) {
     sl->height = 1;
     sl->top = sl->bottom = 
@@ -361,18 +380,21 @@ mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
 }
 int mtev_skiplist_remove(mtev_skiplist *sl,
                          const void *data, mtev_freefunc_t myfree) {
+  if(!sl) return 0;
   if(!sl->compare) return 0;
   return mtev_skiplist_remove_compare(sl, data, myfree, sl->comparek);
 }
 int mtev_skiplist_remove_node(mtev_skiplist *sl, mtev_skiplist_node *m,
                               mtev_freefunc_t myfree) {
+  /* Can't remove a NULL node - just assert */
+  mtevAssert(m != NULL);
   while(m->previndex) m = m->previndex;
   mtevAssert(sl == m->sl);
   return mtev_skiplisti_remove(sl, m, myfree);
 }
 int mtev_skiplisti_remove(mtev_skiplist *sl, mtev_skiplist_node *m, mtev_freefunc_t myfree) {
   mtev_skiplist_node *p;
-  if(!m) return 0;
+  if(!m || !sl) return 0;
   if(m->nextindex) mtev_skiplisti_remove(m->nextindex->sl, m->nextindex, NULL);
   while(m->up) m=m->up;
   while(m) {
@@ -402,6 +424,8 @@ int mtev_skiplist_remove_compare(mtev_skiplist *sli,
                                  mtev_skiplist_comparator_t comp) {
   mtev_skiplist_node *m;
   mtev_skiplist *sl;
+
+  if (!sli) return 0;
   if(comp==sli->comparek || !sli->index) {
     sl = sli;
   } else {
@@ -416,6 +440,9 @@ int mtev_skiplist_remove_compare(mtev_skiplist *sli,
 }
 void mtev_skiplist_remove_all(mtev_skiplist *sl, mtev_freefunc_t myfree) {
   mtev_skiplist_node *m, *p, *u;
+
+  if (!sl) return;
+
   m=sl->bottom;
   while(m) {
     p = m->next;
@@ -436,6 +463,7 @@ static void mtev_skiplisti_destroy(void *vsl) {
   free(vsl);
 }
 void mtev_skiplist_destroy(mtev_skiplist *sl, mtev_freefunc_t myfree) {
+  if(!sl) return;
   if(sl->index) {
     while(mtev_skiplist_pop(sl->index, mtev_skiplisti_destroy) != NULL);
     free((void *) sl->index);
