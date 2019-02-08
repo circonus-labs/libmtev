@@ -737,6 +737,17 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     last_job_hrtime = nowhr;
     job->start_hrtime = nowhr;
 
+    struct timeval now;
+    mtev_gettimeofday(&now, NULL);
+    /* If the job's event has a timeout, but isn't explicitly a cancelation event
+     * then we just check once before invocation to "time it out". */
+    if(0 == (job->fd_event->mask & EVENTER_CANCEL) &&
+       job->fd_event->whence.tv_sec != 0 && job->fd_event->whence.tv_usec != 0 &&
+       compare_timeval(job->fd_event->whence, now) < 0) {
+      mtevAssert(job->timeout_event == NULL);
+      job->timeout_triggered = 1;
+    }
+
     /* Safely check and handle if we've timed out while in queue */
     pthread_mutex_lock(&job->lock);
     if(job->timeout_triggered) {
@@ -749,7 +760,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
         mtevL(eventer_deb, "%p jobq[%s] -> timeout before start [%p]\n",
               pthread_self_ptr(), jobq->queue_name, job);
         job->finish_hrtime = mtev_gethrtime();
-        mtev_gettimeofday(&job->finish_time, NULL);
+        job->finish_time = now;
         sub_timeval(job->finish_time, job->fd_event->whence, &diff);
         current_job = job;
         LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,

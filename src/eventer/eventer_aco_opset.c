@@ -144,10 +144,45 @@ eventer_set_eventer_aco(eventer_t e) {
 }
 
 struct aco_asynch_simple_ctx {
-  eventer_asynch_func_t func;
+  eventer_asynch_simple_func_t func;
+  eventer_asynch_func_t func_ops;
   void *closure;
   aco_t *co;
 };
+
+static int
+eventer_aco_mode_asynch_wrapper(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)now;
+  struct aco_asynch_simple_ctx *simple_ctx = closure;
+  if(mask == EVENTER_ASYNCH_WORK) {
+    simple_ctx->func_ops(EVENTER_ASYNCH_WORK, simple_ctx->closure);
+  }
+  else if(mask == EVENTER_ASYNCH_CLEANUP) {
+    simple_ctx->func_ops(EVENTER_ASYNCH_CLEANUP, simple_ctx->closure);
+  }
+  else if(mask == EVENTER_ASYNCH_COMPLETE) {
+    aco_t *co = simple_ctx->co;
+    simple_ctx->func_ops(EVENTER_ASYNCH_COMPLETE, simple_ctx->closure);
+    free(simple_ctx);
+    eventer_aco_resume(co);
+  }
+  return 0;
+}
+
+void
+eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_t func,
+                                           void *closure, eventer_jobq_t *q,
+                                           uint64_t id, struct timeval *t) {
+  struct aco_asynch_simple_ctx *simple_ctx = malloc(sizeof(*simple_ctx));
+  simple_ctx->func_ops = func;
+  simple_ctx->closure = closure;
+  simple_ctx->co = aco_get_co();
+  eventer_t e = eventer_alloc_asynch(eventer_aco_mode_asynch_wrapper, simple_ctx);
+  if(t) eventer_update_whence(e, *t);
+  eventer_add_asynch_subqueue(q, e, id);
+  aco_yield();
+}
 
 static int
 eventer_aco_simple_asynch_wrapper(eventer_t e, int mask, void *closure, struct timeval *now) {
@@ -166,10 +201,10 @@ eventer_aco_simple_asynch_wrapper(eventer_t e, int mask, void *closure, struct t
 }
 
 void
-eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id) {
+eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q, uint64_t id) {
   struct aco_asynch_simple_ctx *simple_ctx = malloc(sizeof(*simple_ctx));
   simple_ctx->func = func;
-  simple_ctx->closure =closure;
+  simple_ctx->closure = closure;
   simple_ctx->co = aco_get_co();
   eventer_t e = eventer_alloc_asynch(eventer_aco_simple_asynch_wrapper, simple_ctx);
   eventer_add_asynch_subqueue(q, e, id);

@@ -46,9 +46,10 @@
 #define EVENTER_WRITE            0x02
 #define EVENTER_EXCEPTION        0x04
 #define EVENTER_TIMER            0x08
-#define EVENTER_ASYNCH_WORK      0x10
-#define EVENTER_ASYNCH_CLEANUP   0x20
-#define EVENTER_ASYNCH           (EVENTER_ASYNCH_WORK | EVENTER_ASYNCH_CLEANUP)
+#define EVENTER_ASYNCH_WORK_D    0x10
+#define EVENTER_ASYNCH_CLEANUP_D 0x20
+#define EVENTER_ASYNCH_D         (EVENTER_ASYNCH_WORK_D | EVENTER_ASYNCH_CLEANUP_D)
+#define EVENTER_ASYNCH_COMPLETE_D EVENTER_ASYNCH_D
 #define EVENTER_RECURRENT        0x80
 #define EVENTER_EVIL_BRUTAL     0x100
 #define EVENTER_CANCEL_DEFERRED 0x200
@@ -61,6 +62,14 @@
 #define EVENTER_DEFAULT_ASYNCH_ABORT EVENTER_EVIL_BRUTAL
 
 #define EVENTER_CHOOSE_THREAD_FOR_EVENT_FD(e) eventer_choose_owner(eventer_get_fd(e)+1)
+
+typedef enum eventer_asynch_op {
+  EVENTER_ASYNCH_WORK = EVENTER_ASYNCH_WORK_D,
+  EVENTER_ASYNCH_CLEANUP = EVENTER_ASYNCH_CLEANUP_D,
+  EVENTER_ASYNCH_COMPLETE = EVENTER_ASYNCH_COMPLETE_D
+} eventer_asynch_op_t;
+
+#define EVENTER_ASYNCH EVENTER_ASYNCH_COMPLETE
 
 /*! \fn const char *eventer_get_thread_name(void)
     \brief Retrieve a human-friendly name for an eventer thread.
@@ -96,7 +105,8 @@ typedef int (*eventer_func_t)
 typedef struct _event *eventer_t;
 typedef struct _event_aco *eventer_aco_t;
 
-typedef void (*eventer_asynch_func_t)(void *closure);
+typedef void (*eventer_asynch_simple_func_t)(void *closure);
+typedef void (*eventer_asynch_func_t)(eventer_asynch_op_t, void *closure);
 
 typedef struct eventer_context_opset_t {
   eventer_t (*eventer_t_init)(eventer_t);
@@ -181,7 +191,7 @@ int eventer_get_fd(eventer_t e);
         * `EVENTER_EXCEPTION` -- trigger/set problems with a file descriptor.
         * `EVENTER_TIMER` -- trigger/set at a specific time.
         * `EVENTER_RECURRENT` -- trigger/set on each pass through the event-loop.
-        * `EVENTER_ASYNCH` -- trigger from a non-event-loop thread, set upon completion.
+        * `EVENTER_ASYNCH_COMPLETE` -- trigger from a non-event-loop thread, set upon completion.
         * `EVENTER_ASYNCH_WORK` -- set during asynchronous work.
         * `EVENTER_ASYNCH_CLEANUP` -- set during asynchronous cleanup.
 */
@@ -964,16 +974,50 @@ API_EXPORT(void) eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, evente
 */
 #define eventer_aco_run_asynch(e) eventer_aco_run_asynch_queue_subqueue(NULL,e,0)
 
-/*! \fn void eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
+/*! \fn void eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id, struct timeval *whence)
+    \brief Asynchronously execute a function.
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+    \param id the subqueue within the jobq.
+    \param whence the deadline
+*/
+API_EXPORT(void) eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id, struct timeval *whence);
+
+/*! \fn void eventer_aco_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
     \brief Asynchronously execute a function.
     \param func the function to execute.
     \param closure the closure for the function.
     \param q the jobq on which to schedule the work.
     \param id the subqueue within the jobq.
 */
-API_EXPORT(void) eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id);
+#define eventer_aco_asynch_queue_subqueue(f,c,q) eventer_aco_asynch_queue_subqueue_deadline(f,c,q,0,NULL)
 
-/*! \fn void eventer_aco_simple_asynch_queue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q)
+/*! \fn void eventer_aco_asynch_queue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q)
+    \brief Asynchronously execute a function.
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+*/
+#define eventer_aco_asynch_queue(f,c,q) eventer_aco_asynch_queue_subqueue_deadline(f,c,q,0,NULL)
+
+/*! \fn void eventer_aco_asynch(eventer_asynch_func_t func, void *closure)
+    \brief Asynchronously execute a function.
+    \param func the function to execute.
+    \param closure the closure for the function.
+*/
+#define eventer_aco_asynch(f,c) eventer_aco_asynch_queue_subqueue_deadline(f,c,NULL,0,NULL)
+
+/*! \fn void eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
+    \brief Asynchronously execute a function.
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+    \param id the subqueue within the jobq.
+*/
+API_EXPORT(void) eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q, uint64_t id);
+
+/*! \fn void eventer_aco_simple_asynch_queue(eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q)
     \brief Asynchronously execute a function.
     \param func the function to execute.
     \param closure the closure for the function.
@@ -981,7 +1025,7 @@ API_EXPORT(void) eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_func_t 
 */
 #define eventer_aco_simple_asynch_queue(f,c,q) eventer_aco_simple_asynch_queue_subqueue(f,c,q,0)
 
-/*! \fn void eventer_aco_simple_asynch(eventer_asynch_func_t func, void *closure)
+/*! \fn void eventer_aco_simple_asynch(eventer_asynch_simple_func_t func, void *closure)
     \brief Asynchronously execute a function.
     \param func the function to execute.
     \param closure the closure for the function.

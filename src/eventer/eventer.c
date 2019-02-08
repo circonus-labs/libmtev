@@ -200,6 +200,15 @@ int eventer_get_fd(eventer_t e) { return e->fd; }
 
 struct timeval eventer_get_whence(eventer_t e) { return e->whence; }
 void eventer_update_whence(eventer_t e, struct timeval t) {
+  if((e->mask & EVENTER_ASYNCH) != 0 && (e->mask & EVENTER_CANCEL) == 0) {
+    /* we can change the deadline on an asynch event, but not if it has
+     * invasive cancellation enabled as that timeout event is inside the
+     * job pointer to which we have no reference; in that case, the ship
+     * has sailed.
+     */
+    e->whence = t;
+    return;
+  }
   if(e->mask != EVENTER_TIMER) return;
   eventer_update_timed_internal(e, EVENTER_TIMER, &t);
 }

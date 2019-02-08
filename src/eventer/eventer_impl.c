@@ -845,7 +845,7 @@ void eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subque
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
-  if(e->whence.tv_sec) {
+  if(e->whence.tv_sec && (e->mask & EVENTER_CANCEL)) {
     job->timeout_event = eventer_alloc();
     job->timeout_event->thr_owner = e->thr_owner;
     memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
@@ -875,7 +875,7 @@ void eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t su
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
-  if(e->whence.tv_sec) {
+  if(e->whence.tv_sec && (e->mask & EVENTER_CANCEL)) {
     job->timeout_event = eventer_alloc();
     job->timeout_event->thr_owner = e->thr_owner;
     memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
@@ -906,7 +906,7 @@ mtev_boolean eventer_try_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uin
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
-  if(e->whence.tv_sec) {
+  if(e->whence.tv_sec && (e->mask & EVENTER_CANCEL)) {
     timeout = job->timeout_event = eventer_alloc();
     job->timeout_event->thr_owner = e->thr_owner;
     memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
@@ -942,7 +942,7 @@ mtev_boolean eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e,
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
-  if(e->whence.tv_sec) {
+  if(e->whence.tv_sec && (e->mask & EVENTER_CANCEL)) {
     timeout = job->timeout_event = eventer_alloc();
     job->timeout_event->thr_owner = e->thr_owner;
     memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
