@@ -489,7 +489,7 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
       else if(cycles == 3) tgt_inflight = UINT32_MAX;
       else break;
     }
-    if(squeue->headq && squeue->inflight <= tgt_inflight) {
+    if(squeue->headq && squeue->inflight < tgt_inflight) {
       /* If there are items, pop and advance the header pointer */
       job = squeue->headq;
       squeue->headq = squeue->headq->next;

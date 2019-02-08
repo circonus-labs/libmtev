@@ -41,7 +41,7 @@ LUA_FILES=mtevbusted/init.lua mtevbusted/cli.lua mtevbusted/api.lua mtevbusted/c
 
 all:	geturllz4f check
 
-TESTS=intern_test frrh_test uuid_test time_test hll_test maybe_alloc_test dyn_buffer_test speculatelog_test lru_test lfu_test pool-shift-async/test flowreg/test async-pingpong/test
+TESTS=intern_test frrh_test uuid_test time_test hll_test maybe_alloc_test dyn_buffer_test speculatelog_test lru_test lfu_test pool-shift-async/test flowreg/test async-pingpong/test subqueues/test
 
 geturllz4f:	geturllz4f.c
 	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS) -lcurl
@@ -53,6 +53,9 @@ pool-shift-async/test:	pool-shift-async/test.c
 	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 flowreg/test:	flowreg/test.c
+	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+
+subqueues/test:	subqueues/test.c
 	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 intern_test: intern_test.c
