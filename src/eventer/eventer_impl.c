@@ -845,7 +845,7 @@ void eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subque
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
-  if(e->whence.tv_sec) {
+  if(e->whence.tv_sec && (e->mask & EVENTER_CANCEL)) {
     job->timeout_event = eventer_alloc();
     job->timeout_event->thr_owner = e->thr_owner;
     memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
@@ -858,7 +858,10 @@ void eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subque
 }
 
 void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
-  eventer_add_asynch_subqueue(q, e, 0);
+  uint64_t subqueue = 0;
+  eventer_job_t *job = eventer_current_job();
+  if(job) subqueue = job->subqueue;
+  eventer_add_asynch_subqueue(q, e, subqueue);
 }
 
 void eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
@@ -872,7 +875,7 @@ void eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t su
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
-  if(e->whence.tv_sec) {
+  if(e->whence.tv_sec && (e->mask & EVENTER_CANCEL)) {
     job->timeout_event = eventer_alloc();
     job->timeout_event->thr_owner = e->thr_owner;
     memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
@@ -885,7 +888,10 @@ void eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t su
 }
 
 void eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e) {
-  eventer_add_asynch_dep_subqueue(q, e, 0);
+  uint64_t subqueue = 0;
+  eventer_job_t *job = eventer_current_job();
+  if(job) subqueue = job->subqueue;
+  eventer_add_asynch_dep_subqueue(q, e, subqueue);
 }
 
 mtev_boolean eventer_try_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
@@ -900,7 +906,7 @@ mtev_boolean eventer_try_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uin
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
-  if(e->whence.tv_sec) {
+  if(e->whence.tv_sec && (e->mask & EVENTER_CANCEL)) {
     timeout = job->timeout_event = eventer_alloc();
     job->timeout_event->thr_owner = e->thr_owner;
     memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
@@ -918,7 +924,10 @@ mtev_boolean eventer_try_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uin
 }
 
 mtev_boolean eventer_try_add_asynch(eventer_jobq_t *q, eventer_t e) {
-  return eventer_try_add_asynch_subqueue(q, e, 0);
+  uint64_t subqueue = 0;
+  eventer_job_t *job = eventer_current_job();
+  if(job) subqueue = job->subqueue;
+  return eventer_try_add_asynch_subqueue(q, e, subqueue);
 }
 
 mtev_boolean eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
@@ -933,7 +942,7 @@ mtev_boolean eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e,
   job->create_hrtime = mtev_gethrtime(); /* use sys as this is cross-thread */
   /* If we're debugging the eventer, these cross thread timeouts will
    * make it impossible for us to slowly trace an asynch job. */
-  if(e->whence.tv_sec) {
+  if(e->whence.tv_sec && (e->mask & EVENTER_CANCEL)) {
     timeout = job->timeout_event = eventer_alloc();
     job->timeout_event->thr_owner = e->thr_owner;
     memcpy(&job->timeout_event->whence, &e->whence, sizeof(e->whence));
@@ -951,7 +960,10 @@ mtev_boolean eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e,
 }
 
 mtev_boolean eventer_try_add_asynch_dep(eventer_jobq_t *q, eventer_t e) {
-  return eventer_try_add_asynch_dep_subqueue(q, e, 0);
+  uint64_t subqueue = 0;
+  eventer_job_t *job = eventer_current_job();
+  if(job) subqueue = job->subqueue;
+  return eventer_try_add_asynch_dep_subqueue(q, e, subqueue);
 }
 
 void eventer_add_timed(eventer_t e) {

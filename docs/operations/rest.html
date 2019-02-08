@@ -631,7 +631,7 @@ must be programmatically initialized via a call to <code>mtev_http_rest_init()</
 <p>The REST listener is implemented on a non-compliant HTTP listener by
 subverting the four-byte control words &quot;DELE&quot;, &quot;MERG&quot;, &quot;GET &quot;, &quot;HEAD&quot;,
 &quot;POST&quot;, &quot;PUT &quot; and dropping them into a compliant HTTP state machine.  While
-the session intiiation is not strictly compliant with the HTTP specification
+the session initiation is not strictly compliant with the HTTP specification
 it happily serves all known browsers and plays nicely with HTTP proxies as
 well.</p>
 <p>If the listener &quot;type&quot; is <code>http_rest_api</code>, then only
@@ -639,7 +639,7 @@ the REST handler is served on that listening socket.  If the more general
 type of <code>control_dispatch</code> is used, then a full control channel
 is served and the REST services are superimposed on that.  Listeners
 of type <code>control_dispatch</code> are even less HTTP compliant, but
-still serve all web browers and proxies correctly.</p>
+still serve all web browsers and proxies correctly.</p>
 <h3 id="the-capabilities-endpoint">The capabilities endpoint</h3>
 <p>It is highly recommended that you expose the libmtev capabilities
 endpoints.  This service exposes information about the libmtev version

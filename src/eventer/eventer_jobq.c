@@ -54,7 +54,13 @@ static uint32_t threads_jobq_inited = 0;
 static pthread_key_t threads_jobq;
 static sigset_t alarm_mask;
 static mtev_hash_table all_queues;
+static __thread eventer_job_t *current_job;
 pthread_mutex_t all_queues_lock;
+
+eventer_job_t *
+eventer_current_job(void) {
+  return current_job;
+}
 
 static void
 eventer_jobq_queue_completion(eventer_job_t *job) {
@@ -483,7 +489,7 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
       else if(cycles == 3) tgt_inflight = UINT32_MAX;
       else break;
     }
-    if(squeue->headq && squeue->inflight <= tgt_inflight) {
+    if(squeue->headq && squeue->inflight < tgt_inflight) {
       /* If there are items, pop and advance the header pointer */
       job = squeue->headq;
       squeue->headq = squeue->headq->next;
@@ -569,6 +575,7 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
         if(my_precious) {
           uint64_t start, duration;
           mtev_gettimeofday(&job->finish_time, NULL); /* We're done */
+          current_job = job;
           LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)my_precious, (void *)my_precious->callback, NULL,
                                  my_precious->fd, my_precious->mask,
                                  EVENTER_ASYNCH_CLEANUP);
@@ -579,6 +586,7 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
           eventer_set_this_event(NULL);
           duration = mtev_gethrtime() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)my_precious, (void *)my_precious->callback, NULL, -1);
+          current_job = NULL;
           stats_set_hist_intscale(eventer_latency_handle_for_callback(my_precious->callback), duration, -9, 1);
         }
       }
@@ -615,6 +623,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
     if(job->fd_event) {
       uint64_t start, duration;
       if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_begin();
+      current_job = job;
       LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                              (void *)job->fd_event->callback, NULL,
                              job->fd_event->fd, job->fd_event->mask,
@@ -626,6 +635,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
       duration = mtev_gethrtime() - start;
       LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, newmask);
+      current_job = NULL;
       mtevL(eventer_deb, "jobq %p completed job [%p]\n", jobq, job);
       stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
       stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
@@ -727,6 +737,17 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     last_job_hrtime = nowhr;
     job->start_hrtime = nowhr;
 
+    struct timeval now;
+    mtev_gettimeofday(&now, NULL);
+    /* If the job's event has a timeout, but isn't explicitly a cancelation event
+     * then we just check once before invocation to "time it out". */
+    if(0 == (job->fd_event->mask & EVENTER_CANCEL) &&
+       job->fd_event->whence.tv_sec != 0 && job->fd_event->whence.tv_usec != 0 &&
+       compare_timeval(job->fd_event->whence, now) < 0) {
+      mtevAssert(job->timeout_event == NULL);
+      job->timeout_triggered = 1;
+    }
+
     /* Safely check and handle if we've timed out while in queue */
     pthread_mutex_lock(&job->lock);
     if(job->timeout_triggered) {
@@ -739,8 +760,9 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
         mtevL(eventer_deb, "%p jobq[%s] -> timeout before start [%p]\n",
               pthread_self_ptr(), jobq->queue_name, job);
         job->finish_hrtime = mtev_gethrtime();
-        mtev_gettimeofday(&job->finish_time, NULL);
+        job->finish_time = now;
         sub_timeval(job->finish_time, job->fd_event->whence, &diff);
+        current_job = job;
         LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                              (void *)job->fd_event->callback, NULL,
                              job->fd_event->fd, job->fd_event->mask,
@@ -751,6 +773,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
         duration = mtev_gethrtime() - start;
         LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, -1);
+        current_job = NULL;
         stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
         eventer_jobq_finished_job(jobq, job);
         pthread_mutex_unlock(&job->lock);
@@ -794,6 +817,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
           struct timeval start_time;
           mtev_gettimeofday(&start_time, NULL);
           mtevL(eventer_deb, "jobq[%s] -> dispatch BEGIN\n", jobq->queue_name);
+          current_job = job;
           LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                                  (void *)job->fd_event->callback, NULL,
                                  job->fd_event->fd, job->fd_event->mask,
@@ -804,6 +828,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
           duration = mtev_gethrtime() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                   (void *)job->fd_event->callback, NULL, -1);
+          current_job = NULL;
           stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
           mtevL(eventer_deb, "jobq[%s] -> dispatch END\n", jobq->queue_name);
           if(job->fd_event && job->fd_event->mask & EVENTER_CANCEL)
@@ -836,6 +861,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
       /* coverity[check_after_deref] */
       if(job->fd_event) {
         uint64_t start, duration;
+        current_job = job;
         LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                                (void *)job->fd_event->callback, NULL,
                                job->fd_event->fd, job->fd_event->mask,
@@ -846,6 +872,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
         duration = mtev_gethrtime() - start;
         LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                 (void *)job->fd_event->callback, NULL, -1);
+        current_job = NULL;
         stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
       }
 
