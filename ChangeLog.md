@@ -4,6 +4,22 @@
 
 ## 1.6
 
+### 1.6.x
+
+ * Subqueue assignment in asynch jobs is persisted into child asynch
+   jobs when no explicit subqueue is specified.
+ * Expose `EVENTER_ASYNCH_COMPLETE` as a preferred and more descriptive
+   literal for the old `EVENTER_ASYNCH` literal.  `EVENTER_ASYNCH` is
+   informally deprecated.
+ * Add aco support for non-simply asynch work
+   (with all three asynch call phases).
+ * Add aco support for enqueueing asynch work with deadlines.
+ * Add support for eliding asynch work on jobs when a deadline is set
+   and no cancellation type is provided. (don't start work when it is
+   already past the deadline)
+ * Fix fair scheduling of subqueues when there is a single job in flight.
+ * Add test for jobs subqueues and deadlines.
+
 ### 1.6.1
 
  * Fix bug in mtev.notify/mtev.waitfor where trying to notify from an
