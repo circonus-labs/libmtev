@@ -955,6 +955,69 @@ eventer_aco_arg(void)
   * **RETURN** The closure parameter that was passed to `eventer_aco_start`.
 
 
+#### eventer_aco_asynch
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_asynch(eventer_asynch_func_t func, void *closure)
+```
+
+
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+
+
+#### eventer_aco_asynch_queue
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_asynch_queue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q)
+```
+
+
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+
+
+#### eventer_aco_asynch_queue_subqueue
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
+```
+
+
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+  * `id` the subqueue within the jobq.
+
+
+#### eventer_aco_asynch_queue_subqueue_deadline
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id
+                                           struct timeval *whence)
+```
+
+
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+  * `id` the subqueue within the jobq.
+  * `whence` the deadline
+
+
 #### eventer_aco_close
 
 >Execute an opset-appropriate `close` call.
@@ -1135,7 +1198,7 @@ eventer_aco_set_write_timeout(eventer_aco_t e, struct timeval *duration)
 
 ```c
 void
-eventer_aco_simple_asynch(eventer_asynch_func_t func, void *closure)
+eventer_aco_simple_asynch(eventer_asynch_simple_func_t func, void *closure)
 ```
 
 
@@ -1149,7 +1212,7 @@ eventer_aco_simple_asynch(eventer_asynch_func_t func, void *closure)
 
 ```c
 void
-eventer_aco_simple_asynch_queue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q)
+eventer_aco_simple_asynch_queue(eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q)
 ```
 
 
@@ -1164,7 +1227,8 @@ eventer_aco_simple_asynch_queue(eventer_asynch_func_t func, void *closure, event
 
 ```c
 void
-eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
+eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q
+                                         uint64_t id)
 ```
 
 
@@ -1980,7 +2044,7 @@ eventer_get_mask(eventer_t e)
     * `EVENTER_EXCEPTION` -- trigger/set problems with a file descriptor.
     * `EVENTER_TIMER` -- trigger/set at a specific time.
     * `EVENTER_RECURRENT` -- trigger/set on each pass through the event-loop.
-    * `EVENTER_ASYNCH` -- trigger from a non-event-loop thread, set upon completion.
+    * `EVENTER_ASYNCH_COMPLETE` -- trigger from a non-event-loop thread, set upon completion.
     * `EVENTER_ASYNCH_WORK` -- set during asynchronous work.
     * `EVENTER_ASYNCH_CLEANUP` -- set during asynchronous cleanup.
 

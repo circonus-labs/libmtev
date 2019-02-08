@@ -614,11 +614,11 @@ operations</a>.</p>
 <h3 id="logstream">log_stream</h3>
 <p>The C logging API requires directing each log statements to an <code>mtev_log_stream_t</code>.  There
 are four builtin log stream: <code>mtev_stderr</code>, <code>mtev_error</code>, <code>mtev_notice</code>, and <code>mtev_debug</code>.
-Their behvior can be modified via configuration or programmatically via the API.</p>
-<p>Before uing the log system it must be initialized via <code>mtev_log_init(int debug)</code>, but <code>mtev_main</code>
+Their behavior can be modified via configuration or programmatically via the API.</p>
+<p>Before using the log system it must be initialized via <code>mtev_log_init(int debug)</code>, but <code>mtev_main</code>
 handles this for you.</p>
 <h4 id="startup-sequence">Startup sequence</h4>
-<p>Within your <code>child_main</code> that is called by <code>mtev_main</code>, you should reopnen all logs and then
+<p>Within your <code>child_main</code> that is called by <code>mtev_main</code>, you should reopen all logs and then
 enable rotation (config driven).</p>
 <pre><code class="lang-c">  <span class="hljs-keyword">if</span>(mtev_conf_load(config_file) == <span class="hljs-number">-1</span>) {
     mtevL(mtev_error, <span class="hljs-string">&quot;Cannot load config: &apos;%s&apos;\n&quot;</span>, config_file);

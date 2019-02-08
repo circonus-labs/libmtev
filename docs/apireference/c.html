@@ -1333,6 +1333,57 @@ necessary activity to make progress.</p>
 <ul>
 <li><strong>RETURN</strong> The closure parameter that was passed to <code>eventer_aco_start</code>.</li>
 </ul>
+<h4 id="eventeracoasynch">eventer_aco_asynch</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_asynch</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure)</span>
+</span></code></pre>
+<ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+</ul>
+<h4 id="eventeracoasynchqueue">eventer_aco_asynch_queue</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_asynch_queue</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q)</span>
+</span></code></pre>
+<ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+</ul>
+<h4 id="eventeracoasynchqueuesubqueue">eventer_aco_asynch_queue_subqueue</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_asynch_queue_subqueue</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+<li><code>id</code> the subqueue within the jobq.</li>
+</ul>
+<h4 id="eventeracoasynchqueuesubqueuedeadline">eventer_aco_asynch_queue_subqueue_deadline</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_asynch_queue_subqueue_deadline</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q, uint64_t id
+                                           <span class="hljs-keyword">struct</span> timeval *whence)</span>
+</span></code></pre>
+<ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+<li><code>id</code> the subqueue within the jobq.</li>
+<li><code>whence</code> the deadline</li>
+</ul>
 <h4 id="eventeracoclose">eventer_aco_close</h4>
 <blockquote>
 <p>Execute an opset-appropriate <code>close</code> call.</p>
@@ -1476,7 +1527,7 @@ of the currently executing job.</p>
 <p>Asynchronously execute a function.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
-<span class="hljs-title">eventer_aco_simple_asynch</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure)</span>
+<span class="hljs-title">eventer_aco_simple_asynch</span><span class="hljs-params">(eventer_asynch_simple_func_t func, <span class="hljs-keyword">void</span> *closure)</span>
 </span></code></pre>
 <ul>
 <li><code>func</code> the function to execute.</li>
@@ -1487,7 +1538,7 @@ of the currently executing job.</p>
 <p>Asynchronously execute a function.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
-<span class="hljs-title">eventer_aco_simple_asynch_queue</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q)</span>
+<span class="hljs-title">eventer_aco_simple_asynch_queue</span><span class="hljs-params">(eventer_asynch_simple_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q)</span>
 </span></code></pre>
 <ul>
 <li><code>func</code> the function to execute.</li>
@@ -1499,7 +1550,8 @@ of the currently executing job.</p>
 <p>Asynchronously execute a function.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
-<span class="hljs-title">eventer_aco_simple_asynch_queue_subqueue</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q, uint64_t id)</span>
+<span class="hljs-title">eventer_aco_simple_asynch_queue_subqueue</span><span class="hljs-params">(eventer_asynch_simple_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q
+                                         uint64_t id)</span>
 </span></code></pre>
 <ul>
 <li><code>func</code> the function to execute.</li>
@@ -2145,7 +2197,7 @@ eventer_get_fd_opset(<span class="hljs-keyword">eventer_t</span> e)
 <li><code>EVENTER_EXCEPTION</code> -- trigger/set problems with a file descriptor.</li>
 <li><code>EVENTER_TIMER</code> -- trigger/set at a specific time.</li>
 <li><code>EVENTER_RECURRENT</code> -- trigger/set on each pass through the event-loop.</li>
-<li><code>EVENTER_ASYNCH</code> -- trigger from a non-event-loop thread, set upon completion.</li>
+<li><code>EVENTER_ASYNCH_COMPLETE</code> -- trigger from a non-event-loop thread, set upon completion.</li>
 <li><code>EVENTER_ASYNCH_WORK</code> -- set during asynchronous work.</li>
 <li><code>EVENTER_ASYNCH_CLEANUP</code> -- set during asynchronous cleanup.</li>
 </ul>
