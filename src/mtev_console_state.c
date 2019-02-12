@@ -166,7 +166,19 @@ mtev_console_intern(mtev_console_closure_t ncct, int argc, char **argv,
                     mtev_console_state_t *dstate, void *unused) {
   (void)dstate;
   (void)unused;
+  if(argc == 1 && !strcmp(argv[0], "list")) {
+    for(int i=0; i<256; i++) {
+      mtev_intern_pool_t *pool = mtev_intern_pool_by_id(i);
+      if(!pool) break;
+      mtev_intern_pool_stats_t stats;
+      mtev_intern_pool_stats(pool, &stats);
+      nc_printf(ncct, "pool_%d: %u items in %u extents, %zd available of %zd allocated\n",
+                i, stats.item_count, stats.extent_count, stats.available_total, stats.allocated);
+    }
+    return 0;
+  }
   if(argc != 2) {
+    nc_printf(ncct, "<intern> list\n");
     nc_printf(ncct, "<intern> <poolid> stats\n");
     nc_printf(ncct, "<intern> <poolid> compact\n");
     return -1;
