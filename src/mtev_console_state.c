@@ -172,7 +172,7 @@ mtev_console_intern(mtev_console_closure_t ncct, int argc, char **argv,
       if(!pool) break;
       mtev_intern_pool_stats_t stats;
       mtev_intern_pool_stats(pool, &stats);
-      nc_printf(ncct, "pool_%d: %u items in %u extents, %zd available of %zd allocated\n",
+      nc_printf(ncct, "%d: %u items in %u extents, %zd available of %zd allocated\n",
                 i, stats.item_count, stats.extent_count, stats.available_total, stats.allocated);
     }
     return 0;
