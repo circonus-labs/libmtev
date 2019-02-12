@@ -61,6 +61,25 @@ describe("intern strings", function()
     libmtev.mtev_intern_release(that)
     libmtev.mtev_intern_release(this)
   end)
+  it("loads/unloads in batch", function()
+    local m = {}
+    local cnt = 0
+    for v in words() do
+      m[v] = libmtev.mtev_intern_str(v, 0)
+      cnt = cnt + 1
+      if cnt > 2000 then
+        for k in pairs(m) do
+          libmtev.mtev_intern_release(m[k])
+          m[k] = nil
+          cnt = cnt - 1
+          if cnt < 1000 then break end
+        end
+      end
+    end
+    for k in pairs(m) do
+      libmtev.mtev_intern_release(m[k])
+    end
+  end)
   it("loads the dictionary 2x", function()
     for i = 1,2 do
       for v in words() do 
