@@ -64,6 +64,14 @@ typedef struct mtev_intern_pool mtev_intern_pool_t;
 
 #define MTEV_INTERN_DEFAULT_POOL ((mtev_intern_pool_t *)NULL)
 
+/*! \fn mtev_intern_pool_t *mtev_intern_pool_by_id(uint8_t id)
+    \brief Return an existing pool by id.
+    \param id the pool id.
+    \return A new intern pool.
+ */
+API_EXPORT(mtev_intern_pool_t *)
+  mtev_intern_pool_by_id(uint8_t id);
+
 /*! \fn mtev_intern_pool_t *mtev_intern_pool_new(mtev_intern_pool_attr_t *attr)
     \brief Create a new intern pool.
     \param attr the attributes describing the pool.

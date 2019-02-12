@@ -36,6 +36,7 @@
 #include "eventer/eventer.h"
 #include "eventer/eventer_impl_private.h"
 #include "eventer/eventer_jobq.h"
+#include "mtev_intern.h"
 #include "mtev_log.h"
 #include "mtev_hash.h"
 #include "mtev_time.h"
@@ -160,6 +161,52 @@ mtev_console_eventer_memory(mtev_console_closure_t ncct, int argc, char **argv,
   return 0;
 }
 
+static int
+mtev_console_intern(mtev_console_closure_t ncct, int argc, char **argv,
+                    mtev_console_state_t *dstate, void *unused) {
+  (void)dstate;
+  (void)unused;
+  if(argc != 2) {
+    nc_printf(ncct, "<intern> <poolid> stats\n");
+    nc_printf(ncct, "<intern> <poolid> compact\n");
+    return -1;
+  }
+  mtev_intern_pool_t *pool = mtev_intern_pool_by_id(atoi(argv[0]));
+  if(!pool) {
+    nc_printf(ncct, "Pool %d doesn't exist\n", atoi(argv[0]));
+    return -1;
+  }
+  if(!strcmp(argv[1], "stats")) {
+    mtev_intern_pool_stats_t stats;
+    mtev_intern_pool_stats(pool, &stats);
+    nc_printf(ncct, "Pool %d\n", atoi(argv[0]));
+    nc_printf(ncct, "      items: %u\n", stats.item_count);
+    nc_printf(ncct, "    extents: %u\n", stats.extent_count);
+    nc_printf(ncct, "  allocated: %zd bytes\n", stats.allocated);
+    nc_printf(ncct, "   internal: %zd bytes\n", stats.internal_memory);
+    nc_printf(ncct, "  available: %zd bytes\n", stats.available_total);
+    nc_printf(ncct, "             [");
+    for(int i=0; i<32; i++) {
+      nc_printf(ncct, "%s %zd", i ? "," : "", stats.available[i]);
+    }
+    nc_printf(ncct, " ]\n");
+    nc_printf(ncct, "  fragments: %u\n", stats.fragments_total);
+    nc_printf(ncct, "             [");
+    for(int i=0; i<32; i++) {
+      nc_printf(ncct, "%s %u", i ? "," : "", stats.fragments[i]);
+    }
+    nc_printf(ncct, " ]\n");
+    nc_printf(ncct, "     staged: %u (%zd bytes)\n",
+              stats.staged_count, stats.staged_size);
+  } else if(!strcmp(argv[1], "compact")) {
+    int frags = mtev_intern_pool_compact(pool, mtev_true);
+    nc_printf(ncct, "compaction recovered %d fragments\n", frags);
+  } else {
+    nc_printf(ncct, "unknown command\n");
+    return -1;
+  }
+  return 0;
+}
 static int
 mtev_console_jobq(mtev_console_closure_t ncct, int argc, char **argv,
                   mtev_console_state_t *dstate, void *unused) {
@@ -379,6 +426,9 @@ cmd_info_t console_command_coreclocks = {
 };
 cmd_info_t console_command_zipkin = {
   "zipkin", mtev_console_zipkin, NULL, NULL, NULL
+};
+cmd_info_t console_command_intern = {
+  "intern", mtev_console_intern, NULL, NULL, NULL,
 };
 cmd_info_t console_command_jobq = {
   "jobq", mtev_console_jobq, NULL, NULL, (void *)1
@@ -1152,6 +1202,7 @@ mtev_console_state_initial(void) {
 
     mtevst = mtev_console_mksubdelegate(_top_level_state, "mtev");
     mtev_console_state_add_cmd(mtevst, &console_command_jobq);
+    mtev_console_state_add_cmd(mtevst, &console_command_intern);
     mtev_console_state_add_cmd(mtevst, &console_command_zipkin);
     rdtsc = mtev_console_mksubdelegate(mtevst, "rdtsc");
     mtev_console_state_add_cmd(rdtsc, &console_command_rdtsc_status);

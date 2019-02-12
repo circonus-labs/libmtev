@@ -36,6 +36,7 @@
 #include "mtev_rand.h"
 #include "mtev_sort.h"
 #include "mtev_hash.h"
+#include "mtev_stats.h"
 #include "mtev_plock.h"
 #include <strings.h>
 #include <sys/mman.h>
@@ -310,7 +311,7 @@ borrow_free_node(mtev_intern_pool_t *pool,
   mtev_plock_take_r(&l->lock);
   n = ck_pr_load_ptr(&l->head);
   if(!n) {
-     mtev_plock_drop_r(&l->lock);
+    mtev_plock_drop_r(&l->lock);
     return NULL;
   }
   assert(len > 8);        // header
@@ -461,6 +462,33 @@ static mtev_intern_pool_attr_t default_attrs = {
 
 static uint8_t poolcnt = 0;
 static mtev_intern_pool_t *all_pools[256];
+static struct {
+ stats_ns_t *ns;
+ mtev_intern_pool_stats_t stats;
+} stats[256];
+
+static void
+refresh_stats(stats_ns_t *ns, void *c) {
+  (void)ns;
+  mtev_intern_pool_t *pool = c;
+  mtev_intern_pool_stats(pool, &stats[pool->poolid].stats);
+}
+
+static void
+register_stats(uint8_t id) {
+  char name[32];
+  snprintf(name, sizeof(name), "pool_%u", id);
+  stats[id].ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), name);
+  stats_rob_u32(stats[id].ns, "items", &stats[id].stats.item_count);
+  stats_rob_u32(stats[id].ns, "extents", &stats[id].stats.extent_count);
+  stats_rob_i64(stats[id].ns, "allocated", &stats[id].stats.allocated);
+  stats_rob_i64(stats[id].ns, "internal_memory", &stats[id].stats.internal_memory);
+  stats_rob_i64(stats[id].ns, "available", &stats[id].stats.available);
+  stats_rob_u32(stats[id].ns, "fragments", &stats[id].stats.fragments);
+  stats_rob_u32(stats[id].ns, "staged", &stats[id].stats.staged_count);
+  stats_rob_i64(stats[id].ns, "staged_size", &stats[id].stats.staged_size);
+  stats_ns_invoke(stats[id].ns, refresh_stats, all_pools[id]);
+}
 
 /* We want a default pool so that the simple forms of the API
  * have something to act on. poolid 0 will become the default
@@ -502,6 +530,11 @@ static struct ck_malloc mi_alloc = {
 
 
 mtev_intern_pool_t *
+mtev_intern_pool_by_id(uint8_t id) {
+  return all_pools[id];
+}
+
+mtev_intern_pool_t *
 mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
   uint8_t oldcnt;
   /* Get the next pool ID up to 255 as out pool id is 8 bits */
@@ -534,6 +567,7 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
                         mi_hash, mi_compare, &mi_alloc,
                         attr->estimated_item_count * 2, mtev_rand()));
   all_pools[oldcnt] = pool;
+  register_stats(oldcnt);
   return pool;
 }
 
