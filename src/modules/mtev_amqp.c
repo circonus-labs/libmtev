@@ -97,6 +97,7 @@ MTEV_HOOK_IMPL(mtev_amqp_handle_connection_dyn,
 
 #define ENV_MANDATORY 1
 #define ENV_IMMEDIATE 2
+#define MAX_CONNS 128
 
 struct amqp_module_config {
   eventer_t receiver;
@@ -401,6 +402,11 @@ init_conns(void) {
     mtev_conf_release_sections(mqs, the_conf->number_of_conns);
     return 0;
   }
+  if(the_conf->number_of_conns > MAX_CONNS) {
+    mtev_conf_release_sections(mqs, the_conf->number_of_conns);
+    mtevL(mtev_error, "Too many amqp connections (max 128)\n");
+    return -1;
+  }
 
   the_conf->amqp_conns = calloc(the_conf->number_of_conns, sizeof(*the_conf->amqp_conns));
 
@@ -475,7 +481,7 @@ mtev_amqp_send_function(amqp_envelope_t *env, int mandatory, int immediate, int 
   if(mandatory != 0) mask |= ENV_MANDATORY;
   if(immediate != 0) mask |= ENV_IMMEDIATE;
   /* We need to make N copies of the message here if we're broadcassting */
-  amqp_envelope_t *copies[the_conf->number_of_conns];
+  amqp_envelope_t *copies[MAX_CONNS];
   for (i=0; i<the_conf->number_of_conns; i++) {
     copies[i] = NULL;
   }
