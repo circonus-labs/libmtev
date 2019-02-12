@@ -483,8 +483,8 @@ register_stats(uint8_t id) {
   stats_rob_u32(stats[id].ns, "extents", &stats[id].stats.extent_count);
   stats_rob_i64(stats[id].ns, "allocated", &stats[id].stats.allocated);
   stats_rob_i64(stats[id].ns, "internal_memory", &stats[id].stats.internal_memory);
-  stats_rob_i64(stats[id].ns, "available", &stats[id].stats.available);
-  stats_rob_u32(stats[id].ns, "fragments", &stats[id].stats.fragments);
+  stats_rob_i64(stats[id].ns, "available", &stats[id].stats.available_total);
+  stats_rob_u32(stats[id].ns, "fragments", &stats[id].stats.fragments_total);
   stats_rob_u32(stats[id].ns, "staged", &stats[id].stats.staged_count);
   stats_rob_i64(stats[id].ns, "staged_size", &stats[id].stats.staged_size);
   stats_ns_invoke(stats[id].ns, refresh_stats, all_pools[id]);
