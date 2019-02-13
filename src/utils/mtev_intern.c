@@ -38,6 +38,7 @@
 #include "mtev_hash.h"
 #include "mtev_stats.h"
 #include "mtev_plock.h"
+#include "libmtev_dtrace.h"
 #include <strings.h>
 #include <sys/mman.h>
 #include <ck_hs.h>
@@ -373,6 +374,7 @@ static inline void *
 pool_extend(mtev_intern_pool_t *pool, size_t size) {
   int flags = 0;
 
+  LIBMTEV_INTERN_POOL_EXTEND((void *)pool, size);
   /* Pool_extend is used for data extends and other internal slab allocations.
    * Create a new extent, with the specified size (an internal extent)
    * or the default extent_size for a data extent. */
@@ -574,6 +576,7 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
 /* This function is called without any locks on pool->plock */
 static inline
 mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t len) {
+  LIBMTEV_INTERN_POOL_FIND_ENTRY((void *)pool, len);
   if(len > pool->extent_size || len > (1 << 23)) return NULL;
   /* log2 rounded up to start at a level that we know will
    * be large enough to hold the requested allocation. */
@@ -592,7 +595,10 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
           /* we must return this node to the freeslots */
           replace_free_node(pool, node);
         }
-        if(rv) return rv;
+        if(rv) {
+          LIBMTEV_INTERN_POOL_FIND_RETURN(rv);
+          return rv;
+        }
       }
     }
     /* The first time we can't find an allocation,

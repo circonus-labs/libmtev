@@ -256,6 +256,33 @@ extern "C" {
 #define	LIBMTEV_REVERSE_SHUTDOWN_PERMANENT_ENABLED() \
 	__dtraceenabled_libmtev___reverse__shutdown__permanent(0)
 #endif
+#define LIBMTEV_INTERN_POOL_FIND_ENTRY(arg0, arg1) \
+        __dtrace_libmtev___intern__pool__find__entry(arg0, arg1)
+#ifndef __sparc
+#define LIBMTEV_INTERN_POOL_FIND_ENTRY_ENABLED() \
+        __dtraceenabled_libmtev___intern__pool__find__entry()
+#else
+#define LIBMTEV_INTERN_POOL_FIND_ENTRY_ENABLED() \
+        __dtraceenabled_libmtev___intern__pool__find__entry(0)
+#endif
+#define LIBMTEV_INTERN_POOL_FIND_RETURN(arg0, arg1) \
+        __dtrace_libmtev___intern__pool__find__return(arg0, arg1)
+#ifndef __sparc
+#define LIBMTEV_INTERN_POOL_FIND_RETURN_ENABLED() \
+        __dtraceenabled_libmtev___intern__pool__find__return()
+#else
+#define LIBMTEV_INTERN_POOL_FIND_RETURN_ENABLED() \
+        __dtraceenabled_libmtev___intern__pool__find__return(0)
+#endif
+#define LIBMTEV_INTERN_POOL_EXTEND(arg0, arg1) \
+        __dtrace_libmtev___intern__pool__extend(arg0, arg1)
+#ifndef __sparc
+#define LIBMTEV_INTERN_POOL_EXTEND_ENABLED() \
+        __dtraceenabled_libmtev___intern__pool__extend()
+#else
+#define LIBMTEV_INTERN_POOL_EXTEND_ENABLED() \
+        __dtraceenabled_libmtev___intern__pool__extend(0)
+#endif
 
 
 extern void __dtrace_libmtev___eventer__accept__entry(int, void *, int, int, void *);
@@ -420,6 +447,24 @@ extern int __dtraceenabled_libmtev___reverse__shutdown__permanent(void);
 #else
 extern int __dtraceenabled_libmtev___reverse__shutdown__permanent(long);
 #endif
+extern void __dtrace_libmtev___intern__pool__find__entry(void *, size_t);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__pool__find__entry(void);
+#else
+extern int __dtraceenabled_libmtev___intern__pool__find__entry(long);
+#endif
+extern void __dtrace_libmtev___intern__pool__find__return(void *);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__pool__find__return(void);
+#else
+extern int __dtraceenabled_libmtev___intern__pool__find__return(long);
+#endif
+extern void __dtrace_libmtev___intern__pool__extend(void *, size_t);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__pool__extend(void);
+#else
+extern int __dtraceenabled_libmtev___intern__pool__extend(long);
+#endif
 
 #else
 
@@ -477,6 +522,12 @@ extern int __dtraceenabled_libmtev___reverse__shutdown__permanent(long);
 #define	LIBMTEV_REVERSE_RESCHEDULE_ENABLED() (0)
 #define	LIBMTEV_REVERSE_SHUTDOWN_PERMANENT(arg0, arg1, arg2)
 #define	LIBMTEV_REVERSE_SHUTDOWN_PERMANENT_ENABLED() (0)
+#define	LIBMTEV_INTERN_POOL_FIND_ENTRY(arg0, arg1)
+#define	LIBMTEV_INTERN_POOL_FIND_ENTRY_ENABLED() (0)
+#define	LIBMTEV_INTERN_POOL_FIND_RETURN(arg0)
+#define	LIBMTEV_INTERN_POOL_FIND_RETURN_ENABLED() (0)
+#define	LIBMTEV_INTERN_POOL_EXTEND(arg0, arg1)
+#define	LIBMTEV_INTERN_POOL_EXTEND_ENABLED() (0)
 
 #endif
 

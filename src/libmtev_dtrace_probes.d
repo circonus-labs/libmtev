@@ -30,6 +30,10 @@ provider libmtev {
   probe http__response__finish(int, struct mtev_http_session_ctx *);
   probe http__log(int, struct mtev_http_session_ctx *, char *);
   probe http__close(int, struct mtev_http_session_ctx *);
+
+  probe intern__pool__find__entry(void *, size_t);
+  probe intern__pool__find__return(void *);
+  probe intern__pool__extend(void *, size_t);
 };
 
 #pragma D attributes Evolving/Evolving/ISA provider libmtev provider
