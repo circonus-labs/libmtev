@@ -433,6 +433,8 @@ pool_extend(mtev_intern_pool_t *pool, size_t size) {
 
 static inline void
 more_free_nodes(mtev_intern_pool_t *pool) {
+  LIBMTEV_INTERN_MORE_FREE_NODES((void *)pool);
+
   size_t cnt = DEFAULT_FREE_NODES_BATCH;
   /* Needing new slabs of free nodes is uncommon b/c the slabs are large.
    * We can simpley spinlock around the whole thing. */
