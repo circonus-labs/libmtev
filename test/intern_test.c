@@ -195,6 +195,7 @@ int child_main() {
     pthread_join(info[i].tid, &ignored);
   }
   free(info);
+  exit(0);
   return 0;
 }
 
