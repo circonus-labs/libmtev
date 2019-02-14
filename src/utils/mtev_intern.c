@@ -162,6 +162,8 @@ typedef struct mtev_intern_internal {
   uint8_t   v[0];
 } mtev_intern_internal_t;
 
+#define WRAPPED_SIZE(l) (offsetof(mtev_intern_internal_t, v) + (((l) + 3) & ~3))
+
 struct mtev_intern_pool_extent {
   size_t    size;
   void     *base;
@@ -314,6 +316,7 @@ borrow_free_node(mtev_intern_pool_t *pool,
     mtev_plock_drop_r(&l->lock);
     return NULL;
   }
+  assert(n->size >= l->lsize); // this node belongs here
   assert(len > 8);        // header
   assert((len & 3) == 0); // aligned
 
@@ -322,7 +325,8 @@ retry:
   /* If we can manage to borrow the requested len without needing
    * to move this node into another freeslot, we can just "borrow"
    * the bytes from be done. */
-  while((oldsize = ck_pr_load_64(&n->size)) - len >= l->lsize) {
+  while((oldsize = ck_pr_load_64(&n->size)) >= l->lsize + len) {
+    assert(oldsize >= len);
     if(ck_pr_cas_64(&n->size, oldsize, oldsize - len) == true) {
       mtev_plock_drop_r(&l->lock);
       return n->base + oldsize - len;
@@ -345,7 +349,7 @@ retry:
   }
   /* or be back in the situation that our borrowing doesn't require
    * moving this node, in which case we drop back into 'R' and retry. */
-  if(ck_pr_load_64(&n->size) - len >= l->lsize) {
+  if(ck_pr_load_64(&n->size) >= l->lsize + len) {
     mtev_plock_stor(&l->lock);
     goto retry;
   }
@@ -357,6 +361,7 @@ retry:
   ck_pr_dec_32(&l->cnt);
   /* n is now exclusively ours */
   oldsize = ck_pr_load_64(&n->size);
+  assert(oldsize >= len);
   n->size = oldsize - len;
   void *rv = n->base + oldsize - len;
   if(n->size == 0) {
@@ -496,6 +501,7 @@ register_stats(uint8_t id) {
  */
 __attribute__((constructor))
 void mtev_intern_ctor(void) {
+  mtevAssert(8 == offsetof(mtev_intern_internal_t, v));
   (void)mtev_intern_pool_new(NULL);
 }
 
@@ -639,7 +645,7 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
        */
       struct mtev_intern_free_node *node = get_free_node(pool);
       node->base = ii;
-      node->size = 8 + ((ii->len + 3) & ~3);
+      node->size = WRAPPED_SIZE(ii->len);
       replace_free_node(pool, node);
       return;
     }
@@ -657,7 +663,7 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
      * see comments in stage_replace_free_node */
     struct mtev_intern_free_node *node = get_free_node(pool);
     node->base = ii;
-    node->size = 8 + ((ii->len + 3) & ~3);
+    node->size = WRAPPED_SIZE(ii->len);
     stage_replace_free_node(pool, node);
 
     mtev_intern_pool_compact(pool, mtev_false);
@@ -722,7 +728,7 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
   } else {
     mtev_plock_drop_r(&pool->plock);
     /* align len on a 4 byte boundary and add the 8 byte header */
-    size_t alen = ((len + 3) & ~3) + 8;
+    size_t alen = WRAPPED_SIZE(len);
 
     /* Get us a suitable new allocation in our pool */
     ii = mtev_intern_pool_find(pool, alen);
@@ -1036,11 +1042,14 @@ mtev_intern_pool_stats(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats
   stats->available_total = stats->staged_size;
   for(int i=0; i<32; i++) {
     if(i < pool->nfreeslots && pool->freeslots[i].head) {
+      uint32_t node_cnt = 0;
       mtev_plock_take_r(&pool->freeslots[i].lock);
       for(struct mtev_intern_free_node *node = pool->freeslots[i].head; node; node = node->next) {
         stats->available[i] += node->size;
+        node_cnt++;
       }
       stats->fragments[i] = pool->freeslots[i].cnt;
+      assert(node_cnt == stats->fragments[i]);
       mtev_plock_drop_r(&pool->freeslots[i].lock);
       stats->available_total += stats->available[i];
       stats->fragments_total += stats->fragments[i];

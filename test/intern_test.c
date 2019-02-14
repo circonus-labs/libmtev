@@ -1,8 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include "eventer/eventer.h"
 #include "mtev_defines.h"
+#include "mtev_conf.h"
+#include "mtev_listener.h"
+#include "mtev_memory.h"
+#include "mtev_main.h"
 #include "mtev_intern.h"
+#include "mtev_console.h"
 #include "mtev_perftimer.h"
 #include "mtev_rand.h"
 #include "mtev_log.h"
@@ -30,6 +36,11 @@ static void wl_intern_release(void *c, mtev_intern_t i) {
   mtev_intern_pool_t **p = c;
   mtev_intern_release_pool(*p, i);
 }
+static void wl_intern_release_double(void *c, mtev_intern_t i) {
+  mtev_intern_pool_t **p = c;
+  mtev_intern_release_pool(*p, i);
+  mtev_intern_release_pool(*p, i);
+}
 static mtev_intern_t wl_strdup(void *c, const char *k, size_t l) {
   mtev_intern_t i;
   i.opaque1 = (uintptr_t)strdup(k);
@@ -39,7 +50,7 @@ static void wl_free(void *c, mtev_intern_t i) {
   free((void *)i.opaque1);
 }
 
-struct workload workload[3] = {
+struct workload workload[] = {
  {
   .name = "intern competing insert",
   .iters = 1,
@@ -57,6 +68,13 @@ struct workload workload[3] = {
   .closure = &pool
  },
  {
+  .name = "intern cleanup",
+  .iters = 1,
+  .acquire = wl_intern_acquire,
+  .release = wl_intern_release_double,
+  .closure = &pool
+ },
+ {
   .name = "strdup",
   .iters = 1,
   .acquire = wl_strdup,
@@ -65,7 +83,7 @@ struct workload workload[3] = {
  }
 };
 
-#define WORKLOADS 3
+#define WORKLOADS (sizeof(workload)/sizeof(*workload))
 
 char **words = NULL;
 int word_cnt = 0;
@@ -83,7 +101,13 @@ void load_words(void) {
   while(fgets(buff, sizeof(buff), fp)) {
     if(strlen(buff) < 1) continue;
     if(buff[strlen(buff)-1] == '\n') buff[strlen(buff)-1] = '\0';
-    words[word_cnt++] = strdup(buff);
+    int upsize = mtev_rand() % 4096;
+    if(upsize < strlen(buff)) upsize = strlen(buff);
+    char *str = malloc(upsize+1);
+    memset(str, 'x', upsize);
+    str[upsize] = '\0';
+    memcpy(str, buff, strlen(buff));
+    words[word_cnt++] = str;
   }
   fclose(fp);
 }
@@ -107,29 +131,29 @@ void *thr(void *closure) {
 
 void *singles(void *vstr) {
   char *str = vstr;
-  mtevL(mtev_stderr, "starting %p\n", pthread_self());
+  mtevL(mtev_stderr, "starting %p\n", (void *)pthread_self());
   for(int i=0; i<1000000; i++) {
     mtev_intern_t mi = miNEW(str);
     miFREE(mi);
-    //mtevL(mtev_stderr, "%p : %d\n", pthread_self(), i);
   }
+  pthread_exit(NULL);
 }
 
-int NTHREAD = 10;
-int main(int argc, char **argv) {
+int NTHREAD = 4;
+int NREPS = 1;
+const char *path = NULL;
+
+int child_main() {
   mtev_perftimer_t timer;
   int64_t elapsed;
   int i, cnt, loops = 2;
-  const char *path = NULL;
 
+  mtev_conf_load(NULL);
+  eventer_init();
+  mtev_console_init("intern_test");
+  mtev_listener_init("intern_test");
+  eventer_loop_return();
   load_words();
-  if(argc > 1) {
-    NTHREAD = atoi(argv[1]);
-  }
-  if(argc > 2) {
-    path = argv[2];
-  }
-
   struct tc *info = calloc(NTHREAD, sizeof(*info));
   mtev_intern_pool_attr_t attr = {
     .extent_size = 1 << 22,
@@ -138,8 +162,9 @@ int main(int argc, char **argv) {
   };
   pool = mtev_intern_pool_new(&attr);
 
-  double ns_per_op[3];
+  double ns_per_op[WORKLOADS];
   printf("concurrency: %d\n", NTHREAD);
+  for(int reps=0; reps<NREPS; reps++) {
   for(int wl=0; wl<WORKLOADS; wl++) {
     mtev_perftimer_start(&timer);
     for(i=0; i<NTHREAD; i++) {
@@ -161,14 +186,33 @@ int main(int argc, char **argv) {
     printf("%30s %12.0f/s (%6.1f ns/op)\n", workload[wl].name,
            1000000000.0 * (double)cnt /(double)elapsed, ns_per_op[wl]);
   }
-  free(info);
-
+  }
   for(i=0; i<NTHREAD; i++) {
-    pthread_create(&info[i].tid, NULL, singles, "");
+    pthread_create(&info[i].tid, NULL, singles, "sup");
   }
   for(i=0; i<NTHREAD; i++) {
     void *ignored;
     pthread_join(info[i].tid, &ignored);
   }
+  free(info);
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  if(argc > 1) {
+    NTHREAD = atoi(argv[1]);
+  }
+  if(argc > 2) {
+    path = argv[2];
+    if(!strcmp(path,"none")) path = NULL;
+  }
+  if(argc > 3) {
+    NREPS = atoi(argv[3]);
+  }
+
+  mtev_memory_init();
+  mtev_main("intern_test", "intern_test.conf", false, true,
+        MTEV_LOCK_OP_LOCK, NULL, NULL, NULL,
+       child_main);
   return 0;
 }
