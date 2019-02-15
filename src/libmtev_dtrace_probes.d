@@ -40,6 +40,8 @@ provider libmtev {
   probe intern__borrow__free__node__entry(void *, void *, size_t, void **);
   probe intern__borrow__no__freelist();
   probe intern__borrow__no__freelist__after__try();
+  probe intern__hash__put__failed();
+  probe intern__hash__put__succeeded();
 };
 
 #pragma D attributes Evolving/Evolving/ISA provider libmtev provider

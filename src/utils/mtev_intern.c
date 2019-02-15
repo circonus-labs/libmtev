@@ -757,6 +757,7 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
     mtev_plock_take_w(&pool->plock);
     /* Attempt to store this in our mapping */
     if(ck_hs_put(&pool->map, hash, ii) == false) {
+      LIBMTEV_INTERN_HASH_PUT_FAILED();
       mtev_plock_wtos(&pool->plock);
       /* The put failed, so we need to accumulate the ii we created
        * in our trashpile to give it back. We don't give it back here
@@ -793,6 +794,7 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
       mtev_plock_drop_s(&pool->plock);
     }
     else {
+      LIBMTEV_INTERN_HASH_PUT_SUCCEEDED();
       mtev_plock_drop_w(&pool->plock);
       ck_pr_inc_32(&pool->item_count);
     }

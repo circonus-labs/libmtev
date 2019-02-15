@@ -337,6 +337,24 @@ extern "C" {
 #define LIBMTEV_INTERN_BORROW_NO_FREELIST_AFTER_TRY_ENABLED() \
         __dtraceenabled_libmtev___intern__borrow__no__freelist__after__try(0)
 #endif
+#define LIBMTEV_INTERN_HASH_PUT_FAILED() \
+        __dtrace_libmtev___intern__hash__put__failed()
+#ifndef __sparc
+#define LIBMTEV_INTERN_HASH_PUT_FAILED_ENABLED() \
+        __dtraceenabled_libmtev___intern__hash__put__failed()
+#else
+#define LIBMTEV_INTERN_HASH_PUT_FAILED_ENABLED() \
+        __dtraceenabled_libmtev___intern__hash__put__failed(0)
+#endif
+#define LIBMTEV_INTERN_HASH_PUT_SUCCEEDED() \
+        __dtrace_libmtev___intern__hash__put__succeeded()
+#ifndef __sparc
+#define LIBMTEV_INTERN_HASH_PUT_SUCCEEDED_ENABLED() \
+        __dtraceenabled_libmtev___intern__hash__put__succeeded()
+#else
+#define LIBMTEV_INTERN_HASH_PUT_SUCCEEDED_ENABLED() \
+        __dtraceenabled_libmtev___intern__hash__put__succeeded(0)
+#endif
 
 
 extern void __dtrace_libmtev___eventer__accept__entry(int, void *, int, int, void *);
@@ -555,6 +573,18 @@ extern int __dtraceenabled_libmtev___intern__borrow__no__freelist__after__try(vo
 #else
 extern int __dtraceenabled_libmtev___intern__borrow__no__freelist__after__try(long);
 #endif
+extern void __dtrace_libmtev___intern__hash__put__failed();
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__hash__put__failed(void);
+#else
+extern int __dtraceenabled_libmtev___intern__hash__put__failed(long);
+#endif
+extern void __dtrace_libmtev___intern__hash__put__succeeded();
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__hash__put__succeeded(void);
+#else
+extern int __dtraceenabled_libmtev___intern__hash__put__succeeded(long);
+#endif
 
 #else
 
@@ -630,6 +660,10 @@ extern int __dtraceenabled_libmtev___intern__borrow__no__freelist__after__try(lo
 #define	LIBMTEV_INTERN_BORROW_NO_FREELIST_ENABLED() (0)
 #define	LIBMTEV_INTERN_BORROW_NO_FREELIST_AFTER_TRY()
 #define	LIBMTEV_INTERN_BORROW_NO_FREELIST_AFTER_TRY_ENABLED() (0)
+#define	LIBMTEV_INTERN_HASH_PUT_FAILED()
+#define	LIBMTEV_INTERN_HASH_PUT_FAILED_ENABLED() (0)
+#define	LIBMTEV_INTERN_HASH_PUT_SUCCEEDED()
+#define	LIBMTEV_INTERN_HASH_PUT_SUCCEEDED_ENABLED() (0)
 
 #endif
 
