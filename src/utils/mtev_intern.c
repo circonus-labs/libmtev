@@ -584,16 +584,14 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
   /* log2 rounded up to start at a level that we know will
    * be large enough to hold the requested allocation. */
   int tgt = fast_log2_ru(len) - SMALLEST_POWER;
-  struct mtev_intern_free_list *tgtlist = NULL;
   int attempt = 0;
   while(1) {
     attempt++;
     /* Iterate up the levels looking for a suitable allocation */
     for(int i=tgt; i<pool->nfreeslots; i++) {
-      if(pool->freeslots[i].head) {
-        tgtlist = &pool->freeslots[i];
+      if(NULL != ck_pr_load_ptr(&pool->freeslots[i].head)) {
         struct mtev_intern_free_node *node = NULL;
-        void *rv = borrow_free_node(pool, tgtlist, len, &node);
+        void *rv = borrow_free_node(pool, &pool->freeslots[i], len, &node);
         if(node) {
           /* we must return this node to the freeslots */
           replace_free_node(pool, node);
@@ -602,10 +600,10 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
       }
     }
     /* The first time we can't find an allocation,
-     * we should attempt to unstage free nodes and if
-     * that is successful, try again.
+     * we should attempt to unstage free nodes if there are any
+     * and if that is successful, try again.
      */
-    if(attempt == 1) {
+    if(attempt == 1 && NULL != ck_pr_load_ptr(&pool->staged_free_nodes)) {
       mtev_plock_take_w(&pool->plock);
       size_t replaced = unstage_replace_free_nodes_with_w(pool);
       mtev_plock_drop_w(&pool->plock);
@@ -873,11 +871,10 @@ mtev_intern_get_str(mtev_intern_t i, size_t *len) {
 uint32_t
 mtev_intern_pool_item_count(mtev_intern_pool_t *pool) {
   if(!pool) pool = all_pools[0];
-  return ck_pr_load_32(&pool->item_count);;
+  return ck_pr_load_32(&pool->item_count);
 }
 
-
- int compare_free_node(void* left, void *right) {
+int compare_free_node(void* left, void *right) {
    struct mtev_intern_free_node *l = left;
    struct mtev_intern_free_node *r = right;
    if(l->base < r->base) return -1;

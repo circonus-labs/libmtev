@@ -61,6 +61,12 @@ describe("intern strings", function()
     libmtev.mtev_intern_release(that)
     libmtev.mtev_intern_release(this)
   end)
+  it("loads/unloads", function()
+    for v in words() do
+      local f = libmtev.mtev_intern_str(v, 0)
+      libmtev.mtev_intern_release(f)
+    end
+  end)
   it("loads/unloads in batch", function()
     local m = {}
     local cnt = 0
