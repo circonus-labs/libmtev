@@ -4,14 +4,15 @@
 
 ## 1.6
 
-### 1.6.x
+### 1.6.2
 
- * Subqueue assignment in asynch jobs is persisted into child asynch
-   jobs when no explicit subqueue is specified.
+ * When spawning a child asynch job within an existing asynch job,
+   persist the subqueue assignment rather than always making it the first
+   subqueue every time. This will help in job scheduling fairness.
  * Expose `EVENTER_ASYNCH_COMPLETE` as a preferred and more descriptive
    literal for the old `EVENTER_ASYNCH` literal.  `EVENTER_ASYNCH` is
    informally deprecated.
- * Add aco support for non-simply asynch work
+ * Add aco support for non-simple asynch work
    (with all three asynch call phases).
  * Add aco support for enqueueing asynch work with deadlines.
  * Add support for eliding asynch work on jobs when a deadline is set
@@ -19,6 +20,9 @@
    already past the deadline)
  * Fix fair scheduling of subqueues when there is a single job in flight.
  * Add test for jobs subqueues and deadlines.
+ * Add stats exposure for mtev_intern pools, including via the mtev
+   console.
+ * Change mtev_hash implementation to XXH64 to improve speed.
 
 ### 1.6.1
 
