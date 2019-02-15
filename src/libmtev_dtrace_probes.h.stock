@@ -310,6 +310,33 @@ extern "C" {
 #define LIBMTEV_INTERN_UNSTAGED_FREE_ENABLED() \
         __dtraceenabled_libmtev___intern__unstaged__free(0)
 #endif
+#define LIBMTEV_INTERN_BORROW_FREE_NODE_ENTRY(arg0, arg1, arg2, arg3) \
+        __dtrace_libmtev___intern__borrow__free__node__entry(arg0, arg1, arg2, arg3)
+#ifndef __sparc
+#define LIBMTEV_INTERN_BORROW_FREE_NODE_ENTRY_ENABLED() \
+        __dtraceenabled_libmtev___intern__borrow__free__node__entry()
+#else
+#define LIBMTEV_INTERN_BORROW_FREE_NODE_ENTRY_ENABLED() \
+        __dtraceenabled_libmtev___intern__borrow__free__node__entry(0)
+#endif
+#define LIBMTEV_INTERN_BORROW_NO_FREELIST() \
+        __dtrace_libmtev___intern__borrow__no__freelist()
+#ifndef __sparc
+#define LIBMTEV_INTERN_BORROW_NO_FREELIST_ENABLED() \
+        __dtraceenabled_libmtev___intern__borrow__no__freelist()
+#else
+#define LIBMTEV_INTERN_BORROW_NO_FREELIST_ENABLED() \
+        __dtraceenabled_libmtev___intern__borrow__no__freelist(0)
+#endif
+#define LIBMTEV_INTERN_BORROW_NO_FREELIST_AFTER_TRY() \
+        __dtrace_libmtev___intern__borrow__no__freelist__after__try()
+#ifndef __sparc
+#define LIBMTEV_INTERN_BORROW_NO_FREELIST_AFTER_TRY_ENABLED() \
+        __dtraceenabled_libmtev___intern__borrow__no__freelist__after__try()
+#else
+#define LIBMTEV_INTERN_BORROW_NO_FREELIST_AFTER_TRY_ENABLED() \
+        __dtraceenabled_libmtev___intern__borrow__no__freelist__after__try(0)
+#endif
 
 
 extern void __dtrace_libmtev___eventer__accept__entry(int, void *, int, int, void *);
@@ -510,6 +537,24 @@ extern int __dtraceenabled_libmtev___intern__unstaged__free(void);
 #else
 extern int __dtraceenabled_libmtev___intern__unstaged__free(long);
 #endif
+extern void __dtrace_libmtev___intern__borrow__free__node__entry(void *, void *, size_t, void **);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__borrow__free__node__entry(void);
+#else
+extern int __dtraceenabled_libmtev___intern__borrow__free__node__entry(long);
+#endif
+extern void __dtrace_libmtev___intern__borrow__no__freelist();
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__borrow__no__freelist(void);
+#else
+extern int __dtraceenabled_libmtev___intern__borrow__no__freelist(long);
+#endif
+extern void __dtrace_libmtev___intern__borrow__no__freelist__after__try();
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__borrow__no__freelist__after__try(void);
+#else
+extern int __dtraceenabled_libmtev___intern__borrow__no__freelist__after__try(long);
+#endif
 
 #else
 
@@ -579,6 +624,12 @@ extern int __dtraceenabled_libmtev___intern__unstaged__free(long);
 #define	LIBMTEV_INTERN_MORE_FREE_NODES_ENABLED() (0)
 #define	LIBMTEV_INTERN_UNSTAGED_FREE(arg0)
 #define	LIBMTEV_INTERN_UNSTAGED_FREE_ENABLED() (0)
+#define	LIBMTEV_INTERN_BORROW_FREE_NODE_ENTRY(arg0, arg1, arg2, arg3)
+#define	LIBMTEV_INTERN_BORROW_FREE_NODE_ENTRY_ENABLED() (0)
+#define	LIBMTEV_INTERN_BORROW_NO_FREELIST()
+#define	LIBMTEV_INTERN_BORROW_NO_FREELIST_ENABLED() (0)
+#define	LIBMTEV_INTERN_BORROW_NO_FREELIST_AFTER_TRY()
+#define	LIBMTEV_INTERN_BORROW_NO_FREELIST_AFTER_TRY_ENABLED() (0)
 
 #endif
 

@@ -309,10 +309,13 @@ borrow_free_node(mtev_intern_pool_t *pool,
   size_t oldsize;
   struct mtev_intern_free_node *n;
 
+  LIBMTEV_INTERN_BORROW_FREE_NODE_ENTRY((void *)pool, (void *)l, len, (void **)node);
+
   mtev_plock_take_r(&l->lock);
   n = ck_pr_load_ptr(&l->head);
   if(!n) {
     mtev_plock_drop_r(&l->lock);
+    LIBMTEV_INTERN_BORROW_NO_FREELIST();
     return NULL;
   }
   assert(len > 8);        // header
@@ -342,6 +345,7 @@ retry:
   /* so much so, that we could have no list at all anymore */
   if(!n) {
     mtev_plock_drop_s(&l->lock);
+    LIBMTEV_INTERN_BORROW_NO_FREELIST_AFTER_TRY();
     return NULL;
   }
   /* or be back in the situation that our borrowing doesn't require
