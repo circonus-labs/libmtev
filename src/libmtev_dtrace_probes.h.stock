@@ -265,6 +265,15 @@ extern "C" {
 #define LIBMTEV_INTERN_POOL_FIND_ENTRY_ENABLED() \
         __dtraceenabled_libmtev___intern__pool__find__entry(0)
 #endif
+#define LIBMTEV_INTERN_POOL_FIND_ATTEMPT(arg0) \
+        __dtrace_libmtev___intern__pool__find__attempt(arg0)
+#ifndef __sparc
+#define LIBMTEV_INTERN_POOL_FIND_ATTEMPT_ENABLED() \
+        __dtraceenabled_libmtev___intern__pool__find__attempt()
+#else
+#define LIBMTEV_INTERN_POOL_FIND_ATTEMPT_ENABLED() \
+        __dtraceenabled_libmtev___intern__pool__find__attempt(0)
+#endif
 #define LIBMTEV_INTERN_POOL_FIND_RETURN(arg0) \
         __dtrace_libmtev___intern__pool__find__return(arg0)
 #ifndef __sparc
@@ -291,6 +300,15 @@ extern "C" {
 #else
 #define LIBMTEV_INTERN_MORE_FREE_NODES_ENABLED() \
         __dtraceenabled_libmtev___intern__more__free__nodes(0)
+#endif
+#define LIBMTEV_INTERN_UNSTAGED_FREE(arg0) \
+        __dtrace_libmtev___intern__unstaged__free(arg0)
+#ifndef __sparc
+#define LIBMTEV_INTERN_UNSTAGED_FREE_ENABLED() \
+        __dtraceenabled_libmtev___intern__unstaged__free()
+#else
+#define LIBMTEV_INTERN_UNSTAGED_FREE_ENABLED() \
+        __dtraceenabled_libmtev___intern__unstaged__free(0)
 #endif
 
 
@@ -462,6 +480,12 @@ extern int __dtraceenabled_libmtev___intern__pool__find__entry(void);
 #else
 extern int __dtraceenabled_libmtev___intern__pool__find__entry(long);
 #endif
+extern void __dtrace_libmtev___intern__pool__find__attempt(int);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__pool__find__attempt(void);
+#else
+extern int __dtraceenabled_libmtev___intern__pool__find__attempt(long);
+#endif
 extern void __dtrace_libmtev___intern__pool__find__return(void *);
 #ifndef	__sparc
 extern int __dtraceenabled_libmtev___intern__pool__find__return(void);
@@ -479,6 +503,12 @@ extern void __dtrace_libmtev___intern__more__free__nodes(void *);
 extern int __dtraceenabled_libmtev___intern__more__free__nodes(void);
 #else
 extern int __dtraceenabled_libmtev___intern__more__free__nodes(long);
+#endif
+extern void __dtrace_libmtev___intern__unstaged__free(size_t);
+#ifndef	__sparc
+extern int __dtraceenabled_libmtev___intern__unstaged__free(void);
+#else
+extern int __dtraceenabled_libmtev___intern__unstaged__free(long);
 #endif
 
 #else
@@ -539,12 +569,16 @@ extern int __dtraceenabled_libmtev___intern__more__free__nodes(long);
 #define	LIBMTEV_REVERSE_SHUTDOWN_PERMANENT_ENABLED() (0)
 #define	LIBMTEV_INTERN_POOL_FIND_ENTRY(arg0, arg1)
 #define	LIBMTEV_INTERN_POOL_FIND_ENTRY_ENABLED() (0)
+#define	LIBMTEV_INTERN_POOL_FIND_ATTEMPT(arg0)
+#define	LIBMTEV_INTERN_POOL_FIND_ATTEMPT_ENABLED() (0)
 #define	LIBMTEV_INTERN_POOL_FIND_RETURN(arg0)
 #define	LIBMTEV_INTERN_POOL_FIND_RETURN_ENABLED() (0)
 #define	LIBMTEV_INTERN_POOL_EXTEND(arg0, arg1)
 #define	LIBMTEV_INTERN_POOL_EXTEND_ENABLED() (0)
 #define	LIBMTEV_INTERN_MORE_FREE_NODES(arg0)
 #define	LIBMTEV_INTERN_MORE_FREE_NODES_ENABLED() (0)
+#define	LIBMTEV_INTERN_UNSTAGED_FREE(arg0)
+#define	LIBMTEV_INTERN_UNSTAGED_FREE_ENABLED() (0)
 
 #endif
 

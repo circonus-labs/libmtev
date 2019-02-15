@@ -587,6 +587,7 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
   int attempt = 0;
   while(1) {
     attempt++;
+    LIBMTEV_INTERN_POOL_FIND_ATTEMPT(attempt);
     /* Iterate up the levels looking for a suitable allocation */
     for(int i=tgt; i<pool->nfreeslots; i++) {
       if(pool->freeslots[i].head) {
@@ -611,7 +612,10 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
       mtev_plock_take_w(&pool->plock);
       size_t replaced = unstage_replace_free_nodes_with_w(pool);
       mtev_plock_drop_w(&pool->plock);
-      if(replaced) continue;
+      if(replaced) {
+        LIBMTEV_INTERN_UNSTAGED_FREE(replaced);
+        continue;
+      }
     }
     /* If we're here, there was no free space!
      * Two thread could be here at the same time, so let's use the extent_id
