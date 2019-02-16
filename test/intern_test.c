@@ -129,11 +129,11 @@ void *thr(void *closure) {
   return NULL;
 }
 
-void *singles(void *vstr) {
-  char *str = vstr;
+void *singles(void *unused) {
+  (void)unused;
   mtevL(mtev_stderr, "starting %p\n", (void *)pthread_self());
   for(int i=0; i<1000000; i++) {
-    mtev_intern_t mi = miNEW(str);
+    mtev_intern_t mi = miNEW(words[i % word_cnt]);
     miFREE(mi);
   }
   pthread_exit(NULL);
@@ -188,13 +188,14 @@ int child_main() {
   }
   }
   for(i=0; i<NTHREAD; i++) {
-    pthread_create(&info[i].tid, NULL, singles, "sup");
+    pthread_create(&info[i].tid, NULL, singles, NULL);
   }
   for(i=0; i<NTHREAD; i++) {
     void *ignored;
     pthread_join(info[i].tid, &ignored);
   }
   free(info);
+  pause();
   exit(0);
   return 0;
 }

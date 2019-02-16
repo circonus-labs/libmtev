@@ -42,7 +42,7 @@ describe("intern strings", function()
   it("same strings have same value", function()
     f = libmtev.mtev_intern_str("this", 0)
     g = libmtev.mtev_intern_str("this", 0)
-    assert.is_equal(f.opaque1, g.opaque1);
+    assert.is_equal(f.opaque1, g.opaque1)
   end)
   it("different string has different value",function()
     h = libmtev.mtev_intern_str("something else", 0)
