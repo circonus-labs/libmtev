@@ -42,7 +42,7 @@ describe("intern strings", function()
   it("same strings have same value", function()
     f = libmtev.mtev_intern_str("this", 0)
     g = libmtev.mtev_intern_str("this", 0)
-    assert.is_equal(f.opaque1, g.opaque1);
+    assert.is_equal(f.opaque1, g.opaque1)
   end)
   it("different string has different value",function()
     h = libmtev.mtev_intern_str("something else", 0)
@@ -60,6 +60,12 @@ describe("intern strings", function()
     assert.is_not_equal(this, f)
     libmtev.mtev_intern_release(that)
     libmtev.mtev_intern_release(this)
+  end)
+  it("loads/unloads", function()
+    for v in words() do
+      local f = libmtev.mtev_intern_str(v, 0)
+      libmtev.mtev_intern_release(f)
+    end
   end)
   it("loads/unloads in batch", function()
     local m = {}
