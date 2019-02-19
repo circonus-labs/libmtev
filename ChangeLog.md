@@ -4,6 +4,10 @@
 
 ## 1.6
 
+### 1.6.3
+
+ * Fix mtev_intern freelist manipulation bug resulting in leaks and crashes.
+
 ### 1.6.2
 
  * When spawning a child asynch job within an existing asynch job,
