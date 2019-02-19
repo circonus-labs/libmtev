@@ -195,7 +195,7 @@ int child_main() {
     pthread_join(info[i].tid, &ignored);
   }
   free(info);
-  pause();
+  if(getenv("PAUSE") && !strcmp(getenv("PAUSE"),"1")) pause();
   exit(0);
   return 0;
 }
