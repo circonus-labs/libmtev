@@ -130,7 +130,7 @@ const mtev_intern_t mtev_intern_null = { .opaque1 = 0 };
  */
 #define MAX_WITHOUT_MALLOC 32678
 
-static int compact_freelist(mtev_intern_pool_t *pool);
+static int compact_freelist_with_lock(mtev_intern_pool_t *pool);
 
 /* From bithacks - DeBruijn multiplication for branchless log2 */
 static const int MultiplyDeBruijnBitPosition[32] = 
@@ -276,12 +276,10 @@ stage_replace_free_node(mtev_intern_pool_t *pool,
    *               |                    | P = allocate (refcnt@1)
    * refcnt (1->2) |                    |
    */
-  uint64_t size = node->size;
-  node->next = ck_pr_load_ptr(&pool->staged_free_nodes);
-  while(!ck_pr_cas_ptr(&pool->staged_free_nodes, node->next, node)) {
-    ck_pr_stall();
+  uint64_t size = ck_pr_load_64(&node->size);
+  do {
     node->next = ck_pr_load_ptr(&pool->staged_free_nodes);
-  }
+  } while(!ck_pr_cas_ptr(&pool->staged_free_nodes, node->next, node));
   ck_pr_inc_32(&pool->staged_free_nodes_count);
   ck_pr_add_64(&pool->staged_free_nodes_size, size);
 }
@@ -362,7 +360,9 @@ retry:
    * so we should increment the view.
    */
   ck_pr_inc_64(&pool->view);
-  l->head = ck_pr_load_ptr(&n->next);
+  do {
+    n = ck_pr_load_ptr(&l->head);
+  } while(!ck_pr_cas_ptr(&l->head, n, n->next));
   mtev_plock_drop_w(&l->lock);
   ck_pr_dec_32(&l->cnt);
   /* n is now exclusively ours */
@@ -587,6 +587,7 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
   int tgt = fast_log2_ru(len) - SMALLEST_POWER;
   int attempt = 1;
   while(1) {
+    uint32_t lastextentid = ck_pr_load_32(&pool->extent_id);
     mtev_boolean with_lock = mtev_false;
     uint64_t compaction_start;
     mtev_boolean compacting;
@@ -614,28 +615,27 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
       with_lock = mtev_true;
       goto retry;
     }
-    if(attempt == 1) {
-      /* The first time we can't find an allocation,
-       * we should attempt to unstage free nodes if there are any
-       * and if that is successful, try again.
-       */
-      if(NULL != ck_pr_load_ptr(&pool->staged_free_nodes)) {
-        mtev_plock_take_w(&pool->plock);
-        unstage_replace_free_nodes_with_w(pool);
-        mtev_plock_drop_w(&pool->plock);
-      }
-      /* We think we have no free space, but we might want to just do a compaction
-       * right here and now. */
-      uint64_t minsize = 0;
-      for(int i=0; i<tgt; i++) {
-        minsize += pool->freeslots[i].lsize * pool->freeslots[i].cnt;
-      }
+
+    /* We think we have no free space, but we might want to just do a compaction
+     * right here and now. */
+    uint64_t total_size = 0;
+    for(struct mtev_intern_pool_extent *node = pool->extents; node; node = node->next) {
+    if(!node->internal) {
+      total_size += node->size;
+    }
+    }
+    uint64_t minsize = 0;
+    for(int i=0; i<tgt; i++) {
+      minsize += pool->freeslots[i].lsize * pool->freeslots[i].cnt;
+    }
+    if((minsize > len && minsize > (total_size >> 1)) && attempt < 2) { /* there is hope */
       attempt++;
-      if(minsize > len) { /* there is hope */
-        compact_freelist(pool);
-        with_lock = mtev_true;
-        goto retry;
-      }
+      uint64_t cc = ck_pr_load_64(&pool->compaction_count);
+      ck_spinlock_lock(&pool->compaction_lock);
+      if(cc == ck_pr_load_64(&pool->compaction_count)) compact_freelist_with_lock(pool);
+      ck_spinlock_unlock(&pool->compaction_lock);
+      with_lock = mtev_true;
+      goto retry;
     }
     /* If we got here and don't have an allocation it could be because the head
      * nodes we needed were down-leveled while we were searching. If that's the
@@ -649,7 +649,6 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
      * as a epoch as it will be incremented in pool_extend.  This allows us
      * to acquire the 'S' lock and then see if someone already did all this
      * work such that we can not do it twice. */
-    uint32_t lastextentid = ck_pr_load_32(&pool->extent_id);
     mtev_plock_take_s(&pool->plock);
     /* skip this work if someone did it while we were waiting */
     if(ck_pr_load_32(&pool->extent_id) == lastextentid) {
@@ -679,7 +678,7 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
       struct mtev_intern_free_node *node = get_free_node(pool);
       node->base = ii;
       node->size = WRAPPED_SIZE(ii->len);
-      replace_free_node(pool, node);
+      stage_replace_free_node(pool, node);
       return;
     }
     unsigned long hash = CK_HS_HASH(&pool->map, mi_hash, ii);
@@ -927,7 +926,7 @@ void set_next_free_node(void *current, void *value) {
 }
 
 static int
-compact_freelist(mtev_intern_pool_t *pool) {
+compact_freelist_with_lock(mtev_intern_pool_t *pool) {
   struct mtev_intern_free_node dummy, *surrogate = &dummy, *last = surrogate;
   int total = 0, cnt = 0;
 
@@ -965,23 +964,27 @@ compact_freelist(mtev_intern_pool_t *pool) {
   }
 
   for(int i=0; i<pool->nfreeslots; i++) {
+    int in_fl = 0;
     struct mtev_intern_free_list *l = &pool->freeslots[i];
-    last->next = l->head;
-    l->head = NULL;
-    l->cnt = 0;
+    do {
+      last->next = ck_pr_load_ptr(&l->head);
+    } while(!ck_pr_cas_ptr(&l->head, last->next, NULL));
     while(last->next) {
       total++;
+      in_fl++;
       last = last->next;
     }
+    ck_pr_faa_32(&l->cnt, -in_fl);
   }
 
+
+  ck_pr_inc_64(&pool->compaction_count);
 
   /* Perhaps we actually have no work to do at all? */
   if(surrogate->next == NULL) {
     goto done;
   }
 
-  ck_pr_inc_64(&pool->compaction_count);
   /* Sort it */
   mtev_merge_sort((void **)&surrogate->next, next_free_node, set_next_free_node, compare_free_node);
 
@@ -1025,7 +1028,7 @@ mtev_intern_pool_compact_asynch(eventer_t e, int mask, void *cl, struct timeval 
       current_fragments += pool->freeslots[i].cnt;
     }
     current_fragments += pool->staged_free_nodes_count;
-    int cnt = compact_freelist(pool);
+    int cnt = compact_freelist_with_lock(pool);
     pool->last_fragment_compact = current_fragments - cnt;
     ck_spinlock_unlock(&pool->compaction_lock);
   }
@@ -1064,11 +1067,12 @@ mtev_intern_pool_compact(mtev_intern_pool_t *pool, mtev_boolean force) {
     return -1;
   }
 
-  cnt = compact_freelist(pool);
+  cnt = compact_freelist_with_lock(pool);
   pool->last_fragment_compact = current_fragments - cnt;
   ck_spinlock_unlock(&pool->compaction_lock);
   return cnt;
 }
+
 void
 mtev_intern_pool_stats(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats) {
   if(!pool) pool = all_pools[0];
