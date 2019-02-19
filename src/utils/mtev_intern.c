@@ -616,17 +616,6 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
       goto retry;
     }
 
-    /* If we can't find an allocation,
-     * we should attempt to unstage free nodes if there are any
-     * and if that is successful, try again.
-     */
-    if(attempt < 0) {
-      if(NULL != ck_pr_load_ptr(&pool->staged_free_nodes)) {
-        mtev_plock_take_w(&pool->plock);
-        unstage_replace_free_nodes_with_w(pool);
-        mtev_plock_drop_w(&pool->plock);
-      }
-    }
     /* We think we have no free space, but we might want to just do a compaction
      * right here and now. */
     uint64_t total_size = 0;
