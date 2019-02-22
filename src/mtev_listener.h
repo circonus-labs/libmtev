@@ -100,4 +100,10 @@ API_EXPORT(void)
 API_EXPORT(mtev_hash_table *)
   mtev_listener_commands(void);
 
+MTEV_HOOK_PROTO(mtev_listener_attach,
+                (void),
+                void *, closure,
+                (void *closure))
+
+
 #endif

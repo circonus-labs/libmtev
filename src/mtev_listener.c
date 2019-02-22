@@ -47,6 +47,12 @@
 #include "mtev_watchdog.h"
 #include "mtev_listener.h"
 #include "mtev_conf.h"
+#include "mtev_hooks.h"
+
+MTEV_HOOK_IMPL(mtev_listener_attach,
+               (void),
+               void *, closure,
+               (void *closure), (closure));
 
 static mtev_hash_table *aco_listeners;
 
@@ -562,6 +568,14 @@ mtev_listener_reconfig(const char *toplevel) {
   mtev_conf_section_t *listener_configs;
   char path[256];
 
+  switch(mtev_listener_attach_hook_invoke()) {
+    case MTEV_HOOK_ABORT:
+      mtevFatal(mtev_error, "mtev_listener_attach hook aborted\n");
+    case MTEV_HOOK_DONE:
+      mtevL(mtev_error, "mtev_listener_attach hook preempted normal operations.\n");
+      return;
+    default: break;
+  }
   snprintf(path, sizeof(path), "/%s/listeners//listener|/%s/include/listeners//listener",
            toplevel ? toplevel : "*", toplevel ? toplevel : "*");
   listener_configs = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
