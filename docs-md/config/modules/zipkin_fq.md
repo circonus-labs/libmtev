@@ -48,7 +48,7 @@ The zipkin_fq module publishes Zipkin traces via Fq.
 ```xml
       <noit>
         <modules>
-          <module image="zipkin_fq" name="zipkin_fq"/>
+          <generic image="zipkin_fq" name="zipkin_fq"/>
         </modules>
       </noit>
     

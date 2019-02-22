@@ -36,7 +36,7 @@
 
 ##### I
 
-[mtev_intern](c.md#mtevintern), [mtev_intern_copy](c.md#mtevinterncopy), [mtev_intern_get_cstr](c.md#mtevinterngetcstr), [mtev_intern_get_ptr](c.md#mtevinterngetptr), [mtev_intern_get_refcnt](c.md#mtevinterngetrefcnt), [mtev_intern_pool](c.md#mtevinternpool), [mtev_intern_pool_compact](c.md#mtevinternpoolcompact), [mtev_intern_pool_item_count](c.md#mtevinternpoolitemcount), [mtev_intern_pool_new](c.md#mtevinternpoolnew), [mtev_intern_pool_stats](c.md#mtevinternpoolstats), [mtev_intern_pool_str](c.md#mtevinternpoolstr), [mtev_intern_release](c.md#mtevinternrelease), [mtev_intern_release_pool](c.md#mtevinternreleasepool), [mtev_intern_str](c.md#mtevinternstr)
+[mtev_intern](c.md#mtevintern), [mtev_intern_copy](c.md#mtevinterncopy), [mtev_intern_get_cstr](c.md#mtevinterngetcstr), [mtev_intern_get_ptr](c.md#mtevinterngetptr), [mtev_intern_get_refcnt](c.md#mtevinterngetrefcnt), [mtev_intern_pool](c.md#mtevinternpool), [mtev_intern_pool_by_id](c.md#mtevinternpoolbyid), [mtev_intern_pool_compact](c.md#mtevinternpoolcompact), [mtev_intern_pool_item_count](c.md#mtevinternpoolitemcount), [mtev_intern_pool_new](c.md#mtevinternpoolnew), [mtev_intern_pool_stats](c.md#mtevinternpoolstats), [mtev_intern_pool_str](c.md#mtevinternpoolstr), [mtev_intern_release](c.md#mtevinternrelease), [mtev_intern_release_pool](c.md#mtevinternreleasepool), [mtev_intern_str](c.md#mtevinternstr)
 
 ##### L
 

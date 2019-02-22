@@ -3622,6 +3622,17 @@ mtev_intern_pool(<span class="hljs-keyword">mtev_intern_pool_t</span> *pool, <sp
 <p>This function will attempt to find the specified data in the pool, but create it on absence.
 The reference count of the interned object returned will be increased and it must be released
 using <code>mtev_intern_release_pool</code>.</p>
+<h4 id="mtevinternpoolbyid">mtev_intern_pool_by_id</h4>
+<blockquote>
+<p>Return an existing pool by id.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_intern_pool_t</span> *
+mtev_intern_pool_by_id(<span class="hljs-keyword">uint8_t</span> id)
+</code></pre>
+<ul>
+<li><code>id</code> the pool id.</li>
+<li><strong>RETURN</strong> A new intern pool.</li>
+</ul>
 <h4 id="mtevinternpoolcompact">mtev_intern_pool_compact</h4>
 <blockquote>
 <p>Attempt a compaction of an intern pool.</p>

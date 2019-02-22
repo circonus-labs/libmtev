@@ -35,7 +35,7 @@
       <programlisting language="xml"><![CDATA[
       <noit>
         <modules>
-          <module image="zipkin_jaeger" name="zipkin_jaeger"/>
+          <generic image="zipkin_jaeger" name="zipkin_jaeger"/>
         </modules>
       </noit>
     ]]></programlisting>

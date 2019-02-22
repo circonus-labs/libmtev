@@ -3969,6 +3969,20 @@ The reference count of the interned object returned will be increased and it mus
 using `mtev_intern_release_pool`.
  
 
+#### mtev_intern_pool_by_id
+
+>Return an existing pool by id.
+
+```c
+mtev_intern_pool_t *
+mtev_intern_pool_by_id(uint8_t id)
+```
+
+
+  * `id` the pool id.
+  * **RETURN** A new intern pool.
+ 
+
 #### mtev_intern_pool_compact
 
 >Attempt a compaction of an intern pool.

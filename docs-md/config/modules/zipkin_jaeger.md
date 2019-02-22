@@ -48,7 +48,7 @@ The zipkin_jaeger module publishes Zipkin traces to Jaeger.
 ```xml
       <noit>
         <modules>
-          <module image="zipkin_jaeger" name="zipkin_jaeger"/>
+          <generic image="zipkin_jaeger" name="zipkin_jaeger"/>
         </modules>
       </noit>
     
