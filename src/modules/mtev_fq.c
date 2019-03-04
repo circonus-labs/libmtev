@@ -51,6 +51,8 @@ MTEV_HOOK_IMPL(mtev_fq_handle_message_dyn,
 #define CONFIG_FQ_EXCHANGE "self::node()/exchange"
 #define CONFIG_FQ_PROGRAM "self::node()/program"
 
+#define DEFAULT_POLL_LIMIT 10000
+
 typedef struct connection_configs {
   char* host;
   int32_t port;
@@ -65,6 +67,7 @@ struct fq_module_config {
   fq_client* fq_conns;
   connection_configs **configs;
   int number_of_conns;
+  int poll_limit;
 };
 
 static mtev_log_stream_t nlerr = NULL;
@@ -77,6 +80,7 @@ static struct fq_module_config *get_config(mtev_dso_generic_t *self) {
   if(the_conf) return the_conf;
   the_conf = calloc(1, sizeof(*the_conf));
   mtev_image_set_userdata(&self->hdr, the_conf);
+  the_conf->poll_limit = DEFAULT_POLL_LIMIT;
   return the_conf;
 }
 
@@ -127,7 +131,9 @@ static int poll_fq(eventer_t e, int mask, void *unused, struct timeval *now) {
   int cnt = 0;
   fq_msg *m;
 
-  for (int client = 0; client != the_conf->number_of_conns; ++client) {
+  for (int client = 0;
+       client != the_conf->number_of_conns && (the_conf->poll_limit == 0 || cnt < the_conf->poll_limit);
+       ++client) {
     while (the_conf->fq_conns[client] && NULL != (m = fq_client_receive(the_conf->fq_conns[client]))) {
       mtev_fq_handle_message_dyn_hook_invoke(the_conf->fq_conns[client], client, m, m->payload, m->payload_len);
       fq_msg_deref(m);
@@ -330,10 +336,17 @@ fq_driver_init(mtev_dso_generic_t *img) {
 
 static int
 fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
-  (void)img;
+  struct fq_module_config *conf = get_config(img);
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(options, &iter)) {
-    mtevL(mtev_error, "%s %s!\n", iter.key.str, iter.value.str);
+    if(!strcmp("poll_limit", iter.key.str)) {
+      conf->poll_limit = atoi(iter.value.str);
+      if(conf->poll_limit < 0) conf->poll_limit = DEFAULT_POLL_LIMIT;
+      mtevL(mtev_notice, "Setting poll limit to %d!\n", conf->poll_limit);
+    } else {
+      mtevL(mtev_error, "Unknown fq config: %s %s!\n", iter.key.str, iter.value.str);
+      return -1;
+    }
   }
   return 0;
 }

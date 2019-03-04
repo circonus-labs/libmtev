@@ -4,6 +4,10 @@
   <loader>C</loader>
   <image>fq.so</image>
   <moduleconfig>
+    <parameter name="poll_limit"
+               required="optional"
+               default="10000"
+               allowed="\d+">Maximum number of messages to handle in a single callback.</parameter>
   </moduleconfig>
   <examples>
     <example>
@@ -11,7 +15,11 @@
       <programlisting language="xml"><![CDATA[
       <root>
         <modules>
-          <module image="fq" name="fq"/>
+          <module image="fq" name="fq">
+            <config>
+              <poll_limit>1000</poll_limit>
+            </config>
+          </module>
         </modules>
         <network>
           <mq type="fq">
