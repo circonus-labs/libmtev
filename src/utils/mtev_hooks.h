@@ -166,7 +166,7 @@ mtev_hook_return_t \
 HOOKNAME##_hook_invoke HOOKPROTO_NC { \
   mtev_hook_return_t rv = MTEV_HOOK_CONTINUE; \
   struct mtev_hook_##HOOKNAME##_list *h; \
-  struct mtev_hook_##HOOKNAME##_list *list = \
+  struct mtev_hook_##HOOKNAME##_list *list = (struct mtev_hook_##HOOKNAME##_list *) \
     ck_pr_load_ptr(&nh_##HOOKNAME##_list); \
   for(h = list; h; h = h->next) { \
     if(h->func) { \
