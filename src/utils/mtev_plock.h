@@ -24,8 +24,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PL_PLOCK_H
-#define PL_PLOCK_H
+#ifndef MTEV_PLOCK_H
+#define MTEV_PLOCK_H
 
 #include <mtev_defines.h>
 #include <pthread.h>
