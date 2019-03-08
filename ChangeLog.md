@@ -4,6 +4,12 @@
 
 ## 1.6
 
+### 1.6.4
+
+ * Documentation fixes in zipkin module docs.
+ * Fix mtev_hooks to be usable with more compiler warning flags.
+ * Fix starvation issue in fq module hook polling.
+
 ### 1.6.3
 
  * Fix mtev_intern freelist manipulation bug resulting in leaks and crashes.
