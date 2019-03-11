@@ -554,7 +554,7 @@ API_EXPORT(int64_t)   eventer_allocations_total(void);
 
 /*! \fn int eventer_name_callback(const char *name, eventer_func_t callback)
     \brief Register a human/developer readable name for a eventer callback function.
-    \param name the human readable name.
+    \param name the human readable name.  You should select clear/unique names for clarity in debugging.
     \param callback the function pointer of the eventer callback.
     \return 0 on success.
 */
@@ -562,9 +562,9 @@ API_EXPORT(int)       eventer_name_callback(const char *name, eventer_func_t f);
 
 /*! \fn int eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(char *buff,int bufflen,eventer_t e,void *closure), void *closure)
     \brief Register a functional describer for a callback and it's event object.
-    \param name the human readable name.
+    \param name the human readable name.  You should select clear/unique names for clarity in debugging.
     \param callback the function pointer of the eventer callback.
-    \param fn function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).
+    \param fn function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).  If this is defined, it will override the "name" paramter when eventer_name_for_callback is called.
     \return 0 on success.
 
     This function allows more in-depth descriptions of events.  When an event
@@ -579,8 +579,10 @@ API_EXPORT(int)       eventer_name_callback_ext(const char *name,
 /*! \fn const char *eventer_name_for_callback(evneter_func_t f)
     \brief Retrieve a human readable name for the provided callback.
     \param f a callback function.
-    \return name of callback
+    \return name or extended descripton of callback
 
+    If an extended description function is available, it will be preferred with  
+    the name returned as a default.
     The returned value may be a pointer to reusable thread-local storage.
     The value should be used before a subsequent call to this function.
     Aside from that caveat, it is thread-safe.
