@@ -52,11 +52,17 @@ API_EXPORT(int)
 API_EXPORT(int)
   mtev_aco_backtrace(aco_t *co, void **addrs, int addrs_len);
 
+API_EXPORT(const char *)
+  mtev_function_name(uintptr_t);
+
 // Call this function after loading any modules.
 API_EXPORT(void)
   mtev_dwarf_refresh(void);
 
 API_EXPORT(void)
   mtev_dwarf_filter(mtev_boolean (*f)(const char *file));
+
+API_EXPORT(void)
+  mtev_dwarf_filter_symbols(mtev_boolean (*f)(const char *file));
 
 #endif

@@ -32,6 +32,8 @@
 #include "mtev_log.h"
 #include "mtev_stacktrace.h"
 #include "mtev_sort.h"
+#include "mtev_skiplist.h"
+#include "mtev_hash.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -68,6 +70,7 @@
 #include "android-demangle/cp-demangle.h"
 
 static mtev_boolean (*global_file_filter)(const char *);
+static mtev_boolean (*global_file_symbol_filter)(const char *);
 
 struct line_info {
   uintptr_t addr;
@@ -98,9 +101,24 @@ struct dmap_node {
     struct srcfilelist *next;
   } *files;
   struct line_info *info;
+  mtev_hash_table types;
   int count;
 };
 static struct dmap_node *line_info_mapping = NULL;
+
+struct typenode {
+  Dwarf_Off id;
+  Dwarf_Half tag;
+  char *name;
+  size_t size;
+  struct typenode *resolved;
+};
+struct symnode {
+  uintptr_t low, high;
+  Dwarf_Off type;
+  char *name;
+};
+static mtev_skiplist *symtable;
 
 static void
 dw_mtev_log(Dwarf_Error err, Dwarf_Ptr closure) {
@@ -161,9 +179,133 @@ mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
   dwarf_srclines_dealloc(node->dbg, lines, nlines);
   return;
 }
+const char *mtev_function_name(uintptr_t addr) {
+  if(!symtable) return NULL;
+  mtev_skiplist_node *iter, *prev, *next;
+  if(mtev_skiplist_find_neighbors(symtable, &addr, &iter, &prev, &next)) {
+    if(!iter) iter = prev;
+    if(iter) {
+      struct symnode *n = mtev_skiplist_data(iter);
+      if(n && n->low <= addr && n->high >= addr) return n->name;
+    }
+  }
+  return NULL;
+}
+static struct typenode *cache_type(struct dmap_node *node, Dwarf_Off off) {
+  const char *tag_name = "unknown";
+  char *die_name;
+  Dwarf_Die die = 0;
+  Dwarf_Error err;
+  Dwarf_Attribute attr;
+
+  if(dwarf_offdie(node->dbg, off, &die, &err) == DW_DLV_OK) {
+    Dwarf_Half tag;
+    if(dwarf_diename(die, &die_name, &err) == DW_DLV_OK &&
+       dwarf_tag(die, &tag, &err) == DW_DLV_OK &&
+       dwarf_get_TAG_name(tag, &tag_name) == DW_DLV_OK) {
+      void *vptr;
+      if(!mtev_hash_retrieve(&node->types, (const char *)&off, sizeof(off), &vptr)) {
+        struct typenode *n = calloc(1, sizeof(*n));
+        n->id = off;
+        n->tag = tag;
+        n->name = strdup(die_name);
+        n->resolved = n;
+        if(n->tag == DW_TAG_typedef) {
+          if(dwarf_attr(die, DW_AT_type, &attr, &err) == DW_DLV_OK) {
+            Dwarf_Off off;
+            dwarf_global_formref(attr, &off, &err);
+            n->resolved = cache_type(node, off);
+          }
+        }
+        if(dwarf_attr(die, DW_AT_byte_size, &attr, &err) == DW_DLV_OK) {
+          Dwarf_Unsigned size;
+          dwarf_formudata(attr, &size, &err);
+          n->size = size;
+        }
+        mtev_hash_replace(&node->types, (const char *)&n->id, sizeof(n->id), n, NULL, free);
+        vptr = n;
+      }
+      return vptr;
+    }
+  }
+  return NULL;
+}
+static void extract_symbols(struct dmap_node *node, Dwarf_Die sib) {
+  const char *tag_name;
+  char *die_name;
+  Dwarf_Error err;
+  Dwarf_Half tag;
+  Dwarf_Die child_die = 0;
+
+  if(global_file_symbol_filter && global_file_symbol_filter(node->file)) return;
+
+  if(dwarf_child(sib, &child_die, &err) == DW_DLV_OK) {
+    do {
+      extract_symbols(node, child_die);
+    } while(dwarf_siblingof(node->dbg, child_die, &child_die, &err) == DW_DLV_OK);
+  }
+  if(dwarf_tag(sib, &tag, &err) == DW_DLV_OK &&
+     dwarf_get_TAG_name(tag, &tag_name) == DW_DLV_OK &&
+     dwarf_diename(sib, &die_name, &err) == DW_DLV_OK) {
+    Dwarf_Attribute* attrs;
+    Dwarf_Addr pc = 0;
+    Dwarf_Off off = 0;
+    Dwarf_Attribute attr;
+    Dwarf_Signed attrcount, i;
+    Dwarf_Bool flag;
+    struct symnode n = { .low = 0 };
+
+    switch(tag) {
+      case DW_TAG_variable:
+        if(dwarf_attr(sib, DW_AT_external, &attr, &err) != DW_DLV_OK ||
+           dwarf_formflag(attr, &flag, &err) != DW_DLV_OK ||
+           flag == 0) break;
+        n.low = (uintptr_t)dlsym(NULL, die_name);
+      case DW_TAG_subprogram:
+        if(dwarf_attrlist(sib, &attrs, &attrcount, &err) == DW_DLV_OK) {
+          for(i=0; i<attrcount; i++) {
+            Dwarf_Half attrcode;
+            if(dwarf_whatattr(attrs[i], &attrcode, &err) == DW_DLV_OK) {
+              if(attrcode == DW_AT_type) {
+                dwarf_global_formref(attrs[i], &off, &err);
+                n.type = off;
+                struct typenode *t = cache_type(node, off);
+                if(t) {
+                  while(t->resolved && t->resolved != t) t = t->resolved;
+                  n.high = n.low + t->size;
+                }
+              } else if(attrcode == DW_AT_low_pc) {
+                dwarf_formaddr(attrs[i], &pc, &err);
+                n.low = pc + node->base;
+              } else if(attrcode == DW_AT_high_pc) {
+                dwarf_formaddr(attrs[i], &pc, &err);
+                n.high = pc + node->base;
+              }
+            }
+          }
+          if(n.low && n.high) {
+            struct symnode *copy = malloc(sizeof(*copy));
+            copy->name = strdup(die_name);
+            copy->low = n.low; 
+            copy->high = n.high; 
+            copy->type = n.type;
+            if(mtev_skiplist_insert(symtable, copy) == NULL) {
+              free(copy->name);
+              free(copy);
+            }
+          }
+        }
+        break;
+      default:
+        break;
+    }
+  }
+}
+
 static struct dmap_node *
 mtev_dwarf_load(const char *file, uintptr_t base) {
   struct dmap_node *node = calloc(1, sizeof(*node));
+  mtev_hash_init(&node->types);
   node->file = strdup(file);
   node->base = base;
   mtev_log_stream_t dwarf_log = mtev_log_stream_find("debug/dwarf");
@@ -188,6 +330,8 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
                                   &length_size, &extension_size,
                                   &next_cu_header, &error) != DW_DLV_OK) break;
         if(dwarf_siblingof(node->dbg, no_die, &cu_die, &error) != DW_DLV_OK) break;
+        /* tag extract */
+        extract_symbols(node, cu_die);
         mtev_register_die(node, cu_die, 0);
         dwarf_dealloc(node->dbg, cu_die, DW_DLA_DIE);
       }
@@ -280,8 +424,31 @@ mtev_dwarf_filter(mtev_boolean (*f)(const char *file)) {
   global_file_filter = f;
 }
 void
+mtev_dwarf_filter_symbols(mtev_boolean (*f)(const char *file)) {
+  global_file_symbol_filter = f;
+}
+static int loc_comp(const void *va, const void *vb) {
+  const struct symnode *a = va;
+  const struct symnode *b = vb;
+  if(a->low < b->low) return -1;
+  if(a->low == b->low) return 0;
+  return 1;
+}
+static int loc_comp_key(const void *vakey, const void *vb) {
+  const uintptr_t *akey = vakey;
+  const struct symnode *b = vb;
+  if(*akey < b->low) return -1;
+  if(*akey == b->low) return 0;
+  return 1;
+}
+void
 mtev_dwarf_refresh(void) {
 #ifdef HAVE_LIBDWARF
+  if(!symtable) {
+    mtev_skiplist *st = mtev_skiplist_alloc();
+    mtev_skiplist_set_compare(st, loc_comp, loc_comp_key);
+    symtable = st;
+  }
   mtev_dwarf_walk_map(mtev_dwarf_refresh_file);
 #else
   return;
