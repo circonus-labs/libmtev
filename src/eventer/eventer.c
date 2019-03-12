@@ -350,6 +350,7 @@ const char *eventer_name_for_callback_e(eventer_func_t f, eventer_t e) {
     mtev_hash_store(&__func_to_name, (char *)fspace, sizeof(*fspace), NULL);
   } else {
     eventer_name_callback(dyn, f);
+    return dyn;
   }
   return NULL;
 }
