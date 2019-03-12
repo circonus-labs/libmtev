@@ -403,55 +403,55 @@ mtev_console_hang(mtev_console_closure_t ncct, int argc, char **argv,
   return 0;
 }
 
-cmd_info_t console_command_help = {
-  "help", mtev_console_help, mtev_console_opt_delegate, NULL, NULL
-};
 cmd_info_t console_command_exit = {
   "exit", mtev_console_state_pop, NULL, NULL, NULL
 };
-cmd_info_t console_command_crash = {
+static cmd_info_t console_command_help = {
+  "help", mtev_console_help, mtev_console_opt_delegate, NULL, NULL
+};
+static cmd_info_t console_command_crash = {
   "crash", mtev_console_crash, NULL, NULL, NULL
 };
-cmd_info_t console_command_hang = {
+static cmd_info_t console_command_hang = {
   "hang", mtev_console_hang, NULL, NULL, NULL
 };
-cmd_info_t console_command_shutdown = {
+static cmd_info_t console_command_shutdown = {
   "shutdown", mtev_console_shutdown, NULL, NULL, NULL
 };
-cmd_info_t console_command_restart = {
+static cmd_info_t console_command_restart = {
   "restart", mtev_console_restart, NULL, NULL, NULL
 };
-cmd_info_t console_command_eventer_timers = {
+static cmd_info_t console_command_eventer_timers = {
   "timers", mtev_console_eventer_timers, NULL, NULL, NULL
 };
-cmd_info_t console_command_eventer_sockets = {
+static cmd_info_t console_command_eventer_sockets = {
   "sockets", mtev_console_eventer_sockets, NULL, NULL, NULL
 };
-cmd_info_t console_command_eventer_jobq = {
+static cmd_info_t console_command_eventer_jobq = {
   "jobq", mtev_console_eventer_jobq, NULL, NULL, NULL
 };
-cmd_info_t console_command_eventer_memory = {
+static cmd_info_t console_command_eventer_memory = {
   "memory", mtev_console_eventer_memory, NULL, NULL, NULL
 };
-cmd_info_t console_command_coreclocks = {
+static cmd_info_t console_command_coreclocks = {
   "coreclocks", mtev_console_coreclocks, NULL, NULL, NULL
 };
-cmd_info_t console_command_zipkin = {
+static cmd_info_t console_command_zipkin = {
   "zipkin", mtev_console_zipkin, NULL, NULL, NULL
 };
-cmd_info_t console_command_intern = {
+static cmd_info_t console_command_intern = {
   "intern", mtev_console_intern, NULL, NULL, NULL,
 };
-cmd_info_t console_command_jobq = {
+static cmd_info_t console_command_jobq = {
   "jobq", mtev_console_jobq, NULL, NULL, (void *)1
 };
-cmd_info_t console_command_rdtsc_status = {
+static cmd_info_t console_command_rdtsc_status = {
   "status", mtev_console_time_status, NULL, NULL, (void *)1
 };
-cmd_info_t console_command_rdtsc_enable = {
+static cmd_info_t console_command_rdtsc_enable = {
   "enable", mtev_console_coreclocks_toggle, NULL, NULL, (void *)1
 };
-cmd_info_t console_command_rdtsc_disable = {
+static cmd_info_t console_command_rdtsc_disable = {
   "disable", mtev_console_coreclocks_toggle, NULL, NULL, NULL
 };
 
@@ -694,59 +694,59 @@ mtev_console_memory_log_opts2(mtev_console_closure_t ncct,
   return NULL;
 }
 
-cmd_info_t console_command_log_lines = {
+static cmd_info_t console_command_log_lines = {
   "log", mtev_console_log_lines, mtev_console_memory_log_opts, NULL, NULL
 };
 
-cmd_info_t console_command_log_to = {
+static cmd_info_t console_command_log_to = {
   "to", mtev_console_log_output, mtev_console_memory_log_opts, NULL, NULL
 };
 
-cmd_info_t console_command_log_details = {
+static cmd_info_t console_command_log_details = {
   "details", mtev_console_log_details, mtev_console_memory_log_opts, NULL, NULL
 };
 
-cmd_info_t console_command_log_enable = {
+static cmd_info_t console_command_log_enable = {
   "enable", mtev_console_log_enable, mtev_console_memory_log_opts, NULL, (void *)(uintptr_t)1
 };
 
-cmd_info_t console_command_log_noenable = {
+static cmd_info_t console_command_log_noenable = {
   "enable", mtev_console_log_enable, mtev_console_memory_log_opts, NULL, NULL
 };
 
-cmd_info_t console_command_log_debug = {
+static cmd_info_t console_command_log_debug = {
   "debug", mtev_console_log_debug, mtev_console_memory_log_opts, NULL, (void *)(uintptr_t)1
 };
 
-cmd_info_t console_command_log_nodebug = {
+static cmd_info_t console_command_log_nodebug = {
   "debug", mtev_console_log_debug, mtev_console_memory_log_opts, NULL, NULL
 };
 
-cmd_info_t console_command_log_facility = {
+static cmd_info_t console_command_log_facility = {
   "facility", mtev_console_log_facility, mtev_console_memory_log_opts, NULL, (void *)(uintptr_t)1
 };
 
-cmd_info_t console_command_log_nofacility = {
+static cmd_info_t console_command_log_nofacility = {
   "facility", mtev_console_log_facility, mtev_console_memory_log_opts, NULL, NULL
 };
 
-cmd_info_t console_command_log_timestamps = {
+static cmd_info_t console_command_log_timestamps = {
   "timestamps", mtev_console_log_timestamps, mtev_console_memory_log_opts, NULL, (void *)(uintptr_t)1
 };
 
-cmd_info_t console_command_log_notimestamps = {
+static cmd_info_t console_command_log_notimestamps = {
   "timestamps", mtev_console_log_timestamps, mtev_console_memory_log_opts, NULL, NULL
 };
 
-cmd_info_t console_command_log_connect = {
+static cmd_info_t console_command_log_connect = {
   "connect", mtev_console_log_connect, mtev_console_memory_log_opts2, NULL, (void *)(uintptr_t)1
 };
 
-cmd_info_t console_command_log_disconnect = {
+static cmd_info_t console_command_log_disconnect = {
   "disconnect", mtev_console_log_connect, mtev_console_memory_log_opts2, NULL, NULL
 };
 
-cmd_info_t console_command_show_rest = {
+static cmd_info_t console_command_show_rest = {
   "rest", mtev_console_show_rest, NULL, NULL, NULL
 };
 

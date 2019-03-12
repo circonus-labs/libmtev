@@ -68,10 +68,6 @@ typedef struct _cmd_info_t {
 
 /* This performs a pop (exiting if at toplevel) */
 extern cmd_info_t console_command_exit;
-extern cmd_info_t console_command_help;
-extern cmd_info_t console_command_crash;
-extern cmd_info_t console_command_shutdown;
-extern cmd_info_t console_command_restart;
 
 typedef struct _mtev_console_userdata_t {
   char                      *name;
