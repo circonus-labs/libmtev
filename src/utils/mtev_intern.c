@@ -485,14 +485,20 @@ register_stats(uint8_t id) {
   char name[32];
   snprintf(name, sizeof(name), "pool_%u", id);
   stats[id].ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), name);
-  stats_rob_u32(stats[id].ns, "items", &stats[id].stats.item_count);
-  stats_rob_u32(stats[id].ns, "extents", &stats[id].stats.extent_count);
-  stats_rob_i64(stats[id].ns, "allocated", &stats[id].stats.allocated);
-  stats_rob_i64(stats[id].ns, "internal_memory", &stats[id].stats.internal_memory);
-  stats_rob_i64(stats[id].ns, "available", &stats[id].stats.available_total);
-  stats_rob_u32(stats[id].ns, "fragments", &stats[id].stats.fragments_total);
-  stats_rob_u32(stats[id].ns, "staged", &stats[id].stats.staged_count);
-  stats_rob_i64(stats[id].ns, "staged_size", &stats[id].stats.staged_size);
+  stats_ns_add_tag(stats[id].ns, "mtev-intern", name);
+  stats_handle_t *h;
+  h = stats_rob_u32(stats[id].ns, "items", &stats[id].stats.item_count);
+  h = stats_rob_u32(stats[id].ns, "extents", &stats[id].stats.extent_count);
+  h = stats_rob_i64(stats[id].ns, "allocated", &stats[id].stats.allocated);
+  stats_handle_units(h, STATS_UNITS_BYTES);
+  h = stats_rob_i64(stats[id].ns, "internal_memory", &stats[id].stats.internal_memory);
+  stats_handle_units(h, STATS_UNITS_BYTES);
+  h = stats_rob_i64(stats[id].ns, "available", &stats[id].stats.available_total);
+  stats_handle_units(h, STATS_UNITS_BYTES);
+  h = stats_rob_u32(stats[id].ns, "fragments", &stats[id].stats.fragments_total);
+  h = stats_rob_u32(stats[id].ns, "staged", &stats[id].stats.staged_count);
+  h = stats_rob_i64(stats[id].ns, "staged_size", &stats[id].stats.staged_size);
+  stats_handle_units(h, STATS_UNITS_BYTES);
   stats_ns_invoke(stats[id].ns, refresh_stats, all_pools[id]);
 }
 

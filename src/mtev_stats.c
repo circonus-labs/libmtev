@@ -47,8 +47,13 @@ mtev_stats_recorder(void) {
 
 stats_ns_t *
 mtev_stats_ns(stats_ns_t *parent, const char *name) {
+  stats_ns_t *ns;
   mtev_stats_init();
-  return stats_register_ns(global_stats, parent, name);
+  ns = stats_register_ns(global_stats, parent, name);
+  if(!strcmp(name, "mtev") && parent == NULL) {
+    stats_ns_add_tag(ns, "framework", "libmtev");
+  }
+  return ns;
 }
 
 static void
@@ -108,7 +113,11 @@ mtev_rest_stats_handler(mtev_http_rest_closure_t *restc,
   format = mtev_http_request_querystring(mtev_http_session_request(ctx), "format");
   if(format && !strcmp(format, "simple")) simple = true;
   mtev_http_response_ok(ctx, "application/json");
-  stats_recorder_output_json(global_stats, reset, simple, http_write_to_mtev, ctx);
+  if(format && !strcmp(format, "tagged")) {
+    stats_recorder_output_json_tagged(global_stats, reset, http_write_to_mtev, ctx);
+  } else {
+    stats_recorder_output_json(global_stats, reset, simple, http_write_to_mtev, ctx);
+  }
   mtev_http_response_end(ctx);
   return 0;
 }

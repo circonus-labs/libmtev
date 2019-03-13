@@ -504,7 +504,10 @@ mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
   rule->websocket_protocol = websocket_protocol != NULL ? strdup(websocket_protocol) : NULL;
   rule->closure = closure;
   rule->auth = auth;
-  rule->latency = stats_register(rest_stats, rule->nice_name, STATS_TYPE_HISTOGRAM);
+  stats_ns_t *ns = mtev_stats_ns(rest_stats, rule->nice_name);
+  stats_ns_add_tag(ns, "endpoint", rule->nice_name);
+  rule->latency = stats_register(ns, "latency", STATS_TYPE_HISTOGRAM);
+  stats_handle_units(rule->latency, STATS_UNITS_SECONDS);
 
   /* Make sure we have a container */
   if(!mtev_hash_retrieve(&dispatch_points, base, strlen(base), &vcont)) {
@@ -1253,6 +1256,7 @@ void mtev_http_rest_load_rules(void) {
 void mtev_http_rest_init(void) {
   mtev_http_init();
   rest_stats = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "rest");
+  stats_ns_add_tag(rest_stats, "mtev", "rest");
   eventer_name_callback("mtev_wire_rest_api/1.0", mtev_http_rest_handler);
   eventer_name_callback("http_rest_api", mtev_http_rest_raw_handler);
 

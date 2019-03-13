@@ -200,17 +200,21 @@ static void mtev_memory_gc_restart_thread(void) {
   if(ck_pr_load_int(&asynch_gc)) mtev_memory_gc_asynch();
 }
 void mtev_memory_init(void) {
+  stats_handle_t *h;
   if(initialized) return;
   initialized = 1;
 
   mtev_stats_init();
   mem_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "memory");
   stats_ns_t *smr_ns = mtev_stats_ns(mem_stats_ns, "smr");
+  stats_ns_add_tag(smr_ns, "mtev", "smr");
   gc_sync_wait = stats_register(smr_ns, "gc_sync_wait", STATS_TYPE_HISTOGRAM_FAST);
+  stats_handle_units(gc_sync_wait, STATS_UNITS_SECONDS);
   stats_rob_i32(smr_ns, "enabled", (void *)&asynch_gc);
   stats_rob_i32(smr_ns, "gc_waiting", (void *)&gc_is_waiting);
   stats_rob_i64(smr_ns, "gc_cycles", (void *)&asynch_cycles);
-  stats_rob_i64(smr_ns, "gc_last_time", (void *)&last_safe_gc_seconds);
+  h = stats_rob_i64(smr_ns, "gc_last_time", (void *)&last_safe_gc_seconds);
+  stats_handle_units(h, STATS_UNITS_SECONDS);
   safe_allocations = stats_register_fanout(smr_ns, "allocations", STATS_TYPE_COUNTER, 16);
   safe_frees_completed = stats_register_fanout(smr_ns, "frees_completed", STATS_TYPE_COUNTER, 16);
   safe_frees_requested = stats_register_fanout(smr_ns, "frees_requested", STATS_TYPE_COUNTER, 16);

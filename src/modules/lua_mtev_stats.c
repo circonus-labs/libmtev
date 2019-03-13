@@ -100,6 +100,25 @@ mtev_lua_stats_handle_record(lua_State *L) {
 }
 
 static int
+mtev_lua_stats_handle_add_tag(lua_State *L) {
+  void **udata;
+  const char *tagcat, *tagval;
+  stats_handle_t *handle;
+  if(lua_gettop(L) != 3)
+    luaL_error(L, "libcircmetrics.handle.add_tag must be called with two arguments");
+  udata = lua_touserdata(L, lua_upvalueindex(1));
+  if(udata != lua_touserdata(L, 1)) luaL_error(L, "must be called as method");
+  handle = *udata;
+  tagcat = lua_tostring(L, 2);
+  if(!tagcat) luaL_error(L, "first argument must be a string");
+  tagval = lua_tostring(L, 3);
+  if(!tagval) luaL_error(L, "second argument must be a string");
+  handle = *udata;
+  stats_handle_add_tag(handle, tagcat, tagval);
+  return 0;
+}
+
+static int
 mtev_lua_stats_handle_index(lua_State *L) {
   const char *k;
   void **udata;
@@ -112,6 +131,11 @@ mtev_lua_stats_handle_index(lua_State *L) {
   if(!strcmp(k, "record")) {
     lua_pushlightuserdata(L, udata);
     lua_pushcclosure(L, mtev_lua_stats_handle_record, 1);
+    return 1;
+  }
+  else if(!strcmp(k, "add_tag")) {
+    lua_pushlightuserdata(L, udata);
+    lua_pushcclosure(L, mtev_lua_stats_handle_add_tag, 1);
     return 1;
   }
   luaL_error(L, "unknown field %s in libcircmetrics.handle", k);
@@ -164,6 +188,24 @@ mtev_lua_stats_ns_ns(lua_State *L) {
 }
 
 static int
+mtev_lua_stats_ns_add_tag(lua_State *L) {
+  void **udata;
+  stats_ns_t *parent;
+  const char *tagcat, *tagval;
+  if(lua_gettop(L) != 3)
+    luaL_error(L, "libcircmetrics.ns.add_tag must be called with two arguments");
+  udata = lua_touserdata(L, lua_upvalueindex(1));
+  if(udata != lua_touserdata(L, 1)) luaL_error(L, "must be called as method");
+  tagcat = lua_tostring(L, 2);
+  if(!tagcat) luaL_error(L, "first argument must be a string");
+  tagval = lua_tostring(L, 3);
+  if(!tagval) luaL_error(L, "second argument must be a string");
+  parent = *udata;
+  stats_ns_add_tag(parent, tagcat, tagval);
+  return 0;
+}
+
+static int
 mtev_lua_stats_ns_index(lua_State *L) {
   const char *k;
   void **udata;
@@ -176,6 +218,11 @@ mtev_lua_stats_ns_index(lua_State *L) {
   if(!strcmp(k, "ns")) {
     lua_pushlightuserdata(L, udata);
     lua_pushcclosure(L, mtev_lua_stats_ns_ns, 1);
+    return 1;
+  }
+  else if(!strcmp(k, "add_tag")) {
+    lua_pushlightuserdata(L, udata);
+    lua_pushcclosure(L, mtev_lua_stats_ns_add_tag, 1);
     return 1;
   }
   else if(!strcmp(k, "register")) {

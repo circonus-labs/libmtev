@@ -354,6 +354,8 @@ mtev_main(const char *appname,
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
   mtev_init_globals();
+  mtev_stats_init();
+  stats_ns_add_tag(mtev_stats_ns(NULL, "mtev"), "app", appname);
   mtev_zipkin_default_service_name(appname, mtev_true);
   mtev_zipkin_eventer_init();
 
