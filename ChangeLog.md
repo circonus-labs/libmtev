@@ -4,6 +4,9 @@
 
 ## 1.6
 
+ * Support tagged metrics via ?format=tagged
+ * Docs fixups
+
 ### 1.6.4
 
  * Documentation fixes in zipkin module docs.
