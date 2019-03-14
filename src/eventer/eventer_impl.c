@@ -226,8 +226,11 @@ void eventer_pool_create(const char *name, int concurrency) {
     np->name = strdup(name);
     mtevAssert(pool_ns);
     stats_ns_t *tns = mtev_stats_ns(pool_ns, np->name);
+    stats_ns_add_tag(tns, "mtev-pool", np->name);
     np->loop_times = stats_register(tns, "cycletime", STATS_TYPE_HISTOGRAM_FAST);
+    stats_handle_units(np->loop_times, STATS_UNITS_SECONDS);
     np->cb_times = stats_register(tns, "callbacks", STATS_TYPE_HISTOGRAM_FAST);
+    stats_handle_units(np->cb_times, STATS_UNITS_SECONDS);
     mtev_hash_store(&eventer_pools, np->name, strlen(np->name), np);
   }
   np->__loop_concurrency = concurrency;
@@ -567,14 +570,19 @@ static void eventer_aco_setup(struct eventer_impl_data *t) {
 static void *thrloopwrap(void *vid) {
   struct eventer_impl_data *t;
   char thr_name[64];
+  char thr_id_str[16];
   aco_thread_init(mtev_aco_last_word);
   int id = (int)(intptr_t)vid;
   t = &eventer_impl_tls_data[id];
   eventer_aco_setup(t);
   t->id = id;
   snprintf(thr_name, sizeof(thr_name), "e:%s/%d", t->pool->name, id);
+  snprintf(thr_id_str, sizeof(thr_id_str), "%d", id);
   stats_ns_t *tns = mtev_stats_ns(threads_ns, thr_name);
+  stats_ns_add_tag(tns, "mtev-pool", t->pool->name);
+  stats_ns_add_tag(tns, "mtev-thread", thr_id_str);
   t->loop_times = stats_register(tns, "cycletime", STATS_TYPE_HISTOGRAM_FAST);
+  stats_handle_units(t->loop_times, STATS_UNITS_SECONDS);
   eventer_callback_pool_latency = t->pool->cb_times;
   mtev_memory_init(); /* Just in case no one has initialized this */
   mtev_memory_init_thread();
@@ -721,8 +729,11 @@ void eventer_impl_init_globals(void) {
   threads_ns = mtev_stats_ns(eventer_stats_ns, "threads");
 
   stats_ns_t *tns = mtev_stats_ns(pool_ns, "default");
+  stats_ns_add_tag(tns, "mtev-pool", "default");
   default_pool.loop_times = stats_register(tns, "cycletime", STATS_TYPE_HISTOGRAM_FAST);
+  stats_handle_units(default_pool.loop_times, STATS_UNITS_SECONDS);
   default_pool.cb_times = stats_register(tns, "callbacks", STATS_TYPE_HISTOGRAM_FAST);
+  stats_handle_units(default_pool.cb_times, STATS_UNITS_SECONDS);
 
   mtevAssert(mtev_hash_store(&eventer_pools,
                              default_pool.name, strlen(default_pool.name),

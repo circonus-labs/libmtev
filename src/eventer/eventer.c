@@ -297,8 +297,10 @@ int eventer_name_callback_ext(const char *name,
   cd->simple_name = strdup(name);
   cd->functional_name = fn;
   cd->closure = cl;
-  cd->latency = stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
-                               cd->simple_name, STATS_TYPE_HISTOGRAM);
+  stats_ns_t *ns = mtev_stats_ns(mtev_stats_ns(eventer_stats_ns, "callbacks"), cd->simple_name);
+  stats_ns_add_tag(ns, "mtev-callback", cd->simple_name);
+  cd->latency = stats_register(ns, "latency", STATS_TYPE_HISTOGRAM);
+  stats_handle_units(cd->latency, STATS_UNITS_SECONDS);
   mtev_hash_replace(&__func_to_name, (char *)fptr, sizeof(*fptr), cd,
                     free, free_callback_details);
   return 0;
@@ -366,14 +368,21 @@ void eventer_init_globals(void) {
   mtev_allocator_options_free(opts);
 
   eventer_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "eventer");
+  stats_ns_add_tag(eventer_stats_ns, "mtev", "eventer");
   mtev_hash_init_locks(&__name_to_func, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init_locks(&__func_to_name, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
-  eventer_callback_latency_orphaned =
-    stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
-                   "_orphaned", STATS_TYPE_HISTOGRAM_FAST);
-  eventer_unnamed_callback_latency =
-    stats_register(mtev_stats_ns(eventer_stats_ns, "callbacks"),
-                   "_unnamed", STATS_TYPE_HISTOGRAM_FAST);
+
+  stats_ns_t *ns;
+  ns = mtev_stats_ns(mtev_stats_ns(eventer_stats_ns, "callbacks"), "_orphaned");
+  stats_ns_add_tag(ns, "mtev-callback", "_orphaned");
+  eventer_callback_latency_orphaned = stats_register(ns, "latency", STATS_TYPE_HISTOGRAM_FAST);
+  stats_handle_units(eventer_callback_latency_orphaned, STATS_UNITS_SECONDS);
+
+  ns = mtev_stats_ns(mtev_stats_ns(eventer_stats_ns, "callbacks"), "_orphaned");
+  stats_ns_add_tag(ns, "mtev-callback", "_unnamed");
+  eventer_unnamed_callback_latency = stats_register(ns, "latency", STATS_TYPE_HISTOGRAM_FAST);
+  stats_handle_units(eventer_unnamed_callback_latency, STATS_UNITS_SECONDS);
+
   stats_rob_i64(eventer_stats_ns, "events_total", (void *)&ealloctotal);
   stats_rob_i64(eventer_stats_ns, "events_current", (void *)&ealloccnt);
   eventer_impl_init_globals();
