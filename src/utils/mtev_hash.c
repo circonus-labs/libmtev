@@ -33,7 +33,9 @@
 
 #include "mtev_config.h"
 #include "mtev_hash.h"
+#define XXH_PRIVATE_API
 #include "xxhash.h"
+#undef XXH_PRIVATE_API
 #include "mtev_log.h"
 #include "mtev_memory.h"
 #include "mtev_rand.h"

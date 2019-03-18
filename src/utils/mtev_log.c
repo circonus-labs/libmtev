@@ -58,7 +58,9 @@
 #include "mtev_str.h"
 #include "mtev_thread.h"
 #include "mtev_zipkin.h"
+#define XXH_PRIVATE_API
 #include "xxhash.h"
+#undef XXH_PRIVATE_API
 #include <jlog.h>
 #include <jlog_private.h>
 #include "libmtev_dtrace.h"
