@@ -5,6 +5,7 @@
 ## 1.6
 
  * Support tagged metrics via ?format=tagged
+ * Ensure xxhash.h is include with XXH_PRIVATE_API
  * Docs fixups
 
 ### 1.6.4

@@ -52,6 +52,7 @@ struct mtev_frrh_t {
 static uint64_t xxhash(const void *buf, size_t len) {
   return XXH64(buf,len,XXH_SEED);
 }
+#undef XXH_PRIVATE_API
 
 mtev_frrh_t *
 mtev_frrh_alloc(uint64_t size, size_t datasize, uint32_t prob,
