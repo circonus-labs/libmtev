@@ -111,9 +111,19 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
   function $badge(n) {
     return $("<span class=\"tag tag-pill tag-default\"/>").text(n);
   }
+
+  var jobq_hidden = true;
+  function jobq_hider() {
+    jobq_hidden = $(this).prop('checked');
+    $(this).text(jobq_hidden ? "showing used" : "showing all");
+    if(jobq_hidden) $("#eventer-jobq tr.jobq-unused").addClass("hidden");
+    else $("#eventer-jobq tr.jobq-unused").removeClass("hidden");
+  }
   function mk_jobq_row(jobq,detail) {
+    var used = 0;
     var $tr = $("<tr/>"), $td, $cb;
     $tr.append($("<td/>").html($badge(detail.backlog+detail.inflight)));
+    used += detail.backlog+detail.inflight+detail.total_jobs+detail.concurrency;
     $tr.append($("<td/>").html(jobq));
     var $conc = $("<td class=\"text-center\"/>");
     if(detail.desired_concurrency == 0) {
@@ -141,6 +151,8 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
     $td.append($cb);
     $tr.append($td);
     $tr.append($("<td class=\"text-left\"/>").append($badge(detail.inflight)));
+    if(used == 0) $tr.addClass("jobq-unused");
+    if(used == 0 && jobq_hidden) $tr.addClass("hidden");
     return $tr;
   }
   function mk_timer_row(event) {
@@ -314,6 +326,8 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
       update_eventer("/eventer/jobq.json",
                      "eventer-jobq", mk_jobq_row)();
     });
+    $('#eventer-jobq-hider').bootstrapToggle({ on: "Used", off: "All" });
+    $('#eventer-jobq-hider').change(jobq_hider);
 
     refresh_logs(1);
     setInterval(refresh_logs, 1000);
