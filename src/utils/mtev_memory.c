@@ -55,8 +55,7 @@ typedef struct {
   uint64_t enqueued;
   uint64_t requeued;
   ck_fifo_spsc_t *queue;
-  uint32_t disowned;
-  ck_spinlock_t disown_lock;
+  struct asynch_reclaim *final_ar; /* If this is set, we're done */
 } gc_asynch_queue_t;
 static __thread gc_asynch_queue_t *gc_return = NULL;
 static ck_epoch_t epoch_ht;
@@ -86,12 +85,20 @@ struct asynch_reclaim {
 static void mtev_gc_sync_complete(struct asynch_reclaim *, mtev_boolean);
 
 static void
-mtev_memory_queue_asynch(void) {
+mtev_memory_queue_asynch(bool final) {
   struct asynch_reclaim *ar;
   ar = malloc(sizeof(*ar));
   ar->gc_return = gc_return;
   memcpy(ar->pending, epoch_rec->pending, sizeof(ar->pending));
   memset(epoch_rec->pending, 0, sizeof(ar->pending));
+
+  if(final) {
+    /* This will be the last reclaim ever on this queue,
+     * ensure we haven't set this already.
+     */
+    mtevAssert(ck_pr_cas_ptr(&gc_return->final_ar, NULL, ar));
+  }
+
   ck_fifo_spsc_enqueue_lock(&gc_queue);
   ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(&gc_queue);
   if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
@@ -156,9 +163,8 @@ void mtev_memory_fini_thread(void) {
   mtevL(mem_debug, "mtev_memory_fini_thread()\n");
   if(gc_return && gc_return->queue != NULL) {
     if(ck_pr_load_int(&asynch_gc)) {
-      ck_pr_store_32(&gc_return->disowned, 1);
       mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
-      mtev_memory_queue_asynch(); // this forces an enqueue
+      mtev_memory_queue_asynch(true); // this forces a final, disowning enqueue
     } else {
       mtev_memory_maintenance_ex(MTEV_MM_BARRIER);
       terminate_gc_return(gc_return);
@@ -392,7 +398,8 @@ mtev_memory_gc(void *unused) {
       ck_pr_inc_64(&ar->gc_return->requeued);
 
       /* Who owns this return queue?  If it is disowned, we need to handle it. */
-      if(ck_pr_load_32(&ar->gc_return->disowned) != 0) {
+      struct asynch_reclaim *expected_final_ar = ck_pr_load_ptr(&ar->gc_return->final_ar);
+      if(expected_final_ar == ar) {
         /* enqueued will not increase, so when requeued matches it, we're done */
         terminate_gc_return(ar->gc_return);
       }
@@ -457,7 +464,7 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
       success = ck_epoch_poll(epoch_rec);
       break;
     case MTEV_MM_BARRIER_ASYNCH:
-      mtev_memory_queue_asynch();
+      mtev_memory_queue_asynch(false);
       success = mtev_true;
       break;
   }
