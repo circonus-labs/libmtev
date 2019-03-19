@@ -7,6 +7,7 @@
  * Support tagged metrics via ?format=tagged
  * Ensure xxhash.h is include with XXH_PRIVATE_API
  * Docs fixups
+ * mtev_memory: prevent multiple gc_return queue deinit
 
 ### 1.6.4
 
