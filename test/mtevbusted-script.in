@@ -1,4 +1,4 @@
-#!@bindir@/luamtev -L+@LUAROCKS_PATH@
+#!/opt/circonus/bin/luamtev -L+/opt/circonus/share/lua/5.1/?.lua;/opt/circonus/share/lua/5.1/?/init.lua
 
 TEST_OPTIONS = {}
 
@@ -36,9 +36,10 @@ cli_option("exclude-tag", { help = "exclude tag <arg>", value = add_exclude_tag 
 cli_option("filter", { help = "only run test names matching the Lua pattern", default = nil })
 cli_option("filter-out", { help = "do not run test names matching the Lua pattern, takes precedence over --filter", default = nil })
 cli_option("list", { help = "list all available tests", value = false, default = false })
-cli_option("bail", { help = "stop after first failure", value = false, default = false })
+cli_option("bail", { help = "stop at end of test after first failure", value = false, default = false })
 cli_option("l",  { help = "enable mtev log stream", value = mtev.enable_log })
 cli_option("L",  { help = "disable mtev log stream", value = disable_log })
+cli_option("skip", { help = "skip all subtests after error or failure", value = false, default = false })
 local options = parsecli()
 if options.h.value then usage() end
 
@@ -154,11 +155,13 @@ function testsuite(context)
 
   busted.subscribe({ 'error' }, function(...)
     errors = errors + 1
+    busted.skipAll = options["skip"].value
     return nil, true
   end)
 
   busted.subscribe({ 'failure' }, function(...)
     failures = failures + 1
+    busted.skipAll = options["skip"].value
     return nil, true
   end)
 
