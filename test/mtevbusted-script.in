@@ -1,4 +1,4 @@
-#!/opt/circonus/bin/luamtev -L+/opt/circonus/share/lua/5.1/?.lua;/opt/circonus/share/lua/5.1/?/init.lua
+#!@bindir@/luamtev -L+@LUAROCKS_PATH@
 
 TEST_OPTIONS = {}
 
@@ -193,4 +193,3 @@ end
 function main()
   testsuite("MAIN")
 end
-
