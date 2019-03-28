@@ -118,7 +118,7 @@ function HTTP(method, host, port, uri, headers, payload, _pp, config)
   if rv ~= 0 then return -1, { error =  "client:connect failed" } end
 
   headers.Host = host
-  if headers.Accept ~= nil then headers.Accept = 'application/json' end
+  if headers.Accept == nil then headers.Accept = 'application/json' end
   mtev.log("debug/http", "%s\n", mtev.tojson({method, uri, headers, payload}):tostring())
   local rv = client:do_request(method, uri, headers, payload, "1.1")
   client:get_response(100000000)
