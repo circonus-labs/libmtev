@@ -4556,6 +4556,8 @@ static inline void __slz_make_crc_table(void)
  *		bits--;
  *
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 static inline uint32_t dist_to_code(uint32_t l)
 {
 	uint32_t code;
@@ -4595,6 +4597,7 @@ static inline uint32_t dist_to_code(uint32_t l)
 
 	return code;
 }
+#pragma GCC diagnostic pop
 
 /* not thread-safe, must be called exactly once */
 static inline void __slz_prepare_dist_table(void)

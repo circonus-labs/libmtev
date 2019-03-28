@@ -5502,6 +5502,8 @@ d_print_mod_list (struct d_print_info *dpi, int options,
 
 /* Print a modifier.  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 static void
 d_print_mod (struct d_print_info *dpi, int options,
              const struct demangle_component *mod)
@@ -5568,6 +5570,7 @@ d_print_mod (struct d_print_info *dpi, int options,
       return;
     }
 }
+#pragma GCC diagnostic pop
 
 /* Print a function type, except for the return type.  */
 

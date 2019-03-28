@@ -901,6 +901,8 @@ on_frame_not_send_callback(nghttp2_session *session, const nghttp2_frame *frame,
         p_session, nghttp2_strerror(lib_error_code));
   return 0;
 }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 static int
 on_frame_recv_callback(nghttp2_session *session,
                        const nghttp2_frame *frame, void *user_data) {
@@ -932,6 +934,7 @@ on_frame_recv_callback(nghttp2_session *session,
   }
   return 0;
 }
+#pragma GCC diagnostic pop
 static int
 on_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags,
                             int32_t stream_id, const uint8_t *data, size_t len,

@@ -383,6 +383,8 @@ void mtev_json_object_set_int64(struct mtev_json_object *jso, int64_t v)
   jso->overflow.c_int64 = v;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 int mtev_json_object_get_int(struct mtev_json_object *jso)
 {
   int cint;
@@ -441,6 +443,7 @@ double mtev_json_object_get_double(struct mtev_json_object *jso)
     return 0.0;
   }
 }
+#pragma GCC diagnostic pop
 
 
 /* mtev_json_object_string */

@@ -597,6 +597,8 @@ update_retries(int* offset, time_t times[]) {
   return 1;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 int mtev_watchdog_start_child(const char *app, int (*func)(void),
                               int child_watchdog_timeout_int) {
   int child_pid, crashing_pid = -1;
@@ -792,6 +794,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
     }
   }
 }
+#pragma GCC diagnostic pop
 
 mtev_watchdog_t *mtev_watchdog_create(void) {
   int i;

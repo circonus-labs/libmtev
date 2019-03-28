@@ -254,6 +254,8 @@ static char *encode_txt(char *dst, const unsigned char *src, int len) {
   return dst;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 static void dns_resume(dns_lookup_ctx_t *dlc) {
   int r = dlc->results_len;
   void *result = dlc->results;
@@ -386,6 +388,7 @@ static int dns_resume_event(eventer_t e, int mask, void *closure,
   dns_resume(closure);
   return 0;
 }
+#pragma GCC diagnostic push
 
 static void dns_cb(struct dns_ctx *ctx, void *result, void *data) {
   eventer_t e;
