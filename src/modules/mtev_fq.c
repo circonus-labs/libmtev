@@ -34,6 +34,7 @@
 #include "mtev_hooks.h"
 #include "mtev_dso.h"
 #include "mtev_conf.h"
+#include "mtev_thread.h"
 #include <fq.h>
 #include "mtev_fq.h"
 
@@ -62,6 +63,8 @@ typedef struct connection_configs {
   char *program;
 } connection_configs;
 
+__thread connection_configs *tname_set;
+
 struct fq_module_config {
   eventer_t receiver;
   fq_client* fq_conns;
@@ -84,26 +87,21 @@ static struct fq_module_config *get_config(mtev_dso_generic_t *self) {
   return the_conf;
 }
 
-typedef struct exchange_and_program {
-  char* exchange;
-  char* program;
-} exchange_and_program;
-
-static exchange_and_program* create_exchange_and_program(char* exchange,
-    char* program) {
-  exchange_and_program* eap = malloc(sizeof(exchange_and_program));
-  eap->exchange = strdup(exchange);
-  eap->program = strdup(program);
-  return eap;
-}
-
 static void logger(fq_client c, const char *s) {
   (void) c;
   mtevL(nlerr, "fq_logger: %s\n", s);
 }
 
 static void my_auth_handler(fq_client c, int error) {
+  connection_configs* eap = fq_client_get_userdata(c);
   fq_bind_req *breq;
+
+  if(!tname_set && eap) {
+    tname_set = eap;
+    char buff[32];
+    snprintf(buff, sizeof(buff), "fqc:%s\n", eap->host);
+    mtev_thread_setname(buff);
+  }
 
   if (error)
     return;
@@ -111,12 +109,9 @@ static void my_auth_handler(fq_client c, int error) {
   breq = malloc(sizeof(*breq));
   memset(breq, 0, sizeof(*breq));
 
-  exchange_and_program* eap = fq_client_get_userdata(c);
-  if(eap) {
-    char *exchange = eap->exchange;
-
-    memcpy(breq->exchange.name, exchange, strlen(exchange));
-    breq->exchange.len = strlen(exchange);
+  if(eap && eap->exchange && eap->program) {
+    memcpy(breq->exchange.name, eap->exchange, strlen(eap->exchange));
+    breq->exchange.len = strlen(eap->exchange);
     breq->flags = FQ_BIND_TRANS;
     breq->program = strdup(eap->program);
     fq_client_bind(c, breq);
@@ -161,6 +156,15 @@ static void my_bind_handler(fq_client c, fq_bind_req *breq) {
 static bool my_message_ping(fq_client client, fq_msg *m) {
   (void)client;
   (void)m;
+  connection_configs* eap = fq_client_get_userdata(client);
+
+  if(!tname_set && eap) {
+    tname_set = eap;
+    char buff[32];
+    snprintf(buff, sizeof(buff), "fqd:%s\n", eap->host);
+    mtev_thread_setname(buff);
+  }
+
   eventer_wakeup(the_conf->receiver);
   return false; /* This causes it to be delivered normally via the queue. */
 }
@@ -172,21 +176,17 @@ fq_hooks hooks = {
   .message = my_message_ping
 };
 
-static void connect_fq_client(fq_client *fq_c, char *host, int port, char *user,
-    char *pass, char* exchange, char* program) {
-  mtevL(nldeb, "Connecting with fq broker: %s:%d!\n", host, port);
+static void connect_fq_client(fq_client *fq_c, connection_configs *conf) {
+  mtevL(nldeb, "Connecting with fq broker: %s:%d!\n", conf->host, conf->port);
   fq_client_init(fq_c, 0, logger);
 
   if (fq_client_hooks(*fq_c, &hooks)) {
     mtevL(nlerr, "Can't register hooks\n");
     exit(-1);
   }
-  if (exchange != NULL && program != NULL) {
-    fq_client_set_userdata(*fq_c,
-        create_exchange_and_program(exchange, program));
-  }
+  fq_client_set_userdata(*fq_c, conf);
 
-  fq_client_creds(*fq_c, host, port, user, pass);
+  fq_client_creds(*fq_c, conf->host, conf->port, conf->user, conf->pass);
   fq_client_heartbeat(*fq_c, 1000);
   fq_client_set_backlog(*fq_c, 10000, 100);
   fq_client_connect(*fq_c);
@@ -223,13 +223,7 @@ static mtev_hook_return_t
 connect_conns(void *unused) {
   (void)unused;
   for (int section_id = 0; section_id != the_conf->number_of_conns; ++section_id) {
-    connect_fq_client(&the_conf->fq_conns[section_id],
-                     the_conf->configs[section_id]->host,
-                     the_conf->configs[section_id]->port,
-                     the_conf->configs[section_id]->user,
-                     the_conf->configs[section_id]->pass,
-                     the_conf->configs[section_id]->exchange,
-                     the_conf->configs[section_id]->program);
+    connect_fq_client(&the_conf->fq_conns[section_id], the_conf->configs[section_id]);
   }
   return MTEV_HOOK_CONTINUE;
 }
