@@ -330,6 +330,10 @@ rabbitmq_manage_connection(void *vconn) {
   while(1) {
     amqp_bytes_t queuename = { .bytes = NULL };
     conn->conn = amqp_new_connection();
+    if (!conn->conn) {
+      mtevL(nlerr, "AMQP error creating connection\n");
+      continue;
+    }
     amqp_socket_t *socket = amqp_tcp_socket_new(conn->conn);
     if (!socket) {
       mtevL(nlerr, "AMQP error creating socket: %s\n", strerror(errno));
@@ -355,6 +359,10 @@ rabbitmq_manage_connection(void *vconn) {
                            conn->queuename ? amqp_cstring_bytes(conn->queuename) : amqp_empty_bytes, 0, 0, 0, 1,
                            amqp_empty_table);
       die_on_amqp_error(amqp_get_rpc_reply(conn->conn), "declaring queue");
+      if (r == NULL) {
+        mtevL(nlerr, "AMQP return NULL from amqp_queue_declare\n");
+        goto teardown;
+      }
       queuename = amqp_bytes_malloc_dup(r->queue);
       mtevAssert(queuename.bytes != NULL);
       amqp_queue_bind(conn->conn, 1, queuename,
