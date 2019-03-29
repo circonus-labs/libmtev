@@ -262,14 +262,22 @@ mtev_console_jobq(mtev_console_closure_t ncct, int argc, char **argv,
     uint32_t min, max;
     eventer_jobq_get_min_max(jobq, &min, &max);
     min = strtoul(argv[2], NULL, 10);
-    eventer_jobq_set_min_max(jobq, min, max);
-    nc_printf(ncct, "Setting '%s' jobq min to %u\n", jobq->queue_name, min);
+    if(min > max) {
+      nc_printf(ncct, "failed: %u is greated than current max of %u\n", min, max);
+    } else {
+      eventer_jobq_set_min_max(jobq, min, max);
+      nc_printf(ncct, "Setting '%s' jobq min to %u\n", jobq->queue_name, min);
+    }
   } else if(!strcmp(argv[1], "max")) {
     uint32_t min, max;
     eventer_jobq_get_min_max(jobq, &min, &max);
     max = strtoul(argv[2], NULL, 10);
-    eventer_jobq_set_min_max(jobq, min, max);
-    nc_printf(ncct, "Setting '%s' jobq max to %u\n", jobq->queue_name, max);
+    if(min > max) {
+      nc_printf(ncct, "failed: %u is greated than current max of %u\n", min, max);
+    } else {
+      eventer_jobq_set_min_max(jobq, min, max);
+      nc_printf(ncct, "Setting '%s' jobq max to %u\n", jobq->queue_name, max);
+    }
   } else {
     nc_printf(ncct, "Unknown jobq command: %s\n", argv[1]);
     return -1;
