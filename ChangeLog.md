@@ -4,6 +4,13 @@
 
 ## 1.6
 
+ * Be more careful when setting jobq concurrency from the console
+ * Explicitly name log dedup, amqp, and fq threads
+ * Add more NULL safety in amqp connection management
+ * Add -skip flag to mtevbusted
+ * Fix bug where mtevbusted API helper was forcing Accept: application/json
+ * Default the jobq web UI view to hide completely unused jobqs.
+
 ### 1.6.5
 
  * Support tagged metrics via ?format=tagged
