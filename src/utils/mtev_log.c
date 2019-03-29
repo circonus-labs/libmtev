@@ -1279,6 +1279,7 @@ mtev_log_shutdown(void) {
 static void *
 mtev_log_flusher(void *vstop) {
   mtev_boolean *stop = vstop;
+  mtev_thread_setname("lm:dedup_flush");
   while(!*stop) {
     struct timeval now;
     mtev_gettimeofday(&now, NULL);

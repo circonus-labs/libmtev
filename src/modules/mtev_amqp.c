@@ -64,6 +64,7 @@
 #include "mtev_hooks.h"
 #include "mtev_dso.h"
 #include "mtev_conf.h"
+#include "mtev_thread.h"
 #include <ck_fifo.h>
 #include <amqp.h>
 #include <amqp_framing.h>
@@ -326,6 +327,9 @@ static void *
 rabbitmq_manage_connection(void *vconn) {
   struct timeval fiveseconds = { 5, 0 };
   struct amqp_conn *conn = vconn;
+  char buff[32];
+  snprintf(buff, sizeof(buff), "amqp:%s", conn->host);
+  mtev_thread_setname(buff);
 
   while(1) {
     amqp_bytes_t queuename = { .bytes = NULL };
