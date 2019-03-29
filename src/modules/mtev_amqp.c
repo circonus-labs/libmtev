@@ -100,6 +100,8 @@ MTEV_HOOK_IMPL(mtev_amqp_handle_connection_dyn,
 #define ENV_IMMEDIATE 2
 #define MAX_CONNS 128
 
+#define DEFAULT_POLL_LIMIT 10000
+
 struct amqp_module_config {
   eventer_t receiver;
   struct amqp_conn {
@@ -119,6 +121,7 @@ struct amqp_module_config {
     int32_t framesize;
   } *amqp_conns;
   int number_of_conns;
+  int poll_limit;
 };
 
 static mtev_log_stream_t nlerr = NULL;
@@ -131,6 +134,7 @@ static struct amqp_module_config *get_config(mtev_dso_generic_t *self) {
   if(the_conf) return the_conf;
   the_conf = calloc(1, sizeof(*the_conf));
   mtev_image_set_userdata(&self->hdr, the_conf);
+  the_conf->poll_limit = DEFAULT_POLL_LIMIT;
   return the_conf;
 }
 
@@ -142,7 +146,8 @@ static int poll_amqp(eventer_t e, int mask, void *unused, struct timeval *now) {
   int client = 0;
   amqp_envelope_t *env = NULL;
   for (client = 0; client != the_conf->number_of_conns; ++client) {
-    while(1) {
+	int per_conn_cnt = 0;
+    while((the_conf->poll_limit == 0 || per_conn_cnt < the_conf->poll_limit)) {
       struct amqp_conn *cc = &the_conf->amqp_conns[client];
       ck_fifo_spsc_dequeue_lock(&cc->inbound);
       bool found = ck_fifo_spsc_dequeue(&cc->inbound, &env);
@@ -152,6 +157,7 @@ static int poll_amqp(eventer_t e, int mask, void *unused, struct timeval *now) {
         env->message.body.bytes, env->message.body.len);
       amqp_destroy_envelope(env);
       free(env);
+      per_conn_cnt++;
     }
   }
 
@@ -599,10 +605,18 @@ amqp_driver_init(mtev_dso_generic_t *img) {
 
 static int
 amqp_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
-  (void)img;
+  struct amqp_module_config *conf = get_config(img);
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(options, &iter)) {
-    mtevL(nldeb, "AMQP module config: %s=%s\n", iter.key.str, iter.value.str);
+    if (!strcmp("poll_limit", iter.key.str)) {
+      conf->poll_limit = atoi(iter.value.str);
+      if (conf->poll_limit < 0) {
+        conf->poll_limit = DEFAULT_POLL_LIMIT;
+        mtevL(nldeb, "Setting poll limit to %d!\n", conf->poll_limit);
+      } else {
+        mtevL(nldeb, "AMQP module config: %s=%s\n", iter.key.str, iter.value.str);
+      }
+    }
   }
   return 0;
 }

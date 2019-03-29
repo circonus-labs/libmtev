@@ -4,6 +4,10 @@
   <loader>C</loader>
   <image>amqp.so</image>
   <moduleconfig>
+      <parameter name="poll_limit"
+               required="optional"
+               default="10000"
+               allowed="\d+">Maximum number of messages to handle in a single callback.</parameter>
   </moduleconfig>
   <examples>
     <example>
@@ -12,6 +16,9 @@
       <root>
         <modules>
           <module image="amqp" name="amqp"/>
+            <config>
+              <poll_limit>1000</poll_limit>
+            </config>
         </modules>
         <network>
           <mq type="amqp">
