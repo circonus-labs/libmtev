@@ -312,6 +312,8 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     stats_handle_units(h, "threads");
     h = stats_rob_i32(jobq_ns, "backlog", (void *)&jobq->backlog);
     stats_handle_units(h, "jobs");
+    h = stats_rob_i32(jobq_ns, "max_backlog", (void *)&jobq->max_backlog);
+    stats_handle_units(h, "jobs");
     h = stats_rob_i64(jobq_ns, "timeouts", (void *)&jobq->timeouts);
     stats_handle_units(h, "jobs");
   }

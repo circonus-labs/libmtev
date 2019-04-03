@@ -1,6 +1,7 @@
 var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
 
 (function() {
+  var filter_expr = null;
   var defaultUI = {
     tabs: [
       {
@@ -108,8 +109,9 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
     }
     return null;
   }
-  function $badge(n) {
-    return $("<span class=\"tag tag-pill tag-default\"/>").text(n);
+  function $badge(n, t) {
+    if(!t) t = "default";
+    return $("<span class=\"badge badge-pill badge-" + t + "\"/>").text(n);
   }
 
   var jobq_hidden = true;
@@ -122,7 +124,13 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
   function mk_jobq_row(jobq,detail) {
     var used = 0;
     var $tr = $("<tr/>"), $td, $cb;
-    $tr.append($("<td/>").html($badge(detail.backlog+detail.inflight)));
+    if(false && detail.max_backlog) {
+      var t = "default";
+      if(detail.backlog+detail.inflight > detail.max_backlog) t = "danger";
+      $tr.append($("<td/>").html($badge((detail.backlog+detail.inflight) + "/" + detail.max_backlog, t)));
+    } else {
+      $tr.append($("<td/>").html($badge(detail.backlog+detail.inflight)));
+    }
     used += detail.backlog+detail.inflight+detail.total_jobs+detail.concurrency;
     $tr.append($("<td/>").html(jobq));
     var $conc = $("<td class=\"text-center\"/>");
@@ -252,6 +260,11 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
       $item.attr('id', id);
       added = true;
     }
+    if(filter_expr) {
+      if(!filter_expr.exec(dname)) {
+        $item.addClass("hidden");
+      }
+    }
     $item.find("span.stat-name").text(dname);
     if(ptr._type == "s") $item.find("span.stat-value").text(ptr._value);
     else if(!Array.isArray(ptr._value)) {
@@ -349,6 +362,16 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
   $(document).on('mtev-loaded', function() {
     $("#internal-stats").on("shown.bs.collapse", function() {
       refreshMtevStats();
+    });
+    $("#stats-filter").on('input', function() {
+      filter_expr = RegExp($(this).val());
+      $("#internal-stats tr").each(function() {
+        if(filter_expr.exec($(this).find("span.stat-name").text())) {
+          $(this).removeClass("hidden");
+        } else {
+          $(this).addClass("hidden");
+        }
+      });
     });
   });
   mtev.start = function(uijson) {

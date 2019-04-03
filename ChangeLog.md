@@ -4,6 +4,8 @@
 
 ## 1.6
 
+ * Add max backlog stat for jobq and display.
+ * Add filter for stats in UI.
  * Be more careful when setting jobq concurrency from the console
  * Explicitly name log dedup, amqp, and fq threads
  * Add more NULL safety in amqp connection management
