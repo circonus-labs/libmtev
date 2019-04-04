@@ -41,7 +41,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-static mtev_allocator_t eventer_t_allocator;
 stats_ns_t *eventer_stats_ns;
 stats_handle_t *eventer_callback_latency_orphaned;
 stats_handle_t *eventer_unnamed_callback_latency;
@@ -105,7 +104,7 @@ eventer_fd_close_t eventer_fd_opset_get_close(eventer_fd_opset_t opset) {
 
 eventer_t eventer_alloc(void) {
   eventer_t e;
-  e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
+  e = calloc(1, sizeof(*e));
   e->thr_owner = eventer_in_loop() ? pthread_self() : eventer_choose_owner(0);
   e->fd = -1;
   e->refcnt = 1;
@@ -120,7 +119,7 @@ eventer_t eventer_alloc(void) {
 }
 
 eventer_t eventer_alloc_copy(eventer_t src) {
-  eventer_t e = mtev_calloc(eventer_t_allocator, 1, sizeof(*e));
+  eventer_t e = calloc(1, sizeof(*e));
   memcpy(e, src, sizeof(*e));
   e->refcnt = 1;
   ck_pr_inc_64(&ealloccnt);
@@ -188,7 +187,7 @@ void eventer_free(eventer_t e) {
         eventer_contexts[i].opset->eventer_t_deinit(e);
       }
     }
-    mtev_free(eventer_t_allocator, e);
+    free(e);
   }
 }
 
@@ -361,12 +360,6 @@ int eventer_choose(const char *name) {
 }
 
 void eventer_init_globals(void) {
-  mtev_allocator_options_t opts = mtev_allocator_options_create();
-  mtev_allocator_options_fixed_size(opts, sizeof(struct _event));
-  mtev_allocator_options_freelist_perthreadlimit(opts, 1000);
-  eventer_t_allocator = mtev_allocator_create(opts);
-  mtev_allocator_options_free(opts);
-
   eventer_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "eventer");
   stats_ns_add_tag(eventer_stats_ns, "mtev", "eventer");
   mtev_hash_init_locks(&__name_to_func, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
