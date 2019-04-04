@@ -4,6 +4,9 @@
 
 ## 1.6
 
+### 1.6.6
+
+ * Revert eventer_t allocation to the default allocator.
  * Add max backlog stat for jobq and display.
  * Add filter for stats in UI.
  * Be more careful when setting jobq concurrency from the console
