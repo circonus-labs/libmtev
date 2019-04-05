@@ -59,7 +59,12 @@ function API:ssl(config)
   return self
 end
 function API:headers(headers)
-  self._headers = headers or {}
+  self._headers = {}
+  if headers ~= nil then
+    for k,v in pairs(headers) do
+      self._headers[string.lower(k)] = v
+    end
+  end
   return self
 end
 function API:HTTP(method, uri, payload, _pp)
@@ -117,8 +122,8 @@ function HTTP(method, host, port, uri, headers, payload, _pp, config)
   local rv, err = client:connect(host, port, config.use_ssl and config.use_ssl or false, host)
   if rv ~= 0 then return -1, { error =  "client:connect failed" } end
 
-  headers.Host = host
-  if headers.Accept == nil then headers.Accept = 'application/json' end
+  headers.host = host
+  if headers.accept == nil then headers.accept = 'application/json' end
   mtev.log("debug/http", "%s\n", mtev.tojson({method, uri, headers, payload}):tostring())
   local rv = client:do_request(method, uri, headers, payload, "1.1")
   client:get_response(100000000)
