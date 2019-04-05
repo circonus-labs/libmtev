@@ -1340,9 +1340,8 @@ mtev_lua_socket_read(lua_State *L) {
       eventer_t timeout_eventer =
         eventer_in_s_us(on_timeout, cb_ref, timeout_s, timeout_us);
       mtev_lua_register_event(ci, timeout_eventer);
-      eventer_add_timed(timeout_eventer);
-
       cl->timeout_event = timeout_eventer;
+      eventer_add_timed(timeout_eventer);
     }
 
     return mtev_lua_yield(ci, 0);
