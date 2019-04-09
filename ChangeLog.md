@@ -4,6 +4,11 @@
 
 ## 1.6
 
+### 1.6.7
+
+ * Make mtevbusted tests usage of HTTP headers case
+   insensitive.
+
 ### 1.6.6
 
  * Revert eventer_t allocation to the default allocator.
