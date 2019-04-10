@@ -304,6 +304,10 @@ pthread_t eventer_choose_owner_pool(eventer_pool_t *pool, int i) {
         (unsigned int)(intptr_t)eventer_impl_tls_data[adjidx].tid);
   return eventer_impl_tls_data[adjidx].tid;
 }
+void eventer_heartbeat(void) {
+  mtevAssert(my_impl_data);
+  mtev_watchdog_heartbeat(my_impl_data->hb);
+}
 pthread_t eventer_choose_owner(int i) {
   return eventer_choose_owner_pool(&default_pool, i);
 }
@@ -337,6 +341,12 @@ double eventer_watchdog_timeout(void) {
   struct eventer_impl_data *t = get_my_impl_data();
   if(t == NULL) return 0.0;
   return mtev_watchdog_get_timeout(t->hb);
+}
+
+mtev_boolean eventer_watchdog_timeout_timeval(struct timeval *dur) {
+  struct eventer_impl_data *t = get_my_impl_data();
+  if(t == NULL) return mtev_false;
+  return mtev_watchdog_get_timeout_timeval(t->hb, dur);
 }
 
 void *eventer_get_spec_for_event(eventer_t e) {

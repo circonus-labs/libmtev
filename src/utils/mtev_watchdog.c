@@ -849,6 +849,16 @@ double mtev_watchdog_get_timeout(mtev_watchdog_t *lifeline) {
   if(lifeline->timeout_override != 0.0) return lifeline->timeout_override;
   return global_child_watchdog_timeout;
 }
+mtev_boolean
+mtev_watchdog_get_timeout_timeval(mtev_watchdog_t *lifeline, struct timeval *dur) {
+  if(lifeline == NULL) return mtev_false;
+  if(dur == NULL) return mtev_true;
+  double to = global_child_watchdog_timeout;
+  if(lifeline->timeout_override != 0.0) to = lifeline->timeout_override;
+  dur->tv_sec = (int)to;
+  dur->tv_usec = (int)(to * 1000000.0) % 1000000;
+  return mtev_true;
+}
 void mtev_watchdog_disable(mtev_watchdog_t *lifeline) {
   if(lifeline == NULL) lifeline = mmap_lifelines;
   lifeline->active = HEART_ACTIVE_SKIP;

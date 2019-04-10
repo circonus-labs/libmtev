@@ -160,6 +160,15 @@ API_EXPORT(void)
 API_EXPORT(double)
   mtev_watchdog_get_timeout(mtev_watchdog_t *hb);
 
+/*! \fn struct timeval mtev_watchdog_get_timeout_timeval(mtev_watchdog_t *hb)
+    \brief returns the timeout configured for this watchdog.
+    \param hb the heart on which to act
+    \param dur a struct timeval to populate with the timeout
+    \return mtev_true if there is a watchog, mtev_false if not.
+ */
+API_EXPORT(mtev_boolean)
+  mtev_watchdog_get_timeout_timeval(mtev_watchdog_t *hb, struct timeval *dur);
+
 /*! \fn uint32_t mtev_watchdog_number_of_starts(void)
     \brief Determine the number of times a child has been lauched.
     \return The number of times fork has returned in the parent.  In a running server, 0 means you're the first generation.

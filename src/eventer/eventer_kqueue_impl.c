@@ -435,6 +435,8 @@ static int eventer_kqueue_impl_loop(int id) {
     if(compare_timeval(__sleeptime, __dyna_sleep) > 0)
       __sleeptime = __dyna_sleep;
 
+    eventer_adjust_max_sleeptime(&__sleeptime);
+
     /* Handle cross_thread dispatches */
     eventer_cross_thread_process();
 
@@ -447,6 +449,7 @@ static int eventer_kqueue_impl_loop(int id) {
     fd_cnt = kevent(kqs->kqueue_fd, ke_vec, ke_vec_used,
                     ke_vec, ke_vec_a,
                     &__kqueue_sleeptime);
+    eventer_heartbeat();
     ck_spinlock_init(&kqs->wakeup_notify);
     if(fd_cnt > 0 || ke_vec_used)
       mtevL(eventer_deb, "[t@%zx] kevent(%d, [...], %d) => %d\n", (intptr_t)pthread_self(), kqs->kqueue_fd, ke_vec_used, fd_cnt);
