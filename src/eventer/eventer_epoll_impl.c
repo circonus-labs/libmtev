@@ -480,6 +480,8 @@ static int eventer_epoll_impl_loop(int id) {
 
     eventer_dispatch_timed(&__sleeptime);
 
+    eventer_adjust_max_sleeptime(&__sleeptime);
+
     /* Handle cross_thread dispatches */
     eventer_cross_thread_process();
 
@@ -491,6 +493,7 @@ static int eventer_epoll_impl_loop(int id) {
       fd_cnt = epoll_wait(spec->epoll_fd, epev, max_fds_at_once,
                           __sleeptime.tv_sec * 1000 + __sleeptime.tv_usec / 1000);
     } while(fd_cnt < 0 && errno == EINTR);
+    eventer_heartbeat();
     mtevL(eventer_deb, "debug: epoll_wait(%d, [], %d) => %d\n",
           spec->epoll_fd, max_fds_at_once, fd_cnt);
     if(fd_cnt < 0) {

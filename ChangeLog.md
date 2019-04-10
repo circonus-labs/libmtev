@@ -4,6 +4,13 @@
 
 ## 1.6
 
+###
+
+ * Expose the watchdog timeout as timeval: mtev_watchdog_get_timeout_timeval
+ * Expose eventer thread watchdog timeouts: eventer_watchdog_timeout_timeval
+ * Adjust max eventer sleeptime to not exceed 1/20 watchdog timeout.
+ * Heartbeat the eventer immediately upon event wakeup.
+
 ### 1.6.7
 
  * Make mtevbusted tests usage of HTTP headers case

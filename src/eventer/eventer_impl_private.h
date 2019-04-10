@@ -205,6 +205,19 @@ static inline int eventer_run_callback(eventer_t e, int m, void *c, struct timev
   return rmask;
 }
 
+static inline void eventer_adjust_max_sleeptime(struct timeval *dur) {
+  struct timeval ht;
+  if(eventer_watchdog_timeout_timeval(&ht)) {
+    uint64_t us = ht.tv_sec * 1000000 + ht.tv_usec;
+    us /= 20;
+    ht.tv_sec = us / 1000000;
+    ht.tv_usec = us % 1000000;
+    if(compare_timeval(ht, *dur) < 0) {
+      *dur = ht;
+    }
+  }
+}
+
 extern stats_ns_t *eventer_stats_ns;
 extern stats_handle_t *eventer_callback_latency_orphaned;
 extern __thread stats_handle_t *eventer_callback_pool_latency;
@@ -214,6 +227,7 @@ stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f);
 
 int eventer_jobq_init_internal(eventer_jobq_t *jobq, const char *queue_name);
 eventer_job_t *eventer_current_job(void);
+void eventer_heartbeat(void);
 void eventer_jobq_ping(eventer_jobq_t *jobq);
 void eventer_aco_init(void);
 void *eventer_aco_get_opset_ctx(void *closure);

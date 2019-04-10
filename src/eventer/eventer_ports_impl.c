@@ -356,6 +356,8 @@ static int eventer_ports_impl_loop(int id) {
     if(compare_timeval(__sleeptime, __dyna_sleep) > 0)
       __sleeptime = __dyna_sleep;
 
+    eventer_adjust_max_sleeptime(&__sleeptime);
+
     /* Handle cross_thread dispatches */
     eventer_cross_thread_process();
 
@@ -371,6 +373,7 @@ static int eventer_ports_impl_loop(int id) {
 
     ret = port_getn(spec->port_fd, pevents, MAX_PORT_EVENTS, &fd_cnt,
                     &__ports_sleeptime);
+    eventer_heartbeat();
     ck_spinlock_init(&spec->wakeup_notify); /* force unlock */
     /* The timeout case is a tad complex with ports.  -1/ETIME is clearly
      * a timeout.  However, it i spossible that we got that and fd_cnt isn't

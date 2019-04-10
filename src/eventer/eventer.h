@@ -1136,6 +1136,13 @@ API_EXPORT(void) eventer_pool_watchdog_timeout(eventer_pool_t *pool, double time
 */
 API_EXPORT(double) eventer_watchdog_timeout(void);
 
+/*! \fn mtev_boolean eventer_watchdog_timeout_timeval(struct timeval *dur)
+    \brief Return the current watchdog timeout on this thread.
+    \param dur the timeval structure to populate with the timeout.
+    \return mtev_true if a timeout is set, mtev_false otherwise.
+*/
+API_EXPORT(mtev_boolean) eventer_watchdog_timeout_timeval(struct timeval *);
+
 /*! \fn pthread_t eventer_choose_owner(int n)
     \brief Find a thread in the default eventer pool.
     \param n an integer.
