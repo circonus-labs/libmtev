@@ -113,10 +113,11 @@ function CirconusHistogram(options) {
     var i=0;
     for(i=0; i<bins.length; i++) {
       d = bins[i];
+      var val = d.offset
       if(d.offset >= stopunit) break;
-      if(d.offset >= cap) {
+      if(d.offset >= (cap - minunit/20)) {
         c_idx = i;
-        cap += minunit/10;
+        cap = (Math.floor((d.offset + minunit/20) / (minunit/10)) + 1) * (minunit/10);
         bins[c_idx].offset = cap - (minunit/10);
         bins[c_idx].width = minunit/10
       }
@@ -228,7 +229,11 @@ function CirconusHistogram(options) {
                 .attr("transform", function(d) { return "translate(" + x(cutoff) + "," + (10 + d.idx * 10) + ")" })
                 .text(function(d) {
                     var indicator = (d.idx == 1) ? "=" : ((d.idx == 2) ? ">" : "<");
-                    return indicator + " " + d3.format(".2s")(d.value) + " - " + d3.format(".2%")(d.p);
+                    var bt = ""
+                    if(d.idx == 1) { 
+                      bt = "[" + d3.format(".2s")(ds.offset) + "," + d3.format(".2s")(ds.offset + ds.width) + ") ";
+                    }
+                    return bt + indicator + " " + d3.format(".2s")(d.value) + " - " + d3.format(".2%")(d.p);
                   });
             })
         .on("mouseout", function(d) {

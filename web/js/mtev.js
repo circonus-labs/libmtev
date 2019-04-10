@@ -350,6 +350,7 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
     jQuery.ajax("/mtev/stats.json").done(function(r) {
       mtev.stats = r.mtev;
       mtev.updatePerfUI(r, ["mtev"]);
+      $("#internal-stats tbody").removeClass("d-none");
       if(cb) cb();
     });
   }

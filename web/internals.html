@@ -86,7 +86,7 @@
                 </h4>
               </div>
               <div id="internal-stats" class="panel-collapse collapse">
-                <form>
+                <form onsubmit="return false;">
                 <div class="input-group input-group-sm mb-3">
                   <input type="text" class="form-control" placeholder="Filter (regexp)" aria-label="Filter (regexp)" id="stats-filter">
                 </div>
@@ -96,7 +96,7 @@
                     <thead>
                       <tr><th>Metric Name</th><th>Value</th></tr>
                     </thead>
-                    <tbody>
+                    <tbody class="d-none">
                     </tbody>
                   </table>
                 </div>
