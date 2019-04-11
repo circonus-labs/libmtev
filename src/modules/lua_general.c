@@ -840,7 +840,7 @@ mtev_console_lua_repl_execute(mtev_console_closure_t ncct,
   lua_pushstring(L, buff);
   lua_pushConsole(L, ncct);
   VM_TIME_BEGIN
-  rv = lua_pcall(L, 3, LUA_MULTRET, -4);
+  rv = lua_pcall(L, 2, LUA_MULTRET, -4);
   VM_TIME_END
   if(rv) {
     int i;
