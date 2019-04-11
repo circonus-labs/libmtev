@@ -35,6 +35,8 @@
 #include "mtev_dso.h"
 #include "mtev_http.h"
 #include "mtev_rest.h"
+#include "mtev_stats.h"
+#include "mtev_perftimer.h"
 
 #include "lua_mtev.h"
 
@@ -57,6 +59,16 @@ typedef struct lua_web_conf {
   pthread_key_t key;
   lua_module_gc_params_t *gc_params;
 } lua_web_conf_t;
+
+static stats_handle_t *vm_time;
+
+#define VM_TIME_BEGIN \
+  mtev_perftimer_t timer; \
+  mtev_perftimer_start(&timer);
+
+#define VM_TIME_END \
+  stats_set_hist_intscale(vm_time, mtev_perftimer_elapsed(&timer), -9, 1);
+
 
 static lua_module_closure_t *mtev_lua_web_setup_lmc(mtev_dso_generic_t *self);
 
@@ -124,11 +136,13 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
 
   mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
 
+  VM_TIME_BEGIN
 #if LUA_VERSION_NUM >= 502
   status = lua_resume(ri->coro_state, ri->lmc->lua_state, nargs);
 #else
   status = lua_resume(ri->coro_state, nargs);
 #endif
+  VM_TIME_END
 
   switch(status) {
     case 0:
@@ -205,7 +219,11 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
 
   lua_getglobal(L, "require");
   lua_pushstring(L, restc->closure);
+  {
+  VM_TIME_BEGIN
   rv = lua_pcall(L, 1, 1, 0);
+  VM_TIME_END
+  }
   if(rv) {
     int i;
     mtevL(mtev_error, "lua: require %s failed\n", (char *)restc->closure);
@@ -444,6 +462,12 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
 static int
 mtev_lua_web_driver_init(mtev_dso_generic_t *self) {
   if(mtev_lua_web_setup_lmc(self) == NULL) return -1;
+
+  stats_ns_t *lua_stats_ns = mtev_stats_ns(mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "modules"), "lua");
+  vm_time = stats_register(lua_stats_ns, "vm_invocation_runtime", STATS_TYPE_HISTOGRAM_FAST);
+  stats_handle_add_tag(vm_time, "operation", "vm-invoke");
+  stats_handle_tagged_name(vm_time, "runtime");
+  stats_handle_units(vm_time, STATS_UNITS_SECONDS);
 
   dso_post_init_hook_register("web_lua", late_stage_rest_register, self);
   return 0;

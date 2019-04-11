@@ -43,7 +43,9 @@
 #include "mtev_conf.h"
 #include "mtev_dso.h"
 #include "mtev_log.h"
+#include "mtev_perftimer.h"
 #include "mtev_stacktrace.h"
+#include "mtev_stats.h"
 
 #include "lua_mtev.h"
 
@@ -57,6 +59,8 @@ static mtev_hash_table mtev_lua_states;
 static pthread_mutex_t mtev_lua_states_lock = PTHREAD_MUTEX_INITIALIZER;
 static mtev_hash_table mtev_coros;
 static pthread_mutex_t coro_lock = PTHREAD_MUTEX_INITIALIZER;
+static stats_ns_t *lua_stats_ns;
+static stats_handle_t *gc_total, *gc_full, *gc_latency;
 
 struct lua_module_gc_params {
   int iters_since_full;
@@ -109,11 +113,17 @@ mtev_lua_gc_callback(eventer_t e, int mask, void *c, struct timeval *now) {
   (void)e;
   (void)mask;
   (void)now;
+  mtev_perftimer_t timer;
   lua_module_closure_t *lmc = c;
   lua_State *L = lmc->lua_state;
   lua_module_gc_params_t *p = lmc->gcparams;
+
+  mtev_perftimer_start(&timer);
+  stats_add64(gc_total, 1);
   if(!p) {
     lua_gc(L, LUA_GCCOLLECT, 0);
+    stats_add64(gc_full, 1);
+    stats_set_hist_intscale(gc_latency, mtev_perftimer_elapsed(&timer), -9, 1);
     return 0;
   }
 
@@ -130,9 +140,12 @@ mtev_lua_gc_callback(eventer_t e, int mask, void *c, struct timeval *now) {
   if(p->full_every && (p->iters_since_full >= p->full_every)) {
     p->iters_since_full = 0;
     lua_gc(L, LUA_GCCOLLECT, 0);
+    stats_add64(gc_full, 1);
+    stats_set_hist_intscale(gc_latency, mtev_perftimer_elapsed(&timer), -9, 1);
     return 0;
   }
   lua_gc(L, LUA_GCSTEP, p->steps);
+  stats_set_hist_intscale(gc_latency, mtev_perftimer_elapsed(&timer), -9, 1);
   return 0;
 }
 void
@@ -1067,4 +1080,13 @@ void
 mtev_lua_init_globals(void) {
   mtev_hash_init(&mtev_lua_states);
   mtev_hash_init(&mtev_coros);
+  eventer_name_callback("mtev_lua_gc_callback", mtev_lua_gc_callback);
+  lua_stats_ns = mtev_stats_ns(mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "modules"), "lua");
+  stats_ns_add_tag(lua_stats_ns, "mtev-module", "lua");
+  gc_full = stats_register(lua_stats_ns, "gc_full", STATS_TYPE_COUNTER);
+  stats_handle_units(gc_full, STATS_UNITS_TRANSACTIONS);
+  gc_total = stats_register(lua_stats_ns, "gc_total", STATS_TYPE_COUNTER);
+  stats_handle_units(gc_total, STATS_UNITS_TRANSACTIONS);
+  gc_latency = stats_register(lua_stats_ns, "gc_latency", STATS_TYPE_HISTOGRAM_FAST);
+  stats_handle_units(gc_latency, STATS_UNITS_SECONDS);
 }
