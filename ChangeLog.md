@@ -6,6 +6,7 @@
 
 ###
 
+ * Add statistics for lua VM time and lua GC time.
  * Expose the watchdog timeout as timeval: mtev_watchdog_get_timeout_timeval
  * Expose eventer thread watchdog timeouts: eventer_watchdog_timeout_timeval
  * Adjust max eventer sleeptime to not exceed 1/20 watchdog timeout.
