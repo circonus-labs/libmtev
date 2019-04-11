@@ -4,7 +4,7 @@
 
 ## 1.6
 
-###
+### 1.6.8
 
  * Add statistics for lua VM time and lua GC time.
  * Expose the watchdog timeout as timeval: mtev_watchdog_get_timeout_timeval
