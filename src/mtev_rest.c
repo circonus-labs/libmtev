@@ -651,6 +651,12 @@ mtev_rest_aco_handler(void) {
 
   /* First set this event into aco mode. */
   mtev_http_connection *conne = mtev_http_session_connection(aco_ctx->http_ctx);
+  if(!conne) {
+    mtevL(mtev_error, "mtev_rest_aco_handler with no http connection!\n");
+    free(aco_ctx);
+    aco_exit();
+    return;
+  }
   eventer_t newe = mtev_http_connection_event(conne);
 
   eventer_func_t orig_callback = eventer_get_callback(newe);
