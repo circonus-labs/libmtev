@@ -585,7 +585,7 @@ mtev_rest_websocket_dispatcher(mtev_http_session_ctx *ctx, uint8_t opcode, const
     return handler(restc, opcode, msg, msg_len);
   }
   mtev_http_response_status_set(ctx, 404, "NOT FOUND");
-  mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED);
+  (void)mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED);
   mtev_http_rest_clean_request(restc);
   mtev_http_response_end(ctx);
   return -1;

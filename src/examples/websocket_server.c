@@ -61,7 +61,7 @@ static int my_rest_handler(mtev_http_rest_closure_t *restc, int npats, char **pa
   mtev_http_response_append(restc->http_ctx, s, strlen(s));
   mtev_http_response_status_set(restc->http_ctx, 200, "OK");
   mtev_http_response_header_set(restc->http_ctx, "Content-Type", "text/plain");
-  mtev_http_response_option_set(restc->http_ctx, MTEV_HTTP_CLOSE);
+  (void)mtev_http_response_option_set(restc->http_ctx, MTEV_HTTP_CLOSE);
   mtev_http_response_end(restc->http_ctx);
   return 0;
 }
