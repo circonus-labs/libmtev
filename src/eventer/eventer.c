@@ -37,6 +37,7 @@
 #include "mtev_stats.h"
 #include "mtev_memory.h"
 #include "mtev_task.h"
+#include "mtev_stacktrace.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -329,6 +330,7 @@ const char *eventer_name_for_callback_e(eventer_func_t f, eventer_t e) {
   struct callback_details *cd;
   if(mtev_hash_retrieve(&__func_to_name, (char *)&f, sizeof(f), &vcd)) {
     cd = vcd;
+    if(!vcd) return NULL;
     if(cd->functional_name && e) {
       char *buf;
       buf = pthread_getspecific(_tls_funcname_key);
@@ -340,6 +342,16 @@ const char *eventer_name_for_callback_e(eventer_func_t f, eventer_t e) {
       return buf;
     }
     return cd->simple_name;
+  }
+  const char *dyn;
+  dyn = mtev_function_name((uintptr_t)f);
+  if(dyn == NULL) {
+    void **fspace = malloc(sizeof(*fspace));
+    fspace = (void *)f;
+    mtev_hash_store(&__func_to_name, (char *)fspace, sizeof(*fspace), NULL);
+  } else {
+    eventer_name_callback(dyn, f);
+    return dyn;
   }
   return NULL;
 }
