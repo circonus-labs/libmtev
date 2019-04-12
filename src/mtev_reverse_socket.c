@@ -1141,10 +1141,8 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       else {
         mtevL(nldeb, "mtev_reverse_socket_connect - no existing_fd for %s [channel %d]\n", id, chan);
       }
-      if (chan >= 0) {
-        mtevL(nldeb, "mtev_reverse_socket_connect - established reverse connection for %s [channel %d] - pair [%d,%d]\n",
-              rc->id, chan, rc->data.channels[chan].pair[0], rc->data.channels[chan].pair[1]);
-      }
+      mtevL(nldeb, "mtev_reverse_socket_connect - established reverse connection for %s [channel %d] - pair [%d,%d]\n",
+            rc->id, chan, rc->data.channels[chan].pair[0], rc->data.channels[chan].pair[1]);
     }
   }
   pthread_rwlock_unlock(&reverse_sockets_lock);

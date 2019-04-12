@@ -585,7 +585,7 @@ mtev_rest_websocket_dispatcher(mtev_http_session_ctx *ctx, uint8_t opcode, const
     return handler(restc, opcode, msg, msg_len);
   }
   mtev_http_response_status_set(ctx, 404, "NOT FOUND");
-  mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED);
+  (void)mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED);
   mtev_http_rest_clean_request(restc);
   mtev_http_response_end(ctx);
   return -1;
@@ -651,6 +651,12 @@ mtev_rest_aco_handler(void) {
 
   /* First set this event into aco mode. */
   mtev_http_connection *conne = mtev_http_session_connection(aco_ctx->http_ctx);
+  if(!conne) {
+    mtevL(mtev_error, "mtev_rest_aco_handler with no http connection!\n");
+    free(aco_ctx);
+    aco_exit();
+    return;
+  }
   eventer_t newe = mtev_http_connection_event(conne);
 
   eventer_func_t orig_callback = eventer_get_callback(newe);
