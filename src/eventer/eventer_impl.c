@@ -411,7 +411,7 @@ int eventer_impl_propset(const char *key, const char *value) {
     if(strlen(name) == 0) return -1;
 
     uint32_t concurrency, min = 0, max = 0, backlog = 0;
-    eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_CS;
+    eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_GC;
 
     ADVTOK;
     concurrency = atoi(tok);
