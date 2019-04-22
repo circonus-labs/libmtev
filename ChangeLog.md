@@ -4,6 +4,10 @@
 
 ## 1.6
 
+###
+
+ * Change the default jobq memory safeter from `cs` to `gc`.
+
 ### 1.6.8
 
  * Add statistics for lua VM time and lua GC time.
