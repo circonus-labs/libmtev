@@ -4,9 +4,10 @@
 
 ## 1.6
 
-###
+### 1.6.9
 
  * Change the default jobq memory safeter from `cs` to `gc`.
+ * Add symbol extraction APIs to mtev_stacktrace.
 
 ### 1.6.8
 
