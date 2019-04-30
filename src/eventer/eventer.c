@@ -347,7 +347,7 @@ const char *eventer_name_for_callback_e(eventer_func_t f, eventer_t e) {
   dyn = mtev_function_name((uintptr_t)f);
   if(dyn == NULL) {
     void **fspace = malloc(sizeof(*fspace));
-    fspace = (void *)f;
+    *fspace = (void *)f;
     mtev_hash_store(&__func_to_name, (char *)fspace, sizeof(*fspace), NULL);
   } else {
     eventer_name_callback(dyn, f);
