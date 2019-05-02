@@ -131,7 +131,7 @@ void *thr(void *closure) {
 
 void *singles(void *unused) {
   (void)unused;
-  mtevL(mtev_stderr, "starting %p\n", (void *)pthread_self());
+  mtevL(mtev_stderr, "starting 0x%08lx\n", (intptr_t)pthread_self());
   for(int i=0; i<1000000; i++) {
     mtev_intern_t mi = miNEW(words[i % word_cnt]);
     miFREE(mi);
