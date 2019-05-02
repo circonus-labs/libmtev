@@ -207,6 +207,7 @@ static struct typenode *cache_type(struct dmap_node *node, Dwarf_Off off) {
       if(!mtev_hash_retrieve(&node->types, (const char *)&off, sizeof(off), &vptr)) {
         struct typenode *n = calloc(1, sizeof(*n));
         n->id = off;
+        mtev_hash_replace(&node->types, (const char *)&n->id, sizeof(n->id), n, NULL, free);
         n->tag = tag;
         n->name = strdup(die_name);
         n->resolved = n;
@@ -222,7 +223,6 @@ static struct typenode *cache_type(struct dmap_node *node, Dwarf_Off off) {
           dwarf_formudata(attr, &size, &err);
           n->size = size;
         }
-        mtev_hash_replace(&node->types, (const char *)&n->id, sizeof(n->id), n, NULL, free);
         vptr = n;
       }
       return vptr;
