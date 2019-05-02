@@ -284,23 +284,6 @@ stage_replace_free_node(mtev_intern_pool_t *pool,
   ck_pr_add_64(&pool->staged_free_nodes_size, size);
 }
 
-static inline size_t
-unstage_replace_free_nodes_with_w(mtev_intern_pool_t *pool) {
-  /* Here we need a writelock to prevent returning something before 
-   * callers complete their read (and refcnt'ing)
-   */
-  size_t replaced = 0;
-  struct mtev_intern_free_node *node;
-  while(NULL != (node = ck_pr_load_ptr(&pool->staged_free_nodes))) {
-    if(ck_pr_cas_ptr(&pool->staged_free_nodes, node, node->next)) {
-      ck_pr_dec_32(&pool->staged_free_nodes_count);
-      ck_pr_sub_64(&pool->staged_free_nodes_size, node->size);
-      replaced += node->size;
-      replace_free_node(pool, node);
-    }
-  }
-  return replaced;
-}
 /* steal some data.. if it changes the freelist this node should be in,
  * node will be set and the caller must reinsert
  */
@@ -564,17 +547,19 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
   if(attr->backing_directory) {
     pool->backing_directory = strdup(attr->backing_directory);
   }
-  /* We want to represent cleanly up to the extent size in out
-   * power-of-two freeslots levels. */
-  pool->nfreeslots = fast_log2_ru(pool->extent_size) - SMALLEST_POWER + 1;
-  pool->freeslots = calloc(pool->nfreeslots, sizeof(*pool->freeslots));
-  for(int i = 0; i < pool->nfreeslots; i++) {
-    mtev_plock_init(&pool->freeslots[i].lock, MTEV_PLOCK_ATOMIC);
-  }
-  /* Build out our power-of-two tiers */
-  pool->freeslots[0].lsize = SMALLEST_ALLOC;
-  for(int i = 1; i < pool->nfreeslots; i++) {
-    pool->freeslots[i].lsize = pool->freeslots[i-1].lsize << 1;
+  if(pool->extent_size) {
+    /* We want to represent cleanly up to the extent size in out
+     * power-of-two freeslots levels. */
+    pool->nfreeslots = fast_log2_ru(pool->extent_size) - SMALLEST_POWER + 1;
+    pool->freeslots = calloc(pool->nfreeslots, sizeof(*pool->freeslots));
+    for(int i = 0; i < pool->nfreeslots; i++) {
+      mtev_plock_init(&pool->freeslots[i].lock, MTEV_PLOCK_ATOMIC);
+    }
+    /* Build out our power-of-two tiers */
+    pool->freeslots[0].lsize = SMALLEST_ALLOC;
+    for(int i = 1; i < pool->nfreeslots; i++) {
+      pool->freeslots[i].lsize = pool->freeslots[i-1].lsize << 1;
+    }
   }
   mtevAssert(ck_hs_init(&pool->map, CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC,
                         mi_hash, mi_compare, &mi_alloc,
@@ -587,6 +572,7 @@ mtev_intern_pool_new(mtev_intern_pool_attr_t *attr) {
 /* This function is called without any locks on pool->plock */
 static inline
 mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t len) {
+  mtevAssert(pool->extent_size);
   if(len > pool->extent_size || len > (1 << 23)) return NULL;
   /* log2 rounded up to start at a level that we know will
    * be large enough to hold the requested allocation. */
@@ -676,7 +662,7 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
   ck_pr_dec_32_zero(&ii->refcnt, &zero);
   if(zero) {
     /* free back to pool */
-    if(!inhash) {
+    if(!inhash && pool->extent_size) {
       /* If this isn't in the hash structure, we can just return it to the freeslot
        * without locks and hashing work.  This happens when we lost an optimistic
        * insert.
@@ -699,6 +685,10 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
 
     /* Release the free fragment back for *staged* reuse..
      * see comments in stage_replace_free_node */
+    if(pool->extent_size == 0) {
+      free(ii);
+      return;
+    }
     struct mtev_intern_free_node *node = get_free_node(pool);
     node->base = ii;
     node->size = WRAPPED_SIZE(ii->len);
@@ -708,7 +698,94 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
   }
 }
 mtev_intern_t
+mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t len, int nt) {
+  nt = !!nt;
+
+  if(len == 0) len = strlen(buff);
+  len += nt;
+  uint8_t *ibuff[MAX_WITHOUT_MALLOC];
+  mtev_intern_internal_t *ii = NULL;
+  mtev_intern_internal_t *lookfor = (mtev_intern_internal_t *)ibuff;
+  mtev_intern_t rv;
+
+  if(len + sizeof(mtev_intern_internal_t) > MAX_WITHOUT_MALLOC) {
+    lookfor = malloc(len + sizeof(mtev_intern_internal_t));
+  }
+
+  /* construct our key to look for an existing copy */
+  lookfor->poolid = pool->poolid;
+  lookfor->refcnt = 0;
+  lookfor->nt = nt;
+  lookfor->len = len;
+  memcpy(lookfor->v, buff, len);
+  unsigned long hash = CK_HS_HASH(&pool->map, mi_hash, lookfor);
+
+ retry_fetch:
+  /* Look for it */
+  ii = ck_hs_get(&pool->map, hash, lookfor);
+  if(ii) {
+    /* Refcnt it, but consider that we cannot go from 0->1.
+     * If it had a refcnt of zero, it was being removed and
+     * we've got a copy we shouldn't have... we're racing hard. */
+    uint32_t prev;
+    while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
+      if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
+    }
+    /* prev == 0, then it is being freed */
+    if(prev == 0) {
+      goto retry_fetch;
+    }
+  } else {
+    /* align len on a 4 byte boundary and add the 8 byte header */
+    size_t alen = WRAPPED_SIZE(len);
+
+    /* Get us a suitable new allocation in our pool */
+    ii = malloc(alen);
+    if(!ii) {
+      if((void *)ibuff != (void *)lookfor) free(lookfor);
+      assert(ii); /* We don't handle failed memory allocations */
+      return mtev_intern_null;
+    }
+    /* build out our new intern object */
+    ii->poolid = pool->poolid;
+    ii->refcnt = 1;
+    ii->len = len;
+    ii->nt = nt;
+    memcpy(ii->v, buff, len);
+
+    mtev_plock_take_s(&pool->plock);
+    /* Attempt to store this in our mapping */
+    if(ck_hs_put(&pool->map, hash, ii) == false) {
+      mtev_plock_drop_s(&pool->plock);
+      free(ii);
+      /* Get the item that is presumably there causing our put to fail. */
+      ii = ck_hs_get(&pool->map, hash, lookfor);
+      assert(ii);
+      uint32_t prev;
+      while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
+        if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
+      }
+      if(prev == 0) {
+        goto retry_fetch;
+      }
+    }
+    else {
+      mtev_plock_drop_s(&pool->plock);
+      ck_pr_inc_32(&pool->item_count);
+    }
+  }
+
+  /* This is the intern the caller is looking for */
+  rv.opaque1 = (uintptr_t)&ii->v;
+
+  /* cleanup */
+  if((void *)ibuff != (void *)lookfor) free(lookfor);
+  return rv;
+}
+
+mtev_intern_t
 mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int nt) {
+  if(pool->extent_size == 0) return mtev_intern_pool_ex_simple(pool, buff, len, nt);
   /* nt (null terminator) is either 0 or 1 ... coerce it */
   nt = !!nt;
 
@@ -935,6 +1012,7 @@ static int
 compact_freelist_with_lock(mtev_intern_pool_t *pool) {
   struct mtev_intern_free_node dummy, *surrogate = &dummy, *last = surrogate;
   int total = 0, cnt = 0;
+  if(pool->extent_size == 0) return 0;
 
   /* Steal the stages free nodes... see the barrier below regarding
    * why this is safe. */
@@ -1028,6 +1106,7 @@ mtev_intern_pool_compact_asynch(eventer_t e, int mask, void *cl, struct timeval 
   (void)now;
   (void)e;
   mtev_intern_pool_t *pool = cl;
+  if(pool->extent_size == 0) return 0;
   if(mask == EVENTER_ASYNCH_WORK) {
     int current_fragments = 0;
     for(int i=0; i<pool->nfreeslots; i++) {
@@ -1047,6 +1126,7 @@ mtev_intern_pool_compact(mtev_intern_pool_t *pool, mtev_boolean force) {
   if(!pool) pool = all_pools[0];
   int current_fragments = 0;
 
+  if(pool->extent_size == 0) return 0;
   /* compactions are safe to run simultaneously, but pointless.
    * the lock here avoid unnecessary work. */
   while(!ck_spinlock_trylock(&pool->compaction_lock)) {
@@ -1101,7 +1181,7 @@ mtev_intern_pool_stats(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats
   stats->fragments_total = stats->staged_count;
   stats->available_total = stats->staged_size;
   for(int i=0; i<32; i++) {
-    if(i < pool->nfreeslots && pool->freeslots[i].head) {
+    if(i < pool->nfreeslots && pool->freeslots && pool->freeslots[i].head) {
       uint32_t node_cnt = 0;
       mtev_plock_take_r(&pool->freeslots[i].lock);
       for(struct mtev_intern_free_node *node = pool->freeslots[i].head; node; node = node->next) {

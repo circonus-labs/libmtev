@@ -4,6 +4,8 @@
 
 ## 1.6
 
+ * mtev_intern pools with extent_size 0 should just malloc/free.
+
 ### 1.6.9
 
  * Change the default jobq memory safeter from `cs` to `gc`.
