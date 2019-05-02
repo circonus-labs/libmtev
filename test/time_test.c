@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
   printf("**** 1 second usleep\n");
   printf("* hrtime elapsed: %llu\n", end - start);
-  printf("* nanos elapsed: %llu\n", nend - nstart);
+  printf("* nanos elapsed: %" PRIu64 "\n", nend - nstart);
 
   start = mtev_sys_gethrtime();
   for (int i = 0; i < loop_count; i++) {
