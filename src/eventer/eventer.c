@@ -321,7 +321,7 @@ stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f) {
   void *vcd;
   if(mtev_hash_retrieve(&__func_to_name, (char *)&f, sizeof(f), &vcd)) {
     struct callback_details *cd = vcd;
-    return cd->latency;
+    if(cd != NULL) return cd->latency;
   }
   return eventer_unnamed_callback_latency;
 }
