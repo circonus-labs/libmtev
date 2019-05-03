@@ -47,6 +47,12 @@
 #include <errno.h>
 #include <dlfcn.h>
 
+MTEV_HOOK_IMPL(mtev_rest_get_handler,
+               (mtev_http_rest_closure_t *restc),
+               void *, closure,
+               (void *closure, mtev_http_rest_closure_t *restc),
+               (closure, restc));
+
 struct rest_xml_payload {
   char *buffer;
   xmlDocPtr indoc;
@@ -311,6 +317,12 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
   if(restc->fastpath) return restc->fastpath;
 
   struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
+  switch(mtev_rest_get_handler_hook_invoke(restc)) {
+    case MTEV_HOOK_ABORT: return NULL;
+    case MTEV_HOOK_DONE:  return restc->fastpath;
+    default:
+      break;
+  }
   if (rule != NULL) {
       /* We match, set 'er up */
     mtev_zipkin_span_rename(mtev_http_zipkip_span(restc->http_ctx),

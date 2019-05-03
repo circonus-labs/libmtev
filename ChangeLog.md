@@ -5,6 +5,7 @@
 ## 1.6
 
  * mtev_intern pools with extent_size 0 should just malloc/free.
+ * Allow hooking of rest handler assignments: `mtev_rest_get_handler`
 
 ### 1.6.9
 
