@@ -36,6 +36,7 @@
 #include "mtev_http.h"
 #include "mtev_http1.h"
 #include "mtev_http2.h"
+#include "mtev_hooks.h"
 #include "mtev_console.h"
 #include "eventer/eventer.h"
 
@@ -206,5 +207,10 @@ API_EXPORT(void *)
 API_EXPORT(int)
   mtev_rest_simple_file_handler(mtev_http_rest_closure_t *restc,
                                 int npats, char **pats);
+
+MTEV_HOOK_PROTO(mtev_rest_get_handler,
+                (mtev_http_rest_closure_t *restc),
+                void *, closure,
+                (void *closure, mtev_http_rest_closure_t *restc));
 
 #endif
