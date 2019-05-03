@@ -6,6 +6,8 @@
 
  * mtev_intern pools with extent_size 0 should just malloc/free.
  * Allow hooking of rest handler assignments: `mtev_rest_get_handler`
+ * Introduce `mtev_log_has_material_output`.
+ * Change N_L_S_ON to respect if the log will ultimately output.
 
 ### 1.6.9
 
