@@ -399,6 +399,11 @@ int mtev_log_global_enabled(void) {
   return LIBMTEV_LOG_ENABLED();
 }
 
+mtev_boolean mtev_log_has_material_output(mtev_log_stream_t ls) {
+  /* This is materialized already into flags_below as "ENABLED" */
+  return (IS_ENABLED_ON(ls) && IS_ENABLED_BELOW(ls));
+}
+
 static mtev_boolean has_material_output(mtev_log_stream_t ls) {
   mtev_boolean state = mtev_false;
   struct _mtev_log_stream_outlet_list *node;

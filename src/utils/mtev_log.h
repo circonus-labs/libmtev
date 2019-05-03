@@ -85,8 +85,9 @@ extern mtev_log_stream_t mtev_debug;
 extern mtev_log_stream_t mtev_error;
 extern mtev_log_stream_t mtev_notice;
 
-#define N_L_S_ON(ls) ((ls != NULL) && (*((unsigned *)ls) & MTEV_LOG_STREAM_ENABLED))
+#define N_L_S_ON(ls) ((ls != NULL) && (*((unsigned *)ls) & MTEV_LOG_STREAM_ENABLED) && mtev_log_has_material_output(ls))
 
+API_EXPORT(mtev_boolean) mtev_log_has_material_output(mtev_log_stream_t ls);
 API_EXPORT(void) mtev_log_enter_sighandler(void);
 API_EXPORT(void) mtev_log_leave_sighandler(void);
 API_EXPORT(int) mtev_log_global_enabled(void);
