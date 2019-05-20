@@ -972,7 +972,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
           else if(*cp >= 'A' && *cp <= 'F') clen = (clen << 4) | (*cp - 'A' + 10);
           else if(*cp == '\r' && cp[1] == '\n') {
             mtevL(http_debug, "Found for chunk length(%d)\n", clen);
-            if (head->size - 2 >= clen) {
+            if (head->size >= clen + (unsigned int)(cp - cp_begin + 2 + 2)) {
               next_chunk = clen;
               head->start += cp - cp_begin + 2;
               head->size -= cp - cp_begin + 2;
@@ -986,7 +986,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
                * enough to hold the entire chunk, copy in the chunk data that
                * we have already read and then keep reading.
                */
-              struct bchain *new_in = ALLOC_BCHAIN(MAX(clen + (unsigned int)(cp - cp_begin + 2), 
+              struct bchain *new_in = ALLOC_BCHAIN(MAX(clen + (unsigned int)(cp - cp_begin + 2 + 2), 
                                                        DEFAULT_BCHAINSIZE));
               memcpy(new_in->buff, cp_begin, head->size);
               new_in->size = head->size;
@@ -994,6 +994,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
               new_in->compression = head->compression;
               new_in->next = head->next;
 
+              mtevL(http_debug, "replacing ingress bchain with right sized [%zu]\n", new_in->allocd);
               /* the current 'head' buffer must be consumed as it's data was copied */
               ctx->req.first_input = ctx->req.last_input = new_in;
               head->next = NULL;
@@ -1044,7 +1045,9 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       mtevL(http_debug, " ... mtev_http1_session_req_consume = -1 (EAGAIN)\n");
       return -1;
     }
-    if(rlen == 0 && next_chunk > 0) goto successful_chunk_size;
+    if(rlen == 0 && next_chunk > 0) {
+      goto successful_chunk_size;
+    }
     if(rlen <= 0) {
       mtevL(http_debug, " ... mtev_http1_session_req_consume = -1 (error)\n");
       return -2;
@@ -1082,8 +1085,13 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       if (ctx->req.payload_chunked) {
         /* there must be a \r\n at the end of this block */
         str_in_f = mtev_memmem(head->buff + head->start, head->size, "\r\n", 2);
+        if(head->size < 2) {
+          mtevL(mtev_error, "HTTP chunked encoding error, no trailing CRLF (short).\n");
+          return -2;
+        }
         if(head->size < 2 || strncmp(head->buff + head->start, "\r\n", 2) != 0) {
-          mtevL(mtev_error, "HTTP chunked encoding error, no trailing CRLF.\n");
+          mtevL(mtev_error, "HTTP chunked encoding error, no trailing CRLF [0x%02x, 0x%02x].\n",
+                head->buff[head->start], head->buff[head->start+1]);
           return -2;
         }
         /* skip the \r\n framing */
