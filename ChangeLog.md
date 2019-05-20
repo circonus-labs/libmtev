@@ -4,6 +4,10 @@
 
 ## 1.6
 
+### 1.6.11
+
+ * Fix bug in http1 driver related to reading chunked encoded payloads.
+
 ### 1.6.10
 
  * mtev_intern pools with extent_size 0 should just malloc/free.
