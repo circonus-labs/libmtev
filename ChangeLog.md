@@ -6,6 +6,8 @@
 
  * Fix crash bug when listener has npn set to "none" explicitly and
    a client tried to upgrade via ALPN.
+ * SECURITY: bug fix in http authentication handling where thread fan out
+   could short-circuit ACLs with allow.
 
 ### 1.6.11
 
