@@ -4,6 +4,8 @@
 
 ## 1.6
 
+### 1.6.12
+
  * Fix crash bug when listener has npn set to "none" explicitly and
    a client tried to upgrade via ALPN.
  * SECURITY: bug fix in http authentication handling where thread fan out
