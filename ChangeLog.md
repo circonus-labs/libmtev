@@ -4,6 +4,9 @@
 
 ## 1.6
 
+ * Fix crash bug when listener has npn set to "none" explicitly and
+   a client tried to upgrade via ALPN.
+
 ### 1.6.11
 
  * Fix bug in http1 driver related to reading chunked encoded payloads.
