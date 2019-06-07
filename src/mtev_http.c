@@ -56,6 +56,18 @@ MTEV_HOOK_IMPL(http_request_log,
   (void *closure, mtev_http_session_ctx *ctx),
   (closure,ctx))
 
+MTEV_HOOK_IMPL(http_request_complete,
+  (mtev_http_session_ctx *ctx),
+  void *, closure,
+  (void *closure, mtev_http_session_ctx *ctx),
+  (closure, ctx))
+
+MTEV_HOOK_IMPL(http_response_send,
+  (mtev_http_session_ctx *ctx),
+  void *, closure,
+  (void *closure, mtev_http_session_ctx *ctx),
+  (closure, ctx))
+
 struct bchain *bchain_alloc(size_t size, int line) {
   (void)line;
   struct bchain *n;
@@ -197,6 +209,7 @@ HTTP_DIS(const char *, request_uri_str, request *, r, (mtev_http_request *r), (t
 HTTP_DIS(const char *, request_method_str, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(const char *, request_protocol_str, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(size_t, request_content_length, request *, r, (mtev_http_request *r), (t_r))
+HTTP_DIS(size_t, request_content_length_read, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(mtev_boolean, request_payload_chunked, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(mtev_boolean, request_has_payload, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(const char *, request_querystring, request *, r, (mtev_http_request *r, const char *k), (t_r, k))
@@ -218,6 +231,8 @@ HTTP_DIS(mtev_boolean, response_flush, session_ctx *, ctx, (mtev_http_session_ct
 HTTP_DIS(mtev_boolean, response_flush_asynch, session_ctx *, ctx, (mtev_http_session_ctx *ctx, mtev_boolean f), (t_ctx, f))
 HTTP_DIS(mtev_boolean, response_end, session_ctx *, ctx, (mtev_http_session_ctx *ctx), (t_ctx))
 HTTP_DIS(size_t, response_buffered, session_ctx *, ctx, (mtev_http_session_ctx *ctx), (t_ctx))
+HTTP_DIS(mtev_hash_table *, response_headers_table, response *, r, (mtev_http_response *r), (t_r))
+HTTP_DIS(mtev_hash_table *, response_trailers_table, response *, r, (mtev_http_response *r), (t_r))
 HTTP_DIS(int, response_status, response *, r, (mtev_http_response *r), (t_r))
 HTTP_DIS(mtev_boolean, response_status_set, session_ctx *, ctx,
          (mtev_http_session_ctx *ctx, int c, const char *r), (t_ctx, c, r))
@@ -227,8 +242,10 @@ HTTP_DIS(mtev_boolean, response_header_set, session_ctx *, ctx,
 mtev_boolean
 mtev_http_websocket_queue_msg(mtev_http_session_ctx *ctx, int opcode,
                               const unsigned char *msg, size_t msg_len) {
+  mtev_boolean status;
   if(ctx->http_type != MTEV_HTTP_1) return mtev_false;
-  return mtev_http1_websocket_queue_msg((mtev_http1_session_ctx *)ctx, opcode, msg, msg_len);
+  status = mtev_http1_websocket_queue_msg((mtev_http1_session_ctx *)ctx, opcode, msg, msg_len);
+  return status;
 }
 
 mtev_boolean
@@ -236,11 +253,12 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
                           const void *b, size_t l) {
   struct bchain *o;
   int boff = 0;
+  mtev_boolean success = mtev_false;
   mtev_http_response *res = mtev_http_session_response(ctx);
-  if(res->closed == mtev_true) return mtev_false;
+  if(res->closed == mtev_true) goto out;
   if(res->output_started == mtev_true &&
      !(res->output_options & (MTEV_HTTP_CLOSE | MTEV_HTTP_CHUNKED)))
-    return mtev_false;
+    goto out;
   if(!res->output)
     res->output_last = res->output = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
   mtevAssert(res->output != NULL);
@@ -263,17 +281,21 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
       l -= tocopy;
     }
   }
-  return mtev_true;
+  success = mtev_true;
+out:
+  http_response_send_hook_invoke(ctx);
+  return success;
 }
 mtev_boolean
 mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
                                  struct bchain *b) {
   struct bchain *o;
+  mtev_boolean success = mtev_false;
   mtev_http_response *res = mtev_http_session_response(ctx);
-  if(res->closed == mtev_true) return mtev_false;
+  if(res->closed == mtev_true) goto out;
   if(res->output_started == mtev_true &&
      !(res->output_options & (MTEV_HTTP_CHUNKED | MTEV_HTTP_CLOSE)))
-    return mtev_false;
+    goto out;
   if(!res->output_last)
     res->output_last = res->output = b;
   else {
@@ -286,7 +308,10 @@ mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
     res->output_last = b;
   }
   res->output_chain_bytes += b->size;
-  return mtev_true;
+  success = mtev_true;
+out:
+  http_response_send_hook_invoke(ctx);
+  return success;
 }
 mtev_boolean
 mtev_http_response_append_mmap(mtev_http_session_ctx *ctx,

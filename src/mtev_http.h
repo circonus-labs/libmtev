@@ -123,6 +123,8 @@ API_EXPORT(const char *)
   mtev_http_request_protocol_str(mtev_http_request *);
 API_EXPORT(size_t)
   mtev_http_request_content_length(mtev_http_request *);
+API_EXPORT(size_t)
+  mtev_http_request_content_length_read(mtev_http_request *);
 API_EXPORT(mtev_boolean)
   mtev_http_request_payload_chunked(mtev_http_request *);
 API_EXPORT(mtev_boolean)
@@ -168,6 +170,10 @@ API_EXPORT(void)
 API_EXPORT(stats_handle_t *)
   mtev_http_session_latency(mtev_http_session_ctx *ctx);
 
+API_EXPORT(mtev_hash_table *)
+  mtev_http_response_headers_table(mtev_http_response *);
+API_EXPORT(mtev_hash_table *)
+  mtev_http_response_trailers_table(mtev_http_response *);
 API_EXPORT(int)
   mtev_http_response_status(mtev_http_response *);
 API_EXPORT(mtev_boolean)
@@ -237,6 +243,16 @@ API_EXPORT(void)
 #include <mtev_http2.h>
 
 MTEV_HOOK_PROTO(http_request_log,
+                (mtev_http_session_ctx *ctx),
+                void *, closure,
+                (void *closure, mtev_http_session_ctx *ctx))
+
+MTEV_HOOK_PROTO(http_request_complete,
+                (mtev_http_session_ctx *ctx),
+                void *, closure,
+                (void *closure, mtev_http_session_ctx *ctx))
+
+MTEV_HOOK_PROTO(http_response_send,
                 (mtev_http_session_ctx *ctx),
                 void *, closure,
                 (void *closure, mtev_http_session_ctx *ctx))

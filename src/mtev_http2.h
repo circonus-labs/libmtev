@@ -132,6 +132,8 @@ API_EXPORT(const char *)
   mtev_http2_request_protocol_str(mtev_http2_request *req);
 API_EXPORT(size_t)
   mtev_http2_request_content_length(mtev_http2_request *req);
+API_EXPORT(size_t)
+  mtev_http2_request_content_length_read(mtev_http2_request *req);
 API_EXPORT(mtev_boolean)
   mtev_http2_request_payload_chunked(mtev_http2_request *req);
 API_EXPORT(mtev_boolean)
@@ -146,6 +148,10 @@ API_EXPORT(mtev_hash_table *)
   mtev_http2_request_headers_table(mtev_http2_request *req);
 
 
+API_EXPORT(mtev_hash_table *)
+  mtev_http2_response_headers_table(mtev_http2_response *);
+API_EXPORT(mtev_hash_table *)
+  mtev_http2_response_trailers_table(mtev_http2_response *);
 API_EXPORT(int)
   mtev_http2_response_status(mtev_http2_response *);
 API_EXPORT(mtev_boolean)

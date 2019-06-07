@@ -120,6 +120,8 @@ API_EXPORT(const char *)
   mtev_http1_request_protocol_str(mtev_http1_request *);
 API_EXPORT(size_t)
   mtev_http1_request_content_length(mtev_http1_request *);
+API_EXPORT(size_t)
+  mtev_http1_request_content_length_read(mtev_http1_request *);
 API_EXPORT(mtev_boolean)
   mtev_http1_request_payload_chunked(mtev_http1_request *);
 API_EXPORT(mtev_boolean)
@@ -164,6 +166,10 @@ API_EXPORT(int)
                                 void *buf, const size_t len,
                                 const size_t blen, int *mask);
 
+API_EXPORT(mtev_hash_table *)
+  mtev_http1_response_headers_table(mtev_http1_response *);
+API_EXPORT(mtev_hash_table *)
+  mtev_http1_response_trailers_table(mtev_http1_response *);
 API_EXPORT(int)
   mtev_http1_response_status(mtev_http1_response *);
 API_EXPORT(mtev_boolean)

@@ -246,6 +246,9 @@ const char *mtev_http2_request_protocol_str(mtev_http2_request *req) {
 size_t mtev_http2_request_content_length(mtev_http2_request *req) {
   return req->content_length;
 }
+size_t mtev_http2_request_content_length_read(mtev_http2_request *req) {
+  return req->user_data_bytes;
+}
 mtev_boolean mtev_http2_request_payload_chunked(mtev_http2_request *req) {
   (void)req;
   return mtev_false;
@@ -451,6 +454,14 @@ mtev_http2_response_status_set(mtev_http2_session_ctx *ctx, int code, const char
   ctx->res.code = code;
   snprintf(ctx->res.code_str, sizeof(ctx->res.code_str), "%d", code);
   return mtev_http2_response_header_set(ctx, HTTP_2_STATUS_HDR, ctx->res.code_str);
+}
+mtev_hash_table *
+mtev_http2_response_headers_table(mtev_http2_response *res) {
+  return &res->headers;
+}
+mtev_hash_table *
+mtev_http2_response_trailers_table(mtev_http2_response *res) {
+  return &res->trailers;
 }
 mtev_boolean
 mtev_http2_response_header_set(mtev_http2_session_ctx *ctx,
@@ -910,6 +921,7 @@ on_frame_recv_callback(nghttp2_session *session,
     /* FALLTRHU */
   case NGHTTP2_HEADERS:
     mtev_http_begin_span((mtev_http_session_ctx *)stream);
+    http_request_complete_hook_invoke((mtev_http_session_ctx *)stream);
     stream->req.complete = mtev_true;
     mtevL(h2_debug, "http2 request end (%s) (%p -> %d)\n",
           frame->hd.type == NGHTTP2_DATA ? "data" : "headers",
