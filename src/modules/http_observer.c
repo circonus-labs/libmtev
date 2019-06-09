@@ -37,6 +37,7 @@
 #include "mtev_dso.h"
 #include "mtev_memory.h"
 
+#include <ctype.h>
 #include <ck_pr.h>
 #include <pcre.h>
 
