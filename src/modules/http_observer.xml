@@ -1,0 +1,28 @@
+<module>
+  <name>http_observer</name>
+  <description><para>The http_observer module observers and exposes HTTP request/response information.</para></description>
+  <loader>C</loader>
+  <image>http_observer.so</image>
+  <moduleconfig>
+    <parameter name="max_count"
+               required="optional"
+               default="10000"
+               allowed="\d+">The max number of http requests to track.</parameter>
+    <parameter name="max_age"
+               required="optional"
+               default="30"
+               allowed="\d+">The max time to retain completed requests.</parameter>
+  </moduleconfig>
+  <examples>
+    <example>
+      <title>Loading the http_observer module.</title>
+      <programlisting language="xml"><![CDATA[
+      <noit>
+        <modules>
+          <generic image="http_observer" name="http_observer"/>
+        </modules>
+      </noit>
+    ]]></programlisting>
+    </example>
+  </examples>
+</module>

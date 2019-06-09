@@ -314,6 +314,9 @@ const char *mtev_http1_request_protocol_str(mtev_http1_request *req) {
 size_t mtev_http1_request_content_length(mtev_http1_request *req) {
   return req->content_length;
 }
+size_t mtev_http1_request_content_length_read(mtev_http1_request *req) {
+  return req->content_length_read;
+}
 mtev_boolean mtev_http1_request_payload_chunked(mtev_http1_request *req) {
   return req->payload_chunked;
 }
@@ -1468,6 +1471,8 @@ wslay_on_msg_recv_callback(wslay_event_context_ptr ctx,
       if (rv != 0) {
         /* force the drive loop to abandon this as a websocket */
         session_ctx->is_websocket = mtev_false;
+      } else {
+        session_ctx->req.content_length_read += arg->msg_length;
       }
     } else {
        mtevL(mtev_error, "session_ctx has no websocket_dispatcher function set\n");
@@ -1548,6 +1553,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
 
     /* we always respond with the same procotol */
     ctx->res.protocol = ctx->req.protocol;
+    http_request_complete_hook_invoke((mtev_http_session_ctx *)ctx);
     LIBMTEV_HTTP_REQUEST_FINISH(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
 
     if(http_post_request_hook_invoke(ctx) == MTEV_HOOK_ABORT) {
@@ -1709,6 +1715,15 @@ mtev_http1_response_status_set(mtev_http1_session_ctx *ctx,
   if(ctx->res.status_reason) free(ctx->res.status_reason);
   ctx->res.status_reason = strdup(reason);
   return mtev_true;
+}
+mtev_hash_table *
+mtev_http1_response_headers_table(mtev_http1_response *res) {
+  return &res->headers;
+}
+mtev_hash_table *
+mtev_http1_response_trailers_table(mtev_http1_response *res) {
+  (void)res;
+  return NULL;
 }
 mtev_boolean
 mtev_http1_response_header_set(mtev_http1_session_ctx *ctx,
@@ -1957,6 +1972,7 @@ mtev_http1_websocket_queue_msg(mtev_http1_session_ctx *ctx, int opcode,
   pthread_mutex_lock(&ctx->write_lock);
   rv = !wslay_event_queue_msg(ctx->wslay_ctx, &msgarg);
   pthread_mutex_unlock(&ctx->write_lock);
+  if(rv) ctx->res.bytes_written += msg_len;
   if (ctx->conn.e) eventer_update(ctx->conn.e, EVENTER_WRITE | EVENTER_READ | EVENTER_EXCEPTION);
   return rv;
 #else

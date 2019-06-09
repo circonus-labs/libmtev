@@ -71,12 +71,14 @@ AMQP_MODULES=@AMQP_MODULES@
 LUA_MODULES=@LUA_MODULES@
 MTEV4LUA=@MTEV4LUA@
 
-MODULES=$(FQ_MODULES) $(AMQP_MODULES) $(LUA_MODULES) zipkin_jaeger.@MODULEEXT@
+MODULES=$(FQ_MODULES) $(AMQP_MODULES) $(LUA_MODULES) zipkin_jaeger.@MODULEEXT@ http_observer.@MODULEEXT@
 
 all:	$(MODULES) $(MTEV4LUA)
 
 .xml.xmlh:
 	$(Q)$(XML2H) `echo $< | sed -e 's/\.xml$$//;'`_xml_description < $< > $@
+
+http_observer.lo:	http_observer.xmlh
 
 zipkin_jaeger.lo:	zipkin_jaeger.xmlh
 
