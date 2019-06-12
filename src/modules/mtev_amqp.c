@@ -266,7 +266,7 @@ drain_outbound_queue(struct amqp_conn *cc) {
 static void
 handleconn(struct amqp_conn *conn) {
   while(1) {
-    struct timeval small_sleep = { 0, 100000 }; /* 50ms */
+    struct timeval small_sleep = { 0, 100000 }; /* 100ms */
     amqp_envelope_t envelope;
     amqp_frame_t frame;
 
@@ -481,6 +481,7 @@ static amqp_envelope_t *copy_envelope(amqp_envelope_t *in) {
   CIO(message.properties.user_id);
   CIO(message.properties.app_id);
   CIO(message.properties.cluster_id);
+  CIO(message.body);
 #undef CIO
   /* now we clone the headers */
   amqp_table_clone(&in->message.properties.headers,
