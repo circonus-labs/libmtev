@@ -101,6 +101,7 @@ typedef struct {
 static lua_data_t* mtev_lua_serialize(lua_State *L, int index);
 void mtev_lua_deserialize(lua_State *L, const lua_data_t *data);
 static void mtev_lua_free_data(void *vdata);
+static int nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now);
 
 #define DEFLATE_CHUNK_SIZE 32768
 #define ON_STACK_LUA_STRLEN 2048
@@ -248,7 +249,23 @@ mtev_lua_socket_close(lua_State *L) {
   cl = eventer_get_closure(e);
   eventer_free(e);
   if(cl && cl->free) cl->free(cl);
-  return 0;
+
+  /* Close is unsafe and can cause deadlocks... we could be closing a socket here,
+   * then attempting to create a new socket in another thread with the same fd which
+   * would need out lock... you have that inverted in the other thread and you have
+   * deadlock.
+   * Solution: yield to the eventer with a sleep-technique
+   */
+
+  cl = calloc(1, sizeof(*cl));
+  cl->free = nl_extended_free;
+  cl->L = L;
+  mtev_gettimeofday(&cl->start, NULL);
+
+  e = eventer_in_s_us(nl_sleep_complete, cl, 0, 0);
+  mtev_lua_register_event(ci, e);
+  eventer_add(e);
+  return mtev_lua_yield(ci, 0);
 }
 
 static int
