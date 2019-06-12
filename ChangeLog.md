@@ -4,6 +4,12 @@
 
 ## 1.6
 
+### 1.6.13
+
+ * Fix crash (double free) in sending AMQP messages in duplicate.
+ * Avoid dwarf scanning in luamtev by default.
+ * Add hooks and a module for watching HTTP request servicing.
+
 ### 1.6.12
 
  * Fix crash bug when listener has npn set to "none" explicitly and
