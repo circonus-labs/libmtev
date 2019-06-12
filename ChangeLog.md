@@ -4,6 +4,8 @@
 
 ## 1.6
 
+ * Fix deadlock caused by eventer_t:close() in lua
+
 ### 1.6.13
 
  * Fix crash (double free) in sending AMQP messages in duplicate.
