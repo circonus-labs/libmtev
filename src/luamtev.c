@@ -7,6 +7,7 @@
 #include "mtev_memory.h"
 #include "mtev_rest.h"
 #include "mtev_security.h"
+#include "mtev_stacktrace.h"
 #include "eventer/eventer.h"
 
 #include <stdio.h>
@@ -291,12 +292,21 @@ int luaopen_LuaMtevDirect(lua_State *L) {
   return 1;
 }
 
+static mtev_boolean dwarf_filter_all(const char *file) {
+  (void)file;
+  return mtev_false;
+}
+
 int main(int argc, char **argv, char **envp) {
   parse_cli_args(argc, argv);
   if(!config_file) make_config();
 
   global_envp = envp;
   mtev_memory_init();
+  if(NULL == getenv("MTEV_DWARF")) {
+    mtev_dwarf_filter(dwarf_filter_all);
+    mtev_dwarf_filter_symbols(dwarf_filter_all);
+  }
   mtev_main(APPNAME, config_file, debug, foreground,
             MTEV_LOCK_OP_LOCK, NULL, droptouser, droptogroup,
             child_main);
