@@ -289,7 +289,6 @@ mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
   mtevAssert(ci);
 
   if(cl->timeout_event) {
-    mtevL(mtev_error,"Clear timeout for fd=%d\n", eventer_get_fd(e));
     eventer_remove_timed(cl->timeout_event);
     mtev_lua_deregister_event(ci, cl->timeout_event, 1);
     cl->timeout_event = NULL;
