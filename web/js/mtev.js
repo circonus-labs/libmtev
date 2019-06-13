@@ -1,9 +1,16 @@
-var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
+var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {} } } };
 
 (function() {
   var filter_expr = null;
   var defaultUI = {
     tabs: [
+      {
+        "name": "Clients",
+        "id": "http",
+        "url": "/http.html",
+        "condition": "mtev.http_observer_loaded",
+        "callback": "mtev.driveHTTPObserver"
+      },
       {
         "name": "Internals",
         "id": "internals",
@@ -48,12 +55,35 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
   }
   mtev.nice_date = function(m) {
     if(typeof(m) == 'number') m = new Date(m);
+    else if(typeof(m) == 'string') m = new Date(parseFloat(m));
     return  m.getUTCFullYear() +"/"+
      ("0" + (m.getUTCMonth()+1)).slice(-2) +"/"+
      ("0" + m.getUTCDate()).slice(-2) + "&nbsp;" +
      ("0" + m.getUTCHours()).slice(-2) + ":" +
      ("0" + m.getUTCMinutes()).slice(-2) + ":" +
      ("0" + m.getUTCSeconds()).slice(-2);
+  }
+  mtev.nice_timeofday = function(m) {
+    if(typeof(m) == 'number') m = new Date(m);
+    else if(typeof(m) == 'string') m = new Date(parseFloat(m));
+    return ("0" + m.getUTCHours()).slice(-2) + ":" +
+     ("0" + m.getUTCMinutes()).slice(-2) + ":" +
+     ("0" + m.getUTCSeconds()).slice(-2);
+  }
+  mtev.nice_duration = function(s, inu) {
+    var d = function(a) { return '<span class="text-muted">'+a+'</span>'; };
+    s = 0 + parseFloat(s);
+    var units = [ "s", "ms", "μs", "ns", "ps", "fs", "as", "zs", "ys" ];
+    if(s == 0) return s.toFixed(0) + d(units[0]);
+    var i = 0;
+    while(i < units.length) {
+      if(s >= 1) {
+        return s.toFixed(0) + d(units[i]);
+      }
+      s *= 1000;
+      i++;
+    }
+    return s;
   }
   mtev.nice_time = function(s) {
     var days, hours, minutes, seconds;
@@ -377,7 +407,8 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
   });
   mtev.start = function(uijson) {
     var processUI = function(r) {
-      var pending = 0;
+      var pending = 1;
+      jQuery.ajax("/capa.json").done(function(data) { mtev.capa = data; pending--; }).fail(function() { pending--; });
       if(r.scripts) {
         for(var i=0;i<r.scripts.length;i++) {
           pending++;
@@ -403,10 +434,21 @@ var mtev = { loaded: false, stats: { eventer: { jobq: {}, callbacks: {} } } };
           for(var i=r.tabs.length-1;i>=0;i--) {
             var tab = r.tabs[i];
             var cb = null;
-            if(tab.callback) try { cb = eval(tab.callback); }
-                             catch(e) { console.log(tab.callback, e); }
+            var cond = null;
+            if(tab.callback) {
+              try { cb = eval(tab.callback); }
+              catch(e) { console.log(tab.callback, e); }
+              if(cb == null) continue;
+            }
+            if(tab.condition) {
+              try { cond = eval(tab.condition); }
+              catch(e) { console.log(tab.callback, e); }
+              if(cond == null) cond = function() { return false; }
+            }
             load_pending++;
-            mtev.ui_load(tab.name, tab.id, tab.url, tab.active, finish_load(cb))
+            if(cond == null || cond() == true) {
+              mtev.ui_load(tab.name, tab.id, tab.url, tab.active, finish_load(cb))
+            }
           }
           mtev.initialTabSelect();
           clearInterval(keepTrying);

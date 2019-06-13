@@ -252,6 +252,11 @@ MTEV_HOOK_PROTO(http_request_complete,
                 void *, closure,
                 (void *closure, mtev_http_session_ctx *ctx))
 
+MTEV_HOOK_PROTO(http_post_request_read_payload,
+                (mtev_http_session_ctx *ctx),
+                void *, closure,
+                (void *closure, mtev_http_session_ctx *ctx))
+
 MTEV_HOOK_PROTO(http_response_send,
                 (mtev_http_session_ctx *ctx),
                 void *, closure,

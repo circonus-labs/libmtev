@@ -57,6 +57,8 @@ typedef struct {
   uint64_t id;
   uint64_t request_start_ns;
   uint64_t request_complete_ns;
+  uint64_t read_start_ns;
+  uint64_t read_complete_ns;
   uint64_t response_start_ns;
   uint64_t response_complete_ns;
   uint64_t inbytes;
@@ -157,6 +159,23 @@ http_observer_rc(void *closure, mtev_http_session_ctx *ctx) {
 }
 
 static mtev_hook_return_t
+http_observer_prrp(void *closure, mtev_http_session_ctx *ctx) {
+  (void)closure;
+  void *vptr;
+  mtev_memory_begin();
+  if(mtev_hash_retrieve(&lookup, (const char *)&ctx, sizeof(ctx), &vptr)) {
+    http_entry_t *entry = vptr;
+    entry->read_complete_ns = timeofday_nanos();
+    if(entry->read_start_ns == 0) {
+      entry->read_start_ns = entry->read_complete_ns;
+    }
+    http_entry_update(entry, ctx);
+  }
+  mtev_memory_end();
+  return MTEV_HOOK_CONTINUE;
+}
+
+static mtev_hook_return_t
 http_observer_rs(void *closure, mtev_http_session_ctx *ctx) {
   (void)closure;
   void *vptr;
@@ -215,6 +234,12 @@ http_observer_rl(void *closure, mtev_http_session_ctx *ctx) {
       }
     }
     entry->response_complete_ns = timeofday_nanos();
+    if(entry->response_start_ns == 0) {
+      entry->response_start_ns = entry->response_complete_ns;
+      char status_string[4];
+      snprintf(status_string, sizeof(status_string), "%d", mtev_http_response_status(res));
+      http_entry_track(entry, "status", status_string);
+    }
 
     uint32_t next = ck_pr_faa_32(&hptr, 1);
     http_entry_t *old;
@@ -225,6 +250,17 @@ http_observer_rl(void *closure, mtev_http_session_ctx *ctx) {
   }
   mtev_memory_end();
   return MTEV_HOOK_CONTINUE;
+}
+
+void
+http_observer_note_dyn(mtev_http_session_ctx *ctx, const char *key, const char *value) {
+  void *vptr = NULL;
+  mtev_memory_begin();
+  if(mtev_hash_retrieve(&lookup, (const char *)&ctx, sizeof(ctx), &vptr)) {
+    http_entry_t *entry = vptr;
+    http_entry_track(entry, key, value);
+  }
+  mtev_memory_end();
 }
 
 typedef struct {
@@ -255,6 +291,10 @@ static void http_entry_json(mtev_http_session_ctx *ctx, http_entry_t *entry) {
   MJ_KV(o, "request_start_ms", MJ_INT64(entry->request_start_ns/1000000));
   if(entry->request_complete_ns)
     MJ_KV(o, "request_complete_offset_ns", MJ_INT64(entry->request_complete_ns - entry->request_start_ns));
+  if(entry->read_start_ns)
+    MJ_KV(o, "read_start_offset_ns", MJ_INT64(entry->read_start_ns - entry->request_start_ns));
+  if(entry->read_complete_ns)
+    MJ_KV(o, "read_complete_offset_ns", MJ_INT64(entry->read_complete_ns - entry->request_start_ns));
   if(entry->response_start_ns)
     MJ_KV(o, "response_start_offset_ns", MJ_INT64(entry->response_start_ns - entry->request_start_ns));
   if(entry->response_complete_ns)
@@ -380,6 +420,7 @@ http_observer_driver_init(mtev_dso_generic_t *img) {
   http_request_complete_hook_register("http_observer", http_observer_rc, NULL);
   http_response_send_hook_register("http_observer", http_observer_rs, NULL);
   http_request_log_hook_register("http_observer", http_observer_rl, NULL);
+  http_post_request_read_payload_hook_register("http_observer", http_observer_prrp, NULL);
 
   mtev_rest_mountpoint_t *rule = mtev_http_rest_new_rule(
     "GET", "/module/http_observer/", "^requests.json$", requests_json_handler

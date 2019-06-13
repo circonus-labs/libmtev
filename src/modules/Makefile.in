@@ -58,7 +58,7 @@ define modulelink
 	$(ctfmerge)
 endef
 
-HEADERS=lua_mtev.h
+HEADERS=lua_mtev.h http_observer.h
 LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua \
 	mtev/hooks/http.lua \
 	mtev/lua_init.lua \

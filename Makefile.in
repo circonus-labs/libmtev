@@ -24,7 +24,8 @@ docs-pdf:	gitbook-setup
 COMPRESS_JS=cat
 COMPRESS_CSS=cat
 WEBJS=jquery.min.js tether.min.js bootstrap.min.js d3.v4.min.js d3-scale.v1.min.js \
-	bootstrap-toggle.min.js colorbrewer.js circllhist.js circhistd3.js mtev.js
+	bootstrap-toggle.min.js colorbrewer.js circllhist.js circhistd3.js \
+	mtev.js mtev.http_observer.js
 FWEBJS=$(WEBJS:%.js=web/js/%.js)
 WEBCSS=b-glyphicons.css colorbrewer.css bootstrap-theme.min.css bootstrap.min.css \
 	tether.min.css bootstrap-toggle.min.css theme-base.css
