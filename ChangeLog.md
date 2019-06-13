@@ -4,6 +4,8 @@
 
 ## 1.6
 
+ * Improvements to HTTP observation (UI) and an accessible extension API.
+
 ### 1.6.13
 
  * Fix crash (double free) in sending AMQP messages in duplicate.
