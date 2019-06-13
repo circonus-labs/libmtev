@@ -961,6 +961,7 @@ on_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags,
     stream->req.user_data_last = chunk;
     if(!stream->req.user_data) stream->req.user_data = chunk;
     stream->req.user_data_bytes += len;
+    (void)http_post_request_read_payload_hook_invoke((mtev_http_session_ctx *)stream);
   }
   return 0;
 }

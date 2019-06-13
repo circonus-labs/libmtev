@@ -303,3 +303,61 @@ div.tooltip {
   shape-rendering: crispEdges;
 }
 
+table#http-client-table {
+  width: 100%;
+}
+span.http-client-qs:not(:empty):before {
+  content: "?";
+}
+span.http-client-read-complete:not(:empty):before {
+  content: '\2192';
+}
+span.http-client-response-complete:not(:empty):before {
+  content: '\2192';
+}
+td.http-client-long,
+th.http-client-long
+{
+  max-width: 600px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#http-client-table .status-2 {
+  background:
+    linear-gradient(to right, rgba(180,240,180,0.4), rgba(180,240,180,0.4)),
+    linear-gradient(to right, transparent, white, white)
+    ;
+    background-blend-mode: darken
+}
+#http-client-table .status-3 {
+  background:
+    linear-gradient(to right, rgba(180,240,240,0.4), rgba(180,240,240,0.4)),
+    linear-gradient(to right, transparent, white, white)
+    ;
+    background-blend-mode: darken
+}
+#http-client-table .status-4 {
+  background:
+    linear-gradient(to right, rgba(255,183,58,0.4), rgba(255,183,58,0.4)),
+    linear-gradient(to right, transparent, white, white)
+    ;
+    background-blend-mode: darken
+}
+#http-client-table .status-5 {
+  background:
+    linear-gradient(to right, rgba(221,77,77,0.4), rgba(221,77,77,0.4)),
+    linear-gradient(to right, transparent, white, white)
+    ;
+    background-blend-mode: darken
+}
+#http-client-table .in-progress {
+  background-blend-mode: screen;
+}
+div.http-client-modal-popup {
+  border: 1px solid #999;
+  background: rgba(255,255,255,1);
+  padding: 0.5em 1em;
+  position:absolute;
+  z-index:1000;
+}

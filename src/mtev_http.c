@@ -62,6 +62,12 @@ MTEV_HOOK_IMPL(http_request_complete,
   (void *closure, mtev_http_session_ctx *ctx),
   (closure, ctx))
 
+MTEV_HOOK_IMPL(http_post_request_read_payload,
+  (mtev_http_session_ctx *ctx),
+  void *, closure,
+  (void *closure, mtev_http_session_ctx *ctx),
+  (closure, ctx))
+
 MTEV_HOOK_IMPL(http_response_send,
   (mtev_http_session_ctx *ctx),
   void *, closure,

@@ -1035,9 +1035,11 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
                         tail->buff + tail->start + tail->size,
                         tail->allocd - tail->size - tail->start, mask);
     mtevL(http_debug, " mtev_http -> read(%d) = %d\n", CTXFD(ctx), rlen);
-    if(rlen > 0)
+    if(rlen > 0) {
+      (void)http_post_request_read_payload_hook_invoke((mtev_http_session_ctx *)ctx);
       mtevL(http_io, " mtev_http:read(%d) => %d [\n%.*s\n]\n", CTXFD(ctx), rlen, rlen, 
             tail->buff + tail->start + tail->size);
+    }
     else
       mtevL(http_io, " mtev_http:read(%d) => %d\n", CTXFD(ctx), rlen);
     if(rlen == -1 && errno == EAGAIN) {
