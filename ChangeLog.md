@@ -4,6 +4,7 @@
 
 ## 1.6
 
+* Add timeout parameter to socket:connect() in lua
 * Fix deadlock caused by eventer_t:close() in lua
 
 ### 1.6.13
