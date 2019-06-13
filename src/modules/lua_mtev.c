@@ -224,6 +224,21 @@ inbuff_addlstring(struct nl_slcl *cl, const char *b, int l) {
 }
 
 static int
+nl_resume(eventer_t e, int mask, void *vcl, struct timeval *now) {
+    (void) mask;
+    (void) now;
+    lua_State *L = vcl;
+    mtev_lua_resume_info_t *ci = mtev_lua_find_resume_info(L, mtev_false);
+    if(!ci) {
+        mtev_lua_eventer_cl_cleanup(e);
+        return 0;
+    }
+    mtev_lua_deregister_event(ci, e, 0);
+    ci->lmc->resume(ci, 1);
+    return 0;
+}
+
+static int
 mtev_lua_socket_close(lua_State *L) {
   mtev_lua_resume_info_t *ci;
   eventer_t *eptr, e;
@@ -248,7 +263,17 @@ mtev_lua_socket_close(lua_State *L) {
   cl = eventer_get_closure(e);
   eventer_free(e);
   if(cl && cl->free) cl->free(cl);
-  return 0;
+
+ /* socket:close() is unsafe and can cause deadlocks: We could be closing a socket here,then
+  * attempting to create a new socket in another thread with the same fd which would need out
+  * lock... you have that inverted in the other thread and you have deadlock.
+  * Solution: yield to the eventer.
+  */
+
+  e = eventer_in_s_us(nl_resume, (void*) L, 0, 0);
+  mtev_lua_register_event(ci, e);
+  eventer_add(e);
+  return mtev_lua_yield(ci, 0);
 }
 
 static int
