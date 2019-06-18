@@ -1075,7 +1075,7 @@ mtev_lua_socket_connect(lua_State *L) {
       double timeout_user = lua_tonumber(L, 4);
       int timeout_s = floor(timeout_user);
       int timeout_us = (timeout_user - timeout_s) * 1000000;
-      lua_timeout_callback_ref* cb_ref = malloc(sizeof(lua_timeout_callback_ref));
+      lua_timeout_callback_ref* cb_ref = calloc(1, sizeof(lua_timeout_callback_ref));
       cb_ref->free = free;
       cb_ref->L = L;
       cb_ref->timed_out_eventer = e;
