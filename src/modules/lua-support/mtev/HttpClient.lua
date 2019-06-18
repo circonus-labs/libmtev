@@ -66,7 +66,7 @@ function HttpClient:connect(target, port, ssl, ssl_host, ssl_layer)
     self.target = target
     self.port = port
     self.truncated = nil
-    local rv, err = self.e:connect(self.target, self.port)
+    local rv, err = self.e:connect(self.target, self.port, self.connect_timeout)
     if rv ~= 0 then
         return rv, err
     end
@@ -138,6 +138,10 @@ function HttpClient:read(delim)
     str = self.e:read(delim)
   end
   return str
+end
+
+function HttpClient:set_connect_timeout(timeout)
+  self.connect_timeout = timeout
 end
 
 function HttpClient:set_timeout(timeout, timeout_callback)

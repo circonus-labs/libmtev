@@ -287,6 +287,13 @@ mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
 
   ci = mtev_lua_find_resume_info(cl->L, mtev_true);
   mtevAssert(ci);
+
+  if(cl->timeout_event) {
+    eventer_remove_timed(cl->timeout_event);
+    mtev_lua_deregister_event(ci, cl->timeout_event, 1);
+    cl->timeout_event = NULL;
+  }
+
   eventer_remove_fde(e);
   mtev_lua_deregister_event(ci, e, 0);
 
@@ -953,9 +960,50 @@ static int
 mtev_lua_socket_sock_name(lua_State *L) {
   return mtev_lua_socket_gen_name(L, getsockname);
 }
+
+static int
+socket_connect_timeout(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)mask;
+  (void)now;
+  mtev_lua_resume_info_t *ci;
+  lua_timeout_callback_ref* cb_ref;
+  lua_State *L;
+  struct nl_slcl *cl;
+
+  cb_ref = (lua_timeout_callback_ref*) closure;
+  L = cb_ref->L;
+  ci = mtev_lua_find_resume_info(L, mtev_true);
+  assert(ci);
+
+  // Remove the original event from the event loop, and close the socket.
+  eventer_remove_fde(cb_ref->timed_out_eventer);
+  mtev_lua_deregister_event(ci, cb_ref->timed_out_eventer, 0);
+
+  // When we return to the event loop `timed_out_eventer` will be freeed.
+  // Make a copy so that the lua socket object has something to work with:
+  cl = eventer_get_closure(cb_ref->timed_out_eventer);
+  *(cl->eptr) = eventer_alloc_copy(cb_ref->timed_out_eventer);
+  mtev_lua_register_event(ci, *cl->eptr);
+
+  // The socket will be closed when either
+  // (a) e:close() is called explicitly on the lua object (recommended),
+  // (b) the lua object is GCed.
+  // No need to explicitly close it here.
+
+  // return into the original Lua call which spawned this timeout
+  lua_pushinteger(L, -1);
+  lua_pushstring(L, "timeout");
+  ci->lmc->resume(ci, 2);
+
+  mtev_lua_deregister_event(ci, e, 1);
+  return 0;
+}
+
+
 static int
 mtev_lua_socket_connect(lua_State *L) {
   mtev_lua_resume_info_t *ci;
+  struct nl_slcl *cl;
   eventer_t e, *eptr;
   const char *target;
   unsigned short port;
@@ -974,6 +1022,11 @@ mtev_lua_socket_connect(lua_State *L) {
     luaL_error(L, "must be called as method");
   e = *eptr;
   if(e == NULL) luaL_error(L, "invalid event");
+  cl = eventer_get_closure(e);
+  if(cl->L != L) {
+    mtevL(nlerr, "cross-coroutine socket call: use event:own()\n");
+    luaL_error(L, "cross-coroutine socket call: use event:own()");
+  }
   target = lua_tostring(L, 2);
 
   if(target && !strncmp(target, "reverse:", 8)) {
@@ -1029,6 +1082,21 @@ mtev_lua_socket_connect(lua_State *L) {
   }
   if(rv == -1 && errno == EINPROGRESS) {
     /* Need completion */
+    /* setup timeout handler */
+    if (lua_gettop(L) >= 4 && lua_isnumber(L, 4)) {
+      double timeout_user = lua_tonumber(L, 4);
+      int timeout_s = floor(timeout_user);
+      int timeout_us = (timeout_user - timeout_s) * 1000000;
+      lua_timeout_callback_ref* cb_ref = calloc(1, sizeof(lua_timeout_callback_ref));
+      cb_ref->free = free;
+      cb_ref->L = L;
+      cb_ref->timed_out_eventer = e;
+      eventer_t timeout_eventer = eventer_in_s_us(socket_connect_timeout, cb_ref, timeout_s, timeout_us);
+      mtev_lua_register_event(ci, timeout_eventer);
+      cl->timeout_event = timeout_eventer;
+      eventer_add_timed(timeout_eventer);
+    }
+    /* setup completion handler */
     eventer_set_callback(e, mtev_lua_socket_connect_complete);
     eventer_set_mask(e, EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
     eventer_add(e);
@@ -1240,11 +1308,11 @@ mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
 }
 
 static int
-on_timeout(eventer_t e, int mask, void *closure, struct timeval *now) {
+socket_read_timeout(eventer_t e, int mask, void *closure, struct timeval *now) {
   (void)mask;
   (void)now;
   struct nl_slcl *cl;
-    mtev_lua_resume_info_t *ci;
+  mtev_lua_resume_info_t *ci;
   lua_timeout_callback_ref* cb_ref;
   lua_State *L;
 
@@ -1363,7 +1431,7 @@ mtev_lua_socket_read(lua_State *L) {
       cb_ref->timed_out_eventer = e;
 
       eventer_t timeout_eventer =
-        eventer_in_s_us(on_timeout, cb_ref, timeout_s, timeout_us);
+        eventer_in_s_us(socket_read_timeout, cb_ref, timeout_s, timeout_us);
       mtev_lua_register_event(ci, timeout_eventer);
       cl->timeout_event = timeout_eventer;
       eventer_add_timed(timeout_eventer);
@@ -1622,9 +1690,10 @@ mtev_eventer_index_func(lua_State *L) {
 \brief Closes the socket.
 */
      LUA_DISPATCH(close, mtev_lua_socket_close);
-/*! \lua rv, err = mtev.eventer:connect(target[, port])
+/*! \lua rv, err = mtev.eventer:connect(target[, port][, timeout])
 \brief Request a connection on a socket.
 \param target the target address for a connection.  Either an IP address (in which case a port is required), or a `reverse:` connection for reverse tunnelled connections.
+\param timeout for connect operation
 \return rv is 0 on success, non-zero on failure with err holding the error message.
 */
      LUA_DISPATCH(connect, mtev_lua_socket_connect);
