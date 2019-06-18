@@ -968,15 +968,27 @@ socket_connect_timeout(eventer_t e, int mask, void *closure, struct timeval *now
   mtev_lua_resume_info_t *ci;
   lua_timeout_callback_ref* cb_ref;
   lua_State *L;
+  struct nl_slcl *cl;
 
   cb_ref = (lua_timeout_callback_ref*) closure;
   L = cb_ref->L;
   ci = mtev_lua_find_resume_info(L, mtev_true);
   assert(ci);
 
-  // remove the original event
+  // Remove the original event from the event loop, and close the socket.
   eventer_remove_fde(cb_ref->timed_out_eventer);
   mtev_lua_deregister_event(ci, cb_ref->timed_out_eventer, 0);
+
+  // When we return to the event loop `timed_out_eventer` will be freeed.
+  // Make a copy so that the lua socket object has something to work with:
+  cl = eventer_get_closure(cb_ref->timed_out_eventer);
+  *(cl->eptr) = eventer_alloc_copy(cb_ref->timed_out_eventer);
+  mtev_lua_register_event(ci, *cl->eptr);
+
+  // The socket will be closed when either
+  // (a) e:close() is called explicitly on the lua object (recommended),
+  // (b) the lua object is GCed.
+  // No need to explicitly close it here.
 
   // return into the original Lua call which spawned this timeout
   lua_pushinteger(L, -1);
