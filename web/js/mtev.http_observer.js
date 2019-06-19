@@ -2,6 +2,7 @@
   var interval = null;
   var filter_field = null;
   var filter_expr = null;
+  var disabled = false;
   function filter_client(d) {
     if(filter_expr) {
       for(var name in d) {
@@ -89,6 +90,7 @@
     });
   }
   var updateHTTPClients = function() {
+    if(disabled) return;
     var st = jQuery.ajax("/module/http_observer/requests.json");
     st.done(function( events ) {
       events.sort(function(a,b) {
@@ -98,6 +100,8 @@
     });
   }
   mtev.driveHTTPObserver = function() {
+    $('#http-client-refresh input').bootstrapToggle({ on: "Auto-Refresh", off: "Refresh Paused" });
+    $('#http-client-refresh input').change(function() { disabled = !$(this).prop('checked'); });
     var observer = new MutationObserver(function(mutations) {
       var d = $("#http").css("display") == "none";
       if(d) {
@@ -106,7 +110,7 @@
       }
       else {
         if(interval == null) {
-          interval = setInterval(updateHTTPClients, 30000);
+          interval = setInterval(updateHTTPClients, 2000);
         }
       }
     });
@@ -136,7 +140,7 @@
     observer.observe(target, { attributes: true });
     if($("#http").hasClass("active")) {
       updateHTTPClients();
-      interval = setInterval(updateHTTPClients, 30000);
+      interval = setInterval(updateHTTPClients, 2000);
     }
     updateHTTPClients();
   };

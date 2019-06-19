@@ -305,23 +305,45 @@ div.tooltip {
 
 table#http-client-table {
   width: 100%;
+  table-layout:fixed;
+}
+table#http-client-table tbody {
+  font-size: 0.8em;
+  color: black;
 }
 span.http-client-qs:not(:empty):before {
   content: "?";
 }
 span.http-client-read-complete:not(:empty):before {
-  content: '\2192';
+  content: '\2192\00a0';
 }
 span.http-client-response-complete:not(:empty):before {
-  content: '\2192';
+  content: '\2192\00a0';
+}
+table#http-client-table th:first-child {
+  width:25px;
+}
+table#http-client-table td:first-child button {
+  padding: 2px 3px 0px 3px;
 }
 td.http-client-long,
 th.http-client-long
 {
+  width: 40%;
   max-width: 600px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+div.toggle.btn-sm {
+  min-height: 2em;
+}
+
+#http-client-refresh {
+  float:right;
+}
+#http-client-refresh div.toggle.btn-sm {
+  min-width: 120px;
 }
 #http-client-table .status-2 {
   background:
