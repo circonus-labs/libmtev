@@ -4,6 +4,10 @@
 
 ## 1.6
 
+ * Make HTTP/1 flush/flush_asynch automatic.
+ * Add HTTP auto-flushing that defaults to a bchain size (~32k).
+ * Add `mtev_http_response_auto_flush` to control HTTP auto-flushing.
+
 ## 1.6.14
 
 * Add timeout parameter to socket:connect() in lua

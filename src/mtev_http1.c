@@ -1882,10 +1882,9 @@ _http_construct_leader(mtev_http1_session_ctx *ctx) {
 }
 
 
-static mtev_boolean
-_mtev_http1_response_flush(mtev_http1_session_ctx *ctx,
-                          mtev_boolean final,
-                          mtev_boolean update_eventer) {
+mtev_boolean
+mtev_http1_response_flush(mtev_http1_session_ctx *ctx,
+                          mtev_boolean final) {
   struct bchain *r;
   int mask, rv;
 
@@ -1924,10 +1923,16 @@ _mtev_http1_response_flush(mtev_http1_session_ctx *ctx,
   }
 
   rv = _http_perform_write(ctx, &mask);
-  if(update_eventer && ctx->conn.e &&
+
+  /* If we aren't inside the event callback of the session itself,
+   * we need to update the state in the eventer, if it is registered
+   * there.
+   */
+  if(ctx->conn.e && eventer_get_this_event() != ctx->conn.e &&
      eventer_find_fd(eventer_get_fd(ctx->conn.e)) == ctx->conn.e) {
       eventer_update(ctx->conn.e, mask);
   }
+
   if(rv < 0) return mtev_false;
   /* If the write fails completely, the event will not be closed,
    * the following should not trigger the false case.
@@ -1939,15 +1944,11 @@ size_t
 mtev_http1_response_buffered(mtev_http1_session_ctx *ctx) {
   return ctx->res.output_raw_chain_bytes + ctx->res.output_chain_bytes;
 }
-mtev_boolean
-mtev_http1_response_flush(mtev_http1_session_ctx *ctx,
-                         mtev_boolean final) {
-  return _mtev_http1_response_flush(ctx, final, mtev_true);
-}
+
 mtev_boolean
 mtev_http1_response_flush_asynch(mtev_http1_session_ctx *ctx,
                                 mtev_boolean final) {
-  return _mtev_http1_response_flush(ctx, final, mtev_false);
+  return mtev_http1_response_flush(ctx, final);
 }
 
 mtev_boolean
