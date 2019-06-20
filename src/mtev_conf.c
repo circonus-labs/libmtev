@@ -2017,7 +2017,7 @@ mtev_conf_property_iter(mtev_conf_section_t section,
   mtev_conf_acquire_section(section);
   xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(section);
   xmlAttr *prop;
-  if(mtev_conf_section_is_empty(section)) {
+  if(!mtev_conf_section_is_empty(section)) {
     for(prop = node->properties; prop; prop = prop->next) {
       const char *key = (const char *)prop->name;
       char *value = (char *)xmlGetProp(node, prop->name);
