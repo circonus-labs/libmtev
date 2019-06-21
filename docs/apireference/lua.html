@@ -230,7 +230,20 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.3" data-path="../config/modules/lua_general.html">
+        <li class="chapter " data-level="1.2.7.3" data-path="../config/modules/http_observer.html">
+            
+                <a href="../config/modules/http_observer.html">
+            
+                    
+                    http_observer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/lua_general.html">
             
                 <a href="../config/modules/lua_general.html">
             
@@ -243,7 +256,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/lua_web.html">
+        <li class="chapter " data-level="1.2.7.5" data-path="../config/modules/lua_web.html">
             
                 <a href="../config/modules/lua_web.html">
             
@@ -256,7 +269,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.5" data-path="../config/modules/zipkin_fq.html">
+        <li class="chapter " data-level="1.2.7.6" data-path="../config/modules/zipkin_fq.html">
             
                 <a href="../config/modules/zipkin_fq.html">
             
@@ -269,7 +282,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.6" data-path="../config/modules/zipkin_jaeger.html">
+        <li class="chapter " data-level="1.2.7.7" data-path="../config/modules/zipkin_jaeger.html">
             
                 <a href="../config/modules/zipkin_jaeger.html">
             
@@ -851,10 +864,11 @@ mtev.eventer:close()
 <p>Request a connection on a socket.</p>
 </blockquote>
 <pre><code class="lang-lua">rv, err =
-mtev.eventer:connect(target[, port])
+mtev.eventer:connect(target[, port][, timeout])
 </code></pre>
 <ul>
 <li><code>target</code> the target address for a connection.  Either an IP address (in which case a port is required), or a <code>reverse:</code> connection for reverse tunnelled connections.</li>
+<li><code>timeout</code> for connect operation</li>
 <li><strong>RETURN</strong> rv is 0 on success, non-zero on failure with err holding the error message.</li>
 </ul>
 <h4 id="mteveventerlisten">mtev.eventer:listen</h4>
