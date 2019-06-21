@@ -558,13 +558,14 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     int len;
     while(1) {
       len = snprintf(logline_static, logline_len,
-        "%s - - [%s] \"%s %s%s%s %s\" %d %llu %.3f\n",
+        "%s - - [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
         ip, timestr,
         mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
         orig_qs ? "?" : "", orig_qs ? orig_qs : "",
         mtev_http_request_protocol_str(req),
         mtev_http_response_status(res),
         (long long unsigned)mtev_http_response_bytes_written(res),
+        (long long unsigned)mtev_http_request_content_length_read(req),
         time_ms);
       if(len <= logline_len) break;
       free(logline_dynamic);
@@ -585,13 +586,14 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     (void)logline; /* the above line might be CPP'd away */
     free(logline_dynamic);
   }
-  mtevL(http_access, "%s - - [%s] \"%s %s%s%s %s\" %d %llu %.3f\n",
+  mtevL(http_access, "%s - - [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
         ip, timestr,
         mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
         orig_qs ? "?" : "", orig_qs ? orig_qs : "",
         mtev_http_request_protocol_str(req),
         mtev_http_response_status(res),
         (long long unsigned)mtev_http_response_bytes_written(res),
+        (long long unsigned)mtev_http_request_content_length_read(req),
         time_ms);
 }
 
