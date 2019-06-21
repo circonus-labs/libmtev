@@ -4,10 +4,16 @@
 
 ## 1.6
 
+## 1.6.15
+
+ * Fix compiler warnings for gcc 7.
+ * Fix inverted predicate in configuration property iteration.
+ * Add upload bytes to http access log format.
+
 ## 1.6.14
 
-* Add timeout parameter to socket:connect() in lua
-* Fix deadlock caused by eventer_t:close() in lua
+ * Add timeout parameter to socket:connect() in lua
+ * Fix deadlock caused by eventer_t:close() in lua
 
 ### 1.6.13
 
