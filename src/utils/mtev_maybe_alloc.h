@@ -43,7 +43,7 @@
   struct { \
     size_t sz; \
     type   static_buff[cnt]; \
-  } __##name##_support; \
+  } __##name##_support = { .static_buff = { 0 } }; \
   type *name
 
 /*! \fn MTEV_MAYBE_INIT_VARS(name)
