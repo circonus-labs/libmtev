@@ -340,12 +340,19 @@ static void dns_resume(dns_lookup_ctx_t *dlc) {
           break;
 
         case DNS_T_CNAME: if(!fieldname) fieldname = "cname";
+        /* fall through */
         case DNS_T_PTR: if(!fieldname) fieldname = "ptr";
+        /* fall through */
         case DNS_T_NS: if(!fieldname) fieldname = "ns";
+        /* fall through */
         case DNS_T_MB: if(!fieldname) fieldname = "mb";
+        /* fall through */
         case DNS_T_MD: if(!fieldname) fieldname = "md";
+        /* fall through */
         case DNS_T_MF: if(!fieldname) fieldname = "mf";
+        /* fall through */
         case DNS_T_MG: if(!fieldname) fieldname = "mg";
+        /* fall through */
         case DNS_T_MR: if(!fieldname) fieldname = "mr";
          if(dns_getdn(pkt, &dptr, end, dn, DNS_MAXDN) <= 0) break;
          dns_dntop(dn, buff, sizeof(buff));

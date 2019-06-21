@@ -918,7 +918,7 @@ on_frame_recv_callback(nghttp2_session *session,
   case NGHTTP2_DATA:
     stream->req.payload_complete = mtev_true;
     stream->req.content_length = stream->req.user_data_bytes;
-    /* FALLTRHU */
+    /* fall through */
   case NGHTTP2_HEADERS:
     mtev_http_begin_span((mtev_http_session_ctx *)stream);
     http_request_complete_hook_invoke((mtev_http_session_ctx *)stream);
