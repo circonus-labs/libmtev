@@ -695,8 +695,10 @@ jobq_thread_should_terminate(eventer_jobq_t *jobq, mtev_boolean want_reduce) {
   }
   return mtev_false;
 }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wclobbered"
+static int
+wrap_sigsetjmp(sigjmp_buf env, int v) {
+  return sigsetjmp(env,v);
+}
 void *
 eventer_jobq_consumer(eventer_jobq_t *jobq) {
   eventer_job_t *job;
@@ -802,7 +804,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
      */
     job->executor = pthread_self();
     if(0 == (job->fd_event->mask & EVENTER_EVIL_BRUTAL) ||
-       sigsetjmp(env, 1) == 0) {
+       wrap_sigsetjmp(env, 1) == 0) {
       /* We could get hit right here... (timeout and terminated from
        * another thread.  inflight isn't yet set (next line), so it
        * won't longjmp.  But timeout_triggered will be set... so we
@@ -919,7 +921,6 @@ static void jobq_fire_blanks(eventer_jobq_t *jobq, int n) {
     eventer_jobq_enqueue(jobq, job, NULL);
   }
 }
-#pragma GCC diagnostic pop
 
 void eventer_jobq_ping(eventer_jobq_t *jobq) {
   jobq_fire_blanks(jobq, 1);

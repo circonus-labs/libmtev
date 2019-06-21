@@ -254,8 +254,6 @@ static char *encode_txt(char *dst, const unsigned char *src, int len) {
   return dst;
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 static void dns_resume(dns_lookup_ctx_t *dlc) {
   int r = dlc->results_len;
   void *result = dlc->results;
@@ -342,12 +340,19 @@ static void dns_resume(dns_lookup_ctx_t *dlc) {
           break;
 
         case DNS_T_CNAME: if(!fieldname) fieldname = "cname";
+        /* fall through */
         case DNS_T_PTR: if(!fieldname) fieldname = "ptr";
+        /* fall through */
         case DNS_T_NS: if(!fieldname) fieldname = "ns";
+        /* fall through */
         case DNS_T_MB: if(!fieldname) fieldname = "mb";
+        /* fall through */
         case DNS_T_MD: if(!fieldname) fieldname = "md";
+        /* fall through */
         case DNS_T_MF: if(!fieldname) fieldname = "mf";
+        /* fall through */
         case DNS_T_MG: if(!fieldname) fieldname = "mg";
+        /* fall through */
         case DNS_T_MR: if(!fieldname) fieldname = "mr";
          if(dns_getdn(pkt, &dptr, end, dn, DNS_MAXDN) <= 0) break;
          dns_dntop(dn, buff, sizeof(buff));
@@ -388,7 +393,6 @@ static int dns_resume_event(eventer_t e, int mask, void *closure,
   dns_resume(closure);
   return 0;
 }
-#pragma GCC diagnostic push
 
 static void dns_cb(struct dns_ctx *ctx, void *result, void *data) {
   eventer_t e;

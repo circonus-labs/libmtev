@@ -4561,7 +4561,6 @@ static inline void __slz_make_crc_table(void)
 static inline uint32_t dist_to_code(uint32_t l)
 {
 	uint32_t code;
-
 	code = 0;
 	switch (l) {
 	case 24577 ... 32768: code++;

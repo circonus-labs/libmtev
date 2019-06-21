@@ -261,6 +261,7 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib) {
            dwarf_formflag(attr, &flag, &err) != DW_DLV_OK ||
            flag == 0) break;
         n.low = (uintptr_t)dlsym(NULL, die_name);
+        /* fall through */
       case DW_TAG_subprogram:
         if(dwarf_attrlist(sib, &attrs, &attrcount, &err) == DW_DLV_OK) {
           for(i=0; i<attrcount; i++) {
