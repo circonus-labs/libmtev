@@ -143,7 +143,7 @@ void mtev_hash_init_locks(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lo
 void mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mode_t lock_mode);
 
 /*!
-  \fn int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data)
+  \fn int mtev_hash_store(mtev_hash_table *h, const void *k, int klen, const void *data)
   \brief put something in the hash_table
 
   This will fail if the key already exists in the hash_table
@@ -153,43 +153,49 @@ void mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mod
   NoitHashFreeFunc functions to free up their storage when you call
   mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().
  */
-int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data);
+int mtev_hash_store(mtev_hash_table *h, const void *k, int klen, const void *data);
 
 /*!
-  \fn int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
+  \fn int mtev_hash_replace(mtev_hash_table *h, const void *k, int klen, const void *data, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
   \brief replace and delete (call keyfree and datafree functions) anything that was already in this hash location
  */
-int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
+int mtev_hash_replace(mtev_hash_table *h, const void *k, int klen, const void *data,
                       NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree);
 
 /*!
-  \fn int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data, char **oldkey, void **olddata)
+  \fn int mtev_hash_set(mtev_hash_table *h, const void *k, int klen, const void *data, char **oldkey, void **olddata)
   \brief replace and return the old value and old key that was in this hash location
 
   will return MTEV_HASH_SUCCESS on successful set with no replacement
   will return MTEV_HASH_FAILURE on failure to set
   will return MTEV_HASH_SUCCESS_REPLACEMENT on successful set with replacement
  */
-int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
+int mtev_hash_set(mtev_hash_table *h, const void *k, int klen, const void *data,
                   char **oldkey, void **olddata);
 
 /*!
-  \fn int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data)
+  \fn int mtev_hash_retrieve(mtev_hash_table *h, const void *k, int klen, void **data)
   \brief fetch the value at "k" into "data"
  */
-int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data);
+int mtev_hash_retrieve(mtev_hash_table *h, const void *k, int klen, void **data);
 
 /*!
-  \fn int mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr)
+  \fn void * mtev_hash_get(mtev_hash_table *h, const void *k, int klen)
+  \brief return the value at "k
+ */
+void *mtev_hash_get(mtev_hash_table *h, const void *k, int klen);
+
+/*!
+  \fn int mtev_hash_retr_str(mtev_hash_table *h, const void *k, int klen, const char **dstr)
   \brief fetch the value at "k" into "data" as a string
  */
-int mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr);
+int mtev_hash_retr_str(mtev_hash_table *h, const void *k, int klen, const char **dstr);
 
 /*!
-  \fn int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
+  \fn int mtev_hash_delete(mtev_hash_table *h, const void *k, int klen, NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
   \brief remove the key/value stored at "k" and call keyfree and datafree if they are provided
  */
-int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen,
+int mtev_hash_delete(mtev_hash_table *h, const void *k, int klen,
                      NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree);
 
 /*!
@@ -258,7 +264,7 @@ int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter);
 int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter);
 
 /*!
-  \fn int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen, void **data)
+  \fn int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter, void ** const k, int *klen, void **data)
   \brief iterate through the key/values in the hash_table
 
 
@@ -266,23 +272,32 @@ int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter);
    Note that neither of these sets the key, value, or klen in iter
 */
 int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
-                   const char **k, int *klen, void **data);
+                   void ** const k, int *klen, void **data);
 
 /*!
-  \fn int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen, const char **dstr)
+  \fn int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter, void ** const k, int *klen, char **dstr)
   \brief iterate through the key/values in the hash_table as strings
 
 
   These are older, more painful APIs... use mtev_hash_adv */
 /* Note that neither of these sets the key, value, or klen in iter */
 int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
-                       const char **k, int *klen, const char **dstr);
+                       void ** const k, int *klen, char ** dstr);
 
 
 /*!
-  \fn uint32_t mtev_hash__hash(const char *k, uint32_t length, uint32_t initval)
+  \fn uint32_t mtev_hash__hash(const void *k, uint32_t length, uint32_t initval)
   \brief the internal hash function that mtev_hash_table uses exposed for external usage
  */
-uint32_t mtev_hash__hash(const char *k, uint32_t length, uint32_t initval);
+uint32_t mtev_hash__hash(const void *k, uint32_t length, uint32_t initval);
+
+#define mtev_hash_dict_init(h) mtev_hash_init(h)
+#define mtev_hash_dict_replace(h,a,b) mtev_hash_replace((h),strdup(a),strlen(a),strdup(b),free,free)
+#define mtev_hash_dict_store(h,a,b) mtev_hash_store((h),strdup(a),strlen(a),strdup(b))
+#define mtev_hash_dict_delete(h,a) mtev_hash_delete((h),(a),strlen(a),free,free)
+#define mtev_hash_dict_get(h,a) (char *)mtev_hash_get((h),(a),strlen(a))
+#define mtev_hash_dict_delete_all(h) mtev_hash_delete_all((h),free,free)
+#define mtev_hash_dict_destroy(h) mtev_hash_destroy((h),free,free)
+#define mtev_hash_dict_adv mtev_hash_adv
 
 #endif

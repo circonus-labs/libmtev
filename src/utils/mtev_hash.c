@@ -48,7 +48,7 @@
 
 #define ONSTACK_KEY_SIZE 128
 
-uint32_t mtev_hash__hash(const char *k, uint32_t length, uint32_t initval) {
+uint32_t mtev_hash__hash(const void *k, uint32_t length, uint32_t initval) {
   return (uint32_t)XXH64(k, length, initval);
 }
 
@@ -264,7 +264,7 @@ int mtev_hash_size(mtev_hash_table *h) {
   return ck_hs_count(&h->u.hs);
 }
 
-int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
+int mtev_hash_replace(mtev_hash_table *h, const void *k, int klen, const void *data,
                       NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree) {
   char *oldkey = NULL;
   void *olddata = NULL;
@@ -276,7 +276,7 @@ int mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
   return ret;
 }
 
-int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data) {
+int mtev_hash_store(mtev_hash_table *h, const void *k, int klen, const void *data) {
   long hashv;
   int ret = 0;
   ck_hash_attr_t *attr = NULL;
@@ -297,7 +297,7 @@ int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data) {
   attr->key.label[klen] = 0;
   attr->key.len = klen + sizeof(uint32_t);
   attr->key_ptr = (char*)k;
-  attr->data = data;
+  attr->data = (void *)data;
   hashv = CK_HS_HASH(&h->u.hs, hs_hash, &attr->key);
   LOCK(h);
   ret = ck_hs_put(&h->u.hs, hashv, &attr->key);
@@ -312,7 +312,7 @@ int mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data) {
   return ret;
 }
 
-int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
+int mtev_hash_set(mtev_hash_table *h, const void *k, int klen, const void *data,
                   char **oldkey, void **olddata) 
 {
   long hashv;
@@ -336,7 +336,7 @@ int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
   memcpy(attr->key.label, k, klen);
   attr->key.label[klen] = 0;
   attr->key.len = klen + sizeof(uint32_t);
-  attr->data = data;
+  attr->data = (void *)data;
   attr->key_ptr = (char*)k;
   hashv = CK_HS_HASH(&h->u.hs, hs_hash, &attr->key);
   LOCK(h);
@@ -367,7 +367,7 @@ int mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data,
   return ret;
 }
 
-int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data) {
+int mtev_hash_retrieve(mtev_hash_table *h, const void *k, int klen, void **data) {
   long hashv;
   ck_key_t *retrieved_key;
   union {
@@ -406,7 +406,12 @@ int mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data)
   if(key != &onstack_key.key) free(key);
   return 0;
 }
-int mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr) {
+void *mtev_hash_get(mtev_hash_table *h, const void *k, int klen) {
+  void *v;
+  if(mtev_hash_retrieve(h,k,klen,&v)) return v;
+  return NULL;
+}
+int mtev_hash_retr_str(mtev_hash_table *h, const void *k, int klen, const char **dstr) {
   void *data;
   if(!h) return 0;
   if(mtev_hash_retrieve(h, k, klen, &data)) {
@@ -415,7 +420,7 @@ int mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char *
   }
   return 0;
 }
-int mtev_hash_delete(mtev_hash_table *h, const char *k, int klen,
+int mtev_hash_delete(mtev_hash_table *h, const void *k, int klen,
                      NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree) {
   long hashv;
   ck_hash_attr_t *data_struct;
@@ -518,7 +523,7 @@ void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src) {
  * version of the mtev_hash_iter allocated on stack.
  */
 int _mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
-                    const char **k, int *klen, void **data, 
+                    void ** const k, int *klen, void **data, 
                     mtev_boolean spmc) {
   void *cursor = NULL;
   ck_key_t *key;
@@ -546,21 +551,21 @@ int _mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
 }
 
 int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter) {
-  return _mtev_hash_next(h, iter, &iter->key.str, &iter->klen, &iter->value.ptr, mtev_false);
+  return _mtev_hash_next(h, iter, &iter->key.ptr, &iter->klen, &iter->value.ptr, mtev_false);
 }
 
 int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter) {
-  return _mtev_hash_next(h, iter, &iter->key.str, &iter->klen, &iter->value.ptr, mtev_true);
+  return _mtev_hash_next(h, iter, &iter->key.ptr, &iter->klen, &iter->value.ptr, mtev_true);
 }
 
 int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
-                    const char **k, int *klen, void **data) {
+                   void ** const k, int *klen, void **data) {
   return _mtev_hash_next(h, iter, k, klen, data, mtev_false);
 }
 
 
 int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
-                       const char **k, int *klen, const char **dstr) {
+                       void ** const k, int *klen, char **dstr) {
   void *data = NULL;
   int rv;
   /* Leave this hash_next for ABI safety.
