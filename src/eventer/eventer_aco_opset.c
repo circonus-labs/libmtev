@@ -143,11 +143,15 @@ eventer_set_eventer_aco(eventer_t e) {
   return eventer_set_eventer_aco_co(e, aco_get_co());
 }
 
+struct _event_aco_gate {
+  uint32_t ref_cnt;
+};
 struct aco_asynch_simple_ctx {
   eventer_asynch_simple_func_t func;
   eventer_asynch_func_t func_ops;
   void *closure;
   aco_t *co;
+  struct _event_aco_gate *gate;
 };
 
 static int
@@ -162,12 +166,45 @@ eventer_aco_mode_asynch_wrapper(eventer_t e, int mask, void *closure, struct tim
     simple_ctx->func_ops(EVENTER_ASYNCH_CLEANUP, simple_ctx->closure);
   }
   else if(mask == EVENTER_ASYNCH_COMPLETE) {
+    bool zero;
     aco_t *co = simple_ctx->co;
     simple_ctx->func_ops(EVENTER_ASYNCH_COMPLETE, simple_ctx->closure);
+    ck_pr_dec_32_zero(&simple_ctx->gate->ref_cnt, &zero);
     free(simple_ctx);
-    eventer_aco_resume(co);
+    if(zero) eventer_aco_resume(co);
   }
   return 0;
+}
+
+eventer_aco_gate_t
+eventer_aco_gate(void) {
+  eventer_aco_gate_t gate = calloc(1, sizeof(*gate));
+  gate->ref_cnt = 1;
+  return gate;
+}
+
+void
+eventer_aco_gate_wait(eventer_aco_gate_t gate) {
+  bool zero;
+  ck_pr_dec_32_zero(&gate->ref_cnt, &zero);
+  if(!zero) aco_yield();
+  free(gate);
+}
+
+void
+eventer_aco_asynch_queue_subqueue_deadline_gated(eventer_aco_gate_t gate,
+                                           eventer_asynch_func_t func,
+                                           void *closure, eventer_jobq_t *q,
+                                           uint64_t id, struct timeval *t) {
+  struct aco_asynch_simple_ctx *simple_ctx = malloc(sizeof(*simple_ctx));
+  simple_ctx->func_ops = func;
+  simple_ctx->closure = closure;
+  simple_ctx->co = aco_get_co();
+  simple_ctx->gate = gate;
+  ck_pr_inc_32(&simple_ctx->gate->ref_cnt);
+  eventer_t e = eventer_alloc_asynch(eventer_aco_mode_asynch_wrapper, simple_ctx);
+  if(t) eventer_update_whence(e, *t);
+  eventer_add_asynch_subqueue(q, e, id);
 }
 
 void
@@ -178,6 +215,7 @@ eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_t func,
   simple_ctx->func_ops = func;
   simple_ctx->closure = closure;
   simple_ctx->co = aco_get_co();
+  simple_ctx->gate = eventer_aco_gate();
   eventer_t e = eventer_alloc_asynch(eventer_aco_mode_asynch_wrapper, simple_ctx);
   if(t) eventer_update_whence(e, *t);
   eventer_add_asynch_subqueue(q, e, id);
@@ -193,11 +231,25 @@ eventer_aco_simple_asynch_wrapper(eventer_t e, int mask, void *closure, struct t
     simple_ctx->func(simple_ctx->closure);
   }
   if(mask == EVENTER_ASYNCH) {
+    bool zero;
     aco_t *co = simple_ctx->co;
+    ck_pr_dec_32_zero(&simple_ctx->gate->ref_cnt, &zero);
     free(simple_ctx);
-    eventer_aco_resume(co);
+    if(zero) eventer_aco_resume(co);
   }
   return 0;
+}
+
+void
+eventer_aco_simple_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q, uint64_t id) {
+  struct aco_asynch_simple_ctx *simple_ctx = malloc(sizeof(*simple_ctx));
+  simple_ctx->func = func;
+  simple_ctx->closure = closure;
+  simple_ctx->co = aco_get_co();
+  simple_ctx->gate = gate;
+  ck_pr_inc_32(&simple_ctx->gate->ref_cnt);
+  eventer_t e = eventer_alloc_asynch(eventer_aco_simple_asynch_wrapper, simple_ctx);
+  eventer_add_asynch_subqueue(q, e, id);
 }
 
 void
@@ -206,6 +258,7 @@ eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void
   simple_ctx->func = func;
   simple_ctx->closure = closure;
   simple_ctx->co = aco_get_co();
+  simple_ctx->gate = eventer_aco_gate();
   eventer_t e = eventer_alloc_asynch(eventer_aco_simple_asynch_wrapper, simple_ctx);
   eventer_add_asynch_subqueue(q, e, id);
   aco_yield();
@@ -214,6 +267,7 @@ eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void
 struct aco_asynch_cb_ctx {
   eventer_t e;
   aco_t *co;
+  struct _event_aco_gate *gate;
 };
 
 static int
@@ -222,11 +276,29 @@ eventer_aco_asynch_wrapper(eventer_t e, int mask, void *closure, struct timeval 
   struct aco_asynch_cb_ctx *ctx = closure;
   ctx->e->callback(ctx->e, mask, ctx->e->closure, now);
   if(mask == EVENTER_ASYNCH) {
+    bool zero;
     aco_t *co = ctx->co;
+    ck_pr_dec_32_zero(&ctx->gate->ref_cnt, &zero);
     free(ctx);
-    eventer_aco_resume(co);
+    if(zero) eventer_aco_resume(co);
   }
   return 0;
+}
+
+mtev_boolean
+eventer_aco_try_run_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_jobq_t *q, eventer_t e, uint64_t sq) {
+  struct aco_asynch_cb_ctx *ctx = malloc(sizeof(*ctx));
+  ctx->e = e;
+  ctx->co = aco_get_co();
+  ctx->gate = gate;
+  ck_pr_inc_32(&ctx->gate->ref_cnt);
+  eventer_t ae = eventer_alloc_asynch(eventer_aco_asynch_wrapper, ctx);
+  if(eventer_try_add_asynch_subqueue(q, ae, sq)) {
+    return mtev_true;
+  }
+  free(ctx);
+  free(ctx->gate);
+  return mtev_false;
 }
 
 mtev_boolean
@@ -234,13 +306,26 @@ eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64
   struct aco_asynch_cb_ctx *ctx = malloc(sizeof(*ctx));
   ctx->e = e;
   ctx->co = aco_get_co();
+  ctx->gate = eventer_aco_gate();
   eventer_t ae = eventer_alloc_asynch(eventer_aco_asynch_wrapper, ctx);
   if(eventer_try_add_asynch_subqueue(q, ae, sq)) {
     aco_yield();
     return mtev_true;
   }
   free(ctx);
+  free(ctx->gate);
   return mtev_false;
+}
+
+void
+eventer_aco_run_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_jobq_t *q, eventer_t e, uint64_t sq) {
+  struct aco_asynch_cb_ctx *ctx = calloc(1, sizeof(*ctx));
+  ctx->e = e;
+  ctx->co = aco_get_co();
+  ctx->gate = gate;
+  ck_pr_inc_32(&ctx->gate->ref_cnt);
+  eventer_t ae = eventer_alloc_asynch(eventer_aco_asynch_wrapper, ctx);
+  eventer_add_asynch_subqueue(q, ae, sq);
 }
 
 void
@@ -248,6 +333,7 @@ eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t s
   struct aco_asynch_cb_ctx *ctx = calloc(1, sizeof(*ctx));
   ctx->e = e;
   ctx->co = aco_get_co();
+  ctx->gate = eventer_aco_gate();
   eventer_t ae = eventer_alloc_asynch(eventer_aco_asynch_wrapper, ctx);
   eventer_add_asynch_subqueue(q, ae, sq);
   aco_yield();
