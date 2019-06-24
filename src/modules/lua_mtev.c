@@ -5428,9 +5428,11 @@ mtev_lua_semaphore_index_func(lua_State *L) {
   const char* key = udata;
   switch(*k) {
   case 'a':
-    lua_getglobal(L, "mtev");
-    lua_getfield(L, -1, "__semaphore_acquire");
-    return 1;
+    if(!strcmp(k, "acquire")) {
+      lua_getglobal(L, "mtev");
+      lua_getfield(L, -1, "__semaphore_acquire");
+      return 1;
+    }
     break;
   case 't':
     LUA_DISPATCH(try_acquire, mtev_lua_semaphore_try_acquire);
