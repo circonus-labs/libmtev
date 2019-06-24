@@ -4,6 +4,8 @@
 
 ## 1.6
 
+ * Fix web UI where suppressed tabs would prevernt `mtev-loaded` signal.
+
 ## 1.6.15
 
  * Fix compiler warnings for gcc 7.

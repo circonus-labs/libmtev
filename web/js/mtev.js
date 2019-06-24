@@ -445,8 +445,8 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
               catch(e) { console.log(tab.callback, e); }
               if(cond == null) cond = function() { return false; }
             }
-            load_pending++;
             if(cond == null || cond() == true) {
+              load_pending++;
               mtev.ui_load(tab.name, tab.id, tab.url, tab.active, finish_load(cb))
             }
           }
