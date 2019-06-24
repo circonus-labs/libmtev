@@ -5374,7 +5374,7 @@ sem:release()
 
 static int
 nl_semaphore(lua_State *L) {
-  int val, *valp, **valpp;
+  int64_t val, *valp, **valpp;
   const char *key = luaL_checkstring(L,1);
   val = luaL_checkinteger(L,2);
   /* We use a single global mutex to gate access to all semaphore objects */
@@ -5398,11 +5398,11 @@ nl_semaphore(lua_State *L) {
 */
 static int
 mtev_lua_semaphore_try_acquire(lua_State *L) {
-  int **valpp = luaL_checkudata(L, 1, "mtev.semaphore");
+  int64_t **valpp, old;
   int lua_rc = 0;
-  int old;
-  while((old = ck_pr_load_int(*valpp)) > 0) {
-    if(ck_pr_cas_int(*valpp, old, old-1)) {
+  valpp = luaL_checkudata(L, 1, "mtev.semaphore");
+  while((old = ck_pr_load_64((uint64_t*) *valpp)) > 0) {
+    if(ck_pr_cas_64((uint64_t*) *valpp, (uint64_t) old, (uint64_t) old-1)) {
       lua_rc = 1;
       break;
     }
@@ -5416,8 +5416,8 @@ mtev_lua_semaphore_try_acquire(lua_State *L) {
 */
 static int
 mtev_lua_semaphore_release(lua_State *L) {
-  int **valpp = luaL_checkudata(L, 1, "mtev.semaphore");
-  ck_pr_inc_int(*valpp);
+  int64_t **valpp = luaL_checkudata(L, 1, "mtev.semaphore");
+  ck_pr_inc_64((uint64_t*) *valpp);
   return 0;
 }
 
