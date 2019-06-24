@@ -76,10 +76,10 @@ typedef struct mtev_hash_iter {
   ck_hs_iterator_t iter;
   union {
     const char *str;
-    void *ptr;
+    const void *ptr;
   } key;
   union {
-    const char *str;
+    char *str;
     void *ptr;
   } value;
   int klen;
@@ -264,7 +264,7 @@ int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter);
 int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter);
 
 /*!
-  \fn int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter, void ** const k, int *klen, void **data)
+  \fn int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen, void **data)
   \brief iterate through the key/values in the hash_table
 
 
@@ -272,17 +272,17 @@ int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter);
    Note that neither of these sets the key, value, or klen in iter
 */
 int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
-                   void ** const k, int *klen, void **data);
+                   const char **k, int *klen, void **data);
 
 /*!
-  \fn int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter, void ** const k, int *klen, char **dstr)
+  \fn int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen, const char **dstr)
   \brief iterate through the key/values in the hash_table as strings
 
 
   These are older, more painful APIs... use mtev_hash_adv */
 /* Note that neither of these sets the key, value, or klen in iter */
 int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
-                       void ** const k, int *klen, char ** dstr);
+                       const char **k, int *klen, const char ** dstr);
 
 
 /*!

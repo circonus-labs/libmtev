@@ -523,7 +523,7 @@ void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src) {
  * version of the mtev_hash_iter allocated on stack.
  */
 int _mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
-                    void ** const k, int *klen, void **data, 
+                    const void **k, int *klen, void **data, 
                     mtev_boolean spmc) {
   void *cursor = NULL;
   ck_key_t *key;
@@ -559,13 +559,13 @@ int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter) {
 }
 
 int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
-                   void ** const k, int *klen, void **data) {
-  return _mtev_hash_next(h, iter, k, klen, data, mtev_false);
+                   const char **k, int *klen, void **data) {
+  return _mtev_hash_next(h, iter, (const void **)k, klen, (void **)data, mtev_false);
 }
 
 
 int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
-                       void ** const k, int *klen, char **dstr) {
+                       const char **k, int *klen, const char **dstr) {
   void *data = NULL;
   int rv;
   /* Leave this hash_next for ABI safety.

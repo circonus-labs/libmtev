@@ -540,7 +540,7 @@ mtev_http2_data_provider_read(nghttp2_session *session, int32_t stream_id,
         while(mtev_hash_adv(&ctx->res.trailers, &iter)) {
           if((j == 0 && iter.key.str[0] == ':') ||
              (j == 1 && iter.key.str[0] != ':')) {
-            nghttp2_nv nv = { iter.key.ptr, iter.value.ptr, iter.klen, strlen(iter.value.str),
+            nghttp2_nv nv = { (void *)iter.key.ptr, iter.value.ptr, iter.klen, strlen(iter.value.str),
                               NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE };
             hdrs[i++] = nv;
           }
@@ -599,7 +599,7 @@ mtev_http2_response_flush(mtev_http2_session_ctx *ctx,
       while(mtev_hash_adv(&ctx->res.headers, &iter)) {
         if((j == 0 && iter.key.str[0] == ':') ||
            (j == 1 && iter.key.str[0] != ':')) {
-          nghttp2_nv nv = { iter.key.ptr, iter.value.ptr, iter.klen, strlen(iter.value.str),
+          nghttp2_nv nv = { (void *)iter.key.ptr, iter.value.ptr, iter.klen, strlen(iter.value.str),
                             NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE };
           hdrs[i++] = nv;
           mtevL(h2_debug, "http2 header out(%p -> %d) %s : %s\n", ctx->parent,
