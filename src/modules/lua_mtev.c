@@ -84,7 +84,6 @@ static pthread_mutex_t shared_table_mutex;
 static mtev_hash_table *shared_seq_table;
 
 static mtev_hash_table *semaphore_table;
-static pthread_mutex_t semaphore_mutex;
 
 typedef struct {
   mtev_hash_table string_keys;
@@ -5377,14 +5376,15 @@ nl_semaphore(lua_State *L) {
   int64_t val, *valp, **valpp;
   const char *key = luaL_checkstring(L,1);
   val = luaL_checkinteger(L,2);
-  /* We use a single global mutex to gate access to all semaphore objects */
-  pthread_mutex_lock(&semaphore_mutex);
   if (!mtev_hash_retrieve(semaphore_table, key, strlen(key), (void**) &valp)) {
+    /* initialize new semaphore counter */
     valp = calloc(1, sizeof(val));
     *valp = val;
-    mtev_hash_store(semaphore_table, key, strlen(key), valp);
+    if(!mtev_hash_store(semaphore_table, key, strlen(key), valp)) {
+      /* lost race */
+      free(valp);
+    }
   }
-  pthread_mutex_unlock(&semaphore_mutex);
   /* return new semaphore object */
   valpp = lua_newuserdata(L, sizeof(valp));
   *valpp = valp;
@@ -5491,10 +5491,7 @@ static void mtev_lua_init(void) {
 
   /* init semaphore */
   semaphore_table = calloc(1, sizeof(*semaphore_table));
-  mtev_hash_init_locks(semaphore_table, 0, MTEV_HASH_LOCK_MODE_NONE);
-  if(pthread_mutex_init(&semaphore_mutex, NULL) != 0) {
-      mtevL(nlerr, "Unable to initialize semaphore_mutex\n");
-  }
+  mtev_hash_init_locks(semaphore_table, 0, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 
 static const luaL_Reg mtevlib[] = {
