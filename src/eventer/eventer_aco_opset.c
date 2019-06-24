@@ -475,3 +475,7 @@ struct _fd_opset _eventer_aco_fd_opset = {
 
 eventer_fd_opset_t eventer_aco_fd_opset = &_eventer_aco_fd_opset;
 
+mtev_boolean eventer_is_aco(eventer_t e) {
+  if(e == NULL) return mtev_false;
+  return e->opset == eventer_aco_fd_opset;
+}

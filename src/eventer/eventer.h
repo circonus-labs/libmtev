@@ -1497,6 +1497,13 @@ API_EXPORT(void) eventer_aco_start_stack(void (*func)(void), void *closure, size
 */
 API_EXPORT(void *) eventer_aco_arg(void);
 
+/*! \fn mtev_boolean eventer_is_aco(eventer_t e)
+    \brief Determine if an event is in ACO mode.
+    \param e The eventer_t in question
+    \return True if in ACO mode, false otherwise.
+*/
+API_EXPORT(mtev_boolean) eventer_is_aco(eventer_t);
+
 /* Private */
 API_EXPORT(int) eventer_impl_init(void);
 API_EXPORT(void *) eventer_get_spec_for_event(eventer_t);
