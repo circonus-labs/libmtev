@@ -4,6 +4,8 @@
 
 ## 1.6
 
+ * Add lua mtev.semaphore()
+
 ## 1.6.15
 
  * Fix compiler warnings for gcc 7.
