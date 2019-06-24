@@ -718,6 +718,14 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
   return 0;
 }
 
+/* GET /module/lua/xcall.json
+
+   Calls _G.xcall(querystring_table) in each Lua State.
+   Returns serialized output values as as JSON object of the form:
+
+        { "$stateptr" : <val> }
+
+*/
 static int
 mtev_lua_xcall(mtev_http_rest_closure_t *restc, int n, char **p) {
   (void)n;
