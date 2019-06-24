@@ -5358,14 +5358,11 @@ nl_shared_seq(lua_State *L) {
 If a semaphore with the same name already exists, no initialization takes place, and the second argument is ignored.
 
 Semaphores are a way to synchronize actions between different lua states.
-At the time of this writing, this semaphore implementation does not provide a :wait() method.
-Use (randomized) sleep in order to wait for the semaphore to become available like so:
 
+Example:
 ```lua
 sem = mtev.semaphore("my-first-semaphore", 10)
-while(not sem:try_acquire())
-  mtev.sleep(.1)
-end
+sem:acquire()
 -- ... do something while holding the lock
 sem:release()
 ```
@@ -5430,6 +5427,11 @@ mtev_lua_semaphore_index_func(lua_State *L) {
   const char* k = luaL_checkstring(L, 2);
   const char* key = udata;
   switch(*k) {
+  case 'a':
+    lua_getglobal(L, "mtev");
+    lua_getfield(L, -1, "__semaphore_acquire");
+    return 1;
+    break;
   case 't':
     LUA_DISPATCH(try_acquire, mtev_lua_semaphore_try_acquire);
     break;

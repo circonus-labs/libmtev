@@ -10,9 +10,7 @@ describe("semaphore tests", function()
                 for i=1,n_coros do
                   mtev.coroutine_spawn(function()
                       local sem = mtev.semaphore("test", 3)
-                      while not sem:try_acquire() do
-                        mtev.sleep(sleep_time)
-                      end
+                      sem:acquire()
                       A = A + 1
                       local d = mtev.time() + hold_time
                       while mtev.time() < d do

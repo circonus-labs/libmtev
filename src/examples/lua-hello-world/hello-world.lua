@@ -64,9 +64,7 @@ function main()
   local join_sem = mtev.semaphore("1CB22459-D022-4597-9C41-9FE26675A133", -n_threads + 1)
   join_sem:release()
   mtev.log("out", "Waiting for %d threads to terminate\n", n_threads)
-  while not join_sem:try_acquire() do
-    mtev.sleep(.1)
-  end
+  join_sem:acquire()
   mtev.log("out", "EXIT!\n")
   os.exit(0)
 end

@@ -223,5 +223,31 @@ function mtev_coros_resume(co,...)
   return rv
 end
 
+--/*! \lua semaphore:acquire([timeout])
+--\param timeout time optional time to wait for the lock. Defaults to inifinite wait.
+--\brief returns true of the semaphore lock could be acquired within the given timeout, false if not.
+--
+--At the time of this writing, the implementation of this functions uses polling.
+--Expect delays between calls to :release() and subsequent :acquire() returning.
+--*/
+--
+-- Comment: The polling version of semaphore:acquire() is much easier to implement in lua than in C,
+-- since, we can't continue executing a C function after an mtev.sleep(). Ultimately we want this
+-- function to suspend the coro and wake up when :release() is called by another thread/coro.
+function _G.mtev.__semaphore_acquire(self, timeout, poll_interval)
+  local deadline = 0
+  if timeout then
+    deadline = _G.mtev.time() + timeout
+  end
+  poll_interval = poll_interval or 0.01
+  while not self:try_acquire() do
+    if timeout and (_G.mtev.time() > deadline) then
+      return false
+    end
+    _G.mtev.sleep(poll_interval)
+  end
+  return true
+end
+
 _G.coroutine._resume = _G.coroutine.resume
 _G.coroutine.resume = mtev_coros_resume
