@@ -8,16 +8,14 @@ local s,us = mtev.gettimeofday()
 math.randomseed(us)
 
 --
+-- The threaded concurrency, can be configured in hello-world.conf
 -- The main function is executed concurrently by all lua threads
 -- when <concurrent>true</concurrent> is set in the config
 --
--- Q: How to configure the threaded concurrency?
--- Apparently <default_queue_threads>10</default_queue_threads> in eventer/config is not doing it.
---
 function main()
   -- Read-in command line arguments
-  local N = tonumber(arg[2]) or 10
-  local WAIT = tonumber(arg[3]) or 5
+  local N = tonumber(arg[2]) or 3
+  local WAIT = tonumber(arg[3]) or .1
 
   -- Say Hi!
   mtev.log("stdout", "Hello from thread %d/%d!\n", mtev.thread_self())
@@ -41,11 +39,6 @@ function main()
     mtev.coroutine_spawn(coro_main, i, WAIT)
   end
 
-  -- List all co-routines within this lua state
-  for i, coro in pairs(mtev_coros) do
-    mtev.log("out", "coroutine %d : %s\n", i, coroutine.status(coro))
-  end
-
   -- Join co-routines
   local results = {}
   for i=1,N do
@@ -67,22 +60,11 @@ function main()
 
   -- Join threads
   -- Wait until all threads are at this line here, so that we can safely terminate the program.
-  -- We use a poor mans (racey) semaphore...
   local n_threads = mtev.eventer_loop_concurrency()
+  local join_sem = mtev.semaphore("1CB22459-D022-4597-9C41-9FE26675A133", -n_threads + 1)
+  join_sem:release()
   mtev.log("out", "Waiting for %d threads to terminate\n", n_threads)
-  mtev.shared_set("term", tostring((tonumber(mtev.shared_get("term")) or 0) + 1))
-  mtev.log("out", "TERM: %s\n", mtev.shared_get("term"))
-  while tonumber(mtev.shared_get("term")) < n_threads do
-    mtev.sleep(.1)
-  end
-
-  -- Calling os.exit() terminates all threads.
-  -- If we don't call os.exit() explicilty the process will keep running.
-  -- Q: Is there a better way to "join lua threads and exit" ?
-  --    Maybe:
-  --    -> expose syncrhonization primitives, e.g. semaphores???
-  --    -> Explicit config option to terminate process after main() has returned on all threads?
-  --    -> Ignore the problem (concurrent one-shot applications might not common)
+  join_sem:acquire()
   mtev.log("out", "EXIT!\n")
   os.exit(0)
 end
@@ -90,7 +72,7 @@ end
 -- Main function of the coroutine
 function coro_main(coro_id, w)
   local coro = coroutine.running()
-  local wait = math.random(w)
+  local wait = math.random() * w
   mtev.log("out","Hello from coro %d at %p. Waiting %ds\n", coro_id, coro, wait)
 
   -- suspend this co-routine. Yield to event loop.
@@ -98,7 +80,7 @@ function coro_main(coro_id, w)
   mtev.notify("SLEEP", coro_id, slept:seconds())
 
   -- retrieve a global sequence number
-  local cnt = 10
+  local cnt = 3
   repeat
     mtev.log("out", "Global sequence key1 from coro %d: %d.\n", coro_id, mtev.shared_seq("key1"))
     mtev.log("out", "Global sequence key2 from coro %d: %d.\n", coro_id, mtev.shared_seq("key2"))
@@ -113,8 +95,8 @@ function coro_main(coro_id, w)
   -- See /test/mtevbusted/child.lua for examples.
 
   -- make an HTTP request
-  local result = HTTP("google.com","/")
-  mtev.log("http", "%s\n", result) -- This goes to http.log
+  -- local result = HTTP("google.com","/")
+  -- mtev.log("http", "%s\n", result) -- This goes to http.log
   mtev.notify("HTTP", coro_id)
 
   -- tell main() we are done

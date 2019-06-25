@@ -4,6 +4,7 @@
 
 ## 1.6
 
+ * Add lua mtev.semaphore()
  * Fix web UI where suppressed tabs would prevernt `mtev-loaded` signal.
 
 ## 1.6.15
