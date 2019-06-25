@@ -698,6 +698,10 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
       mtev_lua_hash_to_table(L, reporter->args);
       /*  Invoke xcall() */
       lua_call(L, 1, 1);
+      if(lua_isnil(L, -1)) {
+        /* skip lua states that return an explicit nil */
+        continue;
+      }
       /* Convert results to json via mtev.tojson(...):unwrap() */
       lua_getglobal(L, "mtev");
       lua_getfield(L, -1, "tojson");
