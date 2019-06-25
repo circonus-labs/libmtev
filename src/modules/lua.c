@@ -690,9 +690,9 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
     mtev_json_object *out;
     if(!pthread_equal(me, tgt)) continue;
     snprintf(state_str, sizeof(state_str), "%p", (void*)L);
-    lua_getglobal(L, "xcall");
+    lua_getglobal(L, "mtev_xcall");
     if(lua_isnil(L, -1)) {
-      out = MJ_STR("<xcall function not found>");
+      out = MJ_STR("<mtev_xcall function not found>");
     }
     else {
       mtev_lua_hash_to_table(L, reporter->args);
@@ -720,7 +720,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
 
 /* GET /module/lua/xcall.json
 
-   Calls _G.xcall(querystring_table) in each Lua State.
+   Calls _G.mtev_xcall(querystring_table) in each Lua State.
    Returns serialized output values as as JSON object of the form:
 
         { "$stateptr" : <val> }
