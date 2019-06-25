@@ -4,6 +4,8 @@
 
 ## 1.6
 
+## 1.6.16
+
  * Add /module/lua/xcall.json REST endpoint (for state inspection)
  * Add lua mtev.semaphore()
  * Fix web UI where suppressed tabs would prevernt `mtev-loaded` signal.
