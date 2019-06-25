@@ -74,6 +74,7 @@ typedef struct lua_general_conf {
   const char *module;
   const char *function;
   const char **Cpreloads;
+  const char **Lpreloads;
   lua_module_gc_params_t *gc_params;
   mtev_boolean concurrent;
   mtev_boolean booted;
@@ -292,6 +293,20 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     }
     free(copy);
   }
+
+  if(mtev_hash_retr_str(o, "Lpreloads", strlen("Lpreloads"), &bstr)) {
+    int count = 1, i;
+    char *brk = NULL, *cp, *copy;
+    cp = copy = strdup(bstr);
+    while(*cp) if(*cp++ == ',') count++; /* count terms (start with 1) */
+    conf->Lpreloads = calloc(count+1, sizeof(char *)); /* null term */
+    for(i = 0, cp = strtok_r(copy, ",", &brk);
+        cp; cp = strtok_r(NULL, ",", &brk), i++) {
+      conf->Lpreloads[i] = strdup(cp);
+    }
+    free(copy);
+  }
+
   conf->gc_params = mtev_lua_config_gc_params(o);
   return 0;
 }
@@ -733,6 +748,17 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     }
     free(symbol);
   }
+
+  for(module = conf->Lpreloads; module && *module; module++) {
+    int rv;
+    lua_getglobal(lmc->lua_state, "require");
+    lua_pushstring(lmc->lua_state, *module);
+    rv = lua_pcall(lmc->lua_state, 1, 0, 0);
+    if(rv) {
+      mtevL(mtev_error, "Lpreloads: require %s failed: %s\n", *module, lua_tostring(lmc->lua_state, -1));
+    }
+  }
+  lua_settop(lmc->lua_state, 0);
 
   if(conf->booted) return true;
   conf->booted = mtev_true;

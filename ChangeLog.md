@@ -4,6 +4,7 @@
 
 ## 1.6
 
+ * Add Lpreloads configuration option to lua_web/lua_general modules
  * Add /module/lua/xcall.json REST endpoint (for state inspection)
  * Add lua mtev.semaphore()
  * Fix web UI where suppressed tabs would prevernt `mtev-loaded` signal.
