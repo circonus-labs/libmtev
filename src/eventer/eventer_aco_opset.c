@@ -117,7 +117,7 @@ eventer_aco_init(void) {
 eventer_aco_t
 eventer_set_eventer_aco_co(eventer_t e, aco_t *co) {
   if(co == NULL) {
-    mtevAssert(e->opset == eventer_aco_fd_opset);
+    mtevAssert((uintptr_t)e->opset == (uintptr_t)eventer_aco_fd_opset);
     aco_opset_info_t *info = e->opset_ctx;
     e->callback = info->original_callback;
     e->opset = info->original_opset;
@@ -125,7 +125,7 @@ eventer_set_eventer_aco_co(eventer_t e, aco_t *co) {
     free(info);
     return NULL;
   }
-  mtevAssert(e->opset != eventer_aco_fd_opset);
+  mtevAssert((uintptr_t)e->opset != (uintptr_t)eventer_aco_fd_opset);
   eventer_ref(e);
   aco_opset_info_t *info = calloc(1, sizeof(*info));
   info->original_callback = e->callback;
@@ -275,7 +275,7 @@ eventer_aco_asynch_wrapper(eventer_t e, int mask, void *closure, struct timeval 
   (void)e;
   struct aco_asynch_cb_ctx *ctx = closure;
   ctx->e->callback(ctx->e, mask, ctx->e->closure, now);
-  if(mask == EVENTER_ASYNCH) {
+  if(mask == EVENTER_ASYNCH_COMPLETE) {
     bool zero;
     aco_t *co = ctx->co;
     ck_pr_dec_32_zero(&ctx->gate->ref_cnt, &zero);

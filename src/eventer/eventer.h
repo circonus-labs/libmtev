@@ -723,6 +723,17 @@ API_EXPORT(void) eventer_init_globals(void);
 #define eventer_propset       __eventer->propset
 #define eventer_init          __eventer->init
 
+/*! \fn int eventer_run_callback(eventer_funt_t f, eventer_t e, int mask, void *closure, struct timeval *now)
+    \brief Run a callback as the eventer would
+    \param f The callback function (should always be eventer_get_callback(e))
+    \param e The event to execute
+    \param mask The mask observed.
+    \param closure The closure (should always be eventer_get_closure(e))
+    \param now The current time.
+    \return The mask that is desired from the callback.
+*/
+int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct timeval *n);
+
 /*! \fn void eventer_add(eventer_t e)
     \brief Add an event object to the eventer system.
     \param e an event object to add.
