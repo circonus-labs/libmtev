@@ -4,19 +4,19 @@
 
 ## 1.6
 
-## 1.6.16
+### 1.6.16
 
  * Add /module/lua/xcall.json REST endpoint (for state inspection)
  * Add lua mtev.semaphore()
  * Fix web UI where suppressed tabs would prevernt `mtev-loaded` signal.
 
-## 1.6.15
+### 1.6.15
 
  * Fix compiler warnings for gcc 7.
  * Fix inverted predicate in configuration property iteration.
  * Add upload bytes to http access log format.
 
-## 1.6.14
+### 1.6.14
 
  * Add timeout parameter to socket:connect() in lua
  * Fix deadlock caused by eventer_t:close() in lua
