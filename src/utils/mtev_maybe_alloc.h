@@ -43,16 +43,16 @@
   struct { \
     size_t sz; \
     type   static_buff[cnt]; \
-  } __##name##_support = { .static_buff = { 0 } }; \
-  type *name
+  } __##name##_support; \
+  __##name##_support.sz = sizeof(__##name##_support.static_buff); \
+  __##name##_support.static_buff[0] = 0; \
+  type *name =  __##name##_support.static_buff
 
 /*! \fn MTEV_MAYBE_INIT_VARS(name)
     \brief C Macro for initializing a "maybe" buffer
     \param name The name of "maybe" buffer.
  */
-#define MTEV_MAYBE_INIT_VARS(name) \
-  __##name##_support.sz = sizeof(__##name##_support.static_buff); \
-  name = __##name##_support.static_buff
+#define MTEV_MAYBE_INIT_VARS(name) do { } while(0)
 
 /*! \fn MTEV_MAYBE_DECL(type, name, cnt)
     \brief C Macro for declaring a "maybe" buffer.
