@@ -4,6 +4,7 @@
 
 ## 1.6
 
+ * Add preloads configuration option to lua_web/lua_general modules
  * Add mtev_set_app_name and mtev_get_app_name for conf file root discovery.
  * Add foreground `SIGINT`, `SIGQUIT`, and `SIGTERM` signals to call
    plain-old exit().
