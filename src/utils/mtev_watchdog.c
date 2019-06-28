@@ -888,3 +888,7 @@ int mtev_watchdog_child_eventer_heartbeat(void) {
   return 0;
 }
 
+void mtev_watchdog_shutdown_handler(int sig) {
+  mtevTerminate(mtev_error, "received %s, shutting down.\n", short_strsignal(sig));
+  exit(-1);
+}

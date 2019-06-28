@@ -238,4 +238,7 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_watchdog_disable_trace_output(void);
 
+API_EXPORT(void)
+  mtev_watchdog_shutdown_handler(int);
+
 #endif
