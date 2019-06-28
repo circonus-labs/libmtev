@@ -129,6 +129,8 @@ API_EXPORT(mtev_boolean)
   mtev_http_request_payload_chunked(mtev_http_request *);
 API_EXPORT(mtev_boolean)
   mtev_http_request_has_payload(mtev_http_request *);
+API_EXPORT(mtev_boolean)
+  mtev_http_request_payload_complete(mtev_http_request *);
 API_EXPORT(const char *)
   mtev_http_request_querystring(mtev_http_request *, const char *);
 API_EXPORT(const char *)
