@@ -218,6 +218,7 @@ HTTP_DIS(size_t, request_content_length, request *, r, (mtev_http_request *r), (
 HTTP_DIS(size_t, request_content_length_read, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(mtev_boolean, request_payload_chunked, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(mtev_boolean, request_has_payload, request *, r, (mtev_http_request *r), (t_r))
+HTTP_DIS(mtev_boolean, request_payload_complete, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(const char *, request_querystring, request *, r, (mtev_http_request *r, const char *k), (t_r, k))
 HTTP_DIS(const char *, request_orig_querystring, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(mtev_hash_table *, request_querystring_table, request *, r, (mtev_http_request *r), (t_r))

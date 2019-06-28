@@ -91,6 +91,7 @@ struct mtev_http1_request {
   struct bchain *current_request_chain;
   mtev_boolean has_payload;
   mtev_boolean payload_chunked;
+  mtev_boolean payload_complete;
   struct {
     int64_t size;
     void *data;
@@ -319,6 +320,9 @@ size_t mtev_http1_request_content_length_read(mtev_http1_request *req) {
 }
 mtev_boolean mtev_http1_request_payload_chunked(mtev_http1_request *req) {
   return req->payload_chunked;
+}
+mtev_boolean mtev_http1_request_payload_complete(mtev_http1_request *req) {
+  return req->payload_complete;
 }
 mtev_boolean mtev_http1_request_has_payload(mtev_http1_request *req) {
   return req->has_payload;
@@ -710,6 +714,8 @@ mtev_http1_request_finalize_headers(mtev_http1_session_ctx *ctx, mtev_boolean *e
     /* switch modes... let's go read the payload */
     req->state = MTEV_HTTP_REQ_PAYLOAD;
     return mtev_false;
+  } else {
+    req->payload_complete = mtev_true;
   }
 
   req->complete = mtev_true;
@@ -1108,6 +1114,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       /* all that's left is \r\n, just consume this framing */
       head->size -= 2;
       head->start += 2;
+      ctx->req.payload_complete = mtev_true;
     }
 
     if(head->size == 0) {
@@ -1203,6 +1210,7 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
       if (ctx->req.read_last_chunk == mtev_true && (in == NULL || in->size == 0)) {
         /* we have read all the chunks and there is nothing in the user_data list
          * we must be done */
+        ctx->req.payload_complete = mtev_true;
         return 0;
       } else if (in == NULL || in->size == 0) {
         /* we haven't read the last_chunk but nothing in user data, retry on next call */
@@ -1213,6 +1221,7 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
       if (ctx->req.content_length_read == ctx->req.content_length) {
         if (in == NULL || in->size == 0) {
           /* we read all input and nothing in user_data list, we must be done. */
+          ctx->req.payload_complete = mtev_true;
           return 0;
         }
       } else {
