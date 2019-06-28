@@ -4,6 +4,8 @@
 
 ## 1.6
 
+ * Add mtev_set_app_name and mtev_get_app_name for conf file root discovery
+
 ### 1.6.16
 
  * Add /module/lua/xcall.json REST endpoint (for state inspection)

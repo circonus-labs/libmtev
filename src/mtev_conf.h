@@ -118,6 +118,10 @@ typedef struct mtev_conf_description_t {
   mtev_conf_value_t value;
 } mtev_conf_description_t;
 
+/* allow an app name to be registered for config root node identification */
+API_EXPORT(void) mtev_set_app_name(const char *new_name);
+API_EXPORT(const char *) mtev_get_app_name(void);
+
 /* seconds == 0 disable config journaling watchdog */
 API_EXPORT(void) mtev_conf_coalesce_changes(uint32_t seconds);
 /* Start the watchdog */
