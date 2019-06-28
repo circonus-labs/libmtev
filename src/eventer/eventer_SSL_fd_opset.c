@@ -856,6 +856,7 @@ static int next_proto_cb(SSL *ssl, const unsigned char **data,
                          unsigned int *len, void *arg) {
   (void)ssl;
   eventer_ssl_ctx_t *ctx = (eventer_ssl_ctx_t *)arg;
+  if(!ssl) return SSL_TLSEXT_ERR_NOACK;
   if(!ctx->npn) return SSL_TLSEXT_ERR_NOACK;
 
   *data = ctx->npn;

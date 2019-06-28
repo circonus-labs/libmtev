@@ -1091,7 +1091,7 @@ void eventer_dispatch_timed(struct timeval *next) {
                            (void *)timed_event->callback, (char *)cbname, -1,
                            timed_event->mask, EVENTER_TIMER);
     start = mtev_gethrtime();
-    newmask = eventer_run_callback(timed_event, EVENTER_TIMER,
+    newmask = eventer_run_callback(timed_event->callback, timed_event, EVENTER_TIMER,
                            timed_event->closure, &now);
     duration = mtev_gethrtime() - start;
     stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
@@ -1204,7 +1204,7 @@ void eventer_dispatch_recurrent(void) {
     int rv;
     uint64_t start, duration;
     start = mtev_gethrtime();
-    rv = eventer_run_callback(node->e, EVENTER_RECURRENT, node->e->closure, &__now);
+    rv = eventer_run_callback(node->e->callback, node->e, EVENTER_RECURRENT, node->e->closure, &__now);
     if(rv != 0) {
       /* For RECURRENT calls, we don't want to overmeasure what are noops...
        * So we trust that the call returns 0 after such a noop, but
@@ -1280,6 +1280,17 @@ void eventer_add_recurrent(eventer_t e) {
   pthread_mutex_unlock(&t->recurrent_lock);
 }
 
+int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct timeval *n) {
+  int rmask;
+  eventer_t previous_event = eventer_get_this_event();
+  eventer_set_this_event(e);
+  eventer_callback_prep(e, m, c, n);
+  rmask = f(e, m, c, n);
+  eventer_callback_cleanup(e, rmask);
+  eventer_set_this_event(previous_event);
+  return rmask;
+}
+
 static void *eventer_thread_harness(void *ve) {
   eventer_t e = ve;
   char thrname[64];
@@ -1290,7 +1301,7 @@ static void *eventer_thread_harness(void *ve) {
   while(1) {
     struct timeval now;
     mtev_gettimeofday(&now, NULL);
-    eventer_run_callback(e, mask, e->closure, &now);
+    eventer_run_callback(e->callback, e, mask, e->closure, &now);
     if(mask == 0) {
       eventer_free(e);
       return NULL;

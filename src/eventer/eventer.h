@@ -104,6 +104,7 @@ typedef int (*eventer_func_t)
             (struct _event *e, int mask, void *closure, struct timeval *tv);
 typedef struct _event *eventer_t;
 typedef struct _event_aco *eventer_aco_t;
+typedef struct _event_aco_gate *eventer_aco_gate_t;
 
 typedef void (*eventer_asynch_simple_func_t)(void *closure);
 typedef void (*eventer_asynch_func_t)(eventer_asynch_op_t, void *closure);
@@ -722,6 +723,17 @@ API_EXPORT(void) eventer_init_globals(void);
 #define eventer_propset       __eventer->propset
 #define eventer_init          __eventer->init
 
+/*! \fn int eventer_run_callback(eventer_funt_t f, eventer_t e, int mask, void *closure, struct timeval *now)
+    \brief Run a callback as the eventer would
+    \param f The callback function (should always be eventer_get_callback(e))
+    \param e The event to execute
+    \param mask The mask observed.
+    \param closure The closure (should always be eventer_get_closure(e))
+    \param now The current time.
+    \return The mask that is desired from the callback.
+*/
+int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct timeval *n);
+
 /*! \fn void eventer_add(eventer_t e)
     \brief Add an event object to the eventer system.
     \param e an event object to add.
@@ -921,6 +933,34 @@ API_EXPORT(mtev_boolean) eventer_try_add_asynch_dep(eventer_jobq_t *q, eventer_t
 */
 API_EXPORT(mtev_boolean) eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
 
+/*! \fn eventer_aco_gate_t eventer_aco_gate(void)
+    \brief Create a new asynchronous gate.
+*/
+API_EXPORT(eventer_aco_gate_t) eventer_aco_gate(void);
+
+/*! \fn void eventer_aco_gate_wait(eventer_aco_gate_t gate)
+    \brief Wait for any asynchronous work on this gate to finish.
+    \param gate an asynchronous gate
+*/
+API_EXPORT(void) eventer_aco_gate_wait(eventer_aco_gate_t gate);
+
+/*! \fn mtev_boolean eventer_aco_try_run_asynch_queue_subqueue(eventer_aco_gate_t gate, eventer_jobq_t *q, eventer_t e, uint64_t id)
+    \brief Add an asynchronous event to a specific job queue dependent on the current job and signal the gate on completion.
+    \param gate the gate to signal
+    \param q a job queue
+    \param e an event object
+    \param id is a fairly competing subqueue identifier
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
+API_EXPORT(mtev_boolean) eventer_aco_try_run_asynch_queue_subqueue_gated(eventer_aco_gate_t, eventer_jobq_t *q, eventer_t e, uint64_t id);
+#define eventer_aco_try_run_asynch_queue_gated(q,e) eventer_aco_try_run_asynch_queue_subqueue_gated(g,q,e,0)
+#define eventer_aco_try_run_asynch_gated(e) eventer_aco_try_run_asynch_queue_subqueue_gated(g,NULL,e,0)
+
 /*! \fn mtev_boolean eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
     \brief Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
     \param q a job queue
@@ -937,6 +977,21 @@ API_EXPORT(mtev_boolean) eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_
 #define eventer_aco_try_run_asynch_queue(q,e) eventer_aco_try_run_asynch_queue_subqueue(q,e,0)
 #define eventer_aco_try_run_asynch(e) eventer_aco_try_run_asynch_queue_subqueue(NULL,e,0)
 
+/*! \fn mtev_boolean eventer_aco_run_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_jobq_t *q, eventer_t e, uint64_t id)
+    \brief Add an asynchronous event to a specific job queue dependent on the current job and signal gate on completion.
+    \param gate a gate
+    \param q a job queue
+    \param e an event object
+    \param id is a fairly competing subqueue identifier
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
+API_EXPORT(void) eventer_aco_run_asynch_queue_subqueue_gated(eventer_aco_gate_t, eventer_jobq_t *q, eventer_t e, uint64_t id);
+
 /*! \fn mtev_boolean eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id)
     \brief Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
     \param q a job queue
@@ -951,6 +1006,20 @@ API_EXPORT(mtev_boolean) eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_
 */
 API_EXPORT(void) eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t id);
 
+/*! \fn mtev_boolean eventer_aco_run_asynch_queue_gated(eventer_aco_gate_t gate, eventer_jobq_t *q, eventer_t e)
+    \brief Add an asynchronous event to a specific job queue dependent on the current job and signal gate on completion.
+    \param gate a gate
+    \param q a job queue
+    \param e an event object
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the job queue `q`.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
+#define eventer_aco_run_asynch_queue_gated(g,q,e) eventer_aco_run_asynch_queue_subqueue_gated(g,q,e,0)
+
 /*! \fn mtev_boolean eventer_aco_run_asynch_queue(eventer_jobq_t *q, eventer_t e)
     \brief Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
     \param q a job queue
@@ -964,6 +1033,19 @@ API_EXPORT(void) eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, evente
 */
 #define eventer_aco_run_asynch_queue(q,e) eventer_aco_run_asynch_queue_subqueue(q,e,0)
 
+/*! \fn mtev_boolean eventer_aco_run_asynch_gated(eventer_aco_gate_t gate, eventer_t e)
+    \brief Add an asynchronous event dependent on the current job and signal gate on completion.
+    \param gate a gate
+    \param e an event object
+    \return `mtev_false` if over max backlog, caller must clean event.
+
+    This adds the `e` event to the default job queue.  `e` must have a mask
+    of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+    during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+    of the currently executing job.
+*/
+#define eventer_aco_run_asynch_gated(g,e) eventer_aco_run_asynch_queue_subqueue_gated(g,NULL,e,0)
+
 /*! \fn mtev_boolean eventer_aco_run_asynch(eventer_t e)
     \brief Add an asynchronous event dependent on the current job and wait until completion.
     \param e an event object
@@ -976,6 +1058,17 @@ API_EXPORT(void) eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, evente
 */
 #define eventer_aco_run_asynch(e) eventer_aco_run_asynch_queue_subqueue(NULL,e,0)
 
+/*! \fn void eventer_aco_asynch_queue_subqueue_deadline_gated(eventer_aco_gate_t gate, eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id, struct timeval *whence)
+    \brief Asynchronously execute a function.
+    \param gate a gate to notify on completion
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+    \param id the subqueue within the jobq.
+    \param whence the deadline
+*/
+API_EXPORT(void) eventer_aco_asynch_queue_subqueue_deadline_gated(eventer_aco_gate_t gate, eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id, struct timeval *whence);
+
 /*! \fn void eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id, struct timeval *whence)
     \brief Asynchronously execute a function.
     \param func the function to execute.
@@ -986,6 +1079,16 @@ API_EXPORT(void) eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, evente
 */
 API_EXPORT(void) eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id, struct timeval *whence);
 
+/*! \fn void eventer_aco_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
+    \brief Asynchronously execute a function.
+    \param gate a gate to notify on completion.
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+    \param id the subqueue within the jobq.
+*/
+#define eventer_aco_asynch_queue_subqueue_gated(g,f,c,q) eventer_aco_asynch_queue_subqueue_deadline_gated(g,f,c,q,0,NULL)
+
 /*! \fn void eventer_aco_asynch_queue_subqueue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
     \brief Asynchronously execute a function.
     \param func the function to execute.
@@ -995,6 +1098,15 @@ API_EXPORT(void) eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_
 */
 #define eventer_aco_asynch_queue_subqueue(f,c,q) eventer_aco_asynch_queue_subqueue_deadline(f,c,q,0,NULL)
 
+/*! \fn void eventer_aco_asynch_queue_gated(eventer_aco_gate_t gate, eventer_asynch_func_t func, void *closure, eventer_jobq_t *q)
+    \brief Asynchronously execute a function.
+    \param gate a gate to notify on completion.
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+*/
+#define eventer_aco_asynch_queue_gated(g,f,c,q) eventer_aco_asynch_queue_subqueue_deadline_gated(g,f,c,q,0,NULL)
+
 /*! \fn void eventer_aco_asynch_queue(eventer_asynch_func_t func, void *closure, eventer_jobq_t *q)
     \brief Asynchronously execute a function.
     \param func the function to execute.
@@ -1003,12 +1115,30 @@ API_EXPORT(void) eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_
 */
 #define eventer_aco_asynch_queue(f,c,q) eventer_aco_asynch_queue_subqueue_deadline(f,c,q,0,NULL)
 
+/*! \fn void eventer_aco_asynch_gated(eventer_aco_gate_t gate, eventer_asynch_func_t func, void *closure)
+    \brief Asynchronously execute a function.
+    \param gate a gate to notify on completion.
+    \param func the function to execute.
+    \param closure the closure for the function.
+*/
+#define eventer_aco_asynch_gated(g,f,c) eventer_aco_asynch_queue_subqueue_deadline_gated(g,f,c,NULL,0,NULL)
+
 /*! \fn void eventer_aco_asynch(eventer_asynch_func_t func, void *closure)
     \brief Asynchronously execute a function.
     \param func the function to execute.
     \param closure the closure for the function.
 */
 #define eventer_aco_asynch(f,c) eventer_aco_asynch_queue_subqueue_deadline(f,c,NULL,0,NULL)
+
+/*! \fn void eventer_aco_simple_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
+    \brief Asynchronously execute a function.
+    \param gate a gate to notify on completion.
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+    \param id the subqueue within the jobq.
+*/
+API_EXPORT(void) eventer_aco_simple_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q, uint64_t id);
 
 /*! \fn void eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q, uint64_t id)
     \brief Asynchronously execute a function.
@@ -1019,6 +1149,15 @@ API_EXPORT(void) eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_
 */
 API_EXPORT(void) eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q, uint64_t id);
 
+/*! \fn void eventer_aco_simple_asynch_queue_gated(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q)
+    \brief Asynchronously execute a function.
+    \param gate a gate to notify on completion.
+    \param func the function to execute.
+    \param closure the closure for the function.
+    \param q the jobq on which to schedule the work.
+*/
+#define eventer_aco_simple_asynch_queue_gated(g,f,c,q) eventer_aco_simple_asynch_queue_subqueue_gated(g,f,c,q,0)
+
 /*! \fn void eventer_aco_simple_asynch_queue(eventer_asynch_simple_func_t func, void *closure, eventer_jobq_t *q)
     \brief Asynchronously execute a function.
     \param func the function to execute.
@@ -1026,6 +1165,14 @@ API_EXPORT(void) eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_
     \param q the jobq on which to schedule the work.
 */
 #define eventer_aco_simple_asynch_queue(f,c,q) eventer_aco_simple_asynch_queue_subqueue(f,c,q,0)
+
+/*! \fn void eventer_aco_simple_asynch_gated(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, void *closure)
+    \brief Asynchronously execute a function.
+    \param gate a gate to notify on completion.
+    \param func the function to execute.
+    \param closure the closure for the function.
+*/
+#define eventer_aco_simple_asynch_gated(g,f,c) eventer_aco_simple_asynch_queue_subqueue_gated(g,f,c,NULL,0)
 
 /*! \fn void eventer_aco_simple_asynch(eventer_asynch_simple_func_t func, void *closure)
     \brief Asynchronously execute a function.
@@ -1360,6 +1507,13 @@ API_EXPORT(void) eventer_aco_start_stack(void (*func)(void), void *closure, size
     \return The closure parameter that was passed to `eventer_aco_start`.
 */
 API_EXPORT(void *) eventer_aco_arg(void);
+
+/*! \fn mtev_boolean eventer_is_aco(eventer_t e)
+    \brief Determine if an event is in ACO mode.
+    \param e The eventer_t in question
+    \return True if in ACO mode, false otherwise.
+*/
+API_EXPORT(mtev_boolean) eventer_is_aco(eventer_t);
 
 /* Private */
 API_EXPORT(int) eventer_impl_init(void);

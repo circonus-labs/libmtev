@@ -73,12 +73,17 @@ static void asynch_hello(void *closure) {
   mtev_http_response_append_str(ctx, "Hello world.\n");
 }
 void subcall2(mtev_http_rest_closure_t *restc) {
-  eventer_aco_simple_asynch(asynch_hello, restc);
-  mtevL(mtev_debug, "subcall2 return\n");
+  eventer_aco_gate_t gate = eventer_aco_gate();
+  mtevL(mtev_error, "subcall2 entry\n");
+  eventer_aco_simple_asynch_gated(gate, asynch_hello, restc);
+  eventer_aco_simple_asynch_gated(gate, asynch_hello, restc);
+  mtevL(mtev_error, "subcall2 return\n");
+  eventer_aco_gate_wait(gate);
 }
 void subcall1(mtev_http_rest_closure_t *restc) {
+  mtevL(mtev_error, "subcall1 entry\n");
   subcall2(restc);
-  mtevL(mtev_debug, "subcall1 return\n");
+  mtevL(mtev_error, "subcall1 return\n");
 }
 static int upload_handler_no_aco(mtev_http_rest_closure_t *restc,
                            int npats, char **pats) {

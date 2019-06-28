@@ -706,15 +706,15 @@ mtev_rest_aco_handler(void) {
   }
   eventer_t newe = mtev_http_connection_event(conne);
 
-  eventer_func_t orig_callback = eventer_get_callback(newe);
   void *closure = eventer_get_closure(newe);
+  eventer_func_t orig_callback = eventer_get_callback(newe);
 
   mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_true);
   eventer_set_eventer_aco(newe);
 
   struct timeval now;
   mtev_gettimeofday(&now, NULL);
-  orig_callback(newe, EVENTER_READ|EVENTER_WRITE, closure, &now);
+  eventer_run_callback(orig_callback, newe, EVENTER_READ|EVENTER_WRITE, closure, &now);
 
   /* Put this event back out of aco mode. */
   eventer_set_eventer_aco_co(newe, NULL);
