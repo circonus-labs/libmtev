@@ -117,7 +117,7 @@ eventer_aco_init(void) {
 eventer_aco_t
 eventer_set_eventer_aco_co(eventer_t e, aco_t *co) {
   if(co == NULL) {
-    mtevAssert((uintptr_t)e->opset == (uintptr_t)eventer_aco_fd_opset);
+    mtevAssert(e->opset == eventer_aco_fd_opset);
     aco_opset_info_t *info = e->opset_ctx;
     e->callback = info->original_callback;
     e->opset = info->original_opset;
@@ -125,7 +125,7 @@ eventer_set_eventer_aco_co(eventer_t e, aco_t *co) {
     free(info);
     return NULL;
   }
-  mtevAssert((uintptr_t)e->opset != (uintptr_t)eventer_aco_fd_opset);
+  mtevAssert(e->opset != eventer_aco_fd_opset);
   eventer_ref(e);
   aco_opset_info_t *info = calloc(1, sizeof(*info));
   info->original_callback = e->callback;
@@ -176,6 +176,11 @@ eventer_aco_mode_asynch_wrapper(eventer_t e, int mask, void *closure, struct tim
   return 0;
 }
 
+/* The gate is a shared non-blocking semaphore.. it is allocated here,
+ * then freed in _wait.  Other pending work will cause the value to be
+ * > 1 such that _wait will yield and resume when the last bit of work
+ * closes the gate.
+ */
 eventer_aco_gate_t
 eventer_aco_gate(void) {
   eventer_aco_gate_t gate = calloc(1, sizeof(*gate));
