@@ -109,7 +109,7 @@ mtev_conf_section_t MTEV_CONF_EMPTY = {
 };
 static mtev_hash_table global_param_sets;
 
-static app_name[256] = { 0 };
+static char app_name[256] = { 0 };
 void
 mtev_set_app_name(const char *new_name) {
   strlcpy(app_name, new_name, sizeof(app_name));
