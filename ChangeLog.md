@@ -4,13 +4,20 @@
 
 ## 1.6
 
- * Add mtev_set_app_name and mtev_get_app_name for conf file root discovery
- * Add foreground SIGINT, SIGQUIT, and SIGTERM signals to call plain-old exit()
+ * Add mtev_set_app_name and mtev_get_app_name for conf file root discovery.
+ * Add foreground `SIGINT`, `SIGQUIT`, and `SIGTERM` signals to call
+   plain-old exit().
+ * Add `mtev_{set,get}_app_name` functions to help in places where we need the
+   config root.
+ * Add `mtev_http_request_payload_complete1 to help consumers correctly
+   determine if they should stop calling `mtev_http_request_consume_read`.
+ * `MTEV_MAYBE` macros will no longer initialize the whole initial buffer,
+   only the first element (performance).
 
 ### 1.6.16
 
- * Add /module/lua/xcall.json REST endpoint (for state inspection)
- * Add lua mtev.semaphore()
+ * Add /module/lua/xcall.json REST endpoint (for state inspection).
+ * Add lua mtev.semaphore().
  * Fix web UI where suppressed tabs would prevernt `mtev-loaded` signal.
 
 ### 1.6.15
