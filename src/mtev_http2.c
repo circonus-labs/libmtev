@@ -828,7 +828,7 @@ on_header_callback(nghttp2_session *session,
   switch (frame->hd.type) {
   case NGHTTP2_HEADERS:
    stream = nghttp2_session_get_stream_user_data(session, frame->hd.stream_id);
-   mtevL(mtev_debug, "http2 headers(%.*s : %.*s)\n", (int)namelen, name, (int)valuelen, value);
+   mtevL(h2_debug, "http2 headers(%.*s : %.*s)\n", (int)namelen, name, (int)valuelen, value);
     if (frame->headers.cat != NGHTTP2_HCAT_REQUEST) {
       break;
     }
