@@ -109,6 +109,16 @@ mtev_conf_section_t MTEV_CONF_EMPTY = {
 };
 static mtev_hash_table global_param_sets;
 
+static app_name[256] = { 0 };
+void
+mtev_set_app_name(const char *new_name) {
+  strlcpy(app_name, new_name, sizeof(app_name));
+}
+const char *
+mtev_get_app_name(void) {
+  return app_name;
+}
+
 mtev_boolean
 mtev_conf_section_is_empty(mtev_conf_section_t section) {
   return section.opaque1 == NULL && section.opaque2 == NULL;
@@ -3572,4 +3582,3 @@ void mtev_conf_init_globals(void) {
   pthread_mutex_init(&global_config_lock, &mattr);
   mtev_hash_init(&global_param_sets);
 }
-
