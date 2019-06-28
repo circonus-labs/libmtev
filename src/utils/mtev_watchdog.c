@@ -86,21 +86,80 @@ struct mtev_watchdog_t {
 
 static const char *short_strsignal(int sig) {
   switch(sig) {
-    case SIGINT: return "sigint";
+#ifdef SIGHUP
     case SIGHUP: return "sighup";
-    case SIGUSR1: return "sigusr1";
-    case SIGUSR2: return "sigusr2";
-    case SIGSEGV: return "sigsegv";
-    case SIGTRAP: return "sigtrap";
+#endif
+#ifdef SIGINT
+    case SIGINT: return "sigint";
+#endif
+#ifdef SIGQUIT
+    case SIGQUIT: return "sigquit";
+#endif
+#ifdef SIGILL
     case SIGILL: return "sigill";
-    case SIGSTOP: return "sigstop";
-    case SIGCONT: return "sigcont";
+#endif
+#ifdef SIGTRAP
+    case SIGTRAP: return "sigtrap";
+#endif
+#ifdef SIGABRT
     case SIGABRT: return "sigabrt";
-    case SIGBUS: return "sigbus";
-    case SIGFPE: return "sigfpe";
+#endif
 #ifdef SIGIOT
 #if SIGIOT != SIGABRT
     case SIGIOT: return "sigiot";
+#endif
+#endif
+#ifdef SIGBUS
+    case SIGBUS: return "sigbus";
+#endif
+#ifdef SIGFPE
+    case SIGFPE: return "sigfpe";
+#endif
+#ifdef SIGKILL
+    case SIGKILL: return "sigkill";
+#endif
+#ifdef SIGUSR1
+    case SIGUSR1: return "sigusr1";
+#endif
+#ifdef SIGSEGV
+    case SIGSEGV: return "sigsegv";
+#endif
+#ifdef SIGUSR2
+    case SIGUSR2: return "sigusr2";
+#endif
+#ifdef SIGPIPE
+    case SIGPIPE: return "sigpipe";
+#endif
+#ifdef SIGALRM
+    case SIGALRM: return "sigalrm";
+#endif
+#ifdef SIGTERM
+    case SIGTERM: return "sigterm";
+#endif
+#ifdef SIGSTKFLT
+    case SIGSTKFLT: return "sigstkflt";
+#endif
+#ifdef SIGCHLD
+    case SIGCHLD: return "sigchld";
+#endif
+#ifdef SIGCONT
+    case SIGCONT: return "sigcont";
+#endif
+#ifdef SIGSTOP
+    case SIGSTOP: return "sigstop";
+#endif
+#ifdef SIGURG
+    case SIGURG: return "sigurg";
+#endif
+#ifdef SIGPROF
+    case SIGPROF: return "sigprof";
+#endif
+#ifdef SIGIO
+    case SIGIO: return "sigio";
+#endif
+#ifdef SIGPOLL
+#if SIGPOLL != SIGIO
+    case SIGPOLL: return "sigpoll";
 #endif
 #endif
   }
@@ -888,3 +947,13 @@ int mtev_watchdog_child_eventer_heartbeat(void) {
   return 0;
 }
 
+void mtev_watchdog_shutdown_handler(int sig) {
+  char signo[10];
+  const char *signame = short_strsignal(sig);
+  if(signame == NULL) {
+    snprintf(signo, sizeof(signo), "%d", sig);
+    signame = signo;
+  }
+  mtevTerminate(mtev_error, "received %s, shutting down.\n", signame);
+  exit(-1);
+}

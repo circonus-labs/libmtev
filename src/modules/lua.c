@@ -692,7 +692,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
     snprintf(state_str, sizeof(state_str), "%p", (void*)L);
     lua_getglobal(L, "mtev_xcall");
     if(lua_isnil(L, -1)) {
-      out = MJ_STR("<mtev_xcall function not found>");
+      continue;
     }
     else {
       mtev_lua_hash_to_table(L, reporter->args);
