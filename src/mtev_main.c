@@ -352,6 +352,7 @@ mtev_main(const char *appname,
  
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
+  mtev_set_app_name(appname);
   mtev_init_globals();
   mtev_stats_init();
   stats_ns_add_tag(mtev_stats_ns(NULL, "mtev"), "app", appname);
