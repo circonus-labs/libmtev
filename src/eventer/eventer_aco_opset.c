@@ -301,8 +301,8 @@ eventer_aco_try_run_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer
   if(eventer_try_add_asynch_subqueue(q, ae, sq)) {
     return mtev_true;
   }
-  free(ctx);
   free(ctx->gate);
+  free(ctx);
   return mtev_false;
 }
 
@@ -317,8 +317,8 @@ eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64
     aco_yield();
     return mtev_true;
   }
-  free(ctx);
   free(ctx->gate);
+  free(ctx);
   return mtev_false;
 }
 
