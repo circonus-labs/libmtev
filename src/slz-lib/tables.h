@@ -4610,6 +4610,7 @@ static inline uint32_t dist_to_code(uint32_t l)
 	case 9 ... 12: code++;
         /* fall through */
 	case 7 ... 8: code++;
+        /* fall through */
 	case 5 ... 6: code++;
         /* fall through */
 	case 4: code++;
