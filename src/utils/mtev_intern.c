@@ -656,7 +656,7 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
 }
 
 static inline void
-mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *ii, mtev_boolean inhash) {
+mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *ii) {
   assert(ii->poolid == pool->poolid);
   /* if we got into this function, refcnt must be >0
      except if caller misbehaves and does too many
@@ -669,30 +669,8 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
   assert(prev);
   /* if we released the last reference */
   if(prev == 1) {
-    /* free back to pool */
-    if(!inhash && pool->extent_size) {
-      /* If this isn't in the hash structure, we can just return it to the freeslot
-       * without locks and hashing work.  This happens when we lost an optimistic
-       * insert.
-       */
-      struct mtev_intern_free_node *node = get_free_node(pool);
-      node->base = ii;
-      node->size = WRAPPED_SIZE(ii->len);
-      stage_replace_free_node(pool, node);
-      return;
-    }
     unsigned long hash = CK_HS_HASH(&pool->map, mi_hash, ii);
-
-    /* ck_hs_remove is read-concurrent safe */
-    mtev_plock_take_s(&pool->plock);
-    assert(ck_pr_load_32(&ii->refcnt) == 0);
-    assert(ck_hs_remove(&pool->map, hash, ii));
-    mtev_plock_drop_s(&pool->plock);
-
-    ck_pr_dec_32(&pool->item_count);
-
-    /* Release the free fragment back for *staged* reuse..
-     * see comments in stage_replace_free_node */
+    mtevAssert(ii != ck_hs_get(&pool->map, hash, ii));
     if(pool->extent_size == 0) {
       free(ii);
       return;
@@ -704,6 +682,17 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
 
     mtev_intern_pool_compact(pool, mtev_false);
   }
+}
+void
+mtev_intern_remove(mtev_intern_t i) {
+  mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
+  mtev_intern_pool_t *pool = all_pools[ii->poolid];
+  unsigned long hash = CK_HS_HASH(&pool->map, mi_hash, ii);
+  mtev_plock_take_s(&pool->plock);
+  mtevAssert(ck_hs_remove(&pool->map, hash, ii));
+  mtev_plock_drop_s(&pool->plock);
+  ck_pr_dec_32(&pool->item_count); 
+  mtev_intern_internal_release(pool, ii);
 }
 mtev_intern_t
 mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t len, int nt) {
@@ -756,7 +745,7 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
     }
     /* build out our new intern object */
     ii->poolid = pool->poolid;
-    ii->refcnt = 1;
+    ii->refcnt = 2;
     ii->len = len;
     ii->nt = nt;
     memcpy(ii->v, buff, len);
@@ -862,7 +851,7 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
     }
     /* build out our new intern object */
     ii->poolid = pool->poolid;
-    ii->refcnt = 1;
+    ii->refcnt = 2;
     ii->len = len;
     ii->nt = nt;
     memcpy(ii->v, buff, len);
@@ -918,9 +907,9 @@ mtev_intern_pool_ex(mtev_intern_pool_t *pool, const void *buff, size_t len, int 
   /* cleanup */
   if((void *)ibuff != (void *)lookfor) free(lookfor);
   /* Free any items on our trashpile */
-  if(trashpile.item) mtev_intern_internal_release(pool, trashpile.item, mtev_false);
+  if(trashpile.item) mtev_intern_internal_release(pool, trashpile.item);
   while(NULL != (trash = trashpile.next)) {
-    if(trash->item) mtev_intern_internal_release(pool, trash->item, mtev_false);
+    if(trash->item) mtev_intern_internal_release(pool, trash->item);
     trashpile.next = trash->next;
     free(trash);
   }
@@ -969,7 +958,7 @@ inline void
 mtev_intern_release_pool(mtev_intern_pool_t *pool, mtev_intern_t i) {
   if(i.opaque1 == 0) return;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
-  mtev_intern_internal_release(pool, ii, mtev_true);
+  mtev_intern_internal_release(pool, ii);
 }
 
 void

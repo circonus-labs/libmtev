@@ -158,9 +158,17 @@ API_EXPORT(void)
   mtev_intern_release(mtev_intern_t);
 #define miFREE(a) mtev_intern_release(a)
 
+
+/*! \fn void mtev_intern_remove(mtev_intern_t i)
+    \brief Remove an interned value.
+    \param i The interned value.
+*/
+API_EXPORT(void)
+  mtev_intern_remove(mtev_intern_t i);
+
 /*! \fn uint32_t mtev_intern_get_refcnt(mtev_intern_t iv)
     \brief Retrieve the current refcnt for an intern item.
-    \param iv The interned value.
+    \param i The interned value.
     \return The number of references currently outstanding.
 */
 API_EXPORT(uint32_t)

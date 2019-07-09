@@ -18,6 +18,7 @@ ffi.cdef([=[
   mtev_intern_t mtev_intern_str(const char *, size_t);
   const char *mtev_intern_get_str(mtev_intern_t);
   void mtev_intern_release(mtev_intern_t);
+  void mtev_intern_remove(mtev_intern_t);
   int mtev_intern_pool_item_count(mtev_intern_pool_t *);
   int mtev_intern_pool_compact(mtev_intern_pool_t *, bool);
   void mtev_intern_pool_stats(mtev_intern_pool_t *, mtev_intern_pool_stats_t *);
@@ -49,8 +50,10 @@ describe("intern strings", function()
     assert.is_not_equal(f.opaque1, h.opaque1)
   end)
   it("releases", function()
+    libmtev.mtev_intern_remove(f)
     libmtev.mtev_intern_release(f)
     libmtev.mtev_intern_release(g)
+    libmtev.mtev_intern_remove(h)
     libmtev.mtev_intern_release(h)
   end)
   it("new copy has different value", function()
@@ -58,7 +61,9 @@ describe("intern strings", function()
     local that = libmtev.mtev_intern_str("that", 0)
     local this = libmtev.mtev_intern_str("this", 0)
     assert.is_not_equal(this, f)
+    libmtev.mtev_intern_remove(that)
     libmtev.mtev_intern_release(that)
+    libmtev.mtev_intern_remove(this)
     libmtev.mtev_intern_release(this)
   end)
   it("loads/unloads", function()
@@ -75,6 +80,7 @@ describe("intern strings", function()
       cnt = cnt + 1
       if cnt > 2000 then
         for k in pairs(m) do
+          libmtev.mtev_intern_remove(m[k])
           libmtev.mtev_intern_release(m[k])
           m[k] = nil
           cnt = cnt - 1
@@ -83,6 +89,7 @@ describe("intern strings", function()
       end
     end
     for k in pairs(m) do
+      libmtev.mtev_intern_remove(m[k])
       libmtev.mtev_intern_release(m[k])
     end
   end)
@@ -105,6 +112,7 @@ describe("intern strings", function()
   it("loads the dictionary again (dropping)", function()
     for v in words() do 
       local f = libmtev.mtev_intern_str(v, 0)
+      libmtev.mtev_intern_remove(f)
       -- release for the two prior loads and this one
       for i = 1,3 do libmtev.mtev_intern_release(f) end
     end
