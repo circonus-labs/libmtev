@@ -48,6 +48,11 @@
 #include "mtev_listener.h"
 #include "mtev_conf.h"
 
+#define MAX_TIMEOUT_CHECK_MS 5000
+
+static mtev_log_stream_t nlerr = NULL;
+static mtev_log_stream_t nldeb = NULL;
+static mtev_hash_table listener_commands;
 static mtev_hash_table *aco_listeners;
 
 struct mtev_acceptor_closure_t {
@@ -63,8 +68,67 @@ struct mtev_acceptor_closure_t {
   uint32_t cmd;
   int rlen;
   void (*service_ctx_free)(void *);
+  struct timeval last_read;
+  struct timeval last_write;
+  uint64_t timeout_ms;
+  eventer_t timeout;
+  int fd;
 };
 
+static int
+mtev_acceptor_timeout(eventer_t e, int mask, void *closure, struct timeval *tv) {
+  (void)mask;
+  (void)e;
+  mtev_acceptor_closure_t *ac = (mtev_acceptor_closure_t *)closure;
+  if(ac->fd >= 0) {
+    eventer_t fde = eventer_find_fd(ac->fd);
+    if(fde) {
+      struct timeval age;
+      mtev_acceptor_closure_readwrite_age(ac, tv, &age);
+      if(age.tv_sec * 1000UL + age.tv_usec / 1000UL > ac->timeout_ms) {
+        ac->timeout = NULL;
+        mtevL(nldeb, "mtev_listener timed out %fs old connection\n",
+              age.tv_sec + (double)age.tv_usec/1000000.0);
+        eventer_trigger(fde, EVENTER_EXCEPTION);
+        return 0;
+      }
+    }
+    else {
+      mtevL(nldeb, "skipping timeout enforcement on floated event\n");
+    }
+  }
+  struct timeval tgt, diff;
+  uint64_t limited_ms = ac->timeout_ms > MAX_TIMEOUT_CHECK_MS ? MAX_TIMEOUT_CHECK_MS : ac->timeout_ms;
+  diff.tv_sec = limited_ms / 1000;
+  diff.tv_usec = (limited_ms % 1000) * 1000;
+  memcpy(&tgt, tv, sizeof(*tv));
+  add_timeval(tgt, diff, &tgt);
+  ac->timeout = eventer_add_at(mtev_acceptor_timeout, ac, tgt);
+  return 0;
+}
+
+void
+mtev_acceptor_closure_mark_read(mtev_acceptor_closure_t *ac, struct timeval *now) {
+  if(now) memcpy(&ac->last_read, now, sizeof(*now));
+  else mtev_gettimeofday(&ac->last_read, NULL);
+}
+void
+mtev_acceptor_closure_mark_write(mtev_acceptor_closure_t *ac, struct timeval *now) {
+  if(now) memcpy(&ac->last_write, now, sizeof(*now));
+  else mtev_gettimeofday(&ac->last_write, NULL);
+}
+void
+mtev_acceptor_closure_readwrite_age(mtev_acceptor_closure_t *ac, struct timeval *now, struct timeval *diff) {
+  struct timeval _now;
+  if(now == NULL) {
+    mtev_gettimeofday(&_now, NULL);
+    now = &_now;
+  }
+  struct timeval d1;
+  sub_timeval(*now, ac->last_read, diff);
+  sub_timeval(*now, ac->last_read, &d1);
+  if(compare_timeval(*diff, d1) > 0) memcpy(diff, &d1, sizeof(d1));
+}
 struct sockaddr *
 mtev_acceptor_closure_remote(mtev_acceptor_closure_t *ac) {
   return &ac->remote.remote_addr;
@@ -118,9 +182,6 @@ typedef struct {
   mtev_hash_table *sslconfig;
 } * listener_closure_t;
 
-static mtev_log_stream_t nlerr = NULL;
-static mtev_log_stream_t nldeb = NULL;
-static mtev_hash_table listener_commands;
 mtev_hash_table *
 mtev_listener_commands(void) {
   return &listener_commands;
@@ -132,6 +193,10 @@ mtev_acceptor_closure_free(mtev_acceptor_closure_t *ac) {
     if(ac->remote_cn) free(ac->remote_cn);
     if(ac->service_ctx_free && ac->service_ctx)
       ac->service_ctx_free(ac->service_ctx);
+    if(ac->timeout) {
+      eventer_remove(ac->timeout);
+      eventer_free(ac->timeout);
+    }
     free(ac);
   }
 }
@@ -177,6 +242,7 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
   if(rv > 0) {
     eventer_ssl_ctx_t *sslctx;
     eventer_set_callback(e, listener_closure->dispatch_callback);
+    mtev_acceptor_closure_mark_read(ac, tv);
     /* We must make a copy of the mtev_acceptor_closure_t for each new
      * connection.
      */
@@ -271,9 +337,10 @@ mtev_listener_acceptor(eventer_t e, int mask,
     ac = malloc(sizeof(*ac));
     memcpy(ac, listener_closure->dispatch_closure, sizeof(*ac));
     salen = sizeof(ac->remote);
-    conn = eventer_accept(e, &ac->remote.remote_addr, &salen, &newmask);
+    ac->fd = conn = eventer_accept(e, &ac->remote.remote_addr, &salen, &newmask);
     if(conn >= 0) {
       eventer_t newe;
+      mtev_acceptor_closure_mark_read(ac, tv);
       mtevL(nldeb, "mtev_listener[%s] accepted fd %d on %s\n",
             eventer_name_for_callback(listener_closure->dispatch_callback),
             conn, eventer_get_thread_name());
@@ -281,6 +348,16 @@ mtev_listener_acceptor(eventer_t e, int mask,
         close(conn);
         free(ac);
         goto accept_bail;
+      }
+      const char *idle_timeout_str = mtev_hash_dict_get(ac->config, "idle_timeout");
+      if(idle_timeout_str) {
+        ac->timeout_ms = strtoull(idle_timeout_str, NULL, 10);
+        if(ac->timeout_ms) {
+          uint64_t limited_ms = ac->timeout_ms > MAX_TIMEOUT_CHECK_MS ? MAX_TIMEOUT_CHECK_MS : ac->timeout_ms;
+          ac->timeout = eventer_in_s_us(mtev_acceptor_timeout, ac,
+                                        limited_ms / 1000, (limited_ms % 1000) * 1000);
+          eventer_add(ac->timeout);
+        }
       }
       if(mtev_hash_size(listener_closure->sslconfig)) {
         const char *layer, *cert, *key, *ca, *ciphers, *crl, *npn;
@@ -716,6 +793,8 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
   mtev_hash_table *delegation_table = NULL;
   mtev_acceptor_closure_t *ac = closure;
 
+  if(mask & EVENTER_EXCEPTION) goto socket_error;
+
   int alpn_mask = mask;
   if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
     return alpn_mask;
@@ -728,7 +807,10 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
     if(len == -1 && errno == EAGAIN)
       return EVENTER_READ | EVENTER_EXCEPTION;
 
-    if(len > 0) ac->rlen += len;
+    if(len > 0) {
+      mtev_acceptor_closure_mark_read(ac, now);
+      ac->rlen += len;
+    }
     if(len <= 0) break;
   }
   mtevAssert(ac->rlen >= 0 && ac->rlen <= (int)sizeof(cmd));

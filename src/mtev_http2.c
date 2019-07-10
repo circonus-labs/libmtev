@@ -748,6 +748,7 @@ static ssize_t send_callback(nghttp2_session *session, const uint8_t *data,
     return NGHTTP2_ERR_WOULDBLOCK;
   }
 
+  if(len > 0) mtev_acceptor_closure_mark_write(sess->ac, NULL);
   mtevL(h2_debug, "http2 wrote(%p), %zd\n", sess, len);
   return len;
 }
@@ -1133,6 +1134,7 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
         mtevL(h2_debug, "http session(%p) ended read->0\n", ctx);
         goto full_shutdown; 
       }
+      mtev_acceptor_closure_mark_read(ctx->ac, now);
       ctx->inbuff_wp += len;
       ssize_t processed = nghttp2_session_mem_recv(ctx->session, ctx->inbuff, ctx->inbuff_wp);
       if(processed < 0) {
@@ -1233,6 +1235,7 @@ mtev_http1_http2_upgrade(mtev_http1_session_ctx *ctx) {
     mtev_http1_session_ref_dec(ctx);
     return -1;
   }
+  mtev_acceptor_closure_mark_write(sess->ac, NULL);
 
   mtev_http2_session_ctx *h2c = (mtev_http2_session_ctx *)mtev_http2_session_new(sess, 1);
   /* We need to move the request information over from the http1 req to this new one */

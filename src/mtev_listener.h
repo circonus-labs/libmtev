@@ -56,6 +56,15 @@ API_EXPORT(void) mtev_listener_skip(const char *address, int port);
 API_EXPORT(void)
   mtev_acceptor_closure_free(mtev_acceptor_closure_t *ac);
 
+API_EXPORT(void)
+  mtev_acceptor_closure_mark_read(mtev_acceptor_closure_t *ac, struct timeval *now);
+
+API_EXPORT(void)
+  mtev_acceptor_closure_mark_write(mtev_acceptor_closure_t *ac, struct timeval *now);
+
+API_EXPORT(void)
+  mtev_acceptor_closure_readwrite_age(mtev_acceptor_closure_t *ac, struct timeval *now, struct timeval *diff);
+
 API_EXPORT(struct sockaddr *)
   mtev_acceptor_closure_remote(mtev_acceptor_closure_t *);
 
