@@ -658,9 +658,17 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
 static inline void
 mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *ii, mtev_boolean inhash) {
   assert(ii->poolid == pool->poolid);
-  bool zero;
-  ck_pr_dec_32_zero(&ii->refcnt, &zero);
-  if(zero) {
+  /* if we got into this function, refcnt must be >0
+     except if caller misbehaves and does too many
+     releases on this intern, so we grab current value
+     atomically with the decrement */
+  uint32_t prev = ck_pr_faa_32(&ii->refcnt, (uint32_t)-1);
+  /* if was 0, somebody else already releasing/released
+     this intern, assert so we get a callstack of who
+     committed this mischief */
+  assert(prev);
+  /* if we released the last reference */
+  if(prev == 1) {
     /* free back to pool */
     if(!inhash && pool->extent_size) {
       /* If this isn't in the hash structure, we can just return it to the freeslot
@@ -946,17 +954,14 @@ mtev_intern_copy(const mtev_intern_t i) {
   if(i.opaque1 == 0) return mtev_intern_null;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
   /* if we got into this function, refcnt must be >0
-     because caller has a reference to the intern,
      except if caller misbehaves and does too many
-     releases on this intern concurrently
-     in order to assist in catching this for debug
-     we detect this misbehavior by checking for
-     concurrent releases and asserting on zero */
-  uint32_t prev;
-  while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
-    if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
-  }
-  assert(prev != 0);
+     releases on this intern, so we grab current value
+     atomically with the increment */
+  uint32_t prev = ck_pr_faa_32(&ii->refcnt, 1);
+  /* if was 0, somebody else already releasing/released
+     this intern, assert so we get a callstack of who
+     committed this mischief */
+  assert(prev);
   return i;
 }
 
