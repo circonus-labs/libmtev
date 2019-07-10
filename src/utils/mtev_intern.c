@@ -945,8 +945,14 @@ mtev_intern_t
 mtev_intern_copy(const mtev_intern_t i) {
   if(i.opaque1 == 0) return mtev_intern_null;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
-  assert(ck_pr_load_32(&ii->refcnt) != 0);
-  ck_pr_inc_32(&ii->refcnt);
+  /* Refcnt it, but consider that we cannot go from 0->1.
+    * If it had a refcnt of zero, it was being removed and
+    * we've got a copy we shouldn't have... we're racing hard. */
+  uint32_t prev;
+  while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
+    if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
+  }
+  assert(prev != 0);
   return i;
 }
 
