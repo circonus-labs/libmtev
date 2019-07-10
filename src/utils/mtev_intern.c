@@ -945,9 +945,13 @@ mtev_intern_t
 mtev_intern_copy(const mtev_intern_t i) {
   if(i.opaque1 == 0) return mtev_intern_null;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
-  /* Refcnt it, but consider that we cannot go from 0->1.
-    * If it had a refcnt of zero, it was being removed and
-    * we've got a copy we shouldn't have... we're racing hard. */
+  /* if we got into this function, refcnt must be >0
+     because caller has a reference to the intern,
+     except if caller misbehaves and does too many
+     releases on this intern concurrently
+     in order to assist in catching this for debug
+     we detect this misbehavior by checking for
+     concurrent releases and asserting on zero */
   uint32_t prev;
   while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
     if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
