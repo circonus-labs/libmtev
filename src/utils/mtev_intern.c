@@ -730,6 +730,7 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
 
  retry_fetch:
   /* Look for it */
+  mtev_plock_take_s(&pool->plock);
   ii = ck_hs_get(&pool->map, hash, lookfor);
   if(ii) {
     /* Refcnt it, but consider that we cannot go from 0->1.
@@ -739,11 +740,13 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
     while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
       if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
     }
+    mtev_plock_drop_s(&pool->plock);
     /* prev == 0, then it is being freed */
     if(prev == 0) {
       goto retry_fetch;
     }
   } else {
+    mtev_plock_drop_s(&pool->plock);
     /* align len on a 4 byte boundary and add the 8 byte header */
     size_t alen = WRAPPED_SIZE(len);
 
@@ -764,15 +767,20 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
     mtev_plock_take_s(&pool->plock);
     /* Attempt to store this in our mapping */
     if(ck_hs_put(&pool->map, hash, ii) == false) {
-      mtev_plock_drop_s(&pool->plock);
-      free(ii);
+      mtev_intern_internal_t *tofree = ii;
       /* Get the item that is presumably there causing our put to fail. */
       ii = ck_hs_get(&pool->map, hash, lookfor);
-      if(!ii) goto retry_fetch;
+      if(!ii) {
+        mtev_plock_drop_s(&pool->plock);
+        free(tofree);
+        goto retry_fetch;
+      }
       uint32_t prev;
       while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
         if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
       }
+      mtev_plock_drop_s(&pool->plock);
+      free(tofree);
       if(prev == 0) {
         goto retry_fetch;
       }
