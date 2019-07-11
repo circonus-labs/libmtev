@@ -482,8 +482,7 @@ mtev_http2_response_header_set(mtev_http2_session_ctx *ctx,
 }
 size_t
 mtev_http2_response_buffered(mtev_http2_session_ctx *ctx) {
-  (void)ctx;
-  return 0;
+  return ctx->res.output_raw_chain_bytes + ctx->res.output_chain_bytes;
 }
 static ssize_t
 mtev_http2_data_provider_read(nghttp2_session *session, int32_t stream_id,

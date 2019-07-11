@@ -204,6 +204,8 @@ API_EXPORT(mtev_boolean)
   mtev_http_response_append_str(ctx, "\n") \
 )
 
+API_EXPORT(void)
+  mtev_http_response_auto_flush(mtev_http_session_ctx *, size_t);
 API_EXPORT(mtev_boolean)
   mtev_http_response_flush(mtev_http_session_ctx *, mtev_boolean);
 API_EXPORT(mtev_boolean)

@@ -57,7 +57,8 @@
   size_t bytes_written;        /* tracks total bytes written */ \
   mtev_stream_compress_ctx_t *compress_ctx; \
   size_t output_chain_bytes; \
-  size_t output_raw_chain_bytes
+  size_t output_raw_chain_bytes; \
+  size_t output_float_trigger
 
 struct mtev_http_connection { uint32_t http_type; };
 struct mtev_http_request { uint32_t http_type; };

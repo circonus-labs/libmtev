@@ -4,6 +4,9 @@
 
 ## 1.6.17
 
+ * Make HTTP/1 flush/flush_asynch automatic.
+ * Add HTTP auto-flushing that defaults to a bchain size (~32k).
+ * Add `mtev_http_response_auto_flush` to control HTTP auto-flushing.
  * Add preloads configuration option to lua_web/lua_general modules
  * Add mtev_set_app_name and mtev_get_app_name for conf file root discovery.
  * Add foreground `SIGINT`, `SIGQUIT`, and `SIGTERM` signals to call

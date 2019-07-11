@@ -145,6 +145,14 @@ struct bchain *bchain_from_data(const void *d, size_t size) {
   return n;
 }
 
+void
+mtev_http_response_auto_flush(mtev_http_session_ctx *ctx, size_t newsize) {
+  mtev_http_response *res = mtev_http_session_response(ctx);
+  res->output_float_trigger = newsize;
+  if(mtev_http_response_buffered(ctx) > (res->output_float_trigger ? res->output_float_trigger : DEFAULT_BCHAINSIZE))
+    mtev_http_response_flush(ctx, false);
+}
+
 mtev_boolean
 mtev_http_is_websocket(mtev_http_session_ctx *ctx) {
   if(ctx->http_type == MTEV_HTTP_1) return mtev_http1_is_websocket((mtev_http1_session_ctx *)ctx);
@@ -289,6 +297,8 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
     }
   }
   success = mtev_true;
+  if(mtev_http_response_buffered(ctx) > (res->output_float_trigger ? res->output_float_trigger : DEFAULT_BCHAINSIZE))
+    mtev_http_response_flush(ctx, false);
 out:
   http_response_send_hook_invoke(ctx);
   return success;
@@ -316,6 +326,8 @@ mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
   }
   res->output_chain_bytes += b->size;
   success = mtev_true;
+  if(mtev_http_response_buffered(ctx) > (res->output_float_trigger ? res->output_float_trigger : DEFAULT_BCHAINSIZE))
+    mtev_http_response_flush(ctx, false);
 out:
   http_response_send_hook_invoke(ctx);
   return success;
