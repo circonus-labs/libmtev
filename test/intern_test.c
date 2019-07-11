@@ -115,6 +115,7 @@ void *thr(void *closure) {
   int cnt = 0;
   struct tc *info = closure;
   const struct workload *w = info->wl;
+  mtev_memory_init_thread();
 
   info->cnt = 0;
   uint32_t off = mtev_rand() & 0x0fffffff;
@@ -126,16 +127,19 @@ void *thr(void *closure) {
       info->cnt++;
     }
   }
+
+  mtev_memory_fini_thread();
   return NULL;
 }
 
 void *singles(void *unused) {
   (void)unused;
-  mtevL(mtev_stderr, "starting 0x%08lx\n", (intptr_t)pthread_self());
+  mtev_memory_init_thread();
   for(int i=0; i<1000000; i++) {
-    mtev_intern_t mi = miNEW(words[i % word_cnt]);
-    miFREE(mi);
+    mtev_intern_t mi = mtev_intern_pool_str(pool, words[0], strlen(words[0]));
+    mtev_intern_release(mi);
   }
+  mtev_memory_fini_thread();
   pthread_exit(NULL);
 }
 
@@ -147,6 +151,7 @@ int child_main() {
   mtev_perftimer_t timer;
   int64_t elapsed;
   int i, cnt, loops = 2;
+  mtev_intern_pool_t *pools[2];
 
   mtev_conf_load(NULL);
   eventer_init();
@@ -160,11 +165,16 @@ int child_main() {
     .estimated_item_count = 1 << 20,
     .backing_directory = path
   };
-  pool = mtev_intern_pool_new(&attr);
+  pools[0] = mtev_intern_pool_new(&attr);
+  attr.extent_size = 0;
+  attr.backing_directory = NULL;
+  pools[1] = mtev_intern_pool_new(&attr);
 
   double ns_per_op[WORKLOADS];
   printf("concurrency: %d\n", NTHREAD);
   for(int reps=0; reps<NREPS; reps++) {
+  for(int p=0; p<2; p++) {
+  pool = pools[p];
   for(int wl=0; wl<WORKLOADS; wl++) {
     mtev_perftimer_start(&timer);
     for(i=0; i<NTHREAD; i++) {
@@ -183,16 +193,23 @@ int child_main() {
       ns_per_op[wl] += (double)elapsed / (double)info[i].cnt;
     }
     ns_per_op[wl] /= (double)NTHREAD;
-    printf("%30s %12.0f/s (%6.1f ns/op)\n", workload[wl].name,
+    printf("%10s%30s %12.0f/s (%6.1f ns/op)\n", p ? "malloc" : "extent", workload[wl].name,
            1000000000.0 * (double)cnt /(double)elapsed, ns_per_op[wl]);
   }
   }
+  }
+  for(int p=0; p<2; p++) {
+  pool = pools[p];
+  mtev_perftimer_start(&timer);
   for(i=0; i<NTHREAD; i++) {
     pthread_create(&info[i].tid, NULL, singles, NULL);
   }
   for(i=0; i<NTHREAD; i++) {
     void *ignored;
     pthread_join(info[i].tid, &ignored);
+  }
+  elapsed = mtev_perftimer_elapsed(&timer);
+  printf(" %s contended add/remove %6.1f /s\n", p ? "malloc" : "extent", 1000000000.0 * 1000000.0 * (double)i / (double)elapsed);
   }
   free(info);
   if(getenv("PAUSE") && !strcmp(getenv("PAUSE"),"1")) pause();
