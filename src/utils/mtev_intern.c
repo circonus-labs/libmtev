@@ -768,7 +768,7 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
       free(ii);
       /* Get the item that is presumably there causing our put to fail. */
       ii = ck_hs_get(&pool->map, hash, lookfor);
-      assert(ii);
+      if(!ii) goto retry_fetch;
       uint32_t prev;
       while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
         if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
