@@ -478,7 +478,8 @@ socket_error:
     return 0;
   }
 
-  if(mtev_console_continue_sending(ncct, &newmask) < 0) {
+  int rv = mtev_console_continue_sending(ncct, &newmask);
+  if(rv < 0) {
     if(ncct->wants_shutdown || errno != EAGAIN) goto socket_error;
     return newmask | EVENTER_EXCEPTION;
   }
@@ -531,7 +532,8 @@ socket_error:
       mtev_console_dispatch(e, cmd_buffer, ncct);
       free(cmd_buffer);
     }
-    if(mtev_console_continue_sending(ncct, &newmask) == -1) {
+    rv = mtev_console_continue_sending(ncct, &newmask);
+    if(rv == -1) {
       if(ncct->wants_shutdown || errno != EAGAIN) goto socket_error;
       return newmask | EVENTER_EXCEPTION;
     }
@@ -594,9 +596,13 @@ socket_error:
   /* If we still have data to send back to the client, this will take
    * care of that
    */
-  if(mtev_console_continue_sending(ncct, &newmask) < 0) {
+  int rv = mtev_console_continue_sending(ncct, &newmask);
+  if(rv < 0) {
     if(ncct->wants_shutdown || errno != EAGAIN) goto socket_error;
+    mtev_acceptor_closure_mark_write(ac, now);
     return newmask | EVENTER_EXCEPTION;
+  } else if(rv > 0) {
+    mtev_acceptor_closure_mark_write(ac, now);
   }
 
   el_multi_set_el(ncct->el);
@@ -625,6 +631,7 @@ socket_error:
       return 0;
     }
     if(len > 0) {
+      mtev_acceptor_closure_mark_read(ac, now);
       keep_going++;
       sbuf[len] = '\0';
       if(ncct->telnet) {
@@ -649,9 +656,13 @@ socket_error:
       mtev_console_dispatch(e, cmd_buffer, ncct);
       free(cmd_buffer);
     }
-    if(mtev_console_continue_sending(ncct, &newmask) == -1) {
+    rv = mtev_console_continue_sending(ncct, &newmask);
+    if(rv == -1) {
       if(ncct->wants_shutdown || errno != EAGAIN) goto socket_error;
+      mtev_acceptor_closure_mark_write(ac, now);
       return newmask | EVENTER_EXCEPTION;
+    } else if(rv > 0) {
+      mtev_acceptor_closure_mark_write(ac, now);
     }
     if(ncct->wants_shutdown) goto socket_error;
   }

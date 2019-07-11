@@ -522,6 +522,7 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
     pthread_mutex_unlock(&ctx->write_lock);
     return -1;
   }
+  mtev_acceptor_closure_mark_write(ctx->ac, NULL);
   mtevL(http_io, " http_write(%d) => %d [\n%.*s\n]\n", eventer_get_fd(ctx->conn.e),
         len, len, b->buff + b->start + ctx->res.output_raw_offset);
   ctx->res.output_raw_offset += len;
@@ -762,7 +763,7 @@ mtev_http1_request_finalize(mtev_http1_session_ctx *ctx, mtev_boolean *err) {
   return mtev_false;
 }
 static int
-mtev_http1_complete_request(mtev_http1_session_ctx *ctx, int mask) {
+mtev_http1_complete_request(mtev_http1_session_ctx *ctx, int mask, struct timeval *now) {
   struct bchain *in;
   mtev_boolean rv, err = mtev_false;
 
@@ -813,6 +814,9 @@ mtev_http1_complete_request(mtev_http1_session_ctx *ctx, int mask) {
       mtevL(http_io, " mtev_http:read(%d) => %d\n", CTXFD(ctx), len);
     if(len == -1 && errno == EAGAIN) return mask;
     if(len < 0)  goto full_error;
+
+    mtev_acceptor_closure_mark_read(ctx->ac, now);
+
     in->size += len;
     rv = mtev_http1_request_finalize(ctx, &err);
     if (rv == mtev_false && len == 0) goto full_error;
@@ -1057,12 +1061,14 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       return -1;
     }
     if(rlen == 0 && next_chunk > 0) {
+      mtev_acceptor_closure_mark_read(ctx->ac, NULL);
       goto successful_chunk_size;
     }
     if(rlen <= 0) {
       mtevL(http_debug, " ... mtev_http1_session_req_consume = -1 (error)\n");
       return -2;
     }
+    mtev_acceptor_closure_mark_read(ctx->ac, NULL);
     tail->size += rlen;
     if (ctx->req.payload_chunked == mtev_false) {
       next_chunk += rlen;
@@ -1428,6 +1434,7 @@ wslay_send_callback(wslay_event_context_ptr ctx,
       wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     }
   }
+  mtev_acceptor_closure_mark_write(session_ctx->ac, NULL);
   mtevL(http_io, "   <- wslay_send_callback, sent (%d)\n", (int)r);
 
   return r;
@@ -1460,6 +1467,8 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
   } else if (r == 0) {
     wslay_event_set_error(session_ctx->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     r = -1;
+  } else {
+    mtev_acceptor_closure_mark_read(session_ctx->ac, NULL);
   }
   mtevL(http_io, "   -> wslay_recv_callback, read (%d)\n", (int) r);
   return r;
@@ -1527,7 +1536,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
   if(ctx->req.complete != mtev_true) {
     int maybe_write_mask;
     mtevL(http_debug, "   -> mtev_http1_complete_request(%d)\n", eventer_get_fd(e));
-    mask = mtev_http1_complete_request(ctx, origmask);
+    mask = mtev_http1_complete_request(ctx, origmask, now);
     mtevL(http_debug, "   <- mtev_http1_complete_request(%d) = %d\n",
           eventer_get_fd(e), mask);
     if(ctx->conn.e == NULL) goto release;
