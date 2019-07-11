@@ -334,6 +334,7 @@ struct lua_reporter {
   mtev_console_closure_t ncct;
   mtev_json_object *root;
   uint32_t outstanding;
+  mtev_hash_table *args;
 };
 
 static struct lua_reporter *
@@ -664,6 +665,100 @@ mtev_console_show_lua(mtev_console_closure_t ncct,
   return 0;
 }
 
+static int
+mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
+                               struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  struct lua_reporter *reporter = closure;
+  mtev_hash_iter zero = MTEV_HASH_ITER_ZERO, iter;
+  pthread_t me = pthread_self();
+  mtev_json_object *states = NULL;
+
+  mtevAssert(reporter->approach == LUA_REPORT_JSON);
+
+  pthread_mutex_lock(&reporter->lock);
+  states = reporter->root;
+  memcpy(&iter, &zero, sizeof(zero));
+  pthread_mutex_lock(&mtev_lua_states_lock);
+  while(mtev_hash_adv(&mtev_lua_states, &iter)) {
+    lua_State *L = *((lua_State **) iter.key.ptr);
+    lua_module_closure_t *lmc = iter.value.ptr;
+    pthread_t tgt = lmc->owner;
+    char state_str[32];
+    mtev_json_object *out;
+    if(!pthread_equal(me, tgt)) continue;
+    snprintf(state_str, sizeof(state_str), "%p", (void*)L);
+    lua_getglobal(L, "mtev_xcall");
+    if(lua_isnil(L, -1)) {
+      continue;
+    }
+    else {
+      mtev_lua_hash_to_table(L, reporter->args);
+      /*  Invoke xcall() */
+      lua_call(L, 1, 1);
+      if(lua_isnil(L, -1)) {
+        /* skip lua states that return an explicit nil */
+        continue;
+      }
+      /* Convert results to json via mtev.tojson(...):unwrap() */
+      lua_getglobal(L, "mtev");
+      lua_getfield(L, -1, "tojson");
+      lua_remove(L, -2);
+      lua_insert(L, -2);
+      lua_call(L, 1, 1);
+      lua_getfield(L, -1, "unwrap");
+      lua_insert(L, -2);
+      lua_call(L, 1, 1);
+      mtev_json_object **udata = luaL_checkudata(L, -1, "mtev.json_object");
+      out = (*udata);
+    }
+    MJ_KV(states, state_str, out);
+  }
+  pthread_mutex_unlock(&mtev_lua_states_lock);
+  pthread_mutex_unlock(&reporter->lock);
+  mtev_lua_reporter_deref(reporter);
+  return 0;
+}
+
+/* GET /module/lua/xcall.json
+
+   Calls _G.mtev_xcall(querystring_table) in each Lua State.
+   Returns serialized output values as as JSON object of the form:
+
+        { "$stateptr" : <val> }
+
+*/
+static int
+mtev_lua_xcall(mtev_http_rest_closure_t *restc, int n, char **p) {
+  (void)n;
+  (void)p;
+  struct lua_reporter *reporter;
+  mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
+  reporter = mtev_lua_reporter_alloc();
+  reporter->restc = restc;
+  reporter->approach = LUA_REPORT_JSON;
+  reporter->root = MJ_OBJ();
+  reporter->args = mtev_http_request_querystring_table(req);
+
+  distribute_reporter_across_threads(reporter, mtev_lua_xcall_reporter);
+  restc->call_closure = reporter;
+  restc->fastpath = mtev_rest_show_lua_complete;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  eventer_t conne = mtev_http_connection_event_float(mtev_http_session_connection(ctx));
+  if(conne) {
+    eventer_remove_fde(conne);
+  }
+
+  /* Register our waiter */
+  const char *timeout = mtev_http_request_querystring(req, "timeout");
+  if(timeout) reporter->timeout_ms = atoi(timeout);
+  if(reporter->timeout_ms <= 0) reporter->timeout_ms = 5000;
+  eventer_add_in_s_us(mtev_lua_rest_show_waiter, reporter, 0, 0);
+  return 0;
+}
+
 void
 register_console_lua_commands(void) {
   static int loaded = 0;
@@ -681,7 +776,13 @@ register_console_lua_commands(void) {
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/module/lua/", "^state\\.json$",
     mtev_rest_show_lua, mtev_http_rest_client_cert_auth
-  ) == 0); 
+  ) == 0);
+
+  mtevAssert(mtev_http_rest_register_auth(
+    "GET", "/module/lua/", "^xcall\\.json$",
+    mtev_lua_xcall, mtev_http_rest_client_cert_auth
+  ) == 0);
+
 }
 
 int

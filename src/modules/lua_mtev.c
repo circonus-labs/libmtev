@@ -83,6 +83,8 @@ static mtev_hash_table shared_table = MTEV_HASH_EMPTY;
 static pthread_mutex_t shared_table_mutex;
 static mtev_hash_table *shared_seq_table;
 
+static mtev_hash_table *semaphore_table;
+
 typedef struct {
   mtev_hash_table string_keys;
   mtev_hash_table int_keys;
@@ -5347,6 +5349,102 @@ nl_shared_seq(lua_State *L) {
 }
 
 
+
+/*! \lua sem = mtev.semaphore(name, value)
+\brief initializes semaphore with a given initial value, and returns a pointer to the semaphore object.
+\param name of the semaphore
+\param value initial semaphore value used if not already initialized
+
+If a semaphore with the same name already exists, no initialization takes place, and the second argument is ignored.
+
+Semaphores are a way to synchronize actions between different lua states.
+
+Example:
+```lua
+sem = mtev.semaphore("my-first-semaphore", 10)
+sem:acquire()
+-- ... do something while holding the lock
+sem:release()
+```
+*/
+
+static int
+nl_semaphore(lua_State *L) {
+  int64_t val, *valp, **valpp;
+  const char *key = luaL_checkstring(L,1);
+  val = luaL_checkinteger(L,2);
+  if (!mtev_hash_retrieve(semaphore_table, key, strlen(key), (void**) &valp)) {
+    /* initialize new semaphore counter */
+    valp = calloc(1, sizeof(val));
+    *valp = val;
+    if(!mtev_hash_store(semaphore_table, key, strlen(key), valp)) {
+      /* lost race */
+      free(valp);
+    }
+  }
+  /* return new semaphore object */
+  valpp = lua_newuserdata(L, sizeof(valp));
+  *valpp = valp;
+  luaL_getmetatable(L, "mtev.semaphore");
+  lua_setmetatable(L, -2);
+  return 1;
+}
+
+/*! \lua semaphore:try_acquire()
+\brief returns true of the semaphore lock could be acquired, false if not.
+*/
+static int
+mtev_lua_semaphore_try_acquire(lua_State *L) {
+  int64_t **valpp, old;
+  int lua_rc = 0;
+  valpp = luaL_checkudata(L, 1, "mtev.semaphore");
+  while((old = ck_pr_load_64((uint64_t*) *valpp)) > 0) {
+    if(ck_pr_cas_64((uint64_t*) *valpp, (uint64_t) old, (uint64_t) old-1)) {
+      lua_rc = 1;
+      break;
+    }
+  }
+  lua_pushboolean(L, lua_rc);
+  return 1;
+}
+
+/*! \lua semaphore:release()
+\brief release the semaphore lock.
+*/
+static int
+mtev_lua_semaphore_release(lua_State *L) {
+  int64_t **valpp = luaL_checkudata(L, 1, "mtev.semaphore");
+  ck_pr_inc_64((uint64_t*) *valpp);
+  return 0;
+}
+
+static int
+mtev_lua_semaphore_index_func(lua_State *L) {
+  if(lua_gettop(L) != 2) {
+    return luaL_error(L, "Illegal use of lua semaphore");
+  }
+  void* udata = luaL_checkudata(L, 1, "mtev.semaphore");
+  const char* k = luaL_checkstring(L, 2);
+  const char* key = udata;
+  switch(*k) {
+  case 'a':
+    if(!strcmp(k, "acquire")) {
+      lua_getglobal(L, "mtev");
+      lua_getfield(L, -1, "__semaphore_acquire");
+      return 1;
+    }
+    break;
+  case 't':
+    LUA_DISPATCH(try_acquire, mtev_lua_semaphore_try_acquire);
+    break;
+  case 'r':
+    LUA_DISPATCH(release, mtev_lua_semaphore_release);
+    break;
+  }
+  (void) key;
+  return luaL_error(L, "mtev.semaphore no such element: %s", k);
+}
+
 /*! \lua mtev.cancel_coro()
 */
 static int
@@ -5364,8 +5462,6 @@ static void mtev_lua_init(void) {
   if(done) return;
   done = 1;
   mtev_lua_init_globals();
-  shared_seq_table = calloc(1, sizeof(*shared_seq_table));
-  mtev_hash_init_locks(shared_seq_table, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   register_console_lua_commands();
   eventer_name_callback("lua/sleep", nl_sleep_complete);
   eventer_name_callback("lua/socket_read",
@@ -5387,10 +5483,19 @@ static void mtev_lua_init(void) {
   if(!nldeb) nldeb = mtev_debug;
   mtev_lua_init_dns();
 
+  /* init shared_seq */
+  shared_seq_table = calloc(1, sizeof(*shared_seq_table));
+  mtev_hash_init_locks(shared_seq_table, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+
+  /* init shared_set/get */
   mtev_hash_init_locks(&shared_table, 8, MTEV_HASH_LOCK_MODE_NONE);
   if(pthread_mutex_init(&shared_table_mutex, NULL) != 0) {
     mtevL(nlerr, "Unable to initialize shared_table_mutex\n");
   }
+
+  /* init semaphore */
+  semaphore_table = calloc(1, sizeof(*semaphore_table));
+  mtev_hash_init_locks(semaphore_table, 0, MTEV_HASH_LOCK_MODE_MUTEX);
 }
 
 static const luaL_Reg mtevlib[] = {
@@ -5489,6 +5594,7 @@ Use sha256_hex instead.
   { "watchdog_child_heartbeat", nl_watchdog_child_heartbeat },
   { "watchdog_timeout", nl_watchdog_timeout },
   { "websocket_client_connect", nl_websocket_client_connect },
+  { "semaphore", nl_semaphore },
   { NULL, NULL }
 };
 
@@ -5568,6 +5674,10 @@ int luaopen_mtev(lua_State *L) {
   luaL_newmetatable(L, "mtev.xpathiter");
   lua_pushcfunction(L, mtev_lua_xpathiter_gc);
   lua_setfield(L, -2, "__gc");
+
+  luaL_newmetatable(L, "mtev.semaphore");
+  lua_pushcclosure(L, mtev_lua_semaphore_index_func, 0);
+  lua_setfield(L, -2, "__index");
 
   luaL_openlib(L, "mtev", mtevlib, 0);
 

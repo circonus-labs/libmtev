@@ -253,6 +253,9 @@ mtev_boolean mtev_http2_request_payload_chunked(mtev_http2_request *req) {
   (void)req;
   return mtev_false;
 }
+mtev_boolean mtev_http2_request_payload_complete(mtev_http2_request *req) {
+  return req->payload_complete;
+}
 mtev_boolean mtev_http2_request_has_payload(mtev_http2_request *req) {
   return req->has_payload;
 }
@@ -536,7 +539,7 @@ mtev_http2_data_provider_read(nghttp2_session *session, int32_t stream_id,
         while(mtev_hash_adv(&ctx->res.trailers, &iter)) {
           if((j == 0 && iter.key.str[0] == ':') ||
              (j == 1 && iter.key.str[0] != ':')) {
-            nghttp2_nv nv = { iter.key.ptr, iter.value.ptr, iter.klen, strlen(iter.value.str),
+            nghttp2_nv nv = { (void *)iter.key.ptr, iter.value.ptr, iter.klen, strlen(iter.value.str),
                               NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE };
             hdrs[i++] = nv;
           }
@@ -595,7 +598,7 @@ mtev_http2_response_flush(mtev_http2_session_ctx *ctx,
       while(mtev_hash_adv(&ctx->res.headers, &iter)) {
         if((j == 0 && iter.key.str[0] == ':') ||
            (j == 1 && iter.key.str[0] != ':')) {
-          nghttp2_nv nv = { iter.key.ptr, iter.value.ptr, iter.klen, strlen(iter.value.str),
+          nghttp2_nv nv = { (void *)iter.key.ptr, iter.value.ptr, iter.klen, strlen(iter.value.str),
                             NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE };
           hdrs[i++] = nv;
           mtevL(h2_debug, "http2 header out(%p -> %d) %s : %s\n", ctx->parent,
@@ -824,7 +827,7 @@ on_header_callback(nghttp2_session *session,
   switch (frame->hd.type) {
   case NGHTTP2_HEADERS:
    stream = nghttp2_session_get_stream_user_data(session, frame->hd.stream_id);
-   mtevL(mtev_debug, "http2 headers(%.*s : %.*s)\n", (int)namelen, name, (int)valuelen, value);
+   mtevL(h2_debug, "http2 headers(%.*s : %.*s)\n", (int)namelen, name, (int)valuelen, value);
     if (frame->headers.cat != NGHTTP2_HCAT_REQUEST) {
       break;
     }
@@ -917,7 +920,7 @@ on_frame_recv_callback(nghttp2_session *session,
   case NGHTTP2_DATA:
     stream->req.payload_complete = mtev_true;
     stream->req.content_length = stream->req.user_data_bytes;
-    /* FALLTRHU */
+    /* fall through */
   case NGHTTP2_HEADERS:
     mtev_http_begin_span((mtev_http_session_ctx *)stream);
     http_request_complete_hook_invoke((mtev_http_session_ctx *)stream);

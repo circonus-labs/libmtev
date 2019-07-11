@@ -232,7 +232,20 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.3" data-path="../config/modules/lua_general.html">
+        <li class="chapter " data-level="1.2.7.3" data-path="../config/modules/http_observer.html">
+            
+                <a href="../config/modules/http_observer.html">
+            
+                    
+                    http_observer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/lua_general.html">
             
                 <a href="../config/modules/lua_general.html">
             
@@ -245,7 +258,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/lua_web.html">
+        <li class="chapter " data-level="1.2.7.5" data-path="../config/modules/lua_web.html">
             
                 <a href="../config/modules/lua_web.html">
             
@@ -258,7 +271,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.5" data-path="../config/modules/zipkin_fq.html">
+        <li class="chapter " data-level="1.2.7.6" data-path="../config/modules/zipkin_fq.html">
             
                 <a href="../config/modules/zipkin_fq.html">
             
@@ -271,7 +284,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.6" data-path="../config/modules/zipkin_jaeger.html">
+        <li class="chapter " data-level="1.2.7.7" data-path="../config/modules/zipkin_jaeger.html">
             
                 <a href="../config/modules/zipkin_jaeger.html">
             
@@ -2531,8 +2544,8 @@ See <a href="c.html#mtevmain%60"><code>mtev_main</code></a>.</p>
 <span class="hljs-title">eventer_name_callback</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, eventer_func_t callback)</span>
 </span></code></pre>
 <ul>
-<li><code>name</code> the human readable name.</li>
-<li><code>callback</code> the functin pointer of the eveter callback.</li>
+<li><code>name</code> the human readable name.  You should select clear/unique names for clarity in debugging.</li>
+<li><code>callback</code> the function pointer of the eventer callback.</li>
 <li><strong>RETURN</strong> 0 on success.</li>
 </ul>
 <h4 id="eventernamecallbackext">eventer_name_callback_ext</h4>
@@ -2544,9 +2557,9 @@ eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(
                           eventer_t e, void *closure), void *closure)
 </code></pre>
 <ul>
-<li><code>name</code> the human readable name.</li>
-<li><code>callback</code> the functin pointer of the eveter callback.</li>
-<li><code>fn</code> function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).</li>
+<li><code>name</code> the human readable name.  You should select clear/unique names for clarity in debugging.</li>
+<li><code>callback</code> the function pointer of the eventer callback.</li>
+<li><code>fn</code> function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).  If this is defined, it will override the &quot;name&quot; paramter when eventer_name_for_callback is called.</li>
 <li><strong>RETURN</strong> 0 on success.</li>
 </ul>
 <p>This function allows more in-depth descriptions of events.  When an event
@@ -2967,6 +2980,17 @@ a looping thread, this call is used.</p>
 </span></code></pre>
 <ul>
 <li><strong>RETURN</strong> A timeout in seconds, 0.0 if none configured.</li>
+</ul>
+<h4 id="eventerwatchdogtimeouttimeval">eventer_watchdog_timeout_timeval</h4>
+<blockquote>
+<p>Return the current watchdog timeout on this thread.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_watchdog_timeout_timeval</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> timeval *dur)</span>
+</span></code></pre>
+<ul>
+<li><code>dur</code> the timeval structure to populate with the timeout.</li>
+<li><strong>RETURN</strong> mtev_true if a timeout is set, mtev_false otherwise.</li>
 </ul>
 <h4 id="eventerwrite">eventer_write</h4>
 <blockquote>
@@ -4548,6 +4572,18 @@ before <code>mtev_main</code> and will be overridden by the MTEV_ASYNCH_CORE_DUM
 <ul>
 <li><code>hb</code> the heart on which to act</li>
 <li><strong>RETURN</strong> A timeout in seconds, 0 if hb is NULL.</li>
+</ul>
+<h4 id="mtevwatchdoggettimeouttimeval">mtev_watchdog_get_timeout_timeval</h4>
+<blockquote>
+<p>returns the timeout configured for this watchdog.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">struct</span> timeval
+<span class="hljs-title">mtev_watchdog_get_timeout_timeval</span><span class="hljs-params">(mtev_watchdog_t *hb)</span>
+</span></code></pre>
+<ul>
+<li><code>hb</code> the heart on which to act</li>
+<li><code>dur</code> a struct timeval to populate with the timeout</li>
+<li><strong>RETURN</strong> mtev_true if there is a watchog, mtev_false if not.</li>
 </ul>
 <h4 id="mtevwatchdogglider">mtev_watchdog_glider</h4>
 <blockquote>

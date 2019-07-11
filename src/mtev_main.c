@@ -328,7 +328,6 @@ mtev_main_status(const char *appname,
   return -1;
 }
 
-
 int
 mtev_main(const char *appname,
           const char *config_filename, int debug, int foreground,
@@ -353,6 +352,7 @@ mtev_main(const char *appname,
  
   wait_for_lock = (lock == MTEV_LOCK_OP_WAIT) ? 1 : 0;
 
+  mtev_set_app_name(appname);
   mtev_init_globals();
   mtev_stats_init();
   stats_ns_add_tag(mtev_stats_ns(NULL, "mtev"), "app", appname);
@@ -508,6 +508,9 @@ mtev_main(const char *appname,
     const char *diagnose = getenv("MTEV_DIAGNOSE_CRASH");
     if(!diagnose || strcmp(diagnose,"0")) mtev_setup_crash_signals(mtev_self_diagnose);
     mtev_memory_gc_asynch();
+    signal(SIGTERM, mtev_watchdog_shutdown_handler);
+    signal(SIGQUIT, mtev_watchdog_shutdown_handler);
+    signal(SIGINT, mtev_watchdog_shutdown_handler);
     int rv = passed_child_main();
     mtev_lockfile_release(lockfd);
     return rv;

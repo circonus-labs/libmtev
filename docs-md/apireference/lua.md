@@ -387,11 +387,12 @@ mtev.eventer:close()
 
 ```lua
 rv, err =
-mtev.eventer:connect(target[, port])
+mtev.eventer:connect(target[, port][, timeout])
 ```
 
 
   * `target` the target address for a connection.  Either an IP address (in which case a port is required), or a `reverse:` connection for reverse tunnelled connections.
+  * `timeout` for connect operation
   * **RETURN** rv is 0 on success, non-zero on failure with err holding the error message.
 
 

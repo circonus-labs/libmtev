@@ -10,7 +10,12 @@ The amqp module consumes and publishes message via AMQP (RabbitMQ).
 
 ### Module Configuration
 
-    No module-level options available for this module.
+    
+ * **`poll_limit`** (optional)  [default: `10000`]
+
+   allowed: `/^\d+$/`
+
+   Maximum number of messages to handle in a single callback.
 ### Examples
 
 #### Loading the amqp module.
@@ -19,6 +24,9 @@ The amqp module consumes and publishes message via AMQP (RabbitMQ).
       <root>
         <modules>
           <module image="amqp" name="amqp"/>
+            <config>
+              <poll_limit>1000</poll_limit>
+            </config>
         </modules>
         <network>
           <mq type="amqp">

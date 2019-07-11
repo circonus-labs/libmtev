@@ -194,17 +194,6 @@ void eventer_callback_prep(eventer_t, int, void *, struct timeval *);
 void eventer_update_timed_internal(eventer_t e, int mask, struct timeval *);
 void eventer_callback_cleanup(eventer_t, int);
 
-static inline int eventer_run_callback(eventer_t e, int m, void *c, struct timeval *n) {
-  int rmask;
-  eventer_t previous_event = eventer_get_this_event();
-  eventer_set_this_event(e);
-  eventer_callback_prep(e, m, c, n);
-  rmask = e->callback(e, m, c, n);
-  eventer_callback_cleanup(e, rmask);
-  eventer_set_this_event(previous_event);
-  return rmask;
-}
-
 static inline void eventer_adjust_max_sleeptime(struct timeval *dur) {
   struct timeval ht;
   if(eventer_watchdog_timeout_timeval(&ht)) {

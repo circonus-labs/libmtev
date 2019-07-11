@@ -2473,8 +2473,8 @@ eventer_name_callback(const char *name, eventer_func_t callback)
 ```
 
 
-  * `name` the human readable name.
-  * `callback` the functin pointer of the eveter callback.
+  * `name` the human readable name.  You should select clear/unique names for clarity in debugging.
+  * `callback` the function pointer of the eventer callback.
   * **RETURN** 0 on success.
 
 
@@ -2489,9 +2489,9 @@ eventer_name_callback_ext(const char *name, eventer_func_t callback, void (*fn)(
 ```
 
 
-  * `name` the human readable name.
-  * `callback` the functin pointer of the eveter callback.
-  * `fn` function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).
+  * `name` the human readable name.  You should select clear/unique names for clarity in debugging.
+  * `callback` the function pointer of the eventer callback.
+  * `fn` function to call when describing the event. It should write a null terminated string into buff (no more than bufflen).  If this is defined, it will override the "name" paramter when eventer_name_for_callback is called.
   * **RETURN** 0 on success.
 
 This function allows more in-depth descriptions of events.  When an event
@@ -3025,6 +3025,20 @@ eventer_watchdog_timeout(void)
 
 
   * **RETURN** A timeout in seconds, 0.0 if none configured.
+
+
+#### eventer_watchdog_timeout_timeval
+
+>Return the current watchdog timeout on this thread.
+
+```c
+mtev_boolean
+eventer_watchdog_timeout_timeval(struct timeval *dur)
+```
+
+
+  * `dur` the timeval structure to populate with the timeout.
+  * **RETURN** mtev_true if a timeout is set, mtev_false otherwise.
 
 
 #### eventer_write
@@ -5252,6 +5266,21 @@ mtev_watchdog_get_timeout(mtev_watchdog_t *hb)
 
   * `hb` the heart on which to act
   * **RETURN** A timeout in seconds, 0 if hb is NULL.
+ 
+
+#### mtev_watchdog_get_timeout_timeval
+
+>returns the timeout configured for this watchdog.
+
+```c
+struct timeval
+mtev_watchdog_get_timeout_timeval(mtev_watchdog_t *hb)
+```
+
+
+  * `hb` the heart on which to act
+  * `dur` a struct timeval to populate with the timeout
+  * **RETURN** mtev_true if there is a watchog, mtev_false if not.
  
 
 #### mtev_watchdog_glider

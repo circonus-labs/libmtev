@@ -658,9 +658,17 @@ mtev_intern_internal_t *mtev_intern_pool_find(mtev_intern_pool_t *pool, size_t l
 static inline void
 mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *ii, mtev_boolean inhash) {
   assert(ii->poolid == pool->poolid);
-  bool zero;
-  ck_pr_dec_32_zero(&ii->refcnt, &zero);
-  if(zero) {
+  /* if we got into this function, refcnt must be >0
+     except if caller misbehaves and does too many
+     releases on this intern, so we grab current value
+     atomically with the decrement */
+  uint32_t prev = ck_pr_faa_32(&ii->refcnt, (uint32_t)-1);
+  /* if was 0, somebody else already releasing/released
+     this intern, assert so we get a callstack of who
+     committed this mischief */
+  assert(prev);
+  /* if we released the last reference */
+  if(prev == 1) {
     /* free back to pool */
     if(!inhash && pool->extent_size) {
       /* If this isn't in the hash structure, we can just return it to the freeslot
@@ -760,7 +768,7 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
       free(ii);
       /* Get the item that is presumably there causing our put to fail. */
       ii = ck_hs_get(&pool->map, hash, lookfor);
-      assert(ii);
+      if(!ii) goto retry_fetch;
       uint32_t prev;
       while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
         if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
@@ -945,8 +953,15 @@ mtev_intern_t
 mtev_intern_copy(const mtev_intern_t i) {
   if(i.opaque1 == 0) return mtev_intern_null;
   mtev_intern_internal_t *ii = (mtev_intern_internal_t *)(i.opaque1 - offsetof(mtev_intern_internal_t, v));
-  assert(ck_pr_load_32(&ii->refcnt) != 0);
-  ck_pr_inc_32(&ii->refcnt);
+  /* if we got into this function, refcnt must be >0
+     except if caller misbehaves and does too many
+     releases on this intern, so we grab current value
+     atomically with the increment */
+  uint32_t prev = ck_pr_faa_32(&ii->refcnt, 1);
+  /* if was 0, somebody else already releasing/released
+     this intern, assert so we get a callstack of who
+     committed this mischief */
+  assert(prev);
   return i;
 }
 

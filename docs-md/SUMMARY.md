@@ -12,6 +12,7 @@
     1. [Modules](config/modules.md)
       1. [amqp](config/modules/amqp.md)
       1. [fq](config/modules/fq.md)
+      1. [http_observer](config/modules/http_observer.md)
       1. [lua_general](config/modules/lua_general.md)
       1. [lua_web](config/modules/lua_web.md)
       1. [zipkin_fq](config/modules/zipkin_fq.md)

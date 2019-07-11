@@ -365,7 +365,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   mtev_memory_begin();
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
   start = mtev_gethrtime();
-  newmask = eventer_run_callback(e, mask, e->closure, &__now);
+  newmask = eventer_run_callback(e->callback, e, mask, e->closure, &__now);
   duration = mtev_gethrtime() - start;
   LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
   mtev_memory_end();

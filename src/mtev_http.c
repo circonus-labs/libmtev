@@ -226,6 +226,7 @@ HTTP_DIS(size_t, request_content_length, request *, r, (mtev_http_request *r), (
 HTTP_DIS(size_t, request_content_length_read, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(mtev_boolean, request_payload_chunked, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(mtev_boolean, request_has_payload, request *, r, (mtev_http_request *r), (t_r))
+HTTP_DIS(mtev_boolean, request_payload_complete, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(const char *, request_querystring, request *, r, (mtev_http_request *r, const char *k), (t_r, k))
 HTTP_DIS(const char *, request_orig_querystring, request *, r, (mtev_http_request *r), (t_r))
 HTTP_DIS(mtev_hash_table *, request_querystring_table, request *, r, (mtev_http_request *r), (t_r))
@@ -570,13 +571,14 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     int len;
     while(1) {
       len = snprintf(logline_static, logline_len,
-        "%s - - [%s] \"%s %s%s%s %s\" %d %llu %.3f\n",
+        "%s - - [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
         ip, timestr,
         mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
         orig_qs ? "?" : "", orig_qs ? orig_qs : "",
         mtev_http_request_protocol_str(req),
         mtev_http_response_status(res),
         (long long unsigned)mtev_http_response_bytes_written(res),
+        (long long unsigned)mtev_http_request_content_length_read(req),
         time_ms);
       if(len <= logline_len) break;
       free(logline_dynamic);
@@ -597,13 +599,14 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     (void)logline; /* the above line might be CPP'd away */
     free(logline_dynamic);
   }
-  mtevL(http_access, "%s - - [%s] \"%s %s%s%s %s\" %d %llu %.3f\n",
+  mtevL(http_access, "%s - - [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
         ip, timestr,
         mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
         orig_qs ? "?" : "", orig_qs ? orig_qs : "",
         mtev_http_request_protocol_str(req),
         mtev_http_response_status(res),
         (long long unsigned)mtev_http_response_bytes_written(res),
+        (long long unsigned)mtev_http_request_content_length_read(req),
         time_ms);
 }
 
