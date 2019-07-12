@@ -936,6 +936,7 @@ mtev_http1_ctx_session_release(mtev_http1_session_ctx *ctx) {
     mtev_http1_request_release(ctx);
     mtev_http1_response_release(ctx);
     pthread_mutex_destroy(&ctx->write_lock);
+    pthread_mutex_destroy(&ctx->res.output_lock);
 #ifdef HAVE_WSLAY
     if (ctx->is_websocket == mtev_true) {
       wslay_event_context_free(ctx->wslay_ctx);
@@ -1697,6 +1698,10 @@ mtev_http1_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http1_webso
   mtev_hash_init(&ctx->req.headers);
   mtev_hash_init(&ctx->req.querystring);
   mtev_hash_init(&ctx->res.headers);
+  pthread_mutexattr_t mattr;
+  pthread_mutexattr_init(&mattr);
+  pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&ctx->res.output_lock, &mattr);
   ctx->conn.http_type = MTEV_HTTP_1;
   ctx->conn.e = e;
   ctx->max_write = DEFAULT_MAXWRITE;
@@ -1907,6 +1912,7 @@ mtev_http1_response_flush(mtev_http1_session_ctx *ctx,
   int mask, rv;
 
   if(ctx->res.closed == mtev_true) return mtev_false;
+  pthread_mutex_lock(&ctx->res.output_lock);
   if(ctx->res.output_started == mtev_false) {
     _http_construct_leader(ctx);
     ctx->res.output_started = mtev_true;
@@ -1942,6 +1948,7 @@ mtev_http1_response_flush(mtev_http1_session_ctx *ctx,
 
   rv = _http_perform_write(ctx, &mask);
 
+  pthread_mutex_unlock(&ctx->res.output_lock);
   /* If we aren't inside the event callback of the session itself,
    * we need to update the state in the eventer, if it is registered
    * there.

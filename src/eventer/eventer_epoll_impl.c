@@ -289,6 +289,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
   uint64_t start, duration;
 
+  eventer_ref(e);
   mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
   if(cross_thread) {
@@ -305,6 +306,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
     /* mtevAssert(master_fds[fd].e == NULL); */
 
     eventer_cross_thread_trigger(e,mask);
+    eventer_deref(e);
     return;
   }
   if(master_fds[fd].e == NULL) {
@@ -319,6 +321,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
        * and just queue this event to be picked up on the next loop
        */
       eventer_cross_thread_trigger(e, mask);
+      eventer_deref(e);
       return;
     }
     /*
@@ -348,11 +351,13 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   }
   if(e != master_fds[fd].e) {
     mtevL(mtev_error, "Incoming event: %p, does not match master list: %p\n", e, master_fds[fd].e);
+    eventer_deref(e);
     return;
   }
   lockstate = acquire_master_fd(fd);
   if(lockstate == EV_ALREADY_OWNED) {
     mtevL(eventer_deb, "Incoming event: %p already owned by this thread\n", e);
+    eventer_deref(e);
     return;
   }
   mtevAssert(lockstate == EV_OWNED);
@@ -448,8 +453,9 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
       }
       master_fds[fd].e = NULL;
     }
-    eventer_free(e);
+    eventer_deref(e);
   }
+  eventer_deref(e);
   release_master_fd(fd, lockstate);
 }
 static int eventer_epoll_impl_loop(int id) {

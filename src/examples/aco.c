@@ -69,14 +69,18 @@ parse_cli_args(int argc, char * const *argv) {
 static void asynch_hello(void *closure) {
   mtev_http_rest_closure_t *restc = closure;
   mtev_http_session_ctx *ctx = restc->http_ctx;
-  sleep(1);
+  usleep(100);
   mtev_http_response_append_str(ctx, "Hello world.\n");
 }
 void subcall2(mtev_http_rest_closure_t *restc) {
   eventer_aco_gate_t gate = eventer_aco_gate();
   mtevL(mtev_error, "subcall2 entry\n");
-  eventer_aco_simple_asynch_gated(gate, asynch_hello, restc);
-  eventer_aco_simple_asynch_gated(gate, asynch_hello, restc);
+  int count = 2;
+  const char *count_str = mtev_http_request_querystring(mtev_http_session_request(restc->http_ctx), "count");
+  if(count_str) count = atoi(count_str);
+  for(int i=0; i<count; i++) {
+    eventer_aco_simple_asynch_gated(gate, asynch_hello, restc);
+  }
   mtevL(mtev_error, "subcall2 return\n");
   eventer_aco_gate_wait(gate);
 }

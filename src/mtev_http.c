@@ -270,6 +270,7 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
   int boff = 0;
   mtev_boolean success = mtev_false;
   mtev_http_response *res = mtev_http_session_response(ctx);
+  pthread_mutex_lock(&res->output_lock);
   if(res->closed == mtev_true) goto out;
   if(res->output_started == mtev_true &&
      !(res->output_options & (MTEV_HTTP_CLOSE | MTEV_HTTP_CHUNKED)))
@@ -300,6 +301,7 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
   if(mtev_http_response_buffered(ctx) > (res->output_float_trigger ? res->output_float_trigger : DEFAULT_BCHAINSIZE))
     mtev_http_response_flush(ctx, false);
 out:
+  pthread_mutex_unlock(&res->output_lock);
   http_response_send_hook_invoke(ctx);
   return success;
 }
@@ -309,6 +311,7 @@ mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
   struct bchain *o;
   mtev_boolean success = mtev_false;
   mtev_http_response *res = mtev_http_session_response(ctx);
+  pthread_mutex_lock(&res->output_lock);
   if(res->closed == mtev_true) goto out;
   if(res->output_started == mtev_true &&
      !(res->output_options & (MTEV_HTTP_CHUNKED | MTEV_HTTP_CLOSE)))
@@ -329,6 +332,7 @@ mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
   if(mtev_http_response_buffered(ctx) > (res->output_float_trigger ? res->output_float_trigger : DEFAULT_BCHAINSIZE))
     mtev_http_response_flush(ctx, false);
 out:
+  pthread_mutex_unlock(&res->output_lock);
   http_response_send_hook_invoke(ctx);
   return success;
 }

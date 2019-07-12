@@ -301,6 +301,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
 
   mask = mask & ~(EVENTER_RESERVED);
+  eventer_ref(e);
   fd = e->fd;
   if(cross_thread) {
     if(master_fds[fd].e != NULL) {
@@ -316,6 +317,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
     /* mtevAssert(master_fds[fd].e == NULL); */
 
     eventer_cross_thread_trigger(e,mask);
+    eventer_deref(e);
     return;
   }
   if(master_fds[fd].e == NULL) {
@@ -330,16 +332,21 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
 	 and just queue this event to be picked up on the next loop
       */
       eventer_cross_thread_trigger(e, mask);
+      eventer_deref(e);
       return;
     }
     release_master_fd(fd, lockstate);
     master_fds[fd].e = e;
     e->mask = 0;
   }
-  if(e != master_fds[fd].e) return;
+  if(e != master_fds[fd].e) {
+    eventer_deref(e);
+    return;
+  }
   lockstate = acquire_master_fd(fd);
   if(lockstate == EV_ALREADY_OWNED) {
     mtevL(eventer_deb, "Incoming event: %p already owned by this thread\n", e);
+    eventer_deref(e);
     return;
   }
   mtevAssert(lockstate == EV_OWNED);
@@ -407,8 +414,9 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
      *  it out.
      */
     if(master_fds[fd].e == e) master_fds[fd].e = NULL;
-    eventer_free(e);
+    eventer_deref(e);
   }
+  eventer_deref(e);
   release_master_fd(fd, lockstate);
 }
 static int eventer_kqueue_impl_loop(int id) {

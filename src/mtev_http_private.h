@@ -44,6 +44,7 @@
 #define HTTP_RESPONSE_BASE \
   uint32_t http_type; \
   mtev_hash_table headers; \
+  pthread_mutex_t output_lock; \
   uint32_t output_options; \
   struct bchain *output;       /* data is pushed in here */ \
   struct bchain *output_last;  /* tail ptr */ \

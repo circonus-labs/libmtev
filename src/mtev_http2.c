@@ -162,6 +162,7 @@ mtev_boolean mtev_http2_session_ref_dec(mtev_http2_session_ctx *ctx) {
     }
 
     /* free response */
+    pthread_mutex_destroy(&ctx->res.output_lock);
     mtev_hash_destroy(&ctx->res.headers, free, free);
     mtev_hash_destroy(&ctx->res.trailers, free, free);
     RELEASE_BCHAIN(ctx->res.output);
@@ -495,6 +496,8 @@ mtev_http2_data_provider_read(nghttp2_session *session, int32_t stream_id,
   mtevAssert(ctx->stream_id == stream_id);
 
   mtevL(h2_debug, "http2 data_provider(%p -> %d)\n", ctx->parent, ctx->stream_id);
+
+  pthread_mutex_lock(&ctx->res.output_lock);
   /* Fill the buffer */
   size_t sofar = 0;
   while(sofar < length && ctx->res.output_raw && ctx->res.output_raw->size > 0) {
@@ -521,6 +524,7 @@ mtev_http2_data_provider_read(nghttp2_session *session, int32_t stream_id,
     mtevL(h2_debug, "http2 session suspending pending output data (%p -> %d)\n",
           ctx->parent, ctx->stream_id);
     ctx->paused = H2_PAUSED;
+    pthread_mutex_unlock(&ctx->res.output_lock);
     return NGHTTP2_ERR_DEFERRED;
   }
   /* Determine if "this is it" and we should set the EOF flag */
@@ -552,6 +556,7 @@ mtev_http2_data_provider_read(nghttp2_session *session, int32_t stream_id,
   mtevL(h2_debug, "http2 (%p -> %d) fed ouput %zd bytes\n",
         ctx->parent, ctx->stream_id, sofar);
   ctx->res.bytes_written += sofar;
+  pthread_mutex_unlock(&ctx->res.output_lock);
   return sofar;
 }
 static int
@@ -1067,6 +1072,10 @@ mtev_http2_session_new(mtev_http2_parent_session *parent, int32_t stream_id) {
   mtev_hash_init(&sess->req.headers);
   mtev_hash_init(&sess->req.querystring);
   sess->req.opts = MTEV_HTTP_CLOSE | MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE;
+  pthread_mutexattr_t mattr;
+  pthread_mutexattr_init(&mattr);
+  pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&sess->res.output_lock, &mattr);
   mtev_hash_init(&sess->res.headers);
   mtev_hash_init(&sess->res.trailers);
   sess->res.output_options = MTEV_HTTP_CLOSE;
