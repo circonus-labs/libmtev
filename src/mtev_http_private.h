@@ -336,6 +336,7 @@ raw_finalize_encoding(mtev_http_response *res) {
 static inline void
 mtev_http_encode_output_raw(mtev_http_session_ctx *ctx, mtev_boolean *final) {
   mtev_http_response *res = mtev_http_session_response(ctx);
+  pthread_mutex_lock(&res->output_lock);
   struct bchain *r = res->output_raw_last;
   mtevAssert((r == NULL && res->output_raw == NULL) ||
          (r != NULL && res->output_raw != NULL));
@@ -385,6 +386,7 @@ mtev_http_encode_output_raw(mtev_http_session_ctx *ctx, mtev_boolean *final) {
   res->output = NULL;
   res->output_last = NULL;
   res->output_chain_bytes = 0;
+  pthread_mutex_unlock(&res->output_lock);
 }
 
 /* will uncompress the chain at 'in' and write uncompressed chain at 'out' with
