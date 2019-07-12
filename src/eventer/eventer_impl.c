@@ -1283,10 +1283,12 @@ void eventer_add_recurrent(eventer_t e) {
 int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct timeval *n) {
   int rmask;
   eventer_t previous_event = eventer_get_this_event();
+  eventer_ref(e);
   eventer_set_this_event(e);
   eventer_callback_prep(e, m, c, n);
   rmask = f(e, m, c, n);
   eventer_callback_cleanup(e, rmask);
+  eventer_deref(e);
   eventer_set_this_event(previous_event);
   return rmask;
 }

@@ -722,6 +722,7 @@ mtev_rest_aco_handler(void) {
 
   /* trigger the event */
   eventer_add_timer_next_opportunity(next_tick_resume, conne, pthread_self());
+  eventer_deref(newe);
   free(aco_ctx);
   aco_exit();
 }
