@@ -1372,37 +1372,43 @@ int eventer_close(eventer_t e, int *mask) {
 
 int eventer_aco_accept(eventer_aco_t e, struct sockaddr *addr, socklen_t *len, struct timeval *timeout) {
   mtevAssert(e->opset == eventer_aco_fd_opset);
-  mtevAssert(aco_get_co() != NULL);
+  mtevAssert(aco_get_co() != NULL || !pthread_equal(pthread_self(), e->thr_owner));
   int mask;
-  struct aco_cb_ctx *ctx = aco_get_arg();
-  if(timeout) ctx->timeout = timeout;
+  if(timeout) {
+    struct aco_cb_ctx *ctx = aco_get_arg();
+    ctx->timeout = timeout;
+  }
   return eventer_fd_opset_get_accept(eventer_get_fd_opset((eventer_t)e))
          (e->fd, addr, len, &mask, (eventer_t)e);
 }
 
 int eventer_aco_read(eventer_aco_t e, void *buff, size_t len, struct timeval *timeout) {
   mtevAssert(e->opset == eventer_aco_fd_opset);
-  mtevAssert(aco_get_co() != NULL);
+  mtevAssert(aco_get_co() != NULL || !pthread_equal(pthread_self(), e->thr_owner));
   int mask;
-  struct aco_cb_ctx *ctx = aco_get_arg();
-  if(timeout) ctx->timeout = timeout;
+  if(timeout) {
+    struct aco_cb_ctx *ctx = aco_get_arg();
+    ctx->timeout = timeout;
+  }
   return eventer_fd_opset_get_read(eventer_get_fd_opset((eventer_t)e))
            (e->fd, buff, len, &mask, (eventer_t)e);
 }
 
 int eventer_aco_write(eventer_aco_t e, const void *buff, size_t len, struct timeval *timeout) {
   mtevAssert(e->opset == eventer_aco_fd_opset);
-  mtevAssert(aco_get_co() != NULL);
+  mtevAssert(aco_get_co() != NULL || !pthread_equal(pthread_self(), e->thr_owner));
   int mask;
-  struct aco_cb_ctx *ctx = aco_get_arg();
-  if(timeout) ctx->timeout = timeout;
+  if(timeout) {
+    struct aco_cb_ctx *ctx = aco_get_arg();
+    ctx->timeout = timeout;
+  }
   return eventer_fd_opset_get_write(eventer_get_fd_opset((eventer_t)e))
          (e->fd, buff, len, &mask, (eventer_t)e);
 }
 
 int eventer_aco_close(eventer_aco_t e) {
   mtevAssert(e->opset == eventer_aco_fd_opset);
-  mtevAssert(aco_get_co() != NULL);
+  mtevAssert(aco_get_co() != NULL || !pthread_equal(pthread_self(), e->thr_owner));
   int mask;
   return eventer_fd_opset_get_close(eventer_get_fd_opset((eventer_t)e))
          (e->fd, &mask, (eventer_t)e);
