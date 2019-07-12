@@ -122,6 +122,7 @@ eventer_set_eventer_aco_co(eventer_t e, aco_t *co) {
     e->callback = info->original_callback;
     e->opset = info->original_opset;
     e->opset_ctx = info->original_opset_ctx;
+    eventer_set_this_event(e);
     free(info);
     return NULL;
   }
