@@ -4,7 +4,7 @@
 
 ## 1.6
 
-### Next
+### 1.6.18
 
  * Make HTTP/1 flush/flush_asynch automatic.
  * Add HTTP auto-flushing that defaults to a bchain size (~32k).
