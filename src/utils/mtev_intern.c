@@ -33,6 +33,7 @@
 #include "mtev_log.h"
 #include "mtev_intern.h"
 #include "eventer/eventer.h"
+#include "mtev_memory.h"
 #include "mtev_rand.h"
 #include "mtev_sort.h"
 #include "mtev_hash.h"
@@ -694,9 +695,17 @@ mtev_intern_internal_release(mtev_intern_pool_t *pool, mtev_intern_internal_t *i
     /* Release the free fragment back for *staged* reuse..
      * see comments in stage_replace_free_node */
     if(pool->extent_size == 0) {
-      free(ii);
+      mtev_memory_safe_free(ii);
       return;
     }
+
+    /* it is unsafe to replace the node yet as we may have someone
+     * in the ex allocation that has fetched it, but not yet realized
+     * it has been freed. grabbing and releasing a write lock will
+     * ensure all reads have left.
+     */
+    mtev_plock_take_w(&pool->plock);
+    mtev_plock_drop_w(&pool->plock);
     struct mtev_intern_free_node *node = get_free_node(pool);
     node->base = ii;
     node->size = WRAPPED_SIZE(ii->len);
@@ -728,9 +737,9 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
   memcpy(lookfor->v, buff, len);
   unsigned long hash = CK_HS_HASH(&pool->map, mi_hash, lookfor);
 
+  mtev_memory_begin();
  retry_fetch:
   /* Look for it */
-  mtev_plock_take_s(&pool->plock);
   ii = ck_hs_get(&pool->map, hash, lookfor);
   if(ii) {
     /* Refcnt it, but consider that we cannot go from 0->1.
@@ -740,18 +749,16 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
     while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
       if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
     }
-    mtev_plock_drop_s(&pool->plock);
     /* prev == 0, then it is being freed */
     if(prev == 0) {
       goto retry_fetch;
     }
   } else {
-    mtev_plock_drop_s(&pool->plock);
     /* align len on a 4 byte boundary and add the 8 byte header */
     size_t alen = WRAPPED_SIZE(len);
 
     /* Get us a suitable new allocation in our pool */
-    ii = malloc(alen);
+    ii = mtev_memory_safe_malloc(alen);
     if(!ii) {
       if((void *)ibuff != (void *)lookfor) free(lookfor);
       assert(ii); /* We don't handle failed memory allocations */
@@ -767,20 +774,15 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
     mtev_plock_take_s(&pool->plock);
     /* Attempt to store this in our mapping */
     if(ck_hs_put(&pool->map, hash, ii) == false) {
-      mtev_intern_internal_t *tofree = ii;
+      mtev_plock_drop_s(&pool->plock);
+      mtev_memory_safe_free(ii);
       /* Get the item that is presumably there causing our put to fail. */
       ii = ck_hs_get(&pool->map, hash, lookfor);
-      if(!ii) {
-        mtev_plock_drop_s(&pool->plock);
-        free(tofree);
-        goto retry_fetch;
-      }
+      if(!ii) goto retry_fetch;
       uint32_t prev;
       while(0 != (prev = ck_pr_load_32(&ii->refcnt))) {
         if(ck_pr_cas_32(&ii->refcnt, prev, prev+1)) break;
       }
-      mtev_plock_drop_s(&pool->plock);
-      free(tofree);
       if(prev == 0) {
         goto retry_fetch;
       }
@@ -790,6 +792,7 @@ mtev_intern_pool_ex_simple(mtev_intern_pool_t *pool, const void *buff, size_t le
       ck_pr_inc_32(&pool->item_count);
     }
   }
+  mtev_memory_end();
 
   /* This is the intern the caller is looking for */
   rv.opaque1 = (uintptr_t)&ii->v;
