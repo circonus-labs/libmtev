@@ -376,9 +376,12 @@ static int \
 priv_aco_##name params { \
   eventer_t e = closure; \
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx; \
+  if(!pthread_equal(pthread_self(), e->thr_owner)) { \
+    return info->original_opset->name args; \
+  } \
+\
   struct aco_cb_ctx *ctx = aco_get_arg(); \
   int added = 0; \
-\
   mtevAssert(aco_get_co() == info->aco_co); \
   mtevAssert(!ctx->timeout_e); \
   if(!ctx->timeout && info->has_##name##_timeout) ctx->timeout = &info->name##_timeout; \
