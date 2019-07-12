@@ -135,7 +135,7 @@ void *thr(void *closure) {
 void *singles(void *unused) {
   (void)unused;
   mtev_memory_init_thread();
-  for(int i=0; i<1000000; i++) {
+  for(int i=0; i<50000; i++) {
     mtev_intern_t mi = mtev_intern_pool_str(pool, words[0], strlen(words[0]));
     mtev_intern_release(mi);
   }
