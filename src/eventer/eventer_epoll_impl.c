@@ -404,7 +404,9 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         e->thr_owner = tgt;
         spec = eventer_get_spec_for_event(e);
         mtevL(eventer_deb, "epoll_ctl(%d, add, %d)\n", spec->epoll_fd, fd);
-        mtevAssert(epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) == 0);
+        if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) != 0) {
+          mtevL(mtev_error, "epoll_ctl(%d, add, %d, %d)\n", spec->epoll_fd, fd, errno);
+        }
         mtevL(eventer_deb, "epoll(%d) moved event[%p] from t@%d to t@%d\n", spec->epoll_fd, e, (int)pthread_self(), (int)tgt);
       }
       else {
