@@ -2,11 +2,20 @@
 
 # 1
 
-## 1.6.17
+## 1.6
+
+### Next
 
  * Make HTTP/1 flush/flush_asynch automatic.
  * Add HTTP auto-flushing that defaults to a bchain size (~32k).
  * Add `mtev_http_response_auto_flush` to control HTTP auto-flushing.
+ * Support idle_timeout on listener accepted sockets.
+ * Provide thread-safe access to http append methods.
+ * Reference count events during trigger to avoid freeing while in use.
+ * Add thread safety fixes to mtev_intern.
+
+### 1.6.17
+
  * Add preloads configuration option to lua_web/lua_general modules
  * Add mtev_set_app_name and mtev_get_app_name for conf file root discovery.
  * Add foreground `SIGINT`, `SIGQUIT`, and `SIGTERM` signals to call
