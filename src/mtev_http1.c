@@ -186,6 +186,10 @@ static mtev_log_stream_t http_io = NULL;
  * reference count in particular */
 static void check_realloc_response(mtev_http1_response *res) {
   if (res->freed == mtev_true) {
+    pthread_mutexattr_t mattr;
+    pthread_mutexattr_init(&mattr);
+    pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&res->output_lock, &mattr);
     mtev_hash_init(&res->headers);
     res->freed = mtev_false;
   }
@@ -927,6 +931,7 @@ mtev_http1_response_release(mtev_http1_session_ctx *ctx) {
   }
   memset(&ctx->res, 0, sizeof(ctx->res));
   ctx->res.http_type = MTEV_HTTP_1;
+  pthread_mutex_destroy(&ctx->res.output_lock);
   ctx->res.freed = mtev_true;
 }
 void
@@ -936,7 +941,6 @@ mtev_http1_ctx_session_release(mtev_http1_session_ctx *ctx) {
     mtev_http1_request_release(ctx);
     mtev_http1_response_release(ctx);
     pthread_mutex_destroy(&ctx->write_lock);
-    pthread_mutex_destroy(&ctx->res.output_lock);
 #ifdef HAVE_WSLAY
     if (ctx->is_websocket == mtev_true) {
       wslay_event_context_free(ctx->wslay_ctx);
