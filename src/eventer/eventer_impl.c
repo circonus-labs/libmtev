@@ -1161,7 +1161,6 @@ void eventer_cross_thread_trigger(eventer_t e, int mask) {
   t->cross = ctt;
   pthread_mutex_unlock(&t->cross_lock);
   eventer_wakeup(e);
-  eventer_deref(e);
 }
 void eventer_cross_thread_process(void) {
   struct eventer_impl_data *t;
@@ -1175,6 +1174,7 @@ void eventer_cross_thread_process(void) {
     if(ctt) {
       mtevL(eventer_deb, "executing queued fd:%d / %x\n", ctt->e->fd, ctt->mask);
       eventer_trigger(ctt->e, ctt->mask);
+      eventer_deref(ctt->e);
       free(ctt);
     }
     else break;
