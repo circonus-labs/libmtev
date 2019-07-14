@@ -73,6 +73,7 @@ struct mtev_http1_connection {
   uint32_t http_type;
   eventer_t e;
   int needs_close;
+  mtev_boolean in_error;
 };
 
 struct mtev_http1_request {
@@ -481,7 +482,7 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
   head = ctx->res.leader ? &ctx->res.leader : &ctx->res.output_raw;
   b = *head;
 
-  if(!ctx->conn.e) {
+  if(!ctx->conn.e || ctx->res.in_error) {
     pthread_mutex_unlock(&ctx->write_lock);
     return 0;
   }
@@ -520,6 +521,7 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
   if(len == -1) {
     /* socket error */
     ctx->res.complete = mtev_true;
+    ctx->res.in_error = mtev_true;
     ctx->conn.needs_close = mtev_true;
     mtev_http_log_request((mtev_http_session_ctx *)ctx);
     *mask |= EVENTER_EXCEPTION;
@@ -1644,7 +1646,8 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
      ctx->conn.e &&
      ctx->conn.needs_close == mtev_true) {
    abort_drive:
-    mtev_http_log_request((mtev_http_session_ctx *)ctx);
+    /* If we went into an error state, we logged, right there */
+    if(!ctx->res.in_error) mtev_http_log_request((mtev_http_session_ctx *)ctx);
     if(ctx->conn.e) {
       eventer_t ine;
       pthread_mutex_lock(&ctx->write_lock);

@@ -54,6 +54,7 @@
   mtev_boolean output_started; /* locks the options and leader */ \
                                /*   and possibly output. */ \
   mtev_boolean closed;         /* set by _end() */ \
+  mtev_boolean in_error;       /* set when there's an error on the socket */ \
   mtev_boolean complete;       /* complete, drained and disposable */ \
   size_t bytes_written;        /* tracks total bytes written */ \
   mtev_stream_compress_ctx_t *compress_ctx; \
