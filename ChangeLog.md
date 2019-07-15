@@ -4,6 +4,12 @@
 
 ## 1.6
 
+### 1.6.19
+
+ * Note errors on asynch http connections so that we can avoid
+   subsequeny unnecessary errors (and erroneous access logs).
+ * Fix eventer reference tracking for cross-thread triggers.
+
 ### 1.6.18
 
  * Make HTTP/1 flush/flush_asynch automatic.
