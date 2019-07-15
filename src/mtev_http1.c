@@ -931,9 +931,9 @@ mtev_http1_response_release(mtev_http1_session_ctx *ctx) {
     mtev_stream_compress_finish(ctx->res.compress_ctx);
     mtev_destroy_stream_compress_ctx(ctx->res.compress_ctx);
   }
+  pthread_mutex_destroy(&ctx->res.output_lock);
   memset(&ctx->res, 0, sizeof(ctx->res));
   ctx->res.http_type = MTEV_HTTP_1;
-  pthread_mutex_destroy(&ctx->res.output_lock);
   ctx->res.freed = mtev_true;
 }
 void
