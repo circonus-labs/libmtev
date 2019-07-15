@@ -705,6 +705,7 @@ mtev_rest_aco_handler(void) {
     return;
   }
   eventer_t newe = mtev_http_connection_event(conne);
+  int fd = eventer_get_fd(newe);
 
   void *closure = eventer_get_closure(newe);
   eventer_func_t orig_callback = eventer_get_callback(newe);
@@ -714,7 +715,7 @@ mtev_rest_aco_handler(void) {
 
   struct timeval now;
   mtev_gettimeofday(&now, NULL);
-  eventer_run_callback(orig_callback, newe, EVENTER_READ|EVENTER_WRITE, closure, &now);
+  int mask = eventer_run_callback(orig_callback, newe, EVENTER_READ|EVENTER_WRITE, closure, &now);
 
   /* Put this event back out of aco mode. */
   eventer_set_eventer_aco_co(newe, NULL);
@@ -722,7 +723,10 @@ mtev_rest_aco_handler(void) {
 
   /* trigger the event */
   eventer_add_timer_next_opportunity(next_tick_resume, conne, pthread_self());
-  eventer_deref(newe);
+  if(mask == 0) {
+    if(eventer_find_fd(fd) == newe) eventer_remove_fde(newe);
+    eventer_deref(newe);
+  }
   free(aco_ctx);
   aco_exit();
 }
