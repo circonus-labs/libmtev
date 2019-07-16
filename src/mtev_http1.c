@@ -1635,7 +1635,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
   }
   if(ctx->conn.e) {
     eventer_t registered_e = eventer_find_fd(eventer_get_fd(e));
-    if(registered_e != ctx->conn.e) {
+    if(!ctx->aco_enabled && registered_e != ctx->conn.e) {
       mtevL(http_debug, " <- mtev_http1_session_drive(%d) [handsoff:%x]\n", eventer_get_fd(e), rv);
       return rv;
     }
