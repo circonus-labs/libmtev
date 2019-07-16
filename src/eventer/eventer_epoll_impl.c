@@ -324,6 +324,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
       eventer_deref(e);
       return;
     }
+    /* We've acquired the lock, recheck out predicate */
     if(master_fds[fd].e == NULL) { 
     /*
      * If we are readding the event to the master list here, also do the needful
