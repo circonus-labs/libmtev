@@ -4,6 +4,14 @@
 
 ## 1.6
 
+### 1.6.20
+
+ * Fix several bugs in the eventer, rest and http interaction:
+ * Always remove epoll registration when migrating to a new thread.
+ * Do not support handoff in the http driver in ACO mode.
+ * The ACO driver in mtev_rest should emulate event_trigger as it
+   dereferences the event.
+ 
 ### 1.6.19
 
  * Note errors on asynch http connections so that we can avoid
