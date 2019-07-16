@@ -283,7 +283,7 @@ static eventer_t eventer_epoll_impl_find_fd(int fd) {
 static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   struct epoll_spec *spec;
   struct timeval __now;
-  int fd, newmask, needs_add = 0;
+  int fd, newmask;
   const char *cbname;
   ev_lock_state_t lockstate;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
@@ -324,6 +324,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
       eventer_deref(e);
       return;
     }
+    if(master_fds[fd].e == NULL) { 
     /*
      * If we are readding the event to the master list here, also do the needful
      * with the epoll_ctl.
@@ -333,19 +334,20 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
      * that it started in.  Since we `eventer_remove_fd` before we float
      * the re-add here should replace the fd in the epoll_ctl.
      */
-    master_fds[fd].e = e;
-    e->mask = 0;
-    struct epoll_event _ev;
-    memset(&_ev, 0, sizeof(_ev));
-    _ev.data.fd = fd;
-    spec = eventer_get_spec_for_event(e);
-    if(mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
-    if(mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
-    if(mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
-
-    mtevL(eventer_deb, "epoll_ctl(%d, add, %d)\n", spec->epoll_fd, fd);
-    if (epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) != 0) {
-      mtevL(mtev_error, "epoll_ctl(%d, add, %d, %d)\n", spec->epoll_fd, fd, errno);
+      master_fds[fd].e = e;
+      e->mask = 0;
+      struct epoll_event _ev;
+      memset(&_ev, 0, sizeof(_ev));
+      _ev.data.fd = fd;
+      spec = eventer_get_spec_for_event(e);
+      if(mask & EVENTER_READ) _ev.events |= (EPOLLIN|EPOLLPRI);
+      if(mask & EVENTER_WRITE) _ev.events |= (EPOLLOUT);
+      if(mask & EVENTER_EXCEPTION) _ev.events |= (EPOLLERR|EPOLLHUP);
+  
+      mtevL(eventer_deb, "epoll_ctl(%d, add, %d)\n", spec->epoll_fd, fd);
+      if (epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, fd, &_ev) != 0) {
+        mtevL(mtev_error, "epoll_ctl(%d, add, %d, %d)\n", spec->epoll_fd, fd, errno);
+      }
     }
     release_master_fd(fd, lockstate);
   }
@@ -392,14 +394,12 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
         pthread_t tgt = e->thr_owner;
         e->thr_owner = pthread_self();
         spec = eventer_get_spec_for_event(e);
-        if(e->mask != 0 && !needs_add) {
-          mtevL(eventer_deb, "epoll_ctl(%d, del, %d)\n", spec->epoll_fd, fd);
-          if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0) {
-            mtevFatal(mtev_error,
-                      "epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) failed; "
-                      "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
-                      spec->epoll_fd, fd, errno, strerror(errno));
-          }
+        mtevL(eventer_deb, "epoll_ctl(%d, del, %d)\n", spec->epoll_fd, fd);
+        if(epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) != 0 && errno != ENOENT) {
+          mtevFatal(mtev_error,
+                    "epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, &_ev) failed; "
+                    "spec->epoll_fd: %d; fd: %d; errno: %d (%s)\n",
+                    spec->epoll_fd, fd, errno, strerror(errno));
         }
         e->thr_owner = tgt;
         spec = eventer_get_spec_for_event(e);
@@ -411,7 +411,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
       }
       else {
         int epoll_rv;
-        int epoll_cmd = (e->mask == 0 || needs_add) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+        int epoll_cmd = e->mask == 0 ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
         spec = eventer_get_spec_for_event(e);
         mtevL(eventer_deb, "epoll_ctl(%d, %s, %d) => %x\n", spec->epoll_fd, epoll_cmd == EPOLL_CTL_ADD ? "add" : "mod", fd, e->mask);
         epoll_rv = epoll_ctl(spec->epoll_fd, epoll_cmd, fd, &_ev);
@@ -451,7 +451,8 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
       memset(&_ev, 0, sizeof(_ev));
       _ev.data.fd = fd;
       if (epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, e->fd, &_ev) == 0) {
-        mtevL(mtev_error, "WARNING: You forgot to 'eventer_remove_fd()' before returning a mask of zero.\n");
+        mtevFatal(mtev_error, "You forgot to 'eventer_remove_fd()' in %s before returning a mask of zero.\n",
+                  eventer_name_for_callback_e(e->callback, e));
       }
       master_fds[fd].e = NULL;
     }
@@ -530,6 +531,9 @@ static int eventer_epoll_impl_loop(int id) {
          */
         if(!e) continue;
 
+        if(!pthread_equal(e->thr_owner, pthread_self())) {
+          mtevFatal(mtev_error, "e(%p) fired in thread %s instead of %s\n", e, eventer_thread_name(pthread_self()), eventer_thread_name(e->thr_owner));
+        }
         eventer_epoll_impl_trigger(e, mask);
       }
     }
