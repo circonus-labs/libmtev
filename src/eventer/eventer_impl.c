@@ -115,6 +115,7 @@ struct eventer_impl_data {
   } *recurrent_events;
   pthread_mutex_t cross_lock;
   struct cross_thread_trigger *cross;
+  char thr_name[64];
   void *spec;
   eventer_pool_t *pool;
   mtev_watchdog_t *hb;
@@ -329,6 +330,12 @@ static struct eventer_impl_data *get_tls_impl_data(pthread_t tid) {
 static struct eventer_impl_data *get_event_impl_data(eventer_t e) {
   struct eventer_impl_data *t = get_tls_impl_data(e->thr_owner);
   return t;
+}
+const char *eventer_thread_name(pthread_t tid) {
+  size_t i;
+  for(i=0;i<__total_loop_count;i++)
+    if(pthread_equal(eventer_impl_tls_data[i].tid, tid)) return eventer_impl_tls_data[i].thr_name;
+  return NULL;
 }
 int eventer_is_loop(pthread_t tid) {
   size_t i;
@@ -579,16 +586,15 @@ static void eventer_aco_setup(struct eventer_impl_data *t) {
 
 static void *thrloopwrap(void *vid) {
   struct eventer_impl_data *t;
-  char thr_name[64];
   char thr_id_str[16];
   aco_thread_init(mtev_aco_last_word);
   int id = (int)(intptr_t)vid;
   t = &eventer_impl_tls_data[id];
   eventer_aco_setup(t);
   t->id = id;
-  snprintf(thr_name, sizeof(thr_name), "e:%s/%d", t->pool->name, id);
+  snprintf(t->thr_name, sizeof(t->thr_name), "e:%s/%d", t->pool->name, id);
   snprintf(thr_id_str, sizeof(thr_id_str), "%d", id);
-  stats_ns_t *tns = mtev_stats_ns(threads_ns, thr_name);
+  stats_ns_t *tns = mtev_stats_ns(threads_ns, t->thr_name);
   stats_ns_add_tag(tns, "mtev-pool", t->pool->name);
   stats_ns_add_tag(tns, "mtev-thread", thr_id_str);
   t->loop_times = stats_register(tns, "cycletime", STATS_TYPE_HISTOGRAM_FAST);
@@ -596,12 +602,12 @@ static void *thrloopwrap(void *vid) {
   eventer_callback_pool_latency = t->pool->cb_times;
   mtev_memory_init(); /* Just in case no one has initialized this */
   mtev_memory_init_thread();
-  eventer_set_thread_name(thr_name);
+  eventer_set_thread_name(t->thr_name);
   eventer_per_thread_init(t);
-  mtev_watchdog_set_name(t->hb, thr_name);
+  mtev_watchdog_set_name(t->hb, t->thr_name);
 
   ck_pr_inc_32(&__total_loops_waiting);
-  mtevL(mtev_debug, "eventer_loop(%s) started\n", thr_name);
+  mtevL(mtev_debug, "eventer_loop(%s) started\n", t->thr_name);
   return (void *)(intptr_t)__eventer->loop(id);
 }
 
