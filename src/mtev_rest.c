@@ -700,6 +700,7 @@ mtev_rest_aco_handler(void) {
   mtev_http_connection *conne = mtev_http_session_connection(aco_ctx->http_ctx);
   if(!conne) {
     mtevL(mtev_error, "mtev_rest_aco_handler with no http connection!\n");
+    mtev_http_session_ref_dec(aco_ctx->http_ctx);
     free(aco_ctx);
     aco_exit();
     return;
@@ -727,6 +728,7 @@ mtev_rest_aco_handler(void) {
     if(eventer_find_fd(fd) == newe) eventer_remove_fde(newe);
     eventer_deref(newe);
   }
+  mtev_http_session_ref_dec(aco_ctx->http_ctx);
   free(aco_ctx);
   aco_exit();
 }
@@ -774,6 +776,7 @@ mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
     eventer_remove_fde(olde);
     struct mtev_rest_aco_ctx_t *aco_ctx = calloc(1, sizeof(*aco_ctx));
     aco_ctx->http_ctx = ctx;
+    mtev_http_session_ref_inc(ctx);
     eventer_add_timer_next_opportunity(mtev_rest_aco_session_continue, aco_ctx, pthread_self());
     return 0;
   }
