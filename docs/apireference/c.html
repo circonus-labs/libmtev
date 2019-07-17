@@ -1357,6 +1357,18 @@ necessary activity to make progress.</p>
 <li><code>func</code> the function to execute.</li>
 <li><code>closure</code> the closure for the function.</li>
 </ul>
+<h4 id="eventeracoasynchgated">eventer_aco_asynch_gated</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_asynch_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate to notify on completion.</li>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+</ul>
 <h4 id="eventeracoasynchqueue">eventer_aco_asynch_queue</h4>
 <blockquote>
 <p>Asynchronously execute a function.</p>
@@ -1365,6 +1377,20 @@ necessary activity to make progress.</p>
 <span class="hljs-title">eventer_aco_asynch_queue</span><span class="hljs-params">(eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q)</span>
 </span></code></pre>
 <ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+</ul>
+<h4 id="eventeracoasynchqueuegated">eventer_aco_asynch_queue_gated</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_asynch_queue_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure
+                               eventer_jobq_t *q)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate to notify on completion.</li>
 <li><code>func</code> the function to execute.</li>
 <li><code>closure</code> the closure for the function.</li>
 <li><code>q</code> the jobq on which to schedule the work.</li>
@@ -1397,6 +1423,37 @@ necessary activity to make progress.</p>
 <li><code>id</code> the subqueue within the jobq.</li>
 <li><code>whence</code> the deadline</li>
 </ul>
+<h4 id="eventeracoasynchqueuesubqueuedeadlinegated">eventer_aco_asynch_queue_subqueue_deadline_gated</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_asynch_queue_subqueue_deadline_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure,
+                                                 eventer_jobq_t *q, uint64_t id, <span class="hljs-keyword">struct</span> timeval *whence)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate to notify on completion</li>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+<li><code>id</code> the subqueue within the jobq.</li>
+<li><code>whence</code> the deadline</li>
+</ul>
+<h4 id="eventeracoasynchqueuesubqueuegated">eventer_aco_asynch_queue_subqueue_gated</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_asynch_queue_subqueue_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_asynch_func_t func, <span class="hljs-keyword">void</span> *closure,
+                                        eventer_jobq_t *q, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate to notify on completion.</li>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+<li><code>id</code> the subqueue within the jobq.</li>
+</ul>
 <h4 id="eventeracoclose">eventer_aco_close</h4>
 <blockquote>
 <p>Execute an opset-appropriate <code>close</code> call.</p>
@@ -1417,6 +1474,23 @@ necessary activity to make progress.</p>
 </span></code></pre>
 <ul>
 <li><code>e</code> the event to dereference.</li>
+</ul>
+<h4 id="eventeracogate">eventer_aco_gate</h4>
+<blockquote>
+<p>Create a new asynchronous gate.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_aco_gate_t</span>
+eventer_aco_gate(<span class="hljs-keyword">void</span>)
+</code></pre>
+<h4 id="eventeracogatewait">eventer_aco_gate_wait</h4>
+<blockquote>
+<p>Wait for any asynchronous work on this gate to finish.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_gate_wait</span><span class="hljs-params">(eventer_aco_gate_t gate)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> an asynchronous gate</li>
 </ul>
 <h4 id="eventeracogetclosure">eventer_aco_get_closure</h4>
 <blockquote>
@@ -1458,6 +1532,22 @@ necessary activity to make progress.</p>
 of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
 during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
 of the currently executing job.</p>
+<h4 id="eventeracorunasynchgated">eventer_aco_run_asynch_gated</h4>
+<blockquote>
+<p>Add an asynchronous event dependent on the current job and signal gate on completion.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_aco_run_asynch_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate</li>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the default job queue.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
 <h4 id="eventeracorunasynchqueue">eventer_aco_run_asynch_queue</h4>
 <blockquote>
 <p>Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.</p>
@@ -1474,6 +1564,23 @@ of the currently executing job.</p>
 of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
 during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
 of the currently executing job.</p>
+<h4 id="eventeracorunasynchqueuegated">eventer_aco_run_asynch_queue_gated</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue dependent on the current job and signal gate on completion.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_aco_run_asynch_queue_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_jobq_t *q, eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate</li>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
 <h4 id="eventeracorunasynchqueuesubqueue">eventer_aco_run_asynch_queue_subqueue</h4>
 <blockquote>
 <p>Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.</p>
@@ -1482,6 +1589,24 @@ of the currently executing job.</p>
 <span class="hljs-title">eventer_aco_run_asynch_queue_subqueue</span><span class="hljs-params">(eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
 </span></code></pre>
 <ul>
+<li><code>q</code> a job queue</li>
+<li><code>e</code> an event object</li>
+<li><code>id</code> is a fairly competing subqueue identifier</li>
+<li><strong>RETURN</strong> <code>mtev_false</code> if over max backlog, caller must clean event.</li>
+</ul>
+<p>This adds the <code>e</code> event to the job queue <code>q</code>.  <code>e</code> must have a mask
+of <code>EVENTER_ASYNCH</code>.  This should be called from within a asynch callback
+during a mask of <code>EVENTER_ASYNCH_WORK</code> and the new job will be a child
+of the currently executing job.</p>
+<h4 id="eventeracorunasynchqueuesubqueuegated">eventer_aco_run_asynch_queue_subqueue_gated</h4>
+<blockquote>
+<p>Add an asynchronous event to a specific job queue dependent on the current job and signal gate on completion.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_aco_run_asynch_queue_subqueue_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_jobq_t *q, eventer_t e, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate</li>
 <li><code>q</code> a job queue</li>
 <li><code>e</code> an event object</li>
 <li><code>id</code> is a fairly competing subqueue identifier</li>
@@ -1546,6 +1671,18 @@ of the currently executing job.</p>
 <li><code>func</code> the function to execute.</li>
 <li><code>closure</code> the closure for the function.</li>
 </ul>
+<h4 id="eventeracosimpleasynchgated">eventer_aco_simple_asynch_gated</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_simple_asynch_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, <span class="hljs-keyword">void</span> *closure)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate to notify on completion.</li>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+</ul>
 <h4 id="eventeracosimpleasynchqueue">eventer_aco_simple_asynch_queue</h4>
 <blockquote>
 <p>Asynchronously execute a function.</p>
@@ -1554,6 +1691,20 @@ of the currently executing job.</p>
 <span class="hljs-title">eventer_aco_simple_asynch_queue</span><span class="hljs-params">(eventer_asynch_simple_func_t func, <span class="hljs-keyword">void</span> *closure, eventer_jobq_t *q)</span>
 </span></code></pre>
 <ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+</ul>
+<h4 id="eventeracosimpleasynchqueuegated">eventer_aco_simple_asynch_queue_gated</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_simple_asynch_queue_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, <span class="hljs-keyword">void</span> *closure
+                                      eventer_jobq_t *q)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate to notify on completion.</li>
 <li><code>func</code> the function to execute.</li>
 <li><code>closure</code> the closure for the function.</li>
 <li><code>q</code> the jobq on which to schedule the work.</li>
@@ -1567,6 +1718,21 @@ of the currently executing job.</p>
                                          uint64_t id)</span>
 </span></code></pre>
 <ul>
+<li><code>func</code> the function to execute.</li>
+<li><code>closure</code> the closure for the function.</li>
+<li><code>q</code> the jobq on which to schedule the work.</li>
+<li><code>id</code> the subqueue within the jobq.</li>
+</ul>
+<h4 id="eventeracosimpleasynchqueuesubqueuegated">eventer_aco_simple_asynch_queue_subqueue_gated</h4>
+<blockquote>
+<p>Asynchronously execute a function.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_aco_simple_asynch_queue_subqueue_gated</span><span class="hljs-params">(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, <span class="hljs-keyword">void</span> *closure,
+                                               eventer_jobq_t *q, uint64_t id)</span>
+</span></code></pre>
+<ul>
+<li><code>gate</code> a gate to notify on completion.</li>
 <li><code>func</code> the function to execute.</li>
 <li><code>closure</code> the closure for the function.</li>
 <li><code>q</code> the jobq on which to schedule the work.</li>
@@ -2365,6 +2531,17 @@ eventer_in_s_us(<span class="hljs-keyword">eventer_func_t</span> func, <span cla
 </span></code></pre>
 <p>This function is called by <a href="c.html#mtevmain"><code>mtev_main</code></a>.  Developers should not
 need to call this function directly.</p>
+<h4 id="eventerisaco">eventer_is_aco</h4>
+<blockquote>
+<p>Determine if an event is in ACO mode.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_is_aco</span><span class="hljs-params">(eventer_t e)</span>
+</span></code></pre>
+<ul>
+<li><code>e</code> The eventer_t in question</li>
+<li><strong>RETURN</strong> True if in ACO mode, false otherwise.</li>
+</ul>
 <h4 id="eventerisloop">eventer_is_loop</h4>
 <blockquote>
 <p>Determine if a thread is participating in the eventer loop.</p>
@@ -2722,6 +2899,21 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <ul>
 <li><code>e</code> an event object (mask must be <code>EVENTER_TIMED</code>).</li>
 <li><strong>RETURN</strong> the event removed, NULL if not found.</li>
+</ul>
+<h4 id="eventerruncallback">eventer_run_callback</h4>
+<blockquote>
+<p>Run a callback as the eventer would</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">eventer_run_callback</span><span class="hljs-params">(eventer_funt_t f, eventer_t e, <span class="hljs-keyword">int</span> mask, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now)</span>
+</span></code></pre>
+<ul>
+<li><code>f</code> The callback function (should always be eventer_get_callback(e))</li>
+<li><code>e</code> The event to execute</li>
+<li><code>mask</code> The mask observed.</li>
+<li><code>closure</code> The closure (should always be eventer_get_closure(e))</li>
+<li><code>now</code> The current time.</li>
+<li><strong>RETURN</strong> The mask that is desired from the callback.</li>
 </ul>
 <h4 id="eventerruninthread">eventer_run_in_thread</h4>
 <blockquote>
@@ -3321,7 +3513,7 @@ mtev_get_nanos(<span class="hljs-keyword">void</span>)
 <h3 id="h">H</h3>
 <h4 id="mtevhashhash">mtev_hash__hash</h4>
 <pre><code class="lang-c"><span class="hljs-keyword">uint32_t</span>
-mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">uint32_t</span> length, <span class="hljs-keyword">uint32_t</span> initval)
+mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, <span class="hljs-keyword">uint32_t</span> length, <span class="hljs-keyword">uint32_t</span> initval)
 </code></pre>
 <blockquote>
 <p>the internal hash function that mtev_hash_table uses exposed for external usage</p>
@@ -3358,7 +3550,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
    }</p>
 <h4 id="mtevhashdelete">mtev_hash_delete</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
-<span class="hljs-title">mtev_hash_delete</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, NoitHashFreeFunc keyfree
+<span class="hljs-title">mtev_hash_delete</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, <span class="hljs-keyword">int</span> klen, NoitHashFreeFunc keyfree
                  NoitHashFreeFunc datafree)</span>
 </span></code></pre>
 <blockquote>
@@ -3379,6 +3571,13 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 <p>remove all keys and values and call keyfree and datafree if they are provided but also wipe out the underlying map</p>
 </blockquote>
 <p>  This must be called on any hash_table that has been mtev_hash_inited or it will leak memory</p>
+<h4 id="mtevhashget">mtev_hash_get</h4>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span> *
+<span class="hljs-title">mtev_hash_get</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, <span class="hljs-keyword">int</span> klen)</span>
+</span></code></pre>
+<blockquote>
+<p>return the value at &quot;k</p>
+</blockquote>
 <h4 id="mtevhashinit">mtev_hash_init</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_hash_init</span><span class="hljs-params">(mtev_hash_table *h)</span>
@@ -3448,7 +3647,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 <p>  These are older, more painful APIs... use mtev_hash_adv </p>
 <h4 id="mtevhashreplace">mtev_hash_replace</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
-<span class="hljs-title">mtev_hash_replace</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data,
+<span class="hljs-title">mtev_hash_replace</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *data,
                   NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)</span>
 </span></code></pre>
 <blockquote>
@@ -3456,21 +3655,21 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 </blockquote>
 <h4 id="mtevhashretrstr">mtev_hash_retr_str</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
-<span class="hljs-title">mtev_hash_retr_str</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **dstr)</span>
+<span class="hljs-title">mtev_hash_retr_str</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> **dstr)</span>
 </span></code></pre>
 <blockquote>
 <p>fetch the value at &quot;k&quot; into &quot;data&quot; as a string</p>
 </blockquote>
 <h4 id="mtevhashretrieve">mtev_hash_retrieve</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
-<span class="hljs-title">mtev_hash_retrieve</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> **data)</span>
+<span class="hljs-title">mtev_hash_retrieve</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> **data)</span>
 </span></code></pre>
 <blockquote>
 <p>fetch the value at &quot;k&quot; into &quot;data&quot;</p>
 </blockquote>
 <h4 id="mtevhashset">mtev_hash_set</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
-<span class="hljs-title">mtev_hash_set</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data, <span class="hljs-keyword">char</span> **oldkey
+<span class="hljs-title">mtev_hash_set</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *data, <span class="hljs-keyword">char</span> **oldkey
               <span class="hljs-keyword">void</span> **olddata)</span>
 </span></code></pre>
 <blockquote>
@@ -3488,7 +3687,7 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
 </blockquote>
 <h4 id="mtevhashstore">mtev_hash_store</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
-<span class="hljs-title">mtev_hash_store</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">void</span> *data)</span>
+<span class="hljs-title">mtev_hash_store</span><span class="hljs-params">(mtev_hash_table *h, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *k, <span class="hljs-keyword">int</span> klen, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *data)</span>
 </span></code></pre>
 <blockquote>
 <p>put something in the hash_table</p>

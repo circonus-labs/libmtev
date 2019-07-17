@@ -638,6 +638,7 @@
     <span class="hljs-tag">&lt;/<span class="hljs-name">consoles</span>&gt;</span>
     <span class="hljs-tag">&lt;<span class="hljs-name">web</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;control_dispatch&quot;</span> <span class="hljs-attr">address</span>=<span class="hljs-string">&quot;*&quot;</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">idle_timeout</span>&gt;</span>30000<span class="hljs-tag">&lt;/<span class="hljs-name">idle_timeout</span>&gt;</span>
         <span class="hljs-tag">&lt;<span class="hljs-name">document_root</span>&gt;</span>/path/to/docroot<span class="hljs-tag">&lt;/<span class="hljs-name">document_root</span>&gt;</span>
       <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">listener</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;80&quot;</span> /&gt;</span>
@@ -737,7 +738,14 @@ protocol is exposed.  Specifying <code>none</code> will disable this NPN registr
 </li>
 </ul>
 <h3 id="config">config</h3>
-<p>   Each listener can access the <code>config</code> passed to it; see type-specific documentation.</p>
+<p>   The general listener framework support respecting the following config keys:</p>
+<ul>
+<li><h5 id="idletimeout">idle_timeout</h5>
+<p>Specifies a time in milliseconds afterwhich if the connection remains idle (no read or write traffic) it will be terminated.
+The protocol driver must cooperate programmatically to inform the system of such activity; the <code>mtev_console</code> and <code>http</code> protocols do this.</p>
+</li>
+</ul>
+<p>   Each listener can access the <code>config</code> passed to it; see type-specific documentation for other config keys.</p>
 
                                 
                                 </section>

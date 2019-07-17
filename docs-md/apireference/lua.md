@@ -1136,6 +1136,70 @@ mtev.rmdir(path)
 
 ### S
 
+#### mtev.semaphore
+
+>initializes semaphore with a given initial value, and returns a pointer to the semaphore object.
+
+```lua
+sem =
+mtev.semaphore(name, value)
+```
+
+
+  * `name` of the semaphore
+  * `value` initial semaphore value used if not already initialized
+
+If a semaphore with the same name already exists, no initialization takes place, and the second argument is ignored.
+
+Semaphores are a way to synchronize actions between different lua states.
+
+Example:
+```lua
+sem = mtev.semaphore("my-first-semaphore", 10)
+sem:acquire()
+-- ... do something while holding the lock
+sem:release()
+```
+
+
+#### semaphore:acquire
+
+```lua
+semaphore:acquire([timeout])
+```
+
+  * `timeout` optional time to wait for the lock. Defaults to inifinite wait.
+
+> returns true of the semaphore lock could be acquired within the given timeout, false if not.
+
+
+
+At the time of this writing, the implementation of this functions uses polling.
+Expect delays between calls to :release() and subsequent :acquire() returning.
+
+
+#### semaphore:release
+
+>release the semaphore lock.
+
+```lua
+semaphore:release()
+```
+
+
+
+
+#### semaphore:try_acquire
+
+>returns true of the semaphore lock could be acquired, false if not.
+
+```lua
+semaphore:try_acquire()
+```
+
+
+
+
 #### mtev.sh
 
 >Run shell command, return output

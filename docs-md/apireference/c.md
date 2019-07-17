@@ -969,6 +969,21 @@ eventer_aco_asynch(eventer_asynch_func_t func, void *closure)
   * `closure` the closure for the function.
 
 
+#### eventer_aco_asynch_gated
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_asynch_gated(eventer_aco_gate_t gate, eventer_asynch_func_t func, void *closure)
+```
+
+
+  * `gate` a gate to notify on completion.
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+
+
 #### eventer_aco_asynch_queue
 
 >Asynchronously execute a function.
@@ -979,6 +994,23 @@ eventer_aco_asynch_queue(eventer_asynch_func_t func, void *closure, eventer_jobq
 ```
 
 
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+
+
+#### eventer_aco_asynch_queue_gated
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_asynch_queue_gated(eventer_aco_gate_t gate, eventer_asynch_func_t func, void *closure
+                               eventer_jobq_t *q)
+```
+
+
+  * `gate` a gate to notify on completion.
   * `func` the function to execute.
   * `closure` the closure for the function.
   * `q` the jobq on which to schedule the work.
@@ -1018,6 +1050,43 @@ eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_t func, void *clo
   * `whence` the deadline
 
 
+#### eventer_aco_asynch_queue_subqueue_deadline_gated
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_asynch_queue_subqueue_deadline_gated(eventer_aco_gate_t gate, eventer_asynch_func_t func, void *closure,
+                                                 eventer_jobq_t *q, uint64_t id, struct timeval *whence)
+```
+
+
+  * `gate` a gate to notify on completion
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+  * `id` the subqueue within the jobq.
+  * `whence` the deadline
+
+
+#### eventer_aco_asynch_queue_subqueue_gated
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_asynch_func_t func, void *closure,
+                                        eventer_jobq_t *q, uint64_t id)
+```
+
+
+  * `gate` a gate to notify on completion.
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+  * `id` the subqueue within the jobq.
+
+
 #### eventer_aco_close
 
 >Execute an opset-appropriate `close` call.
@@ -1043,6 +1112,31 @@ eventer_aco_free(eventer_aco_t e)
 
 
   * `e` the event to dereference.
+
+
+#### eventer_aco_gate
+
+>Create a new asynchronous gate.
+
+```c
+eventer_aco_gate_t
+eventer_aco_gate(void)
+```
+
+
+
+
+#### eventer_aco_gate_wait
+
+>Wait for any asynchronous work on this gate to finish.
+
+```c
+void
+eventer_aco_gate_wait(eventer_aco_gate_t gate)
+```
+
+
+  * `gate` an asynchronous gate
 
 
 #### eventer_aco_get_closure
@@ -1095,6 +1189,26 @@ during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
 of the currently executing job.
 
 
+#### eventer_aco_run_asynch_gated
+
+>Add an asynchronous event dependent on the current job and signal gate on completion.
+
+```c
+mtev_boolean
+eventer_aco_run_asynch_gated(eventer_aco_gate_t gate, eventer_t e)
+```
+
+
+  * `gate` a gate
+  * `e` an event object
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the default job queue.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
 #### eventer_aco_run_asynch_queue
 
 >Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
@@ -1115,6 +1229,27 @@ during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
 of the currently executing job.
 
 
+#### eventer_aco_run_asynch_queue_gated
+
+>Add an asynchronous event to a specific job queue dependent on the current job and signal gate on completion.
+
+```c
+mtev_boolean
+eventer_aco_run_asynch_queue_gated(eventer_aco_gate_t gate, eventer_jobq_t *q, eventer_t e)
+```
+
+
+  * `gate` a gate
+  * `q` a job queue
+  * `e` an event object
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
 #### eventer_aco_run_asynch_queue_subqueue
 
 >Add an asynchronous event to a specific job queue dependent on the current job and wait until completion.
@@ -1125,6 +1260,28 @@ eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t i
 ```
 
 
+  * `q` a job queue
+  * `e` an event object
+  * `id` is a fairly competing subqueue identifier
+  * **RETURN** `mtev_false` if over max backlog, caller must clean event.
+
+This adds the `e` event to the job queue `q`.  `e` must have a mask
+of `EVENTER_ASYNCH`.  This should be called from within a asynch callback
+during a mask of `EVENTER_ASYNCH_WORK` and the new job will be a child
+of the currently executing job.
+
+
+#### eventer_aco_run_asynch_queue_subqueue_gated
+
+>Add an asynchronous event to a specific job queue dependent on the current job and signal gate on completion.
+
+```c
+mtev_boolean
+eventer_aco_run_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_jobq_t *q, eventer_t e, uint64_t id)
+```
+
+
+  * `gate` a gate
   * `q` a job queue
   * `e` an event object
   * `id` is a fairly competing subqueue identifier
@@ -1206,6 +1363,21 @@ eventer_aco_simple_asynch(eventer_asynch_simple_func_t func, void *closure)
   * `closure` the closure for the function.
 
 
+#### eventer_aco_simple_asynch_gated
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_simple_asynch_gated(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, void *closure)
+```
+
+
+  * `gate` a gate to notify on completion.
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+
+
 #### eventer_aco_simple_asynch_queue
 
 >Asynchronously execute a function.
@@ -1216,6 +1388,23 @@ eventer_aco_simple_asynch_queue(eventer_asynch_simple_func_t func, void *closure
 ```
 
 
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+
+
+#### eventer_aco_simple_asynch_queue_gated
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_simple_asynch_queue_gated(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, void *closure
+                                      eventer_jobq_t *q)
+```
+
+
+  * `gate` a gate to notify on completion.
   * `func` the function to execute.
   * `closure` the closure for the function.
   * `q` the jobq on which to schedule the work.
@@ -1232,6 +1421,24 @@ eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void
 ```
 
 
+  * `func` the function to execute.
+  * `closure` the closure for the function.
+  * `q` the jobq on which to schedule the work.
+  * `id` the subqueue within the jobq.
+
+
+#### eventer_aco_simple_asynch_queue_subqueue_gated
+
+>Asynchronously execute a function.
+
+```c
+void
+eventer_aco_simple_asynch_queue_subqueue_gated(eventer_aco_gate_t gate, eventer_asynch_simple_func_t func, void *closure,
+                                               eventer_jobq_t *q, uint64_t id)
+```
+
+
+  * `gate` a gate to notify on completion.
   * `func` the function to execute.
   * `closure` the closure for the function.
   * `q` the jobq on which to schedule the work.
@@ -2238,6 +2445,20 @@ This function is called by [`mtev_main`](c.md#mtevmain).  Developers should not
 need to call this function directly.
 
 
+#### eventer_is_aco
+
+>Determine if an event is in ACO mode.
+
+```c
+mtev_boolean
+eventer_is_aco(eventer_t e)
+```
+
+
+  * `e` The eventer_t in question
+  * **RETURN** True if in ACO mode, false otherwise.
+
+
 #### eventer_is_loop
 
 >Determine if a thread is participating in the eventer loop.
@@ -2697,6 +2918,24 @@ eventer_remove_timed(eventer_t e)
 
   * `e` an event object (mask must be `EVENTER_TIMED`).
   * **RETURN** the event removed, NULL if not found.
+
+
+#### eventer_run_callback
+
+>Run a callback as the eventer would
+
+```c
+int
+eventer_run_callback(eventer_funt_t f, eventer_t e, int mask, void *closure, struct timeval *now)
+```
+
+
+  * `f` The callback function (should always be eventer_get_callback(e))
+  * `e` The event to execute
+  * `mask` The mask observed.
+  * `closure` The closure (should always be eventer_get_closure(e))
+  * `now` The current time.
+  * **RETURN** The mask that is desired from the callback.
 
 
 #### eventer_run_in_thread
@@ -3453,7 +3692,7 @@ mtev_gettimeofday(struct timeval *t, void **ttp)
 
 ```c
 uint32_t
-mtev_hash__hash(const char *k, uint32_t length, uint32_t initval)
+mtev_hash__hash(const void *k, uint32_t length, uint32_t initval)
 ```
 
 
@@ -3513,7 +3752,7 @@ mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter)
 
 ```c
 int
-mtev_hash_delete(mtev_hash_table *h, const char *k, int klen, NoitHashFreeFunc keyfree
+mtev_hash_delete(mtev_hash_table *h, const void *k, int klen, NoitHashFreeFunc keyfree
                  NoitHashFreeFunc datafree)
 ```
 
@@ -3549,6 +3788,19 @@ mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFreeFunc
 
 
   This must be called on any hash_table that has been mtev_hash_inited or it will leak memory
+ 
+
+#### mtev_hash_get
+
+```c
+void *
+mtev_hash_get(mtev_hash_table *h, const void *k, int klen)
+```
+
+
+> return the value at "k
+
+
  
 
 #### mtev_hash_init
@@ -3673,7 +3925,7 @@ mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int
 
 ```c
 int
-mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
+mtev_hash_replace(mtev_hash_table *h, const void *k, int klen, const void *data,
                   NoitHashFreeFunc keyfree, NoitHashFreeFunc datafree)
 ```
 
@@ -3687,7 +3939,7 @@ mtev_hash_replace(mtev_hash_table *h, const char *k, int klen, void *data,
 
 ```c
 int
-mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dstr)
+mtev_hash_retr_str(mtev_hash_table *h, const void *k, int klen, const char **dstr)
 ```
 
 
@@ -3700,7 +3952,7 @@ mtev_hash_retr_str(mtev_hash_table *h, const char *k, int klen, const char **dst
 
 ```c
 int
-mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data)
+mtev_hash_retrieve(mtev_hash_table *h, const void *k, int klen, void **data)
 ```
 
 
@@ -3713,7 +3965,7 @@ mtev_hash_retrieve(mtev_hash_table *h, const char *k, int klen, void **data)
 
 ```c
 int
-mtev_hash_set(mtev_hash_table *h, const char *k, int klen, void *data, char **oldkey
+mtev_hash_set(mtev_hash_table *h, const void *k, int klen, const void *data, char **oldkey
               void **olddata)
 ```
 
@@ -3744,7 +3996,7 @@ mtev_hash_size(mtev_hash_table *h)
 
 ```c
 int
-mtev_hash_store(mtev_hash_table *h, const char *k, int klen, void *data)
+mtev_hash_store(mtev_hash_table *h, const void *k, int klen, const void *data)
 ```
 
 

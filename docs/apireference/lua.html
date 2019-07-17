@@ -1402,6 +1402,48 @@ mtev.rmdir(path)
 <li><strong>RETURN</strong> boolean success flag, error number, string representation of error</li>
 </ul>
 <h3 id="s">S</h3>
+<h4 id="mtevsemaphore">mtev.semaphore</h4>
+<blockquote>
+<p>initializes semaphore with a given initial value, and returns a pointer to the semaphore object.</p>
+</blockquote>
+<pre><code class="lang-lua">sem =
+mtev.semaphore(name, value)
+</code></pre>
+<ul>
+<li><code>name</code> of the semaphore</li>
+<li><code>value</code> initial semaphore value used if not already initialized</li>
+</ul>
+<p>If a semaphore with the same name already exists, no initialization takes place, and the second argument is ignored.</p>
+<p>Semaphores are a way to synchronize actions between different lua states.</p>
+<p>Example:</p>
+<pre><code class="lang-lua">sem = mtev.semaphore(<span class="hljs-string">&quot;my-first-semaphore&quot;</span>, <span class="hljs-number">10</span>)
+sem:acquire()
+<span class="hljs-comment">-- ... do something while holding the lock</span>
+sem:release()
+</code></pre>
+<h4 id="semaphoreacquire">semaphore:acquire</h4>
+<pre><code class="lang-lua">semaphore:acquire([timeout])
+</code></pre>
+<ul>
+<li><code>timeout</code> optional time to wait for the lock. Defaults to inifinite wait.</li>
+</ul>
+<blockquote>
+<p>returns true of the semaphore lock could be acquired within the given timeout, false if not.</p>
+</blockquote>
+<p>At the time of this writing, the implementation of this functions uses polling.
+Expect delays between calls to :release() and subsequent :acquire() returning.</p>
+<h4 id="semaphorerelease">semaphore:release</h4>
+<blockquote>
+<p>release the semaphore lock.</p>
+</blockquote>
+<pre><code class="lang-lua">semaphore:release()
+</code></pre>
+<h4 id="semaphoretryacquire">semaphore:try_acquire</h4>
+<blockquote>
+<p>returns true of the semaphore lock could be acquired, false if not.</p>
+</blockquote>
+<pre><code class="lang-lua">semaphore:try_acquire()
+</code></pre>
 <h4 id="mtevsh">mtev.sh</h4>
 <blockquote>
 <p>Run shell command, return output</p>

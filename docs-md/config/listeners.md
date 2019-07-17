@@ -23,6 +23,7 @@ Network listeners and their services are specified via configuration.
     </consoles>
     <web type="control_dispatch" address="*">
       <config>
+        <idle_timeout>30000</idle_timeout>
         <document_root>/path/to/docroot</document_root>
       </config>
       <listener port="80" />
@@ -144,5 +145,13 @@ connecting clients.  SSL config supports the follwing keys:
 
 ### config
 
-   Each listener can access the `config` passed to it; see type-specific documentation.
+   The general listener framework support respecting the following config keys:
+
+ * ##### idle_timeout
+
+   Specifies a time in milliseconds afterwhich if the connection remains idle (no read or write traffic) it will be terminated.
+   The protocol driver must cooperate programmatically to inform the system of such activity; the `mtev_console` and `http` protocols do this.
+
+
+   Each listener can access the `config` passed to it; see type-specific documentation for other config keys.
 
