@@ -4,6 +4,12 @@
 
 ## 1.6
 
+ * Fix issues with aco/http interplay on Illumos (and likely issues
+   elsewhere that were undetected).
+ * Make `eventer_update_whence` act correctly on "this" event.
+ * Make queue maintenance and conf timer functions reuse their events
+   for fewer eventer_t alloc/frees.
+
 ### 1.6.20
 
  * Fix several bugs in the eventer, rest and http interaction:
