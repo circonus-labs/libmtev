@@ -536,15 +536,16 @@ mtev_conf_watch_config_and_journal(eventer_t e, int mask, void *closure,
   }
 
   /* Schedule the same event to fire a second from now */
-  eventer_add_in_s_us(mtev_conf_watch_config_and_journal, closure, 1, 0);
-  return 0;
+  struct timeval next = *now;
+  next.tv_sec += 1;
+  eventer_update_whence(e, next);
+  return EVENTER_TIMER;
 }
 
 void
 mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c) {
   static int callbacknamed = 0;
   struct recurrent_journaler *rj = NULL;
-  struct timeval __now;
 
   if(!callbacknamed) {
     callbacknamed = 1;
@@ -556,8 +557,7 @@ mtev_conf_watch_and_journal_watchdog(int (*f)(void *), void *c) {
     rj->journal_config = f;
     rj->jc_closure = c;
   }
-  mtev_gettimeofday(&__now, NULL);
-  mtev_conf_watch_config_and_journal(NULL, EVENTER_TIMER, rj, &__now);
+  eventer_add_in_s_us(mtev_conf_watch_config_and_journal, rj, 0, 0);
 }
 
 #define MAX_SUPPRESSIONS 128

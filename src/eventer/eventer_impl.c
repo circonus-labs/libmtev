@@ -718,8 +718,9 @@ static int periodic_jobq_maintenance(eventer_t e, int mask, void *vjobq, struct 
   (void)now;
   eventer_jobq_t *jobq = vjobq;
   eventer_jobq_ping(jobq);
-  eventer_add_in_s_us(periodic_jobq_maintenance, jobq, 1, 0);
-  return 0;
+  memcpy(&e->whence, now, sizeof(*now));
+  e->whence.tv_sec += 1;
+  return EVENTER_TIMER;
 }
 
 static void register_jobq_maintenance(eventer_jobq_t *jobq, void *unused) {
@@ -1032,6 +1033,10 @@ eventer_t eventer_remove_timed(eventer_t e) {
 void eventer_update_timed_internal(eventer_t e, int mask, struct timeval *new_whence) {
   struct eventer_impl_data *t;
   mtevAssert(mask & EVENTER_TIMER);
+  if(eventer_get_this_event() == e) {
+    e->whence = *new_whence;
+    return;
+  }
   t = get_event_impl_data(e);
   pthread_mutex_lock(&t->te_lock);
   mtev_skiplist_remove_compare(t->timed_events, e, NULL, mtev_compare_voidptr);

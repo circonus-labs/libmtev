@@ -726,7 +726,7 @@ mtev_rest_aco_handler(void) {
   eventer_add_timer_next_opportunity(next_tick_resume, conne, pthread_self());
   if(mask == 0) {
     if(eventer_find_fd(fd) == newe) eventer_remove_fde(newe);
-    eventer_deref(newe);
+    if(mtev_http_connection_event(conne) == newe) eventer_deref(newe);
   }
   mtev_http_session_ref_dec(aco_ctx->http_ctx);
   free(aco_ctx);
@@ -1330,6 +1330,9 @@ void mtev_http_rest_init(void) {
   eventer_name_callback("mtev_wire_rest_api/1.0/alpn:h2", mtev_http2_rest_raw_handler);
   eventer_name_callback("http_rest_api/alpn:h2", mtev_http2_rest_raw_handler);
   eventer_name_callback("control_dispatch/alpn:h2", mtev_http2_rest_raw_handler);
+  eventer_name_callback("mtev_rest_aco_session_continue", mtev_rest_aco_session_continue);
+  eventer_name_callback("mtev_rest_aco_http2_continue", mtev_rest_aco_http2_continue);
+  eventer_name_callback("next_tick_resume", next_tick_resume);
 
   /* some default mime types */
 #define ADD_MIME_TYPE(ext, type) \
