@@ -646,7 +646,9 @@ next_tick_resume(eventer_t e, int mask, void *closure, struct timeval *now) {
   (void)e;
   (void)mask;
   (void)now;
-  mtev_http_connection_resume_after_float((mtev_http_connection *)closure);
+  mtev_http_session_ctx *http_ctx = closure;
+  mtev_http_connection_resume_after_float(mtev_http_session_connection(http_ctx));
+  mtev_http_ctx_session_release(http_ctx);
   return 0;
 }
 static void
@@ -657,7 +659,7 @@ mtev_rest_http2_aco_handler(void) {
   mtev_http2_session_resume_aco((mtev_http2_session_ctx *)aco_ctx->http_ctx);
 
   mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_false);
-  mtev_http_session_ref_dec(aco_ctx->http_ctx);
+  mtev_http_ctx_session_release(aco_ctx->http_ctx);
   free(aco_ctx);
   aco_exit();
 }
@@ -700,7 +702,7 @@ mtev_rest_aco_handler(void) {
   mtev_http_connection *conne = mtev_http_session_connection(aco_ctx->http_ctx);
   if(!conne) {
     mtevL(mtev_error, "mtev_rest_aco_handler with no http connection!\n");
-    mtev_http_session_ref_dec(aco_ctx->http_ctx);
+    mtev_http_ctx_session_release(aco_ctx->http_ctx);
     free(aco_ctx);
     aco_exit();
     return;
@@ -723,12 +725,11 @@ mtev_rest_aco_handler(void) {
   mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_false);
 
   /* trigger the event */
-  eventer_add_timer_next_opportunity(next_tick_resume, conne, pthread_self());
+  eventer_add_timer_next_opportunity(next_tick_resume, aco_ctx->http_ctx, pthread_self());
   if(mask == 0) {
     if(eventer_find_fd(fd) == newe) eventer_remove_fde(newe);
-    eventer_deref(newe);
+    if(mtev_http_connection_event(conne) == newe) eventer_deref(newe);
   }
-  mtev_http_session_ref_dec(aco_ctx->http_ctx);
   free(aco_ctx);
   aco_exit();
 }
@@ -1330,6 +1331,9 @@ void mtev_http_rest_init(void) {
   eventer_name_callback("mtev_wire_rest_api/1.0/alpn:h2", mtev_http2_rest_raw_handler);
   eventer_name_callback("http_rest_api/alpn:h2", mtev_http2_rest_raw_handler);
   eventer_name_callback("control_dispatch/alpn:h2", mtev_http2_rest_raw_handler);
+  eventer_name_callback("mtev_rest_aco_session_continue", mtev_rest_aco_session_continue);
+  eventer_name_callback("mtev_rest_aco_http2_continue", mtev_rest_aco_http2_continue);
+  eventer_name_callback("next_tick_resume", next_tick_resume);
 
   /* some default mime types */
 #define ADD_MIME_TYPE(ext, type) \
