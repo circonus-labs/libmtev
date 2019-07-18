@@ -4,6 +4,8 @@
 
 ## 1.6
 
+* Add mtev.getaddrinfo() function to luamtev
+
 ### 1.6.21
 
  * Fix issues with aco/http interplay on Illumos (and likely issues
