@@ -4,7 +4,7 @@
 
 ## 1.6
 
-### 1/6.21
+### 1.6.21
 
  * Fix issues with aco/http interplay on Illumos (and likely issues
    elsewhere that were undetected).
