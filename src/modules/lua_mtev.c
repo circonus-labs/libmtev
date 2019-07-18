@@ -5486,13 +5486,13 @@ nl_getaddrinfo(lua_State *L) {
   struct addrinfo *result;
   int rc = getaddrinfo(host, NULL, &hints, &result);
   if(rc != 0) {
-    lua_pushnil(L);
+    lua_pushboolean(L, 0);
     lua_pushfstring(L, "getaddrinfo(%s) failed", host, gai_strerror(rc));
     freeaddrinfo(result);
     return 2;
   }
   if(result == NULL) {
-    lua_pushnil(L);
+    lua_pushboolean(L, 0);
     lua_pushfstring(L, "not found");
     freeaddrinfo(result);
     return 2;
@@ -5501,7 +5501,7 @@ nl_getaddrinfo(lua_State *L) {
   char ipstr[INET_ADDRSTRLEN] = "";
   struct sockaddr_in *in4 = (struct sockaddr_in *) result->ai_addr;
   if(inet_ntop(AF_INET, &(in4->sin_addr), ipstr, INET_ADDRSTRLEN) == NULL) {
-    lua_pushnil(L);
+    lua_pushboolean(L, 0);
     lua_pushstring(L, "error decoding address");
     freeaddrinfo(result);
     return 2;
