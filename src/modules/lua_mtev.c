@@ -5487,7 +5487,7 @@ nl_getaddrinfo(lua_State *L) {
   int rc = getaddrinfo(host, NULL, &hints, &result);
   if(rc != 0) {
     lua_pushboolean(L, 0);
-    lua_pushfstring(L, "getaddrinfo(%s) failed", host, gai_strerror(rc));
+    lua_pushfstring(L, "getaddrinfo(%s) failed: %s", host, gai_strerror(rc));
     freeaddrinfo(result);
     return 2;
   }
