@@ -1,0 +1,7 @@
+describe("misc", function()
+  it("getaddrinfo should resolve localhost", function()
+    local ip, fam = mtev.getaddrinfo("localhost")
+    assert.are.equal(ip, "127.0.0.1")
+    assert.are.equal(fam, "inet")
+  end)
+end)
