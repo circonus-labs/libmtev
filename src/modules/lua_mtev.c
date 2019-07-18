@@ -41,6 +41,7 @@
 #include <spawn.h>
 #include <dirent.h>
 #include <stdint.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #ifdef HAVE_SYS_FILIO_H
@@ -5457,6 +5458,61 @@ nl_cancel_coro(lua_State *L) {
   return 0;
 }
 
+/*! \lua ipstr, family = mtev.getaddrinfo(hostname)
+\brief Resolves host name using the OS provided getaddrinfo function
+\return ipstr  - IP address represented as a string
+\return family - "inet" or "inet6" depending on whether the returned address is IPv4, IPv6
+
+In particular this will respect the /etc/host entries.
+
+In the case of error, we return `false, errormsg`
+*/
+static int
+nl_getaddrinfo(lua_State *L) {
+  // TODO: Support ipv6 results
+  if(lua_gettop(L) != 1) {
+    return luaL_error(L, "mtev.getaddrinfo expects exactly one argument");
+  }
+  const char *host = luaL_checkstring(L, 1);
+  struct addrinfo hints;
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = 0;
+  hints.ai_protocol = 0;
+  hints.ai_canonname = NULL;
+  hints.ai_addr = NULL;
+  hints.ai_next = NULL;
+  struct addrinfo *result;
+  int rc = getaddrinfo(host, NULL, &hints, &result);
+  if(rc != 0) {
+    lua_pushboolean(L, 0);
+    lua_pushfstring(L, "getaddrinfo(%s) failed: %s", host, gai_strerror(rc));
+    freeaddrinfo(result);
+    return 2;
+  }
+  if(result == NULL) {
+    lua_pushboolean(L, 0);
+    lua_pushfstring(L, "not found");
+    freeaddrinfo(result);
+    return 2;
+  }
+  // getaddrinfo returns a list of results. We just pick the first here.
+  char ipstr[INET_ADDRSTRLEN] = "";
+  struct sockaddr_in *in4 = (struct sockaddr_in *) result->ai_addr;
+  if(inet_ntop(AF_INET, &(in4->sin_addr), ipstr, INET_ADDRSTRLEN) == NULL) {
+    lua_pushboolean(L, 0);
+    lua_pushstring(L, "error decoding address");
+    freeaddrinfo(result);
+    return 2;
+  }
+  freeaddrinfo(result);
+  lua_pushstring(L, ipstr);
+  // we only support family=inet at the moment (IPv4)
+  lua_pushstring(L, "inet");
+  return 2;
+}
+
 static void mtev_lua_init(void) {
   static int done = 0;
   if(done) return;
@@ -5524,6 +5580,7 @@ static const luaL_Reg mtevlib[] = {
   { "stat", nl_stat },
   { "readdir", nl_readdir },
   { "realpath", nl_realpath },
+  { "getaddrinfo", nl_getaddrinfo },
   { "getuid", nl_getuid },
   { "getgid", nl_getgid },
   { "geteuid", nl_geteuid },
