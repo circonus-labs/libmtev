@@ -5538,12 +5538,13 @@ nl_inet_pton(lua_State *L) {
     *u = addr;
     return 3;
   }
-  rc = inet_pton(AF_INET6, host, &addr);
+  struct in6_addr addr6;
+  rc = inet_pton(AF_INET6, host, &addr6);
   if (rc == 1) {
     lua_pushboolean(L, 1);
     lua_pushstring(L, "inet6");
-    struct in_addr *u = lua_newuserdata(L, sizeof(struct in_addr));
-    *u = addr;
+    struct in6_addr *u = lua_newuserdata(L, sizeof(struct in6_addr));
+    *u = addr6;
     return 3;
   }
   // error case
