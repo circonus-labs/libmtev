@@ -5513,6 +5513,38 @@ nl_getaddrinfo(lua_State *L) {
   return 2;
 }
 
+/*! \lua rc, family, ... = mtev.inet_pton(address)
+\brief Wrapper around inet_pton(3). Can be used to validate IP addresses and detect the address family (IPv4,IPv6)
+\param address to parse
+\return rc true if address is a valid IP address, false otherwise
+\return family address family of the address, either "inet" or "inet6".
+*/
+
+static int
+nl_inet_pton(lua_State *L) {
+  if(lua_gettop(L) != 1) {
+    return luaL_error(L, "mtev.inet_pton expects exactly one argument");
+  }
+  const char *host = luaL_checkstring(L, 1);
+  struct in_addr addr;
+  int rc;
+  rc = inet_pton(AF_INET, host, &addr);
+  if (rc == 1) {
+    lua_pushboolean(L, 1);
+    lua_pushstring(L, "inet");
+    return 2;
+  }
+  rc = inet_pton(AF_INET6, host, &addr);
+  if (rc == 1) {
+    lua_pushboolean(L, 1);
+    lua_pushstring(L, "inet6");
+    return 2;
+  }
+  // error case
+  lua_pushboolean(L, 0);
+  return 1;
+}
+
 static void mtev_lua_init(void) {
   static int done = 0;
   if(done) return;
@@ -5652,6 +5684,7 @@ Use sha256_hex instead.
   { "watchdog_timeout", nl_watchdog_timeout },
   { "websocket_client_connect", nl_websocket_client_connect },
   { "semaphore", nl_semaphore },
+  { "inet_pton", nl_inet_pton },
   { NULL, NULL }
 };
 
