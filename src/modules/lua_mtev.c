@@ -5513,11 +5513,13 @@ nl_getaddrinfo(lua_State *L) {
   return 2;
 }
 
-/*! \lua rc, family, ... = mtev.inet_pton(address)
+/*! \lua rc, family, addr = mtev.inet_pton(address)
 \brief Wrapper around inet_pton(3). Can be used to validate IP addresses and detect the address family (IPv4,IPv6)
 \param address to parse
 \return rc true if address is a valid IP address, false otherwise
 \return family address family of the address, either "inet" or "inet6".
+\return addr struct in_addr as udata
+
 */
 
 static int
@@ -5532,13 +5534,17 @@ nl_inet_pton(lua_State *L) {
   if (rc == 1) {
     lua_pushboolean(L, 1);
     lua_pushstring(L, "inet");
-    return 2;
+    struct in_addr *u = lua_newuserdata(L, sizeof(struct in_addr));
+    *u = addr;
+    return 3;
   }
   rc = inet_pton(AF_INET6, host, &addr);
   if (rc == 1) {
     lua_pushboolean(L, 1);
     lua_pushstring(L, "inet6");
-    return 2;
+    struct in_addr *u = lua_newuserdata(L, sizeof(struct in_addr));
+    *u = addr;
+    return 3;
   }
   // error case
   lua_pushboolean(L, 0);
