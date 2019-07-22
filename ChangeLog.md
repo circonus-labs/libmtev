@@ -4,6 +4,8 @@
 
 ## 1.6
 
+### 1.6.22
+
 * Add mtev.inet_pton() function to luamtev
 * Add mtev.getaddrinfo() function to luamtev
 
