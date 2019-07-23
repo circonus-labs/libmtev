@@ -4,10 +4,13 @@
 
 ## 1.6
 
+ * Fix http/1 upload data with content-length that is either oversized
+   or before a pipelined request.
+
 ### 1.6.22
 
-* Add mtev.inet_pton() function to luamtev
-* Add mtev.getaddrinfo() function to luamtev
+ * Add mtev.inet_pton() function to luamtev
+ * Add mtev.getaddrinfo() function to luamtev
 
 ### 1.6.21
 
