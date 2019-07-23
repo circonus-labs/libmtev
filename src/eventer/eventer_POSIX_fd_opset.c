@@ -85,6 +85,7 @@ POSIX_close(int fd, int *mask, void *closure) {
   if(fd < 0) {
     errno = EBADFD;
   } else {
+    shutdown(fd, SHUT_RDWR);
     rv = close(fd);
   }
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);

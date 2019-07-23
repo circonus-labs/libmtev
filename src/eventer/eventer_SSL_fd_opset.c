@@ -1197,6 +1197,7 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   if(fd < 0) {
     errno = EBADFD;
   } else {
+    shutdown(fd, SHUT_RDWR);
     rv = close(fd);
   }
   *mask = 0;
