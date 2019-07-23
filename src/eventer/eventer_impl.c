@@ -185,11 +185,28 @@ mtev_log_stream_t eventer_err = NULL;
 mtev_log_stream_t eventer_deb = NULL;
 
 static uint32_t __default_queue_threads = 5;
+/* this will only scale up under heavy load */
+static uint32_t __default_close_threads = 10;
 static uint32_t __total_loop_count = 0;
 static uint32_t __total_loops_waiting = 0;
 static uint32_t __default_loop_concurrency = 0;
 static eventer_jobq_t *__default_jobq;
+static eventer_jobq_t *__close_jobq;
 
+static int
+eventer_asynch_close(eventer_t e, int mask, void *closure,
+                          struct timeval *now) {
+  (void)e;
+  (void)now;
+  if(mask == EVENTER_ASYNCH_WORK) {
+    eventer_t ae = closure;
+    if(ae->fd >= 0) {
+      eventer_close_synch(ae, &mask);
+    }
+    eventer_deref(ae);
+  }
+  return 0;
+}
 struct eventer_pool_t {
   char *name;
   uint32_t __global_tid_offset;
@@ -817,6 +834,12 @@ int eventer_impl_init(void) {
   eventer_jobq_set_shortname(__default_jobq, "default");
   eventer_jobq_set_concurrency(__default_jobq, __default_queue_threads);
 
+  __close_jobq = eventer_jobq_create("socket_close_queue");
+  eventer_jobq_set_shortname(__close_jobq, "socket_close");
+  eventer_jobq_set_min_max(__close_jobq, 1, 100);
+  eventer_jobq_set_concurrency(__close_jobq, __default_close_threads);
+  eventer_jobq_set_floor(__close_jobq, 1);
+
   mtevAssert(eventer_impl_tls_data == NULL);
 
   /* Zip through the pools and set their concurrencies. */
@@ -1371,7 +1394,7 @@ int eventer_write(eventer_t e, const void *buff, size_t len, int *mask) {
          (e->fd, buff, len, mask, e);
 }
 
-int eventer_close(eventer_t e, int *mask) {
+int eventer_close_synch(eventer_t e, int *mask) {
   if(e->opset == eventer_aco_fd_opset) {
     /* fake a aco close */
     return eventer_aco_close((eventer_aco_t)e);
@@ -1379,6 +1402,14 @@ int eventer_close(eventer_t e, int *mask) {
   mtevAssert(aco_get_co() == NULL || aco_get_co() == get_my_impl_data()->aco_main_co);
   return eventer_fd_opset_get_close(eventer_get_fd_opset(e))
          (e->fd, mask, e);
+}
+
+int eventer_close(eventer_t e, int *mask) {
+  eventer_ref(e);
+  eventer_t ae = eventer_alloc_asynch(eventer_asynch_close, e);
+  eventer_add_asynch(__close_jobq, ae);
+  if(mask) *mask = 0;
+  return 0;
 }
 
 int eventer_aco_accept(eventer_aco_t e, struct sockaddr *addr, socklen_t *len, struct timeval *timeout) {

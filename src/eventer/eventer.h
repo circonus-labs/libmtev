@@ -340,6 +340,17 @@ API_EXPORT(int) eventer_write(eventer_t e, const void *buff, size_t len, int *ma
 */
 API_EXPORT(int) eventer_close(eventer_t e, int *mask);
 
+/*! \fn int eventer_close(eventer_t e, int *mask)
+    \brief Execute an opset-appropriate `close` call synchronously
+    \param e an event object
+    \param mask a point the a mask. If the call does not complete, `*mask` it set.
+    \return 0 on sucess or -1 with errno set.
+
+    If the function returns -1 and `errno` is `EAGAIN`, the `*mask` reflects the
+    necessary activity to make progress.
+*/
+API_EXPORT(int) eventer_close_synch(eventer_t e, int *mask);
+
 #include "eventer/eventer_POSIX_fd_opset.h"
 #include "eventer/eventer_SSL_fd_opset.h"
 #include "eventer/eventer_aco_opset.h"

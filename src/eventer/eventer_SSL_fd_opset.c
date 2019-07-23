@@ -815,6 +815,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
       if(!SSL_CTX_load_verify_locations(ctx->ssl_ctx,ca,NULL) ||
          (cert_stack = SSL_load_client_CA_file(ca)) == NULL)
         goto bail;
+      mtevL(mtev_error, "LOADED CA LIST %d elements\n", sk_X509_NAME_num(cert_stack));
       SSL_CTX_set_client_CA_list(ctx->ssl_ctx, cert_stack);
     }
     SSL_CTX_set_cipher_list(ctx->ssl_ctx, ciphers ? ciphers : "DEFAULT");
@@ -1197,6 +1198,7 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   if(fd < 0) {
     errno = EBADFD;
   } else {
+    shutdown(fd, SHUT_RDWR);
     rv = close(fd);
   }
   *mask = 0;

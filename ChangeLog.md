@@ -6,6 +6,7 @@
 
  * Fix http/1 upload data with content-length that is either oversized
    or before a pipelined request.
+ * Make `eventer_close()` asynch and call `shutdown()` before `close()`.
 
 ### 1.6.22
 
