@@ -964,6 +964,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
   /* We attempt to consume from the first_input */
   struct bchain *head, *tail, *tofree;
   const char *str_in_f;
+  *mask = 0;
   while(1) {
     int rlen;
     head = ctx->req.first_input;
@@ -1102,6 +1103,12 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
         ctx->req.user_data = data;
       }
       size_t copy_size = MIN(head->size, (size_t)next_chunk);
+      if(!ctx->req.payload_chunked) {
+        /* We don't want to over-read. */
+        if((ssize_t)copy_size > ctx->req.content_length - ctx->req.content_length_read) {
+          copy_size = ctx->req.content_length - ctx->req.content_length_read;
+        }
+      }
       memcpy(data->buff + data->start + data->size, head->buff + head->start, copy_size);
       data->size += copy_size;
       head->start += copy_size;
@@ -1209,6 +1216,8 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
     if (ctx->req.content_length_read < ctx->req.content_length) {
       int rlen = mtev_http1_session_req_consume_read(ctx, compression_type, mask);
       if (rlen >= 0) {
+        if(ctx->req.content_length_read + rlen > ctx->req.content_length)
+          rlen = ctx->req.content_length - ctx->req.content_length_read;
         ctx->req.content_length_read += rlen;
       } else if (rlen == -2) {
         errno = ENOTSUP;
