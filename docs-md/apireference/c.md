@@ -2008,7 +2008,7 @@ To assign an event to a thread, use the result of this function to assign:
 
 #### eventer_close
 
->Execute an opset-appropriate `close` call synchronously
+>Execute an opset-appropriate `close` call.
 
 ```c
 int

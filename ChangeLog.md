@@ -4,6 +4,10 @@
 
 ## 1.6
 
+### 1.6.24
+
+ * Fix race condition in asynchronous eventer_close.
+
 ### 1.6.23
 
  * Fix http/1 upload data with content-length that is either oversized
