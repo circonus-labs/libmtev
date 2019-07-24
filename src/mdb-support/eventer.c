@@ -35,7 +35,7 @@
 struct fds_data {
   void *readonce;
   int idx;
-  int maxfds;
+  int _maxfds;
 };
 static int mtev_fds_walk_init(mdb_walk_state_t *s) {
   struct fds_data *fds;
@@ -47,13 +47,13 @@ static int mtev_fds_walk_init(mdb_walk_state_t *s) {
     return WALK_ERR;
   }
   fds->idx = 0;
-  fds->maxfds = l.maxfds;
-  fds->readonce = mdb_alloc(sizeof(l.master_fds[0])*l.maxfds, UM_GC);
+  fds->_maxfds = l._maxfds;
+  fds->readonce = mdb_alloc(sizeof(l.master_fds[0])*l._maxfds, UM_GC);
   if(!fds->readonce) {
     mdb_warn("allocation failure\n");
     return WALK_ERR;
   }
-  if(mdb_vread(fds->readonce, sizeof(l.master_fds[0])*l.maxfds, (uintptr_t)l.master_fds) == -1) {
+  if(mdb_vread(fds->readonce, sizeof(l.master_fds[0])*l._maxfds, (uintptr_t)l.master_fds) == -1) {
     mdb_warn("invalid read of master_fds\n");
     return WALK_ERR;
   }
@@ -67,7 +67,7 @@ static int mtev_fds_walk_step(mdb_walk_state_t *s) {
   eventer_t *eptr;
   void *dummy = NULL;
 
-  for(; fds->idx < fds->maxfds; fds->idx++) {
+  for(; fds->idx < fds->_maxfds; fds->idx++) {
     eptr = fds->readonce + sizeof(l.master_fds[0]) * fds->idx;
     if(*eptr == NULL) continue;
     if(mdb_vread(&e, sizeof(e), (uintptr_t)*eptr) == -1) return WALK_ERR;
@@ -161,7 +161,7 @@ mtev_fds_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) 
   fd = (int)mdb_strtoull(argv[0].a_un.a_str);
   
   if(mdb_readsym(&l, sizeof(l), "eventer_ports_impl") == -1) return DCMD_ERR;
-  if(fd < 0 || fd > l.maxfds) {
+  if(fd < 0 || fd > l._maxfds) {
     mdb_warn("fd overflow\n");
     return DCMD_ERR;
   }
