@@ -31,6 +31,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+struct _eventer_impl eventer_epoll_impl;
+#define LOCAL_EVENTER eventer_epoll_impl
+#define LOCAL_EVENTER_foreach_fdevent eventer_epoll_impl_foreach_fdevent
+#define maxfds LOCAL_EVENTER._maxfds
+#define master_fds LOCAL_EVENTER._master_fds
+
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
 #include "mtev_skiplist.h"
@@ -48,12 +54,6 @@
 #ifdef HAVE_SYS_EVENTFD_H
 #include <sys/eventfd.h>
 #endif
-
-struct _eventer_impl eventer_epoll_impl;
-#define LOCAL_EVENTER eventer_epoll_impl
-#define LOCAL_EVENTER_foreach_fdevent eventer_epoll_impl_foreach_fdevent
-#define maxfds LOCAL_EVENTER.maxfds
-#define master_fds LOCAL_EVENTER.master_fds
 
 #include "eventer/eventer_impl_private.h"
 
