@@ -48,12 +48,12 @@ static int mtev_fds_walk_init(mdb_walk_state_t *s) {
   }
   fds->idx = 0;
   fds->_maxfds = l._maxfds;
-  fds->readonce = mdb_alloc(sizeof(l.master_fds[0])*l._maxfds, UM_GC);
+  fds->readonce = mdb_alloc(sizeof(l._master_fds[0])*l._maxfds, UM_GC);
   if(!fds->readonce) {
     mdb_warn("allocation failure\n");
     return WALK_ERR;
   }
-  if(mdb_vread(fds->readonce, sizeof(l.master_fds[0])*l._maxfds, (uintptr_t)l.master_fds) == -1) {
+  if(mdb_vread(fds->readonce, sizeof(l._master_fds[0])*l._maxfds, (uintptr_t)l._master_fds) == -1) {
     mdb_warn("invalid read of master_fds\n");
     return WALK_ERR;
   }
@@ -68,7 +68,7 @@ static int mtev_fds_walk_step(mdb_walk_state_t *s) {
   void *dummy = NULL;
 
   for(; fds->idx < fds->_maxfds; fds->idx++) {
-    eptr = fds->readonce + sizeof(l.master_fds[0]) * fds->idx;
+    eptr = fds->readonce + sizeof(l._master_fds[0]) * fds->idx;
     if(*eptr == NULL) continue;
     if(mdb_vread(&e, sizeof(e), (uintptr_t)*eptr) == -1) return WALK_ERR;
     if(e.fd != fds->idx) continue;
@@ -165,7 +165,7 @@ mtev_fds_dcmds(uintptr_t addr, unsigned flags, int argc, const mdb_arg_t *argv) 
     mdb_warn("fd overflow\n");
     return DCMD_ERR;
   }
-  if(mdb_vread(&eptr, sizeof(eptr), (uintptr_t)&l.master_fds[fd]) == -1) return DCMD_ERR;
+  if(mdb_vread(&eptr, sizeof(eptr), (uintptr_t)&l._master_fds[fd]) == -1) return DCMD_ERR;
   if(eptr == NULL) return DCMD_OK;
   if(mdb_vread(&e, sizeof(e), (uintptr_t)eptr) == -1) return DCMD_ERR;
   if(e.fd != fd) {
