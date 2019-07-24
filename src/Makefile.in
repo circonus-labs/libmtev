@@ -34,7 +34,7 @@ CC=@CC@
 SHLD=@SHLD@
 CPPFLAGS=-I$(top_srcdir)/src -I$(top_srcdir)/src/json-lib \
 	-I$(top_srcdir)/src/slz-lib \
-	-I$(top_srcdir)/src/utils @CPPFLAGS@ -DHIDE_EVENTER_ABI
+	-I$(top_srcdir)/src/utils @CPPFLAGS@ -DEXPOSE_EVENTER_ABI
 CHOTOPT=@CHOTOPT@
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@

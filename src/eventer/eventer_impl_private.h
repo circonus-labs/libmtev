@@ -31,6 +31,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef EVENTER_EVENTER_IMPL_PRIVATE_H
+#define EVENTER_EVENTER_IMPL_PRIVATE_H
+
 #include "mtev_stats.h"
 #include "aco/aco.h"
 
@@ -223,3 +226,5 @@ void eventer_aco_init(void);
 void *eventer_aco_get_opset_ctx(void *closure);
 struct _fd_opset *eventer_aco_get_opset(void *closure);
 int eventer_aco_shutdown(aco_t *co);
+
+#endif

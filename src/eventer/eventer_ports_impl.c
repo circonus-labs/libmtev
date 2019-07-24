@@ -31,6 +31,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+struct _eventer_impl eventer_ports_impl;
+#define LOCAL_EVENTER eventer_ports_impl
+#define LOCAL_EVENTER_foreach_fdevent eventer_ports_impl_foreach_fdevent
+#define LOCAL_EVENTER_foreach_timedevent eventer_ports_impl_foreach_timedevent
+#define maxfds LOCAL_EVENTER.maxfds
+#define master_fds LOCAL_EVENTER.master_fds
+
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
 #include "mtev_skiplist.h"
@@ -48,13 +55,6 @@
 #include <ck_spinlock.h>
 
 #define MAX_PORT_EVENTS 1024
-
-struct _eventer_impl eventer_ports_impl;
-#define LOCAL_EVENTER eventer_ports_impl
-#define LOCAL_EVENTER_foreach_fdevent eventer_ports_impl_foreach_fdevent
-#define LOCAL_EVENTER_foreach_timedevent eventer_ports_impl_foreach_timedevent
-#define maxfds LOCAL_EVENTER.maxfds
-#define master_fds LOCAL_EVENTER.master_fds
 
 #include "eventer/eventer_impl_private.h"
 

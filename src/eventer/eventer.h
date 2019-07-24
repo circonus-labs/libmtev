@@ -672,12 +672,12 @@ typedef struct _eventer_impl {
   void              (*wakeup)(eventer_t);
   void             *(*alloc_spec)(void);
   struct timeval    max_sleeptime;
-  int               maxfds;
+  int               _maxfds;
   struct {
     eventer_t e;
     pthread_t executor;
     ck_spinlock_t lock;
-  }                 *master_fds;
+  }                 *_master_fds;
 } *eventer_impl_t;
 
 extern eventer_impl_t __eventer;
@@ -1530,5 +1530,9 @@ API_EXPORT(mtev_boolean) eventer_is_aco(eventer_t);
 API_EXPORT(int) eventer_impl_init(void);
 API_EXPORT(void *) eventer_get_spec_for_event(eventer_t);
 API_EXPORT(int) eventer_cpu_sockets_and_cores(int *sockets, int *cores);
+
+#ifdef EXPOSE_EVENTER_ABI
+#include <eventer/eventer_impl_private.h>
+#endif
 
 #endif
