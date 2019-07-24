@@ -131,7 +131,6 @@ struct mtev_http1_session_ctx {
   HTTP_SESSION_BASE;
 
   uint32_t ref_cnt;
-  int64_t drainage;
   pthread_mutex_t write_lock;
   size_t max_write;
   mtev_boolean aco_enabled;
@@ -546,6 +545,29 @@ mtev_http1_request_finalize_headers(mtev_http1_session_ctx *ctx, mtev_boolean *e
 
   if(req->state != MTEV_HTTP_REQ_HEADERS) return mtev_false;
   if(!req->current_input) req->current_input = req->first_input;
+
+  /* If the current buffer has leading \r\n eat them up.
+   * this is a violation of the HTTP protocol as requests cannot have extra \r\n before
+   * or after them, but we're a server not a client so there is no harm in supporting
+   * asinine clients. */
+  if(req->current_input && req->current_input == req->first_input) {
+    while(req->first_input->size >= 2 && req->first_input->buff[req->first_input->start] == '\r' &&
+          req->first_input->buff[req->first_input->start+1] == '\n') {
+      req->first_input->start += 2;
+      req->first_input->size -= 2;
+    }
+    if(req->first_input->size == 1 && req->first_input->next && req->first_input->next->size > 0) {
+      /* my have a \r and \n in different blocks */
+      if(req->first_input->buff[req->first_input->start] == '\r' &&
+         req->first_input->next->buff[req->first_input->next->start] == '\n') {
+        req->first_input->size = 0;
+        req->first_input->next->start++;
+        req->first_input->next->size--;
+      }
+    }
+  }
+
+  /* Nothing to see here (yet) */
   if(!req->current_input) return mtev_false;
   check_realloc_request(req);
   if(req->start_time.tv_sec == 0) mtev_gettimeofday(&req->start_time, NULL);
@@ -874,14 +896,6 @@ mtev_http1_request_release(mtev_http1_session_ctx *ctx) {
   if (ctx->req.freed == mtev_true) {
     return;
   }
-  /* If we expected a payload, we expect a trailing \r\n */
-  if(ctx->req.has_payload) {
-    int drained, mask;
-    ctx->drainage = ctx->req.content_length - ctx->req.content_length_read;
-    /* best effort, we'll drain it before the next request anyway */
-    drained = mtev_http1_session_req_consume(ctx, NULL, ctx->drainage, 0, &mask);
-    ctx->drainage -= drained;
-  }
   RELEASE_BCHAIN(ctx->req.current_request_chain);
   if(ctx->req.orig_qs) free(ctx->req.orig_qs);
   /* If someone has jammed in a payload, clean that up too */
@@ -1065,7 +1079,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
        * so do a short read */
       if(ctx->req.first_input && ctx->req.first_input->size) break;
       /* We've got nothing... */
-      mtevL(http_debug, " ... mtev_http1_session_req_consume = -1 (EAGAIN)\n");
+      mtevL(http_debug, " ... mtev_http1_session_req_consume_read = -1 (EAGAIN)\n");
       return -1;
     }
     if(rlen == 0 && next_chunk > 0) {
@@ -1073,7 +1087,8 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       goto successful_chunk_size;
     }
     if(rlen <= 0) {
-      mtevL(http_debug, " ... mtev_http1_session_req_consume = -1 (error)\n");
+      mtevL(http_debug, " ... mtev_http1_session_req_consume_read = %d (%s)\n", rlen,
+            rlen ? strerror(errno) : "eof");
       return -2;
     }
     mtev_acceptor_closure_mark_read(ctx->ac, NULL);
@@ -1115,7 +1130,6 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       head->size -= copy_size;
       if (ctx->req.payload_chunked) {
         /* there must be a \r\n at the end of this block */
-        str_in_f = mtev_memmem(head->buff + head->start, head->size, "\r\n", 2);
         if(head->size < 2) {
           mtevL(mtev_error, "HTTP chunked encoding error, no trailing CRLF (short).\n");
           return -2;
@@ -1534,17 +1548,6 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
    * noted that in mtev_http1_request_release.
    */
   mtevL(http_debug, " -> mtev_http1_session_drive(%d) [%x]\n", eventer_get_fd(e), origmask);
-  while(ctx->drainage > 0) {
-    int len;
-    mtevL(http_debug, "   ... draining last request(%d)\n", eventer_get_fd(e));
-    len = mtev_http1_session_req_consume(ctx, NULL, ctx->drainage, 0, &mask);
-    if(len == -1 && errno == EAGAIN) {
-      mtevL(http_debug, " <- mtev_http1_session_drive(%d) [%x]\n", eventer_get_fd(e), mask);
-      return mask;
-    }
-    if(len <= 0) goto abort_drive;
-    ctx->drainage -= len;
-  }
 
  next_req:
   check_realloc_request(&ctx->req);
@@ -1669,6 +1672,11 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
     goto release;
   }
   if(ctx->res.complete == mtev_true) {
+    while(ctx->conn.e && !mtev_http1_request_payload_complete(&ctx->req)) {
+      int len = mtev_http1_session_req_consume(ctx, NULL, DEFAULT_BCHAINSIZE, 0, &mask);
+      if(len < 0 && errno == EAGAIN) return mask | EVENTER_EXCEPTION;
+      if(len <= 0) break;
+    }
     LIBMTEV_HTTP_RESPONSE_FINISH(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
     mtev_http_log_request((mtev_http_session_ctx *)ctx);
     mtev_http_end_span((mtev_http_session_ctx *)ctx);
