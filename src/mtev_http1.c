@@ -545,6 +545,29 @@ mtev_http1_request_finalize_headers(mtev_http1_session_ctx *ctx, mtev_boolean *e
 
   if(req->state != MTEV_HTTP_REQ_HEADERS) return mtev_false;
   if(!req->current_input) req->current_input = req->first_input;
+
+  /* If the current buffer has leading \r\n eat them up.
+   * this is a violation of the HTTP protocol as requests cannot have extra \r\n before
+   * or after them, but we're a server not a client so there is no harm in supporting
+   * asinine clients. */
+  if(req->current_input && req->current_input == req->first_input) {
+    while(req->first_input->size >= 2 && req->first_input->buff[req->first_input->start] == '\r' &&
+          req->first_input->buff[req->first_input->start+1] == '\n') {
+      req->first_input->start += 2;
+      req->first_input->size -= 2;
+    }
+    if(req->first_input->size == 1 && req->first_input->next && req->first_input->next->size > 0) {
+      /* my have a \r and \n in different blocks */
+      if(req->first_input->buff[req->first_input->start] == '\r' &&
+         req->first_input->next->buff[req->first_input->next->start] == '\n') {
+        req->first_input->size = 0;
+        req->first_input->next->start++;
+        req->first_input->next->size--;
+      }
+    }
+  }
+
+  /* Nothing to see here (yet) */
   if(!req->current_input) return mtev_false;
   check_realloc_request(req);
   if(req->start_time.tv_sec == 0) mtev_gettimeofday(&req->start_time, NULL);
