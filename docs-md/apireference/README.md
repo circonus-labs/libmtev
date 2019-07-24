@@ -98,11 +98,15 @@
 
 ##### G
 
-[mtev.getcwd](lua.md#mtevgetcwd), [mtev.gettimeofday](lua.md#mtevgettimeofday), [mtev.gunzip](lua.md#mtevgunzip)
+[mtev.getaddrinfo](lua.md#mtevgetaddrinfo), [mtev.getcwd](lua.md#mtevgetcwd), [mtev.gettimeofday](lua.md#mtevgettimeofday), [mtev.gunzip](lua.md#mtevgunzip)
 
 ##### H
 
 [mtev.hmac_sha1_encode](lua.md#mtevhmacsha1encode), [mtev.hmac_sha256_encode](lua.md#mtevhmacsha256encode)
+
+##### I
+
+[mtev.inet_pton](lua.md#mtevinetpton)
 
 ##### J
 

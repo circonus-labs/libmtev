@@ -593,6 +593,24 @@ mtev.exec(path, argv, env, timeout)
 
 ### G
 
+#### mtev.getaddrinfo
+
+>Resolves host name using the OS provided getaddrinfo function
+
+```lua
+ipstr, family =
+mtev.getaddrinfo(hostname)
+```
+
+
+  * **RETURN** ipstr  - IP address represented as a string
+  * **RETURN** family - "inet" or "inet6" depending on whether the returned address is IPv4, IPv6
+
+In particular this will respect the /etc/host entries.
+
+In the case of error, we return `false, errormsg`
+
+
 #### mtev.getcwd
 
 ```lua
@@ -636,6 +654,25 @@ mtev.hmac_sha1_encode()
 ```lua
 mtev.hmac_sha256_encode()
 ```
+
+
+
+### I
+
+#### mtev.inet_pton
+
+>Wrapper around inet_pton(3). Can be used to validate IP addresses and detect the address family (IPv4,IPv6)
+
+```lua
+rc, family, addr =
+mtev.inet_pton(address)
+```
+
+
+  * `address` to parse
+  * **RETURN** rc true if address is a valid IP address, false otherwise
+  * **RETURN** family address family of the address, either "inet" or "inet6".
+  * **RETURN** addr struct in_addr as udata
 
 
 

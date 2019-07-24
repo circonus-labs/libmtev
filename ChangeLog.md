@@ -4,8 +4,12 @@
 
 ## 1.6
 
+### 1.6.23
+
  * Fix http/1 upload data with content-length that is either oversized
    or before a pipelined request.
+ * Change the http/1 driver to drain inbound data before completing the
+   request. This specifically solves issues running behind Google GLB.
  * Make `eventer_close()` asynch and call `shutdown()` before `close()`.
 
 ### 1.6.22

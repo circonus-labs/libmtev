@@ -1022,6 +1022,19 @@ mtev.exec(path, argv, env, timeout)
 <li><strong>RETURN</strong> status is nil if a timeout was hit, stdout, stderr contain process output</li>
 </ul>
 <h3 id="g">G</h3>
+<h4 id="mtevgetaddrinfo">mtev.getaddrinfo</h4>
+<blockquote>
+<p>Resolves host name using the OS provided getaddrinfo function</p>
+</blockquote>
+<pre><code class="lang-lua">ipstr, family =
+mtev.getaddrinfo(hostname)
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> ipstr  - IP address represented as a string</li>
+<li><strong>RETURN</strong> family - &quot;inet&quot; or &quot;inet6&quot; depending on whether the returned address is IPv4, IPv6</li>
+</ul>
+<p>In particular this will respect the /etc/host entries.</p>
+<p>In the case of error, we return <code>false, errormsg</code></p>
 <h4 id="mtevgetcwd">mtev.getcwd</h4>
 <pre><code class="lang-lua">path =
 mtev.getcwd()
@@ -1046,6 +1059,20 @@ mtev.gettimeofday()
 <h4 id="mtevhmacsha256encode">mtev.hmac_sha256_encode</h4>
 <pre><code class="lang-lua">mtev.hmac_sha256_encode()
 </code></pre>
+<h3 id="i">I</h3>
+<h4 id="mtevinetpton">mtev.inet_pton</h4>
+<blockquote>
+<p>Wrapper around inet_pton(3). Can be used to validate IP addresses and detect the address family (IPv4,IPv6)</p>
+</blockquote>
+<pre><code class="lang-lua">rc, family, addr =
+mtev.inet_pton(address)
+</code></pre>
+<ul>
+<li><code>address</code> to parse</li>
+<li><strong>RETURN</strong> rc true if address is a valid IP address, false otherwise</li>
+<li><strong>RETURN</strong> family address family of the address, either &quot;inet&quot; or &quot;inet6&quot;.</li>
+<li><strong>RETURN</strong> addr struct in_addr as udata</li>
+</ul>
 <h3 id="j">J</h3>
 <h4 id="mtevjsondocument">mtev.json:document</h4>
 <blockquote>
