@@ -226,5 +226,6 @@ void eventer_aco_init(void);
 void *eventer_aco_get_opset_ctx(void *closure);
 struct _fd_opset *eventer_aco_get_opset(void *closure);
 int eventer_aco_shutdown(aco_t *co);
+void posix_asynch_shutdown_close(int fd);
 
 #endif

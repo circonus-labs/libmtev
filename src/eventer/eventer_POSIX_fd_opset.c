@@ -85,8 +85,8 @@ POSIX_close(int fd, int *mask, void *closure) {
   if(fd < 0) {
     errno = EBADFD;
   } else {
-    shutdown(fd, SHUT_RDWR);
-    rv = close(fd);
+    posix_asynch_shutdown_close(fd);
+    rv = 0;
   }
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
   mtevL(eventer_deb, "POSIX_close(%d) -> %d\n", fd, rv);

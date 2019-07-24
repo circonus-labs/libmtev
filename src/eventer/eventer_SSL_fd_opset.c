@@ -1197,8 +1197,8 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   if(fd < 0) {
     errno = EBADFD;
   } else {
-    shutdown(fd, SHUT_RDWR);
-    rv = close(fd);
+    posix_asynch_shutdown_close(fd);
+    rv = 0;
   }
   *mask = 0;
   e->opset->set_opset_ctx(e, NULL);
