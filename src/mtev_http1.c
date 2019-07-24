@@ -1673,8 +1673,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
   }
   if(ctx->res.complete == mtev_true) {
     while(ctx->conn.e && !mtev_http1_request_payload_complete(&ctx->req)) {
-      static char trash[4096];
-      int len = mtev_http1_session_req_consume(ctx, trash, sizeof(trash), 0, &mask);
+      int len = mtev_http1_session_req_consume(ctx, NULL, DEFAULT_BCHAINSIZE, 0, &mask);
       if(len < 0 && errno == EAGAIN) return mask | EVENTER_EXCEPTION;
       if(len <= 0) break;
     }
