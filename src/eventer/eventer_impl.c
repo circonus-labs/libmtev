@@ -194,19 +194,26 @@ static eventer_jobq_t *__default_jobq;
 static eventer_jobq_t *__close_jobq;
 
 static int
-eventer_asynch_close(eventer_t e, int mask, void *closure,
-                          struct timeval *now) {
+posix_asynch_shutdown_close_event(eventer_t e, int mask, void *closure,
+                            struct timeval *now) {
   (void)e;
   (void)now;
+  int fd = (int)(intptr_t)closure;
   if(mask == EVENTER_ASYNCH_WORK) {
-    eventer_t ae = closure;
-    if(ae->fd >= 0) {
-      eventer_close_synch(ae, &mask);
-    }
-    eventer_deref(ae);
+    shutdown(fd, SHUT_RDWR);
+    close(fd);
   }
   return 0;
 }
+
+void posix_asynch_shutdown_close(int fd) {
+  if(fd >= 0) {
+    eventer_add_asynch(__close_jobq,
+                       eventer_alloc_asynch(posix_asynch_shutdown_close_event,
+                                            (void *)(intptr_t)fd));
+  }
+}
+
 struct eventer_pool_t {
   char *name;
   uint32_t __global_tid_offset;
@@ -1394,7 +1401,7 @@ int eventer_write(eventer_t e, const void *buff, size_t len, int *mask) {
          (e->fd, buff, len, mask, e);
 }
 
-int eventer_close_synch(eventer_t e, int *mask) {
+int eventer_close(eventer_t e, int *mask) {
   if(e->opset == eventer_aco_fd_opset) {
     /* fake a aco close */
     return eventer_aco_close((eventer_aco_t)e);
@@ -1402,14 +1409,6 @@ int eventer_close_synch(eventer_t e, int *mask) {
   mtevAssert(aco_get_co() == NULL || aco_get_co() == get_my_impl_data()->aco_main_co);
   return eventer_fd_opset_get_close(eventer_get_fd_opset(e))
          (e->fd, mask, e);
-}
-
-int eventer_close(eventer_t e, int *mask) {
-  eventer_ref(e);
-  eventer_t ae = eventer_alloc_asynch(eventer_asynch_close, e);
-  eventer_add_asynch(__close_jobq, ae);
-  if(mask) *mask = 0;
-  return 0;
 }
 
 int eventer_aco_accept(eventer_aco_t e, struct sockaddr *addr, socklen_t *len, struct timeval *timeout) {
