@@ -34,8 +34,8 @@ struct _eventer_impl eventer_kqueue_impl;
 #define LOCAL_EVENTER eventer_kqueue_impl
 #define LOCAL_EVENTER_foreach_fdevent eventer_kqueue_impl_foreach_fdevent
 #define LOCAL_EVENTER_foreach_timedevent eventer_kqueue_impl_foreach_timedevent
-#define maxfds LOCAL_EVENTER.maxfds
-#define master_fds LOCAL_EVENTER.master_fds
+#define maxfds LOCAL_EVENTER._maxfds
+#define master_fds LOCAL_EVENTER._master_fds
 
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
