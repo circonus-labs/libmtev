@@ -68,6 +68,9 @@ MTEV_HOOK_IMPL(mtev_conf_delete_section,
 const char *_mtev_branch = MTEV_BRANCH;
 const char *_mtev_version = MTEV_VERSION;
 
+static mtev_log_stream_t c_error;
+static mtev_log_stream_t c_debug;
+
 static pthread_mutex_t global_config_lock;
 #ifdef DEBUG_LOCKING
 static int global_lock_cnt = 0;
@@ -77,14 +80,14 @@ static int global_thread_id = -1;
 static inline void _glock(pthread_mutex_t *lock) {
 #ifdef DEBUG_LOCKING
   mtevAssert(lock == &global_config_lock);
-  mtevL(mtev_debug, "mtev_conf_lock(t@%d)\n", mtev_thread_id());
+  mtevL(c_debug, "mtev_conf_lock(t@%d)\n", mtev_thread_id());
 #endif
   pthread_mutex_lock(lock);
 #ifdef DEBUG_LOCKING
   mtevAssert(global_lock_cnt > 0 || global_thread_id == -1);
   global_thread_id = mtev_thread_id();
   global_lock_cnt++;
-  mtevL(mtev_debug, "mtev_conf_lock(t@%d) ++> %d\n", global_thread_id, global_lock_cnt);
+  mtevL(c_debug, "mtev_conf_lock(t@%d) ++> %d\n", global_thread_id, global_lock_cnt);
   mtev_stacktrace(mtev_debug);
 #endif
 }
@@ -95,7 +98,7 @@ static inline void _gunlock(pthread_mutex_t *lock) {
   mtevAssert(global_thread_id == mtev_thread_id());
   global_lock_cnt--;
   if(global_lock_cnt == 0) global_thread_id = -1;
-  mtevL(mtev_debug, "mtev_conf_lock(t@%d) --> %d\n", mtev_thread_id(), global_lock_cnt);
+  mtevL(c_debug, "mtev_conf_lock(t@%d) --> %d\n", mtev_thread_id(), global_lock_cnt);
   mtev_stacktrace(mtev_debug);
 #endif
   pthread_mutex_unlock(lock);
@@ -415,7 +418,7 @@ void mtev_conf_write_section(mtev_conf_section_t section, int fd) {
   xmlNodeDumpOutput(out, master_config, node, 2, 0, "utf8");
   xmlOutputBufferClose(out);
   if(write(fd, "\n", 1) < 0) {
-    mtevL(mtev_debug, "Odd error writeing LF to conf\n");
+    mtevL(c_debug, "Odd error writeing LF to conf\n");
   }
   xmlFree(enc);
   mtev_conf_release_section(section);
@@ -447,11 +450,11 @@ write_out_include_files(include_node_t *include_nodes, int include_node_cnt) {
     sprintf(filename, "%s.tmp", include_nodes[i].path);
     fd = open(filename, O_CREAT|O_TRUNC|O_WRONLY, mode);
     if (fd < 0) {
-      mtevL(mtev_error, "failed to open file %s: %s\n", filename, strerror(errno));
+      mtevL(c_error, "failed to open file %s: %s\n", filename, strerror(errno));
       continue;
     }
     if(fchown(fd, uid, gid) < 0) {
-      mtevL(mtev_error, "failed to fchown file %s: %s\n", filename, strerror(errno));
+      mtevL(c_error, "failed to fchown file %s: %s\n", filename, strerror(errno));
       close(fd);
       continue;
     }
@@ -460,14 +463,14 @@ write_out_include_files(include_node_t *include_nodes, int include_node_cnt) {
     out = xmlOutputBufferCreateFd(fd, enc);
     len = xmlSaveFormatFileTo(out, include_nodes[i].doc, "utf8", 1);
     if (len < 0) {
-      mtevL(mtev_error, "couldn't write out %s\n", include_nodes[i].path);
+      mtevL(c_error, "couldn't write out %s\n", include_nodes[i].path);
       close(fd);
       continue;
     }
     close(fd);
     write_out_include_files(include_nodes[i].children, include_nodes[i].child_count);
     if(rename(filename, include_nodes[i].path) != 0) {
-      mtevL(mtev_error, "Failed to replace file %s: %s\n", include_nodes[i].path, strerror(errno));
+      mtevL(c_error, "Failed to replace file %s: %s\n", include_nodes[i].path, strerror(errno));
     }
   }
 }
@@ -669,7 +672,7 @@ void mtev_conf_init(const char *toplevel) {
   xml_debug = mtev_log_stream_find("debug/xml");
 
   COMPILE_CHECKER(name, "^[-_\\.:/a-zA-Z0-9]+$");
-  XML2LOG(mtev_error);
+  XML2LOG(c_error);
   xmlKeepBlanksDefault(0);
   xmlInitParser();
   xmlXPathInit();
@@ -890,7 +893,7 @@ mtev_conf_backingstore_remove(mtev_conf_section_t vnode) {
     }
   }
   if(subctx) {
-    mtevL(mtev_debug, "marking %s for removal\n", subctx->path);
+    mtevL(c_debug, "marking %s for removal\n", subctx->path);
     if(!backingstore_freelist) backingstore_freelist = subctx;
     else {
       mtev_xml_userdata_t *fl = backingstore_freelist;
@@ -910,7 +913,7 @@ mtev_conf_backingstore_dirty(mtev_conf_section_t vnode) {
   xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(vnode);
   mtev_xml_userdata_t *subctx = node->_private;
   if(subctx) {
-    mtevL(mtev_debug, "backingstore[%s] marked dirty\n", subctx->path);
+    mtevL(c_debug, "backingstore[%s] marked dirty\n", subctx->path);
     subctx->dirty_time = usec_now();
   }
   else if(node->parent) {
@@ -929,7 +932,7 @@ mtev_conf_backingstore_write(mtev_xml_userdata_t *ctx, mtev_boolean skip,
   if(attrs) {
     xmlDocPtr tmpdoc;
     xmlNodePtr tmpnode;
-    mtevL(mtev_debug, " **> %s\n", newpath);
+    mtevL(c_debug, " **> %s\n", newpath);
     tmpdoc = xmlNewDoc((xmlChar *)"1.0");
     tmpnode = xmlNewNode(NULL, ctx->name ? (xmlChar *)ctx->name : (xmlChar *)"stub");
     xmlDocSetRootElement(tmpdoc, tmpnode);
@@ -956,7 +959,7 @@ mtev_conf_backingstore_write(mtev_xml_userdata_t *ctx, mtev_boolean skip,
       subctx->path = strdup(newpath);
       subctx->dirty_time = usec_now();
       n->_private = subctx;
-      mtevL(mtev_debug, " !!> %s\n", subctx->path);
+      mtevL(c_debug, " !!> %s\n", subctx->path);
     }
     if(leaf) {
       xmlDocPtr tmpdoc;
@@ -981,14 +984,14 @@ mtev_conf_backingstore_write(mtev_xml_userdata_t *ctx, mtev_boolean skip,
         tmpnode->properties = NULL;
         tmpnode->children = NULL;
         xmlFreeDoc(tmpdoc);
-        mtevL(mtev_debug, " ==> %s\n", subctx->path);
+        mtevL(c_debug, " ==> %s\n", subctx->path);
         if(failure) return -1;
       }
     }
     else {
       mtev_boolean skip_attrs;
       skip_attrs = leaf || (subctx->dirty_time <= last_config_flush);
-      mtevL(mtev_debug, " --> %s\n", subctx->path);
+      mtevL(c_debug, " --> %s\n", subctx->path);
       if(mtev_conf_backingstore_write(subctx, skip_attrs, skip_attrs ? NULL : n->properties, n->children))
         return -1;
     }
@@ -1015,7 +1018,7 @@ mtev_conf_shatter_write(xmlDocPtr doc) {
           /* This shouldn't happen, but if it does we risk
            * leaving a mess. Don't do that.
            */
-          mtevL(mtev_error, "backingstore mess %s: %s\n",
+          mtevL(c_error, "backingstore mess %s: %s\n",
                 last->path, strerror(errno));
         }
       }
@@ -1080,7 +1083,7 @@ mtev_conf_read_into_node(xmlNodePtr node, const char *path) {
   struct stat sb;
   int size, rv;
 
-  mtevL(mtev_debug, "read backing store: %s\n", path);
+  mtevL(c_debug, "read backing store: %s\n", path);
   snprintf(filepath, sizeof(filepath), "%s/.attrs", path);
   while((rv = stat(filepath, &sb)) < 0 && errno == EINTR);
   if(rv == 0) {
@@ -1119,7 +1122,7 @@ mtev_conf_read_into_node(xmlNodePtr node, const char *path) {
       if(gen > max_gen_count) max_gen_count = gen;
 
       if(S_ISDIR(sb.st_mode)) {
-        mtevL(mtev_debug, "<DIR< %s\n", entry->d_name);
+        mtevL(c_debug, "<DIR< %s\n", entry->d_name);
         child = xmlNewNode(NULL, (xmlChar *)name);
         mtev_conf_read_into_node(child, filepath);
         udata = calloc(1, sizeof(*udata));
@@ -1131,7 +1134,7 @@ mtev_conf_read_into_node(xmlNodePtr node, const char *path) {
       else if(S_ISREG(sb.st_mode)) {
         xmlDocPtr cdoc;
         xmlNodePtr cnode = NULL;
-        mtevL(mtev_debug, "<FILE< %s\n", entry->d_name);
+        mtevL(c_debug, "<FILE< %s\n", entry->d_name);
         cdoc = xmlParseFile(filepath);
         if(cdoc) {
           cnode = xmlDocGetRootElement(cdoc);
@@ -1257,7 +1260,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
       }
     }
     else {
-      mtevL(mtev_error, "Could not load: '%s'\n", infile);
+      mtevL(c_error, "Could not load: '%s'\n", infile);
       rv = -1;
     }
     free(infile);
@@ -1265,7 +1268,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
   if(mix_ctxt) xmlXPathFreeContext(mix_ctxt);
   mix_ctxt = xmlXPathNewContext(doc);
   backingstore_include_cnt = cnt;
-  mtevL(mtev_debug, "Processed %d backing stores.\n", backingstore_include_cnt);
+  mtevL(c_debug, "Processed %d backing stores.\n", backingstore_include_cnt);
 
  includes:
   if(pobj) xmlXPathFreeObject(pobj);
@@ -1293,7 +1296,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
         strlcat(globpat, path, PATH_MAX);
       }
       if(glob(globpat, globflags, NULL, &tl_globs[i])) {
-        mtevL(mtev_debug, "config include glob failure: %s\n", globpat);
+        mtevL(c_debug, "config include glob failure: %s\n", globpat);
       }
       xmlFree(path);
       cnt += tl_globs[i].gl_pathc;
@@ -1340,7 +1343,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
         strlcat(infile, "/", PATH_MAX);
         strlcat(infile, path, PATH_MAX);
       }
-      mtevL(mtev_debug, "Reading include[%d] file: %s\n", inc_idx, infile);
+      mtevL(c_debug, "Reading include[%d] file: %s\n", inc_idx, infile);
       if (include_nodes[inc_idx].snippet) {
         mtev_conf_suppress_xml_error(XML_FROM_IO, XML_IO_LOAD_ERROR);
         include_nodes[inc_idx].doc = xmlParseEntity(infile);
@@ -1374,7 +1377,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
         }
       }
       else {
-        mtevL(mtev_error, "Could not load: '%s'\n", infile);
+        mtevL(c_error, "Could not load: '%s'\n", infile);
         rv = -1;
       }
       inc_idx++;
@@ -1383,7 +1386,7 @@ mtev_conf_magic_mix(const char *parentfile, xmlDocPtr doc, include_node_t* inc_n
   }
   free(tl_globs);
   *include_cnt = inc_idx;
-  mtevL(mtev_debug, "Processed %d includes\n", *include_cnt);
+  mtevL(c_debug, "Processed %d includes\n", *include_cnt);
  out:
   if(pobj) xmlXPathFreeObject(pobj);
   if(mix_ctxt) xmlXPathFreeContext(mix_ctxt);
@@ -1416,7 +1419,7 @@ mtev_conf_load_internal(const char *path) {
     xpath_ctxt = xmlXPathNewContext(master_config);
     if(path != master_config_file)
       if(realpath(path, master_config_file) == NULL)
-        mtevL(mtev_error, "realpath failed: %s\n", strerror(errno));
+        mtevL(c_error, "realpath failed: %s\n", strerror(errno));
     mtev_conf_mark_changed();
     return rv;
   }
@@ -1438,12 +1441,12 @@ mtev_conf_load(const char *path) {
     path = master_config_file;
   else if(path != NULL && realpath(path, actual_path) != NULL) path = actual_path;
   if(!path) {
-    mtevL(mtev_error, "no config file specified\n");
+    mtevL(c_error, "no config file specified\n");
     return -1;
   }
   if(!strcmp(path, master_config_file)) path = master_config_file;
 
-  XML2LOG(mtev_error);
+  XML2LOG(c_error);
   rv = mtev_conf_load_internal(path);
   XML2LOG(xml_debug);
   return rv;
@@ -2065,7 +2068,7 @@ mtev_conf_set_string(mtev_conf_section_t section,
       char *spath = mtev_conf_section_is_empty(section) ?
         strdup("(root)") :
         (char *)xmlGetNodePath(mtev_conf_section_to_xmlnodeptr(section));
-      mtevL(mtev_error, "%s set_string \"%s\" \"%s\"\n",
+      mtevL(c_error, "%s set_string \"%s\" \"%s\"\n",
             cnt ? "Ambiguous" : "Path missing", spath, dup);
       free(spath);
       free(dup);
@@ -2090,7 +2093,7 @@ mtev_conf_set_string(mtev_conf_section_t section,
     sections = mtev_conf_get_sections(section, path, &cnt);
     if(cnt > 1) {
       char *spath = (char *)xmlGetNodePath(mtev_conf_section_to_xmlnodeptr(section));
-      mtevL(mtev_error, "Ambiguous set_string \"%s\" \"%s\"\n", spath, path);
+      mtevL(c_error, "Ambiguous set_string \"%s\" \"%s\"\n", spath, path);
       free(spath);
       mtev_conf_release_section(section);
       mtev_conf_release_sections(sections, cnt);
@@ -2118,7 +2121,7 @@ mtev_conf_set_string(mtev_conf_section_t section,
   mtev_conf_mark_changed();
   char *err;
   if(mtev_conf_write_file(&err) != 0) {
-    mtevL(mtev_error, "local config write failed: %s\n", err ? err : "unkown");
+    mtevL(c_error, "local config write failed: %s\n", err ? err : "unkown");
     free(err);
   }
   mtev_conf_release_section(section);
@@ -2351,7 +2354,7 @@ mtev_config_log_close_xml(void *vstr) {
   if(!compbuff) return -1;
   if(Z_OK != compress2((Bytef *)compbuff, &dlen,
                        (Bytef *)clv->buff, clv->len, 9)) {
-    mtevL(mtev_error, "Error compressing config for transmission.\n");
+    mtevL(c_error, "Error compressing config for transmission.\n");
     free(compbuff);
     return -1;
   }
@@ -2533,7 +2536,7 @@ mtev_conf_xml_in_mem(size_t *len) {
   xmlSaveFormatFileTo(out, master_config, "utf8", 1);
   mtev_conf_kansas_city_shuffle_redo(config_include_nodes, config_include_cnt);
   if(clv->encoded != CONFIG_XML) {
-    mtevL(mtev_error, "Error logging configuration\n");
+    mtevL(c_error, "Error logging configuration\n");
     if(clv->buff) free(clv->buff);
     free(clv);
     _gunlock(&global_config_lock);
@@ -2564,7 +2567,7 @@ mtev_conf_enc_in_mem(size_t *raw_len, size_t *len, mtev_conf_enc_type_t target, 
   xmlSaveFormatFileTo(out, master_config, "utf8", 1);
   if(!inline_includes) mtev_conf_kansas_city_shuffle_redo(config_include_nodes, config_include_cnt);
   if(clv->encoded != target) {
-    mtevL(mtev_error, "Error logging configuration\n");
+    mtevL(c_error, "Error logging configuration\n");
     if(clv->buff) free(clv->buff);
     free(clv);
     _gunlock(&global_config_lock);
@@ -2666,7 +2669,7 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
 
   snprintf(path, sizeof(path), "/%s/logs//log|/%s/include/logs//log", toplevel, toplevel);
   log_configs = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
-  mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
+  mtevL(c_debug, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     mtev_log_stream_t ls;
     char name[256];
@@ -2674,20 +2677,20 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
     if(!mtev_conf_get_stringbuf(log_configs[i],
                                 "ancestor-or-self::node()/@name",
                                 name, sizeof(name))) {
-      mtevL(mtev_error, "log section %d does not have a name attribute\n", i+1);
+      mtevL(c_error, "log section %d does not have a name attribute\n", i+1);
       if(validate) { rv = -1; break; }
       else exit(-2);
     }
 
     if(mtev_conf_env_off(log_configs[i], NULL)) {
-      mtevL(mtev_debug, "log %s environmentally disabled.\n", name);
+      mtevL(c_debug, "log %s environmentally disabled.\n", name);
       continue;
     }
 
     ls = mtev_log_stream_find(name);
     if(!ls) continue;
 
-    if(mtev_conf_get_int32(log_configs[i],    
+    if(mtev_conf_get_int32(log_configs[i],
                            "ancestor-or-self::node()/@rotate_seconds",
                            &max_time) && max_time) {
       struct log_rotate_crutch *lrc;
@@ -2709,7 +2712,7 @@ mtev_conf_log_init_rotate(const char *toplevel, mtev_boolean validate) {
       }
     }
 
-    if(mtev_conf_get_int64(log_configs[i],    
+    if(mtev_conf_get_int64(log_configs[i],
                            "ancestor-or-self::node()/@rotate_bytes",
                            &max_size) && max_size) {
       struct log_rotate_crutch *lrc;
@@ -2753,7 +2756,7 @@ mtev_conf_log_init(const char *toplevel,
 
   snprintf(path, sizeof(path), "/%s/logs//log|/%s/include/logs//log", toplevel, toplevel);
   log_configs = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
-  mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
+  mtevL(c_debug, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     int flags;
     int dedup_s = -1;
@@ -2765,13 +2768,13 @@ mtev_conf_log_init(const char *toplevel,
     if(!mtev_conf_get_stringbuf(log_configs[i],
                                 "ancestor-or-self::node()/@name",
                                 name, sizeof(name))) {
-      mtevL(mtev_error, "log section %d does not have a name attribute\n", i+1);
+      mtevL(c_error, "log section %d does not have a name attribute\n", i+1);
       mtev_conf_release_sections(log_configs, cnt);
       exit(-1);
     }
 
     if(mtev_conf_env_off(log_configs[i], NULL)) {
-      mtevL(mtev_debug, "log %s environmentally disabled.\n", name);
+      mtevL(c_debug, "log %s environmentally disabled.\n", name);
       continue;
     }
 
@@ -2829,7 +2832,7 @@ mtev_conf_log_init(const char *toplevel,
 
     outlets = mtev_conf_get_sections(log_configs[i],
                                      "ancestor-or-self::node()/outlet", &ocnt);
-    mtevL(mtev_debug, "Found %d outlets for log '%s'\n", ocnt, name);
+    mtevL(c_debug, "Found %d outlets for log '%s'\n", ocnt, name);
 
     mtev_log_stream_removeall_streams(ls);
     for(o=0; o<ocnt; o++) {
@@ -2908,7 +2911,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
 
   caps = mtev_conf_get_sections(secnode,
                                 "self::node()//capabilities//capability", &ccnt);
-  mtevL(mtev_debug, "Found %d capabilities.\n", ccnt);
+  mtevL(c_debug, "Found %d capabilities.\n", ccnt);
 
   for(i=0; i<ccnt; i++) {
     /* articulate capabilities */
@@ -2918,16 +2921,16 @@ mtev_conf_security_init(const char *toplevel, const char *user,
     if(mtev_conf_get_stringbuf(caps[i], "ancestor-or-self::node()/@platform",
                                platform, sizeof(platform)) &&
        strcasecmp(platform, CAP_PLATFORM)) {
-      mtevL(mtev_debug, "skipping cap for platform %s\n", platform);
+      mtevL(c_debug, "skipping cap for platform %s\n", platform);
       continue;
     }
 
     if(mtev_conf_env_off(caps[i], NULL)) {
-      mtevL(mtev_debug, "capability %d environmentally disabled.\n", i);
+      mtevL(c_debug, "capability %d environmentally disabled.\n", i);
       continue;
     }
 
-    captype_str[0] = '\0'; 
+    captype_str[0] = '\0';
     if (mtev_conf_get_stringbuf(caps[i], "ancestor-or-self::node()/@type",
                                 captype_str, sizeof(captype_str))) {
       if(!strcasecmp(captype_str, "permitted"))
@@ -2937,13 +2940,13 @@ mtev_conf_security_init(const char *toplevel, const char *user,
       else if(!strcasecmp(captype_str, "inheritable"))
         captype = MTEV_SECURITY_CAP_INHERITABLE;
       else {
-        mtevL(mtev_error, "Unsupported capability type: '%s'\n", captype_str);
+        mtevL(c_error, "Unsupported capability type: '%s'\n", captype_str);
         mtev_conf_release_section(secnode);
         mtev_conf_release_sections(caps, ccnt);
         exit(2);
       }
     } else {
-      mtevL(mtev_error, "Capability type missing\n");
+      mtevL(c_error, "Capability type missing\n");
       mtev_conf_release_section(secnode);
       mtev_conf_release_sections(caps, ccnt);
       exit(2);
@@ -2953,7 +2956,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
     mtev_conf_get_string(caps[i], "self::node()", &capstring);
     if(capstring) {
       if(mtev_security_setcaps(captype, capstring) != 0) {
-        mtevL(mtev_error, "Failed to set security capabilities: %s / %s\n",
+        mtevL(c_error, "Failed to set security capabilities: %s / %s\n",
               captype_str, capstring);
         mtev_conf_release_section(secnode);
         mtev_conf_release_sections(caps, ccnt);
@@ -3534,7 +3537,7 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
         const char *pcre_err;
         regex = pcre_compile(val, 0, &pcre_err, &erroff, NULL);
         if(!regex) {
-          mtevL(mtev_error, "pcre_compile(%s) failed offset %d: %s\n", val, erroff, pcre_err);
+          mtevL(c_error, "pcre_compile(%s) failed offset %d: %s\n", val, erroff, pcre_err);
           goto quickoff;
         }
       }
@@ -3581,4 +3584,6 @@ void mtev_conf_init_globals(void) {
   pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
   pthread_mutex_init(&global_config_lock, &mattr);
   mtev_hash_init(&global_param_sets);
+  c_error = mtev_log_stream_find("error/conf");
+  c_debug = mtev_log_stream_find("debug/conf");
 }
