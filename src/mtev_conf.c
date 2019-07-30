@@ -80,14 +80,20 @@ static int global_thread_id = -1;
 static inline void _glock(pthread_mutex_t *lock) {
 #ifdef DEBUG_LOCKING
   mtevAssert(lock == &global_config_lock);
-  mtevL(c_debug, "mtev_conf_lock(t@%d)\n", mtev_thread_id());
+  mtevL(c_debug, "t@%d> mtev_conf_lock()\n", mtev_thread_id());
 #endif
   pthread_mutex_lock(lock);
 #ifdef DEBUG_LOCKING
-  mtevAssert(global_lock_cnt > 0 || global_thread_id == -1);
-  global_thread_id = mtev_thread_id();
-  global_lock_cnt++;
-  mtevL(c_debug, "mtev_conf_lock(t@%d) ++> %d\n", global_thread_id, global_lock_cnt);
+  if(global_thread_id == -1) {
+    mtevAssert(global_lock_cnt == 0);
+    global_lock_cnt++;
+    global_thread_id = mtev_thread_id();
+    mtevL(c_debug, "t@%d> mtev_conf_lock() ++> 1. Acquired by t@%d.\n", global_thread_id, global_thread_id);
+  } else {
+    mtevAssert(global_lock_cnt > 0);
+    global_lock_cnt++;
+    mtevL(c_debug, "t@%d> mtev_conf_lock() ++> %d\n", global_thread_id, global_lock_cnt);
+  }
   mtev_stacktrace(mtev_debug);
 #endif
 }
@@ -95,10 +101,15 @@ static inline void _gunlock(pthread_mutex_t *lock) {
 #ifdef DEBUG_LOCKING
   mtevAssert(lock == &global_config_lock);
   mtevAssert(global_lock_cnt > 0);
-  mtevAssert(global_thread_id == mtev_thread_id());
+  mtevAssert(global_thread_id == (int) mtev_thread_id());
   global_lock_cnt--;
-  if(global_lock_cnt == 0) global_thread_id = -1;
-  mtevL(c_debug, "mtev_conf_lock(t@%d) --> %d\n", mtev_thread_id(), global_lock_cnt);
+  if(global_lock_cnt == 0) {
+    mtevL(c_debug, "t@%d> mtev_conf_lock() --> 0. Released by %d.\n", global_thread_id, global_thread_id);
+    global_thread_id = -1;
+  }
+  else {
+    mtevL(c_debug, "t@%d> mtev_conf_lock() --> %d\n", global_thread_id, global_lock_cnt);
+  }
   mtev_stacktrace(mtev_debug);
 #endif
   pthread_mutex_unlock(lock);
