@@ -681,6 +681,8 @@ DECLARE_CHECKER(name)
 void mtev_conf_init(const char *toplevel) {
   (void)toplevel;
   xml_debug = mtev_log_stream_find("debug/xml");
+  c_error = mtev_log_stream_find("error/conf");
+  c_debug = mtev_log_stream_find("debug/conf");
 
   COMPILE_CHECKER(name, "^[-_\\.:/a-zA-Z0-9]+$");
   XML2LOG(c_error);
@@ -3595,6 +3597,4 @@ void mtev_conf_init_globals(void) {
   pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
   pthread_mutex_init(&global_config_lock, &mattr);
   mtev_hash_init(&global_param_sets);
-  c_error = mtev_log_stream_find("error/conf");
-  c_debug = mtev_log_stream_find("debug/conf");
 }
