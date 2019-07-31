@@ -89,6 +89,9 @@ struct rest_url_dispatcher {
 
 static stats_ns_t *rest_stats;
 
+static mtev_log_stream_t r_error;
+static mtev_log_stream_t r_debug;
+
 void
 mtev_rest_mountpoint_set_handler(mtev_rest_mountpoint_t *mountpoint,
                            rest_request_handler h) {
@@ -260,7 +263,7 @@ mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
 
   /* no base, give up */
   if(!cont) return NULL;
-  mtevL(mtev_debug, "REST using url base '%.*s'\n", (int)(eob-uri_str), uri_str);
+  mtevL(r_debug, "REST using url base '%.*s'\n", (int)(eob-uri_str), uri_str);
 
   headers = mtev_http_request_headers_table(req);
 
@@ -277,7 +280,7 @@ mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
     }
     if((cnt = pcre_exec(rule->expression, rule->extra, eob, eoq - eob, 0, 0,
                         ovector, sizeof(ovector)/sizeof(*ovector))) > 0) {
-      mtevL(mtev_debug, "REST (%s) matched /%s/\n", uri_str, rule->expression_s);
+      mtevL(r_debug, "REST (%s) matched /%s/\n", uri_str, rule->expression_s);
       restc->nparams = cnt - 1;
       if(restc->nparams) {
         restc->params = calloc(restc->nparams, sizeof(*restc->params));
@@ -380,49 +383,49 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
   for(acl = global_rest_acls; acl; acl = acl->next) {
     if(acl->cn && pcre_exec(acl->cn, NULL, remote_cn, strlen(remote_cn), 0, 0,
                             ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
-      mtevL(mtev_debug, "REST ACL[%d]: '%s' ~= /%s/ failed\n", acl->idx, remote_cn, acl->cn_str);
+      mtevL(r_debug, "REST ACL[%d]: '%s' ~= /%s/ failed\n", acl->idx, remote_cn, acl->cn_str);
       continue;
     }
     if(acl->url && pcre_exec(acl->url, NULL, uri_str, strlen(uri_str), 0, 0,
                              ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
-      mtevL(mtev_debug, "REST ACL[%d]: '%s' ~= /%s/ failed\n", acl->idx, uri_str, acl->url_str);
+      mtevL(r_debug, "REST ACL[%d]: '%s' ~= /%s/ failed\n", acl->idx, uri_str, acl->url_str);
       continue;
     }
     if(!match_listener_res(acl->listener_res, config)) {
-      mtevL(mtev_debug, "REST ACL[%d]: listener not applicable\n", acl->idx);
+      mtevL(r_debug, "REST ACL[%d]: listener not applicable\n", acl->idx);
       continue;
     }
     int ri = 1;
     for(rule = acl->rules; rule; rule = rule->next, ri++) {
       if(rule->cn && pcre_exec(rule->cn, NULL, remote_cn, strlen(remote_cn), 0, 0,
                                ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
-        mtevL(mtev_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ failed\n", acl->idx, ri,
+        mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ failed\n", acl->idx, ri,
               remote_cn, rule->cn_str);
         continue;
       }
       if(rule->cn) {
-        mtevL(mtev_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ passed\n", acl->idx, ri,
+        mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ passed\n", acl->idx, ri,
               remote_cn, rule->cn_str);
       }
       if(rule->url && pcre_exec(rule->url, NULL, uri_str, strlen(uri_str), 0, 0,
                                 ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
-        mtevL(mtev_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ failed\n", acl->idx, ri,
+        mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ failed\n", acl->idx, ri,
               uri_str, rule->url_str);
         continue;
       }
       if(rule->url) {
-        mtevL(mtev_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ passed\n", acl->idx, ri,
+        mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ passed\n", acl->idx, ri,
               uri_str, rule->url_str);
       }
       if(!match_listener_res(rule->listener_res, config)) {
-        mtevL(mtev_debug, "REST ACL[%d/%d]: listener not applicable\n", acl->idx, ri);
+        mtevL(r_debug, "REST ACL[%d/%d]: listener not applicable\n", acl->idx, ri);
         continue;
       }
-      mtevL(mtev_debug, "REST ACL[%d/%d]: matched, stopping -> %s\n", acl->idx, ri,
+      mtevL(r_debug, "REST ACL[%d/%d]: matched, stopping -> %s\n", acl->idx, ri,
             rule->allow ? "allowed" : "denied");
       return rule->allow;
     }
-    mtevL(mtev_debug, "REST ACL[%d]: fallthru, stopping -> %s\n", acl->idx,
+    mtevL(r_debug, "REST ACL[%d]: fallthru, stopping -> %s\n", acl->idx,
           acl->allow ? "allowed" : "denied");
     return acl->allow;
   }
@@ -530,12 +533,12 @@ mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
   int blen = strlen(base);
   /* base must end in a /, 'cause I said so */
   if(blen == 0 || base[blen-1] != '/') {
-    mtevL(mtev_error, "rest rule base must end in /!\n");
+    mtevL(r_error, "rest rule base must end in /!\n");
     return NULL;
   }
   pcre_expr = pcre_compile(expr, 0, &error, &erroffset, NULL);
   if(!pcre_expr) {
-    mtevL(mtev_error, "Error in rest expr(%s) '%s'@%d: %s\n",
+    mtevL(r_error, "Error in rest expr(%s) '%s'@%d: %s\n",
           base, expr, erroffset, error);
     return NULL;
   }
@@ -701,7 +704,7 @@ mtev_rest_aco_handler(void) {
   /* First set this event into aco mode. */
   mtev_http_connection *conne = mtev_http_session_connection(aco_ctx->http_ctx);
   if(!conne) {
-    mtevL(mtev_error, "mtev_rest_aco_handler with no http connection!\n");
+    mtevL(r_error, "mtev_rest_aco_handler with no http connection!\n");
     mtev_http_ctx_session_release(aco_ctx->http_ctx);
     free(aco_ctx);
     aco_exit();
@@ -1189,7 +1192,7 @@ accrue_and_compile(const char *key, const char *value, void *vht) {
   key = key + strlen("listener_");
   re = pcre_compile(value, 0, &error, &erroffset, NULL);
   if(!re) {
-    mtevL(mtev_error, "Error compiling ACL rule [%s]->'%s': %s\n",
+    mtevL(r_error, "Error compiling ACL rule [%s]->'%s': %s\n",
           key, value, error);
     return 1;
   }
@@ -1244,7 +1247,7 @@ void mtev_http_rest_load_rules(void) {
 
   snprintf(path, sizeof(path), "//rest//acl");
   acls = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
-  mtevL(mtev_debug, "Found %d acl stanzas\n", cnt);
+  mtevL(r_debug, "Found %d acl stanzas\n", cnt);
   for(ai = cnt-1; ai>=0; ai--) {
     char tbuff[32];
     struct mtev_rest_acl *newacl;
@@ -1323,6 +1326,10 @@ void mtev_http_rest_load_rules(void) {
 }
 void mtev_http_rest_init(void) {
   mtev_http_init();
+
+  r_error = mtev_log_stream_find("error/rest");
+  r_debug = mtev_log_stream_find("debug/rest");
+
   rest_stats = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "rest");
   stats_ns_add_tag(rest_stats, "mtev", "rest");
   eventer_name_callback("mtev_wire_rest_api/1.0", mtev_http_rest_handler);
@@ -1379,4 +1386,3 @@ void mtev_http_rest_init_globals(void) {
   mtev_hash_init_locks(&dispatch_points, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init(&mime_type_defaults);
 }
-
