@@ -1006,7 +1006,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
           else if(*cp >= 'a' && *cp <= 'f') clen = (clen << 4) | (*cp - 'a' + 10);
           else if(*cp >= 'A' && *cp <= 'F') clen = (clen << 4) | (*cp - 'A' + 10);
           else if(*cp == '\r' && cp[1] == '\n') {
-            mtevL(http_debug, "Found for chunk length(%d)\n", clen);
+            mtevL(http_debug, "[fd=%d] Found for chunk length(%d)\n", CTXFD(ctx), clen);
             if (head->size >= clen + (unsigned int)(cp - cp_begin + 2 + 2)) {
               next_chunk = clen;
               head->start += cp - cp_begin + 2;
@@ -1029,7 +1029,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
               new_in->compression = head->compression;
               new_in->next = head->next;
 
-              mtevL(http_debug, "replacing ingress bchain with right sized [%zu]\n", new_in->allocd);
+              mtevL(http_debug, "[fd=%d] replacing ingress bchain with right sized [%zu]\n", CTXFD(ctx), new_in->allocd);
               /* the current 'head' buffer must be consumed as it's data was copied */
               ctx->req.first_input = ctx->req.last_input = new_in;
               head->next = NULL;
@@ -1038,11 +1038,16 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
             }
           }
           else {
-            mtevL(mtev_error, "chunked input encoding error: '%02x'\n", *cp);
+            mtevL(mtev_error, "[fd=%d] chunked input encoding error: '%02x'\n", CTXFD(ctx), *cp);
             return -2;
           }
           cp++;
         }
+      }
+      else {
+        mtevL(http_debug, "[fd=%d] Chunked delimited not found\n", CTXFD(ctx));
+        char* eob = head->buff + head->start + head->size;
+        mtevL(http_debug, "[fd=%d] END OF BUFFER: %x %x\n", CTXFD(ctx), *(eob-2), *(eob-1));
       }
     }
 
@@ -1066,10 +1071,10 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
     rlen = eventer_read(ctx->conn.e,
                         tail->buff + tail->start + tail->size,
                         tail->allocd - tail->size - tail->start, mask);
-    mtevL(http_debug, " mtev_http -> read(%d) = %d\n", CTXFD(ctx), rlen);
+    mtevL(http_debug, "[fd=%d] mtev_http -> read() = %d\n", CTXFD(ctx), rlen);
     if(rlen > 0) {
       (void)http_post_request_read_payload_hook_invoke((mtev_http_session_ctx *)ctx);
-      mtevL(http_io, " mtev_http:read(%d) => %d [\n%.*s\n]\n", CTXFD(ctx), rlen, rlen, 
+      mtevL(http_io, "[fd=%d] mtev_http:read() => %d [\n%.*s\n]\n", CTXFD(ctx), rlen, rlen,
             tail->buff + tail->start + tail->size);
     }
     else
@@ -1079,7 +1084,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
        * so do a short read */
       if(ctx->req.first_input && ctx->req.first_input->size) break;
       /* We've got nothing... */
-      mtevL(http_debug, " ... mtev_http1_session_req_consume_read = -1 (EAGAIN)\n");
+      mtevL(http_debug, "[fd=%d] ... mtev_http1_session_req_consume_read = -1 (EAGAIN)\n", CTXFD(ctx));
       return -1;
     }
     if(rlen == 0 && next_chunk > 0) {
@@ -1087,7 +1092,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       goto successful_chunk_size;
     }
     if(rlen <= 0) {
-      mtevL(http_debug, " ... mtev_http1_session_req_consume_read = %d (%s)\n", rlen,
+      mtevL(http_debug, "[fd=%d] ... mtev_http1_session_req_consume_read = %d (%s)\n", CTXFD(ctx), rlen,
             rlen ? strerror(errno) : "eof");
       return -2;
     }
@@ -1107,7 +1112,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       return -1;
     }
     if (next_chunk > 0) {
-      mtevL(http_debug, " ... have chunk (%d)\n", next_chunk);
+      mtevL(http_debug, "[fd=%d]  ... have chunk (%d)\n", CTXFD(ctx), next_chunk);
       struct bchain *data = ALLOC_BCHAIN(next_chunk);
       data->compression = compression_type;
       if (ctx->req.user_data_last != NULL) {
@@ -1131,12 +1136,12 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       if (ctx->req.payload_chunked) {
         /* there must be a \r\n at the end of this block */
         if(head->size < 2) {
-          mtevL(mtev_error, "HTTP chunked encoding error, no trailing CRLF (short).\n");
+          mtevL(mtev_error, "[fd=%d] HTTP chunked encoding error, no trailing CRLF (short).\n", CTXFD(ctx));
           return -2;
         }
         if(head->size < 2 || strncmp(head->buff + head->start, "\r\n", 2) != 0) {
-          mtevL(mtev_error, "HTTP chunked encoding error, no trailing CRLF [0x%02x, 0x%02x].\n",
-                head->buff[head->start], head->buff[head->start+1]);
+          mtevL(mtev_error, "[fd=%d] HTTP chunked encoding error, no trailing CRLF [0x%02x, 0x%02x].\n",
+                CTXFD(ctx), head->buff[head->start], head->buff[head->start+1]);
           return -2;
         }
         /* skip the \r\n framing */
@@ -1144,7 +1149,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
         head->start+=2;
       }
     } else if (next_chunk == 0 && ctx->req.payload_chunked) {
-      mtevL(http_debug, " ... last chunked chunk\n");
+      mtevL(http_debug, "[fd=%d] ... last chunked chunk\n", CTXFD(ctx));
       /* all that's left is \r\n, just consume this framing */
       head->size -= 2;
       head->start += 2;
@@ -1203,10 +1208,10 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
   if(ctx->req.payload_chunked) {
     if (ctx->req.read_last_chunk == mtev_false) {
       int chunk_size = mtev_http1_session_req_consume_read(ctx, compression_type, mask);
-      mtevL(http_debug, " ... mtev_http1_session_req_consume(%d) chunked -> %d\n",
+      mtevL(http_debug, "[fd=%d]  ... mtev_http1_session_req_consume() chunked -> %d\n",
             CTXFD(ctx), chunk_size);
       if(chunk_size == 0) {
-        mtevL(http_debug, " ... mtev_http1_session_req_consume(%d) read last chunk.\n",
+        mtevL(http_debug, "[fd=%d]  ... mtev_http1_session_req_consume() read last chunk.\n",
               CTXFD(ctx));
         /* we have reached the end of the chunked input.  
          * switch off chunked reading and set the content length */
@@ -1214,7 +1219,7 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
         ctx->req.content_length = ctx->req.content_length_read;
       }
       else if(chunk_size < 0) {
-        mtevL(http_debug, " ... couldn't read chunk size\n");
+        mtevL(http_debug, "[fd=%d] ... couldn't read chunk size\n", CTXFD(ctx));
         if (chunk_size == -2) {
           /* need something that is not EAGAIN to deal with unrecoverable error ENOTSUP? */
           errno = ENOTSUP;
@@ -1547,7 +1552,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
    * The last request could have unread upload content, we would have
    * noted that in mtev_http1_request_release.
    */
-  mtevL(http_debug, " -> mtev_http1_session_drive(%d) [%x]\n", eventer_get_fd(e), origmask);
+  mtevL(http_debug, "[fd=%d] -> mtev_http1_session_drive() [%x]\n", eventer_get_fd(e), origmask);
 
  next_req:
   check_realloc_request(&ctx->req);
@@ -1586,7 +1591,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
     }
 #endif
 
-    mtevL(http_debug, "HTTP start request (%s)\n", ctx->req.uri_str);
+    mtevL(http_debug, "[fd=%d] HTTP start request (%s)\n", CTXFD(ctx), ctx->req.uri_str);
     mtev_http1_process_querystring(&ctx->req);
     inplace_urldecode(ctx->req.uri_str);
 
@@ -1640,9 +1645,9 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
   } else {
     /* only dispatch if the response is not closed */
     if(ctx->res.closed == mtev_false) {
-      mtevL(http_debug, "   -> dispatch(%d)\n", eventer_get_fd(e));
+      mtevL(http_debug, "[fd=%d]   -> dispatch()\n", eventer_get_fd(e));
       rv = ctx->dispatcher((mtev_http_session_ctx *)ctx);
-      mtevL(http_debug, "   <- dispatch(%d) = %d\n", eventer_get_fd(e), rv);
+      mtevL(http_debug, "[fd=%d]   <- dispatch() = %d\n", eventer_get_fd(e), rv);
     }
   }
   if(ctx->conn.e) {
@@ -1685,10 +1690,10 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
   }
   if(ctx->req.complete == mtev_false) goto next_req;
   if(ctx->conn.e) {
-    mtevL(http_debug, " <- mtev_http1_session_drive(%d) [%x]\n", eventer_get_fd(e), mask|rv);
+    mtevL(http_debug, "[fd=%d] <- mtev_http1_session_drive() [%x]\n", eventer_get_fd(e), mask|rv);
     return mask | rv;
   }
-  mtevL(http_debug, " <- mtev_http1_session_drive(%d) [%x]\n", eventer_get_fd(e), 0);
+  mtevL(http_debug, "[fd=%d] <- mtev_http1_session_drive() [%x]\n", eventer_get_fd(e), 0);
   goto abort_drive;
 
  release:
@@ -1699,7 +1704,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
     mtev_acceptor_closure_set_ctx(ctx->ac, NULL, NULL);
   }
   mtev_http1_ctx_session_release(ctx);
-  mtevL(http_debug, " <- mtev_http1_session_drive(%d) [%x]\n", eventer_get_fd(e), 0);
+  mtevL(http_debug, "[fd=%d] <- mtev_http1_session_drive() [%x]\n", eventer_get_fd(e), 0);
   return 0;
 }
 
@@ -1757,8 +1762,8 @@ mtev_http1_response_status_set(mtev_http1_session_ctx *ctx,
   check_realloc_response(&ctx->res);
   if(ctx->res.output_started == mtev_true) return mtev_false;
   ctx->res.protocol = ctx->req.protocol;
-  mtevL(http_debug, "mtev_http1_response_status_set (%d) protocol: %d, code: %d, reason: %s\n",
-        eventer_get_fd(ctx->conn.e), ctx->res.protocol, code, reason);
+  mtevL(http_debug, "[fd=%d] mtev_http1_response_status_set protocol: %d, code: %d, reason: %s\n",
+        CTXFD(ctx), ctx->res.protocol, code, reason);
   if(code < 100 || code > 999) return mtev_false;
   ctx->res.status_code = code;
   if(ctx->res.status_reason) free(ctx->res.status_reason);
