@@ -62,6 +62,7 @@
 #define HEADER_CONTENT_LENGTH "content-length"
 #define HEADER_TRANSFER_ENCODING "transfer-encoding"
 #define HEADER_EXPECT "expect"
+#define MAX_CHUNK_HEADER_SIZE 20
 
 MTEV_HOOK_IMPL(http_post_request,
   (mtev_http1_session_ctx *ctx),
@@ -1000,6 +1001,22 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       }
     }
     else {
+      /* Check if we have enough in this node read the chunk header "$chunk_size\r\n" */
+      if(head->allocd - head->start < MAX_CHUNK_HEADER_SIZE) {
+        mtevL(http_debug, "[fd=%d] Too little space in head node (%d). Reallocating.\n",
+              CTXFD(ctx), (int) (head->allocd - head->start));
+        struct bchain *new_head = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+        memcpy(new_head->buff, head->buff + head->start, head->size);
+        new_head->size = head->size;
+        new_head->start = 0;
+        new_head->compression = head->compression;
+        new_head->next = head->next;
+        ctx->req.first_input = new_head;
+        if(ctx->req.last_input == head) ctx->req.last_input = new_head;
+        head->next = NULL;
+        RELEASE_BCHAIN(head);
+        head = new_head;
+      }
       str_in_f = mtev_memmem(head->buff + head->start, head->size, "\r\n", 2);
       if(str_in_f) {
         unsigned int clen = 0;
