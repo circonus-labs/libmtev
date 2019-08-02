@@ -1012,11 +1012,13 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
           else if(*cp == '\r' && cp[1] == '\n') {
             mtevL(http_debug, "[fd=%d] Found for chunk length(%d)\n", CTXFD(ctx), clen);
             if (head->size >= clen + (unsigned int)(cp - cp_begin + 2 + 2)) {
+              /* We have read the entire chunk */
               next_chunk = clen;
               head->start += cp - cp_begin + 2;
               head->size -= cp - cp_begin + 2;
               goto successful_chunk_size;
-            } else {
+            }
+            if (head->allocd - head->start < clen + (unsigned int)(cp - cp_begin + 2 + 2)) {
               /**
                * we have decoded a chunk length but the current bchain
                * is not large enough to handle the entire chunk.
