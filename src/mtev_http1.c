@@ -1002,12 +1002,30 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
     else {
       /* Check if we have enough space in this bchain node for the chunk header "$chunk_size\r\n" */
       if(head->allocd - head->start < MAX_CHUNK_HEADER_SIZE) {
-        mtevL(http_debug, "[fd=%d] Too little space in head node (%d). Resetting bchain node.\n",
+        mtevL(http_debug, "[fd=%d] Too little space in head node (%d)\n",
               CTXFD(ctx), (int) (head->allocd - head->start));
-        mtevAssert(head->allocd >= MAX_CHUNK_HEADER_SIZE);
-        memmove(head->buff, head->buff + head->start, head->size);
-        head->start = 0;
+        if(head->allocd >= MAX_CHUNK_HEADER_SIZE) {
+          /* Reset existing buffer */
+          memmove(head->buff, head->buff + head->start, head->size);
+          head->start = 0;
+        }
+        else {
+          /* Allocate a new buffer */
+          struct bchain *new_head = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
+          memcpy(new_head->buff, head->buff + head->start, head->size);
+          new_head->size = head->size;
+          new_head->start = 0;
+          new_head->compression = head->compression;
+          new_head->next = head->next;
+          /* It's safe to set {first,last}_input here, see C[4] below. */
+          ctx->req.first_input = new_head;
+          ctx->req.last_input = new_head;
+          head->next = NULL;
+          RELEASE_BCHAIN(head);
+          head = new_head;
+        }
       }
+      mtevAssert(head->allocd - head->start >= MAX_CHUNK_HEADER_SIZE);
       /* Try to read the chunked header */
       str_in_f = mtev_memmem(head->buff + head->start, head->size, "\r\n", 2);
       if(str_in_f) {
