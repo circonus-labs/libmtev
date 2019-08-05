@@ -4,6 +4,13 @@
 
 ## 1.6
 
+* http1.c: Fix a bug in chunk encoded uploads.
+  This commit fixes a bug, where chunk-sizes were not correctly read, if they happen
+  to lie on a buffer boundary. This was affecting uploads which submit a HTTP chunk
+  of around 32704 bytes.
+
+* http1.c: Avoid re-allocating buffers, if sufficient space is left.
+
 ### 1.6.24
 
  * Fix race condition in asynchronous eventer_close.
