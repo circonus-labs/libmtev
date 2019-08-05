@@ -1070,8 +1070,6 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       }
       else {
         mtevL(http_debug, "[fd=%d] Chunked delimited not found\n", CTXFD(ctx));
-        char* eob = head->buff + head->start + head->size;
-        mtevL(http_debug, "[fd=%d] END OF BUFFER: %x %x\n", CTXFD(ctx), *(eob-2), *(eob-1));
       }
     }
 
