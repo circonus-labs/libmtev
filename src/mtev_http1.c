@@ -1004,6 +1004,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       if(head->allocd - head->start < MAX_CHUNK_HEADER_SIZE) {
         mtevL(http_debug, "[fd=%d] Too little space in head node (%d). Resetting bchain node.\n",
               CTXFD(ctx), (int) (head->allocd - head->start));
+        mtevAssert(head->allocd >= MAX_CHUNK_HEADER_SIZE);
         memmove(head->buff, head->buff + head->start, head->size);
         head->start = 0;
       }
