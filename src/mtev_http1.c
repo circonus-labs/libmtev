@@ -1005,7 +1005,6 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
         mtevL(http_debug, "[fd=%d] Too little space in head node (%d). Resetting bchain node.\n",
               CTXFD(ctx), (int) (head->allocd - head->start));
         memmove(head->buff, head->buff + head->start, head->size);
-        head->size = head->size;
         head->start = 0;
       }
       /* Try to read the chunked header */
