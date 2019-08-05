@@ -1011,12 +1011,14 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
         new_head->start = 0;
         new_head->compression = head->compression;
         new_head->next = head->next;
+        /* It's safe to set {first,last}_input here, see (*@L1087) below. */
         ctx->req.first_input = new_head;
-        if(ctx->req.last_input == head) ctx->req.last_input = new_head;
+        ctx->req.last_input = new_head;
         head->next = NULL;
         RELEASE_BCHAIN(head);
         head = new_head;
       }
+      /* Try to read the chunked header */
       str_in_f = mtev_memmem(head->buff + head->start, head->size, "\r\n", 2);
       if(str_in_f) {
         unsigned int clen = 0;
@@ -1080,6 +1082,17 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
           ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
     }
     else if (tail->start + tail->size >= tail->allocd) {
+      /* expand req.*_input list
+       *
+       * (*) At least in the chunked case, we never get here.
+       * This code is executed only if the function is called with a full buffer before reading from
+       * the socket (below). However,
+       * - If we were holding a complete chunk in the buffer, we would have jumped this section (`goto` ~ L1038).
+       * - If we were holding an incomplete chunk, we expand the buffer to make it fit (`ALLOC_BCHAIN` ~ L1040).
+       *   Hence the buffer is no longer full when we get here.
+       *
+       * As a consequence the linked list req.*_input has always exactly one element.
+       */
       tail->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE);
       tail = ctx->req.last_input = tail->next;
     }
