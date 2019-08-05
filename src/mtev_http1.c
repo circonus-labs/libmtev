@@ -843,7 +843,6 @@ mtev_http1_complete_request(mtev_http1_session_ctx *ctx, int mask, struct timeva
     else
       mtevL(http_io, "[fd=%d] mtev_http:read() => %d\n", CTXFD(ctx), len);
     if(len == -1 && errno == EAGAIN) {
-      sleep(1);
       return mask;
     }
     if(len < 0)  goto full_error;
@@ -1011,7 +1010,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
         new_head->start = 0;
         new_head->compression = head->compression;
         new_head->next = head->next;
-        /* It's safe to set {first,last}_input here, see (*@L1087) below. */
+        /* It's safe to set {first,last}_input here, see C[4] below. */
         ctx->req.first_input = new_head;
         ctx->req.last_input = new_head;
         head->next = NULL;
@@ -1031,7 +1030,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
           else if(*cp == '\r' && cp[1] == '\n') {
             mtevL(http_debug, "[fd=%d] Found for chunk length(%d)\n", CTXFD(ctx), clen);
             if (head->size >= clen + (unsigned int)(cp - cp_begin + 2 + 2)) {
-              /* We have read the entire chunk */
+              /* C[2] We have read the entire chunk */
               next_chunk = clen;
               head->start += cp - cp_begin + 2;
               head->size -= cp - cp_begin + 2;
@@ -1039,9 +1038,9 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
             }
             if (head->allocd - head->start < clen + (unsigned int)(cp - cp_begin + 2 + 2)) {
               /**
-               * we have decoded a chunk length but the current bchain
+               * C[3] We have decoded a chunk length but the current bchain
                * is not large enough to handle the entire chunk.
-               * 
+               *
                * In this case we allocate a new bchain which is large
                * enough to hold the entire chunk, copy in the chunk data that
                * we have already read and then keep reading.
@@ -1084,11 +1083,11 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
     else if (tail->start + tail->size >= tail->allocd) {
       /* expand req.*_input list
        *
-       * (*) At least in the chunked case, we never get here.
+       * C[4] At least in the chunked case, we never get here.
        * This code is executed only if the function is called with a full buffer before reading from
        * the socket (below). However,
-       * - If we were holding a complete chunk in the buffer, we would have jumped this section (`goto` ~ L1038).
-       * - If we were holding an incomplete chunk, we expand the buffer to make it fit (`ALLOC_BCHAIN` ~ L1040).
+       * - If we were holding a complete chunk in the buffer, we would have jumped this section (C[2]).
+       * - If we were holding an incomplete chunk, we expand the buffer to make it fit (C[3]).
        *   Hence the buffer is no longer full when we get here.
        *
        * As a consequence the linked list req.*_input has always exactly one element.
