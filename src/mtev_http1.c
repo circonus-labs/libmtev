@@ -1000,7 +1000,7 @@ mtev_http1_session_req_consume_read(mtev_http1_session_ctx *ctx,
       }
     }
     else {
-      /* Check if we have enough in this node read the chunk header "$chunk_size\r\n" */
+      /* Check if we have enough space in this bchain node for the chunk header "$chunk_size\r\n" */
       if(head->allocd - head->start < MAX_CHUNK_HEADER_SIZE) {
         mtevL(http_debug, "[fd=%d] Too little space in head node (%d). Reallocating.\n",
               CTXFD(ctx), (int) (head->allocd - head->start));
