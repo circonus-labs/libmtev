@@ -105,7 +105,7 @@ describe("http server", function()
        assert.is_equal(hash, hash_xlen(N * (N+1) / 2))
   end)
 
-  it("Should read to small chunks in one byte at a time", function()
+  it("Should read to small chunks one byte at a time", function()
        local e = srv_connect()
        srv_write_head(e, "/?readsize=1&delay=.001")
        local N = 10
