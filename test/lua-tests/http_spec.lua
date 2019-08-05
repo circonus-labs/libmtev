@@ -60,7 +60,7 @@ end
 
 local function srv_connect()
   local host = "127.0.0.1"
-  local port = 8888
+  local port = 43189
   local timeout = 1
   local e = mtev.socket(host)
   assert.is_true(e:connect(host, port, timeout) == 0)
