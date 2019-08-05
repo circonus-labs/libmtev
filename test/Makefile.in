@@ -104,11 +104,14 @@ lfu_test: lfu_test.c
 	@echo "- compiling $<"
 	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -c $<
 
+test_http_server: test_http_server.c
+	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+
 test_harness:       $(TESTHARNESS_OBJS)
 	@echo "- linking $@"
 	$(Q)$(CC) -L../src $(LDFLAGS) $(UNWINDLIB) -o $@ $(TESTHARNESS_OBJS) $(LIBS) -lmtev
 
-check-lua:
+check-lua: test_http_server
 	@echo
 	@echo "Running luajit-based tests via test_harness..."
 	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) _LD_PRELOAD=`pwd`/../src/libmtev@DOTSO@ LUA_PATH="$(LUAROCKS_PATH)" ./mtevbusted-wrapper.sh
