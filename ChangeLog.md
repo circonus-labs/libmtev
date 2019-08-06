@@ -4,6 +4,8 @@
 
 ## 1.6
 
+### 1.6.25
+
 * http1.c: Fix a bug in chunk encoded uploads.
   This commit fixes a bug, where chunk-sizes were not correctly read, if they happen
   to lie on a buffer boundary. This was affecting uploads which submit a HTTP chunk
