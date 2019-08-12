@@ -4,6 +4,10 @@
 
 ## 1.6
 
+### 1.6.26
+
+ * Fix payload_complete in the http1 system for Content-Length requests.
+
 ### 1.6.25
 
 * http1.c: Fix a bug in chunk encoded uploads.
