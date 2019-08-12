@@ -1302,9 +1302,9 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
       }
     } else {
       if (ctx->req.content_length_read == ctx->req.content_length) {
+        ctx->req.payload_complete = mtev_true;
         if (in == NULL || in->size == 0) {
           /* we read all input and nothing in user_data list, we must be done. */
-          ctx->req.payload_complete = mtev_true;
           return 0;
         }
       } else {
@@ -1400,7 +1400,6 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
       return bytes_read;
     }
   }
-  /* NOT REACHED */
   return bytes_read;
 }
 
