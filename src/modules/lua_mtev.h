@@ -47,9 +47,6 @@
 #include "mtev_json.h"
 #include "mtev_hooks.h"
 
-extern mtev_log_stream_t mtev_lua_debug_ls;
-extern mtev_log_stream_t mtev_lua_error_ls;
-
 typedef struct mtev_lua_resume_info mtev_lua_resume_info_t;
 
 typedef int (*mtev_lua_resume_t)(mtev_lua_resume_info_t *info, int nargs);
@@ -268,7 +265,6 @@ MTEV_RUNTIME_AVAIL(mtev_lua_register_dynamic_ctype, mtev_lua_register_dynamic_ct
 } while(0)
 
 #define SETUP_CALL(L, object, func, failure) do { \
-  mtevL(mtev_lua_debug_ls, "lua calling %s->%s\n", object, func); \
   mtev_lua_pushmodule(L, object); \
   lua_getfield(L, -1, func); \
   lua_remove(L, -2); \
@@ -288,7 +284,6 @@ MTEV_RUNTIME_AVAIL(mtev_lua_register_dynamic_ctype, mtev_lua_register_dynamic_ct
     expr \
     return rv; \
   } \
-  mtevL(mtev_lua_error_ls, "%s.%s must return a integer not %s (%s)\n", object, func, mtev_lua_type_name(lua_type(L,-1)), lua_tostring(L,-1)); \
   lua_pop(L,1); \
 } while(0)
 
