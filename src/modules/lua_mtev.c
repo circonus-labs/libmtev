@@ -77,6 +77,8 @@
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
 
+extern mtev_log_stream_t mtev_lua_error_ls;
+extern mtev_log_stream_t mtev_lua_debug_ls;
 #define nldeb mtev_lua_debug_ls
 #define nlerr mtev_lua_error_ls
 
