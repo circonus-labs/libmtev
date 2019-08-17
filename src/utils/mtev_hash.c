@@ -509,7 +509,7 @@ void mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFre
   free(h->u.locks.locks);
 }
 
-void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src) {
+void mtev_hash_merge_as_dict(mtev_hash_table *dst, const mtev_hash_table *src) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   if(src == NULL || dst == NULL) return;
   while(mtev_hash_adv(src, &iter)) {
@@ -522,7 +522,7 @@ void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src) {
  * ck_hs_iterator_t b/c older consumers could have the smaller
  * version of the mtev_hash_iter allocated on stack.
  */
-int _mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
+int _mtev_hash_next(const mtev_hash_table *h, mtev_hash_iter *iter,
                     const void **k, int *klen, void **data, 
                     mtev_boolean spmc) {
   void *cursor = NULL;
@@ -532,13 +532,13 @@ int _mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_next... initializing\n");
     mtev_stacktrace(mtev_error);
-    mtev_hash_init(h);
+    return 0;
   }
 
   if (spmc) {
-    if(!ck_hs_next_spmc(&h->u.hs, &iter->iter, &cursor)) return 0;
+    if(!ck_hs_next_spmc((ck_hs_t *)&h->u.hs, &iter->iter, &cursor)) return 0;
   } else {
-    if(!ck_hs_next(&h->u.hs, &iter->iter, &cursor)) return 0;
+    if(!ck_hs_next((ck_hs_t *)&h->u.hs, &iter->iter, &cursor)) return 0;
   }
   key = (ck_key_t *)cursor;
   data_struct = index_attribute_container(key);
@@ -550,21 +550,21 @@ int _mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
   return 1;
 }
 
-int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter) {
+int mtev_hash_adv(const mtev_hash_table *h, mtev_hash_iter *iter) {
   return _mtev_hash_next(h, iter, &iter->key.ptr, &iter->klen, &iter->value.ptr, mtev_false);
 }
 
-int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter) {
+int mtev_hash_adv_spmc(const mtev_hash_table *h, mtev_hash_iter *iter) {
   return _mtev_hash_next(h, iter, &iter->key.ptr, &iter->klen, &iter->value.ptr, mtev_true);
 }
 
-int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
+int mtev_hash_next(const mtev_hash_table *h, mtev_hash_iter *iter,
                    const char **k, int *klen, void **data) {
   return _mtev_hash_next(h, iter, (const void **)k, klen, (void **)data, mtev_false);
 }
 
 
-int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
+int mtev_hash_next_str(const mtev_hash_table *h, mtev_hash_iter *iter,
                        const char **k, int *klen, const char **dstr) {
   void *data = NULL;
   int rv;

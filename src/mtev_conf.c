@@ -57,6 +57,14 @@
 #include "mtev_str.h"
 #include "mtev_thread.h"
 
+MTEV_HOOK_IMPL(mtev_conf_value_fixup,
+               (mtev_conf_section_t section, const char *xpath,
+                const char *nodepath, int set, char **value),
+               void *, closure,
+               (void *closure, mtev_conf_section_t section, const char *xpath,
+                const char *nodepath, int set, char **value),
+               (closure, section, xpath, nodepath, set, value));
+
 MTEV_HOOK_IMPL(mtev_conf_delete_section,
                 (const char *root, const char *path,
                  const char *name, const char **err),
@@ -123,7 +131,7 @@ mtev_conf_section_t MTEV_CONF_EMPTY = {
 };
 static mtev_hash_table global_param_sets;
 
-static char app_name[256] = { 0 };
+static char app_name[256] = "unknown";
 void
 mtev_set_app_name(const char *new_name) {
   strlcpy(app_name, new_name, sizeof(app_name));
@@ -131,6 +139,16 @@ mtev_set_app_name(const char *new_name) {
 const char *
 mtev_get_app_name(void) {
   return app_name;
+}
+
+static char app_version[256] = "unknown";
+void
+mtev_set_app_version(const char *version) {
+  strlcpy(app_version, version, sizeof(app_version));
+}
+const char *
+mtev_get_app_version(void) {
+  return app_version;
 }
 
 mtev_boolean
@@ -1947,7 +1965,8 @@ mtev_conf_remove_section(mtev_conf_section_t section) {
 int
 _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
                       const char *path, char **value) {
-  const char *interest;
+  const char *interest = NULL;
+  xmlChar *fullnodepath = NULL;
   char fullpath[1024];
   int rv = 1, i;
   xmlXPathObjectPtr pobj = NULL;
@@ -1972,6 +1991,7 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
         i = xmlXPathNodeSetGetLength(pobj->nodesetval);
         node = xmlXPathNodeSetItem(pobj->nodesetval, i-1);
         if(vnode) *vnode = node;
+        fullnodepath = xmlGetNodePath(node);
         *value = (char *)xmlXPathCastNodeToString(node);
         break;
       default:
@@ -1993,6 +2013,12 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
   if(current_ctxt && current_ctxt != xpath_ctxt)
     xmlXPathFreeContext(current_ctxt);
   mtev_conf_release_section(section);
+  if(mtev_conf_value_fixup_hook_invoke(section, path,
+                                       fullnodepath ? (const char *)fullnodepath : (const char *)interest,
+                                       rv, value) == MTEV_HOOK_ABORT) {
+    rv = 0;
+  }
+  free(fullnodepath);
   return rv;
 }
 

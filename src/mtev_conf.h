@@ -122,6 +122,9 @@ typedef struct mtev_conf_description_t {
 API_EXPORT(void) mtev_set_app_name(const char *new_name);
 API_EXPORT(const char *) mtev_get_app_name(void);
 
+API_EXPORT(void) mtev_set_app_version(const char *version);
+API_EXPORT(const char *)mtev_get_app_version(void);
+
 /* seconds == 0 disable config journaling watchdog */
 API_EXPORT(void) mtev_conf_coalesce_changes(uint32_t seconds);
 /* Start the watchdog */
@@ -339,6 +342,13 @@ pcre *mtev_conf_get_valid_##name##_checker(void) { return checker_valid_##name; 
 } while(0)
 
 EXPOSE_CHECKER(name);
+
+MTEV_HOOK_PROTO(mtev_conf_value_fixup,
+                (mtev_conf_section_t section, const char *xpath,
+                 const char *nodepath, int set, char **value),
+                void *, closure,
+                (void *closure, mtev_conf_section_t section, const char *xpath,
+                 const char *nodepath, int set, char **value));
 
 /* Called when someone attempts to delete a section from the config.
  * The section is <root><path>/<name>

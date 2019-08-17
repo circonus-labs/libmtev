@@ -101,3 +101,9 @@ mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf)
     free(buf->data);
   }
 }
+
+size_t
+mtev_dyn_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
+  mtev_dyn_buffer_add((mtev_dyn_buffer_t *)userdata, (uint8_t *)ptr, size * nmemb);
+  return size *nmemb;
+}

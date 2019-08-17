@@ -36,6 +36,7 @@
 #include "aco/aco.h"
 #include "eventer/eventer.h"
 #include "eventer/eventer_impl_private.h"
+#include "mtev_hooks.h"
 #include "mtev_memory.h"
 #include "mtev_log.h"
 #include "mtev_skiplist.h"
@@ -47,6 +48,12 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <hwloc.h>
+
+MTEV_HOOK_IMPL(eventer_started,
+               (void),
+               void *, closure,
+               (void *closure),
+               (closure));
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include <valgrind/valgrind.h>
@@ -641,6 +648,7 @@ void eventer_loop_return(void) {
     mtevL(mtev_debug, "Waiting for primed loops to start.\n");
   }
   mtevL(mtev_debug, "eventer_loops started\n");
+  (void)eventer_started_hook_invoke();
 }
 
 void eventer_loop(void) {
