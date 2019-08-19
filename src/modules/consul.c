@@ -106,7 +106,7 @@ mtev_consul_curl_debug(CURL *handle, curl_infotype type, char *data, size_t size
     case CURLINFO_SSL_DATA_OUT:
       mtevL(ls, "[%p] %s data %s %zu bytes\n", handle,
             (type == CURLINFO_SSL_DATA_IN || type == CURLINFO_SSL_DATA_OUT) ? "SSL" : "PLAIN",
-            (type == CURLINFO_DATA_IN || CURLINFO_SSL_DATA_IN) ? "IN" : "OUT", size);
+            (type == CURLINFO_DATA_IN || type == CURLINFO_SSL_DATA_IN) ? "IN" : "OUT", size);
       break;
     default:
       break;
@@ -171,10 +171,10 @@ static char *mtev_consul_fetch_config_kv(const char *key, uint32_t *index_ptr) {
   curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 5000);
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 500);
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mtev_dyn_curl_write_callback);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, kv_fetch_index);
-  curl_easy_setopt(curl, CURLOPT_HEADERDATA, &index);
+  curl_easy_setopt(curl, CURLOPT_HEADERDATA, (void *)&index);
 
   char *value = NULL;
   CURLcode code = mtev_zipkin_curl_easy_perform(curl);
@@ -336,6 +336,7 @@ mtev_consul_config(mtev_dso_generic_t *self, mtev_hash_table *options) {
       }
     }
     else if(!strcmp(iter.key.str, "kv_prefix")) {
+      free(consul_kv_prefix);
       consul_kv_prefix = strdup(iter.value.str);
     }
     else if(!strcmp(iter.key.str, "bearer_token")) {
@@ -622,12 +623,12 @@ eventer_curl_start_timeout(CURLM *multi, long timeout_ms, void *userp) {
       eventer_remove(global_curl_timeout);
       global_curl_timeout = NULL;
     }
-    else {
-      if(timeout_ms == 0) timeout_ms = 1;
-      global_curl_timeout = eventer_in_s_us(eventer_curl_on_timeout, NULL,
-                                            timeout_ms / 1000, 1000 * (timeout_ms % 1000));
-      eventer_add(global_curl_timeout);
-    }
+  }
+  else {
+    if(timeout_ms == 0) timeout_ms = 1;
+    global_curl_timeout = eventer_in_s_us(eventer_curl_on_timeout, NULL,
+                                          timeout_ms / 1000, 1000 * (timeout_ms % 1000));
+    eventer_add(global_curl_timeout);
   }
   return 0;
 }
