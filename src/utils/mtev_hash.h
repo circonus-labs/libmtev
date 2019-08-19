@@ -228,7 +228,7 @@ int mtev_hash_size(mtev_hash_table *h);
   assumes that the source contains only keys and values that can be
   suitably duplicated by strdup().
  */
-void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src);
+void mtev_hash_merge_as_dict(mtev_hash_table *dst, const mtev_hash_table *src);
 
 /*!
   \fn  int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter)
@@ -243,7 +243,7 @@ void mtev_hash_merge_as_dict(mtev_hash_table *dst, mtev_hash_table *src);
        .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
      }
 */
-int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter);
+int mtev_hash_adv(const mtev_hash_table *h, mtev_hash_iter *iter);
 
 /*!
   \fn int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter)
@@ -261,7 +261,7 @@ int mtev_hash_adv(mtev_hash_table *h, mtev_hash_iter *iter);
    .... use iter.key.{str,ptr}, iter.klen and iter.value.{str,ptr} ....
    }
 */
-int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter);
+int mtev_hash_adv_spmc(const mtev_hash_table *h, mtev_hash_iter *iter);
 
 /*!
   \fn int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter, const char **k, int *klen, void **data)
@@ -271,7 +271,7 @@ int mtev_hash_adv_spmc(mtev_hash_table *h, mtev_hash_iter *iter);
   These are older, more painful APIs... use mtev_hash_adv
    Note that neither of these sets the key, value, or klen in iter
 */
-int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
+int mtev_hash_next(const mtev_hash_table *h, mtev_hash_iter *iter,
                    const char **k, int *klen, void **data);
 
 /*!
@@ -281,7 +281,7 @@ int mtev_hash_next(mtev_hash_table *h, mtev_hash_iter *iter,
 
   These are older, more painful APIs... use mtev_hash_adv */
 /* Note that neither of these sets the key, value, or klen in iter */
-int mtev_hash_next_str(mtev_hash_table *h, mtev_hash_iter *iter,
+int mtev_hash_next_str(const mtev_hash_table *h, mtev_hash_iter *iter,
                        const char **k, int *klen, const char ** dstr);
 
 

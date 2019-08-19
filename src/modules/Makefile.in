@@ -71,12 +71,19 @@ AMQP_MODULES=@AMQP_MODULES@
 LUA_MODULES=@LUA_MODULES@
 MTEV4LUA=@MTEV4LUA@
 
-MODULES=$(FQ_MODULES) $(AMQP_MODULES) $(LUA_MODULES) zipkin_jaeger.@MODULEEXT@ http_observer.@MODULEEXT@
+MODULES=$(FQ_MODULES) $(AMQP_MODULES) $(LUA_MODULES) zipkin_jaeger.@MODULEEXT@ http_observer.@MODULEEXT@ \
+	consul.@MODULEEXT@
 
 all:	$(MODULES) $(MTEV4LUA)
 
 .xml.xmlh:
 	$(Q)$(XML2H) `echo $< | sed -e 's/\.xml$$//;'`_xml_description < $< > $@
+
+consul.lo:	consul.xmlh
+
+consul.@MODULEEXT@:	MODLIBS += -lcurl
+consul.@MODULEEXT@:	consul.lo
+	$(modulelink)
 
 http_observer.lo:	http_observer.xmlh
 

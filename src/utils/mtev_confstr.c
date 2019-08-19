@@ -47,15 +47,28 @@
   { "ms", 2, DURATION_ ## BASE ## _MS }
 #define DURATION_DECL_SEC(BASE) \
   { "s", 1, DURATION_ ## BASE ## _SEC }, \
-  { "sec", 3, DURATION_ ## BASE ## _SEC }
+  { "sec", 3, DURATION_ ## BASE ## _SEC }, \
+  { "second", 6, DURATION_ ## BASE ## _SEC }, \
+  { "seconds", 7, DURATION_ ## BASE ## _SEC }
 #define DURATION_DECL_MIN(BASE) \
-  { "min", 3, DURATION_ ## BASE ## _MIN }
+  { "m", 1, DURATION_ ## BASE ## _MIN }, \
+  { "min", 3, DURATION_ ## BASE ## _MIN }, \
+  { "minute", 6, DURATION_ ## BASE ## _MIN }, \
+  { "minutes", 7, DURATION_ ## BASE ## _MIN }
 #define DURATION_DECL_HR(BASE) \
-  { "hr", 2, DURATION_ ## BASE ## _HR }
+  { "h", 1, DURATION_ ## BASE ## _HR }, \
+  { "hr", 2, DURATION_ ## BASE ## _HR }, \
+  { "hour", 4, DURATION_ ## BASE ## _HR }, \
+  { "hours", 5, DURATION_ ## BASE ## _HR }
 #define DURATION_DECL_DAY(BASE) \
-  { "d", 1, DURATION_ ## BASE ## _DAY }
+  { "d", 1, DURATION_ ## BASE ## _DAY }, \
+  { "day", 3, DURATION_ ## BASE ## _DAY }, \
+  { "days", 4, DURATION_ ## BASE ## _DAY }
 #define DURATION_DECL_WEEK(BASE) \
-  { "w", 1, DURATION_ ## BASE ## _WEEK }
+  { "w", 1, DURATION_ ## BASE ## _WEEK }, \
+  { "wk", 2, DURATION_ ## BASE ## _WEEK }, \
+  { "week", 4, DURATION_ ## BASE ## _WEEK }, \
+  { "weeks", 5, DURATION_ ## BASE ## _WEEK }
 
 struct _mtev_duration_definition_t {
   const char *key;

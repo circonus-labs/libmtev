@@ -150,8 +150,9 @@ mtev_capabilities_tobuff_json(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     doc = MJ_OBJ();
 
     /* Fill in the document */
+    MJ_KV(doc, "version", MJ_STR(mtev_get_app_version()));
     mtev_build_version(vbuff, sizeof(vbuff));
-    MJ_KV(doc, "version", MJ_STR(vbuff));
+    MJ_KV(doc, "mtev_version", MJ_STR(vbuff));
 
     /* Build info */
     MJ_KV(doc, "unameBuild", bi = MJ_OBJ());
@@ -273,8 +274,9 @@ mtev_capabilities_tobuff(mtev_capsvc_closure_t *cl, eventer_func_t curr) {
     xmlDocSetRootElement(xmldoc, root);
 
     /* Fill in the document */
+    xmlNewTextChild(root, NULL, (xmlChar *)"version", (xmlChar *)mtev_get_app_version());
     mtev_build_version(vbuff, sizeof(vbuff));
-    xmlNewTextChild(root, NULL, (xmlChar *)"version", (xmlChar *)vbuff);
+    xmlNewTextChild(root, NULL, (xmlChar *)"mtev_version", (xmlChar *)vbuff);
 
     snprintf(bwstr, sizeof(bwstr), "%d", (int)sizeof(void *)*8);
     /* Build info */

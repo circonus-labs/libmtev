@@ -36,6 +36,7 @@
 
 #include "mtev_defines.h"
 #include "mtev_log.h"
+#include "mtev_hooks.h"
 #include "mtev_time.h"
 #include <ck_pr.h>
 #include <ck_spinlock.h>
@@ -1519,6 +1520,11 @@ API_EXPORT(mtev_boolean) eventer_is_aco(eventer_t);
 API_EXPORT(int) eventer_impl_init(void);
 API_EXPORT(void *) eventer_get_spec_for_event(eventer_t);
 API_EXPORT(int) eventer_cpu_sockets_and_cores(int *sockets, int *cores);
+
+MTEV_HOOK_PROTO(eventer_started,
+                (void),
+                void *, closure,
+                (void *closure));
 
 #ifdef EXPOSE_EVENTER_ABI
 #include <eventer/eventer_impl_private.h>

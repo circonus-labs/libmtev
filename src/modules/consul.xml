@@ -1,0 +1,33 @@
+<module>
+  <name>consul</name>
+  <description><para>A service registration and config integration for Consul agent.</para></description>
+  <loader>C</loader>
+  <image>consul.so</image>
+  <moduleconfig>
+  </moduleconfig>
+  <examples>
+    <example>
+      <title>Loading the http_observer module.</title>
+      <programlisting language="xml"><![CDATA[
+      <app>
+        <modules>
+          <generic image="consul" name="consul"/>
+        </modules>
+        <consul>
+          <service>
+            <myservice id="{app}-{node}" port="12123">
+              <check deregister_after="10m" interval="5s" HTTP="/url"/>
+              <weights passing="10" warning="1"/>
+              <tag>foo</tag>
+              <tag>bar:baz</tag>
+              <meta>
+                <key>value</key>
+              </meta>
+            </myservice>
+          </service>
+        </consul>
+      </app>
+    ]]></programlisting>
+    </example>
+  </examples>
+</module>
