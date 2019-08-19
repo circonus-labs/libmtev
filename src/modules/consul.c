@@ -138,7 +138,16 @@ void mtev_consul_set_critical(void) {
   global_service_code = 502;
 }
 
-static char *mtev_consul_fetch_config_kv(const char *key) {
+static size_t kv_fetch_index(void *buff, size_t s, size_t n, void *vd) {
+  char *cb = (char *)buff;
+  uint32_t *index = vd;
+  size_t data_len = s * n;
+  if(!strncasecmp(cb, "X-Consul-Index:", strlen("X-Consul-Index:"))) {
+    *index = strtoul(cb + strlen("X-Consul-Index:") + 1, NULL, 0);
+  }
+  return data_len;
+}
+static char *mtev_consul_fetch_config_kv(const char *key, uint32_t *index_ptr) {
   CURL *curl;
   curl = curl_easy_init();
   char header[256];
@@ -151,6 +160,7 @@ static char *mtev_consul_fetch_config_kv(const char *key) {
     snprintf(header, sizeof(header), "Authorization: Bearer %s", consul_bearer_token);
     slist = curl_slist_append(slist, header);
   }
+  uint32_t index = 0;
   char *escaped_key = curl_easy_escape(curl, key, 0); 
   snprintf(url, sizeof(url), "%s/v1/kv/%s%s%s?raw=true", consul_service_endpoint,
            consul_kv_prefix ? consul_kv_prefix : "", consul_kv_prefix ? "/" : "", escaped_key);
@@ -163,9 +173,12 @@ static char *mtev_consul_fetch_config_kv(const char *key) {
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mtev_dyn_curl_write_callback);
+  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, kv_fetch_index);
+  curl_easy_setopt(curl, CURLOPT_HEADERDATA, &index);
 
   char *value = NULL;
   CURLcode code = mtev_zipkin_curl_easy_perform(curl);
+  *index_ptr = index;
   long httpcode = 0;
   if(CURLE_OK == code) {
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
@@ -707,12 +720,13 @@ mtev_consul_conf_fixup(void *closure, mtev_conf_section_t section, const char *x
       key = fallback;
       fallback = NULL;
     }
+    uint32_t index;
 
-    *value = mtev_consul_fetch_config_kv(key);
+    *value = mtev_consul_fetch_config_kv(key, &index);
     if(*value == NULL && fallback != NULL) *value = strdup(fallback);
 
     xmlFree(tofree);
-    mtevL(debug_ls, "lookup [%s] %s -> %s\n", nodepath, key, *value);
+    mtevL(debug_ls, "lookup [%s] %s -> %s @%u\n", nodepath, key, *value, index);
 
     return *value ? MTEV_HOOK_DONE : MTEV_HOOK_ABORT;
   }
