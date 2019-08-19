@@ -322,8 +322,11 @@ mtev_consul_config(mtev_dso_generic_t *self, mtev_hash_table *options) {
         return -1;
       }
     }
-    if(!strcmp(iter.key.str, "kv_prefix")) {
+    else if(!strcmp(iter.key.str, "kv_prefix")) {
       consul_kv_prefix = strdup(iter.value.str);
+    }
+    else if(!strcmp(iter.key.str, "bearer_token")) {
+      if(consul_bearer_token == NULL) consul_bearer_token = strdup(iter.value.str);
     }
   }
   return 0;
