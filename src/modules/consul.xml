@@ -4,6 +4,17 @@
   <loader>C</loader>
   <image>consul.so</image>
   <moduleconfig>
+    <parameter name="boot_state"
+               required="optional"
+               default="passsing"
+               allowed="(?:passing|warning|critical)">Set the initial state of service registration.</parameter>
+    <parameter name="kv_prefix"
+               required="optional"
+               default=""
+               allowed=".*">Set an option directory prefix for loading keys from consul's KV store.</parameter>
+    <parameter name="bearer_token"
+               required="optional"
+               allowed=".*">Set a bearer token for interactions with consul (to satisfy Consul ACLs).</parameter>
   </moduleconfig>
   <examples>
     <example>

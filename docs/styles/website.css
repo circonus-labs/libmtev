@@ -1,3 +1,7 @@
 .gitbook-link {
     display: none !important;
 }
+
+.color-theme-2 img {
+  filter: invert(90%);
+}

@@ -11,6 +11,7 @@
     1. [Listeners](config/listeners.md)
     1. [Modules](config/modules.md)
       1. [amqp](config/modules/amqp.md)
+      1. [consul](config/modules/consul.md)
       1. [fq](config/modules/fq.md)
       1. [http_observer](config/modules/http_observer.md)
       1. [lua_general](config/modules/lua_general.md)

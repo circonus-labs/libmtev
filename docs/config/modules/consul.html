@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>lua_web · GitBook</title>
+        <title>consul · GitBook</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.3">
@@ -53,10 +53,10 @@
     <link rel="shortcut icon" href="../../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="zipkin_fq.html" />
+    <link rel="next" href="fq.html" />
     
     
-    <link rel="prev" href="lua_general.html" />
+    <link rel="prev" href="amqp.html" />
     
 
     </head>
@@ -219,7 +219,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.2" data-path="consul.html">
+        <li class="chapter active" data-level="1.2.7.2" data-path="consul.html">
             
                 <a href="consul.html">
             
@@ -271,7 +271,7 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.2.7.6" data-path="lua_web.html">
+        <li class="chapter " data-level="1.2.7.6" data-path="lua_web.html">
             
                 <a href="lua_web.html">
             
@@ -615,7 +615,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="../.." >lua_web</a>
+        <a href="../.." >consul</a>
     </h1>
 </div>
 
@@ -630,79 +630,49 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="luaweb">lua_web</h1>
-<p>The lua_web module allows lua to drive http requests.</p>
+                                <h1 id="consul">consul</h1>
+<p>A service registration and config integration for Consul agent.</p>
 <ul>
 <li><strong>loader</strong>: C</li>
-<li><strong>image</strong>: lua_mtev.so</li>
+<li><strong>image</strong>: consul.so</li>
 </ul>
 <h3 id="module-configuration">Module Configuration</h3>
 <ul>
-<li><p><strong><code>directory</code></strong> (optional)  [default: <code>/install/prefix/libexec/mtev/lua/?.lua</code>]</p>
-<p>allowed: <code>/^.+$/</code></p>
-<p>This is the lua load path.  See the lua manual for more details
-on meaning and syntax.</p>
+<li><p><strong><code>boot_state</code></strong> (optional)  [default: <code>passsing</code>]</p>
+<p>allowed: <code>/^(?:passing|warning|critical)$/</code></p>
+<p>Set the initial state of service registration.</p>
 </li>
-<li><p><strong><code>cpath</code></strong> (optional) </p>
-<p>allowed: <code>/^.+$/</code></p>
-<p>This is the lua DSO load path.  See the lua manual for more
-details on meaning and syntax.</p>
+<li><p><strong><code>kv_prefix</code></strong> (optional) </p>
+<p>allowed: <code>/^.*$/</code></p>
+<p>Set an option directory prefix for loading keys from consul&apos;s KV
+store.</p>
 </li>
-<li><p><strong><code>dispatch</code></strong> (required) </p>
-<p>allowed: <code>/^.+$/</code></p>
-<p>The lua module to load.</p>
-</li>
-<li><p><strong><code>loop_assign_(.*)</code></strong> (optional) </p>
-<p>allowed: <code>/^(.+)$/</code></p>
-<p>Optionally assigned a <code>mount_[name]</code> to a given
-<code>eventer_pool_t</code>.  The name must match a <code>mount_[name]</code> stanza.  The value is the
-name of the eventer loop pool desired.</p>
-</li>
-<li><p><strong><code>mount_(.*)</code></strong> (optional) </p>
-<p>allowed: <code>/^([^:]+):([^:]+):([^:]+)(?::(.+))?$/</code></p>
-<p>module:method:mount[:expr].  The name <code>mount_[name]</code> simply must
-be unique
-   and thus allows for multiple separate lua web
-services to be mounted in a single instance. Module is the name of
-the lua module the
-   system will require, the function named
-&quot;handler&quot; will be called. Method is the HTTP method to serve (e.g.
-GET). The mount
-   is the uri &quot;directory&quot; that will be handled by
-this <code>mount_[name]</code> stanza.  Expr is a PCRE that further
-restricts the URIs handled.</p>
-</li>
-<li><p><strong><code>gc_full</code></strong> (optional)  [default: <code>1000</code>]</p>
-<p>allowed: <code>/^^(?:0|[1-9]\d*)$$/</code></p>
-<p>Specify how many yield/resume iterations may happen before a
-full garbage collection cycle is performed (0 means never).</p>
-</li>
-<li><p><strong><code>gc_step</code></strong> (optional)  [default: <code>0</code>]</p>
-<p>allowed: <code>/^^(?:0|[1-9]\d*)$$/</code></p>
-<p>Specify the parameter to normal lua_gc LUA_GCSTEP calls.</p>
-</li>
-<li><p><strong><code>gc_stepmul</code></strong> (optional)  [default: <code>1</code>]</p>
-<p>allowed: <code>/^^(?:[1-9]\d*)$$/</code></p>
-<p>Set the lua gc step multiplier.</p>
-</li>
-<li><p><strong><code>gc_pause</code></strong> (optional)  [default: <code>200</code>]</p>
-<p>allowed: <code>/^^(?:[1-9]\d*)$$/</code></p>
-<p>Set the lua gc pause percentage.</p>
+<li><p><strong><code>bearer_token</code></strong> (optional) </p>
+<p>allowed: <code>/^.*$/</code></p>
+<p>Set a bearer token for interactions with consul (to satisfy
+Consul ACLs).</p>
 <h3 id="examples">Examples</h3>
 </li>
 </ul>
-<h4 id="loading-the-lua-web-module-connection-webmodule-to-the-http-services">Loading the lua web module connection webmodule to the http services.</h4>
-<pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">noit</span>&gt;</span>
+<h4 id="loading-the-httpobserver-module">Loading the http_observer module.</h4>
+<pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">app</span>&gt;</span>
         <span class="hljs-tag">&lt;<span class="hljs-name">modules</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">module</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;lua_mtev&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;lua_web&quot;</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">directory</span>&gt;</span>/some/other/path/?.lua<span class="hljs-tag">&lt;/<span class="hljs-name">directory</span>&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">dispatch</span>&gt;</span>webmodule<span class="hljs-tag">&lt;/<span class="hljs-name">dispatch</span>&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">mount_foo</span>&gt;</span>foo:GET:/foo<span class="hljs-tag">&lt;/<span class="hljs-name">mount_foo</span>&gt;</span>
-            <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
-          <span class="hljs-tag">&lt;/<span class="hljs-name">module</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">generic</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;consul&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;consul&quot;</span>/&gt;</span>
         <span class="hljs-tag">&lt;/<span class="hljs-name">modules</span>&gt;</span>
-      <span class="hljs-tag">&lt;/<span class="hljs-name">noit</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">consul</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-name">service</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">myservice</span> <span class="hljs-attr">id</span>=<span class="hljs-string">&quot;{app}-{node}&quot;</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;12123&quot;</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">check</span> <span class="hljs-attr">deregister_after</span>=<span class="hljs-string">&quot;10m&quot;</span> <span class="hljs-attr">interval</span>=<span class="hljs-string">&quot;5s&quot;</span> <span class="hljs-attr">HTTP</span>=<span class="hljs-string">&quot;/url&quot;</span>/&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">weights</span> <span class="hljs-attr">passing</span>=<span class="hljs-string">&quot;10&quot;</span> <span class="hljs-attr">warning</span>=<span class="hljs-string">&quot;1&quot;</span>/&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">tag</span>&gt;</span>foo<span class="hljs-tag">&lt;/<span class="hljs-name">tag</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">tag</span>&gt;</span>bar:baz<span class="hljs-tag">&lt;/<span class="hljs-name">tag</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-name">meta</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>value<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+              <span class="hljs-tag">&lt;/<span class="hljs-name">meta</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">myservice</span>&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-name">service</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">consul</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-name">app</span>&gt;</span>
 </code></pre>
 
                                 
@@ -731,12 +701,12 @@ full garbage collection cycle is performed (0 means never).</p>
 
             
                 
-                <a href="lua_general.html" class="navigation navigation-prev " aria-label="Previous page: lua_general">
+                <a href="amqp.html" class="navigation navigation-prev " aria-label="Previous page: amqp">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="zipkin_fq.html" class="navigation navigation-next " aria-label="Next page: zipkin_fq">
+                <a href="fq.html" class="navigation navigation-next " aria-label="Next page: fq">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -747,7 +717,7 @@ full garbage collection cycle is performed (0 means never).</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"lua_web","level":"1.2.7.6","depth":3,"next":{"title":"zipkin_fq","level":"1.2.7.7","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]},"previous":{"title":"lua_general","level":"1.2.7.5","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/lua_web.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"../..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"consul","level":"1.2.7.2","depth":3,"next":{"title":"fq","level":"1.2.7.3","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},"previous":{"title":"amqp","level":"1.2.7.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/consul.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"../..","book":{"language":""}});
         });
     </script>
 </div>

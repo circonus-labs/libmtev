@@ -24,6 +24,7 @@
 static char *config_file = NULL;
 static int debug = 0;
 static int foreground = 0;
+static int strict_module_load = 0;
 static enum {
   PROC_OP_START,
   PROC_OP_STOP,
@@ -44,7 +45,7 @@ usage(const char *prog) {
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, "c:Ddk:l:L:")) != EOF) {
+  while((c = getopt(argc, argv, "c:DMdk:l:L:")) != EOF) {
     switch(c) {
       case 'c':
         config_file = optarg;
@@ -62,6 +63,10 @@ parse_cli_args(int argc, char * const *argv) {
         break;
       case 'L':
         mtev_main_disable_log(optarg);
+        break;
+      case 'M':
+        strict_module_load = 1;
+        break;
     }
   }
 }
@@ -191,6 +196,12 @@ child_main(void) {
   mtev_heap_profiler_rest_init();
   mtev_listener_init(APPNAME);
   mtev_dso_post_init();
+
+  if(strict_module_load &&
+     (mtev_dso_load_failures() > 0)) {
+    mtevL(mtev_stderr, "Failed to load some modules and -M given.\n");
+    exit(2);
+  }
 
   mtev_conf_coalesce_changes(10); /* 10 seconds of no changes before we write */
   mtev_conf_watch_and_journal_watchdog(NULL, NULL);
