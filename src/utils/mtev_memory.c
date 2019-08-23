@@ -444,13 +444,16 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
     }
     method = MTEV_MM_BARRIER;
   }
+
+  if(epoch_rec->active != 0) {
+    return 0;
+  }
   /* If the 1 bit isn't set, we've not freed on this thread since last invocation.
    * no sense in doing work to pass an "empty todo list" to asynch collection or
    * attempt a poll or barrier.
    */
   if((needs_maintenance & 1) == 0) return 0;
   needs_maintenance++; /* unsets the 1 bit */
-  mtevAssert(epoch_rec->active == 0);
   switch(method) {
     case MTEV_MM_NONE:
       break;
