@@ -4,6 +4,11 @@
 
 ## 1.6
 
+ * Add generic consul module with dynamic attachments.
+ * Cleanup some ABI exposure in the lua modules.
+ * Fix issue in auto flushing of http responses when data
+   has not yet been sent out. (performance fix)
+
 ### 1.6.26
 
  * Fix payload_complete in the http1 system for Content-Length requests.
