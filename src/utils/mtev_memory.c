@@ -419,8 +419,6 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   mtev_boolean success = mtev_false;
   ck_epoch_record_t epoch_temporary =  *epoch_rec;
 
-  mtevAssert(begin_end_depth == 0);
-
   /* regardless of invocation intent, we cleanup our backq */
   if(gc_return && gc_return->queue) {
     ck_fifo_spsc_dequeue_lock(gc_return->queue);
