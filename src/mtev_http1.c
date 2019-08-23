@@ -2036,7 +2036,7 @@ mtev_http1_response_flush(mtev_http1_session_ctx *ctx,
 
 size_t
 mtev_http1_response_buffered(mtev_http1_session_ctx *ctx) {
-  return ctx->res.output_raw_chain_bytes + ctx->res.output_chain_bytes;
+  return ctx->res.output_chain_bytes;
 }
 
 mtev_boolean
