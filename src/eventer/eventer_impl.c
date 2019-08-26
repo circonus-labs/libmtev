@@ -1135,7 +1135,6 @@ void eventer_dispatch_timed(struct timeval *next) {
             cbname ? cbname : "???");
     }
     /* Make our call */
-    mtev_memory_begin();
     LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)timed_event,
                            (void *)timed_event->callback, (char *)cbname, -1,
                            timed_event->mask, EVENTER_TIMER);
@@ -1147,7 +1146,6 @@ void eventer_dispatch_timed(struct timeval *next) {
     stats_set_hist_intscale(eventer_latency_handle_for_callback(timed_event->callback), duration, -9, 1);
     LIBMTEV_EVENTER_CALLBACK_RETURN((void *)timed_event,
                             (void *)timed_event->callback, (char *)cbname, newmask);
-    mtev_memory_end();
     if(newmask)
       eventer_add_timed(timed_event);
     else
@@ -1248,7 +1246,6 @@ void eventer_dispatch_recurrent(void) {
   eventer_gettimeofcallback(&__now, NULL);
 
   pthread_mutex_lock(&t->recurrent_lock);
-  mtev_memory_begin();
   for(node = t->recurrent_events; node; node = node->next) {
     int rv;
     uint64_t start, duration;
@@ -1264,7 +1261,6 @@ void eventer_dispatch_recurrent(void) {
       stats_set_hist_intscale(eventer_latency_handle_for_callback(node->e->callback), duration, -9, 1);
     }
   }
-  mtev_memory_end();
   pthread_mutex_unlock(&t->recurrent_lock);
 }
 eventer_t eventer_remove_recurrent(eventer_t e) {
