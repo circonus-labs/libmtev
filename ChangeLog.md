@@ -2,13 +2,18 @@
 
 # 1
 
-## 1.6
+## 1.7
+
+### 1.7.0
 
  * Add generic consul module with dynamic attachments.
  * Cleanup some ABI exposure in the lua modules.
  * Fix issue in auto flushing of http responses when data
    has not yet been sent out. (performance fix)
  * Allow mtev_memory SMR to work along side ACO.
+ * Remove implicit mtev_memory_{begin,end} from eventer callbacks.
+
+## 1.6
 
 ### 1.6.26
 
