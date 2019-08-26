@@ -445,9 +445,13 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
     method = MTEV_MM_BARRIER;
   }
 
-  if(epoch_rec->active != 0) {
+  if(epoch_rec->active != 0 && method == MTEV_MM_BARRIER) {
+    /* aco could leave a critical section open in this thread.
+     * which would mean a barrier here would block forever (deadlock).
+     */
     return 0;
   }
+
   /* If the 1 bit isn't set, we've not freed on this thread since last invocation.
    * no sense in doing work to pass an "empty todo list" to asynch collection or
    * attempt a poll or barrier.

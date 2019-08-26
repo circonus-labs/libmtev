@@ -8,6 +8,7 @@
  * Cleanup some ABI exposure in the lua modules.
  * Fix issue in auto flushing of http responses when data
    has not yet been sent out. (performance fix)
+ * Allow mtev_memory SMR to work along side ACO.
 
 ### 1.6.26
 
