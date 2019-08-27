@@ -100,6 +100,35 @@ mtev_lua_stats_handle_record(lua_State *L) {
 }
 
 static int
+mtev_lua_stats_handle_tagged_suppress(lua_State *L) {
+  void **udata;
+  stats_handle_t *handle;
+  if(lua_gettop(L) != 1)
+    luaL_error(L, "libcircmetrics.handle.add_tag must be called with no arguments");
+  udata = lua_touserdata(L, lua_upvalueindex(1));
+  if(udata != lua_touserdata(L, 1)) luaL_error(L, "must be called as method");
+  handle = *udata;
+  stats_handle_tagged_suppress(handle);
+  return 0;
+}
+
+static int
+mtev_lua_stats_handle_tagged_name(lua_State *L) {
+  void **udata;
+  const char *tagged_name;
+  stats_handle_t *handle;
+  if(lua_gettop(L) != 2)
+    luaL_error(L, "libcircmetrics.handle.add_tag must be called with one arguments");
+  udata = lua_touserdata(L, lua_upvalueindex(1));
+  if(udata != lua_touserdata(L, 1)) luaL_error(L, "must be called as method");
+  tagged_name = lua_tostring(L, 2);
+  if(!tagged_name) luaL_error(L, "argument must be a string");
+  handle = *udata;
+  stats_handle_tagged_name(handle, tagged_name);
+  return 0;
+}
+
+static int
 mtev_lua_stats_handle_add_tag(lua_State *L) {
   void **udata;
   const char *tagcat, *tagval;
@@ -108,7 +137,6 @@ mtev_lua_stats_handle_add_tag(lua_State *L) {
     luaL_error(L, "libcircmetrics.handle.add_tag must be called with two arguments");
   udata = lua_touserdata(L, lua_upvalueindex(1));
   if(udata != lua_touserdata(L, 1)) luaL_error(L, "must be called as method");
-  handle = *udata;
   tagcat = lua_tostring(L, 2);
   if(!tagcat) luaL_error(L, "first argument must be a string");
   tagval = lua_tostring(L, 3);
@@ -136,6 +164,16 @@ mtev_lua_stats_handle_index(lua_State *L) {
   else if(!strcmp(k, "add_tag")) {
     lua_pushlightuserdata(L, udata);
     lua_pushcclosure(L, mtev_lua_stats_handle_add_tag, 1);
+    return 1;
+  }
+  else if(!strcmp(k, "tagged_name")) {
+    lua_pushlightuserdata(L, udata);
+    lua_pushcclosure(L, mtev_lua_stats_handle_tagged_name, 1);
+    return 1;
+  }
+  else if(!strcmp(k, "tagged_suppress")) {
+    lua_pushlightuserdata(L, udata);
+    lua_pushcclosure(L, mtev_lua_stats_handle_tagged_suppress, 1);
     return 1;
   }
   luaL_error(L, "unknown field %s in libcircmetrics.handle", k);
