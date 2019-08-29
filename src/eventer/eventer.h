@@ -1511,7 +1511,7 @@ API_EXPORT(void *) eventer_aco_arg(void);
 
 /*! \fn mtev_boolean eventer_is_aco(eventer_t e)
     \brief Determine if an event is in ACO mode.
-    \param e The eventer_t in question
+    \param e The eventer_t in question (NULL represent "current context")
     \return True if in ACO mode, false otherwise.
 */
 API_EXPORT(mtev_boolean) eventer_is_aco(eventer_t);

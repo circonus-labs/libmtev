@@ -225,6 +225,7 @@ void eventer_jobq_ping(eventer_jobq_t *jobq);
 void eventer_aco_init(void);
 void *eventer_aco_get_opset_ctx(void *closure);
 struct _fd_opset *eventer_aco_get_opset(void *closure);
+mtev_boolean eventer_is_aco_opset(eventer_t e);
 int eventer_aco_shutdown(aco_t *co);
 void posix_asynch_shutdown_close(int fd);
 
