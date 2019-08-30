@@ -198,22 +198,19 @@ mtev_thread_create(pthread_t *thread, const pthread_attr_t *attr,
 static __thread char thread_local_name[16];
 void
 mtev_thread_setname(const char *name) {
-#ifdef HAVE_PTHREAD_SETNAME_NP
   char thrname[16] = "\0";
   memset(thread_local_name, 0, sizeof(thread_local_name));
   if(!name) name = "terminated";
 
   strlcat(thrname, name, sizeof(thrname));
+#ifdef HAVE_PTHREAD_SETNAME_NP
   pthread_setname_np(pthread_self(), thrname);
-  strlcpy(thread_local_name, thrname, sizeof(thread_local_name));
-#else
-  (void)name;
 #endif
+  strlcpy(thread_local_name, thrname, sizeof(thread_local_name));
 }
 
 void
 mtev_thread_setnamef(const char *fmt, ...) {
-#ifdef HAVE_PTHREAD_SETNAME_NP
   char thrname[16] = "\0";
   if(!fmt) return mtev_thread_setname(NULL);
 
@@ -221,12 +218,11 @@ mtev_thread_setnamef(const char *fmt, ...) {
   va_start(arg, fmt);
   memset(thread_local_name, 0, sizeof(thread_local_name));
   vsnprintf(thrname, sizeof(thrname), fmt, arg);
+#ifdef HAVE_PTHREAD_SETNAME_NP
   pthread_setname_np(pthread_self(), thrname);
+#endif
   strlcpy(thread_local_name, thrname, sizeof(thread_local_name));
   va_end(arg);
-#else
-  (void)name;
-#endif
 }
 
 const char *
