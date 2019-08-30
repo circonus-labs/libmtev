@@ -1480,7 +1480,7 @@ void eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz) {
 mtev_boolean eventer_is_aco(eventer_t e) {
   if(e != NULL) return eventer_is_aco_opset(e);
   struct eventer_impl_data *t = get_my_impl_data();
-  if(t == NULL) return mtev_false;
+  mtevAssert(t);
   aco_t *co = aco_get_co();
   return co != NULL && co != t->aco_main_co;
 }
@@ -1492,6 +1492,8 @@ void eventer_aco_start(void (*func)(void), void *closure) {
 int eventer_aco_shutdown(aco_t *co) {
   struct eventer_impl_data *t = get_my_impl_data();
   mtevAssert(t);
+  struct aco_cb_ctx *ctx = co->arg;
+  mtevAssert(ctx->section.begin_end == 0); /* we can't off an exit in a critical section */
   free(co->arg);
   unsigned long hash = CK_HS_HASH(t->aco_registry, __ck_hash_from_ptr, co);
   mtevEvalAssert(ck_hs_remove(t->aco_registry, hash, co));

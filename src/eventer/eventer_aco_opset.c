@@ -57,9 +57,16 @@ typedef struct aco_opset_info_t {
 } aco_opset_info_t;
 
 #define WORRISOME_STACK 2048
+static void
+eventer_aco_yield(void) {
+  aco_yield();
+}
 int
 eventer_aco_resume(aco_t *co) {
+  struct aco_cb_ctx *ctx = co->arg;
+  mtev_memory_section_t *prevs = mtev_memory_set_section(&ctx->section);
   aco_resume(co);
+  mtev_memory_set_section(prevs);
   if(co->save_stack.valid_sz > WORRISOME_STACK)
     mtevL(eventer_deb, "aco resume stack copy %zd bytes\n", co->save_stack.valid_sz);
   if(co->is_end) return eventer_aco_shutdown(co);
@@ -193,7 +200,7 @@ void
 eventer_aco_gate_wait(eventer_aco_gate_t gate) {
   bool zero;
   ck_pr_dec_32_zero(&gate->ref_cnt, &zero);
-  if(!zero) aco_yield();
+  if(!zero) eventer_aco_yield();
   free(gate);
 }
 
@@ -225,7 +232,7 @@ eventer_aco_asynch_queue_subqueue_deadline(eventer_asynch_func_t func,
   eventer_t e = eventer_alloc_asynch(eventer_aco_mode_asynch_wrapper, simple_ctx);
   if(t) eventer_update_whence(e, *t);
   eventer_add_asynch_subqueue(q, e, id);
-  aco_yield();
+  eventer_aco_yield();
 }
 
 static int
@@ -267,7 +274,7 @@ eventer_aco_simple_asynch_queue_subqueue(eventer_asynch_simple_func_t func, void
   simple_ctx->gate = eventer_aco_gate();
   eventer_t e = eventer_alloc_asynch(eventer_aco_simple_asynch_wrapper, simple_ctx);
   eventer_add_asynch_subqueue(q, e, id);
-  aco_yield();
+  eventer_aco_yield();
 }
 
 struct aco_asynch_cb_ctx {
@@ -315,7 +322,7 @@ eventer_aco_try_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64
   ctx->gate = eventer_aco_gate();
   eventer_t ae = eventer_alloc_asynch(eventer_aco_asynch_wrapper, ctx);
   if(eventer_try_add_asynch_subqueue(q, ae, sq)) {
-    aco_yield();
+    eventer_aco_yield();
     return mtev_true;
   }
   free(ctx->gate);
@@ -342,7 +349,7 @@ eventer_aco_run_asynch_queue_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t s
   ctx->gate = eventer_aco_gate();
   eventer_t ae = eventer_alloc_asynch(eventer_aco_asynch_wrapper, ctx);
   eventer_add_asynch_subqueue(q, ae, sq);
-  aco_yield();
+  eventer_aco_yield();
 }
 
 static int
@@ -367,7 +374,7 @@ eventer_aco_sleep(struct timeval *timeout) {
   info->aco_co = aco_get_co();
   ctx->timeout_e = eventer_in(priv_aco_timeout, info, *timeout);
   eventer_add(ctx->timeout_e);
-  aco_yield();
+  eventer_aco_yield();
   free(info);
 }
 
@@ -399,7 +406,7 @@ priv_aco_##name params { \
       ctx->mask = *mask; \
       if(!added) { eventer_add(e); added = 1; } \
       mtevL(eventer_deb, #name"(%d) causing yield\n", e->fd); \
-      aco_yield(); \
+      eventer_aco_yield(); \
       mtevL(eventer_deb, #name"(%d) resumed\n", e->fd); \
       if(ctx->private_errno == ETIME) { \
         errno = ctx->private_errno; \
