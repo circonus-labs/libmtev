@@ -74,6 +74,12 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_thread_setname(const char *);
 
+API_EXPORT(void)
+  mtev_thread_setnamef(const char *, ...);
+
+API_EXPORT(const char *)
+  mtev_thread_getname(void);
+
 /**
  * attempt to schedule as a real-time process within the system.
  * nqt is the request scheduling quantum in nanoseconds. If the OS

@@ -5,6 +5,8 @@
 ## 1.7
 
  * Set app:<appname> tag on all top-level stats namespaces.
+ * Add mtev_thread_setnamef and mtev_thread_getname.
+ * Support logging thread names that are set via mtev_thread_ APIs.
 
 ### 1.7.0
 
