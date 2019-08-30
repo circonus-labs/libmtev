@@ -28,6 +28,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "mtev_conf.h"
 #include "mtev_stats.h"
 #include "mtev_rest.h"
 
@@ -50,8 +51,11 @@ mtev_stats_ns(stats_ns_t *parent, const char *name) {
   stats_ns_t *ns;
   mtev_stats_init();
   ns = stats_register_ns(global_stats, parent, name);
-  if(!strcmp(name, "mtev") && parent == NULL) {
-    stats_ns_add_tag(ns, "framework", "libmtev");
+  if(parent == NULL) {
+    if(!strcmp(name, "mtev") && parent == NULL) {
+      stats_ns_add_tag(ns, "framework", "libmtev");
+    }
+    stats_ns_add_tag(ns, "app", mtev_get_app_name());
   }
   return ns;
 }

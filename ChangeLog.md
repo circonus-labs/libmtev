@@ -4,6 +4,8 @@
 
 ## 1.7
 
+ * Set app:<appname> tag on all top-level stats namespaces.
+
 ### 1.7.0
 
  * Add generic consul module with dynamic attachments.
