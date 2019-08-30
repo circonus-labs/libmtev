@@ -723,6 +723,41 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
             if(mtev_monitored_child_pid > 0) kill(mtev_monitored_child_pid, sig);
             exit(0);
             break;
+          case SIGALRM:
+            /* here we just wake up to check stuff */
+            if(it_ticks_crash_restart(NULL)) {
+              mtevL(mtev_error, "[monitor] %s %d is emancipated for dumping.\n", app, crashing_pid);
+              mmap_lifelines->action = CRASHY_NOTATALL;
+              mtev_monitored_child_pid = -1;
+              goto out_loop2;
+            }
+            else if(mtev_monitored_child_pid == child_pid &&
+                    (hcs = mtev_heartcheck(&ltt, &heartno, &thrname))) {
+              if(hcs == 1) {
+                mtevL(mtev_error,
+                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... requesting termination of %d\n",
+                      heartno, thrname ? thrname : "unnamed", ltt, child_pid);
+                kill(child_pid, SIGUSR2);
+              } else {
+                mtevL(mtev_error,
+                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... terminating child %d\n",
+                      heartno, thrname ? thrname : "unnamed", ltt, child_pid);
+                if(glider_path) {
+                  kill(child_pid, SIGSTOP);
+                  run_glider(child_pid, GLIDE_WATCHDOG, thrname);
+                }
+                /* We cont even if we didn't stop to cover the case that the process was SIGSTOPd out-of-band. */
+                kill(child_pid, SIGCONT);
+                kill(child_pid, SIGKILL);
+                mtev_monitored_child_pid = -1;
+                if(!allow_async_dumps) {
+                  crashing_pid = child_pid;
+                  goto out_loop2;
+                }
+              }
+            }
+            mtev_log_reopen_type("file");
+            /* fall through */
           case SIGCHLD:
             if(child_pid != crashing_pid && crashing_pid != -1) {
               mtevL(mtev_error, "[monitoring] suspending services while reaping emancipated child %d\n", crashing_pid);
@@ -738,7 +773,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
               crashing_pid =-1;
             }
 
-            rv = waitpid(child_pid, &status, WNOHANG|WUNTRACED);
+            rv = waitpid(-1, &status, WNOHANG|WUNTRACED);
             if(rv == 0) {
               /* Nothing */
             }
@@ -791,40 +826,6 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
             } else if(rv > 0) {
               mtevL(mtev_error, "[monitor] reaped pid: %d\n", rv);
             }
-            /* fall through */
-          case SIGALRM:
-            /* here we just wake up to check stuff */
-            if(it_ticks_crash_restart(NULL)) {
-              mtevL(mtev_error, "[monitor] %s %d is emancipated for dumping.\n", app, crashing_pid);
-              mmap_lifelines->action = CRASHY_NOTATALL;
-              mtev_monitored_child_pid = -1;
-              goto out_loop2;
-            }
-            else if(mtev_monitored_child_pid == child_pid &&
-                    (hcs = mtev_heartcheck(&ltt, &heartno, &thrname))) {
-              if(hcs == 1) {
-                mtevL(mtev_error,
-                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... requesting termination\n",
-                      heartno, thrname ? thrname : "unnamed", ltt);
-                kill(child_pid, SIGUSR2);
-              } else {
-                mtevL(mtev_error,
-                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... terminating child\n",
-                      heartno, thrname ? thrname : "unnamed", ltt);
-                if(glider_path) {
-                  kill(child_pid, SIGSTOP);
-                  run_glider(child_pid, GLIDE_WATCHDOG, thrname);
-                  kill(child_pid, SIGCONT);
-                }
-                kill(child_pid, SIGKILL);
-                mtev_monitored_child_pid = -1;
-                if(!allow_async_dumps) {
-                  crashing_pid = child_pid;
-                  goto out_loop2;
-                }
-              }
-            }
-            mtev_log_reopen_type("file");
             break;
           default:
             break;
