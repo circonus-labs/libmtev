@@ -33,6 +33,8 @@
 #include <mtev_time.h>
 #include <mtev_log.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include <errno.h>
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
@@ -193,21 +195,41 @@ mtev_thread_create(pthread_t *thread, const pthread_attr_t *attr,
   return pthread_create(thread, attr, mtev_thread_start_routine, c);
 }
 
+static __thread char thread_local_name[16];
 void
 mtev_thread_setname(const char *name) {
-#ifdef HAVE_PTHREAD_SETNAME_NP
   char thrname[16] = "\0";
-  if(!name)
-    pthread_setname_np(pthread_self(), "terminating_thread");
-  else {
-    if(!strcmp(name, "default/0")) return;
-    strlcat(thrname, name, sizeof(thrname));
-    pthread_setname_np(pthread_self(), thrname);
-  }
-#else
-  (void)name;
+  memset(thread_local_name, 0, sizeof(thread_local_name));
+  if(!name) name = "terminated";
+
+  strlcat(thrname, name, sizeof(thrname));
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  pthread_setname_np(pthread_self(), thrname);
 #endif
+  strlcpy(thread_local_name, thrname, sizeof(thread_local_name));
 }
+
+void
+mtev_thread_setnamef(const char *fmt, ...) {
+  char thrname[16] = "\0";
+  if(!fmt) return mtev_thread_setname(NULL);
+
+  va_list arg;
+  va_start(arg, fmt);
+  memset(thread_local_name, 0, sizeof(thread_local_name));
+  vsnprintf(thrname, sizeof(thrname), fmt, arg);
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  pthread_setname_np(pthread_self(), thrname);
+#endif
+  strlcpy(thread_local_name, thrname, sizeof(thread_local_name));
+  va_end(arg);
+}
+
+const char *
+mtev_thread_getname(void) {
+  return thread_local_name;
+}
+
 void
 mtev_thread_init(void)
 {  

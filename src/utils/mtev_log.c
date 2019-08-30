@@ -1972,10 +1972,12 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
     else tbuf[0] = '\0';
     if(IS_DEBUG_BELOW(ls) || logspan) {
       const char *tname = eventer_get_thread_name();
-      if(tname)
+      if(!tname || strlen(tname) == 0) tname = mtev_thread_getname();
+      if(tname && strlen(tname))
         snprintf(dbuf, sizeof(dbuf), "[t@%u/%s,%s:%d] ", mtev_thread_id(), tname, file, line);
-      else
+      else {
         snprintf(dbuf, sizeof(dbuf), "[t@%u,%s:%d] ", mtev_thread_id(), file, line);
+      }
       dbuflen = strlen(dbuf);
     }
     else dbuf[0] = '\0';
