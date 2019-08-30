@@ -7,6 +7,8 @@
  * Set app:<appname> tag on all top-level stats namespaces.
  * Add mtev_thread_setnamef and mtev_thread_getname.
  * Support logging thread names that are set via mtev_thread_ APIs.
+ * Fix eventer_is_aco(NULL) to report if the current context is ACO.
+ * Make the watchdog more doggedly reap children.
 
 ### 1.7.0
 
