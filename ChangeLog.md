@@ -4,11 +4,16 @@
 
 ## 1.7
 
+### 1.7.1
+
  * Set app:<appname> tag on all top-level stats namespaces.
  * Add mtev_thread_setnamef and mtev_thread_getname.
  * Support logging thread names that are set via mtev_thread_ APIs.
  * Fix eventer_is_aco(NULL) to report if the current context is ACO.
  * Make the watchdog more doggedly reap children.
+ * Change default behaviour of jobqs to be GC not CS for SMR.
+ * Do not make all eventer callbacks an SMR critical section.
+ * Use ck_epoch_sections and make ACO use dedicated sections to ensure progress.
 
 ### 1.7.0
 
