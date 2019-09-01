@@ -4,6 +4,10 @@
 
 ## 1.7
 
+### 1.7.2
+
+ * mtev_memory_safe_free now performs just-in-time epoch allocation.
+
 ### 1.7.1
 
  * Set app:<appname> tag on all top-level stats namespaces.

@@ -600,10 +600,13 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
 
 void mtev_memory_ck_free(void *p, size_t b, bool r) {
   mtevAssert(gc_return);
+  if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
   mtev_memory_ck_free_func(p, b, r, mtev_memory_real_free);
 }
 
 void mtev_memory_safe_free(void *p) {
+  mtevAssert(gc_return);
+  if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
   mtev_memory_ck_free_func(p, 0, true, mtev_memory_real_free);
 }
 
