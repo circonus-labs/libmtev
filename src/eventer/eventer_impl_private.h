@@ -35,6 +35,7 @@
 #define EVENTER_EVENTER_IMPL_PRIVATE_H
 
 #include "mtev_stats.h"
+#include "mtev_memory.h"
 #include "aco/aco.h"
 
 #include <ck_hs.h>
@@ -77,6 +78,7 @@ struct aco_cb_ctx {
   int rv;
   int mask;
   int private_errno;
+  mtev_memory_section_t section;
 
   struct timeval *timeout;
   eventer_t timeout_e;

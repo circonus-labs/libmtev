@@ -33,6 +33,7 @@
 
 #include "mtev_defines.h"
 #include <stdbool.h>
+#include <ck_epoch.h>
 
 typedef enum {
   MTEV_MM_BARRIER,
@@ -41,6 +42,13 @@ typedef enum {
   MTEV_MM_NONE
 } mtev_memory_maintenance_method_t;
 
+typedef struct {
+  uint32_t begin_end;
+  ck_epoch_section_t section;
+} mtev_memory_section_t;
+
+#define MTEV_MEMORY_SECTION_INIT { .begin_end = 0, .section = { .bucket = 0 } }
+
 API_EXPORT(void) mtev_memory_init(void); /* call once at process start */
 API_EXPORT(void) mtev_memory_gc_asynch(void); /* Make asynch gc work */
 API_EXPORT(void) mtev_memory_init_thread(void); /* at subsequent thread start */
@@ -48,6 +56,7 @@ API_EXPORT(void) mtev_memory_fini_thread(void); /* at thread exit */
 API_EXPORT(mtev_boolean) mtev_memory_thread_initialized(void);
 API_EXPORT(void) mtev_memory_maintenance(void); /* Call to force reclamation */
 API_EXPORT(int) mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method);
+API_EXPORT(mtev_memory_section_t *) mtev_memory_set_section(mtev_memory_section_t *);
 API_EXPORT(void) mtev_memory_begin(void); /* being a block */
 API_EXPORT(void) mtev_memory_end(void); /* end a block */
 API_EXPORT(mtev_boolean) mtev_memory_barriers(mtev_boolean *); /* do or try */

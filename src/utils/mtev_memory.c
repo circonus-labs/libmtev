@@ -44,6 +44,9 @@
 #endif
 #define MTEV_EPOCH_SAFE_MAGIC 0x5afe5afe
 
+#undef unlikely
+#define unlikely(x) (__builtin_expect(!!(x), 0))
+
 static int initialized = 0;
 static int asynch_gc = 0;
 static int gc_is_waiting = 0;
@@ -60,7 +63,9 @@ typedef struct {
 static __thread gc_asynch_queue_t *gc_return = NULL;
 static ck_epoch_t epoch_ht;
 static __thread ck_epoch_record_t *epoch_rec = NULL;
-static __thread int begin_end_depth = 0;
+
+static __thread mtev_memory_section_t default_section = MTEV_MEMORY_SECTION_INIT;
+static __thread mtev_memory_section_t *section = NULL;
 /* needs_maintenance is used to avoid doing unnecessary work
  * in the epoch free cycle.
  * 0    means not participating, (never freed)
@@ -69,7 +74,6 @@ static __thread int begin_end_depth = 0;
 static __thread uint64_t needs_maintenance = 0;
 static void *mtev_memory_gc(void *unused);
 static mtev_log_stream_t mem_debug = NULL;
-static pthread_mutex_t mem_debug_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static stats_ns_t *mem_stats_ns;
 static stats_handle_t *gc_sync_wait;
@@ -139,28 +143,45 @@ mtev_boolean mtev_memory_thread_initialized(void) {
 }
 
 void mtev_memory_init_thread(void) {
-  if(epoch_rec == NULL) {
-    epoch_rec = ck_epoch_recycle(&epoch_ht, NULL);
-    mtevL(mem_debug, "mtev_memory_init_thread()\n");
-    if(epoch_rec == NULL) {
-      epoch_rec = malloc(sizeof(*epoch_rec));
-      ck_epoch_register(&epoch_ht, epoch_rec, NULL);
-    }
-  }
   if(gc_return == NULL) {
+    mtevL(mem_debug, "mtev_memory_init_thread()\n");
     gc_return = calloc(1, sizeof(*gc_return));
     gc_return->queue = calloc(1, sizeof(*gc_return->queue));
     ck_fifo_spsc_init(gc_return->queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
   }
 }
 
+mtev_memory_section_t *
+mtev_memory_set_section(mtev_memory_section_t *s) {
+  mtev_memory_section_t *previous = section;
+  section = s;
+  return previous;
+}
+
+void mtev_memory_init_epoch(void) {
+  mtevAssert(gc_return); /* must init thread before this happens */
+  if(epoch_rec == NULL) {
+    mtevL(mem_debug, "mtev_memory_init_epoch()\n");
+    epoch_rec = ck_epoch_recycle(&epoch_ht, NULL);
+    if(epoch_rec == NULL) {
+      epoch_rec = malloc(sizeof(*epoch_rec));
+      ck_epoch_register(&epoch_ht, epoch_rec, NULL);
+    }
+    section = &default_section;
+  }
+}
+
 void mtev_memory_fini_thread(void) {
-  if(begin_end_depth > 1) {
-    ck_epoch_end(epoch_rec, NULL);
-    begin_end_depth = 0; // setting this doesn't actually matter.
+  mtevL(mem_debug, "mtev_memory_fini_thread()\n");
+  if(epoch_rec == NULL) {
+    terminate_gc_return(gc_return);
+    return;
+  }
+  if(section->begin_end > 1) {
+    ck_epoch_end(epoch_rec, &section->section);
+    section->begin_end = 0; // setting this doesn't actually matter.
   }
   mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
-  mtevL(mem_debug, "mtev_memory_fini_thread()\n");
   if(gc_return && gc_return->queue != NULL) {
     if(ck_pr_load_int(&asynch_gc)) {
       mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
@@ -251,12 +272,6 @@ mtev_boolean mtev_memory_barriers(mtev_boolean *b) {
 void mtev_memory_maintenance(void) {
   if((needs_maintenance & 1) == 0) return;
   ck_epoch_record_t epoch_temporary = *epoch_rec;
-  if(!mem_debug) {
-    pthread_mutex_lock(&mem_debug_lock);
-    if (!mem_debug)
-      mem_debug = mtev_log_stream_find("debug/memory");
-    pthread_mutex_unlock(&mem_debug_lock);
-  }
   if(do_cleanup == NULL) do_cleanup = ck_epoch_poll;
   if(do_cleanup(epoch_rec)) {
     if(epoch_temporary.n_pending != epoch_rec->n_pending ||
@@ -307,12 +322,6 @@ mtev_gc_sync_complete(struct asynch_reclaim *ar, mtev_boolean accounting) {
   epoch_rec->n_dispatch += n_dispatch;
   epoch_rec->n_pending -= n_dispatch;
 
-  if(!mem_debug) {
-    pthread_mutex_lock(&mem_debug_lock);
-    if (!mem_debug)
-      mem_debug = mtev_log_stream_find("debug/memory");
-    pthread_mutex_unlock(&mem_debug_lock);
-  }
   if(epoch_temporary.n_pending != epoch_rec->n_pending ||
      epoch_temporary.n_peak != epoch_rec->n_peak ||
      epoch_temporary.n_dispatch != epoch_rec->n_dispatch) {
@@ -343,7 +352,9 @@ static void *
 mtev_memory_gc(void *unused) {
   (void)unused;
   mtev_thread_setname("mtev_memory_gc");
+  mem_debug = mtev_log_stream_find("debug/memory");
   mtev_memory_init_thread();
+  mtev_memory_init_epoch();
   const int max_setsize = 100;
   mtevL(mem_debug, "GC maintenance thread pid:%d starting.\n", getpid());
   while(ck_pr_load_int(&asynch_gc) == 1) {
@@ -367,8 +378,8 @@ mtev_memory_gc(void *unused) {
      * Let's make sure they are in the epoch past by moving out epoch forward
      * and synchronizing.
      */
-    ck_epoch_begin(epoch_rec, NULL);
-    ck_epoch_end(epoch_rec, NULL);
+    ck_epoch_begin(epoch_rec, &section->section);
+    ck_epoch_end(epoch_rec, &section->section);
 
     uint64_t start, duration;
     start = mtev_gethrtime();
@@ -417,6 +428,9 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   struct asynch_reclaim *ar;
   unsigned long n_dispatch = 0;
   mtev_boolean success = mtev_false;
+
+  if(epoch_rec == NULL) return -1;
+
   ck_epoch_record_t epoch_temporary =  *epoch_rec;
 
   /* regardless of invocation intent, we cleanup our backq */
@@ -429,13 +443,6 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   }
 
   if(needs_maintenance == 0) return -1;
-
-  if(!mem_debug) {
-    pthread_mutex_lock(&mem_debug_lock);
-    if (!mem_debug)
-      mem_debug = mtev_log_stream_find("debug/memory");
-    pthread_mutex_unlock(&mem_debug_lock);
-  }
 
   if(!asynch_gc && method == MTEV_MM_BARRIER_ASYNCH) {
     if(error_once) {
@@ -494,12 +501,22 @@ mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
 }
 
 void mtev_memory_begin(void) {
-  if(begin_end_depth == 0) ck_epoch_begin(epoch_rec, NULL);
-  begin_end_depth++;
+  mtevAssert(gc_return);
+  if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
+  if(section->begin_end == 0) {
+    ck_epoch_begin(epoch_rec, &section->section);
+    mtevL(mem_debug, "begin [%u,%u] %p/%p\n", ck_epoch_value(&epoch_ht), section->section.bucket, epoch_rec, &section->section);
+  }
+  section->begin_end++;
 }
 void mtev_memory_end(void) {
-  begin_end_depth--;
-  if(begin_end_depth == 0) ck_epoch_end(epoch_rec, NULL);
+  mtevAssert(gc_return);
+  if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
+  section->begin_end--;
+  if(section->begin_end == 0) {
+    mtevL(mem_debug, "end [%u,%u] %p/%p\n", ck_epoch_value(&epoch_ht), section->section.bucket, epoch_rec, &section->section);
+    ck_epoch_end(epoch_rec, &section->section);
+  }
 }
 
 struct safe_epoch {
@@ -518,7 +535,8 @@ static void mtev_memory_real_free(ck_epoch_entry_t *e) {
 
 void *mtev_memory_safe_malloc(size_t r) {
   struct safe_epoch *b;
-  mtevAssert(epoch_rec != NULL);
+  mtevAssert(gc_return != NULL);
+  if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
   b = malloc(sizeof(*b) + r);
   b->magic = MTEV_EPOCH_SAFE_MAGIC;
   b->cleanup = NULL;
@@ -528,7 +546,8 @@ void *mtev_memory_safe_malloc(size_t r) {
 
 void *mtev_memory_safe_malloc_cleanup(size_t r, void (*f)(void *)) {
   struct safe_epoch *b;
-  mtevAssert(epoch_rec != NULL);
+  mtevAssert(gc_return != NULL);
+  if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
   b = malloc(sizeof(*b) + r);
   b->magic = MTEV_EPOCH_SAFE_MAGIC;
   b->cleanup = f;
