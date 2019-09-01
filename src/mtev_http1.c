@@ -1284,6 +1284,12 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
         errno = ENOTSUP;
         return -1;
       }
+    } else {
+      ctx->req.payload_complete = mtev_true;
+      if (ctx->req.user_data == NULL || ctx->req.user_data->size == 0) {
+        /* we read all input and nothing in user_data list, we must be done. */
+        return 0;
+      }
     }
   }
   while(bytes_read < user_len) {
