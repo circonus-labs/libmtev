@@ -921,7 +921,11 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
 
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
     /* Exceptions cause us to simply snip the connection */
-    (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
+    if(restc) {
+      (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
+    } else {
+      eventer_close(e, &mask);
+    }
     mtev_acceptor_closure_free(ac);
     return 0;
   }
