@@ -4,6 +4,9 @@
 
 ## 1.7
 
+ * Add mtev_memory_in_cs() to determine if the caller is inside a
+   mtev_memory_{begin,end} block.
+
 ### 1.7.2
 
  * mtev_memory_safe_free now performs just-in-time epoch allocation.

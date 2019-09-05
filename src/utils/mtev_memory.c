@@ -171,6 +171,10 @@ void mtev_memory_init_epoch(void) {
   }
 }
 
+mtev_boolean mtev_memory_in_cs(void) {
+  return section->begin_end != 0;
+}
+
 void mtev_memory_fini_thread(void) {
   mtevL(mem_debug, "mtev_memory_fini_thread()\n");
   if(epoch_rec == NULL) {
