@@ -4,6 +4,9 @@
 
 ## 1.7
 
+ * Allow eventer_aco_start from a non-eventer thread (or before eventer_init)
+   for convenience. It will schedule delay and run on e:default/0.
+
 ### 1.7.2
 
  * mtev_memory_safe_free now performs just-in-time epoch allocation.
