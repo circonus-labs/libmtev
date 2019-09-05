@@ -6,6 +6,8 @@
 
  * Add mtev_memory_in_cs() to determine if the caller is inside a
    mtev_memory_{begin,end} block.
+ * Allow eventer_aco_start from a non-eventer thread (or before eventer_init)
+   for convenience. It will schedule delay and run on e:default/0.
 
 ### 1.7.2
 

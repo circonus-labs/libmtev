@@ -1463,9 +1463,33 @@ void eventer_aco_free(eventer_aco_t e) {
   eventer_free((eventer_t)e);
 }
 
+struct rehome_helper {
+  void (*func)(void);
+  size_t stksz;
+  void *closure;
+};
+
+static int
+eventer_aco_rehome_start(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  struct rehome_helper *rh = (struct rehome_helper *)closure;
+  eventer_aco_start_stack(rh->func, rh->closure, rh->stksz);
+  free(rh);
+  return 0;
+}
+
 void eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz) {
   struct eventer_impl_data *t = get_my_impl_data();
-  mtevAssert(t);
+  if(t == NULL) {
+    struct rehome_helper *rh = calloc(1, sizeof(*rh));
+    rh->func = func;
+    rh->closure = closure;
+    rh->stksz = stksz;
+    eventer_add_in_s_us(eventer_aco_rehome_start, rh, 0, 0);
+    return;
+  }
   eventer_aco_setup(t);
   struct aco_cb_ctx *ctx = calloc(1, sizeof(*ctx));
   ctx->closure = closure;
