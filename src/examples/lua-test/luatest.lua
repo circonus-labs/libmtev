@@ -4,12 +4,14 @@ local pairs = pairs
 local mtev = mtev
 local nthreads = mtev.eventer_loop_concurrency()
 local require = require
+local ffi = require("ffi")
 
 module('luatest')
 
 function job(space, tid)
   mtev.log("error", "Job '%s' running in thread %d\n", space, tid)
 end
+
 function onethread()
   local thread, tid = mtev.thread_self()
   job("MAIN", tid)

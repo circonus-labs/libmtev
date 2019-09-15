@@ -381,7 +381,7 @@ static void dns_resume(dns_lookup_ctx_t *dlc) {
       dlc->in_lua_direct = 1;
       dlc->in_lua_nrr = nrr;
     }
-    else dlc->ci->lmc->resume(dlc->ci, nrr);
+    else mtev_lua_lmc_resume(dlc->ci->lmc, dlc->ci, nrr);
   }
   lookup_ctx_release(dlc);
 }

@@ -69,6 +69,14 @@
 #include "android-demangle/demangle.h"
 #include "android-demangle/cp-demangle.h"
 
+MTEV_HOOK_IMPL(mtev_stacktrace_frame,
+               (void (*cb)(void *, const char *, size_t), void *cb_closure,
+                uintptr_t pc, const char *file, const char *func, int frame, int nframes),
+               void *, closure,
+               (void *closure, void (*cb)(void *, const char *, size_t), void *cb_closure,
+                uintptr_t pc, const char *file, const char *func, int frame, int nframes),
+               (closure, cb, cb_closure, pc, file, func, frame, nframes));
+
 static mtev_boolean (*global_file_filter)(const char *);
 static mtev_boolean (*global_file_symbol_filter)(const char *);
 
@@ -554,8 +562,15 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
   return 0;
 }
 #else
-static int _global_stack_trace_fd = -1;
+static __thread int _global_stack_trace_fd = -1;
 #endif
+
+static void append_global_stacktrace(void *closure, const char *line, size_t line_len) {
+  mtev_log_stream_t ls = closure;
+  if(write(_global_stack_trace_fd, line, line_len) < 0) {
+    mtevL(ls, "Error recording stacktrace.\n");
+  }
+}
 
 static void
 mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
@@ -597,6 +612,8 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
       int len = 0;
       ssize_t info_off = 0;
       struct line_info *info = find_line((uintptr_t)callstack[i], &info_off);
+      const char *fname = NULL;
+      const char *sname = NULL;
 #if defined(linux) || defined(__linux) || defined(__linux__)
       struct link_map *map;
       if(dladdr1((void *)callstack[i], &dlip, (void **)&map, RTLD_DL_LINKMAP)) {
@@ -610,8 +627,8 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
 #else
       if(dladdr((void *)callstack[i], &dlip)) {
 #endif
-        const char *fname = dlip.dli_fname;
-        const char *sname = dlip.dli_sname ? dlip.dli_sname : "";
+        fname = dlip.dli_fname;
+        sname = dlip.dli_sname ? dlip.dli_sname : "";
         char buff[256];
         buff[0] = '\0';
         if(info) {
@@ -635,6 +652,10 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
       if(write(_global_stack_trace_fd, stackbuff, len) < 0) {
         mtevL(ls, "Error recording stacktrace.\n");
       }
+      if(mtev_stacktrace_frame_hook_invoke(append_global_stacktrace, NULL,
+                                           (uintptr_t)callstack[i], fname, sname,
+                                           i, frames) == MTEV_HOOK_ABORT) break;
+      stackbuff[0] = '\0';
     }
     memset(&sb, 0, sizeof(sb));
     while((i = fstat(_global_stack_trace_fd, &sb)) == -1 && errno == EINTR);

@@ -239,7 +239,7 @@ nl_resume(eventer_t e, int mask, void *vcl, struct timeval *now) {
         return 0;
     }
     mtev_lua_deregister_event(ci, e, 0);
-    ci->lmc->resume(ci, 1);
+    mtev_lua_lmc_resume(ci->lmc, ci, 1);
     return 0;
 }
 
@@ -322,7 +322,7 @@ mtev_lua_socket_connect_complete(eventer_t e, int mask, void *vcl,
     lua_pushstring(cl->L, strerror(aerrno));
     args = 2;
   }
-  ci->lmc->resume(ci, args);
+  mtev_lua_lmc_resume(ci->lmc, ci, args);
   return 0;
 }
 static int
@@ -378,7 +378,7 @@ mtev_lua_socket_recv_complete(eventer_t e, int mask, void *vcl,
   *(cl->eptr) = eventer_alloc_copy(e);
   eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
-  ci->lmc->resume(ci, args);
+  mtev_lua_lmc_resume(ci->lmc, ci, args);
   return 0;
 }
 static int
@@ -480,7 +480,7 @@ mtev_lua_socket_send_complete(eventer_t e, int mask, void *vcl,
   *(cl->eptr) = eventer_alloc_copy(e);
   eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
-  ci->lmc->resume(ci, args);
+  mtev_lua_lmc_resume(ci->lmc, ci, args);
   return 0;
 }
 static int
@@ -728,7 +728,7 @@ mtev_lua_socket_accept_complete(eventer_t e, int mask, void *vcl,
   *(cl->eptr) = eventer_alloc_copy(e);
   eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
-  ci->lmc->resume(ci, nargs);
+  mtev_lua_lmc_resume(ci->lmc, ci, nargs);
   return 0;
 }
 
@@ -998,7 +998,7 @@ socket_connect_timeout(eventer_t e, int mask, void *closure, struct timeval *now
   // return into the original Lua call which spawned this timeout
   lua_pushinteger(L, -1);
   lua_pushstring(L, "timeout");
-  ci->lmc->resume(ci, 2);
+  mtev_lua_lmc_resume(ci->lmc, ci, 2);
 
   mtev_lua_deregister_event(ci, e, 1);
   return 0;
@@ -1152,7 +1152,7 @@ mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
   eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
 
-  ci->lmc->resume(ci, nargs);
+  mtev_lua_lmc_resume(ci->lmc, ci, nargs);
   return 0;
 }
 static int
@@ -1308,7 +1308,7 @@ mtev_lua_socket_read_complete(eventer_t e, int mask, void *vcl,
   mtev_lua_deregister_event(ci, e, 0);
   *(cl->eptr) = eventer_alloc_copy(e);
   mtev_lua_register_event(ci, *cl->eptr);
-  ci->lmc->resume(ci, args);
+  mtev_lua_lmc_resume(ci->lmc, ci, args);
   return 0;
 }
 
@@ -1340,7 +1340,7 @@ socket_read_timeout(eventer_t e, int mask, void *closure, struct timeval *now) {
 
   // return into the original Lua call which spawned this timeout
   lua_pushnil(L);
-  ci->lmc->resume(ci, 1);
+  mtev_lua_lmc_resume(ci->lmc, ci, 1);
 
   mtev_lua_deregister_event(ci, e, 1);
 
@@ -1498,7 +1498,7 @@ mtev_lua_socket_write_complete(eventer_t e, int mask, void *vcl,
   *(cl->eptr) = eventer_alloc_copy(e);
   eventer_set_mask(*cl->eptr, 0);
   mtev_lua_register_event(ci, *cl->eptr);
-  ci->lmc->resume(ci, args);
+  mtev_lua_lmc_resume(ci->lmc, ci, args);
   return 0;
 }
 static int
@@ -2216,7 +2216,7 @@ nl_waitfor_ping(eventer_t e, int mask, void *vcl, struct timeval *now) {
     mtev_hash_delete(ci->lmc->pending, q->key, strlen(q->key), free, free);
   }
 
-  ci->lmc->resume(ci, available_nargs);
+  mtev_lua_lmc_resume(ci->lmc, ci, available_nargs);
   return 0;
 }
 
@@ -2270,7 +2270,7 @@ nl_waitfor_notify(lua_State *L) {
       }
       q->pending_event = NULL;
     }
-    ci->lmc->resume(ci, nargs);
+    mtev_lua_lmc_resume(ci->lmc, ci, nargs);
     return 0;
   }
   else {
@@ -2324,7 +2324,7 @@ nl_waitfor_timeout(eventer_t e, int mask, void *vcl, struct timeval *now) {
     mtev_hash_delete(ci->lmc->pending, q->key, strlen(q->key), free, free);
   }
 
-  ci->lmc->resume(ci, available_nargs);
+  mtev_lua_lmc_resume(ci->lmc, ci, available_nargs);
   return 0;
 }
 
@@ -2420,7 +2420,7 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_push_timeval(cl->L, diff);
 
   free(cl);
-  ci->lmc->resume(ci, 1);
+  mtev_lua_lmc_resume(ci->lmc, ci, 1);
   return 0;
 }
 
@@ -4973,7 +4973,7 @@ mtev_lua_process_wait_wakeup(eventer_t e, int mask, void *vcl, struct timeval *n
   if(compare_timeval(cl->deadline, *now) < 0) cl->deadline.tv_sec = 0;
   rv = mtev_lua_process_wait_ex(cl, mtev_false);
   free(cl);
-  if(rv >= 0) ci->lmc->resume(ci, rv);
+  if(rv >= 0) mtev_lua_lmc_resume(ci->lmc, ci, rv);
   return 0;
 }
 static int

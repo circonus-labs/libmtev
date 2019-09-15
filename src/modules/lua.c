@@ -33,6 +33,7 @@
 
 #include "mtev_defines.h"
 #include "mtev_json.h"
+#include "mtev_stacktrace.h"
 #include <ck_pr.h>
 
 #include <unistd.h>
@@ -197,10 +198,40 @@ mtev_lua_lmc_free(lua_module_closure_t *lmc) {
   free(lmc);
 }
 
+static __thread lua_State *tls_active_lua_state = NULL;
+static __thread bool assist_fired;
+
+static mtev_hook_return_t
+mtev_lua_stacktrace_assist(void *closure, void (*cb)(void *, const char *, size_t), void *cb_closure,
+                           uintptr_t pc, const char *fname, const char *sname, int frame, int nframes) {
+  (void)closure;
+  (void)pc;
+  (void)sname;
+  if(frame == 0) assist_fired = false;
+  if(tls_active_lua_state == NULL) return MTEV_HOOK_CONTINUE;
+  if(!assist_fired && NULL != fname && NULL != strstr(fname, "libluajit")) {
+    if(tls_active_lua_state) {
+      mtev_luaL_traceback(cb, cb_closure, tls_active_lua_state,
+                          "-- mtev lua runtime stacktrace --", 0);
+      assist_fired = true;
+    }
+  }
+  if(frame == nframes-1 && !assist_fired && tls_active_lua_state) {
+    mtev_luaL_traceback(cb, cb_closure, tls_active_lua_state,
+                        "-- mtev lua runtime stacktrace --", 0);
+    assist_fired = true;
+  }
+  return MTEV_HOOK_CONTINUE;
+}
 int
 mtev_lua_lmc_resume(lua_module_closure_t *lmc,
                     mtev_lua_resume_info_t *ri, int nargs) {
-  return lmc->resume(ri, nargs);
+  int rv;
+  lua_State *previous = tls_active_lua_state;
+  tls_active_lua_state = ri->coro_state;
+  rv = lmc->resume(ri, nargs);
+  tls_active_lua_state = previous;
+  return rv;
 }
 
 lua_State *
@@ -1058,7 +1089,7 @@ mtev_lua_coroutine_spawn(lua_State *Lp,
 #if !defined(LUA_JITLIBNAME) && LUA_VERSION_NUM < 502
   lua_setlevel(Lp, L);
 #endif
-  ri->lmc->resume(ri, nargs-1);
+  mtev_lua_lmc_resume(ri->lmc, ri, nargs-1);
   return 0;
 }
 
@@ -1181,6 +1212,7 @@ void
 mtev_lua_init_globals(void) {
   mtev_hash_init(&mtev_lua_states);
   mtev_hash_init(&mtev_coros);
+  mtev_stacktrace_frame_hook_register("mtev_lua", mtev_lua_stacktrace_assist, NULL);
   eventer_name_callback("mtev_lua_gc_callback", mtev_lua_gc_callback);
   lua_stats_ns = mtev_stats_ns(mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "modules"), "lua");
   stats_ns_add_tag(lua_stats_ns, "mtev-module", "lua");
