@@ -141,16 +141,19 @@ struct aco_s{
 #endif
 #ifndef ACO_USE_ASAN
   #if defined(__SANITIZE_ADDRESS__)
-    #define ACO_USE_ASANS
+    #define ACO_USE_ASAN
   #elif defined(__clang__) && defined(__has_feature)
     #if __has_feature(address_sanitizer)
-      #define ACO_USE_ASANS
+      #define ACO_USE_ASAN
     #endif
   #endif
 #endif
 #if defined(ACO_USE_ASAN)
     #if defined(__has_feature)
-        #if __has_feature(__address_sanitizer__)
+        #if __has_feature(no_sanitize)
+            #define aco_attr_no_asan \
+                __attribute__((no_sanitize("address")))
+        #elif __has_feature(__address_sanitizer__)
             #define aco_attr_no_asan \
                 __attribute__((__no_sanitize_address__))
         #endif

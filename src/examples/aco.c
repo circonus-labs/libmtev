@@ -174,6 +174,13 @@ listen_to_me(void) {
   eventer_aco_free(e);
 }
 
+static void
+ping(void) {
+  while(1) {
+    mtevL(mtev_error, "ping...\n");
+    eventer_aco_sleep(&(struct timeval){ 1UL, 0UL });
+  }
+}
 static int
 child_main(void) {
   /* reload out config, to make sure we have the most current */
@@ -229,6 +236,10 @@ child_main(void) {
     "GET", "/", "^(.*)$", mtev_rest_simple_file_handler,
            mtev_http_rest_client_cert_auth
   );
+
+  /* Two pings to make sure stack switching is all good */
+  eventer_aco_start(ping, NULL);
+  eventer_aco_start(ping, NULL);
 
   /* Lastly, spin up the event loop */
   eventer_loop();

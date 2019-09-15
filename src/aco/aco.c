@@ -146,6 +146,19 @@ void aco_runtime_test(void){
 } while(0)
 
 // Note: dst and src must be valid address already
+#if defined(ACO_USE_ASAN)
+/* When ASAN is on, the memcpy will stomp on the stack and the no_sanitize attribute
+ * doesn't suppress the issue.  So, for ASAN builds we just inlind the memcpy as a
+ * for loop.
+ */
+#define aco_amd64_optimized_memcpy_drop_in(dst, src, sz) do {\
+    if(aco_amd64_inline_short_aligned_memcpy_test_ok((dst), (src), (sz))){ \
+        aco_amd64_inline_short_aligned_memcpy((dst), (src), (sz)); \
+    }else{ \
+        for(size_t i=0; i<(sz); i++) ((uint8_t *)(dst))[i] = ((uint8_t *)(src))[i]; \
+    } \
+} while(0)
+#else
 #define aco_amd64_optimized_memcpy_drop_in(dst, src, sz) do {\
     if(aco_amd64_inline_short_aligned_memcpy_test_ok((dst), (src), (sz))){ \
         aco_amd64_inline_short_aligned_memcpy((dst), (src), (sz)); \
@@ -153,6 +166,7 @@ void aco_runtime_test(void){
         memcpy((dst), (src), (sz)); \
     } \
 } while(0)
+#endif
 
 static void aco_default_protector_last_word(void){
     aco_t* co = aco_get_co();
