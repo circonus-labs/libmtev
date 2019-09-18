@@ -44,6 +44,12 @@
 #define sk_OPENSSL_STRING_num sk_num
 #endif
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#ifndef OPENSSL_STACK
+#define OPENSSL_STACK void
+#endif
+#endif
+
 #ifndef sk_OPENSSL_STRING_value
 #define sk_OPENSSL_STRING_value sk_value
 #endif
@@ -84,7 +90,7 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
   cert = *((X509 **)udata);
   if(!strcmp(k, "signature_algorithm")) {
     int nid;
-    nid = OBJ_obj2nid(cert->sig_alg->algorithm);
+    nid = X509_get_signature_nid(cert);
     lua_pushstring(L, OBJ_nid2sn(nid));
     return 1;
   }
@@ -115,6 +121,7 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
     return 1;
   }
   if(!strcmp(k, "bits")) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     EVP_PKEY *pkey;
     pkey = X509_get_pubkey(cert);
     if (pkey == NULL) return 0;
@@ -125,13 +132,20 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
     else lua_pushnil(L);
     EVP_PKEY_free(pkey);
     return 1;
+#else
+    int pknid, mdnid, secbits;
+    uint32_t flags;
+    if(X509_get_signature_info(cert, &mdnid, &pknid, &secbits, &flags) != 1) return 0;
+    lua_pushinteger(L, secbits);
+    return 1;
+#endif
   }
   if(!strcmp(k, "type")) {
     EVP_PKEY *pkey;
     pkey = X509_get_pubkey(cert);
     if (pkey == NULL) return 0;
-    else if (pkey->type == EVP_PKEY_RSA) lua_pushstring(L, "rsa");
-    else if (pkey->type == EVP_PKEY_DSA) lua_pushstring(L, "dsa");
+    else if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA) lua_pushstring(L, "rsa");
+    else if (EVP_PKEY_id(pkey) == EVP_PKEY_DSA) lua_pushstring(L, "dsa");
     else lua_pushstring(L, "unknown");
     EVP_PKEY_free(pkey);
     return 1;
@@ -139,8 +153,8 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
   if(!strcmp(k, "ocsp")) {
     STACK_OF(OPENSSL_STRING) *emlst;
     emlst = X509_get1_ocsp(cert);
-    for (j = 0; j < sk_OPENSSL_STRING_num(emlst); j++) {
-      lua_pushstring(L, sk_OPENSSL_STRING_value(emlst, j));
+    for (j = 0; j < sk_OPENSSL_STRING_num((OPENSSL_STACK *)emlst); j++) {
+      lua_pushstring(L, sk_OPENSSL_STRING_value((OPENSSL_STACK *)emlst, j));
     }
     X509_email_free(emlst);
     return j;
@@ -192,20 +206,24 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
   switch(*k) {
     case 'c':
       if(!strcmp(k, "cipher")) {
-        if(ssl_session->cipher == NULL) {
-          if (((ssl_session->cipher_id) & 0xff000000) == 0x02000000)
-            lua_pushinteger(L, ssl_session->cipher_id & 0xffffff);
-          else
-            lua_pushinteger(L, ssl_session->cipher_id & 0xffff);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+        if(ssl_session->cipher == NULL) return 0;
+        lua_pushstring(L, ssl_session->cipher->name ? ssl_session->cipher->name : "unknown");
+        return 1;
+#else
+        if(SSL_SESSION_get0_cipher(ssl_session) == NULL) {
+          lua_pushnil(L);
         }
         else {
-          lua_pushstring(L, ssl_session->cipher->name ?
-                              ssl_session->cipher->name : "unknown");
+          lua_pushstring(L, SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(ssl_session)) ?
+                              SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(ssl_session)) : "unknown");
         }
         return 1;
+#endif
       }
       break;
     case 'm':
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
       if(!strcmp(k, "master_key")) {
         lua_pushlstring(L, (char *)ssl_session->master_key,
                         ssl_session->master_key_length);
@@ -215,7 +233,24 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
         lua_pushinteger(L, ssl_session->master_key_length * 8);
         return 1;
       }
+#else
+      if(!strcmp(k, "master_key")) {
+        size_t keylen = SSL_SESSION_get_master_key(ssl_session, NULL, 0);
+        if(keylen <= 0) lua_pushnil(L);
+        else {
+          unsigned char mkey[keylen];
+          keylen = SSL_SESSION_get_master_key(ssl_session, mkey, keylen);
+          lua_pushlstring(L, (char *)mkey, keylen);
+        }
+        return 1;
+      }
+      if(!strcmp(k, "master_key_bits")) {
+        size_t keylen = SSL_SESSION_get_master_key(ssl_session, NULL, 0);
+        lua_pushinteger(L, keylen * 8);
+        return 1;
+      }
       break;
+#endif
     case 'r':
       if(!strcmp(k, "release")) {
         lua_pushlightuserdata(L, udata);
@@ -225,18 +260,23 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
       break;
     case 's':
       if(!strcmp(k, "ssl_version")) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+        int ssl_version = ssl_session->ssl_version;
+#else
+        int ssl_version = SSL_SESSION_get_protocol_version(ssl_session);
+#endif
         const char *s = "unknown";
-        if (ssl_session->ssl_version == SSL2_VERSION) s="SSLv2";
-        else if (ssl_session->ssl_version == SSL3_VERSION) s="SSLv3";
+        if (ssl_version == SSL2_VERSION) s="SSLv2";
+        else if (ssl_version == SSL3_VERSION) s="SSLv3";
 #ifdef TLS1_2_VERSION
-        else if (ssl_session->ssl_version == TLS1_2_VERSION) s="TLSv1.2";
+        else if (ssl_version == TLS1_2_VERSION) s="TLSv1.2";
 #endif
 #ifdef TLS1_1_VERSION
-        else if (ssl_session->ssl_version == TLS1_1_VERSION) s="TLSv1.1";
+        else if (ssl_version == TLS1_1_VERSION) s="TLSv1.1";
 #endif
-        else if (ssl_session->ssl_version == TLS1_VERSION) s="TLSv1";
-        else if (ssl_session->ssl_version == DTLS1_VERSION) s="DTLSv1";
-        else if (ssl_session->ssl_version == DTLS1_BAD_VER) s="DTLSv1-bad";
+        else if (ssl_version == TLS1_VERSION) s="TLSv1";
+        else if (ssl_version == DTLS1_VERSION) s="DTLSv1";
+        else if (ssl_version == DTLS1_BAD_VER) s="DTLSv1-bad";
         lua_pushstring(L, s);
         return 1;
       }
@@ -576,8 +616,7 @@ static int __attribute__((unused)) mtev_lua_crypto_bn_##name(lua_State *L) { \
 static int mtev_lua_crypto_bn_is_negative(lua_State *L) {
   BN_METH_DECL_INT(0);
   lua_pushboolean(L, BN_is_negative(bn));
-  lua_pushboolean(L, bn->neg ? 1 : 0);
-  return 2;
+   return 1;
 }
 static int mtev_lua_crypto_bn_set_negative(lua_State *L) {
   BN_METH_DECL_INT(1);
@@ -936,8 +975,11 @@ mtev_lua_crypto_pseudo_rand_bytes(lua_State *L) {
     ptr = malloc(nbytes);
     if(!ptr) luaL_error(L, "crypto.pseudo_rand_bytes out-of-memory");
   }
-
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
   if(RAND_pseudo_bytes(buff, nbytes) == 0) {
+#else
+  if(RAND_bytes(buff, nbytes) == 0) {
+#endif
     if(ptr != buff) free(ptr);
     errstr = ERR_error_string(ERR_get_error(), errbuf);
     luaL_error(L, errstr ? errstr : "unknown crypto error");
