@@ -85,6 +85,9 @@ void mtev_luaL_traceback (void (*cb)(void *, const char *, size_t), void *closur
 
 void mtev_luaL_traceback (void (*cb)(void *, const char *, size_t), void *closure,
                           lua_State *L1, const char *msg, int level) {
+  (void)L1;
+  (void)msg;
+  (void)level;
   cb(closure, "\tlua internals disabled\n", strlen("\tlua internals disabled\n"));
 }
 
