@@ -409,8 +409,9 @@ AS_IF([test "x$ENABLE_LUA" = "xluajit"], [
     AC_MSG_CHECKING([LuaJIT CFLAGS])
     LUAJIT_CFLAGS=`pkg-config --cflags luajit 2>/dev/null`
 
+    AC_CHECK_HEADER(lj_obj.h, [AC_DEFINE(HAVE_LUAJIT_SOURCE, [1], [have luajit sources])], [AC_MSG_WARN([*** no libluajit source build in include path ***])])
     CFLAGS="$CFLAGS $LUAJIT_CFLAGS"
-    AC_MSG_RESULT([$LUAJIT_CFLAGS])
+    AC_MSG_RESULT([checking luajit CFLAGS: $LUAJIT_CFLAGS])
 
     AC_CHECK_LIB(luajit-5.1, luaL_newstate, [],
                     [AC_MSG_ERROR([*** libluajit-5.1 required ***])])

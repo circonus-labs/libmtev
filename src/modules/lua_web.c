@@ -263,7 +263,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   if(conne) eventer_remove_fde(conne);
   restc->fastpath = lua_web_restc_fastpath;
 
-  status = lmc->resume(ri, 2);
+  status = mtev_lua_lmc_resume(lmc, ri, 2);
   if(status == 0) return 0;
 
   if(mtev_http_response_complete(res) != mtev_true) {

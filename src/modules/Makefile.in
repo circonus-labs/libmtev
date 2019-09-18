@@ -107,7 +107,8 @@ amqp.@MODULEEXT@:	MODLIBS += -lrabbitmq
 amqp.@MODULEEXT@:	mtev_amqp.lo
 	$(modulelink)
 
-LUA_MODULE_OBJS=lua.lo lua_web.lo lua_general.lo lua_mtev_http.lo
+LUA_MODULE_OBJS=lua.lo lua_web.lo lua_general.lo lua_mtev_http.lo \
+	lua_mtev_traceback.lo
 
 lua_general.lo:	lua_general.xmlh
 lua_web.lo:	lua_web.xmlh

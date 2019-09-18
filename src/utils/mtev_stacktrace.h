@@ -33,6 +33,7 @@
 
 #include "mtev_defines.h"
 #include "mtev_log.h"
+#include "mtev_hooks.h"
 #include "aco/aco.h"
 
 API_EXPORT(void)
@@ -64,5 +65,12 @@ API_EXPORT(void)
 
 API_EXPORT(void)
   mtev_dwarf_filter_symbols(mtev_boolean (*f)(const char *file));
+
+MTEV_HOOK_PROTO(mtev_stacktrace_frame,
+                (void (*cb)(void *, const char *, size_t), void *cb_closure,
+                 uintptr_t pc, const char *file, const char *func, int frame, int nframes),
+                void *, closure,
+                (void *closure, void (*cb)(void *, const char *, size_t), void *cb_closure,
+                 uintptr_t pc, const char *file, const char *func, int frame, int nframes))
 
 #endif

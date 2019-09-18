@@ -70,6 +70,9 @@ API_EXPORT(void) mtev_lua_set_gc_params(lua_module_closure_t *, lua_module_gc_pa
 API_EXPORT(void) mtev_lua_gc(lua_module_closure_t *);
 API_EXPORT(void) mtev_lua_gc_full(lua_module_closure_t *);
 
+API_EXPORT(void)
+  mtev_luaL_traceback(void (*cb)(void *, const char *, size_t), void *closure,
+                      lua_State *L1, const char *msg, int level);
 /*! \fn lua_module_closure_t *mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_info_t *resume)
     \brief Allocated and initialize a `lua_module_closure_t` for a new runtime.
     \param self the module implementing a custom lua runtime environment

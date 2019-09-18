@@ -223,7 +223,7 @@ lua_general_handler_ex(mtev_dso_generic_t *self,
     goto boom;
   }
 
-  status = lmc->resume(ri, 0);
+  status = mtev_lua_lmc_resume(lmc, ri, 0);
   if(status == 0) return 0;
   /* If we've failed, resume has freed ri, so we should just return. */
   mtevL(nlerr, "lua dispatch error: %d\n", status);
