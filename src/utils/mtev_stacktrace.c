@@ -550,11 +550,41 @@ mtev_print_stackline(mtev_log_stream_t ls, uintptr_t self,
  print:
   mtevL(ls, "t@%"PRIu64"%s> %s\n", self, extra_thr ? extra_thr : "", addrpostline);
 }
+#if !defined(__sun__)
+static __thread int _global_stack_trace_fd = -1;
+#endif
+static void append_global_stacktrace(void *closure, const char *line, size_t line_len) {
 #if defined(__sun__)
+  mtev_log_stream_t ls = closure;
+  mtevL(ls, "%.*s", (int)line_len, line);
+#else
+  mtev_log_stream_t ls = closure;
+  if(write(_global_stack_trace_fd, line, line_len) < 0) {
+    mtevL(ls, "Error recording stacktrace.\n");
+  }
+#endif
+}
+
+#if defined(__sun__)
+struct walkinfo {
+  mtev_log_stream_t ls;
+  int frame;
+  int nframes;
+  int stop;
+};
+int mtev_simple_stack_frame_count(uintptr_t pc, int sig, void *usrarg) {
+  (void)pc;
+  (void)sig;
+  struct walkinfo *wi = usrarg;
+  wi->nframes++;
+  return 0;
+}
 int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
   (void)sig;
   lwpid_t self;
-  mtev_log_stream_t ls = usrarg;
+  struct walkinfo *wi = usrarg;
+  if(wi->stop) return 0;
+  mtev_log_stream_t ls = wi->ls;
   char addrpreline[16384];
   self = _lwp_self();
   addrtosymstr((void *)pc, addrpreline, sizeof(addrpreline));
@@ -569,31 +599,37 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
       snprintf(buff, sizeof(buff), "\t(%s:%d)", info->file, info->lineno);
     mtev_print_stackline(ls, self, NULL, buff);
   }
+  char *symname = strchr(addrpreline, '\'');
+  if(symname) *symname++ = '\0';
+  if(mtev_stacktrace_frame_hook_invoke(append_global_stacktrace, NULL,
+                                       (uintptr_t)pc, addrpreline, symname,
+                                       wi->frame++, wi->nframes) == MTEV_HOOK_ABORT) {
+    wi->stop = 1;
+  }
   return 0;
 }
-#else
-static __thread int _global_stack_trace_fd = -1;
 #endif
-
-static void append_global_stacktrace(void *closure, const char *line, size_t line_len) {
-  mtev_log_stream_t ls = closure;
-  if(write(_global_stack_trace_fd, line, line_len) < 0) {
-    mtevL(ls, "Error recording stacktrace.\n");
-  }
-}
 
 static void
 mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
-                         const char *extra_thr, void **callstack, int frames) {
+                         const char *extra_thr, void *vucp, void **callstack, int frames) {
 #if defined(__sun__)
   (void)caller;
   (void)callstack;
   (void)frames;
+  struct walkinfo walkinfo = { ls, 0, 0, 0 };
   ucontext_t ucp;
   getcontext(&ucp);
   mtevL(ls, "STACKTRACE(%d%s):\n", getpid(), extra_thr);
-  walkcontext(&ucp, mtev_simple_stack_print, ls);
+  walkcontext(vucp ? vucp : &ucp, mtev_simple_stack_frame_count, &walkinfo);
+  if(walkinfo.nframes <= 1) {
+    vucp = &ucp;
+    walkinfo.nframes = 0;
+    walkcontext(vucp ? vucp : &ucp, mtev_simple_stack_frame_count, &walkinfo);
+  }
+  walkcontext(vucp ? vucp : &ucp, mtev_simple_stack_print, &walkinfo);
 #else
+  (void)vucp;
   if(_global_stack_trace_fd < 0) {
     /* Last ditch effort to open this up */
     /* This is Async-Signal-Safe (at least on Illumos) */
@@ -721,10 +757,17 @@ int mtev_backtrace(void **callstack, int cnt) {
 #endif
   return frames;
 }
+#if defined(__sun__)
+void mtev_stacktrace_ucontext(mtev_log_stream_t ls, ucontext_t *ucp) {
+  void* callstack[128];
+  int frames = mtev_backtrace(callstack, 128);
+  mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, (void *)ucp, callstack, frames);
+}
+#endif
 void mtev_stacktrace(mtev_log_stream_t ls) {
   void* callstack[128];
   int frames = mtev_backtrace(callstack, 128);
-  mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, callstack, frames);
+  mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack, frames);
 }
 
 int
@@ -733,7 +776,7 @@ mtev_aco_stacktrace(mtev_log_stream_t ls, aco_t *co) {
   char extra_thr[32];
   int cnt = mtev_aco_backtrace(co, ips, sizeof(ips)/sizeof(*ips));
   snprintf(extra_thr, sizeof(extra_thr), "/%" PRIx64, (uintptr_t)co);
-  mtev_stacktrace_internal(ls, mtev_aco_stacktrace, extra_thr, ips, cnt);
+  mtev_stacktrace_internal(ls, mtev_aco_stacktrace, extra_thr, NULL, ips, cnt);
   return cnt;
 }
 

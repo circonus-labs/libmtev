@@ -9,7 +9,7 @@
 #include "mtev_defines.h"
 #include <stdio.h>
 
-#ifdef HAVE_LUAJIT_SOURCE
+#if defined(HAVE_LUAJIT_SOURCE) && !defined(__sun__)
 #include "lj_obj.h"
 #include "lj_err.h"
 #include "lj_debug.h"

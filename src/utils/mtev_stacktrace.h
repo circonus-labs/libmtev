@@ -40,8 +40,9 @@ API_EXPORT(void)
   mtev_stacktrace(mtev_log_stream_t ls);
 
 #if defined(__sun__)
-API_EXPORT(int)
-  mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg);
+#include <ucontext.h>
+API_EXPORT(void)
+  mtev_stacktrace_ucontext(mtev_log_stream_t ls, ucontext_t *);
 #endif
 
 API_EXPORT(int)

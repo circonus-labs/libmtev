@@ -398,7 +398,7 @@ void mtev_watchdog_on_crash_close_add_fd(int fd) {
 void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
 #if defined(__sun__)
   (void)si;
-  walkcontext(uc, mtev_simple_stack_print, mtev_error);
+  mtev_stacktrace_ucontext(mtev_error, uc);
 #else
   (void)si;
   (void)uc;
@@ -450,7 +450,7 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
 
     /* attempt a simple stack trace */
 #if defined(__sun__)
-    walkcontext(uc, mtev_simple_stack_print, mtev_error);
+    mtev_stacktrace_ucontext(mtev_error, uc);
 #else
     (void)uc;
     mtev_stacktrace(mtev_error);
