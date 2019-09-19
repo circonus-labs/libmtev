@@ -351,7 +351,6 @@ const char *eventer_name_for_callback(eventer_func_t f) {
   return eventer_name_for_callback_e(f, NULL);
 }
 stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f) {
-return NULL;
   struct callback_details *cd, key = { .fptr = (void *)f };
   unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, &key);
   cd = (struct callback_details *)ck_hs_get(&__func_to_name, hash, &key);
