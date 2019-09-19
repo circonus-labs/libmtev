@@ -426,6 +426,11 @@ mtev_dwarf_walk_map(void (*f)(const char *, uintptr_t)) {
 #else
 #endif
 }
+#else
+const char *mtev_function_name(uintptr_t addr) {
+  (void)addr;
+  return NULL;
+}
 #endif
 
 void
@@ -436,6 +441,7 @@ void
 mtev_dwarf_filter_symbols(mtev_boolean (*f)(const char *file)) {
   global_file_symbol_filter = f;
 }
+#ifdef HAVE_LIBDWARF
 static int loc_comp(const void *va, const void *vb) {
   const struct symnode *a = va;
   const struct symnode *b = vb;
@@ -450,6 +456,7 @@ static int loc_comp_key(const void *vakey, const void *vb) {
   if(*akey == b->low) return 0;
   return 1;
 }
+#endif
 void
 mtev_dwarf_refresh(void) {
 #ifdef HAVE_LIBDWARF
@@ -486,6 +493,9 @@ find_line(uintptr_t addr, ssize_t *offset) {
     uintptr_t faddr = found->addr + node->base;
     *offset = addr > faddr ? (ssize_t)(addr - faddr) : (ssize_t)(-1 * (faddr - addr));
   }
+#else
+  (void)addr;
+  (void)offset;
 #endif
   return found;
 }
