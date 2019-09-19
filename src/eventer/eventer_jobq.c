@@ -769,7 +769,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     /* Safely check and handle if we've timed out while in queue */
     pthread_mutex_lock(&job->lock);
     if(job->timeout_triggered) {
-      uint64_t start;
+      volatile uint64_t start;
       struct timeval diff;
       /* This happens if the timeout occurred before we even had the change
        * to pull the job off the queue.  We must be in bad shape here.
@@ -831,7 +831,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
             pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
           }
           /* run the job */
-          uint64_t start;
+          volatile uint64_t start;
           struct timeval start_time;
           mtev_gettimeofday(&start_time, NULL);
           mtevL(eventer_deb, "jobq[%s] -> dispatch BEGIN\n", jobq->queue_name);
@@ -878,7 +878,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
       /* threaded issue, need to recheck. */
       /* coverity[check_after_deref] */
       if(job->fd_event) {
-        uint64_t start;
+        volatile uint64_t start;
         stats_handle_t *lat = eventer_latency_handle_for_callback(job->fd_event->callback);
         current_job = job;
         LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
