@@ -370,13 +370,14 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   spec = eventer_get_spec_for_event(e);
   mtevLT(eventer_deb, &__now, "epoll(%d): fire on %d/%x to %s(%p)\n",
          spec->epoll_fd, fd, mask, cbname?cbname:"???", e->callback);
+  stats_handle_t *lat = eventer_latency_handle_for_callback(e->callback);
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
   start = mtev_gethrtime();
   newmask = eventer_run_callback(e->callback, e, mask, e->closure, &__now);
   duration = mtev_gethrtime() - start;
   LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
   stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
-  stats_set_hist_intscale(eventer_latency_handle_for_callback(e->callback), duration, -9, 1);
+  if(lat) stats_set_hist_intscale(lat, duration, -9, 1);
 
   if(newmask) {
     struct epoll_event _ev;
