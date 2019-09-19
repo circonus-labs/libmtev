@@ -447,7 +447,7 @@ ptrim(char *orig, mtev_boolean *is_ptr) {
 }
 #define MAX_VARARGS 10
 static int
-lua_hook_varargs(lua_State *L, const char *proto, va_list ap) {
+lua_hook_varargs(lua_module_closure_t *lmc, lua_State *L, const char *proto, va_list ap) {
   unsigned int clen, i = 0, nargs = 0;
   char copy[1024], *cp;
   char *args[MAX_VARARGS];
@@ -502,14 +502,37 @@ lua_hook_varargs(lua_State *L, const char *proto, va_list ap) {
     else if(mtev_hash_retrieve(&lua_ctypes, args[i], strlen(args[i]), &vfunc)) {
       mtev_lua_push_dynamic_ctype_t func = vfunc;
       func(L, ap);
-      //mtev_lua_setup_http_ctx(L, ctx);
     } else {
-      mtevL(nlerr, "unknown hook parameter type: '%s' consider mtev_lua_register_dynamic_ctype(...)\n", args[i]);
-      if(is_ptr) {
-        void *ptr = va_arg(ap, void *);
-        lua_pushlightuserdata(L,ptr);
+      bool is_ffi = false;
+      if(!is_ptr) {
+        /* we can't proceed b/c future arguments can't be popped off the varargs list correctly */
+        mtevL(nldeb, "cannot process prototype past arg %d in %s because we don't know its size\n",
+              i, proto);
+        return i-1;
+      }
+
+      void *ptr = va_arg(ap, void *);
+      /* first try ffi */
+      lua_rawgeti(L, LUA_REGISTRYINDEX, lmc->ffi_index);
+      if(!lua_isnil(L, -1)) {
+        lua_getfield(L,-1,"cast");
+        lua_remove(L,-2);
+        lua_pushstring(L, args[i]);
+        lua_pushlightuserdata(L, ptr);
+        if(lua_pcall(L, 2, 1, 0) == 0) {
+          is_ffi = true;
+          mtevL(nldeb, "successful ffi.cast(\"%s\", %p)\n", args[i], ptr);
+        } else {
+          mtevL(nldeb, "ffi.cast failure: %s\n", lua_tostring(L,-1));
+          lua_pop(L,1);
+        }
       } else {
-        lua_pushnil(L);
+        mtevL(nlerr, "HOOK, no ffi at %d?!\n", lmc->ffi_index);
+        lua_pop(L,1);
+      }
+      if(!is_ffi) {
+        mtevL(nldeb, "unknown hook parameter type: '%s' consider mtev_lua_register_dynamic_ctype(...)\n", args[i]);
+        lua_pushlightuserdata(L,ptr);
       }
     }
   }
@@ -582,7 +605,7 @@ lua_hook_vahandler(void *closure, ...) {
     }
 
     va_copy(ap, ap_top);
-    int nargs = lua_hook_varargs(L, lhi->proto, ap);
+    int nargs = lua_hook_varargs(lmc, L, lhi->proto, ap);
     va_end(ap);
 
     if(nargs < 0) {
@@ -729,6 +752,7 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     mtevL(mtev_error, "lua_general could not add general functions\n");
     return -1;
   }
+
   luaL_openlib(lmc->lua_state, "mtev", general_lua_funcs, 0);
   /* Load some preloads */
 
@@ -761,6 +785,14 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     }
   }
   lua_settop(lmc->lua_state, 0);
+
+  lua_getglobal(lmc->lua_state, "require");
+  lua_pushstring(lmc->lua_state, "ffi");
+  if(lua_pcall(lmc->lua_state,1,1,0) != 0 || !lua_istable(lmc->lua_state,-1)) {
+    mtevL(mtev_error, "lua_general could not reference ffi\n");
+    return -1;
+  }
+  lmc->ffi_index = luaL_ref(lmc->lua_state, LUA_REGISTRYINDEX);
 
   if(conf->booted) return true;
   conf->booted = mtev_true;

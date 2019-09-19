@@ -64,6 +64,7 @@ typedef struct lua_module_closure {
   mtev_hash_table state_coros;
   mtev_dso_generic_t *self;
   lua_module_gc_params_t *gcparams;
+  int ffi_index;
 } lua_module_closure_t;
 
 API_EXPORT(void) mtev_lua_set_gc_params(lua_module_closure_t *, lua_module_gc_params_t *);
