@@ -51,7 +51,11 @@
 
 #define EVENTER_SSL_DATANAME "eventer_ssl"
 #define DEFAULT_OPTS_STRING "all"
+#ifndef SSL_TXT_SSLV2
+#define DEFAULT_LAYER_STRING "tlsv1:all,!sslv3"
+#else
 #define DEFAULT_LAYER_STRING "tlsv1:all,!sslv2,!sslv3"
+#endif
 
 #define SSL_CTX_KEYLEN (PATH_MAX * 4 + 5)
 struct cache_finfo {
