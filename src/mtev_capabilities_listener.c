@@ -89,7 +89,7 @@ mtev_capabilities_add_feature(const char *feature, const char *version) {
   if(version) version = strdup(version);
   if(!mtev_hash_store(&features, feature, strlen(feature), (void *)version))
     mtevL(mtev_error, "Feature conflict! %s version %s\n",
-          feature, version ? version : "unpecified");
+          feature, version ? version : "unspecified");
 }
 
 const mtev_hash_table *
