@@ -90,7 +90,11 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
   cert = *((X509 **)udata);
   if(!strcmp(k, "signature_algorithm")) {
     int nid;
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+    nid = OBJ_obj2nid(cert->sig_alg->algorithm);
+#else
     nid = X509_get_signature_nid(cert);
+#endif
     lua_pushstring(L, OBJ_nid2sn(nid));
     return 1;
   }
