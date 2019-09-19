@@ -117,6 +117,7 @@ struct eventer_impl_data {
   eventer_jobq_t *__global_backq;
   pthread_mutex_t recurrent_lock;
   struct recurrent_events {
+    mtev_boolean non_zero_return_seen;
     eventer_t e;
     struct recurrent_events *next;
   } *recurrent_events;
@@ -1135,6 +1136,7 @@ void eventer_dispatch_timed(struct timeval *next) {
             cbname ? cbname : "???");
     }
     /* Make our call */
+    stats_handle_t *lat = eventer_latency_handle_for_callback(timed_event->callback);
     LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)timed_event,
                            (void *)timed_event->callback, (char *)cbname, -1,
                            timed_event->mask, EVENTER_TIMER);
@@ -1143,7 +1145,7 @@ void eventer_dispatch_timed(struct timeval *next) {
                            timed_event->closure, &now);
     duration = mtev_gethrtime() - start;
     stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
-    stats_set_hist_intscale(eventer_latency_handle_for_callback(timed_event->callback), duration, -9, 1);
+    if(lat) stats_set_hist_intscale(lat, duration, -9, 1);
     LIBMTEV_EVENTER_CALLBACK_RETURN((void *)timed_event,
                             (void *)timed_event->callback, (char *)cbname, newmask);
     if(newmask)
@@ -1248,17 +1250,21 @@ void eventer_dispatch_recurrent(void) {
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
     int rv;
-    uint64_t start, duration;
-    start = mtev_gethrtime();
+    uint64_t start =0 , duration;
+    if(node->non_zero_return_seen) start = mtev_gethrtime();
     rv = eventer_run_callback(node->e->callback, node->e, EVENTER_RECURRENT, node->e->closure, &__now);
     if(rv != 0) {
+      stats_handle_t *lat = eventer_latency_handle_for_callback(node->e->callback);
       /* For RECURRENT calls, we don't want to overmeasure what are noops...
        * So we trust that the call returns 0 after such a noop, but
        * EVENTER_RECURRENT when work is done.
        */
-      duration = mtev_gethrtime() - start;
-      stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
-      stats_set_hist_intscale(eventer_latency_handle_for_callback(node->e->callback), duration, -9, 1);
+      if(node->non_zero_return_seen) {
+        duration = mtev_gethrtime() - start;
+        stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
+        if(lat) stats_set_hist_intscale(lat, duration, -9, 1);
+      }
+      node->non_zero_return_seen = mtev_true;
     }
   }
   pthread_mutex_unlock(&t->recurrent_lock);

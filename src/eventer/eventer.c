@@ -33,11 +33,15 @@
 
 #include "eventer/eventer.h"
 #include "eventer/eventer_impl_private.h"
+#include "mtev_rand.h"
 #include "mtev_hash.h"
 #include "mtev_stats.h"
 #include "mtev_memory.h"
 #include "mtev_task.h"
 #include "mtev_stacktrace.h"
+#define XXH_PRIVATE_API 
+#include "xxhash.h"
+#undef XXH_PRIVATE_API
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -47,6 +51,39 @@ stats_handle_t *eventer_callback_latency_orphaned;
 stats_handle_t *eventer_unnamed_callback_latency;
 static uint64_t ealloccnt;
 static uint64_t ealloctotal;
+
+struct callback_details {
+  eventer_func_t fptr;
+  char *simple_name;
+  void (*functional_name)(char *buf, int buflen, eventer_t e, void *closure);
+  stats_handle_t *latency;
+  void *closure;
+};
+
+static unsigned long __ck_hash_from_fname(const void *key, unsigned long seed) {
+  const char *n = ((struct callback_details *)key)->simple_name;
+  return XXH64(n, strlen(n), seed);
+}
+static bool __ck_hash_compare_fname(const void *a, const void *b) {
+  return 0 == strcmp(((struct callback_details *)a)->simple_name,
+                     ((struct callback_details *)b)->simple_name);
+}
+static unsigned long __ck_hash_from_fptr(const void *key, unsigned long seed) {
+  return (uintptr_t )((struct callback_details *)key)->fptr ^ seed;
+}
+static bool __ck_hash_compare_fptr(const void *a, const void *b) {
+  return ((struct callback_details *)a)->fptr ==
+         ((struct callback_details *)b)->fptr;
+}
+static void * gen_malloc(size_t r) { return malloc(r); }
+
+static void gen_free(void *p, size_t b, bool r) {
+  (void)b; (void)r; free(p); return;
+}
+static struct ck_malloc malloc_ck_hs = {
+  .malloc = gen_malloc,
+  .free = gen_free
+};
 
 static struct {
   char *name;
@@ -262,12 +299,6 @@ int eventer_set_fd_blocking(int fd) {
   return 0;
 }
 
-struct callback_details {
-  char *simple_name;
-  void (*functional_name)(char *buf, int buflen, eventer_t e, void *closure);
-  stats_handle_t *latency;
-  void *closure;
-};
 static void
 free_callback_details(void *vcd) {
   struct callback_details *cd = (struct callback_details *)vcd;
@@ -278,8 +309,8 @@ free_callback_details(void *vcd) {
   }
 }
 
-static mtev_hash_table __name_to_func;
-static mtev_hash_table __func_to_name;
+static ck_hs_t __name_to_func;
+static ck_hs_t __func_to_name;
 int eventer_name_callback(const char *name, eventer_func_t f) {
   eventer_name_callback_ext(name, f, NULL, NULL);
   return 0;
@@ -288,12 +319,9 @@ int eventer_name_callback_ext(const char *name,
                               eventer_func_t f,
                               void (*fn)(char *,int,eventer_t,void *),
                               void *cl) {
-  void **fptr = malloc(sizeof(*fptr));
-  *fptr = (void *)f;
-  mtev_hash_replace(&__name_to_func, strdup(name), strlen(name),
-                    (void *)f, free, NULL);
-  struct callback_details *cd;
+  struct callback_details *cd, *old;
   cd = calloc(1, sizeof(*cd));
+  cd->fptr = (void *)f;
   cd->simple_name = strdup(name);
   cd->functional_name = fn;
   cd->closure = cl;
@@ -301,14 +329,19 @@ int eventer_name_callback_ext(const char *name,
   stats_ns_add_tag(ns, "mtev-callback", cd->simple_name);
   cd->latency = stats_register(ns, "latency", STATS_TYPE_HISTOGRAM);
   stats_handle_units(cd->latency, STATS_UNITS_SECONDS);
-  mtev_hash_replace(&__func_to_name, (char *)fptr, sizeof(*fptr), cd,
-                    free, free_callback_details);
+  unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, cd);
+  (void)ck_hs_set(&__func_to_name, hash, cd, (void **)&old);
+  hash = CK_HS_HASH(&__name_to_func, __ck_hash_from_fname, cd);
+  if(ck_hs_set(&__name_to_func, hash, cd, (void **)&old) && old != NULL) {
+    free_callback_details(old);
+  }
   return 0;
 }
 eventer_func_t eventer_callback_for_name(const char *name) {
-  void *vf;
-  if(mtev_hash_retrieve(&__name_to_func, name, strlen(name), &vf))
-    return (eventer_func_t)vf;
+  struct callback_details *cd, key = { .simple_name = (char *)name };
+  unsigned long hash = CK_HS_HASH(&__name_to_func, __ck_hash_from_fname, &key);
+  cd = ck_hs_get(&__name_to_func, hash, &key);
+  if(cd) return (eventer_func_t)cd->fptr;
   return (eventer_func_t)NULL;
 }
 
@@ -318,19 +351,18 @@ const char *eventer_name_for_callback(eventer_func_t f) {
   return eventer_name_for_callback_e(f, NULL);
 }
 stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f) {
-  void *vcd;
-  if(mtev_hash_retrieve(&__func_to_name, (char *)&f, sizeof(f), &vcd)) {
-    struct callback_details *cd = vcd;
-    if(cd != NULL) return cd->latency;
-  }
+return NULL;
+  struct callback_details *cd, key = { .fptr = (void *)f };
+  unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, &key);
+  cd = (struct callback_details *)ck_hs_get(&__func_to_name, hash, &key);
+  if(cd != NULL) return cd->latency;
   return eventer_unnamed_callback_latency;
 }
 const char *eventer_name_for_callback_e(eventer_func_t f, eventer_t e) {
-  void *vcd;
-  struct callback_details *cd;
-  if(mtev_hash_retrieve(&__func_to_name, (char *)&f, sizeof(f), &vcd)) {
-    cd = vcd;
-    if(!vcd) return NULL;
+  struct callback_details *cd, key = { .fptr = (void *)f };
+  unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, &key);
+  cd = (struct callback_details *)ck_hs_get(&__func_to_name, hash, &key);
+  if(cd) {
     if(cd->functional_name && e) {
       char *buf;
       buf = pthread_getspecific(_tls_funcname_key);
@@ -346,9 +378,13 @@ const char *eventer_name_for_callback_e(eventer_func_t f, eventer_t e) {
   const char *dyn;
   dyn = mtev_function_name((uintptr_t)f);
   if(dyn == NULL) {
-    void **fspace = malloc(sizeof(*fspace));
-    *fspace = (void *)f;
-    mtev_hash_store(&__func_to_name, (char *)fspace, sizeof(*fspace), NULL);
+    struct callback_detail *old;
+    cd = calloc(1, sizeof(*cd));
+    cd->fptr = f;
+    unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, cd);
+    if(ck_hs_set(&__func_to_name, hash, cd, (void **)&old) && old != NULL) {
+      free_callback_details(old);
+    }
   } else {
     eventer_name_callback(dyn, f);
     return dyn;
@@ -374,8 +410,18 @@ int eventer_choose(const char *name) {
 void eventer_init_globals(void) {
   eventer_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "eventer");
   stats_ns_add_tag(eventer_stats_ns, "mtev", "eventer");
-  mtev_hash_init_locks(&__name_to_func, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
-  mtev_hash_init_locks(&__func_to_name, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+  if(ck_hs_init(&__name_to_func,
+                CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC,
+                __ck_hash_from_fname, __ck_hash_compare_fname,
+                &malloc_ck_hs, 10000, mtev_rand()) == false) {
+    mtevFatal(mtev_error, "Failed to initialize ck_hs for callback function maps\n");
+  }
+  if(ck_hs_init(&__func_to_name,
+                CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC,
+                __ck_hash_from_fptr, __ck_hash_compare_fptr,
+                &malloc_ck_hs, 10000, mtev_rand()) == false) {
+    mtevFatal(mtev_error, "Failed to initialize ck_hs for callback function maps\n");
+  }
 
   stats_ns_t *ns;
   ns = mtev_stats_ns(mtev_stats_ns(eventer_stats_ns, "callbacks"), "_orphaned");

@@ -586,21 +586,21 @@ eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
          * one's soul out.
          */
         if(my_precious) {
-          uint64_t start, duration;
+          uint64_t start;
           mtev_gettimeofday(&job->finish_time, NULL); /* We're done */
           current_job = job;
+          stats_handle_t *lat = eventer_latency_handle_for_callback(my_precious->callback);
           LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)my_precious, (void *)my_precious->callback, NULL,
                                  my_precious->fd, my_precious->mask,
                                  EVENTER_ASYNCH_CLEANUP);
-          start = mtev_gethrtime();
+          if(lat) start = mtev_gethrtime();
           eventer_set_this_event(my_precious);
           eventer_run_callback(my_precious->callback, my_precious, EVENTER_ASYNCH_CLEANUP,
                        my_precious->closure, &job->finish_time);
           eventer_set_this_event(NULL);
-          duration = mtev_gethrtime() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)my_precious, (void *)my_precious->callback, NULL, -1);
           current_job = NULL;
-          stats_set_hist_intscale(eventer_latency_handle_for_callback(my_precious->callback), duration, -9, 1);
+          if(lat) stats_set_hist_intscale(lat, mtev_gethrtime() - start, -9, 1);
         }
       }
       jobcopy = malloc(sizeof(*jobcopy));
@@ -641,6 +641,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
                              (void *)job->fd_event->callback, NULL,
                              job->fd_event->fd, job->fd_event->mask,
                              job->fd_event->mask);
+      stats_handle_t *lat = eventer_latency_handle_for_callback(job->fd_event->callback);
       start = mtev_gethrtime();
       mtevL(eventer_deb, "jobq %p running job [%p]\n", jobq, job);
       newmask = eventer_run_callback(job->fd_event->callback, job->fd_event, job->fd_event->mask,
@@ -651,7 +652,7 @@ eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
       current_job = NULL;
       mtevL(eventer_deb, "jobq %p completed job [%p]\n", jobq, job);
       stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
-      stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
+      if(lat) stats_set_hist_intscale(lat, duration, -9, 1);
       if(jobq->mem_safety == EVENTER_JOBQ_MS_CS) mtev_memory_end();
       if(!newmask) eventer_free(job->fd_event);
       else {
@@ -768,7 +769,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
     /* Safely check and handle if we've timed out while in queue */
     pthread_mutex_lock(&job->lock);
     if(job->timeout_triggered) {
-      uint64_t start, duration;
+      uint64_t start;
       struct timeval diff;
       /* This happens if the timeout occurred before we even had the change
        * to pull the job off the queue.  We must be in bad shape here.
@@ -779,19 +780,19 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
         job->finish_hrtime = mtev_gethrtime();
         job->finish_time = now;
         sub_timeval(job->finish_time, job->fd_event->whence, &diff);
+        stats_handle_t *lat = eventer_latency_handle_for_callback(job->fd_event->callback);
         current_job = job;
         LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                              (void *)job->fd_event->callback, NULL,
                              job->fd_event->fd, job->fd_event->mask,
                              EVENTER_ASYNCH_CLEANUP);
-        start = mtev_gethrtime();
+        if(lat) start = mtev_gethrtime();
         eventer_run_callback(job->fd_event->callback, job->fd_event, EVENTER_ASYNCH_CLEANUP,
                    job->fd_event->closure, &job->finish_time);
-        duration = mtev_gethrtime() - start;
         LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                               (void *)job->fd_event->callback, NULL, -1);
         current_job = NULL;
-        stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
+        if(lat) stats_set_hist_intscale(lat, mtev_gethrtime() - start, -9, 1);
         eventer_jobq_finished_job(jobq, job);
         pthread_mutex_unlock(&job->lock);
         continue;
@@ -830,7 +831,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
             pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
           }
           /* run the job */
-          uint64_t start, duration;
+          uint64_t start;
           struct timeval start_time;
           mtev_gettimeofday(&start_time, NULL);
           mtevL(eventer_deb, "jobq[%s] -> dispatch BEGIN\n", jobq->queue_name);
@@ -839,14 +840,14 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
                                  (void *)job->fd_event->callback, NULL,
                                  job->fd_event->fd, job->fd_event->mask,
                                  EVENTER_ASYNCH_WORK);
-          start = mtev_gethrtime();
+          stats_handle_t *lat = eventer_latency_handle_for_callback(job->fd_event->callback);
+          if(lat) start = mtev_gethrtime();
           eventer_run_callback(job->fd_event->callback, job->fd_event, EVENTER_ASYNCH_WORK,
                        job->fd_event->closure, &start_time);
-          duration = mtev_gethrtime() - start;
           LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                   (void *)job->fd_event->callback, NULL, -1);
           current_job = NULL;
-          stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
+          if(lat) stats_set_hist_intscale(lat, mtev_gethrtime() - start, -9, 1);
           mtevL(eventer_deb, "jobq[%s] -> dispatch END\n", jobq->queue_name);
           if(job->fd_event && job->fd_event->mask & EVENTER_CANCEL)
             pthread_testcancel();
@@ -877,20 +878,20 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
       /* threaded issue, need to recheck. */
       /* coverity[check_after_deref] */
       if(job->fd_event) {
-        uint64_t start, duration;
+        uint64_t start;
+        stats_handle_t *lat = eventer_latency_handle_for_callback(job->fd_event->callback);
         current_job = job;
         LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)job->fd_event,
                                (void *)job->fd_event->callback, NULL,
                                job->fd_event->fd, job->fd_event->mask,
                                EVENTER_ASYNCH_CLEANUP);
-        start = mtev_gethrtime();
+        if(lat) start = mtev_gethrtime();
         eventer_run_callback(job->fd_event->callback, job->fd_event, EVENTER_ASYNCH_CLEANUP,
                      job->fd_event->closure, &job->finish_time);
-        duration = mtev_gethrtime() - start;
         LIBMTEV_EVENTER_CALLBACK_RETURN((void *)job->fd_event,
                                 (void *)job->fd_event->callback, NULL, -1);
         current_job = NULL;
-        stats_set_hist_intscale(eventer_latency_handle_for_callback(job->fd_event->callback), duration, -9, 1);
+        if(lat) stats_set_hist_intscale(lat, mtev_gethrtime() - start, -9, 1);
       }
 
       job->finish_hrtime = mtev_gethrtime();
