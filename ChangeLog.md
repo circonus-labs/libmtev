@@ -2,6 +2,19 @@
 
 # 1
 
+## 1.8
+
+### 1.8.0
+
+ * Rudimentary support for a lua stack tracer on crashes where luajit
+   is in the C stacks (requires the luajit source headers).
+ * Make aco_resume not offend the ASAN stack underflow detection.
+ * Performance improvements in the eventer (reduced overhead of tracking
+   callback latencies).
+ * Make lua mtev_hooks auto ffi.cast the arguments for ease of use.
+ * Allow compilation without libdwarf.
+ * Allow direct builds against OpenSSL 1.1.
+
 ## 1.7
 
 ### 1.7.3
