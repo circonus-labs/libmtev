@@ -221,16 +221,38 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
     if(!dh1024_tmp) dh1024_tmp = load_dh_params(dh1024_file);
     if(!dh1024_tmp) {
       mtevL(mtev_notice, "Generating 1024 bit DH parameters.\n");
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
       dh1024_tmp = DH_generate_parameters(1024, 2, NULL, NULL);
+#else
+      int problems = 0;
+      DH *dh_tmp_trans = DH_new();
+      DH_generate_parameters_ex(dh_tmp_trans, 1024, 2, NULL);
+      if(DH_check(dh_tmp_trans, &problems) == 1 && problems == 0) {
+        dh1024_tmp = dh_tmp_trans;
+      } else {
+        DH_free(dh_tmp_trans);
+      }
+#endif
       mtevL(mtev_notice, "Finished generating 1024 bit DH parameters.\n");
-      save_dh_params(dh1024_tmp, dh1024_file);
+      if(dh1024_tmp) save_dh_params(dh1024_tmp, dh1024_file);
     }
     break;
   case 2048:
     if(!dh2048_tmp) dh2048_tmp = load_dh_params(dh2048_file);
     if(!dh2048_tmp) {
       mtevL(mtev_notice, "Generating 2048 bit DH parameters.\n");
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
       dh2048_tmp = DH_generate_parameters(2048, 2, NULL, NULL);
+#else
+      int problems = 0;
+      DH *dh_tmp_trans = DH_new();
+      DH_generate_parameters_ex(dh_tmp_trans, 1024, 2, NULL);
+      if(DH_check(dh_tmp_trans, &problems) == 1 && problems == 0) {
+        dh1024_tmp = dh_tmp_trans;
+      } else {
+        DH_free(dh_tmp_trans);
+      }
+#endif
       mtevL(mtev_notice, "Finished generating 2048 bit DH parameters.\n");
       save_dh_params(dh2048_tmp, dh2048_file);
     }
@@ -472,7 +494,11 @@ eventer_ssl_get_current_cipher(eventer_ssl_ctx_t *ctx) {
 }
 int
 eventer_ssl_get_method(eventer_ssl_ctx_t *ctx) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
   return SSL_get_ssl_method(ctx->ssl)->version;
+#else
+  return SSL_get_min_proto_version(ctx->ssl);
+#endif
 }
 int
 eventer_ssl_get_local_commonname(eventer_ssl_ctx_t *ctx, char *buff, int len) {
@@ -523,7 +549,13 @@ verify_cb(int ok, X509_STORE_CTX *x509ctx) {
   if(!ok) {
     issuer[0] = '\0';
     if(err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT) {
-      X509_NAME_oneline(X509_get_issuer_name(x509ctx->current_cert), issuer+1, sizeof(issuer)-1);
+      X509 *curr_cert = NULL;
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+      curr_cert = x509ctx->current_cert;
+#else
+      curr_cert = X509_STORE_CTX_get_current_cert(x509ctx);
+#endif
+      X509_NAME_oneline(X509_get_issuer_name(curr_cert), issuer+1, sizeof(issuer)-1);
       issuer[0] = ':';
     }
     snprintf(errstr, sizeof(errstr), "verify error:num=%d:%s:depth=%d%s:%s\n", err,
@@ -570,6 +602,7 @@ eventer_ssl_ctx_free(eventer_ssl_ctx_t *ctx) {
   free(ctx);
 }
 
+#if defined(SSL3_ST_SR_CLNT_HELLO_A)
 static void
 eventer_SSL_server_info_callback(const SSL *ssl, int type, int val) {
   (void)type;
@@ -586,6 +619,7 @@ eventer_SSL_server_info_callback(const SSL *ssl, int type, int val) {
     ctx->renegotiated = 1;
   }
 }
+#endif
 
 static void
 ssl_ctx_key_write(char *b, int blen, eventer_ssl_orientation_t type,
@@ -705,12 +739,14 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     populate_finfo(&ctx->ssl_ctx_cn->key_finfo, key);
     populate_finfo(&ctx->ssl_ctx_cn->ca_finfo, ca);
     ctx->ssl_ctx = NULL;
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     if(0)
       ;
 #if defined(SSL_TXT_SSLV3) && defined(HAVE_SSLV3_SERVER) && defined(HAVE_SSLV3_CLIENT)
     else if(layer && !strcasecmp(layer, SSL_TXT_SSLV3))
       ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
-                                 SSLv3_server_method() : SSLv3_client_method());
+                                 SSLv3_server_method()
+                                 : SSLv3_client_method());
 #endif
 #if defined(SSL_TXT_SSLV2) && defined(HAVE_SSLV2_SERVER) && defined(HAVE_SSLV2_CLIENT)
     else if(layer && !strcasecmp(layer, SSL_TXT_SSLV2))
@@ -731,6 +767,26 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1_2))
       ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
                                  TLSv1_2_server_method() : TLSv1_2_client_method());
+#endif
+#else
+    /* openssl 1.1 and higher */
+  ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ? TLS_server_method() : TLS_client_method());
+  if(layer && !strcasecmp(layer, SSL_TXT_SSLV3)) {
+    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, SSL3_VERSION);
+    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, SSL3_VERSION);
+  }
+  else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1)) {
+    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_VERSION);
+    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_VERSION);
+  }
+  else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1_1)) {
+    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_1_VERSION);
+    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_1_VERSION);
+  }
+  else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1_2)) {
+    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_2_VERSION);
+    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_2_VERSION);
+  }
 #endif
 
     if(ctx->ssl_ctx == NULL)
@@ -839,7 +895,9 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   if(dh2048_tmp || dh1024_tmp)
     SSL_set_tmp_dh_callback(ctx->ssl, tmp_dh_callback);
   if(!ctx->ssl) goto bail;
+#ifdef SSL3_ST_SR_CLNT_HELLO_A
   SSL_set_info_callback(ctx->ssl, eventer_SSL_server_info_callback);
+#endif
   SSL_set_eventer_ssl_ctx(ctx->ssl, ctx);
   return ctx;
 
@@ -1222,6 +1280,7 @@ struct _fd_opset _eventer_SSL_fd_opset = {
 eventer_fd_opset_t eventer_SSL_fd_opset = &_eventer_SSL_fd_opset;
 
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 /* Locking stuff to make libcrypto thread safe */
 /* This stuff cribbed from the openssl examples */
 struct CRYPTO_dynlock_value { pthread_mutex_t lock; };
@@ -1251,6 +1310,8 @@ static void lock_dynamic(int mode, struct CRYPTO_dynlock_value *lock,
   if(mode & CRYPTO_LOCK) pthread_mutex_lock(&lock->lock);
   else pthread_mutex_unlock(&lock->lock);
 }
+#endif
+
 void eventer_ssl_set_ssl_ctx_cache_expiry(int timeout) {
   ssl_ctx_cache_expiry = timeout;
 }
@@ -1269,22 +1330,36 @@ int eventer_ssl_config(const char *key, const char *value) {
   }
   return 1;
 }
+
+static int32_t initialized = 0;
 void eventer_ssl_init(void) {
   eventer_t e;
+  if(initialized) return;
+  initialized = 1;
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
   int i, numlocks;
-  if(__lcks) return;
   numlocks = CRYPTO_num_locks();
   __lcks = CRYPTO_malloc(numlocks * sizeof(*__lcks),__FILE__,__LINE__);
   for(i=0; i<numlocks; i++)
     pthread_mutex_init(&__lcks[i].lock, NULL);
-  CRYPTO_set_id_callback((unsigned long (*)(void)) pthread_self);
   CRYPTO_set_dynlock_create_callback(dynlock_create);
   CRYPTO_set_dynlock_destroy_callback(dynlock_destroy);
   CRYPTO_set_dynlock_lock_callback(lock_dynamic);
   CRYPTO_set_locking_callback(lock_static);
+#endif
+  CRYPTO_set_id_callback((unsigned long (*)(void)) pthread_self);
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
   SSL_load_error_strings();
   SSL_library_init();
+#else
+  OPENSSL_init_ssl(
+    OPENSSL_INIT_LOAD_SSL_STRINGS|
+    OPENSSL_INIT_LOAD_CRYPTO_STRINGS|
+    OPENSSL_INIT_ADD_ALL_CIPHERS|
+    OPENSSL_INIT_ADD_ALL_DIGESTS|
+    OPENSSL_INIT_ENGINE_ALL_BUILTIN, NULL);
+#endif
   OpenSSL_add_all_ciphers();
 
   if (!dh1024_file || strcmp(dh1024_file, "")) {

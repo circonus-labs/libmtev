@@ -94,7 +94,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
 
   msg.msg_iov = iov;
   while(true) {
-    EVP_CIPHER_CTX evp_ctx;
+    EVP_CIPHER_CTX *evp_ctx = NULL;
     int len, expected, outlen1, outlen2;
     unsigned int netlen;
     uint32_t *hdr;
@@ -149,12 +149,13 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
 
     /* decrypt payload into text */
     len = msg.msg_iov[2].iov_len;
-    EVP_CipherInit(&evp_ctx, EVP_aes_256_cbc(), ctx->key, ivec, false);
-    mtevAssert(EVP_CIPHER_CTX_iv_length(&evp_ctx) == HDR_IVSIZE);
-    EVP_DecryptUpdate(&evp_ctx,text,&outlen1,
+    evp_ctx = EVP_CIPHER_CTX_new();
+    EVP_CipherInit(evp_ctx, EVP_aes_256_cbc(), ctx->key, ivec, false);
+    mtevAssert(EVP_CIPHER_CTX_iv_length(evp_ctx) == HDR_IVSIZE);
+    EVP_DecryptUpdate(evp_ctx,text,&outlen1,
                       (unsigned char *)payload,len);
-    EVP_DecryptFinal(&evp_ctx,text+outlen1,&outlen2);
-    EVP_CIPHER_CTX_cleanup(&evp_ctx);
+    EVP_DecryptFinal(evp_ctx,text+outlen1,&outlen2);
+    EVP_CIPHER_CTX_free(evp_ctx);
     len = outlen1+outlen2;
 
     hdr = text;
@@ -200,7 +201,7 @@ mtev_net_headerbeat_sendall(mtev_net_heartbeat_ctx *ctx, void *payload, int payl
 static int
 mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
   int i, len, blocksize, ivecsize, outlen1, outlen2, text_len;
-  EVP_CIPHER_CTX evp_ctx;
+  EVP_CIPHER_CTX *evp_ctx = NULL;
   unsigned char cipher_buf_static[16000];
   unsigned char *ivec, *cipher_buf = cipher_buf_static, *text;
   int *hdr;
@@ -235,9 +236,10 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
   hdr[i++] = htonl(HBPKTMAGIC2);
   mtevAssert(i==9);
 
-  EVP_CipherInit(&evp_ctx, EVP_aes_256_cbc(), ctx->key, ivec, true);
-  blocksize = EVP_CIPHER_CTX_block_size(&evp_ctx);
-  ivecsize = EVP_CIPHER_CTX_iv_length(&evp_ctx);
+  evp_ctx = EVP_CIPHER_CTX_new();
+  EVP_CipherInit(evp_ctx, EVP_aes_256_cbc(), ctx->key, ivec, true);
+  blocksize = EVP_CIPHER_CTX_block_size(evp_ctx);
+  ivecsize = EVP_CIPHER_CTX_iv_length(evp_ctx);
   mtevAssert(ivecsize == HDR_IVSIZE);
   if(len + blocksize*2 > cipher_buf_len) {
     if(cipher_buf != cipher_buf_static) free(cipher_buf);
@@ -251,10 +253,10 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
   memcpy(cipher_buf, payload, HDRLEN);
   text = (unsigned char *)payload + HDR_LENSIZE + HDR_IVSIZE;
   text_len = len - (HDR_LENSIZE + HDR_IVSIZE);
-  EVP_EncryptUpdate(&evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE,&outlen1,
+  EVP_EncryptUpdate(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE,&outlen1,
                     text,text_len);
-  EVP_EncryptFinal(&evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE+outlen1,&outlen2);
-  EVP_CIPHER_CTX_cleanup(&evp_ctx);
+  EVP_EncryptFinal(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE+outlen1,&outlen2);
+  EVP_CIPHER_CTX_free(evp_ctx);
   len = HDR_LENSIZE + HDR_IVSIZE + outlen1 + outlen2;
 
   /* Adjust the packet length */
