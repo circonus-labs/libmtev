@@ -5560,6 +5560,7 @@ static void mtev_lua_init(void) {
   done = 1;
   mtev_lua_init_globals();
   register_console_lua_commands();
+  eventer_name_callback("lua/resume", nl_resume);
   eventer_name_callback("lua/sleep", nl_sleep_complete);
   eventer_name_callback("lua/socket_read",
                         mtev_lua_socket_read_complete);
@@ -5574,6 +5575,9 @@ static void mtev_lua_init(void) {
   eventer_name_callback("lua/socket_accept",
                         mtev_lua_socket_accept_complete);
   eventer_name_callback("lua/ssl_upgrade", mtev_lua_ssl_upgrade);
+  eventer_name_callback("lua/waitfor_timeout", nl_waitfor_timeout);
+  eventer_name_callback("lua/waitfor_ping", nl_waitfor_ping);
+  eventer_name_callback("lua/process_wait", mtev_lua_process_wait_wakeup);
   nlerr = mtev_log_stream_find("error/lua");
   nldeb = mtev_log_stream_find("debug/lua");
   if(!nlerr) nlerr = mtev_stderr;

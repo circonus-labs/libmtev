@@ -73,6 +73,7 @@ __thread stats_handle_t *eventer_callback_pool_latency;
 #define NS_PER_US 1000
 
 static void *thrloopwrap(void *);
+static int eventer_aco_rehome_start(eventer_t e, int mask, void *closure, struct timeval *now);
 
 static unsigned long __ck_hash_from_ptr(const void *key, unsigned long seed) {
   return (uintptr_t)key ^ seed;
@@ -772,6 +773,8 @@ void eventer_impl_init_globals(void) {
   eventer_name_callback_ext("periodic_jobq_maintenance",
                             periodic_jobq_maintenance,
                             periodic_jobq_maintenance_namer, NULL);
+  eventer_name_callback("eventer_aco_rehome_start", eventer_aco_rehome_start);
+  eventer_name_callback("posix_asynch_shutdown_close_event", posix_asynch_shutdown_close_event);
   eventer_aco_init();
   mtev_hash_init(&eventer_pools);
 

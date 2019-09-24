@@ -728,6 +728,8 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
 
   if(lmc) return 0;
 
+  eventer_name_callback("lua/dispatch_general", dispatch_general);
+
   stats_ns_t *lua_stats_ns = mtev_stats_ns(mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "modules"), "lua");
   vm_time = stats_register(lua_stats_ns, "vm_invocation_runtime", STATS_TYPE_HISTOGRAM_FAST);
   stats_handle_add_tag(vm_time, "operation", "vm-invoke");
