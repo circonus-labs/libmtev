@@ -25,6 +25,7 @@ src/modules/mtev_lua/
 src/dhparam*.txt
 src/js/node_modules/
 test/t/node_modules/
+src/libmtev.xmldb
 src/luamtev
 src/lua/src/lua
 **/*.dSYM/
