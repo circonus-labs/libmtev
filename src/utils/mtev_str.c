@@ -83,6 +83,7 @@ const char *strnstrn(const char *needle, int needle_len,
 }
 #endif
 
+#undef mtev_memmem
 void *
 mtev_memmem(const void *haystack, size_t haystack_len,
             const void *needle, size_t needle_len) {

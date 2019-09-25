@@ -52,8 +52,9 @@ typedef struct mtev_str_buff{
 API_EXPORT(const char *) strnstrn(const char *, int, const char *, int) __attribute__((deprecated)); /*1.2.9*/
 #endif
 
-API_EXPORT(void *) mtev_memmem(const void *haystack, size_t haystacklen,
-                               const void *needle, size_t needlelen);
+#ifndef BROKEN_MEMMEM
+#define mtev_memmem(a,b,c,d) memmem(a,b,c,d)
+#endif
 
 API_EXPORT(char *) mtev__strndup(const char *src, size_t len) __attribute__((deprecated)); /*1.2.9*/
 API_EXPORT(char *) mtev_strndup(const char *src, size_t len);

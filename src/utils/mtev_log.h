@@ -187,7 +187,9 @@ API_EXPORT(void)
     bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
     if(!mtevLT_doit) { \
       Zipkin_Span *mtevLT_span = mtev_zipkin_active_span(NULL); \
-      mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span); \
+      if(mtevLT_span != NULL) { \
+        mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span); \
+      } \
     } \
     if(mtevLT_doit) { \
       mtev_log((ls), t, __FILE__, __LINE__, args); \
@@ -199,7 +201,9 @@ API_EXPORT(void)
     bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
     if(!mtevLT_doit) { \
       Zipkin_Span *mtevLT_span = mtev_zipkin_active_span(NULL); \
-      mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span); \
+      if(mtevLT_span != NULL) { \
+        mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span); \
+      } \
     } \
     if(mtevLT_doit) { \
       mtev_log((ls), NULL, __FILE__, __LINE__, args); \
