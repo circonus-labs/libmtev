@@ -114,12 +114,6 @@ eventer_aco_namer(char *buf, int buflen, eventer_t e, void *cl) {
              eventer_name_for_callback_e(info->original_callback, e));
   }
 }
-void
-eventer_aco_init(void) {
-  eventer_name_callback_ext("eventer_aco_callback_wrapper",
-                            eventer_aco_callback_wrapper,
-                            eventer_aco_namer, NULL);
-}
 
 eventer_aco_t
 eventer_set_eventer_aco_co(eventer_t e, aco_t *co) {
@@ -494,4 +488,19 @@ eventer_fd_opset_t eventer_aco_fd_opset = &_eventer_aco_fd_opset;
 mtev_boolean eventer_is_aco_opset(eventer_t e) {
   if(e == NULL) return mtev_false;
   return e->opset == eventer_aco_fd_opset;
+}
+
+void
+eventer_aco_init(void) {
+  eventer_name_callback_ext("eventer_aco_callback_wrapper",
+                            eventer_aco_callback_wrapper,
+                            eventer_aco_namer, NULL);
+  eventer_name_callback("eventer_priv_aco_timeout",
+                        priv_aco_timeout);
+  eventer_name_callback("eventer_aco_asynch_wrapper",
+                        eventer_aco_asynch_wrapper);
+  eventer_name_callback("eventer_aco_mode_asynch_wrapper",
+                        eventer_aco_mode_asynch_wrapper);
+  eventer_name_callback("eventer_aco_simple_asynch_wrapper",
+                        eventer_aco_simple_asynch_wrapper);
 }

@@ -61,6 +61,8 @@
 #include "mtev_watchdog.h"
 #include "mtev_stacktrace.h"
 
+static int watchdog_tick(eventer_t e, int mask, void *lifeline, struct timeval *now);
+
 struct mtev_watchdog_t {
   int ticker;
   enum {
@@ -284,6 +286,7 @@ void mtev_watchdog_disable_asynch_core_dump(void) {
 int mtev_watchdog_prefork_init(void) {
   int i;
   const char *async;
+  eventer_name_callback("watchdog_tick", watchdog_tick);
   async = getenv("MTEV_ASYNCH_CORE_DUMP");
   if(!async) async = getenv("ASYNCH_CORE_DUMP");
   if(async) allow_async_dumps = atoi(async);
