@@ -711,7 +711,7 @@ int eventer_cpu_sockets_and_cores(int *sockets, int *cores) {
   depth = hwloc_get_type_depth(*topo, HWLOC_OBJ_SOCKET);
   if(depth != HWLOC_TYPE_DEPTH_UNKNOWN)
     nsockets = hwloc_get_nbobjs_by_depth(*topo, depth);
-  depth = hwloc_get_type_or_below_depth(*topo, HWLOC_OBJ_CORE);
+  depth = hwloc_get_type_or_below_depth(*topo, HWLOC_OBJ_PU);
   if(depth != HWLOC_TYPE_DEPTH_UNKNOWN)
     ncores = hwloc_get_nbobjs_by_depth(*topo, depth);
 
