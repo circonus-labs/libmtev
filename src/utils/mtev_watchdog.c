@@ -286,7 +286,7 @@ void mtev_watchdog_disable_asynch_core_dump(void) {
 int mtev_watchdog_prefork_init(void) {
   int i;
   const char *async;
-  eventer_name_callback("watdog_tick", watchdog_tick);
+  eventer_name_callback("watchdog_tick", watchdog_tick);
   async = getenv("MTEV_ASYNCH_CORE_DUMP");
   if(!async) async = getenv("ASYNCH_CORE_DUMP");
   if(async) allow_async_dumps = atoi(async);
