@@ -54,6 +54,9 @@ API_EXPORT(const char *) strnstrn(const char *, int, const char *, int) __attrib
 
 #ifndef BROKEN_MEMMEM
 #define mtev_memmem(a,b,c,d) memmem(a,b,c,d)
+#else
+API_EXPORT(void *) mtev_memmem(const void *haystack, size_t haystacklen,
+                               const void *needle, size_t needlelen);
 #endif
 
 API_EXPORT(char *) mtev__strndup(const char *src, size_t len) __attribute__((deprecated)); /*1.2.9*/
