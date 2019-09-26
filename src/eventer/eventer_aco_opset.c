@@ -94,9 +94,9 @@ eventer_aco_callback_wrapper(eventer_t e, int mask, void *closure, struct timeva
   (void)closure;
   (void)tv;
   mtevAssert(e->opset == eventer_aco_fd_opset);
+  mtevAssert(pthread_equal(e->thr_owner, pthread_self()));
   aco_opset_info_t *info = (aco_opset_info_t *)e->opset_ctx;
   struct aco_cb_ctx *ctx = info->aco_co->arg;
-  mtevAssert(pthread_equal(e->thr_owner, pthread_self()));
   mtevL(eventer_deb, "eventer resuming on (%d)\n", e->fd);
   if(!eventer_aco_resume(info->aco_co)) return 0;
   return ctx->mask;
