@@ -4,6 +4,18 @@
 
 ## 1.8
 
+### 1.8.1
+
+ * Change some eventer.h #define mappings into static inline functions.
+ * mtev_memmem is a #define to memmem on platforms with working memmem.
+ * Elide a function call in the logging path when zipkin spans aren't active.
+ * Update the web support to assist displaying clusters.
+ * Explicitly name more callbacks in the eventer.
+ * The eventer now returns the number of processing units as the number of
+   cores as this is what callers were expecting. (people should not run w/
+   hyper-threading anyway).
+ * Expose a useful coverity model for libmtev.
+
 ### 1.8.0
 
  * Rudimentary support for a lua stack tracer on crashes where luajit
