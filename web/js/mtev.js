@@ -25,6 +25,17 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
     ]
   };
 
+  function findKey(obj, str) {
+    var v = obj;
+    try {
+      var p = str.split(".");
+      while(p.length) {
+        v = v[p.shift()];
+      }
+    } catch(e) { v = null; }
+    return v;
+  }
+
   mtev.toHex = function(s) {
     var s = unescape(encodeURIComponent(s))
     var h = ''
@@ -100,6 +111,147 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
     return time;
   }
   
+  mtev.format = {
+    "nice-time-s": mtev.nice_time,
+    "nice-time-ms": (a) => mtev.nice_time(a/1000),
+    "nice-date": mtev.nice_date,
+    "tofixed": (a) => a.toFixed(0),
+    "tofixed-1": (a) => a.toFixed(1),
+    "tofixed-2": (a) => a.toFixed(2),
+    "tofixed-3": (a) => a.toFixed(3),
+    pretty_bytes: mtev.pretty_bytes
+  };
+
+  mtev.auto_age_element = function($elem) {
+    var time = $elem.data("timestamp");
+    var skew = $elem.data("skew");
+    if(skew == null) skew = mtev.cluster_skew;
+    if(skew == null) skew = 0;
+    if(time != null && time != 0) {
+      var age = Math.floor(((+new Date()) - time - skew)/1000);
+      $elem.html((age >= 0) ? mtev.nice_time(Math.floor(((+new Date()) - time - skew)/1000)) : "future");
+    } else {
+      $elem.text("-");
+    }
+  }
+
+  mtev.jsonDomInjector = function(r) {
+    return function() {
+      var text = "-";
+      var key = $(this).attr('data');
+      var transform = $(this).attr('data-transform');
+      var format = $(this).attr('data-format');
+      var value = findKey(r.current.data, key);
+      if(transform == "rate" && r.prev.whence) {
+        var oldValue = findKey(r.prev.data, key);
+        value = parseFloat(value);
+        oldValue = parseFloat(oldValue);
+        if(!isNaN(value) && !isNaN(oldValue)) {
+          text = (value - oldValue) / ((r.current.whence - r.prev.whence) / 1000);
+        }
+      } else if(value != null) {
+        text = value;
+      }
+      if(format && mtev.format[format])
+        try { text = mtev.format[format](text); } catch(e) {}
+      $(this).html(text);
+    };
+  }
+
+  mtev.makeDataHandler = function(hname) {
+    var info = { current: {}, prev: {} };
+    return function(r) {
+      info.current.whence = +(new Date());
+      info.current.data = r;
+      $("*[data-handler='" + hname + "']").each(mtev.jsonDomInjector(info));
+      info.prev.data = info.current.data;
+      info.prev.whence = info.current.whence;
+    };
+  }
+
+  mtev.SetVersionFromStats = function(r) {
+    var vers = r.version._value;
+    var bits = /^([a-f0-9]{8})[a-f0-9]{32}\.(\d+)$/.exec(vers);
+    if(bits) vers = bits[1] + "." + bits[2];
+    if(r.branch._value != "branches/master" && r.branch._value != "master") {
+      var p = r.branch._value.split("/");
+      var tag = (p && p.length == 2) ? p[1] : r.branch_value;
+      if(p && p[0] == 'tag')
+        mtev.setVersion("version: " + tag)
+      else
+        mtev.setVersion("version: " + tag + '/' + vers)
+    }
+    else {
+      mtev.setVersion("version: " + vers);
+    }
+  }
+
+  var clusterHandler = mtev.makeDataHandler("cluster-inject");
+
+  mtev.cluster_skew = 0;
+  mtev.updateCluster = function(r, name) {
+    if(r.my_id) {
+      var cn = null;
+      for(i=0;i<r.clusters[name].nodes.length;i++) {
+        var node = r.clusters[name].nodes[i];
+        if(node.id == r.my_id) {
+          cn = node.cn;
+          break;
+        }
+      }
+      if(cn) mtev.setNodeName(cn + "/" + r.my_id);
+      else mtev.setNodeName(r.my_id);
+      clusterHandler(r);
+
+      var $oldBody = $("#cluster-" + name + " tbody");
+      if($oldBody.length > 0) {
+        var now = +(new Date())/1000;
+        var $newBody = $oldBody.clone().empty();
+        var nodes = r.clusters[name].nodes;
+        nodes.sort((a,b) => a.cn.localeCompare(b.cn));
+        for(i=0; i<nodes.length; i++) {
+          var node = nodes[i];
+          var $tr = $("<tr/>");
+          var $icon = $('<span class="glyphicon" aria-hidden="true"></span>');
+          var $me = $('<span class="glyphicon" aria-hidden="true"></span>');
+          $tr.append($("<td/>").addClass("px-0").append($me));
+          $tr.append($("<td/>").addClass("px-0").append($icon));
+          $tr.append($("<td/>").append($("<span/>").html(node.cn)));
+          $tr.append($("<td/>").addClass("hidden-lg-down").append($("<span/>").html(node.id)));
+          $tr.append($("<td/>").append($("<span/>").html(node.address + ":" + node.port)));
+          if(!node.reference_time) node.reference_time = +new Date();
+          var skew = +new Date() - (node.reference_time * 1000);
+          var $bspan = $('<span class="auto-age"/>').data("timestamp", node.boot_time * 1000)
+                                                    .data("skew", skew);
+          var $sspan = $('<span class="auto-age"/>').data("timestamp", node.last_contact * 1000)
+                                                    .data("skew", skew);
+          mtev.cluster_skew = skew;
+          $tr.append($("<td/>").append($bspan));
+          $tr.append($("<td/>").append($sspan));
+
+
+          if(r.clusters[name].oldest_node == node.id) {
+            $icon.addClass("glyphicon-hand-right");
+          }
+          if(node.dead) {
+            $icon.addClass("glyphicon-remove");
+          }
+          if(node.id == r.my_id) {
+            $me.addClass("glyphicon-star");
+          }
+          $newBody.append($tr);
+        }
+        $newBody.find(".auto-age").each(function() {
+          mtev.auto_age_element($(this))
+        });
+        $newBody.find(".auto-age").each(function() {
+          mtev.auto_age_element($(this))
+        });
+        $oldBody.replaceWith($newBody);
+      }
+    }
+  }
+
   function $modalButton(n, id) {
     return $('<button type="button" class="tag tag-primary" data-toggle="modal" data-target="#' + id + '"/>').html(n);
   }
@@ -143,6 +295,8 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
     if(!t) t = "default";
     return $("<span class=\"badge badge-pill badge-" + t + "\"/>").text(n);
   }
+
+  mtev.$badge = $badge;
 
   var jobq_hidden = true;
   function jobq_hider() {
@@ -489,16 +643,16 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
 
     if(!tabName || !id || $('#' + id).length > 0) return null;
     $($link).attr('href', '#' + id);
+    $($link).attr('aria-controls', id);
     $($link).attr('data-toggle', 'tab');
     $($link).attr('role', 'tab');
-    var $div = $('<div class="tab-pane fade in" role="tabpanel"></div>').attr('id',id);
+    var $div = $('<div class="tab-pane" role="tabpanel"></div>').attr('id',id);
     $("#viewTabContent").prepend($div);
 
     if(active) {
       $("#viewTabContent > div").removeClass("active");
       $("#viewTab a.nav-link").removeClass("active");
       $link.addClass("active");
-      $div.removeClass("fade");
       $div.addClass("active");
     }
 
