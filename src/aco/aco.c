@@ -15,9 +15,17 @@
 #include "aco.h"
 #include <stdio.h>
 #include <stdint.h>
+#include <ck_pr.h>
 
 // this header including should be at the last of the `include` directives list
 #include "aco_assert_override.h"
+
+static uint32_t current_tls_max = 0;
+uint32_t aco_tls_assign_idx(void) {
+  uint32_t new_id = ck_pr_faa_32(&current_tls_max, 1);
+  assert(new_id < MAX_TLS_ENTRIES);
+  return new_id;
+}
 
 void aco_runtime_test(void){
 #ifdef __i386__

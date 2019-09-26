@@ -287,6 +287,7 @@ eventer_t mtev_http1_connection_event(mtev_http1_connection *conn) {
 eventer_t mtev_http1_connection_event_float(mtev_http1_connection *conn) {
   eventer_t e = conn ? conn->e : NULL;
   if(e) {
+    mtevAssert(!eventer_is_aco_opset(e));
     conn->e = eventer_alloc_copy(e);
   }
   return e;

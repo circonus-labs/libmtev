@@ -24,6 +24,8 @@
 #include <time.h>
 #include <sys/mman.h>
 
+#define MAX_TLS_ENTRIES 16
+
 #ifdef ACO_USE_VALGRIND
     #include <valgrind/valgrind.h>
 #endif
@@ -110,7 +112,12 @@ struct aco_s{
     
     aco_save_stack_t  save_stack;
     aco_share_stack_t* share_stack;
+    void *tls[MAX_TLS_ENTRIES];
 };
+
+uint32_t aco_tls_assign_idx(void);
+
+#define aco_tls(co,idx) co->tls[idx]
 
 #define aco_likely(x) (__builtin_expect(!!(x), 1))
 

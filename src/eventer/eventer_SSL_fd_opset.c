@@ -697,20 +697,19 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   char ssl_ctx_key[SSL_CTX_KEYLEN];
   eventer_ssl_ctx_t *ctx;
   const char *layer_str;
-  char *ctx_layer, *opts;
+  char *opts, ctx_layer[256], opts_buf[256];
   char *opts_fallback = DEFAULT_OPTS_STRING;
   time_t now;
   ctx = calloc(1, sizeof(*ctx));
   if(!ctx) return NULL;
 
   layer_str = layer ? layer : DEFAULT_LAYER_STRING;
-  ctx_layer = alloca(strlen(layer_str)+1);
-  memcpy(ctx_layer, layer_str, strlen(layer_str)+1);
+  strlcpy(ctx_layer, layer_str, sizeof(ctx_layer));
   opts = strchr(ctx_layer,':');
   if(opts) *opts++ = '\0';
   else {
-    opts = alloca(strlen(opts_fallback)+1);
-    memcpy(opts, opts_fallback, strlen(opts_fallback)+1);
+    strlcpy(opts_buf, opts_fallback, sizeof(opts_buf));
+    opts = opts_buf;
   }
 
   now = time(NULL);

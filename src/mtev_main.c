@@ -393,9 +393,10 @@ mtev_main(const char *appname,
 
   zipkin_conf();
 
-  char* root_section_path = alloca(strlen(appname)+2);
-  sprintf(root_section_path, "/%s", appname);
+  char* root_section_path = malloc(strlen(appname)+2);
+  snprintf(root_section_path, strlen(appname)+2, "/%s", appname);
   root = mtev_conf_get_sections(MTEV_CONF_ROOT, root_section_path, &cnt);
+  free(root_section_path);
   mtev_conf_release_sections(root, cnt);
   if(cnt==0) {
     mtevStartupTerminate(mtev_error, "The config must have <%s> as its root node\n", appname);

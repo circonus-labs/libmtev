@@ -854,7 +854,7 @@ posix_logio_cull(mtev_log_stream_t ls, int age, ssize_t bytes) {
   if(size < 0) size = PATH_MAX + 128;
 #endif
   size = MIN(size, PATH_MAX + 128);
-  de = alloca(size);
+  de = malloc(size);
 
   pathlen = strlen(filename);
   now = time(NULL);
@@ -882,6 +882,7 @@ posix_logio_cull(mtev_log_stream_t ls, int age, ssize_t bytes) {
     cnt++;
   }
   closedir(d);
+  free(de);
 
   if(cnt == 0) return 0;
 
@@ -1003,15 +1004,15 @@ jlog_logio_cleanse(mtev_log_stream_t ls) {
     }
     return 0;
   }
+  if(!d) return -1;
 
 #ifdef _PC_NAME_MAX
   size = pathconf(path, _PC_NAME_MAX);
   if(size < 0) size = PATH_MAX + 128;
 #endif
   size = MIN(size, PATH_MAX + 128);
-  de = alloca(size);
+  de = malloc(size);
 
-  if(!d) return -1;
   while(portable_readdir_r(d, de, &entry) == 0 && entry != NULL) {
     uint32_t logid;
     /* the current log file isn't a deletion target. period. */
@@ -1030,6 +1031,7 @@ jlog_logio_cleanse(mtev_log_stream_t ls) {
     }
   }
   closedir(d);
+  free(de);
   return cnt;
 }
 static int

@@ -278,8 +278,8 @@ static void dns_resume(dns_lookup_ctx_t *dlc) {
 
   while(dns_nextrr(&p, &rr) > 0) {
     const char *fieldname = NULL;
-    char buff[DNS_MAXDN], *txt_str, *c;
-    int totalsize;
+    char buff[DNS_MAXDN], txt_str[1024], *c;
+    unsigned int totalsize;
     const unsigned char *pkt = p.dnsp_pkt;
     const unsigned char *end = p.dnsp_end;
     const unsigned char *dptr = rr.dnsrr_dptr;
@@ -319,8 +319,7 @@ static void dns_resume(dns_lookup_ctx_t *dlc) {
           for(tmp = dptr; tmp < dend; totalsize += *tmp, tmp += *tmp + 1)
             if(tmp + *tmp + 1 > dend) break;
           /* worst case: every character escaped + '\0' */
-          txt_str = alloca(totalsize * 3 + 1);
-          if(!txt_str) break;
+          if(sizeof(txt_str) < totalsize * 3 + 1) break;
           c = txt_str;
           for(tmp = dptr; tmp < dend; tmp += *tmp + 1)
             c = encode_txt(c, tmp+1, *tmp);
@@ -487,6 +486,8 @@ requested resource. Possible fields are:
 */
 static int mtev_lua_dns_lookup(lua_State *L) {
   dns_lookup_ctx_t *dlc, **holder;
+  char ctype_buf[64];
+  char rtype_buf[64];
   const char *c, *query = "", *ctype = "IN", *rtype = "A";
   char *ctype_up, *rtype_up, *d;
   void *vnv_pair;
@@ -514,10 +515,10 @@ static int mtev_lua_dns_lookup(lua_State *L) {
   /* We own this at least until return */
   ck_pr_inc_32(&dlc->refcnt);
 
-  ctype_up = alloca(strlen(ctype)+1);
+  ctype_up = ctype_buf;
   for(d = ctype_up, c = ctype; *c; d++, c++) *d = toupper(*c);
   *d = '\0';
-  rtype_up = alloca(strlen(rtype)+1);
+  rtype_up = rtype_buf;
   for(d = rtype_up, c = rtype; *c; d++, c++) *d = toupper(*c);
   *d = '\0';
 

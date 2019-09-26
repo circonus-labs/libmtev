@@ -534,6 +534,7 @@ static int
 _history_expand_command(const char *command, size_t cmdlen, char **result)
 {
 	char **arr, *tempcmd = NULL, *line, *search = NULL, *cmd;
+        char cmd_buf[4096];
 	const char *event_data = NULL;
 	static char *from = NULL, *to = NULL;
 	int start = -1, end = -1, max, i, idx;
@@ -543,7 +544,8 @@ _history_expand_command(const char *command, size_t cmdlen, char **result)
 
 	*result = NULL;
 
-	cmd = alloca(cmdlen + 1);
+        if(cmdlen + 1 >= sizeof(cmd)) return (-1);
+        cmd = cmd_buf;
 	(void) strncpy(cmd, command, cmdlen);
 	cmd[cmdlen] = 0;
 
@@ -576,12 +578,14 @@ _history_expand_command(const char *command, size_t cmdlen, char **result)
 					return (-1);
 				prefix = 0;
 			}
-			search = alloca(len + 1);
+			search = malloc(len + 1);
 			(void) strncpy(search, &cmd[idx], len);
 			search[len] = '\0';
 
-			if (history(h, &ev, H_CURR) != 0)
+			if (history(h, &ev, H_CURR) != 0) {
+				free(search);
 				return (-1);
+                        }
 			curr_num = ev.num;
 
 			if (prefix)
@@ -592,8 +596,10 @@ _history_expand_command(const char *command, size_t cmdlen, char **result)
 			if (retval == -1) {
 				fprintf(rl_outstream, "%s: Event not found\n",
 				    search);
+				free(search);
 				return (-1);
 			}
+			free(search);
 			if (history(h, &ev, H_CURR) != 0)
 				return (-1);
 			event_data = ev.str;
@@ -811,16 +817,18 @@ history_expand(char *str, char **output)
 {
 	int i = 0, retval = 0, idx = 0;
 	size_t size = 0;
+        char temp_buf[4096];
 	char *temp = NULL, *result = NULL;
 
 	if (h == NULL || e == NULL)
 		rl_initialize();
 
 	*output = strdup(str);	/* do it early */
+        if(sizeof(temp_buf) < 4 + strlen(str) + 1) return 0;
 
 	if (str[0] == history_subst_char) {
 		/* ^foo^foo2^ is equivalent to !!:s^foo^foo2^ */
-		temp = alloca(4 + strlen(str) + 1);
+		temp = temp_buf;
 		temp[0] = temp[1] = history_expansion_char;
 		temp[2] = ':';
 		temp[3] = 's';
@@ -839,7 +847,7 @@ history_expand(char *str, char **output)
 	result = NULL;
 	size = idx = 0;
 	for (i = 0; str[i];) {
-    char *malloced;
+		char *malloced;
 		int start, j, loop_again;
 		size_t len;
 
@@ -895,7 +903,7 @@ loop:
 		if (retval != -1) {
 			len = strlen(malloced);
 			ADD_STRING(malloced, len);
-      free(malloced);
+			free(malloced);
 		}
 		i = j;
 	}			/* for(i ...) */
@@ -1631,7 +1639,7 @@ rl_complete_internal(int what_to_do)
 		ctemp--;
 
 	len = li->cursor - ctemp;
-	temp = alloca(len + 1);
+	temp = malloc(len + 1);
 	(void) strncpy(temp, ctemp, len);
 	temp[len] = '\0';
 
@@ -1733,8 +1741,10 @@ rl_complete_internal(int what_to_do)
 			free(matches[i]);
 		free(matches), matches = NULL;
 
+		free(temp);
 		return (retval);
 	}
+	free(temp);
 	return (CC_NORM);
 }
 

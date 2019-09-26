@@ -2684,12 +2684,12 @@ nl_readdir(lua_State *L) {
   size = pathconf(path, _PC_NAME_MAX);
 #endif
   size = MAX(size, PATH_MAX + 128);
-  de = alloca(size);
   root = opendir(path);
   if(!root) {
     lua_pushnil(L);
     return 1;
   }
+  de = malloc(size);
   lua_newtable(L);
   while(portable_readdir_r(root, de, &entry) == 0 && entry != NULL) {
     int use_value = 1;
@@ -2699,6 +2699,7 @@ nl_readdir(lua_State *L) {
       lua_pushvalue(L,-2);  /* arg  */
       if(lua_pcall(L,1,1,0) != 0) {
         closedir(root);
+        free(de);
         luaL_error(L, lua_tostring(L,-1));
       }
       use_value = lua_toboolean(L,-1);
@@ -2714,6 +2715,7 @@ nl_readdir(lua_State *L) {
     }
   }
   closedir(root);
+  free(de);
 
   return 1;
 }
@@ -2895,13 +2897,14 @@ nl_base32_decode(lua_State *L) {
   size_t inlen, decoded_len;
   const char *message;
   unsigned char *decoded;
+  unsigned char decoded_buf[ON_STACK_LUA_STRLEN];
   int needs_free = 0;
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.decode");
 
   message = lua_tolstring(L, 1, &inlen);
   if(MAX(1,inlen) <= ON_STACK_LUA_STRLEN) {
-    decoded = alloca(MAX(1,inlen));
+    decoded = decoded_buf;
   }
   else {
     decoded = malloc(MAX(1,inlen));
@@ -2920,6 +2923,7 @@ nl_base32_encode(lua_State *L) {
   size_t inlen, encoded_len;
   const unsigned char *message;
   char *encoded;
+  char encoded_buf[ON_STACK_LUA_STRLEN];
   int needs_free = 0;
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.encode");
@@ -2927,7 +2931,7 @@ nl_base32_encode(lua_State *L) {
   message = (const unsigned char *)lua_tolstring(L, 1, &inlen);
   encoded_len = (((inlen + 7) / 5) * 8) + 1;
   if(encoded_len <= ON_STACK_LUA_STRLEN) {
-    encoded = alloca(encoded_len);
+    encoded = encoded_buf;
   }
   else {
     encoded = malloc(encoded_len);
@@ -2946,13 +2950,14 @@ nl_base64_decode(lua_State *L) {
   size_t inlen, decoded_len;
   const char *message;
   unsigned char *decoded;
+  unsigned char decoded_buf[ON_STACK_LUA_STRLEN];
   int needs_free = 0;
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.decode");
 
   message = lua_tolstring(L, 1, &inlen);
   if(MAX(1,inlen) <= ON_STACK_LUA_STRLEN) {
-    decoded = alloca(MAX(1,inlen));
+    decoded = decoded_buf;
   }
   else {
     decoded = malloc(MAX(1,inlen));
@@ -2971,6 +2976,7 @@ nl_base64_encode(lua_State *L) {
   size_t inlen, encoded_len;
   const unsigned char *message;
   char *encoded;
+  char encoded_buf[ON_STACK_LUA_STRLEN];
   int needs_free = 0;
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.encode");
@@ -2978,7 +2984,7 @@ nl_base64_encode(lua_State *L) {
   message = (const unsigned char *)lua_tolstring(L, 1, &inlen);
   encoded_len = (((inlen + 2) / 3) * 4) + 1;
   if(encoded_len <= ON_STACK_LUA_STRLEN) {
-    encoded = alloca(encoded_len);
+    encoded = encoded_buf;
   }
   else {
     encoded = malloc(encoded_len);
@@ -2997,6 +3003,7 @@ nl_utf8tohtml(lua_State *L) {
   int in_idx = 1, tags_idx = 2;
   const unsigned char *in;
   unsigned char *out;
+  unsigned char out_buf[ON_STACK_LUA_STRLEN];
   size_t in_len_size_t;
   int rv, out_len, in_len, needs_free = 0;
 
@@ -3016,7 +3023,7 @@ nl_utf8tohtml(lua_State *L) {
     luaL_error(L, "overflow");
   out_len = in_len * 6 + 1;
   if(out_len <= ON_STACK_LUA_STRLEN) {
-    out = alloca(out_len);
+    out = out_buf;
   }
   else {
     out = malloc(out_len);
@@ -3616,8 +3623,10 @@ mtev_lua_pcre_gc(lua_State *L) {
 
 #define SPLIT_PATH(path, base, element) do { \
   char *endp; \
+  char base_buf[4096]; \
   element = NULL; \
-  base = alloca(strlen(path)+1); \
+  if(sizeof(base_buf) < strlen(path)+1) luaL_error(L, "path overflow"); \
+  base = base_buf; \
   memcpy(base, path, strlen(path)+1); \
   endp = base + strlen(path); \
   while(endp > base && *endp != '/') endp--; \
@@ -3673,8 +3682,8 @@ nl_conf_get_string_list(lua_State *L) {
     lua_createtable(L, cnt, 0);
     for(int i = 0; i < cnt; i++) {
       if(!mtev_conf_get_string(mqs[i], child_path, &val)) {
-        char *msg = alloca(strlen(base_path) + strlen(child_path) + 256);
-        sprintf(msg, "Unable to read option entry: %s%s", base_path, child_path);
+        char msg[1024];
+        snprintf(msg, sizeof(msg), "Unable to read option entry: %s%s", base_path, child_path);
         mtev_conf_release_sections(mqs, cnt);
         return luaL_error(L, msg);
       }
@@ -4638,8 +4647,8 @@ int nl_spawn(lua_State *L) {
   const char *noargs[1] = { NULL };
   const char **argv = noargs, **envp = noargs;
   struct spawn_info *spawn_info;
-  posix_spawnattr_t *attr = NULL;
-  posix_spawn_file_actions_t *filea;
+  posix_spawnattr_t *attr = NULL, attr_onstack;
+  posix_spawn_file_actions_t *filea = NULL, filea_onstack;
   mtev_lua_resume_info_t *ri;
   int ntop = lua_gettop(L);
 
@@ -4658,7 +4667,7 @@ int nl_spawn(lua_State *L) {
     if(!lua_istable(L,2)) luaL_error(L, "spawn(path [,{args} [,{env}]])");
     lua_pushnil(L);  /* first key */
     while (lua_next(L, 2) != 0) arg_count++, lua_pop(L, 1);
-    argv = alloca(sizeof(*argv) * (arg_count + 1));
+    argv = malloc(sizeof(*argv) * (arg_count + 1));
     lua_pushnil(L);  /* first key */
     arg_count = 0;
     while (lua_next(L, 2) != 0) {
@@ -4674,7 +4683,7 @@ int nl_spawn(lua_State *L) {
     if(!lua_istable(L,3)) luaL_error(L, "spawn(path [,{args} [,{env}]])");
     lua_pushnil(L);  /* first key */
     while (lua_next(L, 3) != 0) arg_count++, lua_pop(L, 1);
-    envp = alloca(sizeof(*envp) * (arg_count + 1));
+    envp = malloc(sizeof(*envp) * (arg_count + 1));
     lua_pushnil(L);  /* first key */
     arg_count = 0;
     while (lua_next(L, 3) != 0) {
@@ -4684,7 +4693,7 @@ int nl_spawn(lua_State *L) {
     envp[arg_count] = NULL;
   }
 
-  filea = (posix_spawn_file_actions_t *)alloca(sizeof(*filea));
+  filea = &filea_onstack;
   if(posix_spawn_file_actions_init(filea)) {
     spawn_info->last_errno = errno;
     mtevL(nldeb, "posix_spawn_file_actions_init -> %s\n", strerror(spawn_info->last_errno));
@@ -4708,7 +4717,7 @@ int nl_spawn(lua_State *L) {
   PIPE_SAFE(in, 0, 0);
   PIPE_SAFE(out, 1, 1);
   PIPE_SAFE(err, 1, 2);
-  attr = (posix_spawnattr_t *)alloca(sizeof(*attr));
+  attr = &attr_onstack;
   memset(attr, 0, sizeof(*attr));
   if(posix_spawnattr_init(attr)) {
     attr = NULL;
@@ -4739,6 +4748,8 @@ int nl_spawn(lua_State *L) {
     goto err;
   }
   /* Cleanup the parent half */
+  if(argv != noargs) free(argv);
+  if(envp != noargs) free(envp);
   if(filea) posix_spawn_file_actions_destroy(filea);
   if(attr) posix_spawnattr_destroy(attr);
   close(in[0]); close(out[1]); close(err[1]);
@@ -4767,6 +4778,8 @@ int nl_spawn(lua_State *L) {
   if(out[1] != -1) close(out[1]);
   if(err[0] != -1) close(err[0]);
   if(err[1] != -1) close(err[1]);
+  if(argv != noargs) free(argv);
+  if(envp != noargs) free(envp);
   if(filea) posix_spawn_file_actions_destroy(filea);
   if(attr) posix_spawnattr_destroy(attr);
   lua_pushinteger(L, spawn_info->last_errno);
