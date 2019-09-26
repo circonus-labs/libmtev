@@ -52,7 +52,7 @@ typedef struct mtev_str_buff{
 API_EXPORT(const char *) strnstrn(const char *, int, const char *, int) __attribute__((deprecated)); /*1.2.9*/
 #endif
 
-#ifndef BROKEN_MEMMEM
+#if !defined(BROKEN_MEMMEM) && defined(_GNU_SOURCE)
 #define mtev_memmem(a,b,c,d) memmem(a,b,c,d)
 #else
 API_EXPORT(void *) mtev_memmem(const void *haystack, size_t haystacklen,
