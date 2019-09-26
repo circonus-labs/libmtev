@@ -370,6 +370,9 @@ install-docs:
 
 install:	install-bins install-docs install-headers install-libs install-modules
 
+libmtev.xmldb:	coverity_model.c
+	cov-make-library -of libmtev.xmldb coverity_model.c
+
 clean:
 	rm -f *.lo *.o *.hlo *.Slo libmtev_dtrace_probes.h
 	for subdir in aco eventer noitedit utils json-lib; do \

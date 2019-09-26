@@ -739,21 +739,21 @@ int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct t
     \brief Add an event object to the eventer system.
     \param e an event object to add.
 */
-#define eventer_add           __eventer->add
+static inline void eventer_add(eventer_t e) { __eventer->add(e); }
 
 /*! \fn eventer_t eventer_remove(eventer_t e)
     \brief Remove an event object from the eventer system.
     \param e an event object to add.
     \return the event object removed if found; NULL if not found.
 */
-#define eventer_remove        __eventer->remove
+static inline eventer_t eventer_remove(eventer_t e) { return __eventer->remove(e); }
 
 /*! \fn void eventer_update(evneter_t e, int mask)
     \brief Change the activity mask for file descriptor events.
     \param e an event object
     \param mask a new mask that is some bitwise or of `EVENTER_READ`, `EVENTER_WRITE`, and `EVENTER_EXCEPTION`
 */
-#define eventer_update        __eventer->update
+static inline void eventer_update(eventer_t e, int mask) { __eventer->update(e,mask); }
 
 /*! \fn void void eventer_update_whence(eventer_t e, struct timeval whence)
     \brief Change the time at which a registered timer event should fire.
@@ -767,14 +767,15 @@ void eventer_update_whence(eventer_t e, struct timeval w);
     \param fd a file descriptor
     \return the event object removed if found; NULL if not found.
 */
-#define eventer_remove_fd     __eventer->remove_fd
+
+static inline eventer_t eventer_remove_fd(int fd) { return __eventer->remove_fd(fd); }
 
 /*! \fn eventer_t eventer_find_fd(int e)
     \brief Find an event object in the eventer system by file descriptor.
     \param fd a file descriptor
     \return the event object if it exists; NULL if not found.
 */
-#define eventer_find_fd       __eventer->find_fd
+static inline eventer_t eventer_find_fd(int fd) { return __eventer->find_fd(fd); }
 
 /*! \fn void eventer_trigger(eventer_t e, int mask)
     \brief Trigger an unregistered eventer and incorporate the outcome into the eventer.
@@ -784,7 +785,7 @@ void eventer_update_whence(eventer_t e, struct timeval w);
     This is often used to "start back up" an event that has been removed from the
     eventer for any reason.
 */
-#define eventer_trigger       __eventer->trigger
+static inline void eventer_trigger(eventer_t e, int mask) { __eventer->trigger(e,mask); }
 
 #define eventer_max_sleeptime __eventer->max_sleeptime
 
@@ -805,7 +806,7 @@ void eventer_update_whence(eventer_t e, struct timeval w);
     file descriptor activity.  If, for an external reason, one needs to wake up
     a looping thread, this call is used.
 */
-#define eventer_wakeup        __eventer->wakeup
+static inline void eventer_wakeup(eventer_t e) { __eventer->wakeup(e); }
 
 extern eventer_impl_t registered_eventers[];
 
