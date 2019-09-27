@@ -511,6 +511,11 @@ static int mtev_lua_dns_lookup(lua_State *L) {
     return 1;
   }
 
+  if(strlen(ctype) >= sizeof(ctype_buf))
+    luaL_error(L, "ctype parameter too long");
+  if(strlen(rtype) >= sizeof(rtype_buf))
+    luaL_error(L, "rtype parameter too long");
+
   dlc->in_lua = 1;
   /* We own this at least until return */
   ck_pr_inc_32(&dlc->refcnt);
