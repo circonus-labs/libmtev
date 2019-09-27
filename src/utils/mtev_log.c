@@ -65,7 +65,7 @@
 #include <jlog_private.h>
 #include "libmtev_dtrace.h"
 
-#define BOOT_STDERR_FLAGS MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS
+#define BOOT_STDERR_FLAGS MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS|MTEV_LOG_STREAM_SPLIT
 #define BOOT_DEBUG_FLAGS MTEV_LOG_STREAM_TIMESTAMPS
 
 extern const char *eventer_get_thread_name(void);
@@ -1510,6 +1510,8 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
   ls->path = path ? strdup(path) : NULL;
   ls->type = type ? strdup(type) : NULL;
   ls->dedup_s = MTEV_LOG_DEFAULT_DEDUP_S;
+  if(ls->type && 0 == strcmp(ls->type, "file"))
+    ls->flags |= MTEV_LOG_STREAM_SPLIT;
   ls->flags |= MTEV_LOG_STREAM_ENABLED;
   ls->config = config;
   if(!type)
@@ -1801,33 +1803,59 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
   }
   bitor = &bitor_onstack;
   if(ls->ops) {
-    int iovcnt = 0;
-    struct iovec iov[6];
-    if(IS_TIMESTAMPS_ON(bitor)) {
-      iov[iovcnt].iov_base = (void *)timebuf;
-      iov[iovcnt].iov_len = timebuflen;
+    const char *this_line = buffer;
+    size_t sofar = 0;
+    size_t this_line_len = len;
+    while(this_line && sofar < len) {
+      int iovcnt = 0;
+      struct iovec iov[7];
+      const char *next_line = NULL;
+
+      this_line_len = len - sofar;
+      if(ls->flags & MTEV_LOG_STREAM_SPLIT) {
+        next_line = memchr(this_line, '\n', len - sofar);
+        if(next_line) {
+          next_line++;
+          this_line_len = next_line - this_line;
+        }
+      }
+
+      if(IS_TIMESTAMPS_ON(bitor)) {
+        iov[iovcnt].iov_base = (void *)timebuf;
+        iov[iovcnt].iov_len = timebuflen;
+        iovcnt++;
+      }
+      if(IS_FACILITY_ON(bitor)) {
+        iov[iovcnt].iov_base = (void *)"[";
+        iov[iovcnt].iov_len = 1;
+        iovcnt++;
+        iov[iovcnt].iov_base = (void *)bitor->name;
+        iov[iovcnt].iov_len = strlen(bitor->name);
+        iovcnt++;
+        iov[iovcnt].iov_base = (void *)"] ";
+        iov[iovcnt].iov_len = 2;
+        iovcnt++;
+      }
+      if(IS_DEBUG_ON(bitor)) {
+        iov[iovcnt].iov_base = (void *)debugbuf;
+        iov[iovcnt].iov_len = debugbuflen;
+        iovcnt++;
+      }
+      iov[iovcnt].iov_base = (void *)this_line;
+      iov[iovcnt].iov_len = this_line_len;
+      sofar += this_line_len;
       iovcnt++;
+      if(ls->flags & MTEV_LOG_STREAM_SPLIT) {
+        if(this_line_len > 0 && this_line[this_line_len-1] != '\n') {
+          iov[iovcnt].iov_base = (void *)"\n";
+          iov[iovcnt].iov_len = 1;
+          iovcnt++;
+        }
+      }
+      rv += mtev_log_writev(ls, whence, iov, iovcnt);
+
+      this_line = next_line;
     }
-    if(IS_FACILITY_ON(bitor)) {
-      iov[iovcnt].iov_base = (void *)"[";
-      iov[iovcnt].iov_len = 1;
-      iovcnt++;
-      iov[iovcnt].iov_base = (void *)bitor->name;
-      iov[iovcnt].iov_len = strlen(bitor->name);
-      iovcnt++;
-      iov[iovcnt].iov_base = (void *)"] ";
-      iov[iovcnt].iov_len = 2;
-      iovcnt++;
-    }
-    if(IS_DEBUG_ON(bitor)) {
-      iov[iovcnt].iov_base = (void *)debugbuf;
-      iov[iovcnt].iov_len = debugbuflen;
-      iovcnt++;
-    }
-    iov[iovcnt].iov_base = (void *)buffer;
-    iov[iovcnt].iov_len = len;
-    iovcnt++;
-    rv = mtev_log_writev(ls, whence, iov, iovcnt);
   }
   for(node = ls->outlets; node; node = node->next) {
     int srv = 0;
