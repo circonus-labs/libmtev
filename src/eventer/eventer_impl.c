@@ -136,17 +136,29 @@ struct eventer_impl_data {
   ck_hs_t *aco_registry;
 };
 
-static __thread eventer_t current_eventer_in_callback;
-/* private */
-void eventer_set_this_event(eventer_t e) { current_eventer_in_callback = e; }
-
-eventer_t
-eventer_get_this_event(void) {
-  return current_eventer_in_callback;
-}
 static __thread struct eventer_impl_data *my_impl_data;
 static __thread char thread_name[65];
 static struct eventer_impl_data *eventer_impl_tls_data = NULL;
+static uint32_t current_event_aco_tls_idx = UINT32_MAX;
+static __thread eventer_t current_eventer_in_callback;
+/* private */
+void eventer_set_this_event(eventer_t e) {
+  aco_t *co = aco_get_co();
+  if(co == NULL || !my_impl_data || co == my_impl_data->aco_main_co) {
+    current_eventer_in_callback = e;
+  } else {
+    aco_tls(co, current_event_aco_tls_idx) = (void *)e;
+  }
+}
+
+eventer_t
+eventer_get_this_event(void) {
+  aco_t *co = aco_get_co();
+  if(co == NULL || !my_impl_data || co == my_impl_data->aco_main_co) {
+    return current_eventer_in_callback;
+  }
+  return aco_tls(co, current_event_aco_tls_idx);
+}
 
 static inline void
 eventer_set_thread_name_internal(const char *name, mtev_boolean unsafe) {
@@ -428,10 +440,13 @@ int eventer_impl_propset(const char *key, const char *value) {
       mtevL(mtev_error, "Cannot change alternate eventer loop concurrency after startup\n");
       return -1;
     }
-    char *nv = alloca(strlen(value)+1), *tok;
-    memcpy(nv, value, strlen(value)+1);
+    char *val_copy = strdup(value);
+    char *tok, *nv = val_copy;
     const char *name = key + strlen("loop_");
-    if(strlen(name) == 0) return -1;
+    if(strlen(name) == 0) {
+      free(val_copy);
+      return -1;
+    }
 
     ADVTOK; /* concurrency */
     int requested = tok ? atoi(tok) : 0;
@@ -442,20 +457,27 @@ int eventer_impl_propset(const char *key, const char *value) {
     eventer_pool_create(name, requested);
     eventer_pool_t *ep = eventer_pool(name);
     ep->hb_timeout = hb_timeout;
+    free(val_copy);
     return 0;
   }
   if(!strncasecmp(key, "jobq_", strlen("jobq_"))) {
-    char *nv = alloca(strlen(value)+1), *tok;
-    memcpy(nv, value, strlen(value)+1);
+    char *val_copy = strdup(value);
+    char *tok, *nv = val_copy;
     const char *name = key + strlen("jobq_");
-    if(strlen(name) == 0) return -1;
+    if(strlen(name) == 0) {
+      free(val_copy);
+      return -1;
+    }
 
     uint32_t concurrency, min = 0, max = 0, backlog = 0;
     eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_GC;
 
     ADVTOK;
     concurrency = atoi(tok);
-    if(concurrency == 0) return -1;
+    if(concurrency == 0) {
+      free(val_copy);
+      return -1;
+    }
     
     ADVTOK; /* min */
     if(tok) min = max = atoi(tok);
@@ -465,6 +487,7 @@ int eventer_impl_propset(const char *key, const char *value) {
        (min && concurrency < min) ||
        (max && concurrency > max)) {
       mtevL(mtev_error, "eventer jobq '%s' must have reasonable concurrency\n", name);
+      free(val_copy);
       return -1;
     }
     ADVTOK;
@@ -475,6 +498,7 @@ int eventer_impl_propset(const char *key, const char *value) {
       else {
         mtevL(mtev_error, "eventer jobq '%s' has unknown memory safety setting: %s\n",
               name, tok);
+        free(val_copy);
         return -1;
       }
     }
@@ -485,16 +509,19 @@ int eventer_impl_propset(const char *key, const char *value) {
     eventer_jobq_t *jq = eventer_jobq_retrieve(name);
     if(jq && jq->mem_safety != mem_safety) {
       mtevL(mtev_error, "eventer jobq '%s' cannot be redefined\n", name);
+      free(val_copy);
       return -1;
     }
     if(!jq) jq = eventer_jobq_create_ms(name, mem_safety);
     if(!jq) {
       mtevL(mtev_error, "eventer jobq '%s' could not be created\n", name);
+      free(val_copy);
       return -1;
     }
     eventer_jobq_set_concurrency(jq, concurrency);
     eventer_jobq_set_min_max(jq, min, max);
     eventer_jobq_set_max_backlog(jq, backlog);
+    free(val_copy);
     return 0;
   }
   if(!strcasecmp(key, "default_queue_threads")) {
@@ -776,6 +803,7 @@ void eventer_impl_init_globals(void) {
   eventer_name_callback("eventer_aco_rehome_start", eventer_aco_rehome_start);
   eventer_name_callback("posix_asynch_shutdown_close_event", posix_asynch_shutdown_close_event);
   eventer_aco_init();
+  current_event_aco_tls_idx = aco_tls_assign_idx();
   mtev_hash_init(&eventer_pools);
 
   pool_ns = mtev_stats_ns(eventer_stats_ns, "pool");

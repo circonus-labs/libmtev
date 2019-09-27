@@ -76,13 +76,20 @@ mtev_lua_http_request_headers(lua_State *L) {
     const char *hdr = lua_tostring(L,2);
     if(hdr == NULL) lua_pushnil(L);
     else {
-      char *cp, *lower = alloca(strlen(hdr) + 1);
+      char lower_buf[4096], *allocd = NULL;
+      char *cp, *lower;
+      if(strlen(hdr)+1 <= sizeof(lower_buf)) {
+        lower = lower_buf;
+      } else {
+        lower = allocd = malloc(strlen(hdr)+1);
+      }
       memcpy(lower, hdr, strlen(hdr)+1);
       for(cp=lower; *cp; cp++) *cp = tolower(*cp);
       if(mtev_hash_retr_str(h, lower, strlen(lower), &hdr))
         lua_pushstring(L, hdr);
       else
         lua_pushnil(L);
+      free(allocd);
     }
   }
   else luaL_error(L, "invalid arguments to mtev_http_request:headers()");

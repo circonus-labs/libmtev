@@ -666,7 +666,7 @@ mtev_console_memory_log_opts_ex(mtev_console_closure_t ncct,
     cnt = mtev_log_list(NULL, 0);
     if(cnt < 0 ) {
       cnt = 0 - cnt;
-      loggers = alloca(sizeof(*loggers) * cnt);
+      loggers = malloc(sizeof(*loggers) * cnt);
       cnt = mtev_log_list(loggers, cnt);
       if(cnt > 0) {
         for(i=0;i<cnt;i++) {
@@ -678,6 +678,7 @@ mtev_console_memory_log_opts_ex(mtev_console_closure_t ncct,
           }
         }
       }
+      free(loggers);
     }
   }
   return NULL;

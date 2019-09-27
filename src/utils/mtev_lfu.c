@@ -297,8 +297,9 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *val)
     return mtev_false;
   }
   struct lfu_key *tempkey = NULL;
+  char tempkey_buf[ALLOCA_LIMIT];
   if (key_len <= ALLOCA_LIMIT) {
-    tempkey = alloca(sizeof(struct lfu_key) + key_len);
+    tempkey = (struct lfu_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lfu_key) + key_len);
   }
@@ -348,8 +349,9 @@ mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len, void **value)
   }
 
   struct lfu_key *tempkey = NULL;
+  char tempkey_buf[ALLOCA_LIMIT];
   if (key_len <= ALLOCA_LIMIT) {
-    tempkey = alloca(sizeof(struct lfu_key) + key_len);
+    tempkey = (struct lfu_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lfu_key) + key_len);
   }
@@ -404,8 +406,9 @@ mtev_lfu_remove(mtev_lfu_t *c, const char *key, size_t key_len)
     return NULL;
   }
   struct lfu_key *tempkey = NULL;
+  char tempkey_buf[ALLOCA_LIMIT];
   if (key_len <= ALLOCA_LIMIT) {
-    tempkey = alloca(sizeof(struct lfu_key) + key_len);
+    tempkey = (struct lfu_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lfu_key) + key_len);
   }

@@ -37,6 +37,7 @@
 #include "mtev_log.h"
 #include "mtev_listener.h"
 #include "mtev_console.h"
+#include "mtev_str.h"
 #include "mtev_tokenizer.h"
 
 #include "noitedit/sys.h"
@@ -97,16 +98,15 @@ static char *
 noitedit_completion_function(EditLine *el, const char *text, int state) {
   mtev_console_closure_t ncct;
   const LineInfo *li;
-  char **cmds, *curstr, *rv = NULL;
+  char *cmds[32], *curstr, *rv = NULL;
   int len, cnt = 32;
 
   li = el_line(el);
   len = li->cursor - li->buffer;
-  curstr = alloca(len + 1);
+  curstr = malloc(len + 1);
   memcpy(curstr, li->buffer, len);
   curstr[len] = '\0';
 
-  cmds = alloca(32 * sizeof(*cmds));
   cmds[0] = NULL;
   (void) mtev_tokenize(curstr, cmds, &cnt);
 
@@ -120,6 +120,7 @@ noitedit_completion_function(EditLine *el, const char *text, int state) {
                                    ncct->state_stack->state,
                                    cnt, cmds, state);
   if(cmds[0]) while(cnt > 0) free(cmds[--cnt]);
+  free(curstr);
   return rv;
 }
 static int
@@ -235,9 +236,7 @@ mtev_edit_complete(EditLine *el, int invoking_key) {
     ctemp--;
 
   len = li->cursor - ctemp;
-  temp = alloca(len + 1);
-  (void) strncpy(temp, ctemp, len);
-  temp[len] = '\0';
+  temp = mtev_strndup(ctemp, len);
 
   /* these can be used by function called in completion_matches() */
   /* or (*rl_attempted_completion_function)() */
@@ -245,6 +244,7 @@ mtev_edit_complete(EditLine *el, int invoking_key) {
   ncct->rl_end = li->lastchar - li->buffer;
 
   matches = completion_matches(el, temp, noitedit_completion_function);
+  free(temp);
 
   if (matches) {
     int i, retval = CC_REFRESH;

@@ -1130,9 +1130,12 @@ mtev_conf_read_into_node(xmlNodePtr node, const char *path) {
   size = pathconf(path, _PC_NAME_MAX);
 #endif
   size = MAX(size, PATH_MAX + 128);
-  de = alloca(size);
+  de = malloc(size);
   dirroot = opendir(path);
-  if(!dirroot) return -1;
+  if(!dirroot) {
+    free(de);
+    return -1;
+  }
   while(portable_readdir_r(dirroot, de, &entry) == 0 && entry != NULL) {
     mtev_xml_userdata_t *udata;
     char name[PATH_MAX];
@@ -1183,6 +1186,7 @@ mtev_conf_read_into_node(xmlNodePtr node, const char *path) {
     }
   }
   closedir(dirroot);
+  free(de);
   return 0;
 }
 
@@ -1552,7 +1556,8 @@ mtev_conf_section_to_xpath(mtev_conf_section_t section) {
   mtev_prependable_str_buff_t *xpath = mtev_prepend_str_alloc();
   xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(section);
   int buff_len = 512;
-  char *buff = alloca(buff_len);
+  char buff_stack[512];
+  char *buff = buff_stack;
   char *onheap = NULL;
   while (node && node->name) {
     int desc_id = get_descendant_id(node);

@@ -434,7 +434,9 @@ mtev_http2_connection_resume_after_float(mtev_http2_connection *p) {
   if(p->floated == H2_ASYNCH) {
     p->floated = H2_SYNCH;
     if(p->parent->e) {
-      eventer_trigger(p->parent->e, EVENTER_READ|EVENTER_WRITE);
+      if(!eventer_is_aco(p->parent->e)) {
+        eventer_trigger(p->parent->e, EVENTER_READ|EVENTER_WRITE);
+      }
     }
     mtev_http2_session_ref_dec(p);
   } else {

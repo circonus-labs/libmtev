@@ -878,13 +878,17 @@ mtev_cluster_do_i_own(mtev_cluster_t *c, void *key, size_t klen, int w) {
   if(!c || !c->cht || !(*(c->cht))) return mtev_false;
   if(w < 0) w = 1;
   if(w > c->node_cnt) w = c->node_cnt;
-  owners = alloca(sizeof(*owners) * c->node_cnt);
+  owners = malloc(sizeof(*owners) * c->node_cnt);
   wout = mtev_cht_vlookup_n(*(c->cht), key, klen, w, owners);
   for(i=0; i<wout; i++) {
     mtev_cluster_node_t *node;
     node = owners[i]->userdata;
-    if(mtev_uuid_compare(node->id, my_cluster_id) == 0) return mtev_true;
+    if(mtev_uuid_compare(node->id, my_cluster_id) == 0) {
+      free(owners);
+      return mtev_true;
+    }
   }
+  free(owners);
   return mtev_false;
 }
 
@@ -905,7 +909,7 @@ mtev_cluster_filter_owners(mtev_cluster_t *c, void *key, size_t klen,
   if(!c || !c->cht || !(*(c->cht))) return mtev_false;
   if(*w < 1) return false;
   if(*w > c->node_cnt) *w = c->node_cnt;
-  owners = alloca(sizeof(*owners) * c->node_cnt);
+  owners = malloc(sizeof(*owners) * c->node_cnt);
   wout = mtev_cht_vlookup_n(*(c->cht), key, klen, *w, owners);
   for(i=0; i<wout; i++) {
     mtev_cluster_node_t *node;
@@ -914,6 +918,7 @@ mtev_cluster_filter_owners(mtev_cluster_t *c, void *key, size_t klen,
       set[j++] = node;
     }
   }
+  free(owners);
   *w = j;
   if(*w <= 0) return mtev_false;
   if(mtev_uuid_compare(set[0]->id, my_cluster_id) == 0) return mtev_true;

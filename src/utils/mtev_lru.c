@@ -208,9 +208,10 @@ mtev_lru_put(mtev_lru_t *lru, const char *key, size_t key_len, void *val)
 mtev_lru_entry_token
 mtev_lru_get(mtev_lru_t *c, const char *key, size_t key_len, void **value)
 {
+  char tempkey_buf[ALLOCA_LIMIT];
   struct lru_key *tempkey = NULL;
   if (key_len <= ALLOCA_LIMIT) {
-    tempkey = alloca(sizeof(struct lru_key) + key_len);
+    tempkey = (struct lru_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lru_key) + key_len);
   }
@@ -258,10 +259,10 @@ mtev_lru_release(mtev_lru_t *c, mtev_lru_entry_token token)
 void *
 mtev_lru_remove(mtev_lru_t *c, const char *key, size_t key_len)
 {
-
+  char tempkey_buf[ALLOCA_LIMIT];
   struct lru_key *tempkey = NULL;
   if (key_len <= ALLOCA_LIMIT) {
-    tempkey = alloca(sizeof(struct lru_key) + key_len);
+    tempkey = (struct lru_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lru_key) + key_len);
   }

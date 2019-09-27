@@ -361,7 +361,7 @@ static void stop_other_threads(void) {
   size = pathconf(path, _PC_NAME_MAX);
 #endif
   size = MAX(size, PATH_MAX + 128);
-  de = alloca(size);
+  de = malloc(size);
   root = opendir(path);
   if(!root) return;
   while(portable_readdir_r(root, de, &entry) == 0 && entry != NULL) {
@@ -375,6 +375,7 @@ static void stop_other_threads(void) {
     }
   }
   closedir(root);
+  free(de);
 #endif
 #endif
 }

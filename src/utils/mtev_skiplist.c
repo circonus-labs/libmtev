@@ -25,13 +25,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#endif
 
 #ifndef MIN
 #define MIN(a,b) ((a<b)?(a):(b))
 #endif
+#define MAX_HEIGHT 24
 
 struct _iskiplist {
   mtev_skiplist_comparator_t compare;
@@ -300,8 +298,9 @@ mtev_skiplist_node *mtev_skiplist_insert(mtev_skiplist *sl,
 mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
                                                  const void *data,
                                                  mtev_skiplist_comparator_t comp) {
-  mtev_skiplist_node *m, *p, *tmp, *ret = NULL, **stack;
+  mtev_skiplist_node *m, *p, *tmp, *ret = NULL;
   int nh=1, ch, stacki;
+  mtev_skiplist_node *stack[MAX_HEIGHT+1];
   if (!sl) return NULL;
   if(!sl->top) {
     sl->height = 1;
@@ -310,9 +309,9 @@ mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
     sl->top->sl = sl;
   }
   if(sl->preheight) {
-    while(nh < sl->preheight && get_b_rand()) nh++;
+    while(nh < sl->preheight && nh < MAX_HEIGHT && get_b_rand()) nh++;
   } else {
-    while(nh <= sl->height && get_b_rand()) nh++;
+    while(nh <= sl->height && nh < MAX_HEIGHT && get_b_rand()) nh++;
   }
   /* Now we have the new height at which we wish to insert our new node */
   /* Let us make sure that our tree is a least that tall (grow if necessary)*/
@@ -326,7 +325,6 @@ mtev_skiplist_node *mtev_skiplist_insert_compare(mtev_skiplist *sl,
   /* Find the node (or node after which we would insert) */
   /* Keep a stack to pop back through for insertion */
   m = sl->top;
-  stack = (mtev_skiplist_node **)alloca(sizeof(mtev_skiplist_node *)*(nh));
   stacki=0;
   while(m) {
     int compared=-1;

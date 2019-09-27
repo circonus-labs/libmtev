@@ -117,16 +117,14 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
 #endif
 
   long safe_size;
-  char *buf, *mallocd = NULL;
+  char *buf = NULL;
 
   safe_size = MAX(grnam_buflen, pwnam_buflen);
   mtevAssert(safe_size > 0); 
-  if(NULL == (buf = alloca(safe_size))) {
-    free(mallocd);
-    BAIL("alloca failed");
-  }
+  buf = malloc(safe_size);
 
  retry_user:
+  if(buf == NULL) BAIL("malloc failed");
   if(user) {
     if(isuinteger(user)) uid = atoi(user);
     else {
@@ -135,12 +133,12 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
         if(errno == ERANGE) {
           pwnam_buflen = safe_size * 2;
           safe_size = MAX(grnam_buflen, pwnam_buflen);
-          free(mallocd);
+          free(buf);
           mtevAssert(safe_size > 0); 
-          buf = mallocd = malloc(safe_size);
+          buf = malloc(safe_size);
           goto retry_user;
         }
-        free(mallocd);
+        free(buf);
         BAIL("Cannot find user '%s'\n", user);
       }
       uid = pw->pw_uid;
@@ -148,6 +146,7 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
   }
 
  retry_group:
+  if(buf == NULL) BAIL("malloc failed");
   if(group) {
     if(isuinteger(group)) gid = atoi(group);
     else {
@@ -156,17 +155,17 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
         if(errno == ERANGE) {
           grnam_buflen = safe_size * 2;
           safe_size = MAX(grnam_buflen, pwnam_buflen);
-          free(mallocd);
-          buf = mallocd = malloc(safe_size);
+          free(buf);
+          buf = malloc(safe_size);
           goto retry_group;
         }
-        free(mallocd);
+        free(buf);
         BAIL("Cannot find group '%s'\n", group);
       }
       gid = gr->gr_gid;
     }
   }
-  free(mallocd);
+  free(buf);
   if(!user && !group) return 0;
 
 #if defined(CAP_SUPPORTED) && defined(HAVE_SETPPRIV)

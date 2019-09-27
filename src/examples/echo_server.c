@@ -51,7 +51,7 @@ static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pa
   (void)pats;
   /* intentionally small */
   size_t buffer_size = 98;
-  char *buffer = alloca(buffer_size);
+  char buffer[98];
   int mask = EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
   int len;
   int done = 0;

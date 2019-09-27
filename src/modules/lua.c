@@ -37,9 +37,6 @@
 #include <ck_pr.h>
 
 #include <unistd.h>
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#endif
 
 #include "mtev_conf.h"
 #include "mtev_dso.h"
@@ -946,7 +943,7 @@ void
 mtev_lua_pushmodule(lua_State *L, const char *m) {
   int stack_pos = 0;
   char *copy, *part, *brkt = NULL;
-  copy = alloca(strlen(m)+1);
+  copy = malloc(strlen(m)+1);
   mtevAssert(copy);
   memcpy(copy,m,strlen(m)+1);
 
@@ -955,6 +952,7 @@ mtev_lua_pushmodule(lua_State *L, const char *m) {
       part = strtok_r(NULL, ".", &brkt)) {
     if(stack_pos) {
       if(lua_isnil(L, stack_pos)) {
+        free(copy);
         return;
       }
       lua_getfield(L, stack_pos, part);
@@ -963,6 +961,7 @@ mtev_lua_pushmodule(lua_State *L, const char *m) {
     if(stack_pos == -1) lua_remove(L, -2);
     else stack_pos = -1;
   }
+  free(copy);
 }
 mtev_hash_table *
 mtev_lua_table_to_hash(lua_State *L, int idx) {
