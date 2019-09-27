@@ -544,7 +544,7 @@ _history_expand_command(const char *command, size_t cmdlen, char **result)
 
 	*result = NULL;
 
-        if(cmdlen + 1 >= sizeof(cmd)) return (-1);
+        if(cmdlen + 1 >= sizeof(cmd_buf)) return (-1);
         cmd = cmd_buf;
 	(void) strncpy(cmd, command, cmdlen);
 	cmd[cmdlen] = 0;
