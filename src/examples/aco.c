@@ -77,14 +77,36 @@ static void asynch_hello(void *closure) {
   usleep(100);
   mtev_http_response_append_str(ctx, "Hello world.\n");
 }
+
+static int handler_traditional(eventer_t e, int mask, void *closure,
+                        struct timeval *now) {
+  (void)e;
+  (void)now;
+  mtev_http_rest_closure_t *restc = closure;
+  if(mask == EVENTER_ASYNCH_WORK) {
+    mtev_http_session_ctx *ctx = restc->http_ctx;
+    mtev_http_response_appendf(ctx, "traditional work %s\n", eventer_get_thread_name());
+  }
+  if(mask == EVENTER_ASYNCH) {
+    mtev_http_session_resume_after_float(restc->http_ctx);
+  }
+  return 0;
+}
+
 void subcall2(mtev_http_rest_closure_t *restc) {
   eventer_aco_gate_t gate = eventer_aco_gate();
   mtevL(mtev_error, "subcall2 entry\n");
   int count = 2;
+  const char *style = mtev_http_request_querystring(mtev_http_session_request(restc->http_ctx), "style");
   const char *count_str = mtev_http_request_querystring(mtev_http_session_request(restc->http_ctx), "count");
   if(count_str) count = atoi(count_str);
   for(int i=0; i<count; i++) {
-    eventer_aco_simple_asynch_gated(gate, asynch_hello, restc);
+    if(style && !strcmp(style, "trad")) {
+      eventer_t e = eventer_alloc_asynch(handler_traditional, restc);
+      eventer_aco_run_asynch_gated(gate, e);
+    } else {
+      eventer_aco_simple_asynch_gated(gate, asynch_hello, restc);
+    }
   }
   mtevL(mtev_error, "subcall2 return\n");
   eventer_aco_gate_wait(gate);
