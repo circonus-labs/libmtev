@@ -4,6 +4,18 @@
 
 ## 1.8
 
+### 1.8.2
+
+ * File-based (and stderr) logs now split newlines into separate
+   annotated log statements making logs easier to read.
+ * Address several crash issues with ACO+eventer interaction:
+   * "current" event is now ACO-local in addition to thread-local.
+   * http floating is bypassed for http connections in ACO mode.
+   * total removal of alloca() from the code base.
+ * The stock web UI javascript was fixed to prevent a flurry of queued API
+   requests when the application comes back up after an interruption and the
+   UI remained active in the browser.
+
 ### 1.8.1
 
  * Change some eventer.h #define mappings into static inline functions.
