@@ -12,8 +12,9 @@
    * "current" event is now ACO-local in addition to thread-local.
    * http floating is bypassed for http connections in ACO mode.
    * total removal of alloca() from the code base.
- * The stock web ui javascript was fixed to prevent gratuitous API
-   usage when an instance is available after an interruption of service.
+ * The stock web UI javascript was fixed to prevent a flurry of queued API
+   requests when the application comes back up after an interruption and the
+   UI remained active in the browser.
 
 ### 1.8.1
 
