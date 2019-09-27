@@ -1,6 +1,7 @@
 var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {} } } };
 
 (function() {
+  var track_once = {}
   var filter_expr = null;
   var defaultUI = {
     tabs: [
@@ -381,7 +382,10 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
     return function() {
       var $table = $("div#"+id+" table:visible");
       if($table.length == 0) return;
+      if(track_once[uri] == true) return;
+      track_once[uri] = true;
       var st = jQuery.ajax(uri);
+      st.always(function() { track_once[uri] = false; });
       st.done(function( events ) {
         var $tbody = $("<tbody/>");
         if(events.hasOwnProperty('length')) {
@@ -409,7 +413,11 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
       qs = "?since=" + last_log_idx;
     else
       qs = "?last=100";
-    $.ajax("/eventer/logs/internal.json" + qs).done(function (logs) {
+    if(track_once.logs == true) return;
+    track_once.logs = true;
+    var st = $.ajax("/eventer/logs/internal.json" + qs);
+    st.always(function() { track_once.logs = false; })
+    st.done(function (logs) {
       var atend = force || Math.abs(($c[0].scrollTop + $c[0].clientHeight - $c[0].scrollHeight));
       var begin = 0;
       if (logs.length > 1000) {
@@ -531,7 +539,11 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
   }
   
   function refreshMtevStats(cb) {
-    jQuery.ajax("/mtev/stats.json").done(function(r) {
+    if(track_once.mtevstats == true) return;
+    track_once.mtevstats = true;
+    var st = jQuery.ajax("/mtev/stats.json");
+    st.always(function() { track_once.mtevstats = false; });
+    st.done(function(r) {
       mtev.stats = r.mtev;
       mtev.updatePerfUI(r, ["mtev"]);
       $("#internal-stats tbody").removeClass("d-none");
