@@ -425,7 +425,6 @@ eventer_pool_t *eventer_get_pool_for_event(eventer_t e) {
 } while(0) \
 
 int eventer_impl_propset(const char *key, const char *value) {
-  char val_copy[256];
   if(!strcasecmp(key, "concurrency")) {
     if(ck_pr_load_32(&init_called) != 0) {
       mtevL(mtev_error, "Cannot change eventer concurrency after startup\n");
@@ -441,10 +440,13 @@ int eventer_impl_propset(const char *key, const char *value) {
       mtevL(mtev_error, "Cannot change alternate eventer loop concurrency after startup\n");
       return -1;
     }
-    strlcpy(val_copy, value, sizeof(val_copy));
+    char *val_copy = strdup(value);
     char *tok, *nv = val_copy;
     const char *name = key + strlen("loop_");
-    if(strlen(name) == 0) return -1;
+    if(strlen(name) == 0) {
+      free(val_copy);
+      return -1;
+    }
 
     ADVTOK; /* concurrency */
     int requested = tok ? atoi(tok) : 0;
@@ -455,20 +457,27 @@ int eventer_impl_propset(const char *key, const char *value) {
     eventer_pool_create(name, requested);
     eventer_pool_t *ep = eventer_pool(name);
     ep->hb_timeout = hb_timeout;
+    free(val_copy);
     return 0;
   }
   if(!strncasecmp(key, "jobq_", strlen("jobq_"))) {
-    strlcpy(val_copy, value, sizeof(val_copy));
+    char *val_copy = strdup(value);
     char *tok, *nv = val_copy;
     const char *name = key + strlen("jobq_");
-    if(strlen(name) == 0) return -1;
+    if(strlen(name) == 0) {
+      free(val_copy);
+      return -1;
+    }
 
     uint32_t concurrency, min = 0, max = 0, backlog = 0;
     eventer_jobq_memory_safety_t mem_safety = EVENTER_JOBQ_MS_GC;
 
     ADVTOK;
     concurrency = atoi(tok);
-    if(concurrency == 0) return -1;
+    if(concurrency == 0) {
+      free(val_copy);
+      return -1;
+    }
     
     ADVTOK; /* min */
     if(tok) min = max = atoi(tok);
@@ -478,6 +487,7 @@ int eventer_impl_propset(const char *key, const char *value) {
        (min && concurrency < min) ||
        (max && concurrency > max)) {
       mtevL(mtev_error, "eventer jobq '%s' must have reasonable concurrency\n", name);
+      free(val_copy);
       return -1;
     }
     ADVTOK;
@@ -488,6 +498,7 @@ int eventer_impl_propset(const char *key, const char *value) {
       else {
         mtevL(mtev_error, "eventer jobq '%s' has unknown memory safety setting: %s\n",
               name, tok);
+        free(val_copy);
         return -1;
       }
     }
@@ -498,16 +509,19 @@ int eventer_impl_propset(const char *key, const char *value) {
     eventer_jobq_t *jq = eventer_jobq_retrieve(name);
     if(jq && jq->mem_safety != mem_safety) {
       mtevL(mtev_error, "eventer jobq '%s' cannot be redefined\n", name);
+      free(val_copy);
       return -1;
     }
     if(!jq) jq = eventer_jobq_create_ms(name, mem_safety);
     if(!jq) {
       mtevL(mtev_error, "eventer jobq '%s' could not be created\n", name);
+      free(val_copy);
       return -1;
     }
     eventer_jobq_set_concurrency(jq, concurrency);
     eventer_jobq_set_min_max(jq, min, max);
     eventer_jobq_set_max_backlog(jq, backlog);
+    free(val_copy);
     return 0;
   }
   if(!strcasecmp(key, "default_queue_threads")) {
