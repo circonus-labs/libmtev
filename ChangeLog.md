@@ -4,6 +4,9 @@
 
 ## 1.8
 
+ * Support logging of slow callbacks.  See eventer config docs for more
+   details.
+
 ### 1.8.2
 
  * File-based (and stderr) logs now split newlines into separate

@@ -1586,6 +1586,17 @@ mtev_log_stream_exists(const char *name) {
 }
 
 mtev_log_stream_t
+mtev_log_stream_findf(const char *format, ...) {
+  char buff[128];
+  va_list arg;
+  va_start(arg, format);
+  int len = vsnprintf(buff, sizeof(buff), format, arg);
+  va_end(arg);
+  if(len <= 0 || len > (int)sizeof(buff)-1) return NULL;
+  return mtev_log_stream_find(buff);
+}
+
+mtev_log_stream_t
 mtev_log_stream_find(const char *name) {
   char *last_sep;
   void *vls;

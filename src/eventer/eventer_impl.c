@@ -65,7 +65,14 @@ static int EVENTER_DEBUGGING = 0;
 static int desired_nofiles = 1024*1024;
 static stats_ns_t *pool_ns, *threads_ns;
 static uint32_t init_called = 0;
+static int32_t loop_callback_latency_threshold_ms = 0;
+static int32_t jobq_callback_latency_threshold_ms = 0;
 __thread stats_handle_t *eventer_callback_pool_latency;
+__thread mtev_log_stream_t callback_tracker_log;
+
+void set_callback_tracker_log(mtev_log_stream_t ls) {
+  callback_tracker_log = ls;
+}
 
 #define DEFAULT_ACO_STACK_SIZE (32 * 1024)
 #define NS_PER_S 1000000000
@@ -524,6 +531,14 @@ int eventer_impl_propset(const char *key, const char *value) {
     free(val_copy);
     return 0;
   }
+  if(!strcasecmp(key, "show_loop_callbacks_threshold")) {
+    loop_callback_latency_threshold_ms = atoi(value);
+    return 0;
+  }
+  if(!strcasecmp(key, "show_jobq_callbacks_threshold")) {
+    jobq_callback_latency_threshold_ms = atoi(value);
+    return 0;
+  }
   if(!strcasecmp(key, "default_queue_threads")) {
     int requested = atoi(value);
     if(requested < 1) {
@@ -652,6 +667,7 @@ static void *thrloopwrap(void *vid) {
   t = &eventer_impl_tls_data[id];
   eventer_aco_setup(t);
   t->id = id;
+  set_callback_tracker_log(mtev_log_stream_findf("debug/eventer/callbacks/loop/%s", t->pool->name));
   snprintf(t->thr_name, sizeof(t->thr_name), "e:%s/%d", t->pool->name, id);
   snprintf(thr_id_str, sizeof(thr_id_str), "%d", id);
   stats_ns_t *tns = mtev_stats_ns(threads_ns, t->thr_name);
@@ -1137,7 +1153,7 @@ void eventer_dispatch_timed(struct timeval *next) {
   if(max_timed_events_to_process == 0) mtev_gettimeofday(&now, NULL);
   while(max_timed_events_to_process-- > 0) {
     int newmask;
-    uint64_t start, duration;
+    uint64_t duration;
     const char *cbname = NULL;
     eventer_t timed_event;
 
@@ -1171,10 +1187,8 @@ void eventer_dispatch_timed(struct timeval *next) {
     LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)timed_event,
                            (void *)timed_event->callback, (char *)cbname, -1,
                            timed_event->mask, EVENTER_TIMER);
-    start = mtev_gethrtime();
     newmask = eventer_run_callback(timed_event->callback, timed_event, EVENTER_TIMER,
-                           timed_event->closure, &now);
-    duration = mtev_gethrtime() - start;
+                           timed_event->closure, &now, &duration);
     stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
     if(lat) stats_set_hist_intscale(lat, duration, -9, 1);
     LIBMTEV_EVENTER_CALLBACK_RETURN((void *)timed_event,
@@ -1281,9 +1295,9 @@ void eventer_dispatch_recurrent(void) {
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
     int rv;
-    uint64_t start =0 , duration;
-    if(node->non_zero_return_seen) start = mtev_gethrtime();
-    rv = eventer_run_callback(node->e->callback, node->e, EVENTER_RECURRENT, node->e->closure, &__now);
+    uint64_t duration;
+    rv = eventer_run_callback(node->e->callback, node->e, EVENTER_RECURRENT, node->e->closure, &__now,
+                              node->non_zero_return_seen ? &duration : NULL);
     if(rv != 0) {
       stats_handle_t *lat = eventer_latency_handle_for_callback(node->e->callback);
       /* For RECURRENT calls, we don't want to overmeasure what are noops...
@@ -1291,7 +1305,6 @@ void eventer_dispatch_recurrent(void) {
        * EVENTER_RECURRENT when work is done.
        */
       if(node->non_zero_return_seen) {
-        duration = mtev_gethrtime() - start;
         stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
         if(lat) stats_set_hist_intscale(lat, duration, -9, 1);
       }
@@ -1362,8 +1375,10 @@ void eventer_add_recurrent(eventer_t e) {
   pthread_mutex_unlock(&t->recurrent_lock);
 }
 
-int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct timeval *n) {
+int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct timeval *n, uint64_t *dur) {
   int rmask;
+  uint64_t start;
+  if(dur) start = mtev_gethrtime();
   eventer_t previous_event = eventer_get_this_event();
   eventer_ref(e);
   eventer_set_this_event(e);
@@ -1372,6 +1387,22 @@ int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct t
   eventer_callback_cleanup(e, rmask);
   eventer_deref(e);
   eventer_set_this_event(previous_event);
+  if(dur) {
+    *dur = mtev_gethrtime() - start;
+    if(eventer_in_loop()) {
+      if(loop_callback_latency_threshold_ms >= 0 &&
+         (int64_t)*dur / 1000000 >= loop_callback_latency_threshold_ms) {
+        mtevL(callback_tracker_log, "%s [%zuns]\n",
+              eventer_name_for_callback_e(e->callback, e), *dur);
+      }
+    } else {
+      if(jobq_callback_latency_threshold_ms >= 0 &&
+         (int64_t)*dur / 1000000 >= jobq_callback_latency_threshold_ms) {
+        mtevL(callback_tracker_log, "%s [%zuns]\n",
+              eventer_name_for_callback_e(e->callback, e), *dur);
+      }
+    }
+  }
   return rmask;
 }
 
@@ -1385,7 +1416,7 @@ static void *eventer_thread_harness(void *ve) {
   while(1) {
     struct timeval now;
     mtev_gettimeofday(&now, NULL);
-    eventer_run_callback(e->callback, e, mask, e->closure, &now);
+    eventer_run_callback(e->callback, e, mask, e->closure, &now, NULL);
     if(mask == 0) {
       eventer_free(e);
       return NULL;

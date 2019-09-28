@@ -227,7 +227,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   const char *cbname;
   struct timeval __now;
   int fd, newmask;
-  uint64_t start, duration;
+  uint64_t duration;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
 
   mask = mask & ~(EVENTER_RESERVED);
@@ -287,9 +287,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   mtevL(eventer_deb, "ports: fire on %d/%x to %s(%p)\n",
         fd, mask, cbname?cbname:"???", e->callback);
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
-  start = mtev_gethrtime();
-  newmask = eventer_run_callback(e->callback, e, mask, e->closure, &__now);
-  duration = mtev_gethrtime() - start;
+  newmask = eventer_run_callback(e->callback, e, mask, e->closure, &__now, &duration);
   LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
   stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
   stats_set_hist_intscale(eventer_latency_handle_for_callback(e->callback), duration, -9, 1);
