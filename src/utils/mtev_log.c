@@ -1834,7 +1834,8 @@ mtev_log_flatbuffer_to_json(mtev_LogLine_fb_t vll, mtev_dyn_buffer_t *tgt) {
   whence.tv_usec = mtev_LogLine_timestamp(ll) % 1000000;
 
   nelem = add_to_jsonf(nelem, tgt, "timestamp", mtev_true, "%lu.%06u", whence.tv_sec, whence.tv_usec);
-  nelem = add_to_json(nelem, tgt, "facility", mtev_true, mtev_LogLine_facility(ll));
+  if(mtev_LogLine_facility_is_present(ll))
+    nelem = add_to_json(nelem, tgt, "facility", mtev_true, mtev_LogLine_facility(ll));
   nelem = add_to_jsonf(nelem, tgt, "threadid", mtev_false, "%zu", mtev_LogLine_threadid(ll));
   if(mtev_LogLine_threadname_is_present(ll)) {
     flatbuffers_string_t tname = mtev_LogLine_threadname(ll);
@@ -2077,7 +2078,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
     if(tname) mtev_LogLine_threadname_create_str(B, tname);
     mtev_LogLine_file_create_str(B, file);
     mtev_LogLine_line_add(B, line);
-    mtev_LogLine_facility_create_str(B, ls->name);
+    if(ls->name) mtev_LogLine_facility_create_str(B, ls->name);
 #ifdef va_copy
     va_copy(copy, arg);
     len = vsnprintf(buffer, MTEV_MAYBE_SIZE(buffer), format, copy);
