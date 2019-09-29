@@ -199,7 +199,7 @@ listen_to_me(void) {
 static void
 ping(void) {
   while(1) {
-    mtevL(mtev_error, "ping...\n");
+    mtevEL(mtev_error, MLKV { MLKV_STR("key1", "a string"), MLKV_END }, "ping...\n");
     eventer_aco_sleep(&(struct timeval){ 1UL, 0UL });
   }
 }

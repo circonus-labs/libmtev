@@ -39,6 +39,7 @@
 #include <stdarg.h>
 #include <sys/uio.h>
 #include <sys/time.h>
+#include "mtev_dyn_buffer.h"
 #include "mtev_hash.h"
 #include "mtev_hooks.h"
 #include "mtev_time.h"
@@ -55,6 +56,42 @@ typedef void * mtev_log_stream_public_t;
 
 #define MTEV_LOG_DEFAULT_DEDUP_S 5
 #define MTEV_LOG_SPECULATE_ROLLBACK ((mtev_log_stream_t)NULL)
+
+typedef enum {
+  MTEV_LOG_KV_TYPE_STRING = 0,
+  MTEV_LOG_KV_TYPE_INT64 = 1,
+  MTEV_LOG_KV_TYPE_UINT64 = 2,
+  MTEV_LOG_KV_TYPE_DOUBLE = 3
+} mtev_log_kv_type_t;
+
+typedef struct {
+  const char *key;
+  mtev_log_kv_type_t value_type;
+  union {
+    const char *v_string;
+    int64_t v_int64;
+    uint64_t v_uint64;
+    double v_double;
+  } value;
+} mtev_log_kv_t;
+
+typedef void *mtev_LogLine_fb_t;
+
+/* Use as:
+ * MLKV{ MLKV_STR("foo", "string"), MLKV_INT64("bar", 1234), MLKV_END }
+ */
+#define MLKV (mtev_log_kv_t *[])
+#define MLKV_STR(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_STRING, .value = { .v_string = (v) } }
+#define MLKV_INT64(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_INT64, .value = { .v_int64 = (v) } }
+#define MLKV_UINT64(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_UINT64, .value = { .v_uint64 = (v) } }
+#define MLKV_DOUBLE(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_DOUBLE, .value = { .v_double = (v) } }
+#define MLKV_END &(mtev_log_kv_t){ NULL, MTEV_LOG_KV_TYPE_STRING, .value = { .v_string = NULL } }
+
+typedef enum {
+  MTEV_LOG_FORMAT_PLAIN = 0,
+  MTEV_LOG_FORMAT_FLATBUFFER,
+  MTEV_LOG_FORMAT_JSON
+} mtev_log_format_t;
 
 struct _mtev_log_stream_outlet_list {
   mtev_log_stream_t outlet;
@@ -101,10 +138,11 @@ API_EXPORT(int) mtev_log_reopen_type(const char *type);
 API_EXPORT(void) mtev_register_logops(const char *name, logops_t *ops);
 API_EXPORT(void *) mtev_log_stream_get_ctx(mtev_log_stream_t);
 API_EXPORT(void) mtev_log_stream_set_ctx(mtev_log_stream_t, void *);
-API_EXPORT(int) mtev_log_stream_get_dedup_s(mtev_log_stream_t);
-API_EXPORT(int) mtev_log_stream_set_dedup_s(mtev_log_stream_t, int);
+API_EXPORT(int) mtev_log_stream_get_dedup_s(mtev_log_stream_t) __attribute__((deprecated));;
+API_EXPORT(int) mtev_log_stream_set_dedup_s(mtev_log_stream_t, int) __attribute__((deprecated));;
 API_EXPORT(int) mtev_log_stream_get_flags(mtev_log_stream_t);
 API_EXPORT(int) mtev_log_stream_set_flags(mtev_log_stream_t, int);
+API_EXPORT(mtev_boolean) mtev_log_stream_set_format(mtev_log_stream_t, mtev_log_format_t);
 API_EXPORT(const char *) mtev_log_stream_get_type(mtev_log_stream_t);
 API_EXPORT(const char *) mtev_log_stream_get_name(mtev_log_stream_t);
 API_EXPORT(const char *) mtev_log_stream_get_path(mtev_log_stream_t);
@@ -145,6 +183,14 @@ API_EXPORT(const char *) mtev_log_stream_get_property(mtev_log_stream_t ls,
 API_EXPORT(void) mtev_log_stream_set_property(mtev_log_stream_t ls,
                                               const char *, const char *);
 API_EXPORT(void) mtev_log_stream_free(mtev_log_stream_t ls);
+API_EXPORT(int) mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *,
+                          const char *file, int line,
+                          mtev_log_kv_t **,
+                          const char *format, va_list arg);
+API_EXPORT(int) mtev_ex_log(mtev_log_stream_t ls, const struct timeval *,
+                          const char *file, int line,
+                          mtev_log_kv_t **,
+                          const char *format, ...);
 API_EXPORT(int) mtev_vlog(mtev_log_stream_t ls, const struct timeval *,
                           const char *file, int line,
                           const char *format, va_list arg);
@@ -165,6 +211,12 @@ API_EXPORT(int) mtev_log_list(mtev_log_stream_t *loggers, int nsize);
 API_EXPORT(mtev_json_object *)
   mtev_log_stream_to_json(mtev_log_stream_t ls);
 
+API_EXPORT(mtev_LogLine_fb_t)
+  mtev_log_flatbuffer_from_buffer(void *buff, size_t buff_len);
+
+API_EXPORT(void)
+  mtev_log_flatbuffer_to_json(mtev_LogLine_fb_t ll, mtev_dyn_buffer_t *tgt);
+
 /* finds log_lines most recent log lines and calls f with their
  * sequence number and content.  If f returns non-zero, the iteration
  * is aborted early.
@@ -183,6 +235,34 @@ API_EXPORT(int)
 API_EXPORT(void)
   mtev_log_init_globals(void);
 
+#define mtevELT(ls, t, ex, args...) do { \
+  if((ls)) { \
+    bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
+    if(!mtevLT_doit) { \
+      Zipkin_Span *mtevLT_span = mtev_zipkin_active_span(NULL); \
+      if(mtevLT_span != NULL) { \
+        mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span); \
+      } \
+    } \
+    if(mtevLT_doit) { \
+      mtev_ex_log((ls), t, __FILE__, __LINE__, ex, args); \
+    } \
+  } \
+} while(0)
+#define mtevEL(ls, ex, args...) do { \
+  if((ls)) { \
+    bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
+    if(!mtevLT_doit) { \
+      Zipkin_Span *mtevLT_span = mtev_zipkin_active_span(NULL); \
+      if(mtevLT_span != NULL) { \
+        mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span); \
+      } \
+    } \
+    if(mtevLT_doit) { \
+      mtev_ex_log((ls), NULL, __FILE__, __LINE__, ex, args); \
+    } \
+  } \
+} while(0)
 #define mtevLT(ls, t, args...) do { \
   if((ls)) { \
     bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
@@ -248,6 +328,30 @@ extern uint32_t mtev_watchdog_number_of_starts(void);
 #define SETUP_LOG(a, b) do { if(!a##_log) a##_log = mtev_log_stream_find(#a); \
                              if(!a##_log) { b; } } while(0)
 
+MTEV_HOOK_PROTO(mtev_log_plain,
+                (mtev_log_stream_t ls, const struct timeval *whence,
+                 const char *buffer, size_t len),
+                void *, closure,
+                (void *closure, mtev_log_stream_t ls, const struct timeval *whence,
+                 const char *buffer, size_t len))
+
+MTEV_HOOK_PROTO(mtev_log_json,
+                (mtev_log_stream_t ls, const struct timeval *whence,
+                 const char *buffer, size_t len),
+                void *, closure,
+                (void *closure, mtev_log_stream_t ls, const struct timeval *whence,
+                 const char *buffer, size_t len))
+
+MTEV_HOOK_PROTO(mtev_log_flatbuffer,
+                (mtev_log_stream_t ls, const struct timeval *whence,
+                 const uint8_t *buffer, size_t len),
+                void *, closure,
+                (void *closure, mtev_log_stream_t ls, const struct timeval *whence,
+                 const uint8_t *buffer, size_t len))
+
+/* This is legacy, but we should maintain it... timebuflen and debugbuflen
+ * are always zero in the invocation.
+ */
 MTEV_HOOK_PROTO(mtev_log_line,
                 (mtev_log_stream_t ls, const struct timeval *whence,
                  const char *timebuf, int timebuflen,

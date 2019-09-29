@@ -68,6 +68,12 @@ AC_PATH_PROGS(XMLLINT, xmllint)
 AC_PATH_PROG(NROFF, nroff)
 AC_PATH_PROG(CTFCONVERT, ctfconvert)
 AC_PATH_PROG(CTFMERGE, ctfmerge)
+AC_CHECK_PROG(FLATCC_CHECK,flatcc,yes)
+if test x"$FLATCC_CHECK" != x"yes" ; then
+  AC_MSG_ERROR([*** flatcc is required for building. ***])
+else
+  AC_PATH_PROG(FLATCC, flatcc)
+fi
 AC_PATH_PROG(LUA, luajit)
 AC_PATH_PROG(LUAROCKS, luarocks)
 if test -z "$ac_cv_path_LUA"; then
@@ -372,6 +378,8 @@ AC_CHECK_FUNCS(ck_epoch_synchronize_wait)
 AC_CHECK_LIB(hwloc, hwloc_topology_init, , [AC_MSG_ERROR([*** libhwloc required ***])])
 AC_CHECK_HEADER(lz4.h, [], [AC_MSG_ERROR([*** liblz4 (headers) required ***])])
 AC_CHECK_LIB(lz4, LZ4F_compressBegin, , [AC_MSG_ERROR([*** liblz4 is required ***])])
+AC_CHECK_LIB(flatccrt, flatcc_builder_init, , [AC_MSG_ERROR([*** libflatcc is required ***])])
+AC_CHECK_LIB(yajl, yajl_alloc, , [AC_MSG_ERROR(*** libyajl is required ***)])
 
 # libcircmetrics depends on libjlog and libcircllhist, so we have to check
 # for them in reverse dependency order so that $LIBS contains the correct
@@ -905,7 +913,7 @@ elif test -n "`$CC --version 2>&1 | grep 'clang'`"; then
 		CFLAGSEXTRAS="$CFLAGSEXTRAS -Werror"
 	fi
 else
-	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall -Wextra -Wold-style-declaration -Wold-style-definition -Wstrict-prototypes"
+	CFLAGSEXTRAS="$CFLAGSEXTRAS -Wall -Wextra -Wold-style-declaration"
 	if test "$enable_strict" != "no"; then
 		CFLAGSEXTRAS="$CFLAGSEXTRAS -Werror"
 	fi
