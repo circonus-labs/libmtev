@@ -16,6 +16,7 @@ The amqp module consumes and publishes message via AMQP (RabbitMQ).
    allowed: `/^\d+$/`
 
    Maximum number of messages to handle in a single callback.
+
 ### Examples
 
 #### Loading the amqp module.

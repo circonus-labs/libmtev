@@ -182,3 +182,175 @@ and supports multiple subscribers with independently maintained process checkpoi
    The path is the Jlog directory to be used. It may optionally be ended with
    a parenthesized subscriber name.  If a name (other than "*") is provided,
    a subscriber of that name will be added to the Jlog on creation.
+
+## Built-in logging facilities
+
+libmtev uses its own logging, so applications have ample error and debugging
+information exposed out of the box.  There are three four built-in logging
+facilities that serve as the base for most others: `stderr`, `error`, `notice`,
+and `debug`.  By default, `debug` is disabled and both `error` and `notice`
+outlet `stderr`.
+
+The following log streams are used within libmtev:
+
+##### `debug`
+
+  Generic debug logging, by default all `debug/*` logs flow through here as an outlet.
+
+##### `debug/amqp`
+
+  Debugging output from the [amqp module](/config/modules/amqp.md).
+
+##### `debug/cluster`
+
+  Debugging output from mtev clustering.
+
+##### `debug/conf`
+
+  Debugging output from the configuration system.
+
+##### `debug/consul`
+
+  Debugging output from the [consul module](/config/modules/consul.md).
+
+##### `debug/consul/curl`
+
+  Debugging output from curl operations in the [consul module](/config/modules/consul.md).
+
+##### `debug/dwarf`
+
+  Debugging information from the internal dwarf analyzer.
+
+##### `debug/eventer`
+
+  Debugging information from the eventer subsystem.
+
+##### `debug/fq`
+
+  Debugging information from the [fq module](/config/modules/fq.md).
+
+##### `debug/http`
+
+  Debugging information from the http service framework.
+
+##### `debug/http2`
+
+  Debugging information from the http/2 service framework.
+
+##### `debug/http_observer`
+
+  Debugging information from the [http_observer module](/config/modules/http_observer.md).
+
+##### `debug/listener`
+
+  Debugging information from the [listener subsystem](/config/listeners.md).
+
+##### `debug/lua`
+
+  Debugging information from the lua modules [lua_general](/config/modules/lua_general.md)
+  and [lua_web](/config/modules/lua_web.md).
+
+##### `debug/memory`
+
+  Debugging information from the memory subsystem, specfically around safe memory reclamation.
+
+##### `debug/rest`
+
+  Debugging information from the [rest subsystem](/development/rest.md) (sitting atop the http and http/2 service frameworks).
+
+##### `debug/reverse`
+
+  Debugging information from the reverse connection subsystem.
+
+##### `debug/time`
+
+  Debugging information from the time subsystem, particularly around timings and thread affinity.
+
+##### `debug/websocket_client`
+
+  Debugging information from the websocker integration atop the http service framework.
+
+##### `debug/xml`
+
+  Generic debug capture from the libxml2 framework.
+
+##### `debug/zipkin_fq`
+
+  Debugging information from the [zipkin_fq module](/config/modules/zipkin_fq.md).
+
+##### `debug/zipkin_jaeger`
+
+  Debugging information from the [zipkin_jaeger module](/config/modules/zipkin_jaeger.md).
+
+##### `error`
+
+  Generic error logging, by default all `error/*` logs flow through here as an outlet.
+
+##### `error/amqp`
+
+  Error logging for the [amqp module](/config/modules/amqp.md).
+
+##### `error/cluster`
+
+  Error logging for clustering operations.
+
+##### `error/conf`
+
+  Error logging for the configuration subsystem.
+
+##### `error/consul`
+
+  Error logging for the [consul module](/config/modules/consul.md).
+
+##### `error/eventer`
+
+  Error logging for the eventer subsystem.
+
+##### `error/fq`
+
+  Error logging for the [fq module](/config/modules/fq.md).
+
+##### `error/http_observer`
+
+  Error logging for the [http_observer module](/config/modules/http_observer.md).
+
+##### `error/listener`
+
+  Error logging for the [listener subsystem](/config/listeners.md).
+
+##### `error/lua`
+
+  Error logging for the lua modules [lua_general](/config/modules/lua_general.md)
+  and [lua_web](/config/modules/lua_web.md).
+
+##### `error/rest`
+
+  Error logging for the [rest subsystem](/development/rest.md) (sitting atop the http and http/2 service frameworks).
+
+##### `error/reverse`
+
+  Error logging for the reverse connection subsystem.
+
+##### `error/websocket_client`
+
+  Error logging for the websocker integration atop the http service framework.
+
+##### `error/zipkin_jaeger`
+
+  Error logging for the [zipkin_jaeger module](/config/modules/zipkin_jaeger.md).
+
+##### `notice`
+
+  Informational output.
+
+##### `http/access`
+
+  HTTP access logs (close to the Apache2 common log format).
+
+##### `http/io`
+
+  Debugging information for I/O performed in the http and http/2 service frameworks.
+
+##### `stderr`
+
+  A logging facility that writes to file descriptor 2.

@@ -16,6 +16,7 @@ The fq module consumed and publishes message via fq.
    allowed: `/^\d+$/`
 
    Maximum number of messages to handle in a single callback.
+
 ### Examples
 
 #### Loading the fq module.

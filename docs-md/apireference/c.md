@@ -2455,7 +2455,7 @@ eventer_is_aco(eventer_t e)
 ```
 
 
-  * `e` The eventer_t in question
+  * `e` The eventer_t in question (NULL represent "current context")
   * **RETURN** True if in ACO mode, false otherwise.
 
 
@@ -2926,7 +2926,8 @@ eventer_remove_timed(eventer_t e)
 
 ```c
 int
-eventer_run_callback(eventer_funt_t f, eventer_t e, int mask, void *closure, struct timeval *now)
+eventer_run_callback(eventer_funt_t f, eventer_t e, int mask, void *closure, struct timeval *now
+                     uint64_t *dur)
 ```
 
 
@@ -2935,6 +2936,7 @@ eventer_run_callback(eventer_funt_t f, eventer_t e, int mask, void *closure, str
   * `mask` The mask observed.
   * `closure` The closure (should always be eventer_get_closure(e))
   * `now` The current time.
+  * `dur` An option nanosecond timing to populate.
   * **RETURN** The mask that is desired from the callback.
 
 

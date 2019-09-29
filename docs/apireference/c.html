@@ -2553,7 +2553,7 @@ need to call this function directly.</p>
 <span class="hljs-title">eventer_is_aco</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
-<li><code>e</code> The eventer_t in question</li>
+<li><code>e</code> The eventer_t in question (NULL represent &quot;current context&quot;)</li>
 <li><strong>RETURN</strong> True if in ACO mode, false otherwise.</li>
 </ul>
 <h4 id="eventerisloop">eventer_is_loop</h4>
@@ -2919,7 +2919,8 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <p>Run a callback as the eventer would</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
-<span class="hljs-title">eventer_run_callback</span><span class="hljs-params">(eventer_funt_t f, eventer_t e, <span class="hljs-keyword">int</span> mask, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now)</span>
+<span class="hljs-title">eventer_run_callback</span><span class="hljs-params">(eventer_funt_t f, eventer_t e, <span class="hljs-keyword">int</span> mask, <span class="hljs-keyword">void</span> *closure, <span class="hljs-keyword">struct</span> timeval *now
+                     uint64_t *dur)</span>
 </span></code></pre>
 <ul>
 <li><code>f</code> The callback function (should always be eventer_get_callback(e))</li>
@@ -2927,6 +2928,7 @@ eventer_remove_timed(<span class="hljs-keyword">eventer_t</span> e)
 <li><code>mask</code> The mask observed.</li>
 <li><code>closure</code> The closure (should always be eventer_get_closure(e))</li>
 <li><code>now</code> The current time.</li>
+<li><code>dur</code> An option nanosecond timing to populate.</li>
 <li><strong>RETURN</strong> The mask that is desired from the callback.</li>
 </ul>
 <h4 id="eventerruninthread">eventer_run_in_thread</h4>

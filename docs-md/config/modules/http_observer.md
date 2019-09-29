@@ -17,11 +17,13 @@ information.
    allowed: `/^\d+$/`
 
    The max number of http requests to track.
+
  * **`max_age`** (optional)  [default: `30`]
 
    allowed: `/^\d+$/`
 
    The max time to retain completed requests.
+
 ### Examples
 
 #### Loading the http_observer module.

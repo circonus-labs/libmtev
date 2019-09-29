@@ -16,18 +16,21 @@ A service registration and config integration for Consul agent.
    allowed: `/^(?:passing|warning|critical)$/`
 
    Set the initial state of service registration.
+
  * **`kv_prefix`** (optional) 
 
    allowed: `/^.*$/`
 
    Set an option directory prefix for loading keys from consul's KV
    store.
+
  * **`bearer_token`** (optional) 
 
    allowed: `/^.*$/`
 
    Set a bearer token for interactions with consul (to satisfy
    Consul ACLs).
+
 ### Examples
 
 #### Loading the http_observer module.

@@ -108,7 +108,7 @@ zipkin_fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
 static void
 debug_logger(fq_client client, const char *str) {
   (void)client;
-  mtevL(mtev_debug, "zipkin_fq: %s\n", str);
+  mtevL(debugls, "zipkin_fq: %s\n", str);
 }
 static int
 zipkin_fq_driver_init(mtev_dso_generic_t *img) {

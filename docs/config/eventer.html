@@ -650,6 +650,16 @@ values are <code>epoll</code>, <code>kqueue</code>, and <code>ports</code>.</p>
 debugging facilities will be enabled.  This can be slow and should not be
 used in production.</p>
 </li>
+<li><h5 id="showloopcallbacksthreshold">show_loop_callbacks_threshold</h5>
+<p>Specify a millsecond threshold for logging of &quot;slow&quot; callbacks in eventer
+loops.  The default is 0 (all are logged), -1 disables logging.  Logging
+is sent to a log stream called <code>debug/eventer/callbacks/loop/&lt;loopname&gt;</code>.</p>
+</li>
+<li><h5 id="showjobqcallbacksthreshold">show_jobq_callbacks_threshold</h5>
+<p>Like <code>show_loop_callbacks_threshold</code>, but for callbacks run in
+asynchronous job queues. Logging is sent to a log stream called
+<code>debug/eventer/callbacks/jobq/&lt;queuename&gt;</code>.</p>
+</li>
 <li><h5 id="rlimnofiles">rlim_nofiles</h5>
 <p>Specified the number of file descriptors desired. libmtev will attempt to up
 the operating system limits to allow the application to open this many

@@ -731,8 +731,9 @@ journaled log for external consumption.</p>
 <li><h5 id="disabled">disabled</h5>
 <p>If &quot;on&quot;/&quot;true&quot;, the stream is disabled and attempts to log to the facility will result in a single branch instruction.</p>
 </li>
-<li><h5 id="dedupseconds">dedup_seconds</h5>
-<p>Specifies the number of seconds over which to deduplicated consecutive, identical log lines.  The default is 5 seconds.</p>
+<li><h5 id="format">format</h5>
+<p>Can be set to <code>plain</code>, <code>flatbuffer</code>, or <code>json</code>.  The default is <code>plain</code>.  This option
+impacts logs that write output (those with the <code>type</code> field set).</p>
 </li>
 </ul>
 <h2 id="log-types">Log Types</h2>
@@ -786,6 +787,95 @@ a parenthesized subscriber name.  If a name (other than &quot;*&quot;) is provid
 a subscriber of that name will be added to the Jlog on creation.</p>
 </li>
 </ul>
+<h2 id="built-in-logging-facilities">Built-in logging facilities</h2>
+<p>libmtev uses its own logging, so applications have ample error and debugging
+information exposed out of the box.  There are three four built-in logging
+facilities that serve as the base for most others: <code>stderr</code>, <code>error</code>, <code>notice</code>,
+and <code>debug</code>.  By default, <code>debug</code> is disabled and both <code>error</code> and <code>notice</code>
+outlet <code>stderr</code>.</p>
+<p>The following log streams are used within libmtev:</p>
+<h5 id="debug"><code>debug</code></h5>
+<p>  Generic debug logging, by default all <code>debug/*</code> logs flow through here as an outlet.</p>
+<h5 id="debugamqp"><code>debug/amqp</code></h5>
+<p>  Debugging output from the <a href="modules/amqp.html">amqp module</a>.</p>
+<h5 id="debugcluster"><code>debug/cluster</code></h5>
+<p>  Debugging output from mtev clustering.</p>
+<h5 id="debugconf"><code>debug/conf</code></h5>
+<p>  Debugging output from the configuration system.</p>
+<h5 id="debugconsul"><code>debug/consul</code></h5>
+<p>  Debugging output from the <a href="modules/consul.html">consul module</a>.</p>
+<h5 id="debugconsulcurl"><code>debug/consul/curl</code></h5>
+<p>  Debugging output from curl operations in the <a href="modules/consul.html">consul module</a>.</p>
+<h5 id="debugdwarf"><code>debug/dwarf</code></h5>
+<p>  Debugging information from the internal dwarf analyzer.</p>
+<h5 id="debugeventer"><code>debug/eventer</code></h5>
+<p>  Debugging information from the eventer subsystem.</p>
+<h5 id="debugfq"><code>debug/fq</code></h5>
+<p>  Debugging information from the <a href="modules/fq.html">fq module</a>.</p>
+<h5 id="debughttp"><code>debug/http</code></h5>
+<p>  Debugging information from the http service framework.</p>
+<h5 id="debughttp2"><code>debug/http2</code></h5>
+<p>  Debugging information from the http/2 service framework.</p>
+<h5 id="debughttpobserver"><code>debug/http_observer</code></h5>
+<p>  Debugging information from the <a href="modules/http_observer.html">http_observer module</a>.</p>
+<h5 id="debuglistener"><code>debug/listener</code></h5>
+<p>  Debugging information from the <a href="listeners.html">listener subsystem</a>.</p>
+<h5 id="debuglua"><code>debug/lua</code></h5>
+<p>  Debugging information from the lua modules <a href="modules/lua_general.html">lua_general</a>
+  and <a href="modules/lua_web.html">lua_web</a>.</p>
+<h5 id="debugmemory"><code>debug/memory</code></h5>
+<p>  Debugging information from the memory subsystem, specfically around safe memory reclamation.</p>
+<h5 id="debugrest"><code>debug/rest</code></h5>
+<p>  Debugging information from the <a href="../development/rest.html">rest subsystem</a> (sitting atop the http and http/2 service frameworks).</p>
+<h5 id="debugreverse"><code>debug/reverse</code></h5>
+<p>  Debugging information from the reverse connection subsystem.</p>
+<h5 id="debugtime"><code>debug/time</code></h5>
+<p>  Debugging information from the time subsystem, particularly around timings and thread affinity.</p>
+<h5 id="debugwebsocketclient"><code>debug/websocket_client</code></h5>
+<p>  Debugging information from the websocker integration atop the http service framework.</p>
+<h5 id="debugxml"><code>debug/xml</code></h5>
+<p>  Generic debug capture from the libxml2 framework.</p>
+<h5 id="debugzipkinfq"><code>debug/zipkin_fq</code></h5>
+<p>  Debugging information from the <a href="modules/zipkin_fq.html">zipkin_fq module</a>.</p>
+<h5 id="debugzipkinjaeger"><code>debug/zipkin_jaeger</code></h5>
+<p>  Debugging information from the <a href="modules/zipkin_jaeger.html">zipkin_jaeger module</a>.</p>
+<h5 id="error"><code>error</code></h5>
+<p>  Generic error logging, by default all <code>error/*</code> logs flow through here as an outlet.</p>
+<h5 id="erroramqp"><code>error/amqp</code></h5>
+<p>  Error logging for the <a href="modules/amqp.html">amqp module</a>.</p>
+<h5 id="errorcluster"><code>error/cluster</code></h5>
+<p>  Error logging for clustering operations.</p>
+<h5 id="errorconf"><code>error/conf</code></h5>
+<p>  Error logging for the configuration subsystem.</p>
+<h5 id="errorconsul"><code>error/consul</code></h5>
+<p>  Error logging for the <a href="modules/consul.html">consul module</a>.</p>
+<h5 id="erroreventer"><code>error/eventer</code></h5>
+<p>  Error logging for the eventer subsystem.</p>
+<h5 id="errorfq"><code>error/fq</code></h5>
+<p>  Error logging for the <a href="modules/fq.html">fq module</a>.</p>
+<h5 id="errorhttpobserver"><code>error/http_observer</code></h5>
+<p>  Error logging for the <a href="modules/http_observer.html">http_observer module</a>.</p>
+<h5 id="errorlistener"><code>error/listener</code></h5>
+<p>  Error logging for the <a href="listeners.html">listener subsystem</a>.</p>
+<h5 id="errorlua"><code>error/lua</code></h5>
+<p>  Error logging for the lua modules <a href="modules/lua_general.html">lua_general</a>
+  and <a href="modules/lua_web.html">lua_web</a>.</p>
+<h5 id="errorrest"><code>error/rest</code></h5>
+<p>  Error logging for the <a href="../development/rest.html">rest subsystem</a> (sitting atop the http and http/2 service frameworks).</p>
+<h5 id="errorreverse"><code>error/reverse</code></h5>
+<p>  Error logging for the reverse connection subsystem.</p>
+<h5 id="errorwebsocketclient"><code>error/websocket_client</code></h5>
+<p>  Error logging for the websocker integration atop the http service framework.</p>
+<h5 id="errorzipkinjaeger"><code>error/zipkin_jaeger</code></h5>
+<p>  Error logging for the <a href="modules/zipkin_jaeger.html">zipkin_jaeger module</a>.</p>
+<h5 id="notice"><code>notice</code></h5>
+<p>  Informational output.</p>
+<h5 id="httpaccess"><code>http/access</code></h5>
+<p>  HTTP access logs (close to the Apache2 common log format).</p>
+<h5 id="httpio"><code>http/io</code></h5>
+<p>  Debugging information for I/O performed in the http and http/2 service frameworks.</p>
+<h5 id="stderr"><code>stderr</code></h5>
+<p>  A logging facility that writes to file descriptor 2.</p>
 
                                 
                                 </section>
