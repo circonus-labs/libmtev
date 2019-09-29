@@ -335,13 +335,6 @@ MTEV_HOOK_PROTO(mtev_log_plain,
                 (void *closure, mtev_log_stream_t ls, const struct timeval *whence,
                  const char *buffer, size_t len))
 
-MTEV_HOOK_PROTO(mtev_log_json,
-                (mtev_log_stream_t ls, const struct timeval *whence,
-                 const char *buffer, size_t len),
-                void *, closure,
-                (void *closure, mtev_log_stream_t ls, const struct timeval *whence,
-                 const char *buffer, size_t len))
-
 MTEV_HOOK_PROTO(mtev_log_flatbuffer,
                 (mtev_log_stream_t ls, const struct timeval *whence,
                  const uint8_t *buffer, size_t len),

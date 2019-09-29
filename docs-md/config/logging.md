@@ -119,9 +119,10 @@ journaled log for external consumption.
 
    If "on"/"true", the stream is disabled and attempts to log to the facility will result in a single branch instruction.
 
- * ##### dedup_seconds
+ * ##### format
 
-  Specifies the number of seconds over which to deduplicated consecutive, identical log lines.  The default is 5 seconds.
+   Can be set to `plain`, `flatbuffer`, or `json`.  The default is `plain`.  This option
+   impacts logs that write output (those with the `type` field set).
 
 ## Log Types
 
