@@ -1,0 +1,34 @@
+namespace mtev;
+
+table LongValue {
+  value: long(id: 0);
+}
+table ULongValue {
+  value: ulong(id: 0);
+}
+table DoubleValue {
+  value: double(id: 0);
+}
+table StringValue {
+  value: string(id: 0);
+}
+
+union Value { LongValue, ULongValue, DoubleValue, StringValue }
+
+table KVPair {
+  key: string(id: 0);
+  value: Value(id: 2);
+}
+
+table LogLine {
+  timestamp: ulong(id: 0);
+  threadid: uint(id: 1);
+  line: uint(id: 2);
+  file: string(id: 3);
+  threadname: string(id: 4);
+  facility: string(id: 5);
+  message: string(id: 6);
+  kv: [KVPair](id: 7);
+}
+
+root_type LogLine;

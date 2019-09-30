@@ -32,6 +32,7 @@
 #define MTEV_DYN_BUFFER_H
 
 #include <mtev_defines.h>
+#include <stdarg.h>
 
 /* a struct that uses up 4K of stack space but then dynamically grows
  * into heap space as you add to it
@@ -84,6 +85,20 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...);
 
+
+/*! \fn void mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
+    \brief add data to the dyn_buffer using printf semantics.
+    \param buf the buffer to add to.
+    \param format the printf style format string
+    \param args printf arguments
+    
+    This does NUL terminate the format string but does not advance the write_pointer past
+    the NUL.  Basically, the last mtev_dyn_buffer_add_printf will leave the resultant
+    data NUL terminated.
+    
+ */
+API_EXPORT(void)
+  mtev_dyn_buffer_add_vprintf(mtev_dyn_buffer_t *buf, const char *format, va_list arg);
 
 /*! \fn void mtev_dyn_buffer_ensure(mtev_dyn_buffer_t *buf, size_t len)
     \brief possibly grow the dyn_buffer so it can fit len bytes

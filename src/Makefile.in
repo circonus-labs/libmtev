@@ -35,6 +35,7 @@ SHLD=@SHLD@
 CPPFLAGS=-I$(top_srcdir)/src -I$(top_srcdir)/src/json-lib \
 	-I$(top_srcdir)/src/slz-lib \
 	-I$(top_srcdir)/src/utils @CPPFLAGS@ -DEXPOSE_EVENTER_ABI
+FLATCC=@FLATCC@
 CHOTOPT=@CHOTOPT@
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
@@ -188,6 +189,9 @@ LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
 FINAL2_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.Slo=libmtev-objs/%.Slo)
 FINAL1_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
 FINAL_LIBMTEV_OBJS=$(FINAL1_LIBMTEV_OBJS:%.hlo=libmtev-objs/%.hlo)
+
+flatbuffer/%_json_parser.h flatbuffer/%_json_printer.h flatbuffer/%_reader.h flatbuffer/%_verifier.h flatbuffer/%_builder.h: flatbuffer/%.fbs
+	$(Q)$(FLATCC) -a -o flatbuffer --json $<
 
 mtev_time_fast.so:	utils/mtev_time_fast_preload.c
 	@echo " - making $@ preload"

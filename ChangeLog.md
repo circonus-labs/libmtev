@@ -4,6 +4,10 @@
 
 ## 1.8
 
+ * Allow structured logging via flatbuffers and support variant format
+   logging outputs: flatbuffer, and json.
+ * Deprececate and disable log dedupping.
+
 ### 1.8.2
 
  * File-based (and stderr) logs now split newlines into separate
