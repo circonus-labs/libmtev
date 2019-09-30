@@ -297,7 +297,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   int oldmask, newmask;
   const char *cbname;
   int fd;
-  uint64_t start, duration;
+  uint64_t duration;
   int cross_thread = mask & EVENTER_CROSS_THREAD_TRIGGER;
 
   mask = mask & ~(EVENTER_RESERVED);
@@ -363,9 +363,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   mtevL(eventer_deb, "kqueue: fire on %d/%x to %s(%p)\n",
          fd, masks[fd], cbname?cbname:"???", e->callback);
   LIBMTEV_EVENTER_CALLBACK_ENTRY((void *)e, (void *)e->callback, (char *)cbname, fd, e->mask, mask);
-  start = mtev_gethrtime();
-  newmask = eventer_run_callback(e->callback, e, mask, e->closure, &__now);
-  duration = mtev_gethrtime() - start;
+  newmask = eventer_run_callback(e->callback, e, mask, e->closure, &__now, &duration);
   LIBMTEV_EVENTER_CALLBACK_RETURN((void *)e, (void *)e->callback, (char *)cbname, newmask);
   stats_set_hist_intscale(eventer_callback_latency, duration, -9, 1);
   stats_set_hist_intscale(eventer_latency_handle_for_callback(e->callback), duration, -9, 1);

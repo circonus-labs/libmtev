@@ -160,6 +160,7 @@ API_EXPORT(void)
 
 API_EXPORT(mtev_boolean) mtev_log_stream_exists(const char *);
 API_EXPORT(mtev_log_stream_t) mtev_log_stream_find(const char *);
+API_EXPORT(mtev_log_stream_t) mtev_log_stream_findf(const char *fmt, ...);
 API_EXPORT(void) mtev_log_stream_remove(const char *name);
 API_EXPORT(void) mtev_log_stream_add_stream(mtev_log_stream_t ls,
                                             mtev_log_stream_t outlet);

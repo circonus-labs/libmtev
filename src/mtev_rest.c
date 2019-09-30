@@ -721,7 +721,8 @@ mtev_rest_aco_handler(void) {
 
   struct timeval now;
   mtev_gettimeofday(&now, NULL);
-  int mask = eventer_run_callback(orig_callback, newe, EVENTER_READ|EVENTER_WRITE, closure, &now);
+  uint64_t duration;
+  int mask = eventer_run_callback(orig_callback, newe, EVENTER_READ|EVENTER_WRITE, closure, &now, &duration);
 
   /* Put this event back out of aco mode. */
   eventer_set_eventer_aco_co(newe, NULL);

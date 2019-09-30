@@ -36,6 +36,7 @@
 
 #include "mtev_stats.h"
 #include "mtev_memory.h"
+#include "mtev_log.h"
 #include "aco/aco.h"
 
 #include <ck_hs.h>
@@ -145,6 +146,7 @@ struct _eventer_jobq_t {
   uint32_t                min_concurrency;
   uint32_t                max_concurrency;
   uint32_t                max_backlog;
+  mtev_log_stream_t       callback_tracker;
 };
 
 #ifdef LOCAL_EVENTER
@@ -230,5 +232,6 @@ struct _fd_opset *eventer_aco_get_opset(void *closure);
 mtev_boolean eventer_is_aco_opset(eventer_t e);
 int eventer_aco_shutdown(aco_t *co);
 void posix_asynch_shutdown_close(int fd);
+void set_callback_tracker_log(mtev_log_stream_t ls);
 
 #endif

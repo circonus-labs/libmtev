@@ -24,6 +24,18 @@ The keys and values supported are:
    debugging facilities will be enabled.  This can be slow and should not be
    used in production.
 
+ * ##### show_loop_callbacks_threshold
+
+   Specify a millsecond threshold for logging of "slow" callbacks in eventer
+   loops.  The default is 0 (all are logged), -1 disables logging.  Logging
+   is sent to a log stream called `debug/eventer/callbacks/loop/<loopname>`.
+
+ * ##### show_jobq_callbacks_threshold
+
+   Like `show_loop_callbacks_threshold`, but for callbacks run in
+   asynchronous job queues. Logging is sent to a log stream called
+   `debug/eventer/callbacks/jobq/<queuename>`.
+
  * ##### rlim_nofiles
 
    Specified the number of file descriptors desired. libmtev will attempt to up
