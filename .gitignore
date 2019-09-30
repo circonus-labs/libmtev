@@ -39,6 +39,7 @@ src/scripts/mtev-config
 src/libmtev.so*
 src/libmtev*dylib
 src/libmtev_dtrace_probes.h
+src/flatbuffer/*.h
 test/Makefile
 test/mtevbusted-script
 test/*_test

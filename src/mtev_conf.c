@@ -2803,9 +2803,8 @@ mtev_conf_log_init(const char *toplevel,
   mtevL(c_debug, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     int flags;
-    int dedup_s = -1;
     mtev_log_stream_t ls;
-    char name[256], type[256], path[256];
+    char name[256], type[256], path[256], format[16];
     mtev_hash_table *config;
     mtev_boolean disabled, debug, timestamps, facility;
 
@@ -2842,11 +2841,15 @@ mtev_conf_log_init(const char *toplevel,
       exit(-1);
     }
 
-    (void)mtev_conf_get_int32(log_configs[i],
-                              "ancestor-or-self::node()/@dedup_seconds",
-                              &dedup_s);
-    if(dedup_s >= 0) mtev_log_stream_set_dedup_s(ls, dedup_s);
-
+    if(mtev_conf_get_stringbuf(log_configs[i],
+                              "ancestor-or-self::node()/@format",
+                              format, sizeof(format))) {
+      if(!strcmp(format, "flatbuffer")) {
+        mtev_log_stream_set_format(ls, MTEV_LOG_FORMAT_FLATBUFFER);
+      } else if(!strcmp(format, "json")) {
+        mtev_log_stream_set_format(ls, MTEV_LOG_FORMAT_JSON);
+      }
+    }
     flags = mtev_log_stream_get_flags(ls);
     if(mtev_conf_get_boolean(log_configs[i],
                              "ancestor-or-self::node()/@disabled",

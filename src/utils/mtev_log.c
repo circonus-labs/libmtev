@@ -48,9 +48,11 @@
 #endif
 #include <ck_pr.h>
 #include <ck_fifo.h>
+#include <yajl/yajl_gen.h>
 
 #define mtev_log_impl
 #include "mtev_log.h"
+#include "mtev_dyn_buffer.h"
 #include "mtev_maybe_alloc.h"
 #include "mtev_hash.h"
 #include "mtev_hooks.h"
@@ -58,20 +60,40 @@
 #include "mtev_str.h"
 #include "mtev_thread.h"
 #include "mtev_zipkin.h"
+#include "mtev_dyn_buffer.h"
 #define XXH_PRIVATE_API
 #include "xxhash.h"
 #undef XXH_PRIVATE_API
 #include <jlog.h>
 #include <jlog_private.h>
 #include "libmtev_dtrace.h"
+#include "flatbuffer/mtevlogline_builder.h"
+#include "flatbuffer/mtevlogline_verifier.h"
 
 #define BOOT_STDERR_FLAGS MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS|MTEV_LOG_STREAM_SPLIT
 #define BOOT_DEBUG_FLAGS MTEV_LOG_STREAM_TIMESTAMPS
+#define MAX_PARTS 64
 
 extern const char *eventer_get_thread_name(void);
 
 static pthread_mutex_t resize_lock = PTHREAD_MUTEX_INITIALIZER;
 static int min_flush_seconds = ((MTEV_LOG_DEFAULT_DEDUP_S-1) / 2) + 1;
+
+MTEV_HOOK_IMPL(mtev_log_plain,
+               (mtev_log_stream_t ls, const struct timeval *whence,
+                const char *buffer, size_t len),
+               void *, closure,
+               (void *closure, mtev_log_stream_t ls, const struct timeval *whence,
+                const char *buffer, size_t len),
+               (closure,ls,whence,buffer,len))
+
+MTEV_HOOK_IMPL(mtev_log_flatbuffer,
+               (mtev_log_stream_t ls, const struct timeval *whence,
+                const uint8_t *buffer, size_t len),
+               void *, closure,
+               (void *closure, mtev_log_stream_t ls, const struct timeval *whence,
+                const uint8_t *buffer, size_t len),
+               (closure,ls,whence,buffer,len))
 
 MTEV_HOOK_IMPL(mtev_log_line,
                (mtev_log_stream_t ls, const struct timeval *whence,
@@ -119,18 +141,7 @@ struct _mtev_log_stream {
   uint64_t written;
   unsigned deps_materialized:1;
   unsigned flags_below;
-
-  /* stuff needed for dedup tracking */
-  ck_spinlock_t dedup_lock;
-  int dedup_s;
-  struct timeval dedup_last_time;
-  uint64_t dedup_last_hash;
-  int dedup_cnt;
-  const char *dedup_last_file;
-  int dedup_last_line;
-  char *dedup_last_buffer;
-  char dedup_last_dbuf[80];
-  int dedup_last_dbuflen;
+  mtev_log_format_t format;
 };
 
 struct posix_op_ctx {
@@ -1283,41 +1294,8 @@ mtev_log_shutdown(void) {
   mtev_log_go_synch();
 }
 
-static void *
-mtev_log_flusher(void *vstop) {
-  mtev_boolean *stop = vstop;
-  mtev_thread_setname("lm:dedup_flush");
-  while(!*stop) {
-    struct timeval now;
-    mtev_gettimeofday(&now, NULL);
-    mtev_log_dedup_flush(&now);
-    sleep(min_flush_seconds);
-  }
-  return NULL;
-}
-mtev_boolean stop_asynch_dedup_flush = mtev_false;;
 static void prep_resize_lock(void) {
   pthread_mutex_lock(&resize_lock);
-}
-static void mtev_log_dedup_init_parent(void) {
-  pthread_mutex_unlock(&resize_lock);
-}
-static void mtev_log_dedup_init_child(void) {
-  pthread_mutex_unlock(&resize_lock);
-  mtev_log_dedup_init();
-}
-void
-mtev_log_dedup_init(void) {
-  static pid_t thispid = 0;
-  pid_t pid = getpid();
-  if(thispid != pid) {
-    pthread_t tid;
-    pthread_attr_t tattr;
-    pthread_attr_init(&tattr);
-    pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&tid, &tattr, mtev_log_flusher, &stop_asynch_dedup_flush);
-    thispid = pid;
-  }
 }
 void
 mtev_log_init(int debug_on) {
@@ -1339,8 +1317,6 @@ mtev_log_init(int debug_on) {
                       (debug_on ? MTEV_LOG_STREAM_DEBUG : 0);
   if(debug_on) mtev_debug->flags |= MTEV_LOG_STREAM_ENABLED;
   else mtev_debug->flags &= ~MTEV_LOG_STREAM_ENABLED;
-  mtev_log_dedup_init();
-  pthread_atfork(prep_resize_lock, mtev_log_dedup_init_parent, mtev_log_dedup_init_child);
 }
 
 void
@@ -1359,21 +1335,25 @@ mtev_log_stream_set_ctx(mtev_log_stream_t ls, void *nctx) {
 }
 
 int
-mtev_log_stream_get_dedup_s(mtev_log_stream_t ls) {
-  return ls->dedup_s;
+mtev_log_stream_get_flags(mtev_log_stream_t ls) {
+  return ls->flags;
 }
 
 int
 mtev_log_stream_set_dedup_s(mtev_log_stream_t ls, int s) {
-  int prev = ls->dedup_s;
-  ls->dedup_s = s;
-  if(s > 0 && s < min_flush_seconds) min_flush_seconds = s;
-  return prev;
+  return 0;
 }
 
 int
-mtev_log_stream_get_flags(mtev_log_stream_t ls) {
-  return ls->flags;
+mtev_log_stream_get_dedup_s(mtev_log_stream_t ls) {
+  return 0;
+}
+
+mtev_boolean
+mtev_log_stream_set_format(mtev_log_stream_t ls, mtev_log_format_t f) {
+  if(ls->ops == NULL) return mtev_false;
+  ls->format = f;
+  return mtev_true;
 }
 
 int
@@ -1511,7 +1491,6 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
   ls->name = strdup(name);
   ls->path = path ? strdup(path) : NULL;
   ls->type = type ? strdup(type) : NULL;
-  ls->dedup_s = MTEV_LOG_DEFAULT_DEDUP_S;
   if(ls->type && 0 == strcmp(ls->type, "file"))
     ls->flags |= MTEV_LOG_STREAM_SPLIT;
   ls->flags |= MTEV_LOG_STREAM_ENABLED;
@@ -1572,6 +1551,10 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
 mtev_log_stream_t
 mtev_log_stream_new(const char *name, const char *type, const char *path,
                     void *ctx, mtev_hash_table *config) {
+  if(!strcmp(name, "stderr")) {
+    mtev_log_stream_t stderr_ls = mtev_log_stream_find("stderr");
+    if(stderr_ls) return stderr_ls;
+  }
   return mtev_log_stream_new_internal(name,type,path,ctx,config,
                                       mtev_log_stream_find(name));
 }
@@ -1760,7 +1743,7 @@ static int
 mtev_log_writev(mtev_log_stream_t ls, const struct timeval *whence,
                 const struct iovec *iov, int iovcnt) {
   /* This emulates writev into a buffer for ops that don't support it */
-  char stackbuff[4096], *tofree = NULL, *buff = NULL;
+  char stackbuff[16384], *tofree = NULL, *buff = NULL;
   int i, ins = 0, maxi_nomalloc = 0;
   size_t s = 0;
 
@@ -1793,21 +1776,109 @@ mtev_log_writev(mtev_log_stream_t ls, const struct timeval *whence,
   return i;
 }
 
+extern void
+yajl_string_encode(const yajl_print_t print, void * ctx,
+                   const unsigned char * str, size_t len,
+                   int escape_solidus);
+
+static inline void
+yajl_mtev_dyn_buff_append(void *ctx, const char *str, size_t len) {
+  mtev_dyn_buffer_t *buff = (mtev_dyn_buffer_t *)ctx;
+  mtev_dyn_buffer_add(buff, (uint8_t *)str, len);
+}
+static inline int
+add_to_json(int nelem, mtev_dyn_buffer_t *buff,
+            const char *key, mtev_boolean str, const char *string) {
+  mtev_dyn_buffer_add(buff, nelem ? (uint8_t *)",\"" : (uint8_t *)"{\"", 2);
+  yajl_string_encode(yajl_mtev_dyn_buff_append, buff, (void *)key, strlen(key), 0);
+  mtev_dyn_buffer_add(buff, (uint8_t *)"\":\"", str ? 3 : 2);
+  if(str) yajl_string_encode(yajl_mtev_dyn_buff_append, buff, (void *)string, strlen(string), 0);
+  else mtev_dyn_buffer_add(buff, (uint8_t *)string, strlen(string));
+  if(str) mtev_dyn_buffer_add(buff, (uint8_t *)"\"", 1);
+  return nelem+1;
+}
+static inline int
+add_to_jsonf(int nelem, mtev_dyn_buffer_t *buff,
+             const char *key, mtev_boolean str, const char *fmt, ...) {
+  mtev_dyn_buffer_t scratch;
+  mtev_dyn_buffer_init(&scratch);
+  va_list args;
+  va_start(args, fmt);
+  mtev_dyn_buffer_add_vprintf(&scratch, fmt, args);
+  va_end(args);
+  int rv = add_to_json(nelem, buff, key, str, 
+                       (const char *)mtev_dyn_buffer_data(&scratch));
+  mtev_dyn_buffer_destroy(&scratch);
+  return rv;
+}
+mtev_LogLine_fb_t
+mtev_log_flatbuffer_from_buffer(void *buff, size_t buff_len) {
+  mtev_LogLine_table_t ll = NULL;
+  if(0 != mtev_LogLine_verify_as_root(buff, buff_len)) {
+    return NULL;
+  }
+  ll = mtev_LogLine_as_root(buff);
+  if(ll == NULL) {
+    return NULL;
+  }
+  return (mtev_LogLine_fb_t)ll;
+}
+void
+mtev_log_flatbuffer_to_json(mtev_LogLine_fb_t vll, mtev_dyn_buffer_t *tgt) {
+  mtev_LogLine_table_t ll = (mtev_LogLine_table_t)vll;
+  mtev_KVPair_vec_t kvs = mtev_LogLine_kv(ll);
+  int nelem = 0;
+  int nkvs = mtev_KVPair_vec_len(kvs);
+  struct timeval whence;
+  whence.tv_sec = mtev_LogLine_timestamp(ll) / 1000000;
+  whence.tv_usec = mtev_LogLine_timestamp(ll) % 1000000;
+
+  nelem = add_to_jsonf(nelem, tgt, "timestamp", mtev_true, "%lu.%06u", whence.tv_sec, whence.tv_usec);
+  nelem = add_to_json(nelem, tgt, "facility", mtev_true, mtev_LogLine_facility(ll));
+  nelem = add_to_jsonf(nelem, tgt, "threadid", mtev_false, "%zu", mtev_LogLine_threadid(ll));
+  if(mtev_LogLine_threadname_is_present(ll)) {
+    flatbuffers_string_t tname = mtev_LogLine_threadname(ll);
+    if(flatbuffers_string_len(tname))
+      nelem = add_to_json(nelem, tgt, "threadname", mtev_true, mtev_LogLine_threadname(ll));
+    else
+      nelem = add_to_json(nelem, tgt, "threadname", mtev_false, "\"unnamed\"");
+  }
+  nelem = add_to_json(nelem, tgt, "file", mtev_true, mtev_LogLine_file(ll));
+  nelem = add_to_jsonf(nelem, tgt, "line", mtev_false, "%u", mtev_LogLine_line(ll));
+  nelem = add_to_json(nelem, tgt, "message", mtev_true, mtev_LogLine_message(ll));
+  for(int i=0; i<nkvs; i++) {
+    mtev_KVPair_table_t kv = mtev_KVPair_vec_at(kvs, i);
+    switch(mtev_KVPair_value_type(kv)) {
+      case mtev_Value_StringValue:
+        nelem = add_to_json(nelem, tgt, mtev_KVPair_key(kv), mtev_true,
+                            mtev_StringValue_value(mtev_KVPair_value(kv)));
+        break;
+      case mtev_Value_LongValue:
+        nelem = add_to_jsonf(nelem, tgt, mtev_KVPair_key(kv), mtev_false,
+                             "%zd", mtev_LongValue_value(mtev_KVPair_value(kv)));
+        break;
+      case mtev_Value_ULongValue:
+        nelem = add_to_jsonf(nelem, tgt, mtev_KVPair_key(kv), mtev_false,
+                             "%zu", mtev_ULongValue_value(mtev_KVPair_value(kv)));
+        break;
+      case mtev_Value_DoubleValue:
+        nelem = add_to_jsonf(nelem, tgt, mtev_KVPair_key(kv), mtev_false,
+                             "%f", mtev_DoubleValue_value(mtev_KVPair_value(kv)));
+        break;
+      default:
+        break;
+    }
+  }
+
+  mtev_dyn_buffer_add(tgt, (uint8_t *)"}\n", 2);
+}
 static int
 mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
-              const struct timeval *whence,
-              const char *timebuf, int timebuflen,
-              const char *debugbuf, int debugbuflen,
-              const char *buffer, size_t len) {
+              const void *fbuffer, size_t flen) {
   int rv = 0;
   struct _mtev_log_stream_outlet_list *node;
   struct _mtev_log_stream bitor_onstack;
   memcpy(&bitor_onstack, ls, sizeof(bitor_onstack));
-  if(mtev_log_line_hook_invoke(ls, whence, timebuf, timebuflen,
-                               debugbuf, debugbuflen,
-                               buffer, len) == MTEV_HOOK_ABORT) {
-    return -1;
-  }
   if(bitor) {
     bitor_onstack.name = bitor->name;
     bitor_onstack.flags |= bitor->flags & MTEV_LOG_STREAM_FACILITY;
@@ -1815,59 +1886,129 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
     bitor_onstack.flags |= bitor->flags & MTEV_LOG_STREAM_TIMESTAMPS;
   }
   bitor = &bitor_onstack;
-  if(ls->ops) {
-    const char *this_line = buffer;
-    size_t sofar = 0;
-    size_t this_line_len = len;
-    while(this_line && sofar < len) {
-      int iovcnt = 0;
-      struct iovec iov[7];
-      const char *next_line = NULL;
 
-      this_line_len = len - sofar;
-      if(ls->flags & MTEV_LOG_STREAM_SPLIT) {
-        next_line = memchr(this_line, '\n', len - sofar);
-        if(next_line) {
-          next_line++;
-          this_line_len = next_line - this_line;
+
+  if(ls->ops || mtev_log_line_hook_exists() ||
+     mtev_log_flatbuffer_hook_exists() ||
+     mtev_log_plain_hook_exists()) {
+    mtev_LogLine_table_t ll = NULL;
+    if(0 != mtev_LogLine_verify_as_root(fbuffer, flen)) {
+      return 0;
+    }
+    ll = mtev_LogLine_as_root(fbuffer);
+    if(ll == NULL) {
+      return 0;
+    }
+  
+    struct timeval whence;
+    whence.tv_sec = mtev_LogLine_timestamp(ll) / 1000000;
+    whence.tv_usec = mtev_LogLine_timestamp(ll) % 1000000;
+    char tbuf[48], dbuf[64];
+    int tbuflen = 0, dbuflen = 0;
+    flatbuffers_string_t buffer = mtev_LogLine_message(ll);
+    size_t len = flatbuffers_string_len(buffer);
+  
+    if(mtev_log_line_hook_invoke(ls, &whence, "", 0, "", 0, buffer, len) == MTEV_HOOK_ABORT) {
+      return -1;
+    }
+    if(mtev_log_plain_hook_invoke(ls, &whence, buffer, len) == MTEV_HOOK_ABORT) {
+      return -1;
+    }
+    if(mtev_log_flatbuffer_hook_invoke(ls, &whence, fbuffer, flen) == MTEV_HOOK_ABORT) {
+      return -1;
+    }
+  
+    if(ls->ops) {
+      const char *this_line = buffer;
+      size_t sofar = 0;
+      size_t this_line_len = len;
+      if(this_line && ls->format == MTEV_LOG_FORMAT_FLATBUFFER) {
+        struct iovec iov[1];
+        iov[0].iov_base = (void *)fbuffer;
+        iov[0].iov_len = flen;
+        rv += mtev_log_writev(ls, &whence, iov, 1);
+        this_line = NULL;
+      }
+      if(this_line && ls->format == MTEV_LOG_FORMAT_JSON) {
+        int nelem = 0;
+        mtev_dyn_buffer_t encoded;
+        mtev_dyn_buffer_init(&encoded);
+        mtev_log_flatbuffer_to_json((mtev_LogLine_fb_t)ll, &encoded);
+        struct iovec iov[1];
+        iov[0].iov_base = (void *)mtev_dyn_buffer_data(&encoded);
+        iov[0].iov_len = mtev_dyn_buffer_used(&encoded);
+        rv += mtev_log_writev(ls, &whence, iov, 1);
+        mtev_dyn_buffer_destroy(&encoded);
+        this_line = NULL;
+      }
+      while(this_line && sofar < len) {
+        int iovcnt = 0;
+        struct iovec iov[7];
+        const char *next_line = NULL;
+  
+        this_line_len = len - sofar;
+        if(ls->flags & MTEV_LOG_STREAM_SPLIT) {
+          next_line = memchr(this_line, '\n', len - sofar);
+          if(next_line) {
+            next_line++;
+            this_line_len = next_line - this_line;
+          }
         }
-      }
-
-      if(IS_TIMESTAMPS_ON(bitor)) {
-        iov[iovcnt].iov_base = (void *)timebuf;
-        iov[iovcnt].iov_len = timebuflen;
-        iovcnt++;
-      }
-      if(IS_FACILITY_ON(bitor)) {
-        iov[iovcnt].iov_base = (void *)"[";
-        iov[iovcnt].iov_len = 1;
-        iovcnt++;
-        iov[iovcnt].iov_base = (void *)bitor->name;
-        iov[iovcnt].iov_len = strlen(bitor->name);
-        iovcnt++;
-        iov[iovcnt].iov_base = (void *)"] ";
-        iov[iovcnt].iov_len = 2;
-        iovcnt++;
-      }
-      if(IS_DEBUG_ON(bitor)) {
-        iov[iovcnt].iov_base = (void *)debugbuf;
-        iov[iovcnt].iov_len = debugbuflen;
-        iovcnt++;
-      }
-      iov[iovcnt].iov_base = (void *)this_line;
-      iov[iovcnt].iov_len = this_line_len;
-      sofar += this_line_len;
-      iovcnt++;
-      if(ls->flags & MTEV_LOG_STREAM_SPLIT) {
-        if(this_line_len > 0 && this_line[this_line_len-1] != '\n') {
-          iov[iovcnt].iov_base = (void *)"\n";
-          iov[iovcnt].iov_len = 1;
+  
+        if(IS_TIMESTAMPS_ON(bitor)) {
+          struct tm _tm, *tm;
+          char tempbuf[32];
+          time_t s = (time_t)whence.tv_sec;
+          tm = localtime_r(&s, &_tm);
+          strftime(tempbuf, sizeof(tempbuf), "%Y-%m-%d %H:%M:%S", tm);
+          snprintf(tbuf, sizeof(tbuf), "[%s.%06d] ", tempbuf, (int)whence.tv_usec);
+          tbuflen = strlen(tbuf);
+          iov[iovcnt].iov_base = (void *)tbuf;
+          iov[iovcnt].iov_len = tbuflen;
           iovcnt++;
         }
+        if(IS_FACILITY_ON(bitor)) {
+          iov[iovcnt].iov_base = (void *)"[";
+          iov[iovcnt].iov_len = 1;
+          iovcnt++;
+          iov[iovcnt].iov_base = (void *)bitor->name;
+          iov[iovcnt].iov_len = strlen(bitor->name);
+          iovcnt++;
+          iov[iovcnt].iov_base = (void *)"] ";
+          iov[iovcnt].iov_len = 2;
+          iovcnt++;
+        }
+        if(IS_DEBUG_ON(bitor)) {
+          const char *tname = mtev_LogLine_threadname_is_present(ll) ? mtev_LogLine_threadname(ll) : NULL;
+          uint32_t tid = mtev_LogLine_threadid(ll);
+          uint32_t line = mtev_LogLine_line(ll);
+          const char *file = mtev_LogLine_file(ll);
+          if(!tname || strlen(tname) == 0) tname = mtev_thread_getname();
+          if(tname && strlen(tname))
+            snprintf(dbuf, sizeof(dbuf), "[t@%u/%s,%s:%d] ", tid, tname, file, line);
+          else {
+            snprintf(dbuf, sizeof(dbuf), "[t@%u,%s:%d] ", tid, file, line);
+          }
+          dbuflen = strlen(dbuf);
+          iov[iovcnt].iov_base = (void *)dbuf;
+          iov[iovcnt].iov_len = dbuflen;
+          iovcnt++;
+        }
+        iov[iovcnt].iov_base = (void *)this_line;
+        iov[iovcnt].iov_len = this_line_len;
+        sofar += this_line_len;
+        iovcnt++;
+        if(ls->flags & MTEV_LOG_STREAM_SPLIT) {
+          if(this_line_len > 0 && this_line[this_line_len-1] != '\n') {
+            iov[iovcnt].iov_base = (void *)"\n";
+            iov[iovcnt].iov_len = 1;
+            iovcnt++;
+          }
+        }
+        rv += mtev_log_writev(ls, &whence, iov, iovcnt);
+  
+        this_line = next_line;
       }
-      rv += mtev_log_writev(ls, whence, iov, iovcnt);
-
-      this_line = next_line;
     }
   }
   for(node = ls->outlets; node; node = node->next) {
@@ -1875,105 +2016,32 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
     debug_printf(" %s -> %s\n", ls->name, node->outlet->name);
     bitor->flags = ls->flags;
     if(IS_ENABLED_ON(node->outlet) && IS_ENABLED_BELOW(node->outlet)) {
-      srv = mtev_log_line(node->outlet, bitor, whence, timebuf,
-                          timebuflen, debugbuf, debugbuflen, buffer, len);
+      srv = mtev_log_line(node->outlet, bitor, fbuffer, flen);
     }
     if(srv) rv = srv;
   }
   return rv;
 }
-static void
-mtev_log_dedup_flush_stream(mtev_log_stream_t ls, const struct timeval *now) {
-  struct timeval __now;
-  if(!ls->dedup_s && ls->dedup_cnt > 0) return;
-  char tbuf[48], last_dbuf[sizeof(ls->dedup_last_dbuf)];
-  int tbuflen = 0, last_dbuflen = 0;
-  MTEV_MAYBE_DECL(char, buffer, 4096);
 
-  if(!now) {
-    mtev_gettimeofday(&__now, NULL);
-    now = &__now;
-  }
-
-  if(IS_TIMESTAMPS_BELOW(ls)) {
-    struct tm _tm, *tm;
-    char tempbuf[32];
-    time_t s = (time_t)now->tv_sec;
-    tm = localtime_r(&s, &_tm);
-    strftime(tempbuf, sizeof(tempbuf), "%Y-%m-%d %H:%M:%S", tm);
-    snprintf(tbuf, sizeof(tbuf), "[%s.%06d] ", tempbuf, (int)now->tv_usec);
-    tbuflen = strlen(tbuf);
-  }
-  else tbuf[0] = '\0';
-
-  struct timeval diff;
-  int dedup_diff_s = 0, dedup_cnt = 0;
-  const char *last_file = NULL;
-  int last_line = 0;
-  buffer[0] = '\0';
-
-  ck_spinlock_lock(&ls->dedup_lock);
-  sub_timeval(*now, ls->dedup_last_time, &diff);
-  if(diff.tv_sec < ls->dedup_s && ls->dedup_last_buffer) {
-    dedup_diff_s = diff.tv_sec;
-    dedup_cnt = ls->dedup_cnt;
-    ls->dedup_cnt = 0;
-    ls->dedup_last_time = *now;
-    /* We need a copy of last buffer as we're not modifying it
-     * and will use it after the lock is released. */
-    int bufferlen = strlen(ls->dedup_last_buffer);
-    memcpy(buffer, ls->dedup_last_buffer, bufferlen+1);
-    memcpy(last_dbuf, ls->dedup_last_dbuf, sizeof(last_dbuf));
-    last_dbuflen = ls->dedup_last_dbuflen;
-    last_file = ls->dedup_last_file;
-    last_line = ls->dedup_last_line;
-  }
-  ck_spinlock_unlock(&ls->dedup_lock);
-
-  if(dedup_cnt > 0) {
-    MTEV_MAYBE_DECL(char, oldlog, 4096);
-    int olen = 4095;
-    do {
-      MTEV_MAYBE_REALLOC(oldlog, olen + 1);
-      olen = snprintf(oldlog, MTEV_MAYBE_SIZE(oldlog),
-                      "(seen %d times over last %d seconds) %s",
-                      dedup_cnt, dedup_diff_s, buffer);
-    } while(olen >= (ssize_t)MTEV_MAYBE_SIZE(oldlog));
-    LIBMTEV_LOG(ls->name, (char *)last_file, last_line, oldlog);
-    /* The above macro may not use last_file or last_line */
-    (void)last_file;
-    (void)last_line;
-    if(IS_ENABLED_ON(ls)) {
-      (void)mtev_log_line(ls, NULL, now, tbuf, tbuflen,
-                          last_dbuf, last_dbuflen, oldlog, olen);
-    }
-    MTEV_MAYBE_FREE(oldlog);
-  }
-  MTEV_MAYBE_FREE(buffer);
-}
-void
-mtev_log_dedup_flush(const struct timeval *now) {
-  struct timeval __now;
-  if(!now) {
-    mtev_gettimeofday(&__now, NULL);
-    now = &__now;
-  }
-
-  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-  mtev_log_stream_t ls;
-
-  pthread_mutex_lock(&resize_lock);
-  while(mtev_hash_adv(&mtev_loggers, &iter)) {
-    ls = iter.value.ptr;
-    mtev_log_dedup_flush_stream(ls, now);
-  }
-  pthread_mutex_unlock(&resize_lock);
+static int
+mtev_log_fb(mtev_log_stream_t ls, mtev_log_stream_t bitor,
+            uint8_t *fbbuf, size_t fblen) {
+  return (int)fblen;
 }
 
-int
+inline int
 mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
           const char *file, int line,
           const char *format, va_list arg) {
+  return mtev_ex_vlog(ls, now, file, line,
+      (mtev_log_kv_t *[]){ &(mtev_log_kv_t){ NULL, 0, .value = { .v_string = NULL } } },
+      format, arg);
+}
+int
+mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
+             const char *file, int line,
+             mtev_log_kv_t **kvs,
+             const char *format, va_list arg) {
   int rv = 0, allocd = 0;
   MTEV_MAYBE_DECL(char, buffer, 4096);
   struct timeval __now;
@@ -1998,30 +2066,18 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
 
   if((IS_ENABLED_ON(ls) && IS_ENABLED_BELOW(ls)) || LIBMTEV_LOG_ENABLED() || logspan) {
     int len;
-    char tbuf[48], dbuf[sizeof(ls->dedup_last_dbuf)], last_dbuf[sizeof(ls->dedup_last_dbuf)];
-    int tbuflen = 0, dbuflen = 0, last_dbuflen = 0;
-    if(IS_TIMESTAMPS_BELOW(ls)) {
-      struct tm _tm, *tm;
-      char tempbuf[32];
-      ENSURE_NOW();
-      time_t s = (time_t)now->tv_sec;
-      tm = localtime_r(&s, &_tm);
-      strftime(tempbuf, sizeof(tempbuf), "%Y-%m-%d %H:%M:%S", tm);
-      snprintf(tbuf, sizeof(tbuf), "[%s.%06d] ", tempbuf, (int)now->tv_usec);
-      tbuflen = strlen(tbuf);
-    }
-    else tbuf[0] = '\0';
-    if(IS_DEBUG_BELOW(ls) || logspan) {
-      const char *tname = eventer_get_thread_name();
-      if(!tname || strlen(tname) == 0) tname = mtev_thread_getname();
-      if(tname && strlen(tname))
-        snprintf(dbuf, sizeof(dbuf), "[t@%u/%s,%s:%d] ", mtev_thread_id(), tname, file, line);
-      else {
-        snprintf(dbuf, sizeof(dbuf), "[t@%u,%s:%d] ", mtev_thread_id(), file, line);
-      }
-      dbuflen = strlen(dbuf);
-    }
-    else dbuf[0] = '\0';
+    flatcc_builder_t builder, *B = &builder;
+
+    flatcc_builder_init(B);
+    mtev_LogLine_start_as_root(B);
+    ENSURE_NOW();
+    mtev_LogLine_timestamp_add(B, (uint64_t)now->tv_sec * 1000000 + now->tv_usec);
+    const char *tname = eventer_get_thread_name();
+    mtev_LogLine_threadid_add(B, mtev_thread_id());
+    if(tname) mtev_LogLine_threadname_create_str(B, tname);
+    mtev_LogLine_file_create_str(B, file);
+    mtev_LogLine_line_add(B, line);
+    mtev_LogLine_facility_create_str(B, ls->name);
 #ifdef va_copy
     va_copy(copy, arg);
     len = vsnprintf(buffer, MTEV_MAYBE_SIZE(buffer), format, copy);
@@ -2048,101 +2104,66 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
       if(len > (ssize_t)MTEV_MAYBE_SIZE(buffer)) len = MTEV_MAYBE_SIZE(buffer);
     }
 
+    if(kvs && kvs[0]->key != NULL) {
+      int kvi = 0;
+      mtev_LogLine_kv_start(B);
+      for(mtev_log_kv_t *kv = kvs[kvi]; (kv = kvs[kvi])->key != NULL; kvi++) {
+        mtev_LogLine_kv_push_start(B);
+        mtev_KVPair_key_create_str(B, kv->key);
+        switch(kv->value_type) {
+          case MTEV_LOG_KV_TYPE_STRING:
+            mtev_KVPair_value_StringValue_start(B);
+            mtev_StringValue_value_create_str(B, kv->value.v_string);
+            mtev_KVPair_value_StringValue_end(B);
+            break;
+          case MTEV_LOG_KV_TYPE_INT64:
+            mtev_KVPair_value_LongValue_start(B);
+            mtev_LongValue_value_add(B, kv->value.v_int64);
+            mtev_KVPair_value_LongValue_end(B);
+            break;
+          case MTEV_LOG_KV_TYPE_UINT64:
+            mtev_KVPair_value_ULongValue_start(B);
+            mtev_ULongValue_value_add(B, kv->value.v_uint64);
+            mtev_KVPair_value_ULongValue_end(B);
+            break;
+          case MTEV_LOG_KV_TYPE_DOUBLE:
+            mtev_KVPair_value_DoubleValue_start(B);
+            mtev_DoubleValue_value_add(B, kv->value.v_double);
+            mtev_KVPair_value_DoubleValue_end(B);
+            break;
+        }
+        mtev_LogLine_kv_push_end(B);
+      }
+      mtev_LogLine_kv_end(B);
+    }
+
+    mtev_LogLine_message_create_str(B, buffer);
+    mtev_LogLine_end_as_root(B);
+
     if(logspan) {
       char lsbuff[1024];
-      snprintf(lsbuff, sizeof(lsbuff), "mtev_log%.*s %.*s",
-               dbuflen, dbuf, len, buffer);
+      snprintf(lsbuff, sizeof(lsbuff), "mtev_log %.*s",
+               len, buffer);
       int64_t now_us = (int64_t)now->tv_sec * 1000000 + (int64_t)now->tv_usec;
       mtev_zipkin_span_annotate(logspan, &now_us, lsbuff, true);
     }
 
-    int dedup_cnt = 0;
-    int dedup_diff_s = 0;
-    const char *last_file = "unknown";
-    int last_line = 0;
-    char *last_buffer = NULL;
-    if(ls->dedup_s && _mtev_log_siglvl == 0) {
-      ENSURE_NOW();
-      uint64_t hash = XXH64(buffer, len, (uintptr_t)ls);
-      if(ls->dedup_last_hash == hash && ls->dedup_last_file == file &&
-         ls->dedup_last_line == line && !ls->dedup_last_buffer) {
-        /* If we think we need it... pay the strndup now */
-        last_buffer = strndup(buffer, len);
-      }
-      ck_spinlock_lock(&ls->dedup_lock);
-      struct timeval diff;
-      sub_timeval(*now, ls->dedup_last_time, &diff);
-      if(ls->dedup_last_hash == hash && ls->dedup_last_file == file &&
-         ls->dedup_last_line == line) {
-        if(diff.tv_sec < ls->dedup_s) {
-          if(!ls->dedup_last_buffer) {
-            /* Circumstances might have change and we *might* need to strndup here */
-            ls->dedup_last_buffer = last_buffer ? last_buffer : strndup(buffer, len);
-            last_buffer = NULL;
-          }
-          memcpy(ls->dedup_last_dbuf, dbuf, sizeof(dbuf));
-          ls->dedup_last_dbuflen = dbuflen;
-          ls->dedup_cnt++;
-          ck_spinlock_unlock(&ls->dedup_lock);
-          free(last_buffer);
-          MTEV_MAYBE_FREE(buffer);
-          return 0;
-        }
-        if(last_buffer) {
-          free(last_buffer);
-          last_buffer = NULL;
-        }
+    /* Already logged above as a ganged dedup */
+    LIBMTEV_LOG(ls->name, (char *)file, line, buffer);
+
+    if(IS_ENABLED_ON(ls)) {
+      uint8_t fb_buf[16384+16];
+      uint8_t *tofree = NULL, *fb = fb_buf + ((16 - ((uintptr_t)fb_buf & 15)) % 16);
+      size_t fb_len = sizeof(fb_buf) - (fb - fb_buf);
+      if(NULL != flatcc_builder_copy_buffer(B, fb, fb_len)) {
+        fb_len = flatcc_builder_get_buffer_size(B);
       } else {
-        last_buffer = ls->dedup_last_buffer;
-        ls->dedup_last_buffer = NULL;
+        fb = tofree = flatcc_builder_finalize_aligned_buffer(B, &fb_len);
       }
-      dedup_diff_s = diff.tv_sec;
-      dedup_cnt = ls->dedup_cnt;
-      memcpy(last_dbuf, ls->dedup_last_dbuf, sizeof(last_dbuf));
-      last_dbuflen = ls->dedup_last_dbuflen;
-      ls->dedup_cnt = 0;
-      ls->dedup_last_time = *now;
-      last_file = ls->dedup_last_file;
-      last_line = ls->dedup_last_line;
-      ls->dedup_last_file = file;
-      ls->dedup_last_line = line;
-      ls->dedup_last_hash = hash;
-      ck_spinlock_unlock(&ls->dedup_lock);
+      rv = mtev_log_line(ls, NULL, fb, fb_len);
+      if(tofree) FLATCC_ALIGNED_FREE(tofree);
     }
-
-    if(!last_buffer && dedup_cnt > 0) {
-      /* Same log line */
-      last_buffer = buffer;
-    }
-    if(last_buffer && dedup_cnt > 0) {
-      MTEV_MAYBE_DECL(char, oldlog, 4096);
-      int olen = 4095;
-      do {
-        MTEV_MAYBE_REALLOC(oldlog, olen + 1);
-        olen = snprintf(oldlog, MTEV_MAYBE_SIZE(oldlog),
-                         "(seen %d times over last %d seconds) %s",
-                         dedup_cnt, dedup_diff_s, last_buffer);
-      } while(olen >= (ssize_t)MTEV_MAYBE_SIZE(oldlog));
-      LIBMTEV_LOG(ls->name, (char *)last_file, last_line, oldlog);
-      /* The above macro may not use last_file or last_line */
-      (void)last_file;
-      (void)last_line;
-      if(IS_ENABLED_ON(ls)) {
-        ENSURE_NOW();
-        rv = mtev_log_line(ls, NULL, now, tbuf, tbuflen,
-                           last_dbuf, last_dbuflen, oldlog, olen);
-      }
-    }
-    if(last_buffer && last_buffer != buffer) free(last_buffer);
-
-    if(last_buffer != buffer) {
-      /* Already logged above as a ganged dedup */
-      LIBMTEV_LOG(ls->name, (char *)file, line, buffer);
-      if(IS_ENABLED_ON(ls)) {
-        ENSURE_NOW();
-        rv = mtev_log_line(ls, NULL, now, tbuf, tbuflen, dbuf, dbuflen, buffer, len);
-      }
-    }
+    flatcc_builder_clear(B);
 
     MTEV_MAYBE_FREE(buffer);
     errno = old_errno;
@@ -2151,6 +2172,17 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
   }
   errno = old_errno;
   return 0;
+}
+
+int
+mtev_ex_log(mtev_log_stream_t ls, const struct timeval *now,
+            const char *file, int line, mtev_log_kv_t **ex, const char *format, ...) {
+  int rv;
+  va_list arg;
+  va_start(arg, format);
+  rv = mtev_ex_vlog(ls, now, file, line, ex, format, arg);
+  va_end(arg);
+  return rv;
 }
 
 int
@@ -2184,21 +2216,7 @@ mtev_log_speculate_commit_cb(uint64_t idx, const struct timeval *tv,
   (void)idx;
   mtev_log_stream_t ls = v_ls;
   if((IS_ENABLED_ON(ls) && IS_ENABLED_BELOW(ls)) || LIBMTEV_LOG_ENABLED()) {
-    char tbuf[48], dbuf[1];
-    int tbuflen = 0, dbuflen = 0;
-    if(IS_TIMESTAMPS_BELOW(ls)) {
-      struct tm _tm, *tm;
-      char tempbuf[32];
-      time_t s = (time_t)tv->tv_sec;
-      tm = localtime_r(&s, &_tm);
-      strftime(tempbuf, sizeof(tempbuf), "%Y-%m-%d %H:%M:%S", tm);
-      snprintf(tbuf, sizeof(tbuf), "[%s.%06d] ", tempbuf, (int)tv->tv_usec);
-      tbuflen = strlen(tbuf);
-    }
-    else tbuf[0] = '\0';
-
-    if (mtev_log_line(ls, NULL, tv, tbuf, tbuflen, dbuf, dbuflen, str, str_bytes) <= 0)
-      return -1;
+    mtevLT(ls, tv, "%.*s", (int)str_bytes, str);
     return 0;
   }
   return -1;

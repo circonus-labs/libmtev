@@ -6,6 +6,9 @@
 
  * Support logging of slow callbacks.  See eventer config docs for more
    details.
+ * Allow structured logging via flatbuffers and support variant format
+   logging outputs: flatbuffer, and json.
+ * Deprececate and disable log dedupping.
 
 ### 1.8.2
 

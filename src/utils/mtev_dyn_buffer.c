@@ -21,22 +21,26 @@ mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
 }
 
 inline void
-mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
+mtev_dyn_buffer_add_vprintf(mtev_dyn_buffer_t *buf, const char *format, va_list args)
 {
-  va_list args;
   int needed, available;
 
   available = mtev_dyn_buffer_size(buf) - mtev_dyn_buffer_used(buf);
-
-  va_start(args, format);
   needed = vsnprintf((char *)buf->pos, available, format, args);
   if (needed > (available - 1)) {
     mtev_dyn_buffer_ensure(buf, needed + 1); /* ensure we have space for the trailing NUL too */
     needed = vsnprintf((char *)buf->pos, needed + 1, format, args);
   }
-  /* (v)snprintf ensures NUL termination */
-  va_end(args);
   buf->pos += needed;
+}
+
+inline void
+mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  mtev_dyn_buffer_add_vprintf(buf, format, args);
+  va_end(args);
 }
 
 inline void
