@@ -4,6 +4,8 @@
 
 ## 1.8
 
+### 1.8.3
+
  * Support logging of slow callbacks.  See eventer config docs for more
    details.
  * Allow structured logging via flatbuffers and support variant format
