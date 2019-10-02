@@ -108,7 +108,7 @@ struct amqp_module_config {
     pthread_t tid;
     int idx;
     amqp_connection_state_t conn;
-    ck_fifo_spsc_t outbound, inbound;
+    ck_fifo_spsc_t *outbound, *inbound;
     struct connection_configs *config;
     char *host;
     int32_t port;
@@ -149,9 +149,9 @@ static int poll_amqp(eventer_t e, int mask, void *unused, struct timeval *now) {
 	int per_conn_cnt = 0;
     while((the_conf->poll_limit == 0 || per_conn_cnt < the_conf->poll_limit)) {
       struct amqp_conn *cc = &the_conf->amqp_conns[client];
-      ck_fifo_spsc_dequeue_lock(&cc->inbound);
-      bool found = ck_fifo_spsc_dequeue(&cc->inbound, &env);
-      ck_fifo_spsc_dequeue_unlock(&cc->inbound);
+      ck_fifo_spsc_dequeue_lock(cc->inbound);
+      bool found = ck_fifo_spsc_dequeue(cc->inbound, &env);
+      ck_fifo_spsc_dequeue_unlock(cc->inbound);
       if(!found) break;
       mtev_amqp_handle_message_dyn_hook_invoke(cc->conn, client, env,
         env->message.body.bytes, env->message.body.len);
@@ -222,10 +222,10 @@ drain_outbound_queue(struct amqp_conn *cc) {
     amqp_envelope_t *env = NULL, *sameenv = NULL;
     struct ck_fifo_spsc_entry *entry;
     int rv;
-    ck_fifo_spsc_dequeue_lock(&cc->outbound);
-    entry = CK_FIFO_SPSC_FIRST(&cc->outbound);
+    ck_fifo_spsc_dequeue_lock(cc->outbound);
+    entry = CK_FIFO_SPSC_FIRST(cc->outbound);
     if(entry != NULL) env = entry->value;
-    ck_fifo_spsc_dequeue_unlock(&cc->outbound);
+    ck_fifo_spsc_dequeue_unlock(cc->outbound);
     if(env) {
       amqp_boolean_t mandatory = (uintptr_t)env & ENV_MANDATORY;
       amqp_boolean_t immediate = (uintptr_t)env & ENV_IMMEDIATE;
@@ -238,9 +238,9 @@ drain_outbound_queue(struct amqp_conn *cc) {
         return -1;
       }
     }
-    ck_fifo_spsc_dequeue_lock(&cc->outbound);
-    bool found = ck_fifo_spsc_dequeue(&cc->outbound, &sameenv);
-    ck_fifo_spsc_dequeue_unlock(&cc->outbound);
+    ck_fifo_spsc_dequeue_lock(cc->outbound);
+    bool found = ck_fifo_spsc_dequeue(cc->outbound, &sameenv);
+    ck_fifo_spsc_dequeue_unlock(cc->outbound);
     if(!found) break;
     sameenv = (void *)((uintptr_t)sameenv & ~(sizeof(uintptr_t)-1));
     mtevAssert(env == sameenv);
@@ -279,11 +279,11 @@ handleconn(struct amqp_conn *conn) {
     if (ret.reply_type == AMQP_RESPONSE_NORMAL) {
       amqp_envelope_t *env = malloc(sizeof(*env));
       memcpy(env, &envelope, sizeof(*env));
-      ck_fifo_spsc_enqueue_lock(&conn->inbound);
-      ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(&conn->inbound);
+      ck_fifo_spsc_enqueue_lock(conn->inbound);
+      ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(conn->inbound);
       if (fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
-      ck_fifo_spsc_enqueue(&conn->inbound, fifo_entry, env);
-      ck_fifo_spsc_enqueue_unlock(&conn->inbound);
+      ck_fifo_spsc_enqueue(conn->inbound, fifo_entry, env);
+      ck_fifo_spsc_enqueue_unlock(conn->inbound);
     }
     else if (ret.reply_type == AMQP_RESPONSE_LIBRARY_EXCEPTION &&
              ret.library_error == AMQP_STATUS_UNEXPECTED_STATE) {
@@ -433,8 +433,16 @@ init_conns(void) {
 
     cc->idx = section_id;
 
-    ck_fifo_spsc_init(&cc->inbound, malloc(sizeof(ck_fifo_spsc_entry_t)));
-    ck_fifo_spsc_init(&cc->outbound, malloc(sizeof(ck_fifo_spsc_entry_t)));
+    cc->inbound = NULL;
+    cc->outbound = NULL;
+
+    mtevEvalAssert(0 == posix_memalign((void **)(&(cc->inbound)), 16, sizeof(ck_fifo_spsc_t)));
+    mtevAssert(cc->inbound != NULL);
+    mtevEvalAssert(0 == posix_memalign((void **)(&(cc->outbound)), 16, sizeof(ck_fifo_spsc_t)));
+    mtevAssert(cc->outbound != NULL);
+
+    ck_fifo_spsc_init(cc->inbound, malloc(sizeof(ck_fifo_spsc_entry_t)));
+    ck_fifo_spsc_init(cc->outbound, malloc(sizeof(ck_fifo_spsc_entry_t)));
 
     if(!mtev_conf_get_string(mqs[section_id], CONFIG_AMQP_HOST, &cc->host))
       cc->host = strdup("localhost");
@@ -520,11 +528,11 @@ mtev_amqp_send_function(amqp_envelope_t *env, int mandatory, int immediate, int 
     struct amqp_conn *cc = &the_conf->amqp_conns[i];
     if(connection_id_broadcast_if_negative < 0 ||
        i == connection_id_broadcast_if_negative) {
-      ck_fifo_spsc_enqueue_lock(&cc->outbound);
-      ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(&cc->outbound);
+      ck_fifo_spsc_enqueue_lock(cc->outbound);
+      ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(cc->outbound);
       if (fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
-      ck_fifo_spsc_enqueue(&cc->outbound, fifo_entry, copies[i]);
-      ck_fifo_spsc_enqueue_unlock(&cc->outbound);
+      ck_fifo_spsc_enqueue(cc->outbound, fifo_entry, copies[i]);
+      ck_fifo_spsc_enqueue_unlock(cc->outbound);
     }
   }
 }

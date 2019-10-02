@@ -505,7 +505,7 @@ typedef struct asynch_log_line {
 } asynch_log_line;
 
 typedef struct asynch_log_ctx {
-  ck_fifo_mpmc_t q;
+  ck_fifo_mpmc_t *q;
   ck_fifo_mpmc_entry_t *qhead;
   char *name;
   int (*write)(struct asynch_log_ctx *, asynch_log_line *);
@@ -522,7 +522,7 @@ static asynch_log_line *
 asynch_log_pop(asynch_log_ctx *actx) {
   ck_fifo_mpmc_entry_t *garbage = NULL;
   asynch_log_line *ll = NULL;
-  if(ck_fifo_mpmc_dequeue(&actx->q, &ll, &garbage) == true) {
+  if(ck_fifo_mpmc_dequeue(actx->q, &ll, &garbage) == true) {
     /* We can free this only because this fifo is used as a
      * multi-producer and *single* consumer */
     if(garbage != actx->qhead) free(garbage);
@@ -535,14 +535,17 @@ static void
 asynch_log_push(asynch_log_ctx *actx, asynch_log_line *n) {
   ck_fifo_mpmc_entry_t *fifo_entry;
   fifo_entry = malloc(sizeof(ck_fifo_mpmc_entry_t));
-  ck_fifo_mpmc_enqueue(&actx->q, fifo_entry, n);
+  ck_fifo_mpmc_enqueue(actx->q, fifo_entry, n);
 }
 
 asynch_log_ctx *asynch_log_ctx_alloc(void) {
   asynch_log_ctx *actx;
   actx = calloc(1, sizeof(*actx));
   actx->qhead = calloc(1, sizeof(*actx->qhead));
-  ck_fifo_mpmc_init(&actx->q, actx->qhead);
+  actx->q = NULL;
+  mtevEvalAssert(0 == posix_memalign((void **)(&(actx->q)), 16, sizeof(ck_fifo_mpmc_t)));
+  mtevAssert(actx->q != NULL);
+  ck_fifo_mpmc_init(actx->q, actx->qhead);
   pthread_mutex_init(&actx->singleton, NULL);
   return actx;
 }
@@ -553,6 +556,7 @@ void asynch_log_ctx_free(asynch_log_ctx *tf) {
     free(ll);
   }
   if(tf->qhead) free(tf->qhead);
+  if(tf->q) free(tf->q);
   pthread_mutex_destroy(&tf->singleton);
   free(tf);
 }
