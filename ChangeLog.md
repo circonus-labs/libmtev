@@ -9,6 +9,7 @@
  * Allow structured logging via flatbuffers and support variant format
    logging outputs: flatbuffer, and json.
  * Deprececate and disable log dedupping.
+ * Fix ck_fifo to be 16-byte aligned
 
 ### 1.8.2
 
