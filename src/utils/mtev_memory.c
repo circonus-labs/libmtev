@@ -50,7 +50,7 @@
 static int initialized = 0;
 static int asynch_gc = 0;
 static int gc_is_waiting = 0;
-static ck_fifo_spsc_t *gc_queue = NULL;
+static ck_fifo_spsc_t gc_queue;
 static struct timeval last_safe_gc;
 static uint64_t last_safe_gc_seconds;
 static uint64_t asynch_cycles;
@@ -103,11 +103,11 @@ mtev_memory_queue_asynch(bool final) {
     mtevAssert(ck_pr_cas_ptr(&gc_return->final_ar, NULL, ar));
   }
 
-  ck_fifo_spsc_enqueue_lock(gc_queue);
-  ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(gc_queue);
+  ck_fifo_spsc_enqueue_lock(&gc_queue);
+  ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(&gc_queue);
   if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
-  ck_fifo_spsc_enqueue(gc_queue, fifo_entry, ar);
-  ck_fifo_spsc_enqueue_unlock(gc_queue);
+  ck_fifo_spsc_enqueue(&gc_queue, fifo_entry, ar);
+  ck_fifo_spsc_enqueue_unlock(&gc_queue);
   ck_pr_inc_64(&gc_return->enqueued);
 }
 
@@ -146,9 +146,7 @@ void mtev_memory_init_thread(void) {
   if(gc_return == NULL) {
     mtevL(mem_debug, "mtev_memory_init_thread()\n");
     gc_return = calloc(1, sizeof(*gc_return));
-    gc_return->queue = NULL;
-    mtevEvalAssert(0 == posix_memalign((void **)(&(gc_return->queue)), 16, sizeof(ck_fifo_spsc_t)));
-    mtevAssert(gc_return->queue != NULL);
+    gc_return->queue = calloc(1, sizeof(*gc_return->queue));
     ck_fifo_spsc_init(gc_return->queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
   }
 }
@@ -254,10 +252,8 @@ void mtev_memory_init(void) {
 
   ck_epoch_init(&epoch_ht);
   mtev_memory_init_thread();
-  gc_queue = NULL;
-  mtevEvalAssert(0 == posix_memalign((void **)(&gc_queue), 16, sizeof(ck_fifo_spsc_t)));
-  mtevAssert(gc_queue != NULL);
-  ck_fifo_spsc_init(gc_queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
+
+  ck_fifo_spsc_init(&gc_queue, malloc(sizeof(ck_fifo_spsc_entry_t)));
   pthread_atfork(NULL,NULL,mtev_memory_gc_restart_thread);
 }
 
@@ -374,11 +370,11 @@ mtev_memory_gc(void *unused) {
      */
     int setsize = 0;
     do {
-      ck_fifo_spsc_dequeue_lock(gc_queue);
-      while(setsize < max_setsize && ck_fifo_spsc_dequeue(gc_queue, &ar)) {
+      ck_fifo_spsc_dequeue_lock(&gc_queue);
+      while(setsize < max_setsize && ck_fifo_spsc_dequeue(&gc_queue, &ar)) {
         arset[setsize++] = ar;
       }
-      ck_fifo_spsc_dequeue_unlock(gc_queue);
+      ck_fifo_spsc_dequeue_unlock(&gc_queue);
       if(setsize == 0) usleep(1000000);
     } while(setsize == 0);
 
