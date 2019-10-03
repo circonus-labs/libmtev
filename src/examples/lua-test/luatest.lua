@@ -12,9 +12,18 @@ function job(space, tid)
   mtev.log("error", "Job '%s' running in thread %d\n", space, tid)
 end
 
+function console(ncct, buffer)
+  if buffer == "I am ten ninjas" then
+    mtev.nc_printf(ncct, "I believe you.\n");
+    return _G.MTEV_HOOK_DONE
+  end
+  return _G.MTEV_HOOK_CONTINUE
+end
+
 function onethread()
   local thread, tid = mtev.thread_self()
   job("MAIN", tid)
+  mtev.hook("mtev_console_dispatch", "luatest", "console")
 end
 
 function eachthread()
