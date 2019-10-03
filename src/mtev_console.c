@@ -79,6 +79,12 @@
 #include "noitedit/fcns.h"
 #include "noitedit/map.h"
 
+MTEV_HOOK_IMPL(mtev_console_dispatch,
+               (struct __mtev_console_closure *ncct, const char *buffer),
+               void *, closure,
+               (void *closure, struct __mtev_console_closure *ncct, const char *buffer),
+               (closure, ncct, buffer));
+
 #define OL(a) do { \
   pthread_mutex_lock(&(a)->outbuf_lock); \
 } while(0)
@@ -334,6 +340,9 @@ mtev_console_dispatch(eventer_t e, char *buffer,
   HistEvent ev;
   int i, cnt = 2048;
   mtev_boolean raw;
+
+  if(mtev_console_dispatch_hook_invoke(ncct, buffer) != MTEV_HOOK_CONTINUE)
+    return;
 
   cmds = malloc(2048 * sizeof(*cmds));
   i = mtev_tokenize(buffer, cmds, &cnt);

@@ -39,6 +39,7 @@
 #include "noitedit/histedit.h"
 #include "mtev_console_telnet.h"
 #include "mtev_hash.h"
+#include "mtev_hooks.h"
 #include "mtev_skiplist.h"
 #include <stdarg.h>
 
@@ -250,5 +251,10 @@ API_EXPORT(char *)
                             mtev_console_state_t *state,
                             int argc, char **argv,
                             int idx);
+
+MTEV_HOOK_PROTO(mtev_console_dispatch,
+                (struct __mtev_console_closure *ncct, const char *buffer),
+                void *, closure,
+                (void *closure, struct __mtev_console_closure *ncct, const char *buffer))
 
 #endif

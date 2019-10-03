@@ -22,3 +22,10 @@ require("mtev.mtev")
 function errorf(...) error(string.format(...)) end
 
 function printf(...) print(string.format(...)) end
+
+ffi = require("ffi")
+ffi.cdef([=[
+struct __mtev_console_closure { void *opaque; };
+void nc_printf(struct __mtev_console_closure *ncct, const char *fmt, ...);
+]=])
+mtev.nc_printf = ffi.C.nc_printf
