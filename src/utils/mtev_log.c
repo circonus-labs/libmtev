@@ -2166,8 +2166,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
         fb = tofree = flatcc_builder_finalize_aligned_buffer(B, &fb_len);
       }
       rv = mtev_log_line(ls, NULL, fb, fb_len);
-      /* The flatcc runtime should really expose this, but it does not */
-      if(tofree) free(((void **)tofree)[-1]);
+      if(tofree) flatcc_builder_aligned_free(tofree);
     }
     flatcc_builder_clear(B);
 

@@ -378,7 +378,7 @@ AC_CHECK_FUNCS(ck_epoch_synchronize_wait)
 AC_CHECK_LIB(hwloc, hwloc_topology_init, , [AC_MSG_ERROR([*** libhwloc required ***])])
 AC_CHECK_HEADER(lz4.h, [], [AC_MSG_ERROR([*** liblz4 (headers) required ***])])
 AC_CHECK_LIB(lz4, LZ4F_compressBegin, , [AC_MSG_ERROR([*** liblz4 is required ***])])
-AC_CHECK_LIB(flatccrt, flatcc_builder_init, , [AC_MSG_ERROR([*** libflatcc is required ***])])
+AC_CHECK_LIB(flatccrt, flatcc_builder_aligned_free, , [AC_MSG_ERROR([*** libflatcc 0.4.3* or higher is required ***])])
 AC_CHECK_LIB(yajl, yajl_alloc, , [AC_MSG_ERROR(*** libyajl is required ***)])
 
 # libcircmetrics depends on libjlog and libcircllhist, so we have to check
