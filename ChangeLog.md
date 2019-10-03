@@ -4,6 +4,11 @@
 
 ## 1.8
 
+ * Add an mtev_console_dispatch hook for controlling terminal interactions.
+ * Fix alignedment issue in logging related to freeing built flatbuffers.
+   This requires a patches flatcc 0.4.3 or 0.5.0 or later.  configure.in
+   was updated to enforce this requirement.
+
 ### 1.8.3
 
  * Support logging of slow callbacks.  See eventer config docs for more
