@@ -4,10 +4,13 @@
 
 ## 1.8
 
+### 1.8.4
+
  * Add an mtev_console_dispatch hook for controlling terminal interactions.
- * Fix alignedment issue in logging related to freeing built flatbuffers.
+ * Fix alignment issue in logging related to freeing built flatbuffers.
    This requires a patches flatcc 0.4.3 or 0.5.0 or later.  configure.in
-   was updated to enforce this requirement.
+   was updated to enforce this requirement. The bug manifested as a crash
+   on large log messages (10s of kilobytes or more).
 
 ### 1.8.3
 
