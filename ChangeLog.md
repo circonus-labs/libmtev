@@ -4,6 +4,13 @@
 
 ## 1.8
 
+### 1.8.5
+
+ * Fix double free issue in amqp broadcast delivery.
+ * Fix lua panic on SunOS when registering a hook that has ffi pointer
+   arguments.  These hooks do not work on SunOS due to luajit's issues
+   with SunOS' "very high" stack location.
+
 ### 1.8.4
 
  * Add an mtev_console_dispatch hook for controlling terminal interactions.
