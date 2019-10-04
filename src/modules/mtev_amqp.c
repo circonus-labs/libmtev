@@ -481,7 +481,6 @@ static amqp_envelope_t *copy_envelope(amqp_envelope_t *in) {
   CIO(message.properties.user_id);
   CIO(message.properties.app_id);
   CIO(message.properties.cluster_id);
-  CIO(message.body);
 #undef CIO
   /* now we clone the headers */
   amqp_table_clone(&in->message.properties.headers,
@@ -490,6 +489,8 @@ static amqp_envelope_t *copy_envelope(amqp_envelope_t *in) {
   out->consumer_tag = amqp_bytes_malloc_dup(in->consumer_tag);
   out->exchange = amqp_bytes_malloc_dup(in->exchange);
   out->routing_key = amqp_bytes_malloc_dup(in->routing_key);
+  /* and simple dup of body */
+  out->message.body = amqp_bytes_malloc_dup(in->message.body);
   return out;
 }
 
