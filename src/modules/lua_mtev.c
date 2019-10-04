@@ -5389,6 +5389,7 @@ nl_semaphore(lua_State *L) {
   int64_t val, *valp, **valpp;
   const char *key = luaL_checkstring(L,1);
   val = luaL_checkinteger(L,2);
+retry:
   if (!mtev_hash_retrieve(semaphore_table, key, strlen(key), (void**) &valp)) {
     /* initialize new semaphore counter */
     valp = calloc(1, sizeof(val));
@@ -5396,6 +5397,7 @@ nl_semaphore(lua_State *L) {
     if(!mtev_hash_store(semaphore_table, key, strlen(key), valp)) {
       /* lost race */
       free(valp);
+      goto retry;
     }
   }
   /* return new semaphore object */

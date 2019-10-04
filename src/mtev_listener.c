@@ -83,7 +83,7 @@ mtev_acceptor_timeout(eventer_t e, int mask, void *closure, struct timeval *tv) 
   if(ac->fd >= 0) {
     eventer_t fde = eventer_find_fd(ac->fd);
     if(fde) {
-      struct timeval age;
+      struct timeval age = { .tv_sec = 0, .tv_usec = 0 };
       mtev_acceptor_closure_readwrite_age(ac, tv, &age);
       if(age.tv_sec * 1000UL + age.tv_usec / 1000UL > ac->timeout_ms) {
         ac->timeout = NULL;
