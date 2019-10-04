@@ -503,13 +503,18 @@ lua_hook_varargs(lua_module_closure_t *lmc, lua_State *L, const char *proto, va_
       mtev_lua_push_dynamic_ctype_t func = vfunc;
       func(L, ap);
     } else {
-      bool is_ffi = false;
       if(!is_ptr) {
         /* we can't proceed b/c future arguments can't be popped off the varargs list correctly */
         mtevL(nldeb, "cannot process prototype past arg %d in %s because we don't know its size\n",
               i, proto);
         return i-1;
       }
+#if defined(__sun__)
+      (void)lmc;
+      mtevL(nldeb, "SunOS/Illumos and luajit prevents lua hooks on ffi types\n");
+      lua_pushnil(L);
+#else
+      bool is_ffi = false;
 
       void *ptr = va_arg(ap, void *);
       /* first try ffi */
@@ -534,6 +539,7 @@ lua_hook_varargs(lua_module_closure_t *lmc, lua_State *L, const char *proto, va_
         mtevL(nldeb, "unknown hook parameter type: '%s' consider mtev_lua_register_dynamic_ctype(...)\n", args[i]);
         lua_pushlightuserdata(L,ptr);
       }
+#endif
     }
   }
   return nargs - 1;
