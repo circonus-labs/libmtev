@@ -302,21 +302,23 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     stats_set_str(stats_register(jobq_ns, "mem_safety", STATS_TYPE_STRING),
                   eventer_jobq_memory_safety_name(jobq->mem_safety));
     stats_handle_t *h;
-    h = stats_rob_i32(jobq_ns, "concurrency", (void *)&jobq->concurrency);
+    h = stats_rob_u32(jobq_ns, "concurrency", (void *)&jobq->concurrency);
     stats_handle_units(h, "threads");
-    h = stats_rob_i32(jobq_ns, "desired_concurrency", (void *)&jobq->desired_concurrency);
+    h = stats_rob_u32(jobq_ns, "desired_concurrency", (void *)&jobq->desired_concurrency);
     stats_handle_units(h, "threads");
-    h = stats_rob_i32(jobq_ns, "floor_concurrency", (void *)&jobq->floor_concurrency);
+    h = stats_rob_u32(jobq_ns, "floor_concurrency", (void *)&jobq->floor_concurrency);
     stats_handle_units(h, "threads");
-    h = stats_rob_i32(jobq_ns, "min_concurrency", (void *)&jobq->min_concurrency);
+    h = stats_rob_u32(jobq_ns, "min_concurrency", (void *)&jobq->min_concurrency);
     stats_handle_units(h, "threads");
-    h = stats_rob_i32(jobq_ns, "max_concurrency", (void *)&jobq->max_concurrency);
+    h = stats_rob_u32(jobq_ns, "max_concurrency", (void *)&jobq->max_concurrency);
     stats_handle_units(h, "threads");
-    h = stats_rob_i32(jobq_ns, "backlog", (void *)&jobq->backlog);
+    h = stats_rob_u32(jobq_ns, "backlog", (void *)&jobq->backlog);
     stats_handle_units(h, "jobs");
-    h = stats_rob_i32(jobq_ns, "max_backlog", (void *)&jobq->max_backlog);
+    h = stats_rob_u32(jobq_ns, "max_backlog", (void *)&jobq->max_backlog);
     stats_handle_units(h, "jobs");
-    h = stats_rob_i64(jobq_ns, "timeouts", (void *)&jobq->timeouts);
+    h = stats_rob_u64(jobq_ns, "timeouts", (void *)&jobq->timeouts);
+    stats_handle_units(h, "jobs");
+    h = stats_rob_u64(jobq_ns, "total_jobs", (void *)&jobq->total_jobs);
     stats_handle_units(h, "jobs");
   }
   pthread_mutex_unlock(&all_queues_lock);

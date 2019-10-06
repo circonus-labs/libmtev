@@ -55,7 +55,9 @@ mtev_stats_ns(stats_ns_t *parent, const char *name) {
     if(!strcmp(name, "mtev") && parent == NULL) {
       stats_ns_add_tag(ns, "framework", "libmtev");
     }
-    stats_ns_add_tag(ns, "app", mtev_get_app_name());
+    const char *appname = mtev_get_app_name();
+    if(appname && strcmp(appname, "unknown"))
+      stats_ns_add_tag(ns, "app", mtev_get_app_name());
   }
   return ns;
 }
