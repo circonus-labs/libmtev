@@ -78,7 +78,7 @@ The keys and values supported are:
    zero, there is no maximum.  Safety can be one of `none` , `cs` , or
    `gc` (default).  For more information om memory settings see [eventer_jobq.h](https://github.com/circonus-labs/libmtev/tree/master/src/eventer/eventer_jobq.h) and [mtev_memory.h](https://github.com/circonus-labs/libmtev/tree/master/src/utils/mtev_memory.h). Backlog sets
    the advisory queue length backlog limit for the queue. The `lifo` setting instructs the
-   jobq to process event last-in-first-out.  The values for this field is either `lifo` or 
+   jobq to process jobs last-in-first-out.  The values for this field is either `lifo` or 
    `fifo`.
 
    > Note that this merely creates the jobq. One must find and use it
@@ -88,9 +88,9 @@ The keys and values supported are:
 
  * ##### default_jobq_ordering
 
-   Specified if jobqs should, by default, use LIFO or FIFO processing order.  The default
-   is FIFO.  The value of this field should either be omitted for the default or one of
-   `lifo` and `fifo`.
+   Specifies if then default consumption order of jobs for jobqs that don't explicitly
+   specify.  Valid values are `lifo` and `fifo`. If unspecified, the default for this
+   setting is FIFO.
 
  * ##### default_ca_chain
 
