@@ -147,6 +147,7 @@ struct _eventer_jobq_t {
   uint32_t                max_concurrency;
   uint32_t                max_backlog;
   mtev_log_stream_t       callback_tracker;
+  mtev_boolean            *lifo;
 };
 
 #ifdef LOCAL_EVENTER

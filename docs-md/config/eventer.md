@@ -72,17 +72,25 @@ The keys and values supported are:
 
    This establishes a new named jobq and sets parameters around concurrency
    and memory safety.  The format of the value is:
-   `concurrency[,min[,max[,safety[,backlog]]]]`.  Concurrency, min, max, and backlog are all
+   `concurrency[,min[,max[,safety[,backlog[,lifo]]]]]`.  Concurrency, min, max, and backlog are all
    unsigned integers. Concurrency must be greater than zero.  If minimum is omitted or
    zero, no minimum is set.  If max is omitted, it is set to min.  If max is
    zero, there is no maximum.  Safety can be one of `none` , `cs` , or
    `gc` (default).  For more information om memory settings see [eventer_jobq.h](https://github.com/circonus-labs/libmtev/tree/master/src/eventer/eventer_jobq.h) and [mtev_memory.h](https://github.com/circonus-labs/libmtev/tree/master/src/utils/mtev_memory.h). Backlog sets
-   the advisory queue length backlog limit for the queue.
+   the advisory queue length backlog limit for the queue. The `lifo` setting instructs the
+   jobq to process jobs last-in-first-out.  The values for this field is either `lifo` or 
+   `fifo`.
 
    > Note that this merely creates the jobq. One must find and use it
    > programmatically within the software.  It is designed to have a code-free
    > way of allowing operators to adjust parameters around jobqs used within
    > an application.
+
+ * ##### default_jobq_ordering
+
+   Specifies if then default consumption order of jobs for jobqs that don't explicitly
+   specify.  Valid values are `lifo` and `fifo`. If unspecified, the default for this
+   setting is FIFO.
 
  * ##### default_ca_chain
 

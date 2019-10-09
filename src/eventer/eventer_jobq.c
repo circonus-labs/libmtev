@@ -56,6 +56,9 @@ static sigset_t alarm_mask;
 static mtev_hash_table all_queues;
 static __thread eventer_job_t *current_job;
 pthread_mutex_t all_queues_lock;
+mtev_boolean jobq_lifo_default = mtev_false;
+static mtev_boolean jobq_lifo_true = mtev_true;
+static mtev_boolean jobq_lifo_false = mtev_false;
 
 eventer_job_t *
 eventer_current_job(void) {
@@ -262,6 +265,7 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
   jobq->queue_name = strdup(queue_name);
   jobq->mem_safety = mem_safety;
   jobq->isbackq = isbackq;
+  jobq->lifo = &jobq_lifo_default;
   if(!jobq->isbackq)
     jobq->callback_tracker = mtev_log_stream_findf("debug/eventer/callbacks/jobq/%s", queue_name);
   if(pthread_mutexattr_init(&mutexattr) != 0) {
@@ -420,14 +424,19 @@ eventer_jobq_enqueue_internal(eventer_jobq_t *jobq, eventer_job_t *job, eventer_
   eventer_jobq_maybe_spawn(jobq, 1);
   pthread_mutex_lock(&jobq->lock);
   job->squeue = eventer_jobq_get_sq_nolock(jobq, job->subqueue);
-  if(job->squeue->tailq) {
-    /* If there is a tail (queue has items), just push it on the end. */
-    job->squeue->tailq->next = job;
-    job->squeue->tailq = job;
-  }
-  else {
-    /* Otherwise, this is the first and only item on the list. */
-    job->squeue->headq = job->squeue->tailq = job;
+  if(*jobq->lifo) {
+    job->next = job->squeue->headq;
+    job->squeue->headq = job;
+  } else {
+    if(job->squeue->tailq) {
+      /* If there is a tail (queue has items), just push it on the end. */
+      job->squeue->tailq->next = job;
+      job->squeue->tailq = job;
+    }
+    else {
+      /* Otherwise, this is the first and only item on the list. */
+      job->squeue->headq = job->squeue->tailq = job;
+    }
   }
   pthread_mutex_unlock(&jobq->lock);
 
@@ -949,6 +958,10 @@ void eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *name) {
     strlcpy(p, name, 14);
     jobq->short_name = p;
   }
+}
+void eventer_jobq_set_lifo(eventer_jobq_t *jobq, mtev_boolean nv) {
+  if(nv) jobq->lifo = &jobq_lifo_true;
+  else jobq->lifo = &jobq_lifo_false;
 }
 void eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max) {
   jobq->max_backlog = max;
