@@ -88,9 +88,9 @@ The keys and values supported are:
 
  * ##### default_jobq_ordering
 
-   Specifies if then default consumption order of jobs for jobqs that don't explicitly
-   specify.  Valid values are `lifo` and `fifo`. If unspecified, the default for this
-   setting is FIFO.
+   Specifies the default job consumption order for jobqs that don't explicitly
+   declare an ordering requirement. Valid values are `lifo` and `fifo`. If
+   unspecified, the default for this setting is FIFO.
 
  * ##### default_ca_chain
 
