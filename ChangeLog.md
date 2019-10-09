@@ -7,6 +7,7 @@
  * If the app name is unset do not add app:unknown to stats.
  * Fix sign issues in jobq statistics.
  * Add `total_jobs` to jobq statistics.
+ * Support LIFO ordering on jobqs.
 
 ### 1.8.5
 

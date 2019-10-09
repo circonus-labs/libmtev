@@ -431,6 +431,7 @@ eventer_pool_t *eventer_get_pool_for_event(eventer_t e) {
     if(nv) *nv++ = '\0'; \
 } while(0) \
 
+extern mtev_boolean jobq_lifo_default; /* from eventer_jobq.c */
 int eventer_impl_propset(const char *key, const char *value) {
   if(!strcasecmp(key, "concurrency")) {
     if(ck_pr_load_32(&init_called) != 0) {
@@ -440,6 +441,15 @@ int eventer_impl_propset(const char *key, const char *value) {
     int requested = atoi(value);
     if(requested < 0) requested = 0;
     __default_loop_concurrency = requested;
+    return 0;
+  }
+  if(!strcasecmp(key, "default_jobq_ordering")) {
+    if(!strcasecmp(value, "fifo")) jobq_lifo_default = mtev_false;
+    else if(!strcasecmp(value, "lifo")) jobq_lifo_default = mtev_true;
+    else {
+      mtevL(mtev_error, "Invalid eventer jobq_ordering, must be LIFO or FIFO\n");
+      return -1;
+    }
     return 0;
   }
   if(!strncasecmp(key, "loop_", strlen("loop_"))) {
@@ -470,6 +480,7 @@ int eventer_impl_propset(const char *key, const char *value) {
   if(!strncasecmp(key, "jobq_", strlen("jobq_"))) {
     char *val_copy = strdup(value);
     char *tok, *nv = val_copy;
+    char *lifo_val = NULL;
     const char *name = key + strlen("jobq_");
     if(strlen(name) == 0) {
       free(val_copy);
@@ -511,6 +522,16 @@ int eventer_impl_propset(const char *key, const char *value) {
     }
     ADVTOK;
     if(tok) backlog = atoi(tok);
+    ADVTOK;
+    if(tok) {
+      if(strcasecmp(tok, "fifo") && strcasecmp(tok, "lifo")) {
+        mtevL(mtev_error, "eventer jobq '%s' has bad ordering setting: %s\n",
+              name, tok);
+        free(val_copy);
+        return -1;
+      }
+      lifo_val = tok;
+    }
 #undef ADVTOK
 
     eventer_jobq_t *jq = eventer_jobq_retrieve(name);
@@ -528,6 +549,9 @@ int eventer_impl_propset(const char *key, const char *value) {
     eventer_jobq_set_concurrency(jq, concurrency);
     eventer_jobq_set_min_max(jq, min, max);
     eventer_jobq_set_max_backlog(jq, backlog);
+    if(lifo_val) {
+      eventer_jobq_set_lifo(jq, !strcasecmp(lifo_val, "lifo"));
+    }
     free(val_copy);
     return 0;
   }
