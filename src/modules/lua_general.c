@@ -36,6 +36,8 @@
 #include "mtev_stats.h"
 #include "mtev_perftimer.h"
 #include "mtev_reverse_socket.h"
+#include "mtev_console.h"
+#include "mtev_console_socket.h"
 
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
@@ -941,7 +943,8 @@ mtev_console_state_lua(mtev_console_closure_t ncct,
     return -1;
   }
   if(argc) {
-    eventer_set_owner(ncct->e, eventer_choose_owner(atoi(argv[0])));
+    if(ncct->simple)
+      eventer_set_owner(ncct->simple->e, eventer_choose_owner(atoi(argv[0])));
   }
   info = calloc(1, sizeof(*info));
   info->self = (mtev_dso_generic_t *)closure;
@@ -984,7 +987,7 @@ lua_repl_prompt(EditLine *el) {
   conf = get_config(info->self);
   lmc = pthread_getspecific(conf->key);
 
-  if(!lmc || !pthread_equal(eventer_get_owner(ncct->e), pthread_self()))
+  if(!lmc || !ncct->simple || !pthread_equal(eventer_get_owner(ncct->simple->e), pthread_self()))
     snprintf(info->prompt, sizeof(info->prompt), "lua_general(...)# ");
   else
     snprintf(info->prompt, sizeof(info->prompt), tl, get_eventer_id(ncct), lmc->lua_state);

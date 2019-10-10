@@ -43,6 +43,7 @@
 #include "mtev_listener.h"
 #include "mtev_rest.h"
 #include "mtev_console.h"
+#include "mtev_console_socket.h"
 #include "mtev_tokenizer.h"
 #include "mtev_capabilities_listener.h"
 
@@ -1352,10 +1353,10 @@ mtev_console_state_pop(mtev_console_closure_t ncct, int argc, char **argv,
 
 int
 mtev_console_state_init(mtev_console_closure_t ncct) {
-  if(ncct->el) {
+  if(ncct->simple && ncct->simple->el) {
     console_prompt_func_t f;
     f = ncct->state_stack->state->console_prompt_function;
-    el_set(ncct->el, EL_PROMPT, f ? f : mtev_console_state_prompt);
+    el_set(ncct->simple->el, EL_PROMPT, f ? f : mtev_console_state_prompt);
   }
   return 0;
 }

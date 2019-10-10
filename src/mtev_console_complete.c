@@ -38,6 +38,7 @@
 #include "mtev_listener.h"
 #include "mtev_console.h"
 #include "mtev_str.h"
+#include "mtev_console_socket.h"
 #include "mtev_tokenizer.h"
 
 #include "noitedit/sys.h"
@@ -223,7 +224,7 @@ mtev_edit_complete(EditLine *el, int invoking_key) {
 
   el_get(el, EL_USERDATA, (void *)&ncct);
 
-  if(el->el_state.lastcmd == ncct->mtev_edit_complete_cmdnum)
+  if(el->el_state.lastcmd == ncct->simple->mtev_edit_complete_cmdnum)
     method = '?';
 
   /* We now look backwards for the start of a filename/variable word */
@@ -240,8 +241,8 @@ mtev_edit_complete(EditLine *el, int invoking_key) {
 
   /* these can be used by function called in completion_matches() */
   /* or (*rl_attempted_completion_function)() */
-  ncct->rl_point = li->cursor - li->buffer;
-  ncct->rl_end = li->lastchar - li->buffer;
+  ncct->simple->rl_point = li->cursor - li->buffer;
+  ncct->simple->rl_end = li->lastchar - li->buffer;
 
   matches = completion_matches(el, temp, noitedit_completion_function);
   free(temp);

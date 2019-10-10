@@ -101,42 +101,15 @@ typedef struct _console_state_stack {
   struct _console_state_stack *last;
 } mtev_console_state_stack_t;
 
+typedef struct mtev_console_socket_t mtev_console_socket_t;
 typedef struct __mtev_console_closure {
   int initialized;
   char feed_path[128];
-  eventer_t e;           /* The event it is attached to.  This
-                          * is needed so it can write itself out */
-  int   wants_shutdown;  /* Set this to 1 to have it die */
-
-  /* nice console support */
-  EditLine *el;
-  History *hist;
+  int wants_shutdown;  /* Set this to 1 to have it die */
   mtev_hash_table userdata;
-  /* This is console completion magic */
-  int mtev_edit_complete_cmdnum;
-  int rl_point;
-  int rl_end;
-
   mtev_console_state_stack_t *state_stack;
 
-  int   pty_master;
-  int   pty_slave;
-
-  /* Output buffer for non-blocking sends */
-  pthread_mutex_t outbuf_lock;
-  char *outbuf;
-  int   outbuf_allocd;
-  int   outbuf_len;
-  int   outbuf_cooked;
-  int   outbuf_completed;
-
-  /* This tracks telnet protocol state (if we're doing telnet) */
-  mtev_console_telnet_closure_t telnet;
-  void (*output_cooker)(struct __mtev_console_closure *);
-
-  /* Storing history */
-  pthread_mutex_t hist_file_lock;
-  char *hist_file;
+  mtev_console_socket_t *simple;
 } * mtev_console_closure_t;
 
 API_EXPORT(int) mtev_console_std_init(int infd, int outfd);
