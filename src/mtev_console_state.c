@@ -575,10 +575,16 @@ mtev_console_log_connect(mtev_console_closure_t ncct, int argc, char **argv,
                          mtev_console_state_t *dstate, void *should_connect) {
   (void)dstate;
   const char *tgt_name = (argc == 2) ? argv[1] : ncct->feed_path;
-  if(argc == 0 || argc > 2 ||
-     !mtev_log_stream_exists(argv[0]) ||
-     !mtev_log_stream_exists(tgt_name)) {
+  if(argc == 0 || argc > 2) {
     nc_printf(ncct, "log connect <logname> [<outlet>]\n");
+    return 0;
+  }
+  if(!mtev_log_stream_exists(argv[0])) {
+    nc_printf(ncct, "%s log stream does not exist\n", argv[0]);
+    return 0;
+  }
+  if(!mtev_log_stream_exists(tgt_name)) {
+    nc_printf(ncct, "%s log stream does not exist\n", tgt_name);
     return 0;
   }
   if(should_connect != NULL)

@@ -102,14 +102,26 @@ typedef struct _console_state_stack {
 } mtev_console_state_stack_t;
 
 typedef struct mtev_console_socket_t mtev_console_socket_t;
+typedef struct mtev_console_websocket_t mtev_console_websocket_t;
+
+typedef enum {
+  MTEV_CONSOLE_SIMPLE,
+  MTEV_CONSOLE_WEBSOCKET
+} mtev_console_type_t;
+
 typedef struct __mtev_console_closure {
   int initialized;
+  char *user;
   char feed_path[128];
   int wants_shutdown;  /* Set this to 1 to have it die */
   mtev_hash_table userdata;
   mtev_console_state_stack_t *state_stack;
 
-  mtev_console_socket_t *simple;
+  mtev_console_type_t type;
+  union {
+    mtev_console_socket_t *simple;
+    mtev_console_websocket_t *websocket;
+  };
 } * mtev_console_closure_t;
 
 API_EXPORT(int) mtev_console_std_init(int infd, int outfd);
@@ -131,6 +143,15 @@ API_EXPORT(int)
 
 API_EXPORT(int)
   nc_write(mtev_console_closure_t ncct, const void *buf, int len);
+
+API_EXPORT(int)
+  nc_cmd_printf(mtev_console_closure_t ncct, uint64_t cmdid, const char *fmt, ...);
+
+API_EXPORT(int)
+  nc_cmd_vprintf(mtev_console_closure_t ncct, uint64_t cmdid, const char *fmt, va_list arg);
+
+API_EXPORT(int)
+  nc_cmd_write(mtev_console_closure_t ncct, uint64_t cmdid, const void *buf, int len);
 
 API_EXPORT(int)
   mtev_console_continue_sending(mtev_console_closure_t ncct,
@@ -217,6 +238,10 @@ API_EXPORT(void)
 
 API_EXPORT(unsigned char)
   mtev_edit_complete(EditLine *el, int invoking_key);
+
+API_EXPORT(char *)
+  mtev_console_completion(mtev_console_closure_t ncct,
+                          int cnt, const char **cmds, int idx);
 
 API_EXPORT(char *)
   mtev_console_opt_delegate(mtev_console_closure_t ncct,

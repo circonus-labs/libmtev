@@ -68,17 +68,34 @@
 #include <arpa/telnet.h>
 #include <signal.h>
 
+#include <yajl/yajl_gen.h>
+extern void
+yajl_string_encode(const yajl_print_t print, void * ctx,
+                   const unsigned char * str, size_t len,
+                   int escape_solidus);
+
+#ifdef HAVE_WSLAY
+#include <wslay/wslay.h>
+#endif
+
 #include "eventer/eventer.h"
 #include "mtev_log.h"
 #include "mtev_listener.h"
 #include "mtev_console.h"
 #include "mtev_console_socket.h"
+#include "mtev_console_websocket.h"
+#include "mtev_dyn_buffer.h"
+#include "mtev_json.h"
+#include "mtev_json_tokener.h"
 #include "mtev_tokenizer.h"
+#include "mtev_rest.h"
 
 #include "noitedit/sys.h"
 #include "noitedit/el.h"
 #include "noitedit/fcns.h"
 #include "noitedit/map.h"
+
+static mtev_log_stream_t errorls, debugls;
 
 MTEV_HOOK_IMPL(mtev_console_dispatch,
                (struct __mtev_console_closure *ncct, const char *buffer),
@@ -153,23 +170,61 @@ nc_telnet_cooker(mtev_console_closure_t ncct) {
   free(tmpbuf);
   OUL(ncct);
 }
+
 int
 nc_printf(mtev_console_closure_t ncct, const char *fmt, ...) {
   int len;
   va_list arg;
   va_start(arg, fmt);
-  len = nc_vprintf(ncct, fmt, arg);
+  len = nc_cmd_vprintf(ncct, 0, fmt, arg);
+  va_end(arg);
+  return len;
+}
+
+int
+nc_cmd_printf(mtev_console_closure_t ncct, uint64_t cmdid, const char *fmt, ...) {
+  int len;
+  va_list arg;
+  va_start(arg, fmt);
+  len = nc_cmd_vprintf(ncct, cmdid, fmt, arg);
   va_end(arg);
   return len;
 }
 
 int
 nc_vprintf(mtev_console_closure_t ncct, const char *fmt, va_list arg) {
+  return nc_cmd_vprintf(ncct, 0, fmt, arg);
+}
+
+int
+nc_cmd_vprintf(mtev_console_closure_t ncct, uint64_t cmdid, const char *fmt, va_list arg) {
+  if(ncct->type == MTEV_CONSOLE_WEBSOCKET) {
+    int rv = 0;
+#ifdef HAVE_WSLAY
+    mtev_dyn_buffer_t tbuf, buf;
+    mtev_dyn_buffer_init(&buf);
+    mtev_dyn_buffer_init(&tbuf);
+    mtev_dyn_buffer_add_vprintf(&tbuf, fmt, arg);
+    mtev_dyn_buffer_add_printf(&buf, "{\"cmdid\":\"%zu\",\"text\":\"", cmdid);
+    mtev_dyn_buffer_add_json_string(&buf, 
+                       (void *)mtev_dyn_buffer_data(&tbuf), mtev_dyn_buffer_used(&tbuf), 0);
+    mtev_dyn_buffer_add(&buf, (uint8_t *)"\"}", 2);
+    mtev_dyn_buffer_destroy(&tbuf);
+    if(mtev_http_websocket_queue_msg(ncct->websocket->ctx, WSLAY_TEXT_FRAME,
+                                     mtev_dyn_buffer_data(&buf), mtev_dyn_buffer_used(&buf))) {
+      ncct->wants_shutdown = 1;
+      rv = 1;
+    }
+    mtev_dyn_buffer_destroy(&buf);
+#endif
+    return rv;
+  }
 #ifdef va_copy
   va_list copy;
 #endif
   int lenwanted;
 
+  (void)cmdid;
   OL(ncct);  
   if(!ncct->simple->outbuf_allocd) {
     ncct->simple->outbuf = malloc(4096);
@@ -217,7 +272,15 @@ nc_vprintf(mtev_console_closure_t ncct, const char *fmt, va_list arg) {
 
 int
 nc_write(mtev_console_closure_t ncct, const void *buf, int len) {
-  int rv;
+  int rv = 0;
+  if(ncct->type == MTEV_CONSOLE_WEBSOCKET) {
+    if(mtev_http_websocket_queue_msg(ncct->websocket->ctx, WSLAY_TEXT_FRAME,
+                                     buf, len)) {
+      ncct->wants_shutdown = 1;
+      rv = 1;
+    }
+    return rv;
+  }
   OL(ncct);
   rv = nc_write_with_lock(ncct, buf, len);
   OUL(ncct);
@@ -239,7 +302,11 @@ mtev_console_closure_free(void *vncct) {
   mtev_console_closure_t ncct = (mtev_console_closure_t) vncct;
   mtev_log_stream_t lf;
   mtevL(mtev_debug, "ncct free(%p)\n", (void *)ncct);
-  if(ncct->simple) {
+  if(ncct->type == MTEV_CONSOLE_WEBSOCKET) {
+    mtev_http_ctx_session_release(ncct->websocket->ctx);
+    free(ncct->websocket);
+  }
+  if(ncct->type == MTEV_CONSOLE_SIMPLE) {
     if(ncct->simple->el) el_end(ncct->simple->el);
     if(ncct->simple->hist) {
       history_end(ncct->simple->hist);
@@ -272,16 +339,30 @@ mtev_console_closure_free(void *vncct) {
 }
 
 mtev_console_closure_t
-mtev_console_simple_closure_alloc(void) {
+mtev_console_closure_alloc(void) {
   mtev_console_closure_t new_ncct;
   new_ncct = calloc(1, sizeof(*new_ncct));
   mtev_hash_init(&new_ncct->userdata);
   mtev_console_state_push_state(new_ncct, mtev_console_state_initial());
+  return new_ncct;
+}
+mtev_console_closure_t
+mtev_console_simple_closure_alloc(void) {
+  mtev_console_closure_t new_ncct = mtev_console_closure_alloc();
+  new_ncct->type = MTEV_CONSOLE_SIMPLE;
   new_ncct->simple = calloc(1, sizeof(*new_ncct->simple));
   new_ncct->simple->pty_master = -1;
   new_ncct->simple->pty_slave = -1;
   pthread_mutex_init(&new_ncct->simple->outbuf_lock, NULL);
   pthread_mutex_init(&new_ncct->simple->hist_file_lock, NULL);
+  return new_ncct;
+}
+
+mtev_console_closure_t
+mtev_console_websocket_closure_alloc(void) {
+  mtev_console_closure_t new_ncct = mtev_console_closure_alloc();
+  new_ncct->type = MTEV_CONSOLE_WEBSOCKET;
+  new_ncct->websocket = calloc(1, sizeof(*new_ncct->websocket));
   return new_ncct;
 }
 
@@ -313,6 +394,7 @@ int
 mtev_console_continue_sending(mtev_console_closure_t ncct,
                               int *mask) {
   int len;
+  if(ncct->type != MTEV_CONSOLE_SIMPLE) return 0;
   eventer_t e = ncct->simple->e;
   if(!ncct->simple->outbuf_len) return 0;
   if(ncct->simple->output_cooker) ncct->simple->output_cooker(ncct);
@@ -697,15 +779,28 @@ mtev_console_logio_reopen(mtev_log_stream_t ls) {
 static int
 mtev_console_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
                          const void *buf, size_t len) {
-  mtev_console_closure_t ncct;
-  ncct = mtev_log_stream_get_ctx(ls);
-  int rv, rlen, mask;
+  mtev_console_closure_t ncct = mtev_log_stream_get_ctx(ls);
+  int rv, rlen = len, mask;
   (void)whence;
   if(!ncct) return 0;
-  rlen = nc_write(ncct, buf, len);
-  while((rv = mtev_console_continue_sending(ncct, &mask)) == -1 && errno == EINTR);
-  if(rv == -1 && errno == EAGAIN) {
-    if(ncct->simple) {
+  if(ncct->type == MTEV_CONSOLE_WEBSOCKET) {
+    mtev_dyn_buffer_t ob;
+    mtev_dyn_buffer_init(&ob);
+    mtev_dyn_buffer_add_printf(&ob, "{\"id\":0,\"log\":");
+    /* we know this to be json, so we can clip a trailing \n */
+    mtev_dyn_buffer_add(&ob, (uint8_t *)buf, (len > 0 && ((char *)buf)[len-1] == '\n') ? len - 1 : len);
+    mtev_dyn_buffer_add(&ob, (uint8_t *)"}", 1);
+    if(!mtev_http_websocket_queue_msg(ncct->websocket->ctx, WSLAY_TEXT_FRAME,
+                                      mtev_dyn_buffer_data(&ob), mtev_dyn_buffer_used(&ob))) {
+      ncct->wants_shutdown = 1;
+      rlen = 0;
+    }
+    mtev_dyn_buffer_destroy(&ob);
+  }
+  if(ncct->type == MTEV_CONSOLE_SIMPLE) {
+    rlen = nc_write(ncct, buf, len);
+    while((rv = mtev_console_continue_sending(ncct, &mask)) == -1 && errno == EINTR);
+    if(rv == -1 && errno == EAGAIN) {
       eventer_update(ncct->simple->e, mask | EVENTER_EXCEPTION);
     }
   }
@@ -713,10 +808,9 @@ mtev_console_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
 }
 static int
 mtev_console_logio_close(mtev_log_stream_t ls) {
-  mtev_console_closure_t ncct;
-  ncct = mtev_log_stream_get_ctx(ls);
+  mtev_console_closure_t ncct = mtev_log_stream_get_ctx(ls);
   if(!ncct) return 0;
-  if(ncct->simple) ncct->simple->e = NULL;
+  if(ncct->type == MTEV_CONSOLE_SIMPLE) ncct->simple->e = NULL;
   mtev_log_stream_set_ctx(ls, NULL);
   return 0;
 }
@@ -744,8 +838,137 @@ mtev_console_close_xml(void *vncct) {
   return 0;
 }
 
+static int
+mtev_console_websocket_handler(mtev_http_rest_closure_t *restc, int opcode,
+                               const unsigned char *msg, size_t msg_len) {
+  int rv = 0;
+  uint64_t cmdid = 0;
+  const char *error = "unexpected error";
+  (void)opcode;
+  mtev_console_closure_t ncct = restc->call_closure;
+  mtevAssert(mtev_http_is_websocket(restc->http_ctx));
+  if(!ncct) {
+    ncct = restc->call_closure = mtev_console_websocket_closure_alloc();
+    ncct->websocket->ctx = restc->http_ctx;
+    mtev_http_session_ref_inc(ncct->websocket->ctx);
+    restc->call_closure_free = mtev_console_closure_free;
+    mtev_http_connection *conn = mtev_http_session_connection(restc->http_ctx);
+    if(conn) {
+      eventer_t e = mtev_http_connection_event(conn);
+      if(e) {
+        mtev_log_stream_t ls;
+        snprintf(ncct->feed_path, sizeof(ncct->feed_path),
+                 "console/ws/[%d]", eventer_get_fd(e));
+        ls = mtev_log_stream_new(ncct->feed_path, "mtev_console", ncct->feed_path,
+                                 ncct, NULL);
+        mtev_log_stream_set_format(ls, MTEV_LOG_FORMAT_JSON);
+      }
+    }
+  }
+
+#undef ERROR
+#define ERROR(e) do { error = (e); goto error; } while(0)
+  struct mtev_json_tokener *tok = mtev_json_tokener_new();
+  struct mtev_json_object *request = mtev_json_tokener_parse_ex(tok, (const char *)msg, msg_len);
+  enum mtev_json_tokener_error err = tok->err;
+  mtev_json_tokener_free(tok);
+  if(err != mtev_json_tokener_success || !request) {
+    ERROR("could not parse json");
+    return 0;
+  }
+  if(!mtev_json_object_is_type(request, mtev_json_type_object)) {
+    ERROR("expected json object");
+    return 0;
+  }
+
+  struct mtev_json_object *jid = mtev_json_object_object_get(request, "id");
+  if(jid) {
+    switch(mtev_json_object_get_type(jid)) {
+      case mtev_json_type_int:
+        switch(mtev_json_object_get_int_overflow(jid)) {
+          case mtev_json_overflow_int:
+            cmdid = mtev_json_object_get_int(jid);
+            break;
+          case mtev_json_overflow_int64:
+            if(mtev_json_object_get_int64(jid) >= 0) {
+              cmdid = (uint64_t)mtev_json_object_get_int64(jid);
+            }
+            break;
+          case mtev_json_overflow_uint64:
+            cmdid = mtev_json_object_get_uint64(jid);
+            break;
+        }
+        break;
+      case mtev_json_type_string:
+        cmdid = strtoull(mtev_json_object_get_string(jid), NULL, 10);
+        break;
+      default:
+        break;
+    }
+  }
+  struct mtev_json_object *jcomplete = mtev_json_object_object_get(request, "complete");
+  mtev_boolean complete = jcomplete ? mtev_json_object_get_boolean(jcomplete) : mtev_false;
+  struct mtev_json_object *jcmd = mtev_json_object_object_get(request, "command");
+  if(jcmd && mtev_json_object_get_type(jcmd) == mtev_json_type_array) {
+    char *args[256];
+    int nargs = mtev_json_object_array_length(jcmd);
+    nargs = MIN(nargs, sizeof(args)/sizeof(*args));
+    for(int i=0; i<nargs; i++) {
+      args[i] = (char *)mtev_json_object_get_string(mtev_json_object_array_get_idx(jcmd, i));
+      if(args[i] == NULL) ERROR("command not array of strings");
+    }
+    if(complete) {
+      char *opt = NULL;
+      int cidx = 0;
+      mtev_dyn_buffer_t ob;
+      mtev_dyn_buffer_init(&ob);
+      mtev_dyn_buffer_add_printf(&ob, "{\"id\":\"%zu\",\"completion\":[", cmdid);
+      while(NULL != (opt = mtev_console_completion(ncct, nargs, (const char **)args, cidx))) {
+        if(cidx) {
+          mtev_dyn_buffer_add(&ob, (uint8_t *)",\"", 2);
+        } else {
+          mtev_dyn_buffer_add(&ob, (uint8_t *)"\"", 1);
+        }
+        mtev_dyn_buffer_add_json_string(&ob, (uint8_t *)opt, strlen(opt), 0);
+        mtev_dyn_buffer_add(&ob, (uint8_t *)"\"", 1);
+        free(opt);
+        cidx++;
+      }
+      mtev_dyn_buffer_add(&ob, (uint8_t *)"]}", 1);
+      if(!mtev_http_websocket_queue_msg(ncct->websocket->ctx, WSLAY_TEXT_FRAME,
+                                        mtev_dyn_buffer_data(&ob), mtev_dyn_buffer_used(&ob))) {
+        ncct->wants_shutdown = 1;
+        rv = -1;
+      }
+      mtev_dyn_buffer_destroy(&ob);
+    } else {
+      mtev_console_state_do(ncct, nargs, args);
+    }
+  }
+  mtevL(debugls, "WS < (%.*s)\n", (int)msg_len, msg);
+  mtev_json_object_put(request);
+  return rv;
+
+error:
+  if(request) mtev_json_object_put(request);
+  mtev_dyn_buffer_t ob;
+  mtev_dyn_buffer_init(&ob);
+  mtev_dyn_buffer_add_printf(&ob, "{\"id\":\"%zu\",\"error\":\"", cmdid);
+  mtev_dyn_buffer_add_json_string(&ob, (uint8_t *)error, strlen(error), 0);
+  mtev_dyn_buffer_add(&ob, (uint8_t *)"\"}", 2);
+  if(!mtev_http_websocket_queue_msg(ncct->websocket->ctx, WSLAY_TEXT_FRAME,
+                                    mtev_dyn_buffer_data(&ob), mtev_dyn_buffer_used(&ob))) {
+    ncct->wants_shutdown = 1;
+    rv = -1;
+  }
+  mtev_dyn_buffer_destroy(&ob);
+  return rv;
+}
+
 void
 mtev_console_init(const char *progname) {
+  errorls = mtev_log_stream_find("error/console");
+  debugls = mtev_log_stream_find("debug/console");
   if(progname) {
     char buff[32];
     snprintf(buff, sizeof(buff), "%s# ", progname);
@@ -755,5 +978,10 @@ mtev_console_init(const char *progname) {
   signal(SIGTTOU, SIG_IGN);
   mtev_register_logops("mtev_console", &mtev_console_logio_ops);
   eventer_name_callback("mtev_console", mtev_console_handler);
+
+  mtev_rest_mountpoint_t *rule;
+  rule = mtev_http_rest_new_rule("WS", "/mtev/", "^console$", NULL);
+  mtev_rest_mountpoint_set_auth(rule, mtev_http_rest_client_cert_auth);
+  mtev_rest_mountpoint_set_websocket(rule, "mtev_console", mtev_console_websocket_handler);
 }
 

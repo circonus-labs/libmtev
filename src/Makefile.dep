@@ -110,7 +110,8 @@ mtev_conf.o mtev_conf.lo: mtev_conf.c mtev_defines.h mtev_config.h noitedit/strl
   ../src/utils/mtev_str.h mtev_thread.h
 
 mtev_console.o mtev_console.lo: mtev_console.c mtev_defines.h mtev_config.h \
-  noitedit/strlcpy.h mtev_config.h eventer/eventer.h mtev_defines.h \
+  noitedit/strlcpy.h mtev_config.h  \
+  eventer/eventer.h mtev_defines.h \
   ../src/utils/mtev_log.h ../src/utils/mtev_dyn_buffer.h \
   ../src/utils/mtev_hash.h  \
   ../src/utils/mtev_hooks.h \
@@ -128,13 +129,17 @@ mtev_console.o mtev_console.lo: mtev_console.c mtev_defines.h mtev_config.h \
   ../src/utils/mtev_memory.h  \
   mtev_listener.h \
   ../src/utils/mtev_hash.h mtev_console.h noitedit/histedit.h \
-  mtev_console_telnet.h ../src/utils/mtev_skiplist.h mtev_tokenizer.h \
-  noitedit/sys.h noitedit/el.h noitedit/tty.h noitedit/histedit.h \
-  noitedit/prompt.h noitedit/key.h noitedit/el_term.h noitedit/refresh.h \
-  noitedit/chared.h noitedit/common.h noitedit/vi.h noitedit/emacs.h \
-  noitedit/search.h noitedit/fcns.h noitedit/hist.h noitedit/map.h \
-  noitedit/parse.h noitedit/sig.h noitedit/help.h noitedit/fcns.h \
-  noitedit/map.h
+  mtev_console_telnet.h ../src/utils/mtev_skiplist.h mtev_console_socket.h \
+  mtev_console_websocket.h mtev_http.h  \
+  ../src/utils/mtev_compress.h mtev_listener.h ../src/utils/mtev_zipkin.h \
+  mtev_http1.h mtev_http.h mtev_http2.h ../src/utils/mtev_dyn_buffer.h \
+  ../src/json-lib/mtev_json_tokener.h mtev_tokenizer.h mtev_rest.h \
+  mtev_http1.h mtev_http2.h noitedit/sys.h noitedit/el.h noitedit/tty.h \
+  noitedit/histedit.h noitedit/prompt.h noitedit/key.h noitedit/el_term.h \
+  noitedit/refresh.h noitedit/chared.h noitedit/common.h noitedit/vi.h \
+  noitedit/emacs.h noitedit/search.h noitedit/fcns.h noitedit/hist.h \
+  noitedit/map.h noitedit/parse.h noitedit/sig.h noitedit/help.h \
+  noitedit/fcns.h noitedit/map.h
 
 mtev_console_complete.o mtev_console_complete.lo: mtev_console_complete.c mtev_defines.h \
   mtev_config.h noitedit/strlcpy.h mtev_config.h eventer/eventer.h \
@@ -156,12 +161,13 @@ mtev_console_complete.o mtev_console_complete.lo: mtev_console_complete.c mtev_d
   mtev_listener.h \
   ../src/utils/mtev_hash.h mtev_console.h noitedit/histedit.h \
   mtev_console_telnet.h ../src/utils/mtev_skiplist.h \
-  ../src/utils/mtev_str.h mtev_tokenizer.h noitedit/sys.h noitedit/el.h \
-  noitedit/tty.h noitedit/histedit.h noitedit/prompt.h noitedit/key.h \
-  noitedit/el_term.h noitedit/refresh.h noitedit/chared.h \
-  noitedit/common.h noitedit/vi.h noitedit/emacs.h noitedit/search.h \
-  noitedit/fcns.h noitedit/hist.h noitedit/map.h noitedit/parse.h \
-  noitedit/sig.h noitedit/help.h noitedit/fcns.h noitedit/map.h
+  ../src/utils/mtev_str.h mtev_console_socket.h mtev_tokenizer.h \
+  noitedit/sys.h noitedit/el.h noitedit/tty.h noitedit/histedit.h \
+  noitedit/prompt.h noitedit/key.h noitedit/el_term.h noitedit/refresh.h \
+  noitedit/chared.h noitedit/common.h noitedit/vi.h noitedit/emacs.h \
+  noitedit/search.h noitedit/fcns.h noitedit/hist.h noitedit/map.h \
+  noitedit/parse.h noitedit/sig.h noitedit/help.h noitedit/fcns.h \
+  noitedit/map.h
 
 mtev_console_state.o mtev_console_state.lo: mtev_console_state.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h mtev_version.h eventer/eventer.h \
@@ -186,7 +192,7 @@ mtev_console_state.o mtev_console_state.lo: mtev_console_state.c mtev_defines.h 
   ../src/utils/mtev_compress.h mtev_listener.h ../src/utils/mtev_zipkin.h \
   mtev_http1.h mtev_http.h mtev_http2.h mtev_http1.h mtev_http2.h \
   mtev_console.h noitedit/histedit.h mtev_console_telnet.h \
-  ../src/utils/mtev_skiplist.h mtev_tokenizer.h \
+  ../src/utils/mtev_skiplist.h mtev_console_socket.h mtev_tokenizer.h \
   mtev_capabilities_listener.h
 
 mtev_console_telnet.o mtev_console_telnet.lo: mtev_console_telnet.c mtev_defines.h mtev_config.h \
@@ -208,7 +214,7 @@ mtev_console_telnet.o mtev_console_telnet.lo: mtev_console_telnet.c mtev_defines
   ../src/utils/mtev_memory.h  \
   noitedit/histedit.h \
   mtev_console_telnet.h ../src/utils/mtev_hash.h \
-  ../src/utils/mtev_skiplist.h
+  ../src/utils/mtev_skiplist.h mtev_console_socket.h
 
 mtev_dso.o mtev_dso.lo: mtev_dso.c mtev_defines.h mtev_config.h noitedit/strlcpy.h \
   mtev_config.h  \
@@ -284,6 +290,28 @@ mtev_heap_profiler.o mtev_heap_profiler.lo: mtev_heap_profiler.c mtev_heap_profi
   mtev_console.h noitedit/histedit.h mtev_console_telnet.h \
   ../src/utils/mtev_skiplist.h
 
+mtev_http.o mtev_http.lo: mtev_http.c mtev_defines.h mtev_config.h noitedit/strlcpy.h \
+  mtev_config.h mtev_http.h mtev_defines.h \
+  eventer/eventer.h ../src/utils/mtev_log.h ../src/utils/mtev_dyn_buffer.h \
+  ../src/utils/mtev_hash.h  \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
+  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
+  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
+  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
+  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
+  ../src/utils/mtev_hooks.h ../src/utils/mtev_time.h \
+  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
+  eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
+  ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
+  eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
+  ../src/utils/mtev_compress.h ../src/utils/mtev_hash.h mtev_listener.h \
+  eventer/eventer.h ../src/utils/mtev_zipkin.h mtev_http1.h mtev_http.h \
+  mtev_http2.h mtev_http_private.h mtev_rest.h mtev_listener.h \
+  mtev_http1.h mtev_http2.h mtev_console.h eventer/eventer.h \
+  noitedit/histedit.h mtev_console_telnet.h ../src/utils/mtev_skiplist.h \
+  ../src/utils/mtev_getip.h libmtev_dtrace.h libmtev_dtrace_probes.h
+
 mtev_http1.o mtev_http1.lo: mtev_http1.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h ../src/utils/mtev_b64.h mtev_defines.h \
   mtev_http.h  \
@@ -332,28 +360,6 @@ mtev_http2.o mtev_http2.lo: mtev_http2.c mtev_http2.h mtev_defines.h mtev_config
   eventer/eventer.h noitedit/histedit.h mtev_console_telnet.h \
   ../src/utils/mtev_skiplist.h ../src/utils/mtev_str.h \
   ../src/utils/mtev_b64.h  \
-
-mtev_http.o mtev_http.lo: mtev_http.c mtev_defines.h mtev_config.h noitedit/strlcpy.h \
-  mtev_config.h mtev_http.h mtev_defines.h \
-  eventer/eventer.h ../src/utils/mtev_log.h ../src/utils/mtev_dyn_buffer.h \
-  ../src/utils/mtev_hash.h  \
-  ../src/utils/mtev_hooks.h \
-  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
-  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
-  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
-  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
-  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
-  ../src/utils/mtev_hooks.h ../src/utils/mtev_time.h \
-  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
-  eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
-  ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
-  eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
-  ../src/utils/mtev_compress.h ../src/utils/mtev_hash.h mtev_listener.h \
-  eventer/eventer.h ../src/utils/mtev_zipkin.h mtev_http1.h mtev_http.h \
-  mtev_http2.h mtev_http_private.h mtev_rest.h mtev_listener.h \
-  mtev_http1.h mtev_http2.h mtev_console.h eventer/eventer.h \
-  noitedit/histedit.h mtev_console_telnet.h ../src/utils/mtev_skiplist.h \
-  ../src/utils/mtev_getip.h libmtev_dtrace.h libmtev_dtrace_probes.h
 
 mtev_listener.o mtev_listener.lo: mtev_listener.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h eventer/eventer.h mtev_defines.h \
@@ -606,7 +612,7 @@ utils/mtev_cpuid.o utils/mtev_cpuid.lo: utils/mtev_cpuid.c utils/mtev_cpuid.h mt
   mtev_config.h noitedit/strlcpy.h mtev_config.h
 
 utils/mtev_dyn_buffer.o utils/mtev_dyn_buffer.lo: utils/mtev_dyn_buffer.c utils/mtev_dyn_buffer.h \
-  mtev_defines.h mtev_config.h noitedit/strlcpy.h mtev_config.h
+  mtev_defines.h mtev_config.h noitedit/strlcpy.h mtev_config.h \
 
 utils/mtev_flow_regulator.o utils/mtev_flow_regulator.lo: utils/mtev_flow_regulator.c \
   utils/mtev_flow_regulator.h mtev_defines.h mtev_config.h \
@@ -927,6 +933,67 @@ utils/tzinfo.o utils/tzinfo.lo: utils/tzinfo.c utils/libtz.h
 
 utils/xxhash.o utils/xxhash.lo: utils/xxhash.c utils/xxhash.h
 
+eventer/OETS_asn1_helper.o eventer/OETS_asn1_helper.lo: eventer/OETS_asn1_helper.c
+
+eventer/eventer.o eventer/eventer.lo: eventer/eventer.c eventer/eventer.h mtev_defines.h \
+  mtev_config.h noitedit/strlcpy.h mtev_config.h ../src/utils/mtev_log.h \
+  ../src/utils/mtev_dyn_buffer.h ../src/utils/mtev_hash.h \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
+  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
+  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
+  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
+  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
+  ../src/utils/mtev_hooks.h ../src/utils/mtev_time.h \
+  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
+  eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
+  ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
+  eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
+  ../src/utils/mtev_rand.h ../src/utils/mtev_hash.h \
+  ../src/utils/mtev_task.h ../src/utils/mtev_stacktrace.h \
+  ../src/utils/mtev_log.h ../src/utils/xxhash.h ../src/utils/xxhash.c \
+  ../src/utils/xxhash.h
+
+eventer/eventer_POSIX_fd_opset.o eventer/eventer_POSIX_fd_opset.lo: eventer/eventer_POSIX_fd_opset.c mtev_defines.h \
+  mtev_config.h noitedit/strlcpy.h mtev_config.h eventer/eventer.h \
+  ../src/utils/mtev_log.h ../src/utils/mtev_dyn_buffer.h \
+  ../src/utils/mtev_hash.h  \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
+  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
+  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
+  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
+  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
+  ../src/utils/mtev_hooks.h ../src/utils/mtev_time.h \
+  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
+  eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
+  ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
+  eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
+  libmtev_dtrace.h mtev_http.h  \
+  ../src/utils/mtev_compress.h ../src/utils/mtev_hash.h mtev_listener.h \
+  eventer/eventer.h ../src/utils/mtev_zipkin.h mtev_http1.h mtev_http.h \
+  mtev_http2.h libmtev_dtrace_probes.h
+
+eventer/eventer_SSL_fd_opset.o eventer/eventer_SSL_fd_opset.lo: eventer/eventer_SSL_fd_opset.c mtev_defines.h \
+  mtev_config.h noitedit/strlcpy.h mtev_config.h eventer/eventer.h \
+  ../src/utils/mtev_log.h ../src/utils/mtev_dyn_buffer.h \
+  ../src/utils/mtev_hash.h  \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
+  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
+  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
+  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
+  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
+  ../src/utils/mtev_hooks.h ../src/utils/mtev_time.h \
+  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
+  eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
+  ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
+  eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
+  eventer/OETS_asn1_helper.h libmtev_dtrace.h mtev_http.h \
+  ../src/utils/mtev_compress.h ../src/utils/mtev_hash.h mtev_listener.h \
+  eventer/eventer.h ../src/utils/mtev_zipkin.h mtev_http1.h mtev_http.h \
+  mtev_http2.h libmtev_dtrace_probes.h
+
 eventer/eventer_aco_opset.o eventer/eventer_aco_opset.lo: eventer/eventer_aco_opset.c mtev_defines.h \
   mtev_config.h noitedit/strlcpy.h mtev_config.h eventer/eventer.h \
   ../src/utils/mtev_log.h ../src/utils/mtev_dyn_buffer.h \
@@ -947,25 +1014,6 @@ eventer/eventer_aco_opset.o eventer/eventer_aco_opset.lo: eventer/eventer_aco_op
   eventer/eventer.h ../src/utils/mtev_zipkin.h mtev_http1.h mtev_http.h \
   mtev_http2.h libmtev_dtrace_probes.h ../src/utils/mtev_stacktrace.h \
   ../src/utils/mtev_log.h
-
-eventer/eventer.o eventer/eventer.lo: eventer/eventer.c eventer/eventer.h mtev_defines.h \
-  mtev_config.h noitedit/strlcpy.h mtev_config.h ../src/utils/mtev_log.h \
-  ../src/utils/mtev_dyn_buffer.h ../src/utils/mtev_hash.h \
-  ../src/utils/mtev_hooks.h \
-  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
-  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
-  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
-  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
-  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
-  ../src/utils/mtev_hooks.h ../src/utils/mtev_time.h \
-  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
-  eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
-  ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
-  eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
-  ../src/utils/mtev_rand.h ../src/utils/mtev_hash.h \
-  ../src/utils/mtev_task.h ../src/utils/mtev_stacktrace.h \
-  ../src/utils/mtev_log.h ../src/utils/xxhash.h ../src/utils/xxhash.c \
-  ../src/utils/xxhash.h
 
 eventer/eventer_epoll_impl.o eventer/eventer_epoll_impl.lo: eventer/eventer_epoll_impl.c mtev_defines.h \
   mtev_config.h noitedit/strlcpy.h mtev_config.h eventer/eventer.h \
@@ -1068,48 +1116,6 @@ eventer/eventer_ports_impl.o eventer/eventer_ports_impl.lo: eventer/eventer_port
   ../src/utils/mtev_compress.h ../src/utils/mtev_hash.h mtev_listener.h \
   eventer/eventer.h ../src/utils/mtev_zipkin.h mtev_http1.h mtev_http.h \
   mtev_http2.h libmtev_dtrace_probes.h
-
-eventer/eventer_POSIX_fd_opset.o eventer/eventer_POSIX_fd_opset.lo: eventer/eventer_POSIX_fd_opset.c mtev_defines.h \
-  mtev_config.h noitedit/strlcpy.h mtev_config.h eventer/eventer.h \
-  ../src/utils/mtev_log.h ../src/utils/mtev_dyn_buffer.h \
-  ../src/utils/mtev_hash.h  \
-  ../src/utils/mtev_hooks.h \
-  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
-  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
-  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
-  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
-  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
-  ../src/utils/mtev_hooks.h ../src/utils/mtev_time.h \
-  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
-  eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
-  ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
-  eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
-  libmtev_dtrace.h mtev_http.h  \
-  ../src/utils/mtev_compress.h ../src/utils/mtev_hash.h mtev_listener.h \
-  eventer/eventer.h ../src/utils/mtev_zipkin.h mtev_http1.h mtev_http.h \
-  mtev_http2.h libmtev_dtrace_probes.h
-
-eventer/eventer_SSL_fd_opset.o eventer/eventer_SSL_fd_opset.lo: eventer/eventer_SSL_fd_opset.c mtev_defines.h \
-  mtev_config.h noitedit/strlcpy.h mtev_config.h eventer/eventer.h \
-  ../src/utils/mtev_log.h ../src/utils/mtev_dyn_buffer.h \
-  ../src/utils/mtev_hash.h  \
-  ../src/utils/mtev_hooks.h \
-  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
-  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
-  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
-  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
-  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
-  ../src/utils/mtev_hooks.h ../src/utils/mtev_time.h \
-  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
-  eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
-  ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
-  eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
-  eventer/OETS_asn1_helper.h libmtev_dtrace.h mtev_http.h \
-  ../src/utils/mtev_compress.h ../src/utils/mtev_hash.h mtev_listener.h \
-  eventer/eventer.h ../src/utils/mtev_zipkin.h mtev_http1.h mtev_http.h \
-  mtev_http2.h libmtev_dtrace_probes.h
-
-eventer/OETS_asn1_helper.o eventer/OETS_asn1_helper.lo: eventer/OETS_asn1_helper.c
 
 noitedit/chared.o noitedit/chared.lo: noitedit/chared.c noitedit/compat.h mtev_defines.h \
   mtev_config.h noitedit/strlcpy.h mtev_config.h noitedit/fgetln.h \

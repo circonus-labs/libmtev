@@ -94,6 +94,11 @@ mtev_console_opt_delegate(mtev_console_closure_t ncct,
   return NULL;
 }
 
+char *
+mtev_console_completion(mtev_console_closure_t ncct, int cnt, const char **cmds, int idx) {
+  return mtev_console_opt_delegate(ncct, ncct->state_stack, ncct->state_stack->state,
+                                   cnt, (char **)cmds, idx);
+}
 
 static char *
 noitedit_completion_function(EditLine *el, const char *text, int state) {
@@ -117,9 +122,7 @@ noitedit_completion_function(EditLine *el, const char *text, int state) {
     cmds[cnt++] = strdup("");
   }
   if(cnt != 32)
-    rv = mtev_console_opt_delegate(ncct, ncct->state_stack,
-                                   ncct->state_stack->state,
-                                   cnt, cmds, state);
+    rv = mtev_console_completion(ncct, cnt, (const char **)cmds, state);
   if(cmds[0]) while(cnt > 0) free(cmds[--cnt]);
   free(curstr);
   return rv;
