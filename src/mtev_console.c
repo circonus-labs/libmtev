@@ -978,7 +978,10 @@ mtev_console_init(const char *progname) {
   signal(SIGTTOU, SIG_IGN);
   mtev_register_logops("mtev_console", &mtev_console_logio_ops);
   eventer_name_callback("mtev_console", mtev_console_handler);
+}
 
+void
+mtev_console_rest_init(void) {
   mtev_rest_mountpoint_t *rule;
   rule = mtev_http_rest_new_rule("WS", "/mtev/", "^console$", NULL);
   mtev_rest_mountpoint_set_auth(rule, mtev_http_rest_client_cert_auth);

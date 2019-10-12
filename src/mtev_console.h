@@ -128,6 +128,8 @@ API_EXPORT(int) mtev_console_std_init(int infd, int outfd);
 
 API_EXPORT(void) mtev_console_init(const char *);
 
+API_EXPORT(void) mtev_console_rest_init(void);
+
 API_EXPORT(void) mtev_console_set_default_prompt(const char *);
 
 API_EXPORT(int)
