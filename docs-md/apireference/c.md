@@ -2596,6 +2596,20 @@ eventer_jobq_set_floor(eventer_jobq_t *jobq, uint32_t new_floor)
   * `new_floor` the new number of minimum threads
 
 
+#### eventer_jobq_set_lifo
+
+>Instruct the jobq system to process jobs in LIFO vs. FIFO ordering.
+
+```c
+void
+eventer_jobq_set_lifo(eventer_jobq_t *jobq, mtev_boolean nv)
+```
+
+
+  * `jobq` the jobq to modify
+  * `nv` Use LIFO or FIFO ordering if true or false, respectively.
+
+
 #### eventer_jobq_set_max_backlog
 
 >Set and advisory limit on the backlog a jobq will handle.
@@ -4014,6 +4028,37 @@ mtev_hash_store(mtev_hash_table *h, const void *k, int klen, const void *data)
   mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().
  
 
+#### mtev_html_encode
+
+>Encode raw data as html encoded output into the provided buffer.
+
+```c
+int
+mtev_html_encode(const char *src, size_t src_len, char *dest, size_t dest_len)
+```
+
+
+  * `src` The buffer containing the raw data.
+  * `src_len` The size (in bytes) of the raw data.
+  * `dest` The destination buffer to which the function will produce.
+  * `dest_len` The size of the destination buffer.
+  * **RETURN** The size of the encoded output.  Returns zero is out_sz is too small.
+ 
+
+#### mtev_html_encode_len
+
+>Calculate how large a buffer must be to contain the url encoding for a given number of bytes.
+
+```c
+size_t
+mtev_html_encode_len(size_t src_len)
+```
+
+
+  * `src_len` The size (in bytes) of the raw data buffer that might be encoded.
+  * **RETURN** The size of the buffer that would be needed to store an encoded version of an input string.
+ 
+
 #### mtev_huge_hash_adv
 
 ```c
@@ -5269,6 +5314,70 @@ mtev_time_toggle_tsc(mtev_boolean enable)
  
 
 ### U
+
+#### mtev_url_decode
+
+>Decode a url encoded input buffer into the provided output buffer.
+
+```c
+int
+mtev_url_decode(const char *src, size_t src_len, unsigned char *dest, size_t dest_len)
+```
+
+
+  * `src` The buffer containing the encoded content.
+  * `src_len` The size (in bytes) of the encoded data.
+  * `dest` The destination buffer to which the function will produce.
+  * `dest_len` The size of the destination buffer.
+  * **RETURN** The size of the decoded output.  Returns zero is dest_len is too small.
+
+mtev_url_decode decodes input until an the entire input is consumed or until an invalid url-encoded character is encountered.
+ 
+
+#### mtev_url_encode
+
+>Encode raw data as url encoded output into the provided buffer.
+
+```c
+int
+mtev_url_encode(const unsigned char *src, size_t src_len, char *dest, size_t dest_len)
+```
+
+
+  * `src` The buffer containing the raw data.
+  * `src_len` The size (in bytes) of the raw data.
+  * `dest` The destination buffer to which the function will produce.
+  * `dest_len` The size of the destination buffer.
+  * **RETURN** The size of the encoded output.  Returns zero is out_sz is too small.
+ 
+
+#### mtev_url_encode_len
+
+>Calculate how large a buffer must be to contain the url encoding for a given number of bytes.
+
+```c
+size_t
+mtev_url_encode_len(size_t src_len)
+```
+
+
+  * `src_len` The size (in bytes) of the raw data buffer that might be encoded.
+  * **RETURN** The size of the buffer that would be needed to store an encoded version of an input string.
+ 
+
+#### mtev_url_max_decode_len
+
+>Calculate how large a buffer must be to contain a decoded url-encoded string of a given length.
+
+```c
+size_t
+mtev_url_max_decode_len(size_t src_len)
+```
+
+
+  * `src_len` The size (in bytes) of the url-encoded string that might be decoded.
+  * **RETURN** The size of the buffer that would be needed to decode the input string.
+ 
 
 #### mtev_uuid_clear
 

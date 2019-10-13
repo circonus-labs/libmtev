@@ -53,6 +53,12 @@ MTEV_HOOK_IMPL(mtev_rest_get_handler,
                (void *closure, mtev_http_rest_closure_t *restc),
                (closure, restc));
 
+MTEV_HOOK_IMPL(rest_auth_denied,
+               (mtev_http_rest_closure_t *restc, rest_request_handler *func),
+               void *, closure,
+               (void *closure, mtev_http_rest_closure_t *restc, rest_request_handler *func),
+               (closure, restc, func));
+
 struct rest_xml_payload {
   char *buffer;
   xmlDocPtr indoc;
@@ -142,6 +148,10 @@ struct mtev_rest_acl_rule {
   char *url_str;
   pcre *cn;
   char *cn_str;
+  pcre *user;
+  char *user_str;
+  pcre *auth;
+  char *auth_str;
   mtev_hash_table *listener_res;
   struct mtev_rest_acl_rule *next;
 };
@@ -152,6 +162,10 @@ struct mtev_rest_acl {
   char *url_str;
   pcre *cn;
   char *cn_str;
+  pcre *user;
+  char *user_str;
+  pcre *auth;
+  char *auth_str;
   mtev_hash_table *listener_res;
   struct mtev_rest_acl_rule *rules;
   struct mtev_rest_acl *next;
@@ -170,7 +184,17 @@ mtev_http_rest_permission_denied(mtev_http_rest_closure_t *restc,
   (void)npats;
   (void)pats;
   mtev_http_session_ctx *ctx = restc->http_ctx;
-  mtev_http_response_standard(ctx, 403, "DENIED", "text/xml");
+  mtev_http_response_standard(ctx, 403, "DENIED", "text/html");
+  mtev_http_response_end(ctx);
+  return 0;
+}
+static int
+mtev_http_rest_error(mtev_http_rest_closure_t *restc,
+                     int npats, char **pats) {
+  (void)npats;
+  (void)pats;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  mtev_http_response_standard(ctx, 500, "ERROR", "text/html");
   mtev_http_response_end(ctx);
   return 0;
 }
@@ -334,10 +358,16 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
   }
   if (rule != NULL) {
     if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
+      rest_request_handler denied = mtev_http_rest_permission_denied;
       restc->closure = NULL;
       restc->fastpath = NULL;
       restc->aco_enabled = mtev_false;
-      return mtev_http_rest_permission_denied;
+      switch(rest_auth_denied_hook_invoke(restc, &denied)) {
+        case MTEV_HOOK_DONE: return denied;
+        case MTEV_HOOK_CONTINUE: break;
+        case MTEV_HOOK_ABORT: return mtev_http_rest_error;
+      }
+      return denied;
     }
       /* We match, set 'er up */
     mtev_zipkin_span_rename(mtev_http_zipkip_span(restc->http_ctx),
@@ -379,8 +409,22 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
   mtev_hash_table *config = mtev_acceptor_closure_config(restc->ac);
 
   if(restc->remote_cn) remote_cn = restc->remote_cn;
+  const char *remote_user = mtev_http_request_user(req);
+  if(!remote_user) remote_user = "";
+  const char *remote_auth = mtev_http_request_auth(req);
+  if(!remote_auth) remote_auth = "";
   uri_str = mtev_http_request_uri_str(req);
   for(acl = global_rest_acls; acl; acl = acl->next) {
+    if(acl->user && pcre_exec(acl->user, NULL, remote_user, strlen(remote_user), 0, 0,
+                            ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
+      mtevL(r_debug, "REST ACL[%d]: '%s' ~= /%s/ failed\n", acl->idx, remote_user, acl->user_str);
+      continue;
+    }
+    if(acl->auth && pcre_exec(acl->auth, NULL, remote_auth, strlen(remote_auth), 0, 0,
+                            ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
+      mtevL(r_debug, "REST ACL[%d]: '%s' ~= /%s/ failed\n", acl->idx, remote_auth, acl->auth_str);
+      continue;
+    }
     if(acl->cn && pcre_exec(acl->cn, NULL, remote_cn, strlen(remote_cn), 0, 0,
                             ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
       mtevL(r_debug, "REST ACL[%d]: '%s' ~= /%s/ failed\n", acl->idx, remote_cn, acl->cn_str);
@@ -397,6 +441,26 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
     }
     int ri = 1;
     for(rule = acl->rules; rule; rule = rule->next, ri++) {
+      if(rule->user && pcre_exec(rule->user, NULL, remote_user, strlen(remote_user), 0, 0,
+                               ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
+        mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ failed\n", acl->idx, ri,
+              remote_user, rule->user_str);
+        continue;
+      }
+      if(rule->user) {
+        mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ passed\n", acl->idx, ri,
+              remote_user, rule->user_str);
+      }
+      if(rule->auth && pcre_exec(rule->auth, NULL, remote_auth, strlen(remote_auth), 0, 0,
+                               ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
+        mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ failed\n", acl->idx, ri,
+              remote_auth, rule->auth_str);
+        continue;
+      }
+      if(rule->auth) {
+        mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ passed\n", acl->idx, ri,
+              remote_auth, rule->auth_str);
+      }
       if(rule->cn && pcre_exec(rule->cn, NULL, remote_cn, strlen(remote_cn), 0, 0,
                                ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
         mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ failed\n", acl->idx, ri,
@@ -1279,6 +1343,8 @@ void mtev_http_rest_load_rules(void) {
 } while(0)
 
     newacl->allow = default_allow;
+    compile_re(acls[ai], newacl, user);
+    compile_re(acls[ai], newacl, auth);
     compile_re(acls[ai], newacl, cn);
     compile_re(acls[ai], newacl, url);
     compile_listener_res(acls[ai], &newacl->listener_res);
@@ -1291,6 +1357,8 @@ void mtev_http_rest_load_rules(void) {
       if(mtev_conf_get_stringbuf(rules[ri], "@type", tbuff, sizeof(tbuff)) &&
          !strcmp(tbuff, "allow"))
         newacl_rule->allow = mtev_true;
+      compile_re(rules[ri], newacl_rule, user);
+      compile_re(rules[ri], newacl_rule, auth);
       compile_re(rules[ri], newacl_rule, cn);
       compile_re(rules[ri], newacl_rule, url);
       compile_listener_res(rules[ri], &newacl_rule->listener_res);
@@ -1306,6 +1374,10 @@ void mtev_http_rest_load_rules(void) {
     remove_acl = oldacls->next;
     while(oldacls->rules) {
       remove_rule = oldacls->rules->next;
+      if(oldacls->rules->user) pcre_free(oldacls->rules->user);
+      free(oldacls->rules->user_str);
+      if(oldacls->rules->auth) pcre_free(oldacls->rules->auth);
+      free(oldacls->rules->auth_str);
       if(oldacls->rules->cn) pcre_free(oldacls->rules->cn);
       free(oldacls->rules->cn_str);
       if(oldacls->rules->url) pcre_free(oldacls->rules->url);
@@ -1317,6 +1389,10 @@ void mtev_http_rest_load_rules(void) {
       free(oldacls->rules);
       oldacls->rules = remove_rule;
     }
+    if(oldacls->user) pcre_free(oldacls->user);
+    free(oldacls->user_str);
+    if(oldacls->auth) pcre_free(oldacls->auth);
+    free(oldacls->auth_str);
     if(oldacls->cn) pcre_free(oldacls->cn);
     free(oldacls->cn_str);
     if(oldacls->url) pcre_free(oldacls->url);

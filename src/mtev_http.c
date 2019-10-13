@@ -68,11 +68,26 @@ MTEV_HOOK_IMPL(http_post_request_read_payload,
   (void *closure, mtev_http_session_ctx *ctx),
   (closure, ctx))
 
+MTEV_HOOK_IMPL(http_response_starting,
+  (mtev_http_session_ctx *ctx),
+  void *, closure,
+  (void *closure, mtev_http_session_ctx *ctx),
+  (closure, ctx))
+
 MTEV_HOOK_IMPL(http_response_send,
   (mtev_http_session_ctx *ctx),
   void *, closure,
   (void *closure, mtev_http_session_ctx *ctx),
   (closure, ctx))
+
+MTEV_HOOK_IMPL(http_auth,
+  (mtev_http_session_ctx *ctx, const char *user_in,
+   const char *pass_in, char **error),
+  void *, closure,
+  (void *closure, mtev_http_session_ctx *ctx,
+   const char *user_in, const char *pass_in,
+   char **error),
+  (closure, ctx, user_in, pass_in, error))
 
 struct bchain *bchain_alloc(size_t size, int line) {
   (void)line;
@@ -235,6 +250,10 @@ HTTP_DIS(void, request_set_upload, request *, r,
          (mtev_http_request *r, void *d, int64_t s, void (*ff)(void *, int64_t, void *), void *c),
          (t_r, d, s, ff, c))
 HTTP_DIS(const void *, request_get_upload, request *, r, (mtev_http_request *r, int64_t *s), (t_r, s))
+HTTP_DIS(const char *, request_user, request *, r, (mtev_http_request *r), (t_r))
+HTTP_DIS(const char *, request_auth, request *, r, (mtev_http_request *r), (t_r))
+HTTP_DIS(void, request_set_auth, request *, r,
+         (mtev_http_request *r, const char *user, const char *mech), (t_r, user, mech))
 HTTP_DIS(int, session_req_consume, session_ctx *, ctx,
          (mtev_http_session_ctx *ctx, void *buf, const size_t len, const size_t blen, int *mask),
          (t_ctx, buf, len, blen, mask))

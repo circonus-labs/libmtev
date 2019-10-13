@@ -146,6 +146,12 @@ API_EXPORT(void)
                                void *closure);
 API_EXPORT(const void *)
   mtev_http_request_get_upload(mtev_http_request *, int64_t *size);
+API_EXPORT(const char *)
+  mtev_http_request_user(mtev_http_request *);
+API_EXPORT(const char *)
+  mtev_http_request_auth(mtev_http_request *);
+API_EXPORT(void)
+  mtev_http_request_set_auth(mtev_http_request *, const char *user, const char *mech);
 
 
 API_EXPORT(mtev_boolean)
@@ -261,9 +267,22 @@ MTEV_HOOK_PROTO(http_post_request_read_payload,
                 void *, closure,
                 (void *closure, mtev_http_session_ctx *ctx))
 
+MTEV_HOOK_PROTO(http_response_starting,
+                (mtev_http_session_ctx *ctx),
+                void *, closure,
+                (void *closure, mtev_http_session_ctx *ctx))
+
 MTEV_HOOK_PROTO(http_response_send,
                 (mtev_http_session_ctx *ctx),
                 void *, closure,
                 (void *closure, mtev_http_session_ctx *ctx))
+
+MTEV_HOOK_PROTO(http_auth,
+                (mtev_http_session_ctx *ctx, const char *user_in,
+                 const char *pass_in, char **error),
+                void *, closure,
+                (void *closure, mtev_http_session_ctx *ctx,
+                 const char *user_in, const char *pass_in,
+                 char **error))
 
 #endif

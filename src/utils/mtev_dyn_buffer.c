@@ -13,7 +13,7 @@ mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf)
 }
 
 inline void
-mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
+mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, const void *data, size_t len)
 {
   mtev_dyn_buffer_ensure(buf, len);
   memcpy(buf->pos, data, len);

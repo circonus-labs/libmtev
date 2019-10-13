@@ -69,7 +69,7 @@ API_EXPORT(void)
     \param len the size of the data to add.
  */
 API_EXPORT(void)
-  mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len);
+  mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, const void *data, size_t len);
 
 /*! \fn void mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
     \brief add data to the dyn_buffer using printf semantics.

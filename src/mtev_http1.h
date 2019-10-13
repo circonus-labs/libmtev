@@ -143,6 +143,12 @@ API_EXPORT(void)
                                void *closure);
 API_EXPORT(const void *)
   mtev_http1_request_get_upload(mtev_http1_request *, int64_t *size);
+API_EXPORT(const char *)
+  mtev_http1_request_user(mtev_http1_request *);
+API_EXPORT(const char *)
+  mtev_http1_request_auth(mtev_http1_request *);
+API_EXPORT(void)
+  mtev_http1_request_set_auth(mtev_http1_request *, const char *, const char *);
 
 
 API_EXPORT(mtev_boolean)

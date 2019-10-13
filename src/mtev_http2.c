@@ -85,6 +85,8 @@ struct mtev_http2_request {
     void *freeclosure;
   } upload;  /* This is optionally set */
   mtev_stream_decompress_ctx_t *decompress_ctx;
+  char *user;
+  char *auth;
 };
 struct mtev_http2_response {
   HTTP_RESPONSE_BASE;
@@ -391,6 +393,22 @@ mtev_http2_request_get_upload(mtev_http2_request *req, int64_t *size) {
   if(size) *size = req->upload.size;
   return req->upload.data;
 }
+const char *
+mtev_http2_request_user(mtev_http2_request *req) {
+  return req->user;
+}
+const char *
+mtev_http2_request_auth(mtev_http2_request *req) {
+  return req->auth;
+}
+void
+mtev_http2_request_set_auth(mtev_http2_request *req, const char *u, const char *a) {
+  free(req->user);
+  free(req->auth);
+  req->user = strdup(u);
+  req->auth = strdup(a);
+  return;
+}
 mtev_boolean mtev_http2_response_closed(mtev_http2_response *res) {
   return res->closed;
 }
@@ -595,6 +613,7 @@ mtev_http2_response_flush(mtev_http2_session_ctx *ctx,
 
   if(!ctx->res.output_started) {
     ctx->res.output_started = mtev_true;
+    (void)http_response_starting_hook_invoke((mtev_http_session_ctx *)ctx);
     mtev_zipkin_span_annotate(ctx->zipkin_span, NULL, ZIPKIN_SERVER_SEND, false);
     /* compose out headers and status and start with that */
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;

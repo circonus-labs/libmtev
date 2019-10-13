@@ -115,6 +115,8 @@ struct mtev_http1_request {
   struct timeval start_time;
   char *orig_qs;
   mtev_stream_decompress_ctx_t *decompress_ctx;
+  char *user;
+  char *auth;
 };
 
 struct mtev_http1_response {
@@ -366,6 +368,22 @@ const void *
 mtev_http1_request_get_upload(mtev_http1_request *req, int64_t *size) {
   if(size) *size = req->upload.size;
   return req->upload.data;
+}
+const char *
+mtev_http1_request_user(mtev_http1_request *req) {
+  return req->user;
+}
+const char *
+mtev_http1_request_auth(mtev_http1_request *req) {
+  return req->auth;
+}
+void
+mtev_http1_request_set_auth(mtev_http1_request *req, const char *u, const char *a) {
+  free(req->user);
+  free(req->auth);
+  req->user = strdup(u);
+  req->auth = strdup(a);
+  return;
 }
 
 mtev_boolean mtev_http1_response_closed(mtev_http1_response *res) {
@@ -1990,6 +2008,7 @@ mtev_http1_response_flush(mtev_http1_session_ctx *ctx,
   if(ctx->res.closed == mtev_true) return mtev_false;
   pthread_mutex_lock(&ctx->res.output_lock);
   if(ctx->res.output_started == mtev_false) {
+    (void)http_response_starting_hook_invoke((mtev_http_session_ctx *)ctx);
     _http_construct_leader(ctx);
     ctx->res.output_started = mtev_true;
     LIBMTEV_HTTP_RESPONSE_START(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
