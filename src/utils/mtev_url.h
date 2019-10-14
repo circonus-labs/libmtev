@@ -48,7 +48,7 @@
     \param dest_len The size of the destination buffer.
     \return The size of the decoded output.  Returns zero is dest_len is too small.
     
-    mtev_url_decode decodes input until an the entire input is consumed or until an invalid url-encoded character is encountered.
+    mtev_url_decode decodes input until an the entire input is consumed or until an invalid url-encoded character is encountered. If any error occurs, 0 is returned.
  */
 API_EXPORT(int) mtev_url_decode(const char *, size_t, unsigned char *, size_t);
 

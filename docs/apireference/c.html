@@ -4689,7 +4689,7 @@ whether it was successful in parameterizing the CPU for rdtsc use.</p>
 <li><code>dest_len</code> The size of the destination buffer.</li>
 <li><strong>RETURN</strong> The size of the decoded output.  Returns zero is dest_len is too small.</li>
 </ul>
-<p>mtev_url_decode decodes input until an the entire input is consumed or until an invalid url-encoded character is encountered.</p>
+<p>mtev_url_decode decodes input until an the entire input is consumed or until an invalid url-encoded character is encountered. If any error occurs, 0 is returned.</p>
 <h4 id="mtevurlencode">mtev_url_encode</h4>
 <blockquote>
 <p>Encode raw data as url encoded output into the provided buffer.</p>

@@ -5331,7 +5331,7 @@ mtev_url_decode(const char *src, size_t src_len, unsigned char *dest, size_t des
   * `dest_len` The size of the destination buffer.
   * **RETURN** The size of the decoded output.  Returns zero is dest_len is too small.
 
-mtev_url_decode decodes input until an the entire input is consumed or until an invalid url-encoded character is encountered.
+mtev_url_decode decodes input until an the entire input is consumed or until an invalid url-encoded character is encountered. If any error occurs, 0 is returned.
  
 
 #### mtev_url_encode
