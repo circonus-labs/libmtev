@@ -911,9 +911,9 @@ mtev_console_websocket_handler(mtev_http_rest_closure_t *restc, int opcode,
   struct mtev_json_object *jcmd = mtev_json_object_object_get(request, "command");
   if(jcmd && mtev_json_object_get_type(jcmd) == mtev_json_type_array) {
     char *args[256];
-    int nargs = mtev_json_object_array_length(jcmd);
+    uint32_t nargs = mtev_json_object_array_length(jcmd);
     nargs = MIN(nargs, sizeof(args)/sizeof(*args));
-    for(int i=0; i<nargs; i++) {
+    for(uint32_t i=0; i<nargs; i++) {
       args[i] = (char *)mtev_json_object_get_string(mtev_json_object_array_get_idx(jcmd, i));
       if(args[i] == NULL) ERROR("command not array of strings");
     }
