@@ -488,10 +488,12 @@ mtev_http_begin_span(mtev_http_session_ctx *ctx) {
   ctx->zipkin_span =
     mtev_zipkin_span_new(trace_id, parent_span_id, span_id,
                          mtev_http_request_uri_str(req), true, sampled, false);
+  mtevL(mtev_error, "BEGIN_SPAN(%p)\n", ctx->zipkin_span);
   mtev_http_connection *conn = mtev_http_session_connection(ctx);
   if(conn) {
     eventer_t e = mtev_http_connection_event(conn);
     if(e) {
+  mtevL(mtev_error, "ATTACH_SPAN(%p -> %p)\n", ctx->zipkin_span, e);
       mtev_zipkin_attach_to_eventer(e, ctx->zipkin_span, false, trace_events);
     }
   }

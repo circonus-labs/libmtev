@@ -34,6 +34,7 @@
 #include "mtev_defines.h"
 #include "mtev_listener.h"
 #include "mtev_http.h"
+#include "mtev_http_private.h"
 #include "mtev_http1.h"
 #include "mtev_http2.h"
 #include "mtev_rest.h"
@@ -659,8 +660,12 @@ mtev_rest_http2_aco_handler(void) {
   struct mtev_rest_aco_ctx_t *aco_ctx = eventer_aco_arg();
   mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_true);
 
+  if(aco_ctx->http_ctx->zipkin_span) {
+    mtev_zipkin_attach_to_aco(aco_ctx->http_ctx->zipkin_span, mtev_false, NULL);
+  }
   mtev_http2_session_resume_aco((mtev_http2_session_ctx *)aco_ctx->http_ctx);
 
+  mtev_zipkin_attach_to_aco(NULL, mtev_false, NULL);
   mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_false);
   mtev_http_ctx_session_release(aco_ctx->http_ctx);
   free(aco_ctx);
@@ -718,6 +723,9 @@ mtev_rest_aco_handler(void) {
 
   mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_true);
   eventer_set_eventer_aco(newe);
+  if(aco_ctx->http_ctx->zipkin_span) {
+    mtev_zipkin_attach_to_aco(aco_ctx->http_ctx->zipkin_span, mtev_false, NULL);
+  }
 
   struct timeval now;
   mtev_gettimeofday(&now, NULL);
@@ -725,6 +733,7 @@ mtev_rest_aco_handler(void) {
   int mask = eventer_run_callback(orig_callback, newe, EVENTER_READ|EVENTER_WRITE, closure, &now, &duration);
 
   /* Put this event back out of aco mode. */
+  mtev_zipkin_attach_to_aco(NULL, mtev_false, NULL);
   eventer_set_eventer_aco_co(newe, NULL);
   mtev_http_session_set_aco(aco_ctx->http_ctx, mtev_false);
 

@@ -143,11 +143,8 @@ void mtev_zipkin_span_rename(Zipkin_Span *span, const char *name, bool copy) {
 #define ZE_LIST 15
 
 /* This isn't API exposed, but it is not static for testing purposes.
- * zipkin will "turn on" automaticall if there is a publishing hook.
+ * zipkin will "turn on" automatically if there is a publishing hook.
  */
-static bool ze_enable_override = false;
-void mtev_zipkin_enable(void) { ze_enable_override = true; }
-
 static double ze_new_trace_probability = 0.0;
 static double ze_parented_trace_probability = 1.0;
 static double ze_debug_trace_probability = 1.0;
@@ -164,17 +161,17 @@ MTEV_HOOK_IMPL(zipkin_publish_span,
   (void *closure, Zipkin_Span *span),
   (closure,span))
 
-static size_t
+static inline size_t
 ze_bool(byte *buffer, size_t len, bool v) {
   if(len > 0) buffer[0] = v ? 1 : 0;
   return 1;
 }
-static size_t
+static inline size_t
 ze_byte(byte *buffer, size_t len, byte v) {
   if(len > 0) buffer[0] = v;
   return 1;
 }
-static size_t
+static inline size_t
 ze_i16(byte *buffer, size_t len, int16_t v) {
   if(len > 1) {
     int16_t nv = htons(v);
@@ -182,7 +179,7 @@ ze_i16(byte *buffer, size_t len, int16_t v) {
   }
   return 2;
 }
-static size_t
+static inline size_t
 ze_i32(byte *buffer, size_t len, int32_t v) {
   if(len > 3) {
     int32_t nv = htonl(v);
@@ -190,7 +187,7 @@ ze_i32(byte *buffer, size_t len, int32_t v) {
   }
   return 4;
 }
-static size_t
+static inline size_t
 ze_i64(byte *buffer, size_t len, int64_t v) {
   if(len > 7) {
     int64_t nv = htonll(v);
@@ -198,13 +195,8 @@ ze_i64(byte *buffer, size_t len, int64_t v) {
   }
   return 8;
 }
-/*
- * We can't include this b/c we don't use it and it will
- * issue a compiler warning... if we use it later, uncomment.
- *
-
-static size_t
- ze_double(byte *buffer, size_t len, double v) {
+static inline size_t
+ze_double(byte *buffer, size_t len, double v) {
    if(len > 7) {
      int64_t *in = (int64_t *)&v;
      int64_t nv = htonll(*in);
@@ -212,8 +204,7 @@ static size_t
    }
    return 8;
  }
-*/
-static size_t
+static inline size_t
 ze_list_begin(byte *buffer, size_t len, byte fieldtype, int32_t cnt) {
   if(len > 4) {
     ze_byte(buffer,len,fieldtype);
@@ -224,7 +215,7 @@ ze_list_begin(byte *buffer, size_t len, byte fieldtype, int32_t cnt) {
 #define ze_list_end(a,b) 0
 #define ze_struct_begin(a,b,c) 0
 #define ze_struct_end(a,b) 0
-static size_t
+static inline size_t
 ze_field_begin(byte *buffer, size_t len, const char *name,
                byte fieldtype, int16_t fieldid) {
   (void)name;
@@ -235,7 +226,7 @@ ze_field_begin(byte *buffer, size_t len, const char *name,
 }
 #define ze_field_end(a,b) 0
 #define ze_field_stop(a,b) ze_byte(a,b,ZE_STOP);
-static size_t
+static inline size_t
 ze_Zipkin_String(byte *buffer, size_t len, Zipkin_String *v) {
   size_t sofar;
   int32_t str_len = strlen(v->value);
@@ -244,7 +235,7 @@ ze_Zipkin_String(byte *buffer, size_t len, Zipkin_String *v) {
   memcpy(buffer + sofar, v->value, str_len);
   return sofar + str_len;
 }
-static size_t
+static inline size_t
 ze_Zipkin_Binary(byte *buffer, size_t len, Zipkin_Binary *v) {
   size_t sofar;
   int32_t vlen = v->len;
@@ -265,7 +256,7 @@ ze_Zipkin_Binary(byte *buffer, size_t len, Zipkin_Binary *v) {
     len -= tlen; \
   } \
 } while(0)
-static size_t
+static inline size_t
 ze_Zipkin_Endpoint(byte *buffer, size_t len, Zipkin_Endpoint *v) {
   size_t sofar = 0;
   ADV_SAFE(ze_struct_begin(buffer,len,"Endpoint"));
@@ -286,7 +277,7 @@ ze_Zipkin_Endpoint(byte *buffer, size_t len, Zipkin_Endpoint *v) {
   ADV_SAFE(ze_struct_end(buffer,len));
   return sofar;
 }
-static size_t
+static inline size_t
 ze_Zipkin_Annotation(byte *buffer, size_t len, Zipkin_Annotation *v) {
   size_t sofar = 0;
   ADV_SAFE(ze_struct_begin(buffer,len,"Annotation"));
@@ -309,7 +300,7 @@ ze_Zipkin_Annotation(byte *buffer, size_t len, Zipkin_Annotation *v) {
   ADV_SAFE(ze_struct_end(buffer,len));
   return sofar;
 }
-static size_t
+static inline size_t
 ze_Zipkin_BinaryAnnotation(byte *buffer, size_t len,
                            Zipkin_BinaryAnnotation *v) {
   size_t sofar = 0;
@@ -338,7 +329,7 @@ ze_Zipkin_BinaryAnnotation(byte *buffer, size_t len,
   ADV_SAFE(ze_struct_end(buffer,len));
   return sofar;
 }
-static size_t
+static inline size_t
 ze_Zipkin_Span(byte *buffer, size_t len, Zipkin_Span *v) {
   size_t sofar = 0;
   ADV_SAFE(ze_struct_begin(buffer,len,"Span"));
@@ -414,7 +405,7 @@ ze_Zipkin_Span(byte *buffer, size_t len, Zipkin_Span *v) {
   return sofar;
 }
 
-static size_t
+static inline size_t
 ze_Zipkin_Span_List(byte *buffer, size_t len, Zipkin_Span **v, int cnt) {
   size_t sofar = 0;
   int i;
@@ -426,7 +417,7 @@ ze_Zipkin_Span_List(byte *buffer, size_t len, Zipkin_Span **v, int cnt) {
   return sofar;
 }
 
-static int64_t
+static inline int64_t
 ze_get_traceid(void) {
   int64_t id = mtev_rand();
   /* We sacrifice half the keyspace here because we want to avoid
@@ -437,7 +428,7 @@ ze_get_traceid(void) {
   return id;
 }
 
-static void
+static inline void
 ze_update_Zipkin_Endpoint(Zipkin_Endpoint *e, const char *service_name,
                           bool service_name_copy,
                           struct in_addr host, unsigned short port) {
@@ -517,10 +508,6 @@ mtev_zipkin_span_new(int64_t *trace_id,
                      bool *debug, bool force) {
   int64_t my_trace_id = 0, my_span_id = 0;
   Zipkin_Span *span;
-
-  if(!ze_enable_override &&
-     !zipkin_publish_hook_exists() &&
-     !zipkin_publish_span_hook_exists()) return NULL;
 
   if(!force && debug && *debug) {
     if(ze_debug_trace_probability != 1.0 &&
@@ -812,15 +799,15 @@ void
 mtev_zipkin_sampling(double new_traces, double parented_traces,
 	     double debug_traces) {
   if(ze_new_trace_probability != new_traces)
-    mtevL(mtev_notice, "Zipkin new trace sampling: %0.2f%%\n",
+    mtevL(mtev_debug, "Zipkin new trace sampling: %0.2f%%\n",
           100.0*new_traces);
   ze_new_trace_probability = new_traces;
   if(ze_parented_trace_probability != parented_traces)
-    mtevL(mtev_notice, "Zipkin parented trace sampling: %0.2f%%\n",
+    mtevL(mtev_debug, "Zipkin parented trace sampling: %0.2f%%\n",
           100.0*parented_traces);
   ze_parented_trace_probability = parented_traces;
   if(ze_debug_trace_probability != debug_traces)
-    mtevL(mtev_notice, "Zipkin debug trace sampling: %0.2f%%\n",
+    mtevL(mtev_debug, "Zipkin debug trace sampling: %0.2f%%\n",
           100.0*debug_traces);
   ze_debug_trace_probability = debug_traces;
 }
@@ -858,6 +845,7 @@ typedef struct {
   Zipkin_Span *client;
 } zipkin_eventer_ctx_t;
 
+static int zipkin_aco_ctx_idx = -1;
 static int zipkin_ctx_idx = -1;
 static mtev_zipkin_event_trace_level_t zipkin_trace_events;
 static const char *generic_eventer_callback_name = "eventer_callback";
@@ -883,7 +871,11 @@ static void zipkin_eventer_ctx_free(zipkin_eventer_ctx_t *ctx) {
 }
 
 Zipkin_Span *mtev_zipkin_active_span(eventer_t e) {
-  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  zipkin_eventer_ctx_t *ctx = NULL;
+  if(aco_get_co() && zipkin_aco_ctx_idx >= 0) {
+    ctx = aco_tls(aco_get_co(), zipkin_aco_ctx_idx);
+  }
+  if(!ctx) ctx = get_my_ctx(e);
   if(ctx) return ctx->span ? ctx->span : ctx->parent_span;
   return NULL;
 }
@@ -959,14 +951,11 @@ void mtev_zipkin_client_publish(eventer_t e) {
     ctx->client = NULL;
   }
 }
-void mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_child, mtev_zipkin_event_trace_level_t *track) {
-  if(!span) return;
-  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
-  if(ctx) zipkin_eventer_ctx_free(ctx);
-  ctx = calloc(1, sizeof(*ctx));
+static zipkin_eventer_ctx_t *
+mtev_zipkin_new_ctx(Zipkin_Span *span, const char *cbname, bool new_child, mtev_zipkin_event_trace_level_t *track) {
+  zipkin_eventer_ctx_t *ctx = calloc(1, sizeof(*ctx));
   ctx->trace_events = track ? *track : zipkin_trace_events;
   if(new_child) {
-    const char *cbname = eventer_name_for_callback_e(eventer_get_callback(e), e);
     if(cbname == NULL) cbname = generic_eventer_callback_name;
     ctx->span = mtev_zipkin_span_new(
        &span->trace_id, &span->id, NULL, cbname, true, span->debug, false
@@ -978,6 +967,27 @@ void mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_chil
     ctx->span = span;
     mtev_zipkin_span_ref(span);
   }
+  return ctx;
+}
+void mtev_zipkin_attach_to_aco(Zipkin_Span *span, bool new_child, mtev_zipkin_event_trace_level_t *track) {
+  if(zipkin_aco_ctx_idx < 0) return;
+  mtevAssert(aco_get_co());
+  zipkin_eventer_ctx_t *ctx = aco_tls(aco_get_co(), zipkin_aco_ctx_idx);
+  if(ctx) zipkin_eventer_ctx_free(ctx);
+  if(span) {
+    ctx = mtev_zipkin_new_ctx(span, NULL, new_child, track);
+  } else {
+    ctx = NULL;
+  }
+  aco_tls(aco_get_co(), zipkin_aco_ctx_idx) = ctx;
+}
+void mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_child, mtev_zipkin_event_trace_level_t *track) {
+  if(!span) return;
+  zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
+  if(ctx) zipkin_eventer_ctx_free(ctx);
+  const char *cbname = NULL;
+  if(new_child) eventer_name_for_callback_e(eventer_get_callback(e), e);
+  ctx = mtev_zipkin_new_ctx(span, cbname, new_child, track);
   eventer_set_context(e, zipkin_ctx_idx, ctx);
 }
 void zipkin_eventer_callback_prep(eventer_t e, int mask, void *closure, struct timeval *now) {
@@ -1016,11 +1026,16 @@ void zipkin_eventer_callback_cleanup(eventer_t e, int mask) {
   ctx->span = NULL;
 }
 static eventer_t zipkin_eventer_init(eventer_t e) {
-  eventer_t parent;
-  zipkin_eventer_ctx_t *pctx, *ctx;
-  if(zipkin_ctx_idx < 0) return e;
-  if(NULL == (parent = eventer_get_this_event())) return e;
-  if(NULL == (pctx = eventer_get_context(parent, zipkin_ctx_idx))) return e;
+  zipkin_eventer_ctx_t *pctx = NULL, *ctx;
+  if(zipkin_aco_ctx_idx >= 0 && aco_get_co()) {
+    pctx = aco_tls(aco_get_co(), zipkin_aco_ctx_idx);
+  }
+  if(!pctx) {
+    eventer_t parent;
+    if(zipkin_ctx_idx < 0) return e;
+    if(NULL == (parent = eventer_get_this_event())) return e;
+    if(NULL == (pctx = eventer_get_context(parent, zipkin_ctx_idx))) return e;
+  }
 
   if(pctx->span) mtev_zipkin_span_ref(pctx->span);
 
@@ -1095,6 +1110,8 @@ void mtev_zipkin_eventer_init(void) {
   zipkin_ctx_idx = eventer_register_context("zipkin", &zipkin_eventer_context_ops);
   mtevL(mtev_debug, "distributed tracing contexts %s\n",
         (zipkin_ctx_idx < 0) ? "failed to register" : "registered");
+
+  zipkin_aco_ctx_idx = aco_tls_assign_idx();
 
   struct in_addr remote, local;
   memset(&remote, 8, sizeof(remote)); /* 8.8.8.8 */
