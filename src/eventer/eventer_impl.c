@@ -1402,6 +1402,8 @@ void eventer_add_recurrent(eventer_t e) {
 int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct timeval *n, uint64_t *dur) {
   int rmask;
   uint64_t start;
+  /* tracking callback latency on aco events makes no sense. */
+  if(eventer_is_aco(e)) dur = NULL;
   if(dur) start = mtev_gethrtime();
   eventer_t previous_event = eventer_get_this_event();
   eventer_ref(e);

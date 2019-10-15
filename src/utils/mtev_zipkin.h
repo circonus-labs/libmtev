@@ -454,6 +454,16 @@ API_EXPORT(void) mtev_zipkin_client_drop(struct _event *e);
 */
 API_EXPORT(void) mtev_zipkin_client_publish(struct _event *e);
 
+/*! \fn void mtev_zipkin_attach_to_aco(Zipkin_Span *span, bool new_child, mtev_zipkin_event_trace_level_t *track)
+    \brief Attach an active span (or new child span) to an aco thread.
+    \param span An existing zipkin span.
+    \param new_child Whether or not a child should be created under the provided span.
+    \param track Specifies how event activity should be tracked.
+*/
+API_EXPORT(void)
+  mtev_zipkin_attach_to_aco(Zipkin_Span *span, bool new_child,
+                            mtev_zipkin_event_trace_level_t *track);
+
 /*! \fn void mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_child, mtev_zipkin_event_trace_level_t *track)
     \brief Attach an active span (or new child span) to an event.
     \param e An event object (or NULL for the current event)

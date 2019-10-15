@@ -2028,12 +2028,6 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
   return rv;
 }
 
-static int
-mtev_log_fb(mtev_log_stream_t ls, mtev_log_stream_t bitor,
-            uint8_t *fbbuf, size_t fblen) {
-  return (int)fblen;
-}
-
 inline int
 mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
           const char *file, int line,
@@ -2059,8 +2053,9 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
    * Save a copy and restore it before we return.
    */
   int old_errno = errno;
-  Zipkin_Span *logspan = mtev_zipkin_active_span(NULL);
-  if(!mtev_zipkin_span_logs_attached(logspan)) logspan = NULL;
+  Zipkin_Span *activespan = mtev_zipkin_active_span(NULL);
+  Zipkin_Span *logspan = NULL;
+  if(mtev_zipkin_span_logs_attached(logspan)) logspan = activespan;
 
 #define ENSURE_NOW() do { \
   if(now == NULL) { \
@@ -2109,9 +2104,29 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
       if(len > (ssize_t)MTEV_MAYBE_SIZE(buffer)) len = MTEV_MAYBE_SIZE(buffer);
     }
 
-    if(kvs && kvs[0]->key != NULL) {
+    if(activespan || (kvs && kvs[0]->key != NULL)) {
       int kvi = 0;
       mtev_LogLine_kv_start(B);
+
+      /* if we're in an active zipkin span, include that */
+      if(activespan) {
+#define FB_ZIPID(name, var) do { \
+  mtev_LogLine_kv_push_start(B); \
+  mtev_KVPair_key_create_str(B, name); \
+  mtev_KVPair_value_LongValue_start(B); \
+  mtev_LongValue_value_add(B, var); \
+  mtev_KVPair_value_LongValue_end(B); \
+  mtev_LogLine_kv_push_end(B); \
+} while(0);
+        int64_t traceid, parentid, spanid;
+        if(mtev_zipkin_span_get_ids(activespan, &traceid, &parentid, &spanid)) {
+          FB_ZIPID("__parent", parentid);
+        }
+        FB_ZIPID("__trace", traceid);
+        FB_ZIPID("__span", spanid);
+      }
+#undef FB_ZIPID
+
       for(mtev_log_kv_t *kv = kvs[kvi]; (kv = kvs[kvi])->key != NULL; kvi++) {
         mtev_LogLine_kv_push_start(B);
         mtev_KVPair_key_create_str(B, kv->key);
