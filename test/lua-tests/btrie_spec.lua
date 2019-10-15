@@ -3,15 +3,15 @@ struct in_addr { char _inside[4]; };
 struct in6_addr { char _inside[16]; };
 int inet_pton(int af, const char * restrict src, void * restrict dst);
 
-typedef struct btrie_collapsed_node *btrie;
-void mtev_drop_tree(btrie *, void (*)(void *));
-void mtev_add_route(btrie *, uint32_t *, unsigned char, void *);
-void mtev_add_route_ipv4(btrie *, struct in_addr *, unsigned char, void *);
-void mtev_add_route_ipv6(btrie *, struct in6_addr *, unsigned char, void *);
-int mtev_del_route_ipv4(btrie *, struct in_addr *, unsigned char, void (*)(void *));
-int mtev_del_route_ipv6(btrie *, struct in6_addr *, unsigned char, void (*)(void *));
-void *mtev_find_bpm_route_ipv4(btrie *tree, struct in_addr *a, unsigned char *);
-void *mtev_find_bpm_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char *);
+typedef struct btrie_collapsed_node *mtev_btrie;
+void mtev_btrie_drop_tree(mtev_btrie *, void (*)(void *));
+void mtev_btrie_add_route(mtev_btrie *, uint32_t *, unsigned char, void *);
+void mtev_btrie_add_route_ipv4(mtev_btrie *, struct in_addr *, unsigned char, void *);
+void mtev_btrie_add_route_ipv6(mtev_btrie *, struct in6_addr *, unsigned char, void *);
+int mtev_btrie_del_route_ipv4(mtev_btrie *, struct in_addr *, unsigned char, void (*)(void *));
+int mtev_btrie_del_route_ipv6(mtev_btrie *, struct in6_addr *, unsigned char, void (*)(void *));
+void *mtev_btrie_find_bpm_route_ipv4(mtev_btrie *tree, struct in_addr *a, unsigned char *);
+void *mtev_btrie_find_bpm_route_ipv6(mtev_btrie *tree, struct in6_addr *a, unsigned char *);
 ]=])
 
 -- This is for Illumos where inet_pton comes from libnsl, not libc
@@ -51,11 +51,11 @@ local function add_ip_route(f, b, addr, mask, v)
 end
 
 local function add_ip4_route(b, addr, v)
-  return add_ip_route(libmtev.mtev_add_route_ipv4, b, addr, 32, v)
+  return add_ip_route(libmtev.mtev_btrie_add_route_ipv4, b, addr, 32, v)
 end
 
 local function add_ip6_route(b, addr, v)
-  return add_ip_route(libmtev.mtev_add_route_ipv6, b, addr, 128, v)
+  return add_ip_route(libmtev.mtev_btrie_add_route_ipv6, b, addr, 128, v)
 end
 
 local _ip4s = {}
@@ -71,10 +71,10 @@ _ip6s['::1/48'] = 127
 
 describe("btrie", function()
   it("should handle ipv4", function()
-    local btrie = ffi.new("btrie[?]", 1, ffi.cast("void *", 0))
+    local btrie = ffi.new("mtev_btrie[?]", 1, ffi.cast("void *", 0))
     local mask_out = ffi.new("unsigned char[?]", 1)
     local function test(addr, v)
-      local o = ffi.cast("int", libmtev.mtev_find_bpm_route_ipv4(btrie, mkip(addr), mask_out))
+      local o = ffi.cast("int", libmtev.mtev_btrie_find_bpm_route_ipv4(btrie, mkip(addr), mask_out))
       assert.are.equal(o,v)
     end
     for k,v in pairs(_ip4s) do
@@ -88,20 +88,20 @@ describe("btrie", function()
     test("199.15.221.11", 101)
     test("199.15.222.11", 102)
     test("199.15.223.11", 102)
-    libmtev.mtev_drop_tree(btrie, nil)
+    libmtev.mtev_btrie_drop_tree(btrie, nil)
   end)
 
   it("should handle ipv6", function()
-    local btrie6 = ffi.new("btrie[?]", 1, ffi.cast("void *", 0))
+    local btrie6 = ffi.new("mtev_btrie[?]", 1, ffi.cast("void *", 0))
     local mask_out = ffi.new("unsigned char[?]", 1)
     local function test(addr, v)
-      local o = ffi.cast("int", libmtev.mtev_find_bpm_route_ipv6(btrie6, mkip(addr), mask_out))
+      local o = ffi.cast("int", libmtev.mtev_btrie_find_bpm_route_ipv6(btrie6, mkip(addr), mask_out))
       assert.are.equal(o,v)
     end
     for k,v in pairs(_ip6s) do
       add_ip6_route(btrie6, k, v)
     end
     test("::1", 127)
-    libmtev.mtev_drop_tree(btrie6, nil)
+    libmtev.mtev_btrie_drop_tree(btrie6, nil)
   end)
 end)
