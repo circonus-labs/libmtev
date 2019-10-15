@@ -4,6 +4,8 @@
 
 ## 1.8
 
+ * Add @name and @skipto options for rest ACL rules.
+ * Allow CIDR expression as @ip in rest ACL rules.
  * Add zipkin context to flatbuffer logs.
  * Make zipkin work with http2 and ACO.
  * If the app name is unset do not add app:unknown to stats.

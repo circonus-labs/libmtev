@@ -204,6 +204,9 @@ API_EXPORT(void *)
   rest_get_raw_upload(mtev_http_rest_closure_t *restc,
                       int *mask, int *complete, int *size);
 
+API_EXPORT(void)
+  mtev_http_rest_load_rules(void);
+
 API_EXPORT(int)
   mtev_rest_simple_file_handler(mtev_http_rest_closure_t *restc,
                                 int npats, char **pats);

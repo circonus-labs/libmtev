@@ -2444,6 +2444,7 @@ mtev_conf_reload(mtev_console_closure_t ncct,
     return -1;
   }
   XML2LOG(xml_debug);
+  nc_printf(ncct, "reload complete\n");
   _gunlock(&global_config_lock);
   return 0;
 }
@@ -3522,6 +3523,7 @@ void mtev_console_conf_init(void) {
   DELEGATE_CMD(_conf_t_state, "no", mtev_console_opt_delegate, _unset_state);
 
   NEW_STATE(_conf_state);
+  ADD_CMD(_conf_state, "reload", mtev_conf_reload, NULL, NULL, NULL);
   ADD_CMD(_conf_state, "terminal",
           mtev_console_state_conf_terminal, NULL, _conf_t_state, NULL);
   ADD_CMD(_conf_state, "set",
