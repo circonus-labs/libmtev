@@ -1442,7 +1442,7 @@ mtev_boolean
 mtev_http1_websocket_handshake(mtev_http1_session_ctx *ctx)
 {
   char accept_key[mtev_b64_encode_len(SHA_DIGEST_LENGTH) + 1];
-  const char *upgrade = NULL, *connection = NULL, *sec_ws_key = NULL, *protocol = NULL;
+  const char *upgrade = NULL, *connection = NULL, *sec_ws_key = NULL, *protocol = NULL, *version = NULL;
 
   if (ctx->req.complete == mtev_false) {
     return mtev_false;
@@ -1464,8 +1464,10 @@ mtev_http1_websocket_handshake(mtev_http1_session_ctx *ctx)
   (void)mtev_hash_retr_str(headers, "connection", strlen("connection"), &connection);
   (void)mtev_hash_retr_str(headers, "sec-websocket-key", strlen("sec-websocket-key"), &sec_ws_key);
   (void)mtev_hash_retr_str(headers, "sec-websocket-protocol", strlen("sec-websocket-protocol"), &protocol);
+  (void)mtev_hash_retr_str(headers, "sec-websocket-version", strlen("sec-websocket-version"), &version);
 
-  if (upgrade == NULL || connection == NULL || sec_ws_key == NULL || protocol == NULL) {
+  if (upgrade == NULL || connection == NULL || sec_ws_key == NULL) {
+    mtevL(http_debug, "missing websocket headers\n");
     ctx->is_websocket = mtev_false;
     return ctx->is_websocket;
   }
@@ -1482,7 +1484,8 @@ mtev_http1_websocket_handshake(mtev_http1_session_ctx *ctx)
   mtev_http1_response_header_set(ctx, "Upgrade", "websocket");
   mtev_http1_response_header_set(ctx, "Connection", "Upgrade");
   mtev_http1_response_header_set(ctx, "Sec-WebSocket-Accept", accept_key);
-  mtev_http1_response_header_set(ctx, "Sec-WebSocket-Protocol", protocol);
+  if(protocol) mtev_http1_response_header_set(ctx, "Sec-WebSocket-Protocol", protocol);
+  if(version) mtev_http1_response_header_set(ctx, "Sec-WebSocket-Version", version);
   mtev_http1_response_status_set(ctx, 101, "Switching Protocols");
 
   /* there is no body and this is not the final */

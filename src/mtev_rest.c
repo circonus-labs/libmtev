@@ -275,7 +275,7 @@ mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
     int cnt;
     if (mtev_http_is_websocket(restc->http_ctx) == mtev_true) {
       if (strcmp(rule->method, "WS")) continue;
-      if (rule->websocket_protocol == NULL || protocol == NULL || strcmp(rule->websocket_protocol, protocol)) continue;
+      if (rule->websocket_protocol != NULL && protocol != NULL && strcmp(rule->websocket_protocol, protocol)) continue;
     } else {
       if (strcmp(rule->method, mtev_http_request_method_str(req))) continue;
     }

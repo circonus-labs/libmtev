@@ -48,7 +48,6 @@
 #endif
 #include <ck_pr.h>
 #include <ck_fifo.h>
-#include <yajl/yajl_gen.h>
 
 #define mtev_log_impl
 #include "mtev_log.h"
@@ -76,7 +75,7 @@
 
 extern const char *eventer_get_thread_name(void);
 
-static pthread_mutex_t resize_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t resize_lock;
 static int min_flush_seconds = ((MTEV_LOG_DEFAULT_DEDUP_S-1) / 2) + 1;
 
 MTEV_HOOK_IMPL(mtev_log_plain,
@@ -1780,23 +1779,13 @@ mtev_log_writev(mtev_log_stream_t ls, const struct timeval *whence,
   return i;
 }
 
-extern void
-yajl_string_encode(const yajl_print_t print, void * ctx,
-                   const unsigned char * str, size_t len,
-                   int escape_solidus);
-
-static inline void
-yajl_mtev_dyn_buff_append(void *ctx, const char *str, size_t len) {
-  mtev_dyn_buffer_t *buff = (mtev_dyn_buffer_t *)ctx;
-  mtev_dyn_buffer_add(buff, (uint8_t *)str, len);
-}
 static inline int
 add_to_json(int nelem, mtev_dyn_buffer_t *buff,
             const char *key, mtev_boolean str, const char *string) {
   mtev_dyn_buffer_add(buff, nelem ? (uint8_t *)",\"" : (uint8_t *)"{\"", 2);
-  yajl_string_encode(yajl_mtev_dyn_buff_append, buff, (void *)key, strlen(key), 0);
+  mtev_dyn_buffer_add_json_string(buff, (void *)key, strlen(key), 0);
   mtev_dyn_buffer_add(buff, (uint8_t *)"\":\"", str ? 3 : 2);
-  if(str) yajl_string_encode(yajl_mtev_dyn_buff_append, buff, (void *)string, strlen(string), 0);
+  if(str) mtev_dyn_buffer_add_json_string(buff, (void *)string, strlen(string), 0);
   else mtev_dyn_buffer_add(buff, (uint8_t *)string, strlen(string));
   if(str) mtev_dyn_buffer_add(buff, (uint8_t *)"\"", 1);
   return nelem+1;
@@ -2381,6 +2370,11 @@ mtev_log_init_globals(void) {
   static int initialized = 0;
   if(!initialized) {
     initialized = 1;
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&resize_lock, &attr);
+
     mtev_hash_init_locks(&mtev_loggers, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
     mtev_hash_init_locks(&mtev_logops, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   }

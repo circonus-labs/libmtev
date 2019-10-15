@@ -207,25 +207,25 @@ typedef struct _mtev_console_telnet_closure_t {
  * Macros to check the current state of things
  */
 
-#define	my_state_is_do(opt)		(ncct->telnet->_options[opt]&MY_STATE_DO)
-#define	my_state_is_will(opt)		(ncct->telnet->_options[opt]&MY_STATE_WILL)
-#define my_want_state_is_do(opt)	(ncct->telnet->_options[opt]&MY_WANT_STATE_DO)
-#define my_want_state_is_will(opt)	(ncct->telnet->_options[opt]&MY_WANT_STATE_WILL)
+#define	my_state_is_do(opt)		(ncct->simple->telnet->_options[opt]&MY_STATE_DO)
+#define	my_state_is_will(opt)		(ncct->simple->telnet->_options[opt]&MY_STATE_WILL)
+#define my_want_state_is_do(opt)	(ncct->simple->telnet->_options[opt]&MY_WANT_STATE_DO)
+#define my_want_state_is_will(opt)	(ncct->simple->telnet->_options[opt]&MY_WANT_STATE_WILL)
 
 #define	my_state_is_dont(opt)		(!my_state_is_do(opt))
 #define	my_state_is_wont(opt)		(!my_state_is_will(opt))
 #define my_want_state_is_dont(opt)	(!my_want_state_is_do(opt))
 #define my_want_state_is_wont(opt)	(!my_want_state_is_will(opt))
 
-#define	set_my_state_do(opt)		(ncct->telnet->_options[opt] |= MY_STATE_DO)
-#define	set_my_state_will(opt)		(ncct->telnet->_options[opt] |= MY_STATE_WILL)
-#define	set_my_want_state_do(opt)	(ncct->telnet->_options[opt] |= MY_WANT_STATE_DO)
-#define	set_my_want_state_will(opt)	(ncct->telnet->_options[opt] |= MY_WANT_STATE_WILL)
+#define	set_my_state_do(opt)		(ncct->simple->telnet->_options[opt] |= MY_STATE_DO)
+#define	set_my_state_will(opt)		(ncct->simple->telnet->_options[opt] |= MY_STATE_WILL)
+#define	set_my_want_state_do(opt)	(ncct->simple->telnet->_options[opt] |= MY_WANT_STATE_DO)
+#define	set_my_want_state_will(opt)	(ncct->simple->telnet->_options[opt] |= MY_WANT_STATE_WILL)
 
-#define	set_my_state_dont(opt)		(ncct->telnet->_options[opt] &= ~MY_STATE_DO)
-#define	set_my_state_wont(opt)		(ncct->telnet->_options[opt] &= ~MY_STATE_WILL)
-#define	set_my_want_state_dont(opt)	(ncct->telnet->_options[opt] &= ~MY_WANT_STATE_DO)
-#define	set_my_want_state_wont(opt)	(ncct->telnet->_options[opt] &= ~MY_WANT_STATE_WILL)
+#define	set_my_state_dont(opt)		(ncct->simple->telnet->_options[opt] &= ~MY_STATE_DO)
+#define	set_my_state_wont(opt)		(ncct->simple->telnet->_options[opt] &= ~MY_STATE_WILL)
+#define	set_my_want_state_dont(opt)	(ncct->simple->telnet->_options[opt] &= ~MY_WANT_STATE_DO)
+#define	set_my_want_state_wont(opt)	(ncct->simple->telnet->_options[opt] &= ~MY_WANT_STATE_WILL)
 
 /*
  * Tricky code here.  What we want to know is if the MY_STATE_WILL
@@ -235,10 +235,10 @@ typedef struct _mtev_console_telnet_closure_t {
  * different, and clear if they were the same.
  */
 #define my_will_wont_is_changing(opt) \
-			((ncct->telnet->_options[opt]+MY_STATE_WILL) & MY_WANT_STATE_WILL)
+			((ncct->simple->telnet->_options[opt]+MY_STATE_WILL) & MY_WANT_STATE_WILL)
 
 #define my_do_dont_is_changing(opt) \
-			((ncct->telnet->_options[opt]+MY_STATE_DO) & MY_WANT_STATE_DO)
+			((ncct->simple->telnet->_options[opt]+MY_STATE_DO) & MY_WANT_STATE_DO)
 
 /*
  * Make everything symmetrical

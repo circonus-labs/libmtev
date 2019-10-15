@@ -71,6 +71,16 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len);
 
+/*! \fn void mtev_dyn_buffer_add_json_string(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
+    \brief add data to the dyn_buffer as an unquoted json-encoded string.
+    \param buf the buffer to add to.
+    \param data the data to add.
+    \param len the size of the data to add.
+    \param sol 1 to escape the solipsis, 0 otherwise.
+ */
+API_EXPORT(void)
+  mtev_dyn_buffer_add_json_string(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len, int sol);
+
 /*! \fn void mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
     \brief add data to the dyn_buffer using printf semantics.
     \param buf the buffer to add to.

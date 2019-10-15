@@ -45,6 +45,7 @@
 #define TELOPTS
 #include <arpa/telnet.h>
 #include "mtev_console.h"
+#include "mtev_console_socket.h"
 #include "mtev_console_telnet.h"
 #include "mtev_hash.h"
 
@@ -70,39 +71,39 @@ int	not42 = 1;
  * for suboptions buffer manipulations
  */
 
-#define subbuffer ncct->telnet->_subbuffer
-#define subpointer ncct->telnet->_subpointer
-#define subend ncct->telnet->_subend
-#define subsave ncct->telnet->_subsave
-#define slctab ncct->telnet->_slctab
-#define pty ncct->pty_master
-#define do_dont_resp ncct->telnet->_do_dont_resp
-#define will_wont_resp ncct->telnet->_will_wont_resp
-#define termbuf ncct->telnet->_termbuf
-#define termbuf2 ncct->telnet->_termbuf2
-#define SYNCHing ncct->telnet->_SYNCHing
-#define terminalname ncct->telnet->_terminalname
-#define flowmode ncct->telnet->_flowmode
-#define linemode ncct->telnet->_linemode
-#define uselinemode ncct->telnet->_uselinemode
-#define alwayslinemode ncct->telnet->_alwayslinemode
-#define restartany ncct->telnet->_restartany
-#define _terminit ncct->telnet->__terminit
-#define turn_on_sga ncct->telnet->_turn_on_sga
-#define useeditmode ncct->telnet->_useeditmode
-#define editmode ncct->telnet->_editmode
-#define def_slcbuf ncct->telnet->_def_slcbuf
-#define def_slclen ncct->telnet->_def_slclen
-#define slcchange ncct->telnet->_slcchange
-#define slcptr ncct->telnet->_slcptr
-#define slcbuf ncct->telnet->_slcbuf
-#define def_tspeed ncct->telnet->_def_tspeed
-#define def_rspeed ncct->telnet->_def_rspeed
-#define def_row ncct->telnet->_def_row
-#define def_col ncct->telnet->_def_col
+#define subbuffer ncct->simple->telnet->_subbuffer
+#define subpointer ncct->simple->telnet->_subpointer
+#define subend ncct->simple->telnet->_subend
+#define subsave ncct->simple->telnet->_subsave
+#define slctab ncct->simple->telnet->_slctab
+#define pty ncct->simple->pty_master
+#define do_dont_resp ncct->simple->telnet->_do_dont_resp
+#define will_wont_resp ncct->simple->telnet->_will_wont_resp
+#define termbuf ncct->simple->telnet->_termbuf
+#define termbuf2 ncct->simple->telnet->_termbuf2
+#define SYNCHing ncct->simple->telnet->_SYNCHing
+#define terminalname ncct->simple->telnet->_terminalname
+#define flowmode ncct->simple->telnet->_flowmode
+#define linemode ncct->simple->telnet->_linemode
+#define uselinemode ncct->simple->telnet->_uselinemode
+#define alwayslinemode ncct->simple->telnet->_alwayslinemode
+#define restartany ncct->simple->telnet->_restartany
+#define _terminit ncct->simple->telnet->__terminit
+#define turn_on_sga ncct->simple->telnet->_turn_on_sga
+#define useeditmode ncct->simple->telnet->_useeditmode
+#define editmode ncct->simple->telnet->_editmode
+#define def_slcbuf ncct->simple->telnet->_def_slcbuf
+#define def_slclen ncct->simple->telnet->_def_slclen
+#define slcchange ncct->simple->telnet->_slcchange
+#define slcptr ncct->simple->telnet->_slcptr
+#define slcbuf ncct->simple->telnet->_slcbuf
+#define def_tspeed ncct->simple->telnet->_def_tspeed
+#define def_rspeed ncct->simple->telnet->_def_rspeed
+#define def_row ncct->simple->telnet->_def_row
+#define def_col ncct->simple->telnet->_def_col
 
-#define settimer(x)     (ncct->telnet->_clocks.x = ++ncct->telnet->_clocks.system)
-#define sequenceIs(x,y) (ncct->telnet->_clocks.x < ncct->telnet->_clocks.y)
+#define settimer(x)     (ncct->simple->telnet->_clocks.x = ++ncct->simple->telnet->_clocks.system)
+#define sequenceIs(x,y) (ncct->simple->telnet->_clocks.x < ncct->simple->telnet->_clocks.y)
 
 #define dooption(a) mtev_console_telnet_dooption(ncct,a)
 #define dontoption(a) mtev_console_telnet_dontoption(ncct,a)
@@ -1682,35 +1683,35 @@ spcset(mtev_console_closure_t ncct, int func, cc_t *valp, cc_t **valpp)
 void
 ptyflush(mtev_console_closure_t ncct) {
   int written;
-  if(ncct->telnet->_pty_fill == 0) return;
-  written = write(ncct->pty_slave, ncct->telnet->_pty_buf,
-                  ncct->telnet->_pty_fill);
-  if(written != ncct->telnet->_pty_fill) {
+  if(ncct->simple->telnet->_pty_fill == 0) return;
+  written = write(ncct->simple->pty_slave, ncct->simple->telnet->_pty_buf,
+                  ncct->simple->telnet->_pty_fill);
+  if(written != ncct->simple->telnet->_pty_fill) {
     /* We can't do anything useful here... just cope. */
   }
-  ncct->telnet->_pty_fill = 0;
+  ncct->simple->telnet->_pty_fill = 0;
 }
 
 static void
 netclear(mtev_console_closure_t ncct) {
-  ncct->outbuf_len = 0;
+  ncct->simple->outbuf_len = 0;
 }
 
 static void
 pty_write(mtev_console_closure_t ncct, void *buf, int len) {
-  if(len > (int)sizeof(ncct->telnet->_pty_buf)) {
+  if(len > (int)sizeof(ncct->simple->telnet->_pty_buf)) {
     int i;
     /* split it up */
-    for(i=0; i<len; i+=sizeof(ncct->telnet->_pty_buf)) {
+    for(i=0; i<len; i+=sizeof(ncct->simple->telnet->_pty_buf)) {
       pty_write(ncct, (unsigned char *)buf + i,
-                MIN(sizeof(ncct->telnet->_pty_buf),(size_t)(len-i)));
+                MIN(sizeof(ncct->simple->telnet->_pty_buf),(size_t)(len-i)));
     }
   }
-  while(ncct->telnet->_pty_fill + len > (int)sizeof(ncct->telnet->_pty_buf)) {
+  while(ncct->simple->telnet->_pty_fill + len > (int)sizeof(ncct->simple->telnet->_pty_buf)) {
     ptyflush(ncct);
   }
-  memcpy(ncct->telnet->_pty_buf + ncct->telnet->_pty_fill, buf, len);
-  ncct->telnet->_pty_fill += len;
+  memcpy(ncct->simple->telnet->_pty_buf + ncct->simple->telnet->_pty_fill, buf, len);
+  ncct->simple->telnet->_pty_fill += len;
 }
 
 /*
@@ -1812,10 +1813,10 @@ mtev_console_telnet_alloc(mtev_console_closure_t ncct) {
   static unsigned char ttytype_sbbuf[] = {
     IAC, SB, TELOPT_TTYPE, TELQUAL_SEND, IAC, SE
   };
-  tmp = ncct->telnet;
+  tmp = ncct->simple->telnet;
 
-  ncct->telnet = calloc(1, sizeof(*telnet));
-  mtev_hash_init(&ncct->telnet->_env);
+  ncct->simple->telnet = calloc(1, sizeof(*telnet));
+  mtev_hash_init(&ncct->simple->telnet->_env);
   subbuffer = malloc(1024*64);
   subpointer = subbuffer;
   subend= subbuffer;
@@ -1846,8 +1847,8 @@ mtev_console_telnet_alloc(mtev_console_closure_t ncct) {
   send_do(TELOPT_OLD_ENVIRON, 1);
   nc_write(ncct, ttytype_sbbuf, sizeof(ttytype_sbbuf));
 
-  telnet = ncct->telnet;
-  ncct->telnet = tmp;
+  telnet = ncct->simple->telnet;
+  ncct->simple->telnet = tmp;
   return telnet;
 }
 void
@@ -2979,7 +2980,7 @@ suboption(mtev_console_closure_t ncct)
 	    return;
 	settimer(xdisplocsubopt);
 	subpointer[SB_LEN()] = '\0';
-        mtev_hash_replace(&ncct->telnet->_env,
+        mtev_hash_replace(&ncct->simple->telnet->_env,
                           strdup("DISPLAY"), strlen("DISPLAY"),
                           strdup((char *)subpointer),
                           free, free);
@@ -3145,12 +3146,12 @@ suboption(mtev_console_closure_t ncct)
 	    case ENV_USERVAR:
 		*cp = '\0';
 		if (valp)
-                    mtev_hash_replace(&ncct->telnet->_env,
+                    mtev_hash_replace(&ncct->simple->telnet->_env,
                                       strdup(varp), strlen(varp),
                                       strdup(valp),
                                       free, free);
 		else
-                    mtev_hash_delete(&ncct->telnet->_env, varp, strlen(varp),
+                    mtev_hash_delete(&ncct->simple->telnet->_env, varp, strlen(varp),
                                      free, free);
 		cp = varp = (char *)subpointer;
 		valp = 0;
@@ -3168,12 +3169,12 @@ suboption(mtev_console_closure_t ncct)
 	}
 	*cp = '\0';
 	if (valp)
-            mtev_hash_replace(&ncct->telnet->_env,
+            mtev_hash_replace(&ncct->simple->telnet->_env,
                               strdup(varp), strlen(varp),
                               strdup(valp),
                               free, free);
 	else
-            mtev_hash_delete(&ncct->telnet->_env, varp, strlen(varp),
+            mtev_hash_delete(&ncct->simple->telnet->_env, varp, strlen(varp),
                              free, free);
 	break;
     }  /* end of case TELOPT_NEW_ENVIRON */

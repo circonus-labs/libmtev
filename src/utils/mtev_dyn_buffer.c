@@ -3,6 +3,18 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <yajl/yajl_gen.h>
+
+extern void
+yajl_string_encode(const yajl_print_t print, void * ctx,
+                   const unsigned char * str, size_t len,
+                   int escape_solidus);
+
+static inline void
+yajl_mtev_dyn_buff_append(void *ctx, const char *str, size_t len) {
+  mtev_dyn_buffer_t *buff = (mtev_dyn_buffer_t *)ctx;
+  mtev_dyn_buffer_add(buff, (uint8_t *)str, len);
+}
 
 inline void
 mtev_dyn_buffer_init(mtev_dyn_buffer_t *buf)
@@ -18,6 +30,11 @@ mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
   mtev_dyn_buffer_ensure(buf, len);
   memcpy(buf->pos, data, len);
   buf->pos += len;
+}
+
+inline void
+mtev_dyn_buffer_add_json_string(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len, int sol) {
+  yajl_string_encode(yajl_mtev_dyn_buff_append, buf, (void *)data, len, sol);
 }
 
 inline void

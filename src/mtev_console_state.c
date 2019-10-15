@@ -43,6 +43,7 @@
 #include "mtev_listener.h"
 #include "mtev_rest.h"
 #include "mtev_console.h"
+#include "mtev_console_socket.h"
 #include "mtev_tokenizer.h"
 #include "mtev_capabilities_listener.h"
 
@@ -574,10 +575,16 @@ mtev_console_log_connect(mtev_console_closure_t ncct, int argc, char **argv,
                          mtev_console_state_t *dstate, void *should_connect) {
   (void)dstate;
   const char *tgt_name = (argc == 2) ? argv[1] : ncct->feed_path;
-  if(argc == 0 || argc > 2 ||
-     !mtev_log_stream_exists(argv[0]) ||
-     !mtev_log_stream_exists(tgt_name)) {
+  if(argc == 0 || argc > 2) {
     nc_printf(ncct, "log connect <logname> [<outlet>]\n");
+    return 0;
+  }
+  if(!mtev_log_stream_exists(argv[0])) {
+    nc_printf(ncct, "%s log stream does not exist\n", argv[0]);
+    return 0;
+  }
+  if(!mtev_log_stream_exists(tgt_name)) {
+    nc_printf(ncct, "%s log stream does not exist\n", tgt_name);
     return 0;
   }
   if(should_connect != NULL)
@@ -1352,10 +1359,10 @@ mtev_console_state_pop(mtev_console_closure_t ncct, int argc, char **argv,
 
 int
 mtev_console_state_init(mtev_console_closure_t ncct) {
-  if(ncct->el) {
+  if(ncct->simple && ncct->simple->el) {
     console_prompt_func_t f;
     f = ncct->state_stack->state->console_prompt_function;
-    el_set(ncct->el, EL_PROMPT, f ? f : mtev_console_state_prompt);
+    el_set(ncct->simple->el, EL_PROMPT, f ? f : mtev_console_state_prompt);
   }
   return 0;
 }
