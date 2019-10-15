@@ -221,6 +221,7 @@ http_hmac_http_request_complete(void *cl, mtev_http_session_ctx *ctx) {
     char *part, *brk=NULL;
     for(part = strtok_r(ccopy, " ;", &brk); part; part = strtok_r(NULL, " ;", &brk)) {
       if(!strncmp(part, "mtevauth=", 9)) {
+        mtevL(debugls, "attempting validation of hmac_cookie mtevauth header\n");
         part += 9;
         size_t roff = 0;
         size_t payload_len = mtev_url_max_decode_len(strlen(part));
@@ -372,7 +373,7 @@ http_hmac_http_refresh_cookie(void *cl, mtev_http_session_ctx *ctx) {
         hlast--;
         if(hlen > 2 && NULL!=strchr(host+1, '.') && isalpha(*hlast)) {
           /* it has to exist, have two dots, and end in a letter */
-          mtev_dyn_buffer_add_printf(&hdr, "; Domain=%s", host+1);
+          mtev_dyn_buffer_add_printf(&hdr, "; Domain=%.*s", (int)(hlast-host), host+1);
         }
       }
     }
@@ -524,9 +525,16 @@ http_hmac_cookie_init(mtev_dso_generic_t *img) {
   );
   mtev_rest_mountpoint_set_aco(rule, mtev_true);
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+  const unsigned char *kptr = key;
+  hmac_key = d2i_PrivateKey(EVP_PKEY_HMAC, NULL, &kptr, sizeof(key));
+#else
   hmac_key = EVP_PKEY_new_raw_private_key(EVP_PKEY_HMAC, NULL, key, sizeof(key));
+#endif
   if(!hmac_key) {
-    mtevL(errorls, "Failed to establish HMAC key for mtev_hmac_cookie module\n");
+    long err = ERR_get_error();
+    mtevL(errorls, "Failed to establish HMAC key for mtev_hmac_cookie module: 0x%lx %s\n",
+          err, ERR_reason_error_string(err));
     return -1;
   }
   md = EVP_sha256();
