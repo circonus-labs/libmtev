@@ -245,7 +245,20 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/http_observer.html">
+        <li class="chapter " data-level="1.2.7.4" data-path="../config/modules/http_hmac_cookie.html">
+            
+                <a href="../config/modules/http_hmac_cookie.html">
+            
+                    
+                    http_hmac_cookie
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.5" data-path="../config/modules/http_observer.html">
             
                 <a href="../config/modules/http_observer.html">
             
@@ -258,7 +271,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.5" data-path="../config/modules/lua_general.html">
+        <li class="chapter " data-level="1.2.7.6" data-path="../config/modules/lua_general.html">
             
                 <a href="../config/modules/lua_general.html">
             
@@ -271,7 +284,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.6" data-path="../config/modules/lua_web.html">
+        <li class="chapter " data-level="1.2.7.7" data-path="../config/modules/lua_web.html">
             
                 <a href="../config/modules/lua_web.html">
             
@@ -284,7 +297,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.7" data-path="../config/modules/zipkin_fq.html">
+        <li class="chapter " data-level="1.2.7.8" data-path="../config/modules/zipkin_fq.html">
             
                 <a href="../config/modules/zipkin_fq.html">
             
@@ -297,7 +310,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.8" data-path="../config/modules/zipkin_jaeger.html">
+        <li class="chapter " data-level="1.2.7.9" data-path="../config/modules/zipkin_jaeger.html">
             
                 <a href="../config/modules/zipkin_jaeger.html">
             
@@ -2661,6 +2674,17 @@ eventer_jobq_retrieve(<span class="hljs-keyword">const</span> <span class="hljs-
 <li><code>jobq</code> the jobq to modify</li>
 <li><code>new_floor</code> the new number of minimum threads</li>
 </ul>
+<h4 id="eventerjobqsetlifo">eventer_jobq_set_lifo</h4>
+<blockquote>
+<p>Instruct the jobq system to process jobs in LIFO vs. FIFO ordering.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_jobq_set_lifo</span><span class="hljs-params">(eventer_jobq_t *jobq, mtev_boolean nv)</span>
+</span></code></pre>
+<ul>
+<li><code>jobq</code> the jobq to modify</li>
+<li><code>nv</code> Use LIFO or FIFO ordering if true or false, respectively.</li>
+</ul>
 <h4 id="eventerjobqsetmaxbacklog">eventer_jobq_set_max_backlog</h4>
 <blockquote>
 <p>Set and advisory limit on the backlog a jobq will handle.</p>
@@ -3713,6 +3737,31 @@ mtev_hash__hash(<span class="hljs-keyword">const</span> <span class="hljs-keywor
   implementation does not duplicate them.  You provide a pair of
   NoitHashFreeFunc functions to free up their storage when you call
   mtev_hash_delete(), mtev_hash_delete_all() or mtev_hash_destroy().</p>
+<h4 id="mtevhtmlencode">mtev_html_encode</h4>
+<blockquote>
+<p>Encode raw data as html encoded output into the provided buffer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_html_encode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
+</span></code></pre>
+<ul>
+<li><code>src</code> The buffer containing the raw data.</li>
+<li><code>src_len</code> The size (in bytes) of the raw data.</li>
+<li><code>dest</code> The destination buffer to which the function will produce.</li>
+<li><code>dest_len</code> The size of the destination buffer.</li>
+<li><strong>RETURN</strong> The size of the encoded output.  Returns zero is out_sz is too small.</li>
+</ul>
+<h4 id="mtevhtmlencodelen">mtev_html_encode_len</h4>
+<blockquote>
+<p>Calculate how large a buffer must be to contain the url encoding for a given number of bytes.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
+mtev_html_encode_len(<span class="hljs-keyword">size_t</span> src_len)
+</code></pre>
+<ul>
+<li><code>src_len</code> The size (in bytes) of the raw data buffer that might be encoded.</li>
+<li><strong>RETURN</strong> The size of the buffer that would be needed to store an encoded version of an input string.</li>
+</ul>
 <h4 id="mtevhugehashadv">mtev_huge_hash_adv</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_huge_hash_adv</span><span class="hljs-params">(mtev_huge_hash_iter_t *iter)</span>
@@ -4626,6 +4675,57 @@ whether it was successful in parameterizing the CPU for rdtsc use.</p>
 <p>   This is independent of start_tsc/stop_tsc.  You can disable all and then reenable and the thread
    will keep going using the state from the last start/stop_tsc</p>
 <h3 id="u">U</h3>
+<h4 id="mtevurldecode">mtev_url_decode</h4>
+<blockquote>
+<p>Decode a url encoded input buffer into the provided output buffer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_url_decode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
+</span></code></pre>
+<ul>
+<li><code>src</code> The buffer containing the encoded content.</li>
+<li><code>src_len</code> The size (in bytes) of the encoded data.</li>
+<li><code>dest</code> The destination buffer to which the function will produce.</li>
+<li><code>dest_len</code> The size of the destination buffer.</li>
+<li><strong>RETURN</strong> The size of the decoded output.  Returns zero is dest_len is too small.</li>
+</ul>
+<p>mtev_url_decode decodes input until an the entire input is consumed or until an invalid url-encoded character is encountered. If any error occurs, 0 is returned.</p>
+<h4 id="mtevurlencode">mtev_url_encode</h4>
+<blockquote>
+<p>Encode raw data as url encoded output into the provided buffer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_url_encode</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *src, size_t src_len, <span class="hljs-keyword">char</span> *dest, size_t dest_len)</span>
+</span></code></pre>
+<ul>
+<li><code>src</code> The buffer containing the raw data.</li>
+<li><code>src_len</code> The size (in bytes) of the raw data.</li>
+<li><code>dest</code> The destination buffer to which the function will produce.</li>
+<li><code>dest_len</code> The size of the destination buffer.</li>
+<li><strong>RETURN</strong> The size of the encoded output.  Returns zero is out_sz is too small.</li>
+</ul>
+<h4 id="mtevurlencodelen">mtev_url_encode_len</h4>
+<blockquote>
+<p>Calculate how large a buffer must be to contain the url encoding for a given number of bytes.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
+mtev_url_encode_len(<span class="hljs-keyword">size_t</span> src_len)
+</code></pre>
+<ul>
+<li><code>src_len</code> The size (in bytes) of the raw data buffer that might be encoded.</li>
+<li><strong>RETURN</strong> The size of the buffer that would be needed to store an encoded version of an input string.</li>
+</ul>
+<h4 id="mtevurlmaxdecodelen">mtev_url_max_decode_len</h4>
+<blockquote>
+<p>Calculate how large a buffer must be to contain a decoded url-encoded string of a given length.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
+mtev_url_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
+</code></pre>
+<ul>
+<li><code>src_len</code> The size (in bytes) of the url-encoded string that might be decoded.</li>
+<li><strong>RETURN</strong> The size of the buffer that would be needed to decode the input string.</li>
+</ul>
 <h4 id="mtevuuidclear">mtev_uuid_clear</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_uuid_clear</span><span class="hljs-params">(uuid_t uu)</span>

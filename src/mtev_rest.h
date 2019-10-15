@@ -213,4 +213,9 @@ MTEV_HOOK_PROTO(mtev_rest_get_handler,
                 void *, closure,
                 (void *closure, mtev_http_rest_closure_t *restc));
 
+MTEV_HOOK_PROTO(rest_auth_denied,
+                (mtev_http_rest_closure_t *restc, rest_request_handler *func),
+                void *, closure,
+                (void *closure, mtev_http_rest_closure_t *restc, rest_request_handler *func));
+
 #endif

@@ -1,0 +1,34 @@
+<module>
+  <name>http_hmac_cookie</name>
+  <description><para>The http_hmac_cookie provides a safe way to persent authentication information in http sessions.</para></description>
+  <loader>C</loader>
+  <image>http_hmac_cookie.so</image>
+  <moduleconfig>
+    <parameter name="key"
+               required="optional"
+               default=""
+               allowed=".+">A hex encoded key, if none is specified a random key will be generated.</parameter>
+    <parameter name="max_age"
+               required="optional"
+               default="86400"
+               allowed="\d+">The number of seconds the cookie will be valid for (default 1 day).</parameter>
+             <parameter name="domain"
+               required="optional"
+               allowed=".+">The "Domain" for Set-Cookie. If not specified, it will use the subdomain of the Host header if the Host header is at least three units deep. (e.g. foo.com will not do anything, bar.foo.com will set Domain=foo.com).</parameter>
+    <parameter name="user_(\S+)"
+               required="option"
+               allowed=".*">A user and password allowed.  This should be used for testing only.</parameter>
+  </moduleconfig>
+  <examples>
+    <example>
+      <title>Loading the http_hmac_cookie module.</title>
+      <programlisting language="xml"><![CDATA[
+      <noit>
+        <modules>
+          <generic image="http_hmac_cookie" name="http_hmac_cookie"/>
+        </modules>
+      </noit>
+    ]]></programlisting>
+    </example>
+  </examples>
+</module>

@@ -72,7 +72,7 @@ LUA_MODULES=@LUA_MODULES@
 MTEV4LUA=@MTEV4LUA@
 
 MODULES=$(FQ_MODULES) $(AMQP_MODULES) $(LUA_MODULES) zipkin_jaeger.@MODULEEXT@ http_observer.@MODULEEXT@ \
-	consul.@MODULEEXT@
+	consul.@MODULEEXT@ http_hmac_cookie.@MODULEEXT@
 
 all:	$(MODULES) $(MTEV4LUA)
 
@@ -86,6 +86,8 @@ consul.@MODULEEXT@:	consul.lo
 	$(modulelink)
 
 http_observer.lo:	http_observer.xmlh
+
+http_hmac_cookie.lo:	http_hmac_cookie.xmlh
 
 zipkin_jaeger.lo:	zipkin_jaeger.xmlh
 

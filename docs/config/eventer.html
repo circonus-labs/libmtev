@@ -245,7 +245,20 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.4" data-path="modules/http_observer.html">
+        <li class="chapter " data-level="1.2.7.4" data-path="modules/http_hmac_cookie.html">
+            
+                <a href="modules/http_hmac_cookie.html">
+            
+                    
+                    http_hmac_cookie
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7.5" data-path="modules/http_observer.html">
             
                 <a href="modules/http_observer.html">
             
@@ -258,7 +271,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.5" data-path="modules/lua_general.html">
+        <li class="chapter " data-level="1.2.7.6" data-path="modules/lua_general.html">
             
                 <a href="modules/lua_general.html">
             
@@ -271,7 +284,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.6" data-path="modules/lua_web.html">
+        <li class="chapter " data-level="1.2.7.7" data-path="modules/lua_web.html">
             
                 <a href="modules/lua_web.html">
             
@@ -284,7 +297,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.7" data-path="modules/zipkin_fq.html">
+        <li class="chapter " data-level="1.2.7.8" data-path="modules/zipkin_fq.html">
             
                 <a href="modules/zipkin_fq.html">
             
@@ -297,7 +310,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.2.7.8" data-path="modules/zipkin_jaeger.html">
+        <li class="chapter " data-level="1.2.7.9" data-path="modules/zipkin_jaeger.html">
             
                 <a href="modules/zipkin_jaeger.html">
             
@@ -690,18 +703,25 @@ to 5.0 unless overriden by the application).</p>
 <li><h5 id="jobqname">jobq_&lt;name&gt;</h5>
 <p>This establishes a new named jobq and sets parameters around concurrency
 and memory safety.  The format of the value is:
-<code>concurrency[,min[,max[,safety[,backlog]]]]</code>.  Concurrency, min, max, and backlog are all
+<code>concurrency[,min[,max[,safety[,backlog[,lifo]]]]]</code>.  Concurrency, min, max, and backlog are all
 unsigned integers. Concurrency must be greater than zero.  If minimum is omitted or
 zero, no minimum is set.  If max is omitted, it is set to min.  If max is
 zero, there is no maximum.  Safety can be one of <code>none</code> , <code>cs</code> , or
 <code>gc</code> (default).  For more information om memory settings see <a href="https://github.com/circonus-labs/libmtev/tree/master/src/eventer/eventer_jobq.h" target="_blank">eventer_jobq.h</a> and <a href="https://github.com/circonus-labs/libmtev/tree/master/src/utils/mtev_memory.h" target="_blank">mtev_memory.h</a>. Backlog sets
-the advisory queue length backlog limit for the queue.</p>
+the advisory queue length backlog limit for the queue. The <code>lifo</code> setting instructs the
+jobq to process jobs last-in-first-out.  The values for this field is either <code>lifo</code> or 
+<code>fifo</code>.</p>
 <blockquote>
 <p>Note that this merely creates the jobq. One must find and use it
 programmatically within the software.  It is designed to have a code-free
 way of allowing operators to adjust parameters around jobqs used within
 an application.</p>
 </blockquote>
+</li>
+<li><h5 id="defaultjobqordering">default_jobq_ordering</h5>
+<p>Specifies the default job consumption order for jobqs that don&apos;t explicitly
+declare an ordering requirement. Valid values are <code>lifo</code> and <code>fifo</code>. If
+unspecified, the default for this setting is FIFO.</p>
 </li>
 <li><h5 id="defaultcachain">default_ca_chain</h5>
 <p>Specified the path to a file containing a PEM encoded set of certificate authorities
