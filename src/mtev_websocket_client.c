@@ -102,7 +102,7 @@ wslay_send_callback(wslay_event_context_ptr ctx,
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       wslay_event_set_error(client->wslay_ctx, WSLAY_ERR_WOULDBLOCK);
     } else {
-      mtevL(client_err, "websocket client's wslay_send_callback failed: %s\n", strerror(errno));
+      mtevL(client_deb, "websocket client's wslay_send_callback failed: %s\n", strerror(errno));
       wslay_event_set_error(client->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     }
   }
@@ -133,7 +133,7 @@ wslay_recv_callback(wslay_event_context_ptr ctx, uint8_t *buf, size_t len,
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       wslay_event_set_error(client->wslay_ctx, WSLAY_ERR_WOULDBLOCK);
     } else {
-      mtevL(client_err, "websocket client's wslay_recv_callback failed: %s\n", strerror(errno));
+      mtevL(client_deb, "websocket client's wslay_recv_callback failed: %s\n", strerror(errno));
       wslay_event_set_error(client->wslay_ctx, WSLAY_ERR_CALLBACK_FAILURE);
     }
   } else if (r == 0) {
@@ -204,9 +204,10 @@ recv_resheader(eventer_t e, char *buf, int len, int *mask) {
   while(off < len) {
     while((r = eventer_read(e, buf + off, len - off, mask)) == -1
           && errno == EINTR);
+    if(r < 0 && errno == EAGAIN) return -1;
     if(r <= 0) {
       mtevL(client_deb, "Websocket client failed while receiving headers: %s\n", strerror(errno));
-      return -1;
+      return 0;
     } else if(r > 0) {
       off += r;
     }
@@ -215,7 +216,7 @@ recv_resheader(eventer_t e, char *buf, int len, int *mask) {
     }
   }
   mtevL(client_err, "Websocket client received headers that were too long\n");
-  return -1;
+  return 0;
 }
 
 /* srand48 is called in an mtev_hash init function, which is called during a
@@ -235,7 +236,9 @@ mtev_websocket_client_send_handshake(mtev_websocket_client_t *client) {
 
   mtev_websocket_client_create_key(client->client_key);
 
-  int reqlen = snprintf(reqheader, sizeof(reqheader),
+  int reqlen;
+  if(client->service) {
+    reqlen = snprintf(reqheader, sizeof(reqheader),
                         "GET %s HTTP/1.1\r\n"
                         "Host: %s\r\n"
                         "Upgrade: websocket\r\n"
@@ -245,11 +248,22 @@ mtev_websocket_client_send_handshake(mtev_websocket_client_t *client) {
                         "Sec-WebSocket-Version: 13\r\n"
                         "\r\n",
                         client->path, client->host, client->client_key, client->service);
+  } else {
+    reqlen = snprintf(reqheader, sizeof(reqheader),
+                        "GET %s HTTP/1.1\r\n"
+                        "Host: %s\r\n"
+                        "Upgrade: websocket\r\n"
+                        "Connection: Upgrade\r\n"
+                        "Sec-WebSocket-Key: %s\r\n"
+                        "Sec-WebSocket-Version: 13\r\n"
+                        "\r\n",
+                        client->path, client->host, client->client_key);
+  }
 
   return send_reqheader(client->e, reqheader, reqlen, &client->wanted_eventer_mask);
 }
 
-static mtev_boolean
+static int
 mtev_websocket_client_recv_handshake(mtev_websocket_client_t *client) {
   char resheader[8192];
   char accept_key[mtev_b64_encode_len(SHA_DIGEST_LENGTH) + 1];
@@ -258,24 +272,22 @@ mtev_websocket_client_recv_handshake(mtev_websocket_client_t *client) {
                                         mtev_b64_encode_len(SHA_DIGEST_LENGTH) + 1,
                                         client->client_key);
 
-  if(recv_resheader(client->e, resheader, sizeof(resheader), &client->wanted_eventer_mask) == -1) {
-    return mtev_false;
-  }
+  int rc = recv_resheader(client->e, resheader, sizeof(resheader), &client->wanted_eventer_mask);
+  if(rc <= 0) return rc;
 
   char *res_accept_key = strstr(resheader, "Sec-WebSocket-Accept");
   if(res_accept_key == NULL) {
     mtevL(client_deb, "Websocket client couldn't find accept key in response headers\n");
-    return mtev_false;
+    return 0;
   }
   /* skip the header text */
   res_accept_key += 22; 
 
   if(!strncmp(accept_key, res_accept_key, mtev_b64_encode_len(SHA_DIGEST_LENGTH))) {
-    return mtev_true;
-  } else {
-    mtevL(client_err, "Websocket client found incorrect accept key in response headers\n");
-    return mtev_false;
+    return 1;
   }
+  mtevL(client_err, "Websocket client found incorrect accept key in response headers\n");
+  return 0;
 }
 
 static void
@@ -287,7 +299,7 @@ mtev_websocket_client_drive(eventer_t e, int mask, void *closure, struct timeval
   (void)now;
   mtev_websocket_client_t *client = closure;
 
-  if(mask & EVENTER_EXCEPTION || client->should_close || client->closed) {
+  if((mask & EVENTER_EXCEPTION) || client->should_close || client->closed) {
 abort_drive:
     mtev_websocket_client_cleanup(client);
     mtev_websocket_client_deref(client);
@@ -297,21 +309,26 @@ abort_drive:
   if(!client->did_handshake) {
     if(!client->sent_handshake && mask & EVENTER_WRITE) {
       if(mtev_websocket_client_send_handshake(client) == mtev_false) {
-        mtevL(client_err, "mtev_websocket_client_send_handshake failed, aborting drive\n");
+        mtevL(client_deb, "mtev_websocket_client_send_handshake failed, aborting drive\n");
         goto abort_drive;
       }
       client->sent_handshake = mtev_true;
     }
     
     if(client->sent_handshake && mask & EVENTER_READ) {
-      if(mtev_websocket_client_recv_handshake(client) == mtev_false) {
+      int rc = mtev_websocket_client_recv_handshake(client);
+      if(rc < 0) return client->wanted_eventer_mask;
+      if(rc == 0) {
         mtevL(client_deb, "mtev_websocket_client_recv_handshake failed, aborting drive\n");
         goto abort_drive;
       }
       wslay_event_context_client_init(&client->wslay_ctx, &wslay_callbacks, client);
       client->did_handshake = mtev_true;
       if(client->ready_callback) {
-        if(!client->ready_callback(client, client->closure)) goto abort_drive;
+        if(!client->ready_callback(client, client->closure)) {
+          mtevL(client_deb, "mtev_websocket_client ready callback failed\n");
+          goto abort_drive;
+        }
       }
     }
 
@@ -428,6 +445,7 @@ static mtev_websocket_client_t *
 mtev_websocket_client_new_internal(const char *host, int port, const char *path, const char *service,
                                    mtev_websocket_client_callbacks *callbacks, void *closure, eventer_pool_t *pool,
                                    mtev_hash_table *sslconfig, mtev_boolean noref) {
+  if(!client_err) mtev_websocket_client_init_logs();
 #ifdef HAVE_WSLAY
   int fd = -1, rv;
   int family = AF_INET;
@@ -495,7 +513,7 @@ mtev_websocket_client_new_internal(const char *host, int port, const char *path,
   client->path = strdup(path);
   client->host = strdup(host);
   client->port = port;
-  client->service = strdup(service);
+  client->service = service ? strdup(service) : NULL;
   client->ready_callback = callbacks->ready_callback;
   client->msg_callback = callbacks->msg_callback;
   client->cleanup_callback = callbacks->cleanup_callback;

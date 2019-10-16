@@ -13,6 +13,8 @@
  * Add `total_jobs` to jobq statistics.
  * Add a browser cookie-based login mechanism (http_hmac_cookie)
  * Support LIFO ordering on jobqs.
+ * Allow EAGAIN in websocket client handshake.
+ * Allow service/protocol to be omitted in websocket client creation.
 
 ### 1.8.5
 
