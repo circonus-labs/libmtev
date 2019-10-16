@@ -189,7 +189,7 @@ static mtev_boolean
 
 static mtev_boolean
 match_cidr(mtev_btrie *bptr, struct sockaddr *remote) {
-  char ip[64];
+  char ip[INET6_ADDRSTRLEN];
   mtev_convert_sockaddr_to_buff(ip, sizeof(ip), remote);
   if(remote->sa_family == AF_INET) {
     if(mtev_btrie_find_bpm_route_ipv4(bptr, &((struct sockaddr_in *)remote)->sin_addr, NULL) == NULL) {
