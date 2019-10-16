@@ -776,6 +776,20 @@ mtev_console_logio_reopen(mtev_log_stream_t ls) {
   (void)ls;
   return 0;
 }
+
+static int
+mtev_console_continue_sending_when_convenient(eventer_t e, int mask, void *cl, struct timeval *now) {
+  mtev_console_closure_t ncct = cl;
+  (void)e;
+  (void)now;
+  int rv;
+  while((rv = mtev_console_continue_sending(ncct, &mask)) == -1 && errno == EINTR);
+  if(rv == -1 && errno == EAGAIN) {
+    eventer_update(ncct->simple->e, mask | EVENTER_EXCEPTION);
+  }
+  return 0;
+}
+
 static int
 mtev_console_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
                          const void *buf, size_t len) {
@@ -799,9 +813,13 @@ mtev_console_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
   }
   if(ncct->type == MTEV_CONSOLE_SIMPLE) {
     rlen = nc_write(ncct, buf, len);
-    while((rv = mtev_console_continue_sending(ncct, &mask)) == -1 && errno == EINTR);
-    if(rv == -1 && errno == EAGAIN) {
-      eventer_update(ncct->simple->e, mask | EVENTER_EXCEPTION);
+    if(eventer_is_aco(NULL)) {
+      eventer_add_in_s_us(mtev_console_continue_sending_when_convenient, ncct, 0, 0);
+    } else {
+      while((rv = mtev_console_continue_sending(ncct, &mask)) == -1 && errno == EINTR);
+      if(rv == -1 && errno == EAGAIN) {
+        eventer_update(ncct->simple->e, mask | EVENTER_EXCEPTION);
+      }
     }
   }
   return rlen;
@@ -966,17 +984,11 @@ error:
 }
 
 void
-mtev_console_init(const char *progname) {
-  errorls = mtev_log_stream_find("error/console");
-  debugls = mtev_log_stream_find("debug/console");
-  if(progname) {
-    char buff[32];
-    snprintf(buff, sizeof(buff), "%s# ", progname);
-    mtev_console_set_default_prompt(buff);
-  }
+mtev_console_telnet_init(void) {
   el_multi_init();
   signal(SIGTTOU, SIG_IGN);
   mtev_register_logops("mtev_console", &mtev_console_logio_ops);
+  eventer_name_callback("mtev_console_send", mtev_console_continue_sending_when_convenient);
   eventer_name_callback("mtev_console", mtev_console_handler);
 }
 
@@ -988,3 +1000,15 @@ mtev_console_rest_init(void) {
   mtev_rest_mountpoint_set_websocket(rule, "mtev_console", mtev_console_websocket_handler);
 }
 
+void
+mtev_console_init(const char *progname) {
+  errorls = mtev_log_stream_find("error/console");
+  debugls = mtev_log_stream_find("debug/console");
+  if(progname) {
+    char buff[32];
+    snprintf(buff, sizeof(buff), "%s# ", progname);
+    mtev_console_set_default_prompt(buff);
+  }
+  mtev_console_telnet_init();
+  mtev_console_rest_init();
+}
