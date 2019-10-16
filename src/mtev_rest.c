@@ -38,6 +38,7 @@
 #include "mtev_http1.h"
 #include "mtev_http2.h"
 #include "mtev_rest.h"
+#include "mtev_btrie.h"
 #include "mtev_conf.h"
 #include "mtev_json.h"
 
@@ -144,6 +145,10 @@ struct rule_container {
 mtev_hash_table dispatch_points;
 
 struct mtev_rest_acl_rule {
+  int idx;
+  char *name;
+  struct mtev_rest_acl_rule *skipto;
+  char *skiptoname;
   mtev_boolean allow;
   pcre *url;
   char *url_str;
@@ -153,8 +158,10 @@ struct mtev_rest_acl_rule {
   char *user_str;
   pcre *auth;
   char *auth_str;
+  mtev_btrie ipacl;
   mtev_hash_table *listener_res;
   struct mtev_rest_acl_rule *next;
+  struct mtev_rest_acl *parent;
 };
 struct mtev_rest_acl {
   int idx;
@@ -167,6 +174,7 @@ struct mtev_rest_acl {
   char *user_str;
   pcre *auth;
   char *auth_str;
+  mtev_btrie ipacl;
   mtev_hash_table *listener_res;
   struct mtev_rest_acl_rule *rules;
   struct mtev_rest_acl *next;
@@ -178,6 +186,25 @@ static struct mtev_rest_acl *global_rest_acls = NULL;
 
 static mtev_boolean
   match_listener_res(mtev_hash_table *res, mtev_hash_table *config);
+
+static mtev_boolean
+match_cidr(mtev_btrie *bptr, struct sockaddr *remote) {
+  char ip[INET6_ADDRSTRLEN];
+  mtev_convert_sockaddr_to_buff(ip, sizeof(ip), remote);
+  if(remote->sa_family == AF_INET) {
+    if(mtev_btrie_find_bpm_route_ipv4(bptr, &((struct sockaddr_in *)remote)->sin_addr, NULL) == NULL) {
+      return mtev_false;
+    }
+  }
+  else if(remote->sa_family == AF_INET6) {
+    if(mtev_btrie_find_bpm_route_ipv6(bptr, &((struct sockaddr_in6 *)remote)->sin6_addr, NULL) == NULL) {
+      return mtev_false;
+    }
+  } else {
+    return mtev_false;
+  }
+  return mtev_true;
+}
 
 static int
 mtev_http_rest_permission_denied(mtev_http_rest_closure_t *restc,
@@ -409,12 +436,16 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
   int ovector[30];
   mtev_hash_table *config = mtev_acceptor_closure_config(restc->ac);
 
+  mtev_http_rest_load_rules();
+
   if(restc->remote_cn) remote_cn = restc->remote_cn;
   const char *remote_user = mtev_http_request_user(req);
   if(!remote_user) remote_user = "";
   const char *remote_auth = mtev_http_request_auth(req);
   if(!remote_auth) remote_auth = "";
   uri_str = mtev_http_request_uri_str(req);
+  mtev_acceptor_closure_t *ac = mtev_http_session_acceptor_closure(restc->http_ctx);
+  struct sockaddr *remote = mtev_acceptor_closure_remote(ac);
   for(acl = global_rest_acls; acl; acl = acl->next) {
     if(acl->user && pcre_exec(acl->user, NULL, remote_user, strlen(remote_user), 0, 0,
                             ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
@@ -436,12 +467,19 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
       mtevL(r_debug, "REST ACL[%d]: '%s' ~= /%s/ failed\n", acl->idx, uri_str, acl->url_str);
       continue;
     }
+    if(acl->ipacl) {
+      if(!match_cidr(&acl->ipacl, remote)) {
+        mtevL(r_debug, "REST ACL[%d]: CIDR(%d) match failed\n", acl->idx, remote->sa_family);
+        continue;
+      }
+    }
     if(!match_listener_res(acl->listener_res, config)) {
       mtevL(r_debug, "REST ACL[%d]: listener not applicable\n", acl->idx);
       continue;
     }
-    int ri = 1;
-    for(rule = acl->rules; rule; rule = rule->next, ri++) {
+    for(rule = acl->rules; rule; rule = rule->next) {
+      int ri = rule->idx;
+skipto:
       if(rule->user && pcre_exec(rule->user, NULL, remote_user, strlen(remote_user), 0, 0,
                                ovector, sizeof(ovector)/sizeof(*ovector)) <= 0) {
         mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ failed\n", acl->idx, ri,
@@ -482,12 +520,24 @@ mtev_http_rest_client_cert_auth(mtev_http_rest_closure_t *restc,
         mtevL(r_debug, "REST_ACL[%d/%d] '%s' ~= /%s/ passed\n", acl->idx, ri,
               uri_str, rule->url_str);
       }
+      if(rule->ipacl) {
+        if(!match_cidr(&rule->ipacl, remote)) {
+          mtevL(r_debug, "REST ACL[%d/%d]: CIDR(%d) match failed\n", acl->idx, ri, remote->sa_family);
+          continue;
+        }
+      }
       if(!match_listener_res(rule->listener_res, config)) {
         mtevL(r_debug, "REST ACL[%d/%d]: listener not applicable\n", acl->idx, ri);
         continue;
       }
       mtevL(r_debug, "REST ACL[%d/%d]: matched, stopping -> %s\n", acl->idx, ri,
             rule->allow ? "allowed" : "denied");
+      if(rule->skipto) {
+        rule = rule->skipto;
+        ri = rule->idx;
+        acl = rule->parent;
+        goto skipto;
+      }
       return rule->allow;
     }
     mtevL(r_debug, "REST ACL[%d]: fallthru, stopping -> %s\n", acl->idx,
@@ -1278,6 +1328,30 @@ accrue_and_compile(const char *key, const char *value, void *vht) {
   return 0;
 }
 static void
+compile_cidr(mtev_conf_section_t node, mtev_btrie *bptr) {
+  char ipbuf[INET6_ADDRSTRLEN + 5]; /* ip/mask */
+  if(mtev_conf_get_stringbuf(node, "@ip", ipbuf, sizeof(ipbuf))) {
+    struct in_addr ipv4;
+    struct in6_addr ipv6;
+    int mask = 0;
+    char *slash = strchr(ipbuf, '/');
+    if(slash) {
+      *slash++ = '\0';
+      mask = atoi(slash);
+    }
+    if(mask < 0) mask = 0;
+    if(1 == inet_pton(AF_INET, ipbuf, &ipv4)) {
+      if(!slash || mask > 32) mask = 32;
+      mtev_btrie_add_route_ipv4(bptr, &ipv4, mask, (void *)(uintptr_t)1);
+    } else if(1 == inet_pton(AF_INET6, ipbuf, &ipv6)) {
+      if(!slash || mask > 128) mask = 128;
+      mtev_btrie_add_route_ipv6(bptr, &ipv6, mask, (void *)(uintptr_t)1);
+    } else {
+      mtevL(mtev_error, "rest ACL IP CIDR %s not understood\n", ipbuf);
+    }
+  }
+}
+static void
 compile_listener_res(mtev_conf_section_t node, mtev_hash_table **htptr) {
   int cnt;
   mtev_hash_table *ht;
@@ -1316,12 +1390,19 @@ match_listener_res(mtev_hash_table *res, mtev_hash_table *config) {
   }
   return mtev_true;
 }
+static uint32_t gen = 0;
 void mtev_http_rest_load_rules(void) {
   int ai, cnt = 0;
   mtev_conf_section_t *acls;
   char path[256];
   struct mtev_rest_acl *newhead = NULL, *oldacls, *remove_acl;
   struct mtev_rest_acl_rule *remove_rule;
+  mtev_hash_table names;
+
+  if(mtev_conf_config_gen() == gen) return;
+  gen = mtev_conf_config_gen();
+
+  mtev_hash_init(&names);
 
   snprintf(path, sizeof(path), "//rest//acl");
   acls = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
@@ -1356,12 +1437,21 @@ void mtev_http_rest_load_rules(void) {
     compile_re(acls[ai], newacl, auth);
     compile_re(acls[ai], newacl, cn);
     compile_re(acls[ai], newacl, url);
+    compile_cidr(acls[ai], &newacl->ipacl);
     compile_listener_res(acls[ai], &newacl->listener_res);
     rules = mtev_conf_get_sections(acls[ai], "rule", &rcnt);
     for(ri = rcnt - 1; ri >= 0; ri--) {
       struct mtev_rest_acl_rule *newacl_rule;
       newacl_rule = calloc(1, sizeof(*newacl_rule));
+      newacl_rule->idx = ri+1;
+      if(mtev_conf_get_string(rules[ri], "@name", &newacl_rule->name)) {
+        if(!mtev_hash_store(&names, newacl_rule->name, strlen(newacl_rule->name), newacl)) {
+          mtevL(mtev_error, "rest ACL rule name conflict: %s\n", newacl_rule->name);
+        }
+      }
+      (void)mtev_conf_get_string(rules[ri], "@skipto", &newacl_rule->skiptoname);
       newacl_rule->next = newacl->rules;
+      newacl_rule->parent = newacl;
       newacl->rules = newacl_rule;
       if(mtev_conf_get_stringbuf(rules[ri], "@type", tbuff, sizeof(tbuff)) &&
          !strcmp(tbuff, "allow"))
@@ -1370,11 +1460,25 @@ void mtev_http_rest_load_rules(void) {
       compile_re(rules[ri], newacl_rule, auth);
       compile_re(rules[ri], newacl_rule, cn);
       compile_re(rules[ri], newacl_rule, url);
+      compile_cidr(rules[ri], &newacl_rule->ipacl);
       compile_listener_res(rules[ri], &newacl_rule->listener_res);
     }
     mtev_conf_release_sections(rules, rcnt);
+    for(struct mtev_rest_acl_rule *node = newacl->rules; node; node = node->next) {
+      if(node->skiptoname) {
+        void *v;
+        if(mtev_hash_retrieve(&names, node->skiptoname, strlen(node->skiptoname), &v)) {
+          node->skipto = (struct mtev_rest_acl_rule *)v;
+        } else {
+          mtevL(mtev_error, "rest ACL rule #%d %s skipto unknown name %s\n",
+                node->idx, node->name ? node->name : "", node->skiptoname);
+        }
+      }
+    }
   }
   mtev_conf_release_sections(acls, cnt);
+
+  mtev_hash_destroy(&names, NULL, NULL);
 
   oldacls = global_rest_acls;
   global_rest_acls = newhead;
@@ -1395,6 +1499,9 @@ void mtev_http_rest_load_rules(void) {
         mtev_hash_destroy(oldacls->rules->listener_res, free, pcre_free);
         free(oldacls->rules->listener_res);
       }
+      free(oldacls->rules->name);
+      free(oldacls->rules->skiptoname);
+      mtev_btrie_drop_tree(&oldacls->rules->ipacl, NULL);
       free(oldacls->rules);
       oldacls->rules = remove_rule;
     }
@@ -1410,6 +1517,7 @@ void mtev_http_rest_load_rules(void) {
       mtev_hash_destroy(oldacls->listener_res, free, pcre_free);
       free(oldacls->listener_res);
     }
+    mtev_btrie_drop_tree(&oldacls->ipacl, NULL);
     free(oldacls);
     oldacls = remove_acl;
   }

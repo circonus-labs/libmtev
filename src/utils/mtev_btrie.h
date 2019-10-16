@@ -37,17 +37,17 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-typedef struct btrie_collapsed_node *btrie;
+typedef struct btrie_collapsed_node *mtev_btrie;
 
-void mtev_drop_tree(btrie *, void (*)(void *));
-void mtev_add_route(btrie *, uint32_t *, unsigned char, void *);
-void mtev_add_route_ipv4(btrie *, struct in_addr *, unsigned char, void *);
-void mtev_add_route_ipv6(btrie *, struct in6_addr *, unsigned char, void *);
-int mtev_del_route_ipv4(btrie *, struct in_addr *, unsigned char,
+void mtev_btrie_drop_tree(mtev_btrie *, void (*)(void *));
+void mtev_btrie_add_route(mtev_btrie *, uint32_t *, unsigned char, void *);
+void mtev_btrie_add_route_ipv4(mtev_btrie *, struct in_addr *, unsigned char, void *);
+void mtev_btrie_add_route_ipv6(mtev_btrie *, struct in6_addr *, unsigned char, void *);
+int mtev_btrie_del_route_ipv4(mtev_btrie *, struct in_addr *, unsigned char,
                    void (*)(void *));
-int mtev_del_route_ipv6(btrie *, struct in6_addr *, unsigned char,
+int mtev_btrie_del_route_ipv6(mtev_btrie *, struct in6_addr *, unsigned char,
                    void (*)(void *));
-void *mtev_find_bpm_route_ipv4(btrie *tree, struct in_addr *a, unsigned char *);
-void *mtev_find_bpm_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char *);
+void *mtev_btrie_find_bpm_route_ipv4(mtev_btrie *tree, struct in_addr *a, unsigned char *);
+void *mtev_btrie_find_bpm_route_ipv6(mtev_btrie *tree, struct in6_addr *a, unsigned char *);
 
 #endif

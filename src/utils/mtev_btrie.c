@@ -44,6 +44,7 @@
 
 // BITS should be either 32 or 128
 #define MAXBITS 128
+#define btrie mtev_btrie
 
 typedef struct btrie_collapsed_node {
   struct btrie_collapsed_node *bit[2];
@@ -68,7 +69,7 @@ static void drop_node(btrie_node *node, void (*f)(void *)) {
 #endif
   free(node);
 }
-void mtev_drop_tree(btrie *tree, void (*f)(void *)) {
+void mtev_btrie_drop_tree(btrie *tree, void (*f)(void *)) {
   drop_node(*tree, f);
   *tree = NULL;
 }
@@ -176,7 +177,7 @@ find_bpm_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
   return exact;
 }
 void *
-mtev_find_bpm_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char *pl) {
+mtev_btrie_find_bpm_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char *pl) {
   btrie_node *node = NULL;
   uint32_t ia[4], i;
   memcpy(ia, &a->s6_addr, sizeof(ia));
@@ -187,7 +188,7 @@ mtev_find_bpm_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char *pl) {
   return NULL;
 }
 void *
-mtev_find_bpm_route_ipv4(btrie *tree, struct in_addr *a, unsigned char *pl) {
+mtev_btrie_find_bpm_route_ipv4(btrie *tree, struct in_addr *a, unsigned char *pl) {
   btrie_node *node = NULL;
   uint32_t ia = ntohl(a->s_addr);
   find_bpm_route(tree, &ia, 32, NULL, &node);
@@ -197,7 +198,7 @@ mtev_find_bpm_route_ipv4(btrie *tree, struct in_addr *a, unsigned char *pl) {
 }
 
 int
-mtev_del_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char prefix_len,
+mtev_btrie_del_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char prefix_len,
                void (*f)(void *)) {
   uint32_t ia[4], i;
   memcpy(ia, &a->s6_addr, sizeof(ia));
@@ -205,13 +206,13 @@ mtev_del_route_ipv6(btrie *tree, struct in6_addr *a, unsigned char prefix_len,
   return del_route(tree, ia, prefix_len, f);
 }
 int
-mtev_del_route_ipv4(btrie *tree, struct in_addr *a, unsigned char prefix_len,
+mtev_btrie_del_route_ipv4(btrie *tree, struct in_addr *a, unsigned char prefix_len,
                void (*f)(void *)) {
   uint32_t ia = ntohl(a->s_addr);
   return del_route(tree, &ia, prefix_len, f);
 }
 
-void mtev_add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
+void mtev_btrie_add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
                void *data) {
 #ifdef DEBUG_BTRIE
   char ipb[128];
@@ -294,15 +295,15 @@ void mtev_add_route(btrie *tree, uint32_t *key, unsigned char prefix_len,
   }
 }
 
-void mtev_add_route_ipv4(btrie *tree, struct in_addr *a,
+void mtev_btrie_add_route_ipv4(btrie *tree, struct in_addr *a,
                     unsigned char prefix_len, void *data) {
   uint32_t ia = ntohl(a->s_addr), mask;
   mtevAssert(prefix_len <= 32);
   mask = (prefix_len == 32) ? 0xffffffff : ~(0xffffffff >> prefix_len);
   ia &= mask;
-  mtev_add_route(tree, &ia, prefix_len, data);
+  mtev_btrie_add_route(tree, &ia, prefix_len, data);
 }
-void mtev_add_route_ipv6(btrie *tree, struct in6_addr *a,
+void mtev_btrie_add_route_ipv6(btrie *tree, struct in6_addr *a,
                     unsigned char prefix_len, void *data) {
   uint32_t ia[4], i, mask;
   int splen;
@@ -315,6 +316,6 @@ void mtev_add_route_ipv6(btrie *tree, struct in6_addr *a,
     ia[i] = ntohl(ia[i]) & mask;
   }
   mtevAssert(prefix_len <= 128);
-  mtev_add_route(tree, ia, prefix_len, data);
+  mtev_btrie_add_route(tree, ia, prefix_len, data);
 }
 

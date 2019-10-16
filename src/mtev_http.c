@@ -587,6 +587,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
   mtev_acceptor_closure_t *ac = mtev_http_session_acceptor_closure(ctx);
   struct sockaddr *remote = mtev_acceptor_closure_remote(ac);
   mtev_convert_sockaddr_to_buff(ip, sizeof(ip), remote);
+  const char *user = mtev_http_request_user(req);
   if(LIBMTEV_HTTP_LOG_ENABLED()) {
     char logline_static[4096], *logline_dynamic = NULL;
     char *logline = logline_static;
@@ -594,8 +595,8 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     int len;
     while(1) {
       len = snprintf(logline_static, logline_len,
-        "%s - - [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
-        ip, timestr,
+        "%s - %s [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
+        ip, user ? user : "-", timestr,
         mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
         orig_qs ? "?" : "", orig_qs ? orig_qs : "",
         mtev_http_request_protocol_str(req),
@@ -622,8 +623,8 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     (void)logline; /* the above line might be CPP'd away */
     free(logline_dynamic);
   }
-  mtevL(http_access, "%s - - [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
-        ip, timestr,
+  mtevL(http_access, "%s - %s [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
+        ip, user ? user : "-", timestr,
         mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
         orig_qs ? "?" : "", orig_qs ? orig_qs : "",
         mtev_http_request_protocol_str(req),
