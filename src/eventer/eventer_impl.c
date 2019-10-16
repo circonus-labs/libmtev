@@ -1598,7 +1598,7 @@ void eventer_aco_start_stack(void (*func)(void), void *closure, size_t stksz) {
 mtev_boolean eventer_is_aco(eventer_t e) {
   if(e != NULL) return eventer_is_aco_opset(e);
   struct eventer_impl_data *t = get_my_impl_data();
-  mtevAssert(t);
+  if(t == NULL) return mtev_false;
   aco_t *co = aco_get_co();
   return co != NULL && co != t->aco_main_co;
 }
