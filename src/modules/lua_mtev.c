@@ -2101,7 +2101,6 @@ nl_websocket_client_connect(lua_State *L) {
   mtev_hash_table *sslconfig = NULL;
   if(host == NULL) luaL_error(L, "bad host argument");
   if(path == NULL) luaL_error(L, "bad path argument");
-  if(service == NULL) luaL_error(L, "bad service argument");
   if(!lua_istable(L,5)) luaL_error(L, "bad callback table");
   
   if(n == 6) {
