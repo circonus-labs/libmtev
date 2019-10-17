@@ -653,6 +653,7 @@ static void eventer_per_thread_init(struct eventer_impl_data *t) {
   /* The "main" thread uses a NULL heartbeat,
    * all other threads get their own. */
   if(t->id != 0) t->hb = mtev_watchdog_create();
+  mtev_watchdog_enable(t->hb);
   if(t->pool->hb_timeout)
     mtev_watchdog_override_timeout(t->hb, t->pool->hb_timeout);
   e = mtev_watchdog_recurrent_heartbeat(t->hb);
