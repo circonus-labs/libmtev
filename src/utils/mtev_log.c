@@ -2083,7 +2083,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
     int len;
     flatcc_builder_t builder, *B = &builder;
 
-    if(false && _mtev_log_siglvl == 0) {
+    if(_mtev_log_siglvl == 0) {
       flatcc_builder_init(B);
     } else {
       flatcc_builder_custom_init(B, 0, 0, &sig_fb_alloc, NULL);
