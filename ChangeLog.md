@@ -2,7 +2,9 @@
 
 # 1
 
-## 1.8
+## 1.9
+
+### 1.9.0
 
  * Add @name and @skipto options for rest ACL rules.
  * Allow CIDR expression as @ip in rest ACL rules.
@@ -17,6 +19,8 @@
  * Allow service/protocol to be omitted in websocket client creation.
  * Fix malloc in signal handler when logging flatbuffers.
  * Fix watchdog traces on e:default/0, its hearbeat thread was unassigned.
+
+## 1.8
 
 ### 1.8.5
 

@@ -1217,6 +1217,19 @@ mtev_curl_write_callback(<span class="hljs-keyword">char</span> *ptr, <span clas
 <li><code>data</code> the data to add.</li>
 <li><code>len</code> the size of the data to add.</li>
 </ul>
+<h4 id="mtevdynbufferaddjsonstring">mtev_dyn_buffer_add_json_string</h4>
+<blockquote>
+<p>add data to the dyn_buffer as an unquoted json-encoded string.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_dyn_buffer_add_json_string</span><span class="hljs-params">(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)</span>
+</span></code></pre>
+<ul>
+<li><code>buf</code> the buffer to add to.</li>
+<li><code>data</code> the data to add.</li>
+<li><code>len</code> the size of the data to add.</li>
+<li><code>sol</code> 1 to escape the solipsis, 0 otherwise.</li>
+</ul>
 <h4 id="mtevdynbufferaddprintf">mtev_dyn_buffer_add_printf</h4>
 <blockquote>
 <p>add data to the dyn_buffer using printf semantics.</p>
@@ -5210,6 +5223,18 @@ This function may fail for the following reasons:</p>
 <li><code>port</code> The IP port of the service.</li>
 </ul>
 <p>mtev_zipkin_annotation_set_endpoint sets an endpoint for the provided annotation.</p>
+<h4 id="mtevzipkinattachtoaco">mtev_zipkin_attach_to_aco</h4>
+<blockquote>
+<p>Attach an active span (or new child span) to an aco thread.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_zipkin_attach_to_aco</span><span class="hljs-params">(Zipkin_Span *span, <span class="hljs-keyword">bool</span> new_child, mtev_zipkin_event_trace_level_t *track)</span>
+</span></code></pre>
+<ul>
+<li><code>span</code> An existing zipkin span.</li>
+<li><code>new_child</code> Whether or not a child should be created under the provided span.</li>
+<li><code>track</code> Specifies how event activity should be tracked.</li>
+</ul>
 <h4 id="mtevzipkinattachtoeventer">mtev_zipkin_attach_to_eventer</h4>
 <blockquote>
 <p>Attach an active span (or new child span) to an event.</p>

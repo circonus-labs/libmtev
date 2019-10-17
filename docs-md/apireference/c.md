@@ -756,6 +756,22 @@ mtev_dyn_buffer_add(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
   * `len` the size of the data to add.
  
 
+#### mtev_dyn_buffer_add_json_string
+
+>add data to the dyn_buffer as an unquoted json-encoded string.
+
+```c
+void
+mtev_dyn_buffer_add_json_string(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len)
+```
+
+
+  * `buf` the buffer to add to.
+  * `data` the data to add.
+  * `len` the size of the data to add.
+  * `sol` 1 to escape the solipsis, 0 otherwise.
+ 
+
 #### mtev_dyn_buffer_add_printf
 
 >add data to the dyn_buffer using printf semantics.
@@ -6041,6 +6057,21 @@ mtev_zipkin_annotation_set_endpoint(Zipkin_Annotation *annotation, const char *s
 
 mtev_zipkin_annotation_set_endpoint sets an endpoint for the provided annotation.
  
+
+#### mtev_zipkin_attach_to_aco
+
+>Attach an active span (or new child span) to an aco thread.
+
+```c
+void
+mtev_zipkin_attach_to_aco(Zipkin_Span *span, bool new_child, mtev_zipkin_event_trace_level_t *track)
+```
+
+
+  * `span` An existing zipkin span.
+  * `new_child` Whether or not a child should be created under the provided span.
+  * `track` Specifies how event activity should be tracked.
+
 
 #### mtev_zipkin_attach_to_eventer
 
