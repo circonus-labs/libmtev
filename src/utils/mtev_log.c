@@ -2025,6 +2025,32 @@ mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
       (mtev_log_kv_t *[]){ &(mtev_log_kv_t){ NULL, 0, .value = { .v_string = NULL } } },
       format, arg);
 }
+static unsigned char sigbuff[32*1024];
+static size_t sigbuff_used = 0;
+static int sig_fb_alloc(void *alloc_context, flatcc_iovec_t *b, size_t request, int zero_fill, int alloc_type) {
+  if(request == 0) {
+    b->iov_base = 0;
+    b->iov_len = 0;
+    return 0;
+  }
+  request--;
+  request |= request >> 1;
+  request |= request >> 2;
+  request |= request >> 4;
+  request |= request >> 8;
+  request |= request >> 16;
+  request |= request >> 32;
+  request++;
+  if(b->iov_len < request) {
+    if(sigbuff_used + request > sizeof(sigbuff)) return -1;
+    if(b->iov_len) memcpy(sigbuff+sigbuff_used, b->iov_base, b->iov_len);
+    if(zero_fill) memset(sigbuff+sigbuff_used + b->iov_len, 0, request - b->iov_len);
+    b->iov_base = sigbuff+sigbuff_used;
+    b->iov_len = request;
+    sigbuff_used += request;
+  }
+  return 0;
+}
 int
 mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
              const char *file, int line,
@@ -2057,7 +2083,11 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
     int len;
     flatcc_builder_t builder, *B = &builder;
 
-    flatcc_builder_init(B);
+    if(false && _mtev_log_siglvl == 0) {
+      flatcc_builder_init(B);
+    } else {
+      flatcc_builder_custom_init(B, 0, 0, &sig_fb_alloc, NULL);
+    }
     mtev_LogLine_start_as_root(B);
     ENSURE_NOW();
     mtev_LogLine_timestamp_add(B, (uint64_t)now->tv_sec * 1000000 + now->tv_usec);
@@ -2173,7 +2203,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
       if(tofree) flatcc_builder_aligned_free(tofree);
     }
     flatcc_builder_clear(B);
-
+    sigbuff_used = 0;
     MTEV_MAYBE_FREE(buffer);
     errno = old_errno;
     if(rv == len) return 0;

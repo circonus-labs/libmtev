@@ -425,16 +425,21 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
   mtev_log_enter_sighandler();
   if(sig == SIGUSR2 && si->si_pid != mtev_monitored_child_pid) {
     hb = find_stopped_heart();
-#ifdef HAVE_PTHREAD_SIGQUEUE
+#if defined(HAVE_PTHREAD_SIGQUEUE)
     if(!hb) {
       mtevL(mtev_error, "Watchdog received, but no stopped heart found.\n");
     }
     else {
       sigval_t sv = { .sival_int = sig };
-      pthread_sigqueue(hb->thread, SIGTRAP, sv);
+      mtevL(mtev_error, "Watchdogged on %s, pthread_sigqueue(%p, SIGTRAP, %d)\n",
+            hb->name, (void *)(intptr_t)hb->thread, sig);
+      int err = 0;
+      if((err = pthread_sigqueue(hb->thread, SIGTRAP, sv)) == 0) {
+        mtev_log_leave_sighandler();
+        return;
+      }
+      mtevL(mtev_error, "pthread_siqueue error %s\n", strerror(err));
     }
-    mtev_log_leave_sighandler();
-    return;
 #else
     mtevL(mtev_error, "Watchdogged on %s, no pthread_sigqueue\n", hb->name);
 #endif
