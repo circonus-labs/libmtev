@@ -165,7 +165,7 @@ int eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
 int eventer_jobq_consume_available(eventer_t e, int mask, void *closure,
                                    struct timeval *now);
 void *eventer_jobq_consumer(eventer_jobq_t *jobq);
-void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *), void *);
+void eventer_jobq_process_each(mtev_boolean (*func)(eventer_jobq_t *, void *), void *);
 void eventer_jobq_init_globals(void);
 
 const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq);

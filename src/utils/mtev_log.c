@@ -75,6 +75,7 @@
 
 extern const char *eventer_get_thread_name(void);
 
+static __thread uint32_t recursion_block = 0;
 static pthread_mutex_t resize_lock;
 static int min_flush_seconds = ((MTEV_LOG_DEFAULT_DEDUP_S-1) / 2) + 1;
 
@@ -2031,6 +2032,9 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
              mtev_log_kv_t **kvs,
              const char *format, va_list arg) {
   int rv = 0, allocd = 0;
+  /* All paths lead to here and recursion would be very very bad */
+  if(recursion_block) return 0;
+  recursion_block = 1;
   MTEV_MAYBE_DECL(char, buffer, 4096);
   struct timeval __now;
 #ifdef va_copy
@@ -2176,10 +2180,12 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
 
     MTEV_MAYBE_FREE(buffer);
     errno = old_errno;
+    recursion_block = 0;
     if(rv == len) return 0;
     return -1;
   }
   errno = old_errno;
+  recursion_block = 0;
   return 0;
 }
 

@@ -92,7 +92,7 @@ mtev_console_spit_event(eventer_t e, void *c) {
             e->mask & EVENTER_TIMER ? 't' : '-',
             cname ? cname : funcptr, e->closure);
 }
-static void
+static mtev_boolean
 mtev_console_spit_jobq(eventer_jobq_t *jobq, void *c) {
   mtev_console_closure_t ncct = c;
   int qlen = 0;
@@ -107,6 +107,7 @@ mtev_console_spit_jobq(eventer_jobq_t *jobq, void *c) {
   nc_printf(ncct, " timeouts: %lld\n", (long long int)jobq->timeouts);
   nc_printf(ncct, " avg_wait_ms: %f\n", (double)jobq->avg_wait_ns/1000000.0);
   nc_printf(ncct, " avg_run_ms: %f\n", (double)jobq->avg_run_ns/1000000.0);
+  return mtev_true;
 }
 static int
 mtev_console_eventer_timers(mtev_console_closure_t ncct, int argc, char **argv,
@@ -127,6 +128,41 @@ mtev_console_eventer_sockets(mtev_console_closure_t ncct, int argc, char **argv,
   if(argc != 0) return -1;
   eventer_foreach_fdevent(mtev_console_spit_event, ncct);
   return 0;
+}
+struct jobq_iter_crutch {
+  int i;
+  int idx;
+  char *in;
+  char *out;
+};
+
+static mtev_boolean
+mtev_console_eventer_jobq_opts_helper(eventer_jobq_t *jobq, void *cl) {
+  struct jobq_iter_crutch *crutch = cl;
+  const char *qname = eventer_jobq_get_queue_name(jobq);
+  if(!strncmp(qname, crutch->in, strlen(crutch->in))) {
+    if(crutch->idx == crutch->i) {
+      crutch->out = strdup(qname);
+      return mtev_false;
+    }
+    crutch->i++;
+  }
+  return mtev_true;
+}
+static char *
+mtev_console_eventer_jobq_opts(mtev_console_closure_t ncct,
+                               mtev_console_state_stack_t *stack,
+                               mtev_console_state_t *dstate,
+                               int argc, char **argv, int idx) {
+  if(argc == 1) {
+    struct jobq_iter_crutch crutch = { .idx = idx, .in = argv[0] };
+    eventer_jobq_process_each(mtev_console_eventer_jobq_opts_helper, &crutch);
+    return crutch.out;
+  }
+  if(argc == 2) {
+    return mtev_console_opt_delegate(ncct, stack, dstate, argc-1, argv+1, idx);
+  }
+  return NULL;
 }
 static int
 mtev_console_eventer_jobq(mtev_console_closure_t ncct, int argc, char **argv,
@@ -437,7 +473,7 @@ static cmd_info_t console_command_eventer_sockets = {
   "sockets", mtev_console_eventer_sockets, NULL, NULL, NULL
 };
 static cmd_info_t console_command_eventer_jobq = {
-  "jobq", mtev_console_eventer_jobq, NULL, NULL, NULL
+  "jobq", mtev_console_eventer_jobq, mtev_console_eventer_jobq_opts, NULL, NULL
 };
 static cmd_info_t console_command_eventer_memory = {
   "memory", mtev_console_eventer_memory, NULL, NULL, NULL
@@ -452,7 +488,7 @@ static cmd_info_t console_command_intern = {
   "intern", mtev_console_intern, NULL, NULL, NULL,
 };
 static cmd_info_t console_command_jobq = {
-  "jobq", mtev_console_jobq, NULL, NULL, (void *)1
+  "jobq", mtev_console_jobq, mtev_console_eventer_jobq_opts, NULL, (void *)1
 };
 static cmd_info_t console_command_rdtsc_status = {
   "status", mtev_console_time_status, NULL, NULL, (void *)1

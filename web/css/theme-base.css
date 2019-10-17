@@ -36,6 +36,32 @@ nav.navbar-fixed-top {
   margin-bottom: 1em;
 }
 
+div#main-console-window {
+  width: 100%;
+  height: 40em;
+  overflow-y: scroll;
+}
+div#main-console-window div.row{
+  font-family: monospace, serif;
+  font-size: 0.8em;
+  margin-right: 5px;
+  margin-left: 5px;
+}
+
+div#console-state {
+  position:relative;
+  margin-bottom:-1.7em;
+  margin-right:5px;
+  z-index:2000;
+  float:right;
+}
+
+#main-console-prompt input {
+  position: relative;
+  z-index:1000;
+  width: 100%;
+}
+
 #main-log-window div.row {
   margin-right: 0px;
   margin-left: -10px;
