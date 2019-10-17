@@ -952,7 +952,7 @@ mtev_console_websocket_handler(mtev_http_rest_closure_t *restc, int opcode,
         free(opt);
         cidx++;
       }
-      mtev_dyn_buffer_add(&ob, (uint8_t *)"]}", 1);
+      mtev_dyn_buffer_add(&ob, (uint8_t *)"]}", 2);
       if(!mtev_http_websocket_queue_msg(ncct->websocket->ctx, WSLAY_TEXT_FRAME,
                                         mtev_dyn_buffer_data(&ob), mtev_dyn_buffer_used(&ob))) {
         ncct->wants_shutdown = 1;
