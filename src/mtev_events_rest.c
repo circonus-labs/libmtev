@@ -122,7 +122,7 @@ json_spit_event(eventer_t e, void *closure) {
 
   MJ_ADD(doc, eo);
 }
-static void
+static mtev_boolean
 json_spit_jobq(eventer_jobq_t *jobq, void *closure) {
   mtev_json_object *doc = closure, *jo;
 
@@ -137,6 +137,7 @@ json_spit_jobq(eventer_jobq_t *jobq, void *closure) {
   MJ_KV(jo, "timeouts", MJ_INT64(jobq->timeouts));
   MJ_KV(jo, "avg_wait_ms", MJ_DOUBLE((double)jobq->avg_wait_ns/1000000.0));
   MJ_KV(jo, "avg_run_ms", MJ_DOUBLE((double)jobq->avg_run_ns/1000000.0));
+  return mtev_true;
 }
 
 static int

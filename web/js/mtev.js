@@ -13,6 +13,12 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
         "callback": "mtev.driveHTTPObserver"
       },
       {
+        "name": "Console",
+        "id": "console",
+        "url": "/console.html",
+        "active": true
+      },
+      {
         "name": "Internals",
         "id": "internals",
         "url": "/internals.html",
@@ -294,6 +300,9 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
   }
   function $badge(n, t) {
     if(!t) t = "default";
+    if(n === null) {
+      return $("<span class=\"badge badge-pill badge-" + t + "\"/>").html("&#8203;");
+    }
     return $("<span class=\"badge badge-pill badge-" + t + "\"/>").text(n);
   }
 
@@ -407,7 +416,7 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
   var last_log_idx;
   function refresh_logs(force) {
     var qs = "";
-    var $c = $("#main-log-window");
+    var $c = $("#main-log-window:visible");
     if($c.length < 1) return;
     if(typeof(last_log_idx) !== 'undefined')
       qs = "?since=" + last_log_idx;
@@ -498,7 +507,162 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
       }
     }
   }
+
+  var $cwin;
+  var $cwincontent;
+  function console_append($e, force) {
+    var atend = Math.abs($cwin[0].scrollTop + $cwin[0].clientHeight - $cwin[0].scrollHeight);
+    $cwincontent.append($e);
+    var rows = $cwincontent.find("> div");
+    var cnt = 0;
+    for(var i = rows.length ; i > 1000; i--)
+      rows[cnt++].remove();
+    if(atend < 50 || force) {
+      $cwin[0].scrollTop = $cwin[0].scrollHeight - $cwin[0].clientHeight;
+      $cwin[0].scrollLeft = 0;
+    }
+  }
+  function handle_console_message(msg) {
+    try {
+      var o = JSON.parse(msg.data);
+      if(o.completion) {
+        last_complete = o.completion;
+        $("#console-auto-complete li").remove();
+        if(o.completion.length > 0) {
+          for(var i=0; i<o.completion.length; i++) {
+            $("#console-auto-complete").append($("<li/>").append($("<a/>").text(o.completion[i])));
+          }
+          $("#console-auto-complete").show();
+        } else {
+          $("#console-auto-complete").hide();
+        }
+      }
+      else if(o.text) {
+        console_append($("<div class=\"console-plain row\"/>").text(o.text));
+      }
+      else if(o.log) {
+        console_append($("<div class=\"console-log row\"/>").text(JSON.stringify(o.log)));
+      }
+      else {
+        console.log(o);
+      }
+    }
+    catch(e) {
+      console_append($("<div class=\"console-error row\"/>").text(e));
+      console_append($("<div class=\"console-error row\"/>").text(msg.data));
+    }
+  }
+  var last_console_input = null;
+  var last_complete = null;
+  mtev.command_history = [ "", "" ];
+  function handle_start_auto_complete(e) {
+    $("#console-auto-complete").show();
+    handle_auto_complete(e);
+  }
+  function handle_input_blur(e) {
+    $("#console-auto-complete").hide();
+  }
+  function longest_common_prefix(arr){
+    if(arr.length == 0) return "";
+    if(arr.length == 1) return arr[0] + " ";
+    var arr = arr.sort()
+    var a1= arr[0], a2=arr[arr.length-1], i=0;
+    while(i<a1.length && a1.charAt(i)==a2.charAt(i)) i++;
+    return a1.substring(0, i);
+  }
+  function update_console_state() {
+    switch(mtev.console.readyState) {
+      case WebSocket.OPEN:
+        $("#console-state").html(mtev.$badge(null, "primary").addClass("glyphicon glyphicon-check"));
+        break;
+      case WebSocket.OPENING:
+        $("#console-state").html(mtev.$badge("connecting...", "warning"));
+        break;
+      case WebSocket.CLOSED:
+      case WebSocket.CLOSING:
+        $("#console-state").html(mtev.$badge("disconnected", "danger"));
+        break;
+    }
+  }
+  setInterval(function() {
+    if(mtev.console != null && mtev.console.readyState == WebSocket.OPEN) {
+      mtev.console.send("{}");
+    }
+  }, 5000);
+  function handle_auto_complete(e) {
+    var $input = $("#main-console-input");
+    if(mtev.console == null || mtev.console.readyState == WebSocket.CLOSED) open_console();
+    update_console_state();
+    var hidx = $input.data("hidx");
+    if(e.type == "keydown" && (e.code == "ArrowUp" || e.key == "ArrowUp")) {
+      if(hidx < mtev.command_history.length - 1) {
+        e.target.value = mtev.command_history[++hidx];
+        $input.data("hidx", hidx);
+      }
+      if(e.preventDefault) e.preventDefault();
+      return false;
+    }
+    if(e.type == "keydown" && (e.code == "ArrowDown" || e.key == "ArrowDown")) {
+      if(hidx > 0) {
+        e.target.value = mtev.command_history[--hidx];
+        $input.data("hidx", hidx);
+      }
+      if(e.preventDefault) e.preventDefault();
+      return false;
+    }
+    if(e.type == "keydown" && (e.code == "Enter" || e.key == "Enter")) {
+      if(last_console_input) {
+        last_console_input = last_console_input.trim();
+        mtev.command_history[0] = last_console_input;
+        mtev.console.send(JSON.stringify({ "command": last_console_input.split(/\s+/) }));
+        mtev.command_history.unshift("");
+      }
+      e.target.value = "";
+      $input.data("hidx", 0);
+      hidx = 0;
+    }
+    if(e.type == "keydown" && (e.code == "Tab" || e.key == "Tab")) {
+      var repl = longest_common_prefix(last_complete);
+      if(repl) {
+        var parts = e.target.value.split(/\s+/);
+        parts.pop();
+        parts.push(repl);
+        e.target.value = parts.join(" ");
+      }
+      if(e.preventDefault) e.preventDefault();
+      return false;
+    }
+    if(last_console_input != e.target.value) {
+      last_console_input = e.target.value.trimLeft().replace(/\s+/, " ");
+      e.target.value = last_console_input;
+      if(hidx == 0) mtev.command_history[0] = last_console_input;
+      mtev.console.send(JSON.stringify({ "command": last_console_input.split(/\s+/), complete: true }));
+    }
+  }
+
+  function open_console() {
+    mtev.console = new WebSocket(document.location.origin.replace(/^http/, "ws") + "/mtev/console");
+    mtev.console.onmessage = handle_console_message;
+    mtev.console.onopen = update_console_state;
+    mtev.console.onerror = update_console_state;
+    mtev.console.onclose = update_console_state;
+  }
   function setupInternals() {
+    $cwin = $("#main-console-window");
+    $cwincontent = $("#main-console-window div");
+    open_console();
+    var input = document.getElementById("main-console-input");
+    if(input.addEventListener) {
+      input.addEventListener('focus', handle_start_auto_complete);
+      input.addEventListener('keydown', handle_auto_complete, false);
+      input.addEventListener('keyup', handle_auto_complete);
+      input.addEventListener('blur', handle_input_blur);
+    } else if(input.attachEvent) {
+      input.attachEvent('focus', handle_start_auto_complete);
+      input.attachEvent('keydown', handle_auto_complete);
+      input.attachEvent('keyup', handle_auto_complete);
+      input.attachEvent('blur', handle_input_blur);
+    }
     // Pull sockets every 5 seconds
     setInterval(update_eventer("/eventer/sockets.json",
                                "eventer-sockets", mk_socket_row),

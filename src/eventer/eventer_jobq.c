@@ -1003,13 +1003,13 @@ void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency
   if(notifies) jobq_fire_blanks(jobq, notifies);
 }
 
-void eventer_jobq_process_each(void (*func)(eventer_jobq_t *, void *),
+void eventer_jobq_process_each(mtev_boolean (*func)(eventer_jobq_t *, void *),
                                void *closure) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
 
   pthread_mutex_lock(&all_queues_lock);
   while(mtev_hash_adv(&all_queues, &iter)) {
-    func((eventer_jobq_t *)iter.value.ptr, closure);
+    if(!func((eventer_jobq_t *)iter.value.ptr, closure)) break;
   }
   pthread_mutex_unlock(&all_queues_lock);
 }

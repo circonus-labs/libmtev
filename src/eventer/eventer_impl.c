@@ -825,9 +825,10 @@ static int periodic_jobq_maintenance(eventer_t e, int mask, void *vjobq, struct 
   return EVENTER_TIMER;
 }
 
-static void register_jobq_maintenance(eventer_jobq_t *jobq, void *unused) {
+static mtev_boolean register_jobq_maintenance(eventer_jobq_t *jobq, void *unused) {
   (void)unused;
   eventer_add_in_s_us(periodic_jobq_maintenance, jobq, 1, 0);
+  return mtev_true;
 }
 
 static void periodic_jobq_maintenance_namer(char *buf, int buflen,
