@@ -300,7 +300,7 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
   }
   function $badge(n, t) {
     if(!t) t = "default";
-    if(!n) {
+    if(n === null) {
       return $("<span class=\"badge badge-pill badge-" + t + "\"/>").html("&#8203;");
     }
     return $("<span class=\"badge badge-pill badge-" + t + "\"/>").text(n);
