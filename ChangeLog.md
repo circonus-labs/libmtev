@@ -16,7 +16,7 @@
  * Allow EAGAIN in websocket client handshake.
  * Allow service/protocol to be omitted in websocket client creation.
  * Fix malloc in signal handler when logging flatbuffers.
- * Fix watchdog traces on e:default/0, it's hearbeat thread was unassigned.
+ * Fix watchdog traces on e:default/0, its hearbeat thread was unassigned.
 
 ### 1.8.5
 
