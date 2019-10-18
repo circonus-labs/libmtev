@@ -1548,6 +1548,10 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
   free(ls->name);
   if(ls->path) free(ls->path);
   if(ls->type) free(ls->type);
+  if(config) {
+    mtev_hash_destroy(config, free, free);
+    free(config);
+  }
   free(ls);
   return NULL;
 }
@@ -1557,7 +1561,13 @@ mtev_log_stream_new(const char *name, const char *type, const char *path,
                     void *ctx, mtev_hash_table *config) {
   if(!strcmp(name, "stderr")) {
     mtev_log_stream_t stderr_ls = mtev_log_stream_find("stderr");
-    if(stderr_ls) return stderr_ls;
+    if(stderr_ls) {
+      if(config) {
+        mtev_hash_destroy(config, free, free);
+        free(config);
+      }
+      return stderr_ls;
+    }
   }
   return mtev_log_stream_new_internal(name,type,path,ctx,config,
                                       mtev_log_stream_find(name));
