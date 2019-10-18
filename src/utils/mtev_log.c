@@ -2098,8 +2098,8 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
     const char *tname = eventer_get_thread_name();
     mtev_LogLine_threadid_add(B, mtev_thread_id());
     if(tname) mtev_LogLine_threadname_create_str(B, tname);
-    mtev_LogLine_file_create_str(B, file);
-    mtev_LogLine_line_add(B, line);
+    if(file) mtev_LogLine_file_create_str(B, file);
+    if(line) mtev_LogLine_line_add(B, line);
     if(ls->name) mtev_LogLine_facility_create_str(B, ls->name);
 #ifdef va_copy
     va_copy(copy, arg);
