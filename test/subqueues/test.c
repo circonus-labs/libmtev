@@ -35,7 +35,7 @@ work_description_t work[] = {
   { .name = "abusive3", .jobs = 20, .cost_s = 1 },
   { .name = "abusive deadline", .jobs = 20, .cost_s = 1, .deadline_s = 1, .timeouts_expected = true },
   { .name = "fast", .jobs = 1000, .cost_s = 0 },
-  { .name = "fast deadline", .jobs = 1000, .cost_s = 0, .deadline_s = 5 }
+  { .name = "fast deadline", .jobs = 1000, .cost_s = 0, .deadline_s = 5, .timeouts_expected = true }
 };
 uint32_t todo = 0, done = 0;
 
