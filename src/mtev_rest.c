@@ -405,9 +405,8 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
     restc->fastpath = rule->handler;
     restc->closure = rule->closure;
     restc->aco_enabled = rule->aco_enabled;
-    if(migrate) *migrate = mtev_false;
-    if(migrate && !mtev_http_session_aco(restc->http_ctx)) {
-      /* If we've started ACO, we can migrate to a new eventer thread */
+    if(migrate) {
+      *migrate = mtev_false;
       eventer_t e = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
       if(e) {
         if(rule->pool) {

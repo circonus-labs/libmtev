@@ -1756,7 +1756,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
     mtev_http1_request_release(ctx);
     mtev_http1_response_release(ctx);
   }
-  if(ctx->req.complete == mtev_false) goto next_req;
+  if(ctx->req.complete == mtev_false && !mtev_http1_session_aco(ctx)) goto next_req;
   if(ctx->conn.e) {
     mtevL(http_debug, "[fd=%d] <- mtev_http1_session_drive() [%x]\n", eventer_get_fd(e), mask|rv);
     return mask | rv;
