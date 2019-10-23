@@ -914,7 +914,7 @@ void mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout) {
   lifeline->timeout_override = timeout;
 }
 double mtev_watchdog_get_timeout(mtev_watchdog_t *lifeline) {
-  if(lifeline == NULL) return 0;
+  if(lifeline == NULL) lifeline = mmap_lifelines;
   if(lifeline->timeout_override != 0.0) return lifeline->timeout_override;
   return global_child_watchdog_timeout;
 }
