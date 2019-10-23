@@ -129,10 +129,8 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
   int status, base, rv = 0;
   mtev_lua_resume_rest_info_t *ctx = ri->context_data;
   mtev_http_rest_closure_t *restc = NULL;
-  eventer_t conne = NULL;
   if(ctx) {
     restc = ctx->restc;
-    conne = mtev_http_connection_event(mtev_http_session_connection(restc->http_ctx));
   }
 
   mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
@@ -167,8 +165,10 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
       rv = -1;
   }
 
-  if(restc) lua_web_restc_fastpath(restc, 0, NULL);
-  if(conne) eventer_trigger(conne, EVENTER_READ|EVENTER_WRITE);
+  if(restc) {
+    lua_web_restc_fastpath(restc, 0, NULL);
+    mtev_http_connection_resume_after_float(mtev_http_session_connection(restc->http_ctx));
+  }
   return rv;
 }
 
@@ -268,7 +268,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
 
   if(mtev_http_response_complete(res) != mtev_true) {
  boom:
-    if(conne) eventer_add(conne);
+    mtev_http_connection_resume_after_float(mtev_http_session_connection(restc->http_ctx));
     mtev_http_response_standard(restc->http_ctx,
                                 (ctx && ctx->httpcode) ? ctx->httpcode : 500,
                                 "ERROR", "text/plain");
