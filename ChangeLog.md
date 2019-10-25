@@ -4,6 +4,15 @@
 
 ## 1.9
 
+### 1.9.1
+
+ * Fix http/1 and http/2 issues moving requests into and out
+   of ACO mode. (symptom hangs and crashes when mixing
+   ACO and non-ACO request service on a single http session).
+ * Fix leaks in initial logging setup.
+ * Make mtev_heartbeat_timeout return the default heartbeat when
+   NULL is passed.
+
 ### 1.9.0
 
  * Add @name and @skipto options for rest ACL rules.
