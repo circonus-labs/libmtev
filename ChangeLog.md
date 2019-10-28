@@ -4,6 +4,9 @@
 
 ## 1.9
 
+ * Fix race in implicit eventer callback naming.
+ * Fix zipkin spans to have appropriate callback names.
+
 ### 1.9.1
 
  * Fix http/1 and http/2 issues moving requests into and out
