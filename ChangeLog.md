@@ -4,6 +4,8 @@
 
 ## 1.9
 
+### 1.9.2
+
  * Fix race in implicit eventer callback naming.
  * Fix zipkin spans to have appropriate callback names.
 
