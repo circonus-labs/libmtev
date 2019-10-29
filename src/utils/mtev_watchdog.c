@@ -406,7 +406,7 @@ void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
 #else
   (void)si;
   (void)uc;
-  mtev_stacktrace(mtev_error);
+  mtev_stacktrace(mtev_error_stacktrace);
 #endif
   raise(sig);
 }
@@ -462,7 +462,7 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
     mtev_stacktrace_ucontext(mtev_error, uc);
 #else
     (void)uc;
-    mtev_stacktrace(mtev_error);
+    mtev_stacktrace(mtev_error_stacktrace);
 #endif
 
     if(allow_async_dumps) { 
