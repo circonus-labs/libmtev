@@ -731,7 +731,6 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
     mtevL(ls, "stacktrace unavailable\n");
   }
 #endif
-  mtev_log_go_synch();
 }
 
 int mtev_backtrace(void **callstack, int cnt) {

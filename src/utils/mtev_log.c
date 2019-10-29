@@ -948,6 +948,18 @@ static logops_t posix_logio_ops = {
   posix_logio_cull
 };
 
+static logops_t posix_logio_ops_synch = {
+  mtev_false,
+  posix_logio_open,
+  posix_logio_reopen,
+  posix_logio_write,
+  NULL,
+  posix_logio_close,
+  posix_logio_size,
+  posix_logio_rename,
+  posix_logio_cull
+};
+
 static int
 jlog_lspath_to_fspath(mtev_log_stream_t ls, char *buff, int len,
                       char **subout) {
@@ -1306,6 +1318,7 @@ mtev_log_init(int debug_on) {
   mtev_log_init_globals();
   atexit(mtev_log_shutdown);
   mtev_register_logops("file", &posix_logio_ops);
+  mtev_register_logops("file_synch", &posix_logio_ops_synch);
   mtev_register_logops("jlog", &jlog_logio_ops);
   mtev_register_logops("memory", &membuf_logio_ops);
   mtev_stderr = mtev_log_stream_new_on_fd("stderr", 2, NULL);
