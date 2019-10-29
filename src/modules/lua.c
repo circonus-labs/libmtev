@@ -828,7 +828,7 @@ void
 mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
   (void)ri;
   mtevL(mtev_error, "mtev_lua_new_coro is an invalid API.\n");
-  mtev_stacktrace(mtev_error_stacktrace);
+  mtev_stacktrace(mtev_error);
   return;
 }
 

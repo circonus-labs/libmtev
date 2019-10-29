@@ -258,7 +258,7 @@ void mtev_hash_init_mtev_memory(mtev_hash_table *h, int size, mtev_hash_lock_mod
 int mtev_hash_size(mtev_hash_table *h) {
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_size... initializing\n");
-    mtev_stacktrace(mtev_error_stacktrace);
+    mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
   }
   return ck_hs_count(&h->u.hs);
@@ -283,7 +283,7 @@ int mtev_hash_store(mtev_hash_table *h, const void *k, int klen, const void *dat
 
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_store... initializing\n");
-    mtev_stacktrace(mtev_error_stacktrace);
+    mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
   }
 
@@ -323,7 +323,7 @@ int mtev_hash_set(mtev_hash_table *h, const void *k, int klen, const void *data,
 
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_set... initializing\n");
-    mtev_stacktrace(mtev_error_stacktrace);
+    mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
   }
 
@@ -380,7 +380,7 @@ int mtev_hash_retrieve(mtev_hash_table *h, const void *k, int klen, void **data)
   if(!h) return 0;
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_retrieve... initializing\n");
-    mtev_stacktrace(mtev_error_stacktrace);
+    mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
   }
 
@@ -434,7 +434,7 @@ int mtev_hash_delete(mtev_hash_table *h, const void *k, int klen,
   if(!h) return 0;
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_delete... initializing\n");
-    mtev_stacktrace(mtev_error_stacktrace);
+    mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
   }
 
@@ -472,7 +472,7 @@ void mtev_hash_delete_all(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHash
   if(!h) return;
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_delete_all... initializing\n");
-    mtev_stacktrace(mtev_error_stacktrace);
+    mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
   }
 
@@ -498,7 +498,7 @@ void mtev_hash_destroy(mtev_hash_table *h, NoitHashFreeFunc keyfree, NoitHashFre
   if(!h) return;
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_destroy... initializing\n");
-    mtev_stacktrace(mtev_error_stacktrace);
+    mtev_stacktrace(mtev_error);
     mtev_hash_init(h);
   }
   mtev_hash_delete_all(h, keyfree, datafree);
@@ -531,7 +531,7 @@ int _mtev_hash_next(const mtev_hash_table *h, mtev_hash_iter *iter,
 
   if(h->u.hs.hf == NULL) {
     mtevL(mtev_error, "warning: null hashtable in mtev_hash_next... initializing\n");
-    mtev_stacktrace(mtev_error_stacktrace);
+    mtev_stacktrace(mtev_error);
     return 0;
   }
 
