@@ -8,6 +8,8 @@
 
  * Fix race in implicit eventer callback naming.
  * Fix zipkin spans to have appropriate callback names.
+ * Allow stacktrace optionally onto different log outlet
+ * Add file_synch log type
 
 ### 1.9.1
 
