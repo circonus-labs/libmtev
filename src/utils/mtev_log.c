@@ -2463,4 +2463,4 @@ mtev_log_stream_t mtev_stderr = &boot_stderr_ls;
 mtev_log_stream_t mtev_error = &boot_stderr_ls;
 mtev_log_stream_t mtev_debug = &boot_debug_ls;
 mtev_log_stream_t mtev_notice = &boot_stderr_ls;
-mtev_log_stream_t mtev_error_stacktrace = &boot_strerr_ls;
+mtev_log_stream_t mtev_error_stacktrace = &boot_stderr_ls;
