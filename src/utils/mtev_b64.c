@@ -47,18 +47,18 @@ mtev_b64_decode(const char *src, size_t src_len,
    * decoding can be "short" up to 2 bytes. */
 
   if(dest_len < needed - 2) return 0;
+  else if(src_len > 1 && src[src_len-2] != '=' && src[src_len-1] == '=') {
+    if(dest_len < needed - 1) return 0;
+  }
+  else if(src_len > 1 && src[src_len-2] != '=' && src[src_len-1] != '=') {
+    if(dest_len < needed) return 0;
+  }
   /* Attempt The aklomp fast decode */
   size_t used_len = dest_len;
   if(base64_decode(src, src_len, (char *)dest, &used_len, 0) == 1) {
     return used_len;
   }
   /* Otherwise fallback to the slow path */
-  if(src_len > 1 && src[src_len-2] != '=' && src[src_len-1] == '=') {
-    if(dest_len < needed - 1) return 0;
-  }
-  else if(src_len > 1 && src[src_len-2] != '=' && src[src_len-1] != '=') {
-    if(dest_len < needed) return 0;
-  }
   while(cp <= ((unsigned char *)src+src_len)) {
     if((*cp >= 'A') && (*cp <= 'Z')) ch = *cp - 'A';
     else if((*cp >= 'a') && (*cp <= 'z')) ch = *cp - 'a' + 26;
