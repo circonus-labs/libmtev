@@ -293,7 +293,7 @@ mdb-support/libmtev.so:	mdb-support/libmtev.lo mdb-support/mdb_help.lo
 	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ mdb-support/libmtev.lo mdb-support/mdb_help.lo
 
 aklomp-base64/lib/libbase64.o:
-	CFLAGS="-fpic" AVX2_CFLAGS=-mavx2 SSSE3_CFLAGS=-mssse3 SSE41_CFLAGS=-msse4.1 SSE42_CFLAGS=-msse4.2 AVX_CFLAGS=-mavx $(MAKE) -C aklomp-base64 lib/libbase64.o
+	CC="$(CC)" CFLAGS="-fpic" AVX2_CFLAGS=-mavx2 SSSE3_CFLAGS=-mssse3 SSE41_CFLAGS=-msse4.1 SSE42_CFLAGS=-msse4.2 AVX_CFLAGS=-mavx $(MAKE) -C aklomp-base64 lib/libbase64.o
 
 .c.hlo:
 	@echo "- compiling $<"
