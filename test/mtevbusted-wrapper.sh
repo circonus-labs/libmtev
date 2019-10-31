@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [[ "`uname`" == "SunOS" ]]; then
+if [ "`uname`" = "SunOS" ] ; then
 	LD_PRELOAD_64=$_LD_PRELOAD
 	export LD_PRELOAD_64
 else
