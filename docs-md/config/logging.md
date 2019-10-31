@@ -10,11 +10,11 @@ Upon startup, the system will establish several built-in log_streams, only one o
 which has a type.  The "stderr" log_stream has a type of `file` and an output
 filedescriptor of 2.  Other log_stream are setup and and configured to have
 the "stderr" log_stream as their outlet.  These log_streams are called: "error", "notice",
-"debug", and "stacktrace".  The correspond to the global logging symbols in the C API:
-`mtev_stderr`, `mtev_error`, `mtev_notice`, `mtev_debug`, and `mtev_stacktrace` respectively.
+"debug."  The correspond to the global logging symbols in the C API:
+`mtev_stderr`, `mtev_error`, `mtev_notice`, and `mtev_debug`, respectively.
 For more information on logging via the API, see the development section
-of this documentation related to logging.  The "debug" log_stream is
-disabled and the "stacktrace" stream is the same as "error" by default.
+of this documentation relaated to logging.  The "debug" log_stream is
+disabled by default.
 
 Logs are hierarchical in nomenclature as a convenience.  If, in your code, you
 request a log named "error/foo" and no such log exists in the configuration,
@@ -138,13 +138,10 @@ if the process crashes one can examine the contents of the ring buffer with a de
    number of log lines to be retained.  The second number is the maximum number of bytes
    to be retained.  The implementation will not exceed either limit.
 
-### file and file_synch
+### file
 
-The file and file_synch log_stream types are used to drive writing to ordinary files using the POSIX
-API.  They provide both time-based and size-based retention management capabilities.  The only
-difference between these two types is that the file_synch type does immediate writes and will be
-slower than using file.  When redirecting the "stacktrace" log stream to a file, it will be
-desirable to use the file_synch type.
+The file log_stream type is used to drive writing to ordinary files using the POSIX
+API.  It provides both time-based and size-based retention management capabilities.
 
  * ##### path
 

@@ -1334,8 +1334,7 @@ mtev_log_init(int debug_on) {
                       (debug_on ? MTEV_LOG_STREAM_DEBUG : 0);
   if(debug_on) mtev_debug->flags |= MTEV_LOG_STREAM_ENABLED;
   else mtev_debug->flags &= ~MTEV_LOG_STREAM_ENABLED;
-  mtev_error_stacktrace = mtev_log_stream_new("stacktrace", NULL, NULL, NULL, NULL);
-  mtev_log_stream_add_stream(mtev_error_stacktrace, mtev_error);
+  mtev_error_stacktrace = mtev_log_stream_new("error/stacktrace", NULL, NULL, NULL, NULL);
 }
 
 void

@@ -653,11 +653,11 @@ characteristics (like outputting to a file).</p>
 which has a type.  The &quot;stderr&quot; log_stream has a type of <code>file</code> and an output
 filedescriptor of 2.  Other log_stream are setup and and configured to have
 the &quot;stderr&quot; log_stream as their outlet.  These log_streams are called: &quot;error&quot;, &quot;notice&quot;,
-&quot;debug&quot;, and &quot;stacktrace&quot;.  They correspond to the global logging symbols in the C API:
-<code>mtev_stderr</code>, <code>mtev_error</code>, <code>mtev_notice</code>, <code>mtev_debug</code>, and <code>mtev_stacktrace</code> respectively.
+&quot;debug.&quot;  The correspond to the global logging symbols in the C API:
+<code>mtev_stderr</code>, <code>mtev_error</code>, <code>mtev_notice</code>, and <code>mtev_debug</code>, respectively.
 For more information on logging via the API, see the development section
-of this documentation related to logging.  The &quot;debug&quot; log_stream is
-disabled and the &quot;stacktrace&quot; stream is the same as &quot;error&quot; by default.</p>
+of this documentation relaated to logging.  The &quot;debug&quot; log_stream is
+disabled by default.</p>
 <p>Logs are hierarchical in nomenclature as a convenience.  If, in your code, you
 request a log named &quot;error/foo&quot; and no such log exists in the configuration,
 a new untyped log will be created and its outlet will be set to &quot;error&quot;.  This
@@ -761,12 +761,9 @@ number of log lines to be retained.  The second number is the maximum number of 
 to be retained.  The implementation will not exceed either limit.</p>
 </li>
 </ul>
-<h3 id="file">file and file_synch</h3>
-<p>The file and file_synch log_stream types are used to drive writing to ordinary files using the
-POSIX API.  They provide both time-based and size-based retention management capabilities.  The only
-difference between these two types is that the file_synch type does immediate writes and will be
-slower than using file.  When redirecting the &quot;stacktrace&quot; log stream to a file, it will be
-desirable to use the file_synch type.</p>
+<h3 id="file">file</h3>
+<p>The file log_stream type is used to drive writing to ordinary files using the POSIX
+API.  It provides both time-based and size-based retention management capabilities.</p>
 <ul>
 <li><h5 id="path">path</h5>
 <p>The path is the filename to which log data should be written.</p>
@@ -983,3 +980,4 @@ outlet <code>stderr</code>.</p>
 
     </body>
 </html>
+
