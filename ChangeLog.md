@@ -4,6 +4,7 @@
 
 ## 1.9
 
+ * Adopt aklomp/base64 implementation for better performance.
  * Allow crash stacktraces to be redirected optionally onto
    different log outlet
  * Add file_synch log type
