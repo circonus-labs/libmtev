@@ -4,6 +4,8 @@
 
 ## 1.9
 
+ * Adopt aklomp/base64 implementation for better performance.
+
 ### 1.9.2
 
  * Fix race in implicit eventer callback naming.
