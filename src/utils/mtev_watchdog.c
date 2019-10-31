@@ -402,11 +402,11 @@ void mtev_watchdog_on_crash_close_add_fd(int fd) {
 void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
 #if defined(__sun__)
   (void)si;
-  mtev_stacktrace_ucontext(mtev_error, uc);
+  mtev_stacktrace_ucontext(mtev_error_stacktrace, uc);
 #else
   (void)si;
   (void)uc;
-  mtev_stacktrace(mtev_error);
+  mtev_stacktrace(mtev_error_stacktrace);
 #endif
   raise(sig);
 }
@@ -459,10 +459,10 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
 
     /* attempt a simple stack trace */
 #if defined(__sun__)
-    mtev_stacktrace_ucontext(mtev_error, uc);
+    mtev_stacktrace_ucontext(mtev_error_stacktrace, uc);
 #else
     (void)uc;
-    mtev_stacktrace(mtev_error);
+    mtev_stacktrace(mtev_error_stacktrace);
 #endif
 
     if(allow_async_dumps) { 

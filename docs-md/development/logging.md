@@ -184,7 +184,7 @@ Retrieve an arbitrary property from a log stream.
 
 ### Adding custom logging types
 
-Libmtev ships with three logging types: `memory`, `file`, and `jlog`.  The system is extensible and additional
+Libmtev ships with four logging types: `memory`, `file`, `file_synch`, and `jlog`.  The system is extensible and additional
 types can be added.  Those types do not have the benefit of existence checking as the logging is initialized before
 dynamic modules are loaded and new logging types are typically added via dynamic modules.  This chicken-and-egg issue
 requires us to load log_streams with unknown types and resolve them post-facto.
