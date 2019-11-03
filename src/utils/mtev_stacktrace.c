@@ -163,9 +163,7 @@ mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
   char **srcfiles;
   Dwarf_Signed nlines = 0, nsrcfiles = 0;
   Dwarf_Error error = 0;
-  mtevL(mtev_stderr, "*** MTEV_REGISTER_DIR\n");
   if(dwarf_srcfiles(die, &srcfiles, &nsrcfiles, &error)) {
-    mtevL(mtev_stderr, "*** SRCFILE FAILS!\n");
     return;
   }
   struct srcfilelist *mylist = calloc(1, sizeof(*mylist));
@@ -177,7 +175,7 @@ mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
     for(int i = 0; i < nlines; i++) {
       Dwarf_Unsigned uno;
       Dwarf_Addr addr;
-      struct addr_map li = { .next = NULL };
+      struct addr_map li = { .next = NULL, .type = ADDR_MAP_LINE };
       char *filename;
       Dwarf_Bool begin_line;
       Dwarf_Bool end_die;
@@ -219,10 +217,10 @@ mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
       else {
         li.addr = (uintptr_t)addr;
       }
-
+      //if (strstr(node->file, "snowth")) {
       //mtevL(mtev_stderr, "%s dwarf_linesrc: %s:%u(%p) %llu %llu %s%s%s%s\n", line_error ? "BAD" : "GOOD", filename, li.lineno, (void *)addr, isa, discrim, begin_line ? "BEGIN " : "", end_die ? "END " : "", prol_end ? "PROL" : "", epi_begin ? "EPI" : "");
-
-      if (!line_error) {
+      //}
+      if (!line_error && li.lineno > 0) {
         struct addr_map *head = calloc(1, sizeof(struct addr_map));
         memcpy(head, &li, sizeof(struct addr_map));
         head->next = node->addr_map;
@@ -292,9 +290,9 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib, mtev_log_stre
   Dwarf_Half tag;
   Dwarf_Die child_die = 0;
 
-if (strstr(node->file, "snowthd")) {
-  mtevL(mtev_stderr, "**** EXTRACT SYMBOLS\n");
-}
+//if (strstr(node->file, "snowthd")) {
+//  mtevL(mtev_stderr, "**** EXTRACT SYMBOLS\n");
+//}
   if(global_file_symbol_filter && global_file_symbol_filter(node->file)) return;
 
   if(dwarf_child(sib, &child_die, &err) == DW_DLV_OK) {
@@ -314,18 +312,18 @@ if (strstr(node->file, "snowthd")) {
     struct symnode n = { .low = 0 };
     switch(tag) {
       case DW_TAG_variable:
-if (strstr(node->file, "snowthd")) {
-  mtevL(mtev_stderr, "**** EXTRACT SYMBOLS variable\n");
-}
+//if (strstr(node->file, "snowthd")) {
+//  mtevL(mtev_stderr, "**** EXTRACT SYMBOLS variable\n");
+//}
         if(dwarf_attr(sib, DW_AT_external, &attr, &err) != DW_DLV_OK ||
            dwarf_formflag(attr, &flag, &err) != DW_DLV_OK ||
            flag == 0) break;
         n.low = (uintptr_t)dlsym(NULL, die_name);
         /* fall through */
       case DW_TAG_subprogram:
-if (strstr(node->file, "snowthd")) {
-  mtevL(mtev_stderr, "**** EXTRACT SYMBOLS subprogram\n");
-}
+//if (strstr(node->file, "snowthd")) {
+//  mtevL(mtev_stderr, "**** EXTRACT SYMBOLS subprogram\n");
+//}
         if(dwarf_attrlist(sib, &attrs, &attrcount, &err) == DW_DLV_OK) {
           for(i=0; i<attrcount; i++) {
             Dwarf_Half attrcode;            
@@ -340,15 +338,15 @@ if (strstr(node->file, "snowthd")) {
                   while(t->resolved && t->resolved != t) t = t->resolved;
                   n.high = n.low + t->size;
                 }
-if (strstr(node->file, "snowthd")) {
+/*if (strstr(node->file, "snowthd")) {
                 mtevL(mtev_stderr, "T Lo: %p Hi: %p NB: %p T: %p\n", (void *)n.low, (void *)n.high, (void *)node->base, t);
-}
+}*/
               } else if(attrcode == DW_AT_low_pc) {
                 dwarf_formaddr(attrs[i], &pc, &err);
                 n.low = pc + node->base;
-if (strstr(node->file, "snowthd")) {
+/*if (strstr(node->file, "snowthd")) {
                 mtevL(mtev_stderr, "L Lo: %p Hi: %p NB: %p\n", (void *)n.low, (void *)n.high, (void *)node->base);
-}
+}*/
               } else if(attrcode == DW_AT_high_pc) {
                 Dwarf_Half form;
                 Dwarf_Unsigned offset = 0;
@@ -364,16 +362,16 @@ if (strstr(node->file, "snowthd")) {
                     n.high = n.low + offset;
                   break;
                 }
-if (strstr(node->file, "snowthd")) {
+/*if (strstr(node->file, "snowthd")) {
                 mtevL(mtev_stderr, "H Lo: %p Hi: %p NB: %p\n", (void *)n.low, (void *)n.high, (void *)node->base);
-}
+}*/
               }
             }
           }
           if(n.low) {
-if (strstr(node->file, "snowthd")) {
+/*if (strstr(node->file, "snowthd")) {
             mtevL(mtev_stderr, "symbol: %llu:%s, %p-%p\n", n.type, die_name, (void *)n.low, (void *)n.high);
-}
+}*/
             struct addr_map *head = calloc(1, sizeof(struct addr_map));
             head->addr = n.low;
             head->type = ADDR_MAP_FUNCTION;
@@ -403,7 +401,7 @@ if (strstr(node->file, "snowthd")) {
 
 static struct dmap_node *
 mtev_dwarf_load(const char *file, uintptr_t base) {
-  mtevL(mtev_stderr, "***** DWARF LOAD %s\n", file);
+  //mtevL(mtev_stderr, "***** DWARF LOAD %s\n", file);
   struct dmap_node *node = calloc(1, sizeof(*node));
   mtev_hash_init(&node->types);
   node->file = strdup(file);
@@ -462,17 +460,17 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
 void
 mtev_dwarf_refresh_file(const char *file, uintptr_t base) {
   struct dmap_node *node;
-  mtevL(mtev_stderr, "**** DWARF REFRESH FILE %s\n", file);
+  //mtevL(mtev_stderr, "**** DWARF REFRESH FILE %s\n", file);
   if(!file || strlen(file) == 0) return;
-  mtevL(mtev_stderr, "**** DWARF REFRESH FILE2 %s\n", file);
+  //mtevL(mtev_stderr, "**** DWARF REFRESH FILE2 %s\n", file);
   if(global_file_filter && global_file_filter(file)) return;
-  mtevL(mtev_stderr, "**** DWARF REFRESH FILE3 %s\n", file);
+  //mtevL(mtev_stderr, "**** DWARF REFRESH FILE3 %s\n", file);
   if(!debug_maps) {
-  mtevL(mtev_stderr, "**** DWARF REFRESH FILE4 %s\n", file);
+  //mtevL(mtev_stderr, "**** DWARF REFRESH FILE4 %s\n", file);
     debug_maps = mtev_dwarf_load(file, base);
   }
   else {
-  mtevL(mtev_stderr, "**** DWARF REFRESH FILE5 %s\n", file);
+  //mtevL(mtev_stderr, "**** DWARF REFRESH FILE5 %s\n", file);
     struct dmap_node *prev = NULL;
     for(node = debug_maps; node; node = node->next) {
       prev = node;
@@ -480,11 +478,11 @@ mtev_dwarf_refresh_file(const char *file, uintptr_t base) {
     }
     if(prev) prev->next = mtev_dwarf_load(file, base);
   }
-  mtevL(mtev_stderr, "Addr map info mapping is %p\n", debug_maps);
+  //mtevL(mtev_stderr, "Addr map info mapping is %p\n", debug_maps);
 }
 static void
 mtev_dwarf_walk_map(void (*f)(const char *, uintptr_t)) {
-  mtevL(mtev_stderr, "***** DWARF WALK MAP\n");
+  //mtevL(mtev_stderr, "***** DWARF WALK MAP\n");
 #if defined(linux) || defined(__linux) || defined(__linux__)
   Dl_info dlip;
   struct link_map *map;
@@ -574,7 +572,7 @@ static int loc_comp_key(const void *vakey, const void *vb) {
 #endif
 void
 mtev_dwarf_refresh(void) {
-  mtevL(mtev_stderr, "***** DWARF REFRESH\n");
+  //mtevL(mtev_stderr, "***** DWARF REFRESH\n");
 #ifdef HAVE_LIBDWARF
   if(!symtable) {
     mtev_skiplist *st = mtev_skiplist_alloc();
@@ -588,7 +586,7 @@ mtev_dwarf_refresh(void) {
 }
 
 static struct addr_map *
-find_addr_map(uintptr_t addr, ssize_t *offset, const char **fn_name) {
+find_addr_map(uintptr_t addr, ssize_t *offset, const char **fn_name, uintptr_t *fn_offset) {
   struct addr_map *found_line = NULL;
   struct addr_map *found_function = NULL;
 #ifdef HAVE_LIBDWARF
@@ -602,13 +600,13 @@ find_addr_map(uintptr_t addr, ssize_t *offset, const char **fn_name) {
   }
   if(!node)
   {
-    mtevL(mtev_stderr, "Node not found: %08lx: %p\n", addr, debug_maps);
+    //mtevL(mtev_stderr, "Node not found: %08lx: %p\n", addr, debug_maps);
     return NULL;
   }
-  mtevL(mtev_stderr, "Found node: %s (%08lx, %08lx) %p\n", node->file, addr, node->base, node->addr_map);
+  //mtevL(mtev_stderr, "Found node: %s (%08lx, %08lx) %p\n", node->file, addr, node->base, node->addr_map);
   for (struct addr_map *addr_map = node->addr_map; addr_map; addr_map = addr_map->next)
   {
-    if (addr_map == node->addr_map) { mtevL(mtev_stderr, "First addr: %u %08lx : %s\n", addr_map->lineno, addr_map->addr, addr_map->file_or_fn); }
+    //if (strstr(node->file, "snowth")) { mtevL(mtev_stderr, "Addr: %u %08lx : %s\n", addr_map->lineno, addr_map->addr, addr_map->file_or_fn); }
     if(node->base + addr_map->addr <= addr) {
       if (addr_map->type == ADDR_MAP_LINE) {
         found_line = addr_map;
@@ -618,17 +616,22 @@ find_addr_map(uintptr_t addr, ssize_t *offset, const char **fn_name) {
       }
     }
     else {
-      if (found_line) mtevL(mtev_stderr, "Found line! %u %08lx : %s\n", found_line->lineno, found_line->addr, found_line->file_or_fn);
+      //if (found_line) mtevL(mtev_stderr, "Found line! %u %08lx : %s\n", found_line->lineno, found_line->addr, found_line->file_or_fn);
       break;
     }
-    if (!addr_map->next) { mtevL(mtev_stderr, "Last addr: %u %08lx : %s\n", addr_map->lineno, addr_map->addr, addr_map->file_or_fn); }
+    //if (!addr_map->next) { mtevL(mtev_stderr, "Last addr: %u %08lx : %s\n", addr_map->lineno, addr_map->addr, addr_map->file_or_fn); }
   }
-  if(found_line && offset) {
+  if(found_line) {
     uintptr_t faddr = found_line->addr + node->base;
-    *offset = addr > faddr ? (ssize_t)(addr - faddr) : (ssize_t)(-1 * (faddr - addr));
+    ssize_t off = addr > faddr ? (ssize_t)(addr - faddr) : (ssize_t)(-(faddr - addr));
+    // throw away clearly badly resolved source lines (more than 4k offset)
+    if (off > 0x1000) found_line = NULL;
+    else if (offset) *offset = off;
   }
   if (found_function) {
+    //mtevL(mtev_stderr, "Found function! %08lx -> %08lx : %s\n", addr, found_function->addr, found_function->file_or_fn);
     *fn_name = found_function->file_or_fn;
+    *fn_offset = addr - found_function->addr;
   }
 #else
   (void)addr;
@@ -726,16 +729,19 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
   char addrpreline[16384];
   self = _lwp_self();
   addrtosymstr((void *)pc, addrpreline, sizeof(addrpreline));
-  ssize_t info_off = 0;
+  ssize_t line_off = 0;
   char *fn_name;
-  struct addr_map *addr_map = find_addr_map((uintptr_t)pc, &info_off, &fn_name);
+  uintptr_t fn_off = 0;
+  struct addr_map *line_map = find_addr_map((uintptr_t)pc, &line_off, &fn_name, &fn_off);
   mtev_print_stackline(ls, self, NULL, addrpreline);
-  if(addr_map) {
+  if(line_map) {
+    char fn_info[1024] = {'\0'};
     char buff[1024];
-    if(info_off > 256 || info_off < -256)
-      snprintf(buff, sizeof(buff), "\t(%s:%s%s%d off: %zd)", addr_map->file_or_fn, fn_name ? fn_name : "", fn_name ? ":" : "", addr_map->lineno, info_off);
+    if (fn_name) snprintf(fn_info, sizeof(fn_info), "%s+%"PRIx64":", fn_name, fn_off);
+    if(line_off > 256 || line_off < -256)
+      snprintf(buff, sizeof(buff), "\t(%s:%s%d off: %zd)", line_map->file_or_fn, fn_info, line_map->lineno, line_off);
     else
-      snprintf(buff, sizeof(buff), "\t(%s:%s%s%d)", addr_map->file_or_fn, fn_name ? fn_name : "", fn_name ? ":" : "", addr_map->lineno);
+      snprintf(buff, sizeof(buff), "\t(%s:%s%d)", line_map->file_or_fn, fn_info, line_map->lineno);
     mtev_print_stackline(ls, self, NULL, buff);
   }
   char *symname = strchr(addrpreline, '\'');
@@ -795,16 +801,17 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
       Dl_info dlip;
       void *base = NULL;
       int len = 0;
-      ssize_t info_off = 0;
+      ssize_t line_off = 0;
       const char *sname_dwarf = NULL;
-      struct addr_map *addr_map = find_addr_map((uintptr_t)callstack[i], &info_off, &sname_dwarf);
+      uintptr_t sname_off = 0;
+      struct addr_map *line_map = find_addr_map((uintptr_t)callstack[i], &line_off, &sname_dwarf, &sname_off);
       char buff[256];
       buff[0] = '\0';
-      if(addr_map) {
-        if(info_off > 256 || info_off < -256)
-          snprintf(buff, sizeof(buff), "\n\t(%s:%d off: %zd)", addr_map->file_or_fn, addr_map->lineno, info_off);
+      if(line_map) {
+        if(line_off > 256 || line_off < -256)
+          snprintf(buff, sizeof(buff), "\n\t(%s:%d off: %zd)", line_map->file_or_fn, line_map->lineno, line_off);
         else
-          snprintf(buff, sizeof(buff), "\n\t(%s:%d)", addr_map->file_or_fn, addr_map->lineno);
+          snprintf(buff, sizeof(buff), "\n\t(%s:%d)", line_map->file_or_fn, line_map->lineno);
       }
       mtevL(ls, "buff is %s\n", buff);
       const char *fname = NULL;
@@ -823,14 +830,17 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
       if(dladdr((void *)callstack[i], &dlip)) {
 #endif
         fname = dlip.dli_fname;
-        sname = dlip.dli_sname ? dlip.dli_sname : "";
-        if (sname_dwarf || dlip.dli_sname)
+        sname = dlip.dli_sname;
+        if (sname_dwarf || sname)
         {
-          base = dlip.dli_saddr ? dlip.dli_saddr : base;
-          len = snprintf(stackbuff, sizeof(stackbuff), "%s'%s+0x%"PRIx64"[0x%"PRIx64"]%s\n",
-                         fname, sname_dwarf ? sname_dwarf : sname,
-                         (uintptr_t)(callstack[i]-dlip.dli_saddr),
-                         (uintptr_t)(callstack[i]-base), buff);
+          //base = dlip.dli_saddr ? dlip.dli_saddr : base;
+          uintptr_t offset = 0;
+          if (sname_dwarf) offset = sname_off;
+          else offset = (uintptr_t)(callstack[i] - dlip.dli_saddr);
+          len = snprintf(stackbuff, sizeof(stackbuff), "%s'%s+0x%" PRIx64 "[0x%" PRIx64 "]%s\n",
+                         fname, sname ? sname : sname_dwarf,
+                         sname ? (uintptr_t)(callstack[i] - dlip.dli_saddr) : offset,
+                         (uintptr_t)(callstack[i] - base), buff);
         } else {
           len = snprintf(stackbuff, sizeof(stackbuff), "%s[0x%"PRIx64"]%s\n",
                          fname, (uintptr_t)(callstack[i]-base), buff);
