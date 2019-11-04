@@ -317,8 +317,8 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib, mtev_log_stre
       case DW_TAG_subprogram:
         if(dwarf_attrlist(sib, &attrs, &attrcount, &err) == DW_DLV_OK) {
           for(i=0; i<attrcount; i++) {
-            Dwarf_Half attrcode;            
-            if (dwarf_whatattr(attrs[i], &attrcode, &err) == DW_DLV_OK) {
+            Dwarf_Half attrcode;
+            if(dwarf_whatattr(attrs[i], &attrcode, &err) == DW_DLV_OK) {
               if (attrcode == DW_AT_type) {
                 dwarf_global_formref(attrs[i], &off, &err);
                 n.type = off;
@@ -557,6 +557,10 @@ find_addr_map(uintptr_t addr, ssize_t *offset, const char **fn_name, uintptr_t *
   struct addr_map *found_line = NULL;
   struct addr_map *found_function = NULL;
   mtev_log_stream_t dwarf_log = mtev_log_stream_find("debug/dwarf");
+  if (!debug_maps) {
+    mtevL(dwarf_log, "No dwarf symbol data has been loaded\n");
+    return NULL;
+  }
 #ifdef HAVE_LIBDWARF
   mtevL(dwarf_log, "Searching dwarf symbol data for address: %08lx\n", addr);
   struct dmap_node *node = NULL, *iter;
@@ -878,27 +882,37 @@ int mtev_backtrace(void **callstack, int cnt) {
 #endif
   return frames;
 }
+int global_in_stacktrace = 0;
 #if defined(__sun__)
 void mtev_stacktrace_ucontext(mtev_log_stream_t ls, ucontext_t *ucp) {
-  void* callstack[128];
+  if (ck_pr_fas_int(&global_in_stacktrace, 1))
+    return;
+  void *callstack[128];
   int frames = mtev_backtrace(callstack, 128);
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, (void *)ucp, callstack, frames);
+  global_in_stacktrace = 0;
 }
 #endif
 void mtev_stacktrace(mtev_log_stream_t ls) {
-  void* callstack[128];
+  if (ck_pr_fas_int(&global_in_stacktrace, 1))
+    return;
+  void *callstack[128];
   int frames = mtev_backtrace(callstack, 128);
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack, frames);
+  global_in_stacktrace = 0;
 }
 
 int
 mtev_aco_stacktrace(mtev_log_stream_t ls, aco_t *co) {
+  if (ck_pr_fas_int(&global_in_stacktrace, 1))
+    return 0;
   void *ips[128];
   char extra_thr[32];
   int cnt = mtev_aco_backtrace(co, ips, sizeof(ips)/sizeof(*ips));
   snprintf(extra_thr, sizeof(extra_thr), "/%" PRIx64, (uintptr_t)co);
   mtev_stacktrace_internal(ls, mtev_aco_stacktrace, extra_thr, NULL, ips, cnt);
   return cnt;
+  global_in_stacktrace = 0;
 }
 
 int mtev_aco_backtrace(aco_t *co, void **addrs, int addrs_len) {
