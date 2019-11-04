@@ -157,7 +157,7 @@ dup_filename(const char *in) {
   return out;
 }
 static void
-mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
+mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level, mtev_log_stream_t dwarf_log) {
   (void)level;
   Dwarf_Line *lines;
   char **srcfiles;
@@ -166,7 +166,6 @@ mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
   if(dwarf_srcfiles(die, &srcfiles, &nsrcfiles, &error)) {
     return;
   }
-  mtev_log_stream_t dwarf_log = mtev_log_stream_find("debug/dwarf");
   struct srcfilelist *mylist = calloc(1, sizeof(*mylist));
   mylist->next = node->files;
   node->files = mylist;
@@ -426,7 +425,7 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
         if(dwarf_siblingof(node->dbg, no_die, &cu_die, &error) != DW_DLV_OK) break;
         /* tag extract */
         extract_symbols(node, cu_die, dwarf_log);
-        mtev_register_die(node, cu_die, 0);
+        mtev_register_die(node, cu_die, 0, dwarf_log);
         dwarf_dealloc(node->dbg, cu_die, DW_DLA_DIE);
       }
     }
