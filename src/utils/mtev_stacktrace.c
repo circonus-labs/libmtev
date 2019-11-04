@@ -703,7 +703,7 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
   self = _lwp_self();
   addrtosymstr((void *)pc, addrpreline, sizeof(addrpreline));
   ssize_t line_off = 0;
-  const char *fn_name;
+  const char *fn_name = NULL;
   uintptr_t fn_off = 0;
   struct addr_map *line_map = find_addr_map((uintptr_t)pc, &line_off, &fn_name, &fn_off);
   mtev_print_stackline(ls, self, NULL, addrpreline);
