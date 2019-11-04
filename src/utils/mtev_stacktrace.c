@@ -82,8 +82,7 @@ static mtev_boolean (*global_file_symbol_filter)(const char *);
 
 typedef enum { NOT_SET, ADDR_MAP_LINE, ADDR_MAP_FUNCTION } addr_map_type_t;
 
-struct addr_map
-{
+struct addr_map {
   uintptr_t addr;
   int lineno;
   const char *file_or_fn;
@@ -307,6 +306,7 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib, mtev_log_stre
     Dwarf_Signed attrcount, i;
     Dwarf_Bool flag;
     struct symnode n = { .low = 0 };
+
     switch(tag) {
       case DW_TAG_variable:
         if(dwarf_attr(sib, DW_AT_external, &attr, &err) != DW_DLV_OK ||
@@ -318,10 +318,8 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib, mtev_log_stre
         if(dwarf_attrlist(sib, &attrs, &attrcount, &err) == DW_DLV_OK) {
           for(i=0; i<attrcount; i++) {
             Dwarf_Half attrcode;            
-            if (dwarf_whatattr(attrs[i], &attrcode, &err) == DW_DLV_OK)
-            {
-              if (attrcode == DW_AT_type)
-              {
+            if (dwarf_whatattr(attrs[i], &attrcode, &err) == DW_DLV_OK) {
+              if (attrcode == DW_AT_type) {
                 dwarf_global_formref(attrs[i], &off, &err);
                 n.type = off;
                 struct typenode *t = cache_type(node, off);
@@ -365,8 +363,7 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib, mtev_log_stre
               copy->low = n.low;
               copy->high = n.high;
               copy->type = n.type;
-              if (mtev_skiplist_insert(symtable, copy) == NULL)
-              {
+              if (mtev_skiplist_insert(symtable, copy) == NULL) {
                 free(copy->name);
                 free(copy);
               }
@@ -442,9 +439,7 @@ mtev_dwarf_refresh_file(const char *file, uintptr_t base) {
   struct dmap_node *node;
   if(!file || strlen(file) == 0) return;
   if(global_file_filter && global_file_filter(file)) return;
-  if(!debug_maps) {
-    debug_maps = mtev_dwarf_load(file, base);
-  }
+  if(!debug_maps) debug_maps = mtev_dwarf_load(file, base);
   else {
     struct dmap_node *prev = NULL;
     for(node = debug_maps; node; node = node->next) {
@@ -566,20 +561,18 @@ find_addr_map(uintptr_t addr, ssize_t *offset, const char **fn_name, uintptr_t *
   mtevL(dwarf_log, "Searching dwarf symbol data for address: %08lx\n", addr);
   struct dmap_node *node = NULL, *iter;
   for(iter = debug_maps; iter; iter = iter->next) {
-  mtevL(dwarf_log, "Searching nodes: %s (Base: %08lx)\n", iter->file, iter->base);
+    mtevL(dwarf_log, "Searching nodes: %s (Base: %08lx)\n", iter->file, iter->base);
     if(iter->base <= addr) {
       if(!node) node = iter;
       else if(iter->base > node->base) node = iter;
     }
   }
-  if(!node)
-  {
+  if(!node) {
     mtevL(dwarf_log, "Address %08lx not found in any node!\n", addr);
     return NULL;
   }
   mtevL(dwarf_log, "Address %08lx found in node: %s (Base: %08lx)\n", addr, node->file, node->base);
-  for (struct addr_map *addr_map = node->addr_map; addr_map; addr_map = addr_map->next)
-  {
+  for (struct addr_map *addr_map = node->addr_map; addr_map; addr_map = addr_map->next) {
     if(node->base + addr_map->addr <= addr) {
       if (addr_map->type == ADDR_MAP_LINE) {
         found_line = addr_map;
@@ -806,8 +799,7 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
 #endif
         fname = dlip.dli_fname;
         sname = dlip.dli_sname;
-        if (sname_dwarf || sname)
-        {
+        if (sname_dwarf || sname) {
           //base = dlip.dli_saddr ? dlip.dli_saddr : base;
           uintptr_t offset = 0;
           if (sname_dwarf) offset = sname_off;
