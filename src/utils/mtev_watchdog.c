@@ -402,11 +402,11 @@ void mtev_watchdog_on_crash_close_add_fd(int fd) {
 void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
 #if defined(__sun__)
   (void)si;
-  mtev_stacktrace_ucontext(mtev_error, uc);
+  mtev_stacktrace_ucontext(mtev_error_stacktrace, uc);
 #else
   (void)si;
   (void)uc;
-  mtev_stacktrace(mtev_error);
+  mtev_stacktrace(mtev_error_stacktrace);
 #endif
   raise(sig);
 }
@@ -459,10 +459,10 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
 
     /* attempt a simple stack trace */
 #if defined(__sun__)
-    mtev_stacktrace_ucontext(mtev_error, uc);
+    mtev_stacktrace_ucontext(mtev_error_stacktrace, uc);
 #else
     (void)uc;
-    mtev_stacktrace(mtev_error);
+    mtev_stacktrace(mtev_error_stacktrace);
 #endif
 
     if(allow_async_dumps) { 
@@ -914,7 +914,7 @@ void mtev_watchdog_override_timeout(mtev_watchdog_t *lifeline, double timeout) {
   lifeline->timeout_override = timeout;
 }
 double mtev_watchdog_get_timeout(mtev_watchdog_t *lifeline) {
-  if(lifeline == NULL) return 0;
+  if(lifeline == NULL) lifeline = mmap_lifelines;
   if(lifeline->timeout_override != 0.0) return lifeline->timeout_override;
   return global_child_watchdog_timeout;
 }

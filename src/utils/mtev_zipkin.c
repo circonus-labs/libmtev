@@ -626,7 +626,7 @@ void mtev_zipkin_attach_to_eventer(eventer_t e, Zipkin_Span *span, bool new_chil
   zipkin_eventer_ctx_t *ctx = get_my_ctx(e);
   if(ctx) zipkin_eventer_ctx_free(ctx);
   const char *cbname = NULL;
-  if(new_child) eventer_name_for_callback_e(eventer_get_callback(e), e);
+  if(new_child) cbname = eventer_name_for_callback_e(eventer_get_callback(e), e);
   ctx = mtev_zipkin_new_ctx(span, cbname, new_child, track);
   eventer_set_context(e, zipkin_ctx_idx, ctx);
 }

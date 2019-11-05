@@ -122,6 +122,7 @@ extern mtev_log_stream_t mtev_stderr;
 extern mtev_log_stream_t mtev_debug;
 extern mtev_log_stream_t mtev_error;
 extern mtev_log_stream_t mtev_notice;
+extern mtev_log_stream_t mtev_error_stacktrace;
 
 #define N_L_S_ON(ls) ((ls != NULL) && (*((unsigned *)ls) & MTEV_LOG_STREAM_ENABLED) && mtev_log_has_material_output(ls))
 

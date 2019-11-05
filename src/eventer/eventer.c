@@ -309,6 +309,7 @@ free_callback_details(void *vcd) {
   }
 }
 
+ck_spinlock_t naming_write_lock;
 static ck_hs_t __name_to_func;
 static ck_hs_t __func_to_name;
 int eventer_name_callback(const char *name, eventer_func_t f) {
@@ -330,11 +331,13 @@ int eventer_name_callback_ext(const char *name,
   cd->latency = stats_register(ns, "latency", STATS_TYPE_HISTOGRAM);
   stats_handle_units(cd->latency, STATS_UNITS_SECONDS);
   unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, cd);
+  unsigned long hash2 = CK_HS_HASH(&__name_to_func, __ck_hash_from_fname, cd);
+  ck_spinlock_lock(&naming_write_lock);
   (void)ck_hs_set(&__func_to_name, hash, cd, (void **)&old);
-  hash = CK_HS_HASH(&__name_to_func, __ck_hash_from_fname, cd);
-  if(ck_hs_set(&__name_to_func, hash, cd, (void **)&old) && old != NULL) {
+  if(ck_hs_set(&__name_to_func, hash2, cd, (void **)&old) && old != NULL) {
     free_callback_details(old);
   }
+  ck_spinlock_unlock(&naming_write_lock);
   return 0;
 }
 eventer_func_t eventer_callback_for_name(const char *name) {
@@ -360,6 +363,7 @@ stats_handle_t *eventer_latency_handle_for_callback(eventer_func_t f) {
 const char *eventer_name_for_callback_e(eventer_func_t f, eventer_t e) {
   struct callback_details *cd, key = { .fptr = (void *)f };
   unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, &key);
+again:
   cd = (struct callback_details *)ck_hs_get(&__func_to_name, hash, &key);
   if(cd) {
     if(cd->functional_name && e) {
@@ -380,10 +384,16 @@ const char *eventer_name_for_callback_e(eventer_func_t f, eventer_t e) {
     struct callback_detail *old;
     cd = calloc(1, sizeof(*cd));
     cd->fptr = f;
-    unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, cd);
+    ck_spinlock_lock(&naming_write_lock);
+    if(NULL != ck_hs_get(&__func_to_name, hash, &key)) {
+      ck_spinlock_unlock(&naming_write_lock);
+      free(cd);
+      goto again;
+    }
     if(ck_hs_set(&__func_to_name, hash, cd, (void **)&old) && old != NULL) {
       free_callback_details(old);
     }
+    ck_spinlock_unlock(&naming_write_lock);
   } else {
     eventer_name_callback(dyn, f);
     return dyn;
@@ -409,6 +419,7 @@ int eventer_choose(const char *name) {
 void eventer_init_globals(void) {
   eventer_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "eventer");
   stats_ns_add_tag(eventer_stats_ns, "mtev", "eventer");
+  ck_spinlock_init(&naming_write_lock);
   if(ck_hs_init(&__name_to_func,
                 CK_HS_MODE_OBJECT | CK_HS_MODE_SPMC,
                 __ck_hash_from_fname, __ck_hash_compare_fname,

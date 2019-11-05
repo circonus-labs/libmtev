@@ -760,7 +760,7 @@ line feeds in your log lines explicitly.</p>
 </code></pre>
 <p>Retrieve an arbitrary property from a log stream.</p>
 <h3 id="adding-custom-logging-types">Adding custom logging types</h3>
-<p>Libmtev ships with three logging types: <code>memory</code>, <code>file</code>, and <code>jlog</code>.  The system is extensible and additional
+<p>Libmtev ships with four logging types: <code>memory</code>, <code>file</code>, <code>file_synch</code>, and <code>jlog</code>.  The system is extensible and additional
 types can be added.  Those types do not have the benefit of existence checking as the logging is initialized before
 dynamic modules are loaded and new logging types are typically added via dynamic modules.  This chicken-and-egg issue
 requires us to load log_streams with unknown types and resolve them post-facto.</p>
@@ -883,4 +883,3 @@ requires us to load log_streams with unknown types and resolve them post-facto.<
 
     </body>
 </html>
-

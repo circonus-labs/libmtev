@@ -5,6 +5,24 @@
 ## 1.9
 
  * lua: Fix mtev.timezone():extract(...,"offset") function
+ * Adopt aklomp/base64 implementation for better performance.
+ * Allow crash stacktraces to be redirected optionally onto
+   different log outlet
+ * Add file_synch log type
+
+### 1.9.2
+
+ * Fix race in implicit eventer callback naming.
+ * Fix zipkin spans to have appropriate callback names.
+
+### 1.9.1
+
+ * Fix http/1 and http/2 issues moving requests into and out
+   of ACO mode. (symptom hangs and crashes when mixing
+   ACO and non-ACO request service on a single http session).
+ * Fix leaks in initial logging setup.
+ * Make mtev_heartbeat_timeout return the default heartbeat when
+   NULL is passed.
 
 ### 1.9.0
 

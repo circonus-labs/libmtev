@@ -33,14 +33,8 @@
 
 #include "mtev_config.h"
 #include "mtev_b64.h"
+#include "aklomp-base64/include/libbase64.h"
 #include <ctype.h>
-
-static const char __b64[] = {
-  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-  'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-  'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-  'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/', 0x00 };
 
 int
 mtev_b64_decode(const char *src, size_t src_len,
@@ -59,6 +53,12 @@ mtev_b64_decode(const char *src, size_t src_len,
   else if(src_len > 1 && src[src_len-2] != '=' && src[src_len-1] != '=') {
     if(dest_len < needed) return 0;
   }
+  /* Attempt The aklomp fast decode */
+  size_t used_len = dest_len;
+  if(base64_decode(src, src_len, (char *)dest, &used_len, 0) == 1) {
+    return used_len;
+  }
+  /* Otherwise fallback to the slow path */
   while(cp <= ((unsigned char *)src+src_len)) {
     if((*cp >= 'A') && (*cp <= 'Z')) ch = *cp - 'A';
     else if((*cp >= 'a') && (*cp <= 'z')) ch = *cp - 'a' + 26;
@@ -106,14 +106,10 @@ mtev_b64_encode(const unsigned char *src, size_t src_len,
 int
 mtev_b64_encodev(const struct iovec *iov, size_t iovcnt,
                  char *dest, size_t dest_len) {
-  const unsigned char *bptr;
   size_t iov_index;
   size_t src_len;
   char *eptr = dest;
-  size_t len;
   size_t n;
-  unsigned char crossiovbuf[3];
-  size_t crossiovlen;
 
   src_len = 0;
   for (iov_index = 0; iov_index < iovcnt; iov_index++)
@@ -122,56 +118,17 @@ mtev_b64_encodev(const struct iovec *iov, size_t iovcnt,
 
   if(dest_len < n) return 0;
 
-  iov_index = 0;
-  bptr = (unsigned char *) iov[0].iov_base;
-  len = iov[0].iov_len;
-  while (src_len > 0) {
-    while (len > 2) {
-      *eptr++ = __b64[bptr[0] >> 2];
-      *eptr++ = __b64[((bptr[0] & 0x03) << 4) + (bptr[1] >> 4)];
-      *eptr++ = __b64[((bptr[1] & 0x0f) << 2) + (bptr[2] >> 6)];
-      *eptr++ = __b64[bptr[2] & 0x3f];
-      bptr += 3;
-      src_len -= 3;
-      len -= 3;
-    }
-    crossiovlen = 0;
-    while (src_len > 0 && crossiovlen < sizeof(crossiovbuf))
-    {
-      while (len > 0 && crossiovlen < sizeof(crossiovbuf)) {
-        crossiovbuf[crossiovlen] = *bptr;
-        crossiovlen++;
-        bptr++;
-        src_len--;
-        len--;
-      }
-      if (crossiovlen < sizeof(crossiovbuf) && src_len > 0) {
-        iov_index++;
-        bptr = (unsigned char *) iov[iov_index].iov_base;
-        len = iov[iov_index].iov_len;
-      }
-    }
-    if (crossiovlen > 0) {
-      *eptr++ = __b64[crossiovbuf[0] >> 2];
-      if (crossiovlen == 1) {
-        *eptr++ = __b64[(crossiovbuf[0] & 0x03) << 4];
-        *eptr++ = '=';
-        *eptr = '=';
-      }
-      else {
-        *eptr++ = __b64[((crossiovbuf[0] & 0x03) << 4) + (crossiovbuf[1] >> 4)];
-        if (crossiovlen == 2) {
-          *eptr++ = __b64[(crossiovbuf[1] & 0x0f) << 2];
-          *eptr = '=';
-        }
-        else {
-          *eptr++ = __b64[((crossiovbuf[1] & 0x0f) << 2) + (crossiovbuf[2] >> 6)];
-          *eptr++ = __b64[crossiovbuf[2] & 0x3f];
-        }
-      }
-    }
+  struct base64_state bstate;
+  base64_stream_encode_init(&bstate, 0);
+  size_t outlen = 0;
+  for(iov_index = 0; iov_index < iovcnt; iov_index++) {
+    base64_stream_encode(&bstate, iov[iov_index].iov_base, iov[iov_index].iov_len,
+                         eptr, &outlen);
+    eptr += outlen;
   }
-  return n;
+  base64_stream_encode_final(&bstate, eptr, &outlen);
+  eptr += outlen;
+  return eptr - dest;
 }
 
 size_t
