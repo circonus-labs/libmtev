@@ -1604,7 +1604,7 @@ mtev_lua_timezone_extract(lua_State *L) {
     else if(!strcmp(field, "month")) lua_pushinteger(L, res->tm_mon+1);
     else if(!strcmp(field, "year")) lua_pushinteger(L, res->tm_year+1900);
     else if(!strcmp(field, "dst")) lua_pushboolean(L, res->tm_isdst);
-    else if(!strcmp(field, "offset")) lua_pushboolean(L, libtz_tzzone_offset(tz));
+    else if(!strcmp(field, "offset")) lua_pushnumber(L, libtz_tzzone_offset(tz));
     else if(!strcmp(field, "zonename")) lua_pushstring(L, libtz_tzzone_name(tz));
     else luaL_error(L, "unknown extraction '%s'", field);
     nresults++;

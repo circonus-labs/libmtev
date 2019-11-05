@@ -4,6 +4,8 @@
 
 ## 1.9
 
+ * lua: Fix mtev.timezone():extract(...,"offset") function
+
 ### 1.9.0
 
  * Add @name and @skipto options for rest ACL rules.
