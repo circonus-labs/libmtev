@@ -9,6 +9,7 @@
  * Allow crash stacktraces to be redirected optionally onto
    different log outlet
  * Add file_synch log type
+ * Add lua mtev.process:status to get status of a spawned process
 
 ### 1.9.2
 

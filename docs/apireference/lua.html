@@ -1374,6 +1374,17 @@ mtev.Proc:start()
 <ul>
 <li><strong>RETURN</strong> self</li>
 </ul>
+<h4 id="mtevprocstatus">>mtev.Proc:status</h4>
+<blockquote>
+<p>check the status of a spawned process</p>
+</blockquote>
+<pre><code class="lang-lua">result, status, errno =
+mtev.Proc:status()
+</code></pre>
+<ul><li><strong>RETURN</strong> result is the pid if the process changed state, -1 if error (errno will
+hold the error code), 0 if no change to status; status will be set if process changed state, errno
+as in mtev.process:wait().  In the case of process state change, status is passed through the WEXITSTATUS() before returning.</li>
+</ul>
 <h4 id="mtevprocwait">mtev.Proc:wait</h4>
 <blockquote>
 <p>wait for a process to terminate</p>
@@ -1416,6 +1427,17 @@ mtev.process:pid()
 </code></pre>
 <ul>
 <li><strong>RETURN</strong> The process id.</li>
+</ul>
+<h4 id="mtevprocstatus">>mtev.process:status</h4>
+<blockquote>
+<p>check the status of a spawned process</p>
+</blockquote>
+<pre><code class="lang-lua">result, status, errno =
+mtev.process:status()
+</code></pre>
+<ul><li><strong>RETURN</strong> result is the pid if the process changed state, -1 if error (errno will
+hold the error code), 0 if no change to status; status will be set if process changed state, errno
+as in mtev.process:wait().  In the case of process state change, status is passed through the WEXITSTATUS() before returning.</li>
 </ul>
 <h4 id="mtevprocesswait">mtev.process:wait</h4>
 <blockquote>
@@ -1940,4 +1962,3 @@ mtev.xmlnode:<span class="hljs-built_in">next</span>()
 
     </body>
 </html>
-

@@ -4846,6 +4846,34 @@ mtev_lua_process_pid(lua_State *L) {
   return 1;
 }
 
+/*! \lua result, status, errno = mtev.process:status()
+\brief Return the status of a spawned process.
+\return The return code from waitpid, a status if waitpid shows process changed state,
+        and an errno if the waitpid call failed.
+*/
+static int
+mtev_lua_process_status(lua_State *L) {
+  int rv, status;
+  struct spawn_info *spawn_info;
+  /* the first arg is implicitly self (it's a method) */
+  spawn_info = lua_touserdata(L, lua_upvalueindex(1));
+  if(spawn_info != lua_touserdata(L, 1))
+    luaL_error(L, "must be called as method");
+
+  while((rv = waitpid(spawn_info->pid, &status, WNOHANG)) == -1 && errno == EINTR);
+  lua_pushinteger(L, rv);
+  if (rv == spawn_info->pid) {
+    lua_pushinteger(L, status);
+    return 2;
+  }
+  else if (rv < 0) {
+    lua_pushnil(L);
+    lua_pushinteger(L, errno);
+    return 3;
+  }
+  return 1;
+}
+
 static int
 mtev_lua_process_kill_internal(lua_State *L, pid_t pid) {
   struct spawn_info *spawn_info;
@@ -5090,6 +5118,9 @@ mtev_lua_process_index_func(lua_State *L) {
     case 'p':
       LUA_DISPATCH(pid, mtev_lua_process_pid);
       LUA_DISPATCH(pgkill, mtev_lua_process_pgkill);
+      break;
+    case 's':
+      LUA_DISPATCH(status, mtev_lua_process_status);
       break;
     case 'w':
       LUA_DISPATCH(wait, mtev_lua_process_wait);

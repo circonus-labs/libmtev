@@ -1068,6 +1068,21 @@ mtev.Proc:start()
   * **RETURN** self
 
 
+#### mtev.Proc:status
+
+> check the status of a spawned process
+
+```lua
+result, status, errno =
+mtev.Proc:status()
+```
+
+
+  * **RETURN** result is the pid if the process changed state, -1 if error (errno will hold the
+ error code), 0 if no change to status; status will be set if process changed state, errno as in
+ mtev.process:wait().  In the case of process state change, status is passed throught the WEXITSTATUS() before returning.
+
+
 #### mtev.Proc:wait
 
 >wait for a process to terminate
@@ -1121,6 +1136,22 @@ mtev.process:pid()
 
 
   * **RETURN** The process id.
+
+
+#### mtev.process:status
+
+> check the status of a spawned process
+
+```lua
+result, status, errno =
+mtev.process:status()
+```
+
+
+  * **RETURN** result is the pid if the process changed state, -1 if error (errno will hold the
+ error code), 0 if no change to status; status will be set if process changed state, errno as in
+ mtev.process:wait().  In the case of process state change, status is passed throught the WEXITSTATUS() before returning.
+
 
 
 #### mtev.process:wait
@@ -1752,5 +1783,3 @@ mtev.xmlnode:next()
 ```
 
   * **RETURN** next sibling xml node
-
-

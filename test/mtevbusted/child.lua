@@ -233,6 +233,11 @@ function TestProc:pid()
   return self.proc:pid()
 end
 
+function TestProc:status()
+  if self.proc == nil then return -1 end
+  return self.proc:status()
+end
+
 function start_child(props)
   local proc = TestProc:new(props)
   proc:start()
