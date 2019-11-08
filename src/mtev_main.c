@@ -363,6 +363,11 @@ mtev_main(const char *appname,
   mtev_zipkin_default_service_name(appname, mtev_true);
   mtev_zipkin_eventer_init();
 
+  char *dwarf_disable = getenv("MTEV_DWARF");
+  if(dwarf_disable && 0 == strcmp(dwarf_disable, "0")) {
+    mtev_dwarf_disable();
+  }
+
   char *require_invariant_tsc = getenv("MTEV_RDTSC_REQUIRE_INVARIANT");
   if (require_invariant_tsc && strcmp(require_invariant_tsc, "0") == 0) {
     mtev_time_toggle_require_invariant_tsc(mtev_false);

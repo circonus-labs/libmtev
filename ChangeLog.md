@@ -9,6 +9,8 @@
  * Allow crash stacktraces to be redirected optionally onto
    different log outlet
  * Add file_synch log type
+ * Add MTEV_DWARF=0 environment option to suppress dwarf section
+   analysis.
 
 ### 1.9.2
 
