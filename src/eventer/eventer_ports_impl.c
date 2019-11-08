@@ -337,7 +337,7 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   eventer_deref(e);
   release_master_fd(fd, lockstate);
 }
-static int eventer_ports_impl_loop(int id) {
+static int eventer_ports_impl_loop(int id, eventer_impl_data_t *t) {
   (void)id;
   struct timeval __dyna_sleep = { 0, 0 };
   struct ports_spec *spec;
@@ -355,7 +355,7 @@ static int eventer_ports_impl_loop(int id) {
  
     __sleeptime = __dyna_sleep;
 
-    eventer_dispatch_timed(&__sleeptime);
+    eventer_dispatch_timed(t, &__sleeptime);
 
     if(compare_timeval(__sleeptime, __dyna_sleep) > 0)
       __sleeptime = __dyna_sleep;
@@ -363,10 +363,10 @@ static int eventer_ports_impl_loop(int id) {
     eventer_adjust_max_sleeptime(&__sleeptime);
 
     /* Handle cross_thread dispatches */
-    eventer_cross_thread_process();
+    eventer_cross_thread_process(t);
 
     /* Handle recurrent events */
-    eventer_dispatch_recurrent();
+    eventer_dispatch_recurrent(t);
 
     /* Now we move on to our fd-based events */
     __ports_sleeptime.tv_sec = __sleeptime.tv_sec;
