@@ -11,6 +11,8 @@
  * Add file_synch log type
  * Add MTEV_DWARF=0 environment option to suppress dwarf section
    analysis.
+ * Allow FD-based log outlets (e.g. stderr) to be asynch and make
+   them asynch by default.
 
 ### 1.9.2
 
