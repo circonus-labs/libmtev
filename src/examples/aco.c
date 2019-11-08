@@ -148,6 +148,29 @@ static int upload_handler(mtev_http_rest_closure_t *restc,
   mtev_http_response_end(ctx);
   return 0;
 }
+static int json_handler(mtev_http_rest_closure_t *restc,
+                        int npats, char **pats) {
+  (void)npats;
+  (void)pats;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  mtev_http_response_ok(ctx, "application/json");
+  mtev_http_response_header_set(ctx, "Content-Length", "27");
+  mtev_http_response_append(ctx, "{\"message\":\"Hello, world!\"}", 27);
+  mtev_http_response_end(ctx);
+  return 0;
+}
+static int plaintext_handler(mtev_http_rest_closure_t *restc,
+                             int npats, char **pats) {
+  (void)npats;
+  (void)pats;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  mtev_http_response_ok(ctx, "text/plain");
+  mtev_http_response_header_set(ctx, "Content-Length", "13");
+  mtev_http_response_append(ctx, "Hello, world!", 13);
+  mtev_http_response_end(ctx);
+  return 0;
+}
+
 static int hello_handler(mtev_http_rest_closure_t *restc,
                          int npats, char **pats) {
   (void)npats;
@@ -200,7 +223,7 @@ static void
 ping(void) {
   while(1) {
     mtevEL(mtev_debug, MLKV { MLKV_STR("key1", "a string"), MLKV_END }, "ping...\n");
-    eventer_aco_sleep(&(struct timeval){ 1UL, 0UL });
+    eventer_aco_sleep(&(struct timeval){ 0UL, 10000UL });
   }
 }
 static int
@@ -235,7 +258,17 @@ child_main(void) {
   mtev_conf_coalesce_changes(10); /* 10 seconds of no changes before we write */
   mtev_conf_watch_and_journal_watchdog(NULL, NULL);
 
-  mtev_rest_mountpoint_t *rule = mtev_http_rest_new_rule(
+  mtev_rest_mountpoint_t *rule;
+
+  rule = mtev_http_rest_new_rule(
+    "GET", "/", "^plaintext$", plaintext_handler
+  );
+
+  rule = mtev_http_rest_new_rule(
+    "GET", "/", "^json$", json_handler
+  );
+
+  rule = mtev_http_rest_new_rule(
     "GET", "/", "^hello$", hello_handler
   );
   mtev_rest_mountpoint_set_auth(rule, mtev_http_rest_client_cert_auth);
