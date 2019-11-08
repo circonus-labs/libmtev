@@ -2447,7 +2447,7 @@ asynch_log_ctx boot_stderr_actx = {
   .name = "posix",
   .write = posix_logio_asynch_write,
   .userdata = &boot_stderr_posix_op_ctx,
-  .is_asynch = 1
+  .is_asynch = 0
 };
 
 pthread_rwlock_t boot_stderr_ls_lock = PTHREAD_RWLOCK_INITIALIZER;
