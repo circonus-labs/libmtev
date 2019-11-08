@@ -8,6 +8,11 @@ any libmtev application.
 
    If set to 1 it will enable the `debug/eventer` log stream.
 
+ * ##### MTEV_DWARF
+
+   If set to 0, dwarf sections will not be analyzed to make human readable
+   stacktraces.
+
  * ##### MTEV_JIT_OFF
 
    If set to 1 it will disable the JIT within the lua module.

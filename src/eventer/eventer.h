@@ -647,6 +647,8 @@ API_EXPORT(uint64_t) eventer_callback_us(void);
 API_EXPORT(int) NE_SOCK_CLOEXEC;
 API_EXPORT(int) NE_O_CLOEXEC;
 
+typedef struct eventer_impl_data eventer_impl_data_t;
+
 typedef struct _eventer_impl {
   const char         *name;
   int               (*init)(void);
@@ -657,7 +659,7 @@ typedef struct _eventer_impl {
   eventer_t         (*remove_fd)(int fd);
   eventer_t         (*find_fd)(int fd);
   void              (*trigger)(eventer_t e, int mask);
-  int               (*loop)(int id);
+  int               (*loop)(int id, eventer_impl_data_t *);
   void              (*foreach_fdevent)(void (*f)(eventer_t, void *), void *);
   void              (*wakeup)(eventer_t);
   void             *(*alloc_spec)(void);

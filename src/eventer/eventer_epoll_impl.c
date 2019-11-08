@@ -459,7 +459,7 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   eventer_deref(e);
   release_master_fd(fd, lockstate);
 }
-static int eventer_epoll_impl_loop(int id) {
+static int eventer_epoll_impl_loop(int id, eventer_impl_data_t *t) {
   (void)id;
   struct epoll_event *epev;
   struct epoll_spec *spec;
@@ -485,15 +485,15 @@ static int eventer_epoll_impl_loop(int id) {
 
     __sleeptime = eventer_max_sleeptime;
 
-    eventer_dispatch_timed(&__sleeptime);
+    eventer_dispatch_timed(t, &__sleeptime);
 
     eventer_adjust_max_sleeptime(&__sleeptime);
 
     /* Handle cross_thread dispatches */
-    eventer_cross_thread_process();
+    eventer_cross_thread_process(t);
 
     /* Handle recurrent events */
-    eventer_dispatch_recurrent();
+    eventer_dispatch_recurrent(t);
 
     /* Now we move on to our fd-based events */
     do {

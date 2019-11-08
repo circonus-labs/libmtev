@@ -9,6 +9,12 @@
  * Allow crash stacktraces to be redirected optionally onto
    different log outlet
  * Add file_synch log type
+ * Add MTEV_DWARF=0 environment option to suppress dwarf section
+   analysis.
+ * Allow FD-based log outlets (e.g. stderr) to be asynch and make
+   them asynch by default.
+ * Add `no_delay` listener option support. Default is `on`.
+ * Improve eventer performance (code optimization).
 
 ### 1.9.2
 
