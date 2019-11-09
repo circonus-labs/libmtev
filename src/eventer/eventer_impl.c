@@ -1183,7 +1183,7 @@ void eventer_dispatch_timed(struct eventer_impl_data *t, struct timeval *next) {
     eventer_t timed_event;
 
     eventer_mark_callback_time(t);
-    eventer_gettimeofcallback(&now, NULL);
+    eventer_gettimeofcallback(t, &now, NULL);
 
     pthread_mutex_lock(&t->te_lock);
     /* Peek at our next timed event, if should fire, pop it.
@@ -1310,7 +1310,7 @@ void eventer_dispatch_recurrent(eventer_impl_data_t *t) {
   mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
 
   eventer_mark_callback_time(t);
-  eventer_gettimeofcallback(&__now, NULL);
+  eventer_gettimeofcallback(t, &__now, NULL);
 
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
@@ -1352,15 +1352,16 @@ eventer_t eventer_remove_recurrent(eventer_t e) {
   return NULL;
 }
 
-int eventer_gettimeofcallback(struct timeval *now, void *tzp) {
-  struct eventer_impl_data *t;
-  if(NULL != (t = get_my_impl_data())) {
+int eventer_gettimeofcallback(struct eventer_impl_data *t, struct timeval *now, void *tzp) {
+  if(t == NULL) t = get_my_impl_data();
+  if(t) {
     now->tv_sec = t->last_cb_ns / NS_PER_S;
     now->tv_usec = (t->last_cb_ns % NS_PER_S) / NS_PER_US;
     return 0;
   }
   return mtev_gettimeofday(now, tzp);
 }
+
 uint64_t eventer_callback_ms(void) {
   struct eventer_impl_data *t;
   if(NULL != (t = get_my_impl_data())) {

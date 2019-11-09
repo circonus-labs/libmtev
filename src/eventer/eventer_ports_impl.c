@@ -281,8 +281,9 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   }
   mtevAssert(lockstate == EV_OWNED);
 
-  eventer_mark_callback_time();
-  eventer_gettimeofcallback(&__now, NULL);
+  eventer_mark_callback_time(NULL);
+  eventer_gettimeofcallback(NULL, &__now, NULL);
+
   cbname = eventer_name_for_callback_e(e->callback, e);
   mtevL(eventer_deb, "ports: fire on %d/%x to %s(%p)\n",
         fd, mask, cbname?cbname:"???", e->callback);

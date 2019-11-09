@@ -351,8 +351,8 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   }
   mtevAssert(lockstate == EV_OWNED);
 
-  eventer_mark_callback_time();
-  eventer_gettimeofcallback(&__now, NULL);
+  eventer_mark_callback_time(NULL);
+  eventer_gettimeofcallback(NULL, &__now, NULL);
   /* We're going to lie to ourselves.  You'd think this should be:
    * oldmask = e->mask;  However, we just fired with masks[fd], so
    * kqueue is clearly looking for all of the events in masks[fd].
