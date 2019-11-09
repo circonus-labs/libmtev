@@ -582,7 +582,6 @@ mtev_main(const char *appname,
   pid_t pid = getpid();
   mtevEL(mtev_notice, MLKV{ MLKV_INT64("pid", pid), MLKV_END }, "%s booting [manager, pid: %d]\n", appname, (int)pid);
   pthread_atfork(NULL, NULL, mtev_memory_gc_asynch);
-  mtev_log_go_asynch();
   rv = mtev_watchdog_start_child(appname, passed_child_main, watchdog_timeout);
   mtev_lockfile_release(lockfd);
   return rv;
