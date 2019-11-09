@@ -406,7 +406,7 @@ install-headers:	$(HEADERS) $(MAPPEDHEADERS)
 		$(INSTALL) -m 0644 $$file $(DESTDIR)$(includedir)/` echo $$file | sed -e 's/^[^\/]*\///'` ; \
 	done
 
-mtevlibs:	$(LIBMTEV_V) @MDB_MODS@ $(FAST_TIME_PRELOAD)
+mtevlibs:	$(LIBMTEV_V) $(LIBMTEVA) @MDB_MODS@ $(FAST_TIME_PRELOAD)
 
 luamtev.o:      luamtev.c luamtev.conf.tmpl
 
@@ -421,6 +421,7 @@ install-bins:	luamtev
 install-libs:	mtevlibs
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)
 	$(INSTALL) -m 0755 $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV_V)
+	$(INSTALL) -m 0644 $(LIBMTEVA) $(DESTDIR)$(libdir)/$(LIBMTEVA)
 	ln -sf $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV)
 	ln -sf $(LIBMTEV_V) $(DESTDIR)$(libdir)/$(LIBMTEV_MAJOR)
 	if test -n "@MDB_MODS@" ; then \
