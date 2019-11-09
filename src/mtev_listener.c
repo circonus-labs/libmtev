@@ -355,9 +355,15 @@ mtev_listener_acceptor(eventer_t e, int mask,
         struct protoent proto_buf, *proto;
         char buff[1024];
         int proto_n = -1;
+#ifdef __sun__
+        if(NULL != (proto = getprotobyname_r("tcp", &proto_buf, buff, sizeof(buff)))) {
+          proto_n = proto->p_proto;
+        }
+#else
         if(getprotobyname_r("tcp", &proto_buf, buff, sizeof(buff), &proto) == 0) {
           proto_n = proto->p_proto;
         }
+#endif
 #endif
         if(proto_n < 0) {
           mtevEL(nldeb, MLKV{ MLKV_INT64("errno", errno), MLKV_END }, "getprotobyname_r(\"tcp\") failed: %s\n",
