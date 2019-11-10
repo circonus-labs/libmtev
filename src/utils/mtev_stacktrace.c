@@ -283,8 +283,7 @@ static struct typenode *cache_type(struct dmap_node *node, Dwarf_Off off) {
   }
   return NULL;
 }
-static void extract_symbols(struct dmap_node *node, Dwarf_Die sib, mtev_log_stream_t dwarf_log) {
-  const char *tag_name;
+static void extract_symbols(struct dmap_node *node, Dwarf_Die sib, int depth, mtev_log_stream_t dwarf_log) {
   char *die_name;
   Dwarf_Error err;
   Dwarf_Half tag;
@@ -294,11 +293,13 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib, mtev_log_stre
 
   if(dwarf_child(sib, &child_die, &err) == DW_DLV_OK) {
     do {
-      extract_symbols(node, child_die, dwarf_log);
+      if(dwarf_tag(child_die, &tag, &err) == DW_DLV_OK &&
+         (tag == DW_TAG_variable || tag == DW_TAG_subprogram)) {
+        extract_symbols(node, child_die, depth+1, dwarf_log);
+      }
     } while(dwarf_siblingof(node->dbg, child_die, &child_die, &err) == DW_DLV_OK);
   }
   if(dwarf_tag(sib, &tag, &err) == DW_DLV_OK &&
-     dwarf_get_TAG_name(tag, &tag_name) == DW_DLV_OK &&
      dwarf_diename(sib, &die_name, &err) == DW_DLV_OK) {
     Dwarf_Attribute* attrs;
     Dwarf_Addr pc = 0;
@@ -350,8 +351,7 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib, mtev_log_stre
             }
           }
           if(n.low) {
-            mtevL(dwarf_log, "found symbol: %llu:%s, %p-%p\n", n.type, die_name, (void *)n.low,
-                  (void *)n.high);
+            mtevL(dwarf_log, "found symbol[%s]: %llu:%s, %p-%p\n", node->file, n.type, die_name, (void *)n.low, (void *)n.high);
             struct addr_map *head = calloc(1, sizeof(struct addr_map));
             head->addr = n.low - node->base;
             head->type = ADDR_MAP_FUNCTION;
@@ -422,7 +422,7 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
                                   &next_cu_header, &error) != DW_DLV_OK) break;
         if(dwarf_siblingof(node->dbg, no_die, &cu_die, &error) != DW_DLV_OK) break;
         /* tag extract */
-        extract_symbols(node, cu_die, dwarf_log);
+        extract_symbols(node, cu_die, 0, dwarf_log);
         mtev_register_die(node, cu_die, 0, dwarf_log);
         dwarf_dealloc(node->dbg, cu_die, DW_DLA_DIE);
       }
