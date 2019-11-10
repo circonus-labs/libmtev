@@ -4,6 +4,9 @@
 
 ## 1.9
 
+ * Fix issue with logging threads not starting for "file"
+   log types when daemonized.
+
 ### 1.9.4
 
  * Fix issue with stderr log failing during daemonization.

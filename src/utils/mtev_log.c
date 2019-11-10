@@ -583,7 +583,7 @@ asynch_logio_writer(void *vls) {
   mtev_thread_setname(thr_name);
   pthread_mutex_lock(&actx->singleton);
   mtevL(mtev_debug, "starting asynchronous %s writer[%d/%p]\n",
-        actx->name, (int)getpid(), (void *)(intptr_t)pthread_self());
+        ls->name, (int)getpid(), (void *)(intptr_t)pthread_self());
   while(gen == ck_pr_load_32(&actx->gen)) {
     pthread_rwlock_t *lock;
     int fast = 0, max = 1000;
@@ -609,7 +609,7 @@ asynch_logio_writer(void *vls) {
     }
   }
   mtevL(mtev_debug, "stopping asynchronous %s writer[%d/%p]\n",
-        actx->name, (int)getpid(), (void *)(intptr_t)pthread_self());
+        ls->name, (int)getpid(), (void *)(intptr_t)pthread_self());
   pthread_mutex_unlock(&actx->singleton);
   pthread_exit((void *)0);
 }
@@ -687,14 +687,17 @@ posix_logio_open(mtev_log_stream_t ls) {
 }
 static int
 posix_logio_reopen(mtev_log_stream_t ls) {
+  int rv = 0;
   asynch_log_ctx *actx = ls->op_ctx;
   if(ls->path) {
     struct posix_op_ctx *po;
     struct stat newpathsb, sb;
     pthread_rwlock_t *lock = ls->lock;
-    int newfd, rv = -1, oldrv = -1;
+    int newfd, oldrv = -1;
     if(lock) pthread_rwlock_wrlock(lock);
     po = actx->userdata;
+
+    rv = -1;
 
     /* Let's see if the we're looking at the right file already */
     while((oldrv = fstat(po->fd, &po->sb)) != 0 && errno == EINTR);
@@ -731,14 +734,13 @@ posix_logio_reopen(mtev_log_stream_t ls) {
     }
    out:
     if(lock) pthread_rwlock_unlock(lock);
-    return rv;
   }
   if(actx->is_asynch) {
     if(asynch_thread_create(ls, actx, asynch_logio_writer)) {
       return -1;
     }
   }
-  return 0;
+  return rv;
 }
 static int
 posix_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
