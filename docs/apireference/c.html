@@ -794,6 +794,24 @@ mtev_b64_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 <li><strong>RETURN</strong> The size of the buffer that would be needed to decode the input string.</li>
 </ul>
 <h3 id="c">C</h3>
+<h4 id="callback">callback</h4>
+<blockquote>
+<p>Get the time of the last invoked callback in this thread.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">eventer_gettimeofeventer_impl_data_t</span> *t,
+callback(<span class="hljs-keyword">struct</span> timeval *now, <span class="hljs-keyword">void</span> *tzp)
+</code></pre>
+<ul>
+<li><code>t</code> is the thread-local eventer data, if unknown pass NULL</li>
+<li><code>now</code> a <code>struct timeval</code> to populate with the request time.</li>
+<li><code>tzp</code> is ignored and for API compatibility with gettimeofday.</li>
+<li><strong>RETURN</strong> 0 on success, non-zero on failure.</li>
+</ul>
+<p>This function returns the time of the last callback execution.  It
+is fast and cheap (cheaper than gettimeofday), so if a function
+wishes to know what time it is and the &quot;time of invocation&quot; is good
+enough, this is considerably cheaper than a call to <code>mtev_gettimeofday</code>
+or other system facilities.</p>
 <h4 id="mtevclusteralivefilter">mtev_cluster_alive_filter</h4>
 <blockquote>
 <p>A <code>mtev_cluster_node_filter_func_t</code> for alive nodes.</p>
@@ -2475,22 +2493,6 @@ eventer_get_this_event(<span class="hljs-keyword">void</span>)
 <li><code>e</code> an event object</li>
 <li><strong>RETURN</strong> A absolute time.</li>
 </ul>
-<h4 id="eventergettimeofcallback">eventer_gettimeofcallback</h4>
-<blockquote>
-<p>Get the time of the last invoked callback in this thread.</p>
-</blockquote>
-<pre><code class="lang-c">eventer_gettimeofcallback(<span class="hljs-keyword">struct</span> timeval *now, <span class="hljs-keyword">void</span> *tzp)
-</code></pre>
-<ul>
-<li><code>now</code> a <code>struct timeval</code> to populate with the request time.</li>
-<li><code>tzp</code> is ignored and for API compatibility with gettimeofday.</li>
-<li><strong>RETURN</strong> 0 on success, non-zero on failure.</li>
-</ul>
-<p>This function returns the time of the last callback execution.  It
-is fast and cheap (cheaper than gettimeofday), so if a function
-wishes to know what time it is and the &quot;time of invocation&quot; is good
-enough, this is considerably cheaper than a call to <code>mtev_gettimeofday</code>
-or other system facilities.</p>
 <h4 id="eventerimplpropset">eventer_impl_propset</h4>
 <blockquote>
 <p>Set properties for the event loop.</p>

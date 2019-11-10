@@ -4,6 +4,11 @@
 
 ## 1.9
 
+### 1.9.4
+
+ * Fix issue with stderr log failing during daemonization.
+ * Update jquery to 3.4.1.
+
 ### 1.9.3
 
  * lua: Fix mtev.timezone():extract(...,"offset") function

@@ -189,6 +189,28 @@ mtev_b64_max_decode_len(size_t src_len)
 
 ### C
 
+#### callback
+
+>Get the time of the last invoked callback in this thread.
+
+```c
+eventer_gettimeofeventer_impl_data_t *t,
+callback(struct timeval *now, void *tzp)
+```
+
+
+  * `t` is the thread-local eventer data, if unknown pass NULL
+  * `now` a `struct timeval` to populate with the request time.
+  * `tzp` is ignored and for API compatibility with gettimeofday.
+  * **RETURN** 0 on success, non-zero on failure.
+
+This function returns the time of the last callback execution.  It
+is fast and cheap (cheaper than gettimeofday), so if a function
+wishes to know what time it is and the "time of invocation" is good
+enough, this is considerably cheaper than a call to `mtev_gettimeofday`
+or other system facilities.
+ 
+
 #### mtev_cluster_alive_filter
 
 >A `mtev_cluster_node_filter_func_t` for alive nodes.
@@ -2339,26 +2361,6 @@ eventer_get_whence(eventer_t e)
   * `e` an event object
   * **RETURN** A absolute time.
 
-
-#### eventer_gettimeofcallback
-
->Get the time of the last invoked callback in this thread.
-
-```c
-eventer_gettimeofcallback(struct timeval *now, void *tzp)
-```
-
-
-  * `now` a `struct timeval` to populate with the request time.
-  * `tzp` is ignored and for API compatibility with gettimeofday.
-  * **RETURN** 0 on success, non-zero on failure.
-
-This function returns the time of the last callback execution.  It
-is fast and cheap (cheaper than gettimeofday), so if a function
-wishes to know what time it is and the "time of invocation" is good
-enough, this is considerably cheaper than a call to `mtev_gettimeofday`
-or other system facilities.
- 
 
 #### eventer_impl_propset
 

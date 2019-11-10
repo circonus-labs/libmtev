@@ -729,7 +729,16 @@ exists with the specified name, the pool containing the listening event will be 
 <p>If <code>accept_thread</code> is <code>on</code>, a new dedicated thread will be spawned to handle accepting
 new connections in a blocking fashion.</p>
 </li>
+<li><h5 id="nodelay">no_delay</h5>
+<p>If <code>no_delay</code> is <code>off</code> or <code>false</code>, then <code>TCP_NODELAY</code> will not be activated
+on the accepted socket. The default is <code>on</code>.</p>
+</li>
+<li><h5 id="idletimeout">idle_timeout</h5>
+<p>Specifies a time in milliseconds afterwhich if the connection remains idle (no read or write traffic) it will be terminated.
+The protocol driver must cooperate programmatically to inform the system of such activity; the <code>mtev_console</code> and <code>http</code> protocols do this.</p>
+</li>
 </ul>
+<p>   Each listener can access the <code>config</code> passed to it; see type-specific documentation for other config keys.</p>
 <h3 id="sslconfig">sslconfig</h3>
 <p>The ssl config allow specification of many aspects of how SSL is negotiated with
 connecting clients.  SSL config supports the follwing keys:</p>
@@ -763,15 +772,6 @@ default ciphers supported by the OpenSSL library are used.</p>
 protocol is exposed.  Specifying <code>none</code> will disable this NPN registration.</p>
 </li>
 </ul>
-<h3 id="config">config</h3>
-<p>   The general listener framework support respecting the following config keys:</p>
-<ul>
-<li><h5 id="idletimeout">idle_timeout</h5>
-<p>Specifies a time in milliseconds afterwhich if the connection remains idle (no read or write traffic) it will be terminated.
-The protocol driver must cooperate programmatically to inform the system of such activity; the <code>mtev_console</code> and <code>http</code> protocols do this.</p>
-</li>
-</ul>
-<p>   Each listener can access the <code>config</code> passed to it; see type-specific documentation for other config keys.</p>
 
                                 
                                 </section>
