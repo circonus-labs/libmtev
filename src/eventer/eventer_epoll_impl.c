@@ -479,15 +479,16 @@ static int eventer_epoll_impl_loop(int id, eventer_impl_data_t *t) {
   }
 #endif
 
+  struct timeval max_sleeptime = eventer_max_sleeptime;
+  eventer_adjust_max_sleeptime(&max_sleeptime);
+
   while(1) {
     struct timeval __sleeptime;
     int fd_cnt = 0;
 
-    __sleeptime = eventer_max_sleeptime;
+    __sleeptime = max_sleeptime;
 
     eventer_dispatch_timed(t, &__sleeptime);
-
-    eventer_adjust_max_sleeptime(&__sleeptime);
 
     /* Handle cross_thread dispatches */
     eventer_cross_thread_process(t);
@@ -501,8 +502,8 @@ static int eventer_epoll_impl_loop(int id, eventer_impl_data_t *t) {
                           __sleeptime.tv_sec * 1000 + __sleeptime.tv_usec / 1000);
     } while(fd_cnt < 0 && errno == EINTR);
     eventer_heartbeat();
-    mtevL(eventer_deb, "debug: epoll_wait(%d, [], %d) => %d\n",
-          spec->epoll_fd, max_fds_at_once, fd_cnt);
+    mtevL(eventer_deb, "debug: epoll_wait(%d, [], %d, %lu) => %d\n",
+          spec->epoll_fd, max_fds_at_once, __sleeptime.tv_sec * 1000 + __sleeptime.tv_usec / 1000, fd_cnt);
     if(fd_cnt < 0) {
       mtevL(eventer_err, "epoll_wait: %s\n", strerror(errno));
     }

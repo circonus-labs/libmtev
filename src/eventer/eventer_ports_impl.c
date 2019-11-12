@@ -343,6 +343,9 @@ static int eventer_ports_impl_loop(int id, eventer_impl_data_t *t) {
   struct ports_spec *spec;
   spec = eventer_get_spec_for_event(NULL);
 
+  struct timeval max_sleeptime = eventer_max_sleeptime;
+  eventer_adjust_max_sleeptime(&max_sleeptime);
+
   while(1) {
     struct timeval __sleeptime;
     struct timespec __ports_sleeptime;
@@ -350,8 +353,8 @@ static int eventer_ports_impl_loop(int id, eventer_impl_data_t *t) {
     int ret;
     port_event_t pevents[MAX_PORT_EVENTS];
 
-    if(compare_timeval(eventer_max_sleeptime, __dyna_sleep) < 0)
-      __dyna_sleep = eventer_max_sleeptime;
+    if(compare_timeval(max_sleeptime, __dyna_sleep) < 0)
+      __dyna_sleep = max_sleeptime;
  
     __sleeptime = __dyna_sleep;
 
@@ -359,8 +362,6 @@ static int eventer_ports_impl_loop(int id, eventer_impl_data_t *t) {
 
     if(compare_timeval(__sleeptime, __dyna_sleep) > 0)
       __sleeptime = __dyna_sleep;
-
-    eventer_adjust_max_sleeptime(&__sleeptime);
 
     /* Handle cross_thread dispatches */
     eventer_cross_thread_process(t);
