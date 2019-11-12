@@ -1,4 +1,4 @@
-.SUFFIXES: .hlo .lo .Slo .re .c .S
+.SUFFIXES: .hlo .lo .ho .So .Slo .re .c .S
 
 Q=
 MAKEARGS=
@@ -83,9 +83,10 @@ LIBMTEV_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.lo)
 LIBMTEV_V=libmtev@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
 LIBMTEV_MAJOR=libmtev@DOTSO@.$(SEMVER_MAJOR)@DOTDYLIB@
 LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
+LIBMTEVA=libmtev.a
 FAST_TIME_PRELOAD=@FAST_TIME_PRELOAD@
 
-TARGETS=$(LIBMTEV) $(LIBMTEV_MAJOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS@
+TARGETS=$(LIBMTEVA) $(LIBMTEV) $(LIBMTEV_MAJOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS@
 
 all:	reversion $(TARGETS) make-man build-modules ex
 
@@ -197,6 +198,10 @@ FINAL2_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.Slo=libmtev-objs/%.Slo)
 FINAL1_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)
 FINAL_LIBMTEV_OBJS=$(FINAL1_LIBMTEV_OBJS:%.hlo=libmtev-objs/%.hlo)
 
+FINAL2_LIBMTEVA_OBJS=$(LIBMTEV_OBJS:%.Slo=libmtev-objs/%.So)
+FINAL1_LIBMTEVA_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.o)
+FINAL_LIBMTEVA_OBJS=$(FINAL1_LIBMTEVA_OBJS:%.hlo=libmtev-objs/%.ho)
+
 flatbuffer/%_json_parser.h flatbuffer/%_json_printer.h flatbuffer/%_reader.h flatbuffer/%_verifier.h flatbuffer/%_builder.h: flatbuffer/%.fbs
 	$(Q)$(FLATCC) -a -o flatbuffer --json $<
 
@@ -206,6 +211,39 @@ mtev_time_fast.so:	utils/mtev_time_fast_preload.c
 
 utils/android-demangle/cp-demangle.lo:	utils/android-demangle/cp-demangle.c
 	$(Q)$(MAKE) $(MAKEARGS) -C utils/android-demangle cp-demangle.lo
+
+utils/android-demangle/cp-demangle.o:	utils/android-demangle/cp-demangle.c
+	$(Q)$(MAKE) $(MAKEARGS) -C utils/android-demangle cp-demangle.o
+
+libmtev-objs/%.So:	%.So
+	$(Q)mkdir -p "`dirname $@`"
+	@echo "- making private $@"
+	$(Q)cp $(@:libmtev-objs/%.So=%.So) $@.noctf
+	$(Q)if test -x "$(CTFCONVERT)" ; then \
+		echo "- making CTF ($@)" ; \
+		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
+	fi
+	$(Q)mv $@.noctf $@
+
+libmtev-objs/%.ho:	%.ho
+	$(Q)mkdir -p "`dirname $@`"
+	@echo "- making private $@"
+	$(Q)cp $(@:libmtev-objs/%.ho=%.ho) $@.noctf
+	$(Q)if test -x "$(CTFCONVERT)" ; then \
+		echo "- making CTF ($@)" ; \
+		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
+	fi
+	$(Q)mv $@.noctf $@
+
+libmtev-objs/%.o:	%.o
+	$(Q)mkdir -p "`dirname $@`"
+	@echo "- making private $@"
+	$(Q)cp $(@:libmtev-objs/%.o=%.o) $@.noctf
+	$(Q)if test -x "$(CTFCONVERT)" ; then \
+		echo "- making CTF ($@)" ; \
+		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
+	fi
+	$(Q)mv $@.noctf $@
 
 libmtev-objs/%.Slo:	%.Slo
 	$(Q)mkdir -p "`dirname $@`"
@@ -253,6 +291,15 @@ $(LIBMTEV):	$(LIBMTEV_V)
 
 $(LIBMTEV_MAJOR):	$(LIBMTEV_V)
 	$(Q)ln -sf $(LIBMTEV_V) $(LIBMTEV_MAJOR)
+
+$(LIBMTEVA):	$(FINAL_LIBMTEVA_OBJS) $(LIBMTEV_DTRACEOBJ)
+	@echo "- linking $@"
+	$(Q)rm -f $@
+	$(Q)$(AR) cq -o $@ $(FINAL_LIBMTEVA_OBJS) $(LIBMTEV_DTRACEOBJ)
+	$(Q)if test -x "$(CTFMERGE)" ; then \
+		echo "- merging CTF ($@)" ; \
+		$(CTFMERGE) -l @VERSION@ -o $@ $(FINAL_LIBMTEVA_OBJS) $(LIBMTEV_DTRACEOBJ) ; \
+	fi
 
 $(LIBMTEV_V):	$(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ)
 	@echo "- linking $@"
@@ -311,6 +358,14 @@ aklomp-base64/lib/libbase64.o:
 .S.Slo:
 	@echo "- assembling $<"
 	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) $(CHOTOPT) -fPIC -c $< -o $@
+
+.c.ho:
+	@echo "- compiling $<"
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) $(CHOTOPT) -c $< -o $@
+
+.S.So:
+	@echo "- assembling $<"
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) $(CHOTOPT) -fPIC -c $< -o $@
 
 .c.o:
 	@echo "- compiling $<"
@@ -388,9 +443,9 @@ libmtev.xmldb:	coverity_model.c
 	cov-make-library -of libmtev.xmldb coverity_model.c
 
 clean:
-	rm -f *.lo *.o *.hlo *.Slo libmtev_dtrace_probes.h
+	rm -f *.lo *.o *.hlo *.Slo *.ho *.So libmtev.a libmtev_dtrace_probes.h
 	for subdir in aco eventer noitedit utils json-lib; do \
-		rm -f $$subdir/*.lo $$subdir/*.o $$subdir/*.hlo $$subdir/*.Slo ; \
+		rm -f $$subdir/*.lo $$subdir/*.o $$subdir/*.hlo $$subdir/*.Slo $$subdir/*.So $$subdir/*.ho ; \
 	done
 	rm -f $(LIBMTEV) $(LIBMTEV_V) @LUA_LUAMTEV@
 	rm -rf libmtev-objs
