@@ -363,11 +363,6 @@ mtev_main(const char *appname,
   mtev_zipkin_default_service_name(appname, mtev_true);
   mtev_zipkin_eventer_init();
 
-  char *dwarf_disable = getenv("MTEV_DWARF");
-  if(dwarf_disable && 0 == strcmp(dwarf_disable, "0")) {
-    mtev_dwarf_disable();
-  }
-
   char *require_invariant_tsc = getenv("MTEV_RDTSC_REQUIRE_INVARIANT");
   if (require_invariant_tsc && strcmp(require_invariant_tsc, "0") == 0) {
     mtev_time_toggle_require_invariant_tsc(mtev_false);
@@ -527,7 +522,6 @@ mtev_main(const char *appname,
     signal(SIGTERM, mtev_watchdog_shutdown_handler);
     signal(SIGQUIT, mtev_watchdog_shutdown_handler);
     signal(SIGINT, mtev_watchdog_shutdown_handler);
-    mtev_log_go_asynch();
     int rv = passed_child_main();
     mtev_lockfile_release(lockfd);
     return rv;
@@ -582,7 +576,6 @@ mtev_main(const char *appname,
   pid_t pid = getpid();
   mtevEL(mtev_notice, MLKV{ MLKV_INT64("pid", pid), MLKV_END }, "%s booting [manager, pid: %d]\n", appname, (int)pid);
   pthread_atfork(NULL, NULL, mtev_memory_gc_asynch);
-  mtev_log_go_asynch();
   rv = mtev_watchdog_start_child(appname, passed_child_main, watchdog_timeout);
   mtev_lockfile_release(lockfd);
   return rv;

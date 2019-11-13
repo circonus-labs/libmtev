@@ -709,7 +709,7 @@ static void *thrloopwrap(void *vid) {
 
   ck_pr_inc_32(&__total_loops_waiting);
   mtevL(mtev_debug, "eventer_loop(%s) started\n", t->thr_name);
-  return (void *)(intptr_t)__eventer->loop(id, t);
+  return (void *)(intptr_t)__eventer->loop(id);
 }
 
 void eventer_loop_return(void) {
@@ -1157,13 +1157,14 @@ void eventer_update_timed_internal(eventer_t e, int mask, struct timeval *new_wh
   mtev_skiplist_insert(t->staged_timed_events, e);
   pthread_mutex_unlock(&t->te_lock);
 }
-void eventer_dispatch_timed(struct eventer_impl_data *t, struct timeval *next) {
+void eventer_dispatch_timed(struct timeval *next) {
   struct timeval now;
+  struct eventer_impl_data *t;
   int max_timed_events_to_process;
     /* Handle timed events...
      * we could be multithreaded, so if we pop forever we could starve
      * ourselves. */
-  if(t == NULL) t = get_my_impl_data();
+  t = get_my_impl_data();
 
   /* we enter here once per loop, use this opportunity to count */
   mtev_hrtime_t nowhr = mtev_gethrtime();
@@ -1182,8 +1183,8 @@ void eventer_dispatch_timed(struct eventer_impl_data *t, struct timeval *next) {
     const char *cbname = NULL;
     eventer_t timed_event;
 
-    eventer_mark_callback_time(t);
-    eventer_gettimeofcallback(t, &now, NULL);
+    eventer_mark_callback_time();
+    eventer_gettimeofcallback(&now, NULL);
 
     pthread_mutex_lock(&t->te_lock);
     /* Peek at our next timed event, if should fire, pop it.
@@ -1281,8 +1282,10 @@ void eventer_cross_thread_trigger(eventer_t e, int mask) {
   pthread_mutex_unlock(&t->cross_lock);
   eventer_wakeup(e);
 }
-void eventer_cross_thread_process(struct eventer_impl_data *t) {
+void eventer_cross_thread_process(void) {
+  struct eventer_impl_data *t;
   struct cross_thread_trigger *ctt = NULL;
+  t = get_my_impl_data();
   while(1) {
     pthread_mutex_lock(&t->cross_lock);
     ctt = t->cross;
@@ -1298,19 +1301,22 @@ void eventer_cross_thread_process(struct eventer_impl_data *t) {
   }
 }
 
-void eventer_mark_callback_time(eventer_impl_data_t *t) {
-  if(!t) t = get_my_impl_data();
+void eventer_mark_callback_time(void) {
+  struct eventer_impl_data *t;
+  t = get_my_impl_data();
   mtevAssert(t);
   t->last_cb_ns = mtev_now_us() * NS_PER_US;
 }
-void eventer_dispatch_recurrent(eventer_impl_data_t *t) {
+void eventer_dispatch_recurrent(void) {
   struct timeval __now;
+  struct eventer_impl_data *t;
   struct recurrent_events *node;
+  t = get_my_impl_data();
 
   mtev_memory_maintenance_ex(MTEV_MM_BARRIER_ASYNCH);
 
-  eventer_mark_callback_time(t);
-  eventer_gettimeofcallback(t, &__now, NULL);
+  eventer_mark_callback_time();
+  eventer_gettimeofcallback(&__now, NULL);
 
   pthread_mutex_lock(&t->recurrent_lock);
   for(node = t->recurrent_events; node; node = node->next) {
@@ -1352,16 +1358,15 @@ eventer_t eventer_remove_recurrent(eventer_t e) {
   return NULL;
 }
 
-int eventer_gettimeofcallback(struct eventer_impl_data *t, struct timeval *now, void *tzp) {
-  if(t == NULL) t = get_my_impl_data();
-  if(t) {
+int eventer_gettimeofcallback(struct timeval *now, void *tzp) {
+  struct eventer_impl_data *t;
+  if(NULL != (t = get_my_impl_data())) {
     now->tv_sec = t->last_cb_ns / NS_PER_S;
     now->tv_usec = (t->last_cb_ns % NS_PER_S) / NS_PER_US;
     return 0;
   }
   return mtev_gettimeofday(now, tzp);
 }
-
 uint64_t eventer_callback_ms(void) {
   struct eventer_impl_data *t;
   if(NULL != (t = get_my_impl_data())) {
@@ -1398,7 +1403,7 @@ void eventer_add_recurrent(eventer_t e) {
 
 int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct timeval *n, uint64_t *dur) {
   int rmask;
-  uint64_t start = 0;
+  uint64_t start;
   /* tracking callback latency on aco events makes no sense. */
   if(eventer_is_aco(e)) dur = NULL;
   if(dur) start = mtev_gethrtime();

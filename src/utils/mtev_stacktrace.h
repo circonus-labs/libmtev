@@ -57,9 +57,6 @@ API_EXPORT(int)
 API_EXPORT(const char *)
   mtev_function_name(uintptr_t);
 
-API_EXPORT(void)
-  mtev_dwarf_disable(void);
-
 // Call this function after loading any modules.
 API_EXPORT(void)
   mtev_dwarf_refresh(void);

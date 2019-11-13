@@ -38,9 +38,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
 #include <sys/un.h>
 #include <arpa/inet.h>
 
@@ -342,42 +340,6 @@ mtev_listener_acceptor(eventer_t e, int mask,
     ac->fd = conn = eventer_accept(e, &ac->remote.remote_addr, &salen, &newmask);
     if(conn >= 0) {
       eventer_t newe;
-      int nodelay = 1;
-      const char *no_delay_str = mtev_hash_dict_get(ac->config, "no_delay");
-      if(no_delay_str && (!strcasecmp(no_delay_str, "false") || !strcasecmp(no_delay_str, "off"))) {
-        nodelay = 0;
-      }
-      if(nodelay) {
-#ifdef TCP_NODELAY
-#ifdef SOL_TCP
-        int proto_n = SOL_TCP;
-#else
-        struct protoent proto_buf, *proto;
-        char buff[1024];
-        int proto_n = -1;
-#ifdef __sun__
-        if(NULL != (proto = getprotobyname_r("tcp", &proto_buf, buff, sizeof(buff)))) {
-          proto_n = proto->p_proto;
-        }
-#else
-        if(getprotobyname_r("tcp", &proto_buf, buff, sizeof(buff), &proto) == 0) {
-          proto_n = proto->p_proto;
-        }
-#endif
-#endif
-        if(proto_n < 0) {
-          mtevEL(nldeb, MLKV{ MLKV_INT64("errno", errno), MLKV_END }, "getprotobyname_r(\"tcp\") failed: %s\n",
-                 strerror(errno));
-        } else {
-          if(setsockopt(conn, proto_n, TCP_NODELAY, (void *)&nodelay, sizeof(nodelay)) < 0) {
-            mtevEL(nldeb, MLKV{ MLKV_INT64("errno", errno), MLKV_END }, "setsockopt TCP_NODELAY failed: %s\n",
-                   strerror(errno));
-          }
-        }
-#else
-        mtevL(nldeb, "TCP_NODELAY not supported on this system\n");
-#endif
-      }
       mtev_acceptor_closure_mark_read(ac, tv);
       mtevL(nldeb, "mtev_listener[%s] accepted fd %d on %s\n",
             eventer_name_for_callback(listener_closure->dispatch_callback),

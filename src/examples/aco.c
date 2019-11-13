@@ -223,7 +223,7 @@ static void
 ping(void) {
   while(1) {
     mtevEL(mtev_debug, MLKV { MLKV_STR("key1", "a string"), MLKV_END }, "ping...\n");
-    eventer_aco_sleep(&(struct timeval){ 1UL, 0UL });
+    eventer_aco_sleep(&(struct timeval){ 0UL, 10000UL });
   }
 }
 static int

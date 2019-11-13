@@ -79,7 +79,6 @@ MTEV_HOOK_IMPL(mtev_stacktrace_frame,
 
 static mtev_boolean (*global_file_filter)(const char *);
 static mtev_boolean (*global_file_symbol_filter)(const char *);
-static mtev_boolean mtev_dwarf_disabled = mtev_false;
 
 typedef enum { NOT_SET, ADDR_MAP_LINE, ADDR_MAP_FUNCTION } addr_map_type_t;
 
@@ -539,16 +538,9 @@ static int loc_comp_key(const void *vakey, const void *vb) {
   return 1;
 }
 #endif
-
-void
-mtev_dwarf_disable(void) {
-  mtev_dwarf_disabled = mtev_true;
-}
-
 void
 mtev_dwarf_refresh(void) {
 #ifdef HAVE_LIBDWARF
-  if(mtev_dwarf_disabled) return;
   if(!symtable) {
     mtev_skiplist *st = mtev_skiplist_alloc();
     mtev_skiplist_set_compare(st, loc_comp, loc_comp_key);

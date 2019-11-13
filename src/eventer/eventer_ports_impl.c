@@ -281,9 +281,8 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   }
   mtevAssert(lockstate == EV_OWNED);
 
-  eventer_mark_callback_time(NULL);
-  eventer_gettimeofcallback(NULL, &__now, NULL);
-
+  eventer_mark_callback_time();
+  eventer_gettimeofcallback(&__now, NULL);
   cbname = eventer_name_for_callback_e(e->callback, e);
   mtevL(eventer_deb, "ports: fire on %d/%x to %s(%p)\n",
         fd, mask, cbname?cbname:"???", e->callback);
@@ -338,14 +337,11 @@ eventer_ports_impl_trigger(eventer_t e, int mask) {
   eventer_deref(e);
   release_master_fd(fd, lockstate);
 }
-static int eventer_ports_impl_loop(int id, eventer_impl_data_t *t) {
+static int eventer_ports_impl_loop(int id) {
   (void)id;
   struct timeval __dyna_sleep = { 0, 0 };
   struct ports_spec *spec;
   spec = eventer_get_spec_for_event(NULL);
-
-  struct timeval max_sleeptime = eventer_max_sleeptime;
-  eventer_adjust_max_sleeptime(&max_sleeptime);
 
   while(1) {
     struct timeval __sleeptime;
@@ -354,21 +350,23 @@ static int eventer_ports_impl_loop(int id, eventer_impl_data_t *t) {
     int ret;
     port_event_t pevents[MAX_PORT_EVENTS];
 
-    if(compare_timeval(max_sleeptime, __dyna_sleep) < 0)
-      __dyna_sleep = max_sleeptime;
+    if(compare_timeval(eventer_max_sleeptime, __dyna_sleep) < 0)
+      __dyna_sleep = eventer_max_sleeptime;
  
     __sleeptime = __dyna_sleep;
 
-    eventer_dispatch_timed(t, &__sleeptime);
+    eventer_dispatch_timed(&__sleeptime);
 
     if(compare_timeval(__sleeptime, __dyna_sleep) > 0)
       __sleeptime = __dyna_sleep;
 
+    eventer_adjust_max_sleeptime(&__sleeptime);
+
     /* Handle cross_thread dispatches */
-    eventer_cross_thread_process(t);
+    eventer_cross_thread_process();
 
     /* Handle recurrent events */
-    eventer_dispatch_recurrent(t);
+    eventer_dispatch_recurrent();
 
     /* Now we move on to our fd-based events */
     __ports_sleeptime.tv_sec = __sleeptime.tv_sec;

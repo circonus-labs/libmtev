@@ -100,19 +100,6 @@ The following attributes are supported for listeners:
    If `accept_thread` is `on`, a new dedicated thread will be spawned to handle accepting
    new connections in a blocking fashion.
 
- * ##### no_delay
-
-   If `no_delay` is `off` or `false`, then `TCP_NODELAY` will not be activated
-   on the accepted socket. The default is `on`.
-
- * ##### idle_timeout
-
-   Specifies a time in milliseconds afterwhich if the connection remains idle (no read or write traffic) it will be terminated.
-   The protocol driver must cooperate programmatically to inform the system of such activity; the `mtev_console` and `http` protocols do this.
-
-
-   Each listener can access the `config` passed to it; see type-specific documentation for other config keys.
-
 ### sslconfig
 
 The ssl config allow specification of many aspects of how SSL is negotiated with
@@ -155,4 +142,16 @@ connecting clients.  SSL config supports the follwing keys:
 
    Specifies which NPN (next-protocol-negotiation) to offer.  If omitted, `h2` is used and the http2
    protocol is exposed.  Specifying `none` will disable this NPN registration.
+
+### config
+
+   The general listener framework support respecting the following config keys:
+
+ * ##### idle_timeout
+
+   Specifies a time in milliseconds afterwhich if the connection remains idle (no read or write traffic) it will be terminated.
+   The protocol driver must cooperate programmatically to inform the system of such activity; the `mtev_console` and `http` protocols do this.
+
+
+   Each listener can access the `config` passed to it; see type-specific documentation for other config keys.
 

@@ -7,22 +7,17 @@ endif
 
 CC=@CC@
 AR=@AR@
-CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
 RANLIB=@RANLIB@
 DEMANGLEDEFS=-DHAVE_STDLIB_H -DHAVE_STRING_H
 
-OBJS=cp-demangle.lo cp-demangle.o
+OBJS=cp-demangle.lo
 
 all:	$(OBJS)
 
 .c.lo:
 	@echo "- compiling $<"
 	$(Q)$(CC) $(SHCFLAGS) $(DEMANGLEDEFS) -c $< -o $@
-
-.c.o:
-	@echo "- compiling $<"
-	$(Q)$(CC) $(CFLAGS) $(DEMANGLEDEFS) -c $< -o $@
 
 clean:
 	rm -f *.lo

@@ -351,8 +351,8 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   }
   mtevAssert(lockstate == EV_OWNED);
 
-  eventer_mark_callback_time(NULL);
-  eventer_gettimeofcallback(NULL, &__now, NULL);
+  eventer_mark_callback_time();
+  eventer_gettimeofcallback(&__now, NULL);
   /* We're going to lie to ourselves.  You'd think this should be:
    * oldmask = e->mask;  However, we just fired with masks[fd], so
    * kqueue is clearly looking for all of the events in masks[fd].
@@ -415,7 +415,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   eventer_deref(e);
   release_master_fd(fd, lockstate);
 }
-static int eventer_kqueue_impl_loop(int id, eventer_impl_data_t *t) {
+static int eventer_kqueue_impl_loop(int id) {
   struct timeval __dyna_sleep = { 0, 0 };
   KQUEUE_DECL;
   KQUEUE_SETUP(NULL);
@@ -424,28 +424,28 @@ static int eventer_kqueue_impl_loop(int id, eventer_impl_data_t *t) {
     mtevFatal(mtev_error, "error in eventer_kqueue_impl_loop: could not eventer_kqueue_impl_register_wakeup\n");
   }
 
-  struct timeval max_sleeptime = eventer_max_sleeptime;
-  eventer_adjust_max_sleeptime(&max_sleeptime);
   while(1) {
     struct timeval __sleeptime;
     struct timespec __kqueue_sleeptime;
     int fd_cnt = 0;
 
-    if(compare_timeval(max_sleeptime, __dyna_sleep) < 0)
-      __dyna_sleep = max_sleeptime;
+    if(compare_timeval(eventer_max_sleeptime, __dyna_sleep) < 0)
+      __dyna_sleep = eventer_max_sleeptime;
 
     __sleeptime = __dyna_sleep;
 
-    eventer_dispatch_timed(t&__sleeptime);
+    eventer_dispatch_timed(&__sleeptime);
 
     if(compare_timeval(__sleeptime, __dyna_sleep) > 0)
       __sleeptime = __dyna_sleep;
 
+    eventer_adjust_max_sleeptime(&__sleeptime);
+
     /* Handle cross_thread dispatches */
-    eventer_cross_thread_process(t);
+    eventer_cross_thread_process();
 
     /* Handle recurrent events */
-    eventer_dispatch_recurrent(t);
+    eventer_dispatch_recurrent();
 
     /* Now we move on to our fd-based events */
     __kqueue_sleeptime.tv_sec = __sleeptime.tv_sec;

@@ -112,7 +112,7 @@ static int _mtev_log_siglvl = 0;
 void mtev_log_enter_sighandler(void) { _mtev_log_siglvl++; }
 void mtev_log_leave_sighandler(void) { _mtev_log_siglvl--; }
 
-#define SUPPORTS_ASYNC(ls) ((ls) && (ls)->ops && (ls)->ops->supports_async)
+#define SUPPORTS_ASYNC(ls) ((ls) && (ls)->ops && (ls)->path && (ls)->ops->supports_async)
 
 static int DEBUG_LOG_ENABLED(void) {
   static int enabled = -1;
@@ -687,13 +687,14 @@ posix_logio_open(mtev_log_stream_t ls) {
 }
 static int
 posix_logio_reopen(mtev_log_stream_t ls) {
-  asynch_log_ctx *actx = ls->op_ctx;
   if(ls->path) {
     struct posix_op_ctx *po;
     struct stat newpathsb, sb;
+    asynch_log_ctx *actx;
     pthread_rwlock_t *lock = ls->lock;
     int newfd, rv = -1, oldrv = -1;
     if(lock) pthread_rwlock_wrlock(lock);
+    actx = ls->op_ctx;
     po = actx->userdata;
 
     /* Let's see if the we're looking at the right file already */
@@ -731,14 +732,14 @@ posix_logio_reopen(mtev_log_stream_t ls) {
     }
    out:
     if(lock) pthread_rwlock_unlock(lock);
+    if(actx->is_asynch) {
+      if(asynch_thread_create(ls, actx, asynch_logio_writer)) {
+        return -1;
+      }
+    }
     return rv;
   }
-  if(actx->is_asynch) {
-    if(asynch_thread_create(ls, actx, asynch_logio_writer)) {
-      return -1;
-    }
-  }
-  return 0;
+  return -1;
 }
 static int
 posix_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
@@ -1545,7 +1546,7 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
                        lsname, strlen(ls->name), ls) == 0) {
       pthread_mutex_unlock(&resize_lock);
       free(lsname);
-      goto freeout;
+      goto freebail;
     }
     pthread_mutex_unlock(&resize_lock);
     ls->lock = calloc(1, sizeof(*ls->lock));
@@ -1559,7 +1560,6 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
  freebail:
   fprintf(stderr, "Failed to instantiate logger(%s,%s,%s)\n",
           name, type ? type : "[null]", path ? path : "[null]");
-freeout:
   free(ls->name);
   if(ls->path) free(ls->path);
   if(ls->type) free(ls->type);

@@ -106,8 +106,6 @@ typedef int (*eventer_func_t)
 typedef struct _event *eventer_t;
 typedef struct _event_aco *eventer_aco_t;
 typedef struct _event_aco_gate *eventer_aco_gate_t;
-typedef struct eventer_impl_data eventer_impl_data_t;
-
 
 typedef void (*eventer_asynch_simple_func_t)(void *closure);
 typedef void (*eventer_asynch_func_t)(eventer_asynch_op_t, void *closure);
@@ -615,9 +613,8 @@ API_EXPORT(const char *)
 API_EXPORT(eventer_func_t)
                       eventer_callback_for_name(const char *name);
 
-/*! \fn eventer_gettimeofeventer_impl_data_t *t, callback(struct timeval *now, void *tzp)
+/*! \fn eventer_gettimeofcallback(struct timeval *now, void *tzp)
     \brief Get the time of the last invoked callback in this thread.
-    \param t is the thread-local eventer data, if unknown pass NULL
     \param now a `struct timeval` to populate with the request time.
     \param tzp is ignored and for API compatibility with gettimeofday.
     \return 0 on success, non-zero on failure.
@@ -629,7 +626,7 @@ API_EXPORT(eventer_func_t)
     or other system facilities.
  */
 API_EXPORT(int)
-  eventer_gettimeofcallback(eventer_impl_data_t *t, struct timeval *now, void *tzp);
+  eventer_gettimeofcallback(struct timeval *now, void *tzp);
 
 /*! \fn uint64_t eventer_callback_ms()
     \brief Get the milliseconds since epoch of the current callback invocation.
@@ -660,7 +657,7 @@ typedef struct _eventer_impl {
   eventer_t         (*remove_fd)(int fd);
   eventer_t         (*find_fd)(int fd);
   void              (*trigger)(eventer_t e, int mask);
-  int               (*loop)(int id, eventer_impl_data_t *);
+  int               (*loop)(int id);
   void              (*foreach_fdevent)(void (*f)(eventer_t, void *), void *);
   void              (*wakeup)(eventer_t);
   void             *(*alloc_spec)(void);
