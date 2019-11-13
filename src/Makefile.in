@@ -80,6 +80,7 @@ NOWHOLE_ARCHIVE=@NOWHOLE_ARCHIVE@
 
 DTRACEOBJ=@DTRACEOBJ@
 LIBMTEV_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.lo)
+LIBMTEVA_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.o)
 LIBMTEV_V=libmtev@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
 LIBMTEV_MAJOR=libmtev@DOTSO@.$(SEMVER_MAJOR)@DOTDYLIB@
 LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
@@ -292,14 +293,15 @@ $(LIBMTEV):	$(LIBMTEV_V)
 $(LIBMTEV_MAJOR):	$(LIBMTEV_V)
 	$(Q)ln -sf $(LIBMTEV_V) $(LIBMTEV_MAJOR)
 
-$(LIBMTEVA):	$(FINAL_LIBMTEVA_OBJS) $(LIBMTEV_DTRACEOBJ)
+$(LIBMTEVA):	$(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
 	@echo "- linking $@"
-	$(Q)rm -f $@
-	$(Q)$(AR) cq -o $@ $(FINAL_LIBMTEVA_OBJS) $(LIBMTEV_DTRACEOBJ)
+	$(Q)rm -f libmtev.o libmtev.a 
+	$(Q)$(LD) -r -o libmtev.o $(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
 	$(Q)if test -x "$(CTFMERGE)" ; then \
 		echo "- merging CTF ($@)" ; \
-		$(CTFMERGE) -l @VERSION@ -o $@ $(FINAL_LIBMTEVA_OBJS) $(LIBMTEV_DTRACEOBJ) ; \
+		$(CTFMERGE) -l @VERSION@ -o libmtev.o $(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ) ; \
 	fi
+	$(Q)$(AR) cq $@ libmtev.o
 
 $(LIBMTEV_V):	$(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ)
 	@echo "- linking $@"
@@ -312,6 +314,10 @@ $(LIBMTEV_V):	$(FINAL_LIBMTEV_OBJS) $(LIBMTEV_DTRACEOBJ)
 $(LIBMTEV_DTRACEOBJ):    $(FINAL_LIBMTEV_OBJS)
 	@echo "- assembling $@"
 	$(Q)@DTRACE@ @DTRACEFLAGS@ -G -s libmtev_dtrace_probes.d -o $(LIBMTEV_DTRACEOBJ) $(FINAL_LIBMTEV_OBJS)
+
+$(LIBMTEVA_DTRACEOBJ):    $(FINAL_LIBMTEVA_OBJS)
+	@echo "- assembling $@"
+	$(Q)@DTRACE@ @DTRACEFLAGS@ -G -s libmtev_dtrace_probes.d -o $(LIBMTEVA_DTRACEOBJ) $(FINAL_LIBMTEVA_OBJS)
 
 @DTRACEHDR@:    libmtev_dtrace_probes.d
 	$(Q)if test -z "@DTRACE@" ; then \
