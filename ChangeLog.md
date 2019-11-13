@@ -4,6 +4,8 @@
 
 ## 1.9
 
+### 1.9.3
+
  * lua: Fix mtev.timezone():extract(...,"offset") function
  * Adopt aklomp/base64 implementation for better performance.
  * Allow crash stacktraces to be redirected optionally onto
