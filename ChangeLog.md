@@ -15,6 +15,7 @@
    them asynch by default.
  * Add `no_delay` listener option support. Default is `on`.
  * Improve eventer performance (code optimization).
+ * Support building and installing a static library: `libmtev.a`
 
 ### 1.9.2
 
