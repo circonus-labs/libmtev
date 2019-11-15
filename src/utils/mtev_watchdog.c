@@ -701,6 +701,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
         mtevL(mtev_error, "no glider, allowing a single emancipated minor\n");
 
       mtev_setup_crash_signals(emancipate);
+      mtev_log_go_asynch();
       /* run the program */
       exit(func());
     }
