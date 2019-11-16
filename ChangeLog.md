@@ -4,6 +4,8 @@
 
 ## 1.9
 
+### 1.9.5
+
  * Fix issue with logging threads not starting for "file"
    log types when daemonized.
 
