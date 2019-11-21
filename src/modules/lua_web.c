@@ -136,11 +136,7 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
   mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
 
   VM_TIME_BEGIN
-#if LUA_VERSION_NUM >= 502
-  status = lua_resume(ri->coro_state, ri->lmc->lua_state, nargs);
-#else
-  status = lua_resume(ri->coro_state, nargs);
-#endif
+  status = mtev_lua_resume(ri->coro_state, nargs);
   VM_TIME_END
 
   switch(status) {
@@ -222,7 +218,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   lua_pushstring(L, restc->closure);
   {
   VM_TIME_BEGIN
-  rv = lua_pcall(L, 1, 1, 0);
+  rv = mtev_lua_pcall(L, 1, 1, 0);
   VM_TIME_END
   }
   if(rv) {
@@ -474,7 +470,7 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
       int rv;
       lua_getglobal(lmc->lua_state, "require");
       lua_pushstring(lmc->lua_state, *module);
-      rv = lua_pcall(lmc->lua_state, 1, 0, 0);
+      rv = mtev_lua_pcall(lmc->lua_state, 1, 0, 0);
       if(rv) {
         mtevL(mtev_error, "preloads: require %s failed: %s\n", *module, lua_tostring(lmc->lua_state, -1));
       }

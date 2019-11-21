@@ -198,6 +198,24 @@ mtev_lua_lmc_free(lua_module_closure_t *lmc) {
 static __thread lua_State *tls_active_lua_state = NULL;
 static __thread bool assist_fired;
 
+int
+mtev_lua_resume(lua_State *L, int a) {
+  int rv;
+  lua_State *previous = tls_active_lua_state;
+  tls_active_lua_state = L;
+  rv = lua_resume(L, a);
+  tls_active_lua_state = previous;
+  return rv;
+}
+int
+mtev_lua_pcall(lua_State *L, int a, int b, int c) {
+  int rv;
+  lua_State *previous = tls_active_lua_state;
+  tls_active_lua_state = L;
+  rv = lua_pcall(L, a, b, c);
+  tls_active_lua_state = previous;
+  return rv;
+}
 static mtev_hook_return_t
 mtev_lua_stacktrace_assist(void *closure, void (*cb)(void *, const char *, size_t), void *cb_closure,
                            uintptr_t pc, const char *fname, const char *sname, int frame, int nframes) {

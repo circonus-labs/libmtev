@@ -1993,7 +1993,7 @@ static mtev_boolean nl_ws_cb_ready(mtev_websocket_client_t *client,
   if(udata->cb_ready >= 0) {
     lua_rawgeti(L, LUA_REGISTRYINDEX, udata->cb_ready);
     lua_rawgeti(L, LUA_REGISTRYINDEX, udata->self_idx);
-    int lrv = lua_pcall(L, 1, 1, 0);
+    int lrv = mtev_lua_pcall(L, 1, 1, 0);
     if(lrv) {
       int i;
       mtevL(nlerr, "lua: ws ready handler failed\n");
@@ -2025,7 +2025,7 @@ static mtev_boolean nl_ws_cb_message(mtev_websocket_client_t *client,
     lua_rawgeti(L, LUA_REGISTRYINDEX, udata->self_idx);
     lua_pushinteger(L, opcode);
     lua_pushlstring(L, (const char *)msg, msg_len);
-    int lrv = lua_pcall(L, 3, 1, 0);
+    int lrv = mtev_lua_pcall(L, 3, 1, 0);
     if(lrv) {
       int i;
       mtevL(nlerr, "lua: ws ready handler failed\n");
@@ -2053,7 +2053,7 @@ static void nl_ws_cb_cleanup(mtev_websocket_client_t *client,
     lua_rawgeti(L, LUA_REGISTRYINDEX, udata->cb_cleanup);
     if(udata->client == NULL) lua_pushnil(L);
     else lua_rawgeti(L, LUA_REGISTRYINDEX, udata->self_idx);
-    int lrv = lua_pcall(L, 1, 0, 0);
+    int lrv = mtev_lua_pcall(L, 1, 0, 0);
     if(lrv) {
       int i;
       mtevL(nlerr, "lua: ws ready handler failed\n");
@@ -2696,7 +2696,7 @@ nl_readdir(lua_State *L) {
     if(use_filter) {
       lua_pushvalue(L,2);   /* func */
       lua_pushvalue(L,-2);  /* arg  */
-      if(lua_pcall(L,1,1,0) != 0) {
+      if(mtev_lua_pcall(L,1,1,0) != 0) {
         closedir(root);
         free(de);
         luaL_error(L, lua_tostring(L,-1));
