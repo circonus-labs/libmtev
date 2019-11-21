@@ -801,10 +801,11 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
     lseek(_global_stack_trace_fd, 0, SEEK_SET);
     unused = ftruncate(_global_stack_trace_fd, 0);
     for(i=0; i<frames; i++) {
-      crash_in_crash = &crash_in_crash_jmp;
       if(sigsetjmp(crash_in_crash_jmp, 1) != 0) {
+        crash_in_crash = NULL;
         continue;
       }
+      crash_in_crash = &crash_in_crash_jmp;
 
       Dl_info dlip;
       void *base = NULL;
@@ -933,22 +934,33 @@ void mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore) {
     mtevL(mtev_error, "stack trace in stack trace, refusing\n");
     return;
   }
-  struct sigaction sa, saold;
+  struct sigaction sa, sasegv, saill, sabus;
+  sigset_t smprev;
   void *callstack[128];
   int frames = mtev_backtrace(callstack, 128);
   ignore = MIN(ignore, frames);
 
   memset(&sa, 0, sizeof(sa));
+  sigemptyset(&sa.sa_mask);
+  /* Unblock these signals to allow us to catch a crash in the handler */
+  sigaddset(&sa.sa_mask, SIGSEGV);
+  sigaddset(&sa.sa_mask, SIGBUS);
+  sigaddset(&sa.sa_mask, SIGILL);
+  sigprocmask(SIG_UNBLOCK, &sa.sa_mask, &smprev);
   sa.sa_sigaction = mtev_stacktrace_internal_crash;
   sa.sa_flags = SA_SIGINFO;
-  sigemptyset(&sa.sa_mask);
-  sigaddset(&sa.sa_mask, SIGSEGV);
-  sigaction(SIGSEGV, &sa, &saold);
+  sigaction(SIGSEGV, &sa, &sasegv);
+  sigaction(SIGILL, &sa, &saill);
+  sigaction(SIGBUS, &sa, &sabus);
 
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack+ignore, frames-ignore);
 
   global_in_stacktrace = 0;
-  sigaction(SIGSEGV, &saold, NULL);
+
+  sigaction(SIGSEGV, &sasegv, NULL);
+  sigaction(SIGILL, &saill, NULL);
+  sigaction(SIGBUS, &sabus, NULL);
+  sigprocmask(SIG_SETMASK, &smprev, NULL);
 }
 void mtev_stacktrace(mtev_log_stream_t ls) {
   mtev_stacktrace_skip(ls, 0);

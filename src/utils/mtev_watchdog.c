@@ -600,17 +600,17 @@ mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
   struct sigaction sa;
   stack_t altstack;
   size_t altstack_size = 0, default_altstack_size = 4*1024*1024;
-  static const int signals[] = {
-    SIGSEGV,
-    SIGABRT,
-    SIGBUS,
-    SIGILL,
-    SIGUSR2,
-    SIGTRAP,
+  static const struct { int signo; int block; } signals[] = {
+    { SIGSEGV, 0 },
+    { SIGABRT, 1 },
+    { SIGBUS, 0 },
+    { SIGILL, 0 },
+    { SIGUSR2, 1 },
+    { SIGTRAP, 1 },
 #ifdef SIGIOT
-    SIGIOT,
+    { SIGIOT, 1 },
 #endif
-    SIGFPE
+    { SIGFPE, 1 }
   };
 
   if(NULL != (envcp = getenv("MTEV_ALTSTACK_SIZE"))) {
@@ -642,10 +642,10 @@ mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
   sigemptyset(&sa.sa_mask);
 
   for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
-    sigaddset(&sa.sa_mask, signals[i]);
+    if(signals[i].block) sigaddset(&sa.sa_mask, signals[i].signo);
 
   for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
-    sigaction(signals[i], &sa, NULL);
+    sigaction(signals[i].signo, &sa, NULL);
 
   return 0;
 }
