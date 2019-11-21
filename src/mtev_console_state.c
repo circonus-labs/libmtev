@@ -44,6 +44,7 @@
 #include "mtev_rest.h"
 #include "mtev_console.h"
 #include "mtev_console_socket.h"
+#include "mtev_stacktrace.h"
 #include "mtev_tokenizer.h"
 #include "mtev_capabilities_listener.h"
 
@@ -1300,6 +1301,8 @@ mtev_console_crash(mtev_console_closure_t ncct, int argc, char **argv,
                    mtev_console_state_t *dstate, void *unused) {
   (void)dstate;
   (void)unused;
+  mtev_stacktrace(mtev_log_stream_find(ncct->feed_path));
+  usleep(10000);
   if(argc == 1) {
     int id = atoi(argv[0]);
     nc_printf(ncct, "crash: %d\n", id);
