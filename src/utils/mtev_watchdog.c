@@ -400,14 +400,16 @@ void mtev_watchdog_on_crash_close_add_fd(int fd) {
 }
 
 void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
+  mtev_log_enter_sighandler();
 #if defined(__sun__)
   (void)si;
   mtev_stacktrace_ucontext(mtev_error_stacktrace, uc);
 #else
   (void)si;
   (void)uc;
-  mtev_stacktrace(mtev_error_stacktrace);
+  mtev_stacktrace_skip(mtev_error_stacktrace, 3);
 #endif
+  mtev_log_leave_sighandler();
   raise(sig);
 }
 
@@ -444,15 +446,16 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
     mtevL(mtev_error, "Watchdogged on %s, no pthread_sigqueue\n", hb->name);
 #endif
   }
-  mtevL(mtev_error, "emancipate: process %d, monitored %d, signal %d\n", getpid(), mtev_monitored_child_pid, sig);
   if(getpid() == watcher) {
     char sigval[12];
+    mtevL(mtev_error, "[monitor] emancipate: process %d, monitored %d, signal %d\n", getpid(), mtev_monitored_child_pid, sig);
     const char *signame = short_strsignal(sig);
     snprintf(sigval, sizeof(sigval), "%d", sig);
     run_glider(mtev_monitored_child_pid, GLIDE_CRASH, signame ? signame : sigval);
     kill(mtev_monitored_child_pid, sig);
   }
   else if (getpid() == mtev_monitored_child_pid){
+    mtevL(mtev_error, "emancipate: process %d, monitored %d, signal %d\n", getpid(), mtev_monitored_child_pid, sig);
     it_ticks_crash(NULL); /* slow notification path */
     mmap_lifelines[0].sig = sig; /* communicate the signal as it will be hidden by our STOP */
     kill(mtev_monitored_child_pid, SIGSTOP); /* stop and wait for a glide */
@@ -462,7 +465,7 @@ void emancipate(int sig, siginfo_t *si, void *uc) {
     mtev_stacktrace_ucontext(mtev_error_stacktrace, uc);
 #else
     (void)uc;
-    mtev_stacktrace(mtev_error_stacktrace);
+    mtev_stacktrace_skip(mtev_error_stacktrace, 3);
 #endif
 
     if(allow_async_dumps) { 

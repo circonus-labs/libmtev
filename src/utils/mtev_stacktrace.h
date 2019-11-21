@@ -39,6 +39,9 @@
 API_EXPORT(void)
   mtev_stacktrace(mtev_log_stream_t ls);
 
+API_EXPORT(void)
+  mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore);
+
 #if defined(__sun__)
 #include <ucontext.h>
 API_EXPORT(void)
@@ -47,6 +50,9 @@ API_EXPORT(void)
 
 API_EXPORT(int)
   mtev_aco_stacktrace(mtev_log_stream_t ls, aco_t *co);
+
+API_EXPORT(int)
+  mtev_aco_stacktrace_skip(mtev_log_stream_t ls, aco_t *co, int ignore);
 
 API_EXPORT(int)
   mtev_backtrace(void **ips, int cnt);

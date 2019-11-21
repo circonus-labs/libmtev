@@ -36,6 +36,7 @@
 #include "mtev_hash.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <setjmp.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
@@ -736,6 +737,23 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
 }
 #endif
 
+/*
+static sigjmp_buf crash_in_crash_jmp;
+static sigjmp_buf *crash_in_crash = NULL;
+static void
+mtev_stacktrace_internal_crash(int sig, siginfo_t *si, void *uc) {
+  (void)si;
+  (void)uc;
+  mtev_log_enter_sighandler();
+  mtevL(mtev_error, "crashed %d inside stacktrace walker\n", sig);
+  mtev_log_leave_sighandler();
+  if(crash_in_crash) {
+    siglongjmp(*crash_in_crash, 1);
+  }
+  raise(sig);
+}
+*/
+
 static void
 mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
                          const char *extra_thr, void *vucp, void **callstack, int frames) {
@@ -779,6 +797,13 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
     lseek(_global_stack_trace_fd, 0, SEEK_SET);
     unused = ftruncate(_global_stack_trace_fd, 0);
     for(i=0; i<frames; i++) {
+/*
+      crash_in_crash = &crash_in_crash_jmp;
+      if(sigsetjmp(crash_in_crash_jmp, 1) != 0) {
+        continue;
+      }
+      */
+
       Dl_info dlip;
       void *base = NULL;
       int len = 0;
@@ -804,7 +829,7 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
             base = dlip.dli_fbase;
             break;
           }
-          map = map->l_next;;
+          map = map->l_next;
         }
 #else
       if(dladdr((void *)callstack[i], &dlip)) {
@@ -864,6 +889,7 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
     mtevL(ls, "stacktrace unavailable\n");
   }
 #endif
+  //crash_in_crash = NULL;
 }
 
 int mtev_backtrace(void **callstack, int cnt) {
@@ -876,7 +902,6 @@ int mtev_backtrace(void **callstack, int cnt) {
   unw_getcontext(&context);
   unw_init_local(&cursor, &context);
 
-  // Unwind frames one by one, going up the frame stack.
   while (unw_step(&cursor) > 0 && frames<cnt) {
     unw_word_t pc;
     unw_get_reg(&cursor, UNW_REG_IP, &pc);
@@ -901,26 +926,49 @@ void mtev_stacktrace_ucontext(mtev_log_stream_t ls, ucontext_t *ucp) {
   global_in_stacktrace = 0;
 }
 #endif
-void mtev_stacktrace(mtev_log_stream_t ls) {
-  if (ck_pr_fas_int(&global_in_stacktrace, 1))
+void mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore) {
+  if (ck_pr_fas_int(&global_in_stacktrace, 1)) {
+    mtevL(mtev_error, "stack trace in stack trace, refusing\n");
     return;
+  }
+  /*
+  struct sigaction sa, saold;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_sigaction = mtev_stacktrace_internal_crash;
+  sa.sa_flags = SA_SIGINFO;
+  sigemptyset(&sa.sa_mask);
+  sigaddset(&sa.sa_mask, SIGSEGV);
+  sigaction(SIGSEGV, &sa, &saold);
+  */
+
   void *callstack[128];
   int frames = mtev_backtrace(callstack, 128);
-  mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack, frames);
+  ignore = MIN(ignore, frames);
+  mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack+ignore, frames-ignore);
+
   global_in_stacktrace = 0;
+  //sigaction(SIGSEGV, &saold, NULL);
+}
+void mtev_stacktrace(mtev_log_stream_t ls) {
+  mtev_stacktrace_skip(ls, 0);
 }
 
 int
-mtev_aco_stacktrace(mtev_log_stream_t ls, aco_t *co) {
+mtev_aco_stacktrace_skip(mtev_log_stream_t ls, aco_t *co, int ignore) {
   if (ck_pr_fas_int(&global_in_stacktrace, 1))
     return 0;
   void *ips[128];
   char extra_thr[32];
   int cnt = mtev_aco_backtrace(co, ips, sizeof(ips)/sizeof(*ips));
+  ignore = MIN(ignore, cnt);
   snprintf(extra_thr, sizeof(extra_thr), "/%" PRIx64, (uintptr_t)co);
-  mtev_stacktrace_internal(ls, mtev_aco_stacktrace, extra_thr, NULL, ips, cnt);
-  return cnt;
+  mtev_stacktrace_internal(ls, mtev_aco_stacktrace, extra_thr, NULL, ips+ignore, cnt-ignore);
   global_in_stacktrace = 0;
+  return cnt;
+}
+int
+mtev_aco_stacktrace(mtev_log_stream_t ls, aco_t *co) {
+  return mtev_aco_stacktrace_skip(ls, co, 0);
 }
 
 int mtev_aco_backtrace(aco_t *co, void **addrs, int addrs_len) {
