@@ -199,6 +199,8 @@ lua_State *mtev_lua_open(const char *module_name, void *lmc,
                          const char *script_dir, const char *cpath);
 void mtev_lua_init_globals(void);
 void register_console_lua_commands(void);
+int mtev_lua_resume(lua_State *L, int);
+int mtev_lua_pcall(lua_State *L, int, int, int);
 int mtev_lua_traceback(lua_State *L);
 void mtev_lua_new_coro(mtev_lua_resume_info_t *);
 void mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci);
@@ -259,7 +261,7 @@ MTEV_RUNTIME_AVAIL(mtev_lua_register_dynamic_ctype, mtev_lua_register_dynamic_ct
 #define require(L, rv, a) do { \
   lua_getglobal(L, "require"); \
   lua_pushstring(L, #a); \
-  rv = lua_pcall(L, 1, 1, 0); \
+  rv = mtev_lua_pcall(L, 1, 1, 0); \
   if(rv != 0) { \
     mtevL(mtev_stderr, "Loading %s: %d (%s)\n", #a, rv, lua_tostring(L,-1)); \
     lua_close(L); \

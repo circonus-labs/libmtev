@@ -123,11 +123,7 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
   mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
 
   VM_TIME_BEGIN
-#if LUA_VERSION_NUM >= 502
-  status = lua_resume(ri->coro_state, ri->lmc->lua_state, nargs);
-#else
-  status = lua_resume(ri->coro_state, nargs);
-#endif
+  status = mtev_lua_resume(ri->coro_state, nargs);
   VM_TIME_END
 
   switch(status) {
@@ -188,7 +184,7 @@ lua_general_handler_ex(mtev_dso_generic_t *self,
   lua_getglobal(L, "require");
   lua_pushstring(L, module);
   VM_TIME_BEGIN
-  rv = lua_pcall(L, 1, 1, 0);
+  rv = mtev_lua_pcall(L, 1, 1, 0);
   VM_TIME_END
   if(rv) {
     int i;
@@ -526,7 +522,7 @@ lua_hook_varargs(lua_module_closure_t *lmc, lua_State *L, const char *proto, va_
         lua_remove(L,-2);
         lua_pushstring(L, args[i]);
         lua_pushlightuserdata(L, ptr);
-        if(lua_pcall(L, 2, 1, 0) == 0) {
+        if(mtev_lua_pcall(L, 2, 1, 0) == 0) {
           is_ffi = true;
           mtevL(nldeb, "successful ffi.cast(\"%s\", %p)\n", args[i], ptr);
         } else {
@@ -584,7 +580,7 @@ lua_hook_vahandler(void *closure, ...) {
     lua_pushstring(L, module);
     {
     VM_TIME_BEGIN
-    rv = lua_pcall(L, 1, 1, 0);
+    rv = mtev_lua_pcall(L, 1, 1, 0);
     VM_TIME_END
     }
     if(rv) {
@@ -624,7 +620,7 @@ lua_hook_vahandler(void *closure, ...) {
     mtevL(nldeb, "calling lua hook %s in %s\n", function, module);
     {
     VM_TIME_BEGIN
-    rv = lua_pcall(L, nargs, 1, 0);
+    rv = mtev_lua_pcall(L, nargs, 1, 0);
     VM_TIME_END
     }
     if(rv) {
@@ -789,7 +785,7 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     int rv;
     lua_getglobal(lmc->lua_state, "require");
     lua_pushstring(lmc->lua_state, *module);
-    rv = lua_pcall(lmc->lua_state, 1, 0, 0);
+    rv = mtev_lua_pcall(lmc->lua_state, 1, 0, 0);
     if(rv) {
       mtevL(mtev_error, "preloads: require %s failed: %s\n", *module, lua_tostring(lmc->lua_state, -1));
     }
@@ -798,7 +794,7 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
 
   lua_getglobal(lmc->lua_state, "require");
   lua_pushstring(lmc->lua_state, "ffi");
-  if(lua_pcall(lmc->lua_state,1,1,0) != 0 || !lua_istable(lmc->lua_state,-1)) {
+  if(mtev_lua_pcall(lmc->lua_state,1,1,0) != 0 || !lua_istable(lmc->lua_state,-1)) {
     mtevL(mtev_error, "lua_general could not reference ffi\n");
     return -1;
   }
@@ -910,7 +906,7 @@ mtev_console_lua_repl_execute(mtev_console_closure_t ncct,
   lua_pushstring(L, buff);
   lua_pushConsole(L, ncct);
   VM_TIME_BEGIN
-  rv = lua_pcall(L, 2, LUA_MULTRET, -4);
+  rv = mtev_lua_pcall(L, 2, LUA_MULTRET, -4);
   VM_TIME_END
   if(rv) {
     int i;
