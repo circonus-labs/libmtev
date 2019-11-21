@@ -737,7 +737,6 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
 }
 #endif
 
-/*
 static sigjmp_buf crash_in_crash_jmp;
 static sigjmp_buf *crash_in_crash = NULL;
 static void
@@ -752,7 +751,6 @@ mtev_stacktrace_internal_crash(int sig, siginfo_t *si, void *uc) {
   }
   raise(sig);
 }
-*/
 
 static void
 mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
@@ -797,12 +795,10 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
     lseek(_global_stack_trace_fd, 0, SEEK_SET);
     unused = ftruncate(_global_stack_trace_fd, 0);
     for(i=0; i<frames; i++) {
-/*
       crash_in_crash = &crash_in_crash_jmp;
       if(sigsetjmp(crash_in_crash_jmp, 1) != 0) {
         continue;
       }
-      */
 
       Dl_info dlip;
       void *base = NULL;
@@ -889,7 +885,7 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
     mtevL(ls, "stacktrace unavailable\n");
   }
 #endif
-  //crash_in_crash = NULL;
+  crash_in_crash = NULL;
 }
 
 int mtev_backtrace(void **callstack, int cnt) {
@@ -931,23 +927,22 @@ void mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore) {
     mtevL(mtev_error, "stack trace in stack trace, refusing\n");
     return;
   }
-  /*
   struct sigaction sa, saold;
+  void *callstack[128];
+  int frames = mtev_backtrace(callstack, 128);
+  ignore = MIN(ignore, frames);
+
   memset(&sa, 0, sizeof(sa));
   sa.sa_sigaction = mtev_stacktrace_internal_crash;
   sa.sa_flags = SA_SIGINFO;
   sigemptyset(&sa.sa_mask);
   sigaddset(&sa.sa_mask, SIGSEGV);
   sigaction(SIGSEGV, &sa, &saold);
-  */
 
-  void *callstack[128];
-  int frames = mtev_backtrace(callstack, 128);
-  ignore = MIN(ignore, frames);
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack+ignore, frames-ignore);
 
   global_in_stacktrace = 0;
-  //sigaction(SIGSEGV, &saold, NULL);
+  sigaction(SIGSEGV, &saold, NULL);
 }
 void mtev_stacktrace(mtev_log_stream_t ls) {
   mtev_stacktrace_skip(ls, 0);
