@@ -749,6 +749,7 @@ static void
 mtev_stacktrace_internal_crash(int sig, siginfo_t *si, void *uc) {
   (void)si;
   (void)uc;
+  (void)crash_in_crash_jmp;
   mtev_log_enter_sighandler();
   mtevL(mtev_error, "crashed %d inside stacktrace walker\n", sig);
   mtev_log_leave_sighandler();
