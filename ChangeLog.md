@@ -4,6 +4,9 @@
 
 ## 1.9
 
+ * Improve safety of hooked stack traces.
+ * Fix cross-thread trigger on closed events.
+
 ### 1.9.5
 
  * Fix issue with logging threads not starting for "file"
