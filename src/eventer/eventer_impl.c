@@ -1289,8 +1289,12 @@ void eventer_cross_thread_process(struct eventer_impl_data *t) {
     if(ctt) t->cross = ctt->next;
     pthread_mutex_unlock(&t->cross_lock);
     if(ctt) {
-      mtevL(eventer_deb, "executing queued fd:%d / %x\n", ctt->e->fd, ctt->mask);
-      eventer_trigger(ctt->e, ctt->mask);
+      if(ctt->e->fd >= 0) {
+        mtevL(eventer_deb, "executing queued fd:%d / %x\n", ctt->e->fd, ctt->mask);
+        eventer_trigger(ctt->e, ctt->mask);
+      } else {
+        mtevL(eventer_deb, "avoiding trigger of closed event %p / %x\n", ctt->e, ctt->mask);
+      }
       eventer_deref(ctt->e);
       free(ctt);
     }
