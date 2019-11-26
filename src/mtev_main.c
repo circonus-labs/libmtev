@@ -442,7 +442,7 @@ mtev_main(const char *appname,
   }
 
   ret = mtev_conf_get_int32(watchdog_conf, "@retries", &retry_val);
-  if((ret == 0) || (retry_val == 0)){
+  if((ret == 0) || (retry_val < 0)){
     retry_val = 5;
   }
   ret = mtev_conf_get_int32(watchdog_conf, "@span", &span_val);
