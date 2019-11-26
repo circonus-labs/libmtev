@@ -36,6 +36,7 @@
 #include "mtev_hash.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
 #include <ctype.h>
