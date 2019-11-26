@@ -503,13 +503,13 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
 
   if(!ctx->conn.e || ctx->res.in_error) {
     pthread_mutex_unlock(&ctx->write_lock);
-    return 0;
+    return -1;
   }
   if(!b) {
     if(ctx->res.closed) ctx->res.complete = mtev_true;
     *mask = EVENTER_EXCEPTION;
     pthread_mutex_unlock(&ctx->write_lock);
-    return tlen;
+    return (ctx->res.closed && tlen <= 0) ? -1 : tlen;
   }
 
   if(ctx->res.output_raw_offset >= b->size) {
