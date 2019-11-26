@@ -177,6 +177,7 @@ static const char *appname = "unknown";
 static const char *glider_path = NULL;
 static const char *trace_dir = "/var/tmp";
 static mtev_boolean save_trace_output = mtev_true;
+#define MAX_RETRIES 100
 static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
@@ -222,8 +223,8 @@ int mtev_watchdog_glider_trace_dir(const char *path) {
   return 0;
 }
 void mtev_watchdog_ratelimit(int retry_val, int span_val) {
-  if(retry_val < 1) retry_val = 1;
-  if(retry_val > 100) retry_val = 100;
+  if(retry_val < 0) retry_val = 0;
+  if(retry_val > MAX_RETRIES) retry_val = MAX_RETRIES;
   retries = retry_val;
   if(span_val < 0) span_val = 0;
   span = span_val;
@@ -655,6 +656,8 @@ mtev_setup_crash_signals(void (*action)(int, siginfo_t *, void *)) {
 
 static int
 update_retries(int* offset, time_t times[]) {
+  if(retries == 0) return 1;
+
   int i;
   time_t currtime = time(NULL);
   time_t cutoff = currtime - span;
@@ -674,7 +677,7 @@ update_retries(int* offset, time_t times[]) {
 int mtev_watchdog_start_child(const char *app, int (*func)(void),
                               int child_watchdog_timeout_int) {
   int child_pid, crashing_pid = -1;
-  time_t time_data[retries];
+  time_t time_data[MAX_RETRIES];
   int offset = 0;
 
   memset(time_data, 0, sizeof(time_data));
