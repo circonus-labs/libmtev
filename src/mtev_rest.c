@@ -549,13 +549,13 @@ skipto:
 struct rest_url_dispatcher *
 mtev_http_rest_new_rule(const char *method, const char *base,
                         const char *expr, rest_request_handler f) {
-  return mtev_http_rest_new_rule_auth_closure(method, base, expr, f, NULL, NULL, NULL, NULL);
+  return mtev_http_rest_new_rule_auth_closure(method, base, expr, f, NULL, NULL, mtev_http_rest_client_cert_auth, NULL);
 }
 
 int
 mtev_http_rest_register(const char *method, const char *base,
                         const char *expr, rest_request_handler f) {
-  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, NULL, NULL);
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, mtev_http_rest_client_cert_auth, NULL);
 }
 void
 mtev_http_rest_disclose_endpoints(const char *base, const char *expr) {
@@ -564,7 +564,7 @@ mtev_http_rest_disclose_endpoints(const char *base, const char *expr) {
 int
 mtev_http_rest_register_closure(const char *method, const char *base,
                         const char *expr, rest_request_handler f, void *c) {
-  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, NULL, c);
+  return mtev_http_rest_register_auth_closure(method, base, expr, f, NULL, NULL, mtev_http_rest_client_cert_auth, c);
 }
 int
 mtev_http_rest_register_auth(const char *method, const char *base,
