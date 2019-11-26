@@ -4,6 +4,8 @@
 
 ## 1.9
 
+### 1.9.6
+
  * Improve safety of hooked stack traces.
  * Make http append and flush return false for disconnected clients.
  * Make foreground stacktraces reliably print.
