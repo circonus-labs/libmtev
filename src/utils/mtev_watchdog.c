@@ -222,8 +222,11 @@ int mtev_watchdog_glider_trace_dir(const char *path) {
   return 0;
 }
 void mtev_watchdog_ratelimit(int retry_val, int span_val) {
-    retries = retry_val;
-    span = span_val;
+  if(retry_val < 1) retry_val = 1;
+  if(retry_val > 100) retry_val = 100;
+  retries = retry_val;
+  if(span_val < 0) span_val = 0;
+  span = span_val;
 }
 
 /* Watchdog stuff */

@@ -4,6 +4,8 @@
 
 ## 1.9
 
+ * Protect against invalid watchdog retry and span settings.
+
 ### 1.9.6
 
  * Improve safety of hooked stack traces.
