@@ -5,6 +5,8 @@
 ## 1.9
 
  * Improve safety of hooked stack traces.
+ * Make http append and flush return false for disconnected clients.
+ * Make foreground stacktraces reliably print.
  * Fix cross-thread trigger on closed events.
 
 ### 1.9.5

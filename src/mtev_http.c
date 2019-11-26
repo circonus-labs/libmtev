@@ -290,7 +290,7 @@ mtev_http_response_append(mtev_http_session_ctx *ctx,
   mtev_boolean success = mtev_false;
   mtev_http_response *res = mtev_http_session_response(ctx);
   pthread_mutex_lock(&res->output_lock);
-  if(res->closed == mtev_true) goto out;
+  if(res->in_error || res->closed) goto out;
   if(res->output_started == mtev_true &&
      !(res->output_options & (MTEV_HTTP_CLOSE | MTEV_HTTP_CHUNKED)))
     goto out;
@@ -331,7 +331,7 @@ mtev_http_response_append_bchain(mtev_http_session_ctx *ctx,
   mtev_boolean success = mtev_false;
   mtev_http_response *res = mtev_http_session_response(ctx);
   pthread_mutex_lock(&res->output_lock);
-  if(res->closed == mtev_true) goto out;
+  if(res->in_error || res->closed) goto out;
   if(res->output_started == mtev_true &&
      !(res->output_options & (MTEV_HTTP_CHUNKED | MTEV_HTTP_CLOSE)))
     goto out;
