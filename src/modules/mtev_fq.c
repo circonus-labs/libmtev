@@ -340,9 +340,9 @@ fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
     if(!strcmp("poll_limit", iter.key.str)) {
       conf->poll_limit = atoi(iter.value.str);
       if(conf->poll_limit < 0) conf->poll_limit = DEFAULT_POLL_LIMIT;
-      mtevL(mtev_notice, "Setting poll limit to %d!\n", conf->poll_limit);
+      mtevL(nldeb, "Setting poll limit to %d!\n", conf->poll_limit);
     } else {
-      mtevL(mtev_error, "Unknown fq config: %s %s!\n", iter.key.str, iter.value.str);
+      mtevL(nlerr, "Unknown fq config: %s %s!\n", iter.key.str, iter.value.str);
       return -1;
     }
   }
