@@ -4,6 +4,8 @@
 
 ## 1.9
 
+### 1.9.7
+
  * Protect against invalid watchdog retry and span settings.
  * Make `mtev_http_rest_register` use the default ACL auth such
    that configured ACL will apply.  This prevents a classic coding
