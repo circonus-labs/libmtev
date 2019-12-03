@@ -546,6 +546,12 @@ mtev_lua_setup_restc(lua_State *L,
   lua_setmetatable(L, -2);
 }
 
+void
+mtev_lua_va_mtev_http_restc(lua_State *L, va_list ap) {
+  mtev_http_rest_closure_t *restc = va_arg(ap, mtev_http_rest_closure_t *);
+  mtev_lua_setup_restc(L, restc);
+}
+
 static void
 mtev_lua_va_mtev_http_session_ctx(lua_State *L, va_list ap) {
   mtev_http_session_ctx *ctx = va_arg(ap, mtev_http_session_ctx *);
@@ -554,6 +560,8 @@ mtev_lua_va_mtev_http_session_ctx(lua_State *L, va_list ap) {
 int
 luaopen_mtev_http(lua_State *L) {
   (void)L;
+  mtev_lua_register_dynamic_ctype("mtev_http_rest_closure_t *",
+                                  mtev_lua_va_mtev_http_restc);
   mtev_lua_register_dynamic_ctype("mtev_http_session_ctx *",
                                   mtev_lua_va_mtev_http_session_ctx);
   mtev_lua_register_dynamic_ctype("mtev_http1_session_ctx *",
