@@ -391,11 +391,11 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
       restc->fastpath = NULL;
       restc->aco_enabled = mtev_false;
       switch(rest_auth_denied_hook_invoke(restc, &denied)) {
-        case MTEV_HOOK_DONE: return denied;
+        case MTEV_HOOK_DONE: break;
         case MTEV_HOOK_CONTINUE: break;
         case MTEV_HOOK_ABORT: return mtev_http_rest_error;
       }
-      return denied;
+      if(denied) return denied;
     }
       /* We match, set 'er up */
     mtev_zipkin_span_rename(mtev_http_zipkip_span(restc->http_ctx),
