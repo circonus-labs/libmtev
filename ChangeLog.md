@@ -4,6 +4,11 @@
 
 ## 1.9
 
+ * Convey the client CN into the rest closure for `http_rest_api` listeners.
+ * Support http/2 ALPN upgrades on `http_rest_api` and
+   `mtev_wire_rest_api/1.0` listeners.
+ * Fix crash in http/2 socket error on `mtev_wire_rest_api/1.0` listeners.
+
 ### 1.9.7
 
  * Protect against invalid watchdog retry and span settings.
