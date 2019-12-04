@@ -97,6 +97,9 @@ API_EXPORT(void)
                                  uint32_t cmd,
                                  eventer_func_t delegate_dispatch);
 
+API_EXPORT(mtev_boolean)
+  mtev_listener_apply_alpn(eventer_t e, int *mask, void *closure,
+                           struct timeval *now);
 API_EXPORT(int)
   mtev_control_dispatch(eventer_t, int, void *, struct timeval *);
 

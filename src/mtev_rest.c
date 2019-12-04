@@ -932,9 +932,16 @@ mtev_http_rest_handler(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    (void)mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
-    mtev_acceptor_closure_free(ac);
-    return 0;
+    rv = mtev_http_session_drive(e, mask, restc->http_ctx, now, &done);
+    if(done) {
+      mtev_acceptor_closure_free(ac);
+    }
+    return rv;
+  }
+
+  int alpn_mask = mask;
+  if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
+    return alpn_mask;
   }
 
   if(!restc) {
@@ -1042,6 +1049,11 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
   mtev_acceptor_closure_t *ac = closure;
   mtev_http_rest_closure_t *restc = mtev_acceptor_closure_ctx(ac);
 
+  int alpn_mask = mask;
+  if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
+    return alpn_mask;
+  }
+
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
     /* Exceptions cause us to simply snip the connection */
     if(restc) {
@@ -1054,8 +1066,10 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
   }
   if(!restc) {
     restc = mtev_http_rest_closure_alloc(NULL);
+    const char *remote_cn = mtev_acceptor_closure_remote_cn(ac);
     mtev_acceptor_closure_set_ctx(ac, restc, mtev_http_rest_closure_free);
     restc->ac = ac;
+    restc->remote_cn = strdup(remote_cn ? remote_cn : "");
     restc->http_ctx =
       mtev_http1_session_ctx_websocket_new(mtev_rest_request_dispatcher, 
                                            mtev_rest_websocket_dispatcher,
