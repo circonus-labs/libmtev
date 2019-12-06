@@ -563,6 +563,10 @@ mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
     size_t pos = 0;
     while (decompressed_len > 0) {
       size_t read = ch->write_function((char *)(decompressed + pos), 1, decompressed_len, ch->write_closure);
+      if (read == (size_t)-1) {
+        /* The callback returned an error.... we should pass that along */
+        return -1;
+      }
       decompressed_len -= read;
       pos += read;
     }
