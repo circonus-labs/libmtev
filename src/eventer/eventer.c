@@ -326,17 +326,24 @@ int eventer_name_callback_ext(const char *name,
   cd->simple_name = strdup(name);
   cd->functional_name = fn;
   cd->closure = cl;
+
+  unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, cd);
+  unsigned long hash2 = CK_HS_HASH(&__name_to_func, __ck_hash_from_fname, cd);
+  ck_spinlock_lock(&naming_write_lock);
+
+  if(ck_hs_put(&__name_to_func, hash2, cd) == false) {
+    mtevL(eventer_deb, "callback naming collision: %s\n", name);
+    free(cd->simple_name);
+    free(cd);
+    ck_spinlock_unlock(&naming_write_lock);
+    return -1;
+  }
+
   stats_ns_t *ns = mtev_stats_ns(mtev_stats_ns(eventer_stats_ns, "callbacks"), cd->simple_name);
   stats_ns_add_tag(ns, "mtev-callback", cd->simple_name);
   cd->latency = stats_register(ns, "latency", STATS_TYPE_HISTOGRAM);
   stats_handle_units(cd->latency, STATS_UNITS_SECONDS);
-  unsigned long hash = CK_HS_HASH(&__func_to_name, __ck_hash_from_fptr, cd);
-  unsigned long hash2 = CK_HS_HASH(&__name_to_func, __ck_hash_from_fname, cd);
-  ck_spinlock_lock(&naming_write_lock);
   (void)ck_hs_set(&__func_to_name, hash, cd, (void **)&old);
-  if(ck_hs_set(&__name_to_func, hash2, cd, (void **)&old) && old != NULL) {
-    free_callback_details(old);
-  }
   ck_spinlock_unlock(&naming_write_lock);
   return 0;
 }
