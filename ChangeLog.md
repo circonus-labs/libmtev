@@ -4,10 +4,14 @@
 
 ## 1.9
 
+### 1.9.8
+
  * Convey the client CN into the rest closure for `http_rest_api` listeners.
  * Support http/2 ALPN upgrades on `http_rest_api` and
    `mtev_wire_rest_api/1.0` listeners.
  * Fix crash in http/2 socket error on `mtev_wire_rest_api/1.0` listeners.
+ * Allow reporting failures to curl library when using the mtev_compress
+   curl helper.
 
 ### 1.9.7
 
