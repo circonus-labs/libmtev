@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -72,6 +73,7 @@ static char *enable_logs[MAX_CLI_LOGS];
 static int enable_logs_cnt = 0;
 static char *disable_logs[MAX_CLI_LOGS];
 static int disable_logs_cnt = 0;
+extern char *external_diagnose;
 
 /* Little helper to find one of the 4 baked-in logs:
  * stderr, error, notice, debug
@@ -521,8 +523,14 @@ mtev_main(const char *appname,
     pid_t pid = getpid();
     mtevEL(mtev_notice, MLKV{ MLKV_INT64("pid",pid), MLKV_END },
            "%s booting [unmanaged, pid: %d]\n", appname, (int)pid);
-    const char *diagnose = getenv("MTEV_DIAGNOSE_CRASH");
-    if(!diagnose || strcmp(diagnose,"0")) mtev_setup_crash_signals(mtev_self_diagnose);
+    external_diagnose = getenv("MTEV_DIAGNOSE_CRASH");
+    if(!external_diagnose || strcmp(external_diagnose,"0")) {
+      if (!external_diagnose || isdigit(*external_diagnose)) {
+        mtev_setup_crash_signals(mtev_self_diagnose);
+      } else {
+        mtev_setup_crash_signals(mtev_external_diagnose);
+      }
+    }
     mtev_memory_gc_asynch();
     signal(SIGTERM, mtev_watchdog_shutdown_handler);
     signal(SIGQUIT, mtev_watchdog_shutdown_handler);

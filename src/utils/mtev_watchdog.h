@@ -223,6 +223,9 @@ API_EXPORT(void)
 API_EXPORT(void)
   mtev_self_diagnose(int sig, siginfo_t *si, void *uc);
 
+API_EXPORT(void)
+  mtev_external_diagnose(int sig, siginfo_t *si, void *uc);
+
 API_EXPORT(int)
   mtev_setup_crash_signals(void (*)(int, siginfo_t *, void *));
 
