@@ -423,7 +423,11 @@ char *external_diagnose = NULL;
 void mtev_external_diagnose(int sig, siginfo_t *si, void *uc) {
   (void)si;
   (void)uc;
+#if defined(linux) || defined(__linux) || defined(__linux__)
   pid_t pid = syscall(SYS_gettid);
+#else
+  pid_t pid = getpid();
+#endif
   char pidstr[32];
   snprintf(pidstr, sizeof(pidstr), "%u", pid);
   int childpid = fork();
