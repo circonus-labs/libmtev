@@ -433,7 +433,7 @@ void mtev_external_diagnose(int sig, siginfo_t *si, void *uc) {
   int childpid = fork();
   if (!childpid) {
 #if defined(linux) || defined(__linux) || defined(__linux__)  
-    execlp(external_diagnose, external_diagnose, tidstr, pidstr, NULL);
+    execlp(external_diagnose, external_diagnose, pidstr, tidstr, NULL);
 #else
     execlp(external_diagnose, external_diagnose, pidstr, NULL);
 #endif
