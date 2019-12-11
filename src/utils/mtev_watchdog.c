@@ -424,15 +424,19 @@ void mtev_external_diagnose(int sig, siginfo_t *si, void *uc) {
   (void)si;
   (void)uc;
 #if defined(linux) || defined(__linux) || defined(__linux__)
-  pid_t pid = syscall(SYS_gettid);
-#else
-  pid_t pid = getpid();
+  pid_t tid = syscall(SYS_gettid);
+  char tidstr[32];
+  snprintf(tidstr, sizeof(tidstr), "%u", tid);
 #endif
   char pidstr[32];
-  snprintf(pidstr, sizeof(pidstr), "%u", pid);
+  snprintf(pidstr, sizeof(pidstr), "%u", getpid());
   int childpid = fork();
   if (!childpid) {
-    execlp(external_diagnose, external_diagnose, pidstr);
+#if defined(linux) || defined(__linux) || defined(__linux__)  
+    execlp(external_diagnose, external_diagnose, tidstr, pidstr, NULL);
+#else
+    execlp(external_diagnose, external_diagnose, pidstr, NULL);
+#endif
     mtevL(mtev_error, "Unable to launch external diagnosis\n");
   }
   else {
