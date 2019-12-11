@@ -37,8 +37,13 @@ any libmtev application.
 
  * ##### MTEV_DIAGNOSE_CRASH
 
-   If set to 0 or non-numeric, libmtev's internal crash handling code will not
-   be run.
+   If set to 0, libmtev's internal crash handling code will not
+   be run.  If set to 1, will run libmtev's internal crash handling code.
+   If set to a file path for a script or external tool, this will be invoked
+   on a crash with the thread id as a parameter (pid on non-linux).  Use a
+   wrapper script with execution rights and sudoers as needed to give sudo
+   permissions or additional calling parameters when invoking the external
+   tool.
 
  * ##### MTEV_LOG_DEBUG
 
@@ -62,4 +67,3 @@ any libmtev application.
    does not heartbeat from each thread within this number of seconds,
    the monitor will terminate and restart the child.  Non-integral
    numbers are allowed.
-

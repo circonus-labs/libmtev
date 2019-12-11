@@ -39,6 +39,8 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
 #include <dirent.h>
 #include <execinfo.h>
 #if defined(__sun__)
@@ -414,6 +416,28 @@ void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
   mtev_stacktrace_skip(mtev_error_stacktrace, 3);
 #endif
   mtev_log_leave_sighandler();
+  raise(sig);
+}
+
+char *external_diagnose = NULL;
+void mtev_external_diagnose(int sig, siginfo_t *si, void *uc) {
+  (void)si;
+  (void)uc;
+#if defined(linux) || defined(__linux) || defined(__linux__)
+  pid_t pid = syscall(SYS_gettid);
+#else
+  pid_t pid = getpid();
+#endif
+  char pidstr[32];
+  snprintf(pidstr, sizeof(pidstr), "%u", pid);
+  int childpid = fork();
+  if (!childpid) {
+    execlp(external_diagnose, external_diagnose, pidstr);
+    mtevL(mtev_error, "Unable to launch external diagnosis\n");
+  }
+  else {
+    waitpid(childpid, NULL, 0);
+  }
   raise(sig);
 }
 
