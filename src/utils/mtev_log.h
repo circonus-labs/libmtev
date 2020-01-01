@@ -237,6 +237,9 @@ API_EXPORT(int)
 API_EXPORT(void)
   mtev_log_init_globals(void);
 
+API_EXPORT(void)
+  mtev_log_heap_profile(mtev_log_stream_t ls);
+
 #define mtevELT(ls, t, ex, args...) do { \
   if((ls)) { \
     bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
@@ -296,6 +299,7 @@ API_EXPORT(void)
 #define mtevFatal(ls,args...) do {\
   mtev_log_go_synch(); \
   mtevL((ls), "[FATAL] " args); \
+  mtev_log_heap_profile((ls)); \
   abort(); \
 } while(0)
 

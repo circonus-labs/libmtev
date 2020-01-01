@@ -60,6 +60,7 @@
 #include "mtev_thread.h"
 #include "mtev_zipkin.h"
 #include "mtev_dyn_buffer.h"
+#include "mtev_heap_profiler.h"
 #define XXH_PRIVATE_API
 #include "xxhash.h"
 #undef XXH_PRIVATE_API
@@ -2443,6 +2444,20 @@ mtev_log_init_globals(void) {
   }
 }
 
+void
+mtev_log_heap_profile(mtev_log_stream_t ls) {
+  if(getenv("MTEV_EXIT_MEMDUMP")) {
+    char *result_str = NULL;
+    const char *error_str = mtev_heap_profile(NULL, mtev_false, mtev_false, mtev_true, &result_str,
+                                              ".");
+    if (error_str) {
+      mtevL(ls, "Error attempting to dump heap profile: %s\n", error_str);
+    } else if (result_str) {
+      mtevL(ls, "%s\n", result_str);
+    }
+  } 
+}
+   
 struct posix_op_ctx boot_stderr_posix_op_ctx = { .fd = 2 };
 
 asynch_log_ctx boot_stderr_actx = {
