@@ -528,6 +528,7 @@ mtev_main(const char *appname,
       if (!external_diagnose || isdigit(*external_diagnose)) {
         mtev_setup_crash_signals(mtev_self_diagnose);
       } else {
+        mtevL(mtev_stderr, "External crash diagnose enabled - using: %s\n", external_diagnose);
         mtev_setup_crash_signals(mtev_external_diagnose);
       }
     }

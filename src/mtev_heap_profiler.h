@@ -32,6 +32,7 @@
 #define MTEV_HEAP_PROFILER_H
 
 #include "mtev_defines.h"
+#include "mtev_rest.h"
 
 /*
  * REST interface to enable/disable heap profiling and to trigger heap dumps
@@ -43,5 +44,9 @@ API_EXPORT(void)
 
 API_EXPORT(void)
   mtev_heap_profiler_rest_init(void);
+
+API_EXPORT(const char *)
+mtev_heap_profile(mtev_http_session_ctx *ctx, mtev_boolean active_present,
+                  mtev_boolean active, mtev_boolean dump, char **result_str, char *path);
 
 #endif
