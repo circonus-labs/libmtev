@@ -1002,6 +1002,15 @@ void mtev_watchdog_shutdown_handler(int sig) {
     snprintf(signo, sizeof(signo), "%d", sig);
     signame = signo;
   }
+  if(getenv("MTEV_EXIT_MEMDUMP")) {
+    const char *error_str = mtev_heap_profile(NULL, mtev_false, mtev_false, mtev_true, &result_str,
+                                              ".");
+    if (error_str) {
+      mtevL(mtev_error, "Error attempting to dump heap profile: %s\n", error_str);
+    } else if (result_str) {
+      mtevL(mtev_error, "%s\n", result_str);
+    }
+  }
   mtevTerminate(mtev_error, "received %s, shutting down.\n", signame);
   exit(-1);
 }
