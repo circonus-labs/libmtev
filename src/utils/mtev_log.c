@@ -36,6 +36,7 @@
 #include "mtev_defines.h"
 #include <stdio.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <sys/uio.h>
 #include <sys/time.h>
@@ -2446,10 +2447,20 @@ mtev_log_init_globals(void) {
 
 void
 mtev_log_heap_profile(mtev_log_stream_t ls) {
-  if(getenv("MTEV_EXIT_MEMDUMP")) {
+  char *path = getenv("MTEV_EXIT_MEMDUMP");
+  if (path)
+  {
     char *result_str = NULL;
-    const char *error_str = mtev_heap_profile(NULL, mtev_false, mtev_false, mtev_true, &result_str,
-                                              ".");
+    const char *error_str = mtev_heap_profile(NULL, mtev_false, mtev_false, mtev_false, &result_str,
+                                              NULL);
+    if (error_str) {
+      mtevL(ls, "Error attempting to retrieve dump status: %s\n", error_str);
+    } else if (result_str) {
+      mtevL(ls, "%s", result_str);
+    }
+    result_str = NULL;
+    error_str = mtev_heap_profile(NULL, mtev_false, mtev_false, mtev_true, &result_str,
+                                  (path && !isdigit(*path)) ? path : "");
     if (error_str) {
       mtevL(ls, "Error attempting to dump heap profile: %s\n", error_str);
     } else if (result_str) {

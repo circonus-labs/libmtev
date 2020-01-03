@@ -20,7 +20,7 @@ mtev_heap_profile(mtev_http_session_ctx *ctx, mtev_boolean active_present,
   int r = 0;
   static char buf[PATH_MAX] = { '\0' };
   *result_str = NULL;
-  if (!path) { path = "/tmp"; }
+  if (!path) { path = "/tmp/"; }
   if (active_present)
   {
     bool bactive = active ? true : false;
@@ -35,9 +35,10 @@ mtev_heap_profile(mtev_http_session_ctx *ctx, mtev_boolean active_present,
       mtev_http_response_end(ctx);
     }
   } else if (dump) {
-    snprintf(buf, PATH_MAX, "%s/heap_profile.%d", path, getpid());
-    mtevL(mtev_debug, "Dumping heap profile to file: %s\n", buf);
-    r = mallctl("prof.dump", NULL, NULL, &buf, sizeof(const char *));
+    snprintf(buf, PATH_MAX, "%sheap_profile.%d", path, getpid());
+    mtevL(mtev_error, "Dumping heap profile to file: %s\n", buf);
+    const char *bufptr = buf;
+    r = mallctl("prof.dump", NULL, NULL, &bufptr, sizeof(const char *));
     if(r) {
       return strerror(r);
     }
