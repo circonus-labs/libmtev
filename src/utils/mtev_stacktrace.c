@@ -746,6 +746,7 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
         snprintf(buff, sizeof(buff), "\t(%s:%s%d off: %zd)", line_map->file_or_fn, fn_info,
                  line_map->lineno, line_off);
       }
+    }
     else {
       if (line_map->column >= 0) {
         snprintf(buff, sizeof(buff), "\t(%s:%s%d:%d)", line_map->file_or_fn, fn_info,
