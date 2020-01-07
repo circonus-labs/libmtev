@@ -90,6 +90,7 @@ typedef enum { NOT_SET, ADDR_MAP_LINE, ADDR_MAP_FUNCTION } addr_map_type_t;
 struct addr_map {
   uintptr_t addr;
   int lineno;
+  int column;
   const char *file_or_fn;
   struct addr_map *next;
   addr_map_type_t type;
@@ -178,6 +179,7 @@ mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
   if(dwarf_srclines(die, &lines, &nlines, &error) == DW_DLV_OK) {
     for(int i = 0; i < nlines; i++) {
       Dwarf_Unsigned uno;
+      Dwarf_Signed column;
       Dwarf_Addr addr;
       struct addr_map li = { .next = NULL, .type = ADDR_MAP_LINE };
       char *filename;
@@ -221,9 +223,16 @@ mtev_register_die(struct dmap_node *node, Dwarf_Die die, int level) {
       else {
         li.addr = (uintptr_t)addr;
       }
-      mtevL(maint_dwarf_log, "%s srcline: %s:%u(%p) %llu %llu %s%s%s%s\n", line_error ? "BAD" : "GOOD",
-            filename, li.lineno, (void *)addr, isa, discrim, begin_line ? "BEGIN " : "",
-            end_die ? "END " : "", prol_end ? "PROL" : "", epi_begin ? "EPI" : "");
+      if(dwarf_lineoff(lines[i], &column, &error) != DW_DLV_OK) {
+        line_error = mtev_true;
+      }
+      else {
+        li.column = (int)column;
+      }
+      mtevL(maint_dwarf_log, "%s srcline: %s:%u:%d(%p) %llu %llu %s%s%s%s\n",
+            line_error ? "BAD" : "GOOD", filename, li.lineno, li.column, (void *)addr, isa, discrim,
+            begin_line ? "BEGIN " : "", end_die ? "END " : "", prol_end ? "PROL" : "",
+            epi_begin ? "EPI" : "");
       if (!line_error && li.lineno > 0) {
         struct addr_map *head = calloc(1, sizeof(struct addr_map));
         memcpy(head, &li, sizeof(struct addr_map));
@@ -603,8 +612,9 @@ find_addr_map(uintptr_t addr, ssize_t *offset, const char **fn_name, uintptr_t *
     }
     else {
       if (found_line) {
-        mtevL(dwarf_log, "Matching source line found: %08lx -> %u %08lx : %s\n", addr -  node->base,
-              found_line->lineno, found_line->addr, found_line->file_or_fn);
+        mtevL(dwarf_log, "Matching source line found: %08lx -> %u:%d %08lx : %s\n",
+              addr -  node->base,
+              found_line->lineno, found_line->column, found_line->addr, found_line->file_or_fn);
       }
       break;
     }
@@ -727,10 +737,25 @@ int mtev_simple_stack_print(uintptr_t pc, int sig, void *usrarg) {
     char fn_info[1024] = {'\0'};
     char buff[1024];
     if (fn_name) snprintf(fn_info, sizeof(fn_info), "%s+%"PRIx64":", fn_name, fn_off);
-    if(line_off > 256 || line_off < -256)
-      snprintf(buff, sizeof(buff), "\t(%s:%s%d off: %zd)", line_map->file_or_fn, fn_info, line_map->lineno, line_off);
-    else
-      snprintf(buff, sizeof(buff), "\t(%s:%s%d)", line_map->file_or_fn, fn_info, line_map->lineno);
+    if(line_off > 256 || line_off < -256) {
+      if (line_map->column >= 0) {
+        snprintf(buff, sizeof(buff), "\t(%s:%s%d:%d off: %zd)", line_map->file_or_fn, fn_info,
+                 line_map->lineno, line_map->column, line_off);
+      }
+      else {
+        snprintf(buff, sizeof(buff), "\t(%s:%s%d off: %zd)", line_map->file_or_fn, fn_info,
+                 line_map->lineno, line_off);
+      }
+    else {
+      if (line_map->column >= 0) {
+        snprintf(buff, sizeof(buff), "\t(%s:%s%d:%d)", line_map->file_or_fn, fn_info,
+                 line_map->lineno, line_map->column);
+      }
+      else {
+        snprintf(buff, sizeof(buff), "\t(%s:%s%d)", line_map->file_or_fn, fn_info,
+                 line_map->lineno);
+      }
+    }
     mtev_print_stackline(ls, self, NULL, buff);
   }
   char *symname = strchr(addrpreline, '\'');
@@ -819,10 +844,25 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
       char buff[256];
       buff[0] = '\0';
       if(line_map) {
-        if(line_off > 256 || line_off < -256)
-          snprintf(buff, sizeof(buff), "\n\t(%s:%d off: %zd)", line_map->file_or_fn, line_map->lineno, line_off);
-        else
-          snprintf(buff, sizeof(buff), "\n\t(%s:%d)", line_map->file_or_fn, line_map->lineno);
+        if(line_off > 256 || line_off < -256) {
+          if (line_map->column >= 0) {
+            snprintf(buff, sizeof(buff), "\n\t(%s:%d:%d off: %zd)", line_map->file_or_fn,
+                     line_map->lineno, line_map->column, line_off);
+          }
+          else {
+            snprintf(buff, sizeof(buff), "\n\t(%s:%d off: %zd)", line_map->file_or_fn,
+                     line_map->lineno, line_off);
+          }
+        }
+        else {
+          if (line_map->column >= 0) {
+            snprintf(buff, sizeof(buff), "\n\t(%s:%d:%d)", line_map->file_or_fn, line_map->lineno,
+                     line_map->column);
+          }
+          else {
+            snprintf(buff, sizeof(buff), "\n\t(%s:%d)", line_map->file_or_fn, line_map->lineno);
+          }
+        }
       }
       const char *fname = NULL;
       const char *sname = NULL;
