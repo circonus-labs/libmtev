@@ -299,16 +299,6 @@ int eventer_set_fd_blocking(int fd) {
   return 0;
 }
 
-static void
-free_callback_details(void *vcd) {
-  struct callback_details *cd = (struct callback_details *)vcd;
-  if (vcd) {
-    if(cd->simple_name) free(cd->simple_name);
-    /* We can't just go and free the stats handle as the metrics system has a ref to it */
-    free(vcd);
-  }
-}
-
 ck_spinlock_t naming_write_lock;
 static ck_hs_t __name_to_func;
 static ck_hs_t __func_to_name;
@@ -388,7 +378,6 @@ again:
   const char *dyn;
   dyn = mtev_function_name((uintptr_t)f);
   if(dyn == NULL) {
-    struct callback_detail *old;
     cd = calloc(1, sizeof(*cd));
     cd->fptr = f;
     ck_spinlock_lock(&naming_write_lock);
@@ -397,8 +386,10 @@ again:
       free(cd);
       goto again;
     }
-    if(ck_hs_set(&__func_to_name, hash, cd, (void **)&old) && old != NULL) {
-      free_callback_details(old);
+    if(!ck_hs_put(&__func_to_name, hash, cd)) {
+      ck_spinlock_unlock(&naming_write_lock);
+      free(cd);
+      goto again;
     }
     ck_spinlock_unlock(&naming_write_lock);
   } else {
