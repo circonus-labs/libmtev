@@ -1208,7 +1208,7 @@ rest_get_raw_upload(mtev_http_rest_closure_t *restc,
       *complete = 1;
       return NULL;
     }
-    if(rxc->len == mtev_http_request_content_length(req)) {
+    if(mtev_http_request_payload_complete(req)) {
       *size = rxc->len;
       rxc->complete = 1;
     }
