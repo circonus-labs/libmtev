@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
+#include <ck_pr.h>
 
 #include "mtev_debug.h"
 #include "mtev_printbuf.h"
@@ -133,7 +134,7 @@ static int mtev_json_escape_str(struct jl_printbuf *pb, char *str)
 extern struct mtev_json_object* mtev_json_object_get(struct mtev_json_object *jso)
 {
   if(jso) {
-    jso->_ref_count++;
+    ck_pr_inc_int(&jso->_ref_count);
   }
   return jso;
 }
@@ -141,8 +142,9 @@ extern struct mtev_json_object* mtev_json_object_get(struct mtev_json_object *js
 extern void mtev_json_object_put(struct mtev_json_object *jso)
 {
   if(jso) {
-    jso->_ref_count--;
-    if(!jso->_ref_count) jso->_delete(jso);
+    if(ck_pr_dec_int_is_zero(&jso->_ref_count)) {
+      jso->_delete(jso);
+    }
   }
 }
 
