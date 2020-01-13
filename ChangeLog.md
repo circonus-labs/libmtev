@@ -9,6 +9,7 @@
    process pid (pid only on non-linux).
  * Display source line column numbers in stacktrace (when available) for
    callstack addresses
+ * Fix compressed uploads in `rest_get_raw_upload`.
 
 ### 1.9.8
 
