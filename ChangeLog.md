@@ -10,6 +10,7 @@
  * Display source line column numbers in stacktrace (when available) for
    callstack addresses
  * Fix compressed uploads in `rest_get_raw_upload`.
+ * `mtev_json_object` ref counting is now atomic.
 
 ### 1.9.8
 
