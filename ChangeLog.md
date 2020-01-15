@@ -4,7 +4,7 @@
 
 ## 1.9
 
- * Move eventer SSL debugging to `debug/eventer/ssl`
+ * Move eventer SSL debug logging to `debug/eventer/ssl`
 
 ### 1.9.9
 
