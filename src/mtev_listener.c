@@ -455,10 +455,11 @@ mtev_listener_acceptor(eventer_t e, int mask,
       eventer_add(newe);
     }
     else {
-      if(errno == EAGAIN) {
-        if(ac) mtev_acceptor_closure_free(ac);
-      }
-      else if(errno != EINTR) {
+      mtev_acceptor_closure_free(ac);
+      ac = NULL;
+      if(errno == EAGAIN) break; /* defer to eventer */
+      else if(errno == EINTR) continue; /* retry */
+      else {
         mtevL(mtev_error, "accept socket error: %s\n", strerror(errno));
         goto socketfail;
       }
