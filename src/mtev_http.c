@@ -570,6 +570,9 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
   mtev_http_request_start_time(req, &start_time);
   if(start_time.tv_sec == 0) return;
 
+  if(ctx->logged) return;
+  ctx->logged = true;
+
   const char *orig_qs = mtev_http_request_orig_querystring(req);
   mtev_http_response *res = mtev_http_session_response(ctx);
   mtev_gettimeofday(&end_time, NULL);

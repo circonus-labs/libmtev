@@ -38,6 +38,7 @@
 
 #define HTTP_SESSION_BASE \
   uint32_t http_type; \
+  bool logged; \
   Zipkin_Span *zipkin_span; \
   stats_handle_t *record 
 
