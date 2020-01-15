@@ -4,6 +4,8 @@
 
 ## 1.9
 
+### 1.9.9
+
  * If MTEV_DIAGNOSE_CRASH is set to an external tool path, then the
    tool will be invoked on a crash with the faulting thread id and
    process pid (pid only on non-linux).
