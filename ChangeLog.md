@@ -5,6 +5,7 @@
 ## 1.9
 
  * Move eventer SSL debug logging to `debug/eventer/ssl`
+ * Fix use-after-free in http logging when HTTP/2 sessions are interrupted.
 
 ### 1.9.9
 

@@ -136,9 +136,6 @@ uint32_t mtev_http2_session_ref_cnt(mtev_http2_session_ctx *ctx) {
 }
 mtev_boolean mtev_http2_session_ref_dec(mtev_http2_session_ctx *ctx) {
   bool zero;
-  if(ctx->parent) {
-    mtev_http2_parent_session_deref(ctx->parent, mtev_false);
-  }
   ck_pr_dec_32_zero(&ctx->ref_cnt, &zero);
   if(zero) {
     mtevL(h2_debug, "http2 freeing stream(%p) <- %d\n", ctx->parent, ctx->stream_id);
@@ -146,6 +143,9 @@ mtev_boolean mtev_http2_session_ref_dec(mtev_http2_session_ctx *ctx) {
     mtev_http_log_request((mtev_http_session_ctx *)ctx);
     mtev_http_end_span((mtev_http_session_ctx *)ctx);
 
+    if(ctx->parent) {
+      mtev_http2_parent_session_deref(ctx->parent, mtev_false);
+    }
     /* free request */
     RELEASE_BCHAIN(ctx->req.user_data);
     free(ctx->req.uri_str);
@@ -178,6 +178,8 @@ mtev_boolean mtev_http2_session_ref_dec(mtev_http2_session_ctx *ctx) {
       ctx->dispatcher_closure_free(ctx->dispatcher_closure);
     }
     free(ctx);
+  } else if(ctx->parent) {
+    mtev_http2_parent_session_deref(ctx->parent, mtev_false);
   }
   return zero;
 }
@@ -198,6 +200,11 @@ mtev_boolean mtev_http2_session_aco(mtev_http2_session_ctx *ctx) {
 mtev_acceptor_closure_t *
 mtev_http2_session_acceptor_closure(mtev_http2_session_ctx *ctx) {
   return ctx->parent->ac;
+}
+void
+mtev_http2_ctx_session_log_release(mtev_http2_session_ctx *sess) {
+  mtev_http_log_request((mtev_http_session_ctx *)sess);
+  (void)mtev_http2_session_ref_dec(sess);
 }
 void
 mtev_http2_ctx_session_release(mtev_http2_session_ctx *sess) {
@@ -745,7 +752,7 @@ void
 mtev_http2_parent_session_deref(mtev_http2_parent_session *sess, mtev_boolean drop_streams) {
   bool zero;
   if(drop_streams) {
-    mtev_hash_delete_all(&sess->streams, NULL, (NoitHashFreeFunc)mtev_http2_ctx_session_release);
+    mtev_hash_delete_all(&sess->streams, NULL, (NoitHashFreeFunc)mtev_http2_ctx_session_log_release);
   }
   ck_pr_dec_32_zero(&sess->ref_cnt, &zero);
   mtevL(h2_debug, "mtev_http2_parent_session_deref(%p) -> %u\n", sess, sess->ref_cnt);

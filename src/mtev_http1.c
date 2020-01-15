@@ -938,6 +938,7 @@ mtev_http1_request_release(mtev_http1_session_ctx *ctx) {
   mtev_hash_destroy(&ctx->req.querystring, NULL, NULL);
   mtev_hash_destroy(&ctx->req.headers, NULL, NULL);
 
+  ctx->logged = mtev_false;
   memset(&ctx->req.state, 0,
          sizeof(ctx->req) - (unsigned long)&(((mtev_http1_request *)0)->state));
 
