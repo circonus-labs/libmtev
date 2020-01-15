@@ -5385,7 +5385,7 @@ sem:release()
 
 static int
 nl_semaphore(lua_State *L) {
-  int64_t val, *valp, **valpp;
+  int64_t val, *valp = NULL, **valpp;
   const char *key = luaL_checkstring(L,1);
   val = luaL_checkinteger(L,2);
 retry:
@@ -5396,6 +5396,7 @@ retry:
     if(!mtev_hash_store(semaphore_table, key, strlen(key), valp)) {
       /* lost race */
       free(valp);
+      valp = NULL;
       goto retry;
     }
   }

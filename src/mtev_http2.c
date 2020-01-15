@@ -752,6 +752,7 @@ void
 mtev_http2_parent_session_deref(mtev_http2_parent_session *sess, mtev_boolean drop_streams) {
   bool zero;
   if(drop_streams) {
+    sess->ac = NULL; /* we only drop the streams b/c the connection popped, be safe here */
     mtev_hash_delete_all(&sess->streams, NULL, (NoitHashFreeFunc)mtev_http2_ctx_session_log_release);
   }
   ck_pr_dec_32_zero(&sess->ref_cnt, &zero);
