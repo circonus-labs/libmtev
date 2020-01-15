@@ -57,6 +57,8 @@
 #define DEFAULT_LAYER_STRING "tlsv1:all,!sslv2,!sslv3"
 #endif
 
+static mtev_log_stream_t ssldb;
+
 #define SSL_CTX_KEYLEN (PATH_MAX * 4 + 5)
 struct cache_finfo {
   ino_t ino;
@@ -171,7 +173,7 @@ _eventer_ssl_ctx_save_last_error(eventer_ssl_ctx_t *ctx, int note_errno,
   /* now clip off the last ", " */
   i = strlen(ctx->last_error);
   if(i>=2) ctx->last_error[i-2] = '\0';
-  mtevL(eventer_deb, "ssl error: %s\n", ctx->last_error);
+  mtevL(ssldb, "ssl error: %s\n", ctx->last_error);
 }
 
 static DH *
@@ -181,7 +183,7 @@ load_dh_params(const char *filename) {
   if(filename == NULL) return NULL;
   bio = BIO_new_file(filename, "r");
   if(bio == NULL) return NULL;
-  mtevL(eventer_deb, "Loading DH parameters from %s.\n", filename);
+  mtevL(ssldb, "Loading DH parameters from %s.\n", filename);
   PEM_read_bio_DHparams(bio, &dh, 0, NULL);
   BIO_free(bio);
   if(dh) {
@@ -411,7 +413,7 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
     ctx->cert_error = strdup(X509_verify_cert_error_string(v_res));
     if(!strcmp(opt_no_ca, "true")) ok = 1;
     else {
-      mtevL(eventer_deb, "SSL client cert invalid: %s\n",
+      mtevL(ssldb, "SSL client cert invalid: %s\n",
             X509_verify_cert_error_string(v_res));
       ok = 0;
       goto set_out;
@@ -421,7 +423,7 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
   if(v_res != 0) {
     if(!strcmp(ignore_dates, "true")) ok = 1;
     else {
-      mtevL(eventer_deb, "SSL client cert is %s valid.\n",
+      mtevL(ssldb, "SSL client cert is %s valid.\n",
             (v_res < 0) ? "not yet" : "no longer");
       ctx->cert_error = strdup((v_res < 0) ?
                                "Certificate not yet valid." :
@@ -582,13 +584,13 @@ ssl_ctx_cache_node_free(ssl_ctx_cache_node *node) {
   if(!node) return;
   ck_pr_dec_32_zero(&node->refcnt, &zero);
   if(zero) {
-    mtevL(eventer_deb, "ssl_ctx_cache_node_free(%p -> 0) freeing\n", node);
+    mtevL(ssldb, "ssl_ctx_cache_node_free(%p -> 0) freeing\n", node);
     SSL_CTX_free(node->internal_ssl_ctx);
     free(node->key);
     free(node);
   }
   else {
-    mtevL(eventer_deb, "ssl_ctx_cache_node_free(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
+    mtevL(ssldb, "ssl_ctx_cache_node_free(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
   }
 }
 
@@ -619,7 +621,7 @@ eventer_SSL_server_info_callback(const SSL *ssl, int type, int val) {
 
   ctx = SSL_get_eventer_ssl_ctx(ssl);
   if(ctx && ctx->no_more_negotiations) {
-    mtevL(eventer_deb, "eventer_SSL_server_info_callback ... reneg is bad\n");
+    mtevL(ssldb, "eventer_SSL_server_info_callback ... reneg is bad\n");
     ctx->renegotiated = 1;
   }
 }
@@ -638,7 +640,7 @@ ssl_ctx_key_write(char *b, int blen, eventer_ssl_orientation_t type,
 
 static void
 ssl_ctx_cache_remove(const char *key) {
-  mtevL(eventer_deb, "ssl_ctx_cache->remove(%s)\n", key);
+  mtevL(ssldb, "ssl_ctx_cache->remove(%s)\n", key);
   pthread_mutex_lock(&ssl_ctx_cache_lock);
   mtev_hash_delete(&ssl_ctx_cache, key, strlen(key),
                    NULL, (void (*)(void *))ssl_ctx_cache_node_free);
@@ -655,7 +657,7 @@ ssl_ctx_cache_get(const char *key) {
     ck_pr_inc_32(&node->refcnt);
   }
   pthread_mutex_unlock(&ssl_ctx_cache_lock);
-  if(node) mtevL(eventer_deb, "ssl_ctx_cache->get(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
+  if(node) mtevL(ssldb, "ssl_ctx_cache->get(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
   return node;
 }
 
@@ -672,7 +674,7 @@ ssl_ctx_cache_set(ssl_ctx_cache_node *node) {
   }
   ck_pr_inc_32(&node->refcnt);
   pthread_mutex_unlock(&ssl_ctx_cache_lock);
-  mtevL(eventer_deb, "ssl_ctx_cache->set(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
+  mtevL(ssldb, "ssl_ctx_cache->set(%p -> %u)\n", node, ck_pr_load_32(&node->refcnt));
   return node;
 }
 
@@ -1180,7 +1182,7 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
   sslerror = SSL_get_error(ctx->ssl, rv);
   switch(sslerror) {
     case SSL_ERROR_NONE:
-      mtevL(eventer_deb, "SSL[%s of %d] -> %d, rw error: %d\n", opstr,
+      mtevL(ssldb, "SSL[%s of %d] -> %d, rw error: %d\n", opstr,
             (int)len, rv, sslerror);
       return 0;
     case SSL_ERROR_WANT_READ:
@@ -1191,12 +1193,12 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
       break;
     case SSL_ERROR_SYSCALL:
       if(errno == 0) {
-        mtevL(eventer_deb, "SSL error (syscall) no error?!\n");
+        mtevL(ssldb, "SSL error (syscall) no error?!\n");
         return -1;
       }
       /* FALLTHROUGH */
     default:
-      mtevL(eventer_deb, "SSL[%s of %d] -> %d, rw error: %d/%s\n", opstr,
+      mtevL(ssldb, "SSL[%s of %d] -> %d, rw error: %d/%s\n", opstr,
             (int)len, rv, sslerror, strerror(errno));
       eventer_ssl_ctx_save_last_error(ctx, 1);
       errno = EIO;
@@ -1338,6 +1340,7 @@ static int32_t initialized = 0;
 void eventer_ssl_init(void) {
   eventer_t e;
   if(initialized) return;
+  ssldb = mtev_log_stream_find("debug/eventer/ssl");
   initialized = 1;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
   int i, numlocks;

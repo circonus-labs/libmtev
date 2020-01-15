@@ -4,6 +4,8 @@
 
 ## 1.9
 
+ * Move eventer SSL debug logging to `debug/eventer/ssl`
+
 ### 1.9.9
 
  * If MTEV_DIAGNOSE_CRASH is set to an external tool path, then the
