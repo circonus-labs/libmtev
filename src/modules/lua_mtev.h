@@ -65,6 +65,9 @@ typedef struct lua_module_closure {
   mtev_dso_generic_t *self;
   lua_module_gc_params_t *gcparams;
   int ffi_index;
+  timer_t _timer;
+  timer_t *timer;
+  struct timeval interrupt_time;
 } lua_module_closure_t;
 
 API_EXPORT(void) mtev_lua_set_gc_params(lua_module_closure_t *, lua_module_gc_params_t *);
@@ -199,7 +202,7 @@ lua_State *mtev_lua_open(const char *module_name, void *lmc,
                          const char *script_dir, const char *cpath);
 void mtev_lua_init_globals(void);
 void register_console_lua_commands(void);
-int mtev_lua_resume(lua_State *L, int);
+int mtev_lua_resume(lua_State *L, int, mtev_lua_resume_info_t *);
 int mtev_lua_pcall(lua_State *L, int, int, int);
 int mtev_lua_traceback(lua_State *L);
 void mtev_lua_new_coro(mtev_lua_resume_info_t *);

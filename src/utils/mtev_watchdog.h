@@ -169,6 +169,16 @@ API_EXPORT(double)
 API_EXPORT(mtev_boolean)
   mtev_watchdog_get_timeout_timeval(mtev_watchdog_t *hb, struct timeval *dur);
 
+/* \fn mtev_boolean mtev_watchdog_remaining(mtev_watchdog_t *lifeline, struct timeval *now, struct timeval *diff)
+   \brief determines the time remaining on a watchdog.
+   \param lifeline the heartbeat
+   \param now the current time (NULL will result in the current time)
+   \param diff a relative time remaining.
+   \return mtev_true if the calculation could be made.
+ */
+API_EXPORT(mtev_boolean)
+  mtev_watchdog_remaining(mtev_watchdog_t *lifeline, struct timeval *now, struct timeval *diff);
+
 /*! \fn uint32_t mtev_watchdog_number_of_starts(void)
     \brief Determine the number of times a child has been lauched.
     \return The number of times fork has returned in the parent.  In a running server, 0 means you're the first generation.

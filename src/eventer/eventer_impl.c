@@ -361,6 +361,10 @@ void eventer_heartbeat(void) {
   mtevAssert(my_impl_data);
   mtev_watchdog_heartbeat(my_impl_data->hb);
 }
+mtev_boolean eventer_heartbeat_deadline(struct timeval *now, struct timeval *delta) {
+  mtevAssert(my_impl_data);
+  return mtev_watchdog_remaining(my_impl_data->hb, now, delta);
+}
 pthread_t eventer_choose_owner(int i) {
   return eventer_choose_owner_pool(&default_pool, i);
 }

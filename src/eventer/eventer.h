@@ -1296,6 +1296,14 @@ API_EXPORT(double) eventer_watchdog_timeout(void);
 */
 API_EXPORT(mtev_boolean) eventer_watchdog_timeout_timeval(struct timeval *);
 
+/*! \fn mtev_boolean eventer_heartbeat_deadline(struct timeval *now, struct timeval *delta)
+    \brief Return the remaining time before the watchdog timeout on this thread.
+    \param now the current time (NULL means now)
+    \param delta the relative time remaining before a watchdog
+    \return mtev_true if the timeout was successfully calculated.
+*/
+API_EXPORT(mtev_boolean) eventer_heartbeat_deadline(struct timeval *now, struct timeval *delta);
+
 /*! \fn pthread_t eventer_choose_owner(int n)
     \brief Find a thread in the default eventer pool.
     \param n an integer.
