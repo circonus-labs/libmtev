@@ -80,6 +80,7 @@ typedef struct lua_general_conf {
   const char **Cpreloads;
   const char **preloads;
   lua_module_gc_params_t *gc_params;
+  struct timeval interrupt_time;
   mtev_boolean concurrent;
   mtev_boolean booted;
   mtev_boolean tragedy_terminates;
@@ -123,7 +124,7 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
   mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
 
   VM_TIME_BEGIN
-  status = mtev_lua_resume(ri->coro_state, nargs);
+  status = mtev_lua_resume(ri->coro_state, nargs, ri);
   VM_TIME_END
 
   switch(status) {
@@ -305,6 +306,15 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
       conf->preloads[i] = strdup(cp);
     }
     free(copy);
+  }
+
+  bstr = mtev_hash_dict_get(o, "interrupt_time");
+  if(bstr) {
+    double timeout = atof(bstr);
+    if(timeout > 0) {
+      conf->interrupt_time.tv_sec = timeout;
+      conf->interrupt_time.tv_usec = (timeout - (double)conf->interrupt_time.tv_sec) * 1000000;
+    }
   }
 
   conf->gc_params = mtev_lua_config_gc_params(o);
@@ -743,6 +753,7 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
   if(!lmc) {
     lmc = mtev_lua_lmc_alloc(self, lua_general_resume);
     mtev_lua_set_gc_params(lmc, conf->gc_params);
+    lmc->interrupt_time = conf->interrupt_time;
     pthread_setspecific(conf->key, lmc);
   }
 

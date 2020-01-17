@@ -777,9 +777,6 @@ mtev_stacktrace_internal_crash(int sig, siginfo_t *si, void *uc) {
   (void)si;
   (void)uc;
   (void)crash_in_crash_jmp;
-  mtev_log_enter_sighandler();
-  mtevL(mtev_error, "crashed %d inside stacktrace walker\n", sig);
-  mtev_log_leave_sighandler();
   if(crash_in_crash) {
     siglongjmp(*crash_in_crash, 1);
   }
@@ -830,6 +827,10 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
     unused = ftruncate(_global_stack_trace_fd, 0);
     for(i=0; i<frames; i++) {
       if(sigsetjmp(crash_in_crash_jmp, 1) != 0) {
+        int len = snprintf(stackbuff, sizeof(stackbuff), "\nwalker crashed in stack frame %d\n", i);
+        if(write(_global_stack_trace_fd, stackbuff, len) < 0) {
+          mtevL(ls, "Error recording stacktrace.\n");
+        }
         crash_in_crash = NULL;
         continue;
       }

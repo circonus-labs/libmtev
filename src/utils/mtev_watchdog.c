@@ -957,6 +957,21 @@ double mtev_watchdog_get_timeout(mtev_watchdog_t *lifeline) {
   return global_child_watchdog_timeout;
 }
 mtev_boolean
+mtev_watchdog_remaining(mtev_watchdog_t *lifeline, struct timeval *now, struct timeval *diff) {
+  struct timeval timeout, _now;
+  if(lifeline == NULL) lifeline = mmap_lifelines;
+  if(lifeline->parent_view.last_changed.tv_sec == 0) return mtev_false;
+  if(!mtev_watchdog_get_timeout_timeval(lifeline, &timeout)) return mtev_false;
+  add_timeval(lifeline->parent_view.last_changed, timeout, &timeout);
+  /* timeout is now absolute */
+  if(!now) {
+    mtev_gettimeofday(&_now, NULL);
+    now = &_now;
+  }
+  sub_timeval(timeout, *now, diff);
+  return mtev_true;
+}
+mtev_boolean
 mtev_watchdog_get_timeout_timeval(mtev_watchdog_t *lifeline, struct timeval *dur) {
   if(lifeline == NULL) return mtev_false;
   if(dur == NULL) return mtev_true;

@@ -30,6 +30,7 @@
 
 #include "mtev_defines.h"
 
+#include <math.h>
 #include <dlfcn.h>
 
 #include "mtev_dso.h"
@@ -59,6 +60,7 @@ typedef struct lua_web_conf {
   mtev_dso_generic_t *self;
   pthread_key_t key;
   lua_module_gc_params_t *gc_params;
+  struct timeval interrupt_time;
 } lua_web_conf_t;
 
 static stats_handle_t *vm_time;
@@ -136,7 +138,7 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
   mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
 
   VM_TIME_BEGIN
-  status = mtev_lua_resume(ri->coro_state, nargs);
+  status = mtev_lua_resume(ri->coro_state, nargs, ri);
   VM_TIME_END
 
   switch(status) {
@@ -394,6 +396,15 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     free(copy);
   }
 
+  bstr = mtev_hash_dict_get(o, "interrupt_time");
+  if(bstr) {
+    double timeout = atof(bstr);
+    if(timeout > 0) {
+      conf->interrupt_time.tv_sec = floor(timeout);
+      conf->interrupt_time.tv_usec = fmod(timeout, 1) * 1000000;
+    }
+  }
+
   conf->gc_params = mtev_lua_config_gc_params(o);
   conf->max_post_size = DEFAULT_MAX_POST_SIZE;
   return 0;
@@ -437,6 +448,7 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
   if(!lmc) {
     lmc = mtev_lua_lmc_alloc(self, lua_web_resume);
     mtev_lua_set_gc_params(lmc, conf->gc_params);
+    lmc->interrupt_time = conf->interrupt_time;
     pthread_setspecific(conf->key, lmc);
   }
   if(lmc->lua_state == NULL) {

@@ -39,7 +39,7 @@ void mtev_luaL_traceback (void (*cb)(void *, const char *, size_t), void *closur
   if (msg) CBF(closure, "%s\n", msg);
   cb(closure, "stack traceback:", strlen("stack traceback:"));
   while (lua_getstack(L1, level++, &ar)) {
-    GCfunc *fn;
+    GCfunc *fn = NULL;
     if (level > lim) {
       if (!lua_getstack(L1, level + TRACEBACK_LEVELS2, &ar)) {
 	level--;
@@ -52,9 +52,9 @@ void mtev_luaL_traceback (void (*cb)(void *, const char *, size_t), void *closur
       continue;
     }
     lua_getinfo(L1, "Snlf", &ar);
-    if(L1->top == NULL) fn = NULL;
-    else {
-      fn = funcV(L1->top-1);
+    if(L1->top != NULL) {
+      /* Sometimes this returns a bad pointer and tragedy ensues... */
+      /* fn = funcV(L1->top-1); */
       L1->top--;
     }
     if (fn && isffunc(fn) && !*ar.namewhat)

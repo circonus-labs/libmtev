@@ -37,6 +37,9 @@
 #include <ck_pr.h>
 
 #include <unistd.h>
+#include <errno.h>
+#include <signal.h>
+#include <sys/syscall.h>
 
 #include "mtev_conf.h"
 #include "mtev_dso.h"
@@ -163,6 +166,23 @@ mtev_lua_gc_full(lua_module_closure_t *lmc) {
 }
 
 
+static void
+mtev_lua_timer_setup(lua_module_closure_t *lmc) {
+#if defined(linux) || defined(__linux) || defined(__linux__)
+  struct sigevent sev;
+  sev.sigev_notify = SIGEV_THREAD_ID;
+  sev.sigev_signo = SIGUSR1;
+  sev._sigev_un._tid = syscall(SYS_gettid);
+  sev.sigev_value.sival_ptr = &lmc->_timer;
+  if (timer_create(CLOCK_MONOTONIC, &sev, &lmc->_timer) == -1) {
+    mtevL(mtev_error, "timer_create failed: %s", strerror(errno));
+    return;
+  }
+
+  lmc->timer = &lmc->_timer;
+#endif
+}
+
 lua_module_closure_t *
 mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
   lua_module_closure_t *lmc;
@@ -174,6 +194,7 @@ mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
   lmc->eventer_id = eventer_is_loop(lmc->owner);
   lmc->self = self;
   lmc->resume = resume;
+  mtev_lua_timer_setup(lmc);
   return lmc;
 }
 
@@ -191,6 +212,11 @@ mtev_lua_lmc_free(lua_module_closure_t *lmc) {
                      (const char*)&lmc->lua_state, sizeof(lmc->lua_state),
                      free, NULL);
     pthread_mutex_unlock(&mtev_lua_states_lock);
+    if(lmc->timer) {
+      if (timer_delete(lmc->_timer) == -1) {
+        mtevL(mtev_error, "timer_delete failed: %s", strerror(errno));
+      }
+    }
   }
   free(lmc);
 }
@@ -198,12 +224,75 @@ mtev_lua_lmc_free(lua_module_closure_t *lmc) {
 static __thread lua_State *tls_active_lua_state = NULL;
 static __thread bool assist_fired;
 
+static void
+mtev_lua_timer_start(timer_t *lua_timer, struct timeval *diff) {
+  if(lua_timer == NULL) return;
+
+  mtevL(nldeb, "Starting lua timer: %p for %ld.%06ld\n", lua_timer, diff->tv_sec, diff->tv_usec);
+  struct itimerspec ispec;
+  memset(&ispec, 0, sizeof(ispec));
+  ispec.it_value.tv_sec = diff->tv_sec;
+  ispec.it_value.tv_nsec = diff->tv_usec * 1000;
+  if(timer_settime(*lua_timer, 0, &ispec, NULL) != 0)
+    mtevL(mtev_error, "timer_settime failed: %s\n", strerror(errno));
+}
+
+static void
+mtev_lua_timer_stop(timer_t *lua_timer) {
+  if(lua_timer == NULL) return;
+
+  mtevL(nldeb, "Stopping lua timer: %p\n", lua_timer);
+  struct itimerspec ispec;
+  memset(&ispec, 0, sizeof(ispec));
+  if(timer_settime(*lua_timer, 0, &ispec, NULL) != 0)
+    mtevL(mtev_error, "timer_settime failed: %s\n", strerror(errno));
+}
+static void lstop (lua_State *L, lua_Debug *ar) {
+  (void)ar;  /* unused arg. */
+  lua_sethook(L, NULL, 0, 0);  /* reset hook */
+  mtev_stacktrace(mtev_error);
+  luaL_error(L, "interrupted!");
+}
+
+static void
+mtev_lua_timer_fire(int sig, siginfo_t *info, void *c) {
+  (void)sig;
+  (void)info;
+  (void)c;
+  mtevL(nldeb, "timer fired: lua %p\n", tls_active_lua_state);
+
+  if(tls_active_lua_state) {
+    lua_sethook(tls_active_lua_state, lstop, LUA_MASKCALL | LUA_MASKRET | LUA_MASKCOUNT,1);
+  }
+}
+
 int
-mtev_lua_resume(lua_State *L, int a) {
+mtev_lua_resume(lua_State *L, int a, mtev_lua_resume_info_t *ri) {
   int rv;
+  struct timeval diff = { .tv_sec = 0, .tv_usec = 0 };
   lua_State *previous = tls_active_lua_state;
   tls_active_lua_state = L;
+  if(eventer_heartbeat_deadline(NULL, &diff)) {
+    sub_timeval(diff, (struct timeval){ .tv_sec = 2, .tv_usec = 0 }, &diff);
+    if(diff.tv_sec < 0 || diff.tv_usec < 0) {
+      mtevL(nlerr, "lua attempting to resume with no time left before watchdog\n");
+      mtev_stacktrace(nlerr);
+      diff.tv_sec = 0;
+      diff.tv_usec = 1;
+    }
+  }
+  if(ri && ri->lmc && !(ri->lmc->interrupt_time.tv_sec == 0 && ri->lmc->interrupt_time.tv_usec == 0)) {
+    /* if we have an interrupt time specified for this lmc, then we should potentially reduce to it */
+    if((diff.tv_sec == 0 && diff.tv_usec == 0) ||
+        compare_timeval(ri->lmc->interrupt_time, diff) < 0) {
+      diff = ri->lmc->interrupt_time;
+    }
+  }
+  if(diff.tv_sec >= 0 && diff.tv_usec >= 0) {
+    mtev_lua_timer_start(ri->lmc->timer, &diff);
+  }
   rv = lua_resume(L, a);
+  mtev_lua_timer_stop(ri->lmc->timer);
   tls_active_lua_state = previous;
   return rv;
 }
@@ -1239,4 +1328,18 @@ mtev_lua_init_globals(void) {
   stats_handle_units(gc_total, STATS_UNITS_TRANSACTIONS);
   gc_latency = stats_register(lua_stats_ns, "gc_latency", STATS_TYPE_HISTOGRAM_FAST);
   stats_handle_units(gc_latency, STATS_UNITS_SECONDS);
+
+  struct sigaction sa;
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = mtev_lua_timer_fire;
+  sigemptyset(&sa.sa_mask);
+  if (sigaction(SIGUSR1, &sa, NULL) == -1)
+    mtevL(mtev_error, "sigaction failed: %s\n", strerror(errno));
+
+  sigset_t mask;
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGUSR1);
+  if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == -1)
+    mtevL(mtev_error, "sigprocmask failed: %s\n", strerror(errno));
+
 }
