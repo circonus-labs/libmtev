@@ -283,7 +283,6 @@ mtev_lua_resume(lua_State *L, int a, mtev_lua_resume_info_t *ri) {
   }
   if(ri && ri->lmc && !(ri->lmc->interrupt_time.tv_sec == 0 && ri->lmc->interrupt_time.tv_usec == 0)) {
     /* if we have an interrupt time specified for this lmc, then we should potentially reduce to it */
-    mtevL(mtev_error, "interrupt_time set...\n");
     if((diff.tv_sec == 0 && diff.tv_usec == 0) ||
         compare_timeval(ri->lmc->interrupt_time, diff) < 0) {
       diff = ri->lmc->interrupt_time;
