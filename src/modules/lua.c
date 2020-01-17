@@ -180,6 +180,8 @@ mtev_lua_timer_setup(lua_module_closure_t *lmc) {
   }
 
   lmc->timer = &lmc->_timer;
+#else
+  (void)lmc;
 #endif
 }
 
