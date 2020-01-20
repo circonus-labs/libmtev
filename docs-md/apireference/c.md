@@ -2362,6 +2362,21 @@ eventer_get_whence(eventer_t e)
   * **RETURN** A absolute time.
 
 
+#### eventer_heartbeat_deadline
+
+>Return the remaining time before the watchdog timeout on this thread.
+
+```c
+mtev_boolean
+eventer_heartbeat_deadline(struct timeval *now, struct timeval *delta)
+```
+
+
+  * `now` the current time (NULL means now)
+  * `delta` the relative time remaining before a watchdog
+  * **RETURN** mtev_true if the timeout was successfully calculated.
+
+
 #### eventer_impl_propset
 
 >Set properties for the event loop.

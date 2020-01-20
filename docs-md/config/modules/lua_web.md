@@ -80,6 +80,13 @@ The lua_web module allows lua to drive http requests.
 
    Set the lua gc pause percentage.
 
+ * **`interrupt_time`** (optional) 
+
+   allowed: `/^^\d+(?:\.\d+)?$$/`
+
+   Specify the maximum time a lua operation may execute in a single
+   eventer callback.
+
 ### Examples
 
 #### Loading the lua web module connection webmodule to the http services.

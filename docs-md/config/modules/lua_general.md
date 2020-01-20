@@ -79,6 +79,13 @@ startup.
 
    Set the lua gc pause percentage.
 
+ * **`interrupt_time`** (optional) 
+
+   allowed: `/^^\d+(?:\.\d+)?$$/`
+
+   Specify the maximum time a lua operation may execute in a single
+   eventer callback.
+
 ### Examples
 
 #### Loading the lua general module an run somefunction from the somemodule module.

@@ -2493,6 +2493,18 @@ eventer_get_this_event(<span class="hljs-keyword">void</span>)
 <li><code>e</code> an event object</li>
 <li><strong>RETURN</strong> A absolute time.</li>
 </ul>
+<h4 id="eventerheartbeatdeadline">eventer_heartbeat_deadline</h4>
+<blockquote>
+<p>Return the remaining time before the watchdog timeout on this thread.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">eventer_heartbeat_deadline</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> timeval *now, <span class="hljs-keyword">struct</span> timeval *delta)</span>
+</span></code></pre>
+<ul>
+<li><code>now</code> the current time (NULL means now)</li>
+<li><code>delta</code> the relative time remaining before a watchdog</li>
+<li><strong>RETURN</strong> mtev_true if the timeout was successfully calculated.</li>
+</ul>
 <h4 id="eventerimplpropset">eventer_impl_propset</h4>
 <blockquote>
 <p>Set properties for the event loop.</p>

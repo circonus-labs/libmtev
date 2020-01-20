@@ -43,6 +43,10 @@
                required="optional"
                default="200"
                allowed="^(?:[1-9]\d*)$">Set the lua gc pause percentage.</parameter>
+    <parameter name="interrupt_time"
+               required="optional"
+               default=""
+               allowed="^\d+(?:\.\d+)?$">Specify the maximum time a lua operation may execute in a single eventer callback.</parameter>
   </moduleconfig>
   <examples>
     <example>

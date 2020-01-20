@@ -699,6 +699,11 @@ full garbage collection cycle is performed (0 means never).</p>
 <p>allowed: <code>/^^(?:[1-9]\d*)$$/</code></p>
 <p>Set the lua gc pause percentage.</p>
 </li>
+<li><p><strong><code>interrupt_time</code></strong> (optional) </p>
+<p>allowed: <code>/^^\d+(?:\.\d+)?$$/</code></p>
+<p>Specify the maximum time a lua operation may execute in a single
+eventer callback.</p>
+</li>
 </ul>
 <h3 id="examples">Examples</h3>
 <h4 id="loading-the-lua-general-module-an-run-somefunction-from-the-somemodule-module">Loading the lua general module an run somefunction from the somemodule module.</h4>
