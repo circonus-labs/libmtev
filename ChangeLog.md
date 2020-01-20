@@ -4,6 +4,8 @@
 
 ## 1.9
 
+ * Pass the siginfo context into the stacktrace for self-diagnosis.
+
 ### 1.9.10
 
  * Move eventer SSL debug logging to `debug/eventer/ssl`
