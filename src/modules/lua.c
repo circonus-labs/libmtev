@@ -260,6 +260,10 @@ static void lstop (lua_State *L, lua_Debug *ar) {
     mtev_stacktrace(mtev_error);
     luaL_error(L, "interrupted!");
   }
+  if(ri->interrupt_ref) {
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ri->interrupt_ref);
+    lua_call(L, 0, 0);
+  }
   mtevL(nldeb, "lua state %p preempted\n", L);
   mtev_lua_sleep(ri, (struct timeval){ .tv_sec = 0, .tv_usec = 0 });
 }
@@ -360,9 +364,31 @@ mtev_lua_lmc_setL(lua_module_closure_t *lmc, lua_State *L) {
   return prev;
 }
 
+/*! \lua mtev.interrupt_hook(f)
+\param f the function to call during a timed interrupt
+*/
+int
+mtev_lua_interrupt_hook(lua_State *L) {
+  bool off = false;
+  mtev_lua_resume_info_t *ci = mtev_lua_find_resume_info(L, mtev_true);
+  if(lua_isnil(L,1)) off = true;
+  if(!off) if(!lua_isfunction(L,1)) luaL_error(L, "mtev.interrupt_hook(<func>)");
+  mtevAssert(L == ci->coro_state);
+  if(ci->interrupt_ref != 0) {
+    mtevL(nldeb, "resetting interrupt_hook -> %s\n", off ? "nil" : "function");
+    luaL_unref(ci->coro_state, LUA_REGISTRYINDEX, ci->interrupt_ref);
+  } else {
+    mtevL(nldeb, "setting interrupt_hook -> %s\n", off ? "nil" : "function");
+  }
+  ci->interrupt_ref = off ? 0 : luaL_ref(ci->coro_state, LUA_REGISTRYINDEX);
+  return 0;
+}
+
 void
 mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci) {
   mtevL(nldeb, "coro_store <- %p\n", ci->coro_state);
+  if(ci->interrupt_ref != 0) luaL_unref(ci->coro_state, LUA_REGISTRYINDEX, ci->interrupt_ref);
+  ci->interrupt_ref = 0;
   luaL_unref(ci->lmc->lua_state, LUA_REGISTRYINDEX, ci->coro_state_ref);
   mtev_lua_gc_full(ci->lmc);
   mtevAssert(mtev_hash_delete(&ci->lmc->state_coros,

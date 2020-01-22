@@ -135,6 +135,7 @@ struct mtev_lua_resume_info {
   int context_magic;
   void *context_data;
   struct mtev_lua_resume_info *(*new_ri_f)(lua_module_closure_t *);
+  int interrupt_ref;
 };
 #define LUA_GENERAL_INFO_MAGIC 0x918243fa
 
@@ -222,6 +223,7 @@ void mtev_lua_pushmodule(lua_State *L, const char *m);
 void mtev_lua_init_dns(void);
 mtev_hash_table *mtev_lua_table_to_hash(lua_State *L, int idx);
 void mtev_lua_hash_to_table(lua_State *L, mtev_hash_table *t);
+int mtev_lua_interrupt_hook(lua_State *L);
 int mtev_lua_dns_gc(lua_State *L);
 int mtev_lua_dns_index_func(lua_State *L);
 int nl_dns_lookup(lua_State *L);

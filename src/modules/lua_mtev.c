@@ -5591,6 +5591,7 @@ static void mtev_lua_init(void) {
 
 static const luaL_Reg mtevlib[] = {
   { "cancel_coro", nl_cancel_coro },
+  { "interrupt_hook", mtev_lua_interrupt_hook },
   { "cluster", nl_mtev_cluster },
   { "waitfor", nl_waitfor },
   { "notify", nl_waitfor_notify },
