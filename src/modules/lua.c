@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2007-2010, OmniTI Computer Consulting, Inc.
  * All rights reserved.
- * Copyright (c) 2010-2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2010-2020, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -62,6 +62,8 @@ static mtev_hash_table mtev_coros;
 static pthread_mutex_t coro_lock = PTHREAD_MUTEX_INITIALIZER;
 static stats_ns_t *lua_stats_ns;
 static stats_handle_t *gc_total, *gc_full, *gc_latency;
+
+static int mtev_lua_sleep(mtev_lua_resume_info_t *, struct timeval);
 
 struct lua_module_gc_params {
   int iters_since_full;
@@ -249,11 +251,17 @@ mtev_lua_timer_stop(timer_t *lua_timer) {
   if(timer_settime(*lua_timer, 0, &ispec, NULL) != 0)
     mtevL(mtev_error, "timer_settime failed: %s\n", strerror(errno));
 }
+
 static void lstop (lua_State *L, lua_Debug *ar) {
   (void)ar;  /* unused arg. */
   lua_sethook(L, NULL, 0, 0);  /* reset hook */
-  mtev_stacktrace(mtev_error);
-  luaL_error(L, "interrupted!");
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
+  if(!ri) {
+    mtev_stacktrace(mtev_error);
+    luaL_error(L, "interrupted!");
+  }
+  mtevL(nldeb, "lua state %p preempted\n", L);
+  mtev_lua_sleep(ri, (struct timeval){ .tv_sec = 0, .tv_usec = 0 });
 }
 
 static void
@@ -1018,6 +1026,24 @@ mtev_event_dispose(void *ev) {
   free(ev);
 }
 void
+mtev_lua_eventer_cl_cleanup(eventer_t e) {
+  mtev_lua_resume_info_t *ci;
+  struct nl_slcl *cl = eventer_get_closure(e);
+  int newmask;
+  if(cl) {
+    if(cl->L) {
+      ci = mtev_lua_find_resume_info(cl->L, mtev_false);
+      if(ci) mtev_lua_deregister_event(ci, e, 0);
+    }
+    if(eventer_get_mask(e) & (EVENTER_EXCEPTION|EVENTER_READ|EVENTER_WRITE)) {
+      eventer_remove_fde(e);
+    }
+    eventer_close(e, &newmask);
+    if(cl->free) cl->free(cl);
+    eventer_set_closure(e, NULL);
+  }
+}
+void
 mtev_lua_register_event(mtev_lua_resume_info_t *ci, eventer_t e) {
   eventer_t *eptr;
   eptr = calloc(1, sizeof(*eptr));
@@ -1316,11 +1342,45 @@ mtev_lua_open(const char *module_name, void *lmc,
   return L;
 }
 
+static int
+mtev_lua_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
+  (void)mask;
+  mtev_lua_resume_info_t *ci;
+  struct nl_slcl *cl = vcl;
+  struct timeval diff;
+
+  ci = mtev_lua_find_resume_info(cl->L, mtev_false);
+  if(!ci) { mtev_lua_eventer_cl_cleanup(e); return 0; }
+  mtev_lua_deregister_event(ci, e, 0);
+
+  sub_timeval(*now, cl->start, &diff);
+
+  free(cl);
+  mtev_lua_lmc_resume(ci->lmc, ci, 1);
+  return 0;
+}
+
+static int
+mtev_lua_sleep(mtev_lua_resume_info_t *ci, struct timeval duration) {
+  struct nl_slcl *cl;
+  eventer_t e;
+  cl = calloc(1, sizeof(*cl));
+  cl->free = nl_extended_free;
+  cl->L = ci->coro_state;
+  mtev_gettimeofday(&cl->start, NULL);
+
+  e = eventer_in_s_us(mtev_lua_sleep_complete, cl, duration.tv_sec, duration.tv_usec);
+  mtev_lua_register_event(ci, e);
+  eventer_add(e);
+  return mtev_lua_yield(ci, 0);
+}
+
 void
 mtev_lua_init_globals(void) {
   mtev_hash_init(&mtev_lua_states);
   mtev_hash_init(&mtev_coros);
   mtev_stacktrace_frame_hook_register("mtev_lua", mtev_lua_stacktrace_assist, NULL);
+  eventer_name_callback("mtev_lua_sleep", mtev_lua_sleep_complete);
   eventer_name_callback("mtev_lua_gc_callback", mtev_lua_gc_callback);
   lua_stats_ns = mtev_stats_ns(mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "modules"), "lua");
   stats_ns_add_tag(lua_stats_ns, "mtev-module", "lua");

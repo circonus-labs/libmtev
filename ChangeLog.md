@@ -4,6 +4,8 @@
 
 ## 1.9
 
+ * Change the lua interrupt to be cooperative preemption.
+
 ### 1.9.10
 
  * Move eventer SSL debug logging to `debug/eventer/ssl`

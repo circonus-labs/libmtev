@@ -144,31 +144,6 @@ mtev_lua_push_timeval(lua_State *L, struct timeval time) {
   lua_call(L, 2, 1);
 }
 static void
-mtev_lua_eventer_cl_cleanup(eventer_t e) {
-  mtev_lua_resume_info_t *ci;
-  struct nl_slcl *cl = eventer_get_closure(e);
-  int newmask;
-  if(cl) {
-    if(cl->L) {
-      ci = mtev_lua_find_resume_info(cl->L, mtev_false);
-      if(ci) mtev_lua_deregister_event(ci, e, 0);
-    }
-    if(eventer_get_mask(e) & (EVENTER_EXCEPTION|EVENTER_READ|EVENTER_WRITE)) {
-      eventer_remove_fde(e);
-    }
-    eventer_close(e, &newmask);
-    if(cl->free) cl->free(cl);
-    eventer_set_closure(e, NULL);
-  }
-}
-static void
-nl_extended_free(void *vcl) {
-  struct nl_slcl *cl = vcl;
-  if(cl->inbuff) free(cl->inbuff);
-  if(cl->eptr) *cl->eptr = NULL;
-  free(cl);
-}
-static void
 lua_timeout_callback_ref_free(void* cb) {
   lua_timeout_callback_ref *callback_ref = (lua_timeout_callback_ref*) cb;
   luaL_unref(callback_ref->L, LUA_REGISTRYINDEX, callback_ref->callback_reference);
