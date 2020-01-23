@@ -192,7 +192,7 @@ struct nl_slcl {
 
 static inline void
 nl_extended_free(void *vcl) {
-  struct nl_slcl *cl = vcl;
+  struct nl_slcl *cl = (struct nl_slcl *)vcl;
   if(cl->inbuff) free(cl->inbuff);
   if(cl->eptr) *cl->eptr = NULL;
   free(cl);
