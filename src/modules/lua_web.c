@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015, Circonus, Inc.  All rights reserved.
+ * Copyright (c) 2013-2020, Circonus, Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -403,6 +403,9 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
       conf->interrupt_time.tv_sec = floor(timeout);
       conf->interrupt_time.tv_usec = fmod(timeout, 1) * 1000000;
     }
+  }
+  else {
+    conf->interrupt_time = default_interrupt_time;
   }
 
   conf->gc_params = mtev_lua_config_gc_params(o);

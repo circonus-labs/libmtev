@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2015-2020, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -70,6 +70,8 @@ typedef struct lua_module_closure {
   struct timeval interrupt_time;
 } lua_module_closure_t;
 
+#define default_interrupt_time ((struct timeval) { .tv_sec = 1, .tv_usec = 0 })
+
 API_EXPORT(void) mtev_lua_set_gc_params(lua_module_closure_t *, lua_module_gc_params_t *);
 API_EXPORT(void) mtev_lua_gc(lua_module_closure_t *);
 API_EXPORT(void) mtev_lua_gc_full(lua_module_closure_t *);
@@ -133,6 +135,7 @@ struct mtev_lua_resume_info {
   int context_magic;
   void *context_data;
   struct mtev_lua_resume_info *(*new_ri_f)(lua_module_closure_t *);
+  int interrupt_ref;
 };
 #define LUA_GENERAL_INFO_MAGIC 0x918243fa
 
@@ -187,6 +190,14 @@ struct nl_slcl {
   lua_State *L;
 };
 
+static inline void
+nl_extended_free(void *vcl) {
+  struct nl_slcl *cl = (struct nl_slcl *)vcl;
+  if(cl->inbuff) free(cl->inbuff);
+  if(cl->eptr) *cl->eptr = NULL;
+  free(cl);
+}
+
 void mtev_lua_context_describe(int magic,
                                void (*f)(mtev_console_closure_t,
                                          mtev_lua_resume_info_t *));
@@ -212,9 +223,11 @@ void mtev_lua_pushmodule(lua_State *L, const char *m);
 void mtev_lua_init_dns(void);
 mtev_hash_table *mtev_lua_table_to_hash(lua_State *L, int idx);
 void mtev_lua_hash_to_table(lua_State *L, mtev_hash_table *t);
+int mtev_lua_interrupt_hook(lua_State *L);
 int mtev_lua_dns_gc(lua_State *L);
 int mtev_lua_dns_index_func(lua_State *L);
 int nl_dns_lookup(lua_State *L);
+void mtev_lua_eventer_cl_cleanup(eventer_t e);
 int luaopen_mtev(lua_State *L);
 int luaopen_mtev_http(lua_State *L);
 int mtev_lua_crypto_newx509(lua_State *L, X509 *x509);
