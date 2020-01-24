@@ -412,7 +412,6 @@ void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
   mtev_stacktrace_ucontext(mtev_error_stacktrace, uc);
 #else
   (void)si;
-  (void)uc;
   mtev_stacktrace_ucontext_skip(mtev_error_stacktrace, uc, 3);
 #endif
   mtev_log_leave_sighandler();
