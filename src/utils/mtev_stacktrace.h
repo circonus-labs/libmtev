@@ -35,6 +35,7 @@
 #include "mtev_log.h"
 #include "mtev_hooks.h"
 #include "aco/aco.h"
+#include <ucontext.h>
 
 API_EXPORT(void)
   mtev_stacktrace(mtev_log_stream_t ls);
@@ -46,7 +47,6 @@ API_EXPORT(void)
   mtev_stacktrace_ucontext_skip(mtev_log_stream_t ls, ucontext_t *ucp, int ignore);
 
 #if defined(__sun__)
-#include <ucontext.h>
 API_EXPORT(void)
   mtev_stacktrace_ucontext(mtev_log_stream_t ls, ucontext_t *);
 #endif

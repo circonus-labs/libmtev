@@ -962,6 +962,7 @@ int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt) {
   }
 #else
   frames = backtrace(callstack, cnt);
+  (void)(ctx);
 #endif
   return frames;
 }
