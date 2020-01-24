@@ -68,6 +68,7 @@ typedef struct lua_module_closure {
   timer_t _timer;
   timer_t *timer;
   struct timeval interrupt_time;
+  uint32_t preempted;
 } lua_module_closure_t;
 
 #define default_interrupt_time ((struct timeval) { .tv_sec = 1, .tv_usec = 0 })

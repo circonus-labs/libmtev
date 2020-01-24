@@ -146,6 +146,7 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
       tragic_failure(ri->lmc->self);
       rv = -1;
   }
+  mtevL(nldeb, "lua: %p done %d\n", ri->coro_state, status);
 
   lua_general_ctx_free(ri);
   return rv;

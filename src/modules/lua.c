@@ -63,7 +63,16 @@ static pthread_mutex_t coro_lock = PTHREAD_MUTEX_INITIALIZER;
 static stats_ns_t *lua_stats_ns;
 static stats_handle_t *gc_total, *gc_full, *gc_latency;
 
-static int mtev_lua_sleep(mtev_lua_resume_info_t *, struct timeval);
+static int
+mtev_lua_sleep_complete(eventer_t e, int mask, void *vri, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  mtev_lua_resume_info_t *ri = (mtev_lua_resume_info_t *)vri;
+  ri->lmc->preempted--;
+  mtev_lua_lmc_resume(ri->lmc, ri, 0);
+  return 0;
+}
 
 struct lua_module_gc_params {
   int iters_since_full;
@@ -118,6 +127,7 @@ mtev_lua_gc_callback(eventer_t e, int mask, void *c, struct timeval *now) {
   (void)now;
   mtev_perftimer_t timer;
   lua_module_closure_t *lmc = c;
+  if(lmc->preempted != 0) return 0;
   lua_State *L = lmc->lua_state;
   lua_module_gc_params_t *p = lmc->gcparams;
 
@@ -263,9 +273,17 @@ static void lstop (lua_State *L, lua_Debug *ar) {
   if(ri->interrupt_ref) {
     lua_rawgeti(L, LUA_REGISTRYINDEX, ri->interrupt_ref);
     lua_call(L, 0, 0);
+    return;
+  }
+  if(!lua_isyieldable(ri->coro_state)) {
+    luaL_error(L, "interrupted!");
   }
   mtevL(nldeb, "lua state %p preempted\n", L);
-  mtev_lua_sleep(ri, (struct timeval){ .tv_sec = 0, .tv_usec = 0 });
+  eventer_t e;
+  ri->lmc->preempted++;
+  e = eventer_in_s_us(mtev_lua_sleep_complete, ri, 0, 0);
+  eventer_add(e);
+  mtev_lua_yield(ri, 0);
 }
 
 static void
@@ -276,7 +294,7 @@ mtev_lua_timer_fire(int sig, siginfo_t *info, void *c) {
   mtevL(nldeb, "timer fired: lua %p\n", tls_active_lua_state);
 
   if(tls_active_lua_state) {
-    lua_sethook(tls_active_lua_state, lstop, LUA_MASKCALL | LUA_MASKRET | LUA_MASKCOUNT,1);
+    lua_sethook(tls_active_lua_state, lstop, LUA_MASKCALL | LUA_MASKRET | LUA_MASKCOUNT, 1);
   }
 }
 
@@ -305,6 +323,7 @@ mtev_lua_resume(lua_State *L, int a, mtev_lua_resume_info_t *ri) {
   if(diff.tv_sec >= 0 && diff.tv_usec >= 0) {
     mtev_lua_timer_start(ri->lmc->timer, &diff);
   }
+  mtevL(nldeb, "lua: %p resuming\n", L);
   rv = lua_resume(L, a);
   mtev_lua_timer_stop(ri->lmc->timer);
   tls_active_lua_state = previous;
@@ -1366,39 +1385,6 @@ mtev_lua_open(const char *module_name, void *lmc,
   }
 
   return L;
-}
-
-static int
-mtev_lua_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
-  (void)mask;
-  mtev_lua_resume_info_t *ci;
-  struct nl_slcl *cl = vcl;
-  struct timeval diff;
-
-  ci = mtev_lua_find_resume_info(cl->L, mtev_false);
-  if(!ci) { mtev_lua_eventer_cl_cleanup(e); return 0; }
-  mtev_lua_deregister_event(ci, e, 0);
-
-  sub_timeval(*now, cl->start, &diff);
-
-  free(cl);
-  mtev_lua_lmc_resume(ci->lmc, ci, 1);
-  return 0;
-}
-
-static int
-mtev_lua_sleep(mtev_lua_resume_info_t *ci, struct timeval duration) {
-  struct nl_slcl *cl;
-  eventer_t e;
-  cl = calloc(1, sizeof(*cl));
-  cl->free = nl_extended_free;
-  cl->L = ci->coro_state;
-  mtev_gettimeofday(&cl->start, NULL);
-
-  e = eventer_in_s_us(mtev_lua_sleep_complete, cl, duration.tv_sec, duration.tv_usec);
-  mtev_lua_register_event(ci, e);
-  eventer_add(e);
-  return mtev_lua_yield(ci, 0);
 }
 
 void
