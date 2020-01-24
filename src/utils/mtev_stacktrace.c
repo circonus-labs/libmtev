@@ -939,15 +939,18 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
   crash_in_crash = NULL;
 }
 
-int mtev_backtrace(void **callstack, int cnt) {
+int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt) {
   int frames = 0;
 #if defined(HAVE_LIBUNWIND)
   unw_cursor_t cursor;
   unw_context_t context;
 
   // Initialize cursor to current frame for local unwinding.
-  unw_getcontext(&context);
-  unw_init_local(&cursor, &context);
+  if(ctx == NULL) {
+    unw_getcontext(&context);
+    ctx = &context;
+  }
+  unw_init_local(&cursor, ctx);
 
   while (unw_step(&cursor) > 0 && frames<cnt) {
     unw_word_t pc;
@@ -962,18 +965,21 @@ int mtev_backtrace(void **callstack, int cnt) {
 #endif
   return frames;
 }
+int mtev_backtrace(void **callstack, int cnt) {
+  return mtev_backtrace_ucontext(callstack, NULL, cnt);
+}
 int global_in_stacktrace = 0;
 #if defined(__sun__)
 void mtev_stacktrace_ucontext(mtev_log_stream_t ls, ucontext_t *ucp) {
   if (ck_pr_fas_int(&global_in_stacktrace, 1))
     return;
   void *callstack[128];
-  int frames = mtev_backtrace(callstack, 128);
+  int frames = mtev_backtrace_ucontext(callstack, ucp, 128);
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, (void *)ucp, callstack, frames);
   global_in_stacktrace = 0;
 }
 #endif
-void mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore) {
+void mtev_stacktrace_ucontext_skip(mtev_log_stream_t ls, ucontext_t *ucp, int ignore) {
   if (ck_pr_fas_int(&global_in_stacktrace, 1)) {
     mtevL(mtev_error, "stack trace in stack trace, refusing\n");
     return;
@@ -981,7 +987,7 @@ void mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore) {
   struct sigaction sa, sasegv, saill, sabus;
   sigset_t smprev;
   void *callstack[128];
-  int frames = mtev_backtrace(callstack, 128);
+  int frames = mtev_backtrace_ucontext(callstack, ucp, 128);
   ignore = MIN(ignore, frames);
 
   memset(&sa, 0, sizeof(sa));
@@ -997,7 +1003,7 @@ void mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore) {
   sigaction(SIGILL, &sa, &saill);
   sigaction(SIGBUS, &sa, &sabus);
 
-  mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack+ignore, frames-ignore);
+  mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, ucp, callstack+ignore, frames-ignore);
 
   global_in_stacktrace = 0;
 
@@ -1005,6 +1011,9 @@ void mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore) {
   sigaction(SIGILL, &saill, NULL);
   sigaction(SIGBUS, &sabus, NULL);
   sigprocmask(SIG_SETMASK, &smprev, NULL);
+}
+void mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore) {
+  mtev_stacktrace_ucontext_skip(ls, NULL, ignore);
 }
 void mtev_stacktrace(mtev_log_stream_t ls) {
   mtev_stacktrace_skip(ls, 0);
