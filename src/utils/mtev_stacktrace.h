@@ -43,7 +43,7 @@ API_EXPORT(void)
   mtev_stacktrace_skip(mtev_log_stream_t ls, int ignore);
 
 API_EXPORT(void)
-  mtev_stacktrace_ucontext_skip(mtev_log_stream_t ls, ucontext_t *, int ignore);
+  mtev_stacktrace_ucontext_skip(mtev_log_stream_t ls, ucontext_t *ucp, int ignore);
 
 #if defined(__sun__)
 #include <ucontext.h>
