@@ -61,7 +61,7 @@ API_EXPORT(int)
   mtev_backtrace(void **ips, int cnt);
 
 API_EXPORT(int)
-  mtev_backtrace_ucontext(void **ips, ucontext_t *, int cnt);
+  mtev_backtrace_ucontext(void **ips, ucontext_t *ucp, int cnt);
 
 API_EXPORT(int)
   mtev_aco_backtrace(aco_t *co, void **addrs, int addrs_len);
