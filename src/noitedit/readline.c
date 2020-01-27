@@ -902,8 +902,12 @@ loop:
 		    &malloced);
 		if (retval != -1) {
 #pragma GCC diagnostic push
+#ifdef __GNUC__
+#  if __GNUC_PREREQ(8,0)
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
+#  endif
+#endif
 			len = strlen(malloced);
 			ADD_STRING(malloced, len);
 			free(malloced);
