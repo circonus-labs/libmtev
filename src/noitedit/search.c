@@ -454,7 +454,7 @@ protected el_action_t
 cv_search(EditLine *el, int dir)
 {
 	char ch;
-	char tmpbuf[EL_BUFSIZ];
+	char tmpbuf[EL_BUFSIZ-3];
 	int tmplen;
 
 	tmplen = 0;

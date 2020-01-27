@@ -901,9 +901,13 @@ loop:
 		retval = _history_expand_command(&str[i], (size_t) (j - i),
 		    &malloced);
 		if (retval != -1) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
 			len = strlen(malloced);
 			ADD_STRING(malloced, len);
 			free(malloced);
+#pragma GCC diagnostic pop
 		}
 		i = j;
 	}			/* for(i ...) */

@@ -589,8 +589,8 @@ mtev_consul_configure(void) {
       uint64_t period = 0;
       CHECK_DECL(DeregisterCriticalServiceAfter, 32, "30m");
       CHECK_DECL(Interval, 32, "5s");
-      CHECK_DECL(HTTP, 128, "/module/consul/health");
-      CHECK_DECL(HTTPS, 128, "/module/consul/health");
+      CHECK_DECL(HTTP, 410, "/module/consul/health");
+      CHECK_DECL(HTTPS, 410, "/module/consul/health");
       CHECK_DECL(Method, 10, "GET");
       CHECK_DECL(TCP, 128, "");
       CHECK_DECL(PUSH, 10, "5s");

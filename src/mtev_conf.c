@@ -361,7 +361,7 @@ struct include_node_t{
   xmlNodePtr root;
   int snippet;
   int ro;
-  char path[255];
+  char path[PATH_MAX+1];
   int glob_idx;
   int child_count;
   struct include_node_t *children;
@@ -2492,7 +2492,7 @@ int
 mtev_conf_write_file(char **err) {
   int fd, len;
   char master_file_tmp[PATH_MAX];
-  char errstr[1024];
+  char errstr[PATH_MAX+1024];
   xmlOutputBufferPtr out;
   xmlCharEncodingHandlerPtr enc;
   struct stat st;
@@ -2510,8 +2510,10 @@ mtev_conf_write_file(char **err) {
     uid = st.st_uid;
     gid = st.st_gid;
   }
-  snprintf(master_file_tmp, sizeof(master_file_tmp),
-           "%s.tmp", master_config_file);
+  if(snprintf(master_file_tmp, sizeof(master_file_tmp),
+              "%s.tmp", master_config_file) < 0) {
+    return -1;
+  }
   unlink(master_file_tmp);
   fd = open(master_file_tmp, O_CREAT|O_EXCL|O_WRONLY|NE_O_CLOEXEC, mode);
   if(fd < 0) {
