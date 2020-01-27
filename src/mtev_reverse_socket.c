@@ -1379,7 +1379,7 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
                                  struct timeval *now) {
   mtev_connection_ctx_t *nctx = closure;
   const char *layer = NULL, *cert, *key, *ca, *ciphers, *crl = NULL, *cn_expected;
-  char remote_str[128], tmp_str[128];
+  char remote_str[128], tmp_str[INET6_ADDRSTRLEN+1];
   eventer_ssl_ctx_t *sslctx;
   int aerrno, len;
   socklen_t aerrno_len = sizeof(aerrno);

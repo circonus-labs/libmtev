@@ -142,7 +142,7 @@ _eventer_ssl_ctx_save_last_error(eventer_ssl_ctx_t *ctx, int note_errno,
    */
   int used, i = 0, allocd = 0;
   unsigned long err = 0, errors[MAX_ERR_UNWIND] = { 0 };
-  char errstr[200], scratch[200];
+  char errstr[300], scratch[200];
   errstr[0] = '\0';
   if(note_errno && errno)
     snprintf(errstr, sizeof(errstr), "[%s:%d:%d] %s, ",

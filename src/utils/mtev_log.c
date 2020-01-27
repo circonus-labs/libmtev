@@ -850,7 +850,7 @@ posix_logio_cull(mtev_log_stream_t ls, int age, ssize_t bytes) {
   DIR *d;
   struct dirent *de, *entry;
   char *filename;
-  char dir[PATH_MAX], path[PATH_MAX];
+  char dir[PATH_MAX], path[PATH_MAX+PATH_MAX];
   int size = 0, cnt = 0, i;
   size_t pathlen;
 
@@ -1047,8 +1047,8 @@ jlog_logio_cleanse(mtev_log_stream_t ls) {
     if(is_datafile(entry->d_name, &logid) &&  /* make sure it is a datafile */
        logid < earliest &&                    /* and that is older enough */
        logid != log->current_log) {           /* and that isn't current */
-      char fullfile[PATH_MAX];
-      char fullidx[PATH_MAX];
+      char fullfile[PATH_MAX+PATH_MAX];
+      char fullidx[PATH_MAX+PATH_MAX];
 
       snprintf(fullfile, sizeof(fullfile), "%s/%s", path, entry->d_name);
       snprintf(fullidx, sizeof(fullidx), "%s/%s" INDEX_EXT,
