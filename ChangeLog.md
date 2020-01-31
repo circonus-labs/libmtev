@@ -5,6 +5,7 @@
 ## 1.9
 
  * Pass the siginfo context into the stacktrace for self-diagnosis.
+ * Expose counter stats for http[12] requests and responses.
 
 ### 1.9.10
 

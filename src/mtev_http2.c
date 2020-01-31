@@ -42,6 +42,8 @@
 
 static const char *HTTP_2_STATUS_HDR = ":status";
 static mtev_log_stream_t h2_debug;
+static stats_ns_t *http_stats;
+stats_handle_t *request_counter, *response_counter;
 
 /* The parent session is effective out connection,
  * so we can return a pointer to it as a connection.
@@ -140,6 +142,7 @@ mtev_boolean mtev_http2_session_ref_dec(mtev_http2_session_ctx *ctx) {
   if(zero) {
     mtevL(h2_debug, "http2 freeing stream(%p) <- %d\n", ctx->parent, ctx->stream_id);
     /* This is where we free the request and response */
+    if(!ctx->logged) stats_add64(response_counter, 1);
     mtev_http_log_request((mtev_http_session_ctx *)ctx);
     mtev_http_end_span((mtev_http_session_ctx *)ctx);
 
@@ -203,6 +206,7 @@ mtev_http2_session_acceptor_closure(mtev_http2_session_ctx *ctx) {
 }
 void
 mtev_http2_ctx_session_log_release(mtev_http2_session_ctx *sess) {
+  if(!sess->logged) stats_add64(response_counter, 1);
   mtev_http_log_request((mtev_http_session_ctx *)sess);
   (void)mtev_http2_session_ref_dec(sess);
 }
@@ -958,6 +962,7 @@ on_frame_recv_callback(nghttp2_session *session,
     /* fall through */
   case NGHTTP2_HEADERS:
     mtev_http_begin_span((mtev_http_session_ctx *)stream);
+    stats_add64(request_counter, 1);
     http_request_complete_hook_invoke((mtev_http_session_ctx *)stream);
     stream->req.complete = mtev_true;
     mtevL(h2_debug, "http2 request end (%s) (%p -> %d)\n",
@@ -1311,6 +1316,18 @@ mtev_http1_http2_upgrade(mtev_http1_session_ctx *ctx) {
 /* This registers the npn/alpn stuff with the eventer */
 void
 mtev_http2_init(void) {
+  http_stats = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "http");
+  stats_ns_add_tag(http_stats, "mtev", "http");
+
+  http_stats = mtev_stats_ns(http_stats, "http2");
+  stats_ns_add_tag(http_stats, "http-protocol", "2");
+
+  request_counter = stats_register(http_stats, "requests", STATS_TYPE_COUNTER);
+  stats_handle_units(request_counter, STATS_UNITS_REQUESTS);
+
+  response_counter = stats_register(http_stats, "responses", STATS_TYPE_COUNTER);
+  stats_handle_units(response_counter, STATS_UNITS_RESPONSES);
+
   eventer_ssl_alpn_register("h2", (eventer_SSL_alpn_func_t)nghttp2_select_next_protocol);
   h2_debug = mtev_log_stream_find("debug/http2");
 }

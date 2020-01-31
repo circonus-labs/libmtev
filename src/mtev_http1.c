@@ -177,6 +177,9 @@ struct wslay_event_callbacks wslay_callbacks = {
 
 static mtev_log_stream_t http_debug = NULL;
 static mtev_log_stream_t http_io = NULL;
+static uint64_t upgrade_count = 0;
+static stats_ns_t *http_stats;
+static stats_handle_t *request_counter, *response_counter;
 
 #define CTX_ADD_HEADER(a,b) \
     mtev_hash_replace(&ctx->res.headers, \
@@ -491,6 +494,12 @@ _extract_header(char *l, const char **n, const char **v) {
   return mtev_true;
 }
 
+static inline void
+mtev_http1_log_request(mtev_http1_session_ctx *ctx) {
+  if(!ctx->logged) stats_add64(response_counter, 1);
+  mtev_http_log_request((mtev_http_session_ctx *)ctx);
+}
+
 static int
 _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
   int len, tlen = 0;
@@ -542,7 +551,7 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
     ctx->res.complete = mtev_true;
     ctx->res.in_error = mtev_true;
     ctx->conn.needs_close = mtev_true;
-    mtev_http_log_request((mtev_http_session_ctx *)ctx);
+    mtev_http1_log_request(ctx);
     *mask |= EVENTER_EXCEPTION;
     pthread_mutex_unlock(&ctx->write_lock);
     return -1;
@@ -798,6 +807,7 @@ mtev_http1_process_querystring(mtev_http1_request *req) {
 static mtev_boolean
 mtev_http1_request_finalize_payload(mtev_http1_session_ctx *ctx, mtev_boolean *err) {
   (void)err;
+  if(!ctx->req.complete) stats_add64(request_counter, 1);
   ctx->req.complete = mtev_true;
   return mtev_true;
 }
@@ -888,6 +898,7 @@ mtev_http1_complete_request(mtev_http1_session_ctx *ctx, int mask, struct timeva
       ctx->res.leader = bchain_from_data(expect, strlen(expect));
       ctx->res.output_raw_chain_bytes += ctx->res.leader->size;
       _http_perform_write(ctx, &mask);
+      if(!ctx->req.complete) stats_add64(request_counter, 1);
       ctx->req.complete = mtev_true;
       if(ctx->res.leader != NULL) return mask;
     }
@@ -1634,7 +1645,8 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
     mtevL(http_debug, "[fd=%d]   <- mtev_http1_complete_request() = %d\n", eventer_get_fd(e), mask);
     if(ctx->conn.e == NULL) goto release;
 
-    if(mtev_http1_http2_upgrade(ctx)) {
+    if(0 != (rv = mtev_http1_http2_upgrade(ctx))) {
+      if(rv > 0) ck_pr_inc_64(&upgrade_count);
       *done = 0;
       return EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
     }
@@ -1733,7 +1745,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
      ctx->conn.needs_close == mtev_true) {
    abort_drive:
     /* If we went into an error state, we logged, right there */
-    if(!ctx->res.in_error) mtev_http_log_request((mtev_http_session_ctx *)ctx);
+    if(!ctx->res.in_error) mtev_http1_log_request(ctx);
     if(ctx->conn.e) {
       eventer_t ine;
       pthread_mutex_lock(&ctx->write_lock);
@@ -1752,7 +1764,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
       if(len <= 0) break;
     }
     LIBMTEV_HTTP_RESPONSE_FINISH(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
-    mtev_http_log_request((mtev_http_session_ctx *)ctx);
+    mtev_http1_log_request(ctx);
     mtev_http_end_span((mtev_http_session_ctx *)ctx);
     mtev_http1_request_release(ctx);
     mtev_http1_response_release(ctx);
@@ -2111,4 +2123,21 @@ void
 mtev_http1_init(void) {
   http_debug = mtev_log_stream_find("debug/http");
   http_io = mtev_log_stream_find("http/io");
+
+  http_stats = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "http");
+  stats_ns_add_tag(http_stats, "mtev", "http");
+
+  http_stats = mtev_stats_ns(http_stats, "http1");
+  stats_ns_add_tag(http_stats, "http-protocol", "1");
+
+  stats_handle_t *h;
+  h = stats_rob_u64(http_stats, "http2_upgrades", &upgrade_count);
+  stats_handle_add_tag(h, "http-protocol", "1");
+
+  request_counter = stats_register(http_stats, "requests", STATS_TYPE_COUNTER);
+  stats_handle_units(request_counter, STATS_UNITS_REQUESTS);
+
+  response_counter = stats_register(http_stats, "responses", STATS_TYPE_COUNTER);
+  stats_handle_units(response_counter, STATS_UNITS_RESPONSES);
+
 }
