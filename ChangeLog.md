@@ -4,6 +4,8 @@
 
 ## 1.9
 
+### 1.9.11
+
  * Pass the siginfo context into the stacktrace for self-diagnosis.
  * Fix short HTTP/1 payload reads.
 
