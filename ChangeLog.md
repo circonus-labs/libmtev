@@ -4,8 +4,12 @@
 
 ## 1.9
 
- * Pass the siginfo context into the stacktrace for self-diagnosis.
  * Expose counter stats for http[12] requests and responses.
+
+### 1.9.11
+
+ * Pass the siginfo context into the stacktrace for self-diagnosis.
+ * Fix short HTTP/1 payload reads.
 
 ### 1.9.10
 

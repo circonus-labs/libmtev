@@ -1208,13 +1208,13 @@ rest_get_raw_upload(mtev_http_rest_closure_t *restc,
       *complete = 1;
       return NULL;
     }
-    if(mtev_http_request_payload_complete(req)) {
+    if(len == 0) {
+      if(!mtev_http_request_payload_complete(req)) {
+        *complete = 1;
+        return NULL;
+      }
       *size = rxc->len;
       rxc->complete = 1;
-    }
-    if(len == 0) {
-      *complete = 1;
-      return NULL;
     }
   }
 
