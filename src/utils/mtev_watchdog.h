@@ -247,7 +247,7 @@ API_EXPORT(int)
     \param out A log stream for capturing stdout
     \param err A log stream for capturing stderr
 
-    An auto-restarting execvpe(...)
+    An auto-restarting execve(...)
  */
 API_EXPORT(void)
   mtev_watchdog_manage(const char *file, char * const *argv, char * const *envp,

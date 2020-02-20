@@ -263,8 +263,8 @@ static bool launch_managed(struct manage *m, bool working) {
         mtev_log_stream_pipe_dup2(out2, 2);
         mtev_log_stream_pipe_post_fork_child(out1);
         mtev_log_stream_pipe_post_fork_child(out2);
-        execvpe(m->file, m->argv, m->envp);
-        mtevL(mtev_error, "[monitor] execvpe error: %s\n", strerror(errno));
+        execve(m->file, m->argv, m->envp);
+        mtevL(mtev_error, "[monitor] execve error: %s\n", strerror(errno));
         exit(-1);
       }
       else {

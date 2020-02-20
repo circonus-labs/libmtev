@@ -5722,6 +5722,26 @@ mtev_watchdog_heartbeat(mtev_watchdog_t *hb)
 mtev_watchdog_heartbeat will pulse on the specified heart.
  
 
+#### mtev_watchdog_manage
+
+>Ask the watchdog to manage a child process
+
+```c
+void
+mtev_watchdog_manage(const char *file, const char **argv, const char **envp, mtev_log_stream_t out
+                     mtev_log_stream_t err)
+```
+
+
+  * `file` The process executable
+  * `argv` The arguments to the process
+  * `envp` The environment of the process
+  * `out` A log stream for capturing stdout
+  * `err` A log stream for capturing stderr
+
+An auto-restarting execvpe(...)
+ 
+
 #### mtev_watchdog_number_of_starts
 
 >Determine the number of times a child has been lauched.
