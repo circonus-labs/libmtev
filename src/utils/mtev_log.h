@@ -53,6 +53,7 @@ typedef struct _mtev_log_stream mtev_log_stream_t;
 typedef void * mtev_log_stream_public_t;
 #define mtev_log_stream_t mtev_log_stream_public_t
 #endif
+typedef struct mtev_log_stream_pipe mtev_log_stream_pipe_t;
 
 #define MTEV_LOG_DEFAULT_DEDUP_S 5
 #define MTEV_LOG_SPECULATE_ROLLBACK ((mtev_log_stream_t)NULL)
@@ -234,6 +235,18 @@ API_EXPORT(int)
                               int (*f)(uint64_t, const struct timeval *,
                                       const char *, size_t, void *),
                               void *closure);
+
+API_EXPORT(mtev_log_stream_pipe_t *)
+  mtev_log_stream_pipe_new(mtev_log_stream_t);
+API_EXPORT(void)
+  mtev_log_stream_pipe_close(mtev_log_stream_pipe_t *);
+API_EXPORT(int)
+  mtev_log_stream_pipe_dup2(mtev_log_stream_pipe_t *, int fd);
+API_EXPORT(void)
+  mtev_log_stream_pipe_post_fork_parent(mtev_log_stream_pipe_t *lp);
+API_EXPORT(void)
+  mtev_log_stream_pipe_post_fork_child(mtev_log_stream_pipe_t *lp);
+
 API_EXPORT(void)
   mtev_log_init_globals(void);
 

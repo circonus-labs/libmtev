@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <poll.h>
 #include <sys/uio.h>
 #include <sys/time.h>
 #include <assert.h>
@@ -656,7 +657,7 @@ posix_logio_open(mtev_log_stream_t ls) {
   asynch_log_ctx *actx;
   struct posix_op_ctx *po;
   ls->mode = 0664;
-  fd = open(ls->path, O_CREAT|O_WRONLY|O_APPEND, ls->mode);
+  fd = open(ls->path, O_CREAT|O_WRONLY|O_APPEND|NE_O_CLOEXEC, ls->mode);
   debug_printf("opened '%s' => %d\n", ls->path, fd);
   if(fd < 0) {
     ls->op_ctx = NULL;
@@ -710,7 +711,7 @@ posix_logio_reopen(mtev_log_stream_t ls) {
       goto out;
     }
 
-    newfd = open(ls->path, O_CREAT|O_WRONLY|O_APPEND, ls->mode);
+    newfd = open(ls->path, O_CREAT|O_WRONLY|O_APPEND|NE_O_CLOEXEC, ls->mode);
     ls->written = 0;
     if(newfd >= 0) {
       int fd_to_close = po->fd;
@@ -2428,6 +2429,192 @@ mtev_log_stream_to_json(mtev_log_stream_t ls) {
   return mtev_log_stream_to_json_ex(ls, mtev_false);
 }
 
+/* pipe handlers...
+ * There are times we'd like to use our logging system to just handle output from
+ * subprocesses... they will write to file descriptors (usually 1 and/or 2) and we'd
+ * like to read those and publish them onto a log/stream.
+ *
+ * So, if someone asks for an "FD" for a log stream, we should accommodate.
+ *
+ * Manage a set of pipe-ends connected to log streams, and if any are open, make sure
+ * that there is a thread reading from these and publishing to the log streams.
+ */
+
+#define MAX_PIPE_LINE (1<<16)
+struct mtev_log_stream_pipe {
+  struct mtev_log_stream_pipe *next;
+  mtev_log_stream_t output;
+  union {
+    struct {
+      int readside;
+      int writeside;
+    };
+    int _pipe[2];
+  } fds;
+  size_t start;
+  size_t woff;
+  char buff[MAX_PIPE_LINE];
+};
+
+static mtev_log_stream_pipe_t *head = NULL;
+static pthread_mutex_t logpipes_lock;
+
+static void
+mtev_logpipes_handle_read(mtev_log_stream_pipe_t *lp) {
+  if(lp->fds.readside == -1) return;
+  while(1) {
+    int len = read(lp->fds.readside, lp->buff + lp->woff, sizeof(lp->buff) - lp->woff);
+    if(len < 0) {
+      if(errno == EINTR) continue;
+      if(errno == EAGAIN) return;
+    }
+    if(len <= 0) {
+      mtevL(mtev_debug, "pipe read %s, closing\n", len ? strerror(errno) : "ended");
+      mtev_log_stream_pipe_close(lp);
+      return;
+    }
+    lp->woff += len;
+    char *eol;
+    while(NULL != (eol = (char *)memchr(lp->buff + lp->start, '\n', lp->woff - lp->start))) {
+      size_t len = eol - (lp->buff + lp->start);
+      mtevL(lp->output, "%.*s\n", (int)len, lp->buff + lp->start);
+      lp->start +=  len+1;
+    }
+    if(lp->woff == sizeof(lp->buff)) {
+      if(lp->start == 0) {
+        /* LONG without \n, print it and move on.. */
+        mtevL(lp->output, "%.*s\n", (int)sizeof(lp->buff), lp->buff);
+        lp->woff = 0;
+      } else {
+        memmove(lp->buff, lp->buff + lp->start, lp->woff - lp->start);
+        lp->woff = lp->woff - lp->start;
+        lp->start = 0;
+      }
+    }
+  }
+}
+
+void mtev_log_stream_pipe_close(mtev_log_stream_pipe_t *lp) {
+  if(lp->fds._pipe[0] >= 0) close(lp->fds._pipe[0]);
+  if(lp->fds._pipe[1] >= 0) close(lp->fds._pipe[1]);
+  lp->fds._pipe[0] = lp->fds._pipe[1] = -1;
+}
+void mtev_log_stream_pipe_post_fork_parent(mtev_log_stream_pipe_t *lp) {
+  close(lp->fds.writeside);
+  lp->fds.writeside = -1;
+}
+
+void mtev_log_stream_pipe_post_fork_child(mtev_log_stream_pipe_t *lp) {
+  /* nothing, the FDs are CLOEXEC */
+}
+
+static void *
+mtev_logpipes_consumer(void *unused) {
+  (void)unused;
+  struct pollfd *fds = NULL;
+  mtev_log_stream_pipe_t **logpipes = NULL;
+  int nfds = 0;
+  mtev_thread_setname("l:[pipes]");
+  mtevL(mtev_debug, "logpipes consumer starting\n");
+  while(1) {
+    /* Setup polling */
+    pthread_mutex_lock(&logpipes_lock);
+    if(!head) {
+      mtevL(mtev_debug, "logpipes consumer exiting\n");
+      pthread_mutex_unlock(&logpipes_lock);
+      break;
+    }
+    int i = 0;
+    for(mtev_log_stream_pipe_t *lp = head; lp; lp = lp->next) i++;
+    if(i > nfds) {
+      fds = realloc(fds, sizeof(*fds) * i);
+      logpipes = realloc(logpipes, sizeof(*logpipes) * i);
+    }
+    nfds = i;
+    mtev_log_stream_pipe_t *lp = NULL, *prev = NULL;
+    for(lp = head, i = 0; lp && i < nfds; i++) {
+      if(lp->fds.readside == -1) {
+        if(prev) prev->next = lp->next;
+        else head = lp->next;
+        free(lp);
+        lp = prev ? prev->next : head;
+        i--;
+        nfds--;
+        continue;
+      }
+      logpipes[i] = lp;
+      fds[i].fd = lp->fds.readside;
+      fds[i].events = POLLIN;
+      fds[i].revents = 0;
+      prev = lp;
+      lp = lp->next;
+    }
+    nfds = i;
+    pthread_mutex_unlock(&logpipes_lock);
+
+    if(nfds == 0) continue;
+
+    int rv = poll(fds, nfds, 1000); // one second should be universally okay
+    if(rv < 0) {
+      mtevL(mtev_error, "poll failure: %s\n", strerror(errno));
+    } else if(rv > 0) {
+      for(i=0; i<nfds; i++) {
+        if(fds[i].revents != 0) {
+          mtev_logpipes_handle_read(logpipes[i]);
+        }
+      }
+    }
+  }
+  free(fds);
+  free(logpipes);
+  return NULL;
+}
+
+mtev_log_stream_pipe_t *
+mtev_log_stream_pipe_new(mtev_log_stream_t output) {
+  bool start_thread = false;
+  mtev_log_stream_pipe_t *lp;
+  lp = calloc(1, sizeof(*lp));
+  lp->output = output;
+  if(pipe(lp->fds._pipe) != 0) {
+    mtevFatal(mtev_error, "pipe() failed %s\n", strerror(errno));
+  }
+
+  int flags;
+  /* make all of these fds close-on-exec */
+  if(((flags = fcntl(lp->fds.readside, F_GETFL, 0)) == -1) ||
+      (fcntl(lp->fds.readside, F_SETFL, flags | O_NONBLOCK | NE_O_CLOEXEC) == -1)) {
+    mtevFatal(mtev_error, "log pipe fctnl failed: %s\n", strerror(errno));
+  }
+
+  if(((flags = fcntl(lp->fds.writeside, F_GETFL, 0)) == -1) ||
+     (fcntl(lp->fds.writeside, F_SETFL, flags | O_NONBLOCK | NE_O_CLOEXEC) == -1)) {
+    mtevFatal(mtev_error, "log pipe fctnl failed: %s\n", strerror(errno));
+  }
+
+  pthread_mutex_lock(&logpipes_lock);
+  if(head == NULL) start_thread = true;
+  lp->next = head;
+  head = lp;
+  pthread_mutex_unlock(&logpipes_lock);
+
+  if(start_thread) {
+    pthread_t tid;
+    pthread_attr_t tattr;
+    pthread_attr_init(&tattr);
+    pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_DETACHED);
+    if(mtev_thread_create(&tid, &tattr, mtev_logpipes_consumer, NULL) != 0) {
+      mtevFatal(mtev_error, "pthread_create logpipes_consumer failed: %s\n", strerror(errno));
+    }
+  }
+  return lp;
+}
+
+int
+mtev_log_stream_pipe_dup2(mtev_log_stream_pipe_t *lp, int fd) {
+  return dup2(lp->fds.writeside, fd);
+}
+
 void
 mtev_log_init_globals(void) {
   static int initialized = 0;
@@ -2437,6 +2624,7 @@ mtev_log_init_globals(void) {
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&resize_lock, &attr);
+    pthread_mutex_init(&logpipes_lock, NULL);
 
     mtev_hash_init_locks(&mtev_loggers, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
     mtev_hash_init_locks(&mtev_logops, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
