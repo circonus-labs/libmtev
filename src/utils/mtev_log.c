@@ -2556,7 +2556,7 @@ mtev_logpipes_consumer(void *unused) {
 
     int rv = poll(fds, nfds, 1000); // one second should be universally okay
     if(rv < 0) {
-      mtevL(mtev_error, "poll failure: %s\n", strerror(errno));
+      if(errno != EINTR) mtevL(mtev_error, "poll failure: %s\n", strerror(errno));
     } else if(rv > 0) {
       for(i=0; i<nfds; i++) {
         if(fds[i].revents != 0) {

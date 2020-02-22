@@ -355,6 +355,7 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
       mtevL(mtev_notice, "Skipping application management [%s] in foreground mode\n", file);
       continue;
     }
+    mtevL(mtev_debug, "managed config for [%s]\n", file);
 
     char stream_name[256];
     if(mtev_conf_get_stringbuf(apps[i], "@stdout", stream_name, sizeof(stream_name))) {
@@ -410,11 +411,11 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
     mtev_conf_release_sections(params, nparams);
 
     mtevL(mtev_debug, "Managing %s as %s\n", file, arg0);
-    for(int i=0; app_argv[i]; i++) {
-      mtevL(mtev_debug, "managed[%s] ARG %s\n", file, app_argv[i]);
+    for(int j=0; app_argv[j]; j++) {
+      mtevL(mtev_debug, "managed[%s] ARG %s\n", file, app_argv[j]);
     }
-    for(int i=0; app_envp[i]; i++) {
-      mtevL(mtev_debug, "managed[%s] ENV %s\n", file, app_envp[i]);
+    for(int j=0; app_envp[j]; j++) {
+      mtevL(mtev_debug, "managed[%s] ENV %s\n", file, app_envp[j]);
     }
     char *user = NULL, *group = NULL, *dir = NULL;
     if(!mtev_conf_get_string(apps[i], "@user", &user)) user = inuser ? strdup(inuser) : NULL;
@@ -425,8 +426,8 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
                          user, group, dir,
                          stdout_capture, stderr_capture);
     free(file);
-    for(i=0;app_argv[i];i++) free(app_argv[i]);
-    for(i=0;app_envp[i];i++) free(app_envp[i]);
+    for(int j=0;app_argv[j];j++) free(app_argv[j]);
+    for(int j=0;app_envp[j];j++) free(app_envp[j]);
     free(user);
     free(group);
     free(app_argv);

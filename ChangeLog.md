@@ -5,6 +5,7 @@
 ## 1.9
 
  * Expose counter stats for http[12] requests and responses.
+ * Support managed applications (service restarting of arbitrary sidecars)
 
 ### 1.9.11
 
