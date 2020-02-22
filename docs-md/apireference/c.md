@@ -5736,10 +5736,13 @@ mtev_watchdog_manage(const char *file, const char **argv, const char **envp, mte
   * `file` The process executable
   * `argv` The arguments to the process
   * `envp` The environment of the process
+  * `user` The user (if not NULL) to setuid to.
+  * `group` The user (if not NULL) to setgid to.
+  * `dir` The directory (if not NULL) to chdir to.
   * `out` A log stream for capturing stdout
   * `err` A log stream for capturing stderr
 
-An auto-restarting execvpe(...)
+An auto-restarting execve(...)
  
 
 #### mtev_watchdog_number_of_starts

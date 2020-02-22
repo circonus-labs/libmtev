@@ -12,7 +12,9 @@ Applications are found using the XPath `/example1/managed//application|/example1
 <?xml version="1.0" encoding="utf8" standalone="yes"?>
 <example1 lockfile="/var/tmp/example.lock">
   <managed>
-    <application exec="/opt/foo/sidecar1" stderr="app/sidecar/stdout" stdout="app/sidecar/stderr" environment="true">
+    <application exec="/opt/foo/sidecar1"
+                 user="nobody" group="nogroup" dir="/var/run/sidecar1"
+                 stderr="app/sidecar/stdout" stdout="app/sidecar/stderr" environment="true">
       <arg>-l</arg>
       <arg>localhost</arg>
       <env>TESTVAR=TESTVAL</env>
@@ -30,6 +32,18 @@ The following application attributes are supported:
  * ##### arg0
 
    Specifies the first argument to `execve` is the program itself.  If this option is not specified, the value of `exec` is used as arg0.
+
+ * ##### user
+
+   Specifies a user to `setuid` to. If this is not specified, it will default to the user specified to the application (usually via a `-u` argument) which is passed into `mtev_main()`.
+
+ * ##### group
+
+   Specifies a group to `setgid` to. If this is not specified, it will default to the group specified to the application (usually via a `-g` argument) which is passed into `mtev_main()`.
+
+ * ##### dir
+
+   If specified, the managed application will `chdir` to this directory prior to `exec`.
 
  * ##### environment
 

@@ -4984,10 +4984,13 @@ before <code>mtev_main</code> and will be overridden by the MTEV_ASYNCH_CORE_DUM
 <li><code>file</code> The process executable</li>
 <li><code>argv</code> The arguments to the process</li>
 <li><code>envp</code> The environment of the process</li>
+<li><code>user</code> The user (if not NULL) to setuid to.</li>
+<li><code>group</code> The user (if not NULL) to setgid to.</li>
+<li><code>dir</code> The directory (if not NULL) to chdir to.</li>
 <li><code>out</code> A log stream for capturing stdout</li>
 <li><code>err</code> A log stream for capturing stderr</li>
 </ul>
-<p>An auto-restarting execvpe(...)</p>
+<p>An auto-restarting execve(...)</p>
 <h4 id="mtevwatchdognumberofstarts">mtev_watchdog_number_of_starts</h4>
 <blockquote>
 <p>Determine the number of times a child has been lauched.</p>

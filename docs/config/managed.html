@@ -664,7 +664,9 @@
 <pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
 <span class="hljs-tag">&lt;<span class="hljs-name">example1</span> <span class="hljs-attr">lockfile</span>=<span class="hljs-string">&quot;/var/tmp/example.lock&quot;</span>&gt;</span>
   <span class="hljs-tag">&lt;<span class="hljs-name">managed</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">application</span> <span class="hljs-attr">exec</span>=<span class="hljs-string">&quot;/opt/foo/sidecar1&quot;</span> <span class="hljs-attr">stderr</span>=<span class="hljs-string">&quot;app/sidecar/stdout&quot;</span> <span class="hljs-attr">stdout</span>=<span class="hljs-string">&quot;app/sidecar/stderr&quot;</span> <span class="hljs-attr">environment</span>=<span class="hljs-string">&quot;true&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">application</span> <span class="hljs-attr">exec</span>=<span class="hljs-string">&quot;/opt/foo/sidecar1&quot;</span>
+                 <span class="hljs-attr">user</span>=<span class="hljs-string">&quot;nobody&quot;</span> <span class="hljs-attr">group</span>=<span class="hljs-string">&quot;nogroup&quot;</span> <span class="hljs-attr">dir</span>=<span class="hljs-string">&quot;/var/run/sidecar1&quot;</span>
+                 <span class="hljs-attr">stderr</span>=<span class="hljs-string">&quot;app/sidecar/stdout&quot;</span> <span class="hljs-attr">stdout</span>=<span class="hljs-string">&quot;app/sidecar/stderr&quot;</span> <span class="hljs-attr">environment</span>=<span class="hljs-string">&quot;true&quot;</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">arg</span>&gt;</span>-l<span class="hljs-tag">&lt;/<span class="hljs-name">arg</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">arg</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-name">arg</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">env</span>&gt;</span>TESTVAR=TESTVAL<span class="hljs-tag">&lt;/<span class="hljs-name">env</span>&gt;</span>
@@ -679,6 +681,15 @@
 </li>
 <li><h5 id="arg0">arg0</h5>
 <p>Specifies the first argument to <code>execve</code> is the program itself.  If this option is not specified, the value of <code>exec</code> is used as arg0.</p>
+</li>
+<li><h5 id="user">user</h5>
+<p>Specifies a user to <code>setuid</code> to. If this is not specified, it will default to the user specified to the application (usually via a <code>-u</code> argument) which is passed into <code>mtev_main()</code>.</p>
+</li>
+<li><h5 id="group">group</h5>
+<p>Specifies a group to <code>setgid</code> to. If this is not specified, it will default to the group specified to the application (usually via a <code>-g</code> argument) which is passed into <code>mtev_main()</code>.</p>
+</li>
+<li><h5 id="dir">dir</h5>
+<p>If specified, the managed application will <code>chdir</code> to this directory prior to <code>exec</code>.</p>
 </li>
 <li><h5 id="environment">environment</h5>
 <p>Specified whether the parents environment should be copied into the manage application.  The default is true.</p>

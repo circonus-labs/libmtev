@@ -244,6 +244,9 @@ API_EXPORT(int)
     \param file The process executable
     \param argv The arguments to the process
     \param envp The environment of the process
+    \param user The user (if not NULL) to setuid to.
+    \param group The user (if not NULL) to setgid to.
+    \param dir The directory (if not NULL) to chdir to.
     \param out A log stream for capturing stdout
     \param err A log stream for capturing stderr
 
@@ -251,6 +254,7 @@ API_EXPORT(int)
  */
 API_EXPORT(void)
   mtev_watchdog_manage(const char *file, char * const *argv, char * const *envp,
+                       const char *user, const char *group, const char *dir,
                        mtev_log_stream_t out, mtev_log_stream_t err);
 
 /*! \fn void mtev_watchdog_disable_asynch_core_dump(void)

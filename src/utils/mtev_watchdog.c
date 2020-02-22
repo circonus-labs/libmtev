@@ -62,6 +62,7 @@
 #include "mtev_log.h"
 #include "mtev_time.h"
 #include "mtev_watchdog.h"
+#include "mtev_security.h"
 #include "mtev_stacktrace.h"
 
 static int watchdog_tick(eventer_t e, int mask, void *lifeline, struct timeval *now);
@@ -200,6 +201,9 @@ struct manage {
   char *file;
   char **argv;
   char **envp;
+  char *user;
+  char *group;
+  char *dir;
   mtev_log_stream_t out;
   mtev_log_stream_t err;
 };
@@ -212,6 +216,7 @@ void mtev_watchdog_allow_manage() {
   manage_allowed = true;
 }
 void mtev_watchdog_manage(const char *file, char * const *argv, char * const *envp,
+                          const char *user, const char *group, const char *dir,
                           mtev_log_stream_t out, mtev_log_stream_t err) {
   int i;
   mtevAssert(manage_allowed);
@@ -227,6 +232,9 @@ void mtev_watchdog_manage(const char *file, char * const *argv, char * const *en
   managed[idx].envp = calloc(i+1, sizeof(char *));
   for(i=0;envp[i] != NULL;i++) managed[idx].envp[i] = strdup(envp[i]);
   managed[idx].envp[i] = NULL;
+  if(user) managed[idx].user = strdup(user);
+  if(group) managed[idx].group = strdup(group);
+  if(dir) managed[idx].dir = strdup(dir);
   managed[idx].out = out;
   managed[idx].err = err;
 }
@@ -256,6 +264,14 @@ static bool launch_managed(struct manage *m, bool working) {
         m->pid = 0;
       }
       else if(m->pid == 0) {
+        if(mtev_security_usergroup(m->user, m->group, mtev_false) != 0) {
+          mtevFatal(mtev_error, "dropping privileges failed %s\n", strerror(errno));
+        }
+        if(m->dir) {
+          if(chdir(m->dir) != 0) {
+            mtevL(mtev_error, "managed chdir to %s failed: %s\n", m->dir, strerror(errno));
+          }
+        }
         if(setpgid(0, 0) != 0) {
           mtevFatal(mtev_error, "setpgid() failed %s\n", strerror(errno));
         }

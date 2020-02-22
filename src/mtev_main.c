@@ -339,7 +339,7 @@ mtev_main_status(const char *appname,
  * calling the mtev_watchdog_manage() API at the wrong time */
 extern void mtev_watchdog_allow_manage();
 extern char **environ;
-static void mtev_main_load_managed(const char *appname, int foreground) {
+static void mtev_main_load_managed(const char *appname, const char *inuser, const char *ingroup, int foreground) {
   char appscratch[1024];
   snprintf(appscratch, sizeof(appscratch), "/%s/managed//application|/%s/include/managed//application", appname, appname);
   int napps;
@@ -416,10 +416,19 @@ static void mtev_main_load_managed(const char *appname, int foreground) {
     for(int i=0; app_envp[i]; i++) {
       mtevL(mtev_debug, "managed[%s] ENV %s\n", file, app_envp[i]);
     }
-    mtev_watchdog_manage(file, app_argv, app_envp, stdout_capture, stderr_capture);
+    char *user = NULL, *group = NULL, *dir = NULL;
+    if(!mtev_conf_get_string(apps[i], "@user", &user)) user = inuser ? strdup(inuser) : NULL;
+    if(!mtev_conf_get_string(apps[i], "@group", &group)) group = ingroup ? strdup(ingroup) : NULL;
+    if(!mtev_conf_get_string(apps[i], "@dir", &dir)) dir = NULL;
+
+    mtev_watchdog_manage(file, app_argv, app_envp,
+                         user, group, dir,
+                         stdout_capture, stderr_capture);
     free(file);
     for(i=0;app_argv[i];i++) free(app_argv[i]);
     for(i=0;app_envp[i];i++) free(app_envp[i]);
+    free(user);
+    free(group);
     free(app_argv);
     free(app_envp);
   }
@@ -550,7 +559,7 @@ mtev_main(const char *appname,
   mtev_watchdog_ratelimit(retry_val, span_val);
 
   /* Managed programs if there are any */
-  mtev_main_load_managed(appname, foreground);
+  mtev_main_load_managed(appname, drop_to_user, drop_to_group, foreground);
 
   /* Lastly, run through all other system inits */
   snprintf(appscratch, sizeof(appscratch), "/%s/eventer/@implementation|/%s/include/eventer/@implementation",
