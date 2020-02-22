@@ -180,12 +180,12 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
   }
 #endif
 
-  if(group) {
+  if(group && gid != (effective ? getegid() : getgid())) {
     if(!effective && gid == 0) BAIL("Cannot use this function to setgid(0)\n");
     if((effective ? setegid(gid) : setgid(gid)) != 0)
       BAIL("setgid(%d) failed: %s\n", (int)gid, strerror(errno));
   }
-  if(user) {
+  if(user && uid != (effective ? geteuid() : getuid())) {
     if(!effective && uid == 0) BAIL("Cannot use this function to setuid(0)\n");
     if((effective ? seteuid(uid) : setuid(uid)) != 0) 
       BAIL("setgid(%d) failed: %s\n", (int)gid, strerror(errno));
