@@ -347,6 +347,7 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
   for(int i=0; i<napps; i++) {
     mtev_log_stream_t stdout_capture = mtev_error, stderr_capture = mtev_error;
     char *file = NULL;
+    if(mtev_conf_env_off(apps[i], NULL)) continue;
     if(mtev_conf_get_string(apps[i], "@exec", &file) == 0) {
       mtevL(mtev_error, "//managed//application missing exec attribute\n");
       continue;
