@@ -335,6 +335,97 @@ mtev_main_status(const char *appname,
   return -1;
 }
 
+/* This is a private cross-exposed symbol to protect against people
+ * calling the mtev_watchdog_manage() API at the wrong time */
+extern void mtev_watchdog_allow_manage();
+extern char **environ;
+static void mtev_main_load_managed(const char *appname, int foreground) {
+  char appscratch[1024];
+  snprintf(appscratch, sizeof(appscratch), "/%s/managed//application|/%s/include/managed//application", appname, appname);
+  int napps;
+  mtev_conf_section_t *apps = mtev_conf_get_sections(MTEV_CONF_ROOT, appscratch, &napps);
+  for(int i=0; i<napps; i++) {
+    mtev_log_stream_t stdout_capture = mtev_error, stderr_capture = mtev_error;
+    char *file = NULL;
+    if(mtev_conf_get_string(apps[i], "@exec", &file) == 0) {
+      mtevL(mtev_error, "//managed//application missing exec attribute\n");
+      continue;
+    }
+    if(foreground == 1) {
+      mtevL(mtev_notice, "Skipping application management [%s] in foreground mode\n", file);
+      continue;
+    }
+
+    char stream_name[256];
+    if(mtev_conf_get_stringbuf(apps[i], "@stdout", stream_name, sizeof(stream_name))) {
+      stdout_capture = mtev_log_stream_find(stream_name);
+    }
+    if(mtev_conf_get_stringbuf(apps[i], "@stderr", stream_name, sizeof(stream_name))) {
+      stderr_capture = mtev_log_stream_find(stream_name);
+    }
+    mtev_boolean pullenv = mtev_true;
+    (void)mtev_conf_get_boolean(apps[i], "@env", &pullenv);
+
+    char *arg0 = NULL;
+    if(mtev_conf_get_string(apps[i], "@arg0", &arg0) == 0)
+      arg0 = strdup(file);
+    int nparams;
+    mtev_conf_section_t *params = mtev_conf_get_sections(apps[i], "arg", &nparams);
+    char **app_argv = calloc(nparams+2, sizeof(char *));
+    app_argv[0] = strdup(arg0);
+    for(int j=0; j<nparams; j++) {
+      if(mtev_conf_get_string(params[j], "self::node()", &app_argv[j+1]) == 0)
+        app_argv[j+1] = strdup("");
+    }
+    app_argv[nparams+1] = NULL;
+    mtev_conf_release_sections(params, nparams);
+
+    int envcnt = 0;
+    for(char **eptr = environ; *eptr; eptr++) envcnt++;
+    params = mtev_conf_get_sections(apps[i], "env", &nparams);
+    char **app_envp = calloc(nparams+envcnt+1, sizeof(char *));
+    for(int j=0; j<envcnt; j++) {
+      app_envp[j] = strdup(environ[j]);
+    }
+    for(int j=0; j<nparams; j++) {
+      if(mtev_conf_get_string(params[j], "self::node()", &app_envp[j+envcnt]) == 0) {
+        envcnt--;
+        continue;
+      }
+      if(strchr(app_envp[j+envcnt], '=') == NULL) {
+        /* we want to pull through the environemnt */
+        char buff[8192];
+        const char *val = getenv(app_envp[j+envcnt]);
+        if(val == NULL) {
+          free(app_envp[j+envcnt]);
+          envcnt--;
+          continue;
+        }
+        snprintf(buff, sizeof(buff), "%s=%s", app_envp[j+envcnt], val);
+        free(app_envp[j+envcnt]);
+        app_envp[j+envcnt] = strdup(buff);
+      }
+    }
+    app_envp[nparams+envcnt] = NULL;
+    mtev_conf_release_sections(params, nparams);
+
+    mtevL(mtev_debug, "Managing %s as %s\n", file, arg0);
+    for(int i=0; app_argv[i]; i++) {
+      mtevL(mtev_debug, "managed[%s] ARG %s\n", file, app_argv[i]);
+    }
+    for(int i=0; app_envp[i]; i++) {
+      mtevL(mtev_debug, "managed[%s] ENV %s\n", file, app_envp[i]);
+    }
+    mtev_watchdog_manage(file, app_argv, app_envp, stdout_capture, stderr_capture);
+    free(file);
+    for(i=0;app_argv[i];i++) free(app_argv[i]);
+    for(i=0;app_envp[i];i++) free(app_envp[i]);
+    free(app_argv);
+    free(app_envp);
+  }
+  mtev_conf_release_sections(apps, napps);
+}
+
 int
 mtev_main(const char *appname,
           const char *config_filename, int debug, int foreground,
@@ -403,6 +494,10 @@ mtev_main(const char *appname,
     mtevStartupTerminate(mtev_error, "Cannot load config: '%s'\n", config_filename);
   }
 
+  if(foreground != 1) {
+    mtev_watchdog_allow_manage();
+  }
+
   zipkin_conf();
 
   char* root_section_path = malloc(strlen(appname)+2);
@@ -452,8 +547,10 @@ mtev_main(const char *appname,
     span_val = 60;
   }
   mtev_conf_release_section(watchdog_conf);
-
   mtev_watchdog_ratelimit(retry_val, span_val);
+
+  /* Managed programs if there are any */
+  mtev_main_load_managed(appname, foreground);
 
   /* Lastly, run through all other system inits */
   snprintf(appscratch, sizeof(appscratch), "/%s/eventer/@implementation|/%s/include/eventer/@implementation",

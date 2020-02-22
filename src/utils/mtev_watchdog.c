@@ -56,6 +56,7 @@
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
+#include <math.h>
 
 #include "eventer/eventer.h"
 #include "mtev_log.h"
@@ -191,6 +192,117 @@ typedef enum {
   GLIDE_CRASH,
   GLIDE_WATCHDOG
 } glide_reason_t;
+
+struct manage {
+  pid_t pid;
+  struct timeval last_start;
+  uint32_t start_attempts;
+  char *file;
+  char **argv;
+  char **envp;
+  mtev_log_stream_t out;
+  mtev_log_stream_t err;
+};
+
+static struct manage *managed;
+static int nmanaged;
+static bool manage_allowed = false;
+/* This is not exposed, only called from mtev_main */
+void mtev_watchdog_allow_manage() {
+  manage_allowed = true;
+}
+void mtev_watchdog_manage(const char *file, char * const *argv, char * const *envp,
+                          mtev_log_stream_t out, mtev_log_stream_t err) {
+  int i;
+  mtevAssert(manage_allowed);
+  int idx = nmanaged++;
+  managed = realloc(managed, sizeof(*managed) * nmanaged);
+  memset(&managed[idx], 0, sizeof(*managed));
+  managed[idx].file = strdup(file);
+  for(i=0;argv[i] != NULL;i++);
+  managed[idx].argv = calloc(i+1, sizeof(char *));
+  for(i=0;argv[i] != NULL;i++) managed[idx].argv[i] = strdup(argv[i]);
+  managed[idx].argv[i] = NULL;
+  for(i=0;envp[i] != NULL;i++);
+  managed[idx].envp = calloc(i+1, sizeof(char *));
+  for(i=0;envp[i] != NULL;i++) managed[idx].envp[i] = strdup(envp[i]);
+  managed[idx].envp[i] = NULL;
+  managed[idx].out = out;
+  managed[idx].err = err;
+}
+
+static bool launch_managed(struct manage *m, bool working) {
+  struct timeval now;
+  mtev_gettimeofday(&now, NULL);
+  if(working) m->start_attempts = 0;
+
+  if(m->pid == 0) {
+    /* This has failed... so we need to not attempt to quickly... */
+    double delay = 0.2 * MIN(30.0, pow(1.5, (double)m->start_attempts));
+    struct timeval diff = { .tv_sec = (int)delay, .tv_usec = fmod(delay, 1.0) * 1000000 };
+    struct timeval tgt;
+    add_timeval(m->last_start, diff, &tgt);
+    if(working || compare_timeval(tgt, now) <= 0) {
+      /* starting */
+      ++m->start_attempts;
+      memcpy(&m->last_start, &now, sizeof(now));
+      mtev_log_stream_pipe_t *out1 = mtev_log_stream_pipe_new(m->out);
+      mtev_log_stream_pipe_t *out2 = mtev_log_stream_pipe_new(m->err);
+      m->pid = fork();
+      if(m->pid == -1) {
+        mtevL(mtev_error, "[monitor] fork error: %s\n", strerror(errno));
+        mtev_log_stream_pipe_close(out1);
+        mtev_log_stream_pipe_close(out2);
+        m->pid = 0;
+      }
+      else if(m->pid == 0) {
+        if(setpgid(0, 0) != 0) {
+          mtevFatal(mtev_error, "setpgid() failed %s\n", strerror(errno));
+        }
+        mtev_log_stream_pipe_dup2(out1, 1);
+        mtev_log_stream_pipe_dup2(out2, 2);
+        mtev_log_stream_pipe_post_fork_child(out1);
+        mtev_log_stream_pipe_post_fork_child(out2);
+        execve(m->file, m->argv, m->envp);
+        mtevL(mtev_error, "[monitor] execve error: %s\n", strerror(errno));
+        exit(-1);
+      }
+      else {
+        mtev_log_stream_pipe_post_fork_parent(out1);
+        mtev_log_stream_pipe_post_fork_parent(out2);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+static void process_managed(pid_t pid, int status) {
+  int i;
+  if(pid != 0) {
+    /* We've reaped this pid and need to zero out */
+    for(i=0; i<nmanaged; i++) {
+      if(managed[i].pid == pid) {
+        mtevL(mtev_notice, "[monitor] reaped pid: %d for managed [%s] %s: %d\n",
+              pid, managed[i].file,
+              WIFEXITED(status) ? "exit" : "sig",
+              WIFEXITED(status) ? WEXITSTATUS(status) : WTERMSIG(status));
+        managed[i].pid = 0;
+        break;
+      }
+    }
+    if(i == nmanaged) {
+      mtevL(mtev_error, "[monitor] reaped unknown pid: %d\n", pid);
+    }
+  }
+  for(i=0; i<nmanaged; i++) {
+    if(managed[i].pid == 0) {
+      bool working = pid != 0 && (WIFEXITED(status) && WEXITSTATUS(status) == 0);
+      if(launch_managed(&managed[i], working))
+        mtevL(mtev_notice, "[monitor] starting managed [%s] pid: %d\n", managed[i].file, managed[i].pid);
+    }
+  }
+}
 
 uint32_t mtev_watchdog_number_of_starts(void) {
   return number_of_starts;
@@ -701,15 +813,40 @@ update_retries(int* offset, time_t times[]) {
   return 1;
 }
 
+static int child_pid;
+
+static void cleanup_managed_disabled(void) {
+  nmanaged = 0;
+  managed = NULL;
+}
+static void cleanup_managed(void) {
+  if(!managed) return;
+  if(child_pid > 0) {
+    mtevL(mtev_error, "[monitor] exiting, TERM child pid: %d\n", child_pid);
+    kill(child_pid, SIGTERM);
+  }
+  for(int i=0; i<nmanaged; i++) {
+    if(managed[i].pid > 0) {
+      mtevL(mtev_error, "[monitor] exiting TERM app %s pid: %d\n", managed[i].file, managed[i].pid);
+      /* kill the pgroup, not the pid, we put each managed app in its own pgroup */
+      kill(0 - managed[i].pid, SIGTERM);
+    }
+  }
+}
+
+
 int mtev_watchdog_start_child(const char *app, int (*func)(void),
                               int child_watchdog_timeout_int) {
-  int child_pid, crashing_pid = -1;
+  int crashing_pid = -1;
   time_t time_data[MAX_RETRIES];
   int offset = 0;
 
   memset(time_data, 0, sizeof(time_data));
 
   appname = strdup(app);
+  pthread_atfork(NULL, NULL, cleanup_managed_disabled);
+  atexit(cleanup_managed);
+  process_managed(0, 0);
   if(child_watchdog_timeout_int == 0)
     global_child_watchdog_timeout = CHILD_WATCHDOG_TIMEOUT;
   else
@@ -727,6 +864,9 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
       exit(-1);
     }
     if(child_pid == 0) {
+      manage_allowed = false;
+      nmanaged = 0;
+      managed = NULL;
       mtev_time_start_tsc();
       mtev_monitored_child_pid = getpid();
       mtevL(mtev_notice, "%s booting [managed, pid: %d]\n", appname,
@@ -767,10 +907,12 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
             signame = short_strsignal(sig);
             mtevL(mtev_error, "[monitor] received signal %s, shutting down.\n", signame);
             if(mtev_monitored_child_pid > 0) kill(mtev_monitored_child_pid, sig);
+            mtev_monitored_child_pid = child_pid = 0;
             exit(0);
             break;
           case SIGALRM:
             /* here we just wake up to check stuff */
+            process_managed(0, 0);
             if(it_ticks_crash_restart(NULL)) {
               mtevL(mtev_error, "[monitor] %s %d is emancipated for dumping.\n", app, crashing_pid);
               mmap_lifelines->action = CRASHY_NOTATALL;
@@ -855,22 +997,24 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
                 quit = update_retries(&offset, time_data);
                 if (quit) {
                   mtevL(mtev_error, "[monitor] exceeded retry limit of %d retries in %d seconds... exiting...\n", retries, span);
+                  child_pid = 0;
                   exit(0);
                 }
                 else if(child_sig == SIGINT || child_sig == SIGQUIT ||
                    (child_sig == 0 && (exit_val == 2 || exit_val <= 0))) {
                   mtevL(mtev_error, "[monitor] %s shutdown acknowledged.\n", app);
+                  child_pid = 0;
                   exit(0);
                 }
                 mtevL(mtev_error, "[monitor] reaped pid: %d.\n", rv);
                 goto out_loop2;
               }
             }
-            else if(errno != ECHILD) {
+            else if(rv < 0 && errno != ECHILD) {
               mtevL(mtev_error, "[monitor] unexpected return from waitpid: %d (%s)\n", rv, strerror(errno));
               exit(-1);
             } else if(rv > 0) {
-              mtevL(mtev_error, "[monitor] reaped pid: %d\n", rv);
+              process_managed(rv, status);
             }
             break;
           default:

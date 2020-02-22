@@ -6,6 +6,7 @@
     1. [Inheritance](config/inherit.md)
     1. [Includes](config/includes.md)
     1. [Watchdog](config/watchdog.md)
+    1. [Managed](config/managed.md)
     1. [Eventer](config/eventer.md)
     1. [Logging](config/logging.md)
     1. [Listeners](config/listeners.md)

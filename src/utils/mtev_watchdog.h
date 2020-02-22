@@ -239,6 +239,20 @@ API_EXPORT(void)
 API_EXPORT(int)
   mtev_setup_crash_signals(void (*)(int, siginfo_t *, void *));
 
+/*! \fn void mtev_watchdog_manage(const char *file, const char **argv, const char **envp, mtev_log_stream_t out, mtev_log_stream_t err)
+    \brief Ask the watchdog to manage a child process
+    \param file The process executable
+    \param argv The arguments to the process
+    \param envp The environment of the process
+    \param out A log stream for capturing stdout
+    \param err A log stream for capturing stderr
+
+    An auto-restarting execve(...)
+ */
+API_EXPORT(void)
+  mtev_watchdog_manage(const char *file, char * const *argv, char * const *envp,
+                       mtev_log_stream_t out, mtev_log_stream_t err);
+
 /*! \fn void mtev_watchdog_disable_asynch_core_dump(void)
     \brief Disable asynchronous core dumps.
 
