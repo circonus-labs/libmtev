@@ -4,6 +4,8 @@
 
 ## 1.9
 
+### 1.9.12
+
  * Expose counter stats for http[12] requests and responses.
  * Support managed applications (service restarting of arbitrary sidecars)
  * Make dropping privileges a noop instead of an error when the the process
