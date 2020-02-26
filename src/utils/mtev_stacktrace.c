@@ -1066,7 +1066,7 @@ int mtev_aco_backtrace(aco_t *co, void **addrs, int addrs_len) {
     }
     void *ip = co->reg[ACO_REG_IDX_RETADDR];
 
-#if defined(HAVE_LIBUNWIND)
+#if defined(HAVE_LIBUNWIND) && defined(REG_RSP)
     unw_cursor_t cursor;
     unw_context_t uc;
 
