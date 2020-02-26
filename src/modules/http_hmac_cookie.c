@@ -192,12 +192,30 @@ http_login_redirect(mtev_http_rest_closure_t *restc, int argc, char **argv) {
   return 0;
 }
 
+static int
+http_login_broken(mtev_http_rest_closure_t *restc, int argc, char **argv) {
+  (void)argc;
+  (void)argv;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  mtev_http_response_standard(ctx, 500, "ERROR", "text/html");
+  mtev_http_response_appendf(ctx, "<html><body><p>Server misconfigured, missing ACL to allow /login?</p></body></html>\n");
+  mtev_http_response_end(ctx);
+  return 0;
+}
+
 static mtev_hook_return_t
 http_hmac_cookie_auth_denied(void *cl, mtev_http_rest_closure_t *restc, rest_request_handler *func) {
   (void)cl;
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_request *req = mtev_http_session_request(ctx);
   const char *user = mtev_http_request_user(req);
+  const char *uri = mtev_http_request_uri_str(req);
+
+  if(!strcmp(uri, "/login") || !strncmp(uri, "/login?", 7)) {
+    *func = http_login_broken;
+    return MTEV_HOOK_DONE;
+  }
+
   /* If the user is not set, then go to the login page. */
   if(!user) {
     *func = http_login_redirect;
