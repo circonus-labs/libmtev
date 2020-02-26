@@ -40,8 +40,14 @@
 #include "mtev_time.h"
 #include <ck_pr.h>
 #include <ck_spinlock.h>
+#include <errno.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+
+/* We use ETIMEDOUT, which might be ETIME on some platforms */
+#ifndef ETIME
+#define ETIME ETIMEDOUT
+#endif
 
 #define EVENTER_READ             0x01
 #define EVENTER_WRITE            0x02

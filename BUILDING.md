@@ -27,9 +27,18 @@
 
 ### FreeBSD 10+
 
+    You'll need to install the following from source first:
+      * libcircllhist
+      * libcircmetrics
+      * jlog
+      * fq
+      * wslay-1.0.0
+      * concurrencykit 0.7.0
+
     pkg install autoconf gcc git gmake \
-        concurrencykit hwloc liblz4 \
-        libxml2 libxslt luajit pcre udns
+        hwloc liblz4 \
+        libxml2 libxslt luajit pcre udns flatcc \
+        yajl e2fsprogs-libuuid rabbitmq-c lmdb
 
     git clone https://github.com/circonus-labs/libmtev
     cd libmtev

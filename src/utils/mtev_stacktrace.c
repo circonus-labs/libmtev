@@ -60,7 +60,7 @@
 #if defined(__MACH__) && defined(__APPLE__)
 #include <libproc.h>
 #endif
-#ifdef HAVE_LIBDWARF
+#if defined(HAVE_LIBDWARF_LIBDWARF_H) && defined(HAVE_LIBDWARF)
 #include <libdwarf/libdwarf.h>
 #include <libdwarf/dwarf.h>
 #endif
@@ -82,8 +82,6 @@ MTEV_HOOK_IMPL(mtev_stacktrace_frame,
 static mtev_boolean (*global_file_filter)(const char *);
 static mtev_boolean (*global_file_symbol_filter)(const char *);
 static mtev_boolean mtev_dwarf_disabled = mtev_false;
-static mtev_log_stream_t dwarf_log;
-static mtev_log_stream_t maint_dwarf_log;
 
 typedef enum { NOT_SET, ADDR_MAP_LINE, ADDR_MAP_FUNCTION } addr_map_type_t;
 
@@ -95,7 +93,9 @@ struct addr_map {
   struct addr_map *next;
   addr_map_type_t type;
 };
-#ifdef HAVE_LIBDWARF
+#if defined(HAVE_LIBDWARF_LIBDWARF_H) && defined(HAVE_LIBDWARF)
+static mtev_log_stream_t dwarf_log;
+static mtev_log_stream_t maint_dwarf_log;
 static void *addr_map_next(void *c) {
   return ((struct addr_map *)c)->next;
 }
@@ -452,6 +452,7 @@ mtev_dwarf_refresh_file(const char *file, uintptr_t base) {
   struct dmap_node *node;
   if(!file || strlen(file) == 0) return;
   if(global_file_filter && global_file_filter(file)) return;
+#if defined(HAVE_LIBDWARF_LIBDWARF_H) && defined(HAVE_LIBDWARF)
   if(!debug_maps) debug_maps = mtev_dwarf_load(file, base);
   else {
     struct dmap_node *prev = NULL;
@@ -461,6 +462,7 @@ mtev_dwarf_refresh_file(const char *file, uintptr_t base) {
     }
     if(prev) prev->next = mtev_dwarf_load(file, base);
   }
+#endif
 }
 static void
 mtev_dwarf_walk_map(void (*f)(const char *, uintptr_t)) {
@@ -535,7 +537,7 @@ void
 mtev_dwarf_filter_symbols(mtev_boolean (*f)(const char *file)) {
   global_file_symbol_filter = f;
 }
-#ifdef HAVE_LIBDWARF
+#if defined(HAVE_LIBDWARF_LIBDWARF_H) && defined(HAVE_LIBDWARF)
 static int loc_comp(const void *va, const void *vb) {
   const struct symnode *a = va;
   const struct symnode *b = vb;
@@ -559,7 +561,7 @@ mtev_dwarf_disable(void) {
 
 void
 mtev_dwarf_refresh(void) {
-#ifdef HAVE_LIBDWARF
+#if defined(HAVE_LIBDWARF_LIBDWARF_H) && defined(HAVE_LIBDWARF)
   if(mtev_dwarf_disabled) return;
   dwarf_log = mtev_log_stream_find("debug/dwarf");
 #ifdef DEBUG
@@ -581,12 +583,12 @@ mtev_dwarf_refresh(void) {
 static struct addr_map *
 find_addr_map(uintptr_t addr, ssize_t *offset, const char **fn_name, uintptr_t *fn_offset) {
   struct addr_map *found_line = NULL;
+#if defined(HAVE_LIBDWARF_LIBDWARF_H) && defined(HAVE_LIBDWARF)
   struct addr_map *found_function = NULL;
   if (!debug_maps) {
     mtevL(dwarf_log, "No dwarf symbol data has been loaded\n");
     return NULL;
   }
-#ifdef HAVE_LIBDWARF
   mtevL(dwarf_log, "Searching dwarf symbol data for address: %08lx\n", addr);
   struct dmap_node *node = NULL, *iter;
   for(iter = debug_maps; iter; iter = iter->next) {
@@ -635,6 +637,7 @@ find_addr_map(uintptr_t addr, ssize_t *offset, const char **fn_name, uintptr_t *
 #else
   (void)addr;
   (void)offset;
+  *fn_offset = 0;
   *fn_name = NULL;
 #endif
   return found_line;
@@ -927,10 +930,10 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
 #endif
     while(NULL != (cp = strchr(prevcp, '\n'))) {
       *cp++ = '\0';
-      mtev_print_stackline(ls, self, extra_thr, prevcp);
+      mtev_print_stackline(ls, (uintptr_t)self, extra_thr, prevcp);
       prevcp = cp;
     }
-    mtev_print_stackline(ls, self, extra_thr, prevcp);
+    mtev_print_stackline(ls, (uintptr_t)self, extra_thr, prevcp);
   }
   else {
     mtevL(ls, "stacktrace unavailable\n");

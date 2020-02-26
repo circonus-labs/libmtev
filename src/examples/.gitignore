@@ -9,4 +9,5 @@ echo_server
 *.crt
 *.csr
 *.key
+*.pem
 demoCA/

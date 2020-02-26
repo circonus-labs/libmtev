@@ -1258,7 +1258,13 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   SSL_shutdown(ctx->ssl);
   eventer_ssl_ctx_free(ctx);
   if(fd < 0) {
+#ifdef EBADFD
     errno = EBADFD;
+#elif EBADF
+    errno = EBADF;
+#else
+#error Need errno definition for bad filedescriptor
+#endif
   } else {
     posix_asynch_shutdown_close(fd);
     rv = 0;

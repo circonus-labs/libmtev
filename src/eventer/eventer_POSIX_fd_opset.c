@@ -83,7 +83,13 @@ POSIX_close(int fd, int *mask, void *closure) {
   *mask = 0;
   LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
   if(fd < 0) {
+#ifdef EBADFD
     errno = EBADFD;
+#elif EBADF
+    errno = EBADF;
+#else
+#error Need errno definition for bad filedescriptor
+#endif
   } else {
     posix_asynch_shutdown_close(fd);
     rv = 0;

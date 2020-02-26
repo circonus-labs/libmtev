@@ -36,6 +36,7 @@ src/Makefile.objs
 src/mtev_config.h
 src/mtev_config.h.in
 src/scripts/mtev-config
+src/libmtev-objs/
 src/libmtev.so*
 src/libmtev*dylib
 src/libmtev_dtrace_probes.h

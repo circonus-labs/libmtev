@@ -5022,7 +5022,7 @@ mtev_lua_process_wait_ex(struct nl_slcl *cl, mtev_boolean needs_yield) {
     }
     return -1;
   }
-  if(rv == 0) errno = ETIME;
+  if(rv == 0) errno = ETIMEDOUT;
   lua_pushnil(L);
   lua_pushinteger(L, errno);
   return 2;

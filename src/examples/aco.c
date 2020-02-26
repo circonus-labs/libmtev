@@ -201,7 +201,7 @@ listen_to_me(void) {
     memset(buff, 1, sizeof(buff));
     rv = eventer_aco_read(e, buff, sizeof(buff), &two_sec);
     if(rv == -1) {
-      if(errno != ETIME) break;
+      if(errno != ETIMEDOUT) break;
       rv = eventer_aco_write(e, "idle\n", 5, NULL);
     } else {
       if(rv >= 4 && !strncasecmp(buff, "quit", 4)) {
@@ -222,7 +222,6 @@ listen_to_me(void) {
 static void
 ping(void) {
   while(1) {
-    mtevEL(mtev_debug, MLKV { MLKV_STR("key1", "a string"), MLKV_END }, "ping...\n");
     eventer_aco_sleep(&(struct timeval){ 1UL, 0UL });
   }
 }

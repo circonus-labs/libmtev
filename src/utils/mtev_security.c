@@ -103,18 +103,16 @@ mtev_security_usergroup(const char *user, const char *group, mtev_boolean effect
   uid_t uid = 0;
   gid_t gid = 0;
 
-  if(pwnam_buflen == 0)
 #ifdef _SC_GETPW_R_SIZE_MAX
+  if(pwnam_buflen == 0)
     pwnam_buflen = sysconf(_SC_GETPW_R_SIZE_MAX);
-#else
-    pwnam_buflen = 100; /* This shouldn't be used, so size is not important. */
 #endif
-  if(grnam_buflen == 0)
+  if(pwnam_buflen <= 0) pwnam_buflen = 100; /* This shouldn't be used, so size is not important. */
 #ifdef _SC_GETGR_R_SIZE_MAX
+  if(grnam_buflen == 0)
     grnam_buflen = sysconf(_SC_GETGR_R_SIZE_MAX);
-#else
-    grnam_buflen = 100;
 #endif
+    if(grnam_buflen <= 0) grnam_buflen = 100;
 
   long safe_size;
   char *buf = NULL;

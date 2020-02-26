@@ -644,10 +644,10 @@ mtev_listener(char *host, unsigned short port, int type,
   else {
     eventer_add(event);
   }
-  mtevL(nldeb, "mtev_listener(%s, %d, %d, %d, %s, %p) -> success\n",
+  mtevL(nldeb, "mtev_listener(%s, %d, %d, %d, %s, %p) -> success [%d]\n",
         host, port, type, backlog,
         (event_name = eventer_name_for_callback(handler))?event_name:"??",
-        service_ctx);
+        service_ctx, fd);
   return 0;
 }
 
