@@ -743,6 +743,7 @@ mtev_http2_response_option_set(mtev_http2_session_ctx *ctx, uint32_t opt) {
 
 void
 mtev_http2_ctx_acceptor_free(void *v) {
+  if(v == NULL) return;
   mtevL(h2_debug, "http2 session complete %p (via acceptor_free)\n", v);
   mtev_http2_parent_session_deref((mtev_http2_parent_session *)v, mtev_true);
 }
@@ -1151,6 +1152,11 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
   int mask;
   (void)now;
   mtev_http2_parent_session *ctx = closure;
+  if (!closure) {
+    *done = 1;
+    eventer_close(e, &mask);
+    return 0;
+  }
   if (origmask & EVENTER_EXCEPTION) {
     mtevL(h2_debug, "http2 session ending %p (exception)\n", ctx);
     goto full_shutdown;
