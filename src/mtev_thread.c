@@ -51,6 +51,10 @@ kern_return_t  thread_policy_set(
                          thread_policy_t                    policy_info,
                          mach_msg_type_number_t        count);
 #endif
+#if defined(BSD) || defined(__FreeBSD__)
+#include <sys/cpuset.h>
+#endif
+
 #ifdef __sun
 #include <sys/processor.h>
 #include <sys/priocntl.h>
@@ -106,6 +110,18 @@ mtev_thread_bind_to_cpu(int cpu)
   else {
     mtev_thread_is_bound = mtev_true;
     //mtevL(mtev_debug, "Bound to CPU %i\n", cpu);
+  }
+#endif
+
+#if defined(BSD) || defined(__FreeBSD__)
+  cpuset_t s;
+  CPU_ZERO(&s);
+  CPU_SET(cpu, &s);
+  int x = cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(s), &s);
+  if (x == 0) {
+    mtev_thread_is_bound = mtev_true;
+  } else {
+    mtevL(mtev_error, "Warning: Binding thread to cpu %d failed %s\n", cpu, strerror(errno));
   }
 #endif
 

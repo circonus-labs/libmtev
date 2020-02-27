@@ -599,6 +599,7 @@ deferslc(mtev_console_closure_t ncct)
 int
 mtev_console_telnet_tty_linemode(mtev_console_closure_t ncct)
 {
+    (void)ncct;
 #ifndef    USE_TERMIO
 #ifdef TS_EXTPROC
     return(termbuf.state & TS_EXTPROC);
@@ -632,6 +633,7 @@ mtev_console_telnet_tty_setlinemode(mtev_console_closure_t ncct, int on)
 void
 mtev_console_telnet_tty_setsig(mtev_console_closure_t ncct, int on)
 {
+	(void)ncct;
 #ifndef	USE_TERMIO
 	if (on)
 		;

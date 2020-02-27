@@ -354,7 +354,7 @@ priv_aco_timeout(eventer_t e, int mask, void *closure, struct timeval *now) {
   aco_opset_info_t *info = closure;
   struct aco_cb_ctx *ctx = info->aco_co->arg;
   ctx->timeout_e = NULL;
-  ctx->private_errno = ETIME;
+  ctx->private_errno = ETIMEDOUT;
   eventer_aco_resume(info->aco_co);
   return 0;
 }
@@ -402,7 +402,7 @@ priv_aco_##name params { \
       mtevL(eventer_deb, #name"(%d) causing yield\n", e->fd); \
       eventer_aco_yield(); \
       mtevL(eventer_deb, #name"(%d) resumed\n", e->fd); \
-      if(ctx->private_errno == ETIME) { \
+      if(ctx->private_errno == ETIMEDOUT) { \
         errno = ctx->private_errno; \
         ctx->private_errno = 0; \
         ctx->rv = -1; \

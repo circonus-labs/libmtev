@@ -4,6 +4,9 @@
 
 ## 1.9
 
+ * Fix libmtev on FreeBSD. There were some compile issues and the kqueue
+   eventer unsafely reused the change vector.
+
 ### 1.9.12
 
  * Expose counter stats for http[12] requests and responses.

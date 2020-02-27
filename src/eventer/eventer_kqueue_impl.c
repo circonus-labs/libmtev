@@ -54,27 +54,44 @@ struct _eventer_impl eventer_kqueue_impl;
 #include "eventer/eventer_impl_private.h"
 
 static const struct timeval __dyna_increment = { 0, 10000 }; /* 10 ms */
+typedef struct kqueue_vec {
+  struct kevent *__ke_vec;
+  unsigned int __ke_vec_a;
+  unsigned int __ke_vec_used;
+} kqueue_vec_t;
 typedef struct kqueue_spec {
   int kqueue_fd;
   ck_spinlock_t wakeup_notify;
   pthread_mutex_t lock;
-  struct {
-    struct kevent *__ke_vec;
-    unsigned int __ke_vec_a;
-    unsigned int __ke_vec_used;
-  } q;
+  kqueue_vec_t qs[2], *q;
+  uint32_t qidx;
 } *kqs_t;
 
 static int *masks;
 #define KQUEUE_DECL kqs_t kqs
 #define KQUEUE_SETUP(e) kqs = (kqs_t) eventer_get_spec_for_event(e)
-#define ke_vec kqs->q.__ke_vec
-#define ke_vec_a kqs->q.__ke_vec_a
-#define ke_vec_used kqs->q.__ke_vec_used
+#define ke_vec kqs->q->__ke_vec
+#define ke_vec_a kqs->q->__ke_vec_a
+#define ke_vec_used kqs->q->__ke_vec_used
 
+static kqueue_vec_t *
+ke_claim(kqs_t kqs) {
+  kqueue_vec_t *current = NULL;
+  pthread_mutex_lock(&kqs->lock);
+  current = kqs->q;
+  kqs->qidx = (kqs->qidx + 1) & 1;
+  kqs->q = &kqs->qs[kqs->qidx];
+  ke_vec_used = 0;
+  pthread_mutex_unlock(&kqs->lock);
+  return current;
+}
 static void kqs_init(kqs_t kqs) {
-  enum { initial_alloc = 64 };
-  ke_vec_a = initial_alloc;
+  /* twice for the A/B changeset */
+  ke_claim(kqs);
+  ke_vec_a = 64;
+  ke_vec = (struct kevent *) malloc(ke_vec_a * sizeof (struct kevent));
+  ke_claim(kqs);
+  ke_vec_a = 64;
   ke_vec = (struct kevent *) malloc(ke_vec_a * sizeof (struct kevent));
 }
 static void
@@ -98,15 +115,15 @@ ke_change (register int const ident,
   kep = &ke_vec[ke_vec_used++];
 
   EV_SET(kep, ident, filter, flags, 0, 0, (void *)(intptr_t)e->fd);
-  mtevL(eventer_deb, "debug: [t@%zx] ke_change(fd:%d, filt:%x, flags:%x)\n",
+  mtevL(eventer_deb, "debug: [t@%zx] ke_change(fd:%d, filt:%d, flags:%x)\n",
         (intptr_t)e->thr_owner, ident, filter, flags);
   pthread_mutex_unlock(&kqs->lock);
 }
 
 static void eventer_kqueue_impl_wakeup_spec(struct kqueue_spec *spec) {
   struct kevent kev;
-	EV_SET(&kev, 0, EVFILT_USER, 0, NOTE_FFCOPY|NOTE_TRIGGER|0x1, 0, NULL);
-	kevent(spec->kqueue_fd, &kev, 1, NULL, 0, NULL);
+  EV_SET(&kev, 0, EVFILT_USER, 0, NOTE_FFCOPY|NOTE_TRIGGER|0x1, 0, NULL);
+  kevent(spec->kqueue_fd, &kev, 1, NULL, 0, NULL);
 }
 
 static int eventer_kqueue_impl_register_wakeup(struct kqueue_spec *spec) {
@@ -183,9 +200,9 @@ static void eventer_kqueue_impl_add(eventer_t e) {
   lockstate = acquire_master_fd(e->fd);
   master_fds[e->fd].e = e;
   if(e->mask & (EVENTER_READ | EVENTER_EXCEPTION))
-    ke_change(e->fd, EVFILT_READ, EV_ADD | EV_ENABLE, e);
+    ke_change(e->fd, EVFILT_READ, EV_ADD, e);
   if(e->mask & (EVENTER_WRITE))
-    ke_change(e->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, e);
+    ke_change(e->fd, EVFILT_WRITE, EV_ADD, e);
   release_master_fd(e->fd, lockstate);
 }
 static eventer_t eventer_kqueue_impl_remove(eventer_t e) {
@@ -201,9 +218,9 @@ static eventer_t eventer_kqueue_impl_remove(eventer_t e) {
       removed = e;
       master_fds[e->fd].e = NULL;
       if(e->mask & (EVENTER_READ | EVENTER_EXCEPTION))
-        ke_change(e->fd, EVFILT_READ, EV_DELETE | EV_DISABLE, e);
+        ke_change(e->fd, EVFILT_READ, EV_DELETE, e);
       if(e->mask & (EVENTER_WRITE))
-        ke_change(e->fd, EVFILT_WRITE, EV_DELETE | EV_DISABLE, e);
+        ke_change(e->fd, EVFILT_WRITE, EV_DELETE, e);
     } else
       mtevL(eventer_deb, "kqueue: remove(%d) failed.\n", e->fd);
     release_master_fd(e->fd, lockstate);
@@ -229,18 +246,18 @@ static void eventer_kqueue_impl_update(eventer_t e, int mask) {
   /* Disable old, if they aren't active in the new */
   if((e->mask & (EVENTER_READ | EVENTER_EXCEPTION)) &&
      !(mask & (EVENTER_READ | EVENTER_EXCEPTION)))
-    ke_change(e->fd, EVFILT_READ, EV_DELETE | EV_DISABLE, e);
+    ke_change(e->fd, EVFILT_READ, EV_DELETE, e);
   if((e->mask & (EVENTER_WRITE)) &&
      !(mask & (EVENTER_WRITE)))
-    ke_change(e->fd, EVFILT_WRITE, EV_DELETE | EV_DISABLE, e);
+    ke_change(e->fd, EVFILT_WRITE, EV_DELETE, e);
 
   /* Enable new, if the weren't in the old */
   if((mask & (EVENTER_READ | EVENTER_EXCEPTION)) &&
      !(e->mask & (EVENTER_READ | EVENTER_EXCEPTION)))
-    ke_change(e->fd, EVFILT_READ, EV_ADD | EV_ENABLE, e);
+    ke_change(e->fd, EVFILT_READ, EV_ADD, e);
   if((mask & (EVENTER_WRITE)) &&
      !(e->mask & (EVENTER_WRITE)))
-    ke_change(e->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, e);
+    ke_change(e->fd, EVFILT_WRITE, EV_ADD, e);
 
   /* Switch */
   e->mask = mask;
@@ -254,9 +271,9 @@ static eventer_t eventer_kqueue_impl_remove_fd(int fd) {
     eiq = master_fds[fd].e;
     master_fds[fd].e = NULL;
     if(eiq->mask & (EVENTER_READ | EVENTER_EXCEPTION))
-      ke_change(fd, EVFILT_READ, EV_DELETE | EV_DISABLE, eiq);
+      ke_change(fd, EVFILT_READ, EV_DELETE, eiq);
     if(eiq->mask & (EVENTER_WRITE))
-      ke_change(fd, EVFILT_WRITE, EV_DELETE | EV_DISABLE, eiq);
+      ke_change(fd, EVFILT_WRITE, EV_DELETE, eiq);
     release_master_fd(fd, lockstate);
   }
   return eiq;
@@ -270,18 +287,18 @@ alter_kqueue_mask(eventer_t e, int oldmask, int newmask) {
   /* toggle the read bits if needed */
   if(newmask & (EVENTER_READ | EVENTER_EXCEPTION)) {
     if(!(oldmask & (EVENTER_READ | EVENTER_EXCEPTION)))
-      ke_change(e->fd, EVFILT_READ, EV_ADD | EV_ENABLE, e);
+      ke_change(e->fd, EVFILT_READ, EV_ADD, e);
   }
   else if(oldmask & (EVENTER_READ | EVENTER_EXCEPTION))
-    ke_change(e->fd, EVFILT_READ, EV_DELETE | EV_DISABLE, e);
+    ke_change(e->fd, EVFILT_READ, EV_DELETE, e);
 
   /* toggle the write bits if needed */
   if(newmask & EVENTER_WRITE) {
     if(!(oldmask & EVENTER_WRITE))
-      ke_change(e->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, e);
+      ke_change(e->fd, EVFILT_WRITE, EV_ADD, e);
   }
   else if(oldmask & EVENTER_WRITE)
-    ke_change(e->fd, EVFILT_WRITE, EV_DELETE | EV_DISABLE, e);
+    ke_change(e->fd, EVFILT_WRITE, EV_DELETE, e);
 }
 
 static void eventer_kqueue_impl_wakeup(eventer_t e) {
@@ -416,6 +433,7 @@ static void eventer_kqueue_impl_trigger(eventer_t e, int mask) {
   release_master_fd(fd, lockstate);
 }
 static int eventer_kqueue_impl_loop(int id, eventer_impl_data_t *t) {
+  (void)id;
   struct timeval __dyna_sleep = { 0, 0 };
   KQUEUE_DECL;
   KQUEUE_SETUP(NULL);
@@ -436,7 +454,7 @@ static int eventer_kqueue_impl_loop(int id, eventer_impl_data_t *t) {
 
     __sleeptime = __dyna_sleep;
 
-    eventer_dispatch_timed(t&__sleeptime);
+    eventer_dispatch_timed(t, &__sleeptime);
 
     if(compare_timeval(__sleeptime, __dyna_sleep) > 0)
       __sleeptime = __dyna_sleep;
@@ -450,19 +468,19 @@ static int eventer_kqueue_impl_loop(int id, eventer_impl_data_t *t) {
     /* Now we move on to our fd-based events */
     __kqueue_sleeptime.tv_sec = __sleeptime.tv_sec;
     __kqueue_sleeptime.tv_nsec = __sleeptime.tv_usec * 1000;
-    fd_cnt = kevent(kqs->kqueue_fd, ke_vec, ke_vec_used,
-                    ke_vec, ke_vec_a,
+    kqueue_vec_t *todo = ke_claim(kqs);
+    fd_cnt = kevent(kqs->kqueue_fd, todo->__ke_vec, todo->__ke_vec_used,
+                    todo->__ke_vec, todo->__ke_vec_a,
                     &__kqueue_sleeptime);
     eventer_heartbeat();
     ck_spinlock_init(&kqs->wakeup_notify);
-    if(fd_cnt > 0 || ke_vec_used)
-      mtevL(eventer_deb, "[t@%zx] kevent(%d, [...], %d) => %d\n", (intptr_t)pthread_self(), kqs->kqueue_fd, ke_vec_used, fd_cnt);
-    ke_vec_used = 0;
+    if(fd_cnt >= 0 || todo->__ke_vec_used)
+      mtevL(eventer_deb, "[t@%zx] kevent(%d, [...], %d, [...], %d) => %d\n", (intptr_t)pthread_self(), kqs->kqueue_fd, todo->__ke_vec_used, todo->__ke_vec_a, fd_cnt);
     if(fd_cnt < 0) {
       mtevL(eventer_err, "kevent(s/%d): %s\n", kqs->kqueue_fd, strerror(errno));
     }
     else if(fd_cnt == 0 ||
-            (fd_cnt == 1 && ke_vec[0].filter == EVFILT_USER)) {
+            (fd_cnt == 1 && todo->__ke_vec[0].filter == EVFILT_USER)) {
       /* timeout */
       if(fd_cnt) eventer_kqueue_impl_register_wakeup(kqs);
       add_timeval(__dyna_sleep, __dyna_increment, &__dyna_sleep);
@@ -473,7 +491,7 @@ static int eventer_kqueue_impl_loop(int id, eventer_impl_data_t *t) {
       /* loop once to clear */
       for(idx = 0; idx < fd_cnt; idx++) {
         struct kevent *ke;
-        ke = &ke_vec[idx];
+        ke = &todo->__ke_vec[idx];
         if(ke->flags & EV_ERROR) continue;
         if(ke->filter == EVFILT_USER) {
           eventer_kqueue_impl_register_wakeup(kqs);
@@ -484,7 +502,7 @@ static int eventer_kqueue_impl_loop(int id, eventer_impl_data_t *t) {
       /* Loop again to aggregate */
       for(idx = 0; idx < fd_cnt; idx++) {
         struct kevent *ke;
-        ke = &ke_vec[idx];
+        ke = &todo->__ke_vec[idx];
         if(ke->flags & EV_ERROR) continue;
         if(ke->filter == EVFILT_USER) continue;
         if(ke->filter == EVFILT_READ) masks[ke->ident] |= EVENTER_READ;
@@ -496,7 +514,7 @@ static int eventer_kqueue_impl_loop(int id, eventer_impl_data_t *t) {
         eventer_t e;
         int fd;
 
-        ke = &ke_vec[idx];
+        ke = &todo->__ke_vec[idx];
         if(ke->filter == EVFILT_USER) continue;
         if(ke->flags & EV_ERROR) {
           if(ke->data != EBADF && ke->data != ENOENT)

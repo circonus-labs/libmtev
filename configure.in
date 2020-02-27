@@ -243,7 +243,7 @@ case $host in
 	PICFLAGS="-fpic"
 	MODULELD="$CC -shared"
 	SHLD="$CC -shared"
-	LDFLAGS="$LDFLAGS -export-dynamic -L/usr/local/lib"
+	LDFLAGS="$LDFLAGS -Wl,--export-dynamic -L/usr/local/lib"
 	CFLAGS="$CFLAGS -DCOMPAT_43TTY -I/usr/local/include"
 	MODULEEXT=so
 	RLDFLAG="-Wl,--enable-new-dtags -Wl,--rpath="
@@ -370,6 +370,7 @@ AC_CHECK_SIZEOF(long int, 4)
 AC_CHECK_SIZEOF(long long int, 8)
 AC_CHECK_SIZEOF(void *, 1)
 
+AC_CHECK_HEADERS(libdwarf/libdwarf.h)
 AC_CHECK_LIB(dwarf, dwarf_init, , )
 AC_CHECK_LIB(unwind, unw_backtrace, , )
 AC_CHECK_HEADER(ck_pr.h, [], [AC_MSG_ERROR([*** libck (headers) required ***])])

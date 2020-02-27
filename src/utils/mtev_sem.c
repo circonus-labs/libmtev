@@ -46,6 +46,7 @@
 
 int
 mtev_sem_init(mtev_sem_t *s, int unused, int value) {
+  (void)unused;
   pthread_mutexattr_t mutexattr;
   if(pthread_mutexattr_init(&mutexattr) != 0) return -1;
   if(pthread_mutex_init(&s->lock, &mutexattr) != 0) return -1;
