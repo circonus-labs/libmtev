@@ -37,6 +37,10 @@
 #include <stdarg.h>
 #include <errno.h>
 
+#if defined(HAVE_PTHREAD_NP_H)
+#include <pthread_np.h>
+#endif
+
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include <valgrind/valgrind.h>
 #endif
@@ -219,8 +223,10 @@ mtev_thread_setname(const char *name) {
   if(!name) name = "terminated";
 
   strlcat(thrname, name, sizeof(thrname));
-#ifdef HAVE_PTHREAD_SETNAME_NP
+#if defined(HAVE_PTHREAD_SETNAME_NP)
   pthread_setname_np(pthread_self(), thrname);
+#elif defined(HAVE_PTHREAD_SETNAME_NP)
+  pthread_set_name_np(pthread_self(), thrname);
 #endif
   strlcpy(thread_local_name, thrname, sizeof(thread_local_name));
 }

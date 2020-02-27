@@ -404,6 +404,7 @@ AC_CHECK_LIB(pthread, pthread_create, , )
 AC_CHECK_LIB(execinfo, backtrace, , )
 
 AC_CHECK_FUNC(pthread_setname_np, AC_DEFINE(HAVE_PTHREAD_SETNAME_NP, [1], [pthread_setname_np]))
+AC_CHECK_FUNC(pthread_set_name_np, AC_DEFINE(HAVE_PTHREAD_SET_NAME_NP, [1], [pthread_set_name_np]))
 AC_CHECK_FUNC(pthread_rwlockattr_setkind_np, AC_DEFINE(HAVE_PTHREAD_RWLOCKATTR_SETKIND_NP, [1], [pthread_rwlockattr_setkind_np]))
 
 # Check for LuaJIT
@@ -639,7 +640,7 @@ AC_CHECK_HEADERS(sys/file.h sys/types.h dirent.h sys/param.h fcntl.h errno.h lim
 	termio.h termios.h curses.h sys/cdefs.h grp.h netinet/in_systm.h \
 	sys/ioctl_compat.h sys/filio.h util.h sys/time.h sys/mman.h \
 	sys/ioctl.h stropts.h sys/stream.h alloca.h sys/wait.h bsd/libutil.h libutil.h \
-	stdint.h inttypes.h endian.h sys/endian.h umem.h)
+	stdint.h inttypes.h endian.h sys/endian.h umem.h pthread_np.h)
 
 AC_CHECK_HEADERS([term.h], [], [],
 	[[
