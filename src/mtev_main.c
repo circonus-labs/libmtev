@@ -343,7 +343,7 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
   char appscratch[1024];
   snprintf(appscratch, sizeof(appscratch), "/%s/managed//application|/%s/include/managed//application", appname, appname);
   int napps;
-  mtev_conf_section_t *apps = mtev_conf_get_sections(MTEV_CONF_ROOT, appscratch, &napps);
+  mtev_conf_section_t *apps = mtev_conf_get_sections_read(MTEV_CONF_ROOT, appscratch, &napps);
   for(int i=0; i<napps; i++) {
     mtev_log_stream_t stdout_capture = mtev_error, stderr_capture = mtev_error;
     char *file = NULL;
@@ -372,7 +372,7 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
     if(mtev_conf_get_string(apps[i], "@arg0", &arg0) == 0)
       arg0 = strdup(file);
     int nparams;
-    mtev_conf_section_t *params = mtev_conf_get_sections(apps[i], "arg", &nparams);
+    mtev_conf_section_t *params = mtev_conf_get_sections_read(apps[i], "arg", &nparams);
     char **app_argv = calloc(nparams+2, sizeof(char *));
     app_argv[0] = strdup(arg0);
     for(int j=0; j<nparams; j++) {
@@ -380,11 +380,11 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
         app_argv[j+1] = strdup("");
     }
     app_argv[nparams+1] = NULL;
-    mtev_conf_release_sections(params, nparams);
+    mtev_conf_release_sections_read(params, nparams);
 
     int envcnt = 0;
     for(char **eptr = environ; *eptr; eptr++) envcnt++;
-    params = mtev_conf_get_sections(apps[i], "env", &nparams);
+    params = mtev_conf_get_sections_read(apps[i], "env", &nparams);
     char **app_envp = calloc(nparams+envcnt+1, sizeof(char *));
     for(int j=0; j<envcnt; j++) {
       app_envp[j] = strdup(environ[j]);
@@ -409,7 +409,7 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
       }
     }
     app_envp[nparams+envcnt] = NULL;
-    mtev_conf_release_sections(params, nparams);
+    mtev_conf_release_sections_read(params, nparams);
 
     mtevL(mtev_debug, "Managing %s as %s\n", file, arg0);
     for(int j=0; app_argv[j]; j++) {
@@ -434,7 +434,7 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
     free(app_argv);
     free(app_envp);
   }
-  mtev_conf_release_sections(apps, napps);
+  mtev_conf_release_sections_read(apps, napps);
 }
 
 int
@@ -513,9 +513,9 @@ mtev_main(const char *appname,
 
   char* root_section_path = malloc(strlen(appname)+2);
   snprintf(root_section_path, strlen(appname)+2, "/%s", appname);
-  root = mtev_conf_get_sections(MTEV_CONF_ROOT, root_section_path, &cnt);
+  root = mtev_conf_get_sections_read(MTEV_CONF_ROOT, root_section_path, &cnt);
   free(root_section_path);
-  mtev_conf_release_sections(root, cnt);
+  mtev_conf_release_sections_read(root, cnt);
   if(cnt==0) {
     mtevStartupTerminate(mtev_error, "The config must have <%s> as its root node\n", appname);
   }
@@ -528,19 +528,19 @@ mtev_main(const char *appname,
   cli_log_switches();
 
   snprintf(appscratch, sizeof(appscratch), "/%s/watchdog|/%s/include/watchdog", appname, appname);
-  watchdog_conf = mtev_conf_get_section(MTEV_CONF_ROOT, appscratch);
+  watchdog_conf = mtev_conf_get_section_read(MTEV_CONF_ROOT, appscratch);
 
   if(!glider) (void) mtev_conf_get_string(watchdog_conf, "@glider", &glider);
   if(mtev_watchdog_glider(glider)) {
     mtevL(mtev_stderr, "Invalid glider, exiting.\n");
-    mtev_conf_release_section(watchdog_conf);
+    mtev_conf_release_section_read(watchdog_conf);
     exit(-1);
   }
   (void)mtev_conf_get_string(watchdog_conf, "@tracedir", &trace_dir);
   if(trace_dir) {
     if(mtev_watchdog_glider_trace_dir(trace_dir)) {
       mtevL(mtev_stderr, "Invalid glider tracedir, exiting.\n");
-      mtev_conf_release_section(watchdog_conf);
+      mtev_conf_release_section_read(watchdog_conf);
       exit(-1);
     }
   }
@@ -557,7 +557,7 @@ mtev_main(const char *appname,
   if((ret == 0) || (span_val == 0)){
     span_val = 60;
   }
-  mtev_conf_release_section(watchdog_conf);
+  mtev_conf_release_section_read(watchdog_conf);
   mtev_watchdog_ratelimit(retry_val, span_val);
 
   /* Managed programs if there are any */

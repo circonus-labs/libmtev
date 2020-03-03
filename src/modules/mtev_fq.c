@@ -229,11 +229,11 @@ connect_conns(void *unused) {
 }
 static void
 init_conns(void) {
-  mtev_conf_section_t *mqs = mtev_conf_get_sections(MTEV_CONF_ROOT, CONFIG_FQ_IN_MQ,
+  mtev_conf_section_t *mqs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_FQ_IN_MQ,
       &the_conf->number_of_conns);
 
   if(the_conf->number_of_conns == 0) {
-    mtev_conf_release_sections(mqs, the_conf->number_of_conns);
+    mtev_conf_release_sections_read(mqs, the_conf->number_of_conns);
     return;
   }
 
@@ -244,7 +244,7 @@ init_conns(void) {
     mtev_conf_get_string(mqs[section_id], CONFIG_FQ_EXCHANGE, &the_conf->configs[section_id]->exchange);
     mtev_conf_get_string(mqs[section_id], CONFIG_FQ_PROGRAM, &the_conf->configs[section_id]->program);
   }
-  mtev_conf_release_sections(mqs, the_conf->number_of_conns);
+  mtev_conf_release_sections_read(mqs, the_conf->number_of_conns);
 }
 
 /* Do not mtevL in these functions, as they may implement mtevL */

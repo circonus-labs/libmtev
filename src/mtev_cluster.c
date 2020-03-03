@@ -659,7 +659,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
     }
   }
 
-  nodes = mtev_conf_get_sections(cluster, "node", &n_nodes);
+  nodes = mtev_conf_get_sections_read(cluster, "node", &n_nodes);
   if(n_nodes > 0) {
     nlist = mtev_memory_safe_calloc(n_nodes, sizeof(*nlist));
     for(i=0;i<n_nodes;i++) {
@@ -782,7 +782,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
   pthread_mutex_unlock(&c_lock);
 
  bail:
-  mtev_conf_release_sections(nodes, n_nodes);
+  mtev_conf_release_sections_read(nodes, n_nodes);
   if(name) mtev_memory_safe_free(name);
   if(key) mtev_memory_safe_free(key);
   if(new_cluster) mtev_memory_safe_free(new_cluster);
@@ -1267,6 +1267,7 @@ mtev_cluster_init(void) {
   mtev_gettimeofday(&my_boot_time, NULL);
   mtev_hash_init_locks(&global_clusters, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 
+  /* rw conf get b/c set_self is writing */
   parent = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
   if(mtev_conf_section_is_empty(parent)) {
     mtev_conf_release_section(parent);

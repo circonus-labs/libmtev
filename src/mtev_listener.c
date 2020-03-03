@@ -680,7 +680,7 @@ mtev_listener_reconfig(const char *toplevel) {
 
   snprintf(path, sizeof(path), "/%s/listeners//listener|/%s/include/listeners//listener",
            toplevel ? toplevel : "*", toplevel ? toplevel : "*");
-  listener_configs = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
+  listener_configs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, path, &cnt);
   mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     char address[256];
@@ -787,7 +787,7 @@ mtev_listener_reconfig(const char *toplevel) {
       free(sslconfig);
     }
   }
-  mtev_conf_release_sections(listener_configs, cnt);
+  mtev_conf_release_sections_read(listener_configs, cnt);
 }
 mtev_boolean
 mtev_listener_apply_alpn(eventer_t e, int *mask, void *closure,

@@ -224,6 +224,8 @@ extern void aco_resume(aco_t* resume_co);
 
 extern void aco_destroy(aco_t* co);
 
+#define aco_co_thread() ({(void)0; (aco_gtls_co && aco_gtls_co->main_co) ? aco_gtls_co : NULL;})
+
 #define aco_is_main_co(co) ({((co)->main_co) == NULL;})
 
 #define aco_exit1(co) do {     \

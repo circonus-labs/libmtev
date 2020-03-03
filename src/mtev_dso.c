@@ -272,7 +272,7 @@ void mtev_dso_init(void) {
   mtev_dso_add_type("generic", mtev_dso_list_generics);
 
   /* Load our generic modules */
-  sections = mtev_conf_get_sections(MTEV_CONF_ROOT, "//modules//generic", &cnt);
+  sections = mtev_conf_get_sections_read(MTEV_CONF_ROOT, "//modules//generic", &cnt);
   for(i=0; i<cnt; i++) {
     char g_name[256];
     mtev_dso_generic_t *gen;
@@ -301,14 +301,14 @@ void mtev_dso_init(void) {
     if(gen->config) {
       int rv;
       mtev_hash_table *config;
-      include_sections = mtev_conf_get_sections(sections[i], "include", &section_cnt);
+      include_sections = mtev_conf_get_sections_read(sections[i], "include", &section_cnt);
       if ((include_sections) && (section_cnt == 1)) {
         config = mtev_conf_get_hash(*include_sections, "config");
       }
       else {
         config = mtev_conf_get_hash(sections[i], "config");
       }
-      mtev_conf_release_sections(include_sections, section_cnt);
+      mtev_conf_release_sections_read(include_sections, section_cnt);
       rv = gen->config(gen, config);
       if(rv == 0) {
         mtev_hash_destroy(config, free, free);
@@ -326,9 +326,9 @@ void mtev_dso_init(void) {
     else
       mtevL(mtev_debug, "Generic module %s successfully loaded.\n", g_name);
   }
-  mtev_conf_release_sections(sections, cnt);
+  mtev_conf_release_sections_read(sections, cnt);
   /* Load our module loaders */
-  sections = mtev_conf_get_sections(MTEV_CONF_ROOT, "//modules//loader", &cnt);
+  sections = mtev_conf_get_sections_read(MTEV_CONF_ROOT, "//modules//loader", &cnt);
   for(i=0; i<cnt; i++) {
     char loader_name[256];
     mtev_dso_loader_t *loader;
@@ -357,14 +357,14 @@ void mtev_dso_init(void) {
     if(loader->config) {
       int rv;
       mtev_hash_table *config;
-      include_sections = mtev_conf_get_sections(sections[i], "include", &section_cnt);
+      include_sections = mtev_conf_get_sections_read(sections[i], "include", &section_cnt);
       if ((include_sections) && (section_cnt == 1)) {
         config = mtev_conf_get_hash(*include_sections, "config");
       }
       else {
         config = mtev_conf_get_hash(sections[i], "config");
       }
-      mtev_conf_release_sections(include_sections, section_cnt);
+      mtev_conf_release_sections_read(include_sections, section_cnt);
       rv = loader->config(loader, config);
       if(rv == 0) {
         mtev_hash_destroy(config, free, free);
@@ -379,7 +379,7 @@ void mtev_dso_init(void) {
     if(loader->init && loader->init(loader))
       mtevL(mtev_stderr, "Failed to init loader %s\n", loader_name);
   }
-  mtev_conf_release_sections(sections, cnt);
+  mtev_conf_release_sections_read(sections, cnt);
 }
 
 void mtev_dso_post_init(void) {
