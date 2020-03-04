@@ -5473,7 +5473,13 @@ nl_shared_waitfor(lua_State *L) {
   ci = mtev_lua_find_resume_info(L, mtev_true); /* we cannot suspend without context */
 
   struct shared_queues_wait *crutch = calloc(1, sizeof(*crutch));
-  double ntimeout = timeout < 0 ? 10900 : timeout;
+  double ntimeout = timeout < 0 ? 10000 : timeout;
+  /* If the timeout is < 0, then there is an infinite wait...
+   * However we use the scheduled timeout to trigger a wakeup by externally
+   * adjusting the timeout to "now" when something shows up to notify upon.
+   * So, we need a timeout and thus choose an arbitrarily long timeout of
+   * 10000 seconds.
+   */
   struct timeval diff =
     { .tv_sec = floor(ntimeout), .tv_usec = fmod(ntimeout, 1) * 1000000 };
   mtev_gettimeofday(&crutch->deadline, NULL);
