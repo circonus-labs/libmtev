@@ -82,6 +82,8 @@ extern mtev_log_stream_t mtev_lua_debug_ls;
 #define nldeb mtev_lua_debug_ls
 #define nlerr mtev_lua_error_ls
 
+static mtev_hash_table shared_queues = MTEV_HASH_EMPTY;
+static pthread_mutex_t shared_queues_mutex;
 static mtev_hash_table shared_table = MTEV_HASH_EMPTY;
 static pthread_mutex_t shared_table_mutex;
 static mtev_hash_table *shared_seq_table;
@@ -5143,6 +5145,7 @@ mtev_lua_free_table(void *vtable) {
 static void
 mtev_lua_free_data(void *vdata) {
   lua_data_t* data = vdata;
+  if(data == NULL) return;
   switch(data->lua_type){
     case(LUA_TSTRING):
       free(data->value.string);
@@ -5241,7 +5244,7 @@ mtev_lua_serialize(lua_State *L, int index){
     default:
       free(data);
       data = NULL;
-      mtevL(nlerr, "Cannot serialize unsupported lua type %d\n", type);
+      mtevL(nldeb, "Cannot serialize unsupported lua type %d\n", type);
   }
 
   return data;
@@ -5271,6 +5274,10 @@ mtev_lua_deserialize_table(lua_State *L, mtev_lua_table_t *table){
 
 void
 mtev_lua_deserialize(lua_State *L, const lua_data_t *data){
+  if(!data) {
+    lua_pushnil(L);
+    return;
+  }
   switch(data->lua_type){
     case(LUA_TNUMBER):
       lua_pushnumber(L, data->value.number);
@@ -5286,10 +5293,208 @@ mtev_lua_deserialize(lua_State *L, const lua_data_t *data){
       break;
     case(LUA_TNIL): // we already returned NULL
     default:
-      mtevL(nlerr, "Cannot deserialize unsupported lua type %d\n", data->lua_type);
+      lua_pushnil(L);
+      mtevL(nlerr, "Cannot deserialize unsupported lua type %d (offering nil)\n", data->lua_type);
   }
 }
-/*! \lua mtev.shared_set()
+/*! \lua mtev.shared_notify(key,value)
+    \brief Enqueue (via serialization) a value in some globally named queue.
+    \param key must be string naming the queue
+    \param value is a lua value simple enough to serialize (no functions, udata, etc.)
+    \return none
+
+    This function allows communication across lua states.
+*/
+struct shared_queue_node {
+  void *data;
+  struct shared_queue_node *next;
+};
+struct shared_queue {
+  struct shared_queue_node *head;
+  struct shared_queue_node *tail;
+};
+static int
+nl_shared_waitfor_notify(lua_State *L) {
+  void* vsq;
+  struct shared_queue *sq = NULL;
+  struct shared_queue_node *node = NULL;
+  lua_data_t *data;
+  size_t key_len;
+  const char *key;
+  if(lua_gettop(L) != 2 || !lua_isstring(L,1))
+    return luaL_error(L, "bad parameters to mtev.shared_notify(str, value)");
+  key = lua_tolstring(L, 1, &key_len);
+
+  data = mtev_lua_serialize(L, 2);
+  node = calloc(1, sizeof(*node));
+  node->data = data;
+
+  pthread_mutex_lock(&shared_queues_mutex);
+  if(!mtev_hash_retrieve(&shared_queues, key, key_len, &vsq)) {
+    sq = calloc(1, sizeof(*sq));
+    mtev_hash_store(&shared_queues, strdup(key), key_len, sq);
+  }
+  else {
+    sq = vsq;
+  }
+  if(lua_isnil(L,2)) {
+    node->data = NULL;
+    mtev_lua_free_data(data);
+  }
+  if(sq->tail) {
+    sq->tail->next = node;
+  }
+  else {
+    sq->head = node;
+  }
+  sq->tail = node;
+  pthread_mutex_unlock(&shared_queues_mutex);
+
+  return 0;
+}
+/*! \lua mtev.shared_waitfor(key, timeout)
+    \brief Retrieve (via deserialization) a value in some globally named queue.
+    \param key must be string naming the queue
+    \param timeout number of sections to wait before returning nil
+    \return a lua value or nil
+
+    This function allows communication across lua states.
+*/
+struct shared_queues_wait {
+  eventer_t e;
+  mtev_lua_resume_info_t *ci;
+  lua_State *L;
+  char *key;
+  bool forever;
+  struct timeval deadline;
+};
+static void shared_queues_wait_free(struct shared_queues_wait *sqw) {
+  free(sqw->key);
+  free(sqw);
+}
+
+static struct shared_queue_node *
+nl_shared_queues_dequeue(const char *key, size_t key_len) {
+  void *vsq;
+  struct shared_queue *sq = NULL;
+  struct shared_queue_node *node = NULL;
+  pthread_mutex_lock(&shared_queues_mutex);
+  if(!mtev_hash_retrieve(&shared_queues, key, key_len, &vsq)) {
+    sq = calloc(1, sizeof(*sq));
+    mtev_hash_store(&shared_queues, strdup(key), key_len, sq);
+  }
+  else {
+    sq = vsq;
+  }
+
+  if(sq->head) {
+    node = sq->head;
+    sq->head = sq->head->next;
+    if(sq->head == NULL) sq->tail = NULL;
+  }
+  pthread_mutex_unlock(&shared_queues_mutex);
+
+  return node;
+}
+
+static int
+nl_shared_waitfor_wakeup(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)mask;
+  struct shared_queues_wait *crutch = (struct shared_queues_wait *)closure;
+  struct shared_queue_node *node = nl_shared_queues_dequeue(crutch->key, strlen(crutch->key));
+
+  if(!crutch->ci) {
+    mtev_lua_eventer_cl_cleanup(e);
+  }
+  else {
+    mtev_lua_deregister_event(crutch->ci, e, 0);
+    if(node) {
+      if(node->data) {
+        mtev_lua_deserialize(crutch->L, node->data);
+        mtev_lua_free_data((lua_data_t *)node->data);
+      }
+      else {
+        lua_pushnil(crutch->L);
+      }
+      mtev_lua_lmc_resume(crutch->ci->lmc, crutch->ci, 1);
+    }
+    else {
+      if(crutch->forever) {
+        crutch->deadline = *now;
+        crutch->deadline.tv_sec += 10000;
+      }
+      if(compare_timeval(*now, crutch->deadline) < 0) {
+        crutch->e = eventer_alloc_timer(nl_shared_waitfor_wakeup, crutch, &crutch->deadline);
+        mtev_lua_register_event(crutch->ci, crutch->e);
+        eventer_add(crutch->e);
+      }
+      else {
+        lua_pushnil(crutch->L);
+        mtev_lua_lmc_resume(crutch->ci->lmc, crutch->ci, 1);
+      }
+    }
+    free(node);
+  }
+  shared_queues_wait_free(crutch);
+  return 0;
+}
+
+static int
+nl_shared_waitfor(lua_State *L) {
+  struct shared_queue_node *node = NULL;
+  size_t key_len;
+  const char *key;
+  double timeout = -1;
+  if(lua_gettop(L) > 2 || !lua_isstring(L,1) || (lua_gettop(L) == 2 && !lua_isnumber(L,2)))
+    return luaL_error(L, "bad parameters to mtev.shared_waitfor(str [, timeout])");
+  key = lua_tolstring(L, 1, &key_len);
+  if(lua_gettop(L) == 2) {
+    timeout = lua_tonumber(L, 2);
+  }
+
+  node = nl_shared_queues_dequeue(key, key_len);
+
+  if(node) {
+    if(node->data) {
+      mtev_lua_deserialize(L, (lua_data_t *)node->data);
+      mtev_lua_free_data((lua_data_t *)node->data);
+    }
+    else {
+      lua_pushnil(L);
+    }
+    free(node);
+    return 1;
+  }
+
+  /* There is no item yes, so we need to wait for one assuming timeout is non-zero */
+  if(timeout == 0) return 0;
+
+  mtev_lua_resume_info_t *ci;
+  ci = mtev_lua_find_resume_info(L, mtev_true); /* we cannot suspect without context */
+
+  struct shared_queues_wait *crutch = calloc(1, sizeof(*crutch));
+  double ntimeout = timeout < 0 ? 10900 : timeout;
+  struct timeval diff =
+    { .tv_sec = floor(ntimeout), .tv_usec = fmod(ntimeout, 1) * 1000000 };
+  mtev_gettimeofday(&crutch->deadline, NULL);
+  add_timeval(crutch->deadline, diff, &crutch->deadline);
+  crutch->ci = ci;
+  crutch->L = L;
+  crutch->forever = (timeout < 0);
+  crutch->key = mtev_strndup(key, key_len);
+  crutch->e = eventer_alloc_timer(nl_shared_waitfor_wakeup, crutch, &crutch->deadline);
+  mtev_lua_register_event(ci, crutch->e);
+  eventer_add(crutch->e);
+  return mtev_lua_yield(ci, 0);
+}
+/*! \lua mtev.shared_set(key,value)
+    \brief Store (via serialization) a value at some globally named key.
+    \param key must be string
+    \param value is a lua value simple enough to serialize (no functions, udata, etc.)
+    \return none
+
+    This function allows communication across lua states via mutex-protected storage
+    of values.
 */
 static int
 nl_shared_set(lua_State *L) {
@@ -5319,7 +5524,13 @@ nl_shared_set(lua_State *L) {
 
   return 0;
 }
-/*! \lua mtev.shared_get()
+/*! \lua mtev.shared_get(key)
+    \brief Retrieve (via deserialization) a value at some globally named key.
+    \param key must be string
+    \return a lua value or nil
+
+    This function allows communication across lua states via mutex-protected storage
+    of values.
 */
 static int
 nl_shared_get(lua_State *L) {
@@ -5590,6 +5801,7 @@ static void mtev_lua_init(void) {
   eventer_name_callback("lua/socket_accept",
                         mtev_lua_socket_accept_complete);
   eventer_name_callback("lua/ssl_upgrade", mtev_lua_ssl_upgrade);
+  eventer_name_callback("lua/shared_waitfor_wakeup", nl_shared_waitfor_wakeup);
   eventer_name_callback("lua/waitfor_timeout", nl_waitfor_timeout);
   eventer_name_callback("lua/waitfor_ping", nl_waitfor_ping);
   eventer_name_callback("lua/process_wait", mtev_lua_process_wait_wakeup);
@@ -5609,6 +5821,12 @@ static void mtev_lua_init(void) {
     mtevL(nlerr, "Unable to initialize shared_table_mutex\n");
   }
 
+  /* init shared_waitfor/notify */
+  mtev_hash_init_locks(&shared_queues, 8, MTEV_HASH_LOCK_MODE_NONE);
+  if(pthread_mutex_init(&shared_queues_mutex, NULL) != 0) {
+    mtevL(nlerr, "Unable to initialize shared_queues_mutex\n");
+  }
+
   /* init semaphore */
   semaphore_table = calloc(1, sizeof(*semaphore_table));
   mtev_hash_init_locks(semaphore_table, 0, MTEV_HASH_LOCK_MODE_MUTEX);
@@ -5619,6 +5837,8 @@ static const luaL_Reg mtevlib[] = {
   { "cluster", nl_mtev_cluster },
   { "waitfor", nl_waitfor },
   { "notify", nl_waitfor_notify },
+  { "shared_waitfor", nl_shared_waitfor },
+  { "shared_notify", nl_shared_waitfor_notify },
   { "sleep", nl_sleep },
   { "gettimeofday", nl_gettimeofday },
   { "uuid", nl_uuid },
