@@ -5470,7 +5470,7 @@ nl_shared_waitfor(lua_State *L) {
   if(timeout == 0) return 0;
 
   mtev_lua_resume_info_t *ci;
-  ci = mtev_lua_find_resume_info(L, mtev_true); /* we cannot suspect without context */
+  ci = mtev_lua_find_resume_info(L, mtev_true); /* we cannot suspend without context */
 
   struct shared_queues_wait *crutch = calloc(1, sizeof(*crutch));
   double ntimeout = timeout < 0 ? 10900 : timeout;
