@@ -5466,7 +5466,7 @@ nl_shared_waitfor(lua_State *L) {
     return 1;
   }
 
-  /* There is no item yes, so we need to wait for one assuming timeout is non-zero */
+  /* There is no item yet, so we need to wait for one assuming timeout is non-zero */
   if(timeout == 0) return 0;
 
   mtev_lua_resume_info_t *ci;
