@@ -32,6 +32,7 @@
 #include <mtev_thread.h>
 #include <mtev_time.h>
 #include <mtev_log.h>
+#include "aco/aco.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -95,6 +96,8 @@ static mtev_boolean mtev_disable_binding = mtev_false;
 uint32_t
 mtev_thread_id(void) {
   if(!mtev_current_thread_id) mtev_current_thread_id = getthreadid();
+  aco_t *co = aco_co_thread();
+  if(co) return (uint32_t)(uintptr_t)co;
   return mtev_current_thread_id;
 }
 

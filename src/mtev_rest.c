@@ -1418,7 +1418,7 @@ void mtev_http_rest_load_rules(void) {
   mtev_hash_init(&names);
 
   snprintf(path, sizeof(path), "//rest//acl");
-  acls = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
+  acls = mtev_conf_get_sections_read(MTEV_CONF_ROOT, path, &cnt);
   mtevL(r_debug, "Found %d acl stanzas\n", cnt);
   for(ai = cnt-1; ai>=0; ai--) {
     char tbuff[32];
@@ -1452,7 +1452,7 @@ void mtev_http_rest_load_rules(void) {
     compile_re(acls[ai], newacl, url);
     compile_cidr(acls[ai], &newacl->ipacl);
     compile_listener_res(acls[ai], &newacl->listener_res);
-    rules = mtev_conf_get_sections(acls[ai], "rule", &rcnt);
+    rules = mtev_conf_get_sections_read(acls[ai], "rule", &rcnt);
     for(ri = rcnt - 1; ri >= 0; ri--) {
       struct mtev_rest_acl_rule *newacl_rule;
       newacl_rule = calloc(1, sizeof(*newacl_rule));
@@ -1476,7 +1476,7 @@ void mtev_http_rest_load_rules(void) {
       compile_cidr(rules[ri], &newacl_rule->ipacl);
       compile_listener_res(rules[ri], &newacl_rule->listener_res);
     }
-    mtev_conf_release_sections(rules, rcnt);
+    mtev_conf_release_sections_read(rules, rcnt);
     for(struct mtev_rest_acl_rule *node = newacl->rules; node; node = node->next) {
       if(node->skiptoname) {
         void *v;
@@ -1489,7 +1489,7 @@ void mtev_http_rest_load_rules(void) {
       }
     }
   }
-  mtev_conf_release_sections(acls, cnt);
+  mtev_conf_release_sections_read(acls, cnt);
 
   mtev_hash_destroy(&names, NULL, NULL);
 

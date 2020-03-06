@@ -42,10 +42,13 @@
 
 #include <pcre.h>
 
-typedef struct mtev_conf_section {
+#ifndef mtev_conf_section_t
+#define mtev_conf_section_t mtev_conf_section_opaque_t
+#endif
+typedef struct mtev_conf_section_opaque {
   void *opaque1;
   void *opaque2;
-} mtev_conf_section_t;
+} mtev_conf_section_opaque_t;
 
 API_EXPORT(mtev_conf_section_t) MTEV_CONF_ROOT;
 API_EXPORT(mtev_conf_section_t) MTEV_CONF_EMPTY;
@@ -190,6 +193,16 @@ API_EXPORT(mtev_conf_section_t *)
                          int *cnt);
 API_EXPORT(void)
   mtev_conf_release_sections(mtev_conf_section_t *sections, int cnt);
+
+API_EXPORT(mtev_conf_section_t)
+  mtev_conf_get_section_read(mtev_conf_section_t section, const char *path);
+API_EXPORT(void)
+  mtev_conf_release_section_read(mtev_conf_section_t section);
+API_EXPORT(mtev_conf_section_t *)
+  mtev_conf_get_sections_read(mtev_conf_section_t section, const char *path,
+                         int *cnt);
+API_EXPORT(void)
+  mtev_conf_release_sections_read(mtev_conf_section_t *sections, int cnt);
 
 struct _xmlNode;
 API_EXPORT(mtev_conf_section_t)

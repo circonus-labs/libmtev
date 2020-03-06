@@ -524,11 +524,11 @@ populate_dict_from_conf(mtev_conf_section_t s, const char *name) {
 static void
 mtev_consul_configure(void) {
   int cnt;
-  mtev_conf_section_t *cservices = mtev_conf_get_sections(MTEV_CONF_ROOT, "//consul//service", &cnt);
+  mtev_conf_section_t *cservices = mtev_conf_get_sections_read(MTEV_CONF_ROOT, "//consul//service", &cnt);
   mtevL(mtev_debug, "Found %d consul service sections\n", cnt);
   for(int i=0; i<cnt; i++) {
     int scnt;
-    mtev_conf_section_t *services = mtev_conf_get_sections(cservices[i], "*[@port]", &scnt);
+    mtev_conf_section_t *services = mtev_conf_get_sections_read(cservices[i], "*[@port]", &scnt);
     mtevL(mtev_debug, "Found %d consul service configs in section %d\n", scnt, i+1);
     for(int si=0; si<scnt; si++) {
       mtev_conf_section_t *service = &services[si];
@@ -578,7 +578,7 @@ mtev_consul_configure(void) {
       }
 
       /* check */
-      mtev_conf_section_t check = mtev_conf_get_section(*service, "check");
+      mtev_conf_section_t check = mtev_conf_get_section_read(*service, "check");
 #define CHECK_DECL(name, len, def) \
   char name[len] = def; \
   bool has_ ## name = false; \
@@ -610,7 +610,7 @@ mtev_consul_configure(void) {
         }
         snprintf(PUSH, sizeof(PUSH), "%zus", period * 3);
       }
-      mtev_conf_release_section(check);
+      mtev_conf_release_section_read(check);
 
       char HTTP_tmpl[128];
       if(has_HTTPS) strlcpy(HTTP_tmpl, HTTPS, sizeof(HTTP_tmpl));
@@ -690,9 +690,9 @@ mtev_consul_configure(void) {
       mtevL(mtev_notice, "consul: registering [%s] service %s on port %s:%d\n",
             id_str, service_name, address, port);
     }
-    mtev_conf_release_sections(services, scnt);
+    mtev_conf_release_sections_read(services, scnt);
   }
-  mtev_conf_release_sections(cservices, cnt);
+  mtev_conf_release_sections_read(cservices, cnt);
 }
 
 typedef struct {

@@ -3675,7 +3675,7 @@ nl_conf_get_string_list(lua_State *L) {
   const char *base_path = lua_tostring(L,1);
   const char *child_path = lua_tostring(L,2);
 
-  mtev_conf_section_t* mqs = mtev_conf_get_sections(MTEV_CONF_ROOT, base_path, &cnt);
+  mtev_conf_section_t* mqs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, base_path, &cnt);
 
   if(mqs == NULL) {
     lua_pushnil(L);
@@ -3685,7 +3685,7 @@ nl_conf_get_string_list(lua_State *L) {
       if(!mtev_conf_get_string(mqs[i], child_path, &val)) {
         char msg[1024];
         snprintf(msg, sizeof(msg), "Unable to read option entry: %s%s", base_path, child_path);
-        mtev_conf_release_sections(mqs, cnt);
+        mtev_conf_release_sections_read(mqs, cnt);
         return luaL_error(L, msg);
       }
       lua_pushinteger(L, i + 1);
@@ -3693,7 +3693,7 @@ nl_conf_get_string_list(lua_State *L) {
       lua_settable(L, -3);
       free(val);
     }
-    mtev_conf_release_sections(mqs, cnt);
+    mtev_conf_release_sections_read(mqs, cnt);
   }
 
   return 1;
