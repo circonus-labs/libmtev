@@ -97,7 +97,7 @@ static mtev_log_stream_t c_debug;
  * recursive reader locks so we use ck_rwlock_recursive_t locks here but
  * they don't support recursive readers (despite having a call for that).
  *
- * The "work" but if you have a read lock and attempt to recursively acquire
+ * They "work" but if you have a read lock and attempt to recursively acquire
  * the same readlock with a pending writer you get a deadlock.
  *
  * In order to make the readlocks recursive we need a ACO-aware thread-local
@@ -108,7 +108,7 @@ static mtev_log_stream_t c_debug;
  *
  * There still exist possible deadlock if the callers are not careful.
  *
- * If you old a read lock in an ACO thread and do something that yields
+ * If you hold a read lock in an ACO thread and do something that yields
  * and then the same pthread attempts to acquire a write lock outside
  * of the ACO system then it will deadlock.
  *
