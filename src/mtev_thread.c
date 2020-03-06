@@ -96,10 +96,8 @@ static mtev_boolean mtev_disable_binding = mtev_false;
 uint32_t
 mtev_thread_id(void) {
   if(!mtev_current_thread_id) mtev_current_thread_id = getthreadid();
-  aco_t *co = aco_co();
-  if(co && !aco_is_main_co(co)) {
-    return (uint32_t)(uintptr_t)co;
-  }
+  aco_t *co = aco_co_thread();
+  if(co) return (uint32_t)(uintptr_t)co;
   return mtev_current_thread_id;
 }
 
