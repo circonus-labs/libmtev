@@ -1689,7 +1689,7 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
   char path[256];
 
   snprintf(path, sizeof(path), "/%s/%ss//%s", toplevel ? toplevel : "*", type, type);
-  mtev_configs = mtev_conf_get_sections(MTEV_CONF_ROOT, path, &cnt);
+  mtev_configs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, path, &cnt);
   mtevL(nldeb, "mtev_connections_from_config - Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     char address[256];
@@ -1741,7 +1741,7 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
     mtev_hash_destroy(config,free,free);
     free(config);
   }
-  mtev_conf_release_sections(mtev_configs, cnt);
+  mtev_conf_release_sections_read(mtev_configs, cnt);
   return found;
 }
 
