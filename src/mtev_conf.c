@@ -1979,6 +1979,25 @@ mtev_conf_get_section_ex(mtev_conf_section_t section, const char *path, bool rea
   return subsection;
 }
 
+/* Deprecated read-write unaware calls */
+mtev_conf_section_t
+mtev_conf_get_section(mtev_conf_section_t section, const char *path) {
+  return mtev_conf_get_section_write(section, path);
+}
+mtev_conf_section_t *
+mtev_conf_get_sections(mtev_conf_section_t section,
+                       const char *path, int *cnt) {
+  return mtev_conf_get_sections_write(section, path, cnt);
+}
+void
+mtev_conf_release_section(mtev_conf_section_t s) {
+  mtev_conf_release_section_write(s);
+}
+void
+mtev_conf_release_sections(mtev_conf_section_t *sections, int cnt) {
+  mtev_conf_release_sections_write(sections, cnt);
+}
+
 mtev_conf_section_t
 mtev_conf_get_section_write(mtev_conf_section_t section, const char *path) {
   return mtev_conf_get_section_ex(section, path, false);
