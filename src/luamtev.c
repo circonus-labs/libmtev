@@ -241,14 +241,14 @@ child_main(void) {
   }
 
   /* update the lua module */
-  section = mtev_conf_get_section_read(MTEV_CONF_ROOT, "/cli/modules/generic[@name=\"lua_general\"]/config");
+  section = mtev_conf_get_section_write(MTEV_CONF_ROOT, "/cli/modules/generic[@name=\"lua_general\"]/config");
   if(mtev_conf_section_is_empty(section) ||
      !mtev_conf_set_string(section, "lua_module", lua_file)) {
     mtevL(mtev_stderr, "Cannot set target lua module, invalid config.\n");
-    mtev_conf_release_section_read(section);
+    mtev_conf_release_section_write(section);
     exit(2);
   }
-  mtev_conf_release_section_read(section);
+  mtev_conf_release_section_write(section);
 
   eventer_init();
   mtev_dso_init();
