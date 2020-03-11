@@ -507,16 +507,16 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
   char port[6], period[8], timeout[8], maturity[8];
   xmlNodePtr container = NULL, parent = NULL;
   mtev_conf_section_t n;
-  n = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
+  n = mtev_conf_get_section_read(MTEV_CONF_ROOT, "//clusters");
   if(mtev_conf_section_is_empty(n)) {
     mtevL(cerror, "Cluster config attempted with no 'clusters' section.\n");
-    mtev_conf_release_section(n);
+    mtev_conf_release_section_read(n);
     return 0;
   }
-  mtev_conf_release_section(n);
+  mtev_conf_release_section_read(n);
   snprintf(xpath_search, sizeof(xpath_search), "//clusters//cluster[@name=\"%s\"]",
            cluster->name);
-  n = mtev_conf_get_section(MTEV_CONF_ROOT, xpath_search);
+  n = mtev_conf_get_section_write(MTEV_CONF_ROOT, xpath_search);
   parent = mtev_conf_section_to_xmlnodeptr(n);
   if(parent) {
     // clear existing configuration
@@ -535,7 +535,7 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
   }
   else {
     // create new node
-    n = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
+    n = mtev_conf_get_section_write(MTEV_CONF_ROOT, "//clusters");
     container = mtev_conf_section_to_xmlnodeptr(n);
     parent = xmlNewNode(NULL, (xmlChar *)"cluster");
   }
@@ -579,7 +579,7 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
   CONF_DIRTY(n);
   mtev_conf_mark_changed();
   mtev_conf_request_write();
-  mtev_conf_release_section(n);
+  mtev_conf_release_section_write(n);
 
   return 1;
 }
@@ -813,10 +813,10 @@ mtev_cluster_set_self(uuid_t id) {
   char old_uuid[UUID_STR_LEN+1],
        my_id_str[UUID_STR_LEN+1];
   mtev_conf_section_t c;
-  c = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
+  c = mtev_conf_get_section_write(MTEV_CONF_ROOT, "//clusters");
   if(!have_clusters || mtev_conf_section_is_empty(c)) {
     mtevL(cerror, "Trying to set //clusters/@my_id but no clusters section is found.\n");
-    mtev_conf_release_section(c);
+    mtev_conf_release_section_write(c);
     return -1;
   }
   mtev_uuid_copy(my_cluster_id, id);
@@ -832,7 +832,7 @@ mtev_cluster_set_self(uuid_t id) {
     mtev_conf_mark_changed();
     mtev_conf_request_write();
   }
-  mtev_conf_release_section(c);
+  mtev_conf_release_section_write(c);
   return 0;
 }
 
@@ -1268,9 +1268,9 @@ mtev_cluster_init(void) {
   mtev_hash_init_locks(&global_clusters, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 
   /* rw conf get b/c set_self is writing */
-  parent = mtev_conf_get_section(MTEV_CONF_ROOT, "//clusters");
+  parent = mtev_conf_get_section_write(MTEV_CONF_ROOT, "//clusters");
   if(mtev_conf_section_is_empty(parent)) {
-    mtev_conf_release_section(parent);
+    mtev_conf_release_section_write(parent);
     return;
   }
   have_clusters = mtev_true;
@@ -1280,7 +1280,7 @@ mtev_cluster_init(void) {
     int rv = mtev_uuid_parse(my_id_str, my_id);
     if (rv != 0) {
       mtevL(cerror, "Invalid cluster configuration: my_id=%s\n", my_id_str);
-      mtev_conf_release_section(parent);
+      mtev_conf_release_section_write(parent);
       return;
     }
     else {
@@ -1295,12 +1295,12 @@ mtev_cluster_init(void) {
   }
 
   // register individual clusters
-  clusters = mtev_conf_get_sections(MTEV_CONF_ROOT, "//clusters//cluster", &n_clusters);
+  clusters = mtev_conf_get_sections_write(MTEV_CONF_ROOT, "//clusters//cluster", &n_clusters);
   for(i=0;i<n_clusters;i++) {
     mtev_cluster_update_internal(clusters[i]);
   }
-  mtev_conf_release_sections(clusters, n_clusters);
-  mtev_conf_release_section(parent);
+  mtev_conf_release_sections_write(clusters, n_clusters);
+  mtev_conf_release_section_write(parent);
 
   // register REST endpoints
   mtevAssert(mtev_http_rest_register_auth(

@@ -101,10 +101,10 @@ static mtev_log_stream_t c_debug;
  * the same readlock with a pending writer you get a deadlock.
  *
  * In order to make the readlocks recursive we need a ACO-aware thread-local
- * recursion counter for this lock and the whole global_recursion_{inc,dec}
- * and _g(un)lock_read routines manage this.
+ * recursion counter for this lock and the whole global_read_recursion_{inc,dec}
+ * and mtev_conf_{acquire,release}_section_{read,write} routines manage this.
  *
- * _glock is simpler b/c recursive write locks work fine.
+ * wrlte locks are simpler b/c recursive (ck) write locks work fine.
  *
  * There still exist possible deadlock if the callers are not careful.
  *
@@ -120,49 +120,35 @@ static mtev_log_stream_t c_debug;
  * an allocation.
  */
 
-static __thread intptr_t global_recursion;
+static __thread intptr_t global_read_recursion_counter;
 static uint32_t mtev_conf_aco_recursion_counter_idx = ~(uint32_t)0;
-static inline bool global_recusion_inc(void) {
-  mtevAssert(mtev_conf_aco_recursion_counter_idx != ~(uint32_t)0);
-  intptr_t *rctr = &global_recursion;
+static inline intptr_t *global_read_recursion_counter_ptr(void) {
   aco_t *co = aco_co_thread();
-  if(co) {
-    void *vptr = aco_tls(co, mtev_conf_aco_recursion_counter_idx);
-    rctr = (intptr_t *)&vptr;
-  }
-  /* thread-local so no atomics required */
-  (*rctr)++;
-  return (*rctr) == 1;
+  /* aco_tls is a MACRO, so we can take the address here */
+  if(co) return (intptr_t *)&aco_tls(co, mtev_conf_aco_recursion_counter_idx);
+  return &global_read_recursion_counter;
 }
-static inline bool global_recursion_dec(void) {
-  mtevAssert(mtev_conf_aco_recursion_counter_idx != ~(uint32_t)0);
-  intptr_t *rctr = &global_recursion;
-  aco_t *co = aco_co_thread();
-  if(co) {
-    void *vptr = aco_tls(co, mtev_conf_aco_recursion_counter_idx);
-    rctr = (intptr_t *)&vptr;
-  }
-  /* thread-local so no atomics required */
-  (*rctr)--;
-  return (*rctr) == 0;
+static inline intptr_t global_read_recursion(void) {
+  return *(global_read_recursion_counter_ptr());
+}
+static inline bool global_read_recursion_inc(void) {
+  return (*global_read_recursion_counter_ptr())++ == 0;
+}
+static inline bool global_read_recursion_dec(void) {
+  return --(*global_read_recursion_counter_ptr()) == 0;
 }
 static ck_rwlock_recursive_t global_config_lock = CK_RWLOCK_RECURSIVE_INITIALIZER;
-#ifdef DEBUG_LOCKING
-static int global_lock_cnt = 0;
-static int global_thread_id = -1;
-#endif
 
-static inline void _glock_read(mtev_conf_section_t s) {
+void mtev_conf_acquire_section_read(mtev_conf_section_t s) {
+  if(!s.writelock) return;
   if(ck_pr_load_uint(&s.writelock->rw.writer) == mtev_thread_id()) {
     mtevL(c_debug, "t@%d> mtev_conf_read_lock() [already writer]\n", mtev_thread_id());
     ck_rwlock_recursive_write_lock(s.writelock, mtev_thread_id());
   } else {
-    if(global_recusion_inc()) {
+    if(global_read_recursion_inc()) {
       mtevL(c_debug, "t@%d> mtev_conf_read_lock()\n", mtev_thread_id());
       while(!ck_rwlock_recursive_read_trylock(s.writelock)) {
-        if(aco_co_thread()) {
-          eventer_aco_sleep(&(struct timeval){ .tv_sec = 0, .tv_usec = 0 });
-        }
+        if(aco_co_thread()) eventer_aco_sleep(&(struct timeval){ .tv_sec = 0, .tv_usec = 0 });
         else ck_pr_stall();
       }
     } else {
@@ -170,12 +156,13 @@ static inline void _glock_read(mtev_conf_section_t s) {
     }
   }
 }
-static inline void _gunlock_read(mtev_conf_section_t s) {
+void mtev_conf_release_section_read(mtev_conf_section_t s) {
+  if(!s.writelock) return;
   if(ck_pr_load_uint(&s.writelock->rw.writer) == mtev_thread_id()) {
     mtevL(c_debug, "t@%d> mtev_conf_read_unlock() [already writer]\n", mtev_thread_id());
     ck_rwlock_recursive_write_unlock(s.writelock);
   } else {
-    if(global_recursion_dec()) {
+    if(global_read_recursion_dec()) {
       mtevL(c_debug, "t@%d> mtev_conf_read_unlock()\n", mtev_thread_id());
       ck_rwlock_recursive_read_unlock(s.writelock);
     } else {
@@ -183,47 +170,20 @@ static inline void _gunlock_read(mtev_conf_section_t s) {
     }
   }
 }
-static inline void _glock(mtev_conf_section_t s) {
-#ifdef DEBUG_LOCKING
-  mtevAssert(s.writelock == &global_config_lock);
-#endif
+void mtev_conf_acquire_section_write(mtev_conf_section_t s) {
+  if(!s.writelock) return;
   int tid = mtev_thread_id();
   mtevL(c_debug, "t@%d> mtev_conf_lock()\n", tid);
+  if(global_read_recursion() != 0) {
+    mtevFatal(mtev_error, "Fatal mtev_conf lock inversion. Attempt to upgrade a read lock.\n");
+  }
   while(!ck_rwlock_recursive_write_trylock(s.writelock, tid)) {
-    if(aco_co_thread()) {
-      eventer_aco_sleep(&(struct timeval){ .tv_sec = 0, .tv_usec = 0 });
-    }
+    if(aco_co_thread()) eventer_aco_sleep(&(struct timeval){ .tv_sec = 0, .tv_usec = 0 });
     else ck_pr_stall();
   }
-#ifdef DEBUG_LOCKING
-  if(global_thread_id == -1) {
-    mtevAssert(global_lock_cnt == 0);
-    global_lock_cnt++;
-    global_thread_id = mtev_thread_id();
-    mtevL(c_debug, "t@%d> mtev_conf_lock() ++> 1. Acquired by t@%d.\n", global_thread_id, global_thread_id);
-  } else {
-    mtevAssert(global_lock_cnt > 0);
-    global_lock_cnt++;
-    mtevL(c_debug, "t@%d> mtev_conf_lock() ++> %d\n", global_thread_id, global_lock_cnt);
-  }
-  mtev_stacktrace(mtev_debug);
-#endif
 }
-static inline void _gunlock(mtev_conf_section_t s) {
-#ifdef DEBUG_LOCKING
-  mtevAssert(s.writelock == &global_config_lock);
-  mtevAssert(global_lock_cnt > 0);
-  mtevAssert(global_thread_id == (int) mtev_thread_id());
-  global_lock_cnt--;
-  if(global_lock_cnt == 0) {
-    mtevL(c_debug, "t@%d> mtev_conf_lock() --> 0. Released by %d.\n", global_thread_id, global_thread_id);
-    global_thread_id = -1;
-  }
-  else {
-    mtevL(c_debug, "t@%d> mtev_conf_lock() --> %d\n", global_thread_id, global_lock_cnt);
-  }
-  mtev_stacktrace(mtev_debug);
-#endif
+void mtev_conf_release_section_write(mtev_conf_section_t s) {
+  if(!s.writelock) return;
   mtevAssert(ck_pr_load_uint(&s.writelock->rw.writer) == mtev_thread_id());
   mtevL(c_debug, "t@%d> mtev_conf_unlock()\n", mtev_thread_id());
   ck_rwlock_recursive_write_unlock(s.writelock);
@@ -238,24 +198,12 @@ mtev_conf_section_t MTEV_CONF_EMPTY = {
 static mtev_hash_table global_param_sets;
 
 static char app_name[256] = "unknown";
-void
-mtev_set_app_name(const char *new_name) {
-  strlcpy(app_name, new_name, sizeof(app_name));
-}
-const char *
-mtev_get_app_name(void) {
-  return app_name;
-}
+void mtev_set_app_name(const char *new_name) { strlcpy(app_name, new_name, sizeof(app_name)); }
+const char *mtev_get_app_name(void) { return app_name; }
 
 static char app_version[256] = "unknown";
-void
-mtev_set_app_version(const char *version) {
-  strlcpy(app_version, version, sizeof(app_version));
-}
-const char *
-mtev_get_app_version(void) {
-  return app_version;
-}
+void mtev_set_app_version(const char *version) { strlcpy(app_version, version, sizeof(app_version)); }
+const char *mtev_get_app_version(void) { return app_version; }
 
 mtev_boolean
 mtev_conf_section_is_empty(mtev_conf_section_t section) {
@@ -263,26 +211,9 @@ mtev_conf_section_is_empty(mtev_conf_section_t section) {
 }
 
 void
-mtev_conf_acquire_section(mtev_conf_section_t section) {
-  if(section.writelock) _glock(section);
-}
-void
-mtev_conf_release_section(mtev_conf_section_t section) {
-  if(section.writelock) _gunlock(section);
-}
-void
-mtev_conf_acquire_section_read(mtev_conf_section_t section) {
-  if(section.writelock) _glock_read(section);
-}
-void
-mtev_conf_release_section_read(mtev_conf_section_t section) {
-  if(section.writelock) _gunlock_read(section);
-}
-
-void
-mtev_conf_release_sections(mtev_conf_section_t *sections, int cnt) {
+mtev_conf_release_sections_write(mtev_conf_section_t *sections, int cnt) {
   int i = 0;
-  for(i=0; i<cnt; i++) mtev_conf_release_section(sections[i]);
+  for(i=0; i<cnt; i++) mtev_conf_release_section_write(sections[i]);
   free(sections);
 }
 
@@ -1023,20 +954,20 @@ remove_emancipated_child_node(xmlNodePtr oldp, xmlNodePtr node) {
 void
 mtev_conf_include_remove(mtev_conf_section_t vnode) {
   int i;
-  mtev_conf_acquire_section(vnode);
+  mtev_conf_acquire_section_write(vnode);
   xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(vnode);
   for(i=0;i<config_include_cnt;i++) {
     if(node->parent == config_include_nodes[i].insertion_point) {
       remove_emancipated_child_node(config_include_nodes[i].root, node);
     }
   }
-  mtev_conf_release_section(vnode);
+  mtev_conf_release_section_write(vnode);
 }
 
 void
 mtev_conf_backingstore_remove(mtev_conf_section_t vnode) {
   int i;
-  mtev_conf_acquire_section(vnode);
+  mtev_conf_acquire_section_write(vnode);
   xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(vnode);
   mtev_xml_userdata_t *subctx = node->_private;
   for(i=0;i<backingstore_include_cnt;i++) {
@@ -1056,12 +987,12 @@ mtev_conf_backingstore_remove(mtev_conf_section_t vnode) {
   }
   /* If we're deleted, we'll mark the parent as dirty */
   if(node->parent) mtev_conf_backingstore_dirty(mtev_conf_section_from_xmlnodeptr(node->parent));
-  mtev_conf_release_section(vnode);
+  mtev_conf_release_section_write(vnode);
 }
 
 void
 mtev_conf_backingstore_dirty(mtev_conf_section_t vnode) {
-  mtev_conf_acquire_section(vnode);
+  mtev_conf_acquire_section_write(vnode);
   xmlNodePtr node = mtev_conf_section_to_xmlnodeptr(vnode);
   mtev_xml_userdata_t *subctx = node->_private;
   if(subctx) {
@@ -1071,7 +1002,7 @@ mtev_conf_backingstore_dirty(mtev_conf_section_t vnode) {
   else if(node->parent) {
     mtev_conf_backingstore_dirty(mtev_conf_section_from_xmlnodeptr(node->parent));
   }
-  mtev_conf_release_section(vnode);
+  mtev_conf_release_section_write(vnode);
 }
 
 static int
@@ -2018,7 +1949,7 @@ mtev_conf_get_section_ex(mtev_conf_section_t section, const char *path, bool rea
   if(readonly)
     mtev_conf_acquire_section_read(section);
   else
-    mtev_conf_acquire_section(section);
+    mtev_conf_acquire_section_write(section);
 
   xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
 
@@ -2042,14 +1973,33 @@ mtev_conf_get_section_ex(mtev_conf_section_t section, const char *path, bool rea
     mtev_conf_release_section_read(section);
   }
   else {
-    mtev_conf_acquire_section(subsection);
-    mtev_conf_release_section(section);
+    mtev_conf_acquire_section_write(subsection);
+    mtev_conf_release_section_write(section);
   }
   return subsection;
 }
 
+/* Deprecated read-write unaware calls */
 mtev_conf_section_t
 mtev_conf_get_section(mtev_conf_section_t section, const char *path) {
+  return mtev_conf_get_section_write(section, path);
+}
+mtev_conf_section_t *
+mtev_conf_get_sections(mtev_conf_section_t section,
+                       const char *path, int *cnt) {
+  return mtev_conf_get_sections_write(section, path, cnt);
+}
+void
+mtev_conf_release_section(mtev_conf_section_t s) {
+  mtev_conf_release_section_write(s);
+}
+void
+mtev_conf_release_sections(mtev_conf_section_t *sections, int cnt) {
+  mtev_conf_release_sections_write(sections, cnt);
+}
+
+mtev_conf_section_t
+mtev_conf_get_section_write(mtev_conf_section_t section, const char *path) {
   return mtev_conf_get_section_ex(section, path, false);
 }
 
@@ -2069,7 +2019,7 @@ mtev_conf_get_sections_ex(mtev_conf_section_t section,
   if(readonly)
     mtev_conf_acquire_section_read(section);
   else
-    mtev_conf_acquire_section(section);
+    mtev_conf_acquire_section_write(section);
 
   xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
   *cnt = 0;
@@ -2090,7 +2040,7 @@ mtev_conf_get_sections_ex(mtev_conf_section_t section,
     if(readonly)
       mtev_conf_acquire_section_read(sections[i]);
     else
-      mtev_conf_acquire_section(sections[i]);
+      mtev_conf_acquire_section_write(sections[i]);
   }
  out:
   if(pobj) xmlXPathFreeObject(pobj);
@@ -2099,12 +2049,12 @@ mtev_conf_get_sections_ex(mtev_conf_section_t section,
   if(readonly)
     mtev_conf_release_section_read(section);
   else
-    mtev_conf_release_section(section);
+    mtev_conf_release_section_write(section);
   return sections;
 }
 
 mtev_conf_section_t *
-mtev_conf_get_sections(mtev_conf_section_t section,
+mtev_conf_get_sections_write(mtev_conf_section_t section,
                        const char *path, int *cnt) {
   return mtev_conf_get_sections_ex(section, path, cnt, false);
 }
@@ -2122,7 +2072,7 @@ mtev_conf_remove_section(mtev_conf_section_t section) {
   xmlUnlinkNode(node);
   xmlFreeNode(node);
   mtev_conf_mark_changed();
-  mtev_conf_release_section(section);
+  mtev_conf_release_section_write(section);
   return 0;
 }
 
@@ -2254,19 +2204,19 @@ mtev_conf_set_string(mtev_conf_section_t section,
   mtev_conf_section_t *sections = NULL;
   const char *prefix = NULL;
 
-  mtev_conf_acquire_section(section);
+  mtev_conf_acquire_section_write(section);
 
   xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
 
   if(!current_node) {
     rv = mtev_conf_set_string(mtev_conf_section_from_xmlnodeptr((xmlNodePtr)master_config), path, value);
-    mtev_conf_release_section(section);
+    mtev_conf_release_section_write(section);
     return rv;
   }
   if(NULL != (prefix = strrchr(path, '/'))) {
     int cnt;
     char *dup = strndup(path, prefix-path);
-    sections = mtev_conf_get_sections(section, dup, &cnt);
+    sections = mtev_conf_get_sections_write(section, dup, &cnt);
     mtev_conf_section_t copy;
     if(cnt > 1 || cnt == 0) {
       char *spath = mtev_conf_section_is_empty(section) ?
@@ -2276,15 +2226,15 @@ mtev_conf_set_string(mtev_conf_section_t section,
             cnt ? "Ambiguous" : "Path missing", spath, dup);
       free(spath);
       free(dup);
-      mtev_conf_release_sections(sections, cnt);
-      mtev_conf_release_section(section);
+      mtev_conf_release_sections_write(sections, cnt);
+      mtev_conf_release_section_write(section);
       return 0;
     }
     copy = sections[0];
     free(dup);
-    mtev_conf_release_sections(sections, cnt);
+    mtev_conf_release_sections_write(sections, cnt);
     rv = mtev_conf_set_string(copy, prefix+1, value);
-    mtev_conf_release_section(section);
+    mtev_conf_release_section_write(section);
     return rv;
   }
   if(path[0] == '@') {
@@ -2294,13 +2244,13 @@ mtev_conf_set_string(mtev_conf_section_t section,
   else {
     int cnt;
     xmlNodePtr child_node = NULL;
-    sections = mtev_conf_get_sections(section, path, &cnt);
+    sections = mtev_conf_get_sections_write(section, path, &cnt);
     if(cnt > 1) {
       char *spath = (char *)xmlGetNodePath(mtev_conf_section_to_xmlnodeptr(section));
       mtevL(c_error, "Ambiguous set_string \"%s\" \"%s\"\n", spath, path);
       free(spath);
-      mtev_conf_release_section(section);
-      mtev_conf_release_sections(sections, cnt);
+      mtev_conf_release_section_write(section);
+      mtev_conf_release_sections_write(sections, cnt);
       return 0;
     }
     if(cnt == 0) {
@@ -2320,7 +2270,7 @@ mtev_conf_set_string(mtev_conf_section_t section,
     }
     if(child_node != NULL)
       CONF_DIRTY(mtev_conf_section_from_xmlnodeptr(child_node));
-    mtev_conf_release_sections(sections, cnt);
+    mtev_conf_release_sections_write(sections, cnt);
   }
   mtev_conf_mark_changed();
   char *err;
@@ -2328,7 +2278,7 @@ mtev_conf_set_string(mtev_conf_section_t section,
     mtevL(c_error, "local config write failed: %s\n", err ? err : "unkown");
     free(err);
   }
-  mtev_conf_release_section(section);
+  mtev_conf_release_section_write(section);
   return 1;
 }
 
@@ -2595,17 +2545,17 @@ mtev_conf_reload(mtev_console_closure_t ncct,
   (void)argv;
   (void)state;
   (void)closure;
-  _glock(MTEV_CONF_ROOT);
+  mtev_conf_acquire_section_write(MTEV_CONF_ROOT);
   XML2CONSOLE(ncct);
   if(mtev_conf_load_internal(master_config_file)) {
     XML2LOG(xml_debug);
     nc_printf(ncct, "error loading config\n");
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_write(MTEV_CONF_ROOT);
     return -1;
   }
   XML2LOG(xml_debug);
   nc_printf(ncct, "reload complete\n");
-  _gunlock(MTEV_CONF_ROOT);
+  mtev_conf_release_section_write(MTEV_CONF_ROOT);
   return 0;
 }
 
@@ -2624,11 +2574,11 @@ mtev_conf_write_terminal(mtev_console_closure_t ncct,
                                 mtev_console_close_xml,
                                 ncct, enc);
 
-  _glock(MTEV_CONF_ROOT);
+  mtev_conf_acquire_section_write(MTEV_CONF_ROOT);
   mtev_conf_kansas_city_shuffle_undo(config_include_nodes, config_include_cnt);
   xmlSaveFormatFileTo(out, master_config, "utf8", 1);
   mtev_conf_kansas_city_shuffle_redo(config_include_nodes, config_include_cnt);
-  _gunlock(MTEV_CONF_ROOT);
+  mtev_conf_release_section_write(MTEV_CONF_ROOT);
   return 0;
 }
 
@@ -2663,7 +2613,7 @@ mtev_conf_write_file(char **err) {
   uid_t uid = geteuid();
   gid_t gid = getegid();
 
-  _glock(MTEV_CONF_ROOT);
+  mtev_conf_acquire_section_write(MTEV_CONF_ROOT);
 
   if(stat(master_config_file, &st) == 0) {
     mode = st.st_mode;
@@ -2680,14 +2630,14 @@ mtev_conf_write_file(char **err) {
     snprintf(errstr, sizeof(errstr), "Failed to open tmp file (%s): %s",
              master_file_tmp, strerror(errno));
     if(err) *err = strdup(errstr);
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_write(MTEV_CONF_ROOT);
     return -1;
   }
   if(fchown(fd, uid, gid) < 0) {
     close(fd);
     unlink(master_file_tmp);
     if(err) *err = strdup("internal error: fchown failed");
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_write(MTEV_CONF_ROOT);
     return -1;
   }
 
@@ -2697,7 +2647,7 @@ mtev_conf_write_file(char **err) {
     close(fd);
     unlink(master_file_tmp);
     if(err) *err = strdup("internal error: OutputBufferCreate failed");
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_write(MTEV_CONF_ROOT);
     return -1;
   }
   mtev_conf_kansas_city_shuffle_undo(config_include_nodes, config_include_cnt);
@@ -2709,19 +2659,19 @@ mtev_conf_write_file(char **err) {
   close(fd);
   if(len <= 0) {
     if(err) *err = strdup("internal error: writing to tmp file failed.");
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_write(MTEV_CONF_ROOT);
     return -1;
   }
   if(rename(master_file_tmp, master_config_file) != 0) {
     snprintf(errstr, sizeof(errstr), "Failed to replace file: %s",
              strerror(errno));
     if(err) *err = strdup(errstr);
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_write(MTEV_CONF_ROOT);
     return -1;
   }
   snprintf(errstr, sizeof(errstr), "%d bytes written.", len);
   if(err) *err = strdup(errstr);
-  _gunlock(MTEV_CONF_ROOT);
+  mtev_conf_release_section_write(MTEV_CONF_ROOT);
   return 0;
 }
 
@@ -2732,7 +2682,7 @@ mtev_conf_xml_in_mem(size_t *len) {
   xmlCharEncodingHandlerPtr enc;
   char *rv;
 
-  _glock(MTEV_CONF_ROOT);
+  mtev_conf_acquire_section_write(MTEV_CONF_ROOT);
   clv = calloc(1, sizeof(*clv));
   clv->target = CONFIG_XML;
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
@@ -2746,13 +2696,13 @@ mtev_conf_xml_in_mem(size_t *len) {
     mtevL(c_error, "Error logging configuration\n");
     if(clv->buff) free(clv->buff);
     free(clv);
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_write(MTEV_CONF_ROOT);
     return NULL;
   }
   rv = clv->buff;
   *len = clv->len;
   free(clv);
-  _gunlock(MTEV_CONF_ROOT);
+  mtev_conf_release_section_write(MTEV_CONF_ROOT);
   return rv;
 }
 
@@ -2763,7 +2713,7 @@ mtev_conf_enc_in_mem(size_t *raw_len, size_t *len, mtev_conf_enc_type_t target, 
   xmlCharEncodingHandlerPtr enc;
   char *rv;
 
-  _glock(MTEV_CONF_ROOT);
+  mtev_conf_acquire_section_write(MTEV_CONF_ROOT);
   clv = calloc(1, sizeof(*clv));
   clv->target = target;
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
@@ -2777,14 +2727,14 @@ mtev_conf_enc_in_mem(size_t *raw_len, size_t *len, mtev_conf_enc_type_t target, 
     mtevL(c_error, "Error logging configuration\n");
     if(clv->buff) free(clv->buff);
     free(clv);
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_write(MTEV_CONF_ROOT);
     return NULL;
   }
   rv = clv->buff;
   *raw_len = clv->raw_len;
   *len = clv->len;
   free(clv);
-  _gunlock(MTEV_CONF_ROOT);
+  mtev_conf_release_section_write(MTEV_CONF_ROOT);
   return rv;
 }
 
@@ -2975,7 +2925,7 @@ mtev_conf_log_init(const char *toplevel,
                                 "ancestor-or-self::node()/@name",
                                 name, sizeof(name))) {
       mtevL(c_error, "log section %d does not have a name attribute\n", i+1);
-      mtev_conf_release_sections(log_configs, cnt);
+      mtev_conf_release_sections_read(log_configs, cnt);
       exit(-1);
     }
 
@@ -3000,7 +2950,7 @@ mtev_conf_log_init(const char *toplevel,
                              path[0] ? path : NULL, NULL, config);
     if(!ls) {
       fprintf(stderr, "Error configuring log: %s[%s:%s]\n", name, type, path);
-      mtev_conf_release_sections(log_configs, cnt);
+      mtev_conf_release_sections_read(log_configs, cnt);
       exit(-1);
     }
 
@@ -3055,7 +3005,7 @@ mtev_conf_log_init(const char *toplevel,
       if(!outlet) {
         fprintf(stderr, "Cannot find outlet '%s' for %s[%s:%s]\n", oname,
               name, type, path);
-        mtev_conf_release_sections(log_configs, cnt);
+        mtev_conf_release_sections_read(log_configs, cnt);
         exit(-1);
       }
       else
@@ -3082,7 +3032,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
 
   snprintf(path, sizeof(path), "/%s/security|/%s/include/security",
            toplevel, toplevel);
-  secnode = mtev_conf_get_section(MTEV_CONF_ROOT, path);
+  secnode = mtev_conf_get_section_read(MTEV_CONF_ROOT, path);
 
   if(user) {
     strlcpy(username, user, sizeof(username));
@@ -3115,12 +3065,12 @@ mtev_conf_security_init(const char *toplevel, const char *user,
   /* chroot first */
   if(chrootpath && mtev_security_chroot(chrootpath)) {
     mtevL(mtev_stderr, "Failed to chroot(), exiting.\n");
-    mtev_conf_release_section(secnode);
+    mtev_conf_release_section_read(secnode);
     exit(2);
   }
 
-  caps = mtev_conf_get_sections(secnode,
-                                "self::node()//capabilities//capability", &ccnt);
+  caps = mtev_conf_get_sections_read(secnode,
+                                     "self::node()//capabilities//capability", &ccnt);
   mtevL(c_debug, "Found %d capabilities.\n", ccnt);
 
   for(i=0; i<ccnt; i++) {
@@ -3151,14 +3101,14 @@ mtev_conf_security_init(const char *toplevel, const char *user,
         captype = MTEV_SECURITY_CAP_INHERITABLE;
       else {
         mtevL(c_error, "Unsupported capability type: '%s'\n", captype_str);
-        mtev_conf_release_section(secnode);
-        mtev_conf_release_sections(caps, ccnt);
+        mtev_conf_release_section_read(secnode);
+        mtev_conf_release_sections_read(caps, ccnt);
         exit(2);
       }
     } else {
       mtevL(c_error, "Capability type missing\n");
-      mtev_conf_release_section(secnode);
-      mtev_conf_release_sections(caps, ccnt);
+      mtev_conf_release_section_read(secnode);
+      mtev_conf_release_sections_read(caps, ccnt);
       exit(2);
     }
 
@@ -3168,15 +3118,15 @@ mtev_conf_security_init(const char *toplevel, const char *user,
       if(mtev_security_setcaps(captype, capstring) != 0) {
         mtevL(c_error, "Failed to set security capabilities: %s / %s\n",
               captype_str, capstring);
-        mtev_conf_release_section(secnode);
-        mtev_conf_release_sections(caps, ccnt);
+        mtev_conf_release_section_read(secnode);
+        mtev_conf_release_sections_read(caps, ccnt);
         exit(2);
       }
       free(capstring);
     }
   }
-  mtev_conf_release_sections(caps, ccnt);
-  mtev_conf_release_section(secnode);
+  mtev_conf_release_sections_read(caps, ccnt);
+  mtev_conf_release_section_read(secnode);
 
   /* drop uid/gid last */
   if(mtev_security_usergroup(user, group, mtev_false)) { /* no take backs */
@@ -3341,14 +3291,14 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
     return -1;
   }
 
-  _glock(MTEV_CONF_ROOT);
+  mtev_conf_acquire_section_read(MTEV_CONF_ROOT);
   mtev_conf_xml_xpath(&master_config, &xpath_ctxt);
 
   info = mtev_console_userdata_get(ncct, MTEV_CONF_T_USERDATA);
   if(info && info->path) path = basepath = info->path;
   if(!info && argc == 0) {
     nc_printf(ncct, "argument required when not in configuration mode\n");
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_read(MTEV_CONF_ROOT);
     return -1;
   }
 
@@ -3361,7 +3311,7 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
 
   if(!master_config || !xpath_ctxt) {
     nc_printf(ncct, "no config\n");
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_read(MTEV_CONF_ROOT);
     return -1;
   }
 
@@ -3423,11 +3373,11 @@ mtev_console_generic_show(mtev_console_closure_t ncct,
     }
   }
   xmlXPathFreeObject(pobj);
-  _gunlock(MTEV_CONF_ROOT);
+  mtev_conf_release_section_read(MTEV_CONF_ROOT);
   return 0;
  bad:
   if(pobj) xmlXPathFreeObject(pobj);
-  _gunlock(MTEV_CONF_ROOT);
+  mtev_conf_release_section_read(MTEV_CONF_ROOT);
   return -1;
 }
 
@@ -3444,16 +3394,16 @@ mtev_console_config_cd(mtev_console_closure_t ncct,
   xmlNodePtr node = NULL;
   char *dest;
 
-  _glock(MTEV_CONF_ROOT);
+  mtev_conf_acquire_section_read(MTEV_CONF_ROOT);
   mtev_conf_xml_xpath(NULL, &xpath_ctxt);
   if(!master_config || !xpath_ctxt) {
     nc_printf(ncct, "no config\n");
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_read(MTEV_CONF_ROOT);
     return -1;
   }
   if(argc != 1 && !closure) {
     nc_printf(ncct, "requires one argument\n");
-    _gunlock(MTEV_CONF_ROOT);
+    mtev_conf_release_section_read(MTEV_CONF_ROOT);
     return -1;
   }
   dest = argc ? argv[0] : (char *)closure;
@@ -3508,13 +3458,13 @@ mtev_console_config_cd(mtev_console_closure_t ncct,
   free(path);
   if(pobj) xmlXPathFreeObject(pobj);
   if(closure) mtev_console_state_pop(ncct, argc, argv, NULL, NULL);
-  _gunlock(MTEV_CONF_ROOT);
+  mtev_conf_release_section_read(MTEV_CONF_ROOT);
   return 0;
  bad:
   if(path) free(path);
   if(pobj) xmlXPathFreeObject(pobj);
   nc_printf(ncct, "%s [%s]\n", err, xpath);
-  _gunlock(MTEV_CONF_ROOT);
+  mtev_conf_release_section_read(MTEV_CONF_ROOT);
   return -1;
 }
 

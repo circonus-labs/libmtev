@@ -184,15 +184,29 @@ API_EXPORT(void) mtev_conf_write_section(mtev_conf_section_t node, int fd);
 
 API_EXPORT(void) mtev_console_conf_init(void);
 
+/* Compatibility */
 API_EXPORT(mtev_conf_section_t)
-  mtev_conf_get_section(mtev_conf_section_t section, const char *path);
+  mtev_conf_get_section(mtev_conf_section_t section, const char *path)
+  __attribute__((deprecated));
 API_EXPORT(void)
-  mtev_conf_release_section(mtev_conf_section_t section);
+  mtev_conf_release_section(mtev_conf_section_t section)
+  __attribute__((deprecated));
 API_EXPORT(mtev_conf_section_t *)
   mtev_conf_get_sections(mtev_conf_section_t section, const char *path,
+                         int *cnt) __attribute__((deprecated));
+API_EXPORT(void)
+  mtev_conf_release_sections(mtev_conf_section_t *sections, int cnt)
+  __attribute__((deprecated));
+
+API_EXPORT(mtev_conf_section_t)
+  mtev_conf_get_section_write(mtev_conf_section_t section, const char *path);
+API_EXPORT(void)
+  mtev_conf_release_section_write(mtev_conf_section_t section);
+API_EXPORT(mtev_conf_section_t *)
+  mtev_conf_get_sections_write(mtev_conf_section_t section, const char *path,
                          int *cnt);
 API_EXPORT(void)
-  mtev_conf_release_sections(mtev_conf_section_t *sections, int cnt);
+  mtev_conf_release_sections_write(mtev_conf_section_t *sections, int cnt);
 
 API_EXPORT(mtev_conf_section_t)
   mtev_conf_get_section_read(mtev_conf_section_t section, const char *path);

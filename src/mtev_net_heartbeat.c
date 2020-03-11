@@ -483,7 +483,7 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
   char *keyhex;
   unsigned char key[32] = { 0 };
   mtev_conf_section_t section, *notes;
-  section = mtev_conf_get_section(MTEV_CONF_ROOT, basepath);
+  section = mtev_conf_get_section_read(MTEV_CONF_ROOT, basepath);
   if(mtev_conf_section_is_empty(section)) goto out;
   if(!mtev_conf_get_string(section, "self::node()/@key", &keyhex)) {
     mtevL(mtev_error, "netheartbeat section found, but no key attribute!\n");
@@ -517,7 +517,7 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
 
   ctx = mtev_net_heartbeat_context_create(port, key, period);
   
-  notes = mtev_conf_get_sections(section, "self::node()//notify", &cnt);
+  notes = mtev_conf_get_sections_read(section, "self::node()//notify", &cnt);
   for(i=0;i<cnt;i++) {
     char addr_str[INET6_ADDRSTRLEN];
     int32_t port = 0, ttl = 1;
@@ -594,11 +594,11 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
       mtevL(mtev_error, "netbroadcast notify type unknown: %s\n", type_str);
     }
   }
-  mtev_conf_release_sections(notes, cnt);
+  mtev_conf_release_sections_read(notes, cnt);
 
   mtev_net_heartbeat_context_start(ctx);
  out:
-  mtev_conf_release_section(section);
+  mtev_conf_release_section_read(section);
   return ctx;
 }
 
