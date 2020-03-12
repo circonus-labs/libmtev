@@ -57,7 +57,7 @@ mtev_stats_ns(stats_ns_t *parent, const char *name) {
     }
     const char *appname = mtev_get_app_name();
     if(appname && strcmp(appname, "unknown"))
-      stats_ns_add_tag(ns, "app", mtev_get_app_name());
+      stats_ns_replace_tag(ns, "app", mtev_get_app_name());
   }
   return ns;
 }
