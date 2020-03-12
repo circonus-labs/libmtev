@@ -2,12 +2,19 @@
 
 # 1
 
-## 1.9
+## 1.10
+
+### 1.10.0
 
  * Fix libmtev on FreeBSD. There were some compile issues and the kqueue
    eventer unsafely reused the change vector.
+ * Deprecate `mtev_conf_{get,release}_section{,s}` and add
+   `_read` and `_write` variants to allow concurrency configuration access.
  * Fix crash when HTTP/2 fails to setup upon connection.
+ * Add cross-thread lua support for serialized waitfor/notify.
  * Add jlog log configs: `segment_size` and `precommit`
+
+## 1.9
 
 ### 1.9.12
 
