@@ -813,6 +813,20 @@ a parenthesized subscriber name.  If a name (other than &quot;*&quot;) is provid
 a subscriber of that name will be added to the Jlog on creation.</p>
 </li>
 </ul>
+<h4 id="jlog-config">jlog config</h4>
+<p>The jlog can be further configured using a <code>&lt;config&gt;</code> stanza supporting the following
+options:</p>
+<ul>
+<li><h5 id="segmentsize">segment_size</h5>
+<p>Set advisory segment size for the jlog in bytes.  By default jlog uses 4Mb.
+There is a hard-coded limit of 1Gb.  If the specified value is out of range, not changes
+are made to the existing jlog.</p>
+</li>
+<li><h5 id="precommit">precommit</h5>
+<p>Specify a precommit buffer size in bytes. The default is 0 and the maximum is 8Mb.
+If the specified value is too large, 8Mb is used.</p>
+</li>
+</ul>
 <h2 id="built-in-logging-facilities">Built-in logging facilities</h2>
 <p>libmtev uses its own logging, so applications have ample error and debugging
 information exposed out of the box.  There are three four built-in logging

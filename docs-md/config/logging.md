@@ -183,6 +183,22 @@ and supports multiple subscribers with independently maintained process checkpoi
    a parenthesized subscriber name.  If a name (other than "*") is provided,
    a subscriber of that name will be added to the Jlog on creation.
 
+#### jlog config
+
+The jlog can be further configured using a `<config>` stanza supporting the following
+options:
+
+ * ##### segment_size
+
+   Set advisory segment size for the jlog in bytes.  By default jlog uses 4Mb.
+   There is a hard-coded limit of 1Gb.  If the specified value is out of range, not changes
+   are made to the existing jlog.
+
+ * ##### precommit
+
+   Specify a precommit buffer size in bytes. The default is 0 and the maximum is 8Mb.
+   If the specified value is too large, 8Mb is used.
+
 ## Built-in logging facilities
 
 libmtev uses its own logging, so applications have ample error and debugging

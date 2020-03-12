@@ -138,7 +138,7 @@
 
 ##### S
 
-[mtev.semaphore](lua.md#mtevsemaphore), [semaphore:acquire](lua.md#semaphore:acquire), [semaphore:release](lua.md#semaphore:release), [semaphore:try_acquire](lua.md#semaphore:tryacquire), [mtev.sh](lua.md#mtevsh), [mtev.sha1](lua.md#mtevsha1), [mtev.sha1_hex](lua.md#mtevsha1hex), [mtev.sha256](lua.md#mtevsha256), [mtev.sha256_hash](lua.md#mtevsha256hash), [mtev.sha256_hex](lua.md#mtevsha256hex), [mtev.shared_get](lua.md#mtevsharedget), [mtev.shared_seq](lua.md#mtevsharedseq), [mtev.shared_set](lua.md#mtevsharedset), [mtev.sleep](lua.md#mtevsleep), [mtev.socket](lua.md#mtevsocket), [mtev.spawn](lua.md#mtevspawn)
+[mtev.semaphore](lua.md#mtevsemaphore), [semaphore:acquire](lua.md#semaphore:acquire), [semaphore:release](lua.md#semaphore:release), [semaphore:try_acquire](lua.md#semaphore:tryacquire), [mtev.sh](lua.md#mtevsh), [mtev.sha1](lua.md#mtevsha1), [mtev.sha1_hex](lua.md#mtevsha1hex), [mtev.sha256](lua.md#mtevsha256), [mtev.sha256_hash](lua.md#mtevsha256hash), [mtev.sha256_hex](lua.md#mtevsha256hex), [mtev.shared_get](lua.md#mtevsharedget), [mtev.shared_notify](lua.md#mtevsharednotify), [mtev.shared_seq](lua.md#mtevsharedseq), [mtev.shared_set](lua.md#mtevsharedset), [mtev.shared_waitfor](lua.md#mtevsharedwaitfor), [mtev.sleep](lua.md#mtevsleep), [mtev.socket](lua.md#mtevsocket), [mtev.spawn](lua.md#mtevspawn)
 
 ##### T
 
