@@ -198,6 +198,7 @@ API_EXPORT(void)
   mtev_conf_release_sections(mtev_conf_section_t *sections, int cnt)
   __attribute__((deprecated));
 
+#define MTEV_FEATURE_CONF_RW 1
 API_EXPORT(mtev_conf_section_t)
   mtev_conf_get_section_write(mtev_conf_section_t section, const char *path);
 API_EXPORT(void)
