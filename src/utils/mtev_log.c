@@ -510,6 +510,7 @@ typedef struct asynch_log_ctx {
   ck_fifo_mpmc_entry_t *qhead;
   char *name;
   int (*write)(struct asynch_log_ctx *, asynch_log_line *);
+  void (*flush)(struct asynch_log_ctx *);
   void *userdata;
   pthread_t writer;
   pthread_mutex_t singleton;
@@ -598,6 +599,7 @@ asynch_logio_writer(void *vls) {
       fast = 1;
       max--;
     }
+    if(actx->flush) actx->flush(actx);
     if(lock) pthread_rwlock_unlock(lock);
     if(max > 0) {
       /* we didn't hit our limit... so we ran the queue dry */
@@ -1104,6 +1106,15 @@ mtev_log_jlog_err(void *ctx, const char *format, ...) {
   va_end(arg);
 }
 
+static void jlog_logio_flush(asynch_log_ctx *actx) {
+  jlog_ctx *log = actx->userdata;
+  int rv = jlog_ctx_flush_pre_commit_buffer(log);
+  if(rv != 0) {
+    mtevL(mtev_error, "jlog_ctx_flush_pre_commit_buffer failed(%d): %s\n",
+          jlog_ctx_errno(log), jlog_ctx_err_string(log));
+  }
+}
+
 int jlog_logio_asynch_write(asynch_log_ctx *actx, asynch_log_line *line) {
   int rv;
   jlog_ctx *log = actx->userdata;
@@ -1120,23 +1131,52 @@ int jlog_logio_asynch_write(asynch_log_ctx *actx, asynch_log_line *line) {
   return rv;
 }
 
+#define MAX_JLOG_SEGMENT_SIZE (1024 * 1024 * 1024)
+#define MAX_JLOG_PRECOMMIT_SIZE (8 * 1024 * 1024)
 static int
 jlog_logio_open(mtev_log_stream_t ls) {
   char path[PATH_MAX], *sub, **subs, *p;
   asynch_log_ctx *actx;
   jlog_ctx *log = NULL;
+  bool already_tried = false;
   int i, listed, found, allow_unmatched = 0;
 
   if(jlog_lspath_to_fspath(ls, path, sizeof(path), &sub) <= 0) return -1;
+
+one_more_time:
   log = jlog_new(path);
   if(!log) return -1;
   jlog_set_error_func(log, mtev_log_jlog_err, ls);
+
+  const char *segment_size = mtev_hash_dict_get(ls->config, "segment_size");
+  if(segment_size) {
+    int ss = atoi(segment_size);
+    /* if it is nonsensical, leave it unchanged */
+    if(ss > 0 && ss <= MAX_JLOG_SEGMENT_SIZE) {
+      jlog_ctx_alter_journal_size(log, ss);
+    }
+  }
+  const char *precommit = mtev_hash_dict_get(ls->config, "precommit");
+  size_t precommit_size = 0;
+  if(precommit) precommit_size = strtoull(precommit, NULL, 10);
+  /* if it is too large, cap it */
+  if(precommit_size > MAX_JLOG_PRECOMMIT_SIZE) {
+    precommit_size = MAX_JLOG_PRECOMMIT_SIZE;
+  }
+  jlog_ctx_set_pre_commit_buffer_size(log, precommit_size);
+
   /* Open the writer. */
   if(jlog_ctx_open_writer(log)) {
     /* If that fails, we'll give one attempt at initiailizing it. */
     /* But, since we attempted to open it as a writer, it is tainted. */
     /* path: close, new, init, close, new, writer, add subscriber */
     jlog_ctx_close(log);
+    if(already_tried) {
+      mtevL(mtev_error, "Cannot open jlog writer: %s\n",
+            jlog_ctx_err_string(log));
+      return -1;
+    }
+    already_tried = true;
     log = jlog_new(path);
     jlog_set_error_func(log, mtev_log_jlog_err, ls);
     if(jlog_ctx_init(log)) {
@@ -1145,16 +1185,8 @@ jlog_logio_open(mtev_log_stream_t ls) {
       jlog_ctx_close(log);
       return -1;
     }
-    /* After it is initialized, we can try to reopen it as a writer. */
     jlog_ctx_close(log);
-    log = jlog_new(path);
-    jlog_set_error_func(log, mtev_log_jlog_err, ls);
-    if(jlog_ctx_open_writer(log)) {
-      mtevL(mtev_error, "Cannot open jlog writer: %s\n",
-            jlog_ctx_err_string(log));
-      jlog_ctx_close(log);
-      return -1;
-    }
+    goto one_more_time;
   }
 
   /* Add or remove subscribers according to the current configuration. */
@@ -1215,6 +1247,7 @@ jlog_logio_open(mtev_log_stream_t ls) {
   actx->userdata = log;
   actx->name = "jlog";
   actx->write = jlog_logio_asynch_write;
+  actx->flush = jlog_logio_flush;
   ls->op_ctx = actx;
 
   /* We do this to clean things up and start our thread */
@@ -1238,6 +1271,7 @@ jlog_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
     asynch_logio_drain(actx);
 
     rv = jlog_ctx_write(log, buf, len);
+    jlog_ctx_flush_pre_commit_buffer(log);
     if(rv == -1) {
       mtevL(mtev_error, "jlog_ctx_write failed(%d): %s\n",
             jlog_ctx_errno(log), jlog_ctx_err_string(log));

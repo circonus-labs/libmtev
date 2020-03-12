@@ -7,6 +7,7 @@
  * Fix libmtev on FreeBSD. There were some compile issues and the kqueue
    eventer unsafely reused the change vector.
  * Fix crash when HTTP/2 fails to setup upon connection.
+ * Add jlog log configs: `segment_size` and `precommit`
 
 ### 1.9.12
 

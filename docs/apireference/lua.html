@@ -1555,8 +1555,29 @@ mtev.sha256_hex(s)
 <li><strong>RETURN</strong> the SHA256 digest of the input string, encoded in hexadecimal format</li>
 </ul>
 <h4 id="mtevsharedget">mtev.shared_get</h4>
-<pre><code class="lang-lua">mtev.shared_get()
+<blockquote>
+<p>Retrieve (via deserialization) a value at some globally named key.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.shared_get(key)
 </code></pre>
+<ul>
+<li><code>key</code> must be string</li>
+<li><strong>RETURN</strong> a lua value or nil</li>
+</ul>
+<p>This function allows communication across lua states via mutex-protected storage
+of values.</p>
+<h4 id="mtevsharednotify">mtev.shared_notify</h4>
+<blockquote>
+<p>Enqueue (via serialization) a value in some globally named queue.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.shared_notify(key, value)
+</code></pre>
+<ul>
+<li><code>key</code> must be string naming the queue</li>
+<li><code>value</code> is a lua value simple enough to serialize (no functions, udata, etc.)</li>
+<li><strong>RETURN</strong> none</li>
+</ul>
+<p>This function allows communication across lua states.</p>
 <h4 id="mtevsharedseq">mtev.shared_seq</h4>
 <blockquote>
 <p>returns a sequence number that is increasing across all mtev-lua states and coroutines</p>
@@ -1569,8 +1590,30 @@ mtev.shared_seq(keyname)
 <li><strong>RETURN</strong> seq the sequence number</li>
 </ul>
 <h4 id="mtevsharedset">mtev.shared_set</h4>
-<pre><code class="lang-lua">mtev.shared_set()
+<blockquote>
+<p>Store (via serialization) a value at some globally named key.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.shared_set(key, value)
 </code></pre>
+<ul>
+<li><code>key</code> must be string</li>
+<li><code>value</code> is a lua value simple enough to serialize (no functions, udata, etc.)</li>
+<li><strong>RETURN</strong> none</li>
+</ul>
+<p>This function allows communication across lua states via mutex-protected storage
+of values.</p>
+<h4 id="mtevsharedwaitfor">mtev.shared_waitfor</h4>
+<blockquote>
+<p>Retrieve (via deserialization) a value in some globally named queue.</p>
+</blockquote>
+<pre><code class="lang-lua">mtev.shared_waitfor(key, timeout)
+</code></pre>
+<ul>
+<li><code>key</code> must be string naming the queue</li>
+<li><code>timeout</code> number of sections to wait before returning nil</li>
+<li><strong>RETURN</strong> a lua value or nil</li>
+</ul>
+<p>This function allows communication across lua states.</p>
 <h4 id="mtevsleep">mtev.sleep</h4>
 <pre><code class="lang-lua">slept =
 mtev.sleep(duration_s)

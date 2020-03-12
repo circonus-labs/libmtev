@@ -1307,10 +1307,34 @@ mtev.sha256_hex(s)
 
 #### mtev.shared_get
 
+>Retrieve (via deserialization) a value at some globally named key.
+
 ```lua
-mtev.shared_get()
+mtev.shared_get(key)
 ```
 
+
+  * `key` must be string
+  * **RETURN** a lua value or nil
+
+This function allows communication across lua states via mutex-protected storage
+of values.
+
+
+#### mtev.shared_notify
+
+>Enqueue (via serialization) a value in some globally named queue.
+
+```lua
+mtev.shared_notify(key, value)
+```
+
+
+  * `key` must be string naming the queue
+  * `value` is a lua value simple enough to serialize (no functions, udata, etc.)
+  * **RETURN** none
+
+This function allows communication across lua states.
 
 
 #### mtev.shared_seq
@@ -1329,10 +1353,35 @@ mtev.shared_seq(keyname)
 
 #### mtev.shared_set
 
+>Store (via serialization) a value at some globally named key.
+
 ```lua
-mtev.shared_set()
+mtev.shared_set(key, value)
 ```
 
+
+  * `key` must be string
+  * `value` is a lua value simple enough to serialize (no functions, udata, etc.)
+  * **RETURN** none
+
+This function allows communication across lua states via mutex-protected storage
+of values.
+
+
+#### mtev.shared_waitfor
+
+>Retrieve (via deserialization) a value in some globally named queue.
+
+```lua
+mtev.shared_waitfor(key, timeout)
+```
+
+
+  * `key` must be string naming the queue
+  * `timeout` number of sections to wait before returning nil
+  * **RETURN** a lua value or nil
+
+This function allows communication across lua states.
 
 
 #### mtev.sleep
