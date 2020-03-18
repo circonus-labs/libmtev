@@ -158,7 +158,7 @@ _eventer_ssl_ctx_save_last_error(eventer_ssl_ctx_t *ctx, int note_errno,
     free(ctx->last_error);
     ctx->last_error = NULL;
   }
-  allocd = 120 * (((errstr[0] == '\0') ? 0 : 1) + used);
+  allocd = 300 * (((errstr[0] == '\0') ? 0 : 1) + used);
   if(allocd == 0) return;
   ctx->last_error = malloc(allocd);
   ctx->last_error[0] = '\0';
