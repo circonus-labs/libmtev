@@ -4,6 +4,9 @@
 
 ## 1.10
 
+### 1.10.1
+
+ * Don't truncate SSL errors in logs.
  * Add `mtev.get_ipv4` and `mtev.uname` lua functions.
  * Add `mtev.reverse_details` lua function to monitor reverse connections.
 

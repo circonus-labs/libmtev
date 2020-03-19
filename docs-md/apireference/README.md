@@ -98,7 +98,7 @@
 
 ##### G
 
-[mtev.getaddrinfo](lua.md#mtevgetaddrinfo), [mtev.getcwd](lua.md#mtevgetcwd), [mtev.gettimeofday](lua.md#mtevgettimeofday), [mtev.gunzip](lua.md#mtevgunzip)
+[mtev.getaddrinfo](lua.md#mtevgetaddrinfo), [mtev.getcwd](lua.md#mtevgetcwd), [mtev.getip_ipv4](lua.md#mtevgetipipv4), [mtev.gettimeofday](lua.md#mtevgettimeofday), [mtev.gunzip](lua.md#mtevgunzip)
 
 ##### H
 
@@ -146,7 +146,7 @@
 
 ##### U
 
-[mtev.utf8tohtml](lua.md#mtevutf8tohtml), [mtev.uuid](lua.md#mtevuuid)
+[mtev.uname](lua.md#mtevuname), [mtev.utf8tohtml](lua.md#mtevutf8tohtml), [mtev.uuid](lua.md#mtevuuid)
 
 ##### W
 

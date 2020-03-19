@@ -1081,6 +1081,17 @@ mtev.getcwd()
 <ul>
 <li><strong>RETURN</strong> path string or nil</li>
 </ul>
+<h4 id="mtevgetipipv4">mtev.getip_ipv4</h4>
+<blockquote>
+<p>Returns the local address of a connection to tgt.</p>
+</blockquote>
+<pre><code class="lang-lua">address =
+mtev.getip_ipv4([tgt])
+</code></pre>
+<ul>
+<li><code>tgt</code> an IP address to target (default 8.8.8.8)</li>
+<li><strong>RETURN</strong> address  - IP address as a string</li>
+</ul>
 <h4 id="mtevgettimeofday">mtev.gettimeofday</h4>
 <pre><code class="lang-lua">sec, usec =
 mtev.gettimeofday()
@@ -1705,6 +1716,16 @@ counterparts (like userdata, lightuserdata, functions, threads, etc.).
 The return is an <code>mtev.json</code> object not a string. You must invoke
 the <code>tostring</code> method to convert it to a simple string.</p>
 <h3 id="u">U</h3>
+<h4 id="mtevuname">mtev.uname</h4>
+<blockquote>
+<p>Returns info from the uname libc call</p>
+</blockquote>
+<pre><code class="lang-lua">details =
+mtev.uname()
+</code></pre>
+<ul>
+<li><strong>RETURN</strong> A table resembling the <code>struct utsname</code></li>
+</ul>
 <h4 id="mtevutf8tohtml">mtev.utf8tohtml</h4>
 <pre><code class="lang-lua">mtev.utf8tohtml()
 </code></pre>

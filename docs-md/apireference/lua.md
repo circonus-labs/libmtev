@@ -621,6 +621,20 @@ mtev.getcwd()
   * **RETURN** path string or nil
 
 
+#### mtev.getip_ipv4
+
+>Returns the local address of a connection to tgt.
+
+```lua
+address =
+mtev.getip_ipv4([tgt])
+```
+
+
+  * `tgt` an IP address to target (default 8.8.8.8)
+  * **RETURN** address  - IP address as a string
+
+
 #### mtev.gettimeofday
 
 ```lua
@@ -1500,6 +1514,19 @@ the `tostring` method to convert it to a simple string.
 
 
 ### U
+
+#### mtev.uname
+
+>Returns info from the uname libc call
+
+```lua
+details =
+mtev.uname()
+```
+
+
+  * **RETURN** A table resembling the `struct utsname`
+
 
 #### mtev.utf8tohtml
 
