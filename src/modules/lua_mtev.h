@@ -210,6 +210,7 @@ void mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci);
 void mtev_lua_resume_clean_events(mtev_lua_resume_info_t *ci);
 void mtev_lua_pushmodule(lua_State *L, const char *m);
 void mtev_lua_init_dns(void);
+int mtev_lua_push_inet_ntop(lua_State *L, struct sockaddr *r);
 mtev_hash_table *mtev_lua_table_to_hash(lua_State *L, int idx);
 void mtev_lua_hash_to_table(lua_State *L, mtev_hash_table *t);
 int mtev_lua_dns_gc(lua_State *L);

@@ -40,6 +40,7 @@
 
 #include "mtev_listener.h"
 
+typedef struct reverse_socket reverse_socket_t;
 typedef struct mtev_connection_ctx_t {
   uint32_t refcnt;
   union {
@@ -85,6 +86,18 @@ API_EXPORT(mtev_reverse_acl_decision_t)
 
 API_EXPORT(void) mtev_reverse_socket_init(const char *p, const char **cn_p);
 API_EXPORT(int) mtev_reverse_socket_connect(const char *id, int existing_fd);
+#undef RSACCESS
+#define RSACCESS(type, name, elem) \
+API_EXPORT(type) mtev_reverse_socket_##name(reverse_socket_t *);
+RSACCESS(size_t, in_bytes, in_bytes)
+RSACCESS(size_t, out_bytes, out_bytes)
+RSACCESS(size_t, in_frames, in_frames)
+RSACCESS(size_t, out_frames, out_frames)
+RSACCESS(struct timeval, create_time, create_time)
+RSACCESS(const char *, xbind, xbind)
+#undef RSACCESS
+API_EXPORT(uint32_t) mtev_reverse_socket_nchannels(reverse_socket_t *);
+
 API_EXPORT(void) mtev_connection_ctx_ref(mtev_connection_ctx_t *ctx);
 API_EXPORT(void) mtev_connection_ctx_deref(mtev_connection_ctx_t *ctx);
 API_EXPORT(int)
@@ -107,6 +120,11 @@ API_EXPORT(int)
                                          mtev_hash_table *config);
 API_EXPORT(int)
   mtev_reverse_socket_connection_shutdown(const char *address, int port);
+
+API_EXPORT(mtev_boolean)
+  mtev_connection_do(const char *address, int port,
+                     void (*cb)(mtev_connection_ctx_t *, reverse_socket_t *, void *),
+                     void *);
 
 API_EXPORT(void)
   mtev_reverse_socket_init_globals(void);

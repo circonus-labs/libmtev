@@ -350,6 +350,39 @@ lua_general_reverse_socket_initiate(lua_State *L) {
   }
   return 0;
 }
+static void
+lua_general_mtev_connection_details(mtev_connection_ctx_t *ctx, reverse_socket_t *rc, void *vL) {
+  lua_State *L = vL;
+  if(!ctx) lua_pushnil(L);
+  else {
+    lua_createtable(L,0,3);
+    mtev_lua_push_inet_ntop(L, &ctx->r.remote);
+    lua_setfield(L, -3, "remote_port");
+    lua_setfield(L, -2, "remote_address");
+    lua_pushboolean(L, ctx->timeout_event ? 1 : 0);
+    lua_setfield(L, -2, "connected");
+    if(rc) {
+      lua_pushinteger(L, mtev_reverse_socket_nchannels(rc));
+      lua_setfield(L, -2, "nchannels");
+      lua_pushinteger(L, mtev_reverse_socket_in_bytes(rc));
+      lua_setfield(L, -2, "in_bytes");
+      lua_pushinteger(L, mtev_reverse_socket_out_bytes(rc));
+      lua_setfield(L, -2, "out_bytes");
+    }
+  }
+}
+static int
+lua_general_reverse_socket_info(lua_State *L) {
+  if(lua_gettop(L) < 2 ||
+     !lua_isstring(L,1) ||
+     !lua_isnumber(L,2))
+    luaL_error(L, "reverse_stop(host,port)");
+
+  if(mtev_connection_do(lua_tostring(L,1), lua_tointeger(L,2), lua_general_mtev_connection_details, L)) {
+    return 1;
+  }
+  return 0;
+}
 static int
 lua_general_reverse_socket_shutdown(lua_State *L) {
   int rv;
@@ -727,6 +760,7 @@ static const luaL_Reg general_lua_funcs[] =
   {"coroutine_spawn", lua_general_coroutine_spawn },
   {"reverse_start", lua_general_reverse_socket_initiate },
   {"reverse_stop", lua_general_reverse_socket_shutdown },
+  {"reverse_details", lua_general_reverse_socket_info },
   {"conf_save", lua_general_conf_save },
   {"conf_mark_changed", lua_general_conf_mark_changed },
   {"hook", lua_general_hook },

@@ -1316,6 +1316,32 @@ mtev_lua_open(const char *module_name, void *lmc,
   return L;
 }
 
+int
+mtev_lua_push_inet_ntop(lua_State *L, struct sockaddr *r) {
+  char remote_str[128];
+  int len;
+  switch(r->sa_family) {
+    case AF_INET:
+      len = sizeof(struct sockaddr_in);
+      inet_ntop(AF_INET, &((struct sockaddr_in *)r)->sin_addr,
+                remote_str, len);
+      lua_pushstring(L, remote_str);
+      lua_pushinteger(L, ntohs(((struct sockaddr_in *)r)->sin_port));
+      break;
+    case AF_INET6:
+      len = sizeof(struct sockaddr_in6);
+      inet_ntop(AF_INET6, &((struct sockaddr_in6 *)r)->sin6_addr,
+                remote_str, len);
+      lua_pushstring(L, remote_str);
+      lua_pushinteger(L, ntohs(((struct sockaddr_in6 *)r)->sin6_port));
+      break;
+    default:
+      lua_pushnil(L);
+      lua_pushnil(L);
+  }
+  return 2;
+}
+
 void
 mtev_lua_init_globals(void) {
   mtev_hash_init(&mtev_lua_states);
