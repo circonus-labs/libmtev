@@ -5676,7 +5676,7 @@ nl_cancel_coro(lua_State *L) {
 static int
 nl_uname(lua_State *L) {
   struct utsname uts;
-  if(uname(&uts) != 0) {
+  if(uname(&uts) < 0) {
     return 0;
   }
   lua_createtable(L, 0, 5);
