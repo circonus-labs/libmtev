@@ -179,15 +179,34 @@ typedef struct {
 
   /* If we have one of these, we need to refresh timeouts */
   mtev_connection_ctx_t *nctx;
-
 } reverse_socket_data_t;
 
-typedef struct {
+struct reverse_socket {
   reverse_socket_data_t data;
   char *id;
   pthread_mutex_t lock;
   uint32_t refcnt;
-} reverse_socket_t;
+};
+
+#undef RSACCESS
+#define RSACCESS(type, name, elem) \
+type mtev_reverse_socket_##name(reverse_socket_t *sock) { \
+  return sock->data.elem; \
+}
+RSACCESS(size_t, in_bytes, in_bytes)
+RSACCESS(size_t, out_bytes, out_bytes)
+RSACCESS(size_t, in_frames, in_frames)
+RSACCESS(size_t, out_frames, out_frames)
+RSACCESS(struct timeval, create_time, create_time)
+RSACCESS(const char *, xbind, xbind)
+uint32_t mtev_reverse_socket_nchannels(reverse_socket_t *sock) {
+  uint32_t count = 0;
+  for(int i=0; i<MAX_CHANNELS; i++) {
+    count += (sock->data.channels[i].pair[0] != -1);
+  }
+  return count;
+}
+
 
 typedef struct {
   uint16_t channel_id;
@@ -2236,6 +2255,29 @@ mtev_reverse_socket_connection_shutdown(const char *address, int port) {
   }
   pthread_mutex_unlock(&reverses_lock);
   return success;
+}
+mtev_boolean
+mtev_connection_do(const char *address, int port, void (*cb)(mtev_connection_ctx_t *, reverse_socket_t *, void *), void *closure) {
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  mtev_boolean invoked = mtev_false;
+  char remote_str[INET6_ADDRSTRLEN + 1 + 5 + 1];
+
+  snprintf(remote_str, sizeof(remote_str), "%s:%d", address, port);
+  pthread_mutex_lock(&reverses_lock);
+  while(mtev_hash_adv(&reverses, &iter)) {
+    mtev_connection_ctx_t *ctx = iter.value.ptr;
+    if(ctx->remote_str && !strcmp(remote_str, ctx->remote_str)) {
+      reverse_socket_t *rc = NULL;
+      if(ctx->consumer_callback == mtev_reverse_client_handler) {
+        rc = ctx->consumer_ctx;
+      }
+      cb(ctx, rc, closure);
+      invoked = mtev_true;
+      break;
+    }
+  }
+  pthread_mutex_unlock(&reverses_lock);
+  return invoked;
 }
 int
 mtev_lua_help_initiate_mtev_connection(const char *address, int port,

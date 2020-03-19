@@ -48,6 +48,7 @@
 #include <sys/filio.h>
 #endif
 #include <sys/wait.h>
+#include <sys/utsname.h>
 #include <zlib.h>
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -65,6 +66,7 @@
 #include "mtev_str.h"
 #include "mtev_b32.h"
 #include "mtev_b64.h"
+#include "mtev_getip.h"
 #include "mtev_lockfile.h"
 #include "mtev_mkdir.h"
 #include "eventer/eventer.h"
@@ -175,31 +177,6 @@ lua_timeout_callback_ref_free(void* cb) {
   lua_timeout_callback_ref *callback_ref = (lua_timeout_callback_ref*) cb;
   luaL_unref(callback_ref->L, LUA_REGISTRYINDEX, callback_ref->callback_reference);
   free(callback_ref);
-}
-static int
-lua_push_inet_ntop(lua_State *L, struct sockaddr *r) {
-  char remote_str[128];
-  int len;
-  switch(r->sa_family) {
-    case AF_INET:
-      len = sizeof(struct sockaddr_in);
-      inet_ntop(AF_INET, &((struct sockaddr_in *)r)->sin_addr,
-                remote_str, len);
-      lua_pushstring(L, remote_str);
-      lua_pushinteger(L, ntohs(((struct sockaddr_in *)r)->sin_port));
-      break;
-    case AF_INET6:
-      len = sizeof(struct sockaddr_in6);
-      inet_ntop(AF_INET6, &((struct sockaddr_in6 *)r)->sin6_addr,
-                remote_str, len);
-      lua_pushstring(L, remote_str);
-      lua_pushinteger(L, ntohs(((struct sockaddr_in6 *)r)->sin6_port));
-      break;
-    default:
-      lua_pushnil(L);
-      lua_pushnil(L);
-  }
-  return 2;
 }
 static void
 inbuff_addlstring(struct nl_slcl *cl, const char *b, int l) {
@@ -370,7 +347,7 @@ mtev_lua_socket_recv_complete(eventer_t e, int mask, void *vcl,
     lua_pushinteger(cl->L, rv);
     lua_pushlstring(cl->L, inbuff, rv);
     args = 2;
-    args += lua_push_inet_ntop(cl->L, (struct sockaddr *)&cl->address);
+    args += mtev_lua_push_inet_ntop(cl->L, (struct sockaddr *)&cl->address);
   }
 
  alldone:
@@ -426,7 +403,7 @@ mtev_lua_socket_recv(lua_State *L) {
     lua_pushinteger(cl->L, rv);
     lua_pushlstring(cl->L, inbuff, rv);
     args = 2;
-    args += lua_push_inet_ntop(cl->L, (struct sockaddr *)&cl->address);
+    args += mtev_lua_push_inet_ntop(cl->L, (struct sockaddr *)&cl->address);
   }
   free(inbuff);
   return args;
@@ -5692,6 +5669,56 @@ nl_cancel_coro(lua_State *L) {
   return 0;
 }
 
+/*! \lua details = mtev.uname()
+\brief Returns info from the uname libc call
+\return A table resembling the `struct utsname`
+*/
+static int
+nl_uname(lua_State *L) {
+  struct utsname uts;
+  if(uname(&uts) != 0) {
+    return 0;
+  }
+  lua_createtable(L, 0, 5);
+  lua_pushstring(L, uts.sysname);
+  lua_setfield(L, -2, "sysname");
+  lua_pushstring(L, uts.nodename);
+  lua_setfield(L, -2, "nodename");
+  lua_pushstring(L, uts.release);
+  lua_setfield(L, -2, "release");
+  lua_pushstring(L, uts.version);
+  lua_setfield(L, -2, "version");
+  lua_pushstring(L, uts.machine);
+  lua_setfield(L, -2, "machine");
+  return 1;
+}
+
+/*! \lua address = mtev.getip_ipv4([tgt])
+\brief Returns the local address of a connection to tgt.
+\param tgt an IP address to target (default 8.8.8.8)
+\return address  - IP address as a string
+*/
+static int
+nl_getip_ipv4(lua_State *L) {
+  struct in_addr tgt, me;
+  memset(&tgt, 8, sizeof(tgt));
+  if(lua_gettop(L) > 0) {
+    const char *tgtstr = luaL_checkstring(L,1);
+    if(inet_pton(AF_INET, tgtstr, &tgt) != 1) {
+      luaL_error(L, "invalid IP address passed");
+    }
+  }
+  if(mtev_getip_ipv4(tgt, &me) != 0) {
+    luaL_error(L, "failed to determine local IP");
+  }
+  char ipstr[INET_ADDRSTRLEN];
+  if(inet_ntop(AF_INET, &me, ipstr, INET_ADDRSTRLEN) == NULL) {\
+    luaL_error(L, "error formatting local IP");
+  }
+  lua_pushstring(L, ipstr);
+  return 1;
+}
+
 /*! \lua ipstr, family = mtev.getaddrinfo(hostname)
 \brief Resolves host name using the OS provided getaddrinfo function
 \return ipstr  - IP address represented as a string
@@ -5866,6 +5893,7 @@ static const luaL_Reg mtevlib[] = {
   { "stat", nl_stat },
   { "readdir", nl_readdir },
   { "realpath", nl_realpath },
+  { "getip_ipv4", nl_getip_ipv4 },
   { "getaddrinfo", nl_getaddrinfo },
   { "getuid", nl_getuid },
   { "getgid", nl_getgid },
@@ -5939,6 +5967,7 @@ Use sha256_hex instead.
   { "websocket_client_connect", nl_websocket_client_connect },
   { "semaphore", nl_semaphore },
   { "inet_pton", nl_inet_pton },
+  { "uname", nl_uname },
   { NULL, NULL }
 };
 

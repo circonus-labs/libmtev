@@ -4,6 +4,9 @@
 
 ## 1.10
 
+ * Add `mtev.get_ipv4` and `mtev.uname` lua functions.
+ * Add `mtev.reverse_details` lua function to monitor reverse connections.
+
 ### 1.10.0
 
  * Fix libmtev on FreeBSD. There were some compile issues and the kqueue
