@@ -777,6 +777,7 @@ mtev_http1_request_finalize_headers(mtev_http1_session_ctx *ctx, mtev_boolean *e
     req->payload_complete = mtev_true;
   }
 
+  if(!ctx->req.complete) stats_add64(request_counter, 1);
   req->complete = mtev_true;
   return mtev_true;
 }
