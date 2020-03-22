@@ -4973,7 +4973,14 @@ mtev_lua_process_wait_ex(struct nl_slcl *cl, mtev_boolean needs_yield) {
   mtev_lua_resume_info_t *ci;
   lua_State *L = cl->L;
   /* the first arg is implicitly self (it's a method) */
+  mtevL(nldeb, "lua_process_wait_ex(pid: %d)\n", cl->spawn_info->pid);
   if(cl->spawn_info->pid == -1) {
+    if(cl->spawn_info->last_errno != 0) {
+      /* emulate a delayed exit with exit code 127 */
+      lua_pushinteger(L, 127 << 8);
+      lua_pushnil(L);
+      return 2;
+    }
     lua_pushnil(L);
     lua_pushinteger(L, EINVAL);
     return 2;
