@@ -4,6 +4,10 @@
 
 ## 1.10
 
+ * Fix `mtev.uname` on Solaris/Illummos
+ * Fix missed http/1 request count increment.
+ * Include -lssl in `mtev_lua/mtev.so`
+
 ### 1.10.1
 
  * Don't truncate SSL errors in logs.
