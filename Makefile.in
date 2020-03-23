@@ -1,10 +1,10 @@
 EBOOKCONVERT=$(shell which ebook-convert)
 
 all:
-	(cd src && $(MAKE))
+	$(MAKE) -C src
 
 install:	all
-	(cd src && $(MAKE) install DESTDIR=$(DESTDIR))
+	$(MAKE) -C src install DESTDIR=$(DESTDIR))
 
 gitbook-setup:
 	gitbook install
@@ -43,10 +43,10 @@ web-distclean:
 	rm -f web/js/mtev.min.js web/css/mtev.min.css
 
 clean:
-	(cd src && $(MAKE) clean)
-	(cd test && $(MAKE) clean)
+	$(MAKE) -C src clean
+	$(MAKE) -C src clean
 
 distclean: 	clean web-distclean
 	rm -f Makefile config.status config.log
-	(cd src && $(MAKE) distclean)
-	(cd test && $(MAKE) distclean)
+	$(MAKE) -C src distclean
+	$(MAKE) -C src distclean

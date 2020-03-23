@@ -467,7 +467,8 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
 
   /* this damn-well better be our side of the socketpair */
   if(CHANNEL.pair[0] != eventer_get_fd(e)) {
-   mtevL(nlerr, "mtev_reverse_socket_channel_handler: misaligned events, this is a bug (%d != %d)\n", CHANNEL.pair[0], eventer_get_fd(e));
+   if(CHANNEL.pair[0] >= 0)
+     mtevL(nlerr, "mtev_reverse_socket_channel_handler: misaligned events, this is a bug (%d != %d)\n", CHANNEL.pair[0], eventer_get_fd(e));
    shutdown:
     mtevL(nldeb, "mtev_reverse_socket_channel_handler - at shutdown for %s - channel %d, pair [%d,%d]\n", cct->parent->id, cct->channel_id,
             CHANNEL.pair[0], CHANNEL.pair[1]);
