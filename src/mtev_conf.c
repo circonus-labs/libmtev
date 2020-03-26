@@ -451,17 +451,25 @@ struct xpath_ctxt_gen {
   xmlXPathContextPtr xpath;
 };
 static uint64_t master_ctxt_gen = 0;
-static __thread struct xpath_ctxt_gen xpath_ctxt_gen;
+static struct xpath_ctxt_gen *tls_xpath_ctxt_gen(void) {
+  struct xpath_ctxt_gen *xpath_ctxt_gen = pthread_getspecific(xpath_ctxt_key);
+  if(!xpath_ctxt_gen) {
+    xpath_ctxt_gen = calloc(1, sizeof(*xpath_ctxt_gen));
+    pthread_setspecific(xpath_ctxt_key, xpath_ctxt_gen);
+  }
+  return xpath_ctxt_gen;
+}
 static xmlXPathContextPtr master_xpath_ctxt(void) {
-  if(xpath_ctxt_gen.gen != ck_pr_load_64(&master_ctxt_gen)) {
-    if(xpath_ctxt_gen.xpath) xmlXPathFreeContext(xpath_ctxt_gen.xpath);
-    xpath_ctxt_gen.xpath = NULL;
+  struct xpath_ctxt_gen *xpath_ctxt_gen = tls_xpath_ctxt_gen();
+  if(xpath_ctxt_gen->gen != ck_pr_load_64(&master_ctxt_gen)) {
+    if(xpath_ctxt_gen->xpath) xmlXPathFreeContext(xpath_ctxt_gen->xpath);
+    xpath_ctxt_gen->xpath = NULL;
   }
-  if(xpath_ctxt_gen.xpath == NULL) {
+  if(xpath_ctxt_gen->xpath == NULL) {
     if(master_config)
-      xpath_ctxt_gen.xpath = xmlXPathNewContext(master_config);
+      xpath_ctxt_gen->xpath = xmlXPathNewContext(master_config);
   }
-  return xpath_ctxt_gen.xpath;
+  return xpath_ctxt_gen->xpath;
 }
 
 /* coalesced writing allows internals to change the XML structure and mark
@@ -1514,9 +1522,10 @@ mtev_conf_load_internal(const char *path) {
       clean_xml_private_doc_data(master_config);
       xmlFreeDoc(master_config);
     }
-    if(xpath_ctxt_gen.xpath)
-      xmlXPathFreeContext(xpath_ctxt_gen.xpath);
-    xpath_ctxt_gen.xpath = NULL;
+    struct xpath_ctxt_gen *xpath_ctxt_gen = tls_xpath_ctxt_gen();
+    if(xpath_ctxt_gen->xpath)
+      xmlXPathFreeContext(xpath_ctxt_gen->xpath);
+    xpath_ctxt_gen->xpath = NULL;
 
     master_config = new_config;
     ck_pr_inc_64(&master_ctxt_gen);
@@ -3756,7 +3765,9 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
 }
 
 static void safe_free_xpath(void *in) {
-  if(in) xmlXPathFreeContext(in);
+  struct xpath_ctxt_gen *gen = (struct xpath_ctxt_gen *)in;
+  if(gen && gen->xpath) xmlXPathFreeContext(gen->xpath);
+  free(gen);
 }
 void mtev_conf_init_globals(void) {
   mtev_conf_aco_recursion_counter_idx = aco_tls_assign_idx();
