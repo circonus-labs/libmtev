@@ -4,6 +4,7 @@
 
 ## 1.10
 
+ * Fix thread-safey issue using XPath within `mtev_conf`.
  * Fix `mtev.uname` on Solaris/Illummos
  * Fix missed http/1 request count increment.
  * Include -lssl in `mtev_lua/mtev.so`
