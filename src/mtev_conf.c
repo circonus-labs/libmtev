@@ -1791,17 +1791,18 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
   mtev_hash_table collide;
   char *same_space_collision = NULL;
   xmlXPathObjectPtr pobj = NULL;
-  xmlXPathContextPtr current_ctxt = NULL;
+  xmlXPathContextPtr my_ctxt = NULL, current_ctxt;
 
   mtev_conf_acquire_section_read(section);
+
+  current_ctxt = master_xpath_ctxt();
+  if(!current_ctxt) goto out;
 
   xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
   xmlNodePtr node;
 
-  current_ctxt = master_xpath_ctxt();
-  if(!current_ctxt) goto out;
   if(current_node) {
-    current_ctxt = xmlXPathNewContext(master_config);
+    my_ctxt = current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
   }
   mtev_hash_init(&collide);
@@ -1861,8 +1862,7 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
   free(same_space_collision);
   mtev_hash_destroy(&collide, free, NULL);
   if(pobj) xmlXPathFreeObject(pobj);
-  if(current_ctxt && current_ctxt != master_xpath_ctxt())
-    xmlXPathFreeContext(current_ctxt);
+  if(my_ctxt) xmlXPathFreeContext(my_ctxt);
   mtev_conf_release_section_read(section);
 }
 
@@ -1873,7 +1873,7 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
                         const char *namespace) {
   unsigned int cnt;
   xmlXPathObjectPtr pobj = NULL;
-  xmlXPathContextPtr current_ctxt = NULL;
+  xmlXPathContextPtr current_ctxt, my_ctxt = NULL;
 
   mtev_conf_acquire_section_read(section);
 
@@ -1885,7 +1885,7 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
   current_ctxt = master_xpath_ctxt();
   if(!current_ctxt) goto out;
   if(current_node) {
-    current_ctxt = xmlXPathNewContext(master_config);
+    my_ctxt = current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
   }
   if(path[0] == '/')
@@ -1926,8 +1926,7 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
 
  out:
   if(pobj) xmlXPathFreeObject(pobj);
-  if(current_ctxt && current_ctxt != master_xpath_ctxt())
-    xmlXPathFreeContext(current_ctxt);
+  if(my_ctxt) xmlXPathFreeContext(my_ctxt);
   mtev_conf_release_section_read(section);
 }
 
@@ -1963,7 +1962,7 @@ mtev_conf_section_t
 mtev_conf_get_section_ex(mtev_conf_section_t section, const char *path, bool readonly) {
   mtev_conf_section_t subsection = MTEV_CONF_EMPTY;
   xmlXPathObjectPtr pobj = NULL;
-  xmlXPathContextPtr current_ctxt;
+  xmlXPathContextPtr current_ctxt, my_ctxt = NULL;
 
   if(readonly)
     mtev_conf_acquire_section_read(section);
@@ -1975,7 +1974,7 @@ mtev_conf_get_section_ex(mtev_conf_section_t section, const char *path, bool rea
   current_ctxt = master_xpath_ctxt();
   if(!current_ctxt) goto out;
   if(current_node) {
-    current_ctxt = xmlXPathNewContext(master_config);
+    my_ctxt = current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
   }
   pobj = xmlXPathEval((xmlChar *)path, current_ctxt);
@@ -1985,8 +1984,7 @@ mtev_conf_get_section_ex(mtev_conf_section_t section, const char *path, bool rea
   subsection = mtev_conf_section_from_xmlnodeptr(xmlXPathNodeSetItem(pobj->nodesetval, 0));
  out:
   if(pobj) xmlXPathFreeObject(pobj);
-  if(current_ctxt && current_ctxt != master_xpath_ctxt())
-    xmlXPathFreeContext(current_ctxt);
+  if(my_ctxt) xmlXPathFreeContext(my_ctxt);
   if(readonly) {
     mtev_conf_acquire_section_read(subsection);
     mtev_conf_release_section_read(section);
@@ -2033,7 +2031,7 @@ mtev_conf_get_sections_ex(mtev_conf_section_t section,
   int i;
   mtev_conf_section_t *sections = NULL;
   xmlXPathObjectPtr pobj = NULL;
-  xmlXPathContextPtr current_ctxt;
+  xmlXPathContextPtr current_ctxt, my_ctxt = NULL;
 
   if(readonly)
     mtev_conf_acquire_section_read(section);
@@ -2045,7 +2043,7 @@ mtev_conf_get_sections_ex(mtev_conf_section_t section,
   current_ctxt = master_xpath_ctxt();
   if(!current_ctxt) goto out;
   if(current_node) {
-    current_ctxt = xmlXPathNewContext(master_config);
+    my_ctxt = current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
   }
   pobj = xmlXPathEval((xmlChar *)path, current_ctxt);
@@ -2063,8 +2061,7 @@ mtev_conf_get_sections_ex(mtev_conf_section_t section,
   }
  out:
   if(pobj) xmlXPathFreeObject(pobj);
-  if(current_ctxt && current_ctxt != master_xpath_ctxt())
-    xmlXPathFreeContext(current_ctxt);
+  if(my_ctxt) xmlXPathFreeContext(my_ctxt);
   if(readonly)
     mtev_conf_release_section_read(section);
   else
@@ -2104,17 +2101,16 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
   char fullpath[1024];
   int rv = 1, i;
   xmlXPathObjectPtr pobj = NULL;
-  xmlXPathContextPtr current_ctxt = NULL;
-  xmlXPathContextPtr xpath_ctxt = master_xpath_ctxt();
+  xmlXPathContextPtr my_ctxt = NULL, current_ctxt;
 
-  if(!xpath_ctxt) return 0;
+  current_ctxt = master_xpath_ctxt();
+  if(!current_ctxt) return 0;
 
   mtev_conf_acquire_section_read(section);
   xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
 
-  current_ctxt = xpath_ctxt;
   if(current_node) {
-    current_ctxt = xmlXPathNewContext(master_config);
+    my_ctxt = current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
   }
   pobj = xmlXPathEval((xmlChar *)path, current_ctxt);
@@ -2145,8 +2141,7 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
   rv = 0;
  found:
   if(pobj) xmlXPathFreeObject(pobj);
-  if(current_ctxt && current_ctxt != xpath_ctxt)
-    xmlXPathFreeContext(current_ctxt);
+  if(my_ctxt) xmlXPathFreeContext(my_ctxt);
   mtev_conf_release_section_read(section);
   if(mtev_conf_value_fixup_hook_invoke(section, path,
                                        fullnodepath ? (const char *)fullnodepath : (const char *)interest,
