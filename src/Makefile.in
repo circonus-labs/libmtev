@@ -281,8 +281,11 @@ make-man:
 
 .PHONY:	reversion
 
-reversion:
+reversion:	../docs-md/mtev_version.md
 	$(Q)$(top_srcdir)/buildtools/mkversion.sh mtev_version.h
+
+../docs-md/mtev_version.md:
+	echo "$(LIBMTEV_VERSION)" > ../docs-md/mtev_version.md
 
 mtev_version.h:
 	$(Q)$(top_srcdir)/buildtools/mkversion.sh mtev_version.h
