@@ -445,7 +445,24 @@ void mtev_override_console_stopword(int (*f)(const char *)) {
 
 static char *root_node_name = NULL;
 static char master_config_file[PATH_MAX] = "";
-static xmlXPathContextPtr xpath_ctxt = NULL;
+static pthread_key_t xpath_ctxt_key;
+struct xpath_ctxt_gen {
+  uint64_t gen;
+  xmlXPathContextPtr xpath;
+};
+static uint64_t master_ctxt_gen = 0;
+static __thread struct xpath_ctxt_gen xpath_ctxt_gen;
+static xmlXPathContextPtr master_xpath_ctxt(void) {
+  if(xpath_ctxt_gen.gen != ck_pr_load_64(&master_ctxt_gen)) {
+    if(xpath_ctxt_gen.xpath) xmlXPathFreeContext(xpath_ctxt_gen.xpath);
+    xpath_ctxt_gen.xpath = NULL;
+  }
+  if(xpath_ctxt_gen.xpath == NULL) {
+    if(master_config)
+      xpath_ctxt_gen.xpath = xmlXPathNewContext(master_config);
+  }
+  return xpath_ctxt_gen.xpath;
+}
 
 /* coalesced writing allows internals to change the XML structure and mark
  * the tree dirty, but only write the config out once per second.
@@ -1497,13 +1514,15 @@ mtev_conf_load_internal(const char *path) {
       clean_xml_private_doc_data(master_config);
       xmlFreeDoc(master_config);
     }
-    if(xpath_ctxt) xmlXPathFreeContext(xpath_ctxt);
+    if(xpath_ctxt_gen.xpath)
+      xmlXPathFreeContext(xpath_ctxt_gen.xpath);
+    xpath_ctxt_gen.xpath = NULL;
 
     master_config = new_config;
+    ck_pr_inc_64(&master_ctxt_gen);
     /* mixin all the includes */
     if(mtev_conf_magic_mix(path, master_config, NULL)) rv = -1;
 
-    xpath_ctxt = xmlXPathNewContext(master_config);
     if(path != master_config_file)
       if(realpath(path, master_config_file) == NULL)
         mtevL(c_error, "realpath failed: %s\n", strerror(errno));
@@ -1753,7 +1772,7 @@ mtev_conf_config_filename(void) {
 int
 mtev_conf_xml_xpath(xmlDocPtr *mc, xmlXPathContextPtr *xp) {
   if(mc) *mc = master_config;
-  if(xp) *xp = xpath_ctxt;
+  if(xp) *xp = master_xpath_ctxt();
   return 0;
 }
 
@@ -1779,8 +1798,8 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
   xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
   xmlNodePtr node;
 
-  current_ctxt = xpath_ctxt;
-  if(!xpath_ctxt) goto out;
+  current_ctxt = master_xpath_ctxt();
+  if(!current_ctxt) goto out;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1842,7 +1861,7 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
   free(same_space_collision);
   mtev_hash_destroy(&collide, free, NULL);
   if(pobj) xmlXPathFreeObject(pobj);
-  if(current_ctxt && current_ctxt != xpath_ctxt)
+  if(current_ctxt && current_ctxt != master_xpath_ctxt())
     xmlXPathFreeContext(current_ctxt);
   mtev_conf_release_section_read(section);
 }
@@ -1863,8 +1882,8 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
   char xpath_expr[1024];
   char *inheritid;
 
-  current_ctxt = xpath_ctxt;
-  if(!xpath_ctxt) goto out;
+  current_ctxt = master_xpath_ctxt();
+  if(!current_ctxt) goto out;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1907,7 +1926,7 @@ mtev_conf_get_into_hash(mtev_conf_section_t section,
 
  out:
   if(pobj) xmlXPathFreeObject(pobj);
-  if(current_ctxt && current_ctxt != xpath_ctxt)
+  if(current_ctxt && current_ctxt != master_xpath_ctxt())
     xmlXPathFreeContext(current_ctxt);
   mtev_conf_release_section_read(section);
 }
@@ -1953,8 +1972,8 @@ mtev_conf_get_section_ex(mtev_conf_section_t section, const char *path, bool rea
 
   xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
 
-  current_ctxt = xpath_ctxt;
-  if(!xpath_ctxt) goto out;
+  current_ctxt = master_xpath_ctxt();
+  if(!current_ctxt) goto out;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -1966,7 +1985,7 @@ mtev_conf_get_section_ex(mtev_conf_section_t section, const char *path, bool rea
   subsection = mtev_conf_section_from_xmlnodeptr(xmlXPathNodeSetItem(pobj->nodesetval, 0));
  out:
   if(pobj) xmlXPathFreeObject(pobj);
-  if(current_ctxt && current_ctxt != xpath_ctxt)
+  if(current_ctxt && current_ctxt != master_xpath_ctxt())
     xmlXPathFreeContext(current_ctxt);
   if(readonly) {
     mtev_conf_acquire_section_read(subsection);
@@ -2023,8 +2042,8 @@ mtev_conf_get_sections_ex(mtev_conf_section_t section,
 
   xmlNodePtr current_node = mtev_conf_section_to_xmlnodeptr(section);
   *cnt = 0;
-  current_ctxt = xpath_ctxt;
-  if(!xpath_ctxt) goto out;
+  current_ctxt = master_xpath_ctxt();
+  if(!current_ctxt) goto out;
   if(current_node) {
     current_ctxt = xmlXPathNewContext(master_config);
     current_ctxt->node = current_node;
@@ -2044,7 +2063,7 @@ mtev_conf_get_sections_ex(mtev_conf_section_t section,
   }
  out:
   if(pobj) xmlXPathFreeObject(pobj);
-  if(current_ctxt && current_ctxt != xpath_ctxt)
+  if(current_ctxt && current_ctxt != master_xpath_ctxt())
     xmlXPathFreeContext(current_ctxt);
   if(readonly)
     mtev_conf_release_section_read(section);
@@ -2086,6 +2105,7 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
   int rv = 1, i;
   xmlXPathObjectPtr pobj = NULL;
   xmlXPathContextPtr current_ctxt = NULL;
+  xmlXPathContextPtr xpath_ctxt = master_xpath_ctxt();
 
   if(!xpath_ctxt) return 0;
 
@@ -3476,6 +3496,7 @@ mtev_console_conf_show_xpath(mtev_console_closure_t ncct,
   (void)closure;
   xmlXPathObjectPtr pobj = NULL;
   xmlNodePtr node = NULL;
+  xmlXPathContextPtr xpath_ctxt = NULL;
   mtev_boolean xmlOut = mtev_false;
 
   mtev_conf_xml_xpath(NULL, &xpath_ctxt);
@@ -3739,7 +3760,11 @@ mtev_boolean mtev_conf_env_off(mtev_conf_section_t node, const char *attr) {
   return mtev_true;
 }
 
+static void safe_free_xpath(void *in) {
+  if(in) xmlXPathFreeContext(in);
+}
 void mtev_conf_init_globals(void) {
   mtev_conf_aco_recursion_counter_idx = aco_tls_assign_idx();
+  pthread_key_create(&xpath_ctxt_key, safe_free_xpath);
   mtev_hash_init(&global_param_sets);
 }
