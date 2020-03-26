@@ -4,6 +4,8 @@
 
 ## 1.10
 
+### 1.10.2
+
  * Fix thread-safey issue using XPath within `mtev_conf`.
  * Fix `mtev.uname` on Solaris/Illummos
  * Fix missed http/1 request count increment.
