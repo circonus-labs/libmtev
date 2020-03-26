@@ -4,7 +4,7 @@ all:
 	$(MAKE) -C src
 
 install:	all
-	$(MAKE) -C src install DESTDIR=$(DESTDIR))
+	$(MAKE) -C src install DESTDIR=$(DESTDIR)
 
 gitbook-setup:
 	gitbook install
