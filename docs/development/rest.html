@@ -694,9 +694,7 @@ blanket deny rule.</p>
                 <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
   mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
   mtev_http_response_ok(ctx, <span class="hljs-string">&quot;text/plain&quot;</span>);
-  mtev_http_response_append(ctx, <span class="hljs-string">&quot;myhandler: &quot;</span>, <span class="hljs-built_in">strlen</span>(<span class="hljs-string">&quot;myhandler: &quot;</span>));
-  mtev_http_response_append(ctx, pats[<span class="hljs-number">0</span>], <span class="hljs-built_in">strlen</span>(pats[<span class="hljs-number">0</span>]));
-  mtev_http_response_append(ctx, <span class="hljs-string">&quot;\n&quot;</span>, <span class="hljs-number">1</span>);
+  mtev_http_response_appendf(ctx, <span class="hljs-string">&quot;myhandler: %s\n&quot;</span>, pats[<span class="hljs-number">0</span>]);
   mtev_http_response_end(ctx);
   <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
 }
@@ -753,7 +751,7 @@ juggling.  The basic idea is:</p>
                             <span class="hljs-keyword">int</span> npats, <span class="hljs-keyword">char</span> **pats)</span> </span>{
   mtev_http_session_ctx *ctx = restc-&gt;http_ctx;
   mtev_http_response_ok(ctx, <span class="hljs-string">&quot;text/plain&quot;</span>);
-  mtev_http_response_append(ctx, <span class="hljs-string">&quot;Hello world\n&quot;</span>, <span class="hljs-built_in">strlen</span>(<span class="hljs-string">&quot;Hello world\n&quot;</span>));
+  mtev_http_response_append_str(ctx, <span class="hljs-string">&quot;Hello world\n&quot;</span>);
   mtev_http_response_end(ctx);
   <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
 }
