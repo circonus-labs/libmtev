@@ -42,13 +42,8 @@ callback returns.  Again, not a silver bullet.
 
 #### Configuration
 
-The `mtev_conf_` subsystem is not thread-safe.  Interaction with configuration
-should be done in the main thread (thread 1) only.  You have the explicit
-ability to schedule things on thread 1 and updates should be scheduled there.
-It is recommended that the configuration be read in thread 1 and thread-safe
-in-memory structures be used to represent the config such that multiple threads
-can read the non-canonical copy.  This will likely be fixed to be completely
-thread-safe in a future release.
+The `mtev_conf_` subsystem is based on libxml2 and has certain nuances to its thread-safety.  In order to interoperate with the configuration system you must
+acquire and release sections of the config in either read (concurrent) or write (single access) mode.  If you make any changes to the XML structure you *must* acquire a section in write mode or undefinied behavior may ensue.  All locks are recusively safe and a write-lock will serve as a read-lock, but a read-lock will not upgrade to a write-lock.
 
 #### Keep Related Events Together
 
