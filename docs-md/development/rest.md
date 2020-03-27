@@ -47,9 +47,7 @@ my_rest_handler(mtev_http_rest_closure_t *restc,
                 int npats, char **pats) {
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_ok(ctx, "text/plain");
-  mtev_http_response_append(ctx, "myhandler: ", strlen("myhandler: "));
-  mtev_http_response_append(ctx, pats[0], strlen(pats[0]));
-  mtev_http_response_append(ctx, "\n", 1);
+  mtev_http_response_appendf(ctx, "myhandler: %s\n", pats[0]);
   mtev_http_response_end(ctx);
   return 0;
 }
@@ -106,7 +104,7 @@ static int handler_complete(mtev_http_rest_closure_t *restc,
                             int npats, char **pats) {
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_ok(ctx, "text/plain");
-  mtev_http_response_append(ctx, "Hello world\n", strlen("Hello world\n"));
+  mtev_http_response_append_str(ctx, "Hello world\n");
   mtev_http_response_end(ctx);
   return 0;
 }
