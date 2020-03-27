@@ -91,9 +91,16 @@ AC_MSG_RESULT([$LUAROCKS_PATH])
 AC_SUBST(LUAROCKS_PATH)
 
 if test "x$GCC" = "xyes" ; then
+	# This is a dumb hack to detect clang vs. gcc to avoid -O5 warnings
+	BARECC=`echo -n $CC | sed -e 's/ .*//;'`
+	CLANG=`$BARECC -v 2>&1 | grep clang`
+	if test -n "$CLANG"; then
+		CHOTOPT="-O3"
+	else
+		CHOTOPT="-O5"
+	fi
 	C99FLAG="-std=c99"
 	CFLAGS="$CFLAGS -g $C99FLAG"
-	CHOTOPT="-O5"
 	DEPFLAGS="-MM"
 else
 	C99FLAG="-xc99=all"
