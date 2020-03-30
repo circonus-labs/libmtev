@@ -596,8 +596,9 @@ ssl_ctx_cache_node_free(ssl_ctx_cache_node *node) {
 
 void
 eventer_ssl_ctx_free(eventer_ssl_ctx_t *ctx) {
-  if(ctx->npn) free(ctx->npn);
+  SSL_set_eventer_ssl_ctx(ctx->ssl, NULL); // in case it has more references
   if(ctx->ssl) SSL_free(ctx->ssl);
+  if(ctx->npn) free(ctx->npn);
   if(ctx->ssl_ctx_cn) ssl_ctx_cache_node_free(ctx->ssl_ctx_cn);
   if(ctx->issuer) free(ctx->issuer);
   if(ctx->subject) free(ctx->subject);
@@ -920,6 +921,10 @@ static int next_proto_cb(SSL *ssl, const unsigned char **data,
   (void)ssl;
   eventer_ssl_ctx_t *ctx = (eventer_ssl_ctx_t *)arg;
   if(!ssl) return SSL_TLSEXT_ERR_NOACK;
+  if(ctx != SSL_get_eventer_ssl_ctx(ssl)) {
+    mtevL(mtev_error, "SSL state mixup, refusing NPN\n");
+    return SSL_TLSEXT_ERR_NOACK;
+  }
   if(!ctx->npn) return SSL_TLSEXT_ERR_NOACK;
 
   *data = ctx->npn;
