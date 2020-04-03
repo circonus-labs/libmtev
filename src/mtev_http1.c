@@ -2003,10 +2003,10 @@ _http_construct_leader(mtev_http1_session_ctx *ctx) {
     const char *key = keys[i], *value;
     int klen = strlen(key);
     (void)mtev_hash_retr_str(&ctx->res.headers, key, klen, &value);
-    vlen = strlen(value);
+    vlen = value ? strlen(value): 0;
     CTX_LEADER_APPEND(key, klen);
     CTX_LEADER_APPEND(": ", 2);
-    CTX_LEADER_APPEND(value, vlen);
+    if(vlen) CTX_LEADER_APPEND(value, vlen);
     CTX_LEADER_APPEND("\r\n", 2);
   }
   CTX_LEADER_APPEND("\r\n", 2);
