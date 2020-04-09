@@ -4,6 +4,8 @@
 
 ## 1.10
 
+ * Fix metadata reporting in consul module.
+
 ### 1.10.2
 
  * Fix thread-safey issue using XPath within `mtev_conf`.

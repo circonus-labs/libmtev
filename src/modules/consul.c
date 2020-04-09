@@ -672,7 +672,7 @@ mtev_consul_configure(void) {
       mtev_json_object *mo = MJ_OBJ();
         mtev_hash_iter meta_iter = MTEV_HASH_ITER_ZERO;
         while(mtev_hash_adv(meta, &meta_iter)) {
-          MJ_KV(mo, tag_iter.key.str, MJ_STR(tag_iter.value.str));
+          MJ_KV(mo, meta_iter.key.str, MJ_STR(meta_iter.value.str));
         }
       MJ_KV(so, "Meta", mo);
       mtev_hash_destroy(tags, free, free);
