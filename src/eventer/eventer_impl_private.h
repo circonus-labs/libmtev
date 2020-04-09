@@ -120,7 +120,7 @@ struct _eventer_jobq_t {
   const char             *queue_name;
   const char             *short_name;
   pthread_mutex_t         lock;
-  sem_t                   semaphore;
+  pthread_cond_t          cond;
   uint32_t                concurrency;
   uint32_t                desired_concurrency;
   uint32_t                pending_cancels;
