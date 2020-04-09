@@ -45,11 +45,12 @@ cat > $1 <<EOF
 
 static inline int mtev_build_version(char *buff, int len) {
   char start[256] = {0};
-  memcpy(start, MTEV_BRANCH, sizeof(MTEV_BRANCH));
-  if(!strncmp(start, "branches/", 9)) 
-    return snprintf(buff, len, "%s.%s", start+9, MTEV_VERSION);
-  if(!strncmp(start, "tags/", 5)) 
-    return snprintf(buff, len, "%s", start+5);
+  memcpy(start, MTEV_BRANCH, MIN(sizeof(MTEV_BRANCH),sizeof(start)-1));
+  char *last_slash = strrchr(start, '/');
+  if(last_slash && !strncmp(start, "branches/", 9)) 
+    return snprintf(buff, len, "%s.%s", last_slash + 1, MTEV_VERSION);
+  if(last_slash && !strncmp(start, "tags/", 5)) 
+    return snprintf(buff, len, "%s", last_slash + 1);
   return snprintf(buff, len, "%s.%s", MTEV_BRANCH, MTEV_VERSION);
 }
 
