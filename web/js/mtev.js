@@ -1,6 +1,7 @@
 var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {} } } };
 
 (function() {
+  var stats_to_track = [["mtev"]];
   var track_once = {}
   var filter_expr = null;
   var defaultUI = {
@@ -701,6 +702,16 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
     refresh_logs(1);
     setInterval(refresh_logs, 1000);
   }
+
+  mtev.trackStats = function(arr) {
+    var u = {}
+    if(arr != null) {
+      for (var i=0; i<arr.length; i++) { u[arr[i].join(".")] = arr[i]; }
+      stats_to_track = []
+      for (var tl in u) { stats_to_track.push(u[tl]) }
+    }
+    return stats_to_track;
+  }
   
   function refreshMtevStats(cb) {
     if(track_once.mtevstats == true) return;
@@ -709,7 +720,9 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
     st.always(function() { track_once.mtevstats = false; });
     st.done(function(r) {
       mtev.stats = r.mtev;
-      mtev.updatePerfUI(r, ["mtev"]);
+      for (var i=0; i<stats_to_track.length; i++) {
+        mtev.updatePerfUI(r, stats_to_track[i]);
+      }
       $("#internal-stats tbody").removeClass("d-none");
       if(cb) cb();
     });
