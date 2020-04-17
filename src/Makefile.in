@@ -385,7 +385,8 @@ utils/mtev_logic.c:	utils/mtev-logic-leg.c
 
 utils/mtev-logic-leg.c:	utils/mtev-logic.leg
 	@echo "- translating LEG $<"
-	$(Q) leg -o $@ $<
+	$(Q)-leg -o $@ $<
+	$(Q)test -e $@ && touch $@
 
 utils/mtev_atomic_sol_sparcv8plus.o:	utils/mtev_atomic_sol.s
 	@as -P -xarch=v8plus -o $@ utils/mtev_atomic_sol.s
