@@ -5,6 +5,8 @@
 ## 1.10
 
  * Fix metadata reporting in consul module.
+ * Add metadata in http logging.
+ * Implement filtering logic for log outlets.
 
 ### 1.10.2
 

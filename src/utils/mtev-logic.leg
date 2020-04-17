@@ -1,0 +1,61 @@
+Expression       = s:Predicate { yy->ast->root = s; }
+                 | s:NotExpr { yy->ast->root = s; }
+                 | s:AndExpr { yy->ast->root = s; }
+                 | s:OrExpr  { yy->ast->root = s; }
+
+Statement        = Predicate
+                 | NotExpr
+                 | AndExpr
+                 | OrExpr
+
+ArgsSingle       = s:Statement { $$ = mtev_logic_ast_node_op(yy->ast, NULL, s); } -
+ArgsMultiple     = s:Statement { $$ = s = mtev_logic_ast_node_op(yy->ast, NULL, s); } -
+                      (Comma - sc:Statement { $$ = mtev_logic_ast_node_op(yy->ast, s, sc); } )*
+
+Predicate        = l:LeftLiteral - op:Op - s:RightLiteral
+                   { $$ = mtev_logic_ast_node_predicate(yy->ast, (const char *)l, (mtev_logic_pred_op_t)op, s); }
+                 | 'exists' - '(' - i:LeftLiteral - ')'
+                   { $$ = mtev_logic_ast_node_predicate(yy->ast, (const char *)i, POP_EXISTS, NULL); }
+
+NotExpr          = 'not' - '(' - n:ArgsSingle - ')' -
+                   { mtev_logic_ast_node_set_op(yy->ast, n, LOP_NOT); $$ = n; }
+AndExpr          = 'and' - '(' - n:ArgsMultiple - ')' -
+                   { mtev_logic_ast_node_set_op(yy->ast, n, LOP_AND); $$ = n; }
+OrExpr           = 'or' - '(' - n:ArgsMultiple - ')' -
+                   { mtev_logic_ast_node_set_op(yy->ast, n, LOP_OR); $$ = n; }
+
+LeftLiteral      = Identifier { $$ = mtev_logic_ast_strndup(yy->ast, yytext, yyleng); }
+                 | Literal { $$ = mtev_logic_ast_strndup_unescape(yy->ast, yytext, yyleng); }
+
+RightLiteral     = Literal { $$ = mtev_logic_ast_var(yy->ast, MTEV_LOGIC_STRING, yytext, yyleng); }
+                 | Numeric { $$ = mtev_logic_ast_var(yy->ast, memchr(yytext, '.', yyleng) ? MTEV_LOGIC_DOUBLE : MTEV_LOGIC_INT64, yytext, yyleng); }
+
+Identifier       = < IdentStart IdentCont* >
+IdentStart       = [a-zA-Z_]
+IdentCont        = IdentStart | [0-9.]
+
+Numeric          = < [-+]? [0-9]+ ( '.' [0-9]+ )? ( 'e' [-+] [0-9]+)? >
+
+Literal          = ['] < ( !['] Char  )* > [']
+                 | ["] < ( !["] Char  )* > ["]
+
+Char             = '\\' [abefnrtv'"\\]
+                 | '\\' [0-3][0-7][0-7]
+                 | '\\' [0-7][0-7]?
+                 | '\\' '-'
+                 | !'\\' .
+
+Op               = '='   { $$ = (void *)POP_EQ; }
+                 | '!='  { $$ = (void *)POP_NE; }
+                 | '~'   { $$ = (void *)POP_RE; }
+                 | '!~'  { $$ = (void *)POP_NRE; }
+                 | '<='  { $$ = (void *)POP_LE; }
+                 | '>='  { $$ = (void *)POP_GE; }
+                 | '<'   { $$ = (void *)POP_LT; }
+                 | '>'   { $$ = (void *)POP_GT; }
+
+Comma            = ','
+-                = Space*
+Space            = ' ' | '\t' | EndOfLine
+EndOfLine        = '\r\n' | '\n' | '\r'
+

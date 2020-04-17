@@ -192,7 +192,8 @@ mtev_console_state.o mtev_console_state.lo: mtev_console_state.c mtev_defines.h 
   ../src/utils/mtev_compress.h mtev_listener.h ../src/utils/mtev_zipkin.h \
   mtev_http1.h mtev_http.h mtev_http2.h mtev_http1.h mtev_http2.h \
   mtev_console.h noitedit/histedit.h mtev_console_telnet.h \
-  ../src/utils/mtev_skiplist.h mtev_console_socket.h mtev_tokenizer.h \
+  ../src/utils/mtev_skiplist.h mtev_console_socket.h \
+  ../src/utils/mtev_stacktrace.h ../src/utils/mtev_log.h mtev_tokenizer.h \
   mtev_capabilities_listener.h
 
 mtev_console_telnet.o mtev_console_telnet.lo: mtev_console_telnet.c mtev_defines.h mtev_config.h \
@@ -454,9 +455,10 @@ mtev_rest.o mtev_rest.lo: mtev_rest.c mtev_defines.h mtev_config.h noitedit/strl
   ../src/utils/mtev_memory.h  \
   ../src/utils/mtev_hash.h mtev_http.h \
   ../src/utils/mtev_compress.h mtev_listener.h ../src/utils/mtev_zipkin.h \
-  mtev_http1.h mtev_http.h mtev_http2.h mtev_http1.h mtev_http2.h \
-  mtev_rest.h mtev_console.h noitedit/histedit.h mtev_console_telnet.h \
-  ../src/utils/mtev_skiplist.h mtev_conf.h ../src/utils/mtev_uuid.h \
+  mtev_http1.h mtev_http.h mtev_http2.h mtev_http_private.h mtev_rest.h \
+  mtev_http1.h mtev_http2.h mtev_console.h noitedit/histedit.h \
+  mtev_console_telnet.h ../src/utils/mtev_skiplist.h \
+  ../src/utils/mtev_btrie.h mtev_conf.h ../src/utils/mtev_uuid.h \
   ../src/utils/mtev_uuid_parse.h ../src/utils/mtev_uuid_copy.h \
   ../src/utils/mtev_uuid_generate.h
 
@@ -523,7 +525,7 @@ mtev_thread.o mtev_thread.lo: mtev_thread.c mtev_thread.h mtev_defines.h mtev_co
   ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
   ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
   ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
-  ../src/utils/mtev_hooks.h
+  ../src/utils/mtev_hooks.h aco/aco.h
 
 mtev_tokenizer.o mtev_tokenizer.lo: mtev_tokenizer.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h
@@ -567,11 +569,14 @@ mtev_xml.o mtev_xml.lo: mtev_xml.c mtev_defines.h mtev_config.h noitedit/strlcpy
   ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
   ../src/utils/mtev_hooks.h ../src/utils/mtev_mkdir.h
 
+utils/mtev-logic-leg.o utils/mtev-logic-leg.lo: utils/mtev-logic-leg.c
+
 utils/mtev_b32.o utils/mtev_b32.lo: utils/mtev_b32.c mtev_config.h utils/mtev_b64.h \
   mtev_defines.h mtev_config.h noitedit/strlcpy.h
 
 utils/mtev_b64.o utils/mtev_b64.lo: utils/mtev_b64.c mtev_config.h utils/mtev_b64.h \
-  mtev_defines.h mtev_config.h noitedit/strlcpy.h
+  mtev_defines.h mtev_config.h noitedit/strlcpy.h \
+  aklomp-base64/include/libbase64.h
 
 utils/mtev_btrie.o utils/mtev_btrie.lo: utils/mtev_btrie.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h utils/mtev_btrie.h utils/mtev_log.h \
@@ -743,6 +748,17 @@ utils/mtev_log.o utils/mtev_log.lo: utils/mtev_log.c mtev_defines.h mtev_config.
   flatbuffer/mtevlogline_reader.h  \
   flatbuffer/mtevlogline_verifier.h \
 
+utils/mtev_logic.o utils/mtev_logic.lo: utils/mtev_logic.c mtev_defines.h mtev_config.h \
+  noitedit/strlcpy.h mtev_config.h utils/mtev_logic.h utils/mtev_log.h \
+  utils/mtev_dyn_buffer.h utils/mtev_hash.h  \
+  utils/mtev_hooks.h \
+  utils/mtev_time.h ../src/json-lib/mtev_json.h \
+  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
+  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
+  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
+  ../src/json-lib/mtev_json_tokener.h utils/mtev_zipkin.h \
+  ../src/utils/mtev_hooks.h utils/mtev-logic-leg.c
+
 utils/mtev_lru.o utils/mtev_lru.lo: utils/mtev_lru.c utils/mtev_lru.h mtev_defines.h \
   mtev_config.h noitedit/strlcpy.h mtev_config.h utils/mtev_hash.h \
   utils/mtev_log.h \
@@ -884,6 +900,17 @@ utils/mtev_time.o utils/mtev_time.lo: utils/mtev_time.c  \
 
 utils/mtev_time_fast_preload.o utils/mtev_time_fast_preload.lo: utils/mtev_time_fast_preload.c
 
+utils/mtev_url.o utils/mtev_url.lo: utils/mtev_url.c mtev_config.h utils/mtev_url.h \
+  mtev_defines.h mtev_config.h noitedit/strlcpy.h utils/mtev_log.h \
+  utils/mtev_dyn_buffer.h utils/mtev_hash.h  \
+  utils/mtev_hooks.h \
+  utils/mtev_time.h ../src/json-lib/mtev_json.h \
+  ../src/json-lib/mtev_bits.h ../src/json-lib/mtev_debug.h \
+  ../src/json-lib/mtev_linkhash.h ../src/json-lib/mtev_arraylist.h \
+  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
+  ../src/json-lib/mtev_json_tokener.h utils/mtev_zipkin.h \
+  ../src/utils/mtev_hooks.h 
+
 utils/mtev_uuid_generate.o utils/mtev_uuid_generate.lo: utils/mtev_uuid_generate.c \
   utils/mtev_uuid_generate.h mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h ../src/utils/mtev_uuid.h \
@@ -911,7 +938,7 @@ utils/mtev_watchdog.o utils/mtev_watchdog.lo: utils/mtev_watchdog.c mtev_defines
   ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
   eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
   utils/mtev_log.h utils/mtev_time.h utils/mtev_watchdog.h \
-  utils/mtev_stacktrace.h utils/mtev_hooks.h
+  utils/mtev_stacktrace.h utils/mtev_hooks.h utils/mtev_security.h
 
 utils/mtev_zipkin.o utils/mtev_zipkin.lo: utils/mtev_zipkin.c mtev_defines.h mtev_config.h \
   noitedit/strlcpy.h mtev_config.h utils/mtev_log.h \
@@ -928,6 +955,7 @@ utils/mtev_zipkin.o utils/mtev_zipkin.lo: utils/mtev_zipkin.c mtev_defines.h mte
   eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
   ../src/utils/mtev_sem.h mtev_stats.h mtev_defines.h \
   eventer/eventer_impl_private.h ../src/utils/mtev_memory.h \
+  utils/mtev_zipkin_encode.h
 
 utils/tzinfo.o utils/tzinfo.lo: utils/tzinfo.c utils/libtz.h
 
@@ -1558,7 +1586,8 @@ json-lib/mtev_debug.o json-lib/mtev_debug.lo: json-lib/mtev_debug.c mtev_defines
   noitedit/strlcpy.h mtev_config.h json-lib/mtev_debug.h
 
 json-lib/mtev_json_object.o json-lib/mtev_json_object.lo: json-lib/mtev_json_object.c mtev_defines.h \
-  mtev_config.h noitedit/strlcpy.h mtev_config.h json-lib/mtev_debug.h \
+  mtev_config.h noitedit/strlcpy.h mtev_config.h \
+  json-lib/mtev_debug.h \
   json-lib/mtev_printbuf.h json-lib/mtev_linkhash.h \
   json-lib/mtev_arraylist.h json-lib/mtev_json_object.h \
   json-lib/mtev_json_object_private.h

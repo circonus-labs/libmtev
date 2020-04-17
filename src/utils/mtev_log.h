@@ -94,11 +94,6 @@ typedef enum {
   MTEV_LOG_FORMAT_JSON
 } mtev_log_format_t;
 
-struct _mtev_log_stream_outlet_list {
-  mtev_log_stream_t outlet;
-  struct _mtev_log_stream_outlet_list *next;
-};
-
 typedef struct {
   mtev_boolean supports_async;
   int (*openop)(mtev_log_stream_t);
@@ -166,6 +161,10 @@ API_EXPORT(mtev_log_stream_t) mtev_log_stream_findf(const char *fmt, ...);
 API_EXPORT(void) mtev_log_stream_remove(const char *name);
 API_EXPORT(void) mtev_log_stream_add_stream(mtev_log_stream_t ls,
                                             mtev_log_stream_t outlet);
+API_EXPORT(mtev_boolean)
+  mtev_log_stream_add_stream_filtered(mtev_log_stream_t ls,
+                                      mtev_log_stream_t outlet,
+                                      const char *filter);
 API_EXPORT(void) mtev_log_stream_removeall_streams(mtev_log_stream_t ls);
 API_EXPORT(mtev_log_stream_t)
   mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name);
