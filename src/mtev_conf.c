@@ -3032,8 +3032,16 @@ mtev_conf_log_init(const char *toplevel,
         mtev_conf_release_sections_read(log_configs, cnt);
         exit(-1);
       }
-      else
-        mtev_log_stream_add_stream(ls, outlet);
+      else {
+        char *filter = NULL;
+        if(mtev_conf_get_string(outlets[o], "@filter", &filter)) {
+          mtev_log_stream_add_stream_filtered(ls, outlet, filter);
+          free(filter);
+        }
+        else {
+          mtev_log_stream_add_stream(ls, outlet);
+        }
+      }
     }
     mtev_conf_release_sections_read(outlets, ocnt);
   }

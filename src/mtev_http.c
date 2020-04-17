@@ -626,7 +626,18 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     (void)logline; /* the above line might be CPP'd away */
     free(logline_dynamic);
   }
-  mtevL(http_access, "%s - %s [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
+  mtevEL(http_access,
+        MLKV{ MLKV_STR("ip", ip), MLKV_STR("user", user ? user : "-"),
+              MLKV_STR("method", mtev_http_request_method_str(req)),
+              MLKV_STR("protocol", mtev_http_request_protocol_str(req)),
+              MLKV_STR("uri", mtev_http_request_uri_str(req)),
+              MLKV_STR("querystring", orig_qs ? orig_qs : ""),
+              MLKV_INT64("status", mtev_http_response_status(res)),
+              MLKV_DOUBLE("latency", (double)diff.tv_sec + (double)diff.tv_usec/1000000.0),
+              MLKV_INT64("bytes_written", mtev_http_response_bytes_written(res)),
+              MLKV_INT64("bytes_read", mtev_http_request_content_length_read(req)),
+              MLKV_END },
+        "%s - %s [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
         ip, user ? user : "-", timestr,
         mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
         orig_qs ? "?" : "", orig_qs ? orig_qs : "",

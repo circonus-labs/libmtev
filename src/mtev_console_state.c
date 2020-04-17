@@ -611,10 +611,14 @@ static int
 mtev_console_log_connect(mtev_console_closure_t ncct, int argc, char **argv,
                          mtev_console_state_t *dstate, void *should_connect) {
   (void)dstate;
-  const char *tgt_name = (argc == 2) ? argv[1] : ncct->feed_path;
-  if(argc == 0 || argc > 2) {
-    nc_printf(ncct, "log connect <logname> [<outlet>]\n");
+  const char *tgt_name = ncct->feed_path;
+  char *filter = NULL;
+  if(argc == 0) {
+    nc_printf(ncct, "log connect <logname> [<outlet|-> [filter...]]\n");
     return 0;
+  }
+  if(argc > 1 && strcmp(argv[1],"-")) {
+    tgt_name = argv[1];
   }
   if(!mtev_log_stream_exists(argv[0])) {
     nc_printf(ncct, "%s log stream does not exist\n", argv[0]);
@@ -624,10 +628,29 @@ mtev_console_log_connect(mtev_console_closure_t ncct, int argc, char **argv,
     nc_printf(ncct, "%s log stream does not exist\n", tgt_name);
     return 0;
   }
-  if(should_connect != NULL)
-    mtev_log_stream_add_stream(mtev_log_stream_find(argv[0]), mtev_log_stream_find(tgt_name));
+  if(argc > 2) {
+    int i, len = 0;
+    for(i=2; i<argc; i++) len += strlen(argv[i]) + 1;
+    filter = malloc(len);
+    filter[0] = '\0';
+    for(i=2; i<argc; i++) {
+      strlcat(filter, argv[i], len);
+      strlcat(filter, " ", len);
+    }
+  }
+  if(should_connect != NULL) {
+    if(filter) {
+      if(!mtev_log_stream_add_stream_filtered(mtev_log_stream_find(argv[0]), mtev_log_stream_find(tgt_name), filter)) {
+        nc_printf(ncct, "failed to attach, bad filter?\n");
+      }
+    }
+    else {
+      mtev_log_stream_add_stream(mtev_log_stream_find(argv[0]), mtev_log_stream_find(tgt_name));
+    }
+  }
   else
     mtev_log_stream_remove_stream(mtev_log_stream_find(argv[0]), tgt_name);
+  free(filter);
   return 0;
 }
 

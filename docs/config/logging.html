@@ -721,6 +721,14 @@ into this log are only output to its outlet &quot;debug.&quot;  You&apos;ll noti
 log_stream named &quot;debug&quot; is declared.  We rely on the built-in &quot;debug&quot; log which
 is setup to output to &quot;stderr&quot;.  Also, because we did not declare a &quot;debug&quot;
 log_stream with <code>disabled=&quot;false&quot;</code>, the default state remains disabled.</p>
+<p>Outlets may have a <code>filter</code> attribute that will apply to messages passing
+along these graph edges.  A filter is a logical expression using <code>mtev_logic</code> grammar.
+It supports <code>and(p[,p[,...]])</code>, <code>or(p[,p[,...]])</code> and <code>not(p)</code> where <code>p</code> is a predicate
+<code>field OP &lt;value&gt;</code> or <code>exists(field)</code>. <code>OP</code> is one of <code>=</code>, <code>!=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code>,
+and <code>~</code>, <code>!~</code> (for regex matching).  If the value is a quoted string, comparisons are
+made a strings. If the value is not quoted, then comparisons are attempted numerically.
+Fields include <code>timestamp</code>, <code>facility</code>, <code>threadid</code>, <code>threadname</code>, <code>file</code>, <code>line</code>, <code>message</code>,
+and any other fields added via the extended metadata logging facilities: <code>mtevEL</code>.</p>
 <p>The &quot;error/example&quot; and &quot;error/sample&quot; log_stream are similarly configured to output to the &quot;error&quot;
 log_stream as its outlet.  But, we&apos;ve declared the &quot;error&quot; log_stream in this configuration so that
 we can manipulate its outlets.  The <code>&lt;components&gt;</code>, <code>&lt;error&gt;</code>, and <code>&lt;debug&gt;</code>

@@ -73,6 +73,15 @@ log_stream named "debug" is declared.  We rely on the built-in "debug" log which
 is setup to output to "stderr".  Also, because we did not declare a "debug"
 log_stream with `disabled="false"`, the default state remains disabled.
 
+Outlets may have a `filter` attribute that will apply to messages passing
+along these graph edges.  A filter is a logical expression using `mtev_logic` grammar.
+It supports `and(p[,p[,...]])`, `or(p[,p[,...]])` and `not(p)` where `p` is a predicate
+`field OP <value>` or `exists(field)`. `OP` is one of `=`, `!=`, `>`, `>=`, `<`, `<=`,
+and `~`, `!~` (for regex matching).  If the value is a quoted string, comparisons are
+made a strings. If the value is not quoted, then comparisons are attempted numerically.
+Fields include `timestamp`, `facility`, `threadid`, `threadname`, `file`, `line`, `message`,
+and any other fields added via the extended metadata logging facilities: `mtevEL`.
+
 The "error/example" and "error/sample" log_stream are similarly configured to output to the "error"
 log_stream as its outlet.  But, we've declared the "error" log_stream in this configuration so that
 we can manipulate its outlets.  The `<components>`, `<error>`, and `<debug>`
