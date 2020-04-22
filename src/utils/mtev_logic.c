@@ -39,14 +39,13 @@ static mtev_log_stream_t debugls;
 
 /* Helpers for PCRE JIT... these expressions can run hot */
 static uint32_t initialized = 0;
+#ifdef PCRE_STUDY_JIT_COMPILE
 static __thread pcre_jit_stack *tls_jit_stack;
 static pthread_key_t tls_jit_stack_key;
 
 static void
 free_tls_pcre_jit_stack(void *stack) {
-#ifdef PCRE_STUDY_JIT_COMPILE
   pcre_jit_stack_free((pcre_jit_stack *)stack);
-#endif
 }
 static inline pcre_jit_stack *
 get_tls_pcre_jit_stack(void *arg) {
@@ -60,13 +59,16 @@ get_tls_pcre_jit_stack(void *arg) {
   }
   return tls_jit_stack;
 }
+#endif
 
 static void
 mtev_logic_init(void) {
   if(initialized) return;
   initialized++;
   debugls = mtev_log_stream_find("debug/logic");
+#ifdef PCRE_STUDY_JIT_COMPILE
   mtevAssert(pthread_key_create(&tls_jit_stack_key, free_tls_pcre_jit_stack) == 0);
+#endif
 }
 
 typedef enum {
