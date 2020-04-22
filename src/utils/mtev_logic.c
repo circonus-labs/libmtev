@@ -213,6 +213,7 @@ mtev_logic_op_name(mtev_logic_op_t op) {
   return "unknown";
 }
 
+#define YY_LOCAL(T) static inline T
 #define YYSTYPE void *
 #define YY_CTX_LOCAL 1
 #define YY_PARSE(X) static X
