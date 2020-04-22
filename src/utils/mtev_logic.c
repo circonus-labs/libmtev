@@ -102,7 +102,9 @@ struct mtev_logic_var_t {
 static void mtev_logic_var_clean(void *vv) {
   mtev_logic_var_t *v = vv;
   if(v->free_s) free((char *)v->value.s);
+#ifdef PCRE_STUDY_JIT_COMPILE
   if(v->re_extra) pcre_free_study(v->re_extra);
+#endif
   if(v->re) pcre_free(v->re);
 }
 
