@@ -44,7 +44,9 @@ static pthread_key_t tls_jit_stack_key;
 
 static void
 free_tls_pcre_jit_stack(void *stack) {
+#ifdef PCRE_STUDY_JIT_COMPILE
   pcre_jit_stack_free((pcre_jit_stack *)stack);
+#endif
 }
 static inline pcre_jit_stack *
 get_tls_pcre_jit_stack(void *arg) {
