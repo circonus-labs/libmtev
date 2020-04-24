@@ -60,6 +60,7 @@
 #include "mtev_json.h"
 #include "mtev_str.h"
 #include "mtev_thread.h"
+#include "mtev_uuid.h"
 #include "mtev_zipkin.h"
 #include "mtev_dyn_buffer.h"
 #define XXH_PRIVATE_API
@@ -1950,8 +1951,15 @@ mtev_log_flatbuffer_to_json(mtev_LogLine_fb_t vll, mtev_dyn_buffer_t *tgt) {
   nelem = add_to_jsonf(nelem, tgt, "line", mtev_false, "%u", mtev_LogLine_line(ll));
   nelem = add_to_json(nelem, tgt, "message", mtev_true, mtev_LogLine_message(ll));
   for(int i=0; i<nkvs; i++) {
+    const unsigned char *uuid = NULL;
+    char uuid_str[UUID_STR_LEN+1];
     mtev_KVPair_table_t kv = mtev_KVPair_vec_at(kvs, i);
     switch(mtev_KVPair_value_type(kv)) {
+      case mtev_Value_UUIDValue:
+        uuid = mtev_UUIDValue_value(mtev_KVPair_value(kv));
+        if(uuid) mtev_uuid_unparse_lower(uuid, uuid_str);
+        nelem = add_to_json(nelem, tgt, mtev_KVPair_key(kv), mtev_true, uuid ? uuid_str : NULL);
+        break;
       case mtev_Value_StringValue:
         nelem = add_to_json(nelem, tgt, mtev_KVPair_key(kv), mtev_true,
                             mtev_StringValue_value(mtev_KVPair_value(kv)));
@@ -2021,7 +2029,15 @@ flatbuffer_log_logic_lookup(void *closure, const char *name, mtev_logic_var_t *o
     for(int i=0; i<nkvs; i++) {
       mtev_KVPair_table_t kv = mtev_KVPair_vec_at(kvs, i);
       if(!strcmp(name, mtev_KVPair_key(kv))) {
+        const unsigned char *uuid;
+        char uuid_str[UUID_STR_LEN + 1];
         switch(mtev_KVPair_value_type(kv)) {
+          case mtev_Value_UUIDValue:
+            uuid = mtev_UUIDValue_value(mtev_KVPair_value(kv));
+            if(!uuid) return mtev_false;
+            mtev_uuid_unparse_lower(uuid, uuid_str);
+            mtev_logic_var_set_string_copy(out, uuid_str);
+            return mtev_true;
           case mtev_Value_StringValue:
             mtev_logic_var_set_string(out, mtev_StringValue_value(mtev_KVPair_value(kv)));
             return mtev_true;
@@ -2347,9 +2363,19 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
         mtev_LogLine_kv_push_start(B);
         mtev_KVPair_key_create_str(B, kv->key);
         switch(kv->value_type) {
+          case MTEV_LOG_KV_TYPE_UUID:
+            mtev_KVPair_value_UUIDValue_start(B);
+            mtev_UUIDValue_value_create(B, (unsigned char *)kv->value.v_string, kv->len);
+            mtev_KVPair_value_UUIDValue_end(B);
+            break;
           case MTEV_LOG_KV_TYPE_STRING:
             mtev_KVPair_value_StringValue_start(B);
             mtev_StringValue_value_create_str(B, kv->value.v_string);
+            mtev_KVPair_value_StringValue_end(B);
+            break;
+          case MTEV_LOG_KV_TYPE_STRINGN:
+            mtev_KVPair_value_StringValue_start(B);
+            mtev_StringValue_value_create_strn(B, kv->value.v_string, kv->len);
             mtev_KVPair_value_StringValue_end(B);
             break;
           case MTEV_LOG_KV_TYPE_INT64:
