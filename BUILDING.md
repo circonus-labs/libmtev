@@ -2,6 +2,7 @@
 
 ## Requirements
 
+ * stdc11 (gcc 4.9 or higher)
  * concurrencykit (ck) 0.5+
  * hwloc
  * jlog 2.2+
@@ -73,6 +74,8 @@ Run the following as root (sudo):
         curl-devel hwloc-devel libxslt-devel \
         lz4-devel ncurses-devel openssl-devel pcre-devel \
         udns-devel librabbitmq-c
+    yum --enablerepo=extras install centos-release-scl
+    yum --enablerepo=base install devtoolset-8
 
 Now skip forward to the section below on *Downloading and Building the Package Dependencies*.  Then come back and continue with the next step, *Building Libmtev*.
 
