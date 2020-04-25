@@ -12,8 +12,11 @@ table DoubleValue {
 table StringValue {
   value: string(id: 0);
 }
+table UUIDValue {
+  value: [ubyte](id: 0);
+}
 
-union Value { LongValue, ULongValue, DoubleValue, StringValue }
+union Value { LongValue, ULongValue, DoubleValue, StringValue, UUIDValue }
 
 table KVPair {
   key: string(id: 0);

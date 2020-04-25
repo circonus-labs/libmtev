@@ -259,20 +259,20 @@ mtev_main_terminate(const char *appname,
 
   if((lockfd = mtev_lockfile_acquire_owner(lockfile, &owner)) < 0) {
     if(owner == -1) {
-      mtevEL(mtev_debug, MLKV{ MLKV_INT64("errno", errno), MLKV_END },
+      mtevEL(mtev_debug, MLKV{ MLKV_NUM("errno", errno), MLKV_END },
              "mtev_lockfile_acquire_owner error: %s\n", strerror(errno));
       return -1;
     }
     pid_t groupid = getpgid(owner);
     if(groupid < 0) {
-      mtevEL(mtev_debug, MLKV{ MLKV_INT64("errno", errno), MLKV_END },
+      mtevEL(mtev_debug, MLKV{ MLKV_NUM("errno", errno), MLKV_END },
             "getpgid error: %s\n", strerror(errno));
       return -1;
     }
     mtevL(mtev_debug, "Terminating process group %d.\n", groupid);
     if(kill(-groupid, SIGCONT) < 0 ||
        kill(-groupid, SIGTERM) < 0) {
-      mtevEL(mtev_debug, MLKV{ MLKV_INT64("errno", errno), MLKV_END },
+      mtevEL(mtev_debug, MLKV{ MLKV_NUM("errno", errno), MLKV_END },
             "Failed to kill progress group: %s.\n", strerror(errno));
       return -1;
     }
@@ -316,14 +316,14 @@ mtev_main_status(const char *appname,
 
   if((lockfd = mtev_lockfile_acquire_owner(lockfile, &owner)) < 0) {
     if(owner == -1) {
-      mtevEL(mtev_debug, MLKV{ MLKV_INT64("errno", errno), MLKV_END },
+      mtevEL(mtev_debug, MLKV{ MLKV_NUM("errno", errno), MLKV_END },
              "mtev_lockfile_acquire_owner error: %s\n", strerror(errno));
       return -1;
     }
     if(pid) *pid = owner;
     pid_t groupid = getpgid(owner);
     if(groupid < 0) {
-      mtevEL(mtev_debug, MLKV{ MLKV_INT64("errno", errno), MLKV_END },
+      mtevEL(mtev_debug, MLKV{ MLKV_NUM("errno", errno), MLKV_END },
              "getpgid error: %s\n", strerror(errno));
       return -1;
     }
@@ -600,11 +600,11 @@ mtev_main(const char *appname,
       pid_t owner;
       if((lockfd = mtev_lockfile_acquire_owner(lockfile, &owner)) < 0) {
         if(!wait_for_lock) {
-          mtevEL(mtev_stderr, MLKV{ MLKV_INT64("errno", errno), MLKV_END },
+          mtevEL(mtev_stderr, MLKV{ MLKV_NUM("errno", errno), MLKV_END },
                  "Failed to acquire lock: %s\n", lockfile);
           if(owner != -1) {
             pid_t groupid = getpgid(owner);
-            mtevEL(mtev_stderr, MLKV{ MLKV_INT64("pid", owner), MLKV_INT64("pgid", groupid), MLKV_END },
+            mtevEL(mtev_stderr, MLKV{ MLKV_NUM("pid", owner), MLKV_NUM("pgid", groupid), MLKV_END },
                    "%s already running pid: %d, pgid: %d\n",
                   appname, owner, groupid);
           }
@@ -612,7 +612,7 @@ mtev_main(const char *appname,
         }
         if(wait_for_lock == 1) {
           pid_t pid = getpid();
-          mtevEL(mtev_stderr, MLKV{ MLKV_INT64("pid", pid), MLKV_INT64("errno", errno), MLKV_END },
+          mtevEL(mtev_stderr, MLKV{ MLKV_NUM("pid", pid), MLKV_NUM("errno", errno), MLKV_END },
                  "%d failed to acquire lock(%s), waiting...\n",
                  (int)pid, lockfile);
           wait_for_lock++;
@@ -629,7 +629,7 @@ mtev_main(const char *appname,
   if(foreground == 1) {
     mtev_time_start_tsc();
     pid_t pid = getpid();
-    mtevEL(mtev_notice, MLKV{ MLKV_INT64("pid",pid), MLKV_END },
+    mtevEL(mtev_notice, MLKV{ MLKV_NUM("pid",pid), MLKV_END },
            "%s booting [unmanaged, pid: %d]\n", appname, (int)pid);
     external_diagnose = getenv("MTEV_DIAGNOSE_CRASH");
     if(!external_diagnose || strcmp(external_diagnose,"0")) {
@@ -687,7 +687,7 @@ mtev_main(const char *appname,
   if(*lockfile) {
     if (lock) {
       if((lockfd = mtev_lockfile_acquire(lockfile)) < 0) {
-        mtevEL(mtev_stderr, MLKV{ MLKV_INT64("errno", errno), MLKV_END },
+        mtevEL(mtev_stderr, MLKV{ MLKV_NUM("errno", errno), MLKV_END },
                "Failed to acquire lock: %s\n", lockfile);
         exit(-1);
       }
@@ -696,7 +696,7 @@ mtev_main(const char *appname,
 
   signal(SIGHUP, SIG_IGN);
   pid_t pid = getpid();
-  mtevEL(mtev_notice, MLKV{ MLKV_INT64("pid", pid), MLKV_END }, "%s booting [manager, pid: %d]\n", appname, (int)pid);
+  mtevEL(mtev_notice, MLKV{ MLKV_NUM("pid", pid), MLKV_END }, "%s booting [manager, pid: %d]\n", appname, (int)pid);
   pthread_atfork(NULL, NULL, mtev_memory_gc_asynch);
   rv = mtev_watchdog_start_child(appname, passed_child_main, watchdog_timeout);
   mtev_lockfile_release(lockfd);

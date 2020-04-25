@@ -62,7 +62,9 @@ typedef enum {
   MTEV_LOG_KV_TYPE_STRING = 0,
   MTEV_LOG_KV_TYPE_INT64 = 1,
   MTEV_LOG_KV_TYPE_UINT64 = 2,
-  MTEV_LOG_KV_TYPE_DOUBLE = 3
+  MTEV_LOG_KV_TYPE_DOUBLE = 3,
+  MTEV_LOG_KV_TYPE_STRINGN = 4,
+  MTEV_LOG_KV_TYPE_UUID = 5
 } mtev_log_kv_type_t;
 
 typedef struct {
@@ -74,6 +76,7 @@ typedef struct {
     uint64_t v_uint64;
     double v_double;
   } value;
+  size_t len;
 } mtev_log_kv_t;
 
 typedef void *mtev_LogLine_fb_t;
@@ -83,10 +86,23 @@ typedef void *mtev_LogLine_fb_t;
  */
 #define MLKV (mtev_log_kv_t *[])
 #define MLKV_STR(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_STRING, .value = { .v_string = (v) } }
+#define MLKV_STRN(k,v,l) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_STRINGN, .value = { .v_string = (v) }, .len = (l) }
+#define MLKV_UUID(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_UUID, .value = { .v_string = (const char *)(v) }, .len = UUID_SIZE }
 #define MLKV_INT64(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_INT64, .value = { .v_int64 = (v) } }
 #define MLKV_UINT64(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_UINT64, .value = { .v_uint64 = (v) } }
 #define MLKV_DOUBLE(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_DOUBLE, .value = { .v_double = (v) } }
 #define MLKV_END &(mtev_log_kv_t){ NULL, MTEV_LOG_KV_TYPE_STRING, .value = { .v_string = NULL } }
+#define MLKV_NUM(name,value) _Generic((value), \
+  bool: MLKV_INT64(name,(int64_t)(value)), char: MLKV_INT64(name,(int64_t)(value)), \
+  signed char: MLKV_UINT64(name,(uint64_t)(value)), unsigned char: MLKV_UINT64(name,(uint64_t)(value)), \
+  short int: MLKV_INT64(name,(int64_t)(value)), unsigned short int: MLKV_UINT64(name,(uint64_t)(value)), \
+  int: MLKV_INT64(name,(int64_t)(value)), unsigned int: MLKV_UINT64(name,(uint64_t)(value)), \
+  long int: MLKV_INT64(name,(int64_t)(value)), unsigned long int: MLKV_UINT64(name,(uint64_t)(value)), \
+  long long int: MLKV_INT64(name,(int64_t)(value)), unsigned long long int: MLKV_UINT64(name,(uint64_t)(value)), \
+  float: MLKV_DOUBLE(name,(double)(value)), \
+  double: MLKV_DOUBLE(name,(double)(value)), \
+  long double: MLKV_DOUBLE(name,(double)(value)), \
+  default: MLKV_STR(name, "type failure"))
 
 typedef enum {
   MTEV_LOG_FORMAT_PLAIN = 0,

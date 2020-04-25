@@ -99,14 +99,9 @@ if test "x$GCC" = "xyes" ; then
 	else
 		CHOTOPT="-O5"
 	fi
-	C99FLAG="-std=c99"
+	C99FLAG="-std=c11"
 	CFLAGS="$CFLAGS -g $C99FLAG"
 	DEPFLAGS="-MM"
-else
-	C99FLAG="-xc99=all"
-	CFLAGS="$CFLAGS -g $C99FLAG"
-	CHOTOPT="-xO5"
-	DEPFLAGS="-xM1"
 fi
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT "'-I$(top_srcdir)/src'
