@@ -253,8 +253,8 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
         lua_pushinteger(L, keylen * 8);
         return 1;
       }
-      break;
 #endif
+      break;
     case 'r':
       if(!strcmp(k, "release")) {
         lua_pushlightuserdata(L, udata);
