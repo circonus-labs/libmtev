@@ -4,9 +4,13 @@
 
 ## 1.10
 
+### 1.10.3
+
  * Fix metadata reporting in consul module.
  * Add metadata in http logging.
  * Implement filtering logic for log outlets.
+ * Update mtevEL to support new types.
+ * Require -std=c11 (use of `_Generic`)
 
 ### 1.10.2
 
