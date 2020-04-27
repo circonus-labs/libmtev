@@ -69,11 +69,14 @@ typedef struct {
 static void http_entry_free(void *ve) {
   http_entry_t *e = ve;
   if(e == NULL) return;
-  mtev_hash_destroy(&e->info, NULL, free);
+  mtev_hash_destroy(&e->info, mtev_memory_safe_free, mtev_memory_safe_free);
 }
 
 static void http_entry_track(http_entry_t *e, const char *key, const char *val) {
-  mtev_hash_replace(&e->info, key, strlen(key), strdup(val), NULL, free);
+  char *keycopy = mtev_memory_safe_strdup(key);
+  char *valcopy = mtev_memory_safe_strdup(val);
+  mtev_hash_replace(&e->info, keycopy, strlen(keycopy), valcopy,
+                    mtev_memory_safe_free, mtev_memory_safe_free);
 }
 
 http_entry_t **cache;
