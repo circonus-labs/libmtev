@@ -1894,10 +1894,15 @@ add_to_json(int nelem, mtev_dyn_buffer_t *buff,
             const char *key, mtev_boolean str, const char *string) {
   mtev_dyn_buffer_add(buff, nelem ? (uint8_t *)",\"" : (uint8_t *)"{\"", 2);
   mtev_dyn_buffer_add_json_string(buff, (void *)key, strlen(key), 0);
-  mtev_dyn_buffer_add(buff, (uint8_t *)"\":\"", str ? 3 : 2);
-  if(str) mtev_dyn_buffer_add_json_string(buff, (void *)string, strlen(string), 0);
-  else mtev_dyn_buffer_add(buff, (uint8_t *)string, strlen(string));
-  if(str) mtev_dyn_buffer_add(buff, (uint8_t *)"\"", 1);
+  mtev_dyn_buffer_add(buff, (uint8_t *)"\":\"", (str && string) ? 3 : 2);
+  if(string == NULL) mtev_dyn_buffer_add(buff, (uint8_t *)"null", 4);
+  else {
+    if(str) {
+      mtev_dyn_buffer_add_json_string(buff, (void *)string, strlen(string), 0);
+      mtev_dyn_buffer_add(buff, (uint8_t *)"\"", 1);
+    }
+    else mtev_dyn_buffer_add(buff, (uint8_t *)string, strlen(string));
+  }
   return nelem+1;
 }
 static inline int
@@ -2370,7 +2375,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
             break;
           case MTEV_LOG_KV_TYPE_STRING:
             mtev_KVPair_value_StringValue_start(B);
-            mtev_StringValue_value_create_str(B, kv->value.v_string);
+            if(kv->value.v_string) mtev_StringValue_value_create_str(B, kv->value.v_string);
             mtev_KVPair_value_StringValue_end(B);
             break;
           case MTEV_LOG_KV_TYPE_STRINGN:
