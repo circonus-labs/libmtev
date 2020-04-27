@@ -4,7 +4,7 @@
 
 ## 1.10
 
-###
+### 1.10.4
 
  * Fix use-after-free race in `http_observer` module.
  * Allow null strings in `mtev_log` KV metadata.
