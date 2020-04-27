@@ -4,6 +4,11 @@
 
 ## 1.10
 
+###
+
+ * Fix use-after-free race in `http_observer` module.
+ * Allow null strings in `mtev_log` KV metadata.
+
 ### 1.10.3
 
  * Fix metadata reporting in consul module.
