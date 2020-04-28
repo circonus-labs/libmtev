@@ -99,7 +99,7 @@ static void my_auth_handler(fq_client c, int error) {
   if(!tname_set && eap) {
     tname_set = eap;
     char buff[32];
-    snprintf(buff, sizeof(buff), "fqc:%s\n", eap->host);
+    snprintf(buff, sizeof(buff), "fqc:%s", eap->host);
     mtev_thread_setname(buff);
   }
 
@@ -161,7 +161,7 @@ static bool my_message_ping(fq_client client, fq_msg *m) {
   if(!tname_set && eap) {
     tname_set = eap;
     char buff[32];
-    snprintf(buff, sizeof(buff), "fqd:%s\n", eap->host);
+    snprintf(buff, sizeof(buff), "fqd:%s", eap->host);
     mtev_thread_setname(buff);
   }
 
