@@ -17,6 +17,20 @@ The fq module consumed and publishes message via fq.
 
    Maximum number of messages to handle in a single callback.
 
+ * **`fanout_pool`** (optional)  [default: `default`]
+
+   allowed: `/^\S+$/`
+
+   The eventer pool in which to run the poller.
+
+ * **`fanout`** ()  [default: `1`]
+
+   allowed: `/^\d+$/`
+
+   The number of threads in the pool on which to run the poller. A
+   value less than or equal to zero results in the full concurrency
+   of the pool.
+
 ### Examples
 
 #### Loading the fq module.

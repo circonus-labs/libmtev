@@ -5,6 +5,7 @@
 ## 1.10
 
  * Fix thread naming in fq module.
+ * Add `fanout` and `fanout_pool` config options in `fq` module.
 
 ### 1.10.4
 
