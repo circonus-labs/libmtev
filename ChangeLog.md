@@ -4,6 +4,8 @@
 
 ## 1.10
 
+ * Fix thread naming in fq module.
+
 ### 1.10.4
 
  * Fix use-after-free race in `http_observer` module.
