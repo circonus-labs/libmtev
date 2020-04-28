@@ -8,6 +8,14 @@
                required="optional"
                default="10000"
                allowed="\d+">Maximum number of messages to handle in a single callback.</parameter>
+    <parameter name="fanout_pool"
+               required="optional"
+               default="default"
+               allowed="\S+">The eventer pool in which to run the poller.</parameter>
+    <parameter name="fanout"
+               require="optional"
+               default="1"
+               allowed="\d+">The number of threads in the pool on which to run the poller. A value less than or equal to zero results in the full concurrency of the pool.</parameter>
   </moduleconfig>
   <examples>
     <example>

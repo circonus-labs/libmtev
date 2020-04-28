@@ -34,6 +34,7 @@
 #include "mtev_hooks.h"
 #include "mtev_dso.h"
 #include "mtev_conf.h"
+#include "mtev_rand.h"
 #include "mtev_thread.h"
 #include <fq.h>
 #include "mtev_fq.h"
@@ -66,10 +67,12 @@ typedef struct connection_configs {
 __thread connection_configs *tname_set;
 
 struct fq_module_config {
-  eventer_t receiver;
+  eventer_t *receiver;
   fq_client* fq_conns;
   connection_configs **configs;
   int number_of_conns;
+  eventer_pool_t *fanout_pool;
+  int fanout;
   int poll_limit;
 };
 
@@ -84,6 +87,7 @@ static struct fq_module_config *get_config(mtev_dso_generic_t *self) {
   the_conf = calloc(1, sizeof(*the_conf));
   mtev_image_set_userdata(&self->hdr, the_conf);
   the_conf->poll_limit = DEFAULT_POLL_LIMIT;
+  the_conf->fanout = 1;
   return the_conf;
 }
 
@@ -165,7 +169,7 @@ static bool my_message_ping(fq_client client, fq_msg *m) {
     mtev_thread_setname(buff);
   }
 
-  eventer_wakeup(the_conf->receiver);
+  eventer_wakeup(the_conf->receiver[mtev_rand()%the_conf->fanout]);
   return false; /* This causes it to be delivered normally via the queue. */
 }
 
@@ -327,8 +331,15 @@ fq_driver_init(mtev_dso_generic_t *img) {
     return 0;
   }
 
-  conf->receiver = eventer_alloc_recurrent(poll_fq, NULL);
-  eventer_add(conf->receiver);
+  conf->receiver = calloc(sizeof(*conf->receiver), conf->fanout);
+  for(int i=0; i<conf->fanout; i++) {
+    conf->receiver[i] = eventer_alloc_recurrent(poll_fq, NULL);
+    if(conf->fanout_pool)
+      eventer_set_owner(conf->receiver[i], eventer_choose_owner_pool(conf->fanout_pool, i));
+    else
+      eventer_set_owner(conf->receiver[i], eventer_choose_owner(i));
+    eventer_add(conf->receiver[i]);
+  }
   return 0;
 }
 
@@ -337,7 +348,16 @@ fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
   struct fq_module_config *conf = get_config(img);
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(options, &iter)) {
-    if(!strcmp("poll_limit", iter.key.str)) {
+    if(!strcmp("fanout_pool", iter.key.str)) {
+      conf->fanout_pool = eventer_pool(iter.value.str);
+      if(!conf->fanout_pool) {
+        mtevL(nlerr, "fq fanout_pool '%s' not found, using default.\n", iter.value.str);
+      }
+    }
+    else if(!strcmp("fanout", iter.key.str)) {
+      conf->fanout = atoi(iter.value.str);
+    }
+    else if(!strcmp("poll_limit", iter.key.str)) {
       conf->poll_limit = atoi(iter.value.str);
       if(conf->poll_limit < 0) conf->poll_limit = DEFAULT_POLL_LIMIT;
       mtevL(nldeb, "Setting poll limit to %d!\n", conf->poll_limit);
@@ -346,6 +366,10 @@ fq_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
       return -1;
     }
   }
+  int concurrency = conf->fanout_pool ?
+    (int)eventer_pool_concurrency(conf->fanout_pool) : eventer_loop_concurrency();
+  if(conf->fanout <= 0) conf->fanout = concurrency;
+  if(conf->fanout > concurrency) conf->fanout = concurrency;
   return 0;
 }
 #include "fq.xmlh"
