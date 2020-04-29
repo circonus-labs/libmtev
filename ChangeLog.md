@@ -2,6 +2,8 @@
 
 # 1
 
+ * Expose log volume statistics as metrics in mtev/stats for configured outlets
+
 ## 1.10
 
  * Fix thread naming in fq module.

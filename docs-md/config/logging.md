@@ -133,6 +133,10 @@ journaled log for external consumption.
    Can be set to `plain`, `flatbuffer`, or `json`.  The default is `plain`.  This option
    impacts logs that write output (those with the `type` field set).
 
+ * ##### stats
+
+   If "on"/"true", log line counts are exposed as metrics in the mtev/stats.json
+
 ## Log Types
 
 ### memory
