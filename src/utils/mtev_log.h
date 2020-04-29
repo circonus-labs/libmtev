@@ -196,6 +196,7 @@ API_EXPORT(int) mtev_log_stream_rename(mtev_log_stream_t ls, const char *);
 API_EXPORT(void) mtev_log_stream_close(mtev_log_stream_t ls);
 API_EXPORT(size_t) mtev_log_stream_size(mtev_log_stream_t ls);
 API_EXPORT(size_t) mtev_log_stream_written(mtev_log_stream_t ls);
+API_EXPORT(mtev_boolean) mtev_log_stream_stats_enable(mtev_log_stream_t ls);
 API_EXPORT(const char *) mtev_log_stream_get_property(mtev_log_stream_t ls,
                                                       const char *);
 API_EXPORT(void) mtev_log_stream_set_property(mtev_log_stream_t ls,

@@ -2943,7 +2943,7 @@ mtev_conf_log_init(const char *toplevel,
     mtev_log_stream_t ls;
     char name[256], type[256], path[256], format[16];
     mtev_hash_table *config;
-    mtev_boolean disabled, debug, timestamps, facility;
+    mtev_boolean disabled, debug, timestamps, facility, stats;
 
     if(!mtev_conf_get_stringbuf(log_configs[i],
                                 "ancestor-or-self::node()/@name",
@@ -3043,6 +3043,15 @@ mtev_conf_log_init(const char *toplevel,
         }
       }
     }
+
+    if(mtev_conf_get_boolean(log_configs[i],
+                             "ancestor-or-self::node()/@stats",
+                             &stats)) {
+      if(stats) {
+        mtev_log_stream_stats_enable(ls);
+      }
+    }
+
     mtev_conf_release_sections_read(outlets, ocnt);
   }
   mtev_conf_release_sections_read(log_configs, cnt);
