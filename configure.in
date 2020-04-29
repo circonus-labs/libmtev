@@ -49,7 +49,7 @@ AC_ARG_ENABLE(rdtsc,
 	[AC_HELP_STRING([--disable-rdtsc],
 		[Turn off usage of rdtsc for high res clock])],
 	enable_rdtsc="$enableval",
-	enable_rdtsc=yes)
+	enable_rdtsc="$DEFAULT_ENABLE_RDTSC")
 
 : ${CFLAGS="-g -O2 -fno-omit-frame-pointer"}
 : ${CXXFLAGS="-g -O2 -fno-omit-frame-pointer"}
@@ -110,6 +110,15 @@ DTRACEHDR_TRANSFORM="copy"
 DOTSO=.so
 LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR)'
 MAPFLAGS=""
+AKLOMPENV="AVX2_CFLAGS=-mavx2 SSSE3_CFLAGS=-mssse3 SSE41_CFLAGS=-msse4.1 SSE42_CFLAGS=-msse4.2 AVX_CFLAGS=-mavx"
+DEFAULT_ENABLE_RDTSC=yes
+
+case $host in
+aarch64-*-*-*)
+	AKLOMPENV="NEON32_CFLAGS=-march=armv8-a+simd NEON64_CFLAGS=-march=armv8-a+simd"
+	DEFAULT_ENABLE_RDTSC=no
+	;;
+esac
 
 case $host in
 *-*-darwin*)
@@ -349,6 +358,7 @@ AC_SUBST(DTRACEHDR_TRANSFORM)
 AC_SUBST(DTRACEFLAGS)
 AC_SUBST(MAPFLAGS)
 AC_SUBST(CLINKFLAGS)
+AC_SUBST(AKLOMPENV)
 AC_SUBST(SHLD)
 AC_SUBST(RLDFLAG)
 AC_SUBST(DEPFLAGS)
@@ -425,6 +435,9 @@ AS_IF([test "x$ENABLE_LUA" = "xluajit"], [
     CFLAGS="$CFLAGS $LUAJIT_CFLAGS"
     AC_MSG_RESULT([checking luajit CFLAGS: $LUAJIT_CFLAGS])
 
+    AC_CHECK_LIB(rt, timer_create)
+    AC_CHECK_LIB(pthread, pthread_getspecific)
+    AC_CHECK_LIB(circmetrics, stats_handle_alloc)
     AC_CHECK_LIB(luajit-5.1, luaL_newstate, [],
                     [AC_MSG_ERROR([*** libluajit-5.1 required ***])])
 

@@ -789,6 +789,8 @@ mtev_time_possibly_maintain(int cpuid, uint64_t ticks)
   }
   return coreclocks[cpuid].calc.skew != 0;
 #else
+  (void)cpuid;
+  (void)ticks;
   return mtev_false;
 #endif
 }
