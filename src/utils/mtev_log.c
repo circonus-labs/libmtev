@@ -71,6 +71,7 @@
 #include "libmtev_dtrace.h"
 #include "flatbuffer/mtevlogline_builder.h"
 #include "flatbuffer/mtevlogline_verifier.h"
+#include "mtev_stats.h"
 
 #define BOOT_STDERR_FLAGS MTEV_LOG_STREAM_ENABLED|MTEV_LOG_STREAM_TIMESTAMPS|MTEV_LOG_STREAM_SPLIT
 #define BOOT_DEBUG_FLAGS MTEV_LOG_STREAM_TIMESTAMPS
@@ -82,6 +83,7 @@ static __thread uint32_t recursion_block = 0;
 static pthread_mutex_t resize_lock;
 static int min_flush_seconds = ((MTEV_LOG_DEFAULT_DEDUP_S-1) / 2) + 1;
 static mtev_logic_exec_t *filter_runtime;
+static stats_ns_t *mtev_log_stats_ns;
 
 MTEV_HOOK_IMPL(mtev_log_plain,
                (mtev_log_stream_t ls, const struct timeval *whence,
@@ -154,6 +156,7 @@ struct _mtev_log_stream {
   unsigned deps_materialized:1;
   unsigned flags_below;
   mtev_log_format_t format;
+  stats_handle_t *stats;
 };
 
 struct posix_op_ctx {
@@ -1601,6 +1604,7 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
   }
   /* This is for things that don't open on paths */
   if(ctx) ls->op_ctx = ctx;
+
   mtev_log_rematerialize();
   return ls;
 
@@ -1617,6 +1621,15 @@ freeout:
   }
   free(ls);
   return NULL;
+}
+
+mtev_boolean
+mtev_log_stream_stats_enable(mtev_log_stream_t ls) {
+  if (!ls) return mtev_false;
+  if (ls->stats) return mtev_true; /* already enabled */
+  ls->stats = stats_register_fanout(mtev_log_stats_ns, strdup(ls->name), STATS_TYPE_COUNTER, 16);
+  if (!ls->stats) return mtev_false; /* failed allocating a stats handle */
+  return mtev_true;
 }
 
 mtev_log_stream_t
@@ -2086,6 +2099,10 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
   bitor = &bitor_onstack;
 
   mtev_LogLine_table_t ll = NULL;
+
+  if(ls->stats) {
+    stats_add64(ls->stats, 1);
+  }
 
   if(ls->ops || mtev_log_line_hook_exists() ||
      mtev_log_flatbuffer_hook_exists() ||
@@ -2601,6 +2618,7 @@ mtev_log_stream_to_json_ex(mtev_log_stream_t ls, mtev_boolean terse) {
     MJ_KV(doc, "debugging", MJ_BOOL(IS_DEBUG_ON(ls)));
     MJ_KV(doc, "timestamps", MJ_BOOL(IS_TIMESTAMPS_ON(ls)));
     MJ_KV(doc, "facility", MJ_BOOL(IS_FACILITY_ON(ls)));
+    MJ_KV(doc, "stats", MJ_BOOL(ls->stats != NULL));
     if(ls->config && mtev_hash_size(ls->config) > 0) {
       mtev_json_object *config;
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
@@ -2826,6 +2844,12 @@ mtev_log_init_globals(void) {
     mtev_hash_init_locks(&mtev_logops, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
 
     filter_runtime = mtev_logic_exec_alloc(&flatbuffer_log_filter_ops);
+
+    mtev_stats_init();
+    mtev_log_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "log");
+    stats_ns_add_tag(mtev_log_stats_ns, "framework", "libmtev");
+    stats_ns_add_tag(mtev_log_stats_ns, "mtev", "log");
+    stats_ns_add_tag(mtev_log_stats_ns, "units", "lines");
   }
 }
 
