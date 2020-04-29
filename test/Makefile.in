@@ -6,7 +6,7 @@ ifeq ($(V),)
 endif
 
 CC=@CC@
-CPPFLAGS=@CPPFLAGS@ -DHIDE_EVENTER_ABI
+CPPFLAGS=@CPPFLAGS@ -DHIDE_EVENTER_ABI -I../src/utils -I../src -I../src/json-lib
 CFLAGS=@CFLAGS@
 LDFLAGS=@LDFLAGS@
 AR=@AR@
@@ -44,68 +44,69 @@ all:	geturllz4f check
 TESTS=smr_test intern_test frrh_test uuid_test time_test hll_test maybe_alloc_test dyn_buffer_test speculatelog_test lru_test lfu_test pool-shift-async/test flowreg/test async-pingpong/test subqueues/test
 
 geturllz4f:	geturllz4f.c
-	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS) -lcurl
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS) -lcurl
 
 async-pingpong/test:	async-pingpong/test.c
-	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+
 
 pool-shift-async/test:	pool-shift-async/test.c
-	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 flowreg/test:	flowreg/test.c
-	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 subqueues/test:	subqueues/test.c
-	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 smr_test: smr_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 intern_test: intern_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 frrh_test: frrh_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 hash_test: hash_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 huge_hash_test: huge_hash_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 uuid_test: uuid_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS) -luuid
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS) -luuid
 
 time_test: time_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 sort_test: sort_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 hll_test: hll_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 maybe_alloc_test: maybe_alloc_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 dyn_buffer_test: dyn_buffer_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 speculatelog_test: speculatelog_test.c
-	$(Q)$(CC) -I../src/utils -I../src -I../src/json-lib $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $? -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $? -lmtev $(LIBMTEV_LIBS)
 
 lru_test: lru_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o lru_test lru_test.c -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o lru_test lru_test.c -lmtev $(LIBMTEV_LIBS)
 
 lfu_test: lfu_test.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o lfu_test lfu_test.c -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o lfu_test lfu_test.c -lmtev $(LIBMTEV_LIBS)
 
 .c.o:
 	@echo "- compiling $<"
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -c $<
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
 
 test_http_server: test_http_server.c
-	$(Q)$(CC) -I../src/utils $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -L../src $(LDFLAGS) -o $@ $< -lmtev $(LIBMTEV_LIBS)
 
 test_harness:       $(TESTHARNESS_OBJS)
 	@echo "- linking $@"

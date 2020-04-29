@@ -42,7 +42,7 @@ void parse_file(void)
   char c = getc(f);
   int i = 0;
    
-  while ((c != EOF)) {
+  while ((c != (char)EOF)) {
     if (c == '\n') {
 
       uuid[UUID_STR_LEN] = '\0';
