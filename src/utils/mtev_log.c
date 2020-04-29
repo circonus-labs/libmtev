@@ -83,7 +83,7 @@ static __thread uint32_t recursion_block = 0;
 static pthread_mutex_t resize_lock;
 static int min_flush_seconds = ((MTEV_LOG_DEFAULT_DEDUP_S-1) / 2) + 1;
 static mtev_logic_exec_t *filter_runtime;
-static stats_ns_t *mtev_log_stats_ns;
+static stats_ns_t *mtev_log_lines_stats_ns;
 
 MTEV_HOOK_IMPL(mtev_log_plain,
                (mtev_log_stream_t ls, const struct timeval *whence,
@@ -1626,7 +1626,7 @@ mtev_boolean
 mtev_log_stream_stats_enable(mtev_log_stream_t ls) {
   if (!ls) return mtev_false;
   if (ls->stats) return mtev_true; /* already enabled */
-  ls->stats = stats_register_fanout(mtev_log_stats_ns, strdup(ls->name), STATS_TYPE_COUNTER, 16);
+  ls->stats = stats_register_fanout(mtev_log_lines_stats_ns, strdup(ls->name), STATS_TYPE_COUNTER, 16);
   if (!ls->stats) return mtev_false; /* failed allocating a stats handle */
   return mtev_true;
 }
@@ -2845,10 +2845,10 @@ mtev_log_init_globals(void) {
     filter_runtime = mtev_logic_exec_alloc(&flatbuffer_log_filter_ops);
 
     mtev_stats_init();
-    mtev_log_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "log");
-    stats_ns_add_tag(mtev_log_stats_ns, "framework", "libmtev");
-    stats_ns_add_tag(mtev_log_stats_ns, "mtev", "log");
-    stats_ns_add_tag(mtev_log_stats_ns, "units", "lines");
+    mtev_log_lines_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "log");
+    stats_ns_add_tag(mtev_log_lines_stats_ns, "framework", "libmtev");
+    stats_ns_add_tag(mtev_log_lines_stats_ns, "mtev", "log");
+    stats_ns_add_tag(mtev_log_lines_stats_ns, "units", STATS_UNITS_MESSAGES);
   }
 }
 
