@@ -2845,7 +2845,8 @@ mtev_log_init_globals(void) {
     filter_runtime = mtev_logic_exec_alloc(&flatbuffer_log_filter_ops);
 
     mtev_stats_init();
-    mtev_log_lines_stats_ns = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "log");
+    mtev_log_lines_stats_ns = mtev_stats_ns(
+      mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "log", "lines");
     stats_ns_add_tag(mtev_log_lines_stats_ns, "framework", "libmtev");
     stats_ns_add_tag(mtev_log_lines_stats_ns, "mtev", "log");
     stats_ns_add_tag(mtev_log_lines_stats_ns, "units", STATS_UNITS_MESSAGES);
