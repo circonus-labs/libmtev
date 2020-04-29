@@ -1604,7 +1604,6 @@ mtev_log_stream_new_internal(const char *name, const char *type, const char *pat
   }
   /* This is for things that don't open on paths */
   if(ctx) ls->op_ctx = ctx;
-
   mtev_log_rematerialize();
   return ls;
 
