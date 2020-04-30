@@ -423,7 +423,7 @@ mtev_logic_parse(const char *input, char **error) {
   mtev_logic_init();
   yycontext ctx;
   memset(&ctx, 0, sizeof(yycontext));
-  ctx.ast = calloc(1, sizeof(ctx.ast));
+  ctx.ast = calloc(1, sizeof(*ctx.ast));
   ctx.input_buffer = input;
   ctx.input_buffer_len = strlen(input);
   ctx.error = error;
@@ -476,7 +476,7 @@ mtev_logic_exec_predicate(mtev_logic_exec_t *exec, mtev_logic_pred_t *pred, void
     mtevL(debugls, "exists(%s) -> %s\n", pred->left, lhs_found ? "true" : "false");
     return lhs_found;
   }
-  if(!lhs_found || (lhs.value.s == NULL)) {
+  if(!lhs_found || (lhs.type == MTEV_LOGIC_STRING && lhs.value.s == NULL)) {
     match = (pred->op == POP_NE || pred->op == POP_NRE);
     mtevL(debugls, "!%s %s %s -> %s\n", pred->left, mtev_logic_pred_op_name(pred->op),
           pred->right->value.s, match ? "true" : "false");
