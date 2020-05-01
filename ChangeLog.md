@@ -8,7 +8,7 @@
 
  * Logic optimizations and string slices.
  * Logging optimizations: avoid allocations in some cases, and filter prior to
-   Flatbuffer serializaion.
+   Flatbuffer serialization.
  * Fix non-string matching in log filtering.
  * Fix short allocation in filter parsing.
  * Expose log volume statistics as metrics in mtev/stats for configured outlets
