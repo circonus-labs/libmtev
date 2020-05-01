@@ -3795,8 +3795,7 @@ mtev_conf_env_fixup(void *closure, mtev_conf_section_t section, const char *xpat
         snprintf(key_copy, sizeof(key_copy), "%.*s", (int)strlen(key)-1, key);
         char *replace = getenv(key_copy);
         if(replace) replace = strdup(replace);
-        else replace = strndup(fallback, key - fallback - 1);
-        mtevL(mtev_error, "REPLACED: %s with %s\n", *value, replace);
+        else replace = strndup(fallback, key - fallback - 2);
         xmlFree(*value);
         *value = replace;
         return MTEV_HOOK_DONE;
