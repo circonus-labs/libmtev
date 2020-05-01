@@ -48,7 +48,9 @@ API_EXPORT(void) mtev_logic_exec_free(mtev_logic_exec_t *);
 API_EXPORT(mtev_boolean) mtev_logic_exec(mtev_logic_exec_t *, mtev_logic_ast_t *, void *);
 
 API_EXPORT(void) mtev_logic_var_set_string(mtev_logic_var_t *, const char *);
+API_EXPORT(void) mtev_logic_var_set_stringn(mtev_logic_var_t *, const char *, size_t);
 API_EXPORT(void) mtev_logic_var_set_string_copy(mtev_logic_var_t *, const char *);
+API_EXPORT(void) mtev_logic_var_set_stringn_copy(mtev_logic_var_t *, const char *, size_t);
 API_EXPORT(void) mtev_logic_var_set_int64(mtev_logic_var_t *, int64_t);
 API_EXPORT(void) mtev_logic_var_set_double(mtev_logic_var_t *, double);
 
