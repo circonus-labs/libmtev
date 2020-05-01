@@ -2,12 +2,13 @@
 
 # 1
 
- * Expose log volume statistics as metrics in mtev/stats for configured outlets
- * Fix non-string matching in log filtering.
- * Fix short allocation in filter parsing.
-
 ## 1.10
 
+### 1.10.5
+
+ * Fix non-string matching in log filtering.
+ * Fix short allocation in filter parsing.
+ * Expose log volume statistics as metrics in mtev/stats for configured outlets
  * Fix thread naming in fq module.
  * Add `fanout` and `fanout_pool` config options in `fq` module.
 
