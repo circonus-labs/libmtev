@@ -1640,6 +1640,7 @@ mtev_log_stream_stats_enable(mtev_log_stream_t ls) {
 mtev_log_stream_t
 mtev_log_stream_new(const char *name, const char *type, const char *path,
                     void *ctx, mtev_hash_table *config) {
+  mtev_log_init_globals();
   if(!strcmp(name, "stderr")) {
     mtev_log_stream_t stderr_ls = mtev_log_stream_find("stderr");
     if(stderr_ls) {
@@ -1679,6 +1680,7 @@ mtev_log_stream_find(const char *name) {
   char *last_sep;
   void *vls;
   mtev_log_stream_t newls;
+  mtev_log_init_globals();
   if(mtev_hash_retrieve(&mtev_loggers, name, strlen(name), &vls)) {
     return (mtev_log_stream_t)vls;
   }
@@ -3103,6 +3105,7 @@ mtev_log_stream_pipe_dup2(mtev_log_stream_pipe_t *lp, int fd) {
   return dup2(lp->fds.writeside, fd);
 }
 
+__attribute__((constructor))
 void
 mtev_log_init_globals(void) {
   static int initialized = 0;
