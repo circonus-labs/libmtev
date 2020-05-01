@@ -12,6 +12,8 @@
  * Expose log volume statistics as metrics in mtev/stats for configured outlets
  * Fix thread naming in fq module.
  * Add `fanout` and `fanout_pool` config options in `fq` module.
+ * Assist subroutine name lookups with libunwind (for crash dumps)
+ * Change `MTEV_DWARF` to default to 0, enable by setting to non zero value.
 
 ### 1.10.4
 
