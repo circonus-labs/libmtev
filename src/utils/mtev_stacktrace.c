@@ -296,23 +296,28 @@ static struct typenode *cache_type(struct dmap_node *node, Dwarf_Off off) {
   }
   return NULL;
 }
-static void extract_symbols(struct dmap_node *node, Dwarf_Die sib) {
-  const char *tag_name;
+static int extract_symbols(struct dmap_node *node, Dwarf_Die sib) {
+  int symbols = 0;
   char *die_name;
   Dwarf_Error err;
   Dwarf_Half tag;
   Dwarf_Die child_die = 0;
 
-  if(global_file_symbol_filter && global_file_symbol_filter(node->file)) return;
+  if(global_file_symbol_filter && global_file_symbol_filter(node->file)) return 0;
 
   if(dwarf_child(sib, &child_die, &err) == DW_DLV_OK) {
     do {
-      extract_symbols(node, child_die);
+        /* Only dig into compile units */
+        if(dwarf_tag(sib, &tag, &err) == DW_DLV_OK && tag == DW_TAG_compile_unit) {
+          int newsyms = extract_symbols(node, child_die);
+          symbols += newsyms;
+        }
     } while(dwarf_siblingof(node->dbg, child_die, &child_die, &err) == DW_DLV_OK);
   }
-  if(dwarf_tag(sib, &tag, &err) == DW_DLV_OK &&
-     dwarf_get_TAG_name(tag, &tag_name) == DW_DLV_OK &&
-     dwarf_diename(sib, &die_name, &err) == DW_DLV_OK) {
+
+  if(dwarf_tag(sib, &tag, &err) != DW_DLV_OK) return symbols;
+  if(tag != DW_TAG_variable && tag != DW_TAG_subprogram) return symbols;
+  if(dwarf_diename(sib, &die_name, &err) == DW_DLV_OK) {
     Dwarf_Attribute* attrs;
     Dwarf_Addr pc = 0;
     Dwarf_Off off = 0;
@@ -365,6 +370,7 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib) {
           if(n.low) {
             mtevL(maint_dwarf_log, "found symbol: %llu:%s, %p-%p\n", n.type, die_name, (void *)n.low,
                   (void *)n.high);
+            symbols++;
             struct addr_map *head = calloc(1, sizeof(struct addr_map));
             head->addr = n.low - node->base;
             head->type = ADDR_MAP_FUNCTION;
@@ -389,6 +395,7 @@ static void extract_symbols(struct dmap_node *node, Dwarf_Die sib) {
         break;
     }
   }
+  return symbols;
 }
 
 static struct dmap_node *
@@ -871,6 +878,26 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
       }
       const char *fname = NULL;
       const char *sname = NULL;
+#if defined(HAVE_LIBUNWIND)
+      char sname_buff[256];
+      unw_proc_info_t proc_info;
+      unw_accessors_t *a = unw_get_accessors(unw_local_addr_space);
+      if(0 == unw_get_proc_info_by_ip(unw_local_addr_space, (uintptr_t)callstack[i], &proc_info, NULL)) {
+        unw_dyn_info_t *di = proc_info.unwind_info;
+        sname_off = (uintptr_t)callstack[i] - proc_info.start_ip;
+        if(di && di->format == UNW_INFO_FORMAT_DYNAMIC) {
+          strlcpy(sname_buff, (const char *)di->u.pi.name_ptr, sizeof(sname_buff));
+          sname = sname_buff;
+        }
+        if(a && a->get_proc_name) {
+          if(0 == a->get_proc_name(unw_local_addr_space, (uintptr_t)callstack[i],
+                                   sname_buff, sizeof(sname_buff), NULL, NULL)) {
+            sname = sname_buff;
+          }
+        }
+        fprintf(stderr, "%s + %lx\n", sname, sname_off);
+      }
+#endif
 #if defined(linux) || defined(__linux) || defined(__linux__)
       struct link_map *map;
       if(dladdr1((void *)callstack[i], &dlip, (void **)&map, RTLD_DL_LINKMAP)) {
@@ -885,15 +912,13 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
       if(dladdr((void *)callstack[i], &dlip)) {
 #endif
         fname = dlip.dli_fname;
-        sname = dlip.dli_sname;
-        if (sname_dwarf || sname) {
-          //base = dlip.dli_saddr ? dlip.dli_saddr : base;
-          uintptr_t offset = 0;
-          if (sname_dwarf) offset = sname_off;
-          else offset = (uintptr_t)(callstack[i] - dlip.dli_saddr);
+        if(!sname) sname = dlip.dli_sname;
+        if(sname_dwarf || sname) {
+          uintptr_t offset = sname_off;
+          if(offset == 0) offset = (uintptr_t)(callstack[i] - dlip.dli_saddr);
           len = snprintf(stackbuff, sizeof(stackbuff), "%s'%s+0x%" PRIx64 "[0x%" PRIx64 "]%s\n",
                          fname, sname ? sname : sname_dwarf,
-                         sname ? (uintptr_t)(callstack[i] - dlip.dli_saddr) : offset,
+                         offset ? offset : (uintptr_t)(callstack[i] - dlip.dli_saddr),
                          (uintptr_t)(callstack[i] - base), buff);
         } else {
           len = snprintf(stackbuff, sizeof(stackbuff), "%s[0x%"PRIx64"]%s\n",
