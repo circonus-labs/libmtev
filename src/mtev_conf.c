@@ -3776,8 +3776,39 @@ static void safe_free_xpath(void *in) {
   if(gen && gen->xpath) xmlXPathFreeContext(gen->xpath);
   free(gen);
 }
+
+static mtev_hook_return_t
+mtev_conf_env_fixup(void *closure, mtev_conf_section_t section, const char *xpath,
+                    const char *nodepath, int set, char **value) {
+  (void)closure;
+  (void)section;
+  (void)xpath;
+  (void)nodepath;
+  if(set && *value && !strncmp(*value, "ENV:", 4)) {
+    char *fallback = *value + 4;
+    char *key = strchr(fallback, ':');
+    if(key){
+      key++;
+      if(*key == '{' && key[strlen(key)-1] == '}') {
+        key++;
+        char key_copy[128];
+        snprintf(key_copy, sizeof(key_copy), "%.*s", (int)strlen(key)-1, key);
+        char *replace = getenv(key_copy);
+        if(replace) replace = strdup(replace);
+        else replace = strndup(fallback, key - fallback - 1);
+        mtevL(mtev_error, "REPLACED: %s with %s\n", *value, replace);
+        xmlFree(*value);
+        *value = replace;
+        return MTEV_HOOK_DONE;
+      }
+    }
+  }
+  return MTEV_HOOK_CONTINUE;
+}
+
 void mtev_conf_init_globals(void) {
   mtev_conf_aco_recursion_counter_idx = aco_tls_assign_idx();
   pthread_key_create(&xpath_ctxt_key, safe_free_xpath);
   mtev_hash_init(&global_param_sets);
+  mtev_conf_value_fixup_hook_register("env", mtev_conf_env_fixup, NULL);
 }
