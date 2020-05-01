@@ -86,6 +86,36 @@ static int min_flush_seconds = ((MTEV_LOG_DEFAULT_DEDUP_S-1) / 2) + 1;
 static mtev_logic_exec_t *filter_runtime, *filter_kv_runtime;
 static stats_ns_t *mtev_log_lines_stats_ns;
 ck_rwlock_recursive_t outlets_lock = CK_RWLOCK_RECURSIVE_INITIALIZER;
+static __thread intptr_t outlets_lock_read_recursion_counter;
+
+static inline void outlets_read_lock(void) {
+  if(ck_pr_load_uint(&outlets_lock.rw.writer) == mtev_thread_id()) {
+    ck_rwlock_recursive_write_lock(&outlets_lock, mtev_thread_id());
+  } else {
+    if(outlets_lock_read_recursion_counter++ == 0) {
+      ck_rwlock_recursive_read_lock(&outlets_lock);
+    }
+  }
+}
+static inline void outlets_read_unlock(void) {
+  if(ck_pr_load_uint(&outlets_lock.rw.writer) == mtev_thread_id()) {
+    ck_rwlock_recursive_write_unlock(&outlets_lock);
+  } else {
+    if(--outlets_lock_read_recursion_counter == 0) {
+      ck_rwlock_recursive_read_unlock(&outlets_lock);
+    }
+  }
+}
+static inline void outlets_write_lock(void) {
+  if(outlets_lock_read_recursion_counter != 0) {
+    mtevFatal(mtev_error, "Fatal mtev_log lock inversion. Attempt to upgrade a read lock to a write lock.\n");
+  }
+  ck_rwlock_recursive_write_lock(&outlets_lock, mtev_thread_id());
+}
+static inline void outlets_write_unlock(void) {
+  mtevAssert(ck_pr_load_uint(&outlets_lock.rw.writer) == mtev_thread_id());
+  ck_rwlock_recursive_write_unlock(&outlets_lock);
+}
 
 MTEV_HOOK_IMPL(mtev_log_plain,
                (mtev_log_stream_t ls, const struct timeval *whence,
@@ -442,14 +472,14 @@ static inline mtev_boolean has_material_output(mtev_log_stream_t ls) {
     goto ret;
   }
 
-  ck_rwlock_recursive_read_lock(&outlets_lock);
+  outlets_read_lock();
   for(node = ls->outlets; node; node = node->next) {
     if(has_material_output(node->outlet)) {
       state = mtev_true;
       break;
     }
   }
-  ck_rwlock_recursive_read_unlock(&outlets_lock);
+  outlets_read_unlock();
 
  ret:
   debug_printf("has_material_output(%s) -> %s\n", ls->name, state ? "true" : "false");
@@ -513,9 +543,9 @@ mtev_log_materialize(void) {
 static void
 mtev_log_rematerialize(void) {
   mtev_log_dematerialize();
-  ck_rwlock_recursive_read_lock(&outlets_lock);
+  outlets_read_lock();
   mtev_log_materialize();
-  ck_rwlock_recursive_read_unlock(&outlets_lock);
+  outlets_read_unlock();
 }
 
 
@@ -1726,7 +1756,7 @@ mtev_log_stream_remove(const char *name) {
 void
 mtev_log_stream_add_stream(mtev_log_stream_t ls, mtev_log_stream_t outlet) {
   struct _mtev_log_stream_outlet_list *newnode;
-  ck_rwlock_recursive_write_lock(&outlets_lock, mtev_thread_id());
+  outlets_write_lock();
   for(newnode = ls->outlets; newnode; newnode = newnode->next) {
     if(!strcmp(newnode->outlet->name, outlet->name)) {
       mtevAssert(outlet == newnode->outlet);
@@ -1738,7 +1768,7 @@ mtev_log_stream_add_stream(mtev_log_stream_t ls, mtev_log_stream_t outlet) {
   newnode->outlet = outlet;
   newnode->next = ls->outlets;
   ls->outlets = newnode;
-  ck_rwlock_recursive_write_unlock(&outlets_lock);
+  outlets_write_unlock();
   mtev_log_rematerialize();
   return;
 }
@@ -1886,7 +1916,7 @@ mtev_log_stream_add_stream_filtered(mtev_log_stream_t ls, mtev_log_stream_t outl
   if(!filter_kv_runtime) filter_kv_runtime = mtev_logic_exec_alloc(&kvset_log_filter_ops);
   if(!filter_runtime) filter_runtime = mtev_logic_exec_alloc(&flatbuffer_log_filter_ops);
 
-  ck_rwlock_recursive_write_lock(&outlets_lock, mtev_thread_id());
+  outlets_write_lock();
   for(newnode = ls->outlets; newnode; newnode = newnode->next) {
     if(!strcmp(newnode->outlet->name, outlet->name)) {
       mtevAssert(outlet == newnode->outlet);
@@ -1908,7 +1938,7 @@ mtev_log_stream_add_stream_filtered(mtev_log_stream_t ls, mtev_log_stream_t outl
   newnode->outlet = outlet;
   newnode->next = ls->outlets;
   ls->outlets = newnode;
-  ck_rwlock_recursive_write_unlock(&outlets_lock);
+  outlets_write_unlock();
   mtev_log_rematerialize();
   return mtev_true;
 }
@@ -1917,13 +1947,13 @@ void
 mtev_log_stream_removeall_streams(mtev_log_stream_t ls) {
   struct _mtev_log_stream_outlet_list *tofree;
   if(ls->outlets == NULL) return;
-  ck_rwlock_recursive_write_lock(&outlets_lock, mtev_thread_id());
+  outlets_write_lock();
   while(NULL != (tofree = ls->outlets)) {
     ls->outlets = ls->outlets->next;
     if(tofree->filter_free) tofree->filter_free(tofree->filter_closure);
     free(tofree);
   }
-  ck_rwlock_recursive_write_unlock(&outlets_lock);
+  outlets_write_unlock();
   mtev_log_rematerialize();
 }
 
@@ -1932,14 +1962,14 @@ mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name) {
   mtev_log_stream_t outlet;
   struct _mtev_log_stream_outlet_list *node, *tmp;
   if(!ls->outlets) return NULL;
-  ck_rwlock_recursive_write_lock(&outlets_lock, mtev_thread_id());
+  outlets_write_lock();
   if(!strcmp(ls->outlets->outlet->name, name)) {
     node = ls->outlets;
     ls->outlets = node->next;
     outlet = node->outlet;
     if(node->filter_free) node->filter_free(node->filter_closure);
     free(node);
-    ck_rwlock_recursive_write_unlock(&outlets_lock);
+    outlets_write_unlock();
     mtev_log_rematerialize();
     return outlet;
   }
@@ -1953,12 +1983,12 @@ mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name) {
       /* shed */
       free(tmp);
       /* return */
-      ck_rwlock_recursive_write_unlock(&outlets_lock);
+      outlets_write_unlock();
       mtev_log_rematerialize();
       return outlet;
     }
   }
-  ck_rwlock_recursive_write_unlock(&outlets_lock);
+  outlets_write_unlock();
   return NULL;
 }
 
@@ -1970,9 +2000,9 @@ static void mtev_log_stream_reopen_locked(mtev_log_stream_t ls) {
   }
 }
 void mtev_log_stream_reopen(mtev_log_stream_t ls) {
-  ck_rwlock_recursive_read_lock(&outlets_lock);
+  outlets_read_lock();
   mtev_log_stream_reopen_locked(ls);
-  ck_rwlock_recursive_read_unlock(&outlets_lock);
+  outlets_read_unlock();
 }
 
 int mtev_log_stream_rename(mtev_log_stream_t ls, const char *newname) {
@@ -2006,13 +2036,13 @@ mtev_log_stream_free(mtev_log_stream_t ls) {
     if(ls->name) free(ls->name);
     if(ls->path) free(ls->path);
     if(ls->type) free(ls->type);
-    ck_rwlock_recursive_write_lock(&outlets_lock, mtev_thread_id());
+    outlets_write_lock();
     while(ls->outlets) {
       node = ls->outlets->next;
       free(ls->outlets);
       ls->outlets = node;
     }
-    ck_rwlock_recursive_write_unlock(&outlets_lock);
+    outlets_write_unlock();
     if(ls->config) {
       mtev_hash_destroy(ls->config, free, free);
       free(ls->config);
@@ -2335,7 +2365,7 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
       }
     }
   }
-  ck_rwlock_recursive_read_lock(&outlets_lock);
+  outlets_read_lock();
   for(node = ls->outlets; node; node = node->next) {
     int srv = 0;
     debug_printf(" %s -> %s\n", ls->name, node->outlet->name);
@@ -2343,12 +2373,12 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
     if(IS_ENABLED_ON(node->outlet) && IS_ENABLED_BELOW(node->outlet)) {
       if(node->filter && !ll) {
         if(0 != mtev_LogLine_verify_as_root(fbuffer, flen)) {
-          ck_rwlock_recursive_read_unlock(&outlets_lock);
+          outlets_read_unlock();
           return 0;
         }
         ll = mtev_LogLine_as_root(fbuffer);
         if(ll == NULL) {
-          ck_rwlock_recursive_read_unlock(&outlets_lock);
+          outlets_read_unlock();
           return 0;
         }
       }
@@ -2366,7 +2396,7 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
     }
     if(srv) rv = srv;
   }
-  ck_rwlock_recursive_read_unlock(&outlets_lock);
+  outlets_read_unlock();
   return rv;
 }
 
@@ -2522,7 +2552,7 @@ mtev_log_construction_needed(mtev_log_stream_t ls, mtev_log_kv_t ***kvsets,
   if(IS_ENABLED_ON(ls) && ls->ops) return mtev_true;
   if(!IS_ENABLED_ON(ls)) return mtev_false;
   if(!ls->outlets) return mtev_false;
-  ck_rwlock_recursive_read_lock(&outlets_lock);
+  outlets_read_lock();
   for(node = ls->outlets; node; node = node->next) {
     int srv = 0;
     if(mtev_log_construction_needed(node->outlet, kvsets, tracker)) {
@@ -2537,7 +2567,7 @@ mtev_log_construction_needed(mtev_log_stream_t ls, mtev_log_kv_t ***kvsets,
       if(needed) break;
     }
   }
-  ck_rwlock_recursive_read_unlock(&outlets_lock);
+  outlets_read_unlock();
   return needed;
 }
 
