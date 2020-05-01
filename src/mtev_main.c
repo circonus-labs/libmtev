@@ -468,7 +468,7 @@ mtev_main(const char *appname,
   mtev_zipkin_eventer_init();
 
   char *dwarf_disable = getenv("MTEV_DWARF");
-  if(dwarf_disable && 0 == strcmp(dwarf_disable, "0")) {
+  if(!dwarf_disable || 0 == strcmp(dwarf_disable, "0")) {
     mtev_dwarf_disable();
   }
 

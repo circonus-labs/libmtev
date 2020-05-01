@@ -10,8 +10,8 @@ any libmtev application.
 
  * ##### MTEV_DWARF
 
-   If set to 0, dwarf sections will not be analyzed to make human readable
-   stacktraces.
+   If set to non-0, dwarf sections will be analyzed to make human readable
+   stacktraces (adding file and line numbers).
 
  * ##### MTEV_JIT_OFF
 
