@@ -14,6 +14,8 @@
  * Add `fanout` and `fanout_pool` config options in `fq` module.
  * Assist subroutine name lookups with libunwind (for crash dumps)
  * Change `MTEV_DWARF` to default to 0, enable by setting to non zero value.
+ * Add support for environment variable replacement in config values:
+   `ENV:fallback:{ENVKEY}`
 
 ### 1.10.4
 
