@@ -142,38 +142,29 @@ static ck_rwlock_recursive_t global_config_lock = CK_RWLOCK_RECURSIVE_INITIALIZE
 void mtev_conf_acquire_section_read(mtev_conf_section_t s) {
   if(!s.writelock) return;
   if(ck_pr_load_uint(&s.writelock->rw.writer) == mtev_thread_id()) {
-    mtevL(c_debug, "t@%d> mtev_conf_read_lock() [already writer]\n", mtev_thread_id());
     ck_rwlock_recursive_write_lock(s.writelock, mtev_thread_id());
   } else {
     if(global_read_recursion_inc()) {
-      mtevL(c_debug, "t@%d> mtev_conf_read_lock()\n", mtev_thread_id());
       while(!ck_rwlock_recursive_read_trylock(s.writelock)) {
         if(aco_co_thread()) eventer_aco_sleep(&(struct timeval){ .tv_sec = 0, .tv_usec = 0 });
         else ck_pr_stall();
       }
-    } else {
-      mtevL(c_debug, "t@%d> mtev_conf_read_lock() recurse\n", mtev_thread_id());
     }
   }
 }
 void mtev_conf_release_section_read(mtev_conf_section_t s) {
   if(!s.writelock) return;
   if(ck_pr_load_uint(&s.writelock->rw.writer) == mtev_thread_id()) {
-    mtevL(c_debug, "t@%d> mtev_conf_read_unlock() [already writer]\n", mtev_thread_id());
     ck_rwlock_recursive_write_unlock(s.writelock);
   } else {
     if(global_read_recursion_dec()) {
-      mtevL(c_debug, "t@%d> mtev_conf_read_unlock()\n", mtev_thread_id());
       ck_rwlock_recursive_read_unlock(s.writelock);
-    } else {
-      mtevL(c_debug, "t@%d> mtev_conf_read_unlock() recurse\n", mtev_thread_id());
     }
   }
 }
 void mtev_conf_acquire_section_write(mtev_conf_section_t s) {
   if(!s.writelock) return;
   int tid = mtev_thread_id();
-  mtevL(c_debug, "t@%d> mtev_conf_lock()\n", tid);
   if(global_read_recursion() != 0) {
     mtevFatal(mtev_error, "Fatal mtev_conf lock inversion. Attempt to upgrade a read lock.\n");
   }
@@ -185,7 +176,6 @@ void mtev_conf_acquire_section_write(mtev_conf_section_t s) {
 void mtev_conf_release_section_write(mtev_conf_section_t s) {
   if(!s.writelock) return;
   mtevAssert(ck_pr_load_uint(&s.writelock->rw.writer) == mtev_thread_id());
-  mtevL(c_debug, "t@%d> mtev_conf_unlock()\n", mtev_thread_id());
   ck_rwlock_recursive_write_unlock(s.writelock);
 }
 
