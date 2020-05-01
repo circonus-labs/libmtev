@@ -4,8 +4,6 @@
 
 ## 1.10
 
-### 1.10.5
-
  * Logic optimizations and string slices.
  * Logging optimizations: avoid allocations in some cases, and filter prior to
    Flatbuffer serialization.
