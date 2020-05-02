@@ -44,9 +44,14 @@ src/libmtev*dylib
 src/libmtev_dtrace_probes.h
 src/flatbuffer/*.h
 test/Makefile
+test/geturllz4f
 test/mtevbusted-script
 test/*_test
+test/test_http_server
+test/test_http_server.out
+test/test_http_server.lock
 test/test_harness
 test/sort_test
 test/test_detail.xml
+test/lua-tests/test_detail.xml
 test/*/test

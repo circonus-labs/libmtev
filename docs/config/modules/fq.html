@@ -668,6 +668,16 @@
 <p>allowed: <code>/^\d+$/</code></p>
 <p>Maximum number of messages to handle in a single callback.</p>
 </li>
+<li><p><strong><code>fanout_pool</code></strong> (optional)  [default: <code>default</code>]</p>
+<p>allowed: <code>/^\S+$/</code></p>
+<p>The eventer pool in which to run the poller.</p>
+</li>
+<li><p><strong><code>fanout</code></strong> ()  [default: <code>1</code>]</p>
+<p>allowed: <code>/^\d+$/</code></p>
+<p>The number of threads in the pool on which to run the poller. A
+value less than or equal to zero results in the full concurrency
+of the pool.</p>
+</li>
 </ul>
 <h3 id="examples">Examples</h3>
 <h4 id="loading-the-fq-module">Loading the fq module.</h4>

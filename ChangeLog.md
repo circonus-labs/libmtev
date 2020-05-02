@@ -4,6 +4,8 @@
 
 ## 1.10
 
+### 1.10.6
+
  * Logic optimizations and string slices.
  * Logging optimizations: avoid allocations in some cases, and filter prior to
    Flatbuffer serialization.
@@ -16,6 +18,8 @@
  * Change `MTEV_DWARF` to default to 0, enable by setting to non zero value.
  * Add support for environment variable replacement in config values:
    `ENV:fallback:{ENVKEY}`
+
+### 1.10.5 (skipped)
 
 ### 1.10.4
 

@@ -667,7 +667,11 @@
 </code></pre>
 <h3 id="lockfile">lockfile</h3>
 <p>If the <code>lockfile</code> attribute is specified on the root node, libmtev will require and lock the specified file to prevent multiple invocations of the application running at once.</p>
-<h3 id="requireenv">require_env</h3>
+<h2 id="environment">Environment</h2>
+<h3 id="environment-substitutions">Environment substitutions</h3>
+<p>At times it can be convenient to take configuration variables from the environment.  Leveraging the internal hook systems, libmtev provides environment value substitution for config values.  The value in the configuration must be of the form <code>ENV:default:{KEY}</code> and cannot be &quot;embedded&quot; in some larger string or document.  This means that a setting such as <code>&lt;listener port=&quot;ENV:2222:{PORT}/&gt;</code> is valid, but <code>&lt;target url=&quot;http://localhost:ENV:2222:{PORT}/&quot;/&gt;</code> is not.  If a value is of the prescribed form the <code>KEY</code> is found in the process environment using <code>getenv()</code> and the value used as a substitution.  If that <code>KEY</code> is not found, the <code>default</code> value is used.</p>
+<h3 id="controlling-sections-of-config-via-the-environment">Controlling sections of config via the environment</h3>
+<p>At times we wish to turn on or off (enable or disable) sections of a config based on environmental conditions.  The <code>require_env</code> is leveraged by configuration subsystems that support it to achieve this goal.</p>
 <p>Via the <code>mtev_conf_env_off(mtev_conf_section_t node, const char *attr)</code> function, applications may choose to ignore certain nodes.
 The default <code>attr</code> (when NULL is specified) is <code>require_env</code>.</p>
 <p>libmtev itself applies this, in its default form, to listeners, capabilities, logs, and modules.</p>

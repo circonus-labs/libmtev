@@ -18,7 +18,15 @@ While not required, it is considered best practice to inherit attributes from pa
 
 If the `lockfile` attribute is specified on the root node, libmtev will require and lock the specified file to prevent multiple invocations of the application running at once.
 
-### require_env
+## Environment
+
+### Environment substitutions
+
+At times it can be convenient to take configuration variables from the environment.  Leveraging the internal hook systems, libmtev provides environment value substitution for config values.  The value in the configuration must be of the form `ENV:default:{KEY}` and cannot be "embedded" in some larger string or document.  This means that a setting such as `<listener port="ENV:2222:{PORT}/>` is valid, but `<target url="http://localhost:ENV:2222:{PORT}/"/>` is not.  If a value is of the prescribed form the `KEY` is found in the process environment using `getenv()` and the value used as a substitution.  If that `KEY` is not found, the `default` value is used.
+
+### Controlling sections of config via the environment
+
+At times we wish to turn on or off (enable or disable) sections of a config based on environmental conditions.  The `require_env` is leveraged by configuration subsystems that support it to achieve this goal.
 
 Via the `mtev_conf_env_off(mtev_conf_section_t node, const char *attr)` function, applications may choose to ignore certain nodes.
 The default `attr` (when NULL is specified) is `require_env`.
