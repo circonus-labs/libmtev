@@ -92,7 +92,7 @@ describe("mtev_logic", function()
     -- don't run this because it prints to stderr
     -- libmtev.mtev_logic_ast_log(ls, ast)
     local t = {}
-    assert.is_true(libmtev.mtev_logic_exec(exec, ast, nil))
+    assert.is_equal(1, tonumber(libmtev.mtev_logic_exec(exec, ast, nil)))
     libmtev.mtev_logic_ast_free(ast)
   end)
 
