@@ -950,10 +950,15 @@ int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt) {
 
   // Initialize cursor to current frame for local unwinding.
   if(ctx == NULL) {
+#pragma GCC diagnostic push
+#if __GNUC__ > 8
+#pragma GCC diagnostic ignored "-Wunused-value"
+#endif
     unw_getcontext(&context);
-    ctx = &context;
+#pragma GCC diagnostic pop
+    ctx = (ucontext_t *)&context;
   }
-  unw_init_local(&cursor, ctx);
+  unw_init_local(&cursor, (unw_context_t *)ctx);
 
   while (unw_step(&cursor) > 0 && frames<cnt) {
     unw_word_t pc;
