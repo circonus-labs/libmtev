@@ -4,6 +4,8 @@
 
 ## 1.10
 
+ * Revert a behavior change in jobqs introduced in 1.10.3
+
 ### 1.10.6
 
  * Logic optimizations and string slices.
