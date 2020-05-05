@@ -166,6 +166,7 @@ static int DEBUG_LOG_ENABLED(void) {
 
 struct _mtev_log_stream_outlet_list {
   mtev_log_stream_t outlet;
+  mtev_boolean filter_needs_message;
   mtev_boolean (*filter)(void *, mtev_log_kv_t ***, mtev_LogLine_fb_t);
   void (*filter_free)(void *);
   void *filter_closure;
@@ -1934,6 +1935,7 @@ mtev_log_stream_add_stream_filtered(mtev_log_stream_t ls, mtev_log_stream_t outl
   newnode = calloc(1, sizeof(*newnode));
   newnode->filter = mtev_log_filter_exec;
   newnode->filter_closure = ast;
+  newnode->filter_needs_message = mtev_logic_has_predicate(ast, "message");
   newnode->filter_free = (void (*)(void *))mtev_logic_ast_free;
   newnode->outlet = outlet;
   newnode->next = ls->outlets;
@@ -2544,24 +2546,37 @@ static int local_thr_buff_alloc(void *alloc_context, flatcc_iovec_t *b,
   return 0;
 }
 
-static inline mtev_boolean
+enum construction_required_t {
+  NO_CONSTRUCTION_REQUIRED = 0,
+  YES_CONSTRUCTION_REQUIRED,
+  MESSAGE_NEEDED_TO_DETERMINE
+};
+
+static inline enum construction_required_t
 mtev_log_construction_needed(mtev_log_stream_t ls, mtev_log_kv_t ***kvsets,
+                             mtev_boolean has_message,
                              struct filter_reuse_tracker *tracker) {
   struct _mtev_log_stream_outlet_list *node;
   mtev_boolean needed = mtev_false;
-  if(IS_ENABLED_ON(ls) && ls->ops) return mtev_true;
-  if(!IS_ENABLED_ON(ls)) return mtev_false;
-  if(!ls->outlets) return mtev_false;
+  if(IS_ENABLED_ON(ls) && ls->ops) return YES_CONSTRUCTION_REQUIRED;
+  if(!IS_ENABLED_ON(ls)) return NO_CONSTRUCTION_REQUIRED;
+  if(!ls->outlets) return NO_CONSTRUCTION_REQUIRED;
   outlets_read_lock();
   for(node = ls->outlets; node; node = node->next) {
     int srv = 0;
-    if(mtev_log_construction_needed(node->outlet, kvsets, tracker)) {
+    if(mtev_log_construction_needed(node->outlet, kvsets, has_message, tracker)) {
       if(node->filter == NULL) {
-        needed = mtev_true;
+        needed = YES_CONSTRUCTION_REQUIRED;
       } else {
         if(!filter_reuse_tracker_contains(tracker, node, &needed)) {
-          needed = node->filter(node->filter_closure, kvsets, NULL);
-          filter_reuse_tracker_track(tracker, node, needed);
+          if(!has_message && node->filter_needs_message) {
+            needed = MESSAGE_NEEDED_TO_DETERMINE;
+          } else {
+            needed = node->filter(node->filter_closure, kvsets, NULL) ?
+              YES_CONSTRUCTION_REQUIRED :
+              NO_CONSTRUCTION_REQUIRED;
+            filter_reuse_tracker_track(tracker, node, needed);
+          }
         }
       }
       if(needed) break;
@@ -2613,6 +2628,25 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
     const char *tname = eventer_get_thread_name();
     uint32_t threadid = mtev_thread_id();
 
+    mtev_log_kv_t *message_kv = MLKV_STR("message", "");
+    mtev_log_kv_t ***kvsets = (mtev_log_kv_t **[]){ kvs,
+      MLKV{ MLKV_NUM("timestamp", (double)now->tv_sec + (double)now->tv_usec / 1000000.0),
+            MLKV_NUM("threadid", threadid),
+            MLKV_STR("threadname", tname),
+            MLKV_STR("file", file),
+            MLKV_NUM("line", line),
+            MLKV_STR("facility", ls->name),
+            message_kv,
+            MLKV_END },
+      NULL };
+
+    enum construction_required_t cr = 
+      mtev_log_construction_needed(ls, kvsets, mtev_false, &filter_reuse);
+    if(cr == NO_CONSTRUCTION_REQUIRED) {
+      errno = old_errno;
+      recursion_block = 0;
+      return 0;
+    }
 #ifdef va_copy
     va_copy(copy, arg);
     len = vsnprintf(buffer, MTEV_MAYBE_SIZE(buffer), format, copy);
@@ -2639,22 +2673,16 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
       if(len > (ssize_t)MTEV_MAYBE_SIZE(buffer)) len = MTEV_MAYBE_SIZE(buffer);
     }
 
-    mtev_log_kv_t ***kvsets = (mtev_log_kv_t **[]){ kvs,
-      MLKV{ MLKV_STR("message", buffer),
-            MLKV_NUM("timestamp", (double)now->tv_sec + (double)now->tv_usec / 1000000.0),
-            MLKV_NUM("threadid", threadid),
-            MLKV_STR("threadname", tname),
-            MLKV_STR("file", file),
-            MLKV_NUM("line", line),
-            MLKV_STR("facility", ls->name),
-            MLKV_END },
-      NULL };
-    if(!mtev_log_construction_needed(ls, kvsets, &filter_reuse)) {
-      errno = old_errno;
-      recursion_block = 0;
-      return 0;
+    message_kv->value.v_string = buffer;
+    if(cr == MESSAGE_NEEDED_TO_DETERMINE) {
+      cr = mtev_log_construction_needed(ls, kvsets, mtev_true, &filter_reuse);
+      if(cr != YES_CONSTRUCTION_REQUIRED) {
+        MTEV_MAYBE_FREE(buffer);
+        errno = old_errno;
+        recursion_block = 0;
+        return 0;
+      }
     }
-
     flatcc_builder_t builder, *B = &builder;
     flatcc_builder_custom_init(B, 0, 0, &local_thr_buff_alloc, local_thr_buff);
     mtev_LogLine_start_as_root(B);

@@ -613,6 +613,19 @@ mtev_logic_exec_node(mtev_logic_exec_t *exec, mtev_logic_node_t *node, void *con
   return mtev_false;
 }
 
+static mtev_boolean
+mtev_logic_node_has_predicate(mtev_logic_node_t *n, const char *lval) {
+  if(n->logical_op == LOP_PREDICATE && !strcmp(n->predicate->left, lval)) return mtev_true;
+  for(int i=0; i<n->nelems; i++) {
+    if(mtev_logic_node_has_predicate(n->elems[i], lval)) return mtev_true;
+  }
+  return mtev_false;
+}
+mtev_boolean
+mtev_logic_has_predicate(mtev_logic_ast_t *ast, const char *lval) {
+  return mtev_logic_node_has_predicate(ast->root, lval);
+}
+
 mtev_boolean
 mtev_logic_exec(mtev_logic_exec_t *exec, mtev_logic_ast_t *ast, void *context) {
   return mtev_logic_exec_node(exec, ast->root, context);
