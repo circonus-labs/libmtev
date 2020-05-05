@@ -5,6 +5,7 @@
 ## 1.10
 
  * Revert a behavior change in jobqs introduced in 1.10.3
+ * Further optimize `mtev_log` filtering.
 
 ### 1.10.6
 
