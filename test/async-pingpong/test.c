@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-int ITERS = 100000;
+#define ITERS 100000
 #define APPNAME "example1"
 static char *config_file = NULL;
 static int debug = 0;
@@ -33,11 +33,8 @@ usage(const char *prog) {
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, "c:di:")) != EOF) {
+  while((c = getopt(argc, argv, "c:d")) != EOF) {
     switch(c) {
-      case 'i':
-        ITERS = atoi(optarg);
-        break;
       case 'd':
         debug = 1;
         break;

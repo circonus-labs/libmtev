@@ -276,8 +276,8 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     mtevL(mtev_error, "Cannot initialize lock\n");
     goto error_out;
   }
-  if(pthread_cond_init(&jobq->cond, NULL) != 0) {
-    mtevL(mtev_error, "Cannot initialize condition variable: %s\n",
+  if(sem_init(&jobq->semaphore, 0, 0) != 0) {
+    mtevL(mtev_error, "Cannot initialize semaphore: %s\n",
           strerror(errno));
     goto error_out;
   }
@@ -441,7 +441,7 @@ eventer_jobq_enqueue_internal(eventer_jobq_t *jobq, eventer_job_t *job, eventer_
   pthread_mutex_unlock(&jobq->lock);
 
   /* Signal consumers */
-  pthread_cond_signal(&jobq->cond);
+  sem_post(&jobq->semaphore);
 }
 
 mtev_boolean
@@ -488,16 +488,11 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
   int cycles = 0;
 
   /* Wait for a job */
-  if(!should_wait) {
-    if(ck_pr_load_32(&jobq->backlog) == 0) {
-      return NULL;
-    }
-  }
-  pthread_mutex_lock(&jobq->lock);
-  if(should_wait && ck_pr_load_32(&jobq->backlog) == 0) {
-    while(pthread_cond_wait(&jobq->cond, &jobq->lock) && errno == EINTR);
-  }
+  if(should_wait) while(sem_wait(&jobq->semaphore) && errno == EINTR);
+  /* Or Try-wait for a job */
+  else if(sem_trywait(&jobq->semaphore)) return NULL;
 
+  pthread_mutex_lock(&jobq->lock);
   eventer_jobsq_t *starting_point = jobq->current_squeue;
   uint32_t tgt_inflight = 0;
   /* We're going to spin around our work queues aiming for a balance
@@ -537,6 +532,8 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
     if(job->fd_event) ck_pr_dec_32(&jobq->backlog);
     ck_pr_inc_32(&jobq->inflight);
   }
+  /* Our semaphores are counting semaphores, not locks. */
+  /* coverity[missing_unlock] */
   return job;
 }
 
@@ -566,7 +563,7 @@ eventer_jobq_destroy(eventer_jobq_t *jobq) {
     free(jobq->subqueues);
   }
   pthread_mutex_destroy(&jobq->lock);
-  pthread_cond_destroy(&jobq->cond);
+  sem_destroy(&jobq->semaphore);
   if(jobq->short_name) mtev_memory_safe_free((void *)jobq->short_name);
   free(jobq);
 }
@@ -947,8 +944,9 @@ eventer_jobq_post_noop(eventer_t e, int mask, void *c, struct timeval *now) {
   return 0;
 }
 void eventer_jobq_post(eventer_jobq_t *jobq) {
+  sem_post(&jobq->semaphore);
   eventer_add_asynch(jobq, eventer_alloc_asynch(eventer_jobq_post_noop, NULL));
-  pthread_cond_signal(&jobq->cond);
+  sem_post(&jobq->semaphore);
 }
 
 void eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *name) {
