@@ -116,11 +116,12 @@ local function mkvar(name, val, owner)
 end
 
 --
--- We don't have symbols for ck_hs, so we need to do some pointer arithmetic.
--- One reason for this is, that we build libck.so without DRWARF,
--- But even if we had this, the map entry would only show up as a void* in backtrace,
--- according to Sammy Bahra this is because of "lazy loading of types" and
--- "[..] the type info for that CU is incomplete its just a forward declaration."
+-- We don't have symbols for ck_hs, so we need to do some pointer arithmetic.  One reason for this
+-- is, that we build libck.so without DRWARF symbols.  But even with DWARF, the map entry shows up
+-- as a void* in backtrace.  According to Sammy Bahra this is because of "lazy loading of types" and
+-- "[..] the type info for that CU is incomplete its just a forward declaration."  While I don't
+-- understand this in full, doing the pointer arithmetic is straight-forward enough for us to get
+-- along without symbol support.
 --
 --
 --                                          OFFSET
