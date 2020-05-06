@@ -464,7 +464,7 @@ install-ptrace-plugins:
 		$(INSTALL) -m 0644 $$file $(DESTDIR)$(datarootdir)/ptrace; \
 	done
 
-install:	install-bins install-docs install-headers install-libs install-modules
+install:	install-bins install-docs install-headers install-libs install-modules install-ptrace-plugins
 
 libmtev.xmldb:	coverity_model.c
 	cov-make-library -of libmtev.xmldb coverity_model.c
