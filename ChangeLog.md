@@ -4,8 +4,8 @@
 
 ## 1.10
 
- * Add backtrace/ptrace pretty-printers for mtev_hash_table and
-   mtev_http*_request values
+ * Add backtrace/ptrace pretty-printers for `mtev_hash_table` and
+   `mtev_http*_request` values
 
 ### 1.10.7
 
