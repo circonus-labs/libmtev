@@ -68,7 +68,7 @@ void *thr_access(void *thrid) {
 }
 
 void aco_access(void) {
-  mtevL(mtev_notice, "memory access aco thread start\n");
+  mtevL(mtev_notice, "memory access aco thread start [co:%p]\n", aco_gtls_co);
   struct timeval duration = { 0, 2 };
   for(int iters=0; iters<NITERS/5; iters++) {
     char *my_memslots[NSLOTS];
@@ -84,7 +84,7 @@ void aco_access(void) {
     }
     mtev_memory_end();
   }
-  mtevL(mtev_notice, "memory access aco thread end\n");
+  mtevL(mtev_notice, "memory access aco thread end [co:%p]\n", aco_gtls_co);
   sem_post(&done);
   aco_exit();
 }

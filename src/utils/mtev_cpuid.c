@@ -47,6 +47,13 @@ enum {
   VENDOR_LENGTH
 };
 
+#ifdef __aarch64__
+mtev_boolean
+mtev_cpuid_feature(int feature) {
+  (void)feature;
+  return mtev_false;
+}
+#else
 static inline void
 mtev_cpuid(struct cpuid *r, uint32_t eax)
 {
@@ -110,3 +117,4 @@ mtev_cpuid_feature(int feature)
   }
   return mtev_false;
 }
+#endif
