@@ -4,6 +4,9 @@
 
 ## 1.10
 
+ * Add backtrace/ptrace pretty-printers for `mtev_hash_table` and
+   `mtev_http*_request` values
+
 ### 1.10.7
 
  * Revert a behavior change in jobqs introduced in 1.10.3
