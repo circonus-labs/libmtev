@@ -576,6 +576,7 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
     xmlAddChild(parent, node);
   }
   if(container) xmlAddChild(container, parent);
+  CONF_DIRTY(n);
   mtev_conf_mark_changed();
   if(mtev_conf_write_file(NULL) != 0) {
     mtev_conf_release_section_write(n);
