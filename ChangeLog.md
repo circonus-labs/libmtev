@@ -6,6 +6,7 @@
 
  * Add backtrace/ptrace pretty-printers for `mtev_hash_table` and
    `mtev_http*_request` values
+ * Fix NPE when freeing a broken SSL context.
 
 ### 1.10.7
 
