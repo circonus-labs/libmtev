@@ -1233,16 +1233,15 @@ rest_update_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
     FAIL("bad root node: not cluster");
   headers = mtev_http_request_headers_table(mtev_http_session_request(ctx));
   if (headers) {
-    char *force_conf_str = NULL;
-    char *hash_retr = "x-mtev-conf-sync";
-    if (mtev_hash_retrieve(headers, hash_retr, strlen(hash_retr), (void **)&force_conf_str)) {
+    char *force_conf_str = mtev_hash_dict_get(headers, "x-mtev-conf-sync");
+    if (force_conf_str) {
       int val = atoi(force_conf_str);
       if (val == 1) {
         force_conf_write = mtev_true;
       }
       else if (val != 0) {
-        mtevL(cerror, "bad %s param (%s) sent to /cluster endpoint - must be zero or one... defaulting to off\n",
-          hash_retr, force_conf_str);
+        mtevL(cerror, "bad x-mtev-conf-sync param (%s) sent to /cluster endpoint - must be zero or one... defaulting to off\n",
+          force_conf_str);
       }
     }
   }
