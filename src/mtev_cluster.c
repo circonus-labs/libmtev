@@ -1222,6 +1222,8 @@ rest_update_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
   int complete = 0, mask = 0, error_code = 500, status;
   xmlDocPtr indoc, doc;
   xmlNodePtr root;
+  mtev_hash_table *headers = NULL;
+  mtev_boolean force_conf_write = mtev_false;
 
   indoc = rest_get_xml_upload(restc, &mask, &complete);
   if(!complete) return mask;
@@ -1229,9 +1231,29 @@ rest_update_cluster(mtev_http_rest_closure_t *restc, int n, char **p) {
   root = xmlDocGetRootElement(indoc);
   if(!root || strcmp((const char *)root->name, "cluster"))
     FAIL("bad root node: not cluster");
+  headers = mtev_http_request_headers_table(mtev_http_session_request(ctx));
+  if (headers) {
+    char *force_conf_str = NULL;
+    char *hash_retr = "x-mtev-conf-sync";
+    if (mtev_hash_retrieve(headers, hash_retr, strlen(hash_retr), (void **)&force_conf_str)) {
+      int val = atoi(force_conf_str);
+      if (val == 1) {
+        force_conf_write = mtev_true;
+      }
+      else if (val != 0) {
+        mtevL(cerror, "bad %s param (%s) sent to /cluster endpoint - must be zero or one... defaulting to off\n",
+          hash_retr, force_conf_str);
+      }
+    }
+  }
   status = mtev_cluster_update_internal(mtev_conf_section_from_xmlnodeptr(root));
   if(status < 0) {
     FAIL("failed to update");
+  }
+  if (force_conf_write == mtev_true) {
+    if (mtev_conf_write_file(NULL)) {
+      FAIL("failed to flush file");
+    }
   }
   mtev_http_response_standard(ctx, status == 2 ? 304 : 204, "OK", "none");
   mtev_http_response_end(ctx);
