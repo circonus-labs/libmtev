@@ -7,6 +7,10 @@
  * Add backtrace/ptrace pretty-printers for `mtev_hash_table` and
    `mtev_http*_request` values
  * Fix NPE when freeing a broken SSL context.
+ * Add optional header to `/cluster` PUT endpoint, "x-mtev-conf-synch", that, if
+   set to "1", will force writing the mtev conf file upon successful completion
+   rather than just scheduling it for writing. The default is still
+   to not force writing; the force write will only happen if the header is set.
 
 ### 1.10.7
 
