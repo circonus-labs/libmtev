@@ -596,8 +596,10 @@ ssl_ctx_cache_node_free(ssl_ctx_cache_node *node) {
 
 void
 eventer_ssl_ctx_free(eventer_ssl_ctx_t *ctx) {
-  SSL_set_eventer_ssl_ctx(ctx->ssl, NULL); // in case it has more references
-  if(ctx->ssl) SSL_free(ctx->ssl);
+  if(ctx->ssl) {
+    SSL_set_eventer_ssl_ctx(ctx->ssl, NULL); // in case it has more references
+    SSL_free(ctx->ssl);
+  }
   if(ctx->npn) free(ctx->npn);
   if(ctx->ssl_ctx_cn) ssl_ctx_cache_node_free(ctx->ssl_ctx_cn);
   if(ctx->issuer) free(ctx->issuer);
