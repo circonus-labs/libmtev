@@ -1108,16 +1108,18 @@ mtev_conf_shatter_write(xmlDocPtr doc) {
       /* If it is a file, we'll unlink it, otherwise,
        * we need to delete the attributes and the directory.
        */
-      if(unlink(last->path)) {
-        char attrpath[PATH_MAX];
-        snprintf(attrpath, sizeof(attrpath), "%s/.attrs", last->path);
-        unlink(attrpath);
-        if(rmdir(last->path) && errno != ENOENT) {
-          /* This shouldn't happen, but if it does we risk
-           * leaving a mess. Don't do that.
-           */
-          mtevL(c_error, "backingstore mess %s: %s\n",
-                last->path, strerror(errno));
+      if (last->path) {
+        if(unlink(last->path)) {
+          char attrpath[PATH_MAX];
+          snprintf(attrpath, sizeof(attrpath), "%s/.attrs", last->path);
+          unlink(attrpath);
+          if(rmdir(last->path) && errno != ENOENT) {
+            /* This shouldn't happen, but if it does we risk
+             * leaving a mess. Don't do that.
+             */
+            mtevL(c_error, "backingstore mess %s: %s\n",
+                  last->path, strerror(errno));
+          }
         }
       }
       mtev_xml_userdata_free(last);
