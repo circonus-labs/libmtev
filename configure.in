@@ -20,6 +20,12 @@ fi
 AC_CANONICAL_HOST
 AC_CONFIG_HEADER(src/mtev_config.h)
 
+AC_ARG_ENABLE(coverage,
+	[AC_HELP_STRING([--enable-coverage],
+		[Compile with gcov support])],
+	enable_coverage="$enableval",
+	enable_coverage=no)
+
 AC_ARG_ENABLE(strict,
 	[AC_HELP_STRING([--disable-strict],
 		[Compile with warnings treated as errors])],
@@ -909,6 +915,13 @@ AC_CACHE_CHECK([for ssize_t], ac_cv_have_ssize_t, [
 AC_SUBST(FQ_MODULES)
 AC_SUBST(AMQP_MODULES)
 AC_SUBST(LUA_MODULES)
+
+if test "$enable_coverage" != "no"; then
+	CFLAGS="$CFLAGS --coverage"
+	SHCLAGS="$SHCFLAGS --coverage"
+	LDFLAGS="$LDFLAGS --coverage"
+	SHLDFLAGS="$SHLDFLAGS --coverage"
+fi
 
 docdir="docs"
 mansubdir="man"
