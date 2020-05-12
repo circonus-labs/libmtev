@@ -1,3 +1,5 @@
+local LIMIT_MEMBER_COUNT = 128
+
 --
 -- Helper
 --
@@ -111,7 +113,10 @@ end
 local function mkvar(name, val, owner)
   local pt_var = pmodule.create_variable("<type>", name, 0, 0, owner)
   pt_var:set_string(tostring(val))
-  owner:frame():add_variable(pt_var)
+  local fr = owner:frame()
+  if fr then -- global variables don't have frames
+    fr:add_variable(pt_var)
+  end
   return pt_var
 end
 
@@ -154,16 +159,22 @@ local function variable_mtev_hash_cb(pt_var, bt_var)
     local fr = pt_var:frame()
     local pt_map = pmodule.create_variable("<type>", "map (extracted)", 0, 0, pt_hash)
     pt_map:set_array()
-    fr:add_variable(pt_map)
+    if fr then fr:add_variable(pt_map) end
     local n = poke_num(map+40, 4)
     local cap = poke_num(map+48, 4)
     local entr_p = poke_num(map+72, 8)
     local entr_l = poke_ptr_arr(entr_p, cap) -- list of pointers
     mkvar("filled (extracted)", n, pt_hash)
     mkvar("capacity (extracted)", cap, pt_hash)
+    local cnt = 0
     for i, a_ent in ipairs(entr_l) do
       -- a_ent is a pointer to the key member of struct ck_hash_attr
       if a_ent > 0 then
+        cnt = cnt + 1
+        if cnt > LIMIT_MEMBER_COUNT then
+          if fr then fr:annotate(pmodule.annotation.warning, "truncated map extraction") end
+          break
+        end
         local a_key  = a_ent - 8;
         local key = poke_val(deref(a_key), 100)
         local a_data = a_ent - 16;
