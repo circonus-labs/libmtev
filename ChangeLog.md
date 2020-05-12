@@ -4,6 +4,8 @@
 
 ## 1.10
 
+ * NPN upgrades could reference a stale context resulting in crashes.
+
 ### 1.10.8
 
  * Add backtrace/ptrace pretty-printers for `mtev_hash_table` and
