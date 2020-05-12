@@ -4,13 +4,14 @@
 
 ## 1.10
 
+### 1.10.8
+
  * Add backtrace/ptrace pretty-printers for `mtev_hash_table` and
    `mtev_http*_request` values
  * Fix NPE when freeing a broken SSL context.
- * Add optional header to `/cluster` PUT endpoint, "x-mtev-conf-synch", that, if
-   set to "1", will force writing the mtev conf file upon successful completion
-   rather than just scheduling it for writing. The default is still
-   to not force writing; the force write will only happen if the header is set.
+ * The `/cluster` PUT endpoint will now synchronously write the configuration
+   to storage if the "x-mtev-conf-synch" header is present and set to "1".
+ * Add support for aarch64
 
 ### 1.10.7
 
