@@ -920,13 +920,10 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
 #ifndef OPENSSL_NO_NEXTPROTONEG
 static int next_proto_cb(SSL *ssl, const unsigned char **data,
                          unsigned int *len, void *arg) {
-  (void)ssl;
-  eventer_ssl_ctx_t *ctx = (eventer_ssl_ctx_t *)arg;
+  (void)arg;
   if(!ssl) return SSL_TLSEXT_ERR_NOACK;
-  if(ctx != SSL_get_eventer_ssl_ctx(ssl)) {
-    mtevL(mtev_error, "SSL state mixup, refusing NPN\n");
-    return SSL_TLSEXT_ERR_NOACK;
-  }
+  eventer_ssl_ctx_t *ctx = SSL_get_eventer_ssl_ctx(ssl);
+  if(!ctx) return SSL_TLSEXT_ERR_NOACK;
   if(!ctx->npn) return SSL_TLSEXT_ERR_NOACK;
 
   *data = ctx->npn;
@@ -974,7 +971,7 @@ eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn) {
     memcpy(ctx->npn+1, npn, ctx->npn[0]);
 
 #ifndef OPENSSL_NO_NEXTPROTONEG
-    SSL_CTX_set_next_protos_advertised_cb(ctx->ssl_ctx, next_proto_cb, ctx);
+    SSL_CTX_set_next_protos_advertised_cb(ctx->ssl_ctx, next_proto_cb, NULL);
 #endif /* !OPENSSL_NO_NEXTPROTONEG */
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
     SSL_CTX_set_alpn_select_cb(ctx->ssl_ctx, alpn_select_proto_cb, f);
@@ -1038,7 +1035,8 @@ SSL_set_eventer_ssl_ctx(SSL *ssl, eventer_ssl_ctx_t *ctx) {
 static eventer_ssl_ctx_t *
 SSL_get_eventer_ssl_ctx(const SSL *ssl) {
   INIT_DATAID;
-  return SSL_get_ex_data(ssl, SSL_eventer_ssl_ctx_dataid);
+  eventer_ssl_ctx_t *ctx = SSL_get_ex_data(ssl, SSL_eventer_ssl_ctx_dataid);
+  return ctx;
 }
 
 eventer_ssl_ctx_t *
