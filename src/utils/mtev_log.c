@@ -2557,7 +2557,7 @@ mtev_log_construction_needed(mtev_log_stream_t ls, mtev_log_kv_t ***kvsets,
                              mtev_boolean has_message,
                              struct filter_reuse_tracker *tracker) {
   struct _mtev_log_stream_outlet_list *node;
-  mtev_boolean needed = mtev_false;
+  enum construction_required_t needed = NO_CONSTRUCTION_REQUIRED;
   if(IS_ENABLED_ON(ls) && ls->ops) return YES_CONSTRUCTION_REQUIRED;
   if(!IS_ENABLED_ON(ls)) return NO_CONSTRUCTION_REQUIRED;
   if(!ls->outlets) return NO_CONSTRUCTION_REQUIRED;
@@ -2568,18 +2568,21 @@ mtev_log_construction_needed(mtev_log_stream_t ls, mtev_log_kv_t ***kvsets,
       if(node->filter == NULL) {
         needed = YES_CONSTRUCTION_REQUIRED;
       } else {
-        if(!filter_reuse_tracker_contains(tracker, node, &needed)) {
+	mtev_boolean bneed;
+        if(filter_reuse_tracker_contains(tracker, node, &bneed)) {
+          if(bneed) needed = YES_CONSTRUCTION_REQUIRED;
+        } else {
           if(!has_message && node->filter_needs_message) {
             needed = MESSAGE_NEEDED_TO_DETERMINE;
           } else {
-            needed = node->filter(node->filter_closure, kvsets, NULL) ?
-              YES_CONSTRUCTION_REQUIRED :
+            bneed = node->filter(node->filter_closure, kvsets, NULL);
+            needed = bneed ? YES_CONSTRUCTION_REQUIRED :
               NO_CONSTRUCTION_REQUIRED;
-            filter_reuse_tracker_track(tracker, node, needed);
+            filter_reuse_tracker_track(tracker, node, bneed);
           }
         }
       }
-      if(needed) break;
+      if(needed != NO_CONSTRUCTION_REQUIRED) break;
     }
   }
   outlets_read_unlock();
