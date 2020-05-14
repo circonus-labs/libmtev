@@ -2751,10 +2751,11 @@ This function is effectively the `mtev.log` function with the first argument
 set to "error".  It is also aliased into the global `print` symbol such that
 one cannot accidentally call the print builtin.
 */
+static char *print_tgt = NULL;
 static int
 nl_print(lua_State *L) {
   int n = lua_gettop(L);
-  lua_pushstring(L, "error");
+  lua_pushstring(L, print_tgt ? print_tgt : "error");
   lua_pushcclosure(L, nl_log_up, 1);
   lua_insert(L, 1);
   if(n == 0) {
@@ -2774,6 +2775,20 @@ nl_print(lua_State *L) {
     n++;
   }
   lua_call(L, n, 0);
+  return 0;
+}
+/*! \lua len = mtev.printto(facility)
+\param facility is an mtev log stream
+
+This function sets the mtev.print output facility.
+*/
+static int
+nl_printto(lua_State *L) {
+  int n = lua_gettop(L);
+  if(n != 1) luaL_error(L, "mtev.printto(facility)");
+  char *tofree = print_tgt;
+  print_tgt = strdup(luaL_checkstring(L,1));
+  free(tofree);
   return 0;
 }
 /*! \lua len = mtev.log(facility, format, ...)
@@ -5888,6 +5903,7 @@ static const luaL_Reg mtevlib[] = {
   { "log_enabled", nl_log_enabled },
   { "enable_log", nl_enable_log },
   { "print", nl_print },
+  { "printto", nl_printto },
   { "unlink", nl_unlink },
   { "rmdir", nl_rmdir },
   { "mkdir", nl_mkdir },

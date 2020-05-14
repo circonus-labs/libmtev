@@ -43,26 +43,28 @@ static char *droptouser = NULL, *droptogroup = NULL;
 static mtev_log_stream_t cli_stdout;
 
 static int
-usage(const char *prog) {
-  fprintf(stderr,
+usage(const char *prog, FILE *out) {
+  fprintf(out,
   "%s [-i] [-L luapath] [-C luacpath] [-M dir] [-d] [-e function]\n\tluafile\n\n", prog);
-  fprintf(stderr, "\t-u\t\t\tdrop to user\n");
-  fprintf(stderr, "\t-g\t\t\tdrop to group\n");
-  fprintf(stderr, "\t-i\t\t\tturn on interactive console\n");
-  fprintf(stderr, "\t-c <file>\t\tcustom mtev config\n");
-  fprintf(stderr, "\t-l <logname>\t\tenable the an mtev log stream\n");
-  fprintf(stderr, "\t-L <path>\t\tlua package.path\n");
-  fprintf(stderr, "\t-L +<path>\t\tappend to package.path\n");
-  fprintf(stderr, "\t-C <path>\t\tlua package.cpath\n");
-  fprintf(stderr, "\t-C +<path>\t\tappend to package.cpath\n");
-  fprintf(stderr, "\t-M <path>\t\tmtev modules path\n");
-  fprintf(stderr, "\t-m\t\t\tdaemonize and run managed\n");
-  fprintf(stderr, "\t-m -m\t\t\trun managed\n");
-  fprintf(stderr, "\t-n <#threads>\t\tspecify concurrency\n");
-  fprintf(stderr, "\t-d\t\t\tturn on debugging\n");
-  fprintf(stderr, "\t-e <func>\t\tspecify a function entrypoint (default: main)\n");
-  fprintf(stderr, "\n%s -T\n", prog);
-  fprintf(stderr, "\tDumps the auto-generated config file for reference.\n");
+  fprintf(out, "\t-u\t\t\tdrop to user\n");
+  fprintf(out, "\t-g\t\t\tdrop to group\n");
+  fprintf(out, "\t-i\t\t\tturn on interactive console\n");
+  fprintf(out, "\t-c <file>\t\tcustom mtev config\n");
+  fprintf(out, "\t-l <logname>\t\tenable the an mtev log stream\n");
+  fprintf(out, "\t-L <path>\t\tlua package.path\n");
+  fprintf(out, "\t-L +<path>\t\tappend to package.path\n");
+  fprintf(out, "\t-C <path>\t\tlua package.cpath\n");
+  fprintf(out, "\t-C +<path>\t\tappend to package.cpath\n");
+  fprintf(out, "\t-M <path>\t\tmtev modules path\n");
+  fprintf(out, "\t-m\t\t\tdaemonize and run managed\n");
+  fprintf(out, "\t-m -m\t\t\trun managed\n");
+  fprintf(out, "\t-n <#threads>\t\tspecify concurrency\n");
+  fprintf(out, "\t-d\t\t\tturn on debugging\n");
+  fprintf(out, "\t-e <func>\t\tspecify a function entrypoint (default: main)\n");
+  fprintf(out, "\n%s -T [luafile]\n", prog);
+  fprintf(out, "\tDumps the auto-generated config file for reference.\n");
+  fprintf(out, "\n%s -h\n", prog);
+  fprintf(out, "\tThis help message.\n");
   return 2;
 }
 static void
@@ -139,11 +141,12 @@ make_config(void) {
 static void
 parse_cli_args(int argc, char * const *argv) {
   int c;
-  while((c = getopt(argc, argv, POSIXLY_COMPLIANT_PLUS "c:de:g:l:mn:iu:C:L:M:T")) != EOF) {
+  while((c = getopt(argc, argv, POSIXLY_COMPLIANT_PLUS "c:de:g:hl:mn:iu:C:L:M:T")) != EOF) {
     switch(c) {
       case 'd': debug = 1; break;
+      case 'h': usage(argv[0], stdout); exit(0); break;
       case 'i': interactive = 1; break;
-      case 'f': function = strdup(optarg); break;
+      case 'e': function = strdup(optarg); break;
       case 'l': mtev_main_enable_log(optarg); break;
       case 'C':
         if(optarg[0] == '+') lua_addcpath = strdup(optarg+1);
@@ -166,13 +169,16 @@ parse_cli_args(int argc, char * const *argv) {
     }
   }
   if(optind > (argc-1) && !dump_template) {
-    exit(usage(argv[0]));
+    exit(usage(argv[0], stderr));
   }
   cli_argv = calloc(argc - optind + 1, sizeof(char *));
   for(c = 0; optind != argc; c++, optind++)
     cli_argv[c] = strdup(argv[optind]);
   lua_file = realpath(cli_argv[0], NULL);
   if(lua_file == NULL && errno == ENOENT) lua_file = cli_argv[0];
+  if(!lua_file && dump_template) {
+    lua_file = "unspecified.lua";
+  }
   if(!lua_file) {
     fprintf(stderr, "Bad file: %s\n", cli_argv[0]);
     exit(2);
@@ -202,6 +208,13 @@ int luaopen_hostcli(lua_State *L) {
     lua_setfield(L, -2, key);
   }
   lua_setglobal(L, "ENV");
+
+  lua_getglobal(L, "mtev");
+  mtevAssert(lua_istable(L, -1));
+  lua_getfield(L, -1, "printto");
+  mtevAssert(lua_isfunction(L, -1));
+  lua_pushstring(L, "stdout");
+  lua_call(L, 1, 0);
   return 0;
 }
 
@@ -292,33 +305,14 @@ int luaopen_LuaMtevDirect(lua_State *L) {
   return 1;
 }
 
-static mtev_boolean dwarf_filter_all(const char *file) {
-  (void)file;
-  return mtev_false;
-}
-
 int main(int argc, char **argv, char **envp) {
   parse_cli_args(argc, argv);
   if(!config_file) make_config();
 
   global_envp = envp;
   mtev_memory_init();
-  if(NULL == getenv("MTEV_DWARF")) {
-    mtev_dwarf_filter(dwarf_filter_all);
-    mtev_dwarf_filter_symbols(dwarf_filter_all);
-  }
   mtev_main(APPNAME, config_file, debug, foreground,
             MTEV_LOCK_OP_LOCK, NULL, droptouser, droptogroup,
             child_main);
-
-  free(function);
-  free(lua_addcpath);
-  free(lua_cpath);
-  free(lua_addlpath);
-  free(lua_lpath);
-  free(modules_path);
-  free(config_file);
-  free(droptouser);
-  free(droptogroup);
   return 0;
 }
