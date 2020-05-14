@@ -478,7 +478,7 @@ libmtev.info:
 		'*/src/aklomp-base64/lib/*' '*/src/examples/*' '*/src/flatbuffer/*'
 	rm -f $@.tmp
 
-coverage.xml:
+coverage.xml:	libmtev.info
 	$(PYTHON) $(top_srcdir)/buildtools/lcov_cobertura.py libmtev.info -b . -o coverage.xml
 
 clean:
