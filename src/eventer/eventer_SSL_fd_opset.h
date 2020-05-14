@@ -100,8 +100,29 @@ typedef int (*eventer_SSL_alpn_func_t)(const unsigned char **out,
                                        unsigned char *outlen,
                                        const unsigned char *in,
                                        unsigned int inlen);
+
+#define EVENTER_SSL_ALPN_MATCHER(func, _key)                           \
+static int func(const unsigned char **out, unsigned char *outlen,      \
+                const unsigned char *in, unsigned int inlen) {         \
+  const char *key = _key;                                              \
+  unsigned char keylen = strlen(key);                                  \
+  unsigned int i;                                                      \
+  for (i = 0; i + keylen < inlen; i += (unsigned int)(in[i] + 1)) {    \
+    if (in[i] == keylen && memcmp(in+1, key, keylen)) {                \
+      *out = (unsigned char *)&in[i + 1];                              \
+      *outlen = in[i];                                                 \
+      return 1;                                                        \
+    }                                                                  \
+  }                                                                    \
+  return 0;                                                            \
+}
+
+
 API_EXPORT(void)
   eventer_ssl_alpn_register(const char *name, eventer_SSL_alpn_func_t f);
+
+API_EXPORT(void)
+  eventer_ssl_ctx_alpn_register(eventer_ssl_ctx_t *ctx, const char *name, eventer_SSL_alpn_func_t f);
 
 API_EXPORT(int)
   eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn);

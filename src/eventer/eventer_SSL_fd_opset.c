@@ -99,6 +99,7 @@ struct eventer_ssl_ctx_t {
   unsigned no_more_negotiations:1;
   unsigned renegotiated:1;
   uint8_t *npn;
+  mtev_hash_table *alpn_funcs;
 };
 
 #define ssl_ctx ssl_ctx_cn->internal_ssl_ctx
@@ -602,6 +603,10 @@ eventer_ssl_ctx_free(eventer_ssl_ctx_t *ctx) {
   }
   if(ctx->npn) free(ctx->npn);
   if(ctx->ssl_ctx_cn) ssl_ctx_cache_node_free(ctx->ssl_ctx_cn);
+  if(ctx->alpn_funcs) {
+    mtev_hash_destroy(ctx->alpn_funcs, free, NULL);
+    free(ctx->alpn_funcs);
+  }
   if(ctx->issuer) free(ctx->issuer);
   if(ctx->subject) free(ctx->subject);
   if(ctx->cert_error) free(ctx->cert_error);
@@ -937,39 +942,87 @@ static int next_proto_cb(SSL *ssl, const unsigned char **data,
 static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
                                 unsigned char *outlen, const unsigned char *in,
                                 unsigned int inlen, void *arg) {
-  int rv;
-  (void)ssl;
-  eventer_SSL_alpn_func_t f = (eventer_SSL_alpn_func_t)arg;
+  (void)arg;
+  if(!ssl) return SSL_TLSEXT_ERR_NOACK;
+  eventer_ssl_ctx_t *ctx = SSL_get_eventer_ssl_ctx(ssl);
+  if(!ctx) return SSL_TLSEXT_ERR_NOACK;
+  if(!ctx->npn) return SSL_TLSEXT_ERR_NOACK;
 
-  rv = f(out, outlen, in, inlen);
-
-  if (rv != 1) {
-    return SSL_TLSEXT_ERR_NOACK;
+  eventer_SSL_alpn_func_t f = NULL;
+  void *vf = NULL;
+  for (unsigned int i = 0; i < inlen; i += (unsigned int)(in[i] + 1)) {
+    if((ctx->alpn_funcs && mtev_hash_retrieve(ctx->alpn_funcs, in+i+1, in[i], &vf)) ||
+       mtev_hash_retrieve(&alpn_funcs, in+i+1, in[i], &vf)) {
+      f = vf;
+    }
+    if(f) {
+      int rv = f(out, outlen, in, inlen);
+      mtevL(ssldb, "alpn <- (%u:%u) %.*s -> %d\n", inlen, i, (int)in[i], in+i+1, rv);
+      if (rv < 0) return SSL_TLSEXT_ERR_NOACK;
+      if (rv == 1) return SSL_TLSEXT_ERR_OK;
+    }
   }
-
-  return SSL_TLSEXT_ERR_OK;
+  return SSL_TLSEXT_ERR_NOACK;
 }
 #endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
 
+static int
+eventer_alpn_select_always(const unsigned char **out, unsigned char *outlen,
+                           const unsigned char *in, unsigned int inlen) {
+  (void)inlen;
+  *out = in+1;
+  *outlen = in[0];
+  return 1;
+}
+
 void
 eventer_ssl_alpn_register(const char *name, eventer_SSL_alpn_func_t f) {
+  if(f == NULL) f = eventer_alpn_select_always;
   mtev_hash_replace(&alpn_funcs, strdup(name), strlen(name), f, free, NULL);
+}
+
+void
+eventer_ssl_ctx_alpn_register(eventer_ssl_ctx_t *ctx, const char *name, eventer_SSL_alpn_func_t f) {
+  if(f == NULL) f = eventer_alpn_select_always;
+  if(!ctx->alpn_funcs) {
+    mtev_hash_table *t = calloc(1, sizeof(*t));
+    mtev_hash_init_locks(t, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
+    if(!ck_pr_cas_ptr(&ctx->alpn_funcs, NULL, t)) {
+      mtev_hash_destroy(t, free, NULL);
+      free(t);
+    }
+  }
+  mtev_hash_replace(ctx->alpn_funcs, strdup(name), strlen(name), f, free, NULL);
 }
 
 int
 eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn) {
   eventer_SSL_alpn_func_t f = NULL;
+  int npnlen = strlen(npn);
+  char *newnpn = malloc(1+npnlen+1);
+  newnpn[1] = '\0';
   if(npn) {
-    void *vf = NULL;
-    if(mtev_hash_retrieve(&alpn_funcs, npn, strlen(npn), &vf)) {
-      f = vf;
+    char *copy = strdup(npn);
+    char *brkt, *part;
+    for(part = strtok_r(copy, ",", &brkt); part;
+        part = strtok_r(NULL, ",", &brkt)) {
+      void *vf = NULL;
+      mtevL(ssldb, "ALPN checking %s\n", part);
+      if((ctx->alpn_funcs && mtev_hash_retrieve(ctx->alpn_funcs, part, strlen(part), &vf)) ||
+         mtev_hash_retrieve(&alpn_funcs, part, strlen(part), &vf)) {
+        f = vf;
+        if(f && strlen(newnpn+1) + strlen(part) < 0xff) {
+          if(newnpn[1]) strlcat(newnpn+1, ",", npnlen+1);
+          strlcat(newnpn+1, part, npnlen+1);
+        }
+      }
     }
+    free(copy);
   }
-  if(npn && strlen(npn) <= 0xff && f) {
-    ctx->npn = malloc(1 + strlen(npn));
-    ctx->npn[0] = strlen(npn);
-    memcpy(ctx->npn+1, npn, ctx->npn[0]);
-
+  if(strlen(newnpn+1) > 0) {
+    ctx->npn = (unsigned char *)newnpn;
+    ctx->npn[0] = strlen(newnpn+1);
+    newnpn = NULL;
 #ifndef OPENSSL_NO_NEXTPROTONEG
     SSL_CTX_set_next_protos_advertised_cb(ctx->ssl_ctx, next_proto_cb, NULL);
 #endif /* !OPENSSL_NO_NEXTPROTONEG */
@@ -981,6 +1034,7 @@ eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn) {
     free(ctx->npn);
     ctx->npn = NULL;
   }
+  free(newnpn);
   return 0;
 }
 
