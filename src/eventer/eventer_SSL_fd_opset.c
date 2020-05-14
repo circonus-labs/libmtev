@@ -1003,7 +1003,7 @@ eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn) {
   newnpn[1] = '\0';
   if(npn) {
     char *copy = strdup(npn);
-    char *brkt, *part;
+    char *brkt = NULL, *part;
     for(part = strtok_r(copy, ",", &brkt); part;
         part = strtok_r(NULL, ",", &brkt)) {
       void *vf = NULL;
