@@ -36,6 +36,23 @@ function _G.mtev.exec(path, argv, env, timeout)
   assert(path)
   argv = argv or { path }
   env = env or { unpack(ENV) }
+
+  -- env is an *ARRAY of key=value* not a table... but people always mess that up
+  local needs_conversion = false
+  local i = 1
+  for _ in pairs(env) do
+    if env[i] == nil then
+      needs_conversion = true
+      break
+    end
+    i = i + 1
+  end
+  if needs_conversion then
+    local newenv = {}
+    for k,v in pairs(env) do table.insert(newenv, k .. "=" .. tostring(v)) end
+    env = newenv
+  end
+
   timeout = timeout or 5
   local proc, in_e, out_e, err_e = mtev.spawn(path, argv, env)
   if not proc then error("cannot start proc") end
