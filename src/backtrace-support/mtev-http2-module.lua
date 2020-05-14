@@ -1,4 +1,4 @@
-function L(...)
+local function L(...)
   pmodule.log(pmodule.log_level.info, string.format(...))
 end
 
@@ -26,7 +26,7 @@ local function variable_http2_cb(pt_var, bt_var)
     string.format("%s %s%s (%d)", method, uri, qs, length))
 end
 
-function pm_mtev_http2_req()
+local function pm_mtev_http2_req()
   L("module-mtev-http2: load")
   local m = pmodule.match()
   m:add_file("mtev_http", pmodule.match_type.substr)
