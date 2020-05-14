@@ -474,7 +474,7 @@ libmtev.xmldb:	coverity_model.c
 
 libmtev.info:
 	$(LCOV) -c -d . -o $@.tmp --gcov-tool $(GCOV)
-	$(LCOV) --remove $@.tmp -o $@ '/opt/circonus/include/*' '/usr/lib/*' '/usr/include/*' \
+	$(LCOV) --remove $@.tmp -o $@ '/opt/circonus/include/*' '*/usr/lib/*' '*/usr/include/*' \
 		'*/src/aklomp-base64/lib/*' '*/src/examples/*' '*/src/flatbuffer/*'
 	rm -f $@.tmp
 
