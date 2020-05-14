@@ -1,0 +1,53 @@
+HOME			= .
+RANDFILE		= $ENV::HOME/.rnd
+
+####################################################################
+[ ca ]
+default_ca  = CA_default        # The default ca section
+
+[ CA_default ]
+
+default_days    = 1000          # how long to certify for
+default_crl_days= 30            # how long before next CRL
+default_md  = sha256        # use public key default MD
+preserve    = no            # keep passed DN ordering
+dir		= ./demoCA
+database	= $dir/index.txt
+serial		= $dir/serial
+policy = policy_match
+private_key	= $dir/test-ca.key
+certificate	= $dir/test-ca.crt
+
+x509_extensions = usr_cert
+
+email_in_dn = no            # Don't concat the email in the DN
+copy_extensions = copy          # Required to copy SANs from CSR to cert
+
+[ policy_match ]
+countryName            = match
+stateOrProvinceName    = match
+organizationName       = match
+organizationalUnitName = optional
+commonName             = supplied
+emailAddress           = optional
+
+[ req ]
+distinguished_name     = req_distinguished_name
+
+[ usr_cert ]
+# These extensions are added when 'ca' signs a request.
+basicConstraints=CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+nsComment = "OpenSSL Generated Certificate"
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer
+
+[ v3_ca ]
+# Extensions for a typical CA
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer
+basicConstraints = CA:true
+keyUsage = cRLSign, keyCertSign
+
+[ req_distinguished_name ]
+

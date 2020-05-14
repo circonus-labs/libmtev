@@ -235,7 +235,7 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
   listener_closure_t listener_closure = (listener_closure_t)closure;
   mtev_acceptor_closure_t *ac = NULL;
   if(!closure) {
-    mtevL(mtev_error, "SSL accept failed: no closure\n");
+    mtevL(nlerr, "SSL accept failed: no closure\n");
     goto socketfail;
   }
   ac = listener_closure->dispatch_closure;
@@ -284,9 +284,9 @@ mtev_listener_accept_ssl(eventer_t e, int mask,
      default: break;
   }
   if(!sslerr) {
-    mtevL(mtev_debug, "SSL accept failed from %s: connection closed\n", ip);
+    mtevL(nldeb, "SSL accept failed from %s: connection closed\n", ip);
   } else {
-    mtevL(mtev_error, "SSL accept failed from %s: %s\n", ip, sslerr);
+    mtevL(nlerr, "SSL accept failed from %s: %s\n", ip, sslerr);
   }
 
  socketfail:
@@ -413,17 +413,17 @@ mtev_listener_acceptor(eventer_t e, int mask,
         SSLCONFGET(ca, "ca_chain");
         SSLCONFGET(ciphers, "ciphers");
         SSLCONFGET(npn, "npn");
-        if(!npn) npn="h2";
+        if(!npn) npn="h2,http/1.1";
         ctx = eventer_ssl_ctx_new(SSL_SERVER, layer, cert, key, ca, ciphers);
         if(!ctx) {
-          mtevL(mtev_error, "Failed to create SSL context.\n");
+          mtevL(nlerr, "Failed to create SSL context.\n");
           close(conn);
           goto socketfail;
         }
         SSLCONFGET(crl, "crl");
         if(crl) {
           if(!eventer_ssl_use_crl(ctx, crl)) {
-            mtevL(mtev_error, "Failed to load CRL from %s\n", crl);
+            mtevL(nlerr, "Failed to load CRL from %s\n", crl);
             eventer_ssl_ctx_free(ctx);
             close(conn);
             goto socketfail;
@@ -460,7 +460,7 @@ mtev_listener_acceptor(eventer_t e, int mask,
       if(errno == EAGAIN) break; /* defer to eventer */
       else if(errno == EINTR) continue; /* retry */
       else {
-        mtevL(mtev_error, "accept socket error: %s\n", strerror(errno));
+        mtevL(nlerr, "accept socket error: %s\n", strerror(errno));
         goto socketfail;
       }
     }
@@ -511,7 +511,7 @@ mtev_listener(char *host, unsigned short port, int type,
           family = AF_INET6;
           memset(&a.addr6,0,sizeof(a.addr6));
         } else {
-          mtevL(mtev_error, "mtev_listener(%s, %d, %d, %d, %s, %p) -> bad address\n",
+          mtevL(nlerr, "mtev_listener(%s, %d, %d, %d, %s, %p) -> bad address\n",
                 host, port, type, backlog,
                 (event_name = eventer_name_for_callback(handler))?event_name:"??",
                 service_ctx);
@@ -523,7 +523,7 @@ mtev_listener(char *host, unsigned short port, int type,
 
   fd = socket(family, NE_SOCK_CLOEXEC|type, 0);
   if(fd < 0) {
-    mtevL(mtev_error, "mtev_listener(%s, %d, %d, %d, %s, %p) -> socket: %s\n",
+    mtevL(nlerr, "mtev_listener(%s, %d, %d, %d, %s, %p) -> socket: %s\n",
           host, port, type, backlog,
           (event_name = eventer_name_for_callback(handler))?event_name:"??",
           service_ctx, strerror(errno));
@@ -532,7 +532,7 @@ mtev_listener(char *host, unsigned short port, int type,
 
   if(eventer_set_fd_nonblocking(fd)) {
     close(fd);
-    mtevL(mtev_error, "mtev_listener(%s, %d, %d, %d, %s, %p) -> nonblock: %s\n",
+    mtevL(nlerr, "mtev_listener(%s, %d, %d, %d, %s, %p) -> nonblock: %s\n",
           host, port, type, backlog,
           (event_name = eventer_name_for_callback(handler))?event_name:"??",
           service_ctx, strerror(errno));
@@ -543,7 +543,7 @@ mtev_listener(char *host, unsigned short port, int type,
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
                  (void*)&reuse, sizeof(reuse)) != 0) {
     close(fd);
-    mtevL(mtev_error, "mtev_listener(%s, %d, %d, %d, %s, %p) -> SO_REUSEADDR: %s\n",
+    mtevL(nlerr, "mtev_listener(%s, %d, %d, %d, %s, %p) -> SO_REUSEADDR: %s\n",
           host, port, type, backlog,
           (event_name = eventer_name_for_callback(handler))?event_name:"??",
           service_ctx, strerror(errno));
@@ -557,7 +557,7 @@ mtev_listener(char *host, unsigned short port, int type,
     /* coverity[fs_check_call] */
     if(stat(host, &sb) == -1) {
       if(errno != ENOENT) {
-        mtevL(mtev_error, "mtev_listener(%s, %d, %d, %d, %s, %p) -> stat: %s\n",
+        mtevL(nlerr, "mtev_listener(%s, %d, %d, %d, %s, %p) -> stat: %s\n",
               host, port, type, backlog,
               (event_name = eventer_name_for_callback(handler))?event_name:"??",
               service_ctx, strerror(errno));
@@ -571,7 +571,7 @@ mtev_listener(char *host, unsigned short port, int type,
         unlink(host);
       }
       else {
-        mtevL(mtev_error, "mtev_listener(%s, %d, %d, %d, %s, %p) -> unlink: %s\n",
+        mtevL(nlerr, "mtev_listener(%s, %d, %d, %d, %s, %p) -> unlink: %s\n",
               host, port, type, backlog,
               (event_name = eventer_name_for_callback(handler))?event_name:"??",
               service_ctx, strerror(errno));
@@ -597,7 +597,7 @@ mtev_listener(char *host, unsigned short port, int type,
     sockaddr_len = (family == AF_INET) ?  sizeof(s.addr4) : sizeof(s.addr6);
   }
   if(bind(fd, (struct sockaddr *)&s, sockaddr_len) < 0) {
-    mtevL(mtev_error, "mtev_listener(%s, %d, %d, %d, %s, %p) -> bind: %s\n",
+    mtevL(nlerr, "mtev_listener(%s, %d, %d, %d, %s, %p) -> bind: %s\n",
           host, port, type, backlog,
           (event_name = eventer_name_for_callback(handler))?event_name:"??",
           service_ctx, strerror(errno));
@@ -607,7 +607,7 @@ mtev_listener(char *host, unsigned short port, int type,
 
   if(type == SOCK_STREAM) {
     if(listen(fd, backlog) < 0) {
-      mtevL(mtev_error, "mtev_listener(%s, %d, %d, %d, %s, %p) -> listen: %s\n",
+      mtevL(nlerr, "mtev_listener(%s, %d, %d, %d, %s, %p) -> listen: %s\n",
             host, port, type, backlog,
             (event_name = eventer_name_for_callback(handler))?event_name:"??",
             service_ctx, strerror(errno));
@@ -681,7 +681,7 @@ mtev_listener_reconfig(const char *toplevel) {
   snprintf(path, sizeof(path), "/%s/listeners//listener|/%s/include/listeners//listener",
            toplevel ? toplevel : "*", toplevel ? toplevel : "*");
   listener_configs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, path, &cnt);
-  mtevL(mtev_debug, "Found %d %s stanzas\n", cnt, path);
+  mtevL(nldeb, "Found %d %s stanzas\n", cnt, path);
   for(i=0; i<cnt; i++) {
     char address[256];
     char type[256];
@@ -698,7 +698,7 @@ mtev_listener_reconfig(const char *toplevel) {
     if(!mtev_conf_get_stringbuf(listener_configs[i],
                                 "ancestor-or-self::node()/@type",
                                 type, sizeof(type))) {
-      mtevL(mtev_error, "No type specified in listener stanza %d\n", i+1);
+      mtevL(nlerr, "No type specified in listener stanza %d\n", i+1);
       continue;
     }
     f = eventer_callback_for_name(type);
@@ -710,7 +710,7 @@ mtev_listener_reconfig(const char *toplevel) {
         f = pre_aco_wrap_dispatch;
     }
     if(!f) {
-      mtevL(mtev_error,
+      mtevL(nlerr,
             "Cannot find handler for listener type: '%s'\n", type);
       continue;
     }
@@ -726,22 +726,22 @@ mtev_listener_reconfig(const char *toplevel) {
     port = (unsigned short) portint;
     if(address[0] != '/' && (portint == 0 || (port != portint))) {
       /* UNIX sockets don't require a port (they'll ignore it if specified */
-      mtevL(mtev_error,
+      mtevL(nlerr,
             "Invalid port [%d] specified in stanza %d\n", port, i+1);
       continue;
     }
     if(mtev_conf_env_off(listener_configs[i], NULL)) {
       if(port)
-        mtevL(mtev_debug, "listener %s:%d environmentally disabled.\n", address, port);
+        mtevL(nldeb, "listener %s:%d environmentally disabled.\n", address, port);
       else
-        mtevL(mtev_debug, "listener %s environmentally disabled.\n", address);
+        mtevL(nldeb, "listener %s environmentally disabled.\n", address);
       continue;
     }
     if(mtev_listener_should_skip(address, port)) {
       if(port)
-        mtevL(mtev_error, "Operator forced skipping listener %s:%d\n", address, port);
+        mtevL(nlerr, "Operator forced skipping listener %s:%d\n", address, port);
       else
-        mtevL(mtev_error, "Operator forced skipping listener %s\n", address);
+        mtevL(nlerr, "Operator forced skipping listener %s\n", address);
       continue;
     }
     if(!mtev_conf_get_int32(listener_configs[i],
@@ -803,10 +803,10 @@ mtev_listener_apply_alpn(eventer_t e, int *mask, void *closure,
     snprintf(buff, sizeof(buff), "%s/alpn:%.*s", name, (int)alpnlen, alpn);
     eventer_func_t alpn_f = eventer_callback_for_name(buff);
     if(alpn_f == NULL) {
-      mtevL(mtev_debug, "No registered callback for '%s'\n", buff);
+      mtevL(nldeb, "No registered callback for '%s'\n", buff);
       return mtev_false;
     }
-    mtevL(mtev_debug, "Upgrading %s -> %s\n", name, buff);
+    mtevL(nldeb, "Upgrading %s -> %s\n", name, buff);
     eventer_set_callback(e, alpn_f);
     *mask = alpn_f(e, *mask, closure, now);
     return mtev_true;
@@ -823,9 +823,10 @@ mtev_listener_http2(eventer_t e, int mask, void *closure,
   eventer_close(e, &mask);
   return 0;
 }
+
 int
-mtev_control_dispatch(eventer_t e, int mask, void *closure,
-                      struct timeval *now) {
+mtev_control_dispatch_as11(eventer_t e, int mask, void *closure,
+                           struct timeval *now) {
   uint32_t cmd;
   int len = 0, callmask = mask;
   void *vdelegation_table;
@@ -833,11 +834,6 @@ mtev_control_dispatch(eventer_t e, int mask, void *closure,
   mtev_acceptor_closure_t *ac = closure;
 
   if(mask & EVENTER_EXCEPTION) goto socket_error;
-
-  int alpn_mask = mask;
-  if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
-    return alpn_mask;
-  }
 
   mtevAssert(ac->rlen >= 0);
   while(ac->rlen < (int)sizeof(cmd)) {
@@ -878,19 +874,30 @@ socket_error:
     }
     else {
     const char *event_name;
-      mtevL(mtev_error, "listener (%s %p) has no command: 0x%08x\n",
+      mtevL(nlerr, "listener (%s %p) has no command: 0x%08x\n",
             (event_name = eventer_name_for_callback(ac->dispatch))?event_name:"???",
             delegation_table, cmd);
     }
   }
   else {
     const char *event_name;
-    mtevL(mtev_error, "No delegation table for listener (%s %p)\n",
+    mtevL(nlerr, "No delegation table for listener (%s %p)\n",
           (event_name = eventer_name_for_callback(ac->dispatch))?event_name:"???",
           delegation_table);
   }
   goto socket_error;
 }
+
+int
+mtev_control_dispatch(eventer_t e, int mask, void *closure,
+                      struct timeval *now) {
+  int alpn_mask = mask;
+  if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
+    return alpn_mask;
+  }
+  return mtev_control_dispatch_as11(e, mask, closure, now);
+}
+
 void
 mtev_control_dispatch_delegate(eventer_func_t listener_dispatch,
                                uint32_t cmd,
@@ -960,6 +967,7 @@ mtev_listener_init(const char *toplevel) {
                             mtev_listener_details, NULL);
   eventer_name_callback("mtev_listener_accept_ssl", mtev_listener_accept_ssl);
   eventer_name_callback("control_dispatch", mtev_control_dispatch);
+  eventer_name_callback("control_dispatch/alpn:http/1.1", mtev_control_dispatch_as11);
   mtev_listener_reconfig(toplevel);
 }
 

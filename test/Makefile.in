@@ -112,7 +112,7 @@ test_harness:       $(TESTHARNESS_OBJS)
 	@echo "- linking $@"
 	$(Q)$(CC) -L../src $(LDFLAGS) $(UNWINDLIB) -o $@ $(TESTHARNESS_OBJS) $(LIBS) -lmtev
 
-check-lua: test_http_server
+check-lua: test_http_server testcerts
 	@echo
 	@echo "Running luajit-based tests via test_harness..."
 	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) _LD_PRELOAD=`pwd`/../src/libmtev@DOTSO@ LUA_PATH="$(LUAROCKS_PATH)" ./mtevbusted-wrapper.sh
@@ -132,5 +132,33 @@ install:	mtevbusted-script
 
 check:	check-standalone check-lua
 
+.PHONY:	demoCA-dir
+demoCA-dir:
+	@mkdir -p demoCA
+	@touch demoCA/index.txt
+	@test -f demoCA/serial || echo 00 > demoCA/serial
+
+testcerts:	demoCA-dir test-ca.crt test-server.crt
+
+test-ca.key:
+	openssl genrsa -out test-ca.key 4096
+
+test-ca.csr:    test-ca.key
+	openssl req -sha256 -key test-ca.key -days 365 -new -out test-ca.csr -config demo-openssl.cnf -extensions v3_ca -subj "/C=US/ST=Maryland/O=Circonus Labs/CN=Sample CA"
+
+test-ca.crt:    test-ca.key test-ca.csr
+	openssl x509 -sha256 -req -in test-ca.csr -signkey test-ca.key -out test-ca.crt -extfile demo-openssl.cnf -extensions v3_ca -days 365
+
+test-server.key:
+	openssl genrsa -out test-server.key 2048
+
+test-server.csr:  test-server.key
+	openssl req -sha256 -key test-server.key -days 365 -new -out test-server.csr -config demo-openssl.cnf -subj "/C=US/ST=Maryland/O=Circonus Labs/CN=test-server"
+
+test-server.crt:  test-server.csr test-ca.key test-ca.crt
+	openssl ca -batch -config demo-openssl.cnf -in test-server.csr -out test-server.crt -outdir . -keyfile test-ca.key -cert test-ca.crt -days 120
+
 clean:
 	rm -f $(TESTS) geturllz4f
+	rm -rf demoCA
+	rm -f *.key *.crt *.csr *.pem

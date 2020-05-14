@@ -2120,8 +2120,12 @@ mtev_http1_websocket_queue_msg(mtev_http1_session_ctx *ctx, int opcode,
 #endif
 }
 
+EVENTER_SSL_ALPN_MATCHER(http11_alpn_mather, "http/1.1")
+
 void
 mtev_http1_init(void) {
+  eventer_ssl_alpn_register("http/1.1", http11_alpn_mather);
+
   http_debug = mtev_log_stream_find("debug/http");
   http_io = mtev_log_stream_find("http/io");
 

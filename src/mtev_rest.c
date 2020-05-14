@@ -923,7 +923,7 @@ mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
 }
 
 int
-mtev_http_rest_handler(eventer_t e, int mask, void *closure,
+mtev_http11_rest_handler(eventer_t e, int mask, void *closure,
                        struct timeval *now) {
   int rv, done = 0;
   mtev_acceptor_closure_t *ac = closure;
@@ -937,11 +937,6 @@ socket_error:
       mtev_acceptor_closure_free(ac);
     }
     return rv;
-  }
-
-  int alpn_mask = mask;
-  if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
-    return alpn_mask;
   }
 
   if(!restc) {
@@ -986,6 +981,16 @@ socket_error:
     mtev_acceptor_closure_free(ac);
   }
   return rv;
+}
+
+int
+mtev_http_rest_handler(eventer_t e, int mask, void *closure,
+                       struct timeval *now) {
+  int alpn_mask = mask;
+  if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
+    return alpn_mask;
+  }
+  return mtev_http11_rest_handler(e, mask, closure, now);
 }
 
 int
@@ -1043,16 +1048,11 @@ mtev_rest_owns_accept_closure(mtev_acceptor_closure_t *ac) {
 }
 
 int
-mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
-                           struct timeval *now) {
+mtev_http11_rest_raw_handler(eventer_t e, int mask, void *closure,
+                             struct timeval *now) {
   int rv, done = 0;
   mtev_acceptor_closure_t *ac = closure;
   mtev_http_rest_closure_t *restc = mtev_acceptor_closure_ctx(ac);
-
-  int alpn_mask = mask;
-  if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
-    return alpn_mask;
-  }
 
   if(mask & EVENTER_EXCEPTION || (restc && restc->wants_shutdown)) {
     /* Exceptions cause us to simply snip the connection */
@@ -1080,6 +1080,16 @@ mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
     mtev_acceptor_closure_free(ac);
   }
   return rv;
+}
+
+int
+mtev_http_rest_raw_handler(eventer_t e, int mask, void *closure,
+                           struct timeval *now) {
+  int alpn_mask = mask;
+  if(mtev_listener_apply_alpn(e, &alpn_mask, closure, now)) {
+    return alpn_mask;
+  }
+  return mtev_http11_rest_raw_handler(e, mask, closure, now);
 }
 
 static void
@@ -1546,9 +1556,13 @@ void mtev_http_rest_init(void) {
   eventer_name_callback("mtev_wire_rest_api/1.0", mtev_http_rest_handler);
   eventer_name_callback("http_rest_api", mtev_http_rest_raw_handler);
 
+  eventer_name_callback("mtev_wire_rest_api/1.0/alpn:http/1.1", mtev_http11_rest_handler);
+  eventer_name_callback("http_rest_api/alpn:http/1.1", mtev_http11_rest_raw_handler);
+
   eventer_name_callback("mtev_wire_rest_api/1.0/alpn:h2", mtev_http2_rest_raw_handler);
   eventer_name_callback("http_rest_api/alpn:h2", mtev_http2_rest_raw_handler);
   eventer_name_callback("control_dispatch/alpn:h2", mtev_http2_rest_raw_handler);
+
   eventer_name_callback("mtev_rest_aco_session_continue", mtev_rest_aco_session_continue);
   eventer_name_callback("mtev_rest_aco_http2_continue", mtev_rest_aco_http2_continue);
   eventer_name_callback("next_tick_resume", next_tick_resume);
