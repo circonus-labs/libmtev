@@ -141,7 +141,7 @@ describe("http server", function()
     },
     { method = "CAPA",
       tranform = xml,
-      params = { { "-k", "--no-alpn", "--http0.9" } },
+      params = { { "-k", "--no-alpn", "--no-npn", "--http0.9" } },
       urls = map({'/'}, https)
     },
     { method = "GET",
