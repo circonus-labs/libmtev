@@ -36,6 +36,7 @@
 #include "eventer/eventer.h"
 #include "noitedit/histedit.h"
 #include "mtev_console_telnet.h"
+#include "mtev_dyn_buffer.h"
 #include "mtev_hash.h"
 #include "mtev_skiplist.h"
 #include <stdarg.h>
@@ -52,6 +53,8 @@ struct mtev_console_socket_t {
   int rl_point;
   int rl_end;
 
+  mtev_boolean isatty;
+  mtev_dyn_buffer_t *dbuf; /* to fill when not a tty */
   int   pty_master;
   int   pty_slave;
 
