@@ -473,9 +473,9 @@ libmtev.xmldb:	coverity_model.c
 	cov-make-library -of libmtev.xmldb coverity_model.c
 
 libmtev.info:
-	$(LCOV) -c -d . -o $@.tmp --strip 1 --gcov-tool $(GCOV)
-	$(LCOV) --remove $@.tmp -o $@ '/opt/circonus/include/*' '/usr/include/*' \
-		'*/src/aklomp-base64/lib/*' '*/src/examples/*'
+	$(LCOV) -c -d . -o $@.tmp --gcov-tool $(GCOV)
+	$(LCOV) --remove $@.tmp -o $@ '/opt/circonus/include/*' '/usr/lib/*' '/usr/include/*' \
+		'*/src/aklomp-base64/lib/*' '*/src/examples/*' '*/src/flatbuffer/*'
 	rm -f $@.tmp
 
 coverage.xml:
@@ -483,9 +483,12 @@ coverage.xml:
 
 clean:
 	rm -f *.lo *.o *.hlo *.Slo *.ho *.So libmtev.a libmtev_dtrace_probes.h
+	rm -f *.gcov *.gcda *.gcno
 	for subdir in aco eventer noitedit utils json-lib; do \
 		rm -f $$subdir/*.lo $$subdir/*.o $$subdir/*.hlo $$subdir/*.Slo $$subdir/*.So $$subdir/*.ho ; \
+		rm -f $$subdir/*.gcov $$subdir/*.gcda $$subdir/*.gcno ; \
 	done
+	rm -f libmtev.info coverage.xml
 	rm -f $(LIBMTEV) $(LIBMTEV_V) @LUA_LUAMTEV@
 	rm -rf libmtev-objs
 	rm -rf mdb-support/*.lo mdb-support/*.so
