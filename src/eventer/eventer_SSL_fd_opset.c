@@ -800,6 +800,12 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_2_VERSION);
     SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_2_VERSION);
   }
+#if defined(TLS1_3_VERSION)
+  else if(layer && !strcasecmp(layer, "TLSv1.3")) {
+    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_3_VERSION);
+    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_3_VERSION);
+  }
+#endif
 #endif
 
     if(ctx->ssl_ctx == NULL)
@@ -835,6 +841,9 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
 #endif
 #ifdef SSL_TXT_TLSV1_2
       else SETBITOPT(SSL_TXT_TLSV1_2, !neg, SSL_OP_NO_TLSv1_2)
+#endif
+#ifdef SSL_OP_NO_TLSv1_3
+      else SETBITOPT("TLSv1.3", !neg, SSL_OP_NO_TLSv1_3)
 #endif
 #ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
       else SETBITOPT("cipher_server_preference", neg, SSL_OP_CIPHER_SERVER_PREFERENCE)
