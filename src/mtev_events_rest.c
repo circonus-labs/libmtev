@@ -52,7 +52,6 @@ json_spit_event(eventer_t e, void *closure) {
     struct sockaddr_in6 ip6;
   } addr;
   socklen_t addrlen;
-  if(!e->opset) return;
   eo = MJ_OBJ();
  
   epool = eventer_get_pool_for_event(e); 
@@ -107,7 +106,7 @@ json_spit_event(eventer_t e, void *closure) {
       }
       if(ao) MJ_KV(eo, "remote", ao);
     }
-    MJ_KV(eo, "impl", MJ_STR(e->opset->name));
+    if(e->opset) MJ_KV(eo, "impl", MJ_STR(e->opset->name));
     MJ_KV(eo, "mask", MJ_INT(e->mask));
   }
   else if(e->mask & EVENTER_TIMER) {
