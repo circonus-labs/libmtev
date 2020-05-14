@@ -171,8 +171,13 @@ static void eventer_epoll_impl_add(eventer_t e) {
   mtevL(eventer_deb, "epoll_ctl(%d, add, %d)\n", spec->epoll_fd, e->fd);
   rv = epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, e->fd, &_ev);
   if(rv != 0) {
-    mtevFatal(mtev_error, "epoll_ctl(%d,add,%d,%x) -> %d (%d: %s)\n",
-          spec->epoll_fd, e->fd, e->mask, rv, errno, strerror(errno));
+    if(errno == EPERM) {
+      mtevL(eventer_deb, "epoll_ctl add /dev/null, ignored\n");
+    }
+    else {
+      mtevFatal(mtev_error, "epoll_ctl(%d,add,%d,%x) -> %d (%d: %s)\n",
+                spec->epoll_fd, e->fd, e->mask, rv, errno, strerror(errno));
+    }
   }
 
   release_master_fd(e->fd, lockstate);
@@ -517,7 +522,7 @@ static int eventer_epoll_impl_loop(int id, eventer_impl_data_t *t) {
 
         ev = &epev[idx];
 
-        if(ev->events & (EPOLLIN | EPOLLPRI)) mask |= EVENTER_READ;
+        if(ev->events & (EPOLLIN|EPOLLPRI)) mask |= EVENTER_READ;
         if(ev->events & (EPOLLOUT)) mask |= EVENTER_WRITE;
         if(ev->events & (EPOLLERR|EPOLLHUP)) mask |= EVENTER_EXCEPTION;
 
