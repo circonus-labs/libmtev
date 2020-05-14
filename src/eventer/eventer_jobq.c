@@ -36,6 +36,7 @@
 #include "mtev_log.h"
 #include "mtev_thread.h"
 #include "mtev_rand.h"
+#include "mtev_sem.h"
 #include "eventer/eventer.h"
 #include "eventer/eventer_impl_private.h"
 #include "libmtev_dtrace.h"
@@ -488,7 +489,7 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
   int cycles = 0;
 
   /* Wait for a job */
-  if(should_wait) while(sem_wait(&jobq->semaphore) && errno == EINTR);
+  if(should_wait) mtev_sem_wait_noeintr(&jobq->semaphore);
   /* Or Try-wait for a job */
   else if(sem_trywait(&jobq->semaphore)) return NULL;
 
