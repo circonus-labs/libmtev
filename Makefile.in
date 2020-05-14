@@ -6,6 +6,9 @@ all:
 install:	all
 	$(MAKE) -C src install DESTDIR=$(DESTDIR)
 
+configure:	configure.ac
+	autoreconf -i -I buildtools
+
 gitbook-setup:
 	gitbook install
 	buildtools/mkcodedocs.pl src docs-md/apireference

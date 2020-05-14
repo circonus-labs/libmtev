@@ -1,5 +1,8 @@
 *~
 *.a
+*.gcda
+*.gcno
+*.gcov
 *.bundle
 *.lo
 *.hlo
@@ -40,6 +43,8 @@ src/mtev_config.h.in
 src/scripts/mtev-config
 src/libmtev-objs/
 src/libmtev.so*
+src/libmtev.info
+src/coverage.xml
 src/libmtev*dylib
 src/libmtev_dtrace_probes.h
 src/flatbuffer/*.h

@@ -7,7 +7,7 @@ AH_TOP([
 AH_BOTTOM([#endif])
 
 AC_CONFIG_SRCDIR([src/mtev_main.c])
-AC_CONFIG_AUX_DIR([.])
+AC_CONFIG_AUX_DIR(buildtools)
 
 node=`hostname | cut -f1 -d '.' | tr '[A-Z]' '[a-z]'`
 if test -f ".configure.$node"; then
@@ -69,8 +69,11 @@ AC_PROG_CPP
 AC_PROG_RANLIB
 AC_PROG_INSTALL
 AC_PROG_LN_S
+AC_PATH_PROG(LCOV, lcov)
+AC_PATH_PROG(GCOV, gcov)
 AC_PATH_PROG(AR, ar)
 AC_PATH_PROGS(PERL, perl)
+AM_PATH_PYTHON()
 AC_PATH_PROGS(XSLTPROC, xsltproc)
 AC_PATH_PROGS(XMLLINT, xmllint)
 AC_PATH_PROG(NROFF, nroff)
@@ -695,9 +698,26 @@ AC_CHECK_DECLS([openpty], [], [],
 	])
 
 AC_CHECK_FUNCS(getpwnam_r)
-GETPWNAM_R_POSIX
+HAVE_GETPWNAM_R_POSIX=""
+AC_MSG_CHECKING(for POSIX.1c getpwnam_r)
+AC_TRY_LINK([
+#include <pwd.h>
+#include <stdlib.h>],
+  getpwnam_r(NULL,NULL,NULL,0,NULL);,
+  AC_DEFINE(HAVE_GETPWNAM_R_POSIX,1,POSIX.1c getpwnam_r)
+  AC_MSG_RESULT(yes),
+  AC_MSG_RESULT(no))
+
 AC_CHECK_FUNCS(getgrnam_r)
-GETGRNAM_R_POSIX
+HAVE_GETGRNAM_R_POSIX=""
+AC_MSG_CHECKING(for POSIX.1c getgrnam_r)
+AC_TRY_LINK([
+#include <grp.h>
+#include <stdlib.h>],
+  getgrnam_r(NULL,NULL,NULL,0,NULL);,
+  AC_DEFINE(HAVE_GETGRNAM_R_POSIX,1,POSIX.1c getgrnam_r)
+  AC_MSG_RESULT(yes),
+  AC_MSG_RESULT(no))
 
 AC_MSG_CHECKING(for tputs() function final argument type)
 AC_EGREP_CPP([tputs.*[(][       ]*char[         ]*[)]],

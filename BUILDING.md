@@ -43,7 +43,7 @@
 
     git clone https://github.com/circonus-labs/libmtev
     cd libmtev
-    autoreconf -i
+    autoreconf -i -I buildtools
     CPPFLAGS="-I/usr/local/include/luajit-2.0" ./configure
     gmake
 
@@ -85,7 +85,7 @@ Once you have all the dependencies built and installed, clone the source for lib
 
     git clone https://github.com/circonus-labs/libmtev
     cd libmtev
-    autoreconf -i
+    autoreconf -i -I buildtools
     CPPFLAGS="-I/usr/local/include/luajit" ./configure
     make
 
@@ -112,7 +112,7 @@ Set up a [development environment](https://omnios.omniti.com/wiki.php/DevEnv) fi
 
     git clone git@github.com:circonus-labs/libmtev.git
     cd libmtev
-    autoreconf -i
+    autoreconf -i -I buildtools
     CFLAGS="-m64" \
     CPPFLAGS="-I/opt/circonus/include/amd64 -I/opt/circonus/include -I/opt/circonus/include/amd64/luajit" \
     LDFLAGS="-m64 -L/opt/circonus/lib/amd64 -R/opt/circonus/lib/amd64" \
