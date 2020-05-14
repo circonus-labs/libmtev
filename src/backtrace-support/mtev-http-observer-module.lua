@@ -172,7 +172,7 @@ local function postattach_cb()
 end
 
 local function pm_load()
-  L("module-caql-broker: load")
+  L("module mtev-http-observer: load")
   pmodule.register(pmodule.event.postattach, postattach_cb)
 end
 
