@@ -38,13 +38,14 @@ function _G.mtev.exec(path, argv, env, timeout)
   env = env or { unpack(ENV) }
 
   -- env is an *ARRAY of key=value* not a table... but people always mess that up
-  local needs_converion = false
+  local needs_conversion = false
   local i = 1
   for _ in pairs(env) do
     if env[i] == nil then
       needs_conversion = true
       break
     end
+    i = i + 1
   end
   if needs_conversion then
     local newenv = {}
