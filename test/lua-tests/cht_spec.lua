@@ -54,8 +54,11 @@ local function run_scenario(cht, input, cnt)
   test_ring_builds(cht, cnt, rsize)
   local bcnt, out = {}, {}
   for key,v in pairs(input) do
-    assert.is.equal(1, libmtev.mtev_cht_lookup(cht, charstar(key), node))
+    assert.is.equal(1, libmtev.mtev_cht_lookup_n(cht, charstar(key), 1, node))
+    local name1 = ffi.string(node[0][0].name)
+    assert.is.equal(1, libmtev.mtev_cht_vlookup_n(cht, charstar(key), string.len(key), 1, node))
     local name = ffi.string(node[0][0].name)
+    assert.is.equal(name, name1)
     out[key] = name
     bcnt[name] = (bcnt[name] or 0) + 1
   end
@@ -64,7 +67,7 @@ end
 
 describe("cht", function()
   local rsize = 1024
-  local cht = libmtev.mtev_cht_alloc_custom(32, 20)
+  local cht = libmtev.mtev_cht_alloc()
 
   for node_cnt = 1,20 do
     it("should balance relatively well: nodes=" .. node_cnt, function()
@@ -89,6 +92,10 @@ describe("cht", function()
     for key,v in pairs(scenario) do
       assert.is_true(scenario8[key] == scenario7[key] or scenario8[key] == "node8")
     end
+  end)
+
+  it("frees it", function()
+    libmtev.mtev_cht_free(cht)
   end)
 
 end)
