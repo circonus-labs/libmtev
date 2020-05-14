@@ -991,7 +991,6 @@ eventer_ssl_ctx_alpn_register(eventer_ssl_ctx_t *ctx, const char *name, eventer_
       mtev_hash_destroy(t, free, NULL);
       free(t);
     }
-    t = ck_pr_load_ptr(&ctx->alpn_funcs);
   }
   mtev_hash_replace(ctx->alpn_funcs, strdup(name), strlen(name), f, free, NULL);
 }
