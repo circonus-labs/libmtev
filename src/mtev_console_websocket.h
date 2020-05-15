@@ -37,8 +37,16 @@
 #include "mtev_http.h"
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct mtev_console_websocket_t {
   mtev_http_session_ctx *ctx;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -34,6 +34,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct mtev_lfu mtev_lfu_t;
 typedef void *mtev_lfu_entry_token;
 
@@ -131,5 +135,9 @@ API_EXPORT(void *)
  */
 API_EXPORT(int32_t)
   mtev_lfu_size(mtev_lfu_t *lfu);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

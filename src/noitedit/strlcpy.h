@@ -30,11 +30,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef LIBMTEV_STRLCPY_H
+#define LIBMTEV_STRLCPY_H
 
 #include "mtev_config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef HAVE_STRLCPY
 size_t strlcpy(char *dst, const char *src, size_t size);
 #endif
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *dst, const char *src, size_t size);
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 #endif

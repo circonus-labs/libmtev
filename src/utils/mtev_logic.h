@@ -58,6 +58,14 @@ API_EXPORT(void) mtev_logic_var_set_double(mtev_logic_var_t *, double);
 
 #include "mtev_log.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 API_EXPORT(void) mtev_logic_ast_log(mtev_log_stream_t log, mtev_logic_ast_t *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

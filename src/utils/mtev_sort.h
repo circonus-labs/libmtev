@@ -1,6 +1,10 @@
 #ifndef MTEV_SORT_H
 #define MTEV_SORT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! \file mtev_sort.h
  * 
  * Interface to call for a merge sort.
@@ -74,4 +78,8 @@ void mtev_merge_sort(void **head_ptr_ptr,
                             mtev_sort_next_function next,
                             mtev_sort_set_next_function set_next,
                             mtev_sort_compare_function compare);
+#ifdef __cplusplus
+}
+#endif
+
 #endif

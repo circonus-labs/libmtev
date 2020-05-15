@@ -36,6 +36,10 @@
 #include <mtev_defines.h>
 #include <mtev_uuid.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*!
  \fn void mtev_uuid_generate(uuid_t uu)
  \brief Generate a V4 uuid.
@@ -44,5 +48,9 @@
 */
 API_EXPORT(void)
   mtev_uuid_generate(uuid_t uu);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

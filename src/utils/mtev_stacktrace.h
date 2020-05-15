@@ -37,6 +37,10 @@
 #include "aco/aco.h"
 #include <ucontext.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 API_EXPORT(void)
   mtev_stacktrace(mtev_log_stream_t ls);
 
@@ -88,5 +92,9 @@ MTEV_HOOK_PROTO(mtev_stacktrace_frame,
                 void *, closure,
                 (void *closure, void (*cb)(void *, const char *, size_t), void *cb_closure,
                  uintptr_t pc, const char *file, const char *func, int frame, int nframes))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

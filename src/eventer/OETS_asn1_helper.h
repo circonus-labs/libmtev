@@ -37,6 +37,14 @@
 
 #include <time.h>
 #include <openssl/x509.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 time_t OETS_ASN1_TIME_get(ASN1_TIME *a, int *err);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

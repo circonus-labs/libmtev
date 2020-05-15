@@ -34,6 +34,10 @@
 #include <mtev_defines.h>
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* a struct that uses up 4K of stack space but then dynamically grows
  * into heap space as you add to it
  * 
@@ -179,4 +183,8 @@ API_EXPORT(void)
  */
 API_EXPORT(size_t)
   mtev_dyn_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
+#ifdef __cplusplus
+}
+#endif
+
 #endif

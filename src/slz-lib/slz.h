@@ -27,6 +27,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* We have two macros UNALIGNED_LE_OK and UNALIGNED_FASTER. The latter indicates
  * that using unaligned data is faster than a simple shift. On x86 32-bit at
  * least it is not the case as the per-byte access is 30% faster. A core2-duo on
@@ -166,5 +170,9 @@ static inline int slz_finish(struct slz_stream *strm, void *buf)
 
 	return ret;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

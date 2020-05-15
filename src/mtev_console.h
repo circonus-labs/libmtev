@@ -43,6 +43,10 @@
 #include "mtev_skiplist.h"
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct _console_state;
 struct _console_state_stack;
 struct __mtev_console_closure;
@@ -256,5 +260,9 @@ MTEV_HOOK_PROTO(mtev_console_dispatch,
                 (struct __mtev_console_closure *ncct, const char *buffer),
                 void *, closure,
                 (void *closure, struct __mtev_console_closure *ncct, const char *buffer))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

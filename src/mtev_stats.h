@@ -34,6 +34,10 @@
 #include "mtev_defines.h"
 #include <circmetrics.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 API_EXPORT(void)
   mtev_stats_init(void);
 
@@ -50,5 +54,9 @@ API_EXPORT(stats_ns_t *)
 
 API_EXPORT(void)
   mtev_stats_rest_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

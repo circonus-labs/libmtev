@@ -35,6 +35,10 @@
 #include "mtev_defines.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   uintptr_t opaque1;
 } mtev_intern_t;
@@ -225,5 +229,9 @@ API_EXPORT(int)
  */
 API_EXPORT(void)
   mtev_intern_pool_stats(mtev_intern_pool_t *, mtev_intern_pool_stats_t *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

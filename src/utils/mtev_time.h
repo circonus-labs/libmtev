@@ -32,6 +32,10 @@
 
 #include <mtev_defines.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! \fn void mtev_time_start_tsc()
     \brief use TSC clock if possible for this CPU num
 
@@ -144,5 +148,9 @@ API_EXPORT(mtev_boolean)
  */
 API_EXPORT(mtev_boolean)
   mtev_time_fast_mode(const char **reason);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

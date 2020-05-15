@@ -35,6 +35,10 @@
 
 #include <mtev_uuid.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static const uint8_t uuid_zero_uint8[16] = { 0 };
 
 /*!
@@ -84,5 +88,9 @@ static inline
 void mtev_uuid_clear(uuid_t uu) {
   memset(uu, 0, 16);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -38,6 +38,10 @@
 #include "mtev_defines.h"
 #include <sys/stat.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! \file mtev_mkdir.h
 
     Directory creation routines.
@@ -53,5 +57,9 @@
  */
 
 API_EXPORT(int) mkdir_for_file(const char *file, mode_t m);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

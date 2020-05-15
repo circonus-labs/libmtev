@@ -36,6 +36,10 @@
 #include <mtev_defines.h>
 #include <mtev_hooks.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct fq_msg;
 struct fq_conn_s;
 
@@ -67,5 +71,9 @@ MTEV_RUNTIME_RESOLVE(mtev_fq_handle_message_hook_register,
                       mtev_hook_return_t (*func) (void *closure, struct fq_conn_s *client, int id, struct fq_msg *msg, void *payload, size_t payload_len),
                       void *closure),
                      (name,func,closure))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

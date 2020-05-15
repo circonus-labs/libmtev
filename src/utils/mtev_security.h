@@ -34,6 +34,10 @@
 #ifndef _MTEV_SECURITY_H
 #define _MTEV_SECURITY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*!  \file mtev_security.h
 
      Access to privilege separation helpers.
@@ -81,5 +85,9 @@ typedef enum {
  */
 API_EXPORT(int) mtev_security_setcaps(mtev_security_captype_t type,
                                       const char *capstring);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

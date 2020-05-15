@@ -37,10 +37,18 @@
 #include "mtev_defines.h"
 #include <libxml/tree.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 API_EXPORT(char *)
   mtev_xmlSaveToBuffer(xmlDocPtr doc);
 
 API_EXPORT(int)
   mtev_xmlSaveToFile(xmlDocPtr doc, const char *filename);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

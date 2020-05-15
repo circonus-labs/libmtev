@@ -42,6 +42,10 @@
 #include <pthread.h>
 #include <setjmp.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * This is for jobs that would block and need more forceful timeouts.
  */
@@ -173,5 +177,9 @@ uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq);
 void eventer_jobq_get_min_max(eventer_jobq_t *jobq, uint32_t *min_, uint32_t *max_);
 eventer_jobq_memory_safety_t eventer_jobq_get_memory_safety(eventer_jobq_t *jobq);
 uint32_t eventer_jobq_get_floor(eventer_jobq_t *jobq);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

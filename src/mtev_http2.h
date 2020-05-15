@@ -38,6 +38,10 @@
 #include <mtev_listener.h>
 #include <eventer/eventer.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct mtev_http2_parent_session;
 typedef struct mtev_http2_parent_session mtev_http2_parent_session;
 
@@ -205,5 +209,9 @@ API_EXPORT(void)
 /* This registers the npn/alpn stuff with the eventer */
 API_EXPORT(void)
   mtev_http2_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

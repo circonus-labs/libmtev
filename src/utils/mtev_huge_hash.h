@@ -35,6 +35,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * This is a disk backed hash table of arbitrary size (up to free space on disk).
  * 
@@ -146,5 +150,9 @@ mtev_boolean mtev_huge_hash_adv(mtev_huge_hash_iter_t *iter);
 
 void *mtev_huge_hash_iter_key(mtev_huge_hash_iter_t *iter, size_t *key_len);
 void *mtev_huge_hash_iter_val(mtev_huge_hash_iter_t *iter, size_t *val_len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

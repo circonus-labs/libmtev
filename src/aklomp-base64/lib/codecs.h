@@ -1,5 +1,9 @@
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Function parameters for encoding functions:
 #define BASE64_ENC_PARAMS			\
 	( struct base64_state	*state		\
@@ -117,6 +121,10 @@ struct codec
   #define BASE64_FALLTHROUGH  __attribute__((fallthrough));
 #else
   #define BASE64_FALLTHROUGH
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 
 extern void codec_choose (struct codec *, int flags);

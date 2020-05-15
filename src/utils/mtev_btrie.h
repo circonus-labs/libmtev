@@ -37,6 +37,10 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct btrie_collapsed_node *mtev_btrie;
 
 void mtev_btrie_drop_tree(mtev_btrie *, void (*)(void *));
@@ -49,5 +53,9 @@ int mtev_btrie_del_route_ipv6(mtev_btrie *, struct in6_addr *, unsigned char,
                    void (*)(void *));
 void *mtev_btrie_find_bpm_route_ipv4(mtev_btrie *tree, struct in_addr *a, unsigned char *);
 void *mtev_btrie_find_bpm_route_ipv6(mtev_btrie *tree, struct in6_addr *a, unsigned char *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

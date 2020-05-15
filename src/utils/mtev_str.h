@@ -36,6 +36,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct mtev_prependable_str_buff{
   char *buff;
   char *string;
@@ -75,5 +79,9 @@ API_EXPORT(void) mtev_str_buff_free(mtev_str_buff_t *buff);
 API_EXPORT(int) mtev_str_buff_len(mtev_str_buff_t *buff);
 API_EXPORT(char*) mtev_str_buff_to_string(mtev_str_buff_t **buff);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

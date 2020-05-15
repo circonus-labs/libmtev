@@ -33,6 +33,11 @@
 
 #include "mtev_defines.h"
 #include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <ck_epoch.h>
 
 typedef enum {
@@ -100,5 +105,9 @@ API_EXPORT(void *)
   mtev_realloc(mtev_allocator_t, void *ptr, size_t size);
 API_EXPORT(void)
   mtev_free(mtev_allocator_t, void *ptr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -35,6 +35,10 @@
 #include <stdbool.h>
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct tzinfo tzinfo_t;
 typedef struct tzzone tzzone_t;
 
@@ -50,5 +54,9 @@ tzzone_t *libtz_tzzone_at(const tzinfo_t *zi, int64_t whence);
 
 struct tm *libtz_zonetime(const tzinfo_t *zi, const time_t *timep, struct tm *result, const tzzone_t **);
 size_t libtz_strftime(char *buf, size_t buflen, const char *fmt, const struct tm *tm, const tzzone_t *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

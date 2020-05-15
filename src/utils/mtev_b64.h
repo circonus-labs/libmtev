@@ -42,6 +42,10 @@
 #include "mtev_config.h"
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! \fn int mtev_b64_decode(const char *src, size_t src_len, unsigned char *dest, size_t dest_len)
     \brief Decode a base64 encoded input buffer into the provided output buffer.
     \param src The buffer containing the encoded content.
@@ -87,5 +91,9 @@ API_EXPORT(int) mtev_b64_encodev(const struct iovec *, size_t, char *, size_t);
     \return The size of the buffer that would be needed to store an encoded version of an input string.
  */
 API_EXPORT(size_t) mtev_b64_encode_len(size_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -37,6 +37,10 @@
 #include "mtev_config.h"
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef int mtev_lockfile_t;
 
 /*! \fn mtev_lockfile_t mtev_lockfile_acquire(const char *fp)
@@ -66,5 +70,9 @@ API_EXPORT(mtev_lockfile_t)
 
 API_EXPORT(int)
   mtev_lockfile_release(mtev_lockfile_t lf);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

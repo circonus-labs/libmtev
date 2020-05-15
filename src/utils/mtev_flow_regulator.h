@@ -7,6 +7,10 @@
 
 #include <mtev_defines.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! \file mtev_flow_regulator.h
 
     Throughput limiter for event-driven processes. Libmtev encourages
@@ -174,5 +178,9 @@ mtev_boolean mtev_flow_regulator_stable_try_raise_one(mtev_flow_regulator_t *fr)
  */
 mtev_boolean
   mtev_flow_regulator_stable_lower(mtev_flow_regulator_t *fr, unsigned int by);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

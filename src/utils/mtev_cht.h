@@ -33,6 +33,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct mtev_cht mtev_cht_t;
 
 typedef struct {
@@ -60,5 +64,9 @@ API_EXPORT(int)
   mtev_cht_lookup_n(mtev_cht_t *, const char *key, int w, mtev_cht_node_t **node);
 API_EXPORT(int)
   mtev_cht_vlookup_n(mtev_cht_t *, const void *key, size_t keylen, int w, mtev_cht_node_t **nodes);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

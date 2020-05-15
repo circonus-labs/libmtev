@@ -45,6 +45,10 @@
 
 #include <mtev_hooks.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Avoid the eventer/eventer.h header */
 struct _event;
 
@@ -507,5 +511,9 @@ MTEV_HOOK_PROTO(zipkin_publish_span,
                 (Zipkin_Span *span),
                 void *, closure,
                 (void *closure, Zipkin_Span *));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

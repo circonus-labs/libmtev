@@ -36,6 +36,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //#warning "mtev_atomics is deprecated, use concurrencykit"
 
 typedef volatile int32_t mtev_atomic32_t;
@@ -248,6 +252,10 @@ static inline mtev_atomic64_t mtev_atomic_sub64(volatile mtev_atomic64_t *loc,
 
 #ifndef mtev_atomic_dec64
 #define mtev_atomic_dec64(a) mtev_atomic_add64(a, -1)
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

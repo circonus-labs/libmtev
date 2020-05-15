@@ -39,6 +39,10 @@
 #include "mtev_log.h"
 #include "aco/aco.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <ck_hs.h>
 
 typedef struct eventer_context_t {
@@ -234,5 +238,9 @@ mtev_boolean eventer_is_aco_opset(eventer_t e);
 int eventer_aco_shutdown(aco_t *co);
 void posix_asynch_shutdown_close(int fd);
 void set_callback_tracker_log(mtev_log_stream_t ls);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

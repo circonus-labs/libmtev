@@ -4648,5 +4648,21 @@ static inline void __slz_prepare_dist_table(void)
 		code += (dist & ((1 << bits) - 1)) << 5;
 		fh_dist_table[dist] = (code << 5) + bits + 5;
 	}
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 }

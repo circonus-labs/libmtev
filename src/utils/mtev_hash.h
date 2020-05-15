@@ -37,6 +37,11 @@
 #define _MTEV_HASH_H
 
 #include "mtev_config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <ck_hs.h>
 #include <ck_spinlock.h>
 
@@ -299,5 +304,9 @@ uint32_t mtev_hash__hash(const void *k, uint32_t length, uint32_t initval);
 #define mtev_hash_dict_delete_all(h) mtev_hash_delete_all((h),free,free)
 #define mtev_hash_dict_destroy(h) mtev_hash_destroy((h),free,free)
 #define mtev_hash_dict_adv mtev_hash_adv
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

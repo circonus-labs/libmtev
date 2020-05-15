@@ -31,6 +31,10 @@
 #include <pthread.h>
 #include <errno.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
   MTEV_PLOCK_ATOMIC,
   MTEV_PLOCK_HEAVY
@@ -1429,5 +1433,9 @@ mtev_plock_heavy_wtos(mtev_plock_t *lock) {
 #define mtev_plock_wtos(lock) do { \
   if((lock)->type == MTEV_PLOCK_HEAVY) mtev_plock_heavy_wtos(lock); else pl_wtos(&((lock)->impl.atomic)); \
 } while(0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

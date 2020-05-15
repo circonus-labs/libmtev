@@ -111,10 +111,18 @@ API_EXPORT(void) mtev_sem_destroy(mtev_sem_t *);
 
 #ifdef HAVE_SEMAPHORE_H
 #include <semaphore.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 #endif
 
 API_EXPORT(void) mtev_sem_wait_noeintr(sem_t *);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

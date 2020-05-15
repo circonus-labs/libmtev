@@ -33,6 +33,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * REST interface to enable/disable heap profiling and to trigger heap dumps
  * 
@@ -43,5 +47,9 @@ API_EXPORT(void)
 
 API_EXPORT(void)
   mtev_heap_profiler_rest_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
