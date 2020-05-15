@@ -115,7 +115,7 @@ test_harness:       $(TESTHARNESS_OBJS)
 	@echo "- linking $@"
 	$(Q)$(CC) -L../src $(LDFLAGS) $(UNWINDLIB) -o $@ $(TESTHARNESS_OBJS) $(LIBS) -lmtev
 
-check-lua: test_http_server testcerts
+check-lua: test_http_server geturllz4f testcerts
 	@echo
 	@echo "Running luajit-based tests via test_harness..."
 	$(Q)_DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(LD_LIBRARY_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) _LD_PRELOAD=`pwd`/../src/libmtev@DOTSO@ LUA_PATH="$(LUAROCKS_PATH)" ./mtevbusted-wrapper.sh
@@ -137,31 +137,70 @@ check:	check-standalone check-lua
 
 .PHONY:	demoCA-dir
 demoCA-dir:
-	@mkdir -p demoCA
-	@touch demoCA/index.txt
-	@test -f demoCA/serial || echo 00 > demoCA/serial
+	@bash -c "mkdir -p demoCA/{root,intermediate}/{private,certs,csr,crl,newcerts}"
+	@touch demoCA/root/index.txt
+	@touch demoCA/intermediate/index.txt
+	@test -f demoCA/root/serial || echo 00 > demoCA/root/serial
+	@test -f demoCA/intermediate/serial || echo 00 > demoCA/intermediate/serial
 
-testcerts:	demoCA-dir test-ca.crt test-server.crt
 
-test-ca.key:
-	openssl genrsa -out test-ca.key 4096
+testcerts:	demoCA-dir \
+	demoCA/root/certs/ca.crt demoCA/intermediate/certs/ca.crt \
+	test-server.crt test-client.crt
 
-test-ca.csr:    test-ca.key
-	openssl req -sha256 -key test-ca.key -days 365 -new -out test-ca.csr -config demo-openssl.cnf -extensions v3_ca -subj "/C=US/ST=Maryland/O=Circonus Labs/CN=Sample CA"
+demoCA/root/private/ca.key:
+	@echo " - $@"
+	$(Q)openssl genrsa -out $@ 4096
 
-test-ca.crt:    test-ca.key test-ca.csr
-	openssl x509 -sha256 -req -in test-ca.csr -signkey test-ca.key -out test-ca.crt -extfile demo-openssl.cnf -extensions v3_ca -days 365
+demoCA/root/csr/ca.csr:    demoCA/root/private/ca.key
+	@echo " - $@"
+	$(Q)openssl req -sha256 -key demoCA/root/private/ca.key -new -out $@ -config demoCA/root.cnf -extensions v3_ca -subj "/C=US/ST=Maryland/O=Circonus Labs/CN=Sample Root CA"
+
+demoCA/root/certs/ca.crt:    demoCA/root/csr/ca.csr demoCA/root/private/ca.key
+	@echo " - $@"
+	$(Q)openssl x509 -sha256 -req -in demoCA/root/csr/ca.csr -signkey demoCA/root/private/ca.key -out $@ -extfile demoCA/root.cnf -extensions v3_ca -days 365
+
+demoCA/intermediate/private/ca.key:
+	@echo " - $@"
+	$(Q)openssl genrsa -out $@ 4096
+
+demoCA/intermediate/csr/ca.csr:    demoCA/intermediate/private/ca.key
+	@echo " - $@"
+	$(Q)openssl req -sha256 -key demoCA/intermediate/private/ca.key -new -out $@ -config demoCA/intermediate.cnf -extensions v3_intermediate_ca -subj "/C=US/ST=Maryland/O=Circonus Labs/CN=Sample Intermediate CA"
+
+demoCA/intermediate/certs/ca.crt:    demoCA/root/certs/ca.crt demoCA/intermediate/csr/ca.csr
+	@echo " - $@"
+	$(Q)openssl ca -batch -config demoCA/root.cnf -in demoCA/intermediate/csr/ca.csr -out $@ -keyfile demoCA/root/private/ca.key -cert demoCA/root/certs/ca.crt -extensions v3_intermediate_ca -days 120
 
 test-server.key:
-	openssl genrsa -out test-server.key 2048
+	@echo " - $@"
+	$(Q)openssl genrsa -out $@ 2048
 
-test-server.csr:  test-server.key
-	openssl req -sha256 -key test-server.key -days 365 -new -out test-server.csr -config demo-openssl.cnf -subj "/C=US/ST=Maryland/O=Circonus Labs/CN=test-server"
+demoCA/intermediate/csr/test-server.csr:  test-server.key
+	@echo " - $@"
+	$(Q)openssl req -sha256 -key test-server.key -days 365 -new -out $@ -config demoCA/intermediate.cnf -subj "/C=US/ST=Maryland/O=Circonus Labs/CN=test-server"
 
-test-server.crt:  test-server.csr test-ca.key test-ca.crt
-	openssl ca -batch -config demo-openssl.cnf -in test-server.csr -out test-server.crt -outdir . -keyfile test-ca.key -cert test-ca.crt -days 120
+test-server-standalone.crt:  demoCA/intermediate/csr/test-server.csr demoCA/intermediate/certs/ca.crt
+	@echo " - $@"
+	$(Q)openssl ca -batch -config demoCA/intermediate.cnf -in demoCA/intermediate/csr/test-server.csr -out $@ -days 120 -keyfile demoCA/intermediate/private/ca.key
 
+test-server.crt:	test-server-standalone.crt demoCA/intermediate/certs/ca.crt
+	@echo " - $@"
+	$(Q)cat test-server-standalone.crt demoCA/intermediate/certs/ca.crt > $@
+
+test-client.key:
+	@echo " - $@"
+	$(Q)openssl genrsa -out $@ 2048
+
+demoCA/root/csr/test-client.csr:	test-client.key demoCA/root/private/ca.key
+	$(Q)openssl req -sha256 -key test-client.key -new -out $@ -config demoCA/root.cnf -subj "/C=US/ST=Maryland/O=Circonus Labs/CN=test-client"
+
+test-client.crt:	demoCA/root/csr/test-client.csr demoCA/root/private/ca.key
+	@echo " - $@"
+	$(Q)openssl ca -batch -config demoCA/root.cnf -in demoCA/root/csr/test-client.csr -out $@ -days 120 -keyfile demoCA/root/private/ca.key
+
+	
 clean:
 	rm -f $(TESTS) geturllz4f
-	rm -rf demoCA
+	rm -rf demoCA/root demoCA/intermediate
 	rm -f *.key *.crt *.csr *.pem

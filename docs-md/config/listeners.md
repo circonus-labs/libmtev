@@ -11,6 +11,7 @@ Network listeners and their services are specified via configuration.
       <certificate_file>/path/to/server.crt</certificate_file>
       <key_file>/path/to/server.key</key_file>
       <ca_chain>/path/to/ca.crt</ca_chain>
+      <ca_accept/>
       <layer>tlsv1:all,!sslv2,!sslv3,cipher_server_preference</layer>
       <ciphers>EECDH+AES128+AESGCM:EDH+AES128+AESGCM:!DSS</ciphers>
     </sslconfig>
@@ -123,23 +124,31 @@ connecting clients.  SSL config supports the follwing keys:
    This specifies the SSL protocol options we present and is the form `<protocol>[:<option>,[<option>[,...]]]`.
    Options may be negated with an antecedent `!`.  Tokens are matched case-insensitively.
 
-   Protocols supported (depending on openssl): `SSLv2`, `SSLv3`, `TLSv1`, `TLSv1.1`, `TLSv1.2`. 
+   Protocols supported (depending on openssl): `SSLv2`, `SSLv3`, `TLSv1`, `TLSv1.1`, `TLSv1.2`, `TLSv1.3`
 
-   Options supported (depending on openssl): `SSLv2`, `SSLv3`, `TLSv1`, `TLSv1.1`, `TLSv1.2`, `cipher_server_preference`
+   Options supported (depending on openssl): `SSLv2`, `SSLv3`, `TLSv1`, `TLSv1.1`, `TLSv1.2`, `TLSv1.3`, `cipher_server_preference`
 
    The default layer string is `tlsv1:all,!sslv2,!sslv3`
 
- * ##### certificate_file
+ * ##### certificate_file or certificate
 
    Specifies the path to a PEM encoded certificate file.
+   You may include the PEM block inline.
 
- * ##### key_file
+ * ##### key_file or key
 
    Specifies the path to a PEM encoded key file.  It must not be encrypted with a password.
+   You may include the PEM block inline.
 
- * ##### ca_chain
+ * ##### ca_chain or ca_file
 
-   Specifies the CA chaing file (PEM encoded) that should be used to validate client supplied certificates.
+   Specifies the CA verification list file (PEM encoded) that should be used to certificates from the client.
+   You may include the PEM block inline.
+
+ * ##### ca_accept
+
+   Specifies the CA certificates file (PEM encoded) that should be advertised to clients, if not specified `ca_file` is used.
+   You may include the PEM block inline.
 
  * ##### crl
 
@@ -151,8 +160,15 @@ connecting clients.  SSL config supports the follwing keys:
    list format.  Check the OpenSSL manual for more details.  If not specified, the
    default ciphers supported by the OpenSSL library are used.
 
- * ##### npn
+ * ##### npn or alpn
 
    Specifies which NPN (next-protocol-negotiation) to offer.  If omitted, `h2` is used and the http2
-   protocol is exposed.  Specifying `none` will disable this NPN registration.
+   protocol is exposed.  Specifying `none` will disable this NPN/ALPN registration.
 
+ * ##### optional_no_ca
+
+   If set to "true", no checks on the validate of the signing CA will be performed. The default is "false".
+
+ * ##### ignore_dates
+
+   If set to "true", expired or future certificates will be considered valid. The default is "false".

@@ -53,10 +53,13 @@ end
 local HttpClient = {};
 HttpClient.__index = HttpClient;
 
-function HttpClient:new(hooks)
+function HttpClient:new(hooks, sslconfig)
     local obj = { }
     setmetatable(obj, HttpClient)
     obj.hooks = hooks or { }
+    if sslconfig ~= nil then
+      obj.sslconfig = sslconfig
+    end
     return obj
 end
 
@@ -72,6 +75,9 @@ function HttpClient:connect(target, port, ssl, ssl_host, ssl_layer)
     end
     if self.hooks.connected ~= nil then self.hooks.connected() end
     if ssl == false then return rv, err end
+    if self.sslconfig ~= nil then
+      return self.e:ssl_upgrade_socket(self.sslconfig, ssl_host, ssl_layer)
+    end
     return self.e:ssl_upgrade_socket(self.hooks.certfile and self.hooks.certfile(),
                                      self.hooks.keyfile and self.hooks.keyfile(),
                                      self.hooks.cachain and self.hooks.cachain(),

@@ -127,6 +127,13 @@ static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pa
   }
   return EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
 }
+static int my_safe_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  mtev_http_response_standard(ctx, 200, "OK", "text/plain");
+  mtev_http_response_append_str(ctx, "contents\n");
+  mtev_http_response_end(ctx);
+  return 0;
+}
 static int my_aco_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
   (void)npats;
   (void)pats;
@@ -207,6 +214,14 @@ child_main(void) {
 
   rule = mtev_http_rest_new_rule("POST", "/", "^aco$", my_aco_post_handler);
   mtev_rest_mountpoint_set_aco(rule, mtev_true);
+
+  rule = mtev_http_rest_new_rule("GET", "/", "^client-required$", my_safe_handler);
+  mtev_rest_mountpoint_set_aco(rule, mtev_true);
+  mtev_rest_mountpoint_set_auth(rule, mtev_http_rest_client_cert_auth);
+
+  rule = mtev_http_rest_new_rule("GET", "/", "^server-required$", my_safe_handler);
+  mtev_rest_mountpoint_set_aco(rule, mtev_true);
+  mtev_rest_mountpoint_set_auth(rule, mtev_http_rest_client_cert_auth);
 
   mtevL(mtev_error, "Ready.\n");
 

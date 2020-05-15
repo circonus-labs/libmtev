@@ -67,6 +67,10 @@ void eventer_ssl_init(void);
 
 /* Helper functions */
 API_EXPORT(eventer_ssl_ctx_t *)
+eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
+                       mtev_hash_table *settings);
+
+API_EXPORT(eventer_ssl_ctx_t *)
   eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
                       const char *layer,
                       const char *certificate, const char *key,

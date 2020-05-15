@@ -398,39 +398,16 @@ mtev_listener_acceptor(eventer_t e, int mask,
         }
       }
       if(mtev_hash_size(listener_closure->sslconfig)) {
-        const char *layer, *cert, *key, *ca, *ciphers, *crl, *npn;
         eventer_ssl_ctx_t *ctx;
         /* We have an SSL configuration.  While our socket accept is
          * complete, we now have to SSL_accept, which could require
          * several reads and writes and needs its own event callback.
          */
-  #define SSLCONFGET(var,name) do { \
-    if(!mtev_hash_retr_str(listener_closure->sslconfig, name, strlen(name), \
-                           &var)) var = NULL; } while(0)
-        SSLCONFGET(layer, "layer");
-        SSLCONFGET(cert, "certificate_file");
-        SSLCONFGET(key, "key_file");
-        SSLCONFGET(ca, "ca_chain");
-        SSLCONFGET(ciphers, "ciphers");
-        SSLCONFGET(npn, "npn");
-        if(!npn) npn="h2,http/1.1";
-        ctx = eventer_ssl_ctx_new(SSL_SERVER, layer, cert, key, ca, ciphers);
+        ctx = eventer_ssl_ctx_new_ex(SSL_SERVER, listener_closure->sslconfig);
         if(!ctx) {
           mtevL(nlerr, "Failed to create SSL context.\n");
           close(conn);
           goto socketfail;
-        }
-        SSLCONFGET(crl, "crl");
-        if(crl) {
-          if(!eventer_ssl_use_crl(ctx, crl)) {
-            mtevL(nlerr, "Failed to load CRL from %s\n", crl);
-            eventer_ssl_ctx_free(ctx);
-            close(conn);
-            goto socketfail;
-          }
-        }
-        if(npn && strcasecmp(npn, "none")) {
-          eventer_ssl_alpn_advertise(ctx, npn);
         }
 
         listener_closure_t lc = malloc(sizeof(*listener_closure));

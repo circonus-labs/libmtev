@@ -665,6 +665,7 @@
       <span class="hljs-tag">&lt;<span class="hljs-name">certificate_file</span>&gt;</span>/path/to/server.crt<span class="hljs-tag">&lt;/<span class="hljs-name">certificate_file</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">key_file</span>&gt;</span>/path/to/server.key<span class="hljs-tag">&lt;/<span class="hljs-name">key_file</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">ca_chain</span>&gt;</span>/path/to/ca.crt<span class="hljs-tag">&lt;/<span class="hljs-name">ca_chain</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">ca_accept</span>/&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">layer</span>&gt;</span>tlsv1:all,!sslv2,!sslv3,cipher_server_preference<span class="hljs-tag">&lt;/<span class="hljs-name">layer</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">ciphers</span>&gt;</span>EECDH+AES128+AESGCM:EDH+AES128+AESGCM:!DSS<span class="hljs-tag">&lt;/<span class="hljs-name">ciphers</span>&gt;</span>
     <span class="hljs-tag">&lt;/<span class="hljs-name">sslconfig</span>&gt;</span>
@@ -759,18 +760,25 @@ connecting clients.  SSL config supports the follwing keys:</p>
 <li><h5 id="layer">layer</h5>
 <p>This specifies the SSL protocol options we present and is the form <code>&lt;protocol&gt;[:&lt;option&gt;,[&lt;option&gt;[,...]]]</code>.
 Options may be negated with an antecedent <code>!</code>.  Tokens are matched case-insensitively.</p>
-<p>Protocols supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>. </p>
-<p>Options supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>, <code>cipher_server_preference</code></p>
+<p>Protocols supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>, <code>TLSv1.3</code></p>
+<p>Options supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>, <code>TLSv1.3</code>, <code>cipher_server_preference</code></p>
 <p>The default layer string is <code>tlsv1:all,!sslv2,!sslv3</code></p>
 </li>
-<li><h5 id="certificatefile">certificate_file</h5>
-<p>Specifies the path to a PEM encoded certificate file.</p>
+<li><h5 id="certificatefile-or-certificate">certificate_file or certificate</h5>
+<p>Specifies the path to a PEM encoded certificate file.
+You may include the PEM block inline.</p>
 </li>
-<li><h5 id="keyfile">key_file</h5>
-<p>Specifies the path to a PEM encoded key file.  It must not be encrypted with a password.</p>
+<li><h5 id="keyfile-or-key">key_file or key</h5>
+<p>Specifies the path to a PEM encoded key file.  It must not be encrypted with a password.
+You may include the PEM block inline.</p>
 </li>
-<li><h5 id="cachain">ca_chain</h5>
-<p>Specifies the CA chaing file (PEM encoded) that should be used to validate client supplied certificates.</p>
+<li><h5 id="cachain-or-cafile">ca_chain or ca_file</h5>
+<p>Specifies the CA verification list file (PEM encoded) that should be used to certificates from the client.
+You may include the PEM block inline.</p>
+</li>
+<li><h5 id="caaccept">ca_accept</h5>
+<p>Specifies the CA certificates file (PEM encoded) that should be advertised to clients, if not specified <code>ca_file</code> is used.
+You may include the PEM block inline.</p>
 </li>
 <li><h5 id="crl">crl</h5>
 <p>Specifies a PEM encoded certificate revocation list file.  If not specified, no revocation is enforced.</p>
@@ -780,9 +788,15 @@ Options may be negated with an antecedent <code>!</code>.  Tokens are matched ca
 list format.  Check the OpenSSL manual for more details.  If not specified, the
 default ciphers supported by the OpenSSL library are used.</p>
 </li>
-<li><h5 id="npn">npn</h5>
+<li><h5 id="npn-or-alpn">npn or alpn</h5>
 <p>Specifies which NPN (next-protocol-negotiation) to offer.  If omitted, <code>h2</code> is used and the http2
-protocol is exposed.  Specifying <code>none</code> will disable this NPN registration.</p>
+protocol is exposed.  Specifying <code>none</code> will disable this NPN/ALPN registration.</p>
+</li>
+<li><h5 id="optionalnoca">optional_no_ca</h5>
+<p>If set to &quot;true&quot;, no checks on the validate of the signing CA will be performed. The default is &quot;false&quot;.</p>
+</li>
+<li><h5 id="ignoredates">ignore_dates</h5>
+<p>If set to &quot;true&quot;, expired or future certificates will be considered valid. The default is &quot;false&quot;.</p>
 </li>
 </ul>
 

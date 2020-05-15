@@ -1,3 +1,5 @@
+_J = function(t) return mtev.tojson(t):tostring() end
+
 ffi = require('ffi')
 ffi.cdef([=[
 void *malloc(size_t);
