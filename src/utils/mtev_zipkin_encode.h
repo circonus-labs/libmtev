@@ -33,6 +33,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #undef byte
 #define byte unsigned char
 #define ZE_STOP 0
@@ -394,5 +398,9 @@ ze_update_Zipkin_Endpoint(Zipkin_Endpoint *e, const char *service_name,
     memcpy(&e->port, &port, 2);
   }
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

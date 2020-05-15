@@ -39,6 +39,10 @@
 
 #include <openssl/ssl.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
   SSL_OP_READ,
   SSL_OP_WRITE,
@@ -169,6 +173,10 @@ API_EXPORT(int)
   eventer_ssl_get_local_commonname(eventer_ssl_ctx_t *ctx, char *buff, int len);
 API_EXPORT(void)
   eventer_ssl_init_globals(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

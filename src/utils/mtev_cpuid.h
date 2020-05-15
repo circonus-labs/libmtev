@@ -34,6 +34,10 @@
 
 #include <mtev_defines.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
   MTEV_CPU_FEATURE_RDTSC,
   MTEV_CPU_FEATURE_RDTSCP,
@@ -44,5 +48,9 @@ enum {
 /** one of the enum above */
 API_EXPORT(mtev_boolean)
   mtev_cpuid_feature(int feature);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

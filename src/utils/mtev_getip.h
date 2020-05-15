@@ -38,6 +38,10 @@
 #include "mtev_defines.h"
 #include <netinet/in.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! \fn int mtev_getip_ipv4(struct in_addr remote, struct in_addr *local)
     \brief find the local IPv4 address that would be used to talk to remote
     \param remote the destination (no packets are sent)
@@ -47,5 +51,9 @@
 
 API_EXPORT(int)
   mtev_getip_ipv4(struct in_addr remote, struct in_addr *local);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

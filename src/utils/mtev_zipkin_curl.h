@@ -35,6 +35,10 @@
 #include <mtev_zipkin.h>
 #include <curl/curl.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline struct curl_slist *
 mtev_zipkin_inst_curl_headers_name(struct curl_slist *inheaders,
                                    const char *uri) {
@@ -95,5 +99,9 @@ static inline CURLcode mtev_zipkin_curl_easy_perform(CURL *curl) {
   mtev_zipkin_client_publish(NULL);
   return rv;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

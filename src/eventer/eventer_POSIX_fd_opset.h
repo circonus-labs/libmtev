@@ -37,6 +37,14 @@
 #include "mtev_defines.h"
 #include "eventer/eventer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern eventer_fd_opset_t eventer_POSIX_fd_opset;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -42,6 +42,10 @@
 
 #include <pcre.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef mtev_conf_section_t
 #define mtev_conf_section_t mtev_conf_section_opaque_t
 #endif
@@ -388,5 +392,9 @@ MTEV_HOOK_PROTO(mtev_conf_delete_section,
                 void *, closure,
                 (void *closure, const char *root, const char *path,
                  const char *name, const char **err));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

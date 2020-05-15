@@ -34,6 +34,10 @@
 #ifndef _MTEV_TOKENIZER_H
 #define _MTEV_TOKENIZER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Pass a string as input and an allocation array of char * place holders.
    The function will white-space slit them and return each token (malloc'd)
    in vector[ 0 .. *cnt-1 ].
@@ -53,5 +57,9 @@
 */
    
 int mtev_tokenize(const char *input, char **vector, int *cnt);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -52,6 +52,10 @@
 #endif
 #ifdef HAVE_TERMIO_H
 #include <termio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 #endif
 
 #if !defined(__linux__) && !defined(__sun)
@@ -309,5 +313,9 @@ int
   mtev_console_telnet_telrcv(struct __mtev_console_closure *ncct,
                              const void *buf, int buflen);
 void ptyflush(struct __mtev_console_closure *ncct);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

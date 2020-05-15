@@ -42,6 +42,10 @@
 #include "eventer/eventer.h"
 #include "mtev_stacktrace.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! \fn int mtev_watchdog_prefork_init()
     \brief Prepare the program to split into a child/parent-monitor relationship.
     \return Returns zero on success.
@@ -271,5 +275,9 @@ API_EXPORT(void)
 
 API_EXPORT(void)
   mtev_watchdog_shutdown_handler(int);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

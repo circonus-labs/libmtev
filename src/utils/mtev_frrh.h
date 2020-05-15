@@ -33,6 +33,10 @@
 
 #include <mtev_defines.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct mtev_frrh_entry_t {
   uint32_t keylen;
   uint8_t key[];
@@ -100,5 +104,9 @@ API_EXPORT(const void *)
 */
 API_EXPORT(mtev_boolean)
   mtev_frrh_set(mtev_frrh_t *, const void *key, uint32_t keylen, const void *data);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

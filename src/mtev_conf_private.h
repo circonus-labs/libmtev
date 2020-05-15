@@ -40,9 +40,17 @@
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 API_EXPORT(int) mtev_conf_xml_xpath(xmlDocPtr *mc, xmlXPathContextPtr *xp);
 API_EXPORT(int)
   _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
                         const char *path, char **value);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

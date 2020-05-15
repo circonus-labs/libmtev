@@ -32,6 +32,10 @@
 #define MTEV_TASK_H
 
 #include <mtev_defines.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 struct _event;
 
 API_EXPORT(uint64_t)
@@ -42,5 +46,9 @@ API_EXPORT(void)
 
 API_EXPORT(void)
   mtev_task_eventer_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -38,6 +38,10 @@
 #include "eventer/eventer.h"
 #include "mtev_console.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MTEV_CAPABILITIES_SERVICE 0x43415041
 
 API_EXPORT(void)
@@ -61,6 +65,10 @@ API_EXPORT(int)
 
 API_EXPORT(void)
   mtev_capabilities_features_ncprint(mtev_console_closure_t ncct);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

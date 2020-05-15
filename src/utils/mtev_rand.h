@@ -34,6 +34,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* mtev rand no long requires initialization, this is a noop */
 #define mtev_rand_init()
 
@@ -85,5 +89,9 @@ API_EXPORT(size_t)
  */
 API_EXPORT(size_t)
   mtev_rand_buf_secure(void *, size_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MTEV_RAND_H */

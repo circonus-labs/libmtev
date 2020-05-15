@@ -39,6 +39,10 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct mtev_net_heartbeat_context mtev_net_heartbeat_ctx;
 
 API_EXPORT(void)
@@ -76,5 +80,9 @@ API_EXPORT(int)
 
 API_EXPORT(int)
   mtev_net_heartbeat_add_multicast(mtev_net_heartbeat_ctx *, struct sockaddr *, socklen_t, unsigned char ttl);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

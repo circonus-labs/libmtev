@@ -43,6 +43,10 @@
 #include <mtev_listener.h>
 #include <mtev_zipkin.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
   MTEV_HTTP_OTHER, MTEV_HTTP_GET, MTEV_HTTP_HEAD, MTEV_HTTP_POST
 } mtev_http_method;
@@ -249,8 +253,16 @@ API_EXPORT(Zipkin_Span *)
 API_EXPORT(void)
   mtev_http_init(void);
 
+#ifdef __cplusplus
+}
+#endif
+
 #include <mtev_http1.h>
 #include <mtev_http2.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 MTEV_HOOK_PROTO(http_request_log,
                 (mtev_http_session_ctx *ctx),
@@ -284,5 +296,9 @@ MTEV_HOOK_PROTO(http_auth,
                 (void *closure, mtev_http_session_ctx *ctx,
                  const char *user_in, const char *pass_in,
                  char **error))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

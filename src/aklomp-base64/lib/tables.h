@@ -1,4 +1,8 @@
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 #define CHAR62 '+'
 #define CHAR63 '/'
 #define CHARPAD '='
@@ -389,5 +393,9 @@ const uint32_t base64_table_dec_d3[256] = {
 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff
 };
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -45,6 +45,10 @@
 #endif
 #include <netinet/in.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct mtev_acceptor_closure_t;
 typedef struct mtev_acceptor_closure_t mtev_acceptor_closure_t;
 
@@ -111,5 +115,9 @@ API_EXPORT(void)
 
 API_EXPORT(mtev_hash_table *)
   mtev_listener_commands(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

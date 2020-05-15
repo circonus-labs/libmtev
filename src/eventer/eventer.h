@@ -38,11 +38,16 @@
 #include "mtev_log.h"
 #include "mtev_hooks.h"
 #include "mtev_time.h"
-#include <ck_pr.h>
-#include <ck_spinlock.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <ck_pr.h>
+#include <ck_spinlock.h>
 
 /* We use ETIMEDOUT, which might be ETIME on some platforms */
 #ifndef ETIME
@@ -1544,6 +1549,10 @@ MTEV_HOOK_PROTO(eventer_started,
                 (void),
                 void *, closure,
                 (void *closure));
+
+#ifdef __cplusplus
+}
+#endif
 
 #ifdef EXPOSE_EVENTER_ABI
 #include <eventer/eventer_impl_private.h>

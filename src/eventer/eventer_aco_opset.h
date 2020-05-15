@@ -36,6 +36,10 @@
 #include "eventer/eventer.h"
 #include "aco/aco.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern eventer_fd_opset_t eventer_aco_fd_opset;
 
 /*! \fn eventer_aco_t eventer_set_eventer_aco_co(eventer_t e, aco_t *co)
@@ -62,5 +66,9 @@ API_EXPORT(eventer_aco_t)
 */
 API_EXPORT(eventer_aco_t)
   eventer_set_eventer_aco(eventer_t e);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

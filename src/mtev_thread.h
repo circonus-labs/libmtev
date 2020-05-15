@@ -34,6 +34,10 @@
 #include <mtev_defines.h>
 #include <pthread.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * wrapper for pthread_create which performs socket affinity by round robin placing
  * threads onto cores.
@@ -104,5 +108,9 @@ API_EXPORT(void)
 
 API_EXPORT(uint32_t)
   mtev_thread_id(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

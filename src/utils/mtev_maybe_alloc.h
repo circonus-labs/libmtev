@@ -33,6 +33,10 @@
 
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*! \fn MTEV_MAYBE_DECL_VARS(type, name, cnt)
     \brief C Macro for declaring a "maybe" buffer.
     \param type A C type (e.g. char)
@@ -104,5 +108,9 @@ do { \
  */
 #define MTEV_MAYBE_FREE(name) \
 do { if(name != __##name##_support.static_buff) free(name); } while(0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

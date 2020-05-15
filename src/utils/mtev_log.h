@@ -46,6 +46,10 @@
 #include "mtev_json.h"
 #include "mtev_zipkin.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef mtev_log_impl
 typedef struct _mtev_log_stream mtev_log_stream_t;
 #define mtev_log_stream_t mtev_log_stream_t *
@@ -386,5 +390,9 @@ MTEV_HOOK_PROTO(mtev_log_line,
                  const char *timebuf, int timebuflen,
                  const char *debugbuf, int debugbuflen,
                  const char *buffer, size_t len))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -34,6 +34,10 @@
 #ifndef _MTEV_MAIN_H
 #define _MTEV_MAIN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
   MTEV_LOCK_OP_NONE = 0,
   MTEV_LOCK_OP_LOCK,
@@ -102,5 +106,9 @@ API_EXPORT(void)
 
 API_EXPORT(void)
   mtev_main_disable_log(const char *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

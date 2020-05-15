@@ -36,6 +36,10 @@
 #include "mtev_http.h"
 #include "mtev_rest.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define HTTP_SESSION_BASE \
   uint32_t http_type; \
   mtev_boolean logged; \
@@ -436,5 +440,9 @@ mtev_http_session_decompress(mtev_stream_decompress_ctx_t *dctx, struct bchain *
   (*last_out)->next = NULL;
   return total_decompressed_size;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

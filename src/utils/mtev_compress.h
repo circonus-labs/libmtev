@@ -34,6 +34,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
   MTEV_COMPRESS_NONE = 0,
   MTEV_COMPRESS_LZ4F,
@@ -218,5 +222,9 @@ API_EXPORT(void)
 */
 API_EXPORT(size_t)
   mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

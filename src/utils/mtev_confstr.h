@@ -7,6 +7,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _mtev_duration_definition_t mtev_duration_definition_t;
 
 /* return codes from mtev_confstr_parse routines */
@@ -137,5 +141,9 @@ API_EXPORT(int)
  */
 #define mtev_confstr_parse_duration_s(input, output)                    \
   mtev_confstr_parse_duration(input, output, mtev_get_durations_s())
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

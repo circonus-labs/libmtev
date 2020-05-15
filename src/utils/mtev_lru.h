@@ -34,6 +34,10 @@
 
 #include "mtev_defines.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct mtev_lru mtev_lru_t;
 typedef void *mtev_lru_entry_token;
 
@@ -68,5 +72,9 @@ API_EXPORT(void *)
 
 API_EXPORT(int32_t)
   mtev_lru_size(mtev_lru_t *lru);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

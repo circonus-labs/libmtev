@@ -35,6 +35,10 @@
 #include <mtev_defines.h>
 #include <mtev_hooks.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 MTEV_RUNTIME_RESOLVE(mtev_consul_kv_attach, mtev_consul_kv_attach_function, void *,
                      (const char *path, void (*witness)(const char *, uint8_t *, size_t, uint32_t)),
                      (path, witness))
@@ -43,5 +47,9 @@ MTEV_RUNTIME_AVAIL(mtev_consul_kv_attach, mtev_consul_kv_attach_function)
 MTEV_RUNTIME_RESOLVE(mtev_consul_kv_detach, mtev_consul_kv_detach_function, void *,
                      (void *handle), (handle))
 MTEV_RUNTIME_AVAIL(mtev_consul_kv_detach, mtev_consul_kv_detach_function) 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

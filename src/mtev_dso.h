@@ -42,6 +42,10 @@
 #define MTEV_LOADER_MAGIC         0xA7AD7104
 #define MTEV_LOADER_ABI_VERSION   5
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct __extended_image_data {
   void *userdata;
   void *dlhandle;
@@ -141,5 +145,9 @@ MTEV_HOOK_PROTO(dso_post_init,
                 (void),
                 void *, closure,
                 (void *closure))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

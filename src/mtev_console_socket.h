@@ -41,6 +41,10 @@
 #include "mtev_skiplist.h"
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct mtev_console_socket_t {
   eventer_t e;           /* The event it is attached to.  This
                           * is needed so it can write itself out */
@@ -74,5 +78,9 @@ struct mtev_console_socket_t {
   pthread_mutex_t hist_file_lock;
   char *hist_file;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

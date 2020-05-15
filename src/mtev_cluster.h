@@ -38,6 +38,10 @@
 #include <arpa/inet.h>
 #include <mtev_conf.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct mtev_cluster_t mtev_cluster_t;
 
 typedef struct mtev_cluster_node_t mtev_cluster_node_t;
@@ -341,5 +345,9 @@ MTEV_HOOK_PROTO(mtev_cluster_handle_node_update,
                 (void *closure, mtev_cluster_node_changes_t node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
                     struct timeval old_boot_time));
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

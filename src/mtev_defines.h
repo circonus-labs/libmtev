@@ -220,6 +220,10 @@ static inline int portable_readdir_r(DIR *dirp, struct dirent *entry, struct dir
 #endif
 #include "noitedit/strlcpy.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define UUID_REGEX "[0-9a-fA-F]{4}(?:[0-9a-fA-F]{4}-){4}[0-9a-fA-F]{12}"
 #define UUID_SIZE 16
 
@@ -231,6 +235,10 @@ typedef uint64_t mtev_hrtime_t;
 typedef long long unsigned int mtev_hrtime_t;
 #else
 typedef hrtime_t mtev_hrtime_t;
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

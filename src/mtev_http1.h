@@ -38,6 +38,10 @@
 #include <mtev_http.h>
 #include <mtev_compress.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
   MTEV_HTTP09, MTEV_HTTP10, MTEV_HTTP11
 } mtev_http_protocol;
@@ -212,5 +216,9 @@ MTEV_HOOK_PROTO(http1_post_request,
                 (mtev_http1_session_ctx *ctx),
                 void *, closure,
                 (void *closure, mtev_http1_session_ctx *ctx))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -35,6 +35,10 @@
 #include <mtev_hooks.h>
 #include <mtev_http.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 MTEV_RUNTIME_AVAIL(http_observer_note,
                    http_observer_note_dyn)
 MTEV_RUNTIME_RESOLVE(http_observer_note,
@@ -48,5 +52,9 @@ MTEV_RUNTIME_RESOLVE(http_observer_note,
     http_observer_note(ctx,key,val); \
   } \
 } while(0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -31,6 +31,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef MTEV_REST_H
+#define MTEV_REST_H
+
 #include "mtev_defines.h"
 #include "mtev_listener.h"
 #include "mtev_http.h"
@@ -40,8 +43,9 @@
 #include "mtev_console.h"
 #include "eventer/eventer.h"
 
-#ifndef MTEV_REST_H
-#define MTEV_REST_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MTEV_CONTROL_GET    0x47455420 /* "GET " */
 #define MTEV_CONTROL_HEAD   0x48454144 /* "HEAD" */
@@ -220,5 +224,9 @@ MTEV_HOOK_PROTO(rest_auth_denied,
                 (mtev_http_rest_closure_t *restc, rest_request_handler *func),
                 void *, closure,
                 (void *closure, mtev_http_rest_closure_t *restc, rest_request_handler *func));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

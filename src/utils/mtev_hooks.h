@@ -35,9 +35,14 @@
 #define UTILS_MTEV_HOOKS
 
 #include <mtev_defines.h>
-#include <ck_pr.h>
 #include <assert.h>
 #include <dlfcn.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <ck_pr.h>
 
 /*#* DOCBOOK
  * <section><title>Abitrary Hooks</title>
@@ -244,4 +249,8 @@ static inline int FUNCNAME##_available (void) { \
   return (f_ != NULL); \
 }
 #endif
+#ifdef __cplusplus
+}
+#endif
+
 #endif

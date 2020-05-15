@@ -20,6 +20,10 @@
 #ifndef _MTEV_SKIPLIST_P_H
 #define _MTEV_SKIPLIST_P_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* This is a skiplist implementation to be used for abstract structures
    within the Spread multicast and group communication toolkit
 
@@ -82,5 +86,9 @@ void *mtev_skiplist_pop(mtev_skiplist * a, mtev_freefunc_t myfree);
 void *mtev_skiplist_peek(mtev_skiplist * a);
 
 int mtev_compare_voidptr(const void *, const void *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

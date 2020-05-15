@@ -40,6 +40,10 @@
 
 #include "mtev_listener.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct reverse_socket reverse_socket_t;
 typedef struct mtev_connection_ctx_t {
   uint32_t refcnt;
@@ -128,5 +132,9 @@ API_EXPORT(mtev_boolean)
 
 API_EXPORT(void)
   mtev_reverse_socket_init_globals(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

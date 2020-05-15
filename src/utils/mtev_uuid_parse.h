@@ -36,6 +36,10 @@
 #include <mtev_defines.h>
 #include <mtev_uuid.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*!
  \fn int mtev_uuid_parse(const char *in, uuid_t uu)
  \brief Parse "in" in UUID format into "uu".
@@ -84,5 +88,9 @@ API_EXPORT(void)
 */
 API_EXPORT(void)
   mtev_uuid_unparse(const uuid_t uu, char *out);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

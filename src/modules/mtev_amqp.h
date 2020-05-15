@@ -36,6 +36,10 @@
 #include <mtev_defines.h>
 #include <mtev_hooks.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct amqp_connection_state_t_;
 struct amqp_envelope_t_;
 
@@ -101,5 +105,9 @@ MTEV_RUNTIME_RESOLVE(mtev_amqp_handle_connection_hook_register,
                       mtev_hook_return_t (*func) (void *closure, struct amqp_connection_state_t_ *client, int id, mtev_boolean connected),
                       void *closure),
                      (name,func,closure))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

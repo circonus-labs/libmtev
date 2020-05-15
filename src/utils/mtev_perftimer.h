@@ -32,6 +32,11 @@
 #define MTEV_PERFTIMER_H
 
 #include <mtev_defines.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <ck_md.h>
 
 typedef struct mtev_perftimer_t {
@@ -43,5 +48,9 @@ API_EXPORT(void)
 
 API_EXPORT(int64_t)
   mtev_perftimer_elapsed(mtev_perftimer_t *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

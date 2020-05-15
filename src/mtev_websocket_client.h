@@ -4,6 +4,10 @@
 #include "mtev_defines.h"
 #include "mtev_conf.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct mtev_websocket_client mtev_websocket_client_t;
 
 typedef mtev_boolean (*mtev_websocket_client_ready_callback)(mtev_websocket_client_t *client,
@@ -176,5 +180,9 @@ API_EXPORT(void)
 */
 API_EXPORT(void)
   mtev_websocket_client_init_logs(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
