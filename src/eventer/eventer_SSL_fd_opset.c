@@ -53,6 +53,7 @@
 
 #define _OPENSSL_VERSION_1_1_0 0x10100000L
 #define _OPENSSL_VERSION_1_0_2 0x10002000L
+#define _OPENSSL_VERSION_1_0_1 0x10001000L
 
 #define EVENTER_SSL_DATANAME "eventer_ssl"
 #define DEFAULT_OPTS_STRING "all"
@@ -1034,10 +1035,12 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         }
         X509_free(crt);
 
-#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_0_2
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_0_2 && OPENSSL_VERSION_NUMER >= _OPENSSL_VERSION_1_0_1
         if(SSL_CTX_clear_extra_chain_certs(ctx->ssl_ctx) == 0) {
+#elif OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
+        if(SSL_CTX_clear_chain_certs(ctx->ssl_ctx) == 0) {
 #else
-        if(SSL_CTX_clear_chain_certs(ctx->ssl_ctx) == 0){
+        if(0) {
 #endif
           mtevL(eventer_err, "Failed to initialize TLS certificate chain\n");
           BIO_free(bio);
