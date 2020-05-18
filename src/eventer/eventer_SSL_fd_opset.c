@@ -73,7 +73,9 @@ static struct dhparams_t {
   DH *params;
   DH *(*builtin)();
 } dhparams[MAX_DHPARAMS] = {
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
   { .bits = 2048, .builtin = DH_get_2048_224 },
+#endif
 };
 static int ndhparams = 1;
 
@@ -1018,7 +1020,7 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         const char *cptr = certificate;
         BIO *bio = NULL;
         ERR_clear_error();
-        bio = BIO_new_mem_buf(cptr, -1);
+        bio = BIO_new_mem_buf((void *)cptr, -1);
         BIO_set_flags(bio, BIO_FLAGS_MEM_RDONLY);
         X509 *crt = NULL;
         crt = PEM_read_bio_X509_AUX(bio, NULL, NULL, NULL);
@@ -1032,14 +1034,22 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         }
         X509_free(crt);
 
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_0_2
+        if(SSL_CTX_clear_extra_chain_certs(ctx->ssl_ctx) == 0) {
+#else
         if(SSL_CTX_clear_chain_certs(ctx->ssl_ctx) == 0){
+#endif
           mtevL(eventer_err, "Failed to initialize TLS certificate chain\n");
           BIO_free(bio);
           goto bail;
         }
         certno++;
         while(NULL != (crt = PEM_read_bio_X509(bio, NULL, NULL, NULL))) {
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_0_2
+          if(!SSL_CTX_add_extra_chain_cert(ctx->ssl_ctx, crt)) {
+#else
           if(!SSL_CTX_add0_chain_cert(ctx->ssl_ctx, crt)) {
+#endif
             X509_free(crt);
             BIO_free(bio);
             mtevL(eventer_err, "Failed to add to TLS certificate [#%d] to chain\n", certno);
@@ -1068,7 +1078,7 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         mtevL(ssldb, "Loaded private key from file: %s\n", key_file);
       } else {
         /* key is a PEM key, pust read it */
-        BIO *bio = BIO_new_mem_buf(key, -1);
+        BIO *bio = BIO_new_mem_buf((void *)key, -1);
         BIO_set_flags(bio, BIO_FLAGS_MEM_RDONLY);
         EVP_PKEY *pk = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
         BIO_free(bio);
@@ -1097,7 +1107,7 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         int ncerts = 0;
         BIO *bio = NULL;
         ERR_clear_error();
-        bio = BIO_new_mem_buf(ca, -1);
+        bio = BIO_new_mem_buf((void *)ca, -1);
         BIO_set_flags(bio, BIO_FLAGS_MEM_RDONLY);
         X509 *crt = NULL;
         X509_STORE *vfy = X509_STORE_new();
@@ -1117,7 +1127,11 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
           goto bail;
         }
         mtevL(ssldb, "Loaded %d certs into ca chain\n", ncerts);
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_0_2
+        SSL_CTX_set_cert_store(ctx->ssl_ctx, vfy);
+#else
         SSL_CTX_set0_verify_cert_store(ctx->ssl_ctx, vfy);
+#endif
       }
     }
     if(type == SSL_SERVER && ca_accept && ca_accept[0]) { /* blank means no advertisements */
@@ -1133,7 +1147,7 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         int ncerts = 0;
         BIO *bio = NULL;
         ERR_clear_error();
-        bio = BIO_new_mem_buf(ca_accept, -1);
+        bio = BIO_new_mem_buf((void *)ca_accept, -1);
         BIO_set_flags(bio, BIO_FLAGS_MEM_RDONLY);
         X509 *crt = NULL;
         while(NULL != (crt = PEM_read_bio_X509_AUX(bio, NULL, NULL, NULL))) {
@@ -1695,7 +1709,9 @@ int eventer_ssl_config(const char *key, const char *value) {
         dhparams[i].bits = (int)bits;
         dhparams[i].file = strlen(value) ? strdup(value) : NULL;
         /* special case 1024 to use the openssl NIST builtin */
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
         if(bits == 1024) dhparams[i].builtin = DH_get_1024_160;
+#endif
         ndhparams++;
         return 0;
       }
