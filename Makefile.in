@@ -1,4 +1,5 @@
 EBOOKCONVERT=$(shell which ebook-convert)
+GITBOOK=gitbook
 
 all:
 	$(MAKE) -C src
@@ -10,20 +11,20 @@ configure:	configure.ac
 	autoreconf -i -I buildtools
 
 gitbook-setup:
-	gitbook install
+	$(GITBOOK) install
 	buildtools/mkcodedocs.pl src docs-md/apireference
 	$(MAKE) -C src ../docs-md/mtev_version.md
 	$(MAKE) -C src/modules alldocs
 
 docs-serve:	gitbook-setup
-	gitbook serve .
+	$(GITBOOK) serve .
 
 docs-html:	gitbook-setup
-	gitbook build . docs
+	$(GITBOOK) build . docs
 	buildtools/gitbook-cleanup.sh
 
 docs-pdf:	gitbook-setup
-	PATH=$(shell dirname $(EBOOKCONVERT)):$(shell echo $$PATH) gitbook pdf . docs/libmtev-manual.pdf
+	PATH=$(shell dirname $(EBOOKCONVERT)):$(shell echo $$PATH) $(GITBOOK) pdf . docs/libmtev-manual.pdf
 
 COMPRESS_JS=cat
 COMPRESS_CSS=cat
