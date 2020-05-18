@@ -199,7 +199,8 @@ LIBMTEV_OBJS=mtev_main.lo mtev_listener.lo mtev_cluster.lo \
     $(JSON_LIB_OBJS) $(SLZ_LIB_OBJS)
 
 PTRACE_MODULES=backtrace-support/mtev-hash-module.lua \
-	backtrace-support/mtev-http1-module.lua	backtrace-support/mtev-http2-module.lua
+	backtrace-support/mtev-http1-module.lua	backtrace-support/mtev-http2-module.lua \
+	backtrace-support/mtev-http-observer-module.lua
 
 FINAL2_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.Slo=libmtev-objs/%.Slo)
 FINAL1_LIBMTEV_OBJS=$(LIBMTEV_OBJS:%.lo=libmtev-objs/%.lo)

@@ -4,7 +4,7 @@ local LIMIT_MEMBER_COUNT = 128
 -- Helper
 --
 
-function L(...)
+local function L(...)
   pmodule.log(pmodule.log_level.info, string.format(...))
 end
 
@@ -17,11 +17,11 @@ local function bt2val(bt_var)
   return pmodule.variable_from_bt(bt_var):value()
 end
 
-function poke(addr, len)
+local function poke(addr, len)
   return pmodule.address_read_raw(addr, len)
 end
 
-function str2num(str)
+local function str2num(str)
   local x = 0
   local n = string.len(str)
   for i=1,n do
@@ -30,15 +30,15 @@ function str2num(str)
   return x
 end
 
-function poke_num(addr, len)
+local function poke_num(addr, len)
   return str2num(poke(addr, len))
 end
 
-function poke_str(addr, len)
+local function poke_str(addr, len)
   return pmodule.address_read_string(addr, len or 256)
 end
 
-function poke_ptr_arr(addr, len)
+local function poke_ptr_arr(addr, len)
   local out = {}
   local str = pmodule.address_read_raw(addr, 8 * len)
   for i=1,len do
@@ -47,12 +47,12 @@ function poke_ptr_arr(addr, len)
   return out
 end
 
-function deref(addr)
+local function deref(addr)
   return poke_num(addr, 8)
 end
 
 -- convert byte string to hex-string
-function bytes2str(bytes)
+local function bytes2str(bytes)
   buf = {}
   for i=1,bytes:len() do
     buf[#buf+1] = string.format("%0.2x", bytes:byte(i))
@@ -68,7 +68,7 @@ function bytes2str(bytes)
 end
 
 -- Infer value type.
-function poke_val(addr, max_len, inf_len, rec)
+local function poke_val(addr, max_len, inf_len, rec)
   max_len = max_len or 128
   inf_len = inf_len or 16
   rec = rec or 0
@@ -105,7 +105,7 @@ function poke_val(addr, max_len, inf_len, rec)
   end
 end
 
-function print_mem(addr, len)
+local function print_mem(addr, len)
   local str = bytes2str(poke(addr, len))
   L("XXX MEM[0x%x]: \n%s", addr, str)
 end
@@ -185,7 +185,7 @@ local function variable_mtev_hash_cb(pt_var, bt_var)
   end
 end
 
-function pm_mtev_hash_load()
+local function pm_mtev_hash_load()
   L("module-mtev-hash: load")
   local m = pmodule.match()
   m:add_variable_base_type("mtev_hash_table", pmodule.match_type.exact)
