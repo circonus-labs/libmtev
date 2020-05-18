@@ -114,11 +114,11 @@ function HTTP(method, host, port, uri, headers, payload, _pp, config)
   callbacks.headers = function (hdrs) in_headers = hdrs end
   callbacks.certfile = function() return config.certificate_file end
   callbacks.keyfile = function() return config.key_file end
-  local ca_chain = config.ca_chain and config.ca_chain or mtev.conf_get_string("/noit/eventer/config/default_ca_chain")
-  callbacks.cachain = function() return ca_chain end
+  config.ca_chain = config.ca_chain and config.ca_chain or mtev.conf_get_string("//eventer/config/default_ca_chain")
+  callbacks.cachain = function() return config.ca_chain end
   callbacks.ciphers = function() return config.ciphers end
 
-  local client = HttpClient:new(callbacks)
+  local client = HttpClient:new(callbacks, config.use_ssl and config or nil)
   local rv, err = client:connect(host, port, config.use_ssl and config.use_ssl or false, host)
   if rv ~= 0 then return -1, { error =  "client:connect failed" } end
 

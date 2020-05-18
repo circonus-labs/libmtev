@@ -5,7 +5,17 @@ local HTTP_HEAD = "POST %s HTTP/1.1\r\n" ..
   "Accept: */*\r\n" ..
   "\r\n"
 
+math.randomseed(mtev.getpid())
 local port = math.floor(20000 + math.random(10000))
+local tlsport = port + 1
+local curl_connect = table.concat({"test-server", "443", "localhost", tlsport}, ":")
+local curl_ssl = { "--connect-to", curl_connect, "--cacert", "demoCA/root/certs/ca.crt" }
+local api = API:new("localhost", tlsport):ssl({
+  ca_file = "demoCA/root/certs/ca.crt",
+  key = "test-client.key",
+  certificate = "test-client.crt",
+  snihost = "test-server"
+})
 
 local function hash_xlen(l)
   local h = 5381
@@ -73,7 +83,7 @@ function http(url)
 end
 
 function https(url)
-  return "https://127.0.0.1:" .. tostring(port+1) .. url
+  return "https://test-server" .. url
 end
 
 function map(arr, f)
@@ -93,10 +103,30 @@ function identity(d) return d end
 
 function curl(method, url, transform, curl_params)
   curl_params = curl_params or {}
-  local cmd = "curl -s -X " .. method .. " " .. table.concat(curl_params, " ") .. " " .. url
+  local cmd = "curl -D- -s -X " .. method .. " " .. table.concat(curl_params, " ") .. " " .. url
   local ret, out, err = mtev.sh(cmd)
+  local meta = {}
+  local i,j = string.find(out or "", '\r\n\r\n')
+  if i ~= nil then
+    local hdr, hdrs
+    repeat
+      hdr = string.sub(out, 1, i)
+      out = string.sub(out, j+1)
+      hdrs = mtev.extras.split(hdr, "\r\n")
+      meta.protocol, meta.code, meta.msg = string.match(hdrs[1], "(%S+)%s+(%S+)%s+(%S*)")
+      meta.code = tonumber(meta.code)
+      i,j = string.find(out or "", '\r\n\r\n')
+    until meta.code ~= 101 or i == nil
+    if #hdrs > 1 then
+      for i = 2,#hdrs do
+        hdrs[i] = hdrs[i]:gsub("[\r\n]*$", "")
+        local key, val = hdrs[i]:match("([^:]+):%s*(.*)")
+        meta[string.lower(key)] = val
+      end
+    end
+  end
   local doc = transform(out)
-  return cmd, ret, doc
+  return cmd, meta, doc
 end
 
 describe("http server", function()
@@ -111,7 +141,7 @@ describe("http server", function()
     for k,v in pairs(ENV) do env[k] = v end
     env["LOCKFILE"] = mtev.getcwd() .. "/test_http_server.lock"
     env["PORT"] = port
-    env["TLSPORT"] = port + 1
+    env["TLSPORT"] = tlsport
     p = mtev.Proc:new {
       path = "./test_http_server",
       argv = { "test_http_server", "-D", "-c", "test_http_server.conf" },
@@ -131,17 +161,25 @@ describe("http server", function()
        assert(hash == 5381)
   end)
 
+  it("works with HttpClient", function()
+    local code, obj = api:HTTPS("GET", "/capa.json")
+    assert.is_equal(200, code)
+    assert.is_not_nil(obj)
+    assert.is_not_nil(obj.version)
+  end)
+
   local curl_work = {
     { method = "GET",
-      params = { { "-k", "--http1.1" } },
+      params = { { "--http1.1", unpack(curl_ssl) } },
       transform = xml,
       urls = map({
         "/capa"
-      }, https)
+      }, https),
+      expect = 200
     },
     { method = "CAPA",
       tranform = xml,
-      params = { { "-k", "--no-alpn", "--no-npn", "--http0.9" } },
+      params = { { "--no-alpn", "--no-npn", "--http0.9", unpack(curl_ssl) } },
       urls = map({'/'}, https)
     },
     { method = "GET",
@@ -155,17 +193,29 @@ describe("http server", function()
       urls = map({
         "/capa.json", "/mtev/stats.json", "/mtev/memory.json",
         "/eventer/memory.json", "/eventer/sockets.json", "/eventer/jobq.json",
-        "/eventer/timers.json",
-        "/eventer/logs/nope.json", "/eventer/logs/internal.json",
-        "/eventer/logs/internal.json\\?since=0",
-	"/mtev/rest.json",
-      }, http)
+        "/eventer/timers.json", "/mtev/rest.json",
+        "/eventer/logs/internal.json", "/eventer/logs/internal.json\\?since=0",
+      }, http),
+      expect = 200
     },
     { method = "GET",
       params = {
-        { "-k", "--http1.0" },
-        { "-k", "--http1.1" },
-        { "-k", "--compressed", "--http2" },
+        { "--http0.9" },
+        { "--http1.0" },
+        { "--http1.1" },
+        { "--compressed --http2" },
+      },
+      transform = json,
+      urls = map({
+        "/eventer/logs/nope.json"
+      }, http),
+      expect = 404
+    },
+    { method = "GET",
+      params = {
+        { "--http1.0", unpack(curl_ssl) },
+        { "--http1.1", unpack(curl_ssl) },
+        { "--compressed", "--http2", unpack(curl_ssl) },
       },
       transform = json,
       urls = map({
@@ -173,8 +223,31 @@ describe("http server", function()
         "/eventer/memory.json", "/eventer/sockets.json", "/eventer/jobq.json",
         "/eventer/timers.json", "/eventer/logs/internal.json",
 	"/mtev/rest.json",
-      }, https)
-    }
+      }, https),
+      expect = 200
+    },
+    { method = "GET",
+      params = {
+        { "--http1.0", "--key", "test-client.key", "--cert", "test-client.crt", unpack(curl_ssl) },
+        { "--http1.1", "--key", "test-client.key", "--cert", "test-client.crt", unpack(curl_ssl) },
+        { "--compressed", "--http2", "--key", "test-client.key", "--cert", "test-client.crt", unpack(curl_ssl) },
+      },
+      urls = map({
+        "/client-required"
+      }, https),
+      expect = 200
+    },
+    { method = "GET",
+      params = {
+        { "--http1.0", "--key", "test-client.key", "--cert", "test-client.crt", unpack(curl_ssl) },
+        { "--http1.1", "--key", "test-client.key", "--cert", "test-client.crt", unpack(curl_ssl) },
+        { "--compressed", "--http2", "--key", "test-client.key", "--cert", "test-client.crt", unpack(curl_ssl) },
+      },
+      urls = map({
+        "/server-required"
+      }, https),
+      expect = 403
+    },
   }
 
   describe("curl", function()
@@ -182,12 +255,24 @@ describe("http server", function()
       for _, set in ipairs(curl_work) do
         for _, params in ipairs(set.params) do
           for _, url in ipairs(set.urls) do
-            local cmd, ret, out = curl(set.method, url, set.transform or identity, params)
-            assert.message(cmd).is.equal(0, ret)
+            local cmd, meta, out = curl(set.method, url, set.transform or identity, params)
+            if set.expect ~= nil then
+              assert.message(cmd).is.equal(set.expect, meta.code)
+            end
             assert.message(cmd).is.not_nil(out)
           end
         end
       end
+    end)
+  end)
+
+  describe("lz4f transfer encoding", function()
+    it("fetches", function()
+      local rv, out = mtev.sh("./geturllz4f " .. http("/capa.json"))
+      assert.is_equal(0, rv)
+      local obj = json(out)
+      assert.is_not_nil(obj)
+      assert.is_not_nil(obj.version)
     end)
   end)
 

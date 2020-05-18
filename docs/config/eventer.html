@@ -744,11 +744,10 @@ to trust by default.</p>
 <p>Sets the default number of seconds after which cached SSL contexts will be released.
 The default is 5 seconds.</p>
 </li>
-<li><h5 id="ssldhparam1024file--ssldhparam2048file">ssl_dhparam1024_file &amp; ssl_dhparam2048_file</h5>
-<p>Sets the filename to cache generated DH params for SSL connections.  If the keys are
-omitted, no cahce will be used and new parameters will (likely needlessly) be
-regenerated during startup.  If specified and empty, DH params will not be generated
-and this be unavailable to the SSL subsystem; this will prevent forward secrecy.</p>
+<li><h5 id="ssldhparambitsfile--ssldhparambits">ssl_dhparam&lt;bits&gt;_file &amp; ssl_dhparam&lt;bits&gt;</h5>
+<p>By default 2048 bit NIST DH paramaters will be used.
+If you would like to create new ones, you may specify a file name and a new set of
+parameters of <code>bits</code> bits will be generated and stored for reuse.</p>
 </li>
 </ul>
 

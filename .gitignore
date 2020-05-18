@@ -59,7 +59,9 @@ test/test_harness
 test/sort_test
 test/test_detail.xml
 test/lua-tests/test_detail.xml
-test/demoCA/
+test/demoCA/root/
+test/demoCA/intermediate/
+test/*.pem
 test/test-*.crt
 test/test-*.csr
 test/test-*.key

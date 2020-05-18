@@ -543,14 +543,11 @@ mtev.eventer:ssl_ctx()
 
 ```lua
 rv, err =
-mtev.eventer:ssl_upgrade_socket(cert, key[, ca[, ciphers[, snihost[, layer]]]])
+mtev.eventer:ssl_upgrade_socket(cert, sslconfig[, snihost[, layer]]]])
 ```
 
 
-  * `cert` a path to a PEM-encoded certificate file.
-  * `key` a path to a PEM-encoded key file.
-  * `ca` a path to a PEM-encoded CA chain.
-  * `ciphers` an OpenSSL cipher preference list.
+  * `sslconfig` is a table that looks like mtev's sslconfig
   * `snihost` the host name to which we're connecting (SNI).
   * `layer` a desired SSL layer.
   * **RETURN** rv is 0 on success, -1 on failure. err contains error messages.
@@ -936,6 +933,18 @@ mtev.print(format, ...)
 This function is effectively the `mtev.log` function with the first argument
 set to "error".  It is also aliased into the global `print` symbol such that
 one cannot accidentally call the print builtin.
+
+
+#### mtev.printto
+
+```lua
+len =
+mtev.printto(facility)
+```
+
+  * `facility` is an mtev log stream
+
+This function sets the mtev.print output facility.
 
 
 #### Proc:kill

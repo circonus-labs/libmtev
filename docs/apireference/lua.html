@@ -1025,13 +1025,10 @@ mtev.eventer:ssl_ctx()
 <p>Upgrade a normal TCP socket to SSL.</p>
 </blockquote>
 <pre><code class="lang-lua">rv, err =
-mtev.eventer:ssl_upgrade_socket(cert, key[, ca[, ciphers[, snihost[, layer]]]])
+mtev.eventer:ssl_upgrade_socket(cert, sslconfig[, snihost[, layer]]]])
 </code></pre>
 <ul>
-<li><code>cert</code> a path to a PEM-encoded certificate file.</li>
-<li><code>key</code> a path to a PEM-encoded key file.</li>
-<li><code>ca</code> a path to a PEM-encoded CA chain.</li>
-<li><code>ciphers</code> an OpenSSL cipher preference list.</li>
+<li><code>sslconfig</code> is a table that looks like mtev&apos;s sslconfig</li>
 <li><code>snihost</code> the host name to which we&apos;re connecting (SNI).</li>
 <li><code>layer</code> a desired SSL layer.</li>
 <li><strong>RETURN</strong> rv is 0 on success, -1 on failure. err contains error messages.</li>
@@ -1299,6 +1296,14 @@ mtev.<span class="hljs-built_in">print</span>(format, ...)
 <p>This function is effectively the <code>mtev.log</code> function with the first argument
 set to &quot;error&quot;.  It is also aliased into the global <code>print</code> symbol such that
 one cannot accidentally call the print builtin.</p>
+<h4 id="mtevprintto">mtev.printto</h4>
+<pre><code class="lang-lua">len =
+mtev.printto(facility)
+</code></pre>
+<ul>
+<li><code>facility</code> is an mtev log stream</li>
+</ul>
+<p>This function sets the mtev.print output facility.</p>
 <h4 id="prockill">Proc:kill</h4>
 <blockquote>
 <p>Kill process by sending SIGTERM, then SIGKILL</p>

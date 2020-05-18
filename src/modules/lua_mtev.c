@@ -1136,8 +1136,8 @@ mtev_lua_ssl_upgrade(eventer_t e, int mask, void *vcl,
 }
 static int
 mtev_lua_socket_connect_ssl(lua_State *L) {
-  const char *layer, *ca, *ciphers, *cert, *key, *snihost, *err;
-  eventer_ssl_ctx_t *sslctx;
+  const char *snihost = NULL, *layer, *err;
+  eventer_ssl_ctx_t *sslctx = NULL;
   mtev_lua_resume_info_t *ci;
   eventer_t e, *eptr;
   int tmpmask, rv, nargs = 1;
@@ -1150,14 +1150,30 @@ mtev_lua_socket_connect_ssl(lua_State *L) {
     luaL_error(L, "must be called as method");
   e = *eptr;
   if(e == NULL) luaL_error(L, "invalid event");
-  cert = lua_tostring(L, 2);
-  key = lua_tostring(L, 3);
-  ca = lua_tostring(L, 4);
-  ciphers = lua_tostring(L, 5);
-  snihost = lua_tostring(L, 6);
-  layer = lua_tostring(L, 7);
+  if(lua_istable(L, 2)) {
+    mtev_hash_table *sslconfig = mtev_lua_table_to_hash(L, 2);
+    if(sslconfig) {
+      snihost = lua_tostring(L, 3);
+      if(!snihost) snihost = mtev_hash_dict_get(sslconfig, "snihost");
+      layer = lua_tostring(L, 4);
+      if(layer) mtev_hash_replace(sslconfig, "layer", strlen("layer"), layer, NULL, NULL);
+      sslctx = eventer_ssl_ctx_new_ex(SSL_CLIENT, sslconfig);
+      free(sslconfig);
+    }
+  } else {
+    /* This is the legacy call, we leave it here as to be silently
+     * backward compatible.
+     */
+    const char *ca, *ciphers, *cert, *key;
+    cert = lua_tostring(L, 2);
+    key = lua_tostring(L, 3);
+    ca = lua_tostring(L, 4);
+    ciphers = lua_tostring(L, 5);
+    snihost = lua_tostring(L, 6);
+    layer = lua_tostring(L, 7);
 
-  sslctx = eventer_ssl_ctx_new(SSL_CLIENT, layer, cert, key, ca, ciphers);
+    sslctx = eventer_ssl_ctx_new(SSL_CLIENT, layer, cert, key, ca, ciphers);
+  }
   if(!sslctx) {
     lua_pushinteger(L, -1);
     lua_pushstring(L, "ssl_client context creation failed");
@@ -1742,12 +1758,9 @@ The old eventer object will be disowned and invalid for use!
 \return rv is 0 on success, -1 on failure. err contains error messages.
 */
      LUA_DISPATCH(setsockopt, mtev_lua_socket_setsockopt);
-/*! \lua rv, err = mtev.eventer:ssl_upgrade_socket(cert, key[, ca[, ciphers[, snihost[, layer]]]])
+/*! \lua rv, err = mtev.eventer:ssl_upgrade_socket(cert, sslconfig[, snihost[, layer]]]])
 \brief Upgrade a normal TCP socket to SSL.
-\param cert a path to a PEM-encoded certificate file.
-\param key a path to a PEM-encoded key file.
-\param ca a path to a PEM-encoded CA chain.
-\param ciphers an OpenSSL cipher preference list.
+\param sslconfig is a table that looks like mtev's sslconfig
 \param snihost the host name to which we're connecting (SNI).
 \param layer a desired SSL layer.
 \return rv is 0 on success, -1 on failure. err contains error messages.

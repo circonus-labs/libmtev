@@ -1106,7 +1106,7 @@ mtev_http2_session_new(mtev_http2_parent_session *parent, int32_t stream_id) {
   mtev_gettimeofday(&sess->req.start_time, NULL);
   mtev_hash_init(&sess->req.headers);
   mtev_hash_init(&sess->req.querystring);
-  sess->req.opts = MTEV_HTTP_CLOSE | MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE;
+  sess->req.opts = MTEV_HTTP_CLOSE;
   pthread_mutexattr_t mattr;
   pthread_mutexattr_init(&mattr);
   pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
@@ -1299,7 +1299,7 @@ mtev_http1_http2_upgrade(mtev_http1_session_ctx *ctx) {
   mtev_http2_process_querystring(&h2c->req);
   h2c->req.method_str = strdup(mtev_http1_request_method_str(req1));
   h2c->req.opts = mtev_http1_request_opts(req1) & ~MTEV_HTTP_CHUNKED;
-  h2c->req.opts |= MTEV_HTTP_CLOSE | MTEV_HTTP_GZIP | MTEV_HTTP_DEFLATE;
+  h2c->req.opts |= MTEV_HTTP_CLOSE;
   mtev_hash_table *hdr1 = mtev_http1_request_headers_table(req1);
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(hdr1, &iter)) {

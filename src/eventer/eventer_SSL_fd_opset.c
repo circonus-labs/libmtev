@@ -48,6 +48,7 @@
 #include <openssl/err.h>
 #include <openssl/engine.h>
 #include <openssl/x509v3.h>
+#include <openssl/sha.h>
 
 #define EVENTER_SSL_DATANAME "eventer_ssl"
 #define DEFAULT_OPTS_STRING "all"
@@ -56,8 +57,68 @@
 #else
 #define DEFAULT_LAYER_STRING "tlsv1:all,!sslv2,!sslv3"
 #endif
+/* ERR_error_string(3): buf must be at least 120 bytes... */
+#define MIN_ERRSTR_LEN 120
 
 static mtev_log_stream_t ssldb;
+
+#define MAX_DHPARAMS 8
+static struct dhparams_t {
+  int bits;
+  const char *file;
+  DH *params;
+  DH *(*builtin)();
+} dhparams[MAX_DHPARAMS] = {
+  { .bits = 2048, .builtin = DH_get_2048_224 },
+};
+static int ndhparams = 1;
+
+
+static const char *
+internal_SSL_error(int err, char *scratch, int len) {
+  switch(err) {
+#ifdef SSL_ERROR_NONE
+    case SSL_ERROR_NONE: return "SSL_ERROR_NONE";
+#endif
+#ifdef SSL_ERROR_SSL
+    case SSL_ERROR_SSL: return "SSL_ERROR_SSL";
+#endif
+#ifdef SSL_ERROR_WANT_READ
+    case SSL_ERROR_WANT_READ: return "SSL_ERROR_WANT_READ";
+#endif
+#ifdef SSL_ERROR_WANT_WRITE
+    case SSL_ERROR_WANT_WRITE: return "SSL_ERROR_WANT_WRITE";
+#endif
+#ifdef SSL_ERROR_WANT_X509_LOOKUP
+    case SSL_ERROR_WANT_X509_LOOKUP: return "SSL_ERROR_WANT_X509_LOOKUP";
+#endif
+#ifdef SSL_ERROR_SYSCALL
+    case SSL_ERROR_SYSCALL: return "SSL_ERROR_SYSCALL";
+#endif
+#ifdef SSL_ERROR_ZERO_RETURN
+    case SSL_ERROR_ZERO_RETURN: return "SSL_ERROR_ZERO_RETURN";
+#endif
+#ifdef SSL_ERROR_WANT_CONNECT
+    case SSL_ERROR_WANT_CONNECT: return "SSL_ERROR_WANT_CONNECT";
+#endif
+#ifdef SSL_ERROR_WANT_ACCEPT
+    case SSL_ERROR_WANT_ACCEPT: return "SSL_ERROR_WANT_ACCEPT";
+#endif
+#ifdef SSL_ERROR_WANT_ASYNC
+    case SSL_ERROR_WANT_ASYNC: return "SSL_ERROR_WANT_ASYNC";
+#endif
+#ifdef SSL_ERROR_WANT_ASYNC_JOB
+    case SSL_ERROR_WANT_ASYNC_JOB: return "SSL_ERROR_WANT_ASYNC_JOB";
+#endif
+#ifdef SSL_ERROR_WANT_CLIENT_HELLO_CB
+    case SSL_ERROR_WANT_CLIENT_HELLO_CB: return "SSL_ERROR_WANT_CLIENT_HELLO_CB";
+#endif
+    default:
+      if(scratch) snprintf(scratch, len, "%d", err);
+      break;
+  }
+  return scratch ? scratch : "unknown";
+}
 
 #define SSL_CTX_KEYLEN (PATH_MAX * 4 + 5)
 struct cache_finfo {
@@ -137,17 +198,16 @@ static void
 _eventer_ssl_ctx_save_last_error(eventer_ssl_ctx_t *ctx, int note_errno,
                                 const char *file, int line) {
   /* ERR_error_string(3): buf must be at least 120 bytes...
-   * no strerrno is more than 120 bytes...
+   * no strerrno is more than 100 bytes...
    * file:line:code is never more than 80.
    * So, no line will be longer than 200.
    */
   int used, i = 0, allocd = 0;
   unsigned long err = 0, errors[MAX_ERR_UNWIND] = { 0 };
-  char errstr[300], scratch[200];
+  char errstr[MIN_ERRSTR_LEN + 100 + 80], scratch[MIN_ERRSTR_LEN + 80];
   errstr[0] = '\0';
   if(note_errno && errno)
-    snprintf(errstr, sizeof(errstr), "[%s:%d:%d] %s, ",
-             file, line, errno, strerror(errno));
+    snprintf(errstr, sizeof(errstr), "[%d] %s, ", errno, strerror(errno));
   /* Unwind all, storing up to MAX_ERR_UNWIND */
   while((err = ERR_get_error()) != 0) {
     if(i < MAX_ERR_UNWIND) errors[i] = err;
@@ -167,18 +227,18 @@ _eventer_ssl_ctx_save_last_error(eventer_ssl_ctx_t *ctx, int note_errno,
     strlcat(ctx->last_error, errstr, allocd);
   for(i=0;i<used;i++) {
     ERR_error_string(errors[i], scratch);
-    snprintf(errstr, sizeof(errstr), "[%s:%d:%08lx] %s, ",
-             file, line, errors[i], scratch);
+    snprintf(errstr, sizeof(errstr), "%s[%s], ",
+             ctx->last_error[0] ? "\n -> " : "", scratch);
     strlcat(ctx->last_error, errstr, allocd);
   }
   /* now clip off the last ", " */
   i = strlen(ctx->last_error);
   if(i>=2) ctx->last_error[i-2] = '\0';
-  mtevL(ssldb, "ssl error: %s\n", ctx->last_error);
+  mtev_log(ssldb, NULL, file, line, "ssl error: %s\n", ctx->last_error);
 }
 
 static DH *
-load_dh_params(const char *filename) {
+load_dh_params(const char *filename, long bits) {
   BIO *bio;
   DH *dh = NULL;
   if(filename == NULL) return NULL;
@@ -192,6 +252,15 @@ load_dh_params(const char *filename) {
     if(DH_check(dh, &code) != 1 || code != 0) {
       mtevL(eventer_err, "DH Parameter in %s is bad [%x], not using.\n",
             filename, code);
+      DH_free(dh);
+      dh = NULL;
+    }
+    const BIGNUM *p, *q, *g;
+    int foundbits = 0;
+    DH_get0_pqg(dh, &p, &q, &g);
+    if(!p || (foundbits = BN_num_bits(p)) != bits) {
+      mtevL(eventer_err, "DH Parameter in %s has %d bits, not using.\n",
+            filename, foundbits);
       DH_free(dh);
       dh = NULL;
     }
@@ -215,68 +284,67 @@ save_dh_params(DH *p, const char *filename) {
   return;
 }
 
-static DH *dh1024_tmp = NULL, *dh2048_tmp = NULL;
-static const char *dh1024_file = NULL, *dh2048_file = NULL;
 static int
 generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
   (void)e;
   (void)now;
-  int bits = (int)(intptr_t)cl;
+  struct stat sb;
+  char errstr[MIN_ERRSTR_LEN];
+  unsigned int err;
+  int rv;
   if(mask != EVENTER_ASYNCH_WORK) return 0;
-  switch(bits) {
-  case 1024:
-    if(!dh1024_tmp) dh1024_tmp = load_dh_params(dh1024_file);
-    if(!dh1024_tmp) {
-      mtevL(mtev_notice, "Generating 1024 bit DH parameters.\n");
+  ERR_clear_error();
+  struct dhparams_t *tgt = (struct dhparams_t *)cl;
+
+  ERR_clear_error();
+  if(tgt->file) {
+    memset(&sb, 0, sizeof(sb));
+    if(!tgt->params) {
+      while((rv = stat(tgt->file, &sb)) == -1 && errno == EINTR);
+      if(rv == 0 || errno != ENOENT) {
+        tgt->params = load_dh_params(tgt->file, tgt->bits);
+      }
+    }
+    if(!tgt->params) {
+      mtevL(mtev_notice, "Generating %d bit DH parameters.\n", tgt->bits);
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-      dh1024_tmp = DH_generate_parameters(1024, 2, NULL, NULL);
+      tgt->params = DH_generate_parameters(tgt->bits, 2, NULL, NULL);
+      if(!tgt->params) {
+        while(0 != (err = ERR_get_error())) {
+          mtevL(eventer_err, " -> %s\n", ERR_error_string(err, errstr));
+        }
+      }
 #else
       int problems = 0;
       DH *dh_tmp_trans = DH_new();
-      DH_generate_parameters_ex(dh_tmp_trans, 1024, 2, NULL);
+      DH_generate_parameters_ex(dh_tmp_trans, tgt->bits, 2, NULL);
       if(DH_check(dh_tmp_trans, &problems) == 1 && problems == 0) {
-        dh1024_tmp = dh_tmp_trans;
+        tgt->params = dh_tmp_trans;
       } else {
+        while(0 != (err = ERR_get_error())) {
+          mtevL(eventer_err, " -> %s\n", ERR_error_string(err, errstr));
+        }
         DH_free(dh_tmp_trans);
       }
 #endif
-      mtevL(mtev_notice, "Finished generating 1024 bit DH parameters.\n");
-      if(dh1024_tmp) save_dh_params(dh1024_tmp, dh1024_file);
-    }
-    break;
-  case 2048:
-    if(!dh2048_tmp) dh2048_tmp = load_dh_params(dh2048_file);
-    if(!dh2048_tmp) {
-      mtevL(mtev_notice, "Generating 2048 bit DH parameters.\n");
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-      dh2048_tmp = DH_generate_parameters(2048, 2, NULL, NULL);
-#else
-      int problems = 0;
-      DH *dh_tmp_trans = DH_new();
-      DH_generate_parameters_ex(dh_tmp_trans, 1024, 2, NULL);
-      if(DH_check(dh_tmp_trans, &problems) == 1 && problems == 0) {
-        dh1024_tmp = dh_tmp_trans;
+      if(tgt->params) {
+        save_dh_params(tgt->params, tgt->file);
+        mtevL(mtev_notice, "Finished generating %d bit DH parameters.\n", tgt->bits);
       } else {
-        DH_free(dh_tmp_trans);
+        mtevL(mtev_notice, "Failed generating %d bit DH parameters.\n", tgt->bits);
       }
-#endif
-      mtevL(mtev_notice, "Finished generating 2048 bit DH parameters.\n");
-      save_dh_params(dh2048_tmp, dh2048_file);
     }
-    break;
-  default:
-    mtevFatal(mtev_error, "Unexpected DH parameter request: %d\n", bits);
+  }
+  else if(tgt->builtin) {
+    tgt->params = tgt->builtin();
+    if(tgt->params) {
+      mtevL(ssldb, "Using builtin %d bit DH parameters.\n", tgt->bits);
+    }
+    else {
+      mtevL(mtev_notice, "Failed using builtin %d bit DH parameters.\n", tgt->bits);
+    }
   }
   return 0;
-}
-static DH *
-tmp_dh_callback(SSL *s, int is_export, int keylen) {
-  (void)s;
-  (void)is_export;
-  (void)keylen;
-  if(dh2048_tmp) return dh2048_tmp;
-  if(dh1024_tmp) return dh1024_tmp;
-  return NULL;
 }
 
 static int
@@ -637,13 +705,24 @@ eventer_SSL_server_info_callback(const SSL *ssl, int type, int val) {
 
 static void
 ssl_ctx_key_write(char *b, int blen, eventer_ssl_orientation_t type,
-                  const char *layer,
-                  const char *certificate, const char *key,
-                  const char *ca, const char *ciphers) {
-  snprintf(b, blen, "%c:%s:%s:%s:%s:%s",
-           (type == SSL_SERVER) ? 'S' : 'C', layer ? layer : "",
-           certificate ? certificate : "", key ? key : "",
-           ca ? ca : "", ciphers ? ciphers : "");
+                  const char *layer, const char **parts) {
+  unsigned char sig[SHA256_DIGEST_LENGTH];
+  char hexsig[SHA256_DIGEST_LENGTH*2+1];
+  SHA256_CTX ctx;
+  SHA256_Init(&ctx);
+  int i=0;
+  for(const char *part = parts[i]; part; part = parts[++i]) {
+    if(part) SHA256_Update(&ctx, part, strlen(part));
+  }
+  SHA256_Final(sig, &ctx);
+  static const char *hexdigits = "0123456789abcdef";
+  for(int i=0; i<SHA256_DIGEST_LENGTH; i++) {
+    hexsig[i*2] = hexdigits[sig[i] >> 4];
+    hexsig[i*2+1] = hexdigits[sig[i] & 0xf];
+  }
+  hexsig[SHA256_DIGEST_LENGTH*2] = '\0';
+  snprintf(b, blen, "%c:%s:%s",
+           (type == SSL_SERVER) ? 'S' : 'C', layer ? layer : "", hexsig);
 }
 
 static void
@@ -703,7 +782,37 @@ eventer_ssl_ctx_t *
 eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
                     const char *layer,
                     const char *certificate, const char *key,
-                    const char *ca, const char *ciphers) {
+                    const char *ca_chain, const char *ciphers) {
+  mtev_hash_table settings;
+  mtev_hash_init(&settings);
+  mtev_hash_store(&settings, "layer", strlen("layer"), layer);
+  mtev_hash_store(&settings, "certificate", strlen("certificate"), certificate);
+  mtev_hash_store(&settings, "key", strlen("key"), key);
+  mtev_hash_store(&settings, "ca_chain", strlen("ca_chain"), ca_chain);
+  mtev_hash_store(&settings, "ciphers", strlen("ciphers"), ciphers);
+  eventer_ssl_ctx_t *ctx = eventer_ssl_ctx_new_ex(type, &settings);
+  mtev_hash_destroy(&settings,NULL,NULL);
+  return ctx;
+}
+
+eventer_ssl_ctx_t *
+eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
+                       mtev_hash_table *settings) {
+  const char *layer = mtev_hash_dict_get(settings, "layer");
+  const char *certificate = mtev_hash_dict_get(settings, "certificate");
+  if(!certificate) certificate = mtev_hash_dict_get(settings, "certificate_file");
+  const char *key = mtev_hash_dict_get(settings, "key");
+  if(!key) key = mtev_hash_dict_get(settings, "key_file");
+  const char *ca = mtev_hash_dict_get(settings, "ca_chain");
+  if(!ca) mtev_hash_dict_get(settings, "ca_file");
+  const char *ciphers = mtev_hash_dict_get(settings, "ciphers");
+  const char *ca_accept = mtev_hash_dict_get(settings, "ca_accept");
+  if(!ca_accept) ca_accept = ca;
+  const char *crl = mtev_hash_dict_get(settings, "crl");
+  const char *npn = mtev_hash_dict_get(settings, "alpn");
+  if(!npn) npn = mtev_hash_dict_get(settings, "npn");
+  if(!npn) npn="h2,http/1.1";
+
   char ssl_ctx_key[SSL_CTX_KEYLEN];
   eventer_ssl_ctx_t *ctx;
   const char *layer_str;
@@ -722,16 +831,21 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     opts = opts_buf;
   }
 
+  const char *certificate_file = (certificate && NULL == strchr(certificate, '\n')) ? certificate : NULL;
+  const char *key_file = (key && NULL == strchr(key, '\n')) ? key : NULL;
+  const char *ca_file = (ca && NULL == strchr(ca, '\n')) ? ca : NULL;
+  const char *ca_accept_file = (ca_accept && NULL == strchr(ca_accept, '\n')) ? ca_accept : NULL;
+
   now = time(NULL);
-  ssl_ctx_key_write(ssl_ctx_key, sizeof(ssl_ctx_key),
-                    type, layer, certificate, key, ca, ciphers);
+  ssl_ctx_key_write(ssl_ctx_key, sizeof(ssl_ctx_key), type, layer,
+                    (const char *[]){ certificate, key, ca, ca_accept, ciphers, npn, crl, NULL });
   ctx->ssl_ctx_cn = ssl_ctx_cache_get(ssl_ctx_key);
   if(ctx->ssl_ctx_cn) {
     if(now - ctx->ssl_ctx_cn->creation_time > ssl_ctx_cache_expiry ||
        (now - ctx->ssl_ctx_cn->last_stat_time > ssl_ctx_cache_finfo_expiry &&
-           (validate_finfo(&ctx->ssl_ctx_cn->cert_finfo, certificate) ||
-            validate_finfo(&ctx->ssl_ctx_cn->key_finfo, key) ||
-            validate_finfo(&ctx->ssl_ctx_cn->ca_finfo, ca) || 
+           (validate_finfo(&ctx->ssl_ctx_cn->cert_finfo, certificate_file) ||
+            validate_finfo(&ctx->ssl_ctx_cn->key_finfo, key_file) ||
+            validate_finfo(&ctx->ssl_ctx_cn->ca_finfo, ca_file) || 
             (ctx->ssl_ctx_cn->last_stat_time = now) == 0))) { /* assignment */
       ssl_ctx_cache_remove(ssl_ctx_key);
       ssl_ctx_cache_node_free(ctx->ssl_ctx_cn);
@@ -748,9 +862,9 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     ctx->ssl_ctx_cn->refcnt = 1;
     ctx->ssl_ctx_cn->creation_time = now;
     ctx->ssl_ctx_cn->last_stat_time = now;
-    populate_finfo(&ctx->ssl_ctx_cn->cert_finfo, certificate);
-    populate_finfo(&ctx->ssl_ctx_cn->key_finfo, key);
-    populate_finfo(&ctx->ssl_ctx_cn->ca_finfo, ca);
+    populate_finfo(&ctx->ssl_ctx_cn->cert_finfo, certificate_file);
+    populate_finfo(&ctx->ssl_ctx_cn->key_finfo, key_file);
+    populate_finfo(&ctx->ssl_ctx_cn->ca_finfo, ca_file);
     ctx->ssl_ctx = NULL;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
     if(0)
@@ -811,7 +925,10 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     if(ctx->ssl_ctx == NULL)
       ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ?
                                  SSLv23_server_method() : SSLv23_client_method());
-    if(!ctx->ssl_ctx) goto bail;
+    if(!ctx->ssl_ctx) {
+      mtevL(eventer_err, "Could not create SSL_CTX\n");
+      goto bail;
+    }
 
     for(part = strtok_r(opts, ",", &brkt);
         part;
@@ -849,7 +966,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
       else SETBITOPT("cipher_server_preference", neg, SSL_OP_CIPHER_SERVER_PREFERENCE)
 #endif
       else {
-        mtevL(mtev_error, "SSL layer part '%s' not understood.\n", optname);
+        mtevL(eventer_err, "SSL layer part '%s' not understood.\n", optname);
       }
     }
 
@@ -881,20 +998,156 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
 #ifdef SSL_MODE_RELEASE_BUFFERS
     SSL_CTX_set_mode(ctx->ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
-    if(certificate &&
-       SSL_CTX_use_certificate_chain_file(ctx->ssl_ctx, certificate) != 1)
-      goto bail;
-    if(key &&
-       SSL_CTX_use_RSAPrivateKey_file(ctx->ssl_ctx,key,
-                                      SSL_FILETYPE_PEM) != 1)
-      goto bail;
+    if(certificate) {
+      if(certificate_file) {
+        if(SSL_CTX_use_certificate_chain_file(ctx->ssl_ctx, certificate_file) != 1) {
+          mtevL(eventer_err, "Failed to read TLS certificate chain from %s\n", certificate_file);
+          goto bail;
+        }
+        mtevL(ssldb, "Loaded certificate from file: %s\n", certificate_file);
+      } else {
+        /* certificate is PEM x509 */
+        int certno = 1;
+        const char *cptr = certificate;
+        BIO *bio = NULL;
+        ERR_clear_error();
+        bio = BIO_new_mem_buf(cptr, -1);
+        BIO_set_flags(bio, BIO_FLAGS_MEM_RDONLY);
+        X509 *crt = NULL;
+        crt = PEM_read_bio_X509_AUX(bio, NULL, NULL, NULL);
+        if(!crt ||
+            SSL_CTX_use_certificate(ctx->ssl_ctx, crt) != 1 ||
+            ERR_peek_error() != 0) {
+          if(crt) X509_free(crt);
+          BIO_free(bio);
+          mtevL(eventer_err, "Failed to read TLS certificate [#%d] from memory\n", certno);
+          goto bail;
+        }
+        X509_free(crt);
+
+        if(SSL_CTX_clear_chain_certs(ctx->ssl_ctx) == 0){
+          mtevL(eventer_err, "Failed to initialize TLS certificate chain\n");
+          BIO_free(bio);
+          goto bail;
+        }
+        certno++;
+        while(NULL != (crt = PEM_read_bio_X509(bio, NULL, NULL, NULL))) {
+          if(!SSL_CTX_add0_chain_cert(ctx->ssl_ctx, crt)) {
+            X509_free(crt);
+            BIO_free(bio);
+            mtevL(eventer_err, "Failed to add to TLS certificate [#%d] to chain\n", certno);
+            goto bail;
+          }
+          certno++;
+        }
+        BIO_free(bio);
+        unsigned long err = ERR_peek_last_error();
+        if (ERR_GET_LIB(err) == ERR_LIB_PEM && ERR_GET_REASON(err) == PEM_R_NO_START_LINE)
+          ERR_clear_error();
+        if(ERR_peek_last_error()) {
+          mtevL(eventer_err, "Error loading TLS certificate [#%d] into chain\n", certno);
+          goto bail;
+        }
+        mtevL(ssldb, "Loaded certificate and %d chained certs from memory\n", certno-2);
+      }
+    }
+    if(key) {
+      if(key_file) {
+        if(SSL_CTX_use_RSAPrivateKey_file(ctx->ssl_ctx, key_file,
+                                          SSL_FILETYPE_PEM) != 1) {
+          mtevL(eventer_err, "Failed to read TLS key from %s\n", key_file);
+          goto bail;
+        }
+        mtevL(ssldb, "Loaded private key from file: %s\n", key_file);
+      } else {
+        /* key is a PEM key, pust read it */
+        BIO *bio = BIO_new_mem_buf(key, -1);
+        BIO_set_flags(bio, BIO_FLAGS_MEM_RDONLY);
+        EVP_PKEY *pk = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
+        BIO_free(bio);
+        if(!pk) {
+          mtevL(eventer_err, "Failed to read TLS key from memory\n");
+          goto bail;
+        }
+        if(SSL_CTX_use_PrivateKey(ctx->ssl_ctx, pk) != 1) {
+          mtevL(eventer_err, "Failed to use TLS key from memory\n");
+          EVP_PKEY_free(pk);
+          goto bail;
+        }
+        EVP_PKEY_free(pk);
+        mtevL(ssldb, "Loaded private key from memmory\n");
+      }
+    }
     if(ca) {
-      STACK_OF(X509_NAME) *cert_stack;
-      if(!SSL_CTX_load_verify_locations(ctx->ssl_ctx,ca,NULL) ||
-         (cert_stack = SSL_load_client_CA_file(ca)) == NULL)
-        goto bail;
+      if(ca_file) {
+        if(!SSL_CTX_load_verify_locations(ctx->ssl_ctx,ca_file,NULL)) {
+          mtevL(eventer_err, "Failed to load CA file: %s\n", ca_file);
+          goto bail;
+        }
+        mtevL(ssldb, "Loaded CA file: %s\n", ca_accept_file);
+      }
+      else {
+        int ncerts = 0;
+        BIO *bio = NULL;
+        ERR_clear_error();
+        bio = BIO_new_mem_buf(ca, -1);
+        BIO_set_flags(bio, BIO_FLAGS_MEM_RDONLY);
+        X509 *crt = NULL;
+        X509_STORE *vfy = X509_STORE_new();
+        while(NULL != (crt = PEM_read_bio_X509_AUX(bio, NULL, NULL, NULL))) {
+          if(X509_check_ca(crt)) {
+            X509_STORE_add_cert(vfy, crt);
+          }
+          X509_free(crt);
+          ncerts++;
+        }
+        BIO_free(bio);
+        unsigned long err = ERR_peek_last_error();
+        if (ERR_GET_LIB(err) == ERR_LIB_PEM && ERR_GET_REASON(err) == PEM_R_NO_START_LINE)
+          ERR_clear_error();
+        if(ERR_peek_last_error()) {
+          mtevL(eventer_err, "Error loading TLS certificate [#%d] into ca chain\n", ncerts);
+          goto bail;
+        }
+        mtevL(ssldb, "Loaded %d certs into ca chain\n", ncerts);
+        SSL_CTX_set0_verify_cert_store(ctx->ssl_ctx, vfy);
+      }
+    }
+    if(type == SSL_SERVER && ca_accept && ca_accept[0]) { /* blank means no advertisements */
+      STACK_OF(X509_NAME) *cert_stack = NULL;
+      if(ca_accept_file) {
+        if((cert_stack = SSL_load_client_CA_file(ca_accept_file)) == NULL) {
+          mtevL(eventer_err, "Failed to load CA client accept file: %s\n", ca_accept_file);
+          goto bail;
+        }
+        mtevL(ssldb, "Loaded %d certs in CA client accept file: %s\n", sk_X509_NAME_num(cert_stack), ca_accept_file);
+      }
+      else {
+        int ncerts = 0;
+        BIO *bio = NULL;
+        ERR_clear_error();
+        bio = BIO_new_mem_buf(ca_accept, -1);
+        BIO_set_flags(bio, BIO_FLAGS_MEM_RDONLY);
+        X509 *crt = NULL;
+        while(NULL != (crt = PEM_read_bio_X509_AUX(bio, NULL, NULL, NULL))) {
+          X509_NAME *name = X509_get_subject_name(crt);
+          if(cert_stack == NULL) cert_stack = sk_X509_NAME_new_null();
+          sk_X509_NAME_push(cert_stack, name);
+          ncerts++;
+        }
+        BIO_free(bio);
+        unsigned long err = ERR_peek_last_error();
+        if (ERR_GET_LIB(err) == ERR_LIB_PEM && ERR_GET_REASON(err) == PEM_R_NO_START_LINE)
+          ERR_clear_error();
+        if(ERR_peek_last_error()) {
+          mtevL(eventer_err, "Error loading TLS certificate [#%d] into ca chain\n", ncerts);
+          goto bail;
+        }
+        mtevL(ssldb, "Loaded %d certs into client accept list\n", ncerts);
+      }
       SSL_CTX_set_client_CA_list(ctx->ssl_ctx, cert_stack);
     }
+    if(crl) eventer_ssl_use_crl(ctx, crl);
     SSL_CTX_set_cipher_list(ctx->ssl_ctx, ciphers ? ciphers : "DEFAULT");
     SSL_CTX_set_verify(ctx->ssl_ctx, SSL_VERIFY_PEER, verify_cb);
 #ifndef OPENSSL_NO_EC
@@ -906,6 +1159,26 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
     EC_KEY_free(ec_key);
 #endif
 #endif
+    const char *dh_bits = mtev_hash_dict_get(settings, "dhparam_bits");
+    int dh_bits_demand = dhparams[0].bits;
+    if(dh_bits) dh_bits_demand = atoi(dh_bits);
+    mtev_boolean dh_set = mtev_false;
+    for(int i=0; i<ndhparams; i++) {
+      if(dhparams[i].params && dhparams[i].bits == dh_bits_demand) {
+        dh_set = mtev_true;
+        SSL_CTX_set_tmp_dh(ctx->ssl_ctx, dhparams[i].params);
+        break;
+      }
+    }
+    if(dh_bits_demand && !dh_set) {
+      mtevL(eventer_err, "Could not set %d bit dh params on SSL context\n", dh_bits_demand);
+      goto bail;
+    }
+
+    if(strcasecmp(npn, "none")) {
+      eventer_ssl_alpn_advertise(ctx, npn);
+    }
+
     existing_ctx_cn = ssl_ctx_cache_set(ctx->ssl_ctx_cn);
     if(existing_ctx_cn != ctx->ssl_ctx_cn) {
       ssl_ctx_cache_node_free(ctx->ssl_ctx_cn);
@@ -914,9 +1187,10 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
   }
 
   ctx->ssl = SSL_new(ctx->ssl_ctx);
-  if(dh2048_tmp || dh1024_tmp)
-    SSL_set_tmp_dh_callback(ctx->ssl, tmp_dh_callback);
-  if(!ctx->ssl) goto bail;
+  if(!ctx->ssl) {
+    mtevL(eventer_err, "Could not create SSL context\n");
+    goto bail;
+  }
 #ifdef SSL3_ST_SR_CLNT_HELLO_A
   SSL_set_info_callback(ctx->ssl, eventer_SSL_server_info_callback);
 #endif
@@ -925,7 +1199,7 @@ eventer_ssl_ctx_new(eventer_ssl_orientation_t type,
 
  bail:
   eventer_ssl_ctx_save_last_error(ctx, 1);
-  mtevL(mtev_error, "SSL context creation failed: %s\n",
+  mtevL(eventer_err, "SSL context creation failed: %s\n",
         ctx->last_error ? ctx->last_error : "unknown cause");
   eventer_ssl_ctx_free(ctx);
   return NULL;
@@ -1236,7 +1510,7 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
       break;
 
     default:
-      mtevFatal(mtev_error, "error: unknown SSL operation (%d)\n", op);
+      mtevFatal(eventer_err, "error: unknown SSL operation (%d)\n", op);
   }
   /* This can't happen as we'd have already aborted... */
   if(!opstr) opstr = "none";
@@ -1249,10 +1523,11 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
   }
 
   sslerror = SSL_get_error(ctx->ssl, rv);
+  char errbuf[30];
   switch(sslerror) {
     case SSL_ERROR_NONE:
-      mtevL(ssldb, "SSL[%s of %d] -> %d, rw error: %d\n", opstr,
-            (int)len, rv, sslerror);
+      mtevL(ssldb, "SSL[%s of %d] -> %d, rw error: %s\n", opstr,
+            (int)len, rv, internal_SSL_error(sslerror,errbuf,sizeof(errbuf)));
       return 0;
     case SSL_ERROR_WANT_READ:
     case SSL_ERROR_WANT_WRITE:
@@ -1267,8 +1542,9 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
       }
       /* FALLTHROUGH */
     default:
-      mtevL(ssldb, "SSL[%s of %d] -> %d, rw error: %d/%s\n", opstr,
-            (int)len, rv, sslerror, strerror(errno));
+      mtevL(ssldb, "SSL[%s of %d] -> %d, rw error: %s%s%s\n", opstr,
+            (int)len, rv, internal_SSL_error(sslerror,errbuf,sizeof(errbuf)),
+            errno ? "/" : "", errno ? strerror(errno) : "");
       eventer_ssl_ctx_save_last_error(ctx, 1);
       errno = EIO;
   }
@@ -1396,13 +1672,27 @@ void eventer_ssl_set_ssl_ctx_cache_expiry(int timeout) {
   ssl_ctx_cache_expiry = timeout;
 }
 int eventer_ssl_config(const char *key, const char *value) {
-  if(!strcmp(key, "ssl_dhparam1024_file")) {
-    dh1024_file = strdup(value);
-    return 0;
-  }
-  if(!strcmp(key, "ssl_dhparam2048_file")) {
-    dh2048_file = strdup(value);
-    return 0;
+  if(!strncmp(key, "ssl_dhparam", strlen("ssl_dhparam"))) {
+    char *endptr = NULL;
+    unsigned long bits = strtoul(key + strlen("ssl_dhparam"), &endptr, 10);
+    if(bits > 0 && endptr && (*endptr == '\0' || !strcmp(endptr, "_file"))) {
+      int i;
+      for(i=0; i<ndhparams; i++) {
+        if(dhparams[i].bits == (int)bits) {
+          dhparams[i].file = strlen(value) ? strdup(value) : NULL;
+          return 0;
+        }
+      }
+      if(i < MAX_DHPARAMS) {
+        mtevL(mtev_notice, "Config requesting %lu bit dhparams\n", bits);
+        dhparams[i].bits = (int)bits;
+        dhparams[i].file = strlen(value) ? strdup(value) : NULL;
+        /* special case 1024 to use the openssl NIST builtin */
+        if(bits == 1024) dhparams[i].builtin = DH_get_1024_160;
+        ndhparams++;
+        return 0;
+      }
+    }
   }
   if(!strcmp(key, "ssl_ctx_cache_expiry")) {
     eventer_ssl_set_ssl_ctx_cache_expiry(atoi(value));
@@ -1443,18 +1733,11 @@ void eventer_ssl_init(void) {
 #endif
   OpenSSL_add_all_ciphers();
 
-  if (!dh1024_file || strcmp(dh1024_file, "")) {
+  for(int i=0; i<ndhparams; i++) {
     e = eventer_alloc();
     e->mask = EVENTER_ASYNCH;
     e->callback = generate_dh_params;
-    e->closure = (void *)1024;
-    eventer_add_asynch(NULL, e);
-  }
-  if (!dh2048_file || strcmp(dh2048_file, "")) {
-    e = eventer_alloc();
-    e->mask = EVENTER_ASYNCH;
-    e->callback = generate_dh_params;
-    e->closure = (void *)2048;
+    e->closure = (void *)&dhparams[i];
     eventer_add_asynch(NULL, e);
   }
   return;
