@@ -2,9 +2,45 @@
 
 # 1
 
-## 1.10
+## 1.11
 
- * NPN upgrades could reference a stale context resulting in crashes.
+## 1.11.0
+
+ * Eventer and HTTP improvements:
+  * Add `eventer_ssl_ctx_new_ex` which takes a `mtev_hash_table` as
+    a more future-proof parameterization.
+  * Support for inlining key/cert/ca in config (alternative to file path)
+  * sslconfig changes
+   * `certificate` as `certificate_file`
+   * `key` as `key_file`
+   * `ca_verify` as `ca_chain`
+   * Add `ca_accept` (for advertising acceptable CA signers to clients)
+   * Add `dhparam_bits` for forcing a DH parameter bit length (0 disables)
+  * Update `ssl_dhparams` eventer options to 
+  * Improve readability of SSL/crypto error messages
+  * NPN upgrades could reference a stale context resulting in crashes
+  * Fix multi-protocol NPN/ALPN negotiations
+  * Provide helpers to make it so we can more easily register new alpn keys
+  * Allow ssl contexts to override/add ALPN keys
+  * Have the libmtev http1 implementation advertise http/1.1 over ALPN
+  * More robust HTTP testing, including intermediate cert chains.
+  * HTTP/2 no long performs unsolicited compression to appease curl
+ * Allow header inclusion from C++
+ * Update lua ssl bindings to support extensiable context creation.
+ * Update mtev.exec (and this mtev.sh) lua to accept environment that is
+   a key,value table instead of just an array of key=value strings
+ * luamtev improvements:
+  * Make luamtev `print` default to stdout instead of stderr
+  * Fix non-tty input when in interactive mode
+  * Fix -e flag for running methods other than main
+  * Add -h flag for help with a clean exit code
+ * Fix eventer JSON output to include timers
+ * Tolerate EPERM in `epoll_ctl` adding (so adding /dev/null doesn't assert)
+ * Retool autoconf; autoreconf now requires `-I buildtools`
+ * Enable coverage reporting using lcov `--enable-coverage`
+ * New ptrace module that enumerates HTTP requests when using `http_observer`
+
+## 1.10
 
 ### 1.10.8
 
