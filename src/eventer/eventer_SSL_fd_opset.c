@@ -49,6 +49,10 @@
 #include <openssl/engine.h>
 #include <openssl/x509v3.h>
 #include <openssl/sha.h>
+#include <openssl/dh.h>
+
+#define _OPENSSL_VERSION_1_1_0 0x10100000L
+#define _OPENSSL_VERSION_1_0_2 0x10002000L
 
 #define EVENTER_SSL_DATANAME "eventer_ssl"
 #define DEFAULT_OPTS_STRING "all"
@@ -239,6 +243,7 @@ _eventer_ssl_ctx_save_last_error(eventer_ssl_ctx_t *ctx, int note_errno,
 
 static DH *
 load_dh_params(const char *filename, long bits) {
+  (void)bits;
   BIO *bio;
   DH *dh = NULL;
   if(filename == NULL) return NULL;
@@ -255,6 +260,7 @@ load_dh_params(const char *filename, long bits) {
       DH_free(dh);
       dh = NULL;
     }
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
     const BIGNUM *p, *q, *g;
     int foundbits = 0;
     DH_get0_pqg(dh, &p, &q, &g);
@@ -264,6 +270,7 @@ load_dh_params(const char *filename, long bits) {
       DH_free(dh);
       dh = NULL;
     }
+#endif
   }
   return dh;
 }
@@ -307,7 +314,7 @@ generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
     }
     if(!tgt->params) {
       mtevL(mtev_notice, "Generating %d bit DH parameters.\n", tgt->bits);
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
       tgt->params = DH_generate_parameters(tgt->bits, 2, NULL, NULL);
       if(!tgt->params) {
         while(0 != (err = ERR_get_error())) {
@@ -569,7 +576,7 @@ eventer_ssl_get_current_cipher(eventer_ssl_ctx_t *ctx) {
 }
 int
 eventer_ssl_get_method(eventer_ssl_ctx_t *ctx) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
   return SSL_get_ssl_method(ctx->ssl)->version;
 #else
   return SSL_get_min_proto_version(ctx->ssl);
@@ -625,7 +632,7 @@ verify_cb(int ok, X509_STORE_CTX *x509ctx) {
     issuer[0] = '\0';
     if(err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT) {
       X509 *curr_cert = NULL;
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
       curr_cert = x509ctx->current_cert;
 #else
       curr_cert = X509_STORE_CTX_get_current_cert(x509ctx);
@@ -866,7 +873,7 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
     populate_finfo(&ctx->ssl_ctx_cn->key_finfo, key_file);
     populate_finfo(&ctx->ssl_ctx_cn->ca_finfo, ca_file);
     ctx->ssl_ctx = NULL;
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
     if(0)
       ;
 #if defined(SSL_TXT_SSLV3) && defined(HAVE_SSLV3_SERVER) && defined(HAVE_SSLV3_CLIENT)
@@ -1220,7 +1227,7 @@ static int next_proto_cb(SSL *ssl, const unsigned char **data,
 }
 #endif /* !OPENSSL_NO_NEXTPROTONEG */
 
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
 
 static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
                                 unsigned char *outlen, const unsigned char *in,
@@ -1247,7 +1254,7 @@ static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
   }
   return SSL_TLSEXT_ERR_NOACK;
 }
-#endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
+#endif
 
 static int
 eventer_alpn_select_always(const unsigned char **out, unsigned char *outlen,
@@ -1310,9 +1317,9 @@ eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn) {
 #ifndef OPENSSL_NO_NEXTPROTONEG
     SSL_CTX_set_next_protos_advertised_cb(ctx->ssl_ctx, next_proto_cb, NULL);
 #endif /* !OPENSSL_NO_NEXTPROTONEG */
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
     SSL_CTX_set_alpn_select_cb(ctx->ssl_ctx, alpn_select_proto_cb, f);
-#endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
+#endif
   }
   else {
     free(ctx->npn);
@@ -1330,11 +1337,11 @@ eventer_ssl_get_alpn_selected(eventer_ssl_ctx_t *ctx, const uint8_t **alpn, uint
 #ifndef OPENSSL_NO_NEXTPROTONEG
   SSL_get0_next_proto_negotiated(ctx->ssl, alpn, &ilen);
 #endif /* !OPENSSL_NO_NEXTPROTONEG */
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
   if (*alpn == NULL) {
     SSL_get0_alpn_selected(ctx->ssl, alpn, &ilen);
   }
-#endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
+#endif
   *len = ilen;
 }
 
@@ -1636,7 +1643,7 @@ struct _fd_opset _eventer_SSL_fd_opset = {
 eventer_fd_opset_t eventer_SSL_fd_opset = &_eventer_SSL_fd_opset;
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
 /* Locking stuff to make libcrypto thread safe */
 /* This stuff cribbed from the openssl examples */
 struct CRYPTO_dynlock_value { pthread_mutex_t lock; };
@@ -1707,7 +1714,7 @@ void eventer_ssl_init(void) {
   if(initialized) return;
   ssldb = mtev_log_stream_find("debug/eventer/ssl");
   initialized = 1;
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
   int i, numlocks;
   numlocks = CRYPTO_num_locks();
   __lcks = CRYPTO_malloc(numlocks * sizeof(*__lcks),__FILE__,__LINE__);
@@ -1720,7 +1727,7 @@ void eventer_ssl_init(void) {
 #endif
   CRYPTO_set_id_callback((unsigned long (*)(void)) pthread_self);
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
   SSL_load_error_strings();
   SSL_library_init();
 #else
