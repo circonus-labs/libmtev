@@ -4,6 +4,10 @@
 
 ## 1.11
 
+## 1.11.1
+
+ * Ship builtin 1024 and 2046 DH params for older OpenSSL.
+
 ## 1.11.0
 
  * Eventer and HTTP improvements:

@@ -67,6 +67,11 @@
 
 static mtev_log_stream_t ssldb;
 
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_0_2
+#include "pre-rfc5114-dh1024.h"
+#include "pre-rfc5114-dh2048.h"
+#endif
+
 #define MAX_DHPARAMS 8
 static struct dhparams_t {
   int bits;
@@ -76,6 +81,8 @@ static struct dhparams_t {
 } dhparams[MAX_DHPARAMS] = {
 #if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
   { .bits = 2048, .builtin = DH_get_2048_224 },
+#else
+  { .bits = 2048, .builtin = get_dh2048 },
 #endif
 };
 static int ndhparams = 1;
@@ -1714,6 +1721,8 @@ int eventer_ssl_config(const char *key, const char *value) {
         /* special case 1024 to use the openssl NIST builtin */
 #if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
         if(bits == 1024) dhparams[i].builtin = DH_get_1024_160;
+#else
+        if(bits == 1024) dhparams[i].builtin = get_dh1024;
 #endif
         ndhparams++;
         return 0;
