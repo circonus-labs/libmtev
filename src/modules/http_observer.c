@@ -416,7 +416,7 @@ http_observer_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
 static int
 http_observer_driver_init(mtev_dso_generic_t *img) {
   (void)img;
-  mtev_hash_init(&lookup);
+  mtev_hash_init_mtev_memory(&lookup, 1024, MTEV_HASH_LOCK_MODE_SPIN);
   cache = calloc(max_count, sizeof(*cache));
   debugls = mtev_log_stream_find("debug/http_observer");
   errorls = mtev_log_stream_find("error/http_observer");
