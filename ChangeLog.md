@@ -6,7 +6,7 @@
 
 ## 1.11.1
 
- * Ship builtin 1024 and 2046 DH params for older OpenSSL.
+ * Ship builtin 1024 and 2048 DH params for older OpenSSL.
 
 ## 1.11.0
 
