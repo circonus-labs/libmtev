@@ -305,6 +305,14 @@ uint32_t mtev_hash__hash(const void *k, uint32_t length, uint32_t initval);
 #define mtev_hash_dict_destroy(h) mtev_hash_destroy((h),free,free)
 #define mtev_hash_dict_adv mtev_hash_adv
 
+/* These are helpers for using ck_hs with simple strings */
+static inline unsigned long mtev_hash_ck_str_hash(const void *v_str, unsigned long seed) {
+  return mtev_hash__hash((const char *)v_str, strlen((const char *)v_str), seed);
+}
+static inline bool mtev_hash_ck_str_compare(const void *v_prev_key, const void *v_cur_key) {
+  return strcmp((const char *)v_prev_key, (const char *)v_cur_key) == 0;
+}
+
 #ifdef __cplusplus
 }
 #endif
