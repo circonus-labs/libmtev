@@ -614,6 +614,13 @@ void mtev_memory_safe_free(void *p) {
   mtev_memory_ck_free_func(p, 0, true, mtev_memory_real_free);
 }
 
+/* a helper for CK */
+struct ck_malloc mtev_memory_safe_ck_malloc = {
+  .malloc = mtev_memory_safe_malloc,
+  .realloc = NULL,
+  .free = mtev_memory_ck_free
+};
+
 static uint32_t nallocators;
 struct mtev_allocator_options {
   char name[32];
