@@ -412,13 +412,21 @@ mtev_boolean eventer_watchdog_timeout_timeval(struct timeval *dur) {
   return mtev_watchdog_get_timeout_timeval(t->hb, dur);
 }
 
+static void *eventer_get_spec_for_thread(struct eventer_impl_data *t) {
+  if(t->spec == NULL) {
+    pthread_mutex_lock(&t->te_lock);
+    if(t->spec == NULL) t->spec = __eventer->alloc_spec();
+    pthread_mutex_unlock(&t->te_lock);
+  }
+  return t->spec;
+}
+
 void *eventer_get_spec_for_event(eventer_t e) {
   struct eventer_impl_data *t;
   if(e == NULL) t = get_my_impl_data();
   else t = get_event_impl_data(e);
   mtevAssert(t);
-  if(t->spec == NULL) t->spec = __eventer->alloc_spec();
-  return t->spec;
+  return eventer_get_spec_for_thread(t);
 }
 
 eventer_pool_t *eventer_get_pool_for_event(eventer_t e) {
@@ -696,6 +704,7 @@ static void *thrloopwrap(void *vid) {
   t = &eventer_impl_tls_data[id];
   eventer_aco_setup(t);
   t->id = id;
+  (void)eventer_get_spec_for_thread(t);
   set_callback_tracker_log(mtev_log_stream_findf("debug/eventer/callbacks/loop/%s", t->pool->name));
   snprintf(t->thr_name, sizeof(t->thr_name), "e:%s/%d", t->pool->name, id);
   snprintf(thr_id_str, sizeof(thr_id_str), "%d", id);
