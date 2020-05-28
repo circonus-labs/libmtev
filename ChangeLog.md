@@ -4,15 +4,17 @@
 
 ## 1.11
 
+### 1.11.2
+
  * Add some ck helpers to avoid unnecessary boilerplate in apps.
  * Fix race condition that can cause dead events at boot.
  * Fix crashes by correctly using SMR in `http_observer`.
 
-## 1.11.1
+### 1.11.1
 
  * Ship builtin 1024 and 2048 DH params for older OpenSSL.
 
-## 1.11.0
+### 1.11.0
 
  * Eventer and HTTP improvements:
    * Add `eventer_ssl_ctx_new_ex` which takes a `mtev_hash_table` as
