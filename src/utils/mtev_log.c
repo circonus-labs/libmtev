@@ -3198,7 +3198,7 @@ mtev_log_hexdump(mtev_log_stream_t* ls, const void * addr, const unsigned int le
   unsigned char *pc, c, strbuf[9];
   pc = (unsigned char *) addr;
   mtev_dyn_buffer_init(&buf);
-  mtev_dyn_buffer_add_printf(&buf, "HEXDUMP[%p]\n", addr, 0);
+  mtev_dyn_buffer_add_printf(&buf, "HEXDUMP[%p]\n", addr);
   for (i = 0; i < len; i++) {
     c = pc[i];
     if (i % 8 == 0) mtev_dyn_buffer_add_printf(&buf,"%08x  ", i);
