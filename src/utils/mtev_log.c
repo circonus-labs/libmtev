@@ -3192,9 +3192,9 @@ mtev_log_init_globals(void) {
 }
 
 void
-mtev_log_hexdump(mtev_log_stream_t* ls, const void * addr, const unsigned int len) {
+mtev_log_hexdump(mtev_log_stream_t ls, const void * addr, const size_t len) {
   mtev_dyn_buffer_t buf;
-  unsigned int i;
+  size_t i;
   unsigned char *pc, c, strbuf[9];
   pc = (unsigned char *) addr;
   mtev_dyn_buffer_init(&buf);
@@ -3207,7 +3207,7 @@ mtev_log_hexdump(mtev_log_stream_t* ls, const void * addr, const unsigned int le
     strbuf[(i % 8) + 1] = '\0';
     if (i % 8 == 7) mtev_dyn_buffer_add_printf(&buf,"  %s\n", strbuf);
   }
-  mtevL(mtev_error, "%s\n", mtev_dyn_buffer_data(&buf));
+  mtevL(ls, "%s\n", mtev_dyn_buffer_data(&buf));
   mtev_dyn_buffer_destroy(&buf);
 }
 

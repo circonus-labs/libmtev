@@ -271,7 +271,7 @@ API_EXPORT(void)
   mtev_log_init_globals(void);
 
 API_EXPORT(void)
-  mtev_log_hexdump(mtev_log_stream_t* ls, const void * addr, const unsigned int len);
+  mtev_log_hexdump(mtev_log_stream_t ls, const void * addr, const size_t len);
 
 #define mtevELT(ls, t, ex, args...) do { \
   if((ls)) { \
