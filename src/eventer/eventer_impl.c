@@ -413,12 +413,17 @@ mtev_boolean eventer_watchdog_timeout_timeval(struct timeval *dur) {
 }
 
 static void *eventer_get_spec_for_thread(struct eventer_impl_data *t) {
-  if(t->spec == NULL) {
+  void *spec = t->spec;
+  ck_pr_fence_acquire();
+  if(spec == NULL) {
     pthread_mutex_lock(&t->te_lock);
-    if(t->spec == NULL) t->spec = __eventer->alloc_spec();
+    if(t->spec == NULL) {
+      t->spec = spec = __eventer->alloc_spec();
+      ck_pr_fence_release();
+    }
     pthread_mutex_unlock(&t->te_lock);
   }
-  return t->spec;
+  return spec;
 }
 
 void *eventer_get_spec_for_event(eventer_t e) {
