@@ -3191,6 +3191,26 @@ mtev_log_init_globals(void) {
   }
 }
 
+void
+mtev_log_hexdump(mtev_log_stream_t ls, const void * addr, const size_t len) {
+  mtev_dyn_buffer_t buf;
+  size_t i;
+  unsigned char *pc, c, strbuf[9];
+  pc = (unsigned char *) addr;
+  mtev_dyn_buffer_init(&buf);
+  mtev_dyn_buffer_add_printf(&buf, "HEXDUMP[%p]\n", addr);
+  for (i = 0; i < len; i++) {
+    c = pc[i];
+    if (i % 8 == 0) mtev_dyn_buffer_add_printf(&buf,"%08x  ", i);
+    mtev_dyn_buffer_add_printf(&buf," %02x", c);
+    strbuf[i % 8] = ((c < 0x20) || (c > 0x7e)) ? '.' : c;
+    strbuf[(i % 8) + 1] = '\0';
+    if (i % 8 == 7) mtev_dyn_buffer_add_printf(&buf,"  %s\n", strbuf);
+  }
+  mtevL(ls, "%s\n", mtev_dyn_buffer_data(&buf));
+  mtev_dyn_buffer_destroy(&buf);
+}
+
 struct posix_op_ctx boot_stderr_posix_op_ctx = { .fd = 2 };
 
 asynch_log_ctx boot_stderr_actx = {
