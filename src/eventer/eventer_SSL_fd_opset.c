@@ -1201,7 +1201,7 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         break;
       }
     }
-    if(dh_bits_demand && !dh_set) {
+    if(dh_bits && dh_bits_demand && !dh_set) {
       mtevL(eventer_err, "Could not set %d bit dh params on SSL context\n", dh_bits_demand);
       goto bail;
     }
