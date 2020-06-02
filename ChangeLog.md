@@ -4,6 +4,9 @@
 
 ## 1.11
 
+ * Fix an issues where valid SSL connections that do not handshake in one
+   non-blocking action would regsiter an spurious certificate error.
+
 ### 1.11.2
 
  * Add some ck helpers to avoid unnecessary boilerplate in apps.
