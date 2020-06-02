@@ -4,8 +4,8 @@
 
 ## 1.11
 
- * Fix an issues where valid SSL connections that do not handshake in one
-   non-blocking action would regsiter an spurious certificate error.
+ * Fix an issue where valid SSL connections that do not handshake in one
+   non-blocking action would register a spurious certificate error.
 
 ### 1.11.2
 
