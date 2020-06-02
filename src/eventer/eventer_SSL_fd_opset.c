@@ -373,15 +373,15 @@ eventer_ssl_verify_dates(eventer_ssl_ctx_t *ctx, int ok,
   int err;
   X509 *peer;
   ASN1_TIME *t;
-  if(!x509ctx) return -1;
+  if(!x509ctx) return X509_V_ERR_APPLICATION_VERIFICATION;
   peer = X509_STORE_CTX_get_current_cert(x509ctx);
   time(&now);
   t = X509_get_notBefore(peer);
   ctx->start_time = OETS_ASN1_TIME_get(t, &err);
-  if(X509_cmp_time(t, &now) > 0) return -1;
+  if(X509_cmp_time(t, &now) > 0) return X509_V_ERR_CERT_NOT_YET_VALID;
   t = X509_get_notAfter(peer);
   ctx->end_time = OETS_ASN1_TIME_get(t, &err);
-  if(X509_cmp_time(t, &now) < 0) return 1;
+  if(X509_cmp_time(t, &now) < 0) return X509_V_ERR_CERT_HAS_EXPIRED;
   return 0;
 }
 
@@ -454,7 +454,7 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
                         X509_STORE_CTX *x509ctx, void *closure) {
   mtev_hash_table *options = closure;
   const char *opt_no_ca, *ignore_dates;
-  int v_res;
+  int v_res = 0;
 
   /* Clear any previous error */
   if(ctx->cert_error) free(ctx->cert_error);
@@ -465,14 +465,17 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
     if((err = SSL_get_verify_result(ctx->ssl)) != X509_V_OK) {
       X509 *peer;
       peer = SSL_get_peer_certificate(ctx->ssl);
+      mtevL(ssldb, "SSL post-accept reverification failure%s\n", peer ? "" : ": no peer");
       if(peer) {
         ctx->cert_error = strdup(X509_verify_cert_error_string(err));
         X509_free(peer);
-        return 0;
+        ok = 0;
+        goto set_out;
       }
     }
-    ctx->cert_error = strdup("No certificate present.");
-    return 0;
+    ctx->cert_error = strdup("No certificate store present.");
+    ok = 0;
+    goto set_out;
   }
 
   if(!mtev_hash_retr_str(options, "optional_no_ca", strlen("optional_no_ca"),
@@ -487,8 +490,6 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
     ignore_dates = "true";
   }
   eventer_ssl_get_san_values(ctx, x509ctx);
-  X509_STORE_CTX_get_ex_data(x509ctx,
-                             SSL_get_ex_data_X509_STORE_CTX_idx());
   v_res = X509_STORE_CTX_get_error(x509ctx);
 
   if((v_res == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) ||
@@ -496,11 +497,11 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
      (v_res == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY) ||
      (v_res == X509_V_ERR_CERT_UNTRUSTED) ||
      (v_res == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE)) {
-    ctx->cert_error = strdup(X509_verify_cert_error_string(v_res));
     if(!strcmp(opt_no_ca, "true")) ok = 1;
     else {
       mtevL(ssldb, "SSL client cert invalid: %s\n",
             X509_verify_cert_error_string(v_res));
+      ctx->cert_error = strdup(X509_verify_cert_error_string(v_res));
       ok = 0;
       goto set_out;
     }
@@ -519,6 +520,8 @@ eventer_ssl_verify_cert(eventer_ssl_ctx_t *ctx, int ok,
     }
   }
  set_out:
+  if(ok) SSL_set_verify_result(ctx->ssl, X509_V_OK);
+  else if(v_res != 0) SSL_set_verify_result(ctx->ssl, v_res);
   return ok;
 }
 
@@ -1481,10 +1484,9 @@ eventer_SSL_setup(eventer_ssl_ctx_t *ctx) {
    * callback won't fire, so fire it explicitly here.
    * Learnt this from mod_ssl.
    */
-  if(!peer ||
-     (peer && SSL_get_verify_result(ctx->ssl) != X509_V_OK)) {
+  if(!peer) {
+    if(!peer) mtevL(ssldb, "eventer_SSL_setup without peer certificate!\n");
     if(ctx->verify_cb) {
-      if(peer) X509_free(peer);
       return ctx->verify_cb(ctx, 0, NULL, ctx->verify_cb_closure);
     }
   }
