@@ -125,31 +125,37 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
     return 1;
   }
   if(!strcmp(k, "bits")) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
     EVP_PKEY *pkey;
     pkey = X509_get_pubkey(cert);
     if (pkey == NULL) return 0;
-    else if (pkey->type == EVP_PKEY_RSA && pkey->pkey.rsa)
-      lua_pushinteger(L, BN_num_bits(pkey->pkey.rsa->n));
-    else if (pkey->type == EVP_PKEY_DSA && pkey->pkey.dsa)
-      lua_pushinteger(L, BN_num_bits(pkey->pkey.dsa->p));
+    else if (EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) {
+      RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
+      if(rsa_key) {
+        lua_pushinteger(L, RSA_size(rsa_key) * 8);
+        RSA_free(rsa_key);
+      } else {
+        lua_pushnil(L);
+      }
+    }
+    else if (EVP_PKEY_base_id(pkey) == EVP_PKEY_DSA) {
+      DSA *dsa_key = EVP_PKEY_get1_DSA(pkey);
+      if(dsa_key) {
+        lua_pushinteger(L, DSA_size(dsa_key) * 8);
+        DSA_free(dsa_key);
+      } else {
+        lua_pushnil(L);
+      }
+    }
     else lua_pushnil(L);
     EVP_PKEY_free(pkey);
     return 1;
-#else
-    int pknid, mdnid, secbits;
-    uint32_t flags;
-    if(X509_get_signature_info(cert, &mdnid, &pknid, &secbits, &flags) != 1) return 0;
-    lua_pushinteger(L, secbits);
-    return 1;
-#endif
   }
   if(!strcmp(k, "type")) {
     EVP_PKEY *pkey;
     pkey = X509_get_pubkey(cert);
     if (pkey == NULL) return 0;
-    else if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA) lua_pushstring(L, "rsa");
-    else if (EVP_PKEY_id(pkey) == EVP_PKEY_DSA) lua_pushstring(L, "dsa");
+    else if (EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) lua_pushstring(L, "rsa");
+    else if (EVP_PKEY_base_id(pkey) == EVP_PKEY_DSA) lua_pushstring(L, "dsa");
     else lua_pushstring(L, "unknown");
     EVP_PKEY_free(pkey);
     return 1;
@@ -272,6 +278,9 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
         const char *s = "unknown";
         if (ssl_version == SSL2_VERSION) s="SSLv2";
         else if (ssl_version == SSL3_VERSION) s="SSLv3";
+#ifdef TLS1_3_VERSION
+        else if (ssl_version == TLS1_3_VERSION) s="TLSv1.3";
+#endif
 #ifdef TLS1_2_VERSION
         else if (ssl_version == TLS1_2_VERSION) s="TLSv1.2";
 #endif
