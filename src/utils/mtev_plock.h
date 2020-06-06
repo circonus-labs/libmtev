@@ -92,7 +92,7 @@ typedef struct mtev_plock {
  */
 
 #define pl_cpu_relax() do {                   \
-		ASM volatile("rep;nop\n");    \
+		ASM volatile("pause\n": : :"memory"); \
 	} while (0)
 
 /* increment integer value pointed to by pointer <ptr>, and return non-zero if
