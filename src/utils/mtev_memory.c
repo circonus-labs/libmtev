@@ -595,7 +595,7 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
    */
   stats_add64(safe_frees_requested, 1);
 
-  if (r == true) {
+  if (magic_valid && r == true) {
     /* Destruction requires safe memory reclamation. */
     needs_maintenance |= 1;
     ck_epoch_call(epoch_rec, &e->epoch_entry, f);
