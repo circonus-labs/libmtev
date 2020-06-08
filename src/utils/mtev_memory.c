@@ -588,10 +588,14 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
 
   if(p == NULL) return;
   (void)b;
-  mtevAssert(e->magic == MTEV_EPOCH_SAFE_MAGIC);
+  bool magic_valid = e->magic == MTEV_EPOCH_SAFE_MAGIC;
+  /* We could assert here as we know we're in a bad state, but
+   * we elect to delay until after the potential free so that
+   * ASAN or valgrind might help us out if this is a double free.
+   */
   stats_add64(safe_frees_requested, 1);
 
-  if (r == true) {
+  if (magic_valid && r == true) {
     /* Destruction requires safe memory reclamation. */
     needs_maintenance |= 1;
     ck_epoch_call(epoch_rec, &e->epoch_entry, f);
@@ -599,6 +603,7 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
     f(&e->epoch_entry);
   }
 
+  mtevAssert(magic_valid);
   return;
 }
 
