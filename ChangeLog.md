@@ -4,8 +4,13 @@
 
 ## 1.11
 
+### 1.11.3
+
  * Fix an issue where valid SSL connections that do not handshake in one
    non-blocking action would register a spurious certificate error.
+ * Inform lua bindings of TLS1.3.
+ * Change `mtev_plock` atomic mode to `pause` instead of `repnop` for stall.
+ * Add `mtev_log_hexdump`
 
 ### 1.11.2
 
