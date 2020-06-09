@@ -71,6 +71,7 @@
 #include "mtev_mkdir.h"
 #include "eventer/eventer.h"
 #include "mtev_json.h"
+#include "internal_linkhash.h"
 #include "mtev_watchdog.h"
 #include "mtev_cluster.h"
 #include "mtev_thread.h"
