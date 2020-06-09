@@ -22,7 +22,7 @@
 #endif /* HAVE_STRINGS_H */
 
 #include "internal_bits.h"
-#include "mtev_json_arraylist.h"
+#include "internal_arraylist.h"
 
 struct jl_array_list*
 jl_array_list_new(jl_array_list_free_fn *free_fn)

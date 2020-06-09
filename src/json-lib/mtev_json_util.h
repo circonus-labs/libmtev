@@ -10,11 +10,11 @@
  *
  */
 
-#ifndef _mtev_json_util_h_
-#define _mtev_json_util_h_
+#ifndef _MTEV_JSON_UTIL_H_
+#define _MTEV_JSON_UTIL_H_
 
-#include "mtev_json_object.h"
-#include "mtev_json_tokener.h"
+#include <mtev_json_object.h>
+#include <mtev_json_tokener.h>
 
 #ifdef __cplusplus
 extern "C" {

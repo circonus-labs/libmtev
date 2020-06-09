@@ -25,7 +25,7 @@
 #include "internal_bits.h"
 #include "internal_debug.h"
 #include "internal_printbuf.h"
-#include "mtev_json_arraylist.h"
+#include "internal_arraylist.h"
 #include "mtev_json_object.h"
 #include "mtev_json_tokener.h"
 
