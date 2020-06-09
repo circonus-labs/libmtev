@@ -2458,9 +2458,13 @@ static void thr_buff_free(void *v) {
 }
 
 static __thread struct thr_buff *my_thr_buff;
+static int my_thr_buff_key_init = 0;
 static pthread_key_t my_thr_buff_key;
+static unsigned char _sigbuff[32*1024];
+static struct thr_buff sigbuff = { .buffer = _sigbuff, .buffer_size = sizeof(_sigbuff) };
 
 static void thr_buff_reset(struct thr_buff *b) {
+  if(b == &sigbuff) return;
   b->buffer_used = 0;
   size_t extra = 0;
   while(b->alist) {
@@ -2484,11 +2488,8 @@ static void thr_buff_reset(struct thr_buff *b) {
 }
 
 static struct thr_buff *local_thr_buff_get(void) {
-  static unsigned char _sigbuff[32*1024];
-  static struct thr_buff sigbuff = { .buffer = _sigbuff, .buffer_size = sizeof(_sigbuff) };
-
   /* If we're in a signal handler, no TLS and no allocations */
-  if(_mtev_log_siglvl != 0) return &sigbuff;
+  if(_mtev_log_siglvl != 0 || !my_thr_buff_key_init) return &sigbuff;
 
   if(!my_thr_buff) {
     my_thr_buff = pthread_getspecific(my_thr_buff_key);
@@ -3179,6 +3180,7 @@ mtev_log_init_globals(void) {
     pthread_mutex_init(&logpipes_lock, NULL);
 
     mtevAssert(pthread_key_create(&my_thr_buff_key, thr_buff_free) == 0);
+    my_thr_buff_key_init = 1;
 
     mtev_hash_init_locks(&mtev_loggers, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
     mtev_hash_init_locks(&mtev_logops, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
