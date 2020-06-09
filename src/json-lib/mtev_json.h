@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef _mtev_json_h_
-#define _mtev_json_h_
+#ifndef _MTEV_JSON_H_
+#define _MTEV_JSON_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,14 +22,9 @@ extern "C" {
 #define JSON_LIB_COMPAT 1
 #endif
 
-#include "mtev_bits.h"
-#include "mtev_debug.h"
-#include "mtev_linkhash.h"
-#include "mtev_arraylist.h"
-#include "mtev_json_util.h"
-#include "mtev_json_object.h"
-#include "mtev_json_tokener.h"
-
+#include <mtev_json_util.h>
+#include <mtev_json_object.h>
+#include <mtev_json_tokener.h>
 
 /* MACROS for making terse work of creating objects */
 #define MJ_OBJ() mtev_json_object_new_object()

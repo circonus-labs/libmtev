@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef _DEBUG_H_
-#define _DEBUG_H_
+#ifndef _MTEV_JSON_INTERNAL_DEBUG_H_
+#define _MTEV_JSON_INTERNAL_DEBUG_H_
 
 #ifdef __cplusplus
 extern "C" {

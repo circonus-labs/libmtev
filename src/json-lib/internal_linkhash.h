@@ -10,8 +10,8 @@
  *
  */
  
-#ifndef _linkhash_h_
-#define _linkhash_h_
+#ifndef _MTEV_JSON_INTERNAL_LINKHASH_H_
+#define _MTEV_JSON_INTERNAL_LINKHASH_H_
 
 #ifdef __cplusplus
 extern "C" {

@@ -46,9 +46,9 @@
 #endif
 
 
-#include "mtev_bits.h"
-#include "mtev_debug.h"
-#include "mtev_printbuf.h"
+#include "internal_bits.h"
+#include "internal_debug.h"
+#include "internal_printbuf.h"
 #include "mtev_json_object.h"
 #include "mtev_json_tokener.h"
 #include "mtev_json_util.h"
@@ -62,7 +62,7 @@ struct mtev_json_object *mtev_json_object_from_fd(int fd,  enum mtev_json_tokene
 
   if(!(pb = jl_printbuf_new())) {
     MC_ERROR("mtev_json_object_from_fd: jl_printbuf_new failed%s\n", "");
-    return (struct mtev_json_object*)error_ptr(-1);
+    return (struct mtev_json_object*)NULL;
   }
   while((ret = read(fd, buf, JSON_FILE_BUF_SIZE)) > 0) {
     jl_printbuf_memappend(pb, buf, ret);
@@ -71,7 +71,7 @@ struct mtev_json_object *mtev_json_object_from_fd(int fd,  enum mtev_json_tokene
     MC_ABORT("mtev_json_object_from_fd: error reading fd %d: %s\n",
 	     fd, strerror(errno));
     jl_printbuf_free(pb);
-    return (struct mtev_json_object*)error_ptr(-1);
+    return (struct mtev_json_object*)NULL;
   }
   obj = mtev_json_tokener_parse(pb->buf, err);
   jl_printbuf_free(pb);
@@ -86,7 +86,7 @@ struct mtev_json_object* mtev_json_object_from_file(char *filename,  enum mtev_j
   if((fd = open(filename, O_RDONLY)) < 0) {
     MC_ERROR("mtev_json_object_from_file: error reading file %s: %s\n",
 	     filename, strerror(errno));
-    return (struct mtev_json_object*)error_ptr(-1);
+    return NULL;
   }
   obj = mtev_json_object_from_fd(fd, err);
   close(fd);

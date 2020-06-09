@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef _mtev_arraylist_h_
-#define _mtev_arraylist_h_
+#ifndef _MTEV_JSON_INTERNAL_ARRAYLIST_H_
+#define _MTEV_JSON_INTERNAL_ARRAYLIST_H_
 
 #ifdef __cplusplus
 extern "C" {

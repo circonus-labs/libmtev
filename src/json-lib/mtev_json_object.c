@@ -20,12 +20,12 @@
 #include <math.h>
 #include <ck_pr.h>
 
-#include "mtev_debug.h"
-#include "mtev_printbuf.h"
-#include "mtev_linkhash.h"
-#include "mtev_arraylist.h"
+#include "internal_debug.h"
+#include "internal_printbuf.h"
+#include "internal_linkhash.h"
+#include "internal_arraylist.h"
 #include "mtev_json_object.h"
-#include "mtev_json_object_private.h"
+#include "internal_object_private.h"
 
 #ifndef HAVE_STRNDUP
   char* strndup(const char* str, size_t n);

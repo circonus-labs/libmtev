@@ -17,7 +17,7 @@
 #include <stddef.h>
 #include <limits.h>
 
-#include "mtev_linkhash.h"
+#include "internal_linkhash.h"
 
 void jl_lh_abort(const char *msg, ...)
 {

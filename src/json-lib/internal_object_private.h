@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef _mtev_json_object_private_h_
-#define _mtev_json_object_private_h_
+#ifndef _MTEV_JSON_OBJECT_PRIVATE_H
+#define _MTEV_JSON_OBJECT_PRIVATE_H
 
 #ifdef __cplusplus
 extern "C" {

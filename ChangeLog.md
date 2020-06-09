@@ -4,6 +4,12 @@
 
 ## 1.11
 
+### 1.11.4
+
+ * Fix more json-lib brokeness (bad pointers).
+ * Remove `is_error` and `error_ptr` from json-lib implementation.
+ * Only install public `mtev_json` headers.
+
 ### 1.11.3
 
  * Break the `mtev_json_token_parse{,_filename,_fd}` APIs as they were

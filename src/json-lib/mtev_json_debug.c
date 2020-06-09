@@ -29,7 +29,7 @@
 #include <sys/param.h>
 #endif /* HAVE_SYS_PARAM_H */
 
-#include "mtev_debug.h"
+#include "internal_debug.h"
 
 static int _syslog = 0;
 static int _debug = 0;

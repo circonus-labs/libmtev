@@ -25,9 +25,9 @@
 
 #include <stdarg.h>
 
-#include "mtev_bits.h"
-#include "mtev_debug.h"
-#include "mtev_printbuf.h"
+#include "internal_bits.h"
+#include "internal_debug.h"
+#include "internal_printbuf.h"
 
 struct jl_printbuf* jl_printbuf_new(void)
 {

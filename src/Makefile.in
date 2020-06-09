@@ -130,22 +130,20 @@ MAPPEDHEADERS=utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
     utils/mtev_time.h utils/mtev_watchdog.h utils/mtev_uuid_parse.h \
     utils/mtev_perftimer.h utils/mtev_zipkin.h utils/mtev_zipkin_curl.h \
     utils/mtev_task.h utils/mtev_rand.h utils/mtev_uuid_generate.h \
-    utils/mtev_hyperloglog.h json-lib/mtev_arraylist.h \
+    utils/mtev_hyperloglog.h \
     utils/mtev_stacktrace.h utils/mtev_maybe_alloc.h \
     utils/mtev_lru.h utils/mtev_uuid_copy.h utils/mtev_uuid.h \
     utils/mtev_flow_regulator.h utils/mtev_lfu.h utils/mtev_frrh.h \
     utils/mtev_huge_hash.h utils/mtev_intern.h utils/mtev_plock.h \
     utils/mtev_url.h utils/mtev_logic.h \
-    json-lib/mtev_bits.h json-lib/mtev_debug.h \
     json-lib/mtev_json_object.h json-lib/mtev_json_tokener.h \
     json-lib/mtev_json_util.h json-lib/mtev_json.h \
-    json-lib/mtev_linkhash.h json-lib/mtev_printbuf.h \
     modules/mtev_fq.h modules/mtev_amqp.h modules/http_observer.h
 
-JSON_LIB_OBJS=json-lib/mtev_arraylist.lo json-lib/mtev_debug.lo \
+JSON_LIB_OBJS=json-lib/mtev_json_arraylist.lo json-lib/mtev_json_debug.lo \
     json-lib/mtev_json_object.lo json-lib/mtev_json_tokener.lo \
-    json-lib/mtev_json_util.lo json-lib/mtev_linkhash.lo \
-    json-lib/mtev_printbuf.lo
+    json-lib/mtev_json_util.lo json-lib/mtev_json_linkhash.lo \
+    json-lib/mtev_json_printbuf.lo
 
 SLZ_LIB_OBJS=slz-lib/slz.hlo
 
