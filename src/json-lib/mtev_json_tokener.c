@@ -22,12 +22,14 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "mtev_bits.h"
-#include "mtev_debug.h"
-#include "mtev_printbuf.h"
-#include "mtev_arraylist.h"
+#include "internal_bits.h"
+#include "internal_debug.h"
+#include "internal_printbuf.h"
+#include "mtev_json_arraylist.h"
 #include "mtev_json_object.h"
 #include "mtev_json_tokener.h"
+
+#define hexdigit(x) (((x) <= '9') ? (x) - '0' : ((x) & 7) + 9)
 
 static const char* mtev_json_null_str = "null";
 static const char* mtev_json_true_str = "true";

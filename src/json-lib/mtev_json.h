@@ -22,10 +22,8 @@ extern "C" {
 #define JSON_LIB_COMPAT 1
 #endif
 
-#include "mtev_bits.h"
-#include "mtev_debug.h"
-#include "mtev_linkhash.h"
-#include "mtev_arraylist.h"
+#include "mtev_json_linkhash.h"
+#include "mtev_json_arraylist.h"
 #include "mtev_json_util.h"
 #include "mtev_json_object.h"
 #include "mtev_json_tokener.h"

@@ -20,10 +20,10 @@
 #include <math.h>
 #include <ck_pr.h>
 
-#include "mtev_debug.h"
-#include "mtev_printbuf.h"
-#include "mtev_linkhash.h"
-#include "mtev_arraylist.h"
+#include "internal_debug.h"
+#include "internal_printbuf.h"
+#include "mtev_json_linkhash.h"
+#include "mtev_json_arraylist.h"
 #include "mtev_json_object.h"
 #include "mtev_json_object_private.h"
 
