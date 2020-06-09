@@ -81,7 +81,7 @@ extern void mtev_json_object_put(struct mtev_json_object *obj);
      mtev_json_type_array,
      mtev_json_type_string,
  */
-extern int mtev_json_object_is_type(struct mtev_json_object *obj, enum mtev_json_type type);
+extern int mtev_json_object_is_type(const struct mtev_json_object *obj, enum mtev_json_type type);
 
 /**
  * Get the type of the mtev_json_object
@@ -94,7 +94,7 @@ extern int mtev_json_object_is_type(struct mtev_json_object *obj, enum mtev_json
      mtev_json_type_array,
      mtev_json_type_string,
  */
-extern enum mtev_json_type mtev_json_object_get_type(struct mtev_json_object *obj);
+extern enum mtev_json_type mtev_json_object_get_type(const struct mtev_json_object *obj);
 
 
 /** Stringify object to json format
@@ -115,7 +115,31 @@ extern struct mtev_json_object* mtev_json_object_new_object(void);
  * @param obj the mtev_json_object instance
  * @returns a linkhash
  */
-extern struct jl_lh_table* mtev_json_object_get_object(struct mtev_json_object *obj);
+extern struct jl_lh_table* mtev_json_object_get_object(const struct mtev_json_object *obj);
+
+/** Get the first entry of an object
+ * @param obj the mtev_json_object instance
+ * @returns a jl_lh_entry
+ */
+extern struct jl_lh_entry* mtev_json_object_get_object_head(const struct mtev_json_object *obj);
+
+/** Get the next entry
+ * @param entry the jl_lh_entry instance
+ * @returns a jl_lh_entry
+ */
+extern struct jl_lh_entry* mtev_json_entry_next(const struct jl_lh_entry *entry);
+
+/** Get the key for an entry
+ * @param entry the jl_lh_entry instance
+ * @returns a const char * key
+ */
+extern const char* mtev_json_entry_key(const struct jl_lh_entry *entry);
+
+/** Get the value for an entry
+ * @param entry the jl_lh_entry instance
+ * @returns a mtev_json_object
+ */
+extern const mtev_json_object* mtev_json_entry_value(const struct jl_lh_entry *entry);
 
 /** Add an object field to a mtev_json_object of type mtev_json_type_object
  *
@@ -135,7 +159,7 @@ extern void mtev_json_object_object_add(struct mtev_json_object* obj, const char
  * @param key the object field name
  * @returns the mtev_json_object associated with the given field name
  */
-extern struct mtev_json_object* mtev_json_object_object_get(struct mtev_json_object* obj,
+extern struct mtev_json_object* mtev_json_object_object_get(const struct mtev_json_object* obj,
 						  const char *key);
 
 /** Delete the given mtev_json_object field
@@ -154,24 +178,31 @@ extern void mtev_json_object_object_del(struct mtev_json_object* obj, const char
  */
 #if defined(__GNUC__) && !defined(__STRICT_ANSI__)
 
-# define mtev_json_object_object_foreach(obj,key,val) \
- char *key; struct mtev_json_object *val; \
- for(struct jl_lh_entry *entry = mtev_json_object_get_object(obj)->head; ({ if(entry) { key = (char*)entry->k; val = (struct mtev_json_object*)entry->v; } ; entry; }); entry = entry->next )
+# define mtev_json_object_object_foreach_entry(obj,key,val,entry) \
+ const char *key; const struct mtev_json_object *val; \
+ for(struct jl_lh_entry *entry = mtev_json_object_get_object_head(obj); ({ if(entry) { key = mtev_json_entry_key(entry); val = (struct mtev_json_object*)mtev_json_entry_value(entry); } ; entry; }); entry = mtev_json_entry_next(entry) )
 
 #else /* ANSI C or MSC */
 
-# define mtev_json_object_object_foreach(obj,key,val) \
- char *key; struct mtev_json_object *val; struct jl_lh_entry *entry; \
- for(entry = mtev_json_object_get_object(obj)->head; (entry ? (key = (char*)entry->k, val = (struct mtev_json_object*)entry->v, entry) : 0); entry = entry->next)
+# define mtev_json_object_object_foreach_entry(obj,key,val,entry) \
+ const char *key; const struct mtev_json_object *val; struct jl_lh_entry *entry; \
+ for(entry = mtev_json_object_get_object_head(obj); (entry ? (key = mtev_json_entry_key(entry), val = mtev_json_entry_value(entry), entry) : 0); entry = mtev_json_entry_next(entry))
 
 #endif /* defined(__GNUC__) && !defined(__STRICT_ANSI__) */
+
+#undef MTEV_JSON_TOKEN_PASTE_
+#undef MTEV_JSON_TOKEN_PASTE
+#define MTEV_JSON_TOKEN_PASTE_(a,b) a ## b
+#define MTEV_JSON_TOKEN_PASTE(a,b) MTEV_JSON_TOKEN_PASTE_(a,b)
+#define mtev_json_object_object_foreach(o,k,v) mtev_json_object_object_foreach_entry(o,k,v,MTEV_JSON_TOKEN_PASTE(entry_,__COUNTER__))
+
 
 /** Iterate through all keys and values of an object (ANSI C Safe)
  * @param obj the mtev_json_object instance
  * @param iter the object iterator
  */
 #define mtev_json_object_object_foreachC(obj,iter) \
- for(iter.entry = mtev_json_object_get_object(obj)->head; (iter.entry ? (iter.key = (char*)iter.entry->k, iter.val = (struct mtev_json_object*)iter.entry->v, iter.entry) : 0); iter.entry = iter.entry->next)
+ for(iter.entry = mtev_json_object_get_object_head(obj); (iter.entry ? (iter.key = mtev_json_entry_key(iter.entry), iter.val = mtev_json_entry_value(iter.entry), iter.entry) : 0); iter.entry = mtev_json_entry_next(iter.entry))
 
 /* Array type methods */
 
@@ -190,7 +221,7 @@ extern struct jl_array_list* mtev_json_object_get_array(struct mtev_json_object 
  * @param obj the mtev_json_object instance
  * @returns an int
  */
-extern int mtev_json_object_array_length(struct mtev_json_object *obj);
+extern int mtev_json_object_array_length(const struct mtev_json_object *obj);
 
 /** Add an element to the end of a mtev_json_object of type mtev_json_type_array
  *
@@ -227,7 +258,7 @@ extern int mtev_json_object_array_put_idx(struct mtev_json_object *obj, int idx,
  * @param idx the index to get the element at
  * @returns the mtev_json_object at the specified index (or NULL)
  */
-extern struct mtev_json_object* mtev_json_object_array_get_idx(struct mtev_json_object *obj,
+extern struct mtev_json_object* mtev_json_object_array_get_idx(const struct mtev_json_object *obj,
 						     int idx);
 
 /* boolean type methods */
@@ -249,7 +280,7 @@ extern struct mtev_json_object* mtev_json_object_new_boolean(boolean b);
  * @param obj the mtev_json_object instance
  * @returns a boolean
  */
-extern boolean mtev_json_object_get_boolean(struct mtev_json_object *obj);
+extern boolean mtev_json_object_get_boolean(const struct mtev_json_object *obj);
 
 
 /* int type methods */
@@ -262,11 +293,11 @@ extern struct mtev_json_object* mtev_json_object_new_int(int i);
 extern struct mtev_json_object *mtev_json_object_new_int64(int64_t i);
 extern struct mtev_json_object *mtev_json_object_new_uint64(uint64_t i);
 
-extern mtev_json_int_overflow mtev_json_object_get_int_overflow(struct mtev_json_object *jso);
+extern mtev_json_int_overflow mtev_json_object_get_int_overflow(const struct mtev_json_object *jso);
 extern void mtev_json_object_set_int_overflow(struct mtev_json_object *jso,
 					  mtev_json_int_overflow o);
-extern uint64_t mtev_json_object_get_uint64(struct mtev_json_object *jso);
-extern int64_t mtev_json_object_get_int64(struct mtev_json_object *jso);
+extern uint64_t mtev_json_object_get_uint64(const struct mtev_json_object *jso);
+extern int64_t mtev_json_object_get_int64(const struct mtev_json_object *jso);
 extern void mtev_json_object_set_uint64(struct mtev_json_object *jso, uint64_t v);
 extern void mtev_json_object_set_int64(struct mtev_json_object *jso, int64_t v);
 
@@ -279,7 +310,7 @@ extern void mtev_json_object_set_int64(struct mtev_json_object *jso, int64_t v);
  * @param obj the mtev_json_object instance
  * @returns an int
  */
-extern int mtev_json_object_get_int(struct mtev_json_object *obj);
+extern int mtev_json_object_get_int(const struct mtev_json_object *obj);
 
 
 /* double type methods */
@@ -299,7 +330,7 @@ extern struct mtev_json_object* mtev_json_object_new_double(double d);
  * @param obj the mtev_json_object instance
  * @returns an double
  */
-extern double mtev_json_object_get_double(struct mtev_json_object *obj);
+extern double mtev_json_object_get_double(const struct mtev_json_object *obj);
 
 
 /* string type methods */
@@ -326,7 +357,7 @@ extern struct mtev_json_object* mtev_json_object_new_string_len(const char *s, i
  * @param obj the mtev_json_object instance
  * @returns a string
  */
-extern const char* mtev_json_object_get_string(struct mtev_json_object *obj);
+extern const char* mtev_json_object_get_string(const struct mtev_json_object *obj);
 
 #ifdef __cplusplus
 }

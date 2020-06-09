@@ -48,8 +48,8 @@ struct mtev_json_object
 /* CAW: added for ANSI C iteration correctness */
 struct mtev_json_object_iter
 {
-	char *key;
-	struct mtev_json_object *val;
+	const char *key;
+	const struct mtev_json_object *val;
 	struct jl_lh_entry *entry;
 };
 

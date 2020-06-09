@@ -71,7 +71,6 @@
 #include "mtev_mkdir.h"
 #include "eventer/eventer.h"
 #include "mtev_json.h"
-#include "internal_linkhash.h"
 #include "mtev_watchdog.h"
 #include "mtev_cluster.h"
 #include "mtev_thread.h"
@@ -4321,7 +4320,7 @@ mtev_lua_json_tostring(lua_State *L) {
   return 1;
 }
 static int
-mtev_json_object_to_luatype(lua_State *L, mtev_json_object *o) {
+mtev_json_object_to_luatype(lua_State *L, const mtev_json_object *o) {
   if(!o) {
     lua_pushnil(L);
     return 1;
@@ -4330,13 +4329,15 @@ mtev_json_object_to_luatype(lua_State *L, mtev_json_object *o) {
     case mtev_json_type_null: lua_pushnil(L); break;
     case mtev_json_type_object:
     {
-      struct jl_lh_table *lh;
-      struct jl_lh_entry *el;
-      lh = mtev_json_object_get_object(o);
-      lua_createtable(L, 0, lh->count);
-      jl_lh_foreach(lh, el) {
-        mtev_json_object_to_luatype(L, (mtev_json_object *)el->v);
-        lua_setfield(L, -2, el->k);
+      int cnt = 0;
+      for(struct jl_lh_entry *e = mtev_json_object_get_object_head(o);
+          e; e = mtev_json_entry_next(e)) {
+        cnt++;
+      }
+      lua_createtable(L, 0, cnt);
+      mtev_json_object_object_foreach(o,key,val) {
+        mtev_json_object_to_luatype(L, val);
+        lua_setfield(L, -2, key);
       }
       break;
     }

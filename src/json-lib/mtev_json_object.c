@@ -85,7 +85,7 @@ static void mtev_json_object_fini(void) {
 
 /* string escaping */
 
-static int mtev_json_escape_str(struct jl_printbuf *pb, char *str)
+static int mtev_json_escape_str(struct jl_printbuf *pb, const char *str)
 {
   int pos = 0, start_offset = 0;
   unsigned char c;
@@ -181,12 +181,12 @@ static struct mtev_json_object* mtev_json_object_new(enum mtev_json_type o_type)
 
 /* type checking functions */
 
-int mtev_json_object_is_type(struct mtev_json_object *jso, enum mtev_json_type type)
+int mtev_json_object_is_type(const struct mtev_json_object *jso, enum mtev_json_type type)
 {
   return (jso->o_type == type);
 }
 
-enum mtev_json_type mtev_json_object_get_type(struct mtev_json_object *jso)
+enum mtev_json_type mtev_json_object_get_type(const struct mtev_json_object *jso)
 {
   return jso->o_type;
 }
@@ -224,7 +224,7 @@ static int mtev_json_object_object_to_json_string(struct mtev_json_object* jso,
 			mtev_json_escape_str(pb, iter.key);
 			jl_sprintbuf(pb, "\": ");
 			if(iter.val == NULL) jl_sprintbuf(pb, "null");
-			else iter.val->_to_json_string(iter.val, pb);
+			else iter.val->_to_json_string((mtev_json_object *)iter.val, pb);
 			i++;
 	}
 
@@ -254,7 +254,7 @@ struct mtev_json_object* mtev_json_object_new_object(void)
   return jso;
 }
 
-struct jl_lh_table* mtev_json_object_get_object(struct mtev_json_object *jso)
+struct jl_lh_table* mtev_json_object_get_object(const struct mtev_json_object *jso)
 {
   if(!jso) return NULL;
   switch(jso->o_type) {
@@ -265,6 +265,25 @@ struct jl_lh_table* mtev_json_object_get_object(struct mtev_json_object *jso)
   }
 }
 
+struct jl_lh_entry* mtev_json_object_get_object_head(const struct mtev_json_object *obj) {
+  struct jl_lh_table *t = mtev_json_object_get_object(obj);
+  if(t) return t->head;
+  return NULL;
+}
+
+struct jl_lh_entry* mtev_json_entry_next(const struct jl_lh_entry *entry) {
+  return entry->next;
+}
+
+const char* mtev_json_entry_key(const struct jl_lh_entry *entry) {
+  if(entry) return entry->k;
+  return NULL;
+}
+const mtev_json_object* mtev_json_entry_value(const struct jl_lh_entry *entry) {
+  if(entry) return entry->v;
+  return NULL;
+}
+
 void mtev_json_object_object_add(struct mtev_json_object* jso, const char *key,
 			    struct mtev_json_object *val)
 {
@@ -272,7 +291,7 @@ void mtev_json_object_object_add(struct mtev_json_object* jso, const char *key,
   jl_lh_table_insert(jso->o.c_object, strdup(key), val);
 }
 
-struct mtev_json_object* mtev_json_object_object_get(struct mtev_json_object* jso, const char *key)
+struct mtev_json_object* mtev_json_object_object_get(const struct mtev_json_object* jso, const char *key)
 {
   return (struct mtev_json_object*) jl_lh_table_lookup(jso->o.c_object, key);
 }
@@ -301,7 +320,7 @@ struct mtev_json_object* mtev_json_object_new_boolean(boolean b)
   return jso;
 }
 
-boolean mtev_json_object_get_boolean(struct mtev_json_object *jso)
+boolean mtev_json_object_get_boolean(const struct mtev_json_object *jso)
 {
   if(!jso) return FALSE;
   switch(jso->o_type) {
@@ -341,7 +360,7 @@ struct mtev_json_object* mtev_json_object_new_int(int i)
   return jso;
 }
 
-mtev_json_int_overflow mtev_json_object_get_int_overflow(struct mtev_json_object *jso)
+mtev_json_int_overflow mtev_json_object_get_int_overflow(const struct mtev_json_object *jso)
 {
   return jso->o_ioverflow;
 }
@@ -368,7 +387,7 @@ struct mtev_json_object *mtev_json_object_new_uint64(uint64_t i)
   return o;
 }
 
-uint64_t mtev_json_object_get_uint64(struct mtev_json_object *jso)
+uint64_t mtev_json_object_get_uint64(const struct mtev_json_object *jso)
 {
   return jso->overflow.c_uint64;
 }
@@ -376,7 +395,7 @@ void mtev_json_object_set_uint64(struct mtev_json_object *jso, uint64_t v)
 {
   jso->overflow.c_uint64 = v;
 }
-int64_t mtev_json_object_get_int64(struct mtev_json_object *jso)
+int64_t mtev_json_object_get_int64(const struct mtev_json_object *jso)
 {
   return jso->overflow.c_int64;
 }
@@ -385,7 +404,7 @@ void mtev_json_object_set_int64(struct mtev_json_object *jso, int64_t v)
   jso->overflow.c_int64 = v;
 }
 
-int mtev_json_object_get_int(struct mtev_json_object *jso)
+int mtev_json_object_get_int(const struct mtev_json_object *jso)
 {
   int cint;
 
@@ -426,7 +445,7 @@ struct mtev_json_object* mtev_json_object_new_double(double d)
   return jso;
 }
 
-double mtev_json_object_get_double(struct mtev_json_object *jso)
+double mtev_json_object_get_double(const struct mtev_json_object *jso)
 {
   double cdouble;
 
@@ -484,14 +503,14 @@ struct mtev_json_object* mtev_json_object_new_string_len(const char *s, int len)
   return jso;
 }
 
-const char* mtev_json_object_get_string(struct mtev_json_object *jso)
+const char* mtev_json_object_get_string(const struct mtev_json_object *jso)
 {
   if(!jso) return NULL;
   switch(jso->o_type) {
   case mtev_json_type_string:
     return jso->o.c_string;
   default:
-    return mtev_json_object_to_json_string(jso);
+    return mtev_json_object_to_json_string((struct mtev_json_object *)jso);
   }
 }
 
@@ -547,7 +566,7 @@ struct jl_array_list* mtev_json_object_get_array(struct mtev_json_object *jso)
   }
 }
 
-int mtev_json_object_array_length(struct mtev_json_object *jso)
+int mtev_json_object_array_length(const struct mtev_json_object *jso)
 {
   return jl_array_list_length(jso->o.c_array);
 }
@@ -563,7 +582,7 @@ int mtev_json_object_array_put_idx(struct mtev_json_object *jso, int idx,
   return jl_array_list_put_idx(jso->o.c_array, idx, val);
 }
 
-struct mtev_json_object* mtev_json_object_array_get_idx(struct mtev_json_object *jso,
+struct mtev_json_object* mtev_json_object_array_get_idx(const struct mtev_json_object *jso,
 					      int idx)
 {
   return (struct mtev_json_object*)jl_array_list_get_idx(jso->o.c_array, idx);
