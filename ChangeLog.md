@@ -6,6 +6,9 @@
 
 ### 1.11.3
 
+ * Break the `mtev_json_token_parse{,_filename,_fd}` APIs as they were
+   atrociously dangerous.  No one could have possibly been using these
+   correctly.
  * Fix an issue where valid SSL connections that do not handshake in one
    non-blocking action would register a spurious certificate error.
  * Inform lua bindings of TLS1.3.

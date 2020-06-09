@@ -88,7 +88,7 @@ extern const char* mtev_json_tokener_errors[];
 extern struct mtev_json_tokener* mtev_json_tokener_new(void);
 extern void mtev_json_tokener_free(struct mtev_json_tokener *tok);
 extern void mtev_json_tokener_reset(struct mtev_json_tokener *tok);
-extern struct mtev_json_object* mtev_json_tokener_parse(const char *str);
+extern struct mtev_json_object* mtev_json_tokener_parse(const char *str,  enum mtev_json_tokener_error *);
 extern struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *tok,
 						 const char *str, int len);
 

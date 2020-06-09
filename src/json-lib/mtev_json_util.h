@@ -14,6 +14,7 @@
 #define _mtev_json_util_h_
 
 #include "mtev_json_object.h"
+#include "mtev_json_tokener.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,10 +25,10 @@ extern "C" {
 /* utility functions */
 
 /* opens and closes the filename */
-extern struct mtev_json_object* mtev_json_object_from_file(char *filename);
+extern struct mtev_json_object* mtev_json_object_from_file(char *filename,  enum mtev_json_tokener_error *err);
 
 /* does not close the fd after completion, leaves it open */
-extern struct mtev_json_object* mtev_json_object_from_fd(int fd);
+extern struct mtev_json_object* mtev_json_object_from_fd(int fd,  enum mtev_json_tokener_error *err);
 
 /* opens and closes the filename */
 extern int mtev_json_object_to_file(char *filename, struct mtev_json_object *obj);

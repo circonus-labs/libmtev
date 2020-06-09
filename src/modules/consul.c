@@ -185,7 +185,7 @@ static void mtev_consul_kv_tree_reader(CURLcode code, CURL *easy, mtev_dyn_buffe
   MTEV_MAYBE_DECL(uint8_t, valbuf, 2048);
   if(code == CURLE_OK && CURLE_OK == curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &httpcode) &&
      httpcode == 200) {
-    mtev_json_object *obj = mtev_json_tokener_parse((const char *)mtev_dyn_buffer_data(dyn));
+    mtev_json_object *obj = mtev_json_tokener_parse((const char *)mtev_dyn_buffer_data(dyn), NULL);
     if(obj != NULL && mtev_json_object_get_type(obj) == mtev_json_type_array) {
       for(int i=0; i<mtev_json_object_array_length(obj); i++) {
         mtev_json_object *jitem = mtev_json_object_array_get_idx(obj, i);

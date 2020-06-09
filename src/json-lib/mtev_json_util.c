@@ -53,7 +53,7 @@
 #include "mtev_json_tokener.h"
 #include "mtev_json_util.h"
 
-struct mtev_json_object *mtev_json_object_from_fd(int fd)
+struct mtev_json_object *mtev_json_object_from_fd(int fd,  enum mtev_json_tokener_error *err)
 {
   struct jl_printbuf *pb;
   struct mtev_json_object *obj;
@@ -73,12 +73,12 @@ struct mtev_json_object *mtev_json_object_from_fd(int fd)
     jl_printbuf_free(pb);
     return (struct mtev_json_object*)error_ptr(-1);
   }
-  obj = mtev_json_tokener_parse(pb->buf);
+  obj = mtev_json_tokener_parse(pb->buf, err);
   jl_printbuf_free(pb);
   return obj;
 }
 
-struct mtev_json_object* mtev_json_object_from_file(char *filename)
+struct mtev_json_object* mtev_json_object_from_file(char *filename,  enum mtev_json_tokener_error *err)
 {
   struct mtev_json_object *obj;
   int fd;
@@ -88,7 +88,7 @@ struct mtev_json_object* mtev_json_object_from_file(char *filename)
 	     filename, strerror(errno));
     return (struct mtev_json_object*)error_ptr(-1);
   }
-  obj = mtev_json_object_from_fd(fd);
+  obj = mtev_json_object_from_fd(fd, err);
   close(fd);
   return obj;
 }

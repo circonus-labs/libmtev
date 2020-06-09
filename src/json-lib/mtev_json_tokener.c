@@ -96,15 +96,16 @@ void mtev_json_tokener_reset(struct mtev_json_tokener *tok)
   tok->err = mtev_json_tokener_success;
 }
 
-struct mtev_json_object* mtev_json_tokener_parse(const char *str)
+struct mtev_json_object* mtev_json_tokener_parse(const char *str,  enum mtev_json_tokener_error *err)
 {
   struct mtev_json_tokener* tok;
   struct mtev_json_object* obj;
 
   tok = mtev_json_tokener_new();
   obj = mtev_json_tokener_parse_ex(tok, str, -1);
-  if(tok->err != mtev_json_tokener_success)
-    obj = (struct mtev_json_object*)error_ptr(-tok->err);
+  if(tok->err != mtev_json_tokener_success) {
+    if(err) *err = tok->err;
+  }
   mtev_json_tokener_free(tok);
   return obj;
 }
