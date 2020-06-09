@@ -447,6 +447,7 @@ void eventer_init_globals(void) {
   eventer_impl_init_globals();
   eventer_ssl_init_globals();
   mtev_task_eventer_init();
+  aco_detect_asan();
 }
 
 

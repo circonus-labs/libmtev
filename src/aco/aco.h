@@ -185,6 +185,8 @@ uint32_t aco_tls_assign_idx(void);
     #define aco_attr_no_asan
 #endif
 
+extern int aco_detect_asan(void);
+
 extern void aco_runtime_test(void);
 
 extern void aco_thread_init(aco_cofuncp_t last_word_co_fp);
