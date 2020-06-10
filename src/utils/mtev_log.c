@@ -2505,6 +2505,7 @@ static void thr_buff_reset(struct thr_buff *b) {
 
 static struct thr_buff *local_thr_buff_get(void) {
   /* If we're in a signal handler, no TLS and no allocations */
+  atomic_signal_fence(memory_order_consume);
   if(_mtev_log_siglvl != 0 || !my_thr_buff_key_init) {
     if(sigbuff.buffer == NULL) {
       sigbuff.buffer = mmap(NULL, SIGBUFSIZE, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
