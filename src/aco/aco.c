@@ -21,7 +21,11 @@
 // this header including should be at the last of the `include` directives list
 #include "aco_assert_override.h"
 
+#if defined(ACO_USE_ASAN)
+static int detected_asan = 1;
+#else
 static int detected_asan = 0;
+#endif
 static uint32_t current_tls_max = 0;
 uint32_t aco_tls_assign_idx(void) {
   uint32_t new_id = ck_pr_faa_32(&current_tls_max, 1);
@@ -30,7 +34,8 @@ uint32_t aco_tls_assign_idx(void) {
 }
 
 int aco_detect_asan(void) {
-  detected_asan = (dlsym(MTEV_RTLD_PARAM, "__asan_default_options") != NULL);
+  if(!detected_asan)
+    detected_asan = (dlsym(MTEV_RTLD_PARAM, "__asan_default_options") != NULL);
   return detected_asan;
 }
 
