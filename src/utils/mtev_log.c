@@ -153,7 +153,7 @@ void mtev_log_enter_sighandler(void) {
   atomic_signal_fence(memory_order_release);
 }
 void mtev_log_leave_sighandler(void) {
-  _mtev_log_siglvl++;
+  _mtev_log_siglvl--;
   atomic_signal_fence(memory_order_release);
 }
 
