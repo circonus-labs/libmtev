@@ -883,15 +883,17 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
       unw_proc_info_t proc_info;
       unw_accessors_t *a = unw_get_accessors(unw_local_addr_space);
       if(0 == unw_get_proc_info_by_ip(unw_local_addr_space, (uintptr_t)callstack[i], &proc_info, NULL)) {
-        unw_dyn_info_t *di = proc_info.unwind_info;
         sname_off = (uintptr_t)callstack[i] - proc_info.start_ip;
-        if(di && di->format == UNW_INFO_FORMAT_DYNAMIC) {
-          strlcpy(sname_buff, (const char *)di->u.pi.name_ptr, sizeof(sname_buff));
-          sname = sname_buff;
-        }
         if(a && a->get_proc_name) {
           if(0 == a->get_proc_name(unw_local_addr_space, (uintptr_t)callstack[i],
                                    sname_buff, sizeof(sname_buff), NULL, NULL)) {
+            sname = sname_buff;
+          }
+        }
+        if(sname == NULL) {
+          unw_dyn_info_t *di = proc_info.unwind_info;
+          if(di && di->format == UNW_INFO_FORMAT_DYNAMIC) {
+            strlcpy(sname_buff, (const char *)di->u.pi.name_ptr, sizeof(sname_buff));
             sname = sname_buff;
           }
         }
