@@ -21,11 +21,17 @@
 extern "C" {
 #endif
 
+#undef likely
 #define likely(x)               aco_likely(x)
+#undef unlikely
 #define unlikely(x)             aco_unlikely(x)
+#undef assert
 #define assert(EX)              aco_assert(EX)
+#undef assertptr
 #define assertptr(ptr)          aco_assertptr(ptr)
+#undef assertalloc_bool
 #define assertalloc_bool(b)     aco_assertalloc_bool(b)
+#undef assertalloc_ptr
 #define assertalloc_ptr(ptr)    aco_assertalloc_ptr(ptr)
 
 #ifdef __cplusplus

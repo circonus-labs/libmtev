@@ -4,6 +4,9 @@
 
 ## 1.12
 
+ * Runtime detection of ASAN to avoid `stack-buffer-underflow` failures
+   when apps use ACO. (runtime avoids memcpy for stack replacement)
+
 ### 1.12.0
 
  * Fix more json-lib brokeness (bad pointers).

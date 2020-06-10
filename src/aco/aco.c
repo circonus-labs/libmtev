@@ -16,15 +16,27 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <ck_pr.h>
+#include <mtev_hooks.h>
 
 // this header including should be at the last of the `include` directives list
 #include "aco_assert_override.h"
 
+#if defined(ACO_USE_ASAN)
+static int detected_asan = 1;
+#else
+static int detected_asan = 0;
+#endif
 static uint32_t current_tls_max = 0;
 uint32_t aco_tls_assign_idx(void) {
   uint32_t new_id = ck_pr_faa_32(&current_tls_max, 1);
   assert(new_id < MAX_TLS_ENTRIES);
   return new_id;
+}
+
+int aco_detect_asan(void) {
+  if(!detected_asan)
+    detected_asan = (dlsym(MTEV_RTLD_PARAM, "__asan_default_options") != NULL);
+  return detected_asan;
 }
 
 void aco_runtime_test(void){
@@ -154,7 +166,6 @@ void aco_runtime_test(void){
 } while(0)
 
 // Note: dst and src must be valid address already
-#if defined(ACO_USE_ASAN)
 /* When ASAN is on, the memcpy will stomp on the stack and the no_sanitize attribute
  * doesn't suppress the issue.  So, for ASAN builds we just inlind the memcpy as a
  * for loop.
@@ -162,19 +173,12 @@ void aco_runtime_test(void){
 #define aco_amd64_optimized_memcpy_drop_in(dst, src, sz) do {\
     if(aco_amd64_inline_short_aligned_memcpy_test_ok((dst), (src), (sz))){ \
         aco_amd64_inline_short_aligned_memcpy((dst), (src), (sz)); \
-    }else{ \
+    }else if(unlikely(detected_asan)) { \
         for(size_t i=0; i<(sz); i++) ((uint8_t *)(dst))[i] = ((uint8_t *)(src))[i]; \
-    } \
-} while(0)
-#else
-#define aco_amd64_optimized_memcpy_drop_in(dst, src, sz) do {\
-    if(aco_amd64_inline_short_aligned_memcpy_test_ok((dst), (src), (sz))){ \
-        aco_amd64_inline_short_aligned_memcpy((dst), (src), (sz)); \
-    }else{ \
+    } else { \
         memcpy((dst), (src), (sz)); \
     } \
 } while(0)
-#endif
 
 static void aco_default_protector_last_word(void){
     aco_t* co = aco_get_co();
