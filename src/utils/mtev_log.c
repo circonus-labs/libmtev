@@ -47,6 +47,7 @@
 #if HAVE_DIRENT_H
 #include <dirent.h>
 #endif
+#include <stdatomic.h>
 #include <ck_pr.h>
 #include <ck_rwlock.h>
 #include <ck_fifo.h>
@@ -146,9 +147,15 @@ MTEV_HOOK_IMPL(mtev_log_line,
                (closure,ls,whence,timebuf,timebuflen,debugbuf,debugbuflen,buffer,len))
 
 
-static int _mtev_log_siglvl = 0;
-void mtev_log_enter_sighandler(void) { _mtev_log_siglvl++; }
-void mtev_log_leave_sighandler(void) { _mtev_log_siglvl--; }
+static __thread int _mtev_log_siglvl = 0;
+void mtev_log_enter_sighandler(void) {
+  _mtev_log_siglvl++;
+  atomic_signal_fence(memory_order_release);
+}
+void mtev_log_leave_sighandler(void) {
+  _mtev_log_siglvl++;
+  atomic_signal_fence(memory_order_release);
+}
 
 #define SUPPORTS_ASYNC(ls) ((ls) && (ls)->ops && (ls)->ops->supports_async)
 
@@ -2427,6 +2434,7 @@ struct thr_buff {
   unsigned char *buffer;
   size_t buffer_size;
   size_t buffer_used;
+  size_t mapped;
   struct thr_buff_overflow *alist;
 };
 
@@ -2460,11 +2468,19 @@ static void thr_buff_free(void *v) {
 static __thread struct thr_buff *my_thr_buff;
 static int my_thr_buff_key_init = 0;
 static pthread_key_t my_thr_buff_key;
-static unsigned char _sigbuff[32*1024];
-static struct thr_buff sigbuff = { .buffer = _sigbuff, .buffer_size = sizeof(_sigbuff) };
+#define SIGBUFSIZE (32*1024)
+static __thread struct thr_buff sigbuff = { .buffer = NULL, .buffer_size = 0 };
 
 static void thr_buff_reset(struct thr_buff *b) {
-  if(b == &sigbuff) return;
+  if(b == &sigbuff) {
+    if(sigbuff.mapped) {
+      munmap(sigbuff.buffer, sigbuff.mapped);
+      sigbuff.buffer = NULL;
+      sigbuff.buffer_size = 0;
+      sigbuff.mapped = 0;
+    }
+    return;
+  }
   b->buffer_used = 0;
   size_t extra = 0;
   while(b->alist) {
@@ -2489,7 +2505,18 @@ static void thr_buff_reset(struct thr_buff *b) {
 
 static struct thr_buff *local_thr_buff_get(void) {
   /* If we're in a signal handler, no TLS and no allocations */
-  if(_mtev_log_siglvl != 0 || !my_thr_buff_key_init) return &sigbuff;
+  if(_mtev_log_siglvl != 0 || !my_thr_buff_key_init) {
+    if(sigbuff.buffer == NULL) {
+      sigbuff.buffer = mmap(NULL, SIGBUFSIZE, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
+      if(sigbuff.buffer == MAP_FAILED) {
+        sigbuff.buffer = NULL;
+      } else {
+        sigbuff.buffer_size = SIGBUFSIZE;
+        sigbuff.mapped = SIGBUFSIZE;
+      }
+    }
+    return &sigbuff;
+  }
 
   if(!my_thr_buff) {
     my_thr_buff = pthread_getspecific(my_thr_buff_key);
