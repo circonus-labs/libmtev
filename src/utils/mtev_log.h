@@ -142,81 +142,418 @@ extern mtev_log_stream_t mtev_error_stacktrace;
 
 #define N_L_S_ON(ls) ((ls != NULL) && (*((unsigned *)ls) & MTEV_LOG_STREAM_ENABLED) && mtev_log_has_material_output(ls))
 
+/*! \fn mtev_boolean mtev_log_has_material_output(mtev_log_stream_t ls)
+    \brief Determine if writing to a specific stream would materially go anywhere.
+    \param ls a log stream
+    \return `mtev_true` if writing would materialize.
+ */
 API_EXPORT(mtev_boolean) mtev_log_has_material_output(mtev_log_stream_t ls);
+
+/*! \fn void mtev_log_enter_sighandler(void)
+    \brief Instruct the logging system that the current thread is in a signal handler.
+ */
 API_EXPORT(void) mtev_log_enter_sighandler(void);
+
+/*! \fn void mtev_log_leave_sighandler(void)
+    \brief Instruct the logging system that the current thread has left a signal handler.
+ */
 API_EXPORT(void) mtev_log_leave_sighandler(void);
 API_EXPORT(int) mtev_log_global_enabled(void);
+
+/*! \fn void mtev_log_init(int debug_on)
+    \brief Instruct the logging system that the current thread has left a signal handler.
+    \param debug_on if non-zero the `mtev_debug` log stream will be enabled.
+ */
 API_EXPORT(void) mtev_log_init(int debug_on);
+
+/*! \fn mtev_boolean mtev_log_final_resolve(void)
+    \brief Instruct the logging system to rebuild its dependency graph with new information.
+
+    This function is used to rebuild log streams that use logops that may have not been loaded
+    yet.  It is called automatically after the `mtev_dso` system loads a module.
+ */
 API_EXPORT(mtev_boolean) mtev_log_final_resolve(void);
+
+/*! \fn int mtev_log_go_asynch(void)
+    \brief Instruct the logging system to use asynchronous logging for higher peroformance.
+    \return 0 on success, -1 on failure.
+
+    The `mtev_main` helpers system automatically calls this.
+*/
 API_EXPORT(int) mtev_log_go_asynch(void);
+
+/*! \fn int mtev_log_go_synch(void)
+    \brief Instruct the logging system to use synchronous logging.
+    \return 0 on success, -1 on failure.
+
+    This can be particularly useful when attempting debug a system.
+*/
 API_EXPORT(int) mtev_log_go_synch(void);
+
+/*! \fn int mtev_log_reopen_all(void)
+    \brief Instruct the logging system to reopen all logs (if applicable).
+    \return 0 onsuccess, -1 on failure.
+*/
 API_EXPORT(int) mtev_log_reopen_all(void);
+
+/*! \fn int mtev_log_reopen_type(const char *type)
+    \brief Instruct the logging system to reopen all logs of a specific type.
+    \param type a type matching a logops name.
+    \return 0 onsuccess, -1 on failure.
+*/
 API_EXPORT(int) mtev_log_reopen_type(const char *type);
+
+/*! \fn void mtev_register_logops(const char *type, logops_t *ops)
+    \brief Register a new set of named logging operations.
+    \param type a type naming this type of logging
+    \param ops a structure with callbacks to drive logging operations.
+
+    This operation will not replace an existing logops of the same name.
+*/
 API_EXPORT(void) mtev_register_logops(const char *name, logops_t *ops);
+
+/*! \fn void * mtev_log_stream_get_ctx(mtev_log_stream_t ls)
+    \brief Fetch the custom context for a log stream.
+    \param ls a log stream
+    \return a pointer to the context (set via `mtev_log_stream_set_ctx`)
+
+    This is used by logops implementors to manage context.
+*/
 API_EXPORT(void *) mtev_log_stream_get_ctx(mtev_log_stream_t);
+
+/*! \fn void mtev_log_stream_get_ctx(mtev_log_stream_t ls, void *ctx)
+    \brief Set the custom context for a log stream.
+    \param ls a log stream
+    \param ctx a user-supplied context.
+
+    This is used by logops implementors to manage context.
+*/
 API_EXPORT(void) mtev_log_stream_set_ctx(mtev_log_stream_t, void *);
-API_EXPORT(int) mtev_log_stream_get_dedup_s(mtev_log_stream_t) __attribute__((deprecated));;
-API_EXPORT(int) mtev_log_stream_set_dedup_s(mtev_log_stream_t, int) __attribute__((deprecated));;
+
+
+API_EXPORT(int) mtev_log_stream_get_dedup_s(mtev_log_stream_t) __attribute__((deprecated));
+API_EXPORT(int) mtev_log_stream_set_dedup_s(mtev_log_stream_t, int) __attribute__((deprecated));
+
+/*! \fn int mtev_log_stream_get_flags(mtev_log_stream_t ls)
+    \brief Get the flags set on a particular log stream.
+    \param ls a log stream
+    \return The bitset of flags.
+*/
 API_EXPORT(int) mtev_log_stream_get_flags(mtev_log_stream_t);
+
+/*! \fn int mtev_log_stream_set_flags(mtev_log_stream_t ls, int flags)
+    \brief Get the flags set on a particular log stream.
+    \param ls a log stream
+    \param flags a new set of replacement flags.
+    \return The bitset of flags that were replaced.
+*/
 API_EXPORT(int) mtev_log_stream_set_flags(mtev_log_stream_t, int);
+
+/*! \fn mtev_boolean mtev_log_stream_set_format(mtev_log_stream_t ls, mtev_log_format format)
+    \brief Set the format on a particular log stream.
+    \param ls a log stream
+    \param format a format identitier
+    \return `mtev_true` if successful
+
+    You cannot set a format on a log stream without logops.
+*/
 API_EXPORT(mtev_boolean) mtev_log_stream_set_format(mtev_log_stream_t, mtev_log_format_t);
+
+/*! \fn const char * mtev_log_stream_get_type(mtev_log_stream_t ls)
+    \brief Get the type (name of logops) from a log stream
+    \param ls a log stream
+    \return The name of the logops, NULL if none
+*/
 API_EXPORT(const char *) mtev_log_stream_get_type(mtev_log_stream_t);
+
+/*! \fn const char * mtev_log_stream_get_name(mtev_log_stream_t ls)
+    \brief Get the name of a log stream
+    \param ls a log stream
+    \return The name
+*/
 API_EXPORT(const char *) mtev_log_stream_get_name(mtev_log_stream_t);
+
+/*! \fn const char * mtev_log_stream_get_path(mtev_log_stream_t ls)
+    \brief Get the path from a log stream
+    \param ls a log stream
+    \return The path, NULL if none
+*/
 API_EXPORT(const char *) mtev_log_stream_get_path(mtev_log_stream_t);
 
+/*! \fn mtev_log_stream_t mtev_log_stream_new(const char *name, const char *type, const char *path, void *ctx, mtev_hash_table *options)
+    \brief Create a new log stream of a specific type.
+    \param name a name for the log stream
+    \param type a type of logops
+    \param path a path appropriate for the selected logops
+    \param ctx a context for the log stream's selected logops
+    \param options a table of options attached to the log stream
+    \return a new log stream, NULL on error
+
+    This will replace a log stream of the same name should one exist.
+*/
 API_EXPORT(mtev_log_stream_t)
   mtev_log_stream_new(const char *, const char *, const char *,
                       void *, mtev_hash_table *);
+
+/*! \fn mtev_log_stream_t mtev_log_stream_new_on_fd(const char *name, int fd, mtev_hash_table *options)
+    \brief Create a new log stream using appropriate logops attached to output to a file descriptor.
+    \param name a name for the log stream
+    \param fd the file descriptor for output
+    \param options a table of options attached to the log stream
+    \return a new log stream, NULL on error
+
+    This will replace a log stream of the same name should one exist.
+*/
 API_EXPORT(mtev_log_stream_t)
   mtev_log_stream_new_on_fd(const char *, int, mtev_hash_table *);
+
+/*! \fn mtev_log_stream_t mtev_log_stream_new_on_file(const char *path, mtev_hash_table *options)
+    \brief Create a new file-based log stream.
+    \param path the path to the file (also used as the log stream's name)
+    \param options a table of options attached to the log stream
+    \return a new log stream, NULL on error
+*/
 API_EXPORT(mtev_log_stream_t)
   mtev_log_stream_new_on_file(const char *, mtev_hash_table *);
+
+/*! \fn mtev_log_stream_t mtev_log_speculate(int nlogs, int nbytes)
+    \brief Create a new speculative logging buffer.
+    \param nlogs store at most nlogs log lines
+    \param nbytes store at most nbytes bytes.
+    \return a new log stream
+*/
 API_EXPORT(mtev_log_stream_t) mtev_log_speculate(int nlogs, int nbytes);
+/*! \fn void mtev_log_speculate_finish(mtev_log_stream_t ls, mtev_log_stream_t speculation)
+    \brief Finish speculation on a speculative log stream
+    \param ls a log stream to which you wish to commit the speculation, `MTEV_LOG_SPECULATE_ROLLBACK` to discard
+    \param speculation a speculative log stream created with `mtev_log_speculate`
+*/
 API_EXPORT(void)
   mtev_log_speculate_finish(mtev_log_stream_t ls, mtev_log_stream_t speculation);
 
+/*! \fn mtev_boolean mtev_log_stream_exists(const char *name)
+    \brief Check the existence of a log stream in the logging system.
+    \param name a name of a log stream, possibly
+    \return `mtev_true` if a log stream of this name is configured
+*/
 API_EXPORT(mtev_boolean) mtev_log_stream_exists(const char *);
+
+/*! \fn mtev_log_stream_t mtev_log_stream_find(const char *name)
+    \brief Find a log stream in the logging system
+    \param name a name of a log stream
+    \return a log stream, creating a virtual one if no such name already exists.
+
+    Log streams that are implicitly created will be enabled by defualt and outlet to
+    a log stream above it in its slash-delimited heirarchy.  For example: `debug/foo/bar`
+    will be implicitly created to outlet to `debug/foo` which will be implicitly created
+    to outlet to `debug`.  If it is a new top-level stream is implicitly created, it is
+    enabled, but will have no outlets and thus be immaterial until connected.
+*/
 API_EXPORT(mtev_log_stream_t) mtev_log_stream_find(const char *);
+
+/*! \fn mtev_log_stream mtev_log_stream_findf(const char *fmt, ...)
+    \brief Find a log stream with printf(3) style.
+    \param fmt a printf-style format string with appropriate trailing arguments
+    \return a log stream
+
+    This formats the stream and calls `mtev_log_string_find`.
+*/
 API_EXPORT(mtev_log_stream_t) mtev_log_stream_findf(const char *fmt, ...);
+
+/*! \fn void mtev_log_stream_remove(const char *name)
+    \brief Remove a log stream from the logging system.
+    \param name a name of a log stream to remove
+*/
 API_EXPORT(void) mtev_log_stream_remove(const char *name);
+
+/*! \fn void mtev_log_stream_add_stream(mtev_log_stream_t ls, mtev_log_stream_t outlet)
+    \brief Connect a log stream to another log stream.
+    \param ls a log stream whose output should be sent to `outlet`
+    \param outlet a log stream
+*/
 API_EXPORT(void) mtev_log_stream_add_stream(mtev_log_stream_t ls,
                                             mtev_log_stream_t outlet);
+
+/*! \fn mtev_boolean mtev_log_stream_add_stream_filtered(mtev_log_stream_t ls, mtev_log_stream_t outlet, const char *filter)
+    \brief Connect a log stream to another log stream with a filter.
+    \param ls a log stream whose output should be sent to `outlet`
+    \param outlet a log stream
+    \param filter an expression parsable by `mtev_logic`
+    \return `mtev_true` if the log streams could be connected with the give filter.
+*/
 API_EXPORT(mtev_boolean)
   mtev_log_stream_add_stream_filtered(mtev_log_stream_t ls,
                                       mtev_log_stream_t outlet,
                                       const char *filter);
+
+/*! \fn void mtev_log_stream_removeall_streams(mtev_log_stream_t ls)
+    \brief Remove all outlets from a log stream
+    \param ls a log stream
+*/
 API_EXPORT(void) mtev_log_stream_removeall_streams(mtev_log_stream_t ls);
+
+/*! \fn mtev_log_stream_t mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name)
+    \brief Disconnect a specific outlet by name from a log stream
+    \param ls a log stream from which to attempt removing an outlet
+    \param name the name of the log stream that should no longer be in the outlet list
+    \return a log stream that was disconnected, NULL if no log stream outlet was disconnected
+*/
 API_EXPORT(mtev_log_stream_t)
   mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name);
+
+/*! \fn void mtev_log_stream_reopen(mtev_log_stream_t ls)
+    \brief Reopen a log stream
+    \param ls a log stream to reopen
+*/
 API_EXPORT(void) mtev_log_stream_reopen(mtev_log_stream_t ls);
+
+/*! \fn int mtev_log_stream_cull(mtev_log_stream_t ls, int age, ssize_t bytes)
+    \brief Cull old and/or excessive log contents
+    \param ls a log stream to cull
+    \param age the maximum age in seconds to retain, -1 skips age assessment
+    \param bytes the maxiumum bytes to retain, -1 skips size assessment
+    \return -1 on error, positive if culling occurred, 0 if no action was taken
+
+    Only certain logops support culling, if the logops do not support it -1 is usually returned.
+*/
 API_EXPORT(int) mtev_log_stream_cull(mtev_log_stream_t ls,
                                      int age, ssize_t bytes);
-API_EXPORT(void) mtev_log_dedup_flush(const struct timeval *now);
-API_EXPORT(void) mtev_log_dedup_init(void);
+
+API_EXPORT(void) mtev_log_dedup_flush(const struct timeval *now) __attribute__((deprecated));
+API_EXPORT(void) mtev_log_dedup_init(void) __attribute__((deprecated));
 
 #define MTEV_LOG_RENAME_AUTOTIME ((const char *)-1)
 
+/*! \fn int mtev_log_stream_rename(mtev_log_stream_t ls, const char *path)
+    \brief Rename a log stream's target (if supported)
+    \param ls a log stream
+    \param path a new path name, `MTEV_LOG_RENAME_AUTOTIME` to automatically name it with the current timestamp (required for culling by age)
+    \return 0 on success, -1 on failure.
+
+    If called manually, a call to `mtev_log_stream_reopen` should follow.
+*/
 API_EXPORT(int) mtev_log_stream_rename(mtev_log_stream_t ls, const char *);
+
+/*! \fn void mtev_log_stream_close(mtev_log_stream_t ls)
+    \brief Close a log stream
+    \param ls a log stream
+*/
 API_EXPORT(void) mtev_log_stream_close(mtev_log_stream_t ls);
+
+/*! \fn size_t mtev_log_stream_size(mtev_log_stream_t ls)
+    \brief Determine the space occupied by a log stream
+    \param ls a log stream
+    \return A size in bytes, if the logops of the given stream supports size assessment, 0 otherwise.
+*/
 API_EXPORT(size_t) mtev_log_stream_size(mtev_log_stream_t ls);
+
+/*! \fn size_t mtev_log_stream_written(mtev_log_stream_t ls)
+    \brief Report the number of bytes written to a log stream
+    \param ls a log stream
+    \return A size in bytes since the application started.
+*/
 API_EXPORT(size_t) mtev_log_stream_written(mtev_log_stream_t ls);
+
+/*! \fn mtev_boolean mtev_log_stream_stats_enable(mtev_log_stream_t ls)
+    \brief Request the a log stream register statistics with the mtev_stats system.
+    \param ls a log stream
+    \return `mtev_true` is successfully registered with the stats system.
+*/
 API_EXPORT(mtev_boolean) mtev_log_stream_stats_enable(mtev_log_stream_t ls);
+
+/*! \fn const char * mtev_log_stream_get_property(mtev_log_stream_t ls, const char *key)
+    \brief Retrieve configuration property values from a log stream.
+    \param ls a log stream
+    \param key the key to look up in the log stream's options
+    \return A value associated with the provided key, NULL if not found.
+*/
 API_EXPORT(const char *) mtev_log_stream_get_property(mtev_log_stream_t ls,
                                                       const char *);
+
+/*! \fn void mtev_log_stream_set_property(mtev_log_stream_t ls, const char *key, const char *value)
+    \brief Set or replace a key-value propoerty on a log stream
+    \param ls a log stream
+    \param key a key
+    \param value a value, NULL is allowed.
+*/
 API_EXPORT(void) mtev_log_stream_set_property(mtev_log_stream_t ls,
                                               const char *, const char *);
+
+/*! \fn void mtev_log_stream_free(mtev_log_stream_t ls)
+    \brief Free the in-memory resources related to a log stream
+    \param ls a log stream
+*/
 API_EXPORT(void) mtev_log_stream_free(mtev_log_stream_t ls);
+
+/*! \fn int mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *, const char *file, int line, mtev_log_kv_t **kvpairs, const char *format, va_list arg)
+    \brief Log to a log stream (metadata, va_list)
+    \param ls a log stream
+    \param file a source file name
+    \param line a source file line number
+    \param kvpairs a list of key-value metadata
+    \param format a printf-style format string
+    \param arg a varargs list
+    \return The number of bytes written (or approximation)
+
+    See mtev_ex_log.
+ */
 API_EXPORT(int) mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *,
                           const char *file, int line,
                           mtev_log_kv_t **,
                           const char *format, va_list arg);
+
+/*! \fn int mtev_ex_log(mtev_log_stream_t ls, const struct timeval *, const char *file, int line, mtev_log_kv_t **kvpairs, const char *format, ...)
+    \brief Log to a log stream (metadata, va_list)
+    \param ls a log stream
+    \param file a source file name
+    \param line a source file line number
+    \param kvpairs a list of key-value metadata
+    \param format a printf-style format string
+    \param ... printf arguments
+    \return The number of bytes written (or approximation)
+
+    Thie function (used by the mtevL, mtevLT, mtevEL, mtevELT macros) is responsible for logging.
+    A variery of metadata fields are created internally including timestamp, threadname, threadid,
+    facility (log name), file, and line.  These metadata fields are extended with those passed in
+    as `kvpairs`.  These KV pairs should be created with the `MLKV, MLKV_NUM, MLKV_STR, MLKV_END`
+    macros.  The message is formatted, any filtering is applied and then the resulting payload is
+    pushed through the directed acyclic graph of log streams.  See `mtevEL` for examples.
+ */
 API_EXPORT(int) mtev_ex_log(mtev_log_stream_t ls, const struct timeval *,
                           const char *file, int line,
                           mtev_log_kv_t **,
-                          const char *format, ...);
+                          const char *format, ...)
+#ifdef __GNUC__
+  __attribute__ ((format (printf, 6, 7)))
+#endif
+  ;
+
+/*! \fn int mtev_vlog(mtev_log_stream_t ls, const struct timeval *, const char *file, int line, const char *format, ...)
+    \brief Log to a log stream (metadata, va_list)
+    \param ls a log stream
+    \param file a source file name
+    \param line a source file line number
+    \param format a printf-style format string
+    \param arg a varargs list
+    \return The number of bytes written (or approximation)
+
+    See mtev_ex_log.
+ */
 API_EXPORT(int) mtev_vlog(mtev_log_stream_t ls, const struct timeval *,
                           const char *file, int line,
                           const char *format, va_list arg);
+
+/*! \fn int mtev_log(mtev_log_stream_t ls, const struct timeval *, const char *file, int line, const char *format, ...)
+    \brief Log to a log stream (metadata, va_list)
+    \param ls a log stream
+    \param file a source file name
+    \param line a source file line number
+    \param format a printf-style format string
+    \param ... printf arguments
+    \return The number of bytes written (or approximation)
+
+    See mtev_ex_log.
+ */
 API_EXPORT(int) mtev_log(mtev_log_stream_t ls, const struct timeval *,
                          const char *file, int line,
                          const char *format, ...)
@@ -225,56 +562,139 @@ API_EXPORT(int) mtev_log(mtev_log_stream_t ls, const struct timeval *,
 #endif
   ;
 
-/* fills logger with up to nsize loggers.
- * If there are more loggers thatn nsize, -total is returned.
- * Otherwise, the number loggers is returned.
- */
+/*! \fn int mtev_log_list(mtev_log_stream_t *loggers, int nsize)
+    \brief Retrieve a list of log streams
+    \param loggers an array of nsize log streams
+    \param nsize the size of the `loggers` array
+    \return The number of log streams placed in the loggers array.  If there was insufficient space, the number of elements required is made negative and returned.
+*/
 API_EXPORT(int) mtev_log_list(mtev_log_stream_t *loggers, int nsize);
 
+/*! \fn mtev_json_object * mtev_log_stream_to_json(mtev_log_stream_t ls)
+    \brief Get a JSON description of a log stream
+    \param ls a log stream
+    \return A mtev_json_object describing the log stream
+*/
 API_EXPORT(mtev_json_object *)
   mtev_log_stream_to_json(mtev_log_stream_t ls);
 
+/*! \fn mtev_LogLine_fb_t mtev_log_flatbuffer_from_buffer(void *buff, size_t buff_len)
+    \brief Given a flatbuffer serializatio of a log line, convert it to the flatcc type.
+    \param buff a pointer to memory containing the flatbuffer serialization.
+    \param buff_len the length of the buffer
+    \return a flatcc flatbuffer type
+*/
 API_EXPORT(mtev_LogLine_fb_t)
   mtev_log_flatbuffer_from_buffer(void *buff, size_t buff_len);
 
+/*! \fn void mtev_log_flatbuffer_to_json(mtev_LogLine_fb_t ll, mtev_dyn_buffer_t *tgt)
+    \brief Convert a flatcc typed log line into a textual JSON serialization
+    \param ll a flatcc flatbuffer type
+    \param tgt a target buffer to write the JSON serialization to
+*/
 API_EXPORT(void)
   mtev_log_flatbuffer_to_json(mtev_LogLine_fb_t ll, mtev_dyn_buffer_t *tgt);
 
-/* finds log_lines most recent log lines and calls f with their
- * sequence number and content.  If f returns non-zero, the iteration
- * is aborted early.
- */
+/*! \fn int mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines, int (*cb)(uint64_t logid, const struct timeval *whence, const char *text, size_t text_len, void *closure), void *closure)
+    \brief Iterate over a fixed set of "memory" log lines invoking a callback for each.
+    \param ls a log stream (of type "memory")
+    \param log_lines the number of most recent log lines to traverse
+    \param cb a callback to invoke for each log line found
+    \param closure a user-supplied closure to passed into the callback
+    \return The number of log lines traversed, -1 on error.
+*/
 API_EXPORT(int)
   mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines,
                         int (*f)(uint64_t, const struct timeval *,
                                  const char *, size_t, void *),
                         void *closure);
 
+/*! \fn int mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich, int (*cb)(uint64_t logid, const struct timeval *whnce, const char *text, size_t text_len, void *closure), void *closure)
+    \brief Iterate over a fixed set of "memory" log lines invoking a callback for each.
+    \param ls a log stream (of type "memory")
+    \param afterwhich the the log id after which traversal should start (log id is the first argument to the callback)
+    \param cb a callback to invoke for each log line found
+    \param closure a user-supplied closure to passed into the callback
+    \return The number of log lines traversed, -1 on error.
+*/
 API_EXPORT(int)
   mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich,
                               int (*f)(uint64_t, const struct timeval *,
                                       const char *, size_t, void *),
                               void *closure);
 
+/*! \fn mtev_log_stream_pipe_t * mtev_log_stream_pipe_new(mtev_log_stream_t ls)
+    \brief Create a mtev_log_stream_pipe_t suitable for cross-process logging
+    \param ls a log stream (target)
+    \return a new log stream pipe
+*/
 API_EXPORT(mtev_log_stream_pipe_t *)
   mtev_log_stream_pipe_new(mtev_log_stream_t);
+
+/*! \fn void mtev_log_stream_pipe_close(mtev_log_stream_pipe_t *lp)
+    \brief Close a log stream pipe that will not be used.
+    \param lp a log stream pipe
+*/
 API_EXPORT(void)
   mtev_log_stream_pipe_close(mtev_log_stream_pipe_t *);
+/*! \fn int mtev_log_stream_pipe_dup2(mtev_log_stream_pipe_t *lp, int fd)
+    \brief Relocate the child end of the log stream pipe to a specific file descriptor
+    \param lp a log stream pipe
+    \param fd a target file descriptor (atomically closing it and replacing it)
+    \return The return of the internal `dup2(2)` system call.
+*/
 API_EXPORT(int)
   mtev_log_stream_pipe_dup2(mtev_log_stream_pipe_t *, int fd);
+
+/*! \fn void mtev_log_stream_pipe_post_fork_parent(mtev_log_stream_pipe_t *lp)
+    \brief Prepare a log stream pipe for use in the parent process, post-fork
+    \param lp a log stream pipe
+*/
 API_EXPORT(void)
   mtev_log_stream_pipe_post_fork_parent(mtev_log_stream_pipe_t *lp);
+
+/*! \fn void mtev_log_stream_pipe_post_fork_child(mtev_log_stream_pipe_t *lp)
+    \brief Prepare a log stream pipe for use in the child process, post-fork
+    \param lp a log stream pipe
+*/
 API_EXPORT(void)
   mtev_log_stream_pipe_post_fork_child(mtev_log_stream_pipe_t *lp);
 
+/*! \fn void mtev_log_init_globals(void)
+    \brief Initialize the logging system.
+*/
 API_EXPORT(void)
   mtev_log_init_globals(void);
 
+/*! \fn void mtev_log_hexdump(mtev_log_stream_t ls, const void * addr, const size_t len)
+    \brief Log a hex dump of memory
+    \param ls a log stream
+    \param addr a memory address
+    \param len a size in bytes
+
+    This calls `mtev_log_hexdump_ex()` with a width of 8.
+*/
 API_EXPORT(void)
   mtev_log_hexdump(mtev_log_stream_t ls, const void * addr, const size_t len);
+
+/*! \fn void mtev_log_hexdump(mtev_log_stream_t ls, const void * addr, const size_t len, uint8_t width)
+    \brief Log a hex dump of memory
+    \param ls a log stream
+    \param addr a memory address
+    \param len a size in bytes
+    \param width the number of bytes to show per line.
+*/
 API_EXPORT(void)
   mtev_log_hexdump_ex(mtev_log_stream_t ls, const void * addr, const size_t len, uint8_t width);
 
+/*! \fn mtevELT(mtev_log_stream_t ls, const struct timeval *now, mtev_log_kv_t *meta, const char *fmt, ...)
+    \brief MACRO write to a log stream
+    \param ls a log stream
+    \param now a timeval representing the current time
+    \param meta extra metadata
+    \param fmt a printf-style format string
+    \param ... printf arguments
+*/
 #define mtevELT(ls, t, ex, args...) do { \
   if((ls)) { \
     bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
@@ -289,6 +709,20 @@ API_EXPORT(void)
     } \
   } \
 } while(0)
+
+/*! \fn mtevEL(mtev_log_stream_t ls, mtev_log_kv_t *meta, const char *fmt, ...)
+    \brief MACRO write to a log stream
+    \param ls a log stream
+    \param meta extra metadata
+    \param fmt a printf-style format string
+    \param ... printf arguments
+
+    This calls mtevELT with NULL as the time argument such that the current time is determined
+    in the logging system.  You should almost always use these short-form macros as they will
+    make efforts to skip evaluation of the arguments if the logging would not materialize anywhere.
+
+    Example: `mtevEL(mtev_error, MLKV{ MLKV_NUM("answer", 42"), MLKV_STR("question", "what?"), MLKV_END }, "hello %s\n", name);`
+*/
 #define mtevEL(ls, ex, args...) do { \
   if((ls)) { \
     bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
@@ -303,6 +737,14 @@ API_EXPORT(void)
     } \
   } \
 } while(0)
+
+/*! \fn mtevLT(mtev_log_stream_t ls, const struct timeval *now, const char *fmt, ...)
+    \brief MACRO write to a log stream
+    \param ls a log stream
+    \param now a timeval representing the current time
+    \param fmt a printf-style format string
+    \param ... printf arguments
+*/
 #define mtevLT(ls, t, args...) do { \
   if((ls)) { \
     bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
@@ -317,6 +759,13 @@ API_EXPORT(void)
     } \
   } \
 } while(0)
+
+/*! \fn mtevL(mtev_log_stream_t ls, const char *fmt, ...)
+    \brief MACRO write to a log stream
+    \param ls a log stream
+    \param fmt a printf-style format string
+    \param ... printf arguments
+*/
 #define mtevL(ls, args...) do { \
   if((ls)) { \
     bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls)); \
@@ -331,6 +780,12 @@ API_EXPORT(void)
     } \
   } \
 } while(0)
+
+/*! \fn mtevFatal(mtev_log_stream_t ls, const char *fmt, ...)
+    \brief MACRO to abort after logging.
+
+    This function will force the logging system into sychronous behavior, log with mtevL, and abort.
+ */
 #define mtevFatal(ls,args...) do {\
   mtev_log_go_synch(); \
   mtevL((ls), "[FATAL] " args); \
@@ -338,6 +793,11 @@ API_EXPORT(void)
 } while(0)
 
 /* inline prototype here so we don't have circular includes */
+/*! \fn mtevTerminate(mtev_log_stream_t ls, const char *fmt, ...)
+    \brief MACRO to abort after logging.
+
+    This function will force the logging system into sychronous behavior, log with mtevL, and exit(2).
+ */
 #define mtevTerminate(ls,args...) do {\
   mtev_log_go_synch(); \
   mtevL((ls), "[TERMINATE] " args); \
@@ -352,6 +812,12 @@ extern uint32_t mtev_watchdog_number_of_starts(void);
   mtevTerminate(ls,args); \
 } while(0)
 
+/*! \fn mtevAssert(condition)
+    \brief MACRO that calls mtevFatal if the condition evaluates to false.
+*/
+/*! \fn mtevEvalAssert(condition)
+    \brief MACRO that calls mtevFatal if the condition evaluates to false.
+*/
 #ifdef NDEBUG
 #error "need to audit mtevAssert usage"
 #define mtevAssert(condition) do {} while(0)

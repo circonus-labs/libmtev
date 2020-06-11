@@ -3280,6 +3280,47 @@ a looping thread, this call is used.</p>
 </ul>
 <p>If the function returns -1 and <code>errno</code> is <code>EAGAIN</code>, the <code>*mask</code> reflects the
 necessary activity to make progress.</p>
+<h4 id="mtevexlog">mtev_ex_log</h4>
+<blockquote>
+<p>Log to a log stream (metadata, va_list)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_ex_log</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *file, <span class="hljs-keyword">int</span> line,
+            mtev_log_kv_t **kvpairs, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, ...)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>file</code> a source file name</li>
+<li><code>line</code> a source file line number</li>
+<li><code>kvpairs</code> a list of key-value metadata</li>
+<li><code>format</code> a printf-style format string</li>
+<li><code>...</code> printf arguments</li>
+<li><strong>RETURN</strong> The number of bytes written (or approximation)</li>
+</ul>
+<p>Thie function (used by the mtevL, mtevLT, mtevEL, mtevELT macros) is responsible for logging.
+A variery of metadata fields are created internally including timestamp, threadname, threadid,
+facility (log name), file, and line.  These metadata fields are extended with those passed in
+as <code>kvpairs</code>.  These KV pairs should be created with the <code>MLKV, MLKV_NUM, MLKV_STR, MLKV_END</code>
+macros.  The message is formatted, any filtering is applied and then the resulting payload is
+pushed through the directed acyclic graph of log streams.  See <code>mtevEL</code> for examples.</p>
+<h4 id="mtevexvlog">mtev_ex_vlog</h4>
+<blockquote>
+<p>Log to a log stream (metadata, va_list)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_ex_vlog</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *file, <span class="hljs-keyword">int</span> line,
+             mtev_log_kv_t **kvpairs, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, va_list arg)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>file</code> a source file name</li>
+<li><code>line</code> a source file line number</li>
+<li><code>kvpairs</code> a list of key-value metadata</li>
+<li><code>format</code> a printf-style format string</li>
+<li><code>arg</code> a varargs list</li>
+<li><strong>RETURN</strong> The number of bytes written (or approximation)</li>
+</ul>
+<p>See mtev_ex_log.</p>
 <h3 id="f">F</h3>
 <h4 id="mtevflowregulatorack">mtev_flow_regulator_ack</h4>
 <blockquote>
@@ -4179,6 +4220,617 @@ mtev_lockfile_acquire_owner(<span class="hljs-keyword">const</span> <span class=
 <li><code>fd</code> the file lock to release</li>
 <li><strong>RETURN</strong> -1 on failure, 0 on success</li>
 </ul>
+<h4 id="mtevlog">mtev_log</h4>
+<blockquote>
+<p>Log to a log stream (metadata, va_list)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *file, <span class="hljs-keyword">int</span> line,
+         <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, ...)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>file</code> a source file name</li>
+<li><code>line</code> a source file line number</li>
+<li><code>format</code> a printf-style format string</li>
+<li><code>...</code> printf arguments</li>
+<li><strong>RETURN</strong> The number of bytes written (or approximation)</li>
+</ul>
+<p>See mtev_ex_log.</p>
+<h4 id="mtevlogentersighandler">mtev_log_enter_sighandler</h4>
+<blockquote>
+<p>Instruct the logging system that the current thread is in a signal handler.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_enter_sighandler</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<h4 id="mtevlogfinalresolve">mtev_log_final_resolve</h4>
+<blockquote>
+<p>Instruct the logging system to rebuild its dependency graph with new information.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">mtev_log_final_resolve</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<p>This function is used to rebuild log streams that use logops that may have not been loaded
+yet.  It is called automatically after the <code>mtev_dso</code> system loads a module.</p>
+<h4 id="mtevlogflatbufferfrombuffer">mtev_log_flatbuffer_from_buffer</h4>
+<blockquote>
+<p>Given a flatbuffer serializatio of a log line, convert it to the flatcc type.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_LogLine_fb_t
+<span class="hljs-title">mtev_log_flatbuffer_from_buffer</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *buff, size_t buff_len)</span>
+</span></code></pre>
+<ul>
+<li><code>buff</code> a pointer to memory containing the flatbuffer serialization.</li>
+<li><code>buff_len</code> the length of the buffer</li>
+<li><strong>RETURN</strong> a flatcc flatbuffer type</li>
+</ul>
+<h4 id="mtevlogflatbuffertojson">mtev_log_flatbuffer_to_json</h4>
+<blockquote>
+<p>Convert a flatcc typed log line into a textual JSON serialization</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_flatbuffer_to_json</span><span class="hljs-params">(mtev_LogLine_fb_t ll, mtev_dyn_buffer_t *tgt)</span>
+</span></code></pre>
+<ul>
+<li><code>ll</code> a flatcc flatbuffer type</li>
+<li><code>tgt</code> a target buffer to write the JSON serialization to</li>
+</ul>
+<h4 id="mtevloggoasynch">mtev_log_go_asynch</h4>
+<blockquote>
+<p>Instruct the logging system to use asynchronous logging for higher peroformance.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_go_asynch</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> 0 on success, -1 on failure.</li>
+</ul>
+<p>The <code>mtev_main</code> helpers system automatically calls this.</p>
+<h4 id="mtevloggosynch">mtev_log_go_synch</h4>
+<blockquote>
+<p>Instruct the logging system to use synchronous logging.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_go_synch</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> 0 on success, -1 on failure.</li>
+</ul>
+<p>This can be particularly useful when attempting debug a system.</p>
+<h4 id="mtevloghasmaterialoutput">mtev_log_has_material_output</h4>
+<blockquote>
+<p>Determine if writing to a specific stream would materially go anywhere.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">mtev_log_has_material_output</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><strong>RETURN</strong> <code>mtev_true</code> if writing would materialize.</li>
+</ul>
+<h4 id="mtevloghexdump">mtev_log_hexdump</h4>
+<blockquote>
+<p>Log a hex dump of memory</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_hexdump</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> * addr, <span class="hljs-keyword">const</span> size_t len, uint8_t width)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>addr</code> a memory address</li>
+<li><code>len</code> a size in bytes</li>
+<li><code>width</code> the number of bytes to show per line.</li>
+</ul>
+<h4 id="mtevloginit">mtev_log_init</h4>
+<blockquote>
+<p>Instruct the logging system that the current thread has left a signal handler.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_init</span><span class="hljs-params">(<span class="hljs-keyword">int</span> debug_on)</span>
+</span></code></pre>
+<ul>
+<li><code>debug_on</code> if non-zero the <code>mtev_debug</code> log stream will be enabled.</li>
+</ul>
+<h4 id="mtevloginitglobals">mtev_log_init_globals</h4>
+<blockquote>
+<p>Initialize the logging system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_init_globals</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<h4 id="mtevlogleavesighandler">mtev_log_leave_sighandler</h4>
+<blockquote>
+<p>Instruct the logging system that the current thread has left a signal handler.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_leave_sighandler</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<h4 id="mtevloglist">mtev_log_list</h4>
+<blockquote>
+<p>Retrieve a list of log streams</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_list</span><span class="hljs-params">(mtev_log_stream_t *loggers, <span class="hljs-keyword">int</span> nsize)</span>
+</span></code></pre>
+<ul>
+<li><code>loggers</code> an array of nsize log streams</li>
+<li><code>nsize</code> the size of the <code>loggers</code> array</li>
+<li><strong>RETURN</strong> The number of log streams placed in the loggers array.  If there was insufficient space, the number of elements required is made negative and returned.</li>
+</ul>
+<h4 id="mtevlogmemorylines">mtev_log_memory_lines</h4>
+<blockquote>
+<p>Iterate over a fixed set of &quot;memory&quot; log lines invoking a callback for each.</p>
+</blockquote>
+<pre><code class="lang-c">int
+mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines, int (*cb)(uint64_t logid,
+                      const struct timeval *whence, const char *text, size_t text_len,
+                      void *closure), void *closure)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream (of type &quot;memory&quot;)</li>
+<li><code>log_lines</code> the number of most recent log lines to traverse</li>
+<li><code>cb</code> a callback to invoke for each log line found</li>
+<li><code>closure</code> a user-supplied closure to passed into the callback</li>
+<li><strong>RETURN</strong> The number of log lines traversed, -1 on error.</li>
+</ul>
+<h4 id="mtevlogmemorylinessince">mtev_log_memory_lines_since</h4>
+<blockquote>
+<p>Iterate over a fixed set of &quot;memory&quot; log lines invoking a callback for each.</p>
+</blockquote>
+<pre><code class="lang-c">int
+mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich, int (*cb)(uint64_t logid,
+                            const struct timeval *whnce, const char *text, size_t text_len, void *closure)
+                            void *closure)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream (of type &quot;memory&quot;)</li>
+<li><code>afterwhich</code> the the log id after which traversal should start (log id is the first argument to the callback)</li>
+<li><code>cb</code> a callback to invoke for each log line found</li>
+<li><code>closure</code> a user-supplied closure to passed into the callback</li>
+<li><strong>RETURN</strong> The number of log lines traversed, -1 on error.</li>
+</ul>
+<h4 id="mtevlogreopenall">mtev_log_reopen_all</h4>
+<blockquote>
+<p>Instruct the logging system to reopen all logs (if applicable).</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_reopen_all</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span>
+</span></code></pre>
+<ul>
+<li><strong>RETURN</strong> 0 onsuccess, -1 on failure.</li>
+</ul>
+<h4 id="mtevlogreopentype">mtev_log_reopen_type</h4>
+<blockquote>
+<p>Instruct the logging system to reopen all logs of a specific type.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_reopen_type</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *type)</span>
+</span></code></pre>
+<ul>
+<li><code>type</code> a type matching a logops name.</li>
+<li><strong>RETURN</strong> 0 onsuccess, -1 on failure.</li>
+</ul>
+<h4 id="mtevlogspeculate">mtev_log_speculate</h4>
+<blockquote>
+<p>Create a new speculative logging buffer.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_log_stream_t</span>
+mtev_log_speculate(<span class="hljs-keyword">int</span> nlogs, <span class="hljs-keyword">int</span> nbytes)
+</code></pre>
+<ul>
+<li><code>nlogs</code> store at most nlogs log lines</li>
+<li><code>nbytes</code> store at most nbytes bytes.</li>
+<li><strong>RETURN</strong> a new log stream</li>
+</ul>
+<h4 id="mtevlogspeculatefinish">mtev_log_speculate_finish</h4>
+<blockquote>
+<p>Finish speculation on a speculative log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_speculate_finish</span><span class="hljs-params">(mtev_log_stream_t ls, mtev_log_stream_t speculation)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream to which you wish to commit the speculation, <code>MTEV_LOG_SPECULATE_ROLLBACK</code> to discard</li>
+<li><code>speculation</code> a speculative log stream created with <code>mtev_log_speculate</code></li>
+</ul>
+<h4 id="mtevlogstreamaddstream">mtev_log_stream_add_stream</h4>
+<blockquote>
+<p>Connect a log stream to another log stream.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_add_stream</span><span class="hljs-params">(mtev_log_stream_t ls, mtev_log_stream_t outlet)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream whose output should be sent to <code>outlet</code></li>
+<li><code>outlet</code> a log stream</li>
+</ul>
+<h4 id="mtevlogstreamaddstreamfiltered">mtev_log_stream_add_stream_filtered</h4>
+<blockquote>
+<p>Connect a log stream to another log stream with a filter.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">mtev_log_stream_add_stream_filtered</span><span class="hljs-params">(mtev_log_stream_t ls, mtev_log_stream_t outlet, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *filter)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream whose output should be sent to <code>outlet</code></li>
+<li><code>outlet</code> a log stream</li>
+<li><code>filter</code> an expression parsable by <code>mtev_logic</code></li>
+<li><strong>RETURN</strong> <code>mtev_true</code> if the log streams could be connected with the give filter.</li>
+</ul>
+<h4 id="mtevlogstreamclose">mtev_log_stream_close</h4>
+<blockquote>
+<p>Close a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_close</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+</ul>
+<h4 id="mtevlogstreamcull">mtev_log_stream_cull</h4>
+<blockquote>
+<p>Cull old and/or excessive log contents</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_stream_cull</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">int</span> age, ssize_t bytes)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream to cull</li>
+<li><code>age</code> the maximum age in seconds to retain, -1 skips age assessment</li>
+<li><code>bytes</code> the maxiumum bytes to retain, -1 skips size assessment</li>
+<li><strong>RETURN</strong> -1 on error, positive if culling occurred, 0 if no action was taken</li>
+</ul>
+<p>Only certain logops support culling, if the logops do not support it -1 is usually returned.</p>
+<h4 id="mtevlogstreamexists">mtev_log_stream_exists</h4>
+<blockquote>
+<p>Check the existence of a log stream in the logging system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">mtev_log_stream_exists</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)</span>
+</span></code></pre>
+<ul>
+<li><code>name</code> a name of a log stream, possibly</li>
+<li><strong>RETURN</strong> <code>mtev_true</code> if a log stream of this name is configured</li>
+</ul>
+<h4 id="mtevlogstreamfind">mtev_log_stream_find</h4>
+<blockquote>
+<p>Find a log stream in the logging system</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_log_stream_t</span>
+mtev_log_stream_find(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)
+</code></pre>
+<ul>
+<li><code>name</code> a name of a log stream</li>
+<li><strong>RETURN</strong> a log stream, creating a virtual one if no such name already exists.</li>
+</ul>
+<p>Log streams that are implicitly created will be enabled by defualt and outlet to
+a log stream above it in its slash-delimited heirarchy.  For example: <code>debug/foo/bar</code>
+will be implicitly created to outlet to <code>debug/foo</code> which will be implicitly created
+to outlet to <code>debug</code>.  If it is a new top-level stream is implicitly created, it is
+enabled, but will have no outlets and thus be immaterial until connected.</p>
+<h4 id="mtevlogstreamfindf">mtev_log_stream_findf</h4>
+<blockquote>
+<p>Find a log stream with printf(3) style.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_log_stream
+<span class="hljs-title">mtev_log_stream_findf</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fmt, ...)</span>
+</span></code></pre>
+<ul>
+<li><code>fmt</code> a printf-style format string with appropriate trailing arguments</li>
+<li><strong>RETURN</strong> a log stream</li>
+</ul>
+<p>This formats the stream and calls <code>mtev_log_string_find</code>.</p>
+<h4 id="mtevlogstreamfree">mtev_log_stream_free</h4>
+<blockquote>
+<p>Free the in-memory resources related to a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_free</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+</ul>
+<h4 id="mtevlogstreamgetctx">mtev_log_stream_get_ctx</h4>
+<blockquote>
+<p>Set the custom context for a log stream.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_get_ctx</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">void</span> *ctx)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>ctx</code> a user-supplied context.</li>
+</ul>
+<p>This is used by logops implementors to manage context.</p>
+<h4 id="mtevlogstreamgetflags">mtev_log_stream_get_flags</h4>
+<blockquote>
+<p>Get the flags set on a particular log stream.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_stream_get_flags</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><strong>RETURN</strong> The bitset of flags.</li>
+</ul>
+<h4 id="mtevlogstreamgetname">mtev_log_stream_get_name</h4>
+<blockquote>
+<p>Get the name of a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">mtev_log_stream_get_name</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><strong>RETURN</strong> The name</li>
+</ul>
+<h4 id="mtevlogstreamgetpath">mtev_log_stream_get_path</h4>
+<blockquote>
+<p>Get the path from a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">mtev_log_stream_get_path</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><strong>RETURN</strong> The path, NULL if none</li>
+</ul>
+<h4 id="mtevlogstreamgetproperty">mtev_log_stream_get_property</h4>
+<blockquote>
+<p>Retrieve configuration property values from a log stream.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">mtev_log_stream_get_property</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>key</code> the key to look up in the log stream&apos;s options</li>
+<li><strong>RETURN</strong> A value associated with the provided key, NULL if not found.</li>
+</ul>
+<h4 id="mtevlogstreamgettype">mtev_log_stream_get_type</h4>
+<blockquote>
+<p>Get the type (name of logops) from a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *
+<span class="hljs-title">mtev_log_stream_get_type</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><strong>RETURN</strong> The name of the logops, NULL if none</li>
+</ul>
+<h4 id="mtevlogstreamnew">mtev_log_stream_new</h4>
+<blockquote>
+<p>Create a new log stream of a specific type.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_log_stream_t</span>
+mtev_log_stream_new(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *type, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path, <span class="hljs-keyword">void</span> *ctx
+                    mtev_hash_table *options)
+</code></pre>
+<ul>
+<li><code>name</code> a name for the log stream</li>
+<li><code>type</code> a type of logops</li>
+<li><code>path</code> a path appropriate for the selected logops</li>
+<li><code>ctx</code> a context for the log stream&apos;s selected logops</li>
+<li><code>options</code> a table of options attached to the log stream</li>
+<li><strong>RETURN</strong> a new log stream, NULL on error</li>
+</ul>
+<p>This will replace a log stream of the same name should one exist.</p>
+<h4 id="mtevlogstreamnewonfd">mtev_log_stream_new_on_fd</h4>
+<blockquote>
+<p>Create a new log stream using appropriate logops attached to output to a file descriptor.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_log_stream_t</span>
+mtev_log_stream_new_on_fd(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name, <span class="hljs-keyword">int</span> fd, mtev_hash_table *options)
+</code></pre>
+<ul>
+<li><code>name</code> a name for the log stream</li>
+<li><code>fd</code> the file descriptor for output</li>
+<li><code>options</code> a table of options attached to the log stream</li>
+<li><strong>RETURN</strong> a new log stream, NULL on error</li>
+</ul>
+<p>This will replace a log stream of the same name should one exist.</p>
+<h4 id="mtevlogstreamnewonfile">mtev_log_stream_new_on_file</h4>
+<blockquote>
+<p>Create a new file-based log stream.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_log_stream_t</span>
+mtev_log_stream_new_on_file(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path, mtev_hash_table *options)
+</code></pre>
+<ul>
+<li><code>path</code> the path to the file (also used as the log stream&apos;s name)</li>
+<li><code>options</code> a table of options attached to the log stream</li>
+<li><strong>RETURN</strong> a new log stream, NULL on error</li>
+</ul>
+<h4 id="mtevlogstreampipeclose">mtev_log_stream_pipe_close</h4>
+<blockquote>
+<p>Close a log stream pipe that will not be used.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_pipe_close</span><span class="hljs-params">(mtev_log_stream_pipe_t *lp)</span>
+</span></code></pre>
+<ul>
+<li><code>lp</code> a log stream pipe</li>
+</ul>
+<h4 id="mtevlogstreampipedup2">mtev_log_stream_pipe_dup2</h4>
+<blockquote>
+<p>Relocate the child end of the log stream pipe to a specific file descriptor</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_stream_pipe_dup2</span><span class="hljs-params">(mtev_log_stream_pipe_t *lp, <span class="hljs-keyword">int</span> fd)</span>
+</span></code></pre>
+<ul>
+<li><code>lp</code> a log stream pipe</li>
+<li><code>fd</code> a target file descriptor (atomically closing it and replacing it)</li>
+<li><strong>RETURN</strong> The return of the internal <code>dup2(2)</code> system call.</li>
+</ul>
+<h4 id="mtevlogstreampipenew">mtev_log_stream_pipe_new</h4>
+<blockquote>
+<p>Create a mtev_log_stream_pipe_t suitable for cross-process logging</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_log_stream_pipe_t</span> *
+mtev_log_stream_pipe_new(<span class="hljs-keyword">mtev_log_stream_t</span> ls)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream (target)</li>
+<li><strong>RETURN</strong> a new log stream pipe</li>
+</ul>
+<h4 id="mtevlogstreampipepostforkchild">mtev_log_stream_pipe_post_fork_child</h4>
+<blockquote>
+<p>Prepare a log stream pipe for use in the child process, post-fork</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_pipe_post_fork_child</span><span class="hljs-params">(mtev_log_stream_pipe_t *lp)</span>
+</span></code></pre>
+<ul>
+<li><code>lp</code> a log stream pipe</li>
+</ul>
+<h4 id="mtevlogstreampipepostforkparent">mtev_log_stream_pipe_post_fork_parent</h4>
+<blockquote>
+<p>Prepare a log stream pipe for use in the parent process, post-fork</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_pipe_post_fork_parent</span><span class="hljs-params">(mtev_log_stream_pipe_t *lp)</span>
+</span></code></pre>
+<ul>
+<li><code>lp</code> a log stream pipe</li>
+</ul>
+<h4 id="mtevlogstreamremove">mtev_log_stream_remove</h4>
+<blockquote>
+<p>Remove a log stream from the logging system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_remove</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)</span>
+</span></code></pre>
+<ul>
+<li><code>name</code> a name of a log stream to remove</li>
+</ul>
+<h4 id="mtevlogstreamremovestream">mtev_log_stream_remove_stream</h4>
+<blockquote>
+<p>Disconnect a specific outlet by name from a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">mtev_log_stream_t</span>
+mtev_log_stream_remove_stream(<span class="hljs-keyword">mtev_log_stream_t</span> ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *name)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream from which to attempt removing an outlet</li>
+<li><code>name</code> the name of the log stream that should no longer be in the outlet list</li>
+<li><strong>RETURN</strong> a log stream that was disconnected, NULL if no log stream outlet was disconnected</li>
+</ul>
+<h4 id="mtevlogstreamremoveallstreams">mtev_log_stream_removeall_streams</h4>
+<blockquote>
+<p>Remove all outlets from a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_removeall_streams</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+</ul>
+<h4 id="mtevlogstreamrename">mtev_log_stream_rename</h4>
+<blockquote>
+<p>Rename a log stream&apos;s target (if supported)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_stream_rename</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *path)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>path</code> a new path name, <code>MTEV_LOG_RENAME_AUTOTIME</code> to automatically name it with the current timestamp (required for culling by age)</li>
+<li><strong>RETURN</strong> 0 on success, -1 on failure.</li>
+</ul>
+<p>If called manually, a call to <code>mtev_log_stream_reopen</code> should follow.</p>
+<h4 id="mtevlogstreamreopen">mtev_log_stream_reopen</h4>
+<blockquote>
+<p>Reopen a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_reopen</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream to reopen</li>
+</ul>
+<h4 id="mtevlogstreamsetflags">mtev_log_stream_set_flags</h4>
+<blockquote>
+<p>Get the flags set on a particular log stream.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_log_stream_set_flags</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">int</span> flags)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>flags</code> a new set of replacement flags.</li>
+<li><strong>RETURN</strong> The bitset of flags that were replaced.</li>
+</ul>
+<h4 id="mtevlogstreamsetformat">mtev_log_stream_set_format</h4>
+<blockquote>
+<p>Set the format on a particular log stream.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">mtev_log_stream_set_format</span><span class="hljs-params">(mtev_log_stream_t ls, mtev_log_format format)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>format</code> a format identitier</li>
+<li><strong>RETURN</strong> <code>mtev_true</code> if successful</li>
+</ul>
+<p>You cannot set a format on a log stream without logops.</p>
+<h4 id="mtevlogstreamsetproperty">mtev_log_stream_set_property</h4>
+<blockquote>
+<p>Set or replace a key-value propoerty on a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_log_stream_set_property</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *key, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *value)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>key</code> a key</li>
+<li><code>value</code> a value, NULL is allowed.</li>
+</ul>
+<h4 id="mtevlogstreamsize">mtev_log_stream_size</h4>
+<blockquote>
+<p>Determine the space occupied by a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
+mtev_log_stream_size(<span class="hljs-keyword">mtev_log_stream_t</span> ls)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><strong>RETURN</strong> A size in bytes, if the logops of the given stream supports size assessment, 0 otherwise.</li>
+</ul>
+<h4 id="mtevlogstreamstatsenable">mtev_log_stream_stats_enable</h4>
+<blockquote>
+<p>Request the a log stream register statistics with the mtev_stats system.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
+<span class="hljs-title">mtev_log_stream_stats_enable</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><strong>RETURN</strong> <code>mtev_true</code> is successfully registered with the stats system.</li>
+</ul>
+<h4 id="mtevlogstreamtojson">mtev_log_stream_to_json</h4>
+<blockquote>
+<p>Get a JSON description of a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function">mtev_json_object *
+<span class="hljs-title">mtev_log_stream_to_json</span><span class="hljs-params">(mtev_log_stream_t ls)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><strong>RETURN</strong> A mtev_json_object describing the log stream</li>
+</ul>
+<h4 id="mtevlogstreamwritten">mtev_log_stream_written</h4>
+<blockquote>
+<p>Report the number of bytes written to a log stream</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
+mtev_log_stream_written(<span class="hljs-keyword">mtev_log_stream_t</span> ls)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><strong>RETURN</strong> A size in bytes since the application started.</li>
+</ul>
 <h4 id="mtevlualmcalloc">mtev_lua_lmc_alloc</h4>
 <blockquote>
 <p>Allocated and initialize a <code>lua_module_closure_t</code> for a new runtime.</p>
@@ -4396,6 +5048,85 @@ to simply run this macro prior to each write to the buffer.</p>
 <li><strong>RETURN</strong> Returns 0 on success, -1 on error.</li>
 </ul>
 <p>Creates all directories from / (as needed) to hold a named file.</p>
+<h4 id="mtevassert">mtevAssert</h4>
+<blockquote>
+<p>MACRO that calls mtevFatal if the condition evaluates to false.</p>
+</blockquote>
+<pre><code class="lang-c">mtevAssert(condition)
+</code></pre>
+<h4 id="mtevel">mtevEL</h4>
+<blockquote>
+<p>MACRO write to a log stream</p>
+</blockquote>
+<pre><code class="lang-c">mtevEL(<span class="hljs-keyword">mtev_log_stream_t</span> ls, <span class="hljs-keyword">mtev_log_kv_t</span> *meta, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fmt, ...)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>meta</code> extra metadata</li>
+<li><code>fmt</code> a printf-style format string</li>
+<li><code>...</code> printf arguments</li>
+</ul>
+<p>This calls mtevELT with NULL as the time argument such that the current time is determined
+in the logging system.  You should almost always use these short-form macros as they will
+make efforts to skip evaluation of the arguments if the logging would not materialize anywhere.</p>
+<p>Example: <code>mtevEL(mtev_error, MLKV{ MLKV_NUM(&quot;answer&quot;, 42&quot;), MLKV_STR(&quot;question&quot;, &quot;what?&quot;), MLKV_END }, &quot;hello %s\n&quot;, name);</code></p>
+<h4 id="mtevelt">mtevELT</h4>
+<blockquote>
+<p>MACRO write to a log stream</p>
+</blockquote>
+<pre><code class="lang-c">mtevELT(<span class="hljs-keyword">mtev_log_stream_t</span> ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *now, <span class="hljs-keyword">mtev_log_kv_t</span> *meta,
+        <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fmt, ...)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>now</code> a timeval representing the current time</li>
+<li><code>meta</code> extra metadata</li>
+<li><code>fmt</code> a printf-style format string</li>
+<li><code>...</code> printf arguments</li>
+</ul>
+<h4 id="mtevevalassert">mtevEvalAssert</h4>
+<blockquote>
+<p>MACRO that calls mtevFatal if the condition evaluates to false.</p>
+</blockquote>
+<pre><code class="lang-c">mtevEvalAssert(condition)
+</code></pre>
+<h4 id="mtevfatal">mtevFatal</h4>
+<blockquote>
+<p>MACRO to abort after logging.</p>
+</blockquote>
+<pre><code class="lang-c">mtevFatal(<span class="hljs-keyword">mtev_log_stream_t</span> ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fmt, ...)
+</code></pre>
+<p>This function will force the logging system into sychronous behavior, log with mtevL, and abort.</p>
+<h4 id="mtevl">mtevL</h4>
+<blockquote>
+<p>MACRO write to a log stream</p>
+</blockquote>
+<pre><code class="lang-c">mtevL(<span class="hljs-keyword">mtev_log_stream_t</span> ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fmt, ...)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>fmt</code> a printf-style format string</li>
+<li><code>...</code> printf arguments</li>
+</ul>
+<h4 id="mtevlt">mtevLT</h4>
+<blockquote>
+<p>MACRO write to a log stream</p>
+</blockquote>
+<pre><code class="lang-c">mtevLT(<span class="hljs-keyword">mtev_log_stream_t</span> ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *now, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fmt, ...)
+</code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>now</code> a timeval representing the current time</li>
+<li><code>fmt</code> a printf-style format string</li>
+<li><code>...</code> printf arguments</li>
+</ul>
+<h4 id="mtevterminate">mtevTerminate</h4>
+<blockquote>
+<p>MACRO to abort after logging.</p>
+</blockquote>
+<pre><code class="lang-c">mtevTerminate(<span class="hljs-keyword">mtev_log_stream_t</span> ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *fmt, ...)
+</code></pre>
+<p>This function will force the logging system into sychronous behavior, log with mtevL, and exit(2).</p>
 <h3 id="n">N</h3>
 <h4 id="mtevnowms">mtev_now_ms</h4>
 <pre><code class="lang-c"><span class="hljs-keyword">uint64_t</span>
@@ -4481,6 +5212,18 @@ mtev_rand_trysecure(<span class="hljs-keyword">void</span>)
 <ul>
 <li><strong>RETURN</strong> A random pseudo-random number in the range [0,2^64)</li>
 </ul>
+<h4 id="mtevregisterlogops">mtev_register_logops</h4>
+<blockquote>
+<p>Register a new set of named logging operations.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_register_logops</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *type, logops_t *ops)</span>
+</span></code></pre>
+<ul>
+<li><code>type</code> a type naming this type of logging</li>
+<li><code>ops</code> a structure with callbacks to drive logging operations.</li>
+</ul>
+<p>This operation will not replace an existing logops of the same name.</p>
 <h3 id="s">S</h3>
 <h4 id="mtevsecuritychroot">mtev_security_chroot</h4>
 <blockquote>
@@ -4859,6 +5602,24 @@ mtev_url_max_decode_len(<span class="hljs-keyword">size_t</span> src_len)
 <p>  There is no bounds checking of &quot;out&quot;, caller must ensure that &quot;out&quot;
   is at least UUID_STR_LEN in size.  This also does not NULL terminate
   &quot;out&quot;.  That is also up to the caller.</p>
+<h3 id="v">V</h3>
+<h4 id="mtevvlog">mtev_vlog</h4>
+<blockquote>
+<p>Log to a log stream (metadata, va_list)</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
+<span class="hljs-title">mtev_vlog</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *file, <span class="hljs-keyword">int</span> line,
+          <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, ...)</span>
+</span></code></pre>
+<ul>
+<li><code>ls</code> a log stream</li>
+<li><code>file</code> a source file name</li>
+<li><code>line</code> a source file line number</li>
+<li><code>format</code> a printf-style format string</li>
+<li><code>arg</code> a varargs list</li>
+<li><strong>RETURN</strong> The number of bytes written (or approximation)</li>
+</ul>
+<p>See mtev_ex_log.</p>
 <h3 id="w">W</h3>
 <h4 id="mtevwatchdogchildeventerheartbeat">mtev_watchdog_child_eventer_heartbeat</h4>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
