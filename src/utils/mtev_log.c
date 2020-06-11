@@ -3222,23 +3222,29 @@ mtev_log_init_globals(void) {
 }
 
 void
-mtev_log_hexdump(mtev_log_stream_t ls, const void * addr, const size_t len) {
+mtev_log_hexdump_ex(mtev_log_stream_t ls, const void * addr, const size_t len, uint8_t width) {
   mtev_dyn_buffer_t buf;
   size_t i;
-  unsigned char *pc, c, strbuf[9];
+  unsigned char *pc, c, strbuf[256+1];
   pc = (unsigned char *) addr;
+  if(width == 0) width = 8;
   mtev_dyn_buffer_init(&buf);
   mtev_dyn_buffer_add_printf(&buf, "HEXDUMP[%p]\n", addr);
   for (i = 0; i < len; i++) {
     c = pc[i];
-    if (i % 8 == 0) mtev_dyn_buffer_add_printf(&buf,"%08x  ", i);
+    if (i % width == 0) mtev_dyn_buffer_add_printf(&buf,"%08x  ", i);
     mtev_dyn_buffer_add_printf(&buf," %02x", c);
-    strbuf[i % 8] = ((c < 0x20) || (c > 0x7e)) ? '.' : c;
-    strbuf[(i % 8) + 1] = '\0';
-    if (i % 8 == 7) mtev_dyn_buffer_add_printf(&buf,"  %s\n", strbuf);
+    strbuf[i % width] = ((c < 0x20) || (c > 0x7e)) ? '.' : c;
+    strbuf[(i % width) + 1] = '\0';
+    if ((int)(i % width) == (int)(width-1)) mtev_dyn_buffer_add_printf(&buf,"  %s\n", strbuf);
   }
   mtevL(ls, "%s\n", mtev_dyn_buffer_data(&buf));
   mtev_dyn_buffer_destroy(&buf);
+}
+
+void
+mtev_log_hexdump(mtev_log_stream_t ls, const void * addr, const size_t len) {
+  mtev_log_hexdump_ex(ls, addr, len, 8);
 }
 
 struct posix_op_ctx boot_stderr_posix_op_ctx = { .fd = 2 };
