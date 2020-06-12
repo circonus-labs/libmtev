@@ -755,11 +755,11 @@ size_t
 mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 ```
 
- *
-> A function to pass as curls CURLOPT_WRITEFUNCTION
+
+> Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA
 
 
- 
+
 
 ### D
 
@@ -3355,49 +3355,49 @@ necessary activity to make progress.
 
 ```c
 int
-mtev_ex_log(mtev_log_stream_t ls, const struct timeval *tv, const char *file, int line,
+mtev_ex_log(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line,
             mtev_log_kv_t **kvpairs, const char *format, ...)
 ```
 
 
   * `ls` a log stream
-  * `tv` the timestamp to log
+  * `now` the current time
   * `file` a source file name
   * `line` a source file line number
   * `kvpairs` a list of key-value metadata
-  * `format` a printf-style format string
-  * `...` printf arguments
+  * `format` a `printf`-style format string
+  * `arg` a `varargs` list
   * **RETURN** The number of bytes written or an approximation
 
-This function (used by the mtevL, mtevLT, mtevEL, mtevELT macros) is responsible for logging.
+This function (used by the `mtevL`, `mtevLT`, `mtevEL`, `mtevELT` macros) is responsible for logging.
 A variery of metadata fields are created internally including timestamp, `threadname`, `threadid`,
 facility (log name), file, and line.  These metadata fields are extended with those passed in
 as `kvpairs`.  These KV pairs should be created with the `MLKV, MLKV_NUM, MLKV_STR, MLKV_END`
-macros.  The message is formatted, any filtering is applied and then the resulting payload is
+macros.  The message is formatted, filtering is applied and then the resulting payload is
 pushed through the directed acyclic graph of log streams.  See `mtevEL` for examples.
  
 
 #### mtev_ex_vlog
 
->Log to a log stream (metadata, va_list)
+>Log to a log stream (metadata, `va_list`)
 
 ```c
 int
-mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *tv, const char *file, int line,
+mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line,
              mtev_log_kv_t **kvpairs, const char *format, va_list arg)
 ```
 
 
   * `ls` a log stream
-  * `tv` the timestamp to log
+  * `now` the current time
   * `file` a source file name
   * `line` a source file line number
   * `kvpairs` a list of key-value metadata
-  * `format` a printf-style format string
-  * `arg` a varargs list
+  * `format` a `printf`-style format string
+  * `arg` a `varargs` list
   * **RETURN** The number of bytes written or an approximation
 
-See `mtev_ex_log`.
+See mtev_ex_log.
  
 
 ### F
@@ -4699,21 +4699,21 @@ mtev_lockfile_release(mtev_lockfile_t fd)
 
 #### mtev_log
 
->Log to a log stream (metadata, va_list)
+>Log to a log stream (metadata, `va_list`)
 
 ```c
 int
-mtev_log(mtev_log_stream_t ls, const struct timeval *tv, const char *file, int line,
+mtev_log(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line,
          const char *format, ...)
 ```
 
 
   * `ls` a log stream
-  * `tv` the timestamp to log 
+  * `now` the current time
   * `file` a source file name
   * `line` a source file line number
-  * `format` a printf-style format string
-  * `...` printf arguments
+  * `format` a `printf`-style format string
+  * `arg` a `varargs` list
   * **RETURN** The number of bytes written or an approximation
 
 See mtev_ex_log.
@@ -4757,13 +4757,13 @@ mtev_log_flatbuffer_from_buffer(void *buff, size_t buff_len)
 
 
   * `buff` a pointer to memory containing the `flatbuffer` data.
-  * `buff_len` the length of the buffer
+  * `buff_len` the length of the buffer `buff`
   * **RETURN** a `flatcc` `flatbuffer` type
 
 
 #### mtev_log_flatbuffer_to_json
 
->Convert a `flatbuffer` typed log line into a textual `JSON` serialization
+>Convert a `flatcc` typed log line into a textual `JSON` serialization
 
 ```c
 void
@@ -4771,8 +4771,8 @@ mtev_log_flatbuffer_to_json(mtev_LogLine_fb_t ll, mtev_dyn_buffer_t *tgt)
 ```
 
 
-  * `ll` a `flatbuffer` type
-  * `tgt` a target buffer to write the `JSON` data to
+  * `ll` a `flatcc` `flatbuffer` type
+  * `tgt` a target buffer to write the `JSON` serialization to
 
 
 #### mtev_log_go_asynch
@@ -4787,7 +4787,7 @@ mtev_log_go_asynch(void)
 
   * **RETURN** 0 on success, -1 on failure.
 
-The `mtev_main` helper system automatically calls this.
+The `mtev_main` helpers system automatically calls this.
 
 
 #### mtev_log_go_synch
@@ -4802,7 +4802,7 @@ mtev_log_go_synch(void)
 
   * **RETURN** 0 on success, -1 on failure.
 
-This can be particularly useful when attempting to debug a system.
+This can be particularly useful when attempting debug a system.
 
 
 #### mtev_log_has_material_output
@@ -4831,13 +4831,13 @@ mtev_log_hexdump(mtev_log_stream_t ls, const void * addr, const size_t len, uint
 
   * `ls` a log stream
   * `addr` a memory address
-  * `len` a size in bytes for `addr`
+  * `len` a size in bytes
   * `width` the number of bytes to show per line.
 
 
 #### mtev_log_init
 
->Initialize the logging system.
+>Initialize the logging system
 
 ```c
 void
@@ -4882,9 +4882,9 @@ mtev_log_list(mtev_log_stream_t *loggers, int nsize)
 ```
 
 
-  * `loggers` an array of nsize log streams
+  * `loggers` an array of `nsize` log streams
   * `nsize` the size of the `loggers` array
-  * **RETURN** The number of log streams placed in the loggers array.  If there was insufficient space, the number of elements required is made negative and returned.
+  * **RETURN** The number of log streams placed in the `loggers` array.  If there was insufficient space, the number of elements required is made negative and returned.
 
 
 #### mtev_log_memory_lines
@@ -4899,10 +4899,10 @@ mtev_log_memory_lines(mtev_log_stream_t ls, int log_lines, int (*cb)(uint64_t lo
 ```
 
 
-  * `ls` a log stream (of type "memory")
+  * `ls` a log stream of type "memory"
   * `log_lines` the number of most recent log lines to traverse
   * `cb` a callback to invoke for each log line found
-  * `closure` a user-supplied closure to passed into the callback
+  * `closure` a user-supplied closure to pass into the callback
   * **RETURN** The number of log lines traversed, -1 on error.
 
 
@@ -4918,16 +4918,16 @@ mtev_log_memory_lines_since(mtev_log_stream_t ls, uint64_t afterwhich, int (*cb)
 ```
 
 
-  * `ls` a log stream (of type "memory")
+  * `ls` a log stream of type "memory"
   * `afterwhich` the the log id after which traversal should start (log id is the first argument to the callback)
   * `cb` a callback to invoke for each log line found
-  * `closure` a user-supplied closure to passed into the callback
+  * `closure` a user-supplied closure to pass into the callback
   * **RETURN** The number of log lines traversed, -1 on error.
 
 
 #### mtev_log_reopen_all
 
->Instruct the logging system to reopen all logs (if applicable).
+>Instruct the logging system to reopen all logs if applicable.
 
 ```c
 int
@@ -4935,7 +4935,7 @@ mtev_log_reopen_all(void)
 ```
 
 
-  * **RETURN** 0 onsuccess, -1 on failure.
+  * **RETURN** 0 on success, -1 on failure.
 
 
 #### mtev_log_reopen_type
@@ -4948,8 +4948,8 @@ mtev_log_reopen_type(const char *type)
 ```
 
 
-  * `type` a type matching a `logops` name.
-  * **RETURN** 0 onsuccess, -1 on failure.
+  * `type` a type matching a logops name.
+  * **RETURN** 0 on success, -1 on failure.
 
 
 #### mtev_log_speculate
@@ -4962,8 +4962,8 @@ mtev_log_speculate(int nlogs, int nbytes)
 ```
 
 
-  * `nlogs` store at most nlogs log lines
-  * `nbytes` store at most nbytes bytes.
+  * `nlogs` store at most `nlogs` log lines
+  * `nbytes` store at most `nbytes` bytes.
   * **RETURN** a new log stream
 
 
@@ -5035,11 +5035,11 @@ mtev_log_stream_cull(mtev_log_stream_t ls, int age, ssize_t bytes)
 
 
   * `ls` a log stream to cull
-  * `age` the maximum age in seconds to retain, -1 skips age assessment
-  * `bytes` the maxiumum bytes to retain, -1 skips size assessment
+  * `age` the maximum age in seconds to retain, -1 to skip the age assessment
+  * `bytes` the maximum bytes to retain, -1 to skip the size assessment
   * **RETURN** -1 on error, positive if culling occurred, 0 if no action was taken
 
-Only certain `logops` support culling. If the `logops` do not support it, -1 is usually returned.
+Only certain `logops` support culling, if the `logops` do not support it -1 is usually returned.
 
 
 #### mtev_log_stream_exists
@@ -5052,8 +5052,8 @@ mtev_log_stream_exists(const char *name)
 ```
 
 
-  * `name` a name of a log stream, possibly
-  * **RETURN** `mtev_true` if a log stream of this name is configured
+  * `name` a possible name of a log stream
+  * **RETURN** `mtev_true` if a log stream of name `name` is configured
 
 
 #### mtev_log_stream_find
@@ -5073,7 +5073,7 @@ Log streams that are implicitly created will be enabled by default and outlet to
 a log stream above it in its slash-delimited hierarchy.  For example: `debug/foo/bar`
 will be implicitly created to outlet to `debug/foo` which will be implicitly created
 to outlet to `debug`.  If a new top-level stream is implicitly created, it is
-enabled, but will have no outlets and thus be immaterial until connected.
+enabled but will have no outlets and thus be immaterial until connected.
 
 
 #### mtev_log_stream_findf
@@ -5118,7 +5118,7 @@ mtev_log_stream_get_ctx(mtev_log_stream_t ls, void *ctx)
   * `ls` a log stream
   * `ctx` a user-supplied context.
 
-This is used by `logops` implementations to manage context.
+This is used by `logops` implementors to manage context.
 
 
 #### mtev_log_stream_get_flags
@@ -5160,7 +5160,7 @@ mtev_log_stream_get_path(mtev_log_stream_t ls)
 
 
   * `ls` a log stream
-  * **RETURN** The path, NULL if none
+  * **RETURN** The path, `NULL` if none
 
 
 #### mtev_log_stream_get_property
@@ -5180,7 +5180,7 @@ mtev_log_stream_get_property(mtev_log_stream_t ls, const char *key)
 
 #### mtev_log_stream_get_type
 
->Get the type (name of `logops`) from a log stream
+>Get the type (name of logops) from a log stream
 
 ```c
 const char *
@@ -5208,7 +5208,7 @@ mtev_log_stream_new(const char *name, const char *type, const char *path, void *
   * `path` a path appropriate for the selected `logops`
   * `ctx` a context for the log stream's selected `logops`
   * `options` a table of options attached to the log stream
-  * **RETURN** a new log stream, `NULL` on error
+  * **RETURN** a new log stream or `NULL` on error
 
 This will replace a log stream of the same name should one exist.
 
@@ -5226,7 +5226,7 @@ mtev_log_stream_new_on_fd(const char *name, int fd, mtev_hash_table *options)
   * `name` a name for the log stream
   * `fd` the file descriptor for output
   * `options` a table of options attached to the log stream
-  * **RETURN** a new log stream, `NULL` on error
+  * **RETURN** a new log stream or `NULL` on error
 
 This will replace a log stream of the same name should one exist.
 
@@ -5241,9 +5241,9 @@ mtev_log_stream_new_on_file(const char *path, mtev_hash_table *options)
 ```
 
 
-  * `path` the path to the file (also used as the log stream's name)
+  * `path` the path to the file. This is also used as the log stream's name
   * `options` a table of options attached to the log stream
-  * **RETURN** a new log stream, NULL on error
+  * **RETURN** a new log stream, `NULL` on error
 
 
 #### mtev_log_stream_pipe_close
@@ -5270,13 +5270,13 @@ mtev_log_stream_pipe_dup2(mtev_log_stream_pipe_t *lp, int fd)
 
 
   * `lp` a log stream pipe
-  * `fd` a target file descriptor (atomically closing it and replacing it)
+  * `fd` a target file descriptor, it's atomically closed and replaced
   * **RETURN** The return of the internal `dup2(2)` system call.
 
 
 #### mtev_log_stream_pipe_new
 
->Create a mtev_log_stream_pipe_t suitable for cross-process logging
+>Create a `mtev_log_stream_pipe_t` suitable for cross-process logging
 
 ```c
 mtev_log_stream_pipe_t *
@@ -5284,13 +5284,13 @@ mtev_log_stream_pipe_new(mtev_log_stream_t ls)
 ```
 
 
-  * `ls` a log stream (target)
+  * `ls` the target log stream
   * **RETURN** a new log stream pipe
 
 
 #### mtev_log_stream_pipe_post_fork_child
 
->Prepare a log stream pipe for use in the child process, post-fork
+>Prepare a log stream pipe for use in the child process post-fork
 
 ```c
 void
@@ -5303,7 +5303,7 @@ mtev_log_stream_pipe_post_fork_child(mtev_log_stream_pipe_t *lp)
 
 #### mtev_log_stream_pipe_post_fork_parent
 
->Prepare a log stream pipe for use in the parent process, post-fork
+>Prepare a log stream pipe for use in the parent process post-fork
 
 ```c
 void
@@ -5324,7 +5324,7 @@ mtev_log_stream_remove(const char *name)
 ```
 
 
-  * `name` a name of a log stream to remove
+  * `name` name of a log stream to remove
 
 
 #### mtev_log_stream_remove_stream
@@ -5339,7 +5339,7 @@ mtev_log_stream_remove_stream(mtev_log_stream_t ls, const char *name)
 
   * `ls` a log stream from which to attempt removing an outlet
   * `name` the name of the log stream that should no longer be in the outlet list
-  * **RETURN** a log stream that was disconnected, `NULL` if no log stream outlet was disconnected
+  * **RETURN** a log stream that was disconnected, NULL if no log stream outlet was disconnected
 
 
 #### mtev_log_stream_removeall_streams
@@ -5357,7 +5357,7 @@ mtev_log_stream_removeall_streams(mtev_log_stream_t ls)
 
 #### mtev_log_stream_rename
 
->Rename a log stream's target (if supported)
+>Rename a log stream's target if supported
 
 ```c
 int
@@ -5366,7 +5366,7 @@ mtev_log_stream_rename(mtev_log_stream_t ls, const char *path)
 
 
   * `ls` a log stream
-  * `path` a new path name, `MTEV_LOG_RENAME_AUTOTIME` to automatically name it with the current timestamp. Required for culling by age.
+  * `path` a new path name, `MTEV_LOG_RENAME_AUTOTIME` to automatically name it with the current timestamp (required for culling by age)
   * **RETURN** 0 on success, -1 on failure.
 
 If called manually, a call to `mtev_log_stream_reopen` should follow.
@@ -5414,7 +5414,7 @@ mtev_log_stream_set_format(mtev_log_stream_t ls, mtev_log_format format)
   * `format` a format identitier
   * **RETURN** `mtev_true` if successful
 
-You cannot set a format on a log stream without logops.
+A log stream without `logops` cannot have a format set.
 
 
 #### mtev_log_stream_set_property
@@ -5448,7 +5448,7 @@ mtev_log_stream_size(mtev_log_stream_t ls)
 
 #### mtev_log_stream_stats_enable
 
->Request the a log stream register statistics with the mtev_stats system.
+>Request that the log stream register statistics with the `mtev_stats` system.
 
 ```c
 mtev_boolean
@@ -5471,7 +5471,7 @@ mtev_log_stream_to_json(mtev_log_stream_t ls)
 
 
   * `ls` a log stream
-  * **RETURN** A `mtev_json_object` describing the log stream
+  * **RETURN** A mtev_json_object describing the log stream
 
 
 #### mtev_log_stream_written
@@ -5502,9 +5502,9 @@ mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_info_t *resume)
   * `resume` the custom resume function for this environment
   * **RETURN** a new allocated and initialized `lua_module_closure`
 
-> Note these are not thread safe because `lua` is not thread safe. When managing multiple
-> C threads, a `lua_module_closure_t` for each thread should be available and maintained in a
-> thread-local fashion.  Also ensure that any use of the `eventer` does not migrate cross thread.
+> Note these are not thread safe because lua is not thread safe. If you are managing multiple
+> C threads, you should have a `lua_module_closure_t` for each thread and maintain them in a
+> thread-local fashion.  Also ensure that any use of the eventer does not migrate cross thread.
 
 
 #### mtev_lua_lmc_free
@@ -5536,7 +5536,7 @@ mtev_lua_lmc_L(lua_module_closure_t *lmc)
 
 #### mtev_lua_lmc_resume
 
->Invoke `lua_resume` with the correct context based on the `lua_module_closure_t`
+>Invoke lua_resume with the correct context based on the `lua_module_closure_t`
 
 ```c
 int
@@ -5562,7 +5562,7 @@ mtev_lua_lmc_setL(lua_module_closure_t *lmc)
 
   * `lmc` the `lua_module_closure_t` that was allocated for this runtime.
   * `lmc` the `lua_State *` that should be placed in this closure.
-  * **RETURN** the previous `lua` Lua state associated with this closure
+  * **RETURN** the previous lua Lua state associated with this closure
 
 
 ### M
@@ -5584,9 +5584,9 @@ mtev_main(const char *appname, const char *config_filename, int debug, int foreg
   * `debug` Enable debugging (logging).
   * `foreground` 0 to daemonize with watchdog, 1 to foreground, 2 to foreground with watchdog.
   * `lock` Specifies where to not lock, try lock or exit, or lock or wait.
-  * `glider` A path to an executable to invoke against the process id on crash. May be `NULL`.
-  * `drop_to_user` A target user for dropping privileges when under watchdog. May be `NULL`.
-  * `drop_to_group` A target group for dropping privileges when under watchdog. May be `NULL`.
+  * `glider` A path to an executable to invoke against the process id on crash. May be NULL.
+  * `drop_to_user` A target user for dropping privileges when under watchdog. May be NULL.
+  * `drop_to_group` A target group for dropping privileges when under watchdog. May be NULL.
   * `passed_child_main` A programmers supplied main function.
   * **RETURN** -1 on failure, 0 on success if `foreground==1`, or the return value of `main` if run in the foreground.
  
@@ -5668,7 +5668,7 @@ MTEV_MAYBE_DECL_VARS(type, name, cnt)
 ```
 
 
-  * `type` A C type, e.g., char
+  * `type` A C type (e.g. char)
   * `name` The name of the C variable to declare.
   * `cnt` The number of type elements initially declared.
  
@@ -5699,7 +5699,7 @@ MTEV_MAYBE_INIT_VARS(name)
 
 #### MTEV_MAYBE_REALLOC
 
->C Macro to ensure a maybe buffer has at least `cnt` elements allocated.
+>C Macro to ensure a maybe buffer has at least cnt elements allocated.
 
 ```c
 MTEV_MAYBE_REALLOC(name, cnt)
@@ -5728,7 +5728,7 @@ MTEV_MAYBE_SIZE(name)
 
 #### mtev_merge_sort
 
->Merge sort data starting at `head_ptr_ptr`, iteratively
+>Merge sort data starting at head_ptr_ptr, iteratively
 
 ```c
 void
@@ -5761,7 +5761,7 @@ Creates all directories from / (as needed) to hold a named file.
 
 #### mtevAssert
 
->MACRO that calls mtevFatal if the condition evaluates to false.
+>MACRO that calls `mtevFatal` if the condition evaluates to false.
 
 ```c
 mtevAssert(condition)
@@ -5781,11 +5781,11 @@ mtevEL(mtev_log_stream_t ls, mtev_log_kv_t *meta, const char *fmt, ...)
 
   * `ls` a log stream
   * `meta` extra metadata
-  * `fmt` a printf-style format string
-  * `...` printf arguments
+  * `fmt` a `printf`-style format string
+  * `...` `printf` arguments
 
 This calls `mtevELT` with `NULL` as the time argument such that the current time is determined
-in the logging system.  You should almost always use these short-form macros as they will
+in the logging system.  These short-form macros should almost always be used as they will
 make efforts to skip evaluation of the arguments if the logging would not materialize anywhere.
 
 Example: `mtevEL(mtev_error, MLKV{ MLKV_NUM("answer", 42"), MLKV_STR("question", "what?"), MLKV_END }, "hello %s\n", name);`
@@ -5810,7 +5810,7 @@ mtevELT(mtev_log_stream_t ls, const struct timeval *now, mtev_log_kv_t *meta,
 
 #### mtevEvalAssert
 
->MACRO that calls mtevFatal if the condition evaluates to false.
+>MACRO that calls `mtevFatal` if the condition evaluates to false.
 
 ```c
 mtevEvalAssert(condition)
@@ -5829,7 +5829,7 @@ mtevFatal(mtev_log_stream_t ls, const char *fmt, ...)
 
 
 
-This function will force the logging system into sychronous behavior, log with mtevL, and abort.
+This function will force the logging system into synchronous behavior, log with `mtevL`, and abort.
  
 
 #### mtevL
@@ -5842,8 +5842,8 @@ mtevL(mtev_log_stream_t ls, const char *fmt, ...)
 
 
   * `ls` a log stream
-  * `fmt` a printf-style format string
-  * `...` printf arguments
+  * `fmt` a `printf`-style format string
+  * `...` `printf` arguments
 
 
 #### mtevLT
@@ -5857,8 +5857,8 @@ mtevLT(mtev_log_stream_t ls, const struct timeval *now, const char *fmt, ...)
 
   * `ls` a log stream
   * `now` a timeval representing the current time
-  * `fmt` a printf-style format string
-  * `...` printf arguments
+  * `fmt` a `printf`-style format string
+  * `...` `printf` arguments
 
 
 #### mtevTerminate
@@ -5871,7 +5871,7 @@ mtevTerminate(mtev_log_stream_t ls, const char *fmt, ...)
 
 
 
-This function will force the logging system into sychronous behavior, log with `mtevL`, and `exit(2)`.
+This function will force the logging system into synchronous behavior, log with `mtevL`, and `exit(2)`.
  
 
 ### N
@@ -5946,7 +5946,7 @@ mtev_rand_buf_secure(void *buf, size_t len)
 
   * `buf` A buffer to fill.
   * `len` The number of bytes to populate.
-  * **RETURN** The number of bytes written to `buf`, this will be less than `len` if there is insufficient entropy.
+  * **RETURN** The number of bytes written to `buf` (< len if insufficient entropy).
  
 
 #### mtev_rand_buf_trysecure
@@ -6004,7 +6004,7 @@ mtev_register_logops(const char *type, logops_t *ops)
   * `type` a type naming this type of logging
   * `ops` a structure with callbacks to drive logging operations.
 
-This operation will not replace an existing logops of the same name.
+This operation will not replace an existing `logops` of the same name.
 
 
 ### S
@@ -6022,7 +6022,7 @@ mtev_security_chroot(const char *path)
   * `path` The path to chroot to.
   * **RETURN** Zero is returned on success.
 
-`mtev_security_chroot` placing the calling application into a `chroot`
+mtev_security_chroot placing the calling application into a chroot
 environment.
  
 
@@ -6539,7 +6539,7 @@ mtev_uuid_unparse_upper(const uuid_t uu, char *out)
 
 #### mtev_vlog
 
->Log to a log stream (metadata, va_list)
+>Log to a log stream (metadata, `va_list`)
 
 ```c
 int
