@@ -179,7 +179,7 @@ API_EXPORT(void)
   mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf);
 
 /*! \fn size_t mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
- *  \brief A function to pass as curls CURLOPT_WRITEFUNCTION
+ *  \brief Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA
  */
 API_EXPORT(size_t)
   mtev_dyn_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);

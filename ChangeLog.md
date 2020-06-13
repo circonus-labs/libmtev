@@ -4,8 +4,13 @@
 
 ## 1.12
 
+### 1.12.1
+
  * Runtime detection of ASAN to avoid `stack-buffer-underflow` failures
    when apps use ACO. (runtime avoids memcpy for stack replacement)
+ * Allow basic use of logging immediately at application start (before init).
+ * Add `mtev_log_hexdump_ex`
+ * Add documentation for the logging facilities.
 
 ### 1.12.0
 
