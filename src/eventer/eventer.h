@@ -34,10 +34,10 @@
 #ifndef _EVENTER_EVENTER_H
 #define _EVENTER_EVENTER_H
 
-#include "mtev_defines.h"
-#include "mtev_log.h"
-#include "mtev_hooks.h"
-#include "mtev_time.h"
+#include <mtev_defines.h>
+#include <mtev_log.h>
+#include <mtev_hooks.h>
+#include <mtev_time.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -354,9 +354,9 @@ API_EXPORT(int) eventer_write(eventer_t e, const void *buff, size_t len, int *ma
 */
 API_EXPORT(int) eventer_close(eventer_t e, int *mask);
 
-#include "eventer/eventer_POSIX_fd_opset.h"
-#include "eventer/eventer_SSL_fd_opset.h"
-#include "eventer/eventer_aco_opset.h"
+#include <eventer/eventer_POSIX_fd_opset.h>
+#include <eventer/eventer_SSL_fd_opset.h>
+#include <eventer/eventer_aco_opset.h>
 
 /*! \fn void eventer_aco_set_accept_timeout(eventer_aco_t e, struct timeval *duration)
     \brief Change the default timeout for ACO events.
@@ -828,7 +828,7 @@ extern eventer_impl_t registered_eventers[];
 #define eventer_hrtime_t mtev_hrtime_t
 #define eventer_gethrtime mtev_gethrtime
 
-#include "eventer/eventer_jobq.h"
+#include <eventer/eventer_jobq.h>
 
 API_EXPORT(int) eventer_boot_ctor(void);
 API_EXPORT(eventer_jobq_t *) eventer_default_backq(eventer_t);

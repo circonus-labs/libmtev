@@ -34,7 +34,7 @@
 #ifndef UTILS_MTEV_ATOMIC_H
 #define UTILS_MTEV_ATOMIC_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

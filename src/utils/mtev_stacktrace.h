@@ -31,10 +31,10 @@
 #ifndef _MTEV_STACKTRACE_H
 #define _MTEV_STACKTRACE_H
 
-#include "mtev_defines.h"
-#include "mtev_log.h"
-#include "mtev_hooks.h"
-#include "aco/aco.h"
+#include <mtev_defines.h>
+#include <mtev_log.h>
+#include <mtev_hooks.h>
+#include <aco/aco.h>
 #include <ucontext.h>
 
 #ifdef __cplusplus

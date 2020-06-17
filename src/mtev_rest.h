@@ -34,14 +34,14 @@
 #ifndef MTEV_REST_H
 #define MTEV_REST_H
 
-#include "mtev_defines.h"
-#include "mtev_listener.h"
-#include "mtev_http.h"
-#include "mtev_http1.h"
-#include "mtev_http2.h"
-#include "mtev_hooks.h"
-#include "mtev_console.h"
-#include "eventer/eventer.h"
+#include <mtev_defines.h>
+#include <mtev_listener.h>
+#include <mtev_http.h>
+#include <mtev_http1.h>
+#include <mtev_http2.h>
+#include <mtev_hooks.h>
+#include <mtev_console.h>
+#include <eventer/eventer.h>
 
 #ifdef __cplusplus
 extern "C" {

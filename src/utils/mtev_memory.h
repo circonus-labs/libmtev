@@ -31,7 +31,7 @@
 #ifndef _UTILS_MTEV_MEMORY_H
 #define _UTILS_MTEV_MEMORY_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus

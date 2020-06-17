@@ -28,7 +28,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "mtev_http2.h"
+#include "eventer/eventer.h"
 #include "eventer/eventer_SSL_fd_opset.h"
 #include "mtev_http.h"
 #include "mtev_http_private.h"

@@ -31,7 +31,7 @@
 #ifndef _UTILS_MTEV_CHT_H
 #define _UTILS_MTEV_CHT_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

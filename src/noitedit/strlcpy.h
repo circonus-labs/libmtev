@@ -33,7 +33,7 @@
 #ifndef LIBMTEV_STRLCPY_H
 #define LIBMTEV_STRLCPY_H
 
-#include "mtev_config.h"
+#include <mtev_config.h>
 
 #ifdef __cplusplus
 extern "C" {

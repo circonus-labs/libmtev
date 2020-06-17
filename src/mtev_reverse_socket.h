@@ -31,14 +31,14 @@
 #ifndef MTEV_REVERSE_SOCKET_H
 #define MTEV_REVERSE_SOCKET_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <arpa/inet.h>
 
-#include "mtev_listener.h"
+#include <mtev_listener.h>
 
 #ifdef __cplusplus
 extern "C" {

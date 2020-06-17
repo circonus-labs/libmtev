@@ -35,7 +35,6 @@
 #define _MTEV_HTTP1_H
 
 #include <mtev_defines.h>
-#include <mtev_http.h>
 #include <mtev_compress.h>
 
 #ifdef __cplusplus

@@ -34,11 +34,11 @@
 #ifndef _MTEV_CONF_H
 #define _MTEV_CONF_H
 
-#include "mtev_defines.h"
-#include "mtev_hash.h"
-#include "mtev_console.h"
-#include "mtev_hooks.h"
-#include "mtev_uuid.h"
+#include <mtev_defines.h>
+#include <mtev_hash.h>
+#include <mtev_console.h>
+#include <mtev_hooks.h>
+#include <mtev_uuid.h>
 
 #include <pcre.h>
 

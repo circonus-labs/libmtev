@@ -31,7 +31,7 @@
 #ifndef MTEV_STATS_H
 #define MTEV_STATS_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 #include <circmetrics.h>
 
 #ifdef __cplusplus

@@ -45,8 +45,8 @@
 #ifndef _h_el_tty
 #define	_h_el_tty
 
-#include "mtev_defines.h"
-#include "noitedit/histedit.h"
+#include <mtev_defines.h>
+#include <noitedit/histedit.h>
 
 /* Define our own since everyone gets it wrong! */
 #define	CONTROL(A)	((A) & 037)

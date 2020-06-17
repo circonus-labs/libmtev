@@ -36,11 +36,11 @@
 
 #include <time.h>
 #include <signal.h>
-#include "mtev_config.h"
-#include "mtev_defines.h"
-#include "mtev_log.h"
-#include "eventer/eventer.h"
-#include "mtev_stacktrace.h"
+#include <mtev_config.h>
+#include <mtev_defines.h>
+#include <mtev_log.h>
+#include <eventer/eventer.h>
+#include <mtev_stacktrace.h>
 
 #ifdef __cplusplus
 extern "C" {

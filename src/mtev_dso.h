@@ -34,10 +34,10 @@
 #ifndef _MTEV_DSO_H
 #define _MTEV_DSO_H
 
-#include "mtev_defines.h"
-#include "mtev_conf.h"
-#include "mtev_hash.h"
-#include "mtev_hooks.h"
+#include <mtev_defines.h>
+#include <mtev_conf.h>
+#include <mtev_hash.h>
+#include <mtev_hooks.h>
 
 #define MTEV_LOADER_MAGIC         0xA7AD7104
 #define MTEV_LOADER_ABI_VERSION   5

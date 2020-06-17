@@ -32,7 +32,7 @@
 #ifndef _MTEV_COMPRESS_H
 #define _MTEV_COMPRESS_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

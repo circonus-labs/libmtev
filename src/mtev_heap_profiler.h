@@ -31,7 +31,7 @@
 #ifndef MTEV_HEAP_PROFILER_H
 #define MTEV_HEAP_PROFILER_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

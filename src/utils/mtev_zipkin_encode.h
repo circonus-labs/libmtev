@@ -31,7 +31,7 @@
 #ifndef MTEV_UTILS_ZIPKIN_ENCODE_H
 #define MTEV_UTILS_ZIPKIN_ENCODE_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

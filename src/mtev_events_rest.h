@@ -31,9 +31,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "mtev_defines.h"
-#include "mtev_listener.h"
-#include "mtev_http.h"
+#include <mtev_defines.h>
+#include <mtev_listener.h>
+#include <mtev_http.h>
 
 #ifdef __cplusplus
 extern "C" {

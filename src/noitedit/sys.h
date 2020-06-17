@@ -45,7 +45,7 @@
 #ifndef _h_sys
 #define	_h_sys
 
-#include "mtev_config.h"
+#include <mtev_config.h>
 
 #ifndef public
 # define public		/* Externally visible functions/variables */

@@ -34,7 +34,7 @@
 #ifndef _MTEV_XML_H
 #define _MTEV_XML_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 #include <libxml/tree.h>
 
 #ifdef __cplusplus

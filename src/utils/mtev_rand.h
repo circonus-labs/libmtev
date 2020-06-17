@@ -32,7 +32,7 @@
 #ifndef MTEV_RAND_H
 #define MTEV_RAND_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

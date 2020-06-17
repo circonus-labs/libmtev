@@ -31,7 +31,7 @@
 #ifndef MTEV_CLUSTER_H
 #define MTEV_CLUSTER_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
