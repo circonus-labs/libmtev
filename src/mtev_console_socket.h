@@ -32,13 +32,13 @@
 #ifndef _MTEV_CONSOLE_SOCKET_H
 #define _MTEV_CONSOLE_SOCKET_H
 
-#include "mtev_defines.h"
-#include "eventer/eventer.h"
-#include "noitedit/histedit.h"
-#include "mtev_console_telnet.h"
-#include "mtev_dyn_buffer.h"
-#include "mtev_hash.h"
-#include "mtev_skiplist.h"
+#include <mtev_defines.h>
+#include <eventer/eventer.h>
+#include <noitedit/histedit.h>
+#include <mtev_console_telnet.h>
+#include <mtev_dyn_buffer.h>
+#include <mtev_hash.h>
+#include <mtev_skiplist.h>
 #include <stdarg.h>
 
 #ifdef __cplusplus

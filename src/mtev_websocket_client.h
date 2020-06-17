@@ -1,8 +1,8 @@
 #ifndef MTEV_WEBSOCKET_CLIENT_H
 #define MTEV_WEBSOCKET_CLIENT_H
 
-#include "mtev_defines.h"
-#include "mtev_conf.h"
+#include <mtev_defines.h>
+#include <mtev_conf.h>
 
 #ifdef __cplusplus
 extern "C" {

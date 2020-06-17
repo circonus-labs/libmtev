@@ -5,7 +5,7 @@
 #ifndef _MTEV_CONFSTR_H
 #define _MTEV_CONFSTR_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

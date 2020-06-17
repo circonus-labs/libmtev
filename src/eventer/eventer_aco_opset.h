@@ -32,9 +32,8 @@
 #ifndef _EVENTER_EVENTER_ACO_FD_OPSET_H
 #define _EVENTER_EVENTER_ACO_FD_OPSET_H
 
-#include "mtev_defines.h"
-#include "eventer/eventer.h"
-#include "aco/aco.h"
+#include <mtev_defines.h>
+#include <aco/aco.h>
 
 #ifdef __cplusplus
 extern "C" {

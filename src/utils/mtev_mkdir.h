@@ -34,8 +34,8 @@
 #ifndef _MTEV_MKDIR_H
 #define _MTEV_MKDIR_H
 
-#include "mtev_config.h"
-#include "mtev_defines.h"
+#include <mtev_config.h>
+#include <mtev_defines.h>
 #include <sys/stat.h>
 
 #ifdef __cplusplus

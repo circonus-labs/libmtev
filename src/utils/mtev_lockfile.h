@@ -34,8 +34,8 @@
 #ifndef _UTILS_MTEV_LOCKFILE_H
 #define _UTILS_MTEV_LOCKFILE_H
 
-#include "mtev_config.h"
-#include "mtev_defines.h"
+#include <mtev_config.h>
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

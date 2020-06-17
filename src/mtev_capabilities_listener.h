@@ -34,9 +34,9 @@
 #ifndef _MTEV_CAPABILITIES_LISTENER_H
 #define _MTEV_CAPABILITIES_LISTENER_H
 
-#include "mtev_defines.h"
-#include "eventer/eventer.h"
-#include "mtev_console.h"
+#include <mtev_defines.h>
+#include <eventer/eventer.h>
+#include <mtev_console.h>
 
 #ifdef __cplusplus
 extern "C" {

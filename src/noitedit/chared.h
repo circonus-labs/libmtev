@@ -48,7 +48,7 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "noitedit/histedit.h"
+#include <noitedit/histedit.h>
 
 #define	EL_MAXMACRO	10
 

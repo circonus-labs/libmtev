@@ -31,7 +31,12 @@
 #ifndef _UTILS_MTEV_LOGIC_H
 #define _UTILS_MTEV_LOGIC_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
+#include <mtev_log.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct mtev_logic_ast_t mtev_logic_ast_t;
 typedef struct mtev_logic_exec_t mtev_logic_exec_t;
@@ -55,12 +60,6 @@ API_EXPORT(void) mtev_logic_var_set_string_copy(mtev_logic_var_t *, const char *
 API_EXPORT(void) mtev_logic_var_set_stringn_copy(mtev_logic_var_t *, const char *, size_t);
 API_EXPORT(void) mtev_logic_var_set_int64(mtev_logic_var_t *, int64_t);
 API_EXPORT(void) mtev_logic_var_set_double(mtev_logic_var_t *, double);
-
-#include "mtev_log.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 API_EXPORT(void) mtev_logic_ast_log(mtev_log_stream_t log, mtev_logic_ast_t *);
 

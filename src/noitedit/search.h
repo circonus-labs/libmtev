@@ -45,7 +45,7 @@
 #ifndef _h_el_search
 #define	_h_el_search
 
-#include "noitedit/histedit.h"
+#include <noitedit/histedit.h>
 
 typedef struct el_search_t {
 	char	*patbuf;		/* The pattern buffer		*/

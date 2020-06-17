@@ -32,7 +32,7 @@
 #ifndef MTEV_INTERN_H
 #define MTEV_INTERN_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 #include <stdint.h>
 
 #ifdef __cplusplus

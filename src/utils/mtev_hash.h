@@ -36,7 +36,7 @@
 #ifndef _MTEV_HASH_H
 #define _MTEV_HASH_H
 
-#include "mtev_config.h"
+#include <mtev_config.h>
 
 #ifdef __cplusplus
 extern "C" {

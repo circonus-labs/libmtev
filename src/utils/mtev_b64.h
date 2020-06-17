@@ -39,8 +39,8 @@
      Interface to the mtev base64 encoding and decoding routines.
  */
 
-#include "mtev_config.h"
-#include "mtev_defines.h"
+#include <mtev_config.h>
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

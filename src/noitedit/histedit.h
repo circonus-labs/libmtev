@@ -45,8 +45,8 @@
 #ifndef _HISTEDIT_H_
 #define	_HISTEDIT_H_
 
-#include "mtev_defines.h"
-#include "eventer/eventer.h"
+#include <mtev_defines.h>
+#include <eventer/eventer.h>
 #include <sys/types.h>
 #include <stdio.h>
 

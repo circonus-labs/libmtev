@@ -32,17 +32,17 @@
 #ifndef LUA_MTEV_H
 #define LUA_MTEV_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #include <assert.h>
 #include <openssl/x509.h>
 
-#include "mtev_conf.h"
-#include "mtev_dso.h"
-#include "mtev_rest.h"
-#include "mtev_log.h"
-#include "mtev_json.h"
-#include "mtev_hooks.h"
+#include <mtev_conf.h>
+#include <mtev_dso.h>
+#include <mtev_rest.h>
+#include <mtev_log.h>
+#include <mtev_json.h>
+#include <mtev_hooks.h>
 
 #ifdef __cplusplus
 extern "C" {

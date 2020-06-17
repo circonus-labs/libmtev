@@ -34,9 +34,9 @@
 #ifndef _MTEV_LISTENER_H
 #define _MTEV_LISTENER_H
 
-#include "mtev_defines.h"
-#include "eventer/eventer.h"
-#include "mtev_hash.h"
+#include <mtev_defines.h>
+#include <eventer/eventer.h>
+#include <mtev_hash.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>

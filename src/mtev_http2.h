@@ -34,7 +34,6 @@
 #define MTEV_HTTP_2 2
 
 #include <mtev_defines.h>
-#include <mtev_http.h>
 #include <mtev_listener.h>
 #include <eventer/eventer.h>
 

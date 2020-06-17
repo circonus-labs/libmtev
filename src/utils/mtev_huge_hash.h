@@ -33,7 +33,7 @@
 #define _MTEV_HUGE_HASH_H
 
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

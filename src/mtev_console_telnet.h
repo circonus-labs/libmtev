@@ -39,8 +39,8 @@
 #ifndef _MTEV_CONSOLE_TELNET_H
 #define _MTEV_CONSOLE_TELNET_H
 
-#include "mtev_defines.h"
-#include "mtev_hash.h"
+#include <mtev_defines.h>
+#include <mtev_hash.h>
 
 #include <arpa/telnet.h>
 #include <sys/ioctl.h>

@@ -47,7 +47,7 @@
 
 #include <signal.h>
 
-#include "noitedit/histedit.h"
+#include <noitedit/histedit.h>
 
 /*
  * Define here all the signals we are going to handle

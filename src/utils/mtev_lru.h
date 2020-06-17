@@ -32,7 +32,7 @@
 #ifndef _MTEV_LRU_H
 #define _MTEV_LRU_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -34,8 +34,7 @@
 #ifndef _EVENTER_EVENTER_SSL_FD_OPSET_H
 #define _EVENTER_EVENTER_SSL_FD_OPSET_H
 
-#include "mtev_defines.h"
-#include "eventer/eventer.h"
+#include <mtev_defines.h>
 
 #include <openssl/ssl.h>
 

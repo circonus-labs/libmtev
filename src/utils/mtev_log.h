@@ -34,17 +34,17 @@
 #ifndef _UTILS_MTEV_LOG_H
 #define _UTILS_MTEV_LOG_H
 
-#include "mtev_defines.h"
+#include <mtev_defines.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <sys/uio.h>
 #include <sys/time.h>
-#include "mtev_dyn_buffer.h"
-#include "mtev_hash.h"
-#include "mtev_hooks.h"
-#include "mtev_time.h"
-#include "mtev_json.h"
-#include "mtev_zipkin.h"
+#include <mtev_dyn_buffer.h>
+#include <mtev_hash.h>
+#include <mtev_hooks.h>
+#include <mtev_time.h>
+#include <mtev_json.h>
+#include <mtev_zipkin.h>
 
 #ifdef __cplusplus
 extern "C" {

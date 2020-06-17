@@ -45,7 +45,7 @@
 #ifndef _h_el_hist
 #define	_h_el_hist
 
-#include "noitedit/histedit.h"
+#include <noitedit/histedit.h>
 
 typedef int (*hist_fun_t)(ptr_t, HistEvent *, int, ...);
 

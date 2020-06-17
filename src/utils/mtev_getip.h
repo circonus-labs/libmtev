@@ -34,8 +34,8 @@
 #ifndef _UTILS_MTEV_GETIP_H
 #define _UTILS_MTEV_GETIP_H
 
-#include "mtev_config.h"
-#include "mtev_defines.h"
+#include <mtev_config.h>
+#include <mtev_defines.h>
 #include <netinet/in.h>
 
 #ifdef __cplusplus

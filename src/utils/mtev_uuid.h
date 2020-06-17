@@ -44,9 +44,9 @@
 typedef unsigned char uuid_t[16];
 #endif
 
-#include "mtev_uuid_parse.h"
-#include "mtev_uuid_copy.h"
-#include "mtev_uuid_generate.h"
+#include <mtev_uuid_parse.h>
+#include <mtev_uuid_copy.h>
+#include <mtev_uuid_generate.h>
 
 #ifdef __cplusplus
 extern "C" {

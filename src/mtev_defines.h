@@ -34,7 +34,7 @@
 #ifndef _MTEV_DEFINES_H
 #define _MTEV_DEFINES_H
 
-#include "mtev_config.h"
+#include <mtev_config.h>
 
 #define IFS_CH '/'
 
@@ -218,7 +218,7 @@ static inline int portable_readdir_r(DIR *dirp, struct dirent *entry, struct dir
 #define portable_readdir_r readdir_r
 #endif
 #endif
-#include "noitedit/strlcpy.h"
+#include <noitedit/strlcpy.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -32,9 +32,9 @@
 #ifndef _MTEV_CONSOLE_WEBSOCKET_H
 #define _MTEV_CONSOLE_WEBSOCKET_H
 
-#include "mtev_defines.h"
-#include "mtev_hash.h"
-#include "mtev_http.h"
+#include <mtev_defines.h>
+#include <mtev_hash.h>
+#include <mtev_http.h>
 #include <stdarg.h>
 
 #ifdef __cplusplus

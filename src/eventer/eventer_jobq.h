@@ -34,10 +34,9 @@
 #ifndef _MTEV_JOBQUEUE_H
 #define _MTEV_JOBQUEUE_H
 
-#include "mtev_defines.h"
-#include "eventer/eventer.h"
-#include "mtev_sem.h"
-#include "mtev_stats.h"
+#include <mtev_defines.h>
+#include <mtev_sem.h>
+#include <mtev_stats.h>
 
 #include <pthread.h>
 #include <setjmp.h>
