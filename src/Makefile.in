@@ -116,7 +116,7 @@ HEADERS=mtev_capabilities_listener.h mtev_conf.h mtev_version.h \
     noitedit/fgetln.h noitedit/help.h noitedit/hist.h \
     noitedit/histedit.h noitedit/key.h noitedit/map.h noitedit/parse.h \
     noitedit/prompt.h noitedit/refresh.h noitedit/search.h \
-    noitedit/sig.h noitedit/strlcpy.h noitedit/sys.h \
+    noitedit/sig.h noitedit/sys.h \
     noitedit/tokenizer.h noitedit/tty.h noitedit/vi.h \
     aco/aco.h aco/aco_assert_override.h
 
@@ -153,7 +153,7 @@ MTEVEDIT_LIB_OBJS=noitedit/chared.lo noitedit/common.lo \
     noitedit/history.lo noitedit/key.lo noitedit/map.lo \
     noitedit/parse.lo noitedit/prompt.lo noitedit/read.lo \
     noitedit/readline.lo noitedit/refresh.lo noitedit/search.lo \
-    noitedit/sig.lo noitedit/strlcpy.lo noitedit/term.lo \
+    noitedit/sig.lo noitedit/term.lo \
     noitedit/tokenizer.lo noitedit/tty.lo noitedit/vi.lo
 
 EVENTER_OBJS=@EVENTER_OBJS@

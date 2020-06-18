@@ -83,11 +83,10 @@ const char *strnstrn(const char *needle, int needle_len,
 }
 #endif
 
-#undef mtev_memmem
 void *
 mtev_memmem(const void *haystack, size_t haystack_len,
             const void *needle, size_t needle_len) {
-#ifndef BROKEN_MEMMEM
+#if !defined(BROKEN_MEMMEM) && defined(_GNU_SOURCE)
   return memmem(haystack, haystack_len, needle, needle_len);
 #else
   return (void *)match_needle_haystack(needle, needle_len, haystack, haystack_len);
@@ -219,3 +218,37 @@ mtev_str_buff_to_string(mtev_str_buff_t **buff) {
   return string;
 }
 
+#ifndef HAVE_STRLCPY
+size_t __attribute__((weak)) strlcpy(char * restrict dst, const char * restrict src, size_t size)
+{
+	if(size) {
+		strncpy(dst, src, size-1);
+		dst[size-1] = '\0';
+	} else {
+		dst[0] = '\0';
+	}
+	return strlen(src);
+}
+#endif
+size_t mtev_strlcpy(char * restrict dst, const char * restrict src, size_t size) {
+  return strlcpy(dst, src, size);
+}
+
+#ifndef HAVE_STRLCAT
+size_t __attribute__((weak)) strlcat(char * restrict dst, const char * restrict src, size_t size)
+{
+	int dl = strlen(dst);
+	int sz = size-dl-1;
+	
+	if(sz >= 0) {
+		strncat(dst, src, sz);
+		dst[dl+sz] = '\0';
+	}
+
+	return dl+strlen(src);
+}
+#endif
+
+size_t mtev_strlcat(char * restrict dst, const char * restrict src, size_t size) {
+  return strlcat(dst, src, size);
+}
