@@ -219,7 +219,7 @@ mtev_str_buff_to_string(mtev_str_buff_t **buff) {
 }
 
 #ifndef HAVE_STRLCPY
-size_t __attribute__((weak)) strlcpy(char *dst, const char *src, size_t size)
+size_t __attribute__((weak)) strlcpy(char * restrict dst, const char * restrict src, size_t size)
 {
 	if(size) {
 		strncpy(dst, src, size-1);
@@ -230,12 +230,12 @@ size_t __attribute__((weak)) strlcpy(char *dst, const char *src, size_t size)
 	return strlen(src);
 }
 #endif
-size_t mtev_strlcpy(char *dst, const char *src, size_t size) {
+size_t mtev_strlcpy(char * restrict dst, const char * restrict src, size_t size) {
   return strlcpy(dst, src, size);
 }
 
 #ifndef HAVE_STRLCAT
-size_t __attribute__((weak)) strlcat(char *dst, const char *src, size_t size)
+size_t __attribute__((weak)) strlcat(char * restrict dst, const char * restrict src, size_t size)
 {
 	int dl = strlen(dst);
 	int sz = size-dl-1;
@@ -249,6 +249,6 @@ size_t __attribute__((weak)) strlcat(char *dst, const char *src, size_t size)
 }
 #endif
 
-size_t mtev_strlcat(char *dst, const char *src, size_t size) {
+size_t mtev_strlcat(char * restrict dst, const char * restrict src, size_t size) {
   return strlcat(dst, src, size);
 }

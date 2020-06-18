@@ -60,8 +60,8 @@ API_EXPORT(void *) mtev_memmem(const void *haystack, size_t haystacklen,
                                const void *needle, size_t needlelen);
 API_EXPORT(char *) mtev__strndup(const char *src, size_t len) __attribute__((deprecated)); /*1.2.9*/
 API_EXPORT(char *) mtev_strndup(const char *src, size_t len);
-API_EXPORT(size_t) mtev_strlcpy(char *dst, const char *src, size_t size);
-API_EXPORT(size_t) mtev_strlcat(char *dst, const char *src, size_t size);
+API_EXPORT(size_t) mtev_strlcpy(char * restrict dst, const char * restrict src, size_t size);
+API_EXPORT(size_t) mtev_strlcat(char * restrict dst, const char * restrict src, size_t size);
 
 API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc(void);
 API_EXPORT(mtev_prependable_str_buff_t *) mtev_prepend_str_alloc_sized(size_t initial_len);
@@ -77,10 +77,10 @@ API_EXPORT(int) mtev_str_buff_len(mtev_str_buff_t *buff);
 API_EXPORT(char*) mtev_str_buff_to_string(mtev_str_buff_t **buff);
 
 #ifndef HAVE_STRLCPY
-API_EXPORT(size_t) strlcpy(char *dst, const char *src, size_t size);
+API_EXPORT(size_t) strlcpy(char * restrict dst, const char * restrict src, size_t size);
 #endif
 #ifndef HAVE_STRLCAT
-API_EXPORT(size_t) strlcat(char *dst, const char *src, size_t size);
+API_EXPORT(size_t) strlcat(char * restrict dst, const char * restrict src, size_t size);
 #endif
 
 #ifdef __cplusplus
