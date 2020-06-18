@@ -4,6 +4,8 @@
 
 ## 1.12
 
+ * Add functional probability for `mtev_frrh` via `mtev_frrh_set_prob_function`
+
 ### 1.12.1
 
  * Runtime detection of ASAN to avoid `stack-buffer-underflow` failures

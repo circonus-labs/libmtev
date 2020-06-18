@@ -37,6 +37,7 @@ struct mtev_frrh_t {
   uint64_t size;
   size_t datasize;
   uint32_t prob;
+  mtev_boolean (*probf)(uint32_t prob, const char *, uint32_t, const void *);
   mtev_frrh_hash hashf;
   mtev_frrh_alloc_entry allocf;
   mtev_frrh_free_entry freef;
@@ -54,6 +55,12 @@ static uint64_t xxhash(const void *buf, size_t len) {
 }
 #undef XXH_PRIVATE_API
 
+static mtev_boolean random_prob(uint32_t prob, const char *k, uint32_t klen, const void *data) {
+  (void)k;
+  (void)klen;
+  (void)data;
+  return prob <= (uint32_t)mtev_rand();
+}
 mtev_frrh_t *
 mtev_frrh_alloc(uint64_t size, size_t datasize, uint32_t prob,
                 mtev_frrh_hash hashf, mtev_frrh_alloc_entry allocf,
@@ -69,6 +76,7 @@ mtev_frrh_alloc(uint64_t size, size_t datasize, uint32_t prob,
   f->size = size;
   f->datasize = datasize;
   f->prob = UINT_MAX - prob;
+  f->probf = random_prob;
   if(!hashf) hashf = xxhash;
   f->hashf = hashf;
   if(!allocf) allocf = malloc;
@@ -81,6 +89,11 @@ mtev_frrh_alloc(uint64_t size, size_t datasize, uint32_t prob,
 void
 mtev_frrh_adjust_prob(mtev_frrh_t *f, uint32_t prob) {
   f->prob = UINT_MAX - prob;
+}
+
+void
+mtev_frrh_set_prob_function(mtev_frrh_t *f, mtev_boolean (*probf)(uint32_t prob, const char *key, uint32_t keylen, const void *data)) {
+  f->probf = probf;
 }
 
 void
@@ -110,7 +123,7 @@ mtev_frrh_set(mtev_frrh_t *f, const void *key, uint32_t keylen, const void *data
   uint32_t offset = (hval % f->size);
   while(1) {
     mtev_frrh_entry_t *prev = ck_pr_load_ptr(&f->map[offset]);
-    if(prev == NULL || f->prob == 0 || f->prob <= (uint32_t)mtev_rand()) {
+    if(prev == NULL || f->prob == 0 || f->probf(f->prob, (const char *)prev->key, prev->keylen, MTEV_FRRH_DATA(prev, prev->keylen))) {
       /* attempt replace */
       mtev_frrh_entry_t *e = f->allocf(MTEV_FRRH_BASE_SIZE(0, keylen) + f->datasize);
       e->keylen = keylen;

@@ -74,6 +74,14 @@ API_EXPORT(mtev_frrh_t *)
 API_EXPORT(void)
   mtev_frrh_adjust_prob(mtev_frrh_t *, uint32_t);
 
+/*! \fn void mtev_frrh_set_prob_function(mtev_frrh_t *cache, mtev_boolean (*func)(uint32_t prob, const char *key, uint32_t keylen, const void *data))
+ *  \brief Set a probability tester.
+ *  \param cache the `mtev_frrh_t` on which to change the probability tester.
+ *  \param func a funtion taking the configured probability and existing key/data return true if it should be replaced.
+ */
+API_EXPORT(void)
+  mtev_frrh_set_prob_function(mtev_frrh_t *, mtev_boolean (*func)(uint32_t prob, const char *key, uint32_t keylen, const void *data));
+
 /*! \fn void mtev_frrh_stats(mtev_frrh_t *cache, uint64_t *accesses, uint64_t *hits)
     \brief Retrieve access and hit statatistics.
     \param cache the `mtev_frrh_t` in question.
