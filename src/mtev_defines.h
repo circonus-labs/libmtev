@@ -89,7 +89,7 @@
 #  define SIZEOF_VOID_P SIZEOF_VOID__
 #endif
 
-/* Deal with the `restrict` keywork by making `__restrict` work */
+/* Deal with the `restrict` keyword by making `__restrict` work */
 #ifndef __restrict
   #if !defined(__cplusplus) /* C++11 compilers seem to define this */
     #if (__STDC_VERSION__ >= 199901L)
