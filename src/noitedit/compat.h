@@ -61,10 +61,6 @@
 #define issetugid() (getuid()!=geteuid() || getegid()!=getgid())
 #endif
 
-#ifndef HAVE_STRLCPY
-#include "noitedit/strlcpy.h"
-#endif
-
 #if HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
 #endif

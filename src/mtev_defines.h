@@ -218,7 +218,7 @@ static inline int portable_readdir_r(DIR *dirp, struct dirent *entry, struct dir
 #define portable_readdir_r readdir_r
 #endif
 #endif
-#include <noitedit/strlcpy.h>
+#include <mtev_str.h>
 
 #ifdef __cplusplus
 extern "C" {
