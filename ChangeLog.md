@@ -4,7 +4,11 @@
 
 ## 1.12
 
+### 1.12.2
+
  * Add functional probability for `mtev_frrh` via `mtev_frrh_set_prob_function`
+ * Remove `noitedit/strlcpy.h` header and provide that via `mtev_str.h`
+ * Add `mtev_strlcpy` and `mtev_strlcat`.
 
 ### 1.12.1
 
