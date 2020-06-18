@@ -86,7 +86,7 @@ const char *strnstrn(const char *needle, int needle_len,
 void *
 mtev_memmem(const void *haystack, size_t haystack_len,
             const void *needle, size_t needle_len) {
-#ifndef BROKEN_MEMMEM
+#if !defined(BROKEN_MEMMEM) && defined(_GNU_SOURCE)
   return memmem(haystack, haystack_len, needle, needle_len);
 #else
   return (void *)match_needle_haystack(needle, needle_len, haystack, haystack_len);
