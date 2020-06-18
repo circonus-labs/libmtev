@@ -76,6 +76,9 @@ MODULES=$(FQ_MODULES) $(AMQP_MODULES) $(LUA_MODULES) zipkin_jaeger.@MODULEEXT@ h
 
 all:	$(MODULES) $(MTEV4LUA)
 
+../mtev_version.h:
+	$(Q)$(MAKE) -C .. mtev_version.h
+
 .xml.xmlh:
 	$(Q)$(XML2H) `echo $< | sed -e 's/\.xml$$//;'`_xml_description < $< > $@
 
