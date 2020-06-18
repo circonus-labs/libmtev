@@ -89,6 +89,18 @@
 #  define SIZEOF_VOID_P SIZEOF_VOID__
 #endif
 
+/* Deal with the `restrict` keywork by making `__restrict` work */
+#ifndef __restrict
+  #if !defined(__cplusplus) /* C++11 compilers seem to define this */
+    #if (__STDC_VERSION__ >= 199901L)
+      #define __restrict restrict
+    #endif
+  #endif
+#endif
+#ifndef __restrict
+#define __restrict
+#endif
+
 /* BIND, Kerberos and Berkeley DB use __BIT_TYPES_DEFINED__ to protect
  * against multiple redefinitions of these types (uint{8,16,32,64}_t)
  * and so shall we.
