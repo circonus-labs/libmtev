@@ -366,11 +366,11 @@ mtev_listener_acceptor(eventer_t e, int mask,
 #endif
 #endif
         if(proto_n < 0) {
-          mtevEL(nldeb, MLKV{ MLKV_INT64("errno", errno), MLKV_END }, "getprotobyname_r(\"tcp\") failed: %s\n",
+          mtevEL(nldeb, MLKV( MLKV_INT64("errno", errno), MLKV_END ), "getprotobyname_r(\"tcp\") failed: %s\n",
                  strerror(errno));
         } else {
           if(setsockopt(conn, proto_n, TCP_NODELAY, (void *)&nodelay, sizeof(nodelay)) < 0) {
-            mtevEL(nldeb, MLKV{ MLKV_INT64("errno", errno), MLKV_END }, "setsockopt TCP_NODELAY failed: %s\n",
+            mtevEL(nldeb, MLKV( MLKV_INT64("errno", errno), MLKV_END ), "setsockopt TCP_NODELAY failed: %s\n",
                    strerror(errno));
           }
         }

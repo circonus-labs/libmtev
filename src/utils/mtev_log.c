@@ -174,7 +174,7 @@ static int DEBUG_LOG_ENABLED(void) {
 struct _mtev_log_stream_outlet_list {
   mtev_log_stream_t outlet;
   mtev_boolean filter_needs_message;
-  mtev_boolean (*filter)(void *, mtev_log_kv_t ***, mtev_LogLine_fb_t);
+  mtev_boolean (*filter)(void *, const mtev_log_kv_t * const *, mtev_LogLine_fb_t);
   void (*filter_free)(void *);
   void *filter_closure;
   struct _mtev_log_stream_outlet_list *next;
@@ -1784,10 +1784,10 @@ mtev_log_stream_add_stream(mtev_log_stream_t ls, mtev_log_stream_t outlet) {
 }
 
 static mtev_boolean
-mtev_log_filter_exec(void *closure, mtev_log_kv_t ***attrs, mtev_LogLine_fb_t ll) {
+mtev_log_filter_exec(void *closure, const mtev_log_kv_t * const *attrs, mtev_LogLine_fb_t ll) {
   mtev_logic_ast_t *ast = closure;
   if(!filter_runtime) return mtev_false;
-  if(attrs) return mtev_logic_exec(filter_kv_runtime, ast, attrs);
+  if(attrs) return mtev_logic_exec(filter_kv_runtime, ast, (void *)attrs);
   return mtev_logic_exec(filter_runtime, ast, ll);
 }
 
@@ -1795,9 +1795,9 @@ static mtev_boolean
 mtev_log_kvset_logic_lookup(void *closure, const char *name, mtev_logic_var_t *out) {
   int i, j;
   char id_str[UUID_STR_LEN+1];
-  mtev_log_kv_t ***kvsets = closure;
-  for(mtev_log_kv_t **kvset = kvsets[i=0]; kvset; kvset = kvsets[++i]) {
-    for(mtev_log_kv_t *kv = kvset[j=0]; kv->key; kv = kvset[++j]) {
+  mtev_log_kv_t **kvsets = closure;
+  for(mtev_log_kv_t *kvset = kvsets[i=0]; kvset; kvset = kvsets[++i]) {
+    for(mtev_log_kv_t *kv = &kvset[j=0]; kv->key; kv = &kvset[++j]) {
       if(!strcmp(name, kv->key)) {
         switch(kv->value_type) {
           case MTEV_LOG_KV_TYPE_INT64:
@@ -2415,9 +2415,8 @@ inline int
 mtev_vlog(mtev_log_stream_t ls, const struct timeval *now,
           const char *file, int line,
           const char *format, va_list arg) {
-  return mtev_ex_vlog(ls, now, file, line,
-      (mtev_log_kv_t *[]){ &(mtev_log_kv_t){ NULL, 0, .value = { .v_string = NULL } } },
-      format, arg);
+  const mtev_log_kv_t meta[] = MLKV( MLKV_END );
+  return mtev_ex_vlog(ls, now, file, line, meta, format, arg);
 }
 
 /* flatbuffers construction can alloc a lot, this is problematic for both
@@ -2586,7 +2585,7 @@ enum construction_required_t {
 };
 
 static inline enum construction_required_t
-mtev_log_construction_needed(mtev_log_stream_t ls, mtev_log_kv_t ***kvsets,
+mtev_log_construction_needed(mtev_log_stream_t ls, const mtev_log_kv_t * const *kvsets,
                              mtev_boolean has_message,
                              struct filter_reuse_tracker *tracker) {
   struct _mtev_log_stream_outlet_list *node;
@@ -2625,7 +2624,7 @@ mtev_log_construction_needed(mtev_log_stream_t ls, mtev_log_kv_t ***kvsets,
 int
 mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
              const char *file, int line,
-             mtev_log_kv_t **kvs,
+             const mtev_log_kv_t * const kvs,
              const char *format, va_list arg) {
   /* These will track filter evals so we don't do them twice */
   struct filter_reuse_tracker filter_reuse;
@@ -2664,17 +2663,18 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
     const char *tname = eventer_get_thread_name();
     uint32_t threadid = mtev_thread_id();
 
-    mtev_log_kv_t *message_kv = MLKV_STR("message", "");
-    mtev_log_kv_t ***kvsets = (mtev_log_kv_t **[]){ kvs,
-      MLKV{ MLKV_NUM("timestamp", (double)now->tv_sec + (double)now->tv_usec / 1000000.0),
-            MLKV_NUM("threadid", threadid),
-            MLKV_STR("threadname", tname),
-            MLKV_STR("file", file),
-            MLKV_NUM("line", line),
-            MLKV_STR("facility", ls->name),
-            message_kv,
-            MLKV_END },
-      NULL };
+    buffer[0] = '\0';
+    const mtev_log_kv_t builtin_kvs[] = MLKV(
+      MLKV_STR("message", buffer),
+      MLKV_DOUBLE("timestamp", (double)now->tv_sec + (double)now->tv_usec / 1000000.0),
+      MLKV_INT64("threadid", threadid),
+      MLKV_STR("threadname", tname),
+      MLKV_STR("file", file),
+      MLKV_INT64("line", line),
+      MLKV_STR("facility", ls->name),
+      MLKV_END
+    );
+    const mtev_log_kv_t * const kvsets[] = { kvs, builtin_kvs, NULL };
 
     enum construction_required_t cr = 
       mtev_log_construction_needed(ls, kvsets, mtev_false, &filter_reuse);
@@ -2709,7 +2709,9 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
       if(len > (ssize_t)MTEV_MAYBE_SIZE(buffer)) len = MTEV_MAYBE_SIZE(buffer);
     }
 
-    message_kv->value.v_string = buffer;
+    if(builtin_kvs[0].value.v_string != buffer) {
+      *((char **)&builtin_kvs[0].value.v_string) = buffer;
+    }
     if(cr == MESSAGE_NEEDED_TO_DETERMINE) {
       cr = mtev_log_construction_needed(ls, kvsets, mtev_true, &filter_reuse);
       if(cr != YES_CONSTRUCTION_REQUIRED) {
@@ -2728,7 +2730,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
     if(file) mtev_LogLine_file_create_str(B, file);
     if(tname) mtev_LogLine_threadname_create_str(B, tname);
     if(ls->name) mtev_LogLine_facility_create_str(B, ls->name);
-    if(activespan || (kvs && kvs[0]->key != NULL)) {
+    if(activespan || (kvs && kvs[0].key != NULL)) {
       int kvi = 0;
       mtev_LogLine_kv_start(B);
 
@@ -2751,7 +2753,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
       }
 #undef FB_ZIPID
 
-      for(mtev_log_kv_t *kv = kvs[kvi]; (kv = kvs[kvi])->key != NULL; kvi++) {
+      for(const mtev_log_kv_t *kv = &kvs[kvi]; (kv = &kvs[kvi])->key != NULL; kvi++) {
         mtev_LogLine_kv_push_start(B);
         mtev_KVPair_key_create_str(B, kv->key);
         switch(kv->value_type) {
@@ -2832,7 +2834,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
 
 int
 mtev_ex_log(mtev_log_stream_t ls, const struct timeval *now,
-            const char *file, int line, mtev_log_kv_t **ex, const char *format, ...) {
+            const char *file, int line, const mtev_log_kv_t * const ex, const char *format, ...) {
   int rv;
   va_list arg;
   va_start(arg, format);

@@ -88,18 +88,14 @@ typedef void *mtev_LogLine_fb_t;
 /* Use as:
  * MLKV( MLKV_STR("foo", "string"), MLKV_INT64("bar", 1234), MLKV_END )
  */
-#ifdef MTEV_USE_MLKV_2
-#define MLKV(a...) (mtev_log_kv_t *[]){ a }
-#else
-#define MLKV (mtev_log_kv_t *[])
-#endif
-#define MLKV_STR(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_STRING, .value = { .v_string = (v) } }
-#define MLKV_STRN(k,v,l) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_STRINGN, .value = { .v_string = (v) }, .len = (l) }
-#define MLKV_UUID(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_UUID, .value = { .v_string = (const char *)(v) }, .len = UUID_SIZE }
-#define MLKV_INT64(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_INT64, .value = { .v_int64 = (v) } }
-#define MLKV_UINT64(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_UINT64, .value = { .v_uint64 = (v) } }
-#define MLKV_DOUBLE(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_DOUBLE, .value = { .v_double = (v) } }
-#define MLKV_END &(mtev_log_kv_t){ NULL, MTEV_LOG_KV_TYPE_STRING, .value = { .v_string = NULL } }
+#define MLKV(a...) { a }
+#define MLKV_STR(k,v) (const mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_STRING, .value = { .v_string = (v) } }
+#define MLKV_STRN(k,v,l) (const mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_STRINGN, .value = { .v_string = (v) }, .len = (l) }
+#define MLKV_UUID(k,v) (const mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_UUID, .value = { .v_string = (const char *)(v) }, .len = UUID_SIZE }
+#define MLKV_INT64(k,v) (const mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_INT64, .value = { .v_int64 = (v) } }
+#define MLKV_UINT64(k,v) (const mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_UINT64, .value = { .v_uint64 = (v) } }
+#define MLKV_DOUBLE(k,v) (const mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_DOUBLE, .value = { .v_double = (v) } }
+#define MLKV_END (const mtev_log_kv_t){ NULL, MTEV_LOG_KV_TYPE_STRING, .value = { .v_string = NULL } }
 #define MLKV_NUM(name,value) _Generic((value), \
   bool: MLKV_INT64(name,(int64_t)(value)), char: MLKV_INT64(name,(int64_t)(value)), \
   signed char: MLKV_UINT64(name,(uint64_t)(value)), unsigned char: MLKV_UINT64(name,(uint64_t)(value)), \
@@ -489,7 +485,7 @@ API_EXPORT(void) mtev_log_stream_set_property(mtev_log_stream_t ls,
 */
 API_EXPORT(void) mtev_log_stream_free(mtev_log_stream_t ls);
 
-/*! \fn int mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line, mtev_log_kv_t **kvpairs, const char *format, va_list arg)
+/*! \fn int mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line, const mtev_log_kv_t *kvpairs, const char *format, va_list arg)
     \brief Log to a log stream (metadata, `va_list`)
     \param ls a log stream
     \param now the current time
@@ -504,10 +500,10 @@ API_EXPORT(void) mtev_log_stream_free(mtev_log_stream_t ls);
  */
 API_EXPORT(int) mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *,
                           const char *file, int line,
-                          mtev_log_kv_t **,
+                          const mtev_log_kv_t * const,
                           const char *format, va_list arg);
 
-/*! \fn int mtev_ex_log(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line, mtev_log_kv_t **kvpairs, const char *format, ...)
+/*! \fn int mtev_ex_log(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line, const mtev_log_kv_t *kvpairs, const char *format, ...)
     \brief Log to a log stream (metadata, va_list)
     \param ls a log stream
     \param now the current time
@@ -527,7 +523,7 @@ API_EXPORT(int) mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *,
  */
 API_EXPORT(int) mtev_ex_log(mtev_log_stream_t ls, const struct timeval *,
                           const char *file, int line,
-                          mtev_log_kv_t **,
+                          const mtev_log_kv_t * const,
                           const char *format, ...)
 #ifdef __GNUC__
   __attribute__ ((format (printf, 6, 7)))
@@ -713,7 +709,8 @@ API_EXPORT(void)
       } \
     } \
     if(mtevLT_doit) { \
-      mtev_ex_log((ls), t, __FILE__, __LINE__, ex, args); \
+      const mtev_log_kv_t __meta[] = ex; \
+      mtev_ex_log((ls), t, __FILE__, __LINE__, __meta, args); \
     } \
   } \
 } while(0)
@@ -741,7 +738,8 @@ API_EXPORT(void)
       } \
     } \
     if(mtevLT_doit) { \
-      mtev_ex_log((ls), NULL, __FILE__, __LINE__, ex, args); \
+      const mtev_log_kv_t __meta[] = ex; \
+      mtev_ex_log((ls), NULL, __FILE__, __LINE__, __meta, args); \
     } \
   } \
 } while(0)
