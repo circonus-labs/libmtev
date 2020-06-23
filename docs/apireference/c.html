@@ -2271,11 +2271,12 @@ necessary activity to make progress.</p>
 <blockquote>
 <p>See eventer_free.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">eventer_deref</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
 <li><code>e</code> the event to dereference.</li>
+<li><strong>RETURN</strong> <code>mtev_true</code> if the event was freed.</li>
 </ul>
 <h4 id="eventerfdopsetgetaccept">eventer_fd_opset_get_accept</h4>
 <blockquote>
@@ -2358,11 +2359,12 @@ eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
 <blockquote>
 <p>Dereferences the event specified.</p>
 </blockquote>
-<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<pre><code class="lang-c"><span class="hljs-function">mtev_boolean
 <span class="hljs-title">eventer_free</span><span class="hljs-params">(eventer_t e)</span>
 </span></code></pre>
 <ul>
 <li><code>e</code> the event to dereference.</li>
+<li><strong>RETURN</strong> <code>mtev_true</code> if the event was freed.</li>
 </ul>
 <h4 id="eventergetcallback">eventer_get_callback</h4>
 <blockquote>
@@ -3518,6 +3520,25 @@ mtev_frrh_alloc(<span class="hljs-keyword">uint64_t</span> size, <span class="hl
 <li><code>keylen</code> the length of the key in bytes.</li>
 <li><code>data</code> a pointer to the data (must be of the specified datasize for the <code>mtev_frrh_t</code>.</li>
 <li><strong>RETURN</strong> <code>mtev_true</code> if added, <code>mtev_false</code> if not.</li>
+</ul>
+<h4 id="mtevfrrhsetprobfunction">mtev_frrh_set_prob_function</h4>
+<pre><code class="lang-c">void
+mtev_frrh_set_prob_function(mtev_frrh_t *cache, mtev_boolean (*func)(uint32_t prob, const char *key,
+                            uint32_t keylen, const void *data))
+</code></pre>
+<p> *</p>
+<blockquote>
+<p>Set a probability tester.</p>
+</blockquote>
+<ul>
+<li><ul>
+<li><code>cache</code> the <code>mtev_frrh_t</code> on which to change the probability tester.</li>
+</ul>
+</li>
+<li><ul>
+<li><code>func</code> a function taking the configured probability and existing key/data return true if it should be replaced.</li>
+</ul>
+</li>
 </ul>
 <h4 id="mtevfrrhstats">mtev_frrh_stats</h4>
 <blockquote>

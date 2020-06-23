@@ -2067,12 +2067,13 @@ necessary activity to make progress.
 >See eventer_free.
 
 ```c
-void
+mtev_boolean
 eventer_deref(eventer_t e)
 ```
 
 
   * `e` the event to dereference.
+  * **RETURN** `mtev_true` if the event was freed.
 
 
 #### eventer_fd_opset_get_accept
@@ -2178,12 +2179,13 @@ eventer_foreach_timedevent(void (*fn)(eventer_t, void *), void *closure)
 >Dereferences the event specified.
 
 ```c
-void
+mtev_boolean
 eventer_free(eventer_t e)
 ```
 
 
   * `e` the event to dereference.
+  * **RETURN** `mtev_true` if the event was freed.
 
 
 #### eventer_get_callback
@@ -3638,6 +3640,22 @@ mtev_frrh_set(mtev_frrh_t *cache, const void *key, uint32_t keylen, const void *
   * `data` a pointer to the data (must be of the specified datasize for the `mtev_frrh_t`.
   * **RETURN** `mtev_true` if added, `mtev_false` if not.
 
+
+#### mtev_frrh_set_prob_function
+
+```c
+void
+mtev_frrh_set_prob_function(mtev_frrh_t *cache, mtev_boolean (*func)(uint32_t prob, const char *key,
+                            uint32_t keylen, const void *data))
+```
+
+ *
+> Set a probability tester.
+
+
+ *    * `cache` the `mtev_frrh_t` on which to change the probability tester.
+ *    * `func` a function taking the configured probability and existing key/data return true if it should be replaced.
+ 
 
 #### mtev_frrh_stats
 
