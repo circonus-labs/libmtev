@@ -4,6 +4,8 @@
 
 ## 1.12
 
+ * Fix string-matching in `mtev_logic`
+
 ### 1.12.2
 
  * Add functional probability for `mtev_frrh` via `mtev_frrh_set_prob_function`
