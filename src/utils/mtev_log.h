@@ -86,9 +86,13 @@ typedef struct {
 typedef void *mtev_LogLine_fb_t;
 
 /* Use as:
- * MLKV{ MLKV_STR("foo", "string"), MLKV_INT64("bar", 1234), MLKV_END }
+ * MLKV( MLKV_STR("foo", "string"), MLKV_INT64("bar", 1234), MLKV_END )
  */
+#ifdef MTEV_USE_MLKV_2
+#define MLKV(a...) (mtev_log_kv_t *[]){ a }
+#else
 #define MLKV (mtev_log_kv_t *[])
+#endif
 #define MLKV_STR(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_STRING, .value = { .v_string = (v) } }
 #define MLKV_STRN(k,v,l) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_STRINGN, .value = { .v_string = (v) }, .len = (l) }
 #define MLKV_UUID(k,v) &(mtev_log_kv_t){ (k), MTEV_LOG_KV_TYPE_UUID, .value = { .v_string = (const char *)(v) }, .len = UUID_SIZE }
