@@ -4,6 +4,14 @@
 
 ## 1.12
 
+### 1.12.3
+
+ * Various coverity fixes.
+ * Support the new `MLKV()` macro instead of `MLKV{}` mistake if
+   `MTEV_USE_MLKV_2` is defined.  This will become the default in the next
+   major release and users can get their code ready now by adding
+   `-DMTEV_USE_MLKV_2` to their CPPFLAGS. This is not ABI breaking, but next
+   release will break the ABI such that C++ can be supported.
  * Fix string-matching in `mtev_logic`
 
 ### 1.12.2
