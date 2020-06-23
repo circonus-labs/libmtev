@@ -210,7 +210,7 @@ mtev_lru_get(mtev_lru_t *c, const char *key, size_t key_len, void **value)
 {
   char tempkey_buf[ALLOCA_LIMIT];
   struct lru_key *tempkey = NULL;
-  if (key_len <= ALLOCA_LIMIT) {
+  if ((sizeof(struct lru_key) + key_len) <= ALLOCA_LIMIT) {
     tempkey = (struct lru_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lru_key) + key_len);
@@ -221,7 +221,7 @@ mtev_lru_get(mtev_lru_t *c, const char *key, size_t key_len, void **value)
   unsigned long hash = CK_HS_HASH(&c->hash, lru_entry_hash, tempkey);
   pthread_mutex_lock(&c->mutex);
   void *entry = ck_hs_get(&c->hash, hash, tempkey);
-  if (key_len > ALLOCA_LIMIT) {
+  if ((sizeof(struct lru_key) + key_len) > ALLOCA_LIMIT) {
     free(tempkey);
   }
 
@@ -261,7 +261,7 @@ mtev_lru_remove(mtev_lru_t *c, const char *key, size_t key_len)
 {
   char tempkey_buf[ALLOCA_LIMIT];
   struct lru_key *tempkey = NULL;
-  if (key_len <= ALLOCA_LIMIT) {
+  if ((sizeof(struct lru_key) + key_len) <= ALLOCA_LIMIT) {
     tempkey = (struct lru_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lru_key) + key_len);
@@ -273,7 +273,7 @@ mtev_lru_remove(mtev_lru_t *c, const char *key, size_t key_len)
   void *rval = NULL;
   pthread_mutex_lock(&c->mutex);
   void *entry = ck_hs_remove(&c->hash, hash, tempkey);
-  if (key_len > ALLOCA_LIMIT) {
+  if ((sizeof(struct lru_key) + key_len) > ALLOCA_LIMIT) {
     free(tempkey);
   }
   if (entry != NULL) {

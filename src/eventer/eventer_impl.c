@@ -1430,9 +1430,9 @@ int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct t
   eventer_callback_prep(e, m, c, n);
   rmask = f(e, m, c, n);
   eventer_callback_cleanup(e, rmask);
-  eventer_deref(e);
+  mtev_boolean freed = eventer_deref(e);
   eventer_set_this_event(previous_event);
-  if(dur) {
+  if(!freed && dur) {
     *dur = mtev_gethrtime() - start;
     if(eventer_in_loop()) {
       if(loop_callback_latency_threshold_ms >= 0 &&

@@ -31,7 +31,7 @@
 #define MTEV_CONTROL_REVERSE   0x52455645 /* "REVE" */
 #define DEFAULT_MTEV_CONNECTION_TIMEOUT 60000 /* 60 seconds */
 
-#define IFCMD(f, s) if((f)->command && (f)->buff_len == strlen(s) && !strncmp((f)->buff, s, strlen(s)))
+#define IFCMD(f, s) if((f)->command && (f)->buff_len == strlen(s) && (f)->buff && !strncmp((f)->buff, s, strlen(s)))
 #define GET_CONF_STR(nctx, key, cn) do { \
   void *vcn; \
   cn = NULL; \
@@ -233,14 +233,20 @@ mtev_reverse_socket_ref(void *vrc) {
   reverse_socket_t *rc = (reverse_socket_t*)vrc;
   ck_pr_inc_32(&rc->refcnt);
 }
-void
+bool
 mtev_reverse_socket_deref(void *vrc) {
   reverse_socket_t *rc = (reverse_socket_t*)vrc;
   bool zero;
   ck_pr_dec_32_zero(&rc->refcnt, &zero);
   if(zero) {
     mtev_reverse_socket_free(rc);
+    return true;
   }
+  return false;
+}
+void
+mtev_reverse_socket_deref_noreturn(void *vrc) {
+  (void)mtev_reverse_socket_deref(vrc);
 }
 
 static void *mtev_reverse_socket_alloc(void) {
@@ -366,7 +372,7 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
   APPEND_OUT(rc, &frame);
 }
 
-static void
+static bool
 mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t e) {
   (void)e;
   eventer_t ce = NULL;
@@ -398,7 +404,7 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t
   }
   rc->data.channels[i].incoming_tail = NULL;
   pthread_mutex_unlock(&rc->lock);
-  mtev_reverse_socket_deref(rc);
+  return mtev_reverse_socket_deref(rc);
 }
 
 static void
@@ -431,7 +437,8 @@ mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
   }
   pthread_mutex_unlock(&rc->lock);
   for(i=0;i<MAX_CHANNELS;i++) {
-    mtev_reverse_socket_channel_shutdown(rc, i, NULL);
+    bool freed = mtev_reverse_socket_channel_shutdown(rc, i, NULL);
+    assert(!freed);
   }
   pthread_mutex_lock(&rc->lock);
   memset(&rc->data, 0, sizeof(reverse_socket_data_t));
@@ -487,7 +494,8 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     eventer_remove_fde(e);
     eventer_close(e, &write_mask);
     CHANNEL.pair[0] = CHANNEL.pair[1] = -1;
-    mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
+    bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
+    assert(!freed);
     mtev_reverse_socket_deref(cct->parent);
     free(cct);
     return 0;
@@ -993,7 +1001,7 @@ socket_error:
 
   if(!rc) {
     rc = mtev_reverse_socket_alloc();
-    mtev_acceptor_closure_set_ctx(ac, rc, mtev_reverse_socket_deref);
+    mtev_acceptor_closure_set_ctx(ac, rc, mtev_reverse_socket_deref_noreturn);
     if(!rc->data.buff) rc->data.buff = malloc(CMD_BUFF_LEN);
     /* expect: "REVERSE /<id>\r\n"  ... "REVE" already read */
     /*              [ 5 ][ X][ 2]  */
@@ -2221,7 +2229,7 @@ void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
                                mtev_reverse_client_handler,
                                mtev_reverse_socket_alloc,
                                NULL,
-                               mtev_reverse_socket_deref);
+                               mtev_reverse_socket_deref_noreturn);
 
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/reverse/", "^show$", rest_show_reverse,
@@ -2289,7 +2297,7 @@ mtev_lua_help_initiate_mtev_connection(const char *address, int port,
                            address, port, sslconfig, config,
                            mtev_reverse_client_handler,
                            mtev_reverse_socket_alloc(),
-                           mtev_reverse_socket_deref);
+                           mtev_reverse_socket_deref_noreturn);
   return 0;
 }
 void

@@ -3627,9 +3627,9 @@ mtev_lua_pcre_gc(lua_State *L) {
   return 0;
 }
 
-#define SPLIT_PATH(path, base, element) do { \
+#define SPLIT_PATH(path, base, element) char base_buf[4096]; \
+do { \
   char *endp; \
-  char base_buf[4096]; \
   element = NULL; \
   if(sizeof(base_buf) < strlen(path)+1) luaL_error(L, "path overflow"); \
   base = base_buf; \

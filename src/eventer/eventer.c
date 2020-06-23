@@ -215,10 +215,8 @@ eventer_t eventer_alloc_asynch_timeout(eventer_func_t func, void *closure,
   return e;
 }
 
-void eventer_free(eventer_t e) {
-  bool zero;
-  ck_pr_dec_32_zero(&e->refcnt, &zero);
-  if(zero) {
+mtev_boolean eventer_free(eventer_t e) {
+  if(ck_pr_dec_32_is_zero(&e->refcnt)) {
     ck_pr_dec_64(&ealloccnt);
     for(int i=0; i<eventer_contexts_cnt; i++) {
       if(eventer_contexts[i].opset->eventer_t_deinit) {
@@ -226,7 +224,9 @@ void eventer_free(eventer_t e) {
       }
     }
     free(e);
+    return mtev_true;
   }
+  return mtev_false;
 }
 
 int eventer_get_mask(eventer_t e) { return e->mask; }
@@ -280,8 +280,8 @@ void eventer_ref(eventer_t e) {
   ck_pr_inc_32(&e->refcnt);
 }
 
-void eventer_deref(eventer_t e) {
-  eventer_free(e);
+mtev_boolean eventer_deref(eventer_t e) {
+  return eventer_free(e);
 }
 
 int eventer_set_fd_nonblocking(int fd) {

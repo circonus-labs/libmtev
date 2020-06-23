@@ -879,7 +879,7 @@ mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
   if(migrate) return EVENTER_READ|EVENTER_WRITE;
   if(!handler) {
     mtev_http_response_status_set(ctx, 404, "NOT FOUND");
-    mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED);
+    (void)mtev_http_response_option_set(ctx, MTEV_HTTP_CHUNKED);
     mtev_http_rest_clean_request(restc);
     mtev_http_response_end(ctx);
     return 0;
@@ -900,7 +900,7 @@ mtev_rest_request_dispatcher(mtev_http_session_ctx *ctx) {
      */
     mtev_http_connection *conne = mtev_http_session_connection(ctx);
     eventer_t olde = mtev_http_connection_event_float(conne);
-    eventer_remove_fde(olde);
+    if(olde) eventer_remove_fde(olde);
     struct mtev_rest_aco_ctx_t *aco_ctx = calloc(1, sizeof(*aco_ctx));
     aco_ctx->http_ctx = ctx;
     mtev_http_session_ref_inc(ctx);

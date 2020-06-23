@@ -600,6 +600,7 @@ _history_expand_command(const char *command, size_t cmdlen, char **result)
 				return (-1);
 			}
 			free(search);
+                        search = NULL;
 			if (history(h, &ev, H_CURR) != 0)
 				return (-1);
 			event_data = ev.str;

@@ -411,7 +411,7 @@ mtev_dwarf_load(const char *file, uintptr_t base) {
   if (fd < 0) {
     char fullpath[PATH_MAX];
     int length = readlink("/proc/self/exe", fullpath, sizeof(fullpath));
-    if (length && length < PATH_MAX) {
+    if (length > 0 && length < PATH_MAX) {
       fullpath[length] = '\0';
       char *bin_name = strrchr(fullpath, '/');
       if (!bin_name) bin_name = fullpath;

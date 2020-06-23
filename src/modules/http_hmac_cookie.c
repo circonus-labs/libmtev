@@ -366,6 +366,7 @@ http_hmac_http_refresh_cookie(void *cl, mtev_http_session_ctx *ctx) {
                           mtev_dyn_buffer_write_pointer(&cookie), 256);
     if(slen < 0 || slen > 256) {
       mtevL(debugls, "bad signature\n");
+      goto done;
     }
     *delayed_len = (uint8_t)slen;
     mtev_dyn_buffer_advance(&cookie, slen);
@@ -468,6 +469,7 @@ http_login(mtev_http_rest_closure_t *restc, int argc, char **argv) {
   }
   mtev_http_response_appendf(ctx, login_template, mtev_get_app_name(), html_to, error ? error : "");
   mtev_http_response_end(ctx);
+  free(html_to);
 done:
   free(error);
   free(encoded_whereto);

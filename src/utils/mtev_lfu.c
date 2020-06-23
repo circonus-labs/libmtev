@@ -298,7 +298,7 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *val)
   }
   struct lfu_key *tempkey = NULL;
   char tempkey_buf[ALLOCA_LIMIT];
-  if (key_len <= ALLOCA_LIMIT) {
+  if ((sizeof(struct lfu_key) + key_len) <= ALLOCA_LIMIT) {
     tempkey = (struct lfu_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lfu_key) + key_len);
@@ -308,7 +308,7 @@ mtev_lfu_put(mtev_lfu_t *lfu, const char *key, size_t key_len, void *val)
   memcpy(tempkey->key, key, key_len);
 
   unsigned long hash = CK_HS_HASH(&lfu->hash, lfu_entry_hash, tempkey);
-  if (key_len > ALLOCA_LIMIT) {
+  if ((sizeof(struct lfu_key) + key_len) > ALLOCA_LIMIT) {
     free(tempkey);
   }
 
@@ -350,7 +350,7 @@ mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len, void **value)
 
   struct lfu_key *tempkey = NULL;
   char tempkey_buf[ALLOCA_LIMIT];
-  if (key_len <= ALLOCA_LIMIT) {
+  if ((sizeof(struct lfu_key) + key_len) <= ALLOCA_LIMIT) {
     tempkey = (struct lfu_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lfu_key) + key_len);
@@ -363,7 +363,7 @@ mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len, void **value)
   pthread_mutex_lock(&c->mutex);
   void *entry = ck_hs_get(&c->hash, hash, tempkey);
 
-  if (key_len > ALLOCA_LIMIT) {
+  if ((sizeof(struct lfu_key) + key_len) > ALLOCA_LIMIT) {
     free(tempkey);
   }
 
@@ -407,7 +407,7 @@ mtev_lfu_remove(mtev_lfu_t *c, const char *key, size_t key_len)
   }
   struct lfu_key *tempkey = NULL;
   char tempkey_buf[ALLOCA_LIMIT];
-  if (key_len <= ALLOCA_LIMIT) {
+  if ((sizeof(struct lfu_key) + key_len) <= ALLOCA_LIMIT) {
     tempkey = (struct lfu_key *)tempkey_buf;
   } else {
     tempkey = malloc(sizeof(struct lfu_key) + key_len);
@@ -419,7 +419,7 @@ mtev_lfu_remove(mtev_lfu_t *c, const char *key, size_t key_len)
   void *rval = NULL;
   pthread_mutex_lock(&c->mutex);
   void *entry = ck_hs_remove(&c->hash, hash, tempkey);
-  if (key_len > ALLOCA_LIMIT) {
+  if ((sizeof(struct lfu_key) + key_len) > ALLOCA_LIMIT) {
     free(tempkey);
   }
 
