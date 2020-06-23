@@ -1315,12 +1315,13 @@ eventer_ssl_ctx_alpn_register(eventer_ssl_ctx_t *ctx, const char *name, eventer_
 int
 eventer_ssl_alpn_advertise(eventer_ssl_ctx_t *ctx, const char *npn) {
   eventer_SSL_alpn_func_t f = NULL;
-  int npnlen = strlen(npn);
-  char *newnpn = malloc(1+npnlen+1);
   unsigned int off = 0;
+  char *newnpn = NULL;
   if(npn) {
+    int npnlen = strlen(npn);
+    newnpn = malloc(1+npnlen+1);
     char *copy = strdup(npn);
-    char *brkt = NULL, *part;
+    char *brkt, *part;
     for(part = strtok_r(copy, ",", &brkt); part;
         part = strtok_r(NULL, ",", &brkt)) {
       void *vf = NULL;

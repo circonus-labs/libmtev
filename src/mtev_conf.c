@@ -512,7 +512,7 @@ void mtev_conf_write_section(mtev_conf_section_t section, int fd) {
   enc = xmlGetCharEncodingHandler(XML_CHAR_ENCODING_UTF8);
   out = xmlOutputBufferCreateFd(fd, enc);
   xmlNodeDumpOutput(out, master_config, node, 2, 0, "utf8");
-  xmlOutputBufferClose(out);
+  (void)xmlOutputBufferClose(out);
   if(write(fd, "\n", 1) < 0) {
     mtevL(c_debug, "Odd error writeing LF to conf\n");
   }
@@ -1676,7 +1676,12 @@ mtev_conf_default(int64, int64_t)
 mtev_conf_default(float, float)
 mtev_conf_default(double, double)
 mtev_conf_default(string, char*)
-mtev_conf_default(uuid, uuid_t)
+mtev_conf_default_or_optional_t
+mtev_conf_default_uuid(uuid_t default_value) {
+  mtev_conf_default_or_optional_t doo = {0, .value = { .val_string = NULL }};
+  mtev_uuid_copy(doo.value.val_uuid, default_value);
+  return doo;
+}
 
 mtev_conf_default_or_optional_t
 mtev_conf_optional(void) {
@@ -3146,8 +3151,7 @@ mtev_conf_security_init(const char *toplevel, const char *user,
     }
 
     capstring = NULL;
-    mtev_conf_get_string(caps[i], "self::node()", &capstring);
-    if(capstring) {
+    if(mtev_conf_get_string(caps[i], "self::node()", &capstring) && capstring) {
       if(mtev_security_setcaps(captype, capstring) != 0) {
         mtevL(c_error, "Failed to set security capabilities: %s / %s\n",
               captype_str, capstring);
@@ -3267,6 +3271,7 @@ mtev_console_config_section(mtev_console_closure_t ncct,
       xmlUnlinkNode(node);
       mtev_conf_mark_changed();
     }
+    if(pobj) xmlXPathFreeObject(pobj);
     return 0;
   }
   if(pobj) xmlXPathFreeObject(pobj);

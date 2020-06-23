@@ -118,7 +118,7 @@ noitedit_completion_function(EditLine *el, const char *text, int state) {
 
   el_get(el, EL_USERDATA, (void *)&ncct);
 
-  if(!strlen(text)) {
+  if(!strlen(text) && cnt < 32) {
     cmds[cnt++] = strdup("");
   }
   if(cnt != 32)

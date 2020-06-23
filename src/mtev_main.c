@@ -354,6 +354,7 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
     }
     if(foreground == 1) {
       mtevL(mtev_notice, "Skipping application management [%s] in foreground mode\n", file);
+      free(file);
       continue;
     }
     mtevL(mtev_debug, "managed config for [%s]\n", file);
@@ -429,10 +430,12 @@ static void mtev_main_load_managed(const char *appname, const char *inuser, cons
     free(file);
     for(int j=0;app_argv[j];j++) free(app_argv[j]);
     for(int j=0;app_envp[j];j++) free(app_envp[j]);
+    free(dir);
     free(user);
     free(group);
     free(app_argv);
     free(app_envp);
+    free(arg0);
   }
   mtev_conf_release_sections_read(apps, napps);
 }

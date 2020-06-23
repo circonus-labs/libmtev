@@ -82,11 +82,11 @@ mtev_console_spit_event(eventer_t e, void *c) {
   sub_timeval(e->whence, now, &diff);
   snprintf(wfn, sizeof(wfn), " fires: %lld.%06ds", (long long)diff.tv_sec, (int)diff.tv_usec);
   snprintf(funcptr, sizeof(funcptr), "%p", e->callback);
-  nc_printf(ncct, "  [%p]%s%s t@%s:%x [%c%c%c%c] -> %s(%p)\n",
+  nc_printf(ncct, "  [%p]%s%s t@%s:%lx [%c%c%c%c] -> %s(%p)\n",
             e,
             e->mask & (EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION) ? fdstr : "",
             e->mask & (EVENTER_TIMER) ?  wfn : "",
-            eventer_pool_name(eventer_get_pool_for_event(e)), e->thr_owner,
+            eventer_pool_name(eventer_get_pool_for_event(e)), (unsigned long)e->thr_owner,
             e->mask & EVENTER_READ ? 'r' : '-',
             e->mask & EVENTER_WRITE ? 'w' : '-',
             e->mask & EVENTER_EXCEPTION ? 'e' : '-',
@@ -194,8 +194,8 @@ mtev_console_eventer_memory(mtev_console_closure_t ncct, int argc, char **argv,
   int64_t eventer_allocd, eventer_total;
   eventer_allocd = eventer_allocations_current();
   eventer_total = eventer_allocations_total();
-  nc_printf(ncct, "current eventer_t allocations: %llu\n", eventer_allocd);
-  nc_printf(ncct, "total eventer_t allocations: %llu\n", eventer_total);
+  nc_printf(ncct, "current eventer_t allocations: %" PRId64 "\n", eventer_allocd);
+  nc_printf(ncct, "total eventer_t allocations: %" PRId64 "\n", eventer_total);
   return 0;
 }
 
@@ -585,7 +585,7 @@ mtev_console_log_output(mtev_console_closure_t ncct, int argc, char **argv,
     strlcat(buff, " ", len);
   }
   mtevL(ls, "%s\n", buff);
-  nc_printf(ncct, "logged.\n", len);
+  nc_printf(ncct, "logged.\n");
   free(buff);
   return 0;
 }

@@ -283,18 +283,20 @@ mtev_lua_resume(lua_State *L, int a, mtev_lua_resume_info_t *ri) {
       diff.tv_usec = 1;
     }
   }
-  if(ri && ri->lmc && !(ri->lmc->interrupt_time.tv_sec == 0 && ri->lmc->interrupt_time.tv_usec == 0)) {
-    /* if we have an interrupt time specified for this lmc, then we should potentially reduce to it */
-    if((diff.tv_sec == 0 && diff.tv_usec == 0) ||
-        compare_timeval(ri->lmc->interrupt_time, diff) < 0) {
-      diff = ri->lmc->interrupt_time;
+  if(ri && ri->lmc) {
+    if(!(ri->lmc->interrupt_time.tv_sec == 0 && ri->lmc->interrupt_time.tv_usec == 0)) {
+      /* if we have an interrupt time specified for this lmc, then we should potentially reduce to it */
+      if((diff.tv_sec == 0 && diff.tv_usec == 0) ||
+         compare_timeval(ri->lmc->interrupt_time, diff) < 0) {
+        diff = ri->lmc->interrupt_time;
+      }
+    }
+    if(diff.tv_sec >= 0 && diff.tv_usec >= 0) {
+      mtev_lua_timer_start(ri->lmc->timer, &diff);
     }
   }
-  if(diff.tv_sec >= 0 && diff.tv_usec >= 0) {
-    mtev_lua_timer_start(ri->lmc->timer, &diff);
-  }
   rv = lua_resume(L, a);
-  mtev_lua_timer_stop(ri->lmc->timer);
+  if(ri && ri->lmc) mtev_lua_timer_stop(ri->lmc->timer);
   tls_active_lua_state = previous;
   return rv;
 }
@@ -598,7 +600,7 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
   mtevAssert(reporter->approach == LUA_REPORT_NCCT);
 
   pthread_mutex_lock(&reporter->lock);
-  nc_printf(ncct, "== Thread %x ==\n", me);
+  nc_printf(ncct, "== Thread %lx ==\n", (unsigned long)me);
 
   memcpy(&iter, &zero, sizeof(zero));
   pthread_mutex_lock(&mtev_lua_states_lock);

@@ -532,11 +532,12 @@ API_EXPORT(eventer_t) eventer_alloc_asynch(eventer_func_t, void *);
 */
 API_EXPORT(eventer_t) eventer_alloc_asynch_timeout(eventer_func_t, void *, struct timeval *);
 
-/*! \fn void eventer_free(eventer_t e)
+/*! \fn mtev_boolean eventer_free(eventer_t e)
     \brief Dereferences the event specified.
     \param e the event to dereference.
+    \return `mtev_true` if the event was freed.
 */
-API_EXPORT(void)      eventer_free(eventer_t);
+API_EXPORT(mtev_boolean) eventer_free(eventer_t);
 
 /*! \fn void eventer_ref(eventer_t e)
     \brief Add a reference to an event.
@@ -551,11 +552,12 @@ API_EXPORT(void)      eventer_free(eventer_t);
 */
 API_EXPORT(void)      eventer_ref(eventer_t);
 
-/*! \fn void eventer_deref(eventer_t e)
+/*! \fn mtev_boolean eventer_deref(eventer_t e)
     \brief See eventer_free.
     \param e the event to dereference.
+    \return `mtev_true` if the event was freed.
 */
-API_EXPORT(void)      eventer_deref(eventer_t);
+API_EXPORT(mtev_boolean) eventer_deref(eventer_t);
 
 /*! \fn int64_t eventer_allocations_current()
     \return the number of currently allocated eventer objects.

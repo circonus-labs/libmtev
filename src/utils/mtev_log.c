@@ -611,12 +611,14 @@ asynch_log_ctx *asynch_log_ctx_alloc(void) {
 }
 void asynch_log_ctx_free(asynch_log_ctx *tf) {
   asynch_log_line *ll;
-  while((ll = asynch_log_pop(tf)) != NULL) {
-    if(ll->buf_dynamic) free(ll->buf_dynamic);
-    free(ll);
+  if(tf->q) {
+    while((ll = asynch_log_pop(tf)) != NULL) {
+      if(ll->buf_dynamic) free(ll->buf_dynamic);
+      free(ll);
+    }
+    if(tf->qhead) free(tf->qhead);
+    free(tf->q);
   }
-  if(tf->qhead) free(tf->qhead);
-  if(tf->q) free(tf->q);
   pthread_mutex_destroy(&tf->singleton);
   free(tf);
 }
@@ -2155,10 +2157,10 @@ mtev_log_flatbuffer_to_json(mtev_LogLine_fb_t vll, mtev_dyn_buffer_t *tgt) {
   whence.tv_sec = mtev_LogLine_timestamp(ll) / 1000000;
   whence.tv_usec = mtev_LogLine_timestamp(ll) % 1000000;
 
-  nelem = add_to_jsonf(nelem, tgt, "timestamp", mtev_true, "%lu.%06u", whence.tv_sec, whence.tv_usec);
+  nelem = add_to_jsonf(nelem, tgt, "timestamp", mtev_true, "%lu.%06u", whence.tv_sec, (unsigned int)whence.tv_usec);
   if(mtev_LogLine_facility_is_present(ll))
     nelem = add_to_json(nelem, tgt, "facility", mtev_true, mtev_LogLine_facility(ll));
-  nelem = add_to_jsonf(nelem, tgt, "threadid", mtev_false, "%zu", mtev_LogLine_threadid(ll));
+  nelem = add_to_jsonf(nelem, tgt, "threadid", mtev_false, "%zu", (size_t)mtev_LogLine_threadid(ll));
   if(mtev_LogLine_threadname_is_present(ll)) {
     flatbuffers_string_t tname = mtev_LogLine_threadname(ll);
     if(flatbuffers_string_len(tname))
@@ -2456,11 +2458,13 @@ static void *thr_buff_overflow_alloc(struct thr_buff *parent, size_t len) {
 
 static void thr_buff_free(void *v) {
   struct thr_buff *b = v;
-  if(b && b->buffer) free(b->buffer);
-  while(b->alist) {
-    struct thr_buff_overflow *tofree = b->alist;
-    b->alist = b->alist->next;
-    free(tofree);
+  if(b) {
+    if(b->buffer) free(b->buffer);
+    while(b->alist) {
+      struct thr_buff_overflow *tofree = b->alist;
+      b->alist = b->alist->next;
+      free(tofree);
+    }
   }
   free(v);
 }
@@ -3232,7 +3236,7 @@ mtev_log_hexdump_ex(mtev_log_stream_t ls, const void * addr, const size_t len, u
   mtev_dyn_buffer_add_printf(&buf, "HEXDUMP[%p]\n", addr);
   for (i = 0; i < len; i++) {
     c = pc[i];
-    if (i % width == 0) mtev_dyn_buffer_add_printf(&buf,"%08x  ", i);
+    if (i % width == 0) mtev_dyn_buffer_add_printf(&buf,"%08zx  ", i);
     mtev_dyn_buffer_add_printf(&buf," %02x", c);
     strbuf[i % width] = ((c < 0x20) || (c > 0x7e)) ? '.' : c;
     strbuf[(i % width) + 1] = '\0';

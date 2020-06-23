@@ -590,7 +590,7 @@ socket_error:
   }
 
   for(keep_going=1 ; keep_going ; ) {
-    int len, plen;
+    int len, plen = 0;
     char sbuf[4096];
     const char *buffer = NULL;
     char *cmd_buffer = NULL;
