@@ -111,34 +111,27 @@ static void mtev_logic_var_clean(void *vv) {
 }
 
 static inline const char *
-mtev_logic_var_tostring(mtev_logic_var_t *v, size_t *len) {
-  char buff[64];
-  if(v->type == MTEV_LOGIC_STRING) {
-    if(len) *len = v->s_len;
+mtev_logic_var_tostring(mtev_logic_var_t *v, char *buff, size_t len, size_t *rlen) {
+  if((v->value.s && v->s_len) ||
+     v->type == MTEV_LOGIC_STRING) {
+    if(rlen) *rlen = v->s_len;
     return v->value.s;
   }
   else {
-    if(v->free_s) {
-      free((char *)v->value.s);
-      v->free_s = mtev_false;
-    }
-    v->value.s = NULL;
-    v->s_len = 0;
     if(v->type == MTEV_LOGIC_INT64) {
-      snprintf(buff, sizeof(buff), "%" PRId64, v->value.l);
-      v->value.s = strdup(buff);
-      v->s_len = strlen(buff);
-      v->free_s = mtev_true;
+      int rv = snprintf(buff, len, "%" PRId64, v->value.l);
+      if(rlen) *rlen = rv;
     }
     else if(v->type == MTEV_LOGIC_DOUBLE) {
-      snprintf(buff, sizeof(buff), "%g", v->value.n);
-      v->value.s = strdup(buff);
-      v->s_len = strlen(buff);
-      v->free_s = mtev_true;
+      int rv = snprintf(buff, len, "%g", v->value.n);
+      if(rlen) *rlen = rv;
+    }
+    else {
+      buff[0] = '\0';
+      if(rlen) *rlen = 0;
     }
   }
-  if(len) *len = v->s_len;
-  return v->value.s;
+  return buff;
 }
 
 void
@@ -187,6 +180,7 @@ mtev_logic_var_set_int64(mtev_logic_var_t *v, int64_t l) {
   if(v->free_s) {
     free((char *)v->value.s);
     v->free_s = mtev_false;
+    v->value.s = NULL;
   }
   v->type = MTEV_LOGIC_INT64;
   v->value.l = l;
@@ -197,6 +191,7 @@ mtev_logic_var_set_double(mtev_logic_var_t *v, double n) {
   if(v->free_s) {
     free((char *)v->value.s);
     v->free_s = mtev_false;
+    v->value.s = NULL;
   }
   v->type = MTEV_LOGIC_DOUBLE;
   v->value.n = n;
@@ -241,7 +236,7 @@ static inline const char *
 mtev_logic_op_name(mtev_logic_op_t op) {
   switch(op) {
     case LOP_PREDICATE: return "predicate";
-   case LOP_AND: return "and";
+    case LOP_AND: return "and";
     case LOP_OR: return "or";
     case LOP_NOT: return "not";
   }
@@ -320,10 +315,11 @@ static inline void *
 mtev_logic_ast_node_predicate(mtev_logic_ast_t *ast, const char *left,
                               mtev_logic_pred_op_t op, mtev_logic_var_t *right) {
   if(op == POP_RE || op == POP_NRE) {
+    char buff[4096];
     const char *error;
     int erroff;
     /* compile the PCREs */
-    const char *expr = mtev_logic_var_tostring(right, NULL);
+    const char *expr = mtev_logic_var_tostring(right, buff, sizeof(buff), NULL);
     right->re = pcre_compile(expr, 0, &error, &erroff, NULL);
     if(!right->re) {
       mtevL(debugls, "logic PCRE compilation error @ %d : %s\n", erroff, error);
@@ -436,6 +432,7 @@ mtev_logic_ast_var(mtev_logic_ast_t *ast, mtev_logic_var_type_t vartype, const c
   } else {
     var->value.s = mtev_logic_ast_strndup(ast, in, inl);
   }
+  var->s_len = strlen(var->value.s);
   var->value.n = strtod(var->value.s, NULL);
   var->value.l = strtoll(var->value.s, NULL, 10);
   return var;
@@ -496,14 +493,13 @@ mtev_logic_exec_free(mtev_logic_exec_t *exec) {
 }
 
 static inline int strllcmp(const char *l, size_t ls, const char *r, size_t rs) {
-  size_t s = MIN(ls, rs);
-  int rv = memcmp(l, r, s);
-  if(rv) return rv;
-  if(ls < rs) return -1;
-  return rs > ls;
+  if(ls != rs) return (size_t)ls - (size_t)rs;
+  int rv = memcmp(l, r, ls);
+  return rv;
 }
 static mtev_boolean
 mtev_logic_exec_predicate(mtev_logic_exec_t *exec, mtev_logic_pred_t *pred, void *context) {
+  char lbuff[4096], rbuff[4096];
   mtev_logic_var_t lhs;
   size_t lhs_len = 0;
   memset(&lhs, 0, sizeof(lhs));
@@ -522,15 +518,17 @@ mtev_logic_exec_predicate(mtev_logic_exec_t *exec, mtev_logic_pred_t *pred, void
   if(pred->right->type == MTEV_LOGIC_STRING) {
     int ovector[30];
     size_t rhs_len = 0;
-    const char *lval = mtev_logic_var_tostring(&lhs, &lhs_len);
-    const char *rval = mtev_logic_var_tostring(pred->right, &rhs_len);
+    const char *lval = mtev_logic_var_tostring(&lhs, lbuff, sizeof(lbuff), &lhs_len);
+    if(lhs_len >= sizeof(lbuff)) lhs_len = strlen(lval);
+    const char *rval = mtev_logic_var_tostring(pred->right, rbuff, sizeof(rbuff), &rhs_len);
+    if(rhs_len >= sizeof(rbuff)) rhs_len = strlen(rval);
     switch(pred->op) {
-      case POP_EQ: match = 0 == strllcmp(lhs.value.s, lhs_len, rval, rhs_len); break;
-      case POP_NE: match = 0 != strllcmp(lhs.value.s, lhs_len, rval, rhs_len); break;
-      case POP_GE: match = strllcmp(lhs.value.s, lhs_len, rval, rhs_len) >= 0; break;
-      case POP_GT: match = strllcmp(lhs.value.s, lhs_len, rval, rhs_len) > 0; break;
-      case POP_LE: match = strllcmp(lhs.value.s, lhs_len, rval, rhs_len) <= 0; break;
-      case POP_LT: match = strllcmp(lhs.value.s, lhs_len, rval, rhs_len) < 0; break;
+      case POP_EQ: match = 0 == strllcmp(lval, lhs_len, rval, rhs_len); break;
+      case POP_NE: match = 0 != strllcmp(lval, lhs_len, rval, rhs_len); break;
+      case POP_GE: match = strllcmp(lval, lhs_len, rval, rhs_len) >= 0; break;
+      case POP_GT: match = strllcmp(lval, lhs_len, rval, rhs_len) > 0; break;
+      case POP_LE: match = strllcmp(lval, lhs_len, rval, rhs_len) <= 0; break;
+      case POP_LT: match = strllcmp(lval, lhs_len, rval, rhs_len) < 0; break;
       case POP_RE:
       case POP_NRE:
         if (pcre_exec(pred->right->re, pred->right->re_extra, lval, lhs_len, 0, 0, ovector, 30) >= 0) {
@@ -588,9 +586,9 @@ mtev_logic_exec_predicate(mtev_logic_exec_t *exec, mtev_logic_pred_t *pred, void
     }
   }
   mtevL(debugls, "%s[%s] %s %s[%s] -> %s\n",
-        mtev_logic_var_type_name(lhs.type), mtev_logic_var_tostring(&lhs,NULL),
+        mtev_logic_var_type_name(lhs.type), mtev_logic_var_tostring(&lhs,lbuff,sizeof(lbuff),NULL),
         mtev_logic_pred_op_name(pred->op),
-        mtev_logic_var_type_name(pred->right->type), mtev_logic_var_tostring(pred->right,NULL),
+        mtev_logic_var_type_name(pred->right->type), mtev_logic_var_tostring(pred->right,rbuff,sizeof(rbuff),NULL),
         match ? "true" : "false");
   return match;
 }
