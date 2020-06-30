@@ -626,6 +626,18 @@ struct ck_malloc mtev_memory_safe_ck_malloc = {
   .free = mtev_memory_ck_free
 };
 
+static void stdfree_for_ck(void *f, size_t s, bool r) {
+  (void)s;
+  (void)r;
+  free(f);
+}
+
+struct ck_malloc mtev_memory_regular_ck_malloc = {
+  .malloc = malloc,
+  .realloc = NULL,
+  .free = stdfree_for_ck
+};
+
 static uint32_t nallocators;
 struct mtev_allocator_options {
   char name[32];
