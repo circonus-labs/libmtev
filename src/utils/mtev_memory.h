@@ -107,6 +107,7 @@ API_EXPORT(void)
   mtev_free(mtev_allocator_t, void *ptr);
 
 API_EXPORT(struct ck_malloc) mtev_memory_safe_ck_malloc;
+API_EXPORT(struct ck_malloc) mtev_memory_regular_ck_malloc;
 
 #ifdef __cplusplus
 }
