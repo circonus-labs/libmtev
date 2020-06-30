@@ -4,6 +4,10 @@
 
 ## 1.12
 
+### 1.12.4
+
+ * Add `mtev_memory_regular_ck_malloc` for unsafe/regular memory allocations
+
 ### 1.12.3
 
  * Various coverity fixes.
