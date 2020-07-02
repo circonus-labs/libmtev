@@ -43,6 +43,7 @@
 #include "mtev_thread.h"
 #include "mtev_watchdog.h"
 #include "mtev_stats.h"
+#include "mtev_conf.h"
 #include "libmtev_dtrace.h"
 #include <pthread.h>
 #include <errno.h>
@@ -785,10 +786,6 @@ static hwloc_topology_t *hw_topo_alloc(void) {
   return NULL;
 }
 
-int eventer_boot_ctor(void) {
-  return 0;
-}
-
 int eventer_cpu_sockets_and_cores(int *sockets, int *cores) {
   hwloc_topology_t *topo;
   int depth, nsockets = 0, ncores = 0;
@@ -805,6 +802,44 @@ int eventer_cpu_sockets_and_cores(int *sockets, int *cores) {
   if(sockets) *sockets = nsockets;
   if(cores) *cores = ncores;
   hw_topo_free(topo);
+  return 0;
+}
+
+static mtev_hook_return_t
+hwloc_interpolate(void *closure, char *buf, int len,
+                  mtev_conf_section_t section, const char *xpath,
+                  const char *nodepath,
+                  const char *facility, int facility_len,
+                  const char *key, int key_len) {
+  (void)closure;
+  (void)section;
+  (void)xpath;
+  (void)nodepath;
+  if(facility_len != 5 || memcmp(facility, "hwloc", 5)) return MTEV_HOOK_CONTINUE;
+#define INTERP(name, hwobj) do { \
+  static int name = 0; \
+  if(key_len == strlen(#name) && !memcmp(key, #name, key_len)) { \
+    if(name == 0)  { \
+      hwloc_topology_t *topo = hw_topo_alloc(); \
+      if(topo == NULL) return MTEV_HOOK_ABORT; \
+      int depth = hwloc_get_type_depth(*topo, hwobj); \
+      if(depth != HWLOC_TYPE_DEPTH_UNKNOWN) \
+        name = hwloc_get_nbobjs_by_depth(*topo, depth); \
+      hw_topo_free(topo); \
+    } \
+    snprintf(buf, len, "%d", name); \
+    return MTEV_HOOK_DONE; \
+  } \
+} while(0)
+  INTERP(numanodes, HWLOC_OBJ_NUMANODE);
+  INTERP(packages, HWLOC_OBJ_PACKAGE);
+  INTERP(cores, HWLOC_OBJ_CORE);
+  INTERP(pus, HWLOC_OBJ_PU);
+  return MTEV_HOOK_CONTINUE;
+}
+
+int eventer_boot_ctor(void) {
+  mtev_conf_value_interpolate_hook_register("hwloc", hwloc_interpolate, NULL);
   return 0;
 }
 

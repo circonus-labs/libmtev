@@ -382,6 +382,19 @@ MTEV_HOOK_PROTO(mtev_conf_value_fixup,
                 (void *closure, mtev_conf_section_t section, const char *xpath,
                  const char *nodepath, int set, char **value));
 
+MTEV_HOOK_PROTO(mtev_conf_value_interpolate,
+                (char *buf, int len,
+                 mtev_conf_section_t section, const char *xpath,
+                 const char *nodepath,
+                 const char *facility, int facility_len,
+                 const char *key, int key_len),
+                void *, closure,
+                (void *closure,
+                 char *buf, int len,
+                 mtev_conf_section_t section, const char *xpath,
+                 const char *nodepath, const char *facility, int facility_len,
+                 const char *key, int key_len));
+
 /* Called when someone attempts to delete a section from the config.
  * The section is <root><path>/<name>
  * return MTEV_HOOK_ABORT to prevent it
