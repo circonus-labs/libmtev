@@ -68,6 +68,20 @@ typedef struct mtev_conf_section_private {
 _Static_assert(sizeof(mtev_conf_section_private_t) == sizeof(mtev_conf_section_opaque_t), "mtev_conf_section sizes match");
 #endif
 
+MTEV_HOOK_IMPL(mtev_conf_value_interpolate,
+               (char *buf, int len,
+                mtev_conf_section_t section, const char *xpath,
+                const char *nodepath,
+                const char *facility, int facility_len,
+                const char *key, int key_len),
+               void *, closure,
+               (void *closure,
+                char *buf, int len,
+                mtev_conf_section_t section, const char *xpath,
+                const char *nodepath, const char *facility, int facility_len,
+                const char *key, int key_len),
+               (closure, buf, len, section, xpath, nodepath, facility, facility_len, key, key_len));
+
 MTEV_HOOK_IMPL(mtev_conf_value_fixup,
                (mtev_conf_section_t section, const char *xpath,
                 const char *nodepath, int set, char **value),
@@ -194,6 +208,10 @@ const char *mtev_get_app_name(void) { return app_name; }
 static char app_version[256] = "unknown";
 void mtev_set_app_version(const char *version) { strlcpy(app_version, version, sizeof(app_version)); }
 const char *mtev_get_app_version(void) { return app_version; }
+
+static void
+mtev_conf_generic_fixup(mtev_conf_section_t section, const char *xpath,
+                        const char *nodepath, char **value);
 
 mtev_boolean
 mtev_conf_section_is_empty(mtev_conf_section_t section) {
@@ -1835,9 +1853,11 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
                           strlen((const char *)name), NULL)) {
         same_space_collision = strdup((char *)name);
       }
+      char *copy = strdup(value);
+      mtev_conf_generic_fixup(section, path, (const char *)xmlGetNodePath(node), &copy);
       mtev_hash_replace(table,
                         strdup((char *)name), strlen((char *)name),
-                        strdup(value), free, free);
+                        copy, free, free);
       xmlFree(value);
     }
     else if(!namespace && !node->ns) {
@@ -1853,9 +1873,11 @@ mtev_conf_get_elements_into_hash(mtev_conf_section_t section,
                           strlen((const char *)name), NULL)) {
         same_space_collision = strdup((char *)name);
       }
+      char *copy = strdup(value);
+      mtev_conf_generic_fixup(section, path, (const char *)xmlGetNodePath(node), &copy);
       mtev_hash_replace(table,
                         strdup((char *)name), strlen((char *)name),
-                        strdup(value), free, free);
+                        copy, free, free);
       xmlFree(value);
     }
     if(freename) xmlFree((void *)name);
@@ -2149,9 +2171,9 @@ _mtev_conf_get_string(mtev_conf_section_t section, xmlNodePtr *vnode,
   if(pobj) xmlXPathFreeObject(pobj);
   if(my_ctxt) xmlXPathFreeContext(my_ctxt);
   mtev_conf_release_section_read(section);
-  if(mtev_conf_value_fixup_hook_invoke(section, path,
-                                       fullnodepath ? (const char *)fullnodepath : (const char *)interest,
-                                       rv, value) == MTEV_HOOK_ABORT) {
+  const char *nodepath = fullnodepath ? (const char *)fullnodepath : (const char *)interest;
+  if(rv != 0) mtev_conf_generic_fixup(section, path, nodepath, value);
+  if(mtev_conf_value_fixup_hook_invoke(section, path, nodepath, rv, value) == MTEV_HOOK_ABORT) {
     rv = 0;
   }
   free(fullnodepath);
@@ -3784,8 +3806,74 @@ static void safe_free_xpath(void *in) {
   free(gen);
 }
 
+static void
+mtev_conf_generic_fixup(mtev_conf_section_t section, const char *xpath,
+                        const char *nodepath, char **value) {
+  const char *start = *value;
+  while(*value && NULL != (start = strstr(start, "{{"))) {
+    int start_off = (start - *value);
+    const char *facility = start + 2;
+    const char *fallback = strchr(facility, ':');
+    if(!fallback) return;
+    int facility_len = fallback - facility;
+    fallback++;
+    const char *key = strchr(fallback, ':');
+    if(!key) return; /* no possible subsequent match either */
+    int fallback_len = key - fallback;
+    if(key[1] != '{') { start++; continue; }
+    for(const char *v = fallback; v < key; v++) {
+      if(!((*v >= '0' && *v <= '9') ||
+           (*v == '_') ||
+           (*v >= 'a' && *v <= 'z') ||
+           (*v >= 'A' && *v <= 'Z'))) { start++; continue; }
+    }
+    key+=2;
+    const char *end = strstr(key, "}}}");
+    if(!end) return;
+    int key_len = end - key;
+
+    char replacement[1024];
+    snprintf(replacement, sizeof(replacement), "%.*s", fallback_len, fallback);
+
+    if(mtev_conf_value_interpolate_hook_invoke(
+          replacement, sizeof(replacement), section, xpath, nodepath,
+          facility, facility_len, key, key_len) == MTEV_HOOK_ABORT) return;
+
+    char *replace;
+    if(asprintf(&replace, "%.*s%s%.*s",
+                start_off, *value,
+                replacement,
+                (int)strlen(end + 3), end + 3) == -1) return;
+    free(*value);
+    *value = replace;
+    start = *value + start_off + 1;
+  }
+}
+
+
 static mtev_hook_return_t
-mtev_conf_env_fixup(void *closure, mtev_conf_section_t section, const char *xpath,
+mtev_conf_env_interpolate(void *closure, char *buf, int len,
+                          mtev_conf_section_t section, const char *xpath,
+                          const char *nodepath,
+                          const char *facility, int facility_len,
+                          const char *key, int key_len) {
+  (void)closure;
+  (void)section;
+  (void)xpath;
+  (void)nodepath;
+  if(facility_len != 3 || memcmp(facility, "ENV", 3)) return MTEV_HOOK_CONTINUE;
+  char key_term[key_len+1];
+  memcpy(key_term, key, key_len);
+  key_term[key_len] = '\0';
+  char *val = getenv(key_term);
+  if(val) {
+    strlcpy(buf, val, len);
+  }
+  return MTEV_HOOK_DONE;
+}
+
+static mtev_hook_return_t
+mtev_conf_OLD_env_fixup(void *closure, mtev_conf_section_t section, const char *xpath,
                     const char *nodepath, int set, char **value) {
   (void)closure;
   (void)section;
@@ -3816,5 +3904,6 @@ void mtev_conf_init_globals(void) {
   mtev_conf_aco_recursion_counter_idx = aco_tls_assign_idx();
   pthread_key_create(&xpath_ctxt_key, safe_free_xpath);
   mtev_hash_init(&global_param_sets);
-  mtev_conf_value_fixup_hook_register("env", mtev_conf_env_fixup, NULL);
+  mtev_conf_value_fixup_hook_register("env", mtev_conf_OLD_env_fixup, NULL);
+  mtev_conf_value_interpolate_hook_register("env", mtev_conf_env_interpolate, NULL);
 }
