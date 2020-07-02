@@ -27,9 +27,9 @@ any libmtev application.
    If set to 0, this will disable the requirement for an invariant rdtsc
    for libmtev's "faster time" support.
 
- * ##### MTEV_RDTSC_DISABLE
+ * ##### MTEV_RDTSC_ENABLE
 
-   If set to 1, this will disable libmtev's "faster time" support.
+   If set to 1, this will enable libmtev's "faster time" support if available.
 
  * ##### MTEV_THREAD_BINDING_DISABLE
 

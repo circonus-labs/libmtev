@@ -52,8 +52,8 @@ AS_CASE($ENABLE_LUA,
 )
 
 AC_ARG_ENABLE(rdtsc,
-	[AC_HELP_STRING([--disable-rdtsc],
-		[Turn off usage of rdtsc for high res clock])],
+	[AC_HELP_STRING([--enable-rdtsc],
+		[Turn on usage of rdtsc for high res clock])],
 	enable_rdtsc="$enableval",
 	enable_rdtsc="$DEFAULT_ENABLE_RDTSC")
 

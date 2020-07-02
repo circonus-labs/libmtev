@@ -13,6 +13,7 @@ configure:	configure.ac
 gitbook-setup:
 	$(GITBOOK) install
 	buildtools/mkcodedocs.pl src docs-md/apireference
+	rm -f docs-md/mtev_version.md
 	$(MAKE) -C src ../docs-md/mtev_version.md
 	$(MAKE) -C src/modules alldocs
 
