@@ -77,7 +77,7 @@ static mtev_boolean use_system_gettimeofday;
 static mtev_boolean ready_rdtsc;
 static mtev_boolean require_invariant_tsc = mtev_true;
 static __thread mtev_boolean thread_disable_rdtsc;
-static volatile mtev_boolean enable_rdtsc = mtev_true;
+static volatile mtev_boolean enable_rdtsc = mtev_false;
 static rdtsc_func *global_rdtsc_function = NULL;
 
 
@@ -646,6 +646,7 @@ mtev_time_start_tsc(void)
     enable_rdtsc = mtev_false;
   }
   if(!enable_rdtsc) {
+    disable_reason = "not enabled via MTEV_RDTSC_ENABLE";
     mtevL(tdeb, "mtev_time_start_tsc() -> aborted, rdtsc disabled.\n");
     return;
   }

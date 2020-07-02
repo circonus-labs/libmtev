@@ -488,9 +488,9 @@ mtev_main(const char *appname,
 #endif
 #endif
 
-  char *disable_rdtsc = getenv("MTEV_RDTSC_DISABLE");
-  if (disable_rdtsc && strcmp(disable_rdtsc, "1") == 0) {
-    mtev_time_toggle_tsc(mtev_false);
+  char *enable_rdtsc = getenv("MTEV_RDTSC_ENABLE");
+  if (enable_rdtsc && strcmp(enable_rdtsc, "1") == 0) {
+    mtev_time_toggle_tsc(mtev_true);
   }
 
   char *disable_binding = getenv("MTEV_THREAD_BINDING_DISABLE");
