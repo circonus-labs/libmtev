@@ -3825,7 +3825,7 @@ mtev_conf_generic_fixup(mtev_conf_section_t section, const char *xpath,
       if(!((*v >= '0' && *v <= '9') ||
            (*v == '_') ||
            (*v >= 'a' && *v <= 'z') ||
-           (*v >= 'A' && *v <= 'V'))) { start++; continue; }
+           (*v >= 'A' && *v <= 'Z'))) { start++; continue; }
     }
     key+=2;
     const char *end = strstr(key, "}}}");
