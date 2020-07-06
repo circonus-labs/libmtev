@@ -677,7 +677,10 @@ via environment variable:</p>
 <p>This will turn on profiling from that moment until you disable it via:</p>
 <p><code>/mtev/heap_profile?active=false</code></p>
 <p>In a variety of cases, it might be desirable to have profiling active from the point
-of application start.  To do this set <code>prof_active:true</code> in the <code>MALLOC_CONF</code>.</p>
+of application start.  To do this set <code>prof_active:true</code> in the <code>MALLOC_CONF</code>.  However keep in mind that there is some performance cost while profiling is active, so you may only want to keep profiling active when you are gathering memory usage information, and you may also want to adjust the sampling if performance is adversely affected (see the jemalloc link below if this is a concern).</p>
+<p>NOTE: It is a good idea to confirm these settings changes and check status (at any time) by simply curling:</p>
+<p><code>/mtev/heap_profile</code></p>
+<p>In order to be able to get a heap profile snapshot, you must have "opt.prof" set to "true" (or you'll get an error when trying to trigger a dump).  While profiling is active, "prof.active" will also be "true" (and this is also required to get a valid capture in the next step).</p>
 <h2 id="heap-profiling">Heap Profiling</h2>
 <p>To get periodic heap profile dumps from your running application do:</p>
 <p><code>curl yourmachine:yourport/mtev/heap_profile?trigger_dump=true &gt; profile.prof</code></p>
@@ -686,6 +689,8 @@ to the <code>jeprof</code> analysis program for further analysis.  For example, 
 allocations by source code line, but from a perspective outside of libmtev&apos;s use of
 SMR (<code>mtev_memory_</code>) and libck&apos;s hash tables (<code>ck_hs_</code>), one could run:</p>
 <p><code>jeprof --text --lines --exclude=&apos;(mtev_memory_|ck_hs_)&apos; /path/to/your/executable profile.prof</code></p>
+<p>To compare two heap profiles (which helps reduce the noise) you can use the "--base" switch:</p>
+<p><code>jeprof --text --lines --exclude=&apos;(mtev_memory_|ck_hs_)&apos; --base=/path/to/your/baseline.prof /path/to/your/executable profile.prof</code></p>
 <p>For more information on jemalloc heap profiling, see here: <a href="https://github.com/jemalloc/jemalloc/wiki/Use-Case%3A-Heap-Profiling" target="_blank">jemalloc heap profiling</a></p>
 
                                 
