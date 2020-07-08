@@ -656,15 +656,15 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="jemalloc">Jemalloc</h1>
+                                <h1 id="jemalloc">jemalloc</h1>
 <p>libmtev has some special support available if you are running with the jemalloc
 allocator loaded.</p>
 <blockquote>
-<p>Note that if your application isn&apos;t statically linked with jemalloc, libmtev will
+<p>Note that if your application isn&apos;t directly linked with jemalloc, libmtev will
 still notice its presence at run-time if loaded via <code>LD_PRELOAD</code>.  So, the following
-can be used in conjunction with an operator&apos;s forced preloading of libjemalloc.so</p>
+can be used in conjunction with an operator&apos;s force loading of libjemalloc.so</p>
 </blockquote>
-<h2 id="malloc-statistics">General malloc statistics.</h2>
+<h2 id="malloc-statistics">malloc statistics.</h2>
 <p>Malloc statistics (in JSON) are available at the URL: <code>/mtev/memory.json</code></p>
 <h2 id="activating-jemalloc-profiling">Activating jemalloc profiling</h2>
 <p>To perform heap profiling you must have jemalloc heap profiling enabled 
@@ -673,28 +673,19 @@ via environment variable:</p>
 <p>Or via the special <code>/etc/malloc.conf</code> string file:</p>
 <p><code>sudo ln -s &apos;prof:true,prof_active:false&apos; /etc/malloc.conf</code></p>
 <p>You can then flip on heap profiling in your mtev app by curling:</p>
-<p><code>curl yourmachine:yourport/mtev/heap_profile?active=true</code></p>
+<p><code>/mtev/heap_profile?active=true</code></p>
 <p>This will turn on profiling from that moment until you disable it via:</p>
-<p><code>curl yourmachine:yourport/mtev/heap_profile?active=false</code></p>
+<p><code>/mtev/heap_profile?active=false</code></p>
 <p>In a variety of cases, it might be desirable to have profiling active from the point
-of application start.  To do this set <code>prof_active:true</code> in the <code>MALLOC_CONF</code>.  However keep in mind that there is some performance cost while profiling is active, so you may only want to keep profiling active when you are gathering memory usage information.  And you may also want to adjust the sampling if performance is adversely affected (see the jemalloc link below if this is a concern).</p>
-<p><b>NOTE:</b> It is a good idea to confirm these settings changes and check status (at any time) by simply curling:</p>
-<p><code>curl yourmachine:yourport/mtev/heap_profile</code></p>
-<p>The output from that curl will look something like the following:</p>
-<p><code>opt.prof: true</code><br>
-  <code>prof.active: false</code><br>
-  <code>prof.thread_active_init: true</code></p>
-<p>The first setting <code>opt.prof: true</code> will be displayed if <code>prof:true</code> was properly set in the <code>MALLOC_CONF</code> or <code>/etc/malloc.conf</code> as shown above.</p>
-<p>The second setting <code>prof.active</code> is initialized by the <code>MALLOC_CONF</code> or <code>/etc/malloc.conf</code>, and it can be toggled to <code>true</code> or <code>false</code> at runtime by using the <code>heap_profile</code> curl shown above.  Both settings must be <code>true</code> or nothing will be captured when triggering a heap profile.</p>
+of application start.  To do this set <code>prof_active:true</code> in the <code>MALLOC_CONF</code>.</p>
 <h2 id="heap-profiling">Heap Profiling</h2>
 <p>To get periodic heap profile dumps from your running application do:</p>
 <p><code>curl yourmachine:yourport/mtev/heap_profile?trigger_dump=true &gt; profile.prof</code></p>
-<p>This will send back jeprof format heap information which can then be passed
+<p>This will spit back jeprof format heap information which can then be passed
 to the <code>jeprof</code> analysis program for further analysis.  For example, to show
 allocations by source code line, but from a perspective outside of libmtev&apos;s use of
 SMR (<code>mtev_memory_</code>) and libck&apos;s hash tables (<code>ck_hs_</code>), one could run:</p>
 <p><code>jeprof --text --lines --exclude=&apos;(mtev_memory_|ck_hs_)&apos; /path/to/your/executable profile.prof</code></p>
-<p>To compare two heap profiles (which helps reduce the noise) you can add the <code>--base=baseline.prof</code> switch to the commandline.</p>
 <p>For more information on jemalloc heap profiling, see here: <a href="https://github.com/jemalloc/jemalloc/wiki/Use-Case%3A-Heap-Profiling" target="_blank">jemalloc heap profiling</a></p>
 
                                 
