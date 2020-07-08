@@ -66,10 +66,6 @@
     <div class="book-summary">
         
             
-<div id="book-search-input" role="search">
-    <input type="text" placeholder="Type to search" />
-</div>
-
             
                 <nav role="navigation">
                 
@@ -651,9 +647,6 @@
                     <div class="page-wrapper" tabindex="-1" role="main">
                         <div class="page-inner">
                             
-<div id="book-search-results">
-    <div class="search-noresults">
-    
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="consul">consul</h1>
@@ -681,45 +674,29 @@ Consul ACLs).</p>
 </ul>
 <h3 id="examples">Examples</h3>
 <h4 id="loading-the-httpobserver-module">Loading the http_observer module.</h4>
-<pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">app</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">modules</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">generic</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;consul&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;consul&quot;</span>/&gt;</span>
-        <span class="hljs-tag">&lt;/<span class="hljs-name">modules</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">consul</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">service</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">myservice</span> <span class="hljs-attr">id</span>=<span class="hljs-string">&quot;{app}-{node}&quot;</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;12123&quot;</span>&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">check</span> <span class="hljs-attr">deregister_after</span>=<span class="hljs-string">&quot;10m&quot;</span> <span class="hljs-attr">interval</span>=<span class="hljs-string">&quot;5s&quot;</span> <span class="hljs-attr">HTTP</span>=<span class="hljs-string">&quot;/url&quot;</span>/&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">weights</span> <span class="hljs-attr">passing</span>=<span class="hljs-string">&quot;10&quot;</span> <span class="hljs-attr">warning</span>=<span class="hljs-string">&quot;1&quot;</span>/&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">tag</span>&gt;</span>foo<span class="hljs-tag">&lt;/<span class="hljs-name">tag</span>&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">tag</span>&gt;</span>bar:baz<span class="hljs-tag">&lt;/<span class="hljs-name">tag</span>&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">meta</span>&gt;</span>
-                <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>value<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
-              <span class="hljs-tag">&lt;/<span class="hljs-name">meta</span>&gt;</span>
-            <span class="hljs-tag">&lt;/<span class="hljs-name">myservice</span>&gt;</span>
-          <span class="hljs-tag">&lt;/<span class="hljs-name">service</span>&gt;</span>
-        <span class="hljs-tag">&lt;/<span class="hljs-name">consul</span>&gt;</span>
-      <span class="hljs-tag">&lt;/<span class="hljs-name">app</span>&gt;</span>
+<pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-title">app</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">modules</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">generic</span> <span class="hljs-attribute">image</span>=<span class="hljs-value">&quot;consul&quot;</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">&quot;consul&quot;</span>/&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">modules</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">consul</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">service</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">myservice</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">&quot;{app}-{node}&quot;</span> <span class="hljs-attribute">port</span>=<span class="hljs-value">&quot;12123&quot;</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-title">check</span> <span class="hljs-attribute">deregister_after</span>=<span class="hljs-value">&quot;10m&quot;</span> <span class="hljs-attribute">interval</span>=<span class="hljs-value">&quot;5s&quot;</span> <span class="hljs-attribute">HTTP</span>=<span class="hljs-value">&quot;/url&quot;</span>/&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-title">weights</span> <span class="hljs-attribute">passing</span>=<span class="hljs-value">&quot;10&quot;</span> <span class="hljs-attribute">warning</span>=<span class="hljs-value">&quot;1&quot;</span>/&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-title">tag</span>&gt;</span>foo<span class="hljs-tag">&lt;/<span class="hljs-title">tag</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-title">tag</span>&gt;</span>bar:baz<span class="hljs-tag">&lt;/<span class="hljs-title">tag</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-title">meta</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-title">key</span>&gt;</span>value<span class="hljs-tag">&lt;/<span class="hljs-title">key</span>&gt;</span>
+              <span class="hljs-tag">&lt;/<span class="hljs-title">meta</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">myservice</span>&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-title">service</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">consul</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-title">app</span>&gt;</span>
 </code></pre>
 
                                 
                                 </section>
                             
-    </div>
-    <div class="search-results">
-        <div class="has-results">
-            
-            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
-            <ul class="search-results-list"></ul>
-            
-        </div>
-        <div class="no-results">
-            
-            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
-            
-        </div>
-    </div>
-</div>
-
                         </div>
                     </div>
                 
@@ -743,7 +720,7 @@ Consul ACLs).</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"consul","level":"1.2.8.2","depth":3,"next":{"title":"fq","level":"1.2.8.3","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},"previous":{"title":"amqp","level":"1.2.8.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/consul.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"../..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"consul","level":"1.2.8.2","depth":3,"next":{"title":"fq","level":"1.2.8.3","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},"previous":{"title":"amqp","level":"1.2.8.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{"maxIndexSize":1000000},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/consul.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"../..","book":{"language":""}});
         });
     </script>
 </div>
@@ -765,7 +742,7 @@ Consul ACLs).</p>
         
     
         
-        <script src="../../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        <script src="../../gitbook/gitbook-plugin-search/lunr.min.js"></script>
         
     
         
@@ -785,7 +762,7 @@ Consul ACLs).</p>
         
     
         
-        <script src="../../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        <script src="../../gitbook/gitbook-plugin-fontsettings/buttons.js"></script>
         
     
 

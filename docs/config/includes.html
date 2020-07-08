@@ -66,10 +66,6 @@
     <div class="book-summary">
         
             
-<div id="book-search-input" role="search">
-    <input type="text" placeholder="Type to search" />
-</div>
-
             
                 <nav role="navigation">
                 
@@ -651,9 +647,6 @@
                     <div class="page-wrapper" tabindex="-1" role="main">
                         <div class="page-inner">
                             
-<div id="book-search-results">
-    <div class="search-noresults">
-    
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="including-configuration">Including configuration</h1>
@@ -662,17 +655,17 @@ file from another.  libmtev allows two forms of file include: normal and
 snippet.</p>
 <h3 id="normal-includes">Normal Includes</h3>
 <h5 id="applicationconf">application.conf</h5>
-<pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
-<span class="hljs-tag">&lt;<span class="hljs-name">root</span>&gt;</span>
-  <span class="hljs-tag">&lt;<span class="hljs-name">include</span> <span class="hljs-attr">file</span>=<span class="hljs-string">&quot;child.conf&quot;</span>/&gt;</span>
-<span class="hljs-tag">&lt;/<span class="hljs-name">root</span>&gt;</span>
+<pre><code class="lang-xml"><span class="hljs-pi">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf8&quot; standalone=&quot;yes&quot;?&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">root</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">include</span> <span class="hljs-attribute">file</span>=<span class="hljs-value">&quot;child.conf&quot;</span>/&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">root</span>&gt;</span>
 </code></pre>
 <h5 id="childconf">child.conf</h5>
-<pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
-<span class="hljs-tag">&lt;<span class="hljs-name">child</span>&gt;</span>
-  <span class="hljs-tag">&lt;<span class="hljs-name">foo</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">foo</span>&gt;</span>
-  <span class="hljs-tag">&lt;<span class="hljs-name">bar</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">bar</span>&gt;</span>
-<span class="hljs-tag">&lt;/<span class="hljs-name">child</span>&gt;</span>
+<pre><code class="lang-xml"><span class="hljs-pi">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf8&quot; standalone=&quot;yes&quot;?&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">child</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">foo</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">foo</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">bar</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">bar</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">child</span>&gt;</span>
 </code></pre>
 <p>Under normal includes, you can include a complete XML document at the point
 of the include.  The <code>&lt;include&gt;</code> node is preserved, not replaced.  The root
@@ -690,14 +683,14 @@ be writte back to <code>child.conf</code>.</p>
 treated as an XML snippet and thus there is no root node to &quot;absorb.&quot;  The
 elements in the snippet are placed directy under include.</p>
 <h5 id="applicationconf">application.conf</h5>
-<pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
-<span class="hljs-tag">&lt;<span class="hljs-name">root</span>&gt;</span>
-  <span class="hljs-tag">&lt;<span class="hljs-name">include</span> <span class="hljs-attr">file</span>=<span class="hljs-string">&quot;snippet.conf&quot;</span> <span class="hljs-attr">snippet</span>=<span class="hljs-string">&quot;true&quot;</span>/&gt;</span>
-<span class="hljs-tag">&lt;/<span class="hljs-name">root</span>&gt;</span>
+<pre><code class="lang-xml"><span class="hljs-pi">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf8&quot; standalone=&quot;yes&quot;?&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">root</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">include</span> <span class="hljs-attribute">file</span>=<span class="hljs-value">&quot;snippet.conf&quot;</span> <span class="hljs-attribute">snippet</span>=<span class="hljs-value">&quot;true&quot;</span>/&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">root</span>&gt;</span>
 </code></pre>
 <h5 id="snippetconf">snippet.conf</h5>
-<pre><code class="lang-xml"><span class="hljs-tag">&lt;<span class="hljs-name">foo</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">foo</span>&gt;</span>
-<span class="hljs-tag">&lt;<span class="hljs-name">bar</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">bar</span>&gt;</span>
+<pre><code class="lang-xml"><span class="hljs-tag">&lt;<span class="hljs-title">foo</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">foo</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">bar</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">bar</span>&gt;</span>
 </code></pre>
 <p>The tree above would look like</p>
 <pre><code>    root
@@ -713,31 +706,15 @@ annotated with a <code>backingstore</code> attribute that indicates a directory 
 underlying nodes should be written out.  Nodes and attributes are stored in
 separate files and when the configuraion is subsequently modified, only changed
 nodes need be added, deleted or updated.</p>
-<pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
-<span class="hljs-tag">&lt;<span class="hljs-name">root</span>&gt;</span>
-  <span class="hljs-tag">&lt;<span class="hljs-name">superbigtree</span> <span class="hljs-attr">backingstore</span>=<span class="hljs-string">&quot;/path/to/etc/superbig&quot;</span>/&gt;</span>
-<span class="hljs-tag">&lt;/<span class="hljs-name">root</span>&gt;</span>
+<pre><code class="lang-xml"><span class="hljs-pi">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf8&quot; standalone=&quot;yes&quot;?&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">root</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">superbigtree</span> <span class="hljs-attribute">backingstore</span>=<span class="hljs-value">&quot;/path/to/etc/superbig&quot;</span>/&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">root</span>&gt;</span>
 </code></pre>
 
                                 
                                 </section>
                             
-    </div>
-    <div class="search-results">
-        <div class="has-results">
-            
-            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
-            <ul class="search-results-list"></ul>
-            
-        </div>
-        <div class="no-results">
-            
-            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
-            
-        </div>
-    </div>
-</div>
-
                         </div>
                     </div>
                 
@@ -761,7 +738,7 @@ nodes need be added, deleted or updated.</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Includes","level":"1.2.2","depth":2,"next":{"title":"Watchdog","level":"1.2.3","depth":2,"path":"config/watchdog.md","ref":"config/watchdog.md","articles":[]},"previous":{"title":"Inheritance","level":"1.2.1","depth":2,"path":"config/inherit.md","ref":"config/inherit.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/includes.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Includes","level":"1.2.2","depth":2,"next":{"title":"Watchdog","level":"1.2.3","depth":2,"path":"config/watchdog.md","ref":"config/watchdog.md","articles":[]},"previous":{"title":"Inheritance","level":"1.2.1","depth":2,"path":"config/inherit.md","ref":"config/inherit.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{"maxIndexSize":1000000},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/includes.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
@@ -783,7 +760,7 @@ nodes need be added, deleted or updated.</p>
         
     
         
-        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        <script src="../gitbook/gitbook-plugin-search/lunr.min.js"></script>
         
     
         
@@ -803,7 +780,7 @@ nodes need be added, deleted or updated.</p>
         
     
         
-        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        <script src="../gitbook/gitbook-plugin-fontsettings/buttons.js"></script>
         
     
 

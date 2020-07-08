@@ -755,11 +755,11 @@ size_t
 mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 ```
 
- *
+
 > Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA
 
 
- 
+
 
 ### D
 

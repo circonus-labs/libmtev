@@ -66,10 +66,6 @@
     <div class="book-summary">
         
             
-<div id="book-search-input" role="search">
-    <input type="text" placeholder="Type to search" />
-</div>
-
             
                 <nav role="navigation">
                 
@@ -651,9 +647,6 @@
                     <div class="page-wrapper" tabindex="-1" role="main">
                         <div class="page-inner">
                             
-<div id="book-search-results">
-    <div class="search-noresults">
-    
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="dynamically-loadable-modules">Dynamically Loadable Modules</h1>
@@ -667,21 +660,21 @@ a part of their application design).  These modules are described in the modules
 section of the manual.</p>
 <p>Modules are all configured under the top-level <code>&lt;modules&gt;</code> node in the configuration.</p>
 <h5 id="applicationconf">application.conf</h5>
-<pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
-<span class="hljs-tag">&lt;<span class="hljs-name">application</span>&gt;</span>
-  <span class="hljs-tag">&lt;<span class="hljs-name">modules</span> <span class="hljs-attr">directory</span>=<span class="hljs-string">&quot;../modules&quot;</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">generic</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;zipkin_fq&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;zipkin_fq&quot;</span> <span class="hljs-attr">require_env</span>=<span class="hljs-string">&quot;FQ&quot;</span>&gt;</span>
-    <span class="hljs-tag">&lt;/<span class="hljs-name">generic</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">generic</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;lua_mtev&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;lua_general&quot;</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">directory</span>&gt;</span>../modules/lua-support/?.lua;./lua-examples/?.lua;{package.path}<span class="hljs-tag">&lt;/<span class="hljs-name">directory</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">cpath</span>&gt;</span>../modules/mtev_lua/?.so;{package.cpath}<span class="hljs-tag">&lt;/<span class="hljs-name">cpath</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">lua_module</span>&gt;</span>luatest<span class="hljs-tag">&lt;/<span class="hljs-name">lua_module</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">lua_function</span>&gt;</span>onethread<span class="hljs-tag">&lt;/<span class="hljs-name">lua_function</span>&gt;</span>
-      <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
-    <span class="hljs-tag">&lt;/<span class="hljs-name">generic</span>&gt;</span>
-  <span class="hljs-tag">&lt;/<span class="hljs-name">modules</span>&gt;</span>
-<span class="hljs-tag">&lt;/<span class="hljs-name">application</span>&gt;</span>
+<pre><code class="lang-xml"><span class="hljs-pi">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf8&quot; standalone=&quot;yes&quot;?&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">application</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">modules</span> <span class="hljs-attribute">directory</span>=<span class="hljs-value">&quot;../modules&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">generic</span> <span class="hljs-attribute">image</span>=<span class="hljs-value">&quot;zipkin_fq&quot;</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">&quot;zipkin_fq&quot;</span> <span class="hljs-attribute">require_env</span>=<span class="hljs-value">&quot;FQ&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">generic</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">generic</span> <span class="hljs-attribute">image</span>=<span class="hljs-value">&quot;lua_mtev&quot;</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">&quot;lua_general&quot;</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">config</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">directory</span>&gt;</span>../modules/lua-support/?.lua;./lua-examples/?.lua;{package.path}<span class="hljs-tag">&lt;/<span class="hljs-title">directory</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">cpath</span>&gt;</span>../modules/mtev_lua/?.so;{package.cpath}<span class="hljs-tag">&lt;/<span class="hljs-title">cpath</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">lua_module</span>&gt;</span>luatest<span class="hljs-tag">&lt;/<span class="hljs-title">lua_module</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">lua_function</span>&gt;</span>onethread<span class="hljs-tag">&lt;/<span class="hljs-title">lua_function</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-title">config</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">generic</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">modules</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">application</span>&gt;</span>
 </code></pre>
 <p>The <code>&lt;modules&gt;</code> node takes an optional <code>directory</code> attribute that specified where dynamic modules should
 be found on the filesystem.  If omitted, the directory in which modules were installed as a part of your
@@ -718,22 +711,6 @@ within the software stack.</p>
                                 
                                 </section>
                             
-    </div>
-    <div class="search-results">
-        <div class="has-results">
-            
-            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
-            <ul class="search-results-list"></ul>
-            
-        </div>
-        <div class="no-results">
-            
-            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
-            
-        </div>
-    </div>
-</div>
-
                         </div>
                     </div>
                 
@@ -757,7 +734,7 @@ within the software stack.</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Modules","level":"1.2.8","depth":2,"next":{"title":"amqp","level":"1.2.8.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},"previous":{"title":"Listeners","level":"1.2.7","depth":2,"path":"config/listeners.md","ref":"config/listeners.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Modules","level":"1.2.8","depth":2,"next":{"title":"amqp","level":"1.2.8.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},"previous":{"title":"Listeners","level":"1.2.7","depth":2,"path":"config/listeners.md","ref":"config/listeners.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{"maxIndexSize":1000000},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
@@ -779,7 +756,7 @@ within the software stack.</p>
         
     
         
-        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        <script src="../gitbook/gitbook-plugin-search/lunr.min.js"></script>
         
     
         
@@ -799,7 +776,7 @@ within the software stack.</p>
         
     
         
-        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        <script src="../gitbook/gitbook-plugin-fontsettings/buttons.js"></script>
         
     
 

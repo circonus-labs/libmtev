@@ -66,10 +66,6 @@
     <div class="book-summary">
         
             
-<div id="book-search-input" role="search">
-    <input type="text" placeholder="Type to search" />
-</div>
-
             
                 <nav role="navigation">
                 
@@ -651,9 +647,6 @@
                     <div class="page-wrapper" tabindex="-1" role="main">
                         <div class="page-inner">
                             
-<div id="book-search-results">
-    <div class="search-noresults">
-    
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="managed-applications">Managed Applications</h1>
@@ -661,18 +654,18 @@
 <p>Applications listend in the <code>managed</code> section of the config will be started when running in managed mode and restarted upon failure.  If the application exits normally with an exit code of 0, it is restarted immediately.  In all other cases, an expoentential backoff is used in the restart sequence so as not to overwhelme the system.</p>
 <p>Applications are found using the XPath <code>/example1/managed//application|/example1/include/managed//application</code> to pull all nested application declarations from underneath top-level <code>managed</code> sections (even when included).</p>
 <h5 id="example1conf">example1.conf</h5>
-<pre><code class="lang-xml"><span class="php"><span class="hljs-meta">&lt;?</span>xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;utf8&quot;</span> standalone=<span class="hljs-string">&quot;yes&quot;</span><span class="hljs-meta">?&gt;</span></span>
-<span class="hljs-tag">&lt;<span class="hljs-name">example1</span> <span class="hljs-attr">lockfile</span>=<span class="hljs-string">&quot;/var/tmp/example.lock&quot;</span>&gt;</span>
-  <span class="hljs-tag">&lt;<span class="hljs-name">managed</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">application</span> <span class="hljs-attr">exec</span>=<span class="hljs-string">&quot;/opt/foo/sidecar1&quot;</span>
-                 <span class="hljs-attr">user</span>=<span class="hljs-string">&quot;nobody&quot;</span> <span class="hljs-attr">group</span>=<span class="hljs-string">&quot;nogroup&quot;</span> <span class="hljs-attr">dir</span>=<span class="hljs-string">&quot;/var/run/sidecar1&quot;</span>
-                 <span class="hljs-attr">stderr</span>=<span class="hljs-string">&quot;app/sidecar/stdout&quot;</span> <span class="hljs-attr">stdout</span>=<span class="hljs-string">&quot;app/sidecar/stderr&quot;</span> <span class="hljs-attr">environment</span>=<span class="hljs-string">&quot;true&quot;</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">arg</span>&gt;</span>-l<span class="hljs-tag">&lt;/<span class="hljs-name">arg</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">arg</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-name">arg</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">env</span>&gt;</span>TESTVAR=TESTVAL<span class="hljs-tag">&lt;/<span class="hljs-name">env</span>&gt;</span>
-    <span class="hljs-tag">&lt;/<span class="hljs-name">application</span>&gt;</span>
-  <span class="hljs-tag">&lt;/<span class="hljs-name">managed</span>&gt;</span>
-<span class="hljs-tag">&lt;/<span class="hljs-name">example1</span>&gt;</span>
+<pre><code class="lang-xml"><span class="hljs-pi">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf8&quot; standalone=&quot;yes&quot;?&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-title">example1</span> <span class="hljs-attribute">lockfile</span>=<span class="hljs-value">&quot;/var/tmp/example.lock&quot;</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-title">managed</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">application</span> <span class="hljs-attribute">exec</span>=<span class="hljs-value">&quot;/opt/foo/sidecar1&quot;</span>
+                 <span class="hljs-attribute">user</span>=<span class="hljs-value">&quot;nobody&quot;</span> <span class="hljs-attribute">group</span>=<span class="hljs-value">&quot;nogroup&quot;</span> <span class="hljs-attribute">dir</span>=<span class="hljs-value">&quot;/var/run/sidecar1&quot;</span>
+                 <span class="hljs-attribute">stderr</span>=<span class="hljs-value">&quot;app/sidecar/stdout&quot;</span> <span class="hljs-attribute">stdout</span>=<span class="hljs-value">&quot;app/sidecar/stderr&quot;</span> <span class="hljs-attribute">environment</span>=<span class="hljs-value">&quot;true&quot;</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">arg</span>&gt;</span>-l<span class="hljs-tag">&lt;/<span class="hljs-title">arg</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">arg</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-title">arg</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">env</span>&gt;</span>TESTVAR=TESTVAL<span class="hljs-tag">&lt;/<span class="hljs-title">env</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">application</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">managed</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-title">example1</span>&gt;</span>
 </code></pre>
 <p>The following application attributes are supported:</p>
 <ul>
@@ -707,22 +700,6 @@
                                 
                                 </section>
                             
-    </div>
-    <div class="search-results">
-        <div class="has-results">
-            
-            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
-            <ul class="search-results-list"></ul>
-            
-        </div>
-        <div class="no-results">
-            
-            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
-            
-        </div>
-    </div>
-</div>
-
                         </div>
                     </div>
                 
@@ -746,7 +723,7 @@
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Managed","level":"1.2.4","depth":2,"next":{"title":"Eventer","level":"1.2.5","depth":2,"path":"config/eventer.md","ref":"config/eventer.md","articles":[]},"previous":{"title":"Watchdog","level":"1.2.3","depth":2,"path":"config/watchdog.md","ref":"config/watchdog.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/managed.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Managed","level":"1.2.4","depth":2,"next":{"title":"Eventer","level":"1.2.5","depth":2,"path":"config/eventer.md","ref":"config/eventer.md","articles":[]},"previous":{"title":"Watchdog","level":"1.2.3","depth":2,"path":"config/watchdog.md","ref":"config/watchdog.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{"maxIndexSize":1000000},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/managed.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
@@ -768,7 +745,7 @@
         
     
         
-        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        <script src="../gitbook/gitbook-plugin-search/lunr.min.js"></script>
         
     
         
@@ -788,7 +765,7 @@
         
     
         
-        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        <script src="../gitbook/gitbook-plugin-fontsettings/buttons.js"></script>
         
     
 

@@ -66,10 +66,6 @@
     <div class="book-summary">
         
             
-<div id="book-search-input" role="search">
-    <input type="text" placeholder="Type to search" />
-</div>
-
             
                 <nav role="navigation">
                 
@@ -651,9 +647,6 @@
                     <div class="page-wrapper" tabindex="-1" role="main">
                         <div class="page-inner">
                             
-<div id="book-search-results">
-    <div class="search-noresults">
-    
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="fq">fq</h1>
@@ -681,54 +674,38 @@ of the pool.</p>
 </ul>
 <h3 id="examples">Examples</h3>
 <h4 id="loading-the-fq-module">Loading the fq module.</h4>
-<pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-name">root</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">modules</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">module</span> <span class="hljs-attr">image</span>=<span class="hljs-string">&quot;fq&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;fq&quot;</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
-              <span class="hljs-tag">&lt;<span class="hljs-name">poll_limit</span>&gt;</span>1000<span class="hljs-tag">&lt;/<span class="hljs-name">poll_limit</span>&gt;</span>
-            <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
-          <span class="hljs-tag">&lt;/<span class="hljs-name">module</span>&gt;</span>
-        <span class="hljs-tag">&lt;/<span class="hljs-name">modules</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">network</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">mq</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;fq&quot;</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">host</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-name">host</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">port</span>&gt;</span>8765<span class="hljs-tag">&lt;/<span class="hljs-name">port</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">user</span>&gt;</span>user<span class="hljs-tag">&lt;/<span class="hljs-name">user</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">pass</span>&gt;</span>pass<span class="hljs-tag">&lt;/<span class="hljs-name">pass</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">exchange</span>&gt;</span>exchange<span class="hljs-tag">&lt;/<span class="hljs-name">exchange</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">program</span>&gt;</span>prefix:&quot;in.&quot;<span class="hljs-tag">&lt;/<span class="hljs-name">program</span>&gt;</span>
-          <span class="hljs-tag">&lt;/<span class="hljs-name">mq</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">mq</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;fq&quot;</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">host</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-name">host</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">port</span>&gt;</span>8765<span class="hljs-tag">&lt;/<span class="hljs-name">port</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">user</span>&gt;</span>user<span class="hljs-tag">&lt;/<span class="hljs-name">user</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">pass</span>&gt;</span>pass<span class="hljs-tag">&lt;/<span class="hljs-name">pass</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">exchange</span>&gt;</span>exchange<span class="hljs-tag">&lt;/<span class="hljs-name">exchange</span>&gt;</span>
-            <span class="hljs-tag">&lt;<span class="hljs-name">program</span>&gt;</span>prefix:&quot;in2.&quot;<span class="hljs-tag">&lt;/<span class="hljs-name">program</span>&gt;</span>
-          <span class="hljs-tag">&lt;/<span class="hljs-name">mq</span>&gt;</span>
-        <span class="hljs-tag">&lt;/<span class="hljs-name">network</span>&gt;</span>
-      <span class="hljs-tag">&lt;/<span class="hljs-name">root</span>&gt;</span>
+<pre><code class="lang-xml">      <span class="hljs-tag">&lt;<span class="hljs-title">root</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">modules</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">module</span> <span class="hljs-attribute">image</span>=<span class="hljs-value">&quot;fq&quot;</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">&quot;fq&quot;</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">config</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-title">poll_limit</span>&gt;</span>1000<span class="hljs-tag">&lt;/<span class="hljs-title">poll_limit</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">config</span>&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-title">module</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">modules</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">network</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">mq</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">&quot;fq&quot;</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">host</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-title">host</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">port</span>&gt;</span>8765<span class="hljs-tag">&lt;/<span class="hljs-title">port</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">user</span>&gt;</span>user<span class="hljs-tag">&lt;/<span class="hljs-title">user</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">pass</span>&gt;</span>pass<span class="hljs-tag">&lt;/<span class="hljs-title">pass</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">exchange</span>&gt;</span>exchange<span class="hljs-tag">&lt;/<span class="hljs-title">exchange</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">program</span>&gt;</span>prefix:&quot;in.&quot;<span class="hljs-tag">&lt;/<span class="hljs-title">program</span>&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-title">mq</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">mq</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">&quot;fq&quot;</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">host</span>&gt;</span>localhost<span class="hljs-tag">&lt;/<span class="hljs-title">host</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">port</span>&gt;</span>8765<span class="hljs-tag">&lt;/<span class="hljs-title">port</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">user</span>&gt;</span>user<span class="hljs-tag">&lt;/<span class="hljs-title">user</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">pass</span>&gt;</span>pass<span class="hljs-tag">&lt;/<span class="hljs-title">pass</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">exchange</span>&gt;</span>exchange<span class="hljs-tag">&lt;/<span class="hljs-title">exchange</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">program</span>&gt;</span>prefix:&quot;in2.&quot;<span class="hljs-tag">&lt;/<span class="hljs-title">program</span>&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-title">mq</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">network</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-title">root</span>&gt;</span>
 </code></pre>
 
                                 
                                 </section>
                             
-    </div>
-    <div class="search-results">
-        <div class="has-results">
-            
-            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
-            <ul class="search-results-list"></ul>
-            
-        </div>
-        <div class="no-results">
-            
-            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
-            
-        </div>
-    </div>
-</div>
-
                         </div>
                     </div>
                 
@@ -752,7 +729,7 @@ of the pool.</p>
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"fq","level":"1.2.8.3","depth":3,"next":{"title":"http_hmac_cookie","level":"1.2.8.4","depth":3,"path":"config/modules/http_hmac_cookie.md","ref":"config/modules/http_hmac_cookie.md","articles":[]},"previous":{"title":"consul","level":"1.2.8.2","depth":3,"path":"config/modules/consul.md","ref":"config/modules/consul.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/fq.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"../..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"fq","level":"1.2.8.3","depth":3,"next":{"title":"http_hmac_cookie","level":"1.2.8.4","depth":3,"path":"config/modules/http_hmac_cookie.md","ref":"config/modules/http_hmac_cookie.md","articles":[]},"previous":{"title":"consul","level":"1.2.8.2","depth":3,"path":"config/modules/consul.md","ref":"config/modules/consul.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{"maxIndexSize":1000000},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/modules/fq.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"../..","book":{"language":""}});
         });
     </script>
 </div>
@@ -774,7 +751,7 @@ of the pool.</p>
         
     
         
-        <script src="../../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        <script src="../../gitbook/gitbook-plugin-search/lunr.min.js"></script>
         
     
         
@@ -794,7 +771,7 @@ of the pool.</p>
         
     
         
-        <script src="../../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        <script src="../../gitbook/gitbook-plugin-fontsettings/buttons.js"></script>
         
     
 

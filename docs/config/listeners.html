@@ -66,10 +66,6 @@
     <div class="book-summary">
         
             
-<div id="book-search-input" role="search">
-    <input type="text" placeholder="Type to search" />
-</div>
-
             
                 <nav role="navigation">
                 
@@ -651,40 +647,37 @@
                     <div class="page-wrapper" tabindex="-1" role="main">
                         <div class="page-inner">
                             
-<div id="book-search-results">
-    <div class="search-noresults">
-    
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="listeners">Listeners</h1>
 <p>Network listeners and their services are specified via configuration.</p>
 <h5 id="applicationconf-snippet">application.conf (snippet)</h5>
-<pre><code class="lang-xml">  <span class="hljs-tag">&lt;<span class="hljs-name">listeners</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">sslconfig</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">optional_no_ca</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-name">optional_no_ca</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">certificate_file</span>&gt;</span>/path/to/server.crt<span class="hljs-tag">&lt;/<span class="hljs-name">certificate_file</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">key_file</span>&gt;</span>/path/to/server.key<span class="hljs-tag">&lt;/<span class="hljs-name">key_file</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">ca_chain</span>&gt;</span>/path/to/ca.crt<span class="hljs-tag">&lt;/<span class="hljs-name">ca_chain</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">ca_accept</span>/&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">layer</span>&gt;</span>tlsv1:all,!sslv2,!sslv3,cipher_server_preference<span class="hljs-tag">&lt;/<span class="hljs-name">layer</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">ciphers</span>&gt;</span>EECDH+AES128+AESGCM:EDH+AES128+AESGCM:!DSS<span class="hljs-tag">&lt;/<span class="hljs-name">ciphers</span>&gt;</span>
-    <span class="hljs-tag">&lt;/<span class="hljs-name">sslconfig</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">consoles</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;mtev_console&quot;</span> <span class="hljs-attr">require_env</span>=<span class="hljs-string">&quot;MTEV_CONTROL&quot;</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">listener</span> <span class="hljs-attr">address</span>=<span class="hljs-string">&quot;127.0.0.1&quot;</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;32322&quot;</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
-          <span class="hljs-tag">&lt;<span class="hljs-name">line_protocol</span>&gt;</span>telnet<span class="hljs-tag">&lt;/<span class="hljs-name">line_protocol</span>&gt;</span>
-        <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
-      <span class="hljs-tag">&lt;/<span class="hljs-name">listener</span>&gt;</span>
-    <span class="hljs-tag">&lt;/<span class="hljs-name">consoles</span>&gt;</span>
-    <span class="hljs-tag">&lt;<span class="hljs-name">web</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;control_dispatch&quot;</span> <span class="hljs-attr">address</span>=<span class="hljs-string">&quot;*&quot;</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">config</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">idle_timeout</span>&gt;</span>30000<span class="hljs-tag">&lt;/<span class="hljs-name">idle_timeout</span>&gt;</span>
-        <span class="hljs-tag">&lt;<span class="hljs-name">document_root</span>&gt;</span>/path/to/docroot<span class="hljs-tag">&lt;/<span class="hljs-name">document_root</span>&gt;</span>
-      <span class="hljs-tag">&lt;/<span class="hljs-name">config</span>&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">listener</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;80&quot;</span> /&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">listener</span> <span class="hljs-attr">port</span>=<span class="hljs-string">&quot;443&quot;</span> <span class="hljs-attr">ssl</span>=<span class="hljs-string">&quot;on&quot;</span> /&gt;</span>
-    <span class="hljs-tag">&lt;/<span class="hljs-name">web</span>&gt;</span>
-  <span class="hljs-tag">&lt;/<span class="hljs-name">listeners</span>&gt;</span>
+<pre><code class="lang-xml">  <span class="hljs-tag">&lt;<span class="hljs-title">listeners</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">sslconfig</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">optional_no_ca</span>&gt;</span>false<span class="hljs-tag">&lt;/<span class="hljs-title">optional_no_ca</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">certificate_file</span>&gt;</span>/path/to/server.crt<span class="hljs-tag">&lt;/<span class="hljs-title">certificate_file</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">key_file</span>&gt;</span>/path/to/server.key<span class="hljs-tag">&lt;/<span class="hljs-title">key_file</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">ca_chain</span>&gt;</span>/path/to/ca.crt<span class="hljs-tag">&lt;/<span class="hljs-title">ca_chain</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">ca_accept</span>/&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">layer</span>&gt;</span>tlsv1:all,!sslv2,!sslv3,cipher_server_preference<span class="hljs-tag">&lt;/<span class="hljs-title">layer</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">ciphers</span>&gt;</span>EECDH+AES128+AESGCM:EDH+AES128+AESGCM:!DSS<span class="hljs-tag">&lt;/<span class="hljs-title">ciphers</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">sslconfig</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">consoles</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">&quot;mtev_console&quot;</span> <span class="hljs-attribute">require_env</span>=<span class="hljs-value">&quot;MTEV_CONTROL&quot;</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">listener</span> <span class="hljs-attribute">address</span>=<span class="hljs-value">&quot;127.0.0.1&quot;</span> <span class="hljs-attribute">port</span>=<span class="hljs-value">&quot;32322&quot;</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">config</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">line_protocol</span>&gt;</span>telnet<span class="hljs-tag">&lt;/<span class="hljs-title">line_protocol</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">config</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-title">listener</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">consoles</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">web</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">&quot;control_dispatch&quot;</span> <span class="hljs-attribute">address</span>=<span class="hljs-value">&quot;*&quot;</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">config</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">idle_timeout</span>&gt;</span>30000<span class="hljs-tag">&lt;/<span class="hljs-title">idle_timeout</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">document_root</span>&gt;</span>/path/to/docroot<span class="hljs-tag">&lt;/<span class="hljs-title">document_root</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-title">config</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">listener</span> <span class="hljs-attribute">port</span>=<span class="hljs-value">&quot;80&quot;</span> /&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-title">listener</span> <span class="hljs-attribute">port</span>=<span class="hljs-value">&quot;443&quot;</span> <span class="hljs-attribute">ssl</span>=<span class="hljs-value">&quot;on&quot;</span> /&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-title">web</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">listeners</span>&gt;</span>
 </code></pre>
 <p>This example demonstrates many powerful concepts of the libmtev configuration system.
 There are three listener stanzas nested above and we&apos;ll walk through each.  The first
@@ -803,22 +796,6 @@ protocol is exposed.  Specifying <code>none</code> will disable this NPN/ALPN re
                                 
                                 </section>
                             
-    </div>
-    <div class="search-results">
-        <div class="has-results">
-            
-            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
-            <ul class="search-results-list"></ul>
-            
-        </div>
-        <div class="no-results">
-            
-            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
-            
-        </div>
-    </div>
-</div>
-
                         </div>
                     </div>
                 
@@ -842,7 +819,7 @@ protocol is exposed.  Specifying <code>none</code> will disable this NPN/ALPN re
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Listeners","level":"1.2.7","depth":2,"next":{"title":"Modules","level":"1.2.8","depth":2,"path":"config/modules.md","ref":"config/modules.md","articles":[{"title":"amqp","level":"1.2.8.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},{"title":"consul","level":"1.2.8.2","depth":3,"path":"config/modules/consul.md","ref":"config/modules/consul.md","articles":[]},{"title":"fq","level":"1.2.8.3","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},{"title":"http_hmac_cookie","level":"1.2.8.4","depth":3,"path":"config/modules/http_hmac_cookie.md","ref":"config/modules/http_hmac_cookie.md","articles":[]},{"title":"http_observer","level":"1.2.8.5","depth":3,"path":"config/modules/http_observer.md","ref":"config/modules/http_observer.md","articles":[]},{"title":"lua_general","level":"1.2.8.6","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},{"title":"lua_web","level":"1.2.8.7","depth":3,"path":"config/modules/lua_web.md","ref":"config/modules/lua_web.md","articles":[]},{"title":"zipkin_fq","level":"1.2.8.8","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]},{"title":"zipkin_jaeger","level":"1.2.8.9","depth":3,"path":"config/modules/zipkin_jaeger.md","ref":"config/modules/zipkin_jaeger.md","articles":[]}]},"previous":{"title":"Logging","level":"1.2.6","depth":2,"path":"config/logging.md","ref":"config/logging.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/listeners.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Listeners","level":"1.2.7","depth":2,"next":{"title":"Modules","level":"1.2.8","depth":2,"path":"config/modules.md","ref":"config/modules.md","articles":[{"title":"amqp","level":"1.2.8.1","depth":3,"path":"config/modules/amqp.md","ref":"config/modules/amqp.md","articles":[]},{"title":"consul","level":"1.2.8.2","depth":3,"path":"config/modules/consul.md","ref":"config/modules/consul.md","articles":[]},{"title":"fq","level":"1.2.8.3","depth":3,"path":"config/modules/fq.md","ref":"config/modules/fq.md","articles":[]},{"title":"http_hmac_cookie","level":"1.2.8.4","depth":3,"path":"config/modules/http_hmac_cookie.md","ref":"config/modules/http_hmac_cookie.md","articles":[]},{"title":"http_observer","level":"1.2.8.5","depth":3,"path":"config/modules/http_observer.md","ref":"config/modules/http_observer.md","articles":[]},{"title":"lua_general","level":"1.2.8.6","depth":3,"path":"config/modules/lua_general.md","ref":"config/modules/lua_general.md","articles":[]},{"title":"lua_web","level":"1.2.8.7","depth":3,"path":"config/modules/lua_web.md","ref":"config/modules/lua_web.md","articles":[]},{"title":"zipkin_fq","level":"1.2.8.8","depth":3,"path":"config/modules/zipkin_fq.md","ref":"config/modules/zipkin_fq.md","articles":[]},{"title":"zipkin_jaeger","level":"1.2.8.9","depth":3,"path":"config/modules/zipkin_jaeger.md","ref":"config/modules/zipkin_jaeger.md","articles":[]}]},"previous":{"title":"Logging","level":"1.2.6","depth":2,"path":"config/logging.md","ref":"config/logging.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{"maxIndexSize":1000000},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/listeners.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>
@@ -864,7 +841,7 @@ protocol is exposed.  Specifying <code>none</code> will disable this NPN/ALPN re
         
     
         
-        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        <script src="../gitbook/gitbook-plugin-search/lunr.min.js"></script>
         
     
         
@@ -884,7 +861,7 @@ protocol is exposed.  Specifying <code>none</code> will disable this NPN/ALPN re
         
     
         
-        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        <script src="../gitbook/gitbook-plugin-fontsettings/buttons.js"></script>
         
     
 
