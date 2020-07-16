@@ -15,6 +15,7 @@ if [ $? -eq 0 ]; then
   fi
   echo "    * symbolic -> $SYM"
   BRANCH=$SYM
+  VSTR=`echo -n "$BRANCH" | sed -e 's#^tags/##;' | sed -e 's#^branches/##;'`
   VERSION="$HASH.$TSTAMP"
   if [ -n "`echo $STATUS | grep 'Changed but not updated'`" ]; then
     VERSION="$HASH.modified.$TSTAMP"
@@ -42,16 +43,21 @@ cat > $1 <<EOF
 #endif
 
 #include <stdio.h>
+#include <mtev_str.h>
+
+#if defined(MTEV_VERSION_IMPL)
+const char *mtev_branch = "$BRANCH";
+const char *mtev_git_hash = "$HASH";
+const char *mtev_version = "$VSTR";
+#elif defined(MTEV_VERSION_DECL)
+extern const char *mtev_branch;
+extern const char *mtev_git_hash;
+extern const char *mtev_version;
+#endif
 
 static inline int mtev_build_version(char *buff, int len) {
-  char start[256] = {0};
-  memcpy(start, MTEV_BRANCH, MIN(sizeof(MTEV_BRANCH),sizeof(start)-1));
-  char *last_slash = strrchr(start, '/');
-  if(last_slash && !strncmp(start, "branches/", 9)) 
-    return snprintf(buff, len, "%s.%s", last_slash + 1, MTEV_VERSION);
-  if(last_slash && !strncmp(start, "tags/", 5)) 
-    return snprintf(buff, len, "%s", last_slash + 1);
-  return snprintf(buff, len, "%s.%s", MTEV_BRANCH, MTEV_VERSION);
+  mtev_strlcpy(buff, "$VSTR.$VERSION", len);
+  return strlen(buff);
 }
 
 #endif
