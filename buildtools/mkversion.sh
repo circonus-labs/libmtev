@@ -15,7 +15,7 @@ if [ $? -eq 0 ]; then
   fi
   echo "    * symbolic -> $SYM"
   BRANCH=$SYM
-  VSTR=`echo -n "$BRANCH" | sed -e 's#^tags/##;' | sed -e 's#^branches/##;'`
+  VSTR=`printf "$BRANCH" | sed -e 's#^tags/##;' | sed -e 's#^branches/##;'`
   VERSION="$HASH.$TSTAMP"
   if [ -n "`echo $STATUS | grep 'Changed but not updated'`" ]; then
     VERSION="$HASH.modified.$TSTAMP"
