@@ -61,6 +61,9 @@ API_EXPORT(int)
 API_EXPORT(int)
   mtev_aco_stacktrace_skip(mtev_log_stream_t ls, aco_t *co, int ignore);
 
+API_EXPORT(void)
+  mtev_log_backtrace(mtev_log_stream_t ls, void **ips, int cnt);
+
 API_EXPORT(int)
   mtev_backtrace(void **ips, int cnt);
 

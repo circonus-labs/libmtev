@@ -1001,6 +1001,9 @@ int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt) {
 #endif
   return frames;
 }
+void mtev_log_backtrace(mtev_log_stream_t ls, void **callstack, int cnt) {
+  mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack, cnt);
+}
 int mtev_backtrace(void **callstack, int cnt) {
   return mtev_backtrace_ucontext(callstack, NULL, cnt);
 }

@@ -43,6 +43,7 @@
 #include <umem.h>
 #endif
 #define MTEV_EPOCH_SAFE_MAGIC 0x5afe5afe
+#define MTEV_EPOCH_SAFE_FREE_MAGIC 0x00badbad
 
 #undef unlikely
 #define unlikely(x) (__builtin_expect(!!(x), 0))
@@ -230,6 +231,7 @@ static void mtev_memory_gc_restart_thread(void) {
   /* If we think we're async, we should have a thread */
   if(ck_pr_load_int(&asynch_gc)) mtev_memory_gc_asynch();
 }
+
 void mtev_memory_init(void) {
   stats_handle_t *h;
   if(initialized) return;
@@ -523,29 +525,31 @@ void mtev_memory_end(void) {
   }
 }
 
+#define MTEV_MEMORY_DEBUG_STACK_FRAMES 8
 struct safe_epoch {
   ck_epoch_entry_t epoch_entry;
   uint32_t magic;
+#ifdef MTEV_MEMORY_DEBUG
+  void *alloc_s[MTEV_MEMORY_DEBUG_STACK_FRAMES];
+  void *free_s[MTEV_MEMORY_DEBUG_STACK_FRAMES];
+#endif
   void (*cleanup)(void *);
 };
 
 static void mtev_memory_real_free(ck_epoch_entry_t *e) {
   struct safe_epoch *se = (struct safe_epoch *)e;
   if(se->cleanup) se->cleanup(se+1);
+  /* This can help notice double free's faster */
+  bool expected_free = se->magic == MTEV_EPOCH_SAFE_FREE_MAGIC;
   free(e);
+  /* after the free as the allocator might provide insight */
+  mtevAssert(expected_free);
   stats_add64(safe_frees_completed, 1);
   return;
 }
 
 void *mtev_memory_safe_malloc(size_t r) {
-  struct safe_epoch *b;
-  mtevAssert(gc_return != NULL);
-  if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
-  b = malloc(sizeof(*b) + r);
-  b->magic = MTEV_EPOCH_SAFE_MAGIC;
-  b->cleanup = NULL;
-  stats_add64(safe_allocations, 1);
-  return b + 1;
+  return mtev_memory_safe_malloc_cleanup(r, NULL);
 }
 
 void *mtev_memory_safe_malloc_cleanup(size_t r, void (*f)(void *)) {
@@ -553,6 +557,10 @@ void *mtev_memory_safe_malloc_cleanup(size_t r, void (*f)(void *)) {
   mtevAssert(gc_return != NULL);
   if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
   b = malloc(sizeof(*b) + r);
+#ifdef MTEV_MEMORY_DEBUG
+  memset(b, 0, sizeof(*b));
+  mtev_backtrace(b->alloc_s, MTEV_MEMORY_DEBUG_STACK_FRAMES);
+#endif
   b->magic = MTEV_EPOCH_SAFE_MAGIC;
   b->cleanup = f;
   stats_add64(safe_allocations, 1);
@@ -584,17 +592,34 @@ void *mtev_memory_ck_malloc(size_t r) {
 static void
 mtev_memory_ck_free_func(void *p, size_t b, bool r,
                          void (*f)(ck_epoch_entry_t *)) {
+  (void)b;
+  if(p == NULL) return;
   struct safe_epoch *e = (p - sizeof(struct safe_epoch));
 
-  if(p == NULL) return;
-  (void)b;
   bool magic_valid = e->magic == MTEV_EPOCH_SAFE_MAGIC;
+#ifdef MTEV_MEMORY_DEBUG
+  if(!magic_valid) {
+    mtevL(mtev_error, "mtev_memory_safe_free %s: %p\n",
+          e->magic == MTEV_EPOCH_SAFE_FREE_MAGIC ? "(double free)" : "(corrupted)", p);
+    int alloc_n = 1, free_n = 1;
+    for(; alloc_n<MTEV_MEMORY_DEBUG_STACK_FRAMES && e->alloc_s[alloc_n]; alloc_n++);
+    for(; free_n<MTEV_MEMORY_DEBUG_STACK_FRAMES && e->free_s[free_n]; free_n++);
+    mtevL(mtev_error, "Allocated:\n");
+    mtev_log_backtrace(mtev_error, e->alloc_s, alloc_n);
+    mtevL(mtev_error, "Freed:\n");
+    mtev_log_backtrace(mtev_error, e->free_s, free_n);
+  }
+  else {
+    mtev_backtrace(e->free_s, MTEV_MEMORY_DEBUG_STACK_FRAMES);
+  }
+#endif
   /* We could assert here as we know we're in a bad state, but
    * we elect to delay until after the potential free so that
    * ASAN or valgrind might help us out if this is a double free.
    */
   stats_add64(safe_frees_requested, 1);
 
+  if(magic_valid) e->magic = MTEV_EPOCH_SAFE_FREE_MAGIC;
   if (magic_valid && r == true) {
     /* Destruction requires safe memory reclamation. */
     needs_maintenance |= 1;
