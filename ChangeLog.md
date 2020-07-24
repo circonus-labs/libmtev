@@ -4,6 +4,20 @@
 
 ## 1.12
 
+### 1.12.5
+
+ * Fix bug in `mtev_plock_try_rtos` in `MTEV_PLOCK_HEAVY` mode where multiple
+   threads could enter the S critical section.
+ * Support `-DMTEV_MEMORY_DEBUG` to track alloc/free stacks for `mtev_memory_safe`
+   operations.
+ * Introduce new version global symbols to assist debuggers.
+ * Add `mtev_log_backtrace` that will print a previously captured backtrace.
+ * `MTEV_RDTSC_ENABLE` now replaces `MTEV_RDTSC_DISABLE` (defaults to off)
+ * Add flexible conf interpolation system supporting `{{<impl>:<fallback>:{<term>}}}`
+ * Add a conf interpolation implementation for `hwloc` supporting `numanodes`,
+   `packages`, `cores`, and `pus`.
+ * Add a conf interpolation implementation for `ENV`.
+
 ### 1.12.4
 
  * Add `mtev_memory_regular_ck_malloc` for unsafe/regular memory allocations
