@@ -134,7 +134,7 @@ struct eventer_impl_data {
   pthread_mutex_t cross_lock;
   struct cross_thread_trigger *cross;
   char thr_name[64];
-  void *spec;
+  _Atomic(void *) spec;
   eventer_pool_t *pool;
   mtev_watchdog_t *hb;
   mtev_hrtime_t last_cb_ns;
