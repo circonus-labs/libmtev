@@ -45,7 +45,6 @@
 #include "mtev_stats.h"
 #include "mtev_conf.h"
 #include "libmtev_dtrace.h"
-#include <stdatomic.h>
 #include <pthread.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -415,16 +414,13 @@ mtev_boolean eventer_watchdog_timeout_timeval(struct timeval *dur) {
 }
 
 static void *eventer_get_spec_for_thread(struct eventer_impl_data *t) {
-  void *spec = atomic_load_explicit(&t->spec, memory_order_relaxed);
-
-  atomic_thread_fence(memory_order_consume);
+  void *spec = ck_pr_load_ptr(&t->spec);
 
   if(spec == NULL) {
     pthread_mutex_lock(&t->te_lock);
     if(t->spec == NULL) {
       spec = __eventer->alloc_spec();
-      atomic_store_explicit(&t->spec, spec, memory_order_relaxed);
-      atomic_thread_fence(memory_order_release);
+      ck_pr_store_ptr(&t->spec, spec);
     }
     pthread_mutex_unlock(&t->te_lock);
   }
