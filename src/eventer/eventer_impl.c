@@ -415,12 +415,7 @@ mtev_boolean eventer_watchdog_timeout_timeval(struct timeval *dur) {
 }
 
 static void *eventer_get_spec_for_thread(struct eventer_impl_data *t) {
-  void *spec = t->spec;
-  if(spec != NULL) return spec;
-
-  spec = ck_pr_load_ptr(&t->spec);
-
-  atomic_thread_fence(memory_order_consume);
+  void *spec = ck_pr_load_ptr(&t->spec);
 
   if(spec == NULL) {
     pthread_mutex_lock(&t->te_lock);
