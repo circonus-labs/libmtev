@@ -415,7 +415,10 @@ mtev_boolean eventer_watchdog_timeout_timeval(struct timeval *dur) {
 }
 
 static void *eventer_get_spec_for_thread(struct eventer_impl_data *t) {
-  void *spec = atomic_load_explicit(&t->spec, memory_order_relaxed);
+  void *spec = t->spec;
+  if(spec != NULL) return spec;
+
+  spec = ck_pr_load_ptr(&t->spec);
 
   atomic_thread_fence(memory_order_consume);
 
@@ -423,8 +426,7 @@ static void *eventer_get_spec_for_thread(struct eventer_impl_data *t) {
     pthread_mutex_lock(&t->te_lock);
     if(t->spec == NULL) {
       spec = __eventer->alloc_spec();
-      atomic_store_explicit(&t->spec, spec, memory_order_relaxed);
-      atomic_thread_fence(memory_order_release);
+      ck_pr_store_ptr(&t->spec, spec);
     }
     pthread_mutex_unlock(&t->te_lock);
   }
