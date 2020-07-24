@@ -45,7 +45,6 @@
 #include "mtev_stats.h"
 #include "mtev_conf.h"
 #include "libmtev_dtrace.h"
-#include <stdatomic.h>
 #include <pthread.h>
 #include <errno.h>
 #include <netinet/in.h>
