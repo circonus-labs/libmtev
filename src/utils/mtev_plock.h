@@ -1380,8 +1380,8 @@ static inline mtev_boolean
 mtev_plock_heavy_try_rtos(mtev_plock_t *lock) {
   assert(lock->type == MTEV_PLOCK_HEAVY);
   int rv = pthread_mutex_trylock(&lock->impl.heavy.slock);
-  if(rv < 0) {
-    assert(errno == EBUSY);
+  if(rv != 0) {
+    assert(rv == EBUSY);
     return mtev_false;
   }
   rv = pthread_rwlock_unlock(&lock->impl.heavy.rwlock);
