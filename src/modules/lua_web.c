@@ -152,14 +152,13 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
       if(ctx) ctx->httpcode = 500;
       base = lua_gettop(ri->coro_state);
       if(base>0) {
-        mtev_lua_traceback(ri->coro_state);
         base = lua_gettop(ri->coro_state);
         if(lua_isstring(ri->coro_state, base)) {
           err = lua_tostring(ri->coro_state, base);
-          mtevL(mtev_error, "lua error: %s\n", err);
           if(ctx && !ctx->err) ctx->err = strdup(err);
         }
       }
+      mtevL(mtev_error, "lua error[%d]: %s\n", status, err ? err : "unknown");
       rv = -1;
   }
 

@@ -4,6 +4,8 @@
 
 ## 1.12
 
+ * Skip a lua stack attempt on failed resumption.
+
 ### 1.12.5
 
  * Fix bug in `mtev_plock_try_rtos` in `MTEV_PLOCK_HEAVY` mode where multiple
