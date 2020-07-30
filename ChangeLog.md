@@ -4,7 +4,11 @@
 
 ## 1.12
 
+### 1.12.6
+
  * Skip a lua stack attempt on failed resumption.
+ * Fix compile issue with clang and eventer spec instantiation.
+ * Improve the zipkin implementation to be more aware and friendly in ACO.
 
 ### 1.12.5
 
