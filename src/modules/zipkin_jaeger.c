@@ -115,10 +115,10 @@ jaeger_publish_thrift(unsigned char *buff, size_t buflen, uint32_t retries) {
   CURLcode code;
   long httpcode;
   static CURL *curl;
+  static char url[1024];
   char error[CURL_ERROR_SIZE];
 
   if(!curl) {
-    char url[1024];
     struct curl_slist *headers=NULL;
     snprintf(url, sizeof(url), "http://%s:%d/api/v1/spans", zc_host, zc_port);
     headers = curl_slist_append(headers, "Content-Type: application/x-thrift");
@@ -143,7 +143,7 @@ jaeger_publish_thrift(unsigned char *buff, size_t buflen, uint32_t retries) {
       curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
   } while(retries > 0 && (httpcode < 200 || httpcode > 299));
   if(httpcode < 200 || httpcode > 299) {
-    mtevL(errorls, "zipkin submit to jaeger failed: %s\n", error);
+    mtevL(errorls, "zipkin submit to jaeger (%s) failed: %s/%ld/%s\n", url, curl_easy_strerror(code), httpcode, error);
     return -1;
   }
   return 0;

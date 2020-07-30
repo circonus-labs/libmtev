@@ -60,6 +60,8 @@ extern const char *ZIPKIN_SERVER_SEND;
 extern const char *ZIPKIN_SERVER_SEND_DONE;
 extern const char *ZIPKIN_SERVER_RECV;
 extern const char *ZIPKIN_SERVER_RECV_DONE;
+extern const char *ZIPKIN_INTERNAL_START;
+extern const char *ZIPKIN_INTERNAL_DONE;
 
 #define HEADER_ZIPKIN_MTEV_EVENT "X-mtev-Trace-Event"
 #define HEADER_ZIPKIN_MTEV_EVENT_L "x-mtev-trace-event"
@@ -122,6 +124,23 @@ API_EXPORT(int64_t)
 API_EXPORT(Zipkin_Span *)
   mtev_zipkin_span_new(int64_t *, int64_t *, int64_t *, const char *,
                        bool, bool *, bool );
+
+/*! \fn Zipkin_Span * mtev_zipkin_new_child(Zipkin_Span *span, const char *name)
+    \brief Create a new child span.
+    \param span The parent
+    \param name The name of the new span
+    \return A new span
+ */
+API_EXPORT(Zipkin_Span *)
+  mtev_zipkin_new_child(Zipkin_Span *span, const char *name);
+
+/*! \fn Zipkin_Span * mtev_zipkin_aco_swap_span(Zipkin_Span *span)
+    \brief Swap an existing ACO's span for a new one, returning old
+    \param span The new span
+    \return The old span
+ */
+API_EXPORT(Zipkin_Span *)
+  mtev_zipkin_aco_swap_span(Zipkin_Span *span);
 
 /*! \fn bool mtev_zipkin_span_get_ids(Zipkin_Span *span, int64_t *traceid, int64_t *parent_id, int64_t *id)
     \brief Fetch the various IDs from a span.
@@ -457,6 +476,16 @@ API_EXPORT(void) mtev_zipkin_client_drop(struct _event *e);
     \param e An event object (or NULL for the current event)
 */
 API_EXPORT(void) mtev_zipkin_client_publish(struct _event *e);
+
+/*! \fn void mtev_zipkin_attach_named_to_aco(Zipkin_Span *span, const char *child_name, mtev_zipkin_event_trace_level_t *track)
+    \brief Attach a new child span to an aco thread.
+    \param span An existing zipkin span.
+    \param child_name The name of the new child span.
+    \param track Specifies how event activity should be tracked.
+*/
+API_EXPORT(void)
+  mtev_zipkin_attach_named_to_aco(Zipkin_Span *span, const char *child_name,
+                                  mtev_zipkin_event_trace_level_t *track);
 
 /*! \fn void mtev_zipkin_attach_to_aco(Zipkin_Span *span, bool new_child, mtev_zipkin_event_trace_level_t *track)
     \brief Attach an active span (or new child span) to an aco thread.
