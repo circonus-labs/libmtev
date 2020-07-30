@@ -7079,6 +7079,20 @@ mtev_websocket_client_set_ready_callback(mtev_websocket_client_t *client
 
 ### Z
 
+#### mtev_zipkin_aco_swap_span
+
+>Swap an existing ACO's span for a new one, returning old
+
+```c
+Zipkin_Span *
+mtev_zipkin_aco_swap_span(Zipkin_Span *span)
+```
+
+
+  * `span` The new span
+  * **RETURN** The old span
+ 
+
 #### mtev_zipkin_active_span
 
 >Find the currently active span of work.
@@ -7112,6 +7126,22 @@ mtev_zipkin_annotation_set_endpoint(Zipkin_Annotation *annotation, const char *s
 
 mtev_zipkin_annotation_set_endpoint sets an endpoint for the provided annotation.
  
+
+#### mtev_zipkin_attach_named_to_aco
+
+>Attach a new child span to an aco thread.
+
+```c
+void
+mtev_zipkin_attach_named_to_aco(Zipkin_Span *span, const char *child_name
+                                mtev_zipkin_event_trace_level_t *track)
+```
+
+
+  * `span` An existing zipkin span.
+  * `child_name` The name of the new child span.
+  * `track` Specifies how event activity should be tracked.
+
 
 #### mtev_zipkin_attach_to_aco
 
@@ -7396,6 +7426,21 @@ mtev_zipkin_get_sampling(double *new_traces, double *parented_traces, double *de
   * `debug_traces` probability pointer to populate
 
 mtev_zipkin_get_sampling gets sampling probabilities for creating new traces.  See `mtev_zipkin_sampling` and the opentracing specification for more details on what each probability means.
+ 
+
+#### mtev_zipkin_new_child
+
+>Create a new child span.
+
+```c
+Zipkin_Span *
+mtev_zipkin_new_child(Zipkin_Span *span, const char *name)
+```
+
+
+  * `span` The parent
+  * `name` The name of the new span
+  * **RETURN** A new span
  
 
 #### mtev_zipkin_sampling
