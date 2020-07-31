@@ -4,6 +4,10 @@
 
 ## 1.12
 
+### 1.12.7
+
+ * Fix reference counting bug in `mtev_zipkin_aco_swap_span`
+
 ### 1.12.6
 
  * Skip a lua stack attempt on failed resumption.
