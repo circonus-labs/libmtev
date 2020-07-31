@@ -631,7 +631,6 @@ mtev_zipkin_aco_swap_span(Zipkin_Span *span) {
   if(!ctx) {
     ctx = mtev_zipkin_new_ctx(span, NULL, false, NULL);
     aco_tls(aco_get_co(), zipkin_aco_ctx_idx) = ctx;
-    mtev_zipkin_span_drop(span); // ctx owns this now
     return NULL;
   }
   Zipkin_Span *old_span = ctx->span;
