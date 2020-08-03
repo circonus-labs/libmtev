@@ -4,6 +4,11 @@
 
 ## 1.12
 
+### 1.12.8
+
+ * Revert some internal changes to selection of the active zipkin span.
+   These are believe to lead to some hard to track use-after-free issues.
+
 ### 1.12.7
 
  * Fix reference counting bug in `mtev_zipkin_aco_swap_span`
