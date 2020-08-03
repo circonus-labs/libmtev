@@ -491,18 +491,9 @@ static mtev_zipkin_event_trace_level_t zipkin_trace_events;
 static const char *generic_eventer_callback_name = "eventer_callback";
 
 static inline zipkin_eventer_ctx_t *get_my_ctx(eventer_t e) {
-  zipkin_eventer_ctx_t *ctx = NULL;
-  if(zipkin_ctx_idx >= 0 && e) {
-    ctx = eventer_get_context(e, zipkin_ctx_idx);
-    if(ctx) return ctx;
-  }
-  if(zipkin_aco_ctx_idx >= 0 && aco_get_co()) ctx = aco_tls(aco_get_co(), zipkin_aco_ctx_idx);
-  if(ctx) return ctx;
-  if(zipkin_ctx_idx >= 0) {
-    if(e == NULL) e = eventer_get_this_event();
-    ctx = eventer_get_context(e, zipkin_ctx_idx);
-  }
-  return ctx;
+  if(zipkin_ctx_idx < 0) return NULL;
+  if(e == NULL) e = eventer_get_this_event();
+  return eventer_get_context(e, zipkin_ctx_idx);
 }
 
 static void zipkin_eventer_ctx_free(zipkin_eventer_ctx_t *ctx) {
@@ -523,6 +514,9 @@ static void zipkin_eventer_ctx_free(zipkin_eventer_ctx_t *ctx) {
 
 Zipkin_Span *mtev_zipkin_active_span(eventer_t e) {
   zipkin_eventer_ctx_t *ctx = NULL;
+  if(aco_get_co() && zipkin_aco_ctx_idx >= 0) {
+    ctx = aco_tls(aco_get_co(), zipkin_aco_ctx_idx);
+  }
   if(!ctx) ctx = get_my_ctx(e);
   if(ctx) return ctx->span ? ctx->span : ctx->parent_span;
   return NULL;
