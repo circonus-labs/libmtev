@@ -45,6 +45,10 @@ extern "C" {
 
 #include <ck_hs.h>
 
+#define EVENTER_JOBQ_RUNNING 0
+#define EVENTER_JOBQ_SHUTTING_DOWN 1
+#define EVENTER_JOBQ_SHUT_DOWN 2
+
 typedef struct eventer_context_t {
   void *data;
 } eventer_context_t;
@@ -152,6 +156,17 @@ struct _eventer_jobq_t {
   uint32_t                max_backlog;
   mtev_log_stream_t       callback_tracker;
   mtev_boolean            *lifo;
+  uint32_t                consumer_threads_running;
+  /* shutdown_state should use one of these defines,
+   * defined above:
+   * EVENTER_JOBQ_RUNNING
+   * EVENTER_JOBQ_SHUTTING_DOWN
+   * EVENTER_JOBQ_SHUT_DOWN
+   * This could be done via an enum, but this is accessed
+   * via multiple threads, so we want to make sure we can
+   * use atomic load/set functions to access this - hence
+   * the uint8_t */
+  uint8_t                 shutdown_state;
 };
 
 #ifdef LOCAL_EVENTER

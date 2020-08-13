@@ -8,6 +8,8 @@
 
  * Revert some internal changes to selection of the active zipkin span.
    These are believe to lead to some hard to track use-after-free issues.
+ * Add function, `eventer_jobq_drain_and_shutdown` to drain all inflight
+   and backlog jobs, then despawn all threads.
 
 ### 1.12.7
 

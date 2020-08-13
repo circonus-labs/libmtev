@@ -110,6 +110,12 @@ API_EXPORT(eventer_jobq_t *) eventer_jobq_retrieve(const char *name);
 */
 API_EXPORT(void) eventer_jobq_destroy(eventer_jobq_t *jobq);
 
+/*! \fn void eventer_jobq_drain_and_shutdown(eventer_jobq_t *jobq)
+    \brief Make a jobq unable to accept new jobs and drain all inflight jobs.
+    \param jobq the joqs to drain and shut down
+*/
+API_EXPORT(void) eventer_jobq_drain_and_shutdown(eventer_jobq_t *jobq);
+
 /*! \fn void eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *name)
     \brief Set a "shorter" name for a jobq to be used in terse displays.
     \param jobq the jobq to modify

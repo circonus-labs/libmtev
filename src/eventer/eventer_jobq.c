@@ -267,6 +267,8 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
   jobq->mem_safety = mem_safety;
   jobq->isbackq = isbackq;
   jobq->lifo = &jobq_lifo_default;
+  ck_pr_store_8(&jobq->shutdown_state, EVENTER_JOBQ_RUNNING);
+  jobq->consumer_threads_running = 0;
   if(!jobq->isbackq)
     jobq->callback_tracker = mtev_log_stream_findf("debug/eventer/callbacks/jobq/%s", queue_name);
   if(pthread_mutexattr_init(&mutexattr) != 0) {
@@ -448,6 +450,10 @@ eventer_jobq_enqueue_internal(eventer_jobq_t *jobq, eventer_job_t *job, eventer_
 mtev_boolean
 eventer_jobq_try_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
   job->next = NULL;
+  if (ck_pr_load_8(&jobq->shutdown_state) != EVENTER_JOBQ_RUNNING) {
+    free(job);
+    return mtev_false;
+  }
   /* Do not increase the concurrency from zero for a noop */
   if(ck_pr_load_32(&jobq->concurrency) == 0 && job->fd_event == NULL) {
     free(job);
@@ -473,6 +479,10 @@ eventer_jobq_try_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t
 
 void
 eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
+  /* If we're shutting down, we shouldn't be attempting to add jobs to it.
+   * If the user isn't using eventer_jobq_try_enqueue to catch errors, we
+   * should just assert */
+  mtevAssert(ck_pr_load_8(&jobq->shutdown_state) == EVENTER_JOBQ_RUNNING);
   job->next = NULL;
   /* Do not increase the concurrency from zero for a noop */
   if(ck_pr_load_32(&jobq->concurrency) == 0 && job->fd_event == NULL) {
@@ -550,6 +560,9 @@ eventer_jobq_dequeue_nowait(eventer_jobq_t *jobq) {
 
 void
 eventer_jobq_destroy(eventer_jobq_t *jobq) {
+  if (ck_pr_load_8(&jobq->shutdown_state) != EVENTER_JOBQ_SHUT_DOWN) {
+    mtevL(mtev_error, "WARNING: Attempting to shut down jobq %s before draining/shutting down\n", jobq->queue_name);
+  }
   pthread_mutex_lock(&all_queues_lock);
   mtev_hash_delete(&all_queues, jobq->queue_name, strlen(jobq->queue_name),
                    (NoitHashFreeFunc) free, 0);
@@ -568,6 +581,46 @@ eventer_jobq_destroy(eventer_jobq_t *jobq) {
   if(jobq->short_name) mtev_memory_safe_free((void *)jobq->short_name);
   free(jobq);
 }
+
+void
+eventer_jobq_drain_and_shutdown(eventer_jobq_t *jobq) {
+  int64_t todo = 0;
+
+  eventer_jobq_set_min_max(jobq, 0, 0);
+  eventer_jobq_set_concurrency(jobq, 0);
+
+  ck_pr_store_8(&jobq->shutdown_state, EVENTER_JOBQ_SHUTTING_DOWN);
+
+  /* Wait until there's nothing either in flight or in the backlog */
+  while (1) {
+    todo = ck_pr_load_32(&jobq->backlog) + ck_pr_load_32(&jobq->inflight);
+    if (!todo) {
+      break;
+    }
+    usleep(100);
+  }
+
+  /* Wait for concurrency to hit zero */
+  while (1) {
+    todo = ck_pr_load_32(&jobq->concurrency);
+    if (!todo) {
+      break;
+    }
+    usleep(100);
+  }
+
+  /* Wait for all the consumer threads to exit */
+  while (1) {
+    todo = ck_pr_load_32(&jobq->consumer_threads_running);
+    if (!todo) {
+      break;
+    }
+    usleep(100);
+  }
+
+  ck_pr_store_8(&jobq->shutdown_state, EVENTER_JOBQ_SHUT_DOWN);
+}
+
 int
 eventer_jobq_execute_timeout(eventer_t e, int mask, void *closure,
                              struct timeval *now) {
@@ -719,6 +772,8 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
   sigjmp_buf env;
   volatile mtev_hrtime_t last_job_hrtime = 0;
 
+  ck_pr_inc_32(&jobq->consumer_threads_running);
+
   current_count = ck_pr_faa_32(&jobq->concurrency, 1) + 1;
   mtevL(eventer_deb, "jobq[%s/%p] -> %d\n", jobq->queue_name, pthread_self_ptr(), current_count);
   if(current_count > jobq->desired_concurrency) {
@@ -729,6 +784,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
       eventer_set_thread_name(NULL);
       mtev_memory_fini_thread();
     }
+    ck_pr_dec_32(&jobq->consumer_threads_running);
     pthread_exit(NULL);
     return NULL;
   }
@@ -920,6 +976,7 @@ eventer_jobq_consumer(eventer_jobq_t *jobq) {
   if(ck_pr_load_32(&jobq->backlog) > 0) {
     eventer_jobq_maybe_spawn(jobq, 0);
   }
+  ck_pr_dec_32(&jobq->consumer_threads_running);
   pthread_exit(NULL);
   return NULL;
 }
