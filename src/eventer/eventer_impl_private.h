@@ -45,6 +45,12 @@ extern "C" {
 
 #include <ck_hs.h>
 
+typedef enum eventer_jobq_shutdown_state {
+  EVENTER_JOBQ_RUNNING = 0,
+  EVENTER_JOBQ_SHUTTING_DOWN,
+  EVENTER_JOBQ_SHUT_DOWN
+} eventer_jobq_shutdown_state_e;
+
 typedef struct eventer_context_t {
   void *data;
 } eventer_context_t;
@@ -152,6 +158,8 @@ struct _eventer_jobq_t {
   uint32_t                max_backlog;
   mtev_log_stream_t       callback_tracker;
   mtev_boolean            *lifo;
+  uint32_t                consumer_threads_running;
+  eventer_jobq_shutdown_state_e shutdown_state;
 };
 
 #ifdef LOCAL_EVENTER
