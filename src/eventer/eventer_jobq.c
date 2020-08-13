@@ -267,7 +267,7 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
   jobq->mem_safety = mem_safety;
   jobq->isbackq = isbackq;
   jobq->lifo = &jobq_lifo_default;
-  jobq->shutdown_state = EVENTER_JOBQ_RUNNING;
+  ck_pr_store_8(&jobq->shutdown_state, EVENTER_JOBQ_RUNNING);
   jobq->consumer_threads_running = 0;
   if(!jobq->isbackq)
     jobq->callback_tracker = mtev_log_stream_findf("debug/eventer/callbacks/jobq/%s", queue_name);
@@ -450,7 +450,7 @@ eventer_jobq_enqueue_internal(eventer_jobq_t *jobq, eventer_job_t *job, eventer_
 mtev_boolean
 eventer_jobq_try_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *parent) {
   job->next = NULL;
-  if (jobq->shutdown_state != EVENTER_JOBQ_RUNNING) {
+  if (ck_pr_load_8(&jobq->shutdown_state) != EVENTER_JOBQ_RUNNING) {
     free(job);
     return mtev_false;
   }
@@ -482,7 +482,7 @@ eventer_jobq_enqueue(eventer_jobq_t *jobq, eventer_job_t *job, eventer_job_t *pa
   /* If we're shutting down, we shouldn't be attempting to add jobs to it.
    * If the user isn't using eventer_jobq_try_enqueue to catch errors, we
    * should just assert */
-  mtevAssert(jobq->shutdown_state == EVENTER_JOBQ_RUNNING);
+  mtevAssert(ck_pr_load_8(&jobq->shutdown_state) == EVENTER_JOBQ_RUNNING);
   job->next = NULL;
   /* Do not increase the concurrency from zero for a noop */
   if(ck_pr_load_32(&jobq->concurrency) == 0 && job->fd_event == NULL) {
@@ -560,7 +560,7 @@ eventer_jobq_dequeue_nowait(eventer_jobq_t *jobq) {
 
 void
 eventer_jobq_destroy(eventer_jobq_t *jobq) {
-  if (jobq->shutdown_state != EVENTER_JOBQ_SHUT_DOWN) {
+  if (ck_pr_load_8(&jobq->shutdown_state) != EVENTER_JOBQ_SHUT_DOWN) {
     mtevL(mtev_error, "WARNING: Attempting to shut down jobq %s before draining/shutting down\n", jobq->queue_name);
   }
   pthread_mutex_lock(&all_queues_lock);
@@ -589,7 +589,7 @@ eventer_jobq_drain_and_shutdown(eventer_jobq_t *jobq) {
   eventer_jobq_set_min_max(jobq, 0, 0);
   eventer_jobq_set_concurrency(jobq, 0);
 
-  jobq->shutdown_state = EVENTER_JOBQ_SHUTTING_DOWN;
+  ck_pr_store_8(&jobq->shutdown_state, EVENTER_JOBQ_SHUTTING_DOWN);
 
   /* Wait until there's nothing either in flight or in the backlog */
   while (1) {
@@ -617,7 +617,8 @@ eventer_jobq_drain_and_shutdown(eventer_jobq_t *jobq) {
     }
     usleep(100);
   }
-  jobq->shutdown_state = EVENTER_JOBQ_SHUT_DOWN;
+
+  ck_pr_store_8(&jobq->shutdown_state, EVENTER_JOBQ_SHUT_DOWN);
 }
 
 int
