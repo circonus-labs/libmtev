@@ -4,6 +4,8 @@
 
 ## 1.12
 
+ * Fix uninitialized read in `mtev_b32_decode` and `mtev_b64_decode` in the slow path.
+
 ### 1.12.9
 
  * Add function, `eventer_jobq_drain_and_shutdown` to drain all inflight

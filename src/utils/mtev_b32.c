@@ -67,7 +67,7 @@ mtev_b32_decode(const char *src, size_t src_len,
   size_t ib = 0, ob = 5, needed = ((src_len / 8) * 5);
 
   if(dest_len < needed) return 0;
-  while(cp <= ((unsigned char *)src+src_len)) {
+  while(cp < ((unsigned char *)src+src_len)) {
     if(isspace((int)*cp)) { cp++; continue; }
     if(*cp == '-') { cp++; continue; }
     ch = __ub32[*cp];
