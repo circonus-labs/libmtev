@@ -59,7 +59,7 @@ mtev_b64_decode(const char *src, size_t src_len,
     return used_len;
   }
   /* Otherwise fallback to the slow path */
-  while(cp <= ((unsigned char *)src+src_len)) {
+  while(cp < ((unsigned char *)src+src_len)) {
     if((*cp >= 'A') && (*cp <= 'Z')) ch = *cp - 'A';
     else if((*cp >= 'a') && (*cp <= 'z')) ch = *cp - 'a' + 26;
     else if((*cp >= '0') && (*cp <= '9')) ch = *cp - '0' + 52;
