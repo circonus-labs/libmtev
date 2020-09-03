@@ -4,6 +4,8 @@
 
 ## 1.12
 
+### 1.12.10
+
  * Fix uninitialized read in `mtev_b32_decode` and `mtev_b64_decode` in the slow path.
 
 ### 1.12.9
