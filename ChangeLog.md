@@ -4,6 +4,8 @@
 
 ## 1.12
 
+ * Allow OPTIONS in rest layer.
+
 ### 1.12.10
 
  * Fix uninitialized read in `mtev_b32_decode` and `mtev_b64_decode` in the slow path.
