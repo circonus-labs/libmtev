@@ -47,6 +47,7 @@
 extern "C" {
 #endif
 
+#define MTEV_CONTROL_OPTIONS 0x4f505449 /* "OPTI" */
 #define MTEV_CONTROL_GET    0x47455420 /* "GET " */
 #define MTEV_CONTROL_HEAD   0x48454144 /* "HEAD" */
 #define MTEV_CONTROL_POST   0x504f5354 /* "POST" */

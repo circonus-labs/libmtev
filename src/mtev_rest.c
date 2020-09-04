@@ -953,6 +953,9 @@ socket_error:
                                              e, ac);
     
     switch(mtev_acceptor_closure_cmd(ac)) {
+      case MTEV_CONTROL_OPTIONS:
+        primer = "OPTI";
+        break;
       case MTEV_CONTROL_DELETE:
         primer = "DELE";
         break;
@@ -1588,6 +1591,9 @@ mtev_hash_store(&mime_type_defaults, strdup(ext), strlen(ext), strdup(type))
 
   mtev_http_rest_load_rules();
 
+  mtev_control_dispatch_delegate(mtev_control_dispatch,
+                                 MTEV_CONTROL_OPTIONS,
+                                 mtev_http_rest_handler);
   mtev_control_dispatch_delegate(mtev_control_dispatch,
                                  MTEV_CONTROL_DELETE,
                                  mtev_http_rest_handler);
