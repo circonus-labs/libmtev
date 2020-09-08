@@ -4,6 +4,8 @@
 
 ## 1.12
 
+### 1.12.11
+
  * Allow OPTIONS in rest layer.
 
 ### 1.12.10
