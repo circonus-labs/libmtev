@@ -51,6 +51,7 @@ web-distclean:
 clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C src clean
+	$(MAKE) -C test clean
 
 distclean: 	clean web-distclean
 	rm -f Makefile config.status config.log
