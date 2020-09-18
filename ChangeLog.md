@@ -4,6 +4,8 @@
 
 ## 1.12
 
+ * Allow `<config>` in `<eventer>` to be a deep descendent.
+
 ### 1.12.11
 
  * Allow OPTIONS in rest layer.
