@@ -118,7 +118,7 @@ configure_eventer(const char *appname) {
   mtev_hash_table *table, *table2;
   char appscratch[1024];
 
-  snprintf(appscratch, sizeof(appscratch), "/%s/eventer/config|/%s/include/eventer/config",
+  snprintf(appscratch, sizeof(appscratch), "/%s/eventer//config|/%s/include/eventer//config",
            appname, appname);
   table = calloc(1, sizeof(*table));
   mtev_hash_init(table);
