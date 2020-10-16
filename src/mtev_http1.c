@@ -1954,13 +1954,13 @@ _http_construct_leader(mtev_http1_session_ctx *ctx) {
   }
 
 #define CTX_LEADER_APPEND(s, slen) do { \
-  if(b->size + slen > DEFAULT_BCHAINSIZE) { \
-    b->next = ALLOC_BCHAIN(DEFAULT_BCHAINSIZE); \
+  if(slen > BCHAIN_SPACE(b)) { \
+    b->next = ALLOC_BCHAIN(MAX(slen,DEFAULT_BCHAINSIZE)); \
     mtevAssert(b->next); \
     b->next->prev = b; \
     b = b->next; \
   } \
-  mtevAssert(DEFAULT_BCHAINSIZE >= b->size + slen); \
+  mtevAssert(BCHAIN_SPACE(b) >= slen); \
   memcpy(b->buff + b->start + b->size, s, slen); \
   b->size += slen; \
 } while(0)
@@ -1999,9 +1999,9 @@ _http_construct_leader(mtev_http1_session_ctx *ctx) {
   qsort(keys, i, sizeof(*keys), casesort);
   kcnt = i;
   for(i=0;i<kcnt;i++) {
-    int vlen;
+    size_t vlen;
     const char *key = keys[i], *value;
-    int klen = strlen(key);
+    size_t klen = strlen(key);
     (void)mtev_hash_retr_str(&ctx->res.headers, key, klen, &value);
     vlen = value ? strlen(value): 0;
     CTX_LEADER_APPEND(key, klen);

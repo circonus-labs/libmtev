@@ -4,6 +4,9 @@
 
 ## 1.12
 
+ * Ensure enough bchain space for over-sized headers. Large headers would
+   previously cause an assertion.
+
 ### 1.12.12
 
  * Allow `<config>` in `<eventer>` to be a deep descendent.
