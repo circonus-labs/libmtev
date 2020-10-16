@@ -4,6 +4,8 @@
 
 ## 1.12
 
+### 1.12.13
+
  * Ensure enough bchain space for over-sized headers. Large headers would
    previously cause an assertion.
 
