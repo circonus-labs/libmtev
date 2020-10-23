@@ -337,6 +337,8 @@ rabbitmq_manage_connection(void *vconn) {
   snprintf(buff, sizeof(buff), "amqp:%s", conn->host);
   mtev_thread_setname(buff);
 
+  const int max_backoff_us = 16000000; /* 16s */
+  int backoff = 0;
   while(1) {
     amqp_bytes_t queuename = { .bytes = NULL };
     conn->conn = amqp_new_connection();
@@ -374,7 +376,10 @@ rabbitmq_manage_connection(void *vconn) {
         goto teardown;
       }
       queuename = amqp_bytes_malloc_dup(r->queue);
-      mtevAssert(queuename.bytes != NULL);
+      if (queuename.bytes == NULL) {
+        mtevL(nlerr, "AMQP queuename allocation error for amqp_queue_bind\n");
+        goto teardown;
+      }
       amqp_queue_bind(conn->conn, 1, queuename,
                       amqp_cstring_bytes(conn->exchange),
                       amqp_cstring_bytes(conn->bindingkey),
@@ -387,6 +392,7 @@ rabbitmq_manage_connection(void *vconn) {
     mtev_amqp_handle_connection_dyn_hook_invoke(conn->conn, conn->idx, mtev_true);
     handleconn(conn);
     mtev_amqp_handle_connection_dyn_hook_invoke(conn->conn, conn->idx, mtev_false);
+    backoff = 0;
 
     die_on_amqp_error(amqp_channel_close(conn->conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
     die_on_amqp_error(amqp_connection_close(conn->conn, AMQP_REPLY_SUCCESS), "Closing connection");
@@ -396,7 +402,10 @@ rabbitmq_manage_connection(void *vconn) {
       amqp_bytes_free(queuename);
     }
     amqp_destroy_connection(conn->conn);
+    usleep(backoff);
+    backoff = MIN(MAX(1000, backoff * 2), max_backoff_us);
   }
+  return NULL;
 }
 
 static mtev_hook_return_t
