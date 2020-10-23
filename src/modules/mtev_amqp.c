@@ -376,7 +376,10 @@ rabbitmq_manage_connection(void *vconn) {
         goto teardown;
       }
       queuename = amqp_bytes_malloc_dup(r->queue);
-      mtevAssert(queuename.bytes != NULL);
+      if (queuename.bytes == NULL) {
+        mtevL(nlerr, "AMQP queuename allocation error for amqp_queue_bind\n");
+        goto teardown;
+      }
       amqp_queue_bind(conn->conn, 1, queuename,
                       amqp_cstring_bytes(conn->exchange),
                       amqp_cstring_bytes(conn->bindingkey),
