@@ -4,6 +4,9 @@
 
 ## 1.12
 
+ * Make the 'SSL layer X not understood' a debug message if X is being
+   explicitly disabled.
+
 ### 1.12.13
 
  * Ensure enough bchain space for over-sized headers. Large headers would
