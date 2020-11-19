@@ -986,7 +986,7 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
       else SETBITOPT("cipher_server_preference", neg, SSL_OP_CIPHER_SERVER_PREFERENCE)
 #endif
       else {
-        mtevL(eventer_err, "SSL layer part '%s' not understood.\n", optname);
+        mtevL(neg ? eventer_deb : eventer_err, "SSL layer part '%s' not understood.\n", optname);
       }
     }
 
