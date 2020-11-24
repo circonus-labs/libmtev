@@ -540,7 +540,14 @@ void mtev_self_diagnose(int sig, siginfo_t *si, void *uc) {
   mtev_stacktrace_ucontext(mtev_error_stacktrace, uc);
 #else
   (void)si;
-  mtev_stacktrace_ucontext_skip(mtev_error_stacktrace, uc, 3);
+// the number of top frames to ignore depends on how we get the backtrace
+// if we got a non-NULL uc and have libunwind then we don't need to ignore any frames
+// otherwise, we need to strip out the top 4 frames to get to the client callstack
+#if defined(HAVE_LIBUNWIND)
+  mtev_stacktrace_ucontext_skip(mtev_error_stacktrace, uc, uc ? 0 : 4);
+#else
+  mtev_stacktrace_ucontext_skip(mtev_error_stacktrace, uc, 4);
+#endif
 #endif
   mtev_log_leave_sighandler();
   raise(sig);

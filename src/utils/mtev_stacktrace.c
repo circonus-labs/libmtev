@@ -987,13 +987,15 @@ int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt) {
   }
   unw_init_local(&cursor, (unw_context_t *)ctx);
 
-  while (unw_step(&cursor) > 0 && frames<cnt) {
+  int step_result = 1;
+  while (step_result > 0 && frames<cnt) {
     unw_word_t pc;
     unw_get_reg(&cursor, UNW_REG_IP, &pc);
     if (pc == 0) {
       break;
     }
     callstack[frames++] = (void *)pc;
+    step_result = unw_step(&cursor);
   }
 #else
   frames = backtrace(callstack, cnt);
@@ -1001,6 +1003,7 @@ int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt) {
 #endif
   return frames;
 }
+
 void mtev_log_backtrace(mtev_log_stream_t ls, void **callstack, int cnt) {
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack, cnt);
 }
