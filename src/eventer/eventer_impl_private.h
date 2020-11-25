@@ -77,6 +77,9 @@ struct name { \
   pthread_t           thr_owner; \
   uint32_t            refcnt; \
   eventer_context_t   ctx[MAX_EVENT_CTXS]; \
+  int                 frames; \
+  void               *callstack[EVENTER_STACKTRACE_SIZE]; \
+  void               *eventer_run_callback_end; \
 }
 
 EVENTER_STRUCT(_event);

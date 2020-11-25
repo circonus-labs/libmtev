@@ -1029,6 +1029,7 @@ int eventer_impl_init(void) {
 }
 
 void eventer_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
+  e->frames = mtev_backtrace_ucontext(e->callstack, NULL, EVENTER_STACKTRACE_SIZE, true);
   eventer_job_t *job;
   /* always use 0, if unspecified */
   if(eventer_is_loop(e->thr_owner) < 0) e->thr_owner = eventer_impl_tls_data[0].tid;
@@ -1059,6 +1060,7 @@ void eventer_add_asynch(eventer_jobq_t *q, eventer_t e) {
 }
 
 void eventer_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
+  e->frames = mtev_backtrace_ucontext(e->callstack, NULL, EVENTER_STACKTRACE_SIZE, true);
   eventer_job_t *job;
   /* always use 0, if unspecified */
   if(eventer_is_loop(e->thr_owner) < 0) e->thr_owner = eventer_impl_tls_data[0].tid;
@@ -1089,6 +1091,7 @@ void eventer_add_asynch_dep(eventer_jobq_t *q, eventer_t e) {
 }
 
 mtev_boolean eventer_try_add_asynch_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
+  e->frames = mtev_backtrace_ucontext(e->callstack, NULL, EVENTER_STACKTRACE_SIZE, true);
   eventer_t timeout = NULL;
   eventer_job_t *job;
   /* always use 0, if unspecified */
@@ -1125,6 +1128,7 @@ mtev_boolean eventer_try_add_asynch(eventer_jobq_t *q, eventer_t e) {
 }
 
 mtev_boolean eventer_try_add_asynch_dep_subqueue(eventer_jobq_t *q, eventer_t e, uint64_t subqueue) {
+  e->frames = mtev_backtrace_ucontext(e->callstack, NULL, EVENTER_STACKTRACE_SIZE, true);
   eventer_t timeout = NULL;
   eventer_job_t *job;
   /* always use 0, if unspecified */
@@ -1464,6 +1468,7 @@ int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct t
   eventer_ref(e);
   eventer_set_this_event(e);
   eventer_callback_prep(e, m, c, n);
+  e->eventer_run_callback_end = &&end;
   rmask = f(e, m, c, n);
   eventer_callback_cleanup(e, rmask);
   mtev_boolean freed = eventer_deref(e);
@@ -1485,6 +1490,8 @@ int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct t
     }
   }
   return rmask;
+end:
+  ;
 }
 
 static void *eventer_thread_harness(void *ve) {
