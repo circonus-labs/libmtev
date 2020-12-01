@@ -970,6 +970,41 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
   crash_in_crash = NULL;
 }
 
+//
+// We use this macro instead of a for loop in backtrace() because the 
+// documentation says that you have to use a constant, not a variable.
+//
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wframe-address"
+#define BT(level) \
+  case level:                                               \
+    callstack[level] = __builtin_frame_address(level); \
+    if (!callstack[level] || (previous_frame && callstack[level]<previous_frame)) { return level; }  \
+    previous_frame = callstack[level]; \
+    callstack[level] = __builtin_return_address(level); \
+    continue;
+
+int mtev_backtrace_fast(void **callstack, int cnt) {
+  int frames;
+  void *previous_frame = NULL;
+  for (frames = 0; frames < cnt; frames++) {
+    switch (frames) {
+      BT(0)
+      BT(1)
+      BT(2)
+//      BT(3)
+//      BT(4)
+//      BT(5)
+//      BT(6)
+//      BT(7)
+      default: break;
+    }
+    break;
+  }
+  return frames;
+}
+#pragma GCC diagnostic pop
+
 int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt, bool cross_eventer) {
   int frames = 0;
 #if defined(HAVE_LIBUNWIND)

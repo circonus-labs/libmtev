@@ -68,6 +68,9 @@ API_EXPORT(int)
   mtev_backtrace(void **ips, int cnt);
 
 API_EXPORT(int)
+  mtev_backtrace_fast(void **ips, int cnt);
+
+API_EXPORT(int)
   mtev_backtrace_ucontext(void **ips, ucontext_t *ucp, int cnt, bool cross_eventer);
 
 API_EXPORT(int)
