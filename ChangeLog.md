@@ -2,12 +2,13 @@
 
 # 1
 
- * Fix missing top of crash stacktrace when libunwind is being used.
 
 ## 1.12
 
+ * Fix missing top of crash stacktrace when libunwind is being used.
  * Make the 'SSL layer X not understood' a debug message if X is being
    explicitly disabled.
+ * Fix `segment_size` and `precommit` config processing for `jlog` logs.
 
 ### 1.12.13
 

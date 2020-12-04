@@ -1208,23 +1208,6 @@ one_more_time:
   if(!log) return -1;
   jlog_set_error_func(log, mtev_log_jlog_err, ls);
 
-  const char *segment_size = mtev_hash_dict_get(ls->config, "segment_size");
-  if(segment_size) {
-    int ss = atoi(segment_size);
-    /* if it is nonsensical, leave it unchanged */
-    if(ss > 0 && ss <= MAX_JLOG_SEGMENT_SIZE) {
-      jlog_ctx_alter_journal_size(log, ss);
-    }
-  }
-  const char *precommit = mtev_hash_dict_get(ls->config, "precommit");
-  size_t precommit_size = 0;
-  if(precommit) precommit_size = strtoull(precommit, NULL, 10);
-  /* if it is too large, cap it */
-  if(precommit_size > MAX_JLOG_PRECOMMIT_SIZE) {
-    precommit_size = MAX_JLOG_PRECOMMIT_SIZE;
-  }
-  jlog_ctx_set_pre_commit_buffer_size(log, precommit_size);
-
   /* Open the writer. */
   if(jlog_ctx_open_writer(log)) {
     /* If that fails, we'll give one attempt at initiailizing it. */
@@ -1248,6 +1231,23 @@ one_more_time:
     jlog_ctx_close(log);
     goto one_more_time;
   }
+
+  const char *segment_size = mtev_hash_dict_get(ls->config, "segment_size");
+  if(segment_size) {
+    int ss = atoi(segment_size);
+    /* if it is nonsensical, leave it unchanged */
+    if(ss > 0 && ss <= MAX_JLOG_SEGMENT_SIZE) {
+      jlog_ctx_alter_journal_size(log, ss);
+    }
+  }
+  const char *precommit = mtev_hash_dict_get(ls->config, "precommit");
+  size_t precommit_size = 0;
+  if(precommit) precommit_size = strtoull(precommit, NULL, 10);
+  /* if it is too large, cap it */
+  if(precommit_size > MAX_JLOG_PRECOMMIT_SIZE) {
+    precommit_size = MAX_JLOG_PRECOMMIT_SIZE;
+  }
+  jlog_ctx_set_pre_commit_buffer_size(log, precommit_size);
 
   /* Add or remove subscribers according to the current configuration. */
   listed = jlog_ctx_list_subscribers(log, &subs);
