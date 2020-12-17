@@ -5,6 +5,8 @@
 
 ## 1.12
 
+### 1.12.14
+
  * Fix missing top of crash stacktrace when libunwind is being used.
  * Make the 'SSL layer X not understood' a debug message if X is being
    explicitly disabled.
