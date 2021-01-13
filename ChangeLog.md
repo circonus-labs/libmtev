@@ -5,6 +5,8 @@
 
 ## 1.12
 
+### 1.12.15
+
  * Fix stack smash on CHT lookups on clusters with W>16.
  * Increase max W for CHTs to 256
 
