@@ -232,13 +232,15 @@ mtev_cht_vlookup_n(mtev_cht_t *cht, const void *key, size_t keylen,
     mtevAssert(m == 0);
     m = rsize - 1;
   }
-  for(i=m;w_out < w-1 && w_out < cht->node_cnt && i < rsize+m;i++) {
+  for(i=m;w_out < w && w_out < cht->node_cnt && i < rsize+m;i++) {
     int id = cht->ring[i % rsize].node_idx;
     if(iarrcontains(w_out, found, id) < 0) {
       found[w_out++] = id;
     }
   }
-  found[w_out++] = cht->ring[m].node_idx;
+  if (w_out < w) {
+    found[w_out++] = cht->ring[m].node_idx;
+  }
   for(i=0;i<w && i<w_out;i++)
     nodes[i] = &cht->nodes[found[i]];
   return i;
