@@ -5,6 +5,10 @@
 
 ## 1.12
 
+### 1.12.16
+
+ * Fix potential off-by-one error in clustering
+
 ### 1.12.15
 
  * Fix stack smash on CHT lookups on clusters with W>16.
