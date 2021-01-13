@@ -35,7 +35,7 @@
 #define DEFAULT_CHT_BITS 32
 #define DEFAULT_WEIGHT 32
 #define CHT_INITVAL 20021010
-#define CHT_MAX_W 16
+#define CHT_MAX_W 256
 
 struct ring_pos {
   uint32_t pos;
@@ -232,7 +232,7 @@ mtev_cht_vlookup_n(mtev_cht_t *cht, const void *key, size_t keylen,
     mtevAssert(m == 0);
     m = rsize - 1;
   }
-  for(i=m;w_out < cht->node_cnt && i < rsize+m;i++) {
+  for(i=m;w_out < w-1 && w_out < cht->node_cnt && i < rsize+m;i++) {
     int id = cht->ring[i % rsize].node_idx;
     if(iarrcontains(w_out, found, id) < 0) {
       found[w_out++] = id;

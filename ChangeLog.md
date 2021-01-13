@@ -5,6 +5,9 @@
 
 ## 1.12
 
+ * Fix stack smash on CHT lookups on clusters with W>16.
+ * Increase max W for CHTs to 256
+
 ### 1.12.14
 
  * Fix missing top of crash stacktrace when libunwind is being used.
