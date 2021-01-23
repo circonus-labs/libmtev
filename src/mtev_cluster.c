@@ -143,6 +143,11 @@ struct mtev_cluster_t {
   mtev_hash_table hb_payloads;
 };
 
+MTEV_HOOK_IMPL(mtev_cluster_update,
+  (mtev_cluster_t *cluster, mtev_boolean created),
+  void *, closure,
+  (void *closure, mtev_cluster_t *cluster, mtev_boolean created),
+  (closure,cluster,created))
 
 MTEV_HOOK_IMPL(mtev_cluster_handle_node_update,
   (mtev_cluster_node_changes_t node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
@@ -760,6 +765,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
                       new_cluster->name, strlen(new_cluster->name),
                       new_cluster, NULL, mtev_cluster_free);
     mtevL(cdebug, "Updated existing cluster '%s'.\n", new_cluster->name);
+    mtev_cluster_update_hook_invoke(new_cluster, mtev_true);
   }
   else {
     // new cluster
@@ -776,6 +782,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
                     new_cluster->name, strlen(new_cluster->name),
                     new_cluster);
     mtevL(cdebug, "Cluster '%s' loaded\n", new_cluster->name);
+    mtev_cluster_update_hook_invoke(new_cluster, mtev_false);
     rv = 0;
   }
   new_cluster = NULL;
