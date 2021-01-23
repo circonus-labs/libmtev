@@ -412,7 +412,6 @@ lua_general_conf_save(lua_State *L) {
 
 void
 mtev_lua_register_dynamic_ctype_impl(const char *type_name, mtev_lua_push_dynamic_ctype_t func) {
-  if(!general_loaded) return;
   mtev_hash_replace(&lua_ctypes, strdup(type_name), strlen(type_name),
                     func, free, NULL);
 }
@@ -1052,10 +1051,16 @@ mtev_lua_general_register_console_commands(mtev_image_t *self) {
   mtev_console_state_add_cmd(tl,
     NCSCMD("lua_general", mtev_console_state_lua, NULL, luas, self));
 }
-static int
-mtev_lua_general_onload(mtev_image_t *self) {
+
+__attribute__((constructor))
+void
+lua_general_ctor(void) {
   mtev_hash_init_locks(&lua_ctypes, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init(&hookinfo);
+}
+
+static int
+mtev_lua_general_onload(mtev_image_t *self) {
   nlerr = mtev_log_stream_find("error/lua");
   nldeb = mtev_log_stream_find("debug/lua");
   mtev_lua_context_describe(LUA_GENERAL_INFO_MAGIC,
