@@ -5,6 +5,8 @@
 
 ## 1.12
 
+ * Decode `+` to space in querystring decoding.
+
 ### 1.12.16
 
  * Fix potential off-by-one error in clustering
