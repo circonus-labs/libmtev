@@ -4216,6 +4216,10 @@ mtev_xmldoc_index_func(lua_State *L) {
   return 0;
 }
 
+struct cluster_crutch {
+  char *cluster_name;
+  mtev_cluster_t *cluster;
+};
 /* \lua bool = mtev.cluster:am_i_oldest_visible_node()
 \return whether the invoking code is running on the oldest node in the cluster.
 */
@@ -4227,8 +4231,8 @@ mtev_lua_cluster_am_i_oldest_visible_node(lua_State *L) {
   if(udata != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   if(n != 1) luaL_error(L, "expects no arguments, got %d", n);
-  const char *cluster_name = (const char *)udata;
-  mtev_cluster_t *cluster = mtev_cluster_by_name(cluster_name);
+  struct cluster_crutch *c = (struct cluster_crutch *)udata;
+  mtev_cluster_t *cluster = c->cluster ? c->cluster : mtev_cluster_by_name(c->cluster_name);
   if(cluster == NULL) luaL_error(L, "no such cluster");
   lua_pushboolean(L, mtev_cluster_am_i_oldest_visible_node(cluster));
   return 1;
@@ -4245,8 +4249,8 @@ mtev_lua_cluster_size(lua_State *L) {
   if(udata != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   if(n != 1) luaL_error(L, "expects no arguments, got %d", n);
-  const char *cluster_name = (const char *)udata;
-  mtev_cluster_t *cluster = mtev_cluster_by_name(cluster_name);
+  struct cluster_crutch *c = (struct cluster_crutch *)udata;
+  mtev_cluster_t *cluster = c->cluster ? c->cluster : mtev_cluster_by_name(c->cluster_name);
   if(cluster == NULL) luaL_error(L, "no such cluster");
   lua_pushinteger(L, mtev_cluster_size(cluster));
   return 1;
@@ -4289,12 +4293,24 @@ nl_mtev_cluster(lua_State *L) {
   if(cluster == NULL) return 0;
   // We store the cluster name in the lua object not the reference to the mtev_cluster_t, since this
   // might be changing over time.
-  char *obj = lua_newuserdata(L, strlen(cluster_name)+1);
-  memcpy(obj, cluster_name, strlen(cluster_name)+1);
+  char *obj = lua_newuserdata(L, sizeof(struct cluster_crutch)+strlen(cluster_name)+1);
+  memcpy(obj + sizeof(struct cluster_crutch), cluster_name, strlen(cluster_name)+1);
+  struct cluster_crutch *c = (struct cluster_crutch *)obj;
+  c->cluster_name = obj + sizeof(struct cluster_crutch);
   luaL_getmetatable(L, "mtev.cluster");
   lua_setmetatable(L, -2);
   return 1;
 }
+
+static void
+nl_push_ctype_mtev_cluster(lua_State *L, va_list ap) {
+  mtev_cluster_t *cluster = va_arg(ap, mtev_cluster_t *);
+  struct cluster_crutch *c = lua_newuserdata(L, sizeof(struct cluster_crutch));
+  c->cluster = cluster;
+  luaL_getmetatable(L, "mtev.cluster");
+  lua_setmetatable(L, -2);
+}
+
 
 /*! \lua obj = mtev.json:tostring()
 \brief return a JSON-formatted string of an `mtev.json` object
@@ -5781,12 +5797,12 @@ nl_getaddrinfo(lua_State *L) {
   hints.ai_canonname = NULL;
   hints.ai_addr = NULL;
   hints.ai_next = NULL;
-  struct addrinfo *result;
+  struct addrinfo *result = NULL;
   int rc = getaddrinfo(host, NULL, &hints, &result);
   if(rc != 0) {
     lua_pushboolean(L, 0);
     lua_pushfstring(L, "getaddrinfo(%s) failed: %s", host, gai_strerror(rc));
-    freeaddrinfo(result);
+    if(result) freeaddrinfo(result);
     return 2;
   }
   if(result == NULL) {
@@ -5900,6 +5916,8 @@ static void mtev_lua_init(void) {
   /* init semaphore */
   semaphore_table = calloc(1, sizeof(*semaphore_table));
   mtev_hash_init_locks(semaphore_table, 0, MTEV_HASH_LOCK_MODE_MUTEX);
+
+  mtev_lua_register_dynamic_ctype("mtev_cluster_t *", nl_push_ctype_mtev_cluster);
 }
 
 static const luaL_Reg mtevlib[] = {
