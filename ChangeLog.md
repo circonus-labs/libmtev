@@ -5,6 +5,8 @@
 
 ## 1.12
 
+### 1.12.17
+
  * Decode `+` to space in querystring decoding.
 
 ### 1.12.16
