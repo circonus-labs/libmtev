@@ -5,6 +5,8 @@
 
 ## 1.12
 
+ * Add console-accessible statistics for the `mtev_fq` module via `show fq`.
+
 ### 1.12.17
 
  * Decode `+` to space in querystring decoding.
