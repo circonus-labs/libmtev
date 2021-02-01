@@ -351,13 +351,13 @@ mtev_console_show_fq(mtev_console_closure_t ncct,
     fq_stats_t *s = &c->stats;
     nc_printf(ncct, "== %s:%d ==\n  user: %s\n  exchange: %s\n  program: %s\n"
                     "  (c) connects: %zu\n  (c) msgs rx: %zu\n  (c) msgs tx: %zu\n"
-                    "  (s) drops rx: %zu\n  (c) drops tx: %zu\n"
+                    "  (c) drops tx: %zu\n  (s) drops rx: %zu\n"
                     "  (s) no exchange tx: %zu\n  (s) no routes tx: %zu\n"
                     "  (s) routed tx: %zu\n  (s) drops tx: %zu\n"
                     "  (s) msgs tx: %zu\n  (s) msgs rx: %zu\n",
         c->host, c->port, c->user, c->exchange, c->program,
         s->connects, s->receptions, s->publications,
-        s->dropped_in, s->client_tx_drops,
+        s->client_tx_drops, s->dropped_in,
         s->no_exchange, s->no_route,
         s->routed, s->dropped_out,
         s->msgs_in, s->msgs_out
