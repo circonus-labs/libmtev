@@ -4294,6 +4294,7 @@ nl_mtev_cluster(lua_State *L) {
   // We store the cluster name in the lua object not the reference to the mtev_cluster_t, since this
   // might be changing over time.
   char *obj = lua_newuserdata(L, sizeof(struct cluster_crutch)+strlen(cluster_name)+1);
+  memset(obj, 0, sizeof(struct cluster_crutch));
   memcpy(obj + sizeof(struct cluster_crutch), cluster_name, strlen(cluster_name)+1);
   struct cluster_crutch *c = (struct cluster_crutch *)obj;
   c->cluster_name = obj + sizeof(struct cluster_crutch);
@@ -4306,6 +4307,7 @@ static void
 nl_push_ctype_mtev_cluster(lua_State *L, va_list ap) {
   mtev_cluster_t *cluster = va_arg(ap, mtev_cluster_t *);
   struct cluster_crutch *c = lua_newuserdata(L, sizeof(struct cluster_crutch));
+  memset(c, 0, sizeof(struct cluster_crutch));
   c->cluster = cluster;
   luaL_getmetatable(L, "mtev.cluster");
   lua_setmetatable(L, -2);
