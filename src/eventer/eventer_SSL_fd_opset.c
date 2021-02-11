@@ -637,7 +637,9 @@ verify_cb(int ok, X509_STORE_CTX *x509ctx) {
   /* Fetch the handle and containing context and fill in some blanks */
   ssl = X509_STORE_CTX_get_ex_data(x509ctx,
                                    SSL_get_ex_data_X509_STORE_CTX_idx());
+  if(!ssl) return 0;
   ctx = SSL_get_eventer_ssl_ctx(ssl);
+  if(!ctx) return 0;
   eventer_ssl_set_peer_subject(ctx, x509ctx);
   eventer_ssl_set_peer_issuer(ctx, x509ctx);
 
@@ -710,6 +712,8 @@ eventer_SSL_server_info_callback(const SSL *ssl, int type, int val) {
   (void)type;
   (void)val;
   eventer_ssl_ctx_t *ctx;
+
+  if(!ssl) return;
 
   if (ssl->state != SSL3_ST_SR_CLNT_HELLO_A &&
       ssl->state != SSL23_ST_SR_CLNT_HELLO_A)
@@ -789,7 +793,9 @@ static
 int eventer_ssl_ctx_get_sni(SSL *ssl, int *ad, void *arg) {
   (void)ad;
   (void)arg;
+  if(!ssl) return SSL_TLSEXT_ERR_OK;
   eventer_ssl_ctx_t *ctx = SSL_get_eventer_ssl_ctx(ssl);
+  if(!ctx) return SSL_TLSEXT_ERR_OK;
   const char *name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
   if(name) {
     free(ctx->sni_name);
