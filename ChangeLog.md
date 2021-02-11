@@ -5,6 +5,7 @@
 
 ## 1.12
 
+ * More protections from NPE in eventer SSL code.
  * Add console-accessible statistics for the `mtev_fq` module via `show fq`.
 
 ### 1.12.17
