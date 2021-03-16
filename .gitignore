@@ -66,3 +66,8 @@ test/test-*.crt
 test/test-*.csr
 test/test-*.key
 test/*/test
+.autotools
+.cproject
+.project
+.settings/
+.vscode/
