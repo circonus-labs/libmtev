@@ -247,6 +247,9 @@ drain_outbound_queue(struct amqp_conn *cc) {
       free(env);
       cnt++;
     }
+    else {
+      break;
+    }
   }
   return cnt;
 }
