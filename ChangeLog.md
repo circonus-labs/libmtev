@@ -5,6 +5,8 @@
 
 ## 1.12
 
+### 1.12.18
+
  * More protections from NPE in eventer SSL code.
  * Add console-accessible statistics for the `mtev_fq` module via `show fq`.
  * Fix assertion failure in AMQ code
