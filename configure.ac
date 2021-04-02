@@ -476,9 +476,11 @@ AS_IF([test "x$enable_zipkin_fq" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
     AC_CHECK_LIB(fq, fq_client_init,
-        [FQ_MODULES="$FQ_MODULES zipkin_fq.$MODULEEXT"],
+        [FQ_MODULES="$FQ_MODULES zipkin_fq.$MODULEEXT"
+         ZIPKIN_FQ_BUILT="yes"],
         [if test "x$enable_zipkin_fq" == "xcheck"; then
             AC_MSG_NOTICE([NOTICE: not building zipkin-fq module, no fq library found])
+            ZIPKIN_FQ_BUILT="no"
          else
             AC_MSG_ERROR([*** can't build zipkin-fq, no -lfq ***])
          fi
@@ -497,9 +499,11 @@ AS_IF([test "x$enable_fq" != "xno"], [
     LIBS=
     AC_CHECK_LIB(fq, fq_client_init,
         [FQ_MODULES="$FQ_MODULES fq.$MODULEEXT"
-         EXTRA_EXAMPLES="$EXTRA_EXAMPLES fq-router"],
+         EXTRA_EXAMPLES="$EXTRA_EXAMPLES fq-router"
+         FQ_BUILT="yes"],
         [if test "x$enable_fq" == "xcheck"; then
             AC_MSG_NOTICE([NOTICE: not building fq module, no fq library found])
+            FQ_BUILT="no"
          else
             AC_MSG_ERROR([*** can't build fq, no -lfq ***])
          fi
@@ -517,9 +521,11 @@ AS_IF([test "x$enable_amqp" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
     AC_CHECK_LIB(rabbitmq, amqp_basic_publish,
-        [AMQP_MODULES="$AMQP_MODULES amqp.$MODULEEXT"],
+        [AMQP_MODULES="$AMQP_MODULES amqp.$MODULEEXT"
+         AMQP_BUILT="yes"],
         [if test "x$enable_amqp" == "xcheck"; then
             AC_MSG_NOTICE([NOTICE: not building amqp module, no rabbitmq library found])
+            AMQP_BUILT="no"
          else
             AC_MSG_ERROR([*** can't build amqp, no -lrabbitmq ***])
          fi
@@ -1019,3 +1025,30 @@ test/Makefile
 test/mtevbusted-script
 ])
 
+AC_MSG_RESULT([
+
+=== Compile-time Configuration ===
+
+  == Compilers ==
+  CC:                 $CC
+  CPPFLAGS:           $CPPFLAGS
+  CFLAGS:             $CFLAGS
+  LD:                 $LD
+  SHLD:               $SHLD
+  CLINKFLAGS:         $CLINKFLAGS
+  MAPFLAGS:           $MAPFLAGS
+
+  MODULECC:           $MODULECC
+  SHCFLAGS:           $SHCFLAGS
+  MODULESHCFLAGS:     $MODULESHCFLAGS
+  MODULESHCXXFLAGS:   $MODULESHCXXFLAGS
+
+  MODULELD:           $MODULELD
+  MODULESHLDFLAGS:    $MODULESHLDFLAGS
+
+  == Optional modules ==
+  AMQP module:        $AMQP_BUILT
+  FQ module:          $FQ_BUILT
+  Zipkin-fq module:   $ZIPKIN_FQ_BUILT
+
+])
