@@ -69,10 +69,6 @@
 #include <signal.h>
 
 #include <yajl/yajl_gen.h>
-extern void
-yajl_string_encode(const yajl_print_t print, void * ctx,
-                   const unsigned char * str, size_t len,
-                   int escape_solidus);
 
 #ifdef HAVE_WSLAY
 #include <wslay/wslay.h>
@@ -1067,4 +1063,58 @@ mtev_console_init(const char *progname) {
   }
   mtev_console_telnet_init();
   mtev_console_rest_init();
+}
+
+static void CharToHex(unsigned char c, char * hexBuf)
+{
+    const char * hexchar = "0123456789ABCDEF";
+    hexBuf[0] = hexchar[c >> 4];
+    hexBuf[1] = hexchar[c & 0x0F];
+}
+
+void
+yajl_string_encode(const yajl_print_t print,
+                   void * ctx,
+                   const unsigned char * str,
+                   size_t len,
+                   int escape_solidus)
+{
+    size_t beg = 0;
+    size_t end = 0;
+    char hexBuf[7];
+    hexBuf[0] = '\\'; hexBuf[1] = 'u'; hexBuf[2] = '0'; hexBuf[3] = '0';
+    hexBuf[6] = 0;
+
+    while (end < len) {
+        const char * escaped = NULL;
+        switch (str[end]) {
+            case '\r': escaped = "\\r"; break;
+            case '\n': escaped = "\\n"; break;
+            case '\\': escaped = "\\\\"; break;
+            /* it is not required to escape a solidus in JSON:
+             * read sec. 2.5: http://www.ietf.org/rfc/rfc4627.txt
+             * specifically, this production from the grammar:
+             *   unescaped = %x20-21 / %x23-5B / %x5D-10FFFF
+             */
+            case '/': if (escape_solidus) escaped = "\\/"; break;
+            case '"': escaped = "\\\""; break;
+            case '\f': escaped = "\\f"; break;
+            case '\b': escaped = "\\b"; break;
+            case '\t': escaped = "\\t"; break;
+            default:
+                if ((unsigned char) str[end] < 32) {
+                    CharToHex(str[end], hexBuf + 4);
+                    escaped = hexBuf;
+                }
+                break;
+        }
+        if (escaped != NULL) {
+            print(ctx, (const char *) (str + beg), end - beg);
+            print(ctx, escaped, (unsigned int)strlen(escaped));
+            beg = ++end;
+        } else {
+            ++end;
+        }
+    }
+    print(ctx, (const char *) (str + beg), end - beg);
 }
