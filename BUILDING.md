@@ -7,16 +7,19 @@
  * hwloc
  * flatcc >= 0.6.0
  * jlog >= 2.2
- * liblz4
  * libcircllhist
  * libcircmetrics
  * libcurl
+ * liblz4
+ * libnghttp2
+ * libxml2
+ * libxslt
+ * lmdb
  * luajit >= 2.1
  * ncurses
  * openssl
  * pcre
  * udns
- * sqlite3
  * wslay (for websockets support)
  * yajl
 
@@ -24,7 +27,9 @@
  * libunwind (for better stack traces)
  * libdwarf (for better stack traces)
  * librabbitmq-c (for `amqp` module)
- * fq (for `fq` and `zipkin_fq` modules)
+ * fq (for `fq` and `zipkin_fq` modules), plus:
+   * libuuid
+   * sqlite3
  
 ## Platforms
 
