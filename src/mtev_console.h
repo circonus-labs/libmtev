@@ -261,6 +261,16 @@ MTEV_HOOK_PROTO(mtev_console_dispatch,
                 void *, closure,
                 (void *closure, struct __mtev_console_closure *ncct, const char *buffer))
 
+/** a callback used for "printing" the results. */
+typedef void (*yajl_print_t)(void * ctx,
+                             const char * str,
+                             size_t len);
+
+API_EXPORT(void)
+yajl_string_encode(const yajl_print_t print, void * ctx,
+                   const unsigned char * str, size_t len,
+                   int escape_solidus);
+
 #ifdef __cplusplus
 }
 #endif

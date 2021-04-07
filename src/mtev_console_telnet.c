@@ -635,8 +635,8 @@ mtev_console_telnet_tty_setsig(mtev_console_closure_t ncct, int on)
 {
 	(void)ncct;
 #ifndef	USE_TERMIO
-	if (on)
-		;
+	if (on) {
+	}
 #else
 	if (on)
 		termbuf.c_lflag |= ISIG;
