@@ -468,40 +468,70 @@ AC_SUBST(MTEV4LUA)
 LIBS=$OLD_LIBS
 
 AC_ARG_ENABLE([zipkin_fq],
-    AS_HELP_STRING([--disable-zipkin-fq], [Disable modules zipkin-fq]))
+    AS_HELP_STRING([--disable-zipkin-fq], [Disable modules zipkin-fq]),
+    [],
+    [enable_zipkin_fq=check])
 
 AS_IF([test "x$enable_zipkin_fq" != "xno"], [
-	OLD_LIBS=$LIBS
-	LIBS=
-	AC_CHECK_LIB(fq, fq_client_init, [
-		FQ_MODULES="$FQ_MODULES zipkin_fq.$MODULEEXT"
-	], [AC_MSG_ERROR([*** can't build zipkin-fq, no -lfq ***])])
-	LIBS=$OLD_LIBS
+    OLD_LIBS=$LIBS
+    LIBS=
+    AC_CHECK_LIB(fq, fq_client_init,
+        [FQ_MODULES="$FQ_MODULES zipkin_fq.$MODULEEXT"
+         ZIPKIN_FQ_BUILT="yes"],
+        [if test "x$enable_zipkin_fq" == "xcheck"; then
+            AC_MSG_NOTICE([NOTICE: not building zipkin-fq module, no fq library found])
+            ZIPKIN_FQ_BUILT="no"
+         else
+            AC_MSG_ERROR([*** can't build zipkin-fq, no -lfq ***])
+         fi
+        ]
+    )
+    LIBS=$OLD_LIBS
 ])
 
 AC_ARG_ENABLE([fq],
-    AS_HELP_STRING([--disable-fq], [Disable modules fq]))
+    AS_HELP_STRING([--disable-fq], [Disable modules fq]),
+    [],
+    [enable_fq=check])
 
 AS_IF([test "x$enable_fq" != "xno"], [
-	OLD_LIBS=$LIBS
-	LIBS=
-	AC_CHECK_LIB(fq, fq_client_init, [
-		FQ_MODULES="$FQ_MODULES fq.$MODULEEXT"
-	], [AC_MSG_ERROR([*** can't build fq, no -lfq ***])])
-	LIBS=$OLD_LIBS
-	EXTRA_EXAMPLES="$EXTRA_EXAMPLES fq-router"
+    OLD_LIBS=$LIBS
+    LIBS=
+    AC_CHECK_LIB(fq, fq_client_init,
+        [FQ_MODULES="$FQ_MODULES fq.$MODULEEXT"
+         EXTRA_EXAMPLES="$EXTRA_EXAMPLES fq-router"
+         FQ_BUILT="yes"],
+        [if test "x$enable_fq" == "xcheck"; then
+            AC_MSG_NOTICE([NOTICE: not building fq module, no fq library found])
+            FQ_BUILT="no"
+         else
+            AC_MSG_ERROR([*** can't build fq, no -lfq ***])
+         fi
+        ]
+    )
+    LIBS=$OLD_LIBS
 ])
 
 AC_ARG_ENABLE([amqp],
-    AS_HELP_STRING([--disable-amqp], [Disable modules amqp]))
+    AS_HELP_STRING([--disable-amqp], [Disable modules amqp]),
+    [],
+    [enable_amqp=check])
 
 AS_IF([test "x$enable_amqp" != "xno"], [
-	OLD_LIBS=$LIBS
-	LIBS=
-	AC_CHECK_LIB(rabbitmq, amqp_basic_publish, [
-		AMQP_MODULES="$AMQP_MODULES amqp.$MODULEEXT"
-	], [AC_MSG_ERROR([*** can't build amqp, no -lrabbitmq ***])])
-	LIBS=$OLD_LIBS
+    OLD_LIBS=$LIBS
+    LIBS=
+    AC_CHECK_LIB(rabbitmq, amqp_basic_publish,
+        [AMQP_MODULES="$AMQP_MODULES amqp.$MODULEEXT"
+         AMQP_BUILT="yes"],
+        [if test "x$enable_amqp" == "xcheck"; then
+            AC_MSG_NOTICE([NOTICE: not building amqp module, no rabbitmq library found])
+            AMQP_BUILT="no"
+         else
+            AC_MSG_ERROR([*** can't build amqp, no -lrabbitmq ***])
+         fi
+        ]
+    )
+    LIBS=$OLD_LIBS
 ])
 
 AC_CHECK_LIB(nghttp2, nghttp2_session_get_stream_user_data, ,
@@ -995,3 +1025,30 @@ test/Makefile
 test/mtevbusted-script
 ])
 
+AC_MSG_RESULT([
+
+=== Compile-time Configuration ===
+
+  == Compilers ==
+  CC:                 $CC
+  CPPFLAGS:           $CPPFLAGS
+  CFLAGS:             $CFLAGS
+  LD:                 $LD
+  SHLD:               $SHLD
+  CLINKFLAGS:         $CLINKFLAGS
+  MAPFLAGS:           $MAPFLAGS
+
+  MODULECC:           $MODULECC
+  SHCFLAGS:           $SHCFLAGS
+  MODULESHCFLAGS:     $MODULESHCFLAGS
+  MODULESHCXXFLAGS:   $MODULESHCXXFLAGS
+
+  MODULELD:           $MODULELD
+  MODULESHLDFLAGS:    $MODULESHLDFLAGS
+
+  == Optional modules ==
+  AMQP module:        $AMQP_BUILT
+  FQ module:          $FQ_BUILT
+  Zipkin-fq module:   $ZIPKIN_FQ_BUILT
+
+])
