@@ -2,137 +2,156 @@
 
 ## Requirements
 
- * stdc11 (gcc 4.9 or higher)
- * concurrencykit (ck) 0.5+
+ * C11 compiler (e.g., gcc >= 4.9, clang >= 3.6)
+ * concurrencykit (ck) >= 0.7.0
  * hwloc
- * jlog 2.2+
+ * flatcc >= 0.6.0
+ * jlog >= 2.2
  * liblz4
  * libcircllhist
  * libcircmetrics
  * libcurl
- * luajit 2.0+
+ * luajit >= 2.1
  * ncurses
  * openssl
  * pcre
  * udns
- * sqllite
+ * sqlite3
+ * wslay (for websockets support)
+ * yajl
 
  Optional:
- * wslay (for websockets support)
  * libunwind (for better stack traces)
  * libdwarf (for better stack traces)
- * librabbitmq-c
- * fq
+ * librabbitmq-c (for `amqp` module)
+ * fq (for `fq` and `zipkin_fq` modules)
  
 ## Platforms
 
-### FreeBSD 10+
+### FreeBSD 12+
 
-    You'll need to install the following from source first:
-      * libcircllhist
-      * libcircmetrics
-      * jlog
-      * fq
-      * wslay-1.0.0
-      * concurrencykit 0.7.0
+    pkg install autoconf automake e2fsprogs-libuuid flatcc gcc \
+        git gmake hwloc liblz4 libtool libxml2 libxslt lmdb \
+        pcre pkgconf udns yajl
 
-    pkg install autoconf gcc git gmake \
-        hwloc liblz4 \
-        libxml2 libxslt luajit pcre udns flatcc \
-        yajl e2fsprogs-libuuid rabbitmq-c lmdb
+If AMQP support is desired:
+
+    pkg install rabbitmq-c
+
+Proceed to [Downloading and Building Source
+Dependencies](#donwloading-and-building-source-dependencies), build any that
+aren't provided by the above packages, then return and proceed to the next
+step.
+
+Once all dependencies are installed:
 
     git clone https://github.com/circonus-labs/libmtev
     cd libmtev
     autoreconf -i -I buildtools
-    CPPFLAGS="-I/usr/local/include/luajit-2.0" ./configure
+    CPPFLAGS="-I/usr/local/include/luajit-2.1" ./configure
     gmake
+    sudo gmake install
+
 
 ### Linux (Ubuntu LTS)
 
-**NOTE:** The version of libck shipped with Xenial (16.04) is too old.
-You will need to build a current version from [source](http://concurrencykit.org/).
+    apt-get update
+    apt-get install autoconf automake build-essential cmake git \
+        libcurl4-openssl-dev libhwloc-dev liblmdb-dev libluajit-5.1-dev \
+        liblz4-dev libncurses5-dev libnghttp2-dev libpcre3-dev libssl-dev \
+        libudns-dev libxslt1-dev libyajl-dev xsltproc zlib1g-dev
 
-Run the following as root (sudo):
+If AMQP support is desired:
 
-    apt-get install autoconf build-essential git \
-		zlib1g-dev libpcre3-dev libssl-dev \
-		libxslt1-dev xsltproc libncurses5-dev libhwloc-dev \
-        libluajit-5.1-dev libudns-dev liblz4-dev \
-        librabbitmq-c
+    apt-get install librabbitmq-dev
 
-Now skip forward to the section below on *Downloading and Building the Package Dependencies*.  Then come back and continue with the section below, *Building Libmtev*.
+Proceed to [Downloading and Building Source
+Dependencies](#donwloading-and-building-source-dependencies), build any that
+aren't provided by the above packages, then return and proceed to the next
+step.
 
-### Linux (RHEL/CentOS 6+)
 
-**NOTE** The EPEL (Extra Packages for Enterprise Linux) repo will be used.
-This is required for liblz4 and libudns.
+Once all dependencies are installed:
+
+    git clone https://github.com/circonus-labs/libmtev
+    cd libmtev
+    autoreconf -i -I buildtools
+    ./configure
+    make
+    sudo make install
+
+
+### Linux (RHEL/CentOS 7+)
+
+**NOTE** Additional repos will be used for some packages:
+* EPEL (Extra Packages for Enterprise Linux): libudns
+* SCLo (Software Collections SIG): devtoolset-9 (gcc that fully supports C11)
 
 Run the following as root (sudo):
 
     yum groupinstall "Development Tools"
-    yum install epel-release autoconf git \
-        curl-devel hwloc-devel libxslt-devel \
-        lz4-devel ncurses-devel openssl-devel pcre-devel \
-        udns-devel librabbitmq-c
-    yum --enablerepo=extras install centos-release-scl
-    yum --enablerepo=base install devtoolset-8
+    yum install epel-release
+    yum install autoconf cmake git hwloc-devel libcurl-devel \
+        libnghttp2-devel libuuid-devel libxslt-devel \
+        lmdb-devel lz4-devel ncurses-devel openssl openssl-devel \
+        pcre-devel sqlite-devel udns-devel yajl-devel
+    yum install centos-release-scl
+    yum install devtoolset-9
 
-Now skip forward to the section below on *Downloading and Building the Package Dependencies*.  Then come back and continue with the next step, *Building Libmtev*.
+If AMQP support is desired:
 
-### Building Libmtev (RHEL/CentOS/Ubuntu)
+    yum install librabbitmq-devel
 
-Once you have all the dependencies built and installed, clone the source for libmtev and follow these steps to run the build process:
+Proceed to [Downloading and Building Source
+Dependencies](#donwloading-and-building-source-dependencies) then return and
+proceed to the next step.
 
+Once all dependencies are installed:
+
+    PATH="/opt/rh/devtoolset-9/root/bin:$PATH"
+    export PATH
     git clone https://github.com/circonus-labs/libmtev
     cd libmtev
     autoreconf -i -I buildtools
-    CPPFLAGS="-I/usr/local/include/luajit" ./configure
+    CPPFLAGS="-I/usr/local/include/luajit-2.1" ./configure
     make
+    sudo make install
 
-You may have to modify the CPPFLAGS and LDFLAGS definition to include the library headers from the right location, or otherwise you might get build errors.  For example, these settings may work for your environment:
 
-    export CPPFLAGS="-I/opt/circonus/include -I/opt/circonus/include/luajit"`
-    export LDFLAGS="-L/opt/circonus/lib -Wl,-rpath=/opt/circonus/lib"
+### Download and Build Source Dependencies
 
-NOTE: Make sure to rerun `./configure` after you change the definition of these flags and before you try to `make` again.
+Note: some of these may be available in packaged form for some platforms.
+Review the [requirements list](#requirements) at the top of this page for
+minimum versions. If a given platform does not package a new enough version,
+the correct version will need to be built from source.
 
-### OmniOS
-
-Supported releases:
- * r151014 LTS
-
-Set up a [development environment](https://omnios.omniti.com/wiki.php/DevEnv) first, then:
-
-    pkg set-publisher -g http://updates.circonus.net/omnios/r151014/ circonus
-    pkg install developer/debug/mdb developer/versioning/git \
-        field/ck field/fq platform/library/hwloc platform/library/jlog \
-        platform/library/libcircllhist platform/library/libcircmetrics \
-        platform/library/liblz4 platform/library/udns \
-        platform/library/wslay platform/runtime/luajit
-
-    git clone git@github.com:circonus-labs/libmtev.git
-    cd libmtev
-    autoreconf -i -I buildtools
-    CFLAGS="-m64" \
-    CPPFLAGS="-I/opt/circonus/include/amd64 -I/opt/circonus/include -I/opt/circonus/include/amd64/luajit" \
-    LDFLAGS="-m64 -L/opt/circonus/lib/amd64 -R/opt/circonus/lib/amd64" \
-    ./configure
-    export MAKE=gmake
-    gmake
-
-### Download and Build Package Dependencies
-
-Gather the following as zip files and extract into subfolders of a suitable package building folder on your box:
+Gather the following as git checkouts or source archives and build each
+according to its instructions:
 
 Third-Party libraries:
-[ConcurrencyKit (ck)](http://concurrencykit.org/)
-[LuaJit](http://luajit.org)
-[sqllite](https://www.sqlite.org/index.html)
+* [ConcurrencyKit (ck)](https://github.com/concurrencykit/ck)
+* [flatcc](https://github.com/dvidelabs/flatcc)
+  * Note that the flatcc `build.sh` does not build a shared library by default.
+  * Instead, use the following procedure, setting your desired install prefix
+    in the shell variable `PREFIX`:
+    ```
+    ./scripts/initbuild.sh make
+    mkdir -p build/install
+    cd build/install
+    cmake ../.. \
+        -DBUILD_SHARED_LIBS=on \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DFLATCC_INSTALL=on \
+        -DCMAKE_INSTALL_RPATH=$PREFIX/lib \
+        -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX
+    sudo make install
+    ```
+* [LuaJIT](http://luajit.org/download.html)
+* [wslay](https://github.com/tatsuhiro-t/wslay)
 
 Circonus libraries:
-[jlog](https://github.com/omniti-labs/jlog)
-[libcircllhist](https://github.com/circonus-labs/libcircllhist)
-[libcircmetrics](https://github.com/circonus-labs/libcircmetrics)
-[fq](https://github.com/circonus-labs/fq)
+* [fq](https://github.com/circonus-labs/fq) (If FQ module support is desired)
+* [jlog](https://github.com/omniti-labs/jlog)
+* [libcircllhist](https://github.com/openhistogram/libcircllhist)
+* [libcircmetrics](https://github.com/circonus-labs/libcircmetrics)
 
-After downloading and extracting zips, build and install these packages per the README and BUILD instructions included with each package.  Sometimes this means `autoconf`, `./configure`, `make`, and then `sudo make install` - and sometimes only the `make` and `sudo make install` are required.
