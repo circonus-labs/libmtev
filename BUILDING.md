@@ -44,7 +44,7 @@ If AMQP support is desired:
     pkg install rabbitmq-c
 
 Proceed to [Download and Build Source
-Dependencies](#donwload-and-build-source-dependencies), build any that aren't
+Dependencies](#download-and-build-source-dependencies), build any that aren't
 provided by the above packages, then return and proceed to the next step.
 
 Once all dependencies are installed:
@@ -70,7 +70,7 @@ If AMQP support is desired:
     apt-get install librabbitmq-dev
 
 Proceed to [Download and Build Source
-Dependencies](#donwload-and-build-source-dependencies), build any that aren't
+Dependencies](#download-and-build-source-dependencies), build any that aren't
 provided by the above packages, then return and proceed to the next step.
 
 Once all dependencies are installed:
@@ -105,7 +105,7 @@ If AMQP support is desired:
     yum install librabbitmq-devel
 
 Proceed to [Download and Build Source
-Dependencies](#donwload-and-build-source-dependencies), build any that aren't
+Dependencies](#download-and-build-source-dependencies), build any that aren't
 provided by the above packages, then return and proceed to the next step.
 
 Once all dependencies are installed:
