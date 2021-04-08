@@ -446,13 +446,13 @@ void mtev_watchdog_disable_trace_output(void) {
 int mtev_monitored_child_pid = -1;
 
 void run_glider(int pid, glide_reason_t glide_reason, const char *detail) {
-  const char *glide_reason_str = "unkown";
+  const char *glide_reason_str = "unknown";
   char cmd[1024];
-  int unused __attribute__((unused));
+  int exitcode;
   if(glider_path) {
     char *oldpath, oldpath_buf[PATH_MAX];
     oldpath = getcwd(oldpath_buf, sizeof(oldpath_buf));
-    if(oldpath) unused = chdir(trace_dir);
+    if(oldpath) exitcode = chdir(trace_dir);
     switch(glide_reason) {
       case GLIDE_CRASH: glide_reason_str = "crash"; break;
       case GLIDE_WATCHDOG: glide_reason_str = "watchdog"; break;
@@ -467,8 +467,10 @@ void run_glider(int pid, glide_reason_t glide_reason, const char *detail) {
         snprintf(cmd, sizeof(cmd), "%s %d %s%s%s", glider_path, pid, glide_reason_str,
                  detail ? "/" : "", detail ? detail : "");
     }
-    unused = system(cmd);
-    if(oldpath) unused = chdir(oldpath);
+    mtevL(mtev_error, "[monitor] executing glider [%s]\n", cmd);
+    exitcode = system(cmd);
+    mtevL(mtev_error, "[monitor] glider exitcode %d\n", exitcode);
+    if(oldpath) exitcode = chdir(oldpath);
   }
 }
 
