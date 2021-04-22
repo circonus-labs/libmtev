@@ -2,12 +2,16 @@
 
 # 2
 
-# 2.0.0
+## 2.0
+
+### 2.0.0
 
 * Update logging ext to work with C++.  This breaks the ABI
   for existing users
 
 # 1
+
+## 1.12
 
 ### 1.12.18
 
