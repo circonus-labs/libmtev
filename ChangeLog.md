@@ -5,6 +5,9 @@
 
 ## 1.12
 
+ * Update logging ext to work with C++.  This breaks the ABI
+   for existing users
+
 ### 1.12.18
 
  * More protections from NPE in eventer SSL code.

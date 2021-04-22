@@ -627,7 +627,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     free(logline_dynamic);
   }
   mtevEL(http_access,
-        MLKV{ MLKV_STR("ip", ip), MLKV_STR("user", user ? user : "-"),
+        MLKV( MLKV_STR("ip", ip), MLKV_STR("user", user ? user : "-"),
               MLKV_STR("method", mtev_http_request_method_str(req)),
               MLKV_STR("protocol", mtev_http_request_protocol_str(req)),
               MLKV_STR("uri", mtev_http_request_uri_str(req)),
@@ -636,7 +636,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
               MLKV_DOUBLE("latency", (double)diff.tv_sec + (double)diff.tv_usec/1000000.0),
               MLKV_INT64("bytes_written", mtev_http_response_bytes_written(res)),
               MLKV_INT64("bytes_read", mtev_http_request_content_length_read(req)),
-              MLKV_END },
+              MLKV_END ),
         "%s - %s [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
         ip, user ? user : "-", timestr,
         mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
