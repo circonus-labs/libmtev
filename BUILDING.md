@@ -35,8 +35,8 @@
 
 ### FreeBSD 12+
 
-    pkg install autoconf automake e2fsprogs-libuuid flatcc gcc \
-        git gmake hwloc liblz4 libtool libxml2 libxslt lmdb \
+    pkg install autoconf automake cmake e2fsprogs-libuuid flatcc \
+        gcc git gmake hwloc liblz4 libtool libxml2 libxslt lmdb \
         pcre pkgconf udns yajl
 
 If AMQP support is desired:
