@@ -4,6 +4,11 @@
 
 ## 2.0
 
+### 2.0.1
+
+ * Fix race in `mtev_memory_gc` that could potentially cause
+   crashes.
+
 ### 2.0.0
 
 * Update logging ext to work with C++.  This breaks the ABI
