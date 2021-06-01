@@ -4,6 +4,10 @@
 
 ## 2.0
 
+### 2.0.2
+
+ * Fix clang 11 warnings
+
 ### 2.0.1
 
  * Fix race in `mtev_memory_gc` that could potentially cause

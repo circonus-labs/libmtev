@@ -5,7 +5,7 @@
 
 int chkmem(mtev_dyn_buffer_t *buff, size_t len, char exp) {
   const char *cp;
-  const char *ptr = mtev_dyn_buffer_data(buff);
+  const char *ptr = (const char*)mtev_dyn_buffer_data(buff);
   for(cp = ptr; cp < ptr+len; cp++) if(*cp != exp) return 0;
   return 1;
 }

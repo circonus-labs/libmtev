@@ -544,7 +544,7 @@ YY_ACTION(void) yy_1_Predicate(yycontext *yy, char *yytext, int yyleng)
   yyprintf((stderr, "do yy_1_Predicate\n"));
   {
 #line 16
-   __ = mtev_logic_ast_node_predicate(yy->ast, (const char *)l, (mtev_logic_pred_op_t)op, s); ;
+   __ = mtev_logic_ast_node_predicate(yy->ast, (const char *)l, (mtev_logic_pred_op_t)(long)op, s); ;
   }
 #undef yythunkpos
 #undef yypos
