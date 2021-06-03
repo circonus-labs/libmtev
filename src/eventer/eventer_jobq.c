@@ -537,6 +537,8 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
 
     jobq->consumer_jobs = MAX(jobq->consumer_jobs - 1, 0);
     pthread_mutex_unlock(&jobq->consumer_lock);
+  } else {
+    return NULL;
   }
 
   pthread_mutex_lock(&jobq->lock);
