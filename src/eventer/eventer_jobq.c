@@ -114,9 +114,11 @@ eventer_jobq_consumer_notify(eventer_jobq_t *jobq) {
   int64_t consumer_jobs;
 
   pthread_mutex_lock(&jobq->consumer_lock);
-  jobq->consumer_jobs = MAX(jobq->consumer_jobs + 1, 1);
+  jobq->consumer_jobs++;
   consumer_jobs = jobq->consumer_jobs;
   pthread_mutex_unlock(&jobq->consumer_lock);
+
+  mtevAssert(consumer_jobs >= 0);
 
   if (consumer_jobs == 1) {
     pthread_cond_signal(&jobq->consumer_signal);
@@ -132,7 +134,8 @@ eventer_jobq_consumer_wait(eventer_jobq_t *jobq) {
     pthread_cond_wait(&jobq->consumer_signal, &jobq->consumer_lock);
   }
 
-  jobq->consumer_jobs = MAX(jobq->consumer_jobs - 1, 0);
+  jobq->consumer_jobs--;
+  mtevAssert(jobq->consumer_jobs >= 0);
   pthread_mutex_unlock(&jobq->consumer_lock);
 }
 static bool
@@ -143,7 +146,8 @@ eventer_jobq_consumer_try_wait(eventer_jobq_t *jobq) {
       return false;
     }
 
-    jobq->consumer_jobs = MAX(jobq->consumer_jobs - 1, 0);
+    jobq->consumer_jobs--;
+    mtevAssert(jobq->consumer_jobs >= 0);
     pthread_mutex_unlock(&jobq->consumer_lock);
     return true;
   }
