@@ -4,6 +4,10 @@
 
 ## 2.0
 
+### 2.0.3
+
+ * Fix race condition in eventer
+
 ### 2.0.2
 
  * Fix clang 11 warnings
