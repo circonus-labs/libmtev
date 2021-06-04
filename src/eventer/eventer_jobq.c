@@ -135,6 +135,21 @@ eventer_jobq_consumer_wait(eventer_jobq_t *jobq) {
   jobq->consumer_jobs = MAX(jobq->consumer_jobs - 1, 0);
   pthread_mutex_unlock(&jobq->consumer_lock);
 }
+static bool
+eventer_jobq_consumer_try_wait(eventer_jobq_t *jobq) {
+  if (pthread_mutex_trylock(&jobq->consumer_lock) == 0) {
+    if (jobq->consumer_jobs == 0) {
+      pthread_mutex_unlock(&jobq->consumer_lock);
+      return false;
+    }
+
+    jobq->consumer_jobs = MAX(jobq->consumer_jobs - 1, 0);
+    pthread_mutex_unlock(&jobq->consumer_lock);
+    return true;
+  }
+
+  return false;
+}
 static eventer_jobsq_t *
 eventer_jobq_get_sq_nolock(eventer_jobq_t *jobq, uint64_t subqueue) {
   if(subqueue == 0) return &jobq->queue;
@@ -529,15 +544,7 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
     eventer_jobq_consumer_wait(jobq);
   }
   /* Or Try-wait for a job */
-  else if (pthread_mutex_trylock(&jobq->consumer_lock) == 0) {
-    if (jobq->consumer_jobs == 0) {
-      pthread_mutex_unlock(&jobq->consumer_lock);
-      return NULL;
-    }
-
-    jobq->consumer_jobs = MAX(jobq->consumer_jobs - 1, 0);
-    pthread_mutex_unlock(&jobq->consumer_lock);
-  } else {
+  else if (!eventer_jobq_consumer_try_wait(jobq)) {
     return NULL;
   }
 
