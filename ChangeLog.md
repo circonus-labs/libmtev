@@ -4,6 +4,8 @@
 
 ## 2.0
 
+ * Fix illegal write in string prepend initializer.
+
 ### 2.0.3
 
  * Fix race condition in eventer
