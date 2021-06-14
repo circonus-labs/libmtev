@@ -4,6 +4,8 @@
 
 ## 2.0
 
+ * `mtev.thread_self()` now also returns thread name.
+ * Fix error checking in `mtev_reverse`.
  * Fix illegal write in string prepend initializer.
 
 ### 2.0.3
