@@ -1152,7 +1152,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         }
       }
       rc->data.last_allocated_channel = chan;
-      if(existing_fd) {
+      if(existing_fd >= 0) {
         eventer_t e;
         channel_closure_t *cct;
         mtev_gettimeofday(&rc->data.channels[chan].create_time, NULL);
