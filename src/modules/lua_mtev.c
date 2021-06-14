@@ -4823,7 +4823,10 @@ nl_thread_self(lua_State *L) {
   lua_pop(L, 1);
   lua_pushinteger(L, (int) mtev_thread_id());
   lua_pushinteger(L, (lmc) ? lmc->eventer_id : -1);
-  return 2;
+  const char *thread_name = mtev_thread_getname();
+  if(!thread_name) return 2;
+  lua_pushstring(L, thread_name);
+  return 3;
 }
 
 /*! \lua mtev.eventer_loop_concurrency()
