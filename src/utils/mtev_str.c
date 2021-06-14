@@ -136,7 +136,6 @@ mtev_prepend_str_alloc_sized(size_t initial_len) {
   buff->buff_len = initial_len;
   buff->buff = calloc(1, buff->buff_len+1);
   buff->string = buff->buff + buff->buff_len;
-  buff->string[buff->buff_len] = '\0';
   return buff;
 }
 
