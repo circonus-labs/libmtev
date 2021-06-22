@@ -777,7 +777,8 @@ API_EXPORT(void)
       } \
     } \
     if(mtevLT_doit) { \
-      auto p = ((ex).data()); \
+      auto &&p0 = ex; \
+      auto p = &((p0)[0]); \
       mtev_ex_log((ls), NULL, __FILE__, __LINE__, p, args); \
     } \
   } \
