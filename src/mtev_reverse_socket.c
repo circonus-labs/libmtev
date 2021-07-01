@@ -1929,8 +1929,8 @@ nc_print_reverse_socket_brief(mtev_console_closure_t ncct,
     if(ctx->data.channels[i].pair[0] >= 0) {
       sub_timeval(now, ctx->data.channels[i].create_time, &diff);
       age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
-      nc_printf(ncct, "  [%3d:%4d]: [UP: %0.3fs IN: %llub / %lluf  OUT: %llub / %lluf]\n",
-            i, ctx->data.channels[i].pair[0], age,
+      nc_printf(ncct, "  [%3d:%4d:%4d]: [UP: %0.3fs IN: %llub / %lluf  OUT: %llub / %lluf]\n",
+            i, ctx->data.channels[i].pair[0], ctx->data.channels[i].pair[1], age,
             (unsigned long long)ctx->data.channels[i].in_bytes, (unsigned long long)ctx->data.channels[i].in_frames,
             (unsigned long long)ctx->data.channels[i].out_bytes, (unsigned long long)ctx->data.channels[i].out_frames);
     }
