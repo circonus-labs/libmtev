@@ -1408,8 +1408,13 @@ init_data_id(void) {
     static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
     pthread_mutex_lock(&mutex);
-    data_id = SSL_get_ex_new_index(0, EVENTER_SSL_DATANAME, NULL, NULL, NULL);
-    atomic_store_explicit(&ssl_ctx_data_id, data_id, memory_order_release);
+    data_id = atomic_load_explicit(&ssl_ctx_data_id, memory_order_acquire);
+
+    if (data_id == -1) {
+      data_id = SSL_get_ex_new_index(0, EVENTER_SSL_DATANAME, NULL, NULL, NULL);
+      atomic_store_explicit(&ssl_ctx_data_id, data_id, memory_order_release);
+    }
+
     pthread_mutex_unlock(&mutex);
   }
 
