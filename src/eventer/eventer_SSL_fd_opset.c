@@ -43,6 +43,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdatomic.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -1398,23 +1399,36 @@ eventer_ssl_use_crl(eventer_ssl_ctx_t *ctx, const char *crl_file) {
 /*
  * This is a set of helpers to tie the SSL stuff to the eventer_t.
  */
-static int SSL_eventer_ssl_ctx_dataid = -1;
-#define INIT_DATAID do { \
-  if(SSL_eventer_ssl_ctx_dataid == -1) \
-    SSL_eventer_ssl_ctx_dataid = \
-      SSL_get_ex_new_index(0, EVENTER_SSL_DATANAME, NULL, NULL, NULL); \
-} while(0)
+inline static int
+init_data_id(void) {
+  static atomic_int ssl_ctx_data_id = -1;
+  int data_id = atomic_load_explicit(&ssl_ctx_data_id, memory_order_consume);
+
+  if (data_id == -1) {
+    static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    pthread_mutex_lock(&mutex);
+    data_id = atomic_load_explicit(&ssl_ctx_data_id, memory_order_acquire);
+
+    if (data_id == -1) {
+      data_id = SSL_get_ex_new_index(0, EVENTER_SSL_DATANAME, NULL, NULL, NULL);
+      atomic_store_explicit(&ssl_ctx_data_id, data_id, memory_order_release);
+    }
+
+    pthread_mutex_unlock(&mutex);
+  }
+
+  return data_id;
+}
 
 static void
 SSL_set_eventer_ssl_ctx(SSL *ssl, eventer_ssl_ctx_t *ctx) {
-  INIT_DATAID;
-  SSL_set_ex_data(ssl, SSL_eventer_ssl_ctx_dataid, ctx);
+  SSL_set_ex_data(ssl, init_data_id(), ctx);
 }
 
 static eventer_ssl_ctx_t *
 SSL_get_eventer_ssl_ctx(const SSL *ssl) {
-  INIT_DATAID;
-  eventer_ssl_ctx_t *ctx = SSL_get_ex_data(ssl, SSL_eventer_ssl_ctx_dataid);
+  eventer_ssl_ctx_t *ctx = SSL_get_ex_data(ssl, init_data_id());
   return ctx;
 }
 
@@ -1537,7 +1551,7 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
       if(!opstr) opstr = "accept";
       /* only set if we didn't fall through */
       if(!sslop) sslop = SSL_accept;
-   
+
       if((rv = sslop(ctx->ssl)) > 0) {
         if(eventer_SSL_setup(ctx)) {
           errno = EIO;
@@ -1641,6 +1655,7 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
   ERR_clear_error();
   SSL_shutdown(ctx->ssl);
+  e->opset->set_opset_ctx(e, NULL);
   eventer_ssl_ctx_free(ctx);
   if(fd < 0) {
 #ifdef EBADFD
@@ -1655,7 +1670,6 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
     rv = 0;
   }
   *mask = 0;
-  e->opset->set_opset_ctx(e, NULL);
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
   e->fd = -1;
   (void)rv;
