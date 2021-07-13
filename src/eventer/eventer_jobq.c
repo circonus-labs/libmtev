@@ -1131,6 +1131,9 @@ const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq) {
 uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq) {
   return jobq->concurrency;
 }
+uint32_t eventer_jobq_get_backlog(eventer_jobq_t *jobq) {
+  return jobq->backlog;
+}
 void eventer_jobq_get_min_max(eventer_jobq_t *jobq, uint32_t *min_, uint32_t *max_) {
   if(min_) *min_ = jobq->min_concurrency;
   if(max_) *max_ = jobq->max_concurrency;
