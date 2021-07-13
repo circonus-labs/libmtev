@@ -4,7 +4,9 @@
 
 ## 2.0
 
- * Fix race in usage of `SSL_get_ex_new_index`
+### 2.0.4
+
+ * Fix race in usage of `SSL_get_ex_new_index`.
  * `mtev.thread_self()` now also returns thread name.
  * Fix error checking in `mtev_reverse`.
  * Fix illegal write in string prepend initializer.
