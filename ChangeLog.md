@@ -4,6 +4,8 @@
 
 ## 2.0
 
+ * Add convenience function for getting the `backlog` value of a jobq.
+
 ### 2.0.4
 
  * Fix race in usage of `SSL_get_ex_new_index`.
