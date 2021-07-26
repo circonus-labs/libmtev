@@ -2,6 +2,10 @@
 
 # 2
 
+## 2.1
+
+ * Add convenience function for getting the `backlog` value of a jobq.
+
 ## 2.0
 
 ### 2.0.4
