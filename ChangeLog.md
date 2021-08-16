@@ -4,6 +4,8 @@
 
 ## 2.1
 
+### 2.1.0
+
  * Update jQuery (web UI) to 3.6.0.
  * Add convenience function for getting the `backlog` value of a jobq.
 
