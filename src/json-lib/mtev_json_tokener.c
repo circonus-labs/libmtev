@@ -96,6 +96,7 @@ void mtev_json_tokener_reset(struct mtev_json_tokener *tok)
     mtev_json_tokener_reset_level(tok, i);
   tok->depth = 0;
   tok->err = mtev_json_tokener_success;
+  tok->started = false;
 }
 
 struct mtev_json_object* mtev_json_tokener_parse(const char *str,  enum mtev_json_tokener_error *err)
@@ -197,20 +198,23 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
    * At the moment, this will reject any incoming JSON that starts with a comment.
    *
    * Long term, this library needs to be updated to something more current */
-  while ((ret = POP_CHAR(c, tok)) && isspace(c)) {
-    if (!ADVANCE_CHAR(str, tok)) {
-      ret = 0;
-      break;
+  if (!tok->started) {
+    tok->started = true;
+    while ((ret = POP_CHAR(c, tok)) && isspace(c)) {
+      if (!ADVANCE_CHAR(str, tok)) {
+        ret = 0;
+        break;
+      }
     }
-  }
-  if (!ret) {
-    tok->err = mtev_json_tokener_error_parse_eof;
-    goto out;
-  }
-  else {
-    if (c != '{' && c != '[') {
-      tok->err = mtev_json_tokener_error_parse_unexpected;
+    if (!ret) {
+      tok->err = mtev_json_tokener_error_parse_eof;
       goto out;
+    }
+    else {
+      if (c != '{' && c != '[') {
+        tok->err = mtev_json_tokener_error_parse_unexpected;
+        goto out;
+      }
     }
   }
   /* End hacky bit */

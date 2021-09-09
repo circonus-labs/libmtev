@@ -81,6 +81,7 @@ struct mtev_json_tokener
   unsigned int ucs_char;
   char quote_char;
   struct mtev_json_tokener_srec stack[MTEV_JSON_TOKENER_MAX_DEPTH];
+  bool started;
 };
 
 extern const char* mtev_json_tokener_errors[];
