@@ -15,6 +15,7 @@
 
 #include <stddef.h>
 #include <mtev_json_object.h>
+#include <mtev_defines.h>
 
 #ifdef __cplusplus
 extern "C" {
