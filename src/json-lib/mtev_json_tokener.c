@@ -220,7 +220,7 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
   /* End hacky bit */
   tok->err = mtev_json_tokener_success;
 
-  do {
+  while (POP_CHAR(c, tok)) {
   redo_char:
     switch(state) {
 
@@ -657,7 +657,7 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
     }
     if (!ADVANCE_CHAR(str, tok))
       goto out;
-  } while (POP_CHAR(c, tok));
+  } /* while (POP_CHAR) */
 
  out:
   if (!c) { /* We hit an eof char (0) */
