@@ -4,6 +4,10 @@
 
 ## 2.1
 
+### 2.1.1
+
+ * Fix crash when parsing certain unreadable JSON strings
+
 ### 2.1.0
 
  * Update jQuery (web UI) to 3.6.0.
