@@ -1788,9 +1788,6 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
     struct in_addr addr4;
     struct in6_addr addr6;
   } a;
-  uuid_t tmpid;
-  char tmpidstr[UUID_STR_LEN+1];
-  char client_id[ /* client/ */ 7 + UUID_STR_LEN + 1];
 
   if(nctx->wants_permanent_shutdown) goto fail;
 
@@ -1851,7 +1848,7 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
   rc->data.buff = strdup(reverse_intro);
   rc->data.buff_len = strlen(rc->data.buff);
 
- finish_write: 
+ finish_write:
   while(rc->data.buff_written < rc->data.buff_len) {
     ssize_t len;
     len = eventer_write(e, rc->data.buff + rc->data.buff_written,
@@ -1866,6 +1863,10 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
 
   /* We've finished our preamble... so now we will switch handlers */
   if(!rc->id) {
+    uuid_t tmpid;
+    char client_id[ /* client/ */ 7 + UUID_STR_LEN + 1];
+    char tmpidstr[UUID_PRINTABLE_STRING_LENGTH];
+
     mtev_uuid_generate(tmpid);
     mtev_uuid_unparse_lower(tmpid, tmpidstr);
     snprintf(client_id, sizeof(client_id), "client/%s", tmpidstr);
@@ -2071,7 +2072,8 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
         snprintf(di_str, sizeof(di_str), "%d", di);
         channel = MJ_OBJ();
         MJ_KV(channel, "channel_id", MJ_INT(di));
-        MJ_KV(channel, "fd", MJ_INT(rc->data.channels[di].pair[0]));
+        MJ_KV(channel, "fd_0", MJ_INT(rc->data.channels[di].pair[0]));
+        MJ_KV(channel, "fd_1", MJ_INT(rc->data.channels[di].pair[1]));
         sub_timeval(now, rc->data.channels[di].create_time, &diff);
         age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
         MJ_KV(channel, "uptime", MJ_DOUBLE(age));
@@ -2164,7 +2166,8 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
         if(rc->data.channels[di].pair[0] < 0) continue;
         channel = xmlNewNode(NULL, (xmlChar *)"channel");
         ADD_ATTR(channel, "channel_id", "%d", di);
-        ADD_ATTR(channel, "fd", "%d", rc->data.channels[di].pair[0]);
+        ADD_ATTR(channel, "fd_0", "%d", rc->data.channels[di].pair[0]);
+        ADD_ATTR(channel, "fd_1", "%d", rc->data.channels[di].pair[1]);
         sub_timeval(now, rc->data.channels[di].create_time, &diff);
         age = diff.tv_sec + (double)diff.tv_usec/1000000.0;
         ADD_ATTR(channel, "uptime", "%0.3f", age);

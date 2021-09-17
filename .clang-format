@@ -1,0 +1,43 @@
+## tentative style guidelines for snowth. let's use this as a basis for discussing
+## snowth common styles.
+## http://llvm.org/releases/3.7.0/tools/clang/docs/ClangFormatStyleOptions.html
+
+---
+BasedOnStyle: LLVM
+AccessModifierOffset: -2
+AlignAfterOpenBracket: true
+AlignOperands: false
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakBeforeMultilineStrings: true
+AlwaysBreakTemplateDeclarations: true
+AlignEscapedNewlinesLeft: true
+BinPackParameters: false
+BreakBeforeBraces: Stroustrup
+BreakBeforeTernaryOperators: false
+ColumnLimit: 100
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
+Cpp11BracedListStyle: true
+DerivePointerAlignment: false
+IncludeCategories:
+ - Regex:     '^<mtev_'
+   Priority:  1
+ - Regex:     '^<'
+   Priority:  2
+ - Regex:     '_if.*$'
+   Priority:  4
+ - Regex:     '.*'
+   Priority:  3
+IndentCaseLabels: false
+IndentWidth: 2
+IndentWrappedFunctionNames: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+Language: Cpp
+NamespaceIndentation: None
+SpaceAfterCStyleCast: true
+Standard: Cpp03

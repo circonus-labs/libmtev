@@ -500,7 +500,7 @@ API_EXPORT(eventer_t) eventer_alloc_recurrent(eventer_func_t, void *);
     \param mask The mask of activity of interest.
     \return A newly allocated fd event.
 
-    The allocated event has a refernce count of 1 and is attached to the
+    The allocated event has a reference count of 1 and is attached to the
     calling thread.
 */
 API_EXPORT(eventer_t) eventer_alloc_fd(eventer_func_t, void *, int, int);
