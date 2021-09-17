@@ -78,7 +78,7 @@ struct mtev_json_object *mtev_json_object_from_fd(int fd,  enum mtev_json_tokene
   return obj;
 }
 
-struct mtev_json_object* mtev_json_object_from_file(char *filename,  enum mtev_json_tokener_error *err)
+struct mtev_json_object* mtev_json_object_from_file(const char *filename,  enum mtev_json_tokener_error *err)
 {
   struct mtev_json_object *obj;
   int fd;
@@ -125,7 +125,7 @@ int mtev_json_object_to_fd(int fd, struct mtev_json_object *obj)
 
 }
 
-int mtev_json_object_to_file(char *filename, struct mtev_json_object *obj)
+int mtev_json_object_to_file(const char *filename, struct mtev_json_object *obj)
 {
   int fd, ret;
 
