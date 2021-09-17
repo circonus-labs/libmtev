@@ -74,7 +74,8 @@ typedef struct mtev_hash_table {
       char pad[sizeof(ck_hs_t)];
       void *locks;
     } locks;
-  } u CK_CC_CACHELINE;
+    char cache[CK_MD_CACHELINE];
+  } u;
 } mtev_hash_table;
 
 typedef struct mtev_hash_iter {
