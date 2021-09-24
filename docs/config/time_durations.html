@@ -1,0 +1,824 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>Time Durations · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.3">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-callouts/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+        <link rel="stylesheet" href="../styles/website.css">
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="../development/" />
+    
+    
+    <link rel="prev" href="modules/zipkin_jaeger.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        <li class="header">Mount Everest</li>
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Configuration
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.1" data-path="inherit.html">
+            
+                <a href="inherit.html">
+            
+                    
+                    Inheritance
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.2" data-path="includes.html">
+            
+                <a href="includes.html">
+            
+                    
+                    Includes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.3" data-path="watchdog.html">
+            
+                <a href="watchdog.html">
+            
+                    
+                    Watchdog
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.4" data-path="managed.html">
+            
+                <a href="managed.html">
+            
+                    
+                    Managed
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.5" data-path="eventer.html">
+            
+                <a href="eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.6" data-path="logging.html">
+            
+                <a href="logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.7" data-path="listeners.html">
+            
+                <a href="listeners.html">
+            
+                    
+                    Listeners
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.8" data-path="modules.html">
+            
+                <a href="modules.html">
+            
+                    
+                    Modules
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.8.1" data-path="modules/amqp.html">
+            
+                <a href="modules/amqp.html">
+            
+                    
+                    amqp
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.8.2" data-path="modules/consul.html">
+            
+                <a href="modules/consul.html">
+            
+                    
+                    consul
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.8.3" data-path="modules/fq.html">
+            
+                <a href="modules/fq.html">
+            
+                    
+                    fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.8.4" data-path="modules/http_hmac_cookie.html">
+            
+                <a href="modules/http_hmac_cookie.html">
+            
+                    
+                    http_hmac_cookie
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.8.5" data-path="modules/http_observer.html">
+            
+                <a href="modules/http_observer.html">
+            
+                    
+                    http_observer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.8.6" data-path="modules/lua_general.html">
+            
+                <a href="modules/lua_general.html">
+            
+                    
+                    lua_general
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.8.7" data-path="modules/lua_web.html">
+            
+                <a href="modules/lua_web.html">
+            
+                    
+                    lua_web
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.8.8" data-path="modules/zipkin_fq.html">
+            
+                <a href="modules/zipkin_fq.html">
+            
+                    
+                    zipkin_fq
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.8.9" data-path="modules/zipkin_jaeger.html">
+            
+                <a href="modules/zipkin_jaeger.html">
+            
+                    
+                    zipkin_jaeger
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.2.9" data-path="time_durations.html">
+            
+                <a href="time_durations.html">
+            
+                    
+                    Time Durations
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="../development/">
+            
+                <a href="../development/">
+            
+                    
+                    Development
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="../development/important.html">
+            
+                <a href="../development/important.html">
+            
+                    
+                    Important Starting Notes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" data-path="../development/mtev_main.html">
+            
+                <a href="../development/mtev_main.html">
+            
+                    
+                    mtev_main
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="../development/eventer.html">
+            
+                <a href="../development/eventer.html">
+            
+                    
+                    Eventer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.4" data-path="../development/eventer-aco.html">
+            
+                <a href="../development/eventer-aco.html">
+            
+                    
+                    Eventer (ACO)
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.5" data-path="../development/rest.html">
+            
+                <a href="../development/rest.html">
+            
+                    
+                    REST and HTTP
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.6" data-path="../development/logging.html">
+            
+                <a href="../development/logging.html">
+            
+                    
+                    Logging
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.7" data-path="../development/hooks.html">
+            
+                <a href="../development/hooks.html">
+            
+                    
+                    Hooks
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.8" data-path="../development/jemalloc.html">
+            
+                <a href="../development/jemalloc.html">
+            
+                    
+                    jemalloc
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" data-path="../operations/">
+            
+                <a href="../operations/">
+            
+                    
+                    Operations
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="../operations/env.html">
+            
+                <a href="../operations/env.html">
+            
+                    
+                    Environment
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="../operations/rest.html">
+            
+                <a href="../operations/rest.html">
+            
+                    
+                    REST
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.3" data-path="../operations/telnet_console.html">
+            
+                <a href="../operations/telnet_console.html">
+            
+                    
+                    Telnet
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.4" data-path="../operations/dtrace.html">
+            
+                <a href="../operations/dtrace.html">
+            
+                    
+                    DTrace
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5" data-path="../luamtev/">
+            
+                <a href="../luamtev/">
+            
+                    
+                    luamtev
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6" data-path="../mtev-busted/">
+            
+                <a href="../mtev-busted/">
+            
+                    
+                    mtev-busted
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7" data-path="../apireference/">
+            
+                <a href="../apireference/">
+            
+                    
+                    Reference
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.7.1" data-path="../apireference/c.html">
+            
+                <a href="../apireference/c.html">
+            
+                    
+                    C API
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.2" data-path="../apireference/lua.html">
+            
+                <a href="../apireference/lua.html">
+            
+                    
+                    Lua API
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >Time Durations</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="time-durations">Time Durations</h1>
+<p>Many applications benefit from allowing operators to specify time durations in
+human-readable form within configuration files, and libmtev provides a suite of
+functions for parsing strings that represent a span of time into various
+resolutions.</p>
+<p>Duration strings are made up of individual elements, which take the form of an
+integer with a resolution suffix, such as &quot;1s&quot; for one second, or &quot;3min&quot; for
+three minutes. Multiple elements may be combined, with or without whitespace,
+to represent the desired time period, for example, &quot;1min 30sec&quot;, or &quot;4w2d&quot;.</p>
+<p>Developers may reference
+<a href="../apireference/c.html#mtevconfstrparseduration">mtev_confstr_parse_duration</a> and
+related convenience functions.</p>
+<p>Note that parsed outputs are integers. Results with a fractional remainder will
+be floored to the nearest integer. For example, <code>500ms</code> will be represented in
+seconds as <code>0</code>.</p>
+<h2 id="duration-suffixes">Duration Suffixes</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Time Period</th>
+<th style="text-align:left">Suffixes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">nanoseconds</td>
+<td style="text-align:left"><code>ns</code></td>
+</tr>
+<tr>
+<td style="text-align:left">microseconds</td>
+<td style="text-align:left"><code>us</code></td>
+</tr>
+<tr>
+<td style="text-align:left">milliseconds</td>
+<td style="text-align:left"><code>ms</code></td>
+</tr>
+<tr>
+<td style="text-align:left">seconds</td>
+<td style="text-align:left"><code>s</code>, <code>sec</code>, <code>second</code>, <code>seconds</code></td>
+</tr>
+<tr>
+<td style="text-align:left">minutes</td>
+<td style="text-align:left"><code>m</code>, <code>min</code>, <code>minute</code>, <code>minutes</code></td>
+</tr>
+<tr>
+<td style="text-align:left">hours</td>
+<td style="text-align:left"><code>h</code>, <code>hr</code>, <code>hour</code>, <code>hours</code></td>
+</tr>
+<tr>
+<td style="text-align:left">days</td>
+<td style="text-align:left"><code>d</code>, <code>day</code>, <code>days</code></td>
+</tr>
+<tr>
+<td style="text-align:left">weeks</td>
+<td style="text-align:left"><code>w</code>, <code>wk</code>, <code>week</code>, <code>weeks</code></td>
+</tr>
+</tbody>
+</table>
+<p>Longer time spans such as months and years should be represented as days and/or
+weeks. These do not have suffixes because they do not represent a fixed number
+of units (not all months have the same number of days, nor do all years).</p>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="modules/zipkin_jaeger.html" class="navigation navigation-prev " aria-label="Previous page: zipkin_jaeger">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="../development/" class="navigation navigation-next " aria-label="Next page: Development">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"Time Durations","level":"1.2.9","depth":2,"next":{"title":"Development","level":"1.3","depth":1,"path":"development/README.md","ref":"development/README.md","articles":[{"title":"Important Starting Notes","level":"1.3.1","depth":2,"path":"development/important.md","ref":"development/important.md","articles":[]},{"title":"mtev_main","level":"1.3.2","depth":2,"path":"development/mtev_main.md","ref":"development/mtev_main.md","articles":[]},{"title":"Eventer","level":"1.3.3","depth":2,"path":"development/eventer.md","ref":"development/eventer.md","articles":[]},{"title":"Eventer (ACO)","level":"1.3.4","depth":2,"path":"development/eventer-aco.md","ref":"development/eventer-aco.md","articles":[]},{"title":"REST and HTTP","level":"1.3.5","depth":2,"path":"development/rest.md","ref":"development/rest.md","articles":[]},{"title":"Logging","level":"1.3.6","depth":2,"path":"development/logging.md","ref":"development/logging.md","articles":[]},{"title":"Hooks","level":"1.3.7","depth":2,"path":"development/hooks.md","ref":"development/hooks.md","articles":[]},{"title":"jemalloc","level":"1.3.8","depth":2,"path":"development/jemalloc.md","ref":"development/jemalloc.md","articles":[]}]},"previous":{"title":"zipkin_jaeger","level":"1.2.8.9","depth":3,"path":"config/modules/zipkin_jaeger.md","ref":"config/modules/zipkin_jaeger.md","articles":[]},"dir":"ltr"},"config":{"plugins":["collapsible-menu","callouts","anchorjs"],"root":"./docs-md","styles":{"website":"styles/website.css"},"pluginsConfig":{"collapsible-menu":{},"callouts":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"fontSettings":{"theme":"night","family":"sans"},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"anchorjs":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"gitbook":"*"},"file":{"path":"config/time_durations.md","mtime":"","type":"markdown"},"gitbook":{"version":"3.2.3","time":""},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-collapsible-menu/plugin.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-anchorjs/anchor.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-anchorjs/anchor-style.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+
