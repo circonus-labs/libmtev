@@ -11,7 +11,7 @@ three minutes. Multiple elements may be combined, with or without whitespace,
 to represent the desired time period, for example, "1min 30sec", or "4w2d".
 
 Developers may reference
-[mtev_confstr_parse_duration](apireference/c.md##mtevconfstrparseduration) and
+[mtev_confstr_parse_duration](../apireference/c.md##mtevconfstrparseduration) and
 related convenience functions.
 
 Note that parsed outputs are integers. Results with a fractional remainder will
