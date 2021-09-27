@@ -157,8 +157,20 @@ mtev_confstr_parse_duration(const char *input, uint64_t *output,
   *output = 0;
   while(true) {
     /* white-space separated, null-terminated */
-    while(*input && isspace(*input))
+    /* sinse space(s) allowed between number and unit string */
+    /* the problem is if a user pass like "10 sec    " */
+    /* we are in infinitive loop according to the new logic line 169 - 170 */
+    /* assumption is to allow 5 times try before exit */
+    int count = 0;
+    while(*input && isspace(*input)) {
       input++;
+      /* restore if space between number and unit string */
+      if(*input && !isdigit(*input) && count < 5) {
+        input--;
+        ++count;
+      }
+    }
+
     if(! *input)
       break;
 
@@ -168,6 +180,11 @@ mtev_confstr_parse_duration(const char *input, uint64_t *output,
     rd = strtoul(input, (char **) &unit_str, 10);
     if(unit_str == input)
       return MTEV_CONFSTR_PARSE_ERR_FORMAT;
+
+    /* remove space(s) between number and unit string */
+    while(!isalpha(*unit_str)){
+      unit_str++;
+    }
 
     /* unit string */
     input = unit_str;
