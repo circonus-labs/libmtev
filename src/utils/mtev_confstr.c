@@ -170,7 +170,8 @@ mtev_confstr_parse_duration(const char *input, uint64_t *output,
       return MTEV_CONFSTR_PARSE_ERR_FORMAT;
 
     /* remove space(s) between number and unit string */
-    while(!isalpha(*unit_str)){
+    while(*unit_str && !isalpha(*unit_str)){
+      if(isdigit(*unit_str)) return MTEV_CONFSTR_PARSE_ERR_FORMAT;
       unit_str++;
     }
 
