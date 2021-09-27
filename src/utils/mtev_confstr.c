@@ -159,7 +159,6 @@ mtev_confstr_parse_duration(const char *input, uint64_t *output,
     /* white-space separated, null-terminated */
     while(*input && isspace(*input))
       input++;
-
     if(! *input)
       break;
 
