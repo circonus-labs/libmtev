@@ -4,9 +4,17 @@
 
 ## 2.1
 
+### 2.1.2
+
+ * Allow spaces between numbers and units in `mtev_confstr_parse_duration`.
+   Currently the parsing allows spaces between time units, such as "1hr 2min".
+   After this change, a string like "1 hour 2 minutes" will also be allowed.
+ * Fix alignment of `mtev_hash`.
+ * Use `const` for JSON strings in `mtev_json_object_from_{fd,file}`.
+
 ### 2.1.1
 
- * Fix crash when parsing certain unreadable JSON strings
+ * Fix crash when parsing certain unreadable JSON strings.
 
 ### 2.1.0
 
