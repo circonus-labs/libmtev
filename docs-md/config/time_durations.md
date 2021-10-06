@@ -8,7 +8,8 @@ resolutions.
 Duration strings are made up of individual elements, which take the form of an
 integer with a resolution suffix, such as "1s" for one second, or "3min" for
 three minutes. Multiple elements may be combined, with or without whitespace,
-to represent the desired time period, for example, "1min 30sec", or "4w2d".
+to represent the desired time period, for example, "1min30sec", or "4 weeks 2
+days".
 
 Developers may reference
 [mtev_confstr_parse_duration](../apireference/c.md#mtevconfstrparseduration) and
