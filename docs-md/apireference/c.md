@@ -755,11 +755,11 @@ size_t
 mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 ```
 
- *
+
 > Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA
 
 
- 
+
 
 ### D
 
@@ -2563,6 +2563,19 @@ eventer_jobq_destroy(eventer_jobq_t *jobq)
 
 
 
+#### eventer_jobq_drain_and_shutdown
+
+>Make a jobq unable to accept new jobs and drain all inflight jobs.
+
+```c
+void
+eventer_jobq_drain_and_shutdown(eventer_jobq_t *jobq)
+```
+
+
+  * `jobq` the joqs to drain and shut down
+
+
 #### eventer_jobq_inflight
 
 >Reveal the currently executing job (visiable to a callee).
@@ -3358,7 +3371,7 @@ necessary activity to make progress.
 ```c
 int
 mtev_ex_log(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line,
-            mtev_log_kv_t **kvpairs, const char *format, ...)
+            const mtev_log_kv_t *kvpairs, const char *format, ...)
 ```
 
 
@@ -3386,7 +3399,7 @@ pushed through the directed acyclic graph of log streams.  See `mtevEL` for exam
 ```c
 int
 mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line,
-             mtev_log_kv_t **kvpairs, const char *format, va_list arg)
+             const mtev_log_kv_t *kvpairs, const char *format, va_list arg)
 ```
 
 
