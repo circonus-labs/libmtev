@@ -1033,7 +1033,9 @@ AC_MSG_RESULT([
   CC:                 $CC
   CPPFLAGS:           $CPPFLAGS
   CFLAGS:             $CFLAGS
+  CXXFLAGS:           $CXXFLAGS
   LD:                 $LD
+  LDFLAGS:            $LDFLAGS
   SHLD:               $SHLD
   CLINKFLAGS:         $CLINKFLAGS
   MAPFLAGS:           $MAPFLAGS
