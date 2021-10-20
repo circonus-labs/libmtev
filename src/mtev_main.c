@@ -667,12 +667,16 @@ mtev_main(const char *appname,
   lockfd = -1;
 
   if(foreground == 0) {
+    char *default_background_redirect = "/dev/null";
+    char *redirect_path = getenv("MTEV_OUTPUT_REDIRECT");
+    if (!redirect_path) { redirect_path = default_background_redirect; }
+
     fd = open("/dev/null", O_RDONLY);
     if(fd < 0 || dup2(fd, STDIN_FILENO) < 0) {
       mtevStartupTerminate(mtev_error, "Failed to setup stdin: %s\n", strerror(errno));
     }
     close(fd);
-    fd = open("/dev/null", O_WRONLY);
+    fd = open(redirect_path, O_WRONLY);
     if(fd < 0 || dup2(fd, STDOUT_FILENO) < 0 || dup2(fd, STDERR_FILENO) < 0) {
       mtevStartupTerminate(mtev_error, "Failed to setup std{out,err}: %s\n", strerror(errno));
     }
