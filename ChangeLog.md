@@ -4,6 +4,12 @@
 
 ## 2.1
 
+### 2.1.3
+
+ * Document time duration strings.
+ * Allow the fallback in ENV:fallback:{VAR} and consul:fallback:VAR config
+   statements to include colons.
+
 ### 2.1.2
 
  * Allow spaces between numbers and units in `mtev_confstr_parse_duration`.
