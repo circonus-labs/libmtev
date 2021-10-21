@@ -3882,6 +3882,7 @@ mtev_conf_OLD_env_fixup(void *closure, mtev_conf_section_t section, const char *
   if(set && *value && !strncmp(*value, "ENV:", 4)) {
     char *fallback = *value + 4;
     char *key = strchr(fallback, ':');
+    while(key && key[1] != '{') key = strchr(key+1, ':');
     if(key){
       key++;
       if(*key == '{' && key[strlen(key)-1] == '}') {
