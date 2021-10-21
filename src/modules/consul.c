@@ -882,7 +882,7 @@ mtev_consul_conf_fixup(void *closure, mtev_conf_section_t section, const char *x
   if(set && *value && !strncmp(*value, "consul:", 7)) {
     char *fallback = *value + 7;
     tofree = *value;
-    char *key = strchr(fallback, ':');
+    char *key = strrchr(fallback, ':');
     if(key) *key++ = '\0';
     else {
       key = fallback;
