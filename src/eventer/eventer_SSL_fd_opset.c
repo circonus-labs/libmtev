@@ -945,7 +945,6 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         part = strtok_r(NULL, ",", &brkt)) {
       char *optname = part;
       int neg = 0;
-      mtevL(mtev_error, "optname: %s\n", optname);
       if(((*optname == '>' || *optname == '<') && optname[1] == '=') ||
          *optname == '=') {
         bool is_min = (*optname == '>');
@@ -1037,9 +1036,10 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
     ctx_options |= SSL_OP_SINGLE_ECDH_USE;
 #endif
     SSL_CTX_set_options(ctx->ssl_ctx, ctx_options);
-    mtevL(mtev_error, "SSL_CTX [ %d , %d ]\n", min_version, max_version);
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
     if(min_version) SSL_CTX_set_min_proto_version(ctx->ssl_ctx, min_version);
     if(max_version) SSL_CTX_set_max_proto_version(ctx->ssl_ctx, max_version);
+#endif
 #ifdef SSL_MODE_RELEASE_BUFFERS
     SSL_CTX_set_mode(ctx->ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
