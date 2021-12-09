@@ -939,12 +939,15 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
       goto bail;
     }
 
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
     int min_version = 0, max_version = 0;
+#endif
     for(part = strtok_r(opts, ",", &brkt);
         part;
         part = strtok_r(NULL, ",", &brkt)) {
       char *optname = part;
       int neg = 0;
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
       if(((*optname == '>' || *optname == '<') && optname[1] == '=') ||
          *optname == '=') {
         bool is_min = (*optname == '>');
@@ -976,6 +979,7 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         if(exact || !is_min) max_version = version;
         continue;
       }
+#endif
       if(*optname == '!') neg = 1, optname++;
 
 #define SETBITOPT(name, neg, opt) \
