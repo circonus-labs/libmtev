@@ -4,6 +4,8 @@
 
 ## 2.1
 
+ * Expand TLS version options and default 1.2 as the minimum.
+
 ### 2.1.3
 
  * Document time duration strings.

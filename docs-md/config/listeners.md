@@ -12,7 +12,7 @@ Network listeners and their services are specified via configuration.
       <key_file>/path/to/server.key</key_file>
       <ca_chain>/path/to/ca.crt</ca_chain>
       <ca_accept/>
-      <layer>tlsv1:all,!sslv2,!sslv3,cipher_server_preference</layer>
+      <layer>tlsv1:&gt;=tlsv1.2,cipher_server_preference</layer>
       <ciphers>EECDH+AES128+AESGCM:EDH+AES128+AESGCM:!DSS</ciphers>
     </sslconfig>
     <consoles type="mtev_console" require_env="MTEV_CONTROL">
@@ -128,7 +128,7 @@ connecting clients.  SSL config supports the follwing keys:
 
    Options supported (depending on openssl): `SSLv2`, `SSLv3`, `TLSv1`, `TLSv1.1`, `TLSv1.2`, `TLSv1.3`, `cipher_server_preference`
 
-   The default layer string is `tlsv1:all,!sslv2,!sslv3`
+   TLS version options can be prefixed with `=`, `>=`, or `<=`. The default layer string is `tlsv1:>=tls1.2,cipher_server_preference`
 
  * ##### certificate_file or certificate
 
