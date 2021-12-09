@@ -58,7 +58,7 @@
 
 #define EVENTER_SSL_DATANAME "eventer_ssl"
 #define DEFAULT_OPTS_STRING "all"
-#ifdef TLS1_2_VERSION
+#if defined (TLS1_2_VERSION) && OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
 #define DEFAULT_LAYER_STRING "tlsv1:all,>=tlsv1.2,!all,!sslv3,!sslv2"
 #else
 #ifndef SSL_TXT_SSLV2
