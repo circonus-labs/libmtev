@@ -58,10 +58,14 @@
 
 #define EVENTER_SSL_DATANAME "eventer_ssl"
 #define DEFAULT_OPTS_STRING "all"
+#if defined (TLS1_2_VERSION) && OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+#define DEFAULT_LAYER_STRING "tlsv1:all,>=tlsv1.2,!all,!sslv3,!sslv2"
+#else
 #ifndef SSL_TXT_SSLV2
 #define DEFAULT_LAYER_STRING "tlsv1:all,!sslv3"
 #else
 #define DEFAULT_LAYER_STRING "tlsv1:all,!sslv2,!sslv3"
+#endif
 #endif
 /* ERR_error_string(3): buf must be at least 120 bytes... */
 #define MIN_ERRSTR_LEN 120
@@ -826,6 +830,15 @@ eventer_ssl_ctx_t *
 eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
                        mtev_hash_table *settings) {
   const char *layer = mtev_hash_dict_get(settings, "layer");
+  const char *openssl_override_layer =
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+    mtev_hash_dict_get(settings, "layer_openssl_11");
+#elif OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_1
+    mtev_hash_dict_get(settings, "layer_openssl_10");
+#else
+    NULL;
+#endif
+  if(openssl_override_layer) layer = openssl_override_layer;
   const char *certificate = mtev_hash_dict_get(settings, "certificate");
   if(!certificate) certificate = mtev_hash_dict_get(settings, "certificate_file");
   const char *key = mtev_hash_dict_get(settings, "key");
@@ -925,28 +938,6 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
 #else
     /* openssl 1.1 and higher */
   ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ? TLS_server_method() : TLS_client_method());
-  if(layer && !strcasecmp(layer, SSL_TXT_SSLV3)) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, SSL3_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, SSL3_VERSION);
-  }
-  else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1)) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_VERSION);
-  }
-  else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1_1)) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_1_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_1_VERSION);
-  }
-  else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1_2)) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_2_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_2_VERSION);
-  }
-#if defined(TLS1_3_VERSION)
-  else if(layer && !strcasecmp(layer, "TLSv1.3")) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_3_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_3_VERSION);
-  }
-#endif
 #endif
 
     if(ctx->ssl_ctx == NULL)
@@ -957,11 +948,47 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
       goto bail;
     }
 
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+    int min_version = 0, max_version = 0;
+#endif
     for(part = strtok_r(opts, ",", &brkt);
         part;
         part = strtok_r(NULL, ",", &brkt)) {
       char *optname = part;
       int neg = 0;
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+      if(((*optname == '>' || *optname == '<') && optname[1] == '=') ||
+         *optname == '=') {
+        bool is_min = (*optname == '>');
+        bool exact = (*optname == '=');
+        int version = 0;
+        optname += exact ? 1 : 2;
+#define TLSFIX(name, opt) \
+        if(!strcasecmp(optname, name)) { \
+          version = opt; \
+        }
+        if(false) {} // noop for flow
+#ifdef TLS1_VERSION
+        else TLSFIX(SSL_TXT_TLSV1, TLS1_VERSION)
+#endif
+#ifdef TLS1_1_VERSION
+        else TLSFIX(SSL_TXT_TLSV1_1, TLS1_1_VERSION)
+#endif
+#ifdef TLS1_2_VERSION
+        else TLSFIX(SSL_TXT_TLSV1_2, TLS1_2_VERSION)
+#endif
+#ifdef TLS1_3_VERSION
+        else TLSFIX("TLSv1.3", TLS1_3_VERSION)
+#endif
+        else {
+          mtevL(eventer_err, "unknown TLS version: %s\n", optname);
+          continue;
+        }
+        if(exact || is_min) min_version = version;
+        if(exact || !is_min) max_version = version;
+        continue;
+      }
+#endif
       if(*optname == '!') neg = 1, optname++;
 
 #define SETBITOPT(name, neg, opt) \
@@ -1022,6 +1049,10 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
     ctx_options |= SSL_OP_SINGLE_ECDH_USE;
 #endif
     SSL_CTX_set_options(ctx->ssl_ctx, ctx_options);
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+    if(min_version) SSL_CTX_set_min_proto_version(ctx->ssl_ctx, min_version);
+    if(max_version) SSL_CTX_set_max_proto_version(ctx->ssl_ctx, max_version);
+#endif
 #ifdef SSL_MODE_RELEASE_BUFFERS
     SSL_CTX_set_mode(ctx->ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
