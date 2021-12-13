@@ -830,6 +830,15 @@ eventer_ssl_ctx_t *
 eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
                        mtev_hash_table *settings) {
   const char *layer = mtev_hash_dict_get(settings, "layer");
+  const char *openssl_override_layer =
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+    mtev_hash_dict_get(settings, "layer_openssl_11");
+#elif OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_1
+    mtev_hash_dict_get(settings, "layer_openssl_10");
+#else
+    NULL;
+#endif
+  if(openssl_override_layer) layer = openssl_override_layer;
   const char *certificate = mtev_hash_dict_get(settings, "certificate");
   if(!certificate) certificate = mtev_hash_dict_get(settings, "certificate_file");
   const char *key = mtev_hash_dict_get(settings, "key");
