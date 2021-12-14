@@ -4,6 +4,8 @@
 
 ## 2.1
 
+### 2.1.4
+
  * Expand TLS version options and default 1.2 as the minimum.
 
 ### 2.1.3
