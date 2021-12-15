@@ -293,6 +293,7 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
 
   pthread_mutex_lock(&all_queues_lock);
   void *vjobq;
+  int err_code;
   if(mtev_hash_retrieve(&all_queues, queue_name, strlen(queue_name),
                         &vjobq)) {
     jobq = vjobq;
@@ -329,14 +330,16 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     goto error_out;
   }
   pthread_cond_init(&jobq->consumer_signal, NULL);
-  if(pthread_key_create(&jobq->activejob, NULL)) {
+  err_code = pthread_key_create(&jobq->activejob, NULL);
+  if(err_code) {
     mtevL(mtev_error, "Cannot initialize thread-specific activejob: %s\n",
-          strerror(errno));
+          strerror(err_code));
     goto error_out;
   }
-  if(pthread_key_create(&jobq->threadenv, NULL)) {
+  err_code = pthread_key_create(&jobq->threadenv, NULL);
+  if(err_code) {
     mtevL(mtev_error, "Cannot initialize thread-specific sigsetjmp env: %s\n",
-          strerror(errno));
+          strerror(err_code));
     goto error_out;
   }
   if(mtev_hash_store(&all_queues, jobq->queue_name, strlen(jobq->queue_name),
