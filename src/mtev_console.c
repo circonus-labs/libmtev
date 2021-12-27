@@ -35,9 +35,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#endif
 #include <errno.h>
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
