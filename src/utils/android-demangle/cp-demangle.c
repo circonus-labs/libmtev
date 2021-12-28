@@ -4077,8 +4077,6 @@ cplus_demangle_print_callback (int options,
 
   d_print_flush (&dpi);
 
-
-
   int res = ! d_print_saw_error (&dpi);
 
 #ifndef CP_DYNAMIC_ARRAYS
