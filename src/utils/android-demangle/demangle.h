@@ -667,9 +667,8 @@ cplus_demangle_print (int options,
    string.  The demangled element string is always nul-terminated, though
    its length is also provided for convenience.  In contrast to
    cplus_demangle_print(), this function does not allocate heap memory
-   to grow output strings (except perhaps where alloca() is implemented
-   by malloc()), and so is normally safe for use where the heap has been
-   corrupted.  On success, this function returns 1; on failure, 0.  */
+   to grow output strings, and so is normally safe for use where the heap 
+   has been corrupted.  On success, this function returns 1; on failure, 0.  */
 
 extern int
 cplus_demangle_print_callback (int options,

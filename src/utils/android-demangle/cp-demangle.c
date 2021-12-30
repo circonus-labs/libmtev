@@ -98,10 +98,6 @@
       stdout about the mangled string.  This is not generally useful.
 */
 
-#if defined (_AIX) && !defined (__GNUC__)
- #pragma alloca
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -114,18 +110,6 @@
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
-
-#ifdef HAVE_ALLOCA_H
-# include <alloca.h>
-#else
-# ifndef alloca
-#  ifdef __GNUC__
-#   define alloca __builtin_alloca
-#  else
-extern char *alloca ();
-#  endif /* __GNUC__ */
-# endif /* alloca */
-#endif /* HAVE_ALLOCA_H */
 
 //#include "ansidecl.h"
 //#include "libiberty.h"
@@ -4082,9 +4066,9 @@ cplus_demangle_print_callback (int options,
     dpi.saved_scopes = scopes;
     dpi.copy_templates = temps;
 #else
-    dpi.saved_scopes = alloca (dpi.num_saved_scopes
+    dpi.saved_scopes = malloc (dpi.num_saved_scopes
 			       * sizeof (*dpi.saved_scopes));
-    dpi.copy_templates = alloca (dpi.num_copy_templates
+    dpi.copy_templates = malloc (dpi.num_copy_templates
 				 * sizeof (*dpi.copy_templates));
 #endif
 
@@ -4093,7 +4077,14 @@ cplus_demangle_print_callback (int options,
 
   d_print_flush (&dpi);
 
-  return ! d_print_saw_error (&dpi);
+  int res = ! d_print_saw_error (&dpi);
+
+#ifndef CP_DYNAMIC_ARRAYS
+  free(dpi.copy_templates);
+  free(dpi.saved_scopes);
+#endif
+
+  return res;
 }
 
 /* Turn components into a human readable string.  OPTIONS is the
@@ -5852,8 +5843,8 @@ d_demangle_callback (const char *mangled, int options,
     di.comps = comps;
     di.subs = subs;
 #else
-    di.comps = alloca (di.num_comps * sizeof (*di.comps));
-    di.subs = alloca (di.num_subs * sizeof (*di.subs));
+    di.comps = malloc (di.num_comps * sizeof (*di.comps));
+    di.subs = malloc (di.num_subs * sizeof (*di.subs));
 #endif
 
     switch (type)
@@ -5894,6 +5885,11 @@ d_demangle_callback (const char *mangled, int options,
              ? cplus_demangle_print_callback (options, dc, callback, opaque)
              : 0;
   }
+
+#ifndef CP_DYNAMIC_ARRAYS
+  free(di.subs);
+  free(di.comps);
+#endif
 
   return status;
 }
@@ -6133,8 +6129,8 @@ is_ctor_or_dtor (const char *mangled,
     di.comps = comps;
     di.subs = subs;
 #else
-    di.comps = alloca (di.num_comps * sizeof (*di.comps));
-    di.subs = alloca (di.num_subs * sizeof (*di.subs));
+    di.comps = malloc (di.num_comps * sizeof (*di.comps));
+    di.subs = malloc (di.num_subs * sizeof (*di.subs));
 #endif
 
     dc = cplus_demangle_mangled_name (&di, 1);
@@ -6177,6 +6173,11 @@ is_ctor_or_dtor (const char *mangled,
 	  }
       }
   }
+
+#ifndef CP_DYNAMIC_ARRAYS
+  free(di.subs);
+  free(di.comps);
+#endif
 
   return ret;
 }

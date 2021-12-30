@@ -75,9 +75,6 @@
 #ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>
 #endif
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#endif
 
 #ifndef DTRACE_ENABLED
 #define DTRACE_PROBES_DISABLED 1
