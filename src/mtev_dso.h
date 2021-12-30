@@ -54,9 +54,9 @@ struct __extended_image_data {
 typedef struct _mtev_image {
   uint32_t magic;
   uint32_t version;
-  char *name;
-  char *description;
-  char *xml_description;
+  const char *name;
+  const char *description;
+  const char *xml_description;
   int (*onload)(struct _mtev_image *);
   struct __extended_image_data *opaque_handle;
 } mtev_image_t;
