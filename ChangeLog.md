@@ -4,6 +4,10 @@
 
 ## 2.1
 
+### 2.1.5
+
+ * More const for strings in DSO modules
+
 ### 2.1.4
 
  * Expand TLS version options and default 1.2 as the minimum.
