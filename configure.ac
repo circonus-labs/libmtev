@@ -1,5 +1,7 @@
 AC_INIT([libmtev], [], [] [https://github.com/circonus-labs/libmtev])
 
+m4_include([buildtools/compile_flags.m4])
+
 AH_TOP([
 #ifndef MTEV_CONFIG_H
 #define MTEV_CONFIG_H
@@ -62,7 +64,8 @@ AC_ARG_ENABLE(rdtsc,
 AC_PROG_CC
 AX_CHECK_COMPILE_FLAG([-std=c11],
   [AX_APPEND_FLAG([-std=c11])],
-  [AC_MSG_WARN([-std=c11 not supported, you may have to set CFLAGS to enable C11 support.])])
+  [AC_MSG_WARN([-std=c11 not supported, you may have to set CFLAGS to enable C11 support.])]
+)
 AC_C_INLINE
 AC_C_BIGENDIAN
 AC_PROG_CPP
@@ -457,14 +460,11 @@ AS_IF([test "x$ENABLE_LUA" = "xluajit"], [
     LUA_LUAMTEV=luamtev
     # This is the lua module for mtev.  libmtev <generic> stanza loads this.
     LUA_MODULES=lua_mtev.$MODULEEXT
-    # This is the mtev module for lua.  $(LUA_MODULES) load this.
-    MTEV4LUA="mtev_lua/mtev.so"
 ])
 
 LUALIBS="$LUALIBS $LIBS"
 AC_SUBST(LUALIBS)
 AC_SUBST(LUA_LUAMTEV)
-AC_SUBST(MTEV4LUA)
 LIBS=$OLD_LIBS
 
 AC_ARG_ENABLE([zipkin_fq],
