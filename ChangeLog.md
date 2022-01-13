@@ -4,6 +4,8 @@
 
 ## 2.1
 
+ * Add `mtev_reverse_proxy_changed` hook on reverse socket proxy setup and teardown.
+
 ### 2.1.5
 
  * More const for strings in DSO modules
