@@ -58,6 +58,12 @@
 #include <poll.h>
 #include <ctype.h>
 
+MTEV_HOOK_IMPL(mtev_reverse_proxy_changed,
+               (const char *id, int family, struct sockaddr *addr, bool up),
+               void *, closure,
+               (void *closure, const char *id, int family, struct sockaddr *addr, bool up),
+               (closure, id, family, addr, up))
+
 #define MAX_CHANNELS 512
 static const char *my_reverse_prefix = "mtev/";
 static const char *default_cn_required_prefixes[] = { "mtev/", NULL };
@@ -417,12 +423,14 @@ mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
   if(rc->data.xbind) {
     free(rc->data.xbind);
     if(rc->data.proxy_ip4_e) {
+      mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET, (struct sockaddr *)&rc->data.proxy_ip4, false);
       eventer_remove_fde(rc->data.proxy_ip4_e);
       eventer_close(rc->data.proxy_ip4_e, &mask);
       mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(rc->data.proxy_ip4_e));
       eventer_free(rc->data.proxy_ip4_e);
     }
     if(rc->data.proxy_ip6_e) {
+      mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET6, (struct sockaddr *)&rc->data.proxy_ip6, false);
       eventer_remove_fde(rc->data.proxy_ip6_e);
       eventer_close(rc->data.proxy_ip6_e, &mask);
       mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(rc->data.proxy_ip6_e));
@@ -954,6 +962,7 @@ mtev_reverse_socket_proxy_setup(reverse_socket_t *rc) {
       eventer_alloc_fd(mtev_reverse_socket_proxy_accept, rc, fd,
                        EVENTER_READ | EVENTER_EXCEPTION);
     eventer_add(rc->data.proxy_ip4_e);
+    mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET, (struct sockaddr *)&rc->data.proxy_ip4, true);
     fd = -1;
    bad4:
     if(fd >= 0) close(fd);
@@ -970,6 +979,7 @@ mtev_reverse_socket_proxy_setup(reverse_socket_t *rc) {
       eventer_alloc_fd(mtev_reverse_socket_proxy_accept, rc, fd,
                        EVENTER_READ | EVENTER_EXCEPTION);
     eventer_add(rc->data.proxy_ip6_e);
+    mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET6, (struct sockaddr *)&rc->data.proxy_ip6, true);
     fd = -1;
    bad6:
     if(fd >= 0) close(fd);

@@ -32,6 +32,7 @@
 #define MTEV_REVERSE_SOCKET_H
 
 #include <mtev_defines.h>
+#include <mtev_hooks.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -132,6 +133,11 @@ API_EXPORT(mtev_boolean)
 
 API_EXPORT(void)
   mtev_reverse_socket_init_globals(void);
+
+MTEV_HOOK_PROTO(mtev_reverse_proxy_changed,
+                (const char *id, int family, struct sockaddr *addr, bool up),
+                void *, closure,
+                (void *closure, const char *id, int family, struct sockaddr *addr, bool up))
 
 #ifdef __cplusplus
 }
