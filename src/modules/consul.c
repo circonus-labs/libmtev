@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2019-2022, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -11,10 +11,9 @@
  *       copyright notice, this list of conditions and the following
  *       disclaimer in the documentation and/or other materials provided
  *       with the distribution.
- *     * Neither the name OmniTI Computer Consulting, Inc. nor the names
- *       of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written
- *       permission.
+ *     * Neither the name Circonus, Inc. nor the names of its contributors
+ *       may be used to endorse or promote products derived from this
+ *       software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -44,7 +43,7 @@
 #include "mtev_capabilities_listener.h"
 #include "mtev_zipkin_curl.h"
 
-#include "consul.h"
+#include "mtev_consul.h"
 
 #include <sys/utsname.h>
 #include <libxml/tree.h>
@@ -54,9 +53,9 @@
 
 /*
         <consul>
-          <service>
-            <myservice id="{app}-{node}" port="12123">
-              <check deregister_after="10m" interval="5s" HTTP="/url" (PUSH="5s" or TCP=":12123" />
+          <services>
+            <service id="{app}-{node}" port="12123">
+              <check DeregisterCriticalServiceAfter="10m" Interval="5s" HTTP="/url" (or PUSH="5s" or TCP=":12123") />
               <weights passing="10" warning="1"/>
               <tags features="true">
                 <foo/>
@@ -65,20 +64,61 @@
               <meta version="true">
                 <key>value</key>
               </meta>
-            </myservice>
-          </service>
+            </service>
+          </services>
         </consul>
  */
 
+typedef enum { PASSING_CODE = 204, WARNING_CODE = 429, CRITICAL_CODE = 502 } service_code_e;
+typedef enum { CS_UNINIT = 0, CS_REGISTERED, CS_DEREGISTERED } service_state_e;
+
+struct service_register {
+  int refcnt;
+  mtev_json_object *consul_object;
+  int period;
+  char *service_id;
+  service_state_e desired_state;
+  service_state_e state;
+  service_code_e service_code;
+};
+
+struct mtev_consul_service {
+  char *id;
+  char *name;
+  char *address;
+  unsigned short port;
+  bool enabletagoverride;
+  char *deregistercriticalserviceafter;
+  enum { CHECK_NONE, CHECK_PUSH, CHECK_TCP, CHECK_HTTP, CHECK_HTTPS } check_type;
+  union {
+    struct { char *ttl; } push;
+    struct { char *tcp; char *interval; char *timeout; } tcp;
+    struct { char *url; char *interval; char *method; char *timeout; } http;
+    struct { char *url; char *interval; char *method; char *timeout;
+             char *tlsservername; bool tlsskipverify; } https;
+  } check;
+  struct {
+    int passing;
+    int warning;
+  } weights;
+  mtev_hash_table *tags;
+  mtev_hash_table *meta;
+  bool tags_owned;
+  bool meta_owned;
+};
+
+static eventer_jobq_t *consul_jobq;
 static CURLM *global_curl_handle;
 static eventer_t global_curl_timeout;
 static mtev_hash_table service_registry;
 static char *consul_bearer_token = NULL;
 static char *consul_kv_prefix = NULL;
 static char *consul_service_endpoint = "http://localhost:8500";
-static int global_service_code = 204;
+static service_code_e default_service_code = PASSING_CODE;
 static mtev_log_stream_t debug_ls, debug_curl_ls, error_ls;
 static void process_global_curlm(void);
+
+static void mtev_consul_sync_services(void);
 
 typedef struct {
   mtev_dyn_buffer_t dyn;
@@ -86,10 +126,10 @@ typedef struct {
   void (*handler)(CURLcode code, CURL *easy_handle, mtev_dyn_buffer_t *dyn, void *);
 } curl_handler_t;
 
-static const char *health_string(void) {
-  switch(global_service_code) {
-    case 204: return "pass";
-    case 429: return "warn";
+static const char *health_string(const service_register *sr) {
+  switch(sr->service_code) {
+    case PASSING_CODE: return "pass";
+    case WARNING_CODE: return "warn";
     default: return "fail";
   }
 }
@@ -124,28 +164,35 @@ mtev_consul_curl_debug(CURL *handle, curl_infotype type, char *data, size_t size
   return 0;
 }
 
-typedef struct {
-  mtev_json_object *consul_object;
-  int period;
-  char *service_id;
-  bool registered;
-} service_register;
+static const char *cs_state_name(service_state_e s) {
+  switch(s) {
+    case CS_UNINIT: return "uninitialized";
+    case CS_REGISTERED: return "registered";
+    case CS_DEREGISTERED: return "deregistered";
+  }
+  return "unknown";
+}
 
-static void service_register_free(void *vsr) {
+void service_register_ref(service_register *sr) {
+  ck_pr_inc_int(&sr->refcnt);
+}
+static void service_register_deref(void *vsr) {
   service_register *sr = vsr;
-  free(sr->service_id);
-  if(sr->consul_object) MJ_DROP(sr->consul_object);
-  free(sr);
+  if(ck_pr_dec_int_is_zero(&sr->refcnt)) {
+    free(sr->service_id);
+    if(sr->consul_object) MJ_DROP(sr->consul_object);
+    free(sr);
+  }
 }
 
-void mtev_consul_set_passing(void) {
-  global_service_code = 204;
+void mtev_consul_set_passing_f(service_register *sr) {
+  sr->service_code = PASSING_CODE;
 }
-void mtev_consul_set_warning(void) {
-  global_service_code = 429;
+void mtev_consul_set_warning_f(service_register *sr) {
+  sr->service_code = WARNING_CODE;
 }
-void mtev_consul_set_critical(void) {
-  global_service_code = 502;
+void mtev_consul_set_critical_f(service_register *sr) {
+  sr->service_code = CRITICAL_CODE;
 }
 
 static size_t kv_fetch_index(void *buff, size_t s, size_t n, void *vd) {
@@ -400,6 +447,10 @@ static int mtev_consul_push_health(eventer_t e, int mask, void *closure, struct 
   (void)mask;
   (void)now;
   service_register *sr = (service_register *)closure;
+
+  if(sr->state == CS_DEREGISTERED) {
+    return 0;
+  }
   curl_handler_t *handler = calloc(1, sizeof(*handler));
   mtev_dyn_buffer_init(&handler->dyn);
 
@@ -413,7 +464,7 @@ static int mtev_consul_push_health(eventer_t e, int mask, void *closure, struct 
   }
   char *escaped_key = curl_easy_escape(handle, sr->service_id, 0); 
   snprintf(url, sizeof(url), "%s/v1/agent/check/%s/service:%s",
-          consul_service_endpoint, health_string(), escaped_key);
+          consul_service_endpoint, health_string(sr), escaped_key);
   curl_easy_setopt(handle, CURLOPT_TCP_NODELAY, 0);
   curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "PUT");
   curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
@@ -444,34 +495,41 @@ static int mtev_consul_push_health(eventer_t e, int mask, void *closure, struct 
   eventer_update_whence(e, next);
   return EVENTER_TIMER;
 }
-static void *mtev_consul_complete_service_registration(void *unused) {
-  (void)unused;
-  bool failures = false;
-  long sleep_time = 0;
-  do {
-    mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-    failures = false;
-    if(sleep_time) usleep(sleep_time);
-    while(mtev_hash_adv(&service_registry, &iter)) {
-      service_register *sr = (service_register *)iter.value.ptr;
-      if(sr->registered == false) {
-        char url[1024];
-        snprintf(url, sizeof(url), "%s/v1/agent/service/register", consul_service_endpoint);
-        if(curl_put_json(url, sr->consul_object) == 0) {
-          sr->registered = true;
-          if(sr->period) {
-            eventer_add_in_s_us(mtev_consul_push_health, sr, 0, 0);
-          }
-        } else {
-          failures = true;
+static void mtev_consul_complete_service_registration(service_register *sr) {
+  if(sr->desired_state == sr->state) return;
+  char url[1024];
+  switch(sr->desired_state) {
+    case CS_REGISTERED:
+      snprintf(url, sizeof(url), "%s/v1/agent/service/register", consul_service_endpoint);
+      if(curl_put_json(url, sr->consul_object) == 0) {
+        sr->state = CS_REGISTERED;
+        if(sr->period) {
+          eventer_add_in_s_us(mtev_consul_push_health, sr, 0, 0);
         }
       }
-    }
-    sleep_time += sleep_time + 10;
-    if(sleep_time > 4000000) sleep_time = 4000000;
-  } while(failures);
-  mtevL(mtev_notice, "consul: service registration complete\n");
-  return NULL;
+      break;
+    case CS_DEREGISTERED:
+      snprintf(url, sizeof(url), "%s/v1/agent/service/deregister/%s", consul_service_endpoint, sr->service_id);
+      if(curl_put_json(url, NULL) == 0) {
+        sr->state = CS_DEREGISTERED;
+        if(sr->period) {
+          eventer_add_in_s_us(mtev_consul_push_health, sr, 0, 0);
+        }
+      }
+      break;
+    case CS_UNINIT:
+      abort();
+      break;
+  }
+  mtevL(mtev_notice, "consul: service [%s] service %s\n", sr->service_id, cs_state_name(sr->state));
+}
+
+static int mtev_consul_complete_service_registration_ef(eventer_t e, int mask, void *vsr, struct timeval *now) {
+  (void)e;
+  (void)now;
+  service_register *sr = (service_register *)vsr;
+  if(mask == EVENTER_ASYNCH_WORK) mtev_consul_complete_service_registration(sr);
+  return 0;
 }
 
 static int
@@ -481,9 +539,9 @@ mtev_consul_config(mtev_dso_generic_t *self, mtev_hash_table *options) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(options, &iter)) {
     if(!strcmp(iter.key.str, "boot_state")) {
-      if(!strcmp(iter.value.str, "passing")) mtev_consul_set_passing();
-      else if(!strcmp(iter.value.str, "warning")) mtev_consul_set_warning();
-      else if(!strcmp(iter.value.str, "critical")) mtev_consul_set_critical();
+      if(!strcmp(iter.value.str, "passing")) default_service_code = PASSING_CODE;
+      else if(!strcmp(iter.value.str, "warning")) default_service_code = WARNING_CODE;
+      else if(!strcmp(iter.value.str, "critical")) default_service_code = CRITICAL_CODE;
       else {
         mtevL(mtev_error, "consul boot_state invalid: %s\n", iter.value.str);
         return -1;
@@ -521,6 +579,283 @@ populate_dict_from_conf(mtev_conf_section_t s, const char *name) {
   return h;
 }
 
+static void mtev_consul_interp(char *id_str, size_t id_str_len, const char *id) {
+  for(const char *cp=id; *cp; ) {
+    if(!strncmp(cp, "{app}", 5)) {
+      strlcat(id_str, mtev_get_app_name(), id_str_len);
+      cp += 5;
+    }
+    else if(!strncmp(cp, "{node}", 6)) {
+      struct utsname utsn;
+      if(uname(&utsn) < 0) {
+        strlcat(id_str, "unknown", id_str_len);
+      } else {
+        strlcat(id_str, utsn.nodename, id_str_len);
+      }
+      cp += 6;
+    }
+    else {
+      char chrstr[2] = { *cp, '\0' };
+      strlcat(id_str, chrstr, id_str_len);
+      cp++;
+    }
+  }
+}
+
+service_register *mtev_consul_service_registry_f(const char *tmpl) {
+  char id_str[128];
+  id_str[0] = '\0';
+  mtev_consul_interp(id_str, sizeof(id_str), tmpl);
+  void *vsr = NULL;
+  if(mtev_hash_retrieve(&service_registry, id_str, strlen(id_str), &vsr)) {
+    if(vsr) {
+      service_register_ref((service_register *)vsr);
+    }
+    return (service_register *)vsr;
+  }
+  return NULL;
+}
+
+void mtev_consul_service_register_register_f(service_register *r) {
+  r->desired_state = CS_REGISTERED;
+}
+
+void mtev_consul_service_register_deregister_f(service_register *r) {
+  r->desired_state = CS_DEREGISTERED;
+}
+
+mtev_consul_service *
+mtev_consul_service_alloc_f(const char *name, const char *id,
+                            const char *address, unsigned short port,
+                            mtev_hash_table *tags, bool tags_owned,
+                            mtev_hash_table *meta, bool meta_owned) {
+  char id_str[256];
+  id_str[0] = '\0';
+  mtev_consul_interp(id_str, sizeof(id_str), id);
+
+  mtev_consul_service *cs = calloc(1, sizeof(*cs));
+  
+  cs->name = strdup(name);
+  cs->id = strdup(id_str);
+  cs->address = strdup(address);
+  cs->port = port;
+  cs->deregistercriticalserviceafter = strdup("30m");
+  cs->weights.passing = 10;
+  cs->weights.warning = 1;
+  cs->tags = tags;
+  cs->tags_owned = tags_owned;
+  cs->meta = meta;
+  cs->meta_owned = meta_owned;
+  return cs;
+}
+void mtev_consul_service_check_none_f(mtev_consul_service *cs) {
+  switch(cs->check_type) {
+    case CHECK_PUSH:
+      free(cs->check.push.ttl);
+      break;
+    case CHECK_TCP:
+      free(cs->check.tcp.tcp);
+      free(cs->check.tcp.interval);
+      free(cs->check.tcp.timeout);
+      break;
+    case CHECK_HTTP:
+      free(cs->check.http.url);
+      free(cs->check.http.method);
+      free(cs->check.http.interval);
+      free(cs->check.http.timeout);
+      break;
+    case CHECK_HTTPS:
+      free(cs->check.https.url);
+      free(cs->check.https.method);
+      free(cs->check.https.tlsservername);
+      free(cs->check.https.interval);
+      free(cs->check.https.timeout);
+      break;
+    default:
+      break;
+  }
+  memset(&cs->check, 0, sizeof(cs->check));
+  cs->check_type = CHECK_NONE;
+}
+void mtev_consul_service_free_f(mtev_consul_service *cs) {
+  free(cs->name);
+  free(cs->id);
+  free(cs->address);
+  free(cs->deregistercriticalserviceafter);
+  mtev_consul_service_check_none_f(cs);
+  if(cs->tags_owned && cs->tags) {
+    mtev_hash_destroy(cs->tags, free, free);
+    free(cs->tags);
+  }
+  if(cs->meta_owned && cs->meta) {
+    mtev_hash_destroy(cs->meta, free, free);
+    free(cs->meta);
+  }
+  free(cs);
+}
+char *mtev_consul_service_id_f(mtev_consul_service *cs) {
+  return strdup(cs->id);
+}
+void mtev_consul_service_set_address_f(mtev_consul_service *cs, const char *address) {
+  free(cs->address);
+  cs->address = strdup(address);
+}
+void mtev_consul_service_set_port_f(mtev_consul_service *cs, unsigned short port) {
+  cs->port = port;
+}
+void mtev_consul_service_set_deregistercriticalserviceafter_f(mtev_consul_service *cs, int seconds) {
+  free(cs->deregistercriticalserviceafter);
+  mtevEvalAssert(-1 != asprintf(&cs->deregistercriticalserviceafter, "%ds", seconds));
+}
+void mtev_consul_service_check_push_f(mtev_consul_service *cs, unsigned ttl) {
+  mtev_consul_service_check_none_f(cs);
+  cs->check_type = CHECK_PUSH;
+  mtevEvalAssert(-1 != asprintf(&cs->check.push.ttl, "%us", ttl));
+}
+void mtev_consul_service_check_tcp_f(mtev_consul_service *cs, const char *tcp,
+                                     const unsigned interval, const unsigned *timeout) {
+  mtev_consul_service_check_none_f(cs);
+  cs->check_type = CHECK_TCP;
+  if(tcp) cs->check.tcp.tcp = strdup(tcp);
+  else mtevEvalAssert(-1 != asprintf(&cs->check.tcp.tcp, "%s:%u", cs->address, cs->port));
+  mtevEvalAssert(-1 != asprintf(&cs->check.tcp.interval, "%us", interval));
+  if(timeout) mtevEvalAssert(-1 != asprintf(&cs->check.tcp.timeout, "%us", *timeout));
+}
+void mtev_consul_service_check_http_f(mtev_consul_service *cs, const char *url, const char *method,
+                                      const unsigned interval, const unsigned *timeout) {
+  mtev_consul_service_check_none_f(cs);
+  cs->check_type = CHECK_HTTP;
+  if(url) cs->check.http.url = strdup(url);
+  if(method) cs->check.http.method = strdup(method);
+  mtevEvalAssert(-1 != asprintf(&cs->check.http.interval, "%us", interval));
+  if(timeout) mtevEvalAssert(-1 != asprintf(&cs->check.http.timeout, "%us", *timeout));
+}
+void mtev_consul_service_check_https_f(mtev_consul_service *cs, const char *url, const char *method,
+                                       const char *tlsservername, bool tlsskipverify,
+                                       const unsigned interval, const unsigned *timeout) {
+  mtev_consul_service_check_none_f(cs);
+  cs->check_type = CHECK_HTTPS;
+  if(url) cs->check.https.url = strdup(url);
+  if(method) cs->check.https.method = strdup(method);
+  if(tlsservername) cs->check.https.tlsservername = strdup(tlsservername);
+  cs->check.https.tlsskipverify = tlsskipverify;
+  mtevEvalAssert(-1 != asprintf(&cs->check.https.interval, "%us", interval));
+  if(timeout) mtevEvalAssert(-1 != asprintf(&cs->check.https.timeout, "%us", *timeout));
+}
+bool mtev_consul_register_f(mtev_consul_service *cs) {
+  if(cs->id == NULL || cs->name == NULL) return false;
+
+  uint64_t period = 0;
+
+  void *vsr = NULL;
+  service_register *sr;
+  if(mtev_hash_retrieve(&service_registry, cs->id, strlen(cs->id), &vsr)) {
+    sr = vsr;
+  } else {
+    sr = calloc(1, sizeof(*sr));
+    sr->service_id = strdup(cs->id);
+    sr->service_code = default_service_code;
+  }
+
+  char URL_tmpl[1024];
+  char URL[1536];
+  URL[0] = '\0';
+  mtev_json_object *so = MJ_OBJ();
+  MJ_KV(so, "ID", MJ_STR(cs->id));
+  MJ_KV(so, "Name", MJ_STR(cs->name));
+  MJ_KV(so, "Address", MJ_STR(cs->address));
+  MJ_KV(so, "Port", MJ_INT(cs->port));
+  MJ_KV(so, "EnableTagOverride", MJ_BOOL(cs->enabletagoverride));
+  if(cs->check_type != CHECK_NONE) {
+    mtev_json_object *co = MJ_OBJ();
+    if(cs->deregistercriticalserviceafter) {
+      MJ_KV(co, "DeregisterCriticalServiceAfter", MJ_STR(cs->deregistercriticalserviceafter));
+    }
+    // prep our URL
+    if(cs->check_type == CHECK_HTTP || cs->check_type == CHECK_HTTPS) {
+      const char *url = (cs->check_type == CHECK_HTTP) ? cs->check.http.url : cs->check.https.url;
+      if(!url || strlen(url) == 0) snprintf(URL_tmpl, sizeof(URL_tmpl), "/module/consul/health/%s", cs->id);
+      else strlcpy(URL_tmpl, url, sizeof(URL_tmpl));
+      if(strncmp(URL_tmpl, "http:", 5) && strncmp(URL_tmpl, "https:", 6)) {
+        /* they want us to fill in the schema://host:port part */
+        snprintf(URL, sizeof(URL), "%s://%s:%u%s",
+                 (cs->check_type == CHECK_HTTPS) ? "https" : "http", cs->address, cs->port, URL_tmpl);
+      } else {
+        strlcpy(URL, URL_tmpl, sizeof(URL));
+      }
+    }
+    switch(cs->check_type) {
+      case CHECK_NONE: abort(); break;
+      case CHECK_PUSH:
+        if(cs->check.push.ttl) {
+          mtev_confstr_parse_duration(cs->check.push.ttl, &period, mtev_get_durations_s());
+          period /= 3;
+          period = MAX(period, 1);
+          MJ_KV(co, "TTL", MJ_STR(cs->check.push.ttl));
+        }
+        break;
+      case CHECK_TCP:
+        MJ_KV(co, "TCP", MJ_STR(cs->check.tcp.tcp));
+        MJ_KV(co, "Interval", MJ_STR(cs->check.tcp.interval));
+        if(cs->check.tcp.timeout) MJ_KV(co, "Timeout", MJ_STR(cs->check.tcp.timeout));
+        break;
+      case CHECK_HTTP:
+        MJ_KV(co, "HTTP", MJ_STR(URL));
+        MJ_KV(co, "Interval", MJ_STR(cs->check.http.interval));
+        if(cs->check.http.method) MJ_KV(co, "Method", MJ_STR(cs->check.http.method));
+        if(cs->check.http.timeout) MJ_KV(co, "Timeout", MJ_STR(cs->check.http.timeout));
+        break;
+      case CHECK_HTTPS:
+        MJ_KV(co, "HTTP", MJ_STR(URL));
+        MJ_KV(co, "Interval", MJ_STR(cs->check.https.interval));
+        if(cs->check.https.tlsservername) MJ_KV(co, "TLSServerName", MJ_STR(cs->check.https.tlsservername));
+        if(cs->check.https.tlsskipverify) MJ_KV(co, "TLSSkipVerify", MJ_BOOL(true));
+        if(cs->check.https.method) MJ_KV(co, "Method", MJ_STR(cs->check.https.method));
+        if(cs->check.https.timeout) MJ_KV(co, "Timeout", MJ_STR(cs->check.https.timeout));
+        break;
+    }
+    MJ_KV(so, "Check", co);
+  }
+  mtev_json_object *wo = MJ_OBJ();
+    MJ_KV(wo, "Passing", MJ_INT(cs->weights.passing));
+    MJ_KV(wo, "Warning", MJ_INT(cs->weights.warning));
+  MJ_KV(so, "Weights", wo);
+  mtev_json_object *tagarr = MJ_ARR();
+    mtev_hash_iter tag_iter = MTEV_HASH_ITER_ZERO;
+    while(cs->tags && mtev_hash_adv(cs->tags, &tag_iter)) {
+      char tagstr[256];
+      if(tag_iter.value.str == NULL || 0 == strlen(tag_iter.value.str))
+        snprintf(tagstr, sizeof(tagstr), "%s", tag_iter.key.str);
+      else
+        snprintf(tagstr, sizeof(tagstr), "%s:%s", tag_iter.key.str, tag_iter.value.str);
+      MJ_ADD(tagarr, MJ_STR(tagstr));
+    }
+  MJ_KV(so, "Tags", tagarr);
+  mtev_json_object *mo = MJ_OBJ();
+    mtev_hash_iter meta_iter = MTEV_HASH_ITER_ZERO;
+    while(cs->meta && mtev_hash_adv(cs->meta, &meta_iter)) {
+      MJ_KV(mo, meta_iter.key.str, MJ_STR(meta_iter.value.str));
+    }
+  MJ_KV(so, "Meta", mo);
+
+  if(sr->consul_object) MJ_DROP(sr->consul_object);
+  sr->consul_object = so;
+  sr->period = period;
+  sr->desired_state = CS_REGISTERED;
+  sr->state = CS_UNINIT;
+  if(vsr == NULL) {
+    mtev_hash_replace(&service_registry, strdup(cs->id), strlen(cs->id), sr,
+                      free, service_register_deref);
+    mtevL(mtev_notice, "consul: registering [%s] service %s on port %s:%u\n",
+          cs->id, cs->name, cs->address, cs->port);
+  } else {
+    mtevL(mtev_notice, "consul: re-registering [%s] service %s on port %s:%u\n",
+          cs->id, cs->name, cs->address, cs->port);
+  }
+  mtev_consul_sync_services();
+  return true;
+}
+
 static void
 mtev_consul_configure(void) {
   int cnt;
@@ -540,26 +875,7 @@ mtev_consul_configure(void) {
       if(mtev_conf_get_stringbuf(*service, "@id", id_override, sizeof(id_override))) id = id_override;
       char id_str[256];
       id_str[0] = '\0';
-      for(const char *cp=id; *cp; ) {
-        if(!strncmp(cp, "{app}", 5)) {
-          strlcat(id_str, mtev_get_app_name(), sizeof(id_str));
-          cp += 5;
-        }
-        else if(!strncmp(cp, "{node}", 6)) {
-          struct utsname utsn;
-          if(uname(&utsn) < 0) {
-            strlcat(id_str, "unknown", sizeof(id_str));
-          } else {
-            strlcat(id_str, utsn.nodename, sizeof(id_str));
-          }
-          cp += 6;
-        }
-        else {
-          char chrstr[2] = { *cp, '\0' };
-          strlcat(id_str, chrstr, sizeof(id_str));
-          cp++;
-        }
-      }
+      mtev_consul_interp(id_str, sizeof(id_str), id);
 
       int port = 0;
       if(!mtev_conf_get_int32(*service, "@port", &port) || port < 1 || port > 65535) {
@@ -584,13 +900,21 @@ mtev_consul_configure(void) {
   bool has_ ## name = false; \
   (void)has_ ## name
 #define CHECK_GET(name) do { \
-  if(mtev_conf_get_stringbuf(check, "@" #name, name, sizeof(name))) has_ ## name = true; \
+  char tmpbuf[sizeof(name)]; \
+  if(mtev_conf_get_stringbuf(check, "@" #name, tmpbuf, sizeof(tmpbuf))) { \
+    has_ ## name = true; \
+    if(strlen(tmpbuf) > 0) { \
+      strlcpy(name, tmpbuf, sizeof(name)); \
+    } \
+  } \
 } while(0)
       uint64_t period = 0;
       CHECK_DECL(DeregisterCriticalServiceAfter, 32, "30m");
       CHECK_DECL(Interval, 32, "5s");
-      CHECK_DECL(HTTP, 410, "/module/consul/health");
-      CHECK_DECL(HTTPS, 410, "/module/consul/health");
+      CHECK_DECL(HTTP, 410, "");
+      snprintf(HTTP, sizeof(HTTP), "/module/consul/health/%s", id_str);
+      CHECK_DECL(HTTPS, 410, "");
+      snprintf(HTTPS, sizeof(HTTPS), "/module/consul/health/%s", id_str);
       CHECK_DECL(Method, 10, "GET");
       CHECK_DECL(TCP, 128, "");
       CHECK_DECL(PUSH, 10, "5s");
@@ -616,7 +940,7 @@ mtev_consul_configure(void) {
       if(has_HTTPS) strlcpy(HTTP_tmpl, HTTPS, sizeof(HTTP_tmpl));
       else strlcpy(HTTP_tmpl, HTTP, sizeof(HTTP_tmpl));
       if(strncmp(HTTP_tmpl, "http:", 5) && strncmp(HTTP_tmpl, "https:", 6)) {
-        /* they want use to fill in the schema://host:port part */
+        /* they want us to fill in the schema://host:port part */
         snprintf(HTTP, sizeof(HTTP), "%s://%s:%d%s", has_HTTPS ? "https" : "http", address, port, HTTP_tmpl);
       } else {
         strlcat(HTTP, HTTP_tmpl, sizeof(HTTP));
@@ -684,11 +1008,14 @@ mtev_consul_configure(void) {
       sr->consul_object = so;
       sr->period = period;
       sr->service_id = strdup(id_str);
-      sr->registered = false;
-      mtev_hash_replace(&service_registry, strdup(service_name), strlen(service_name), sr,
-                        free, service_register_free);
+      sr->service_code = default_service_code;
+      sr->desired_state = CS_REGISTERED;
+      sr->state = CS_UNINIT;
+      mtev_hash_replace(&service_registry, strdup(id_str), strlen(id_str), sr,
+                        free, service_register_deref);
       mtevL(mtev_notice, "consul: registering [%s] service %s on port %s:%d\n",
             id_str, service_name, address, port);
+      mtev_consul_sync_services();
     }
     mtev_conf_release_sections_read(services, scnt);
   }
@@ -850,23 +1177,53 @@ debugit(const char *path, uint8_t *val, size_t vallen, uint32_t index) {
 }
 #endif
 
+static void
+mtev_consul_sync_services(void) {
+  if(mtev_hash_size(&service_registry) > 0) {
+    mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+    while(mtev_hash_adv(&service_registry, &iter)) {
+      service_register *sr = (service_register *)iter.value.ptr;
+      if(sr->state != sr->desired_state) {
+        eventer_add_asynch(consul_jobq, eventer_alloc_asynch(mtev_consul_complete_service_registration_ef, sr));
+      }
+    }
+  }
+}
+static void consul_sync(void) {
+  while(1) {
+    mtev_consul_sync_services();
+    eventer_aco_sleep(&(struct timeval){ 1UL, 0UL });
+  }
+}
 static mtev_hook_return_t
 mtev_consul_post_init(void *vcl) {
   (void)vcl;
-  mtev_consul_configure();
-
-  if(mtev_hash_size(&service_registry) > 0) {
-    pthread_t tid;
-    pthread_create(&tid, NULL, mtev_consul_complete_service_registration, NULL);
+  consul_jobq = eventer_jobq_retrieve("consul");
+  if(!consul_jobq) {
+    consul_jobq = eventer_jobq_create("consul");
+    eventer_jobq_set_min_max(consul_jobq, 1, 1);
+    eventer_jobq_set_floor(consul_jobq, 0);
+    eventer_jobq_set_concurrency(consul_jobq, 1);
   }
+  mtev_consul_configure();
+  mtev_consul_sync_services();
+
+  eventer_aco_start(consul_sync, NULL);
   return MTEV_HOOK_CONTINUE;
 }
 
 static int
 mtev_consul_health_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
-  (void)npats;
-  (void)pats;
-  mtev_http_response_standard(restc->http_ctx, global_service_code, "HEALTH", "text/plain");
+  service_code_e code = default_service_code;
+  if(npats > 0) {
+    void *vsr = NULL;
+    code = CRITICAL_CODE;
+    if(mtev_hash_retrieve(&service_registry, pats[0], strlen(pats[0]), &vsr)) {
+      service_register *sr = (service_register *)vsr;
+      code = sr->service_code;
+    }
+  }
+  mtev_http_response_standard(restc->http_ctx, code, "HEALTH", "text/plain");
   mtev_http_response_end(restc->http_ctx);
   return 0;
 }
@@ -914,7 +1271,7 @@ mtev_consul_init(mtev_dso_generic_t *self) {
   curl_multi_setopt(global_curl_handle, CURLMOPT_TIMERFUNCTION, eventer_curl_start_timeout);
 
   mtev_rest_mountpoint_t *rule = mtev_http_rest_new_rule(
-    "GET", "/module/consul/", "^health$", mtev_consul_health_handler
+    "GET", "/module/consul/", "^health(?:/(.+))?$", mtev_consul_health_handler
   );
   mtev_rest_mountpoint_set_auth(rule, mtev_http_rest_client_cert_auth);
   mtev_rest_mountpoint_set_aco(rule, mtev_true);

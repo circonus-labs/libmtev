@@ -138,7 +138,8 @@ MAPPEDHEADERS=utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
     utils/mtev_url.h utils/mtev_logic.h \
     json-lib/mtev_json_object.h json-lib/mtev_json_tokener.h \
     json-lib/mtev_json_util.h json-lib/mtev_json.h \
-    modules/mtev_fq.h modules/mtev_amqp.h modules/http_observer.h
+    modules/mtev_fq.h modules/mtev_amqp.h modules/http_observer.h \
+    modules/mtev_consul.h
 
 JSON_LIB_OBJS=json-lib/mtev_json_arraylist.lo json-lib/mtev_json_debug.lo \
     json-lib/mtev_json_object.lo json-lib/mtev_json_tokener.lo \
