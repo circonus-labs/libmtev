@@ -53,9 +53,9 @@
 
 /*
         <consul>
-          <service>
-            <myservice id="{app}-{node}" port="12123">
-              <check port = port;eregister_after="10m" interval="5s" HTTP="/url" (PUSH="5s" or TCP=":12123" />
+          <services>
+            <service id="{app}-{node}" port="12123">
+              <check DeregisterCriticalServiceAfter="10m" Interval="5s" HTTP="/url" (or PUSH="5s" or TCP=":12123") />
               <weights passing="10" warning="1"/>
               <tags features="true">
                 <foo/>
@@ -64,8 +64,8 @@
               <meta version="true">
                 <key>value</key>
               </meta>
-            </myservice>
-          </service>
+            </service>
+          </services>
         </consul>
  */
 
@@ -186,13 +186,13 @@ static void service_register_deref(void *vsr) {
 }
 
 void mtev_consul_set_passing_f(service_register *sr) {
-  sr->service_code = 204;
+  sr->service_code = PASSING_CODE;
 }
 void mtev_consul_set_warning_f(service_register *sr) {
-  sr->service_code = 429;
+  sr->service_code = WARNING_CODE;
 }
 void mtev_consul_set_critical_f(service_register *sr) {
-  sr->service_code = 502;
+  sr->service_code = CRITICAL_CODE;
 }
 
 static size_t kv_fetch_index(void *buff, size_t s, size_t n, void *vd) {
@@ -584,7 +584,7 @@ static void mtev_consul_interp(char *id_str, size_t id_str_len, const char *id) 
     if(!strncmp(cp, "{app}", 5)) {
       strlcat(id_str, mtev_get_app_name(), id_str_len);
       cp += 5;
-  }
+    }
     else if(!strncmp(cp, "{node}", 6)) {
       struct utsname utsn;
       if(uname(&utsn) < 0) {
