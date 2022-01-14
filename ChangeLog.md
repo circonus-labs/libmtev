@@ -4,6 +4,9 @@
 
 ## 2.1
 
+### 2.1.6
+
+ * Improve consul support adding programmatic access and lua integration.
  * Add `mtev_reverse_proxy_changed` hook on reverse socket proxy setup and teardown.
 
 ### 2.1.5
