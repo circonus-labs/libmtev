@@ -56,7 +56,7 @@ example1:	$(EX1_OBJS)
 
 aco:	$(ACO_OBJS)
 	@echo "- linking $@"
-	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(ACO_OBJS) $(LIBS) -lmtev
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(ACO_OBJS) $(LIBS) -lmtev -lcurl
 
 fq-router:	$(FQR_OBJS)
 	@echo "- linking $@"
