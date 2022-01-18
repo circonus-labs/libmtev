@@ -61,6 +61,7 @@ struct mtev_curl_handle_t {
   CURL *curl;
   CURLcode code;
   long httpcode;
+  bool complete;
   int ref; // no need for thread safety here
 };
 
@@ -141,6 +142,7 @@ static void process_global_curlm(void) {
       curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
       long httpcode = 0;
       curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, (char **)&handle);
+      handle->complete = true;
       curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &httpcode);
       handle->code = message->data.result;
       handle->httpcode = httpcode;
@@ -339,9 +341,13 @@ void mtev_curl_perform(mtev_curl_handle_t *h) {
 
 void mtev_curl_perform_aco(mtev_curl_handle_t *h) {
   mtevAssert(eventer_is_aco(NULL));
-  mtev_curl_perform_basic(h);
-  h->ref++;
   mtevAssert(h->handler == mtev_curl_aco_handler);
+  // don't resume directly in the call, only if we callback
+  h->handler = NULL;
+  h->ref++;
+  mtev_curl_perform_basic(h);
+  // if we call the handler in a callback that's safe now.
+  h->handler = mtev_curl_aco_handler;
   mtevAssert(h->userdata == aco_get_co());
-  aco_yield();
+  if(!h->complete) aco_yield();
 }
