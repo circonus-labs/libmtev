@@ -125,12 +125,6 @@ static int mtev_lua_consul_service_set_port(lua_State *L) {
   return 0;
 }
 
-static int mtev_lua_consul_service_set_deregistercriticalserviceafter(lua_State *L) {
-  mtev_consul_service **service = lua_touserdata(L, lua_upvalueindex(1));
-  mtev_consul_service_set_deregistercriticalserviceafter(*service, lua_tointeger(L,2));
-  return 0;
-}
-
 static int mtev_lua_consul_service_check_none(lua_State *L) {
   mtev_consul_service **service = lua_touserdata(L, lua_upvalueindex(1));
   mtev_consul_service_check_none(*service);
@@ -139,37 +133,23 @@ static int mtev_lua_consul_service_check_none(lua_State *L) {
 
 static int mtev_lua_consul_service_check_push(lua_State *L) {
   mtev_consul_service **service = lua_touserdata(L, lua_upvalueindex(1));
-  mtev_consul_service_check_push(*service, lua_tointeger(L,2));
-  return 0;
+  lua_pushinteger(L,
+      mtev_consul_service_check_push(*service, lua_isnil(L,2) ? NULL : lua_tostring(L,2),
+                                     lua_tointeger(L,3), lua_tointeger(L,4)));
+  return 1;
 }
 
 static int mtev_lua_consul_service_check_tcp(lua_State *L) {
   mtev_consul_service **service = lua_touserdata(L, lua_upvalueindex(1));
-  const char *tcp = NULL;
+  const char *name = NULL, *tcp = NULL;
   if(lua_gettop(L) > 1 && !lua_isnil(L,2)) {
-    tcp = lua_tostring(L, 2);
+    name = lua_tostring(L, 2);
   }
-  unsigned interval = 5, timeout = 5;
-  unsigned *timeout_ptr = NULL;
-  if(lua_gettop(L) > 2) {
-    interval = lua_tointeger(L, 3);
-  }
-  if(lua_gettop(L) > 3 && lua_isnumber(L, 4)) {
-    timeout = lua_tointeger(L, 4);
-    timeout_ptr = &timeout;
-  }
-  mtev_consul_service_check_tcp(*service, tcp, interval, timeout_ptr);
-  return 0;
-}
-
-static int mtev_lua_consul_service_check_http(lua_State *L) {
-  mtev_consul_service **service = lua_touserdata(L, lua_upvalueindex(1));
-  unsigned interval = 5, timeout = 5;
-  unsigned *timeout_ptr = NULL;
-  const char *method = "GET";
   if(lua_gettop(L) > 2 && !lua_isnil(L,3)) {
-    method = lua_tostring(L,3);
+    tcp = lua_tostring(L, 3);
   }
+  unsigned interval = 5, timeout = 5, dac = 0;
+  unsigned *timeout_ptr = NULL;
   if(lua_gettop(L) > 3) {
     interval = lua_tointeger(L, 4);
   }
@@ -177,37 +157,71 @@ static int mtev_lua_consul_service_check_http(lua_State *L) {
     timeout = lua_tointeger(L, 5);
     timeout_ptr = &timeout;
   }
-  mtev_consul_service_check_http(*service, lua_tostring(L,2), method, interval, timeout_ptr);
-  return 0;
+  if(lua_gettop(L) > 5 && lua_isnumber(L, 6)) {
+    dac = lua_tointeger(L, 6);
+  }
+  lua_pushinteger(L, mtev_consul_service_check_tcp(*service, name, tcp, interval, timeout_ptr, dac));
+  return 1;
+}
+
+static int mtev_lua_consul_service_check_http(lua_State *L) {
+  mtev_consul_service **service = lua_touserdata(L, lua_upvalueindex(1));
+  unsigned interval = 5, timeout = 5, dac = 0;
+  unsigned *timeout_ptr = NULL;
+  const char *name = NULL, *method = "GET";
+  if(lua_gettop(L) > 1 && !lua_isnil(L,2)) {
+    name = lua_tostring(L, 2);
+  }
+  if(lua_gettop(L) > 3 && !lua_isnil(L,4)) {
+    method = lua_tostring(L,4);
+  }
+  if(lua_gettop(L) > 4) {
+    interval = lua_tointeger(L, 5);
+  }
+  if(lua_gettop(L) > 5 && lua_isnumber(L, 6)) {
+    timeout = lua_tointeger(L, 6);
+    timeout_ptr = &timeout;
+  }
+  if(lua_gettop(L) > 6 && lua_isnumber(L, 7)) {
+    dac = lua_tointeger(L, 7);
+  }
+  lua_pushinteger(L, mtev_consul_service_check_http(*service, name, lua_tostring(L,3), method, interval, timeout_ptr, dac));
+  return 1;
 }
 
 static int mtev_lua_consul_service_check_https(lua_State *L) {
   mtev_consul_service **service = lua_touserdata(L, lua_upvalueindex(1));
-  unsigned interval = 5, timeout = 5;
+  unsigned interval = 5, timeout = 5, dac = 0;
   unsigned *timeout_ptr = NULL;
-  const char *method = "GET";
+  const char *name = NULL, *method = "GET";
   const char *tlsservername = NULL;
   bool tlsskipverify = false;
-  if(lua_gettop(L) > 2 && !lua_isnil(L,3)) {
-    method = lua_tostring(L,3);
+  if(lua_gettop(L) > 1 && !lua_isnil(L,2)) {
+    name = lua_tostring(L, 2);
   }
   if(lua_gettop(L) > 3 && !lua_isnil(L,4)) {
-    tlsservername = lua_tostring(L,4);
+    method = lua_tostring(L,4);
   }
-  if(lua_gettop(L) > 4) {
-    tlsskipverify = lua_toboolean(L,5);
+  if(lua_gettop(L) > 4 && !lua_isnil(L,5)) {
+    tlsservername = lua_tostring(L,5);
   }
   if(lua_gettop(L) > 5) {
-    interval = lua_tointeger(L, 6);
+    tlsskipverify = lua_toboolean(L,6);
   }
-  if(lua_gettop(L) > 6 && lua_isnumber(L, 7)) {
-    timeout = lua_tointeger(L, 7);
+  if(lua_gettop(L) > 6) {
+    interval = lua_tointeger(L, 7);
+  }
+  if(lua_gettop(L) > 7 && lua_isnumber(L, 8)) {
+    timeout = lua_tointeger(L, 8);
     timeout_ptr = &timeout;
   }
-  mtev_consul_service_check_https(*service, lua_tostring(L,2), method,
-                                  tlsservername, tlsskipverify,
-                                  interval, timeout_ptr);
-  return 0;
+  if(lua_gettop(L) > 8 && lua_isnumber(L, 9)) {
+    dac = lua_tointeger(L, 9);
+  }
+  lua_pushinteger(L, mtev_consul_service_check_https(*service, name, lua_tostring(L,3), method,
+                                                     tlsservername, tlsskipverify,
+                                                     interval, timeout_ptr, dac));
+  return 1;
 }
 
 static int mtev_lua_consul_service_index_func(lua_State *L) {
@@ -244,7 +258,6 @@ static int mtev_lua_consul_service_index_func(lua_State *L) {
     case 's':
       LUA_DISPATCH(set_address, mtev_lua_consul_service_set_address);
       LUA_DISPATCH(set_port, mtev_lua_consul_service_set_port);
-      LUA_DISPATCH(set_deregistercriticalserviceafter, mtev_lua_consul_service_set_deregistercriticalserviceafter);
       break;
     default:
       break;
@@ -255,17 +268,17 @@ static int mtev_lua_consul_service_index_func(lua_State *L) {
 
 static int mtev_lua_consul_set_critical(lua_State *L) {
   service_register **reg = lua_touserdata(L, lua_upvalueindex(1));
-  mtev_consul_set_critical(*reg);
+  mtev_consul_set_critical(*reg, lua_tointeger(L,2), lua_gettop(L)>2 ? lua_tostring(L,3) : NULL);
   return 0;
 }
 static int mtev_lua_consul_set_passing(lua_State *L) {
   service_register **reg = lua_touserdata(L, lua_upvalueindex(1));
-  mtev_consul_set_passing(*reg);
+  mtev_consul_set_passing(*reg, lua_tointeger(L,2), lua_gettop(L)>2 ? lua_tostring(L,3) : NULL);
   return 0;
 }
 static int mtev_lua_consul_set_warning(lua_State *L) {
   service_register **reg = lua_touserdata(L, lua_upvalueindex(1));
-  mtev_consul_set_warning(*reg);
+  mtev_consul_set_warning(*reg, lua_tointeger(L,2), lua_gettop(L)>2 ? lua_tostring(L,3) : NULL);
   return 0;
 }
 static int mtev_lua_consul_deregister(lua_State *L) {

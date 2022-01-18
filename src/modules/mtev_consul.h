@@ -81,15 +81,15 @@ MTEV_RUNTIME_RESOLVE(mtev_consul_service_register_deref, service_register_deref,
 MTEV_RUNTIME_AVAIL(mtev_consul_service_register_defree, service_register_deref)
 
 MTEV_RUNTIME_RESOLVE(mtev_consul_set_passing, mtev_consul_set_passing_f, void,
-                     (service_register *sr), (sr))
+                     (service_register *sr, int idx, const char *msg), (sr, idx, msg))
 MTEV_RUNTIME_AVAIL(mtev_consul_set_passing, mtev_consul_set_passing_f)
 
 MTEV_RUNTIME_RESOLVE(mtev_consul_set_warning, mtev_consul_set_warning_f, void,
-                     (service_register *sr), (sr))
+                     (service_register *sr, int idx, const char *msg), (sr, idx, msg))
 MTEV_RUNTIME_AVAIL(mtev_consul_set_warning, mtev_consul_set_warning_f)
 
 MTEV_RUNTIME_RESOLVE(mtev_consul_set_critical, mtev_consul_set_critical_f, void,
-                     (service_register *sr), (sr))
+                     (service_register *sr, int idx, const char *msg), (sr, idx, msg))
 MTEV_RUNTIME_AVAIL(mtev_consul_set_critical, mtev_consul_set_critical_f)
 
 MTEV_RUNTIME_RESOLVE(mtev_consul_service_set_address, mtev_consul_service_set_address_f, void,
@@ -100,37 +100,35 @@ MTEV_RUNTIME_RESOLVE(mtev_consul_service_set_port, mtev_consul_service_set_port_
                      (mtev_consul_service *cs, unsigned short port), (cs, port))
 MTEV_RUNTIME_AVAIL(mtev_consul_service_set_port, mtev_consul_service_set_port_f)
 
-MTEV_RUNTIME_RESOLVE(mtev_consul_service_set_deregistercriticalserviceafter, mtev_consul_service_set_deregistercriticalserviceafter_f, void,
-                     (mtev_consul_service *cs, int deregistercriticalserviceafter), (cs, deregistercriticalserviceafter))
-MTEV_RUNTIME_AVAIL(mtev_consul_service_set_deregistercriticalserviceafter, mtev_consul_service_set_deregistercriticalserviceafter_f)
-
 
 MTEV_RUNTIME_RESOLVE(mtev_consul_service_check_none, mtev_consul_service_check_none_f, void,
                      (mtev_consul_service *cs), (cs))
 MTEV_RUNTIME_AVAIL(mtev_consul_service_check_none, mtev_consul_service_check_none_f)
 
-MTEV_RUNTIME_RESOLVE(mtev_consul_service_check_push, mtev_consul_service_check_push_f, void,
-                     (mtev_consul_service *cs, unsigned ttl), (cs, ttl))
+MTEV_RUNTIME_RESOLVE(mtev_consul_service_check_push, mtev_consul_service_check_push_f, int,
+                     (mtev_consul_service *cs, const char *name, unsigned ttl, unsigned dac),
+                     (cs, name, ttl, dac))
 MTEV_RUNTIME_AVAIL(mtev_consul_service_check_push, mtev_consul_service_check_push_f)
 
-MTEV_RUNTIME_RESOLVE(mtev_consul_service_check_tcp, mtev_consul_service_check_tcp_f, void,
-                     (mtev_consul_service *cs, const char *tcp,
-                      const unsigned interval, const unsigned *timeout),
-                     (cs, tcp, interval, timeout))
+MTEV_RUNTIME_RESOLVE(mtev_consul_service_check_tcp, mtev_consul_service_check_tcp_f, int,
+                     (mtev_consul_service *cs, const char *name, const char *tcp,
+                      const unsigned interval, const unsigned *timeout, unsigned dac),
+                     (cs, name, tcp, interval, timeout, dac))
 MTEV_RUNTIME_AVAIL(mtev_consul_service_check_tcp, mtev_consul_service_check_tcp_f)
 
-
-MTEV_RUNTIME_RESOLVE(mtev_consul_service_check_http, mtev_consul_service_check_http_f, void,
-                     (mtev_consul_service *cs, const char *url, const char *method,
-                      const unsigned interval, const unsigned *timeout),
-                     (cs, url, method, interval, timeout))
+MTEV_RUNTIME_RESOLVE(mtev_consul_service_check_http, mtev_consul_service_check_http_f, int,
+                     (mtev_consul_service *cs, const char *name,
+                      const char *url, const char *method,
+                      const unsigned interval, const unsigned *timeout, unsigned dac),
+                     (cs, name, url, method, interval, timeout, dac))
 MTEV_RUNTIME_AVAIL(mtev_consul_service_check_http, mtev_consul_service_check_http_f)
 
-MTEV_RUNTIME_RESOLVE(mtev_consul_service_check_https, mtev_consul_service_check_https_f, void,
-                     (mtev_consul_service *cs, const char *url, const char *method,
+MTEV_RUNTIME_RESOLVE(mtev_consul_service_check_https, mtev_consul_service_check_https_f, int,
+                     (mtev_consul_service *cs, const char *name,
+                      const char *url, const char *method,
                       const char *tlsservername, bool tlsskipverify,
-                      const unsigned interval, const unsigned *timeout),
-                     (cs, url, method, tlsservername, tlsskipverify, interval, timeout))
+                      const unsigned interval, const unsigned *timeout, unsigned dac),
+                     (cs, name, url, method, tlsservername, tlsskipverify, interval, timeout, dac))
 MTEV_RUNTIME_AVAIL(mtev_consul_service_check_https, mtev_consul_service_check_https_f)
 
 MTEV_RUNTIME_RESOLVE(mtev_consul_register, mtev_consul_register_f, bool,
