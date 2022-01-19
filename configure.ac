@@ -405,6 +405,8 @@ AC_CHECK_HEADER(lz4.h, [], [AC_MSG_ERROR([*** liblz4 (headers) required ***])])
 AC_CHECK_LIB(lz4, LZ4F_compressBegin, , [AC_MSG_ERROR([*** liblz4 is required ***])])
 AC_CHECK_LIB(flatccrt, flatcc_builder_aligned_free, , [AC_MSG_ERROR([*** libflatcc 0.4.3* or higher is required ***])])
 AC_CHECK_LIB(yajl, yajl_alloc, , [AC_MSG_ERROR(*** libyajl is required ***)])
+AC_CHECK_HEADER(curl/curl.h, [], [AC_MSG_ERROR([*** libcurl headers required ***])])
+AC_CHECK_LIB(curl, curl_global_init, [], [AC_MSG_ERROR([*** libcurl required ***])])
 
 # libcircmetrics depends on libjlog and libcircllhist, so we have to check
 # for them in reverse dependency order so that $LIBS contains the correct
@@ -618,12 +620,6 @@ AC_MSG_CHECKING([libxslt libs])
 XSLTLIBS=`xslt-config --libs`
 LIBS="$LIBS $XSLTLIBS"
 AC_MSG_RESULT([$XSLTLIBS])
-
-AC_CHECK_HEADER(curl/curl.h, [], [AC_MSG_ERROR([*** libcurl headers required ***])])
-AC_CHECK_LIB(curl, curl_global_init, [ 
-  EXAMPLE_LIBS="$LIBS -lcurl"
-], )
-
 
 AC_CHECK_FUNC(xsltParseStylesheetDoc, , [AC_MSG_ERROR([*** libxslt is required ***])])
 

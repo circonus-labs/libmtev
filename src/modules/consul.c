@@ -42,6 +42,7 @@
 #include "mtev_getip.h"
 #include "mtev_capabilities_listener.h"
 #include "mtev_zipkin_curl.h"
+#include "mtev_curl.h"
 #include "ck_spinlock.h"
 
 #include "mtev_consul.h"
@@ -116,23 +117,14 @@ struct mtev_consul_service {
 };
 
 static eventer_jobq_t *consul_jobq;
-static CURLM *global_curl_handle;
-static eventer_t global_curl_timeout;
 static mtev_hash_table service_registry;
 static char *consul_bearer_token = NULL;
 static char *consul_kv_prefix = NULL;
 static char *consul_service_endpoint = "http://localhost:8500";
 static service_code_e default_service_code = PASSING_CODE;
 static mtev_log_stream_t debug_ls, debug_curl_ls, error_ls;
-static void process_global_curlm(void);
 
 static void mtev_consul_sync_services(void);
-
-typedef struct {
-  mtev_dyn_buffer_t dyn;
-  void *userdata;
-  void (*handler)(CURLcode code, CURL *easy_handle, mtev_dyn_buffer_t *dyn, void *);
-} curl_handler_t;
 
 static const char *health_string(const service_register *sr, int idx) {
   if(idx >= 0 && idx < MAX_CHECKS) {
@@ -143,36 +135,6 @@ static const char *health_string(const service_register *sr, int idx) {
     }
   }
   return "fail";
-}
-
-static int
-mtev_consul_curl_debug(CURL *handle, curl_infotype type, char *data, size_t size, void *vl) {
-  mtev_log_stream_t ls = vl;
-  switch(type) {
-    case CURLINFO_TEXT:
-      if(size > 0 && data[size-1] == '\n') size--;
-      mtevL(ls, "[%p] %s '%.*s'\n", handle, "INFO", (int)size, data);
-      break;
-    case CURLINFO_HEADER_IN:
-      if(size > 0 && data[size-1] == '\n') size--;
-      mtevL(ls, "[%p] %s '%.*s'\n", handle, "HEADER_IN", (int)size, data);
-      break;
-    case CURLINFO_HEADER_OUT:
-      if(size > 0 && data[size-1] == '\n') size--;
-      mtevL(ls, "[%p] %s '%.*s'\n", handle, "HEADER_OUT", (int)size, data);
-      break;
-    case CURLINFO_DATA_IN:
-    case CURLINFO_DATA_OUT:
-    case CURLINFO_SSL_DATA_IN:
-    case CURLINFO_SSL_DATA_OUT:
-      mtevL(ls, "[%p] %s data %s %zu bytes\n", handle,
-            (type == CURLINFO_SSL_DATA_IN || type == CURLINFO_SSL_DATA_OUT) ? "SSL" : "PLAIN",
-            (type == CURLINFO_DATA_IN || type == CURLINFO_SSL_DATA_IN) ? "IN" : "OUT", size);
-      break;
-    default:
-      break;
-  }
-  return 0;
 }
 
 static const char *cs_state_name(service_state_e s) {
@@ -322,16 +284,11 @@ static void mtev_consul_kv_tree_reader(CURLcode code, CURL *easy, mtev_dyn_buffe
   }
 }
 static void mtev_consul_stay_current_kv(struct kv_tree_read *udata) {
-  curl_handler_t *ch;
-  CURL *curl;
-  curl = curl_easy_init();
+  mtev_curl_handle_t *ch = mtev_curl_easy(mtev_consul_kv_tree_reader, udata, false);
+  CURL *curl = mtev_curl_handle_get_easy_handle(ch);
   char header[256];
   char url[1024];
   char error[CURL_ERROR_SIZE] = "unknown error";
-  ch = calloc(1, sizeof(*ch));
-  ch->handler = mtev_consul_kv_tree_reader;
-  ch->userdata = udata;
-  mtev_dyn_buffer_init(&ch->dyn);
   if(consul_bearer_token) {
     snprintf(header, sizeof(header), "Authorization: Bearer %s", consul_bearer_token);
     udata->headers = curl_slist_append(udata->headers, header);
@@ -341,20 +298,16 @@ static void mtev_consul_stay_current_kv(struct kv_tree_read *udata) {
            consul_kv_prefix ? consul_kv_prefix : "", consul_kv_prefix ? "/" : "", escaped_key,
            udata->index, udata->wait);
   curl_easy_setopt(curl, CURLOPT_URL, url);
-  curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 0);
-  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, udata->headers);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, udata->wait_ms + 1000); /* + 1s */
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 500);
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&ch->dyn);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mtev_dyn_curl_write_callback);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, kv_fetch_index);
   curl_easy_setopt(curl, CURLOPT_HEADERDATA, (void *)&udata->index);
   curl_easy_setopt(curl, CURLOPT_PRIVATE, (void *)ch);
 
   mtev_gettimeofday(&udata->last, NULL);
-  curl_multi_add_handle(global_curl_handle, curl);
+  mtev_curl_perform(ch);
 
   curl_free(escaped_key);
 }
@@ -390,7 +343,7 @@ static char *mtev_consul_fetch_config_kv(const char *key, uint32_t *index_ptr) {
     slist = curl_slist_append(slist, header);
   }
   uint32_t index = 0;
-  char *escaped_key = curl_easy_escape(curl, key, 0); 
+  char *escaped_key = curl_easy_escape(curl, key, 0);
   snprintf(url, sizeof(url), "%s/v1/kv/%s%s%s?raw=true", consul_service_endpoint,
            consul_kv_prefix ? consul_kv_prefix : "", consul_kv_prefix ? "/" : "", escaped_key);
   curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -494,11 +447,10 @@ static int mtev_consul_push_health(eventer_t e, int mask, void *closure, struct 
     return 0;
   }
 
-  curl_handler_t *handler = calloc(1, sizeof(*handler));
-  mtev_dyn_buffer_init(&handler->dyn);
+  mtev_curl_handle_t *ch = mtev_curl_easy(NULL, NULL, false);
 
   char header[256];
-  CURL *handle = curl_easy_init();
+  CURL *curl = mtev_curl_handle_get_easy_handle(ch);
   char url[1024];
   static struct curl_slist *slist = NULL;
   if(slist == NULL && consul_bearer_token) {
@@ -508,9 +460,9 @@ static int mtev_consul_push_health(eventer_t e, int mask, void *closure, struct 
 
   ck_spinlock_lock(&sr->lock);
 
-  char *escaped_key = curl_easy_escape(handle, sr->service_id, 0); 
+  char *escaped_key = curl_easy_escape(curl, sr->service_id, 0); 
   if(sr->service_msg[idx]) {
-    char *escaped_note = curl_easy_escape(handle, sr->service_msg[idx], 0);
+    char *escaped_note = curl_easy_escape(curl, sr->service_msg[idx], 0);
     snprintf(url, sizeof(url), "%s/v1/agent/check/%s/service:%s:%d?note=%s",
             consul_service_endpoint, health_string(sr, idx), escaped_key, idx + 1, escaped_note);
     curl_free(escaped_note);
@@ -518,32 +470,19 @@ static int mtev_consul_push_health(eventer_t e, int mask, void *closure, struct 
     snprintf(url, sizeof(url), "%s/v1/agent/check/%s/service:%s:%d",
             consul_service_endpoint, health_string(sr, idx), escaped_key, idx + 1);
   }
-  curl_easy_setopt(handle, CURLOPT_TCP_NODELAY, 0);
-  curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "PUT");
-  curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
-  curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, sr->period[idx] * 1000);
-  curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT_MS, 100);
-  curl_easy_setopt(handle, CURLOPT_HTTPHEADER, slist);
-  curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, mtev_dyn_curl_write_callback);
-  curl_easy_setopt(handle, CURLOPT_WRITEDATA, &handler->dyn);
-  curl_easy_setopt(handle, CURLOPT_PRIVATE, handler);
-  curl_easy_setopt(handle, CURLOPT_URL, url);
-  curl_easy_setopt(handle, CURLOPT_DEBUGFUNCTION, mtev_consul_curl_debug);
-  curl_easy_setopt(handle, CURLOPT_DEBUGDATA, debug_curl_ls);
-  if(N_L_S_ON(debug_curl_ls)) {
-    curl_easy_setopt(handle, CURLOPT_VERBOSE, 1L);
-  }
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, sr->period[idx] * 1000);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 100);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+  mtev_curl_handle_debug(ch, debug_curl_ls);
   curl_free(escaped_key);
 
   ck_spinlock_unlock(&sr->lock);
 
   mtevL(debug_ls, "health -> %s\n", url);
-  curl_multi_add_handle(global_curl_handle, handle);
+  mtev_curl_perform(ch);
 
-  int running_handles;
-  curl_multi_socket_action(global_curl_handle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
-
-  process_global_curlm();
   struct timeval next = *now;
   next.tv_sec += sr->period[idx];
   eventer_update_whence(e, next);
@@ -1005,9 +944,9 @@ mtev_consul_configure(void) {
       CHECK_DECL(DeregisterCriticalServiceAfter, 32, "30m");
       CHECK_DECL(Interval, 32, "5s");
       CHECK_DECL(HTTP, 410, "");
-      snprintf(HTTP, sizeof(HTTP), "/module/consul/health/%s", id_str);
+      snprintf(HTTP, sizeof(HTTP), "/module/consul/health/%s?n=1", id_str);
       CHECK_DECL(HTTPS, 410, "");
-      snprintf(HTTPS, sizeof(HTTPS), "/module/consul/health/%s", id_str);
+      snprintf(HTTPS, sizeof(HTTPS), "/module/consul/health/%s?n=1", id_str);
       CHECK_DECL(Method, 10, "GET");
       CHECK_DECL(TCP, 128, "");
       CHECK_DECL(PUSH, 10, "5s");
@@ -1121,161 +1060,6 @@ mtev_consul_configure(void) {
   mtev_conf_release_sections_read(cservices, cnt);
 }
 
-typedef struct {
-  eventer_t e;
-  curl_socket_t s;
-} curl_context_t;
-
-static void process_global_curlm(void) {
-  char *done_url;
-  CURLMsg *message;
-  int pending;
-  CURL *easy_handle;
-  curl_handler_t *handler;
-  while((message = curl_multi_info_read(global_curl_handle, &pending))) {
-    switch(message->msg) {
-    case CURLMSG_DONE:
-      easy_handle = message->easy_handle;
-
-      curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
-      if(message->data.result != CURLE_OK) {
-        mtevL(error_ls, "%s -> %s\n", done_url, curl_easy_strerror(message->data.result));
-      }
-      long httpcode;
-      curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, (char **)&handler);
-      if(handler->handler) {
-        handler->handler(message->data.result, easy_handle, &handler->dyn, handler->userdata);
-      }
-      curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &httpcode);
-      if(httpcode == 200) {
-        mtevL(debug_ls, "%s DONE\n", done_url);
-      } else {
-        mtevL(debug_ls, "%s -> %d %.*s\n", done_url, (int)httpcode,
-              (int)mtev_dyn_buffer_used(&handler->dyn),
-              (const char *)mtev_dyn_buffer_data(&handler->dyn));
-      }
- 
-      curl_multi_remove_handle(global_curl_handle, easy_handle);
-      curl_easy_cleanup(easy_handle);
-      if(handler) {
-        mtev_dyn_buffer_destroy(&handler->dyn);
-        free(handler);
-      }
-      break;
-    default:
-      mtevL(error_ls, "CURLMSG default\n");
-      break;
-    }
-  }
-}
-
-static int
-eventer_curl_perform(eventer_t e, int mask, void *vc, struct timeval *now) {
-  (void)now;
-  curl_context_t *c = vc;
-  int flags = 0;
-  int running_handles;
-  if(mask & (EVENTER_EXCEPTION|EVENTER_READ)) flags |= CURL_CSELECT_IN;
-  if(mask & (EVENTER_EXCEPTION|EVENTER_WRITE)) flags |= CURL_CSELECT_OUT;
-
-  curl_multi_socket_action(global_curl_handle, c->s, flags, &running_handles);
-
-  process_global_curlm();
-
-  return c->e == NULL ? 0 : eventer_get_mask(e);
-}
-static int
-eventer_curl_on_timeout(eventer_t e, int mask, void *c, struct timeval *now) {
-  (void)e;
-  (void)mask;
-  (void)c;
-  (void)now;
-  mtevL(debug_curl_ls, "curl_multi timeout\n");
-  int running_handles;
-  curl_multi_socket_action(global_curl_handle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
-  global_curl_timeout = NULL;
-  process_global_curlm();
-  return 0;
-}
-static int
-eventer_curl_start_timeout(CURLM *multi, long timeout_ms, void *userp) {
-  (void)multi;
-  (void)userp;
-  mtevL(debug_curl_ls, "curl_multi start timeout %d\n", (int)timeout_ms);
-  if(timeout_ms < 0) {
-    if(global_curl_timeout) {
-      eventer_remove(global_curl_timeout);
-      global_curl_timeout = NULL;
-    }
-  }
-  else {
-    if(timeout_ms == 0) timeout_ms = 1;
-    global_curl_timeout = eventer_in_s_us(eventer_curl_on_timeout, NULL,
-                                          timeout_ms / 1000, 1000 * (timeout_ms % 1000));
-    eventer_add(global_curl_timeout);
-  }
-  return 0;
-}
-static int
-eventer_curl_handle_socket(CURL *easy, curl_socket_t s, int action, void *userp, void *socketp) {
-  (void)easy;
-  (void)userp;
-  curl_context_t *c = socketp;
-  switch(action) {
-    case CURL_POLL_IN:
-    case CURL_POLL_OUT:
-    case CURL_POLL_INOUT:
-      {
-      int mask = EVENTER_EXCEPTION;
-      if(!c) {
-        c = calloc(1, sizeof(*c));
-        c->s = s;
-        curl_multi_assign(global_curl_handle, s, c);
-      }
-      if(action != CURL_POLL_IN) mask |= EVENTER_WRITE;
-      if(action != CURL_POLL_OUT) mask |= EVENTER_READ;
-      mtevL(debug_curl_ls, "curl wants %x\n", mask);
-      if(c->e) {
-        eventer_update(c->e, mask);
-      } else {
-        c->e = eventer_alloc_fd(eventer_curl_perform, c, s, mask);
-        eventer_add(c->e);
-      }
-      }
-      break;
-    case CURL_POLL_REMOVE:
-      if(!c) {
-        eventer_t e = eventer_find_fd(s);
-        if(e) c = eventer_get_closure(e);
-        curl_multi_assign(global_curl_handle, s, c);
-      }
-      if(c) {
-        if(c->e) {
-          eventer_t tofree = eventer_remove_fde(c->e);
-          mtevL(debug_curl_ls, "curl removed %p as %p\n", c->e, tofree);
-          c->e = NULL;
-        }
-        free(c);
-        curl_multi_assign(global_curl_handle, s, NULL);
-      } else {
-        mtevL(debug_curl_ls, "curl removal with no socket ptr\n");
-        close(s);
-      }
-      break;
-    default:
-      mtevAssert(0);
-  }
-  return 0;
-}
-
-#if 0
-static void
-debugit(const char *path, uint8_t *val, size_t vallen, uint32_t index) {
-  if(path) mtevL(debug_ls, "UPDATE[%u] %s -> %.*s\n", index, path, (int)vallen, (const char *)val);
-  else mtevL(debug_ls, "UPDATE[%u] complete\n", index);
-}
-#endif
-
 static void
 mtev_consul_sync_services(void) {
   if(mtev_hash_size(&service_registry) > 0) {
@@ -1373,10 +1157,6 @@ mtev_consul_init(mtev_dso_generic_t *self) {
   debug_ls = mtev_log_stream_find("debug/consul");
   debug_curl_ls = mtev_log_stream_find("debug/consul/curl");
   mtev_hash_init(&service_registry);
-
-  global_curl_handle = curl_multi_init();
-  curl_multi_setopt(global_curl_handle, CURLMOPT_SOCKETFUNCTION, eventer_curl_handle_socket);
-  curl_multi_setopt(global_curl_handle, CURLMOPT_TIMERFUNCTION, eventer_curl_start_timeout);
 
   mtev_rest_mountpoint_t *rule = mtev_http_rest_new_rule(
     "GET", "/module/consul/", "^health(?:/(.+))?$", mtev_consul_health_handler

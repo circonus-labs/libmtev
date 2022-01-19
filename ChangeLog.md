@@ -4,6 +4,9 @@
 
 ## 2.1
 
+ * Add `utils/mtev_curl` API for doing non-blocking curl work within the
+   eventer including ACO bindings.
+
 ### 2.1.6
 
  * Improve consul support adding programmatic access and lua integration.

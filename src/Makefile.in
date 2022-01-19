@@ -135,7 +135,7 @@ MAPPEDHEADERS=utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
     utils/mtev_lru.h utils/mtev_uuid_copy.h utils/mtev_uuid.h \
     utils/mtev_flow_regulator.h utils/mtev_lfu.h utils/mtev_frrh.h \
     utils/mtev_huge_hash.h utils/mtev_intern.h utils/mtev_plock.h \
-    utils/mtev_url.h utils/mtev_logic.h \
+    utils/mtev_url.h utils/mtev_logic.h utils/mtev_curl.h \
     json-lib/mtev_json_object.h json-lib/mtev_json_tokener.h \
     json-lib/mtev_json_util.h json-lib/mtev_json.h \
     modules/mtev_fq.h modules/mtev_amqp.h modules/http_observer.h \
@@ -170,7 +170,8 @@ EVENTER_LIB_OBJS=eventer/OETS_asn1_helper.lo eventer/eventer.lo \
 
 MTEV_UTILS_OBJS=utils/mtev_b32.hlo utils/mtev_b64.hlo \
     utils/mtev_btrie.hlo utils/mtev_compress.lo utils/mtev_confstr.lo \
-    utils/mtev_cpuid.lo utils/mtev_dyn_buffer.hlo utils/mtev_getip.lo \
+    utils/mtev_cpuid.lo utils/mtev_curl.lo \
+    utils/mtev_dyn_buffer.hlo utils/mtev_getip.lo \
     utils/mtev_hash.hlo utils/mtev_lockfile.lo utils/mtev_log.lo \
     utils/mtev_mkdir.lo utils/mtev_security.lo utils/mtev_sem.lo \
     utils/mtev_time.hlo utils/mtev_skiplist.hlo utils/mtev_sort.hlo \

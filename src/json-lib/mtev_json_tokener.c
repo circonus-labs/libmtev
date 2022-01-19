@@ -99,13 +99,13 @@ void mtev_json_tokener_reset(struct mtev_json_tokener *tok)
   tok->started = false;
 }
 
-struct mtev_json_object* mtev_json_tokener_parse(const char *str,  enum mtev_json_tokener_error *err)
+struct mtev_json_object* mtev_json_tokener_parse_len(const char *str, int len, enum mtev_json_tokener_error *err)
 {
   struct mtev_json_tokener* tok;
   struct mtev_json_object* obj;
 
   tok = mtev_json_tokener_new();
-  obj = mtev_json_tokener_parse_ex(tok, str, -1);
+  obj = mtev_json_tokener_parse_ex(tok, str, len);
   if(tok->err != mtev_json_tokener_success) {
     if(err) *err = tok->err;
   }
@@ -113,6 +113,10 @@ struct mtev_json_object* mtev_json_tokener_parse(const char *str,  enum mtev_jso
   return obj;
 }
 
+struct mtev_json_object* mtev_json_tokener_parse(const char *str,  enum mtev_json_tokener_error *err)
+{
+  return mtev_json_tokener_parse_len(str, -1, err);
+}
 
 #if !HAVE_STRNDUP
 /* CAW: compliant version of strndup() */
