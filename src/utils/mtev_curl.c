@@ -136,37 +136,37 @@ static void process_global_curlm(void) {
   CURLM *global_curl_handle = global_curl_handle_get();
   while((message = curl_multi_info_read(global_curl_handle, &pending))) {
     switch(message->msg) {
-    case CURLMSG_DONE:
-      easy_handle = message->easy_handle;
+      case CURLMSG_DONE:
+        easy_handle = message->easy_handle;
 
-      curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
-      long httpcode = 0;
-      curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, (char **)&handle);
-      handle->complete = true;
-      curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &httpcode);
-      handle->code = message->data.result;
-      handle->httpcode = httpcode;
-      if(handle->handler) {
-        handle->handler(message->data.result, easy_handle, &handle->dyn, handle->userdata);
-      }
-      if(handle->span) mtev_zipkin_curl_record(easy_handle, handle->span);
-      if(httpcode == 200) {
-        mtevL(debug_ls, "%s DONE\n", done_url);
-      } else {
-        mtevL(debug_ls, "%s -> %d %.*s\n", done_url, (int)httpcode,
-              (int)mtev_dyn_buffer_used(&handle->dyn),
-              (const char *)mtev_dyn_buffer_data(&handle->dyn));
-      }
+        curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
+        long httpcode = 0;
+        curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, (char **)&handle);
+        handle->complete = true;
+        curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &httpcode);
+        handle->code = message->data.result;
+        handle->httpcode = httpcode;
+        if(handle->handler) {
+          handle->handler(message->data.result, easy_handle, &handle->dyn, handle->userdata);
+        }
+        if(handle->span) mtev_zipkin_curl_record(easy_handle, handle->span);
+        if(httpcode == 200) {
+          mtevL(debug_ls, "%s DONE\n", done_url);
+        } else {
+          mtevL(debug_ls, "%s -> %d %.*s\n", done_url, (int)httpcode,
+                (int)mtev_dyn_buffer_used(&handle->dyn),
+                (const char *)mtev_dyn_buffer_data(&handle->dyn));
+        }
  
-      curl_multi_remove_handle(global_curl_handle, easy_handle);
-      curl_easy_cleanup(easy_handle);
-      if(handle) {
-        mtev_curl_handle_free(handle);
-      }
-      break;
-    default:
-      mtevL(error_ls, "CURLMSG default\n");
-      break;
+        curl_multi_remove_handle(global_curl_handle, easy_handle);
+        curl_easy_cleanup(easy_handle);
+        if(handle) {
+          mtev_curl_handle_free(handle);
+        }
+        break;
+      default:
+        mtevL(error_ls, "CURLMSG default\n");
+        break;
     }
   }
 }
