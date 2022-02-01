@@ -4,6 +4,8 @@
 
 ## 2.1
 
+### 2.1.7
+
  * Expose `observer_note` in the lua http context.
  * Add `utils/mtev_curl` API for doing non-blocking curl work within the
    eventer including ACO bindings.
