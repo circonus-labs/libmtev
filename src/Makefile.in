@@ -92,7 +92,7 @@ FAST_TIME_PRELOAD=@FAST_TIME_PRELOAD@
 
 TARGETS=$(LIBMTEVA) $(LIBMTEV) $(LIBMTEV_MAJOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS@
 
-all:	reversion $(TARGETS) make-man build-modules ex
+all:	reversion $(TARGETS) make-man build-modules
 
 ex:
 	$(Q)$(MAKE) $(MAKEARGS) -C examples
