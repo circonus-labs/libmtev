@@ -160,9 +160,7 @@ static void process_global_curlm(void) {
  
         curl_multi_remove_handle(global_curl_handle, easy_handle);
         curl_easy_cleanup(easy_handle);
-        if(handle) {
-          mtev_curl_handle_free(handle);
-        }
+        mtev_curl_handle_free(handle);
         break;
       default:
         mtevL(error_ls, "CURLMSG default\n");
