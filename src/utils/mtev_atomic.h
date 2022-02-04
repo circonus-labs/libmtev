@@ -40,18 +40,18 @@
 extern "C" {
 #endif
 
-//#warning "mtev_atomics is deprecated, use concurrencykit"
+#warning "mtev_atomics is deprecated, use concurrencykit"
 
-typedef volatile int32_t mtev_atomic32_t;
-typedef volatile int64_t mtev_atomic64_t;
+typedef volatile int32_t mtev_atomic32_t __attribute__((deprecated));
+typedef volatile int64_t mtev_atomic64_t __attribute__((deprecated));
 
 #if defined(__GNUC__)
 
-typedef mtev_atomic32_t mtev_spinlock_t;
+typedef mtev_atomic32_t mtev_spinlock_t __attribute__((deprecated));
 static inline mtev_atomic32_t
 mtev_atomic_cas32(volatile mtev_atomic32_t *ptr,
                   volatile mtev_atomic32_t rpl,
-                  volatile mtev_atomic32_t curr) {
+                  volatile mtev_atomic32_t curr) __attribute__((deprecated)) {
   mtev_atomic32_t prev;
   __asm__ volatile (
       "lock; cmpxchgl %1, %2"
@@ -66,7 +66,7 @@ static inline void *
 mtev_atomic_casptr(volatile void **ptr,
                    /* coverity[noescape] */
                    volatile void *rpl,
-                   volatile void *curr) {
+                   volatile void *curr) __attribute__((deprecated)) {
   void *prev;
   __asm__ volatile (
       "lock; cmpxchgl %1, %2"
@@ -81,7 +81,7 @@ mtev_atomic_casptr(volatile void **ptr,
 static inline mtev_atomic64_t
 mtev_atomic_cas64(volatile mtev_atomic64_t *ptr,
                   volatile mtev_atomic64_t rpl,
-                  volatile mtev_atomic64_t curr) {
+                  volatile mtev_atomic64_t curr) __attribute__((deprecated)) {
   mtev_atomic64_t prev;
   __asm__ volatile (
       "lock; cmpxchgq %1, %2"
@@ -95,7 +95,7 @@ static inline void *
 mtev_atomic_casptr(volatile void **ptr,
                   /* coverity[noescape] */
                   volatile void *rpl,
-                  volatile void *curr) {
+                  volatile void *curr) __attribute__((deprecated)) {
   void *prev;
   __asm__ volatile (
       "lock; cmpxchgq %1, %2"
@@ -112,7 +112,7 @@ mtev_atomic_cas64_asm (volatile mtev_atomic64_t* ptr,
 		       volatile uint32_t old_high, 
 		       volatile uint32_t old_low,
 		       volatile uint32_t new_high,
-		       volatile uint32_t new_low) {
+		       volatile uint32_t new_low) __attribute__((deprecated)) {
   mtev_atomic64_t prev;
   uint64_t tmp;
   __asm__ volatile (
@@ -129,7 +129,7 @@ mtev_atomic_cas64_asm (volatile mtev_atomic64_t* ptr,
 static inline mtev_atomic64_t
 mtev_atomic_cas64(volatile mtev_atomic64_t *ptr,
                   volatile mtev_atomic64_t rpl,
-                  volatile mtev_atomic64_t curr) {
+                  volatile mtev_atomic64_t curr) __attribute__((deprecated)) {
   mtev_atomic64_t prev;
 #ifdef __PIC__
   __asm__ volatile (
@@ -159,34 +159,34 @@ mtev_atomic_cas64(volatile mtev_atomic64_t *ptr,
 #endif
 #endif
 
-static inline void mtev_spinlock_lock(volatile mtev_spinlock_t *lock) {
+static inline void mtev_spinlock_lock(volatile mtev_spinlock_t *lock) __attribute__((deprecated)) {
   while(mtev_atomic_cas32(lock, 1, 0) != 0);
 }
-static inline void mtev_spinlock_unlock(volatile mtev_spinlock_t *lock) {
+static inline void mtev_spinlock_unlock(volatile mtev_spinlock_t *lock) __attribute__((deprecated)) {
   while(mtev_atomic_cas32(lock, 0, 1) != 1);
 }
-static inline int mtev_spinlock_trylock(volatile mtev_spinlock_t *lock) {
+static inline int mtev_spinlock_trylock(volatile mtev_spinlock_t *lock) __attribute__((deprecated)) {
   return (mtev_atomic_cas32(lock, 1, 0) == 0);
 }
 
 #elif (defined(__sparc) || defined(__sparcv9) || defined(__amd64) || defined(__i386)) && (defined(__SUNPRO_C) || defined(__SUNPRO_CC))
 
-typedef mtev_atomic32_t mtev_spinlock_t;
+typedef mtev_atomic32_t mtev_spinlock_t __attribute__((deprecated));
 
 extern mtev_atomic32_t mtev_atomic_cas32(volatile mtev_atomic32_t *mem,
-        volatile mtev_atomic32_t newval, volatile mtev_atomic32_t cmpval);
+        volatile mtev_atomic32_t newval, volatile mtev_atomic32_t cmpval) __attribute__((deprecated));
 extern mtev_atomic64_t mtev_atomic_cas64(volatile mtev_atomic64_t *mem,
-        volatile mtev_atomic64_t newval, volatile mtev_atomic64_t cmpval);
+        volatile mtev_atomic64_t newval, volatile mtev_atomic64_t cmpval) __attribute__((deprecated));
 extern void *mtev_atomic_casptr(volatile void **mem,
-        volatile void *newval, volatile void *cmpval);
+        volatile void *newval, volatile void *cmpval) __attribute__((deprecated));
 
-static inline void mtev_spinlock_lock(volatile mtev_spinlock_t *lock) {
+static inline void mtev_spinlock_lock(volatile mtev_spinlock_t *lock) __attribute__((deprecated)) {
   while(mtev_atomic_cas32(lock, 1, 0) != 0);
 }
-static inline void mtev_spinlock_unlock(volatile mtev_spinlock_t *lock) {
+static inline void mtev_spinlock_unlock(volatile mtev_spinlock_t *lock) __attribute__((deprecated)) {
   while(mtev_atomic_cas32(lock, 0, 1) != 1);
 }
-static inline int mtev_spinlock_trylock(volatile mtev_spinlock_t *lock) {
+static inline int mtev_spinlock_trylock(volatile mtev_spinlock_t *lock) __attribute__((deprecated)) {
   return (mtev_atomic_cas32(lock, 1, 0) == 0);
 }
 
@@ -196,7 +196,7 @@ static inline int mtev_spinlock_trylock(volatile mtev_spinlock_t *lock) {
 
 #ifndef mtev_atomic_add32
 static inline mtev_atomic32_t mtev_atomic_add32(volatile mtev_atomic32_t *loc,
-                                                volatile mtev_atomic32_t diff) {
+                                                volatile mtev_atomic32_t diff) __attribute__((deprecated)) {
   mtev_atomic32_t current;
   do {
     current = *(loc);
@@ -207,7 +207,7 @@ static inline mtev_atomic32_t mtev_atomic_add32(volatile mtev_atomic32_t *loc,
 
 #ifndef mtev_atomic_add64
 static inline mtev_atomic64_t mtev_atomic_add64(volatile mtev_atomic64_t *loc,
-                                                volatile mtev_atomic64_t diff) {
+                                                volatile mtev_atomic64_t diff) __attribute__((deprecated)) {
   mtev_atomic64_t current;
   do {
     current = *(loc);
@@ -218,7 +218,7 @@ static inline mtev_atomic64_t mtev_atomic_add64(volatile mtev_atomic64_t *loc,
 
 #ifndef mtev_atomic_sub32
 static inline mtev_atomic32_t mtev_atomic_sub32(volatile mtev_atomic32_t *loc,
-                                                volatile mtev_atomic32_t diff) {
+                                                volatile mtev_atomic32_t diff) __attribute__((deprecated)) {
   mtev_atomic32_t current;
   do {
     current = *(loc);
@@ -229,7 +229,7 @@ static inline mtev_atomic32_t mtev_atomic_sub32(volatile mtev_atomic32_t *loc,
 
 #ifndef mtev_atomic_sub64
 static inline mtev_atomic64_t mtev_atomic_sub64(volatile mtev_atomic64_t *loc,
-                                                volatile mtev_atomic64_t diff) {
+                                                volatile mtev_atomic64_t diff) __attribute__((deprecated)) {
   mtev_atomic64_t current;
   do {
     current = *(loc);
