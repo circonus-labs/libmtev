@@ -102,6 +102,33 @@ do { \
   } \
 } while(0)
 
+/*! \fn MTEV_MAYBE_REALLOC_WITH_TYPE(name, type, cnt)
+    \brief C/C++ Macro to ensure a maybe buffer has at least cnt elements allocated.
+    \param name The name of the "maybe" buffer.
+    \param type The type of the "maybe" buffer.
+    \param cnt The total number of elements expected in the allocation.
+
+    This macro will never reduce the size and is a noop if a size smaller
+    than or equal to the current allocation size is specified.  It is safe
+    to simply run this macro prior to each write to the buffer.
+    NOTE: this version is separate to avoid breaking existing code that uses the
+    older macro.  It allows usage with C++, which requires the memory allocation
+    pointer to be cast to the correct type before assignment.
+ */
+#define MTEV_MAYBE_REALLOC_WITH_TYPE(name, type, cnt) \
+do { \
+  if(__##name##_support.sz < (cnt) * sizeof(*(name))) { \
+    size_t prevsz = __##name##_support.sz; \
+    __##name##_support.sz = (cnt) * sizeof(*(name)); \
+    if(name != __##name##_support.static_buff) { \
+      name = (type)realloc(name, __##name##_support.sz); \
+    } else { \
+      name = (type)malloc(__##name##_support.sz); \
+      memcpy(name, __##name##_support.static_buff, prevsz); \
+    } \
+  } \
+} while(0)
+
 /*! \fn MTEV_MAYBE_FREE(name)
     \brief C Macro to free any heap space associated with a "maybe" buffer.
     \param name The name of the "maybe" buffer.
