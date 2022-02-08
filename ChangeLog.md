@@ -1,9 +1,14 @@
 # libmtev changes
 
- * Added MTEV_MAYBE_REALLOC_WITH_TYPE for C++ compatibility.  The older
-   version is maintained for backwards compatibility.
-
 # 2
+
+## 2.2
+
+### 2.2.0
+
+ * Deprecate `mtev_atomic` functionality.
+ * Added `MTEV_MAYBE_REALLOC_WITH_TYPE` for C++ compatibility.  The older
+   version is maintained for backwards compatibility.
 
 ## 2.1
 
