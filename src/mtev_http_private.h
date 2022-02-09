@@ -78,7 +78,7 @@ struct mtev_http_session_ctx {
 
 void mtev_http_begin_span(mtev_http_session_ctx *ctx);
 void mtev_http_end_span(mtev_http_session_ctx *ctx);
-void mtev_http_log_request(mtev_http_session_ctx *ctx);
+void mtev_http_log_request(mtev_http_session_ctx *ctx, mtev_http_log_state state);
 int mtev_http1_http2_upgrade(mtev_http1_session_ctx *ctx);
 
 typedef enum {

@@ -143,7 +143,7 @@ mtev_boolean mtev_http2_session_ref_dec(mtev_http2_session_ctx *ctx) {
     mtevL(h2_debug, "http2 freeing stream(%p) <- %d\n", ctx->parent, ctx->stream_id);
     /* This is where we free the request and response */
     if(!ctx->logged) stats_add64(response_counter, 1);
-    mtev_http_log_request((mtev_http_session_ctx *)ctx);
+    mtev_http_log_request((mtev_http_session_ctx *)ctx, MTEV_HTTP_LOG_RESPONSE);
     mtev_http_end_span((mtev_http_session_ctx *)ctx);
 
     if(ctx->parent) {
@@ -207,7 +207,7 @@ mtev_http2_session_acceptor_closure(mtev_http2_session_ctx *ctx) {
 void
 mtev_http2_ctx_session_log_release(mtev_http2_session_ctx *sess) {
   if(!sess->logged) stats_add64(response_counter, 1);
-  mtev_http_log_request((mtev_http_session_ctx *)sess);
+  mtev_http_log_request((mtev_http_session_ctx *)sess, MTEV_HTTP_LOG_RESPONSE);
   (void)mtev_http2_session_ref_dec(sess);
 }
 void
@@ -1164,6 +1164,9 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
   mask = 0;
   int rv = nghttp2_session_send(ctx->session);
   mtevL(h2_debug, "http2 drive -> %d\n", rv);
+
+  mtev_http_log_request(ctx->session, MTEV_HTTP_LOG_RECEIVE);
+
   if(rv != NGHTTP2_ERR_WOULDBLOCK && rv != 0) {
     mtevL(h2_debug, "http2 session_send(%p) %s\n", ctx, nghttp2_strerror(rv));
     goto full_shutdown;
