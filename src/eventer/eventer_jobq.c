@@ -208,6 +208,9 @@ mark_squeue_job_completed(eventer_jobq_t *jobq, eventer_job_t *job) {
     }
     pthread_mutex_unlock(&jobq->lock);
   }
+  else {
+    ck_pr_dec_32(&job->squeue->inflight);
+  }
 }
 static void
 eventer_jobq_finished_job(eventer_jobq_t *jobq, eventer_job_t *job) {

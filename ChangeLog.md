@@ -4,6 +4,11 @@
 
 ## 2.2
 
+### 2.2.1
+
+ * Fix inflight accounting issue on eventer jobq subqueues that would cause
+   job lockup after `UINT32_MAX` jobs were run on the static (default) subqueue.
+
 ### 2.2.0
 
  * Deprecate `mtev_atomic` functionality.
