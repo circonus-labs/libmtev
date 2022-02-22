@@ -3515,6 +3515,7 @@ struct pcre_global_info {
 };
 static int
 mtev_lua_pcre_match(lua_State *L) {
+  bool vectored_return = false;
   const char *subject;
   struct pcre_global_info *pgi;
   int i, cnt, ovector[30];
@@ -3524,6 +3525,30 @@ mtev_lua_pcre_match(lua_State *L) {
 
   pgi = (struct pcre_global_info *)lua_touserdata(L, lua_upvalueindex(1));
   subject = lua_tolstring(L,1,&inlen);
+  if(lua_gettop(L) > 1) {
+    if(!lua_istable(L, 2)) {
+      mtevL(nldeb, "pcre match called with second argument that is not a table\n");
+    }
+    else {
+      lua_getfield(L, -1, "limit");
+      if(lua_isnumber(L, -1)) {
+        e.flags |= PCRE_EXTRA_MATCH_LIMIT;
+        e.match_limit = (int)lua_tonumber(L, -1);
+      }
+      lua_pop(L, 1);
+      lua_getfield(L, -1, "limit_recurse");
+      if(lua_isnumber(L, -1)) {
+        e.flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+        e.match_limit_recursion = (int)lua_tonumber(L, -1);
+      }
+      lua_pop(L, 1);
+      lua_getfield(L, -1, "offsets");
+      if(lua_isboolean(L, -1)) {
+        vectored_return = (int)lua_toboolean(L, -1);
+      }
+      lua_pop(L, 1);
+    }
+  }
   if(!subject) {
     pgi->subject = NULL;
     pgi->offset = 0;
@@ -3534,39 +3559,29 @@ mtev_lua_pcre_match(lua_State *L) {
     pgi->offset = 0;
     pgi->subject = subject;
   }
-  if(lua_gettop(L) > 1) {
-    if(!lua_istable(L, 2)) {
-      mtevL(nldeb, "pcre match called with second argument that is not a table\n");
-    }
-    else {
-      lua_pushstring(L, "limit");
-      lua_gettable(L, -2);
-      if(lua_isnumber(L, -1)) {
-        e.flags |= PCRE_EXTRA_MATCH_LIMIT;
-        e.match_limit = (int)lua_tonumber(L, -1);
-      }
-      lua_pop(L, 1);
-      lua_pushstring(L, "limit_recurse");
-      lua_gettable(L, -2);
-      if(lua_isnumber(L, -1)) {
-        e.flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
-        e.match_limit_recursion = (int)lua_tonumber(L, -1);
-      }
-      lua_pop(L, 1);
-    }
-  }
   if (pgi->offset >= inlen) {
-    lua_pushboolean(L,0);
+    if(vectored_return) lua_createtable(L, 0, 0);
+    else lua_pushboolean(L,0);
     return 1;
   }
   cnt = pcre_exec(pgi->re, &e, subject + pgi->offset,
                   inlen - pgi->offset, 0, 0,
                   ovector, sizeof(ovector)/sizeof(*ovector));
   if(cnt <= 0) {
-    lua_pushboolean(L,0);
+    if(vectored_return) lua_createtable(L, 0, 0);
+    else lua_pushboolean(L,0);
     return 1;
   }
-  lua_pushboolean(L,1);
+  if(vectored_return) {
+    lua_createtable(L, cnt*2, 0);
+    for(i = 0; i < cnt; i++) {
+      lua_pushinteger(L, pgi->offset+ovector[i*2]);
+      lua_rawseti(L, -2, i*2+1);
+      lua_pushinteger(L, pgi->offset+ovector[i*2+1]);
+      lua_rawseti(L, -2, i*2+2);
+    }
+  }
+  else lua_pushboolean(L,1);
   for(i = 0; i < cnt; i++) {
     int start = ovector[i*2];
     int end = ovector[i*2+1];

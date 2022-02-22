@@ -4,6 +4,10 @@
 
 ## 2.2
 
+ * Add `offsets = true` option for mtev.pcre functions to return a table of
+   paired offsets for matches instead of a true or false as the first return
+   value.
+
 ### 2.2.1
 
  * Fix inflight accounting issue on eventer jobq subqueues that would cause
