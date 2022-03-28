@@ -4,6 +4,9 @@
 
 ## 2.2
 
+ * Add `/<app>/@workingdir` config attribute (default '/') to control the
+  `chdir(2)` when running managed.
+
 ### 2.2.2
 
  * Add `offsets = true` option for mtev.pcre functions to return a table of
