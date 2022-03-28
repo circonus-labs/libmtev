@@ -61,6 +61,7 @@ typedef struct lua_web_conf {
   pthread_key_t key;
   lua_module_gc_params_t *gc_params;
   struct timeval interrupt_time;
+  bool dev_mode;
 } lua_web_conf_t;
 
 static stats_handle_t *vm_time;
@@ -87,6 +88,12 @@ static lua_web_conf_t *get_config(mtev_dso_generic_t *self) {
   return the_one_conf;
 }
 
+static void mtev_lua_web_validate_lmc(lua_module_closure_t * lmc) {
+  if(!lmc) return;
+  mtev_lua_validate_lmc(lmc);
+  if(the_one_conf && the_one_conf->dev_mode) lmc->wants_restart = true;
+}
+
 static void
 rest_lua_ctx_free(void *cl) {
   mtev_lua_resume_info_t *ri = cl;
@@ -100,6 +107,7 @@ rest_lua_ctx_free(void *cl) {
         free(ctx);
       }
     }
+    mtev_lua_deref(ri->lmc);
     free(ri);
   }
 }
@@ -141,11 +149,17 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
   status = mtev_lua_resume(ri->coro_state, nargs, ri);
   VM_TIME_END
 
+  mtev_lua_web_validate_lmc(ri->lmc);
+
   switch(status) {
     case 0:
-      mtev_lua_gc(ri->lmc);
+      /* If we're about to cull this state, don't GC */
+      if(!ri->lmc->wants_restart) mtev_lua_gc(ri->lmc);
       break;
     case LUA_YIELD:
+      /* A yield might be part of a very long running coro and it would
+       * be unsafe to delay GC until it finishes
+       */
       mtev_lua_gc(ri->lmc);
       return 0;
     default: /* The complicated case */
@@ -200,6 +214,7 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
     ri->context_magic = LUA_REST_INFO_MAGIC;
     ctx = ri->context_data = calloc(1, sizeof(mtev_lua_resume_rest_info_t));
     ctx->restc = restc;
+    mtev_lua_ref(lmc);
     ri->lmc = lmc;
     ri->coro_state = lua_newthread(lmc->lua_state);
     ri->coro_state_ref = luaL_ref(lmc->lua_state, LUA_REGISTRYINDEX);
@@ -319,6 +334,11 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   int i;
   const char *bstr;
+  if(mtev_hash_retr_str(o, "dev_mode", strlen("dev_mode"), &bstr)) {
+    if(!strcmp(bstr, "true") || !strcmp(bstr, "on")) {
+      conf->dev_mode = true;
+    }
+  }
   conf->script_dir = NULL;
   conf->cpath = NULL;
   (void)mtev_hash_retr_str(o, "directory", strlen("directory"), &conf->script_dir);
@@ -444,7 +464,10 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
   lua_web_conf_t *conf = get_config(self);
   lua_module_closure_t *lmc = pthread_getspecific(conf->key);
 
-  if(!lmc) {
+  mtev_lua_web_validate_lmc(lmc);
+
+  if(!lmc || lmc->wants_restart) {
+    if(lmc) mtev_lua_deref(lmc);
     lmc = mtev_lua_lmc_alloc(self, lua_web_resume);
     mtev_lua_set_gc_params(lmc, conf->gc_params);
     lmc->interrupt_time = conf->interrupt_time;
