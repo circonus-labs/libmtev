@@ -60,6 +60,8 @@ typedef struct lua_module_gc_params lua_module_gc_params_t;
 
 API_EXPORT(lua_module_gc_params_t *) mtev_lua_config_gc_params(mtev_hash_table *);
 
+typedef enum { INTERRUPT_ERRORS = 0, INTERRUPT_PREEMPTS } lua_module_interrupt_mode_e;
+
 typedef struct lua_module_closure {
   lua_State *lua_state;
   mtev_hash_table *pending;
@@ -76,6 +78,7 @@ typedef struct lua_module_closure {
   uint32_t ref_cnt;
   bool wants_restart;
   uint64_t gen;
+  lua_module_interrupt_mode_e interrupt_mode;
 } lua_module_closure_t;
 
 API_EXPORT(void) mtev_lua_set_gc_params(lua_module_closure_t *, lua_module_gc_params_t *);

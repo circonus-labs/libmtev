@@ -81,6 +81,7 @@ typedef struct lua_general_conf {
   const char **preloads;
   lua_module_gc_params_t *gc_params;
   struct timeval interrupt_time;
+  lua_module_interrupt_mode_e interrupt_mode;
   mtev_boolean concurrent;
   mtev_boolean booted;
   mtev_boolean tragedy_terminates;
@@ -263,6 +264,7 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   conf->cpath = NULL;
   conf->module = NULL;
   conf->function = NULL;
+  conf->interrupt_mode = INTERRUPT_ERRORS;
   (void)mtev_hash_retr_str(o, "directory", strlen("directory"), &conf->script_dir);
   if(conf->script_dir) conf->script_dir = strdup(conf->script_dir);
   (void)mtev_hash_retr_str(o, "cpath", strlen("cpath"), &conf->cpath);
@@ -314,6 +316,20 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     if(timeout > 0) {
       conf->interrupt_time.tv_sec = timeout;
       conf->interrupt_time.tv_usec = (timeout - (double)conf->interrupt_time.tv_sec) * 1000000;
+    }
+  }
+
+  bstr = mtev_hash_dict_get(o, "interrupt_mode");
+  if(bstr) {
+    if(!strcmp(bstr, "preempt")) {
+      conf->interrupt_mode = INTERRUPT_PREEMPTS;
+    }
+    else if(!strcmp(bstr, "error")) {
+      conf->interrupt_mode = INTERRUPT_ERRORS;
+    }
+    else {
+      mtevL(mtev_error, "lua_general invalid interrupt_mode: %s\n", bstr);
+      return -1;
     }
   }
 
@@ -787,6 +803,7 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     lmc = mtev_lua_lmc_alloc(self, lua_general_resume);
     mtev_lua_set_gc_params(lmc, conf->gc_params);
     lmc->interrupt_time = conf->interrupt_time;
+    lmc->interrupt_mode = conf->interrupt_mode;
     pthread_setspecific(conf->key, lmc);
   }
 
