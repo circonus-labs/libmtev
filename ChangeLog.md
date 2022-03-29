@@ -4,6 +4,7 @@
 
 ## 2.2
 
+ * Make preemptive interruption an option for `lua_web` and `lua_general`.
  * Change lua `mtev.log` to report the lua file/line in debug context.
  * Support refreshing `lua_web` `lua_State`s.
   * Add a `dev_mode` config option that forces a state refresh before each

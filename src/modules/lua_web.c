@@ -61,6 +61,7 @@ typedef struct lua_web_conf {
   pthread_key_t key;
   lua_module_gc_params_t *gc_params;
   struct timeval interrupt_time;
+  lua_module_interrupt_mode_e interrupt_mode;
   bool dev_mode;
 } lua_web_conf_t;
 
@@ -341,6 +342,7 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   }
   conf->script_dir = NULL;
   conf->cpath = NULL;
+  conf->interrupt_mode = INTERRUPT_ERRORS;
   (void)mtev_hash_retr_str(o, "directory", strlen("directory"), &conf->script_dir);
   if(conf->script_dir) conf->script_dir = strdup(conf->script_dir);
   (void)mtev_hash_retr_str(o, "cpath", strlen("cpath"), &conf->cpath);
@@ -424,6 +426,20 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     }
   }
 
+  bstr = mtev_hash_dict_get(o, "interrupt_mode");
+  if(bstr) {
+    if(!strcmp(bstr, "preempt")) {
+      conf->interrupt_mode = INTERRUPT_PREEMPTS;
+    }
+    else if(!strcmp(bstr, "error")) {
+      conf->interrupt_mode = INTERRUPT_ERRORS;
+    }
+    else {
+      mtevL(mtev_error, "lua_web invalid interrupt_mode: %s\n", bstr);
+      return -1;
+    }
+  }
+
   conf->gc_params = mtev_lua_config_gc_params(o);
   conf->max_post_size = DEFAULT_MAX_POST_SIZE;
   return 0;
@@ -471,6 +487,7 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
     lmc = mtev_lua_lmc_alloc(self, lua_web_resume);
     mtev_lua_set_gc_params(lmc, conf->gc_params);
     lmc->interrupt_time = conf->interrupt_time;
+    lmc->interrupt_mode = conf->interrupt_mode;
     pthread_setspecific(conf->key, lmc);
   }
   if(lmc->lua_state == NULL) {

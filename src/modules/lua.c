@@ -283,13 +283,33 @@ mtev_lua_timer_stop(timer_t *lua_timer) {
   if(timer_settime(*lua_timer, 0, &ispec, NULL) != 0)
     mtevL(mtev_error, "timer_settime failed: %s\n", strerror(errno));
 }
+static int mtev_lua_preempt_resume(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  lua_State *L = (lua_State *)closure;
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
+  if(ri) {
+    mtev_lua_resume(L, 0, ri);
+  }
+  return 0;
+}
 static void lstop (lua_State *L, lua_Debug *ar) {
   (void)ar;  /* unused arg. */
-  lua_sethook(L, NULL, 0, 0);  /* reset hook */
-  mtev_stacktrace(nlerr);
   mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
-  if(ri) ri->lmc->wants_restart = true;
-  luaL_error(L, "interrupted!");
+  if(!ri || ri->lmc->interrupt_mode == INTERRUPT_ERRORS) {
+    if(ri) ri->lmc->wants_restart = true;
+    lua_sethook(L, NULL, 0, 0);  /* reset hook */
+    luaL_error(L, "interrupted!");
+  }
+
+  L = ri->coro_state;
+  if(!lua_isyieldable(L)) {
+    return;
+  }
+  lua_sethook(L, NULL, 0, 0);  /* reset hook */
+  eventer_add_in_s_us(mtev_lua_preempt_resume, L, 0, 0);
+  lua_yield(L, 0);
 }
 
 static void
@@ -1412,6 +1432,7 @@ mtev_lua_init_globals(void) {
   mtev_stacktrace_frame_hook_register("mtev_lua", mtev_lua_stacktrace_assist, NULL);
   eventer_name_callback("mtev_lua_gc_callback", mtev_lua_gc_callback);
   eventer_name_callback("mtev_lua_release", mtev_lua_release);
+  eventer_name_callback("mtev_lua_preempt_resume", mtev_lua_preempt_resume);
   lua_stats_ns = mtev_stats_ns(mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "modules"), "lua");
   stats_ns_add_tag(lua_stats_ns, "mtev-module", "lua");
   gc_full = stats_register(lua_stats_ns, "gc_full", STATS_TYPE_COUNTER);
