@@ -4,6 +4,7 @@
 
 ## 2.2
 
+ * Change lua `mtev.log` to report the lua file/line in debug context.
  * Support refreshing `lua_web` `lua_State`s.
   * Add a `dev_mode` config option that forces a state refresh before each
     web request.
