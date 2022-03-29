@@ -2750,7 +2750,43 @@ nl_log_up(lua_State *L) {
     lua_pushvalue(L, i);
   lua_call(L, n, 1);
   message = lua_tostring(L, -1);
-  mtevL(ls, "%s", message);
+
+  /* The following is an emulation of the mtevL macro,
+   * but with lua magic to hijack the FILE and LINE
+   * so that in debugging mode we see lua lines instead of this
+   * C file which is useless.
+   */
+  bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls));
+  if(!mtevLT_doit) {
+    Zipkin_Span *mtevLT_span = mtev_zipkin_active_span(NULL);
+    if(mtevLT_span != NULL) {
+      mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span);
+    }
+  }
+  if(mtevLT_doit) {
+    luaL_where(L, 2);
+    const char *where = lua_tostring(L, -1);
+    int line = 0;
+    char path[PATH_MAX];
+    const char *file = "<unknown>";
+    if(where) {
+      file = strrchr(where, '/');
+      file = file ? (file+1) : where;
+      strlcpy(path, file, sizeof(path));
+      char *lc = strrchr(path, ':');
+      if(lc) {
+        *lc = '\0';
+        lc = strrchr(path, ':');
+        if(lc) {
+          *lc++ = '\0';
+	  line = atoi(lc);
+        }
+      }
+      file = path;
+    }
+    lua_pop(L,1); /* where */
+    mtev_log((ls), NULL, file, line, "%s", message);
+  }
   lua_pop(L, 1); /* formatted string */
   lua_pop(L, 1); /* "string" table */
   return 0;
