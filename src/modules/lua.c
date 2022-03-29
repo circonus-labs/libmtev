@@ -298,12 +298,12 @@ static void lstop (lua_State *L, lua_Debug *ar) {
   (void)ar;  /* unused arg. */
   mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
   if(!ri || ri->lmc->interrupt_mode == INTERRUPT_ERRORS) {
+    if(ri) ri->lmc->wants_restart = true;
     lua_sethook(L, NULL, 0, 0);  /* reset hook */
     luaL_error(L, "interrupted!");
   }
 
   L = ri->coro_state;
-  ri->lmc->wants_restart = true;
   if(!lua_isyieldable(L)) {
     return;
   }
