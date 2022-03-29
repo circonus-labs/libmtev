@@ -5766,15 +5766,86 @@ mtev_lua_semaphore_index_func(lua_State *L) {
   return luaL_error(L, "mtev.semaphore no such element: %s", k);
 }
 
+/*! \lua mtev.runtime_defunct(f)
+ *  \brief Determines in the currrent runtime is defunct (you should end your work)
+ *  \param f an optional callback function to call when a state goes defunct.
+ *  \returns true or false
+ */
+static int
+nl_runtime_defunct(lua_State *L) {
+  mtev_lua_resume_info_t *ci = mtev_lua_find_resume_info(L, mtev_false);
+  if(!ci) luaL_error(L, "unmanaged runtime!");
+  mtev_lua_validate_lmc(ci->lmc);
+  bool has_func = (lua_gettop(L) > 0);
+  if(has_func && !lua_isfunction(L,1)) {
+    luaL_error(L, "mtev.runtime_defunct first art not a function");
+  }
+
+  if(ci->lmc->wants_restart) {
+    lua_pushvalue(L, 1);
+    lua_pcall(L, 0, 0, 0);
+    lua_pushboolean(L, 1);
+    return 1;
+  }
+  lua_getglobal(L, "mtev");
+  lua_pushvalue(L, 1);
+  lua_setfield(L, -2, "__defunct_cb");
+  lua_pushboolean(L, 0);
+  return 1;
+}
+
+/*! \lua mtev.runtime_reload()
+ *  \brief Forces a generational counter bump so that a new runtime will be created.
+ */
+static int
+nl_runtime_reload(lua_State *L) {
+  (void)L;
+  mtev_lua_trigger_reload_dyn();
+  return 0;
+}
+
+static int
+cancel_coro_cb(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  mtev_lua_resume_info_t *ci = closure;
+  mtev_lua_cancel_coro(ci);
+  return 0;
+}
 /*! \lua mtev.cancel_coro()
 */
 static int
 nl_cancel_coro(lua_State *L) {
   mtev_lua_resume_info_t *ci;
-  lua_State *co = lua_tothread(L,1);
+  lua_State *co = NULL;
+  if(lua_isstring(L,1)) {
+    const char *ptraddrstr = lua_tostring(L,1);
+    if(ptraddrstr) {
+      char *endptr;
+      if(!strncasecmp(ptraddrstr, "0x", 2)) {
+        uintptr_t ptr = strtoull(ptraddrstr+2, &endptr, 16);
+        if(*endptr == '\0') co = (lua_State *)ptr;
+      } else {
+        uintptr_t ptr = strtoull(ptraddrstr, &endptr, 10);
+        if(*endptr == '\0') co = (lua_State *)ptr;
+      }
+    }
+    if(co == NULL) luaL_error(L, "bad argument to mtev.cancel_coro");
+  } else {
+    co = lua_tothread(L,1);
+  }
   ci = mtev_lua_find_resume_info(co, mtev_false);
   if(!ci) return 0;
-  mtev_lua_cancel_coro(ci);
+  if(pthread_equal(ci->lmc->owner, pthread_self())) {
+    mtev_lua_cancel_coro(ci);
+    return 0;
+  }
+  if(eventer_is_loop(ci->lmc->owner) < 0)
+    luaL_error(L, "coroutine not in event loop");
+  eventer_t e = eventer_in_s_us(cancel_coro_cb, ci, 0, 0);
+  eventer_set_owner(e, ci->lmc->owner);
+  eventer_add(e);
   return 0;
 }
 
@@ -5977,6 +6048,8 @@ static void mtev_lua_init(void) {
 }
 
 static const luaL_Reg mtevlib[] = {
+  { "runtime_reload", nl_runtime_reload },
+  { "runtime_defunct", nl_runtime_defunct },
   { "cancel_coro", nl_cancel_coro },
   { "cluster", nl_mtev_cluster },
   { "waitfor", nl_waitfor },

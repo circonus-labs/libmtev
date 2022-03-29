@@ -4,6 +4,9 @@
 
 ## 2.2
 
+ * Default `show lua` now shows all lua states in all loops.
+ * Add `mtev.runtime_defunct(<cb>)` and `mtev.runtime_reload()`.
+ * Add `/module/lua/bump.json` to cause on-demand reloads.
  * Make preemptive interruption an option for `lua_web` and `lua_general`.
  * Change lua `mtev.log` to report the lua file/line in debug context.
  * Support refreshing `lua_web` `lua_State`s.

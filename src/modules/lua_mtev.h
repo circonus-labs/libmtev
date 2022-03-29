@@ -77,6 +77,7 @@ typedef struct lua_module_closure {
   struct timeval interrupt_time;
   uint32_t ref_cnt;
   bool wants_restart;
+  bool defunct_cb_fired;
   uint64_t gen;
   lua_module_interrupt_mode_e interrupt_mode;
 } lua_module_closure_t;
@@ -247,6 +248,9 @@ void mtev_lua_register_event(mtev_lua_resume_info_t *ci, eventer_t e);
 void mtev_lua_deregister_event(mtev_lua_resume_info_t *ci, eventer_t e,
                                      int tofree);
 
+MTEV_RUNTIME_RESOLVE(mtev_lua_trigger_reload_dyn, mtev_lua_trigger_reload, void,
+                     (void), ());
+MTEV_RUNTIME_AVAIL(mtev_lua_trigger_reload_dyn, mtev_lua_trigger_reload)
 MTEV_RUNTIME_RESOLVE(mtev_lua_yield_dyn, mtev_lua_yield, int,
                      (mtev_lua_resume_info_t *ci, int nargs),
                      (ci, nargs));
@@ -256,6 +260,9 @@ MTEV_RUNTIME_RESOLVE(mtev_lua_get_resume_info_dyn, mtev_lua_get_resume_info,
                      (lua_State *L),
                      (L));
 MTEV_RUNTIME_AVAIL(mtev_lua_get_resume_info_dyn, mtev_lua_get_resume_info)
+
+void mtev_lua_dispatch_defunct(void);
+MTEV_HOOK_PROTO(mtev_lua_dispatch_defunct, (lua_module_closure_t *), void *, closure, (void *closure, lua_module_closure_t *lmc));
 
 void
 mtev_lua_setup_http_ctx(lua_State *L,
