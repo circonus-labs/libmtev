@@ -1066,7 +1066,7 @@ register_console_lua_commands(void) {
     NCSCMD("lua", mtev_console_show_lua, NULL, NULL, NULL));
 
   mtevAssert(mtev_http_rest_register_auth(
-    "GET", "/module/lua/", "^bump\\.json$",
+    "POST", "/module/lua/", "^bump\\.json$",
     mtev_rest_bump_lua, mtev_http_rest_client_cert_auth
   ) == 0);
 
