@@ -136,17 +136,86 @@ typedef struct {
   mtev_json_object *root;
 } json_crutch;
 
-static void
-mtev_lua_push_timeval(lua_State *L, struct timeval time) {
-  lua_getglobal(L, "mtev");
-  lua_getfield(L, -1, "timeval");
-  lua_getfield(L, -1, "new");
-  lua_replace(L, -3); // replaces mtev with new and removes new
-  lua_pop(L, 1); // pops timeval
-  lua_pushinteger(L, time.tv_sec);
-  lua_pushinteger(L, time.tv_usec);
-  lua_call(L, 2, 1);
+static int
+nl_mtev_timeval_new_ex(lua_State *L, struct timeval src) {
+  struct timeval *tgt = (struct timeval *)lua_newuserdata(L, sizeof(*tgt));
+  *tgt = src;
+  luaL_getmetatable(L, "mtev.timeval");
+  lua_setmetatable(L, -2);
+  return 1;
 }
+
+static int nl_mtev_timeval_now(lua_State *L) {
+  struct timeval now;
+  mtev_gettimeofday(&now, NULL);
+  return nl_mtev_timeval_new_ex(L, now);
+}
+
+static int nl_mtev_timeval_new(lua_State *L) {
+  struct timeval tv = { .tv_sec = lua_tointeger(L,1), .tv_usec = lua_tointeger(L,2) };
+  return nl_mtev_timeval_new_ex(L, tv);
+}
+
+static int
+mtev_lua_timeval_tostring(lua_State *L) {
+  char buf[128];
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  snprintf(buf, sizeof(buf), "%lu.%06lu", tv->tv_sec, tv->tv_usec);
+  lua_pushstring(L, buf);
+  return 1;
+}
+static int
+mtev_lua_timeval_sub(lua_State *L) {
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *o = luaL_checkudata(L, 2, "mtev.timeval");
+  struct timeval n;
+  sub_timeval(*tv, *o, &n);
+  return nl_mtev_timeval_new_ex(L, n);
+}
+static int
+mtev_lua_timeval_add(lua_State *L) {
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *o = luaL_checkudata(L, 2, "mtev.timeval");
+  struct timeval n;
+  add_timeval(*tv, *o, &n);
+  return nl_mtev_timeval_new_ex(L, n);
+}
+static int
+mtev_lua_timeval_seconds(lua_State *L) {
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  lua_pushnumber(L, (double)tv->tv_sec + (double)tv->tv_usec / 1000000.0);
+  return 1;
+}
+
+static int
+mtev_lua_timeval_index_func(lua_State *L) {
+  if(lua_gettop(L) != 2) {
+    return luaL_error(L, "Illegal use of lua timeval");
+  }
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  const char* k = luaL_checkstring(L, 2);
+  if(!strcmp(k, "seconds")) {
+    lua_pushcclosure(L, mtev_lua_timeval_seconds, 0);
+    return 1;
+  }
+  if(!strcmp(k, "sec")) {
+    lua_pushinteger(L, tv->tv_sec);
+    return 1;
+  }
+  if(!strcmp(k, "usec")) {
+    lua_pushinteger(L, tv->tv_usec);
+    return 1;
+  }
+  return 0;
+}
+
+static const luaL_Reg mtevtimevallib[] = {
+  { "now", nl_mtev_timeval_now },
+  { "new", nl_mtev_timeval_new },
+  { "seconds", mtev_lua_timeval_seconds },
+  { NULL, NULL }
+};
+
 static void
 mtev_lua_eventer_cl_cleanup(eventer_t e) {
   mtev_lua_resume_info_t *ci;
@@ -2408,7 +2477,7 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_deregister_event(ci, e, 0);
 
   sub_timeval(*now, cl->start, &diff);
-  mtev_lua_push_timeval(cl->L, diff);
+  nl_mtev_timeval_new_ex(cl->L, diff);
 
   free(cl);
   mtev_lua_lmc_resume(ci->lmc, ci, 1);
@@ -6165,6 +6234,22 @@ int luaopen_mtev(lua_State *L) {
   lua_setfield(L, -2, "__index");
 
   luaL_openlib(L, "mtev", mtevlib, 0);
+
+  lua_getglobal(L, "mtev");
+  lua_newtable(L);
+  luaL_setfuncs(L, mtevtimevallib, 0);
+  lua_setfield(L, -2, "timeval");
+  lua_pop(L, 1);
+
+  luaL_newmetatable(L, "mtev.timeval");
+  lua_pushcclosure(L, mtev_lua_timeval_index_func, 0);
+  lua_setfield(L, -2, "__index");
+  lua_pushcclosure(L, mtev_lua_timeval_tostring, 0);
+  lua_setfield(L, -2, "__tostring");
+  lua_pushcclosure(L, mtev_lua_timeval_sub, 0);
+  lua_setfield(L, -2, "__sub");
+  lua_pushcclosure(L, mtev_lua_timeval_add, 0);
+  lua_setfield(L, -2, "__add");
 
   lua_getglobal(L, "_G");
   lua_getglobal(L, "mtev");
