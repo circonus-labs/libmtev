@@ -15,8 +15,6 @@
  * Support refreshing `lua_web` `lua_State`s.
   * Add a `dev_mode` config option that forces a state refresh before each
     web request.
-  * Add `module/lua/bump.json` which will force an on-demand refresh of
-    `lua_web` states upon next use.
   * Trigger a refresh when the interrupt timer fires within a state.
  * Add `/<app>/@workingdir` config attribute (default '/') to control the
   `chdir(2)` when running managed.
