@@ -384,7 +384,7 @@ int mtev_hash_retrieve(mtev_hash_table *h, const void *k, int klen, void **data)
     mtev_hash_init(h);
   }
 
-  if(klen > ONSTACK_KEY_SIZE) key = calloc(1, sizeof(ck_key_t) + klen + 1);
+  if(klen >= ONSTACK_KEY_SIZE) key = calloc(1, sizeof(ck_key_t) + klen + 1);
   memcpy(key->label, k, klen);
   key->label[klen] = 0;
   key->len = klen + sizeof(uint32_t);;
@@ -438,7 +438,7 @@ int mtev_hash_delete(mtev_hash_table *h, const void *k, int klen,
     mtev_hash_init(h);
   }
 
-  if(klen > ONSTACK_KEY_SIZE) key = calloc(1, sizeof(ck_key_t) + klen + 1);
+  if(klen >= ONSTACK_KEY_SIZE) key = calloc(1, sizeof(ck_key_t) + klen + 1);
   memcpy(key->label, k, klen);
   key->label[klen] = 0;
   key->len = klen + sizeof(uint32_t);
