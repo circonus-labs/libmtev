@@ -113,6 +113,13 @@ rest_lua_ctx_free(void *cl) {
   }
 }
 
+static mtev_lua_resume_info_t *
+lua_web_new_resume_info(lua_module_closure_t *lmc) {
+  mtev_lua_resume_info_t *ri = mtev_lua_new_resume_info(lmc, LUA_REST_INFO_MAGIC);
+  ri->new_ri_f = lua_web_new_resume_info;
+  return ri;
+}
+
 static int
 lua_web_restc_fastpath(mtev_http_rest_closure_t *restc,
                        int npats, char **pats) {
@@ -210,20 +217,12 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   if(!mtev_rest_complete_upload(restc, &mask)) return mask;
 
   if(restc->call_closure == NULL) {
-    ri = calloc(1, sizeof(*ri));
-    ri->bound_thread = pthread_self();
-    ri->context_magic = LUA_REST_INFO_MAGIC;
+    ri = lua_web_new_resume_info(lmc);
     ctx = ri->context_data = calloc(1, sizeof(mtev_lua_resume_rest_info_t));
     ctx->restc = restc;
-    mtev_lua_ref(lmc);
-    ri->lmc = lmc;
-    ri->coro_state = lua_newthread(lmc->lua_state);
-    ri->coro_state_ref = luaL_ref(lmc->lua_state, LUA_REGISTRYINDEX);
-
-    mtev_lua_set_resume_info(lmc->lua_state, ri);
-
     restc->call_closure = ri;
     restc->call_closure_free = rest_lua_ctx_free;
+    mtev_lua_ref(lmc);
   }
   ri = restc->call_closure;
   ctx = ri->context_data;
@@ -315,13 +314,6 @@ mtev_lua_web_driver_onload(mtev_image_t *self) {
   mtev_lua_context_describe_json(LUA_REST_INFO_MAGIC,
                                  describe_lua_rest_context_json);
   return 0;
-}
-
-static mtev_lua_resume_info_t *
-lua_web_new_resume_info(lua_module_closure_t *lmc) {
-  mtev_lua_resume_info_t *ri = mtev_lua_new_resume_info(lmc, LUA_REST_INFO_MAGIC);
-  ri->new_ri_f = lua_web_new_resume_info;
-  return ri;
 }
 
 static int
