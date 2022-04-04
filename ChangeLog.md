@@ -4,6 +4,9 @@
 
 ## 2.2
 
+ * Fix two luajit runtime use errors that could break GC
+   * `lua_call` during resume when coming back from `mtev.sleep`
+   * `nl_resume` return value off-by-one.
  * Default `show lua` now shows all lua states in all loops.
  * Add `mtev.runtime_defunct(<cb>)` and `mtev.runtime_reload()`.
  * Add `/module/lua/bump.json` to cause on-demand reloads.
