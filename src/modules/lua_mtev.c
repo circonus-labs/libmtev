@@ -218,7 +218,7 @@ nl_resume(eventer_t e, int mask, void *vcl, struct timeval *now) {
         return 0;
     }
     mtev_lua_deregister_event(ci, e, 0);
-    mtev_lua_lmc_resume(ci->lmc, ci, 1);
+    mtev_lua_lmc_resume(ci->lmc, ci, 0);
     return 0;
 }
 
