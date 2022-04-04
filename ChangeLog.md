@@ -4,6 +4,8 @@
 
 ## 2.2
 
+ * Avoid stack overflow in `mtev_hash_retrieve` and `mtev_hash_delete` when the
+   key size (minus its null terminator) is the same as `ONSTACK_KEY_SIZE`.
  * Fix two luajit runtime use errors that could break GC
    * `lua_call` during resume when coming back from `mtev.sleep`
    * `nl_resume` return value off-by-one.
