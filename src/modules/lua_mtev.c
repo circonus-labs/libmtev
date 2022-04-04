@@ -151,11 +151,24 @@ static int nl_mtev_timeval_now(lua_State *L) {
   return nl_mtev_timeval_new_ex(L, now);
 }
 
+static void double_to_timeval(double in, struct timeval *out) {
+  out->tv_sec = floor(in);
+  double unused_inf;
+  double tus = modf(in, &unused_inf);
+  if(tus < 0) tus += 1;
+  out->tv_usec = round(1000000.0 * tus);
+}
 static int nl_mtev_timeval_new(lua_State *L) {
+  if(lua_gettop(L) == 1) {
+    struct timeval tv;
+    double_to_timeval(lua_tonumber(L,1), &tv);
+    return nl_mtev_timeval_new_ex(L, tv);
+  }
   struct timeval tv = { .tv_sec = lua_tointeger(L,1), .tv_usec = lua_tointeger(L,2) };
   return nl_mtev_timeval_new_ex(L, tv);
 }
 
+#define TVDOUBLE(tv) ((double)(tv)->tv_sec + (double)(tv)->tv_usec / 1000000.0)
 static int
 mtev_lua_timeval_tostring(lua_State *L) {
   char buf[128];
@@ -175,17 +188,62 @@ mtev_lua_timeval_sub(lua_State *L) {
 static int
 mtev_lua_timeval_add(lua_State *L) {
   struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
-  struct timeval *o = luaL_checkudata(L, 2, "mtev.timeval");
+  struct timeval *o, stacko;
+  if(lua_isnumber(L,2)) {
+    double_to_timeval(lua_tonumber(L,2), &stacko);
+    o = &stacko;
+  }
+  else o = luaL_checkudata(L, 2, "mtev.timeval");
   struct timeval n;
   add_timeval(*tv, *o, &n);
   return nl_mtev_timeval_new_ex(L, n);
 }
 static int
-mtev_lua_timeval_seconds(lua_State *L) {
-  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
-  lua_pushnumber(L, (double)tv->tv_sec + (double)tv->tv_usec / 1000000.0);
+mtev_lua_timeval_eq(lua_State *L) {
+  struct timeval *left = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *right, right_st;
+  if(lua_isnumber(L,2)) {
+    double_to_timeval(lua_tonumber(L,2), &right_st);
+    right = &right_st;
+  } else {
+    right = luaL_checkudata(L, 2, "mtev.timeval");
+  }
+  lua_pushboolean(L, compare_timeval(*left,*right) == 0);
   return 1;
 }
+static int
+mtev_lua_timeval_lt(lua_State *L) {
+  struct timeval *left = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *right, right_st;
+  if(lua_isnumber(L,2)) {
+    double_to_timeval(lua_tonumber(L,2), &right_st);
+    right = &right_st;
+  } else {
+    right = luaL_checkudata(L, 2, "mtev.timeval");
+  }
+  lua_pushboolean(L, compare_timeval(*left,*right) < 0);
+  return 1;
+}
+static int
+mtev_lua_timeval_le(lua_State *L) {
+  struct timeval *left = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *right, right_st;
+  if(lua_isnumber(L,2)) {
+    double_to_timeval(lua_tonumber(L,2), &right_st);
+    right = &right_st;
+  } else {
+    right = luaL_checkudata(L, 2, "mtev.timeval");
+  }
+  lua_pushboolean(L, compare_timeval(*left,*right) <= 0);
+  return 1;
+}
+static int
+mtev_lua_timeval_seconds(lua_State *L) {
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  lua_pushnumber(L, TVDOUBLE(tv));
+  return 1;
+}
+#undef TVDOUBLE
 
 static int
 mtev_lua_timeval_index_func(lua_State *L) {
@@ -6250,6 +6308,12 @@ int luaopen_mtev(lua_State *L) {
   lua_setfield(L, -2, "__sub");
   lua_pushcclosure(L, mtev_lua_timeval_add, 0);
   lua_setfield(L, -2, "__add");
+  lua_pushcclosure(L, mtev_lua_timeval_eq, 0);
+  lua_setfield(L, -2, "__eq");
+  lua_pushcclosure(L, mtev_lua_timeval_le, 0);
+  lua_setfield(L, -2, "__le");
+  lua_pushcclosure(L, mtev_lua_timeval_lt, 0);
+  lua_setfield(L, -2, "__lt");
 
   lua_getglobal(L, "_G");
   lua_getglobal(L, "mtev");
