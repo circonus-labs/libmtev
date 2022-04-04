@@ -483,7 +483,10 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
   mtev_lua_web_validate_lmc(lmc);
 
   if(!lmc || lmc->wants_restart) {
-    if(lmc) mtev_lua_deref(lmc);
+    if(lmc) {
+      mtev_lua_dispatch_defunct();
+      mtev_lua_deref(lmc);
+    }
     lmc = mtev_lua_lmc_alloc(self, lua_web_resume);
     mtev_lua_set_gc_params(lmc, conf->gc_params);
     lmc->interrupt_time = conf->interrupt_time;
