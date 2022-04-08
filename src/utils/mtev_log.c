@@ -2648,7 +2648,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
   int old_errno = errno;
   Zipkin_Span *activespan = mtev_zipkin_active_span(NULL);
   Zipkin_Span *logspan = NULL;
-  if(mtev_zipkin_span_logs_attached(logspan)) logspan = activespan;
+  if(mtev_zipkin_span_logs_attached(activespan)) logspan = activespan;
 
 #define ENSURE_NOW() do { \
   if(now == NULL) { \

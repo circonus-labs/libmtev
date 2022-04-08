@@ -6429,6 +6429,7 @@ int luaopen_mtev(lua_State *L) {
   luaopen_mtev_stats(L);
   luaopen_mtev_crypto(L);
   luaopen_mtev_http(L);
+  luaopen_mtev_zipkin(L);
   luaopen_bit(L);
   luaopen_pack(L);
   return 0;

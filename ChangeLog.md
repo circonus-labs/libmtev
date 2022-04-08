@@ -4,6 +4,11 @@
 
 ## 2.2
 
+ * Zipkin
+   * fix binary annotations of type `double`
+   * fix log attachment
+   * add lua helpers for logging and tagging to spans
+
 ### 2.2.3
 
  * Avoid stack overflow in `mtev_hash_retrieve` and `mtev_hash_delete` when the
