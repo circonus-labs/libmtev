@@ -344,10 +344,61 @@ static int mtev_lua_preempt_resume(eventer_t e, int mask, void *closure, struct 
   lua_State *L = (lua_State *)closure;
   mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
   if(ri) {
-    mtev_lua_resume(L, 0, ri);
+    ri->lmc->resume(ri, 0);
   }
   return 0;
 }
+
+static void lerror (lua_State *L, lua_Debug *ar) {
+  (void)ar;  /* unused arg. */
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
+  if(ri) {
+    lua_sethook(ri->coro_state, NULL, 0, 0);  /* reset hook */
+    luaL_error(L, "externally triggered error");
+  }
+}
+
+struct lua_actuation {
+  lua_State *L;
+  mtev_boolean error;
+};
+
+static int
+trigger_actuate_cb(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  struct lua_actuation *la = closure;
+  lua_State *L = la->L;
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
+  if(ri) {
+    if(la->error) {
+      lua_sethook(ri->coro_state, lerror, LUA_MASKCOUNT, 1);
+    } else {
+      mtev_lua_cancel_coro(ri);
+    }
+  }
+  free(la);
+  return 0;
+}
+
+mtev_boolean
+mtev_lua_actuate_foreign_state(lua_State *L, mtev_boolean error) {
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info_any_thread(L);
+  if(!ri || eventer_is_loop(ri->lmc->owner) < 0) {
+    mtevL(mtev_error, "lua_State %p not eligible for remote errors\n", L);
+    return mtev_false;
+  }
+
+  struct lua_actuation *la = calloc(1, sizeof(*la));
+  la->L = L;
+  la->error = error;
+  eventer_t e = eventer_in_s_us(trigger_actuate_cb, la, 0, 0);
+  eventer_set_owner(e, ri->lmc->owner);
+  eventer_add(e);
+  return mtev_true;
+}
+
 static void lstop (lua_State *L, lua_Debug *ar) {
   (void)ar;  /* unused arg. */
   mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
@@ -947,6 +998,36 @@ mtev_console_show_lua(mtev_console_closure_t ncct,
 }
 
 static int
+mtev_console_lua_actuate(mtev_console_closure_t ncct,
+                         int argc, char **argv,
+                         mtev_console_state_t *dstate,
+                         void *closure) {
+  (void)dstate;
+  bool terminate = (bool)(uintptr_t)closure;
+  if(argc != 1) {
+    nc_printf(ncct, "lua_State in hex required\n");
+    return 0;
+  }
+  char *endptr;
+  lua_State *co = NULL;
+  if(!strncasecmp(argv[0], "0x", 2)) {
+    uintptr_t ptr = strtoull(argv[0]+2, &endptr, 16);
+    if(*endptr == '\0') co = (lua_State *)ptr;
+  } else {
+    uintptr_t ptr = strtoull(argv[0], &endptr, 10);
+    if(*endptr == '\0') co = (lua_State *)ptr;
+  }
+  if(!co) {
+    nc_printf(ncct, "could not parse lua_State\n");
+    return 0;
+  }
+  if(!mtev_lua_actuate_foreign_state(co, terminate)) {
+    nc_printf(ncct, "Could not find lua_State 0x%zx\n", (uintptr_t)co);
+  }
+  return 0;
+}
+
+static int
 mtev_rest_bump_lua(mtev_http_rest_closure_t *restc, int n, char **p) {
   (void)n;
   (void)p;
@@ -1054,8 +1135,8 @@ mtev_lua_xcall(mtev_http_rest_closure_t *restc, int n, char **p) {
 void
 register_console_lua_commands(void) {
   static int loaded = 0;
-  mtev_console_state_t *tl;
-  cmd_info_t *showcmd;
+  mtev_console_state_t *tl, *luast;
+  cmd_info_t *showcmd, *mtevcmd;
 
   if(loaded) return;
   loaded = 1;
@@ -1064,6 +1145,16 @@ register_console_lua_commands(void) {
   mtevAssert(showcmd && showcmd->dstate);
   mtev_console_state_add_cmd(showcmd->dstate,
     NCSCMD("lua", mtev_console_show_lua, NULL, NULL, NULL));
+
+  mtevcmd = mtev_console_state_get_cmd(tl, "mtev");
+  mtevAssert(mtevcmd && mtevcmd->dstate);
+  luast = mtev_console_mksubdelegate(mtevcmd->dstate, "lua");
+
+  mtev_console_state_add_cmd(luast,
+      NCSCMD("cancel", mtev_console_lua_actuate, NULL, NULL, (void *)(uintptr_t)0));
+
+  mtev_console_state_add_cmd(luast,
+      NCSCMD("kill", mtev_console_lua_actuate, NULL, NULL, (void *)(uintptr_t)1));
 
   mtevAssert(mtev_http_rest_register_auth(
     "POST", "/module/lua/", "^bump\\.json$",
@@ -1101,15 +1192,15 @@ mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
   return;
 }
 
-mtev_lua_resume_info_t *
-mtev_lua_get_resume_info_internal(lua_State *L, mtev_boolean create) {
+static mtev_lua_resume_info_t *
+mtev_lua_get_resume_info_internal(lua_State *L, mtev_boolean create, mtev_boolean any_thread) {
   mtev_lua_resume_info_t *ri;
   void *v = NULL;
   pthread_mutex_lock(&coro_lock);
   if(mtev_hash_retrieve(&mtev_coros, (const char *)&L, sizeof(L), &v)) {
     pthread_mutex_unlock(&coro_lock);
     ri = v;
-    mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
+    if(!any_thread) mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
     return ri;
   }
   if(!create) {
@@ -1139,13 +1230,18 @@ mtev_lua_get_resume_info_internal(lua_State *L, mtev_boolean create) {
 }
 mtev_lua_resume_info_t *
 mtev_lua_get_resume_info(lua_State *L) {
-  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_true);
+  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_true, mtev_false);
   return ri;
 }
 mtev_lua_resume_info_t *
 mtev_lua_find_resume_info(lua_State *L, mtev_boolean lua_error) {
-  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_false);
+  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_false, mtev_false);
   if(ri == NULL && lua_error) luaL_error(L, "coro terminated");
+  return ri;
+}
+mtev_lua_resume_info_t *
+mtev_lua_find_resume_info_any_thread(lua_State *L) {
+  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_false, mtev_true);
   return ri;
 }
 

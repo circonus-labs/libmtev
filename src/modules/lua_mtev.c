@@ -5962,7 +5962,7 @@ nl_cancel_coro(lua_State *L) {
   } else {
     co = lua_tothread(L,1);
   }
-  ci = mtev_lua_find_resume_info(co, mtev_false);
+  ci = mtev_lua_find_resume_info_any_thread(co);
   if(!ci) return 0;
   if(pthread_equal(ci->lmc->owner, pthread_self())) {
     mtev_lua_cancel_coro(ci);

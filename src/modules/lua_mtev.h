@@ -222,6 +222,7 @@ int mtev_lua_resume(lua_State *L, int, mtev_lua_resume_info_t *);
 int mtev_lua_pcall(lua_State *L, int, int, int);
 int mtev_lua_traceback(lua_State *L);
 void mtev_lua_new_coro(mtev_lua_resume_info_t *);
+mtev_boolean mtev_lua_trigger_error(lua_State *L);
 void mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci);
 void mtev_lua_resume_clean_events(mtev_lua_resume_info_t *ci);
 void mtev_lua_pushmodule(lua_State *L, const char *m);
@@ -243,6 +244,7 @@ int luaopen_pack(lua_State *L); /* from lua_lpack.c */
 int luaopen_bit(lua_State *L); /* from lua_bit.c */
 mtev_lua_resume_info_t *mtev_lua_get_resume_info(lua_State *L);
 mtev_lua_resume_info_t *mtev_lua_find_resume_info(lua_State *L, mtev_boolean lua_error);
+mtev_lua_resume_info_t *mtev_lua_find_resume_info_any_thread(lua_State *L);
 void mtev_lua_set_resume_info(lua_State *L, mtev_lua_resume_info_t *ri);
 int mtev_lua_yield(mtev_lua_resume_info_t *ci, int nargs);
 void mtev_lua_register_event(mtev_lua_resume_info_t *ci, eventer_t e);

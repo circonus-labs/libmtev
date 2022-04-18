@@ -195,6 +195,9 @@ API_EXPORT(cmd_info_t *)
                              const char *name);
 
 API_EXPORT(mtev_console_state_t *)
+  mtev_console_mksubdelegate(mtev_console_state_t *parent, const char *cmd);
+
+API_EXPORT(mtev_console_state_t *)
   mtev_console_state_build(console_prompt_func_t promptf, cmd_info_t **clist,
                            state_free_func_t sfreef);
 
