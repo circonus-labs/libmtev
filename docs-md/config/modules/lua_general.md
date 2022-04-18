@@ -79,6 +79,12 @@ startup.
 
    Set the lua gc pause percentage.
 
+ * **`interrupt_mode`** (optional)  [default: `errors`]
+
+   allowed: `/^(?:error|preempt)$/`
+
+   Specify the behavior of asynchronous VM interrupts.
+
  * **`interrupt_time`** (optional) 
 
    allowed: `/^^\d+(?:\.\d+)?$$/`

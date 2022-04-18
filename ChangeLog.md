@@ -4,11 +4,13 @@
 
 ## 2.2
 
+### 2.2.4
+
  * Zipkin
    * fix binary annotations of type `double`
    * fix log attachment
    * add lua helpers for logging and tagging to spans
- * Make lua auto-preemption stable.
+ * Make lua auto-preemption stable (still not default)
 
 ### 2.2.3
 

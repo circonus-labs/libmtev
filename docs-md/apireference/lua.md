@@ -1194,6 +1194,32 @@ mtev.rmdir(path)
   * **RETURN** boolean success flag, error number, string representation of error
  
 
+#### mtev.runtime_defunct
+
+```lua
+mtev.runtime_defunct(f)
+```
+
+ *
+> Determines in the currrent runtime is defunct (you should end your work)
+
+
+ *    * `f` an optional callback function to call when a state goes defunct.
+ *  \returns true or false
+ 
+
+#### mtev.runtime_reload
+
+```lua
+mtev.runtime_reload()
+```
+
+ *
+> Forces a generational counter bump so that a new runtime will be created.
+
+
+ 
+
 ### S
 
 #### mtev.semaphore

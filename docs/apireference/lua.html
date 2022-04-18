@@ -1496,6 +1496,27 @@ mtev.rmdir(path)
 <li><code>path</code> string</li>
 <li><strong>RETURN</strong> boolean success flag, error number, string representation of error</li>
 </ul>
+<h4 id="mtevruntimedefunct">mtev.runtime_defunct</h4>
+<pre><code class="lang-lua">mtev.runtime_defunct(f)
+</code></pre>
+<p> *</p>
+<blockquote>
+<p>Determines in the currrent runtime is defunct (you should end your work)</p>
+</blockquote>
+<ul>
+<li><ul>
+<li><code>f</code> an optional callback function to call when a state goes defunct.</li>
+</ul>
+</li>
+<li>\returns true or false</li>
+</ul>
+<h4 id="mtevruntimereload">mtev.runtime_reload</h4>
+<pre><code class="lang-lua">mtev.runtime_reload()
+</code></pre>
+<p> *</p>
+<blockquote>
+<p>Forces a generational counter bump so that a new runtime will be created.</p>
+</blockquote>
 <h3 id="s">S</h3>
 <h4 id="mtevsemaphore">mtev.semaphore</h4>
 <blockquote>
