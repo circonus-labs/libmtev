@@ -4,6 +4,8 @@
 
 ## 2.2
 
+ * Make lua auto-preemption stable.
+
 ### 2.2.3
 
  * Avoid stack overflow in `mtev_hash_retrieve` and `mtev_hash_delete` when the
