@@ -127,7 +127,7 @@ lua_mtev.@MODULEEXT@:	$(LUA_MODULE_OBJS)
 	$(modulelink)
 
 # luajit always uses .so
-MTEV_LUA_OBJS=lua_mtev_crypto.lo lua_mtev.lo lua_mtev_dns.lo \
+MTEV_LUA_OBJS=lua_mtev_crypto.lo lua_mtev_zipkin.lo lua_mtev.lo lua_mtev_dns.lo \
 	lua_lpack.lo lua_bit.lo lua_mtev_stats.lo
 
 mtev_lua/mtev.@MODULEEXT@:	MODLIBS += -lcrypto -lssl -ludns
