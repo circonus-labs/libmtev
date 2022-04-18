@@ -374,7 +374,7 @@ mtev_lua_timer_fire(int sig, siginfo_t *info, void *c) {
   mtevL(nldeb, "timer fired: lua %p\n", tls_active_lua_state);
 
   if(tls_active_lua_state) {
-    lua_sethook(tls_active_lua_state, lstop, LUA_MASKCALL | LUA_MASKRET | LUA_MASKCOUNT,1);
+    lua_sethook(tls_active_lua_state, lstop, LUA_MASKCOUNT, 1);
   }
 }
 

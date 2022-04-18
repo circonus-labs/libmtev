@@ -370,11 +370,11 @@ int mtev_hash_set(mtev_hash_table *h, const void *k, int klen, const void *data,
 int mtev_hash_retrieve(mtev_hash_table *h, const void *k, int klen, void **data) {
   long hashv;
   ck_key_t *retrieved_key;
-  union {
-    ck_key_t key;
-    char pad[sizeof(ck_key_t) + ONSTACK_KEY_SIZE];
+  struct onstack_key_t {
+    uint32_t len;
+    char label[ONSTACK_KEY_SIZE];
   } onstack_key;
-  ck_key_t *key = &onstack_key.key;
+  ck_key_t *key = (ck_key_t *) &onstack_key;
   ck_hash_attr_t *data_struct;
 
   if(!h) return 0;
@@ -400,10 +400,10 @@ int mtev_hash_retrieve(mtev_hash_table *h, const void *k, int klen, void **data)
         *data = NULL;
       }
     }
-    if(key != &onstack_key.key) free(key);
+    if(key != (ck_key_t*) &onstack_key) free(key);
     return 1;
   }
-  if(key != &onstack_key.key) free(key);
+  if(key != (ck_key_t*) &onstack_key) free(key);
   return 0;
 }
 void *mtev_hash_get(mtev_hash_table *h, const void *k, int klen) {
@@ -425,11 +425,11 @@ int mtev_hash_delete(mtev_hash_table *h, const void *k, int klen,
   long hashv;
   ck_hash_attr_t *data_struct;
   ck_key_t *retrieved_key;
-  union {
-    ck_key_t key;
-    char pad[sizeof(ck_key_t) + ONSTACK_KEY_SIZE];
+  struct onstack_key_t {
+    uint32_t len;
+    char label[ONSTACK_KEY_SIZE];
   } onstack_key;
-  ck_key_t *key = &onstack_key.key;
+  ck_key_t *key = (ck_key_t *) &onstack_key;
 
   if(!h) return 0;
   if(h->u.hs.hf == NULL) {
@@ -456,11 +456,11 @@ int mtev_hash_delete(mtev_hash_table *h, const void *k, int klen,
       } else {
         free(data_struct);
       }
-      if(key != &onstack_key.key) free(key);
+      if(key != (ck_key_t*) &onstack_key) free(key);
       return 1;
     }
   }
-  if(key != &onstack_key.key) free(key);
+  if(key != (ck_key_t*) &onstack_key) free(key);
   return 0;
 }
 
