@@ -4,6 +4,12 @@
 
 ## 2.2
 
+### 2.2.5
+
+ * Support lua coroutine killing and cancellation via console.
+ * Fix bug in preemption resumption where it was calling a
+   non-implementation-specific resume.
+
 ### 2.2.4
 
  * Zipkin
