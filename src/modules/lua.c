@@ -377,8 +377,8 @@ trigger_actuate_cb(eventer_t e, int mask, void *closure, struct timeval *now) {
     } else {
       mtev_lua_cancel_coro(ri);
     }
-    return 0;
   }
+  free(la);
   return 0;
 }
 
