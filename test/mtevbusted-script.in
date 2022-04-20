@@ -39,7 +39,7 @@ cli_option("list", { help = "list all available tests", value = false, default =
 cli_option("bail", { help = "stop at end of test after first failure", value = false, default = false })
 cli_option("l",  { help = "enable mtev log stream", value = mtev.enable_log })
 cli_option("L",  { help = "disable mtev log stream", value = disable_log })
-cli_option("skip", { help = "skip all subtests after error or failure", value = false, default = false })
+cli_option("dontskip", { help = "continue running subtests after error or failure", value = false, default = false })
 local options = parsecli()
 if options.h.value then usage() end
 
@@ -155,13 +155,13 @@ function testsuite(context)
 
   busted.subscribe({ 'error' }, function(...)
     errors = errors + 1
-    busted.skipAll = options["skip"].value
+    busted.skipAll = not options["dontskip"].value
     return nil, true
   end)
 
   busted.subscribe({ 'failure' }, function(...)
     failures = failures + 1
-    busted.skipAll = options["skip"].value
+    busted.skipAll = not options["dontskip"].value
     return nil, true
   end)
 
