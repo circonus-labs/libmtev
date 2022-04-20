@@ -42,6 +42,9 @@
      }
 
 static int nl_service(lua_State *L) {
+  if(!mtev_consul_service_alloc_available()) {
+    luaL_error(L, "consul module not loaded?");
+  }
   mtev_consul_service **service;
   const char *name = lua_tostring(L,1);
   const char *id = lua_tostring(L,2);

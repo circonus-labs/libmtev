@@ -44,6 +44,10 @@
                required="optional"
                default="200"
                allowed="^(?:[1-9]\d*)$">Set the lua gc pause percentage.</parameter>
+    <parameter name="interrupt_mode"
+               required="optional"
+               default="errors"
+               allowed="(?:error|preempt)">Specify the behavior of asynchronous VM interrupts.</parameter>
     <parameter name="interrupt_time"
                required="optional"
                default=""

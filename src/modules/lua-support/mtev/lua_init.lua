@@ -5,8 +5,6 @@
 -- might shadow mtev.so in the LUA_CPATH
 --
 
-mtev.timeval = require("mtev.timeval")
-
 mtev.extras = require("mtev.extras")
 
 mtev.Api = require("mtev.Api")

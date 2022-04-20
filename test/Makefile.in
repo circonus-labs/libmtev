@@ -17,6 +17,9 @@ INSTALL=@INSTALL@
 MODULES_DIR=@MODULES_DIR@
 LIBMTEV_LIBS=@LIBMTEV_LIBS@
 UNWINDLIB=@UNWINDLIB@
+VALIDATECERT=openssl x509 -noout -checkend 300 -in
+CERTS=demoCA/root/certs/ca.crt demoCA/intermediate/certs/ca.crt \
+      test-server.crt test-client.crt
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
@@ -135,20 +138,35 @@ install:	mtevbusted-script
 
 check:	check-standalone check-lua
 
-.PHONY:	demoCA-dir
-demoCA-dir:
-	@bash -c "mkdir -p demoCA/{root,intermediate}/{private,certs,csr,crl,newcerts}"
+demoCA/root/anchor:
+	@bash -c "mkdir -p demoCA/root/{private,certs,csr,crl,newcerts}"
 	@touch demoCA/root/index.txt
-	@touch demoCA/intermediate/index.txt
 	@test -f demoCA/root/serial || echo 00 > demoCA/root/serial
+	@touch demoCA/root/anchor
+
+demoCA/intermediate/anchor:
+	@bash -c "mkdir -p demoCA/intermediate/{private,certs,csr,crl,newcerts}"
+	@touch demoCA/intermediate/index.txt
 	@test -f demoCA/intermediate/serial || echo 00 > demoCA/intermediate/serial
+	@touch demoCA/intermediate/anchor
 
 
-testcerts:	demoCA-dir \
-	demoCA/root/certs/ca.crt demoCA/intermediate/certs/ca.crt \
-	test-server.crt test-client.crt
+testcerts:	validatecerts $(CERTS)
 
-demoCA/root/private/ca.key:
+.PHONY: validatecerts
+validatecerts:
+	$(Q)for crt in $(CERTS); do \
+	  if [ ! -f $$crt ]; then \
+	    rm -rf demoCA/root demoCA/intermediate ; \
+	    break ; \
+	  fi ; \
+	  $(VALIDATECERT) $$crt 2>&1 > /dev/null || \
+	  (echo -n "$$crt: "; $(VALIDATECERT) $$crt ; \
+	   rm -rf demoCA/root demoCA/intermediate ; \
+	   break) ; \
+	done
+
+demoCA/root/private/ca.key:	demoCA/root/anchor
 	@echo " - $@"
 	$(Q)openssl genrsa -out $@ 4096
 
@@ -159,8 +177,10 @@ demoCA/root/csr/ca.csr:    demoCA/root/private/ca.key
 demoCA/root/certs/ca.crt:    demoCA/root/csr/ca.csr demoCA/root/private/ca.key
 	@echo " - $@"
 	$(Q)openssl x509 -sha256 -req -in demoCA/root/csr/ca.csr -signkey demoCA/root/private/ca.key -out $@ -extfile demoCA/root.cnf -extensions v3_ca -days 365
+	$(Q)rm -rf demoCA/intermediate
+	$(Q)rm -f test-{client,server}.crt
 
-demoCA/intermediate/private/ca.key:
+demoCA/intermediate/private/ca.key:	demoCA/intermediate/anchor
 	@echo " - $@"
 	$(Q)openssl genrsa -out $@ 4096
 

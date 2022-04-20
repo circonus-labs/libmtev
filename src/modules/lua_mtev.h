@@ -60,6 +60,8 @@ typedef struct lua_module_gc_params lua_module_gc_params_t;
 
 API_EXPORT(lua_module_gc_params_t *) mtev_lua_config_gc_params(mtev_hash_table *);
 
+typedef enum { INTERRUPT_ERRORS = 0, INTERRUPT_PREEMPTS } lua_module_interrupt_mode_e;
+
 typedef struct lua_module_closure {
   lua_State *lua_state;
   mtev_hash_table *pending;
@@ -73,15 +75,24 @@ typedef struct lua_module_closure {
   timer_t _timer;
   timer_t *timer;
   struct timeval interrupt_time;
+  uint32_t ref_cnt;
+  bool wants_restart;
+  bool defunct_cb_fired;
+  uint64_t gen;
+  lua_module_interrupt_mode_e interrupt_mode;
 } lua_module_closure_t;
 
 API_EXPORT(void) mtev_lua_set_gc_params(lua_module_closure_t *, lua_module_gc_params_t *);
 API_EXPORT(void) mtev_lua_gc(lua_module_closure_t *);
 API_EXPORT(void) mtev_lua_gc_full(lua_module_closure_t *);
+API_EXPORT(void) mtev_lua_ref(lua_module_closure_t *);
+API_EXPORT(void) mtev_lua_deref(lua_module_closure_t *);
+API_EXPORT(void) mtev_lua_validate_lmc(lua_module_closure_t *);
 
 API_EXPORT(void)
   mtev_luaL_traceback(void (*cb)(void *, const char *, size_t), void *closure,
                       lua_State *L1, const char *msg, int level);
+
 /*! \fn lua_module_closure_t *mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_info_t *resume)
     \brief Allocated and initialize a `lua_module_closure_t` for a new runtime.
     \param self the module implementing a custom lua runtime environment
@@ -211,6 +222,7 @@ int mtev_lua_resume(lua_State *L, int, mtev_lua_resume_info_t *);
 int mtev_lua_pcall(lua_State *L, int, int, int);
 int mtev_lua_traceback(lua_State *L);
 void mtev_lua_new_coro(mtev_lua_resume_info_t *);
+mtev_boolean mtev_lua_trigger_error(lua_State *L);
 void mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci);
 void mtev_lua_resume_clean_events(mtev_lua_resume_info_t *ci);
 void mtev_lua_pushmodule(lua_State *L, const char *m);
@@ -226,17 +238,22 @@ int luaopen_mtev_http(lua_State *L);
 int mtev_lua_crypto_newx509(lua_State *L, X509 *x509);
 int mtev_lua_crypto_new_ssl_session(lua_State *L, SSL_SESSION *sess);
 int luaopen_mtev_crypto(lua_State *L);
+int luaopen_mtev_zipkin(lua_State *L);
 int luaopen_mtev_stats(lua_State *);
 int luaopen_pack(lua_State *L); /* from lua_lpack.c */
 int luaopen_bit(lua_State *L); /* from lua_bit.c */
 mtev_lua_resume_info_t *mtev_lua_get_resume_info(lua_State *L);
 mtev_lua_resume_info_t *mtev_lua_find_resume_info(lua_State *L, mtev_boolean lua_error);
+mtev_lua_resume_info_t *mtev_lua_find_resume_info_any_thread(lua_State *L);
 void mtev_lua_set_resume_info(lua_State *L, mtev_lua_resume_info_t *ri);
 int mtev_lua_yield(mtev_lua_resume_info_t *ci, int nargs);
 void mtev_lua_register_event(mtev_lua_resume_info_t *ci, eventer_t e);
 void mtev_lua_deregister_event(mtev_lua_resume_info_t *ci, eventer_t e,
                                      int tofree);
 
+MTEV_RUNTIME_RESOLVE(mtev_lua_trigger_reload_dyn, mtev_lua_trigger_reload, void,
+                     (void), ());
+MTEV_RUNTIME_AVAIL(mtev_lua_trigger_reload_dyn, mtev_lua_trigger_reload)
 MTEV_RUNTIME_RESOLVE(mtev_lua_yield_dyn, mtev_lua_yield, int,
                      (mtev_lua_resume_info_t *ci, int nargs),
                      (ci, nargs));
@@ -246,6 +263,9 @@ MTEV_RUNTIME_RESOLVE(mtev_lua_get_resume_info_dyn, mtev_lua_get_resume_info,
                      (lua_State *L),
                      (L));
 MTEV_RUNTIME_AVAIL(mtev_lua_get_resume_info_dyn, mtev_lua_get_resume_info)
+
+void mtev_lua_dispatch_defunct(void);
+MTEV_HOOK_PROTO(mtev_lua_dispatch_defunct, (lua_module_closure_t *), void *, closure, (void *closure, lua_module_closure_t *lmc));
 
 void
 mtev_lua_setup_http_ctx(lua_State *L,

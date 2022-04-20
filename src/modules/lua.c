@@ -53,15 +53,21 @@
 #define nldeb mtev_lua_debug_ls
 #define nlerr mtev_lua_error_ls
 
+MTEV_HOOK_IMPL(mtev_lua_dispatch_defunct, (lua_module_closure_t *lmc), void *, closure,
+               (void *closure, lua_module_closure_t *lmc), (closure, lmc));
+
 mtev_log_stream_t mtev_lua_debug_ls;
 mtev_log_stream_t mtev_lua_error_ls;
 
+static eventer_jobq_t *release_jobq;
 static mtev_hash_table mtev_lua_states;
 static pthread_mutex_t mtev_lua_states_lock = PTHREAD_MUTEX_INITIALIZER;
 static mtev_hash_table mtev_coros;
 static pthread_mutex_t coro_lock = PTHREAD_MUTEX_INITIALIZER;
 static stats_ns_t *lua_stats_ns;
 static stats_handle_t *gc_total, *gc_full, *gc_latency;
+static stats_handle_t *states_started, *states_stopped, *states_current;
+static uint64_t global_gen = 0;
 
 struct lua_module_gc_params {
   int iters_since_full;
@@ -185,6 +191,61 @@ mtev_lua_timer_setup(lua_module_closure_t *lmc) {
 #endif
 }
 
+void mtev_lua_validate_lmc(lua_module_closure_t *lmc) {
+  if(!lmc) return;
+  if(ck_pr_load_64(&global_gen) != lmc->gen) {
+    lmc->wants_restart = true;
+  }
+}
+
+static int
+mtev_lua_dispatch_defunct_cb(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  lua_module_closure_t *lmc = (lua_module_closure_t *)closure;
+
+  mtev_lua_validate_lmc(lmc);
+  if(lmc->wants_restart == false) return 0;
+  if(lmc->defunct_cb_fired) return 0;
+  lmc->defunct_cb_fired = true;
+
+  lua_State *L = lmc->lua_state;
+  lua_getglobal(L, "mtev");
+  lua_getfield(L, -1, "__defunct_cb");
+  if(lua_isfunction(L, -1)) {
+    mtev_lua_pcall(L, 0, 0, 0);
+  }
+  mtev_lua_dispatch_defunct_hook_invoke(lmc);
+  mtev_lua_deref(lmc);
+  return 0;
+}
+
+void
+mtev_lua_dispatch_defunct(void) {
+  mtev_hash_iter iter = {};
+  pthread_mutex_lock(&mtev_lua_states_lock);
+  while(mtev_hash_adv(&mtev_lua_states, &iter)) {
+    lua_module_closure_t *lmc = iter.value.ptr;
+    mtev_lua_validate_lmc(lmc);
+    pthread_t tgt = lmc->owner;
+    if(lmc->wants_restart == false || eventer_is_loop(tgt) < 0) {
+      continue;
+    }
+
+    mtev_lua_ref(lmc);
+    eventer_t e = eventer_in_s_us(mtev_lua_dispatch_defunct_cb, lmc, 0, 0);
+    eventer_set_owner(e, tgt);
+    eventer_add(e);
+  }
+  pthread_mutex_unlock(&mtev_lua_states_lock);
+}
+
+void mtev_lua_trigger_reload(void) {
+  ck_pr_inc_64(&global_gen);
+  mtev_lua_dispatch_defunct();
+}
+
 lua_module_closure_t *
 mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
   lua_module_closure_t *lmc;
@@ -196,8 +257,33 @@ mtev_lua_lmc_alloc(mtev_dso_generic_t *self, mtev_lua_resume_t resume) {
   lmc->eventer_id = eventer_is_loop(lmc->owner);
   lmc->self = self;
   lmc->resume = resume;
+  lmc->ref_cnt = 1;
+  lmc->gen = global_gen;
   mtev_lua_timer_setup(lmc);
+  stats_add64(states_started, 1);
+  stats_add64(states_current, 1);
   return lmc;
+}
+
+void mtev_lua_ref(lua_module_closure_t *lmc) {
+  mtevAssert(lmc->ref_cnt);
+  ++lmc->ref_cnt;
+  mtevL(nldeb, "mtev_lua_deref(%p) -> %u\n", lmc, lmc->ref_cnt);
+}
+
+static int mtev_lua_release(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)now;
+  if(mask == EVENTER_ASYNCH_WORK) mtev_lua_lmc_free((lua_module_closure_t *)closure);
+  return 0;
+}
+
+void mtev_lua_deref(lua_module_closure_t *lmc) {
+  mtevL(nldeb, "mtev_lua_deref(%p) -> %u\n", lmc, lmc->ref_cnt - 1);
+  if(--lmc->ref_cnt == 0) {
+    eventer_t e = eventer_alloc_asynch(mtev_lua_release, lmc);
+    eventer_add_asynch(release_jobq, e);
+  }
 }
 
 void
@@ -219,6 +305,8 @@ mtev_lua_lmc_free(lua_module_closure_t *lmc) {
         mtevL(mtev_error, "timer_delete failed: %s", strerror(errno));
       }
     }
+    stats_add64(states_stopped, 1);
+    stats_add64(states_current, -1);
   }
   free(lmc);
 }
@@ -249,11 +337,84 @@ mtev_lua_timer_stop(timer_t *lua_timer) {
   if(timer_settime(*lua_timer, 0, &ispec, NULL) != 0)
     mtevL(mtev_error, "timer_settime failed: %s\n", strerror(errno));
 }
+static int mtev_lua_preempt_resume(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  lua_State *L = (lua_State *)closure;
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
+  if(ri) {
+    ri->lmc->resume(ri, 0);
+  }
+  return 0;
+}
+
+static void lerror (lua_State *L, lua_Debug *ar) {
+  (void)ar;  /* unused arg. */
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
+  if(ri) {
+    lua_sethook(ri->coro_state, NULL, 0, 0);  /* reset hook */
+    luaL_error(L, "externally triggered error");
+  }
+}
+
+struct lua_actuation {
+  lua_State *L;
+  mtev_boolean error;
+};
+
+static int
+trigger_actuate_cb(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  struct lua_actuation *la = closure;
+  lua_State *L = la->L;
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
+  if(ri) {
+    if(la->error) {
+      lua_sethook(ri->coro_state, lerror, LUA_MASKCOUNT, 1);
+    } else {
+      mtev_lua_cancel_coro(ri);
+    }
+  }
+  free(la);
+  return 0;
+}
+
+mtev_boolean
+mtev_lua_actuate_foreign_state(lua_State *L, mtev_boolean error) {
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info_any_thread(L);
+  if(!ri || eventer_is_loop(ri->lmc->owner) < 0) {
+    mtevL(mtev_error, "lua_State %p not eligible for remote errors\n", L);
+    return mtev_false;
+  }
+
+  struct lua_actuation *la = calloc(1, sizeof(*la));
+  la->L = L;
+  la->error = error;
+  eventer_t e = eventer_in_s_us(trigger_actuate_cb, la, 0, 0);
+  eventer_set_owner(e, ri->lmc->owner);
+  eventer_add(e);
+  return mtev_true;
+}
+
 static void lstop (lua_State *L, lua_Debug *ar) {
   (void)ar;  /* unused arg. */
+  mtev_lua_resume_info_t *ri = mtev_lua_find_resume_info(L, mtev_false);
+  if(!ri || ri->lmc->interrupt_mode == INTERRUPT_ERRORS) {
+    if(ri) ri->lmc->wants_restart = true;
+    lua_sethook(L, NULL, 0, 0);  /* reset hook */
+    luaL_error(L, "interrupted!");
+  }
+
+  L = ri->coro_state;
+  if(!lua_isyieldable(L)) {
+    return;
+  }
   lua_sethook(L, NULL, 0, 0);  /* reset hook */
-  mtev_stacktrace(mtev_error);
-  luaL_error(L, "interrupted!");
+  eventer_add_in_s_us(mtev_lua_preempt_resume, L, 0, 0);
+  mtev_lua_yield(ri, 0);
 }
 
 static void
@@ -264,7 +425,7 @@ mtev_lua_timer_fire(int sig, siginfo_t *info, void *c) {
   mtevL(nldeb, "timer fired: lua %p\n", tls_active_lua_state);
 
   if(tls_active_lua_state) {
-    lua_sethook(tls_active_lua_state, lstop, LUA_MASKCALL | LUA_MASKRET | LUA_MASKCOUNT,1);
+    lua_sethook(tls_active_lua_state, lstop, LUA_MASKCOUNT, 1);
   }
 }
 
@@ -337,7 +498,9 @@ mtev_lua_lmc_resume(lua_module_closure_t *lmc,
   int rv;
   lua_State *previous = tls_active_lua_state;
   tls_active_lua_state = ri->coro_state;
+  mtev_lua_ref(lmc);
   rv = lmc->resume(ri, nargs);
+  mtev_lua_deref(lmc);
   tls_active_lua_state = previous;
   return rv;
 }
@@ -358,7 +521,12 @@ void
 mtev_lua_cancel_coro(mtev_lua_resume_info_t *ci) {
   mtevL(nldeb, "coro_store <- %p\n", ci->coro_state);
   luaL_unref(ci->lmc->lua_state, LUA_REGISTRYINDEX, ci->coro_state_ref);
-  mtev_lua_gc_full(ci->lmc);
+  /* IF we want a restart, we're going to toss everyrhing,
+   * so don't pay for GC inline here.
+   */
+  if(!ci->lmc->wants_restart) {
+    mtev_lua_gc_full(ci->lmc);
+  }
   mtevAssert(mtev_hash_delete(&ci->lmc->state_coros,
                           (const char *)&ci->coro_state, sizeof(ci->coro_state),
                           NULL, NULL));
@@ -480,7 +648,6 @@ static struct lua_reporter *
 mtev_lua_reporter_alloc(void) {
     struct lua_reporter *reporter;
     reporter = calloc(1, sizeof(*reporter));
-    reporter->pool = eventer_pool("default");
     mtev_gettimeofday(&reporter->start, NULL);
     pthread_mutex_init(&reporter->lock, NULL);
     reporter->outstanding = 1;
@@ -600,16 +767,21 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
   mtevAssert(reporter->approach == LUA_REPORT_NCCT);
 
   pthread_mutex_lock(&reporter->lock);
-  nc_printf(ncct, "== Thread %lx ==\n", (unsigned long)me);
 
   memcpy(&iter, &zero, sizeof(zero));
+  bool header = false;
   pthread_mutex_lock(&mtev_lua_states_lock);
   while(mtev_hash_adv(&mtev_lua_states, &iter)) {
     lua_State **Lptr = (lua_State **)iter.key.ptr;
     lua_module_closure_t *lmc = iter.value.ptr;
     pthread_t tgt = lmc->owner;
     if(!pthread_equal(me, tgt)) continue;
+    if(!header) {
+      nc_printf(ncct, "== Thread %lx ==\n", (unsigned long)me);
+      header = true;
+    }
     nc_printf(ncct, "master (state:%p)\n", *Lptr);
+    nc_printf(ncct, "\tgeneration: %" PRIu64"\n", lmc->gen);
     nc_printf(ncct, "\tmemory: %d kb\n", lua_gc(*Lptr, LUA_GCCOUNT, 0));
     if(lmc->gcparams) {
       lua_module_gc_params_t *p = lmc->gcparams;
@@ -673,29 +845,50 @@ mtev_console_lua_thread_reporter_ncct(eventer_t e, int mask, void *closure,
 }
 
 static void
+dispatch_reporter(struct lua_reporter *reporter, eventer_func_t reporter_f, pthread_t tgt, mtev_boolean *include_me) {
+  struct timeval old = { 1ULL, 0ULL };
+  if(pthread_equal(tgt, pthread_self())) {
+    *include_me = mtev_true;
+  }
+  else {
+    eventer_t e;
+    e = eventer_alloc_timer(reporter_f, reporter, &old);
+    eventer_set_owner(e, tgt);
+    mtev_lua_reporter_ref(reporter);
+    eventer_add(e);
+  }
+}
+static void
 distribute_reporter_across_threads(struct lua_reporter *reporter,
                                    eventer_func_t reporter_f) {
   size_t i = 0;
-  pthread_t me, tgt;
   mtev_boolean include_me = mtev_false;
-  struct timeval old = { 1ULL, 0ULL };
 
   mtev_lua_reporter_ref(reporter);
 
-  me = pthread_self();
-
-  for(i=0;i<eventer_pool_concurrency(reporter->pool);i++) {
-    tgt = eventer_choose_owner_pool(reporter->pool, i);
-    if(pthread_equal(tgt, me)) {
-      include_me = mtev_true;
+  if(reporter->pool) {
+    for(i=0;i<eventer_pool_concurrency(reporter->pool);i++) {
+      pthread_t tgt = eventer_choose_owner_pool(reporter->pool, i);
+      dispatch_reporter(reporter, reporter_f, tgt, &include_me);
     }
-    else {
-      eventer_t e;
-      e = eventer_alloc_timer(reporter_f, reporter, &old);
-      eventer_set_owner(e, tgt);
-      mtev_lua_reporter_ref(reporter);
-      eventer_add(e);
+  } else {
+    /* go by tracked lmc */
+    mtev_hash_iter iter = {};
+    mtev_hash_table dups;
+    mtev_hash_init(&dups);
+    pthread_mutex_lock(&mtev_lua_states_lock);
+    while(mtev_hash_adv(&mtev_lua_states, &iter)) {
+      lua_module_closure_t *lmc = iter.value.ptr;
+      pthread_t tgt = lmc->owner;
+      if(eventer_is_loop(tgt) < 0) {
+        continue;
+      }
+      if(mtev_hash_store(&dups, &lmc->owner, sizeof(lmc->owner), NULL)) {
+        dispatch_reporter(reporter, reporter_f, tgt, &include_me);
+      }
     }
+    pthread_mutex_unlock(&mtev_lua_states_lock);
+    mtev_hash_destroy(&dups, NULL, NULL);
   }
 
   if(include_me)
@@ -805,6 +998,47 @@ mtev_console_show_lua(mtev_console_closure_t ncct,
 }
 
 static int
+mtev_console_lua_actuate(mtev_console_closure_t ncct,
+                         int argc, char **argv,
+                         mtev_console_state_t *dstate,
+                         void *closure) {
+  (void)dstate;
+  bool terminate = (bool)(uintptr_t)closure;
+  if(argc != 1) {
+    nc_printf(ncct, "lua_State in hex required\n");
+    return 0;
+  }
+  char *endptr;
+  lua_State *co = NULL;
+  if(!strncasecmp(argv[0], "0x", 2)) {
+    uintptr_t ptr = strtoull(argv[0]+2, &endptr, 16);
+    if(*endptr == '\0') co = (lua_State *)ptr;
+  } else {
+    uintptr_t ptr = strtoull(argv[0], &endptr, 10);
+    if(*endptr == '\0') co = (lua_State *)ptr;
+  }
+  if(!co) {
+    nc_printf(ncct, "could not parse lua_State\n");
+    return 0;
+  }
+  if(!mtev_lua_actuate_foreign_state(co, terminate)) {
+    nc_printf(ncct, "Could not find lua_State 0x%zx\n", (uintptr_t)co);
+  }
+  return 0;
+}
+
+static int
+mtev_rest_bump_lua(mtev_http_rest_closure_t *restc, int n, char **p) {
+  (void)n;
+  (void)p;
+  ck_pr_inc_64(&global_gen);
+  mtev_http_response_ok(restc->http_ctx, "application/json");
+  mtev_http_response_appendf(restc->http_ctx, "{\"gen\":%" PRIu64 "}\n", global_gen);
+  mtev_http_response_end(restc->http_ctx);
+  return 0;
+}
+
+static int
 mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
                                struct timeval *now) {
   (void)e;
@@ -901,8 +1135,8 @@ mtev_lua_xcall(mtev_http_rest_closure_t *restc, int n, char **p) {
 void
 register_console_lua_commands(void) {
   static int loaded = 0;
-  mtev_console_state_t *tl;
-  cmd_info_t *showcmd;
+  mtev_console_state_t *tl, *luast;
+  cmd_info_t *showcmd, *mtevcmd;
 
   if(loaded) return;
   loaded = 1;
@@ -911,6 +1145,21 @@ register_console_lua_commands(void) {
   mtevAssert(showcmd && showcmd->dstate);
   mtev_console_state_add_cmd(showcmd->dstate,
     NCSCMD("lua", mtev_console_show_lua, NULL, NULL, NULL));
+
+  mtevcmd = mtev_console_state_get_cmd(tl, "mtev");
+  mtevAssert(mtevcmd && mtevcmd->dstate);
+  luast = mtev_console_mksubdelegate(mtevcmd->dstate, "lua");
+
+  mtev_console_state_add_cmd(luast,
+      NCSCMD("cancel", mtev_console_lua_actuate, NULL, NULL, (void *)(uintptr_t)0));
+
+  mtev_console_state_add_cmd(luast,
+      NCSCMD("kill", mtev_console_lua_actuate, NULL, NULL, (void *)(uintptr_t)1));
+
+  mtevAssert(mtev_http_rest_register_auth(
+    "POST", "/module/lua/", "^bump\\.json$",
+    mtev_rest_bump_lua, mtev_http_rest_client_cert_auth
+  ) == 0);
 
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/module/lua/", "^state\\.json$",
@@ -943,15 +1192,15 @@ mtev_lua_new_coro(mtev_lua_resume_info_t *ri) {
   return;
 }
 
-mtev_lua_resume_info_t *
-mtev_lua_get_resume_info_internal(lua_State *L, mtev_boolean create) {
+static mtev_lua_resume_info_t *
+mtev_lua_get_resume_info_internal(lua_State *L, mtev_boolean create, mtev_boolean any_thread) {
   mtev_lua_resume_info_t *ri;
   void *v = NULL;
   pthread_mutex_lock(&coro_lock);
   if(mtev_hash_retrieve(&mtev_coros, (const char *)&L, sizeof(L), &v)) {
     pthread_mutex_unlock(&coro_lock);
     ri = v;
-    mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
+    if(!any_thread) mtevAssert(pthread_equal(pthread_self(), ri->bound_thread));
     return ri;
   }
   if(!create) {
@@ -981,13 +1230,18 @@ mtev_lua_get_resume_info_internal(lua_State *L, mtev_boolean create) {
 }
 mtev_lua_resume_info_t *
 mtev_lua_get_resume_info(lua_State *L) {
-  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_true);
+  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_true, mtev_false);
   return ri;
 }
 mtev_lua_resume_info_t *
 mtev_lua_find_resume_info(lua_State *L, mtev_boolean lua_error) {
-  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_false);
+  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_false, mtev_false);
   if(ri == NULL && lua_error) luaL_error(L, "coro terminated");
+  return ri;
+}
+mtev_lua_resume_info_t *
+mtev_lua_find_resume_info_any_thread(lua_State *L) {
+  mtev_lua_resume_info_t *ri = mtev_lua_get_resume_info_internal(L, mtev_false, mtev_true);
   return ri;
 }
 
@@ -1199,6 +1453,7 @@ mtev_lua_coroutine_spawn(lua_State *Lp,
 #if !defined(LUA_JITLIBNAME) && LUA_VERSION_NUM < 502
   lua_setlevel(Lp, L);
 #endif
+  mtev_lua_ref(ri->lmc);
   mtev_lua_lmc_resume(ri->lmc, ri, nargs-1);
   return 0;
 }
@@ -1346,10 +1601,13 @@ mtev_lua_push_inet_ntop(lua_State *L, struct sockaddr *r) {
 
 void
 mtev_lua_init_globals(void) {
+  release_jobq = eventer_jobq_retrieve("lua_release");
   mtev_hash_init(&mtev_lua_states);
   mtev_hash_init(&mtev_coros);
   mtev_stacktrace_frame_hook_register("mtev_lua", mtev_lua_stacktrace_assist, NULL);
   eventer_name_callback("mtev_lua_gc_callback", mtev_lua_gc_callback);
+  eventer_name_callback("mtev_lua_release", mtev_lua_release);
+  eventer_name_callback("mtev_lua_preempt_resume", mtev_lua_preempt_resume);
   lua_stats_ns = mtev_stats_ns(mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "modules"), "lua");
   stats_ns_add_tag(lua_stats_ns, "mtev-module", "lua");
   gc_full = stats_register(lua_stats_ns, "gc_full", STATS_TYPE_COUNTER);
@@ -1358,6 +1616,15 @@ mtev_lua_init_globals(void) {
   stats_handle_units(gc_total, STATS_UNITS_TRANSACTIONS);
   gc_latency = stats_register(lua_stats_ns, "gc_latency", STATS_TYPE_HISTOGRAM_FAST);
   stats_handle_units(gc_latency, STATS_UNITS_SECONDS);
+  states_started = stats_register(lua_stats_ns, "lua_states_allocated", STATS_TYPE_COUNTER);
+  stats_handle_tagged_name(states_started, "lua_states");
+  stats_handle_add_tag(states_started, "state", "allocated");
+  states_stopped = stats_register(lua_stats_ns, "lua_states_released", STATS_TYPE_COUNTER);
+  stats_handle_tagged_name(states_stopped, "lua_states");
+  stats_handle_add_tag(states_stopped, "state", "released");
+  states_current = stats_register(lua_stats_ns, "lua_states_live", STATS_TYPE_UINT64);
+  stats_handle_tagged_name(states_current, "lua_states");
+  stats_handle_add_tag(states_current, "state", "live");
 
   struct sigaction sa;
   sa.sa_flags = SA_SIGINFO;

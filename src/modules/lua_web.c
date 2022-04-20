@@ -61,6 +61,8 @@ typedef struct lua_web_conf {
   pthread_key_t key;
   lua_module_gc_params_t *gc_params;
   struct timeval interrupt_time;
+  lua_module_interrupt_mode_e interrupt_mode;
+  bool dev_mode;
 } lua_web_conf_t;
 
 static stats_handle_t *vm_time;
@@ -87,6 +89,12 @@ static lua_web_conf_t *get_config(mtev_dso_generic_t *self) {
   return the_one_conf;
 }
 
+static void mtev_lua_web_validate_lmc(lua_module_closure_t * lmc) {
+  if(!lmc) return;
+  mtev_lua_validate_lmc(lmc);
+  if(the_one_conf && the_one_conf->dev_mode) lmc->wants_restart = true;
+}
+
 static void
 rest_lua_ctx_free(void *cl) {
   mtev_lua_resume_info_t *ri = cl;
@@ -100,8 +108,16 @@ rest_lua_ctx_free(void *cl) {
         free(ctx);
       }
     }
+    mtev_lua_deref(ri->lmc);
     free(ri);
   }
+}
+
+static mtev_lua_resume_info_t *
+lua_web_new_resume_info(lua_module_closure_t *lmc) {
+  mtev_lua_resume_info_t *ri = mtev_lua_new_resume_info(lmc, LUA_REST_INFO_MAGIC);
+  ri->new_ri_f = lua_web_new_resume_info;
+  return ri;
 }
 
 static int
@@ -141,11 +157,17 @@ lua_web_resume(mtev_lua_resume_info_t *ri, int nargs) {
   status = mtev_lua_resume(ri->coro_state, nargs, ri);
   VM_TIME_END
 
+  mtev_lua_web_validate_lmc(ri->lmc);
+
   switch(status) {
     case 0:
-      mtev_lua_gc(ri->lmc);
+      /* If we're about to cull this state, don't GC */
+      if(!ri->lmc->wants_restart) mtev_lua_gc(ri->lmc);
       break;
     case LUA_YIELD:
+      /* A yield might be part of a very long running coro and it would
+       * be unsafe to delay GC until it finishes
+       */
       mtev_lua_gc(ri->lmc);
       return 0;
     default: /* The complicated case */
@@ -195,19 +217,12 @@ lua_web_handler(mtev_http_rest_closure_t *restc,
   if(!mtev_rest_complete_upload(restc, &mask)) return mask;
 
   if(restc->call_closure == NULL) {
-    ri = calloc(1, sizeof(*ri));
-    ri->bound_thread = pthread_self();
-    ri->context_magic = LUA_REST_INFO_MAGIC;
+    ri = lua_web_new_resume_info(lmc);
     ctx = ri->context_data = calloc(1, sizeof(mtev_lua_resume_rest_info_t));
     ctx->restc = restc;
-    ri->lmc = lmc;
-    ri->coro_state = lua_newthread(lmc->lua_state);
-    ri->coro_state_ref = luaL_ref(lmc->lua_state, LUA_REGISTRYINDEX);
-
-    mtev_lua_set_resume_info(lmc->lua_state, ri);
-
     restc->call_closure = ri;
     restc->call_closure_free = rest_lua_ctx_free;
+    mtev_lua_ref(lmc);
   }
   ri = restc->call_closure;
   ctx = ri->context_data;
@@ -301,13 +316,6 @@ mtev_lua_web_driver_onload(mtev_image_t *self) {
   return 0;
 }
 
-static mtev_lua_resume_info_t *
-lua_web_new_resume_info(lua_module_closure_t *lmc) {
-  mtev_lua_resume_info_t *ri = mtev_lua_new_resume_info(lmc, LUA_REST_INFO_MAGIC);
-  ri->new_ri_f = lua_web_new_resume_info;
-  return ri;
-}
-
 static int
 lua_web_coroutine_spawn(lua_State *Lp) {
   return mtev_lua_coroutine_spawn(Lp, lua_web_new_resume_info);
@@ -319,8 +327,14 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   int i;
   const char *bstr;
+  if(mtev_hash_retr_str(o, "dev_mode", strlen("dev_mode"), &bstr)) {
+    if(!strcmp(bstr, "true") || !strcmp(bstr, "on")) {
+      conf->dev_mode = true;
+    }
+  }
   conf->script_dir = NULL;
   conf->cpath = NULL;
+  conf->interrupt_mode = INTERRUPT_ERRORS;
   (void)mtev_hash_retr_str(o, "directory", strlen("directory"), &conf->script_dir);
   if(conf->script_dir) conf->script_dir = strdup(conf->script_dir);
   (void)mtev_hash_retr_str(o, "cpath", strlen("cpath"), &conf->cpath);
@@ -404,6 +418,20 @@ mtev_lua_web_driver_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     }
   }
 
+  bstr = mtev_hash_dict_get(o, "interrupt_mode");
+  if(bstr) {
+    if(!strcmp(bstr, "preempt")) {
+      conf->interrupt_mode = INTERRUPT_PREEMPTS;
+    }
+    else if(!strcmp(bstr, "error")) {
+      conf->interrupt_mode = INTERRUPT_ERRORS;
+    }
+    else {
+      mtevL(mtev_error, "lua_web invalid interrupt_mode: %s\n", bstr);
+      return -1;
+    }
+  }
+
   conf->gc_params = mtev_lua_config_gc_params(o);
   conf->max_post_size = DEFAULT_MAX_POST_SIZE;
   return 0;
@@ -444,10 +472,17 @@ mtev_lua_web_setup_lmc(mtev_dso_generic_t *self) {
   lua_web_conf_t *conf = get_config(self);
   lua_module_closure_t *lmc = pthread_getspecific(conf->key);
 
-  if(!lmc) {
+  mtev_lua_web_validate_lmc(lmc);
+
+  if(!lmc || lmc->wants_restart) {
+    if(lmc) {
+      mtev_lua_dispatch_defunct();
+      mtev_lua_deref(lmc);
+    }
     lmc = mtev_lua_lmc_alloc(self, lua_web_resume);
     mtev_lua_set_gc_params(lmc, conf->gc_params);
     lmc->interrupt_time = conf->interrupt_time;
+    lmc->interrupt_mode = conf->interrupt_mode;
     pthread_setspecific(conf->key, lmc);
   }
   if(lmc->lua_state == NULL) {

@@ -44,7 +44,7 @@
 
 ##### M
 
-[mtev_main](c.md#mtevmain), [mtev_main_eventer_config](c.md#mtevmaineventerconfig), [mtev_main_status](c.md#mtevmainstatus), [mtev_main_terminate](c.md#mtevmainterminate), [MTEV_MAYBE_DECL](c.md#MTEVMAYBEDECL), [MTEV_MAYBE_DECL_VARS](c.md#MTEVMAYBEDECLVARS), [MTEV_MAYBE_FREE](c.md#MTEVMAYBEFREE), [MTEV_MAYBE_INIT_VARS](c.md#MTEVMAYBEINITVARS), [MTEV_MAYBE_REALLOC](c.md#MTEVMAYBEREALLOC), [MTEV_MAYBE_SIZE](c.md#MTEVMAYBESIZE), [mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile), [mtevAssert](c.md#mtevAssert), [mtevEL](c.md#mtevEL), [mtevELT](c.md#mtevELT), [mtevEvalAssert](c.md#mtevEvalAssert), [mtevFatal](c.md#mtevFatal), [mtevL](c.md#mtevL), [mtevLT](c.md#mtevLT), [mtevTerminate](c.md#mtevTerminate)
+[mtev_main](c.md#mtevmain), [mtev_main_eventer_config](c.md#mtevmaineventerconfig), [mtev_main_status](c.md#mtevmainstatus), [mtev_main_terminate](c.md#mtevmainterminate), [MTEV_MAYBE_DECL](c.md#MTEVMAYBEDECL), [MTEV_MAYBE_DECL_VARS](c.md#MTEVMAYBEDECLVARS), [MTEV_MAYBE_FREE](c.md#MTEVMAYBEFREE), [MTEV_MAYBE_INIT_VARS](c.md#MTEVMAYBEINITVARS), [MTEV_MAYBE_REALLOC](c.md#MTEVMAYBEREALLOC), [MTEV_MAYBE_REALLOC_WITH_TYPE](c.md#MTEVMAYBEREALLOCWITHTYPE), [MTEV_MAYBE_SIZE](c.md#MTEVMAYBESIZE), [mtev_merge_sort](c.md#mtevmergesort), [mkdir_for_file](c.md#mkdirforfile), [mtevAssert](c.md#mtevAssert), [mtevEL](c.md#mtevEL), [mtevELT](c.md#mtevELT), [mtevEvalAssert](c.md#mtevEvalAssert), [mtevFatal](c.md#mtevFatal), [mtevL](c.md#mtevL), [mtevLT](c.md#mtevLT), [mtevTerminate](c.md#mtevTerminate)
 
 ##### N
 
@@ -138,7 +138,7 @@
 
 ##### R
 
-[mtev.realpath](lua.md#mtevrealpath), [mtev.rmdir](lua.md#mtevrmdir)
+[mtev.realpath](lua.md#mtevrealpath), [mtev.rmdir](lua.md#mtevrmdir), [mtev.runtime_defunct](lua.md#mtevruntimedefunct), [mtev.runtime_reload](lua.md#mtevruntimereload)
 
 ##### S
 
