@@ -495,9 +495,9 @@ _extract_header(char *l, const char **n, const char **v) {
 }
 
 static inline void
-mtev_http1_log_request(mtev_http1_session_ctx *ctx, mtev_http_log_state state) {
+mtev_http1_log_request(mtev_http1_session_ctx *ctx) {
   if(!ctx->logged) stats_add64(response_counter, 1);
-  mtev_http_log_request((mtev_http_session_ctx *)ctx, state);
+  mtev_http_log_request((mtev_http_session_ctx *)ctx);
 }
 
 static int
@@ -551,7 +551,7 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
     ctx->res.complete = mtev_true;
     ctx->res.in_error = mtev_true;
     ctx->conn.needs_close = mtev_true;
-    mtev_http1_log_request(ctx, MTEV_HTTP_LOG_RESPONSE);
+    mtev_http1_log_request(ctx);
     *mask |= EVENTER_EXCEPTION;
     pthread_mutex_unlock(&ctx->write_lock);
     return -1;
@@ -1636,8 +1636,6 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
    */
   mtevL(http_debug, "[fd=%d] -> mtev_http1_session_drive() [%x]\n", eventer_get_fd(e), origmask);
 
-  mtev_http1_log_request(ctx, MTEV_HTTP_LOG_RECEIVE);
- 
  next_req:
   check_realloc_request(&ctx->req);
   check_realloc_response(&ctx->res);
@@ -1748,7 +1746,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
      ctx->conn.needs_close == mtev_true) {
    abort_drive:
     /* If we went into an error state, we logged, right there */
-    if(!ctx->res.in_error) mtev_http1_log_request(ctx, MTEV_HTTP_LOG_RESPONSE);
+    if(!ctx->res.in_error) mtev_http1_log_request(ctx);
     if(ctx->conn.e) {
       eventer_t ine;
       pthread_mutex_lock(&ctx->write_lock);
@@ -1767,7 +1765,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
       if(len <= 0) break;
     }
     LIBMTEV_HTTP_RESPONSE_FINISH(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
-    mtev_http1_log_request(ctx, MTEV_HTTP_LOG_RESPONSE);
+    mtev_http1_log_request(ctx);
     mtev_http_end_span((mtev_http_session_ctx *)ctx);
     mtev_http1_request_release(ctx);
     mtev_http1_response_release(ctx);

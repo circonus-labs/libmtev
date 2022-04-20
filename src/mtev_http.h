@@ -51,10 +51,6 @@ typedef enum {
   MTEV_HTTP_OTHER, MTEV_HTTP_GET, MTEV_HTTP_HEAD, MTEV_HTTP_POST
 } mtev_http_method;
 
-typedef enum {
-  MTEV_HTTP_LOG_RECEIVE, MTEV_HTTP_LOG_RESPONSE
-} mtev_http_log_state;
-
 #define MTEV_HTTP_CHUNKED      0x0001
 #define MTEV_HTTP_CLOSE        0x0002
 #define MTEV_HTTP_GZIP         0x0010
