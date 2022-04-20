@@ -66,7 +66,7 @@ static mtev_hash_table mtev_coros;
 static pthread_mutex_t coro_lock = PTHREAD_MUTEX_INITIALIZER;
 static stats_ns_t *lua_stats_ns;
 static stats_handle_t *gc_total, *gc_full, *gc_latency;
-static stats_handle_t *states_started, *states_stopped, *states_current;
+static stats_handle_t *states_started, *states_stopped, *states_current, *state_preemptions;
 static uint64_t global_gen = 0;
 
 struct lua_module_gc_params {
@@ -413,6 +413,7 @@ static void lstop (lua_State *L, lua_Debug *ar) {
     return;
   }
   lua_sethook(L, NULL, 0, 0);  /* reset hook */
+  stats_add64(state_preemptions, 1);
   eventer_add_in_s_us(mtev_lua_preempt_resume, L, 0, 0);
   mtev_lua_yield(ri, 0);
 }
@@ -1616,6 +1617,8 @@ mtev_lua_init_globals(void) {
   stats_handle_units(gc_total, STATS_UNITS_TRANSACTIONS);
   gc_latency = stats_register(lua_stats_ns, "gc_latency", STATS_TYPE_HISTOGRAM_FAST);
   stats_handle_units(gc_latency, STATS_UNITS_SECONDS);
+  state_preemptions = stats_register(lua_stats_ns, "lua_preemptions", STATS_TYPE_COUNTER);
+  stats_handle_tagged_name(state_preemptions, "preemptions");
   states_started = stats_register(lua_stats_ns, "lua_states_allocated", STATS_TYPE_COUNTER);
   stats_handle_tagged_name(states_started, "lua_states");
   stats_handle_add_tag(states_started, "state", "allocated");
