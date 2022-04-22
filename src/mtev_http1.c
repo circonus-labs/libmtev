@@ -49,7 +49,7 @@
 #include <libxml/tree.h>
 #include <pthread.h>
 
-#include <openssl/hmac.h>
+#include <openssl/evp.h>
 
 #ifdef HAVE_WSLAY
 #include <wslay/wslay.h>
@@ -1452,7 +1452,6 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
 void
 mtev_http1_create_websocket_accept_key(char *dest, size_t dest_len, const char *client_key)
 {
-  SHA_CTX ctx;
   unsigned char sha1[SHA_DIGEST_LENGTH], key_src[UUID_STR_LEN + WS_CLIENT_KEY_LEN];
 
   mtevAssert(dest_len >= mtev_b64_encode_len(SHA_DIGEST_LENGTH) + 1);
@@ -1460,9 +1459,15 @@ mtev_http1_create_websocket_accept_key(char *dest, size_t dest_len, const char *
   memcpy(key_src, client_key, WS_CLIENT_KEY_LEN);
   memcpy(key_src + WS_CLIENT_KEY_LEN, WS_ACCEPT_KEY_GUID, UUID_STR_LEN);
 
-  SHA1_Init(&ctx);
-  SHA1_Update(&ctx, (const void *)key_src, (unsigned long)sizeof(key_src));
-  SHA1_Final(sha1, &ctx);
+  EVP_MD_CTX *mdctx;
+  mdctx = EVP_MD_CTX_new();
+  const EVP_MD *md = EVP_get_digestbyname("SHA1");
+  unsigned int key_size = sizeof(key_src);
+
+  EVP_DigestInit_ex(mdctx, md, NULL);
+  EVP_DigestUpdate(mdctx, key_src, key_size);
+  EVP_DigestFinal_ex(mdctx, key_src, &key_size);
+  EVP_MD_CTX_free(mdctx);
 
   mtev_b64_encode(sha1, SHA_DIGEST_LENGTH, dest, dest_len);
   dest[mtev_b64_encode_len(SHA_DIGEST_LENGTH)] = '\0';
