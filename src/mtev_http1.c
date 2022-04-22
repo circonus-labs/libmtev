@@ -41,6 +41,7 @@
 #include "mtev_compress.h"
 #include "mtev_rest.h"
 #include "mtev_http2.h"
+#include "mtev_ssl10_compat.h"
 #include "libmtev_dtrace.h"
 
 #include <errno.h>
