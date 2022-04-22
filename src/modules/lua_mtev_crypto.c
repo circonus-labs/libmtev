@@ -79,7 +79,11 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
   const char *k;
   void *udata;
   X509 *cert;
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+  int j;
+#else
   unsigned long j;
+#endif
 
   mtevAssert(lua_gettop(L) == 2);
   if(!luaL_checkudata(L, 1, "crypto.x509")) {
