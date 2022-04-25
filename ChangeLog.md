@@ -4,6 +4,8 @@
 
 ## 2.2
 
+ * Add support for building with OpenSSL 3.0.
+
 ### 2.2.5
 
  * Support lua coroutine killing and cancellation via console.
