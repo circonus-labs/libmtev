@@ -4,6 +4,8 @@
 
 ## 2.2
 
+### 2.2.6
+
  * Add support for building with OpenSSL 3.0.
 
 ### 2.2.5
