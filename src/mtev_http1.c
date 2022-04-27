@@ -1467,7 +1467,7 @@ mtev_http1_create_websocket_accept_key(char *dest, size_t dest_len, const char *
 
   EVP_DigestInit_ex(mdctx, md, NULL);
   EVP_DigestUpdate(mdctx, key_src, key_size);
-  EVP_DigestFinal_ex(mdctx, key_src, &key_size);
+  EVP_DigestFinal(mdctx, sha1, NULL);
   EVP_MD_CTX_free(mdctx);
 
   mtev_b64_encode(sha1, SHA_DIGEST_LENGTH, dest, dest_len);
