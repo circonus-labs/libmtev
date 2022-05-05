@@ -4,6 +4,8 @@
 
 ## 2.2
 
+ * Avoid assertion in internal membuf bounds checking.
+
 ### 2.2.6
 
  * Add support for building with OpenSSL 3.0.
