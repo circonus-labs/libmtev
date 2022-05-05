@@ -4,6 +4,8 @@
 
 ## 2.2
 
+### 2.2.7
+
  * Avoid assertion in internal membuf bounds checking.
 
 ### 2.2.6
