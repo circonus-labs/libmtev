@@ -4,6 +4,8 @@
 
 ## 2.2
 
+* Always print double-free/corruption detection in `mtev_memory_safe_free`
+
 ### 2.2.7
 
  * Avoid assertion in internal membuf bounds checking.
