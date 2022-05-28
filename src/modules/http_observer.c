@@ -64,11 +64,14 @@ typedef struct {
   uint64_t inbytes;
   uint64_t outbytes;
   mtev_hash_table info;
+  void *payload;
+  int64_t payload_length;
 } http_entry_t;
 
 static void http_entry_free(void *ve) {
   http_entry_t *e = ve;
   if(e == NULL) return;
+  free(e->payload);
   mtev_hash_destroy(&e->info, mtev_memory_safe_free, mtev_memory_safe_free);
 }
 
@@ -94,6 +97,8 @@ allocate_entry(mtev_http_session_ctx *ctx) {
   newe->request_complete_ns = timeofday_nanos();
   newe->id = ck_pr_faa_64(&global_id, 1);
   mtev_hash_init(&newe->info);
+  newe->payload = NULL;
+  newe->payload_length = 0;
   mtev_hash_replace(&lookup, (const char *)&newe->ctx, sizeof(newe->ctx), newe, NULL, mtev_memory_safe_free);
   return newe;
 }
@@ -173,6 +178,51 @@ http_observer_prrp(void *closure, mtev_http_session_ctx *ctx) {
       entry->read_start_ns = entry->read_complete_ns;
     }
     http_entry_update(entry, ctx);
+  }
+  mtev_memory_end();
+  return MTEV_HOOK_CONTINUE;
+}
+
+static mtev_hook_return_t
+http_observer_prpr(void *closure, mtev_http_request *req, const void *payload, int64_t payload_length) {
+  (void)closure;
+  if (payload_length <= 0) {
+    payload = NULL;
+    payload_length = 0;
+  }
+  const int64_t payload_limit = 1024*1024;
+  if (payload_length > payload_limit) {
+    payload_length = payload_limit;
+  }
+  char *payload_ptr = (char *)payload;
+  for (int64_t i = 0; i < payload_length;  i++)
+  {
+    if (!isprint(payload_ptr++)) {
+      payload = NULL;
+      payload_length = 0;
+      break;
+    }
+  }
+  payload_ptr = NULL;
+  if (payload) {
+    payload_ptr = malloc(payload_length);
+    memcpy(payload_ptr, payload, payload_length);
+  }
+  mtev_memory_begin();
+
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  while(mtev_hash_adv_spmc(&lookup, &iter)) {
+    mtev_http_session_ctx *ctx = (mtev_http_session_ctx *)iter.key.ptr;
+    if (req == mtev_http_session_request(ctx)) {
+      http_entry_t *entry = (http_entry_t *)iter.value.ptr;
+      if (entry->payload) {
+        free(entry->payload);
+      }
+      entry->payload = payload_ptr;
+      entry->payload_length = payload_ptr ? payload_length : 0;
+      http_entry_update(entry, ctx);
+      break;
+    }
   }
   mtev_memory_end();
   return MTEV_HOOK_CONTINUE;
@@ -304,6 +354,9 @@ static void http_entry_json(mtev_http_session_ctx *ctx, http_entry_t *entry) {
     MJ_KV(o, "response_complete_offset_ns", MJ_INT64(entry->response_complete_ns - entry->request_start_ns));
   MJ_KV(o, "received_bytes", MJ_INT64(entry->inbytes));
   MJ_KV(o, "sent_bytes", MJ_INT64(entry->outbytes));
+  if (entry->payload) {
+    MJ_KV(o, "payload_in", MJ_STRN(entry->payload, entry->payload_length));
+  }
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv_spmc(&entry->info, &iter)) {
     MJ_KV(o, iter.key.str, MJ_STR(iter.value.str));
@@ -424,6 +477,7 @@ http_observer_driver_init(mtev_dso_generic_t *img) {
   http_response_send_hook_register("http_observer", http_observer_rs, NULL);
   http_request_log_hook_register("http_observer", http_observer_rl, NULL);
   http_post_request_read_payload_hook_register("http_observer", http_observer_prrp, NULL);
+  http_post_request_payload_retrieved_hook_register("http_observer", http_observer_prpr, NULL);
 
   mtev_rest_mountpoint_t *rule = mtev_http_rest_new_rule(
     "GET", "/module/http_observer/", "^requests.json$", requests_json_handler
