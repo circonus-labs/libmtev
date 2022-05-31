@@ -42,7 +42,7 @@
 #include <pcre.h>
 
 static mtev_log_stream_t debugls, errorls;
-static uint32_t max_count = 10000, max_age = 30;
+static uint32_t max_count = 10000, max_age = 30, max_payload = 256 * 1024;
 static uint64_t global_id;
 static mtev_hash_table lookup, hdrin_extract, hdrout_extract;
 
@@ -97,8 +97,6 @@ allocate_entry(mtev_http_session_ctx *ctx) {
   newe->request_complete_ns = timeofday_nanos();
   newe->id = ck_pr_faa_64(&global_id, 1);
   mtev_hash_init(&newe->info);
-// VASU DEBUG
-mtevL(mtev_error, "Entry %p, info %p, payload %p, length %p\n", newe, &newe->info, &newe->payload, &newe->payload_length);
   newe->payload = NULL;
   newe->payload_length = 0;
   mtev_hash_replace(&lookup, (const char *)&newe->ctx, sizeof(newe->ctx), newe, NULL, mtev_memory_safe_free);
@@ -192,9 +190,8 @@ http_observer_prpr(void *closure, mtev_http_request *req, const void *payload, i
     payload = "(empty)";
     payload_length = 7;
   }
-  const int64_t payload_limit = 1024*1024;
-  if (payload_length > payload_limit) {
-    payload_length = payload_limit;
+  if (payload_length > (int64_t)max_payload) {
+    payload_length = (int64_t)max_payload;
   }
   char *payload_ptr = (char *)payload;
   for (int64_t i = 0; i < payload_length;  i++, payload_ptr++)
@@ -455,6 +452,9 @@ http_observer_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
   }
   if(mtev_hash_retr_str(options, "max_age", strlen("max_age"), &vstr)) {
     max_age = atoi(vstr);
+  }
+  if(mtev_hash_retr_str(options, "max_payload", strlen("max_payload"), &vstr)) {
+    max_payload = atoi(vstr);
   }
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(options, &iter)) {
