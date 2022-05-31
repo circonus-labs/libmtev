@@ -187,19 +187,19 @@ static mtev_hook_return_t
 http_observer_prpr(void *closure, mtev_http_request *req, const void *payload, int64_t payload_length) {
   (void)closure;
   if (payload_length <= 0) {
-    payload = NULL;
-    payload_length = 0;
+    payload = "(empty)";
+    payload_length = 7;
   }
   const int64_t payload_limit = 1024*1024;
   if (payload_length > payload_limit) {
     payload_length = payload_limit;
   }
   char *payload_ptr = (char *)payload;
-  for (int64_t i = 0; i < payload_length;  i++)
+  for (int64_t i = 0; i < payload_length;  i++, payload_ptr++)
   {
-    if (!isprint(payload_ptr++)) {
-      payload = NULL;
-      payload_length = 0;
+    if (!isprint(*payload_ptr)) {
+      payload = "(binary)";
+      payload_length = 8;
       break;
     }
   }
@@ -208,13 +208,13 @@ http_observer_prpr(void *closure, mtev_http_request *req, const void *payload, i
     payload_ptr = malloc(payload_length);
     memcpy(payload_ptr, payload, payload_length);
   }
-  mtev_memory_begin();
 
+  mtev_memory_begin();
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv_spmc(&lookup, &iter)) {
-    mtev_http_session_ctx *ctx = (mtev_http_session_ctx *)iter.key.ptr;
+    http_entry_t *entry = (http_entry_t *)iter.value.ptr;
+    mtev_http_session_ctx *ctx = entry->ctx;
     if (req == mtev_http_session_request(ctx)) {
-      http_entry_t *entry = (http_entry_t *)iter.value.ptr;
       if (entry->payload) {
         free(entry->payload);
       }
