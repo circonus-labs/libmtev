@@ -118,6 +118,8 @@ end
 --   uint64_t inbytes;
 --   uint64_t outbytes;
 --   mtev_hash_table info;                     128
+--   void *payload;
+--   int64_t payload_length;
 -- } http_entry_t;
 --
 local function walk_hash(a_hash)

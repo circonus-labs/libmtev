@@ -97,6 +97,8 @@ allocate_entry(mtev_http_session_ctx *ctx) {
   newe->request_complete_ns = timeofday_nanos();
   newe->id = ck_pr_faa_64(&global_id, 1);
   mtev_hash_init(&newe->info);
+// VASU DEBUG
+mtevL(mtev_error, "Entry %p, info %p, payload %p, length %p\n", newe, &newe->info, &newe->payload, &newe->payload_length);
   newe->payload = NULL;
   newe->payload_length = 0;
   mtev_hash_replace(&lookup, (const char *)&newe->ctx, sizeof(newe->ctx), newe, NULL, mtev_memory_safe_free);
