@@ -2,9 +2,10 @@ function L(...)
   pmodule.log(pmodule.log_level.info, string.format(...))
 end
 
-local function bt2str(bt_var)
+local function bt2str(bt_var, len)
+  len = len or 256
   local addr = pmodule.variable_from_bt(bt_var):value()
-  return pmodule.address_read_string(addr, 256)
+  return pmodule.address_read_string(addr, len)
 end
 
 local function bt2val(bt_var)
@@ -20,12 +21,17 @@ local function variable_http1_cb(pt_var, bt_var)
   local qs = bt2str(bt_var.orig_qs)
   qs = qs and ("?" .. qs) or ""
   local length = bt2val(bt_var.content_length) or -1
+  local payload_len = bt2val(bt_var.upload.size)
+  local payload = bt2str(bt_var.upload.data, payload_len + 1)
   pt_var:thread():annotate(
     pmodule.annotation.comment,
     string.format("mtev_http1_request: %s %s%s (%d)", method, uri, qs, length))
   pt_var:backtrace():add_kv_string(
     "mtev_http_request",
     string.format("%s %s%s (%d)", method, uri, qs, length))
+  pt_var:backtrace():add_kv_string(
+    "mtev_http_payload_in",
+    string.format("%s", payload))
 end
 
 function pm_mtev_http1_req()
