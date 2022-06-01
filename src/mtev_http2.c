@@ -402,6 +402,7 @@ mtev_http2_request_set_upload(mtev_http2_request *req,
 const void *
 mtev_http2_request_get_upload(mtev_http2_request *req, int64_t *size) {
   if(size) *size = req->upload.size;
+  (void)http_post_request_payload_retrieved_hook_invoke((mtev_http_request *)req, req->upload.data, req->upload.size);
   return req->upload.data;
 }
 const char *
