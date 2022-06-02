@@ -20,7 +20,13 @@ local function variable_http2_cb(pt_var, bt_var)
   qs = qs and ("?" .. qs) or ""
   local length = bt2val(bt_var.content_length) or -1
   local payload_len = bt2val(bt_var.upload.size)
-  local payload = bt2str(bt_var.upload.data, payload_len + 1)
+  local payload = "(empty)"
+  if payload_len > 0 then
+    payload = bt2str(bt_var.upload.data, payload_len + 1)
+    if payload:match '[^ -~\n\t]' then     
+      payload = "(binary data)"
+    end
+  end
   pt_var:thread():annotate(
     pmodule.annotation.comment,
     string.format("mtev_http2_request: %s %s%s (%d)", method, uri, qs, length))
