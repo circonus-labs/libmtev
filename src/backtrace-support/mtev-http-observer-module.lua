@@ -117,9 +117,7 @@ end
 --   uint64_t response_complete_ns;
 --   uint64_t inbytes;
 --   uint64_t outbytes;
---   mtev_hash_table info;                     128 (vasu got 80d (0x50) for this)
---   void *payload;                            144d (0x90)
---   int64_t payload_length;
+--   mtev_hash_table info;                     128
 -- } http_entry_t;
 --
 local function walk_hash(a_hash)
