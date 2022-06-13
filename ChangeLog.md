@@ -4,7 +4,10 @@
 
 ## 2.2
 
-* Always print double-free/corruption detection in `mtev_memory_safe_free`
+### 2.2.8
+
+ * Add POST/PUT payload to backtrace reports
+ * Always print double-free/corruption detection in `mtev_memory_safe_free`
 
 ### 2.2.7
 
