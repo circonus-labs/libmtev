@@ -127,6 +127,7 @@ json_spit_jobq(eventer_jobq_t *jobq, void *closure) {
 
   MJ_KV(doc, jobq->queue_name, jo = MJ_OBJ());
   MJ_KV(jo, "concurrency", MJ_INT(jobq->concurrency));
+  MJ_KV(jo, "mode", MJ_STR(eventer_jobq_get_lifo(jobq) ? "LIFO" : "FIFO"));
   MJ_KV(jo, "desired_concurrency", MJ_INT(jobq->desired_concurrency));
   MJ_KV(jo, "min_concurrency", MJ_INT(jobq->min_concurrency));
   MJ_KV(jo, "max_concurrency", MJ_INT(jobq->max_concurrency));
