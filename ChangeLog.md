@@ -4,6 +4,9 @@
 
 ## 2.2
 
+ * Report LIFO/FIFO mode for jobqs via console.
+ * Allow changing of jobq mode online via console.
+
 ### 2.2.8
 
  * Add POST/PUT payload to backtrace reports

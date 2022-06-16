@@ -58,8 +58,8 @@ static mtev_hash_table all_queues;
 static __thread eventer_job_t *current_job;
 pthread_mutex_t all_queues_lock;
 mtev_boolean jobq_lifo_default = mtev_false;
-static mtev_boolean jobq_lifo_true = mtev_true;
-static mtev_boolean jobq_lifo_false = mtev_false;
+static const mtev_boolean jobq_lifo_true = mtev_true;
+static const mtev_boolean jobq_lifo_false = mtev_false;
 
 eventer_job_t *
 eventer_current_job(void) {
@@ -1077,6 +1077,11 @@ void eventer_jobq_set_lifo(eventer_jobq_t *jobq, mtev_boolean nv) {
   if(nv) jobq->lifo = &jobq_lifo_true;
   else jobq->lifo = &jobq_lifo_false;
 }
+
+mtev_boolean eventer_jobq_get_lifo(eventer_jobq_t *jobq) {
+  return *jobq->lifo;
+}
+
 void eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max) {
   jobq->max_backlog = max;
 }
