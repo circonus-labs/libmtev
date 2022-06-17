@@ -289,30 +289,40 @@ membuf_logio_writev(mtev_log_stream_t ls, const struct timeval *whence,
   nexttailoff = offset + len;
   nexttail = membuf->tail + 1;
 
+  len = 0;
   /* clean up head until it is ahead of the next tail */
   headoffset = membuf->offsets[membuf->head % membuf->noffsets];
   headend = membuf->offsets[(membuf->head+1) % membuf->noffsets];
   if(headend < headoffset) headend = membuf->segmentsize;
   tailoffset = membuf->offsets[membuf->tail % membuf->noffsets];
   tailend = nexttailoff;
+  /* bounds check */
+  if(membuf->head != membuf->tail &&
+     (headoffset >= headend-1 || attemptoffset >= attemptend-1 || tailoffset >= tailend-1)) {
+    goto bail;
+  }
+  uint64_t new_head = membuf->head;
   /* while we're about to write over the head (attempt or actual), advance */
-  while(membuf->head != membuf->tail &&
+  while(new_head != membuf->tail &&
         (intersect_seg(headoffset, headend-1, attemptoffset, attemptend-1) ||
          intersect_seg(headoffset, headend-1, tailoffset, tailend-1))) {
-    membuf->head++;
-    headoffset = membuf->offsets[membuf->head % membuf->noffsets];
-    headend = membuf->offsets[(membuf->head+1) % membuf->noffsets];
+    new_head++;
+    headoffset = membuf->offsets[new_head % membuf->noffsets];
+    headend = membuf->offsets[(new_head+1) % membuf->noffsets];
     if(headend < headoffset) headend = membuf->segmentsize;
-    //if((membuf->head % membuf->noffsets) == 0) {
+    /* bounds check */
+    if(headoffset >= headend-1 || attemptoffset >= attemptend-1 || tailoffset >= tailend-1) {
+      goto bail;
+    }
   }
 
+  membuf->head = new_head;
   /* move tail forward updating head if needed */
   if((nexttail % membuf->noffsets) == (membuf->head % membuf->noffsets))
     membuf->head++;
   /* note where the new tail is */
   membuf->offsets[nexttail % membuf->noffsets] = nexttailoff;
 
-  len = 0;
   memcpy(membuf->segment + offset, whence, sizeof(*whence));
   len += sizeof(*whence);
   for(i=0;i<iovcnt;i++) {
@@ -321,6 +331,7 @@ membuf_logio_writev(mtev_log_stream_t ls, const struct timeval *whence,
   }
   membuf->tail = nexttail;
 
+bail:
   pthread_mutex_unlock(&membuf->lock); 
   return len;
 }
@@ -2648,7 +2659,7 @@ mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now,
   int old_errno = errno;
   Zipkin_Span *activespan = mtev_zipkin_active_span(NULL);
   Zipkin_Span *logspan = NULL;
-  if(mtev_zipkin_span_logs_attached(logspan)) logspan = activespan;
+  if(mtev_zipkin_span_logs_attached(activespan)) logspan = activespan;
 
 #define ENSURE_NOW() do { \
   if(now == NULL) { \

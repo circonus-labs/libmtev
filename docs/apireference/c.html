@@ -1244,6 +1244,7 @@ and <a href="#mtevgetdurationsus">mtev_get_durations_us</a>.</p>
 <pre><code class="lang-c"><span class="hljs-keyword">size_t</span>
 mtev_curl_write_callback(<span class="hljs-keyword">char</span> *ptr, <span class="hljs-keyword">size_t</span> size, <span class="hljs-keyword">size_t</span> nmemb, <span class="hljs-keyword">void</span> *userdata)
 </code></pre>
+<p> *</p>
 <blockquote>
 <p>Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA</p>
 </blockquote>
@@ -5059,6 +5060,23 @@ maybe buffer.</p>
 <p>This macro will never reduce the size and is a noop if a size smaller
 than or equal to the current allocation size is specified.  It is safe
 to simply run this macro prior to each write to the buffer.</p>
+<h4 id="mtevmaybereallocwithtype">MTEV_MAYBE_REALLOC_WITH_TYPE</h4>
+<blockquote>
+<p>C/C++ Macro to ensure a maybe buffer has at least cnt elements allocated.</p>
+</blockquote>
+<pre><code class="lang-c">MTEV_MAYBE_REALLOC_WITH_TYPE(name, type, cnt)
+</code></pre>
+<ul>
+<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
+<li><code>type</code> The type of the &quot;maybe&quot; buffer.</li>
+<li><code>cnt</code> The total number of elements expected in the allocation.</li>
+</ul>
+<p>This macro will never reduce the size and is a noop if a size smaller
+than or equal to the current allocation size is specified.  It is safe
+to simply run this macro prior to each write to the buffer.
+NOTE: this version is separate to avoid breaking existing code that uses the
+older macro.  It allows usage with C++, which requires the memory allocation
+pointer to be cast to the correct type before assignment.</p>
 <h4 id="mtevmaybesize">MTEV_MAYBE_SIZE</h4>
 <blockquote>
 <p>C Macro for number of bytes available in this buffer.</p>

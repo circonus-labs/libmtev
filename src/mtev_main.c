@@ -584,10 +584,20 @@ mtev_main(const char *appname,
   mtev_dwarf_refresh();
   mtev_watchdog_prefork_init();
 
-  if(foreground != 1 && chdir("/") != 0) {
-    mtevL(mtev_stderr, "Failed chdir(\"/\"): %s\n", strerror(errno));
+  char workingdir_xpath[256];
+  snprintf(workingdir_xpath, sizeof(workingdir_xpath), "/%s/@workingdir", appname);
+  char workingdir[PATH_MAX] = "/";
+  mtev_conf_get_stringbuf(MTEV_CONF_ROOT, workingdir_xpath, workingdir, sizeof(workingdir));
+  char *workingdir_resolved = NULL;;
+  if((workingdir_resolved = realpath(workingdir, NULL)) == NULL) {
+    mtevL(mtev_stderr, "Failed to resolve path: %s\n", workingdir);
     exit(-1);
   }
+  if(foreground != 1 && chdir(workingdir_resolved) != 0) {
+    mtevL(mtev_stderr, "Failed chdir(\"%s\"): %s\n", workingdir_resolved, strerror(errno));
+    exit(-1);
+  }
+  free(workingdir_resolved);
 
   /* Acquire the lock so that we can throw an error if it doesn't work.
    * If we've started -D, we'll have the lock.

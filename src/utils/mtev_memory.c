@@ -607,10 +607,10 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
   struct safe_epoch *e = (p - sizeof(struct safe_epoch));
 
   bool magic_valid = e->magic == MTEV_EPOCH_SAFE_MAGIC;
-#ifdef MTEV_MEMORY_DEBUG
   if(!magic_valid) {
     mtevL(mtev_error, "mtev_memory_safe_free %s: %p\n",
           e->magic == MTEV_EPOCH_SAFE_FREE_MAGIC ? "(double free)" : "(corrupted)", p);
+#ifdef MTEV_MEMORY_DEBUG
     int alloc_n = 1, free_n = 1;
     for(; alloc_n<MTEV_MEMORY_DEBUG_STACK_FRAMES && e->alloc_s[alloc_n]; alloc_n++);
     for(; free_n<MTEV_MEMORY_DEBUG_STACK_FRAMES && e->free_s[free_n]; free_n++);
@@ -621,8 +621,8 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
   }
   else {
     mtev_backtrace(e->free_s, MTEV_MEMORY_DEBUG_STACK_FRAMES);
-  }
 #endif
+  }
   /* We could assert here as we know we're in a bad state, but
    * we elect to delay until after the potential free so that
    * ASAN or valgrind might help us out if this is a double free.

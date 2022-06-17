@@ -94,7 +94,7 @@ struct bchain *bchain_alloc(size_t size, int line) {
   struct bchain *n;
   /* mmap is greater than 1MB, inline otherwise */
   if (size >= 1048576) {
-    n = malloc(offsetof(struct bchain, _buff));
+    n = malloc(sizeof(struct bchain));
     if(!n) {
       mtevL(mtev_error, "failed to alloc bchain in bchain_alloc (size %zd)\n", size);
       return NULL;

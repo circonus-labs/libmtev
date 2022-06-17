@@ -130,6 +130,13 @@ API_EXPORT(void) eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *na
 */
 API_EXPORT(void) eventer_jobq_set_lifo(eventer_jobq_t *jobq, mtev_boolean nv);
 
+/*! \fn mtev_boolean eventer_jobq_get_lifo(eventer_jobq_t *jobq)
+    \brief Instruct the jobq system to process jobs in LIFO vs. FIFO ordering.
+    \param jobq the jobq to modify
+    \return `mtev_true` if the jobq is in LIFO mode, `mtev_false` for FIFO.
+*/
+API_EXPORT(mtev_boolean) eventer_jobq_get_lifo(eventer_jobq_t *jobq);
+
 /*! \fn void eventer_jobq_set_concurrency(eventer_jobq_t *jobq, uint32_t new_concurrency)
     \brief Set a jobq's concurrency level.
     \param jobq the jobq to modify

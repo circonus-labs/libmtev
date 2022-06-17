@@ -4,6 +4,66 @@
 
 ## 2.2
 
+ * Report LIFO/FIFO mode for jobqs via console.
+ * Allow changing of jobq mode online via console.
+
+### 2.2.8
+
+ * Add POST/PUT payload to backtrace reports
+ * Always print double-free/corruption detection in `mtev_memory_safe_free`
+
+### 2.2.7
+
+ * Avoid assertion in internal membuf bounds checking.
+
+### 2.2.6
+
+ * Add support for building with OpenSSL 3.0.
+
+### 2.2.5
+
+ * Support lua coroutine killing and cancellation via console.
+ * Fix bug in preemption resumption where it was calling a
+   non-implementation-specific resume.
+
+### 2.2.4
+
+ * Zipkin
+   * fix binary annotations of type `double`
+   * fix log attachment
+   * add lua helpers for logging and tagging to spans
+ * Make lua auto-preemption stable (still not default)
+
+### 2.2.3
+
+ * Avoid stack overflow in `mtev_hash_retrieve` and `mtev_hash_delete` when the
+   key size (minus its null terminator) is the same as `ONSTACK_KEY_SIZE`.
+ * Fix two luajit runtime use errors that could break GC
+   * `lua_call` during resume when coming back from `mtev.sleep`
+   * `nl_resume` return value off-by-one.
+ * Default `show lua` now shows all lua states in all loops.
+ * Add `mtev.runtime_defunct(<cb>)` and `mtev.runtime_reload()`.
+ * Add `/module/lua/bump.json` to cause on-demand reloads.
+ * Make preemptive interruption an option for `lua_web` and `lua_general`.
+ * Change lua `mtev.log` to report the lua file/line in debug context.
+ * Support refreshing `lua_web` `lua_State`s.
+  * Add a `dev_mode` config option that forces a state refresh before each
+    web request.
+  * Trigger a refresh when the interrupt timer fires within a state.
+ * Add `/<app>/@workingdir` config attribute (default '/') to control the
+  `chdir(2)` when running managed.
+
+### 2.2.2
+
+ * Add `offsets = true` option for mtev.pcre functions to return a table of
+   paired offsets for matches instead of a true or false as the first return
+   value.
+
+### 2.2.1
+
+ * Fix inflight accounting issue on eventer jobq subqueues that would cause
+   job lockup after `UINT32_MAX` jobs were run on the static (default) subqueue.
+
 ### 2.2.0
 
  * Deprecate `mtev_atomic` functionality.

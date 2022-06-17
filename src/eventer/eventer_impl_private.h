@@ -157,7 +157,7 @@ struct _eventer_jobq_t {
   uint32_t                max_concurrency;
   uint32_t                max_backlog;
   mtev_log_stream_t       callback_tracker;
-  mtev_boolean            *lifo;
+  const mtev_boolean     *lifo;
   uint32_t                consumer_threads_running;
   /* shutdown_state should use one of these defines,
    * defined above:
