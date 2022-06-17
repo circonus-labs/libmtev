@@ -52,7 +52,7 @@ extern mtev_log_stream_t mtev_lua_debug_ls;
 #define MTEV_LUA_REPL_USERDATA "mtev::state::lua_repl"
 
 static int general_loaded = 0;
-static int mtev_lua_general_init(mtev_dso_generic_t *);
+static lua_module_closure_t *mtev_lua_general_spinup(mtev_dso_generic_t *);
 static mtev_hash_table hookinfo;
 static pthread_mutex_t hookinfo_lock = PTHREAD_MUTEX_INITIALIZER;
 static mtev_hash_table lua_ctypes;
@@ -81,8 +81,8 @@ typedef struct lua_general_conf {
   const char **preloads;
   lua_module_gc_params_t *gc_params;
   struct timeval interrupt_time;
+  lua_module_interrupt_mode_e interrupt_mode;
   mtev_boolean concurrent;
-  mtev_boolean booted;
   mtev_boolean tragedy_terminates;
 } lua_general_conf_t;
 
@@ -93,6 +93,11 @@ static lua_general_conf_t *get_config(mtev_dso_generic_t *self) {
   pthread_key_create(&conf->key, (void (*)(void *))mtev_lua_lmc_free);
   mtev_image_set_userdata(&self->hdr, conf);
   return conf;
+}
+
+static void mtev_lua_general_validate_lmc(lua_module_closure_t * lmc) {
+  if(!lmc) return;
+  mtev_lua_validate_lmc(lmc);
 }
 
 static void
@@ -127,6 +132,8 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
   status = mtev_lua_resume(ri->coro_state, nargs, ri);
   VM_TIME_END
 
+  mtev_lua_general_validate_lmc(ri->lmc);
+
   switch(status) {
     case 0: break;
     case LUA_YIELD:
@@ -147,6 +154,8 @@ lua_general_resume(mtev_lua_resume_info_t *ri, int nargs) {
       rv = -1;
   }
 
+  mtev_lua_deref(ri->lmc);
+  mtev_lua_general_validate_lmc(ri->lmc);
   lua_general_ctx_free(ri);
   return rv;
 }
@@ -173,8 +182,7 @@ lua_general_handler_ex(mtev_dso_generic_t *self,
 
   lua_module_closure_t *lmc = pthread_getspecific(conf->key);
 
-  if(!lmc) mtev_lua_general_init(self);
-  lmc = pthread_getspecific(conf->key);
+  if(!lmc) lmc = mtev_lua_general_spinup(self);
 
   if(!lmc || !module || !function) {
     goto boom;
@@ -222,6 +230,7 @@ lua_general_handler_ex(mtev_dso_generic_t *self,
     goto boom;
   }
 
+  mtev_lua_ref(lmc);
   status = mtev_lua_lmc_resume(lmc, ri, 0);
   if(status == 0) return 0;
   /* If we've failed, resume has freed ri, so we should just return. */
@@ -231,6 +240,7 @@ lua_general_handler_ex(mtev_dso_generic_t *self,
 
  boom:
   if(err) mtevL(nlerr, "lua dispatch error: %s\n", err);
+  if(ri) mtev_lua_deref(lmc);
   if(ri) lua_general_ctx_free(ri);
   tragic_failure(self);
   return 0;
@@ -263,6 +273,7 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
   conf->cpath = NULL;
   conf->module = NULL;
   conf->function = NULL;
+  conf->interrupt_mode = INTERRUPT_ERRORS;
   (void)mtev_hash_retr_str(o, "directory", strlen("directory"), &conf->script_dir);
   if(conf->script_dir) conf->script_dir = strdup(conf->script_dir);
   (void)mtev_hash_retr_str(o, "cpath", strlen("cpath"), &conf->cpath);
@@ -314,6 +325,20 @@ mtev_lua_general_config(mtev_dso_generic_t *self, mtev_hash_table *o) {
     if(timeout > 0) {
       conf->interrupt_time.tv_sec = timeout;
       conf->interrupt_time.tv_usec = (timeout - (double)conf->interrupt_time.tv_sec) * 1000000;
+    }
+  }
+
+  bstr = mtev_hash_dict_get(o, "interrupt_mode");
+  if(bstr) {
+    if(!strcmp(bstr, "preempt")) {
+      conf->interrupt_mode = INTERRUPT_PREEMPTS;
+    }
+    else if(!strcmp(bstr, "error")) {
+      conf->interrupt_mode = INTERRUPT_ERRORS;
+    }
+    else {
+      mtevL(mtev_error, "lua_general invalid interrupt_mode: %s\n", bstr);
+      return -1;
     }
   }
 
@@ -412,7 +437,6 @@ lua_general_conf_save(lua_State *L) {
 
 void
 mtev_lua_register_dynamic_ctype_impl(const char *type_name, mtev_lua_push_dynamic_ctype_t func) {
-  if(!general_loaded) return;
   mtev_hash_replace(&lua_ctypes, strdup(type_name), strlen(type_name),
                     func, free, NULL);
 }
@@ -602,9 +626,11 @@ lua_hook_vahandler(void *closure, ...) {
 
   lua_State *L;
   lmc = pthread_getspecific(conf->key);
-  if(!lmc) {
-    mtev_lua_general_init(lhi->self);
-    lmc = pthread_getspecific(conf->key);
+
+  mtev_lua_general_validate_lmc(lmc);
+
+  if(!lmc || lmc->wants_restart) {
+    lmc = mtev_lua_general_spinup(lhi->self);
   }
   if(!lmc) {
     mtevL(nlerr, "Failed to load lua_general on thread.\n");
@@ -767,33 +793,18 @@ static const luaL_Reg general_lua_funcs[] =
   {NULL,  NULL}
 };
 
-static int
-mtev_lua_general_init(mtev_dso_generic_t *self) {
-  const char * const *module;
-  int (*f)(lua_State *);
+static lua_module_closure_t *
+mtev_lua_general_lmc_setup(mtev_dso_generic_t *self) {
   lua_general_conf_t *conf = get_config(self);
-  lua_module_closure_t *lmc = pthread_getspecific(conf->key);
-
-  if(lmc) return 0;
-
-  eventer_name_callback("lua/dispatch_general", dispatch_general);
-
-  stats_ns_t *lua_stats_ns = mtev_stats_ns(mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "modules"), "lua");
-  vm_time = stats_register(lua_stats_ns, "vm_invocation_runtime", STATS_TYPE_HISTOGRAM_FAST);
-  stats_handle_add_tag(vm_time, "operation", "vm-invoke");
-  stats_handle_tagged_name(vm_time, "runtime");
-  stats_handle_units(vm_time, STATS_UNITS_SECONDS);
-
-  if(!lmc) {
-    lmc = mtev_lua_lmc_alloc(self, lua_general_resume);
-    mtev_lua_set_gc_params(lmc, conf->gc_params);
-    lmc->interrupt_time = conf->interrupt_time;
-    pthread_setspecific(conf->key, lmc);
-  }
+  lua_module_closure_t *lmc = mtev_lua_lmc_alloc(self, lua_general_resume);
+  int (*f)(lua_State *);
+  mtev_lua_set_gc_params(lmc, conf->gc_params);
+  lmc->interrupt_time = conf->interrupt_time;
+  lmc->interrupt_mode = conf->interrupt_mode;
 
   if(!conf->module || !conf->function) {
     mtevL(nlerr, "lua_general cannot be used without module and function config\n");
-    return -1;
+    return NULL;
   }
 
   lmc->lua_state = mtev_lua_open(self->hdr.name, lmc,
@@ -801,13 +812,13 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
   mtevL(nldeb, "lua_general opening state -> %p\n", lmc->lua_state);
   if(lmc->lua_state == NULL) {
     mtevL(mtev_error, "lua_general could not add general functions\n");
-    return -1;
+    return NULL;
   }
 
   luaL_openlib(lmc->lua_state, "mtev", general_lua_funcs, 0);
   /* Load some preloads */
 
-  for(module = conf->Cpreloads; module && *module; module++) {
+  for(const char * const *module = conf->Cpreloads; module && *module; module++) {
     int len;
     char *symbol = NULL;
     len = strlen(*module) + strlen("luaopen_");
@@ -826,7 +837,7 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
     free(symbol);
   }
 
-  for(module = conf->preloads; module && *module; module++) {
+  for(const char * const *module = conf->preloads; module && *module; module++) {
     int rv;
     lua_getglobal(lmc->lua_state, "require");
     lua_pushstring(lmc->lua_state, *module);
@@ -841,25 +852,72 @@ mtev_lua_general_init(mtev_dso_generic_t *self) {
   lua_pushstring(lmc->lua_state, "ffi");
   if(mtev_lua_pcall(lmc->lua_state,1,1,0) != 0 || !lua_istable(lmc->lua_state,-1)) {
     mtevL(mtev_error, "lua_general could not reference ffi\n");
-    return -1;
+    return NULL;
   }
   lmc->ffi_index = luaL_ref(lmc->lua_state, LUA_REGISTRYINDEX);
+  pthread_setspecific(conf->key, lmc);
 
-  if(conf->booted) return true;
-  conf->booted = mtev_true;
-  eventer_add_in_s_us(dispatch_general, self, 0, 0);
-
-  if(conf->concurrent) {
-    int i = 1;
-    pthread_t tgt, thr;
-    thr = eventer_choose_owner(i++);
-    do {
-      eventer_t e = eventer_in_s_us(dispatch_general, self, 0, 0);
-      tgt = eventer_choose_owner(i++);
-      eventer_set_owner(e, tgt);
-      eventer_add(e);
-    } while(!pthread_equal(thr,tgt));
+  pthread_t main_thread = eventer_choose_owner(0);
+  if(eventer_in_loop() && (conf->concurrent || pthread_equal(pthread_self(), main_thread))) {
+    eventer_add_in_s_us(dispatch_general, self, 0, 0);
   }
+
+  return lmc;
+}
+
+static lua_module_closure_t *
+mtev_lua_general_spinup(mtev_dso_generic_t *self) {
+  lua_general_conf_t *conf = get_config(self);
+  lua_module_closure_t *lmc = pthread_getspecific(conf->key);
+
+  mtev_lua_general_validate_lmc(lmc);
+
+  if(lmc && lmc->wants_restart) {
+    mtev_lua_dispatch_defunct();
+    mtev_lua_deref(lmc);
+    lmc = NULL;
+  }
+  if(lmc) return lmc;
+
+  lmc = mtev_lua_general_lmc_setup(self);
+  if(lmc) return lmc;
+
+  mtevL(mtev_error, "Failed to initialize lua_general\n");
+  return NULL;
+}
+
+static int
+mtev_lua_general_spinup_trigger(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  mtev_lua_general_spinup((mtev_dso_generic_t *)closure);
+  return 0;
+}
+
+static void
+mtev_lua_general_boot(mtev_dso_generic_t *self) {
+  lua_general_conf_t *conf = get_config(self);
+  for(int i = 0; i<eventer_loop_concurrency(); i++) {
+    eventer_t e = eventer_in_s_us(mtev_lua_general_spinup_trigger, self, 0, 0);
+    eventer_set_owner(e, eventer_choose_owner(i));
+    eventer_add(e);
+    if(!conf->concurrent) break;
+  }
+}
+
+static int
+mtev_lua_general_init(mtev_dso_generic_t *self) {
+  eventer_name_callback("lua/dispatch_general", dispatch_general);
+
+  stats_ns_t *lua_stats_ns = mtev_stats_ns(mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "modules"), "lua");
+  vm_time = stats_register(lua_stats_ns, "vm_invocation_runtime", STATS_TYPE_HISTOGRAM_FAST);
+  stats_handle_add_tag(vm_time, "operation", "vm-invoke");
+  stats_handle_tagged_name(vm_time, "runtime");
+  stats_handle_units(vm_time, STATS_UNITS_SECONDS);
+
+  if(mtev_lua_general_spinup(self) == NULL) return -1;
+  mtev_lua_general_boot(self);
   return 0;
 }
 
@@ -919,15 +977,13 @@ mtev_console_lua_repl_execute(mtev_console_closure_t ncct,
   (void)closure;
   lua_State *L;
   mtev_lua_repl_userdata_t *info;
-  lua_general_conf_t *conf = NULL;
   lua_module_closure_t *lmc = NULL;
   char *buff;
   int i, rv;
 
   info = mtev_console_userdata_get(ncct, MTEV_LUA_REPL_USERDATA);
   if(info) {
-    conf = get_config(info->self);
-    lmc = pthread_getspecific(conf->key);
+    lmc = mtev_lua_general_spinup(info->self);
   }
   if(!lmc) {
     nc_printf(ncct, "Internal error, cannot find lua state.\n");
@@ -941,6 +997,8 @@ mtev_console_lua_repl_execute(mtev_console_closure_t ncct,
     strlcat(buff, argv[i], EVALSIZE);
   }
 
+
+  mtev_lua_ref(lmc);
   L = lmc->lua_state;
   lua_pushConsole(L, ncct);
   lua_getglobal(L, "mtev");
@@ -965,9 +1023,11 @@ mtev_console_lua_repl_execute(mtev_console_closure_t ncct,
       }
     }
     lua_pop(L, i);
+    mtev_lua_deref(lmc);
     return -1;
   }
   lua_pop(L, lua_gettop(L));
+  mtev_lua_deref(lmc);
 
   free(buff);
 #undef EVALSIZE
@@ -1031,7 +1091,7 @@ lua_repl_prompt(EditLine *el) {
   if(!lmc || !ncct->simple || !pthread_equal(eventer_get_owner(ncct->simple->e), pthread_self()))
     snprintf(info->prompt, sizeof(info->prompt), "lua_general(...)# ");
   else
-    snprintf(info->prompt, sizeof(info->prompt), tl, get_eventer_id(ncct), lmc->lua_state);
+    snprintf(info->prompt, sizeof(info->prompt), tl, get_eventer_id(ncct), lmc);
   return info->prompt;
 }
 
@@ -1052,10 +1112,33 @@ mtev_lua_general_register_console_commands(mtev_image_t *self) {
   mtev_console_state_add_cmd(tl,
     NCSCMD("lua_general", mtev_console_state_lua, NULL, luas, self));
 }
-static int
-mtev_lua_general_onload(mtev_image_t *self) {
+
+__attribute__((constructor))
+void
+lua_general_ctor(void) {
   mtev_hash_init_locks(&lua_ctypes, MTEV_HASH_DEFAULT_SIZE, MTEV_HASH_LOCK_MODE_MUTEX);
   mtev_hash_init(&hookinfo);
+}
+
+static mtev_hook_return_t
+mtev_lua_general_dispatch_defunct(void *closure, lua_module_closure_t *lmc) {
+  mtev_dso_generic_t *self = (mtev_dso_generic_t *)closure;
+  lua_general_conf_t *conf = get_config(self);
+  if(lmc->self != self || !conf) return MTEV_HOOK_CONTINUE;
+  lua_module_closure_t *current_lmc = pthread_getspecific(conf->key);
+  if(lmc == current_lmc) {
+    current_lmc = NULL;
+    pthread_setspecific(conf->key, NULL);
+    mtev_lua_deref(lmc);
+  }
+  if(current_lmc == NULL) {
+    mtev_lua_general_lmc_setup(self);
+  }
+  return MTEV_HOOK_DONE;
+}
+
+static int
+mtev_lua_general_onload(mtev_image_t *self) {
   nlerr = mtev_log_stream_find("error/lua");
   nldeb = mtev_log_stream_find("debug/lua");
   mtev_lua_context_describe(LUA_GENERAL_INFO_MAGIC,
@@ -1063,6 +1146,7 @@ mtev_lua_general_onload(mtev_image_t *self) {
   mtev_lua_context_describe_json(LUA_GENERAL_INFO_MAGIC,
                                  describe_lua_general_context_json);
   mtev_lua_general_register_console_commands(self);
+  mtev_lua_dispatch_defunct_hook_register("lua_general", mtev_lua_general_dispatch_defunct, self);
   general_loaded = 1;
   return 0;
 }

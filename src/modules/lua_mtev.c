@@ -136,17 +136,144 @@ typedef struct {
   mtev_json_object *root;
 } json_crutch;
 
-static void
-mtev_lua_push_timeval(lua_State *L, struct timeval time) {
-  lua_getglobal(L, "mtev");
-  lua_getfield(L, -1, "timeval");
-  lua_getfield(L, -1, "new");
-  lua_replace(L, -3); // replaces mtev with new and removes new
-  lua_pop(L, 1); // pops timeval
-  lua_pushinteger(L, time.tv_sec);
-  lua_pushinteger(L, time.tv_usec);
-  lua_call(L, 2, 1);
+static int
+nl_mtev_timeval_new_ex(lua_State *L, struct timeval src) {
+  struct timeval *tgt = (struct timeval *)lua_newuserdata(L, sizeof(*tgt));
+  *tgt = src;
+  luaL_getmetatable(L, "mtev.timeval");
+  lua_setmetatable(L, -2);
+  return 1;
 }
+
+static int nl_mtev_timeval_now(lua_State *L) {
+  struct timeval now;
+  mtev_gettimeofday(&now, NULL);
+  return nl_mtev_timeval_new_ex(L, now);
+}
+
+static void double_to_timeval(double in, struct timeval *out) {
+  out->tv_sec = floor(in);
+  double unused_inf;
+  double tus = modf(in, &unused_inf);
+  if(tus < 0) tus += 1;
+  out->tv_usec = round(1000000.0 * tus);
+}
+static int nl_mtev_timeval_new(lua_State *L) {
+  if(lua_gettop(L) == 1) {
+    struct timeval tv;
+    double_to_timeval(lua_tonumber(L,1), &tv);
+    return nl_mtev_timeval_new_ex(L, tv);
+  }
+  struct timeval tv = { .tv_sec = lua_tointeger(L,1), .tv_usec = lua_tointeger(L,2) };
+  return nl_mtev_timeval_new_ex(L, tv);
+}
+
+#define TVDOUBLE(tv) ((double)(tv)->tv_sec + (double)(tv)->tv_usec / 1000000.0)
+static int
+mtev_lua_timeval_tostring(lua_State *L) {
+  char buf[128];
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  snprintf(buf, sizeof(buf), "%lu.%06lu", tv->tv_sec, tv->tv_usec);
+  lua_pushstring(L, buf);
+  return 1;
+}
+static int
+mtev_lua_timeval_sub(lua_State *L) {
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *o = luaL_checkudata(L, 2, "mtev.timeval");
+  struct timeval n;
+  sub_timeval(*tv, *o, &n);
+  return nl_mtev_timeval_new_ex(L, n);
+}
+static int
+mtev_lua_timeval_add(lua_State *L) {
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *o, stacko;
+  if(lua_isnumber(L,2)) {
+    double_to_timeval(lua_tonumber(L,2), &stacko);
+    o = &stacko;
+  }
+  else o = luaL_checkudata(L, 2, "mtev.timeval");
+  struct timeval n;
+  add_timeval(*tv, *o, &n);
+  return nl_mtev_timeval_new_ex(L, n);
+}
+static int
+mtev_lua_timeval_eq(lua_State *L) {
+  struct timeval *left = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *right, right_st;
+  if(lua_isnumber(L,2)) {
+    double_to_timeval(lua_tonumber(L,2), &right_st);
+    right = &right_st;
+  } else {
+    right = luaL_checkudata(L, 2, "mtev.timeval");
+  }
+  lua_pushboolean(L, compare_timeval(*left,*right) == 0);
+  return 1;
+}
+static int
+mtev_lua_timeval_lt(lua_State *L) {
+  struct timeval *left = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *right, right_st;
+  if(lua_isnumber(L,2)) {
+    double_to_timeval(lua_tonumber(L,2), &right_st);
+    right = &right_st;
+  } else {
+    right = luaL_checkudata(L, 2, "mtev.timeval");
+  }
+  lua_pushboolean(L, compare_timeval(*left,*right) < 0);
+  return 1;
+}
+static int
+mtev_lua_timeval_le(lua_State *L) {
+  struct timeval *left = luaL_checkudata(L, 1, "mtev.timeval");
+  struct timeval *right, right_st;
+  if(lua_isnumber(L,2)) {
+    double_to_timeval(lua_tonumber(L,2), &right_st);
+    right = &right_st;
+  } else {
+    right = luaL_checkudata(L, 2, "mtev.timeval");
+  }
+  lua_pushboolean(L, compare_timeval(*left,*right) <= 0);
+  return 1;
+}
+static int
+mtev_lua_timeval_seconds(lua_State *L) {
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  lua_pushnumber(L, TVDOUBLE(tv));
+  return 1;
+}
+#undef TVDOUBLE
+
+static int
+mtev_lua_timeval_index_func(lua_State *L) {
+  if(lua_gettop(L) != 2) {
+    return luaL_error(L, "Illegal use of lua timeval");
+  }
+  struct timeval *tv = luaL_checkudata(L, 1, "mtev.timeval");
+  const char* k = luaL_checkstring(L, 2);
+  if(!strcmp(k, "seconds")) {
+    lua_pushcclosure(L, mtev_lua_timeval_seconds, 0);
+    return 1;
+  }
+  if(!strcmp(k, "sec")) {
+    lua_pushinteger(L, tv->tv_sec);
+    return 1;
+  }
+  if(!strcmp(k, "usec")) {
+    lua_pushinteger(L, tv->tv_usec);
+    return 1;
+  }
+  return 0;
+}
+
+static const luaL_Reg mtevtimevallib[] = {
+  { "now", nl_mtev_timeval_now },
+  { "new", nl_mtev_timeval_new },
+  { "seconds", mtev_lua_timeval_seconds },
+  { NULL, NULL }
+};
+
 static void
 mtev_lua_eventer_cl_cleanup(eventer_t e) {
   mtev_lua_resume_info_t *ci;
@@ -218,7 +345,7 @@ nl_resume(eventer_t e, int mask, void *vcl, struct timeval *now) {
         return 0;
     }
     mtev_lua_deregister_event(ci, e, 0);
-    mtev_lua_lmc_resume(ci->lmc, ci, 1);
+    mtev_lua_lmc_resume(ci->lmc, ci, 0);
     return 0;
 }
 
@@ -2408,7 +2535,7 @@ nl_sleep_complete(eventer_t e, int mask, void *vcl, struct timeval *now) {
   mtev_lua_deregister_event(ci, e, 0);
 
   sub_timeval(*now, cl->start, &diff);
-  mtev_lua_push_timeval(cl->L, diff);
+  nl_mtev_timeval_new_ex(cl->L, diff);
 
   free(cl);
   mtev_lua_lmc_resume(ci->lmc, ci, 1);
@@ -2750,7 +2877,43 @@ nl_log_up(lua_State *L) {
     lua_pushvalue(L, i);
   lua_call(L, n, 1);
   message = lua_tostring(L, -1);
-  mtevL(ls, "%s", message);
+
+  /* The following is an emulation of the mtevL macro,
+   * but with lua magic to hijack the FILE and LINE
+   * so that in debugging mode we see lua lines instead of this
+   * C file which is useless.
+   */
+  bool mtevLT_doit = mtev_log_global_enabled() || N_L_S_ON((ls));
+  if(!mtevLT_doit) {
+    Zipkin_Span *mtevLT_span = mtev_zipkin_active_span(NULL);
+    if(mtevLT_span != NULL) {
+      mtevLT_doit = mtev_zipkin_span_logs_attached(mtevLT_span);
+    }
+  }
+  if(mtevLT_doit) {
+    luaL_where(L, 2);
+    const char *where = lua_tostring(L, -1);
+    int line = 0;
+    char path[PATH_MAX];
+    const char *file = "<unknown>";
+    if(where) {
+      file = strrchr(where, '/');
+      file = file ? (file+1) : where;
+      strlcpy(path, file, sizeof(path));
+      char *lc = strrchr(path, ':');
+      if(lc) {
+        *lc = '\0';
+        lc = strrchr(path, ':');
+        if(lc) {
+          *lc++ = '\0';
+	  line = atoi(lc);
+        }
+      }
+      file = path;
+    }
+    lua_pop(L,1); /* where */
+    mtev_log((ls), NULL, file, line, "%s", message);
+  }
   lua_pop(L, 1); /* formatted string */
   lua_pop(L, 1); /* "string" table */
   return 0;
@@ -3515,6 +3678,7 @@ struct pcre_global_info {
 };
 static int
 mtev_lua_pcre_match(lua_State *L) {
+  bool vectored_return = false;
   const char *subject;
   struct pcre_global_info *pgi;
   int i, cnt, ovector[30];
@@ -3524,6 +3688,30 @@ mtev_lua_pcre_match(lua_State *L) {
 
   pgi = (struct pcre_global_info *)lua_touserdata(L, lua_upvalueindex(1));
   subject = lua_tolstring(L,1,&inlen);
+  if(lua_gettop(L) > 1) {
+    if(!lua_istable(L, 2)) {
+      mtevL(nldeb, "pcre match called with second argument that is not a table\n");
+    }
+    else {
+      lua_getfield(L, -1, "limit");
+      if(lua_isnumber(L, -1)) {
+        e.flags |= PCRE_EXTRA_MATCH_LIMIT;
+        e.match_limit = (int)lua_tonumber(L, -1);
+      }
+      lua_pop(L, 1);
+      lua_getfield(L, -1, "limit_recurse");
+      if(lua_isnumber(L, -1)) {
+        e.flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
+        e.match_limit_recursion = (int)lua_tonumber(L, -1);
+      }
+      lua_pop(L, 1);
+      lua_getfield(L, -1, "offsets");
+      if(lua_isboolean(L, -1)) {
+        vectored_return = (int)lua_toboolean(L, -1);
+      }
+      lua_pop(L, 1);
+    }
+  }
   if(!subject) {
     pgi->subject = NULL;
     pgi->offset = 0;
@@ -3534,39 +3722,29 @@ mtev_lua_pcre_match(lua_State *L) {
     pgi->offset = 0;
     pgi->subject = subject;
   }
-  if(lua_gettop(L) > 1) {
-    if(!lua_istable(L, 2)) {
-      mtevL(nldeb, "pcre match called with second argument that is not a table\n");
-    }
-    else {
-      lua_pushstring(L, "limit");
-      lua_gettable(L, -2);
-      if(lua_isnumber(L, -1)) {
-        e.flags |= PCRE_EXTRA_MATCH_LIMIT;
-        e.match_limit = (int)lua_tonumber(L, -1);
-      }
-      lua_pop(L, 1);
-      lua_pushstring(L, "limit_recurse");
-      lua_gettable(L, -2);
-      if(lua_isnumber(L, -1)) {
-        e.flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
-        e.match_limit_recursion = (int)lua_tonumber(L, -1);
-      }
-      lua_pop(L, 1);
-    }
-  }
   if (pgi->offset >= inlen) {
-    lua_pushboolean(L,0);
+    if(vectored_return) lua_createtable(L, 0, 0);
+    else lua_pushboolean(L,0);
     return 1;
   }
   cnt = pcre_exec(pgi->re, &e, subject + pgi->offset,
                   inlen - pgi->offset, 0, 0,
                   ovector, sizeof(ovector)/sizeof(*ovector));
   if(cnt <= 0) {
-    lua_pushboolean(L,0);
+    if(vectored_return) lua_createtable(L, 0, 0);
+    else lua_pushboolean(L,0);
     return 1;
   }
-  lua_pushboolean(L,1);
+  if(vectored_return) {
+    lua_createtable(L, cnt*2, 0);
+    for(i = 0; i < cnt; i++) {
+      lua_pushinteger(L, pgi->offset+ovector[i*2]);
+      lua_rawseti(L, -2, i*2+1);
+      lua_pushinteger(L, pgi->offset+ovector[i*2+1]);
+      lua_rawseti(L, -2, i*2+2);
+    }
+  }
+  else lua_pushboolean(L,1);
   for(i = 0; i < cnt; i++) {
     int start = ovector[i*2];
     int end = ovector[i*2+1];
@@ -4216,6 +4394,10 @@ mtev_xmldoc_index_func(lua_State *L) {
   return 0;
 }
 
+struct cluster_crutch {
+  char *cluster_name;
+  mtev_cluster_t *cluster;
+};
 /* \lua bool = mtev.cluster:am_i_oldest_visible_node()
 \return whether the invoking code is running on the oldest node in the cluster.
 */
@@ -4227,8 +4409,8 @@ mtev_lua_cluster_am_i_oldest_visible_node(lua_State *L) {
   if(udata != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   if(n != 1) luaL_error(L, "expects no arguments, got %d", n);
-  const char *cluster_name = (const char *)udata;
-  mtev_cluster_t *cluster = mtev_cluster_by_name(cluster_name);
+  struct cluster_crutch *c = (struct cluster_crutch *)udata;
+  mtev_cluster_t *cluster = c->cluster ? c->cluster : mtev_cluster_by_name(c->cluster_name);
   if(cluster == NULL) luaL_error(L, "no such cluster");
   lua_pushboolean(L, mtev_cluster_am_i_oldest_visible_node(cluster));
   return 1;
@@ -4245,8 +4427,8 @@ mtev_lua_cluster_size(lua_State *L) {
   if(udata != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
   if(n != 1) luaL_error(L, "expects no arguments, got %d", n);
-  const char *cluster_name = (const char *)udata;
-  mtev_cluster_t *cluster = mtev_cluster_by_name(cluster_name);
+  struct cluster_crutch *c = (struct cluster_crutch *)udata;
+  mtev_cluster_t *cluster = c->cluster ? c->cluster : mtev_cluster_by_name(c->cluster_name);
   if(cluster == NULL) luaL_error(L, "no such cluster");
   lua_pushinteger(L, mtev_cluster_size(cluster));
   return 1;
@@ -4289,12 +4471,26 @@ nl_mtev_cluster(lua_State *L) {
   if(cluster == NULL) return 0;
   // We store the cluster name in the lua object not the reference to the mtev_cluster_t, since this
   // might be changing over time.
-  char *obj = lua_newuserdata(L, strlen(cluster_name)+1);
-  memcpy(obj, cluster_name, strlen(cluster_name)+1);
+  char *obj = lua_newuserdata(L, sizeof(struct cluster_crutch)+strlen(cluster_name)+1);
+  memset(obj, 0, sizeof(struct cluster_crutch));
+  memcpy(obj + sizeof(struct cluster_crutch), cluster_name, strlen(cluster_name)+1);
+  struct cluster_crutch *c = (struct cluster_crutch *)obj;
+  c->cluster_name = obj + sizeof(struct cluster_crutch);
   luaL_getmetatable(L, "mtev.cluster");
   lua_setmetatable(L, -2);
   return 1;
 }
+
+static void
+nl_push_ctype_mtev_cluster(lua_State *L, va_list ap) {
+  mtev_cluster_t *cluster = va_arg(ap, mtev_cluster_t *);
+  struct cluster_crutch *c = lua_newuserdata(L, sizeof(struct cluster_crutch));
+  memset(c, 0, sizeof(struct cluster_crutch));
+  c->cluster = cluster;
+  luaL_getmetatable(L, "mtev.cluster");
+  lua_setmetatable(L, -2);
+}
+
 
 /*! \lua obj = mtev.json:tostring()
 \brief return a JSON-formatted string of an `mtev.json` object
@@ -4805,7 +5001,10 @@ nl_thread_self(lua_State *L) {
   lua_pop(L, 1);
   lua_pushinteger(L, (int) mtev_thread_id());
   lua_pushinteger(L, (lmc) ? lmc->eventer_id : -1);
-  return 2;
+  const char *thread_name = mtev_thread_getname();
+  if(!thread_name) return 2;
+  lua_pushstring(L, thread_name);
+  return 3;
 }
 
 /*! \lua mtev.eventer_loop_concurrency()
@@ -5694,15 +5893,86 @@ mtev_lua_semaphore_index_func(lua_State *L) {
   return luaL_error(L, "mtev.semaphore no such element: %s", k);
 }
 
+/*! \lua mtev.runtime_defunct(f)
+ *  \brief Determines in the currrent runtime is defunct (you should end your work)
+ *  \param f an optional callback function to call when a state goes defunct.
+ *  \returns true or false
+ */
+static int
+nl_runtime_defunct(lua_State *L) {
+  mtev_lua_resume_info_t *ci = mtev_lua_find_resume_info(L, mtev_false);
+  if(!ci) luaL_error(L, "unmanaged runtime!");
+  mtev_lua_validate_lmc(ci->lmc);
+  bool has_func = (lua_gettop(L) > 0);
+  if(has_func && !lua_isfunction(L,1)) {
+    luaL_error(L, "mtev.runtime_defunct first art not a function");
+  }
+
+  if(ci->lmc->wants_restart) {
+    lua_pushvalue(L, 1);
+    lua_pcall(L, 0, 0, 0);
+    lua_pushboolean(L, 1);
+    return 1;
+  }
+  lua_getglobal(L, "mtev");
+  lua_pushvalue(L, 1);
+  lua_setfield(L, -2, "__defunct_cb");
+  lua_pushboolean(L, 0);
+  return 1;
+}
+
+/*! \lua mtev.runtime_reload()
+ *  \brief Forces a generational counter bump so that a new runtime will be created.
+ */
+static int
+nl_runtime_reload(lua_State *L) {
+  (void)L;
+  mtev_lua_trigger_reload_dyn();
+  return 0;
+}
+
+static int
+cancel_coro_cb(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)now;
+  mtev_lua_resume_info_t *ci = closure;
+  mtev_lua_cancel_coro(ci);
+  return 0;
+}
 /*! \lua mtev.cancel_coro()
 */
 static int
 nl_cancel_coro(lua_State *L) {
   mtev_lua_resume_info_t *ci;
-  lua_State *co = lua_tothread(L,1);
-  ci = mtev_lua_find_resume_info(co, mtev_false);
+  lua_State *co = NULL;
+  if(lua_isstring(L,1)) {
+    const char *ptraddrstr = lua_tostring(L,1);
+    if(ptraddrstr) {
+      char *endptr;
+      if(!strncasecmp(ptraddrstr, "0x", 2)) {
+        uintptr_t ptr = strtoull(ptraddrstr+2, &endptr, 16);
+        if(*endptr == '\0') co = (lua_State *)ptr;
+      } else {
+        uintptr_t ptr = strtoull(ptraddrstr, &endptr, 10);
+        if(*endptr == '\0') co = (lua_State *)ptr;
+      }
+    }
+    if(co == NULL) luaL_error(L, "bad argument to mtev.cancel_coro");
+  } else {
+    co = lua_tothread(L,1);
+  }
+  ci = mtev_lua_find_resume_info_any_thread(co);
   if(!ci) return 0;
-  mtev_lua_cancel_coro(ci);
+  if(pthread_equal(ci->lmc->owner, pthread_self())) {
+    mtev_lua_cancel_coro(ci);
+    return 0;
+  }
+  if(eventer_is_loop(ci->lmc->owner) < 0)
+    luaL_error(L, "coroutine not in event loop");
+  eventer_t e = eventer_in_s_us(cancel_coro_cb, ci, 0, 0);
+  eventer_set_owner(e, ci->lmc->owner);
+  eventer_add(e);
   return 0;
 }
 
@@ -5781,12 +6051,12 @@ nl_getaddrinfo(lua_State *L) {
   hints.ai_canonname = NULL;
   hints.ai_addr = NULL;
   hints.ai_next = NULL;
-  struct addrinfo *result;
+  struct addrinfo *result = NULL;
   int rc = getaddrinfo(host, NULL, &hints, &result);
   if(rc != 0) {
     lua_pushboolean(L, 0);
     lua_pushfstring(L, "getaddrinfo(%s) failed: %s", host, gai_strerror(rc));
-    freeaddrinfo(result);
+    if(result) freeaddrinfo(result);
     return 2;
   }
   if(result == NULL) {
@@ -5900,9 +6170,13 @@ static void mtev_lua_init(void) {
   /* init semaphore */
   semaphore_table = calloc(1, sizeof(*semaphore_table));
   mtev_hash_init_locks(semaphore_table, 0, MTEV_HASH_LOCK_MODE_MUTEX);
+
+  mtev_lua_register_dynamic_ctype("mtev_cluster_t *", nl_push_ctype_mtev_cluster);
 }
 
 static const luaL_Reg mtevlib[] = {
+  { "runtime_reload", nl_runtime_reload },
+  { "runtime_defunct", nl_runtime_defunct },
   { "cancel_coro", nl_cancel_coro },
   { "cluster", nl_mtev_cluster },
   { "waitfor", nl_waitfor },
@@ -6092,6 +6366,28 @@ int luaopen_mtev(lua_State *L) {
 
   luaL_openlib(L, "mtev", mtevlib, 0);
 
+  lua_getglobal(L, "mtev");
+  lua_newtable(L);
+  luaL_setfuncs(L, mtevtimevallib, 0);
+  lua_setfield(L, -2, "timeval");
+  lua_pop(L, 1);
+
+  luaL_newmetatable(L, "mtev.timeval");
+  lua_pushcclosure(L, mtev_lua_timeval_index_func, 0);
+  lua_setfield(L, -2, "__index");
+  lua_pushcclosure(L, mtev_lua_timeval_tostring, 0);
+  lua_setfield(L, -2, "__tostring");
+  lua_pushcclosure(L, mtev_lua_timeval_sub, 0);
+  lua_setfield(L, -2, "__sub");
+  lua_pushcclosure(L, mtev_lua_timeval_add, 0);
+  lua_setfield(L, -2, "__add");
+  lua_pushcclosure(L, mtev_lua_timeval_eq, 0);
+  lua_setfield(L, -2, "__eq");
+  lua_pushcclosure(L, mtev_lua_timeval_le, 0);
+  lua_setfield(L, -2, "__le");
+  lua_pushcclosure(L, mtev_lua_timeval_lt, 0);
+  lua_setfield(L, -2, "__lt");
+
   lua_getglobal(L, "_G");
   lua_getglobal(L, "mtev");
   lua_getfield(L, -1, "print");
@@ -6133,6 +6429,7 @@ int luaopen_mtev(lua_State *L) {
   luaopen_mtev_stats(L);
   luaopen_mtev_crypto(L);
   luaopen_mtev_http(L);
+  luaopen_mtev_zipkin(L);
   luaopen_bit(L);
   luaopen_pack(L);
   return 0;

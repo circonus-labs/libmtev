@@ -43,6 +43,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdatomic.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -57,10 +58,14 @@
 
 #define EVENTER_SSL_DATANAME "eventer_ssl"
 #define DEFAULT_OPTS_STRING "all"
+#if defined (TLS1_2_VERSION) && OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+#define DEFAULT_LAYER_STRING "tlsv1:all,>=tlsv1.2,!all,!sslv3,!sslv2"
+#else
 #ifndef SSL_TXT_SSLV2
 #define DEFAULT_LAYER_STRING "tlsv1:all,!sslv3"
 #else
 #define DEFAULT_LAYER_STRING "tlsv1:all,!sslv2,!sslv3"
+#endif
 #endif
 /* ERR_error_string(3): buf must be at least 120 bytes... */
 #define MIN_ERRSTR_LEN 120
@@ -637,7 +642,9 @@ verify_cb(int ok, X509_STORE_CTX *x509ctx) {
   /* Fetch the handle and containing context and fill in some blanks */
   ssl = X509_STORE_CTX_get_ex_data(x509ctx,
                                    SSL_get_ex_data_X509_STORE_CTX_idx());
+  if(!ssl) return 0;
   ctx = SSL_get_eventer_ssl_ctx(ssl);
+  if(!ctx) return 0;
   eventer_ssl_set_peer_subject(ctx, x509ctx);
   eventer_ssl_set_peer_issuer(ctx, x509ctx);
 
@@ -710,6 +717,8 @@ eventer_SSL_server_info_callback(const SSL *ssl, int type, int val) {
   (void)type;
   (void)val;
   eventer_ssl_ctx_t *ctx;
+
+  if(!ssl) return;
 
   if (ssl->state != SSL3_ST_SR_CLNT_HELLO_A &&
       ssl->state != SSL23_ST_SR_CLNT_HELLO_A)
@@ -789,7 +798,9 @@ static
 int eventer_ssl_ctx_get_sni(SSL *ssl, int *ad, void *arg) {
   (void)ad;
   (void)arg;
+  if(!ssl) return SSL_TLSEXT_ERR_OK;
   eventer_ssl_ctx_t *ctx = SSL_get_eventer_ssl_ctx(ssl);
+  if(!ctx) return SSL_TLSEXT_ERR_OK;
   const char *name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
   if(name) {
     free(ctx->sni_name);
@@ -819,6 +830,15 @@ eventer_ssl_ctx_t *
 eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
                        mtev_hash_table *settings) {
   const char *layer = mtev_hash_dict_get(settings, "layer");
+  const char *openssl_override_layer =
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+    mtev_hash_dict_get(settings, "layer_openssl_11");
+#elif OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_1
+    mtev_hash_dict_get(settings, "layer_openssl_10");
+#else
+    NULL;
+#endif
+  if(openssl_override_layer) layer = openssl_override_layer;
   const char *certificate = mtev_hash_dict_get(settings, "certificate");
   if(!certificate) certificate = mtev_hash_dict_get(settings, "certificate_file");
   const char *key = mtev_hash_dict_get(settings, "key");
@@ -918,28 +938,6 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
 #else
     /* openssl 1.1 and higher */
   ctx->ssl_ctx = SSL_CTX_new(type == SSL_SERVER ? TLS_server_method() : TLS_client_method());
-  if(layer && !strcasecmp(layer, SSL_TXT_SSLV3)) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, SSL3_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, SSL3_VERSION);
-  }
-  else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1)) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_VERSION);
-  }
-  else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1_1)) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_1_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_1_VERSION);
-  }
-  else if(layer && !strcasecmp(layer, SSL_TXT_TLSV1_2)) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_2_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_2_VERSION);
-  }
-#if defined(TLS1_3_VERSION)
-  else if(layer && !strcasecmp(layer, "TLSv1.3")) {
-    SSL_CTX_set_min_proto_version(ctx->ssl_ctx, TLS1_3_VERSION);
-    SSL_CTX_set_max_proto_version(ctx->ssl_ctx, TLS1_3_VERSION);
-  }
-#endif
 #endif
 
     if(ctx->ssl_ctx == NULL)
@@ -950,11 +948,47 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
       goto bail;
     }
 
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+    int min_version = 0, max_version = 0;
+#endif
     for(part = strtok_r(opts, ",", &brkt);
         part;
         part = strtok_r(NULL, ",", &brkt)) {
       char *optname = part;
       int neg = 0;
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+      if(((*optname == '>' || *optname == '<') && optname[1] == '=') ||
+         *optname == '=') {
+        bool is_min = (*optname == '>');
+        bool exact = (*optname == '=');
+        int version = 0;
+        optname += exact ? 1 : 2;
+#define TLSFIX(name, opt) \
+        if(!strcasecmp(optname, name)) { \
+          version = opt; \
+        }
+        if(false) {} // noop for flow
+#ifdef TLS1_VERSION
+        else TLSFIX(SSL_TXT_TLSV1, TLS1_VERSION)
+#endif
+#ifdef TLS1_1_VERSION
+        else TLSFIX(SSL_TXT_TLSV1_1, TLS1_1_VERSION)
+#endif
+#ifdef TLS1_2_VERSION
+        else TLSFIX(SSL_TXT_TLSV1_2, TLS1_2_VERSION)
+#endif
+#ifdef TLS1_3_VERSION
+        else TLSFIX("TLSv1.3", TLS1_3_VERSION)
+#endif
+        else {
+          mtevL(eventer_err, "unknown TLS version: %s\n", optname);
+          continue;
+        }
+        if(exact || is_min) min_version = version;
+        if(exact || !is_min) max_version = version;
+        continue;
+      }
+#endif
       if(*optname == '!') neg = 1, optname++;
 
 #define SETBITOPT(name, neg, opt) \
@@ -1015,6 +1049,10 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
     ctx_options |= SSL_OP_SINGLE_ECDH_USE;
 #endif
     SSL_CTX_set_options(ctx->ssl_ctx, ctx_options);
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
+    if(min_version) SSL_CTX_set_min_proto_version(ctx->ssl_ctx, min_version);
+    if(max_version) SSL_CTX_set_max_proto_version(ctx->ssl_ctx, max_version);
+#endif
 #ifdef SSL_MODE_RELEASE_BUFFERS
     SSL_CTX_set_mode(ctx->ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
@@ -1392,23 +1430,36 @@ eventer_ssl_use_crl(eventer_ssl_ctx_t *ctx, const char *crl_file) {
 /*
  * This is a set of helpers to tie the SSL stuff to the eventer_t.
  */
-static int SSL_eventer_ssl_ctx_dataid = -1;
-#define INIT_DATAID do { \
-  if(SSL_eventer_ssl_ctx_dataid == -1) \
-    SSL_eventer_ssl_ctx_dataid = \
-      SSL_get_ex_new_index(0, EVENTER_SSL_DATANAME, NULL, NULL, NULL); \
-} while(0)
+inline static int
+init_data_id(void) {
+  static atomic_int ssl_ctx_data_id = -1;
+  int data_id = atomic_load_explicit(&ssl_ctx_data_id, memory_order_consume);
+
+  if (data_id == -1) {
+    static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    pthread_mutex_lock(&mutex);
+    data_id = atomic_load_explicit(&ssl_ctx_data_id, memory_order_acquire);
+
+    if (data_id == -1) {
+      data_id = SSL_get_ex_new_index(0, EVENTER_SSL_DATANAME, NULL, NULL, NULL);
+      atomic_store_explicit(&ssl_ctx_data_id, data_id, memory_order_release);
+    }
+
+    pthread_mutex_unlock(&mutex);
+  }
+
+  return data_id;
+}
 
 static void
 SSL_set_eventer_ssl_ctx(SSL *ssl, eventer_ssl_ctx_t *ctx) {
-  INIT_DATAID;
-  SSL_set_ex_data(ssl, SSL_eventer_ssl_ctx_dataid, ctx);
+  SSL_set_ex_data(ssl, init_data_id(), ctx);
 }
 
 static eventer_ssl_ctx_t *
 SSL_get_eventer_ssl_ctx(const SSL *ssl) {
-  INIT_DATAID;
-  eventer_ssl_ctx_t *ctx = SSL_get_ex_data(ssl, SSL_eventer_ssl_ctx_dataid);
+  eventer_ssl_ctx_t *ctx = SSL_get_ex_data(ssl, init_data_id());
   return ctx;
 }
 
@@ -1531,7 +1582,7 @@ eventer_SSL_rw(int op, int fd, void *buffer, size_t len, int *mask,
       if(!opstr) opstr = "accept";
       /* only set if we didn't fall through */
       if(!sslop) sslop = SSL_accept;
-   
+
       if((rv = sslop(ctx->ssl)) > 0) {
         if(eventer_SSL_setup(ctx)) {
           errno = EIO;
@@ -1635,6 +1686,7 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
   LIBMTEV_EVENTER_CLOSE_ENTRY(fd, *mask, closure);
   ERR_clear_error();
   SSL_shutdown(ctx->ssl);
+  e->opset->set_opset_ctx(e, NULL);
   eventer_ssl_ctx_free(ctx);
   if(fd < 0) {
 #ifdef EBADFD
@@ -1649,7 +1701,6 @@ eventer_SSL_close(int fd, int *mask, void *closure) {
     rv = 0;
   }
   *mask = 0;
-  e->opset->set_opset_ctx(e, NULL);
   LIBMTEV_EVENTER_CLOSE_RETURN(fd, *mask, closure, rv);
   e->fd = -1;
   (void)rv;

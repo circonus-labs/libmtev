@@ -94,7 +94,7 @@ struct bchain *bchain_alloc(size_t size, int line) {
   struct bchain *n;
   /* mmap is greater than 1MB, inline otherwise */
   if (size >= 1048576) {
-    n = malloc(offsetof(struct bchain, _buff));
+    n = malloc(sizeof(struct bchain));
     if(!n) {
       mtevL(mtev_error, "failed to alloc bchain in bchain_alloc (size %zd)\n", size);
       return NULL;
@@ -627,7 +627,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     free(logline_dynamic);
   }
   mtevEL(http_access,
-        MLKV{ MLKV_STR("ip", ip), MLKV_STR("user", user ? user : "-"),
+        MLKV( MLKV_STR("ip", ip), MLKV_STR("user", user ? user : "-"),
               MLKV_STR("method", mtev_http_request_method_str(req)),
               MLKV_STR("protocol", mtev_http_request_protocol_str(req)),
               MLKV_STR("uri", mtev_http_request_uri_str(req)),
@@ -636,7 +636,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
               MLKV_DOUBLE("latency", (double)diff.tv_sec + (double)diff.tv_usec/1000000.0),
               MLKV_INT64("bytes_written", mtev_http_response_bytes_written(res)),
               MLKV_INT64("bytes_read", mtev_http_request_content_length_read(req)),
-              MLKV_END },
+              MLKV_END ),
         "%s - %s [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
         ip, user ? user : "-", timestr,
         mtev_http_request_method_str(req), mtev_http_request_uri_str(req),

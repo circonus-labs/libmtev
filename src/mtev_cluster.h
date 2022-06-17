@@ -338,6 +338,12 @@ API_EXPORT(struct timeval)
     \param callback Function pointer to the function that should be called.
     \return Returns mtev_true if the cluster is not NULL, mtev_false otherwise
 */
+
+MTEV_HOOK_PROTO(mtev_cluster_update,
+                (mtev_cluster_t *cluster, mtev_boolean created),
+                void *, closure,
+                (void *closure, mtev_cluster_t *cluster, mtev_boolean created));
+
 MTEV_HOOK_PROTO(mtev_cluster_handle_node_update,
                 (mtev_cluster_node_changes_t node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
                     struct timeval old_boot_time),

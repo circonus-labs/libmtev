@@ -415,7 +415,7 @@ mtev_zipkin_span_bannotate_double(Zipkin_Span *span,
   double foo = v;
   int64_t *fooi64 = (int64_t *)&foo;
   *fooi64 = htonll(*fooi64);
-  return mtev_zipkin_span_bannotate(span, ZIPKIN_I64, key, key_copy, fooi64, 8, true);
+  return mtev_zipkin_span_bannotate(span, ZIPKIN_DOUBLE, key, key_copy, fooi64, 8, true);
 }
 
 void

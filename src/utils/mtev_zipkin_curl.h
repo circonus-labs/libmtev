@@ -62,24 +62,18 @@ mtev_zipkin_inst_curl_headers(struct curl_slist *inheaders) {
   return mtev_zipkin_inst_curl_headers_name(inheaders, curl_name);
 }
 
-static inline CURLcode mtev_zipkin_curl_easy_perform(CURL *curl) {
+static inline void mtev_zipkin_curl_record(CURL *curl, Zipkin_Span *span) {
   static const char *zipkin_http_uri = "http.uri";
   static const char *zipkin_http_status = "http.status_code";
   static const char *zipkin_peer_port = "peer.port";
   static const char *zipkin_peer_ipv4 = "peer.ipv4";
   static const char *zipkin_peer_ipv6 = "peer.ipv6";
-  Zipkin_Span *span = mtev_zipkin_client_span(NULL);
-  CURLcode rv;
 
-  if(!span) return curl_easy_perform(curl);
- 
   long httpcode = 0;
   long port = 0;
   char *ip = NULL;
   char *url = NULL;
 
-  mtev_zipkin_span_annotate(span, NULL, ZIPKIN_CLIENT_SEND, false);
-  rv = curl_easy_perform(curl);
   if(CURLE_OK == curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode)) {
     mtev_zipkin_span_bannotate_i32(span, zipkin_http_status, false, httpcode);
   }
@@ -97,6 +91,17 @@ static inline CURLcode mtev_zipkin_curl_easy_perform(CURL *curl) {
   }
   mtev_zipkin_span_annotate(span, NULL, ZIPKIN_CLIENT_RECV, false);
   mtev_zipkin_client_publish(NULL);
+}
+
+static inline CURLcode mtev_zipkin_curl_easy_perform(CURL *curl) {
+  Zipkin_Span *span = mtev_zipkin_client_span(NULL);
+  CURLcode rv;
+
+  if(!span) return curl_easy_perform(curl);
+
+  mtev_zipkin_span_annotate(span, NULL, ZIPKIN_CLIENT_SEND, false);
+  rv = curl_easy_perform(curl);
+  mtev_zipkin_curl_record(curl, span);
   return rv;
 }
 

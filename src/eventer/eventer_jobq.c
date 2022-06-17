@@ -58,8 +58,8 @@ static mtev_hash_table all_queues;
 static __thread eventer_job_t *current_job;
 pthread_mutex_t all_queues_lock;
 mtev_boolean jobq_lifo_default = mtev_false;
-static mtev_boolean jobq_lifo_true = mtev_true;
-static mtev_boolean jobq_lifo_false = mtev_false;
+static const mtev_boolean jobq_lifo_true = mtev_true;
+static const mtev_boolean jobq_lifo_false = mtev_false;
 
 eventer_job_t *
 eventer_current_job(void) {
@@ -109,6 +109,51 @@ static struct ck_malloc malloc_ck_hs = {
   .malloc = gen_malloc,
   .free = gen_free
 };
+static void
+eventer_jobq_consumer_notify(eventer_jobq_t *jobq) {
+  int64_t consumer_jobs;
+
+  pthread_mutex_lock(&jobq->consumer_lock);
+  jobq->consumer_jobs++;
+  consumer_jobs = jobq->consumer_jobs;
+  pthread_mutex_unlock(&jobq->consumer_lock);
+
+  mtevAssert(consumer_jobs >= 0);
+
+  if (consumer_jobs == 1) {
+    pthread_cond_signal(&jobq->consumer_signal);
+  } else {
+    pthread_cond_broadcast(&jobq->consumer_signal);
+  }
+}
+static void
+eventer_jobq_consumer_wait(eventer_jobq_t *jobq) {
+  pthread_mutex_lock(&jobq->consumer_lock);
+
+  while (jobq->consumer_jobs == 0) {
+    pthread_cond_wait(&jobq->consumer_signal, &jobq->consumer_lock);
+  }
+
+  jobq->consumer_jobs--;
+  mtevAssert(jobq->consumer_jobs >= 0);
+  pthread_mutex_unlock(&jobq->consumer_lock);
+}
+static bool
+eventer_jobq_consumer_try_wait(eventer_jobq_t *jobq) {
+  if (pthread_mutex_trylock(&jobq->consumer_lock) == 0) {
+    if (jobq->consumer_jobs == 0) {
+      pthread_mutex_unlock(&jobq->consumer_lock);
+      return false;
+    }
+
+    jobq->consumer_jobs--;
+    mtevAssert(jobq->consumer_jobs >= 0);
+    pthread_mutex_unlock(&jobq->consumer_lock);
+    return true;
+  }
+
+  return false;
+}
 static eventer_jobsq_t *
 eventer_jobq_get_sq_nolock(eventer_jobq_t *jobq, uint64_t subqueue) {
   if(subqueue == 0) return &jobq->queue;
@@ -162,6 +207,9 @@ mark_squeue_job_completed(eventer_jobq_t *jobq, eventer_job_t *job) {
       free(squeue);
     }
     pthread_mutex_unlock(&jobq->lock);
+  }
+  else {
+    ck_pr_dec_32(&job->squeue->inflight);
   }
 }
 static void
@@ -248,6 +296,7 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
 
   pthread_mutex_lock(&all_queues_lock);
   void *vjobq;
+  int err_code;
   if(mtev_hash_retrieve(&all_queues, queue_name, strlen(queue_name),
                         &vjobq)) {
     jobq = vjobq;
@@ -279,19 +328,21 @@ eventer_jobq_create_internal(const char *queue_name, eventer_jobq_memory_safety_
     mtevL(mtev_error, "Cannot initialize lock\n");
     goto error_out;
   }
-  if(sem_init(&jobq->semaphore, 0, 0) != 0) {
-    mtevL(mtev_error, "Cannot initialize semaphore: %s\n",
-          strerror(errno));
+  if (pthread_mutex_init(&jobq->consumer_lock, NULL) != 0) {
+    mtevL(mtev_error, "Cannot initialize consumer_lock\n");
     goto error_out;
   }
-  if(pthread_key_create(&jobq->activejob, NULL)) {
+  pthread_cond_init(&jobq->consumer_signal, NULL);
+  err_code = pthread_key_create(&jobq->activejob, NULL);
+  if(err_code) {
     mtevL(mtev_error, "Cannot initialize thread-specific activejob: %s\n",
-          strerror(errno));
+          strerror(err_code));
     goto error_out;
   }
-  if(pthread_key_create(&jobq->threadenv, NULL)) {
+  err_code = pthread_key_create(&jobq->threadenv, NULL);
+  if(err_code) {
     mtevL(mtev_error, "Cannot initialize thread-specific sigsetjmp env: %s\n",
-          strerror(errno));
+          strerror(err_code));
     goto error_out;
   }
   if(mtev_hash_store(&all_queues, jobq->queue_name, strlen(jobq->queue_name),
@@ -444,7 +495,7 @@ eventer_jobq_enqueue_internal(eventer_jobq_t *jobq, eventer_job_t *job, eventer_
   pthread_mutex_unlock(&jobq->lock);
 
   /* Signal consumers */
-  sem_post(&jobq->semaphore);
+  eventer_jobq_consumer_notify(jobq);
 }
 
 mtev_boolean
@@ -499,9 +550,13 @@ __eventer_jobq_dequeue(eventer_jobq_t *jobq, int should_wait) {
   int cycles = 0;
 
   /* Wait for a job */
-  if(should_wait) mtev_sem_wait_noeintr(&jobq->semaphore);
+  if (should_wait) {
+    eventer_jobq_consumer_wait(jobq);
+  }
   /* Or Try-wait for a job */
-  else if(sem_trywait(&jobq->semaphore)) return NULL;
+  else if (!eventer_jobq_consumer_try_wait(jobq)) {
+    return NULL;
+  }
 
   pthread_mutex_lock(&jobq->lock);
   eventer_jobsq_t *starting_point = jobq->current_squeue;
@@ -577,7 +632,8 @@ eventer_jobq_destroy(eventer_jobq_t *jobq) {
     free(jobq->subqueues);
   }
   pthread_mutex_destroy(&jobq->lock);
-  sem_destroy(&jobq->semaphore);
+  pthread_cond_destroy(&jobq->consumer_signal);
+  pthread_mutex_destroy(&jobq->consumer_lock);
   if(jobq->short_name) mtev_memory_safe_free((void *)jobq->short_name);
   free(jobq);
 }
@@ -1002,9 +1058,9 @@ eventer_jobq_post_noop(eventer_t e, int mask, void *c, struct timeval *now) {
   return 0;
 }
 void eventer_jobq_post(eventer_jobq_t *jobq) {
-  sem_post(&jobq->semaphore);
+  eventer_jobq_consumer_notify(jobq);
   eventer_add_asynch(jobq, eventer_alloc_asynch(eventer_jobq_post_noop, NULL));
-  sem_post(&jobq->semaphore);
+  eventer_jobq_consumer_notify(jobq);
 }
 
 void eventer_jobq_set_shortname(eventer_jobq_t *jobq, const char *name) {
@@ -1021,6 +1077,11 @@ void eventer_jobq_set_lifo(eventer_jobq_t *jobq, mtev_boolean nv) {
   if(nv) jobq->lifo = &jobq_lifo_true;
   else jobq->lifo = &jobq_lifo_false;
 }
+
+mtev_boolean eventer_jobq_get_lifo(eventer_jobq_t *jobq) {
+  return *jobq->lifo;
+}
+
 void eventer_jobq_set_max_backlog(eventer_jobq_t *jobq, uint32_t max) {
   jobq->max_backlog = max;
 }
@@ -1080,6 +1141,9 @@ const char *eventer_jobq_get_queue_name(eventer_jobq_t *jobq) {
 }
 uint32_t eventer_jobq_get_concurrency(eventer_jobq_t *jobq) {
   return jobq->concurrency;
+}
+uint32_t eventer_jobq_get_backlog(eventer_jobq_t *jobq) {
+  return jobq->backlog;
 }
 void eventer_jobq_get_min_max(eventer_jobq_t *jobq, uint32_t *min_, uint32_t *max_) {
   if(min_) *min_ = jobq->min_concurrency;

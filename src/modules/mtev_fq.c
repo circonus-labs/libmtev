@@ -55,6 +55,20 @@ MTEV_HOOK_IMPL(mtev_fq_handle_message_dyn,
 
 #define DEFAULT_POLL_LIMIT 10000
 
+typedef struct {
+  uint64_t publications;
+  uint64_t receptions;
+  uint64_t connects;
+  uint64_t client_tx_drops;
+  uint64_t no_exchange;
+  uint64_t no_route;
+  uint64_t routed;
+  uint64_t dropped_in;
+  uint64_t dropped_out;
+  uint64_t msgs_in;
+  uint64_t msgs_out;
+} fq_stats_t;
+
 typedef struct connection_configs {
   char* host;
   int32_t port;
@@ -62,6 +76,7 @@ typedef struct connection_configs {
   char* pass;
   char *exchange;
   char *program;
+  fq_stats_t stats;
 } connection_configs;
 
 __thread connection_configs *tname_set;
@@ -99,6 +114,8 @@ static void logger(fq_client c, const char *s) {
 static void my_auth_handler(fq_client c, int error) {
   connection_configs* eap = fq_client_get_userdata(c);
   fq_bind_req *breq;
+
+  eap->stats.connects++;
 
   if(!tname_set && eap) {
     tname_set = eap;
@@ -139,6 +156,7 @@ static int poll_fq(eventer_t e, int mask, void *unused, struct timeval *now) {
            NULL != (m = fq_client_receive(the_conf->fq_conns[client]))) {
       mtev_fq_handle_message_dyn_hook_invoke(the_conf->fq_conns[client], client, m, m->payload, m->payload_len);
       fq_msg_deref(m);
+      the_conf->configs[client]->stats.receptions++;
       per_conn_cnt++;
     }
     cnt += per_conn_cnt;
@@ -264,7 +282,11 @@ mtev_fq_send_function(fq_msg *msg, int connection_id_broadcast_if_negative) {
   }
 
   for (int connection_id = first_host; connection_id != last_host_plus_one; ++connection_id) {
-    fq_client_publish(the_conf->fq_conns[connection_id], msg);
+    if(fq_client_publish(the_conf->fq_conns[connection_id], msg) == 1) {
+      the_conf->configs[connection_id]->stats.publications++;
+    } else {
+      the_conf->configs[connection_id]->stats.client_tx_drops++;
+    }
   }
 }
 
@@ -316,6 +338,73 @@ static logops_t fq_logio_ops = {
 };
 
 static int
+mtev_console_show_fq(mtev_console_closure_t ncct,
+                     int argc, char **argv,
+                     mtev_console_state_t *dstate,
+                     void *closure) {
+  (void)argc;
+  (void)argv;
+  (void)dstate;
+  struct fq_module_config *conf = closure;
+  for(int i=0; i<conf->number_of_conns; i++) {
+    connection_configs *c = conf->configs[i];
+    fq_stats_t *s = &c->stats;
+    nc_printf(ncct, "== %s:%d ==\n  user: %s\n  exchange: %s\n  program: %s\n"
+                    "  (c) connects: %zu\n  (c) msgs rx: %zu\n  (c) msgs tx: %zu\n"
+                    "  (c) drops tx: %zu\n  (s) drops rx: %zu\n"
+                    "  (s) no exchange tx: %zu\n  (s) no routes tx: %zu\n"
+                    "  (s) routed tx: %zu\n  (s) drops tx: %zu\n"
+                    "  (s) msgs tx: %zu\n  (s) msgs rx: %zu\n",
+        c->host, c->port, c->user, c->exchange, c->program,
+        s->connects, s->receptions, s->publications,
+        s->client_tx_drops, s->dropped_in,
+        s->no_exchange, s->no_route,
+        s->routed, s->dropped_out,
+        s->msgs_in, s->msgs_out
+        );
+  }
+  return 0;
+}
+
+static void process_fq_status(char *key, uint32_t value, void *cl) {
+  fq_stats_t *s = (fq_stats_t *)cl;
+  switch(*key) {
+    case 'n':
+      if(!strcmp(key, "no_exchange")) s->no_exchange = value;
+      else if(!strcmp(key, "no_route")) s->no_route = value;
+      break;
+    case 'r':
+      if(!strcmp(key, "routed")) s->routed = value;
+      break;
+    case 'd':
+      if(!strcmp(key, "dropped")) s->dropped_out = value;
+      if(!strcmp(key, "dropped_in")) s->dropped_in = value;
+      break;
+    case 'm':
+      if(!strcmp(key, "msgs_in")) s->msgs_in = value;
+      else if(!strcmp(key, "msgs_out")) s->msgs_out = value;
+      break;
+    default:
+      break;
+  }
+}
+
+static int
+fq_status_checker(eventer_t e, int mask, void *closure, struct timeval *now) {
+  (void)e;
+  (void)mask;
+  (void)closure;
+  (void)now;
+  int i;
+  for(i=0; i<the_conf->number_of_conns; i++) {
+    fq_client_status(the_conf->fq_conns[i], process_fq_status,
+                     (void *)&the_conf->configs[i]->stats);
+  }
+  eventer_add_in_s_us(fq_status_checker, NULL, 5, 0);
+  return 0;
+}
+
+static int
 fq_driver_init(mtev_dso_generic_t *img) {
   struct fq_module_config *conf = get_config(img);
 
@@ -331,6 +420,15 @@ fq_driver_init(mtev_dso_generic_t *img) {
     return 0;
   }
 
+  mtev_console_state_t *tl;
+  cmd_info_t *showcmd;
+
+  tl = mtev_console_state_initial();
+  showcmd = mtev_console_state_get_cmd(tl, "show");
+  mtevAssert(showcmd && showcmd->dstate);
+  mtev_console_state_add_cmd(showcmd->dstate,
+    NCSCMD("fq", mtev_console_show_fq, NULL, NULL, conf));
+
   conf->receiver = calloc(sizeof(*conf->receiver), conf->fanout);
   for(int i=0; i<conf->fanout; i++) {
     conf->receiver[i] = eventer_alloc_recurrent(poll_fq, NULL);
@@ -340,6 +438,7 @@ fq_driver_init(mtev_dso_generic_t *img) {
       eventer_set_owner(conf->receiver[i], eventer_choose_owner(i));
     eventer_add(conf->receiver[i]);
   }
+  eventer_add_in_s_us(fq_status_checker, NULL, 0, 0);
   return 0;
 }
 

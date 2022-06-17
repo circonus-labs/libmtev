@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2019, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2022, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above
@@ -14,7 +14,7 @@
  *     * Neither the name Circonus, Inc. nor the names of its contributors
  *       may be used to endorse or promote products derived from this
  *       software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -28,28 +28,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#ifndef MTEV_MODULES_CONSUL_H
-#define MTEV_MODULES_CONSUL_H
+#ifndef MTEV_UTIL_CURL_H
+#define MTEV_UTIL_CURL_H
 
 #include <mtev_defines.h>
-#include <mtev_hooks.h>
+#include <curl/curl.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+typedef void (*mtev_curl_cb_func_t)(CURLcode, CURL *, mtev_dyn_buffer_t *, void *);
+typedef struct mtev_curl_handle_t mtev_curl_handle_t;
 
-MTEV_RUNTIME_RESOLVE(mtev_consul_kv_attach, mtev_consul_kv_attach_function, void *,
-                     (const char *path, void (*witness)(const char *, uint8_t *, size_t, uint32_t)),
-                     (path, witness))
-MTEV_RUNTIME_AVAIL(mtev_consul_kv_attach, mtev_consul_kv_attach_function) 
+mtev_curl_handle_t *mtev_curl_easy(mtev_curl_cb_func_t handler, void *udata, bool use_zipkin);
+void mtev_curl_perform(mtev_curl_handle_t *handle);
 
-MTEV_RUNTIME_RESOLVE(mtev_consul_kv_detach, mtev_consul_kv_detach_function, void *,
-                     (void *handle), (handle))
-MTEV_RUNTIME_AVAIL(mtev_consul_kv_detach, mtev_consul_kv_detach_function) 
+mtev_curl_handle_t *mtev_curl_easy_aco(bool use_zipkin);
+void mtev_curl_handle_free_aco(mtev_curl_handle_t *handle);
+void mtev_curl_perform_aco(mtev_curl_handle_t *handle);
 
-#ifdef __cplusplus
-}
-#endif
+void mtev_curl_handle_debug(mtev_curl_handle_t *, mtev_log_stream_t);
+
+/* access to the easy handle */
+CURL *mtev_curl_handle_get_easy_handle(mtev_curl_handle_t *);
+
+/* access to the buffer and code (for ACO) */
+const void *mtev_curl_handle_get_buffer(mtev_curl_handle_t *, size_t *);
+CURLcode mtev_curl_handle_get_code(mtev_curl_handle_t *);
+long mtev_curl_handle_get_httpcode(mtev_curl_handle_t *h);
 
 #endif

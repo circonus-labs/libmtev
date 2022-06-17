@@ -1,0 +1,33 @@
+describe("mtev_timeval", function()
+
+  local tv = mtev.timeval.new
+  it("should be present", function()
+    assert.truthy(mtev.timeval ~= nil)
+  end)
+
+  it("can create timevals", function()
+    local now = mtev.timeval.now()
+    local other = tv(now.sec, now.usec)
+    assert.is_equal(now.sec, other.sec)
+    assert.is_equal(now.usec, other.usec)
+    assert.is_equal(tv(1,500000), tv(1.5))
+    assert.is_equal(now, other)
+  end)
+
+  it("can add/sub/compare", function()
+    local a = mtev.timeval.new(10, 300000)
+    local b = mtev.timeval.new(2, 900000)
+    assert.is_equal(tv(7.4), a-b)
+    assert.is_equal(tv(13.2), a+b)
+    assert.is_true(b-a < tv(0))
+    assert.is_true(a > b)
+    assert.is_true(b < a)
+    assert.is_true(a <= a)
+    assert.is_true(a >= a)
+    assert.is_true(a == a)
+    assert.is_true(b <= b)
+    assert.is_true(b >= b)
+    assert.is_true(b == b)
+  end)
+
+end)

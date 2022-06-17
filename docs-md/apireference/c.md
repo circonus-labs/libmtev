@@ -2563,6 +2563,19 @@ eventer_jobq_destroy(eventer_jobq_t *jobq)
 
 
 
+#### eventer_jobq_drain_and_shutdown
+
+>Make a jobq unable to accept new jobs and drain all inflight jobs.
+
+```c
+void
+eventer_jobq_drain_and_shutdown(eventer_jobq_t *jobq)
+```
+
+
+  * `jobq` the joqs to drain and shut down
+
+
 #### eventer_jobq_inflight
 
 >Reveal the currently executing job (visiable to a callee).
@@ -3358,7 +3371,7 @@ necessary activity to make progress.
 ```c
 int
 mtev_ex_log(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line,
-            mtev_log_kv_t **kvpairs, const char *format, ...)
+            const mtev_log_kv_t *kvpairs, const char *format, ...)
 ```
 
 
@@ -3386,7 +3399,7 @@ pushed through the directed acyclic graph of log streams.  See `mtevEL` for exam
 ```c
 int
 mtev_ex_vlog(mtev_log_stream_t ls, const struct timeval *now, const char *file, int line,
-             mtev_log_kv_t **kvpairs, const char *format, va_list arg)
+             const mtev_log_kv_t *kvpairs, const char *format, va_list arg)
 ```
 
 
@@ -5730,6 +5743,27 @@ MTEV_MAYBE_REALLOC(name, cnt)
 This macro will never reduce the size and is a noop if a size smaller
 than or equal to the current allocation size is specified.  It is safe
 to simply run this macro prior to each write to the buffer.
+ 
+
+#### MTEV_MAYBE_REALLOC_WITH_TYPE
+
+>C/C++ Macro to ensure a maybe buffer has at least cnt elements allocated.
+
+```c
+MTEV_MAYBE_REALLOC_WITH_TYPE(name, type, cnt)
+```
+
+
+  * `name` The name of the "maybe" buffer.
+  * `type` The type of the "maybe" buffer.
+  * `cnt` The total number of elements expected in the allocation.
+
+This macro will never reduce the size and is a noop if a size smaller
+than or equal to the current allocation size is specified.  It is safe
+to simply run this macro prior to each write to the buffer.
+NOTE: this version is separate to avoid breaking existing code that uses the
+older macro.  It allows usage with C++, which requires the memory allocation
+pointer to be cast to the correct type before assignment.
  
 
 #### MTEV_MAYBE_SIZE

@@ -59,7 +59,7 @@ define modulelink
 endef
 
 HEADERS=lua_mtev.h http_observer.h
-LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua \
+LUA_FILES=mtev/extras.lua mtev/HttpClient.lua \
 	mtev/hooks/http.lua \
 	mtev/lua_init.lua \
 	mtev/mtev.lua \
@@ -69,12 +69,16 @@ LUA_FILES=mtev/extras.lua mtev/timeval.lua mtev/HttpClient.lua \
 FQ_MODULES=@FQ_MODULES@
 AMQP_MODULES=@AMQP_MODULES@
 LUA_MODULES=@LUA_MODULES@
-MTEV4LUA=@MTEV4LUA@
+ifneq ($(strip $(LUA_MODULES)),)
+MTEV4LUA=mtev_lua/mtev.so
+CONSUL4LUA=mtev_lua/mtev/consul.so
+endif
 
 MODULES=$(FQ_MODULES) $(AMQP_MODULES) $(LUA_MODULES) zipkin_jaeger.@MODULEEXT@ http_observer.@MODULEEXT@ \
 	consul.@MODULEEXT@ http_hmac_cookie.@MODULEEXT@
+LUAMODS=$(MTEV4LUA) $(CONSUL4LUA)
 
-all:	$(MODULES) $(MTEV4LUA)
+all:	$(MODULES) $(LUAMODS)
 
 ../mtev_version.h:
 	$(Q)$(MAKE) -C .. mtev_version.h
@@ -123,7 +127,7 @@ lua_mtev.@MODULEEXT@:	$(LUA_MODULE_OBJS)
 	$(modulelink)
 
 # luajit always uses .so
-MTEV_LUA_OBJS=lua_mtev_crypto.lo lua_mtev.lo lua_mtev_dns.lo \
+MTEV_LUA_OBJS=lua_mtev_crypto.lo lua_mtev_zipkin.lo lua_mtev.lo lua_mtev_dns.lo \
 	lua_lpack.lo lua_bit.lo lua_mtev_stats.lo
 
 mtev_lua/mtev.@MODULEEXT@:	MODLIBS += -lcrypto -lssl -ludns
@@ -132,6 +136,15 @@ mtev_lua/mtev.@MODULEEXT@:	$(MTEV_LUA_OBJS)
 	$(modulelink)
 	$(Q)if test "@MODULEEXT@" != "so" ; then \
 		mv mtev_lua/mtev.@MODULEEXT@ mtev_lua/mtev.so ; \
+	fi
+
+CONSUL_LUA_OBJS=lua_mtev_consul.lo
+
+mtev_lua/mtev/consul.@MODULEEXT@:	$(CONSUL_LUA_OBJS)
+	$(Q)mkdir -p mtev_lua/mtev
+	$(modulelink)
+	$(Q)if test "@MODULEEXT@" != "so" ; then \
+		mv mtev_lua/mtev/consul.@MODULEEXT@ mtev_lua/mtev/consul.so ; \
 	fi
 
 .lo.@MODULEEXT@:
@@ -164,9 +177,12 @@ install-modules:	$(MODULES)
 	for mod in $(MODULES); do \
 		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
 	done
-	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)/mtev_lua
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(libdir)/mtev_lua/mtev
 	if [ "x$(MTEV4LUA)" != "x" ]; then \
 		$(INSTALL) -m 0755 $(MTEV4LUA) $(DESTDIR)$(libdir)/$(MTEV4LUA); \
+	fi
+	if [ "x$(CONSUL4LUA)" != "x" ]; then \
+		$(INSTALL) -m 0755 $(CONSUL4LUA) $(DESTDIR)$(libdir)/$(CONSUL4LUA); \
 	fi
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)/lua/mtev
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)/lua/mtev/hooks

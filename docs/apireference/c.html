@@ -341,6 +341,19 @@
             
         </li>
     
+        <li class="chapter " data-level="1.2.9" data-path="../config/time_durations.html">
+            
+                <a href="../config/time_durations.html">
+            
+                    
+                    Time Durations
+            
+                </a>
+            
+
+            
+        </li>
+    
 
             </ul>
             
@@ -2663,6 +2676,16 @@ eventer_jobq_create_ms(<span class="hljs-keyword">const</span> <span class="hljs
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">eventer_jobq_destroy</span><span class="hljs-params">(eventer_jobq_t *jobq)</span>
 </span></code></pre>
+<h4 id="eventerjobqdrainandshutdown">eventer_jobq_drain_and_shutdown</h4>
+<blockquote>
+<p>Make a jobq unable to accept new jobs and drain all inflight jobs.</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">eventer_jobq_drain_and_shutdown</span><span class="hljs-params">(eventer_jobq_t *jobq)</span>
+</span></code></pre>
+<ul>
+<li><code>jobq</code> the joqs to drain and shut down</li>
+</ul>
 <h4 id="eventerjobqinflight">eventer_jobq_inflight</h4>
 <blockquote>
 <p>Reveal the currently executing job (visiable to a callee).</p>
@@ -3288,7 +3311,7 @@ necessary activity to make progress.</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_ex_log</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *now, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *file, <span class="hljs-keyword">int</span> line,
-            mtev_log_kv_t **kvpairs, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, ...)</span>
+            <span class="hljs-keyword">const</span> mtev_log_kv_t *kvpairs, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, ...)</span>
 </span></code></pre>
 <ul>
 <li><code>ls</code> a log stream</li>
@@ -3312,7 +3335,7 @@ pushed through the directed acyclic graph of log streams.  See <code>mtevEL</cod
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">int</span>
 <span class="hljs-title">mtev_ex_vlog</span><span class="hljs-params">(mtev_log_stream_t ls, <span class="hljs-keyword">const</span> <span class="hljs-keyword">struct</span> timeval *now, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *file, <span class="hljs-keyword">int</span> line,
-             mtev_log_kv_t **kvpairs, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, va_list arg)</span>
+             <span class="hljs-keyword">const</span> mtev_log_kv_t *kvpairs, <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span> *format, va_list arg)</span>
 </span></code></pre>
 <ul>
 <li><code>ls</code> a log stream</li>
@@ -5037,6 +5060,23 @@ maybe buffer.</p>
 <p>This macro will never reduce the size and is a noop if a size smaller
 than or equal to the current allocation size is specified.  It is safe
 to simply run this macro prior to each write to the buffer.</p>
+<h4 id="mtevmaybereallocwithtype">MTEV_MAYBE_REALLOC_WITH_TYPE</h4>
+<blockquote>
+<p>C/C++ Macro to ensure a maybe buffer has at least cnt elements allocated.</p>
+</blockquote>
+<pre><code class="lang-c">MTEV_MAYBE_REALLOC_WITH_TYPE(name, type, cnt)
+</code></pre>
+<ul>
+<li><code>name</code> The name of the &quot;maybe&quot; buffer.</li>
+<li><code>type</code> The type of the &quot;maybe&quot; buffer.</li>
+<li><code>cnt</code> The total number of elements expected in the allocation.</li>
+</ul>
+<p>This macro will never reduce the size and is a noop if a size smaller
+than or equal to the current allocation size is specified.  It is safe
+to simply run this macro prior to each write to the buffer.
+NOTE: this version is separate to avoid breaking existing code that uses the
+older macro.  It allows usage with C++, which requires the memory allocation
+pointer to be cast to the correct type before assignment.</p>
 <h4 id="mtevmaybesize">MTEV_MAYBE_SIZE</h4>
 <blockquote>
 <p>C Macro for number of bytes available in this buffer.</p>

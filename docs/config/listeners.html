@@ -341,6 +341,19 @@
             
         </li>
     
+        <li class="chapter " data-level="1.2.9" data-path="time_durations.html">
+            
+                <a href="time_durations.html">
+            
+                    
+                    Time Durations
+            
+                </a>
+            
+
+            
+        </li>
+    
 
             </ul>
             
@@ -666,7 +679,7 @@
       <span class="hljs-tag">&lt;<span class="hljs-name">key_file</span>&gt;</span>/path/to/server.key<span class="hljs-tag">&lt;/<span class="hljs-name">key_file</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">ca_chain</span>&gt;</span>/path/to/ca.crt<span class="hljs-tag">&lt;/<span class="hljs-name">ca_chain</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">ca_accept</span>/&gt;</span>
-      <span class="hljs-tag">&lt;<span class="hljs-name">layer</span>&gt;</span>tlsv1:all,!sslv2,!sslv3,cipher_server_preference<span class="hljs-tag">&lt;/<span class="hljs-name">layer</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">layer</span>&gt;</span>tlsv1:&amp;gt;=tlsv1.2,cipher_server_preference<span class="hljs-tag">&lt;/<span class="hljs-name">layer</span>&gt;</span>
       <span class="hljs-tag">&lt;<span class="hljs-name">ciphers</span>&gt;</span>EECDH+AES128+AESGCM:EDH+AES128+AESGCM:!DSS<span class="hljs-tag">&lt;/<span class="hljs-name">ciphers</span>&gt;</span>
     <span class="hljs-tag">&lt;/<span class="hljs-name">sslconfig</span>&gt;</span>
     <span class="hljs-tag">&lt;<span class="hljs-name">consoles</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;mtev_console&quot;</span> <span class="hljs-attr">require_env</span>=<span class="hljs-string">&quot;MTEV_CONTROL&quot;</span>&gt;</span>
@@ -762,7 +775,7 @@ connecting clients.  SSL config supports the follwing keys:</p>
 Options may be negated with an antecedent <code>!</code>.  Tokens are matched case-insensitively.</p>
 <p>Protocols supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>, <code>TLSv1.3</code></p>
 <p>Options supported (depending on openssl): <code>SSLv2</code>, <code>SSLv3</code>, <code>TLSv1</code>, <code>TLSv1.1</code>, <code>TLSv1.2</code>, <code>TLSv1.3</code>, <code>cipher_server_preference</code></p>
-<p>The default layer string is <code>tlsv1:all,!sslv2,!sslv3</code></p>
+<p>TLS version options can be prefixed with <code>=</code>, <code>&gt;=</code>, or <code>&lt;=</code>. The default layer string is <code>tlsv1:&gt;=tls1.2,cipher_server_preference</code></p>
 </li>
 <li><h5 id="certificatefile-or-certificate">certificate_file or certificate</h5>
 <p>Specifies the path to a PEM encoded certificate file.

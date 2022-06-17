@@ -131,7 +131,9 @@ struct _eventer_jobq_t {
   const char             *queue_name;
   const char             *short_name;
   pthread_mutex_t         lock;
-  sem_t                   semaphore;
+  int64_t                 consumer_jobs;
+  pthread_mutex_t         consumer_lock;
+  pthread_cond_t          consumer_signal;
   uint32_t                concurrency;
   uint32_t                desired_concurrency;
   uint32_t                pending_cancels;
@@ -158,7 +160,7 @@ struct _eventer_jobq_t {
   uint32_t                max_concurrency;
   uint32_t                max_backlog;
   mtev_log_stream_t       callback_tracker;
-  mtev_boolean            *lifo;
+  const mtev_boolean     *lifo;
   uint32_t                consumer_threads_running;
   /* shutdown_state should use one of these defines,
    * defined above:

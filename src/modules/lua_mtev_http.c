@@ -38,6 +38,7 @@
 #include "mtev_dso.h"
 
 #include "lua_mtev.h"
+#include "http_observer.h"
 
 #define OO_LUA_DECL(L, type, var, methodvar) \
   type **udata, *var; \
@@ -250,6 +251,17 @@ mtev_lua_http_option_set(lua_State *L) {
   return 1;
 }
 static int
+mtev_lua_http_observer_note(lua_State *L) {
+  CCALL_DECL(L, mtev_http_session_ctx, http_ctx, 3);
+  if(!http_observer_note_available()) {
+    lua_pushboolean(L, 0);
+  } else {
+    http_observer_note(http_ctx, lua_tostring(L,2), lua_tostring(L,3));
+    lua_pushboolean(L, 1);
+  }
+  return 1;
+}
+static int
 mtev_lua_http_status_set(lua_State *L) {
   const char *val;
   CCALL_DECL(L, mtev_http_session_ctx, http_ctx, 3);
@@ -431,6 +443,11 @@ mtev_http_ctx_index_func(lua_State *L) {
       if(!strcmp(k, "option")) {
         lua_pushlightuserdata(L, http_ctx);
         lua_pushcclosure(L, mtev_lua_http_option_set, 1);
+        return 1;
+      }
+      if(!strcmp(k, "observer_note")) {
+        lua_pushlightuserdata(L, http_ctx);
+        lua_pushcclosure(L, mtev_lua_http_observer_note, 1);
         return 1;
       }
       break;

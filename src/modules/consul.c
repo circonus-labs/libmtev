@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Circonus, Inc. All rights reserved.
+ * Copyright (c) 2019-2022, Circonus, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -11,10 +11,9 @@
  *       copyright notice, this list of conditions and the following
  *       disclaimer in the documentation and/or other materials provided
  *       with the distribution.
- *     * Neither the name OmniTI Computer Consulting, Inc. nor the names
- *       of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written
- *       permission.
+ *     * Neither the name Circonus, Inc. nor the names of its contributors
+ *       may be used to endorse or promote products derived from this
+ *       software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -43,8 +42,10 @@
 #include "mtev_getip.h"
 #include "mtev_capabilities_listener.h"
 #include "mtev_zipkin_curl.h"
+#include "mtev_curl.h"
+#include "ck_spinlock.h"
 
-#include "consul.h"
+#include "mtev_consul.h"
 
 #include <sys/utsname.h>
 #include <libxml/tree.h>
@@ -54,9 +55,9 @@
 
 /*
         <consul>
-          <service>
-            <myservice id="{app}-{node}" port="12123">
-              <check deregister_after="10m" interval="5s" HTTP="/url" (PUSH="5s" or TCP=":12123" />
+          <services>
+            <service id="{app}-{node}" port="12123">
+              <check DeregisterCriticalServiceAfter="10m" Interval="5s" HTTP="/url" (or PUSH="5s" or TCP=":12123") />
               <weights passing="10" warning="1"/>
               <tags features="true">
                 <foo/>
@@ -65,87 +66,123 @@
               <meta version="true">
                 <key>value</key>
               </meta>
-            </myservice>
-          </service>
+            </service>
+          </services>
         </consul>
  */
 
-static CURLM *global_curl_handle;
-static eventer_t global_curl_timeout;
+typedef enum { PASSING_CODE = 204, WARNING_CODE = 429, CRITICAL_CODE = 502 } service_code_e;
+typedef enum { CS_UNINIT = 0, CS_REGISTERED, CS_DEREGISTERED } service_state_e;
+
+#define MAX_CHECKS 5
+
+struct service_register {
+  int refcnt;
+  ck_spinlock_t lock;
+  mtev_json_object *consul_object;
+  char *service_id;
+  service_state_e desired_state;
+  service_state_e state;
+  int period[MAX_CHECKS];
+  char *service_msg[MAX_CHECKS];
+  service_code_e service_code[MAX_CHECKS];
+};
+
+struct mtev_consul_service {
+  char *id;
+  char *name;
+  char *address;
+  unsigned short port;
+  bool enabletagoverride;
+  struct {
+    enum { CHECK_NONE = 0, CHECK_PUSH, CHECK_TCP, CHECK_HTTP, CHECK_HTTPS } type;
+    char *deregistercriticalserviceafter;
+    union {
+      struct { char *ttl; } push;
+      struct { char *tcp; char *interval; char *timeout; } tcp;
+      struct { char *url; char *interval; char *method; char *timeout; } http;
+      struct { char *url; char *interval; char *method; char *timeout;
+               char *tlsservername; bool tlsskipverify; } https;
+    };
+    char *name;
+  } check[MAX_CHECKS];
+  struct {
+    int passing;
+    int warning;
+  } weights;
+  mtev_hash_table *tags;
+  mtev_hash_table *meta;
+  bool tags_owned;
+  bool meta_owned;
+};
+
+static eventer_jobq_t *consul_jobq;
 static mtev_hash_table service_registry;
 static char *consul_bearer_token = NULL;
 static char *consul_kv_prefix = NULL;
 static char *consul_service_endpoint = "http://localhost:8500";
-static int global_service_code = 204;
+static service_code_e default_service_code = PASSING_CODE;
 static mtev_log_stream_t debug_ls, debug_curl_ls, error_ls;
-static void process_global_curlm(void);
 
-typedef struct {
-  mtev_dyn_buffer_t dyn;
-  void *userdata;
-  void (*handler)(CURLcode code, CURL *easy_handle, mtev_dyn_buffer_t *dyn, void *);
-} curl_handler_t;
+static void mtev_consul_sync_services(void);
 
-static const char *health_string(void) {
-  switch(global_service_code) {
-    case 204: return "pass";
-    case 429: return "warn";
-    default: return "fail";
+static const char *health_string(const service_register *sr, int idx) {
+  if(idx >= 0 && idx < MAX_CHECKS) {
+    switch(sr->service_code[idx]) {
+      case PASSING_CODE: return "pass";
+      case WARNING_CODE: return "warn";
+      default: break;
+    }
   }
+  return "fail";
 }
 
-static int
-mtev_consul_curl_debug(CURL *handle, curl_infotype type, char *data, size_t size, void *vl) {
-  mtev_log_stream_t ls = vl;
-  switch(type) {
-    case CURLINFO_TEXT:
-      if(size > 0 && data[size-1] == '\n') size--;
-      mtevL(ls, "[%p] %s '%.*s'\n", handle, "INFO", (int)size, data);
-      break;
-    case CURLINFO_HEADER_IN:
-      if(size > 0 && data[size-1] == '\n') size--;
-      mtevL(ls, "[%p] %s '%.*s'\n", handle, "HEADER_IN", (int)size, data);
-      break;
-    case CURLINFO_HEADER_OUT:
-      if(size > 0 && data[size-1] == '\n') size--;
-      mtevL(ls, "[%p] %s '%.*s'\n", handle, "HEADER_OUT", (int)size, data);
-      break;
-    case CURLINFO_DATA_IN:
-    case CURLINFO_DATA_OUT:
-    case CURLINFO_SSL_DATA_IN:
-    case CURLINFO_SSL_DATA_OUT:
-      mtevL(ls, "[%p] %s data %s %zu bytes\n", handle,
-            (type == CURLINFO_SSL_DATA_IN || type == CURLINFO_SSL_DATA_OUT) ? "SSL" : "PLAIN",
-            (type == CURLINFO_DATA_IN || type == CURLINFO_SSL_DATA_IN) ? "IN" : "OUT", size);
-      break;
-    default:
-      break;
+static const char *cs_state_name(service_state_e s) {
+  switch(s) {
+    case CS_UNINIT: return "uninitialized";
+    case CS_REGISTERED: return "registered";
+    case CS_DEREGISTERED: return "deregistered";
   }
-  return 0;
+  return "unknown";
 }
 
-typedef struct {
-  mtev_json_object *consul_object;
-  int period;
-  char *service_id;
-  bool registered;
-} service_register;
-
-static void service_register_free(void *vsr) {
+void service_register_ref(service_register *sr) {
+  ck_pr_inc_int(&sr->refcnt);
+}
+static void service_register_deref(void *vsr) {
   service_register *sr = vsr;
-  free(sr->service_id);
-  if(sr->consul_object) MJ_DROP(sr->consul_object);
-  free(sr);
+  if(ck_pr_dec_int_is_zero(&sr->refcnt)) {
+    free(sr->service_id);
+    if(sr->consul_object) MJ_DROP(sr->consul_object);
+    for(int i=0; i<MAX_CHECKS; i++)
+      free(sr->service_msg[i]);
+    free(sr);
+  }
 }
 
-void mtev_consul_set_passing(void) {
-  global_service_code = 204;
+void mtev_consul_set_passing_f(service_register *sr, int idx, const char *msg) {
+  if(idx < 0 || idx >= MAX_CHECKS) return;
+  ck_spinlock_lock(&sr->lock);
+  sr->service_code[idx] = PASSING_CODE;
+  free(sr->service_msg[idx]);
+  sr->service_msg[idx] = msg ? strdup(msg) : NULL;
+  ck_spinlock_unlock(&sr->lock);
 }
-void mtev_consul_set_warning(void) {
-  global_service_code = 429;
+void mtev_consul_set_warning_f(service_register *sr, int idx, const char *msg) {
+  if(idx < 0 || idx >= MAX_CHECKS) return;
+  ck_spinlock_lock(&sr->lock);
+  sr->service_code[idx] = WARNING_CODE;
+  free(sr->service_msg[idx]);
+  sr->service_msg[idx] = msg ? strdup(msg) : NULL;
+  ck_spinlock_unlock(&sr->lock);
 }
-void mtev_consul_set_critical(void) {
-  global_service_code = 502;
+void mtev_consul_set_critical_f(service_register *sr, int idx, const char *msg) {
+  if(idx < 0 || idx >= MAX_CHECKS) return;
+  ck_spinlock_lock(&sr->lock);
+  sr->service_code[idx] = CRITICAL_CODE;
+  free(sr->service_msg[idx]);
+  sr->service_msg[idx] = msg ? strdup(msg) : NULL;
+  ck_spinlock_unlock(&sr->lock);
 }
 
 static size_t kv_fetch_index(void *buff, size_t s, size_t n, void *vd) {
@@ -247,16 +284,11 @@ static void mtev_consul_kv_tree_reader(CURLcode code, CURL *easy, mtev_dyn_buffe
   }
 }
 static void mtev_consul_stay_current_kv(struct kv_tree_read *udata) {
-  curl_handler_t *ch;
-  CURL *curl;
-  curl = curl_easy_init();
+  mtev_curl_handle_t *ch = mtev_curl_easy(mtev_consul_kv_tree_reader, udata, false);
+  CURL *curl = mtev_curl_handle_get_easy_handle(ch);
   char header[256];
   char url[1024];
   char error[CURL_ERROR_SIZE] = "unknown error";
-  ch = calloc(1, sizeof(*ch));
-  ch->handler = mtev_consul_kv_tree_reader;
-  ch->userdata = udata;
-  mtev_dyn_buffer_init(&ch->dyn);
   if(consul_bearer_token) {
     snprintf(header, sizeof(header), "Authorization: Bearer %s", consul_bearer_token);
     udata->headers = curl_slist_append(udata->headers, header);
@@ -266,20 +298,16 @@ static void mtev_consul_stay_current_kv(struct kv_tree_read *udata) {
            consul_kv_prefix ? consul_kv_prefix : "", consul_kv_prefix ? "/" : "", escaped_key,
            udata->index, udata->wait);
   curl_easy_setopt(curl, CURLOPT_URL, url);
-  curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 0);
-  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, udata->headers);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, udata->wait_ms + 1000); /* + 1s */
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 500);
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&ch->dyn);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mtev_dyn_curl_write_callback);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, kv_fetch_index);
   curl_easy_setopt(curl, CURLOPT_HEADERDATA, (void *)&udata->index);
   curl_easy_setopt(curl, CURLOPT_PRIVATE, (void *)ch);
 
   mtev_gettimeofday(&udata->last, NULL);
-  curl_multi_add_handle(global_curl_handle, curl);
+  mtev_curl_perform(ch);
 
   curl_free(escaped_key);
 }
@@ -315,7 +343,7 @@ static char *mtev_consul_fetch_config_kv(const char *key, uint32_t *index_ptr) {
     slist = curl_slist_append(slist, header);
   }
   uint32_t index = 0;
-  char *escaped_key = curl_easy_escape(curl, key, 0); 
+  char *escaped_key = curl_easy_escape(curl, key, 0);
   snprintf(url, sizeof(url), "%s/v1/kv/%s%s%s?raw=true", consul_service_endpoint,
            consul_kv_prefix ? consul_kv_prefix : "", consul_kv_prefix ? "/" : "", escaped_key);
   curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -395,83 +423,110 @@ static int curl_put_json(const char *url, mtev_json_object *o) {
   return rv;
 } 
 
+struct health_crutch {
+  service_register *sr;
+  int idx;
+};
+static struct health_crutch *health_crutch(service_register *sr, int idx) {
+  struct health_crutch *hc = calloc(1, sizeof(*hc));
+  hc->sr = sr;
+  hc->idx = idx;
+  return hc;
+}
+
 static int mtev_consul_push_health(eventer_t e, int mask, void *closure, struct timeval *now) {
   (void)e;
   (void)mask;
   (void)now;
-  service_register *sr = (service_register *)closure;
-  curl_handler_t *handler = calloc(1, sizeof(*handler));
-  mtev_dyn_buffer_init(&handler->dyn);
+  struct health_crutch *hc = (struct health_crutch *)closure;
+  service_register *sr = hc->sr;
+  int idx = hc->idx;
+
+  if(sr->state == CS_DEREGISTERED) {
+    free(hc);
+    return 0;
+  }
+
+  mtev_curl_handle_t *ch = mtev_curl_easy(NULL, NULL, false);
 
   char header[256];
-  CURL *handle = curl_easy_init();
+  CURL *curl = mtev_curl_handle_get_easy_handle(ch);
   char url[1024];
   static struct curl_slist *slist = NULL;
   if(slist == NULL && consul_bearer_token) {
     snprintf(header, sizeof(header), "Authorization: Bearer %s", consul_bearer_token);
     slist = curl_slist_append(slist, header);
   }
-  char *escaped_key = curl_easy_escape(handle, sr->service_id, 0); 
-  snprintf(url, sizeof(url), "%s/v1/agent/check/%s/service:%s",
-          consul_service_endpoint, health_string(), escaped_key);
-  curl_easy_setopt(handle, CURLOPT_TCP_NODELAY, 0);
-  curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "PUT");
-  curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
-  curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, sr->period * 1000);
-  curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT_MS, 100);
-  curl_easy_setopt(handle, CURLOPT_HTTPHEADER, slist);
-  curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, mtev_dyn_curl_write_callback);
-  curl_easy_setopt(handle, CURLOPT_WRITEDATA, &handler->dyn);
-  curl_easy_setopt(handle, CURLOPT_PRIVATE, handler);
-  curl_easy_setopt(handle, CURLOPT_URL, url);
-  curl_easy_setopt(handle, CURLOPT_DEBUGFUNCTION, mtev_consul_curl_debug);
-  curl_easy_setopt(handle, CURLOPT_DEBUGDATA, debug_curl_ls);
-  if(N_L_S_ON(debug_curl_ls)) {
-    curl_easy_setopt(handle, CURLOPT_VERBOSE, 1L);
+
+  ck_spinlock_lock(&sr->lock);
+
+  char *escaped_key = curl_easy_escape(curl, sr->service_id, 0); 
+  if(sr->service_msg[idx]) {
+    char *escaped_note = curl_easy_escape(curl, sr->service_msg[idx], 0);
+    snprintf(url, sizeof(url), "%s/v1/agent/check/%s/service:%s:%d?note=%s",
+            consul_service_endpoint, health_string(sr, idx), escaped_key, idx + 1, escaped_note);
+    curl_free(escaped_note);
+  } else {
+    snprintf(url, sizeof(url), "%s/v1/agent/check/%s/service:%s:%d",
+            consul_service_endpoint, health_string(sr, idx), escaped_key, idx + 1);
   }
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, sr->period[idx] * 1000);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 100);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+  mtev_curl_handle_debug(ch, debug_curl_ls);
   curl_free(escaped_key);
 
+  ck_spinlock_unlock(&sr->lock);
+
   mtevL(debug_ls, "health -> %s\n", url);
-  curl_multi_add_handle(global_curl_handle, handle);
-
-  int running_handles;
-  curl_multi_socket_action(global_curl_handle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
-
-  process_global_curlm();
+  mtev_curl_perform(ch);
 
   struct timeval next = *now;
-  next.tv_sec += sr->period;
+  next.tv_sec += sr->period[idx];
   eventer_update_whence(e, next);
   return EVENTER_TIMER;
 }
-static void *mtev_consul_complete_service_registration(void *unused) {
-  (void)unused;
-  bool failures = false;
-  long sleep_time = 0;
-  do {
-    mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
-    failures = false;
-    if(sleep_time) usleep(sleep_time);
-    while(mtev_hash_adv(&service_registry, &iter)) {
-      service_register *sr = (service_register *)iter.value.ptr;
-      if(sr->registered == false) {
-        char url[1024];
-        snprintf(url, sizeof(url), "%s/v1/agent/service/register", consul_service_endpoint);
-        if(curl_put_json(url, sr->consul_object) == 0) {
-          sr->registered = true;
-          if(sr->period) {
-            eventer_add_in_s_us(mtev_consul_push_health, sr, 0, 0);
+static void mtev_consul_complete_service_registration(service_register *sr) {
+  if(sr->desired_state == sr->state) return;
+  char url[1024];
+  switch(sr->desired_state) {
+    case CS_REGISTERED:
+      snprintf(url, sizeof(url), "%s/v1/agent/service/register", consul_service_endpoint);
+      if(curl_put_json(url, sr->consul_object) == 0) {
+        sr->state = CS_REGISTERED;
+        for(int i=0; i<MAX_CHECKS; i++) {
+          if(sr->period[i]) {
+            eventer_add_in_s_us(mtev_consul_push_health, health_crutch(sr, i), 0, 0);
           }
-        } else {
-          failures = true;
         }
       }
-    }
-    sleep_time += sleep_time + 10;
-    if(sleep_time > 4000000) sleep_time = 4000000;
-  } while(failures);
-  mtevL(mtev_notice, "consul: service registration complete\n");
-  return NULL;
+      break;
+    case CS_DEREGISTERED:
+      snprintf(url, sizeof(url), "%s/v1/agent/service/deregister/%s", consul_service_endpoint, sr->service_id);
+      if(curl_put_json(url, NULL) == 0) {
+        sr->state = CS_DEREGISTERED;
+        for(int i=0; i<MAX_CHECKS; i++) {
+          if(sr->period[i]) {
+            eventer_add_in_s_us(mtev_consul_push_health, health_crutch(sr, i), 0, 0);
+          }
+        }
+      }
+      break;
+    case CS_UNINIT:
+      abort();
+      break;
+  }
+  mtevL(mtev_notice, "consul: service [%s] service %s\n", sr->service_id, cs_state_name(sr->state));
+}
+
+static int mtev_consul_complete_service_registration_ef(eventer_t e, int mask, void *vsr, struct timeval *now) {
+  (void)e;
+  (void)now;
+  service_register *sr = (service_register *)vsr;
+  if(mask == EVENTER_ASYNCH_WORK) mtev_consul_complete_service_registration(sr);
+  return 0;
 }
 
 static int
@@ -481,9 +536,9 @@ mtev_consul_config(mtev_dso_generic_t *self, mtev_hash_table *options) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(options, &iter)) {
     if(!strcmp(iter.key.str, "boot_state")) {
-      if(!strcmp(iter.value.str, "passing")) mtev_consul_set_passing();
-      else if(!strcmp(iter.value.str, "warning")) mtev_consul_set_warning();
-      else if(!strcmp(iter.value.str, "critical")) mtev_consul_set_critical();
+      if(!strcmp(iter.value.str, "passing")) default_service_code = PASSING_CODE;
+      else if(!strcmp(iter.value.str, "warning")) default_service_code = WARNING_CODE;
+      else if(!strcmp(iter.value.str, "critical")) default_service_code = CRITICAL_CODE;
       else {
         mtevL(mtev_error, "consul boot_state invalid: %s\n", iter.value.str);
         return -1;
@@ -521,6 +576,318 @@ populate_dict_from_conf(mtev_conf_section_t s, const char *name) {
   return h;
 }
 
+static void mtev_consul_interp(char *id_str, size_t id_str_len, const char *id) {
+  for(const char *cp=id; *cp; ) {
+    if(!strncmp(cp, "{app}", 5)) {
+      strlcat(id_str, mtev_get_app_name(), id_str_len);
+      cp += 5;
+    }
+    else if(!strncmp(cp, "{node}", 6)) {
+      struct utsname utsn;
+      if(uname(&utsn) < 0) {
+        strlcat(id_str, "unknown", id_str_len);
+      } else {
+        strlcat(id_str, utsn.nodename, id_str_len);
+      }
+      cp += 6;
+    }
+    else {
+      char chrstr[2] = { *cp, '\0' };
+      strlcat(id_str, chrstr, id_str_len);
+      cp++;
+    }
+  }
+}
+
+service_register *mtev_consul_service_registry_f(const char *tmpl) {
+  char id_str[128];
+  id_str[0] = '\0';
+  mtev_consul_interp(id_str, sizeof(id_str), tmpl);
+  void *vsr = NULL;
+  if(mtev_hash_retrieve(&service_registry, id_str, strlen(id_str), &vsr)) {
+    if(vsr) {
+      service_register_ref((service_register *)vsr);
+    }
+    return (service_register *)vsr;
+  }
+  return NULL;
+}
+
+void mtev_consul_service_register_register_f(service_register *r) {
+  r->desired_state = CS_REGISTERED;
+}
+
+void mtev_consul_service_register_deregister_f(service_register *r) {
+  r->desired_state = CS_DEREGISTERED;
+}
+
+mtev_consul_service *
+mtev_consul_service_alloc_f(const char *name, const char *id,
+                            const char *address, unsigned short port,
+                            mtev_hash_table *tags, bool tags_owned,
+                            mtev_hash_table *meta, bool meta_owned) {
+  char id_str[256];
+  id_str[0] = '\0';
+  mtev_consul_interp(id_str, sizeof(id_str), id);
+
+  mtev_consul_service *cs = calloc(1, sizeof(*cs));
+  
+  cs->name = strdup(name);
+  cs->id = strdup(id_str);
+  cs->address = strdup(address);
+  cs->port = port;
+  cs->weights.passing = 10;
+  cs->weights.warning = 1;
+  cs->tags = tags;
+  cs->tags_owned = tags_owned;
+  cs->meta = meta;
+  cs->meta_owned = meta_owned;
+  return cs;
+}
+void mtev_consul_service_check_none_f(mtev_consul_service *cs) {
+  for(int i=0; i<MAX_CHECKS; i++) {
+    free(cs->check[i].name);
+    switch(cs->check[i].type) {
+      case CHECK_PUSH:
+        free(cs->check[i].push.ttl);
+        break;
+      case CHECK_TCP:
+        free(cs->check[i].tcp.tcp);
+        free(cs->check[i].tcp.interval);
+        free(cs->check[i].tcp.timeout);
+        break;
+      case CHECK_HTTP:
+        free(cs->check[i].http.url);
+        free(cs->check[i].http.method);
+        free(cs->check[i].http.interval);
+        free(cs->check[i].http.timeout);
+        break;
+      case CHECK_HTTPS:
+        free(cs->check[i].https.url);
+        free(cs->check[i].https.method);
+        free(cs->check[i].https.tlsservername);
+        free(cs->check[i].https.interval);
+        free(cs->check[i].https.timeout);
+        break;
+      default:
+        break;
+    }
+    free(cs->check[i].deregistercriticalserviceafter);
+  }
+  memset(&cs->check, 0, sizeof(cs->check));
+}
+void mtev_consul_service_free_f(mtev_consul_service *cs) {
+  free(cs->name);
+  free(cs->id);
+  free(cs->address);
+  mtev_consul_service_check_none_f(cs);
+  if(cs->tags_owned && cs->tags) {
+    mtev_hash_destroy(cs->tags, free, free);
+    free(cs->tags);
+  }
+  if(cs->meta_owned && cs->meta) {
+    mtev_hash_destroy(cs->meta, free, free);
+    free(cs->meta);
+  }
+  free(cs);
+}
+char *mtev_consul_service_id_f(mtev_consul_service *cs) {
+  return strdup(cs->id);
+}
+void mtev_consul_service_set_address_f(mtev_consul_service *cs, const char *address) {
+  free(cs->address);
+  cs->address = strdup(address);
+}
+void mtev_consul_service_set_port_f(mtev_consul_service *cs, unsigned short port) {
+  cs->port = port;
+}
+static int get_next_check(mtev_consul_service *cs) {
+  for(int i=0; i<MAX_CHECKS; i++) {
+    if(cs->check[i].type == CHECK_NONE) return i;
+  }
+  return -1;
+}
+int mtev_consul_service_check_push_f(mtev_consul_service *cs, const char *name, unsigned ttl, unsigned dac) {
+  int i = get_next_check(cs);
+  if(i < 0) return -1;
+  cs->check[i].type = CHECK_PUSH;
+  if(name) cs->check[i].name = strdup(name);
+  mtevEvalAssert(-1 != asprintf(&cs->check[i].push.ttl, "%us", ttl));
+  if(dac) mtevEvalAssert(-1 != asprintf(&cs->check[i].deregistercriticalserviceafter, "%us", dac));
+  return i;
+}
+int mtev_consul_service_check_tcp_f(mtev_consul_service *cs, const char *name,
+                                    const char *tcp,
+                                    const unsigned interval, const unsigned *timeout, unsigned dac) {
+  int i = get_next_check(cs);
+  if(i < 0) return -1;
+  cs->check[i].type = CHECK_TCP;
+  if(name) cs->check[i].name = strdup(name);
+  if(tcp) cs->check[i].tcp.tcp = strdup(tcp);
+  else mtevEvalAssert(-1 != asprintf(&cs->check[i].tcp.tcp, "%s:%u", cs->address, cs->port));
+  mtevEvalAssert(-1 != asprintf(&cs->check[i].tcp.interval, "%us", interval));
+  if(timeout) mtevEvalAssert(-1 != asprintf(&cs->check[i].tcp.timeout, "%us", *timeout));
+  if(dac) mtevEvalAssert(-1 != asprintf(&cs->check[i].deregistercriticalserviceafter, "%us", dac));
+  return i;
+}
+int mtev_consul_service_check_http_f(mtev_consul_service *cs, const char *name,
+                                     const char *url, const char *method,
+                                     const unsigned interval, const unsigned *timeout, unsigned dac) {
+  int i = get_next_check(cs);
+  if(i < 0) return -1;
+  cs->check[i].type = CHECK_HTTP;
+  if(name) cs->check[i].name = strdup(name);
+  if(url) cs->check[i].http.url = strdup(url);
+  if(method) cs->check[i].http.method = strdup(method);
+  mtevEvalAssert(-1 != asprintf(&cs->check[i].http.interval, "%us", interval));
+  if(timeout) mtevEvalAssert(-1 != asprintf(&cs->check[i].http.timeout, "%us", *timeout));
+  if(dac) mtevEvalAssert(-1 != asprintf(&cs->check[i].deregistercriticalserviceafter, "%us", dac));
+  return i;
+}
+int mtev_consul_service_check_https_f(mtev_consul_service *cs, const char *name,
+                                      const char *url, const char *method,
+                                      const char *tlsservername, bool tlsskipverify,
+                                      const unsigned interval, const unsigned *timeout, unsigned dac) {
+  int i = get_next_check(cs);
+  if(i < 0) return i;
+  cs->check[i].type = CHECK_HTTPS;
+  if(name) cs->check[i].name = strdup(name);
+  if(url) cs->check[i].https.url = strdup(url);
+  if(method) cs->check[i].https.method = strdup(method);
+  if(tlsservername) cs->check[i].https.tlsservername = strdup(tlsservername);
+  cs->check[i].https.tlsskipverify = tlsskipverify;
+  mtevEvalAssert(-1 != asprintf(&cs->check[i].https.interval, "%us", interval));
+  if(timeout) mtevEvalAssert(-1 != asprintf(&cs->check[i].https.timeout, "%us", *timeout));
+  if(dac) mtevEvalAssert(-1 != asprintf(&cs->check[i].deregistercriticalserviceafter, "%us", dac));
+  return i;
+}
+bool mtev_consul_register_f(mtev_consul_service *cs) {
+  if(cs->id == NULL || cs->name == NULL) return false;
+
+  void *vsr = NULL;
+  service_register *sr;
+  if(mtev_hash_retrieve(&service_registry, cs->id, strlen(cs->id), &vsr)) {
+    sr = vsr;
+  } else {
+    sr = calloc(1, sizeof(*sr));
+    ck_spinlock_init(&sr->lock);
+    sr->service_id = strdup(cs->id);
+    for(int i=0; i<MAX_CHECKS; i++) {
+      sr->service_code[i] = default_service_code;
+    }
+  }
+
+  char URL_tmpl[1024];
+  char URL[1536];
+  URL[0] = '\0';
+  mtev_json_object *so = MJ_OBJ();
+  MJ_KV(so, "ID", MJ_STR(cs->id));
+  MJ_KV(so, "Name", MJ_STR(cs->name));
+  MJ_KV(so, "Address", MJ_STR(cs->address));
+  MJ_KV(so, "Port", MJ_INT(cs->port));
+  MJ_KV(so, "EnableTagOverride", MJ_BOOL(cs->enabletagoverride));
+  if(cs->check[0].type != CHECK_NONE) {
+    mtev_json_object *checks = MJ_ARR();
+    for(int i=0; i<MAX_CHECKS; i++) {
+      if(cs->check[i].type != CHECK_NONE) {
+        mtev_json_object *co = MJ_OBJ();
+        if(cs->check[i].deregistercriticalserviceafter) {
+          MJ_KV(co, "DeregisterCriticalServiceAfter", MJ_STR(cs->check[i].deregistercriticalserviceafter));
+        }
+        // prep our URL
+        if(cs->check[i].type == CHECK_HTTP || cs->check[i].type == CHECK_HTTPS) {
+          const char *url = (cs->check[i].type == CHECK_HTTP) ? cs->check[i].http.url : cs->check[i].https.url;
+          if(!url || strlen(url) == 0) snprintf(URL_tmpl, sizeof(URL_tmpl), "/module/consul/health/%s?n=%d", cs->id, i+1);
+          else strlcpy(URL_tmpl, url, sizeof(URL_tmpl));
+          if(strncmp(URL_tmpl, "http:", 5) && strncmp(URL_tmpl, "https:", 6)) {
+            /* they want us to fill in the schema://host:port part */
+            snprintf(URL, sizeof(URL), "%s://%s:%u%s",
+                     (cs->check[i].type == CHECK_HTTPS) ? "https" : "http", cs->address, cs->port, URL_tmpl);
+          } else {
+            strlcpy(URL, URL_tmpl, sizeof(URL));
+          }
+        }
+        char checkid[300];
+        snprintf(checkid, sizeof(checkid), "service:%s:%d", cs->id, i+1);
+        MJ_KV(co, "CheckID", MJ_STR(checkid));
+        if(cs->check[i].name) MJ_KV(co, "Name", MJ_STR(cs->check[i].name));
+        switch(cs->check[i].type) {
+          case CHECK_NONE: abort(); break;
+          case CHECK_PUSH:
+            if(cs->check[i].push.ttl) {
+              uint64_t period;
+              mtev_confstr_parse_duration(cs->check[i].push.ttl, &period, mtev_get_durations_s());
+              period /= 3;
+              sr->period[i] = MAX(period, 1);
+              MJ_KV(co, "TTL", MJ_STR(cs->check[i].push.ttl));
+            }
+            break;
+          case CHECK_TCP:
+            MJ_KV(co, "TCP", MJ_STR(cs->check[i].tcp.tcp));
+            MJ_KV(co, "Interval", MJ_STR(cs->check[i].tcp.interval));
+            if(cs->check[i].tcp.timeout) MJ_KV(co, "Timeout", MJ_STR(cs->check[i].tcp.timeout));
+            break;
+          case CHECK_HTTP:
+            MJ_KV(co, "HTTP", MJ_STR(URL));
+            MJ_KV(co, "Interval", MJ_STR(cs->check[i].http.interval));
+            if(cs->check[i].http.method) MJ_KV(co, "Method", MJ_STR(cs->check[i].http.method));
+            if(cs->check[i].http.timeout) MJ_KV(co, "Timeout", MJ_STR(cs->check[i].http.timeout));
+            break;
+          case CHECK_HTTPS:
+            MJ_KV(co, "HTTP", MJ_STR(URL));
+            MJ_KV(co, "Interval", MJ_STR(cs->check[i].https.interval));
+            if(cs->check[i].https.tlsservername) MJ_KV(co, "TLSServerName", MJ_STR(cs->check[i].https.tlsservername));
+            if(cs->check[i].https.tlsskipverify) MJ_KV(co, "TLSSkipVerify", MJ_BOOL(true));
+            if(cs->check[i].https.method) MJ_KV(co, "Method", MJ_STR(cs->check[i].https.method));
+            if(cs->check[i].https.timeout) MJ_KV(co, "Timeout", MJ_STR(cs->check[i].https.timeout));
+            break;
+        }
+        MJ_ADD(checks, co);
+      }
+    }
+    MJ_KV(so, "Checks", checks);
+  }
+  mtev_json_object *wo = MJ_OBJ();
+    MJ_KV(wo, "Passing", MJ_INT(cs->weights.passing));
+    MJ_KV(wo, "Warning", MJ_INT(cs->weights.warning));
+  MJ_KV(so, "Weights", wo);
+  mtev_json_object *tagarr = MJ_ARR();
+    mtev_hash_iter tag_iter = MTEV_HASH_ITER_ZERO;
+    while(cs->tags && mtev_hash_adv(cs->tags, &tag_iter)) {
+      char tagstr[256];
+      if(tag_iter.value.str == NULL || 0 == strlen(tag_iter.value.str))
+        snprintf(tagstr, sizeof(tagstr), "%s", tag_iter.key.str);
+      else
+        snprintf(tagstr, sizeof(tagstr), "%s:%s", tag_iter.key.str, tag_iter.value.str);
+      MJ_ADD(tagarr, MJ_STR(tagstr));
+    }
+  MJ_KV(so, "Tags", tagarr);
+  mtev_json_object *mo = MJ_OBJ();
+    mtev_hash_iter meta_iter = MTEV_HASH_ITER_ZERO;
+    while(cs->meta && mtev_hash_adv(cs->meta, &meta_iter)) {
+      MJ_KV(mo, meta_iter.key.str, MJ_STR(meta_iter.value.str));
+    }
+  MJ_KV(so, "Meta", mo);
+
+  ck_spinlock_lock(&sr->lock);
+  if(sr->consul_object) MJ_DROP(sr->consul_object);
+  sr->consul_object = so;
+  sr->desired_state = CS_REGISTERED;
+  sr->state = CS_UNINIT;
+  ck_spinlock_unlock(&sr->lock);
+  if(vsr == NULL) {
+    mtev_hash_replace(&service_registry, strdup(cs->id), strlen(cs->id), sr,
+                      free, service_register_deref);
+    mtevL(mtev_notice, "consul: registering [%s] service %s on port %s:%u\n",
+          cs->id, cs->name, cs->address, cs->port);
+  } else {
+    mtevL(mtev_notice, "consul: re-registering [%s] service %s on port %s:%u\n",
+          cs->id, cs->name, cs->address, cs->port);
+  }
+  mtev_consul_sync_services();
+  return true;
+}
+
 static void
 mtev_consul_configure(void) {
   int cnt;
@@ -540,26 +907,7 @@ mtev_consul_configure(void) {
       if(mtev_conf_get_stringbuf(*service, "@id", id_override, sizeof(id_override))) id = id_override;
       char id_str[256];
       id_str[0] = '\0';
-      for(const char *cp=id; *cp; ) {
-        if(!strncmp(cp, "{app}", 5)) {
-          strlcat(id_str, mtev_get_app_name(), sizeof(id_str));
-          cp += 5;
-        }
-        else if(!strncmp(cp, "{node}", 6)) {
-          struct utsname utsn;
-          if(uname(&utsn) < 0) {
-            strlcat(id_str, "unknown", sizeof(id_str));
-          } else {
-            strlcat(id_str, utsn.nodename, sizeof(id_str));
-          }
-          cp += 6;
-        }
-        else {
-          char chrstr[2] = { *cp, '\0' };
-          strlcat(id_str, chrstr, sizeof(id_str));
-          cp++;
-        }
-      }
+      mtev_consul_interp(id_str, sizeof(id_str), id);
 
       int port = 0;
       if(!mtev_conf_get_int32(*service, "@port", &port) || port < 1 || port > 65535) {
@@ -584,13 +932,21 @@ mtev_consul_configure(void) {
   bool has_ ## name = false; \
   (void)has_ ## name
 #define CHECK_GET(name) do { \
-  if(mtev_conf_get_stringbuf(check, "@" #name, name, sizeof(name))) has_ ## name = true; \
+  char tmpbuf[sizeof(name)]; \
+  if(mtev_conf_get_stringbuf(check, "@" #name, tmpbuf, sizeof(tmpbuf))) { \
+    has_ ## name = true; \
+    if(strlen(tmpbuf) > 0) { \
+      strlcpy(name, tmpbuf, sizeof(name)); \
+    } \
+  } \
 } while(0)
       uint64_t period = 0;
       CHECK_DECL(DeregisterCriticalServiceAfter, 32, "30m");
       CHECK_DECL(Interval, 32, "5s");
-      CHECK_DECL(HTTP, 410, "/module/consul/health");
-      CHECK_DECL(HTTPS, 410, "/module/consul/health");
+      CHECK_DECL(HTTP, 410, "");
+      snprintf(HTTP, sizeof(HTTP), "/module/consul/health/%s?n=1", id_str);
+      CHECK_DECL(HTTPS, 410, "");
+      snprintf(HTTPS, sizeof(HTTPS), "/module/consul/health/%s?n=1", id_str);
       CHECK_DECL(Method, 10, "GET");
       CHECK_DECL(TCP, 128, "");
       CHECK_DECL(PUSH, 10, "5s");
@@ -616,7 +972,7 @@ mtev_consul_configure(void) {
       if(has_HTTPS) strlcpy(HTTP_tmpl, HTTPS, sizeof(HTTP_tmpl));
       else strlcpy(HTTP_tmpl, HTTP, sizeof(HTTP_tmpl));
       if(strncmp(HTTP_tmpl, "http:", 5) && strncmp(HTTP_tmpl, "https:", 6)) {
-        /* they want use to fill in the schema://host:port part */
+        /* they want us to fill in the schema://host:port part */
         snprintf(HTTP, sizeof(HTTP), "%s://%s:%d%s", has_HTTPS ? "https" : "http", address, port, HTTP_tmpl);
       } else {
         strlcat(HTTP, HTTP_tmpl, sizeof(HTTP));
@@ -656,6 +1012,9 @@ mtev_consul_configure(void) {
           if(has_Method) MJ_KV(co, "Method", MJ_STR(Method));
           if(has_Timeout) MJ_KV(co, "Timeout", MJ_STR(Timeout));
         }
+        char checkid[300];
+        snprintf(checkid, sizeof(checkid), "service:%s:1", id_str);
+        MJ_KV(co, "CheckID", MJ_STR(checkid));
       MJ_KV(so, "Check", co);
       mtev_json_object *wo = MJ_OBJ();
         MJ_KV(wo, "Passing", MJ_INT(weights_passing));
@@ -681,192 +1040,82 @@ mtev_consul_configure(void) {
       free(meta);
 
       service_register *sr = calloc(1, sizeof(*sr));
+      ck_spinlock_init(&sr->lock);
       sr->consul_object = so;
-      sr->period = period;
+      sr->period[0] = period;
       sr->service_id = strdup(id_str);
-      sr->registered = false;
-      mtev_hash_replace(&service_registry, strdup(service_name), strlen(service_name), sr,
-                        free, service_register_free);
+      for(int i=0; i<MAX_CHECKS; i++) {
+        sr->service_code[i] = default_service_code;
+      }
+      sr->desired_state = CS_REGISTERED;
+      sr->state = CS_UNINIT;
+      mtev_hash_replace(&service_registry, strdup(id_str), strlen(id_str), sr,
+                        free, service_register_deref);
       mtevL(mtev_notice, "consul: registering [%s] service %s on port %s:%d\n",
             id_str, service_name, address, port);
+      mtev_consul_sync_services();
     }
     mtev_conf_release_sections_read(services, scnt);
   }
   mtev_conf_release_sections_read(cservices, cnt);
 }
 
-typedef struct {
-  eventer_t e;
-  curl_socket_t s;
-} curl_context_t;
-
-static void process_global_curlm(void) {
-  char *done_url;
-  CURLMsg *message;
-  int pending;
-  CURL *easy_handle;
-  curl_handler_t *handler;
-  while((message = curl_multi_info_read(global_curl_handle, &pending))) {
-    switch(message->msg) {
-    case CURLMSG_DONE:
-      easy_handle = message->easy_handle;
-
-      curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
-      if(message->data.result != CURLE_OK) {
-        mtevL(error_ls, "%s -> %s\n", done_url, curl_easy_strerror(message->data.result));
-      }
-      long httpcode;
-      curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, (char **)&handler);
-      if(handler->handler) {
-        handler->handler(message->data.result, easy_handle, &handler->dyn, handler->userdata);
-      }
-      curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &httpcode);
-      if(httpcode == 200) {
-        mtevL(debug_ls, "%s DONE\n", done_url);
-      } else {
-        mtevL(debug_ls, "%s -> %d %.*s\n", done_url, (int)httpcode,
-              (int)mtev_dyn_buffer_used(&handler->dyn),
-              (const char *)mtev_dyn_buffer_data(&handler->dyn));
-      }
- 
-      curl_multi_remove_handle(global_curl_handle, easy_handle);
-      curl_easy_cleanup(easy_handle);
-      if(handler) {
-        mtev_dyn_buffer_destroy(&handler->dyn);
-        free(handler);
-      }
-      break;
-    default:
-      mtevL(error_ls, "CURLMSG default\n");
-      break;
-    }
-  }
-}
-
-static int
-eventer_curl_perform(eventer_t e, int mask, void *vc, struct timeval *now) {
-  (void)now;
-  curl_context_t *c = vc;
-  int flags = 0;
-  int running_handles;
-  if(mask & (EVENTER_EXCEPTION|EVENTER_READ)) flags |= CURL_CSELECT_IN;
-  if(mask & (EVENTER_EXCEPTION|EVENTER_WRITE)) flags |= CURL_CSELECT_OUT;
-
-  curl_multi_socket_action(global_curl_handle, c->s, flags, &running_handles);
-
-  process_global_curlm();
-
-  return c->e == NULL ? 0 : eventer_get_mask(e);
-}
-static int
-eventer_curl_on_timeout(eventer_t e, int mask, void *c, struct timeval *now) {
-  (void)e;
-  (void)mask;
-  (void)c;
-  (void)now;
-  mtevL(debug_curl_ls, "curl_multi timeout\n");
-  int running_handles;
-  curl_multi_socket_action(global_curl_handle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
-  global_curl_timeout = NULL;
-  process_global_curlm();
-  return 0;
-}
-static int
-eventer_curl_start_timeout(CURLM *multi, long timeout_ms, void *userp) {
-  (void)multi;
-  (void)userp;
-  mtevL(debug_curl_ls, "curl_multi start timeout %d\n", (int)timeout_ms);
-  if(timeout_ms < 0) {
-    if(global_curl_timeout) {
-      eventer_remove(global_curl_timeout);
-      global_curl_timeout = NULL;
-    }
-  }
-  else {
-    if(timeout_ms == 0) timeout_ms = 1;
-    global_curl_timeout = eventer_in_s_us(eventer_curl_on_timeout, NULL,
-                                          timeout_ms / 1000, 1000 * (timeout_ms % 1000));
-    eventer_add(global_curl_timeout);
-  }
-  return 0;
-}
-static int
-eventer_curl_handle_socket(CURL *easy, curl_socket_t s, int action, void *userp, void *socketp) {
-  (void)easy;
-  (void)userp;
-  curl_context_t *c = socketp;
-  switch(action) {
-    case CURL_POLL_IN:
-    case CURL_POLL_OUT:
-    case CURL_POLL_INOUT:
-      {
-      int mask = EVENTER_EXCEPTION;
-      if(!c) {
-        c = calloc(1, sizeof(*c));
-        c->s = s;
-        curl_multi_assign(global_curl_handle, s, c);
-      }
-      if(action != CURL_POLL_IN) mask |= EVENTER_WRITE;
-      if(action != CURL_POLL_OUT) mask |= EVENTER_READ;
-      mtevL(debug_curl_ls, "curl wants %x\n", mask);
-      if(c->e) {
-        eventer_update(c->e, mask);
-      } else {
-        c->e = eventer_alloc_fd(eventer_curl_perform, c, s, mask);
-        eventer_add(c->e);
-      }
-      }
-      break;
-    case CURL_POLL_REMOVE:
-      if(!c) {
-        eventer_t e = eventer_find_fd(s);
-        if(e) c = eventer_get_closure(e);
-        curl_multi_assign(global_curl_handle, s, c);
-      }
-      if(c) {
-        if(c->e) {
-          eventer_t tofree = eventer_remove_fde(c->e);
-          mtevL(debug_curl_ls, "curl removed %p as %p\n", c->e, tofree);
-          c->e = NULL;
-        }
-        free(c);
-        curl_multi_assign(global_curl_handle, s, NULL);
-      } else {
-        mtevL(debug_curl_ls, "curl removal with no socket ptr\n");
-        close(s);
-      }
-      break;
-    default:
-      mtevAssert(0);
-  }
-  return 0;
-}
-
-#if 0
 static void
-debugit(const char *path, uint8_t *val, size_t vallen, uint32_t index) {
-  if(path) mtevL(debug_ls, "UPDATE[%u] %s -> %.*s\n", index, path, (int)vallen, (const char *)val);
-  else mtevL(debug_ls, "UPDATE[%u] complete\n", index);
+mtev_consul_sync_services(void) {
+  if(mtev_hash_size(&service_registry) > 0) {
+    mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+    while(mtev_hash_adv(&service_registry, &iter)) {
+      service_register *sr = (service_register *)iter.value.ptr;
+      ck_spinlock_lock(&sr->lock);
+      if(sr->state != sr->desired_state) {
+        eventer_add_asynch(consul_jobq, eventer_alloc_asynch(mtev_consul_complete_service_registration_ef, sr));
+      }
+      ck_spinlock_unlock(&sr->lock);
+    }
+  }
 }
-#endif
-
+static void consul_sync(void) {
+  while(1) {
+    mtev_consul_sync_services();
+    eventer_aco_sleep(&(struct timeval){ 1UL, 0UL });
+  }
+}
 static mtev_hook_return_t
 mtev_consul_post_init(void *vcl) {
   (void)vcl;
-  mtev_consul_configure();
-
-  if(mtev_hash_size(&service_registry) > 0) {
-    pthread_t tid;
-    pthread_create(&tid, NULL, mtev_consul_complete_service_registration, NULL);
+  consul_jobq = eventer_jobq_retrieve("consul");
+  if(!consul_jobq) {
+    consul_jobq = eventer_jobq_create("consul");
+    eventer_jobq_set_min_max(consul_jobq, 1, 1);
+    eventer_jobq_set_floor(consul_jobq, 0);
+    eventer_jobq_set_concurrency(consul_jobq, 1);
   }
+  mtev_consul_configure();
+  mtev_consul_sync_services();
+
+  eventer_aco_start(consul_sync, NULL);
   return MTEV_HOOK_CONTINUE;
 }
 
 static int
 mtev_consul_health_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
-  (void)npats;
-  (void)pats;
-  mtev_http_response_standard(restc->http_ctx, global_service_code, "HEALTH", "text/plain");
+  service_code_e code = default_service_code;
+  if(npats > 0) {
+    void *vsr = NULL;
+    code = CRITICAL_CODE;
+    if(mtev_hash_retrieve(&service_registry, pats[0], strlen(pats[0]), &vsr)) {
+      mtev_http_request *req = mtev_http_session_request(restc->http_ctx);
+      service_register *sr = (service_register *)vsr;
+      const char *n = mtev_http_request_querystring(req, "n");
+      if(n) {
+        int idx = atoi(n) - 1;
+        if(idx >= 0 && idx < MAX_CHECKS) {
+          code = sr->service_code[idx];
+        }
+      }
+    }
+  }
+  mtev_http_response_standard(restc->http_ctx, code, "HEALTH", "text/plain");
   mtev_http_response_end(restc->http_ctx);
   return 0;
 }
@@ -882,7 +1131,7 @@ mtev_consul_conf_fixup(void *closure, mtev_conf_section_t section, const char *x
   if(set && *value && !strncmp(*value, "consul:", 7)) {
     char *fallback = *value + 7;
     tofree = *value;
-    char *key = strchr(fallback, ':');
+    char *key = strrchr(fallback, ':');
     if(key) *key++ = '\0';
     else {
       key = fallback;
@@ -909,12 +1158,8 @@ mtev_consul_init(mtev_dso_generic_t *self) {
   debug_curl_ls = mtev_log_stream_find("debug/consul/curl");
   mtev_hash_init(&service_registry);
 
-  global_curl_handle = curl_multi_init();
-  curl_multi_setopt(global_curl_handle, CURLMOPT_SOCKETFUNCTION, eventer_curl_handle_socket);
-  curl_multi_setopt(global_curl_handle, CURLMOPT_TIMERFUNCTION, eventer_curl_start_timeout);
-
   mtev_rest_mountpoint_t *rule = mtev_http_rest_new_rule(
-    "GET", "/module/consul/", "^health$", mtev_consul_health_handler
+    "GET", "/module/consul/", "^health(?:/(.+))?$", mtev_consul_health_handler
   );
   mtev_rest_mountpoint_set_auth(rule, mtev_http_rest_client_cert_auth);
   mtev_rest_mountpoint_set_aco(rule, mtev_true);

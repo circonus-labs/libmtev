@@ -169,6 +169,10 @@ mtev_confstr_parse_duration(const char *input, uint64_t *output,
     if(unit_str == input)
       return MTEV_CONFSTR_PARSE_ERR_FORMAT;
 
+    /* remove space(s) between number and unit string */
+    while(*unit_str && isspace(*unit_str))
+      unit_str++;
+
     /* unit string */
     input = unit_str;
     while(*input && isalpha(*input))

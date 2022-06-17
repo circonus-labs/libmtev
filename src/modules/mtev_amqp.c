@@ -237,23 +237,26 @@ drain_outbound_queue(struct amqp_conn *cc) {
         mtevL(nlerr, "basic_publish failed: %d\n", rv);
         return -1;
       }
+      ck_fifo_spsc_dequeue_lock(&cc->outbound);
+      bool found = ck_fifo_spsc_dequeue(&cc->outbound, &sameenv);
+      ck_fifo_spsc_dequeue_unlock(&cc->outbound);
+      if(!found) break;
+      sameenv = (void*) ((uintptr_t) sameenv & ~(sizeof(uintptr_t) - 1));
+      mtevAssert(env == sameenv);
+      amqp_destroy_envelope(env);
+      free(env);
+      cnt++;
     }
-    ck_fifo_spsc_dequeue_lock(&cc->outbound);
-    bool found = ck_fifo_spsc_dequeue(&cc->outbound, &sameenv);
-    ck_fifo_spsc_dequeue_unlock(&cc->outbound);
-    if(!found) break;
-    sameenv = (void *)((uintptr_t)sameenv & ~(sizeof(uintptr_t)-1));
-    mtevAssert(env == sameenv);
-    amqp_destroy_envelope(env);
-    free(env);
-    cnt++;
+    else {
+      break;
+    }
   }
   return cnt;
 }
 /* Because amqp_connection_state_t's are not thread safe, we must read and
    write to this connection in the same thread... here.
    This is problematic b/c knowing we have data to write and knowing we can
-   read data use different fascilitites and thus we have to spin.
+   read data use different facilities and thus we have to spin.
 
    So.. we will wait for "up to" 50ms to receive a message and then drain
    our outbound queue.  If the inbound channel is idle, this means that we
@@ -505,18 +508,14 @@ static amqp_envelope_t *copy_envelope(amqp_envelope_t *in) {
 
 void
 mtev_amqp_send_function(amqp_envelope_t *env, int mandatory, int immediate, int connection_id_broadcast_if_negative) {
-  int i;
   uintptr_t mask = 0;
   if(mandatory != 0) mask |= ENV_MANDATORY;
   if(immediate != 0) mask |= ENV_IMMEDIATE;
-  /* We need to make N copies of the message here if we're broadcassting */
-  amqp_envelope_t *copies[MAX_CONNS];
-  for (i=0; i<the_conf->number_of_conns; i++) {
-    copies[i] = NULL;
-  }
+  /* We need to make N copies of the message here if we're broadcasting */
+  amqp_envelope_t *copies[MAX_CONNS] = {};
   if(connection_id_broadcast_if_negative < 0) {
     copies[0] = (void *)((uintptr_t)env | mask);
-    for(i=1; i<the_conf->number_of_conns; i++) {
+    for(int i=1; i<the_conf->number_of_conns; i++) {
       copies[i] = copy_envelope(env);
       copies[i] = (void *)((uintptr_t)copies[i] | mask);
     }
@@ -526,7 +525,7 @@ mtev_amqp_send_function(amqp_envelope_t *env, int mandatory, int immediate, int 
     copies[connection_id_broadcast_if_negative] = env;
   }
 
-  for (i=0; i<the_conf->number_of_conns; i++) {
+  for (int i=0; i<the_conf->number_of_conns; i++) {
     struct amqp_conn *cc = &the_conf->amqp_conns[i];
     if(connection_id_broadcast_if_negative < 0 ||
        i == connection_id_broadcast_if_negative) {
@@ -603,7 +602,7 @@ amqp_driver_init(mtev_dso_generic_t *img) {
   if(init_conns() != 0) return -1;
 
   if (the_conf->number_of_conns == 0) {
-    mtevL(nlerr, "No amqp reciever setting found in the config!\n");
+    mtevL(nlerr, "No amqp receiver setting found in the config!\n");
     return 0;
   }
 

@@ -96,15 +96,16 @@ void mtev_json_tokener_reset(struct mtev_json_tokener *tok)
     mtev_json_tokener_reset_level(tok, i);
   tok->depth = 0;
   tok->err = mtev_json_tokener_success;
+  tok->started = false;
 }
 
-struct mtev_json_object* mtev_json_tokener_parse(const char *str,  enum mtev_json_tokener_error *err)
+struct mtev_json_object* mtev_json_tokener_parse_len(const char *str, int len, enum mtev_json_tokener_error *err)
 {
   struct mtev_json_tokener* tok;
   struct mtev_json_object* obj;
 
   tok = mtev_json_tokener_new();
-  obj = mtev_json_tokener_parse_ex(tok, str, -1);
+  obj = mtev_json_tokener_parse_ex(tok, str, len);
   if(tok->err != mtev_json_tokener_success) {
     if(err) *err = tok->err;
   }
@@ -112,6 +113,10 @@ struct mtev_json_object* mtev_json_tokener_parse(const char *str,  enum mtev_jso
   return obj;
 }
 
+struct mtev_json_object* mtev_json_tokener_parse(const char *str,  enum mtev_json_tokener_error *err)
+{
+  return mtev_json_tokener_parse_len(str, -1, err);
+}
 
 #if !HAVE_STRNDUP
 /* CAW: compliant version of strndup() */
@@ -184,12 +189,42 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
 {
   struct mtev_json_object *obj = NULL;
   char c = '\1';
+  int ret = 0;
 
   tok->char_offset = 0;
   tok->err = mtev_json_tokener_success;
 
-  while (POP_CHAR(c, tok)) {
+  /* This is a bit hacky - there was a bug where we'd erroneously
+   * set success on invalid json if the invalid json was not formatted as
+   * an array or object. This just eats all the leading whitespace and
+   * validates that the first character is either '{' or '[' to avoid this.
+   *
+   * At the moment, this will reject any incoming JSON that starts with a comment.
+   *
+   * Long term, this library needs to be updated to something more current */
+  if (!tok->started) {
+    tok->started = true;
+    while ((ret = POP_CHAR(c, tok)) && isspace(c)) {
+      if (!ADVANCE_CHAR(str, tok)) {
+        ret = 0;
+        break;
+      }
+    }
+    if (!ret) {
+      tok->err = mtev_json_tokener_error_parse_eof;
+      goto out;
+    }
+    else {
+      if (c != '{' && c != '[') {
+        tok->err = mtev_json_tokener_error_parse_unexpected;
+        goto out;
+      }
+    }
+  }
+  /* End hacky bit */
+  tok->err = mtev_json_tokener_success;
 
+  while (POP_CHAR(c, tok)) {
   redo_char:
     switch(state) {
 
@@ -626,7 +661,7 @@ struct mtev_json_object* mtev_json_tokener_parse_ex(struct mtev_json_tokener *to
     }
     if (!ADVANCE_CHAR(str, tok))
       goto out;
-  } /* while(POP_CHAR) */
+  } /* while (POP_CHAR) */
 
  out:
   if (!c) { /* We hit an eof char (0) */

@@ -48,7 +48,7 @@ echo_server:	$(ES_OBJS)
 
 echo_client:	$(EC_OBJS)
 	@echo "- linking $@"
-	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(EC_OBJS) $(LIBS) -lmtev
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(EC_OBJS) $(LIBS) -lmtev -lcurl
 
 example1:	$(EX1_OBJS)
 	@echo "- linking $@"
@@ -56,7 +56,7 @@ example1:	$(EX1_OBJS)
 
 aco:	$(ACO_OBJS)
 	@echo "- linking $@"
-	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(ACO_OBJS) $(LIBS) -lmtev
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(ACO_OBJS) $(LIBS) -lmtev -lcurl
 
 fq-router:	$(FQR_OBJS)
 	@echo "- linking $@"

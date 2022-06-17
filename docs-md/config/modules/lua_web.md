@@ -25,6 +25,12 @@ The lua_web module allows lua to drive http requests.
    This is the lua DSO load path.  See the lua manual for more
    details on meaning and syntax.
 
+ * **`dev_mode`** (optional)  [default: `false`]
+
+   allowed: `/^(?:true|false)$/`
+
+   If true, instructs lua_web to use a fresh state for each request.
+
  * **`dispatch`** (required) 
 
    allowed: `/^.+$/`
@@ -79,6 +85,12 @@ The lua_web module allows lua to drive http requests.
    allowed: `/^^(?:[1-9]\d*)$$/`
 
    Set the lua gc pause percentage.
+
+ * **`interrupt_mode`** (optional)  [default: `errors`]
+
+   allowed: `/^(?:error|preempt)$/`
+
+   Specify the behavior of asynchronous VM interrupts.
 
  * **`interrupt_time`** (optional) 
 

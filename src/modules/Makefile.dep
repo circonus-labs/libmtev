@@ -22,7 +22,7 @@ consul.lo: consul.c ../mtev_defines.h ../mtev_config.h \
   ../../src/utils/mtev_compress.h \
   ../mtev_http1.h ../mtev_http2.h ../../src/utils/mtev_getip.h \
   ../mtev_capabilities_listener.h ../../src/utils/mtev_zipkin_curl.h \
-  consul.h consul.xmlh
+  mtev_consul.h consul.xmlh
 
 http_hmac_cookie.lo: http_hmac_cookie.c ../mtev_defines.h ../mtev_config.h \
   ../../src/utils/mtev_str.h ../../src/utils/mtev_b64.h \

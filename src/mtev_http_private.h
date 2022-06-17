@@ -141,6 +141,9 @@ static inline void inplace_urldecode(char *c) {
         continue;
       }
     }
+    else if(*c == '+') {
+      *c = ' ';
+    }
     *o++ = *c++;
   }
   *o = '\0';

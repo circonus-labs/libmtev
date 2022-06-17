@@ -1,13 +1,175 @@
 # libmtev changes
 
-# 1
+# 2
 
- * Fix missing top of crash stacktrace when libunwind is being used.
+## 2.2
+
+ * Report LIFO/FIFO mode for jobqs via console.
+ * Allow changing of jobq mode online via console.
+
+### 2.2.8
+
+ * Add POST/PUT payload to backtrace reports
+ * Always print double-free/corruption detection in `mtev_memory_safe_free`
+
+### 2.2.7
+
+ * Avoid assertion in internal membuf bounds checking.
+
+### 2.2.6
+
+ * Add support for building with OpenSSL 3.0.
+
+### 2.2.5
+
+ * Support lua coroutine killing and cancellation via console.
+ * Fix bug in preemption resumption where it was calling a
+   non-implementation-specific resume.
+
+### 2.2.4
+
+ * Zipkin
+   * fix binary annotations of type `double`
+   * fix log attachment
+   * add lua helpers for logging and tagging to spans
+ * Make lua auto-preemption stable (still not default)
+
+### 2.2.3
+
+ * Avoid stack overflow in `mtev_hash_retrieve` and `mtev_hash_delete` when the
+   key size (minus its null terminator) is the same as `ONSTACK_KEY_SIZE`.
+ * Fix two luajit runtime use errors that could break GC
+   * `lua_call` during resume when coming back from `mtev.sleep`
+   * `nl_resume` return value off-by-one.
+ * Default `show lua` now shows all lua states in all loops.
+ * Add `mtev.runtime_defunct(<cb>)` and `mtev.runtime_reload()`.
+ * Add `/module/lua/bump.json` to cause on-demand reloads.
+ * Make preemptive interruption an option for `lua_web` and `lua_general`.
+ * Change lua `mtev.log` to report the lua file/line in debug context.
+ * Support refreshing `lua_web` `lua_State`s.
+  * Add a `dev_mode` config option that forces a state refresh before each
+    web request.
+  * Trigger a refresh when the interrupt timer fires within a state.
+ * Add `/<app>/@workingdir` config attribute (default '/') to control the
+  `chdir(2)` when running managed.
+
+### 2.2.2
+
+ * Add `offsets = true` option for mtev.pcre functions to return a table of
+   paired offsets for matches instead of a true or false as the first return
+   value.
+
+### 2.2.1
+
+ * Fix inflight accounting issue on eventer jobq subqueues that would cause
+   job lockup after `UINT32_MAX` jobs were run on the static (default) subqueue.
+
+### 2.2.0
+
+ * Deprecate `mtev_atomic` functionality.
+ * Added `MTEV_MAYBE_REALLOC_WITH_TYPE` for C++ compatibility.  The older
+   version is maintained for backwards compatibility.
+
+## 2.1
+
+### 2.1.7
+
+ * Expose `observer_note` in the lua http context.
+ * Add `utils/mtev_curl` API for doing non-blocking curl work within the
+   eventer including ACO bindings.
+
+### 2.1.6
+
+ * Improve consul support adding programmatic access and lua integration.
+ * Add `mtev_reverse_proxy_changed` hook on reverse socket proxy setup and teardown.
+
+### 2.1.5
+
+ * More const for strings in DSO modules
+
+### 2.1.4
+
+ * Expand TLS version options and default 1.2 as the minimum.
+
+### 2.1.3
+
+ * Document time duration strings.
+ * Allow the fallback in ENV:fallback:{VAR} and consul:fallback:VAR config
+   statements to include colons.
+
+### 2.1.2
+
+ * Allow spaces between numbers and units in `mtev_confstr_parse_duration`.
+   Currently the parsing allows spaces between time units, such as "1hr 2min".
+   After this change, a string like "1 hour 2 minutes" will also be allowed.
+ * Fix alignment of `mtev_hash`.
+ * Use `const` for JSON strings in `mtev_json_object_from_{fd,file}`.
+
+### 2.1.1
+
+ * Fix crash when parsing certain unreadable JSON strings
+
+### 2.1.0
+
+ * Update jQuery (web UI) to 3.6.0.
+ * Add convenience function for getting the `backlog` value of a jobq.
+
+## 2.0
+
+### 2.0.4
+
+ * Fix race in usage of `SSL_get_ex_new_index`.
+ * `mtev.thread_self()` now also returns thread name.
+ * Fix error checking in `mtev_reverse`.
+ * Fix illegal write in string prepend initializer.
+
+### 2.0.3
+
+ * Fix race condition in eventer
+
+### 2.0.2
+
+ * Fix clang 11 warnings
+
+### 2.0.1
+
+ * Fix race in `mtev_memory_gc` that could potentially cause
+   crashes.
+
+### 2.0.0
+
+* Update logging ext to work with C++.  This breaks the ABI
+  for existing users
+
+# 1
 
 ## 1.12
 
+### 1.12.18
+
+ * More protections from NPE in eventer SSL code.
+ * Add console-accessible statistics for the `mtev_fq` module via `show fq`.
+ * Fix assertion failure in AMQ code
+
+### 1.12.17
+
+ * Decode `+` to space in querystring decoding.
+
+### 1.12.16
+
+ * Fix potential off-by-one error in clustering
+
+### 1.12.15
+
+ * Fix stack smash on CHT lookups on clusters with W>16.
+ * Increase max W for CHTs to 256
+
+### 1.12.14
+
+ * Fix missing top of crash stacktrace when libunwind is being used.
  * Make the 'SSL layer X not understood' a debug message if X is being
    explicitly disabled.
+ * Fix `segment_size` and `precommit` config processing for `jlog` logs.
 
 ### 1.12.13
 

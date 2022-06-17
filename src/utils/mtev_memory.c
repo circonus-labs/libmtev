@@ -364,14 +364,15 @@ mtev_memory_gc(void *unused) {
   const int max_setsize = 100;
   mtevL(mem_debug, "GC maintenance thread pid:%d starting.\n", getpid());
   while(ck_pr_load_int(&asynch_gc) == 1) {
-    struct asynch_reclaim *ar;
-    struct asynch_reclaim *arset[max_setsize];;
+    struct asynch_reclaim *arset[max_setsize];
 
     /* These are various pending lists from other threads.
      * Let's pull a whole bunch of these lists as one time.
      */
     int setsize = 0;
     do {
+      struct asynch_reclaim *ar;
+
       ck_fifo_spsc_dequeue_lock(&gc_queue);
       while(setsize < max_setsize && ck_fifo_spsc_dequeue(&gc_queue, &ar)) {
         arset[setsize++] = ar;
@@ -403,22 +404,30 @@ mtev_memory_gc(void *unused) {
     asynch_cycles++;
 
     /* Now we hand them back from where they came and they are guaranteed
-     * to to be epoch safe.
+     * to be epoch safe.
      */
     for(int i=0; i<setsize; i++) {
-      ar = arset[i];
-      ck_fifo_spsc_enqueue_lock(ar->gc_return->queue);
-      ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(ar->gc_return->queue);
+      struct asynch_reclaim *ar = arset[i];
+      // Not safe to re-read this value after queuing 'ar'
+      gc_asynch_queue_t * const gc_return = ar->gc_return;
+
+      ck_fifo_spsc_enqueue_lock(gc_return->queue);
+      ck_fifo_spsc_entry_t *fifo_entry = ck_fifo_spsc_recycle(gc_return->queue);
       if(fifo_entry == NULL) fifo_entry = malloc(sizeof(*fifo_entry));
-      ck_fifo_spsc_enqueue(ar->gc_return->queue, fifo_entry, ar);
-      ck_fifo_spsc_enqueue_unlock(ar->gc_return->queue);
-      ck_pr_inc_64(&ar->gc_return->requeued);
+
+      // The variable 'ar' becomes visible to the original creator
+      // thread after the call to 'ck_fifo_spsc_enqueue'.  At which
+      // point it can be freed at any time by its creator
+      // It is still safe to read the address stored in the pointer
+      // but it's no longer safe to deference the pointer
+      ck_fifo_spsc_enqueue(gc_return->queue, fifo_entry, ar);
+      ck_fifo_spsc_enqueue_unlock(gc_return->queue);
+      ck_pr_inc_64(&gc_return->requeued);
 
       /* Who owns this return queue?  If it is disowned, we need to handle it. */
-      struct asynch_reclaim *expected_final_ar = ck_pr_load_ptr(&ar->gc_return->final_ar);
-      if(expected_final_ar == ar) {
+      if (ck_pr_load_ptr(&gc_return->final_ar) == ar) {
         /* enqueued will not increase, so when requeued matches it, we're done */
-        terminate_gc_return(ar->gc_return);
+        terminate_gc_return(gc_return);
       }
     }
     if(setsize != max_setsize) usleep(500000);
@@ -431,16 +440,17 @@ mtev_memory_gc(void *unused) {
 int
 mtev_memory_maintenance_ex(mtev_memory_maintenance_method_t method) {
   static int error_once = 1;
-  struct asynch_reclaim *ar;
   unsigned long n_dispatch = 0;
   mtev_boolean success = mtev_false;
 
   if(epoch_rec == NULL) return -1;
 
-  ck_epoch_record_t epoch_temporary =  *epoch_rec;
+  ck_epoch_record_t epoch_temporary = *epoch_rec;
 
   /* regardless of invocation intent, we cleanup our backq */
   if(gc_return && gc_return->queue) {
+    struct asynch_reclaim *ar;
+
     ck_fifo_spsc_dequeue_lock(gc_return->queue);
     while(ck_fifo_spsc_dequeue(gc_return->queue, &ar)) {
       mtev_gc_sync_complete(ar, mtev_true);
@@ -597,10 +607,10 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
   struct safe_epoch *e = (p - sizeof(struct safe_epoch));
 
   bool magic_valid = e->magic == MTEV_EPOCH_SAFE_MAGIC;
-#ifdef MTEV_MEMORY_DEBUG
   if(!magic_valid) {
     mtevL(mtev_error, "mtev_memory_safe_free %s: %p\n",
           e->magic == MTEV_EPOCH_SAFE_FREE_MAGIC ? "(double free)" : "(corrupted)", p);
+#ifdef MTEV_MEMORY_DEBUG
     int alloc_n = 1, free_n = 1;
     for(; alloc_n<MTEV_MEMORY_DEBUG_STACK_FRAMES && e->alloc_s[alloc_n]; alloc_n++);
     for(; free_n<MTEV_MEMORY_DEBUG_STACK_FRAMES && e->free_s[free_n]; free_n++);
@@ -611,8 +621,8 @@ mtev_memory_ck_free_func(void *p, size_t b, bool r,
   }
   else {
     mtev_backtrace(e->free_s, MTEV_MEMORY_DEBUG_STACK_FRAMES);
-  }
 #endif
+  }
   /* We could assert here as we know we're in a bad state, but
    * we elect to delay until after the potential free so that
    * ASAN or valgrind might help us out if this is a double free.

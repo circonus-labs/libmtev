@@ -7,9 +7,9 @@ ifeq ($(V),)
 	MAKEARGS=-s
 endif
 
-SEMVER_MAJOR=1
-SEMVER_MINOR=12
-SEMVER_PATCH=13
+SEMVER_MAJOR=2
+SEMVER_MINOR=2
+SEMVER_PATCH=8
 LIBMTEV_VERSION=$(SEMVER_MAJOR).$(SEMVER_MINOR).$(SEMVER_PATCH)
 
 prefix=@prefix@
@@ -92,7 +92,7 @@ FAST_TIME_PRELOAD=@FAST_TIME_PRELOAD@
 
 TARGETS=$(LIBMTEVA) $(LIBMTEV) $(LIBMTEV_MAJOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS@
 
-all:	reversion $(TARGETS) make-man build-modules ex
+all:	reversion $(TARGETS) make-man build-modules
 
 ex:
 	$(Q)$(MAKE) $(MAKEARGS) -C examples
@@ -135,10 +135,11 @@ MAPPEDHEADERS=utils/mtev_atomic.h utils/mtev_b32.h utils/mtev_b64.h \
     utils/mtev_lru.h utils/mtev_uuid_copy.h utils/mtev_uuid.h \
     utils/mtev_flow_regulator.h utils/mtev_lfu.h utils/mtev_frrh.h \
     utils/mtev_huge_hash.h utils/mtev_intern.h utils/mtev_plock.h \
-    utils/mtev_url.h utils/mtev_logic.h \
+    utils/mtev_url.h utils/mtev_logic.h utils/mtev_curl.h \
     json-lib/mtev_json_object.h json-lib/mtev_json_tokener.h \
     json-lib/mtev_json_util.h json-lib/mtev_json.h \
-    modules/mtev_fq.h modules/mtev_amqp.h modules/http_observer.h
+    modules/mtev_fq.h modules/mtev_amqp.h modules/http_observer.h \
+    modules/mtev_consul.h
 
 JSON_LIB_OBJS=json-lib/mtev_json_arraylist.lo json-lib/mtev_json_debug.lo \
     json-lib/mtev_json_object.lo json-lib/mtev_json_tokener.lo \
@@ -169,7 +170,8 @@ EVENTER_LIB_OBJS=eventer/OETS_asn1_helper.lo eventer/eventer.lo \
 
 MTEV_UTILS_OBJS=utils/mtev_b32.hlo utils/mtev_b64.hlo \
     utils/mtev_btrie.hlo utils/mtev_compress.lo utils/mtev_confstr.lo \
-    utils/mtev_cpuid.lo utils/mtev_dyn_buffer.hlo utils/mtev_getip.lo \
+    utils/mtev_cpuid.lo utils/mtev_curl.lo \
+    utils/mtev_dyn_buffer.hlo utils/mtev_getip.lo \
     utils/mtev_hash.hlo utils/mtev_lockfile.lo utils/mtev_log.lo \
     utils/mtev_mkdir.lo utils/mtev_security.lo utils/mtev_sem.lo \
     utils/mtev_time.hlo utils/mtev_skiplist.hlo utils/mtev_sort.hlo \

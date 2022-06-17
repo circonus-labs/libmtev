@@ -20,6 +20,7 @@
       1. [lua_web](config/modules/lua_web.md)
       1. [zipkin_fq](config/modules/zipkin_fq.md)
       1. [zipkin_jaeger](config/modules/zipkin_jaeger.md)
+   1. [Time Durations](config/time_durations.md)
 1. [Development](development/README.md)
    1. [Important Starting Notes](development/important.md)
    1. [mtev_main](development/mtev_main.md)

@@ -195,6 +195,9 @@ API_EXPORT(cmd_info_t *)
                              const char *name);
 
 API_EXPORT(mtev_console_state_t *)
+  mtev_console_mksubdelegate(mtev_console_state_t *parent, const char *cmd);
+
+API_EXPORT(mtev_console_state_t *)
   mtev_console_state_build(console_prompt_func_t promptf, cmd_info_t **clist,
                            state_free_func_t sfreef);
 
@@ -260,6 +263,16 @@ MTEV_HOOK_PROTO(mtev_console_dispatch,
                 (struct __mtev_console_closure *ncct, const char *buffer),
                 void *, closure,
                 (void *closure, struct __mtev_console_closure *ncct, const char *buffer))
+
+/** a callback used for "printing" the results. */
+typedef void (*yajl_print_t)(void * ctx,
+                             const char * str,
+                             size_t len);
+
+API_EXPORT(void)
+yajl_string_encode(const yajl_print_t print, void * ctx,
+                   const unsigned char * str, size_t len,
+                   int escape_solidus);
 
 #ifdef __cplusplus
 }
