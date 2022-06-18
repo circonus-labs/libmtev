@@ -43,6 +43,7 @@ extern "C" {
 #define HTTP_SESSION_BASE \
   uint32_t http_type; \
   mtev_boolean logged; \
+  uint32_t session_id; \
   Zipkin_Span *zipkin_span; \
   stats_handle_t *record 
 
