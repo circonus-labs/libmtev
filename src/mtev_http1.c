@@ -1652,6 +1652,9 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
     mtevL(http_debug, "[fd=%d]   -> mtev_http1_complete_request()\n", eventer_get_fd(e));
     mask = mtev_http1_complete_request(ctx, origmask, now);
     mtevL(http_debug, "[fd=%d]   <- mtev_http1_complete_request() = %d\n", eventer_get_fd(e), mask);
+
+    mtev_http1_log_request(ctx, MTEV_HTTP_LOG_RECEIVE);
+ 
     if(ctx->conn.e == NULL) goto release;
 
     if(0 != (rv = mtev_http1_http2_upgrade(ctx))) {

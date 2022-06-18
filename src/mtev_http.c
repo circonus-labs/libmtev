@@ -564,9 +564,10 @@ mtev_http_log_request(mtev_http_session_ctx *ctx, mtev_http_log_state state) {
   double time_ms;
   struct tm *tm, tbuf;
   time_t now;
-  struct timeval end_time, diff, start_time;
+  struct timeval end_time, diff = {0L,0L}, start_time;
   mtev_http_request *req = mtev_http_session_request(ctx);
 
+  mtevL(http_access, "mtev_http_log_request:%s\n", state == MTEV_HTTP_LOG_RESPONSE ? "response":"receive");
   if (state == MTEV_HTTP_LOG_RESPONSE) {
     mtev_http_request_start_time(req, &start_time);
     if(start_time.tv_sec == 0) return;
@@ -607,7 +608,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx, mtev_http_log_state state) {
     int len;
     while(1) {
       if (state == MTEV_HTTP_LOG_RESPONSE) {
-        len = snprintf(logline_static, logline_len,
+        len = snprintf(logline, logline_len,
           "%s - %s [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
           ip, user ? user : "-", timestr,
           mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
@@ -619,7 +620,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx, mtev_http_log_state state) {
           time_ms);
       }
       else {
-        len = snprintf(logline_static, logline_len,
+        len = snprintf(logline, logline_len,
           "%s - %s [%s] \"%s %s%s%s %s\"\n",
           ip, user ? user : "-", timestr,
           mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
@@ -630,7 +631,7 @@ mtev_http_log_request(mtev_http_session_ctx *ctx, mtev_http_log_state state) {
       free(logline_dynamic);
       logline = logline_dynamic = malloc(len+1);
       logline_len = len+1;
-     }
+    }
     int fd = -1;
     (void)fd;
     mtev_http_connection *conn = mtev_http_session_connection(ctx);
