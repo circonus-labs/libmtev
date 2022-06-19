@@ -1164,9 +1164,6 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
   mask = 0;
   int rv = nghttp2_session_send(ctx->session);
   mtevL(h2_debug, "http2 drive -> %d\n", rv);
-
-  mtev_http_log_request((mtev_http_session_ctx *)ctx->session, MTEV_HTTP_LOG_RECEIVE);
-
   if(rv != NGHTTP2_ERR_WOULDBLOCK && rv != 0) {
     mtevL(h2_debug, "http2 session_send(%p) %s\n", ctx, nghttp2_strerror(rv));
     goto full_shutdown;
@@ -1317,6 +1314,8 @@ mtev_http1_http2_upgrade(mtev_http1_session_ctx *ctx) {
 
   mtev_http_begin_span((mtev_http_session_ctx *)h2c);
   h2c->req.complete = mtev_true;
+
+  mtev_http_log_request((mtev_http_session_ctx *)h2c, MTEV_HTTP_LOG_RECEIVE);
 
   mtev_http1_session_ref_dec(ctx);
   return 1;
