@@ -702,7 +702,7 @@ mtev_http_init(void) {
   struct in_addr remote = { .s_addr = 0x08080808 };
   mtev_getip_ipv4(remote, &zipkin_ip_host);
   http_access = mtev_log_stream_find("http/access");
-  http_access_forensic = mtev_log_stream_find("http/access_forensic");
+  http_access_forensic = mtev_log_stream_find("http/access/forensic");
   mtev_http1_init();
   mtev_http2_init();
 }
