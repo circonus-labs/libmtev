@@ -22,6 +22,7 @@ consul.lo: consul.c ../mtev_defines.h ../mtev_config.h \
   ../../src/utils/mtev_compress.h \
   ../mtev_http1.h ../mtev_http2.h ../../src/utils/mtev_getip.h \
   ../mtev_capabilities_listener.h ../../src/utils/mtev_zipkin_curl.h \
+  ../../src/utils/mtev_curl.h \
   mtev_consul.h consul.xmlh
 
 http_hmac_cookie.lo: http_hmac_cookie.c ../mtev_defines.h ../mtev_config.h \
@@ -166,6 +167,29 @@ lua_mtev.lo: lua_mtev.c ../mtev_defines.h ../mtev_config.h \
   ../mtev_dso.h ../mtev_rest.h ../mtev_http.h \
   ../../src/utils/mtev_compress.h ../mtev_http1.h ../mtev_http2.h \
 
+lua_mtev_consul.lo: lua_mtev_consul.c ../mtev_defines.h ../mtev_config.h \
+  ../../src/utils/mtev_str.h lua_mtev.h ../mtev_conf.h \
+  ../../src/utils/mtev_hash.h  \
+  ../mtev_console.h \
+  ../eventer/eventer.h ../../src/utils/mtev_log.h \
+  ../../src/utils/mtev_dyn_buffer.h ../../src/utils/mtev_hooks.h \
+  ../../src/utils/mtev_time.h ../../src/json-lib/mtev_json.h \
+  ../../src/json-lib/mtev_json_util.h \
+  ../../src/json-lib/mtev_json_object.h \
+  ../../src/json-lib/mtev_json_tokener.h ../../src/utils/mtev_zipkin.h \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_aco_opset.h ../aco/aco.h ../eventer/eventer_jobq.h \
+  ../../src/utils/mtev_sem.h ../mtev_stats.h \
+  ../eventer/eventer_impl_private.h ../../src/utils/mtev_memory.h \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  ../../src/utils/mtev_skiplist.h ../../src/utils/mtev_uuid.h \
+  ../../src/utils/mtev_uuid_parse.h ../../src/utils/mtev_uuid_copy.h \
+  ../../src/utils/mtev_uuid_generate.h ../mtev_dso.h ../mtev_rest.h \
+  ../mtev_listener.h ../mtev_http.h  \
+  ../../src/utils/mtev_compress.h \
+  ../mtev_http1.h ../mtev_http2.h  \
+  mtev_consul.h
+
 lua_mtev_crypto.lo: lua_mtev_crypto.c ../mtev_defines.h ../mtev_config.h \
   ../../src/utils/mtev_str.h ../mtev_conf.h ../../src/utils/mtev_hash.h \
   ../mtev_console.h \
@@ -230,6 +254,7 @@ lua_mtev_http.lo: lua_mtev_http.c ../mtev_defines.h ../mtev_config.h \
   ../mtev_listener.h ../mtev_http.h  \
   ../../src/utils/mtev_compress.h \
   ../mtev_http1.h ../mtev_http2.h  \
+  http_observer.h
 
 lua_mtev_stats.lo: lua_mtev_stats.c ../mtev_defines.h ../mtev_config.h \
   ../../src/utils/mtev_str.h  \
@@ -257,6 +282,29 @@ lua_mtev_stats.lo: lua_mtev_stats.c ../mtev_defines.h ../mtev_config.h \
 lua_mtev_traceback.lo: lua_mtev_traceback.c ../mtev_defines.h \
   ../mtev_config.h ../../src/utils/mtev_str.h \
 
+lua_mtev_zipkin.lo: lua_mtev_zipkin.c ../mtev_defines.h ../mtev_config.h \
+  ../../src/utils/mtev_str.h  \
+  ../mtev_dso.h ../mtev_conf.h \
+  ../../src/utils/mtev_hash.h  \
+  ../mtev_console.h \
+  ../eventer/eventer.h ../../src/utils/mtev_log.h \
+  ../../src/utils/mtev_dyn_buffer.h ../../src/utils/mtev_hooks.h \
+  ../../src/utils/mtev_time.h ../../src/json-lib/mtev_json.h \
+  ../../src/json-lib/mtev_json_util.h \
+  ../../src/json-lib/mtev_json_object.h \
+  ../../src/json-lib/mtev_json_tokener.h ../../src/utils/mtev_zipkin.h \
+  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
+  ../eventer/eventer_aco_opset.h ../aco/aco.h ../eventer/eventer_jobq.h \
+  ../../src/utils/mtev_sem.h ../mtev_stats.h \
+  ../eventer/eventer_impl_private.h ../../src/utils/mtev_memory.h \
+  ../noitedit/histedit.h ../mtev_console_telnet.h \
+  ../../src/utils/mtev_skiplist.h ../../src/utils/mtev_uuid.h \
+  ../../src/utils/mtev_uuid_parse.h ../../src/utils/mtev_uuid_copy.h \
+  ../../src/utils/mtev_uuid_generate.h lua_mtev.h ../mtev_rest.h \
+  ../mtev_listener.h ../mtev_http.h  \
+  ../../src/utils/mtev_compress.h \
+  ../mtev_http1.h ../mtev_http2.h  \
+
 lua_web.lo: lua_web.c ../mtev_defines.h ../mtev_config.h \
   ../../src/utils/mtev_str.h ../mtev_dso.h ../mtev_conf.h \
   ../../src/utils/mtev_hash.h  \
@@ -279,66 +327,6 @@ lua_web.lo: lua_web.c ../mtev_defines.h ../mtev_config.h \
   ../mtev_listener.h ../mtev_http1.h ../mtev_http2.h ../mtev_rest.h \
   ../../src/utils/mtev_perftimer.h lua_mtev.h \
   lua_web.xmlh
-
-mtev_amqp.lo: mtev_amqp.c ../mtev_defines.h ../mtev_config.h \
-  ../../src/utils/mtev_str.h ../../src/utils/mtev_log.h \
-  ../../src/utils/mtev_dyn_buffer.h ../../src/utils/mtev_hash.h \
-  ../../src/utils/mtev_hooks.h \
-  ../../src/utils/mtev_time.h ../../src/json-lib/mtev_json.h \
-  ../../src/json-lib/mtev_json_util.h \
-  ../../src/json-lib/mtev_json_object.h \
-  ../../src/json-lib/mtev_json_tokener.h ../../src/utils/mtev_zipkin.h \
-  ../mtev_dso.h ../mtev_conf.h ../mtev_console.h ../eventer/eventer.h \
-  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
-  ../eventer/eventer_aco_opset.h ../aco/aco.h ../eventer/eventer_jobq.h \
-  ../../src/utils/mtev_sem.h ../mtev_stats.h \
-  ../eventer/eventer_impl_private.h ../../src/utils/mtev_memory.h \
-  ../noitedit/histedit.h ../mtev_console_telnet.h \
-  ../../src/utils/mtev_skiplist.h ../../src/utils/mtev_uuid.h \
-  ../../src/utils/mtev_uuid_parse.h ../../src/utils/mtev_uuid_copy.h \
-  ../../src/utils/mtev_uuid_generate.h ../mtev_thread.h \
-  mtev_amqp.h amqp.xmlh
-
-mtev_fq.lo: mtev_fq.c ../mtev_defines.h ../mtev_config.h \
-  ../../src/utils/mtev_str.h ../../src/utils/mtev_log.h \
-  ../../src/utils/mtev_dyn_buffer.h ../../src/utils/mtev_hash.h \
-  ../../src/utils/mtev_hooks.h \
-  ../../src/utils/mtev_time.h ../../src/json-lib/mtev_json.h \
-  ../../src/json-lib/mtev_json_util.h \
-  ../../src/json-lib/mtev_json_object.h \
-  ../../src/json-lib/mtev_json_tokener.h ../../src/utils/mtev_zipkin.h \
-  ../mtev_dso.h ../mtev_conf.h ../mtev_console.h ../eventer/eventer.h \
-  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
-  ../eventer/eventer_aco_opset.h ../aco/aco.h ../eventer/eventer_jobq.h \
-  ../../src/utils/mtev_sem.h ../mtev_stats.h \
-  ../eventer/eventer_impl_private.h ../../src/utils/mtev_memory.h \
-  ../noitedit/histedit.h ../mtev_console_telnet.h \
-  ../../src/utils/mtev_skiplist.h ../../src/utils/mtev_uuid.h \
-  ../../src/utils/mtev_uuid_parse.h ../../src/utils/mtev_uuid_copy.h \
-  ../../src/utils/mtev_uuid_generate.h ../../src/utils/mtev_rand.h \
-  ../mtev_thread.h  \
-  mtev_fq.h fq.xmlh
-
-zipkin_fq.lo: zipkin_fq.c ../mtev_defines.h ../mtev_config.h \
-  ../../src/utils/mtev_str.h ../../src/utils/mtev_zipkin.h \
-  ../../src/utils/mtev_hooks.h  \
-  ../../src/utils/mtev_b64.h \
-  ../../src/utils/mtev_log.h ../../src/utils/mtev_dyn_buffer.h \
-  ../../src/utils/mtev_hash.h  \
-  ../../src/utils/mtev_time.h \
-  ../../src/json-lib/mtev_json.h ../../src/json-lib/mtev_json_util.h \
-  ../../src/json-lib/mtev_json_object.h \
-  ../../src/json-lib/mtev_json_tokener.h ../mtev_dso.h ../mtev_conf.h \
-  ../mtev_console.h ../eventer/eventer.h \
-  ../eventer/eventer_POSIX_fd_opset.h ../eventer/eventer_SSL_fd_opset.h \
-  ../eventer/eventer_aco_opset.h ../aco/aco.h ../eventer/eventer_jobq.h \
-  ../../src/utils/mtev_sem.h ../mtev_stats.h \
-  ../eventer/eventer_impl_private.h ../../src/utils/mtev_memory.h \
-  ../noitedit/histedit.h ../mtev_console_telnet.h \
-  ../../src/utils/mtev_skiplist.h ../../src/utils/mtev_uuid.h \
-  ../../src/utils/mtev_uuid_parse.h ../../src/utils/mtev_uuid_copy.h \
-  ../../src/utils/mtev_uuid_generate.h  \
-  zipkin_fq.xmlh
 
 zipkin_jaeger.lo: zipkin_jaeger.c ../mtev_defines.h ../mtev_config.h \
   ../../src/utils/mtev_str.h ../../src/utils/mtev_zipkin.h \

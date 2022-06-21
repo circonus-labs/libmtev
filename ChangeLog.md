@@ -2,10 +2,15 @@
 
 # 2
 
-## 2.2
+## 2.3
 
+## 2.3.0
+
+ * Add REST API http/access/forensic receive logging to preexisting logging on completion.
  * Report LIFO/FIFO mode for jobqs via console.
  * Allow changing of jobq mode online via console.
+
+## 2.2
 
 ### 2.2.8
 

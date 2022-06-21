@@ -49,6 +49,7 @@ static const char *zipkin_http_bytes_in = "http.bytes_in";
 static const char *zipkin_http_bytes_out = "http.bytes_out";
 static struct in_addr zipkin_ip_host;
 static mtev_log_stream_t http_access = NULL;
+static mtev_log_stream_t http_access_forensic = NULL;
 
 MTEV_HOOK_IMPL(http_request_log,
   (mtev_http_session_ctx *ctx),
@@ -559,25 +560,41 @@ mtev_http_end_span(mtev_http_session_ctx *ctx) {
 }
 
 void
-mtev_http_log_request(mtev_http_session_ctx *ctx) {
+mtev_http_log_request(mtev_http_session_ctx *ctx, mtev_http_log_state state) {
+  static uint32_t next_id = 1;
   char ip[64], timestr[64];
   double time_ms;
   struct tm *tm, tbuf;
   time_t now;
-  struct timeval end_time, diff, start_time;
+  struct timeval end_time, diff = {0L,0L}, start_time;
   mtev_http_request *req = mtev_http_session_request(ctx);
 
-  mtev_http_request_start_time(req, &start_time);
-  if(start_time.tv_sec == 0) return;
-
-  if(ctx->logged) return;
-  ctx->logged = mtev_true;
+  if (state == MTEV_HTTP_LOG_RESPONSE) {
+    mtev_http_request_start_time(req, &start_time);
+    if(start_time.tv_sec == 0) return;
+    if(ctx->logged) return;
+    ctx->logged = mtev_true;
+  }
+  else {
+    if(!mtev_http_request_method_str(req)) return;    
+    if(ctx->session_id) return;
+skipzero:
+    ctx->session_id = ck_pr_faa_32(&next_id, 1);
+    if(!ctx->session_id) goto skipzero;
+  }
 
   const char *orig_qs = mtev_http_request_orig_querystring(req);
   mtev_http_response *res = mtev_http_session_response(ctx);
-  mtev_gettimeofday(&end_time, NULL);
-  now = end_time.tv_sec;
-  sub_timeval(end_time, start_time, &diff);
+
+  if (state == MTEV_HTTP_LOG_RESPONSE) {
+    mtev_gettimeofday(&end_time, NULL);
+    now = end_time.tv_sec;
+    sub_timeval(end_time, start_time, &diff);
+  }
+  else {
+    mtev_gettimeofday(&start_time, NULL);
+    now = start_time.tv_sec;
+  }
 
   stats_handle_t *handle = mtev_http_session_latency(ctx);
   if(handle)
@@ -597,16 +614,26 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     int logline_len = sizeof(logline_static);
     int len;
     while(1) {
-      len = snprintf(logline_static, logline_len,
-        "%s - %s [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
-        ip, user ? user : "-", timestr,
-        mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
-        orig_qs ? "?" : "", orig_qs ? orig_qs : "",
-        mtev_http_request_protocol_str(req),
-        mtev_http_response_status(res),
-        (long long unsigned)mtev_http_response_bytes_written(res),
-        (long long unsigned)mtev_http_request_content_length_read(req),
-        time_ms);
+      if (state == MTEV_HTTP_LOG_RESPONSE) {
+        len = snprintf(logline, logline_len,
+          "%s - %s [%s] %u: \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
+          ip, user ? user : "-", timestr, ctx->session_id,
+          mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
+          orig_qs ? "?" : "", orig_qs ? orig_qs : "",
+          mtev_http_request_protocol_str(req),
+          mtev_http_response_status(res),
+          (long long unsigned)mtev_http_response_bytes_written(res),
+          (long long unsigned)mtev_http_request_content_length_read(req),
+          time_ms);
+      }
+      else {
+        len = snprintf(logline, logline_len,
+          "%s - %s [%s] %u: \"%s %s%s%s %s\"\n",
+          ip, user ? user : "-", timestr, ctx->session_id,
+          mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
+          orig_qs ? "?" : "", orig_qs ? orig_qs : "",
+          mtev_http_request_protocol_str(req));
+      }
       if(len <= logline_len) break;
       free(logline_dynamic);
       logline = logline_dynamic = malloc(len+1);
@@ -626,26 +653,43 @@ mtev_http_log_request(mtev_http_session_ctx *ctx) {
     (void)logline; /* the above line might be CPP'd away */
     free(logline_dynamic);
   }
-  mtevEL(http_access,
-        MLKV( MLKV_STR("ip", ip), MLKV_STR("user", user ? user : "-"),
-              MLKV_STR("method", mtev_http_request_method_str(req)),
-              MLKV_STR("protocol", mtev_http_request_protocol_str(req)),
-              MLKV_STR("uri", mtev_http_request_uri_str(req)),
-              MLKV_STR("querystring", orig_qs ? orig_qs : ""),
-              MLKV_INT64("status", mtev_http_response_status(res)),
-              MLKV_DOUBLE("latency", (double)diff.tv_sec + (double)diff.tv_usec/1000000.0),
-              MLKV_INT64("bytes_written", mtev_http_response_bytes_written(res)),
-              MLKV_INT64("bytes_read", mtev_http_request_content_length_read(req)),
-              MLKV_END ),
-        "%s - %s [%s] \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
-        ip, user ? user : "-", timestr,
-        mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
-        orig_qs ? "?" : "", orig_qs ? orig_qs : "",
-        mtev_http_request_protocol_str(req),
-        mtev_http_response_status(res),
-        (long long unsigned)mtev_http_response_bytes_written(res),
-        (long long unsigned)mtev_http_request_content_length_read(req),
-        time_ms);
+
+  if (state == MTEV_HTTP_LOG_RESPONSE) {
+    mtevEL(http_access,
+          MLKV( MLKV_STR("ip", ip), MLKV_STR("user", user ? user : "-"),
+                MLKV_STR("method", mtev_http_request_method_str(req)),
+                MLKV_STR("protocol", mtev_http_request_protocol_str(req)),
+                MLKV_STR("uri", mtev_http_request_uri_str(req)),
+                MLKV_STR("querystring", orig_qs ? orig_qs : ""),
+                MLKV_INT64("status", mtev_http_response_status(res)),
+                MLKV_DOUBLE("latency", (double)diff.tv_sec + (double)diff.tv_usec/1000000.0),
+                MLKV_INT64("bytes_written", mtev_http_response_bytes_written(res)),
+                MLKV_INT64("bytes_read", mtev_http_request_content_length_read(req)),
+                MLKV_END ),
+          "%s - %s [%s] %u: \"%s %s%s%s %s\" %d %llu|%llu %.3f\n",
+          ip, user ? user : "-", timestr, ctx->session_id,
+          mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
+          orig_qs ? "?" : "", orig_qs ? orig_qs : "",
+          mtev_http_request_protocol_str(req),
+          mtev_http_response_status(res),
+          (long long unsigned)mtev_http_response_bytes_written(res),
+          (long long unsigned)mtev_http_request_content_length_read(req),
+          time_ms);
+  }
+  else {
+    mtevEL(http_access_forensic,
+          MLKV( MLKV_STR("ip", ip), MLKV_STR("user", user ? user : "-"),
+                MLKV_STR("method", mtev_http_request_method_str(req)),
+                MLKV_STR("protocol", mtev_http_request_protocol_str(req)),
+                MLKV_STR("uri", mtev_http_request_uri_str(req)),
+                MLKV_STR("querystring", orig_qs ? orig_qs : ""),
+                MLKV_END ),
+          "%s - %s [%s] %u: \"%s %s%s%s %s\"\n",
+          ip, user ? user : "-", timestr, ctx->session_id,
+          mtev_http_request_method_str(req), mtev_http_request_uri_str(req),
+          orig_qs ? "?" : "", orig_qs ? orig_qs : "",
+          mtev_http_request_protocol_str(req));
+  }
 }
 
 Zipkin_Span *
@@ -658,6 +702,7 @@ mtev_http_init(void) {
   struct in_addr remote = { .s_addr = 0x08080808 };
   mtev_getip_ipv4(remote, &zipkin_ip_host);
   http_access = mtev_log_stream_find("http/access");
+  http_access_forensic = mtev_log_stream_find("http/access/forensic");
   mtev_http1_init();
   mtev_http2_init();
 }
