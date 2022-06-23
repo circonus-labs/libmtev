@@ -4,6 +4,7 @@
 
 ## 2.3
 
+## 2.3.1
  * Add REST API http/access/forensic receive logging to preexisting logging on completion.
 
 ## 2.3.0
