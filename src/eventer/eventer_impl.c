@@ -359,8 +359,7 @@ pthread_t eventer_choose_owner_pool(eventer_pool_t *pool, int i) {
   return eventer_impl_tls_data[adjidx].tid;
 }
 void eventer_heartbeat(void) {
-  mtevAssert(my_impl_data);
-  mtev_watchdog_heartbeat(my_impl_data->hb);
+  if(my_impl_data) mtev_watchdog_heartbeat(my_impl_data->hb);
 }
 mtev_boolean eventer_heartbeat_deadline(struct timeval *now, struct timeval *delta) {
   mtevAssert(my_impl_data);
@@ -1467,6 +1466,7 @@ int eventer_run_callback(eventer_func_t f, eventer_t e, int m, void *c, struct t
   rmask = f(e, m, c, n);
   eventer_callback_cleanup(e, rmask);
   mtev_boolean freed = eventer_deref(e);
+  eventer_heartbeat();
   eventer_set_this_event(previous_event);
   if(!freed && dur) {
     *dur = mtev_gethrtime() - start;
