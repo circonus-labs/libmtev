@@ -4,6 +4,8 @@
 
 ## 2.3
 
+## 2.3.2
+
  * Change heartbeats in eventer to be per-callback instead of per-cycle.
 
 ## 2.3.1
