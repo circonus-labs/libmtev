@@ -4,7 +4,10 @@
 
 ## 2.3
 
+ * Change heartbeats in eventer to be per-callback instead of per-cycle.
+
 ## 2.3.1
+
  * Add REST API http/access/forensic receive logging to preexisting logging on completion.
 
 ## 2.3.0
