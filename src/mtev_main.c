@@ -31,6 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "mtev_defines.h"
+#include "mtev_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1360,7 +1360,6 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
 
       if (in->compression != MTEV_COMPRESS_NONE) {
         mtevL(http_debug, " ... decompress bchain\n");
-        size_t total_decompressed_size = 0;
 
         struct bchain *out = NULL;
 
@@ -1389,7 +1388,6 @@ mtev_http1_session_req_consume(mtev_http1_session_ctx *ctx,
           ctx->req.decompress_ctx = NULL;
           return -1;
         }
-        total_decompressed_size += s;
 
         /* our newly produced uncompressed chain gets stuck on the end 
          * after we are through uncompressing we will read this out as normal */
