@@ -564,6 +564,7 @@ void *mtev_memory_safe_malloc(size_t r) {
 
 void *mtev_memory_safe_malloc_cleanup(size_t r, void (*f)(void *)) {
   struct safe_epoch *b;
+  mtevAssert(mtev_memory_in_cs());
   mtevAssert(gc_return != NULL);
   if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
   b = malloc(sizeof(*b) + r);
@@ -650,6 +651,7 @@ void mtev_memory_ck_free(void *p, size_t b, bool r) {
 
 void mtev_memory_safe_free(void *p) {
   mtevAssert(gc_return);
+  mtevAssert(mtev_memory_in_cs());
   if(unlikely(epoch_rec == NULL)) mtev_memory_init_epoch();
   mtev_memory_ck_free_func(p, 0, true, mtev_memory_real_free);
 }

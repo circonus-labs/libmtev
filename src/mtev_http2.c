@@ -299,8 +299,6 @@ mtev_http2_session_req_consume(mtev_http2_session_ctx *ctx,
 
       if (in->compression != MTEV_COMPRESS_NONE) {
         mtevL(h2_debug, "http2 ... decompress bchain\n");
-        size_t total_decompressed_size = 0;
-        size_t total_compressed_size = 0;
 
         struct bchain *out = NULL;
 
@@ -311,7 +309,6 @@ mtev_http2_session_req_consume(mtev_http2_session_ctx *ctx,
           out = ctx->req.user_data_last;
         }
         struct bchain *last_out = NULL;
-        total_compressed_size += in->size;
         ctx->req.user_data_bytes -= in->size;
 
         if(ctx->req.decompress_ctx == NULL) {
@@ -332,7 +329,6 @@ mtev_http2_session_req_consume(mtev_http2_session_ctx *ctx,
           ctx->req.decompress_ctx = NULL;
           return -1;
         }
-        total_decompressed_size += s;
         ctx->req.user_data_bytes += s;
 
         /* our newly produced uncompressed chain gets stuck on the end 

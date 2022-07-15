@@ -1037,7 +1037,7 @@ void set_next_free_node(void *current, void *value) {
 static int
 compact_freelist_with_lock(mtev_intern_pool_t *pool) {
   struct mtev_intern_free_node dummy, *surrogate = &dummy, *last = surrogate;
-  int total = 0, cnt = 0;
+  int cnt = 0;
   if(pool->extent_size == 0) return 0;
 
   /* Steal the stages free nodes... see the barrier below regarding
@@ -1051,7 +1051,6 @@ compact_freelist_with_lock(mtev_intern_pool_t *pool) {
   uint64_t staged_size = 0;
   if(last->next) {
     for(last = last->next; ; last = last->next) {
-      total++;
       staged++;
       staged_size += last->size;
       if(!last->next) break;
@@ -1080,7 +1079,6 @@ compact_freelist_with_lock(mtev_intern_pool_t *pool) {
       last->next = ck_pr_load_ptr(&l->head);
     } while(!ck_pr_cas_ptr(&l->head, last->next, NULL));
     while(last->next) {
-      total++;
       in_fl++;
       last = last->next;
     }
@@ -1208,11 +1206,9 @@ mtev_intern_pool_stats(mtev_intern_pool_t *pool, mtev_intern_pool_stats_t *stats
   stats->available_total = stats->staged_size;
   for(int i=0; i<32; i++) {
     if(i < pool->nfreeslots && pool->freeslots && pool->freeslots[i].head) {
-      uint32_t node_cnt = 0;
       mtev_plock_take_r(&pool->freeslots[i].lock);
       for(struct mtev_intern_free_node *node = pool->freeslots[i].head; node; node = node->next) {
         stats->available[i] += node->size;
-        node_cnt++;
       }
       stats->fragments[i] = pool->freeslots[i].cnt;
       mtev_plock_drop_r(&pool->freeslots[i].lock);
