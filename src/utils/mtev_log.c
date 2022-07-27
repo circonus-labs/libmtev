@@ -83,7 +83,6 @@ extern const char *eventer_get_thread_name(void);
 
 static __thread uint32_t recursion_block = 0;
 static pthread_mutex_t resize_lock;
-static int min_flush_seconds = ((MTEV_LOG_DEFAULT_DEDUP_S-1) / 2) + 1;
 static mtev_logic_exec_t *filter_runtime, *filter_kv_runtime;
 static stats_ns_t *mtev_log_lines_stats_ns;
 ck_rwlock_recursive_t outlets_lock = CK_RWLOCK_RECURSIVE_INITIALIZER;
@@ -1417,9 +1416,6 @@ mtev_log_shutdown(void) {
   mtev_log_go_synch();
 }
 
-static void prep_resize_lock(void) {
-  pthread_mutex_lock(&resize_lock);
-}
 void
 mtev_log_init(int debug_on) {
   mtev_log_init_globals();
@@ -1467,11 +1463,14 @@ mtev_log_stream_get_flags(mtev_log_stream_t ls) {
 
 int
 mtev_log_stream_set_dedup_s(mtev_log_stream_t ls, int s) {
+  (void)ls;
+  (void)s;
   return 0;
 }
 
 int
 mtev_log_stream_get_dedup_s(mtev_log_stream_t ls) {
+  (void)ls;
   return 0;
 }
 
@@ -1848,7 +1847,6 @@ flatbuffer_log_logic_lookup(void *closure, const char *name, mtev_logic_var_t *o
   if(closure == NULL) return mtev_false;
   mtev_LogLine_table_t ll = (mtev_LogLine_table_t)closure;
   mtev_KVPair_vec_t kvs = mtev_LogLine_kv(ll);
-  int nelem = 0;
   int nkvs = mtev_KVPair_vec_len(kvs);
   struct timeval whence;
   whence.tv_sec = mtev_LogLine_timestamp(ll) / 1000000;
@@ -2146,6 +2144,7 @@ add_to_jsonf(int nelem, mtev_dyn_buffer_t *buff,
 }
 mtev_LogLine_fb_t
 mtev_log_flatbuffer_from_buffer(void *buff, size_t buff_len) {
+  (void)buff_len;
   mtev_LogLine_table_t ll = NULL;
   /*
   if(0 != mtev_LogLine_verify_as_root(buff, buff_len)) {
@@ -2306,7 +2305,6 @@ mtev_log_line(mtev_log_stream_t ls, mtev_log_stream_t bitor,
         this_line = NULL;
       }
       if(this_line && ls->format == MTEV_LOG_FORMAT_JSON) {
-        int nelem = 0;
         mtev_dyn_buffer_t encoded;
         mtev_dyn_buffer_init(&encoded);
         mtev_log_flatbuffer_to_json((mtev_LogLine_fb_t)ll, &encoded);
@@ -2552,6 +2550,7 @@ static struct thr_buff *local_thr_buff_get(void) {
 static int local_thr_buff_alloc(void *alloc_context, flatcc_iovec_t *b,
                                 size_t request, int zero_fill, int alloc_type) {
   struct thr_buff *src = alloc_context;
+  (void)alloc_type;
   if(!src) return 0;
   if(request == 0) {
     b->iov_base = 0;
@@ -2606,7 +2605,6 @@ mtev_log_construction_needed(mtev_log_stream_t ls, const mtev_log_kv_t * const *
   if(!ls->outlets) return NO_CONSTRUCTION_REQUIRED;
   outlets_read_lock();
   for(node = ls->outlets; node; node = node->next) {
-    int srv = 0;
     if(mtev_log_construction_needed(node->outlet, kvsets, has_message, tracker)) {
       if(node->filter == NULL) {
         needed = YES_CONSTRUCTION_REQUIRED;
@@ -3103,6 +3101,7 @@ void mtev_log_stream_pipe_post_fork_parent(mtev_log_stream_pipe_t *lp) {
 
 void mtev_log_stream_pipe_post_fork_child(mtev_log_stream_pipe_t *lp) {
   /* nothing, the FDs are CLOEXEC */
+  (void)lp;
 }
 
 static void *
