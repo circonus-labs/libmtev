@@ -4,6 +4,8 @@
 
 ## 2.3
 
+ * Add jobq "mode" (LIFO/FIFO) to web UI.
+
 ## 2.3.2
 
  * Change heartbeats in eventer to be per-callback instead of per-cycle.
