@@ -327,7 +327,8 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
       $tr.append($("<td/>").html($badge(detail.backlog+detail.inflight)));
     }
     used += detail.backlog+detail.inflight+detail.total_jobs+detail.concurrency;
-    $tr.append($("<td/>").html(jobq));
+    $tr.append($("<td/>").append($badge(detail.mode, "info")));
+    $tr.append($("<td/>").text(jobq));
     var $conc = $("<td class=\"text-center\"/>");
     if(detail.desired_concurrency == 0) {
       $tr.attr("class", "backq");
