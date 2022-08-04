@@ -7,6 +7,7 @@
  * Add jobq "mode" (LIFO/FIFO) to web UI.
  * Track rest requests as a counter by endpoint.
  * Support OPTIONS requests in rest.
+ * Fix regression in http forensic logging where an extra 0 latency was tracked on each HTTP request.
 
 ## 2.3.2
 

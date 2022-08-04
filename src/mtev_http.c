@@ -597,7 +597,7 @@ skipzero:
   }
 
   stats_handle_t *handle = mtev_http_session_latency(ctx);
-  if(handle)
+  if(handle && state == MTEV_HTTP_LOG_RESPONSE)
     stats_set_hist_intscale(handle, diff.tv_sec * 1000000UL + diff.tv_usec, -6, 1);
   if(http_request_log_hook_invoke(ctx) != MTEV_HOOK_CONTINUE) return;
 
