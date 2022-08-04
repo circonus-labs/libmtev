@@ -5,6 +5,8 @@
 ## 2.3
 
  * Add jobq "mode" (LIFO/FIFO) to web UI.
+ * Track rest requests as a counter by endpoint.
+ * Support OPTIONS requests in rest.
 
 ## 2.3.2
 
