@@ -92,10 +92,19 @@ struct rest_url_dispatcher {
   /* Chain to the next one */
   struct rest_url_dispatcher *next;
   stats_handle_t *latency;
+  stats_handle_t *count;
   mtev_boolean aco_enabled;
 };
 
-static stats_ns_t *rest_stats;
+
+static stats_ns_t *rest_stats(void) {
+  static stats_ns_t *_rest_stats;
+  if(_rest_stats == NULL) {
+    _rest_stats = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "rest");
+    stats_ns_add_tag(_rest_stats, "mtev", "rest");
+  }
+  return _rest_stats;
+}
 
 static mtev_log_stream_t r_error;
 static mtev_log_stream_t r_debug;
@@ -226,6 +235,18 @@ mtev_http_rest_error(mtev_http_rest_closure_t *restc,
   mtev_http_response_end(ctx);
   return 0;
 }
+static int
+mtev_http_rest_options_response(mtev_http_rest_closure_t *restc,
+                                int npats, char **pats) {
+  (void)npats;
+  (void)pats;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  mtev_http_response_standard(ctx, 200, "OK", "text/html");
+  mtev_http_response_header_set(ctx, "Allow", restc->closure);
+  mtev_http_response_end(ctx);
+  free(restc->closure);
+  return 0;
+}
 int
 mtev_console_show_rest(mtev_console_closure_t ncct, int argc, char **argv,
                        mtev_console_state_t *dstate, void *unused) {
@@ -286,7 +307,7 @@ mtev_http_rest_endpoints(mtev_http_rest_closure_t *restc,
 }
 
 static struct rest_url_dispatcher *
-mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
+mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc, char **allowed_methods)
 {
   struct rule_container *cont = NULL;
   struct rest_url_dispatcher *rule;
@@ -321,6 +342,22 @@ mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
 
   (void)mtev_hash_retr_str(headers, "sec-websocket-protocol", strlen("sec-websocket-protocol"), &protocol);
 
+  if(0 == strcmp("OPTIONS", mtev_http_request_method_str(req))) {
+    for(rule = cont->rules; allowed_methods && rule; rule = rule->next) {
+      int ovector[30];
+      if(pcre_exec(rule->expression, rule->extra, eob, eoq - eob, 0, 0,
+                   ovector, sizeof(ovector)/sizeof(*ovector)) > 0) {
+        char *prev_am = *allowed_methods;
+        if(asprintf(allowed_methods, "%s, %s", prev_am ? prev_am : "OPTIONS", rule->method) < 0) {
+          *allowed_methods = NULL;
+          free(prev_am);
+          return NULL;
+        }
+        free(prev_am);
+      }
+    }
+    return NULL;
+  }
   for(rule = cont->rules; rule; rule = rule->next) {
     int ovector[30];
     int cnt;
@@ -353,13 +390,14 @@ mtev_http_find_matching_route_rule(mtev_http_rest_closure_t *restc)
 static rest_websocket_message_handler
 mtev_http_get_websocket_handler(mtev_http_rest_closure_t *restc) 
 {
-  struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
+  struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc, NULL);
   if (rule != NULL) {
       /* We match, set 'er up */
     mtev_zipkin_span_rename(mtev_http_zipkip_span(restc->http_ctx),
                             rule->nice_name ? rule->nice_name : rule->expression_s,
                             false);
     mtev_http_session_track_latency(restc->http_ctx, rule->latency);
+    stats_add64(rule->count, 1);
     restc->websocket_handler_memo = rule->websocket_handler;
     restc->closure = rule->closure;
     if(rule->auth && !rule->auth(restc, restc->nparams, restc->params)) {
@@ -377,7 +415,14 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
   /* This function is short-circuited by setting fastpath, which it does */
   if(restc->fastpath) return restc->fastpath;
 
-  struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc);
+  char *allowed_methods = NULL;
+  struct rest_url_dispatcher *rule = mtev_http_find_matching_route_rule(restc, &allowed_methods);
+  if (rule == NULL && allowed_methods) {
+    restc->closure = allowed_methods;
+    restc->fastpath = mtev_http_rest_options_response;
+    return restc->fastpath;
+  }
+  free(allowed_methods);
   switch(mtev_rest_get_handler_hook_invoke(restc)) {
     case MTEV_HOOK_ABORT: return NULL;
     case MTEV_HOOK_DONE:  return restc->fastpath;
@@ -402,6 +447,7 @@ mtev_http_get_handler(mtev_http_rest_closure_t *restc, mtev_boolean *migrate) {
                             rule->nice_name ? rule->nice_name : rule->expression_s,
                             false);
     mtev_http_session_track_latency(restc->http_ctx, rule->latency);
+    stats_add64(rule->count, 1);
     restc->fastpath = rule->handler;
     restc->closure = rule->closure;
     restc->aco_enabled = rule->aco_enabled;
@@ -668,10 +714,12 @@ mtev_http_rest_new_rule_auth_closure(const char *method, const char *base,
   rule->websocket_protocol = websocket_protocol != NULL ? strdup(websocket_protocol) : NULL;
   rule->closure = closure;
   rule->auth = auth;
-  stats_ns_t *ns = mtev_stats_ns(rest_stats, rule->nice_name);
+  stats_ns_t *ns = mtev_stats_ns(rest_stats(), rule->nice_name);
   stats_ns_add_tag(ns, "endpoint", rule->nice_name);
   rule->latency = stats_register(ns, "latency", STATS_TYPE_HISTOGRAM);
   stats_handle_units(rule->latency, STATS_UNITS_SECONDS);
+  rule->count = stats_register(ns, "requests", STATS_TYPE_COUNTER);
+  stats_handle_units(rule->count, STATS_UNITS_REQUESTS);
 
   /* Make sure we have a container */
   if(!mtev_hash_retrieve(&dispatch_points, base, strlen(base), &vcont)) {
@@ -1554,8 +1602,6 @@ void mtev_http_rest_init(void) {
   r_error = mtev_log_stream_find("error/rest");
   r_debug = mtev_log_stream_find("debug/rest");
 
-  rest_stats = mtev_stats_ns(mtev_stats_ns(NULL, "mtev"), "rest");
-  stats_ns_add_tag(rest_stats, "mtev", "rest");
   eventer_name_callback("mtev_wire_rest_api/1.0", mtev_http_rest_handler);
   eventer_name_callback("http_rest_api", mtev_http_rest_raw_handler);
 
