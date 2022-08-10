@@ -549,7 +549,7 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
   attempt_write_len = b->size - ctx->res.output_raw_offset;
   if(ctx->max_write >= 0) attempt_write_len = MIN(attempt_write_len, ctx->max_write);
 
-  if(ctx->can_still_write == 0) {
+  if(eventer_in_loop() && ctx->can_still_write == 0) {
     mtevL(http_debug, "[fd=%d] http hit write limit\n", CTXFD(ctx));
     *mask |= EVENTER_EXCEPTION;
     pthread_mutex_unlock(&ctx->write_lock);

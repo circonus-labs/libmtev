@@ -781,7 +781,7 @@ static ssize_t send_callback(nghttp2_session *session, const uint8_t *data,
   (void)flags;
   mtevL(h2_debug, "http2 write(%p) %zu bytes\n", sess, length);
 
-  if(!sess->can_still_write) {
+  if(eventer_in_loop() && !sess->can_still_write) {
     mtevL(h2_debug, "http2 write(%p) -- hit write limit\n", sess);
     return NGHTTP2_ERR_WOULDBLOCK;
   }
