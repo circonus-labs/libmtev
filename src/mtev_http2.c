@@ -34,6 +34,7 @@
 #include "mtev_http_private.h"
 #include "mtev_str.h"
 #include "mtev_b64.h"
+#include "mtev_stacktrace.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -962,6 +963,7 @@ on_frame_recv_callback(nghttp2_session *session,
     stats_add64(request_counter, 1);
     http_request_complete_hook_invoke((mtev_http_session_ctx *)stream);
     stream->req.complete = mtev_true;
+    mtev_http_log_request((mtev_http_session_ctx *)stream, MTEV_HTTP_LOG_RECEIVE);
     mtevL(h2_debug, "http2 request end (%s) (%p -> %d)\n",
           frame->hd.type == NGHTTP2_DATA ? "data" : "headers",
           stream->parent, frame->hd.stream_id);
@@ -1138,7 +1140,8 @@ mtev_http2_resume_all_unpaused_streams(mtev_http2_parent_session *ctx) {
       ctx->paused = H2_NORMAL;
       mtevL(h2_debug, "http2 session resuming with output data (%p -> %d)\n",
             ctx->parent, ctx->stream_id);
-      nghttp2_session_resume_data(ctx->parent->session, ctx->stream_id);
+      int rv = nghttp2_session_resume_data(ctx->parent->session, ctx->stream_id);
+      mtevL(h2_debug, "http2 session resuming completed -> %d\n", rv);
     }
   }
 }
@@ -1160,7 +1163,7 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
   mask = 0;
   int rv = nghttp2_session_send(ctx->session);
   mtevL(h2_debug, "http2 drive -> %d\n", rv);
-  if(rv != NGHTTP2_ERR_WOULDBLOCK && rv != 0) {
+  if(rv != 0) {
     mtevL(h2_debug, "http2 session_send(%p) %s\n", ctx, nghttp2_strerror(rv));
     goto full_shutdown;
   }
@@ -1195,11 +1198,12 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
   mtev_http2_resume_all_unpaused_streams(ctx);
   rv = nghttp2_session_send(ctx->session);
   mtevL(h2_debug, "http2 drive -> %d\n", rv);
-  if(rv == NGHTTP2_ERR_WOULDBLOCK) {
-    mask |= EVENTER_WRITE;
-  }
-  else if(rv != 0) {
+  if(rv != 0) {
     mtevL(h2_debug, "http2 session_send(%p) %s\n", ctx, nghttp2_strerror(rv));
+    goto full_shutdown;
+  }
+  if(nghttp2_session_want_write(ctx->session)) {
+    mask |= EVENTER_WRITE;
   }
 
   if(nghttp2_session_want_read(ctx->session) == 0 &&

@@ -1247,15 +1247,15 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
       goto bail;
     }
 
-    if(strcasecmp(npn, "none")) {
-      eventer_ssl_alpn_advertise(ctx, npn);
-    }
-
     existing_ctx_cn = ssl_ctx_cache_set(ctx->ssl_ctx_cn);
     if(existing_ctx_cn != ctx->ssl_ctx_cn) {
       ssl_ctx_cache_node_free(ctx->ssl_ctx_cn);
       ctx->ssl_ctx_cn = existing_ctx_cn;
     }
+  }
+
+  if(strcasecmp(npn, "none")) {
+    eventer_ssl_alpn_advertise(ctx, npn);
   }
 
   ctx->ssl = SSL_new(ctx->ssl_ctx);
