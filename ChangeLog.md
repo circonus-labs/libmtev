@@ -4,6 +4,8 @@
 
 ## 2.3
 
+ * The HTTP systems should only write so much data before returning control to the event loop.
+   It now limits to 512k (programmatically changeable).
  * Fix forensic HTTP logging in both HTTP/1 and HTTP/2.
  * Fix ALPN/NPN on new TLS connections from cached contexts.
  * Fix HTTP/2 integration such that sessions correctly resume on EAGAIN.

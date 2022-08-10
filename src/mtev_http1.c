@@ -136,7 +136,8 @@ struct mtev_http1_session_ctx {
 
   uint32_t ref_cnt;
   pthread_mutex_t write_lock;
-  size_t max_write;
+  ssize_t max_write;
+  ssize_t can_still_write;
   mtev_boolean aco_enabled;
   mtev_http1_connection conn;
   mtev_http1_request req;
@@ -239,9 +240,18 @@ request_compression_type(mtev_http1_request *req)
   return MTEV_COMPRESS_NONE;
 }
 
+static void
+mtev_http1_parent_session_allow_write(struct mtev_http1_session_ctx *ctx, ssize_t new_limit) {
+  mtevL(http_debug, "setting write limit: %zd -> %zd\n", ctx->can_still_write, new_limit);
+  ctx->can_still_write = new_limit;
+}
 void
 mtev_http1_session_set_aco(mtev_http1_session_ctx *ctx, mtev_boolean nv) {
   ctx->aco_enabled = nv;
+}
+void
+mtev_http1_session_set_max_write(mtev_http1_session_ctx *ctx, ssize_t nv) {
+  ctx->max_write = nv;
 }
 mtev_boolean
 mtev_http1_session_aco(mtev_http1_session_ctx *ctx) {
@@ -537,11 +547,19 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
   }
 
   attempt_write_len = b->size - ctx->res.output_raw_offset;
-  attempt_write_len = MIN(attempt_write_len, ctx->max_write);
+  if(ctx->max_write >= 0) attempt_write_len = MIN(attempt_write_len, ctx->max_write);
+
+  if(ctx->can_still_write == 0) {
+    mtevL(http_debug, "[fd=%d] http hit write limit\n", CTXFD(ctx));
+    *mask |= EVENTER_EXCEPTION;
+    pthread_mutex_unlock(&ctx->write_lock);
+    return tlen;
+  }
 
   len = eventer_write(ctx->conn.e,
                       b->buff + b->start + ctx->res.output_raw_offset,
                       attempt_write_len, mask);
+  mtevL(http_debug, "[fd=%d] writing %zu -> %d%s\n", CTXFD(ctx), attempt_write_len, len, len >= 0 ? "" : strerror(errno));
   if(len == -1 && errno == EAGAIN) {
     *mask |= EVENTER_EXCEPTION;
     pthread_mutex_unlock(&ctx->write_lock);
@@ -557,6 +575,11 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
     pthread_mutex_unlock(&ctx->write_lock);
     return -1;
   }
+  if(ctx->can_still_write > 0) {
+    ctx->can_still_write -= len;
+    if(ctx->can_still_write < 0) ctx->can_still_write = 0;
+  }
+  mtevL(http_debug, "[fd=%d] wrote %d, can still write %zd\n", CTXFD(ctx), len, ctx->can_still_write);
   mtev_acceptor_closure_mark_write(ctx->ac, NULL);
   mtevL(http_io, " http_write(%d) => %d [\n%.*s\n]\n", eventer_get_fd(ctx->conn.e),
         len, len, b->buff + b->start + ctx->res.output_raw_offset);
@@ -899,7 +922,9 @@ mtev_http1_complete_request(mtev_http1_session_ctx *ctx, int mask, struct timeva
       expect = "HTTP/1.1 100 Continue\r\n\r\n";
       ctx->res.leader = bchain_from_data(expect, strlen(expect));
       ctx->res.output_raw_chain_bytes += ctx->res.leader->size;
+      mtev_http1_parent_session_allow_write(ctx, -1);
       _http_perform_write(ctx, &mask);
+      mtev_http1_parent_session_allow_write(ctx, ctx->max_write);
       if(!ctx->req.complete) stats_add64(request_counter, 1);
       ctx->req.complete = mtev_true;
       if(ctx->res.leader != NULL) return mask;
@@ -1640,6 +1665,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
    * noted that in mtev_http1_request_release.
    */
   mtevL(http_debug, "[fd=%d] -> mtev_http1_session_drive() [%x]\n", eventer_get_fd(e), origmask);
+  mtev_http1_parent_session_allow_write(ctx, ctx->max_write);
 
  next_req:
   check_realloc_request(&ctx->req);
@@ -1821,7 +1847,8 @@ mtev_http1_session_ctx_websocket_new(mtev_http_dispatch_func f, mtev_http1_webso
   pthread_mutex_init(&ctx->res.output_lock, &mattr);
   ctx->conn.http_type = MTEV_HTTP_1;
   ctx->conn.e = e;
-  ctx->max_write = DEFAULT_MAXWRITE;
+  ctx->max_write = LIBMTEV_HTTP_DEFAULT_MAXWRITE;
+  ctx->can_still_write = -1;
   ctx->dispatcher = f;
   ctx->dispatcher_closure = c;
   ctx->websocket_dispatcher = wf;
