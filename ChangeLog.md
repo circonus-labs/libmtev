@@ -4,6 +4,8 @@
 
 ## 2.3
 
+ * Fix ALPN/NPN on new TLS connections from cached contexts.
+ * Fix HTTP/2 integration such that sessions correctly resume on EAGAIN.
  * Add jobq "mode" (LIFO/FIFO) to web UI.
  * Track rest requests as a counter by endpoint.
  * Support OPTIONS requests in rest.
