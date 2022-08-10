@@ -963,6 +963,7 @@ on_frame_recv_callback(nghttp2_session *session,
     stats_add64(request_counter, 1);
     http_request_complete_hook_invoke((mtev_http_session_ctx *)stream);
     stream->req.complete = mtev_true;
+    mtev_http_log_request((mtev_http_session_ctx *)stream, MTEV_HTTP_LOG_RECEIVE);
     mtevL(h2_debug, "http2 request end (%s) (%p -> %d)\n",
           frame->hd.type == NGHTTP2_DATA ? "data" : "headers",
           stream->parent, frame->hd.stream_id);

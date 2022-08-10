@@ -1641,8 +1641,6 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
    */
   mtevL(http_debug, "[fd=%d] -> mtev_http1_session_drive() [%x]\n", eventer_get_fd(e), origmask);
 
-  mtev_http1_log_request(ctx, MTEV_HTTP_LOG_RECEIVE);
- 
  next_req:
   check_realloc_request(&ctx->req);
   check_realloc_response(&ctx->res);
@@ -1688,6 +1686,7 @@ mtev_http1_session_drive(eventer_t e, int origmask, void *closure,
     ctx->res.protocol = ctx->req.protocol;
     http_request_complete_hook_invoke((mtev_http_session_ctx *)ctx);
     LIBMTEV_HTTP_REQUEST_FINISH(CTXFD(ctx), (mtev_http_session_ctx *)ctx);
+    mtev_http1_log_request(ctx, MTEV_HTTP_LOG_RECEIVE);
 
     if(http_post_request_hook_invoke(ctx) == MTEV_HOOK_ABORT) {
       mtevL(http_debug, "[fd=%d] hook aborted http session.\n", CTXFD(ctx));
