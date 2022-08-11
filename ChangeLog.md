@@ -4,6 +4,8 @@
 
 ## 2.3
 
+### 2.3.3
+
  * Fix forensic HTTP logging in both HTTP/1 and HTTP/2.
  * Fix ALPN/NPN on new TLS connections from cached contexts.
  * Fix HTTP/2 integration such that sessions correctly resume on EAGAIN.
@@ -12,15 +14,15 @@
  * Support OPTIONS requests in rest.
  * Fix regression in http forensic logging where an extra 0 latency was tracked on each HTTP request.
 
-## 2.3.2
+### 2.3.2
 
  * Change heartbeats in eventer to be per-callback instead of per-cycle.
 
-## 2.3.1
+### 2.3.1
 
  * Add REST API http/access/forensic receive logging to preexisting logging on completion.
 
-## 2.3.0
+### 2.3.0
 
  * Report LIFO/FIFO mode for jobqs via console.
  * Allow changing of jobq mode online via console.
