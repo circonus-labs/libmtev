@@ -4,6 +4,8 @@
 
 ## 2.3
 
+ * Add `mtev_lfu_release_f` for releasing a cached item from a potentially destroyed cache.
+
 ### 2.3.3
 
  * Fix forensic HTTP logging in both HTTP/1 and HTTP/2.

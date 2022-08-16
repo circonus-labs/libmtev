@@ -381,7 +381,7 @@ mtev_lfu_get(mtev_lfu_t *c, const char *key, size_t key_len, void **value)
 }
 
 void
-mtev_lfu_release(mtev_lfu_t *c, mtev_lfu_entry_token token)
+mtev_lfu_release_f(void (*free_fn)(void *), mtev_lfu_entry_token token)
 {
   bool zero = false;
   if (token == NULL) {
@@ -392,9 +392,15 @@ mtev_lfu_release(mtev_lfu_t *c, mtev_lfu_entry_token token)
   ck_pr_dec_64_zero(&r->ref_cnt, &zero);
   if (zero) {
     /* free it */
-    c->free_fn(r->entry);
+    free_fn(r->entry);
     free(r);
   }
+}
+
+void
+mtev_lfu_release(mtev_lfu_t *c, mtev_lfu_entry_token token)
+{
+  return mtev_lfu_release_f(c->free_fn, token);
 }
 
 
