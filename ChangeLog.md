@@ -4,6 +4,8 @@
 
 ## 2.3
 
+### 2.3.4
+
  * Add `mtev_lfu_release_f` for releasing a cached item from a potentially destroyed cache.
 
 ### 2.3.3
