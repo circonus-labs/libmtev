@@ -132,9 +132,10 @@ mtev_dyn_buffer_destroy_detach_data(mtev_dyn_buffer_t *buf)
   if (data == buf->static_buffer) {
     data = (uint8_t *)malloc(length + 1);
     memcpy(data, buf->static_buffer, length);
-    *(data + length) = 0;
   }
+  else if (length == buf->size) { length--; }
   mtev_dyn_buffer_init(buf);
+  *(data + length) = 0;
   return data;
 }
 
