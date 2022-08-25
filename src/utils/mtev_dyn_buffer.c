@@ -128,7 +128,7 @@ inline uint8_t *
 mtev_dyn_buffer_destroy_detach_data(mtev_dyn_buffer_t *buf)
 {
   uint8_t *data = buf->data;
-  ssize_t length = buf->pos - data;
+  size_t length = buf->pos - data;
   if (data == buf->static_buffer || length == buf->size) {
     data = (uint8_t *)malloc(length + 1);
     memcpy(data, buf->data, length);
