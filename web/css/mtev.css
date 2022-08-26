@@ -2769,3 +2769,10 @@ div.tooltip {
   shape-rendering: crispEdges;
 }
 
+.badge-lifo {
+  background-color: #ed6521;
+}
+.badge-fifo {
+  background-color: #7c5fb2;
+}
+
