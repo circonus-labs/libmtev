@@ -173,10 +173,21 @@ API_EXPORT(void)
     \param buf the buffer to destroy
   
    This must be called at the end of dyn_buffer interactions in case the
-   buffer has overflowed into dynamic allocation space.
+   buffer has overflowed into dynamic allocation space.  The dyn_buffer
+   is reset (initialized).
  */
 API_EXPORT(void)
   mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf);
+
+/*! \fn void mtev_dyn_buffer_destroy_return_data(mtev_dyn_buffer_t *buf)
+    \brief return the front of the dyn_buffer as a freeable pointer
+    \brief caller takes ownership of the buffer, data is invalidated
+    \param buf the buffer to get the pointer from and invalidate
+    \return the pointer to the front (beginning) of the detached data
+    \return with an added null terminator (user must free the pointer)
+ */
+API_EXPORT(uint8_t *)
+  mtev_dyn_buffer_destroy_detach_data(mtev_dyn_buffer_t *buf);
 
 /*! \fn size_t mtev_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
  *  \brief Pass this to CURLOPT_WRITEFUNCTION and use an mtev_decompress_curl_helper_t as the CURLOPT_WRITEDATA

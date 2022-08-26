@@ -843,7 +843,7 @@ mtev_dyn_buffer_data(mtev_dyn_buffer_t *buf)
 
 #### mtev_dyn_buffer_destroy
 
->destroy the dyn_buffer
+>destroy the dyn_buffer data and reinitialize it
 
 ```c
 void
@@ -854,9 +854,27 @@ mtev_dyn_buffer_destroy(mtev_dyn_buffer_t *buf)
   * `buf` the buffer to destroy
 
    This must be called at the end of dyn_buffer interactions in case the
-   buffer has overflowed into dynamic allocation space.
+   buffer has overflowed into dynamic allocation space.  Any dynamic
+   allocation space will be freed and the dyn_buffer will also be
+   reinitialized.
  
+#### mtev_dyn_buffer_destroy_detach_data
 
+>destroy the dyn_buffer but return the null-terminated data
+>the dyn_buffer will be reinitialized
+
+```c
+uint8_t *
+mtev_dyn_buffer_destroy_detach_data(mtev_dyn_buffer_t *buf)
+```
+
+
+  * `buf` the buffer to destroy and return data from
+
+   This or mtev_dyn_buffer_destroy must be called at the
+   end of dyn_buffer interactions.  This version detaches
+   and returns the data for the caller to use and free.
+ 
 #### mtev_dyn_buffer_ensure
 
 >possibly grow the dyn_buffer so it can fit len bytes

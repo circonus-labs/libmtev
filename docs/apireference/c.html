@@ -1312,7 +1312,7 @@ data NUL terminated.</p>
 </ul>
 <h4 id="mtevdynbufferdestroy">mtev_dyn_buffer_destroy</h4>
 <blockquote>
-<p>destroy the dyn_buffer</p>
+<p>destroy the dyn_buffer data and reinitialize it</p>
 </blockquote>
 <pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
 <span class="hljs-title">mtev_dyn_buffer_destroy</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
@@ -1320,7 +1320,24 @@ data NUL terminated.</p>
 <ul>
 <li><p><code>buf</code> the buffer to destroy</p>
 <p>This must be called at the end of dyn_buffer interactions in case the
-buffer has overflowed into dynamic allocation space.</p>
+buffer has overflowed into dynamic allocation space.  Any dynamic
+allocation space will be freed and the dyn_buffer will also be
+reinitialized.</p>
+</li>
+</ul>
+<h4 id="mtevdynbufferdestroydetachdata">mtev_dyn_buffer_destroy_detach_data</h4>
+<blockquote>
+<p>destroy the dyn_buffer but return the null-terminated data</p>
+<p>the dyn_buffer will be reinitialized</p>
+</blockquote>
+<pre><code class="lang-c"><span class="hljs-function"><span class="hljs-keyword">void</span>
+<span class="hljs-title">mtev_dyn_buffer_destroy_detach_data</span><span class="hljs-params">(mtev_dyn_buffer_t *buf)</span>
+</span></code></pre>
+<ul>
+<li><p><code>buf</code> the buffer to destroy and return data from</p>
+<p>This or mtev_dyn_buffer_destroy must be called at the end of
+dyn_buffer interactions.  This version detaches and returns the data
+for the caller to use and free.</p>
 </li>
 </ul>
 <h4 id="mtevdynbufferensure">mtev_dyn_buffer_ensure</h4>
