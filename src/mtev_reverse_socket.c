@@ -160,7 +160,7 @@ typedef struct {
     uint64_t out_bytes;
     uint64_t out_frames;
     int pair[2]; /* pair[0] is under our control... */
-                 /* pair[1] might be the other size of a socketpair */
+                 /* pair[1] might be the other side of a socketpair */
     reverse_frame_t *incoming;
     reverse_frame_t *incoming_tail;
   } channels[MAX_CHANNELS];
@@ -399,15 +399,17 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t
     eventer_trigger(ce, EVENTER_EXCEPTION);
   }
 
-  rc->data.channels[i].in_bytes = rc->data.channels[i].out_bytes =
-    rc->data.channels[i].in_frames = rc->data.channels[i].out_frames = 0;
-
   pthread_mutex_lock(&rc->lock);
+  rc->data.channels[i].in_bytes = rc->data.channels[i].out_bytes =
+      rc->data.channels[i].in_frames = rc->data.channels[i].out_frames = 0;
+
   while(rc->data.channels[i].incoming) {
     reverse_frame_t *f = rc->data.channels[i].incoming;
     rc->data.channels[i].incoming = rc->data.channels[i].incoming->next;
     reverse_frame_free(f);
   }
+
+  rc->data.channels[i].incoming = NULL;
   rc->data.channels[i].incoming_tail = NULL;
   pthread_mutex_unlock(&rc->lock);
   return mtev_reverse_socket_deref(rc);
@@ -445,8 +447,8 @@ mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
   }
   pthread_mutex_unlock(&rc->lock);
   for(i=0;i<MAX_CHANNELS;i++) {
-    bool freed = mtev_reverse_socket_channel_shutdown(rc, i, NULL);
-    assert(!freed);
+    const bool freed = mtev_reverse_socket_channel_shutdown(rc, i, NULL);
+    mtevAssert(!freed);
   }
   pthread_mutex_lock(&rc->lock);
   memset(&rc->data, 0, sizeof(reverse_socket_data_t));
@@ -502,8 +504,8 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     eventer_remove_fde(e);
     eventer_close(e, &write_mask);
     CHANNEL.pair[0] = CHANNEL.pair[1] = -1;
-    bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
-    assert(!freed);
+    const bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
+    mtevAssert(!freed);
     mtev_reverse_socket_deref(cct->parent);
     free(cct);
     return 0;
@@ -655,7 +657,7 @@ socket_error:
       needs_unlock = false;
     }
     mtev_reverse_socket_shutdown(rc, e);
-    return 0;    
+    return 0;
   }
 
  next_frame:
