@@ -27,14 +27,14 @@ docs-html:	gitbook-setup
 docs-pdf:	gitbook-setup
 	PATH=$(shell dirname $(EBOOKCONVERT)):$(shell echo $$PATH) $(GITBOOK) pdf . docs/libmtev-manual.pdf
 
-COMPRESS_JS=cat
-COMPRESS_CSS=cat
+COMPRESS_JS=uglifyjs
+COMPRESS_CSS=uglifycss
 WEBJS=jquery.min.js tether.min.js bootstrap.min.js d3.v4.min.js d3-scale.v1.min.js \
 	bootstrap-toggle.min.js colorbrewer.js circllhist.js circhistd3.js \
 	mtev.js mtev.http_observer.js
 FWEBJS=$(WEBJS:%.js=web/js/%.js)
 WEBCSS=b-glyphicons.css colorbrewer.css bootstrap-theme.min.css bootstrap.min.css \
-	tether.min.css bootstrap-toggle.min.css theme-base.css
+	tether.min.css bootstrap-toggle.min.css theme-base.css mtev.css
 FWEBCSS=$(WEBCSS:%.css=web/css/%.css)
 
 web/js/mtev.min.js:	$(FWEBJS)

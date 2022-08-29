@@ -6,6 +6,10 @@
 
 ### 2.3.4
 
+ * LIFO and FIFO Job Queue modes are now color coded.
+
+### 2.3.4
+
  * Add `mtev_lfu_release_f` for releasing a cached item from a potentially destroyed cache.
 
 ### 2.3.3
