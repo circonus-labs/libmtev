@@ -455,7 +455,7 @@ API_EXPORT(int) eventer_aco_close(eventer_aco_t e);
     \brief Allocate an event to be injected into the eventer system.
     \return A newly allocated event.
 
-    The allocated event has a refernce count of 1 and is attached to the
+    The allocated event has a reference count of 1 and is attached to the
     calling thread.
 */
 API_EXPORT(eventer_t) eventer_alloc(void);
@@ -465,7 +465,7 @@ API_EXPORT(eventer_t) eventer_alloc(void);
     \param src a source eventer_t to copy.
     \return A newly allocated event that is a copy of src.
 
-    The allocated event has a refernce count of 1.
+    The allocated event has a reference count of 1.
 */
 API_EXPORT(eventer_t) eventer_alloc_copy(eventer_t src);
 
@@ -476,7 +476,7 @@ API_EXPORT(eventer_t) eventer_alloc_copy(eventer_t src);
     \param whence The time at which the event should fire.
     \return A newly allocated timer event.
 
-    The allocated event has a refernce count of 1 and is attached to the
+    The allocated event has a reference count of 1 and is attached to the
     calling thread.
 */
 API_EXPORT(eventer_t) eventer_alloc_timer(eventer_func_t, void *, struct timeval *);
@@ -487,7 +487,7 @@ API_EXPORT(eventer_t) eventer_alloc_timer(eventer_func_t, void *, struct timeval
     \param closure The closure for the callback function.
     \return A newly allocated recurrent event.
 
-    The allocated event has a refernce count of 1 and is attached to the
+    The allocated event has a reference count of 1 and is attached to the
     calling thread.
 */
 API_EXPORT(eventer_t) eventer_alloc_recurrent(eventer_func_t, void *);
@@ -500,7 +500,7 @@ API_EXPORT(eventer_t) eventer_alloc_recurrent(eventer_func_t, void *);
     \param mask The mask of activity of interest.
     \return A newly allocated fd event.
 
-    The allocated event has a refernce count of 1 and is attached to the
+    The allocated event has a reference count of 1 and is attached to the
     calling thread.
 */
 API_EXPORT(eventer_t) eventer_alloc_fd(eventer_func_t, void *, int, int);
@@ -511,7 +511,7 @@ API_EXPORT(eventer_t) eventer_alloc_fd(eventer_func_t, void *, int, int);
     \param closure The closure for the callback function.
     \return A newly allocated asynch event.
 
-    The allocated event has a refernce count of 1 and is attached to the
+    The allocated event has a reference count of 1 and is attached to the
     calling thread.
 */
 API_EXPORT(eventer_t) eventer_alloc_asynch(eventer_func_t, void *);
@@ -523,7 +523,7 @@ API_EXPORT(eventer_t) eventer_alloc_asynch(eventer_func_t, void *);
     \param deadline an absolute time by which the task must be completed.
     \return A newly allocated asynch event.
 
-    The allocated event has a refernce count of 1 and is attached to the
+    The allocated event has a reference count of 1 and is attached to the
     calling thread.  Depending on the timeout method, there are not hard
     guarantees on enforcing the deadline; this is more of a guideline for
     the schedule and the job could be aborted (where the `EVENTER_ASYNCH_WORK`
