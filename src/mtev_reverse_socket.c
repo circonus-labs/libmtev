@@ -501,12 +501,16 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       pthread_mutex_unlock(&cct->parent->lock);
       needs_unlock = 0;
     }
-    eventer_remove_fde(e);
-    eventer_close(e, &write_mask);
-    CHANNEL.pair[0] = CHANNEL.pair[1] = -1;
-    const bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
-    mtevAssert(!freed);
-    mtev_reverse_socket_deref(cct->parent);
+
+    if (eventer_remove_fde(e)) {
+      mtevAssert(ck_pr_load_32(&cct->parent->refcnt) > 0);
+      eventer_close(e, &write_mask);
+      CHANNEL.pair[0] = CHANNEL.pair[1] = -1;
+      const bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
+      mtevAssert(!freed);
+      mtev_reverse_socket_deref(cct->parent);
+    }
+
     free(cct);
     return 0;
   }
@@ -1001,9 +1005,7 @@ mtev_reverse_socket_acceptor(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    mtev_reverse_socket_ref(rc);
     mtev_reverse_socket_shutdown(rc, e);
-    mtev_reverse_socket_deref(rc);
     mtev_acceptor_closure_free(ac);
     eventer_remove_fde(e);
     eventer_close(e, &mask);
