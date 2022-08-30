@@ -4,8 +4,6 @@
 
 ## 2.3
 
-### 2.3.4
-
  * LIFO and FIFO Job Queue modes are now color coded.
 
 ### 2.3.4
