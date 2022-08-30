@@ -468,7 +468,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   int write_success = 1, read_success = 1;
   int needs_unlock = 0;
   int write_mask = EVENTER_EXCEPTION, read_mask = EVENTER_EXCEPTION;
-  channel_t * const channel = &cct->parent->data.channels[cct->channel_id];
+  channel_t *const channel = &cct->parent->data.channels[cct->channel_id];
 
   mtevL(nldeb, "mtev_reverse_socket_channel_handler(%s, %d)\n", cct->parent->id, cct->channel_id);
   if(cct->parent->data.nctx && cct->parent->data.nctx->wants_permanent_shutdown) {

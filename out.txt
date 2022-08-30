@@ -1,0 +1,541 @@
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:61:1: warning: Potential leak of memory pointed to by 'nh' [clang-analyzer-unix.Malloc]
+MTEV_HOOK_IMPL(mtev_reverse_proxy_changed,
+^
+/opt/circonus/include/mtev_hooks.h:199:86: note: expanded from macro 'MTEV_HOOK_IMPL'
+  } while(!ck_pr_cas_ptr((void **)&nh_##HOOKNAME##_list, nh_##HOOKNAME##_list, nh)); \
+                                                                                     ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:61:1: note: Memory is allocated
+MTEV_HOOK_IMPL(mtev_reverse_proxy_changed,
+^
+/opt/circonus/include/mtev_hooks.h:192:47: note: expanded from macro 'MTEV_HOOK_IMPL'
+  nh = (struct mtev_hook_##HOOKNAME##_list *) calloc(1, sizeof(*nh));   \
+                                              ^~~~~~~~~~~~~~~~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:61:1: note: Assuming 'name' is null
+MTEV_HOOK_IMPL(mtev_reverse_proxy_changed,
+^
+/opt/circonus/include/mtev_hooks.h:193:23: note: expanded from macro 'MTEV_HOOK_IMPL'
+  nh->optional_name = name ? strdup(name) : (const char *) NULL; \
+                      ^~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:61:1: note: '?' condition is false
+MTEV_HOOK_IMPL(mtev_reverse_proxy_changed,
+^
+/opt/circonus/include/mtev_hooks.h:193:23: note: expanded from macro 'MTEV_HOOK_IMPL'
+  nh->optional_name = name ? strdup(name) : (const char *) NULL; \
+                      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:61:1: note: Loop condition is false.  Exiting loop
+MTEV_HOOK_IMPL(mtev_reverse_proxy_changed,
+^
+/opt/circonus/include/mtev_hooks.h:197:3: note: expanded from macro 'MTEV_HOOK_IMPL'
+  do { \
+  ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:61:1: note: Potential leak of memory pointed to by 'nh'
+MTEV_HOOK_IMPL(mtev_reverse_proxy_changed,
+^
+/opt/circonus/include/mtev_hooks.h:199:86: note: expanded from macro 'MTEV_HOOK_IMPL'
+  } while(!ck_pr_cas_ptr((void **)&nh_##HOOKNAME##_list, nh_##HOOKNAME##_list, nh)); \
+                                                                                     ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:279:3: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  memcpy(frame, frame_to_copy, sizeof(*frame));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:279:3: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+  memcpy(frame, frame_to_copy, sizeof(*frame));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:295:3: warning: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  memset(frame_to_copy, 0, sizeof(*frame_to_copy));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:295:3: note: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11
+  memset(frame_to_copy, 0, sizeof(*frame_to_copy));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:316:3: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  memcpy(frame, frame_to_copy, sizeof(*frame));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:316:3: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+  memcpy(frame, frame_to_copy, sizeof(*frame));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:347:3: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  memcpy(frame, frame_to_copy, sizeof(*frame));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:347:3: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+  memcpy(frame, frame_to_copy, sizeof(*frame));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:375:3: warning: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  memset(&frame, 0, sizeof(frame));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:375:3: note: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11
+  memset(&frame, 0, sizeof(frame));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:454:3: warning: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  memset(&rc->data, 0, sizeof(reverse_socket_data_t));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:454:3: note: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11
+  memset(&rc->data, 0, sizeof(reverse_socket_data_t));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:502:7: warning: Value stored to 'needs_unlock' is never read [clang-analyzer-deadcode.DeadStores]
+      needs_unlock = 0;
+      ^              ~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:502:7: note: Value stored to 'needs_unlock' is never read
+      needs_unlock = 0;
+      ^              ~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:589:7: warning: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      memset(&frame, 0, sizeof(frame));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:589:7: note: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11
+      memset(&frame, 0, sizeof(frame));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:592:7: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      memcpy(frame.buff, buff, len);
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:592:7: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+      memcpy(frame.buff, buff, len);
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:660:7: warning: Value stored to 'needs_unlock' is never read [clang-analyzer-deadcode.DeadStores]
+      needs_unlock = false;
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:660:7: note: Value stored to 'needs_unlock' is never read
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:685:5: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    memcpy(&nchannel_id, rc->data.frame_hdr, sizeof(nchannel_id));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:685:5: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+    memcpy(&nchannel_id, rc->data.frame_hdr, sizeof(nchannel_id));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:686:5: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    memcpy(&nframelen, rc->data.frame_hdr + sizeof(nchannel_id), sizeof(nframelen));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:686:5: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+    memcpy(&nframelen, rc->data.frame_hdr + sizeof(nchannel_id), sizeof(nframelen));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:765:9: warning: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
+        ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:765:9: note: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11
+        memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
+        ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:783:5: warning: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:783:5: note: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11
+    memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:800:7: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      memcpy(rc->data.frame_hdr_out, &nchannel_id, sizeof(nchannel_id));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:800:7: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+      memcpy(rc->data.frame_hdr_out, &nchannel_id, sizeof(nchannel_id));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:801:7: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      memcpy(rc->data.frame_hdr_out + sizeof(nchannel_id), &nframelen, sizeof(nframelen));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:801:7: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+      memcpy(rc->data.frame_hdr_out + sizeof(nchannel_id), &nframelen, sizeof(nframelen));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:911:5: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    memcpy(&in6->sin6_addr, &in6addr_any, sizeof(in6addr_any));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:911:5: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+    memcpy(&in6->sin6_addr, &in6addr_any, sizeof(in6addr_any));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1103:5: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    snprintf(errbuf, sizeof(errbuf), "'%s' id in use", rc->id);
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1103:5: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+    snprintf(errbuf, sizeof(errbuf), "'%s' id in use", rc->id);
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1135:7: warning: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      memset(&f, 0, sizeof(f));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1135:7: note: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11
+      memset(&f, 0, sizeof(f));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1234:3: warning: Potential leak of memory pointed to by 'pctx' [clang-analyzer-unix.Malloc]
+  pthread_mutex_unlock(l);
+  ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2309:3: note: Assuming 'nldeb' is null
+  mtevL(nldeb, "mtev_lua_help_initiate_mtev_connection - initiating to %s\n", address);
+  ^
+/opt/circonus/include/mtev_log.h:833:6: note: expanded from macro 'mtevL'
+  if((ls)) { \
+     ^~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2309:3: note: Taking false branch
+  mtevL(nldeb, "mtev_lua_help_initiate_mtev_connection - initiating to %s\n", address);
+  ^
+/opt/circonus/include/mtev_log.h:833:3: note: expanded from macro 'mtevL'
+  if((ls)) { \
+  ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2309:3: note: Loop condition is false.  Exiting loop
+  mtevL(nldeb, "mtev_lua_help_initiate_mtev_connection - initiating to %s\n", address);
+  ^
+/opt/circonus/include/mtev_log.h:832:28: note: expanded from macro 'mtevL'
+#define mtevL(ls, args...) do { \
+                           ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2310:3: note: Calling 'initiate_mtev_connection'
+  initiate_mtev_connection(&reverses, &reverses_lock,
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1642:6: note: Assuming the condition is true
+  if(host[0] == '/') {
+     ^~~~~~~~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1642:3: note: Taking true branch
+  if(host[0] == '/') {
+  ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1660:6: note: 'handler' is not equal to NULL
+  if(handler == NULL) return NULL;
+     ^~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1660:3: note: Taking false branch
+  if(handler == NULL) return NULL;
+  ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1662:9: note: Calling 'mtev_connection_ctx_alloc'
+  ctx = mtev_connection_ctx_alloc(tracking, tracking_lock);
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1230:10: note: Memory is allocated
+  pctx = malloc(sizeof(*pctx));
+         ^~~~~~~~~~~~~~~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1234:3: note: Potential leak of memory pointed to by 'pctx'
+  pthread_mutex_unlock(l);
+  ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1386:9: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        memcpy(nctx->remote_cn, cn, end - cn);
+        ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1386:9: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+        memcpy(nctx->remote_cn, cn, end - cn);
+        ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1391:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        snprintf(error_buff, sizeof(error_buff), "jlog connect CN mismatch - expected %s, got %s",
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1391:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        snprintf(error_buff, sizeof(error_buff), "jlog connect CN mismatch - expected %s, got %s",
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1443:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        snprintf(remote_str, sizeof(remote_str), "%s:%d",
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1443:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        snprintf(remote_str, sizeof(remote_str), "%s:%d",
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1450:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        snprintf(remote_str, sizeof(remote_str), "[%s]:%d",
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1450:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        snprintf(remote_str, sizeof(remote_str), "[%s]:%d",
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1454:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        snprintf(remote_str, sizeof(remote_str), "%s", nctx->r.remote_un.sun_path);
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1454:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        snprintf(remote_str, sizeof(remote_str), "%s", nctx->r.remote_un.sun_path);
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1457:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        snprintf(remote_str, sizeof(remote_str), "unspecified");
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1457:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        snprintf(remote_str, sizeof(remote_str), "unspecified");
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1460:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        snprintf(remote_str, sizeof(remote_str), "(unknown)");
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1460:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        snprintf(remote_str, sizeof(remote_str), "(unknown)");
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1490:3: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  memcpy(&nctx->last_connect, now, sizeof(*now));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1490:3: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+  memcpy(&nctx->last_connect, now, sizeof(*now));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1558:5: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    snprintf(reverse_path, sizeof(reverse_path), "%s%s", my_reverse_prefix, cn_expected);
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1558:5: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+    snprintf(reverse_path, sizeof(reverse_path), "%s%s", my_reverse_prefix, cn_expected);
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1665:5: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    snprintf(ctx->remote_str, strlen(host) + 7,
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1665:5: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+    snprintf(ctx->remote_str, strlen(host) + 7,
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1671:3: warning: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  memset(&ctx->r, 0, sizeof(ctx->r));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1671:3: note: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11
+  memset(&ctx->r, 0, sizeof(ctx->r));
+  ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1678:5: warning: Call to function 'strncpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'strncpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    strncpy(s->sun_path, host, sizeof(s->sun_path)-1);
+    ^~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1678:5: note: Call to function 'strncpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'strncpy_s' in case of C11
+    strncpy(s->sun_path, host, sizeof(s->sun_path)-1);
+    ^~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1685:5: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    memcpy(&s->sin_addr, &a, sizeof(struct in_addr));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1685:5: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+    memcpy(&s->sin_addr, &a, sizeof(struct in_addr));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1692:5: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    memcpy(&s->sin6_addr, &a, sizeof(a));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1692:5: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+    memcpy(&s->sin6_addr, &a, sizeof(a));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1733:3: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  snprintf(path, sizeof(path), "/%s/%ss//%s", toplevel ? toplevel : "*", type, type);
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1733:3: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+  snprintf(path, sizeof(path), "/%s/%ss//%s", toplevel ? toplevel : "*", type, type);
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1827:5: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    snprintf(channel_name, sizeof(channel_name), "%s%s", my_reverse_prefix, my_cn);
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1827:5: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+    snprintf(channel_name, sizeof(channel_name), "%s%s", my_reverse_prefix, my_cn);
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1844:7: warning: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      memset(&a, 0, sizeof(a));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1844:7: note: Call to function 'memset' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memset_s' in case of C11
+      memset(&a, 0, sizeof(a));
+      ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1852:5: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    memcpy(&rc->data.tgt.ipv4.sin_addr, &a.addr4, sizeof(a.addr4));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1852:5: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+    memcpy(&rc->data.tgt.ipv4.sin_addr, &a.addr4, sizeof(a.addr4));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1858:5: warning: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    memcpy(&rc->data.tgt.ipv6.sin6_addr, &a.addr6, sizeof(a.addr6));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1858:5: note: Call to function 'memcpy' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'memcpy_s' in case of C11
+    memcpy(&rc->data.tgt.ipv6.sin6_addr, &a.addr6, sizeof(a.addr6));
+    ^~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1862:3: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  snprintf(reverse_intro, sizeof(reverse_intro),
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1862:3: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+  snprintf(reverse_intro, sizeof(reverse_intro),
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1885:5: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+    snprintf(client_id, sizeof(client_id), "client/%s", tmpidstr);
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:1885:5: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+    snprintf(client_id, sizeof(client_id), "client/%s", tmpidstr);
+    ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2074:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(node, "proxy_ipv4", "%s:%d", buff, ntohs(rc->data.proxy_ip4.sin_port));
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2061:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2074:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(node, "proxy_ipv4", "%s:%d", buff, ntohs(rc->data.proxy_ip4.sin_port));
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2061:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2078:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(node, "proxy_ipv6", "[%s]:%d", buff, ntohs(rc->data.proxy_ip6.sin6_port));
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2061:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2078:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(node, "proxy_ipv6", "[%s]:%d", buff, ntohs(rc->data.proxy_ip6.sin6_port));
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2061:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2085:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        snprintf(di_str, sizeof(di_str), "%d", di);
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2085:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        snprintf(di_str, sizeof(di_str), "%d", di);
+        ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2159:7: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      ADD_ATTR(node, "fd", "%d", eventer_get_fd(rc->data.e));
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2159:7: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+      ADD_ATTR(node, "fd", "%d", eventer_get_fd(rc->data.e));
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2162:7: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      ADD_ATTR(node, "uptime", "%0.3f", age);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2162:7: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+      ADD_ATTR(node, "uptime", "%0.3f", age);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2163:7: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      ADD_ATTR(node, "in_bytes", "%llu", (unsigned long long)rc->data.in_bytes);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2163:7: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+      ADD_ATTR(node, "in_bytes", "%llu", (unsigned long long)rc->data.in_bytes);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2164:7: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      ADD_ATTR(node, "in_frames", "%llu", (unsigned long long)rc->data.in_frames);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2164:7: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+      ADD_ATTR(node, "in_frames", "%llu", (unsigned long long)rc->data.in_frames);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2165:7: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      ADD_ATTR(node, "out_bytes", "%llu", (unsigned long long)rc->data.out_bytes);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2165:7: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+      ADD_ATTR(node, "out_bytes", "%llu", (unsigned long long)rc->data.out_bytes);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2166:7: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+      ADD_ATTR(node, "out_frames", "%llu", (unsigned long long)rc->data.out_frames);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2166:7: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+      ADD_ATTR(node, "out_frames", "%llu", (unsigned long long)rc->data.out_frames);
+      ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2169:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(node, "proxy_ipv4", "%s:%d", buff, ntohs(rc->data.proxy_ip4.sin_port));
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2169:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(node, "proxy_ipv4", "%s:%d", buff, ntohs(rc->data.proxy_ip4.sin_port));
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2173:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(node, "proxy_ipv6", "[%s]:%d", buff, ntohs(rc->data.proxy_ip6.sin6_port));
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2173:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(node, "proxy_ipv6", "[%s]:%d", buff, ntohs(rc->data.proxy_ip6.sin6_port));
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2180:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(channel, "channel_id", "%d", di);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2180:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(channel, "channel_id", "%d", di);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2181:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(channel, "fd", "%d", rc->data.channels[di].pair[0]);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2181:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(channel, "fd", "%d", rc->data.channels[di].pair[0]);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2184:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(channel, "uptime", "%0.3f", age);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2184:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(channel, "uptime", "%0.3f", age);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2185:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(channel, "in_bytes", "%llu", (unsigned long long)rc->data.channels[di].in_bytes);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2185:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(channel, "in_bytes", "%llu", (unsigned long long)rc->data.channels[di].in_bytes);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2186:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(channel, "in_frames", "%llu", (unsigned long long)rc->data.channels[di].in_frames);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2186:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(channel, "in_frames", "%llu", (unsigned long long)rc->data.channels[di].in_frames);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2187:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(channel, "out_bytes", "%llu", (unsigned long long)rc->data.channels[di].out_bytes);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2187:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(channel, "out_bytes", "%llu", (unsigned long long)rc->data.channels[di].out_bytes);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2188:9: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+        ADD_ATTR(channel, "out_frames", "%llu", (unsigned long long)rc->data.channels[di].out_frames);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2188:9: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+        ADD_ATTR(channel, "out_frames", "%llu", (unsigned long long)rc->data.channels[di].out_frames);
+        ^
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2156:3: note: expanded from macro 'ADD_ATTR'
+  snprintf(scratch, sizeof(scratch), fmt); \
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2266:3: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  snprintf(remote_str, sizeof(remote_str), "%s:%d", address, port);
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2266:3: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+  snprintf(remote_str, sizeof(remote_str), "%s:%d", address, port);
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2288:3: warning: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11 [clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling]
+  snprintf(remote_str, sizeof(remote_str), "%s:%d", address, port);
+  ^~~~~~~~
+/home/pjx/src/circonus-labs/libmtev/src/mtev_reverse_socket.c:2288:3: note: Call to function 'snprintf' is insecure as it does not provide security checks introduced in the C11 standard. Replace with analogous functions that support length arguments or provides boundary checks such as 'snprintf_s' in case of C11
+  snprintf(remote_str, sizeof(remote_str), "%s:%d", address, port);
+  ^~~~~~~~
