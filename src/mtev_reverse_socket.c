@@ -379,15 +379,13 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
 }
 
 static bool
-mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t e) {
-  (void)e;
+mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i) {
   eventer_t ce = NULL;
+
   mtev_reverse_socket_ref(rc);
-  if(rc->data.channels[i].pair[0] >= 0) {
-    mtevL(nldeb, "mtev_reverse_socket_channel_shutdown(%s, %d)\n", rc->id, i);
-  }
   pthread_mutex_lock(&rc->lock);
   if(rc->data.channels[i].pair[0] >= 0) {
+    mtevL(nldeb, "mtev_reverse_socket_channel_shutdown(%s, %d)\n", rc->id, i);
     int fd = rc->data.channels[i].pair[0];
     ce = eventer_find_fd(fd);
     rc->data.channels[i].pair[0] = -1;
@@ -447,7 +445,7 @@ mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
   }
   pthread_mutex_unlock(&rc->lock);
   for(i=0;i<MAX_CHANNELS;i++) {
-    const bool freed = mtev_reverse_socket_channel_shutdown(rc, i, NULL);
+    const bool freed = mtev_reverse_socket_channel_shutdown(rc, i);
     mtevAssert(!freed);
   }
   pthread_mutex_lock(&rc->lock);
@@ -506,7 +504,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       mtevAssert(ck_pr_load_32(&cct->parent->refcnt) > 0);
       eventer_close(e, &write_mask);
       CHANNEL.pair[0] = CHANNEL.pair[1] = -1;
-      const bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
+      const bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id);
       mtevAssert(!freed);
       mtev_reverse_socket_deref(cct->parent);
     }
@@ -595,7 +593,6 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       read_success = 1;
     }
     pthread_mutex_unlock(&cct->parent->lock);
-    needs_unlock = 0;
   }
   return read_mask | write_mask | EVENTER_EXCEPTION;
 }
@@ -1218,7 +1215,7 @@ mtev_reverse_socket_close(mtev_connection_ctx_t *ctx, eventer_t e) {
   ctx->e = NULL;
 }
 
-mtev_connection_ctx_t *
+static mtev_connection_ctx_t *
 mtev_connection_ctx_alloc(mtev_hash_table *t, pthread_mutex_t *l) {
   mtev_connection_ctx_t *ctx, **pctx;
   ctx = calloc(1, sizeof(*ctx));
@@ -1229,9 +1226,9 @@ mtev_connection_ctx_alloc(mtev_hash_table *t, pthread_mutex_t *l) {
   ctx->close = mtev_connection_close;
   pctx = malloc(sizeof(*pctx));
   *pctx = ctx;
-  if(l) pthread_mutex_lock(l);
-  if(t) mtev_hash_store(t, (const char *)pctx, sizeof(*pctx), ctx);
-  if(l) pthread_mutex_unlock(l);
+  pthread_mutex_lock(l);
+  mtev_hash_store(t, (const char *)pctx, sizeof(*pctx), ctx);
+  pthread_mutex_unlock(l);
   return ctx;
 }
 
