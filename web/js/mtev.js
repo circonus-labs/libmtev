@@ -304,6 +304,7 @@ var mtev = { loaded: false, capa: {}, stats: { eventer: { jobq: {}, callbacks: {
     if(n === null) {
       return $("<span class=\"badge badge-pill badge-" + t + "\"/>").html("&#8203;");
     }
+    if (n=="LIFO" || n=="FIFO") t = n.toLowerCase();
     return $("<span class=\"badge badge-pill badge-" + t + "\"/>").text(n);
   }
 

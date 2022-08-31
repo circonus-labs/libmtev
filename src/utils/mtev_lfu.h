@@ -121,6 +121,16 @@ API_EXPORT(void)
   mtev_lfu_release(mtev_lfu_t *lfu, mtev_lfu_entry_token token);
 
 /*!
+  \fn void mtev_lfu_release_f(void (*free_fn)(void *), mtev_lfu_entry_token token)
+  \brief Surrender an item back to the LFU (event if the LFU is potentially freed)
+
+  To be memory safe LFU tokens must be released back to the LFU when
+  the user is finished using them.
+ */
+API_EXPORT(void)
+  mtev_lfu_release_f(void (*free_fn)(void *), mtev_lfu_entry_token token);
+
+/*!
   \fn mtev_lfu_remove(mtev_lfu_t *lfu, const char *key, size_t key_len)
   \brief Remove key from the LFU
 

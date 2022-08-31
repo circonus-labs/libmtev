@@ -105,6 +105,8 @@ mtev_reverse_socket_allowed(const char *id, mtev_acceptor_closure_t *ac) {
 
 static const size_t MAX_FRAME_LEN = 65530;
 static const size_t CMD_BUFF_LEN = 4096;
+static const int32_t AVAILABLE = -1;
+static const int32_t AGING = -2;
 
 static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
@@ -134,6 +136,18 @@ static void reverse_frame_free(void *vrf) {
 }
 
 typedef struct {
+  struct timeval create_time;
+  uint64_t in_bytes;
+  uint64_t in_frames;
+  uint64_t out_bytes;
+  uint64_t out_frames;
+  int pair[2]; /* pair[0] is under our control... */
+               /* pair[1] might be the other side of a socketpair */
+  reverse_frame_t *incoming;
+  reverse_frame_t *incoming_tail;
+} channel_t;
+
+typedef struct {
   int up;
   struct timeval create_time;
   uint64_t in_bytes;
@@ -153,17 +167,7 @@ typedef struct {
   size_t frame_hdr_read;
   reverse_frame_t incoming_inflight;
 
-  struct {
-    struct timeval create_time;
-    uint64_t in_bytes;
-    uint64_t in_frames;
-    uint64_t out_bytes;
-    uint64_t out_frames;
-    int pair[2]; /* pair[0] is under our control... */
-                 /* pair[1] might be the other size of a socketpair */
-    reverse_frame_t *incoming;
-    reverse_frame_t *incoming_tail;
-  } channels[MAX_CHANNELS];
+  channel_t channels[MAX_CHANNELS];
   int last_allocated_channel;
   char *buff;
   size_t buff_len;
@@ -208,7 +212,7 @@ RSACCESS(const char *, xbind, xbind)
 uint32_t mtev_reverse_socket_nchannels(reverse_socket_t *sock) {
   uint32_t count = 0;
   for(int i=0; i<MAX_CHANNELS; i++) {
-    count += (sock->data.channels[i].pair[0] != -1);
+    count += sock->data.channels[i].pair[0] >= 0;
   }
   return count;
 }
@@ -266,7 +270,7 @@ static void *mtev_reverse_socket_alloc(void) {
   mtevAssert(pthread_mutex_init(&rc->lock, &attr) == 0);
   mtev_gettimeofday(&rc->data.create_time, NULL);
   for(i=0;i<MAX_CHANNELS;i++)
-    rc->data.channels[i].pair[0] = rc->data.channels[i].pair[1] = -1;
+    rc->data.channels[i].pair[0] = rc->data.channels[i].pair[1] = AVAILABLE;
   return rc;
 }
 
@@ -379,38 +383,53 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
 }
 
 static bool
-mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i, eventer_t e) {
-  (void)e;
+mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t channel_id) {
   eventer_t ce = NULL;
+  reverse_frame_t *saved_incoming = NULL;
+  bool freed;
+
   mtev_reverse_socket_ref(rc);
-  if(rc->data.channels[i].pair[0] >= 0) {
-    mtevL(nldeb, "mtev_reverse_socket_channel_shutdown(%s, %d)\n", rc->id, i);
-  }
   pthread_mutex_lock(&rc->lock);
-  if(rc->data.channels[i].pair[0] >= 0) {
-    int fd = rc->data.channels[i].pair[0];
+
+  channel_t *const channel = &rc->data.channels[channel_id];
+
+  if (channel->pair[0] >= 0) {
+    const int fd = channel->pair[0];
+
+    mtevL(nldeb, "%s (%s, %d)\n", __func__, rc->id, channel_id);
     ce = eventer_find_fd(fd);
-    rc->data.channels[i].pair[0] = -1;
-    if(!ce) close(fd);
-  }
-  pthread_mutex_unlock(&rc->lock);
+    channel->pair[0] = AGING;
 
-  if(ce) {
+    if (!ce) {
+      close(fd);
+    }
+  }
+
+  if (ce) {
+    pthread_mutex_unlock(&rc->lock);
     eventer_trigger(ce, EVENTER_EXCEPTION);
+    pthread_mutex_lock(&rc->lock);
   }
 
-  rc->data.channels[i].in_bytes = rc->data.channels[i].out_bytes =
-    rc->data.channels[i].in_frames = rc->data.channels[i].out_frames = 0;
+  if (channel->pair[0] == AGING) {
+    channel->in_bytes = channel->out_bytes = channel->in_frames = channel->out_frames = 0;
+    saved_incoming = channel->incoming;
+    channel->incoming = NULL;
+    channel->incoming_tail = NULL;
+    channel->pair[0] = channel->pair[1] = AVAILABLE;
+  }
 
-  pthread_mutex_lock(&rc->lock);
-  while(rc->data.channels[i].incoming) {
-    reverse_frame_t *f = rc->data.channels[i].incoming;
-    rc->data.channels[i].incoming = rc->data.channels[i].incoming->next;
+  pthread_mutex_unlock(&rc->lock);
+  freed = mtev_reverse_socket_deref(rc);
+
+  while (saved_incoming) {
+    reverse_frame_t *const f = saved_incoming;
+
+    saved_incoming = saved_incoming->next;
     reverse_frame_free(f);
   }
-  rc->data.channels[i].incoming_tail = NULL;
-  pthread_mutex_unlock(&rc->lock);
-  return mtev_reverse_socket_deref(rc);
+
+  return freed;
 }
 
 static void
@@ -445,15 +464,9 @@ mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
   }
   pthread_mutex_unlock(&rc->lock);
   for(i=0;i<MAX_CHANNELS;i++) {
-    bool freed = mtev_reverse_socket_channel_shutdown(rc, i, NULL);
-    assert(!freed);
+    const bool freed = mtev_reverse_socket_channel_shutdown(rc, i);
+    mtevAssert(!freed);
   }
-  pthread_mutex_lock(&rc->lock);
-  memset(&rc->data, 0, sizeof(reverse_socket_data_t));
-  for(i=0;i<MAX_CHANNELS;i++) {
-    rc->data.channels[i].pair[0] = rc->data.channels[i].pair[1] = -1;
-  }
-  pthread_mutex_unlock(&rc->lock);
 }
 
 static int
@@ -466,27 +479,27 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   int write_success = 1, read_success = 1;
   int needs_unlock = 0;
   int write_mask = EVENTER_EXCEPTION, read_mask = EVENTER_EXCEPTION;
-#define CHANNEL cct->parent->data.channels[cct->channel_id]
+  channel_t *const channel = &cct->parent->data.channels[cct->channel_id];
 
   mtevL(nldeb, "mtev_reverse_socket_channel_handler(%s, %d)\n", cct->parent->id, cct->channel_id);
   if(cct->parent->data.nctx && cct->parent->data.nctx->wants_permanent_shutdown) {
     mtevL(nldeb, "mtev_reverse_socket_channel_handler - wants_permanent_shutdown for %s - channel %d, pair [%d,%d] - goto snip\n",
-            cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+            cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
     goto snip;
   }
   if(mask & EVENTER_EXCEPTION) {
     mtevL(nldeb, "mtev_reverse_socket_channel_handler - got EVENTER_EXCEPTION for %s - channel %d, pair [%d,%d] - goto snip\n",
-            cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+            cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
     goto snip;
   }
 
   /* this damn-well better be our side of the socketpair */
-  if(CHANNEL.pair[0] != eventer_get_fd(e)) {
-   if(CHANNEL.pair[0] >= 0)
-     mtevL(nlerr, "mtev_reverse_socket_channel_handler: misaligned events, this is a bug (%d != %d)\n", CHANNEL.pair[0], eventer_get_fd(e));
+  if(channel->pair[0] != eventer_get_fd(e)) {
+   if(channel->pair[0] >= 0)
+     mtevL(nlerr, "mtev_reverse_socket_channel_handler: misaligned events, this is a bug (%d != %d)\n", channel->pair[0], eventer_get_fd(e));
    shutdown:
     mtevL(nldeb, "mtev_reverse_socket_channel_handler - at shutdown for %s - channel %d, pair [%d,%d]\n", cct->parent->id, cct->channel_id,
-            CHANNEL.pair[0], CHANNEL.pair[1]);
+            channel->pair[0], channel->pair[1]);
     if(needs_unlock) {
       pthread_mutex_unlock(&cct->parent->lock);
       needs_unlock = 0;
@@ -494,17 +507,23 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     command_out(cct->parent, cct->channel_id, "SHUTDOWN");
    snip:
     mtevL(nldeb, "mtev_reverse_socket_channel_handler - at snip for %s - channel %d, pair [%d,%d]\n", cct->parent->id, cct->channel_id,
-            CHANNEL.pair[0], CHANNEL.pair[1]);
+            channel->pair[0], channel->pair[1]);
     if(needs_unlock) {
       pthread_mutex_unlock(&cct->parent->lock);
       needs_unlock = 0;
     }
-    eventer_remove_fde(e);
-    eventer_close(e, &write_mask);
-    CHANNEL.pair[0] = CHANNEL.pair[1] = -1;
-    bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id, e);
-    assert(!freed);
-    mtev_reverse_socket_deref(cct->parent);
+
+    if (eventer_remove_fde(e)) {
+      mtevAssert(ck_pr_load_32(&cct->parent->refcnt) > 0);
+      eventer_close(e, &write_mask);
+      pthread_mutex_lock(&cct->parent->lock);
+      channel->pair[0] = channel->pair[1] = AGING;
+      pthread_mutex_unlock(&cct->parent->lock);
+      const bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id);
+      mtevAssert(!freed);
+      mtev_reverse_socket_deref(cct->parent);
+    }
+
     free(cct);
     return 0;
   }
@@ -514,51 +533,51 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     needs_unlock = 1;
 
     /* try to write some stuff */
-    while(CHANNEL.incoming) {
-      reverse_frame_t *f = CHANNEL.incoming;
+    while(channel->incoming) {
+      reverse_frame_t *f = channel->incoming;
       mtevAssert(f->buff_len == f->buff_filled); /* we only expect full frames here */
       if(f->command) {
         IFCMD(f, "RESET") {
           mtevL(nldeb, "mtev_reverse_socket_channel_handler - got RESET for %s - channel %d, pair [%d,%d] - goto snip\n",
-                  cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+                  cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
           goto snip;
         }
         IFCMD(f, "CLOSE") {
           mtevL(nldeb, "mtev_reverse_socket_channel_handler - got CLOSE for %s - channel %d, pair [%d,%d] - goto snip\n",
-                  cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+                  cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
           goto snip;
         }
         IFCMD(f, "SHUTDOWN") {
           mtevL(nldeb, "mtev_reverse_socket_channel_handler - got SHUTDOWN for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-                  cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+                  cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
           goto shutdown;
         }
         mtevL(nldeb, "mtev_reverse_socket_channel_handler - unknown command for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-                  cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+                  cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
         goto shutdown;
       }
       if(f->buff_len == 0) {
         mtevL(nldeb, "mtev_reverse_socket_channel_handler - f->buff len = 0 for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+          cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
         goto shutdown;
       }
       len = eventer_write(e, f->buff + f->offset, f->buff_filled - f->offset, &write_mask);
       if(len < 0 && errno == EAGAIN) break;
       if(len <= 0) {
         mtevL(nldeb, "mtev_reverse_socket_channel_handler - failed eventer write (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n", errno, strerror(errno),
-          cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+          cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
         goto shutdown;
       }
       if(len > 0) {
         mtevL(nldeb, "mtev_reverse_socket_channel_handler - reverse_socket_channel for %s - channel %d, pair [%d,%d] write[%d]: %lld\n",
-                cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1],
+                cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1],
                 eventer_get_fd(e), (long long)len);
         f->offset += len;
         write_success = 1;
       }
       if(f->offset == f->buff_filled) {
-        CHANNEL.incoming = CHANNEL.incoming->next;
-        if(CHANNEL.incoming_tail == f) CHANNEL.incoming_tail = CHANNEL.incoming;
+        channel->incoming = channel->incoming->next;
+        if(channel->incoming_tail == f) channel->incoming_tail = channel->incoming;
         reverse_frame_free(f);
       }
     }
@@ -567,18 +586,18 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     len = eventer_read(e, buff, sizeof(buff), &read_mask);
     if(len < 0 && (errno != EINPROGRESS && errno != EAGAIN)) {
       mtevL(nldeb, "mtev_reverse_socket_channel_handler - failed eventer read (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          errno, strerror(errno), cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+          errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
       goto shutdown;
     }
     if(len == 0) {
       mtevL(nldeb, "mtev_reverse_socket_channel_handler - failed eventer read (length 0) (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          errno, strerror(errno), cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+          errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
       goto shutdown;
     }
     if(len > 0) {
       mtevL(nldeb, "mtev_reverse_socket_channel_handler - reverse_socket_channel read[%d]: %lld %s - id %s (channel %d), pair [%d,%d]\n",
           eventer_get_fd(e), (long long)len, len==-1 ? strerror(errno) : "",
-          cct->parent->id, cct->channel_id, CHANNEL.pair[0], CHANNEL.pair[1]);
+          cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
       reverse_frame_t frame;
       memset(&frame, 0, sizeof(frame));
       frame.channel_id = cct->channel_id;
@@ -589,7 +608,6 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       read_success = 1;
     }
     pthread_mutex_unlock(&cct->parent->lock);
-    needs_unlock = 0;
   }
   return read_mask | write_mask | EVENTER_EXCEPTION;
 }
@@ -655,7 +673,7 @@ socket_error:
       needs_unlock = false;
     }
     mtev_reverse_socket_shutdown(rc, e);
-    return 0;    
+    return 0;
   }
 
  next_frame:
@@ -742,7 +760,7 @@ socket_error:
     mtevL(nldeb, "%s mtev_reverse_socket_handler - got connect request - incoming channel id %d, pair [%d,%d]\n",
             rc->id, rc->data.incoming_inflight.channel_id, rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
             rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
-    if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == -1) {
+    if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == AVAILABLE) {
       int fd = mtev_support_connection(rc);
       if(fd >= 0) {
         channel_closure_t *cct;
@@ -763,7 +781,7 @@ socket_error:
       }
     }
   }
-  if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == -1) {
+  if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == AVAILABLE) {
     /* but the channel disappeared */
     /* send a reset, but not in response to a reset */
     IFCMD(&rc->data.incoming_inflight, "RESET") { } /* noop */
@@ -999,9 +1017,7 @@ mtev_reverse_socket_acceptor(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    mtev_reverse_socket_ref(rc);
     mtev_reverse_socket_shutdown(rc, e);
-    mtev_reverse_socket_deref(rc);
     mtev_acceptor_closure_free(ac);
     eventer_remove_fde(e);
     eventer_close(e, &mask);
@@ -1125,7 +1141,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
     rc = vrc;
     for(i=0;i<MAX_CHANNELS;i++) {
       chan = (rc->data.last_allocated_channel + i + 1) % MAX_CHANNELS;
-      if(rc->data.channels[chan].pair[0] == -1) break;
+      if(rc->data.channels[chan].pair[0] == AVAILABLE) break;
     }
     if(i<MAX_CHANNELS) {
       reverse_frame_t f;
@@ -1143,7 +1159,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       }
       else if(socketpair(AF_LOCAL, SOCK_STREAM, 0, rc->data.channels[chan].pair) < 0) {
         mtevL(nldeb, "mtev_reverse_socket_connect - socketpair failed for %s [channel %d] - %d (%s)\n", id, chan, errno, strerror(errno));
-        rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = -1;
+        rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = AVAILABLE;
       }
       else {
         mtevL(nldeb, "mtev_reverse_socket_connect - set fds for %s [channel %d] from socketpair - [0] = %d, [1] = %d\n",
@@ -1154,7 +1170,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
           close(rc->data.channels[chan].pair[0]);
           close(rc->data.channels[chan].pair[1]);
           mtevL(nldeb, "mtev_reverse_socket_connect - eventer_set_fd_nonblocking failed for %s [channel %d]\n", id, chan);
-          rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = -1;
+          rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = AVAILABLE;
         }
         else {
           fd = rc->data.channels[chan].pair[1];
@@ -1178,6 +1194,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       }
       else {
         mtevL(nldeb, "mtev_reverse_socket_connect - no existing_fd for %s [channel %d]\n", id, chan);
+        free(f.buff);
       }
       mtevL(nldeb, "mtev_reverse_socket_connect - established reverse connection for %s [channel %d] - pair [%d,%d]\n",
             rc->id, chan, rc->data.channels[chan].pair[0], rc->data.channels[chan].pair[1]);
@@ -1214,7 +1231,7 @@ mtev_reverse_socket_close(mtev_connection_ctx_t *ctx, eventer_t e) {
   ctx->e = NULL;
 }
 
-mtev_connection_ctx_t *
+static mtev_connection_ctx_t *
 mtev_connection_ctx_alloc(mtev_hash_table *t, pthread_mutex_t *l) {
   mtev_connection_ctx_t *ctx, **pctx;
   ctx = calloc(1, sizeof(*ctx));
@@ -1225,9 +1242,9 @@ mtev_connection_ctx_alloc(mtev_hash_table *t, pthread_mutex_t *l) {
   ctx->close = mtev_connection_close;
   pctx = malloc(sizeof(*pctx));
   *pctx = ctx;
-  if(l) pthread_mutex_lock(l);
-  if(t) mtev_hash_store(t, (const char *)pctx, sizeof(*pctx), ctx);
-  if(l) pthread_mutex_unlock(l);
+  pthread_mutex_lock(l);
+  mtev_hash_store(t, (const char *)pctx, sizeof(*pctx), ctx);
+  pthread_mutex_unlock(l);
   return ctx;
 }
 
