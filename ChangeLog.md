@@ -4,6 +4,8 @@
 
 ## 2.3
 
+ * The HTTP systems should only write so much data before returning control to the event loop.
+   It now limits to 512k (programmatically changeable).
  * LIFO and FIFO Job Queue modes are now color coded.
 
 ### 2.3.4

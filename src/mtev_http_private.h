@@ -99,7 +99,7 @@ struct bchain {
   char _buff[1]; /* over allocate as needed */
 };
 
-#define DEFAULT_MAXWRITE 1<<14 /* 32k */
+extern int LIBMTEV_HTTP_DEFAULT_MAXWRITE;
 #define DEFAULT_BCHAINSIZE ((1 << 15)-(offsetof(struct bchain, _buff)))
 /* 64k - delta */
 #define DEFAULT_BCHAINMINREAD (DEFAULT_BCHAINSIZE/4)

@@ -60,6 +60,8 @@ struct mtev_http2_parent_session {
   unsigned char *inbuff;
   size_t inbuff_wp;
   size_t inbuff_size;
+  ssize_t can_still_write;
+  ssize_t max_write;
   mtev_hash_table streams;
   eventer_t e;
 };
@@ -196,6 +198,9 @@ void mtev_http2_session_ref_inc(mtev_http2_session_ctx *ctx) {
 
 void mtev_http2_session_set_aco(mtev_http2_session_ctx *ctx, mtev_boolean nv) {
   ctx->aco_enabled = nv;
+}
+void mtev_http2_session_set_max_write(mtev_http2_session_ctx *ctx, ssize_t nv) {
+  ctx->parent->max_write = nv;
 }
 mtev_boolean mtev_http2_session_aco(mtev_http2_session_ctx *ctx) {
   return ctx->aco_enabled;
@@ -776,11 +781,20 @@ static ssize_t send_callback(nghttp2_session *session, const uint8_t *data,
   (void)flags;
   mtevL(h2_debug, "http2 write(%p) %zu bytes\n", sess, length);
 
+  if(eventer_in_loop() && !sess->can_still_write) {
+    mtevL(h2_debug, "http2 write(%p) -- hit write limit\n", sess);
+    return NGHTTP2_ERR_WOULDBLOCK;
+  }
+
   int mask;
   ssize_t len = eventer_write(sess->e, data, length, &mask);
   if(len < 0 && errno == EAGAIN) {
     mtevL(h2_debug, "http2 write(%p) -- eagain\n", sess);
     return NGHTTP2_ERR_WOULDBLOCK;
+  }
+  if(sess->can_still_write > 0) {
+    sess->can_still_write -= len;
+    if(sess->can_still_write < 0) sess->can_still_write = 0;
   }
 
   if(len > 0) mtev_acceptor_closure_mark_write(sess->ac, NULL);
@@ -1008,6 +1022,11 @@ on_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags,
 }
 
 static void
+mtev_http2_parent_session_allow_write(struct mtev_http2_parent_session *ctx, ssize_t new_limit) {
+  ctx->can_still_write = new_limit;
+}
+
+static void
 initialize_nghttp2_session(struct mtev_http2_parent_session *ctx) {
   nghttp2_session_callbacks *callbacks;
   nghttp2_session_callbacks_new(&callbacks);
@@ -1045,6 +1064,8 @@ mtev_http2_parent_session_new_ex(mtev_http_dispatch_func f,
   sess->closure_free = closure_free;
   sess->inbuff_size = 1 << 16;
   sess->inbuff = malloc(sess->inbuff_size);
+  sess->can_still_write = -1;
+  sess->max_write = LIBMTEV_HTTP_DEFAULT_MAXWRITE;
   mtev_hash_init(&sess->streams);
 
   initialize_nghttp2_session(sess);
@@ -1062,6 +1083,7 @@ mtev_http2_parent_session_new_ex(mtev_http_dispatch_func f,
   nghttp2_settings_entry iv[1] = {{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, max_streams}};
   rv = nghttp2_submit_settings(sess->session, NGHTTP2_FLAG_NONE, iv, 1);
   if(rv == 0) {
+    mtev_http2_parent_session_allow_write(sess, -1);
     rv = nghttp2_session_send(sess->session);
     if(rv == 0) {
       mtevL(h2_debug, "http2 new session -> %p\n", sess);
@@ -1161,6 +1183,7 @@ mtev_http2_session_drive(eventer_t e, int origmask, void *closure,
     goto full_shutdown;
   }
   mask = 0;
+  mtev_http2_parent_session_allow_write(ctx, ctx->max_write);
   int rv = nghttp2_session_send(ctx->session);
   mtevL(h2_debug, "http2 drive -> %d\n", rv);
   if(rv != 0) {

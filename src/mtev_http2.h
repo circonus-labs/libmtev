@@ -101,6 +101,8 @@ API_EXPORT(void)
   mtev_http2_session_trigger(mtev_http2_session_ctx *, int state);
 API_EXPORT(void)
   mtev_http2_session_set_aco(mtev_http2_session_ctx *, mtev_boolean);
+API_EXPORT(void)
+  mtev_http2_session_set_max_write(mtev_http2_session_ctx *, ssize_t);
 API_EXPORT(mtev_boolean)
   mtev_http2_session_aco(mtev_http2_session_ctx *);
 

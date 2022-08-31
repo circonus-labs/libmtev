@@ -50,6 +50,7 @@ static const char *zipkin_http_bytes_out = "http.bytes_out";
 static struct in_addr zipkin_ip_host;
 static mtev_log_stream_t http_access = NULL;
 static mtev_log_stream_t http_access_forensic = NULL;
+int LIBMTEV_HTTP_DEFAULT_MAXWRITE = 1<<19; /* 512k */
 
 MTEV_HOOK_IMPL(http_request_log,
   (mtev_http_session_ctx *ctx),
@@ -195,6 +196,7 @@ HTTP_DIS(mtev_boolean, session_ref_dec, session_ctx *, ctx, (mtev_http_session_c
 HTTP_DIS(void, session_ref_inc, session_ctx *, ctx, (mtev_http_session_ctx *ctx), (t_ctx))
 HTTP_DIS(void, session_trigger, session_ctx *, ctx, (mtev_http_session_ctx *ctx, int state), (t_ctx, state))
 HTTP_DIS(void, session_set_aco, session_ctx *, ctx, (mtev_http_session_ctx *ctx, mtev_boolean nv), (t_ctx, nv))
+HTTP_DIS(void, session_set_max_write, session_ctx *, ctx, (mtev_http_session_ctx *ctx, ssize_t nv), (t_ctx, nv))
 HTTP_DIS(mtev_boolean, session_aco, session_ctx *, ctx, (mtev_http_session_ctx *ctx), (t_ctx))
 HTTP_DIS(void *, session_dispatcher_closure, session_ctx *, ctx, (mtev_http_session_ctx *ctx), (t_ctx))
 HTTP_DIS(void, session_set_dispatcher, session_ctx *, ctx,

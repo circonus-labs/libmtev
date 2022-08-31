@@ -88,6 +88,8 @@ API_EXPORT(void)
 
 API_EXPORT(void)
   mtev_http_session_set_aco(mtev_http_session_ctx *, mtev_boolean nv);
+API_EXPORT(void)
+  mtev_http_session_set_max_write(mtev_http_session_ctx *, ssize_t max_write);
 API_EXPORT(mtev_boolean)
   mtev_http_session_aco(mtev_http_session_ctx *);
 API_EXPORT(mtev_http_request *)
