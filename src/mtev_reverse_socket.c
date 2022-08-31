@@ -410,7 +410,6 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t 
   }
 
   if (channel->pair[0] == AGING) {
-    pthread_mutex_lock(&rc->lock);
     channel->in_bytes = channel->out_bytes = channel->in_frames = channel->out_frames = 0;
 
     while (channel->incoming) {
