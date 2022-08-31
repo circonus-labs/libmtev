@@ -105,6 +105,8 @@ mtev_reverse_socket_allowed(const char *id, mtev_acceptor_closure_t *ac) {
 
 static const size_t MAX_FRAME_LEN = 65530;
 static const size_t CMD_BUFF_LEN = 4096;
+static const int32_t AVAILABLE = -1;
+static const int32_t AGING = -2;
 
 static mtev_log_stream_t nlerr = NULL;
 static mtev_log_stream_t nldeb = NULL;
@@ -210,7 +212,7 @@ RSACCESS(const char *, xbind, xbind)
 uint32_t mtev_reverse_socket_nchannels(reverse_socket_t *sock) {
   uint32_t count = 0;
   for(int i=0; i<MAX_CHANNELS; i++) {
-    count += (sock->data.channels[i].pair[0] != -1);
+    count += sock->data.channels[i].pair[0] >= 0;
   }
   return count;
 }
@@ -268,7 +270,7 @@ static void *mtev_reverse_socket_alloc(void) {
   mtevAssert(pthread_mutex_init(&rc->lock, &attr) == 0);
   mtev_gettimeofday(&rc->data.create_time, NULL);
   for(i=0;i<MAX_CHANNELS;i++)
-    rc->data.channels[i].pair[0] = rc->data.channels[i].pair[1] = -1;
+    rc->data.channels[i].pair[0] = rc->data.channels[i].pair[1] = AVAILABLE;
   return rc;
 }
 
@@ -381,36 +383,48 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
 }
 
 static bool
-mtev_reverse_socket_channel_shutdown(reverse_socket_t *rc, uint16_t i) {
+mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t channel_id) {
   eventer_t ce = NULL;
 
   mtev_reverse_socket_ref(rc);
   pthread_mutex_lock(&rc->lock);
-  if(rc->data.channels[i].pair[0] >= 0) {
-    mtevL(nldeb, "mtev_reverse_socket_channel_shutdown(%s, %d)\n", rc->id, i);
-    int fd = rc->data.channels[i].pair[0];
+
+  channel_t *const channel = &rc->data.channels[channel_id];
+
+  if (channel->pair[0] >= 0) {
+    const int fd = channel->pair[0];
+
+    mtevL(nldeb, "%s (%s, %d)\n", __func__, rc->id, channel_id);
     ce = eventer_find_fd(fd);
-    rc->data.channels[i].pair[0] = -1;
-    if(!ce) close(fd);
-  }
-  pthread_mutex_unlock(&rc->lock);
+    channel->pair[0] = AGING;
 
-  if(ce) {
+    if (!ce) {
+      close(fd);
+    }
+  }
+
+  if (ce) {
+    pthread_mutex_unlock(&rc->lock);
     eventer_trigger(ce, EVENTER_EXCEPTION);
+    pthread_mutex_lock(&rc->lock);
   }
 
-  pthread_mutex_lock(&rc->lock);
-  rc->data.channels[i].in_bytes = rc->data.channels[i].out_bytes =
-      rc->data.channels[i].in_frames = rc->data.channels[i].out_frames = 0;
+  if (channel->pair[0] == AGING) {
+    pthread_mutex_lock(&rc->lock);
+    channel->in_bytes = channel->out_bytes = channel->in_frames = channel->out_frames = 0;
 
-  while(rc->data.channels[i].incoming) {
-    reverse_frame_t *f = rc->data.channels[i].incoming;
-    rc->data.channels[i].incoming = rc->data.channels[i].incoming->next;
-    reverse_frame_free(f);
+    while (channel->incoming) {
+      reverse_frame_t *const f = channel->incoming;
+
+      channel->incoming = channel->incoming->next;
+      reverse_frame_free(f);
+    }
+
+    channel->incoming = NULL;
+    channel->incoming_tail = NULL;
+    channel->pair[0] = channel->pair[1] = AVAILABLE;
   }
 
-  rc->data.channels[i].incoming = NULL;
-  rc->data.channels[i].incoming_tail = NULL;
   pthread_mutex_unlock(&rc->lock);
   return mtev_reverse_socket_deref(rc);
 }
@@ -450,12 +464,6 @@ mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
     const bool freed = mtev_reverse_socket_channel_shutdown(rc, i);
     mtevAssert(!freed);
   }
-  pthread_mutex_lock(&rc->lock);
-  memset(&rc->data, 0, sizeof(reverse_socket_data_t));
-  for(i=0;i<MAX_CHANNELS;i++) {
-    rc->data.channels[i].pair[0] = rc->data.channels[i].pair[1] = -1;
-  }
-  pthread_mutex_unlock(&rc->lock);
 }
 
 static int
@@ -505,7 +513,9 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     if (eventer_remove_fde(e)) {
       mtevAssert(ck_pr_load_32(&cct->parent->refcnt) > 0);
       eventer_close(e, &write_mask);
-      channel->pair[0] = channel->pair[1] = -1;
+      pthread_mutex_lock(&cct->parent->lock);
+      channel->pair[0] = channel->pair[1] = AGING;
+      pthread_mutex_unlock(&cct->parent->lock);
       const bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id);
       mtevAssert(!freed);
       mtev_reverse_socket_deref(cct->parent);
@@ -747,7 +757,7 @@ socket_error:
     mtevL(nldeb, "%s mtev_reverse_socket_handler - got connect request - incoming channel id %d, pair [%d,%d]\n",
             rc->id, rc->data.incoming_inflight.channel_id, rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
             rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
-    if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == -1) {
+    if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == AVAILABLE) {
       int fd = mtev_support_connection(rc);
       if(fd >= 0) {
         channel_closure_t *cct;
@@ -768,7 +778,7 @@ socket_error:
       }
     }
   }
-  if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == -1) {
+  if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == AVAILABLE) {
     /* but the channel disappeared */
     /* send a reset, but not in response to a reset */
     IFCMD(&rc->data.incoming_inflight, "RESET") { } /* noop */
@@ -1128,7 +1138,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
     rc = vrc;
     for(i=0;i<MAX_CHANNELS;i++) {
       chan = (rc->data.last_allocated_channel + i + 1) % MAX_CHANNELS;
-      if(rc->data.channels[chan].pair[0] == -1) break;
+      if(rc->data.channels[chan].pair[0] == AVAILABLE) break;
     }
     if(i<MAX_CHANNELS) {
       reverse_frame_t f;
@@ -1146,7 +1156,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       }
       else if(socketpair(AF_LOCAL, SOCK_STREAM, 0, rc->data.channels[chan].pair) < 0) {
         mtevL(nldeb, "mtev_reverse_socket_connect - socketpair failed for %s [channel %d] - %d (%s)\n", id, chan, errno, strerror(errno));
-        rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = -1;
+        rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = AVAILABLE;
       }
       else {
         mtevL(nldeb, "mtev_reverse_socket_connect - set fds for %s [channel %d] from socketpair - [0] = %d, [1] = %d\n",
@@ -1157,7 +1167,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
           close(rc->data.channels[chan].pair[0]);
           close(rc->data.channels[chan].pair[1]);
           mtevL(nldeb, "mtev_reverse_socket_connect - eventer_set_fd_nonblocking failed for %s [channel %d]\n", id, chan);
-          rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = -1;
+          rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = AVAILABLE;
         }
         else {
           fd = rc->data.channels[chan].pair[1];
