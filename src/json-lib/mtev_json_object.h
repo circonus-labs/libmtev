@@ -185,7 +185,7 @@ extern void mtev_json_object_object_del(struct mtev_json_object* obj, const char
 #else /* ANSI C or MSC */
 
 # define mtev_json_object_object_foreach_entry(obj,key,val,entry) \
- const char *key; const struct mtev_json_object *val; struct jl_lh_entry *entry; \
+ const char *key = NULL; const struct mtev_json_object *val = NULL; struct jl_lh_entry *entry = NULL; \
  for(entry = mtev_json_object_get_object_head(obj); (entry ? (key = mtev_json_entry_key(entry), val = mtev_json_entry_value(entry), entry) : 0); entry = mtev_json_entry_next(entry))
 
 #endif /* defined(__GNUC__) && !defined(__STRICT_ANSI__) */
