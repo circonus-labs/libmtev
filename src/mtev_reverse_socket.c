@@ -385,6 +385,8 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
 static bool
 mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t channel_id) {
   eventer_t ce = NULL;
+  reverse_frame_t *saved_incoming = NULL;
+  bool freed;
 
   mtev_reverse_socket_ref(rc);
   pthread_mutex_lock(&rc->lock);
@@ -411,21 +413,23 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t 
 
   if (channel->pair[0] == AGING) {
     channel->in_bytes = channel->out_bytes = channel->in_frames = channel->out_frames = 0;
-
-    while (channel->incoming) {
-      reverse_frame_t *const f = channel->incoming;
-
-      channel->incoming = channel->incoming->next;
-      reverse_frame_free(f);
-    }
-
+    saved_incoming = channel->incoming;
     channel->incoming = NULL;
     channel->incoming_tail = NULL;
     channel->pair[0] = channel->pair[1] = AVAILABLE;
   }
 
   pthread_mutex_unlock(&rc->lock);
-  return mtev_reverse_socket_deref(rc);
+  freed = mtev_reverse_socket_deref(rc);
+
+  while (saved_incoming) {
+    reverse_frame_t *const f = saved_incoming;
+
+    saved_incoming = saved_incoming->next;
+    reverse_frame_free(f);
+  }
+
+  return freed;
 }
 
 static void
