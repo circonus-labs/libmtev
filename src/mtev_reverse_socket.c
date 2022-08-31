@@ -513,7 +513,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     if (eventer_remove_fde(e)) {
       mtevAssert(ck_pr_load_32(&cct->parent->refcnt) > 0);
       eventer_close(e, &write_mask);
-      pthread_mutex_unlock(&cct->parent->lock);
+      pthread_mutex_lock(&cct->parent->lock);
       channel->pair[0] = channel->pair[1] = AGING;
       pthread_mutex_unlock(&cct->parent->lock);
       const bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id);
