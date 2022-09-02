@@ -398,11 +398,13 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   const char *error = buf;
   char *errbuf;
   void **udata;
+  CONF *addext_conf = NULL;
+  BIO *addext_bio = NULL;
 
   strlcpy(buf, "crypto.rsa:gencsr ", sizeof(buf));
   errbuf = buf + strlen(buf);
-#define REQERR(err) do { \
-  strlcpy(errbuf, err, sizeof(buf) - (errbuf - buf)); \
+#define REQERR(err...) do { \
+  snprintf(errbuf, sizeof(buf) - (errbuf - buf), err); \
   goto fail; \
 } while(0)
 
@@ -423,16 +425,61 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   GET_OR(lua_string, "digest", "sha256");
   md = EVP_get_digestbyname(lua_string);
   if(!md) REQERR("unknown digest");
+
   pkey = EVP_PKEY_new();
   if(!EVP_PKEY_assign_RSA(pkey, RSAPrivateKey_dup(rsa)))
     REQERR("crypto.rsa:gencsr could not use private key");
+
   req = X509_REQ_new();
   if(!req) REQERR("crypto.rsa:gencsr allocation failure");
   if (!X509_REQ_set_version(req,0L)) /* version 1 */
     REQERR("crypto.rsa:gencsr could not set request version");
+
+  X509V3_CTX ext_ctx;
+  lua_getfield(L,-1,"addext");
+  if(!lua_isnil(L,-1)) {
+    if(!lua_istable(L,-1)) REQERR("addext value must be a table");
+    else {
+      addext_bio = BIO_new(BIO_s_mem());
+      lua_pushnil(L);
+      while(lua_next(L, -2)) {
+        const char *ext = lua_tostring(L, -2);
+        if(!lua_istable(L, -1)) {
+          REQERR("addext values should be tables");
+        }
+        int len = lua_objlen(L,-1);
+        for(int i = 0; i<len; i++) {
+          lua_pushinteger(L,i+1);
+          lua_gettable(L,-2);
+          if(!lua_isstring(L,-1)) REQERR("addext values should be arrays of strings");
+          const char *extval = lua_tostring(L,-1);
+          if(i == 0) {
+            BIO_printf(addext_bio, "%s=%s", ext, extval);
+          }
+          else {
+            BIO_printf(addext_bio, ",%s", extval);
+          }
+          lua_pop(L,1);
+        }
+        BIO_printf(addext_bio, "\n");
+        lua_pop(L,1);
+      }
+      addext_conf = NCONF_new(NCONF_default());
+      X509V3_set_ctx(&ext_ctx, NULL, NULL, req, NULL, X509V3_CTX_REPLACE);
+      long errorline = -1;
+      if(NCONF_load_bio(addext_conf, addext_bio, &errorline) <= 0) {
+        REQERR("failed to construct x509 extensions line %ld\n", errorline);
+      }
+      X509V3_set_nconf(&ext_ctx, addext_conf);
+      if(!X509V3_EXT_REQ_add_nconf(addext_conf, &ext_ctx, "default", req)) {
+        REQERR("Could not add x509 extensions");
+      }
+    }
+  }
+  lua_pop(L,1);
+
   lua_getfield(L,-1,"subject");
   if(!lua_istable(L,-1)) REQERR("subject value must be a table");
-
   subject = X509_NAME_new();
   lua_pushnil(L);
   while(lua_next(L, -2)) {
@@ -448,7 +495,7 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
     }
     else if(!X509_NAME_add_entry_by_NID(subject, nid, MBSTRING_ASC,
                                         (unsigned char*)subj_value,-1,-1,0)) {
-      REQERR("failure building subject");
+      REQERR("failure building subject (%s=%s)", subj_part, subj_value);
     }
     lua_pop(L,1);
   }
@@ -469,12 +516,16 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   }
   pkey = NULL;
   PUSH_OBJ(L, "crypto.req", req);
+  if(addext_conf) NCONF_free(addext_conf);
+  if(addext_bio) BIO_free(addext_bio);
   return 1;
 
  fail:
   if(subject) X509_NAME_free(subject);
   if(pkey) EVP_PKEY_free(pkey);
   if(req) X509_REQ_free(req);
+  if(addext_conf) NCONF_free(addext_conf);
+  if(addext_bio) BIO_free(addext_bio);
   luaL_error(L, error);
   return 0;
 }
