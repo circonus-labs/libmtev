@@ -4,6 +4,9 @@
 
 ## 2.3
 
+ * Allow for an `addext` field for lua CSR generation:
+   `addext = { subjectAltName = { "DNS:name1", "DNS:name2" } }`
+
 ## 2.3.5
 
  * The HTTP systems should only write so much data before returning control to the event loop.
