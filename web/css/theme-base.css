@@ -409,3 +409,10 @@ div.http-client-modal-popup {
   position:absolute;
   z-index:1000;
 }
+
+.badge-lifo {
+  background-color: #52a04d;
+}
+.badge-fifo {
+  background-color: #217dc3;
+}
