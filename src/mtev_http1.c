@@ -514,7 +514,7 @@ mtev_http1_log_request(mtev_http1_session_ctx *ctx, mtev_http_log_state state) {
 static int
 _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
   int len, tlen = 0;
-  size_t attempt_write_len;
+  ssize_t attempt_write_len;
   struct bchain **head, *b;
   pthread_mutex_lock(&ctx->write_lock);
  choose_bucket:
@@ -546,7 +546,7 @@ _http_perform_write(mtev_http1_session_ctx *ctx, int *mask) {
     goto choose_bucket;
   }
 
-  attempt_write_len = b->size - ctx->res.output_raw_offset;
+  attempt_write_len = (ssize_t)(b->size - ctx->res.output_raw_offset);
   if(ctx->max_write >= 0) attempt_write_len = MIN(attempt_write_len, ctx->max_write);
 
   if(eventer_in_loop() && ctx->can_still_write == 0) {
