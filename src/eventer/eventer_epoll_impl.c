@@ -297,6 +297,10 @@ static void eventer_epoll_impl_trigger(eventer_t e, int mask) {
   eventer_ref(e);
   mask = mask & ~(EVENTER_RESERVED);
   fd = e->fd;
+  if (fd < 0) {
+    mtevFatal(mtev_error, "%s: attempting to remove fd %d from master_fds, which is an invalid index\n",
+      __func__, fd);
+  }
   if(cross_thread) {
     if(master_fds[fd].e != NULL) {
       mtevL(eventer_deb, "Attempting to trigger already-registered event fd: %d cross thread.\n", fd);
