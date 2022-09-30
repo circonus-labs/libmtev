@@ -620,8 +620,14 @@ mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, struct timeval 
   (void)tv;
   reverse_socket_t *rc = closure;
   if (rc->data.e) {
-    eventer_remove_fde(rc->data.e);
-    eventer_trigger(rc->data.e, EVENTER_READ|EVENTER_WRITE);
+    int fd = eventer_get_fd(rc->data.e);
+    if (fd >= 0) {
+      eventer_remove_fde(rc->data.e);
+      eventer_trigger(rc->data.e, EVENTER_READ|EVENTER_WRITE);
+    }
+    else {
+      mtevL(nlerr, "%s: fd when attempting to wake up reverse socket was %d\n", __func__, fd);
+    }
   }
   mtev_reverse_socket_deref(rc);
   return 0;
