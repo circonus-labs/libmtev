@@ -4,7 +4,7 @@
 
 ## 2.3
 
- * Allow for an `addext` field for lua CSR generation (currently available only on ubuntu 20):
+ * Allow for an `addext` field for lua CSR generation (requires at least openssl 1.1):
    `addext = { subjectAltName = { "DNS:name1", "DNS:name2" } }`
 
 ## 2.3.5
