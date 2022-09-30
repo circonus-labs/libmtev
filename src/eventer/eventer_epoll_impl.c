@@ -259,7 +259,7 @@ static void eventer_epoll_impl_update(eventer_t e, int mask) {
 static eventer_t eventer_epoll_impl_remove_fd(int fd) {
   eventer_t eiq = NULL;
   ev_lock_state_t lockstate;
-  if(master_fds[fd].e && fd >= 0) {
+  if(fd >= 0 && master_fds[fd].e) {
     struct epoll_spec *spec;
     struct epoll_event _ev;
     memset(&_ev, 0, sizeof(_ev));
