@@ -620,8 +620,12 @@ mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, struct timeval 
   (void)tv;
   reverse_socket_t *rc = closure;
   if (rc->data.e) {
-    eventer_remove_fde(rc->data.e);
-    eventer_trigger(rc->data.e, EVENTER_READ|EVENTER_WRITE);
+    if (eventer_remove_fde(rc->data.e)) {
+      eventer_trigger(rc->data.e, EVENTER_READ|EVENTER_WRITE);
+    }
+    else {
+      mtevL(nldeb, "%s: failed to remove fde from eventer object %p\n", __func__, rc->data.e);
+    }
   }
   mtev_reverse_socket_deref(rc);
   return 0;
