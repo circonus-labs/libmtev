@@ -265,7 +265,7 @@ static void eventer_kqueue_impl_update(eventer_t e, int mask) {
 static eventer_t eventer_kqueue_impl_remove_fd(int fd) {
   eventer_t eiq = NULL;
   ev_lock_state_t lockstate;
-  if(master_fds[fd].e) {
+  if(master_fds[fd].e && fd >= 0) {
     mtevL(eventer_deb, "kqueue: remove_fd(%d)\n", fd);
     lockstate = acquire_master_fd(fd);
     eiq = master_fds[fd].e;

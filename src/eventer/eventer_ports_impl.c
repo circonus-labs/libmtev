@@ -204,7 +204,7 @@ static void eventer_ports_impl_update(eventer_t e, int mask) {
 static eventer_t eventer_ports_impl_remove_fd(int fd) {
   eventer_t eiq = NULL;
   ev_lock_state_t lockstate;
-  if(master_fds[fd].e) {
+  if(master_fds[fd].e && fd >= 0) {
     lockstate = acquire_master_fd(fd);
     /* Looks redundant, but we need to make sure we didn't lose
      * the event between checking and acquiring the lock */
