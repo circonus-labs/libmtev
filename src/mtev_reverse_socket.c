@@ -1220,7 +1220,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
   if(!rc)
     mtevL(nldeb, "mtev_reverse_socket_connect - mtev_support_socket[%s] does not exist\n", id);
   if(rc && fd < 0)
-    mtevL(nldeb, "mtev_reverse_socket_connect - mtev_support_socket[%s] failed %s: %s\n", rc->id, op, strerror(errno));
+    mtevL(nlerr, "mtev_reverse_socket_connect - mtev_support_socket[%s] failed %s: %s\n", rc->id, op, strerror(errno));
   return fd;
 }
 
