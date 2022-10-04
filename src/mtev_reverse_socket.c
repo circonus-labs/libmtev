@@ -297,9 +297,8 @@ static void APPEND_IN(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   memset(frame_to_copy, 0, sizeof(*frame_to_copy));
   e = eventer_find_fd(rc->data.channels[id].pair[0]);
   if(!e) {
-    if (rc->data.channels[id].pair[0] >= 0) {
-      mtevL(nlerr, "No event on my side [%d] of the socketpair()\n", rc->data.channels[id].pair[0]);
-    }
+    mtevL(rc->data.channels[id].pair[0] >= 0 ? nlerr : nldeb,
+      "No event on my side [%d] of the socketpair()\n", rc->data.channels[id].pair[0]);
   }
   else {
     mtevL(nldeb, "APPEND_IN(%s,%d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(e), e));
