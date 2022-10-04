@@ -1218,9 +1218,10 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
   }
   pthread_rwlock_unlock(&reverse_sockets_lock);
   if(!rc)
-    mtevL(nldeb, "mtev_reverse_socket_connect - mtev_support_socket[%s] does not exist\n", id);
+    mtevL(nldeb, "mtev_reverse_socket_connect - mtev_support_socket[%d,%s] does not exist\n", existing_fd, id);
   if(rc && fd < 0)
-    mtevL(nlerr, "mtev_reverse_socket_connect - mtev_support_socket[%s] failed %s: %s\n", rc->id, op, strerror(errno));
+    mtevL(nlerr, "mtev_reverse_socket_connect - mtev_support_socket[%d,%s] failed %s: %s\n", existing_fd, rc->id,
+      op ? op : "[NULL]", strerror(errno));
   return fd;
 }
 
