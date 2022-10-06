@@ -4,6 +4,8 @@
 
 ## 2.3
 
+## 2.3.6
+
  * Fix use-after-free in reverse socket code
  * Allow for an `addext` field for lua CSR generation (requires at least openssl 1.1):
    `addext = { subjectAltName = { "DNS:name1", "DNS:name2" } }`
