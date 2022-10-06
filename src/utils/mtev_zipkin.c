@@ -412,8 +412,8 @@ mtev_zipkin_span_bannotate_i64(Zipkin_Span *span,
 Zipkin_BinaryAnnotation *
 mtev_zipkin_span_bannotate_double(Zipkin_Span *span,
                                   const char *key, bool key_copy, double v) {
-  double foo = v;
-  int64_t *fooi64 = (int64_t *)&foo;
+  double value = v;
+  int64_t *fooi64 = (int64_t *)&value;
   *fooi64 = htonll(*fooi64);
   return mtev_zipkin_span_bannotate(span, ZIPKIN_DOUBLE, key, key_copy, fooi64, 8, true);
 }
