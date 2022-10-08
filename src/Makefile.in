@@ -361,7 +361,7 @@ mdb-support/libmtev.so:	mdb-support/libmtev.lo mdb-support/mdb_help.lo
 	$(Q)$(MODULELD) $(SHLDFLAGS) -o $@ mdb-support/libmtev.lo mdb-support/mdb_help.lo
 
 aklomp-base64/lib/libbase64.o:
-	CC="$(CC)" CFLAGS="$(SHCFLAGS)" OBJCOPY=$(OBJCOPY) LDEXTRAFLAGS="$(LDEXTRAFLAGS)" @AKLOMPENV@ $(MAKE) -C aklomp-base64 lib/libbase64.o ; \
+	CC="$(CC)" CFLAGS="$(SHCFLAGS)" OBJCOPY=$(OBJCOPY) LD=$(LD) LDEXTRAFLAGS="$(LDEXTRAFLAGS)" @AKLOMPENV@ $(MAKE) -C aklomp-base64 lib/libbase64.o ; \
 
 .c.hlo:
 	@echo "- compiling $<"
