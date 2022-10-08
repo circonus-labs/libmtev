@@ -306,7 +306,7 @@ $(LIBMTEV_MAJOR):	$(LIBMTEV_V)
 $(LIBMTEVA):	$(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
 	@echo "- linking $@"
 	$(Q)rm -f libmtev.o libmtev.a 
-	$(Q)$(LD) -r -o libmtev.o $(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
+	$(Q)$(LD) $(LDEXTRAFLAGS) -r -o libmtev.o $(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
 	$(Q)if test -x "$(CTFMERGE)" ; then \
 		echo "- merging CTF ($@)" ; \
 		$(CTFMERGE) -l @VERSION@ -o libmtev.o $(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ) ; \
