@@ -62,9 +62,11 @@ MAPFLAGS=@MAPFLAGS@
 CTFCONVERT=@CTFCONVERT@
 CTFMERGE=@CTFMERGE@
 
-OBJCOPY=objcopy
-ifeq ($(shell uname -s),SunOS)
-  OBJCOPY=gobjcopy
+ifeq ($(OBJCOPY),)
+  OBJCOPY=objcopy
+  ifeq ($(shell uname -s),SunOS)
+    OBJCOPY=gobjcopy
+  endif
 endif
 
 # Later versions of ctfconvert no longer have -g and by default do not strip,
