@@ -62,9 +62,11 @@ MAPFLAGS=@MAPFLAGS@
 CTFCONVERT=@CTFCONVERT@
 CTFMERGE=@CTFMERGE@
 
-OBJCOPY=objcopy
-ifeq ($(shell uname -s),SunOS)
-  OBJCOPY=gobjcopy
+ifeq ($(OBJCOPY),)
+  OBJCOPY=objcopy
+  ifeq ($(shell uname -s),SunOS)
+    OBJCOPY=gobjcopy
+  endif
 endif
 
 # Later versions of ctfconvert no longer have -g and by default do not strip,
@@ -306,7 +308,7 @@ $(LIBMTEV_MAJOR):	$(LIBMTEV_V)
 $(LIBMTEVA):	$(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
 	@echo "- linking $@"
 	$(Q)rm -f libmtev.o libmtev.a 
-	$(Q)$(LD) -r -o libmtev.o $(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
+	$(Q)$(LD) $(LDEXTRAFLAGS) $(LDOVERRIDE) -r -o libmtev.o $(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
 	$(Q)if test -x "$(CTFMERGE)" ; then \
 		echo "- merging CTF ($@)" ; \
 		$(CTFMERGE) -l @VERSION@ -o libmtev.o $(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ) ; \
@@ -436,7 +438,7 @@ luamtev.o:      luamtev.c luamtev.conf.tmpl
 
 luamtev:        luamtev.o $(LIBMTEV_V)
 	$(Q)echo "- linking $@"
-	$(Q)$(CC) -L. $(LDFLAGS) $(MAPFLAGS) @UNWINDLIB@ -o $@ luamtev.o -lmtev $(LIBMTEV_LIBS) @LUALIBS@
+	$(Q)$(CC) -L. $(LDFLAGS) $(LDOVERRIDE) $(MAPFLAGS) @UNWINDLIB@ -o $@ luamtev.o -lmtev $(LIBMTEV_LIBS) @LUALIBS@
 
 install-bins:	luamtev
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(bindir)
