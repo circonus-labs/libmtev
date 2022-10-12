@@ -485,6 +485,10 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   int needs_unlock = 0;
   int write_mask = EVENTER_EXCEPTION, read_mask = EVENTER_EXCEPTION;
   channel_t *const channel = &cct->parent->data.channels[cct->channel_id];
+  eventer_t parent_eventer = cct->parent->data.e;
+  if (!parent_eventer) {
+    mtevL(nlerr, "mtev_reverse_socket_channel_handler(%s, %d) - no parent eventer!\n", cct->parent->id, cct->channel_id);
+  }
 
   mtevL(nldeb, "mtev_reverse_socket_channel_handler(%s, %d)\n", cct->parent->id, cct->channel_id);
   if(cct->parent->data.nctx && cct->parent->data.nctx->wants_permanent_shutdown) {
@@ -529,6 +533,9 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       mtev_reverse_socket_deref(cct->parent);
     }
 
+    if (parent_eventer && eventer_deref(parent_eventer)) {
+      cct->parent->data.e = NULL;
+    }
     free(cct);
     return 0;
   }
@@ -613,6 +620,9 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       read_success = 1;
     }
     pthread_mutex_unlock(&cct->parent->lock);
+  }
+  if (parent_eventer && eventer_deref(parent_eventer)) {
+    cct->parent->data.e = NULL;
   }
   return read_mask | write_mask | EVENTER_EXCEPTION;
 }
@@ -785,6 +795,7 @@ socket_error:
         eventer_t newe =
           eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, fd,
                            EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
+        eventer_ref(rc->data.e);
         eventer_add(newe);
         mtev_gettimeofday(&rc->data.channels[rc->data.incoming_inflight.channel_id].create_time, NULL);
         rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] = fd;
@@ -1201,6 +1212,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         mtev_reverse_socket_ref(rc);
         e = eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, existing_fd,
                              EVENTER_READ | EVENTER_EXCEPTION);
+        eventer_ref(rc->data.e);
         mtevL(nldeb, "mtev_reverse_socket_connect - mapping reverse proxy on fd %d for %s [channel %d]\n", existing_fd, id, chan);
         eventer_add(e);
         APPEND_OUT(rc, &f);
