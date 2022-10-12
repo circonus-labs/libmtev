@@ -621,9 +621,6 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     }
     pthread_mutex_unlock(&cct->parent->lock);
   }
-  if (parent_eventer && eventer_deref(parent_eventer)) {
-    cct->parent->data.e = NULL;
-  }
   return read_mask | write_mask | EVENTER_EXCEPTION;
 }
 
