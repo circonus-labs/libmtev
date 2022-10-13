@@ -4,6 +4,10 @@
 
 ## 2.3
 
+## 2.3.7
+
+ * Fix additional use-after-frees in reverse socket code
+
 ## 2.3.6
 
  * Fix use-after-free in reverse socket code
