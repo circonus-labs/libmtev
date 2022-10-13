@@ -127,7 +127,7 @@ CPPFLAGS="$CPPFLAGS -D_REENTRANT "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
 DTRACEHDR_TRANSFORM="copy"
 DOTSO=.so
-LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR)'
+LD_LIBMTEV_VERSION='-Wl,-soname,$(TGT_NAME).so.$(SEMVER_MAJOR)'
 MAPFLAGS=""
 AKLOMPENV="AVX2_CFLAGS=-mavx2 SSSE3_CFLAGS=-mssse3 SSE41_CFLAGS=-msse4.1 SSE42_CFLAGS=-msse4.2 AVX_CFLAGS=-mavx"
 DEFAULT_ENABLE_RDTSC=yes
@@ -1059,7 +1059,7 @@ AC_MSG_RESULT([
   FQ module:          $FQ_BUILT
   Zipkin-fq module:   $ZIPKIN_FQ_BUILT
 
-	== Target ==
-	Target module:      $TGT_NAME
+  == Target ==
+  Target library:      $TGT_NAME
 
 ])
