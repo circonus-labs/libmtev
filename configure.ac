@@ -61,7 +61,6 @@ AC_ARG_ENABLE(rdtsc,
 
 : ${CFLAGS="-g -O2 -fno-omit-frame-pointer"}
 : ${CXXFLAGS="-g -O2 -fno-omit-frame-pointer"}
-
 AC_PROG_CC
 AX_CHECK_COMPILE_FLAG([-std=c11],
   [AX_APPEND_FLAG([-std=c11])],
