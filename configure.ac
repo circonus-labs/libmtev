@@ -62,12 +62,6 @@ AC_ARG_ENABLE(rdtsc,
 : ${CFLAGS="-g -O2 -fno-omit-frame-pointer"}
 : ${CXXFLAGS="-g -O2 -fno-omit-frame-pointer"}
 
-if test "x$BUILD_ASAN" = "x"; then
-  TGT_NAME="libmtev"
-else
-  TGT_NAME="libmtev-asan"
-fi
-
 AC_PROG_CC
 AX_CHECK_COMPILE_FLAG([-std=c11],
   [AX_APPEND_FLAG([-std=c11])],
@@ -127,7 +121,13 @@ CPPFLAGS="$CPPFLAGS -D_REENTRANT "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
 DTRACEHDR_TRANSFORM="copy"
 DOTSO=.so
-LD_LIBMTEV_VERSION='-Wl,-soname,$(TGT_NAME).so.$(SEMVER_MAJOR)'
+if test "x$BUILD_ASAN" = "x"; then
+  TGT_NAME="libmtev"
+  LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR)'
+else
+  TGT_NAME="libmtev-asan"
+  LD_LIBMTEV_VERSION='-Wl,-soname,libmtev-asan.so.$(SEMVER_MAJOR)'
+fi
 MAPFLAGS=""
 AKLOMPENV="AVX2_CFLAGS=-mavx2 SSSE3_CFLAGS=-mssse3 SSE41_CFLAGS=-msse4.1 SSE42_CFLAGS=-msse4.2 AVX_CFLAGS=-mavx"
 DEFAULT_ENABLE_RDTSC=yes
