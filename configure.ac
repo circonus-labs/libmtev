@@ -120,7 +120,13 @@ CPPFLAGS="$CPPFLAGS -D_REENTRANT "'-I$(top_srcdir)/src'
 DTRACEHDR=libmtev_dtrace_probes.h
 DTRACEHDR_TRANSFORM="copy"
 DOTSO=.so
-LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR)'
+if test "x$BUILD_ASAN" = "x"; then
+  TGT_NAME="libmtev"
+  LD_LIBMTEV_VERSION='-Wl,-soname,libmtev.so.$(SEMVER_MAJOR)'
+else
+  TGT_NAME="libmtev-asan"
+  LD_LIBMTEV_VERSION='-Wl,-soname,libmtev-asan.so.$(SEMVER_MAJOR)'
+fi
 MAPFLAGS=""
 AKLOMPENV="AVX2_CFLAGS=-mavx2 SSSE3_CFLAGS=-mssse3 SSE41_CFLAGS=-msse4.1 SSE42_CFLAGS=-msse4.2 AVX_CFLAGS=-mavx"
 DEFAULT_ENABLE_RDTSC=yes
@@ -349,6 +355,7 @@ AC_SUBST(DOTDYLIB)
 AC_SUBST(LD_LIBMTEV_VERSION)
 AC_SUBST(MDB_MODS)
 AC_SUBST(FAST_TIME_PRELOAD)
+AC_SUBST(TGT_NAME)
 
 AC_DEFINE_UNQUOTED(CAP_PLATFORM, "$CAP_PLATFORM", [Capabilities platform.])
 AS_IF([test "x$CAP_SUPPORTED" = "x1"],
@@ -566,11 +573,15 @@ AC_CHECK_FUNC(fdwalk, [AC_DEFINE(HAVE_FDWALK, [1], [have fdwalk])], )
 AC_CHECK_LIB(util, openpty, , )
 AC_CHECK_LIB(termcap, tputs, , )
 AC_CHECK_LIB(curses, clear, , [AC_MSG_ERROR([curses not found, but required])])
+
 if test "$enable_lmdb" != "no"; then
-AC_CHECK_LIB(lmdb, mdb_dbi_open,[
-  AC_DEFINE(HAVE_LMDB, [1], [have LMDB])
-  LIBS="-llmdb $LIBS"
-  ], [AC_MSG_ERROR([lmdb not found, but required])])
+  if test "x$BUILD_ASAN" = "x"; then
+      AC_CHECK_LIB(lmdb, mdb_dbi_open,[AC_DEFINE(HAVE_LMDB, [1], [have LMDB])
+  LIBS="-llmdb $LIBS"], [AC_MSG_ERROR([lmdb not found, but required])])
+  else
+      AC_CHECK_LIB(lmdb-asan, mdb_dbi_open,[AC_DEFINE(HAVE_LMDB, [1], [have LMDB])
+  LIBS="-llmdb-asan $LIBS"], [AC_MSG_ERROR([lmdb-asan not found, but required])])
+  fi
 fi
 
 CPPFLAGS="$CPPFLAGS `pcre-config --cflags`"
@@ -1046,5 +1057,8 @@ AC_MSG_RESULT([
   AMQP module:        $AMQP_BUILT
   FQ module:          $FQ_BUILT
   Zipkin-fq module:   $ZIPKIN_FQ_BUILT
+
+  == Target ==
+  Target library:      $TGT_NAME
 
 ])

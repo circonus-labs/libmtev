@@ -86,10 +86,10 @@ NOWHOLE_ARCHIVE=@NOWHOLE_ARCHIVE@
 DTRACEOBJ=@DTRACEOBJ@
 LIBMTEV_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.lo)
 LIBMTEVA_DTRACEOBJ=$(DTRACEOBJ:%dtrace_stub.o=libmtev_%dtrace_stub.o)
-LIBMTEV_V=libmtev@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
-LIBMTEV_MAJOR=libmtev@DOTSO@.$(SEMVER_MAJOR)@DOTDYLIB@
-LIBMTEV=libmtev@DOTSO@@DOTDYLIB@
-LIBMTEVA=libmtev.a
+LIBMTEV_V=@TGT_NAME@@DOTSO@.$(LIBMTEV_VERSION)@DOTDYLIB@
+LIBMTEV_MAJOR=@TGT_NAME@@DOTSO@.$(SEMVER_MAJOR)@DOTDYLIB@
+LIBMTEV=@TGT_NAME@@DOTSO@@DOTDYLIB@
+LIBMTEVA=@TGT_NAME@.a
 FAST_TIME_PRELOAD=@FAST_TIME_PRELOAD@
 
 TARGETS=$(LIBMTEVA) $(LIBMTEV) $(LIBMTEV_MAJOR) $(FAST_TIME_PRELOAD) @LUA_LUAMTEV@ @MDB_MODS@
@@ -307,7 +307,7 @@ $(LIBMTEV_MAJOR):	$(LIBMTEV_V)
 
 $(LIBMTEVA):	$(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
 	@echo "- linking $@"
-	$(Q)rm -f libmtev.o libmtev.a 
+	$(Q)rm -f libmtev.o $(LIBMTEVA)
 	$(Q)$(LD) $(LDEXTRAFLAGS) $(LDOVERRIDE) -r -o libmtev.o $(FINAL_LIBMTEVA_OBJS) $(LIBMTEVA_DTRACEOBJ)
 	$(Q)if test -x "$(CTFMERGE)" ; then \
 		echo "- merging CTF ($@)" ; \
@@ -485,7 +485,7 @@ coverage.xml:	libmtev.info
 	$(PYTHON) $(top_srcdir)/buildtools/lcov_cobertura.py libmtev.info -b . -o coverage.xml
 
 clean:
-	rm -f *.lo *.o *.hlo *.Slo *.ho *.So libmtev.a libmtev_dtrace_probes.h
+	rm -f *.lo *.o *.hlo *.Slo *.ho *.So $(LIBMTEVA) libmtev_dtrace_probes.h
 	rm -f *.gcov *.gcda *.gcno
 	for subdir in aco eventer noitedit utils json-lib; do \
 		rm -f $$subdir/*.lo $$subdir/*.o $$subdir/*.hlo $$subdir/*.Slo $$subdir/*.So $$subdir/*.ho ; \
