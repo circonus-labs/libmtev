@@ -1059,4 +1059,7 @@ AC_MSG_RESULT([
   FQ module:          $FQ_BUILT
   Zipkin-fq module:   $ZIPKIN_FQ_BUILT
 
+	== Target ==
+	Target module:      $TGT_NAME
+
 ])
