@@ -530,10 +530,14 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       pthread_mutex_unlock(&cct->parent->lock);
       const bool freed = mtev_reverse_socket_channel_shutdown(cct->parent, cct->channel_id);
       mtevAssert(!freed);
-      mtev_reverse_socket_deref(cct->parent);
+      if (parent_eventer && eventer_deref(parent_eventer)) {
+        cct->parent->data.e = NULL;
+      }
+      if (mtev_reverse_socket_deref(cct->parent)) {
+        cct->parent = NULL;
+      }
     }
-
-    if (parent_eventer && eventer_deref(parent_eventer)) {
+    else if (parent_eventer && eventer_deref(parent_eventer)) {
       cct->parent->data.e = NULL;
     }
     free(cct);
