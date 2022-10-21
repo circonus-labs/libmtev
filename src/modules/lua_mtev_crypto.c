@@ -436,9 +436,7 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
     REQERR("crypto.rsa:gencsr could not set request version");
 
   lua_getfield(L,-1,"addext");
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-  if(!lua_isnil(L,-1)) REQERR("addext requires OpenSSL 1.1 or greater");
-#else
+
   X509V3_CTX ext_ctx;
   if(!lua_isnil(L,-1)) {
     if(!lua_istable(L,-1)) REQERR("addext value must be a table");
@@ -468,6 +466,9 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
         lua_pop(L,1);
       }
       addext_conf = NCONF_new(NCONF_default());
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+      #define X509V3_CTX_REPLACE 0x2
+#endif
       X509V3_set_ctx(&ext_ctx, NULL, NULL, req, NULL, X509V3_CTX_REPLACE);
       long errorline = -1;
       if(NCONF_load_bio(addext_conf, addext_bio, &errorline) <= 0) {
@@ -479,7 +480,6 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
       }
     }
   }
-#endif
   lua_pop(L,1);
 
   lua_getfield(L,-1,"subject");
