@@ -298,10 +298,10 @@ static void APPEND_IN(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   e = eventer_find_fd(rc->data.channels[id].pair[0]);
   if(!e) {
     mtevL(rc->data.channels[id].pair[0] >= 0 ? nlerr : nldeb,
-      "No event on my side [%d] of the socketpair()\n", rc->data.channels[id].pair[0]);
+      "%s: No event on my side [%d] of the socketpair()\n", __func__, rc->data.channels[id].pair[0]);
   }
   else {
-    mtevL(nldeb, "APPEND_IN(%s,%d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(e), e));
+    mtevL(nldeb, "%s(%s,%d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(e), e));
     if(!(eventer_get_mask(e) & EVENTER_WRITE)) eventer_trigger(e, EVENTER_WRITE|EVENTER_READ);
   }
 }
@@ -338,9 +338,9 @@ static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
                                                     (void *)rc, eventer_get_owner(rc->data.e));
   }
   pthread_mutex_unlock(&rc->lock);
-  if(!wakeup_e) mtevL(nldeb, "No event to trigger for reverse_socket framing\n");
+  if(!wakeup_e) mtevL(nldeb, "%s: No event to trigger for reverse_socket framing\n", __func__);
   else {
-    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
+    mtevL(nldeb, "%s(%s, %d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
     eventer_ref(rc->data.e);
     eventer_add(wakeup_e);
   }
@@ -368,9 +368,10 @@ static void APPEND_OUT_NO_LOCK(reverse_socket_t *rc, reverse_frame_t *frame_to_c
     wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup,
                                                     (void *)rc, eventer_get_owner(rc->data.e));
   }
-  if(!wakeup_e) mtevL(nlerr, "No event to trigger for reverse_socket framing\n");
+  if(!wakeup_e) mtevL(nlerr, "%s: No event to trigger for reverse_socket framing\n", __func__);
   else {
-    mtevL(nldeb, "APPEND_OUT(%s, %d) => %s\n", rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
+    mtevL(nldeb, "%s(%s, %d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e),
+      wakeup_e));
     eventer_ref(rc->data.e);
     eventer_add(wakeup_e);
   }
@@ -381,7 +382,7 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
   reverse_frame_t frame;
   memset(&frame, 0, sizeof(frame));
   frame.channel_id = id | 0x8000;
-  mtevL(nldeb, "command out channel:%d '%s'\n", id, command);
+  mtevL(nldeb, "%s channel:%d '%s'\n", __func__, id, command);
   frame.buff = strdup(command);
   frame.buff_len = frame.buff_filled = strlen(frame.buff);
   APPEND_OUT(rc, &frame);
@@ -442,7 +443,7 @@ mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
   (void)e;
   int mask, i;
   pthread_mutex_lock(&rc->lock);
-  mtevL(nldeb, "mtev_reverse_socket_shutdown(%s)\n", rc->id);
+  mtevL(nldeb, "%s(%s)\n", __func__, rc->id);
   if(rc->data.buff) free(rc->data.buff);
   if(rc->data.xbind) {
     free(rc->data.xbind);
@@ -666,7 +667,7 @@ mtev_support_connection(reverse_socket_t *rc) {
 
   return fd;
  fail:
-  mtevL(nldeb, "mtev_support_connect -> %d (%s)\n", errno, strerror(errno));
+  mtevL(nldeb, "%s -> %d (%s)\n", __func__, errno, strerror(errno));
   if(fd >= 0) close(fd);
   return -1;
 }
@@ -691,7 +692,7 @@ mtev_reverse_socket_handler(eventer_t e, int mask, void *closure,
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
     /* Exceptions cause us to simply snip the connection */
-    mtevL(nldeb, "%s mtev_reverse_socket_handler: socket error: %s\n", rc->id, socket_error_string);
+    mtevL(nldeb, "%s %s: socket error: %s\n", rc->id, __func__, socket_error_string);
     if (needs_unlock) {
       pthread_mutex_unlock(&rc->lock);
       needs_unlock = false;
@@ -704,12 +705,12 @@ socket_error:
   while(rc->data.frame_hdr_read < sizeof(rc->data.frame_hdr)) {
     len = eventer_read(e, rc->data.frame_hdr + rc->data.frame_hdr_read, sizeof(rc->data.frame_hdr) - rc->data.frame_hdr_read, &rmask);
     if(len < 0 && errno == EAGAIN) {
-      mtevL(nldeb, "%s mtev_reverse_socket_handler: next frame, got EAGAIN, goto try_writes\n", rc->id);
+      mtevL(nldeb, "%s %s: next frame, got EAGAIN, goto try_writes\n", rc->id, __func__);
       goto try_writes;
     }
     if(len <= 0) {
-      mtevL(nldeb, "%s mtev_reverse_socket_handler: bad eventer read - len = %d, error %d (%s), goto socket_error\n",
-              rc->id, len, errno, strerror(errno));
+      mtevL(nldeb, "%s %s: bad eventer read - len = %d, error %d (%s), goto socket_error\n",
+              rc->id, __func__, len, errno, strerror(errno));
       socket_error_string = "data frame eventer_read error";
       goto socket_error;
     }
@@ -729,22 +730,23 @@ socket_error:
       rc->data.incoming_inflight.command = 0;
     }
     rc->data.incoming_inflight.buff_len = ntohl(nframelen);
-    mtevL(nldeb, "%s mtev_reverse_socket_handler: next_frame_in(%s%d,%llu) - pair [%d,%d]\n",
+    mtevL(nldeb, "%s %s: next_frame_in(%s%d,%llu) - pair [%d,%d]\n",
           rc->id,
+          __func__,
           rc->data.incoming_inflight.command ? "!" : "",
           rc->data.incoming_inflight.channel_id,
           (unsigned long long)rc->data.incoming_inflight.buff_len,
           rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
           rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
     if(rc->data.incoming_inflight.buff_len > MAX_FRAME_LEN) {
-      mtevL(nldeb, "%s mtev_reverse_socket_handler: oversized frame (%zd > %zd), goto socket_error\n",
-              rc->id, rc->data.incoming_inflight.buff_len, MAX_FRAME_LEN);
+      mtevL(nldeb, "%s %s: oversized frame (%zd > %zd), goto socket_error\n",
+              rc->id, __func__, rc->data.incoming_inflight.buff_len, MAX_FRAME_LEN);
       socket_error_string = "oversized_frame";
       goto socket_error;
     }
     if(rc->data.incoming_inflight.channel_id >= MAX_CHANNELS) {
-      mtevL(nldeb, "%s mtev_reverse_socket_handler: invalid channel (%d >= %d), goto socket_error\n",
-              rc->id, rc->data.incoming_inflight.channel_id, MAX_CHANNELS);
+      mtevL(nldeb, "%s %s: invalid channel (%d >= %d), goto socket_error\n",
+              rc->id, __func__, rc->data.incoming_inflight.channel_id, MAX_CHANNELS);
       socket_error_string = "invalid_channel";
       goto socket_error;
     }
@@ -754,17 +756,17 @@ socket_error:
     len = eventer_read(e, rc->data.incoming_inflight.buff + rc->data.incoming_inflight.buff_filled,
                        rc->data.incoming_inflight.buff_len - rc->data.incoming_inflight.buff_filled, &rmask);
     if(len < 0 && errno == EAGAIN) {
-      mtevL(nldeb, "%s mtev_reverse_socket_handler: frame payload read, got EAGAIN, goto try_writes\n", rc->id);
+      mtevL(nldeb, "%s %s: frame payload read, got EAGAIN, goto try_writes\n", rc->id, __func__);
       goto try_writes;
     }
     if(len <= 0) {
-      mtevL(nldeb, "%s mtev_reverse_socket_handler: bad eventer frame payload read - len = %d, error %d (%s), goto socket_error\n",
-              rc->id, len, errno, strerror(errno));
+      mtevL(nldeb, "%s %s: bad eventer frame payload read - len = %d, error %d (%s), goto socket_error\n",
+              rc->id, __func__, len, errno, strerror(errno));
       socket_error_string = "buffer eventer_read error";
       goto socket_error;
     }
-    mtevL(nldeb, "%s frame payload read -> %llu (@%llu/%llu) - incoming channel id %d, pair [%d,%d]\n",
-          rc->id, (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
+    mtevL(nldeb, "%s %s: frame payload read -> %llu (@%llu/%llu) - incoming channel id %d, pair [%d,%d]\n",
+          rc->id, __func__, (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
           (unsigned long long)rc->data.incoming_inflight.buff_len,
           rc->data.incoming_inflight.channel_id,
           rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
@@ -775,14 +777,16 @@ socket_error:
 
   /* we have a complete inbound frame here (w/ data) */
   if(rc->data.incoming_inflight.command) {
-    mtevL(nldeb, "%s mtev_reverse_socket_handler: inbound command channel:%d '%.*s'\n",
+    mtevL(nldeb, "%s %s: inbound command channel:%d '%.*s'\n",
           rc->id,
+          __func__,
           rc->data.incoming_inflight.channel_id,
           (int)rc->data.incoming_inflight.buff_len, (char *)rc->data.incoming_inflight.buff);
   }
   IFCMD(&rc->data.incoming_inflight, "CONNECT") {
-    mtevL(nldeb, "%s mtev_reverse_socket_handler - got connect request - incoming channel id %d, pair [%d,%d]\n",
-            rc->id, rc->data.incoming_inflight.channel_id, rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
+    mtevL(nldeb, "%s %s - got connect request - incoming channel id %d, pair [%d,%d]\n",
+            rc->id, __func__, rc->data.incoming_inflight.channel_id,
+            rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
             rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
     if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == AVAILABLE) {
       int fd = mtev_support_connection(rc);
@@ -811,8 +815,8 @@ socket_error:
     /* send a reset, but not in response to a reset */
     IFCMD(&rc->data.incoming_inflight, "RESET") { } /* noop */
     else {
-      mtevL(nldeb, "%s mtev_reverse_socket_handler - sending reset  - incoming channel id %d, pair [%d,%d]\n",
-              rc->id, rc->data.incoming_inflight.channel_id,
+      mtevL(nldeb, "%s %s - sending reset  - incoming channel id %d, pair [%d,%d]\n",
+              rc->id, __func__, rc->data.incoming_inflight.channel_id,
               rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
               rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
       command_out(rc, rc->data.incoming_inflight.channel_id, "RESET");
@@ -840,7 +844,7 @@ socket_error:
       len = eventer_write(e, rc->data.frame_hdr_out + rc->data.frame_hdr_written,
                           sizeof(rc->data.frame_hdr_out) - rc->data.frame_hdr_written, &wmask);
       if(len < 0 && errno == EAGAIN) {
-        mtevL(nldeb, "%s (channel %d) mtev_reverse_socket_handler: try_writes for frame, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id);
+        mtevL(nldeb, "%s (channel %d) %s: try_writes for frame, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id, __func__);
         goto done_for_now;
       }
       else if(len <= 0) goto socket_error;
@@ -851,19 +855,19 @@ socket_error:
       len = eventer_write(e, f->buff + f->offset,
                           f->buff_len - f->offset, &wmask);
       if(len < 0 && errno == EAGAIN) {
-        mtevL(nldeb, "%s (channel %d) mtev_reverse_socket_handler: try_writes for buffer, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id);
+        mtevL(nldeb, "%s (channel %d) %s: try_writes for buffer, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id, __func__);
         goto done_for_now;
       }
       else if(len <= 0) {
-        mtevL(nldeb, "%s (channel %d) mtev_reverse_socket_handler: try_writes for frame, got %d (%s), len %zd, goto socket_error\n",
-                rc->id, f->channel_id, errno, strerror(errno), len);
+        mtevL(nldeb, "%s (channel %d) %s: try_writes for frame, got %d (%s), len %zd, goto socket_error\n",
+                rc->id, f->channel_id, __func__, errno, strerror(errno), len);
         goto socket_error;
       }
       f->offset += len;
       success = 1;
     }
-    mtevL(nldeb, "%s mtev_reverse_socket_handler: frame_out(%04x, %llu) %llu/%llu of body\n",
-          rc->id,
+    mtevL(nldeb, "%s %s: frame_out(%04x, %llu) %llu/%llu of body\n",
+          rc->id, __func__,
           f->channel_id, (unsigned long long)f->buff_len,
           (unsigned long long)f->offset, (unsigned long long)f->buff_len);
     /* reset for next frame */
@@ -878,12 +882,12 @@ socket_error:
     pthread_mutex_unlock(&rc->lock);
   }
   if(success && rc->data.nctx) {
-    mtevL(nldeb, "%s mtev_reverse_socket_handler: done_for_now finished, updating timeout\n", rc->id);
+    mtevL(nldeb, "%s %s: done_for_now finished, updating timeout\n", rc->id, __func__);
     mtev_connection_update_timeout(rc->data.nctx);
   }
   else {
-    mtevL(nldeb, "%s mtev_reverse_socket_handler: done_for_now without finishing, will retry later: success %d, nctx %s\n",
-            rc->id, success, (rc->data.nctx) ? "not null" : "null");
+    mtevL(nldeb, "%s %s: done_for_now without finishing, will retry later: success %d, nctx %s\n",
+            rc->id, __func__, success, (rc->data.nctx) ? "not null" : "null");
   }
   if(e != rc->data.e) {
     eventer_set_mask(rc->data.e, rmask|wmask);
@@ -975,17 +979,17 @@ mtev_reverse_socket_proxy_accept(eventer_t e, int mask, void *closure,
   fd = eventer_accept(e, &remote.in, &salen, &mask);
   if(fd >= 0) {
     if(eventer_set_fd_nonblocking(fd)) {
-      mtevL(nlerr, "reverse_socket accept eventer_set_fd_nonblocking failed\n");
+      mtevL(nlerr, "%s: eventer_set_fd_nonblocking failed\n", __func__);
       close(fd);
     }
     else {
       if(mtev_reverse_socket_connect(rc->id, fd) < 0) {
-        mtevL(nlerr, "reverse_socket accept mtev_reverse_socket_connect failed\n");
+        mtevL(nlerr, "%s: mtev_reverse_socket_connect failed\n", __func__);
         close(fd);
       }
     }
   } else {
-    mtevL(nlerr, "reverse_socket accept failed: %s\n", strerror(errno));
+    mtevL(nlerr, "%s: failed: %s\n", __func__, strerror(errno));
   }
   return EVENTER_READ | EVENTER_EXCEPTION;
 }
@@ -1046,7 +1050,7 @@ socket_error:
     mtev_acceptor_closure_free(ac);
     eventer_remove_fde(e);
     eventer_close(e, &mask);
-    mtevL(nldeb, "mtev_reverse_socket_acceptor - reverse_socket error: %s\n", socket_error_string);
+    mtevL(nldeb, "%s - reverse_socket error: %s\n", __func__, socket_error_string);
     return 0;
   }
 
@@ -1104,8 +1108,8 @@ socket_error:
         int reqlen = strlen(*req);
         if(!strncmp(rc->id, *req, reqlen)) {
           if(strcmp(rc->id+reqlen, remote_cn ? remote_cn : "")) {
-            mtevL(nldeb, "mtev_reverse_socket_acceptor - attempted reverse connection '%s' invalid remote '%s'\n",
-                  rc->id+reqlen, remote_cn ? remote_cn : "");
+            mtevL(nldeb, "%s - attempted reverse connection '%s' invalid remote '%s'\n",
+                  __func__, rc->id+reqlen, remote_cn ? remote_cn : "");
             free(rc->id);
             rc->id = NULL;
             goto socket_error;
@@ -1115,8 +1119,8 @@ socket_error:
 
       switch(mtev_reverse_socket_allowed(rc->id, ac)) {
         case MTEV_ACL_DENY:
-          mtevL(nldeb, "mtev_reverse_socket_acceptor - attempted reverse connection '%s' from '%s' denied by policy\n",
-                  rc->id, remote_cn ? remote_cn : "");
+          mtevL(nldeb, "%s - attempted reverse connection '%s' from '%s' denied by policy\n",
+                  __func__, rc->id, remote_cn ? remote_cn : "");
           free(rc->id);
           rc->id = NULL;
           goto socket_error;
@@ -1145,7 +1149,7 @@ socket_error:
     goto socket_error;
   }
   else {
-    mtevL(nldeb, "mtev_reverse_socket_acceptor - reverse_socket to %s\n", rc->id);
+    mtevL(nldeb, "%s - reverse_socket to %s\n", __func__, rc->id);
     /* Setup proxies if we've got them */
     mtev_reverse_socket_proxy_setup(rc);
     rc->data.e = e;
@@ -1175,26 +1179,28 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       f.buff = strdup("CONNECT");
       f.buff_len = strlen(f.buff);
       op = "socketpair";
-      mtevL(nldeb, "mtev_reverse_socket_connect - sending connect message (channel id %d, chan %d, id %s, existing_fd %d)\n",
-              f.channel_id, chan, id, existing_fd);
+      mtevL(nldeb, "%s - sending connect message (channel id %d, chan %d, id %s, existing_fd %d)\n",
+              __func__, f.channel_id, chan, id, existing_fd);
       if(existing_fd >= 0) {
         fd = existing_fd;
-        mtevL(nldeb, "mtev_reverse_socket_connect - setting fd for %s [channel %d] pair[0] from existing_fd - %d\n", id, chan, existing_fd);
+        mtevL(nldeb, "%s - setting fd for %s [channel %d] pair[0] from existing_fd - %d\n", __func__, id, chan,
+          existing_fd);
         rc->data.channels[chan].pair[0] = fd;
       }
       else if(socketpair(AF_LOCAL, SOCK_STREAM, 0, rc->data.channels[chan].pair) < 0) {
-        mtevL(nldeb, "mtev_reverse_socket_connect - socketpair failed for %s [channel %d] - %d (%s)\n", id, chan, errno, strerror(errno));
+        mtevL(nldeb, "%s - socketpair failed for %s [channel %d] - %d (%s)\n", __func__, id, chan, errno,
+          strerror(errno));
         rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = AVAILABLE;
       }
       else {
-        mtevL(nldeb, "mtev_reverse_socket_connect - set fds for %s [channel %d] from socketpair - [0] = %d, [1] = %d\n",
-                id, chan, rc->data.channels[chan].pair[0], rc->data.channels[chan].pair[1]);
+        mtevL(nldeb, "%s - set fds for %s [channel %d] from socketpair - [0] = %d, [1] = %d\n",
+                __func__, id, chan, rc->data.channels[chan].pair[0], rc->data.channels[chan].pair[1]);
         op = "O_NONBLOCK";
         if(eventer_set_fd_nonblocking(rc->data.channels[chan].pair[0]) ||
            eventer_set_fd_nonblocking(rc->data.channels[chan].pair[1])) {
           close(rc->data.channels[chan].pair[0]);
           close(rc->data.channels[chan].pair[1]);
-          mtevL(nldeb, "mtev_reverse_socket_connect - eventer_set_fd_nonblocking failed for %s [channel %d]\n", id, chan);
+          mtevL(nldeb, "%s - eventer_set_fd_nonblocking failed for %s [channel %d]\n", __func__, id, chan);
           rc->data.channels[chan].pair[0] = rc->data.channels[chan].pair[1] = AVAILABLE;
         }
         else {
@@ -1214,24 +1220,24 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         e = eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, existing_fd,
                              EVENTER_READ | EVENTER_EXCEPTION);
         eventer_ref(rc->data.e);
-        mtevL(nldeb, "mtev_reverse_socket_connect - mapping reverse proxy on fd %d for %s [channel %d]\n", existing_fd, id, chan);
+        mtevL(nldeb, "%s - mapping reverse proxy on fd %d for %s [channel %d]\n", __func__, existing_fd, id, chan);
         eventer_add(e);
         APPEND_OUT(rc, &f);
       }
       else {
-        mtevL(nldeb, "mtev_reverse_socket_connect - no existing_fd for %s [channel %d]\n", id, chan);
+        mtevL(nldeb, "%s - no existing_fd for %s [channel %d]\n", __func__, id, chan);
         free(f.buff);
       }
-      mtevL(nldeb, "mtev_reverse_socket_connect - established reverse connection for %s [channel %d] - pair [%d,%d]\n",
-            rc->id, chan, rc->data.channels[chan].pair[0], rc->data.channels[chan].pair[1]);
+      mtevL(nldeb, "%s - established reverse connection for %s [channel %d] - pair [%d,%d]\n",
+            __func__, rc->id, chan, rc->data.channels[chan].pair[0], rc->data.channels[chan].pair[1]);
     }
   }
   pthread_rwlock_unlock(&reverse_sockets_lock);
   if(!rc)
-    mtevL(nldeb, "mtev_reverse_socket_connect - mtev_support_socket[%d,%s] does not exist\n", existing_fd, id);
+    mtevL(nldeb, "%s - mtev_support_socket[%d,%s] does not exist\n", __func__, existing_fd, id);
   if(rc && fd < 0)
-    mtevL(nlerr, "mtev_reverse_socket_connect - mtev_support_socket[%d,%s] failed operation |%s|: %s\n", existing_fd, rc->id,
-      op ? op : "[NULL]", strerror(errno));
+    mtevL(nlerr, "%s - mtev_support_socket[%d,%s] failed operation |%s|: %s\n", __func__, existing_fd,
+      rc->id, op ? op : "[NULL]", strerror(errno));
   return fd;
 }
 
@@ -1439,7 +1445,7 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
   }
   if(errno == EAGAIN) return mask | EVENTER_EXCEPTION;
   if(sslctx) error = eventer_ssl_get_last_error(sslctx);
-  mtevL(nldeb, "mtev_connection_ssl_upgrade - SSL upgrade failed.\n");
+  mtevL(nldeb, "%s - SSL upgrade failed.\n", __func__);
 
  error:
   LIBMTEV_REVERSE_CONNECT_SSL_FAILED(eventer_get_fd(e),
@@ -1447,9 +1453,12 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
                           (char *)error, errno);
   if(error) {
     const char *cert_error = eventer_ssl_get_peer_error(sslctx);
-    mtevL(nlerr, "[%s] [%s] mtev_connection_ssl_upgrade: %s [%s]\n",
+    mtevL(nlerr, "[%s] [%s] %s: %s [%s]\n",
       nctx->remote_str ? nctx->remote_str : "(null)",
-      cn_expected, error, cert_error);
+      cn_expected,
+      __func__,
+      error,
+      cert_error);
   }
   nctx->close(nctx, e);
   mtev_connection_schedule_reattempt(nctx, now);
@@ -1499,8 +1508,8 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
       default:
         snprintf(remote_str, sizeof(remote_str), "(unknown)");
     }
-    mtevL(nlerr, "Error connecting to %s (%s): %s\n",
-          remote_str, cn_expected ? cn_expected : "(null)", strerror(aerrno));
+    mtevL(nlerr, "%s: Error connecting to %s (%s): %s\n",
+          __func__, remote_str, cn_expected ? cn_expected : "(null)", strerror(aerrno));
     LIBMTEV_REVERSE_CONNECT_FAILED(eventer_get_fd(e), remote_str, (char *)cn_expected, aerrno);
     nctx->close(nctx, e);
     nctx->schedule_reattempt(nctx, now);
@@ -1521,7 +1530,7 @@ mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
   if(!sslctx) goto connect_error;
   if(crl) {
     if(!eventer_ssl_use_crl(sslctx, crl)) {
-      mtevL(nlerr, "Failed to load CRL from %s\n", crl);
+      mtevL(nlerr, "%s: Failed to load CRL from %s\n", __func__, crl);
       eventer_ssl_ctx_free(sslctx);
       goto connect_error;
     }
@@ -1545,7 +1554,8 @@ mtev_connection_session_timeout(eventer_t e, int mask, void *closure,
   mtev_connection_ctx_t *nctx = closure;
   eventer_t fde = nctx->e;
   nctx->timeout_event = NULL;
-  mtevL(nlerr, "Timing out session: %s, %s\n",
+  mtevL(nlerr, "%s: Timing out session: %s, %s\n",
+        __func__,
         nctx->remote_cn ? nctx->remote_cn : "(null)",
         nctx->remote_str ? nctx->remote_str : "(null)");
   if(fde)
@@ -1598,10 +1608,10 @@ mtev_connection_initiate_connection(mtev_connection_ctx_t *nctx) {
     snprintf(reverse_path, sizeof(reverse_path), "%s%s", my_reverse_prefix, cn_expected);
     fd = mtev_reverse_socket_connect(reverse_path, -1);
     if(fd < 0) {
-      mtevL(nldeb, "mtev_connection_initiate_connection - No reverse_socket connection to %s\n", reverse_path);
+      mtevL(nldeb, "%s - No reverse_socket connection to %s\n", __func__, reverse_path);
     }
     else {
-      mtevL(nldeb, "mtev_connection_initiate_connection - Got a reverse_socket connection to %s\n", reverse_path);
+      mtevL(nldeb, "%s - Got a reverse_socket connection to %s\n", __func__, reverse_path);
       needs_connect = 0;
     }
   }
@@ -1620,8 +1630,8 @@ mtev_connection_initiate_connection(mtev_connection_ctx_t *nctx) {
   optval = val; \
   optlen = sizeof(optval); \
   if(setsockopt(fd, type, opt, &optval, optlen) < 0) { \
-    mtevL(nlerr, "[%s] Cannot set " #type "/" #opt " on socket: %s\n", \
-          nctx->remote_str ? nctx->remote_str : "(null)", \
+    mtevL(nlerr, "%s: [%s] Cannot set " #type "/" #opt " on socket: %s\n", \
+          __func__, nctx->remote_str ? nctx->remote_str : "(null)", \
           strerror(errno)); \
     goto reschedule; \
   } \
@@ -1691,7 +1701,7 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
       if(rv != 1) {
         if(!strcmp(host, "")) family = AF_UNSPEC;
         else {
-          mtevL(nlerr, "Cannot translate '%s' to IP\n", host);
+          mtevL(nlerr, "%s: Cannot translate '%s' to IP\n", __func__, host);
           return NULL;
         }
       }
@@ -1772,7 +1782,7 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
 
   snprintf(path, sizeof(path), "/%s/%ss//%s", toplevel ? toplevel : "*", type, type);
   mtev_configs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, path, &cnt);
-  mtevL(nldeb, "mtev_connections_from_config - Found %d %s stanzas\n", cnt, path);
+  mtevL(nldeb, "%s - Found %d %s stanzas\n", __func__, cnt, path);
   for(i=0; i<cnt; i++) {
     char address[256];
     const char *expected_cn = NULL;
@@ -1783,7 +1793,7 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
     if(!mtev_conf_get_stringbuf(mtev_configs[i],
                                 "ancestor-or-self::node()/@address",
                                 address, sizeof(address))) {
-      mtevL(nlerr, "address attribute missing in %d\n", i+1);
+      mtevL(nlerr, "%s: address attribute missing in %d\n", __func__, i+1);
       continue;
     }
     config = mtev_conf_get_hash(mtev_configs[i], "config");
@@ -1804,13 +1814,13 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
     if(address[0] != '/' && (portint == 0 || (port != portint))) {
       /* UNIX sockets don't require a port (they'll ignore it if specified */
       mtevL(nlerr,
-            "Invalid port [%d] specified in stanza %d\n", port, i+1);
+            "%s: Invalid port [%d] specified in stanza %d\n", __func__, port, i+1);
       mtev_hash_destroy(config,free,free);
       continue;
     }
     sslconfig = mtev_conf_get_hash(mtev_configs[i], "sslconfig");
 
-    mtevL(nldeb, "mtev_connections_from_config - initiating to '%s'\n", address);
+    mtevL(nldeb, "%s - initiating to '%s'\n", __func__, address);
 
     initiate_mtev_connection(tracker, tracker_lock,
                              address, port, sslconfig, config,
@@ -2346,7 +2356,7 @@ int
 mtev_lua_help_initiate_mtev_connection(const char *address, int port,
                                        mtev_hash_table *sslconfig,
                                        mtev_hash_table *config) {
-  mtevL(nldeb, "mtev_lua_help_initiate_mtev_connection - initiating to %s\n", address);
+  mtevL(nldeb, "%s - initiating to %s\n", __func__, address);
   initiate_mtev_connection(&reverses, &reverses_lock,
                            address, port, sslconfig, config,
                            mtev_reverse_client_handler,
