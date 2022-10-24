@@ -48,6 +48,9 @@
 #ifndef OPENSSL_STACK
 #define OPENSSL_STACK void
 #endif
+#ifndef X509V3_CTX_REPLACE
+#define X509V3_CTX_REPLACE 0x2
+#endif
 #endif
 
 #ifndef sk_OPENSSL_STRING_value
@@ -466,9 +469,6 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
         lua_pop(L,1);
       }
       addext_conf = NCONF_new(NCONF_default());
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-      #define X509V3_CTX_REPLACE 0x2
-#endif
       X509V3_set_ctx(&ext_ctx, NULL, NULL, req, NULL, X509V3_CTX_REPLACE);
       long errorline = -1;
       if(NCONF_load_bio(addext_conf, addext_bio, &errorline) <= 0) {
