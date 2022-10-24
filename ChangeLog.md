@@ -4,6 +4,8 @@
 
 ## 2.3
 
+ * Support `addext` field under OpenSSL 1.0.
+
 ## 2.3.7
 
  * Fix additional use-after-frees in reverse socket code
