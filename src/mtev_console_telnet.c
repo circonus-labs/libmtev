@@ -60,11 +60,11 @@
 RCSID("$Id: state.c,v 1.14.12.1 2004/06/21 08:21:58 lha Exp $");
 */
 
-unsigned char	doopt[] = { IAC, DO, '%', 'c', 0 };
-unsigned char	dont[] = { IAC, DONT, '%', 'c', 0 };
-unsigned char	will[] = { IAC, WILL, '%', 'c', 0 };
-unsigned char	wont[] = { IAC, WONT, '%', 'c', 0 };
-int	not42 = 1;
+static unsigned char	doopt[] = { IAC, DO, '%', 'c', 0 };
+static unsigned char	dont[] = { IAC, DONT, '%', 'c', 0 };
+static unsigned char	will[] = { IAC, WILL, '%', 'c', 0 };
+static unsigned char	wont[] = { IAC, WONT, '%', 'c', 0 };
+static int	not42 = 1;
 
 /*
  * Buffer for sub-options, and macros
