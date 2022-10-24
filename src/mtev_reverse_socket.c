@@ -487,36 +487,36 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   channel_t *const channel = &cct->parent->data.channels[cct->channel_id];
   eventer_t parent_eventer = cct->parent->data.e;
   if (!parent_eventer) {
-    mtevL(nlerr, "mtev_reverse_socket_channel_handler(%s, %d) - no parent eventer!\n", cct->parent->id, cct->channel_id);
+    mtevL(nlerr, "%s(%s, %d) - no parent eventer!\n", __func__, cct->parent->id, cct->channel_id);
   }
 
-  mtevL(nldeb, "mtev_reverse_socket_channel_handler(%s, %d)\n", cct->parent->id, cct->channel_id);
+  mtevL(nldeb, "%s(%s, %d)\n", __func__, cct->parent->id, cct->channel_id);
   if(cct->parent->data.nctx && cct->parent->data.nctx->wants_permanent_shutdown) {
-    mtevL(nldeb, "mtev_reverse_socket_channel_handler - wants_permanent_shutdown for %s - channel %d, pair [%d,%d] - goto snip\n",
-            cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+    mtevL(nldeb, "%s - wants_permanent_shutdown for %s - channel %d, pair [%d,%d] - goto snip\n",
+            __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
     goto snip;
   }
   if(mask & EVENTER_EXCEPTION) {
-    mtevL(nldeb, "mtev_reverse_socket_channel_handler - got EVENTER_EXCEPTION for %s - channel %d, pair [%d,%d] - goto snip\n",
-            cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+    mtevL(nldeb, "%s - got EVENTER_EXCEPTION for %s - channel %d, pair [%d,%d] - goto snip\n",
+            __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
     goto snip;
   }
 
   /* this damn-well better be our side of the socketpair */
   if(channel->pair[0] != eventer_get_fd(e)) {
    if(channel->pair[0] >= 0)
-     mtevL(nlerr, "mtev_reverse_socket_channel_handler: misaligned events, this is a bug (%d != %d)\n", channel->pair[0], eventer_get_fd(e));
+     mtevL(nlerr, "%s: misaligned events, this is a bug (%d != %d)\n", __func__, channel->pair[0], eventer_get_fd(e));
    shutdown:
-    mtevL(nldeb, "mtev_reverse_socket_channel_handler - at shutdown for %s - channel %d, pair [%d,%d]\n", cct->parent->id, cct->channel_id,
-            channel->pair[0], channel->pair[1]);
+    mtevL(nldeb, "%s - at shutdown for %s - channel %d, pair [%d,%d]\n", __func__, cct->parent->id,
+            cct->channel_id, channel->pair[0], channel->pair[1]);
     if(needs_unlock) {
       pthread_mutex_unlock(&cct->parent->lock);
       needs_unlock = 0;
     }
     command_out(cct->parent, cct->channel_id, "SHUTDOWN");
    snip:
-    mtevL(nldeb, "mtev_reverse_socket_channel_handler - at snip for %s - channel %d, pair [%d,%d]\n", cct->parent->id, cct->channel_id,
-            channel->pair[0], channel->pair[1]);
+    mtevL(nldeb, "%s - at snip for %s - channel %d, pair [%d,%d]\n", __func__, cct->parent->id,
+            cct->channel_id, channel->pair[0], channel->pair[1]);
     if(needs_unlock) {
       pthread_mutex_unlock(&cct->parent->lock);
       needs_unlock = 0;
@@ -554,39 +554,39 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       mtevAssert(f->buff_len == f->buff_filled); /* we only expect full frames here */
       if(f->command) {
         IFCMD(f, "RESET") {
-          mtevL(nldeb, "mtev_reverse_socket_channel_handler - got RESET for %s - channel %d, pair [%d,%d] - goto snip\n",
-                  cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+          mtevL(nldeb, "%s - got RESET for %s - channel %d, pair [%d,%d] - goto snip\n",
+                  __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
           goto snip;
         }
         IFCMD(f, "CLOSE") {
-          mtevL(nldeb, "mtev_reverse_socket_channel_handler - got CLOSE for %s - channel %d, pair [%d,%d] - goto snip\n",
-                  cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+          mtevL(nldeb, "%s - got CLOSE for %s - channel %d, pair [%d,%d] - goto snip\n",
+                  __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
           goto snip;
         }
         IFCMD(f, "SHUTDOWN") {
-          mtevL(nldeb, "mtev_reverse_socket_channel_handler - got SHUTDOWN for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-                  cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+          mtevL(nldeb, "%s - got SHUTDOWN for %s - channel %d, pair [%d,%d] - goto shutdown\n",
+                  __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
           goto shutdown;
         }
-        mtevL(nldeb, "mtev_reverse_socket_channel_handler - unknown command for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-                  cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+        mtevL(nldeb, "%s - unknown command for %s - channel %d, pair [%d,%d] - goto shutdown\n",
+                  __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
         goto shutdown;
       }
       if(f->buff_len == 0) {
-        mtevL(nldeb, "mtev_reverse_socket_channel_handler - f->buff len = 0 for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+        mtevL(nldeb, "%s - f->buff len = 0 for %s - channel %d, pair [%d,%d] - goto shutdown\n",
+          __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
         goto shutdown;
       }
       len = eventer_write(e, f->buff + f->offset, f->buff_filled - f->offset, &write_mask);
       if(len < 0 && errno == EAGAIN) break;
       if(len <= 0) {
-        mtevL(nldeb, "mtev_reverse_socket_channel_handler - failed eventer write (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n", errno, strerror(errno),
-          cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+        mtevL(nldeb, "%s - failed eventer write (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
+          __func__, errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
         goto shutdown;
       }
       if(len > 0) {
-        mtevL(nldeb, "mtev_reverse_socket_channel_handler - reverse_socket_channel for %s - channel %d, pair [%d,%d] write[%d]: %lld\n",
-                cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1],
+        mtevL(nldeb, "%s - reverse_socket_channel for %s - channel %d, pair [%d,%d] write[%d]: %lld\n",
+                __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1],
                 eventer_get_fd(e), (long long)len);
         f->offset += len;
         write_success = 1;
@@ -601,18 +601,18 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     /* try to read some stuff */
     len = eventer_read(e, buff, sizeof(buff), &read_mask);
     if(len < 0 && (errno != EINPROGRESS && errno != EAGAIN)) {
-      mtevL(nldeb, "mtev_reverse_socket_channel_handler - failed eventer read (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+      mtevL(nldeb, "%s - failed eventer read (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
+          __func__, errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
       goto shutdown;
     }
     if(len == 0) {
-      mtevL(nldeb, "mtev_reverse_socket_channel_handler - failed eventer read (length 0) (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+      mtevL(nldeb, "%s - failed eventer read (length 0) (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
+          __func__, errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
       goto shutdown;
     }
     if(len > 0) {
-      mtevL(nldeb, "mtev_reverse_socket_channel_handler - reverse_socket_channel read[%d]: %lld %s - id %s (channel %d), pair [%d,%d]\n",
-          eventer_get_fd(e), (long long)len, len==-1 ? strerror(errno) : "",
+      mtevL(nldeb, "%s - reverse_socket_channel read[%d]: %lld %s - id %s (channel %d), pair [%d,%d]\n",
+          __func__, eventer_get_fd(e), (long long)len, len==-1 ? strerror(errno) : "",
           cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
       reverse_frame_t frame;
       memset(&frame, 0, sizeof(frame));
