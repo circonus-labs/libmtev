@@ -485,6 +485,8 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   int write_success = 1, read_success = 1;
   int needs_unlock = 0;
   int write_mask = EVENTER_EXCEPTION, read_mask = EVENTER_EXCEPTION;
+  mtevAssert(cct->parent);
+  mtevAssert(ck_pr_load_32(&cct->parent->refcnt) > 0);
   channel_t *const channel = &cct->parent->data.channels[cct->channel_id];
   eventer_t parent_eventer = cct->parent->data.e;
   if (!parent_eventer) {
@@ -791,6 +793,7 @@ socket_error:
     if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == AVAILABLE) {
       int fd = mtev_support_connection(rc);
       if(fd >= 0) {
+        mtevAssert(ck_pr_load_32(&rc->refcnt) > 0);
         channel_closure_t *cct;
         cct = malloc(sizeof(*cct));
         cct->channel_id = rc->data.incoming_inflight.channel_id;
@@ -1210,6 +1213,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       }
       rc->data.last_allocated_channel = chan;
       if(existing_fd >= 0) {
+        mtevAssert(ck_pr_load_32(&rc->refcnt) > 0);
         eventer_t e;
         channel_closure_t *cct;
         mtev_gettimeofday(&rc->data.channels[chan].create_time, NULL);
