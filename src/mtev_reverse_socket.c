@@ -485,6 +485,8 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   int write_success = 1, read_success = 1;
   int needs_unlock = 0;
   int write_mask = EVENTER_EXCEPTION, read_mask = EVENTER_EXCEPTION;
+  mtevAssert(cct->parent);
+  mtevAssert(ck_pr_load_32(&cct->parent->refcnt) > 0);
   channel_t *const channel = &cct->parent->data.channels[cct->channel_id];
   eventer_t parent_eventer = cct->parent->data.e;
   if (!parent_eventer) {
