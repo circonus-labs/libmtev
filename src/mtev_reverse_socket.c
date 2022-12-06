@@ -543,6 +543,8 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     else if (parent_eventer && eventer_deref(parent_eventer)) {
       cct->parent->data.e = NULL;
     }
+
+    ck_pr_dec_32(&cct->parent->refcnt);
     free(cct);
     return 0;
   }
@@ -797,12 +799,15 @@ socket_error:
         channel_closure_t *cct;
         cct = malloc(sizeof(*cct));
         cct->channel_id = rc->data.incoming_inflight.channel_id;
+        // Anchor 'rc' to the life cycle of 'newe'
+        ck_pr_inc_32(&rc->refcnt);
         cct->parent = rc;
         mtev_reverse_socket_ref(rc);
 
         eventer_t newe =
           eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, fd,
                            EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
+
         eventer_ref(rc->data.e);
         eventer_add(newe);
         mtev_gettimeofday(&rc->data.channels[rc->data.incoming_inflight.channel_id].create_time, NULL);
@@ -1219,6 +1224,8 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         mtev_gettimeofday(&rc->data.channels[chan].create_time, NULL);
         cct = malloc(sizeof(*cct));
         cct->channel_id = chan;
+        // Anchor 'rc' to the life cycle of 'newe'
+        ck_pr_inc_32(&rc->refcnt);
         cct->parent = rc;
         mtev_reverse_socket_ref(rc);
         e = eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, existing_fd,
