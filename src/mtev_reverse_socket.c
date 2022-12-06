@@ -544,7 +544,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       cct->parent->data.e = NULL;
     }
 
-    ck_pr_dec_32(&cct->parent->refcnt);
+    mtev_reverse_socket_deref(&cct->parent);
     free(cct);
     return 0;
   }
@@ -800,7 +800,7 @@ socket_error:
         cct = malloc(sizeof(*cct));
         cct->channel_id = rc->data.incoming_inflight.channel_id;
         // Anchor 'rc' to the life cycle of 'newe'
-        ck_pr_inc_32(&rc->refcnt);
+        mtev_reverse_socket_ref(&rc->refcnt);
         cct->parent = rc;
         mtev_reverse_socket_ref(rc);
 
@@ -1225,7 +1225,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         cct = malloc(sizeof(*cct));
         cct->channel_id = chan;
         // Anchor 'rc' to the life cycle of 'newe'
-        ck_pr_inc_32(&rc->refcnt);
+        mtev_reverse_socket_ref(&rc->refcnt);
         cct->parent = rc;
         mtev_reverse_socket_ref(rc);
         e = eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, existing_fd,
