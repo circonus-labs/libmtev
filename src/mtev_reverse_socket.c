@@ -816,9 +816,8 @@ socket_error:
         channel_closure_t *cct;
         cct = malloc(sizeof(*cct));
         cct->channel_id = rc->data.incoming_inflight.channel_id;
-        // Anchor 'rc' to the life cycle of 'newe'
-        mtev_reverse_socket_ref(rc);
         cct->parent = rc;
+        mtev_reverse_socket_ref(rc);
 
         eventer_t newe =
           eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, fd,
