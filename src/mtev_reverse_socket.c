@@ -561,7 +561,6 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       cct->parent->data.e = NULL;
     }
 
-    mtev_reverse_socket_deref(cct->parent);
     free(cct);
     return 0;
   }
