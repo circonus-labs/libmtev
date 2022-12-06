@@ -135,10 +135,13 @@ static void reverse_frame_free(void *vrf) {
   free(f);
 }
 
-static inline reverse_frame_t* reverse_frame_dup(reverse_frame_t *frame_to_copy) {
+static inline reverse_frame_t* reverse_frame_move(reverse_frame_t *frame_to_copy) {
   reverse_frame_t *frame = malloc(sizeof(*frame));
 
   memcpy(frame, frame_to_copy, sizeof(*frame));
+  frame_to_copy->buff = NULL;
+  frame_to_copy->buff_len = 0;
+  frame_to_copy->buff_filled = 0;
   return frame;
 }
 
@@ -299,7 +302,7 @@ static void *mtev_reverse_socket_alloc(void) {
 static void APPEND_IN(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   const uint16_t id = frame_to_copy->channel_id;
   channel_t *const channel = &rc->data.channels[id];
-  reverse_frame_t *const frame = reverse_frame_dup(frame_to_copy);
+  reverse_frame_t *const frame = reverse_frame_move(frame_to_copy);
 
   pthread_mutex_lock(&rc->lock);
 
@@ -350,7 +353,7 @@ static void POP_OUT(reverse_socket_t *rc) {
 static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   const uint16_t id = (frame_to_copy->channel_id & 0x7fff);
   channel_t *const channel = &rc->data.channels[id];
-  reverse_frame_t *const frame = reverse_frame_dup(frame_to_copy);
+  reverse_frame_t *const frame = reverse_frame_move(frame_to_copy);
 
   pthread_mutex_lock(&rc->lock);
 
@@ -391,10 +394,9 @@ static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
 }
 static void APPEND_OUT_NO_LOCK(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   int id;
-  reverse_frame_t *frame = malloc(sizeof(*frame));
+  reverse_frame_t *const frame = reverse_frame_move(frame_to_copy);
   eventer_t wakeup_e = NULL;
 
-  memcpy(frame, frame_to_copy, sizeof(*frame));
   rc->data.out_bytes += frame->buff_len;
   rc->data.out_frames += 1;
   id = frame->channel_id & 0x7fff;
