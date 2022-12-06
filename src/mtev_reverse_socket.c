@@ -451,7 +451,6 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t 
     channel->pair[0] = channel->pair[1] = AVAILABLE;
   }
 
-
   pthread_mutex_unlock(&rc->lock);
   return mtev_reverse_socket_deref(rc);
 }
