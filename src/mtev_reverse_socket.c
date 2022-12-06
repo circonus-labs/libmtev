@@ -324,6 +324,7 @@ static void APPEND_IN(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
     }
 
     memset(frame_to_copy, 0, sizeof(*frame_to_copy));
+    pthread_mutex_unlock(&rc->lock);
     e = eventer_find_fd(channel->pair[0]);
 
     if (!e) {
