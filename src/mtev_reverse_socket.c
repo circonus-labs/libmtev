@@ -428,11 +428,13 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t 
   pthread_mutex_unlock(&rc->lock);
   freed = mtev_reverse_socket_deref(rc);
 
-  while (saved_incoming) {
-    reverse_frame_t *const f = saved_incoming;
+  if (freed) {
+    while (saved_incoming) {
+      reverse_frame_t *const f = saved_incoming;
 
-    saved_incoming = saved_incoming->next;
-    reverse_frame_free(f);
+      saved_incoming = saved_incoming->next;
+      reverse_frame_free(f);
+    }
   }
 
   return freed;
@@ -800,14 +802,12 @@ socket_error:
         cct = malloc(sizeof(*cct));
         cct->channel_id = rc->data.incoming_inflight.channel_id;
         // Anchor 'rc' to the life cycle of 'newe'
-        mtev_reverse_socket_ref(&rc->refcnt);
-        cct->parent = rc;
         mtev_reverse_socket_ref(rc);
+        cct->parent = rc;
 
         eventer_t newe =
           eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, fd,
                            EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
-
         eventer_ref(rc->data.e);
         eventer_add(newe);
         mtev_gettimeofday(&rc->data.channels[rc->data.incoming_inflight.channel_id].create_time, NULL);
@@ -1224,10 +1224,8 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         mtev_gettimeofday(&rc->data.channels[chan].create_time, NULL);
         cct = malloc(sizeof(*cct));
         cct->channel_id = chan;
-        // Anchor 'rc' to the life cycle of 'newe'
-        mtev_reverse_socket_ref(&rc->refcnt);
-        cct->parent = rc;
         mtev_reverse_socket_ref(rc);
+        cct->parent = rc;
         e = eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, existing_fd,
                              EVENTER_READ | EVENTER_EXCEPTION);
         eventer_ref(rc->data.e);
