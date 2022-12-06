@@ -135,13 +135,13 @@ static void reverse_frame_free(void *vrf) {
   free(f);
 }
 
-static inline reverse_frame_t* reverse_frame_move(reverse_frame_t *frame_to_copy) {
+static inline reverse_frame_t* reverse_frame_move(reverse_frame_t *frame_to_move) {
   reverse_frame_t *frame = malloc(sizeof(*frame));
 
-  memcpy(frame, frame_to_copy, sizeof(*frame));
-  frame_to_copy->buff = NULL;
-  frame_to_copy->buff_len = 0;
-  frame_to_copy->buff_filled = 0;
+  memcpy(frame, frame_to_move, sizeof(*frame));
+  frame_to_move->buff = NULL;
+  frame_to_move->buff_len = 0;
+  frame_to_move->buff_filled = 0;
   return frame;
 }
 
