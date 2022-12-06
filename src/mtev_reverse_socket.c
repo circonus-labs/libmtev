@@ -1239,8 +1239,8 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         mtev_gettimeofday(&rc->data.channels[chan].create_time, NULL);
         cct = malloc(sizeof(*cct));
         cct->channel_id = chan;
-        mtev_reverse_socket_ref(rc);
         cct->parent = rc;
+        mtev_reverse_socket_ref(rc);
         e = eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, existing_fd,
                              EVENTER_READ | EVENTER_EXCEPTION);
         eventer_ref(rc->data.e);
