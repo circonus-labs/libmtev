@@ -477,35 +477,55 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t 
 static void
 mtev_reverse_socket_shutdown(reverse_socket_t *rc, eventer_t e) {
   (void)e;
-  int mask, i;
+  int mask;
   pthread_mutex_lock(&rc->lock);
   mtevL(nldeb, "%s(%s)\n", __func__, rc->id);
-  if(rc->data.buff) free(rc->data.buff);
-  if(rc->data.xbind) {
+
+  if (rc->data.buff) {
+    free(rc->data.buff);
+  }
+
+  if (rc->data.xbind) {
     free(rc->data.xbind);
-    if(rc->data.proxy_ip4_e) {
-      mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET, (struct sockaddr *)&rc->data.proxy_ip4, false);
+
+    if (rc->data.proxy_ip4_e) {
+      mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET,
+          (struct sockaddr*) &rc->data.proxy_ip4, false);
       eventer_remove_fde(rc->data.proxy_ip4_e);
       eventer_close(rc->data.proxy_ip4_e, &mask);
-      mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(rc->data.proxy_ip4_e));
+      mtev_watchdog_on_crash_close_remove_fd(
+          eventer_get_fd(rc->data.proxy_ip4_e));
       eventer_free(rc->data.proxy_ip4_e);
     }
-    if(rc->data.proxy_ip6_e) {
-      mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET6, (struct sockaddr *)&rc->data.proxy_ip6, false);
+
+    if (rc->data.proxy_ip6_e) {
+      mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET6,
+          (struct sockaddr*) &rc->data.proxy_ip6, false);
       eventer_remove_fde(rc->data.proxy_ip6_e);
       eventer_close(rc->data.proxy_ip6_e, &mask);
-      mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(rc->data.proxy_ip6_e));
+      mtev_watchdog_on_crash_close_remove_fd(
+          eventer_get_fd(rc->data.proxy_ip6_e));
       eventer_free(rc->data.proxy_ip6_e);
     }
   }
-  if(rc->data.incoming_inflight.buff) free(rc->data.incoming_inflight.buff);
-  while(rc->data.outgoing) {
+
+  if (rc->data.incoming_inflight.buff) {
+    free(rc->data.incoming_inflight.buff);
+  }
+
+  while (rc->data.outgoing) {
     reverse_frame_t *f = rc->data.outgoing;
     rc->data.outgoing = rc->data.outgoing->next;
     reverse_frame_free(f);
   }
+
+  // The reference count on 'rc' still might not
+  // reach zero before returning from this function,
+  // protect subsequent users from using freed pointers
+  memset(&rc->data, 0, sizeof(reverse_socket_data_t));
   pthread_mutex_unlock(&rc->lock);
-  for(i=0;i<MAX_CHANNELS;i++) {
+
+  for (int i = 0; i < MAX_CHANNELS; i++) {
     const bool freed = mtev_reverse_socket_channel_shutdown(rc, i);
     mtevAssert(!freed);
   }
