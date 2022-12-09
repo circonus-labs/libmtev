@@ -46,7 +46,7 @@ unless ($worked) {
 
 __END__
 cc=@CC@
-cc=@CXX@
+cxx=@CXX@
 cppflags=@CPPFLAGS@
 cflags=@CFLAGS@
 cxxflags=@CXXFLAGS@
