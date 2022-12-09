@@ -394,7 +394,7 @@ aklomp-base64/lib/libbase64.o:
 
 .cpp.o:
 	@echo "- compiling $<"
-	$(Q)$(CXX) $(CPPFLAGS) $(CFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(Q)$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 utils/mtev_logic.lo:	utils/mtev-logic-leg.c
 utils/mtev_logic.c:	utils/mtev-logic-leg.c
