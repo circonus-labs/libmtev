@@ -83,9 +83,7 @@ mtev_reverse_socket_acl(mtev_reverse_acl_decider_t f) {
 }
 
 extern "C" mtev_reverse_acl_decision_t
-mtev_reverse_socket_denier(const char *id, mtev_acceptor_closure_t *ac) {
-  (void)id;
-  (void)ac;
+mtev_reverse_socket_denier(const char * /* id */, mtev_acceptor_closure_t * /* ac */) {
   return MTEV_ACL_DENY;
 }
 
