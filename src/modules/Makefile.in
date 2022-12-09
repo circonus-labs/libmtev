@@ -12,9 +12,11 @@ includedir=@includedir@
 top_srcdir=@top_srcdir@
 
 CC=@CC@
+CXX=@CXX@
 LD=@LD@
 CPPFLAGS=-I$(top_srcdir)/src -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/json-lib @CPPFLAGS@ -DEXPOSE_EVENTER_ABI
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
+CXXFLAGS=@CXXFLAGS@
 DEPFLAGS=@DEPFLAGS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
 MODULELD=@MODULELD@
