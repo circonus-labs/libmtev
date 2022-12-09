@@ -45,6 +45,7 @@ CHOTOPT=@CHOTOPT@
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 CXXFLAGS=@CXXFLAGS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
+SHCXXFLAGS=@SHCXXFLAGS@ @CFLAGSEXTRAS@
 CLINKFLAGS=@CLINKFLAGS@
 PGCFLAGS=@PGCFLAGS@
 LDFLAGS=@LDFLAGS@ -L$(libdir)
@@ -375,6 +376,10 @@ aklomp-base64/lib/libbase64.o:
 .c.lo:
 	@echo "- compiling $<"
 	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
+
+.cpp.lo:
+	@echo "- compiling $<"
+	$(Q)$(CXX) $(CPPFLAGS) $(SHCXXFLAGS) -c $< -o $@
 
 .S.Slo:
 	@echo "- assembling $<"
