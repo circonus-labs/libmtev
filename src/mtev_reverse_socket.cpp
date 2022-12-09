@@ -74,7 +74,7 @@ struct reverse_access_list {
 };
 static struct reverse_access_list *access_list = NULL;
 
-void
+extern "C" void
 mtev_reverse_socket_acl(mtev_reverse_acl_decider_t f) {
   struct reverse_access_list *acl = static_cast<struct reverse_access_list *>(calloc(1, sizeof(*acl)));
   acl->next = access_list;
@@ -82,7 +82,7 @@ mtev_reverse_socket_acl(mtev_reverse_acl_decider_t f) {
   access_list = acl;
 }
 
-mtev_reverse_acl_decision_t
+extern "C" mtev_reverse_acl_decision_t
 mtev_reverse_socket_denier(const char *id, mtev_acceptor_closure_t *ac) {
   (void)id;
   (void)ac;
@@ -220,7 +220,8 @@ RSACCESS(size_t, in_frames, in_frames)
 RSACCESS(size_t, out_frames, out_frames)
 RSACCESS(struct timeval, create_time, create_time)
 RSACCESS(const char *, xbind, xbind)
-uint32_t mtev_reverse_socket_nchannels(reverse_socket_t *sock) {
+
+extern "C" uint32_t mtev_reverse_socket_nchannels(reverse_socket_t *sock) {
   uint32_t count = 0;
   for(int i=0; i<MAX_CHANNELS; i++) {
     count += sock->data.channels[i].pair[0] >= 0;
@@ -1199,7 +1200,7 @@ socket_error:
   return 0;
 }
 
-int mtev_reverse_socket_connect(const char *id, int existing_fd) {
+extern "C" int mtev_reverse_socket_connect(const char *id, int existing_fd) {
   const char *op = "";
   int i, fd = -1, chan = -1;
   void *vrc;
@@ -1344,11 +1345,12 @@ mtev_connection_ctx_free(mtev_connection_ctx_t *ctx) {
   free(ctx);
 }
 
-void
+extern "C" void
 mtev_connection_ctx_ref(mtev_connection_ctx_t *ctx) {
   ck_pr_inc_32(&ctx->refcnt);
 }
-void
+
+extern "C" void
 mtev_connection_ctx_deref(mtev_connection_ctx_t *ctx) {
   bool zero;
   ck_pr_dec_32_zero(&ctx->refcnt, &zero);
@@ -1356,7 +1358,8 @@ mtev_connection_ctx_deref(mtev_connection_ctx_t *ctx) {
     mtev_connection_ctx_free(ctx);
   }
 }
-void
+
+extern "C" void
 mtev_connection_ctx_dealloc(mtev_connection_ctx_t *ctx) {
   mtev_connection_ctx_t **pctx = &ctx;
   pthread_mutex_t *lock = ctx->tracker_lock;
@@ -1382,7 +1385,7 @@ mtev_connection_reinitiate(eventer_t e, int mask, void *closure,
   return 0;
 }
 
-int
+extern "C" int
 mtev_connection_disable_timeout(mtev_connection_ctx_t *nctx) {
   if(nctx->timeout_event) {
     eventer_remove(nctx->timeout_event);
@@ -1604,7 +1607,7 @@ mtev_connection_session_timeout(eventer_t e, int mask, void *closure,
   return 0;
 }
 
-int
+extern "C" int
 mtev_connection_update_timeout(mtev_connection_ctx_t *nctx) {
   struct timeval now, diff;
   if(nctx->max_silence == 0) return 0;
@@ -1810,7 +1813,7 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
   return ctx;
 }
 
-int
+extern "C" int
 mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_lock,
                              const char *toplevel, const char *destination,
                              const char *type,
@@ -2295,7 +2298,7 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
   return 0;
 }
 
-void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
+extern "C" void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
   nlerr = mtev_log_stream_find("error/reverse");
   nldeb = mtev_log_stream_find("debug/reverse");
 
@@ -2348,7 +2351,7 @@ void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
   register_console_reverse_commands();
 }
 
-int
+extern "C" int
 mtev_reverse_socket_connection_shutdown(const char *address, int port) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   int success = 0;
@@ -2370,7 +2373,8 @@ mtev_reverse_socket_connection_shutdown(const char *address, int port) {
   pthread_mutex_unlock(&reverses_lock);
   return success;
 }
-mtev_boolean
+
+extern "C" mtev_boolean
 mtev_connection_do(const char *address, int port, void (*cb)(mtev_connection_ctx_t *, reverse_socket_t *, void *), void *closure) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   mtev_boolean invoked = mtev_false;
@@ -2393,7 +2397,8 @@ mtev_connection_do(const char *address, int port, void (*cb)(mtev_connection_ctx
   pthread_mutex_unlock(&reverses_lock);
   return invoked;
 }
-int
+
+extern "C" int
 mtev_lua_help_initiate_mtev_connection(const char *address, int port,
                                        mtev_hash_table *sslconfig,
                                        mtev_hash_table *config) {
@@ -2405,7 +2410,8 @@ mtev_lua_help_initiate_mtev_connection(const char *address, int port,
                            mtev_reverse_socket_deref_noreturn);
   return 0;
 }
-void
+
+extern "C" void
 mtev_reverse_socket_init_globals(void) {
   mtev_hash_init(&reverse_sockets);
   mtev_hash_init(&reverses);
