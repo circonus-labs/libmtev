@@ -465,6 +465,7 @@ AS_IF([test "x$ENABLE_LUA" = "xluajit"], [
 
     AC_CHECK_HEADER(lj_obj.h, [AC_DEFINE(HAVE_LUAJIT_SOURCE, [1], [have luajit sources])], [AC_MSG_WARN([*** no libluajit source build in include path ***])])
     CFLAGS="$CFLAGS $LUAJIT_CFLAGS"
+    CXXFLAGS="$CXXFLAGS $LUAJIT_CFLAGS"
     AC_MSG_RESULT([checking luajit CFLAGS: $LUAJIT_CFLAGS])
 
     AC_CHECK_LIB(rt, timer_create)
@@ -622,6 +623,7 @@ AC_CHECK_FUNC(SSL_CTX_set_next_protos_advertised_cb, ,
 AC_MSG_CHECKING([libxml2 cflags])
 XML2CFLAGS=`xml2-config --cflags`
 CFLAGS="$CFLAGS $XML2CFLAGS"
+CXXFLAGS="$CXXFLAGS $XML2CFLAGS" 
 AC_MSG_RESULT([$XML2CFLAGS])
 AC_CHECK_HEADER(libxml/tree.h, [], [AC_MSG_ERROR([*** libxml2 (headers) required ***])])
 
@@ -635,6 +637,7 @@ AC_CHECK_FUNC(xmlParseDocument, , [AC_MSG_ERROR([*** libxml2 is required ***])])
 AC_MSG_CHECKING([libxslt cflags])
 XSLTCFLAGS=`xslt-config --cflags`
 CFLAGS="$CFLAGS $XSLTCFLAGS"
+CXXFLAGS="$CXXFLAGS $XSLTCFLAGS"
 AC_MSG_RESULT([$XSLTCFLAGS])
 AC_CHECK_HEADER(libxslt/xslt.h, [], [AC_MSG_ERROR([*** libxslt (headers) required ***])])
 
