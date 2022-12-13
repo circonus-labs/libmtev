@@ -493,6 +493,7 @@ AC_ARG_ENABLE([zipkin_fq],
     [],
     [enable_zipkin_fq=check])
 
+ZIPKIN_FQ_BUILT="no"
 AS_IF([test "x$enable_zipkin_fq" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
@@ -515,6 +516,7 @@ AC_ARG_ENABLE([fq],
     [],
     [enable_fq=check])
 
+FQ_BUILT="no"
 AS_IF([test "x$enable_fq" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
@@ -538,6 +540,7 @@ AC_ARG_ENABLE([amqp],
     [],
     [enable_amqp=check])
 
+AMQP_BUILT="no"
 AS_IF([test "x$enable_amqp" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
@@ -1057,13 +1060,14 @@ AC_MSG_RESULT([
   CXX:                $CXX
   CPPFLAGS:           $CPPFLAGS
   CFLAGS:             $CFLAGS
-  SHCFLAGS:           $SHCFLAGS
   CXXFLAGS:           $CXXFLAGS
-  SHCXXFLAGS:         $SHCXXFLAGS
   LD:                 $LD
-  SHLD:               $SHLD
   CLINKFLAGS:         $CLINKFLAGS
   MAPFLAGS:           $MAPFLAGS
+
+  SHCFLAGS:           $SHCFLAGS
+  SHCXXFLAGS:         $SHCXXFLAGS
+  SHLD:               $SHLD
 
   MODULECC:           $MODULECC
   MODULESHCFLAGS:     $MODULESHCFLAGS
