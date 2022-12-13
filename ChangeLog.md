@@ -4,19 +4,22 @@
 
 ## 2.3
 
+### 2.3.8
+
+ * More crash and memory leak fixes in reverse socket code.
  * Support `addext` field under OpenSSL 1.0.
 
-## 2.3.7
+### 2.3.7
 
  * Fix additional use-after-frees in reverse socket code
 
-## 2.3.6
+### 2.3.6
 
  * Fix use-after-free in reverse socket code
  * Allow for an `addext` field for lua CSR generation (requires at least openssl 1.1):
    `addext = { subjectAltName = { "DNS:name1", "DNS:name2" } }`
 
-## 2.3.5
+### 2.3.5
 
  * The HTTP systems should only write so much data before returning control to the event loop.
    It now limits to 512k (programmatically changeable).
