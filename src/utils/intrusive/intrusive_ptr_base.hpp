@@ -4,7 +4,7 @@
 #include <atomic>
 #include <cstddef>
 
-#include "util/mem/intrusive_ptr.hpp"
+#include "utils/intrusive/intrusive_ptr.hpp"
 
 namespace util::mem {
 
