@@ -908,6 +908,7 @@ mtev_reverse_socket_server_handler(eventer_t e, int mask, void *closure,
   int rv;
   mtev_acceptor_closure_t *ac = closure;
   reverse_socket_t *rc = mtev_acceptor_closure_ctx(ac);
+  mtev_reverse_socket_ref(rc);
   rv = mtev_reverse_socket_handler(e, mask, rc, now);
   if(rv == 0) {
     mtev_acceptor_closure_free(ac);
@@ -1155,7 +1156,6 @@ socket_error:
     /* Setup proxies if we've got them */
     mtev_reverse_socket_proxy_setup(rc);
     rc->data.e = e;
-    mtev_reverse_socket_ref(rc);
     eventer_set_callback(e, mtev_reverse_socket_server_handler);
     return eventer_callback(e, EVENTER_READ | EVENTER_WRITE, closure, now);
   }
