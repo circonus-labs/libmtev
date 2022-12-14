@@ -204,6 +204,7 @@ typedef struct {
 struct reverse_socket {
   reverse_socket_data_t data;
   char *id;
+  reverse_frame_t *frames_to_free;
   pthread_mutex_t lock;
   uint32_t refcnt;
 };
@@ -245,6 +246,14 @@ mtev_reverse_socket_free(void *vrc) {
   }
   if(rc->data.buff) free(rc->data.buff);
   if(rc->id) free(rc->id);
+
+  for (reverse_frame_t *p = rc->frames_to_free; p; ) {
+    reverse_frame_t *const f = p;
+
+    p = p->next;
+    reverse_frame_free(f);
+  }
+
   pthread_mutex_destroy(&rc->lock);
   free(rc);
 }
@@ -311,7 +320,7 @@ static void APPEND_IN(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
       channel->incoming_tail = frame;
     } else {
       mtevAssert(!channel->incoming);
-      channel->incoming = channel->incoming_tail = frame;
+      channel->incoming = rc->data.channels[id].incoming_tail = frame;
     }
 
     memset(frame_to_copy, 0, sizeof(*frame_to_copy));
@@ -429,7 +438,6 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
 static bool
 mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t channel_id) {
   eventer_t ce = NULL;
-  reverse_frame_t *frames_to_free = NULL;
 
   mtev_reverse_socket_ref(rc);
   pthread_mutex_lock(&rc->lock);
@@ -456,21 +464,13 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_t *const rc, const uint16_t 
 
   if (channel->pair[0] == AGING) {
     channel->in_bytes = channel->out_bytes = channel->in_frames = channel->out_frames = 0;
-    frames_to_free = channel->incoming;
+    rc->frames_to_free = channel->incoming;
     channel->incoming = NULL;
     channel->incoming_tail = NULL;
     channel->pair[0] = channel->pair[1] = AVAILABLE;
   }
 
   pthread_mutex_unlock(&rc->lock);
-
-  for (reverse_frame_t *p = frames_to_free; p;) {
-    reverse_frame_t *const f = p;
-
-    p = p->next;
-    reverse_frame_free(f);
-  }
-
   return mtev_reverse_socket_deref(rc);
 }
 
