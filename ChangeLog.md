@@ -4,6 +4,10 @@
 
 ## 2.3
 
+### 2.3.9
+
+ * Revert some reverse socket changes that caused instability.
+
 ### 2.3.8
 
  * More crash and memory leak fixes in reverse socket code.
