@@ -658,13 +658,18 @@ mtev_reverse_socket_wakeup(eventer_t /*e*/, int /*mask*/, void *closure, timeval
 {
   reverse_socket_sp rc = {static_cast<reverse_socket_t *>(closure), false};
 
-  if (eventer_remove_fde(rc->data.e.get())) {
-    eventer_trigger(rc->data.e.get(), EVENTER_READ|EVENTER_WRITE);
-  }
-  else {
-    mtevL(nldeb, "%s: failed to remove fde from eventer object %p\n", __func__, rc->data.e.get());
+  pthread_mutex_lock(&rc->lock);
+
+  if (rc->data.e) {
+    if (eventer_remove_fde(rc->data.e.get())) {
+      eventer_trigger(rc->data.e.get(), EVENTER_READ|EVENTER_WRITE);
+    }
+    else {
+      mtevL(nldeb, "%s: failed to remove fde from eventer object %p\n", __func__, rc->data.e.get());
+    }
   }
 
+  pthread_mutex_unlock(&rc->lock);
   return 0;
 }
 
