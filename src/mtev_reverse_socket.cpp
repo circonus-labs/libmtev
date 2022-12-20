@@ -474,7 +474,9 @@ mtev_reverse_socket_shutdown(reverse_socket_sp rc, [[maybe_unused]] eventer_t e)
   int mask, i;
   pthread_mutex_lock(&rc->lock);
   mtevL(nldeb, "%s(%s)\n", __func__, rc->id);
-  if(rc->data.buff) free(rc->data.buff);
+  free(rc->data.buff);
+  rc->data.e = nullptr;
+  rc->data.buff = nullptr;
   if(rc->data.xbind) {
     free(rc->data.xbind);
     if(rc->data.proxy_ip4_e) {
