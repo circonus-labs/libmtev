@@ -425,8 +425,7 @@ command_out(reverse_socket_sp &rc, uint16_t id, const char *command) {
   APPEND_OUT(rc, &frame);
 }
 
-static bool
-mtev_reverse_socket_channel_shutdown(reverse_socket_sp rc, const uint16_t channel_id) {
+static void mtev_reverse_socket_channel_shutdown(reverse_socket_sp rc, const uint16_t channel_id) {
   eventer_t ce = NULL;
   reverse_frame_t *saved_incoming = NULL;
 
@@ -468,8 +467,6 @@ mtev_reverse_socket_channel_shutdown(reverse_socket_sp rc, const uint16_t channe
     saved_incoming = saved_incoming->next;
     reverse_frame_free(f);
   }
-
-  return false;
 }
 
 static void
@@ -503,8 +500,7 @@ mtev_reverse_socket_shutdown(reverse_socket_sp rc, [[maybe_unused]] eventer_t e)
   }
   pthread_mutex_unlock(&rc->lock);
   for(i=0;i<MAX_CHANNELS;i++) {
-    const bool freed = mtev_reverse_socket_channel_shutdown(rc, i);
-    mtevAssert(!freed);
+    mtev_reverse_socket_channel_shutdown(rc, i);
   }
 }
 
@@ -565,8 +561,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       pthread_mutex_lock(&parent_rs->lock);
       channel->pair[0] = channel->pair[1] = AGING;
       pthread_mutex_unlock(&parent_rs->lock);
-      const bool freed = mtev_reverse_socket_channel_shutdown(parent_rs, cct->channel_id);
-      mtevAssert(!freed);
+      mtev_reverse_socket_channel_shutdown(parent_rs, cct->channel_id);
       parent_rs->data.e = nullptr;
     }
 
