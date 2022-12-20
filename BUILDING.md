@@ -2,7 +2,7 @@
 
 ## Requirements
 
- * C11 compiler (e.g., gcc >= 4.9, clang >= 3.6)
+ * Compiler that supports C11 and C++20 standards.
  * concurrencykit (ck) >= 0.7.0
  * hwloc
  * flatcc >= 0.6.0
