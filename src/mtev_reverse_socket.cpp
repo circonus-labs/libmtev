@@ -657,10 +657,13 @@ static int
 mtev_reverse_socket_wakeup(eventer_t /*e*/, int /*mask*/, void *closure, timeval * /*tv*/)
 {
   reverse_socket_sp rc = {static_cast<reverse_socket_t *>(closure), false};
+  eventer_sp e;
 
   pthread_mutex_lock(&rc->lock);
+  e = rc->data.e;
+  pthread_mutex_unlock(&rc->lock);
 
-  if (auto e = rc->data.e) {
+  if (e) {
     if (eventer_remove_fde(e.get())) {
       eventer_trigger(e.get(), EVENTER_READ|EVENTER_WRITE);
     }
@@ -669,7 +672,6 @@ mtev_reverse_socket_wakeup(eventer_t /*e*/, int /*mask*/, void *closure, timeval
     }
   }
 
-  pthread_mutex_unlock(&rc->lock);
   return 0;
 }
 
