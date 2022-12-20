@@ -46,8 +46,10 @@ unless ($worked) {
 
 __END__
 cc=@CC@
+cxx=@CXX@
 cppflags=@CPPFLAGS@
 cflags=@CFLAGS@
+cxxflags=@CXXFLAGS@
 ldflags=@LDFLAGS@
 libs=@LIBS@
 prefix=@prefix@

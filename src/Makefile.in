@@ -31,6 +31,8 @@ top_srcdir=@top_srcdir@
 MODULES_DIR=@MODULES_DIR@
 
 CC=@CC@
+CXX=@CXX@
+LD=@LD@
 SHLD=@SHLD@
 CPPFLAGS=-I$(top_srcdir)/src -I$(top_srcdir)/src/json-lib \
 	-I$(top_srcdir)/src/slz-lib \
@@ -41,7 +43,9 @@ PYTHON=@PYTHON@
 FLATCC=@FLATCC@
 CHOTOPT=@CHOTOPT@
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
+CXXFLAGS=@CXXFLAGS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
+SHCXXFLAGS=@SHCXXFLAGS@ @CFLAGSEXTRAS@
 CLINKFLAGS=@CLINKFLAGS@
 PGCFLAGS=@PGCFLAGS@
 LDFLAGS=@LDFLAGS@ -L$(libdir)
@@ -373,6 +377,10 @@ aklomp-base64/lib/libbase64.o:
 	@echo "- compiling $<"
 	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@
 
+.cpp.lo:
+	@echo "- compiling $<"
+	$(Q)$(CXX) $(CPPFLAGS) $(SHCXXFLAGS) -c $< -o $@
+
 .S.Slo:
 	@echo "- assembling $<"
 	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) $(CHOTOPT) -fPIC -c $< -o $@
@@ -388,6 +396,10 @@ aklomp-base64/lib/libbase64.o:
 .c.o:
 	@echo "- compiling $<"
 	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+.cpp.o:
+	@echo "- compiling $<"
+	$(Q)$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 utils/mtev_logic.lo:	utils/mtev-logic-leg.c
 utils/mtev_logic.c:	utils/mtev-logic-leg.c

@@ -31,13 +31,13 @@
 #define MTEV_CONTROL_REVERSE   0x52455645 /* "REVE" */
 #define DEFAULT_MTEV_CONNECTION_TIMEOUT 60000 /* 60 seconds */
 
-#define IFCMD(f, s) if((f)->command && (f)->buff_len == strlen(s) && (f)->buff && !strncmp((f)->buff, s, strlen(s)))
+#define IFCMD(f, s) if((f)->command && (f)->buff_len == strlen(s) && (f)->buff && !strncmp(static_cast<const char*>((f)->buff), s, strlen(s)))
 #define GET_CONF_STR(nctx, key, cn) do { \
   void *vcn; \
   cn = NULL; \
   if(nctx->config && \
      mtev_hash_retrieve(nctx->config, key, strlen(key), &vcn)) { \
-     cn = vcn; \
+     cn = static_cast<const char*>(vcn); \
   } \
 } while(0)
 #define GET_EXPECTED_CN(nctx, cn) GET_CONF_STR(nctx, "cn", cn)
@@ -74,18 +74,16 @@ struct reverse_access_list {
 };
 static struct reverse_access_list *access_list = NULL;
 
-void
+extern "C" void
 mtev_reverse_socket_acl(mtev_reverse_acl_decider_t f) {
-  struct reverse_access_list *acl = calloc(1, sizeof(*acl));
+  struct reverse_access_list *acl = static_cast<struct reverse_access_list *>(calloc(1, sizeof(*acl)));
   acl->next = access_list;
   acl->allow = f;
   access_list = acl;
 }
 
-mtev_reverse_acl_decision_t
-mtev_reverse_socket_denier(const char *id, mtev_acceptor_closure_t *ac) {
-  (void)id;
-  (void)ac;
+extern "C" mtev_reverse_acl_decision_t
+mtev_reverse_socket_denier(const char * /* id */, mtev_acceptor_closure_t * /* ac */) {
   return MTEV_ACL_DENY;
 }
 
@@ -130,7 +128,7 @@ typedef struct reverse_frame {
 } reverse_frame_t;
 
 static void reverse_frame_free(void *vrf) {
-  reverse_frame_t *f = vrf;
+  auto f = static_cast<reverse_frame_t *>(vrf);
   if(f->buff) free(f->buff);
   free(f);
 }
@@ -209,7 +207,8 @@ RSACCESS(size_t, in_frames, in_frames)
 RSACCESS(size_t, out_frames, out_frames)
 RSACCESS(struct timeval, create_time, create_time)
 RSACCESS(const char *, xbind, xbind)
-uint32_t mtev_reverse_socket_nchannels(reverse_socket_t *sock) {
+
+extern "C" uint32_t mtev_reverse_socket_nchannels(reverse_socket_t *sock) {
   uint32_t count = 0;
   for(int i=0; i<MAX_CHANNELS; i++) {
     count += sock->data.channels[i].pair[0] >= 0;
@@ -227,7 +226,7 @@ static int mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, stru
 
 static void
 mtev_reverse_socket_free(void *vrc) {
-  reverse_socket_t *rc = vrc;
+  auto rc = static_cast<reverse_socket_t *>(vrc);
   if(rc->id) {
     pthread_rwlock_wrlock(&reverse_sockets_lock);
     mtev_hash_delete(&reverse_sockets, rc->id, strlen(rc->id), NULL, NULL);
@@ -262,7 +261,7 @@ mtev_reverse_socket_deref_noreturn(void *vrc) {
 static void *mtev_reverse_socket_alloc(void) {
   int i;
   pthread_mutexattr_t attr;
-  reverse_socket_t *rc = calloc(1, sizeof(*rc));
+  reverse_socket_t *rc = static_cast<reverse_socket_t *>(calloc(1, sizeof(*rc)));
   mtev_reverse_socket_ref(rc);
   pthread_mutexattr_init(&attr);
   mtevAssert(pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_PRIVATE) == 0);
@@ -277,7 +276,7 @@ static void *mtev_reverse_socket_alloc(void) {
 static void APPEND_IN(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   eventer_t e;
   uint16_t id = frame_to_copy->channel_id;
-  reverse_frame_t *frame = malloc(sizeof(*frame));
+  auto frame = static_cast<reverse_frame_t *>(malloc(sizeof(reverse_frame_t)));
   memcpy(frame, frame_to_copy, sizeof(*frame));
   pthread_mutex_lock(&rc->lock);
   rc->data.in_bytes += frame->buff_len;
@@ -315,7 +314,7 @@ static void POP_OUT(reverse_socket_t *rc) {
 }
 static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   int id;
-  reverse_frame_t *frame = malloc(sizeof(*frame));
+  auto frame = static_cast<reverse_frame_t *>(malloc(sizeof(reverse_frame_t)));
   eventer_t wakeup_e = NULL;
 
   memcpy(frame, frame_to_copy, sizeof(*frame));
@@ -347,7 +346,7 @@ static void APPEND_OUT(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
 }
 static void APPEND_OUT_NO_LOCK(reverse_socket_t *rc, reverse_frame_t *frame_to_copy) {
   int id;
-  reverse_frame_t *frame = malloc(sizeof(*frame));
+  auto frame = static_cast<reverse_frame_t*>(malloc(sizeof(reverse_frame_t)));
   eventer_t wakeup_e = NULL;
 
   memcpy(frame, frame_to_copy, sizeof(*frame));
@@ -384,7 +383,7 @@ command_out(reverse_socket_t *rc, uint16_t id, const char *command) {
   frame.channel_id = id | 0x8000;
   mtevL(nldeb, "%s channel:%d '%s'\n", __func__, id, command);
   frame.buff = strdup(command);
-  frame.buff_len = frame.buff_filled = strlen(frame.buff);
+  frame.buff_len = frame.buff_filled = strlen(static_cast<const char*>(frame.buff));
   APPEND_OUT(rc, &frame);
 }
 
@@ -480,7 +479,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
                                     struct timeval *now) {
   (void)now;
   char buff[MAX_FRAME_LEN];
-  channel_closure_t *cct = closure;
+  auto cct = static_cast<channel_closure_t *>(closure);
   ssize_t len;
   int write_success = 1, read_success = 1;
   int needs_unlock = 0;
@@ -580,7 +579,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
           __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
         goto shutdown;
       }
-      len = eventer_write(e, f->buff + f->offset, f->buff_filled - f->offset, &write_mask);
+      len = eventer_write(e, static_cast<const char*>(f->buff) + f->offset, f->buff_filled - f->offset, &write_mask);
       if(len < 0 && errno == EAGAIN) break;
       if(len <= 0) {
         mtevL(nldeb, "%s - failed eventer write (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
@@ -637,7 +636,7 @@ mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, struct timeval 
   (void)e;
   (void)mask;
   (void)tv;
-  reverse_socket_t *rc = closure;
+  auto rc = static_cast<reverse_socket_t *>(closure);
   if (rc->data.e) {
     if (eventer_remove_fde(rc->data.e)) {
       eventer_trigger(rc->data.e, EVENTER_READ|EVENTER_WRITE);
@@ -684,7 +683,7 @@ mtev_reverse_socket_handler(eventer_t e, int mask, void *closure,
   int success = 0;
   int reads_remaining=500, writes_remaining=500;
   bool needs_unlock = false;
-  reverse_socket_t *rc = closure;
+  auto rc = static_cast<reverse_socket_t *>(closure);
   const char *socket_error_string = "protocol error";
 
   if(rc->data.nctx && rc->data.nctx->wants_permanent_shutdown) {
@@ -755,8 +754,9 @@ socket_error:
   }
   while(rc->data.incoming_inflight.buff_filled < rc->data.incoming_inflight.buff_len) {
     if(!rc->data.incoming_inflight.buff) rc->data.incoming_inflight.buff = malloc(rc->data.incoming_inflight.buff_len);
-    len = eventer_read(e, rc->data.incoming_inflight.buff + rc->data.incoming_inflight.buff_filled,
-                       rc->data.incoming_inflight.buff_len - rc->data.incoming_inflight.buff_filled, &rmask);
+    len = eventer_read(e,
+            const_cast<char*>(static_cast<const char*>(rc->data.incoming_inflight.buff) + rc->data.incoming_inflight.buff_filled),
+            rc->data.incoming_inflight.buff_len - rc->data.incoming_inflight.buff_filled, &rmask);
     if(len < 0 && errno == EAGAIN) {
       mtevL(nldeb, "%s %s: frame payload read, got EAGAIN, goto try_writes\n", rc->id, __func__);
       goto try_writes;
@@ -795,7 +795,7 @@ socket_error:
       if(fd >= 0) {
         mtevAssert(ck_pr_load_32(&rc->refcnt) > 0);
         channel_closure_t *cct;
-        cct = malloc(sizeof(*cct));
+        cct = static_cast<channel_closure_t *>(malloc(sizeof(*cct)));
         cct->channel_id = rc->data.incoming_inflight.channel_id;
         cct->parent = rc;
         mtev_reverse_socket_ref(rc);
@@ -855,7 +855,7 @@ socket_error:
       success = 1;
     }
     while(f->offset < f->buff_len) {
-      len = eventer_write(e, f->buff + f->offset,
+      len = eventer_write(e, static_cast<const char*>(f->buff) + f->offset,
                           f->buff_len - f->offset, &wmask);
       if(len < 0 && errno == EAGAIN) {
         mtevL(nldeb, "%s (channel %d) %s: try_writes for buffer, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id, __func__);
@@ -905,11 +905,11 @@ socket_error:
 int
 mtev_reverse_socket_server_handler(eventer_t e, int mask, void *closure,
                                    struct timeval *now) {
-  int rv;
-  mtev_acceptor_closure_t *ac = closure;
-  reverse_socket_t *rc = mtev_acceptor_closure_ctx(ac);
+  auto ac = static_cast<mtev_acceptor_closure_t *>(closure);
+  auto rc = static_cast<reverse_socket_t *>(mtev_acceptor_closure_ctx(ac));
+
   mtev_reverse_socket_ref(rc);
-  rv = mtev_reverse_socket_handler(e, mask, rc, now);
+  auto rv = mtev_reverse_socket_handler(e, mask, rc, now);
   if(rv == 0) {
     mtev_acceptor_closure_free(ac);
     eventer_remove_fde(e);
@@ -923,8 +923,8 @@ int
 mtev_reverse_socket_client_handler(eventer_t e, int mask, void *closure,
                                    struct timeval *now) {
   int rv;
-  mtev_connection_ctx_t *nctx = closure;
-  reverse_socket_t *rc = nctx->consumer_ctx;
+  auto nctx = static_cast<mtev_connection_ctx_t *>(closure);
+  auto rc = static_cast<reverse_socket_t *>(nctx->consumer_ctx);
   mtev_reverse_socket_ref(rc);
   mtevAssert(rc->data.nctx == nctx);
   rv = mtev_reverse_socket_handler(e, mask, rc, now);
@@ -976,7 +976,7 @@ mtev_reverse_socket_proxy_accept(eventer_t e, int mask, void *closure,
     struct sockaddr_in in4;
     struct sockaddr_in6 in6;
   } remote;
-  reverse_socket_t *rc = closure;
+  auto rc = static_cast<reverse_socket_t *>(closure);
 
   salen = sizeof(remote);
   fd = eventer_accept(e, &remote.in, &salen, &mask);
@@ -1043,8 +1043,8 @@ mtev_reverse_socket_acceptor(eventer_t e, int mask, void *closure,
   ssize_t len = 0;
   const char *socket_error_string = "unknown socket error";
   char errbuf[80];
-  mtev_acceptor_closure_t *ac = closure;
-  reverse_socket_t *rc = mtev_acceptor_closure_ctx(ac);
+  auto ac = static_cast<mtev_acceptor_closure_t *>(closure);
+  auto rc = static_cast<reverse_socket_t*>(mtev_acceptor_closure_ctx(ac));
 
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
@@ -1058,9 +1058,9 @@ socket_error:
   }
 
   if(!rc) {
-    rc = mtev_reverse_socket_alloc();
+    rc = static_cast<reverse_socket_t*>(mtev_reverse_socket_alloc());
     mtev_acceptor_closure_set_ctx(ac, rc, mtev_reverse_socket_deref_noreturn);
-    if(!rc->data.buff) rc->data.buff = malloc(CMD_BUFF_LEN);
+    if(!rc->data.buff) rc->data.buff = static_cast<char*>(malloc(CMD_BUFF_LEN));
     /* expect: "REVERSE /<id>\r\n"  ... "REVE" already read */
     /*              [ 5 ][ X][ 2]  */
   }
@@ -1162,7 +1162,7 @@ socket_error:
   return 0;
 }
 
-int mtev_reverse_socket_connect(const char *id, int existing_fd) {
+extern "C" int mtev_reverse_socket_connect(const char *id, int existing_fd) {
   const char *op = "";
   int i, fd = -1, chan = -1;
   void *vrc;
@@ -1170,7 +1170,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
 
   pthread_rwlock_rdlock(&reverse_sockets_lock);
   if(mtev_hash_retrieve(&reverse_sockets, id, strlen(id), &vrc)) {
-    rc = vrc;
+    rc = static_cast<reverse_socket_t*>(vrc);
     for(i=0;i<MAX_CHANNELS;i++) {
       chan = (rc->data.last_allocated_channel + i + 1) % MAX_CHANNELS;
       if(rc->data.channels[chan].pair[0] == AVAILABLE) break;
@@ -1180,7 +1180,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
       memset(&f, 0, sizeof(f));
       f.channel_id = chan | 0x8000;
       f.buff = strdup("CONNECT");
-      f.buff_len = strlen(f.buff);
+      f.buff_len = strlen(static_cast<const char*>(f.buff));
       op = "socketpair";
       mtevL(nldeb, "%s - sending connect message (channel id %d, chan %d, id %s, existing_fd %d)\n",
               __func__, f.channel_id, chan, id, existing_fd);
@@ -1217,7 +1217,7 @@ int mtev_reverse_socket_connect(const char *id, int existing_fd) {
         eventer_t e;
         channel_closure_t *cct;
         mtev_gettimeofday(&rc->data.channels[chan].create_time, NULL);
-        cct = malloc(sizeof(*cct));
+        cct = static_cast<channel_closure_t*>(malloc(sizeof(*cct)));
         cct->channel_id = chan;
         cct->parent = rc;
         mtev_reverse_socket_ref(rc);
@@ -1262,7 +1262,7 @@ mtev_connection_close(mtev_connection_ctx_t *ctx, eventer_t e) {
 static void
 mtev_reverse_socket_close(mtev_connection_ctx_t *ctx, eventer_t e) {
   int mask;
-  mtev_reverse_socket_shutdown(ctx->consumer_ctx,e);
+  mtev_reverse_socket_shutdown(static_cast<reverse_socket_t*>(ctx->consumer_ctx),e);
   eventer_remove_fde(e);
   eventer_close(e, &mask);
   ctx->e = NULL;
@@ -1271,13 +1271,13 @@ mtev_reverse_socket_close(mtev_connection_ctx_t *ctx, eventer_t e) {
 static mtev_connection_ctx_t *
 mtev_connection_ctx_alloc(mtev_hash_table *t, pthread_mutex_t *l) {
   mtev_connection_ctx_t *ctx, **pctx;
-  ctx = calloc(1, sizeof(*ctx));
+  ctx = static_cast<mtev_connection_ctx_t*>(calloc(1, sizeof(*ctx)));
   ctx->tracker = t;
   ctx->tracker_lock = l;
   ctx->refcnt = 1;
   ctx->schedule_reattempt = mtev_connection_schedule_reattempt;
   ctx->close = mtev_connection_close;
-  pctx = malloc(sizeof(*pctx));
+  pctx = static_cast<mtev_connection_ctx_t**>(malloc(sizeof(*pctx)));
   *pctx = ctx;
   pthread_mutex_lock(l);
   mtev_hash_store(t, (const char *)pctx, sizeof(*pctx), ctx);
@@ -1307,11 +1307,12 @@ mtev_connection_ctx_free(mtev_connection_ctx_t *ctx) {
   free(ctx);
 }
 
-void
+extern "C" void
 mtev_connection_ctx_ref(mtev_connection_ctx_t *ctx) {
   ck_pr_inc_32(&ctx->refcnt);
 }
-void
+
+extern "C" void
 mtev_connection_ctx_deref(mtev_connection_ctx_t *ctx) {
   bool zero;
   ck_pr_dec_32_zero(&ctx->refcnt, &zero);
@@ -1319,7 +1320,8 @@ mtev_connection_ctx_deref(mtev_connection_ctx_t *ctx) {
     mtev_connection_ctx_free(ctx);
   }
 }
-void
+
+extern "C" void
 mtev_connection_ctx_dealloc(mtev_connection_ctx_t *ctx) {
   mtev_connection_ctx_t **pctx = &ctx;
   pthread_mutex_t *lock = ctx->tracker_lock;
@@ -1339,13 +1341,13 @@ mtev_connection_reinitiate(eventer_t e, int mask, void *closure,
   (void)e;
   (void)mask;
   (void)now;
-  mtev_connection_ctx_t *ctx = closure;
+  auto ctx = static_cast<mtev_connection_ctx_t*>(closure);
   ctx->retry_event = NULL;
-  mtev_connection_initiate_connection(closure);
+  mtev_connection_initiate_connection(ctx);
   return 0;
 }
 
-int
+extern "C" int
 mtev_connection_disable_timeout(mtev_connection_ctx_t *nctx) {
   if(nctx->timeout_event) {
     eventer_remove(nctx->timeout_event);
@@ -1406,7 +1408,7 @@ mtev_connection_schedule_reattempt(mtev_connection_ctx_t *ctx,
 int
 mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
                             struct timeval *now) {
-  mtev_connection_ctx_t *nctx = closure;
+  auto nctx = static_cast<mtev_connection_ctx_t*>(closure);
   int rv;
   const char *error = NULL, *cn_expected;
   char error_buff[500];
@@ -1432,7 +1434,7 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
         cn += 3;
         end = cn;
         while(*end && *end != '/') end++;
-        nctx->remote_cn = malloc(end - cn + 1);
+        nctx->remote_cn = static_cast<char*>(malloc(end - cn + 1));
         memcpy(nctx->remote_cn, cn, end - cn);
         nctx->remote_cn[end-cn] = '\0';
       }
@@ -1472,7 +1474,7 @@ mtev_connection_ssl_upgrade(eventer_t e, int mask, void *closure,
 int
 mtev_connection_complete_connect(eventer_t e, int mask, void *closure,
                                  struct timeval *now) {
-  mtev_connection_ctx_t *nctx = closure;
+  auto nctx = static_cast<mtev_connection_ctx_t*>(closure);
   const char *layer = NULL, *cert, *key, *ca, *ciphers, *crl = NULL, *cn_expected;
   char remote_str[128], tmp_str[INET6_ADDRSTRLEN+1];
   eventer_ssl_ctx_t *sslctx;
@@ -1555,7 +1557,7 @@ mtev_connection_session_timeout(eventer_t e, int mask, void *closure,
   (void)e;
   (void)mask;
   (void)now;
-  mtev_connection_ctx_t *nctx = closure;
+  auto nctx = static_cast<mtev_connection_ctx_t*>(closure);
   eventer_t fde = nctx->e;
   nctx->timeout_event = NULL;
   mtevL(nlerr, "%s: Timing out session: %s, %s\n",
@@ -1567,7 +1569,7 @@ mtev_connection_session_timeout(eventer_t e, int mask, void *closure,
   return 0;
 }
 
-int
+extern "C" int
 mtev_connection_update_timeout(mtev_connection_ctx_t *nctx) {
   struct timeval now, diff;
   if(nctx->max_silence == 0) return 0;
@@ -1715,7 +1717,7 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
 
   ctx = mtev_connection_ctx_alloc(tracking, tracking_lock);
   if(*host) {
-    ctx->remote_str = calloc(1, strlen(host) + 7);
+    ctx->remote_str = static_cast<char *>(calloc(1, strlen(host) + 7));
     snprintf(ctx->remote_str, strlen(host) + 7,
              "%s:%d", host, port);
   }
@@ -1750,14 +1752,14 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
   if(ctx->sslconfig)
     mtev_hash_delete_all(ctx->sslconfig, free, free);
   else {
-    ctx->sslconfig = calloc(1, sizeof(mtev_hash_table));
+    ctx->sslconfig = static_cast<mtev_hash_table*>(calloc(1, sizeof(mtev_hash_table)));
     mtev_hash_init(ctx->sslconfig);
   }
   mtev_hash_merge_as_dict(ctx->sslconfig, sslconfig);
   if(ctx->config)
     mtev_hash_delete_all(ctx->config, free, free);
   else {
-    ctx->config = calloc(1, sizeof(mtev_hash_table));
+    ctx->config = static_cast<mtev_hash_table*>(calloc(1, sizeof(mtev_hash_table)));
     mtev_hash_init(ctx->config);
   }
   mtev_hash_merge_as_dict(ctx->config, config);
@@ -1773,7 +1775,7 @@ initiate_mtev_connection(mtev_hash_table *tracking, pthread_mutex_t *tracking_lo
   return ctx;
 }
 
-int
+extern "C" int
 mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_lock,
                              const char *toplevel, const char *destination,
                              const char *type,
@@ -1844,9 +1846,9 @@ mtev_connections_from_config(mtev_hash_table *tracker, pthread_mutex_t *tracker_
 static int
 mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
                              struct timeval *now) {
-  mtev_connection_ctx_t *nctx = closure;
+  auto nctx = static_cast<mtev_connection_ctx_t *>(closure);
   const char *my_cn;
-  reverse_socket_t *rc = nctx->consumer_ctx;
+  auto rc = static_cast<reverse_socket_t*>(nctx->consumer_ctx);
   const char *target, *port_str, *xbind;
   char channel_name[256];
   char reverse_intro[300];
@@ -1960,8 +1962,8 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
 
 static int
 reverse_socket_str_sort(const void *a, const void *b) {
-  reverse_socket_t * const *actx = a;
-  reverse_socket_t * const *bctx = b;
+  auto actx = static_cast<const reverse_socket_t * const *>(a);
+  auto bctx = static_cast<const reverse_socket_t * const *>(b);
   return strcmp((*actx)->id, (*bctx)->id);
 }
 
@@ -2017,7 +2019,7 @@ mtev_console_show_reverse(mtev_console_closure_t ncct,
   reverse_socket_t **ctx;
 
   pthread_rwlock_rdlock(&reverse_sockets_lock);
-  ctx = malloc(sizeof(*ctx) * mtev_hash_size(&reverse_sockets));
+  ctx = static_cast<reverse_socket_t**>(malloc(sizeof(*ctx) * mtev_hash_size(&reverse_sockets)));
   while(mtev_hash_adv(&reverse_sockets, &iter)) {
     ctx[n] = (reverse_socket_t *)iter.value.ptr;
     if(argc == 0 ||
@@ -2095,7 +2097,7 @@ rest_show_reverse_json(mtev_http_rest_closure_t *restc,
   mtev_gettimeofday(&now, NULL);
 
   pthread_rwlock_rdlock(&reverse_sockets_lock);
-  ctxs = malloc(sizeof(*ctxs) * mtev_hash_size(&reverse_sockets));
+  ctxs = static_cast<reverse_socket**>(malloc(sizeof(*ctxs) * mtev_hash_size(&reverse_sockets)));
   while(mtev_hash_adv(&reverse_sockets, &iter)) {
     ctxs[n] = (reverse_socket_t *)iter.value.ptr;
     n++;
@@ -2187,7 +2189,7 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
   mtev_gettimeofday(&now, NULL);
 
   pthread_rwlock_rdlock(&reverse_sockets_lock);
-  ctxs = malloc(sizeof(*ctxs) * mtev_hash_size(&reverse_sockets));
+  ctxs = static_cast<reverse_socket**>(malloc(sizeof(*ctxs) * mtev_hash_size(&reverse_sockets)));
   while(mtev_hash_adv(&reverse_sockets, &iter)) {
     ctxs[n] = (reverse_socket_t *)iter.value.ptr;
     n++;
@@ -2258,7 +2260,7 @@ rest_show_reverse(mtev_http_rest_closure_t *restc,
   return 0;
 }
 
-void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
+extern "C" void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
   nlerr = mtev_log_stream_find("error/reverse");
   nldeb = mtev_log_stream_find("debug/reverse");
 
@@ -2311,7 +2313,7 @@ void mtev_reverse_socket_init(const char *prefix, const char **cn_prefixes) {
   register_console_reverse_commands();
 }
 
-int
+extern "C" int
 mtev_reverse_socket_connection_shutdown(const char *address, int port) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   int success = 0;
@@ -2320,7 +2322,7 @@ mtev_reverse_socket_connection_shutdown(const char *address, int port) {
   snprintf(remote_str, sizeof(remote_str), "%s:%d", address, port);
   pthread_mutex_lock(&reverses_lock);
   while(mtev_hash_adv(&reverses, &iter)) {
-    mtev_connection_ctx_t *ctx = iter.value.ptr;
+    auto ctx = static_cast<mtev_connection_ctx_t *>(iter.value.ptr);
     if(ctx->remote_str && !strcmp(remote_str, ctx->remote_str)) {
       if(!ctx->wants_permanent_shutdown) {
         ctx->wants_permanent_shutdown = 1;
@@ -2333,7 +2335,8 @@ mtev_reverse_socket_connection_shutdown(const char *address, int port) {
   pthread_mutex_unlock(&reverses_lock);
   return success;
 }
-mtev_boolean
+
+extern "C" mtev_boolean
 mtev_connection_do(const char *address, int port, void (*cb)(mtev_connection_ctx_t *, reverse_socket_t *, void *), void *closure) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   mtev_boolean invoked = mtev_false;
@@ -2342,11 +2345,11 @@ mtev_connection_do(const char *address, int port, void (*cb)(mtev_connection_ctx
   snprintf(remote_str, sizeof(remote_str), "%s:%d", address, port);
   pthread_mutex_lock(&reverses_lock);
   while(mtev_hash_adv(&reverses, &iter)) {
-    mtev_connection_ctx_t *ctx = iter.value.ptr;
+    auto ctx = static_cast<mtev_connection_ctx_t*>(iter.value.ptr);
     if(ctx->remote_str && !strcmp(remote_str, ctx->remote_str)) {
       reverse_socket_t *rc = NULL;
       if(ctx->consumer_callback == mtev_reverse_client_handler) {
-        rc = ctx->consumer_ctx;
+        rc = static_cast<reverse_socket_t*>(ctx->consumer_ctx);
       }
       cb(ctx, rc, closure);
       invoked = mtev_true;
@@ -2356,7 +2359,8 @@ mtev_connection_do(const char *address, int port, void (*cb)(mtev_connection_ctx
   pthread_mutex_unlock(&reverses_lock);
   return invoked;
 }
-int
+
+extern "C" int
 mtev_lua_help_initiate_mtev_connection(const char *address, int port,
                                        mtev_hash_table *sslconfig,
                                        mtev_hash_table *config) {
@@ -2368,7 +2372,8 @@ mtev_lua_help_initiate_mtev_connection(const char *address, int port,
                            mtev_reverse_socket_deref_noreturn);
   return 0;
 }
-void
+
+extern "C" void
 mtev_reverse_socket_init_globals(void) {
   mtev_hash_init(&reverse_sockets);
   mtev_hash_init(&reverses);

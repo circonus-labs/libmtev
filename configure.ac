@@ -61,11 +61,21 @@ AC_ARG_ENABLE(rdtsc,
 
 : ${CFLAGS="-g -O2 -fno-omit-frame-pointer"}
 : ${CXXFLAGS="-g -O2 -fno-omit-frame-pointer"}
+
 AC_PROG_CC
 AX_CHECK_COMPILE_FLAG([-std=c11],
   [AX_APPEND_FLAG([-std=c11])],
   [AC_MSG_WARN([-std=c11 not supported, you may have to set CFLAGS to enable C11 support.])]
 )
+
+AC_PROG_CXX
+AC_LANG_PUSH(C++)
+AX_CHECK_COMPILE_FLAG([-std=c++20],
+  [AX_APPEND_FLAG([-std=c++20])],
+  [AC_MSG_WARN([-std=c++20 not supported, you may have to set CXXFLAGS to enable C++20 support.])]
+)
+AC_LANG_POP(C++)
+
 AC_C_INLINE
 AC_C_BIGENDIAN
 AC_PROG_CPP
@@ -346,6 +356,7 @@ ETC_DIR=${fullpath}
 AC_SUBST(ETC_DIR)
 
 CPPFLAGS="-I$INCLUDE_DIR $CPPFLAGS"
+LD="$CXX"
 LDFLAGS="$LDFLAGS -L$LIB_DIR $RLDFLAG$LIB_DIR"
 SHLDFLAGS="$LDFLAGS"
 
@@ -454,6 +465,7 @@ AS_IF([test "x$ENABLE_LUA" = "xluajit"], [
 
     AC_CHECK_HEADER(lj_obj.h, [AC_DEFINE(HAVE_LUAJIT_SOURCE, [1], [have luajit sources])], [AC_MSG_WARN([*** no libluajit source build in include path ***])])
     CFLAGS="$CFLAGS $LUAJIT_CFLAGS"
+    CXXFLAGS="$CXXFLAGS $LUAJIT_CFLAGS"
     AC_MSG_RESULT([checking luajit CFLAGS: $LUAJIT_CFLAGS])
 
     AC_CHECK_LIB(rt, timer_create)
@@ -481,6 +493,7 @@ AC_ARG_ENABLE([zipkin_fq],
     [],
     [enable_zipkin_fq=check])
 
+ZIPKIN_FQ_BUILT="no"
 AS_IF([test "x$enable_zipkin_fq" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
@@ -503,6 +516,7 @@ AC_ARG_ENABLE([fq],
     [],
     [enable_fq=check])
 
+FQ_BUILT="no"
 AS_IF([test "x$enable_fq" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
@@ -526,6 +540,7 @@ AC_ARG_ENABLE([amqp],
     [],
     [enable_amqp=check])
 
+AMQP_BUILT="no"
 AS_IF([test "x$enable_amqp" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
@@ -611,6 +626,7 @@ AC_CHECK_FUNC(SSL_CTX_set_next_protos_advertised_cb, ,
 AC_MSG_CHECKING([libxml2 cflags])
 XML2CFLAGS=`xml2-config --cflags`
 CFLAGS="$CFLAGS $XML2CFLAGS"
+CXXFLAGS="$CXXFLAGS $XML2CFLAGS" 
 AC_MSG_RESULT([$XML2CFLAGS])
 AC_CHECK_HEADER(libxml/tree.h, [], [AC_MSG_ERROR([*** libxml2 (headers) required ***])])
 
@@ -624,6 +640,7 @@ AC_CHECK_FUNC(xmlParseDocument, , [AC_MSG_ERROR([*** libxml2 is required ***])])
 AC_MSG_CHECKING([libxslt cflags])
 XSLTCFLAGS=`xslt-config --cflags`
 CFLAGS="$CFLAGS $XSLTCFLAGS"
+CXXFLAGS="$CXXFLAGS $XSLTCFLAGS"
 AC_MSG_RESULT([$XSLTCFLAGS])
 AC_CHECK_HEADER(libxslt/xslt.h, [], [AC_MSG_ERROR([*** libxslt (headers) required ***])])
 
@@ -985,7 +1002,9 @@ mansubdir="man"
 AC_SUBST(docdir)
 AC_SUBST(mansubdir)
 SHCFLAGS="$PICFLAGS $CFLAGS"
+SHCXXFLAGS="$PICFLAGS $CXXFLAGS"
 AC_SUBST(SHCFLAGS)
+AC_SUBST(SHCXXFLAGS)
 AC_SUBST(LD)
 AC_SUBST(SHLDFLAGS)
 AC_SUBST(EXTRA_EXAMPLES)
@@ -1038,15 +1057,19 @@ AC_MSG_RESULT([
 
   == Compilers ==
   CC:                 $CC
+  CXX:                $CXX
   CPPFLAGS:           $CPPFLAGS
   CFLAGS:             $CFLAGS
+  CXXFLAGS:           $CXXFLAGS
   LD:                 $LD
-  SHLD:               $SHLD
   CLINKFLAGS:         $CLINKFLAGS
   MAPFLAGS:           $MAPFLAGS
 
-  MODULECC:           $MODULECC
   SHCFLAGS:           $SHCFLAGS
+  SHCXXFLAGS:         $SHCXXFLAGS
+  SHLD:               $SHLD
+
+  MODULECC:           $MODULECC
   MODULESHCFLAGS:     $MODULESHCFLAGS
   MODULESHCXXFLAGS:   $MODULESHCXXFLAGS
 

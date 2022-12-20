@@ -2,6 +2,10 @@
 
 # 2
 
+## 2.4
+
+ * Enable the use of C++, and convert reverse socket code.
+
 ## 2.3
 
 ### 2.3.9
