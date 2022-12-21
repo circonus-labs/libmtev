@@ -182,12 +182,12 @@ public:
   }
 
 public:
-  inline reverse_socket *ref() {
+  inline reverse_socket *add_ref() {
     ck_pr_inc_32(&refcnt);
     return this;
   }
 
-  inline bool de_ref() {
+  inline bool release_ref() {
     bool zero;
 
     ck_pr_dec_32_zero(&refcnt, &zero);
@@ -212,16 +212,16 @@ public:
 
 public:
   friend inline reverse_socket_t *intrusive_ptr_add_ref(reverse_socket_t *p) noexcept {
-    return p->ref();
+    return p->add_ref();
   }
 
   friend inline bool intrusive_ptr_release(reverse_socket_t *p) noexcept {
-    return p->de_ref();
+    return p->release_ref();
   }
 
 public:
-  static inline void de_ref_no_return(void *vrc) {
-    static_cast<reverse_socket_t *>(vrc)->de_ref();
+  static inline void release_ref_no_return(void *vrc) {
+    intrusive_ptr_release(static_cast<reverse_socket_t *>(vrc));
   }
 
 public:
@@ -311,9 +311,7 @@ struct channel_closure_t {
 static int mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, struct timeval *tv);
 
 static reverse_socket_sp mtev_reverse_socket_alloc() {
-  reverse_socket_sp rc = new reverse_socket_t{};
-
-  return rc;
+  return reverse_socket_sp{new reverse_socket_t{}};
 }
 
 static void APPEND_IN(reverse_socket_sp &rc, reverse_frame_t *frame_to_copy) {
@@ -375,7 +373,7 @@ static void APPEND_OUT(reverse_socket_sp &rc, reverse_frame_t *frame_to_copy) {
     rc->data.outgoing = rc->data.outgoing_tail = frame;
   }
   if(rc->data.e) {
-    wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup, rc->ref(), eventer_get_owner(rc->data.e.get()));
+    wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup, rc->add_ref(), eventer_get_owner(rc->data.e.get()));
   }
   pthread_mutex_unlock(&rc->lock);
   if(!wakeup_e) mtevL(nldeb, "%s: No event to trigger for reverse_socket framing\n", __func__);
@@ -404,7 +402,7 @@ static void APPEND_OUT_NO_LOCK(reverse_socket_sp &rc, reverse_frame_t *frame_to_
   }
   if(rc->data.e) {
     wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup,
-                                                    rc->ref(), eventer_get_owner(rc->data.e.get()));
+                                                    rc->add_ref(), eventer_get_owner(rc->data.e.get()));
   }
   if(!wakeup_e) mtevL(nlerr, "%s: No event to trigger for reverse_socket framing\n", __func__);
   else {
@@ -697,9 +695,7 @@ mtev_support_connection(reverse_socket_sp &rc) {
   return -1;
 }
 
-static int
-mtev_reverse_socket_handler(eventer_t e, int mask, reverse_socket_sp rc, timeval *now) {
-  (void)now;
+static int mtev_reverse_socket_handler(eventer_t e, int mask, reverse_socket_sp rc) {
   int rmask = EVENTER_EXCEPTION;
   int wmask = EVENTER_EXCEPTION;
   int len;
@@ -918,10 +914,10 @@ socket_error:
       EVENTER_READ|EVENTER_WRITE|EVENTER_EXCEPTION;
 }
 
-int mtev_reverse_socket_server_handler(eventer_t e, int mask, void *closure, timeval *now) {
+int mtev_reverse_socket_server_handler(eventer_t e, int mask, void *closure, timeval * /*now*/) {
   auto ac = static_cast<mtev_acceptor_closure_t *>(closure);
   reverse_socket_sp rc = static_cast<reverse_socket_t *>(mtev_acceptor_closure_ctx(ac));
-  auto rv = mtev_reverse_socket_handler(e, mask, rc, now);
+  const auto rv = mtev_reverse_socket_handler(e, mask, rc);
 
   if(rv == 0) {
     mtev_acceptor_closure_free(ac);
@@ -935,10 +931,7 @@ int mtev_reverse_socket_server_handler(eventer_t e, int mask, void *closure, tim
 int mtev_reverse_socket_client_handler(eventer_t e, int mask, void *closure, timeval *now) {
   auto nctx = static_cast<mtev_connection_ctx_t *>(closure);
   reverse_socket_sp rc = static_cast<reverse_socket_t *>(nctx->consumer_ctx);
-  int rv;
-
-  mtevAssert(rc->data.nctx == nctx);
-  rv = mtev_reverse_socket_handler(e, mask, rc, now);
+  const auto rv = mtev_reverse_socket_handler(e, mask, rc);
 
   if (rv == 0) {
     nctx->close(nctx, e);
@@ -1021,7 +1014,7 @@ mtev_reverse_socket_proxy_setup(reverse_socket_sp rc) {
     if(getsockname(fd, (struct sockaddr *)&rc->data.proxy_ip4, &salen)) goto bad4;
     mtev_watchdog_on_crash_close_add_fd(fd);
     rc->data.proxy_ip4_e =
-      eventer_alloc_fd(mtev_reverse_socket_proxy_accept, rc->ref(), fd,
+      eventer_alloc_fd(mtev_reverse_socket_proxy_accept, rc->add_ref(), fd,
                        EVENTER_READ | EVENTER_EXCEPTION);
     eventer_add(rc->data.proxy_ip4_e);
     mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET, (struct sockaddr *)&rc->data.proxy_ip4, true);
@@ -1038,7 +1031,7 @@ mtev_reverse_socket_proxy_setup(reverse_socket_sp rc) {
     if(getsockname(fd, (struct sockaddr *)&rc->data.proxy_ip6, &salen)) goto bad6;
     mtev_watchdog_on_crash_close_add_fd(fd);
     rc->data.proxy_ip6_e =
-      eventer_alloc_fd(mtev_reverse_socket_proxy_accept, rc->ref(), fd,
+      eventer_alloc_fd(mtev_reverse_socket_proxy_accept, rc->add_ref(), fd,
                        EVENTER_READ | EVENTER_EXCEPTION);
     eventer_add(rc->data.proxy_ip6_e);
     mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET6, (struct sockaddr *)&rc->data.proxy_ip6, true);
@@ -1071,7 +1064,7 @@ socket_error:
 
   if(!rc) {
     rc = mtev_reverse_socket_alloc();
-    mtev_acceptor_closure_set_ctx(ac, rc->ref(), reverse_socket::de_ref_no_return);
+    mtev_acceptor_closure_set_ctx(ac, rc->add_ref(), reverse_socket::release_ref_no_return);
     if(!rc->data.buff) rc->data.buff = static_cast<char*>(malloc(CMD_BUFF_LEN));
     /* expect: "REVERSE /<id>\r\n"  ... "REVE" already read */
     /*              [ 5 ][ X][ 2]  */
@@ -1150,7 +1143,7 @@ socket_error:
   }
 
   pthread_rwlock_wrlock(&reverse_sockets_lock);
-  rv = mtev_hash_store(&reverse_sockets, rc->id, strlen(rc->id), rc->ref());
+  rv = mtev_hash_store(&reverse_sockets, rc->id, strlen(rc->id), rc->add_ref());
   pthread_rwlock_unlock(&reverse_sockets_lock);
   if(rv == 0) {
     snprintf(errbuf, sizeof(errbuf), "'%s' id in use", rc->id);
@@ -1248,31 +1241,21 @@ extern "C" int mtev_reverse_socket_connect(const char *id, int existing_fd) {
   return fd;
 }
 
-static void
-mtev_connection_close(mtev_connection_ctx_t *ctx, eventer_t e) {
-  int mask = 0;
-  const char *cn_expected;
-  GET_EXPECTED_CN(ctx, cn_expected);
-  LIBMTEV_REVERSE_CONNECT_CLOSE(eventer_get_fd(e), ctx->remote_str,
-                     (char *)cn_expected,
-                     ctx->wants_shutdown, errno);
-  (void)cn_expected;
-  eventer_remove_fde(e);
-  ctx->e = NULL;
-  eventer_close(e, &mask);
-}
-
-static void
-mtev_reverse_socket_close(mtev_connection_ctx_t *ctx, eventer_t e) {
-  int mask;
-  mtev_reverse_socket_shutdown(static_cast<reverse_socket_t*>(ctx->consumer_ctx),e);
-  eventer_remove_fde(e);
-  eventer_close(e, &mask);
-  ctx->e = NULL;
-}
-
 static mtev_connection_ctx_t *
 mtev_connection_ctx_alloc(mtev_hash_table *t, pthread_mutex_t *l) {
+  static constexpr auto mtev_connection_close = [](mtev_connection_ctx_t * ctx, eventer_t e) {
+    int mask = 0;
+    const char *cn_expected;
+    GET_EXPECTED_CN(ctx, cn_expected);
+    LIBMTEV_REVERSE_CONNECT_CLOSE(eventer_get_fd(e), ctx->remote_str,
+                                  (char *)cn_expected,
+                                  ctx->wants_shutdown, errno);
+    (void)cn_expected;
+    eventer_remove_fde(e);
+    ctx->e = NULL;
+    eventer_close(e, &mask);
+  };
+
   mtev_connection_ctx_t *ctx, **pctx;
   ctx = static_cast<mtev_connection_ctx_t*>(calloc(1, sizeof(*ctx)));
   ctx->tracker = t;
@@ -1868,7 +1851,13 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
   if(nctx->wants_permanent_shutdown) goto fail;
 
   rc->data.nctx = nctx;
-  nctx->close = mtev_reverse_socket_close;
+  nctx->close = [](mtev_connection_ctx_t *ctx, eventer_t e) {
+    int mask;
+    mtev_reverse_socket_shutdown(static_cast<reverse_socket_t *>(ctx->consumer_ctx), e);
+    eventer_remove_fde(e);
+    eventer_close(e, &mask);
+    ctx->e = NULL;
+  };
 
   if(rc->data.buff) {
     /* We've been here before, we just need to complete the write */
@@ -1944,7 +1933,7 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
     snprintf(client_id, sizeof(client_id), "client/%s", tmpidstr);
     rc->id = strdup(client_id);
     pthread_rwlock_wrlock(&reverse_sockets_lock);
-    mtev_hash_store(&reverse_sockets, rc->id, strlen(rc->id), rc->ref());
+    mtev_hash_store(&reverse_sockets, rc->id, strlen(rc->id), rc->add_ref());
     pthread_rwlock_unlock(&reverse_sockets_lock);
   }
 
@@ -2300,9 +2289,9 @@ extern "C" void mtev_reverse_socket_init(const char *prefix, const char **cn_pre
   mtev_connections_from_config(&reverses, &reverses_lock,
                                "", NULL, "reverse",
                                mtev_reverse_client_handler,
-                               []() -> void* { return mtev_reverse_socket_alloc()->ref(); },
+                               []() -> void* { return mtev_reverse_socket_alloc()->add_ref(); },
                                NULL,
-                               reverse_socket::de_ref_no_return);
+                               reverse_socket::release_ref_no_return);
 
   mtevAssert(mtev_http_rest_register_auth(
     "GET", "/reverse/", "^show$", rest_show_reverse,
@@ -2371,8 +2360,8 @@ mtev_lua_help_initiate_mtev_connection(const char *address, int port,
   initiate_mtev_connection(&reverses, &reverses_lock,
                            address, port, sslconfig, config,
                            mtev_reverse_client_handler,
-                           mtev_reverse_socket_alloc()->ref(),
-                           reverse_socket::de_ref_no_return);
+                           mtev_reverse_socket_alloc()->add_ref(),
+                           reverse_socket::release_ref_no_return);
   return 0;
 }
 
