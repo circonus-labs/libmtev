@@ -88,6 +88,9 @@ inline bool intrusive_ptr_release(eventer_t p) noexcept {
 using eventer_sp = util::mem::intrusive_ptr<_event>;
 using reverse_socket_sp = util::mem::intrusive_ptr<reverse_socket_t>;
 
+static void reverse_frame_free(void *vrf);
+static int mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, struct timeval *tv);
+
 struct reverse_frame_t final {
   uint16_t channel_id;
   void *buff;            /* payload */
@@ -210,6 +213,135 @@ public:
     return false;
   }
 
+  void append_in(reverse_frame_t *frame_to_copy) {
+    auto rc = this;
+    eventer_t e;
+    uint16_t id = frame_to_copy->channel_id;
+    auto frame = static_cast<reverse_frame_t *>(malloc(sizeof(reverse_frame_t)));
+    memcpy(frame, frame_to_copy, sizeof(*frame));
+    pthread_mutex_lock(&rc->lock);
+    rc->data.in_bytes += frame->buff_len;
+    rc->data.in_frames += 1;
+    rc->data.channels[id].in_bytes += frame->buff_len;
+    rc->data.channels[id].in_frames += 1;
+    if (rc->data.channels[id].incoming_tail)
+    {
+      mtevAssert(rc->data.channels[id].incoming);
+      rc->data.channels[id].incoming_tail->next = frame;
+      rc->data.channels[id].incoming_tail = frame;
+    }
+    else
+    {
+      mtevAssert(!rc->data.channels[id].incoming);
+      rc->data.channels[id].incoming = rc->data.channels[id].incoming_tail = frame;
+    }
+    pthread_mutex_unlock(&rc->lock);
+    memset(frame_to_copy, 0, sizeof(*frame_to_copy));
+    e = eventer_find_fd(rc->data.channels[id].pair[0]);
+    if (!e)
+    {
+      mtevL(rc->data.channels[id].pair[0] >= 0 ? nlerr : nldeb,
+            "%s: No event on my side [%d] of the socketpair()\n", __func__, rc->data.channels[id].pair[0]);
+    }
+    else
+    {
+      mtevL(nldeb, "%s(%s,%d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(e), e));
+      if (!(eventer_get_mask(e) & EVENTER_WRITE))
+        eventer_trigger(e, EVENTER_WRITE | EVENTER_READ);
+    }
+  }
+
+  void pop_out() {
+    auto rc = this;
+    reverse_frame_t *f = rc->data.outgoing;
+    if (rc->data.outgoing == rc->data.outgoing_tail)
+      rc->data.outgoing_tail = NULL;
+    rc->data.outgoing = rc->data.outgoing->next;
+    reverse_frame_free(f);
+  }
+
+  void append_out(reverse_frame_t *frame_to_copy) {
+    auto rc = this;
+    int id;
+    auto frame = static_cast<reverse_frame_t *>(malloc(sizeof(reverse_frame_t)));
+    eventer_t wakeup_e = NULL;
+
+    memcpy(frame, frame_to_copy, sizeof(*frame));
+    pthread_mutex_lock(&rc->lock);
+    rc->data.out_bytes += frame->buff_len;
+    rc->data.out_frames += 1;
+    id = frame->channel_id & 0x7fff;
+    rc->data.channels[id].out_bytes += frame->buff_len;
+    rc->data.channels[id].out_frames += 1;
+    if (rc->data.outgoing_tail)
+    {
+      rc->data.outgoing_tail->next = frame;
+      rc->data.outgoing_tail = frame;
+    }
+    else
+    {
+      rc->data.outgoing = rc->data.outgoing_tail = frame;
+    }
+    if (rc->data.e)
+    {
+      wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup, rc->add_ref(), eventer_get_owner(rc->data.e.get()));
+    }
+    pthread_mutex_unlock(&rc->lock);
+    if (!wakeup_e)
+      mtevL(nldeb, "%s: No event to trigger for reverse_socket framing\n", __func__);
+    else
+    {
+      mtevL(nldeb, "%s(%s, %d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
+      eventer_add(wakeup_e);
+    }
+  }
+
+  void append_out_no_lock(reverse_frame_t *frame_to_copy) {
+    auto rc = this;
+    int id;
+    auto frame = static_cast<reverse_frame_t *>(malloc(sizeof(reverse_frame_t)));
+    eventer_t wakeup_e = NULL;
+
+    memcpy(frame, frame_to_copy, sizeof(*frame));
+    rc->data.out_bytes += frame->buff_len;
+    rc->data.out_frames += 1;
+    id = frame->channel_id & 0x7fff;
+    rc->data.channels[id].out_bytes += frame->buff_len;
+    rc->data.channels[id].out_frames += 1;
+    if (rc->data.outgoing_tail)
+    {
+      rc->data.outgoing_tail->next = frame;
+      rc->data.outgoing_tail = frame;
+    }
+    else
+    {
+      rc->data.outgoing = rc->data.outgoing_tail = frame;
+    }
+    if (rc->data.e)
+    {
+      wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup,
+                                                      rc->add_ref(), eventer_get_owner(rc->data.e.get()));
+    }
+    if (!wakeup_e)
+      mtevL(nlerr, "%s: No event to trigger for reverse_socket framing\n", __func__);
+    else
+    {
+      mtevL(nldeb, "%s(%s, %d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
+      eventer_add(wakeup_e);
+    }
+  }
+
+  void command_out(uint16_t id, const char *command)
+  {
+    reverse_frame_t frame{};
+
+    frame.channel_id = id | 0x8000;
+    mtevL(nldeb, "%s channel:%d '%s'\n", __func__, id, command);
+    frame.buff = strdup(command);
+    frame.buff_len = frame.buff_filled = strlen(static_cast<const char *>(frame.buff));
+    append_out(&frame);
+  }
+
 public:
   friend inline reverse_socket_t *intrusive_ptr_add_ref(reverse_socket_t *p) noexcept {
     return p->add_ref();
@@ -308,119 +440,8 @@ struct channel_closure_t {
   reverse_socket_sp parent;
 };
 
-static int mtev_reverse_socket_wakeup(eventer_t e, int mask, void *closure, struct timeval *tv);
-
 static reverse_socket_sp mtev_reverse_socket_alloc() {
   return reverse_socket_sp{new reverse_socket_t{}};
-}
-
-static void APPEND_IN(reverse_socket_sp &rc, reverse_frame_t *frame_to_copy) {
-  eventer_t e;
-  uint16_t id = frame_to_copy->channel_id;
-  auto frame = static_cast<reverse_frame_t *>(malloc(sizeof(reverse_frame_t)));
-  memcpy(frame, frame_to_copy, sizeof(*frame));
-  pthread_mutex_lock(&rc->lock);
-  rc->data.in_bytes += frame->buff_len;
-  rc->data.in_frames += 1;
-  rc->data.channels[id].in_bytes += frame->buff_len;
-  rc->data.channels[id].in_frames += 1;
-  if(rc->data.channels[id].incoming_tail) {
-    mtevAssert(rc->data.channels[id].incoming);
-    rc->data.channels[id].incoming_tail->next = frame;
-    rc->data.channels[id].incoming_tail = frame;
-  }
-  else {
-    mtevAssert(!rc->data.channels[id].incoming);
-    rc->data.channels[id].incoming = rc->data.channels[id].incoming_tail = frame;
-  }
-  pthread_mutex_unlock(&rc->lock);
-  memset(frame_to_copy, 0, sizeof(*frame_to_copy));
-  e = eventer_find_fd(rc->data.channels[id].pair[0]);
-  if(!e) {
-    mtevL(rc->data.channels[id].pair[0] >= 0 ? nlerr : nldeb,
-      "%s: No event on my side [%d] of the socketpair()\n", __func__, rc->data.channels[id].pair[0]);
-  }
-  else {
-    mtevL(nldeb, "%s(%s,%d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(e), e));
-    if(!(eventer_get_mask(e) & EVENTER_WRITE)) eventer_trigger(e, EVENTER_WRITE|EVENTER_READ);
-  }
-}
-
-static void POP_OUT(reverse_socket_sp &rc) {
-  reverse_frame_t *f = rc->data.outgoing;
-  if(rc->data.outgoing == rc->data.outgoing_tail) rc->data.outgoing_tail = NULL;
-  rc->data.outgoing = rc->data.outgoing->next;
-  /* free f */
-  reverse_frame_free(f);
-}
-static void APPEND_OUT(reverse_socket_sp &rc, reverse_frame_t *frame_to_copy) {
-  int id;
-  auto frame = static_cast<reverse_frame_t *>(malloc(sizeof(reverse_frame_t)));
-  eventer_t wakeup_e = NULL;
-
-  memcpy(frame, frame_to_copy, sizeof(*frame));
-  pthread_mutex_lock(&rc->lock);
-  rc->data.out_bytes += frame->buff_len;
-  rc->data.out_frames += 1;
-  id = frame->channel_id & 0x7fff;
-  rc->data.channels[id].out_bytes += frame->buff_len;
-  rc->data.channels[id].out_frames += 1;
-  if(rc->data.outgoing_tail) {
-    rc->data.outgoing_tail->next = frame;
-    rc->data.outgoing_tail = frame;
-  }
-  else {
-    rc->data.outgoing = rc->data.outgoing_tail = frame;
-  }
-  if(rc->data.e) {
-    wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup, rc->add_ref(), eventer_get_owner(rc->data.e.get()));
-  }
-  pthread_mutex_unlock(&rc->lock);
-  if(!wakeup_e) mtevL(nldeb, "%s: No event to trigger for reverse_socket framing\n", __func__);
-  else {
-    mtevL(nldeb, "%s(%s, %d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
-    eventer_add(wakeup_e);
-  }
-}
-static void APPEND_OUT_NO_LOCK(reverse_socket_sp &rc, reverse_frame_t *frame_to_copy) {
-  int id;
-  auto frame = static_cast<reverse_frame_t*>(malloc(sizeof(reverse_frame_t)));
-  eventer_t wakeup_e = NULL;
-
-  memcpy(frame, frame_to_copy, sizeof(*frame));
-  rc->data.out_bytes += frame->buff_len;
-  rc->data.out_frames += 1;
-  id = frame->channel_id & 0x7fff;
-  rc->data.channels[id].out_bytes += frame->buff_len;
-  rc->data.channels[id].out_frames += 1;
-  if(rc->data.outgoing_tail) {
-    rc->data.outgoing_tail->next = frame;
-    rc->data.outgoing_tail = frame;
-  }
-  else {
-    rc->data.outgoing = rc->data.outgoing_tail = frame;
-  }
-  if(rc->data.e) {
-    wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup,
-                                                    rc->add_ref(), eventer_get_owner(rc->data.e.get()));
-  }
-  if(!wakeup_e) mtevL(nlerr, "%s: No event to trigger for reverse_socket framing\n", __func__);
-  else {
-    mtevL(nldeb, "%s(%s, %d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e),
-      wakeup_e));
-    eventer_add(wakeup_e);
-  }
-}
-
-static void
-command_out(reverse_socket_sp &rc, uint16_t id, const char *command) {
-  reverse_frame_t frame{};
-
-  frame.channel_id = id | 0x8000;
-  mtevL(nldeb, "%s channel:%d '%s'\n", __func__, id, command);
-  frame.buff = strdup(command);
-  frame.buff_len = frame.buff_filled = strlen(static_cast<const char*>(frame.buff));
-  APPEND_OUT(rc, &frame);
 }
 
 static void mtev_reverse_socket_channel_shutdown(reverse_socket_sp rc, const uint16_t channel_id) {
@@ -546,7 +567,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       pthread_mutex_unlock(&parent_rs->lock);
       needs_unlock = 0;
     }
-    command_out(parent_rs, cct->channel_id, "SHUTDOWN");
+    parent_rs->command_out(cct->channel_id, "SHUTDOWN");
    snip:
     mtevL(nldeb, "%s - at snip for %s - channel %d, pair [%d,%d]\n", __func__, parent_rs->id,
             cct->channel_id, channel->pair[0], channel->pair[1]);
@@ -645,7 +666,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       frame.buff = malloc(len);
       memcpy(frame.buff, buff, len);
       frame.buff_len = frame.buff_filled = len;
-      APPEND_OUT_NO_LOCK(cct->parent, &frame);
+      cct->parent->append_out_no_lock(&frame);
       read_success = 1;
     }
     pthread_mutex_unlock(&cct->parent->lock);
@@ -834,14 +855,14 @@ socket_error:
               rc->id, __func__, rc->data.incoming_inflight.channel_id,
               rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
               rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
-      command_out(rc, rc->data.incoming_inflight.channel_id, "RESET");
+      rc->command_out(rc->data.incoming_inflight.channel_id, "RESET");
     }
     free(rc->data.incoming_inflight.buff);
     memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
     rc->data.frame_hdr_read = 0;
     goto next_frame;
   }
-  APPEND_IN(rc, &rc->data.incoming_inflight);
+  rc->append_in(&rc->data.incoming_inflight);
   rc->data.frame_hdr_read = 0;
   if (--reads_remaining) goto next_frame;
 
@@ -887,7 +908,7 @@ socket_error:
           (unsigned long long)f->offset, (unsigned long long)f->buff_len);
     /* reset for next frame */
     rc->data.frame_hdr_written = 0;
-    POP_OUT(rc);
+    rc->pop_out();
   }
   pthread_mutex_unlock(&rc->lock);
   needs_unlock = false;
@@ -1222,7 +1243,7 @@ extern "C" int mtev_reverse_socket_connect(const char *id, int existing_fd) {
                              EVENTER_READ | EVENTER_EXCEPTION);
         mtevL(nldeb, "%s - mapping reverse proxy on fd %d for %s [channel %d]\n", __func__, existing_fd, id, chan);
         eventer_add(e);
-        APPEND_OUT(rc, &f);
+        rc->append_out(&f);
       }
       else {
         mtevL(nldeb, "%s - no existing_fd for %s [channel %d]\n", __func__, id, chan);
