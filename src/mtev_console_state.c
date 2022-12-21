@@ -751,7 +751,13 @@ mtev_console_memory_log_opts_ex(mtev_console_closure_t ncct,
           const char *name = mtev_log_stream_get_name(loggers[i]);
 
           if(name && !strncmp(name, argv[which], strlen(argv[which]))) {
-            if(offset == idx) return strdup(name);
+            if(offset == idx) {
+              char *saved_name = strdup(name);
+
+              free(loggers);
+              return saved_name;
+            }
+
             offset++;
           }
         }
