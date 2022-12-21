@@ -49,6 +49,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 
 #include "utils/intrusive/intrusive_ptr.hpp"
 #include "mtev_defines.h"
@@ -159,19 +160,7 @@ struct reverse_socket_data_t final {
 
 struct reverse_socket final {
 public:
-  reverse_socket(const reverse_socket &other) = delete;
-  reverse_socket(reverse_socket &&other) noexcept = delete;
-  reverse_socket &operator=(const reverse_socket &other) = delete;
-  reverse_socket &operator=(reverse_socket &&other) noexcept = delete;
-
-public:
   reverse_socket() {
-    pthread_mutexattr_t attr;
-
-    pthread_mutexattr_init(&attr);
-    mtevAssert(pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_PRIVATE) == 0);
-    mtevAssert(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) == 0);
-    mtevAssert(pthread_mutex_init(&lock, &attr) == 0);
     mtev_gettimeofday(&data.create_time, nullptr);
 
     for (auto i = decltype(MAX_CHANNELS){0}; i < MAX_CHANNELS; i++) {
@@ -181,7 +170,6 @@ public:
 
   ~reverse_socket() {
     free(id);
-    pthread_mutex_destroy(&lock);
   }
 
 public:
@@ -219,32 +207,28 @@ public:
     uint16_t id = frame_to_copy->channel_id;
     auto frame = static_cast<reverse_frame_t *>(malloc(sizeof(reverse_frame_t)));
     memcpy(frame, frame_to_copy, sizeof(*frame));
-    pthread_mutex_lock(&rc->lock);
+    std::unique_lock l{rc->lock};
     rc->data.in_bytes += frame->buff_len;
     rc->data.in_frames += 1;
     rc->data.channels[id].in_bytes += frame->buff_len;
     rc->data.channels[id].in_frames += 1;
-    if (rc->data.channels[id].incoming_tail)
-    {
+    if (rc->data.channels[id].incoming_tail) {
       mtevAssert(rc->data.channels[id].incoming);
       rc->data.channels[id].incoming_tail->next = frame;
       rc->data.channels[id].incoming_tail = frame;
     }
-    else
-    {
+    else {
       mtevAssert(!rc->data.channels[id].incoming);
       rc->data.channels[id].incoming = rc->data.channels[id].incoming_tail = frame;
     }
-    pthread_mutex_unlock(&rc->lock);
+    l.unlock();
     memset(frame_to_copy, 0, sizeof(*frame_to_copy));
     e = eventer_find_fd(rc->data.channels[id].pair[0]);
-    if (!e)
-    {
+    if (!e) {
       mtevL(rc->data.channels[id].pair[0] >= 0 ? nlerr : nldeb,
             "%s: No event on my side [%d] of the socketpair()\n", __func__, rc->data.channels[id].pair[0]);
     }
-    else
-    {
+    else {
       mtevL(nldeb, "%s(%s,%d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(e), e));
       if (!(eventer_get_mask(e) & EVENTER_WRITE))
         eventer_trigger(e, EVENTER_WRITE | EVENTER_READ);
@@ -267,30 +251,27 @@ public:
     eventer_t wakeup_e = NULL;
 
     memcpy(frame, frame_to_copy, sizeof(*frame));
-    pthread_mutex_lock(&rc->lock);
+    std::unique_lock l{rc->lock};
     rc->data.out_bytes += frame->buff_len;
     rc->data.out_frames += 1;
     id = frame->channel_id & 0x7fff;
     rc->data.channels[id].out_bytes += frame->buff_len;
     rc->data.channels[id].out_frames += 1;
-    if (rc->data.outgoing_tail)
-    {
+    if (rc->data.outgoing_tail) {
       rc->data.outgoing_tail->next = frame;
       rc->data.outgoing_tail = frame;
     }
-    else
-    {
+    else {
       rc->data.outgoing = rc->data.outgoing_tail = frame;
     }
-    if (rc->data.e)
-    {
+    if (rc->data.e) {
       wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup, rc->add_ref(), eventer_get_owner(rc->data.e.get()));
     }
-    pthread_mutex_unlock(&rc->lock);
-    if (!wakeup_e)
+    l.unlock();
+    if (!wakeup_e) {
       mtevL(nldeb, "%s: No event to trigger for reverse_socket framing\n", __func__);
-    else
-    {
+    }
+    else {
       mtevL(nldeb, "%s(%s, %d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
       eventer_add(wakeup_e);
     }
@@ -308,24 +289,20 @@ public:
     id = frame->channel_id & 0x7fff;
     rc->data.channels[id].out_bytes += frame->buff_len;
     rc->data.channels[id].out_frames += 1;
-    if (rc->data.outgoing_tail)
-    {
+    if (rc->data.outgoing_tail) {
       rc->data.outgoing_tail->next = frame;
       rc->data.outgoing_tail = frame;
     }
-    else
-    {
+    else {
       rc->data.outgoing = rc->data.outgoing_tail = frame;
     }
-    if (rc->data.e)
-    {
+    if (rc->data.e) {
       wakeup_e = eventer_alloc_timer_next_opportunity(mtev_reverse_socket_wakeup,
                                                       rc->add_ref(), eventer_get_owner(rc->data.e.get()));
     }
     if (!wakeup_e)
       mtevL(nlerr, "%s: No event to trigger for reverse_socket framing\n", __func__);
-    else
-    {
+    else {
       mtevL(nldeb, "%s(%s, %d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
       eventer_add(wakeup_e);
     }
@@ -359,7 +336,7 @@ public:
 public:
   reverse_socket_data_t data{};
   char *id{};
-  pthread_mutex_t lock{};
+  std::recursive_mutex lock;
   uint32_t refcnt{};
 };
 
@@ -448,7 +425,7 @@ static void mtev_reverse_socket_channel_shutdown(reverse_socket_sp rc, const uin
   eventer_t ce = NULL;
   reverse_frame_t *saved_incoming = NULL;
 
-  pthread_mutex_lock(&rc->lock);
+  std::unique_lock l{rc->lock};
 
   channel_t *const channel = &rc->data.channels[channel_id];
 
@@ -465,9 +442,9 @@ static void mtev_reverse_socket_channel_shutdown(reverse_socket_sp rc, const uin
   }
 
   if (ce) {
-    pthread_mutex_unlock(&rc->lock);
+    l.unlock();
     eventer_trigger(ce, EVENTER_EXCEPTION);
-    pthread_mutex_lock(&rc->lock);
+    l.lock();
   }
 
   if (channel->pair[0] == AGING) {
@@ -478,7 +455,7 @@ static void mtev_reverse_socket_channel_shutdown(reverse_socket_sp rc, const uin
     channel->pair[0] = channel->pair[1] = AVAILABLE;
   }
 
-  pthread_mutex_unlock(&rc->lock);
+  l.unlock();
 
   while (saved_incoming) {
     reverse_frame_t *const f = saved_incoming;
@@ -491,7 +468,7 @@ static void mtev_reverse_socket_channel_shutdown(reverse_socket_sp rc, const uin
 static void
 mtev_reverse_socket_shutdown(reverse_socket_sp rc, [[maybe_unused]] eventer_t e) {
   int mask, i;
-  pthread_mutex_lock(&rc->lock);
+  std::unique_lock l{rc->lock};
   mtevL(nldeb, "%s(%s)\n", __func__, rc->id);
   free(rc->data.buff);
   rc->data.buff = nullptr;
@@ -519,7 +496,7 @@ mtev_reverse_socket_shutdown(reverse_socket_sp rc, [[maybe_unused]] eventer_t e)
     rc->data.outgoing = rc->data.outgoing->next;
     reverse_frame_free(f);
   }
-  pthread_mutex_unlock(&rc->lock);
+  l.unlock();
   for(i=0;i<MAX_CHANNELS;i++) {
     mtev_reverse_socket_channel_shutdown(rc, i);
   }
@@ -534,7 +511,6 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   auto parent_rs = cct->parent;
   ssize_t len;
   int write_success = 1, read_success = 1;
-  int needs_unlock = 0;
   int write_mask = EVENTER_EXCEPTION, read_mask = EVENTER_EXCEPTION;
   mtevAssert(parent_rs);
   mtevAssert(ck_pr_load_32(&parent_rs->refcnt) > 0);
@@ -563,25 +539,19 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
    shutdown:
     mtevL(nldeb, "%s - at shutdown for %s - channel %d, pair [%d,%d]\n", __func__, parent_rs->id,
             cct->channel_id, channel->pair[0], channel->pair[1]);
-    if(needs_unlock) {
-      pthread_mutex_unlock(&parent_rs->lock);
-      needs_unlock = 0;
-    }
     parent_rs->command_out(cct->channel_id, "SHUTDOWN");
    snip:
     mtevL(nldeb, "%s - at snip for %s - channel %d, pair [%d,%d]\n", __func__, parent_rs->id,
             cct->channel_id, channel->pair[0], channel->pair[1]);
-    if(needs_unlock) {
-      pthread_mutex_unlock(&parent_rs->lock);
-      needs_unlock = 0;
-    }
 
     if (eventer_remove_fde(e)) {
       mtevAssert(ck_pr_load_32(&parent_rs->refcnt) > 0);
       eventer_close(e, &write_mask);
-      pthread_mutex_lock(&parent_rs->lock);
-      channel->pair[0] = channel->pair[1] = AGING;
-      pthread_mutex_unlock(&parent_rs->lock);
+
+      if (std::unique_lock l{parent_rs->lock}) {
+        channel->pair[0] = channel->pair[1] = AGING;
+      }
+
       mtev_reverse_socket_channel_shutdown(parent_rs, cct->channel_id);
       parent_rs->data.e = nullptr;
     }
@@ -589,10 +559,11 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
     delete cct;
     return 0;
   }
+
   while(write_success || read_success) {
+    std::unique_lock l{parent_rs->lock};
+
     read_success = write_success = 0;
-    pthread_mutex_lock(&cct->parent->lock);
-    needs_unlock = 1;
 
     /* try to write some stuff */
     while(channel->incoming) {
@@ -669,7 +640,6 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       cct->parent->append_out_no_lock(&frame);
       read_success = 1;
     }
-    pthread_mutex_unlock(&cct->parent->lock);
   }
   return read_mask | write_mask | EVENTER_EXCEPTION;
 }
@@ -680,9 +650,9 @@ mtev_reverse_socket_wakeup(eventer_t /*e*/, int /*mask*/, void *closure, timeval
   reverse_socket_sp rc = {static_cast<reverse_socket_t *>(closure), false};
   eventer_sp e;
 
-  pthread_mutex_lock(&rc->lock);
-  e = rc->data.e;
-  pthread_mutex_unlock(&rc->lock);
+  if (std::unique_lock l{rc->lock}) {
+    e = rc->data.e;
+  }
 
   if (e) {
     if (eventer_remove_fde(e.get())) {
@@ -722,7 +692,6 @@ static int mtev_reverse_socket_handler(eventer_t e, int mask, reverse_socket_sp 
   int len;
   int success = 0;
   int reads_remaining=500, writes_remaining=500;
-  bool needs_unlock = false;
   const char *socket_error_string = "protocol error";
 
   if(rc->data.nctx && rc->data.nctx->wants_permanent_shutdown) {
@@ -733,10 +702,6 @@ static int mtev_reverse_socket_handler(eventer_t e, int mask, reverse_socket_sp 
 socket_error:
     /* Exceptions cause us to simply snip the connection */
     mtevL(nldeb, "%s %s: socket error: %s\n", rc->id, __func__, socket_error_string);
-    if (needs_unlock) {
-      pthread_mutex_unlock(&rc->lock);
-      needs_unlock = false;
-    }
     mtev_reverse_socket_shutdown(rc, e);
     return 0;
   }
@@ -866,9 +831,9 @@ socket_error:
   rc->data.frame_hdr_read = 0;
   if (--reads_remaining) goto next_frame;
 
- try_writes:
-  pthread_mutex_lock(&rc->lock);
-  needs_unlock = true;
+ try_writes: {
+  std::unique_lock l{rc->lock};
+
   while (--writes_remaining && rc->data.outgoing) {
     ssize_t len;
     reverse_frame_t *f = rc->data.outgoing;
@@ -910,13 +875,9 @@ socket_error:
     rc->data.frame_hdr_written = 0;
     rc->pop_out();
   }
-  pthread_mutex_unlock(&rc->lock);
-  needs_unlock = false;
+ }
 
  done_for_now: 
-  if (needs_unlock) {
-    pthread_mutex_unlock(&rc->lock);
-  }
   if(success && rc->data.nctx) {
     mtevL(nldeb, "%s %s: done_for_now finished, updating timeout\n", rc->id, __func__);
     mtev_connection_update_timeout(rc->data.nctx);
