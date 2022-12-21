@@ -473,21 +473,25 @@ mtev_reverse_socket_shutdown(reverse_socket_sp rc, [[maybe_unused]] eventer_t e)
   free(rc->data.buff);
   rc->data.buff = nullptr;
   rc->data.e = nullptr;
-  if(rc->data.xbind) {
+  if (rc->data.xbind) {
     free(rc->data.xbind);
-    if(rc->data.proxy_ip4_e) {
-      mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET, (struct sockaddr *)&rc->data.proxy_ip4, false);
-      eventer_remove_fde(rc->data.proxy_ip4_e);
-      eventer_close(rc->data.proxy_ip4_e, &mask);
-      mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(rc->data.proxy_ip4_e));
-      eventer_free(rc->data.proxy_ip4_e);
+
+    if (auto e = rc->data.proxy_ip4_e) {
+      if (eventer_remove_fde(e)) {
+        mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET, (struct sockaddr *)&rc->data.proxy_ip4, false);
+        eventer_close(e, &mask);
+        mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(e));
+        eventer_free(e);
+      }
     }
-    if(rc->data.proxy_ip6_e) {
-      mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET6, (struct sockaddr *)&rc->data.proxy_ip6, false);
-      eventer_remove_fde(rc->data.proxy_ip6_e);
-      eventer_close(rc->data.proxy_ip6_e, &mask);
-      mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(rc->data.proxy_ip6_e));
-      eventer_free(rc->data.proxy_ip6_e);
+
+    if (auto e = rc->data.proxy_ip6_e) {
+      if (eventer_remove_fde(e)) {
+        mtev_reverse_proxy_changed_hook_invoke(rc->id, AF_INET6, (struct sockaddr *)&rc->data.proxy_ip6, false);
+        eventer_close(e, &mask);
+        mtev_watchdog_on_crash_close_remove_fd(eventer_get_fd(e));
+        eventer_free(e);
+      }
     }
   }
   if(rc->data.incoming_inflight.buff) free(rc->data.incoming_inflight.buff);
@@ -903,8 +907,10 @@ int mtev_reverse_socket_server_handler(eventer_t e, int mask, void *closure, tim
 
   if(rv == 0) {
     mtev_acceptor_closure_free(ac);
-    eventer_remove_fde(e);
-    eventer_close(e, &mask);
+
+    if (eventer_remove_fde(e)) {
+      eventer_close(e, &mask);
+    }
   }
 
   return rv;
@@ -1038,9 +1044,12 @@ socket_error:
     /* Exceptions cause us to simply snip the connection */
     mtev_reverse_socket_shutdown(rc, e);
     mtev_acceptor_closure_free(ac);
-    eventer_remove_fde(e);
-    eventer_close(e, &mask);
-    mtevL(nldeb, "%s - reverse_socket error: %s\n", __func__, socket_error_string);
+
+    if (eventer_remove_fde(e)) {
+      eventer_close(e, &mask);
+      mtevL(nldeb, "%s - reverse_socket error: %s\n", __func__, socket_error_string);
+    }
+
     return 0;
   }
 
@@ -1225,7 +1234,7 @@ extern "C" int mtev_reverse_socket_connect(const char *id, int existing_fd) {
 
 static mtev_connection_ctx_t *
 mtev_connection_ctx_alloc(mtev_hash_table *t, pthread_mutex_t *l) {
-  static constexpr auto mtev_connection_close = [](mtev_connection_ctx_t * ctx, eventer_t e) {
+  static constexpr auto mtev_connection_close = [](mtev_connection_ctx_t *ctx, eventer_t e) {
     int mask = 0;
     const char *cn_expected;
     GET_EXPECTED_CN(ctx, cn_expected);
@@ -1233,9 +1242,12 @@ mtev_connection_ctx_alloc(mtev_hash_table *t, pthread_mutex_t *l) {
                                   (char *)cn_expected,
                                   ctx->wants_shutdown, errno);
     (void)cn_expected;
-    eventer_remove_fde(e);
+
+    if (eventer_remove_fde(e)) {
+      eventer_close(e, &mask);
+    }
+
     ctx->e = NULL;
-    eventer_close(e, &mask);
   };
 
   mtev_connection_ctx_t *ctx, **pctx;
@@ -1258,19 +1270,23 @@ mtev_connection_ctx_free(mtev_connection_ctx_t *ctx) {
   if(ctx->remote_cn) free(ctx->remote_cn);
   if(ctx->remote_str) free(ctx->remote_str);
   if(ctx->retry_event) {
-    eventer_remove(ctx->retry_event);
-    eventer_free(ctx->retry_event);
+    if (eventer_remove(ctx->retry_event)) {
+      eventer_free(ctx->retry_event);
+    }
   }
   if(ctx->timeout_event) {
-    eventer_remove(ctx->timeout_event);
-    eventer_free(ctx->timeout_event);
+    if (eventer_remove(ctx->timeout_event)) {
+      eventer_free(ctx->timeout_event);
+    }
   }
   ctx->consumer_free(ctx->consumer_ctx);
   if (ctx->e) {
-    int mask = 0;
-    eventer_remove_fde(ctx->e);
-    eventer_close(ctx->e, &mask);
-    eventer_free(ctx->e);
+    if (eventer_remove_fde(ctx->e)) {
+      int mask = 0;
+
+      eventer_close(ctx->e, &mask);
+      eventer_free(ctx->e);
+    }
   }
   free(ctx);
 }
@@ -1318,8 +1334,10 @@ mtev_connection_reinitiate(eventer_t e, int mask, void *closure,
 extern "C" int
 mtev_connection_disable_timeout(mtev_connection_ctx_t *nctx) {
   if(nctx->timeout_event) {
-    eventer_remove(nctx->timeout_event);
-    eventer_free(nctx->timeout_event);
+    if (eventer_remove(nctx->timeout_event)) {
+      eventer_free(nctx->timeout_event);
+    }
+
     nctx->timeout_event = NULL;
   }
   return 0;
@@ -1363,8 +1381,9 @@ mtev_connection_schedule_reattempt(mtev_connection_ctx_t *ctx,
   interval.tv_sec = ctx->current_backoff / 1000;
   interval.tv_usec = (ctx->current_backoff % 1000) * 1000;
   if(ctx->retry_event) {
-    eventer_remove(ctx->retry_event);
-    eventer_free(ctx->retry_event);
+    if (eventer_remove(ctx->retry_event)) {
+      eventer_free(ctx->retry_event);
+    }
   }
   add_timeval(*now, interval, &interval);
   ctx->retry_event = eventer_alloc_timer(mtev_connection_reinitiate, ctx, &interval);
@@ -1834,10 +1853,14 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
 
   rc->data.nctx = nctx;
   nctx->close = [](mtev_connection_ctx_t *ctx, eventer_t e) {
-    int mask;
     mtev_reverse_socket_shutdown(static_cast<reverse_socket_t *>(ctx->consumer_ctx), e);
-    eventer_remove_fde(e);
-    eventer_close(e, &mask);
+
+    if (eventer_remove_fde(e)) {
+      int mask;
+
+      eventer_close(e, &mask);
+    }
+
     ctx->e = NULL;
   };
 
