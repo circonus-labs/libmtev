@@ -519,10 +519,6 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   mtevAssert(parent_rs);
   mtevAssert(ck_pr_load_32(&parent_rs->refcnt) > 0);
   channel_t *const channel = &parent_rs->data.channels[cct->channel_id];
-  eventer_sp parent_eventer = parent_rs->data.e;
-  if (!parent_eventer) {
-    mtevL(nlerr, "%s(%s, %d) - no parent eventer!\n", __func__, parent_rs->id, cct->channel_id);
-  }
 
   mtevL(nldeb, "%s(%s, %d)\n", __func__, parent_rs->id, cct->channel_id);
   if(parent_rs->data.nctx && parent_rs->data.nctx->wants_permanent_shutdown) {
@@ -557,7 +553,6 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       }
 
       mtev_reverse_socket_channel_shutdown(parent_rs, cct->channel_id);
-      parent_rs->data.e = nullptr;
     }
 
     delete cct;
@@ -651,7 +646,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
 static int
 mtev_reverse_socket_wakeup(eventer_t /*e*/, int /*mask*/, void *closure, timeval * /*tv*/)
 {
-  reverse_socket_sp rc = {static_cast<reverse_socket_t *>(closure), false};
+  reverse_socket_sp rc = static_cast<reverse_socket_t *>(closure);
   eventer_sp e;
 
   if (std::unique_lock l{rc->lock}) {
@@ -1147,6 +1142,7 @@ socket_error:
     mtevL(nldeb, "%s - reverse_socket to %s\n", __func__, rc->id);
     /* Setup proxies if we've got them */
     mtev_reverse_socket_proxy_setup(rc);
+    mtevAssert(e);
     rc->data.e = e;
     eventer_set_callback(e, mtev_reverse_socket_server_handler);
     return eventer_callback(e, EVENTER_READ | EVENTER_WRITE, closure, now);
@@ -1942,6 +1938,7 @@ mtev_reverse_client_handler(eventer_t e, int mask, void *closure,
     pthread_rwlock_unlock(&reverse_sockets_lock);
   }
 
+  mtevAssert(e);
   rc->data.e = e;
   eventer_set_callback(e, mtev_reverse_socket_client_handler);
   return eventer_callback(e, EVENTER_READ|EVENTER_WRITE, closure, now);
