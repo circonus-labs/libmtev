@@ -4,6 +4,10 @@
 
 ## 2.4
 
+### 2.4.1
+
+ * Add an eventer reference on reverse socket wakeup (use-after-free fix).
+
 ### 2.4.0
 
  * Enable the use of C++, and convert reverse socket code.
