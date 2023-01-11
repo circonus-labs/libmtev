@@ -2038,7 +2038,7 @@ mtev_console_reverse_opts(mtev_console_closure_t ncct,
   if(argc == 1) {
     mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
     int i = 0;
-    reverse_socket_t *ctx;
+    reverse_socket_sp ctx;
 
     pthread_rwlock_rdlock(&reverse_sockets_lock);
     while(mtev_hash_adv(&reverse_sockets, &iter)) {
