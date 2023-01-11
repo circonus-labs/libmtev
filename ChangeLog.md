@@ -4,6 +4,12 @@
 
 ## 2.4
 
+### 2.4.1
+
+ * Fix memory leak when dropping a reverse socket.
+ * Fix potential race in mtev_console.
+ * Add an eventer reference on reverse socket wakeup (use-after-free fix).
+
 ### 2.4.0
 
  * Enable the use of C++, and convert reverse socket code.
