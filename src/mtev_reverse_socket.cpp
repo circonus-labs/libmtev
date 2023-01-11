@@ -179,17 +179,7 @@ public:
   }
 
   inline bool release_ref() {
-    bool zero;
-
-    ck_pr_dec_32_zero(&refcnt, &zero);
-
-    if (zero) {
-      if (id) {
-        pthread_rwlock_wrlock(&reverse_sockets_lock);
-        mtev_hash_delete(&reverse_sockets, id, strlen(id), nullptr, nullptr);
-        pthread_rwlock_unlock(&reverse_sockets_lock);
-      }
-
+    if (ck_pr_dec_32_is_zero(&refcnt)) {
       if (data.buff) {
         free(data.buff);
       }
@@ -503,6 +493,14 @@ mtev_reverse_socket_shutdown(reverse_socket_sp rc, [[maybe_unused]] eventer_t e)
   l.unlock();
   for(i=0;i<MAX_CHANNELS;i++) {
     mtev_reverse_socket_channel_shutdown(rc, i);
+  }
+
+  if (const auto id = rc->id) {
+    pthread_rwlock_wrlock(&reverse_sockets_lock);
+    mtev_hash_delete(&reverse_sockets, id, strlen(id), nullptr, [](void *p) {
+      static_cast<reverse_socket_t*>(p)->release_ref();
+    });
+    pthread_rwlock_unlock(&reverse_sockets_lock);
   }
 }
 
