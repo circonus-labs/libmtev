@@ -4,6 +4,8 @@
 
 ## 2.4
 
+ * Turn on `accept_thread` by default for `mtev_listener`
+
 ### 2.4.1
 
  * Fix memory leak when dropping a reverse socket.
