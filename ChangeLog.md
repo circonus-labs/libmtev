@@ -4,7 +4,7 @@
 
 ## 2.4
 
- * Turn on `fanout` and `accept_thread` by default for `mtev_listener`
+ * Turn on `accept_thread` by default for `mtev_listener`
 
 ### 2.4.1
 
