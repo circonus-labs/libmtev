@@ -666,7 +666,7 @@ mtev_listener_reconfig(const char *toplevel) {
     int32_t portint;
     int32_t backlog;
     eventer_func_t f;
-    mtev_boolean ssl, fanout = mtev_false, in_own_thread = mtev_false;
+    mtev_boolean ssl, fanout = mtev_true, in_own_thread = mtev_true;
     eventer_pool_t *pool = NULL;
     char poolname[256];
     mtev_hash_table *sslconfig, *config;
@@ -727,7 +727,7 @@ mtev_listener_reconfig(const char *toplevel) {
 
     if(!mtev_conf_get_boolean(listener_configs[i],
                           "ancestor-or-self::node()/@fanout", &fanout))
-      fanout = mtev_false;
+      fanout = mtev_true;
 
     if(mtev_conf_get_stringbuf(listener_configs[i],
                                "ancestor-or-self::node()/@fanout_pool",
@@ -741,7 +741,7 @@ mtev_listener_reconfig(const char *toplevel) {
 
     if(!mtev_conf_get_boolean(listener_configs[i],
                               "ancestor-or-self::node()/@accept_thread", &in_own_thread))
-      in_own_thread = mtev_false;
+      in_own_thread = mtev_true;
 
     if(!mtev_conf_get_boolean(listener_configs[i],
                               "ancestor-or-self::node()/@ssl", &ssl))
