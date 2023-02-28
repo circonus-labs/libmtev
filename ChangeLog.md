@@ -2,7 +2,7 @@
 
 # 2
 
-## 2.4
+## 2.4.3
 
  * API to disable and enable all watchdogs
 
