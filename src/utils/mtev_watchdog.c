@@ -739,7 +739,7 @@ void setup_signals(sigset_t *mysigs) {
   attention.it_interval.tv_usec = 77000;
   mtevAssert(setitimer(ITIMER_REAL, &attention, NULL) == 0);
 }
-static int mtev_heartcheck(double *ltt, int *heartno, const char **thrname) {
+static int mtev_heartcheck(double *ltt, int *heartno, const char **thrname, pthread_t *tid) {
   int i;
   struct timeval now;
   mtev_gettimeofday(&now, NULL);
@@ -749,6 +749,7 @@ static int mtev_heartcheck(double *ltt, int *heartno, const char **thrname) {
 
     *heartno = i;
     *thrname = (lifeline->name[0] == '\0') ? NULL : lifeline->name;
+    *tid = lifeline->thread;
     age = last_tick_time(lifeline, &now);
     double local_timeout = (lifeline->timeout_override != 0.0) ? lifeline->timeout_override : global_child_watchdog_timeout;
     if (lifeline->active == HEART_ACTIVE_OFF) break;
@@ -886,6 +887,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
   while(1) {
     int heartno = 0;
     const char *thrname = NULL;
+    pthread_t child_tid;
     double ltt = 0;
     /* This sets up things so we start alive */
     it_ticks_zero(NULL);
@@ -952,16 +954,16 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
               goto out_loop2;
             }
             else if(mtev_monitored_child_pid == child_pid &&
-                    (hcs = mtev_heartcheck(&ltt, &heartno, &thrname))) {
+                    (hcs = mtev_heartcheck(&ltt, &heartno, &thrname, &child_tid))) {
               if(hcs == 1) {
                 mtevL(mtev_error,
-                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... requesting termination of %d\n",
-                      heartno, thrname ? thrname : "unnamed", ltt, child_pid);
+                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... requesting termination of %d/%p\n",
+                      heartno, thrname ? thrname : "unnamed", ltt, child_pid, (void *)child_tid);
                 kill(child_pid, SIGUSR2);
               } else {
                 mtevL(mtev_error,
-                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... terminating child %d\n",
-                      heartno, thrname ? thrname : "unnamed", ltt, child_pid);
+                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... terminating child %d/%p\n",
+                      heartno, thrname ? thrname : "unnamed", ltt, child_pid, (void *)child_tid);
                 if(glider_path) {
                   kill(child_pid, SIGSTOP);
                   run_glider(child_pid, GLIDE_WATCHDOG, thrname);
