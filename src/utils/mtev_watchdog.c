@@ -69,6 +69,12 @@
 
 static int watchdog_tick(eventer_t e, int mask, void *lifeline, struct timeval *now);
 
+typedef enum {
+  HEART_ACTIVE_OFF = 0,
+  HEART_ACTIVE_ON = 1,
+  HEART_ACTIVE_SKIP = 2
+} mtev_watchdog_active_e;
+
 struct mtev_watchdog_t {
   _Alignas(CK_MD_CACHELINE) atomic_int_fast32_t ticker;
   char padding[CK_MD_CACHELINE];
@@ -78,11 +84,7 @@ struct mtev_watchdog_t {
     CRASHY_RESTART = 0x99dead99,
     WATCHDOG_VICTIM = 0x005133400
   } action;
-  enum {
-    HEART_ACTIVE_OFF = 0,
-    HEART_ACTIVE_ON = 1,
-    HEART_ACTIVE_SKIP = 2
-  } active;
+  mtev_watchdog_active_e active;
   struct {
     struct timeval last_changed;
     int last_ticker;
@@ -179,18 +181,22 @@ static const char *short_strsignal(int sig) {
 #define WATCHDOG_VICTIM_TIMEOUT 2.0 /*seconds*/
 #define MAX_CRASH_FDS 1024
 #define MAX_HEARTS 1024
+#define MAX_RETRIES 100
 
 static const char *appname = "unknown";
 static const char *glider_path = NULL;
 static const char *trace_dir = "/var/tmp";
 static mtev_boolean save_trace_output = mtev_true;
-#define MAX_RETRIES 100
 static int retries = 5;
 static int span = 60;
 static int allow_async_dumps = 1;
 static uint32_t number_of_starts = 0;
 static int on_crash_fds_to_close[MAX_CRASH_FDS];
 static double global_child_watchdog_timeout = CHILD_WATCHDOG_TIMEOUT;
+
+// Allows disabling all heartbeats, even if they haven't been created
+// yet, this is to support startup scenarios
+static _Atomic mtev_watchdog_active_e *global_active = NULL;
 
 typedef enum {
   GLIDE_CRASH,
@@ -433,6 +439,15 @@ int mtev_watchdog_prefork_init(void) {
   watcher = getpid();
   for(i=0;i<MAX_CRASH_FDS;i++)
     on_crash_fds_to_close[i] = -1;
+
+  global_active = (_Atomic mtev_watchdog_active_e *)mmap(NULL,
+                                                 sizeof(mtev_watchdog_active_e),
+                                                 PROT_READ | PROT_WRITE,
+                                                 MAP_SHARED | MAP_ANON,
+                                                 -1,
+                                                 0);
+  atomic_store_explicit(global_active, HEART_ACTIVE_ON, memory_order_relaxed);
+
   mmap_lifelines =
     (mtev_watchdog_t *)mmap(NULL, MAX_HEARTS*sizeof(mtev_watchdog_t),
                             PROT_READ|PROT_WRITE,
@@ -742,6 +757,12 @@ void setup_signals(sigset_t *mysigs) {
 static int mtev_heartcheck(double *ltt, int *heartno, const char **thrname, pthread_t *tid) {
   int i;
   struct timeval now;
+
+  if (atomic_load_explicit(global_active, memory_order_acquire) == HEART_ACTIVE_OFF) {
+    // Globally disabled
+    return 0;
+  }
+
   mtev_gettimeofday(&now, NULL);
   for(i=0; i<MAX_HEARTS; i++) {
     mtev_watchdog_t *lifeline = &mmap_lifelines[i];
@@ -1097,6 +1118,9 @@ void mtev_watchdog_enable(mtev_watchdog_t *lifeline) {
   lifeline->thread = pthread_self();
   lifeline->active = HEART_ACTIVE_ON;
 }
+void mtev_watchdog_enable_all(void) {
+  atomic_store_explicit(global_active, HEART_ACTIVE_ON, memory_order_seq_cst);
+}
 void mtev_watchdog_set_name(mtev_watchdog_t *lifeline, const char *name) {
   if(lifeline == NULL) lifeline = mmap_lifelines;
   if(name == NULL) {
@@ -1161,6 +1185,10 @@ mtev_watchdog_get_timeout_timeval(mtev_watchdog_t *lifeline, struct timeval *dur
 void mtev_watchdog_disable(mtev_watchdog_t *lifeline) {
   if(lifeline == NULL) lifeline = mmap_lifelines;
   lifeline->active = HEART_ACTIVE_SKIP;
+}
+
+void mtev_watchdog_disable_all(void) {
+  atomic_store_explicit(global_active, HEART_ACTIVE_OFF, memory_order_seq_cst);
 }
 
 int mtev_watchdog_heartbeat(mtev_watchdog_t *hb) {

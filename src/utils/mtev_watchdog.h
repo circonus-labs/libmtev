@@ -138,6 +138,13 @@ API_EXPORT(eventer_t)
 API_EXPORT(void)
   mtev_watchdog_enable(mtev_watchdog_t *hb);
 
+/*! \fn void mtev_watchdog_enable_all(void)
+
+    mtev_watchdog_enable_all will make the parent respect and act on all failed heartbeats.
+ */
+API_EXPORT(void)
+  mtev_watchdog_enable_all(void);
+
 /*! \fn void mtev_watchdog_disable(mtev_watchdog_t *hb)
     \param hb the heart on which to act
 
@@ -145,6 +152,13 @@ API_EXPORT(void)
  */
 API_EXPORT(void)
   mtev_watchdog_disable(mtev_watchdog_t *hb);
+
+/*! \fn void mtev_watchdog_disable_all(mtev_watchdog_t *hb)
+
+    mtev_watchdog_disable_all will make the parent ignore all failed heartbeats.
+ */
+API_EXPORT(void)
+  mtev_watchdog_disable_all(void);
 
 /*! \fn void mtev_watchdog_override_timeout(mtev_watchdog_t *hb, double timeout)
     \param hb the heart on which to act
