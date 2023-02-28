@@ -70,7 +70,7 @@
 static int watchdog_tick(eventer_t e, int mask, void *lifeline, struct timeval *now);
 
 struct mtev_watchdog_t {
-  atomic_int_fast32_t ticker;
+  _Alignas(CK_MD_CACHELINE) atomic_int_fast32_t ticker;
   char padding[CK_MD_CACHELINE];
   enum {
     CRASHY_NOTATALL = 0,
