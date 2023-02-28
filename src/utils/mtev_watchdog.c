@@ -51,12 +51,14 @@
 #include <libproc.h>
 #endif
 
-#include <signal.h>
-#include <time.h>
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
+
 #include <math.h>
+#include <stdatomic.h>
+#include <signal.h>
+#include <time.h>
 
 #include "eventer/eventer.h"
 #include "mtev_log.h"
@@ -68,7 +70,8 @@
 static int watchdog_tick(eventer_t e, int mask, void *lifeline, struct timeval *now);
 
 struct mtev_watchdog_t {
-  int ticker;
+  atomic_int_fast32_t ticker;
+  char padding[CK_MD_CACHELINE];
   enum {
     CRASHY_NOTATALL = 0,
     CRASHY_CRASH = 0x00dead00,
@@ -367,9 +370,10 @@ static double last_tick_time(mtev_watchdog_t *lifeline, struct timeval *now) {
   struct timeval diff;
 
   if(lifeline == NULL) lifeline = mmap_lifelines;
+  const int32_t ticker = atomic_load_explicit(&lifeline->ticker, memory_order_seq_cst);
 
-  if(lifeline->parent_view.last_ticker != lifeline->ticker) {
-    lifeline->parent_view.last_ticker = lifeline->ticker;
+  if(lifeline->parent_view.last_ticker != ticker) {
+    lifeline->parent_view.last_ticker = ticker;
     memcpy(&lifeline->parent_view.last_changed, now, sizeof(*now));
   }
   if(lifeline->parent_view.last_changed.tv_sec == 0) return 0;
@@ -408,7 +412,9 @@ static void it_ticks_zero(mtev_watchdog_t *lifeline) {
 }
 static void it_ticks(mtev_watchdog_t *lifeline) {
   if(lifeline == NULL) lifeline = mmap_lifelines;
-  if(lifeline) lifeline->ticker++;
+  if(lifeline) {
+    atomic_fetch_add_explicit(&lifeline->ticker, 1, memory_order_relaxed);
+  }
 }
 int mtev_watchdog_child_heartbeat(void) {
   it_ticks(NULL);
