@@ -4,6 +4,8 @@
 
 ## 2.4
 
+ * API to disable and enable all watchdogs
+
 ### 2.4.2
 
  * Thread/Process safe counter for watchdog
