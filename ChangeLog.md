@@ -4,6 +4,8 @@
 
 ## 2.4
 
+### 2.4.2
+
  * Thread/Process safe counter for watchdog
  * Turn on `accept_thread` by default for `mtev_listener`
 
