@@ -45,6 +45,8 @@
 
 #include "mtev_curl.h"
 
+#include <ck_pr.h>
+
 static mtev_log_stream_t debug_ls, error_ls;
 static __thread CURLM *_global_curl_handle;
 static CURLM *first_assigned;
@@ -125,6 +127,7 @@ mtev_curl_debug_function(CURL *handle, curl_infotype type, char *data, size_t si
 typedef struct {
   eventer_t e;
   curl_socket_t s;
+  uint16_t refcnt;
 } curl_context_t;
 
 static void process_global_curlm(void) {
@@ -173,6 +176,7 @@ static int
 eventer_curl_perform(eventer_t e, int mask, void *vc, struct timeval *now) {
   (void)now;
   curl_context_t *c = vc;
+  ck_pr_inc_16(&c->refcnt);
   int flags = 0;
   int running_handles;
   if(mask & (EVENTER_EXCEPTION|EVENTER_READ)) flags |= CURL_CSELECT_IN;
@@ -182,7 +186,14 @@ eventer_curl_perform(eventer_t e, int mask, void *vc, struct timeval *now) {
 
   process_global_curlm();
 
-  return c->e == NULL ? 0 : eventer_get_mask(e);
+  int ret = c->e == NULL ? 0 : eventer_get_mask(e);
+
+  bool zero = false;
+  ck_pr_dec_16_zero(&c->refcnt, &zero);
+  if (zero) {
+    free(c);
+  }
+  return ret;
 }
 static int
 eventer_curl_on_timeout(eventer_t e, int mask, void *c, struct timeval *now) {
@@ -230,6 +241,7 @@ eventer_curl_handle_socket(CURL *easy, curl_socket_t s, int action, void *userp,
       if(!c) {
         c = calloc(1, sizeof(*c));
         c->s = s;
+        c->refcnt = 1;
         curl_multi_assign(global_curl_handle_get(), s, c);
       }
       if(action != CURL_POLL_IN) mask |= EVENTER_WRITE;
@@ -255,7 +267,11 @@ eventer_curl_handle_socket(CURL *easy, curl_socket_t s, int action, void *userp,
           mtevL(debug_ls, "curl removed %p as %p\n", c->e, tofree);
           c->e = NULL;
         }
-        free(c);
+        bool zero = false;
+        ck_pr_dec_16_zero(&c->refcnt, &zero);
+        if (zero) {
+          free(c);
+        }
         curl_multi_assign(global_curl_handle_get(), s, NULL);
       } else {
         mtevL(debug_ls, "curl removal with no socket ptr\n");
