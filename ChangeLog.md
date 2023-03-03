@@ -2,6 +2,8 @@
 
 # 2
 
+## 2.4.4
+
  * Print Linux lwp on watchdog
 
 ## 2.4.3
