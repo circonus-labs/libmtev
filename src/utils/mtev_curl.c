@@ -45,7 +45,7 @@
 
 #include "mtev_curl.h"
 
-#include <ck_pr.h>
+#include <stdatomic.h>
 
 static mtev_log_stream_t debug_ls, error_ls;
 static __thread CURLM *_global_curl_handle;
@@ -127,8 +127,16 @@ mtev_curl_debug_function(CURL *handle, curl_infotype type, char *data, size_t si
 typedef struct {
   eventer_t e;
   curl_socket_t s;
-  uint16_t refcnt;
+  atomic_uint_least16_t refcnt;
 } curl_context_t;
+
+static void curl_context_deref(curl_context_t *c) {
+  if (atomic_fetch_sub_explicit(&c->refcnt, 1, memory_order_release) == 1) {
+    atomic_thread_fence(memory_order_acquire);
+    c->e = NULL;
+    free(c);
+  }
+}
 
 static void process_global_curlm(void) {
   char *done_url;
@@ -176,7 +184,7 @@ static int
 eventer_curl_perform(eventer_t e, int mask, void *vc, struct timeval *now) {
   (void)now;
   curl_context_t *c = vc;
-  ck_pr_inc_16(&c->refcnt);
+  atomic_fetch_add_explicit(&c->refcnt, 1, memory_order_relaxed);
   int flags = 0;
   int running_handles;
   if(mask & (EVENTER_EXCEPTION|EVENTER_READ)) flags |= CURL_CSELECT_IN;
@@ -188,11 +196,7 @@ eventer_curl_perform(eventer_t e, int mask, void *vc, struct timeval *now) {
 
   int ret = c->e == NULL ? 0 : eventer_get_mask(e);
 
-  bool zero = false;
-  ck_pr_dec_16_zero(&c->refcnt, &zero);
-  if (zero) {
-    free(c);
-  }
+  curl_context_deref(c);
   return ret;
 }
 static int
@@ -265,13 +269,8 @@ eventer_curl_handle_socket(CURL *easy, curl_socket_t s, int action, void *userp,
         if(c->e) {
           eventer_t tofree = eventer_remove_fde(c->e);
           mtevL(debug_ls, "curl removed %p as %p\n", c->e, tofree);
-          c->e = NULL;
         }
-        bool zero = false;
-        ck_pr_dec_16_zero(&c->refcnt, &zero);
-        if (zero) {
-          free(c);
-        }
+        curl_context_deref(c);
         curl_multi_assign(global_curl_handle_get(), s, NULL);
       } else {
         mtevL(debug_ls, "curl removal with no socket ptr\n");
