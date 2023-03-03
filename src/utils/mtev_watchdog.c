@@ -47,6 +47,9 @@
 #include <ucontext.h>
 #include <sys/lwp.h>
 #endif
+#if defined(__linux__)
+#include <sys/syscall.h>
+#endif
 #if defined(__MACH__) && defined(__APPLE__)
 #include <libproc.h>
 #endif
@@ -92,6 +95,7 @@ struct mtev_watchdog_t {
   double timeout_override;
   int sig;
   pthread_t thread;
+  int lwp;
   char name[128];
 };
 
@@ -754,7 +758,7 @@ void setup_signals(sigset_t *mysigs) {
   attention.it_interval.tv_usec = 77000;
   mtevAssert(setitimer(ITIMER_REAL, &attention, NULL) == 0);
 }
-static int mtev_heartcheck(double *ltt, int *heartno, const char **thrname, pthread_t *tid) {
+static int mtev_heartcheck(double *ltt, int *heartno, const char **thrname, pthread_t *tid, int *lwp) {
   int i;
   struct timeval now;
 
@@ -771,6 +775,7 @@ static int mtev_heartcheck(double *ltt, int *heartno, const char **thrname, pthr
     *heartno = i;
     *thrname = (lifeline->name[0] == '\0') ? NULL : lifeline->name;
     *tid = lifeline->thread;
+    *lwp = lifeline->lwp;
     age = last_tick_time(lifeline, &now);
     double local_timeout = (lifeline->timeout_override != 0.0) ? lifeline->timeout_override : global_child_watchdog_timeout;
     if (lifeline->active == HEART_ACTIVE_OFF) break;
@@ -909,6 +914,7 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
     int heartno = 0;
     const char *thrname = NULL;
     pthread_t child_tid;
+    int child_lwp;
     double ltt = 0;
     /* This sets up things so we start alive */
     it_ticks_zero(NULL);
@@ -975,16 +981,16 @@ int mtev_watchdog_start_child(const char *app, int (*func)(void),
               goto out_loop2;
             }
             else if(mtev_monitored_child_pid == child_pid &&
-                    (hcs = mtev_heartcheck(&ltt, &heartno, &thrname, &child_tid))) {
+                    (hcs = mtev_heartcheck(&ltt, &heartno, &thrname, &child_tid, &child_lwp))) {
               if(hcs == 1) {
                 mtevL(mtev_error,
-                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... requesting termination of %d/%p\n",
-                      heartno, thrname ? thrname : "unnamed", ltt, child_pid, (void *)child_tid);
+                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... requesting termination of %d/%p/%d\n",
+                      heartno, thrname ? thrname : "unnamed", ltt, child_pid, (void *)child_tid, child_lwp);
                 kill(child_pid, SIGUSR2);
               } else {
                 mtevL(mtev_error,
-                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... terminating child %d/%p\n",
-                      heartno, thrname ? thrname : "unnamed", ltt, child_pid, (void *)child_tid);
+                      "[monitor] Watchdog timeout on heart#%d [%s] (%f s)... terminating child %d/%p/%d\n",
+                      heartno, thrname ? thrname : "unnamed", ltt, child_pid, (void *)child_tid, child_lwp);
                 if(glider_path) {
                   kill(child_pid, SIGSTOP);
                   run_glider(child_pid, GLIDE_WATCHDOG, thrname);
@@ -1106,6 +1112,11 @@ mtev_watchdog_t *mtev_watchdog_create(void) {
       lifeline->active = HEART_ACTIVE_ON;
       mtevL(mtev_debug, "activating heart: %d\n", i);
       lifeline->thread = pthread_self();
+#if defined __linux__
+      lifeline->lwp = syscall(__NR_gettid);
+#else
+      lifeline->lwp = 0;
+#endif
       return lifeline;
     }
   }
