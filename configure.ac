@@ -1026,6 +1026,8 @@ else
 fi
 AC_SUBST(CFLAGSEXTRAS)
 
+AC_SUBST(CXXFLAGSEXTRAS)
+
 UNAME_V=`uname -v`
 UNAME_R=`uname -r`
 UNAME_S=`uname -s`
