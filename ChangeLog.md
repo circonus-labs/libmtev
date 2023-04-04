@@ -2,11 +2,20 @@
 
 # 2
 
-## 2.4.4
+## 2.4
+
+### 2.4.5
+
+ * Fix sign-comparison warning on recent GCC.
+ * Separate compiler-specific C++ flags into `CXXFLAGSEXTRAS` to avoid
+   polluting `mtev-config`.
+ * Fix potential use-after-free in curl integration.
+
+### 2.4.4
 
  * Print Linux lwp on watchdog
 
-## 2.4.3
+### 2.4.3
 
  * API to disable and enable all watchdogs
 
