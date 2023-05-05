@@ -17,7 +17,7 @@
  * lmdb
  * luajit >= 2.1
  * ncurses
- * openssl
+ * openssl >= 1.0.2
  * pcre
  * udns
  * wslay (for websockets support)

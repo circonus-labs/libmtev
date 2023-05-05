@@ -39,6 +39,7 @@
 #include "eventer/eventer_aco_opset.h"
 #include "eventer/OETS_asn1_helper.h"
 #include "libmtev_dtrace.h"
+#include "mtev_ssl10_compat.h"
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -52,9 +53,9 @@
 #include <openssl/sha.h>
 #include <openssl/dh.h>
 
+#define _OPENSSL_VERSION_3_0_0 0x30000000L
 #define _OPENSSL_VERSION_1_1_0 0x10100000L
 #define _OPENSSL_VERSION_1_0_2 0x10002000L
-#define _OPENSSL_VERSION_1_0_1 0x10001000L
 
 #define EVENTER_SSL_DATANAME "eventer_ssl"
 #define DEFAULT_OPTS_STRING "all"
@@ -71,27 +72,6 @@
 #define MIN_ERRSTR_LEN 120
 
 static mtev_log_stream_t ssldb;
-
-#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_0_2
-#include "pre-rfc5114-dh1024.h"
-#include "pre-rfc5114-dh2048.h"
-#endif
-
-#define MAX_DHPARAMS 8
-static struct dhparams_t {
-  int bits;
-  const char *file;
-  DH *params;
-  DH *(*builtin)();
-} dhparams[MAX_DHPARAMS] = {
-#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
-  { .bits = 2048, .builtin = DH_get_2048_224 },
-#else
-  { .bits = 2048, .builtin = get_dh2048 },
-#endif
-};
-static int ndhparams = 1;
-
 
 static const char *
 internal_SSL_error(int err, char *scratch, int len) {
@@ -254,119 +234,6 @@ _eventer_ssl_ctx_save_last_error(eventer_ssl_ctx_t *ctx, int note_errno,
   i = strlen(ctx->last_error);
   if(i>=2) ctx->last_error[i-2] = '\0';
   mtev_log(ssldb, NULL, file, line, "ssl error: %s\n", ctx->last_error);
-}
-
-static DH *
-load_dh_params(const char *filename, long bits) {
-  (void)bits;
-  BIO *bio;
-  DH *dh = NULL;
-  if(filename == NULL) return NULL;
-  bio = BIO_new_file(filename, "r");
-  if(bio == NULL) return NULL;
-  mtevL(ssldb, "Loading DH parameters from %s.\n", filename);
-  PEM_read_bio_DHparams(bio, &dh, 0, NULL);
-  BIO_free(bio);
-  if(dh) {
-    int code = 0;
-    if(DH_check(dh, &code) != 1 || code != 0) {
-      mtevL(eventer_err, "DH Parameter in %s is bad [%x], not using.\n",
-            filename, code);
-      DH_free(dh);
-      dh = NULL;
-    }
-#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
-    const BIGNUM *p, *q, *g;
-    int foundbits = 0;
-    DH_get0_pqg(dh, &p, &q, &g);
-    if(!p || (foundbits = BN_num_bits(p)) != bits) {
-      mtevL(eventer_err, "DH Parameter in %s has %d bits, not using.\n",
-            filename, foundbits);
-      DH_free(dh);
-      dh = NULL;
-    }
-#endif
-  }
-  return dh;
-}
-static void
-save_dh_params(DH *p, const char *filename) {
-  int fd;
-  BIO *bio;
-  if(p == NULL || filename == NULL) return;
-  fd = open(filename, O_CREAT|O_TRUNC|O_RDWR, 0600);
-  if(fd < 0) return;
-  bio = BIO_new_fd(fd, 0);
-  if(bio == NULL) { close(fd); return; }
-  mtevL(mtev_notice, "Saving DH parameters to %s.\n", filename);
-  PEM_write_bio_DHparams(bio,p);
-  BIO_free(bio);
-  fchmod(fd, 0400);
-  close(fd);
-  return;
-}
-
-static int
-generate_dh_params(eventer_t e, int mask, void *cl, struct timeval *now) {
-  (void)e;
-  (void)now;
-  struct stat sb;
-  char errstr[MIN_ERRSTR_LEN];
-  unsigned int err;
-  int rv;
-  if(mask != EVENTER_ASYNCH_WORK) return 0;
-  ERR_clear_error();
-  struct dhparams_t *tgt = (struct dhparams_t *)cl;
-
-  ERR_clear_error();
-  if(tgt->file) {
-    memset(&sb, 0, sizeof(sb));
-    if(!tgt->params) {
-      while((rv = stat(tgt->file, &sb)) == -1 && errno == EINTR);
-      if(rv == 0 || errno != ENOENT) {
-        tgt->params = load_dh_params(tgt->file, tgt->bits);
-      }
-    }
-    if(!tgt->params) {
-      mtevL(mtev_notice, "Generating %d bit DH parameters.\n", tgt->bits);
-#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
-      tgt->params = DH_generate_parameters(tgt->bits, 2, NULL, NULL);
-      if(!tgt->params) {
-        while(0 != (err = ERR_get_error())) {
-          mtevL(eventer_err, " -> %s\n", ERR_error_string(err, errstr));
-        }
-      }
-#else
-      int problems = 0;
-      DH *dh_tmp_trans = DH_new();
-      DH_generate_parameters_ex(dh_tmp_trans, tgt->bits, 2, NULL);
-      if(DH_check(dh_tmp_trans, &problems) == 1 && problems == 0) {
-        tgt->params = dh_tmp_trans;
-      } else {
-        while(0 != (err = ERR_get_error())) {
-          mtevL(eventer_err, " -> %s\n", ERR_error_string(err, errstr));
-        }
-        DH_free(dh_tmp_trans);
-      }
-#endif
-      if(tgt->params) {
-        save_dh_params(tgt->params, tgt->file);
-        mtevL(mtev_notice, "Finished generating %d bit DH parameters.\n", tgt->bits);
-      } else {
-        mtevL(mtev_notice, "Failed generating %d bit DH parameters.\n", tgt->bits);
-      }
-    }
-  }
-  else if(tgt->builtin) {
-    tgt->params = tgt->builtin();
-    if(tgt->params) {
-      mtevL(ssldb, "Using builtin %d bit DH parameters.\n", tgt->bits);
-    }
-    else {
-      mtevL(mtev_notice, "Failed using builtin %d bit DH parameters.\n", tgt->bits);
-    }
-  }
-  return 0;
 }
 
 static int
@@ -833,7 +700,7 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
   const char *openssl_override_layer =
 #if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_1_0
     mtev_hash_dict_get(settings, "layer_openssl_11");
-#elif OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_1
+#elif OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
     mtev_hash_dict_get(settings, "layer_openssl_10");
 #else
     NULL;
@@ -1083,24 +950,14 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
         }
         X509_free(crt);
 
-#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_0_2 && OPENSSL_VERSION_NUMER >= _OPENSSL_VERSION_1_0_1
-        if(SSL_CTX_clear_extra_chain_certs(ctx->ssl_ctx) == 0) {
-#elif OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
         if(SSL_CTX_clear_chain_certs(ctx->ssl_ctx) == 0) {
-#else
-        if(0) {
-#endif
           mtevL(eventer_err, "Failed to initialize TLS certificate chain\n");
           BIO_free(bio);
           goto bail;
         }
         certno++;
         while(NULL != (crt = PEM_read_bio_X509(bio, NULL, NULL, NULL))) {
-#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_0_2
-          if(!SSL_CTX_add_extra_chain_cert(ctx->ssl_ctx, crt)) {
-#else
           if(!SSL_CTX_add0_chain_cert(ctx->ssl_ctx, crt)) {
-#endif
             X509_free(crt);
             BIO_free(bio);
             mtevL(eventer_err, "Failed to add to TLS certificate [#%d] to chain\n", certno);
@@ -1220,9 +1077,11 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
       SSL_CTX_set_client_CA_list(ctx->ssl_ctx, cert_stack);
     }
     if(crl) eventer_ssl_use_crl(ctx, crl);
+
     SSL_CTX_set_cipher_list(ctx->ssl_ctx, ciphers ? ciphers : "DEFAULT");
     SSL_CTX_set_verify(ctx->ssl_ctx, SSL_VERIFY_PEER, verify_cb);
-#ifndef OPENSSL_NO_EC
+
+/* Elliptic-Curve Diffie-Hellman */
 #if defined(SSL_CTX_set_ecdh_auto)
     SSL_CTX_set_ecdh_auto(ctx->ssl_ctx, 1);
 #elif defined(NID_X9_62_prime256v1)
@@ -1230,22 +1089,14 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
     SSL_CTX_set_tmp_ecdh(ctx->ssl_ctx, ec_key);
     EC_KEY_free(ec_key);
 #endif
+
+/* Diffie-Hellman */
+#if defined(SSL_CTX_set_dh_auto)
+    SSL_CTX_set_dh_auto(ctx->ssl_ctx, 1);
+#else
+    DH *dh_2048 = DH_get_2048_224();
+    SSL_CTX_set_tmp_dh(ctx->ssl_ctx, dh_2048);
 #endif
-    const char *dh_bits = mtev_hash_dict_get(settings, "dhparam_bits");
-    int dh_bits_demand = dhparams[0].bits;
-    if(dh_bits) dh_bits_demand = atoi(dh_bits);
-    mtev_boolean dh_set = mtev_false;
-    for(int i=0; i<ndhparams; i++) {
-      if(dhparams[i].params && dhparams[i].bits == dh_bits_demand) {
-        dh_set = mtev_true;
-        SSL_CTX_set_tmp_dh(ctx->ssl_ctx, dhparams[i].params);
-        break;
-      }
-    }
-    if(dh_bits && dh_bits_demand && !dh_set) {
-      mtevL(eventer_err, "Could not set %d bit dh params on SSL context\n", dh_bits_demand);
-      goto bail;
-    }
 
     existing_ctx_cn = ssl_ctx_cache_set(ctx->ssl_ctx_cn);
     if(existing_ctx_cn != ctx->ssl_ctx_cn) {
@@ -1757,32 +1608,6 @@ void eventer_ssl_set_ssl_ctx_cache_expiry(int timeout) {
   ssl_ctx_cache_expiry = timeout;
 }
 int eventer_ssl_config(const char *key, const char *value) {
-  if(!strncmp(key, "ssl_dhparam", strlen("ssl_dhparam"))) {
-    char *endptr = NULL;
-    unsigned long bits = strtoul(key + strlen("ssl_dhparam"), &endptr, 10);
-    if(bits > 0 && endptr && (*endptr == '\0' || !strcmp(endptr, "_file"))) {
-      int i;
-      for(i=0; i<ndhparams; i++) {
-        if(dhparams[i].bits == (int)bits) {
-          dhparams[i].file = strlen(value) ? strdup(value) : NULL;
-          return 0;
-        }
-      }
-      if(i < MAX_DHPARAMS) {
-        mtevL(mtev_notice, "Config requesting %lu bit dhparams\n", bits);
-        dhparams[i].bits = (int)bits;
-        dhparams[i].file = strlen(value) ? strdup(value) : NULL;
-        /* special case 1024 to use the openssl NIST builtin */
-#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_1_0_2
-        if(bits == 1024) dhparams[i].builtin = DH_get_1024_160;
-#else
-        if(bits == 1024) dhparams[i].builtin = get_dh1024;
-#endif
-        ndhparams++;
-        return 0;
-      }
-    }
-  }
   if(!strcmp(key, "ssl_ctx_cache_expiry")) {
     eventer_ssl_set_ssl_ctx_cache_expiry(atoi(value));
     return 0;
@@ -1792,7 +1617,6 @@ int eventer_ssl_config(const char *key, const char *value) {
 
 static int32_t initialized = 0;
 void eventer_ssl_init(void) {
-  eventer_t e;
   if(initialized) return;
   ssldb = mtev_log_stream_find("debug/eventer/ssl");
   initialized = 1;
@@ -1821,14 +1645,6 @@ void eventer_ssl_init(void) {
     OPENSSL_INIT_ENGINE_ALL_BUILTIN, NULL);
 #endif
   OpenSSL_add_all_ciphers();
-
-  for(int i=0; i<ndhparams; i++) {
-    e = eventer_alloc();
-    e->mask = EVENTER_ASYNCH;
-    e->callback = generate_dh_params;
-    e->closure = (void *)&dhparams[i];
-    eventer_add_asynch(NULL, e);
-  }
   return;
 }
 
