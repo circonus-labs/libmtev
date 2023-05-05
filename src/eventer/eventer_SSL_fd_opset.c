@@ -39,7 +39,6 @@
 #include "eventer/eventer_aco_opset.h"
 #include "eventer/OETS_asn1_helper.h"
 #include "libmtev_dtrace.h"
-#include "mtev_ssl10_compat.h"
 
 #include <sys/socket.h>
 #include <unistd.h>
