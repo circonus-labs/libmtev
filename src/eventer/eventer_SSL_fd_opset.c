@@ -603,13 +603,16 @@ ssl_ctx_key_write(char *b, int blen, eventer_ssl_orientation_t type,
                   const char *layer, const char **parts) {
   unsigned char sig[SHA256_DIGEST_LENGTH];
   char hexsig[SHA256_DIGEST_LENGTH*2+1];
-  SHA256_CTX ctx;
-  SHA256_Init(&ctx);
+  const EVP_MD *md = EVP_get_digestbyname("SHA256");
+  mtevAssert(md);
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(ctx, md, NULL);
   int i=0;
   for(const char *part = parts[i]; part; part = parts[++i]) {
-    if(part) SHA256_Update(&ctx, part, strlen(part));
+    if(part) EVP_DigestUpdate(ctx, part, strlen(part));
   }
-  SHA256_Final(sig, &ctx);
+  EVP_DigestFinal(ctx, sig, NULL);
+  EVP_MD_CTX_free(ctx);
   static const char *hexdigits = "0123456789abcdef";
   for(int i=0; i<SHA256_DIGEST_LENGTH; i++) {
     hexsig[i*2] = hexdigits[sig[i] >> 4];
@@ -977,29 +980,29 @@ eventer_ssl_ctx_new_ex(eventer_ssl_orientation_t type,
     }
     if(key) {
       if(key_file) {
-        if(SSL_CTX_use_RSAPrivateKey_file(ctx->ssl_ctx, key_file,
+        if(SSL_CTX_use_PrivateKey_file(ctx->ssl_ctx, key_file,
                                           SSL_FILETYPE_PEM) != 1) {
-          mtevL(eventer_err, "Failed to read TLS key from %s\n", key_file);
+          mtevL(eventer_err, "Failed to read private key from %s\n", key_file);
           goto bail;
         }
         mtevL(ssldb, "Loaded private key from file: %s\n", key_file);
       } else {
-        /* key is a PEM key, pust read it */
+        /* key is a PEM block, must read it */
         BIO *bio = BIO_new_mem_buf((void *)key, -1);
         BIO_set_flags(bio, BIO_FLAGS_MEM_RDONLY);
         EVP_PKEY *pk = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
         BIO_free(bio);
         if(!pk) {
-          mtevL(eventer_err, "Failed to read TLS key from memory\n");
+          mtevL(eventer_err, "Failed to read private key from memory\n");
           goto bail;
         }
         if(SSL_CTX_use_PrivateKey(ctx->ssl_ctx, pk) != 1) {
-          mtevL(eventer_err, "Failed to use TLS key from memory\n");
+          mtevL(eventer_err, "Failed to use private key from memory\n");
           EVP_PKEY_free(pk);
           goto bail;
         }
         EVP_PKEY_free(pk);
-        mtevL(ssldb, "Loaded private key from memmory\n");
+        mtevL(ssldb, "Loaded private key from memory\n");
       }
     }
     if(ca) {
