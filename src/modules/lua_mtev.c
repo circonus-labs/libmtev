@@ -75,6 +75,7 @@
 #include "mtev_cluster.h"
 #include "mtev_thread.h"
 #include "mtev_websocket_client.h"
+#include "mtev_ssl10_compat.h"
 
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
