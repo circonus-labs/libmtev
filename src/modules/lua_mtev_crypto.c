@@ -407,7 +407,6 @@ mtev_lua_crypto_newreq(lua_State *L) {
 
 static int
 mtev_lua_crypto_rsa_gencsr(lua_State *L) {
-  EVP_PKEY *rsa;
   X509_REQ *req = NULL;
   X509_NAME *subject = NULL;
   const EVP_MD *md = NULL;
@@ -419,6 +418,13 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   void **udata;
   CONF *addext_conf = NULL;
   BIO *addext_bio = NULL;
+
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  EVP_PKEY *rsa;
+  pkey = EVP_PKEY_new();
+#else
+  RSA *rsa;
+#endif
 
   strlcpy(buf, "crypto.rsa:gencsr ", sizeof(buf));
   errbuf = buf + strlen(buf);
@@ -434,7 +440,11 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   if(!lua_istable(L,2)) REQERR("requires table as second argument");
   lua_pushvalue(L,2);
   udata = lua_touserdata(L, lua_upvalueindex(1));
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   rsa = (EVP_PKEY *)*udata;
+#else
+  rsa = (RSA *)*udata;
+#endif
 
 #define GET_OR(str, name,fallback) do { \
   lua_getfield(L,-1,name); \
@@ -445,7 +455,6 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   md = EVP_get_digestbyname(lua_string);
   if(!md) REQERR("unknown digest");
 
-  pkey = EVP_PKEY_new();
 #if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   pkey = EVP_PKEY_dup(rsa);
   if(!pkey) REQERR("crypto.rsa:gencsr could not use private key");
