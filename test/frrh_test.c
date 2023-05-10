@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <limits.h>
 
+#include "mtev_ssl10_compat.h"
+
 #define KEYSPACE 10000
 #define KEYLEN 100
 #define ITERS 10000000
