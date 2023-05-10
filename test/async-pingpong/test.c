@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#define UNUSED(x) (void)(x)
+
 #define ITERS 100000
 #define APPNAME "example1"
 static char *config_file = NULL;
@@ -56,10 +58,17 @@ struct test_closure {
 };
 static int
 noop_asynch(eventer_t e, int mask, void *closure, struct timeval *now) {
+  UNUSED(e);
+  UNUSED(mask);
+  UNUSED(closure);
+  UNUSED(now);
   return 0;
 }
 static int
 doasynchstuff(eventer_t e, int mask, void *closure, struct timeval *now) {
+  UNUSED(e);
+  UNUSED(now);
+
   mtev_http_rest_closure_t *restc = closure;
   struct test_closure *cc = restc->closure;
 
@@ -90,6 +99,9 @@ doasynchstuff(eventer_t e, int mask, void *closure, struct timeval *now) {
 }
 static int
 test_complete(mtev_http_rest_closure_t *restc, int npats, char **pats) {
+  UNUSED(npats);
+  UNUSED(pats);
+
   struct test_closure *cc = restc->closure;
   mtevL(mtev_debug, "-> test_complete()\n");
   mtev_http_response_ok(restc->http_ctx, "text/plain");
@@ -114,6 +126,9 @@ test_complete(mtev_http_rest_closure_t *restc, int npats, char **pats) {
 }
 static int
 test(mtev_http_rest_closure_t *restc, int npats, char **pats) {
+  UNUSED(npats);
+  UNUSED(pats);
+
   mtevL(mtev_debug, "-> test()\n");
   restc->fastpath = test_complete;
 
@@ -149,7 +164,10 @@ child_main(void) {
   mtev_dso_post_init();
 
   mtev_conf_write_log();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
   mtev_conf_watch_and_journal_watchdog((int (*)(void *))mtev_conf_write_log, NULL);
+#pragma GCC diagnostic pop
 
   mtev_rest_mountpoint_t *mp;
   mp = mtev_http_rest_new_rule(

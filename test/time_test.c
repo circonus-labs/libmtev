@@ -12,10 +12,15 @@
   printf("\n** FAILURE\n"); \
   exit(1);
 
+#define UNUSED(x) (void)(x)
+
 #define loop_count 10000000
 
 int main(int argc, char **argv) 
 {
+  UNUSED(argc);
+  UNUSED(argv);
+
   mtev_thread_init();
   mtev_time_start_tsc();
   mtev_hrtime_t start = mtev_sys_gethrtime();

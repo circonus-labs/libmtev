@@ -3,14 +3,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
-#include <uuid/uuid.h>
 
 #define FAIL(...)                           \
   printf("** ");                            \
   printf( __VA_ARGS__);                     \
   printf("\n** FAILURE\n"); \
   exit(1);
+
+#define UNUSED(x) (void)(x)
 
 struct data{
   int i;
@@ -26,8 +28,9 @@ noop_free(void *x)
 
 int main(int argc, char **argv) 
 {
-  uuid_t uuid;
-  char s[PATH_MAX];
+  UNUSED(argc);
+  UNUSED(argv);
+
   srand(time(NULL));
 
   struct data datas[10] = 

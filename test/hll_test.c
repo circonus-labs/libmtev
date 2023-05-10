@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
-#include <uuid/uuid.h>
 
 #define FAIL(...)                           \
   printf("** ");                            \
@@ -12,10 +12,13 @@
   printf("\n** FAILURE\n"); \
   exit(1);
 
+#define UNUSED(x) (void)(x)
 
 int main(int argc, char **argv) 
 {
-  uuid_t uuid;
+  UNUSED(argc);
+  UNUSED(argv);
+
   char s[PATH_MAX];
   srand(time(NULL));
 
@@ -29,7 +32,6 @@ int main(int argc, char **argv)
 
   printf("Filling took %llu nanos\n", end - start);
 
-  int zc = 0;
   start = mtev_gethrtime();
   double est = mtev_hyperloglog_size(hll);
   end = mtev_gethrtime();

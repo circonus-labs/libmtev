@@ -16,6 +16,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#define UNUSED(x) (void)(x)
+
 typedef struct {
   const char *name;
   uint32_t jobs;
@@ -65,6 +67,9 @@ static void parse_cli_args(int argc, char *const *argv)
 
 static int
 toil(eventer_t e, int mask, void *c, struct timeval *now) {
+  UNUSED(e);
+  UNUSED(now);
+
   work_description_t *w = c;
   const char *type = "unknown";
   switch(mask) {
@@ -96,14 +101,17 @@ static int child_main(void)
   mtev_dso_post_init();
 
   mtev_conf_write_log();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
   mtev_conf_watch_and_journal_watchdog((int (*)(void *)) mtev_conf_write_log, NULL);
+#pragma GCC diagnostic pop
 
   eventer_jobq_t *test_jobq = eventer_jobq_create_ms("test_jobq", EVENTER_JOBQ_MS_GC);
   eventer_jobq_set_concurrency(test_jobq, 4);
 
-  for(int i=0; i<sizeof(work)/sizeof(*work); i++) {
+  for(uint32_t i=0; i<sizeof(work)/sizeof(*work); i++) {
     mtevL(mtev_error, "Starting: %s\n", work[i].name);
-    for(int j=0; j<work[i].jobs; j++) {
+    for(uint32_t j=0; j<work[i].jobs; j++) {
       eventer_t e;
       if(work[i].deadline_s) {
         struct timeval deadline;
@@ -124,7 +132,7 @@ static int child_main(void)
     sleep(1);
   }
   mtevL(mtev_error, "%u/%u\n", done, todo);
-  for(int i=0; i<sizeof(work)/sizeof(*work); i++) {
+  for(uint32_t i=0; i<sizeof(work)/sizeof(*work); i++) {
     work_description_t *w = &work[i];
     mtevL(mtev_error, "workload %s (%u/%u/%u)\n", w->name, w->work_calls, w->cleanup_calls, w->completion_calls);
     mtevAssert(w->timeouts_expected || w->jobs == w->work_calls);

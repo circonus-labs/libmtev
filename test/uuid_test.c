@@ -11,6 +11,7 @@
   printf("\n** FAILURE\n"); \
   exit(1);
 
+#define UNUSED(x) (void)(x)
 
 static mtev_hrtime_t total_time = 0;
 
@@ -24,6 +25,9 @@ int parse_both(const char *in, uuid_t out)
   int x = mtev_uuid_parse(in, out);
 
   int y = uuid_parse(in, again);
+
+  UNUSED(x);
+  UNUSED(y);
 
   int z = memcmp(out, again, sizeof(uuid_t));
   if (z != 0) {
@@ -65,6 +69,9 @@ void parse_file(void)
 
 int main(int argc, char **argv) 
 {
+  UNUSED(argc);
+  UNUSED(argv);
+
   uuid_parse_fn = mtev_uuid_parse;
   for (int i = 0; i < 1000000/500; i++) {
     parse_file();
@@ -135,7 +142,7 @@ int main(int argc, char **argv)
 
   /* input length one-too-large */
   const char *broken5 = "2f711a8c-e6a1-ce2e-ec52-82aac2906d080";
-  if (mtev_uuid_parse(broken3, uc) != -1) {
+  if (mtev_uuid_parse(broken5, uc) != -1) {
     FAIL("Expected parse failure 5!");
   }
 
@@ -148,7 +155,7 @@ int main(int argc, char **argv)
   printf("* Broken UUIDs expectedly fail\n");
 
   mtev_hrtime_t libuuid_time = 0;
-  mtev_hrtime_t gstart, gend;
+  mtev_hrtime_t gstart;
 
   gstart = mtev_gethrtime();
   for (int i = 0; i < 10000; i++) {

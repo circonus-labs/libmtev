@@ -3,12 +3,17 @@
 #include <assert.h>
 #include <mtev_maybe_alloc.h>
 
+#define UNUSED(x) (void)(x)
+
 int chkmem(const char *ptr, size_t len, char exp) {
   const char *cp;
   for(cp = ptr; cp < ptr+len; cp++) if(*cp != exp) return 0;
   return 1;
 }
 int main(int argc, char *argv[]) {
+  UNUSED(argc);
+  UNUSED(argv);
+
   int a = 12345;
   MTEV_MAYBE_DECL(char, buff, 1892);
   int b = 54321;

@@ -16,6 +16,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#define UNUSED(x) (void)(x)
+
 #define APPNAME "example1"
 static char *config_file = NULL;
 static int debug = 1;
@@ -41,6 +43,9 @@ parse_cli_args(int argc, char * const *argv) {
 
 static int
 doasynchstuff(eventer_t e, int mask, void *closure, struct timeval *now) {
+  UNUSED(e);
+  UNUSED(now);
+
   mtev_http_rest_closure_t *restc = closure;
   if(mask == EVENTER_ASYNCH_WORK) {
     mtevL(mtev_debug, "here asynch\n");
@@ -54,6 +59,9 @@ doasynchstuff(eventer_t e, int mask, void *closure, struct timeval *now) {
 }
 static int
 test_complete(mtev_http_rest_closure_t *restc, int npats, char **pats) {
+  UNUSED(npats);
+  UNUSED(pats);
+
   mtevL(mtev_debug, "-> test_complete()\n");
   mtev_http_response_ok(restc->http_ctx, "text/plain");
   mtev_http_response_append_str(restc->http_ctx, "Hello world\n");
@@ -62,6 +70,9 @@ test_complete(mtev_http_rest_closure_t *restc, int npats, char **pats) {
 }
 static int
 test(mtev_http_rest_closure_t *restc, int npats, char **pats) {
+  UNUSED(npats);
+  UNUSED(pats);
+
   mtevL(mtev_debug, "-> test()\n");
   restc->fastpath = test_complete;
 
@@ -97,7 +108,10 @@ child_main(void) {
   mtev_dso_post_init();
 
   mtev_conf_write_log();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
   mtev_conf_watch_and_journal_watchdog((int (*)(void *))mtev_conf_write_log, NULL);
+#pragma GCC diagnostic pop
 
   mtev_rest_mountpoint_t *mp;
   mp = mtev_http_rest_new_rule(
