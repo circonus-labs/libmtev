@@ -63,7 +63,7 @@ Once all dependencies are installed:
     apt-get install autoconf automake build-essential cmake git \
         libcurl4-openssl-dev libhwloc-dev liblmdb-dev libluajit-5.1-dev \
         liblz4-dev libncurses5-dev libnghttp2-dev libpcre3-dev libssl-dev \
-        libudns-dev libxslt1-dev libyajl-dev xsltproc zlib1g-dev
+        libudns-dev libwslay-dev libxslt1-dev libyajl-dev xsltproc zlib1g-dev
 
 If AMQP support is desired:
 
