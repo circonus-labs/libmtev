@@ -35,6 +35,8 @@ int main() {
                           NULL, mtev_memory_safe_malloc,
                           mtev_memory_safe_free);
 
+  OpenSSL_add_all_digests();
+
   mtev_perftimer_start(&start);
   for(int j=0; j<ITERS; j++) {
     char *key = keys[j % KEYSPACE];
