@@ -421,7 +421,6 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
 
 #if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   EVP_PKEY *rsa;
-  pkey = EVP_PKEY_new();
 #else
   RSA *rsa;
 #endif
@@ -455,6 +454,7 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   md = EVP_get_digestbyname(lua_string);
   if(!md) REQERR("unknown digest");
 
+  pkey = EVP_PKEY_new();
 #if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   pkey = EVP_PKEY_dup(rsa);
   if(!pkey) REQERR("crypto.rsa:gencsr could not use private key");
