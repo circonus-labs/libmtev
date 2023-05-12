@@ -348,10 +348,16 @@ mtev_lua_crypto_ssl_session_gc(lua_State *L) {
 static int
 mtev_lua_crypto_newrsa(lua_State *L) {
   int bits = 2048;
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   EVP_PKEY *rsa = EVP_PKEY_new();
   EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
   if(!rsa) goto fail;
   if(!ctx) goto fail;
+#else
+  int e = 65537;
+  BIGNUM *bn = NULL;
+  RSA *rsa = NULL;
+#endif
 
   if(lua_gettop(L) > 0) {
     if(lua_isnumber(L,1))
@@ -362,7 +368,11 @@ mtev_lua_crypto_newrsa(lua_State *L) {
       const char *key;
       key = lua_tolstring(L,1,&len);
       bio = BIO_new_mem_buf((void *)key,len);
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
       if(bio && PEM_read_bio_PrivateKey(bio, &rsa, NULL, NULL)) {
+#else
+      if(bio && PEM_read_bio_RSAPrivateKey(bio, &rsa, NULL, NULL)) {
+#endif
         PUSH_OBJ(L, "crypto.rsa", rsa);
         return 1;
       }
@@ -371,16 +381,33 @@ mtev_lua_crypto_newrsa(lua_State *L) {
     }
   }
 
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   if(EVP_PKEY_keygen_init(ctx) <= 0) goto fail;
   if(EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, bits) <= 0) goto fail;
   if(EVP_PKEY_keygen(ctx, &rsa) <= 0) goto fail;
+#else
+  if(lua_gettop(L) > 1) e = lua_tointeger(L,2);
+
+  rsa = RSA_new();
+  if(!rsa) goto fail;
+  bn = BN_new();
+  if(!bn) goto fail;
+  if(!BN_set_word(bn, e)) goto fail;
+  if(!RSA_generate_key_ex(rsa, bits, bn, NULL)) goto fail;
+  BN_free(bn);
+#endif
 
   PUSH_OBJ(L, "crypto.rsa", rsa);
   return 1;
 
  fail:
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   if(rsa) EVP_PKEY_free(rsa);
   if(ctx) EVP_PKEY_CTX_free(ctx);
+#else
+  if(bn) BN_free(bn);
+  if(rsa) RSA_free(rsa);
+#endif
   lua_pushnil(L);
   return 1;
 }
@@ -567,17 +594,29 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
 static int
 mtev_lua_crypto_rsa_as_pem(lua_State *L) {
   BIO *bio;
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   EVP_PKEY *rsa;
+#else
+  RSA *rsa;
+#endif
   long len;
   char *pem;
   void **udata;
   udata = lua_touserdata(L, lua_upvalueindex(1));
   if(udata != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   rsa = (EVP_PKEY *)*udata;
+#else
+  rsa = (RSA *)*udata;
+#endif
 
   bio = BIO_new(BIO_s_mem());
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   PEM_write_bio_PrivateKey(bio, rsa, NULL, NULL, 0, NULL, NULL);
+#else
+  PEM_write_bio_RSAPrivateKey(bio, rsa, NULL, NULL, 0, NULL, NULL);
+#endif
   len = BIO_get_mem_data(bio, &pem);
   lua_pushlstring(L, pem, len);
   BIO_free(bio);
@@ -612,7 +651,11 @@ static int
 mtev_lua_crypto_rsa_gc(lua_State *L) {
   void **udata;
   udata = lua_touserdata(L,1);
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
   EVP_PKEY_free((EVP_PKEY *)*udata);
+#else
+  RSA_free((RSA *)*udata);
+#endif
   return 0;
 }
 
