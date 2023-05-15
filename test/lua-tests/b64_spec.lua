@@ -32,6 +32,26 @@ describe("mtev_b64", function()
     end
   end)
 
+  -- it("A == encode(decode(A))", function()
+  --   local str = ""
+  --   local buf = charstar(1600)
+  --   -- local buf2 = charstar(1001)
+  --   local buf2 = charstar(1600)
+  --   for i=1,1000 do
+  --     io.write("i:", i, "\n")
+  --     str = str .. "x"
+  --     io.write("str:", str, "\n")
+
+  --     local str_len = string.len(str)
+  --     local decode_len = libmtev.mtev_b64_max_decode_len(str_len)
+  --     io.write("decode_len:", tostring(decode_len), "\n")
+  --     local rv = libmtev.mtev_b64_decode(str, string.len(str), buf, decode_len)
+  --     io.write("rv:", rv, "\n")
+  --     -- assert.is_true(rv > 0)
+  --     assert.are.equal(rv, decode_len)
+  --   end
+  -- end)
+
   it("encode to short buffer", function()
     local str = "This is a string"
     local encode_len = tonumber(libmtev.mtev_b64_encode_len(string.len(str)))
