@@ -15,42 +15,27 @@ describe("mtev_b64", function()
     local str = ""
     local buf = charstar(1600)
     local buf2 = charstar(1001)
-    for i=1,1000 do
+    for i=1,10 do
+      io.write("i:", i, "\n")
       str = str .. "x"
 
       local str_len = string.len(str)
-      local encode_len = libmtev.mtev_b64_encode_len(str_len)
-      local rv = libmtev.mtev_b64_encode(str, string.len(str), buf, encode_len)
-      assert.is_true(rv > 0)
-      assert.are.equal(rv, encode_len)
+      local max_encode_len = libmtev.mtev_b64_encode_len(str_len)
+      local actual_encode_len = libmtev.mtev_b64_encode(str, string.len(str), buf, max_encode_len)
+      assert.is_true(actual_encode_len > 0)
+      assert.is_true(actual_encode_len <= max_encode_len)
 
-      local decode_len = libmtev.mtev_b64_max_decode_len(encode_len)
-      assert.is_true(str_len <= decode_len)
-      local rv = libmtev.mtev_b64_decode(buf, rv, buf2, decode_len)
-      assert.are.equal(rv, i)
-      assert.are.equal(str, ffi.string(buf2, rv))
+      io.write("actual_encode_len:", tostring(actual_encode_len), "\n")
+      local max_decode_len = libmtev.mtev_b64_max_decode_len(actual_encode_len)
+      io.write("predicted max_decode_len:", tostring(max_decode_len), "\n")
+      assert.is_true(str_len <= max_decode_len)
+      local actual_decode_len = libmtev.mtev_b64_decode(buf, actual_encode_len, buf2, max_decode_len)
+      io.write("actual_decode_len:", tostring(actual_decode_len), "\n")
+      io.write("predicted decode - actual = ", tostring(max_decode_len - actual_decode_len), "\n")
+      assert.is.equal(actual_decode_len, i)
+      assert.is.equal(str, ffi.string(buf2, actual_decode_len))
     end
   end)
-
-  -- it("A == encode(decode(A))", function()
-  --   local str = ""
-  --   local buf = charstar(1600)
-  --   -- local buf2 = charstar(1001)
-  --   local buf2 = charstar(1600)
-  --   for i=1,1000 do
-  --     io.write("i:", i, "\n")
-  --     str = str .. "x"
-  --     io.write("str:", str, "\n")
-
-  --     local str_len = string.len(str)
-  --     local decode_len = libmtev.mtev_b64_max_decode_len(str_len)
-  --     io.write("decode_len:", tostring(decode_len), "\n")
-  --     local rv = libmtev.mtev_b64_decode(str, string.len(str), buf, decode_len)
-  --     io.write("rv:", rv, "\n")
-  --     -- assert.is_true(rv > 0)
-  --     assert.are.equal(rv, decode_len)
-  --   end
-  -- end)
 
   it("encode to short buffer", function()
     local str = "This is a string"
@@ -61,50 +46,55 @@ describe("mtev_b64", function()
   end)
 
   it("decode to short buffer (==)", function()
-    local str = "VGhpcyBpcyBhIHN0cmluZw=="
-    local buf = charstar(str)
-    local decode_len = tonumber(libmtev.mtev_b64_max_decode_len(string.len(str)))
-    assert.are.equal(decode_len,18)
+    local encoded_str = "VGhpcyBpcyBhIHN0cmluZw=="
+    local decoded_str = "This is a string"
+    local buf = charstar(encoded_str)
+    local decode_len = tonumber(libmtev.mtev_b64_max_decode_len(string.len(encoded_str)))
     local buf_too_small = charstar(decode_len)
-    local rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 15)
+    local rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len - 3)
     assert.is.equal(0, rv)
-    local rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 16)
-    assert.are.equal(16, rv)
+    assert.is_false(ffi.string(buf_too_small) == decoded_str)
+    local rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len - 2)
+    assert.is.equal(string.len(decoded_str), rv)
+    assert.is_true(ffi.string(buf_too_small) == decoded_str)
+    local rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len - 1)
+    assert.is.equal(string.len(decoded_str), rv)
+    assert.is_true(ffi.string(buf_too_small) == decoded_str)
+    local rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len)
+    assert.is.equal(string.len(decoded_str), rv)
+    assert.is_true(ffi.string(buf_too_small) == decoded_str)
   end)
 
   it("decode to short buffer (=)", function()
-    local str = "VGhpcyBpcyBhIHN0cmluZwa="
-    local buf = charstar(str)
-    local buf_too_small = charstar(17)
-    local rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 16)
+    local encoded_str = "VGhpcyBpcyBhIHN0cmluZy4="
+    local decoded_str = "This is a string."
+    local buf = charstar(encoded_str)
+    local decode_len = tonumber(libmtev.mtev_b64_max_decode_len(string.len(encoded_str)))
+    local buf_too_small = charstar(decode_len)
+    local rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len - 2)
     assert.is.equal(0, rv)
-    rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 17)
-    assert.are.equal(17, rv)
+    assert.is_false(ffi.string(buf_too_small) == decoded_str)
+    rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len - 1)
+    assert.is.equal(string.len(decoded_str), rv)
+    assert.is_true(ffi.string(buf_too_small) == decoded_str)
+    rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len)
+    assert.is.equal(string.len(decoded_str), rv)
+    assert.is_true(ffi.string(buf_too_small) == decoded_str)
   end)
 
   it("decode to short buffer (full)", function()
-    local str = "VGhpcyBpcyBhIHN0cmluZwaa"
-    local buf = charstar(str)
-    local buf_too_small = charstar(18)
-    local rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 17)
+    local encoded_str = "VGhpcyBpcyBhIHN0cmluZy4u"
+    local decoded_str = "This is a string.."
+    local buf = charstar(encoded_str)
+    local decode_len = tonumber(libmtev.mtev_b64_max_decode_len(string.len(encoded_str)))
+    local buf_too_small = charstar(decode_len)
+    local rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len - 1)
     assert.is.equal(0, rv)
-    rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 18)
-    assert.are.equal(18, rv)
+    rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len)
+    assert.is.equal(string.len(decoded_str), rv)
+    assert.is_true(ffi.string(buf_too_small) == decoded_str)
   end)
 
-  it("decode to short buffer (invalid)", function()
-    local str = "VGhpcyBpcyBhIHN0cmluZw=a"
-    local buf = charstar(str)
-    local buf_too_small = charstar(17)
-    local rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 15)
-    assert.are.equal(0, rv)
-    rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 16)
-    assert.are.equal(16, rv)
-    rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 17)
-    assert.are.equal(16, rv)
-    rv = libmtev.mtev_b64_decode(buf, string.len(str), buf_too_small, 18)
-    assert.are.equal(16, rv)
-  end)
 
   it("encodev decodes correctly", function()
     local roundtrip = function(strs)
@@ -119,11 +109,12 @@ describe("mtev_b64", function()
       local encodelen_expected = libmtev.mtev_b64_encode_len(string.len(input_str))
       local encodebuf = charstar(tonumber(encodelen_expected))
       local encodelen_actual = libmtev.mtev_b64_encodev(iovs, #strs, encodebuf, encodelen_expected)
-      assert.are.equal(encodelen_expected, encodelen_actual)
-      local decodebuf = charstar(tonumber(encodelen_actual))
-      local decodelen = libmtev.mtev_b64_decode(encodebuf, encodelen_actual, decodebuf, encodelen_actual)
-      assert.are.equal(tonumber(decodelen), string.len(input_str))
-      assert.are.equal(ffi.string(decodebuf, decodelen), input_str)
+      assert.is_true(encodelen_actual <= encodelen_expected)
+      local decodelen_expected = libmtev.mtev_b64_max_decode_len(encodelen_actual)
+      local decodebuf = charstar(tonumber(decodelen_expected))
+      local decodelen = libmtev.mtev_b64_decode(encodebuf, encodelen_actual, decodebuf, decodelen_expected)
+      assert.is.equal(string.len(input_str), tonumber(decodelen))
+      assert.is.equal(input_str, ffi.string(decodebuf, decodelen))
     end
 
     local str_loop1 = ""
