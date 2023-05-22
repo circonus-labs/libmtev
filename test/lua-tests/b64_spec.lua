@@ -90,9 +90,10 @@ describe("mtev_b64", function()
     local buf_too_small = charstar(decode_len)
     local rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len - 1)
     assert.is.equal(0, rv)
+    assert.is_false(ffi.string(buf_too_small) == decoded_str)
     rv = libmtev.mtev_b64_decode(buf, string.len(encoded_str), buf_too_small, decode_len)
     assert.is.equal(string.len(decoded_str), rv)
-    assert.is_true(ffi.string(buf_too_small) == decoded_str)
+    assert.is_true(ffi.string(buf_too_small, decode_len) == decoded_str)
   end)
 
 
