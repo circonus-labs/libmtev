@@ -12,6 +12,8 @@ libmtev - a toolkit for building high-performance servers.
 
 To build, check out the instructions in [BUILDING](./BUILDING.md).
 
+To run the test suite, run `make check` from the test/ directory.
+
 Enjoy.
 
 ## An incomplete list of features.
