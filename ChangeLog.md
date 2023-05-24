@@ -2,11 +2,30 @@
 
 # 2
 
-## 2.4.4
+## 2.5
+
+### 2.5.0
+
+ * Fully adopt modern OpenSSL APIs.
+   * OpenSSL 1.0.2 is now the minimum supported version.
+   * Remove support for custom Diffie-Hellman (DH) parameters. Current best
+     practice is to use safe primes from RFC-7919, which libmtev now does.
+     * Configuration options `ssl_dhparam*_file` and `dhparam_bits` will be
+       ignored, and a warning logged to this effect.
+ * Add tests for Lua crypto integration.
+ * Fix compiler warnings in C tests.
+ * Fix sign-comparison warning on recent GCC.
+ * Separate compiler-specific C++ flags into `CXXFLAGSEXTRAS` to avoid
+   polluting `mtev-config`.
+ * Fix potential use-after-free in curl integration.
+
+## 2.4
+
+### 2.4.4
 
  * Print Linux lwp on watchdog
 
-## 2.4.3
+### 2.4.3
 
  * API to disable and enable all watchdogs
 
