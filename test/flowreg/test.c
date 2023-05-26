@@ -99,6 +99,7 @@ int test_poll(eventer_t e, int mask, void *v_work_description, struct timeval *n
 {
   work_description_t *work_description = (work_description_t *) v_work_description;
   unsigned int work_removed = ck_pr_load_uint(&work_description->work_removed);
+  ck_pr_load_uint(&work_description->work_added);
   if (work_removed == work_description->work_last_check) {
     mtevL(mtev_error, "work_removed stall at %u\n", work_removed);
     if (work_removed == work_description->work_total) exit(0);

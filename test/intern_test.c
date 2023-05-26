@@ -174,7 +174,7 @@ int child_main() {
   for(int reps=0; reps<NREPS; reps++) {
   for(int p=0; p<2; p++) {
   pool = pools[p];
-  for(uint32_t wl=0; wl<WORKLOADS; wl++) {
+  for(size_t wl=0; wl<WORKLOADS; wl++) {
     mtev_perftimer_start(&timer);
     for(i=0; i<NTHREAD; i++) {
       info[i].wl = &workload[wl];
