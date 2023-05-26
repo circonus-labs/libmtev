@@ -223,11 +223,10 @@ recv_resheader(eventer_t e, char *buf, int len, int *mask) {
  * few different init phases that will have been called before us */
 static void
 mtev_websocket_client_create_key(char *dest) {
-  /* base64 encoded length is 4*ceil(n/3) so a pre-encoding length of 18 gives
-   * us an encoded length of 24 */
-  unsigned char buf[18];
+  const size_t decoded_length = 18;
+  unsigned char buf[decoded_length];
   (void)mtev_rand_buf_trysecure(buf, sizeof(buf));
-  mtev_b64_encode(buf, sizeof(buf), dest, 24);
+  mtev_b64_encode(buf, sizeof(buf), dest, mtev_b64_encode_len(decoded_length));
 }
 
 static mtev_boolean
