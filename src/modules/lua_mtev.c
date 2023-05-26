@@ -3252,7 +3252,6 @@ nl_hmac_sha1_encode(lua_State *L) {
   char encoded[29];
 
   if(lua_gettop(L) != 2) luaL_error(L, "bad call to mtev.hmac_sha1_encode");
-  // encoded_len = 28; /* the length of the base64 encoded HMAC-SHA1 result will always be 28 */
 
   message = (const unsigned char *)lua_tolstring(L, 1, &messagelen);
   key = (const unsigned char *)lua_tolstring(L, 2, &keylen);
