@@ -11,8 +11,6 @@
   printf("\n** FAILURE\n"); \
   exit(1);
 
-#define UNUSED(x) (void)(x)
-
 static mtev_hrtime_t total_time = 0;
 
 int (*uuid_parse_fn)(const char *in, uuid_t out) = NULL;
@@ -22,12 +20,8 @@ int (*uuid_parse_fn)(const char *in, uuid_t out) = NULL;
 int parse_both(const char *in, uuid_t out) 
 {
   uuid_t again;
-  int x = mtev_uuid_parse(in, out);
-
-  int y = uuid_parse(in, again);
-
-  UNUSED(x);
-  UNUSED(y);
+  mtev_uuid_parse(in, out);
+  uuid_parse(in, again);
 
   int z = memcmp(out, again, sizeof(uuid_t));
   if (z != 0) {
@@ -69,9 +63,6 @@ void parse_file(void)
 
 int main(int argc, char **argv) 
 {
-  UNUSED(argc);
-  UNUSED(argv);
-
   uuid_parse_fn = mtev_uuid_parse;
   for (int i = 0; i < 1000000/500; i++) {
     parse_file();

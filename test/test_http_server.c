@@ -17,8 +17,6 @@
 #include <stdio.h>
 #include <getopt.h>
 
-#define UNUSED(x) (void)(x)
-
 #define APPNAME "test_http_server"
 #define FLUSH_BUFFER_MAX 4194304
 static char *config_file = NULL;
@@ -130,9 +128,6 @@ static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pa
   return EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
 }
 static int my_safe_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
-  UNUSED(npats);
-  UNUSED(pats);
-
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_standard(ctx, 200, "OK", "text/plain");
   mtev_http_response_append_str(ctx, "contents\n");

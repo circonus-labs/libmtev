@@ -3,8 +3,6 @@
 #include <assert.h>
 #include <mtev_dyn_buffer.h>
 
-#define UNUSED(x) (void)(x)
-
 int chkmem(mtev_dyn_buffer_t *buff, size_t len, char exp) {
   const char *cp;
   const char *ptr = (const char*)mtev_dyn_buffer_data(buff);
@@ -12,9 +10,6 @@ int chkmem(mtev_dyn_buffer_t *buff, size_t len, char exp) {
   return 1;
 }
 int main(int argc, char *argv[]) {
-  UNUSED(argc);
-  UNUSED(argv);
-
   int a = 12345;
   int b = 54321;
   mtev_dyn_buffer_t buff;

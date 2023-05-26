@@ -12,13 +12,8 @@
   printf("\n** FAILURE\n"); \
   exit(1);
 
-#define UNUSED(x) (void)(x)
-
 int main(int argc, char **argv) 
 {
-  UNUSED(argc);
-  UNUSED(argv);
-
   char s[PATH_MAX];
   srand(time(NULL));
 

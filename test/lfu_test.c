@@ -12,8 +12,6 @@
   printf("\n** FAILURE\n"); \
   exit(1);
 
-#define UNUSED(x) (void)(x)
-
 struct data{
   int i;
   char key[10];
@@ -28,9 +26,6 @@ noop_free(void *x)
 
 int main(int argc, char **argv) 
 {
-  UNUSED(argc);
-  UNUSED(argv);
-
   srand(time(NULL));
 
   struct data datas[10] = 

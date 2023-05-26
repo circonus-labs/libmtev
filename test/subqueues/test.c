@@ -16,8 +16,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define UNUSED(x) (void)(x)
-
 typedef struct {
   const char *name;
   uint32_t jobs;
@@ -67,9 +65,6 @@ static void parse_cli_args(int argc, char *const *argv)
 
 static int
 toil(eventer_t e, int mask, void *c, struct timeval *now) {
-  UNUSED(e);
-  UNUSED(now);
-
   work_description_t *w = c;
   const char *type = "unknown";
   switch(mask) {

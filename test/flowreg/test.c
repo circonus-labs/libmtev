@@ -15,8 +15,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define UNUSED(x) (void)(x)
-
 /*
  * test flow-regulator "stable" APIs under stress. multi-producer,
  * multi-consumer model. consumer takes on producer role when
@@ -79,9 +77,6 @@ void add_jobs_loop(work_description_t *work_description)
 
 int test_job_cb(eventer_t e, int mask, void *v_work_description, struct timeval *now)
 {
-  UNUSED(e);
-  UNUSED(now);
-
   if (mask == EVENTER_ASYNCH_WORK) {
     work_description_t *work_description = (work_description_t *) v_work_description;
     unsigned int old_work_removed;
@@ -97,22 +92,11 @@ int test_job_cb(eventer_t e, int mask, void *v_work_description, struct timeval 
 
 int test_job_done(eventer_t e, int mask, void *v_work_description, struct timeval *now)
 {
-  UNUSED(e);
-  UNUSED(now);
-
-  if (mask == EVENTER_ASYNCH_WORK) {
-    work_description_t *work_description = (work_description_t *) v_work_description;
-    UNUSED(work_description);
-  }
   return 0;
 }
 
 int test_poll(eventer_t e, int mask, void *v_work_description, struct timeval *now)
 {
-  UNUSED(e);
-  UNUSED(mask);
-  UNUSED(now);
-
   work_description_t *work_description = (work_description_t *) v_work_description;
   unsigned int work_removed = ck_pr_load_uint(&work_description->work_removed);
   if (work_removed == work_description->work_last_check) {

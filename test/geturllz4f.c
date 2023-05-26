@@ -3,10 +3,7 @@
 #include <mtev_compress.h>
 #include <curl/curl.h>
 
-#define UNUSED(x) (void)(x)
-
 static size_t print_data(void *buff, size_t s, size_t n, void *vd) {
-  UNUSED(vd);
   return write(1, buff, s*n);
 }
 int main(int argc, char **argv) {
