@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <mtev_maybe_alloc.h>
 
-
 int chkmem(const char *ptr, size_t len, char exp) {
   const char *cp;
   for(cp = ptr; cp < ptr+len; cp++) if(*cp != exp) return 0;
