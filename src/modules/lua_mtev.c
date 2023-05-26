@@ -3152,7 +3152,7 @@ nl_base64_encode(lua_State *L) {
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.encode");
 
   message = (const unsigned char *)lua_tolstring(L, 1, &inlen);
-  encoded_len = (((inlen + 2) / 3) * 4) + 1;
+  encoded_len = mtev_b64_encode_len(inlen) + 1;
   if(encoded_len <= ON_STACK_LUA_STRLEN) {
     encoded = encoded_buf;
   }
