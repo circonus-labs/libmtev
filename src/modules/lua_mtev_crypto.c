@@ -147,9 +147,10 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
       case EVP_PKEY_RSA:
       case EVP_PKEY_DSA:
           lua_pushinteger(L, key_bits);
-          __attribute__((fallthrough));
+          break;
       default:
           lua_pushnil(L);
+          break;
       }
     }
     else lua_pushnil(L);
