@@ -104,9 +104,9 @@ static int child_main(void)
   eventer_jobq_t *test_jobq = eventer_jobq_create_ms("test_jobq", EVENTER_JOBQ_MS_GC);
   eventer_jobq_set_concurrency(test_jobq, 4);
 
-  for(uint32_t i=0; i<sizeof(work)/sizeof(*work); i++) {
+  for(size_t i=0; i<sizeof(work)/sizeof(*work); i++) {
     mtevL(mtev_error, "Starting: %s\n", work[i].name);
-    for(uint32_t j=0; j<work[i].jobs; j++) {
+    for(size_t j=0; j<work[i].jobs; j++) {
       eventer_t e;
       if(work[i].deadline_s) {
         struct timeval deadline;
@@ -127,7 +127,7 @@ static int child_main(void)
     sleep(1);
   }
   mtevL(mtev_error, "%u/%u\n", done, todo);
-  for(uint32_t i=0; i<sizeof(work)/sizeof(*work); i++) {
+  for(size_t i=0; i<sizeof(work)/sizeof(*work); i++) {
     work_description_t *w = &work[i];
     mtevL(mtev_error, "workload %s (%u/%u/%u)\n", w->name, w->work_calls, w->cleanup_calls, w->completion_calls);
     mtevAssert(w->timeouts_expected || w->jobs == w->work_calls);
