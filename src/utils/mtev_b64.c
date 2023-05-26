@@ -35,7 +35,6 @@
 #include "mtev_b64.h"
 #include "aklomp-base64/include/libbase64.h"
 #include <ctype.h>
-#include <math.h>
 
 int
 mtev_b64_decode(const char *src, size_t src_len,
