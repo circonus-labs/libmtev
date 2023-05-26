@@ -16,7 +16,6 @@ describe("mtev_b64", function()
     local buf = charstar(1600)
     local buf2 = charstar(1001)
     for i=1,1000 do
-      io.write("i:", i, "\n")
       str = str .. "x"
 
       local str_len = string.len(str)
