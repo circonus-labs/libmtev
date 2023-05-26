@@ -15,7 +15,7 @@ describe("mtev_b64", function()
     local str = ""
     local buf = charstar(1600)
     local buf2 = charstar(1001)
-    for i=1,10 do
+    for i=1,1000 do
       io.write("i:", i, "\n")
       str = str .. "x"
 
@@ -25,13 +25,9 @@ describe("mtev_b64", function()
       assert.is_true(actual_encode_len > 0)
       assert.is_true(actual_encode_len <= max_encode_len)
 
-      io.write("actual_encode_len:", tostring(actual_encode_len), "\n")
       local max_decode_len = libmtev.mtev_b64_max_decode_len(actual_encode_len)
-      io.write("predicted max_decode_len:", tostring(max_decode_len), "\n")
       assert.is_true(str_len <= max_decode_len)
       local actual_decode_len = libmtev.mtev_b64_decode(buf, actual_encode_len, buf2, max_decode_len)
-      io.write("actual_decode_len:", tostring(actual_decode_len), "\n")
-      io.write("predicted decode - actual = ", tostring(max_decode_len - actual_decode_len), "\n")
       assert.is.equal(actual_decode_len, i)
       assert.is.equal(str, ffi.string(buf2, actual_decode_len))
     end
