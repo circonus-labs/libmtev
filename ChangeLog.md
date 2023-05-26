@@ -4,8 +4,6 @@
 
 ## 2.5
 
-### 2.5.0
-
  * Fully adopt modern OpenSSL APIs.
    * OpenSSL 1.0.2 is now the minimum supported version.
    * Remove support for custom Diffie-Hellman (DH) parameters. Current best
