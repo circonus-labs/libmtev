@@ -79,6 +79,10 @@ toil(eventer_t e, int mask, void *c, struct timeval *now) {
   return 0;
 }
 
+static int mtev_conf_watch_and_journal_watchdog_cb(void *closure) {
+  return mtev_conf_write_log();
+}
+
 static int child_main(void)
 {
   /* reload out config, to make sure we have the most current */
@@ -96,10 +100,7 @@ static int child_main(void)
   mtev_dso_post_init();
 
   mtev_conf_write_log();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-function-type"
-  mtev_conf_watch_and_journal_watchdog((int (*)(void *)) mtev_conf_write_log, NULL);
-#pragma GCC diagnostic pop
+  mtev_conf_watch_and_journal_watchdog(mtev_conf_watch_and_journal_watchdog_cb, NULL);
 
   eventer_jobq_t *test_jobq = eventer_jobq_create_ms("test_jobq", EVENTER_JOBQ_MS_GC);
   eventer_jobq_set_concurrency(test_jobq, 4);

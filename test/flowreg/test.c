@@ -109,6 +109,10 @@ int test_poll(eventer_t e, int mask, void *v_work_description, struct timeval *n
   return 0;
 }
 
+static int mtev_conf_watch_and_journal_watchdog_cb(void *closure) {
+  return mtev_conf_write_log();
+}
+
 static int child_main(void)
 {
   /* reload out config, to make sure we have the most current */
@@ -126,10 +130,7 @@ static int child_main(void)
   mtev_dso_post_init();
 
   mtev_conf_write_log();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-function-type"
-  mtev_conf_watch_and_journal_watchdog((int (*)(void *)) mtev_conf_write_log, NULL);
-#pragma GCC diagnostic pop
+  mtev_conf_watch_and_journal_watchdog(mtev_conf_watch_and_journal_watchdog_cb, NULL);
 
   work_description_t *work_description =
     (work_description_t *) calloc(1, sizeof(work_description_t));
