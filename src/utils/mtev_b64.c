@@ -91,7 +91,7 @@ mtev_b64_decode(const char *src, size_t src_len,
 
 /* Can return up to 2 extra due to potential `=` padding in the encoded string */
 size_t mtev_b64_max_decode_len(size_t src_len) {
-  return ceil(((src_len) / 4.0) * 3.0);
+  return ((src_len + 3) / 4) * 3;
 }
 
 int
@@ -132,8 +132,6 @@ mtev_b64_encodev(const struct iovec *iov, size_t iovcnt,
   return eptr - dest;
 }
 
-/* Can return up to 2 extra due to the potential need for `=` padding in the encoded string */
 size_t mtev_b64_encode_len(size_t src_len) {
-  if (src_len == 0) return 0;
-  return floor(4.0 * ((src_len + 2) / 3.0));
+  return 4 * ((src_len+2)/3);
 }
