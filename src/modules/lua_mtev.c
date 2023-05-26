@@ -3280,8 +3280,7 @@ nl_hmac_sha256_encode(lua_State *L) {
   key = (const unsigned char *)lua_tolstring(L, 2, &keylen);
 
   HMAC(EVP_sha256(), key, keylen, message, messagelen, result, &md_len);
-  const size_t test = mtev_b64_encode_len(md_len); //should be 44
-  encoded_len = mtev_b64_encode(result, md_len, encoded, test);
+  encoded_len = mtev_b64_encode(result, md_len, encoded, mtev_b64_encode_len(md_len));
 
   lua_pushlstring(L, (char *)encoded, encoded_len);
 
