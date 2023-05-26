@@ -1,6 +1,7 @@
 #include <mtev_defines.h>
 #include <mtev_log.h>
 #include <stdio.h>
+
 int main(int argc, char *argv[])
 {
   mtev_log_init_globals();

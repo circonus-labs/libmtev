@@ -28,6 +28,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef MTEV_SSL10_COMPAT_H
+#define MTEV_SSL10_COMPAT_H
+
 #include <openssl/opensslv.h>
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -35,7 +38,7 @@
 #include <string.h>
 #include <openssl/engine.h>
 
-static void *OPENSSL_zalloc(size_t num)
+inline void *OPENSSL_zalloc(size_t num)
 {
    void *ret = OPENSSL_malloc(num);
 
@@ -44,13 +47,15 @@ static void *OPENSSL_zalloc(size_t num)
    return ret;
 }
 
-EVP_MD_CTX *EVP_MD_CTX_new(void)
+inline EVP_MD_CTX *EVP_MD_CTX_new(void)
 {
   return OPENSSL_zalloc(sizeof(EVP_MD_CTX));
 }
 
-void EVP_MD_CTX_free(EVP_MD_CTX *ctx)
+inline void EVP_MD_CTX_free(EVP_MD_CTX *ctx)
 {
   EVP_MD_CTX_cleanup(ctx); OPENSSL_free(ctx);
 }
 #endif
+
+#endif // MTEV_SSL10_COMPAT_H

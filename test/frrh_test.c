@@ -3,10 +3,13 @@
 #include <mtev_frrh.h>
 #include <mtev_perftimer.h>
 #include <openssl/sha.h>
+#include <openssl/evp.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+
+#include "mtev_ssl10_compat.h"
 
 #define KEYSPACE 10000
 #define KEYLEN 100
@@ -32,13 +35,17 @@ int main() {
                           NULL, mtev_memory_safe_malloc,
                           mtev_memory_safe_free);
 
+  OpenSSL_add_all_digests();
+
   mtev_perftimer_start(&start);
   for(int j=0; j<ITERS; j++) {
     char *key = keys[j % KEYSPACE];
-    SHA256_CTX ctx;
-    SHA256_Init(&ctx);
-    SHA256_Update(&ctx, key, KEYLEN);
-    SHA256_Final(sha256, &ctx);
+    const EVP_MD *md = EVP_get_digestbyname("SHA256");
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(ctx, md, NULL);
+    EVP_DigestUpdate(ctx, key, KEYLEN);
+    EVP_DigestFinal(ctx, sha256, NULL);
+    EVP_MD_CTX_free(ctx);
   }
   elapsed_slow = mtev_perftimer_elapsed(&start);
   fprintf(stderr, "SHA %f ns/op\n",
@@ -49,10 +56,12 @@ int main() {
     char *key = keys[j % KEYSPACE];
     const unsigned char *hash = mtev_frrh_get(cache, key, KEYLEN);
     if(hash == NULL) {
-      SHA256_CTX ctx;
-      SHA256_Init(&ctx);
-      SHA256_Update(&ctx, key, KEYLEN);
-      SHA256_Final(sha256, &ctx);
+      const EVP_MD *md = EVP_get_digestbyname("SHA256");
+      EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+      EVP_DigestInit_ex(ctx, md, NULL);
+      EVP_DigestUpdate(ctx, key, KEYLEN);
+      EVP_DigestFinal(ctx, sha256, NULL);
+      EVP_MD_CTX_free(ctx);
       hash = sha256;
       mtev_frrh_set(cache, key, KEYLEN, hash);
     }

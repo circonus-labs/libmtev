@@ -610,6 +610,16 @@ int eventer_impl_propset(const char *key, const char *value) {
     return 0;
   }
   else if(!strncmp(key, "ssl_", 4)) {
+    /* old config terms now ignored */
+    if(!strncmp(key, "ssl_dhparam", 11)) {
+      mtevL(mtev_error, "Warning: custom DH params are no longer supported, ignoring '%s'\n", key);
+      return 0;
+    }
+    if(!strcasecmp(key, "dhparam_bits")) {
+      mtevL(mtev_error, "Warning: forcing DH bit length is no longer supported, ignoring '%s'\n", key);
+      return 0;
+    }
+
     if(eventer_ssl_config(key, value) == 0) return 0;
     /* if we return 1, we'll fall through to the error message */
   }

@@ -101,9 +101,3 @@ The keys and values supported are:
 
    Sets the default number of seconds after which cached SSL contexts will be released.
    The default is 5 seconds.
-
- * ##### ssl_dhparam&lt;bits&gt;_file & ssl_dhparam&lt;bits&gt;
-
-   By default 2048 bit NIST DH paramaters will be used.
-   If you would like to create new ones, you may specify a file name and a new set of
-   parameters of `bits` bits will be generated and stored for reuse.

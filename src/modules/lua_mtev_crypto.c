@@ -44,7 +44,10 @@
 #define sk_OPENSSL_STRING_num sk_num
 #endif
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define _OPENSSL_VERSION_3_0_0 0x30000000L
+#define _OPENSSL_VERSION_1_1_0 0x10100000L
+
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
 #ifndef OPENSSL_STACK
 #define OPENSSL_STACK void
 #endif
@@ -82,7 +85,7 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
   const char *k;
   void *udata;
   X509 *cert;
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_3_0_0
   int j;
 #else
   unsigned long j;
@@ -97,7 +100,7 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
   cert = *((X509 **)udata);
   if(!strcmp(k, "signature_algorithm")) {
     int nid;
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
     nid = OBJ_obj2nid(cert->sig_alg->algorithm);
 #else
     nid = X509_get_signature_nid(cert);
@@ -135,7 +138,24 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
     EVP_PKEY *pkey;
     pkey = X509_get_pubkey(cert);
     if (pkey == NULL) return 0;
-    else if (EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) {
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+    const int key_bits = EVP_PKEY_get_bits(pkey);
+    const int key_type = EVP_PKEY_get_base_id(pkey);
+
+    if (key_bits > 0) {
+      switch(key_type) {
+      case EVP_PKEY_RSA:
+      case EVP_PKEY_DSA:
+          lua_pushinteger(L, key_bits);
+          break;
+      default:
+          lua_pushnil(L);
+          break;
+      }
+    }
+    else lua_pushnil(L);
+#else
+    if (EVP_PKEY_base_id(pkey) == EVP_PKEY_RSA) {
       RSA *rsa_key = EVP_PKEY_get1_RSA(pkey);
       if(rsa_key) {
         lua_pushinteger(L, RSA_size(rsa_key) * 8);
@@ -154,6 +174,7 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
       }
     }
     else lua_pushnil(L);
+#endif
     EVP_PKEY_free(pkey);
     return 1;
   }
@@ -170,7 +191,7 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
   if(!strcmp(k, "ocsp")) {
     STACK_OF(OPENSSL_STRING) *emlst;
     emlst = X509_get1_ocsp(cert);
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_3_0_0
     for (j = 0; j < sk_OPENSSL_STRING_num((OPENSSL_STACK *)emlst); j++) {
       lua_pushstring(L, sk_OPENSSL_STRING_value((OPENSSL_STACK *)emlst, j));
     }
@@ -231,7 +252,7 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
   switch(*k) {
     case 'c':
       if(!strcmp(k, "cipher")) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
         if(ssl_session->cipher == NULL) return 0;
         lua_pushstring(L, ssl_session->cipher->name ? ssl_session->cipher->name : "unknown");
         return 1;
@@ -248,7 +269,7 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
       }
       break;
     case 'm':
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
       if(!strcmp(k, "master_key")) {
         lua_pushlstring(L, (char *)ssl_session->master_key,
                         ssl_session->master_key_length);
@@ -285,7 +306,7 @@ mtev_lua_crypto_ssl_session_index_func(lua_State *L) {
       break;
     case 's':
       if(!strcmp(k, "ssl_version")) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
         int ssl_version = ssl_session->ssl_version;
 #else
         int ssl_version = SSL_SESSION_get_protocol_version(ssl_session);
@@ -328,9 +349,16 @@ mtev_lua_crypto_ssl_session_gc(lua_State *L) {
 static int
 mtev_lua_crypto_newrsa(lua_State *L) {
   int bits = 2048;
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  EVP_PKEY *rsa = EVP_PKEY_new();
+  EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
+  if(!rsa) goto fail;
+  if(!ctx) goto fail;
+#else
   int e = 65537;
   BIGNUM *bn = NULL;
   RSA *rsa = NULL;
+#endif
 
   if(lua_gettop(L) > 0) {
     if(lua_isnumber(L,1))
@@ -341,7 +369,11 @@ mtev_lua_crypto_newrsa(lua_State *L) {
       const char *key;
       key = lua_tolstring(L,1,&len);
       bio = BIO_new_mem_buf((void *)key,len);
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+      if(bio && PEM_read_bio_PrivateKey(bio, &rsa, NULL, NULL)) {
+#else
       if(bio && PEM_read_bio_RSAPrivateKey(bio, &rsa, NULL, NULL)) {
+#endif
         PUSH_OBJ(L, "crypto.rsa", rsa);
         return 1;
       }
@@ -349,6 +381,12 @@ mtev_lua_crypto_newrsa(lua_State *L) {
       return 1;
     }
   }
+
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  if(EVP_PKEY_keygen_init(ctx) <= 0) goto fail;
+  if(EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, bits) <= 0) goto fail;
+  if(EVP_PKEY_keygen(ctx, &rsa) <= 0) goto fail;
+#else
   if(lua_gettop(L) > 1) e = lua_tointeger(L,2);
 
   rsa = RSA_new();
@@ -358,13 +396,19 @@ mtev_lua_crypto_newrsa(lua_State *L) {
   if(!BN_set_word(bn, e)) goto fail;
   if(!RSA_generate_key_ex(rsa, bits, bn, NULL)) goto fail;
   BN_free(bn);
+#endif
 
   PUSH_OBJ(L, "crypto.rsa", rsa);
   return 1;
 
  fail:
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  if(rsa) EVP_PKEY_free(rsa);
+  if(ctx) EVP_PKEY_CTX_free(ctx);
+#else
   if(bn) BN_free(bn);
   if(rsa) RSA_free(rsa);
+#endif
   lua_pushnil(L);
   return 1;
 }
@@ -391,7 +435,6 @@ mtev_lua_crypto_newreq(lua_State *L) {
 
 static int
 mtev_lua_crypto_rsa_gencsr(lua_State *L) {
-  RSA *rsa;
   X509_REQ *req = NULL;
   X509_NAME *subject = NULL;
   const EVP_MD *md = NULL;
@@ -403,6 +446,12 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   void **udata;
   CONF *addext_conf = NULL;
   BIO *addext_bio = NULL;
+
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  EVP_PKEY *rsa;
+#else
+  RSA *rsa;
+#endif
 
   strlcpy(buf, "crypto.rsa:gencsr ", sizeof(buf));
   errbuf = buf + strlen(buf);
@@ -418,7 +467,11 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   if(!lua_istable(L,2)) REQERR("requires table as second argument");
   lua_pushvalue(L,2);
   udata = lua_touserdata(L, lua_upvalueindex(1));
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  rsa = (EVP_PKEY *)*udata;
+#else
   rsa = (RSA *)*udata;
+#endif
 
 #define GET_OR(str, name,fallback) do { \
   lua_getfield(L,-1,name); \
@@ -430,8 +483,13 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
   if(!md) REQERR("unknown digest");
 
   pkey = EVP_PKEY_new();
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  pkey = EVP_PKEY_dup(rsa);
+  if(!pkey) REQERR("crypto.rsa:gencsr could not use private key");
+#else
   if(!EVP_PKEY_assign_RSA(pkey, RSAPrivateKey_dup(rsa)))
     REQERR("crypto.rsa:gencsr could not use private key");
+#endif
 
   req = X509_REQ_new();
   if(!req) REQERR("crypto.rsa:gencsr allocation failure");
@@ -537,17 +595,29 @@ mtev_lua_crypto_rsa_gencsr(lua_State *L) {
 static int
 mtev_lua_crypto_rsa_as_pem(lua_State *L) {
   BIO *bio;
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  EVP_PKEY *rsa;
+#else
   RSA *rsa;
+#endif
   long len;
   char *pem;
   void **udata;
   udata = lua_touserdata(L, lua_upvalueindex(1));
   if(udata != lua_touserdata(L, 1))
     luaL_error(L, "must be called as method");
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  rsa = (EVP_PKEY *)*udata;
+#else
   rsa = (RSA *)*udata;
+#endif
 
   bio = BIO_new(BIO_s_mem());
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  PEM_write_bio_PrivateKey(bio, rsa, NULL, NULL, 0, NULL, NULL);
+#else
   PEM_write_bio_RSAPrivateKey(bio, rsa, NULL, NULL, 0, NULL, NULL);
+#endif
   len = BIO_get_mem_data(bio, &pem);
   lua_pushlstring(L, pem, len);
   BIO_free(bio);
@@ -582,7 +652,11 @@ static int
 mtev_lua_crypto_rsa_gc(lua_State *L) {
   void **udata;
   udata = lua_touserdata(L,1);
+#if OPENSSL_VERSION_NUMBER >= _OPENSSL_VERSION_3_0_0
+  EVP_PKEY_free((EVP_PKEY *)*udata);
+#else
   RSA_free((RSA *)*udata);
+#endif
   return 0;
 }
 
@@ -859,7 +933,9 @@ BN_SIMPLE_BN(mod_exp,3,bn,args[0],args[1],args[2],bn_ctx())
 BN_SIMPLE_BN(mod_exp_simple,3,bn,args[0],args[1],args[2],bn_ctx())
 BN_SIMPLE_BN(exp,2,bn,args[0],args[1],bn_ctx())
 BN_SIMPLE_BN(rand_range,1,bn,args[0])
-BN_SIMPLE_BN(pseudo_rand_range,1,bn,args[0])
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
+BN_SIMPLE_BN(pseudo_rand_range,1,bn,args[0]) /* identical to rand_range from 1.1 onward */
+#endif
 BN_SIMPLE_BN(num_bits,0,bn)
 BN_SIMPLE_BN(sub,2,bn,args[0],args[1])
 BN_SIMPLE_BN(add,2,bn,args[0],args[1])
@@ -884,7 +960,9 @@ BN_SIMPLE_BN(cmp,1,bn,args[0])
 BN_SIMPLE_BN(ucmp,1,bn,args[0])
 BN_SIMPLE_BN(gcd,2,bn,args[0],args[1],bn_ctx())
 BN_SIMPLE_INT(rand,3,bn,args[0],args[1],args[2])
-BN_SIMPLE_INT(pseudo_rand,3,bn,args[0],args[1],args[2])
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
+BN_SIMPLE_INT(pseudo_rand,3,bn,args[0],args[1],args[2]) /* identical to rand from 1.1 onward */
+#endif
 BN_SIMPLE_INT(mod_word,1,bn,args[0])
 BN_SIMPLE_INT(div_word,1,bn,args[0])
 BN_SIMPLE_INT(mul_word,1,bn,args[0])
@@ -941,9 +1019,11 @@ mtev_lua_crypto_bignum_index_func(lua_State *L) {
   else BN_DISPATCH(sqr)
   else BN_DISPATCH(num_bits)
   else BN_DISPATCH(rand)
-  else BN_DISPATCH(pseudo_rand)
   else BN_DISPATCH(rand_range)
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
+  else BN_DISPATCH(pseudo_rand)
   else BN_DISPATCH(pseudo_rand_range)
+#endif
   else BN_DISPATCH(mod_word)
   else BN_DISPATCH(div_word)
   else BN_DISPATCH(mul_word)
@@ -1055,7 +1135,7 @@ mtev_lua_crypto_pseudo_rand_bytes(lua_State *L) {
     ptr = malloc(nbytes);
     if(!ptr) luaL_error(L, "crypto.pseudo_rand_bytes out-of-memory");
   }
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
   if(RAND_pseudo_bytes(buff, nbytes) == 0) {
 #else
   if(RAND_bytes(buff, nbytes) == 0) {

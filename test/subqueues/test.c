@@ -79,6 +79,10 @@ toil(eventer_t e, int mask, void *c, struct timeval *now) {
   return 0;
 }
 
+static int mtev_conf_watch_and_journal_watchdog_cb(void *closure) {
+  return mtev_conf_write_log();
+}
+
 static int child_main(void)
 {
   /* reload out config, to make sure we have the most current */
@@ -96,14 +100,14 @@ static int child_main(void)
   mtev_dso_post_init();
 
   mtev_conf_write_log();
-  mtev_conf_watch_and_journal_watchdog((int (*)(void *)) mtev_conf_write_log, NULL);
+  mtev_conf_watch_and_journal_watchdog(mtev_conf_watch_and_journal_watchdog_cb, NULL);
 
   eventer_jobq_t *test_jobq = eventer_jobq_create_ms("test_jobq", EVENTER_JOBQ_MS_GC);
   eventer_jobq_set_concurrency(test_jobq, 4);
 
-  for(int i=0; i<sizeof(work)/sizeof(*work); i++) {
+  for(size_t i=0; i<sizeof(work)/sizeof(*work); i++) {
     mtevL(mtev_error, "Starting: %s\n", work[i].name);
-    for(int j=0; j<work[i].jobs; j++) {
+    for(size_t j=0; j<work[i].jobs; j++) {
       eventer_t e;
       if(work[i].deadline_s) {
         struct timeval deadline;
@@ -124,7 +128,7 @@ static int child_main(void)
     sleep(1);
   }
   mtevL(mtev_error, "%u/%u\n", done, todo);
-  for(int i=0; i<sizeof(work)/sizeof(*work); i++) {
+  for(size_t i=0; i<sizeof(work)/sizeof(*work); i++) {
     work_description_t *w = &work[i];
     mtevL(mtev_error, "workload %s (%u/%u/%u)\n", w->name, w->work_calls, w->cleanup_calls, w->completion_calls);
     mtevAssert(w->timeouts_expected || w->jobs == w->work_calls);

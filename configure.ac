@@ -607,6 +607,24 @@ AC_CHECK_LIB(pcre, pcre_compile, ,
 		AC_MSG_ERROR([libpcre not found, but required])
 	]
 )
+
+AC_MSG_CHECKING([for OpenSSL version >= 1.0.2])
+AC_TRY_COMPILE([
+#include <openssl/opensslv.h>
+    ],
+    [
+#if !defined(OPENSSL_VERSION_NUMBER)
+#error "Missing OpenSSL version"
+#endif
+#if OPENSSL_VERSION_NUMBER < 0x10002000L
+#error "OpenSSL 1.0.2 or higher is required"
+#endif
+    ],
+    [AC_MSG_RESULT(yes)],
+    [AC_MSG_RESULT(no)
+     AC_MSG_ERROR([OpenSSL version is too old or cannot be determined])]
+)
+
 AC_CHECK_LIB(crypto, ERR_load_CRYPTO_strings, ,
 	[
 		AC_MSG_ERROR([libcrypto not found, but required])

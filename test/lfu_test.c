@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
-#include <uuid/uuid.h>
 
 #define FAIL(...)                           \
   printf("** ");                            \
@@ -26,8 +26,6 @@ noop_free(void *x)
 
 int main(int argc, char **argv) 
 {
-  uuid_t uuid;
-  char s[PATH_MAX];
   srand(time(NULL));
 
   struct data datas[10] = 

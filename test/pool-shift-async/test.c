@@ -78,6 +78,10 @@ test(mtev_http_rest_closure_t *restc, int npats, char **pats) {
   return 0;
 }
 
+static int mtev_conf_watch_and_journal_watchdog_cb(void *closure) {
+  return mtev_conf_write_log();
+}
+
 static int
 child_main(void) {
   /* reload out config, to make sure we have the most current */
@@ -97,7 +101,7 @@ child_main(void) {
   mtev_dso_post_init();
 
   mtev_conf_write_log();
-  mtev_conf_watch_and_journal_watchdog((int (*)(void *))mtev_conf_write_log, NULL);
+  mtev_conf_watch_and_journal_watchdog(mtev_conf_watch_and_journal_watchdog_cb, NULL);
 
   mtev_rest_mountpoint_t *mp;
   mp = mtev_http_rest_new_rule(

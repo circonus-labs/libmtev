@@ -92,17 +92,14 @@ int test_job_cb(eventer_t e, int mask, void *v_work_description, struct timeval 
 
 int test_job_done(eventer_t e, int mask, void *v_work_description, struct timeval *now)
 {
-  if (mask == EVENTER_ASYNCH_WORK) {
-    work_description_t *work_description = (work_description_t *) v_work_description;
-  }
   return 0;
 }
 
 int test_poll(eventer_t e, int mask, void *v_work_description, struct timeval *now)
 {
   work_description_t *work_description = (work_description_t *) v_work_description;
-  unsigned int work_added = ck_pr_load_uint(&work_description->work_added);
   unsigned int work_removed = ck_pr_load_uint(&work_description->work_removed);
+  ck_pr_load_uint(&work_description->work_added);
   if (work_removed == work_description->work_last_check) {
     mtevL(mtev_error, "work_removed stall at %u\n", work_removed);
     if (work_removed == work_description->work_total) exit(0);
@@ -111,6 +108,10 @@ int test_poll(eventer_t e, int mask, void *v_work_description, struct timeval *n
   work_description->work_last_check = work_removed;
   eventer_add_in_s_us(test_poll, v_work_description, 1, 0);
   return 0;
+}
+
+static int mtev_conf_watch_and_journal_watchdog_cb(void *closure) {
+  return mtev_conf_write_log();
 }
 
 static int child_main(void)
@@ -130,7 +131,7 @@ static int child_main(void)
   mtev_dso_post_init();
 
   mtev_conf_write_log();
-  mtev_conf_watch_and_journal_watchdog((int (*)(void *)) mtev_conf_write_log, NULL);
+  mtev_conf_watch_and_journal_watchdog(mtev_conf_watch_and_journal_watchdog_cb, NULL);
 
   work_description_t *work_description =
     (work_description_t *) calloc(1, sizeof(work_description_t));

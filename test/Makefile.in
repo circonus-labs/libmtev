@@ -7,7 +7,7 @@ endif
 
 CC=@CC@
 CPPFLAGS=@CPPFLAGS@ -DHIDE_EVENTER_ABI -I../src/utils -I../src -I../src/json-lib
-CFLAGS=@CFLAGS@
+CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@ -Wno-error=unused-parameter
 LDFLAGS=@LDFLAGS@
 AR=@AR@
 RANLIB=@RANLIB@

@@ -8,7 +8,6 @@
 #include "mtev_memory.h"
 #include "mtev_main.h"
 #include "mtev_console.h"
-#include "mtev_perftimer.h"
 #include "mtev_rand.h"
 #include "mtev_log.h"
 #include "mtev_thread.h"
@@ -99,7 +98,6 @@ aco_access_trigger(eventer_t e, int mask, void *c, struct timeval *now) {
 }
 
 int child_main() {
-  mtev_perftimer_t timer;
   int i;
   void *ignored;
 

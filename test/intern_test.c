@@ -102,7 +102,7 @@ void load_words(void) {
     if(strlen(buff) < 1) continue;
     if(buff[strlen(buff)-1] == '\n') buff[strlen(buff)-1] = '\0';
     int upsize = mtev_rand() % 4096;
-    if(upsize < strlen(buff)) upsize = strlen(buff);
+    if((size_t)upsize < strlen(buff)) upsize = strlen(buff);
     char *str = malloc(upsize+1);
     memset(str, 'x', upsize);
     str[upsize] = '\0';
@@ -112,7 +112,6 @@ void load_words(void) {
   fclose(fp);
 }
 void *thr(void *closure) {
-  int cnt = 0;
   struct tc *info = closure;
   const struct workload *w = info->wl;
   mtev_memory_init_thread();
@@ -120,7 +119,7 @@ void *thr(void *closure) {
   info->cnt = 0;
   uint32_t off = mtev_rand() & 0x0fffffff;
   for(int i=0; i<w->iters; i++) {
-    for(uint32_t j = 0; j < word_cnt; j++) {
+    for(int j = 0; j < word_cnt; j++) {
       int idx = (j+off) % word_cnt;
       mtev_intern_t iv = w->acquire(w->closure, words[idx], strlen(words[idx]));
       if(w->release) w->release(w->closure, iv);
@@ -150,7 +149,7 @@ const char *path = NULL;
 int child_main() {
   mtev_perftimer_t timer;
   int64_t elapsed;
-  int i, cnt, loops = 2;
+  int i, cnt = 2;
   mtev_intern_pool_t *pools[2];
 
   mtev_conf_load(NULL);
@@ -175,7 +174,7 @@ int child_main() {
   for(int reps=0; reps<NREPS; reps++) {
   for(int p=0; p<2; p++) {
   pool = pools[p];
-  for(int wl=0; wl<WORKLOADS; wl++) {
+  for(size_t wl=0; wl<WORKLOADS; wl++) {
     mtev_perftimer_start(&timer);
     for(i=0; i<NTHREAD; i++) {
       info[i].wl = &workload[wl];

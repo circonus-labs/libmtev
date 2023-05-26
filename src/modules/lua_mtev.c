@@ -75,6 +75,7 @@
 #include "mtev_cluster.h"
 #include "mtev_thread.h"
 #include "mtev_websocket_client.h"
+#include "mtev_ssl10_compat.h"
 
 #define LUA_COMPAT_MODULE
 #include "lua_mtev.h"
@@ -3294,17 +3295,22 @@ static const char _hexchars[16] =
 static int
 nl_md5_hex(lua_State *L) {
   int i;
-  MD5_CTX ctx;
   size_t inlen;
   const char *in;
   unsigned char md5[MD5_DIGEST_LENGTH];
   char md5_hex[MD5_DIGEST_LENGTH * 2 + 1];
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.md5_hex");
-  MD5_Init(&ctx);
+
+  const EVP_MD *md = EVP_get_digestbyname("MD5");
+  mtevAssert(md);
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(ctx, md, NULL);
+
   in = lua_tolstring(L, 1, &inlen);
-  MD5_Update(&ctx, (const void *)in, (unsigned long)inlen);
-  MD5_Final(md5, &ctx);
+  EVP_DigestUpdate(ctx, (const void *)in, (unsigned long)inlen);
+  EVP_DigestFinal(ctx, md5, NULL);
+  EVP_MD_CTX_free(ctx);
   for(i=0;i<MD5_DIGEST_LENGTH;i++) {
     md5_hex[i*2] = _hexchars[(md5[i] >> 4) & 0xf];
     md5_hex[i*2+1] = _hexchars[md5[i] & 0xf];
@@ -3317,16 +3323,21 @@ nl_md5_hex(lua_State *L) {
 */
 static int
 nl_md5(lua_State *L) {
-  MD5_CTX ctx;
   size_t inlen;
   const char *in;
   unsigned char md5[MD5_DIGEST_LENGTH];
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.md5");
-  MD5_Init(&ctx);
+
+  const EVP_MD *md = EVP_get_digestbyname("MD5");
+  mtevAssert(md);
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(ctx, md, NULL);
+
   in = lua_tolstring(L, 1, &inlen);
-  MD5_Update(&ctx, (const void *)in, (unsigned long)inlen);
-  MD5_Final(md5, &ctx);
+  EVP_DigestUpdate(ctx, (const void *)in, (unsigned long)inlen);
+  EVP_DigestFinal(ctx, md5, NULL);
+  EVP_MD_CTX_free(ctx);
   lua_pushlstring(L, (char *)md5, sizeof(md5));
   return 1;
 }
@@ -3335,17 +3346,22 @@ nl_md5(lua_State *L) {
 static int
 nl_sha1_hex(lua_State *L) {
   int i;
-  SHA_CTX ctx;
   size_t inlen;
   const char *in;
   unsigned char sha1[SHA_DIGEST_LENGTH];
   char sha1_hex[SHA_DIGEST_LENGTH * 2 + 1];
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha1_hex");
-  SHA1_Init(&ctx);
+
+  const EVP_MD *md = EVP_get_digestbyname("SHA1");
+  mtevAssert(md);
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(ctx, md, NULL);
+
   in = lua_tolstring(L, 1, &inlen);
-  SHA1_Update(&ctx, (const void *)in, (unsigned long)inlen);
-  SHA1_Final(sha1, &ctx);
+  EVP_DigestUpdate(ctx, (const void *)in, (unsigned long)inlen);
+  EVP_DigestFinal(ctx, sha1, NULL);
+  EVP_MD_CTX_free(ctx);
   for(i=0;i<SHA_DIGEST_LENGTH;i++) {
     sha1_hex[i*2] = _hexchars[(sha1[i] >> 4) & 0xf];
     sha1_hex[i*2+1] = _hexchars[sha1[i] & 0xf];
@@ -3358,16 +3374,21 @@ nl_sha1_hex(lua_State *L) {
 */
 static int
 nl_sha1(lua_State *L) {
-  SHA_CTX ctx;
   size_t inlen;
   const char *in;
   unsigned char sha1[SHA_DIGEST_LENGTH];
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha1");
-  SHA1_Init(&ctx);
+
+  const EVP_MD *md = EVP_get_digestbyname("SHA1");
+  mtevAssert(md);
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(ctx, md, NULL);
+
   in = lua_tolstring(L, 1, &inlen);
-  SHA1_Update(&ctx, (const void *)in, (unsigned long)inlen);
-  SHA1_Final(sha1, &ctx);
+  EVP_DigestUpdate(ctx, (const void *)in, (unsigned long)inlen);
+  EVP_DigestFinal(ctx, sha1, NULL);
+  EVP_MD_CTX_free(ctx);
   lua_pushlstring(L, (char *)sha1, sizeof(sha1));
   return 1;
 }
@@ -3378,17 +3399,22 @@ nl_sha1(lua_State *L) {
 static int
 nl_sha256_hex(lua_State *L) {
   int i;
-  SHA256_CTX ctx;
   size_t inlen;
   const char *in;
   unsigned char sha256[SHA256_DIGEST_LENGTH];
   char sha256_hex[SHA256_DIGEST_LENGTH * 2 + 1];
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha256_hex");
-  SHA256_Init(&ctx);
+
+  const EVP_MD *md = EVP_get_digestbyname("SHA256");
+  mtevAssert(md);
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(ctx, md, NULL);
+
   in = lua_tolstring(L, 1, &inlen);
-  SHA256_Update(&ctx, (const void *)in, (unsigned long)inlen);
-  SHA256_Final(sha256, &ctx);
+  EVP_DigestUpdate(ctx, (const void *)in, (unsigned long)inlen);
+  EVP_DigestFinal(ctx, sha256, NULL);
+  EVP_MD_CTX_free(ctx);
   for(i=0;i<SHA256_DIGEST_LENGTH;i++) {
     sha256_hex[i*2] = _hexchars[(sha256[i] >> 4) & 0xf];
     sha256_hex[i*2+1] = _hexchars[sha256[i] & 0xf];
@@ -3403,16 +3429,21 @@ nl_sha256_hex(lua_State *L) {
 */
 static int
 nl_sha256(lua_State *L) {
-  SHA256_CTX ctx;
   size_t inlen;
   const char *in;
   unsigned char sha256[SHA256_DIGEST_LENGTH];
 
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.sha256");
-  SHA256_Init(&ctx);
+
+  const EVP_MD *md = EVP_get_digestbyname("SHA256");
+  mtevAssert(md);
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(ctx, md, NULL);
+
   in = lua_tolstring(L, 1, &inlen);
-  SHA256_Update(&ctx, (const void *)in, (unsigned long)inlen);
-  SHA256_Final(sha256, &ctx);
+  EVP_DigestUpdate(ctx, (const void *)in, (unsigned long)inlen);
+  EVP_DigestFinal(ctx, sha256, NULL);
+  EVP_MD_CTX_free(ctx);
   lua_pushlstring(L, (char *)sha256, sizeof(sha256));
   return 1;
 }
