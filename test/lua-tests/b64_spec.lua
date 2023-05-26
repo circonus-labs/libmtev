@@ -19,10 +19,10 @@ describe("mtev_b64", function()
       str = str .. "x"
 
       local str_len = string.len(str)
-      local max_encode_len = libmtev.mtev_b64_encode_len(str_len)
-      local actual_encode_len = libmtev.mtev_b64_encode(str, string.len(str), buf, max_encode_len)
+      local encode_len = libmtev.mtev_b64_encode_len(str_len)
+      local actual_encode_len = libmtev.mtev_b64_encode(str, string.len(str), buf, encode_len)
       assert.is_true(actual_encode_len > 0)
-      assert.is_true(actual_encode_len <= max_encode_len)
+      assert.is_true(actual_encode_len == encode_len)
 
       local max_decode_len = libmtev.mtev_b64_max_decode_len(actual_encode_len)
       assert.is_true(str_len <= max_decode_len)
