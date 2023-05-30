@@ -4,6 +4,12 @@
 
 ## 2.5
 
+### 2.5.0
+
+ * Clean up base64 encoding.
+   * Call `mtev_b64_encode_len` and `mtev_b64_max_decode_len` functions instead
+     of hard-coding values or repeatedly defining logic.
+   * Improve base64 testing.
  * Fully adopt modern OpenSSL APIs.
    * OpenSSL 1.0.2 is now the minimum supported version.
    * Remove support for custom Diffie-Hellman (DH) parameters. Current best
