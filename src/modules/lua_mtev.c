@@ -3152,7 +3152,7 @@ nl_base64_encode(lua_State *L) {
   if(lua_gettop(L) != 1) luaL_error(L, "bad call to mtev.encode");
 
   message = (const unsigned char *)lua_tolstring(L, 1, &inlen);
-  encoded_len = (((inlen + 2) / 3) * 4) + 1;
+  encoded_len = mtev_b64_encode_len(inlen) + 1;
   if(encoded_len <= ON_STACK_LUA_STRLEN) {
     encoded = encoded_buf;
   }
@@ -3252,13 +3252,12 @@ nl_hmac_sha1_encode(lua_State *L) {
   char encoded[29];
 
   if(lua_gettop(L) != 2) luaL_error(L, "bad call to mtev.hmac_sha1_encode");
-  encoded_len = 28; /* the length of the base64 encoded HMAC-SHA1 result will always be 28 */
 
   message = (const unsigned char *)lua_tolstring(L, 1, &messagelen);
   key = (const unsigned char *)lua_tolstring(L, 2, &keylen);
 
   HMAC(EVP_sha1(), key, keylen, message, messagelen, result, &md_len);
-  encoded_len = mtev_b64_encode(result, md_len, encoded, encoded_len);
+  encoded_len = mtev_b64_encode(result, md_len, encoded, mtev_b64_encode_len(md_len));
 
   lua_pushlstring(L, (char *)encoded, encoded_len);
 
@@ -3281,7 +3280,7 @@ nl_hmac_sha256_encode(lua_State *L) {
   key = (const unsigned char *)lua_tolstring(L, 2, &keylen);
 
   HMAC(EVP_sha256(), key, keylen, message, messagelen, result, &md_len);
-  encoded_len = mtev_b64_encode(result, md_len, encoded, encoded_len);
+  encoded_len = mtev_b64_encode(result, md_len, encoded, mtev_b64_encode_len(md_len));
 
   lua_pushlstring(L, (char *)encoded, encoded_len);
 

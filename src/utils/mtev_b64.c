@@ -42,10 +42,10 @@ mtev_b64_decode(const char *src, size_t src_len,
   const unsigned char *cp = (unsigned char *)src;
   unsigned char *dcp = dest;
   unsigned char ch, in[4], out[3];
-  size_t ib = 0, ob = 3, needed = (((src_len + 3) / 4) * 3);
-  /* Needed here is 2 bytes shy of what could be needed...
-   * decoding can be "short" up to 2 bytes. */
+  size_t ib = 0, ob = 3, needed = mtev_b64_max_decode_len(src_len);
 
+  /* verify that the dest_len is large enough for the decoded string, with exceptions for up to 
+   * two trailing `=` for padding */
   if(dest_len < needed - 2) return 0;
   else if(src_len > 1 && src[src_len-2] != '=' && src[src_len-1] == '=') {
     if(dest_len < needed - 1) return 0;
@@ -88,8 +88,8 @@ mtev_b64_decode(const char *src, size_t src_len,
   return dcp - (unsigned char *)dest;
 }
 
-size_t
-mtev_b64_max_decode_len(size_t src_len) {
+/* Can return up to 2 extra due to potential `=` padding in the encoded string */
+size_t mtev_b64_max_decode_len(size_t src_len) {
   return ((src_len + 3) / 4) * 3;
 }
 
@@ -114,7 +114,7 @@ mtev_b64_encodev(const struct iovec *iov, size_t iovcnt,
   src_len = 0;
   for (iov_index = 0; iov_index < iovcnt; iov_index++)
     src_len += iov[iov_index].iov_len;
-  n = (((src_len + 2) / 3) * 4);
+  n = mtev_b64_encode_len(src_len);
 
   if(dest_len < n) return 0;
 
@@ -131,7 +131,6 @@ mtev_b64_encodev(const struct iovec *iov, size_t iovcnt,
   return eptr - dest;
 }
 
-size_t
-mtev_b64_encode_len(size_t src_len) {
+size_t mtev_b64_encode_len(size_t src_len) {
   return 4 * ((src_len+2)/3);
 }
