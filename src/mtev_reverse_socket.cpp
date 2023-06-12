@@ -197,26 +197,32 @@ public:
     uint16_t id = frame_to_copy->channel_id;
     auto frame = static_cast<reverse_frame_t *>(malloc(sizeof(reverse_frame_t)));
     memcpy(frame, frame_to_copy, sizeof(*frame));
-    std::unique_lock l{rc->lock};
-    rc->data.in_bytes += frame->buff_len;
-    rc->data.in_frames += 1;
-    rc->data.channels[id].in_bytes += frame->buff_len;
-    rc->data.channels[id].in_frames += 1;
-    if (rc->data.channels[id].incoming_tail) {
-      mtevAssert(rc->data.channels[id].incoming);
-      rc->data.channels[id].incoming_tail->next = frame;
-      rc->data.channels[id].incoming_tail = frame;
+
+    if (std::unique_lock l{rc->lock}) {
+      rc->data.in_bytes += frame->buff_len;
+      rc->data.in_frames += 1;
+      rc->data.channels[id].in_bytes += frame->buff_len;
+      rc->data.channels[id].in_frames += 1;
+      if (rc->data.channels[id].incoming_tail) {
+        mtevAssert(rc->data.channels[id].incoming);
+        rc->data.channels[id].incoming_tail->next = frame;
+        rc->data.channels[id].incoming_tail = frame;
+      }
+      else {
+        mtevAssert(!rc->data.channels[id].incoming);
+        rc->data.channels[id].incoming = rc->data.channels[id].incoming_tail = frame;
+      }
     }
-    else {
-      mtevAssert(!rc->data.channels[id].incoming);
-      rc->data.channels[id].incoming = rc->data.channels[id].incoming_tail = frame;
-    }
-    l.unlock();
+
     memset(frame_to_copy, 0, sizeof(*frame_to_copy));
     e = eventer_find_fd(rc->data.channels[id].pair[0]);
     if (!e) {
       mtevL(rc->data.channels[id].pair[0] >= 0 ? nlerr : nldeb,
-            "%s: No event on my side [%d] of the socketpair()\n", __func__, rc->data.channels[id].pair[0]);
+            "(%s, %d, %s): No event on my side [%d] of the socketpair()\n",
+            rc->id,
+            id,
+            __func__,
+            rc->data.channels[id].pair[0]);
     }
     else {
       mtevL(nldeb, "%s(%s,%d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(e), e));
@@ -291,7 +297,10 @@ public:
                                                       rc->add_ref(), eventer_get_owner(rc->data.e.get()));
     }
     if (!wakeup_e)
-      mtevL(nlerr, "%s: No event to trigger for reverse_socket framing\n", __func__);
+      mtevL(nlerr, "(%s, %d, %s): No event to trigger for reverse_socket framing\n",
+        rc->id,
+        id,
+        __func__);
     else {
       mtevL(nldeb, "%s(%s, %d) => %s\n", __func__, rc->id, id, eventer_name_for_callback_e(eventer_get_callback(wakeup_e), wakeup_e));
       eventer_add(wakeup_e);
@@ -518,29 +527,37 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
   mtevAssert(ck_pr_load_32(&parent_rs->refcnt) > 0);
   channel_t *const channel = &parent_rs->data.channels[cct->channel_id];
 
-  mtevL(nldeb, "%s(%s, %d)\n", __func__, parent_rs->id, cct->channel_id);
+  mtevL(nldeb, "(%s, %d, %s): \n", parent_rs->id, cct->channel_id, __func__);
+
   if(parent_rs->data.nctx && parent_rs->data.nctx->wants_permanent_shutdown) {
-    mtevL(nldeb, "%s - wants_permanent_shutdown for %s - channel %d, pair [%d,%d] - goto snip\n",
-            __func__, parent_rs->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+    mtevL(nldeb, "(%s, %d, %s) [%d,%d]: wants_permanent_shutdown - goto snip\n",
+          parent_rs->id, cct->channel_id, __func__,
+          channel->pair[0], channel->pair[1]);
     goto snip;
   }
   if(mask & EVENTER_EXCEPTION) {
-    mtevL(nldeb, "%s - got EVENTER_EXCEPTION for %s - channel %d, pair [%d,%d] - goto snip\n",
-            __func__, parent_rs->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+    mtevL(nldeb, "(%s, %d, %s) [%d,%d]: EVENTER_EXCEPTION - goto snip\n",
+          parent_rs->id, cct->channel_id, __func__,
+          channel->pair[0], channel->pair[1]);
     goto snip;
   }
 
   /* this damn-well better be our side of the socketpair */
   if(channel->pair[0] != eventer_get_fd(e)) {
-   if(channel->pair[0] >= 0)
-     mtevL(nlerr, "%s: misaligned events, this is a bug (%d != %d)\n", __func__, channel->pair[0], eventer_get_fd(e));
+   if(channel->pair[0] >= 0) {
+      mtevL(nlerr, "(%s, %d, %s): misaligned events, this is a bug (%d != %d)\n",
+            parent_rs->id, cct->channel_id, __func__,
+            channel->pair[0], eventer_get_fd(e));
+   }
    shutdown:
-    mtevL(nldeb, "%s - at shutdown for %s - channel %d, pair [%d,%d]\n", __func__, parent_rs->id,
-            cct->channel_id, channel->pair[0], channel->pair[1]);
+    mtevL(nldeb, "(%s, %d, %s) [%d,%d]: shutdown\n",
+            parent_rs->id, cct->channel_id, __func__,
+            channel->pair[0], channel->pair[1]);
     parent_rs->command_out(cct->channel_id, "SHUTDOWN");
    snip:
-    mtevL(nldeb, "%s - at snip for %s - channel %d, pair [%d,%d]\n", __func__, parent_rs->id,
-            cct->channel_id, channel->pair[0], channel->pair[1]);
+    mtevL(nldeb, "(%s, %d, %s) [%d,%d]: snip\n",
+      parent_rs->id, cct->channel_id, __func__,
+      channel->pair[0], channel->pair[1]);
 
     if (eventer_remove_fde(e)) {
       mtevAssert(ck_pr_load_32(&parent_rs->refcnt) > 0);
@@ -568,68 +585,96 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       mtevAssert(f->buff_len == f->buff_filled); /* we only expect full frames here */
       if(f->command) {
         IFCMD(f, "RESET") {
-          mtevL(nldeb, "%s - got RESET for %s - channel %d, pair [%d,%d] - goto snip\n",
-                  __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+          mtevL(nldeb, "(%s, %d, %s) [%d,%d]: - RESET pair - goto snip\n",
+                parent_rs->id, cct->channel_id, __func__,
+                channel->pair[0], channel->pair[1]);
           goto snip;
         }
         IFCMD(f, "CLOSE") {
-          mtevL(nldeb, "%s - got CLOSE for %s - channel %d, pair [%d,%d] - goto snip\n",
-                  __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+          mtevL(nldeb, "(%s, %d, %s) [%d,%d]: - CLOSE - goto snip\n",
+                parent_rs->id, cct->channel_id, __func__,
+                channel->pair[0], channel->pair[1]);
           goto snip;
         }
         IFCMD(f, "SHUTDOWN") {
-          mtevL(nldeb, "%s - got SHUTDOWN for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-                  __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+          mtevL(nldeb, "(%s, %d, %s) [%d, %d]: - SHUTDOWN - goto shutdown\n",
+                parent_rs->id, cct->channel_id, __func__,
+                channel->pair[0], channel->pair[1]);
           goto shutdown;
         }
-        mtevL(nldeb, "%s - unknown command for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-                  __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+        mtevL(nldeb, "(%s, %d, %s) [%d, %d]: - unknown command - goto shutdown\n",
+              parent_rs->id, cct->channel_id, __func__,
+              channel->pair[0], channel->pair[1]);
         goto shutdown;
       }
+
       if(f->buff_len == 0) {
-        mtevL(nldeb, "%s - f->buff len = 0 for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+        mtevL(nldeb, "(%s, %d, %s) [%d, %d]: f->buff len == 0 goto shutdown\n",
+              parent_rs->id, cct->channel_id, __func__,
+              channel->pair[0], channel->pair[1]);
         goto shutdown;
       }
-      len = eventer_write(e, static_cast<const char*>(f->buff) + f->offset, f->buff_filled - f->offset, &write_mask);
-      if(len < 0 && errno == EAGAIN) break;
+
+      len = eventer_write(e, static_cast<const char *>(f->buff) + f->offset,
+                          f->buff_filled - f->offset, &write_mask);
+
+      if(len < 0 && errno == EAGAIN) {
+        break;
+      }
+
       if(len <= 0) {
-        mtevL(nldeb, "%s - failed eventer write (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          __func__, errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+        mtevL(nldeb, "(%s, %d, %s) [%d, %d]: failed eventer write %d \"%s\" - goto shutdown\n",
+              parent_rs->id, cct->channel_id, __func__,
+              channel->pair[0], channel->pair[1],
+              errno, strerror(errno));
         goto shutdown;
       }
+
       if(len > 0) {
-        mtevL(nldeb, "%s - reverse_socket_channel for %s - channel %d, pair [%d,%d] write[%d]: %lld\n",
-                __func__, cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1],
-                eventer_get_fd(e), (long long)len);
+        mtevL(nldeb, "(%s, %d, %s) [%d, %d]: reverse_socket_channel %zd\n",
+              parent_rs->id, cct->channel_id, __func__,
+              channel->pair[0], channel->pair[1], len);
         f->offset += len;
         write_success = 1;
       }
-      if(f->offset == f->buff_filled) {
+
+      if (f->offset == f->buff_filled) {
         channel->incoming = channel->incoming->next;
-        if(channel->incoming_tail == f) channel->incoming_tail = channel->incoming;
+        if (channel->incoming_tail == f) {
+          channel->incoming_tail = channel->incoming;
+        }
+
         reverse_frame_free(f);
       }
     }
 
     /* try to read some stuff */
     len = eventer_read(e, buff, sizeof(buff), &read_mask);
+
     if(len < 0 && (errno != EINPROGRESS && errno != EAGAIN)) {
-      mtevL(nldeb, "%s - failed eventer read (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          __func__, errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+      mtevL(nldeb, "(%s, %d, %s) [%d, %d]: failed eventer read %d \"%s\" - goto shutdown\n",
+            parent_rs->id, cct->channel_id, __func__,
+            channel->pair[0], channel->pair[1],
+            errno, strerror(errno));
       goto shutdown;
     }
+
     if(len == 0) {
-      mtevL(nldeb, "%s - failed eventer read (length 0) (%d - %s) for %s - channel %d, pair [%d,%d] - goto shutdown\n",
-          __func__, errno, strerror(errno), cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+      mtevL(nldeb, "(%s, %d, %s) [%d, %d]: failed eventer read %d \"%s\" - goto shutdown\n",
+            parent_rs->id, cct->channel_id, __func__,
+            channel->pair[0], channel->pair[1],
+            errno, strerror(errno));
       goto shutdown;
     }
-    if(len > 0) {
-      mtevL(nldeb, "%s - reverse_socket_channel read[%d]: %lld %s - id %s (channel %d), pair [%d,%d]\n",
-          __func__, eventer_get_fd(e), (long long)len, len==-1 ? strerror(errno) : "",
-          cct->parent->id, cct->channel_id, channel->pair[0], channel->pair[1]);
+
+    if (len > 0) {
       reverse_frame_t frame{};
 
+      mtevL(nldeb, "(%s, %d, %s) [%d, %d]: read %zd on %d\n",
+            parent_rs->id, cct->channel_id, __func__,
+            channel->pair[0], channel->pair[1],
+            len,
+            eventer_get_fd(e));
       frame.channel_id = cct->channel_id;
       frame.buff = malloc(len);
       memcpy(frame.buff, buff, len);
@@ -638,6 +683,7 @@ mtev_reverse_socket_channel_handler(eventer_t e, int mask, void *closure,
       read_success = 1;
     }
   }
+
   return read_mask | write_mask | EVENTER_EXCEPTION;
 }
 
@@ -656,7 +702,9 @@ mtev_reverse_socket_wakeup(eventer_t /*e*/, int /*mask*/, void *closure, timeval
       eventer_trigger(e.get(), EVENTER_READ|EVENTER_WRITE);
     }
     else {
-      mtevL(nldeb, "%s: failed to remove fde from eventer object %p\n", __func__, e.get());
+      mtevL(nldeb, "(%s, %s) : failed to remove fde from eventer object %p\n",
+            rc->id, __func__,
+            e.get());
     }
   }
 
@@ -667,23 +715,37 @@ static int
 mtev_support_connection(reverse_socket_sp &rc) {
   int fd, rv;
   fd = socket(rc->data.tgt.ip.sa_family, NE_SOCK_CLOEXEC|SOCK_STREAM, 0);
-  if(fd < 0) goto fail;
+
+  if (fd < 0) {
+    goto fail;
+  }
 
   /* Make it non-blocking */
-  if(eventer_set_fd_nonblocking(fd)) goto fail;
+  if (eventer_set_fd_nonblocking(fd)) {
+    goto fail;
+  }
 
   rv = connect(fd, &rc->data.tgt.ip, rc->data.tgt_len);
 
-  if(rv == -1 && errno != EINPROGRESS) goto fail;
+  if (rv == -1 && errno != EINPROGRESS) {
+    goto fail;
+  }
 
   return fd;
- fail:
-  mtevL(nldeb, "%s -> %d (%s)\n", __func__, errno, strerror(errno));
-  if(fd >= 0) close(fd);
+fail:
+  mtevL(nldeb, "(%s, %s) : failed to connect %d (%s)\n",
+        rc->id, __func__,
+        errno, strerror(errno));
+
+  if (fd >= 0) {
+    close(fd);
+  }
+
   return -1;
 }
 
 static int mtev_reverse_socket_handler(eventer_t e, int mask, reverse_socket_sp rc) {
+  uint16_t channel_id = 0;
   int rmask = EVENTER_EXCEPTION;
   int wmask = EVENTER_EXCEPTION;
   int len;
@@ -697,8 +759,7 @@ static int mtev_reverse_socket_handler(eventer_t e, int mask, reverse_socket_sp 
   }
   if(mask & EVENTER_EXCEPTION) {
 socket_error:
-    /* Exceptions cause us to simply snip the connection */
-    mtevL(nldeb, "%s %s: socket error: %s\n", rc->id, __func__, socket_error_string);
+    mtevL(nldeb, "(%s %s): socket error: %s\n", rc->id, __func__, socket_error_string);
     mtev_reverse_socket_shutdown(rc, e);
     return 0;
   }
@@ -707,123 +768,148 @@ socket_error:
   while(rc->data.frame_hdr_read < sizeof(rc->data.frame_hdr)) {
     len = eventer_read(e, rc->data.frame_hdr + rc->data.frame_hdr_read, sizeof(rc->data.frame_hdr) - rc->data.frame_hdr_read, &rmask);
     if(len < 0 && errno == EAGAIN) {
-      mtevL(nldeb, "%s %s: next frame, got EAGAIN, goto try_writes\n", rc->id, __func__);
+      mtevL(nldeb, "(%s %s): next frame, got EAGAIN, goto try_writes\n", rc->id, __func__);
       goto try_writes;
     }
+
     if(len <= 0) {
-      mtevL(nldeb, "%s %s: bad eventer read - len = %d, error %d (%s), goto socket_error\n",
+      mtevL(nldeb, "(%s %s): bad eventer read - len == %d, error %d (%s), goto socket_error\n",
               rc->id, __func__, len, errno, strerror(errno));
       socket_error_string = "data frame eventer_read error";
       goto socket_error;
     }
+
     rc->data.frame_hdr_read += len;
     success = 1;
   }
-  if(rc->data.incoming_inflight.buff_len == 0) {
+
+  if (rc->data.incoming_inflight.buff_len == 0) {
     uint16_t nchannel_id;
     uint32_t nframelen;
+
     memcpy(&nchannel_id, rc->data.frame_hdr, sizeof(nchannel_id));
     memcpy(&nframelen, rc->data.frame_hdr + sizeof(nchannel_id), sizeof(nframelen));
     rc->data.incoming_inflight.channel_id = ntohs(nchannel_id);
-    if(rc->data.incoming_inflight.channel_id & 0x8000) {
+
+    if (rc->data.incoming_inflight.channel_id & 0x8000) {
       rc->data.incoming_inflight.channel_id &= 0x7fff;
       rc->data.incoming_inflight.command = 1;
     } else {
       rc->data.incoming_inflight.command = 0;
     }
+
+    channel_id = rc->data.incoming_inflight.channel_id;
     rc->data.incoming_inflight.buff_len = ntohl(nframelen);
-    mtevL(nldeb, "%s %s: next_frame_in(%s%d,%llu) - pair [%d,%d]\n",
-          rc->id,
-          __func__,
+    mtevL(nldeb, "(%s %d %s) [%d,%d]: next_frame_in(%s,%zu)\n",
+          rc->id, channel_id, __func__,
+          rc->data.channels[channel_id].pair[0],
+          rc->data.channels[channel_id].pair[1],
           rc->data.incoming_inflight.command ? "!" : "",
-          rc->data.incoming_inflight.channel_id,
-          (unsigned long long)rc->data.incoming_inflight.buff_len,
-          rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
-          rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
-    if(rc->data.incoming_inflight.buff_len > MAX_FRAME_LEN) {
-      mtevL(nldeb, "%s %s: oversized frame (%zd > %zd), goto socket_error\n",
-              rc->id, __func__, rc->data.incoming_inflight.buff_len, MAX_FRAME_LEN);
+          rc->data.incoming_inflight.buff_len);
+
+    if (rc->data.incoming_inflight.buff_len > MAX_FRAME_LEN) {
+      mtevL(nldeb, "(%s %d %s) [%d,%d]: oversized frame (%zd > %zd), goto socket_error\n",
+            rc->id, channel_id, __func__,
+            rc->data.channels[channel_id].pair[0],
+            rc->data.channels[channel_id].pair[1],
+            rc->data.incoming_inflight.buff_len, MAX_FRAME_LEN);
       socket_error_string = "oversized_frame";
       goto socket_error;
     }
-    if(rc->data.incoming_inflight.channel_id >= MAX_CHANNELS) {
-      mtevL(nldeb, "%s %s: invalid channel (%d >= %d), goto socket_error\n",
-              rc->id, __func__, rc->data.incoming_inflight.channel_id, MAX_CHANNELS);
+
+    if (channel_id >= MAX_CHANNELS) {
+      mtevL(nldeb, "(%s %s): invalid channel (%d >= %d), goto socket_error\n",
+              rc->id, __func__, channel_id, MAX_CHANNELS);
       socket_error_string = "invalid_channel";
       goto socket_error;
     }
   }
-  while(rc->data.incoming_inflight.buff_filled < rc->data.incoming_inflight.buff_len) {
-    if(!rc->data.incoming_inflight.buff) rc->data.incoming_inflight.buff = malloc(rc->data.incoming_inflight.buff_len);
+
+  channel_id = rc->data.incoming_inflight.channel_id;
+
+  while (rc->data.incoming_inflight.buff_filled < rc->data.incoming_inflight.buff_len) {
+    if (!rc->data.incoming_inflight.buff) {
+      rc->data.incoming_inflight.buff = malloc(rc->data.incoming_inflight.buff_len);
+    }
+
     len = eventer_read(e,
             const_cast<char*>(static_cast<const char*>(rc->data.incoming_inflight.buff) + rc->data.incoming_inflight.buff_filled),
             rc->data.incoming_inflight.buff_len - rc->data.incoming_inflight.buff_filled, &rmask);
+
     if(len < 0 && errno == EAGAIN) {
-      mtevL(nldeb, "%s %s: frame payload read, got EAGAIN, goto try_writes\n", rc->id, __func__);
+      mtevL(nldeb, "(%s %s): frame payload read, got EAGAIN, goto try_writes\n", rc->id, __func__);
       goto try_writes;
     }
+
     if(len <= 0) {
-      mtevL(nldeb, "%s %s: bad eventer frame payload read - len = %d, error %d (%s), goto socket_error\n",
+      mtevL(nldeb, "(%s %s): bad eventer frame payload read - len = %d, error %d (%s), goto socket_error\n",
               rc->id, __func__, len, errno, strerror(errno));
       socket_error_string = "buffer eventer_read error";
       goto socket_error;
     }
-    mtevL(nldeb, "%s %s: frame payload read -> %llu (@%llu/%llu) - incoming channel id %d, pair [%d,%d]\n",
-          rc->id, __func__, (unsigned long long)len, (unsigned long long)rc->data.incoming_inflight.buff_filled,
-          (unsigned long long)rc->data.incoming_inflight.buff_len,
-          rc->data.incoming_inflight.channel_id,
-          rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
-          rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
+
+    mtevL(nldeb, "(%s %d %s) [%d,%d]: frame payload read -> %llu (@%llu/%llu)\n",
+          rc->id,  channel_id, __func__,
+          rc->data.channels[channel_id].pair[0],
+          rc->data.channels[channel_id].pair[1],
+          (unsigned long long)len,
+          (unsigned long long)rc->data.incoming_inflight.buff_filled,
+          (unsigned long long)rc->data.incoming_inflight.buff_len);
     rc->data.incoming_inflight.buff_filled += len;
     success = 1;
   }
 
   /* we have a complete inbound frame here (w/ data) */
-  if(rc->data.incoming_inflight.command) {
-    mtevL(nldeb, "%s %s: inbound command channel:%d '%.*s'\n",
+  if (rc->data.incoming_inflight.command) {
+    mtevL(nldeb, "(%s %d %s): inbound command channel: '%.*s'\n",
           rc->id,
+          channel_id,
           __func__,
-          rc->data.incoming_inflight.channel_id,
-          (int)rc->data.incoming_inflight.buff_len, (char *)rc->data.incoming_inflight.buff);
+          (int)rc->data.incoming_inflight.buff_len, 
+          (char *)rc->data.incoming_inflight.buff);
   }
+
   IFCMD(&rc->data.incoming_inflight, "CONNECT") {
-    mtevL(nldeb, "%s %s - got connect request - incoming channel id %d, pair [%d,%d]\n",
-            rc->id, __func__, rc->data.incoming_inflight.channel_id,
-            rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
-            rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
-    if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == AVAILABLE) {
+    mtevL(nldeb, "(%s %d %s) [%d, %d] - got connect request\n",
+            rc->id, channel_id, __func__,
+            rc->data.channels[channel_id].pair[0],
+            rc->data.channels[channel_id].pair[1]);
+
+    if(rc->data.channels[channel_id].pair[0] == AVAILABLE) {
       int fd = mtev_support_connection(rc);
       if(fd >= 0) {
         mtevAssert(ck_pr_load_32(&rc->refcnt) > 0);
-        auto cct = new channel_closure_t{rc->data.incoming_inflight.channel_id, rc};
+        auto cct = new channel_closure_t{channel_id, rc};
         eventer_t newe =
           eventer_alloc_fd(mtev_reverse_socket_channel_handler, cct, fd,
                            EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION);
         eventer_add(newe);
-        mtev_gettimeofday(&rc->data.channels[rc->data.incoming_inflight.channel_id].create_time, NULL);
-        rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] = fd;
+        mtev_gettimeofday(&rc->data.channels[channel_id].create_time, NULL);
+        rc->data.channels[channel_id].pair[0] = fd;
         memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
         rc->data.frame_hdr_read = 0;
         goto next_frame;
       }
     }
   }
-  if(rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0] == AVAILABLE) {
+
+  if (rc->data.channels[channel_id].pair[0] == AVAILABLE) {
     /* but the channel disappeared */
     /* send a reset, but not in response to a reset */
     IFCMD(&rc->data.incoming_inflight, "RESET") { } /* noop */
     else {
-      mtevL(nldeb, "%s %s - sending reset  - incoming channel id %d, pair [%d,%d]\n",
-              rc->id, __func__, rc->data.incoming_inflight.channel_id,
-              rc->data.channels[rc->data.incoming_inflight.channel_id].pair[0],
-              rc->data.channels[rc->data.incoming_inflight.channel_id].pair[1]);
-      rc->command_out(rc->data.incoming_inflight.channel_id, "RESET");
+      mtevL(nldeb, "(%s %d %s) [%d,%d] - sending reset\n",
+              rc->id, channel_id, __func__,
+              rc->data.channels[channel_id].pair[0],
+              rc->data.channels[channel_id].pair[1]);
+      rc->command_out(channel_id, "RESET");
     }
     free(rc->data.incoming_inflight.buff);
     memset(&rc->data.incoming_inflight, 0, sizeof(rc->data.incoming_inflight));
     rc->data.frame_hdr_read = 0;
     goto next_frame;
   }
+
   rc->append_in(&rc->data.incoming_inflight);
   rc->data.frame_hdr_read = 0;
   if (--reads_remaining) goto next_frame;
@@ -842,7 +928,7 @@ socket_error:
       len = eventer_write(e, rc->data.frame_hdr_out + rc->data.frame_hdr_written,
                           sizeof(rc->data.frame_hdr_out) - rc->data.frame_hdr_written, &wmask);
       if(len < 0 && errno == EAGAIN) {
-        mtevL(nldeb, "%s (channel %d) %s: try_writes for frame, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id, __func__);
+        mtevL(nldeb, "(%s %d %s): try_writes for frame, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id, __func__);
         goto done_for_now;
       }
       else if(len <= 0) goto socket_error;
@@ -853,21 +939,23 @@ socket_error:
       len = eventer_write(e, static_cast<const char*>(f->buff) + f->offset,
                           f->buff_len - f->offset, &wmask);
       if(len < 0 && errno == EAGAIN) {
-        mtevL(nldeb, "%s (channel %d) %s: try_writes for buffer, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id, __func__);
+        mtevL(nldeb, "(%s %d %s): try_writes for buffer, got EAGAIN, goto done_for_now\n", rc->id, f->channel_id, __func__);
         goto done_for_now;
       }
       else if(len <= 0) {
-        mtevL(nldeb, "%s (channel %d) %s: try_writes for frame, got %d (%s), len %zd, goto socket_error\n",
+        mtevL(nldeb, "(%s %d %s): try_writes for frame, got %d (%s), len %zd, goto socket_error\n",
                 rc->id, f->channel_id, __func__, errno, strerror(errno), len);
         goto socket_error;
       }
       f->offset += len;
       success = 1;
     }
-    mtevL(nldeb, "%s %s: frame_out(%04x, %llu) %llu/%llu of body\n",
-          rc->id, __func__,
-          f->channel_id, (unsigned long long)f->buff_len,
-          (unsigned long long)f->offset, (unsigned long long)f->buff_len);
+
+    mtevL(nldeb, "(%s %d %s): frame_out %p/%llu/%llu\n",
+          rc->id, f->channel_id, __func__,
+          f->buff,
+          (unsigned long long)f->offset, 
+          (unsigned long long)f->buff_len);
     /* reset for next frame */
     rc->data.frame_hdr_written = 0;
     rc->pop_out();
@@ -876,13 +964,16 @@ socket_error:
 
  done_for_now: 
   if(success && rc->data.nctx) {
-    mtevL(nldeb, "%s %s: done_for_now finished, updating timeout\n", rc->id, __func__);
+    mtevL(nldeb, "(%s %d %s): done_for_now finished, updating timeout\n",
+          rc->id, channel_id, __func__);
     mtev_connection_update_timeout(rc->data.nctx);
   }
   else {
-    mtevL(nldeb, "%s %s: done_for_now without finishing, will retry later: success %d, nctx %s\n",
-            rc->id, __func__, success, (rc->data.nctx) ? "not null" : "null");
+    mtevL(nldeb, "(%s %d %s): done_for_now without finishing, will retry later: success %d, nctx %s\n",
+          rc->id, channel_id, __func__,
+          success, rc->data.nctx ? "not null" : "null");
   }
+
   if(e != rc->data.e) {
     eventer_set_mask(rc->data.e.get(), rmask|wmask);
     return 0;
