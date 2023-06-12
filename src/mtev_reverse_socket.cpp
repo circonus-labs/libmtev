@@ -460,7 +460,6 @@ mtev_reverse_socket_shutdown(reverse_socket_sp rc, [[maybe_unused]] eventer_t e)
   std::unique_lock l{rc->lock};
 
   mtevL(nldeb, "(%s %s)\n", rc->id, __func__);
-
   free(rc->data.buff);
   rc->data.buff = nullptr;
   rc->data.e = nullptr;
