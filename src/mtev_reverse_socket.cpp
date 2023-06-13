@@ -421,40 +421,39 @@ static reverse_socket_sp mtev_reverse_socket_alloc() {
 }
 
 static void mtev_reverse_socket_channel_shutdown(reverse_socket_sp rc, const uint16_t channel_id) {
-  eventer_t ce = NULL;
-  reverse_frame_t *saved_incoming = NULL;
+  eventer_t ce = nullptr;
+  reverse_frame_t *saved_incoming = nullptr;
 
-  std::unique_lock l{rc->lock};
+  mtevL(nldeb, "(%s %d %s)\n", rc->id, channel_id, __func__);
 
-  channel_t *const channel = &rc->data.channels[channel_id];
+  if (std::unique_lock l{rc->lock}) {
+    channel_t *const channel = &rc->data.channels[channel_id];
 
-  if (channel->pair[0] >= 0) {
-    const int fd = channel->pair[0];
+    if (channel->pair[0] >= 0) {
+      const int fd = channel->pair[0];
 
-    mtevL(nldeb, "%s (%s, %d)\n", __func__, rc->id, channel_id);
-    ce = eventer_find_fd(fd);
-    channel->pair[0] = AGING;
+      ce = eventer_find_fd(fd);
+      channel->pair[0] = AGING;
 
-    if (!ce) {
-      close(fd);
+      if (!ce) {
+        close(fd);
+      }
+    }
+
+    if (ce) {
+      l.unlock();
+      eventer_trigger(ce, EVENTER_EXCEPTION);
+      l.lock();
+    }
+
+    if (channel->pair[0] == AGING) {
+      channel->in_bytes = channel->out_bytes = channel->in_frames = channel->out_frames = 0;
+      saved_incoming = channel->incoming;
+      channel->incoming = NULL;
+      channel->incoming_tail = NULL;
+      channel->pair[0] = channel->pair[1] = AVAILABLE;
     }
   }
-
-  if (ce) {
-    l.unlock();
-    eventer_trigger(ce, EVENTER_EXCEPTION);
-    l.lock();
-  }
-
-  if (channel->pair[0] == AGING) {
-    channel->in_bytes = channel->out_bytes = channel->in_frames = channel->out_frames = 0;
-    saved_incoming = channel->incoming;
-    channel->incoming = NULL;
-    channel->incoming_tail = NULL;
-    channel->pair[0] = channel->pair[1] = AVAILABLE;
-  }
-
-  l.unlock();
 
   while (saved_incoming) {
     reverse_frame_t *const f = saved_incoming;
@@ -468,7 +467,8 @@ static void
 mtev_reverse_socket_shutdown(reverse_socket_sp rc, [[maybe_unused]] eventer_t e) {
   int mask, i;
   std::unique_lock l{rc->lock};
-  mtevL(nldeb, "%s(%s)\n", __func__, rc->id);
+
+  mtevL(nldeb, "(%s %s)\n", rc->id, __func__);
   free(rc->data.buff);
   rc->data.buff = nullptr;
   rc->data.e = nullptr;
