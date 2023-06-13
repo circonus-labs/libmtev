@@ -4,6 +4,10 @@
 
 ## 2.5
 
+### 2.5.1
+
+ * Improved reverse socket logging.
+
 ### 2.5.0
 
  * Clean up base64 encoding.
