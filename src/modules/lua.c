@@ -1066,7 +1066,8 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
     snprintf(state_str, sizeof(state_str), "%p", (void*)L);
     lua_getglobal(L, "mtev_xcall");
     if(lua_isnil(L, -1)) {
-      lua_pop(L, 1);
+      mtevL(mtev_error, "MICHAEL: KILL DA NIL #1\n");
+      lua_remove(L, -1);
       continue;
     }
     else {
@@ -1074,8 +1075,9 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
       /*  Invoke xcall() */
       lua_call(L, 1, 1);
       if(lua_isnil(L, -1)) {
+        mtevL(mtev_error, "MICHAEL: KILL DA NIL #1\n");
         /* skip lua states that return an explicit nil */
-        lua_pop(L, 1);
+        lua_remove(L, -1);
         continue;
       }
       /* Convert results to json via mtev.tojson(...):unwrap() */
