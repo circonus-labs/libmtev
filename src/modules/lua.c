@@ -1075,6 +1075,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
       lua_call(L, 1, 1);
       if(lua_isnil(L, -1)) {
         /* skip lua states that return an explicit nil */
+        lua_pop(L, 1);
         continue;
       }
       /* Convert results to json via mtev.tojson(...):unwrap() */
