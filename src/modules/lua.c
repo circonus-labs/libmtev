@@ -1066,6 +1066,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
     snprintf(state_str, sizeof(state_str), "%p", (void*)L);
     lua_getglobal(L, "mtev_xcall");
     if(lua_isnil(L, -1)) {
+      lua_pop(L, 1);
       continue;
     }
     else {
