@@ -4,6 +4,8 @@
 
 ## 2.5
 
+ * Clean up of modern ASAN ODR errors due to obsolete global variables during loading in lua ffi.
+
 ### 2.5.1
 
  * Improved reverse socket logging.
