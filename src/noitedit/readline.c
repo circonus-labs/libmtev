@@ -77,55 +77,50 @@ extern int el_gets_dispatch(EditLine *el, el_action_t cmdnum, char ch, int *num)
 
 /* readline compatibility stuff - look at readline sources/documentation */
 /* to see what these variables mean */
-const char *rl_library_version = "EditLine wrapper";
-char *rl_readline_name = "";
-FILE *rl_instream = NULL;
-FILE *rl_outstream = NULL;
-int rl_point = 0;
-int rl_end = 0;
-char *rl_line_buffer = NULL;
+static char *rl_readline_name = "";
+static FILE *rl_instream = NULL;
+static FILE *rl_outstream = NULL;
+static int rl_point = 0;
+static int rl_end = 0;
+static char *rl_line_buffer = NULL;
 
-int history_base = 1;		/* probably never subject to change */
-int history_length = 0;
-int max_input_history = 0;
-char history_expansion_char = '!';
-char history_subst_char = '^';
-char *history_no_expand_chars = " \t\n=(";
-Function *history_inhibit_expansion_function = NULL;
+static int history_length = 0;
+static int max_input_history = 0;
+static char history_expansion_char = '!';
+static char history_subst_char = '^';
+static char *history_no_expand_chars = " \t\n=(";
+static Function *history_inhibit_expansion_function = NULL;
 
-int rl_inhibit_completion = 0;
-int rl_attempted_completion_over = 0;
-char *rl_basic_word_break_characters = " \t\n\"\\'`@$><=;|&{(";
-char *rl_completer_word_break_characters = NULL;
-char *rl_completer_quote_characters = NULL;
-CPFunction *rl_completion_entry_function = NULL;
-CPPFunction *rl_attempted_completion_function = NULL;
+static int rl_inhibit_completion = 0;
+static char *rl_basic_word_break_characters = " \t\n\"\\'`@$><=;|&{(";
+static CPFunction *rl_completion_entry_function = NULL;
+static CPPFunction *rl_attempted_completion_function = NULL;
 
 /*
  * This is set to character indicating type of completion being done by
  * rl_complete_internal(); this is available for application completion
  * functions.
  */
-int rl_completion_type = 0;
+static int rl_completion_type = 0;
 
 /*
  * If more than this number of items results from query for possible
  * completions, we ask user if they are sure to really display the list.
  */
-int rl_completion_query_items = 100;
+static int rl_completion_query_items = 100;
 
 /*
  * List of characters which are word break characters, but should be left
  * in the parsed text when it is passed to the completion function.
  * Shell uses this to help determine what kind of completing to do.
  */
-char *rl_special_prefixes = (char *)NULL;
+static char *rl_special_prefixes = (char *)NULL;
 
 /*
  * This is the character appended to the completed words if at the end of
  * the line. Default is ' ' (a space).
  */
-int rl_completion_append_character = ' ';
+static int rl_completion_append_character = ' ';
 
 /* stuff below is used internally by libedit for readline emulation */
 

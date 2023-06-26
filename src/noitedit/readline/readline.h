@@ -68,23 +68,27 @@ typedef struct _hist_entry {
 
 /* global variables used by readline enabled applications */
 __BEGIN_DECLS
-extern const char	*rl_library_version;
-extern char		*rl_readline_name;
-extern FILE		*rl_instream;
-extern FILE		*rl_outstream;
-extern char		*rl_line_buffer;
-extern int		 rl_point, rl_end;
-extern int		 history_base, history_length;
-extern int		 max_input_history;
-extern char		*rl_basic_word_break_characters;
-extern char		*rl_completer_word_break_characters;
-extern char		*rl_completer_quote_characters;
-extern CPFunction	*rl_completion_entry_function;
-extern CPPFunction	*rl_attempted_completion_function;
-extern int		rl_completion_type;
-extern int		rl_completion_query_items;
-extern char		*rl_special_prefixes;
-extern int		rl_completion_append_character;
+// NOTE: Removed global externs because they are not needed in our usage
+// and they cause ASAN ODR violations.
+// they are left here for reference, because this file
+// is mostly third-party code.
+//extern const char	*rl_library_version;
+//extern char		*rl_readline_name;
+//extern FILE		*rl_instream;
+//extern FILE		*rl_outstream;
+//extern char		*rl_line_buffer;
+//extern int		 rl_point, rl_end;
+//extern int		 history_base, history_length;
+//extern int		 max_input_history;
+//extern char		*rl_basic_word_break_characters;
+//extern char		*rl_completer_word_break_characters;
+//extern char		*rl_completer_quote_characters;
+//extern CPFunction	*rl_completion_entry_function;
+//extern CPPFunction	*rl_attempted_completion_function;
+//extern int		rl_completion_type;
+//extern int		rl_completion_query_items;
+//extern char		*rl_special_prefixes;
+//extern int		rl_completion_append_character;
 
 /* supported functions */
 char		*readline(const char *);
