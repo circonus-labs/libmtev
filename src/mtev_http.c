@@ -50,7 +50,6 @@ static const char *zipkin_http_bytes_out = "http.bytes_out";
 static struct in_addr zipkin_ip_host;
 static mtev_log_stream_t http_access = NULL;
 static mtev_log_stream_t http_access_forensic = NULL;
-int LIBMTEV_HTTP_DEFAULT_MAXWRITE = 1<<19; /* 512k */
 
 MTEV_HOOK_IMPL(http_request_log,
   (mtev_http_session_ctx *ctx),

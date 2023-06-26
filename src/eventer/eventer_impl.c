@@ -642,9 +642,6 @@ int eventer_get_epoch(struct timeval *epoch) {
   return 0;
 }
 
-int NE_SOCK_CLOEXEC = 0;
-int NE_O_CLOEXEC = 0;
-
 static void eventer_per_thread_init(struct eventer_impl_data *t) {
   char qname[80];
   eventer_t e;
@@ -934,17 +931,6 @@ int eventer_impl_init(void) {
   ck_pr_inc_32(&init_called);
 
   (void)try;
-#ifdef SOCK_CLOEXEC
-  /* We can test, still might not work */
-  try = socket(AF_INET, SOCK_CLOEXEC|SOCK_STREAM, IPPROTO_TCP);
-  if(try >= 0) {
-    close(try);
-    NE_SOCK_CLOEXEC = SOCK_CLOEXEC;
-  }
-#endif
-#ifdef O_CLOEXEC
-  NE_O_CLOEXEC = O_CLOEXEC;
-#endif
 
   if(__default_loop_concurrency == 0) {
     int sockets = 0, cores = 0;

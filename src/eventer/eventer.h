@@ -656,12 +656,21 @@ API_EXPORT(uint64_t) eventer_callback_ms(void);
  */
 API_EXPORT(uint64_t) eventer_callback_us(void);
 
-/* These values are set on initialization and are safe to use
- * on any platform.  They will be set to zero on platforms that
- * do not support them.  As such, you can always bit-or them.
+/* These values are fixed and may only require special handling
+ * on very old platforms where this capability is not available.
+ * If we don't see the defined macros, we set to zero.  Otherwise,
+ * we use the defined values.
  */
-API_EXPORT(int) NE_SOCK_CLOEXEC;
-API_EXPORT(int) NE_O_CLOEXEC;
+#ifdef SOCK_CLOEXEC
+  #define NE_SOCK_CLOEXEC SOCK_CLOEXEC
+#else
+  #define NE_SOCK_CLOEXEC 0
+#endif
+#ifdef O_CLOEXEC
+  #define NE_O_CLOEXEC O_CLOEXEC
+#else
+  #define NE_O_CLOEXEC 0
+#endif
 
 typedef struct _eventer_impl {
   const char         *name;
