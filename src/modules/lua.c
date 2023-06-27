@@ -1092,7 +1092,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
     snprintf(state_str, sizeof(state_str), "%p", (void*)L);
     lua_getglobal(L, "mtev_xcall");
     if(lua_isnil(L, -1)) {
-      mtevL(mtev_error, "MICHAEL: KILL DA NIL #1\n");
+      mtevL(mtev_error, "MICHAEL: mtev_xcall NOT FOUND, remove nil from stack\n");
       lua_remove(L, -1);
       continue;
     }
@@ -1101,7 +1101,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
       /*  Invoke xcall() */
       lua_call(L, 1, 1);
       if(lua_isnil(L, -1)) {
-        mtevL(mtev_error, "MICHAEL: KILL DA NIL #2\n");
+        mtevL(mtev_error, "MICHAEL: mtev_xcall returned nil, remove it from stack\n");
         /* skip lua states that return an explicit nil */
         lua_remove(L, -1);
         continue;
