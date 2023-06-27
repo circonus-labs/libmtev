@@ -1120,7 +1120,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
       lua_call(L, 1, 1);
       mtevL(mtev_error, "MICHAEL: After calling mtev.tojson():unwrap():\n");
       dumpstack(L);
-      mtevL(mtev_error, "MICHAEL: done in %s\n", __func__);
+      mtevL(mtev_error, "MICHAEL: done in mtev xcall thing\n");
       mtev_json_object **udata = luaL_checkudata(L, -1, "mtev.json_object");
       out = (*udata);
     }
