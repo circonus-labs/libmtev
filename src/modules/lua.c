@@ -85,6 +85,32 @@ static lua_module_gc_params_t default_gc_params = {
   .pause_size = 200, .set_pause_size = 200
 };
 
+static void dumpstack (lua_State *L) {
+  int top=lua_gettop(L);
+  mtevL(mtev_error, "MICHAEL: BEGIN STACK DUMP\n");
+  for (int i=1; i <= top; i++) {
+    mtevL(mtev_error, "%d\t%s\t", i, luaL_typename(L,i));
+    switch (lua_type(L, i)) {
+    case LUA_TNUMBER:
+      mtevL(mtev_error, "%g\n",lua_tonumber(L,i));
+      break;
+    case LUA_TSTRING:
+      mtevL(mtev_error, "%s\n",lua_tostring(L,i));
+      break;
+    case LUA_TBOOLEAN:
+      mtevL(mtev_error, "%s\n", (lua_toboolean(L, i) ? "true" : "false"));
+      break;
+    case LUA_TNIL:
+      mtevL(mtev_error, "%s\n", "nil");
+      break;
+    default:
+      mtevL(mtev_error, "%p\n",lua_topointer(L,i));
+      break;
+    }
+  }
+  mtevL(mtev_error, "MICHAEL: END STACK DUMP\n");
+}
+
 lua_module_gc_params_t *
 mtev_lua_config_gc_params(mtev_hash_table *o) {
   lua_module_gc_params_t *p = calloc(1, sizeof(*p));
@@ -1086,9 +1112,15 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
       lua_remove(L, -2);
       lua_insert(L, -2);
       lua_call(L, 1, 1);
+      mtev_log_go_synch();
+      mtevL(mtev_error, "MICHAEL: After calling mtev.tojson():\n");
+      dumpstack(L);
       lua_getfield(L, -1, "unwrap");
       lua_insert(L, -2);
       lua_call(L, 1, 1);
+      mtevL(mtev_error, "MICHAEL: After calling mtev.tojson():unwrap():\n");
+      dumpstack(L);
+      mtevL(mtev_error, "MICHAEL: done in %s\n", __func__);
       mtev_json_object **udata = luaL_checkudata(L, -1, "mtev.json_object");
       out = (*udata);
     }
