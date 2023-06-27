@@ -1066,6 +1066,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
     snprintf(state_str, sizeof(state_str), "%p", (void*)L);
     lua_getglobal(L, "mtev_xcall");
     if(lua_isnil(L, -1)) {
+      lua_remove(L, -1);
       continue;
     }
     else {
@@ -1074,6 +1075,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
       lua_call(L, 1, 1);
       if(lua_isnil(L, -1)) {
         /* skip lua states that return an explicit nil */
+        lua_remove(L, -1);
         continue;
       }
       /* Convert results to json via mtev.tojson(...):unwrap() */
