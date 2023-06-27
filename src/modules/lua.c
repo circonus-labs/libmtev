@@ -1101,7 +1101,7 @@ mtev_lua_xcall_reporter(eventer_t e, int mask, void *closure,
       /*  Invoke xcall() */
       lua_call(L, 1, 1);
       if(lua_isnil(L, -1)) {
-        mtevL(mtev_error, "MICHAEL: KILL DA NIL #1\n");
+        mtevL(mtev_error, "MICHAEL: KILL DA NIL #2\n");
         /* skip lua states that return an explicit nil */
         lua_remove(L, -1);
         continue;
