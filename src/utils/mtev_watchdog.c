@@ -468,7 +468,7 @@ void mtev_watchdog_disable_trace_output(void) {
   save_trace_output = mtev_false;
 }
 
-int mtev_monitored_child_pid = -1;
+static int mtev_monitored_child_pid = -1;
 
 void run_glider(int pid, glide_reason_t glide_reason, const char *detail) {
   const char *glide_reason_str = "unknown";
