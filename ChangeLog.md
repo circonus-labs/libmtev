@@ -4,7 +4,10 @@
 
 ## 2.5
 
- * Clean up of modern ASAN ODR errors due to obsolete global variables during loading in lua ffi.
+### 2.5.2
+
+ * Fix Lua module leaving `nil`s hanging on Lua state.
+ * Clean up of modern ASAN ODR errors due to obsolete global variables during loading in Lua FFI.
 
 ### 2.5.1
 
