@@ -4,6 +4,8 @@
 
 ## 2.5
 
+ * Fix issue where floated HTTP2 connections would resume before being triggered.
+
 ### 2.5.2
 
  * Fix Lua module leaving `nil`s hanging on Lua state.
