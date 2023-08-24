@@ -1155,7 +1155,7 @@ mtev_http2_resume_all_unpaused_streams(mtev_http2_parent_session *ctx) {
     /* If we're done, we're done. */
     if(ctx->res.closed) continue;
     /* We can only resume (dispatch) complete requests that are not ACO */
-    if(ctx->req.complete && !ctx->res.complete && ctx->aco_enabled == mtev_false) {
+    if(ctx->req.complete && !ctx->res.complete && ctx->aco_enabled == mtev_false && ctx->floated != H2_ASYNCH) {
       ctx->parent->dispatcher((mtev_http_session_ctx *)ctx);
     }
     if(ctx->paused == H2_UNPAUSED) {
