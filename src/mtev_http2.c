@@ -894,6 +894,7 @@ on_header_callback(nghttp2_session *session,
       free(stream->req.uri_str);
       stream->req.uri_str = mtev_strndup((const char *)value, valuelen);
       mtev_http2_process_querystring(&stream->req);
+      inplace_urldecode(stream->req.uri_str);
     } else if(HDR_NAME("host")) {
       /* A host header cannot replace an :authority header */
       void *dummy;
@@ -1320,6 +1321,7 @@ mtev_http1_http2_upgrade(mtev_http1_session_ctx *ctx) {
     h2c->req.uri_str = strdup(mtev_http1_request_uri_str(req1));
   }
   mtev_http2_process_querystring(&h2c->req);
+  inplace_urldecode(h2c->req.uri_str);
   h2c->req.method_str = strdup(mtev_http1_request_method_str(req1));
   h2c->req.opts = mtev_http1_request_opts(req1) & ~MTEV_HTTP_CHUNKED;
   h2c->req.opts |= MTEV_HTTP_CLOSE;

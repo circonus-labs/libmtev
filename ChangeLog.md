@@ -4,6 +4,7 @@
 
 ## 2.5
 
+ * Fix issue where the URL string on incoming HTTP2 requests was not being escaped properly.
  * Fix issue where floated HTTP2 connections would resume before being triggered.
 
 ### 2.5.2
