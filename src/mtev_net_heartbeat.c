@@ -183,18 +183,44 @@ mtev_net_headerbeat_sendall(mtev_net_heartbeat_ctx *ctx, void *payload, int payl
     int fd = -1;
     struct tgt *tgt = &ctx->targets[i];
     switch(tgt->type) {
-      case TGT_BROADCAST: fd = ctx->sender_v4_bcast; break;
-      case TGT_MULTICAST: fd = eventer_get_fd(tgt->e); break;
+      case TGT_BROADCAST: 
+        fd = ctx->sender_v4_bcast;
+        mtevL(nldeb, "netheartbeat: sending %d byte payload (type TGT_BROADCAST) to fd %d\n", payload_len, fd);
+        break;
+      case TGT_MULTICAST:
+        fd = eventer_get_fd(tgt->e);
+        mtevL(nldeb, "netheartbeat: sending %d byte payload (type TGT_MULTICAST) to fd %d\n", payload_len, fd);
+        break;
       case TGT_DIRECT:
-        if(tgt->addr->sa_family == AF_INET) fd = ctx->sender_v4;
-        else if(tgt->addr->sa_family == AF_INET6) fd = ctx->sender_v6;
+        if(tgt->addr->sa_family == AF_INET) {
+          fd = ctx->sender_v4;
+          if (N_L_S_ON(nldeb)) {
+            char addr_buf[INET_ADDRSTRLEN];
+            struct sockaddr_in *addr_in = (struct sockaddr_in *)tgt->addr;;
+            inet_ntop(AF_INET, &(addr_in->sin_addr), addr_buf, INET_ADDRSTRLEN);
+            mtevL(nldeb, "netheartbeat: sending %d byte payload (type TGT_DIRECT, ipv4) to fd %d (addr %s)\n", payload_len, fd, addr_buf);
+          }
+        }
+        else if (tgt->addr->sa_family == AF_INET6) {
+          fd = ctx->sender_v6;
+          if (N_L_S_ON(nldeb)) {
+            char addr_buf[INET6_ADDRSTRLEN];
+            struct sockaddr_in6 *addr_in = (struct sockaddr_in6 *)tgt->addr;
+            inet_ntop(AF_INET6, &(addr_in->sin6_addr), addr_buf, INET6_ADDRSTRLEN);
+            mtevL(nldeb, "netheartbeat: sending %d byte payload (type TGT_DIRECT, ipv6) to fd %d (addr %s)\n", payload_len, fd, addr_buf);
+          }
+        }
         break;
     }
     if(fd >= 0) {
-      if (sendto(fd, payload, payload_len, 0,
-                 tgt->addr, tgt->len) != payload_len) {
+      int sent = sendto(fd, payload, payload_len, 0,
+                 tgt->addr, tgt->len);
+      if (sent != payload_len) {
         rv = -1;
-        mtevL(nlerr, "Bad send on mtev_net_heartbeat != %d", payload_len);
+        mtevL(nlerr, "Bad send on mtev_net_heartbeat: sent bytes (%d) != payload_len (%d)\n", sent, payload_len);
+      }
+      else {
+        mtevL(nldeb, "netheartbeat: successfully sent %d byte payload to fd %d\n", payload_len, fd);
       }
     }
   }
