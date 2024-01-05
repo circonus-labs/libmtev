@@ -39,6 +39,9 @@
 #include <errno.h>
 #include <openssl/evp.h>
 
+static mtev_log_stream_t nlerr = NULL;
+static mtev_log_stream_t nldeb = NULL;
+
 struct tgt {
   enum { TGT_DIRECT, TGT_BROADCAST, TGT_MULTICAST } type;
   struct sockaddr *addr;
@@ -90,7 +93,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
   void *text = text_buff;
 
   struct iovec iov[3];
-  struct msghdr msg = { .msg_iov = iov };;
+  struct msghdr msg = { .msg_iov = iov };
 
   msg.msg_iov = iov;
   while(true) {
@@ -107,7 +110,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     len = recvmsg(fd, &msg, MSG_PEEK);
     if(len == -1 && errno == EAGAIN) break;
     if(len < 0) {
-      mtevL(mtev_error, "recvmsg error: %s\n", strerror(errno));
+      mtevL(nlerr, "recvmsg error: %s\n", strerror(errno));
       break;
     }
     if(len < (HDR_LENSIZE + HDR_IVSIZE)) {
@@ -125,7 +128,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
       if(!newpayload || !newtext) {
         free(newpayload);
         free(newtext);
-        mtevL(mtev_error, "recvmsg error: payload too large %d\n", len);
+        mtevL(nlerr, "recvmsg error: payload too large %d\n", len);
         (void) recvmsg(fd, &msg, 0);
         continue;
       }
@@ -143,7 +146,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
       msg.msg_iov[2].iov_len;
     len = recvmsg(fd, &msg, 0);
     if(len != expected) {
-      mtevL(mtev_error, "netheartbeat: bad read %d != %d\n", len, expected);
+      mtevL(nlerr, "netheartbeat: bad read %d != %d\n", len, expected);
       continue;
     }
 
@@ -160,7 +163,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
 
     hdr = text;
     if(hdr[2] != htonl(HBPKTMAGIC1) || hdr[3] != htonl(HBPKTMAGIC2)) {
-      mtevL(mtev_error, "netheartbeat: malformed packet\n");
+      mtevL(nlerr, "netheartbeat: malformed packet\n");
     }
     if(ctx->process_input) {
       ctx->process_input(text + HDR_MAGICSIZE, len - HDR_MAGICSIZE,
@@ -191,7 +194,7 @@ mtev_net_headerbeat_sendall(mtev_net_heartbeat_ctx *ctx, void *payload, int payl
       if (sendto(fd, payload, payload_len, 0,
                  tgt->addr, tgt->len) != payload_len) {
         rv = -1;
-        mtevL(mtev_error, "Bad send on mtev_net_heartbeat != %d", payload_len);
+        mtevL(nlerr, "Bad send on mtev_net_heartbeat != %d", payload_len);
       }
     }
   }
@@ -245,7 +248,7 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
     if(cipher_buf != cipher_buf_static) free(cipher_buf);
     cipher_buf = malloc(len + blocksize * 2);
     if(!cipher_buf) {
-      mtevL(mtev_error, "netheartbeat: malloc(%d) failure\n", len + blocksize * 2);
+      mtevL(nlerr, "netheartbeat: malloc(%d) failure\n", len + blocksize * 2);
       goto bail;
     }
   }
@@ -486,11 +489,11 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
   section = mtev_conf_get_section_read(MTEV_CONF_ROOT, basepath);
   if(mtev_conf_section_is_empty(section)) goto out;
   if(!mtev_conf_get_string(section, "self::node()/@key", &keyhex)) {
-    mtevL(mtev_error, "netheartbeat section found, but no key attribute!\n");
+    mtevL(nlerr, "netheartbeat section found, but no key attribute!\n");
     goto out;
   }
   if(strlen(keyhex) != 64) {
-    mtevL(mtev_error, "netheartbeat key must be 32 bytes (64 hex)!\n");
+    mtevL(nlerr, "netheartbeat key must be 32 bytes (64 hex)!\n");
     free(keyhex);
     goto out;
   }
@@ -500,7 +503,7 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
     else if(keyhex[i] >= 'a' && keyhex[i] <= 'f') v = keyhex[i] - 'a' + 10;
     else if(keyhex[i] >= 'A' && keyhex[i] <= 'F') v = keyhex[i] - 'A' + 10;
     else {
-      mtevL(mtev_error, "netheartbeat key must be hexidecimal!\n");
+      mtevL(nlerr, "netheartbeat key must be hexidecimal!\n");
       free(keyhex);
       goto out;
     }
@@ -510,7 +513,7 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
 
   (void)mtev_conf_get_int32(section, "self::node()/@port", &port);
   if(port == 0) {
-    mtevL(mtev_error, "netheartbeat section found, but no port attribute!\n");
+    mtevL(nlerr, "netheartbeat section found, but no port attribute!\n");
     goto out;
   }
   (void)mtev_conf_get_int32(section, "self::node()/@period", &period);
@@ -536,11 +539,11 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
     (void)mtev_conf_get_int32(notes[i], "self::node()/@ttl", &ttl);
     (void)mtev_conf_get_int32(notes[i], "self::node()/@port", &port);
     if(port <= 0 || port > 0xffff) {
-      mtevL(mtev_error, "netheartbeat bad port %d in notify\n", port);
+      mtevL(nlerr, "netheartbeat bad port %d in notify\n", port);
       continue;
     }
     if(!mtev_conf_get_stringbuf(notes[i], "self::node()/@address", addr_str, sizeof(addr_str))) {
-      mtevL(mtev_error, "netheartbeat no address in notify\n");
+      mtevL(nlerr, "netheartbeat no address in notify\n");
       continue;
     }
     if(!mtev_conf_get_stringbuf(notes[i], "self::node()/@type", type_str, sizeof(type_str))) {
@@ -554,7 +557,7 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
       rv = inet_pton(family, addr_str, &a);
     }
     if(rv != 1) {
-      mtevL(mtev_error, "netheartbeat bad address: %s\n", addr_str);
+      mtevL(nlerr, "netheartbeat bad address: %s\n", addr_str);
       continue;
     }
     if(family == AF_INET) {
@@ -572,26 +575,26 @@ mtev_net_heartbeat_from_conf(const char *basepath) {
       in_len = sizeof(in6);
     }
     else {
-      mtevL(mtev_error, "netheartbeat bad address family: %d\n", family);
+      mtevL(nlerr, "netheartbeat bad address family: %d\n", family);
       continue;
     }
     if(!strcmp(type_str, "direct")) {
       if(mtev_net_heartbeat_add_target(ctx, in, in_len)) {
-        mtevL(mtev_error, "netheartbeat error adding: %s:%d\n", addr_str, port);
+        mtevL(nlerr, "netheartbeat error adding: %s:%d\n", addr_str, port);
       }
     }
     else if(!strcmp(type_str, "broadcast")) {
       if(mtev_net_heartbeat_add_broadcast(ctx, in, in_len)) {
-        mtevL(mtev_error, "netheartbeat error adding: %s:%d\n", addr_str, port);
+        mtevL(nlerr, "netheartbeat error adding: %s:%d\n", addr_str, port);
       }
     }
     else if(!strcmp(type_str, "multicast")) {
       if(mtev_net_heartbeat_add_multicast(ctx, in, in_len, ttl)) {
-        mtevL(mtev_error, "netheartbeat error adding: %s:%d\n", addr_str, port);
+        mtevL(nlerr, "netheartbeat error adding: %s:%d\n", addr_str, port);
       }
     }
     else {
-      mtevL(mtev_error, "netbroadcast notify type unknown: %s\n", type_str);
+      mtevL(nlerr, "netbroadcast notify type unknown: %s\n", type_str);
     }
   }
   mtev_conf_release_sections_read(notes, cnt);
@@ -606,6 +609,9 @@ void
 mtev_net_heartbeat_init(void) {
   static int inited = 0;
   if(inited) return;
+
+  nlerr = mtev_log_stream_find("error/netheartbeat");
+  nldeb = mtev_log_stream_find("debug/netheartbeat");
   inited = 1;
   eventer_name_callback_ext("mtev_net_heartbeat_pulse",
                             mtev_net_heartbeat_pulse,
