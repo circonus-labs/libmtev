@@ -122,6 +122,8 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
 
     /* Nasty crap to grow buffers if needed */
     if(len > payload_len) {
+      mtevL(nldeb, "netheartbeat: growing buffer in %s: old length %d, new length %d\n", __func__,
+        payload_len, len);
       void *newpayload, *newtext;
       newpayload = malloc(len - HDR_IVSIZE);
       newtext = malloc(len - HDR_IVSIZE);
@@ -163,7 +165,8 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
 
     hdr = text;
     if(hdr[2] != htonl(HBPKTMAGIC1) || hdr[3] != htonl(HBPKTMAGIC2)) {
-      mtevL(nlerr, "netheartbeat: malformed packet\n");
+      mtevL(nlerr, "netheartbeat: malformed packet: expected %04x and %04x, got %04x and %04x - len %d\n",
+        htonl(HBPKTMAGIC1), htonl(HBPKTMAGIC2), hdr[2], hdr[3], len);
     }
     if(ctx->process_input) {
       ctx->process_input(text + HDR_MAGICSIZE, len - HDR_MAGICSIZE,
