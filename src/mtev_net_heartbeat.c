@@ -75,7 +75,7 @@ static int log_ssl_error(const char *s, size_t len, void *p) {
   (void)len;
   (void)p;
 
-  mtevL(nlerr, "netheartbeat: received SSL error: %s\n", s);
+  mtevL(nlerr, "netheartbeat: received SSL error: %s", s);
   return 0;
 }
 
