@@ -110,7 +110,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     len = recvmsg(fd, &msg, MSG_PEEK);
     if(len == -1 && errno == EAGAIN) break;
     if(len < 0) {
-      mtevL(nlerr, "recvmsg error: %s\n", strerror(errno));
+      mtevL(nlerr, "netheartbeat: recvmsg error: %s\n", strerror(errno));
       break;
     }
     if(len < (HDR_LENSIZE + HDR_IVSIZE)) {
@@ -128,7 +128,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
       if(!newpayload || !newtext) {
         free(newpayload);
         free(newtext);
-        mtevL(nlerr, "recvmsg error: payload too large %d\n", len);
+        mtevL(nlerr, "netheartbeat: recvmsg error: payload too large %d\n", len);
         (void) recvmsg(fd, &msg, 0);
         continue;
       }
@@ -217,7 +217,7 @@ mtev_net_headerbeat_sendall(mtev_net_heartbeat_ctx *ctx, void *payload, int payl
                  tgt->addr, tgt->len);
       if (sent != payload_len) {
         rv = -1;
-        mtevL(nlerr, "Bad send on mtev_net_heartbeat: sent bytes (%d) != payload_len (%d)\n", sent, payload_len);
+        mtevL(nlerr, "netheartbeat: Bad send on mtev_net_heartbeat: sent bytes (%d) != payload_len (%d)\n", sent, payload_len);
       }
       else {
         mtevL(nldeb, "netheartbeat: successfully sent %d byte payload to fd %d\n", payload_len, fd);
