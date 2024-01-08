@@ -75,18 +75,20 @@ struct ssl_error_additional_info {
   char addr_str[INET6_ADDRSTRLEN];
   enum { SENDING, RECEIVING } op;
 };
-static int log_ssl_error(const char *s, size_t len, void *p) {
+
+static int log_ssl_decrypt_error(const char *s, size_t len, void *p) {
   (void)len;
-  struct ssl_error_additional_info *info = (struct ssl_error_additional_info *)p;
+  char *addr_str = (char *)p;
 
-  if (info) {
-    mtevL(nlerr, "netheartbeat: received SSL error %s IP %s: %s",
-      info->op == SENDING ? "sending to" : "receiving from", info->addr_str, s);
-  }
-  else {
-    mtevL(nlerr, "netheartbeat: received SSL error: %s", s);
-  }
+  mtevL(nlerr, "netheartbeat: received decrypt SSL error on message from IP %s: %s",
+    addr_str ? addr_str : "[unknown]", s);
 
+  return 0;
+}
+static int log_ssl_encrypt_error(const char *s, size_t len, void *p) {
+  (void) len;
+  (void) p;
+  mtevL(nlerr, "netheartbeat: received encrypt SSL error: %s\n", s);
   return 0;
 }
 static inline void get_ip_addr_from_sockaddr(struct sockaddr *peer_addr,
@@ -205,17 +207,15 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     mtevAssert(EVP_CIPHER_CTX_iv_length(evp_ctx) == HDR_IVSIZE);
     if (!EVP_DecryptUpdate(evp_ctx,text,&outlen1,
                            (unsigned char *)payload,len)) {
-      struct ssl_error_additional_info info;
-      info.op = RECEIVING;
-      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, info.addr_str, sizeof(info.addr_str));
-      ERR_print_errors_cb(log_ssl_error, &info);
+      char addr_str[INET6_ADDRSTRLEN];
+      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_str, sizeof(addr_str));
+      ERR_print_errors_cb(log_ssl_decrypt_error, &addr_str);
       continue;
     }
     if (!EVP_DecryptFinal(evp_ctx,text+outlen1,&outlen2)) {
-      struct ssl_error_additional_info info;
-      info.op = RECEIVING;
-      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, info.addr_str, sizeof(info.addr_str));
-      ERR_print_errors_cb(log_ssl_error, &info);
+      char addr_str[INET6_ADDRSTRLEN];
+      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_str, sizeof(addr_str));
+      ERR_print_errors_cb(log_ssl_decrypt_error, &addr_str);
       continue;
     }
     EVP_CIPHER_CTX_free(evp_ctx);
@@ -223,8 +223,11 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
 
     hdr = text;
     if(hdr[2] != htonl(HBPKTMAGIC1) || hdr[3] != htonl(HBPKTMAGIC2)) {
-      mtevL(nlerr, "netheartbeat: malformed packet: expected %04x and %04x, got %04x and %04x - len %d\n",
-        htonl(HBPKTMAGIC1), htonl(HBPKTMAGIC2), hdr[2], hdr[3], len);
+      char addr_str[INET6_ADDRSTRLEN];
+      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_str, sizeof(addr_str));
+      mtevL(nlerr, "netheartbeat: malformed packet received from %s: expected %04x and %04x, got %04x "
+                   "and %04x - len %d\n", addr_str, htonl(HBPKTMAGIC1), htonl(HBPKTMAGIC2), hdr[2], hdr[3],
+                   len);
       continue;
     }
     if(ctx->process_input) {
@@ -346,10 +349,10 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
   text_len = len - (HDR_LENSIZE + HDR_IVSIZE);
   if (!EVP_EncryptUpdate(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE,&outlen1,
                          text,text_len)) {
-    ERR_print_errors_cb(log_ssl_error, NULL);
+    ERR_print_errors_cb(log_ssl_encrypt_error, NULL);
   }
   if (!EVP_EncryptFinal(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE+outlen1,&outlen2)) {
-    ERR_print_errors_cb(log_ssl_error, NULL);
+    ERR_print_errors_cb(log_ssl_encrypt_error, NULL);
   }
   EVP_CIPHER_CTX_free(evp_ctx);
   len = HDR_LENSIZE + HDR_IVSIZE + outlen1 + outlen2;
