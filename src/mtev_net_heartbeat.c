@@ -170,9 +170,11 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     if (!EVP_DecryptUpdate(evp_ctx,text,&outlen1,
                            (unsigned char *)payload,len)) {
       ERR_print_errors_cb(log_ssl_error, NULL);
+      continue;
     }
     if (!EVP_DecryptFinal(evp_ctx,text+outlen1,&outlen2)) {
       ERR_print_errors_cb(log_ssl_error, NULL);
+      continue;
     }
     EVP_CIPHER_CTX_free(evp_ctx);
     len = outlen1+outlen2;
@@ -181,6 +183,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     if(hdr[2] != htonl(HBPKTMAGIC1) || hdr[3] != htonl(HBPKTMAGIC2)) {
       mtevL(nlerr, "netheartbeat: malformed packet: expected %04x and %04x, got %04x and %04x - len %d\n",
         htonl(HBPKTMAGIC1), htonl(HBPKTMAGIC2), hdr[2], hdr[3], len);
+      continue;
     }
     if(ctx->process_input) {
       ctx->process_input(text + HDR_MAGICSIZE, len - HDR_MAGICSIZE,
