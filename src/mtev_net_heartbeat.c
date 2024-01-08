@@ -73,10 +73,35 @@ static mtev_net_heartbeat_ctx *global;
 
 static int log_ssl_error(const char *s, size_t len, void *p) {
   (void)len;
-  (void)p;
-
-  mtevL(nlerr, "netheartbeat: received SSL error: %s", s);
+  char *inet_addr = (char *)p;
+  if (inet_addr) {
+    mtevL(nlerr, "netheartbeat: received SSL error from IP %s: %s", inet_addr, s);
+  }
+  else {
+    mtevL(nlerr, "netheartbeat: received SSL error: %s", s);
+  }
   return 0;
+}
+static inline void get_ip_addr_from_sockaddr(struct sockaddr *peer_addr,
+                                             char *buf,
+                                             size_t buflen) {
+  switch (peer_addr->sa_family) {
+    case AF_INET: {
+      struct sockaddr_in *addr = (struct sockaddr_in *)peer_addr;
+      inet_ntop(AF_INET, &(addr->sin_addr), buf, buflen);
+      break;
+    }
+    case AF_INET6: {
+      struct sockaddr_in6 *addr = (struct sockaddr_in6 *)peer_addr;
+      inet_ntop(AF_INET6, &(addr->sin6_addr), buf, buflen);
+      break;
+    }
+    default: {
+      memset(buf, 0, buflen);
+      strncpy(buf, "unknown", buflen-1);
+      break;
+    }
+  };
 }
 
 
@@ -123,6 +148,10 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
       mtevL(nlerr, "netheartbeat: recvmsg error: %s\n", strerror(errno));
       break;
     }
+    struct sockaddr_storage peer_addr;
+    socklen_t peer_addr_len;
+    recvfrom(fd, NULL, 0, MSG_PEEK, (struct sockaddr *) &peer_addr, &peer_addr_len);
+
     if(len < (HDR_LENSIZE + HDR_IVSIZE)) {
       /* discard */
       (void) recvmsg(fd, &msg, 0);
@@ -169,11 +198,15 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     mtevAssert(EVP_CIPHER_CTX_iv_length(evp_ctx) == HDR_IVSIZE);
     if (!EVP_DecryptUpdate(evp_ctx,text,&outlen1,
                            (unsigned char *)payload,len)) {
-      ERR_print_errors_cb(log_ssl_error, NULL);
+      char addr_buf[INET6_ADDRSTRLEN];
+      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_buf, sizeof(addr_buf));
+      ERR_print_errors_cb(log_ssl_error, addr_buf);
       continue;
     }
     if (!EVP_DecryptFinal(evp_ctx,text+outlen1,&outlen2)) {
-      ERR_print_errors_cb(log_ssl_error, NULL);
+      char addr_buf[INET6_ADDRSTRLEN];
+      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_buf, sizeof(addr_buf));
+      ERR_print_errors_cb(log_ssl_error, addr_buf);
       continue;
     }
     EVP_CIPHER_CTX_free(evp_ctx);
@@ -216,7 +249,7 @@ mtev_net_headerbeat_sendall(mtev_net_heartbeat_ctx *ctx, void *payload, int payl
           fd = ctx->sender_v4;
           if (N_L_S_ON(nldeb)) {
             char addr_buf[INET_ADDRSTRLEN];
-            struct sockaddr_in *addr_in = (struct sockaddr_in *)tgt->addr;;
+            struct sockaddr_in *addr_in = (struct sockaddr_in *)tgt->addr;
             inet_ntop(AF_INET, &(addr_in->sin_addr), addr_buf, INET_ADDRSTRLEN);
             mtevL(nldeb, "netheartbeat: sending %d byte payload (type TGT_DIRECT, ipv4) to fd %d (addr %s)\n", payload_len, fd, addr_buf);
           }
