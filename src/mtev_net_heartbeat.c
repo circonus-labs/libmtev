@@ -173,7 +173,9 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
       if(!newpayload || !newtext) {
         free(newpayload);
         free(newtext);
-        mtevL(nlerr, "netheartbeat: recvmsg error: payload too large %d\n", len);
+        char addr_str[INET6_ADDRSTRLEN];
+        get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_str, sizeof(addr_str));
+        mtevL(nlerr, "netheartbeat: recvmsg error from %s: payload too large %d\n", addr_str, len);
         (void) recvmsg(fd, &msg, 0);
         continue;
       }
@@ -191,7 +193,9 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
       msg.msg_iov[2].iov_len;
     len = recvmsg(fd, &msg, 0);
     if(len != expected) {
-      mtevL(nlerr, "netheartbeat: bad read %d != %d\n", len, expected);
+      char addr_str[INET6_ADDRSTRLEN];
+      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_str, sizeof(addr_str));
+      mtevL(nlerr, "netheartbeat: bad read from %s: %d != %d\n", addr_str, len, expected);
       continue;
     }
 
