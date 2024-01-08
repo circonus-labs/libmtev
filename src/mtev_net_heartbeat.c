@@ -704,9 +704,9 @@ mtev_net_heartbeat_init(void) {
   static int inited = 0;
   if(inited) return;
 
+  inited = 1;
   nlerr = mtev_log_stream_find("error/netheartbeat");
   nldeb = mtev_log_stream_find("debug/netheartbeat");
-  inited = 1;
   eventer_name_callback_ext("mtev_net_heartbeat_pulse",
                             mtev_net_heartbeat_pulse,
                             mtev_net_heartbeat_pulse_namer, NULL);
