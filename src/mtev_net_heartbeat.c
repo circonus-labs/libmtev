@@ -204,17 +204,13 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     evp_ctx = EVP_CIPHER_CTX_new();
     EVP_CipherInit(evp_ctx, EVP_aes_256_cbc(), ctx->key, ivec, false);
     mtevAssert(EVP_CIPHER_CTX_iv_length(evp_ctx) == HDR_IVSIZE);
-    if (!EVP_DecryptUpdate(evp_ctx,text,&outlen1,
-                           (unsigned char *)payload,len)) {
+    if ((!EVP_DecryptUpdate(evp_ctx,text,&outlen1,
+                            (unsigned char *)payload,len)) ||
+        (!EVP_DecryptFinal(evp_ctx,text+outlen1,&outlen2))) {
       char addr_str[INET6_ADDRSTRLEN];
       get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_str, sizeof(addr_str));
       ERR_print_errors_cb(log_ssl_decrypt_error, &addr_str);
-      continue;
-    }
-    if (!EVP_DecryptFinal(evp_ctx,text+outlen1,&outlen2)) {
-      char addr_str[INET6_ADDRSTRLEN];
-      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_str, sizeof(addr_str));
-      ERR_print_errors_cb(log_ssl_decrypt_error, &addr_str);
+      EVP_CIPHER_CTX_free(evp_ctx);
       continue;
     }
     EVP_CIPHER_CTX_free(evp_ctx);
@@ -346,11 +342,10 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
   memcpy(cipher_buf, payload, HDRLEN);
   text = (unsigned char *)payload + HDR_LENSIZE + HDR_IVSIZE;
   text_len = len - (HDR_LENSIZE + HDR_IVSIZE);
-  if (!EVP_EncryptUpdate(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE,&outlen1,
-                         text,text_len)) {
-    ERR_print_errors_cb(log_ssl_encrypt_error, NULL);
-  }
-  if (!EVP_EncryptFinal(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE+outlen1,&outlen2)) {
+  if ((!EVP_EncryptUpdate(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE,&outlen1,
+                          text,text_len)) ||
+      (!EVP_EncryptFinal(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE+outlen1,
+                          &outlen2))) {
     ERR_print_errors_cb(log_ssl_encrypt_error, NULL);
   }
   EVP_CIPHER_CTX_free(evp_ctx);
