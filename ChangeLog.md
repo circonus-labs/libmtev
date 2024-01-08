@@ -4,6 +4,9 @@
 
 ## 2.5
 
+ * Fix issue in mtev_net_heartbeat where there would be attempts to use invalid messages
+ * Improve logging in mtev_net_heartbeat
+
 ### 2.5.3
 
  * Fix issue where the URL string on incoming HTTP2 requests was not being escaped properly.
