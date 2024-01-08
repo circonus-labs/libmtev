@@ -71,11 +71,6 @@ struct mtev_net_heartbeat_context {
 
 static mtev_net_heartbeat_ctx *global;
 
-struct ssl_error_additional_info {
-  char addr_str[INET6_ADDRSTRLEN];
-  enum { SENDING, RECEIVING } op;
-};
-
 static int log_ssl_decrypt_error(const char *s, size_t len, void *p) {
   (void)len;
   char *addr_str = (char *)p;
