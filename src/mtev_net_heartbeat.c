@@ -156,7 +156,7 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
       break;
     }
     struct sockaddr_storage peer_addr;
-    socklen_t peer_addr_len;
+    socklen_t peer_addr_len = sizeof(peer_addr);
     recvfrom(fd, NULL, 0, MSG_PEEK, (struct sockaddr *) &peer_addr, &peer_addr_len);
 
     if(len < (HDR_LENSIZE + HDR_IVSIZE)) {
