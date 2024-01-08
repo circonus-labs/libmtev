@@ -71,15 +71,22 @@ struct mtev_net_heartbeat_context {
 
 static mtev_net_heartbeat_ctx *global;
 
+struct ssl_error_additional_info {
+  char addr_str[INET6_ADDRSTRLEN];
+  enum { SENDING, RECEIVING } op;
+};
 static int log_ssl_error(const char *s, size_t len, void *p) {
   (void)len;
-  char *inet_addr = (char *)p;
-  if (inet_addr) {
-    mtevL(nlerr, "netheartbeat: received SSL error from IP %s: %s", inet_addr, s);
+  struct ssl_error_additional_info *info = (struct ssl_error_additional_info *)p;
+
+  if (info) {
+    mtevL(nlerr, "netheartbeat: received SSL error %s IP %s: %s",
+      info->op == SENDING ? "sending to" : "receiving from", info->addr_str, s);
   }
   else {
     mtevL(nlerr, "netheartbeat: received SSL error: %s", s);
   }
+
   return 0;
 }
 static inline void get_ip_addr_from_sockaddr(struct sockaddr *peer_addr,
@@ -198,15 +205,17 @@ mtev_net_heartbeat_handler(eventer_t e, int mask, void *closure, struct timeval 
     mtevAssert(EVP_CIPHER_CTX_iv_length(evp_ctx) == HDR_IVSIZE);
     if (!EVP_DecryptUpdate(evp_ctx,text,&outlen1,
                            (unsigned char *)payload,len)) {
-      char addr_buf[INET6_ADDRSTRLEN];
-      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_buf, sizeof(addr_buf));
-      ERR_print_errors_cb(log_ssl_error, addr_buf);
+      struct ssl_error_additional_info info;
+      info.op = RECEIVING;
+      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, info.addr_str, sizeof(info.addr_str));
+      ERR_print_errors_cb(log_ssl_error, &info);
       continue;
     }
     if (!EVP_DecryptFinal(evp_ctx,text+outlen1,&outlen2)) {
-      char addr_buf[INET6_ADDRSTRLEN];
-      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, addr_buf, sizeof(addr_buf));
-      ERR_print_errors_cb(log_ssl_error, addr_buf);
+      struct ssl_error_additional_info info;
+      info.op = RECEIVING;
+      get_ip_addr_from_sockaddr((struct sockaddr *)&peer_addr, info.addr_str, sizeof(info.addr_str));
+      ERR_print_errors_cb(log_ssl_error, &info);
       continue;
     }
     EVP_CIPHER_CTX_free(evp_ctx);
