@@ -176,10 +176,10 @@ MTEV_HOOK_IMPL(mtev_cluster_write_extra_node_config,
   (closure, cluster, node));
 
 MTEV_HOOK_IMPL(mtev_cluster_read_extra_cluster_config,
-  (mtev_cluster_t *cluster, mtev_conf_section_t *conf),
+  (mtev_cluster_t *cluster, mtev_conf_section_t *conf, void **extra_config),
   void *, closure,
-  (void *closure, mtev_cluster_t *cluster, mtev_conf_section_t *conf),
-  (closure, cluster, conf));
+  (void *closure, mtev_cluster_t *cluster, mtev_conf_section_t *conf, void **extra_config),
+  (closure, cluster, conf, extra_config));
 
 MTEV_HOOK_IMPL(mtev_cluster_free_extra_cluster_config_members,
   (mtev_cluster_t *cluster, void *extra_config),
@@ -767,7 +767,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
   new_cluster->period = period;
   new_cluster->timeout = timeout;
   new_cluster->maturity = maturity;
-  mtev_cluster_read_extra_cluster_config_hook_invoke(new_cluster, &cluster);
+  mtev_cluster_read_extra_cluster_config_hook_invoke(new_cluster, &cluster, &new_cluster->extra_config);
   if (nlist != NULL) {
     qsort(nlist, n_nodes, sizeof(*nlist), mtev_cluster_node_compare);
   }
