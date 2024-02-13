@@ -140,6 +140,7 @@ struct mtev_cluster_t {
   mtev_net_heartbeat_ctx *hbctx;
   mtev_cluster_node_t *oldest_node;
   mtev_hash_table hb_payloads;
+  void *extra_config;
 };
 
 MTEV_HOOK_IMPL(mtev_cluster_update,
@@ -173,6 +174,18 @@ MTEV_HOOK_IMPL(mtev_cluster_write_extra_node_config,
   void *, closure,
   (void *closure, mtev_cluster_t *cluster, xmlNodePtr node),
   (closure, cluster, node));
+
+MTEV_HOOK_IMPL(mtev_cluster_read_extra_cluster_config,
+  (mtev_cluster_t *cluster, mtev_conf_section_t *conf),
+  void *, closure,
+  (void *closure, mtev_cluster_t *cluster, mtev_conf_section_t *conf),
+  (closure, cluster, conf));
+
+MTEV_HOOK_IMPL(mtev_cluster_free_extra_cluster_config_members,
+  (mtev_cluster_t *cluster, void *extra_config),
+  void *, closure,
+  (void *closure, mtev_cluster_t *cluster, void *extra_config),
+  (closure, cluster, extra_config));
 
 mtev_boolean
 mtev_cluster_node_is_dead(mtev_cluster_node_t *node) {
@@ -211,6 +224,11 @@ mtev_cluster_free(void *vc) {
     if(c->cht) mtev_memory_safe_free(c->cht);
     if(c->hbctx) mtev_net_heartbeat_destroy(c->hbctx);
     c->hbctx = NULL;
+    if (c->extra_config) {
+      mtev_cluster_free_extra_cluster_config_members_hook_invoke(c, c->extra_config);
+      free(c->extra_config);
+      c->extra_config = NULL;
+    }
     mtev_memory_safe_free(c);
   }
 }
@@ -749,6 +767,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
   new_cluster->period = period;
   new_cluster->timeout = timeout;
   new_cluster->maturity = maturity;
+  mtev_cluster_read_extra_cluster_config_hook_invoke(new_cluster, &cluster);
   if (nlist != NULL) {
     qsort(nlist, n_nodes, sizeof(*nlist), mtev_cluster_node_compare);
   }
