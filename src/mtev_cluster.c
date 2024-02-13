@@ -180,6 +180,12 @@ MTEV_HOOK_IMPL(mtev_cluster_read_extra_cluster_config,
   (void *closure, mtev_cluster_t *cluster, mtev_conf_section_t *conf),
   (closure, cluster, conf));
 
+MTEV_HOOK_IMPL(mtev_cluster_read_extra_node_config,
+  (mtev_cluster_t *cluster, uuid_t node_uuid, mtev_conf_section_t *conf),
+  void *, closure,
+  (void *closure, mtev_cluster_t *cluster, uuid_t node_uuid, mtev_conf_section_t *conf),
+  (closure, cluster, node_uuid, conf));
+
 mtev_boolean
 mtev_cluster_node_is_dead(mtev_cluster_node_t *node) {
   return compare_timeval(node->boot_time, boot_time_of_dead_node) == 0;
@@ -690,6 +696,16 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
     }
   }
 
+  new_cluster = mtev_memory_safe_calloc(1, sizeof(*new_cluster));
+  new_cluster->name = name; name = NULL;
+  new_cluster->key = key; key = NULL;
+  new_cluster->config_seq = seq;
+  new_cluster->port = port;
+  new_cluster->period = period;
+  new_cluster->timeout = timeout;
+  new_cluster->maturity = maturity;
+  mtev_cluster_read_extra_cluster_config_hook_invoke(new_cluster, &cluster);
+
   nodes = mtev_conf_get_sections_write(cluster, "node", &n_nodes);
   if(n_nodes > 0) {
     nlist = mtev_memory_safe_calloc(n_nodes, sizeof(*nlist));
@@ -704,22 +720,23 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
 
       if(!mtev_conf_get_stringbuf(nodes[i], "@id", uuid_str, sizeof(uuid_str)) ||
          mtev_uuid_parse(uuid_str, nlist[i].id) != 0) {
-        mtevL(cerror, "Cluster '%s' node %d has no (or bad) id\n", name, i);
+        mtevL(cerror, "Cluster '%s' node %d has no (or bad) id\n", new_cluster->name, i);
         goto bail;
       }
       if(!mtev_conf_get_stringbuf(nodes[i], "@cn",
         nlist[i].cn, sizeof(nlist[i].cn))) {
-        mtevL(cerror, "Cluster '%s' node %d has no cn\n", name, i);
+        mtevL(cerror, "Cluster '%s' node %d has no cn\n", new_cluster->name, i);
         goto bail;
       }
       if(!mtev_conf_get_int32(nodes[i], "@port", &port) || port < 0 || port > 0xffff) {
-        mtevL(cerror, "Cluster '%s' node %d has no (or bad) port\n", name, i);
+        mtevL(cerror, "Cluster '%s' node %d has no (or bad) port\n", new_cluster->name, i);
         goto bail;
       }
       if(!mtev_conf_get_stringbuf(nodes[i], "@address", bufstr, sizeof(bufstr))) {
-        mtevL(cerror, "Cluster '%s' node %d has no address\n", name, i);
+        mtevL(cerror, "Cluster '%s' node %d has no address\n", new_cluster->name, i);
         goto bail;
       }
+      mtev_cluster_read_extra_node_config_hook_invoke(new_cluster, nlist[i].id, &nodes[i]);
 
       family = AF_INET;
       rv = inet_pton(family, bufstr, &a);
@@ -728,7 +745,7 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
         rv = inet_pton(family, bufstr, &a);
         if(rv != 1) {
           mtevL(cerror, "Cluster '%s' node '%s' has bad address '%s'\n",
-                name, uuid_str, bufstr);
+                new_cluster->name, uuid_str, bufstr);
           goto bail;
         }
         else {
@@ -747,15 +764,6 @@ int mtev_cluster_update_internal(mtev_conf_section_t cluster) {
     }
   }
 
-  new_cluster = mtev_memory_safe_calloc(1, sizeof(*new_cluster));
-  new_cluster->name = name; name = NULL;
-  new_cluster->key = key; key = NULL;
-  new_cluster->config_seq = seq;
-  new_cluster->port = port;
-  new_cluster->period = period;
-  new_cluster->timeout = timeout;
-  new_cluster->maturity = maturity;
-  mtev_cluster_read_extra_cluster_config_hook_invoke(new_cluster, &cluster);
   if (nlist != NULL) {
     qsort(nlist, n_nodes, sizeof(*nlist), mtev_cluster_node_compare);
   }

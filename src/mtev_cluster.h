@@ -368,6 +368,10 @@ MTEV_HOOK_PROTO(mtev_cluster_read_extra_cluster_config,
                 (mtev_cluster_t *cluster, mtev_conf_section_t *conf), void *, closure,
                 (void *closure, mtev_cluster_t *cluster, mtev_conf_section_t *conf));
 
+MTEV_HOOK_PROTO(mtev_cluster_read_extra_node_config,
+                (mtev_cluster_t *cluster, uuid_t node_uuid, mtev_conf_section_t *conf), void *, closure,
+                (void *closure, mtev_cluster_t *cluster, uuid_t node_uuid, mtev_conf_section_t *conf));
+
 #ifdef __cplusplus
 }
 #endif
