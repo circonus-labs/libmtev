@@ -30,7 +30,6 @@
 
 #include "mtev_defines.h"
 
-#include <libxml/tree.h>
 #include <inttypes.h>
 
 #include "mtev_uuid.h"
@@ -156,6 +155,24 @@ MTEV_HOOK_IMPL(mtev_cluster_handle_node_update,
   (void *closure, mtev_cluster_node_changes_t node_change, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
       struct timeval old_boot_time),
   (closure,node_change,updated_node,cluster,old_boot_time))
+
+MTEV_HOOK_IMPL(mtev_cluster_on_write_extra_cluster_config_cleanup,
+  (mtev_cluster_t *cluster, xmlNodePtr node),
+  void *, closure,
+  (void *closure, mtev_cluster_t *cluster, xmlNodePtr parent),
+  (closure, cluster, node));
+
+MTEV_HOOK_IMPL(mtev_cluster_write_extra_cluster_config,
+  (mtev_cluster_t *cluster, xmlNodePtr node),
+  void *, closure,
+  (void *closure, mtev_cluster_t *cluster, xmlNodePtr node),
+  (closure, cluster, node));
+
+MTEV_HOOK_IMPL(mtev_cluster_write_extra_node_config,
+  (mtev_cluster_t *cluster, xmlNodePtr node),
+  void *, closure,
+  (void *closure, mtev_cluster_t *cluster, xmlNodePtr node),
+  (closure, cluster, node));
 
 mtev_boolean
 mtev_cluster_node_is_dead(mtev_cluster_node_t *node) {
@@ -533,6 +550,7 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
     xmlUnsetProp(parent, (xmlChar *)"maturity");
     xmlUnsetProp(parent, (xmlChar *)"key");
     xmlUnsetProp(parent, (xmlChar *)"seq");
+    mtev_cluster_on_write_extra_cluster_config_cleanup_hook_invoke(cluster, parent);
     while(NULL != (child = parent->children)) {
       xmlUnlinkNode(child);
       xmlFreeNode(child);
@@ -556,6 +574,7 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
   xmlSetProp(parent, (xmlChar *)"key", (xmlChar *)cluster->key);
   snprintf(new_seq_str, sizeof(new_seq_str), "%"PRId64, cluster->config_seq);
   xmlSetProp(parent, (xmlChar *)"seq", (xmlChar *)new_seq_str);
+  mtev_cluster_write_extra_cluster_config_hook_invoke(cluster, parent);
   if(cluster->node_cnt > 0) mtevAssert(cluster->nodes);
   for(i=0;i<cluster->node_cnt;i++) {
     xmlNodePtr node;
@@ -578,6 +597,7 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
       snprintf(port, sizeof(port), "%d", ntohs(cluster->nodes[i].addr.addr6.sin6_port));
       xmlSetProp(node, (xmlChar *)"port", (xmlChar *)port);
     }
+    mtev_cluster_write_extra_node_config_hook_invoke(cluster, node);
     xmlAddChild(parent, node);
   }
   if(container) xmlAddChild(container, parent);
