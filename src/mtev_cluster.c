@@ -174,6 +174,18 @@ MTEV_HOOK_IMPL(mtev_cluster_write_extra_node_config_xml,
   (void *closure, mtev_cluster_t *cluster, xmlNodePtr node),
   (closure, cluster, node));
 
+MTEV_HOOK_IMPL(mtev_cluster_write_extra_cluster_config_json,
+  (mtev_cluster_t *cluster, struct json_object *obj),
+  void *, closure,
+  (void *closure, mtev_cluster_t *cluster, struct json_object *obj),
+  (closure, cluster, obj));
+
+MTEV_HOOK_IMPL(mtev_cluster_write_extra_node_config_json,
+  (mtev_cluster_t *cluster, struct json_object *obj),
+  void *, closure,
+  (void *closure, mtev_cluster_t *cluster, struct json_object *obj),
+  (closure, cluster, obj));
+
 MTEV_HOOK_IMPL(mtev_cluster_read_extra_cluster_config,
   (mtev_cluster_t *cluster, mtev_conf_section_t *conf),
   void *, closure,
@@ -1066,6 +1078,7 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
   MJ_KV(obj, "period", MJ_INT(c->period));
   MJ_KV(obj, "timeout", MJ_INT(c->timeout));
   MJ_KV(obj, "maturity", MJ_INT(c->maturity));
+  mtev_cluster_write_extra_cluster_config_json_hook_invoke(c, obj);
 
   char uuid_str[UUID_STR_LEN+1];
   if(c->oldest_node && !mtev_uuid_is_null(c->oldest_node->id)) {
@@ -1085,6 +1098,7 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
     MJ_KV(node, "reference_time", MJ_UINT64(now.tv_sec));
     MJ_KV(node, "last_contact", MJ_UINT64(n->last_contact.tv_sec));
     MJ_KV(node, "boot_time", MJ_UINT64(n->boot_time.tv_sec));
+    mtev_cluster_write_extra_node_config_json_hook_invoke(c, node);
 
     if(n->addr.addr4.sin_family == AF_INET) {
       inet_ntop(AF_INET, &n->addr.addr4.sin_addr,
