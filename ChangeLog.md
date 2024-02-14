@@ -4,6 +4,8 @@
 
 ## 2.5
 
+## 2.5.5
+
 * Add various hooks into `mtev_clustering` to allow applications to use custom fields.
 
 ## 2.5.4
