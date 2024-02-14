@@ -4,6 +4,8 @@
 
 ## 2.5
 
+* Add various hooks into `mtev_clustering` to allow applications to use custom fields.
+
 ## 2.5.4
 
  * Fix issue in mtev_net_heartbeat where there would be attempts to use invalid messages
