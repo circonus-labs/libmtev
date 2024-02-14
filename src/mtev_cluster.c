@@ -1165,6 +1165,7 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
   xmlSetProp(cluster, (xmlChar *)"timeout", (xmlChar *)timeout);
   snprintf(maturity, sizeof(maturity), "%d", c->maturity);
   xmlSetProp(cluster, (xmlChar *)"maturity", (xmlChar *)maturity);
+  mtev_cluster_write_extra_cluster_config_hook_invoke(c, cluster);
 
   if(c->oldest_node && !mtev_uuid_is_null(c->oldest_node->id)) {
     xmlNodePtr node;
@@ -1188,6 +1189,7 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
     xmlSetProp(node, (xmlChar *)"last_contact", (xmlChar *)time);
     snprintf(time, sizeof(time), "%lu", (unsigned long)n->boot_time.tv_sec);
     xmlSetProp(node, (xmlChar *)"boot_time", (xmlChar *)time);
+    mtev_cluster_write_extra_node_config_hook_invoke(c, node);
 
     if(n->addr.addr4.sin_family == AF_INET) {
       inet_ntop(AF_INET, &n->addr.addr4.sin_addr,
