@@ -356,11 +356,11 @@ MTEV_HOOK_PROTO(mtev_cluster_on_write_extra_cluster_config_cleanup,
                 (mtev_cluster_t *cluster, xmlNodePtr node), void *, closure,
                 (void *closure, mtev_cluster_t *cluster, xmlNodePtr node));
 
-MTEV_HOOK_PROTO(mtev_cluster_write_extra_cluster_config,
+MTEV_HOOK_PROTO(mtev_cluster_write_extra_cluster_config_xml,
                 (mtev_cluster_t *cluster, xmlNodePtr node), void *, closure,
                 (void *closure, mtev_cluster_t *cluster, xmlNodePtr node));
 
-MTEV_HOOK_PROTO(mtev_cluster_write_extra_node_config,
+MTEV_HOOK_PROTO(mtev_cluster_write_extra_node_config_xml,
                 (mtev_cluster_t *cluster, xmlNodePtr node), void *, closure,
                 (void *closure, mtev_cluster_t *cluster, xmlNodePtr node));
 
