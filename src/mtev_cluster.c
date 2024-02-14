@@ -169,10 +169,10 @@ MTEV_HOOK_IMPL(mtev_cluster_write_extra_cluster_config_xml,
   (closure, cluster, node));
 
 MTEV_HOOK_IMPL(mtev_cluster_write_extra_node_config_xml,
-  (mtev_cluster_t *cluster, xmlNodePtr node),
+  (mtev_cluster_t *cluster, uuid_t node_id, xmlNodePtr node),
   void *, closure,
-  (void *closure, mtev_cluster_t *cluster, xmlNodePtr node),
-  (closure, cluster, node));
+  (void *closure, mtev_cluster_t *cluster, uuid_t node_id, xmlNodePtr node),
+  (closure, cluster, node_id, node));
 
 MTEV_HOOK_IMPL(mtev_cluster_write_extra_cluster_config_json,
   (mtev_cluster_t *cluster, struct json_object *obj),
@@ -181,10 +181,10 @@ MTEV_HOOK_IMPL(mtev_cluster_write_extra_cluster_config_json,
   (closure, cluster, obj));
 
 MTEV_HOOK_IMPL(mtev_cluster_write_extra_node_config_json,
-  (mtev_cluster_t *cluster, struct json_object *obj),
+  (mtev_cluster_t *cluster, uuid_t node_id, struct json_object *obj),
   void *, closure,
-  (void *closure, mtev_cluster_t *cluster, struct json_object *obj),
-  (closure, cluster, obj));
+  (void *closure, mtev_cluster_t *cluster, uuid_t node_id, struct json_object *obj),
+  (closure, cluster, node_id, obj));
 
 MTEV_HOOK_IMPL(mtev_cluster_read_extra_cluster_config,
   (mtev_cluster_t *cluster, mtev_conf_section_t *conf),
@@ -607,6 +607,7 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
     mtev_uuid_unparse_lower(cluster->nodes[i].id, uuid_str);
     xmlSetProp(node, (xmlChar *)"id", (xmlChar *)uuid_str);
     xmlSetProp(node, (xmlChar *)"cn", (xmlChar *)cluster->nodes[i].cn);
+    mtev_cluster_write_extra_node_config_xml_hook_invoke(cluster, cluster->nodes[i].id, node);
     if(cluster->nodes[i].addr.addr4.sin_family == AF_INET) {
       inet_ntop(AF_INET, &cluster->nodes[i].addr.addr4.sin_addr,
                 ipstr, sizeof(ipstr));
@@ -621,7 +622,6 @@ mtev_cluster_write_config(mtev_cluster_t *cluster) {
       snprintf(port, sizeof(port), "%d", ntohs(cluster->nodes[i].addr.addr6.sin6_port));
       xmlSetProp(node, (xmlChar *)"port", (xmlChar *)port);
     }
-    mtev_cluster_write_extra_node_config_xml_hook_invoke(cluster, node);
     xmlAddChild(parent, node);
   }
   if(container) xmlAddChild(container, parent);
@@ -1098,7 +1098,7 @@ mtev_cluster_to_json(mtev_cluster_t *c) {
     MJ_KV(node, "reference_time", MJ_UINT64(now.tv_sec));
     MJ_KV(node, "last_contact", MJ_UINT64(n->last_contact.tv_sec));
     MJ_KV(node, "boot_time", MJ_UINT64(n->boot_time.tv_sec));
-    mtev_cluster_write_extra_node_config_json_hook_invoke(c, node);
+    mtev_cluster_write_extra_node_config_json_hook_invoke(c, n->id, node);
 
     if(n->addr.addr4.sin_family == AF_INET) {
       inet_ntop(AF_INET, &n->addr.addr4.sin_addr,
@@ -1203,7 +1203,7 @@ mtev_cluster_to_xmlnode(mtev_cluster_t *c) {
     xmlSetProp(node, (xmlChar *)"last_contact", (xmlChar *)time);
     snprintf(time, sizeof(time), "%lu", (unsigned long)n->boot_time.tv_sec);
     xmlSetProp(node, (xmlChar *)"boot_time", (xmlChar *)time);
-    mtev_cluster_write_extra_node_config_xml_hook_invoke(c, node);
+    mtev_cluster_write_extra_node_config_xml_hook_invoke(c, n->id, node);
 
     if(n->addr.addr4.sin_family == AF_INET) {
       inet_ntop(AF_INET, &n->addr.addr4.sin_addr,
