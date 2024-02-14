@@ -36,6 +36,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <libxml/tree.h>
 #include <mtev_conf.h>
 
 #ifdef __cplusplus
@@ -351,6 +352,33 @@ MTEV_HOOK_PROTO(mtev_cluster_handle_node_update,
                 (void *closure, mtev_cluster_node_changes_t node_changes, mtev_cluster_node_t *updated_node, mtev_cluster_t *cluster,
                     struct timeval old_boot_time));
 
+MTEV_HOOK_PROTO(mtev_cluster_on_write_extra_cluster_config_cleanup,
+                (mtev_cluster_t *cluster, xmlNodePtr node), void *, closure,
+                (void *closure, mtev_cluster_t *cluster, xmlNodePtr node));
+
+MTEV_HOOK_PROTO(mtev_cluster_write_extra_cluster_config_xml,
+                (mtev_cluster_t *cluster, xmlNodePtr node), void *, closure,
+                (void *closure, mtev_cluster_t *cluster, xmlNodePtr node));
+
+MTEV_HOOK_PROTO(mtev_cluster_write_extra_node_config_xml,
+                (mtev_cluster_t *cluster, uuid_t node_id, xmlNodePtr node), void *, closure,
+                (void *closure, mtev_cluster_t *cluster, uuid_t node_id, xmlNodePtr node));
+
+MTEV_HOOK_PROTO(mtev_cluster_write_extra_cluster_config_json,
+                (mtev_cluster_t *cluster, struct json_object *obj), void *, closure,
+                (void *closure, mtev_cluster_t *cluster, struct json_object *obj));
+
+MTEV_HOOK_PROTO(mtev_cluster_write_extra_node_config_json,
+                (mtev_cluster_t *cluster, uuid_t node_id, struct json_object *obj), void *, closure,
+                (void *closure, mtev_cluster_t *cluster, uuid_t node_id, struct json_object *obj));
+
+MTEV_HOOK_PROTO(mtev_cluster_read_extra_cluster_config,
+                (mtev_cluster_t *cluster, mtev_conf_section_t *conf), void *, closure,
+                (void *closure, mtev_cluster_t *cluster, mtev_conf_section_t *conf));
+
+MTEV_HOOK_PROTO(mtev_cluster_read_extra_node_config,
+                (mtev_cluster_t *cluster, uuid_t node_uuid, mtev_conf_section_t *conf), void *, closure,
+                (void *closure, mtev_cluster_t *cluster, uuid_t node_uuid, mtev_conf_section_t *conf));
 
 #ifdef __cplusplus
 }
