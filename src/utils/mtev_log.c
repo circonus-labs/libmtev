@@ -2137,7 +2137,7 @@ add_to_jsonf(int nelem, mtev_dyn_buffer_t *buff,
   va_start(args, fmt);
   int needed = mtev_dyn_buffer_maybe_add_vprintf(&scratch, fmt, args);
   if (needed) {
-    mtev_dyn_buffer_ensure(&scratch, needed); /* ensure we have space for the trailing NUL too */
+    mtev_dyn_buffer_ensure(&scratch, needed);
     va_end(args);
     va_start(args, fmt);
     mtevAssert(mtev_dyn_buffer_maybe_add_vprintf(&scratch, fmt, args) == 0);
