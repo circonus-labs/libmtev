@@ -8,7 +8,7 @@
    expand the buffer and will return how many more bytes are needed.
  * Fix bug in `mtev_dyn_buffer_add_vprintf` where the va_list argument could be used
    after being modified. This change involves making a copy of the argument list
-   every time, so it could impact performance; recomment using
+   every time so it could impact performance; recommend using
    `mtev_dyn_buffer_maybe_add_vprintf` and handling the buffer manually on failure
    to avoid the extra copy if you plan on using it in a hot path.
 
