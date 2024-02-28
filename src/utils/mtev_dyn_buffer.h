@@ -109,6 +109,11 @@ API_EXPORT(void)
     This does NUL terminate the format string but does not advance the write_pointer past
     the NUL.  Basically, the last mtev_dyn_buffer_add_printf will leave the resultant
     data NUL terminated.
+
+    Due to taking a va_list as an argument and possibly needing to use the list twice,
+    this function has to make a copy of the argument. In hot paths, this could have
+    performance impacts. It is recommended to use mtev_dyn_buffer_maybe_add_vprintf and
+    handle the buffer yourself if performance is a factor to avoid this copy.
  */
 API_EXPORT(void)
   mtev_dyn_buffer_add_vprintf(mtev_dyn_buffer_t *buf, const char *format, va_list arg);
