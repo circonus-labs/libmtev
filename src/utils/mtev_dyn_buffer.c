@@ -62,7 +62,9 @@ mtev_dyn_buffer_maybe_add_vprintf(mtev_dyn_buffer_t *buf, const char *format, va
   int available = mtev_dyn_buffer_size(buf) - mtev_dyn_buffer_used(buf);
   int needed = vsnprintf((char *)buf->pos, available, format, args);
   if (needed > (available - 1)) {
-    *(buf->pos) = 0;
+    if (available > 0) {
+      *(buf->pos) = 0;
+    }
     return needed + 1;
   }
   buf->pos += needed;
