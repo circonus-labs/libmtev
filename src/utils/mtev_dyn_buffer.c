@@ -41,14 +41,19 @@ inline void
 mtev_dyn_buffer_add_vprintf(mtev_dyn_buffer_t *buf, const char *format, va_list args)
 {
   int needed, available;
+  va_list arg_copy;
 
+  // vsnprirntf can be called twice in this function and calling it alters the va_list
+  // argument in a destructive manner, so we need to make a copy
+  va_copy(arg_copy, args);
   available = mtev_dyn_buffer_size(buf) - mtev_dyn_buffer_used(buf);
   needed = vsnprintf((char *)buf->pos, available, format, args);
   if (needed > (available - 1)) {
     mtev_dyn_buffer_ensure(buf, needed + 1); /* ensure we have space for the trailing NUL too */
-    needed = vsnprintf((char *)buf->pos, needed + 1, format, args);
+    needed = vsnprintf((char *)buf->pos, needed + 1, format, arg_copy);
   }
   buf->pos += needed;
+  va_end(arg_copy);
 }
 
 inline void
@@ -56,7 +61,15 @@ mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
 {
   va_list args;
   va_start(args, format);
-  mtev_dyn_buffer_add_vprintf(buf, format, args);
+  int available = mtev_dyn_buffer_size(buf) - mtev_dyn_buffer_used(buf);
+  int needed = vsnprintf((char *)buf->pos, available, format, args);
+  if (needed > (available - 1)) {
+    va_end(args);
+    va_start(args, format);
+    mtev_dyn_buffer_ensure(buf, needed + 1); /* ensure we have space for the trailing NUL too */
+    needed = vsnprintf((char *)buf->pos, needed + 1, format, args);
+  }
+  buf->pos += needed;
   va_end(args);
 }
 
