@@ -86,7 +86,7 @@ API_EXPORT(void)
   mtev_dyn_buffer_add_json_string(mtev_dyn_buffer_t *buf, uint8_t *data, size_t len, int sol);
 
 /*! \fn void mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
-    \brief add data to the dyn_buffer using printf semantics.
+    \brief add data to the dyn_buffer using printf semantics
     \param buf the buffer to add to.
     \param format the printf style format string
     \param args printf arguments
@@ -100,19 +100,38 @@ API_EXPORT(void)
   mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...);
 
 
-/*! \fn void mtev_dyn_buffer_add_printf(mtev_dyn_buffer_t *buf, const char *format, ...)
-    \brief add data to the dyn_buffer using printf semantics.
+/*! \fn void mtev_dyn_buffer_add_vprintf(mtev_dyn_buffer_t *buf, const char *format, va_list arg)
+    \brief add data to the dyn_buffer using printf semantics and expand the buffer if necessary
     \param buf the buffer to add to.
     \param format the printf style format string
-    \param args printf arguments
+    \param arg the variadic printf arguments
     
     This does NUL terminate the format string but does not advance the write_pointer past
     the NUL.  Basically, the last mtev_dyn_buffer_add_printf will leave the resultant
     data NUL terminated.
-    
+
+    Due to taking a va_list as an argument and possibly needing to use the list twice,
+    this function has to make a copy of the argument. In hot paths, this could have
+    performance impacts. It is recommended to use mtev_dyn_buffer_maybe_add_vprintf and
+    handle the buffer yourself if performance is a factor to avoid this copy.
  */
 API_EXPORT(void)
   mtev_dyn_buffer_add_vprintf(mtev_dyn_buffer_t *buf, const char *format, va_list arg);
+
+/*! \fn void mtev_dyn_buffer_maybe_add_vprintf(mtev_dyn_buffer_t *buf, const char *format, va_list arg)
+    \brief add data to the dyn_buffer using printf semantics if there's enough space
+    \param buf the buffer to add to.
+    \param format the printf style format string
+    \param arg the variadic printf arguments
+    \return 0 on success, the number of bytes the buffer needs to expand by on failure
+
+    This does NUL terminate the format string but does not advance the write_pointer past
+    the NUL.  Basically, the last mtev_dyn_buffer_add_printf will leave the resultant
+    data NUL terminated.
+    If the data could not be written, the pointer at `pos` will be set to NULL.
+ */
+API_EXPORT(int)
+  mtev_dyn_buffer_maybe_add_vprintf(mtev_dyn_buffer_t *buf, const char *format, va_list args);
 
 /*! \fn void mtev_dyn_buffer_ensure(mtev_dyn_buffer_t *buf, size_t len)
     \brief possibly grow the dyn_buffer so it can fit len bytes

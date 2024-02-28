@@ -2135,7 +2135,13 @@ add_to_jsonf(int nelem, mtev_dyn_buffer_t *buff,
   mtev_dyn_buffer_init(&scratch);
   va_list args;
   va_start(args, fmt);
-  mtev_dyn_buffer_add_vprintf(&scratch, fmt, args);
+  int needed = mtev_dyn_buffer_maybe_add_vprintf(&scratch, fmt, args);
+  if (needed) {
+    mtev_dyn_buffer_ensure(&scratch, needed);
+    va_end(args);
+    va_start(args, fmt);
+    mtevAssert(mtev_dyn_buffer_maybe_add_vprintf(&scratch, fmt, args) == 0);
+  }
   va_end(args);
   int rv = add_to_json(nelem, buff, key, str, 
                        (const char *)mtev_dyn_buffer_data(&scratch));
