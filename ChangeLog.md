@@ -4,6 +4,8 @@
 
 ## 2.7
 
+ * Fix compilation errors on calling openssl functions that occur on some compilers
+
 ### 2.7.0
 
  * Added new function, `mtev_dyn_buffer_maybe_add_vprintf`, that will not try to
