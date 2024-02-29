@@ -2,7 +2,9 @@
 
 # 2
 
-## 2.6
+## 2.7
+
+### 2.7.0
 
  * Added new function, `mtev_dyn_buffer_maybe_add_vprintf`, that will not try to
    expand the buffer and will return how many more bytes are needed.
@@ -12,13 +14,15 @@
    `mtev_dyn_buffer_maybe_add_vprintf` and handling the buffer manually on failure
    to avoid the extra copy if you plan on using it in a hot path.
 
+## 2.6
+
 ## 2.6.0
 
  * Add various hooks into `mtev_clustering` to allow applications to use custom fields.
 
 ## 2.5
 
-## 2.5.4
+### 2.5.4
 
  * Fix issue in `mtev_net_heartbeat` where there would be attempts to use invalid messages
  * Improve logging in `mtev_net_heartbeat`
