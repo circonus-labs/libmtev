@@ -6,7 +6,7 @@ ifeq ($(V),)
 endif
 
 CC=@CC@
-CPPFLAGS=@CPPFLAGS@ -DHIDE_EVENTER_ABI -I../src/utils -I../src -I../src/json-lib
+CPPFLAGS=-DHIDE_EVENTER_ABI -I../src/utils -I../src -I../src/json-lib @CPPFLAGS@
 CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@ -Wno-error=unused-parameter
 LDFLAGS=@LDFLAGS@
 AR=@AR@
