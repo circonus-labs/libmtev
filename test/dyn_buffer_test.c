@@ -10,6 +10,9 @@ int chkmem(mtev_dyn_buffer_t *buff, size_t len, char exp) {
   return 1;
 }
 int main(int argc, char *argv[]) {
+  (void)argc;
+  (void)argv;
+
   int a = 12345;
   int b = 54321;
   mtev_dyn_buffer_t buff;

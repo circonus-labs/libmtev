@@ -42,11 +42,16 @@ static void wl_intern_release_double(void *c, mtev_intern_t i) {
   mtev_intern_release_pool(*p, i);
 }
 static mtev_intern_t wl_strdup(void *c, const char *k, size_t l) {
+  (void)c;
+  (void)l;
+
   mtev_intern_t i;
   i.opaque1 = (uintptr_t)strdup(k);
   return i;
 }
 static void wl_free(void *c, mtev_intern_t i) {
+  (void)c;
+
   free((void *)i.opaque1);
 }
 

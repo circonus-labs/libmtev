@@ -4,6 +4,9 @@
 
 int main(int argc, char *argv[])
 {
+  (void)argc;
+  (void)argv;
+
   mtev_log_init_globals();
   mtev_log_stream_t *speculation = mtev_log_speculate(100, 65536);
   for (size_t index = 0; index < 100; index++)

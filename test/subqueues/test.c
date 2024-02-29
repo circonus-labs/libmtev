@@ -65,6 +65,9 @@ static void parse_cli_args(int argc, char *const *argv)
 
 static int
 toil(eventer_t e, int mask, void *c, struct timeval *now) {
+  (void)e;
+  (void)now;
+
   work_description_t *w = c;
   const char *type = "unknown";
   switch(mask) {
@@ -80,6 +83,8 @@ toil(eventer_t e, int mask, void *c, struct timeval *now) {
 }
 
 static int mtev_conf_watch_and_journal_watchdog_cb(void *closure) {
+  (void)closure;
+
   return mtev_conf_write_log();
 }
 

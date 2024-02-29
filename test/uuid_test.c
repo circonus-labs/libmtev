@@ -63,6 +63,9 @@ void parse_file(void)
 
 int main(int argc, char **argv) 
 {
+  (void)argc;
+  (void)argv;
+
   uuid_parse_fn = mtev_uuid_parse;
   for (int i = 0; i < 1000000/500; i++) {
     parse_file();

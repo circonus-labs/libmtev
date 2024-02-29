@@ -26,6 +26,9 @@ noop_free(void *x)
 
 int main(int argc, char **argv) 
 {
+  (void)argc;
+  (void)argv;
+
   srand(time(NULL));
 
   struct data datas[10] = 
