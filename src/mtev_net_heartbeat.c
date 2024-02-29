@@ -289,7 +289,7 @@ mtev_net_headerbeat_sendall(mtev_net_heartbeat_ctx *ctx, void *payload, int payl
 
 static int
 mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
-  int i, len, blocksize, ivecsize, outlen1, outlen2, text_len;
+  int i, len, blocksize, ivecsize, text_len;
   EVP_CIPHER_CTX *evp_ctx = NULL;
   unsigned char cipher_buf_static[16000];
   unsigned char *ivec, *cipher_buf = cipher_buf_static, *text;
@@ -342,6 +342,7 @@ mtev_net_heartbeat_serialize_and_send(mtev_net_heartbeat_ctx *ctx) {
   memcpy(cipher_buf, payload, HDRLEN);
   text = (unsigned char *)payload + HDR_LENSIZE + HDR_IVSIZE;
   text_len = len - (HDR_LENSIZE + HDR_IVSIZE);
+  int outlen1 = 0, outlen2 = 0;
   if ((!EVP_EncryptUpdate(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE,&outlen1,
                           text,text_len)) ||
       (!EVP_EncryptFinal(evp_ctx,cipher_buf+HDR_LENSIZE+HDR_IVSIZE+outlen1,
