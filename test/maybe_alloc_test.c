@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <mtev_maybe_alloc.h>
+#include "mtev_maybe_alloc.h"
 
 int chkmem(const char *ptr, size_t len, char exp) {
   const char *cp;

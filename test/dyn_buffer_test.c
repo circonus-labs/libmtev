@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <mtev_dyn_buffer.h>
+#include "mtev_dyn_buffer.h"
 
 int chkmem(mtev_dyn_buffer_t *buff, size_t len, char exp) {
   const char *cp;
