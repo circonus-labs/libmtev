@@ -9,12 +9,18 @@ int chkmem(mtev_dyn_buffer_t *buff, size_t len, char exp) {
   for(cp = ptr; cp < ptr+len; cp++) if(*cp != exp) return 0;
   return 1;
 }
-int vprint_test_function(mtev_dyn_buffer_t *buff, const char *fmt, ...) {
+int test_mtev_dyn_buffer_maybe_add_vprintf_function(mtev_dyn_buffer_t *buff, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   int to_return = mtev_dyn_buffer_maybe_add_vprintf(buff, fmt, args);
   va_end(args);
   return to_return;
+}
+void test_mtev_dyn_buffer_add_vprintf_function(mtev_dyn_buffer_t *buff, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  mtev_dyn_buffer_add_vprintf(buff, fmt, args);
+  va_end(args);
 }
 int main(int argc, char *argv[]) {
   (void)argc;
@@ -79,7 +85,7 @@ int main(int argc, char *argv[]) {
   memset(test_buffer, 0, 8192);
   memset(test_buffer, 'a', initial_test_buffer_size);
 
-  int needed = vprint_test_function(&b3, "%s", test_buffer);
+  int needed = test_mtev_dyn_buffer_maybe_add_vprintf_function(&b3, "%s", test_buffer);
   assert(needed == 0);
   assert(mtev_dyn_buffer_used(&b3) == initial_test_buffer_size);
   assert(mtev_dyn_buffer_size(&b3) == buffer_size);
@@ -90,14 +96,14 @@ int main(int argc, char *argv[]) {
   memset(next_test_buffer, 0, 11);
   memset(next_test_buffer, 'b', 10);
 
-  needed = vprint_test_function(&b3, "%s", next_test_buffer);
+  needed = test_mtev_dyn_buffer_maybe_add_vprintf_function(&b3, "%s", next_test_buffer);
   assert(needed == 11);
   data = (const char*)mtev_dyn_buffer_data(&b3);
   assert(memcmp(data, test_buffer, initial_test_buffer_size) == 0);
   assert(data[initial_test_buffer_size] == 0);
 
   mtev_dyn_buffer_ensure(&b3, needed);
-  needed = vprint_test_function(&b3, "%s", next_test_buffer);
+  needed = test_mtev_dyn_buffer_maybe_add_vprintf_function(&b3, "%s", next_test_buffer);
   assert(needed == 0);
   data = (const char*)mtev_dyn_buffer_data(&b3);
   assert(memcmp(data, test_buffer, initial_test_buffer_size) == 0);
@@ -105,6 +111,34 @@ int main(int argc, char *argv[]) {
   assert(data[initial_test_buffer_size + 10] == 0);
 
   mtev_dyn_buffer_destroy(&b3);
+
+  char *big_test_buffer = (char *)calloc(1, 65535);
+  memset(big_test_buffer, 'c', 65535);
+
+  mtev_dyn_buffer_t b4;
+  mtev_dyn_buffer_init(&b4);
+
+  test_mtev_dyn_buffer_add_vprintf_function(&b4, "%s", big_test_buffer);
+  data = (const char*)mtev_dyn_buffer_data(&b4);
+  assert(memcmp(data, big_test_buffer, 65535) == 0);
+  assert(mtev_dyn_buffer_used(&b4) == 65535);
+  assert(mtev_dyn_buffer_size(&b4) >= 65535);
+
+  mtev_dyn_buffer_destroy(&b4);
+
+  mtev_dyn_buffer_t b5;
+  mtev_dyn_buffer_init(&b5);
+  memset(big_test_buffer, 'd', 65535);
+
+  mtev_dyn_buffer_add_printf(&b5, "%s", big_test_buffer);
+  data = (const char*)mtev_dyn_buffer_data(&b5);
+  assert(memcmp(data, big_test_buffer, 65535) == 0);
+  assert(mtev_dyn_buffer_used(&b5) == 65535);
+  assert(mtev_dyn_buffer_size(&b5) >= 65535);
+
+  mtev_dyn_buffer_destroy(&b5);
+
+  free(big_test_buffer);
 
   return 0;
 }
