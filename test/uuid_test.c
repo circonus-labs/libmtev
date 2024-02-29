@@ -1,6 +1,6 @@
 #include <uuid/uuid.h>
-#include <mtev_uuid.h>
-#include <mtev_time.h>
+#include "mtev_uuid.h"
+#include "mtev_time.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdint.h>

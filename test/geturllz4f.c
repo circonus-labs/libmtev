@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <mtev_defines.h>
-#include <mtev_compress.h>
+#include "mtev_defines.h"
+#include "mtev_compress.h"
 #include <curl/curl.h>
 
 static size_t print_data(void *buff, size_t s, size_t n, void *vd) {

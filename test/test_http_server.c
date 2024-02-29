@@ -1,16 +1,16 @@
-#include <mtev_defines.h>
-#include <mtev_conf.h>
-#include <mtev_console.h>
-#include <mtev_dso.h>
-#include <mtev_listener.h>
-#include <mtev_main.h>
-#include <mtev_memory.h>
-#include <mtev_http.h>
-#include <mtev_rest.h>
-#include <mtev_cluster.h>
-#include <mtev_capabilities_listener.h>
-#include <mtev_events_rest.h>
-#include <eventer/eventer.h>
+#include "mtev_defines.h"
+#include "mtev_conf.h"
+#include "mtev_console.h"
+#include "mtev_dso.h"
+#include "mtev_listener.h"
+#include "mtev_main.h"
+#include "mtev_memory.h"
+#include "mtev_http.h"
+#include "mtev_rest.h"
+#include "mtev_cluster.h"
+#include "mtev_capabilities_listener.h"
+#include "mtev_events_rest.h"
+#include "eventer/eventer.h"
 #include "mtev_stacktrace.h"
 
 #include <errno.h>
@@ -128,6 +128,9 @@ static int my_post_handler(mtev_http_rest_closure_t *restc, int npats, char **pa
   return EVENTER_READ | EVENTER_WRITE | EVENTER_EXCEPTION;
 }
 static int my_safe_handler(mtev_http_rest_closure_t *restc, int npats, char **pats) {
+  (void)npats;
+  (void)pats;
+
   mtev_http_session_ctx *ctx = restc->http_ctx;
   mtev_http_response_standard(ctx, 200, "OK", "text/plain");
   mtev_http_response_append_str(ctx, "contents\n");
