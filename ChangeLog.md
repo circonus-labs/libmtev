@@ -4,6 +4,7 @@
 
 ## 2.7
 
+ * Silence unused parameter warnings in test suite
  * Fix compilation errors on calling openssl functions that occur on some compilers
 
 ### 2.7.0

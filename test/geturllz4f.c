@@ -4,6 +4,8 @@
 #include <curl/curl.h>
 
 static size_t print_data(void *buff, size_t s, size_t n, void *vd) {
+  (void)vd;
+
   return write(1, buff, s*n);
 }
 int main(int argc, char **argv) {

@@ -14,6 +14,9 @@
 
 int main(int argc, char **argv) 
 {
+  (void)argc;
+  (void)argv;
+
   char s[PATH_MAX];
   srand(time(NULL));
 

@@ -16,6 +16,9 @@
 
 int main(int argc, char **argv) 
 {
+  (void)argc;
+  (void)argv;
+
   mtev_thread_init();
   mtev_time_start_tsc();
   mtev_hrtime_t start = mtev_sys_gethrtime();

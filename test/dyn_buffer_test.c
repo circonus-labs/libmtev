@@ -17,6 +17,9 @@ int vprint_test_function(mtev_dyn_buffer_t *buff, const char *fmt, ...) {
   return to_return;
 }
 int main(int argc, char *argv[]) {
+  (void)argc;
+  (void)argv;
+
   int a = 12345;
   int b = 54321;
   mtev_dyn_buffer_t buff;

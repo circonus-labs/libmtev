@@ -9,6 +9,9 @@ int chkmem(const char *ptr, size_t len, char exp) {
   return 1;
 }
 int main(int argc, char *argv[]) {
+  (void)argc;
+  (void)argv;
+
   int a = 12345;
   MTEV_MAYBE_DECL(char, buff, 1892);
   int b = 54321;

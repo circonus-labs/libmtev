@@ -77,6 +77,9 @@ void add_jobs_loop(work_description_t *work_description)
 
 int test_job_cb(eventer_t e, int mask, void *v_work_description, struct timeval *now)
 {
+  (void)e;
+  (void)now;
+
   if (mask == EVENTER_ASYNCH_WORK) {
     work_description_t *work_description = (work_description_t *) v_work_description;
     unsigned int old_work_removed;
@@ -92,11 +95,20 @@ int test_job_cb(eventer_t e, int mask, void *v_work_description, struct timeval 
 
 int test_job_done(eventer_t e, int mask, void *v_work_description, struct timeval *now)
 {
+  (void)e;
+  (void)mask;
+  (void)v_work_description;
+  (void)now;
+
   return 0;
 }
 
 int test_poll(eventer_t e, int mask, void *v_work_description, struct timeval *now)
 {
+  (void)e;
+  (void)mask;
+  (void)now;
+
   work_description_t *work_description = (work_description_t *) v_work_description;
   unsigned int work_removed = ck_pr_load_uint(&work_description->work_removed);
   ck_pr_load_uint(&work_description->work_added);
@@ -111,6 +123,8 @@ int test_poll(eventer_t e, int mask, void *v_work_description, struct timeval *n
 }
 
 static int mtev_conf_watch_and_journal_watchdog_cb(void *closure) {
+  (void)closure;
+
   return mtev_conf_write_log();
 }
 
