@@ -4,6 +4,11 @@
 
 ## 2.7
 
+### 2.7.2
+
+ * Add include of `cstdint.h` to `mtev_json_object.h` to fix include order
+   dependency
+
 ### 2.7.1
 
  * Silence unused parameter warnings in test suite
