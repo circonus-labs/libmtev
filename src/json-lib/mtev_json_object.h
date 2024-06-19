@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 #define JSON_OBJECT_DEF_HASH_ENTRIES 16
 
 #undef FALSE
