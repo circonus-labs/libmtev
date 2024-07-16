@@ -834,8 +834,8 @@ fi
 
 AC_CACHE_CHECK([for epoll support], ac_cv_have_epoll, [
 	AC_TRY_LINK(
-		[ #include <sys/types.h> ],
-		[ int a; a = epoll_create(); (void)a;],
+		[ #include <sys/epoll.h> ],
+		[ int a; a = epoll_create(0); (void)a;],
 		[ ac_cv_have_epoll="yes" ],
 		[ ac_cv_have_epoll="no" ]
 	)
