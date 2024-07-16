@@ -4,6 +4,8 @@
 
 ## 2.7
 
+ * Update `configure.ac` to look for `epoll.h` when checking for epoll.
+
 ### 2.7.2
 
  * Add include of `cstdint.h` to `mtev_json_object.h` to fix include order
