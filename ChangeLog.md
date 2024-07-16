@@ -4,6 +4,8 @@
 
 ## 2.7
 
+### 2.7.3
+
  * Update `configure.ac` to look for `epoll.h` when checking for epoll.
 
 ### 2.7.2
