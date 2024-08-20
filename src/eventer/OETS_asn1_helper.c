@@ -85,7 +85,7 @@ static int pint(const char **s, int n, int min, int max, int *e)
     return retval;
 }
 
-time_t OETS_ASN1_TIME_get(ASN1_TIME *a, int *err)
+time_t OETS_ASN1_TIME_get(const ASN1_TIME *a, int *err)
 {
     int dummy;
     const char *s;

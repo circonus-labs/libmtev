@@ -243,15 +243,13 @@ eventer_ssl_verify_dates(eventer_ssl_ctx_t *ctx, int ok,
   (void)closure;
   time_t now;
   int err;
-  X509 *peer;
-  ASN1_TIME *t;
   if(!x509ctx) return X509_V_ERR_APPLICATION_VERIFICATION;
-  peer = X509_STORE_CTX_get_current_cert(x509ctx);
+  const X509 *peer = X509_STORE_CTX_get_current_cert(x509ctx);
   time(&now);
-  t = X509_get_notBefore(peer);
+  const ASN1_TIME *t = X509_get0_notBefore(peer);
   ctx->start_time = OETS_ASN1_TIME_get(t, &err);
   if(X509_cmp_time(t, &now) > 0) return X509_V_ERR_CERT_NOT_YET_VALID;
-  t = X509_get_notAfter(peer);
+  t = X509_get0_notAfter(peer);
   ctx->end_time = OETS_ASN1_TIME_get(t, &err);
   if(X509_cmp_time(t, &now) < 0) return X509_V_ERR_CERT_HAS_EXPIRED;
   return 0;
