@@ -85,11 +85,6 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
   const char *k;
   void *udata;
   X509 *cert;
-#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_3_0_0
-  int j;
-#else
-  unsigned long j;
-#endif
 
   mtevAssert(lua_gettop(L) == 2);
   if(!luaL_checkudata(L, 1, "crypto.x509")) {
@@ -189,14 +184,17 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
     return 1;
   }
   if(!strcmp(k, "ocsp")) {
-    STACK_OF(OPENSSL_STRING) *emlst;
-    emlst = X509_get1_ocsp(cert);
+    STACK_OF(OPENSSL_STRING) *emlst = X509_get1_ocsp(cert);
+    if (!emlst) {
+      return 0;
+    }
+    int j;
 #if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_3_0_0
     for (j = 0; j < sk_OPENSSL_STRING_num((OPENSSL_STACK *)emlst); j++) {
       lua_pushstring(L, sk_OPENSSL_STRING_value((OPENSSL_STACK *)emlst, j));
     }
 #else
-    for (j = 0; j < (size_t)sk_OPENSSL_STRING_num(emlst); j++) {
+    for (j = 0; j < sk_OPENSSL_STRING_num(emlst); j++) {
       char *item = "<unknown>";
       item = sk_OPENSSL_STRING_value(emlst, j);
       lua_pushstring(L, item);
