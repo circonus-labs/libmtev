@@ -41,7 +41,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-time_t OETS_ASN1_TIME_get(ASN1_TIME *a, int *err);
+time_t OETS_ASN1_TIME_get(const ASN1_TIME *a, int *err);
 
 #ifdef __cplusplus
 }
