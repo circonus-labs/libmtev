@@ -91,8 +91,14 @@ time_t OETS_ASN1_TIME_get(ASN1_TIME *a, int *err)
     const char *s;
     int generalized;
     struct tm t;
-    int i, year, isleap, offset;
+    int i, isleap, offset;
+    // make year a time_t because we do multiplication with it and we want
+    // to make sure that it's using the right size in the answer... if you
+    // make year an int, it will compress to 32-bit even when time_t is
+    // 64-bit
+    time_t year;
     time_t retval;
+    int time_t_size = sizeof(time_t);
     
     if (err == NULL) err = &dummy;
     if (a->type == V_ASN1_GENERALIZEDTIME) {
@@ -175,7 +181,7 @@ time_t OETS_ASN1_TIME_get(ASN1_TIME *a, int *err)
     retval += t.tm_hour * 3600;
     retval += (t.tm_mday - 1) * 86400;
     year = t.tm_year + 1900;
-    if (sizeof(time_t) == 4) {
+    if (time_t_size == 4) {
         // This is just to avoid too big overflows being undetected, finer
         // overflow detection is done below.
         if (year < 1900 || year > 2040) *err = 2;
@@ -189,7 +195,7 @@ time_t OETS_ASN1_TIME_get(ASN1_TIME *a, int *err)
     retval += (year - 1970) * 31536000;
     if (year < 1970) {
         retval -= ((1970 - year + 2) / 4) * 86400;
-        if (sizeof(time_t) > 4) {
+        if (time_t_size > 4) {
             for (i = 1900; i >= year; i -= 100) {
                 if (i % 400 == 0) continue;
                 retval += 86400;
@@ -198,7 +204,7 @@ time_t OETS_ASN1_TIME_get(ASN1_TIME *a, int *err)
         if (retval >= 0) *err = 2;
     } else {
         retval += ((year - 1970 + 1) / 4) * 86400;
-        if (sizeof(time_t) > 4) {
+        if (time_t_size > 4) {
             for (i = 2100; i < year; i += 100) {
                 // The following condition is the reason to
                 // start with 2100 instead of 2000
