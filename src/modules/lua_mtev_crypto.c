@@ -188,20 +188,23 @@ mtev_lua_crypto_x509_index_func(lua_State *L) {
     if (!emlst) {
       return 0;
     }
-    int j;
 #if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_3_0_0
-    for (j = 0; j < sk_OPENSSL_STRING_num((OPENSSL_STACK *)emlst); j++) {
+    int num_entries = sk_OPENSSL_STRING_num((OPENSSL_STACK *)emlst);
+    for (int j = 0; j < num_entries; j++) {
       lua_pushstring(L, sk_OPENSSL_STRING_value((OPENSSL_STACK *)emlst, j));
     }
 #else
-    for (j = 0; j < sk_OPENSSL_STRING_num(emlst); j++) {
-      char *item = "<unknown>";
-      item = sk_OPENSSL_STRING_value(emlst, j);
+    int num_entries = sk_OPENSSL_STRING_num(emlst);
+    for (int j = 0; j < num_entries; j++) {
+      char *item = sk_OPENSSL_STRING_value(emlst, j);
+      if (!item) {
+        item = "<unknown>";
+      }
       lua_pushstring(L, item);
     }
 #endif
     X509_email_free(emlst);
-    return j;
+    return num_entries;
   }
   luaL_error(L, "crypto.x509 no such element: %s", k);
   return 0;
