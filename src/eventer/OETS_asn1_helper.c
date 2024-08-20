@@ -184,7 +184,7 @@ time_t OETS_ASN1_TIME_get(ASN1_TIME *a, int *err)
     if (time_t_size == 4) {
         // This is just to avoid too big overflows being undetected, finer
         // overflow detection is done below.
-        if (year < 1900 || year > 2040) *err = 2;
+        if (year < 1900 || year > 4040) *err = 2;
     }
     // FIXME: Does POSIX really say, that all years divisible by 4 are
     // leap years (for consistency)??? Fortunately, this problem does
