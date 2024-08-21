@@ -68,6 +68,13 @@
 #define DEFAULT_LAYER_STRING "tlsv1:all,!sslv2,!sslv3"
 #endif
 #endif
+#if OPENSSL_VERSION_NUMBER < _OPENSSL_VERSION_1_1_0
+#define _X509_GET_NOTBEFORE X509_get_notBefore
+#define _X509_GET_NOTAFTER X509_get_notAfter
+#else
+#define _X509_GET_NOTBEFORE X509_get0_notBefore
+#define _X509_GET_NOTAFTER X509_get0_notAfter
+#endif
 /* ERR_error_string(3): buf must be at least 120 bytes... */
 #define MIN_ERRSTR_LEN 120
 
@@ -246,10 +253,10 @@ eventer_ssl_verify_dates(eventer_ssl_ctx_t *ctx, int ok,
   if(!x509ctx) return X509_V_ERR_APPLICATION_VERIFICATION;
   const X509 *peer = X509_STORE_CTX_get_current_cert(x509ctx);
   time(&now);
-  const ASN1_TIME *t = X509_get0_notBefore(peer);
+  const ASN1_TIME *t = _X509_GET_NOTBEFORE(peer);
   ctx->start_time = OETS_ASN1_TIME_get(t, &err);
   if(X509_cmp_time(t, &now) > 0) return X509_V_ERR_CERT_NOT_YET_VALID;
-  t = X509_get0_notAfter(peer);
+  t = _X509_GET_NOTAFTER(peer);
   ctx->end_time = OETS_ASN1_TIME_get(t, &err);
   if(X509_cmp_time(t, &now) < 0) return X509_V_ERR_CERT_HAS_EXPIRED;
   return 0;

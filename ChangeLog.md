@@ -4,6 +4,11 @@
 
 ## 2.7
 
+ * Fix bug where X509 OSCP errors were not being handled properly and could
+   cause Lua overflow errors.
+ * Fix bug where certificate dates would return errors if after the 32-bit
+   apocalypse.
+
 ### 2.7.3
 
  * Update `configure.ac` to look for `epoll.h` when checking for epoll.
