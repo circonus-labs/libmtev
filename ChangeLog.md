@@ -4,7 +4,9 @@
 
 ## 2.7
 
- * Fix bug where X509 OSCP errors were not being handled properly and could
+### 2.7.4
+
+ * Fix bug where X509 OCSP errors were not being handled properly and could
    cause Lua overflow errors.
  * Fix bug where certificate dates would return errors if after the 32-bit
    apocalypse.
