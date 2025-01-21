@@ -544,7 +544,7 @@ KAFKA_BUILT="no"
 AS_IF([test "x$enable_kafka" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
-    AC_CHECK_LIB(fq, fq_client_init,
+    AC_CHECK_LIB(rdkafka, kafka_client_init,
         [KAFKA_MODULES="$KAFKA_MODULES kafka.$MODULEEXT"
          EXTRA_EXAMPLES="$EXTRA_EXAMPLES kafka-router"
          KAFKA_BUILT="yes"],
