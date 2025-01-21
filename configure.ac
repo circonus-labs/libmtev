@@ -544,9 +544,8 @@ KAFKA_BUILT="no"
 AS_IF([test "x$enable_kafka" != "xno"], [
     OLD_LIBS=$LIBS
     LIBS=
-    AC_CHECK_LIB(rdkafka, kafka_client_init,
+    AC_CHECK_LIB(rdkafka, rd_kafka_global_init0,
         [KAFKA_MODULES="$KAFKA_MODULES kafka.$MODULEEXT"
-         EXTRA_EXAMPLES="$EXTRA_EXAMPLES kafka-router"
          KAFKA_BUILT="yes"],
         [if test "x$enable_kafka" == "xcheck"; then
             AC_MSG_NOTICE([NOTICE: not building kafka module, no kafka library found])
