@@ -109,10 +109,14 @@ zipkin_fq.@MODULEEXT@:	MODLIBS += -lfq
 
 mtev_fq.lo:	fq.xmlh
 
-mtev_kafka.lo:	kafka.xmlh
-
 fq.@MODULEEXT@:	MODLIBS += -lfq
 fq.@MODULEEXT@:	mtev_fq.lo
+	$(modulelink)
+
+mtev_kafka.lo:	kafka.xmlh
+
+kafka.@MODULEEXT@:	MODLIBS += -lrdkafka
+kafka.@MODULEEXT@:	mtev_kafka.lo
 	$(modulelink)
 
 mtev_amqp.lo:	amqp.xmlh
@@ -158,6 +162,15 @@ mtev_lua/mtev/consul.@MODULEEXT@:	$(CONSUL_LUA_OBJS)
 .c.lo:
 	@echo "- compiling $<"
 	$(Q)$(CC) $(CPPFLAGS) $(SHCFLAGS) -c $< -o $@.noctf
+	$(Q)if test -x "$(CTFCONVERT)" ; then \
+		echo "- making CTF ($@)" ; \
+		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
+	fi
+	$(Q)mv $@.noctf $@
+
+.cpp.lo:
+	@echo "- compiling $<"
+	$(Q)$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@.noctf
 	$(Q)if test -x "$(CTFCONVERT)" ; then \
 		echo "- making CTF ($@)" ; \
 		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
