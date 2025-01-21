@@ -535,6 +535,30 @@ AS_IF([test "x$enable_fq" != "xno"], [
     LIBS=$OLD_LIBS
 ])
 
+AC_ARG_ENABLE([kafka],
+    AS_HELP_STRING([--disable-kafka], [Disable modules kafka]),
+    [],
+    [enable_kafka=check])
+
+KAFKA_BUILT="no"
+AS_IF([test "x$enable_kafka" != "xno"], [
+    OLD_LIBS=$LIBS
+    LIBS=
+    AC_CHECK_LIB(fq, fq_client_init,
+        [KAFKA_MODULES="$KAFKA_MODULES kafka.$MODULEEXT"
+         EXTRA_EXAMPLES="$EXTRA_EXAMPLES kafka-router"
+         KAFKA_BUILT="yes"],
+        [if test "x$enable_kafka" == "xcheck"; then
+            AC_MSG_NOTICE([NOTICE: not building kafka module, no kafka library found])
+            KAFKA_BUILT="no"
+         else
+            AC_MSG_ERROR([*** can't build kafka, no -lkafka ***])
+         fi
+        ]
+    )
+    LIBS=$OLD_LIBS
+])
+
 AC_ARG_ENABLE([amqp],
     AS_HELP_STRING([--disable-amqp], [Disable modules amqp]),
     [],
@@ -1005,6 +1029,7 @@ AC_CACHE_CHECK([for ssize_t], ac_cv_have_ssize_t, [
 ])
 
 AC_SUBST(FQ_MODULES)
+AC_SUBST(KAFKA_MODULES)
 AC_SUBST(AMQP_MODULES)
 AC_SUBST(LUA_MODULES)
 
@@ -1100,6 +1125,7 @@ AC_MSG_RESULT([
   AMQP module:        $AMQP_BUILT
   FQ module:          $FQ_BUILT
   Zipkin-fq module:   $ZIPKIN_FQ_BUILT
+  Kafka module:       $KAFKA_BUILT
 
   == Target ==
   Target library:      $TGT_NAME
