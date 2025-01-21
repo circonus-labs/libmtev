@@ -1,0 +1,10 @@
+<module>
+  <name>kafka</name>
+  <description><para>The kafka module consumes and publishes messages via kafka.</para></description>
+  <loader>C</loader>
+  <image>kafka.so</image>
+  <moduleconfig>
+  </moduleconfig>
+  <examples>
+  </examples>
+</module>
