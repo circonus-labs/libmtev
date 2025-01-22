@@ -171,7 +171,7 @@ mtev_lua/mtev/consul.@MODULEEXT@:	$(CONSUL_LUA_OBJS)
 
 .cpp.lo:
 	@echo "- compiling $<"
-	$(Q)$(CXX) $(CPPFLAGS) $(SHCXXFLAGS)-c $< -o $@.noctf
+	$(Q)$(CXX) $(CPPFLAGS) $(SHCXXFLAGS) -c $< -o $@.noctf
 	$(Q)if test -x "$(CTFCONVERT)" ; then \
 		echo "- making CTF ($@)" ; \
 		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
