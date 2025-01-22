@@ -19,6 +19,7 @@ CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 CXXFLAGS=@CXXFLAGS@ @CXXFLAGSEXTRAS@
 DEPFLAGS=@DEPFLAGS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
+SHCXXFLAGS=@SHCXXFLAGS@ @CXXFLAGSEXTRAS@
 MODULELD=@MODULELD@
 MODULEEXT=@MODULEEXT@
 LDFLAGS=@LDFLAGS@
@@ -170,7 +171,7 @@ mtev_lua/mtev/consul.@MODULEEXT@:	$(CONSUL_LUA_OBJS)
 
 .cpp.lo:
 	@echo "- compiling $<"
-	$(Q)$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@.noctf
+	$(Q)$(CXX) $(CPPFLAGS) $(SHCXXFLAGS)-c $< -o $@.noctf
 	$(Q)if test -x "$(CTFCONVERT)" ; then \
 		echo "- making CTF ($@)" ; \
 		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
