@@ -36,6 +36,7 @@
 #include "mtev_conf.h"
 #include "mtev_rand.h"
 #include "mtev_thread.h"
+#include "mtev_kafka.hpp"
 
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
 
