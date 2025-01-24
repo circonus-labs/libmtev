@@ -77,6 +77,46 @@ init_conns(void) {
 }
 
 static int
+kafka_logio_open(mtev_log_stream_t ls) {
+  (void)ls;
+  return 0;
+}
+
+static int
+kafka_logio_write(mtev_log_stream_t ls, const struct timeval *whence,
+                  const void *buf, size_t len) {
+// TODO: Fill this in
+#if 0
+  (void)whence;
+  char exchange[127], route[127], *prefix, *path;
+  path = (char *)mtev_log_stream_get_path(ls);
+  prefix = strchr(path, '/');
+  if(!prefix) {
+    strlcpy(exchange, path, sizeof(exchange));
+    snprintf(route, sizeof(route), "mtev.log.%s", mtev_log_stream_get_name(ls));
+  } else {
+    prefix++;
+    strlcpy(exchange, path, MIN(sizeof(exchange), (size_t)(prefix - path)));
+    snprintf(route, sizeof(route), "%s.%s", prefix, mtev_log_stream_get_name(ls));
+  }
+  mtev_amqp_send_data(exchange, route, false, false, (void *)buf, len, -1);
+#endif
+  return len;
+}
+
+static logops_t kafka_logio_ops = {
+  mtev_false,
+  kafka_logio_open,
+  NULL,
+  kafka_logio_write,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL
+};
+
+static int
 kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
   return 0;
 }
