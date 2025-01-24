@@ -124,6 +124,7 @@ kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
 static int
 kafka_driver_init(mtev_dso_generic_t *img) {
   auto conf = get_config(img);
+  mtev_register_logops("kafka", &kafka_logio_ops);
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
 
