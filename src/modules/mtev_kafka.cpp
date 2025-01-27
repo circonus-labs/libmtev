@@ -60,10 +60,36 @@ struct kafka_connection {
 };
 
 struct kafka_module_config {
-  kafka_module_config() : number_of_conns{0}, receiver{nullptr} {
+  kafka_module_config() : receiver{nullptr} {
+    number_of_conns = 0;
+    mtev_conf_section_t *mqs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_IN_MQ,
+      &number_of_conns);
+
+    if(number_of_conns == 0) {
+      mtev_conf_release_sections_read(mqs, number_of_conns);
+      return;
+    }
+    for (int section_id = 0; section_id < number_of_conns; section_id++) {
+      std::string host_string;
+      if(char *host; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_HOST, &host)) {
+        host_string = "localhost";
+      }
+      else {
+        host_string = host;
+        free(host);
+      }
+      int32_t port = 0;
+      if(!mtev_conf_get_int32(mqs[section_id], CONFIG_KAFKA_PORT, &port)) {
+        port = 9092;
+      }
+      add_connection(host_string, port);
+    }
+    mtev_conf_release_sections_read(mqs, number_of_conns);
+
     init_receiver();
   }
   ~kafka_module_config() = default;
+  private:
   void add_connection(const std::string_view host, const int32_t port) {
   }
   void init_receiver() {
@@ -71,7 +97,6 @@ struct kafka_module_config {
     receiver = eventer_alloc_recurrent(poll_kafka, this);
     eventer_add(receiver);
   }
-  private:
   static int poll_kafka(eventer_t e, int mask, void *c, struct timeval *now) {
     (void)e;
     (void)mask;
@@ -102,34 +127,6 @@ static kafka_module_config *get_config(mtev_dso_generic_t *self) {
   the_conf = new kafka_module_config{};
   mtev_image_set_userdata(&self->hdr, the_conf);
   return the_conf;
-}
-
-static void
-init_conns(kafka_module_config *conf) {
-  int number_of_conns = 0;
-  mtev_conf_section_t *mqs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_IN_MQ,
-      &number_of_conns);
-
-  if(number_of_conns == 0) {
-    mtev_conf_release_sections_read(mqs, the_conf->number_of_conns);
-    return;
-  }
-  for (int section_id = 0; section_id < number_of_conns; section_id++) {
-    std::string host_string;
-    if(char *host; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_HOST, &host)) {
-      host_string = "localhost";
-    }
-    else {
-      host_string = host;
-      free(host);
-    }
-    int32_t port = 0;
-    if(!mtev_conf_get_int32(mqs[section_id], CONFIG_KAFKA_PORT, &port)) {
-      port = 9092;
-    }
-    conf->add_connection(host_string, port);
-  }
-  mtev_conf_release_sections_read(mqs, number_of_conns);
 }
 
 static int
@@ -184,7 +181,6 @@ kafka_driver_init(mtev_dso_generic_t *img) {
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
 
-  init_conns(conf);
   if (the_conf->number_of_conns == 0) {
     mtevL(nlerr, "No kafka reciever setting found in the config!\n");
     return 0;
