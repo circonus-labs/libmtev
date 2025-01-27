@@ -95,7 +95,7 @@ struct kafka_module_config {
         topic_string = topic;
         free(topic);
       }
-      conns.push_back(std::make_unique<kafka_connection>(host_string, port, topic_string));
+      conns.emplace_back(std::make_unique<kafka_connection>(host_string, port, topic_string));
     }
     mtev_conf_release_sections_read(mqs, number_of_conns);
 
