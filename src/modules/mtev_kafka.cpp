@@ -44,9 +44,12 @@
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
 
 struct kafka_connection {
-  kafka_connection() {}
+  kafka_connection() {
+    props.put("enable.idempotence", "true");
+  }
   ~kafka_connection() = default;
 
+  kafka::Properties props;
   std::unique_ptr<kafka::clients::producer::KafkaProducer> producer;
   std::unique_ptr<kafka::clients::consumer::KafkaConsumer> consumer;
 };
