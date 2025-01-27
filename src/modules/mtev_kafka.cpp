@@ -64,8 +64,9 @@ struct kafka_connection {
   std::unique_ptr<kafka::clients::consumer::KafkaConsumer> consumer;
 };
 
-struct kafka_module_config {
-  kafka_module_config() : receiver{nullptr} {
+class kafka_module_config {
+  public:
+  kafka_module_config() {
     int local_number_of_conns = 0;
     mtev_conf_section_t *mqs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_IN_MQ,
       &local_number_of_conns);
@@ -117,10 +118,10 @@ struct kafka_module_config {
     }
     return EVENTER_RECURRENT;
   }
-  public:
-  int number_of_conns;
   eventer_t receiver;
   std::vector<std::unique_ptr<kafka_connection>> conns;
+  public:
+  int number_of_conns;
 };
 
 static mtev_log_stream_t nlerr = nullptr;
