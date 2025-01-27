@@ -66,15 +66,15 @@ struct kafka_connection {
 
 struct kafka_module_config {
   kafka_module_config() : receiver{nullptr} {
-    number_of_conns = 0;
+    int local_number_of_conns = 0;
     mtev_conf_section_t *mqs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_IN_MQ,
-      &number_of_conns);
+      &local_number_of_conns);
 
-    if(number_of_conns == 0) {
-      mtev_conf_release_sections_read(mqs, number_of_conns);
+    if(local_number_of_conns == 0) {
+      mtev_conf_release_sections_read(mqs, local_number_of_conns);
       return;
     }
-    for (int section_id = 0; section_id < number_of_conns; section_id++) {
+    for (int section_id = 0; section_id < local_number_of_conns; section_id++) {
       std::string host_string;
       if(char *host; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_HOST, &host)) {
         host_string = "localhost";
@@ -96,8 +96,9 @@ struct kafka_module_config {
         free(topic);
       }
       conns.emplace_back(std::make_unique<kafka_connection>(host_string, port, topic_string));
+      number_of_conns++;
     }
-    mtev_conf_release_sections_read(mqs, number_of_conns);
+    mtev_conf_release_sections_read(mqs, local_number_of_conns);
 
     init_receiver();
   }
