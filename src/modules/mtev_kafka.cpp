@@ -89,7 +89,7 @@ struct kafka_module_config {
       }
       std::string topic_string;
       if(char *topic; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_HOST, &topic)) {
-        host_string = "TODO";
+        topic_string = "TODO";
       }
       else {
         topic_string = topic;
