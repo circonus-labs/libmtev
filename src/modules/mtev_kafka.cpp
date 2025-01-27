@@ -95,7 +95,7 @@ struct kafka_module_config {
         topic_string = topic;
         free(topic);
       }
-      add_connection(host_string, port, topic_string);
+      conns.push_back(std::make_unique<kafka_connection>(host_string, port, topic_string));
     }
     mtev_conf_release_sections_read(mqs, number_of_conns);
 
@@ -103,9 +103,6 @@ struct kafka_module_config {
   }
   ~kafka_module_config() = default;
   private:
-  void add_connection(const std::string_view host, const int32_t port, const std::string &topic_str) {
-    // TODO
-  }
   void init_receiver() {
     mtevAssert(!receiver);
     receiver = eventer_alloc_recurrent(poll_kafka, this);
