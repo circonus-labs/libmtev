@@ -46,6 +46,8 @@
 struct kafka_connection {
   kafka_connection() {
     props.put("enable.idempotence", "true");
+    producer = std::make_unique<kafka::clients::producer::KafkaProducer>(props);
+    consumer = std::make_unique<kafka::clients::consumer::KafkaConsumer>(props);
   }
   ~kafka_connection() = default;
 
