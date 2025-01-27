@@ -1,177 +1,64 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "(gdb) Opened busted test",
-      "type": "cppdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/src/snowthd",
-      "args": ["-D", "-c", "${fileDirname}/workspace/00000000-0000-0000-0000-000000011112/etc/snowth.conf", "-i", "00000000-0000-0000-0000-000000011112"],
-      "stopAtEntry": true,
-      "cwd": "${workspaceFolder}/busted",
-      "externalConsole": false,
-      "MIMode": "gdb",
-      "setupCommands": [
-          {
-              "description": "Enable pretty-printing for gdb",
-              "text": "-enable-pretty-printing",
-              "ignoreFailures": true
-          },
-          {
-              "description": "Ignore SIGPIPE",
-              "text": "handle SIGPIPE nostop noprint pass",
-              "ignoreFailures": true
-          },
-          {
-              "description":  "Set Disassembly Flavor to Intel",
-              "text": "-gdb-set disassembly-flavor intel",
-              "ignoreFailures": true
-          }
-      ],
-      "sourceFileMap": {
-        "${workspaceFolder}": {
-            "editorPath": "${workspaceFolder}",
-            "useForBreakpoints": "true"
-        }
-      },
-      "logging": {
-        "engineLogging": true
-      }
-    },
-    {
-      "name": "(gdb) Opened busted test reconstitute",
-      "type": "cppdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/src/snowthd",
-      "args": ["-B", "-c", "${fileDirname}/workspace/00000000-0000-0000-0000-000000011112/etc/snowth.conf", "-i", "00000000-0000-0000-0000-000000011112", "-T", "0a696b1e5aa48dc92d9ee148566f80a96b4ab77e2cd32618edfca215660ab9ef", "-O", "127.0.0.1:11116", "-A", "hist_shard_rollup", "-s", "60,1647475200,1648080000"],
-      "stopAtEntry": true,
-      "cwd": "${workspaceFolder}/busted",
-      "externalConsole": false,
-      "MIMode": "gdb",
-      "setupCommands": [
-          {
-              "description": "Enable pretty-printing for gdb",
-              "text": "-enable-pretty-printing",
-              "ignoreFailures": true
-          },
-          {
-              "description": "Ignore SIGPIPE",
-              "text": "handle SIGPIPE nostop noprint pass",
-              "ignoreFailures": true
-          },
-          {
-              "description":  "Set Disassembly Flavor to Intel",
-              "text": "-gdb-set disassembly-flavor intel",
-              "ignoreFailures": true
-          }
-      ],
-      "sourceFileMap": {
-        "${workspaceFolder}": {
-            "editorPath": "${workspaceFolder}",
-            "useForBreakpoints": "true"
-        }
-      },
-      "logging": {
-        "engineLogging": true
-      }
-    },
-    {
-      "name": "(lua) Opened busted test",
-      "type": "lua-local",
-      "request": "launch",
-      "program": {
-        "command": "./run-tests.sh"
-      },
-      "args": ["-file", "${file}", "-X", "lua_debug=${fileDirname}"],
-      "cwd": "${workspaceFolder}/busted",
-    },
-    {
-      "name": "(lua) CAQL/PromQL with opened busted test",
-      "type": "lua-local",
-      "request": "launch",
-      "program": {
-        "command": "${workspaceFolder}/src/snowthd"
-      },
-      "args": ["-D", "-c", "${fileDirname}/workspace/00000000-0000-0000-0000-000000011112/etc/snowth.conf", "-i", "00000000-0000-0000-0000-000000011112"],
-      "cwd": "${workspaceFolder}/busted",
-    },
-    {
-      "name": "(gdb) googletest",
-      "type": "cppdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/src/googletest",
-      "args": ["--gtest_output=xml", "--gtest_filter=-\\*mtev\\*:\\*slow\\*"],
-      "environment": [{"name":"LD_LIBRARY_PATH","value":"libsnowth:/opt/circonus/lib:/opt/circonus/libexec"}],
-      "stopAtEntry": true,
-      "cwd": "${workspaceFolder}/src",
-      "externalConsole": false,
-      "MIMode": "gdb",
-      "setupCommands": [
-          {
-              "description": "Enable pretty-printing for gdb",
-              "text": "-enable-pretty-printing",
-              "ignoreFailures": true
-          },
-          {
-              "description": "Ignore SIGPIPE",
-              "text": "handle SIGPIPE nostop noprint pass",
-              "ignoreFailures": true
-          },
-          {
-              "description":  "Set Disassembly Flavor to Intel",
-              "text": "-gdb-set disassembly-flavor intel",
-              "ignoreFailures": true
-          }
-      ],
-      "sourceFileMap": {
-        "${workspaceFolder}": {
-            "editorPath": "${workspaceFolder}",
-            "useForBreakpoints": "true"
-        }
-      },
-      "logging": {
-        "engineLogging": true
-      }
-    },
-    {
-      "name": "(gdb) Scratch Debug",
-      "type": "cppdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/src/snowthd",
-      "args": ["-D", "-c", "${workspaceFolder}/scratch/snowth.8112.conf", "-i", "bb6f7162-4828-11df-bab8-6bac200dcc2a"],
-      "stopAtEntry": true,
-      "cwd": "${workspaceFolder}",
-      "externalConsole": false,
-      "MIMode": "gdb",
-      "setupCommands": [
-          {
-              "description": "Enable pretty-printing for gdb",
-              "text": "-enable-pretty-printing",
-              "ignoreFailures": true
-          },
-          {
-              "description": "Ignore SIGPIPE",
-              "text": "handle SIGPIPE nostop noprint pass",
-              "ignoreFailures": true
-          },
-          {
-              "description":  "Set Disassembly Flavor to Intel",
-              "text": "-gdb-set disassembly-flavor intel",
-              "ignoreFailures": true
-          }
-      ],
-      "sourceFileMap": {
-        "${workspaceFolder}": {
-            "editorPath": "${workspaceFolder}",
-            "useForBreakpoints": "true"
-        }
-      },
-      "logging": {
-        "engineLogging": true
-      }
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+            {
+                "name": "(gdb) Opened busted test",
+                "type": "cppdbg",
+                "request": "launch",
+                "environment": [
+                    {"name":"_DYLD_LIBRARY_PATH","value":"${workspaceFolder}/src"},
+                    {"name":"DYLD_LIBRARY_PATH","value":"${workspaceFolder}/src"},
+                    {"name":"LD_LIBRARY_PATH","value":"${workspaceFolder}/src"},
+                    {"name":"LD_PRELOAD","value":"${workspaceFolder}/src/libmtev.so"},
+                    {"name":"LUA_PATH","value":"/opt/circonus/share/lua/5.1/?.lua;/opt/circonus/share/lua/5.1/?/init.lua"}
+                ],
+                "program": "${workspaceFolder}/src/luamtev",
+                "args": [
+                    "-C",
+                    "'../src/modules/mtev_lua/?.so;{package.cpath}'",
+                    "-L",
+                    "'../src/modules/lua-support/?.lua;./?.lua;./lua-harness/?.lua;{package.path}'",
+                    "-M",
+                    "../src/modules/",
+                    "./mtevbusted-script",
+                    "-i",
+                    "lua-support/init.lua",              
+                    "-file",
+                    "${file}"
+                ],
+                "stopAtEntry": true,
+                "cwd": "${workspaceFolder}/test",
+                "externalConsole": false,
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description": "Ignore SIGPIPE",
+                        "text": "handle SIGPIPE nostop noprint pass",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description": "Set Non-Stop Mode On",
+                        "text": "set non-stop on",
+                        "ignoreFailures": false
+                    }
+                ],
+                "sourceFileMap": {
+                    "${workspaceFolder}": {
+                        "editorPath": "${workspaceFolder}",
+                        "useForBreakpoints": "true"
+                    }
+                },
+                "logging": {
+                    "engineLogging": true
+                }
+            }
+        ]
     }
-  ]
-}
