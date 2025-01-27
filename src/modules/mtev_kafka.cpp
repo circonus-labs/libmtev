@@ -60,15 +60,17 @@ struct kafka_module_config {
   }
   void init_receiver() {
     mtevAssert(!receiver);
-    receiver = eventer_alloc_recurrent(poll_kafka, nullptr);
+    receiver = eventer_alloc_recurrent(poll_kafka, this);
     eventer_add(receiver);
   }
   private:
-  static int poll_kafka(eventer_t e, int mask, void *unused, struct timeval *now) {
+  static int poll_kafka(eventer_t e, int mask, void *c, struct timeval *now) {
     (void)e;
     (void)mask;
-    (void)unused;
     (void)now;
+    auto self = static_cast<kafka_module_config *>(c);
+    for (int client = 0; client < self->number_of_conns; client++) {
+    }
     return EVENTER_RECURRENT;
   }
   public:
