@@ -88,7 +88,7 @@ struct kafka_module_config {
         port = 9092;
       }
       std::string topic_string;
-      if(char *topic; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_HOST, &topic)) {
+      if(char *topic; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_TOPIC, &topic)) {
         topic_string = "TODO";
       }
       else {
