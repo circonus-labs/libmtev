@@ -52,12 +52,28 @@ struct kafka_connection {
 };
 
 struct kafka_module_config {
-  kafka_module_config() : number_of_conns{0} {}
+  kafka_module_config() : number_of_conns{0}, receiver{nullptr} {
+    init_receiver();
+  }
   ~kafka_module_config() = default;
   void add_connection() {
   }
-
+  void init_receiver() {
+    mtevAssert(!receiver);
+    receiver = eventer_alloc_recurrent(poll_kafka, nullptr);
+    eventer_add(receiver);
+  }
+  private:
+  static int poll_kafka(eventer_t e, int mask, void *unused, struct timeval *now) {
+    (void)e;
+    (void)mask;
+    (void)unused;
+    (void)now;
+    return EVENTER_RECURRENT;
+  }
+  public:
   int number_of_conns;
+  eventer_t receiver;
   std::vector<std::unique_ptr<kafka_connection>> conns;
 };
 
