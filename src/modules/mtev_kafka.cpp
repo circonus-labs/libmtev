@@ -96,12 +96,12 @@ class kafka_module_config {
         topic_string = topic;
         free(topic);
       }
-      conns.emplace_back(std::make_unique<kafka_connection>(host_string, port, topic_string));
-      number_of_conns++;
+      _conns.emplace_back(std::make_unique<kafka_connection>(host_string, port, topic_string));
+      _number_of_conns++;
     }
     mtev_conf_release_sections_read(mqs, local_number_of_conns);
-    receiver = eventer_alloc_recurrent(poll_kafka, this);
-    eventer_add(receiver);
+    _receiver = eventer_alloc_recurrent(poll_kafka, this);
+    eventer_add(_receiver);
   }
   ~kafka_module_config() = default;
   private:
@@ -110,18 +110,17 @@ class kafka_module_config {
     (void)mask;
     (void)now;
     auto self = static_cast<kafka_module_config *>(c);
-    for (int client = 0; client < self->number_of_conns; client++) {
-      auto records = self->conns[client]->consumer->poll(std::chrono::milliseconds(10));
+    for (int client = 0; client < self->_number_of_conns; client++) {
+      auto records = self->_conns[client]->consumer->poll(std::chrono::milliseconds(10));
       for (const auto& record: records) {
         // TODO
       }
     }
     return EVENTER_RECURRENT;
   }
-  eventer_t receiver;
-  std::vector<std::unique_ptr<kafka_connection>> conns;
-  public:
-  int number_of_conns;
+  int _number_of_conns;
+  eventer_t _receiver;
+  std::vector<std::unique_ptr<kafka_connection>> _conns;
 };
 
 static mtev_log_stream_t nlerr = nullptr;
@@ -192,11 +191,6 @@ kafka_driver_init(mtev_dso_generic_t *img) {
   mtev_register_logops("kafka", &kafka_logio_ops);
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
-
-  if (the_conf->number_of_conns == 0) {
-    mtevL(nlerr, "No kafka reciever setting found in the config!\n");
-    return 0;
-  }
   return 0;
 }
 
