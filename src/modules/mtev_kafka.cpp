@@ -114,6 +114,10 @@ struct kafka_module_config {
     (void)now;
     auto self = static_cast<kafka_module_config *>(c);
     for (int client = 0; client < self->number_of_conns; client++) {
+      auto records = self->conns[client]->consumer->poll(std::chrono::milliseconds(10));
+      for (const auto& record: records) {
+        // TODO
+      }
     }
     return EVENTER_RECURRENT;
   }
