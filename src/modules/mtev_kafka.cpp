@@ -38,13 +38,27 @@
 #include "mtev_thread.h"
 #include "mtev_kafka.hpp"
 
+#include <kafka/KafkaConsumer.h>
+#include <kafka/KafkaProducer.h>
+
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
+
+struct kafka_connection {
+  kafka_connection() {}
+  ~kafka_connection() = default;
+
+  std::unique_ptr<kafka::clients::producer::KafkaProducer> producer;
+  std::unique_ptr<kafka::clients::consumer::KafkaConsumer> consumer;
+};
 
 struct kafka_module_config {
   kafka_module_config() : number_of_conns{0} {}
   ~kafka_module_config() = default;
+  void add_connection() {
+  }
 
   int number_of_conns;
+  std::vector<std::unique_ptr<kafka_connection>> conns;
 };
 
 static mtev_log_stream_t nlerr = nullptr;
@@ -66,14 +80,18 @@ static kafka_module_config *get_config(mtev_dso_generic_t *self) {
 
 static void
 init_conns(void) {
+  int number_of_conns;
   mtev_conf_section_t *mqs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_IN_MQ,
-      &the_conf->number_of_conns);
+      &number_of_conns);
 
-  if(the_conf->number_of_conns == 0) {
+  if(number_of_conns == 0) {
     mtev_conf_release_sections_read(mqs, the_conf->number_of_conns);
     return;
   }
-  mtev_conf_release_sections_read(mqs, the_conf->number_of_conns);
+  // Do stuff
+  for (int section_id = 0; section_id < number_of_conns; section_id++) {
+  }
+  mtev_conf_release_sections_read(mqs, number_of_conns);
 }
 
 static int
@@ -137,7 +155,7 @@ kafka_driver_init(mtev_dso_generic_t *img) {
 }
 
 #include "kafka.xmlh"
-mtev_dso_generic_t kafka = {
+mtev_dso_generic_t kafka_module = {
   {
     .magic = MTEV_GENERIC_MAGIC,
     .version = MTEV_GENERIC_ABI_VERSION,
