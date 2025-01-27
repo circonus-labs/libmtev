@@ -44,6 +44,7 @@
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
 #define CONFIG_KAFKA_HOST "self::node()/host"
 #define CONFIG_KAFKA_PORT "self::node()/port"
+#define CONFIG_KAFKA_TOPIC "self::node()/topic"
 
 struct kafka_connection {
   kafka_connection(const std::string &host, const int32_t port, const std::string &topic_str) {
@@ -86,7 +87,15 @@ struct kafka_module_config {
       if(!mtev_conf_get_int32(mqs[section_id], CONFIG_KAFKA_PORT, &port)) {
         port = 9092;
       }
-      add_connection(host_string, port);
+      std::string topic_string;
+      if(char *topic; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_HOST, &topic)) {
+        host_string = "TODO";
+      }
+      else {
+        topic_string = topic;
+        free(topic);
+      }
+      add_connection(host_string, port, topic_string);
     }
     mtev_conf_release_sections_read(mqs, number_of_conns);
 
@@ -94,7 +103,8 @@ struct kafka_module_config {
   }
   ~kafka_module_config() = default;
   private:
-  void add_connection(const std::string_view host, const int32_t port) {
+  void add_connection(const std::string_view host, const int32_t port, const std::string &topic_str) {
+    // TODO
   }
   void init_receiver() {
     mtevAssert(!receiver);
