@@ -99,16 +99,11 @@ struct kafka_module_config {
       number_of_conns++;
     }
     mtev_conf_release_sections_read(mqs, local_number_of_conns);
-
-    init_receiver();
-  }
-  ~kafka_module_config() = default;
-  private:
-  void init_receiver() {
-    mtevAssert(!receiver);
     receiver = eventer_alloc_recurrent(poll_kafka, this);
     eventer_add(receiver);
   }
+  ~kafka_module_config() = default;
+  private:
   static int poll_kafka(eventer_t e, int mask, void *c, struct timeval *now) {
     (void)e;
     (void)mask;
