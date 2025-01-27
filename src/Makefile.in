@@ -516,6 +516,7 @@ clean:
 
 Makefile.dep:
 	$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) *.c > Makefile.dep
+	$(CXX) -I. $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) *.cpp >> Makefile.dep
 	for d in utils eventer noitedit json-lib ; do \
 		$(CC) -I. $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $$d/*.c | \
 		perl -pe 's#(\s)([^\s\\])#$$1$$2#g; s#^(\S)#'$$d'/$$1#;' >> \

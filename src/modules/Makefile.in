@@ -236,6 +236,8 @@ distclean:	clean
 Makefile.dep:
 	$(CC) -I.. $(CPPFLAGS) $(CFLAGS) \
 		$(DEPFLAGS) -c *.c | sed -e 's/\.o:/\.lo:/' > Makefile.dep
+	$(CXX) -I.. $(CPPFLAGS) $(CXXFLAGS) \
+		$(DEPFLAGS) -c *.cpp | sed -e 's/\.o:/\.lo:/' >> Makefile.dep
 	$(top_srcdir)/buildtools/culldeps.sh Makefile.dep
 
 include Makefile.dep
