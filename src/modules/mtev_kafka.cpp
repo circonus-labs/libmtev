@@ -46,10 +46,14 @@
 #define CONFIG_KAFKA_PORT "self::node()/port"
 
 struct kafka_connection {
-  kafka_connection(const std::string_view host, const int32_t port) {
+  kafka_connection(const std::string &host, const int32_t port, const std::string &topic_str) {
+    std::string broker_with_port = host + ":" + std::to_string(port);
     props.put("enable.idempotence", "true");
+    props.put("bootstrap.servers", broker_with_port);
     producer = std::make_unique<kafka::clients::producer::KafkaProducer>(props);
     consumer = std::make_unique<kafka::clients::consumer::KafkaConsumer>(props);
+    const kafka::Topic topic = topic_str;
+    consumer->subscribe({topic});
   }
   kafka_connection() = delete;
   ~kafka_connection() = default;
