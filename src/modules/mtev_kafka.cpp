@@ -195,7 +195,12 @@ kafka_driver_init(mtev_dso_generic_t *img) {
 }
 
 #include "kafka.xmlh"
-mtev_dso_generic_t kafka_module = {
+// There's a conflict with the kafka library with the name "kafka" that won't
+// allow us to export the name of the module as "kafka". The extern "C" and namespacee
+// here is a workaround that allows us to use the name
+extern "C" {
+namespace {
+mtev_dso_generic_t kafka = {
   {
     .magic = MTEV_GENERIC_MAGIC,
     .version = MTEV_GENERIC_ABI_VERSION,
@@ -206,3 +211,5 @@ mtev_dso_generic_t kafka_module = {
   kafka_driver_config,
   kafka_driver_init
 };
+}
+}
