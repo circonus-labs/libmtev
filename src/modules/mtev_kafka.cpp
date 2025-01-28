@@ -116,31 +116,19 @@ class kafka_module_config {
 
     }
     mtev_conf_release_sections_read(mqs, local_number_of_conns);
-    if (_number_of_conns) {
-      _receiver = eventer_alloc_recurrent(poll_kafka, this);
-      eventer_add(_receiver);
-    }
-    else {
-      _receiver = nullptr;
-    }
   }
   ~kafka_module_config() = default;
-  private:
-  static int poll_kafka(eventer_t e, int mask, void *c, struct timeval *now) {
-    (void)e;
-    (void)mask;
-    (void)now;
-    auto self = static_cast<kafka_module_config *>(c);
-    for (int client = 0; client < self->_number_of_conns; client++) {
-      auto records = self->_conns[client]->consumer->poll(std::chrono::milliseconds(10));
+  int poll() {
+    for (int client = 0; client < _number_of_conns; client++) {
+      auto records = _conns[client]->consumer->poll(std::chrono::milliseconds(10));
       for (const auto& record: records) {
         // TODO
       }
     }
-    return EVENTER_RECURRENT;
+    return 0;
   }
+  private:
   int _number_of_conns;
-  eventer_t _receiver;
   std::vector<std::unique_ptr<kafka_connection>> _conns;
 };
 
@@ -206,10 +194,20 @@ kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
 
 static int
 kafka_driver_init(mtev_dso_generic_t *img) {
+  constexpr auto poll_kafka = [](eventer_t e, int mask, void *c, struct timeval *now) {
+    (void)e;
+    (void)mask;
+    (void)now;
+    auto conf = static_cast<kafka_module_config *>(c);
+    conf->poll();
+    return EVENTER_RECURRENT;
+  };
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
+  auto config = get_or_load_config(img);
   mtev_register_logops("kafka", &kafka_logio_ops);
-  get_or_load_config(img);
+  auto e = eventer_alloc_recurrent(poll_kafka, config);
+  eventer_add(e);
   return 0;
 }
 
