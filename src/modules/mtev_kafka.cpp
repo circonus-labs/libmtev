@@ -46,6 +46,9 @@
 #define CONFIG_KAFKA_PORT "self::node()/port"
 #define CONFIG_KAFKA_TOPIC "self::node()/topic"
 
+static mtev_log_stream_t nlerr = nullptr;
+static mtev_log_stream_t nldeb = nullptr;
+
 struct kafka_connection {
   kafka_connection(const std::string &host, const int32_t port, const std::string &topic_str) {
     std::string broker_with_port = host + ":" + std::to_string(port);
@@ -96,12 +99,29 @@ class kafka_module_config {
         topic_string = topic;
         free(topic);
       }
-      _conns.emplace_back(std::make_unique<kafka_connection>(host_string, port, topic_string));
-      _number_of_conns++;
+      try {
+        auto conn = std::make_unique<kafka_connection>(host_string, port, topic_string);
+        _conns.push_back(std::move(conn));
+        _number_of_conns++;
+      }
+      catch (std::exception& exception) {
+        mtevL(nlerr, "ERROR: Couldn't connect to %s:%d, topic %s (Exception: %s) - skipping\n",
+          host_string.c_str(), port, topic_string.c_str(), exception.what());
+      }
+      catch (...) {
+        mtevL(nlerr, "ERROR: Couldn't connect to %s:%d, topic %s (unknown exception) - skipping\n",
+          host_string.c_str(), port, topic_string.c_str());
+      }
+
     }
     mtev_conf_release_sections_read(mqs, local_number_of_conns);
-    _receiver = eventer_alloc_recurrent(poll_kafka, this);
-    eventer_add(_receiver);
+    if (_number_of_conns) {
+      _receiver = eventer_alloc_recurrent(poll_kafka, this);
+      eventer_add(_receiver);
+    }
+    else {
+      _receiver = nullptr;
+    }
   }
   ~kafka_module_config() = default;
   private:
@@ -123,11 +143,9 @@ class kafka_module_config {
   std::vector<std::unique_ptr<kafka_connection>> _conns;
 };
 
-static mtev_log_stream_t nlerr = nullptr;
-static mtev_log_stream_t nldeb = nullptr;
 static kafka_module_config *the_conf = nullptr;
 
-static kafka_module_config *get_config(mtev_dso_generic_t *self) {
+static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self) {
   if(the_conf) {
     return the_conf;
   }
@@ -187,10 +205,11 @@ kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
 
 static int
 kafka_driver_init(mtev_dso_generic_t *img) {
-  auto conf = get_config(img);
+  get_or_load_config(img);
   mtev_register_logops("kafka", &kafka_logio_ops);
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
+  get_or_load_config(img);
   return 0;
 }
 
