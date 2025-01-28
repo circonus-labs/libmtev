@@ -71,6 +71,7 @@ class kafka_module_config {
   public:
   kafka_module_config() {
     int local_number_of_conns = 0;
+    _number_of_conns = 0;
     mtev_conf_section_t *mqs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_IN_MQ,
       &local_number_of_conns);
 
