@@ -60,10 +60,10 @@ MTEV_RUNTIME_AVAIL(mtev_fq_send_data, mtev_fq_send_data_function)
 #endif
 
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
-                (void *payload, size_t payload_len),
+                (const void *payload, size_t payload_len),
                 void *,
                 closure,
-                (void *closure, void *payload, size_t payload_len))
+                (void *closure, const void *payload, size_t payload_len))
 
 /* This maps exposes a runtime resolved hook register function people should
  * use: mtev_kafka_handle_message_hook_register
@@ -74,7 +74,7 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_handle_message_hook_register,
                      mtev_kafka_handle_message_dyn_hook_register,
                      mtev_hook_return_t,
                      (const char *name,
-                      mtev_hook_return_t (*func) (void *closure, void *payload, size_t payload_len),
+                      mtev_hook_return_t (*func) (void *closure, const void *payload, size_t payload_len),
                       void *closure),
                      (name,func,closure))
 
