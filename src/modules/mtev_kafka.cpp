@@ -49,6 +49,8 @@
 static mtev_log_stream_t nlerr = nullptr;
 static mtev_log_stream_t nldeb = nullptr;
 
+constexpr int32_t DEFAULT_POLL_LIMIT = 10000;
+
 struct kafka_connection {
   kafka_connection(const std::string &host, const int32_t port, const std::string &topic_str) {
     std::string broker_with_port = host + ":" + std::to_string(port);
@@ -72,7 +74,7 @@ struct kafka_connection {
 
 class kafka_module_config {
   public:
-  kafka_module_config() {
+  kafka_module_config(): _poll_limit(DEFAULT_POLL_LIMIT) {
     int number_of_conns = 0;
     mtev_conf_section_t *mqs = mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_IN_MQ,
       &number_of_conns);
@@ -119,6 +121,9 @@ class kafka_module_config {
     mtev_conf_release_sections_read(mqs, number_of_conns);
   }
   ~kafka_module_config() = default;
+  void set_poll_limit(int32_t poll_limit) {
+    _poll_limit = poll_limit;
+  }
   int poll() {
     for (const auto &conn: _conns) {
       auto records = conn->consumer->poll(std::chrono::milliseconds(10));
@@ -136,6 +141,7 @@ class kafka_module_config {
   }
   private:
   std::vector<std::unique_ptr<kafka_connection>> _conns;
+  int32_t _poll_limit;
 };
 
 static kafka_module_config *the_conf = nullptr;
@@ -210,7 +216,12 @@ kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while(mtev_hash_adv(options, &iter)) {
     if (!strcmp("poll_limit", iter.key.str)) {
-      //TODO
+      auto poll_limit = atoi(iter.value.str);
+      if (poll_limit < 0) {
+        poll_limit = DEFAULT_POLL_LIMIT;
+      }
+      auto config = get_or_load_config(img);
+      config->set_poll_limit(poll_limit);
     }
     else {
       mtevL(nlerr, "Kafka module config got unknown value: %s=%s\n", iter.key.str, iter.value.str);
