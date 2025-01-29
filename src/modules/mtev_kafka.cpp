@@ -75,7 +75,9 @@ struct kafka_connection {
   kafka_connection() = delete;
   ~kafka_connection() = default;
   void write_to_console(const mtev_console_closure_t &ncct) {
-    // TODO
+    nc_printf(ncct, "== %s:%d ==\n"
+                    "  (s) msgs tx: %zu\n  (s) msgs rx: %zu\n",
+        host.c_str(),port, stats.msgs_in, stats.msgs_out);
   }
 
   std::string host;
