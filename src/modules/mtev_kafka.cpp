@@ -61,6 +61,9 @@ struct kafka_connection {
   }
   kafka_connection() = delete;
   ~kafka_connection() = default;
+  void write_to_console(const mtev_console_closure_t &ncct) {
+    // TODO
+  }
 
   kafka::Properties props;
   std::unique_ptr<kafka::clients::producer::KafkaProducer> producer;
@@ -127,7 +130,7 @@ class kafka_module_config {
   }
   int show_console(const mtev_console_closure_t &ncct) {
     for (const auto &conn: _conns) {
-      // TODO
+      conn->write_to_console(ncct);
     }
     return 0;
   }
