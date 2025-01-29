@@ -93,7 +93,9 @@ struct kafka_connection {
     rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
   }
   kafka_connection() = delete;
-  ~kafka_connection() = default;
+  ~kafka_connection() {
+    // TODO: We need to clean up all the kafka stuff here!
+  }
   void write_to_console(const mtev_console_closure_t &ncct) {
     nc_printf(ncct, "== %s:%d ==\n"
                     "  (s) msgs tx: %zu\n  (s) msgs rx: %zu\n",
