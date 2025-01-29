@@ -52,10 +52,10 @@ static mtev_log_stream_t nldeb = nullptr;
 constexpr int32_t DEFAULT_POLL_TIMEOUT_MS = 10;
 
 MTEV_HOOK_IMPL(mtev_kafka_handle_message_dyn,
-               (void *payload, size_t payload_len),
+               (const void *payload, size_t payload_len),
                void *,
                closure,
-               (void *closure, void *payload, size_t payload_len),
+               (void *closure, const void *payload, size_t payload_len),
                (closure,payload,payload_len))
 
 
@@ -155,7 +155,7 @@ class kafka_module_config {
       for (const auto& record: records) {
         conn->stats.msgs_in++;
         // TODO: Use real data
-        mtev_kafka_handle_message_dyn_hook_invoke(nullptr, 0);
+        mtev_kafka_handle_message_dyn_hook_invoke(record.value().data(), record.value().size());
       }
     }
     return 0;
