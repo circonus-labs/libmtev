@@ -204,6 +204,16 @@ mtev_console_show_kafka(mtev_console_closure_t ncct,
 
 static int
 kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  while(mtev_hash_adv(options, &iter)) {
+    if (!strcmp("poll_limit", iter.key.str)) {
+      //TODO
+    }
+    else {
+      mtevL(nlerr, "Kafka module config got unknown value: %s=%s\n", iter.key.str, iter.value.str);
+    }
+  }
+
   return 0;
 }
 
