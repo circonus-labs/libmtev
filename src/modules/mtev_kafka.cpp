@@ -165,10 +165,10 @@ class kafka_module_config {
   int poll() {
     for (const auto &conn: _conns) {
       auto msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count());
-      if (msg) {
+      if (auto msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count()); msg) {
         conn->stats.msgs_in++;
         // TODO: Use real data
-        mtev_kafka_handle_message_dyn_hook_invoke(NULL, 0);
+        mtev_kafka_handle_message_dyn_hook_invoke((void *)NULL, (size_t)0);
       }
     }
     return 0;
