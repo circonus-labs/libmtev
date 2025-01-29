@@ -119,8 +119,8 @@ class kafka_module_config {
   }
   ~kafka_module_config() = default;
   int poll() {
-    for (int client = 0; client < _number_of_conns; client++) {
-      auto records = _conns[client]->consumer->poll(std::chrono::milliseconds(10));
+    for (const auto &conn: _conns) {
+      auto records = conn->consumer->poll(std::chrono::milliseconds(10));
       for (const auto& record: records) {
         // TODO
       }
