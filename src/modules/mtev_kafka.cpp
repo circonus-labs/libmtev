@@ -38,8 +38,12 @@
 #include "mtev_thread.h"
 #include "mtev_kafka.hpp"
 
-#include <kafka/KafkaConsumer.h>
-#include <kafka/KafkaProducer.h>
+#include <chrono>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <librdkafka/rdkafka.h>
 
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
 #define CONFIG_KAFKA_HOST "self::node()/host"
@@ -73,12 +77,19 @@ struct kafka_connection {
     port = port_in;
     broker_with_port = host + ":" + std::to_string(port);
 
-    props.put("enable.idempotence", "true");
-    props.put("bootstrap.servers", broker_with_port);
-    producer = std::make_unique<kafka::clients::producer::KafkaProducer>(props);
-    consumer = std::make_unique<kafka::clients::consumer::KafkaConsumer>(props);
-    const kafka::Topic topic = topic_str;
-    consumer->subscribe({topic});
+    rd_consumer_conf = rd_kafka_conf_new();
+    rd_kafka_conf_set(rd_consumer_conf, "enable.idempotence", "true", nullptr, 0);
+    rd_kafka_conf_set(rd_consumer_conf, "bootstrap.servers", broker_with_port.c_str(), nullptr, 0);
+    rd_consumer = rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, nullptr, 0);
+
+    rd_producer_conf = rd_kafka_conf_new();
+    rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", nullptr, 0);
+    rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", broker_with_port.c_str(), nullptr, 0);
+    rd_producer = rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, nullptr, 0);
+
+    rd_consumer_topics = rd_kafka_topic_partition_list_new(1);  // 1 topic
+    rd_kafka_topic_partition_list_add(rd_consumer_topics, topic_str.c_str(), RD_KAFKA_PARTITION_UA);  // Add topic
+    rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
   }
   kafka_connection() = delete;
   ~kafka_connection() = default;
@@ -91,9 +102,11 @@ struct kafka_connection {
   std::string host;
   int32_t port;
   std::string broker_with_port;
-  kafka::Properties props;
-  std::unique_ptr<kafka::clients::producer::KafkaProducer> producer;
-  std::unique_ptr<kafka::clients::consumer::KafkaConsumer> consumer;
+  rd_kafka_conf_t *rd_producer_conf;
+  rd_kafka_t *rd_producer;
+  rd_kafka_conf_t *rd_consumer_conf;
+  rd_kafka_t *rd_consumer;
+  rd_kafka_topic_partition_list_t *rd_consumer_topics;
   kafka_stats_t stats;
 };
 
@@ -151,11 +164,11 @@ class kafka_module_config {
   }
   int poll() {
     for (const auto &conn: _conns) {
-      auto records = conn->consumer->poll(_poll_timeout);
-      for (const auto& record: records) {
+      auto msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count());
+      if (msg) {
         conn->stats.msgs_in++;
         // TODO: Use real data
-        mtev_kafka_handle_message_dyn_hook_invoke(record.value().data(), record.value().size());
+        mtev_kafka_handle_message_dyn_hook_invoke(NULL, 0);
       }
     }
     return 0;
@@ -270,11 +283,6 @@ kafka_driver_init(mtev_dso_generic_t *img) {
 }
 
 #include "kafka.xmlh"
-// There's a conflict with the kafka library with the name "kafka" that won't
-// allow us to export the name of the module as "kafka". The extern "C" and namespacee
-// here is a workaround that allows us to use the name
-extern "C" {
-namespace {
 mtev_dso_generic_t kafka = {
   {
     .magic = MTEV_GENERIC_MAGIC,
@@ -286,5 +294,3 @@ mtev_dso_generic_t kafka = {
   kafka_driver_config,
   kafka_driver_init
 };
-}
-}
