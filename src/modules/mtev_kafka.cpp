@@ -51,9 +51,20 @@ static mtev_log_stream_t nldeb = nullptr;
 
 constexpr int32_t DEFAULT_POLL_TIMEOUT_MS = 10;
 
+struct kafka_stats_t {
+  kafka_stats_t() : msgs_in{0}, msgs_out{0} {}
+  ~kafka_stats_t() = default;
+
+  uint64_t msgs_in;
+  uint64_t msgs_out;
+};
+
 struct kafka_connection {
-  kafka_connection(const std::string &host, const int32_t port, const std::string &topic_str) {
-    std::string broker_with_port = host + ":" + std::to_string(port);
+  kafka_connection(const std::string &host_in, const int32_t port_in, const std::string &topic_str) {
+    host = host_in;
+    port = port_in;
+    broker_with_port = host + ":" + std::to_string(port);
+
     props.put("enable.idempotence", "true");
     props.put("bootstrap.servers", broker_with_port);
     producer = std::make_unique<kafka::clients::producer::KafkaProducer>(props);
@@ -67,9 +78,13 @@ struct kafka_connection {
     // TODO
   }
 
+  std::string host;
+  int32_t port;
+  std::string broker_with_port;
   kafka::Properties props;
   std::unique_ptr<kafka::clients::producer::KafkaProducer> producer;
   std::unique_ptr<kafka::clients::consumer::KafkaConsumer> consumer;
+  kafka_stats_t stats;
 };
 
 class kafka_module_config {
