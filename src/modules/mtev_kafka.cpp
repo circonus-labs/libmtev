@@ -153,8 +153,9 @@ class kafka_module_config {
     for (const auto &conn: _conns) {
       auto records = conn->consumer->poll(_poll_timeout);
       for (const auto& record: records) {
-        // TODO
         conn->stats.msgs_in++;
+        // TODO: Use real data
+        mtev_kafka_handle_message_dyn_hook_invoke(nullptr, 0);
       }
     }
     return 0;
