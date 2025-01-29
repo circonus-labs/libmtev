@@ -10,5 +10,26 @@
                allowed="\d+">Number of milliseconds to wait for results when polling kafka.</parameter>
   </moduleconfig>
   <examples>
+    <example>
+      <title>Loading the kafka module.</title>
+      <programlisting language="xml"><![CDATA[
+      <root>
+        <modules>
+          <module image="kafka" name="kafka">
+            <config>
+              <poll_timeout_ms>10</poll_timeout_ms>
+            </config>
+          </module>
+        </modules>
+        <network>
+          <mq type="kafka">
+            <host>localhost</host>
+            <port>9092</port>
+            <topic>test_topic_one</topic>
+          </mq>
+        </network>
+      </root>
+    ]]></programlisting>
+    </example>
   </examples>
 </module>
