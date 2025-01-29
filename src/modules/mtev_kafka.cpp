@@ -127,6 +127,12 @@ class kafka_module_config {
     }
     return 0;
   }
+  int show_console(const mtev_console_closure_t &ncct) {
+    for (const auto &conn: _conns) {
+      // TODO
+    }
+    return 0;
+  }
   private:
   int _number_of_conns;
   std::vector<std::unique_ptr<kafka_connection>> _conns;
@@ -188,6 +194,18 @@ static logops_t kafka_logio_ops = {
 };
 
 static int
+mtev_console_show_kafka(mtev_console_closure_t ncct,
+                        int argc, char **argv,
+                        mtev_console_state_t *dstate,
+                        void *closure) {
+  (void)argc;
+  (void)argv;
+  (void)dstate;
+  auto conf = static_cast<kafka_module_config *>(closure);
+  return conf->show_console(ncct);
+}
+
+static int
 kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options) {
   return 0;
 }
@@ -206,6 +224,13 @@ kafka_driver_init(mtev_dso_generic_t *img) {
   nldeb = mtev_log_stream_find("debug/kafka");
   auto config = get_or_load_config(img);
   mtev_register_logops("kafka", &kafka_logio_ops);
+
+  mtev_console_state_t *tl = mtev_console_state_initial();
+  cmd_info_t *showcmd = mtev_console_state_get_cmd(tl, "show");
+  mtevAssert(showcmd && showcmd->dstate);
+  mtev_console_state_add_cmd(showcmd->dstate,
+    NCSCMD("", mtev_console_show_kafka, NULL, NULL, config));
+
   auto e = eventer_alloc_recurrent(poll_kafka, config);
   eventer_add(e);
   return 0;
