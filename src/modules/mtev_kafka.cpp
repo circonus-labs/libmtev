@@ -146,6 +146,7 @@ class kafka_module_config {
       auto records = conn->consumer->poll(_poll_timeout);
       for (const auto& record: records) {
         // TODO
+        conn->stats.msgs_in++;
       }
     }
     return 0;
