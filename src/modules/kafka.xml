@@ -4,6 +4,10 @@
   <loader>C</loader>
   <image>kafka.so</image>
   <moduleconfig>
+    <parameter name="poll_timeout_ms"
+               required="optional"
+               default="10"
+               allowed="\d+">Number of milliseconds to wait for results when polling kafka.</parameter>
   </moduleconfig>
   <examples>
   </examples>
