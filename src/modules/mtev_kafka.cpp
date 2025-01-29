@@ -51,6 +51,14 @@ static mtev_log_stream_t nldeb = nullptr;
 
 constexpr int32_t DEFAULT_POLL_TIMEOUT_MS = 10;
 
+MTEV_HOOK_IMPL(mtev_kafka_handle_message_dyn,
+               (void *payload, size_t payload_len),
+               void *,
+               closure,
+               (void *closure, void *payload, size_t payload_len),
+               (closure,payload,payload_len))
+
+
 struct kafka_stats_t {
   kafka_stats_t() : msgs_in{0}, msgs_out{0} {}
   ~kafka_stats_t() = default;
