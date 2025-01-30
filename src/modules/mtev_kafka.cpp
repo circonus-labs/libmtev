@@ -171,12 +171,14 @@ class kafka_module_config {
       auto msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count());
       if (auto msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count()); msg) {
         conn->stats.msgs_in++;
-        if (msg->err) {
-          conn->stats.errors++;
+        if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
+          // TODO: Use real data
+          mtev_kafka_handle_message_dyn_hook_invoke(NULL, 0);
         }
         else {
           // TODO: Use real data
           mtev_kafka_handle_message_dyn_hook_invoke(NULL, 0);
+          conn->stats.errors++;
         }
       }
     }
