@@ -95,7 +95,12 @@ struct kafka_connection {
   }
   kafka_connection() = delete;
   ~kafka_connection() {
-    // TODO: We need to clean up all the kafka stuff here!
+    rd_kafka_topic_partition_list_destroy(rd_consumer_topics);
+    rd_kafka_unsubscribe(rd_consumer);
+    rd_kafka_conf_destroy(rd_consumer_conf);
+    rd_kafka_destroy(rd_consumer);
+    rd_kafka_conf_destroy(rd_producer_conf);
+    rd_kafka_destroy(rd_producer);
   }
   void write_to_console(const mtev_console_closure_t &ncct) {
     nc_printf(ncct, "== %s:%d ==\n"
