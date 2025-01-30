@@ -154,7 +154,7 @@ class kafka_module_config {
       }
       std::string topic_string;
       if(char *topic; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_TOPIC, &topic)) {
-        topic_string = "TODO";
+        topic_string = "mtev_default_topic";
       }
       else {
         topic_string = topic;
