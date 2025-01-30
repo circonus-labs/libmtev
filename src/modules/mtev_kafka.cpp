@@ -88,26 +88,54 @@ struct kafka_connection {
     consumer_group = consumer_group_in;
     producer_group = producer_group_in;
 
-    rd_consumer_conf = rd_kafka_conf_new();
-
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
-    rd_kafka_conf_set(rd_consumer_conf, "enable.idempotence", "true", error_string,
-                      error_string_size);
-    rd_kafka_conf_set(rd_consumer_conf, "bootstrap.servers", broker_with_port.c_str(), error_string,
-                      error_string_size);
-    rd_kafka_conf_set(rd_consumer_conf, "group.id", consumer_group.c_str(), error_string,
-                      error_string_size);
+
+    // Set consumer configuration stuff
+    rd_consumer_conf = rd_kafka_conf_new();
+    if (rd_kafka_conf_set(rd_consumer_conf, "enable.idempotence", "true", error_string,
+                          error_string_size) != RD_KAFKA_CONF_OK) {
+      std::string error = "error setting enable.idempotence field on consumer for " +
+        broker_with_port + ", topic " + topic_str;
+      throw std::runtime_error(error.c_str());
+    }
+    if (rd_kafka_conf_set(rd_consumer_conf, "bootstrap.servers", broker_with_port.c_str(),
+                          error_string, error_string_size) != RD_KAFKA_CONF_OK) {
+      std::string error = "error setting bootstrap.servers field on consumer for " +
+        broker_with_port + ", topic " + topic_str;
+      throw std::runtime_error(error.c_str());
+    }
+    if (rd_kafka_conf_set(rd_consumer_conf, "group.id", consumer_group.c_str(), error_string,
+                          error_string_size) != RD_KAFKA_CONF_OK) {
+      std::string error =
+        "error setting group.id field on consumer for " + broker_with_port + ", topic " + topic_str;
+      throw std::runtime_error(error.c_str());
+    }
+
+    // Set producer configuration stuff
+    rd_producer_conf = rd_kafka_conf_new();
+    if (rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", error_string,
+                          error_string_size) != RD_KAFKA_CONF_OK) {
+      std::string error = "error setting enable.idempotence field on producer for " +
+        broker_with_port + ", topic " + topic_str;
+      throw std::runtime_error(error.c_str());
+    }
+    if (rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", broker_with_port.c_str(),
+                          error_string, error_string_size) != RD_KAFKA_CONF_OK) {
+      std::string error = "error setting bootstrap.servers field on producer for " +
+        broker_with_port + ", topic " + topic_str;
+      throw std::runtime_error(error.c_str());
+    }
+    if (rd_kafka_conf_set(rd_consumer_conf, "group.id", producer_group.c_str(), error_string,
+                          error_string_size) != RD_KAFKA_CONF_OK) {
+      std::string error =
+        "error setting group.id field on producer for " + broker_with_port + ", topic " + topic_str;
+      throw std::runtime_error(error.c_str());
+    }
+
     rd_consumer =
       rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, error_string, error_string_size);
 
-    rd_producer_conf = rd_kafka_conf_new();
-    rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", error_string,
-                      error_string_size);
-    rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", broker_with_port.c_str(), error_string,
-                      error_string_size);
-    rd_kafka_conf_set(rd_consumer_conf, "group.id", producer_group.c_str(), error_string,
-                      error_string_size);
     rd_producer =
       rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
 
