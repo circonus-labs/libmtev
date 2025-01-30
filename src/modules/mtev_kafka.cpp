@@ -65,11 +65,12 @@ MTEV_HOOK_IMPL(mtev_kafka_handle_message_dyn,
 }
 
 struct kafka_stats_t {
-  kafka_stats_t() : msgs_in{0}, msgs_out{0} {}
+  kafka_stats_t() : msgs_in{0}, msgs_out{0}, errors{0} {}
   ~kafka_stats_t() = default;
 
   uint64_t msgs_in;
   uint64_t msgs_out;
+  uint64_t errors;
 };
 
 struct kafka_connection {
@@ -170,8 +171,13 @@ class kafka_module_config {
       auto msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count());
       if (auto msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count()); msg) {
         conn->stats.msgs_in++;
-        // TODO: Use real data
-        mtev_kafka_handle_message_dyn_hook_invoke(NULL, 0);
+        if (msg->err) {
+          conn->stats.errors++;
+        }
+        else {
+          // TODO: Use real data
+          mtev_kafka_handle_message_dyn_hook_invoke(NULL, 0);
+        }
       }
     }
     return 0;
