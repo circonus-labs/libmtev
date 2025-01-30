@@ -48,6 +48,8 @@
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
 #define CONFIG_KAFKA_HOST "self::node()/host"
 #define CONFIG_KAFKA_PORT "self::node()/port"
+#define CONFIG_KAFKA_PRODUCER_GROUP "self::node()/producer_group"
+#define CONFIG_KAFKA_CONSUMER_GROUP "self::node()/consumer_group"
 #define CONFIG_KAFKA_TOPIC "self::node()/topic"
 
 static mtev_log_stream_t nlerr = nullptr;
@@ -74,21 +76,24 @@ struct kafka_stats_t {
 };
 
 struct kafka_connection {
-  kafka_connection(const std::string &host_in, const int32_t port_in, const std::string &topic_str) {
+  kafka_connection(const std::string &host_in, const int32_t port_in, const std::string &topic_str,
+                   const std::string consumer_group_in, const std::string producer_group_in) {
     host = host_in;
     port = port_in;
     broker_with_port = host + ":" + std::to_string(port);
+    consumer_group = consumer_group_in;
+    producer_group = producer_group_in;
 
     rd_consumer_conf = rd_kafka_conf_new();
     rd_kafka_conf_set(rd_consumer_conf, "enable.idempotence", "true", nullptr, 0);
     rd_kafka_conf_set(rd_consumer_conf, "bootstrap.servers", broker_with_port.c_str(), nullptr, 0);
-    rd_kafka_conf_set(rd_consumer_conf, "group.id", "mtev_consumers", NULL, 0);
+    rd_kafka_conf_set(rd_consumer_conf, "group.id", consumer_group.c_str(), NULL, 0);
     rd_consumer = rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, nullptr, 0);
 
     rd_producer_conf = rd_kafka_conf_new();
     rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", nullptr, 0);
     rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", broker_with_port.c_str(), nullptr, 0);
-    rd_kafka_conf_set(rd_consumer_conf, "group.id", "mtev_producers", NULL, 0);
+    rd_kafka_conf_set(rd_consumer_conf, "group.id", producer_group.c_str(), NULL, 0);
     rd_producer = rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, nullptr, 0);
 
     rd_consumer_topics = rd_kafka_topic_partition_list_new(1);
@@ -113,6 +118,8 @@ struct kafka_connection {
   std::string host;
   int32_t port;
   std::string broker_with_port;
+  std::string consumer_group;
+  std::string producer_group;
   rd_kafka_conf_t *rd_producer_conf;
   rd_kafka_t *rd_producer;
   rd_kafka_conf_t *rd_consumer_conf;
@@ -153,8 +160,24 @@ class kafka_module_config {
         topic_string = topic;
         free(topic);
       }
+      std::string consumer_group_string;
+      if (char *consumer_group; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_CONSUMER_GROUP, &consumer_group)) {
+        consumer_group_string = "mtev_default_group";
+      }
+      else {
+        consumer_group_string = consumer_group;
+        free(consumer_group);
+      }
+      std::string producer_group_string;
+      if (char *producer_group; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_PRODUCER_GROUP, &producer_group)) {
+        producer_group_string = "mtev_default_group";
+      }
+      else {
+        producer_group_string = producer_group;
+        free(producer_group);
+      }
       try {
-        auto conn = std::make_unique<kafka_connection>(host_string, port, topic_string);
+        auto conn = std::make_unique<kafka_connection>(host_string, port, topic_string, consumer_group_string, producer_group_string);
         _conns.push_back(std::move(conn));
       }
       catch (std::exception& exception) {

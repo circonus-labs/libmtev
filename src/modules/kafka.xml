@@ -26,6 +26,8 @@
             <host>localhost</host>
             <port>9092</port>
             <topic>test_topic_one</topic>
+            <consumer_group>sample_consumer_group_id</consumer_group>
+            <producer_group>sample_producer_group_id</producer_group>
           </mq>
         </network>
       </root>
