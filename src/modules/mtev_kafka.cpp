@@ -82,11 +82,13 @@ struct kafka_connection {
     rd_consumer_conf = rd_kafka_conf_new();
     rd_kafka_conf_set(rd_consumer_conf, "enable.idempotence", "true", nullptr, 0);
     rd_kafka_conf_set(rd_consumer_conf, "bootstrap.servers", broker_with_port.c_str(), nullptr, 0);
+    rd_kafka_conf_set(rd_consumer_conf, "group.id", "mtev_consumers", NULL, 0);
     rd_consumer = rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, nullptr, 0);
 
     rd_producer_conf = rd_kafka_conf_new();
     rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", nullptr, 0);
     rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", broker_with_port.c_str(), nullptr, 0);
+    rd_kafka_conf_set(rd_consumer_conf, "group.id", "mtev_producers", NULL, 0);
     rd_producer = rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, nullptr, 0);
 
     rd_consumer_topics = rd_kafka_topic_partition_list_new(1);
