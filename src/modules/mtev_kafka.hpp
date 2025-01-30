@@ -33,8 +33,9 @@
 #ifndef _MTEV_KAFKA_HPP
 #define _MTEV_KAFKA_HPP
 
-#include <mtev_defines.h>
-#include <mtev_hooks.h>
+#include "mtev_defines.h"
+#include "mtev_hooks.h"
+#include "mtev_log.h"
 
 #ifdef __cplusplus
 extern "C" {
