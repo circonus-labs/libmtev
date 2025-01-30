@@ -89,8 +89,8 @@ struct kafka_connection {
     rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", broker_with_port.c_str(), nullptr, 0);
     rd_producer = rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, nullptr, 0);
 
-    rd_consumer_topics = rd_kafka_topic_partition_list_new(1);  // 1 topic
-    rd_kafka_topic_partition_list_add(rd_consumer_topics, topic_str.c_str(), RD_KAFKA_PARTITION_UA);  // Add topic
+    rd_consumer_topics = rd_kafka_topic_partition_list_new(1);
+    rd_kafka_topic_partition_list_add(rd_consumer_topics, topic_str.c_str(), RD_KAFKA_PARTITION_UA);
     rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
   }
   kafka_connection() = delete;
