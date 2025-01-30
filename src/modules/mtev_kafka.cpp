@@ -259,7 +259,6 @@ public:
         }
         else {
           // TODO: Use real data
-          mtev_kafka_handle_message_dyn_hook_invoke(NULL, 0);
           conn->stats.errors++;
         }
       }
