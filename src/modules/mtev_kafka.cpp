@@ -56,6 +56,7 @@ static mtev_log_stream_t nlerr = nullptr;
 static mtev_log_stream_t nldeb = nullptr;
 
 constexpr int32_t DEFAULT_POLL_TIMEOUT_MS = 10;
+constexpr int32_t DEFAULT_POLL_LIMIT = 10000;
 
 extern "C" {
 MTEV_HOOK_IMPL(mtev_kafka_handle_message_dyn,
@@ -189,7 +190,9 @@ struct kafka_connection {
 
 class kafka_module_config {
 public:
-  kafka_module_config() : _poll_timeout(std::chrono::milliseconds{DEFAULT_POLL_TIMEOUT_MS})
+  kafka_module_config()
+    : _poll_timeout{std::chrono::milliseconds{DEFAULT_POLL_TIMEOUT_MS}}, _poll_limit{
+                                                                           DEFAULT_POLL_LIMIT}
   {
     int number_of_conns = 0;
     mtev_conf_section_t *mqs =
@@ -255,12 +258,19 @@ public:
     mtev_conf_release_sections_read(mqs, number_of_conns);
   }
   ~kafka_module_config() = default;
-  void set_poll_timeout(std::chrono::milliseconds poll_timeout) { _poll_timeout = poll_timeout; }
+  void set_poll_timeout(const std::chrono::milliseconds poll_timeout)
+  {
+    _poll_timeout = poll_timeout;
+  }
+  void set_poll_limit(const int32_t poll_limit) { _poll_limit = poll_limit; }
   int poll()
   {
     for (const auto &conn : _conns) {
-      auto msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count());
-      if (auto msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count()); msg) {
+      int32_t per_conn_cnt = 0;
+      rd_kafka_message_t *msg = nullptr;
+      while (
+        (_poll_limit == 0 || per_conn_cnt < _poll_limit) &&
+        (nullptr != (msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count())))) {
         conn->stats.msgs_in++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
           // TODO: Use real data
@@ -285,6 +295,7 @@ public:
 private:
   std::vector<std::unique_ptr<kafka_connection>> _conns;
   std::chrono::milliseconds _poll_timeout;
+  int32_t _poll_limit;
 };
 
 static kafka_module_config *the_conf = nullptr;
@@ -340,6 +351,14 @@ static int kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options
       }
       auto config = get_or_load_config(img);
       config->set_poll_timeout(std::chrono::milliseconds{poll_timeout_ms});
+    }
+    else if (!strcmp("poll_limit", iter.key.str)) {
+      auto poll_limit = atoi(iter.value.str);
+      if (poll_limit < 0) {
+        poll_limit = DEFAULT_POLL_TIMEOUT_MS;
+      }
+      auto config = get_or_load_config(img);
+      config->set_poll_limit(poll_limit);
     }
     else {
       mtevL(nlerr, "Kafka module config got unknown value: %s=%s\n", iter.key.str, iter.value.str);
