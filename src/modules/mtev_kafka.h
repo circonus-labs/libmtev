@@ -50,33 +50,9 @@ typedef struct mtev_rd_kafka_message {
   void (*free_fn)(struct mtev_rd_kafka_message *m);
 } mtev_rd_kafka_message_t;
 
-void mtev_rd_kafka_message_free(mtev_rd_kafka_message_t *msg) {
-  mtevAssert(msg->refcnt == 0);
-  rd_kafka_message_destroy(msg->msg);
-  free(msg);
-}
-
-mtev_rd_kafka_message_t *mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg) {
-  mtev_rd_kafka_message_t *m = (mtev_rd_kafka_message_t *)calloc(1, sizeof(mtev_rd_kafka_message_t));
-  m->msg = msg;
-  m->refcnt = 1;
-  m->free_fn = mtev_rd_kafka_message_free;
-  return m;
-}
-
-void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg) {
-  ck_pr_inc_uint(&msg->refcnt);
-}
-
-void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg) {
-  bool zero;
-  ck_pr_dec_uint_zero(&msg->refcnt, &zero);
-  if (zero) {
-    if (msg->free_fn) {
-      msg->free_fn(msg);
-    }
-  }
-}
+mtev_rd_kafka_message_t *mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg);
+void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg);
+void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg);
 
 // TODO: Extend this for kafka
 #if 0
