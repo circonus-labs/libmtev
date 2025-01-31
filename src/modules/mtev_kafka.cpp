@@ -45,7 +45,6 @@
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
 #define CONFIG_KAFKA_HOST "self::node()/host"
 #define CONFIG_KAFKA_PORT "self::node()/port"
-#define CONFIG_KAFKA_PRODUCER_GROUP "self::node()/producer_group"
 #define CONFIG_KAFKA_CONSUMER_GROUP "self::node()/consumer_group"
 #define CONFIG_KAFKA_TOPIC "self::node()/topic"
 
@@ -112,15 +111,13 @@ struct kafka_connection {
   kafka_connection(const std::string &host_in,
                    const int32_t port_in,
                    const std::string &topic_in,
-                   const std::string consumer_group_in,
-                   const std::string producer_group_in)
+                   const std::string consumer_group_in)
   {
     host = host_in;
     port = port_in;
     topic = topic_in;
     broker_with_port = host + ":" + std::to_string(port);
     consumer_group = consumer_group_in;
-    producer_group = producer_group_in;
 
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
@@ -173,14 +170,6 @@ struct kafka_connection {
       rd_kafka_conf_destroy(rd_producer_conf);
       throw std::runtime_error(error.c_str());
     }
-    if (rd_kafka_conf_set(rd_consumer_conf, "group.id", producer_group.c_str(), error_string,
-                          error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error = "kafka config error: error setting group.id field on producer for " +
-        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
-      rd_kafka_conf_destroy(rd_consumer_conf);
-      rd_kafka_conf_destroy(rd_producer_conf);
-      throw std::runtime_error(error.c_str());
-    }
 
     rd_consumer =
       rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, error_string, error_string_size);
@@ -206,10 +195,10 @@ struct kafka_connection {
   {
     nc_printf(ncct,
               "== %s:%d ==\n"
-              "  topic: %s\n  consumer_group: %s\n  producer_group: %s\n"
+              "  topic: %s\n  consumer_group: %s\n"
               "  (s) msgs tx: %zu\n  (s) msgs rx: %zu  (s) msgs tx errors: %zu\n",
-              host.c_str(), port, topic.c_str(), consumer_group.c_str(), producer_group.c_str(),
-              stats.msgs_in, stats.msgs_out, stats.errors);
+              host.c_str(), port, topic.c_str(), consumer_group.c_str(), stats.msgs_in,
+              stats.msgs_out, stats.errors);
   }
 
   std::string host;
@@ -217,7 +206,6 @@ struct kafka_connection {
   std::string broker_with_port;
   std::string topic;
   std::string consumer_group;
-  std::string producer_group;
   rd_kafka_conf_t *rd_producer_conf;
   rd_kafka_t *rd_producer;
   rd_kafka_conf_t *rd_consumer_conf;
@@ -270,18 +258,9 @@ public:
         consumer_group_string = consumer_group;
         free(consumer_group);
       }
-      std::string producer_group_string;
-      if (char *producer_group;
-          !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_PRODUCER_GROUP, &producer_group)) {
-        producer_group_string = "mtev_default_group";
-      }
-      else {
-        producer_group_string = producer_group;
-        free(producer_group);
-      }
       try {
-        auto conn = std::make_unique<kafka_connection>(
-          host_string, port, topic_string, consumer_group_string, producer_group_string);
+        auto conn = std::make_unique<kafka_connection>(host_string, port, topic_string,
+                                                       consumer_group_string);
         _conns.push_back(std::move(conn));
       }
       catch (std::exception &exception) {
