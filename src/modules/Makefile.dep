@@ -426,5 +426,5 @@ mtev_kafka.lo: mtev_kafka.cpp ../mtev_defines.h ../mtev_config.h \
   ../../src/utils/mtev_skiplist.h ../../src/utils/mtev_uuid.h \
   ../../src/utils/mtev_uuid_parse.h ../../src/utils/mtev_uuid_copy.h \
   ../../src/utils/mtev_uuid_generate.h ../../src/utils/mtev_rand.h \
-  ../mtev_thread.h mtev_kafka.hpp \
+  ../mtev_thread.h mtev_kafka.h \
   kafka.xmlh

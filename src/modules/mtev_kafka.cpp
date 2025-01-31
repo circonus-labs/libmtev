@@ -29,7 +29,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "mtev_kafka.hpp"
+#include "mtev_kafka.h"
 #include "mtev_conf.h"
 #include "mtev_defines.h"
 #include "mtev_dso.h"

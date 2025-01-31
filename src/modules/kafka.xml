@@ -8,6 +8,10 @@
                required="optional"
                default="10"
                allowed="\d+">Number of milliseconds to wait for results when polling kafka.</parameter>
+    <parameter name="poll_limit"
+               required="optional"
+               default="10000"
+               allowed="\d+">Maximum number of messages to handle in a single callback.</parameter>
   </moduleconfig>
   <examples>
     <example>
