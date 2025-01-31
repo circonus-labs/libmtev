@@ -43,8 +43,6 @@
 #include <string>
 #include <vector>
 
-#include <librdkafka/rdkafka.h>
-
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
 #define CONFIG_KAFKA_HOST "self::node()/host"
 #define CONFIG_KAFKA_PORT "self::node()/port"

@@ -37,9 +37,17 @@
 #include "mtev_hooks.h"
 #include "mtev_log.h"
 
+#include <librdkafka/rdkafka.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct mtev_rd_kafka_message {
+  rd_kafka_message_t msg;
+  uint32_t refcnt;
+  void (*free_fn)(struct mtev_rd_kafka_message *m);
+} mtev_rd_kafka_message_t;
 
 // TODO: Extend this for kafka
 #if 0
