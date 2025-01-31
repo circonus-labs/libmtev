@@ -31,7 +31,6 @@
 
 #include "mtev_kafka.h"
 #include "mtev_conf.h"
-#include "mtev_defines.h"
 #include "mtev_dso.h"
 #include "mtev_hooks.h"
 #include "mtev_log.h"
@@ -58,11 +57,11 @@ constexpr int32_t DEFAULT_POLL_LIMIT = 10000;
 
 extern "C" {
 MTEV_HOOK_IMPL(mtev_kafka_handle_message_dyn,
-               (const void *payload, size_t payload_len),
+               (mtev_rd_kafka_message_t *msg),
                void *,
                closure,
-               (void *closure, const void *payload, size_t payload_len),
-               (closure, payload, payload_len))
+               (void *closure, mtev_rd_kafka_message_t *msg),
+               (closure, msg))
 }
 
 struct kafka_stats_t {
@@ -271,8 +270,8 @@ public:
         (nullptr != (msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count())))) {
         conn->stats.msgs_in++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
-          // TODO: Use real data
-          mtev_kafka_handle_message_dyn_hook_invoke(NULL, 0);
+          mtev_rd_kafka_message_t *m = mtev_rd_kafka_message_alloc(msg);
+          mtev_kafka_handle_message_dyn_hook_invoke(m);
         }
         else {
           // TODO: Use real data
