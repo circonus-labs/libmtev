@@ -4,6 +4,8 @@
 
 ## 2.7
 
+ * Add kafka module to allow handling kafka consumers via hooks.
+
 ### 2.7.4
 
  * Fix bug where X509 OCSP errors were not being handled properly and could
