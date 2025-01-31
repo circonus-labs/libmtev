@@ -196,7 +196,7 @@ struct kafka_connection {
     nc_printf(ncct,
               "== %s:%d ==\n"
               "  topic: %s\n  consumer_group: %s\n"
-              "  (s) msgs tx: %zu\n  (s) msgs rx: %zu  (s) msgs tx errors: %zu\n",
+              "  (s) msgs tx: %zu\n  (s) msgs rx: %zu\n  (s) msgs tx errors: %zu\n",
               host.c_str(), port, topic.c_str(), consumer_group.c_str(), stats.msgs_in,
               stats.msgs_out, stats.errors);
   }
