@@ -152,6 +152,8 @@ struct kafka_connection {
     }
 
     // Set producer configuration stuff
+    // TODO: The producer is not actively used for anything yet. Need to implement write/publish
+    // functions and hooks.
     rd_producer_conf = rd_kafka_conf_new();
     if (rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", error_string,
                           error_string_size) != RD_KAFKA_CONF_OK) {

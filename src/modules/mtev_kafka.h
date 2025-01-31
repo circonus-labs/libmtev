@@ -54,24 +54,7 @@ mtev_rd_kafka_message_t *mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg,
 void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg);
 void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg);
 
-// TODO: Extend this for kafka
-#if 0
-
-struct fq_msg;
-struct fq_conn_s;
-
-/* void mtev_fq_send(fq_msg *msg, int id); */
-MTEV_RUNTIME_RESOLVE(mtev_fq_send, mtev_fq_send_function, void,
-                     (struct fq_msg *msg, int id), (msg, id))
-MTEV_RUNTIME_AVAIL(mtev_fq_send, mtev_fq_send_function)
-
-/* void mtev_fq_send_data(char *exhcnage, char *route, void *payload, int len, int id); */
-MTEV_RUNTIME_RESOLVE(mtev_fq_send_data, mtev_fq_send_data_function, void,
-                     (char *exchange, char *route, void *payload, int len, int id),
-                     (exchange, route, payload, len, id))
-MTEV_RUNTIME_AVAIL(mtev_fq_send_data, mtev_fq_send_data_function)
-
-#endif
+// TODO: Need write hooks
 
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
                 (mtev_rd_kafka_message_t * msg),
