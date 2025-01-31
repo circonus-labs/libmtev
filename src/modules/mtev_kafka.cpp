@@ -289,6 +289,7 @@ public:
         (_poll_limit == 0 || per_conn_cnt < _poll_limit) &&
         (nullptr != (msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count())))) {
         conn->stats.msgs_in++;
+        per_conn_cnt++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
           mtev_rd_kafka_message_t *m = mtev_rd_kafka_message_alloc(msg, mtev_rd_kafka_message_free);
           mtev_kafka_handle_message_dyn_hook_invoke(m);
