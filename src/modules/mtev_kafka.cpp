@@ -71,13 +71,15 @@ static void mtev_rd_kafka_message_free(mtev_rd_kafka_message_t *msg)
   free(msg);
 }
 
-mtev_rd_kafka_message_t *mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg)
+mtev_rd_kafka_message_t *
+  mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg,
+                              void (*free_func)(struct mtev_rd_kafka_message *))
 {
   mtev_rd_kafka_message_t *m =
     (mtev_rd_kafka_message_t *) calloc(1, sizeof(mtev_rd_kafka_message_t));
   m->msg = msg;
   m->refcnt = 1;
-  m->free_fn = mtev_rd_kafka_message_free;
+  m->free_fn = free_func;
   return m;
 }
 
@@ -303,8 +305,9 @@ public:
         (nullptr != (msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count())))) {
         conn->stats.msgs_in++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
-          mtev_rd_kafka_message_t *m = mtev_rd_kafka_message_alloc(msg);
+          mtev_rd_kafka_message_t *m = mtev_rd_kafka_message_alloc(msg, mtev_rd_kafka_message_free);
           mtev_kafka_handle_message_dyn_hook_invoke(m);
+          mtev_rd_kafka_message_deref(m);
         }
         else {
           // TODO: Use real data

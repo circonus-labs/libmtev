@@ -49,7 +49,8 @@ typedef struct mtev_rd_kafka_message {
   void (*free_fn)(struct mtev_rd_kafka_message *m);
 } mtev_rd_kafka_message_t;
 
-mtev_rd_kafka_message_t *mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg);
+mtev_rd_kafka_message_t *mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg,
+                                                     void (*func)(mtev_rd_kafka_message_t *));
 void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg);
 void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg);
 
