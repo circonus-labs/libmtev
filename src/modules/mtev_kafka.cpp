@@ -357,8 +357,9 @@ static int
   return len;
 }
 
-static logops_t kafka_logio_ops = {
-  mtev_false, kafka_logio_open, NULL, kafka_logio_write, NULL, NULL, NULL, NULL, NULL};
+static logops_t kafka_logio_ops = {mtev_false,        kafka_logio_open, nullptr,
+                                   kafka_logio_write, nullptr,          nullptr,
+                                   nullptr,           nullptr,          nullptr};
 
 static int mtev_console_show_kafka(
   mtev_console_closure_t ncct, int argc, char **argv, mtev_console_state_t *dstate, void *closure)
@@ -417,7 +418,7 @@ static int kafka_driver_init(mtev_dso_generic_t *img)
   cmd_info_t *showcmd = mtev_console_state_get_cmd(tl, "show");
   mtevAssert(showcmd && showcmd->dstate);
   mtev_console_state_add_cmd(showcmd->dstate,
-                             NCSCMD("", mtev_console_show_kafka, NULL, NULL, config));
+                             NCSCMD("", mtev_console_show_kafka, nullptr, nullptr, config));
 
   auto e = eventer_alloc_recurrent(poll_kafka, config);
   eventer_add(e);
