@@ -111,12 +111,13 @@ struct kafka_stats_t {
 struct kafka_connection {
   kafka_connection(const std::string &host_in,
                    const int32_t port_in,
-                   const std::string &topic_str,
+                   const std::string &topic_in,
                    const std::string consumer_group_in,
                    const std::string producer_group_in)
   {
     host = host_in;
     port = port_in;
+    topic = topic_in;
     broker_with_port = host + ":" + std::to_string(port);
     consumer_group = consumer_group_in;
     producer_group = producer_group_in;
@@ -130,7 +131,7 @@ struct kafka_connection {
                           error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
         "kafka config error: error setting enable.idempotence field on consumer for " +
-        broker_with_port + ", topic " + topic_str + ": kafka reported error |" + error_string + "|";
+        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
       rd_kafka_conf_destroy(rd_consumer_conf);
       throw std::runtime_error(error.c_str());
     }
@@ -138,14 +139,14 @@ struct kafka_connection {
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
         "kafka config error: error setting bootstrap.servers field on consumer for " +
-        broker_with_port + ", topic " + topic_str + ": kafka reported error |" + error_string + "|";
+        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
       rd_kafka_conf_destroy(rd_consumer_conf);
       throw std::runtime_error(error.c_str());
     }
     if (rd_kafka_conf_set(rd_consumer_conf, "group.id", consumer_group.c_str(), error_string,
                           error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error = "kafka config error: error setting group.id field on consumer for " +
-        broker_with_port + ", topic " + topic_str + ": kafka reported error |" + error_string + "|";
+        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
       rd_kafka_conf_destroy(rd_consumer_conf);
       throw std::runtime_error(error.c_str());
     }
@@ -156,7 +157,7 @@ struct kafka_connection {
                           error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
         "kafka config error: error setting enable.idempotence field on producer for " +
-        broker_with_port + ", topic " + topic_str + ": kafka reported error |" + error_string + "|";
+        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
       rd_kafka_conf_destroy(rd_consumer_conf);
       rd_kafka_conf_destroy(rd_producer_conf);
       throw std::runtime_error(error.c_str());
@@ -165,7 +166,7 @@ struct kafka_connection {
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
         "kafka config error: error setting bootstrap.servers field on producer for " +
-        broker_with_port + ", topic " + topic_str + ": kafka reported error |" + error_string + "|";
+        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
       rd_kafka_conf_destroy(rd_consumer_conf);
       rd_kafka_conf_destroy(rd_producer_conf);
       throw std::runtime_error(error.c_str());
@@ -173,7 +174,7 @@ struct kafka_connection {
     if (rd_kafka_conf_set(rd_consumer_conf, "group.id", producer_group.c_str(), error_string,
                           error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error = "kafka config error: error setting group.id field on producer for " +
-        broker_with_port + ", topic " + topic_str + ": kafka reported error |" + error_string + "|";
+        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
       rd_kafka_conf_destroy(rd_consumer_conf);
       rd_kafka_conf_destroy(rd_producer_conf);
       throw std::runtime_error(error.c_str());
@@ -186,7 +187,7 @@ struct kafka_connection {
       rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
 
     rd_consumer_topics = rd_kafka_topic_partition_list_new(1);
-    rd_kafka_topic_partition_list_add(rd_consumer_topics, topic_str.c_str(), RD_KAFKA_PARTITION_UA);
+    rd_kafka_topic_partition_list_add(rd_consumer_topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
     rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
   }
   kafka_connection() = delete;
@@ -210,6 +211,7 @@ struct kafka_connection {
   std::string host;
   int32_t port;
   std::string broker_with_port;
+  std::string topic;
   std::string consumer_group;
   std::string producer_group;
   rd_kafka_conf_t *rd_producer_conf;
@@ -310,8 +312,10 @@ public:
           mtev_rd_kafka_message_deref(m);
         }
         else {
-          // TODO: Use real data
+          mtevL(nlerr, "ERROR: Got error reading from %s, topic %s: %s\n",
+                conn->broker_with_port.c_str(), conn->topic.c_str(), rd_kafka_err2str(msg->err));
           conn->stats.errors++;
+          rd_kafka_message_destroy(msg);
         }
       }
     }
