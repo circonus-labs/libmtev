@@ -4,7 +4,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above
@@ -15,7 +15,7 @@
  *       of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written
  *       permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -28,7 +28,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 
 #ifndef _MTEV_KAFKA_HPP
 #define _MTEV_KAFKA_HPP
@@ -74,7 +73,7 @@ MTEV_RUNTIME_AVAIL(mtev_fq_send_data, mtev_fq_send_data_function)
 #endif
 
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
-                (mtev_rd_kafka_message_t *msg),
+                (mtev_rd_kafka_message_t * msg),
                 void *,
                 closure,
                 (void *closure, mtev_rd_kafka_message_t *msg))
@@ -88,9 +87,9 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_handle_message_hook_register,
                      mtev_kafka_handle_message_dyn_hook_register,
                      mtev_hook_return_t,
                      (const char *name,
-                      mtev_hook_return_t (*func) (void *closure, mtev_rd_kafka_message_t *msg),
+                      mtev_hook_return_t (*func)(void *closure, mtev_rd_kafka_message_t *msg),
                       void *closure),
-                     (name,func,closure))
+                     (name, func, closure))
 
 #ifdef __cplusplus
 }
