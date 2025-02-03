@@ -551,7 +551,7 @@ AS_IF([test "x$enable_kafka" != "xno"], [
             AC_MSG_NOTICE([NOTICE: not building kafka module, no kafka library found])
             KAFKA_BUILT="no"
          else
-            AC_MSG_ERROR([*** can't build kafka, no -lkafka ***])
+            AC_MSG_ERROR([*** can't build kafka, no -lrdkafka ***])
          fi
         ]
     )
