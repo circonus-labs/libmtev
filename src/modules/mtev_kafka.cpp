@@ -338,14 +338,14 @@ static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self)
 static int kafka_logio_open(mtev_log_stream_t ls)
 {
   (void) ls;
-  return 0;
+  return -1;
 }
 
 static int
   kafka_logio_write(mtev_log_stream_t ls, const struct timeval *whence, const void *buf, size_t len)
 {
   // TODO: Need a write function
-  return len;
+  return -1;
 }
 
 static logops_t kafka_logio_ops = {mtev_false,        kafka_logio_open, nullptr,
