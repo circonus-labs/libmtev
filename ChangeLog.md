@@ -4,6 +4,10 @@
 
 ## 2.7
 
+### 2.7.6
+
+ * Fix install-headers to include required kafka headers.
+
 ### 2.7.5
 
  * Add kafka module to allow handling kafka consumers via hooks.
