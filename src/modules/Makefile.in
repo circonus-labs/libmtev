@@ -19,6 +19,7 @@ CFLAGS=@CFLAGS@ @CFLAGSEXTRAS@
 CXXFLAGS=@CXXFLAGS@ @CXXFLAGSEXTRAS@
 DEPFLAGS=@DEPFLAGS@
 SHCFLAGS=@SHCFLAGS@ @CFLAGSEXTRAS@
+SHCXXFLAGS=@SHCXXFLAGS@ @CXXFLAGSEXTRAS@
 MODULELD=@MODULELD@
 MODULEEXT=@MODULEEXT@
 LDFLAGS=@LDFLAGS@
@@ -69,6 +70,7 @@ LUA_FILES=mtev/extras.lua mtev/HttpClient.lua \
 	mtev/Proc.lua
 
 FQ_MODULES=@FQ_MODULES@
+KAFKA_MODULES=@KAFKA_MODULES@
 AMQP_MODULES=@AMQP_MODULES@
 LUA_MODULES=@LUA_MODULES@
 ifneq ($(strip $(LUA_MODULES)),)
@@ -76,8 +78,8 @@ MTEV4LUA=mtev_lua/mtev.so
 CONSUL4LUA=mtev_lua/mtev/consul.so
 endif
 
-MODULES=$(FQ_MODULES) $(AMQP_MODULES) $(LUA_MODULES) zipkin_jaeger.@MODULEEXT@ http_observer.@MODULEEXT@ \
-	consul.@MODULEEXT@ http_hmac_cookie.@MODULEEXT@
+MODULES=$(FQ_MODULES) $(KAFKA_MODULES) $(AMQP_MODULES) $(LUA_MODULES) zipkin_jaeger.@MODULEEXT@ \
+    http_observer.@MODULEEXT@ consul.@MODULEEXT@ http_hmac_cookie.@MODULEEXT@
 LUAMODS=$(MTEV4LUA) $(CONSUL4LUA)
 
 all:	$(MODULES) $(LUAMODS)
@@ -110,6 +112,12 @@ mtev_fq.lo:	fq.xmlh
 
 fq.@MODULEEXT@:	MODLIBS += -lfq
 fq.@MODULEEXT@:	mtev_fq.lo
+	$(modulelink)
+
+mtev_kafka.lo:	kafka.xmlh
+
+kafka.@MODULEEXT@:	MODLIBS += -lrdkafka
+kafka.@MODULEEXT@:	mtev_kafka.lo
 	$(modulelink)
 
 mtev_amqp.lo:	amqp.xmlh
@@ -161,6 +169,15 @@ mtev_lua/mtev/consul.@MODULEEXT@:	$(CONSUL_LUA_OBJS)
 	fi
 	$(Q)mv $@.noctf $@
 
+.cpp.lo:
+	@echo "- compiling $<"
+	$(Q)$(CXX) $(CPPFLAGS) $(SHCXXFLAGS) -c $< -o $@.noctf
+	$(Q)if test -x "$(CTFCONVERT)" ; then \
+		echo "- making CTF ($@)" ; \
+		$(CTFCONVERT) $(CTFNOSTRIP) -i -l @VERSION@ $@.noctf ; \
+	fi
+	$(Q)mv $@.noctf $@
+
 alldocs:
 	for c in *.xml ; do \
 		$(XSLTPROC) module-md.xsl $$c > $(top_srcdir)/docs-md/config/modules/`echo $$c | sed -e 's/.xml$$/.md/;'` ; \
@@ -198,6 +215,12 @@ install-fq:	$(FQ_MODULES)
 		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
 	done
 
+install-kafka:	$(KAFKA_MODULES)
+	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)
+	for mod in $(KAFKA_MODULES); do \
+		$(INSTALL) -m 0755 $$mod $(DESTDIR)$(MODULES_DIR)/$$mod ; \
+	done
+
 install-amqp:	$(AMQP_MODULES)
 	$(top_srcdir)/buildtools/mkinstalldirs $(DESTDIR)$(MODULES_DIR)
 	for mod in $(AMQP_MODULES); do \
@@ -213,6 +236,8 @@ distclean:	clean
 Makefile.dep:
 	$(CC) -I.. $(CPPFLAGS) $(CFLAGS) \
 		$(DEPFLAGS) -c *.c | sed -e 's/\.o:/\.lo:/' > Makefile.dep
+	$(CXX) -I.. $(CPPFLAGS) $(CXXFLAGS) \
+		$(DEPFLAGS) -c *.cpp | sed -e 's/\.o:/\.lo:/' >> Makefile.dep
 	$(top_srcdir)/buildtools/culldeps.sh Makefile.dep
 
 include Makefile.dep

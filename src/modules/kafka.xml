@@ -1,0 +1,40 @@
+<module>
+  <name>kafka</name>
+  <description><para>The kafka module consumes and publishes messages via kafka.</para></description>
+  <loader>C</loader>
+  <image>kafka.so</image>
+  <moduleconfig>
+    <parameter name="poll_timeout_ms"
+               required="optional"
+               default="10"
+               allowed="\d+">Number of milliseconds to wait for results when polling kafka.</parameter>
+    <parameter name="poll_limit"
+               required="optional"
+               default="10000"
+               allowed="\d+">Maximum number of messages to handle in a single callback.</parameter>
+  </moduleconfig>
+  <examples>
+    <example>
+      <title>Loading the kafka module.</title>
+      <programlisting language="xml"><![CDATA[
+      <root>
+        <modules>
+          <module image="kafka" name="kafka">
+            <config>
+              <poll_timeout_ms>10</poll_timeout_ms>
+            </config>
+          </module>
+        </modules>
+        <network>
+          <mq type="kafka">
+            <host>localhost</host>
+            <port>9092</port>
+            <topic>test_topic_one</topic>
+            <consumer_group>sample_consumer_group_id</consumer_group>
+          </mq>
+        </network>
+      </root>
+    ]]></programlisting>
+    </example>
+  </examples>
+</module>

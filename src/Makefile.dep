@@ -45,8 +45,7 @@ mtev_capabilities_listener.o mtev_capabilities_listener.lo: mtev_capabilities_li
   ../src/utils/mtev_uuid_generate.h mtev_console.h \
 
 mtev_cluster.o mtev_cluster.lo: mtev_cluster.c mtev_defines.h mtev_config.h \
-  ../src/utils/mtev_str.h mtev_defines.h \
-  ../src/utils/mtev_uuid.h \
+  ../src/utils/mtev_str.h mtev_defines.h ../src/utils/mtev_uuid.h \
   ../src/utils/mtev_uuid_parse.h ../src/utils/mtev_uuid_copy.h \
   ../src/utils/mtev_uuid_generate.h mtev_rest.h mtev_listener.h \
   eventer/eventer.h ../src/utils/mtev_log.h ../src/utils/mtev_dyn_buffer.h \
@@ -61,9 +60,10 @@ mtev_cluster.o mtev_cluster.lo: mtev_cluster.c mtev_defines.h mtev_config.h \
   eventer/eventer_impl_private.h \
   ../src/utils/mtev_memory.h  \
   mtev_http.h \
-  ../src/utils/mtev_compress.h mtev_http1.h mtev_http2.h mtev_console.h \
-  noitedit/histedit.h mtev_console_telnet.h ../src/utils/mtev_skiplist.h \
-  mtev_conf.h ../src/utils/mtev_rand.h mtev_cluster.h mtev_conf.h \
+  ../src/utils/mtev_compress.h \
+  mtev_http1.h mtev_http2.h mtev_console.h noitedit/histedit.h \
+  mtev_console_telnet.h ../src/utils/mtev_skiplist.h mtev_conf.h \
+  ../src/utils/mtev_rand.h mtev_cluster.h mtev_conf.h \
   ../src/utils/mtev_cht.h mtev_net_heartbeat.h
 
 mtev_conf.o mtev_conf.lo: mtev_conf.c mtev_defines.h mtev_config.h \
@@ -444,6 +444,30 @@ mtev_xml.o mtev_xml.lo: mtev_xml.c mtev_defines.h mtev_config.h \
   ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
   ../src/utils/mtev_mkdir.h
 
+mtev_reverse_socket.o mtev_reverse_socket.lo: mtev_reverse_socket.cpp \
+  utils/intrusive/intrusive_ptr.hpp ../src/utils/mtev_log.h mtev_defines.h \
+  mtev_config.h ../src/utils/mtev_str.h ../src/utils/mtev_dyn_buffer.h \
+  ../src/utils/mtev_hash.h  \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
+  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
+  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
+  mtev_defines.h mtev_listener.h eventer/eventer.h \
+  eventer/eventer_POSIX_fd_opset.h eventer/eventer_SSL_fd_opset.h \
+  eventer/eventer_aco_opset.h aco/aco.h eventer/eventer_jobq.h \
+  ../src/utils/mtev_sem.h mtev_stats.h  \
+  eventer/eventer_impl_private.h \
+  ../src/utils/mtev_memory.h  \
+  mtev_conf.h mtev_console.h \
+  noitedit/histedit.h mtev_console_telnet.h ../src/utils/mtev_skiplist.h \
+  ../src/utils/mtev_uuid.h ../src/utils/mtev_uuid_parse.h \
+  ../src/utils/mtev_uuid_copy.h ../src/utils/mtev_uuid_generate.h \
+  mtev_rest.h mtev_listener.h mtev_http.h \
+  ../src/utils/mtev_compress.h \
+  mtev_http1.h mtev_http2.h mtev_reverse_socket.h \
+  ../src/utils/mtev_watchdog.h ../src/utils/mtev_stacktrace.h \
+  libmtev_dtrace.h libmtev_dtrace_probes.h
+
 utils/mtev-logic-leg.o utils/mtev-logic-leg.lo: utils/mtev-logic-leg.c
 
 utils/mtev_b32.o utils/mtev_b32.lo: utils/mtev_b32.c mtev_config.h utils/mtev_b64.h \
@@ -507,7 +531,12 @@ utils/mtev_curl.o utils/mtev_curl.lo: utils/mtev_curl.c mtev_defines.h mtev_conf
   utils/mtev_curl.h
 
 utils/mtev_dyn_buffer.o utils/mtev_dyn_buffer.lo: utils/mtev_dyn_buffer.c utils/mtev_dyn_buffer.h \
-  mtev_defines.h mtev_config.h ../src/utils/mtev_str.h \
+  mtev_defines.h mtev_config.h ../src/utils/mtev_str.h utils/mtev_log.h \
+  ../src/utils/mtev_dyn_buffer.h ../src/utils/mtev_hash.h \
+  ../src/utils/mtev_hooks.h \
+  ../src/utils/mtev_time.h ../src/json-lib/mtev_json.h \
+  ../src/json-lib/mtev_json_util.h ../src/json-lib/mtev_json_object.h \
+  ../src/json-lib/mtev_json_tokener.h ../src/utils/mtev_zipkin.h \
 
 utils/mtev_flow_regulator.o utils/mtev_flow_regulator.lo: utils/mtev_flow_regulator.c \
   utils/mtev_flow_regulator.h mtev_defines.h mtev_config.h \
@@ -856,7 +885,8 @@ eventer/eventer_SSL_fd_opset.o eventer/eventer_SSL_fd_opset.lo: eventer/eventer_
   eventer/OETS_asn1_helper.h \
   libmtev_dtrace.h mtev_http.h  \
   ../src/utils/mtev_compress.h \
-  mtev_listener.h mtev_http1.h mtev_http2.h libmtev_dtrace_probes.h
+  mtev_listener.h mtev_http1.h mtev_http2.h libmtev_dtrace_probes.h \
+  mtev_ssl10_compat.h
 
 eventer/eventer_aco_opset.o eventer/eventer_aco_opset.lo: eventer/eventer_aco_opset.c mtev_defines.h \
   mtev_config.h ../src/utils/mtev_str.h eventer/eventer.h \
