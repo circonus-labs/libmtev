@@ -4,6 +4,8 @@
 
 ## 2.7
 
+### 2.7.5
+
  * Add kafka module to allow handling kafka consumers via hooks.
 
 ### 2.7.4
