@@ -29,10 +29,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "mtev_kafka.h"
+#include <librdkafka/rdkafka.h>
+
 #include "mtev_conf.h"
 #include "mtev_dso.h"
 #include "mtev_hooks.h"
+#include "mtev_kafka.h"
 #include "mtev_log.h"
 #include "mtev_rand.h"
 #include "mtev_thread.h"
@@ -56,24 +58,11 @@ constexpr int32_t DEFAULT_POLL_LIMIT = 10000;
 
 extern "C" {
 MTEV_HOOK_IMPL(mtev_kafka_handle_message_dyn,
-               (mtev_rd_kafka_message_t * msg,
-                const void *key,
-                const size_t key_len,
-                const void *payload,
-                const size_t payload_len,
-                const int64_t offset,
-                const int32_t partition),
+               (mtev_rd_kafka_message_t * msg),
                void *,
                closure,
-               (void *closure,
-                mtev_rd_kafka_message_t *msg,
-                const void *key,
-                const size_t key_len,
-                const void *payload,
-                const size_t payload_len,
-                const int64_t offset,
-                const int32_t partition),
-               (closure, msg, key, key_len, payload, payload_len, offset, partition))
+               (void *closure, mtev_rd_kafka_message_t *msg),
+               (closure, msg))
 }
 
 static void mtev_rd_kafka_message_free(mtev_rd_kafka_message_t *msg)
@@ -92,6 +81,12 @@ static mtev_rd_kafka_message_t *
   m->msg = msg;
   m->refcnt = 1;
   m->free_fn = free_func;
+  m->key = msg->key;
+  m->key_len = msg->key_len;
+  m->payload = msg->payload;
+  m->payload_len = msg->len;
+  m->offset = msg->offset;
+  m->partition = msg->partition;
   return m;
 }
 
@@ -289,9 +284,7 @@ public:
         per_conn_cnt++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
           mtev_rd_kafka_message_t *m = mtev_rd_kafka_message_alloc(msg, mtev_rd_kafka_message_free);
-          mtev_kafka_handle_message_dyn_hook_invoke(m, m->msg->key, m->msg->key_len,
-                                                    m->msg->payload, m->msg->len, m->msg->offset,
-                                                    m->msg->partition);
+          mtev_kafka_handle_message_dyn_hook_invoke(m);
           mtev_rd_kafka_message_deref(m);
         }
         else {
