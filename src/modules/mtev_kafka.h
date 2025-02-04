@@ -49,12 +49,12 @@ typedef struct mtev_rd_kafka_message {
   void (*free_fn)(struct mtev_rd_kafka_message *m);
 } mtev_rd_kafka_message_t;
 
-inline void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg)
+static inline void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg)
 {
   ck_pr_inc_uint(&msg->refcnt);
 }
 
-inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
+static inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
 {
   bool zero;
   ck_pr_dec_uint_zero(&msg->refcnt, &zero);
