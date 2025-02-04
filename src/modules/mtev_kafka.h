@@ -49,18 +49,42 @@ typedef struct mtev_rd_kafka_message {
   void (*free_fn)(struct mtev_rd_kafka_message *m);
 } mtev_rd_kafka_message_t;
 
-mtev_rd_kafka_message_t *mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg,
-                                                     void (*func)(mtev_rd_kafka_message_t *));
-void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg);
-void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg);
+inline void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg)
+{
+  ck_pr_inc_uint(&msg->refcnt);
+}
+
+inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
+{
+  bool zero;
+  ck_pr_dec_uint_zero(&msg->refcnt, &zero);
+  if (zero) {
+    if (msg->free_fn) {
+      msg->free_fn(msg);
+    }
+  }
+}
 
 // TODO: Need write hooks
 
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
-                (mtev_rd_kafka_message_t * msg),
+                (mtev_rd_kafka_message_t * msg,
+                 const void *key,
+                 const size_t key_len,
+                 const void *payload,
+                 const size_t payload_len,
+                 const int64_t offset,
+                 const int32_t partition),
                 void *,
                 closure,
-                (void *closure, mtev_rd_kafka_message_t *msg))
+                (void *closure,
+                 mtev_rd_kafka_message_t *msg,
+                 const void *key,
+                 const size_t key_len,
+                 const void *payload,
+                 const size_t payload_len,
+                 const int64_t offset,
+                 const int32_t partition))
 
 /* This maps exposes a runtime resolved hook register function people should
  * use: mtev_kafka_handle_message_hook_register
@@ -71,7 +95,14 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_handle_message_hook_register,
                      mtev_kafka_handle_message_dyn_hook_register,
                      mtev_hook_return_t,
                      (const char *name,
-                      mtev_hook_return_t (*func)(void *closure, mtev_rd_kafka_message_t *msg),
+                      mtev_hook_return_t (*func)(void *closure,
+                                                 mtev_rd_kafka_message_t *msg,
+                                                 const void *key,
+                                                 const size_t key_len,
+                                                 const void *payload,
+                                                 const size_t payload_len,
+                                                 const int64_t offset,
+                                                 const int32_t partition),
                       void *closure),
                      (name, func, closure))
 
