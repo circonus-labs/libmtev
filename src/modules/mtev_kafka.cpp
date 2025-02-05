@@ -29,10 +29,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "mtev_kafka.h"
+#include <librdkafka/rdkafka.h>
+
 #include "mtev_conf.h"
 #include "mtev_dso.h"
 #include "mtev_hooks.h"
+#include "mtev_kafka.h"
 #include "mtev_log.h"
 #include "mtev_rand.h"
 #include "mtev_thread.h"
@@ -70,7 +72,7 @@ static void mtev_rd_kafka_message_free(mtev_rd_kafka_message_t *msg)
   free(msg);
 }
 
-mtev_rd_kafka_message_t *
+static mtev_rd_kafka_message_t *
   mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg,
                               void (*free_func)(struct mtev_rd_kafka_message *))
 {
@@ -79,23 +81,13 @@ mtev_rd_kafka_message_t *
   m->msg = msg;
   m->refcnt = 1;
   m->free_fn = free_func;
+  m->key = msg->key;
+  m->key_len = msg->key_len;
+  m->payload = msg->payload;
+  m->payload_len = msg->len;
+  m->offset = msg->offset;
+  m->partition = msg->partition;
   return m;
-}
-
-void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg)
-{
-  ck_pr_inc_uint(&msg->refcnt);
-}
-
-void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
-{
-  bool zero;
-  ck_pr_dec_uint_zero(&msg->refcnt, &zero);
-  if (zero) {
-    if (msg->free_fn) {
-      msg->free_fn(msg);
-    }
-  }
 }
 
 struct kafka_stats_t {

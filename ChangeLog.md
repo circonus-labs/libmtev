@@ -4,6 +4,12 @@
 
 ## 2.7
 
+### 2.7.7
+
+ * Update kafka hook definitions to include individual fields.
+ * Update kafka message handling to include ref/deref functions
+   in the header.
+
 ### 2.7.6
 
  * Fix install-headers to include required kafka headers.

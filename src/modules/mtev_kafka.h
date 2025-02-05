@@ -37,7 +37,10 @@
 #include "mtev_log.h"
 
 #include <ck_pr.h>
-#include <librdkafka/rdkafka.h>
+
+#ifndef _RDKAFKA_H_
+typedef void rd_kafka_message_t;
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,13 +49,30 @@ extern "C" {
 typedef struct mtev_rd_kafka_message {
   rd_kafka_message_t *msg;
   uint32_t refcnt;
+  const void *key;
+  size_t key_len;
+  const void *payload;
+  size_t payload_len;
+  int64_t offset;
+  int32_t partition;
   void (*free_fn)(struct mtev_rd_kafka_message *m);
 } mtev_rd_kafka_message_t;
 
-mtev_rd_kafka_message_t *mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg,
-                                                     void (*func)(mtev_rd_kafka_message_t *));
-void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg);
-void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg);
+static inline void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg)
+{
+  ck_pr_inc_uint(&msg->refcnt);
+}
+
+static inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
+{
+  bool zero;
+  ck_pr_dec_uint_zero(&msg->refcnt, &zero);
+  if (zero) {
+    if (msg->free_fn) {
+      msg->free_fn(msg);
+    }
+  }
+}
 
 // TODO: Need write hooks
 
