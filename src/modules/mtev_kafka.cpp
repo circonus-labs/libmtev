@@ -46,6 +46,9 @@
 
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
 
+static constexpr const char *VARIABLE_PARAMETER_PREFIX = "override_";
+static constexpr size_t VARIABLE_PARAMETER_PREFIX_LEN = strlen(VARIABLE_PARAMETER_PREFIX);
+
 static mtev_log_stream_t nlerr = nullptr;
 static mtev_log_stream_t nldeb = nullptr;
 
@@ -266,9 +269,10 @@ public:
         else if (!strcasecmp("protocol", iter.key.str)) {
           protocol_string = iter.value.str;
         }
-        else if (!strncasecmp(iter.key.str, "override_", strlen("override_"))) {
+        else if (!strncasecmp(iter.key.str, VARIABLE_PARAMETER_PREFIX,
+                              VARIABLE_PARAMETER_PREFIX_LEN)) {
           char *val_copy = strdup(iter.value.str);
-          const char *name = iter.key.str + strlen("override_");
+          const char *name = iter.key.str + VARIABLE_PARAMETER_PREFIX_LEN;
           if (strlen(name) == 0) {
             free(val_copy);
             continue;
