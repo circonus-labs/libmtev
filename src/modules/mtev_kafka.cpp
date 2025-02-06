@@ -70,6 +70,7 @@ static void mtev_rd_kafka_message_free(mtev_rd_kafka_message_t *msg)
 
 static mtev_rd_kafka_message_t *
   mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg,
+                              const mtev_hash_table *extra_configs,
                               void (*free_func)(struct mtev_rd_kafka_message *))
 {
   mtev_rd_kafka_message_t *m =
@@ -83,6 +84,7 @@ static mtev_rd_kafka_message_t *
   m->payload_len = msg->len;
   m->offset = msg->offset;
   m->partition = msg->partition;
+  m->extra_configs = extra_configs;
   return m;
 }
 
@@ -308,7 +310,8 @@ public:
         conn->stats.msgs_in++;
         per_conn_cnt++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
-          mtev_rd_kafka_message_t *m = mtev_rd_kafka_message_alloc(msg, mtev_rd_kafka_message_free);
+          mtev_rd_kafka_message_t *m =
+            mtev_rd_kafka_message_alloc(msg, conn->extra_configs, mtev_rd_kafka_message_free);
           mtev_kafka_handle_message_dyn_hook_invoke(m);
           mtev_rd_kafka_message_deref(m);
         }
