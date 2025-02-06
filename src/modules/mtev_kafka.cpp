@@ -45,10 +45,6 @@
 #include <vector>
 
 #define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
-#define CONFIG_KAFKA_HOST "self::node()/host"
-#define CONFIG_KAFKA_PORT "self::node()/port"
-#define CONFIG_KAFKA_CONSUMER_GROUP "self::node()/consumer_group"
-#define CONFIG_KAFKA_TOPIC "self::node()/topic"
 
 static mtev_log_stream_t nlerr = nullptr;
 static mtev_log_stream_t nldeb = nullptr;
@@ -221,35 +217,33 @@ public:
       return;
     }
     for (int section_id = 0; section_id < number_of_conns; section_id++) {
-      std::string host_string;
-      if (char *host; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_HOST, &host)) {
-        host_string = "localhost";
+      std::string host_string = "localhost";
+      int32_t port = 9092;
+      std::string topic_string = "mtev_default_topic";
+      std::string consumer_group_string = "mtev_default_group";
+
+      auto entries = mtev_conf_get_hash(mqs[section_id], "self::node()");
+      mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+      while (mtev_hash_adv(entries, &iter)) {
+        if (!strcasecmp("host", iter.key.str)) {
+          host_string = iter.value.str;
+        }
+        else if (!strcasecmp("port", iter.key.str)) {
+          port = atoi(iter.value.str);
+        }
+        else if (!strcasecmp("topic", iter.key.str)) {
+          topic_string = iter.value.str;
+        }
+        else if (!strcasecmp("consumer_group", iter.key.str)) {
+          consumer_group_string = iter.value.str;
+        }
+        else {
+	  // TODO: Handle unknown
+        }
       }
-      else {
-        host_string = host;
-        free(host);
-      }
-      int32_t port = 0;
-      if (!mtev_conf_get_int32(mqs[section_id], CONFIG_KAFKA_PORT, &port)) {
-        port = 9092;
-      }
-      std::string topic_string;
-      if (char *topic; !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_TOPIC, &topic)) {
-        topic_string = "mtev_default_topic";
-      }
-      else {
-        topic_string = topic;
-        free(topic);
-      }
-      std::string consumer_group_string;
-      if (char *consumer_group;
-          !mtev_conf_get_string(mqs[section_id], CONFIG_KAFKA_CONSUMER_GROUP, &consumer_group)) {
-        consumer_group_string = "mtev_default_group";
-      }
-      else {
-        consumer_group_string = consumer_group;
-        free(consumer_group);
-      }
+      mtev_hash_destroy(entries, free, free);
+      free(entries);
+
       try {
         auto conn = std::make_unique<kafka_connection>(host_string, port, topic_string,
                                                        consumer_group_string);
