@@ -55,6 +55,8 @@ typedef struct mtev_rd_kafka_message {
   size_t payload_len;
   int64_t offset;
   int32_t partition;
+  const char *protocol;
+  const mtev_hash_table *extra_configs;
   void (*free_fn)(struct mtev_rd_kafka_message *m);
 } mtev_rd_kafka_message_t;
 

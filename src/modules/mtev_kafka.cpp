@@ -70,6 +70,7 @@ static void mtev_rd_kafka_message_free(mtev_rd_kafka_message_t *msg)
 
 static mtev_rd_kafka_message_t *
   mtev_rd_kafka_message_alloc(rd_kafka_message_t *msg,
+                              const char *protocol,
                               const mtev_hash_table *extra_configs,
                               void (*free_func)(struct mtev_rd_kafka_message *))
 {
@@ -84,6 +85,7 @@ static mtev_rd_kafka_message_t *
   m->payload_len = msg->len;
   m->offset = msg->offset;
   m->partition = msg->partition;
+  m->protocol = protocol;
   m->extra_configs = extra_configs;
   return m;
 }
@@ -102,6 +104,7 @@ struct kafka_connection {
                    const int32_t port_in,
                    const std::string &topic_in,
                    const std::string consumer_group_in,
+                   const std::string protocol_in,
                    mtev_hash_table *extra_configs_in)
   {
     host = host_in;
@@ -109,6 +112,7 @@ struct kafka_connection {
     topic = topic_in;
     broker_with_port = host + ":" + std::to_string(port);
     consumer_group = consumer_group_in;
+    protocol = protocol_in;
     extra_configs = extra_configs_in;
 
     constexpr size_t error_string_size = 256;
@@ -210,6 +214,7 @@ struct kafka_connection {
   std::string broker_with_port;
   std::string topic;
   std::string consumer_group;
+  std::string protocol;
   mtev_hash_table *extra_configs;
   rd_kafka_conf_t *rd_producer_conf;
   rd_kafka_t *rd_producer;
@@ -238,6 +243,7 @@ public:
       int32_t port = 9092;
       std::string topic_string = "mtev_default_topic";
       std::string consumer_group_string = "mtev_default_group";
+      std::string protocol_string = "not_provided";
       mtev_hash_table *extra_configs =
         static_cast<mtev_hash_table *>(calloc(1, sizeof(mtev_hash_table)));
       mtev_hash_init(extra_configs);
@@ -256,6 +262,9 @@ public:
         }
         else if (!strcasecmp("consumer_group", iter.key.str)) {
           consumer_group_string = iter.value.str;
+        }
+        else if (!strcasecmp("protocol", iter.key.str)) {
+          protocol_string = iter.value.str;
         }
         else if (!strncasecmp(iter.key.str, "override_", strlen("override_"))) {
           char *val_copy = strdup(iter.value.str);
@@ -278,8 +287,9 @@ public:
       free(entries);
 
       try {
-        auto conn = std::make_unique<kafka_connection>(
-          host_string, port, topic_string, consumer_group_string, std::move(extra_configs));
+        auto conn =
+          std::make_unique<kafka_connection>(host_string, port, topic_string, consumer_group_string,
+                                             protocol_string, std::move(extra_configs));
         _conns.push_back(std::move(conn));
       }
       catch (std::exception &exception) {
@@ -310,8 +320,8 @@ public:
         conn->stats.msgs_in++;
         per_conn_cnt++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
-          mtev_rd_kafka_message_t *m =
-            mtev_rd_kafka_message_alloc(msg, conn->extra_configs, mtev_rd_kafka_message_free);
+          mtev_rd_kafka_message_t *m = mtev_rd_kafka_message_alloc(
+            msg, conn->protocol.c_str(), conn->extra_configs, mtev_rd_kafka_message_free);
           mtev_kafka_handle_message_dyn_hook_invoke(m);
           mtev_rd_kafka_message_deref(m);
         }
