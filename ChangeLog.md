@@ -4,6 +4,9 @@
 
 ## 2.7
 
+ * Update kafka configuration to allow setting extra fields and
+   the expected protocol.
+
 ### 2.7.7
 
  * Update kafka hook definitions to include individual fields.
