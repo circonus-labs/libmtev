@@ -4,6 +4,8 @@
 
 ## 2.7
 
+### 2.7.8
+
  * Update kafka configuration to allow setting extra fields and
    the expected protocol.
 
