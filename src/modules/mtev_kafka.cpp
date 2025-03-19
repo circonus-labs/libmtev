@@ -370,11 +370,12 @@ static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self)
 }
 
 void
-mtev_kafka_send_function() {
+mtev_kafka_send_function(void *payload, size_t payload_len) {
 }
 
 void
-mtev_kafka_send_data_function() {
+mtev_kafka_send_data_function(void *payload, size_t payload_len) {
+  mtev_kafka_send_function(payload, payload_len);
 }
 
 static int kafka_logio_open(mtev_log_stream_t ls)
