@@ -349,10 +349,17 @@ public:
   void publish_to_producers(const void *payload, size_t payload_len, int connection_id_broadcast_if_negative)
   {
     int count = 0;
+    int sent = 0;
     for (const auto &conn : _conns) {
       if (connection_id_broadcast_if_negative < 0 || count == connection_id_broadcast_if_negative) {
-        rd_kafka_produce(conn->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
-          const_cast<void *>(payload), payload_len, nullptr, 0, nullptr);
+        if (rd_kafka_produce(conn->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
+          const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
+          sent++;
+        }
+        else {
+          mtevL(nlerr, "%s: Error producing message: %s\n", __func__, rd_kafka_err2str(rd_kafka_last_error()));
+
+        }
       }
       count++;
     }
