@@ -76,7 +76,6 @@ static inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
   }
 }
 
-// TODO: Need write hooks
 MTEV_RUNTIME_RESOLVE(mtev_kafka_send, mtev_kafka_send_function, void,
   (const void *payload, size_t payload_len), (payload, payload_len))
 MTEV_RUNTIME_AVAIL(mtev_kafka_send, mtev_kafka_send_function)

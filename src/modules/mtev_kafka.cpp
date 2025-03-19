@@ -387,7 +387,6 @@ static int kafka_logio_open(mtev_log_stream_t ls)
 static int
   kafka_logio_write(mtev_log_stream_t ls, const struct timeval *whence, const void *buf, size_t len)
 {
-  // TODO: Need a write function
   mtev_kafka_send_data(buf, len);
   return -1;
 }
