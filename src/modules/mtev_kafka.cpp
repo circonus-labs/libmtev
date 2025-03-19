@@ -370,11 +370,11 @@ static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self)
 }
 
 void
-mtev_kafka_send_function(void *payload, size_t payload_len) {
+mtev_kafka_send_function(const void *payload, size_t payload_len) {
 }
 
 void
-mtev_kafka_send_data_function(void *payload, size_t payload_len) {
+mtev_kafka_send_data_function(const void *payload, size_t payload_len) {
   mtev_kafka_send_function(payload, payload_len);
 }
 
@@ -388,6 +388,7 @@ static int
   kafka_logio_write(mtev_log_stream_t ls, const struct timeval *whence, const void *buf, size_t len)
 {
   // TODO: Need a write function
+  mtev_kafka_send_data(buf, len);
   return -1;
 }
 
