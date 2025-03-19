@@ -394,6 +394,10 @@ static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self)
   return the_conf;
 }
 
+// These functions are invoked by the write hooks..... need to be in
+// an extern "C" block so their names don't get mangled, otherwise the
+// runtime resolution will fail
+extern "C" {
 void
 mtev_kafka_send_function(const void *payload, size_t payload_len) {
   if (the_conf) {
@@ -404,6 +408,7 @@ mtev_kafka_send_function(const void *payload, size_t payload_len) {
 void
 mtev_kafka_send_data_function(const void *payload, size_t payload_len) {
   mtev_kafka_send_function(payload, payload_len);
+}
 }
 
 static int kafka_logio_open(mtev_log_stream_t ls)
