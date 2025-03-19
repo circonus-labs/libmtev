@@ -189,11 +189,16 @@ struct kafka_connection {
     rd_consumer_topics = rd_kafka_topic_partition_list_new(1);
     rd_kafka_topic_partition_list_add(rd_consumer_topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
     rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
+
+    rd_topic_producer_conf = rd_kafka_topic_conf_new();
+    rd_topic_producer = rd_kafka_topic_new(rd_producer, topic.c_str(), rd_topic_producer_conf);
   }
   kafka_connection() = delete;
   ~kafka_connection()
   {
     rd_kafka_topic_partition_list_destroy(rd_consumer_topics);
+    rd_kafka_topic_conf_destroy(rd_topic_producer_conf);
+    rd_kafka_topic_destroy(rd_topic_producer);
     rd_kafka_unsubscribe(rd_consumer);
     rd_kafka_conf_destroy(rd_consumer_conf);
     rd_kafka_destroy(rd_consumer);
@@ -221,6 +226,8 @@ struct kafka_connection {
   mtev_hash_table *extra_configs;
   rd_kafka_conf_t *rd_producer_conf;
   rd_kafka_t *rd_producer;
+  rd_kafka_topic_conf_t *rd_topic_producer_conf;
+  rd_kafka_topic_t *rd_topic_producer;
   rd_kafka_conf_t *rd_consumer_conf;
   rd_kafka_t *rd_consumer;
   rd_kafka_topic_partition_list_t *rd_consumer_topics;
@@ -338,6 +345,17 @@ public:
       }
     }
     return 0;
+  }
+  void publish_to_producers(const void *payload, size_t payload_len, int connection_id_broadcast_if_negative)
+  {
+    int count = 0;
+    for (const auto &conn : _conns) {
+      if (connection_id_broadcast_if_negative < 0 || count == connection_id_broadcast_if_negative) {
+        rd_kafka_produce(conn->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
+          const_cast<void *>(payload), payload_len, nullptr, 0, nullptr);
+      }
+      count++;
+    }
   }
   int show_console(const mtev_console_closure_t &ncct)
   {
