@@ -396,9 +396,6 @@ static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self)
 
 void
 mtev_kafka_send_function(const void *payload, size_t payload_len) {
-  if (the_conf) {
-    the_conf->publish_to_producers(payload, payload_len, -1);
-  }
 }
 
 void
