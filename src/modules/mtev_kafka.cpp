@@ -369,6 +369,14 @@ static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self)
   return the_conf;
 }
 
+void
+mtev_amqp_send_function() {
+}
+
+void
+mtev_amqp_send_data_function() {
+}
+
 static int kafka_logio_open(mtev_log_stream_t ls)
 {
   (void) ls;
