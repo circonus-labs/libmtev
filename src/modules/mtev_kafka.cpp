@@ -44,7 +44,8 @@
 #include <string>
 #include <vector>
 
-#define CONFIG_KAFKA_IN_MQ "//network//mq[@type='kafka']"
+#define CONFIG_KAFKA_CONSUMER_IN_MQ "//network/in/mq[@type='kafka']"
+#define CONFIG_KAFKA_PRODUCER_IN_MQ "//network/out/mq[@type='kafka']"
 
 static constexpr const char *VARIABLE_PARAMETER_PREFIX = "override_";
 static constexpr size_t VARIABLE_PARAMETER_PREFIX_LEN = strlen(VARIABLE_PARAMETER_PREFIX);
@@ -280,20 +281,9 @@ public:
                                                                            DEFAULT_POLL_LIMIT}
   {
     enum class connection_type_e {CONSUMER, PRODUCER};
-    constexpr auto set_common_fields = [&](connection_type_e conn_type,
-                                           mtev_conf_section_t *mqs,
-                                           int section_id) -> bool {
-      return true;
-    };
-    int number_of_conns = 0;
-    mtev_conf_section_t *mqs =
-      mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_IN_MQ, &number_of_conns);
-
-    if (number_of_conns == 0) {
-      mtev_conf_release_sections_read(mqs, number_of_conns);
-      return;
-    }
-    for (int section_id = 0; section_id < number_of_conns; section_id++) {
+    auto make_kafka_connection = [&](connection_type_e conn_type,
+      mtev_conf_section_t *mqs,
+      int section_id) -> bool {
       std::string host_string = "localhost";
       int32_t port = 9092;
       std::string topic_string = "mtev_default_topic";
@@ -327,7 +317,7 @@ public:
           const char *name = iter.key.str + VARIABLE_PARAMETER_PREFIX_LEN;
           if (strlen(name) == 0) {
             free(val_copy);
-            continue;
+            return false;
           }
           char *key_copy = strdup(name);
           if (!mtev_hash_store(extra_configs, key_copy, strlen(key_copy), val_copy)) {
@@ -335,26 +325,51 @@ public:
                   key_copy, val_copy);
             free(key_copy);
             free(val_copy);
-            continue;
+            return false;
           }
         }
       }
       mtev_hash_destroy(entries, free, free);
       free(entries);
-
-      try {
-        auto consumer =
-          std::make_unique<kafka_consumer>(host_string, port, topic_string, consumer_group_string,
+      switch(conn_type) {
+        case connection_type_e::CONSUMER:
+        {
+          auto consumer =
+            std::make_unique<kafka_consumer>(host_string, port, topic_string, consumer_group_string,
                                              protocol_string, std::move(extra_configs));
-        _consumers.push_back(std::move(consumer));
+          _consumers.push_back(std::move(consumer));
+          break;
+        }
+        case connection_type_e::PRODUCER:
+        {
+          auto producer =
+            std::make_unique<kafka_producer>(host_string, port, topic_string,
+                                             protocol_string, std::move(extra_configs));
+          _producers.push_back(std::move(producer));
+          break;
+        }
+      }                                          
+      return true;
+    };
+
+    int number_of_conns = 0;
+    mtev_conf_section_t *mqs =
+      mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_CONSUMER_IN_MQ, &number_of_conns);
+
+    if (number_of_conns > 0) {
+      for (int section_id = 0; section_id < number_of_conns; section_id++) {
+        make_kafka_connection(connection_type_e::CONSUMER, mqs, section_id);
       }
-      catch (std::exception &exception) {
-        mtevL(nlerr, "ERROR: Couldn't connect to %s:%d, topic %s (Exception: %s) - skipping\n",
-              host_string.c_str(), port, topic_string.c_str(), exception.what());
-      }
-      catch (...) {
-        mtevL(nlerr, "ERROR: Couldn't connect to %s:%d, topic %s (unknown exception) - skipping\n",
-              host_string.c_str(), port, topic_string.c_str());
+    }
+    mtev_conf_release_sections_read(mqs, number_of_conns);
+
+    number_of_conns = 0;
+    mqs =
+      mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_PRODUCER_IN_MQ, &number_of_conns);
+
+    if (number_of_conns > 0) {
+      for (int section_id = 0; section_id < number_of_conns; section_id++) {
+        make_kafka_connection(connection_type_e::PRODUCER, mqs, section_id);
       }
     }
     mtev_conf_release_sections_read(mqs, number_of_conns);
