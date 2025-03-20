@@ -105,7 +105,6 @@ struct kafka_producer {
   kafka_producer(const std::string &host_in,
     const int32_t port_in,
     const std::string &topic_in,
-    const std::string consumer_group_in,
     const std::string protocol_in,
     mtev_hash_table *extra_configs_in)
   {
@@ -113,7 +112,6 @@ struct kafka_producer {
     port = port_in;
     topic = topic_in;
     broker_with_port = host + ":" + std::to_string(port);
-    consumer_group = consumer_group_in;
     protocol = protocol_in;
     extra_configs = extra_configs_in;
 
@@ -160,7 +158,6 @@ struct kafka_producer {
   int32_t port;
   std::string broker_with_port;
   std::string topic;
-  std::string consumer_group;
   std::string protocol;
   mtev_hash_table *extra_configs;
   rd_kafka_conf_t *rd_producer_conf;
