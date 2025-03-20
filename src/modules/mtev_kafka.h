@@ -76,6 +76,11 @@ static inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
   }
 }
 
+/*! \fn void mtev_kafka_broadcast(const void *payload, size_t payload_len)
+    \brief Publish a Kafka message to all conifigurd Kafka publishers.
+    \param payload The payload to publish.
+    \param payload_len The size of the payload.
+ */
 MTEV_RUNTIME_RESOLVE(mtev_kafka_broadcast, mtev_kafka_broadcast_function, void,
   (const void *payload, size_t payload_len), (payload, payload_len))
 MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
