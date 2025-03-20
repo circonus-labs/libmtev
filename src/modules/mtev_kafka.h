@@ -29,6 +29,47 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /*
+  * The Kafka module is used to handle both consuming from and publishing to
+  * kafka instances. All consumers and producers must be configured separately.
+  * The configuration will look like this:
+  * <network>
+  *   <in>
+  *     <mq type="kafka">
+  *       <host>localhost</host>
+  *       <port>9092</port>
+  *       <topic>test_topic_one</topic>
+  *       <consumer_group>sample_consumer_group_id</consumer_group>
+  *       <protocol>prometheus</protocol>
+  *       <override_custom_parameter_one>custom_value</override_custom_parameter_one>
+  *       <override_custom_parameter_two>another_custom_value</override_custom_parameter_two>
+  *       <override_another_custom_parameter>yet_another_custom_value</override_another_custom_parameter>
+  *     </mq>
+  *   </in>
+  *   <out>
+  *     <mq type="kafka">
+  *       <host>localhost</host>
+  *       <port>9092</port>
+  *       <topic>test_topic_two</topic>
+  *     </mq>
+  *   </out>
+  * </network>
+  *
+  * The <in> stanza will contain all consumers. The <out> standza will contain all producers. Multiple
+  * mq stanzas can be defined for each.
+  *
+  * The individual fields for each config are:
+  * <host>           - The host to connect to.
+  * <port>           - The port to connect to.
+  * <topic>          - The topic to interact with
+  * <consumer_group> - The consumer group to use. Only for consumers.
+  * <protocol>       - The format of the consumed messages. Only for consumers.
+  *
+  * In addition, <override_*> allows setting arbitrary fields that can be read by the hooks
+  * so that fields outside of this exact spec can be set and used. It's up to the hook to
+  * handle these if specified.
+  */
+
 #ifndef _MTEV_KAFKA_HPP
 #define _MTEV_KAFKA_HPP
 

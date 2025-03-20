@@ -39,9 +39,11 @@
             </mq>
           </in>
           <out>
-            <host>localhost</host>
-            <port>9092</port>
-            <topic>test_topic_two</topic>
+            <mq type="kafka">
+              <host>localhost</host>
+              <port>9092</port>
+              <topic>test_topic_two</topic>
+            </mq>
           </out>
         </network>
       </root>
