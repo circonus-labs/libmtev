@@ -405,6 +405,15 @@ public:
   }
   int show_console(const mtev_console_closure_t &ncct)
   {
+    if (_producers.size()) {
+      nc_printf(ncct, "Producers:\n");
+    }
+    for (const auto &producer : _producers) {
+      producer->write_to_console(ncct);
+    }
+    if (_consumers.size()) {
+      nc_printf(ncct, "Consumers:\n");
+    }
     for (const auto &consumer : _consumers) {
       consumer->write_to_console(ncct);
     }
