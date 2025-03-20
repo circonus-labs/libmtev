@@ -324,10 +324,10 @@ public:
       free(entries);
 
       try {
-        auto conn =
+        auto consumer =
           std::make_unique<kafka_consumer>(host_string, port, topic_string, consumer_group_string,
                                              protocol_string, std::move(extra_configs));
-        _conns.push_back(std::move(conn));
+        _consumers.push_back(std::move(consumer));
       }
       catch (std::exception &exception) {
         mtevL(nlerr, "ERROR: Couldn't connect to %s:%d, topic %s (Exception: %s) - skipping\n",
@@ -348,24 +348,24 @@ public:
   void set_poll_limit(const int32_t poll_limit) { _poll_limit = poll_limit; }
   int poll()
   {
-    for (const auto &conn : _conns) {
+    for (const auto &consumer : _consumers) {
       int32_t per_conn_cnt = 0;
       rd_kafka_message_t *msg = nullptr;
       while (
         (_poll_limit == 0 || per_conn_cnt < _poll_limit) &&
-        (nullptr != (msg = rd_kafka_consumer_poll(conn->rd_consumer, _poll_timeout.count())))) {
-        conn->stats.msgs_in++;
+        (nullptr != (msg = rd_kafka_consumer_poll(consumer->rd_consumer, _poll_timeout.count())))) {
+        consumer->stats.msgs_in++;
         per_conn_cnt++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
           mtev_rd_kafka_message_t *m = mtev_rd_kafka_message_alloc(
-            msg, conn->protocol.c_str(), conn->extra_configs, mtev_rd_kafka_message_free);
+            msg, consumer->protocol.c_str(), consumer->extra_configs, mtev_rd_kafka_message_free);
           mtev_kafka_handle_message_dyn_hook_invoke(m);
           mtev_rd_kafka_message_deref(m);
         }
         else {
           mtevL(nlerr, "ERROR: Got error reading from %s, topic %s: %s\n",
-                conn->broker_with_port.c_str(), conn->topic.c_str(), rd_kafka_err2str(msg->err));
-          conn->stats.errors++;
+            consumer->broker_with_port.c_str(), consumer->topic.c_str(), rd_kafka_err2str(msg->err));
+          consumer->stats.errors++;
           rd_kafka_message_destroy(msg);
         }
       }
@@ -376,9 +376,9 @@ public:
   {
     int count = 0;
     int sent = 0;
-    for (const auto &conn : _conns) {
+    for (const auto &producer : _producers) {
       if (connection_id_broadcast_if_negative < 0 || count == connection_id_broadcast_if_negative) {
-        if (rd_kafka_produce(conn->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
+        if (rd_kafka_produce(producer->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
           const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
           sent++;
         }
@@ -392,14 +392,15 @@ public:
   }
   int show_console(const mtev_console_closure_t &ncct)
   {
-    for (const auto &conn : _conns) {
-      conn->write_to_console(ncct);
+    for (const auto &consumer : _consumers) {
+      consumer->write_to_console(ncct);
     }
     return 0;
   }
 
 private:
-  std::vector<std::unique_ptr<kafka_consumer>> _conns;
+  std::vector<std::unique_ptr<kafka_consumer>> _consumers;
+  std::vector<std::unique_ptr<kafka_producer>> _producers;
   std::chrono::milliseconds _poll_timeout;
   int32_t _poll_limit;
 };
