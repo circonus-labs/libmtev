@@ -411,23 +411,19 @@ public:
     }
     return 0;
   }
-  void publish_to_producers(const void *payload, size_t payload_len, int connection_id_broadcast_if_negative)
+  void publish_to_producers(const void *payload, size_t payload_len)
   {
-    int count = 0;
     int sent = 0;
     for (const auto &producer : _producers) {
-      if (connection_id_broadcast_if_negative < 0 || count == connection_id_broadcast_if_negative) {
-        if (rd_kafka_produce(producer->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
-          const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
-          producer->stats.msgs_out++;
-          sent++;
-        }
-        else {
-          mtevL(nlerr, "%s: Error producing message: %s\n", __func__, rd_kafka_err2str(rd_kafka_last_error()));
-          producer->stats.errors++;
-        }
+      if (rd_kafka_produce(producer->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
+        const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
+        producer->stats.msgs_out++;
+        sent++;
       }
-      count++;
+      else {
+        mtevL(nlerr, "%s: Error producing message: %s\n", __func__, rd_kafka_err2str(rd_kafka_last_error()));
+        producer->stats.errors++;
+      }
     }
   }
   int show_console(const mtev_console_closure_t &ncct)
@@ -471,7 +467,7 @@ extern "C" {
 void
 mtev_kafka_broadcast_function(const void *payload, size_t payload_len) {
   if (the_conf) {
-    the_conf->publish_to_producers(payload, payload_len, -1);
+    the_conf->publish_to_producers(payload, payload_len);
   }
 }
 }
