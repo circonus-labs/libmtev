@@ -165,8 +165,9 @@ struct kafka_producer {
   {
     nc_printf(ncct,
               "== %s:%d ==\n"
-              "  topic: %s\n\n"
-              "  (s) msgs rx: %zu\n  (s) msgs tx errors: %zu\n",
+              "  mq type: kafka\n"
+              "  topic: %s\n"
+              "  (s) msgs out: %zu\n  (s) errors: %zu\n",
               host.c_str(), port, topic.c_str(), stats.msgs_out,
               stats.errors);
   }
@@ -255,8 +256,10 @@ struct kafka_consumer {
   {
     nc_printf(ncct,
               "== %s:%d ==\n"
-              "  topic: %s\n  consumer_group: %s\n"
-              "  (s) msgs tx: %zu\n  (s) msgs tx errors: %zu\n",
+              "  mq type: kafka\n"
+              "  topic: %s\n"
+              "  consumer_group: %s\n"
+              "  (s) msgs in: %zu\n  (s) errors: %zu\n",
               host.c_str(), port, topic.c_str(), consumer_group.c_str(), stats.msgs_in,
               stats.errors);
   }
@@ -414,11 +417,12 @@ public:
       if (connection_id_broadcast_if_negative < 0 || count == connection_id_broadcast_if_negative) {
         if (rd_kafka_produce(producer->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
           const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
+          producer->stats.msgs_out++;
           sent++;
         }
         else {
           mtevL(nlerr, "%s: Error producing message: %s\n", __func__, rd_kafka_err2str(rd_kafka_last_error()));
-
+          producer->stats.errors++;
         }
       }
       count++;
@@ -426,14 +430,8 @@ public:
   }
   int show_console(const mtev_console_closure_t &ncct)
   {
-    if (_producers.size()) {
-      nc_printf(ncct, "Producers:\n");
-    }
     for (const auto &producer : _producers) {
       producer->write_to_console(ncct);
-    }
-    if (_consumers.size()) {
-      nc_printf(ncct, "Consumers:\n");
     }
     for (const auto &consumer : _consumers) {
       consumer->write_to_console(ncct);
