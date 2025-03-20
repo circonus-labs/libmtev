@@ -26,16 +26,23 @@
           </module>
         </modules>
         <network>
-          <mq type="kafka">
+          <in>
+            <mq type="kafka">
+              <host>localhost</host>
+              <port>9092</port>
+              <topic>test_topic_one</topic>
+              <consumer_group>sample_consumer_group_id</consumer_group>
+              <protocol>prometheus</protocol>
+              <override_custom_parameter_one>custom_value</override_custom_parameter_one>
+              <override_custom_parameter_two>another_custom_value</override_custom_parameter_two>
+              <override_another_custom_parameter>yet_another_custom_value</override_another_custom_parameter>
+            </mq>
+          </in>
+          <out>
             <host>localhost</host>
             <port>9092</port>
             <topic>test_topic_one</topic>
-	    <consumer_group>sample_consumer_group_id</consumer_group>
-            <protocol>prometheus</protocol>
-	    <override_custom_parameter_one>custom_value</override_custom_parameter_one>
-	    <override_custom_parameter_two>another_custom_value</override_custom_parameter_two>
-	    <override_another_custom_parameter>yet_another_custom_value</override_another_custom_parameter>
-          </mq>
+          </out>
         </network>
       </root>
     ]]></programlisting>
