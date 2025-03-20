@@ -101,14 +101,81 @@ struct kafka_stats_t {
   uint64_t msgs_out;
   uint64_t errors;
 };
+struct kafka_producer {
+  kafka_producer(const std::string &host_in,
+    const int32_t port_in,
+    const std::string &topic_in,
+    const std::string consumer_group_in,
+    const std::string protocol_in,
+    mtev_hash_table *extra_configs_in)
+  {
+    host = host_in;
+    port = port_in;
+    topic = topic_in;
+    broker_with_port = host + ":" + std::to_string(port);
+    consumer_group = consumer_group_in;
+    protocol = protocol_in;
+    extra_configs = extra_configs_in;
 
-struct kafka_connection {
-  kafka_connection(const std::string &host_in,
-                   const int32_t port_in,
-                   const std::string &topic_in,
-                   const std::string consumer_group_in,
-                   const std::string protocol_in,
-                   mtev_hash_table *extra_configs_in)
+    constexpr size_t error_string_size = 256;
+    char error_string[error_string_size];
+
+    rd_producer_conf = rd_kafka_conf_new();
+    if (rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", error_string,
+                          error_string_size) != RD_KAFKA_CONF_OK) {
+      std::string error =
+        "kafka config error: error setting enable.idempotence field on producer for " +
+        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
+      rd_kafka_conf_destroy(rd_producer_conf);
+      mtev_hash_destroy(extra_configs, free, free);
+      free(extra_configs);
+      throw std::runtime_error(error.c_str());
+    }
+    if (rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", broker_with_port.c_str(),
+                          error_string, error_string_size) != RD_KAFKA_CONF_OK) {
+      std::string error =
+        "kafka config error: error setting bootstrap.servers field on producer for " +
+        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
+      rd_kafka_conf_destroy(rd_producer_conf);
+      mtev_hash_destroy(extra_configs, free, free);
+      free(extra_configs);
+      throw std::runtime_error(error.c_str());
+    }
+    rd_producer =
+      rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
+    rd_topic_producer_conf = rd_kafka_topic_conf_new();
+    rd_topic_producer = rd_kafka_topic_new(rd_producer, topic.c_str(), rd_topic_producer_conf);
+  }
+  kafka_producer() = delete;
+  ~kafka_producer()
+  {
+    rd_kafka_topic_conf_destroy(rd_topic_producer_conf);
+    rd_kafka_topic_destroy(rd_topic_producer);
+    rd_kafka_conf_destroy(rd_producer_conf);
+    rd_kafka_destroy(rd_producer);
+    mtev_hash_destroy(extra_configs, free, free);
+    free(extra_configs);
+  }
+  std::string host;
+  int32_t port;
+  std::string broker_with_port;
+  std::string topic;
+  std::string consumer_group;
+  std::string protocol;
+  mtev_hash_table *extra_configs;
+  rd_kafka_conf_t *rd_producer_conf;
+  rd_kafka_t *rd_producer;
+  rd_kafka_topic_conf_t *rd_topic_producer_conf;
+  rd_kafka_topic_t *rd_topic_producer;
+};
+
+struct kafka_consumer {
+  kafka_consumer(const std::string &host_in,
+                 const int32_t port_in,
+                 const std::string &topic_in,
+                 const std::string consumer_group_in,
+                 const std::string protocol_in,
+                 mtev_hash_table *extra_configs_in)
   {
     host = host_in;
     port = port_in;
@@ -153,57 +220,20 @@ struct kafka_connection {
       throw std::runtime_error(error.c_str());
     }
 
-    // Set producer configuration stuff
-    // TODO: The producer is not actively used for anything yet. Need to implement write/publish
-    // functions and hooks.
-    rd_producer_conf = rd_kafka_conf_new();
-    if (rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", error_string,
-                          error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error =
-        "kafka config error: error setting enable.idempotence field on producer for " +
-        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
-      rd_kafka_conf_destroy(rd_consumer_conf);
-      rd_kafka_conf_destroy(rd_producer_conf);
-      mtev_hash_destroy(extra_configs, free, free);
-      free(extra_configs);
-      throw std::runtime_error(error.c_str());
-    }
-    if (rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", broker_with_port.c_str(),
-                          error_string, error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error =
-        "kafka config error: error setting bootstrap.servers field on producer for " +
-        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
-      rd_kafka_conf_destroy(rd_consumer_conf);
-      rd_kafka_conf_destroy(rd_producer_conf);
-      mtev_hash_destroy(extra_configs, free, free);
-      free(extra_configs);
-      throw std::runtime_error(error.c_str());
-    }
-
     rd_consumer =
       rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, error_string, error_string_size);
-
-    rd_producer =
-      rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
 
     rd_consumer_topics = rd_kafka_topic_partition_list_new(1);
     rd_kafka_topic_partition_list_add(rd_consumer_topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
     rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
-
-    rd_topic_producer_conf = rd_kafka_topic_conf_new();
-    rd_topic_producer = rd_kafka_topic_new(rd_producer, topic.c_str(), rd_topic_producer_conf);
   }
-  kafka_connection() = delete;
-  ~kafka_connection()
+  kafka_consumer() = delete;
+  ~kafka_consumer()
   {
     rd_kafka_topic_partition_list_destroy(rd_consumer_topics);
-    rd_kafka_topic_conf_destroy(rd_topic_producer_conf);
-    rd_kafka_topic_destroy(rd_topic_producer);
     rd_kafka_unsubscribe(rd_consumer);
     rd_kafka_conf_destroy(rd_consumer_conf);
     rd_kafka_destroy(rd_consumer);
-    rd_kafka_conf_destroy(rd_producer_conf);
-    rd_kafka_destroy(rd_producer);
     mtev_hash_destroy(extra_configs, free, free);
     free(extra_configs);
   }
@@ -224,10 +254,6 @@ struct kafka_connection {
   std::string consumer_group;
   std::string protocol;
   mtev_hash_table *extra_configs;
-  rd_kafka_conf_t *rd_producer_conf;
-  rd_kafka_t *rd_producer;
-  rd_kafka_topic_conf_t *rd_topic_producer_conf;
-  rd_kafka_topic_t *rd_topic_producer;
   rd_kafka_conf_t *rd_consumer_conf;
   rd_kafka_t *rd_consumer;
   rd_kafka_topic_partition_list_t *rd_consumer_topics;
@@ -299,7 +325,7 @@ public:
 
       try {
         auto conn =
-          std::make_unique<kafka_connection>(host_string, port, topic_string, consumer_group_string,
+          std::make_unique<kafka_consumer>(host_string, port, topic_string, consumer_group_string,
                                              protocol_string, std::move(extra_configs));
         _conns.push_back(std::move(conn));
       }
@@ -373,7 +399,7 @@ public:
   }
 
 private:
-  std::vector<std::unique_ptr<kafka_connection>> _conns;
+  std::vector<std::unique_ptr<kafka_consumer>> _conns;
   std::chrono::milliseconds _poll_timeout;
   int32_t _poll_limit;
 };
