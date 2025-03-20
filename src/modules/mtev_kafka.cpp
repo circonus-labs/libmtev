@@ -166,6 +166,7 @@ struct kafka_producer {
     nc_printf(ncct,
               "== %s:%d ==\n"
               "  mq type: kafka\n"
+              "  connection type: producer\n"
               "  topic: %s\n"
               "  (s) msgs out: %zu\n  (s) errors: %zu\n",
               host.c_str(), port, topic.c_str(), stats.msgs_out,
@@ -257,6 +258,7 @@ struct kafka_consumer {
     nc_printf(ncct,
               "== %s:%d ==\n"
               "  mq type: kafka\n"
+              "  connection type: consumer\n"
               "  topic: %s\n"
               "  consumer_group: %s\n"
               "  (s) msgs in: %zu\n  (s) errors: %zu\n",
