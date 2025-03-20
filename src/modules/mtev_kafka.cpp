@@ -279,6 +279,12 @@ public:
     : _poll_timeout{std::chrono::milliseconds{DEFAULT_POLL_TIMEOUT_MS}}, _poll_limit{
                                                                            DEFAULT_POLL_LIMIT}
   {
+    enum class connection_type_e {CONSUMER, PRODUCER};
+    constexpr auto set_common_fields = [&](connection_type_e conn_type,
+                                           mtev_conf_section_t *mqs,
+                                           int section_id) -> bool {
+      return true;
+    };
     int number_of_conns = 0;
     mtev_conf_section_t *mqs =
       mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_IN_MQ, &number_of_conns);
