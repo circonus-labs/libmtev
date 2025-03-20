@@ -469,15 +469,10 @@ static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self)
 // runtime resolution will fail
 extern "C" {
 void
-mtev_kafka_send_function(const void *payload, size_t payload_len) {
+mtev_kafka_broadcast_function(const void *payload, size_t payload_len) {
   if (the_conf) {
     the_conf->publish_to_producers(payload, payload_len, -1);
   }
-}
-
-void
-mtev_kafka_send_data_function(const void *payload, size_t payload_len) {
-  mtev_kafka_send_function(payload, payload_len);
 }
 }
 
@@ -490,7 +485,7 @@ static int kafka_logio_open(mtev_log_stream_t ls)
 static int
   kafka_logio_write(mtev_log_stream_t ls, const struct timeval *whence, const void *buf, size_t len)
 {
-  mtev_kafka_send_data(buf, len);
+  mtev_kafka_broadcast(buf, len);
   return -1;
 }
 

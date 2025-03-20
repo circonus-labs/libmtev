@@ -76,12 +76,9 @@ static inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
   }
 }
 
-MTEV_RUNTIME_RESOLVE(mtev_kafka_send, mtev_kafka_send_function, void,
+MTEV_RUNTIME_RESOLVE(mtev_kafka_broadcast, mtev_kafka_broadcast_function, void,
   (const void *payload, size_t payload_len), (payload, payload_len))
-MTEV_RUNTIME_AVAIL(mtev_kafka_send, mtev_kafka_send_function)
-MTEV_RUNTIME_RESOLVE(mtev_kafka_send_data, mtev_kafka_send_data_function, void,
-  (const void *payload, size_t payload_len), (payload, payload_len))
-MTEV_RUNTIME_AVAIL(mtev_kafka_send_data, mtev_kafka_send_data_function)
+MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
 
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
                 (mtev_rd_kafka_message_t * msg),
