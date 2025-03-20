@@ -93,12 +93,18 @@ static mtev_rd_kafka_message_t *
   return m;
 }
 
-struct kafka_stats_t {
-  kafka_stats_t() : msgs_in{0}, msgs_out{0}, errors{0} {}
-  ~kafka_stats_t() = default;
+struct kafka_producer_stats_t {
+  kafka_producer_stats_t() : msgs_out{0}, errors{0} {}
+  ~kafka_producer_stats_t() = default;
+
+  uint64_t msgs_out;
+  uint64_t errors;
+};
+struct kafka_consumer_stats_t {
+  kafka_consumer_stats_t() : msgs_in{0}, errors{0} {}
+  ~kafka_consumer_stats_t() = default;
 
   uint64_t msgs_in;
-  uint64_t msgs_out;
   uint64_t errors;
 };
 struct kafka_producer {
@@ -164,6 +170,7 @@ struct kafka_producer {
   rd_kafka_t *rd_producer;
   rd_kafka_topic_conf_t *rd_topic_producer_conf;
   rd_kafka_topic_t *rd_topic_producer;
+  kafka_producer_stats_t stats;
 };
 
 struct kafka_consumer {
@@ -239,9 +246,9 @@ struct kafka_consumer {
     nc_printf(ncct,
               "== %s:%d ==\n"
               "  topic: %s\n  consumer_group: %s\n"
-              "  (s) msgs tx: %zu\n  (s) msgs rx: %zu\n  (s) msgs tx errors: %zu\n",
+              "  (s) msgs tx: %zu\n  (s) msgs tx errors: %zu\n",
               host.c_str(), port, topic.c_str(), consumer_group.c_str(), stats.msgs_in,
-              stats.msgs_out, stats.errors);
+              stats.errors);
   }
 
   std::string host;
@@ -254,7 +261,7 @@ struct kafka_consumer {
   rd_kafka_conf_t *rd_consumer_conf;
   rd_kafka_t *rd_consumer;
   rd_kafka_topic_partition_list_t *rd_consumer_topics;
-  kafka_stats_t stats;
+  kafka_consumer_stats_t stats;
 };
 
 class kafka_module_config {
