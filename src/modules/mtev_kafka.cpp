@@ -44,8 +44,8 @@
 #include <string>
 #include <vector>
 
-#define CONFIG_KAFKA_CONSUMER_IN_MQ "//network/in/mq[@type='kafka']"
-#define CONFIG_KAFKA_PRODUCER_IN_MQ "//network/out/mq[@type='kafka']"
+#define CONFIG_KAFKA_MQ_CONSUMER "//network/in/mq[@type='kafka']"
+#define CONFIG_KAFKA_MQ_PRODUCER "//network/out/mq[@type='kafka']"
 
 static constexpr const char *VARIABLE_PARAMETER_PREFIX = "override_";
 static constexpr size_t VARIABLE_PARAMETER_PREFIX_LEN = strlen(VARIABLE_PARAMETER_PREFIX);
@@ -359,7 +359,7 @@ public:
 
     int number_of_conns = 0;
     mtev_conf_section_t *mqs =
-      mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_CONSUMER_IN_MQ, &number_of_conns);
+      mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_MQ_CONSUMER, &number_of_conns);
 
     if (number_of_conns > 0) {
       for (int section_id = 0; section_id < number_of_conns; section_id++) {
@@ -370,7 +370,7 @@ public:
 
     number_of_conns = 0;
     mqs =
-      mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_PRODUCER_IN_MQ, &number_of_conns);
+      mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_MQ_PRODUCER, &number_of_conns);
 
     if (number_of_conns > 0) {
       for (int section_id = 0; section_id < number_of_conns; section_id++) {
