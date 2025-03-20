@@ -160,6 +160,15 @@ struct kafka_producer {
     mtev_hash_destroy(extra_configs, free, free);
     free(extra_configs);
   }
+  void write_to_console(const mtev_console_closure_t &ncct)
+  {
+    nc_printf(ncct,
+              "== %s:%d ==\n"
+              "  topic: %s\n\n"
+              "  (s) msgs rx: %zu\n  (s) msgs tx errors: %zu\n",
+              host.c_str(), port, topic.c_str(), stats.msgs_out,
+              stats.errors);
+  }
   std::string host;
   int32_t port;
   std::string broker_with_port;
