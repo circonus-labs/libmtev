@@ -41,7 +41,7 @@
           <out>
             <host>localhost</host>
             <port>9092</port>
-            <topic>test_topic_one</topic>
+            <topic>test_topic_two</topic>
           </out>
         </network>
       </root>
