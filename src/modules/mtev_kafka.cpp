@@ -39,6 +39,7 @@
 #include "mtev_rand.h"
 #include "mtev_thread.h"
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <string>
@@ -55,6 +56,9 @@ static mtev_log_stream_t nldeb = nullptr;
 
 constexpr int32_t DEFAULT_POLL_TIMEOUT_MS = 10;
 constexpr int32_t DEFAULT_POLL_LIMIT = 10000;
+constexpr int32_t DEFAULT_PRODUCER_POLL_INTERVAL_MS = 10000;
+
+eventer_jobq_t *poll_producers_jobq = NULL;
 
 extern "C" {
 MTEV_HOOK_IMPL(mtev_kafka_handle_message_dyn,
@@ -98,15 +102,15 @@ struct kafka_producer_stats_t {
   kafka_producer_stats_t() : msgs_out{0}, errors{0} {}
   ~kafka_producer_stats_t() = default;
 
-  uint64_t msgs_out;
-  uint64_t errors;
+  std::atomic<uint64_t> msgs_out;
+  std::atomic<uint64_t> errors;
 };
 struct kafka_consumer_stats_t {
   kafka_consumer_stats_t() : msgs_in{0}, errors{0} {}
   ~kafka_consumer_stats_t() = default;
 
-  uint64_t msgs_in;
-  uint64_t errors;
+  std::atomic<uint64_t> msgs_in;
+  std::atomic<uint64_t> errors;
 };
 struct kafka_producer {
   kafka_producer(const std::string &host_in,
@@ -146,6 +150,17 @@ struct kafka_producer {
       free(extra_configs);
       throw std::runtime_error(error.c_str());
     }
+    rd_kafka_conf_set_dr_msg_cb(rd_producer_conf, +[](rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void *closure) {
+      auto producer = static_cast<kafka_producer *>(closure);
+      if (rkmessage->err) {
+        mtevL(nlerr, "Error producing message (callback): %s\n", rd_kafka_err2str(rkmessage->err));
+        producer->stats.errors++;
+      }
+      else {
+        producer->stats.msgs_out++;
+      }
+    });
+    rd_kafka_conf_set_opaque(rd_producer_conf, this);
     rd_producer =
       rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
     rd_topic_producer_conf = rd_kafka_topic_conf_new();
@@ -169,8 +184,8 @@ struct kafka_producer {
               "  connection type: producer\n"
               "  topic: %s\n"
               "  (s) msgs out: %zu\n  (s) errors: %zu\n",
-              host.c_str(), port, topic.c_str(), stats.msgs_out,
-              stats.errors);
+              host.c_str(), port, topic.c_str(), stats.msgs_out.load(),
+              stats.errors.load());
   }
   std::string host;
   int32_t port;
@@ -262,8 +277,8 @@ struct kafka_consumer {
               "  topic: %s\n"
               "  consumer_group: %s\n"
               "  (s) msgs in: %zu\n  (s) errors: %zu\n",
-              host.c_str(), port, topic.c_str(), consumer_group.c_str(), stats.msgs_in,
-              stats.errors);
+              host.c_str(), port, topic.c_str(), consumer_group.c_str(), stats.msgs_in.load(),
+              stats.errors.load());
   }
 
   std::string host;
@@ -283,7 +298,9 @@ class kafka_module_config {
 public:
   kafka_module_config()
     : _poll_timeout{std::chrono::milliseconds{DEFAULT_POLL_TIMEOUT_MS}}, _poll_limit{
-                                                                           DEFAULT_POLL_LIMIT}
+                                                                           DEFAULT_POLL_LIMIT},
+                                                                          _producer_poll_interval_ms{
+                                                                            DEFAULT_PRODUCER_POLL_INTERVAL_MS}
   {
     enum class connection_type_e {CONSUMER, PRODUCER};
     auto make_kafka_connection = [&](connection_type_e conn_type,
@@ -385,6 +402,10 @@ public:
     _poll_timeout = poll_timeout;
   }
   void set_poll_limit(const int32_t poll_limit) { _poll_limit = poll_limit; }
+  void set_producer_poll_interval(const int64_t producer_poll_interval)
+  {
+    _producer_poll_interval_ms = producer_poll_interval;
+  }
   int poll()
   {
     for (const auto &consumer : _consumers) {
@@ -413,18 +434,27 @@ public:
   }
   void publish_to_producers(const void *payload, size_t payload_len)
   {
-    int sent = 0;
     for (const auto &producer : _producers) {
-      if (rd_kafka_produce(producer->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
+      if (!rd_kafka_produce(producer->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
         const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
-        producer->stats.msgs_out++;
-        sent++;
-      }
-      else {
-        mtevL(nlerr, "%s: Error producing message: %s\n", __func__, rd_kafka_err2str(rd_kafka_last_error()));
+        mtevL(nlerr, "%s: Error producing message (send): %s\n", __func__, rd_kafka_err2str(rd_kafka_last_error()));
         producer->stats.errors++;
       }
     }
+  }
+  void poll_producers()
+  {
+    for (const auto &producer : _producers) {
+      rd_kafka_poll(producer->rd_producer, 10);
+    }
+  }
+  int get_num_producers()
+  {
+    return _producers.size();
+  }
+  int32_t get_producer_poll_interval()
+  {
+    return _producer_poll_interval_ms;
   }
   int show_console(const mtev_console_closure_t &ncct)
   {
@@ -442,6 +472,7 @@ private:
   std::vector<std::unique_ptr<kafka_producer>> _producers;
   std::chrono::milliseconds _poll_timeout;
   int32_t _poll_limit;
+  int64_t _producer_poll_interval_ms;
 };
 
 static kafka_module_config *the_conf = nullptr;
@@ -519,6 +550,14 @@ static int kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options
       auto config = get_or_load_config(img);
       config->set_poll_limit(poll_limit);
     }
+    else if (!strcmp("producer_poll_interval_ms", iter.key.str)) {
+      auto producer_poll_interval_ms = std::stoll(iter.value.str);
+      if (producer_poll_interval_ms < 0) {
+        producer_poll_interval_ms = DEFAULT_PRODUCER_POLL_INTERVAL_MS;
+      }
+      auto config = get_or_load_config(img);
+      config->set_producer_poll_interval(producer_poll_interval_ms);
+    }
     else {
       mtevL(nlerr, "Kafka module config got unknown value: %s=%s\n", iter.key.str, iter.value.str);
     }
@@ -526,6 +565,22 @@ static int kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options
 
   return 0;
 }
+
+static int schedule_poll_producers (eventer_t e, int mask, void *c, struct timeval *now) {
+  auto asynch_e = eventer_alloc_asynch(+[](eventer_t e, int mask, void *c, struct timeval *now) {
+    auto config = static_cast<kafka_module_config *>(c);
+    if (mask == EVENTER_ASYNCH_WORK) {
+      config->poll_producers();
+    }
+    if (mask == EVENTER_ASYNCH_COMPLETE) {
+      auto timeout_ms = config->get_producer_poll_interval();
+      eventer_add_in_s_us(schedule_poll_producers, c, timeout_ms/1000, (timeout_ms % 1000) * 1000);
+    }
+    return 0;
+  }, c);
+  eventer_add_asynch(poll_producers_jobq, asynch_e);
+  return 0;
+};
 
 static int kafka_driver_init(mtev_dso_generic_t *img)
 {
@@ -537,6 +592,7 @@ static int kafka_driver_init(mtev_dso_generic_t *img)
     conf->poll();
     return EVENTER_RECURRENT;
   };
+
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
   auto config = get_or_load_config(img);
@@ -550,6 +606,12 @@ static int kafka_driver_init(mtev_dso_generic_t *img)
 
   auto e = eventer_alloc_recurrent(poll_kafka, config);
   eventer_add(e);
+  if (config->get_num_producers()) {
+    poll_producers_jobq = eventer_jobq_create("poll_kafka_producers");
+    eventer_jobq_set_concurrency(poll_producers_jobq, 1);
+    auto timeout_ms = config->get_producer_poll_interval();
+    eventer_add_in_s_us(schedule_poll_producers, config, timeout_ms/1000, (timeout_ms % 1000) * 1000);
+  }
   return 0;
 }
 

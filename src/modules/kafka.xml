@@ -12,6 +12,10 @@
                required="optional"
                default="10000"
                allowed="\d+">Maximum number of messages to handle in a single callback.</parameter>
+    <parameter name="producer_poll_interval_ms"
+               required="optional"
+               default="10000"
+               allowed="\d+">Number of milliseconds to wait between polling producers.</parameter>
   </moduleconfig>
   <examples>
     <example>
