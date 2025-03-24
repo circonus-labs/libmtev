@@ -112,6 +112,40 @@ struct kafka_consumer_stats_t {
   std::atomic<uint64_t> msgs_in;
   std::atomic<uint64_t> errors;
 };
+
+struct kafka_common_fields {
+  std::string host;
+  int32_t port;
+  std::string broker_with_port;
+  std::string topic;
+};
+
+enum class connection_type_e {CONSUMER, PRODUCER};
+static kafka_common_fields set_common_connection_fields(mtev_hash_table *options)
+{
+  kafka_common_fields ret;
+  void *vptr = nullptr;
+  if (mtev_hash_retrieve(options, "host", strlen("host"), &vptr)) {
+    ret.host = static_cast<char *>(vptr);
+  }
+  else {
+    ret.host = "localhost";
+  }
+  if (mtev_hash_retrieve(options, "port", strlen("port"), &vptr)) {
+    ret.port = atoi(static_cast<char *>(vptr));
+  }
+  else {
+    ret.port = 9112;
+  }
+  if (mtev_hash_retrieve(options, "topic", strlen("topic"), &vptr)) {
+    ret.topic = static_cast<char *>(vptr);
+  }
+  else {
+    ret.topic = "mtev_default_topic";
+  }
+  ret.broker_with_port = ret.host + ":" + std::to_string(ret.port);
+  return ret;
+}
 struct kafka_producer {
   kafka_producer(mtev_hash_table *config,
     const std::string &host_in,
@@ -188,6 +222,7 @@ struct kafka_producer {
               host.c_str(), port, topic.c_str(), stats.msgs_out.load(),
               stats.errors.load());
   }
+  kafka_common_fields common_fields;
   std::string host;
   int32_t port;
   std::string broker_with_port;
@@ -272,6 +307,7 @@ struct kafka_consumer {
               stats.errors.load());
   }
 
+  kafka_common_fields common_fields;
   std::string host;
   int32_t port;
   std::string broker_with_port;
@@ -293,7 +329,6 @@ public:
                                                                           _producer_poll_interval_ms{
                                                                             DEFAULT_PRODUCER_POLL_INTERVAL_MS}
   {
-    enum class connection_type_e {CONSUMER, PRODUCER};
     auto make_kafka_connection = [&](connection_type_e conn_type,
       mtev_conf_section_t *mqs,
       int section_id) -> bool {
