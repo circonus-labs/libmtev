@@ -4,6 +4,8 @@
 
 ## 2.7
 
+ * Update kafka module to allow publishing as well as consuming.
+
 ### 2.7.8
 
  * Update kafka configuration to allow setting extra fields and

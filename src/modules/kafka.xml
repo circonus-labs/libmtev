@@ -12,6 +12,10 @@
                required="optional"
                default="10000"
                allowed="\d+">Maximum number of messages to handle in a single callback.</parameter>
+    <parameter name="producer_poll_interval_ms"
+               required="optional"
+               default="10000"
+               allowed="\d+">Number of milliseconds to wait between polling producers.</parameter>
   </moduleconfig>
   <examples>
     <example>
@@ -26,16 +30,25 @@
           </module>
         </modules>
         <network>
-          <mq type="kafka">
-            <host>localhost</host>
-            <port>9092</port>
-            <topic>test_topic_one</topic>
-	    <consumer_group>sample_consumer_group_id</consumer_group>
-            <protocol>prometheus</protocol>
-	    <override_custom_parameter_one>custom_value</override_custom_parameter_one>
-	    <override_custom_parameter_two>another_custom_value</override_custom_parameter_two>
-	    <override_another_custom_parameter>yet_another_custom_value</override_another_custom_parameter>
-          </mq>
+          <in>
+            <mq type="kafka">
+              <host>localhost</host>
+              <port>9092</port>
+              <topic>test_topic_one</topic>
+              <consumer_group>sample_consumer_group_id</consumer_group>
+              <protocol>prometheus</protocol>
+              <override_custom_parameter_one>custom_value</override_custom_parameter_one>
+              <override_custom_parameter_two>another_custom_value</override_custom_parameter_two>
+              <override_another_custom_parameter>yet_another_custom_value</override_another_custom_parameter>
+            </mq>
+          </in>
+          <out>
+            <mq type="kafka">
+              <host>localhost</host>
+              <port>9092</port>
+              <topic>test_topic_two</topic>
+            </mq>
+          </out>
         </network>
       </root>
     ]]></programlisting>
