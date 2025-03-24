@@ -148,11 +148,9 @@ static kafka_common_fields set_common_connection_fields(mtev_hash_table *options
 }
 struct kafka_producer {
   kafka_producer(mtev_hash_table *config,
-    const std::string protocol_in,
     mtev_hash_table *extra_configs_in)
   {
     common_fields = set_common_connection_fields(config);
-    protocol = protocol_in;
     extra_configs = extra_configs_in;
 
     constexpr size_t error_string_size = 256;
@@ -230,14 +228,24 @@ struct kafka_producer {
 
 struct kafka_consumer {
   kafka_consumer(mtev_hash_table *config,
-                 const std::string consumer_group_in,
-                 const std::string protocol_in,
                  mtev_hash_table *extra_configs_in)
   {
     common_fields = set_common_connection_fields(config);
-    consumer_group = consumer_group_in;
-    protocol = protocol_in;
     extra_configs = extra_configs_in;
+
+    void *vptr = nullptr;
+    if (mtev_hash_retrieve(config, "consumer_group", strlen("consumer_group"), &vptr)) {
+      consumer_group = static_cast<char *>(vptr);
+    }
+    else {
+      consumer_group = "mtev_default_group";
+    }
+    if (mtev_hash_retrieve(config, "protocol", strlen("protocol"), &vptr)) {
+      protocol = static_cast<char *>(vptr);
+    }
+    else {
+      protocol = "not_provided";
+    }
 
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
@@ -328,19 +336,13 @@ public:
       auto entries = mtev_conf_get_hash(mqs[section_id], "self::node()");
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
       while (mtev_hash_adv(entries, &iter)) {
-        if (!strcasecmp("consumer_group", iter.key.str)) {
-          consumer_group_string = iter.value.str;
-        }
-        else if (!strcasecmp("protocol", iter.key.str)) {
-          protocol_string = iter.value.str;
-        }
-        else if (!strncasecmp(iter.key.str, VARIABLE_PARAMETER_PREFIX,
+        if (!strncasecmp(iter.key.str, VARIABLE_PARAMETER_PREFIX,
                               VARIABLE_PARAMETER_PREFIX_LEN)) {
           char *val_copy = strdup(iter.value.str);
           const char *name = iter.key.str + VARIABLE_PARAMETER_PREFIX_LEN;
           if (strlen(name) == 0) {
             free(val_copy);
-            return false;
+            continue;
           }
           char *key_copy = strdup(name);
           if (!mtev_hash_store(extra_configs, key_copy, strlen(key_copy), val_copy)) {
@@ -348,7 +350,7 @@ public:
                   key_copy, val_copy);
             free(key_copy);
             free(val_copy);
-            return false;
+            continue;
           }
         }
       }
@@ -357,8 +359,7 @@ public:
         {
           auto consumer =
             std::make_unique<kafka_consumer>(entries,
-                                             consumer_group_string,
-                                             protocol_string, std::move(extra_configs));
+                                             std::move(extra_configs));
           _consumers.push_back(std::move(consumer));
           break;
         }
@@ -366,7 +367,7 @@ public:
         {
           auto producer =
             std::make_unique<kafka_producer>(entries,
-                                             protocol_string, std::move(extra_configs));
+                                             std::move(extra_configs));
           _producers.push_back(std::move(producer));
           break;
         }
