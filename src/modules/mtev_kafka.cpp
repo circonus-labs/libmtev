@@ -113,7 +113,8 @@ struct kafka_consumer_stats_t {
   std::atomic<uint64_t> errors;
 };
 struct kafka_producer {
-  kafka_producer(const std::string &host_in,
+  kafka_producer(mtev_hash_table *config,
+    const std::string &host_in,
     const int32_t port_in,
     const std::string &topic_in,
     const std::string protocol_in,
@@ -201,7 +202,8 @@ struct kafka_producer {
 };
 
 struct kafka_consumer {
-  kafka_consumer(const std::string &host_in,
+  kafka_consumer(mtev_hash_table *config,
+                 const std::string &host_in,
                  const int32_t port_in,
                  const std::string &topic_in,
                  const std::string consumer_group_in,
@@ -340,13 +342,12 @@ public:
           }
         }
       }
-      mtev_hash_destroy(entries, free, free);
-      free(entries);
       switch(conn_type) {
         case connection_type_e::CONSUMER:
         {
           auto consumer =
-            std::make_unique<kafka_consumer>(host_string, port, topic_string, consumer_group_string,
+            std::make_unique<kafka_consumer>(entries, host_string, port, topic_string,
+                                             consumer_group_string,
                                              protocol_string, std::move(extra_configs));
           _consumers.push_back(std::move(consumer));
           break;
@@ -354,12 +355,14 @@ public:
         case connection_type_e::PRODUCER:
         {
           auto producer =
-            std::make_unique<kafka_producer>(host_string, port, topic_string,
+            std::make_unique<kafka_producer>(entries, host_string, port, topic_string,
                                              protocol_string, std::move(extra_configs));
           _producers.push_back(std::move(producer));
           break;
         }
-      }                                          
+      }
+      mtev_hash_destroy(entries, free, free);
+      free(entries);
       return true;
     };
 
