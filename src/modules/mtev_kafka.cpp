@@ -219,18 +219,7 @@ struct kafka_consumer {
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
 
-    // Set consumer configuration stuff
     rd_consumer_conf = rd_kafka_conf_new();
-    if (rd_kafka_conf_set(rd_consumer_conf, "enable.idempotence", "true", error_string,
-                          error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error =
-        "kafka config error: error setting enable.idempotence field on consumer for " +
-        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
-      rd_kafka_conf_destroy(rd_consumer_conf);
-      mtev_hash_destroy(extra_configs, free, free);
-      free(extra_configs);
-      throw std::runtime_error(error.c_str());
-    }
     if (rd_kafka_conf_set(rd_consumer_conf, "bootstrap.servers", broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
