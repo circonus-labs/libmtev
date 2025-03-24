@@ -148,7 +148,7 @@ static kafka_common_fields set_common_connection_fields(mtev_hash_table *options
 }
 struct kafka_producer {
   kafka_producer(mtev_hash_table *config,
-    mtev_hash_table *extra_configs_in)
+    mtev_hash_table *&&extra_configs_in)
   {
     common_fields = set_common_connection_fields(config);
     extra_configs = extra_configs_in;
@@ -228,7 +228,7 @@ struct kafka_producer {
 
 struct kafka_consumer {
   kafka_consumer(mtev_hash_table *config,
-                 mtev_hash_table *extra_configs_in)
+                 mtev_hash_table *&&extra_configs_in)
   {
     common_fields = set_common_connection_fields(config);
     extra_configs = extra_configs_in;
