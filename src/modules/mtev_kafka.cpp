@@ -151,6 +151,7 @@ struct kafka_producer {
     const std::string protocol_in,
     mtev_hash_table *extra_configs_in)
   {
+    common_fields = set_common_connection_fields(config);
     protocol = protocol_in;
     extra_configs = extra_configs_in;
 
