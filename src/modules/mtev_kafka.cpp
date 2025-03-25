@@ -152,11 +152,19 @@ static void set_kafka_config_values_from_hash(rd_kafka_conf_t *kafka_conf,
                                               mtev_hash_table *config_hash)
 {
   constexpr size_t error_string_size = 256;
+  constexpr const char *bootstrap_str = "bootstrap.servers";
+  constexpr size_t bootstrap_str_len = strlen(bootstrap_str);
   char error_string[error_string_size];
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while (mtev_hash_adv(config_hash, &iter)) {
     auto key = iter.key.str;
     auto value = iter.value.str;
+    if (!strncmp(key, bootstrap_str, bootstrap_str_len)) {
+      std::string error =
+        "kafka config error: field bootstrap.servers is not allowed. Use host and port settings";
+      mtevL(nlerr, "%s\n", error.c_str());
+      continue;
+    }
     if (rd_kafka_conf_set(kafka_conf, key, value, error_string,
       error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
