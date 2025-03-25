@@ -44,6 +44,7 @@
   *       <override_custom_parameter_one>custom_value</override_custom_parameter_one>
   *       <override_custom_parameter_two>another_custom_value</override_custom_parameter_two>
   *       <override_another_custom_parameter>yet_another_custom_value</override_another_custom_parameter>
+  *       <rdkafka_config_setting_fetch.error.backoff.ms>500</rdkafka_config_setting_fetch.error.backoff.ms>
   *     </mq>
   *   </in>
   *   <out>
@@ -51,6 +52,7 @@
   *       <host>localhost</host>
   *       <port>9092</port>
   *       <topic>test_topic_two</topic>
+  *       <rdkafka_config_setting_enable.idempotence>true</rdkafka_config_setting_enable.idempotence>
   *     </mq>
   *   </out>
   * </network>
@@ -65,9 +67,13 @@
   * <consumer_group> - The consumer group to use. Only for consumers.
   * <protocol>       - The format of the consumed messages. Only for consumers.
   *
-  * In addition, <override_*> allows setting arbitrary fields that can be read by the hooks
+  * <override_*> allows setting arbitrary fields that can be read by the hooks
   * so that fields outside of this exact spec can be set and used. It's up to the hook to
   * handle these if specified.
+  * <rdkafka_config_setting_*> allows setting configuration parameters from rdkafka. Start
+  * the XML element with `rdkafka_config_setting_`, then fill in the parameter you wish to set.
+  * The official list of legal parameters from Confluent is available here:
+  * https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
   */
 
 #ifndef _MTEV_KAFKA_HPP
