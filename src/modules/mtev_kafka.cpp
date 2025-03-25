@@ -181,17 +181,6 @@ struct kafka_producer {
 
     rd_producer_conf = rd_kafka_conf_new();
     set_kafka_config_values_from_hash(rd_producer_conf, kafka_configs);
-    if (rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", error_string,
-                          error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error =
-        "kafka config error: error setting enable.idempotence field on producer for " +
-        common_fields.broker_with_port + ", topic " + common_fields.topic + ": kafka reported error |" +
-        error_string + "|";
-      rd_kafka_conf_destroy(rd_producer_conf);
-      mtev_hash_destroy(extra_configs, free, free);
-      free(extra_configs);
-      throw std::runtime_error(error.c_str());
-    }
     if (rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
