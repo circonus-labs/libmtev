@@ -50,6 +50,8 @@
 
 static constexpr const char *VARIABLE_PARAMETER_PREFIX = "override_";
 static constexpr size_t VARIABLE_PARAMETER_PREFIX_LEN = strlen(VARIABLE_PARAMETER_PREFIX);
+static constexpr const char *KAFKA_CONFIG_PARAMETER_PREFIX = "rdkafka_config_setting_";
+static constexpr size_t KAFKA_CONFIG_PARAMETER_PREFIX_LEN = strlen(KAFKA_CONFIG_PARAMETER_PREFIX);
 
 static mtev_log_stream_t nlerr = nullptr;
 static mtev_log_stream_t nldeb = nullptr;
@@ -146,17 +148,39 @@ static kafka_common_fields set_common_connection_fields(mtev_hash_table *options
   ret.broker_with_port = ret.host + ":" + std::to_string(ret.port);
   return ret;
 }
+static void set_kafka_config_values_from_hash(rd_kafka_conf_t *kafka_conf,
+                                              mtev_hash_table *config_hash)
+{
+  constexpr size_t error_string_size = 256;
+  char error_string[error_string_size];
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  while (mtev_hash_adv(config_hash, &iter)) {
+    auto key = iter.key.str;
+    auto value = iter.value.str;
+    if (rd_kafka_conf_set(kafka_conf, key, value, error_string,
+      error_string_size) != RD_KAFKA_CONF_OK) {
+      std::string error =
+        "kafka config error: error setting value " + std::string{value} + " for field " +
+        std::string{key} + ": kafka reported error |" + error_string + "|" + "...skipping";
+      mtevL(nlerr, "%s\n", error.c_str());
+      continue;
+    }
+  }
+}
 struct kafka_producer {
   kafka_producer(mtev_hash_table *config,
-    mtev_hash_table *&&extra_configs_in)
+                 mtev_hash_table *&&kafka_configs_in,
+                 mtev_hash_table *&&extra_configs_in)
   {
     common_fields = set_common_connection_fields(config);
+    kafka_configs = kafka_configs_in;
     extra_configs = extra_configs_in;
 
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
 
     rd_producer_conf = rd_kafka_conf_new();
+    set_kafka_config_values_from_hash(rd_producer_conf, kafka_configs);
     if (rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", error_string,
                           error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
@@ -204,6 +228,8 @@ struct kafka_producer {
     rd_kafka_destroy(rd_producer);
     mtev_hash_destroy(extra_configs, free, free);
     free(extra_configs);
+    mtev_hash_destroy(kafka_configs, free, free);
+    free(kafka_configs);
   }
   void write_to_console(const mtev_console_closure_t &ncct)
   {
@@ -219,6 +245,7 @@ struct kafka_producer {
   kafka_common_fields common_fields;
   std::string protocol;
   mtev_hash_table *extra_configs;
+  mtev_hash_table *kafka_configs;
   rd_kafka_conf_t *rd_producer_conf;
   rd_kafka_t *rd_producer;
   rd_kafka_topic_conf_t *rd_topic_producer_conf;
@@ -228,9 +255,11 @@ struct kafka_producer {
 
 struct kafka_consumer {
   kafka_consumer(mtev_hash_table *config,
+                 mtev_hash_table *&&kafka_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
     common_fields = set_common_connection_fields(config);
+    kafka_configs = kafka_configs_in;
     extra_configs = extra_configs_in;
 
     void *vptr = nullptr;
@@ -251,6 +280,7 @@ struct kafka_consumer {
     char error_string[error_string_size];
 
     rd_consumer_conf = rd_kafka_conf_new();
+    set_kafka_config_values_from_hash(rd_consumer_conf, kafka_configs);
     if (rd_kafka_conf_set(rd_consumer_conf, "bootstrap.servers", common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
@@ -289,6 +319,8 @@ struct kafka_consumer {
     rd_kafka_destroy(rd_consumer);
     mtev_hash_destroy(extra_configs, free, free);
     free(extra_configs);
+    mtev_hash_destroy(kafka_configs, free, free);
+    free(kafka_configs);
   }
   void write_to_console(const mtev_console_closure_t &ncct)
   {
@@ -307,6 +339,7 @@ struct kafka_consumer {
   std::string consumer_group;
   std::string protocol;
   mtev_hash_table *extra_configs;
+  mtev_hash_table *kafka_configs;
   rd_kafka_conf_t *rd_consumer_conf;
   rd_kafka_t *rd_consumer;
   rd_kafka_topic_partition_list_t *rd_consumer_topics;
@@ -331,7 +364,10 @@ public:
       std::string protocol_string = "not_provided";
       mtev_hash_table *extra_configs =
         static_cast<mtev_hash_table *>(calloc(1, sizeof(mtev_hash_table)));
+      mtev_hash_table *kafka_configs =
+        static_cast<mtev_hash_table *>(calloc(1, sizeof(mtev_hash_table)));
       mtev_hash_init(extra_configs);
+      mtev_hash_init(kafka_configs);
 
       auto entries = mtev_conf_get_hash(mqs[section_id], "self::node()");
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
@@ -346,7 +382,24 @@ public:
           }
           char *key_copy = strdup(name);
           if (!mtev_hash_store(extra_configs, key_copy, strlen(key_copy), val_copy)) {
-            mtevL(nlerr, "WARNING: Duplicate config key found (key %s, value %s)... discarding\n",
+            mtevL(nlerr, "WARNING: Duplicate override config key found (key %s, value %s)... discarding\n",
+                  key_copy, val_copy);
+            free(key_copy);
+            free(val_copy);
+            continue;
+          }
+        }
+        else if (!strncasecmp(iter.key.str, KAFKA_CONFIG_PARAMETER_PREFIX,
+                                   KAFKA_CONFIG_PARAMETER_PREFIX_LEN)) {
+          char *val_copy = strdup(iter.value.str);
+          const char *name = iter.key.str + KAFKA_CONFIG_PARAMETER_PREFIX_LEN;
+          if (strlen(name) == 0) {
+            free(val_copy);
+            continue;
+          }
+          char *key_copy = strdup(name);
+          if (!mtev_hash_store(kafka_configs, key_copy, strlen(key_copy), val_copy)) {
+            mtevL(nlerr, "WARNING: Duplicate kafka config key found (key %s, value %s)... discarding\n",
                   key_copy, val_copy);
             free(key_copy);
             free(val_copy);
@@ -359,6 +412,7 @@ public:
         {
           auto consumer =
             std::make_unique<kafka_consumer>(entries,
+                                             std::move(kafka_configs),
                                              std::move(extra_configs));
           _consumers.push_back(std::move(consumer));
           break;
@@ -367,6 +421,7 @@ public:
         {
           auto producer =
             std::make_unique<kafka_producer>(entries,
+                                             std::move(kafka_configs),
                                              std::move(extra_configs));
           _producers.push_back(std::move(producer));
           break;
