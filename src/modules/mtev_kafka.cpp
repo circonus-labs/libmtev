@@ -43,6 +43,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #define CONFIG_KAFKA_MQ_CONSUMER "//network/in/mq[@type='kafka']"
@@ -148,12 +149,13 @@ static kafka_common_fields set_common_connection_fields(mtev_hash_table *options
   ret.broker_with_port = ret.host + ":" + std::to_string(ret.port);
   return ret;
 }
-static void set_kafka_config_values_from_hash(rd_kafka_conf_t *kafka_conf,
-                                              mtev_hash_table *config_hash)
+static std::unordered_map<std::string, std::string> set_kafka_config_values_from_hash(
+  rd_kafka_conf_t *kafka_conf, mtev_hash_table *config_hash)
 {
   constexpr size_t error_string_size = 256;
   constexpr const char *bootstrap_str = "bootstrap.servers";
   constexpr size_t bootstrap_str_len = strlen(bootstrap_str);
+  std::unordered_map<std::string, std::string> errors;
   char error_string[error_string_size];
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
   while (mtev_hash_adv(config_hash, &iter)) {
@@ -162,7 +164,7 @@ static void set_kafka_config_values_from_hash(rd_kafka_conf_t *kafka_conf,
     if (!strncmp(key, bootstrap_str, bootstrap_str_len)) {
       std::string error =
         "kafka config error: field bootstrap.servers is not allowed. Use host and port settings";
-      mtevL(nlerr, "%s\n", error.c_str());
+      errors[key] = error;
       continue;
     }
     if (rd_kafka_conf_set(kafka_conf, key, value, error_string,
@@ -170,10 +172,15 @@ static void set_kafka_config_values_from_hash(rd_kafka_conf_t *kafka_conf,
       std::string error =
         "kafka config error: error setting value " + std::string{value} + " for field " +
         std::string{key} + ": kafka reported error |" + error_string + "|" + "...skipping";
+      errors[key] = error_string;
       mtevL(nlerr, "%s\n", error.c_str());
       continue;
     }
   }
+  for (const auto& pair : errors) {
+    mtev_hash_delete(config_hash, pair.first.c_str(), pair.first.size(), free, free);
+  }
+  return errors;
 }
 struct kafka_producer {
   kafka_producer(mtev_hash_table *config,
