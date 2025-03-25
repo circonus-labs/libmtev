@@ -74,6 +74,7 @@
   * the XML element with `rdkafka_config_setting_`, then fill in the parameter you wish to set.
   * The official list of legal parameters from Confluent is available here:
   * https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
+  * Note that use of `bootstrap.servers` is not allowed. Use `host` and `port`.
   */
 
 #ifndef _MTEV_KAFKA_HPP
