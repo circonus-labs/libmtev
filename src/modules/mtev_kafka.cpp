@@ -138,7 +138,7 @@ static kafka_common_fields set_common_connection_fields(mtev_hash_table *options
     ret.port = atoi(static_cast<char *>(vptr));
   }
   else {
-    ret.port = 9112;
+    ret.port = 9092;
   }
   if (mtev_hash_retrieve(options, "topic", strlen("topic"), &vptr)) {
     ret.topic = static_cast<char *>(vptr);
