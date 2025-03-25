@@ -177,6 +177,9 @@ static std::unordered_map<std::string, std::string> set_kafka_config_values_from
       continue;
     }
   }
+  // We may want to display all of the extra parameters that were manually set at some point...
+  // this loops through and removes all of the ones that failed from the config so we have a clean
+  // picture of what was successfully set
   for (const auto& pair : errors) {
     mtev_hash_delete(config_hash, pair.first.c_str(), pair.first.size(), free, free);
   }
