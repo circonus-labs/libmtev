@@ -222,6 +222,8 @@ struct kafka_producer {
       rd_kafka_conf_destroy(rd_producer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
+      mtev_hash_destroy(kafka_configs, free, free);
+      free(kafka_configs);
       throw std::runtime_error(error.c_str());
     }
     rd_kafka_conf_set_dr_msg_cb(rd_producer_conf, +[](rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void *closure) {
@@ -319,6 +321,8 @@ struct kafka_consumer {
       rd_kafka_conf_destroy(rd_consumer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
+      mtev_hash_destroy(kafka_configs, free, free);
+      free(kafka_configs);
       throw std::runtime_error(error.c_str());
     }
     if (rd_kafka_conf_set(rd_consumer_conf, group_id_str, consumer_group.c_str(), error_string,
@@ -329,6 +333,8 @@ struct kafka_consumer {
       rd_kafka_conf_destroy(rd_consumer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
+      mtev_hash_destroy(kafka_configs, free, free);
+      free(kafka_configs);
       throw std::runtime_error(error.c_str());
     }
 
