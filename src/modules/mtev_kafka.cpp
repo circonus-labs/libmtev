@@ -51,7 +51,7 @@
 
 static constexpr const char *VARIABLE_PARAMETER_PREFIX = "override_";
 static constexpr size_t VARIABLE_PARAMETER_PREFIX_LEN = strlen(VARIABLE_PARAMETER_PREFIX);
-static constexpr const char *KAFKA_CONFIG_PARAMETER_PREFIX = "rdkafka_config_setting_";
+static constexpr const char *KAFKA_CONFIG_PARAMETER_PREFIX = "rdkafka_global_config_setting_";
 static constexpr size_t KAFKA_CONFIG_PARAMETER_PREFIX_LEN = strlen(KAFKA_CONFIG_PARAMETER_PREFIX);
 
 constexpr const char *bootstrap_str = "bootstrap.servers";
