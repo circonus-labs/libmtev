@@ -43,6 +43,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #define CONFIG_KAFKA_MQ_CONSUMER "//network/in/mq[@type='kafka']"
@@ -50,9 +51,17 @@
 
 static constexpr const char *VARIABLE_PARAMETER_PREFIX = "override_";
 static constexpr size_t VARIABLE_PARAMETER_PREFIX_LEN = strlen(VARIABLE_PARAMETER_PREFIX);
+static constexpr const char *KAFKA_CONFIG_PARAMETER_PREFIX = "rdkafka_global_config_setting_";
+static constexpr size_t KAFKA_CONFIG_PARAMETER_PREFIX_LEN = strlen(KAFKA_CONFIG_PARAMETER_PREFIX);
+
+constexpr const char *bootstrap_str = "bootstrap.servers";
+constexpr size_t bootstrap_str_len = strlen(bootstrap_str);
+constexpr const char *group_id_str = "group.id";
+constexpr size_t group_id_str_len = strlen(group_id_str);
 
 static mtev_log_stream_t nlerr = nullptr;
 static mtev_log_stream_t nldeb = nullptr;
+static mtev_log_stream_t nlnotice = nullptr;
 
 constexpr int32_t DEFAULT_POLL_TIMEOUT_MS = 10;
 constexpr int32_t DEFAULT_POLL_LIMIT = 10000;
@@ -112,42 +121,111 @@ struct kafka_consumer_stats_t {
   std::atomic<uint64_t> msgs_in;
   std::atomic<uint64_t> errors;
 };
+
+struct kafka_common_fields {
+  std::string host;
+  int32_t port;
+  std::string broker_with_port;
+  std::string topic;
+};
+
+enum class connection_type_e {CONSUMER, PRODUCER};
+static kafka_common_fields set_common_connection_fields(mtev_hash_table *options)
+{
+  kafka_common_fields ret;
+  void *vptr = nullptr;
+  if (mtev_hash_retrieve(options, "host", strlen("host"), &vptr)) {
+    ret.host = static_cast<char *>(vptr);
+  }
+  else {
+    ret.host = "localhost";
+  }
+  if (mtev_hash_retrieve(options, "port", strlen("port"), &vptr)) {
+    ret.port = atoi(static_cast<char *>(vptr));
+  }
+  else {
+    ret.port = 9092;
+  }
+  if (mtev_hash_retrieve(options, "topic", strlen("topic"), &vptr)) {
+    ret.topic = static_cast<char *>(vptr);
+  }
+  else {
+    ret.topic = "mtev_default_topic";
+  }
+  ret.broker_with_port = ret.host + ":" + std::to_string(ret.port);
+  return ret;
+}
+static std::unordered_map<std::string, std::string> set_kafka_config_values_from_hash(
+  rd_kafka_conf_t *kafka_conf, mtev_hash_table *config_hash)
+{
+  constexpr size_t error_string_size = 256;
+
+  std::unordered_map<std::string, std::string> errors;
+  char error_string[error_string_size];
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  while (mtev_hash_adv(config_hash, &iter)) {
+    auto key = iter.key.str;
+    auto value = iter.value.str;
+    if (!strncmp(key, bootstrap_str, bootstrap_str_len)) {
+      std::string error =
+        "kafka config error: field bootstrap.servers is not allowed. Use host and port settings";
+      errors[key] = error;
+      continue;
+    }
+    if (!strncmp(key, group_id_str, group_id_str_len)) {
+      std::string error =
+        "kafka config error: field group.id is not allowed. Use consumer_group setting";
+      errors[key] = error;
+      continue;
+    }
+    if (rd_kafka_conf_set(kafka_conf, key, value, error_string,
+      error_string_size) != RD_KAFKA_CONF_OK) {
+      errors[key] = error_string;
+      continue;
+    }
+  }
+  // We may want to display all of the extra parameters that were manually set at some point...
+  // this loops through and removes all of the ones that failed from the config so we have a clean
+  // picture of what was successfully set
+  for (const auto& pair : errors) {
+    mtev_hash_delete(config_hash, pair.first.c_str(), pair.first.size(), free, free);
+  }
+  return errors;
+}
 struct kafka_producer {
-  kafka_producer(const std::string &host_in,
-    const int32_t port_in,
-    const std::string &topic_in,
-    const std::string protocol_in,
-    mtev_hash_table *extra_configs_in)
+  kafka_producer(mtev_hash_table *config,
+                 mtev_hash_table *&&kafka_configs_in,
+                 mtev_hash_table *&&extra_configs_in)
   {
-    host = host_in;
-    port = port_in;
-    topic = topic_in;
-    broker_with_port = host + ":" + std::to_string(port);
-    protocol = protocol_in;
+    common_fields = set_common_connection_fields(config);
+    kafka_configs = kafka_configs_in;
     extra_configs = extra_configs_in;
 
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
 
     rd_producer_conf = rd_kafka_conf_new();
-    if (rd_kafka_conf_set(rd_producer_conf, "enable.idempotence", "true", error_string,
-                          error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error =
-        "kafka config error: error setting enable.idempotence field on producer for " +
-        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
-      rd_kafka_conf_destroy(rd_producer_conf);
-      mtev_hash_destroy(extra_configs, free, free);
-      free(extra_configs);
-      throw std::runtime_error(error.c_str());
+    auto config_errors = set_kafka_config_values_from_hash(rd_producer_conf, kafka_configs);
+    if (config_errors.size()) {
+      mtevL(nlerr, "%s: encountered the following %zd errors setting configuration values for "
+        "host %s, topic %s\n", __func__, config_errors.size(), common_fields.broker_with_port.c_str(),
+        common_fields.topic.c_str());
+      for (const auto& pair : config_errors) {
+        mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
+      }
+      throw(std::runtime_error(std::string("Failed to configure producer for host " +
+        common_fields.broker_with_port + ", topic " + common_fields.topic + ": invalid configuration")));
     }
-    if (rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", broker_with_port.c_str(),
+    if (rd_kafka_conf_set(rd_producer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
-        "kafka config error: error setting bootstrap.servers field on producer for " +
-        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
+        "Failed to configure producer for host " + common_fields.broker_with_port + ", topic " +
+        common_fields.topic + ": error " + error_string;
       rd_kafka_conf_destroy(rd_producer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
+      mtev_hash_destroy(kafka_configs, free, free);
+      free(kafka_configs);
       throw std::runtime_error(error.c_str());
     }
     rd_kafka_conf_set_dr_msg_cb(rd_producer_conf, +[](rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void *closure) {
@@ -164,7 +242,7 @@ struct kafka_producer {
     rd_producer =
       rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
     rd_topic_producer_conf = rd_kafka_topic_conf_new();
-    rd_topic_producer = rd_kafka_topic_new(rd_producer, topic.c_str(), rd_topic_producer_conf);
+    rd_topic_producer = rd_kafka_topic_new(rd_producer, common_fields.topic.c_str(), rd_topic_producer_conf);
   }
   kafka_producer() = delete;
   ~kafka_producer()
@@ -175,24 +253,24 @@ struct kafka_producer {
     rd_kafka_destroy(rd_producer);
     mtev_hash_destroy(extra_configs, free, free);
     free(extra_configs);
+    mtev_hash_destroy(kafka_configs, free, free);
+    free(kafka_configs);
   }
   void write_to_console(const mtev_console_closure_t &ncct)
   {
     nc_printf(ncct,
-              "== %s:%d ==\n"
+              "== %s ==\n"
               "  mq type: kafka\n"
               "  connection type: producer\n"
               "  topic: %s\n"
               "  (s) msgs out: %zu\n  (s) errors: %zu\n",
-              host.c_str(), port, topic.c_str(), stats.msgs_out.load(),
+              common_fields.broker_with_port.c_str(), common_fields.topic.c_str(), stats.msgs_out.load(),
               stats.errors.load());
   }
-  std::string host;
-  int32_t port;
-  std::string broker_with_port;
-  std::string topic;
+  kafka_common_fields common_fields;
   std::string protocol;
   mtev_hash_table *extra_configs;
+  mtev_hash_table *kafka_configs;
   rd_kafka_conf_t *rd_producer_conf;
   rd_kafka_t *rd_producer;
   rd_kafka_topic_conf_t *rd_topic_producer_conf;
@@ -201,53 +279,66 @@ struct kafka_producer {
 };
 
 struct kafka_consumer {
-  kafka_consumer(const std::string &host_in,
-                 const int32_t port_in,
-                 const std::string &topic_in,
-                 const std::string consumer_group_in,
-                 const std::string protocol_in,
-                 mtev_hash_table *extra_configs_in)
+  kafka_consumer(mtev_hash_table *config,
+                 mtev_hash_table *&&kafka_configs_in,
+                 mtev_hash_table *&&extra_configs_in)
   {
-    host = host_in;
-    port = port_in;
-    topic = topic_in;
-    broker_with_port = host + ":" + std::to_string(port);
-    consumer_group = consumer_group_in;
-    protocol = protocol_in;
+    common_fields = set_common_connection_fields(config);
+    kafka_configs = kafka_configs_in;
     extra_configs = extra_configs_in;
+
+    void *vptr = nullptr;
+    if (mtev_hash_retrieve(config, "consumer_group", strlen("consumer_group"), &vptr)) {
+      consumer_group = static_cast<char *>(vptr);
+    }
+    else {
+      consumer_group = "mtev_default_group";
+    }
+    if (mtev_hash_retrieve(config, "protocol", strlen("protocol"), &vptr)) {
+      protocol = static_cast<char *>(vptr);
+    }
+    else {
+      protocol = "not_provided";
+    }
 
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
 
-    // Set consumer configuration stuff
     rd_consumer_conf = rd_kafka_conf_new();
-    if (rd_kafka_conf_set(rd_consumer_conf, "enable.idempotence", "true", error_string,
-                          error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error =
-        "kafka config error: error setting enable.idempotence field on consumer for " +
-        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
-      rd_kafka_conf_destroy(rd_consumer_conf);
-      mtev_hash_destroy(extra_configs, free, free);
-      free(extra_configs);
-      throw std::runtime_error(error.c_str());
+    auto config_errors = set_kafka_config_values_from_hash(rd_consumer_conf, kafka_configs);
+    if (config_errors.size()) {
+      mtevL(nlerr, "%s: encountered the following %zd errors setting configuration values for "
+        "host %s, topic %s\n", __func__, config_errors.size(), common_fields.broker_with_port.c_str(),
+        common_fields.topic.c_str());
+      for (const auto& pair : config_errors) {
+        mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
+      }
+      throw(std::runtime_error(std::string("Failed to configure consumer for host " +
+        common_fields.broker_with_port + ", topic " + common_fields.topic + ": invalid configuration")));
+
     }
-    if (rd_kafka_conf_set(rd_consumer_conf, "bootstrap.servers", broker_with_port.c_str(),
+    if (rd_kafka_conf_set(rd_consumer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
-        "kafka config error: error setting bootstrap.servers field on consumer for " +
-        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
+        "Failed to configure consumer for host " + common_fields.broker_with_port + ", topic " +
+        common_fields.topic + ": error " + error_string;
       rd_kafka_conf_destroy(rd_consumer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
+      mtev_hash_destroy(kafka_configs, free, free);
+      free(kafka_configs);
       throw std::runtime_error(error.c_str());
     }
-    if (rd_kafka_conf_set(rd_consumer_conf, "group.id", consumer_group.c_str(), error_string,
+    if (rd_kafka_conf_set(rd_consumer_conf, group_id_str, consumer_group.c_str(), error_string,
                           error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error = "kafka config error: error setting group.id field on consumer for " +
-        broker_with_port + ", topic " + topic + ": kafka reported error |" + error_string + "|";
+      std::string error =
+        "Failed to configure consumer for host " + common_fields.broker_with_port + ", topic " +
+        common_fields.topic + ": error " + error_string;
       rd_kafka_conf_destroy(rd_consumer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
+      mtev_hash_destroy(kafka_configs, free, free);
+      free(kafka_configs);
       throw std::runtime_error(error.c_str());
     }
 
@@ -255,7 +346,7 @@ struct kafka_consumer {
       rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, error_string, error_string_size);
 
     rd_consumer_topics = rd_kafka_topic_partition_list_new(1);
-    rd_kafka_topic_partition_list_add(rd_consumer_topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
+    rd_kafka_topic_partition_list_add(rd_consumer_topics, common_fields.topic.c_str(), RD_KAFKA_PARTITION_UA);
     rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
   }
   kafka_consumer() = delete;
@@ -267,27 +358,27 @@ struct kafka_consumer {
     rd_kafka_destroy(rd_consumer);
     mtev_hash_destroy(extra_configs, free, free);
     free(extra_configs);
+    mtev_hash_destroy(kafka_configs, free, free);
+    free(kafka_configs);
   }
   void write_to_console(const mtev_console_closure_t &ncct)
   {
     nc_printf(ncct,
-              "== %s:%d ==\n"
+              "== %s ==\n"
               "  mq type: kafka\n"
               "  connection type: consumer\n"
               "  topic: %s\n"
               "  consumer_group: %s\n"
               "  (s) msgs in: %zu\n  (s) errors: %zu\n",
-              host.c_str(), port, topic.c_str(), consumer_group.c_str(), stats.msgs_in.load(),
-              stats.errors.load());
+              common_fields.broker_with_port.c_str(), common_fields.topic.c_str(), consumer_group.c_str(),
+              stats.msgs_in.load(), stats.errors.load());
   }
 
-  std::string host;
-  int32_t port;
-  std::string broker_with_port;
-  std::string topic;
+  kafka_common_fields common_fields;
   std::string consumer_group;
   std::string protocol;
   mtev_hash_table *extra_configs;
+  mtev_hash_table *kafka_configs;
   rd_kafka_conf_t *rd_consumer_conf;
   rd_kafka_t *rd_consumer;
   rd_kafka_topic_partition_list_t *rd_consumer_topics;
@@ -302,7 +393,6 @@ public:
                                                                           _producer_poll_interval_ms{
                                                                             DEFAULT_PRODUCER_POLL_INTERVAL_MS}
   {
-    enum class connection_type_e {CONSUMER, PRODUCER};
     auto make_kafka_connection = [&](connection_type_e conn_type,
       mtev_conf_section_t *mqs,
       int section_id) -> bool {
@@ -313,64 +403,87 @@ public:
       std::string protocol_string = "not_provided";
       mtev_hash_table *extra_configs =
         static_cast<mtev_hash_table *>(calloc(1, sizeof(mtev_hash_table)));
+      mtev_hash_table *kafka_configs =
+        static_cast<mtev_hash_table *>(calloc(1, sizeof(mtev_hash_table)));
       mtev_hash_init(extra_configs);
+      mtev_hash_init(kafka_configs);
 
       auto entries = mtev_conf_get_hash(mqs[section_id], "self::node()");
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
       while (mtev_hash_adv(entries, &iter)) {
-        if (!strcasecmp("host", iter.key.str)) {
-          host_string = iter.value.str;
-        }
-        else if (!strcasecmp("port", iter.key.str)) {
-          port = atoi(iter.value.str);
-        }
-        else if (!strcasecmp("topic", iter.key.str)) {
-          topic_string = iter.value.str;
-        }
-        else if (!strcasecmp("consumer_group", iter.key.str)) {
-          consumer_group_string = iter.value.str;
-        }
-        else if (!strcasecmp("protocol", iter.key.str)) {
-          protocol_string = iter.value.str;
-        }
-        else if (!strncasecmp(iter.key.str, VARIABLE_PARAMETER_PREFIX,
+        if (!strncasecmp(iter.key.str, VARIABLE_PARAMETER_PREFIX,
                               VARIABLE_PARAMETER_PREFIX_LEN)) {
           char *val_copy = strdup(iter.value.str);
           const char *name = iter.key.str + VARIABLE_PARAMETER_PREFIX_LEN;
           if (strlen(name) == 0) {
             free(val_copy);
-            return false;
+            continue;
           }
           char *key_copy = strdup(name);
           if (!mtev_hash_store(extra_configs, key_copy, strlen(key_copy), val_copy)) {
-            mtevL(nlerr, "WARNING: Duplicate config key found (key %s, value %s)... discarding\n",
+            mtevL(nlerr, "WARNING: Duplicate override config key found (key %s, value %s)... discarding\n",
                   key_copy, val_copy);
             free(key_copy);
             free(val_copy);
-            return false;
+            continue;
+          }
+        }
+        else if (!strncasecmp(iter.key.str, KAFKA_CONFIG_PARAMETER_PREFIX,
+                                   KAFKA_CONFIG_PARAMETER_PREFIX_LEN)) {
+          char *val_copy = strdup(iter.value.str);
+          const char *name = iter.key.str + KAFKA_CONFIG_PARAMETER_PREFIX_LEN;
+          if (strlen(name) == 0) {
+            free(val_copy);
+            continue;
+          }
+          char *key_copy = strdup(name);
+          if (!mtev_hash_store(kafka_configs, key_copy, strlen(key_copy), val_copy)) {
+            mtevL(nlerr, "WARNING: Duplicate kafka config key found (key %s, value %s)... discarding\n",
+                  key_copy, val_copy);
+            free(key_copy);
+            free(val_copy);
+            continue;
           }
         }
       }
-      mtev_hash_destroy(entries, free, free);
-      free(entries);
       switch(conn_type) {
         case connection_type_e::CONSUMER:
         {
-          auto consumer =
-            std::make_unique<kafka_consumer>(host_string, port, topic_string, consumer_group_string,
-                                             protocol_string, std::move(extra_configs));
-          _consumers.push_back(std::move(consumer));
+          try {
+            auto consumer =
+              std::make_unique<kafka_consumer>(entries,
+                                              std::move(kafka_configs),
+                                              std::move(extra_configs));
+            mtevL(nlnotice, "Added Kafka consumer: Host %s, Topic %s\n",
+              consumer->common_fields.broker_with_port.c_str(),
+              consumer->common_fields.topic.c_str());
+            _consumers.push_back(std::move(consumer));
+          }
+          catch(const std::exception& e) {
+            mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
+          }
           break;
         }
         case connection_type_e::PRODUCER:
         {
-          auto producer =
-            std::make_unique<kafka_producer>(host_string, port, topic_string,
-                                             protocol_string, std::move(extra_configs));
-          _producers.push_back(std::move(producer));
+          try {
+            auto producer =
+              std::make_unique<kafka_producer>(entries,
+                                              std::move(kafka_configs),
+                                              std::move(extra_configs));
+            mtevL(nlnotice, "Added Kafka producer: Host %s, Topic %s\n",
+              producer->common_fields.broker_with_port.c_str(),
+              producer->common_fields.topic.c_str());
+            _producers.push_back(std::move(producer));
+          }
+          catch(const std::exception& e) {
+            mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
+          }
           break;
         }
-      }                                          
+      }
+      mtev_hash_destroy(entries, free, free);
+      free(entries);
       return true;
     };
 
@@ -424,7 +537,8 @@ public:
         }
         else {
           mtevL(nlerr, "ERROR: Got error reading from %s, topic %s: %s\n",
-            consumer->broker_with_port.c_str(), consumer->topic.c_str(), rd_kafka_err2str(msg->err));
+            consumer->common_fields.broker_with_port.c_str(), consumer->common_fields.topic.c_str(),
+            rd_kafka_err2str(msg->err));
           consumer->stats.errors++;
           rd_kafka_message_destroy(msg);
         }
@@ -595,6 +709,7 @@ static int kafka_driver_init(mtev_dso_generic_t *img)
 
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
+  nlnotice = mtev_log_stream_find("notice/kafka");
   auto config = get_or_load_config(img);
   mtev_register_logops("kafka", &kafka_logio_ops);
 
