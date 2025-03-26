@@ -179,11 +179,7 @@ static std::unordered_map<std::string, std::string> set_kafka_config_values_from
     }
     if (rd_kafka_conf_set(kafka_conf, key, value, error_string,
       error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error =
-        "kafka config error: error setting value " + std::string{value} + " for field " +
-        std::string{key} + ": kafka reported error |" + error_string + "|" + "...skipping";
       errors[key] = error_string;
-      mtevL(nlerr, "%s\n", error.c_str());
       continue;
     }
   }
@@ -208,7 +204,15 @@ struct kafka_producer {
     char error_string[error_string_size];
 
     rd_producer_conf = rd_kafka_conf_new();
-    set_kafka_config_values_from_hash(rd_producer_conf, kafka_configs);
+    auto config_errors = set_kafka_config_values_from_hash(rd_producer_conf, kafka_configs);
+    if (config_errors.size()) {
+      mtevL(nlerr, "%s: encountered the following %zd errors setting configuration values for "
+        "host %s, topic %s\n", __func__, config_errors.size(), common_fields.broker_with_port.c_str(),
+        common_fields.topic.c_str());
+      for (const auto& pair : config_errors) {
+        mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
+      }
+    }
     if (rd_kafka_conf_set(rd_producer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
@@ -297,7 +301,15 @@ struct kafka_consumer {
     char error_string[error_string_size];
 
     rd_consumer_conf = rd_kafka_conf_new();
-    set_kafka_config_values_from_hash(rd_consumer_conf, kafka_configs);
+    auto config_errors = set_kafka_config_values_from_hash(rd_consumer_conf, kafka_configs);
+    if (config_errors.size()) {
+      mtevL(nlerr, "%s: encountered the following %zd errors setting configuration values for "
+        "host %s, topic %s\n", __func__, config_errors.size(), common_fields.broker_with_port.c_str(),
+        common_fields.topic.c_str());
+      for (const auto& pair : config_errors) {
+        mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
+      }
+    }
     if (rd_kafka_conf_set(rd_consumer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
