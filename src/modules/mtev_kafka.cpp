@@ -460,7 +460,7 @@ public:
             _consumers.push_back(std::move(consumer));
           }
           catch(const std::exception& e) {
-            mtevL(nlerr, "EXCEPTION: %s... skipping\n", e.what());
+            mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
           }
           break;
         }
@@ -476,8 +476,8 @@ public:
               producer->common_fields.topic.c_str());
             _producers.push_back(std::move(producer));
           }
-          catch (const std::exception& e) {
-            mtevL(nlerr, "EXCEPTION: %s... skipping\n", e.what());
+          catch(const std::exception& e) {
+            mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
           }
           break;
         }
