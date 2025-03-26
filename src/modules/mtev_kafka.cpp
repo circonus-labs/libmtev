@@ -445,20 +445,30 @@ public:
       switch(conn_type) {
         case connection_type_e::CONSUMER:
         {
-          auto consumer =
-            std::make_unique<kafka_consumer>(entries,
-                                             std::move(kafka_configs),
-                                             std::move(extra_configs));
-          _consumers.push_back(std::move(consumer));
+          try {
+            auto consumer =
+              std::make_unique<kafka_consumer>(entries,
+                                              std::move(kafka_configs),
+                                              std::move(extra_configs));
+            _consumers.push_back(std::move(consumer));
+          }
+          catch(const std::exception& e) {
+            // TODO
+          }
           break;
         }
         case connection_type_e::PRODUCER:
         {
-          auto producer =
-            std::make_unique<kafka_producer>(entries,
-                                             std::move(kafka_configs),
-                                             std::move(extra_configs));
-          _producers.push_back(std::move(producer));
+          try {
+            auto producer =
+              std::make_unique<kafka_producer>(entries,
+                                              std::move(kafka_configs),
+                                              std::move(extra_configs));
+            _producers.push_back(std::move(producer));
+          }
+          catch (const std::exception& e) {
+            // TODO
+          }
           break;
         }
       }
