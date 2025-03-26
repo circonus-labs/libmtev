@@ -212,13 +212,14 @@ struct kafka_producer {
       for (const auto& pair : config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
+      throw(std::runtime_error(std::string("Failed to configure producer for host " +
+        common_fields.broker_with_port + ", topic" + common_fields.topic + ": invalid configuration")));
     }
     if (rd_kafka_conf_set(rd_producer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
-        "kafka config error: error setting bootstrap.servers field on producer for " +
-        common_fields.broker_with_port + ", topic " + common_fields.topic + ": kafka reported error |" +
-        error_string + "|";
+        "Failed to configure producer for host " + common_fields.broker_with_port + ", topic " +
+        common_fields.topic + ": error " + error_string;
       rd_kafka_conf_destroy(rd_producer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
@@ -311,13 +312,15 @@ struct kafka_consumer {
       for (const auto& pair : config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
+      throw(std::runtime_error(std::string("Failed to configure consumer for host " +
+        common_fields.broker_with_port + ", topic" + common_fields.topic + ": invalid configuration")));
+
     }
     if (rd_kafka_conf_set(rd_consumer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
-        "kafka config error: error setting bootstrap.servers field on consumer for " +
-        common_fields.broker_with_port + ", topic " + common_fields.topic + ": kafka reported error |" +
-        error_string + "|";
+        "Failed to configure consumer for host " + common_fields.broker_with_port + ", topic " +
+        common_fields.topic + ": error " + error_string;
       rd_kafka_conf_destroy(rd_consumer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
@@ -327,9 +330,9 @@ struct kafka_consumer {
     }
     if (rd_kafka_conf_set(rd_consumer_conf, group_id_str, consumer_group.c_str(), error_string,
                           error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error = "kafka config error: error setting group.id field on consumer for " +
-        common_fields.broker_with_port + ", topic " + common_fields.topic + ": kafka reported error |" +
-        error_string + "|";
+      std::string error =
+        "Failed to configure consumer for host " + common_fields.broker_with_port + ", topic " +
+        common_fields.topic + ": error " + error_string;
       rd_kafka_conf_destroy(rd_consumer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
