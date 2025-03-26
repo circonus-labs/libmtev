@@ -61,6 +61,7 @@ constexpr size_t group_id_str_len = strlen(group_id_str);
 
 static mtev_log_stream_t nlerr = nullptr;
 static mtev_log_stream_t nldeb = nullptr;
+static mtev_log_stream_t nlnotice = nullptr;
 
 constexpr int32_t DEFAULT_POLL_TIMEOUT_MS = 10;
 constexpr int32_t DEFAULT_POLL_LIMIT = 10000;
@@ -453,6 +454,9 @@ public:
               std::make_unique<kafka_consumer>(entries,
                                               std::move(kafka_configs),
                                               std::move(extra_configs));
+            mtevL(nlnotice, "Added Kafka consumer: Host %s, Topic %s\n",
+              consumer->common_fields.broker_with_port.c_str(),
+              consumer->common_fields.topic.c_str());
             _consumers.push_back(std::move(consumer));
           }
           catch(const std::exception& e) {
@@ -467,6 +471,9 @@ public:
               std::make_unique<kafka_producer>(entries,
                                               std::move(kafka_configs),
                                               std::move(extra_configs));
+            mtevL(nlnotice, "Added Kafka producer: Host %s, Topic %s\n",
+              producer->common_fields.broker_with_port.c_str(),
+              producer->common_fields.topic.c_str());
             _producers.push_back(std::move(producer));
           }
           catch (const std::exception& e) {
@@ -702,6 +709,7 @@ static int kafka_driver_init(mtev_dso_generic_t *img)
 
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
+  nlnotice = mtev_log_stream_find("notice/kafka");
   auto config = get_or_load_config(img);
   mtev_register_logops("kafka", &kafka_logio_ops);
 
