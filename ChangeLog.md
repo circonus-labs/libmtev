@@ -4,6 +4,8 @@
 
 ## 2.7
 
+ * Allow setting arbitrary librdkafka configuration values on
+   connections in the kafka module.
  * Update kafka module to allow publishing as well as consuming.
 
 ### 2.7.8
