@@ -213,7 +213,7 @@ struct kafka_producer {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
       throw(std::runtime_error(std::string("Failed to configure producer for host " +
-        common_fields.broker_with_port + ", topic" + common_fields.topic + ": invalid configuration")));
+        common_fields.broker_with_port + ", topic " + common_fields.topic + ": invalid configuration")));
     }
     if (rd_kafka_conf_set(rd_producer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
@@ -313,7 +313,7 @@ struct kafka_consumer {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
       throw(std::runtime_error(std::string("Failed to configure consumer for host " +
-        common_fields.broker_with_port + ", topic" + common_fields.topic + ": invalid configuration")));
+        common_fields.broker_with_port + ", topic " + common_fields.topic + ": invalid configuration")));
 
     }
     if (rd_kafka_conf_set(rd_consumer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
@@ -456,7 +456,7 @@ public:
             _consumers.push_back(std::move(consumer));
           }
           catch(const std::exception& e) {
-            mtevL(nlerr, "Failed to add consumer to list: %s... skipping\n", e.what());
+            mtevL(nlerr, "EXCEPTION: %s... skipping\n", e.what());
           }
           break;
         }
@@ -470,7 +470,7 @@ public:
             _producers.push_back(std::move(producer));
           }
           catch (const std::exception& e) {
-            mtevL(nlerr, "Failed to add producer to list: %s... skipping\n", e.what());
+            mtevL(nlerr, "EXCEPTION: %s... skipping\n", e.what());
           }
           break;
         }
