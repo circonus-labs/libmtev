@@ -456,7 +456,7 @@ public:
             _consumers.push_back(std::move(consumer));
           }
           catch(const std::exception& e) {
-            // TODO
+            mtevL(nlerr, "Failed to add consumer to list: %s... skipping\n", e.what());
           }
           break;
         }
@@ -470,7 +470,7 @@ public:
             _producers.push_back(std::move(producer));
           }
           catch (const std::exception& e) {
-            // TODO
+            mtevL(nlerr, "Failed to add producer to list: %s... skipping\n", e.what());
           }
           break;
         }
