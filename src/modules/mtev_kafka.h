@@ -74,7 +74,9 @@
   * the XML element with `rdkafka_config_setting_`, then fill in the parameter you wish to set.
   * The official list of legal parameters from Confluent is available here:
   * https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
-  * Note that use of `bootstrap.servers` is not allowed. Use `host` and `port`.
+  * Use of the following fields are not allowed:
+  * `bootstrap.servers`: Use `host` and `port`.
+  * `group.id`: Use `consumer_group`.
   */
 
 #ifndef _MTEV_KAFKA_HPP

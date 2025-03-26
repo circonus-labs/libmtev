@@ -54,6 +54,11 @@ static constexpr size_t VARIABLE_PARAMETER_PREFIX_LEN = strlen(VARIABLE_PARAMETE
 static constexpr const char *KAFKA_CONFIG_PARAMETER_PREFIX = "rdkafka_config_setting_";
 static constexpr size_t KAFKA_CONFIG_PARAMETER_PREFIX_LEN = strlen(KAFKA_CONFIG_PARAMETER_PREFIX);
 
+constexpr const char *bootstrap_str = "bootstrap.servers";
+constexpr size_t bootstrap_str_len = strlen(bootstrap_str);
+constexpr const char *group_id_str = "group.id";
+constexpr size_t group_id_str_len = strlen(group_id_str);
+
 static mtev_log_stream_t nlerr = nullptr;
 static mtev_log_stream_t nldeb = nullptr;
 
@@ -153,8 +158,7 @@ static std::unordered_map<std::string, std::string> set_kafka_config_values_from
   rd_kafka_conf_t *kafka_conf, mtev_hash_table *config_hash)
 {
   constexpr size_t error_string_size = 256;
-  constexpr const char *bootstrap_str = "bootstrap.servers";
-  constexpr size_t bootstrap_str_len = strlen(bootstrap_str);
+
   std::unordered_map<std::string, std::string> errors;
   char error_string[error_string_size];
   mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
@@ -164,6 +168,12 @@ static std::unordered_map<std::string, std::string> set_kafka_config_values_from
     if (!strncmp(key, bootstrap_str, bootstrap_str_len)) {
       std::string error =
         "kafka config error: field bootstrap.servers is not allowed. Use host and port settings";
+      errors[key] = error;
+      continue;
+    }
+    if (!strncmp(key, group_id_str, group_id_str_len)) {
+      std::string error =
+        "kafka config error: field group.id is not allowed. Use consumer_group setting";
       errors[key] = error;
       continue;
     }
@@ -199,7 +209,7 @@ struct kafka_producer {
 
     rd_producer_conf = rd_kafka_conf_new();
     set_kafka_config_values_from_hash(rd_producer_conf, kafka_configs);
-    if (rd_kafka_conf_set(rd_producer_conf, "bootstrap.servers", common_fields.broker_with_port.c_str(),
+    if (rd_kafka_conf_set(rd_producer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
         "kafka config error: error setting bootstrap.servers field on producer for " +
@@ -288,7 +298,7 @@ struct kafka_consumer {
 
     rd_consumer_conf = rd_kafka_conf_new();
     set_kafka_config_values_from_hash(rd_consumer_conf, kafka_configs);
-    if (rd_kafka_conf_set(rd_consumer_conf, "bootstrap.servers", common_fields.broker_with_port.c_str(),
+    if (rd_kafka_conf_set(rd_consumer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error =
         "kafka config error: error setting bootstrap.servers field on consumer for " +
@@ -299,7 +309,7 @@ struct kafka_consumer {
       free(extra_configs);
       throw std::runtime_error(error.c_str());
     }
-    if (rd_kafka_conf_set(rd_consumer_conf, "group.id", consumer_group.c_str(), error_string,
+    if (rd_kafka_conf_set(rd_consumer_conf, group_id_str, consumer_group.c_str(), error_string,
                           error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error = "kafka config error: error setting group.id field on consumer for " +
         common_fields.broker_with_port + ", topic " + common_fields.topic + ": kafka reported error |" +
