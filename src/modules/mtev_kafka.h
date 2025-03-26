@@ -29,57 +29,57 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /*
-  * The Kafka module is used to handle both consuming from and publishing to
-  * kafka instances. All consumers and producers must be configured separately.
-  * The configuration will look like this:
-  * <network>
-  *   <in>
-  *     <mq type="kafka">
-  *       <host>localhost</host>
-  *       <port>9092</port>
-  *       <topic>test_topic_one</topic>
-  *       <consumer_group>sample_consumer_group_id</consumer_group>
-  *       <protocol>prometheus</protocol>
-  *       <override_custom_parameter_one>custom_value</override_custom_parameter_one>
-  *       <override_custom_parameter_two>another_custom_value</override_custom_parameter_two>
-  *       <override_another_custom_parameter>yet_another_custom_value</override_another_custom_parameter>
-  *       <rdkafka_global_config_setting_fetch.error.backoff.ms>500</rdkafka_global_config_setting_fetch.error.backoff.ms>
-  *     </mq>
-  *   </in>
-  *   <out>
-  *     <mq type="kafka">
-  *       <host>localhost</host>
-  *       <port>9092</port>
-  *       <topic>test_topic_two</topic>
-  *       <rdkafka_global_config_setting_enable.idempotence>true</rdkafka_global_config_setting_enable.idempotence>
-  *     </mq>
-  *   </out>
-  * </network>
-  *
-  * The <in> stanza will contain all consumers. The <out> standza will contain all producers. Multiple
-  * mq stanzas can be defined for each.
-  *
-  * The individual fields for each config are:
-  * <host>           - The host to connect to.
-  * <port>           - The port to connect to.
-  * <topic>          - The topic to interact with
-  * <consumer_group> - The consumer group to use. Only for consumers.
-  * <protocol>       - The format of the consumed messages. Only for consumers.
-  *
-  * <override_*> allows setting arbitrary fields that can be read by the hooks
-  * so that fields outside of this exact spec can be set and used. It's up to the hook to
-  * handle these if specified.
-  * <rdkafka_global_config_setting_*> allows setting global configuration parameters from rdkafka. Start
-  * the XML element with `rdkafka_global_config_setting_`, then fill in the parameter you wish to set.
-  * The official list of legal parameters from Confluent is available here:
-  * https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
-  * Use of the following fields are not allowed:
-  * `bootstrap.servers`: Use `host` and `port`.
-  * `group.id`: Use `consumer_group`.
-  *  At the moment, `Topic configuration properties` are not yet available. Only
-  *  `Global configuration properties` work.
-  */
+/*
+ * The Kafka module is used to handle both consuming from and publishing to
+ * kafka instances. All consumers and producers must be configured separately.
+ * The configuration will look like this:
+ * <network>
+ *   <in>
+ *     <mq type="kafka">
+ *       <host>localhost</host>
+ *       <port>9092</port>
+ *       <topic>test_topic_one</topic>
+ *       <consumer_group>sample_consumer_group_id</consumer_group>
+ *       <protocol>prometheus</protocol>
+ *       <override_custom_parameter_one>custom_value</override_custom_parameter_one>
+ *       <override_custom_parameter_two>another_custom_value</override_custom_parameter_two>
+ *       <override_another_custom_parameter>yet_another_custom_value</override_another_custom_parameter>
+ *       <rdkafka_global_config_setting_fetch.error.backoff.ms>500</rdkafka_global_config_setting_fetch.error.backoff.ms>
+ *     </mq>
+ *   </in>
+ *   <out>
+ *     <mq type="kafka">
+ *       <host>localhost</host>
+ *       <port>9092</port>
+ *       <topic>test_topic_two</topic>
+ *       <rdkafka_global_config_setting_enable.idempotence>true</rdkafka_global_config_setting_enable.idempotence>
+ *     </mq>
+ *   </out>
+ * </network>
+ *
+ * The <in> stanza will contain all consumers. The <out> standza will contain all producers.
+ * Multiple mq stanzas can be defined for each.
+ *
+ * The individual fields for each config are:
+ * <host>           - The host to connect to.
+ * <port>           - The port to connect to.
+ * <topic>          - The topic to interact with
+ * <consumer_group> - The consumer group to use. Only for consumers.
+ * <protocol>       - The format of the consumed messages. Only for consumers.
+ *
+ * <override_*> allows setting arbitrary fields that can be read by the hooks
+ * so that fields outside of this exact spec can be set and used. It's up to the hook to
+ * handle these if specified.
+ * <rdkafka_global_config_setting_*> allows setting global configuration parameters from rdkafka.
+ * Start the XML element with `rdkafka_global_config_setting_`, then fill in the parameter you wish
+ * to set. The official list of legal parameters from Confluent is available here:
+ * https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
+ * Use of the following fields are not allowed:
+ * `bootstrap.servers`: Use `host` and `port`.
+ * `group.id`: Use `consumer_group`.
+ *  At the moment, `Topic configuration properties` are not yet available. Only
+ *  `Global configuration properties` work.
+ */
 
 #ifndef _MTEV_KAFKA_HPP
 #define _MTEV_KAFKA_HPP
@@ -133,8 +133,11 @@ static inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
     \param payload The payload to publish.
     \param payload_len The size of the payload.
  */
-MTEV_RUNTIME_RESOLVE(mtev_kafka_broadcast, mtev_kafka_broadcast_function, void,
-  (const void *payload, size_t payload_len), (payload, payload_len))
+MTEV_RUNTIME_RESOLVE(mtev_kafka_broadcast,
+                     mtev_kafka_broadcast_function,
+                     void,
+                     (const void *payload, size_t payload_len),
+                     (payload, payload_len))
 MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
 
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
