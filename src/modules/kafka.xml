@@ -49,7 +49,7 @@
               <port>9092</port>
               <topic>test_topic_two</topic>
               <rdkafka_global_config_setting_enable.idempotence>true</rdkafka_global_config_setting_enable.idempotence>
-              <rdkafka_topic_config_setting_enable.idempotence>30000</rdkafka_topic_config_setting_enable.idempotence>
+              <rdkafka_topic_config_setting_request.timeout.ms>30000</rdkafka_topic_config_setting_request.timeout.ms>
             </mq>
           </out>
         </network>
