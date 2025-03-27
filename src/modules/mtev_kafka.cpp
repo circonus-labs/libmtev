@@ -243,7 +243,7 @@ struct kafka_producer {
 
     if (global_config_errors.size()) {
       mtevL(nlerr,
-            "%s: encountered the following %zd errors setting configuration values for "
+            "%s: encountered the following %zd errors setting global configuration values for "
             "host %s, topic %s\n",
             __func__, global_config_errors.size(), common_fields.broker_with_port.c_str(),
             common_fields.topic.c_str());
@@ -283,7 +283,7 @@ struct kafka_producer {
       set_kafka_topic_config_values_from_hash(rd_topic_producer_conf, kafka_topic_configs);
     if (topic_config_errors.size()) {
       mtevL(nlerr,
-            "%s: encountered the following %zd errors setting configuration values for "
+            "%s: encountered the following %zd errors setting topic configuration values for "
             "host %s, topic %s\n",
             __func__, topic_config_errors.size(), common_fields.broker_with_port.c_str(),
             common_fields.topic.c_str());
@@ -385,7 +385,7 @@ struct kafka_consumer {
       set_kafka_global_config_values_from_hash(rd_consumer_conf, kafka_global_configs);
     if (global_config_errors.size()) {
       mtevL(nlerr,
-            "%s: encountered the following %zd errors setting configuration values for "
+            "%s: encountered the following %zd errors setting global configuration values for "
             "host %s, topic %s\n",
             __func__, global_config_errors.size(), common_fields.broker_with_port.c_str(),
             common_fields.topic.c_str());
