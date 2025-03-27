@@ -51,8 +51,13 @@
 
 static constexpr const char *VARIABLE_PARAMETER_PREFIX = "override_";
 static constexpr size_t VARIABLE_PARAMETER_PREFIX_LEN = strlen(VARIABLE_PARAMETER_PREFIX);
-static constexpr const char *KAFKA_CONFIG_PARAMETER_PREFIX = "rdkafka_global_config_setting_";
-static constexpr size_t KAFKA_CONFIG_PARAMETER_PREFIX_LEN = strlen(KAFKA_CONFIG_PARAMETER_PREFIX);
+static constexpr const char *KAFKA_GLOBAL_CONFIG_PARAMETER_PREFIX =
+  "rdkafka_global_config_setting_";
+static constexpr size_t KAFKA_GLOBAL_CONFIG_PARAMETER_PREFIX_LEN =
+  strlen(KAFKA_GLOBAL_CONFIG_PARAMETER_PREFIX);
+static constexpr const char *KAFKA_TOPIC_CONFIG_PARAMETER_PREFIX = "rdkafka_topic_config_setting_";
+static constexpr size_t KAFKA_TOPIC_CONFIG_PARAMETER_PREFIX_LEN =
+  strlen(KAFKA_TOPIC_CONFIG_PARAMETER_PREFIX);
 
 constexpr const char *bootstrap_str = "bootstrap.servers";
 constexpr size_t bootstrap_str_len = strlen(bootstrap_str);
@@ -156,7 +161,8 @@ static kafka_common_fields set_common_connection_fields(mtev_hash_table *options
   return ret;
 }
 static std::unordered_map<std::string, std::string>
-  set_kafka_config_values_from_hash(rd_kafka_conf_t *kafka_conf, mtev_hash_table *config_hash)
+  set_kafka_global_config_values_from_hash(rd_kafka_conf_t *kafka_conf,
+                                           mtev_hash_table *config_hash)
 {
   constexpr size_t error_string_size = 256;
 
@@ -192,27 +198,56 @@ static std::unordered_map<std::string, std::string>
   }
   return errors;
 }
+static std::unordered_map<std::string, std::string>
+  set_kafka_topic_config_values_from_hash(rd_kafka_topic_conf_t *kafka_conf,
+                                          mtev_hash_table *config_hash)
+{
+  constexpr size_t error_string_size = 256;
+  std::unordered_map<std::string, std::string> errors;
+  char error_string[error_string_size];
+  mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
+  while (mtev_hash_adv(config_hash, &iter)) {
+    auto key = iter.key.str;
+    auto value = iter.value.str;
+    if (rd_kafka_topic_conf_set(kafka_conf, key, value, error_string, error_string_size) !=
+        RD_KAFKA_CONF_OK) {
+      errors[key] = error_string;
+      continue;
+    }
+  }
+  // We may want to display all of the extra parameters that were manually set at some point...
+  // this loops through and removes all of the ones that failed from the config so we have a clean
+  // picture of what was successfully set
+  for (const auto &pair : errors) {
+    mtev_hash_delete(config_hash, pair.first.c_str(), pair.first.size(), free, free);
+  }
+  return errors;
+}
 struct kafka_producer {
   kafka_producer(mtev_hash_table *config,
-                 mtev_hash_table *&&kafka_configs_in,
+                 mtev_hash_table *&&kafka_global_configs_in,
+                 mtev_hash_table *&&kafka_topic_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
     common_fields = set_common_connection_fields(config);
-    kafka_configs = kafka_configs_in;
+    kafka_global_configs = kafka_global_configs_in;
+    kafka_topic_configs = kafka_topic_configs_in;
     extra_configs = extra_configs_in;
 
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
 
     rd_producer_conf = rd_kafka_conf_new();
-    auto config_errors = set_kafka_config_values_from_hash(rd_producer_conf, kafka_configs);
-    if (config_errors.size()) {
+    auto global_config_errors =
+      set_kafka_global_config_values_from_hash(rd_producer_conf, kafka_global_configs);
+
+    if (global_config_errors.size()) {
       mtevL(nlerr,
             "%s: encountered the following %zd errors setting configuration values for "
             "host %s, topic %s\n",
-            __func__, config_errors.size(), common_fields.broker_with_port.c_str(),
+            __func__, global_config_errors.size(), common_fields.broker_with_port.c_str(),
             common_fields.topic.c_str());
-      for (const auto &pair : config_errors) {
+      for (const auto &pair : global_config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
       throw(std::runtime_error(std::string("Failed to configure producer for host " +
@@ -227,8 +262,8 @@ struct kafka_producer {
       rd_kafka_conf_destroy(rd_producer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
-      mtev_hash_destroy(kafka_configs, free, free);
-      free(kafka_configs);
+      mtev_hash_destroy(kafka_global_configs, free, free);
+      free(kafka_global_configs);
       throw std::runtime_error(error.c_str());
     }
     rd_kafka_conf_set_dr_msg_cb(
@@ -247,6 +282,21 @@ struct kafka_producer {
     rd_producer =
       rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
     rd_topic_producer_conf = rd_kafka_topic_conf_new();
+    auto topic_config_errors =
+      set_kafka_topic_config_values_from_hash(rd_topic_producer_conf, kafka_topic_configs);
+    if (topic_config_errors.size()) {
+      mtevL(nlerr,
+            "%s: encountered the following %zd errors setting configuration values for "
+            "host %s, topic %s\n",
+            __func__, topic_config_errors.size(), common_fields.broker_with_port.c_str(),
+            common_fields.topic.c_str());
+      for (const auto &pair : topic_config_errors) {
+        mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
+      }
+      throw(std::runtime_error(std::string("Failed to configure producer for host " +
+                                           common_fields.broker_with_port + ", topic " +
+                                           common_fields.topic + ": invalid configuration")));
+    }
     rd_topic_producer =
       rd_kafka_topic_new(rd_producer, common_fields.topic.c_str(), rd_topic_producer_conf);
   }
@@ -259,8 +309,8 @@ struct kafka_producer {
     rd_kafka_destroy(rd_producer);
     mtev_hash_destroy(extra_configs, free, free);
     free(extra_configs);
-    mtev_hash_destroy(kafka_configs, free, free);
-    free(kafka_configs);
+    mtev_hash_destroy(kafka_global_configs, free, free);
+    free(kafka_global_configs);
   }
   void write_to_console(const mtev_console_closure_t &ncct)
   {
@@ -276,7 +326,8 @@ struct kafka_producer {
   kafka_common_fields common_fields;
   std::string protocol;
   mtev_hash_table *extra_configs;
-  mtev_hash_table *kafka_configs;
+  mtev_hash_table *kafka_global_configs;
+  mtev_hash_table *kafka_topic_configs;
   rd_kafka_conf_t *rd_producer_conf;
   rd_kafka_t *rd_producer;
   rd_kafka_topic_conf_t *rd_topic_producer_conf;
@@ -286,11 +337,11 @@ struct kafka_producer {
 
 struct kafka_consumer {
   kafka_consumer(mtev_hash_table *config,
-                 mtev_hash_table *&&kafka_configs_in,
+                 mtev_hash_table *&&kafka_global_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
     common_fields = set_common_connection_fields(config);
-    kafka_configs = kafka_configs_in;
+    kafka_global_configs = kafka_global_configs_in;
     extra_configs = extra_configs_in;
 
     void *vptr = nullptr;
@@ -311,14 +362,16 @@ struct kafka_consumer {
     char error_string[error_string_size];
 
     rd_consumer_conf = rd_kafka_conf_new();
-    auto config_errors = set_kafka_config_values_from_hash(rd_consumer_conf, kafka_configs);
-    if (config_errors.size()) {
+    auto global_config_errors =
+      set_kafka_global_config_values_from_hash(rd_consumer_conf, kafka_global_configs);
+    // auto topic_config_errors = set_kafka_topic_config_values_from_hash(rd_kafka_top)
+    if (global_config_errors.size()) {
       mtevL(nlerr,
             "%s: encountered the following %zd errors setting configuration values for "
             "host %s, topic %s\n",
-            __func__, config_errors.size(), common_fields.broker_with_port.c_str(),
+            __func__, global_config_errors.size(), common_fields.broker_with_port.c_str(),
             common_fields.topic.c_str());
-      for (const auto &pair : config_errors) {
+      for (const auto &pair : global_config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
       throw(std::runtime_error(std::string("Failed to configure consumer for host " +
@@ -333,8 +386,8 @@ struct kafka_consumer {
       rd_kafka_conf_destroy(rd_consumer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
-      mtev_hash_destroy(kafka_configs, free, free);
-      free(kafka_configs);
+      mtev_hash_destroy(kafka_global_configs, free, free);
+      free(kafka_global_configs);
       throw std::runtime_error(error.c_str());
     }
     if (rd_kafka_conf_set(rd_consumer_conf, group_id_str, consumer_group.c_str(), error_string,
@@ -345,8 +398,8 @@ struct kafka_consumer {
       rd_kafka_conf_destroy(rd_consumer_conf);
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
-      mtev_hash_destroy(kafka_configs, free, free);
-      free(kafka_configs);
+      mtev_hash_destroy(kafka_global_configs, free, free);
+      free(kafka_global_configs);
       throw std::runtime_error(error.c_str());
     }
 
@@ -367,8 +420,8 @@ struct kafka_consumer {
     rd_kafka_destroy(rd_consumer);
     mtev_hash_destroy(extra_configs, free, free);
     free(extra_configs);
-    mtev_hash_destroy(kafka_configs, free, free);
-    free(kafka_configs);
+    mtev_hash_destroy(kafka_global_configs, free, free);
+    free(kafka_global_configs);
   }
   void write_to_console(const mtev_console_closure_t &ncct)
   {
@@ -387,7 +440,8 @@ struct kafka_consumer {
   std::string consumer_group;
   std::string protocol;
   mtev_hash_table *extra_configs;
-  mtev_hash_table *kafka_configs;
+  mtev_hash_table *kafka_global_configs;
+  mtev_hash_table *kafka_topic_configs;
   rd_kafka_conf_t *rd_consumer_conf;
   rd_kafka_t *rd_consumer;
   rd_kafka_topic_partition_list_t *rd_consumer_topics;
@@ -409,10 +463,14 @@ public:
       std::string protocol_string = "not_provided";
       mtev_hash_table *extra_configs =
         static_cast<mtev_hash_table *>(calloc(1, sizeof(mtev_hash_table)));
-      mtev_hash_table *kafka_configs =
+      mtev_hash_table *kafka_global_configs =
         static_cast<mtev_hash_table *>(calloc(1, sizeof(mtev_hash_table)));
+      mtev_hash_table *kafka_topic_configs =
+        static_cast<mtev_hash_table *>(calloc(1, sizeof(mtev_hash_table)));
+
       mtev_hash_init(extra_configs);
-      mtev_hash_init(kafka_configs);
+      mtev_hash_init(kafka_global_configs);
+      mtev_hash_init(kafka_topic_configs);
 
       auto entries = mtev_conf_get_hash(mqs[section_id], "self::node()");
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
@@ -434,19 +492,39 @@ public:
             continue;
           }
         }
-        else if (!strncasecmp(iter.key.str, KAFKA_CONFIG_PARAMETER_PREFIX,
-                              KAFKA_CONFIG_PARAMETER_PREFIX_LEN)) {
+        else if (!strncasecmp(iter.key.str, KAFKA_GLOBAL_CONFIG_PARAMETER_PREFIX,
+                              KAFKA_GLOBAL_CONFIG_PARAMETER_PREFIX_LEN)) {
           char *val_copy = strdup(iter.value.str);
-          const char *name = iter.key.str + KAFKA_CONFIG_PARAMETER_PREFIX_LEN;
+          const char *name = iter.key.str + KAFKA_GLOBAL_CONFIG_PARAMETER_PREFIX_LEN;
           if (strlen(name) == 0) {
             free(val_copy);
             continue;
           }
           char *key_copy = strdup(name);
-          if (!mtev_hash_store(kafka_configs, key_copy, strlen(key_copy), val_copy)) {
-            mtevL(nlerr,
-                  "WARNING: Duplicate kafka config key found (key %s, value %s)... discarding\n",
-                  key_copy, val_copy);
+          if (!mtev_hash_store(kafka_global_configs, key_copy, strlen(key_copy), val_copy)) {
+            mtevL(
+              nlerr,
+              "WARNING: Duplicate kafka global config key found (key %s, value %s)... discarding\n",
+              key_copy, val_copy);
+            free(key_copy);
+            free(val_copy);
+            continue;
+          }
+        }
+        else if (!strncasecmp(iter.key.str, KAFKA_TOPIC_CONFIG_PARAMETER_PREFIX,
+                              KAFKA_TOPIC_CONFIG_PARAMETER_PREFIX_LEN)) {
+          char *val_copy = strdup(iter.value.str);
+          const char *name = iter.key.str + KAFKA_TOPIC_CONFIG_PARAMETER_PREFIX_LEN;
+          if (strlen(name) == 0) {
+            free(val_copy);
+            continue;
+          }
+          char *key_copy = strdup(name);
+          if (!mtev_hash_store(kafka_topic_configs, key_copy, strlen(key_copy), val_copy)) {
+            mtevL(
+              nlerr,
+              "WARNING: Duplicate kafka topic config key found (key %s, value %s)... discarding\n",
+              key_copy, val_copy);
             free(key_copy);
             free(val_copy);
             continue;
@@ -456,7 +534,7 @@ public:
       switch (conn_type) {
       case connection_type_e::CONSUMER: {
         try {
-          auto consumer = std::make_unique<kafka_consumer>(entries, std::move(kafka_configs),
+          auto consumer = std::make_unique<kafka_consumer>(entries, std::move(kafka_global_configs),
                                                            std::move(extra_configs));
           mtevL(nlnotice, "Added Kafka consumer: Host %s, Topic %s\n",
                 consumer->common_fields.broker_with_port.c_str(),
@@ -470,7 +548,8 @@ public:
       }
       case connection_type_e::PRODUCER: {
         try {
-          auto producer = std::make_unique<kafka_producer>(entries, std::move(kafka_configs),
+          auto producer = std::make_unique<kafka_producer>(entries, std::move(kafka_global_configs),
+                                                           std::move(kafka_topic_configs),
                                                            std::move(extra_configs));
           mtevL(nlnotice, "Added Kafka producer: Host %s, Topic %s\n",
                 producer->common_fields.broker_with_port.c_str(),
