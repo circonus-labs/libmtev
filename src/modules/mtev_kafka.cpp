@@ -250,6 +250,13 @@ struct kafka_producer {
       for (const auto &pair : global_config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
+      rd_kafka_conf_destroy(rd_producer_conf);
+      mtev_hash_destroy(extra_configs, free, free);
+      free(extra_configs);
+      mtev_hash_destroy(kafka_global_configs, free, free);
+      free(kafka_global_configs);
+      mtev_hash_destroy(kafka_topic_configs, free, free);
+      free(kafka_topic_configs);
       throw(std::runtime_error(std::string("Failed to configure producer for host " +
                                            common_fields.broker_with_port + ", topic " +
                                            common_fields.topic + ": invalid configuration")));
@@ -264,6 +271,8 @@ struct kafka_producer {
       free(extra_configs);
       mtev_hash_destroy(kafka_global_configs, free, free);
       free(kafka_global_configs);
+      mtev_hash_destroy(kafka_topic_configs, free, free);
+      free(kafka_topic_configs);
       throw std::runtime_error(error.c_str());
     }
     rd_kafka_conf_set_dr_msg_cb(
@@ -374,6 +383,11 @@ struct kafka_consumer {
       for (const auto &pair : global_config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
+      rd_kafka_conf_destroy(rd_consumer_conf);
+      mtev_hash_destroy(extra_configs, free, free);
+      free(extra_configs);
+      mtev_hash_destroy(kafka_global_configs, free, free);
+      free(kafka_global_configs);
       throw(std::runtime_error(std::string("Failed to configure consumer for host " +
                                            common_fields.broker_with_port + ", topic " +
                                            common_fields.topic + ": invalid configuration")));
@@ -441,7 +455,6 @@ struct kafka_consumer {
   std::string protocol;
   mtev_hash_table *extra_configs;
   mtev_hash_table *kafka_global_configs;
-  mtev_hash_table *kafka_topic_configs;
   rd_kafka_conf_t *rd_consumer_conf;
   rd_kafka_t *rd_consumer;
   rd_kafka_topic_partition_list_t *rd_consumer_topics;
