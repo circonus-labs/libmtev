@@ -317,27 +317,34 @@ private:
   {
     if (rd_topic_producer_conf) {
       rd_kafka_topic_conf_destroy(rd_topic_producer_conf);
+      rd_topic_producer_conf = nullptr;
     }
     if (rd_topic_producer) {
       rd_kafka_topic_destroy(rd_topic_producer);
+      rd_topic_producer = nullptr;
     }
     if (rd_producer_conf) {
       rd_kafka_conf_destroy(rd_producer_conf);
+      rd_producer_conf = nullptr;
     }
     if (rd_producer) {
       rd_kafka_destroy(rd_producer);
+      rd_producer = nullptr;
     }
     if (extra_configs) {
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
+      extra_configs = nullptr;
     }
     if (kafka_global_configs) {
       mtev_hash_destroy(kafka_global_configs, free, free);
       free(kafka_global_configs);
+      kafka_global_configs = nullptr;
     }
     if (kafka_topic_configs) {
       mtev_hash_destroy(kafka_topic_configs, free, free);
       free(kafka_topic_configs);
+      kafka_topic_configs = nullptr;
     }
   }
 
@@ -442,23 +449,28 @@ private:
   {
     if (rd_consumer_topics) {
       rd_kafka_topic_partition_list_destroy(rd_consumer_topics);
+      rd_consumer_topics = nullptr;
     }
     if (rd_consumer) {
       rd_kafka_unsubscribe(rd_consumer);
     }
     if (rd_consumer_conf) {
       rd_kafka_conf_destroy(rd_consumer_conf);
+      rd_consumer_conf = nullptr;
     }
     if (rd_consumer) {
       rd_kafka_destroy(rd_consumer);
+      rd_consumer = nullptr;
     }
     if (extra_configs) {
       mtev_hash_destroy(extra_configs, free, free);
       free(extra_configs);
+      extra_configs = nullptr;
     }
     if (kafka_global_configs) {
       mtev_hash_destroy(kafka_global_configs, free, free);
       free(kafka_global_configs);
+      kafka_global_configs = nullptr;
     }
   }
 
