@@ -302,6 +302,15 @@ struct kafka_producer {
       for (const auto &pair : topic_config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
+      rd_kafka_conf_destroy(rd_producer_conf);
+      rd_kafka_topic_conf_destroy(rd_topic_producer_conf);
+      rd_kafka_destroy(rd_producer);
+      mtev_hash_destroy(extra_configs, free, free);
+      free(extra_configs);
+      mtev_hash_destroy(kafka_global_configs, free, free);
+      free(kafka_global_configs);
+      mtev_hash_destroy(kafka_topic_configs, free, free);
+      free(kafka_topic_configs);
       throw(std::runtime_error(std::string("Failed to configure producer for host " +
                                            common_fields.broker_with_port + ", topic " +
                                            common_fields.topic + ": invalid configuration")));
@@ -320,6 +329,8 @@ struct kafka_producer {
     free(extra_configs);
     mtev_hash_destroy(kafka_global_configs, free, free);
     free(kafka_global_configs);
+    mtev_hash_destroy(kafka_topic_configs, free, free);
+    free(kafka_topic_configs);
   }
   void write_to_console(const mtev_console_closure_t &ncct)
   {
