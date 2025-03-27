@@ -148,9 +148,6 @@ MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
                 closure,
                 (void *closure, mtev_rd_kafka_message_t *msg))
 
-/* This maps exposes a runtime resolved hook register function people should
- * use: mtev_kafka_handle_message_hook_register
- */
 MTEV_RUNTIME_AVAIL(mtev_kafka_handle_message_hook_register,
                    mtev_kafka_handle_message_dyn_hook_register)
 MTEV_RUNTIME_RESOLVE(mtev_kafka_handle_message_hook_register,
