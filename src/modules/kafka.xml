@@ -40,6 +40,7 @@
               <override_custom_parameter_one>custom_value</override_custom_parameter_one>
               <override_custom_parameter_two>another_custom_value</override_custom_parameter_two>
               <override_another_custom_parameter>yet_another_custom_value</override_another_custom_parameter>
+              <rdkafka_global_config_setting_fetch.error.backoff.ms>500</rdkafka_global_config_setting_fetch.error.backoff.ms>
             </mq>
           </in>
           <out>
@@ -47,6 +48,8 @@
               <host>localhost</host>
               <port>9092</port>
               <topic>test_topic_two</topic>
+              <rdkafka_global_config_setting_enable.idempotence>true</rdkafka_global_config_setting_enable.idempotence>
+              <rdkafka_topic_config_setting_request.timeout.ms>30000</rdkafka_topic_config_setting_request.timeout.ms>
             </mq>
           </out>
         </network>

@@ -53,6 +53,7 @@
  *       <port>9092</port>
  *       <topic>test_topic_two</topic>
  *       <rdkafka_global_config_setting_enable.idempotence>true</rdkafka_global_config_setting_enable.idempotence>
+ *       <rdkafka_topic_config_setting_request.timeout.ms>30000</rdkafka_topic_config_setting_request.timeout.ms>
  *     </mq>
  *   </out>
  * </network>
@@ -77,8 +78,9 @@
  * Use of the following fields are not allowed:
  * `bootstrap.servers`: Use `host` and `port`.
  * `group.id`: Use `consumer_group`.
- *  At the moment, `Topic configuration properties` are not yet available. Only
- *  `Global configuration properties` work.
+ * <rdkafka_topic_config_setting_*> allows setting topic configuration properties on Kafka
+ * producers. Start the XML element with `rdkafka_global_topic_setting_`, then fill in the
+ * parameter you wish to set.
  */
 
 #ifndef _MTEV_KAFKA_HPP
@@ -146,9 +148,6 @@ MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
                 closure,
                 (void *closure, mtev_rd_kafka_message_t *msg))
 
-/* This maps exposes a runtime resolved hook register function people should
- * use: mtev_kafka_handle_message_hook_register
- */
 MTEV_RUNTIME_AVAIL(mtev_kafka_handle_message_hook_register,
                    mtev_kafka_handle_message_dyn_hook_register)
 MTEV_RUNTIME_RESOLVE(mtev_kafka_handle_message_hook_register,
