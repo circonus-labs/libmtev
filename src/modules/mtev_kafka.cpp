@@ -383,7 +383,6 @@ struct kafka_consumer {
     rd_consumer_conf = rd_kafka_conf_new();
     auto global_config_errors =
       set_kafka_global_config_values_from_hash(rd_consumer_conf, kafka_global_configs);
-    // auto topic_config_errors = set_kafka_topic_config_values_from_hash(rd_kafka_top)
     if (global_config_errors.size()) {
       mtevL(nlerr,
             "%s: encountered the following %zd errors setting configuration values for "
