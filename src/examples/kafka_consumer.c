@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mtev_capabilities_listener.h"
-#include "mtev_cluster.h"
 #include "mtev_defines.h"
 #include "mtev_dso.h"
 #include "mtev_events_rest.h"
@@ -74,6 +73,7 @@ static mtev_hook_return_t handle_kafka_message(void *closure, mtev_rd_kafka_mess
 {
   (void) closure;
   (void) msg;
+  mtevL(mtev_error, "Received message from kafka: %s\n", (char *)msg->payload);
   return MTEV_HOOK_CONTINUE;
 }
 
@@ -89,7 +89,6 @@ static int child_main(void)
   mtev_capabilities_listener_init();
   mtev_events_rest_init();
   mtev_listener_init(APPNAME);
-  mtev_cluster_init();
   mtev_dso_init();
   mtev_dso_post_init();
 

@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mtev_capabilities_listener.h"
-#include "mtev_cluster.h"
 #include "mtev_defines.h"
 #include "mtev_dso.h"
 #include "mtev_events_rest.h"
@@ -100,11 +99,10 @@ static int child_main(void)
   mtev_capabilities_listener_init();
   mtev_events_rest_init();
   mtev_listener_init(APPNAME);
-  mtev_cluster_init();
   mtev_dso_init();
   mtev_dso_post_init();
 
-  mtev_http_rest_register("POST", "/", "^(.*)$", handle_post_data);
+  mtev_http_rest_register("POST", "/", "^data$", handle_post_data);
 
   eventer_loop();
   return 0;
