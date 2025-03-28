@@ -31,9 +31,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "mtev_capabilities_listener.h"
+#include "mtev_cluster.h"
 #include "mtev_defines.h"
+#include "mtev_dso.h"
+#include "mtev_events_rest.h"
+#include "mtev_listener.h"
+#include "mtev_log.h"
 #include "mtev_main.h"
 #include "mtev_memory.h"
+#include "mtev_rest.h"
 
 #define APPNAME "kafka_producer"
 static char *config_file = NULL;
@@ -65,6 +72,21 @@ static void parse_cli_args(int argc, char *const *argv)
 
 static int child_main(void)
 {
+  if (mtev_conf_load(NULL) == -1) {
+    mtevL(mtev_error, "Cannot load config: '%s'\n", config_file);
+    exit(2);
+  }
+  eventer_init();
+  mtev_console_init(APPNAME);
+  mtev_http_rest_init();
+  mtev_capabilities_listener_init();
+  mtev_events_rest_init();
+  mtev_listener_init(APPNAME);
+  mtev_cluster_init();
+  mtev_dso_init();
+  mtev_dso_post_init();
+
+  eventer_loop();
   return 0;
 }
 
