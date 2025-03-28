@@ -180,7 +180,9 @@ static inline size_t
 ze_Zipkin_String(byte *buffer, size_t len, Zipkin_String *v) {
   size_t sofar;
   int32_t str_len = strlen(v->value);
+  mtevAssert(str_len >= 0);
   sofar = ze_i32(buffer, len, str_len);
+  mtevAssert(sofar <= INT32_MAX);
   if(sofar + str_len > len) return sofar + str_len;
   memcpy(buffer + sofar, v->value, str_len);
   return sofar + str_len;
