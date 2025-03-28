@@ -102,7 +102,7 @@ static int child_main(void)
   mtev_dso_init();
   mtev_dso_post_init();
 
-  mtev_http_rest_register("POST", "/", "^data$", handle_post_data);
+  mtev_http_rest_register("POST", "/", "^(.*)$", handle_post_data);
 
   eventer_loop();
   return 0;
