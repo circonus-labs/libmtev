@@ -5,6 +5,8 @@ websocket_server
 websocket_client
 echo_client
 echo_server
+kafka_producer
+kafka_consumer
 .mtev.console
 *.crt
 *.csr
