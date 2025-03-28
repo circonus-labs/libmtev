@@ -42,14 +42,25 @@ static int foreground = 1;
 
 static int usage(const char *prog)
 {
-  fprintf(stderr, "%s <-c conffile> [-D] [-d]\n\n", prog);
+  fprintf(stderr, "%s <-c conffile> [-d]\n\n", prog);
+  fprintf(stderr, "\t-c conffile\tthe configuration file to load\n");
+  fprintf(stderr, "\t-d\t\tturn on debugging\n");
   return 2;
 }
 
 static void parse_cli_args(int argc, char *const *argv)
 {
-  (void) argc;
-  (void) argv;
+  int c;
+  while ((c = getopt(argc, argv, "c:d")) != EOF) {
+    switch (c) {
+    case 'c':
+      config_file = optarg;
+      break;
+    case 'd':
+      debug = 1;
+      break;
+    }
+  }
 }
 
 static int child_main(void)
