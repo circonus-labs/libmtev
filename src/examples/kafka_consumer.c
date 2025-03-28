@@ -70,11 +70,10 @@ static void parse_cli_args(int argc, char *const *argv)
   }
 }
 
-static mtev_hook_return_t
-handle_kafka_message(void *closure, mtev_rd_kafka_message_t *msg)
+static mtev_hook_return_t handle_kafka_message(void *closure, mtev_rd_kafka_message_t *msg)
 {
-  (void)closure;
-  (void)msg;
+  (void) closure;
+  (void) msg;
   return MTEV_HOOK_CONTINUE;
 }
 

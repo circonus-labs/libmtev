@@ -35,6 +35,7 @@
 #include "mtev_defines.h"
 #include "mtev_dso.h"
 #include "mtev_events_rest.h"
+#include "mtev_kafka.h"
 #include "mtev_listener.h"
 #include "mtev_log.h"
 #include "mtev_main.h"
@@ -68,6 +69,24 @@ static void parse_cli_args(int argc, char *const *argv)
     }
   }
 }
+static int handle_post_data(mtev_http_rest_closure_t *restc, int npats, char **pats)
+{
+  (void) npats;
+  (void) pats;
+  mtev_http_session_ctx *ctx = restc->http_ctx;
+  int64_t size;
+  int mask;
+  if (!mtev_rest_complete_upload(restc, &mask)) {
+    return mask;
+  }
+  const void *buffer = mtev_http_request_get_upload(mtev_http_session_request(ctx), &size);
+  mtev_kafka_broadcast(buffer, size);
+
+  mtev_http_response_ok(ctx, "text/plain");
+  mtev_http_response_appendf(ctx, "read %zd bytes...\n", size);
+  mtev_http_response_end(ctx);
+  return 0;
+}
 
 static int child_main(void)
 {
@@ -84,6 +103,8 @@ static int child_main(void)
   mtev_cluster_init();
   mtev_dso_init();
   mtev_dso_post_init();
+
+  mtev_http_rest_register("POST", "/", "^(.*)$", handle_post_data);
 
   eventer_loop();
   return 0;
