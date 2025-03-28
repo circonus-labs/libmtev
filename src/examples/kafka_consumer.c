@@ -11,10 +11,9 @@
  *       copyright notice, this list of conditions and the following
  *       disclaimer in the documentation and/or other materials provided
  *       with the distribution.
- *     * Neither the name OmniTI Computer Consulting, Inc. nor the names
- *       of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written
- *       permission.
+ *     * Neither the name Apica, Inc. nor the names of its contributors may be
+ *       used to endorse or promote products derived from this software without
+ *       specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,6 +35,7 @@
 #include "mtev_defines.h"
 #include "mtev_dso.h"
 #include "mtev_events_rest.h"
+#include "mtev_kafka.h"
 #include "mtev_listener.h"
 #include "mtev_log.h"
 #include "mtev_main.h"
@@ -70,6 +70,14 @@ static void parse_cli_args(int argc, char *const *argv)
   }
 }
 
+static mtev_hook_return_t
+handle_kafka_message(void *closure, mtev_rd_kafka_message_t *msg)
+{
+  (void)closure;
+  (void)msg;
+  return MTEV_HOOK_CONTINUE;
+}
+
 static int child_main(void)
 {
   if (mtev_conf_load(NULL) == -1) {
@@ -85,6 +93,8 @@ static int child_main(void)
   mtev_cluster_init();
   mtev_dso_init();
   mtev_dso_post_init();
+
+  mtev_kafka_handle_message_hook_register(APPNAME, handle_kafka_message, NULL);
 
   eventer_loop();
   return 0;
