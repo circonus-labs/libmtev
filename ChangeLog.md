@@ -4,6 +4,8 @@
 
 ## 2.7
 
+### 2.7.9
+
  * Add example programs - `kafka_producer` and `kafka_consumer` -
    to allow testing the kafka module.
  * Add topic to kafka consumer hooks.
