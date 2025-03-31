@@ -74,7 +74,8 @@ static mtev_hook_return_t handle_kafka_message(void *closure, mtev_rd_kafka_mess
   (void) closure;
   (void) msg;
   mtevL(mtev_error,
-        "Received message from kafka: %s\n"
+        "Received message:\n"
+        "   Payload: %s\n"
         "     Topic: %s\n"
         "  Protocol: %s\n",
         (char *) msg->payload, msg->topic, msg->protocol);
