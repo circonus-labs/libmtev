@@ -40,7 +40,7 @@ WSS_OBJS=	websocket_server.o
 
 EXTRA_TARGETS=@EXTRA_EXAMPLES@
 
-all:	testcerts echo_server echo_client example1 aco kafka_producer kafka_consumer $(EXTRA_TARGETS)
+all:	testcerts echo_server echo_client example1 aco $(EXTRA_TARGETS)
 
 .c.o:
 	@echo "- compiling $<"
