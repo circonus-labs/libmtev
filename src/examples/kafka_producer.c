@@ -26,6 +26,10 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * This application sets up a kafka producer, sets up a REST endpoint, and
+ * sends anything posted to that endpoint to all configured producers.
+ * Producers can be set up in kafka_producer.conf.
  */
 
 #include <stdio.h>
