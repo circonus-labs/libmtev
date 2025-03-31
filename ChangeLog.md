@@ -4,6 +4,9 @@
 
 ## 2.7
 
+ * Add example programs - `kafka_producer` and `kafka_consumer` -
+   to allow testing the kafka module.
+ * Add topic to kafka consumer hooks.
  * Allow setting arbitrary librdkafka configuration values on
    connections in the kafka module.
  * Update kafka module to allow publishing as well as consuming.
