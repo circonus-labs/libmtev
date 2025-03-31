@@ -34,6 +34,7 @@
 #include "mtev_sort.h"
 #include "mtev_skiplist.h"
 #include "mtev_hash.h"
+#include "../eventer/eventer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -969,7 +970,7 @@ mtev_stacktrace_internal(mtev_log_stream_t ls, void *caller,
   crash_in_crash = NULL;
 }
 
-int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt) {
+int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt, bool cross_eventer) {
   int frames = 0;
 #if defined(HAVE_LIBUNWIND)
   unw_cursor_t cursor;
@@ -987,11 +988,26 @@ int mtev_backtrace_ucontext(void **callstack, ucontext_t *ctx, int cnt) {
   }
   unw_init_local(&cursor, (unw_context_t *)ctx);
 
-  int step_result = 1;
+  // this works but only allows us to go back through one asynch layer because we are pulling the
+  // event object for the current thread
+  eventer_t e = eventer_get_this_event();
+
+  // when backtracing from before eventer, remove the current function
+  int step_result = cross_eventer ? unw_step(&cursor) : 1;
   while (step_result > 0 && frames<cnt) {
     unw_word_t pc;
     unw_get_reg(&cursor, UNW_REG_IP, &pc);
     if (pc == 0) {
+      break;
+    }
+    // if we hit an address inside eventer_run_callback, then we can try to roll in the pre-eventer
+    // callstack starting from where we run into the address within eventer_run_callback()
+    if (e && pc >= (unw_word_t)eventer_run_callback &&
+        pc <= (unw_word_t)e->eventer_run_callback_end) {
+      int eventer_frame = 0;
+      while(frames<cnt && eventer_frame < e->frames) {
+        callstack[frames++] = e->callstack[eventer_frame++]; 
+      }
       break;
     }
     callstack[frames++] = (void *)pc;
@@ -1008,7 +1024,7 @@ void mtev_log_backtrace(mtev_log_stream_t ls, void **callstack, int cnt) {
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, NULL, callstack, cnt);
 }
 int mtev_backtrace(void **callstack, int cnt) {
-  return mtev_backtrace_ucontext(callstack, NULL, cnt);
+  return mtev_backtrace_ucontext(callstack, NULL, cnt, false);
 }
 int global_in_stacktrace = 0;
 #if defined(__sun__)
@@ -1016,7 +1032,7 @@ void mtev_stacktrace_ucontext(mtev_log_stream_t ls, ucontext_t *ucp) {
   if (ck_pr_fas_int(&global_in_stacktrace, 1))
     return;
   void *callstack[128];
-  int frames = mtev_backtrace_ucontext(callstack, ucp, 128);
+  int frames = mtev_backtrace_ucontext(callstack, ucp, 128, false);
   mtev_stacktrace_internal(ls, mtev_stacktrace, NULL, (void *)ucp, callstack, frames);
   global_in_stacktrace = 0;
 }
@@ -1029,7 +1045,7 @@ void mtev_stacktrace_ucontext_skip(mtev_log_stream_t ls, ucontext_t *ucp, int ig
   struct sigaction sa, sasegv, saill, sabus;
   sigset_t smprev;
   void *callstack[128];
-  int frames = mtev_backtrace_ucontext(callstack, ucp, 128);
+  int frames = mtev_backtrace_ucontext(callstack, ucp, 128, false);
   ignore = MIN(ignore, frames);
 
   memset(&sa, 0, sizeof(sa));
