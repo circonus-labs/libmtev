@@ -30,6 +30,10 @@ ACO_OBJS=	aco.o
 
 FQR_OBJS=	fq-router.o
 
+KAFKA_CONSUMER_OBJS= kafka_consumer.o
+
+KAFKA_PRODUCER_OBJS= kafka_producer.o
+
 WSC_OBJS=	websocket_client.o
 
 WSS_OBJS=	websocket_server.o
@@ -61,6 +65,14 @@ aco:	$(ACO_OBJS)
 fq-router:	$(FQR_OBJS)
 	@echo "- linking $@"
 	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(FQR_OBJS) $(LIBS) -lmtev -lfq
+
+kafka_producer:	$(KAFKA_PRODUCER_OBJS)
+	@echo "- linking $@"
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(KAFKA_PRODUCER_OBJS) $(LIBS) -lmtev -lrdkafka
+
+kafka_consumer:	$(KAFKA_CONSUMER_OBJS)
+	@echo "- linking $@"
+	$(Q)$(CC) -L.. $(LDFLAGS) @UNWINDLIB@ -o $@ $(KAFKA_CONSUMER_OBJS) $(LIBS) -lmtev -lrdkafka
 
 websocket_client:	$(WSC_OBJS)
 	@echo "- linking $@"
@@ -97,7 +109,7 @@ test-server.crt:  test-server.csr test-ca.key test-ca.crt
 	openssl ca -batch -config demo-openssl.cnf -in test-server.csr -out test-server.crt -outdir . -keyfile test-ca.key -cert test-ca.crt -days 120
 
 clean:
-	rm -f *.o example1 websocket_server websocket_client fq-router echo_server echo_client aco
+	rm -f *.o example1 websocket_server websocket_client fq-router kafka_consumer kafka_producer echo_server echo_client aco
 	rm -rf demoCA
 	rm -f *.key *.crt *.csr *.pem
 
