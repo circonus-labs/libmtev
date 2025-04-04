@@ -9,8 +9,8 @@ describe("test timezones", function()
     assert.are.equal(hour, uhour)
   end)
 
-  it("Can use US/Eastern", function()
-    local zi = mtev.timezone("US/Eastern")
+  it("Can use America/New_York", function()
+    local zi = mtev.timezone("America/New_York")
     assert.is_not_nil(zi)
     local month, hour, year, dst, zonename =
       zi:extract(1520197275, 'month', 'hour', 'year', 'dst', 'zonename') -- Sun Mar  4 21:01:15 2018 UTC 
