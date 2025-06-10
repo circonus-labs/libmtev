@@ -875,19 +875,6 @@ extern uint32_t mtev_watchdog_number_of_starts(void);
   mtevTerminate(ls,args); \
 } while(0)
 
-/*! \fn mtevFatal(mtev_log_stream_t ls, const char *fmt, ...)
-    \brief MACRO to abort after logging.
-
-    This function will force the logging system into synchronous behavior, log with `mtevL`, and
-   abort. It now includes the source file and line number in the log message.
- */
-#define mtevFatal(ls, args...)                               \
-  do {                                                       \
-    mtev_log_go_synch();                                     \
-    mtevL((ls), "[FATAL][" __FILE__ ":%d] " args, __LINE__); \
-    abort();                                                 \
-  } while (0)
-
 /*! \fn mtevAssert(condition)
     \brief MACRO that calls `mtevFatal` if the condition evaluates to false.
 */
