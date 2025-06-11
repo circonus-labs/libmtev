@@ -851,7 +851,7 @@ API_EXPORT(void)
  */
 #define mtevFatal(ls,args...) do {\
   mtev_log_go_synch(); \
-  mtevL((ls), "[FATAL] " args); \
+  mtevL((ls), "[FATAL][" __FILE__ ":%d] " args, __LINE__);\
   abort(); \
 } while(0)
 
