@@ -849,11 +849,12 @@ API_EXPORT(void)
 
     This function will force the logging system into synchronous behavior, log with `mtevL`, and abort.
  */
-#define mtevFatal(ls,args...) do {\
-  mtev_log_go_synch(); \
-  mtevL((ls), "[FATAL] " args); \
-  abort(); \
-} while(0)
+#define mtevFatal(ls, fmt, ...)                                                \
+  do {                                                                         \
+    mtev_log_go_synch();                                                       \
+    mtevL((ls), "[FATAL][%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__);     \
+    abort();                                                                   \
+  } while (0)
 
 /* inline prototype here so we don't have circular includes */
 /*! \fn mtevTerminate(mtev_log_stream_t ls, const char *fmt, ...)
