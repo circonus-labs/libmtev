@@ -189,9 +189,8 @@ static std::unordered_map<std::string, std::string>
       continue;
     }
     if (!strncmp(key, auto_commit_str, auto_commit_str_len)) {
-      std::string error = "kafka config error: field" +
-                          std::string{auto_commit_str} +
-                          " is not allowed. Use auto_commit setting";
+      std::string error = "kafka config error: field" + std::string{auto_commit_str} +
+        " is not allowed. Use auto_commit setting";
       errors[key] = error;
       continue;
     }
@@ -394,24 +393,25 @@ struct kafka_consumer {
     else {
       protocol = "not_provided";
     }
-    if (mtev_hash_retrieve(config, "auto_commit", strlen("auto_commit"),
-                           &vptr)) {
+    if (mtev_hash_retrieve(config, "auto_commit", strlen("auto_commit"), &vptr)) {
       std::string val = static_cast<char *>(vptr);
       std::transform(val.begin(), val.end(), val.begin(),
                      [](unsigned char c) { return std::tolower(c); });
       if (val == "true") {
         auto_commit = true;
-      } else if (val == "false") {
+      }
+      else if (val == "false") {
         auto_commit = false;
-      } else {
+      }
+      else {
         mtevL(nlerr,
               "invalid value (%s) provided for auto-commit.... defaulting to "
               "true\n",
               val.c_str());
         auto_commit = true;
       }
-
-    } else {
+    }
+    else {
       auto_commit = true;
     }
 
@@ -451,12 +451,11 @@ struct kafka_consumer {
       cleanup();
       throw std::runtime_error(error.c_str());
     }
-    if (rd_kafka_conf_set(rd_consumer_conf, auto_commit_str,
-                          (auto_commit) ? "true" : "false", error_string,
-                          error_string_size) != RD_KAFKA_CONF_OK) {
+    if (rd_kafka_conf_set(rd_consumer_conf, auto_commit_str, (auto_commit) ? "true" : "false",
+                          error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error = "Failed to configure auto_commit for host " +
-                          common_fields.broker_with_port + ", topic " +
-                          common_fields.topic + ": error " + error_string;
+        common_fields.broker_with_port + ", topic " + common_fields.topic + ": error " +
+        error_string;
       cleanup();
       throw std::runtime_error(error.c_str());
     }
@@ -481,9 +480,8 @@ struct kafka_consumer {
               "  consumer_group: %s\n"
               "  auto_commit: %s\n"
               "  (s) msgs in: %zu\n  (s) errors: %zu\n",
-              common_fields.broker_with_port.c_str(),
-              common_fields.topic.c_str(), consumer_group.c_str(),
-              auto_commit ? "true" : "false", stats.msgs_in.load(),
+              common_fields.broker_with_port.c_str(), common_fields.topic.c_str(),
+              consumer_group.c_str(), auto_commit ? "true" : "false", stats.msgs_in.load(),
               stats.errors.load());
   }
 
