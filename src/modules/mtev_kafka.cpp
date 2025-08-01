@@ -190,7 +190,7 @@ static std::unordered_map<std::string, std::string>
     }
     if (!strncmp(key, auto_commit_str, auto_commit_str_len)) {
       std::string error = "kafka config error: field" + std::string{auto_commit_str} +
-        " is not allowed. Use auto_commit setting";
+        " is not allowed. Use manual_commit setting";
       errors[key] = error;
       continue;
     }
@@ -393,26 +393,47 @@ struct kafka_consumer {
     else {
       protocol = "not_provided";
     }
-    if (mtev_hash_retrieve(config, "auto_commit", strlen("auto_commit"), &vptr)) {
+    if (mtev_hash_retrieve(config, "manual_commit", strlen("manual_commit"), &vptr)) {
       std::string val = static_cast<char *>(vptr);
       std::transform(val.begin(), val.end(), val.begin(),
                      [](unsigned char c) { return std::tolower(c); });
       if (val == "true") {
-        auto_commit = true;
+        manual_commit = true;
       }
       else if (val == "false") {
-        auto_commit = false;
+        manual_commit = false;
       }
       else {
         mtevL(nlerr,
-              "invalid value (%s) provided for auto-commit.... defaulting to "
-              "true\n",
+              "invalid value (%s) provided for manual_commit.... defaulting to "
+              "false\n",
               val.c_str());
-        auto_commit = true;
+        manual_commit = false;
       }
     }
     else {
-      auto_commit = true;
+      manual_commit = false;
+    }
+    if (mtev_hash_retrieve(config, "manual_commit_asynch", strlen("manual_commit_asynch"), &vptr)) {
+      std::string val = static_cast<char *>(vptr);
+      std::transform(val.begin(), val.end(), val.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (val == "true") {
+        manual_commit_asynch = true;
+      }
+      else if (val == "false") {
+        manual_commit_asynch = false;
+      }
+      else {
+        mtevL(nlerr,
+              "invalid value (%s) provided for manual_commit_asynch.... defaulting to "
+              "true\n",
+              val.c_str());
+        manual_commit_asynch = true;
+      }
+    }
+    else {
+      manual_commit_asynch = false;
     }
 
     constexpr size_t error_string_size = 256;
@@ -451,9 +472,9 @@ struct kafka_consumer {
       cleanup();
       throw std::runtime_error(error.c_str());
     }
-    if (rd_kafka_conf_set(rd_consumer_conf, auto_commit_str, (auto_commit) ? "true" : "false",
+    if (rd_kafka_conf_set(rd_consumer_conf, auto_commit_str, (manual_commit) ? "false" : "true",
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
-      std::string error = "Failed to configure auto_commit for host " +
+      std::string error = "Failed to configure manual_commit for host " +
         common_fields.broker_with_port + ", topic " + common_fields.topic + ": error " +
         error_string;
       cleanup();
@@ -478,10 +499,10 @@ struct kafka_consumer {
               "  connection type: consumer\n"
               "  topic: %s\n"
               "  consumer_group: %s\n"
-              "  auto_commit: %s\n"
+              "  manual_commit: %s\n"
               "  (s) msgs in: %zu\n  (s) errors: %zu\n",
               common_fields.broker_with_port.c_str(), common_fields.topic.c_str(),
-              consumer_group.c_str(), auto_commit ? "true" : "false", stats.msgs_in.load(),
+              consumer_group.c_str(), manual_commit ? "true" : "false", stats.msgs_in.load(),
               stats.errors.load());
   }
 
@@ -519,7 +540,8 @@ public:
   kafka_common_fields common_fields;
   std::string consumer_group;
   std::string protocol;
-  bool auto_commit{true};
+  bool manual_commit{false};
+  bool manual_commit_asynch{true};
   mtev_hash_table *extra_configs{nullptr};
   mtev_hash_table *kafka_global_configs{nullptr};
   rd_kafka_conf_t *rd_consumer_conf{nullptr};
@@ -693,6 +715,12 @@ public:
             msg, consumer->protocol.c_str(), consumer->common_fields.topic.c_str(),
             consumer->extra_configs, mtev_rd_kafka_message_free);
           mtev_kafka_handle_message_dyn_hook_invoke(m);
+          if (consumer->manual_commit) {
+            if (auto err = rd_kafka_commit_message(consumer->rd_consumer, msg,
+                                                   consumer->manual_commit_asynch ? 0 : 1)) {
+              mtevL(nlerr, "failed to commit message: %s\n", rd_kafka_err2str(err));
+            }
+          }
           mtev_rd_kafka_message_deref(m);
         }
         else {
