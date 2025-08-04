@@ -433,7 +433,7 @@ struct kafka_consumer {
       }
     }
     else {
-      manual_commit_asynch = false;
+      manual_commit_asynch = true;
     }
 
     constexpr size_t error_string_size = 256;
