@@ -4,6 +4,13 @@
 
 ## 2.7
 
+### 2.7.10
+
+ * Update kafka module to enable and disable automatic message
+   commits.
+ * Added code to mtevFatal and mtevAssert to always print the file
+   and line number of where asserts occur.
+
 ### 2.7.9
 
  * Add example programs - `kafka_producer` and `kafka_consumer` -
