@@ -6,7 +6,7 @@
 
 ### 2.7.10
 
- * Update kafka module to enable and disable automatic message
+ * Update kafka module to allow toggling automatic message
    commits.
  * Added code to mtevFatal and mtevAssert to always print the file
    and line number of where asserts occur.
