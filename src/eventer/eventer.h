@@ -49,6 +49,8 @@ extern "C" {
 #include <ck_pr.h>
 #include <ck_spinlock.h>
 
+#define EVENTER_STACKTRACE_SIZE   128
+
 /* We use ETIMEDOUT, which might be ETIME on some platforms */
 #ifndef ETIME
 #define ETIME ETIMEDOUT
