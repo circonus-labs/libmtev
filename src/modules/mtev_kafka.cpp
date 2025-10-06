@@ -763,6 +763,8 @@ public:
     }
     return 0;
   }
+  void close_all_consumers() { _consumers.clear(); }
+  void close_all_producers() { _producers.clear(); }
 
 private:
   std::vector<std::unique_ptr<kafka_consumer>> _consumers;
@@ -797,6 +799,23 @@ void mtev_kafka_broadcast_function(const void *payload, size_t payload_len)
   if (the_conf) {
     the_conf->publish_to_producers(payload, payload_len);
   }
+}
+void mtev_kafka_close_all_producers_function()
+{
+  if (the_conf) {
+    the_conf->close_all_producers();
+  }
+}
+void mtev_kafka_close_all_consumers_function()
+{
+  if (the_conf) {
+    the_conf->close_all_consumers();
+  }
+}
+void mtev_kafka_close_all_connections_function()
+{
+  mtev_kafka_close_all_producers_function();
+  mtev_kafka_close_all_consumers_function();
 }
 }
 

@@ -143,6 +143,18 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_broadcast,
                      (payload, payload_len))
 MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
 
+MTEV_RUNTIME_RESOLVE(
+  mtev_kafka_close_all_producers, mtev_kafka_close_all_producers_function, void, (), ())
+MTEV_RUNTIME_AVAIL(mtev_kafka_close_all_producers, mtev_kafka_close_all_producers_function)
+
+MTEV_RUNTIME_RESOLVE(
+  mtev_kafka_close_all_consumers, mtev_kafka_close_all_consumers_function, void, (), ())
+MTEV_RUNTIME_AVAIL(mtev_kafka_close_all_consumers, mtev_kafka_close_all_consumers_function)
+
+MTEV_RUNTIME_RESOLVE(
+  mtev_kafka_close_all_connections, mtev_kafka_close_all_connections_function, void, (), ())
+MTEV_RUNTIME_AVAIL(mtev_kafka_close_all_connections, mtev_kafka_close_all_connections_function)
+
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
                 (mtev_rd_kafka_message_t * msg),
                 void *,
