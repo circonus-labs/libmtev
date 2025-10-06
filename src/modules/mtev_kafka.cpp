@@ -42,6 +42,7 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -702,6 +703,7 @@ public:
   }
   int poll()
   {
+    std::shared_lock lock{consumer_mutex};
     for (const auto &consumer : _consumers) {
       int32_t per_conn_cnt = 0;
       rd_kafka_message_t *msg = nullptr;
@@ -736,6 +738,7 @@ public:
   }
   void publish_to_producers(const void *payload, size_t payload_len)
   {
+    std::shared_lock lock{producer_mutex};
     for (const auto &producer : _producers) {
       if (!rd_kafka_produce(producer->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
                             const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
@@ -747,28 +750,49 @@ public:
   }
   void poll_producers()
   {
+    std::shared_lock lock{producer_mutex};
     for (const auto &producer : _producers) {
       rd_kafka_poll(producer->rd_producer, 10);
     }
   }
-  int get_num_producers() { return _producers.size(); }
+  int get_num_producers()
+  {
+    std::shared_lock lock{producer_mutex};
+    return _producers.size();
+  }
   int32_t get_producer_poll_interval() { return _producer_poll_interval_ms; }
   int show_console(const mtev_console_closure_t &ncct)
   {
-    for (const auto &producer : _producers) {
-      producer->write_to_console(ncct);
+    {
+      std::shared_lock lock{producer_mutex};
+      for (const auto &producer : _producers) {
+        producer->write_to_console(ncct);
+      }
     }
-    for (const auto &consumer : _consumers) {
-      consumer->write_to_console(ncct);
+    {
+      std::shared_lock lock{consumer_mutex};
+      for (const auto &consumer : _consumers) {
+        consumer->write_to_console(ncct);
+      }
     }
     return 0;
   }
-  void close_all_consumers() { _consumers.clear(); }
-  void close_all_producers() { _producers.clear(); }
+  void close_all_consumers()
+  {
+    std::unique_lock lock{consumer_mutex};
+    _consumers.clear();
+  }
+  void close_all_producers()
+  {
+    std::unique_lock lock{producer_mutex};
+    _producers.clear();
+  }
 
 private:
   std::vector<std::unique_ptr<kafka_consumer>> _consumers;
   std::vector<std::unique_ptr<kafka_producer>> _producers;
+  std::mutex consumer_mutex;
+  std::mutex producer_mutex;
   std::chrono::milliseconds _poll_timeout;
   int32_t _poll_limit;
   int64_t _producer_poll_interval_ms;
