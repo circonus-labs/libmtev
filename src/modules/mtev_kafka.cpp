@@ -140,7 +140,8 @@ struct kafka_common_fields {
 };
 
 enum class connection_type_e { CONSUMER, PRODUCER };
-static kafka_common_fields set_common_connection_fields(mtev_hash_table *options)
+static kafka_common_fields set_common_connection_fields(mtev_hash_table *options,
+                                                        const std::vector<std::string> &topics)
 {
   kafka_common_fields ret;
   void *vptr = nullptr;
@@ -157,9 +158,14 @@ static kafka_common_fields set_common_connection_fields(mtev_hash_table *options
     ret.port = 9092;
   }
   if (mtev_hash_retrieve(options, "topic", strlen("topic"), &vptr)) {
+    mtevL(
+      nlerr,
+      "WARNING: Use of \"topic\" in the kafka module config is deprecated. Please use <topics>\n");
     ret.topics.insert(static_cast<char *>(vptr));
   }
-  // TODO: Support the `topics` set
+  for (const auto &topic : topics) {
+    ret.topics.insert(topic);
+  }
   if (ret.topics.size() == 0) {
     ret.topics.insert("mtev_default_topic");
   }
@@ -237,11 +243,12 @@ static std::unordered_map<std::string, std::string>
 }
 struct kafka_producer {
   kafka_producer(mtev_hash_table *config,
+                 const std::vector<std::string> &topics,
                  mtev_hash_table *&&kafka_global_configs_in,
                  mtev_hash_table *&&kafka_topic_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
-    common_fields = set_common_connection_fields(config);
+    common_fields = set_common_connection_fields(config, topics);
     kafka_global_configs = kafka_global_configs_in;
     kafka_topic_configs = kafka_topic_configs_in;
     extra_configs = extra_configs_in;
@@ -377,10 +384,11 @@ public:
 
 struct kafka_consumer {
   kafka_consumer(mtev_hash_table *config,
+                 const std::vector<std::string> &topics,
                  mtev_hash_table *&&kafka_global_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
-    common_fields = set_common_connection_fields(config);
+    common_fields = set_common_connection_fields(config, topics);
     kafka_global_configs = kafka_global_configs_in;
     extra_configs = extra_configs_in;
 
@@ -579,7 +587,8 @@ public:
       mtev_hash_init(kafka_global_configs);
       mtev_hash_init(kafka_topic_configs);
 
-      auto entries = mtev_conf_get_hash(mqs[section_id], "self::node()");
+      auto mq = mqs[section_id];
+      auto entries = mtev_conf_get_hash(mq, "self::node()");
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
       while (mtev_hash_adv(entries, &iter)) {
         if (!strncasecmp(iter.key.str, VARIABLE_PARAMETER_PREFIX, VARIABLE_PARAMETER_PREFIX_LEN)) {
@@ -638,11 +647,22 @@ public:
           }
         }
       }
+      int num_topics = 0;
+      auto topics = mtev_conf_get_sections_read(mq, "topics/topic", &num_topics);
+      std::vector<std::string> topics_vector;
+      for (int i = 0; i < num_topics; i++) {
+        char *name = NULL;
+        if (mtev_conf_get_string(topics[i], "@name", &name) && name) {
+          topics_vector.emplace_back(name);
+          free(name);
+        }
+      }
+      mtev_conf_release_sections_read(topics, num_topics);
       switch (conn_type) {
       case connection_type_e::CONSUMER: {
         try {
-          auto consumer = std::make_unique<kafka_consumer>(entries, std::move(kafka_global_configs),
-                                                           std::move(extra_configs));
+          auto consumer = std::make_unique<kafka_consumer>(
+            entries, topics_vector, std::move(kafka_global_configs), std::move(extra_configs));
           mtevL(nlnotice, "Added Kafka consumer: Host %s\n",
                 consumer->common_fields.broker_with_port.c_str());
           _consumers.push_back(std::move(consumer));
@@ -654,9 +674,9 @@ public:
       }
       case connection_type_e::PRODUCER: {
         try {
-          auto producer = std::make_unique<kafka_producer>(entries, std::move(kafka_global_configs),
-                                                           std::move(kafka_topic_configs),
-                                                           std::move(extra_configs));
+          auto producer = std::make_unique<kafka_producer>(
+            entries, topics_vector, std::move(kafka_global_configs), std::move(kafka_topic_configs),
+            std::move(extra_configs));
           mtevL(nlnotice, "Added Kafka producer: Host %s\n",
                 producer->common_fields.broker_with_port.c_str());
           _producers.push_back(std::move(producer));
