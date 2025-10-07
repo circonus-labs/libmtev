@@ -44,6 +44,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define CONFIG_KAFKA_MQ_CONSUMER "//network/in/mq[@type='kafka']"
@@ -135,7 +136,7 @@ struct kafka_common_fields {
   std::string host;
   int32_t port;
   std::string broker_with_port;
-  std::vector<std::string> topics;
+  std::unordered_set<std::string> topics;
 };
 
 enum class connection_type_e { CONSUMER, PRODUCER };
@@ -156,11 +157,11 @@ static kafka_common_fields set_common_connection_fields(mtev_hash_table *options
     ret.port = 9092;
   }
   if (mtev_hash_retrieve(options, "topic", strlen("topic"), &vptr)) {
-    ret.topics.emplace_back(static_cast<char *>(vptr));
+    ret.topics.insert(static_cast<char *>(vptr));
   }
   // TODO: Support the `topics` set
   if (ret.topics.size() == 0) {
-    ret.topics.emplace_back("mtev_default_topic");
+    ret.topics.insert("mtev_default_topic");
   }
   ret.broker_with_port = ret.host + ":" + std::to_string(ret.port);
   return ret;
@@ -714,17 +715,29 @@ public:
         per_conn_cnt++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
           const char *topic_name = rd_kafka_topic_name(msg->rkt);
-          mtev_rd_kafka_message_t *m =
-            mtev_rd_kafka_message_alloc(msg, consumer->protocol.c_str(), topic_name,
-                                        consumer->extra_configs, mtev_rd_kafka_message_free);
-          mtev_kafka_handle_message_dyn_hook_invoke(m);
-          if (consumer->manual_commit) {
-            if (auto err = rd_kafka_commit_message(consumer->rd_consumer, msg,
-                                                   consumer->manual_commit_asynch ? 0 : 1)) {
-              mtevL(nlerr, "failed to commit message: %s\n", rd_kafka_err2str(err));
+          if (consumer->common_fields.topics.contains(topic_name)) {
+            mtev_rd_kafka_message_t *m =
+              mtev_rd_kafka_message_alloc(msg, consumer->protocol.c_str(), topic_name,
+                                          consumer->extra_configs, mtev_rd_kafka_message_free);
+            mtev_kafka_handle_message_dyn_hook_invoke(m);
+            if (consumer->manual_commit) {
+              if (auto err = rd_kafka_commit_message(consumer->rd_consumer, msg,
+                                                     consumer->manual_commit_asynch ? 0 : 1)) {
+                mtevL(nlerr, "failed to commit message: %s\n", rd_kafka_err2str(err));
+              }
+            }
+            mtev_rd_kafka_message_deref(m);
+          }
+          else {
+            mtevL(nlerr, "ERROR: Got message from unknown topic ('%s') from host %s - skipping\n",
+                  topic_name, consumer->common_fields.broker_with_port.c_str());
+            if (consumer->manual_commit) {
+              if (auto err = rd_kafka_commit_message(consumer->rd_consumer, msg,
+                                                     consumer->manual_commit_asynch ? 0 : 1)) {
+                mtevL(nlerr, "failed to commit message: %s\n", rd_kafka_err2str(err));
+              }
             }
           }
-          mtev_rd_kafka_message_deref(m);
         }
         else {
           const char *topic_name = rd_kafka_topic_name(msg->rkt);
