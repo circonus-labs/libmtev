@@ -740,10 +740,10 @@ public:
           }
         }
         else {
-          const char *topic_name = rd_kafka_topic_name(msg->rkt);
+          const char *topic_name = msg ? rd_kafka_topic_name(msg->rkt) : "(unknown topic)";
           mtevL(nlerr, "ERROR: Got error reading from %s, topic %s: %s\n",
                 consumer->common_fields.broker_with_port.c_str(), topic_name,
-                rd_kafka_err2str(msg->err));
+                msg ? rd_kafka_err2str(msg->err) : "(unknown error)");
           consumer->stats.errors++;
           rd_kafka_message_destroy(msg);
         }
