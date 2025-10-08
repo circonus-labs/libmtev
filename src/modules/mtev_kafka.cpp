@@ -44,6 +44,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define CONFIG_KAFKA_MQ_CONSUMER "//network/in/mq[@type='kafka']"
@@ -135,11 +136,12 @@ struct kafka_common_fields {
   std::string host;
   int32_t port;
   std::string broker_with_port;
-  std::string topic;
+  std::unordered_set<std::string> topics;
 };
 
 enum class connection_type_e { CONSUMER, PRODUCER };
-static kafka_common_fields set_common_connection_fields(mtev_hash_table *options)
+static kafka_common_fields set_common_connection_fields(mtev_hash_table *options,
+                                                        const std::vector<std::string> &topics)
 {
   kafka_common_fields ret;
   void *vptr = nullptr;
@@ -156,10 +158,16 @@ static kafka_common_fields set_common_connection_fields(mtev_hash_table *options
     ret.port = 9092;
   }
   if (mtev_hash_retrieve(options, "topic", strlen("topic"), &vptr)) {
-    ret.topic = static_cast<char *>(vptr);
+    mtevL(
+      nlerr,
+      "WARNING: Use of \"topic\" in the kafka module config is deprecated. Please use <topics>\n");
+    ret.topics.insert(static_cast<char *>(vptr));
   }
-  else {
-    ret.topic = "mtev_default_topic";
+  for (const auto &topic : topics) {
+    ret.topics.insert(topic);
+  }
+  if (ret.topics.size() == 0) {
+    ret.topics.insert("mtev_default_topic");
   }
   ret.broker_with_port = ret.host + ":" + std::to_string(ret.port);
   return ret;
@@ -235,11 +243,12 @@ static std::unordered_map<std::string, std::string>
 }
 struct kafka_producer {
   kafka_producer(mtev_hash_table *config,
+                 const std::vector<std::string> &topics,
                  mtev_hash_table *&&kafka_global_configs_in,
                  mtev_hash_table *&&kafka_topic_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
-    common_fields = set_common_connection_fields(config);
+    common_fields = set_common_connection_fields(config, topics);
     kafka_global_configs = kafka_global_configs_in;
     kafka_topic_configs = kafka_topic_configs_in;
     extra_configs = extra_configs_in;
@@ -254,22 +263,20 @@ struct kafka_producer {
     if (global_config_errors.size()) {
       mtevL(nlerr,
             "%s: encountered the following %zd errors setting global configuration values for "
-            "host %s, topic %s\n",
-            __func__, global_config_errors.size(), common_fields.broker_with_port.c_str(),
-            common_fields.topic.c_str());
+            "host %s\n",
+            __func__, global_config_errors.size(), common_fields.broker_with_port.c_str());
       for (const auto &pair : global_config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
       cleanup();
       throw(std::runtime_error(std::string("Failed to configure producer for host " +
-                                           common_fields.broker_with_port + ", topic " +
-                                           common_fields.topic + ": invalid configuration")));
+                                           common_fields.broker_with_port +
+                                           ": invalid configuration")));
     }
     if (rd_kafka_conf_set(rd_producer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error = "Failed to configure producer for host " +
-        common_fields.broker_with_port + ", topic " + common_fields.topic + ": error " +
-        error_string;
+        common_fields.broker_with_port + ": error " + error_string;
       cleanup();
       throw std::runtime_error(error.c_str());
     }
@@ -294,19 +301,20 @@ struct kafka_producer {
     if (topic_config_errors.size()) {
       mtevL(nlerr,
             "%s: encountered the following %zd errors setting topic configuration values for "
-            "host %s, topic %s\n",
-            __func__, topic_config_errors.size(), common_fields.broker_with_port.c_str(),
-            common_fields.topic.c_str());
+            "host %s\n",
+            __func__, topic_config_errors.size(), common_fields.broker_with_port.c_str());
       for (const auto &pair : topic_config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
       cleanup();
       throw(std::runtime_error(std::string("Failed to configure producer for host " +
-                                           common_fields.broker_with_port + ", topic " +
-                                           common_fields.topic + ": invalid configuration")));
+                                           common_fields.broker_with_port +
+                                           ": invalid configuration")));
     }
-    rd_topic_producer =
-      rd_kafka_topic_new(rd_producer, common_fields.topic.c_str(), rd_topic_producer_conf);
+    for (const auto &topic : common_fields.topics) {
+      rd_topic_producers.emplace_back(
+        rd_kafka_topic_new(rd_producer, topic.c_str(), rd_topic_producer_conf));
+    }
   }
   kafka_producer() = delete;
   ~kafka_producer() { cleanup(); }
@@ -316,10 +324,13 @@ struct kafka_producer {
               "== %s ==\n"
               "  mq type: kafka\n"
               "  connection type: producer\n"
-              "  topic: %s\n"
-              "  (s) msgs out: %zu\n  (s) errors: %zu\n",
-              common_fields.broker_with_port.c_str(), common_fields.topic.c_str(),
-              stats.msgs_out.load(), stats.errors.load());
+              "  topics:\n",
+              common_fields.broker_with_port.c_str());
+    for (const auto &topic : common_fields.topics) {
+      nc_printf(ncct, "    %s\n", topic.c_str());
+    }
+    nc_printf(ncct, "  (s) msgs out: %zu\n  (s) errors: %zu\n", stats.msgs_out.load(),
+              stats.errors.load());
   }
 
 private:
@@ -329,10 +340,10 @@ private:
       rd_kafka_topic_conf_destroy(rd_topic_producer_conf);
       rd_topic_producer_conf = nullptr;
     }
-    if (rd_topic_producer) {
-      rd_kafka_topic_destroy(rd_topic_producer);
-      rd_topic_producer = nullptr;
+    for (const auto &producer : rd_topic_producers) {
+      rd_kafka_topic_destroy(producer);
     }
+    rd_topic_producers.clear();
     if (rd_producer_conf) {
       rd_kafka_conf_destroy(rd_producer_conf);
       rd_producer_conf = nullptr;
@@ -367,16 +378,17 @@ public:
   rd_kafka_conf_t *rd_producer_conf{nullptr};
   rd_kafka_t *rd_producer{nullptr};
   rd_kafka_topic_conf_t *rd_topic_producer_conf{nullptr};
-  rd_kafka_topic_t *rd_topic_producer{nullptr};
+  std::vector<rd_kafka_topic_t *> rd_topic_producers;
   kafka_producer_stats_t stats;
 };
 
 struct kafka_consumer {
   kafka_consumer(mtev_hash_table *config,
+                 const std::vector<std::string> &topics,
                  mtev_hash_table *&&kafka_global_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
-    common_fields = set_common_connection_fields(config);
+    common_fields = set_common_connection_fields(config, topics);
     kafka_global_configs = kafka_global_configs_in;
     extra_configs = extra_configs_in;
 
@@ -445,38 +457,34 @@ struct kafka_consumer {
     if (global_config_errors.size()) {
       mtevL(nlerr,
             "%s: encountered the following %zd errors setting global configuration values for "
-            "host %s, topic %s\n",
-            __func__, global_config_errors.size(), common_fields.broker_with_port.c_str(),
-            common_fields.topic.c_str());
+            "host %s\n",
+            __func__, global_config_errors.size(), common_fields.broker_with_port.c_str());
       for (const auto &pair : global_config_errors) {
         mtevL(nlerr, "%s: %s\n", pair.first.c_str(), pair.second.c_str());
       }
       cleanup();
       throw(std::runtime_error(std::string("Failed to configure consumer for host " +
-                                           common_fields.broker_with_port + ", topic " +
-                                           common_fields.topic + ": invalid configuration")));
+                                           common_fields.broker_with_port +
+                                           ": invalid configuration")));
     }
     if (rd_kafka_conf_set(rd_consumer_conf, bootstrap_str, common_fields.broker_with_port.c_str(),
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error = "Failed to configure consumer for host " +
-        common_fields.broker_with_port + ", topic " + common_fields.topic + ": error " +
-        error_string;
+        common_fields.broker_with_port + ": error " + error_string;
       cleanup();
       throw std::runtime_error(error.c_str());
     }
     if (rd_kafka_conf_set(rd_consumer_conf, group_id_str, consumer_group.c_str(), error_string,
                           error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error = "Failed to configure consumer for host " +
-        common_fields.broker_with_port + ", topic " + common_fields.topic + ": error " +
-        error_string;
+        common_fields.broker_with_port + ": error " + error_string;
       cleanup();
       throw std::runtime_error(error.c_str());
     }
     if (rd_kafka_conf_set(rd_consumer_conf, auto_commit_str, (manual_commit) ? "false" : "true",
                           error_string, error_string_size) != RD_KAFKA_CONF_OK) {
       std::string error = "Failed to configure manual_commit for host " +
-        common_fields.broker_with_port + ", topic " + common_fields.topic + ": error " +
-        error_string;
+        common_fields.broker_with_port + ": error " + error_string;
       cleanup();
       throw std::runtime_error(error.c_str());
     }
@@ -484,9 +492,10 @@ struct kafka_consumer {
     rd_consumer =
       rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, error_string, error_string_size);
 
-    rd_consumer_topics = rd_kafka_topic_partition_list_new(1);
-    rd_kafka_topic_partition_list_add(rd_consumer_topics, common_fields.topic.c_str(),
-                                      RD_KAFKA_PARTITION_UA);
+    rd_consumer_topics = rd_kafka_topic_partition_list_new(common_fields.topics.size());
+    for (const auto &topic : common_fields.topics) {
+      rd_kafka_topic_partition_list_add(rd_consumer_topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
+    }
     rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
   }
   kafka_consumer() = delete;
@@ -497,11 +506,15 @@ struct kafka_consumer {
               "== %s ==\n"
               "  mq type: kafka\n"
               "  connection type: consumer\n"
-              "  topic: %s\n"
+              "  topics:\n",
+              common_fields.broker_with_port.c_str());
+    for (const auto &topic : common_fields.topics) {
+      nc_printf(ncct, "    %s\n", topic.c_str());
+    }
+    nc_printf(ncct,
               "  consumer_group: %s\n"
               "  manual_commit: %s\n"
               "  (s) msgs in: %zu\n  (s) errors: %zu\n",
-              common_fields.broker_with_port.c_str(), common_fields.topic.c_str(),
               consumer_group.c_str(), manual_commit ? "true" : "false", stats.msgs_in.load(),
               stats.errors.load());
   }
@@ -574,7 +587,8 @@ public:
       mtev_hash_init(kafka_global_configs);
       mtev_hash_init(kafka_topic_configs);
 
-      auto entries = mtev_conf_get_hash(mqs[section_id], "self::node()");
+      auto mq = mqs[section_id];
+      auto entries = mtev_conf_get_hash(mq, "self::node()");
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
       while (mtev_hash_adv(entries, &iter)) {
         if (!strncasecmp(iter.key.str, VARIABLE_PARAMETER_PREFIX, VARIABLE_PARAMETER_PREFIX_LEN)) {
@@ -633,14 +647,24 @@ public:
           }
         }
       }
+      int num_topics = 0;
+      auto topics = mtev_conf_get_sections_read(mq, "topics/topic", &num_topics);
+      std::vector<std::string> topics_vector;
+      for (int i = 0; i < num_topics; i++) {
+        char *name = NULL;
+        if (mtev_conf_get_string(topics[i], "@name", &name) && name) {
+          topics_vector.emplace_back(name);
+          free(name);
+        }
+      }
+      mtev_conf_release_sections_read(topics, num_topics);
       switch (conn_type) {
       case connection_type_e::CONSUMER: {
         try {
-          auto consumer = std::make_unique<kafka_consumer>(entries, std::move(kafka_global_configs),
-                                                           std::move(extra_configs));
-          mtevL(nlnotice, "Added Kafka consumer: Host %s, Topic %s\n",
-                consumer->common_fields.broker_with_port.c_str(),
-                consumer->common_fields.topic.c_str());
+          auto consumer = std::make_unique<kafka_consumer>(
+            entries, topics_vector, std::move(kafka_global_configs), std::move(extra_configs));
+          mtevL(nlnotice, "Added Kafka consumer: Host %s\n",
+                consumer->common_fields.broker_with_port.c_str());
           _consumers.push_back(std::move(consumer));
         }
         catch (const std::exception &e) {
@@ -650,12 +674,11 @@ public:
       }
       case connection_type_e::PRODUCER: {
         try {
-          auto producer = std::make_unique<kafka_producer>(entries, std::move(kafka_global_configs),
-                                                           std::move(kafka_topic_configs),
-                                                           std::move(extra_configs));
-          mtevL(nlnotice, "Added Kafka producer: Host %s, Topic %s\n",
-                producer->common_fields.broker_with_port.c_str(),
-                producer->common_fields.topic.c_str());
+          auto producer = std::make_unique<kafka_producer>(
+            entries, topics_vector, std::move(kafka_global_configs), std::move(kafka_topic_configs),
+            std::move(extra_configs));
+          mtevL(nlnotice, "Added Kafka producer: Host %s\n",
+                producer->common_fields.broker_with_port.c_str());
           _producers.push_back(std::move(producer));
         }
         catch (const std::exception &e) {
@@ -711,22 +734,36 @@ public:
         consumer->stats.msgs_in++;
         per_conn_cnt++;
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
-          mtev_rd_kafka_message_t *m = mtev_rd_kafka_message_alloc(
-            msg, consumer->protocol.c_str(), consumer->common_fields.topic.c_str(),
-            consumer->extra_configs, mtev_rd_kafka_message_free);
-          mtev_kafka_handle_message_dyn_hook_invoke(m);
-          if (consumer->manual_commit) {
-            if (auto err = rd_kafka_commit_message(consumer->rd_consumer, msg,
-                                                   consumer->manual_commit_asynch ? 0 : 1)) {
-              mtevL(nlerr, "failed to commit message: %s\n", rd_kafka_err2str(err));
+          const char *topic_name = rd_kafka_topic_name(msg->rkt);
+          if (consumer->common_fields.topics.contains(topic_name)) {
+            mtev_rd_kafka_message_t *m =
+              mtev_rd_kafka_message_alloc(msg, consumer->protocol.c_str(), topic_name,
+                                          consumer->extra_configs, mtev_rd_kafka_message_free);
+            mtev_kafka_handle_message_dyn_hook_invoke(m);
+            if (consumer->manual_commit) {
+              if (auto err = rd_kafka_commit_message(consumer->rd_consumer, msg,
+                                                     consumer->manual_commit_asynch ? 0 : 1)) {
+                mtevL(nlerr, "failed to commit message: %s\n", rd_kafka_err2str(err));
+              }
+            }
+            mtev_rd_kafka_message_deref(m);
+          }
+          else {
+            mtevL(nlerr, "ERROR: Got message from unknown topic ('%s') from host %s - skipping\n",
+                  topic_name, consumer->common_fields.broker_with_port.c_str());
+            if (consumer->manual_commit) {
+              if (auto err = rd_kafka_commit_message(consumer->rd_consumer, msg,
+                                                     consumer->manual_commit_asynch ? 0 : 1)) {
+                mtevL(nlerr, "failed to commit message: %s\n", rd_kafka_err2str(err));
+              }
             }
           }
-          mtev_rd_kafka_message_deref(m);
         }
         else {
+          const char *topic_name = msg ? rd_kafka_topic_name(msg->rkt) : "(unknown topic)";
           mtevL(nlerr, "ERROR: Got error reading from %s, topic %s: %s\n",
-                consumer->common_fields.broker_with_port.c_str(),
-                consumer->common_fields.topic.c_str(), rd_kafka_err2str(msg->err));
+                consumer->common_fields.broker_with_port.c_str(), topic_name,
+                msg ? rd_kafka_err2str(msg->err) : "(unknown error)");
           consumer->stats.errors++;
           rd_kafka_message_destroy(msg);
         }
@@ -737,11 +774,13 @@ public:
   void publish_to_producers(const void *payload, size_t payload_len)
   {
     for (const auto &producer : _producers) {
-      if (!rd_kafka_produce(producer->rd_topic_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
-                            const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
-        mtevL(nlerr, "%s: Error producing message (send): %s\n", __func__,
-              rd_kafka_err2str(rd_kafka_last_error()));
-        producer->stats.errors++;
+      for (const auto &individual_producer : producer->rd_topic_producers) {
+        if (!rd_kafka_produce(individual_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
+                              const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
+          mtevL(nlerr, "%s: Error producing message (send): %s\n", __func__,
+                rd_kafka_err2str(rd_kafka_last_error()));
+          producer->stats.errors++;
+        }
       }
     }
   }
