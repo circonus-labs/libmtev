@@ -329,7 +329,7 @@ struct kafka_producer {
     for (const auto &topic : common_fields.topics) {
       nc_printf(ncct, "    %s\n", topic.c_str());
     }
-    nc_printf(ncct, "  (s) msgs in: %zu\n  (s) errors: %zu\n", stats.msgs_out.load(),
+    nc_printf(ncct, "  (s) msgs out: %zu\n  (s) errors: %zu\n", stats.msgs_out.load(),
               stats.errors.load());
   }
 
