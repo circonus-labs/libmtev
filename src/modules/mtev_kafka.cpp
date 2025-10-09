@@ -500,6 +500,9 @@ struct kafka_consumer {
       cleanup();
       throw std::runtime_error(error.c_str());
     }
+    rd_kafka_conf_set_error_cb(rd_consumer_conf, +[](rd_kafka_t *rk, int err, const char *reason, void *opaque) {
+      mtevL(nlerr, "Kafka error: %s (%d): %s\n", rd_kafka_err2str(err), err, reason);
+    };
 
     rd_consumer =
       rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, error_string, error_string_size);
