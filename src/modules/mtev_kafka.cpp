@@ -41,6 +41,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -839,8 +840,8 @@ public:
   }
 
 private:
-  std::unordered_map<std::string, std::unique_ptr<kafka_consumer>> _consumers;
-  std::unordered_map<std::string, std::unique_ptr<kafka_producer>> _producers;
+  std::map<std::string, std::unique_ptr<kafka_consumer>> _consumers;
+  std::map<std::string, std::unique_ptr<kafka_producer>> _producers;
   std::chrono::milliseconds _poll_timeout;
   int32_t _poll_limit;
   int64_t _producer_poll_interval_ms;
