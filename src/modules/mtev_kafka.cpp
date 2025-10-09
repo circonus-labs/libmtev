@@ -697,13 +697,13 @@ public:
           auto consumer = std::make_unique<kafka_consumer>(
             id, entries, topics_vector, std::move(kafka_global_configs), std::move(extra_configs));
           auto id_str = consumer->common_fields.id_str;
+          auto broker = consumer->common_fields.broker_with_port;
           auto result = _consumers.insert({id_str, std::move(consumer)});
           if (!result.second) {
             throw std::runtime_error("duplicate UUID on Kafka consumer ids (" + id_str +
                                      "): id must be unique");
           }
-          mtevL(nlnotice, "Added Kafka consumer: Host %s\n",
-                consumer->common_fields.broker_with_port.c_str());
+          mtevL(nlnotice, "Added Kafka consumer: Host %s\n", broker);
         }
         catch (const std::exception &e) {
           mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
@@ -716,13 +716,13 @@ public:
             id, entries, topics_vector, std::move(kafka_global_configs),
             std::move(kafka_topic_configs), std::move(extra_configs));
           auto id_str = producer->common_fields.id_str;
+          auto broker = producer->common_fields.broker_with_port;
           auto result = _producers.insert({id_str, std::move(producer)});
           if (!result.second) {
             throw std::runtime_error("duplicate UUID on Kafka producer ids (" + id_str +
                                      "): id must be unique");
           }
-          mtevL(nlnotice, "Added Kafka producer: Host %s\n",
-                producer->common_fields.broker_with_port.c_str());
+          mtevL(nlnotice, "Added Kafka producer: Host %s\n", broker);
         }
         catch (const std::exception &e) {
           mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
