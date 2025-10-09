@@ -699,9 +699,9 @@ public:
           mtevL(nlnotice, "Added Kafka consumer: Host %s\n",
                 consumer->common_fields.broker_with_port.c_str());
           auto result = _consumers.insert({consumer->common_fields.id_str, std::move(consumer)});
-          if (result.second) {
-            mtevFatal(mtev_error, "duplicate UUID on Kafka consumer ids (%s): id must be unique\n",
-                      consumer->common_fields.id_str.c_str());
+          if (!result.second) {
+            throw std::runtime_error("duplicate UUID on Kafka consumer ids (" +
+                                     consumer->common_fields.id_str + "): id must be unique");
           }
         }
         catch (const std::exception &e) {
