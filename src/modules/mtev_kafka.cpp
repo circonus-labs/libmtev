@@ -692,7 +692,11 @@ public:
             id, entries, topics_vector, std::move(kafka_global_configs), std::move(extra_configs));
           mtevL(nlnotice, "Added Kafka consumer: Host %s\n",
                 consumer->common_fields.broker_with_port.c_str());
-          _consumers.push_back(std::move(consumer));
+          auto result = _consumers.insert({consumer->common_fields.id_str, std::move(consumer)});
+          if (result.second) {
+            mtevFatal(mtev_error, "duplicate UUID on Kafka consumer ids (%s): id must be unique\n",
+                      consumer->common_fields.id_str.c_str());
+          }
         }
         catch (const std::exception &e) {
           mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
@@ -706,7 +710,11 @@ public:
             std::move(kafka_topic_configs), std::move(extra_configs));
           mtevL(nlnotice, "Added Kafka producer: Host %s\n",
                 producer->common_fields.broker_with_port.c_str());
-          _producers.push_back(std::move(producer));
+          auto result = _producers.insert({producer->common_fields.id_str, std::move(producer)});
+          if (result.second) {
+            mtevFatal(mtev_error, "duplicate UUID on Kafka producer ids (%s): id must be unique\n",
+                      producer->common_fields.id_str.c_str());
+          }
         }
         catch (const std::exception &e) {
           mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
@@ -752,7 +760,7 @@ public:
   }
   int poll()
   {
-    for (const auto &consumer : _consumers) {
+    for (const auto &[id, consumer] : _consumers) {
       int32_t per_conn_cnt = 0;
       rd_kafka_message_t *msg = nullptr;
       while (
@@ -800,7 +808,7 @@ public:
   }
   void publish_to_producers(const void *payload, size_t payload_len)
   {
-    for (const auto &producer : _producers) {
+    for (const auto &[id, producer] : _producers) {
       for (const auto &individual_producer : producer->rd_topic_producers) {
         if (!rd_kafka_produce(individual_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
                               const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
@@ -813,7 +821,7 @@ public:
   }
   void poll_producers()
   {
-    for (const auto &producer : _producers) {
+    for (const auto &[id, producer] : _producers) {
       rd_kafka_poll(producer->rd_producer, 10);
     }
   }
@@ -821,18 +829,18 @@ public:
   int32_t get_producer_poll_interval() { return _producer_poll_interval_ms; }
   int show_console(const mtev_console_closure_t &ncct)
   {
-    for (const auto &producer : _producers) {
+    for (const auto &[id, producer] : _producers) {
       producer->write_to_console(ncct);
     }
-    for (const auto &consumer : _consumers) {
+    for (const auto &[id, consumer] : _consumers) {
       consumer->write_to_console(ncct);
     }
     return 0;
   }
 
 private:
-  std::vector<std::unique_ptr<kafka_consumer>> _consumers;
-  std::vector<std::unique_ptr<kafka_producer>> _producers;
+  std::unordered_map<std::string, std::unique_ptr<kafka_consumer>> _consumers;
+  std::unordered_map<std::string, std::unique_ptr<kafka_producer>> _producers;
   std::chrono::milliseconds _poll_timeout;
   int32_t _poll_limit;
   int64_t _producer_poll_interval_ms;
