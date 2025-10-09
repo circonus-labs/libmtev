@@ -133,6 +133,8 @@ struct kafka_consumer_stats_t {
 };
 
 struct kafka_common_fields {
+  uuid_t id;
+  std::string id_str;
   std::string host;
   int32_t port;
   std::string broker_with_port;
@@ -140,10 +142,17 @@ struct kafka_common_fields {
 };
 
 enum class connection_type_e { CONSUMER, PRODUCER };
-static kafka_common_fields set_common_connection_fields(mtev_hash_table *options,
+static kafka_common_fields set_common_connection_fields(const uuid_t &id,
+                                                        mtev_hash_table *options,
                                                         const std::vector<std::string> &topics)
 {
   kafka_common_fields ret;
+
+  char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+  mtev_uuid_unparse_lower(id, uuid_str);
+  mtev_uuid_copy(ret.id, id);
+  ret.id_str = uuid_str;
+
   void *vptr = nullptr;
   if (mtev_hash_retrieve(options, "host", strlen("host"), &vptr)) {
     ret.host = static_cast<char *>(vptr);
@@ -242,13 +251,14 @@ static std::unordered_map<std::string, std::string>
   return errors;
 }
 struct kafka_producer {
-  kafka_producer(mtev_hash_table *config,
+  kafka_producer(const uuid_t &id,
+                 mtev_hash_table *config,
                  const std::vector<std::string> &topics,
                  mtev_hash_table *&&kafka_global_configs_in,
                  mtev_hash_table *&&kafka_topic_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
-    common_fields = set_common_connection_fields(config, topics);
+    common_fields = set_common_connection_fields(id, config, topics);
     kafka_global_configs = kafka_global_configs_in;
     kafka_topic_configs = kafka_topic_configs_in;
     extra_configs = extra_configs_in;
@@ -383,12 +393,13 @@ public:
 };
 
 struct kafka_consumer {
-  kafka_consumer(mtev_hash_table *config,
+  kafka_consumer(const uuid_t &id,
+                 mtev_hash_table *config,
                  const std::vector<std::string> &topics,
                  mtev_hash_table *&&kafka_global_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
-    common_fields = set_common_connection_fields(config, topics);
+    common_fields = set_common_connection_fields(id, config, topics);
     kafka_global_configs = kafka_global_configs_in;
     extra_configs = extra_configs_in;
 
@@ -571,6 +582,7 @@ public:
   {
     auto make_kafka_connection = [&](connection_type_e conn_type, mtev_conf_section_t *mqs,
                                      int section_id) -> bool {
+      auto mq = mqs[section_id];
       std::string host_string = "localhost";
       int32_t port = 9092;
       std::string topic_string = "mtev_default_topic";
@@ -587,7 +599,6 @@ public:
       mtev_hash_init(kafka_global_configs);
       mtev_hash_init(kafka_topic_configs);
 
-      auto mq = mqs[section_id];
       auto entries = mtev_conf_get_hash(mq, "self::node()");
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
       while (mtev_hash_adv(entries, &iter)) {
@@ -658,11 +669,27 @@ public:
         }
       }
       mtev_conf_release_sections_read(topics, num_topics);
+
+      char *uuid_str = NULL;
+      uuid_t id;
+
+      if (mtev_conf_get_string(mq, "@id", &uuid_str)) {
+        if (mtev_uuid_parse(uuid_str, id)) {
+          mtevFatal(mtev_error,
+                    "Provided ID field in Kafka module config (%s) is not a valid UUID.\n",
+                    uuid_str);
+        }
+        free(uuid_str);
+      }
+      else {
+        mtev_uuid_generate(id);
+      }
+
       switch (conn_type) {
       case connection_type_e::CONSUMER: {
         try {
           auto consumer = std::make_unique<kafka_consumer>(
-            entries, topics_vector, std::move(kafka_global_configs), std::move(extra_configs));
+            id, entries, topics_vector, std::move(kafka_global_configs), std::move(extra_configs));
           mtevL(nlnotice, "Added Kafka consumer: Host %s\n",
                 consumer->common_fields.broker_with_port.c_str());
           _consumers.push_back(std::move(consumer));
@@ -675,8 +702,8 @@ public:
       case connection_type_e::PRODUCER: {
         try {
           auto producer = std::make_unique<kafka_producer>(
-            entries, topics_vector, std::move(kafka_global_configs), std::move(kafka_topic_configs),
-            std::move(extra_configs));
+            id, entries, topics_vector, std::move(kafka_global_configs),
+            std::move(kafka_topic_configs), std::move(extra_configs));
           mtevL(nlnotice, "Added Kafka producer: Host %s\n",
                 producer->common_fields.broker_with_port.c_str());
           _producers.push_back(std::move(producer));
