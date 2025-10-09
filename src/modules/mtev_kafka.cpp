@@ -703,7 +703,7 @@ public:
             throw std::runtime_error("duplicate UUID on Kafka consumer ids (" + id_str +
                                      "): id must be unique");
           }
-          mtevL(nlnotice, "Added Kafka consumer: Host %s\n", broker);
+          mtevL(nlnotice, "Added Kafka consumer: Host %s\n", broker.c_str());
         }
         catch (const std::exception &e) {
           mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
@@ -722,7 +722,7 @@ public:
             throw std::runtime_error("duplicate UUID on Kafka producer ids (" + id_str +
                                      "): id must be unique");
           }
-          mtevL(nlnotice, "Added Kafka producer: Host %s\n", broker);
+          mtevL(nlnotice, "Added Kafka producer: Host %s\n", broker.c_str());
         }
         catch (const std::exception &e) {
           mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
