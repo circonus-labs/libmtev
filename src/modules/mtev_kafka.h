@@ -100,6 +100,11 @@ typedef void rd_kafka_message_t;
 extern "C" {
 #endif
 
+typedef void (*mtev_kafka_shutdown_callback_t)(void *closure,
+                                               const uuid_t id,
+                                               mtev_boolean success,
+                                               const char *error);
+
 typedef struct mtev_rd_kafka_message {
   rd_kafka_message_t *msg;
   uint32_t refcnt;

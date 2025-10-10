@@ -251,6 +251,13 @@ static std::unordered_map<std::string, std::string>
   }
   return errors;
 }
+struct shutdown_request {
+  enum Type { PRODUCER, CONSUMER };
+  Type type;
+  std::string id;
+  mtev_kafka_shutdown_callback_t callback;
+  void *closure;
+};
 struct kafka_producer {
   kafka_producer(const uuid_t &id,
                  mtev_hash_table *config,
@@ -584,7 +591,8 @@ class kafka_module_config {
 public:
   kafka_module_config()
     : _poll_timeout{std::chrono::milliseconds{DEFAULT_POLL_TIMEOUT_MS}},
-      _poll_limit{DEFAULT_POLL_LIMIT}, _producer_poll_interval_ms{DEFAULT_PRODUCER_POLL_INTERVAL_MS}
+      _poll_limit{DEFAULT_POLL_LIMIT},
+      _producer_poll_interval_ms{DEFAULT_PRODUCER_POLL_INTERVAL_MS}, _shutdown_jobq{nullptr}
   {
     auto make_kafka_connection = [&](connection_type_e conn_type, mtev_conf_section_t *mqs,
                                      int section_id) -> bool {
@@ -812,6 +820,7 @@ public:
         }
       }
     }
+    process_pending_shutdowns();
     return 0;
   }
   void publish_to_producers(const void *payload, size_t payload_len)
@@ -845,13 +854,152 @@ public:
     }
     return 0;
   }
+  bool shutdown_producer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
+  {
+    char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+    mtev_uuid_unparse_lower(id, uuid_str);
+
+    std::lock_guard<std::mutex> lock(_shutdown_mutex);
+
+    if (_producers.find(uuid_str) == _producers.end()) {
+      return false;
+    }
+    _pending_shutdowns.push_back({shutdown_request::PRODUCER, uuid_str, callback, closure});
+
+    return true;
+  }
+
+  bool shutdown_consumer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
+  {
+    char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+    mtev_uuid_unparse_lower(id, uuid_str);
+
+    std::lock_guard<std::mutex> lock(_shutdown_mutex);
+
+    if (_consumers.find(uuid_str) == _consumers.end()) {
+      return false;
+    }
+    _pending_shutdowns.push_back({shutdown_request::CONSUMER, uuid_str, callback, closure});
+
+    return true;
+  }
 
 private:
+  void process_pending_shutdowns()
+  {
+    std::vector<shutdown_request> to_process;
+    {
+      std::lock_guard<std::mutex> lock(_shutdown_mutex);
+      if (_pending_shutdowns.empty()) {
+        return;
+      }
+      to_process.swap(_pending_shutdowns);
+    }
+    for (const auto &req : to_process) {
+      if (req.type == shutdown_request::PRODUCER) {
+        if (auto it = _producers.find(req.id); it != _producers.end()) {
+          schedule_producer_cleanup(std::move(it->second), req.callback, req.closure);
+          _producers.erase(it);
+        }
+      }
+      else {
+        if (auto it = _consumers.find(req.id); it != _consumers.end()) {
+          schedule_consumer_cleanup(std::move(it->second), req.callback, req.closure);
+          _consumers.erase(it);
+        }
+      }
+    }
+  }
+
+  void schedule_producer_cleanup(std::unique_ptr<kafka_producer> producer,
+                                 mtev_kafka_shutdown_callback_t callback,
+                                 void *closure)
+  {
+    if (!_shutdown_jobq) {
+      _shutdown_jobq = eventer_jobq_create("kafka_shutdown");
+      eventer_jobq_set_concurrency(_shutdown_jobq, 1);
+    }
+
+    struct cleanup_context {
+      std::unique_ptr<kafka_producer> producer;
+      mtev_kafka_shutdown_callback_t callback;
+      void *closure;
+      uuid_t id;
+    };
+
+    auto ctx = new cleanup_context{std::move(producer), callback, closure};
+    mtev_uuid_copy(ctx->id, ctx->producer->common_fields.id);
+
+    eventer_t e = eventer_alloc_asynch(
+      +[](eventer_t e, int mask, void *c, struct timeval *now) -> int {
+        auto ctx = static_cast<cleanup_context *>(c);
+
+        if (mask == EVENTER_ASYNCH_WORK) {
+          rd_kafka_flush(ctx->producer->rd_producer, 5000);
+        }
+
+        if (mask == EVENTER_ASYNCH_CLEANUP) {
+          if (ctx->callback) {
+            ctx->callback(ctx->closure, ctx->id, mtev_true, nullptr);
+          }
+          delete ctx;
+        }
+
+        return 0;
+      },
+      ctx);
+
+    eventer_add_asynch(_shutdown_jobq, e);
+  }
+
+  void schedule_consumer_cleanup(std::unique_ptr<kafka_consumer> consumer,
+                                 mtev_kafka_shutdown_callback_t callback,
+                                 void *closure)
+  {
+    if (!_shutdown_jobq) {
+      _shutdown_jobq = eventer_jobq_create("kafka_shutdown");
+      eventer_jobq_set_concurrency(_shutdown_jobq, 1);
+    }
+
+    struct cleanup_context {
+      std::unique_ptr<kafka_consumer> consumer;
+      mtev_kafka_shutdown_callback_t callback;
+      void *closure;
+      uuid_t id;
+    };
+
+    auto ctx = new cleanup_context{std::move(consumer), callback, closure};
+    mtev_uuid_copy(ctx->id, ctx->consumer->common_fields.id);
+
+    eventer_t e = eventer_alloc_asynch(
+      +[](eventer_t e, int mask, void *c, struct timeval *now) -> int {
+        auto ctx = static_cast<cleanup_context *>(c);
+
+        if (mask == EVENTER_ASYNCH_WORK) {
+          rd_kafka_consumer_close(ctx->consumer->rd_consumer);
+        }
+
+        if (mask == EVENTER_ASYNCH_CLEANUP) {
+          if (ctx->callback) {
+            ctx->callback(ctx->closure, ctx->id, mtev_true, nullptr);
+          }
+          delete ctx;
+        }
+        return 0;
+      },
+      ctx);
+
+    eventer_add_asynch(_shutdown_jobq, e);
+  }
+
   std::map<std::string, std::unique_ptr<kafka_consumer>> _consumers;
   std::map<std::string, std::unique_ptr<kafka_producer>> _producers;
   std::chrono::milliseconds _poll_timeout;
   int32_t _poll_limit;
   int64_t _producer_poll_interval_ms;
+  std::mutex _shutdown_mutex;
+  std::vector<shutdown_request> _pending_shutdowns;
+  eventer_jobq_t *_shutdown_jobq{nullptr};
 };
 
 static kafka_module_config *the_conf = nullptr;
