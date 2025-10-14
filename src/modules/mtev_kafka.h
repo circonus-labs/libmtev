@@ -165,7 +165,7 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_broadcast,
                      (payload, payload_len))
 MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
 
-/*! \fn void mtev_kafka_get_all_producers(void)
+/*! \fn mtev_kafka_connection_list_t *mtev_kafka_get_all_producers(void)
     \brief Get a list of all active Kafka producers.
     \return A list of producers in a mtev_kafka_connection_list_t struct.
  */
@@ -176,7 +176,7 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_get_all_producers,
                      ())
 MTEV_RUNTIME_AVAIL(mtev_kafka_get_all_producers, mtev_kafka_get_all_producers_function)
 
-/*! \fn void mtev_kafka_get_all_consumers(void)
+/*! \fn mtev_kafka_connection_list_t *mtev_kafka_get_all_consumers(void)
     \brief Get a list of all active Kafka consumers.
     \return A list of consumers in a mtev_kafka_connection_list_t struct.
  */
@@ -198,11 +198,12 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_free_connection_list,
                      (list))
 MTEV_RUNTIME_AVAIL(mtev_kafka_free_connection_list, mtev_kafka_free_connection_list_function)
 
-/*! \fn void mtev_kafka_shutdown_producer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
+/*! \fn mtev_boolean mtev_kafka_shutdown_producer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
     \brief Enqueues a request to shut down the producer with the given uuid
     \param id The UUID of the producer to shut down.
     \param callback The callback function that will get called when the connection is closed.
     \param closure A closure containing user data.
+    \return mtev_true if the connection was enqueued to be shut down, mtev_false otherwise.
  */
 MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_producer,
                      mtev_kafka_shutdown_producer_function,
@@ -211,7 +212,7 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_producer,
                      (id, callback, closure))
 MTEV_RUNTIME_AVAIL(mtev_kafka_shutdown_producer, mtev_kafka_shutdown_producer_function)
 
-/*! \fn void mtev_kafka_shutdown_consumer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
+/*! \fn mtev_boolean mtev_kafka_shutdown_consumer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
     \brief Enqueues a request to shut down the consumer with the given uuid
     \param id The UUID of the consumer to shut down.
     \param callback The callback function that will get called when the connection is closed.
@@ -229,7 +230,6 @@ MTEV_RUNTIME_AVAIL(mtev_kafka_shutdown_consumer, mtev_kafka_shutdown_consumer_fu
     \brief Shuts down all Kafka connections.
     \param callback The callback function that will get called when all connections are closed.
     \param closure A closure containing user data.
-    \return mtev_true if the connection was enqueued to be shut down, mtev_false otherwise.
  */
 MTEV_RUNTIME_RESOLVE(mtev_kafka_shut_down,
                      mtev_kafka_shut_down_function,
