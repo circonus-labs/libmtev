@@ -547,8 +547,6 @@ private:
     }
     if (rd_consumer) {
       rd_kafka_unsubscribe(rd_consumer);
-    }
-    if (rd_consumer) {
       rd_kafka_destroy(rd_consumer);
       rd_consumer = nullptr;
     }
