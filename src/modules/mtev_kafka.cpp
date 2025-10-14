@@ -894,20 +894,42 @@ public:
     return true;
   }
 
-  mtev_kafka_connection_info_t *get_producer_list()
+  mtev_kafka_connection_list_t *get_producer_list() const
   {
-    mtev_kafka_connection_info_t *list = nullptr;
     pthread_rwlock_rdlock(&_list_lock);
-    // TODO
+    auto list = (mtev_kafka_connection_list_t *) calloc(1, sizeof(mtev_kafka_connection_list_t));
+    list->count = _producers.size();
+
+    if (list->count > 0) {
+      list->connections =
+        (mtev_kafka_connection_info_t *) calloc(list->count, sizeof(mtev_kafka_connection_info_t));
+      size_t idx = 0;
+      for (const auto &[id_str, producer] : _producers) {
+        auto &info = list->connections[idx++];
+        mtev_uuid_copy(info.id, producer->common_fields.id);
+        info.host = strdup(producer->common_fields.host.c_str());
+      }
+    }
     pthread_rwlock_unlock(&_list_lock);
     return list;
   }
 
-  mtev_kafka_connection_info_t *get_consumer_list()
+  mtev_kafka_connection_list_t *get_consumer_list() const
   {
-    mtev_kafka_connection_info_t *list = nullptr;
     pthread_rwlock_rdlock(&_list_lock);
-    // TODO
+    auto list = (mtev_kafka_connection_list_t *) calloc(1, sizeof(mtev_kafka_connection_list_t));
+    list->count = _producers.size();
+
+    if (list->count > 0) {
+      list->connections =
+        (mtev_kafka_connection_info_t *) calloc(list->count, sizeof(mtev_kafka_connection_info_t));
+      size_t idx = 0;
+      for (const auto &[id_str, consumer] : _consumers) {
+        auto &info = list->connections[idx++];
+        mtev_uuid_copy(info.id, consumer->common_fields.id);
+        info.host = strdup(consumer->common_fields.host.c_str());
+      }
+    }
     pthread_rwlock_unlock(&_list_lock);
     return list;
   }
@@ -1060,18 +1082,18 @@ void mtev_kafka_broadcast_function(const void *payload, size_t payload_len)
   }
 }
 
-mtev_kafka_connection_info_t *mtev_kafka_get_all_consumers_function()
+mtev_kafka_connection_list_t *mtev_kafka_get_all_consumers_function()
 {
-  mtev_kafka_connection_info_t *connections = nullptr;
+  mtev_kafka_connection_list_t *connections = nullptr;
   if (the_conf) {
     connections = the_conf->get_consumer_list();
   }
   return connections;
 }
 
-mtev_kafka_connection_info_t *mtev_kafka_get_all_producers_function()
+mtev_kafka_connection_list_t *mtev_kafka_get_all_producers_function()
 {
-  mtev_kafka_connection_info_t *connections = nullptr;
+  mtev_kafka_connection_list_t *connections = nullptr;
   if (the_conf) {
     connections = the_conf->get_producer_list();
   }
