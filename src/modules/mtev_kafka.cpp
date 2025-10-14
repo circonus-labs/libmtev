@@ -1028,6 +1028,30 @@ void mtev_kafka_broadcast_function(const void *payload, size_t payload_len)
     the_conf->publish_to_producers(payload, payload_len);
   }
 }
+mtev_boolean mtev_kafka_shutdown_producer_function(const uuid_t id,
+                                                   mtev_kafka_shutdown_callback_t callback,
+                                                   void *closure)
+{
+  if (!the_conf) {
+    return mtev_false;
+  }
+  return the_conf->shutdown_producer(id, callback, closure) ? mtev_true : mtev_false;
+}
+
+mtev_boolean mtev_kafka_shutdown_consumer_function(const uuid_t id,
+                                                   mtev_kafka_shutdown_callback_t callback,
+                                                   void *closure)
+{
+  if (!the_conf) {
+    return mtev_false;
+  }
+  return the_conf->shutdown_consumer(id, callback, closure) ? mtev_true : mtev_false;
+}
+
+void mtev_kafka_shutdown_all_function(mtev_kafka_shutdown_callback_t callback, void *closure)
+{
+  // TODO
+}
 }
 
 static int kafka_logio_open(mtev_log_stream_t ls)

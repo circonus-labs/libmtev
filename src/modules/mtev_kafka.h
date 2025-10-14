@@ -147,6 +147,26 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_broadcast,
                      (const void *payload, size_t payload_len),
                      (payload, payload_len))
 MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
+MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_producer,
+                     mtev_kafka_shutdown_producer_function,
+                     mtev_boolean,
+                     (const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure),
+                     (id, callback, closure))
+MTEV_RUNTIME_AVAIL(mtev_kafka_shutdown_producer, mtev_kafka_shutdown_producer_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_consumer,
+                     mtev_kafka_shutdown_consumer_function,
+                     mtev_boolean,
+                     (const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure),
+                     (id, callback, closure))
+MTEV_RUNTIME_AVAIL(mtev_kafka_shutdown_consumer, mtev_kafka_shutdown_consumer_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_all,
+                     mtev_kafka_shutdown_all_function,
+                     void,
+                     (mtev_kafka_shutdown_callback_t callback, void *closure),
+                     (callback, closure))
+MTEV_RUNTIME_AVAIL(mtev_kafka_shutdown_all, mtev_kafka_shutdown_all_function)
 
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
                 (mtev_rd_kafka_message_t * msg),
