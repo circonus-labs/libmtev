@@ -204,7 +204,7 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_shut_down,
                      void,
                      (mtev_kafka_shutdown_callback_t callback, void *closure),
                      (callback, closure))
-MTEV_RUNTIME_AVAIL(mtev_kafka_shutdown_all, mtev_kafka_shutdown_all_function)
+MTEV_RUNTIME_AVAIL(mtev_kafka_shut_down, mtev_kafka_shut_down_function)
 
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
                 (mtev_rd_kafka_message_t * msg),
