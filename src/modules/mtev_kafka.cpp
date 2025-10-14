@@ -1033,14 +1033,18 @@ void mtev_kafka_broadcast_function(const void *payload, size_t payload_len)
   }
 }
 
-void mtev_kafka_get_all_consumers_function(const void *payload)
+mtev_kafka_connection_info_t *mtev_kafka_get_all_consumers_function(int *count, const void *closure)
 {
+  mtevAssert(count);
   // TODO
+  return nullptr;
 }
 
-void mtev_kafka_get_all_producers_function(const void *payload)
+mtev_kafka_connection_info_t *mtev_kafka_get_all_producers_function(int *count, const void *closure)
 {
+  mtevAssert(count);
   // TODO
+  return nullptr;
 }
 
 mtev_boolean mtev_kafka_shutdown_producer_function(const uuid_t id,
