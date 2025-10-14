@@ -199,8 +199,8 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_consumer,
                      (id, callback, closure))
 MTEV_RUNTIME_AVAIL(mtev_kafka_shutdown_consumer, mtev_kafka_shutdown_consumer_function)
 
-MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_all,
-                     mtev_kafka_shutdown_all_function,
+MTEV_RUNTIME_RESOLVE(mtev_kafka_shut_down,
+                     mtev_kafka_shut_down_function,
                      void,
                      (mtev_kafka_shutdown_callback_t callback, void *closure),
                      (callback, closure))

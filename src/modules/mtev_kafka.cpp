@@ -919,7 +919,7 @@ public:
   {
     pthread_rwlock_rdlock(&_list_lock);
     auto list = (mtev_kafka_connection_list_t *) calloc(1, sizeof(mtev_kafka_connection_list_t));
-    list->count = _producers.size();
+    list->count = _consumers.size();
 
     if (list->count > 0) {
       list->connections =
@@ -1133,7 +1133,7 @@ mtev_boolean mtev_kafka_shutdown_consumer_function(const uuid_t id,
                                                                               mtev_false;
 }
 
-void mtev_kafka_shutdown_all_function(mtev_kafka_shutdown_callback_t callback, void *closure)
+void mtev_kafka_shut_down_function(mtev_kafka_shutdown_callback_t callback, void *closure)
 {
   // TODO
 }
