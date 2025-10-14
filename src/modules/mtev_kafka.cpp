@@ -743,6 +743,8 @@ public:
       return true;
     };
 
+    pthread_rwlock_init(&_list_lock, nullptr);
+
     int number_of_conns = 0;
     mtev_conf_section_t *mqs =
       mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_MQ_CONSUMER, &number_of_conns);
@@ -764,7 +766,11 @@ public:
     }
     mtev_conf_release_sections_read(mqs, number_of_conns);
   }
-  ~kafka_module_config() = default;
+  ~kafka_module_config()
+  {
+    // TODO: Should clean up all connections
+    pthread_rwlock_destroy(&_list_lock);
+  }
   void set_poll_timeout(const std::chrono::milliseconds poll_timeout)
   {
     _poll_timeout = poll_timeout;
@@ -888,6 +894,24 @@ public:
     return true;
   }
 
+  mtev_kafka_connection_info_t *get_producer_list()
+  {
+    mtev_kafka_connection_info_t *list = nullptr;
+    pthread_rwlock_rdlock(&_list_lock);
+    // TODO
+    pthread_rwlock_unlock(&_list_lock);
+    return list;
+  }
+
+  mtev_kafka_connection_info_t *get_consumer_list()
+  {
+    mtev_kafka_connection_info_t *list = nullptr;
+    pthread_rwlock_rdlock(&_list_lock);
+    // TODO
+    pthread_rwlock_unlock(&_list_lock);
+    return list;
+  }
+
 private:
   void process_pending_shutdowns()
   {
@@ -899,6 +923,7 @@ private:
       }
       to_process.swap(_pending_shutdowns);
     }
+    pthread_rwlock_wrlock(&_list_lock);
     for (const auto &req : to_process) {
       if (req.type == shutdown_request::PRODUCER) {
         if (auto it = _producers.find(req.id); it != _producers.end()) {
@@ -913,6 +938,7 @@ private:
         }
       }
     }
+    pthread_rwlock_unlock(&_list_lock);
   }
 
   void schedule_producer_cleanup(std::unique_ptr<kafka_producer> producer,
@@ -1004,6 +1030,7 @@ private:
   std::mutex _shutdown_mutex;
   std::vector<shutdown_request> _pending_shutdowns;
   eventer_jobq_t *_shutdown_jobq{nullptr};
+  mutable pthread_rwlock_t _list_lock;
 };
 
 static kafka_module_config *the_conf = nullptr;
@@ -1033,18 +1060,22 @@ void mtev_kafka_broadcast_function(const void *payload, size_t payload_len)
   }
 }
 
-mtev_kafka_connection_info_t *mtev_kafka_get_all_consumers_function(int *count, const void *closure)
+mtev_kafka_connection_info_t *mtev_kafka_get_all_consumers_function()
 {
-  mtevAssert(count);
-  // TODO
-  return nullptr;
+  mtev_kafka_connection_info_t *connections = nullptr;
+  if (the_conf) {
+    connections = the_conf->get_consumer_list();
+  }
+  return connections;
 }
 
-mtev_kafka_connection_info_t *mtev_kafka_get_all_producers_function(int *count, const void *closure)
+mtev_kafka_connection_info_t *mtev_kafka_get_all_producers_function()
 {
-  mtevAssert(count);
-  // TODO
-  return nullptr;
+  mtev_kafka_connection_info_t *connections = nullptr;
+  if (the_conf) {
+    connections = the_conf->get_producer_list();
+  }
+  return connections;
 }
 
 mtev_boolean mtev_kafka_shutdown_producer_function(const uuid_t id,

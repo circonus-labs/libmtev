@@ -125,6 +125,11 @@ typedef struct mtev_kafka_connection_info {
   char *host;
 } mtev_kafka_connection_info_t;
 
+typedef struct mtev_kafka_connection_list {
+  mtev_kafka_connection_info_t *connections;
+  size_t count;
+} mtev_kafka_connection_list_t;
+
 static inline void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg)
 {
   ck_pr_inc_uint(&msg->refcnt);
@@ -155,16 +160,16 @@ MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
 
 MTEV_RUNTIME_RESOLVE(mtev_kafka_get_all_producers,
                      mtev_kafka_get_all_producers_function,
-                     mtev_kafka_connection_info_t *,
-                     (int *count, void *closure),
-                     (count, closure))
+                     mtev_kafka_connection_list_t *,
+                     (),
+                     ())
 MTEV_RUNTIME_AVAIL(mtev_kafka_get_all_producers, mtev_kafka_get_all_producers_function)
 
 MTEV_RUNTIME_RESOLVE(mtev_kafka_get_all_consumers,
                      mtev_kafka_get_all_consumers_function,
-                     mtev_kafka_connection_info_t *,
-                     (int *count, void *closure),
-                     (count, closure))
+                     mtev_kafka_connection_list_t *,
+                     (),
+                     ())
 MTEV_RUNTIME_AVAIL(mtev_kafka_get_all_consumers, mtev_kafka_get_all_consumers_function)
 
 MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_producer,
