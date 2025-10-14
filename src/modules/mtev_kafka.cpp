@@ -1147,6 +1147,9 @@ mtev_kafka_connection_list_t *mtev_kafka_get_all_consumers_function()
 
 void mtev_kafka_free_connection_list_function(mtev_kafka_connection_list_t *list)
 {
+  if (!list) {
+    return;
+  }
   for (size_t i = 0; i < list->count; i++) {
     free(list->connections[i].host);
   }
@@ -1242,7 +1245,7 @@ static int kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options
     else if (!strcmp("poll_limit", iter.key.str)) {
       auto poll_limit = atoi(iter.value.str);
       if (poll_limit < 0) {
-        poll_limit = DEFAULT_POLL_TIMEOUT_MS;
+        poll_limit = DEFAULT_POLL_LIMIT;
       }
       auto config = get_or_load_config(img);
       config->set_poll_limit(poll_limit);
