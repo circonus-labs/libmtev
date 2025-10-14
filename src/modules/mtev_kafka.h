@@ -100,6 +100,11 @@ typedef void rd_kafka_message_t;
 extern "C" {
 #endif
 
+typedef enum {
+  MTEV_KAFKA_CONNECTION_TYPE_PRODUCER = 0,
+  MTEV_KAFKA_CONNECTION_TYPE_CONSUMER
+} mtev_kafka_connection_type_e;
+
 typedef void (*mtev_kafka_shutdown_callback_t)(void *closure,
                                                const uuid_t id,
                                                mtev_boolean success,
@@ -121,6 +126,7 @@ typedef struct mtev_rd_kafka_message {
 } mtev_rd_kafka_message_t;
 
 typedef struct mtev_kafka_connection_info {
+  mtev_kafka_connection_type_e connection_type;
   uuid_t id;
   char *host;
 } mtev_kafka_connection_info_t;

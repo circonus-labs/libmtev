@@ -906,6 +906,7 @@ public:
       size_t idx = 0;
       for (const auto &[id_str, producer] : _producers) {
         auto &info = list->connections[idx++];
+        info.connection_type = MTEV_KAFKA_CONNECTION_TYPE_PRODUCER;
         mtev_uuid_copy(info.id, producer->common_fields.id);
         info.host = strdup(producer->common_fields.host.c_str());
       }
@@ -926,6 +927,7 @@ public:
       size_t idx = 0;
       for (const auto &[id_str, consumer] : _consumers) {
         auto &info = list->connections[idx++];
+        info.connection_type = MTEV_KAFKA_CONNECTION_TYPE_CONSUMER;
         mtev_uuid_copy(info.id, consumer->common_fields.id);
         info.host = strdup(consumer->common_fields.host.c_str());
       }
