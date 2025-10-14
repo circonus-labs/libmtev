@@ -1032,6 +1032,17 @@ void mtev_kafka_broadcast_function(const void *payload, size_t payload_len)
     the_conf->publish_to_producers(payload, payload_len);
   }
 }
+
+void mtev_kafka_get_all_consumers_function(const void *payload)
+{
+  // TODO
+}
+
+void mtev_kafka_get_all_producers_function(const void *payload)
+{
+  // TODO
+}
+
 mtev_boolean mtev_kafka_shutdown_producer_function(const uuid_t id,
                                                    mtev_kafka_shutdown_callback_t callback,
                                                    void *closure)
