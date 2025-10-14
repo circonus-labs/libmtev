@@ -961,6 +961,7 @@ public:
         info.connection_type = MTEV_KAFKA_CONNECTION_TYPE_PRODUCER;
         mtev_uuid_copy(info.id, producer->common_fields.id);
         info.host = strdup(producer->common_fields.host.c_str());
+        info.port = producer->common_fields.port;
       }
     }
     pthread_rwlock_unlock(&_list_lock);
@@ -982,6 +983,7 @@ public:
         info.connection_type = MTEV_KAFKA_CONNECTION_TYPE_CONSUMER;
         mtev_uuid_copy(info.id, consumer->common_fields.id);
         info.host = strdup(consumer->common_fields.host.c_str());
+        info.port = consumer->common_fields.port;
       }
     }
     pthread_rwlock_unlock(&_list_lock);

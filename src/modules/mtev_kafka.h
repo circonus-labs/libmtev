@@ -129,6 +129,7 @@ typedef struct mtev_kafka_connection_info {
   mtev_kafka_connection_type_e connection_type;
   uuid_t id;
   char *host;
+  int32_t port;
 } mtev_kafka_connection_info_t;
 
 typedef struct mtev_kafka_connection_list {
