@@ -894,6 +894,58 @@ public:
     return true;
   }
 
+  void enqueue_shut_down_requests(mtev_kafka_shutdown_callback_t callback, void *closure)
+  {
+    struct shut_down_context {
+      std::atomic<int> pending_count;
+      mtev_kafka_shutdown_callback_t original_callback;
+      void *original_closure;
+    };
+
+    auto ctx = new shut_down_context;
+    ctx->original_callback = callback;
+    ctx->original_closure = closure;
+
+    std::lock_guard<std::mutex> lock(_shutdown_mutex);
+    ctx->pending_count = _producers.size() + _consumers.size();
+
+    if (ctx->pending_count == 0) {
+      uuid_t null_id;
+      mtev_uuid_clear(null_id);
+      if (callback) {
+        callback(closure, null_id, mtev_true, nullptr);
+      }
+      delete ctx;
+      return;
+    }
+
+    auto wrapper_callback = [](void *closure, const uuid_t id, mtev_boolean success,
+                               const char *error) {
+      auto ctx = static_cast<shut_down_context *>(closure);
+
+      if (ctx->original_callback) {
+        ctx->original_callback(ctx->original_closure, id, success, error);
+      }
+
+      if (--ctx->pending_count == 0) {
+        uuid_t null_id;
+        mtev_uuid_clear(null_id);
+        if (ctx->original_callback) {
+          ctx->original_callback(ctx->original_closure, null_id, mtev_true, nullptr);
+        }
+        delete ctx;
+      }
+    };
+
+    for (const auto &[id_str, producer] : _producers) {
+      _pending_shutdowns.push_back({shutdown_request::PRODUCER, id_str, wrapper_callback, ctx});
+    }
+
+    for (const auto &[id_str, consumer] : _consumers) {
+      _pending_shutdowns.push_back({shutdown_request::CONSUMER, id_str, wrapper_callback, ctx});
+    }
+  }
+
   mtev_kafka_connection_list_t *get_producer_list() const
   {
     pthread_rwlock_rdlock(&_list_lock);
@@ -1135,7 +1187,16 @@ mtev_boolean mtev_kafka_shutdown_consumer_function(const uuid_t id,
 
 void mtev_kafka_shut_down_function(mtev_kafka_shutdown_callback_t callback, void *closure)
 {
-  // TODO
+  if (!the_conf) {
+    uuid_t null_id;
+    mtev_uuid_clear(null_id);
+    if (callback) {
+      callback(closure, null_id, mtev_true, nullptr);
+    }
+    return;
+  }
+
+  the_conf->enqueue_shut_down_requests(callback, closure);
 }
 }
 
