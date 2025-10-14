@@ -1093,6 +1093,11 @@ mtev_kafka_connection_list_t *mtev_kafka_get_all_consumers_function()
   return connections;
 }
 
+void mtev_kafka_free_connection_list_function()
+{
+  // TODO
+}
+
 mtev_kafka_connection_list_t *mtev_kafka_get_all_producers_function()
 {
   mtev_kafka_connection_list_t *connections = nullptr;

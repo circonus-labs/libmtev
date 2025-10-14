@@ -178,6 +178,14 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_get_all_consumers,
                      ())
 MTEV_RUNTIME_AVAIL(mtev_kafka_get_all_consumers, mtev_kafka_get_all_consumers_function)
 
+MTEV_RUNTIME_RESOLVE(mtev_kafka_free_connection_list,
+                     mtev_kafka_free_connection_list_function,
+                     void,
+                     (mtev_kafka_connection_list_t *list),
+                     (list))
+MTEV_RUNTIME_AVAIL(mtev_kafka_free_connection_list, mtev_kafka_free_connection_list_function)
+
+
 MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_producer,
                      mtev_kafka_shutdown_producer_function,
                      mtev_boolean,
