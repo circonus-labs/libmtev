@@ -274,7 +274,7 @@ struct kafka_producer {
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
 
-    rd_producer_conf = rd_kafka_conf_new();
+    auto rd_producer_conf = rd_kafka_conf_new();
     auto global_config_errors =
       set_kafka_global_config_values_from_hash(rd_producer_conf, kafka_global_configs);
 
@@ -362,10 +362,6 @@ private:
       rd_kafka_topic_destroy(producer);
     }
     rd_topic_producers.clear();
-    if (rd_producer_conf) {
-      rd_kafka_conf_destroy(rd_producer_conf);
-      rd_producer_conf = nullptr;
-    }
     if (rd_producer) {
       rd_kafka_destroy(rd_producer);
       rd_producer = nullptr;
@@ -393,7 +389,6 @@ public:
   mtev_hash_table *extra_configs{nullptr};
   mtev_hash_table *kafka_global_configs{nullptr};
   mtev_hash_table *kafka_topic_configs{nullptr};
-  rd_kafka_conf_t *rd_producer_conf{nullptr};
   rd_kafka_t *rd_producer{nullptr};
   rd_kafka_topic_conf_t *rd_topic_producer_conf{nullptr};
   std::vector<rd_kafka_topic_t *> rd_topic_producers;
@@ -470,7 +465,7 @@ struct kafka_consumer {
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
 
-    rd_consumer_conf = rd_kafka_conf_new();
+    auto rd_consumer_conf = rd_kafka_conf_new();
     auto global_config_errors =
       set_kafka_global_config_values_from_hash(rd_consumer_conf, kafka_global_configs);
     if (global_config_errors.size()) {
@@ -553,10 +548,6 @@ private:
     if (rd_consumer) {
       rd_kafka_unsubscribe(rd_consumer);
     }
-    if (rd_consumer_conf) {
-      rd_kafka_conf_destroy(rd_consumer_conf);
-      rd_consumer_conf = nullptr;
-    }
     if (rd_consumer) {
       rd_kafka_destroy(rd_consumer);
       rd_consumer = nullptr;
@@ -581,7 +572,6 @@ public:
   bool manual_commit_asynch{true};
   mtev_hash_table *extra_configs{nullptr};
   mtev_hash_table *kafka_global_configs{nullptr};
-  rd_kafka_conf_t *rd_consumer_conf{nullptr};
   rd_kafka_t *rd_consumer{nullptr};
   rd_kafka_topic_partition_list_t *rd_consumer_topics{nullptr};
   kafka_consumer_stats_t stats;
