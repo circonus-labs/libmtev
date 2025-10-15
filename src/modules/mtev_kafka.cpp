@@ -897,7 +897,7 @@ public:
       std::atomic<int> pending_count;
       std::atomic<int> success_count{0};
       std::atomic<int> failure_count{0};
-      std::vector<failure_info> failures; // Store failure details
+      std::vector<failure_info> failures;
       std::mutex failures_mutex;
       mtev_kafka_shutdown_callback_t original_callback;
       void *original_closure;
