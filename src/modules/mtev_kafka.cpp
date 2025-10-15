@@ -884,8 +884,21 @@ public:
 
   void enqueue_shut_down_requests(mtev_kafka_shutdown_callback_t callback, void *closure)
   {
+    struct failure_info {
+      uuid_t id;
+      std::string error_msg;
+      failure_info(const uuid_t src_id, const std::string &msg) : error_msg(msg)
+      {
+        mtev_uuid_copy(id, src_id);
+      }
+    };
+
     struct shut_down_context {
       std::atomic<int> pending_count;
+      std::atomic<int> success_count{0};
+      std::atomic<int> failure_count{0};
+      std::vector<failure_info> failures; // Store failure details
+      std::mutex failures_mutex;
       mtev_kafka_shutdown_callback_t original_callback;
       void *original_closure;
     };
@@ -911,15 +924,42 @@ public:
                                const char *error) {
       auto ctx = static_cast<shut_down_context *>(closure);
 
-      if (ctx->original_callback) {
-        ctx->original_callback(ctx->original_closure, id, success, error);
+      if (success) {
+        ctx->success_count++;
+      }
+      else {
+        ctx->failure_count++;
+        std::lock_guard<std::mutex> lock(ctx->failures_mutex);
+        ctx->failures.emplace_back(id, error ? error : "unknown error");
       }
 
       if (--ctx->pending_count == 0) {
         uuid_t null_id;
         mtev_uuid_clear(null_id);
+
+        mtev_boolean overall_success = (ctx->failure_count == 0) ? mtev_true : mtev_false;
+
+        std::string error_msg;
+        if (ctx->failure_count > 0) {
+          error_msg = "Shutdown completed with " + std::to_string(ctx->success_count) +
+            " successes and " + std::to_string(ctx->failure_count) + " failures";
+
+          if (!ctx->failures.empty()) {
+            error_msg += ". Failed connections: ";
+            for (size_t i = 0; i < ctx->failures.size(); ++i) {
+              char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+              mtev_uuid_unparse_lower(ctx->failures[i].id, uuid_str);
+              if (i > 0)
+                error_msg += ", ";
+              error_msg += uuid_str;
+              error_msg += " (" + ctx->failures[i].error_msg + ")";
+            }
+          }
+        }
+
         if (ctx->original_callback) {
-          ctx->original_callback(ctx->original_closure, null_id, mtev_true, nullptr);
+          ctx->original_callback(ctx->original_closure, null_id, overall_success,
+                                 error_msg.empty() ? nullptr : error_msg.c_str());
         }
         delete ctx;
       }
