@@ -199,6 +199,7 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_free_connection_list,
                      (list))
 MTEV_RUNTIME_AVAIL(mtev_kafka_free_connection_list, mtev_kafka_free_connection_list_function)
 
+// clang-format off
 /*! \fn mtev_boolean mtev_kafka_shutdown_producer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
     \brief Enqueues a request to shut down the producer with the given uuid
     \param id The UUID of the producer to shut down.
@@ -206,6 +207,7 @@ MTEV_RUNTIME_AVAIL(mtev_kafka_free_connection_list, mtev_kafka_free_connection_l
     \param closure A closure containing user data.
     \return mtev_true if the connection was enqueued to be shut down, mtev_false otherwise.
  */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_producer,
                      mtev_kafka_shutdown_producer_function,
                      mtev_boolean,
@@ -213,6 +215,7 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_producer,
                      (id, callback, closure))
 MTEV_RUNTIME_AVAIL(mtev_kafka_shutdown_producer, mtev_kafka_shutdown_producer_function)
 
+// clang-format off
 /*! \fn mtev_boolean mtev_kafka_shutdown_consumer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
     \brief Enqueues a request to shut down the consumer with the given uuid
     \param id The UUID of the consumer to shut down.
@@ -220,6 +223,7 @@ MTEV_RUNTIME_AVAIL(mtev_kafka_shutdown_producer, mtev_kafka_shutdown_producer_fu
     \param closure A closure containing user data.
     \return mtev_true if the connection was enqueued to be shut down, mtev_false otherwise.
  */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_shutdown_consumer,
                      mtev_kafka_shutdown_consumer_function,
                      mtev_boolean,
