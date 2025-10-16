@@ -1110,7 +1110,6 @@ private:
         auto ctx = static_cast<cleanup_context *>(c);
 
         if (mask == EVENTER_ASYNCH_WORK) {
-          rd_kafka_consumer_close(ctx->consumer->rd_consumer);
           // Setting this to nullptr triggers the destructor for the consumer, which
           // closes the connection and does the cleanup.
           ctx->consumer = nullptr;
