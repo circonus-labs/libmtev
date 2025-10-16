@@ -360,6 +360,9 @@ private:
       rd_kafka_topic_conf_destroy(rd_topic_producer_conf_template);
       rd_topic_producer_conf_template = nullptr;
     }
+    if (rd_producer) {
+      rd_kafka_flush(rd_producer, 5000);
+    }
     for (const auto &producer : rd_topic_producers) {
       rd_kafka_topic_destroy(producer);
     }
@@ -549,6 +552,7 @@ private:
     }
     if (rd_consumer) {
       rd_kafka_unsubscribe(rd_consumer);
+      rd_kafka_consumer_close(rd_consumer);
       rd_kafka_destroy(rd_consumer);
       rd_consumer = nullptr;
     }
@@ -1073,9 +1077,8 @@ private:
         auto ctx = static_cast<cleanup_context *>(c);
 
         if (mask == EVENTER_ASYNCH_WORK) {
-          rd_kafka_flush(ctx->producer->rd_producer, 5000);
           // Setting this to nullptr triggers the destructor for the producer, which
-          // we want to do before calling the callback.
+          // closes the connection and does the cleanup.
           ctx->producer = nullptr;
         }
 
@@ -1119,7 +1122,7 @@ private:
         if (mask == EVENTER_ASYNCH_WORK) {
           rd_kafka_consumer_close(ctx->consumer->rd_consumer);
           // Setting this to nullptr triggers the destructor for the consumer, which
-          // we want to do before calling the callback.
+          // closes the connection and does the cleanup.
           ctx->consumer = nullptr;
         }
 
