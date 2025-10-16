@@ -313,9 +313,9 @@ struct kafka_producer {
     rd_kafka_conf_set_opaque(rd_producer_conf, this);
     rd_producer =
       rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
-    rd_topic_producer_conf = rd_kafka_topic_conf_new();
+    rd_topic_producer_conf_template = rd_kafka_topic_conf_new();
     auto topic_config_errors =
-      set_kafka_topic_config_values_from_hash(rd_topic_producer_conf, kafka_topic_configs);
+      set_kafka_topic_config_values_from_hash(rd_topic_producer_conf_template, kafka_topic_configs);
     if (topic_config_errors.size()) {
       mtevL(nlerr,
             "%s: encountered the following %zd errors setting topic configuration values for "
@@ -330,7 +330,7 @@ struct kafka_producer {
                                            ": invalid configuration")));
     }
     for (const auto &topic : common_fields.topics) {
-      rd_kafka_topic_conf_t *topic_conf_copy = rd_kafka_topic_conf_dup(rd_topic_producer_conf);
+      rd_kafka_topic_conf_t *topic_conf_copy = rd_kafka_topic_conf_dup(rd_topic_producer_conf_template);
       rd_topic_producers.emplace_back(
         rd_kafka_topic_new(rd_producer, topic.c_str(), topic_conf_copy));
     }
@@ -355,9 +355,9 @@ struct kafka_producer {
 private:
   void cleanup()
   {
-    if (rd_topic_producer_conf) {
-      rd_kafka_topic_conf_destroy(rd_topic_producer_conf);
-      rd_topic_producer_conf = nullptr;
+    if (rd_topic_producer_conf_template) {
+      rd_kafka_topic_conf_destroy(rd_topic_producer_conf_template);
+      rd_topic_producer_conf_template = nullptr;
     }
     for (const auto &producer : rd_topic_producers) {
       rd_kafka_topic_destroy(producer);
@@ -391,7 +391,7 @@ public:
   mtev_hash_table *kafka_global_configs{nullptr};
   mtev_hash_table *kafka_topic_configs{nullptr};
   rd_kafka_t *rd_producer{nullptr};
-  rd_kafka_topic_conf_t *rd_topic_producer_conf{nullptr};
+  rd_kafka_topic_conf_t *rd_topic_producer_conf_template{nullptr};
   std::vector<rd_kafka_topic_t *> rd_topic_producers;
   kafka_producer_stats_t stats;
 };
