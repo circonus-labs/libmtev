@@ -77,6 +77,7 @@ constexpr int32_t DEFAULT_POLL_LIMIT = 10000;
 constexpr int32_t DEFAULT_PRODUCER_POLL_INTERVAL_MS = 10000;
 
 eventer_jobq_t *poll_producers_jobq = NULL;
+eventer_jobq_t *kafka_shutdown_jobq = NULL;
 
 extern "C" {
 MTEV_HOOK_IMPL(mtev_kafka_handle_message_dyn,
@@ -585,8 +586,7 @@ class kafka_module_config {
 public:
   kafka_module_config()
     : _poll_timeout{std::chrono::milliseconds{DEFAULT_POLL_TIMEOUT_MS}},
-      _poll_limit{DEFAULT_POLL_LIMIT},
-      _producer_poll_interval_ms{DEFAULT_PRODUCER_POLL_INTERVAL_MS}, _shutdown_jobq{nullptr}
+      _poll_limit{DEFAULT_POLL_LIMIT}, _producer_poll_interval_ms{DEFAULT_PRODUCER_POLL_INTERVAL_MS}
   {
     auto make_kafka_connection = [&](connection_type_e conn_type, mtev_conf_section_t *mqs,
                                      int section_id) -> bool {
@@ -1057,11 +1057,6 @@ private:
                                  mtev_kafka_shutdown_callback_t callback,
                                  void *closure)
   {
-    if (!_shutdown_jobq) {
-      _shutdown_jobq = eventer_jobq_create("kafka_shutdown");
-      eventer_jobq_set_concurrency(_shutdown_jobq, 1);
-    }
-
     struct cleanup_context {
       std::unique_ptr<kafka_producer> producer;
       mtev_kafka_shutdown_callback_t callback;
@@ -1093,18 +1088,13 @@ private:
       },
       ctx);
 
-    eventer_add_asynch(_shutdown_jobq, e);
+    eventer_add_asynch(kafka_shutdown_jobq, e);
   }
 
   void schedule_consumer_cleanup(std::unique_ptr<kafka_consumer> consumer,
                                  mtev_kafka_shutdown_callback_t callback,
                                  void *closure)
   {
-    if (!_shutdown_jobq) {
-      _shutdown_jobq = eventer_jobq_create("kafka_shutdown");
-      eventer_jobq_set_concurrency(_shutdown_jobq, 1);
-    }
-
     struct cleanup_context {
       std::unique_ptr<kafka_consumer> consumer;
       mtev_kafka_shutdown_callback_t callback;
@@ -1136,7 +1126,7 @@ private:
       },
       ctx);
 
-    eventer_add_asynch(_shutdown_jobq, e);
+    eventer_add_asynch(kafka_shutdown_jobq, e);
   }
 
   std::map<std::string, std::unique_ptr<kafka_consumer>> _consumers;
@@ -1146,7 +1136,6 @@ private:
   int64_t _producer_poll_interval_ms;
   std::mutex _shutdown_mutex;
   std::vector<shutdown_request> _pending_shutdowns;
-  eventer_jobq_t *_shutdown_jobq{nullptr};
   mutable pthread_rwlock_t _list_lock;
 };
 
@@ -1341,6 +1330,10 @@ static int kafka_driver_init(mtev_dso_generic_t *img)
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
   nlnotice = mtev_log_stream_find("notice/kafka");
+
+  kafka_shutdown_jobq = eventer_jobq_create("kafka_shutdown");
+  eventer_jobq_set_concurrency(kafka_shutdown_jobq, 1);
+
   auto config = get_or_load_config(img);
   mtev_register_logops("kafka", &kafka_logio_ops);
 
