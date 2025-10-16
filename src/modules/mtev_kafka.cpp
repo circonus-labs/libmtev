@@ -1074,6 +1074,9 @@ private:
 
         if (mask == EVENTER_ASYNCH_WORK) {
           rd_kafka_flush(ctx->producer->rd_producer, 5000);
+          // Setting this to nullptr triggers the destructor for the producer, which
+          // we want to do before calling the callback.
+          ctx->producer = nullptr;
         }
 
         if (mask == EVENTER_ASYNCH_CLEANUP) {
@@ -1115,6 +1118,9 @@ private:
 
         if (mask == EVENTER_ASYNCH_WORK) {
           rd_kafka_consumer_close(ctx->consumer->rd_consumer);
+          // Setting this to nullptr triggers the destructor for the consumer, which
+          // we want to do before calling the callback.
+          ctx->consumer = nullptr;
         }
 
         if (mask == EVENTER_ASYNCH_CLEANUP) {
