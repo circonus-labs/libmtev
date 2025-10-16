@@ -330,7 +330,8 @@ struct kafka_producer {
                                            ": invalid configuration")));
     }
     for (const auto &topic : common_fields.topics) {
-      rd_kafka_topic_conf_t *topic_conf_copy = rd_kafka_topic_conf_dup(rd_topic_producer_conf_template);
+      rd_kafka_topic_conf_t *topic_conf_copy =
+        rd_kafka_topic_conf_dup(rd_topic_producer_conf_template);
       rd_topic_producers.emplace_back(
         rd_kafka_topic_new(rd_producer, topic.c_str(), topic_conf_copy));
     }
