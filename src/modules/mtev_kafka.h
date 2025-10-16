@@ -89,6 +89,7 @@
 #include "mtev_defines.h"
 #include "mtev_hooks.h"
 #include "mtev_log.h"
+#include "mtev_uuid.h"
 
 #include <ck_pr.h>
 
