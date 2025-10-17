@@ -854,9 +854,9 @@ public:
     }
     return 0;
   }
-  bool enqueue_shutdown_producer_request(const uuid_t id,
-                                         mtev_kafka_shutdown_callback_t callback,
-                                         void *closure)
+  bool enqueue_close_producer_request(const uuid_t id,
+                                      mtev_kafka_shutdown_callback_t callback,
+                                      void *closure)
   {
     char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
     mtev_uuid_unparse_lower(id, uuid_str);
@@ -871,9 +871,9 @@ public:
     return true;
   }
 
-  bool enqueue_shutdown_consumer_request(const uuid_t id,
-                                         mtev_kafka_shutdown_callback_t callback,
-                                         void *closure)
+  bool enqueue_close_consumer_request(const uuid_t id,
+                                      mtev_kafka_shutdown_callback_t callback,
+                                      void *closure)
   {
     char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
     mtev_uuid_unparse_lower(id, uuid_str);
@@ -1183,15 +1183,14 @@ mtev_kafka_connection_list_t *mtev_kafka_get_all_producers_function()
   return connections;
 }
 
-mtev_boolean mtev_kafka_shutdown_producer_function(const uuid_t id,
-                                                   mtev_kafka_shutdown_callback_t callback,
-                                                   void *closure)
+mtev_boolean mtev_kafka_close_producer_function(const uuid_t id,
+                                                mtev_kafka_shutdown_callback_t callback,
+                                                void *closure)
 {
   if (!the_conf) {
     return mtev_false;
   }
-  return the_conf->enqueue_shutdown_producer_request(id, callback, closure) ? mtev_true :
-                                                                              mtev_false;
+  return the_conf->enqueue_close_producer_request(id, callback, closure) ? mtev_true : mtev_false;
 }
 
 mtev_boolean mtev_kafka_shutdown_consumer_function(const uuid_t id,
@@ -1201,8 +1200,7 @@ mtev_boolean mtev_kafka_shutdown_consumer_function(const uuid_t id,
   if (!the_conf) {
     return mtev_false;
   }
-  return the_conf->enqueue_shutdown_consumer_request(id, callback, closure) ? mtev_true :
-                                                                              mtev_false;
+  return the_conf->enqueue_close_consumer_request(id, callback, closure) ? mtev_true : mtev_false;
 }
 
 void mtev_kafka_shut_down_function(mtev_kafka_shutdown_callback_t callback, void *closure)
