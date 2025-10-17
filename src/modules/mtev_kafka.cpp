@@ -783,6 +783,8 @@ public:
   ~kafka_module_config()
   {
     // TODO: Should clean up all connections
+    // This doesn't matter when the lifetime of the module is the same as the lifetime
+    // for the process, but would still be good practice.
     pthread_rwlock_destroy(&_list_lock);
   }
   void set_poll_timeout(const std::chrono::milliseconds poll_timeout)
