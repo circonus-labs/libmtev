@@ -996,6 +996,15 @@ public:
         mtev_uuid_copy(info.id, producer->common_fields.id);
         info.host = strdup(producer->common_fields.host.c_str());
         info.port = producer->common_fields.port;
+        if (producer->common_fields.topics.size() > 0) {
+          info.topics =
+            static_cast<char **>(calloc(producer->common_fields.topics.size(), sizeof(char *)));
+        }
+        size_t topic_counter = 0;
+        for (const auto &topic : producer->common_fields.topics) {
+          info.topics[topic_counter++] = strdup(topic.c_str());
+        }
+        info.topic_count = producer->common_fields.topics.size();
       }
     }
     pthread_rwlock_unlock(&_list_lock);
@@ -1018,6 +1027,15 @@ public:
         mtev_uuid_copy(info.id, consumer->common_fields.id);
         info.host = strdup(consumer->common_fields.host.c_str());
         info.port = consumer->common_fields.port;
+        if (consumer->common_fields.topics.size() > 0) {
+          info.topics =
+            static_cast<char **>(calloc(consumer->common_fields.topics.size(), sizeof(char *)));
+        }
+        size_t topic_counter = 0;
+        for (const auto &topic : consumer->common_fields.topics) {
+          info.topics[topic_counter++] = strdup(topic.c_str());
+        }
+        info.topic_count = consumer->common_fields.topics.size();
       }
     }
     pthread_rwlock_unlock(&_list_lock);
@@ -1193,7 +1211,7 @@ mtev_boolean mtev_kafka_close_producer_function(const uuid_t id,
   return the_conf->enqueue_close_producer_request(id, callback, closure) ? mtev_true : mtev_false;
 }
 
-mtev_boolean mtev_kafka_shutdown_consumer_function(const uuid_t id,
+mtev_boolean mtev_kafka_close_consumer_function(const uuid_t id,
                                                    mtev_kafka_shutdown_callback_t callback,
                                                    void *closure)
 {

@@ -131,6 +131,8 @@ typedef struct mtev_kafka_connection_info {
   uuid_t id;
   char *host;
   int32_t port;
+  size_t topic_count;
+  char **topics;
 } mtev_kafka_connection_info_t;
 
 typedef struct mtev_kafka_connection_list {
@@ -160,7 +162,12 @@ static inline void mtev_kafka_free_connection_list(mtev_kafka_connection_list_t 
     return;
   }
   for (size_t i = 0; i < list->count; i++) {
-    free(list->connections[i].host);
+    auto item = list->connections[i];
+    free(item.host);
+    for (size_t j = 0; j < item.topic_count; j++) {
+      free(item.topics[j]);
+    }
+    free(item.topics);
   }
   free(list->connections);
   free(list);
