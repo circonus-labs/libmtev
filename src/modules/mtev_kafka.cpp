@@ -1174,18 +1174,6 @@ mtev_kafka_connection_list_t *mtev_kafka_get_all_consumers_function()
   return connections;
 }
 
-void mtev_kafka_free_connection_list_function(mtev_kafka_connection_list_t *list)
-{
-  if (!list) {
-    return;
-  }
-  for (size_t i = 0; i < list->count; i++) {
-    free(list->connections[i].host);
-  }
-  free(list->connections);
-  free(list);
-}
-
 mtev_kafka_connection_list_t *mtev_kafka_get_all_producers_function()
 {
   mtev_kafka_connection_list_t *connections = nullptr;

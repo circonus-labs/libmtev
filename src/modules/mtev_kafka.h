@@ -154,6 +154,18 @@ static inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
   }
 }
 
+static inline void mtev_kafka_free_connection_list(mtev_kafka_connection_list_t *list)
+{
+  if (!list) {
+    return;
+  }
+  for (size_t i = 0; i < list->count; i++) {
+    free(list->connections[i].host);
+  }
+  free(list->connections);
+  free(list);
+}
+
 /*! \fn void mtev_kafka_broadcast(const void *payload, size_t payload_len)
     \brief Publish a Kafka message to all conifigurd Kafka publishers.
     \param payload The payload to publish.
@@ -187,17 +199,6 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_get_all_consumers,
                      (),
                      ())
 MTEV_RUNTIME_AVAIL(mtev_kafka_get_all_consumers, mtev_kafka_get_all_consumers_function)
-
-/*! \fn void mtev_kafka_free_connection_list(mtev_kafka_connection_list_t *list)
-    \brief Frees a mtev_kafka_connection_list_t struct.
-    \param list The mtev_kafka_connection_list_t struct to free.
- */
-MTEV_RUNTIME_RESOLVE(mtev_kafka_free_connection_list,
-                     mtev_kafka_free_connection_list_function,
-                     void,
-                     (mtev_kafka_connection_list_t * list),
-                     (list))
-MTEV_RUNTIME_AVAIL(mtev_kafka_free_connection_list, mtev_kafka_free_connection_list_function)
 
 // clang-format off
 /*! \fn mtev_boolean mtev_kafka_shutdown_producer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
