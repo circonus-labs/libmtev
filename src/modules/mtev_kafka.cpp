@@ -827,8 +827,8 @@ public:
   {
     for (const auto &[id, producer] : _producers) {
       for (const auto &individual_producer : producer->rd_topic_producers) {
-        if (!rd_kafka_produce(individual_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
-                              const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
+        if (rd_kafka_produce(individual_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
+                             const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) != 0) {
           mtevL(nlerr, "%s: Error producing message (send): %s\n", __func__,
                 rd_kafka_err2str(rd_kafka_last_error()));
           producer->stats.errors++;
@@ -1212,8 +1212,8 @@ mtev_boolean mtev_kafka_close_producer_function(const uuid_t id,
 }
 
 mtev_boolean mtev_kafka_close_consumer_function(const uuid_t id,
-                                                   mtev_kafka_shutdown_callback_t callback,
-                                                   void *closure)
+                                                mtev_kafka_shutdown_callback_t callback,
+                                                void *closure)
 {
   if (!the_conf) {
     return mtev_false;
