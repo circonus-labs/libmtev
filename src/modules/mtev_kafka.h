@@ -174,7 +174,7 @@ static inline void mtev_kafka_free_connection_list(mtev_kafka_connection_list_t 
 }
 
 /*! \fn void mtev_kafka_broadcast(const void *payload, size_t payload_len)
-    \brief Publish a Kafka message to all conifigurd Kafka publishers.
+    \brief Publish a Kafka message to all configured Kafka publishers.
     \param payload The payload to publish.
     \param payload_len The size of the payload.
  */
