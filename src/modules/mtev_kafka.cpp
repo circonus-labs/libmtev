@@ -315,8 +315,11 @@ struct kafka_producer {
     rd_producer =
       rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
     if (!rd_producer) {
+      std::string error = "rd_kafka_new failed on producer for host " +
+        common_fields.broker_with_port + ": error " + error_string;
+      rd_kafka_conf_destroy(rd_producer_conf);
       cleanup();
-      throw std::runtime_error(error_string);
+      throw std::runtime_error(error.c_str());
     }
     rd_topic_producer_conf_template = rd_kafka_topic_conf_new();
     auto topic_config_errors =
@@ -521,15 +524,24 @@ struct kafka_consumer {
     rd_consumer =
       rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, error_string, error_string_size);
     if (!rd_consumer) {
+      std::string error = "rd_kafka_new failed on consumer for host " +
+        common_fields.broker_with_port + ": error " + error_string;
+      rd_kafka_conf_destroy(rd_consumer_conf);
       cleanup();
-      throw std::runtime_error(error_string);
+      throw std::runtime_error(error.c_str());
     }
 
     rd_consumer_topics = rd_kafka_topic_partition_list_new(common_fields.topics.size());
     for (const auto &topic : common_fields.topics) {
       rd_kafka_topic_partition_list_add(rd_consumer_topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
     }
-    rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
+    if (auto err = rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
+        err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+      std::string error = "Failed to subscribe to topics for host " +
+        common_fields.broker_with_port + ": error " + rd_kafka_err2str(err);
+      cleanup();
+      throw std::runtime_error(error.c_str());
+    }
   }
   kafka_consumer() = delete;
   ~kafka_consumer() { cleanup(); }

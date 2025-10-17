@@ -58,7 +58,7 @@
  *   </out>
  * </network>
  *
- * The <in> stanza will contain all consumers. The <out> standza will contain all producers.
+ * The <in> stanza will contain all consumers. The <out> stanza will contain all producers.
  * Multiple mq stanzas can be defined for each.
  *
  * The individual fields for each config are:
@@ -79,7 +79,7 @@
  * `bootstrap.servers`: Use `host` and `port`.
  * `group.id`: Use `consumer_group`.
  * <rdkafka_topic_config_setting_*> allows setting topic configuration properties on Kafka
- * producers. Start the XML element with `rdkafka_global_topic_setting_`, then fill in the
+ * producers. Start the XML element with `rdkafka_topic_config_setting_`, then fill in the
  * parameter you wish to set.
  */
 
