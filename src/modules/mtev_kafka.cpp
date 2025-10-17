@@ -314,6 +314,10 @@ struct kafka_producer {
     rd_kafka_conf_set_opaque(rd_producer_conf, this);
     rd_producer =
       rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
+    if (!rd_producer) {
+      cleanup();
+      throw std::runtime_error(error_string);
+    }
     rd_topic_producer_conf_template = rd_kafka_topic_conf_new();
     auto topic_config_errors =
       set_kafka_topic_config_values_from_hash(rd_topic_producer_conf_template, kafka_topic_configs);
@@ -516,6 +520,10 @@ struct kafka_consumer {
 
     rd_consumer =
       rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, error_string, error_string_size);
+    if (!rd_consumer) {
+      cleanup();
+      throw std::runtime_error(error_string);
+    }
 
     rd_consumer_topics = rd_kafka_topic_partition_list_new(common_fields.topics.size());
     for (const auto &topic : common_fields.topics) {
