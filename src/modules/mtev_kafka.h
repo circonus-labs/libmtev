@@ -297,8 +297,8 @@ MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
     \brief Get a list of all active Kafka producers.
     \return A list of producers in a mtev_kafka_connection_list_t struct.
  */
-MTEV_RUNTIME_RESOLVE(mtev_kafka_get_all_producers,
-                     mtev_kafka_get_all_producers_function,
+MTEV_RUNTIME_RESOLVE(mtev_kafka_get_producer_list,
+                     mtev_kafka_get_producer_list_function,
                      mtev_kafka_connection_list_t *,
                      (),
                      ())
