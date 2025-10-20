@@ -150,7 +150,7 @@ MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_type,
     \brief Get the UUID of a Kafka connection.
     \param info The connection info structure to query.
     \param out_id Output parameter where the UUID will be copied.
-    \return 0 if the call was succcessful, or -1 if info is NULL.
+    \return 0 if the call was successful, or -1 if info is NULL.
  */
 // clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_id,
@@ -179,7 +179,7 @@ MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_host,
 /*! \fn int32_t mtev_kafka_connection_info_get_port(const mtev_kafka_connection_info_t *info)
     \brief Get the port number of a Kafka connection.
     \param info The connection info structure to query.
-    \return The port number, or 0 if info is NULL.
+    \return The port number, or -1 if info is NULL.
  */
 // clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_port,
