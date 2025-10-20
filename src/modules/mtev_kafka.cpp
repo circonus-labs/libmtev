@@ -39,6 +39,20 @@
 #include "mtev_rand.h"
 #include "mtev_thread.h"
 
+struct mtev_kafka_connection_info {
+  mtev_kafka_connection_type_e connection_type;
+  uuid_t id;
+  char *host;
+  int32_t port;
+  ssize_t topic_count;
+  char **topics;
+};
+
+struct mtev_kafka_connection_list {
+  mtev_kafka_connection_info_t *connections;
+  ssize_t count;
+};
+
 #include <atomic>
 #include <chrono>
 #include <map>
@@ -1198,6 +1212,82 @@ static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self)
 // an extern "C" block so their names don't get mangled, otherwise the
 // runtime resolution will fail
 extern "C" {
+
+mtev_kafka_connection_type_e
+  mtev_kafka_connection_info_get_type_function(const mtev_kafka_connection_info_t *info)
+{
+  return info ? info->connection_type : MTEV_KAFKA_CONNECTION_TYPE_INVALID;
+}
+
+int mtev_kafka_connection_info_get_id_function(const mtev_kafka_connection_info_t *info,
+                                               uuid_t out_id)
+{
+  if (info) {
+    mtev_uuid_copy(out_id, info->id);
+    return 0;
+  }
+  mtev_uuid_clear(out_id);
+  return -1;
+}
+
+const char *mtev_kafka_connection_info_get_host_function(const mtev_kafka_connection_info_t *info)
+{
+  return info ? info->host : nullptr;
+}
+
+int32_t mtev_kafka_connection_info_get_port_function(const mtev_kafka_connection_info_t *info)
+{
+  return info ? info->port : -1;
+}
+
+ssize_t
+  mtev_kafka_connection_info_get_topic_count_function(const mtev_kafka_connection_info_t *info)
+{
+  return info ? info->topic_count : -1;
+}
+
+const char *mtev_kafka_connection_info_get_topic_function(const mtev_kafka_connection_info_t *info,
+                                                          size_t index)
+{
+  if (!info || index >= info->topic_count) {
+    return nullptr;
+  }
+  return info->topics[index];
+}
+
+/* Accessor functions for mtev_kafka_connection_list_t */
+ssize_t mtev_kafka_connection_list_get_count_function(const mtev_kafka_connection_list_t *list)
+{
+  return list ? list->count : -1;
+}
+
+const mtev_kafka_connection_info_t *
+  mtev_kafka_connection_list_get_connection_function(const mtev_kafka_connection_list_t *list,
+                                                     size_t index)
+{
+  if (!list || index >= list->count) {
+    return nullptr;
+  }
+  return &list->connections[index];
+}
+
+void mtev_kafka_free_connection_list_function(mtev_kafka_connection_list_t *list)
+{
+  if (!list) {
+    return;
+  }
+  for (size_t i = 0; i < list->count; i++) {
+    auto &item = list->connections[i];
+    free(item.host);
+    for (size_t j = 0; j < item.topic_count; j++) {
+      free(item.topics[j]);
+    }
+    free(item.topics);
+  }
+  free(list->connections);
+  free(list);
+}
+
 void mtev_kafka_broadcast_function(const void *payload, size_t payload_len)
 {
   if (the_conf) {

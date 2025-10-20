@@ -103,7 +103,8 @@ extern "C" {
 
 typedef enum {
   MTEV_KAFKA_CONNECTION_TYPE_PRODUCER = 0,
-  MTEV_KAFKA_CONNECTION_TYPE_CONSUMER
+  MTEV_KAFKA_CONNECTION_TYPE_CONSUMER,
+  MTEV_KAFKA_CONNECTION_TYPE_INVALID
 } mtev_kafka_connection_type_e;
 
 typedef void (*mtev_kafka_shutdown_callback_t)(void *closure,
@@ -126,19 +127,78 @@ typedef struct mtev_rd_kafka_message {
   void (*free_fn)(struct mtev_rd_kafka_message *m);
 } mtev_rd_kafka_message_t;
 
-typedef struct mtev_kafka_connection_info {
-  mtev_kafka_connection_type_e connection_type;
-  uuid_t id;
-  char *host;
-  int32_t port;
-  size_t topic_count;
-  char **topics;
-} mtev_kafka_connection_info_t;
+typedef struct mtev_kafka_connection_info mtev_kafka_connection_info_t;
+typedef struct mtev_kafka_connection_list mtev_kafka_connection_list_t;
 
-typedef struct mtev_kafka_connection_list {
-  mtev_kafka_connection_info_t *connections;
-  size_t count;
-} mtev_kafka_connection_list_t;
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_type,
+                     mtev_kafka_connection_info_get_type_function,
+                     mtev_kafka_connection_type_e,
+                     (const mtev_kafka_connection_info_t *info),
+                     (info))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_type,
+                   mtev_kafka_connection_info_get_type_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_id,
+                     mtev_kafka_connection_info_get_id_function,
+                     int,
+                     (const mtev_kafka_connection_info_t *info, uuid_t out_id),
+                     (info, out_id))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_id, mtev_kafka_connection_info_get_id_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_host,
+                     mtev_kafka_connection_info_get_host_function,
+                     const char *,
+                     (const mtev_kafka_connection_info_t *info),
+                     (info))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_host,
+                   mtev_kafka_connection_info_get_host_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_port,
+                     mtev_kafka_connection_info_get_port_function,
+                     int32_t,
+                     (const mtev_kafka_connection_info_t *info),
+                     (info))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_port,
+                   mtev_kafka_connection_info_get_port_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_topic_count,
+                     mtev_kafka_connection_info_get_topic_count_function,
+                     ssize_t,
+                     (const mtev_kafka_connection_info_t *info),
+                     (info))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_topic_count,
+                   mtev_kafka_connection_info_get_topic_count_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_topic,
+                     mtev_kafka_connection_info_get_topic_function,
+                     const char *,
+                     (const mtev_kafka_connection_info_t *info, size_t index),
+                     (info, index))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_topic,
+                   mtev_kafka_connection_info_get_topic_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_get_count,
+                     mtev_kafka_connection_list_get_count_function,
+                     ssize_t,
+                     (const mtev_kafka_connection_list_t *list),
+                     (list))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_list_get_count,
+                   mtev_kafka_connection_list_get_count_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_get_connection,
+                     mtev_kafka_connection_list_get_connection_function,
+                     const mtev_kafka_connection_info_t *,
+                     (const mtev_kafka_connection_list_t *list, size_t index),
+                     (list, index))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_list_get_connection,
+                   mtev_kafka_connection_list_get_connection_function)
+
+MTEV_RUNTIME_RESOLVE(mtev_kafka_free_connection_list,
+                     mtev_kafka_free_connection_list_function,
+                     void,
+                     (mtev_kafka_connection_list_t * list),
+                     (list))
+MTEV_RUNTIME_AVAIL(mtev_kafka_free_connection_list, mtev_kafka_free_connection_list_function)
 
 static inline void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg)
 {
@@ -154,23 +214,6 @@ static inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
       msg->free_fn(msg);
     }
   }
-}
-
-static inline void mtev_kafka_free_connection_list(mtev_kafka_connection_list_t *list)
-{
-  if (!list) {
-    return;
-  }
-  for (size_t i = 0; i < list->count; i++) {
-    auto item = list->connections[i];
-    free(item.host);
-    for (size_t j = 0; j < item.topic_count; j++) {
-      free(item.topics[j]);
-    }
-    free(item.topics);
-  }
-  free(list->connections);
-  free(list);
 }
 
 /*! \fn void mtev_kafka_broadcast(const void *payload, size_t payload_len)
