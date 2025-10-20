@@ -293,7 +293,7 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_broadcast,
                      (payload, payload_len))
 MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
 
-/*! \fn mtev_kafka_connection_list_t *mtev_kafka_get_all_producers(void)
+/*! \fn mtev_kafka_connection_list_t *mtev_kafka_get_producer_list(void)
     \brief Get a list of all active Kafka producers.
     \return A list of producers in a mtev_kafka_connection_list_t struct.
  */
@@ -302,18 +302,18 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_get_all_producers,
                      mtev_kafka_connection_list_t *,
                      (),
                      ())
-MTEV_RUNTIME_AVAIL(mtev_kafka_get_all_producers, mtev_kafka_get_all_producers_function)
+MTEV_RUNTIME_AVAIL(mtev_kafka_get_producer_list, mtev_kafka_get_producer_list_function)
 
-/*! \fn mtev_kafka_connection_list_t *mtev_kafka_get_all_consumers(void)
+/*! \fn mtev_kafka_connection_list_t *mtev_kafka_get_consumer_list(void)
     \brief Get a list of all active Kafka consumers.
     \return A list of consumers in a mtev_kafka_connection_list_t struct.
  */
-MTEV_RUNTIME_RESOLVE(mtev_kafka_get_all_consumers,
-                     mtev_kafka_get_all_consumers_function,
+MTEV_RUNTIME_RESOLVE(mtev_kafka_get_consumer_list,
+                     mtev_kafka_get_consumer_list_function,
                      mtev_kafka_connection_list_t *,
                      (),
                      ())
-MTEV_RUNTIME_AVAIL(mtev_kafka_get_all_consumers, mtev_kafka_get_all_consumers_function)
+MTEV_RUNTIME_AVAIL(mtev_kafka_get_consumer_list, mtev_kafka_get_consumer_list_function)
 
 // clang-format off
 /*! \fn mtev_boolean mtev_kafka_close_producer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
