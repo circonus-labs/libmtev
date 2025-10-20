@@ -253,17 +253,17 @@ MTEV_RUNTIME_AVAIL(mtev_kafka_connection_list_get_connection,
                    mtev_kafka_connection_list_get_connection_function)
 
 // clang-format off
-/*! \fn void mtev_kafka_free_connection_list(mtev_kafka_connection_list_t *list)
+/*! \fn void mtev_kafka_connection_list_free(mtev_kafka_connection_list_t *list)
     \brief Free a Kafka connection list and all associated memory.
     \param list The connection list to free.
  */
 // clang-format on
-MTEV_RUNTIME_RESOLVE(mtev_kafka_free_connection_list,
-                     mtev_kafka_free_connection_list_function,
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_free,
+                     mtev_kafka_connection_list_free_function,
                      void,
                      (mtev_kafka_connection_list_t * list),
                      (list))
-MTEV_RUNTIME_AVAIL(mtev_kafka_free_connection_list, mtev_kafka_free_connection_list_function)
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_list_free, mtev_kafka_connection_list_free_function)
 
 static inline void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg)
 {

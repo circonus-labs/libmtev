@@ -1271,7 +1271,7 @@ const mtev_kafka_connection_info_t *
   return &list->connections[index];
 }
 
-void mtev_kafka_free_connection_list_function(mtev_kafka_connection_list_t *list)
+void mtev_kafka_connection_list_free_function(mtev_kafka_connection_list_t *list)
 {
   if (!list) {
     return;
