@@ -130,6 +130,13 @@ typedef struct mtev_rd_kafka_message {
 typedef struct mtev_kafka_connection_info mtev_kafka_connection_info_t;
 typedef struct mtev_kafka_connection_list mtev_kafka_connection_list_t;
 
+// clang-format off
+/*! \fn mtev_kafka_connection_type_e mtev_kafka_connection_info_get_type(const mtev_kafka_connection_info_t *info)
+    \brief Get the connection type from a Kafka connection info structure.
+    \param info The connection info structure to query.
+    \return The connection type, or MTEV_KAFKA_CONNECTION_TYPE_INVALID if info is NULL.
+ */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_type,
                      mtev_kafka_connection_info_get_type_function,
                      mtev_kafka_connection_type_e,
@@ -138,6 +145,14 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_type,
 MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_type,
                    mtev_kafka_connection_info_get_type_function)
 
+// clang-format off
+/*! \fn void mtev_kafka_connection_info_get_id(const mtev_kafka_connection_info_t *info, uuid_t out_id)
+    \brief Get the UUID of a Kafka connection.
+    \param info The connection info structure to query.
+    \param out_id Output parameter where the UUID will be copied.
+    \return 0 if the call was succcessful, or -1 if info is NULL.
+ */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_id,
                      mtev_kafka_connection_info_get_id_function,
                      int,
@@ -145,6 +160,13 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_id,
                      (info, out_id))
 MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_id, mtev_kafka_connection_info_get_id_function)
 
+// clang-format off
+/*! \fn const char *mtev_kafka_connection_info_get_host(const mtev_kafka_connection_info_t *info)
+    \brief Get the host name of a Kafka connection.
+    \param info The connection info structure to query.
+    \return The host name string, or NULL if info is NULL.
+ */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_host,
                      mtev_kafka_connection_info_get_host_function,
                      const char *,
@@ -153,6 +175,13 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_host,
 MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_host,
                    mtev_kafka_connection_info_get_host_function)
 
+// clang-format off
+/*! \fn int32_t mtev_kafka_connection_info_get_port(const mtev_kafka_connection_info_t *info)
+    \brief Get the port number of a Kafka connection.
+    \param info The connection info structure to query.
+    \return The port number, or 0 if info is NULL.
+ */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_port,
                      mtev_kafka_connection_info_get_port_function,
                      int32_t,
@@ -161,6 +190,13 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_port,
 MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_port,
                    mtev_kafka_connection_info_get_port_function)
 
+// clang-format off
+/*! \fn size_t mtev_kafka_connection_info_get_topic_count(const mtev_kafka_connection_info_t *info)
+    \brief Get the number of topics associated with a Kafka connection.
+    \param info The connection info structure to query.
+    \return The number of topics, or 0 if info is NULL.
+ */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_topic_count,
                      mtev_kafka_connection_info_get_topic_count_function,
                      ssize_t,
@@ -169,6 +205,14 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_topic_count,
 MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_topic_count,
                    mtev_kafka_connection_info_get_topic_count_function)
 
+// clang-format off
+/*! \fn const char *mtev_kafka_connection_info_get_topic(const mtev_kafka_connection_info_t *info, size_t index)
+    \brief Get a specific topic name from a Kafka connection.
+    \param info The connection info structure to query.
+    \param index The index of the topic to retrieve (0-based).
+    \return The topic name string, or NULL if info is NULL or index is out of bounds.
+ */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_topic,
                      mtev_kafka_connection_info_get_topic_function,
                      const char *,
@@ -177,6 +221,13 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_topic,
 MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_topic,
                    mtev_kafka_connection_info_get_topic_function)
 
+// clang-format off
+/*! \fn size_t mtev_kafka_connection_list_get_count(const mtev_kafka_connection_list_t *list)
+    \brief Get the number of connections in a Kafka connection list.
+    \param list The connection list to query.
+    \return The number of connections in the list, or -1 if list is NULL.
+ */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_get_count,
                      mtev_kafka_connection_list_get_count_function,
                      ssize_t,
@@ -185,6 +236,14 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_get_count,
 MTEV_RUNTIME_AVAIL(mtev_kafka_connection_list_get_count,
                    mtev_kafka_connection_list_get_count_function)
 
+// clang-format off
+/*! \fn const mtev_kafka_connection_info_t *mtev_kafka_connection_list_get_connection(const mtev_kafka_connection_list_t *list, size_t index)
+    \brief Get a specific connection from a Kafka connection list.
+    \param list The connection list to query.
+    \param index The index of the connection to retrieve (0-based).
+    \return A pointer to the connection info structure, or NULL if list is NULL or index is out of bounds.
+ */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_get_connection,
                      mtev_kafka_connection_list_get_connection_function,
                      const mtev_kafka_connection_info_t *,
@@ -193,6 +252,12 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_get_connection,
 MTEV_RUNTIME_AVAIL(mtev_kafka_connection_list_get_connection,
                    mtev_kafka_connection_list_get_connection_function)
 
+// clang-format off
+/*! \fn void mtev_kafka_free_connection_list(mtev_kafka_connection_list_t *list)
+    \brief Free a Kafka connection list and all associated memory.
+    \param list The connection list to free.
+ */
+// clang-format on
 MTEV_RUNTIME_RESOLVE(mtev_kafka_free_connection_list,
                      mtev_kafka_free_connection_list_function,
                      void,
