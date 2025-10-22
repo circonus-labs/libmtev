@@ -57,6 +57,8 @@ struct mtev_kafka_connection_list {
 #include <chrono>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -771,8 +773,6 @@ public:
       return true;
     };
 
-    pthread_rwlock_init(&_list_lock, nullptr);
-
     int number_of_conns = 0;
     mtev_conf_section_t *mqs =
       mtev_conf_get_sections_read(MTEV_CONF_ROOT, CONFIG_KAFKA_MQ_CONSUMER, &number_of_conns);
@@ -794,13 +794,10 @@ public:
     }
     mtev_conf_release_sections_read(mqs, number_of_conns);
   }
-  ~kafka_module_config()
-  {
-    // TODO: Should clean up all connections
-    // This doesn't matter when the lifetime of the module is the same as the lifetime
-    // for the process, but would still be good practice.
-    pthread_rwlock_destroy(&_list_lock);
-  }
+  // TODO: The kafka_module_config destructor should clean up all connections.
+  // This doesn't matter when the lifetime of the module is the same as the lifetime
+  // of the process, but would still be good practice.
+  ~kafka_module_config() = default;
   void set_poll_timeout(const std::chrono::milliseconds poll_timeout)
   {
     _poll_timeout = poll_timeout;
@@ -812,6 +809,9 @@ public:
   }
   int poll()
   {
+    // We are intentionally not taking a lock here - this code is designed so that the
+    // code to purge consumers is always called *after* the poll, so everything in this
+    // loop should still be valid.
     for (const auto &[id, consumer] : _consumers) {
       int32_t per_conn_cnt = 0;
       rd_kafka_message_t *msg = nullptr;
@@ -1018,7 +1018,7 @@ public:
 
   mtev_kafka_connection_list_t *get_producer_list() const
   {
-    pthread_rwlock_rdlock(&_list_lock);
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
     auto list = (mtev_kafka_connection_list_t *) calloc(1, sizeof(mtev_kafka_connection_list_t));
     list->count = _producers.size();
 
@@ -1043,13 +1043,12 @@ public:
         info.topic_count = producer->common_fields.topics.size();
       }
     }
-    pthread_rwlock_unlock(&_list_lock);
     return list;
   }
 
   mtev_kafka_connection_list_t *get_consumer_list() const
   {
-    pthread_rwlock_rdlock(&_list_lock);
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
     auto list = (mtev_kafka_connection_list_t *) calloc(1, sizeof(mtev_kafka_connection_list_t));
     list->count = _consumers.size();
 
@@ -1074,7 +1073,6 @@ public:
         info.topic_count = consumer->common_fields.topics.size();
       }
     }
-    pthread_rwlock_unlock(&_list_lock);
     return list;
   }
 
@@ -1089,22 +1087,23 @@ private:
       }
       to_process.swap(_pending_shutdowns);
     }
-    pthread_rwlock_wrlock(&_list_lock);
-    for (const auto &req : to_process) {
-      if (req.type == shutdown_request::PRODUCER) {
-        if (auto it = _producers.find(req.id); it != _producers.end()) {
-          schedule_producer_cleanup(std::move(it->second), req.callback, req.closure);
-          _producers.erase(it);
+    {
+      std::unique_lock<std::shared_mutex> lock(_list_mtx);
+      for (const auto &req : to_process) {
+        if (req.type == shutdown_request::PRODUCER) {
+          if (auto it = _producers.find(req.id); it != _producers.end()) {
+            schedule_producer_cleanup(std::move(it->second), req.callback, req.closure);
+            _producers.erase(it);
+          }
         }
-      }
-      else {
-        if (auto it = _consumers.find(req.id); it != _consumers.end()) {
-          schedule_consumer_cleanup(std::move(it->second), req.callback, req.closure);
-          _consumers.erase(it);
+        else {
+          if (auto it = _consumers.find(req.id); it != _consumers.end()) {
+            schedule_consumer_cleanup(std::move(it->second), req.callback, req.closure);
+            _consumers.erase(it);
+          }
         }
       }
     }
-    pthread_rwlock_unlock(&_list_lock);
   }
 
   void schedule_producer_cleanup(std::unique_ptr<kafka_producer> producer,
@@ -1189,7 +1188,7 @@ private:
   int64_t _producer_poll_interval_ms;
   std::mutex _shutdown_mutex;
   std::vector<shutdown_request> _pending_shutdowns;
-  mutable pthread_rwlock_t _list_lock;
+  mutable std::shared_mutex _list_mtx;
 };
 
 static kafka_module_config *the_conf = nullptr;
