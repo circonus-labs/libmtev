@@ -38,7 +38,10 @@
  *     <mq type="kafka">
  *       <host>localhost</host>
  *       <port>9092</port>
- *       <topic>test_topic_one</topic>
+ *       <topics>
+ *         <topic name="test_topic_one"</topic>
+ *         <topic name="test_topic_two"</topic>
+ *       </topics>
  *       <consumer_group>sample_consumer_group_id</consumer_group>
  *       <protocol>prometheus</protocol>
  *       <override_custom_parameter_one>custom_value</override_custom_parameter_one>
@@ -51,7 +54,10 @@
  *     <mq type="kafka">
  *       <host>localhost</host>
  *       <port>9092</port>
- *       <topic>test_topic_two</topic>
+ *       <topics>
+ *         <topic name="test_topic_three"</topic>
+ *         <topic name="test_topic_four"</topic>
+ *       </topics>
  *       <rdkafka_global_config_setting_enable.idempotence>true</rdkafka_global_config_setting_enable.idempotence>
  *       <rdkafka_topic_config_setting_request.timeout.ms>30000</rdkafka_topic_config_setting_request.timeout.ms>
  *     </mq>
@@ -64,7 +70,7 @@
  * The individual fields for each config are:
  * <host>           - The host to connect to.
  * <port>           - The port to connect to.
- * <topic>          - The topic to interact with
+ * <topics>         - The topics to interact with
  * <consumer_group> - The consumer group to use. Only for consumers.
  * <protocol>       - The format of the consumed messages. Only for consumers.
  *
