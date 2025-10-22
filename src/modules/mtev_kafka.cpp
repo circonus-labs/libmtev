@@ -861,6 +861,7 @@ public:
   }
   void publish_to_producers(const void *payload, size_t payload_len)
   {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
     for (const auto &[id, producer] : _producers) {
       for (const auto &individual_producer : producer->rd_topic_producers) {
         if (rd_kafka_produce(individual_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
@@ -874,14 +875,20 @@ public:
   }
   void poll_producers()
   {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
     for (const auto &[id, producer] : _producers) {
       rd_kafka_poll(producer->rd_producer, 10);
     }
   }
-  int get_num_producers() { return _producers.size(); }
+  int get_num_producers()
+  {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
+    return _producers.size();
+  }
   int32_t get_producer_poll_interval() { return _producer_poll_interval_ms; }
   int show_console(const mtev_console_closure_t &ncct)
   {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
     for (const auto &[id, producer] : _producers) {
       producer->write_to_console(ncct);
     }
