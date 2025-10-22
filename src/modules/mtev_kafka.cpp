@@ -39,9 +39,26 @@
 #include "mtev_rand.h"
 #include "mtev_thread.h"
 
+struct mtev_kafka_connection_info {
+  mtev_kafka_connection_type_e connection_type;
+  uuid_t id;
+  char *host;
+  int32_t port;
+  ssize_t topic_count;
+  char **topics;
+};
+
+struct mtev_kafka_connection_list {
+  mtev_kafka_connection_info_t *connections;
+  ssize_t count;
+};
+
 #include <atomic>
 #include <chrono>
+#include <map>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -76,6 +93,7 @@ constexpr int32_t DEFAULT_POLL_LIMIT = 10000;
 constexpr int32_t DEFAULT_PRODUCER_POLL_INTERVAL_MS = 10000;
 
 eventer_jobq_t *poll_producers_jobq = NULL;
+eventer_jobq_t *kafka_shutdown_jobq = NULL;
 
 extern "C" {
 MTEV_HOOK_IMPL(mtev_kafka_handle_message_dyn,
@@ -133,6 +151,8 @@ struct kafka_consumer_stats_t {
 };
 
 struct kafka_common_fields {
+  uuid_t id;
+  std::string id_str;
   std::string host;
   int32_t port;
   std::string broker_with_port;
@@ -140,10 +160,17 @@ struct kafka_common_fields {
 };
 
 enum class connection_type_e { CONSUMER, PRODUCER };
-static kafka_common_fields set_common_connection_fields(mtev_hash_table *options,
+static kafka_common_fields set_common_connection_fields(const uuid_t &id,
+                                                        mtev_hash_table *options,
                                                         const std::vector<std::string> &topics)
 {
   kafka_common_fields ret;
+
+  char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+  mtev_uuid_unparse_lower(id, uuid_str);
+  mtev_uuid_copy(ret.id, id);
+  ret.id_str = uuid_str;
+
   void *vptr = nullptr;
   if (mtev_hash_retrieve(options, "host", strlen("host"), &vptr)) {
     ret.host = static_cast<char *>(vptr);
@@ -241,14 +268,22 @@ static std::unordered_map<std::string, std::string>
   }
   return errors;
 }
+struct shutdown_request {
+  enum Type { PRODUCER, CONSUMER };
+  Type type;
+  std::string id;
+  mtev_kafka_shutdown_callback_t callback;
+  void *closure;
+};
 struct kafka_producer {
-  kafka_producer(mtev_hash_table *config,
+  kafka_producer(const uuid_t &id,
+                 mtev_hash_table *config,
                  const std::vector<std::string> &topics,
                  mtev_hash_table *&&kafka_global_configs_in,
                  mtev_hash_table *&&kafka_topic_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
-    common_fields = set_common_connection_fields(config, topics);
+    common_fields = set_common_connection_fields(id, config, topics);
     kafka_global_configs = kafka_global_configs_in;
     kafka_topic_configs = kafka_topic_configs_in;
     extra_configs = extra_configs_in;
@@ -256,7 +291,7 @@ struct kafka_producer {
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
 
-    rd_producer_conf = rd_kafka_conf_new();
+    auto rd_producer_conf = rd_kafka_conf_new();
     auto global_config_errors =
       set_kafka_global_config_values_from_hash(rd_producer_conf, kafka_global_configs);
 
@@ -295,9 +330,16 @@ struct kafka_producer {
     rd_kafka_conf_set_opaque(rd_producer_conf, this);
     rd_producer =
       rd_kafka_new(RD_KAFKA_PRODUCER, rd_producer_conf, error_string, error_string_size);
-    rd_topic_producer_conf = rd_kafka_topic_conf_new();
+    if (!rd_producer) {
+      std::string error = "rd_kafka_new failed on producer for host " +
+        common_fields.broker_with_port + ": error " + error_string;
+      rd_kafka_conf_destroy(rd_producer_conf);
+      cleanup();
+      throw std::runtime_error(error.c_str());
+    }
+    rd_topic_producer_conf_template = rd_kafka_topic_conf_new();
     auto topic_config_errors =
-      set_kafka_topic_config_values_from_hash(rd_topic_producer_conf, kafka_topic_configs);
+      set_kafka_topic_config_values_from_hash(rd_topic_producer_conf_template, kafka_topic_configs);
     if (topic_config_errors.size()) {
       mtevL(nlerr,
             "%s: encountered the following %zd errors setting topic configuration values for "
@@ -312,8 +354,10 @@ struct kafka_producer {
                                            ": invalid configuration")));
     }
     for (const auto &topic : common_fields.topics) {
+      rd_kafka_topic_conf_t *topic_conf_copy =
+        rd_kafka_topic_conf_dup(rd_topic_producer_conf_template);
       rd_topic_producers.emplace_back(
-        rd_kafka_topic_new(rd_producer, topic.c_str(), rd_topic_producer_conf));
+        rd_kafka_topic_new(rd_producer, topic.c_str(), topic_conf_copy));
     }
   }
   kafka_producer() = delete;
@@ -336,18 +380,17 @@ struct kafka_producer {
 private:
   void cleanup()
   {
-    if (rd_topic_producer_conf) {
-      rd_kafka_topic_conf_destroy(rd_topic_producer_conf);
-      rd_topic_producer_conf = nullptr;
+    if (rd_topic_producer_conf_template) {
+      rd_kafka_topic_conf_destroy(rd_topic_producer_conf_template);
+      rd_topic_producer_conf_template = nullptr;
+    }
+    if (rd_producer) {
+      rd_kafka_flush(rd_producer, 5000);
     }
     for (const auto &producer : rd_topic_producers) {
       rd_kafka_topic_destroy(producer);
     }
     rd_topic_producers.clear();
-    if (rd_producer_conf) {
-      rd_kafka_conf_destroy(rd_producer_conf);
-      rd_producer_conf = nullptr;
-    }
     if (rd_producer) {
       rd_kafka_destroy(rd_producer);
       rd_producer = nullptr;
@@ -375,20 +418,20 @@ public:
   mtev_hash_table *extra_configs{nullptr};
   mtev_hash_table *kafka_global_configs{nullptr};
   mtev_hash_table *kafka_topic_configs{nullptr};
-  rd_kafka_conf_t *rd_producer_conf{nullptr};
   rd_kafka_t *rd_producer{nullptr};
-  rd_kafka_topic_conf_t *rd_topic_producer_conf{nullptr};
+  rd_kafka_topic_conf_t *rd_topic_producer_conf_template{nullptr};
   std::vector<rd_kafka_topic_t *> rd_topic_producers;
   kafka_producer_stats_t stats;
 };
 
 struct kafka_consumer {
-  kafka_consumer(mtev_hash_table *config,
+  kafka_consumer(const uuid_t &id,
+                 mtev_hash_table *config,
                  const std::vector<std::string> &topics,
                  mtev_hash_table *&&kafka_global_configs_in,
                  mtev_hash_table *&&extra_configs_in)
   {
-    common_fields = set_common_connection_fields(config, topics);
+    common_fields = set_common_connection_fields(id, config, topics);
     kafka_global_configs = kafka_global_configs_in;
     extra_configs = extra_configs_in;
 
@@ -451,7 +494,7 @@ struct kafka_consumer {
     constexpr size_t error_string_size = 256;
     char error_string[error_string_size];
 
-    rd_consumer_conf = rd_kafka_conf_new();
+    auto rd_consumer_conf = rd_kafka_conf_new();
     auto global_config_errors =
       set_kafka_global_config_values_from_hash(rd_consumer_conf, kafka_global_configs);
     if (global_config_errors.size()) {
@@ -488,15 +531,33 @@ struct kafka_consumer {
       cleanup();
       throw std::runtime_error(error.c_str());
     }
+    rd_kafka_conf_set_error_cb(
+      rd_consumer_conf, +[](rd_kafka_t *rk, int err, const char *reason, void *opaque) {
+        mtevL(nlerr, "Kafka error: %s (%d): %s\n",
+              rd_kafka_err2str(static_cast<rd_kafka_resp_err_t>(err)), err, reason);
+      });
 
     rd_consumer =
       rd_kafka_new(RD_KAFKA_CONSUMER, rd_consumer_conf, error_string, error_string_size);
+    if (!rd_consumer) {
+      std::string error = "rd_kafka_new failed on consumer for host " +
+        common_fields.broker_with_port + ": error " + error_string;
+      rd_kafka_conf_destroy(rd_consumer_conf);
+      cleanup();
+      throw std::runtime_error(error.c_str());
+    }
 
     rd_consumer_topics = rd_kafka_topic_partition_list_new(common_fields.topics.size());
     for (const auto &topic : common_fields.topics) {
       rd_kafka_topic_partition_list_add(rd_consumer_topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
     }
-    rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
+    if (auto err = rd_kafka_subscribe(rd_consumer, rd_consumer_topics);
+        err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+      std::string error = "Failed to subscribe to topics for host " +
+        common_fields.broker_with_port + ": error " + rd_kafka_err2str(err);
+      cleanup();
+      throw std::runtime_error(error.c_str());
+    }
   }
   kafka_consumer() = delete;
   ~kafka_consumer() { cleanup(); }
@@ -528,12 +589,7 @@ private:
     }
     if (rd_consumer) {
       rd_kafka_unsubscribe(rd_consumer);
-    }
-    if (rd_consumer_conf) {
-      rd_kafka_conf_destroy(rd_consumer_conf);
-      rd_consumer_conf = nullptr;
-    }
-    if (rd_consumer) {
+      rd_kafka_consumer_close(rd_consumer);
       rd_kafka_destroy(rd_consumer);
       rd_consumer = nullptr;
     }
@@ -557,7 +613,6 @@ public:
   bool manual_commit_asynch{true};
   mtev_hash_table *extra_configs{nullptr};
   mtev_hash_table *kafka_global_configs{nullptr};
-  rd_kafka_conf_t *rd_consumer_conf{nullptr};
   rd_kafka_t *rd_consumer{nullptr};
   rd_kafka_topic_partition_list_t *rd_consumer_topics{nullptr};
   kafka_consumer_stats_t stats;
@@ -571,6 +626,7 @@ public:
   {
     auto make_kafka_connection = [&](connection_type_e conn_type, mtev_conf_section_t *mqs,
                                      int section_id) -> bool {
+      auto mq = mqs[section_id];
       std::string host_string = "localhost";
       int32_t port = 9092;
       std::string topic_string = "mtev_default_topic";
@@ -587,7 +643,6 @@ public:
       mtev_hash_init(kafka_global_configs);
       mtev_hash_init(kafka_topic_configs);
 
-      auto mq = mqs[section_id];
       auto entries = mtev_conf_get_hash(mq, "self::node()");
       mtev_hash_iter iter = MTEV_HASH_ITER_ZERO;
       while (mtev_hash_adv(entries, &iter)) {
@@ -658,14 +713,35 @@ public:
         }
       }
       mtev_conf_release_sections_read(topics, num_topics);
+
+      char *uuid_str = NULL;
+      uuid_t id;
+
+      if (mtev_conf_get_string(mq, "@id", &uuid_str)) {
+        if (mtev_uuid_parse(uuid_str, id)) {
+          mtevFatal(mtev_error,
+                    "Provided ID field in Kafka module config (%s) is not a valid UUID.\n",
+                    uuid_str);
+        }
+        free(uuid_str);
+      }
+      else {
+        mtev_uuid_generate(id);
+      }
+
       switch (conn_type) {
       case connection_type_e::CONSUMER: {
         try {
           auto consumer = std::make_unique<kafka_consumer>(
-            entries, topics_vector, std::move(kafka_global_configs), std::move(extra_configs));
-          mtevL(nlnotice, "Added Kafka consumer: Host %s\n",
-                consumer->common_fields.broker_with_port.c_str());
-          _consumers.push_back(std::move(consumer));
+            id, entries, topics_vector, std::move(kafka_global_configs), std::move(extra_configs));
+          auto id_str = consumer->common_fields.id_str;
+          auto broker = consumer->common_fields.broker_with_port;
+          auto result = _consumers.insert({id_str, std::move(consumer)});
+          if (!result.second) {
+            throw std::runtime_error("duplicate UUID on Kafka consumer ids (" + id_str +
+                                     "): id must be unique");
+          }
+          mtevL(nlnotice, "Added Kafka consumer: Host %s\n", broker.c_str());
         }
         catch (const std::exception &e) {
           mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
@@ -675,11 +751,16 @@ public:
       case connection_type_e::PRODUCER: {
         try {
           auto producer = std::make_unique<kafka_producer>(
-            entries, topics_vector, std::move(kafka_global_configs), std::move(kafka_topic_configs),
-            std::move(extra_configs));
-          mtevL(nlnotice, "Added Kafka producer: Host %s\n",
-                producer->common_fields.broker_with_port.c_str());
-          _producers.push_back(std::move(producer));
+            id, entries, topics_vector, std::move(kafka_global_configs),
+            std::move(kafka_topic_configs), std::move(extra_configs));
+          auto id_str = producer->common_fields.id_str;
+          auto broker = producer->common_fields.broker_with_port;
+          auto result = _producers.insert({id_str, std::move(producer)});
+          if (!result.second) {
+            throw std::runtime_error("duplicate UUID on Kafka producer ids (" + id_str +
+                                     "): id must be unique");
+          }
+          mtevL(nlnotice, "Added Kafka producer: Host %s\n", broker.c_str());
         }
         catch (const std::exception &e) {
           mtevFatal(nlerr, "EXCEPTION: %s... aborting\n", e.what());
@@ -713,6 +794,9 @@ public:
     }
     mtev_conf_release_sections_read(mqs, number_of_conns);
   }
+  // TODO: The kafka_module_config destructor should clean up all connections.
+  // This doesn't matter when the lifetime of the module is the same as the lifetime
+  // of the process, but would still be good practice.
   ~kafka_module_config() = default;
   void set_poll_timeout(const std::chrono::milliseconds poll_timeout)
   {
@@ -725,7 +809,10 @@ public:
   }
   int poll()
   {
-    for (const auto &consumer : _consumers) {
+    // We are intentionally not taking a lock here - this code is designed so that the
+    // code to purge consumers is always called *after* the poll, so everything in this
+    // loop should still be valid.
+    for (const auto &[id, consumer] : _consumers) {
       int32_t per_conn_cnt = 0;
       rd_kafka_message_t *msg = nullptr;
       while (
@@ -769,14 +856,16 @@ public:
         }
       }
     }
+    process_pending_shutdowns();
     return 0;
   }
   void publish_to_producers(const void *payload, size_t payload_len)
   {
-    for (const auto &producer : _producers) {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
+    for (const auto &[id, producer] : _producers) {
       for (const auto &individual_producer : producer->rd_topic_producers) {
-        if (!rd_kafka_produce(individual_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
-                              const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) == 0) {
+        if (rd_kafka_produce(individual_producer, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY,
+                             const_cast<void *>(payload), payload_len, nullptr, 0, nullptr) != 0) {
           mtevL(nlerr, "%s: Error producing message (send): %s\n", __func__,
                 rd_kafka_err2str(rd_kafka_last_error()));
           producer->stats.errors++;
@@ -786,29 +875,327 @@ public:
   }
   void poll_producers()
   {
-    for (const auto &producer : _producers) {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
+    for (const auto &[id, producer] : _producers) {
       rd_kafka_poll(producer->rd_producer, 10);
     }
   }
-  int get_num_producers() { return _producers.size(); }
+  int get_num_producers()
+  {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
+    return _producers.size();
+  }
   int32_t get_producer_poll_interval() { return _producer_poll_interval_ms; }
   int show_console(const mtev_console_closure_t &ncct)
   {
-    for (const auto &producer : _producers) {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
+    for (const auto &[id, producer] : _producers) {
       producer->write_to_console(ncct);
     }
-    for (const auto &consumer : _consumers) {
+    for (const auto &[id, consumer] : _consumers) {
       consumer->write_to_console(ncct);
     }
     return 0;
   }
+  bool enqueue_close_producer_request(const uuid_t id,
+                                      mtev_kafka_shutdown_callback_t callback,
+                                      void *closure)
+  {
+    char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+    mtev_uuid_unparse_lower(id, uuid_str);
+
+    std::lock_guard<std::mutex> lock(_shutdown_mutex);
+
+    if (_producers.find(uuid_str) == _producers.end()) {
+      return false;
+    }
+    _pending_shutdowns.push_back({shutdown_request::PRODUCER, uuid_str, callback, closure});
+
+    return true;
+  }
+
+  bool enqueue_close_consumer_request(const uuid_t id,
+                                      mtev_kafka_shutdown_callback_t callback,
+                                      void *closure)
+  {
+    char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+    mtev_uuid_unparse_lower(id, uuid_str);
+
+    std::lock_guard<std::mutex> lock(_shutdown_mutex);
+
+    if (_consumers.find(uuid_str) == _consumers.end()) {
+      return false;
+    }
+    _pending_shutdowns.push_back({shutdown_request::CONSUMER, uuid_str, callback, closure});
+
+    return true;
+  }
+
+  void enqueue_shut_down_requests(mtev_kafka_shutdown_callback_t callback, void *closure)
+  {
+    struct failure_info {
+      uuid_t id;
+      std::string error_msg;
+      failure_info(const uuid_t src_id, const std::string &msg) : error_msg(msg)
+      {
+        mtev_uuid_copy(id, src_id);
+      }
+    };
+
+    struct shut_down_context {
+      std::atomic<int> pending_count;
+      std::atomic<int> success_count{0};
+      std::atomic<int> failure_count{0};
+      std::vector<failure_info> failures;
+      std::mutex failures_mutex;
+      mtev_kafka_shutdown_callback_t original_callback;
+      void *original_closure;
+    };
+
+    auto ctx = new shut_down_context;
+    ctx->original_callback = callback;
+    ctx->original_closure = closure;
+
+    std::lock_guard<std::mutex> lock(_shutdown_mutex);
+    ctx->pending_count = _producers.size() + _consumers.size();
+
+    if (ctx->pending_count == 0) {
+      uuid_t null_id;
+      mtev_uuid_clear(null_id);
+      if (callback) {
+        callback(closure, null_id, mtev_true, nullptr);
+      }
+      delete ctx;
+      return;
+    }
+
+    auto wrapper_callback = [](void *closure, const uuid_t id, mtev_boolean success,
+                               const char *error) {
+      auto ctx = static_cast<shut_down_context *>(closure);
+
+      if (success) {
+        ctx->success_count++;
+      }
+      else {
+        ctx->failure_count++;
+        std::lock_guard<std::mutex> lock(ctx->failures_mutex);
+        ctx->failures.emplace_back(id, error ? error : "unknown error");
+      }
+
+      if (--ctx->pending_count == 0) {
+        uuid_t null_id;
+        mtev_uuid_clear(null_id);
+
+        mtev_boolean overall_success = (ctx->failure_count == 0) ? mtev_true : mtev_false;
+
+        std::string error_msg;
+        if (ctx->failure_count > 0) {
+          error_msg = "Shutdown completed with " + std::to_string(ctx->success_count) +
+            " successes and " + std::to_string(ctx->failure_count) + " failures";
+
+          if (!ctx->failures.empty()) {
+            error_msg += ". Failed connections: ";
+            for (size_t i = 0; i < ctx->failures.size(); ++i) {
+              char uuid_str[UUID_PRINTABLE_STRING_LENGTH];
+              mtev_uuid_unparse_lower(ctx->failures[i].id, uuid_str);
+              if (i > 0)
+                error_msg += ", ";
+              error_msg += uuid_str;
+              error_msg += " (" + ctx->failures[i].error_msg + ")";
+            }
+          }
+        }
+
+        if (ctx->original_callback) {
+          ctx->original_callback(ctx->original_closure, null_id, overall_success,
+                                 error_msg.empty() ? nullptr : error_msg.c_str());
+        }
+        delete ctx;
+      }
+    };
+
+    for (const auto &[id_str, producer] : _producers) {
+      _pending_shutdowns.push_back({shutdown_request::PRODUCER, id_str, wrapper_callback, ctx});
+    }
+
+    for (const auto &[id_str, consumer] : _consumers) {
+      _pending_shutdowns.push_back({shutdown_request::CONSUMER, id_str, wrapper_callback, ctx});
+    }
+  }
+
+  mtev_kafka_connection_list_t *get_producer_list() const
+  {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
+    auto list = (mtev_kafka_connection_list_t *) calloc(1, sizeof(mtev_kafka_connection_list_t));
+    list->count = _producers.size();
+
+    if (list->count > 0) {
+      list->connections =
+        (mtev_kafka_connection_info_t *) calloc(list->count, sizeof(mtev_kafka_connection_info_t));
+      size_t idx = 0;
+      for (const auto &[id_str, producer] : _producers) {
+        auto &info = list->connections[idx++];
+        info.connection_type = MTEV_KAFKA_CONNECTION_TYPE_PRODUCER;
+        mtev_uuid_copy(info.id, producer->common_fields.id);
+        info.host = strdup(producer->common_fields.host.c_str());
+        info.port = producer->common_fields.port;
+        if (producer->common_fields.topics.size() > 0) {
+          info.topics =
+            static_cast<char **>(calloc(producer->common_fields.topics.size(), sizeof(char *)));
+        }
+        size_t topic_counter = 0;
+        for (const auto &topic : producer->common_fields.topics) {
+          info.topics[topic_counter++] = strdup(topic.c_str());
+        }
+        info.topic_count = producer->common_fields.topics.size();
+      }
+    }
+    return list;
+  }
+
+  mtev_kafka_connection_list_t *get_consumer_list() const
+  {
+    std::shared_lock<std::shared_mutex> lock(_list_mtx);
+    auto list = (mtev_kafka_connection_list_t *) calloc(1, sizeof(mtev_kafka_connection_list_t));
+    list->count = _consumers.size();
+
+    if (list->count > 0) {
+      list->connections =
+        (mtev_kafka_connection_info_t *) calloc(list->count, sizeof(mtev_kafka_connection_info_t));
+      size_t idx = 0;
+      for (const auto &[id_str, consumer] : _consumers) {
+        auto &info = list->connections[idx++];
+        info.connection_type = MTEV_KAFKA_CONNECTION_TYPE_CONSUMER;
+        mtev_uuid_copy(info.id, consumer->common_fields.id);
+        info.host = strdup(consumer->common_fields.host.c_str());
+        info.port = consumer->common_fields.port;
+        if (consumer->common_fields.topics.size() > 0) {
+          info.topics =
+            static_cast<char **>(calloc(consumer->common_fields.topics.size(), sizeof(char *)));
+        }
+        size_t topic_counter = 0;
+        for (const auto &topic : consumer->common_fields.topics) {
+          info.topics[topic_counter++] = strdup(topic.c_str());
+        }
+        info.topic_count = consumer->common_fields.topics.size();
+      }
+    }
+    return list;
+  }
 
 private:
-  std::vector<std::unique_ptr<kafka_consumer>> _consumers;
-  std::vector<std::unique_ptr<kafka_producer>> _producers;
+  void process_pending_shutdowns()
+  {
+    std::vector<shutdown_request> to_process;
+    {
+      std::lock_guard<std::mutex> lock(_shutdown_mutex);
+      if (_pending_shutdowns.empty()) {
+        return;
+      }
+      to_process.swap(_pending_shutdowns);
+    }
+    {
+      std::unique_lock<std::shared_mutex> lock(_list_mtx);
+      for (const auto &req : to_process) {
+        if (req.type == shutdown_request::PRODUCER) {
+          if (auto it = _producers.find(req.id); it != _producers.end()) {
+            schedule_producer_cleanup(std::move(it->second), req.callback, req.closure);
+            _producers.erase(it);
+          }
+        }
+        else {
+          if (auto it = _consumers.find(req.id); it != _consumers.end()) {
+            schedule_consumer_cleanup(std::move(it->second), req.callback, req.closure);
+            _consumers.erase(it);
+          }
+        }
+      }
+    }
+  }
+
+  void schedule_producer_cleanup(std::unique_ptr<kafka_producer> producer,
+                                 mtev_kafka_shutdown_callback_t callback,
+                                 void *closure)
+  {
+    struct cleanup_context {
+      std::unique_ptr<kafka_producer> producer;
+      mtev_kafka_shutdown_callback_t callback;
+      void *closure;
+      uuid_t id;
+    };
+
+    auto ctx = new cleanup_context{std::move(producer), callback, closure};
+    mtev_uuid_copy(ctx->id, ctx->producer->common_fields.id);
+
+    eventer_t e = eventer_alloc_asynch(
+      +[](eventer_t e, int mask, void *c, struct timeval *now) -> int {
+        auto ctx = static_cast<cleanup_context *>(c);
+
+        if (mask == EVENTER_ASYNCH_WORK) {
+          // Setting this to nullptr triggers the destructor for the producer, which
+          // closes the connection and does the cleanup.
+          ctx->producer = nullptr;
+        }
+
+        if (mask == EVENTER_ASYNCH_CLEANUP) {
+          if (ctx->callback) {
+            ctx->callback(ctx->closure, ctx->id, mtev_true, nullptr);
+          }
+          delete ctx;
+        }
+
+        return 0;
+      },
+      ctx);
+
+    eventer_add_asynch(kafka_shutdown_jobq, e);
+  }
+
+  void schedule_consumer_cleanup(std::unique_ptr<kafka_consumer> consumer,
+                                 mtev_kafka_shutdown_callback_t callback,
+                                 void *closure)
+  {
+    struct cleanup_context {
+      std::unique_ptr<kafka_consumer> consumer;
+      mtev_kafka_shutdown_callback_t callback;
+      void *closure;
+      uuid_t id;
+    };
+
+    auto ctx = new cleanup_context{std::move(consumer), callback, closure};
+    mtev_uuid_copy(ctx->id, ctx->consumer->common_fields.id);
+
+    eventer_t e = eventer_alloc_asynch(
+      +[](eventer_t e, int mask, void *c, struct timeval *now) -> int {
+        auto ctx = static_cast<cleanup_context *>(c);
+
+        if (mask == EVENTER_ASYNCH_WORK) {
+          // Setting this to nullptr triggers the destructor for the consumer, which
+          // closes the connection and does the cleanup.
+          ctx->consumer = nullptr;
+        }
+
+        if (mask == EVENTER_ASYNCH_CLEANUP) {
+          if (ctx->callback) {
+            ctx->callback(ctx->closure, ctx->id, mtev_true, nullptr);
+          }
+          delete ctx;
+        }
+        return 0;
+      },
+      ctx);
+
+    eventer_add_asynch(kafka_shutdown_jobq, e);
+  }
+
+  std::map<std::string, std::unique_ptr<kafka_consumer>> _consumers;
+  std::map<std::string, std::unique_ptr<kafka_producer>> _producers;
   std::chrono::milliseconds _poll_timeout;
   int32_t _poll_limit;
   int64_t _producer_poll_interval_ms;
+  std::mutex _shutdown_mutex;
+  std::vector<shutdown_request> _pending_shutdowns;
+  mutable std::shared_mutex _list_mtx;
 };
 
 static kafka_module_config *the_conf = nullptr;
@@ -831,11 +1218,139 @@ static kafka_module_config *get_or_load_config(mtev_dso_generic_t *self)
 // an extern "C" block so their names don't get mangled, otherwise the
 // runtime resolution will fail
 extern "C" {
+
+mtev_kafka_connection_type_e
+  mtev_kafka_connection_info_get_type_function(const mtev_kafka_connection_info_t *info)
+{
+  return info ? info->connection_type : MTEV_KAFKA_CONNECTION_TYPE_INVALID;
+}
+
+int mtev_kafka_connection_info_get_id_function(const mtev_kafka_connection_info_t *info,
+                                               uuid_t out_id)
+{
+  if (info) {
+    mtev_uuid_copy(out_id, info->id);
+    return 0;
+  }
+  mtev_uuid_clear(out_id);
+  return -1;
+}
+
+const char *mtev_kafka_connection_info_get_host_function(const mtev_kafka_connection_info_t *info)
+{
+  return info ? info->host : nullptr;
+}
+
+int32_t mtev_kafka_connection_info_get_port_function(const mtev_kafka_connection_info_t *info)
+{
+  return info ? info->port : -1;
+}
+
+ssize_t
+  mtev_kafka_connection_info_get_topic_count_function(const mtev_kafka_connection_info_t *info)
+{
+  return info ? info->topic_count : -1;
+}
+
+const char *mtev_kafka_connection_info_get_topic_function(const mtev_kafka_connection_info_t *info,
+                                                          size_t index)
+{
+  if (!info || index >= info->topic_count) {
+    return nullptr;
+  }
+  return info->topics[index];
+}
+
+/* Accessor functions for mtev_kafka_connection_list_t */
+ssize_t mtev_kafka_connection_list_get_count_function(const mtev_kafka_connection_list_t *list)
+{
+  return list ? list->count : -1;
+}
+
+const mtev_kafka_connection_info_t *
+  mtev_kafka_connection_list_get_connection_function(const mtev_kafka_connection_list_t *list,
+                                                     size_t index)
+{
+  if (!list || index >= list->count) {
+    return nullptr;
+  }
+  return &list->connections[index];
+}
+
+void mtev_kafka_connection_list_free_function(mtev_kafka_connection_list_t *list)
+{
+  if (!list) {
+    return;
+  }
+  for (size_t i = 0; i < list->count; i++) {
+    auto &item = list->connections[i];
+    free(item.host);
+    for (size_t j = 0; j < item.topic_count; j++) {
+      free(item.topics[j]);
+    }
+    free(item.topics);
+  }
+  free(list->connections);
+  free(list);
+}
+
 void mtev_kafka_broadcast_function(const void *payload, size_t payload_len)
 {
   if (the_conf) {
     the_conf->publish_to_producers(payload, payload_len);
   }
+}
+
+mtev_kafka_connection_list_t *mtev_kafka_get_consumer_list_function()
+{
+  mtev_kafka_connection_list_t *connections = nullptr;
+  if (the_conf) {
+    connections = the_conf->get_consumer_list();
+  }
+  return connections;
+}
+
+mtev_kafka_connection_list_t *mtev_kafka_get_producer_list_function()
+{
+  mtev_kafka_connection_list_t *connections = nullptr;
+  if (the_conf) {
+    connections = the_conf->get_producer_list();
+  }
+  return connections;
+}
+
+mtev_boolean mtev_kafka_close_producer_function(const uuid_t id,
+                                                mtev_kafka_shutdown_callback_t callback,
+                                                void *closure)
+{
+  if (!the_conf) {
+    return mtev_false;
+  }
+  return the_conf->enqueue_close_producer_request(id, callback, closure) ? mtev_true : mtev_false;
+}
+
+mtev_boolean mtev_kafka_close_consumer_function(const uuid_t id,
+                                                mtev_kafka_shutdown_callback_t callback,
+                                                void *closure)
+{
+  if (!the_conf) {
+    return mtev_false;
+  }
+  return the_conf->enqueue_close_consumer_request(id, callback, closure) ? mtev_true : mtev_false;
+}
+
+void mtev_kafka_shut_down_function(mtev_kafka_shutdown_callback_t callback, void *closure)
+{
+  if (!the_conf) {
+    uuid_t null_id;
+    mtev_uuid_clear(null_id);
+    if (callback) {
+      callback(closure, null_id, mtev_true, nullptr);
+    }
+    return;
+  }
+
+  the_conf->enqueue_shut_down_requests(callback, closure);
 }
 }
 
@@ -881,7 +1396,7 @@ static int kafka_driver_config(mtev_dso_generic_t *img, mtev_hash_table *options
     else if (!strcmp("poll_limit", iter.key.str)) {
       auto poll_limit = atoi(iter.value.str);
       if (poll_limit < 0) {
-        poll_limit = DEFAULT_POLL_TIMEOUT_MS;
+        poll_limit = DEFAULT_POLL_LIMIT;
       }
       auto config = get_or_load_config(img);
       config->set_poll_limit(poll_limit);
@@ -936,6 +1451,10 @@ static int kafka_driver_init(mtev_dso_generic_t *img)
   nlerr = mtev_log_stream_find("error/kafka");
   nldeb = mtev_log_stream_find("debug/kafka");
   nlnotice = mtev_log_stream_find("notice/kafka");
+
+  kafka_shutdown_jobq = eventer_jobq_create("kafka_shutdown");
+  eventer_jobq_set_concurrency(kafka_shutdown_jobq, 1);
+
   auto config = get_or_load_config(img);
   mtev_register_logops("kafka", &kafka_logio_ops);
 

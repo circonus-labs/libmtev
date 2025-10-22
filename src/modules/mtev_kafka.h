@@ -58,7 +58,7 @@
  *   </out>
  * </network>
  *
- * The <in> stanza will contain all consumers. The <out> standza will contain all producers.
+ * The <in> stanza will contain all consumers. The <out> stanza will contain all producers.
  * Multiple mq stanzas can be defined for each.
  *
  * The individual fields for each config are:
@@ -79,7 +79,7 @@
  * `bootstrap.servers`: Use `host` and `port`.
  * `group.id`: Use `consumer_group`.
  * <rdkafka_topic_config_setting_*> allows setting topic configuration properties on Kafka
- * producers. Start the XML element with `rdkafka_global_topic_setting_`, then fill in the
+ * producers. Start the XML element with `rdkafka_topic_config_setting_`, then fill in the
  * parameter you wish to set.
  */
 
@@ -89,6 +89,7 @@
 #include "mtev_defines.h"
 #include "mtev_hooks.h"
 #include "mtev_log.h"
+#include "mtev_uuid.h"
 
 #include <ck_pr.h>
 
@@ -99,6 +100,17 @@ typedef void rd_kafka_message_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum {
+  MTEV_KAFKA_CONNECTION_TYPE_PRODUCER = 0,
+  MTEV_KAFKA_CONNECTION_TYPE_CONSUMER,
+  MTEV_KAFKA_CONNECTION_TYPE_INVALID
+} mtev_kafka_connection_type_e;
+
+typedef void (*mtev_kafka_shutdown_callback_t)(void *closure,
+                                               const uuid_t id,
+                                               mtev_boolean success,
+                                               const char *error);
 
 typedef struct mtev_rd_kafka_message {
   rd_kafka_message_t *msg;
@@ -114,6 +126,144 @@ typedef struct mtev_rd_kafka_message {
   const mtev_hash_table *extra_configs;
   void (*free_fn)(struct mtev_rd_kafka_message *m);
 } mtev_rd_kafka_message_t;
+
+typedef struct mtev_kafka_connection_info mtev_kafka_connection_info_t;
+typedef struct mtev_kafka_connection_list mtev_kafka_connection_list_t;
+
+// clang-format off
+/*! \fn mtev_kafka_connection_type_e mtev_kafka_connection_info_get_type(const mtev_kafka_connection_info_t *info)
+    \brief Get the connection type from a Kafka connection info structure.
+    \param info The connection info structure to query.
+    \return The connection type, or MTEV_KAFKA_CONNECTION_TYPE_INVALID if info is NULL.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_type,
+                     mtev_kafka_connection_info_get_type_function,
+                     mtev_kafka_connection_type_e,
+                     (const mtev_kafka_connection_info_t *info),
+                     (info))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_type,
+                   mtev_kafka_connection_info_get_type_function)
+
+// clang-format off
+/*! \fn void mtev_kafka_connection_info_get_id(const mtev_kafka_connection_info_t *info, uuid_t out_id)
+    \brief Get the UUID of a Kafka connection.
+    \param info The connection info structure to query.
+    \param out_id Output parameter where the UUID will be copied.
+    \return 0 if the call was successful, or -1 if info is NULL.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_id,
+                     mtev_kafka_connection_info_get_id_function,
+                     int,
+                     (const mtev_kafka_connection_info_t *info, uuid_t out_id),
+                     (info, out_id))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_id, mtev_kafka_connection_info_get_id_function)
+
+// clang-format off
+/*! \fn const char *mtev_kafka_connection_info_get_host(const mtev_kafka_connection_info_t *info)
+    \brief Get the host name of a Kafka connection.
+    \param info The connection info structure to query.
+    \return The host name string, or NULL if info is NULL.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_host,
+                     mtev_kafka_connection_info_get_host_function,
+                     const char *,
+                     (const mtev_kafka_connection_info_t *info),
+                     (info))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_host,
+                   mtev_kafka_connection_info_get_host_function)
+
+// clang-format off
+/*! \fn int32_t mtev_kafka_connection_info_get_port(const mtev_kafka_connection_info_t *info)
+    \brief Get the port number of a Kafka connection.
+    \param info The connection info structure to query.
+    \return The port number, or -1 if info is NULL.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_port,
+                     mtev_kafka_connection_info_get_port_function,
+                     int32_t,
+                     (const mtev_kafka_connection_info_t *info),
+                     (info))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_port,
+                   mtev_kafka_connection_info_get_port_function)
+
+// clang-format off
+/*! \fn size_t mtev_kafka_connection_info_get_topic_count(const mtev_kafka_connection_info_t *info)
+    \brief Get the number of topics associated with a Kafka connection.
+    \param info The connection info structure to query.
+    \return The number of topics, or 0 if info is NULL.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_topic_count,
+                     mtev_kafka_connection_info_get_topic_count_function,
+                     ssize_t,
+                     (const mtev_kafka_connection_info_t *info),
+                     (info))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_topic_count,
+                   mtev_kafka_connection_info_get_topic_count_function)
+
+// clang-format off
+/*! \fn const char *mtev_kafka_connection_info_get_topic(const mtev_kafka_connection_info_t *info, size_t index)
+    \brief Get a specific topic name from a Kafka connection.
+    \param info The connection info structure to query.
+    \param index The index of the topic to retrieve (0-based).
+    \return The topic name string, or NULL if info is NULL or index is out of bounds.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_info_get_topic,
+                     mtev_kafka_connection_info_get_topic_function,
+                     const char *,
+                     (const mtev_kafka_connection_info_t *info, size_t index),
+                     (info, index))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_info_get_topic,
+                   mtev_kafka_connection_info_get_topic_function)
+
+// clang-format off
+/*! \fn size_t mtev_kafka_connection_list_get_count(const mtev_kafka_connection_list_t *list)
+    \brief Get the number of connections in a Kafka connection list.
+    \param list The connection list to query.
+    \return The number of connections in the list, or -1 if list is NULL.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_get_count,
+                     mtev_kafka_connection_list_get_count_function,
+                     ssize_t,
+                     (const mtev_kafka_connection_list_t *list),
+                     (list))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_list_get_count,
+                   mtev_kafka_connection_list_get_count_function)
+
+// clang-format off
+/*! \fn const mtev_kafka_connection_info_t *mtev_kafka_connection_list_get_connection(const mtev_kafka_connection_list_t *list, size_t index)
+    \brief Get a specific connection from a Kafka connection list.
+    \param list The connection list to query.
+    \param index The index of the connection to retrieve (0-based).
+    \return A pointer to the connection info structure, or NULL if list is NULL or index is out of bounds.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_get_connection,
+                     mtev_kafka_connection_list_get_connection_function,
+                     const mtev_kafka_connection_info_t *,
+                     (const mtev_kafka_connection_list_t *list, size_t index),
+                     (list, index))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_list_get_connection,
+                   mtev_kafka_connection_list_get_connection_function)
+
+// clang-format off
+/*! \fn void mtev_kafka_connection_list_free(mtev_kafka_connection_list_t *list)
+    \brief Free a Kafka connection list and all associated memory.
+    \param list The connection list to free.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_connection_list_free,
+                     mtev_kafka_connection_list_free_function,
+                     void,
+                     (mtev_kafka_connection_list_t * list),
+                     (list))
+MTEV_RUNTIME_AVAIL(mtev_kafka_connection_list_free, mtev_kafka_connection_list_free_function)
 
 static inline void mtev_rd_kafka_message_ref(mtev_rd_kafka_message_t *msg)
 {
@@ -132,7 +282,7 @@ static inline void mtev_rd_kafka_message_deref(mtev_rd_kafka_message_t *msg)
 }
 
 /*! \fn void mtev_kafka_broadcast(const void *payload, size_t payload_len)
-    \brief Publish a Kafka message to all conifigurd Kafka publishers.
+    \brief Publish a Kafka message to all configured Kafka publishers.
     \param payload The payload to publish.
     \param payload_len The size of the payload.
  */
@@ -142,6 +292,72 @@ MTEV_RUNTIME_RESOLVE(mtev_kafka_broadcast,
                      (const void *payload, size_t payload_len),
                      (payload, payload_len))
 MTEV_RUNTIME_AVAIL(mtev_kafka_broadcast, mtev_kafka_broadcast_function)
+
+/*! \fn mtev_kafka_connection_list_t *mtev_kafka_get_producer_list(void)
+    \brief Get a list of all active Kafka producers.
+    \return A list of producers in a mtev_kafka_connection_list_t struct.
+ */
+MTEV_RUNTIME_RESOLVE(mtev_kafka_get_producer_list,
+                     mtev_kafka_get_producer_list_function,
+                     mtev_kafka_connection_list_t *,
+                     (),
+                     ())
+MTEV_RUNTIME_AVAIL(mtev_kafka_get_producer_list, mtev_kafka_get_producer_list_function)
+
+/*! \fn mtev_kafka_connection_list_t *mtev_kafka_get_consumer_list(void)
+    \brief Get a list of all active Kafka consumers.
+    \return A list of consumers in a mtev_kafka_connection_list_t struct.
+ */
+MTEV_RUNTIME_RESOLVE(mtev_kafka_get_consumer_list,
+                     mtev_kafka_get_consumer_list_function,
+                     mtev_kafka_connection_list_t *,
+                     (),
+                     ())
+MTEV_RUNTIME_AVAIL(mtev_kafka_get_consumer_list, mtev_kafka_get_consumer_list_function)
+
+// clang-format off
+/*! \fn mtev_boolean mtev_kafka_close_producer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
+    \brief Enqueues a request to shut down the producer with the given uuid
+    \param id The UUID of the producer to shut down.
+    \param callback The callback function that will get called when the connection is closed.
+    \param closure A closure containing user data.
+    \return mtev_true if the connection was enqueued to be shut down, mtev_false otherwise.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_close_producer,
+                     mtev_kafka_close_producer_function,
+                     mtev_boolean,
+                     (const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure),
+                     (id, callback, closure))
+MTEV_RUNTIME_AVAIL(mtev_kafka_close_producer, mtev_kafka_close_producer_function)
+
+// clang-format off
+/*! \fn mtev_boolean mtev_kafka_close_consumer(const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure)
+    \brief Enqueues a request to shut down the consumer with the given uuid
+    \param id The UUID of the consumer to shut down.
+    \param callback The callback function that will get called when the connection is closed.
+    \param closure A closure containing user data.
+    \return mtev_true if the connection was enqueued to be shut down, mtev_false otherwise.
+ */
+// clang-format on
+MTEV_RUNTIME_RESOLVE(mtev_kafka_close_consumer,
+                     mtev_kafka_close_consumer_function,
+                     mtev_boolean,
+                     (const uuid_t id, mtev_kafka_shutdown_callback_t callback, void *closure),
+                     (id, callback, closure))
+MTEV_RUNTIME_AVAIL(mtev_kafka_close_consumer, mtev_kafka_close_consumer_function)
+
+/*! \fn void mtev_kafka_shut_down(mtev_kafka_shutdown_callback_t callback, void *closure)
+    \brief Shuts down all Kafka connections.
+    \param callback The callback function that will get called when all connections are closed.
+    \param closure A closure containing user data.
+ */
+MTEV_RUNTIME_RESOLVE(mtev_kafka_shut_down,
+                     mtev_kafka_shut_down_function,
+                     void,
+                     (mtev_kafka_shutdown_callback_t callback, void *closure),
+                     (callback, closure))
+MTEV_RUNTIME_AVAIL(mtev_kafka_shut_down, mtev_kafka_shut_down_function)
 
 MTEV_HOOK_PROTO(mtev_kafka_handle_message_dyn,
                 (mtev_rd_kafka_message_t * msg),
