@@ -4,6 +4,16 @@
 
 ## 2.7
 
+### 2.7.11
+
+ * Fix some small bugs in the kafka module.
+ * Allow disconnecting individual kafka consumers or
+   producers, or shutting down all of them at once.
+ * Allow fetching a list of kafka connections.
+ * Add unique UUID ids to kafka connections.
+ * Update kafka module to allow configuring multiple topics
+   per producer or consumer.
+
 ### 2.7.10
 
  * Update kafka module to allow toggling automatic message
